@@ -333,8 +333,9 @@ def _dca_controls():
             dcc.Checklist(id="dca-toggles",
                           options=[{"label":" Log Y","value":"log_y"},
                                    {"label":" Show today","value":"show_today"},
-                                   {"label":" Dual Y-axis","value":"dual_y"}],
-                          value=[], labelStyle={"display":"block"},
+                                   {"label":" Dual Y-axis","value":"dual_y"},
+                                   {"label":" Show legend","value":"show_legend"}],
+                          value=["show_legend"], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
         _ctrl_card(
@@ -401,8 +402,9 @@ def _retire_controls():
                           options=[{"label":" Log Y","value":"log_y"},
                                    {"label":" Show today","value":"show_today"},
                                    {"label":" Dual Y-axis","value":"dual_y"},
-                                   {"label":" Annotate depletion","value":"annotate"}],
-                          value=["annotate"], labelStyle={"display":"block"},
+                                   {"label":" Annotate depletion","value":"annotate"},
+                                   {"label":" Show legend","value":"show_legend"}],
+                          value=["annotate","show_legend"], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
         _ctrl_card(
@@ -682,6 +684,7 @@ def update_dca(stack, use_lots, amount, freq, yr_range, disp, toggles, sel_qs, l
         log_y        = "log_y"     in toggles,
         show_today   = "show_today" in toggles,
         dual_y       = "dual_y"    in toggles,
+        show_legend  = "show_legend" in toggles,
         selected_qs  = sel_qs or [],
         lots         = lots_data or [],
     ))
@@ -716,6 +719,7 @@ def update_retire(stack, use_lots, wd, freq, yr_range, infl, disp, toggles, sel_
         show_today   = "show_today" in toggles,
         dual_y       = "dual_y"    in toggles,
         annotate     = "annotate"  in toggles,
+        show_legend  = "show_legend" in toggles,
         selected_qs  = sel_qs or [],
         lots         = lots_data or [],
     ))

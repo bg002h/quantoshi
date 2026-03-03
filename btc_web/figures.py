@@ -601,6 +601,7 @@ def build_dca_figure(m, p):
             if p.get("log_y"):
                 layout["yaxis2"]["type"] = "log"
 
+    layout["showlegend"] = bool(p.get("show_legend", True))
     return go.Figure(data=traces, layout=go.Layout(**layout))
 
 
@@ -750,4 +751,5 @@ def build_retire_figure(m, p):
             if p.get("log_y"):
                 layout["yaxis2"]["type"] = "log"
 
+    layout["showlegend"] = bool(p.get("show_legend", True))
     return go.Figure(data=traces, layout=go.Layout(**layout))

@@ -228,10 +228,10 @@ def _heatmap_controls():
                            value=0, labelStyle={"display":"block"},
                            inputStyle={"marginRight":"5px"}),
             _lbl("Break 1 (CAGR %)"),
-            dbc.Input(id="hm-b1", type="number", value=M.CAGR_SEG_B1,
+            dbc.Input(id="hm-b1", type="number", value=0,
                       step=1, size="sm"),
             _lbl("Break 2 (CAGR %)"),
-            dbc.Input(id="hm-b2", type="number", value=M.CAGR_SEG_B2,
+            dbc.Input(id="hm-b2", type="number", value=20,
                       step=1, size="sm"),
             _row(
                 html.Div([_lbl("Lo"), dbc.Input(id="hm-c-lo", type="color",
@@ -244,7 +244,7 @@ def _heatmap_controls():
                            value=M.CAGR_SEG_C_HI, style={"height":"28px"})]),
             ),
             _lbl("Gradient steps"),
-            dbc.Input(id="hm-grad", type="number", value=M.CAGR_GRAD_STEPS,
+            dbc.Input(id="hm-grad", type="number", value=32,
                       min=2, max=64, step=1, size="sm"),
         ),
         _ctrl_card(

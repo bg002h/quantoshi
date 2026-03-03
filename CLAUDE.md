@@ -183,7 +183,7 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | Bubble | Q5% only, X scale=Log, N future bubbles=3, shade+show_data+show_today+show_legend on |
 | Heatmap | Break1=0%, Break2=20%, Gradient Steps=32 |
 | DCA | dual_y+show_legend on |
-| Retire | year range 2031–2075, inflation=4%, log_y+dual_y+annotate on |
+| Retire | year slider min=2024, default range 2031–2075, inflation=4%, log_y+dual_y+annotate on |
 | Stack Tracker | default lot Price=$69,420 |
 
 ### State and privacy
@@ -192,7 +192,7 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 - Chart callbacks use `effective-lots` store (routes to snapshot lots or localStorage lots).
 
 ### Snapshot / Share feature
-- `📸 Share` button → modal → **Generate link** encodes all 47 control states + optional lots as gzip+base64 in URL hash (`#q1:...`).
+- `📸 Share` button → modal → **Generate link** encodes all 47 control states + optional lots as gzip+base64 in URL hash (`#q2:...` current format; `#q1:...` legacy format still decoded for backward compat).
 - `_SNAPSHOT_CONTROLS` in `app.py` — list of 47 `(component_id, property)` tuples defining what gets captured.
 - `restore_from_url` callback (`prevent_initial_call=False`) decodes hash on page load → restores all controls.
 - Snapshot lots override localStorage; "Restore my lots" button reverts.

@@ -473,7 +473,7 @@ def _stack_tracker_tab():
                     dbc.Input(id="lot-btc", type="number", value=0.01,
                               min=0, step=0.0001, size="sm"),
                     _lbl("Price ($/BTC)"),
-                    dbc.Input(id="lot-price", type="number", value=0,
+                    dbc.Input(id="lot-price", type="number", value=69420,
                               min=0, step=1, size="sm"),
                     _lbl("Notes"),
                     dbc.Input(id="lot-notes", type="text", value="", size="sm"),

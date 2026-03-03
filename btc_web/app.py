@@ -517,6 +517,21 @@ _FAQ = [
         ),
     },
     {
+        "q": "What is quantile regression?",
+        "a": (
+            "Ordinary regression finds the line that best fits the average of your data. "
+            "Quantile regression does something more powerful: it fits a separate line for any "
+            "percentile you choose. The 50th percentile line (the median) splits the data in half "
+            "— as many points above as below. The 5th percentile line fits the bottom 5% of the "
+            "data, and the 95th fits the top 5%. On Quantoshi, quantile regression is applied to "
+            "the historical log-log relationship between time and Bitcoin price, giving you a "
+            "family of curves that describe not just where Bitcoin has typically been, but how "
+            "extreme the highs and lows have historically gotten. The percentile of your purchase "
+            "price tells you how cheap or expensive that entry was relative to all historical "
+            "prices at that point in Bitcoin's life."
+        ),
+    },
+    {
         "q": "Why do some high-percentile extrapolated quantile projections cross in the future?",
         "a": (
             "When a higher-percentile line crosses a lower one (or vice versa), it indicates "
@@ -674,13 +689,19 @@ app.layout = dbc.Container([
                 dbc.Col(dbc.NavbarBrand("Quantoshi", className="ms-2 fw-bold fs-4"),
                         width="auto"),
                 dbc.Col(
-                    html.A(
-                        "🧅 Tor onion",
-                        href="http://u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion",
-                        target="_blank",
-                        rel="noopener noreferrer",
-                        className="text-white-50 small text-decoration-none",
-                    ),
+                    html.Div([
+                        html.A(
+                            "🧅 Tor onion",
+                            href="http://u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion",
+                            target="_blank",
+                            rel="noopener noreferrer",
+                            className="text-white-50 small text-decoration-none",
+                        ),
+                        html.Div("▲ Stay dark, Anon",
+                                 style={"fontSize":"9px", "color":"rgba(255,255,255,0.4)",
+                                        "whiteSpace":"nowrap", "textAlign":"center",
+                                        "marginTop":"1px"}),
+                    ]),
                     className="ms-auto",
                     width="auto",
                 ),

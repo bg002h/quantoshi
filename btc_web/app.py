@@ -686,7 +686,8 @@ app.layout = dbc.Container([
             dbc.Row([
                 dbc.Col(html.Img(src="/assets/quantoshi_logo.png", height="40px"),
                         width="auto"),
-                dbc.Col(dbc.NavbarBrand("Quantoshi", className="ms-2 fw-bold fs-4"),
+                dbc.Col(dbc.NavbarBrand("Quantoshi", className="ms-2 fw-bold fs-4",
+                                        style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif"}),
                         width="auto"),
                 dbc.Col(
                     html.Div([

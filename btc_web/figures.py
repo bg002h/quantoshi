@@ -295,6 +295,7 @@ def build_bubble_figure(m, p):
             range=[math.log10(max(t_lo, 1e-10)), math.log10(max(t_hi, 1e-10))],
         )
 
+    layout["showlegend"] = bool(p.get("show_legend", True))
     layout["shapes"] = shapes
 
     if stack > 0:

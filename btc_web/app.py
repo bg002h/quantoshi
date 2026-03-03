@@ -26,12 +26,15 @@ for _p in (_ROOT, _BTC_APP):
         sys.path.insert(0, str(_p))
 
 import json
+import gzip
+import base64
 import pandas as pd
 import plotly.graph_objects as go
 
 import dash
-from dash import dcc, html, dash_table, Input, Output, State, ctx, callback
+from dash import dcc, html, dash_table, Input, Output, State, ctx, callback, no_update
 import dash_bootstrap_components as dbc
+from flask import request as flask_request
 
 from btc_core import (load_model_data, _find_lot_percentile, fmt_price,
                       yr_to_t, today_t, leo_weighted_entry)
@@ -44,6 +47,73 @@ M = load_model_data()
 _ALL_QS = M.QR_QUANTILES   # full list from model
 _DEF_QS = [q for q in [0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
            if q in M.qr_fits]
+
+# ── Snapshot / URL state helpers ───────────────────────────────────────────────
+
+_SNAPSHOT_CONTROLS = [
+    ("bub-qs",            "value"),
+    ("bub-xscale",        "value"),
+    ("bub-yscale",        "value"),
+    ("bub-xrange",        "value"),
+    ("bub-yrange",        "value"),
+    ("bub-toggles",       "value"),
+    ("bub-bubble-toggles","value"),
+    ("bub-n-future",      "value"),
+    ("bub-ptsize",        "value"),
+    ("bub-ptalpha",       "value"),
+    ("bub-stack",         "value"),
+    ("bub-show-stack",    "value"),
+    ("bub-use-lots",      "value"),
+    ("hm-entry-yr",       "value"),
+    ("hm-entry-q",        "value"),
+    ("hm-exit-range",     "value"),
+    ("hm-exit-qs",        "value"),
+    ("hm-mode",           "value"),
+    ("hm-b1",             "value"),
+    ("hm-b2",             "value"),
+    ("hm-c-lo",           "value"),
+    ("hm-c-mid1",         "value"),
+    ("hm-c-mid2",         "value"),
+    ("hm-c-hi",           "value"),
+    ("hm-grad",           "value"),
+    ("hm-vfmt",           "value"),
+    ("hm-cell-fs",        "value"),
+    ("hm-toggles",        "value"),
+    ("hm-stack",          "value"),
+    ("hm-use-lots",       "value"),
+    ("dca-stack",         "value"),
+    ("dca-use-lots",      "value"),
+    ("dca-amount",        "value"),
+    ("dca-freq",          "value"),
+    ("dca-yr-range",      "value"),
+    ("dca-disp",          "value"),
+    ("dca-toggles",       "value"),
+    ("dca-qs",            "value"),
+    ("ret-stack",         "value"),
+    ("ret-use-lots",      "value"),
+    ("ret-wd",            "value"),
+    ("ret-freq",          "value"),
+    ("ret-yr-range",      "value"),
+    ("ret-infl",          "value"),
+    ("ret-disp",          "value"),
+    ("ret-toggles",       "value"),
+    ("ret-qs",            "value"),
+    ("main-tabs",         "active_tab"),
+]
+
+_SNAP_PREFIX = "q1:"
+
+
+def _encode_snapshot(state_dict):
+    j = json.dumps(state_dict, separators=(',', ':'))
+    return base64.urlsafe_b64encode(gzip.compress(j.encode())).decode()
+
+
+def _decode_snapshot(encoded):
+    try:
+        return json.loads(gzip.decompress(base64.urlsafe_b64decode(encoded)))
+    except Exception:
+        return None
 
 def _q_options():
     opts = []
@@ -435,6 +505,7 @@ def _retire_tab():
 
 def _stack_tracker_tab():
     return html.Div([
+        html.Div(id="snapshot-lots-banner"),
         dbc.Row([
             # ── table ────────────────────────────────────────────────────────
             dbc.Col([
@@ -534,6 +605,11 @@ app.index_string = """<!DOCTYPE html>
 app.layout = dbc.Container([
     dcc.Store(id="lots-store", storage_type="local", data=[]),
     dcc.Store(id="lots-export-dummy"),
+    dcc.Location(id="url", refresh=False),
+    dcc.Store(id="snapshot-lots",     storage_type="memory", data=None),
+    dcc.Store(id="effective-lots",    storage_type="memory", data=[]),
+    dcc.Store(id="link-history",      storage_type="local",  data=[]),
+    dcc.Store(id="loaded-hash-store", storage_type="memory"),
     dbc.Navbar(
         dbc.Container([
             dbc.Row([
@@ -552,10 +628,46 @@ app.layout = dbc.Container([
                     className="ms-auto",
                     width="auto",
                 ),
+                dbc.Col(
+                    dbc.Button("📸 Share", id="share-btn", color="light", size="sm",
+                               outline=True, className="ms-2"),
+                    width="auto",
+                ),
             ], align="center", className="g-0 w-100"),
         ], fluid=True),
         color="#2c3e50", dark=True, className="mb-0 py-1",
     ),
+    dbc.Modal([
+        dbc.ModalHeader(dbc.ModalTitle("Share / Restore Configuration")),
+        dbc.ModalBody([
+            dcc.Checklist(
+                id="share-include-lots",
+                options=[{"label": " Include Stack Tracker lots in link", "value": "yes"}],
+                value=[], inputStyle={"marginRight": "5px"},
+            ),
+            dbc.Button("Generate link", id="share-copy-btn",
+                       color="primary", size="sm", className="mt-2 mb-3 w-100"),
+            dbc.InputGroup([
+                dbc.Input(id="share-url-display", type="text", readonly=True,
+                          placeholder="Click 'Generate link' above…", size="sm"),
+                dcc.Clipboard(target_id="share-url-display",
+                              style={"cursor":"pointer","fontSize":"18px",
+                                     "padding":"4px 8px"}),
+            ], size="sm"),
+            html.Hr(className="my-3"),
+            html.Div([
+                html.Span("Link History", className="fw-semibold small"),
+                html.Span(" (your browser only — no duplicates)",
+                          className="text-muted small ms-1"),
+            ], className="mb-2"),
+            html.Div(id="link-history-display"),
+            dbc.Button("🗑 Clear history", id="clear-history-btn",
+                       color="link", size="sm", className="text-danger mt-2 p-0"),
+        ]),
+        dbc.ModalFooter(
+            dbc.Button("Close", id="share-modal-close", className="ms-auto", size="sm")
+        ),
+    ], id="share-modal", is_open=False, size="lg", scrollable=True),
     dbc.Tabs([
         dbc.Tab(_bubble_tab(),       label="Bubble + QR Overlay", tab_id="bubble"),
         dbc.Tab(_heatmap_tab(),      label="CAGR Heatmap",        tab_id="heatmap"),
@@ -585,7 +697,7 @@ app.layout = dbc.Container([
     Input("bub-stack",         "value"),
     Input("bub-show-stack",    "value"),
     Input("bub-use-lots",      "value"),
-    Input("lots-store",        "data"),
+    Input("effective-lots",    "data"),
 )
 def update_bubble(sel_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,
@@ -639,7 +751,7 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
     Input("hm-toggles",   "value"),
     Input("hm-stack",     "value"),
     Input("hm-use-lots",  "value"),
-    Input("lots-store",   "data"),
+    Input("effective-lots","data"),
 )
 def update_heatmap(entry_yr, entry_q, exit_range, exit_qs, mode,
                    b1, b2, c_lo, c_mid1, c_mid2, c_hi, grad,
@@ -679,7 +791,7 @@ def update_heatmap(entry_yr, entry_q, exit_range, exit_qs, mode,
     Input("dca-disp",     "value"),
     Input("dca-toggles",  "value"),
     Input("dca-qs",       "value"),
-    Input("lots-store",   "data"),
+    Input("effective-lots","data"),
 )
 def update_dca(stack, use_lots, amount, freq, yr_range, disp, toggles, sel_qs, lots_data):
     toggles  = toggles or []
@@ -712,7 +824,7 @@ def update_dca(stack, use_lots, amount, freq, yr_range, disp, toggles, sel_qs, l
     Input("ret-disp",     "value"),
     Input("ret-toggles",  "value"),
     Input("ret-qs",       "value"),
-    Input("lots-store",   "data"),
+    Input("effective-lots","data"),
 )
 def update_retire(stack, use_lots, wd, freq, yr_range, infl, disp, toggles, sel_qs, lots_data):
     toggles  = toggles or []
@@ -811,7 +923,6 @@ def manage_lots(add_n, del_n, clear_n, import_contents,
 
     elif triggered == "lots-import-upload" and import_contents:
         try:
-            import base64
             _hdr, b64 = import_contents.split(",", 1)
             raw  = base64.b64decode(b64).decode("utf-8")
             data = json.loads(raw)
@@ -937,6 +1048,175 @@ for _tab_id, _graph_id in _EXPORT_TABS:
         prevent_initial_call=True,
     )
 
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Callbacks — Snapshot / Share
+# ══════════════════════════════════════════════════════════════════════════════
+
+@callback(
+    Output("share-modal", "is_open"),
+    Input("share-btn",          "n_clicks"),
+    Input("share-modal-close",  "n_clicks"),
+    State("share-modal",        "is_open"),
+    prevent_initial_call=True,
+)
+def toggle_share_modal(n1, n2, is_open):
+    return not is_open
+
+
+@callback(
+    *[Output(cid, prop) for cid, prop in _SNAPSHOT_CONTROLS],
+    Output("snapshot-lots",     "data"),
+    Output("loaded-hash-store", "data"),
+    Input("url", "hash"),
+    prevent_initial_call=False,
+)
+def restore_from_url(hash_str):
+    n_outs = len(_SNAPSHOT_CONTROLS) + 2
+    blank  = [no_update] * n_outs
+    if not hash_str:
+        return blank
+    h = hash_str.lstrip("#")
+    if not h.startswith(_SNAP_PREFIX):
+        return blank
+    state = _decode_snapshot(h[len(_SNAP_PREFIX):])
+    if not state:
+        return blank
+    results = [state.get(f"{cid}:{prop}", no_update)
+               for cid, prop in _SNAPSHOT_CONTROLS]
+    results.append(state.get("_lots", None))  # snapshot-lots
+    results.append(hash_str)                  # loaded-hash-store
+    return results
+
+
+@callback(
+    Output("share-url-display", "value"),
+    Output("link-history",      "data"),
+    Input("share-copy-btn",    "n_clicks"),
+    Input("loaded-hash-store", "data"),
+    State("share-include-lots", "value"),
+    State("lots-store",         "data"),
+    *[State(cid, prop) for cid, prop in _SNAPSHOT_CONTROLS],
+    State("link-history",       "data"),
+    prevent_initial_call=True,
+)
+def manage_snapshot(n_btn, loaded_hash, include_lots, lots_data, *rest):
+    *ctrl_vals, history = rest
+    history  = list(history or [])
+    existing = {h["hash"] for h in history}
+    triggered = ctx.triggered_id
+
+    if triggered == "share-copy-btn":
+        state = {f"{cid}:{prop}": val
+                 for (cid, prop), val in zip(_SNAPSHOT_CONTROLS, ctrl_vals)}
+        if include_lots and lots_data:
+            state["_lots"] = lots_data
+        encoded  = _encode_snapshot(state)
+        base_url = flask_request.host_url.rstrip("/")
+        full_url = f"{base_url}/#q1:{encoded}"
+        if encoded not in existing:
+            history.insert(0, {
+                "hash": encoded, "url": full_url,
+                "ts": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"),
+                "includes_lots": bool(include_lots and lots_data),
+            })
+            history = history[:50]
+        return full_url, history
+
+    if triggered == "loaded-hash-store" and loaded_hash:
+        h = loaded_hash.lstrip("#")
+        if not h.startswith(_SNAP_PREFIX):
+            return no_update, no_update
+        encoded = h[len(_SNAP_PREFIX):]
+        state   = _decode_snapshot(encoded)
+        if not state:
+            return no_update, no_update
+        base_url = flask_request.host_url.rstrip("/")
+        full_url = f"{base_url}/#q1:{encoded}"
+        if encoded not in existing:
+            history.insert(0, {
+                "hash": encoded, "url": full_url,
+                "ts": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"),
+                "includes_lots": "_lots" in state,
+            })
+            history = history[:50]
+            return no_update, history
+
+    return no_update, no_update
+
+
+@callback(
+    Output("effective-lots", "data"),
+    Input("lots-store",    "data"),
+    Input("snapshot-lots", "data"),
+)
+def update_effective_lots(local_lots, snapshot_lots):
+    return snapshot_lots if snapshot_lots is not None else (local_lots or [])
+
+
+@callback(
+    Output("snapshot-lots-banner", "children"),
+    Input("snapshot-lots", "data"),
+)
+def update_snapshot_banner(snapshot_lots):
+    if not snapshot_lots:
+        return []
+    n = len(snapshot_lots)
+    return dbc.Alert([
+        html.Span(f"Showing {n} lot(s) from a shared link.  "),
+        dbc.Button("Restore my lots", id="restore-lots-btn",
+                   color="link", size="sm", className="p-0 ms-1 align-baseline"),
+    ], color="info", className="py-1 px-3 mb-2 d-flex align-items-center")
+
+
+@callback(
+    Output("snapshot-lots", "data", allow_duplicate=True),
+    Input("restore-lots-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def restore_my_lots(_):
+    return None
+
+
+@callback(
+    Output("link-history-display", "children"),
+    Input("link-history", "data"),
+)
+def render_link_history(history):
+    if not history:
+        return html.Small("No links yet.", className="text-muted")
+    items = []
+    for entry in history:
+        badge = (dbc.Badge("lots", color="info", pill=True, className="me-1")
+                 if entry.get("includes_lots") else None)
+        items.append(dbc.ListGroupItem([
+            html.Div([
+                html.Small(entry.get("ts", ""), className="text-muted me-2"),
+                badge,
+            ], className="mb-1"),
+            dbc.InputGroup([
+                dbc.Input(value=entry.get("url", ""), readonly=True, size="sm",
+                          style={"fontFamily":"monospace","fontSize":"11px"}),
+            ], size="sm"),
+            html.Div(
+                html.A("↩ Restore this configuration",
+                       href=f"#q1:{entry['hash']}",
+                       className="small"),
+                className="mt-1",
+            ),
+        ], className="py-2"))
+    return dbc.ListGroup(items, flush=True,
+                         style={"maxHeight":"300px","overflowY":"auto"})
+
+
+@callback(
+    Output("link-history", "data", allow_duplicate=True),
+    Input("clear-history-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def clear_history(_):
+    return []
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Entry point

@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.ipynb_checkpoints/
+
+# Virtual environment
+btc_venv/
+
+# AppImage build artifacts (binary distributed via GitHub Releases)
+btc_app/Quantoshi-x86_64.AppImage
+btc_app/appimagetool-x86_64.AppImage
+btc_app/AppDir/
+btc_app/build/
+btc_app/dist/
+
+# Notebook outputs / generated files
+bitcoin_projections.pptx
+
+# Scratch / backup files
+backup*.ipynb
+SP.backup.ipynb
+SP.ipynb2
+SPfriday.ipynb
+ManualBubbleFT2.ipynb
+btcproj.*.ipynb
+interactive_cell*.ipynb
+*.backup*
+*.bespoke.code
+*.code
+tmp/
+tmp2/
+oldpp/
+github/
+gunicorn.ctl
+
+# Claude Code
+.claude/
+
+# Misc
+*.log
+.env

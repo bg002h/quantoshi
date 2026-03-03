@@ -1,0 +1,22 @@
+[Unit]
+Description=Quantoshi Web App
+After=network.target tor.service
+Wants=tor.service
+
+[Service]
+Type=simple
+User=bcg
+WorkingDirectory=/scratch/code/bitcoinprojections
+ExecStart=/scratch/code/bitcoinprojections/btc_venv/bin/gunicorn \
+    btc_web.app:server \
+    --bind 0.0.0.0:8050 \
+    --workers 4 \
+    --timeout 120 \
+    --access-logfile - \
+    --error-logfile -
+Environment=PYTHONPATH=/scratch/code/bitcoinprojections:/scratch/code/bitcoinprojections/btc_app:/scratch/code/bitcoinprojections/btc_web
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

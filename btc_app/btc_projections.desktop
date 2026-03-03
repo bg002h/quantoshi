@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Quantoshi
+GenericName=Bitcoin Price Projections
+Comment=Quantoshi — Bitcoin bubble model and quantile regression charts
+Exec=btc_projections
+Icon=btc_projections
+Categories=Science;Finance;
+Terminal=false
+StartupNotify=true
+StartupWMClass=btc_projections

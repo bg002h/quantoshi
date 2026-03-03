@@ -1,0 +1,90 @@
+/* ── Bitcoin Projections Web App — custom styles ─────────────────────────── */
+
+/* Light theme base */
+body {
+    font-size: 13px;
+    background-color: #f0f2f5 !important;
+    color: #212529 !important;
+}
+
+/* Tab bar */
+.nav-tabs {
+    background-color: #2c3e50 !important;
+    border-bottom: none !important;
+    padding: 4px 8px 0;
+}
+.nav-tabs .nav-link {
+    color: rgba(255,255,255,0.75) !important;
+    border: none !important;
+    border-radius: 4px 4px 0 0;
+}
+.nav-tabs .nav-link:hover {
+    color: #fff !important;
+    background-color: rgba(255,255,255,0.15) !important;
+}
+.nav-tabs .nav-link.active {
+    color: #2c3e50 !important;
+    background-color: #f0f2f5 !important;
+    font-weight: 600;
+}
+
+/* Export row */
+.export-row {
+    background-color: #2c3e50 !important;
+    border-top: none !important;
+    padding: 6px 12px !important;
+}
+.export-row .btn { color: #fff !important; border-color: rgba(255,255,255,0.4) !important; }
+
+.ctrl-card { border: 1px solid #dee2e6 !important; background: #f8f9fa !important; }
+.ctrl-card .card-body { padding: 8px !important; }
+
+/* Form labels */
+.form-label { font-size: 11px; color: #555; margin-bottom: 2px !important; }
+
+/* Compact sliders */
+.rc-slider { margin-top: 4px; }
+
+/* Compact checklists */
+.form-check-label { font-size: 12px; }
+
+/* Compact tab bar */
+.nav-tabs .nav-link { padding: 4px 10px; font-size: 13px; }
+
+/* Graph container — no excess padding */
+.js-plotly-plot { width: 100%; }
+
+/* Controls column scrollbar */
+.controls-col { padding-right: 6px !important; scrollbar-width: thin;
+                scrollbar-color: #adb5bd #f8f9fa; }
+.controls-col::-webkit-scrollbar { width: 6px; }
+.controls-col::-webkit-scrollbar-track { background: #f8f9fa; }
+.controls-col::-webkit-scrollbar-thumb { background: #adb5bd; border-radius: 3px; }
+
+/* Export row */
+.export-row { border-top: 1px solid #dee2e6; padding-top: 4px; }
+
+/* DataTable tweaks — already styled inline but reinforce */
+.dash-table-container .dash-spreadsheet-container { font-size: 12px; }
+
+/* ── Mobile: stack controls below chart ─────────────────────────────────── */
+@media (max-width: 767px) {
+    .controls-col {
+        order: 2;
+        max-height: none !important;
+        width: 100% !important;
+    }
+    .row.g-0 {
+        flex-direction: column;
+    }
+    .row.g-0 > .col-9,
+    .row.g-0 > .col-3 {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100%;
+    }
+    .js-plotly-plot {
+        height: 55vw !important;
+        min-height: 280px;
+    }
+}

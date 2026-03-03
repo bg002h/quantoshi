@@ -118,7 +118,7 @@ def _bubble_controls():
             _lbl("X range (year)"),
             dcc.RangeSlider(id="bub-xrange", min=2009, max=2050,
                             value=[2012, yr_now + 4], step=1,
-                            marks={y: str(y) for y in range(2009, 2051, 5)},
+                            marks={y: f"'{y % 100:02d}" for y in range(2009, 2051, 5)},
                             tooltip={"always_visible":False}),
             _lbl("Y range (price)"),
             dcc.RangeSlider(id="bub-yrange", min=-2, max=8,
@@ -147,7 +147,7 @@ def _bubble_controls():
                           inputStyle={"marginRight":"5px"}),
             _lbl("N future bubbles"),
             dcc.Slider(id="bub-n-future", min=0, max=M.n_future_max,
-                       value=0, step=1, marks=None,
+                       value=3, step=1, marks=None,
                        tooltip={"always_visible":True}),
         ),
         _ctrl_card(

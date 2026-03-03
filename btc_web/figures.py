@@ -290,7 +290,10 @@ def build_bubble_figure(m, p):
         layout["yaxis"].update(range=[y_lo, y_hi])
 
     if p.get("xscale", "linear") == "log":
-        layout["xaxis"]["type"] = "log"
+        layout["xaxis"].update(
+            type="log",
+            range=[math.log10(max(t_lo, 1e-10)), math.log10(max(t_hi, 1e-10))],
+        )
 
     layout["shapes"] = shapes
 

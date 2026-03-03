@@ -320,7 +320,7 @@ def _dca_controls():
             _lbl("Year range"),
             dcc.RangeSlider(id="dca-yr-range", min=2009, max=2060,
                             value=[yr_now, yr_now + 10], step=1,
-                            marks={y: str(y) for y in range(2009, 2061, 5)},
+                            marks={y: f"'{y % 100:02d}" for y in range(2009, 2061, 5)},
                             tooltip={"always_visible":False}),
         ),
         _ctrl_card(
@@ -384,7 +384,7 @@ def _retire_controls():
             _lbl("Year range"),
             dcc.RangeSlider(id="ret-yr-range", min=2009, max=2075,
                             value=[yr_now, yr_now + 20], step=1,
-                            marks={y: str(y) for y in range(2009, 2076, 5)},
+                            marks={y: f"'{y % 100:02d}" for y in range(2009, 2076, 5)},
                             tooltip={"always_visible":False}),
             _lbl("Inflation rate (% / yr)"),
             dbc.Input(id="ret-infl", type="number", value=0,

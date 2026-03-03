@@ -404,7 +404,7 @@ def _retire_controls():
                                    {"label":" Dual Y-axis","value":"dual_y"},
                                    {"label":" Annotate depletion","value":"annotate"},
                                    {"label":" Show legend","value":"show_legend"}],
-                          value=["annotate","show_legend"], labelStyle={"display":"block"},
+                          value=["annotate","log_y","dual_y"], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
         _ctrl_card(

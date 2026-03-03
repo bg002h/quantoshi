@@ -690,6 +690,9 @@ app.layout = dbc.Container([
                         width="auto"),
                 dbc.Col(
                     html.Div([
+                        html.Span("Stay dark, Anon →",
+                                  style={"fontSize":"9px", "color":"rgba(255,255,255,0.4)",
+                                         "whiteSpace":"nowrap", "marginRight":"6px"}),
                         html.A(
                             "🧅 Tor onion",
                             href="http://u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion",
@@ -697,11 +700,7 @@ app.layout = dbc.Container([
                             rel="noopener noreferrer",
                             className="text-white-50 small text-decoration-none",
                         ),
-                        html.Div("▲ Stay dark, Anon",
-                                 style={"fontSize":"9px", "color":"rgba(255,255,255,0.4)",
-                                        "whiteSpace":"nowrap", "textAlign":"center",
-                                        "marginTop":"1px"}),
-                    ]),
+                    ], style={"display":"flex", "alignItems":"center"}),
                     className="ms-auto",
                     width="auto",
                 ),

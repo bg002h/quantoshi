@@ -516,6 +516,18 @@ _FAQ = [
             "planning horizon."
         ),
     },
+    {
+        "q": "What does the Share button do?",
+        "a": (
+            "It's cooler than you might expect. Suppose you've customized a graph and want to "
+            "show someone else your plot. You could save an image — or you could send them a "
+            "link that takes them directly to Quantoshi with all of your customized configuration "
+            "already applied. Every control across all tabs is encoded into the URL, so the "
+            "recipient sees exactly what you see. You can optionally include your Stack Tracker "
+            "lots in the link too. Your link history is saved in your browser so you can revisit "
+            "or re-share any configuration you've generated."
+        ),
+    },
 ]
 
 

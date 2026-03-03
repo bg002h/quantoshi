@@ -505,18 +505,6 @@ def _retire_tab():
 
 _FAQ = [
     {
-        "q": "Why do some high-percentile extrapolated quantile projections cross in the future?",
-        "a": (
-            "When a higher-percentile line crosses a lower one (or vice versa), it indicates "
-            "a trend in the dataset that renders extrapolation unreliable. For example, because "
-            "subsequent Bitcoin bubble peaks have been getting less extreme over time, the 99th "
-            "percentile line rises less steeply than the 95th — so much so that these two lines "
-            "cross around 2034. It should be noted that the lower-percentile extrapolations "
-            "(e.g. the 30th percentile) remain more or less parallel well beyond any reasonable "
-            "planning horizon."
-        ),
-    },
-    {
         "q": "What does the Share button do?",
         "a": (
             "It's cooler than you might expect. Suppose you've customized a graph and want to "
@@ -526,6 +514,18 @@ _FAQ = [
             "recipient sees exactly what you see. You can optionally include your Stack Tracker "
             "lots in the link too. Your link history is saved in your browser so you can revisit "
             "or re-share any configuration you've generated."
+        ),
+    },
+    {
+        "q": "Why do some high-percentile extrapolated quantile projections cross in the future?",
+        "a": (
+            "When a higher-percentile line crosses a lower one (or vice versa), it indicates "
+            "a trend in the dataset that renders extrapolation unreliable. For example, because "
+            "subsequent Bitcoin bubble peaks have been getting less extreme over time, the 99th "
+            "percentile line rises less steeply than the 95th — so much so that these two lines "
+            "cross around 2034. It should be noted that the lower-percentile extrapolations "
+            "(e.g. the 30th percentile) remain more or less parallel well beyond any reasonable "
+            "planning horizon."
         ),
     },
 ]

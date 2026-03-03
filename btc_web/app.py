@@ -385,11 +385,11 @@ def _retire_controls():
                          value="Monthly", clearable=False),
             _lbl("Year range"),
             dcc.RangeSlider(id="ret-yr-range", min=2009, max=2075,
-                            value=[yr_now, yr_now + 20], step=1,
+                            value=[2031, 2075], step=1,
                             marks={y: f"'{y % 100:02d}" for y in range(2009, 2076, 5)},
                             tooltip={"always_visible":False}),
             _lbl("Inflation rate (% / yr)"),
-            dbc.Input(id="ret-infl", type="number", value=0,
+            dbc.Input(id="ret-infl", type="number", value=4,
                       min=0, max=50, step=0.5, size="sm"),
         ),
         _ctrl_card(

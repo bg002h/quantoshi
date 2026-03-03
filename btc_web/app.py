@@ -685,8 +685,14 @@ app.layout = dbc.Container([
                     width="auto",
                 ),
                 dbc.Col(
-                    dbc.Button("📸 Share", id="share-btn", color="light", size="sm",
-                               outline=True, className="ms-2"),
+                    html.Div([
+                        dbc.Button("📸 Share", id="share-btn", color="light", size="sm",
+                                   outline=True, className="ms-2"),
+                        html.Div("▲ Cooler than you think",
+                                 style={"fontSize":"9px", "color":"rgba(255,255,255,0.4)",
+                                        "whiteSpace":"nowrap", "textAlign":"center",
+                                        "marginTop":"1px"}),
+                    ]),
                     width="auto",
                 ),
             ], align="center", className="g-0 w-100"),

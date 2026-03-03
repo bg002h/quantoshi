@@ -101,15 +101,36 @@ _SNAPSHOT_CONTROLS = [
     ("main-tabs",         "active_tab"),
 ]
 
-_SNAP_PREFIX = "q1:"
+_SNAP_PREFIX    = "q2:"   # current format
+_SNAP_PREFIX_V1 = "q1:"   # legacy format (dict-based), kept for backward compat
 
 
 def _encode_snapshot(state_dict):
-    j = json.dumps(state_dict, separators=(',', ':'))
+    """v2: positional array — no key names, ~50% smaller than v1."""
+    values = [state_dict.get(f"{cid}:{prop}") for cid, prop in _SNAPSHOT_CONTROLS]
+    lots   = state_dict.get("_lots")
+    payload = [values, lots]
+    j = json.dumps(payload, separators=(',', ':'))
     return base64.urlsafe_b64encode(gzip.compress(j.encode())).decode()
 
 
 def _decode_snapshot(encoded):
+    """Decode v2 (positional array) snapshot."""
+    try:
+        payload = json.loads(gzip.decompress(base64.urlsafe_b64decode(encoded)))
+        values, lots = payload
+        state = {f"{cid}:{prop}": val
+                 for (cid, prop), val in zip(_SNAPSHOT_CONTROLS, values)
+                 if val is not None}
+        if lots:
+            state["_lots"] = lots
+        return state
+    except Exception:
+        return None
+
+
+def _decode_snapshot_v1(encoded):
+    """Decode legacy v1 (dict-based) snapshot."""
     try:
         return json.loads(gzip.decompress(base64.urlsafe_b64decode(encoded)))
     except Exception:
@@ -1162,9 +1183,12 @@ def restore_from_url(hash_str):
     if not hash_str:
         return blank
     h = hash_str.lstrip("#")
-    if not h.startswith(_SNAP_PREFIX):
+    if h.startswith(_SNAP_PREFIX):
+        state = _decode_snapshot(h[len(_SNAP_PREFIX):])
+    elif h.startswith(_SNAP_PREFIX_V1):
+        state = _decode_snapshot_v1(h[len(_SNAP_PREFIX_V1):])
+    else:
         return blank
-    state = _decode_snapshot(h[len(_SNAP_PREFIX):])
     if not state:
         return blank
     results = [state.get(f"{cid}:{prop}", no_update)
@@ -1198,7 +1222,7 @@ def manage_snapshot(n_btn, loaded_hash, include_lots, lots_data, *rest):
             state["_lots"] = lots_data
         encoded  = _encode_snapshot(state)
         base_url = flask_request.host_url.rstrip("/")
-        full_url = f"{base_url}/#q1:{encoded}"
+        full_url = f"{base_url}/#q2:{encoded}"
         if encoded not in existing:
             history.insert(0, {
                 "hash": encoded, "url": full_url,
@@ -1210,14 +1234,20 @@ def manage_snapshot(n_btn, loaded_hash, include_lots, lots_data, *rest):
 
     if triggered == "loaded-hash-store" and loaded_hash:
         h = loaded_hash.lstrip("#")
-        if not h.startswith(_SNAP_PREFIX):
+        if h.startswith(_SNAP_PREFIX):
+            encoded = h[len(_SNAP_PREFIX):]
+            state   = _decode_snapshot(encoded)
+            prefix  = _SNAP_PREFIX
+        elif h.startswith(_SNAP_PREFIX_V1):
+            encoded = h[len(_SNAP_PREFIX_V1):]
+            state   = _decode_snapshot_v1(encoded)
+            prefix  = _SNAP_PREFIX_V1
+        else:
             return no_update, no_update
-        encoded = h[len(_SNAP_PREFIX):]
-        state   = _decode_snapshot(encoded)
         if not state:
             return no_update, no_update
         base_url = flask_request.host_url.rstrip("/")
-        full_url = f"{base_url}/#q1:{encoded}"
+        full_url = f"{base_url}/#{prefix}{encoded}"
         if encoded not in existing:
             history.insert(0, {
                 "hash": encoded, "url": full_url,
@@ -1285,7 +1315,9 @@ def render_link_history(history):
             ], size="sm"),
             html.Div(
                 html.A("↩ Restore this configuration",
-                       href=f"#q1:{entry['hash']}",
+                       href=("#" + entry["url"].split("#", 1)[1])
+                            if "#" in entry.get("url", "")
+                            else f"#{_SNAP_PREFIX}{entry['hash']}",
                        className="small"),
                 className="mt-1",
             ),

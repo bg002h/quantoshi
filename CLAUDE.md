@@ -166,7 +166,7 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | `requirements.txt` | Python dependencies |
 
 ### Layout structure
-`dbc.Navbar` (logo + title + 🧅 Tor link + 📸 Share button) → `dbc.Tabs` (6 tabs):
+`dbc.Navbar` (logo + "Quantoshi" in Palatino + "Stay dark, Anon →" + 🧅 Tor link + 📸 Share button with "▲ Cooler than you think") → `dbc.Tabs` (6 tabs):
 
 | Tab | ID | Key controls |
 |-----|----|-------------|
@@ -176,6 +176,15 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | BTC Retireator | `retire` | Withdrawal amount, inflation rate, year range |
 | Stack Tracker | `stack` | Lot management (add/delete/import/export JSON) |
 | FAQ | `faq` | Static accordion — add entries to `_FAQ` list in app.py |
+
+### Tab defaults
+| Tab | Notable defaults |
+|-----|-----------------|
+| Bubble | Q5% only, X scale=Log, N future bubbles=3, shade+show_data+show_today+show_legend on |
+| Heatmap | Break1=0%, Break2=20%, Gradient Steps=32 |
+| DCA | dual_y+show_legend on |
+| Retire | year range 2031–2075, inflation=4%, log_y+dual_y+annotate on |
+| Stack Tracker | default lot Price=$69,420 |
 
 ### State and privacy
 - Lot data lives in **browser `localStorage`** only — `dcc.Store(id='lots-store', storage_type='local')`.

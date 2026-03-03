@@ -405,7 +405,7 @@ def _dca_controls():
                                    {"label":" Show today","value":"show_today"},
                                    {"label":" Dual Y-axis","value":"dual_y"},
                                    {"label":" Show legend","value":"show_legend"}],
-                          value=["show_legend"], labelStyle={"display":"block"},
+                          value=["show_legend","dual_y"], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
         _ctrl_card(

@@ -1,11 +1,20 @@
-# Quantoshi
+<div align="center">
+  <img src="quantoshi_logo.png" alt="Quantoshi" width="180"/>
+  <h1>Quantoshi</h1>
+  <p>Bitcoin price projection tools built on a quantile regression bubble model.</p>
 
-Bitcoin price projection tools built on a quantile regression bubble model.
+  <a href="https://quantoshi.xyz"><strong>quantoshi.xyz</strong></a> &nbsp;·&nbsp;
+  <a href="http://u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion">Tor onion</a> &nbsp;·&nbsp;
+  <a href="../../releases">Download AppImage</a>
+</div>
+
+---
+
 Two interfaces share the same underlying model:
 
 | Component | Description |
 |---|---|
-| **Web app** | Plotly Dash — run locally or host as a Tor onion service |
+| **Web app** | Plotly Dash — live at [quantoshi.xyz](https://quantoshi.xyz) or run locally |
 | **Desktop app** | PyQt5 standalone AppImage for Linux |
 
 Both provide five interactive views: Bubble + QR Overlay, CAGR Heatmap, BTC Accumulator, BTC Retireator, and Stack Tracker.

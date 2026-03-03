@@ -510,9 +510,38 @@ def _stack_tracker_tab():
 # App layout
 # ══════════════════════════════════════════════════════════════════════════════
 
+app.index_string = """<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        <link rel="icon" type="image/png" href="/assets/quantoshi_logo.png">
+        {%css%}
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>"""
+
 app.layout = dbc.Container([
     dcc.Store(id="lots-store", storage_type="local", data=[]),
     dcc.Store(id="lots-export-dummy"),
+    dbc.Navbar(
+        dbc.Container([
+            dbc.Row([
+                dbc.Col(html.Img(src="/assets/quantoshi_logo.png", height="40px"),
+                        width="auto"),
+                dbc.Col(dbc.NavbarBrand("Quantoshi", className="ms-2 fw-bold fs-4"),
+                        width="auto"),
+            ], align="center", className="g-0"),
+        ], fluid=True),
+        color="#2c3e50", dark=True, className="mb-0 py-1",
+    ),
     dbc.Tabs([
         dbc.Tab(_bubble_tab(),       label="Bubble + QR Overlay", tab_id="bubble"),
         dbc.Tab(_heatmap_tab(),      label="CAGR Heatmap",        tab_id="heatmap"),

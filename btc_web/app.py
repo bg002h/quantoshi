@@ -171,15 +171,15 @@ def _bubble_controls():
         _ctrl_card(
             _lbl("Quantiles"),
             dcc.Checklist(id="bub-qs", options=_q_options(),
-                          value=_DEF_QS, labelStyle={"display":"block"},
+                          value=[0.05], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
         _ctrl_card(
             _row(
                 html.Div([_lbl("X scale"), dcc.RadioItems(
-                    id="bub-xscale", options=[{"label":"Linear","value":"linear"},
-                                               {"label":"Log","value":"log"}],
-                    value="linear", inline=True)]),
+                    id="bub-xscale", options=[{"label":"Log","value":"log"},
+                                               {"label":"Linear","value":"linear"}],
+                    value="log", inline=True)]),
                 html.Div([_lbl("Y scale"), dcc.RadioItems(
                     id="bub-yscale", options=[{"label":"Log","value":"log"},
                                                {"label":"Linear","value":"linear"}],

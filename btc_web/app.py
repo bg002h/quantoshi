@@ -500,8 +500,52 @@ def _retire_tab():
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# Tab 6 — FAQ
+# ══════════════════════════════════════════════════════════════════════════════
+
+_FAQ = [
+    {
+        "q": "Why do some high-percentile extrapolated quantile projections cross in the future?",
+        "a": (
+            "When a higher-percentile line crosses a lower one (or vice versa), it indicates "
+            "a trend in the dataset that renders extrapolation unreliable. For example, because "
+            "subsequent Bitcoin bubble peaks have been getting less extreme over time, the 99th "
+            "percentile line rises less steeply than the 95th — so much so that these two lines "
+            "cross around 2034. It should be noted that the lower-percentile extrapolations "
+            "(e.g. the 30th percentile) remain more or less parallel well beyond any reasonable "
+            "planning horizon."
+        ),
+    },
+]
+
+
+def _faq_tab():
+    items = []
+    for i, entry in enumerate(_FAQ):
+        items.append(
+            dbc.AccordionItem(
+                html.P(entry["a"], className="mb-0"),
+                title=entry["q"],
+                item_id=f"faq-{i}",
+            )
+        )
+    return html.Div([
+        dbc.Row(
+            dbc.Col(
+                html.Div([
+                    html.H5("Frequently Asked Questions", className="mb-3 mt-2"),
+                    dbc.Accordion(items, start_collapsed=True, flush=True),
+                ]),
+                width={"size": 8, "offset": 2},
+            )
+        ),
+    ], className="p-3")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # Tab 5 — Stack Tracker
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def _stack_tracker_tab():
     return html.Div([
@@ -674,6 +718,7 @@ app.layout = dbc.Container([
         dbc.Tab(_dca_tab(),          label="BTC Accumulator",     tab_id="dca"),
         dbc.Tab(_retire_tab(),       label="BTC Retireator",      tab_id="retire"),
         dbc.Tab(_stack_tracker_tab(),label="Stack Tracker",       tab_id="stack"),
+        dbc.Tab(_faq_tab(),          label="FAQ",                 tab_id="faq"),
     ], id="main-tabs", active_tab="bubble"),
 ], fluid=True, className="px-2 py-1")
 

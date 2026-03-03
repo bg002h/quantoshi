@@ -6,6 +6,9 @@
   <a href="https://quantoshi.xyz"><strong>quantoshi.xyz</strong></a> &nbsp;·&nbsp;
   <a href="http://u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion">Tor onion</a> &nbsp;·&nbsp;
   <a href="../../releases">Download AppImage</a>
+
+  <br/><br/>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--2--Clause-blue.svg" alt="License: BSD-2-Clause"/></a>
 </div>
 
 ---

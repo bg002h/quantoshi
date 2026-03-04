@@ -556,7 +556,8 @@ _FAQ = [
         "q": "Why does this look so bad on [my device / browser]?",
         "a": (
             "I have only been able to test this on Linux and iPhone. I'm a physician, not a "
-            "programmer, so I really couldn't tell you anyhow!"
+            "programmer, so I really couldn't tell you anyhow! But if anyone can send me a "
+            "screenshot I'd love to fix it for their platform!"
         ),
     },
     {

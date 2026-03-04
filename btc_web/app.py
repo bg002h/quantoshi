@@ -553,6 +553,13 @@ _FAQ = [
         ),
     },
     {
+        "q": "Why does this look so bad on [my device / browser]?",
+        "a": (
+            "I have only been able to test this on Linux and iPhone. I'm a physician, not a "
+            "programmer, so I really couldn't tell you anyhow!"
+        ),
+    },
+    {
         "q": "Why do some high-percentile extrapolated quantile projections cross in the future?",
         "a": (
             "When a higher-percentile line crosses a lower one (or vice versa), it indicates "

@@ -190,12 +190,6 @@ def _bubble_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
         _ctrl_card(
-            _lbl("Quantiles"),
-            dcc.Checklist(id="bub-qs", options=_q_options(),
-                          value=[0.05], labelStyle={"display":"block"},
-                          inputStyle={"marginRight":"5px"}),
-        ),
-        _ctrl_card(
             _row(
                 html.Div([_lbl("X scale"), dcc.RadioItems(
                     id="bub-xscale", options=[{"label":"Log","value":"log"},
@@ -241,6 +235,12 @@ def _bubble_controls():
             dcc.Slider(id="bub-n-future", min=0, max=M.n_future_max,
                        value=3, step=1, marks=None,
                        tooltip={"always_visible":True}),
+        ),
+        _ctrl_card(
+            _lbl("Quantiles"),
+            dcc.Checklist(id="bub-qs", options=_q_options(),
+                          value=[0.05], labelStyle={"display":"block"},
+                          inputStyle={"marginRight":"5px"}),
         ),
         _ctrl_card(
             _row(

@@ -340,7 +340,7 @@ def build_heatmap_figure(m, p):
 
     xlo = int(p.get("exit_yr_lo", eyr))
     xhi = int(p.get("exit_yr_hi", eyr + 10))
-    eyrs = [y for y in range(xlo, xhi + 1) if y >= eyr]
+    eyrs = list(range(xlo, xhi + 1))
 
     xqs_raw = p.get("exit_qs") or []
     xqs = sorted([float(q) for q in xqs_raw if float(q) in m.qr_fits], reverse=True)

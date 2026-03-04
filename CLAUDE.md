@@ -180,7 +180,7 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 ### Tab defaults
 | Tab | Notable defaults |
 |-----|-----------------|
-| Bubble | Q5% only, X scale=Log, N future bubbles=3, shade+show_data+show_today+show_legend on |
+| Bubble | Q5% only, X scale=Log, N future bubbles=3, shade+show_data+show_today on (legend off). Panel order: scales, toggles, bubble, quantiles, pt size/alpha, stack, use lots. |
 | Heatmap | Break1=0%, Break2=20%, Gradient Steps=32 |
 | DCA | dual_y+show_legend on |
 | Retire | year slider min=2024, default range 2031–2075, inflation=4%, log_y+dual_y+annotate on |

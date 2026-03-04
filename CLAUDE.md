@@ -175,7 +175,7 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | BTC Accumulator | `dca` | DCA amount/frequency, year range, display mode |
 | BTC Retireator | `retire` | Withdrawal amount, inflation rate, year range |
 | Stack Tracker | `stack` | Lot management (add/delete/import/export JSON) |
-| FAQ | `faq` | Static accordion — add entries to `_FAQ` list in app.py. Current order: Share button, quantile regression, cross-platform appearance, crossing lines |
+| FAQ | `faq` | Static accordion — add entries to `_FAQ` list in app.py. Current order: Share button, quantile regression, cross-platform appearance, crossing lines, contact info. Answers can be plain strings or Dash components (use `html.Span`/`html.A` for links). Link color: `#1a6fa8` via `.accordion a` in style.css. |
 
 ### Tab defaults
 | Tab | Notable defaults |

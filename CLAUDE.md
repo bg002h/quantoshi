@@ -206,7 +206,7 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 
 ### Live price ticker
 - `dcc.Interval(id="price-interval", interval=20*60*1000)` fires every 20 min.
-- `update_price_ticker` callback fetches Binance (`api.binance.com/api/v3/ticker/price?symbol=BTCUSDT`), CoinGecko fallback. Outputs to `price-ticker` div (navbar) and `dcc.Store(id="btc-price-store", storage_type="memory")`.
+- `update_price_ticker` callback fetches Binance (`api.binance.com/api/v3/ticker/price?symbol=BTCUSDT`), CoinGecko fallback. Outputs to `price-ticker` div (navbar), `btc-price-store` (memory Store), and `hm-entry-q` (keeps heatmap entry quantile in sync with ticker on every refresh).
 - `_startup_heatmap_defaults()` fetches price at module load → sets heatmap entry percentile default.
 - `_interp_qr_price(q, t, qr_fits)` in `figures.py` — log-space interpolation between adjacent QR fits for arbitrary quantile (e.g. Q7.5%).
 - Heatmap uses `live_price` from `btc-price-store` as entry price when `entry_yr == current_year`; falls back to model interpolation for historical entry years.
@@ -221,6 +221,8 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | `build_retire_figure(m, p)` | Retirement withdrawal simulation |
 
 Heatmap colorscale: all three modes use `_dense_colorscale()` — 256-point `rgb()` colorscale for browser compatibility. Diverging mode centers at 0% CAGR. The "Gradient steps" UI control is cosmetic (no longer affects rendering).
+
+Heatmap chart title format: `Entry: {year}  {price}  ·  Q{percentile}%` — price first, then quantile, matching the navbar ticker format.
 
 ### Production server
 - **VPS**: Hetzner, IP `89.167.70.45`, SSH as `root`

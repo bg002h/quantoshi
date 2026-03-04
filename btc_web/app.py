@@ -606,6 +606,18 @@ _FAQ = [
         ], style={"width":"100%","borderCollapse":"collapse","marginTop":"4px"}),
     },
     {
+        "q": "If I enter my purchases in Quantoshi as Stack Tracker lots, where does that data go?",
+        "a": html.Span([
+            "The data is stored long-term in your browser's \"localStorage\" — it never leaves "
+            "your device. That said, all charts are rendered server-side. So for optimal "
+            "privacy, use the onion version of this website: ",
+            html.A("Stay dark, Anon",
+                   href="http://u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion",
+                   target="_blank", rel="noopener noreferrer"),
+            ".",
+        ]),
+    },
+    {
         "q": "Is there any way to contact someone about this app?",
         "a": html.Span([
             "Email: ",

@@ -730,7 +730,7 @@ _FAQ = [
         "q": "Is Quantoshi predicting future Bitcoin price? What guarantees do I have this will be true?",
         "a": (
             "No. Quantoshi is extrapolating by quantile regression of a power law model. This is math. "
-            "Prediction is what you do with this math. And as far as a guarantee, there is none (any "
+            "Prediction is what YOU do with this math. And as far as a guarantee, there is none (any "
             "guarantee would be worth how much you were required to pay to use this software, which is "
             "free!). Now, if I would have made Quantoshi in 2016, I would have been surprisingly "
             "accurate in 2026, but I would caution anyone working with any dataset against extrapolating "

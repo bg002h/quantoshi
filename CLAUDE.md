@@ -189,10 +189,10 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 ### Tab defaults
 | Tab | Notable defaults |
 |-----|-----------------|
-| Bubble | Q5% only, X scale=Log, N future bubbles=3, shade+show_data+show_today on (legend off). Panel order: scales, toggles, bubble, quantiles, pt size/alpha, stack, use lots. X range slider min=2010 (marks from '10), default value [2012, yr_now+4]. Auto Y checkbox (default on) rescales Y to fit selected quantiles at xmin/xmax. |
+| Bubble | Q5% only, X scale=Log, N future bubbles=3, shade+show_data+show_today on (legend off). Pt size=2, Alpha=0.2. Panel order: scales, toggles, bubble, quantiles, pt size/alpha, stack, use lots. X range slider min=2010 (marks from '10), default value [2012, yr_now+4]. Auto Y checkbox (default on) rescales Y to fit selected quantiles at xmin/xmax. |
 | Heatmap | Entry year=current year, entry percentile=live BTC percentile (free numeric input 0–100%, NOT dropdown), exit years allow past. Entry price=live ticker when entry_yr==current year. Break1=0%, Break2=20%, Gradient Steps=32. |
-| DCA | dual_y+show_legend on |
-| Retire | year slider min=2024, default range 2031–2075, inflation=4%, log_y+dual_y+annotate on |
+| DCA | dual_y+show_legend on. Dual-y "USD Value (median)" / "BTC Balance (median)" is the pointwise `np.median` across all selected quantile simulations. |
+| Retire | year slider min=2024, default range 2031–2075, inflation=4%, log_y+dual_y+annotate on. Dual-y median same approach as DCA. |
 | HODL Supercharger | Mode A, stack=1.0 BTC, delays=[0,1,2,4,8] yr, Monthly, inflation=4%, wd=$5000/mo, end_yr=2075, USD display, annotate+log_y+show_legend on. `sc-chart-layout` is a `dcc.Checklist` with single option "shade"; default `["shade"]` (bands on = layout 2). Display-q dropdown hidden when bands on. Median final value shown in legend for both layouts. |
 | Stack Tracker | default lot Price=$69,420 |
 

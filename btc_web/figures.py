@@ -11,7 +11,23 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # btc_app/ is added to sys.path by app.py before this import
+import bisect
 from btc_core import qr_price, yr_to_t, today_t, fmt_price, _fmt_btc, leo_weighted_entry
+
+
+def _interp_qr_price(q, t, qr_fits):
+    """Return QR price for arbitrary quantile q in (0,1), interpolating in log space."""
+    qs = sorted(qr_fits.keys())
+    if q <= qs[0]:
+        return float(qr_price(qs[0], t, qr_fits))
+    if q >= qs[-1]:
+        return float(qr_price(qs[-1], t, qr_fits))
+    idx = bisect.bisect_left(qs, q)
+    q_lo, q_hi = qs[idx - 1], qs[idx]
+    p_lo = float(qr_price(q_lo, t, qr_fits))
+    p_hi = float(qr_price(q_hi, t, qr_fits))
+    frac = (q - q_lo) / (q_hi - q_lo)
+    return float(np.exp(np.log(p_lo) + frac * (np.log(p_hi) - np.log(p_lo))))
 
 # ── shared theme helpers ──────────────────────────────────────────────────────
 
@@ -327,9 +343,9 @@ def build_heatmap_figure(m, p):
             lots (list), use_lots
     """
     eyr = int(p.get("entry_yr", 2020))
-    eq  = float(p.get("entry_q", 0.5))
-    ep  = float(qr_price(eq, yr_to_t(eyr, m.genesis), m.qr_fits))
+    eq  = float(p.get("entry_q", 50)) / 100.0   # stored as percentage (e.g. 7.5 → 0.075)
     entry_t = yr_to_t(eyr, m.genesis)
+    ep  = _interp_qr_price(eq, entry_t, m.qr_fits)
 
     # LOT ENTRY OVERRIDE
     lots = p.get("lots") or []

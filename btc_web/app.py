@@ -56,17 +56,17 @@ def _nearest_quantile(target, qs):
 
 
 def _startup_heatmap_defaults():
-    """Fetch live BTC price at startup and return (entry_q,) for heatmap defaults."""
+    """Fetch live BTC price at startup; return entry percentile (0–100 scale)."""
     try:
         url = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
         with urllib.request.urlopen(url, timeout=5) as r:
             price = float(json.loads(r.read())["price"])
         pct = _find_lot_percentile(today_t(M.genesis), price, M.qr_fits)
         if pct is not None:
-            return _nearest_quantile(pct, list(M.qr_fits.keys()))
+            return round(pct * 100, 1)   # e.g. 7.5
     except Exception:
         pass
-    return 0.5   # fallback
+    return 50.0   # fallback
 
 
 _HM_ENTRY_Q_DEFAULT = _startup_heatmap_defaults()
@@ -319,9 +319,10 @@ def _heatmap_controls():
             dcc.Slider(id="hm-entry-yr", min=2010, max=2039,
                        value=yr_now, step=1, marks=None,
                        tooltip={"always_visible":True}),
-            _lbl("Entry quantile"),
-            dcc.Dropdown(id="hm-entry-q", options=_q_options(),
-                         value=_HM_ENTRY_Q_DEFAULT, clearable=False),
+            _lbl("Entry percentile (%)"),
+            dbc.Input(id="hm-entry-q", type="number",
+                      value=_HM_ENTRY_Q_DEFAULT,
+                      min=0.001, max=99.999, step=0.1, size="sm"),
         ),
         _ctrl_card(
             _lbl("Exit year range"),
@@ -848,7 +849,7 @@ app.index_string = """<!DOCTYPE html>
 </html>"""
 
 app.layout = dbc.Container([
-    dcc.Interval(id="price-interval", interval=5*60*1000, n_intervals=0),
+    dcc.Interval(id="price-interval", interval=20*60*1000, n_intervals=0),
     dcc.Store(id="lots-store", storage_type="local", data=[]),
     dcc.Store(id="lots-export-dummy"),
     dcc.Location(id="url", refresh=False),

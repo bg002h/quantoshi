@@ -225,7 +225,7 @@ def _bubble_controls():
                                    {"label":" Show data","value":"show_data"},
                                    {"label":" Show today","value":"show_today"},
                                    {"label":" Show legend","value":"show_legend"}],
-                          value=["shade","show_data","show_today","show_legend"],
+                          value=["shade","show_data","show_today"],
                           labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),

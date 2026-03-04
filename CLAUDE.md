@@ -181,10 +181,10 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | Bubble + QR Overlay | `bubble` | Quantiles, axes scale/range, bubble composite, N future bubbles |
 | CAGR Heatmap | `heatmap` | Entry/exit year+quantile, color modes (Segmented/DataScaled/Diverging) |
 | BTC Accumulator | `dca` | DCA amount/frequency, year range, display mode |
-| BTC Retireator | `retire` | Withdrawal amount, inflation rate, year range |
-| HODL Supercharger | `supercharge` | Mode A (fixed spending → depletion date) or Mode B (fixed depletion → max spending); 5 delay offsets, 3 chart layouts |
+| BTC RetireMentator | `retire` | Withdrawal amount, inflation rate, year range |
+| HODL Supercharger | `supercharge` | Mode A (fixed spending → depletion date) or Mode B (fixed depletion → max spending); 5 delay offsets, 2 chart layouts (single-quantile line or quantile bands) |
 | Stack Tracker | `stack` | Lot management (add/delete/import/export JSON) |
-| FAQ | `faq` | Static accordion — add entries to `_FAQ` list in app.py. 13 entries: Share, quantile regression, appearance, crossing projection lines, Power Law, bubble model, why I made this, podcast (porkopolis.io), direct tab linking (/1-/7), open source (BSD-2/GitHub/AppImage), data privacy (localStorage/27-day logs/onion), tip addresses, contact. Answers: plain strings or Dash components (`html.Span`/`html.A`/`html.Table`). Link color: `#1a6fa8` via `.accordion a` in style.css. |
+| FAQ | `faq` | Static accordion — add entries to `_FAQ` list in app.py. 14 entries: Share, quantile regression, price prediction disclaimer, appearance, crossing projection lines, Power Law, bubble model, why I made this, podcast (porkopolis.io), direct tab linking (/1-/7), open source (BSD-2/GitHub/AppImage), data privacy (localStorage/27-day logs/onion), tip addresses, contact. Answers: plain strings or Dash components (`html.Span`/`html.A`/`html.Table`). Link color: `#1a6fa8` via `.accordion a` in style.css. |
 
 ### Tab defaults
 | Tab | Notable defaults |
@@ -193,7 +193,7 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | Heatmap | Entry year=current year, entry percentile=live BTC percentile (free numeric input 0–100%, NOT dropdown), exit years allow past. Entry price=live ticker when entry_yr==current year. Break1=0%, Break2=20%, Gradient Steps=32. |
 | DCA | dual_y+show_legend on |
 | Retire | year slider min=2024, default range 2031–2075, inflation=4%, log_y+dual_y+annotate on |
-| HODL Supercharger | Mode A, stack=1.0 BTC, delays=[0,1,2,4,8] yr, Monthly, inflation=4%, wd=$5000/mo, end_yr=2075, USD display, annotate+log_y+show_legend on, chart_layout=0 (color=delay/one-q), display_q=nearest to 0.5 |
+| HODL Supercharger | Mode A, stack=1.0 BTC, delays=[0,1,2,4,8] yr, Monthly, inflation=4%, wd=$5000/mo, end_yr=2075, USD display, annotate+log_y+show_legend on. `sc-chart-layout` is a `dcc.Checklist` with single option "shade"; default `["shade"]` (bands on = layout 2). Display-q dropdown hidden when bands on. Median final value shown in legend for both layouts. |
 | Stack Tracker | default lot Price=$69,420 |
 
 ### State and privacy
@@ -202,8 +202,8 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 - Chart callbacks use `effective-lots` store (routes to snapshot lots or localStorage lots).
 
 ### Snapshot / Share feature
-- `📸 Share` button → modal → **Generate link** encodes all 66 control states + optional lots as gzip+base64 in URL hash (`#q2:...` current format; `#q1:...` legacy format still decoded for backward compat).
-- `_SNAPSHOT_CONTROLS` in `app.py` — list of 66 `(component_id, property)` tuples defining what gets captured (47 original + 19 `sc-*` entries for HODL Supercharger, inserted before `main-tabs` entry — backward compatible).
+- `📸 Share` button → modal → **Generate link** encodes all 67 control states + optional lots as gzip+base64 in URL hash (`#q2:...` current format; `#q1:...` legacy format still decoded for backward compat).
+- `_SNAPSHOT_CONTROLS` in `app.py` — list of 67 `(component_id, property)` tuples defining what gets captured (47 original + 19 `sc-*` entries for HODL Supercharger + 1 `bub-auto-y`, inserted before `main-tabs` entry — backward compatible).
 - `restore_from_url` callback (`prevent_initial_call=False`) decodes hash on page load → restores all controls.
 - Snapshot lots override localStorage; "Restore my lots" button reverts.
 - `link-history` store (localStorage) — deduplicates, up to 50 entries.
@@ -232,6 +232,8 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | `build_supercharge_figure(m, p)` | HODL Supercharger — depletion curves (Mode A) or max-withdrawal bar (Mode B) per delay scenario |
 
 Module-level constants in `figures.py`: `_DELAY_COLORS = ['#636EFA','#EF553B','#00CC96','#AB63FA','#FFA15A']`, `_DASH_STYLES = ['solid','dash','dot','dashdot','longdash']`.
+
+**Watermark**: `_LOGO_B64` (base64-encoded logo loaded at module startup) and `_apply_watermark(fig)` add the Quantoshi logo (bottom-right, 55% opacity, `sizex=0.07 sizey=0.12`) plus `"quantoshi.xyz"` text annotation to all exported figures. Called in all 5 chart builders before return.
 
 Heatmap colorscale: all three modes use `_dense_colorscale()` — 256-point `rgb()` colorscale for browser compatibility. Diverging mode centers at 0% CAGR. The "Gradient steps" UI control is cosmetic (no longer affects rendering).
 

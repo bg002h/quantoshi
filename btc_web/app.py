@@ -572,6 +572,23 @@ _FAQ = [
         ),
     },
     {
+        "q": "Can I send you a tip?",
+        "a": html.Table([
+            html.Tbody([
+                html.Tr([html.Td("Bitcoin", style={"paddingRight":"12px","whiteSpace":"nowrap","verticalAlign":"top"}),
+                         html.Td(html.Code("bc1qgh6kfnf02uvplq490nyslc7768tnvzftlrw5fe", style={"wordBreak":"break-all","fontSize":"11px"}))]),
+                html.Tr([html.Td("Lightning", style={"paddingRight":"12px","whiteSpace":"nowrap","verticalAlign":"top"}),
+                         html.Td(html.Code("lno1pgjrzv34xscxyvrp94jrvdej956rgdnp95ukydt9943rxdpkxucrqvpsv5ury93pqgfffll4jmjf0tffqtx47xt886gzp9fajp3966xz96gm2xj9cqedx", style={"wordBreak":"break-all","fontSize":"11px"}))]),
+                html.Tr([html.Td("Ecash", style={"paddingRight":"12px","whiteSpace":"nowrap","verticalAlign":"top"}),
+                         html.Td(html.Code("creqApGF0gaNhdGRwb3N0YWF4QGh0dHBzOi8vY29pbm9zLmlvL2FwaS9lY2FzaC8xMjU0MGIwYS1kNjcyLTQ0NmEtOWI1ZS1iMzQ2NzAwMDBlODJhZ/dhaXgkMTI1NDBiMGEtZDY3M:", style={"wordBreak":"break-all","fontSize":"11px"}))]),
+                html.Tr([html.Td("Liquid BTC", style={"paddingRight":"12px","whiteSpace":"nowrap","verticalAlign":"top"}),
+                         html.Td(html.Code("lq1qqfztsa6ffjkspk3qxp4ft8kn2sxu5ja9prn5d9vwuqjjut5g2tzc8rpsgz2pysayplrgemf9dt3vpkqhvsvtkfxvdyk9mlsel", style={"wordBreak":"break-all","fontSize":"11px"}))]),
+                html.Tr([html.Td("Liquid USDt", style={"paddingRight":"12px","whiteSpace":"nowrap","verticalAlign":"top"}),
+                         html.Td(html.Code("liquidnetwork:lq1qqfjgl0fvv7a5prqd7d0k4x80kq2v0cngzxuj7hz3pdhuj0xg57tuzk9q0knrsuevsrywqys92ttefak83xzqq6uqmngkkaa74?assetid=ce091c998b83c78bb71a632313ba3760f176", style={"wordBreak":"break-all","fontSize":"11px"}))]),
+            ])
+        ], style={"width":"100%","borderCollapse":"collapse","marginTop":"4px"}),
+    },
+    {
         "q": "Is there any way to contact someone about this app?",
         "a": html.Span([
             "Email: ",

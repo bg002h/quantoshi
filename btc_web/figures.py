@@ -952,7 +952,7 @@ def build_supercharge_figure(m, p):
         layout = _dark_layout(
             m,
             title=(f"HODL Supercharger \u2014 {fmt_price(wd_amount)}{freq_label} \u00b7 "
-                   f"Retire {syr}+"),
+                   f"Retire {syr}+ \u00b7 to {eyr}"),
             xlabel="Year", ylabel=ylabel,
         )
         layout["xaxis"].update(

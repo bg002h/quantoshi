@@ -607,6 +607,14 @@ _FAQ = [
         ], style={"width":"100%","borderCollapse":"collapse","marginTop":"4px"}),
     },
     {
+        "q": "Why did you make this?",
+        "a": (
+            "Everyone needs bitcoin... and Bitcoin is for everyone. The more clearly people "
+            "can see the past, the more accurately they can model the future. I'm just doing "
+            "a tiny part in helping people see the bright orange future we are racing towards."
+        ),
+    },
+    {
         "q": "Do you have a podcast?",
         "a": html.Span([
             "No. I'm ugly and I work in the dark all day (only half of this is true)... "

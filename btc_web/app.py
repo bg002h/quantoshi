@@ -657,11 +657,10 @@ def _supercharge_controls():
             ),
         ], id="sc-mode-b-collapse", is_open=False),
         _ctrl_card(
-            _lbl("Chart layout"),
-            dcc.RadioItems(id="sc-chart-layout",
-                options=[{"label":" Color=delay, one quantile","value":0},
-                         {"label":" Color=delay, quantile band","value":2}],
-                value=0, labelStyle={"display":"block"},
+            _lbl("Quantile band"),
+            dcc.Checklist(id="sc-chart-layout",
+                options=[{"label":" Shade quantile bands","value":"shade"}],
+                value=["shade"],
                 inputStyle={"marginRight":"5px"}),
         ),
         dbc.Collapse([
@@ -1360,6 +1359,10 @@ def update_supercharge(stack, use_lots, start_yr,
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
     toggles = toggles or []
     yr_now  = pd.Timestamp.today().year
+    # chart_layout is now a checklist list; legacy snapshots may send an int
+    _cl = (2 if "shade" in (chart_layout or []) else 0) \
+          if isinstance(chart_layout, list) \
+          else (int(chart_layout) if chart_layout is not None else 2)
     return build_supercharge_figure(M, dict(
         mode         = mode or "a",
         start_stack  = float(stack or 1.0),
@@ -1368,7 +1371,7 @@ def update_supercharge(stack, use_lots, start_yr,
         freq         = freq or "Monthly",
         inflation    = float(infl or 4.0),
         selected_qs  = sel_qs or [],
-        chart_layout = int(chart_layout) if chart_layout is not None else 0,
+        chart_layout = _cl,
         display_q    = float(display_q) if display_q is not None
                        else _nearest_quantile(0.5, _ALL_QS),
         wd_amount    = float(wd or 5000),
@@ -1398,7 +1401,7 @@ def toggle_sc_mode(mode):
     Input("sc-chart-layout", "value"),
 )
 def toggle_sc_display_q(layout):
-    return layout == 0
+    return "shade" not in (layout or [])
 
 
 # ══════════════════════════════════════════════════════════════════════════════

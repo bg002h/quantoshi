@@ -983,9 +983,11 @@ def build_supercharge_figure(m, p):
                     fill="tonexty", fillcolor=_hex_alpha(col, 0.2),
                     line=dict(color=col, width=0), showlegend=False, hoverinfo="skip",
                 ))
+                med_final = (fmt_price(float(y_med[-1])) if disp_mode == "usd"
+                             else f"{float(y_med[-1]):.4f} BTC")
                 traces.append(go.Scatter(
                     x=list(ts_d), y=list(y_med), mode="lines",
-                    name=f"Delay {d_lbl} (median)",
+                    name=f"Delay {d_lbl}  \u2192  {med_final}",
                     line=dict(color=col, width=2),
                 ))
 
@@ -1095,9 +1097,10 @@ def build_supercharge_figure(m, p):
                 y_d   = [max_wd.get((d, q), 0) for q in sel_qs]
                 qlbls = [f"Q{q*100:.4g}%" if q*100 >= 1 else f"Q{q*100:.3g}%"
                          for q in sel_qs]
+                med_val = y_d[len(y_d) // 2] if y_d else 0
                 traces.append(go.Scatter(
                     x=list(sel_qs), y=y_d, mode="lines+markers",
-                    name=f"Delay {d_lbl}",
+                    name=f"Delay {d_lbl}  \u2192  {fmt_price(med_val)}{freq_label} (med)",
                     line=dict(color=col, width=2),
                     marker=dict(color=col, size=6),
                     customdata=qlbls,

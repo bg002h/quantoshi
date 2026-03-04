@@ -175,7 +175,7 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | BTC Accumulator | `dca` | DCA amount/frequency, year range, display mode |
 | BTC Retireator | `retire` | Withdrawal amount, inflation rate, year range |
 | Stack Tracker | `stack` | Lot management (add/delete/import/export JSON) |
-| FAQ | `faq` | Static accordion — add entries to `_FAQ` list in app.py |
+| FAQ | `faq` | Static accordion — add entries to `_FAQ` list in app.py. Current order: Share button, quantile regression, cross-platform appearance, crossing lines |
 
 ### Tab defaults
 | Tab | Notable defaults |

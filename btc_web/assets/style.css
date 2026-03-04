@@ -67,6 +67,10 @@ body {
 /* DataTable tweaks — already styled inline but reinforce */
 .dash-table-container .dash-spreadsheet-container { font-size: 12px; }
 
+/* FAQ links — slightly muted vs default bright blue */
+.accordion a { color: #1a6fa8 !important; }
+.accordion a:hover { color: #154e78 !important; }
+
 /* ── Mobile: stack controls below chart ─────────────────────────────────── */
 @media (max-width: 767px) {
     .controls-col {

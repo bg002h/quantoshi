@@ -150,9 +150,19 @@ _SNAP_PREFIX    = "q2:"   # current format
 _SNAP_PREFIX_V1 = "q1:"   # legacy format (dict-based), kept for backward compat
 
 
-def _encode_snapshot(state_dict):
-    """v2: positional array — no key names, ~50% smaller than v1."""
-    values = [state_dict.get(f"{cid}:{prop}") for cid, prop in _SNAPSHOT_CONTROLS]
+def _encode_snapshot(state_dict, tab_filter=None):
+    """v2: positional array — no key names, ~50% smaller than v1.
+
+    If tab_filter is a set of component IDs, only those controls (plus
+    main-tabs) are encoded; all others become None and fall back to defaults
+    on restore.
+    """
+    values = []
+    for cid, prop in _SNAPSHOT_CONTROLS:
+        val = state_dict.get(f"{cid}:{prop}")
+        if tab_filter is not None and cid != "main-tabs" and cid not in tab_filter:
+            val = None
+        values.append(val)
     lots   = state_dict.get("_lots")
     payload = [values, lots]
     j = json.dumps(payload, separators=(',', ':'))
@@ -1080,10 +1090,22 @@ app.layout = dbc.Container([
     dbc.Modal([
         dbc.ModalHeader(dbc.ModalTitle("Share / Restore Configuration")),
         dbc.ModalBody([
+            html.Div("Scope:", className="fw-semibold small mb-1"),
+            dcc.RadioItems(
+                id="share-scope",
+                options=[
+                    {"label": " All tabs — full state, longer link", "value": "all"},
+                    {"label": " Current tab only — shorter link",    "value": "tab"},
+                ],
+                value="all",
+                inputStyle={"marginRight": "5px"},
+                className="mb-2 small",
+            ),
             dcc.Checklist(
                 id="share-include-lots",
                 options=[{"label": " Include Stack Tracker lots in link", "value": "yes"}],
                 value=[], inputStyle={"marginRight": "5px"},
+                className="small",
             ),
             dbc.Button("Generate link", id="share-copy-btn",
                        color="primary", size="sm", className="mt-2 mb-3 w-100"),
@@ -1653,6 +1675,27 @@ _PATH_TO_TAB = {
     "/1": "bubble", "/2": "heatmap", "/3": "dca",
     "/4": "retire",  "/5": "supercharge", "/6": "stack", "/7": "faq",
 }
+_TAB_TO_PATH = {v: k for k, v in _PATH_TO_TAB.items()}
+
+# Component IDs that belong to each tab (for single-tab share links)
+_TAB_CONTROLS = {
+    "bubble":      {"bub-qs","bub-xscale","bub-yscale","bub-xrange","bub-yrange",
+                    "bub-toggles","bub-bubble-toggles","bub-n-future","bub-ptsize",
+                    "bub-ptalpha","bub-stack","bub-show-stack","bub-use-lots","bub-auto-y"},
+    "heatmap":     {"hm-entry-yr","hm-entry-q","hm-exit-range","hm-exit-qs","hm-mode",
+                    "hm-b1","hm-b2","hm-c-lo","hm-c-mid1","hm-c-mid2","hm-c-hi",
+                    "hm-grad","hm-vfmt","hm-cell-fs","hm-toggles","hm-stack","hm-use-lots"},
+    "dca":         {"dca-stack","dca-use-lots","dca-amount","dca-freq","dca-yr-range",
+                    "dca-disp","dca-toggles","dca-qs"},
+    "retire":      {"ret-stack","ret-use-lots","ret-wd","ret-freq","ret-yr-range",
+                    "ret-infl","ret-disp","ret-toggles","ret-qs"},
+    "supercharge": {"sc-stack","sc-use-lots","sc-start-yr","sc-d0","sc-d1","sc-d2",
+                    "sc-d3","sc-d4","sc-freq","sc-infl","sc-qs","sc-mode","sc-wd",
+                    "sc-end-yr","sc-target-yr","sc-disp","sc-toggles","sc-chart-layout",
+                    "sc-display-q"},
+    "stack":       set(),
+    "faq":         set(),
+}
 
 app.clientside_callback(
     """
@@ -1717,13 +1760,14 @@ def restore_from_url(hash_str):
     Output("link-history",      "data"),
     Input("share-copy-btn",    "n_clicks"),
     Input("loaded-hash-store", "data"),
+    State("share-scope",        "value"),
     State("share-include-lots", "value"),
     State("lots-store",         "data"),
     *[State(cid, prop) for cid, prop in _SNAPSHOT_CONTROLS],
     State("link-history",       "data"),
     prevent_initial_call=True,
 )
-def manage_snapshot(n_btn, loaded_hash, include_lots, lots_data, *rest):
+def manage_snapshot(n_btn, loaded_hash, share_scope, include_lots, lots_data, *rest):
     *ctrl_vals, history = rest
     history  = list(history or [])
     existing = {h["hash"] for h in history}
@@ -1734,14 +1778,22 @@ def manage_snapshot(n_btn, loaded_hash, include_lots, lots_data, *rest):
                  for (cid, prop), val in zip(_SNAPSHOT_CONTROLS, ctrl_vals)}
         if include_lots and lots_data:
             state["_lots"] = lots_data
-        encoded  = _encode_snapshot(state)
-        base_url = flask_request.host_url.rstrip("/")
-        full_url = f"{base_url}/#q2:{encoded}"
+        # Determine active tab and its URL path
+        active_tab = state.get("main-tabs:active_tab") or "bubble"
+        tab_path   = _TAB_TO_PATH.get(active_tab, "/1")
+        # Apply tab filter for single-tab links
+        scope      = share_scope or "all"
+        tab_filter = _TAB_CONTROLS.get(active_tab) if scope == "tab" else None
+        encoded    = _encode_snapshot(state, tab_filter=tab_filter)
+        base_url   = flask_request.host_url.rstrip("/")
+        full_url   = f"{base_url}{tab_path}#q2:{encoded}"
         if encoded not in existing:
             history.insert(0, {
                 "hash": encoded, "url": full_url,
                 "ts": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"),
                 "includes_lots": bool(include_lots and lots_data),
+                "scope": scope,
+                "tab": active_tab,
             })
             history = history[:50]
         return full_url, history
@@ -1760,13 +1812,17 @@ def manage_snapshot(n_btn, loaded_hash, include_lots, lots_data, *rest):
             return no_update, no_update
         if not state:
             return no_update, no_update
-        base_url = flask_request.host_url.rstrip("/")
-        full_url = f"{base_url}/#{prefix}{encoded}"
+        active_tab = state.get("main-tabs:active_tab") or "bubble"
+        tab_path   = _TAB_TO_PATH.get(active_tab, "/1")
+        base_url   = flask_request.host_url.rstrip("/")
+        full_url   = f"{base_url}{tab_path}#{prefix}{encoded}"
         if encoded not in existing:
             history.insert(0, {
                 "hash": encoded, "url": full_url,
                 "ts": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"),
                 "includes_lots": "_lots" in state,
+                "scope": "unknown",
+                "tab": active_tab,
             })
             history = history[:50]
             return no_update, history

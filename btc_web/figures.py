@@ -5,6 +5,8 @@ and returns a go.Figure ready for dcc.Graph.
 """
 
 import math
+import base64
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -66,6 +68,40 @@ def _year_ticks(start_yr, end_yr, genesis):
     yrs  = list(range(start_yr, end_yr + 1, step))
     ts   = [yr_to_t(y, genesis) for y in yrs]
     return ts, [str(y) for y in yrs]
+
+
+# ── Watermark (logo + URL) ────────────────────────────────────────────────────────────────────────────
+
+_LOGO_B64 = None
+try:
+    _logo_path = Path(__file__).parent / "assets" / "quantoshi_logo.png"
+    with open(_logo_path, "rb") as _f:
+        _LOGO_B64 = "data:image/png;base64," + base64.b64encode(_f.read()).decode()
+except Exception:
+    pass
+
+
+def _apply_watermark(fig):
+    """Stamp Quantoshi logo + URL onto a go.Figure (bottom-right corner)."""
+    if _LOGO_B64:
+        fig.add_layout_image(dict(
+            source=_LOGO_B64,
+            xref="paper", yref="paper",
+            x=1.0, y=0.0,
+            sizex=0.07, sizey=0.12,
+            xanchor="right", yanchor="bottom",
+            opacity=0.55,
+            layer="above",
+        ))
+    fig.add_annotation(dict(
+        text="quantoshi.xyz",
+        xref="paper", yref="paper",
+        x=0.925, y=0.015,
+        xanchor="right", yanchor="bottom",
+        showarrow=False,
+        font=dict(size=9, color="rgba(180,180,180,0.65)"),
+    ))
+    return fig
 
 
 def _price_tickvals(y_lo, y_hi):
@@ -323,7 +359,9 @@ def build_bubble_figure(m, p):
             bgcolor=m.PLOT_BG_COLOR, bordercolor=m.SPINE_COLOR, borderwidth=1,
         )]
 
-    return go.Figure(data=traces, layout=go.Layout(**layout))
+    fig = go.Figure(data=traces, layout=go.Layout(**layout))
+    _apply_watermark(fig)
+    return fig
 
 
 def _hex_alpha(hex_color, alpha):
@@ -492,6 +530,7 @@ def build_heatmap_figure(m, p):
         annotations=annots,
         margin=dict(l=70, r=20, t=60, b=50),
     )
+    _apply_watermark(fig)
     return fig
 
 
@@ -619,7 +658,9 @@ def build_dca_figure(m, p):
                 layout["yaxis2"]["type"] = "log"
 
     layout["showlegend"] = bool(p.get("show_legend", True))
-    return go.Figure(data=traces, layout=go.Layout(**layout))
+    fig = go.Figure(data=traces, layout=go.Layout(**layout))
+    _apply_watermark(fig)
+    return fig
 
 
 # ── BTC Retireator ────────────────────────────────────────────────────────────
@@ -769,7 +810,9 @@ def build_retire_figure(m, p):
                 layout["yaxis2"]["type"] = "log"
 
     layout["showlegend"] = bool(p.get("show_legend", True))
-    return go.Figure(data=traces, layout=go.Layout(**layout))
+    fig = go.Figure(data=traces, layout=go.Layout(**layout))
+    _apply_watermark(fig)
+    return fig
 
 
 # ── HODL Supercharger ─────────────────────────────────────────────────────────
@@ -974,7 +1017,9 @@ def build_supercharge_figure(m, p):
                 ))
         layout["shapes"]     = shapes
         layout["showlegend"] = show_legend
-        return go.Figure(data=traces, layout=go.Layout(**layout))
+        fig = go.Figure(data=traces, layout=go.Layout(**layout))
+        _apply_watermark(fig)
+        return fig
 
     # ── MODE B: fixed depletion date \u2192 max withdrawal per period ──────────────
     else:
@@ -1067,4 +1112,6 @@ def build_supercharge_figure(m, p):
             ylabel=f"Max withdrawal{freq_label}",
         )
         layout["showlegend"] = show_legend
-        return go.Figure(data=traces, layout=go.Layout(**layout))
+        fig = go.Figure(data=traces, layout=go.Layout(**layout))
+        _apply_watermark(fig)
+        return fig

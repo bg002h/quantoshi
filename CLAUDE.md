@@ -221,6 +221,7 @@ Heatmap colorscale: all three modes use `_dense_colorscale()` — 256-point `rgb
 - **nginx**: reverse proxy with HTTPS via Let's Encrypt
 - **Tor**: `tor@default`, hidden service at `/var/lib/tor/quantoshi/`
 - **gunicorn** must be installed separately: `pip install gunicorn` (not in requirements.txt)
+- **Log retention**: 27 days — `/etc/logrotate.d/nginx` and `/etc/logrotate.d/quantoshi` both set `rotate 27` with daily rotation. Covers nginx logs and gunicorn's `/var/log/quantoshi-access.log` + `/var/log/quantoshi-error.log`.
 
 ---
 

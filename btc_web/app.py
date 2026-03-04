@@ -1104,7 +1104,7 @@ app.layout = dbc.Container([
         dbc.Tab(_bubble_tab(),       label="Bubble + QR Overlay", tab_id="bubble"),
         dbc.Tab(_heatmap_tab(),      label="CAGR Heatmap",        tab_id="heatmap"),
         dbc.Tab(_dca_tab(),          label="BTC Accumulator",     tab_id="dca"),
-        dbc.Tab(_retire_tab(),       label="BTC Retireator",      tab_id="retire"),
+        dbc.Tab(_retire_tab(),       label="BTC RetireMentator",  tab_id="retire"),
         dbc.Tab(_supercharge_tab(),  label="HODL Supercharger",   tab_id="supercharge"),
         dbc.Tab(_stack_tracker_tab(),label="Stack Tracker",       tab_id="stack"),
         dbc.Tab(_faq_tab(),          label="FAQ",                 tab_id="faq"),

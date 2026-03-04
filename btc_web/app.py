@@ -28,6 +28,7 @@ for _p in (_ROOT, _BTC_APP):
 import json
 import gzip
 import base64
+import urllib.request
 import pandas as pd
 import plotly.graph_objects as go
 
@@ -825,6 +826,7 @@ app.index_string = """<!DOCTYPE html>
 </html>"""
 
 app.layout = dbc.Container([
+    dcc.Interval(id="price-interval", interval=5*60*1000, n_intervals=0),
     dcc.Store(id="lots-store", storage_type="local", data=[]),
     dcc.Store(id="lots-export-dummy"),
     dcc.Location(id="url", refresh=False),
@@ -841,6 +843,12 @@ app.layout = dbc.Container([
                                         style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif"}),
                         width="auto"),
                 dbc.Col(
+                    html.Div(id="price-ticker",
+                             style={"fontSize":"12px", "color":"rgba(255,255,255,0.85)",
+                                    "whiteSpace":"nowrap", "fontFamily":"monospace"}),
+                    className="ms-auto", width="auto",
+                ),
+                dbc.Col(
                     html.Div([
                         html.Span("Stay dark, Anon →",
                                   style={"fontSize":"9px", "color":"rgba(255,255,255,0.4)",
@@ -853,7 +861,6 @@ app.layout = dbc.Container([
                             className="text-white-50 small text-decoration-none",
                         ),
                     ], style={"display":"flex", "alignItems":"center"}),
-                    className="ms-auto",
                     width="auto",
                 ),
                 dbc.Col(
@@ -1245,6 +1252,40 @@ app.clientside_callback(
     State("lots-store",         "data"),
     prevent_initial_call=True,
 )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Callback — live BTC price ticker (Binance, refreshes every 5 min)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _fetch_btc_price():
+    """Fetch current BTC price — Binance primary, CoinGecko fallback."""
+    sources = [
+        ("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
+         lambda d: float(d["price"])),
+        ("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+         lambda d: float(d["bitcoin"]["usd"])),
+    ]
+    for url, parse in sources:
+        try:
+            with urllib.request.urlopen(url, timeout=5) as r:
+                return parse(json.loads(r.read()))
+        except Exception:
+            continue
+    return None
+
+
+@callback(
+    Output("price-ticker", "children"),
+    Input("price-interval", "n_intervals"),
+)
+def update_price_ticker(_):
+    price = _fetch_btc_price()
+    if price is None:
+        return "₿ —"
+    pct = _find_lot_percentile(today_t(M.genesis), price, M.qr_fits)
+    pct_str = f"Q{pct*100:.1f}%" if pct is not None else "—"
+    return f"₿ {fmt_price(price)}  ·  {pct_str}"
 
 
 # ══════════════════════════════════════════════════════════════════════════════

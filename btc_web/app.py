@@ -727,6 +727,19 @@ _FAQ = [
         ),
     },
     {
+        "q": "Is Quantoshi predicting future Bitcoin price? What guarantees do I have this will be true?",
+        "a": (
+            "No. Quantoshi is extrapolating by quantile regression of a power law model. This is math. "
+            "Prediction is what you do with this math. And as far as a guarantee, there is none (any "
+            "guarantee would be worth how much you were required to pay to use this software, which is "
+            "free!). Now, if I would have made Quantoshi in 2016, I would have been surprisingly "
+            "accurate in 2026, but I would caution anyone working with any dataset against extrapolating "
+            "much beyond 1/3 of the dataset. Bitcoin is 17 years old. 17/3 is 5 to a physicist, 6 to a "
+            "mathematician, and 5.67 to an engineer, and 5-2/3 in US Army Mixed Number Format. Use "
+            "caution extrapolating beyond 6 or so years."
+        ),
+    },
+    {
         "q": "Why does this look so bad on [my device / browser]?",
         "a": (
             "I have only been able to test this on Linux and iPhone. I'm a physician, not a "

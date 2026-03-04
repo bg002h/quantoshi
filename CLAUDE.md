@@ -181,7 +181,7 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | Tab | Notable defaults |
 |-----|-----------------|
 | Bubble | Q5% only, X scale=Log, N future bubbles=3, shade+show_data+show_today on (legend off). Panel order: scales, toggles, bubble, quantiles, pt size/alpha, stack, use lots. |
-| Heatmap | Break1=0%, Break2=20%, Gradient Steps=32 |
+| Heatmap | Entry year=current year, entry percentile=live BTC percentile (free numeric input 0–100%, NOT dropdown), exit years allow past. Entry price=live ticker when entry_yr==current year. Break1=0%, Break2=20%, Gradient Steps=32. |
 | DCA | dual_y+show_legend on |
 | Retire | year slider min=2024, default range 2031–2075, inflation=4%, log_y+dual_y+annotate on |
 | Stack Tracker | default lot Price=$69,420 |
@@ -203,6 +203,14 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 - Visiting `/1`–`/6` navigates directly to a tab (clientside callback on `url.pathname`).
 - Map: `/1`=bubble, `/2`=heatmap, `/3`=dca, `/4`=retire, `/5`=stack, `/6`=faq.
 - Uses `allow_duplicate=True` + `prevent_initial_call='initial_duplicate'`. **Never use `prevent_initial_call=False` with `allow_duplicate=True`** — Dash raises an error that crashes gunicorn (exit code 3).
+
+### Live price ticker
+- `dcc.Interval(id="price-interval", interval=20*60*1000)` fires every 20 min.
+- `update_price_ticker` callback fetches Binance (`api.binance.com/api/v3/ticker/price?symbol=BTCUSDT`), CoinGecko fallback. Outputs to `price-ticker` div (navbar) and `dcc.Store(id="btc-price-store", storage_type="memory")`.
+- `_startup_heatmap_defaults()` fetches price at module load → sets heatmap entry percentile default.
+- `_interp_qr_price(q, t, qr_fits)` in `figures.py` — log-space interpolation between adjacent QR fits for arbitrary quantile (e.g. Q7.5%).
+- Heatmap uses `live_price` from `btc-price-store` as entry price when `entry_yr == current_year`; falls back to model interpolation for historical entry years.
+- **Binance is geo-blocked in the US** (HTTP 451) but works fine from the Hetzner server (Germany).
 
 ### Chart builders (`figures.py`)
 | Function | Chart |

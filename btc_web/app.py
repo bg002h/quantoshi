@@ -28,6 +28,7 @@ for _p in (_ROOT, _BTC_APP):
 import json
 import gzip
 import base64
+import math
 import urllib.request
 import pandas as pd
 import plotly.graph_objects as go
@@ -38,7 +39,7 @@ import dash_bootstrap_components as dbc
 from flask import request as flask_request
 
 from btc_core import (load_model_data, _find_lot_percentile, fmt_price,
-                      yr_to_t, today_t, leo_weighted_entry)
+                      yr_to_t, today_t, leo_weighted_entry, qr_price)
 from figures import (build_bubble_figure, build_heatmap_figure,
                      build_dca_figure, build_retire_figure,
                      build_supercharge_figure)
@@ -141,6 +142,7 @@ _SNAPSHOT_CONTROLS = [
     ("sc-toggles",        "value"),
     ("sc-chart-layout",   "value"),
     ("sc-display-q",      "value"),
+    ("bub-auto-y",        "value"),
     ("main-tabs",         "active_tab"),
 ]
 
@@ -248,7 +250,15 @@ def _bubble_controls():
                             value=[2012, yr_now + 4], step=1,
                             marks={y: f"'{y % 100:02d}" for y in range(2009, 2051, 5)},
                             tooltip={"always_visible":False}),
-            _lbl("Y range (price)"),
+            dbc.Row([
+                dbc.Col(_lbl("Y range (price)"), width="auto"),
+                dbc.Col(dcc.Checklist(
+                    id="bub-auto-y",
+                    options=[{"label":" Auto","value":"yes"}],
+                    value=["yes"], inputStyle={"marginRight":"3px"},
+                    className="small",
+                ), width="auto"),
+            ], className="g-0 align-items-center"),
             dcc.RangeSlider(id="bub-yrange", min=-2, max=8,
                             value=[0, 7], step=0.5,
                             marks={-2:"1¢", 0:"$1", 2:"$100",
@@ -1164,6 +1174,31 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
         comp_color  = "#FFD700", comp_lw = 2.0,
         sup_color   = "#888888", sup_lw  = 1.5,
     ))
+
+
+@callback(
+    Output("bub-yrange", "value"),
+    Input("bub-xrange",  "value"),
+    Input("bub-auto-y",  "value"),
+    State("bub-qs",      "value"),
+    prevent_initial_call=True,
+)
+def auto_bubble_yrange(xrange, auto_y, sel_qs):
+    if not auto_y or not xrange:
+        raise dash.exceptions.PreventUpdate
+    xmin, xmax = int(xrange[0]), int(xrange[1])
+    qs = sorted([float(q) for q in (sel_qs or []) if float(q) in M.qr_fits])
+    if not qs:
+        qs = sorted(M.qr_fits.keys())
+    t_lo = max(yr_to_t(xmin, M.genesis), 0.1)
+    t_hi = yr_to_t(xmax, M.genesis)
+    p_lo = float(qr_price(qs[0],  t_lo, M.qr_fits))
+    p_hi = float(qr_price(qs[-1], t_hi, M.qr_fits))
+    y_lo = math.floor(math.log10(max(p_lo, 1e-10)) * 2) / 2 - 0.5
+    y_hi = math.ceil( math.log10(max(p_hi, 1e-10)) * 2) / 2 + 0.5
+    y_lo = max(-2.0, min(y_lo, 6.0))
+    y_hi = min(8.0,  max(y_hi, 1.0))
+    return [round(y_lo, 1), round(y_hi, 1)]
 
 
 @callback(

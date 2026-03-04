@@ -202,11 +202,15 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 - Chart callbacks use `effective-lots` store (routes to snapshot lots or localStorage lots).
 
 ### Snapshot / Share feature
-- `📸 Share` button → modal → **Generate link** encodes all 67 control states + optional lots as gzip+base64 in URL hash (`#q2:...` current format; `#q1:...` legacy format still decoded for backward compat).
-- `_SNAPSHOT_CONTROLS` in `app.py` — list of 67 `(component_id, property)` tuples defining what gets captured (47 original + 19 `sc-*` entries for HODL Supercharger + 1 `bub-auto-y`, inserted before `main-tabs` entry — backward compatible).
+- `📸 Share` button → modal → **Scope** radio ("All tabs" / "Current tab only") → **Generate link** encodes control states + optional lots as gzip+base64 in URL hash.
+- URL format: `host/N#q2:...` where N is the tab path (`/1`–`/7`), so tab routing fires independently of hash decode.
+- **All tabs** scope: encodes all 67 controls (full fidelity). **Current tab only** scope: encodes only the active tab's controls via `tab_filter` — non-matching controls encode as `null` and fall back to defaults on restore (much shorter link).
+- `_SNAPSHOT_CONTROLS` — list of 67 `(component_id, property)` tuples (47 original + 19 `sc-*` + 1 `bub-auto-y`, inserted before `main-tabs` — backward compatible). Format: `#q2:...` current; `#q1:...` legacy (still decoded).
+- `_TAB_CONTROLS` — dict mapping each `tab_id` → set of component IDs belonging to that tab. `_TAB_TO_PATH` — reverse of `_PATH_TO_TAB`.
+- `_encode_snapshot(state_dict, tab_filter=None)` — pass `tab_filter=_TAB_CONTROLS[tab_id]` for single-tab links.
 - `restore_from_url` callback (`prevent_initial_call=False`) decodes hash on page load → restores all controls.
 - Snapshot lots override localStorage; "Restore my lots" button reverts.
-- `link-history` store (localStorage) — deduplicates, up to 50 entries.
+- `link-history` store (localStorage) — deduplicates, up to 50 entries; each entry records `scope` and `tab`.
 - Key stores: `snapshot-lots` (memory), `effective-lots` (memory), `link-history` (local), `loaded-hash-store` (memory).
 
 ### URL tab routing

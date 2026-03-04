@@ -14,6 +14,14 @@ The notebook generates `btc_app/model_data.pkl`, which both the web app and the 
 
 ---
 
+## Workflow
+
+**Never auto-deploy.** After making changes, stop at committing locally. Do NOT push to GitHub or SSH-deploy to the production server unless explicitly asked. The user will say "deploy to production" when ready to ship.
+
+**Local test environment:** `DEV=1 bash run_web.sh` (hot-reload, single user) or `bash run_web.sh` (gunicorn). The local btc-web systemd service has been stopped; start the app manually when needed.
+
+---
+
 ## Commands
 
 ### Run the notebook

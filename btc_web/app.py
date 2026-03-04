@@ -302,7 +302,7 @@ def _bubble_controls():
                                     value=2, min=1, max=20, size="sm")]),
                 html.Div([_lbl("Alpha"),
                           dbc.Input(id="bub-ptalpha", type="number",
-                                    value=0.6, min=0.1, max=1.0, step=0.05, size="sm")]),
+                                    value=0.2, min=0.1, max=1.0, step=0.05, size="sm")]),
             ),
         ),
         _ctrl_card(

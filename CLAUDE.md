@@ -216,6 +216,7 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 ### URL tab routing
 - Visiting `/1`–`/7` navigates directly to a tab (clientside callback on `url.pathname`).
 - Map: `/1`=bubble, `/2`=heatmap, `/3`=dca, `/4`=retire, `/5`=supercharge, `/6`=stack, `/7`=faq.
+- `/7.N` (e.g. `/7.3`) navigates to the FAQ tab AND opens question N (1-indexed). Clientside callback matches `/7.N` regex → "faq"; separate `open_faq_item` Python callback sets `faq-accordion.active_item` to `faq-{N-1}` (0-indexed). Accordion has `id="faq-accordion"`.
 - Uses `allow_duplicate=True` + `prevent_initial_call='initial_duplicate'`. **Never use `prevent_initial_call=False` with `allow_duplicate=True`** — Dash raises an error that crashes gunicorn (exit code 3).
 
 ### Live price ticker

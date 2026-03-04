@@ -660,7 +660,6 @@ def _supercharge_controls():
             _lbl("Chart layout"),
             dcc.RadioItems(id="sc-chart-layout",
                 options=[{"label":" Color=delay, one quantile","value":0},
-                         {"label":" Color=quantile, style=delay","value":1},
                          {"label":" Color=delay, quantile band","value":2}],
                 value=0, labelStyle={"display":"block"},
                 inputStyle={"marginRight":"5px"}),

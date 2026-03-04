@@ -670,6 +670,10 @@ _FAQ = [
         ]),
     },
     {
+        "q": "I see you have a Bitcoin price ticker in the header... does this reveal my IP address to a third party?",
+        "a": "No. It reveals the IP address of Quantoshi to Binance.",
+    },
+    {
         "q": "Can I link directly to a tab?",
         "a": html.Span([
             "YES! Just add a /1 to the URL to get to the first tab, a /2 to get to the "

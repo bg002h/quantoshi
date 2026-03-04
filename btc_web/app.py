@@ -1309,15 +1309,18 @@ def _fetch_btc_price():
 @callback(
     Output("price-ticker",    "children"),
     Output("btc-price-store", "data"),
+    Output("hm-entry-q",      "value", allow_duplicate=True),
     Input("price-interval", "n_intervals"),
+    prevent_initial_call="initial_duplicate",
 )
 def update_price_ticker(_):
     price = _fetch_btc_price()
     if price is None:
-        return "₿ —", no_update
+        return "₿ —", no_update, no_update
     pct = _find_lot_percentile(today_t(M.genesis), price, M.qr_fits)
     pct_str = f"Q{pct*100:.1f}%" if pct is not None else "—"
-    return f"₿ {fmt_price(price)}  ·  {pct_str}", price
+    pct_val = round(pct * 100, 1) if pct is not None else no_update
+    return f"₿ {fmt_price(price)}  ·  {pct_str}", price, pct_val
 
 
 # ══════════════════════════════════════════════════════════════════════════════

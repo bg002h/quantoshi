@@ -175,7 +175,7 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | BTC Accumulator | `dca` | DCA amount/frequency, year range, display mode |
 | BTC Retireator | `retire` | Withdrawal amount, inflation rate, year range |
 | Stack Tracker | `stack` | Lot management (add/delete/import/export JSON) |
-| FAQ | `faq` | Static accordion — add entries to `_FAQ` list in app.py. Current order: Share button, quantile regression, cross-platform appearance, crossing lines, Why a Power Law? (links scientificbitcoininstitute.org, credits Giovanni Santostasi), tip addresses (BTC/Lightning/Ecash/Liquid), contact info. Answers can be plain strings or Dash components (`html.Span`/`html.A` for links, `html.Table` for tabular). Link color: `#1a6fa8` via `.accordion a` in style.css. |
+| FAQ | `faq` | Static accordion — add entries to `_FAQ` list in app.py. 12 entries: Share, quantile regression, appearance (screenshot invite), crossing projection lines, Power Law (scientificbitcoininstitute.org / Santostasi), bubble model methodology, why I made this, podcast (porkopolis.io), open source (BSD-2/GitHub/AppImage), data privacy (localStorage/onion), tip addresses, contact. Answers: plain strings or Dash components (`html.Span`/`html.A`/`html.Table`). Link color: `#1a6fa8` via `.accordion a` in style.css. |
 
 ### Tab defaults
 | Tab | Notable defaults |

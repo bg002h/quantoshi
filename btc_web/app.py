@@ -646,6 +646,17 @@ _FAQ = [
         ]),
     },
     {
+        "q": "Can I link directly to a tab?",
+        "a": html.Span([
+            "YES! Just add a /1 to the URL to get to the first tab, a /2 to get to the "
+            "second, and so on. For example, ",
+            html.A("quantoshi.xyz/4",
+                   href="https://quantoshi.xyz/4",
+                   target="_blank", rel="noopener noreferrer"),
+            " will take you directly to the retirement extrapolator.",
+        ]),
+    },
+    {
         "q": "Can I run my own Quantoshi? Is it Open Source?",
         "a": html.Span([
             "Yes and yes. Quantoshi is free as in beer and free as in speech — BSD-2 licensed "

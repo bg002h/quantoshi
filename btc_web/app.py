@@ -850,6 +850,7 @@ app.index_string = """<!DOCTYPE html>
 
 app.layout = dbc.Container([
     dcc.Interval(id="price-interval", interval=20*60*1000, n_intervals=0),
+    dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="lots-store", storage_type="local", data=[]),
     dcc.Store(id="lots-export-dummy"),
     dcc.Location(id="url", refresh=False),
@@ -1017,15 +1018,18 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
     Input("hm-stack",     "value"),
     Input("hm-use-lots",  "value"),
     Input("effective-lots","data"),
+    State("btc-price-store", "data"),
 )
 def update_heatmap(entry_yr, entry_q, exit_range, exit_qs, mode,
                    b1, b2, c_lo, c_mid1, c_mid2, c_hi, grad,
-                   vfmt, cell_fs, toggles, stack, use_lots, lots_data):
+                   vfmt, cell_fs, toggles, stack, use_lots, lots_data, live_price):
     exit_range = exit_range or [entry_yr or 2025, (entry_yr or 2025) + 10]
     toggles    = toggles or []
+    yr_now = pd.Timestamp.today().year
     return build_heatmap_figure(M, dict(
-        entry_yr     = int(entry_yr or 2024),
-        entry_q      = float(entry_q or 0.5),
+        entry_yr     = int(entry_yr or yr_now),
+        entry_q      = float(entry_q or 50),
+        live_price   = float(live_price) if live_price and int(entry_yr or yr_now) == yr_now else None,
         exit_yr_lo   = int(exit_range[0]),
         exit_yr_hi   = int(exit_range[1]),
         exit_qs      = exit_qs or [],
@@ -1299,16 +1303,17 @@ def _fetch_btc_price():
 
 
 @callback(
-    Output("price-ticker", "children"),
+    Output("price-ticker",    "children"),
+    Output("btc-price-store", "data"),
     Input("price-interval", "n_intervals"),
 )
 def update_price_ticker(_):
     price = _fetch_btc_price()
     if price is None:
-        return "₿ —"
+        return "₿ —", no_update
     pct = _find_lot_percentile(today_t(M.genesis), price, M.qr_fits)
     pct_str = f"Q{pct*100:.1f}%" if pct is not None else "—"
-    return f"₿ {fmt_price(price)}  ·  {pct_str}"
+    return f"₿ {fmt_price(price)}  ·  {pct_str}", price
 
 
 # ══════════════════════════════════════════════════════════════════════════════

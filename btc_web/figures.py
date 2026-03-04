@@ -345,7 +345,8 @@ def build_heatmap_figure(m, p):
     eyr = int(p.get("entry_yr", 2020))
     eq  = float(p.get("entry_q", 50)) / 100.0   # stored as percentage (e.g. 7.5 → 0.075)
     entry_t = yr_to_t(eyr, m.genesis)
-    ep  = _interp_qr_price(eq, entry_t, m.qr_fits)
+    live_price = p.get("live_price")
+    ep  = float(live_price) if live_price else _interp_qr_price(eq, entry_t, m.qr_fits)
 
     # LOT ENTRY OVERRIDE
     lots = p.get("lots") or []

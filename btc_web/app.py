@@ -662,8 +662,10 @@ _FAQ = [
         "q": "If I enter my purchases in Quantoshi as Stack Tracker lots, where does that data go?",
         "a": html.Span([
             "The data is stored long-term in your browser's \"localStorage\" — it never leaves "
-            "your device. That said, all charts are rendered server-side. So for optimal "
-            "privacy, use the onion version of this website: ",
+            "your device. That said, all charts are rendered server-side. "
+            "Logs are intentionally deleted every 27 days to prevent aggregation of data "
+            "by authorities, some of whom are allowed to demand data thirty days or older "
+            "without a warrant. So for optimal privacy, use the onion version of this website: ",
             html.A("Stay dark, Anon",
                    href="http://u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion",
                    target="_blank", rel="noopener noreferrer"),

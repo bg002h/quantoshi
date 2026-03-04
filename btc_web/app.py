@@ -583,7 +583,9 @@ _FAQ = [
             html.A("Scientific Bitcoin Institute",
                    href="https://scientificbitcoininstitute.org/",
                    target="_blank", rel="noopener noreferrer"),
-            ".",
+            ". Giovanni Santostasi had the first Bitcoin price model — a Power Law model — "
+            "before Plan B's S2F... but as physics people speak differently, it took a while "
+            "to catch on :)",
         ]),
     },
     {

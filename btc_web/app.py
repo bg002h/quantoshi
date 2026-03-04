@@ -571,6 +571,17 @@ _FAQ = [
             "planning horizon."
         ),
     },
+    {
+        "q": "Is there any way to contact someone about this app?",
+        "a": html.Span([
+            "Email: ",
+            html.A("bcg@pm.me", href="mailto:bcg@pm.me"),
+            " or Nostr: ",
+            html.A("npub1fa8c9pr…qanthnd",
+                   href="https://nostr.com/npub1fa8c9prxnrlkdtjl48adfsxyaduz8tas075l2n4f6903y9awjmxqanthnd",
+                   target="_blank", rel="noopener noreferrer"),
+        ]),
+    },
 ]
 
 

@@ -475,7 +475,7 @@ def build_heatmap_figure(m, p):
         hovertemplate="Exit: %{x}<br>Quantile: %{y}<br>CAGR: %{z:.1f}%<extra></extra>",
     ))
 
-    entry_lbl = (f"Entry: {eyr}  Q{eq*100:.4g}%  {fmt_price(ep)}"
+    entry_lbl = (f"Entry: {eyr}  {fmt_price(ep)}  ·  Q{eq*100:.4g}%"
                  if not (p.get("use_lots") and lots)
                  else f"Entry: lots weighted avg  {fmt_price(ep)}")
 

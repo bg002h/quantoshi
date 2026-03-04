@@ -735,7 +735,7 @@ _FAQ = [
             "free!). Now, if I would have made Quantoshi in 2016, I would have been surprisingly "
             "accurate in 2026, but I would caution anyone working with any dataset against extrapolating "
             "much beyond 1/3 of the dataset. Bitcoin is 17 years old. 17/3 is 5 to a physicist, 6 to a "
-            "mathematician, and 5.67 to an engineer, and 5-2/3 in US Army Mixed Number Format. Use "
+            "mathematician, 5.67 to an engineer, and 5-2/3 in US Army Mixed Number Format. Use "
             "caution extrapolating beyond 6 or so years."
         ),
     },

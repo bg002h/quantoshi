@@ -572,6 +572,21 @@ _FAQ = [
         ),
     },
     {
+        "q": "Why a Power Law?",
+        "a": html.Span([
+            "Great question. I did my undergrad in astrophysics and math, so the real question "
+            "is: how do you value money? We can't use cash flow analysis on money itself, and "
+            "ideally we'd want a scale-invariant model that works at small and large times — "
+            "excluding exponential models like the first popular model, the Stock-to-Flow by "
+            "the venerable Plan B. Power laws are observed everywhere in nature (literally "
+            "everywhere space exists), but for a more detailed discussion please see the ",
+            html.A("Scientific Bitcoin Institute",
+                   href="https://scientificbitcoininstitute.org/",
+                   target="_blank", rel="noopener noreferrer"),
+            ".",
+        ]),
+    },
+    {
         "q": "Can I send you a tip?",
         "a": html.Table([
             html.Tbody([

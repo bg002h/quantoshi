@@ -246,9 +246,9 @@ def _bubble_controls():
                     value="log", inline=True)]),
             ),
             _lbl("X range (year)"),
-            dcc.RangeSlider(id="bub-xrange", min=2009, max=2050,
+            dcc.RangeSlider(id="bub-xrange", min=2010, max=2050,
                             value=[2012, yr_now + 4], step=1,
-                            marks={y: f"'{y % 100:02d}" for y in range(2009, 2051, 5)},
+                            marks={y: f"'{y % 100:02d}" for y in range(2010, 2051, 5)},
                             tooltip={"always_visible":False}),
             dbc.Row([
                 dbc.Col(_lbl("Y range (price)"), width="auto"),

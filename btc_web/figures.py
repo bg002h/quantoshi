@@ -770,3 +770,301 @@ def build_retire_figure(m, p):
 
     layout["showlegend"] = bool(p.get("show_legend", True))
     return go.Figure(data=traces, layout=go.Layout(**layout))
+
+
+# ── HODL Supercharger ─────────────────────────────────────────────────────────
+
+_DELAY_COLORS = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A']
+_DASH_STYLES  = ['solid', 'dash', 'dot', 'dashdot', 'longdash']
+
+
+def build_supercharge_figure(m, p):
+    """
+    p keys: mode ('a'/'b'), start_stack, start_yr, delays (list), freq, inflation,
+            selected_qs, chart_layout (0/1/2), display_q,
+            wd_amount (Mode A), end_yr (Mode A), disp_mode (Mode A),
+            log_y, annotate, show_today, show_legend,
+            target_yr (Mode B), lots, use_lots
+    """
+    FREQ_PPY = {"Weekly": 52, "Monthly": 12, "Quarterly": 4, "Annually": 1}
+
+    mode         = p.get("mode", "a")
+    freq_str     = p.get("freq", "Monthly")
+    ppy          = FREQ_PPY.get(freq_str, 12)
+    dt           = 1.0 / ppy
+    syr          = int(p.get("start_yr", pd.Timestamp.today().year))
+    inflation    = float(p.get("inflation", 4)) / 100.0
+    chart_layout = int(p.get("chart_layout", 0))
+    display_q    = float(p.get("display_q", 0.5))
+    show_legend  = bool(p.get("show_legend", True))
+
+    # Starting stack (lots override)
+    start_stack = float(p.get("start_stack", 1.0))
+    lots = p.get("lots") or []
+    if p.get("use_lots") and lots:
+        result = leo_weighted_entry(lots)
+        if result:
+            start_stack = result[3]
+
+    # Quantiles
+    sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])
+                     if float(q) in m.qr_fits])
+    if not sel_qs:
+        return go.Figure(layout=dict(
+            title="Select at least one quantile",
+            paper_bgcolor=m.PLOT_BG_COLOR,
+            font=dict(color=m.TEXT_COLOR)))
+
+    # Delays: filter None/negative, sort, deduplicate
+    raw_delays = p.get("delays") or [0, 1, 2, 4, 8]
+    delays = sorted(set(float(d) for d in raw_delays if d is not None and float(d) >= 0))
+    if not delays:
+        delays = [0.0]
+
+    freq_label = {"Weekly": "/wk", "Monthly": "/mo",
+                  "Quarterly": "/qtr", "Annually": "/yr"}.get(freq_str, "/mo")
+
+    # ── MODE A: fixed spending \u2192 show how long savings last ───────────────────
+    if mode == "a":
+        eyr       = int(p.get("end_yr", 2075))
+        wd_amount = float(p.get("wd_amount", 5000))
+        disp_mode = p.get("disp_mode", "usd")
+        t_end     = yr_to_t(eyr, m.genesis)
+
+        # Simulate all (delay, quantile) combos
+        results = {}
+        for d in delays:
+            t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
+            if t_start_d >= t_end:
+                continue
+            ts_d = np.arange(t_start_d, t_end + dt * 0.5, dt)
+            if len(ts_d) == 0:
+                continue
+            for q in sel_qs:
+                stack  = start_stack
+                vals   = np.empty(len(ts_d))
+                depl_t = None
+                for i, t in enumerate(ts_d):
+                    years_elapsed = t - t_start_d
+                    adj_wd = wd_amount * ((1 + inflation) ** years_elapsed)
+                    price  = float(qr_price(q, max(t, 0.5), m.qr_fits))
+                    stack -= adj_wd / price
+                    stack  = max(stack, 0.0)
+                    vals[i] = stack
+                    if stack == 0.0 and depl_t is None:
+                        depl_t = t
+                if disp_mode == "usd":
+                    prices_arr = np.array([float(qr_price(q, max(t, 0.5), m.qr_fits))
+                                           for t in ts_d])
+                    y_vals = vals * prices_arr
+                else:
+                    y_vals = vals
+                results[(d, q)] = (ts_d, y_vals, depl_t, t_start_d)
+
+        traces         = []
+        deplete_annots = []
+
+        def _depl_annot(depl_t, t_start_d, d, col):
+            depl_yr = int((syr + d) + (depl_t - t_start_d) *
+                          (eyr - (syr + d)) / max(t_end - t_start_d, 1e-6))
+            return dict(
+                x=depl_t, y=0, text=f"\u2248{depl_yr}",
+                showarrow=True, arrowhead=2, arrowsize=1,
+                arrowcolor=col, font=dict(size=9, color=col),
+                xref="x", yref="y",
+            )
+
+        if chart_layout == 0:
+            # Color = delay, show quantile closest to display_q
+            q_show = min(sel_qs, key=lambda q: abs(q - display_q))
+            for di, d in enumerate(delays):
+                key = (d, q_show)
+                if key not in results:
+                    continue
+                ts_d, y_vals, depl_t, t_start_d = results[key]
+                col   = _DELAY_COLORS[di % len(_DELAY_COLORS)]
+                d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
+                final = (fmt_price(float(y_vals[-1])) if disp_mode == "usd"
+                         else f"{float(y_vals[-1]):.4f} BTC")
+                traces.append(go.Scatter(
+                    x=list(ts_d), y=list(y_vals), mode="lines",
+                    name=f"Delay {d_lbl}  \u2192  {final}",
+                    line=dict(color=col, width=2),
+                ))
+                if p.get("annotate") and depl_t is not None:
+                    deplete_annots.append(_depl_annot(depl_t, t_start_d, d, col))
+
+        elif chart_layout == 1:
+            # Color = quantile, line style = delay
+            for q in sel_qs:
+                col   = m.qr_colors.get(q, "#888888")
+                pct   = q * 100
+                q_lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
+                for di, d in enumerate(delays):
+                    key = (d, q)
+                    if key not in results:
+                        continue
+                    ts_d, y_vals, depl_t, t_start_d = results[key]
+                    d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
+                    traces.append(go.Scatter(
+                        x=list(ts_d), y=list(y_vals), mode="lines",
+                        name=f"{q_lbl} delay={d_lbl}",
+                        line=dict(color=col, width=1.8,
+                                  dash=_DASH_STYLES[di % len(_DASH_STYLES)]),
+                    ))
+                    if p.get("annotate") and depl_t is not None:
+                        deplete_annots.append(_depl_annot(depl_t, t_start_d, d, col))
+
+        else:
+            # Layout 2: shaded band per delay (min/max across quantiles)
+            for di, d in enumerate(delays):
+                t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
+                ts_d = np.arange(t_start_d, t_end + dt * 0.5, dt)
+                if len(ts_d) == 0:
+                    continue
+                all_y = [results[(d, q)][1] for q in sel_qs if (d, q) in results]
+                if not all_y:
+                    continue
+                all_y  = np.array(all_y)
+                y_min  = all_y.min(axis=0)
+                y_max  = all_y.max(axis=0)
+                y_med  = np.median(all_y, axis=0)
+                col    = _DELAY_COLORS[di % len(_DELAY_COLORS)]
+                d_lbl  = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
+                traces.append(go.Scatter(
+                    x=list(ts_d), y=list(y_max), mode="lines",
+                    line=dict(color=col, width=0), showlegend=False, hoverinfo="skip",
+                ))
+                traces.append(go.Scatter(
+                    x=list(ts_d), y=list(y_min), mode="lines",
+                    fill="tonexty", fillcolor=_hex_alpha(col, 0.2),
+                    line=dict(color=col, width=0), showlegend=False, hoverinfo="skip",
+                ))
+                traces.append(go.Scatter(
+                    x=list(ts_d), y=list(y_med), mode="lines",
+                    name=f"Delay {d_lbl} (median)",
+                    line=dict(color=col, width=2),
+                ))
+
+        t_start_base = max(yr_to_t(syr, m.genesis), 1.0)
+        tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis)
+        ylabel = "USD Value" if disp_mode == "usd" else "BTC Remaining"
+        layout = _dark_layout(
+            m,
+            title=(f"HODL Supercharger \u2014 {fmt_price(wd_amount)}{freq_label} \u00b7 "
+                   f"Retire {syr}+"),
+            xlabel="Year", ylabel=ylabel,
+        )
+        layout["xaxis"].update(
+            tickvals=tick_ts, ticktext=tick_lbls, tickangle=-45,
+            range=[t_start_base, t_end],
+        )
+        if p.get("log_y"):
+            layout["yaxis"]["type"] = "log"
+        layout["annotations"] = deplete_annots
+        shapes = []
+        if p.get("show_today"):
+            td = today_t(m.genesis)
+            if t_start_base <= td <= t_end:
+                shapes.append(dict(
+                    type="line", x0=td, x1=td, y0=0, y1=1,
+                    yref="paper",
+                    line=dict(color="#FF6600", dash="dash", width=1.5),
+                    opacity=0.85,
+                ))
+        layout["shapes"]     = shapes
+        layout["showlegend"] = show_legend
+        return go.Figure(data=traces, layout=go.Layout(**layout))
+
+    # ── MODE B: fixed depletion date \u2192 max withdrawal per period ──────────────
+    else:
+        target_yr = int(p.get("target_yr", 2060))
+
+        def _max_wd_for(d, q):
+            t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
+            t_end_b   = yr_to_t(target_yr, m.genesis)
+            if t_end_b <= t_start_d:
+                return 0.0
+            first_price = float(qr_price(q, max(t_start_d, 0.5), m.qr_fits))
+            lo, hi = 0.0, start_stack * first_price * ppy * 4
+            for _ in range(60):
+                mid = (lo + hi) / 2.0
+                s   = start_stack
+                survived = True
+                for t in np.arange(t_start_d, t_end_b + dt * 0.5, dt):
+                    adj = mid * ((1 + inflation) ** (t - t_start_d))
+                    s  -= adj / float(qr_price(q, max(t, 0.5), m.qr_fits))
+                    if s <= 0:
+                        survived = False
+                        break
+                if survived:
+                    lo = mid
+                else:
+                    hi = mid
+            return lo
+
+        max_wd = {(d, q): _max_wd_for(d, q) for d in delays for q in sel_qs}
+        traces = []
+
+        if chart_layout == 0:
+            # Color = delay, one quantile closest to display_q
+            q_show = min(sel_qs, key=lambda q: abs(q - display_q))
+            y_line = [max_wd.get((d, q_show), 0) for d in delays]
+            traces.append(go.Scatter(
+                x=delays, y=y_line, mode="lines",
+                line=dict(color="#888888", width=1, dash="dot"),
+                showlegend=False, hoverinfo="skip",
+            ))
+            for di, d in enumerate(delays):
+                col   = _DELAY_COLORS[di % len(_DELAY_COLORS)]
+                val   = max_wd.get((d, q_show), 0)
+                d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
+                traces.append(go.Scatter(
+                    x=[d], y=[val], mode="markers+text",
+                    marker=dict(color=col, size=12),
+                    text=[fmt_price(val) + freq_label],
+                    textposition="top center",
+                    name=f"Delay {d_lbl}",
+                    hovertemplate=f"Delay {d_lbl}<br>{fmt_price(val)}{freq_label}<extra></extra>",
+                ))
+
+        elif chart_layout == 1:
+            # Color = quantile, X = delay years
+            for q in sel_qs:
+                col   = m.qr_colors.get(q, "#888888")
+                pct   = q * 100
+                q_lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
+                y_q   = [max_wd.get((d, q), 0) for d in delays]
+                traces.append(go.Scatter(
+                    x=delays, y=y_q, mode="lines+markers",
+                    name=q_lbl,
+                    line=dict(color=col, width=2),
+                    marker=dict(color=col, size=7),
+                ))
+
+        else:
+            # Layout 2: color = delay, X = quantile fraction
+            for di, d in enumerate(delays):
+                col   = _DELAY_COLORS[di % len(_DELAY_COLORS)]
+                d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
+                y_d   = [max_wd.get((d, q), 0) for q in sel_qs]
+                qlbls = [f"Q{q*100:.4g}%" if q*100 >= 1 else f"Q{q*100:.3g}%"
+                         for q in sel_qs]
+                traces.append(go.Scatter(
+                    x=list(sel_qs), y=y_d, mode="lines+markers",
+                    name=f"Delay {d_lbl}",
+                    line=dict(color=col, width=2),
+                    marker=dict(color=col, size=6),
+                    customdata=qlbls,
+                    hovertemplate="%{customdata}: %{y:,.0f}<extra></extra>",
+                ))
+
+        xlabel = "Delay (years)" if chart_layout in (0, 1) else "Quantile"
+        layout = _dark_layout(
+            m,
+            title=f"HODL Supercharger \u2014 Max spend{freq_label} to deplete by {target_yr}",
+            xlabel=xlabel,
+            ylabel=f"Max withdrawal{freq_label}",
+        )
+        layout["showlegend"] = show_legend
+        return go.Figure(data=traces, layout=go.Layout(**layout))

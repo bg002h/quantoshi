@@ -40,7 +40,8 @@ from flask import request as flask_request
 from btc_core import (load_model_data, _find_lot_percentile, fmt_price,
                       yr_to_t, today_t, leo_weighted_entry)
 from figures import (build_bubble_figure, build_heatmap_figure,
-                     build_dca_figure, build_retire_figure)
+                     build_dca_figure, build_retire_figure,
+                     build_supercharge_figure)
 
 # ── load model (once at startup) ──────────────────────────────────────────────
 M = load_model_data()
@@ -121,6 +122,25 @@ _SNAPSHOT_CONTROLS = [
     ("ret-disp",          "value"),
     ("ret-toggles",       "value"),
     ("ret-qs",            "value"),
+    ("sc-stack",          "value"),
+    ("sc-use-lots",       "value"),
+    ("sc-start-yr",       "value"),
+    ("sc-d0",             "value"),
+    ("sc-d1",             "value"),
+    ("sc-d2",             "value"),
+    ("sc-d3",             "value"),
+    ("sc-d4",             "value"),
+    ("sc-freq",           "value"),
+    ("sc-infl",           "value"),
+    ("sc-qs",             "value"),
+    ("sc-mode",           "value"),
+    ("sc-wd",             "value"),
+    ("sc-end-yr",         "value"),
+    ("sc-target-yr",      "value"),
+    ("sc-disp",           "value"),
+    ("sc-toggles",        "value"),
+    ("sc-chart-layout",   "value"),
+    ("sc-display-q",      "value"),
     ("main-tabs",         "active_tab"),
 ]
 
@@ -545,6 +565,136 @@ def _retire_tab():
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# Tab 5 — HODL Supercharger
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _supercharge_controls():
+    yr_now = pd.Timestamp.today().year
+    dq_opts = _q_options()
+    dq_default = _nearest_quantile(0.5, _ALL_QS)
+    return html.Div([
+        _ctrl_card(
+            _lbl("Mode"),
+            dcc.RadioItems(id="sc-mode",
+                options=[{"label":" A — Fixed spending (depletion date)","value":"a"},
+                         {"label":" B — Fixed depletion (max spending)","value":"b"}],
+                value="a", labelStyle={"display":"block"},
+                inputStyle={"marginRight":"5px"}),
+        ),
+        _ctrl_card(
+            _lbl("Starting BTC"),
+            dbc.Input(id="sc-stack", type="number", value=1.0,
+                      min=0, step=0.001, size="sm"),
+            dcc.Checklist(id="sc-use-lots",
+                          options=[{"label":" Use Stack Tracker lots","value":"yes"}],
+                          value=[], inputStyle={"marginRight":"5px"}),
+        ),
+        _ctrl_card(
+            _lbl("Base retirement year"),
+            dcc.Slider(id="sc-start-yr", min=yr_now, max=2075,
+                       value=yr_now, step=1,
+                       marks={y: f"'{y % 100:02d}" for y in range(yr_now, 2076, 5)},
+                       tooltip={"always_visible":False}),
+        ),
+        _ctrl_card(
+            _lbl("Delay offsets (years)"),
+            dbc.Row([
+                dbc.Col(dbc.Input(id="sc-d0", type="number", value=0,
+                                  min=0, step=1, size="sm"), width=True),
+                dbc.Col(dbc.Input(id="sc-d1", type="number", value=1,
+                                  min=0, step=1, size="sm"), width=True),
+                dbc.Col(dbc.Input(id="sc-d2", type="number", value=2,
+                                  min=0, step=1, size="sm"), width=True),
+                dbc.Col(dbc.Input(id="sc-d3", type="number", value=4,
+                                  min=0, step=1, size="sm"), width=True),
+                dbc.Col(dbc.Input(id="sc-d4", type="number", value=8,
+                                  min=0, step=1, size="sm"), width=True),
+            ], className="g-1"),
+        ),
+        _ctrl_card(
+            _lbl("Frequency"),
+            dcc.Dropdown(id="sc-freq",
+                         options=["Weekly","Monthly","Quarterly","Annually"],
+                         value="Monthly", clearable=False),
+            _lbl("Inflation rate (% / yr)"),
+            dbc.Input(id="sc-infl", type="number", value=4,
+                      min=0, max=50, step=0.5, size="sm"),
+        ),
+        dbc.Collapse([
+            _ctrl_card(
+                _lbl("Withdrawal/period ($)"),
+                dbc.Input(id="sc-wd", type="number", value=5000,
+                          min=1, step=100, size="sm"),
+                _lbl("End year"),
+                dcc.Slider(id="sc-end-yr", min=2030, max=2100,
+                           value=2075, step=1,
+                           marks={y: f"'{y % 100:02d}" for y in range(2030, 2101, 10)},
+                           tooltip={"always_visible":False}),
+                _lbl("Display"),
+                dcc.Dropdown(id="sc-disp",
+                             options=[{"label":"BTC Remaining","value":"btc"},
+                                      {"label":"USD Value","value":"usd"}],
+                             value="usd", clearable=False),
+            ),
+        ], id="sc-mode-a-collapse", is_open=True),
+        dbc.Collapse([
+            _ctrl_card(
+                _lbl("Target depletion year"),
+                dcc.Slider(id="sc-target-yr", min=2030, max=2100,
+                           value=2060, step=1,
+                           marks={y: f"'{y % 100:02d}" for y in range(2030, 2101, 10)},
+                           tooltip={"always_visible":False}),
+            ),
+        ], id="sc-mode-b-collapse", is_open=False),
+        _ctrl_card(
+            _lbl("Chart layout"),
+            dcc.RadioItems(id="sc-chart-layout",
+                options=[{"label":" Color=delay, one quantile","value":0},
+                         {"label":" Color=quantile, style=delay","value":1},
+                         {"label":" Color=delay, quantile band","value":2}],
+                value=0, labelStyle={"display":"block"},
+                inputStyle={"marginRight":"5px"}),
+        ),
+        dbc.Collapse([
+            _ctrl_card(
+                _lbl("Display quantile"),
+                dcc.Dropdown(id="sc-display-q", options=dq_opts,
+                             value=dq_default, clearable=False),
+            ),
+        ], id="sc-display-q-collapse", is_open=True),
+        _ctrl_card(
+            dcc.Checklist(id="sc-toggles",
+                          options=[{"label":" Annotate depletion","value":"annotate"},
+                                   {"label":" Log Y","value":"log_y"},
+                                   {"label":" Show today","value":"show_today"},
+                                   {"label":" Show legend","value":"show_legend"}],
+                          value=["annotate","log_y","show_legend"],
+                          labelStyle={"display":"block"},
+                          inputStyle={"marginRight":"5px"}),
+        ),
+        _ctrl_card(
+            _lbl("Quantiles"),
+            dcc.Checklist(id="sc-qs", options=_q_options(),
+                          value=_DEF_QS, labelStyle={"display":"block"},
+                          inputStyle={"marginRight":"5px"}),
+        ),
+    ])
+
+
+def _supercharge_tab():
+    return dbc.Row([
+        dbc.Col(_supercharge_controls(), width=3, className="controls-col overflow-auto",
+                style={"maxHeight":"85vh"}),
+        dbc.Col([
+            dcc.Graph(id="supercharge-graph", style={"height":"78vh"},
+                      config={"toImageButtonOptions":{"format":"png","scale":2,
+                                                       "filename":"btc_supercharge"}}),
+            _export_row("supercharge"),
+        ], width=9),
+    ], className="g-0")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # Tab 6 — FAQ
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -942,6 +1092,7 @@ app.layout = dbc.Container([
         dbc.Tab(_heatmap_tab(),      label="CAGR Heatmap",        tab_id="heatmap"),
         dbc.Tab(_dca_tab(),          label="BTC Accumulator",     tab_id="dca"),
         dbc.Tab(_retire_tab(),       label="BTC Retireator",      tab_id="retire"),
+        dbc.Tab(_supercharge_tab(),  label="HODL Supercharger",   tab_id="supercharge"),
         dbc.Tab(_stack_tracker_tab(),label="Stack Tracker",       tab_id="stack"),
         dbc.Tab(_faq_tab(),          label="FAQ",                 tab_id="faq"),
     ], id="main-tabs", active_tab="bubble"),
@@ -1119,6 +1270,82 @@ def update_retire(stack, use_lots, wd, freq, yr_range, infl, disp, toggles, sel_
         selected_qs  = sel_qs or [],
         lots         = lots_data or [],
     ))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Callbacks — HODL Supercharger
+# ══════════════════════════════════════════════════════════════════════════════
+
+@callback(
+    Output("supercharge-graph", "figure"),
+    Input("sc-stack",        "value"),
+    Input("sc-use-lots",     "value"),
+    Input("sc-start-yr",     "value"),
+    Input("sc-d0",           "value"),
+    Input("sc-d1",           "value"),
+    Input("sc-d2",           "value"),
+    Input("sc-d3",           "value"),
+    Input("sc-d4",           "value"),
+    Input("sc-freq",         "value"),
+    Input("sc-infl",         "value"),
+    Input("sc-qs",           "value"),
+    Input("sc-mode",         "value"),
+    Input("sc-wd",           "value"),
+    Input("sc-end-yr",       "value"),
+    Input("sc-target-yr",    "value"),
+    Input("sc-disp",         "value"),
+    Input("sc-toggles",      "value"),
+    Input("sc-chart-layout", "value"),
+    Input("sc-display-q",    "value"),
+    Input("effective-lots",  "data"),
+)
+def update_supercharge(stack, use_lots, start_yr,
+                       d0, d1, d2, d3, d4,
+                       freq, infl, sel_qs, mode,
+                       wd, end_yr, target_yr, disp,
+                       toggles, chart_layout, display_q, lots_data):
+    delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
+    toggles = toggles or []
+    yr_now  = pd.Timestamp.today().year
+    return build_supercharge_figure(M, dict(
+        mode         = mode or "a",
+        start_stack  = float(stack or 1.0),
+        start_yr     = int(start_yr or yr_now),
+        delays       = delays if delays else [0, 1, 2, 4, 8],
+        freq         = freq or "Monthly",
+        inflation    = float(infl or 4.0),
+        selected_qs  = sel_qs or [],
+        chart_layout = int(chart_layout) if chart_layout is not None else 0,
+        display_q    = float(display_q) if display_q is not None
+                       else _nearest_quantile(0.5, _ALL_QS),
+        wd_amount    = float(wd or 5000),
+        end_yr       = int(end_yr or 2075),
+        disp_mode    = disp or "usd",
+        log_y        = "log_y"      in toggles,
+        annotate     = "annotate"   in toggles,
+        show_today   = "show_today" in toggles,
+        show_legend  = "show_legend" in toggles,
+        target_yr    = int(target_yr or 2060),
+        lots         = lots_data or [],
+        use_lots     = bool(use_lots),
+    ))
+
+
+@callback(
+    Output("sc-mode-a-collapse", "is_open"),
+    Output("sc-mode-b-collapse", "is_open"),
+    Input("sc-mode", "value"),
+)
+def toggle_sc_mode(mode):
+    return mode == "a", mode == "b"
+
+
+@callback(
+    Output("sc-display-q-collapse", "is_open"),
+    Input("sc-chart-layout", "value"),
+)
+def toggle_sc_display_q(layout):
+    return layout == 0
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1333,6 +1560,7 @@ _EXPORT_TABS = [
     ("heatmap", "heatmap-graph"),
     ("dca",     "dca-graph"),
     ("retire",  "retire-graph"),
+    ("supercharge", "supercharge-graph"),
 ]
 
 for _tab_id, _graph_id in _EXPORT_TABS:
@@ -1367,14 +1595,14 @@ for _tab_id, _graph_id in _EXPORT_TABS:
 
 _PATH_TO_TAB = {
     "/1": "bubble", "/2": "heatmap", "/3": "dca",
-    "/4": "retire",  "/5": "stack",   "/6": "faq",
+    "/4": "retire",  "/5": "supercharge", "/6": "stack", "/7": "faq",
 }
 
 app.clientside_callback(
     """
     function(pathname) {
         var map = {"/1":"bubble","/2":"heatmap","/3":"dca",
-                   "/4":"retire","/5":"stack","/6":"faq"};
+                   "/4":"retire","/5":"supercharge","/6":"stack","/7":"faq"};
         var tab = map[pathname];
         return tab ? tab : window.dash_clientside.no_update;
     }

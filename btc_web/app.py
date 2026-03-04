@@ -606,6 +606,19 @@ _FAQ = [
         ], style={"width":"100%","borderCollapse":"collapse","marginTop":"4px"}),
     },
     {
+        "q": "Can I run my own Quantoshi? Is it Open Source?",
+        "a": html.Span([
+            "Yes and yes. Quantoshi is free as in beer and free as in speech — BSD-2 licensed "
+            "open source code available at ",
+            html.A("github.com/bg002h/quantoshi",
+                   href="https://github.com/bg002h/quantoshi",
+                   target="_blank", rel="noopener noreferrer"),
+            ". You are welcome to do anything with the code... or nothing. "
+            "There's also a native Linux app compiled as an x86 AppImage there too, "
+            "but it's a few iterations behind.",
+        ]),
+    },
+    {
         "q": "If I enter my purchases in Quantoshi as Stack Tracker lots, where does that data go?",
         "a": html.Span([
             "The data is stored long-term in your browser's \"localStorage\" — it never leaves "

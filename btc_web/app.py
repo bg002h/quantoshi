@@ -49,6 +49,28 @@ _ALL_QS = M.QR_QUANTILES   # full list from model
 _DEF_QS = [q for q in [0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
            if q in M.qr_fits]
 
+
+def _nearest_quantile(target, qs):
+    """Snap a percentile value to the nearest available quantile."""
+    return min(qs, key=lambda q: abs(q - target))
+
+
+def _startup_heatmap_defaults():
+    """Fetch live BTC price at startup and return (entry_q,) for heatmap defaults."""
+    try:
+        url = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
+        with urllib.request.urlopen(url, timeout=5) as r:
+            price = float(json.loads(r.read())["price"])
+        pct = _find_lot_percentile(today_t(M.genesis), price, M.qr_fits)
+        if pct is not None:
+            return _nearest_quantile(pct, list(M.qr_fits.keys()))
+    except Exception:
+        pass
+    return 0.5   # fallback
+
+
+_HM_ENTRY_Q_DEFAULT = _startup_heatmap_defaults()
+
 # ── Snapshot / URL state helpers ───────────────────────────────────────────────
 
 _SNAPSHOT_CONTROLS = [
@@ -299,7 +321,7 @@ def _heatmap_controls():
                        tooltip={"always_visible":True}),
             _lbl("Entry quantile"),
             dcc.Dropdown(id="hm-entry-q", options=_q_options(),
-                         value=0.5, clearable=False),
+                         value=_HM_ENTRY_Q_DEFAULT, clearable=False),
         ),
         _ctrl_card(
             _lbl("Exit year range"),

@@ -199,6 +199,11 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 - `link-history` store (localStorage) — deduplicates, up to 50 entries.
 - Key stores: `snapshot-lots` (memory), `effective-lots` (memory), `link-history` (local), `loaded-hash-store` (memory).
 
+### URL tab routing
+- Visiting `/1`–`/6` navigates directly to a tab (clientside callback on `url.pathname`).
+- Map: `/1`=bubble, `/2`=heatmap, `/3`=dca, `/4`=retire, `/5`=stack, `/6`=faq.
+- Uses `allow_duplicate=True` + `prevent_initial_call='initial_duplicate'`. **Never use `prevent_initial_call=False` with `allow_duplicate=True`** — Dash raises an error that crashes gunicorn (exit code 3).
+
 ### Chart builders (`figures.py`)
 | Function | Chart |
 |----------|-------|

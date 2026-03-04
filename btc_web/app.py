@@ -561,7 +561,7 @@ _FAQ = [
         ),
     },
     {
-        "q": "Why do some high-percentile extrapolated quantile projections cross in the future?",
+        "q": "Why do some high-percentile extrapolated quantile projection lines cross in the future?",
         "a": (
             "When a higher-percentile line crosses a lower one (or vice versa), it indicates "
             "a trend in the dataset that renders extrapolation unreliable. For example, because "

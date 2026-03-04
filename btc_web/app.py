@@ -921,7 +921,7 @@ def _faq_tab():
             dbc.Col(
                 html.Div([
                     html.H5("Frequently Asked Questions", className="mb-3 mt-2"),
-                    dbc.Accordion(items, start_collapsed=True, flush=True),
+                    dbc.Accordion(items, id="faq-accordion", start_collapsed=True, flush=True),
                 ]),
                 width={"size": 8, "offset": 2},
             )
@@ -1702,6 +1702,7 @@ app.clientside_callback(
     function(pathname) {
         var map = {"/1":"bubble","/2":"heatmap","/3":"dca",
                    "/4":"retire","/5":"supercharge","/6":"stack","/7":"faq"};
+        if (pathname && /^\\/7\\.\\d+$/.test(pathname)) { return "faq"; }
         var tab = map[pathname];
         return tab ? tab : window.dash_clientside.no_update;
     }
@@ -1710,6 +1711,24 @@ app.clientside_callback(
     Input("url", "pathname"),
     prevent_initial_call="initial_duplicate",
 )
+
+
+@callback(
+    Output("faq-accordion", "active_item"),
+    Input("url", "pathname"),
+    prevent_initial_call=False,
+)
+def open_faq_item(pathname):
+    """Open a specific FAQ accordion item when pathname is /7.N (1-indexed)."""
+    if not pathname or not pathname.startswith("/7."):
+        return no_update
+    try:
+        n = int(pathname[3:])
+        if 1 <= n <= len(_FAQ):
+            return f"faq-{n - 1}"
+    except (ValueError, IndexError):
+        pass
+    return no_update
 
 
 # ══════════════════════════════════════════════════════════════════════════════

@@ -620,7 +620,7 @@ _FAQ = [
             "trend) to up to three future bubbles. The result is underwhelming — the bubbles "
             "converge somewhat rapidly on the support trendline... which is part of what "
             "everyone means when they say Bitcoin is getting less volatile over time. I only use "
-            "the last three bubbles to average over; adding the very first bubble massively "
+            "the last three bubbles to extrapolate over; adding the very first bubble massively "
             "screws up the trend, and we were just kids back then, so it shouldn't really "
             "count :)"
         ),

@@ -571,7 +571,7 @@ def _retire_tab():
 def _supercharge_controls():
     yr_now = pd.Timestamp.today().year
     dq_opts = _q_options()
-    dq_default = _nearest_quantile(0.5, _ALL_QS)
+    dq_default = _nearest_quantile(0.05, _ALL_QS)
     return html.Div([
         _ctrl_card(
             _lbl("Mode"),

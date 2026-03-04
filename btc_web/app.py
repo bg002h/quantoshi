@@ -208,6 +208,17 @@ app = dash.Dash(
 app.title = "Quantoshi"
 server = app.server  # for gunicorn
 
+@server.after_request
+def _no_cache_dash_internals(response):
+    """Prevent browsers caching Dash layout/dependency info between deploys."""
+    if flask_request.path in ('/_dash-layout', '/_dash-dependencies'):
+        response.headers.update({
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma':        'no-cache',
+            'Expires':       '0',
+        })
+    return response
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Layout helpers
 # ══════════════════════════════════════════════════════════════════════════════

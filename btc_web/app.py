@@ -606,6 +606,18 @@ _FAQ = [
         ], style={"width":"100%","borderCollapse":"collapse","marginTop":"4px"}),
     },
     {
+        "q": "Do you have a podcast?",
+        "a": html.Span([
+            "No. I'm ugly and I work in the dark all day (only half of this is true)... "
+            "if you are looking for a podcast recommendation, see ",
+            html.A("porkopolis.io",
+                   href="https://www.porkopolis.io/youtube/",
+                   target="_blank", rel="noopener noreferrer"),
+            ". Mezenskis has way nicer charts... in fact, I'm waiting to subscribe to "
+            "his charts myself!",
+        ]),
+    },
+    {
         "q": "Can I run my own Quantoshi? Is it Open Source?",
         "a": html.Span([
             "Yes and yes. Quantoshi is free as in beer and free as in speech — BSD-2 licensed "

@@ -1177,7 +1177,7 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
 
 
 @callback(
-    Output("bub-yrange", "value"),
+    Output("bub-yrange", "value", allow_duplicate=True),
     Input("bub-xrange",  "value"),
     Input("bub-auto-y",  "value"),
     State("bub-qs",      "value"),

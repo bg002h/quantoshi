@@ -607,6 +607,23 @@ _FAQ = [
         ], style={"width":"100%","borderCollapse":"collapse","marginTop":"4px"}),
     },
     {
+        "q": "I see you modeled up to 3 future bubbles in the first tab... What is your model / how did you model it?",
+        "a": (
+            "Interesting question. I modeled Bitcoin price as a power law running through the "
+            "bottom roughly 30% of the data, and then modeled each bubble separately in "
+            "log-log space as something like a trapezoid. I then looked at the shape of each "
+            "of the trapezoids and noticed how they changed from a tall triangle, to a "
+            "medium-height trapezoid, and then to a very long, short, almost table-like "
+            "trapezoid (kinda like a Japanese low table, a chabudai)... Anyhow, in "
+            "mathematical terms, I parameterized each bubble and took the trend through time "
+            "on each part of each shape and extrapolated that trend (along with the timing "
+            "trend) to up to three future bubbles. The result is underwhelming — I only use "
+            "the last three bubbles to average over; adding the very first bubble massively "
+            "screws up the trend, and we were just kids back then, so it shouldn't really "
+            "count :)"
+        ),
+    },
+    {
         "q": "Why did you make this?",
         "a": (
             "Everyone needs bitcoin... and Bitcoin is for everyone. The more clearly people "

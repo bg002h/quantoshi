@@ -1191,6 +1191,30 @@ for _tab_id, _graph_id in _EXPORT_TABS:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# Callback — pathname-based tab routing (/1 … /6)
+# ══════════════════════════════════════════════════════════════════════════════
+
+_PATH_TO_TAB = {
+    "/1": "bubble", "/2": "heatmap", "/3": "dca",
+    "/4": "retire",  "/5": "stack",   "/6": "faq",
+}
+
+app.clientside_callback(
+    """
+    function(pathname) {
+        var map = {"/1":"bubble","/2":"heatmap","/3":"dca",
+                   "/4":"retire","/5":"stack","/6":"faq"};
+        var tab = map[pathname];
+        return tab ? tab : window.dash_clientside.no_update;
+    }
+    """,
+    Output("main-tabs", "active_tab", allow_duplicate=True),
+    Input("url", "pathname"),
+    prevent_initial_call=False,
+)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # Callbacks — Snapshot / Share
 # ══════════════════════════════════════════════════════════════════════════════
 

@@ -1179,10 +1179,11 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
     Output("bub-yrange", "value", allow_duplicate=True),
     Input("bub-xrange",  "value"),
     Input("bub-auto-y",  "value"),
+    Input("bub-yscale",  "value"),
     State("bub-qs",      "value"),
     prevent_initial_call=True,
 )
-def auto_bubble_yrange(xrange, auto_y, sel_qs):
+def auto_bubble_yrange(xrange, auto_y, yscale, sel_qs):
     if not auto_y or not xrange:
         raise dash.exceptions.PreventUpdate
     xmin, xmax = int(xrange[0]), int(xrange[1])
@@ -1193,10 +1194,15 @@ def auto_bubble_yrange(xrange, auto_y, sel_qs):
     t_hi = yr_to_t(xmax, M.genesis)
     p_lo = float(qr_price(qs[0],  t_lo, M.qr_fits))
     p_hi = float(qr_price(qs[-1], t_hi, M.qr_fits))
-    y_lo = math.floor(math.log10(max(p_lo, 1e-10)) * 2) / 2 - 0.5
-    y_hi = math.ceil( math.log10(max(p_hi, 1e-10)) * 2) / 2 + 0.5
-    y_lo = max(-2.0, min(y_lo, 6.0))
-    y_hi = min(8.0,  max(y_hi, 1.0))
+    if (yscale or "log") == "log":
+        y_lo = math.floor(math.log10(max(p_lo, 1e-10)) * 2) / 2 - 0.5
+        y_hi = math.ceil( math.log10(max(p_hi, 1e-10)) * 2) / 2 + 0.5
+        y_lo = max(-2.0, min(y_lo, 6.0))
+        y_hi = min(8.0,  max(y_hi, 1.0))
+    else:  # linear — floor near zero, ceiling at highest quantile + 10% headroom
+        y_lo = -2.0
+        y_hi = math.ceil(math.log10(max(p_hi * 1.1, 1e-10)) * 2) / 2
+        y_hi = min(8.0, max(y_hi, 1.0))
     return [round(y_lo, 1), round(y_hi, 1)]
 
 

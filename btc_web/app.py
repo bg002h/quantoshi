@@ -846,7 +846,7 @@ app.layout = dbc.Container([
                     html.Div(id="price-ticker",
                              style={"fontSize":"12px", "color":"rgba(255,255,255,0.85)",
                                     "whiteSpace":"nowrap", "fontFamily":"monospace"}),
-                    className="ms-auto", width="auto",
+                    className="ms-3", width="auto",
                 ),
                 dbc.Col(
                     html.Div([
@@ -861,7 +861,7 @@ app.layout = dbc.Container([
                             className="text-white-50 small text-decoration-none",
                         ),
                     ], style={"display":"flex", "alignItems":"center"}),
-                    width="auto",
+                    className="ms-auto", width="auto",
                 ),
                 dbc.Col(
                     html.Div([

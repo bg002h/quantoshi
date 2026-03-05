@@ -975,6 +975,40 @@ _FAQ = [
         ),
     },
     {
+        "q": "What is the Stack-cellerator on the DCA tab?",
+        "a": html.Span([
+            html.Span(
+                "It's \u201cEnter Saylor Mode\u201d \u2014 a strategy popularized by Michael Saylor and "
+                "MicroStrategy: instead of only dollar-cost averaging, you also borrow money "
+                "and use the loan proceeds to buy a lump sum of Bitcoin up front. You then "
+                "service the loan from your regular DCA contributions. If Bitcoin appreciates "
+                "faster than your interest rate — historically a very safe bet — you end up "
+                "with significantly more Bitcoin than plain DCA would have gotten you. "
+                "The dashed overlay lines on the chart show your projected stack with the loan "
+                "versus without (solid lines). The Stack-celeration factor in the chart title "
+                "tells you how many times better the loan strategy performs versus plain DCA "
+                "at the median."
+            ),
+            html.Br(), html.Br(),
+            html.Span(
+                "Two loan types are available. "
+                "Interest-only: you pay just the interest each period and repay the full "
+                "principal at the end of each term by selling some Bitcoin — subject to capital "
+                "gains tax. "
+                "Amortizing: like a standard mortgage, each payment covers both interest and a "
+                "slice of the principal. No Bitcoin needs to be sold; the loan is paid off "
+                "entirely in fiat from your DCA contributions."
+            ),
+            html.Br(), html.Br(),
+            html.Span(
+                "For interest-only loans you can also enable Roll over, which is the more "
+                "realistic HODLer approach: instead of selling Bitcoin to repay at term end, "
+                "you refinance into a new loan. Your Bitcoin is never sold mid-simulation — "
+                "only once, at the very end of the final term."
+            ),
+        ]),
+    },
+    {
         "q": "Do you have a podcast?",
         "a": html.Span([
             "No. I'm ugly and I work in the dark all day (only half of this is true)... "

@@ -1605,15 +1605,16 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     lump_btc  = principal / ep if ep > 0 else None
     active_mo = n_cycles * int(term)
 
-    # Tax cost line
+    # Tax cost line — tax applies only to the capital gain (sell_price − cost_basis),
+    # not to the full sale proceeds.  Actual BTC sold depends on future price.
     if loan_type == "interest_only":
+        basis_str = fmt_price(ep) if ep > 0 else "model price at cycle start"
         if sc_rollover:
-            tax_lbl = f"Tax @{tax_rate*100:.4g}%: BTC sold once at simulation end to repay {fmt_price(principal)}"
-        elif tax_rate > 0 and ep > 0:
-            gross_btc_sold = principal / (ep * (1.0 - tax_rate))
-            tax_cost_btc   = gross_btc_sold - principal / ep
-            tax_lbl = (f"Tax @{tax_rate*100:.4g}%: sell {gross_btc_sold:.5f} BTC to net "
-                       f"{fmt_price(principal)} per cycle ({tax_cost_btc:.5f} BTC extra)")
+            tax_lbl = (f"Tax @{tax_rate*100:.4g}%: on gain at simulation end "
+                       f"(cost basis: {basis_str})")
+        elif tax_rate > 0:
+            tax_lbl = (f"Tax @{tax_rate*100:.4g}%: on gain at each cycle-end repayment "
+                       f"(cost basis: {basis_str})")
         else:
             tax_lbl = None
     else:  # amortizing

@@ -708,10 +708,13 @@ def build_dca_figure(m, p):
                             if sc_rollover:
                                 pass                    # rollover: no BTC sold; post-loop handles final repayment
                             else:
-                                # Sell BTC to repay; tax means we must sell more to net principal
-                                sc_stack   -= principal / (price * (1.0 - tax_rate))
-                                sc_stack    = max(sc_stack, 0.0)
-                                outstanding = 0.0
+                                # Sell BTC to repay principal.  Tax applies only to the gain
+                                # (sell price − buy price); if selling at a loss there is no tax.
+                                gain_per_btc = max(price - ep, 0.0)
+                                net_per_btc  = price - tax_rate * gain_per_btc
+                                sc_stack    -= principal / net_per_btc
+                                sc_stack     = max(sc_stack, 0.0)
+                                outstanding  = 0.0
                     else:                               # cycles exhausted → plain DCA
                         sc_stack += amount / price
 
@@ -719,11 +722,13 @@ def build_dca_figure(m, p):
                     sc_prices[i] = price
 
                 # Deduct any outstanding balance at simulation end
-                # (incomplete final cycle — sell BTC at final price to repay, tax-adjusted)
+                # (incomplete final cycle or rollover — sell BTC at final price to repay,
+                #  tax on gain only: sell_price − buy_price, zero if selling at a loss)
                 if outstanding > 1e-8 and sc_prices[-1] > 0:
-                    sc_vals[-1] = max(
-                        sc_vals[-1] - outstanding / (sc_prices[-1] * (1.0 - tax_rate)),
-                        0.0)
+                    final_price  = sc_prices[-1]
+                    gain_per_btc = max(final_price - ep, 0.0)
+                    net_per_btc  = final_price - tax_rate * gain_per_btc
+                    sc_vals[-1]  = max(sc_vals[-1] - outstanding / net_per_btc, 0.0)
 
                 all_sc_usd_vals[q] = sc_vals * sc_prices
 

@@ -295,17 +295,22 @@ def _lbl(text):
 
 def _export_row(tab_id):
     """Export row — download triggered client-side via Plotly.downloadImage()."""
-    return dbc.Row([
-        dbc.Col(dcc.Dropdown(
-            id=f"{tab_id}-fmt", options=["png","svg","jpeg","webp"], value="png",
-            clearable=False, style={"minWidth": "90px"}), width="auto"),
-        dbc.Col(dbc.Input(id=f"{tab_id}-fname", value=f"btc_{tab_id}",
-                          type="text", size="sm"), width=True),
-        dbc.Col(dbc.Button("⬇ Download", id=f"{tab_id}-export-btn",
-                           size="sm", color="secondary"), width="auto"),
-        # dummy store — clientside callback needs an output target
-        dcc.Store(id=f"{tab_id}-dl-dummy"),
-    ], className="g-1 mt-1 align-items-center")
+    return html.Div([
+        dbc.Row([
+            dbc.Col(dcc.Dropdown(
+                id=f"{tab_id}-fmt", options=["png","svg","jpeg","webp"], value="png",
+                clearable=False, style={"minWidth": "90px"}), width="auto"),
+            dbc.Col(dbc.Input(id=f"{tab_id}-fname", value=f"btc_{tab_id}",
+                              type="text", size="sm"), width=True),
+            dbc.Col(dbc.Button("⬇ Download", id=f"{tab_id}-export-btn",
+                               size="sm", color="secondary"), width="auto"),
+            # dummy store — clientside callback needs an output target
+            dcc.Store(id=f"{tab_id}-dl-dummy"),
+        ], className="g-1 mt-1 align-items-center"),
+        html.Div("↓ Scroll down to configure",
+                 className="d-md-none text-center text-muted py-1",
+                 style={"fontSize":"11px", "letterSpacing":"0.02em"}),
+    ])
 
 
 # ══════════════════════════════════════════════════════════════════════════════

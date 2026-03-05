@@ -87,8 +87,15 @@ body {
         max-width: 100% !important;
         flex: 0 0 100%;
     }
+    /* Constrain both the dcc.Graph wrapper and the inner Plotly div.
+       Without this the wrapper stays at 78vh while the plot is only 55vw,
+       leaving a large blank gap that makes controls appear unreachable. */
+    [id$="-graph"] {
+        height: 55vw !important;
+        min-height: 280px !important;
+    }
     .js-plotly-plot {
         height: 55vw !important;
-        min-height: 280px;
+        min-height: 280px !important;
     }
 }

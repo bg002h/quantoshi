@@ -525,7 +525,7 @@ def _stackcellerator_controls():
         dcc.Checklist(id="dca-sc-enable",
                       options=[{"label":" Enable overlay","value":"yes"}],
                       value=[], inputStyle={"marginRight":"5px"}),
-        dbc.Collapse(id="dca-sc-body", is_open=False, children=[
+        html.Div(id="dca-sc-body", style={"display":"none"}, children=[
             _lbl("Borrow duration"),
             dbc.Row([
                 dbc.Col(dbc.Input(id="dca-sc-n", type="number",
@@ -1369,9 +1369,9 @@ def update_dca(stack, use_lots, amount, freq, yr_range, disp, toggles, sel_qs, l
     ))
 
 
-@callback(Output("dca-sc-body","is_open"), Input("dca-sc-enable","value"))
+@callback(Output("dca-sc-body","style"), Input("dca-sc-enable","value"))
 def _toggle_dca_sc_body(val):
-    return bool(val)
+    return {} if val else {"display": "none"}
 
 
 @callback(

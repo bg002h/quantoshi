@@ -1233,7 +1233,7 @@ app.layout = dbc.Container([
                     {"label": " All tabs — full state, longer link", "value": "all"},
                     {"label": " Current tab only — shorter link",    "value": "tab"},
                 ],
-                value="all",
+                value="tab",
                 inputStyle={"marginRight": "5px"},
                 className="mb-2 small",
             ),

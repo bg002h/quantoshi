@@ -216,6 +216,8 @@ def build_bubble_figure(m, p):
         prices = qr_price(q, t_arr, m.qr_fits) * (stack if stack > 0 else 1)
         pct = q * 100
         lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
+        if stack > 0:
+            lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
         col = m.qr_colors.get(q, "#888888")
         traces.append(go.Scatter(
             x=list(t_arr), y=list(prices),

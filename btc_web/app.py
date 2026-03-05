@@ -737,6 +737,14 @@ def _supercharge_controls():
                          {"label":" B — Fixed depletion (max spending)","value":"b"}],
                 value="a", labelStyle={"display":"block"},
                 inputStyle={"marginRight":"5px"}),
+            dbc.Collapse(
+                html.Div(
+                    "≈YYYY annotations mark the year each scenario's BTC stack reaches zero — savings exhausted.",
+                    style={"fontSize":"10px","color":"#888","marginTop":"6px",
+                           "lineHeight":"1.4"},
+                ),
+                id="sc-depl-note-collapse", is_open=True,
+            ),
         ),
         _ctrl_card(
             _lbl("Starting BTC"),
@@ -749,7 +757,7 @@ def _supercharge_controls():
         _ctrl_card(
             _lbl("Base retirement year"),
             dcc.Slider(id="sc-start-yr", min=yr_now, max=2075,
-                       value=yr_now, step=1,
+                       value=2033, step=1,
                        marks={y: f"'{y % 100:02d}" for y in range(yr_now, 2076, 5)},
                        tooltip={"always_visible":False}),
         ),
@@ -758,13 +766,13 @@ def _supercharge_controls():
             dbc.Row([
                 dbc.Col(dbc.Input(id="sc-d0", type="number", value=0,
                                   min=0, step=1, size="sm"), width=True),
-                dbc.Col(dbc.Input(id="sc-d1", type="number", value=1,
+                dbc.Col(dbc.Input(id="sc-d1", type="number", value=0,
                                   min=0, step=1, size="sm"), width=True),
-                dbc.Col(dbc.Input(id="sc-d2", type="number", value=2,
+                dbc.Col(dbc.Input(id="sc-d2", type="number", value=0,
                                   min=0, step=1, size="sm"), width=True),
-                dbc.Col(dbc.Input(id="sc-d3", type="number", value=4,
+                dbc.Col(dbc.Input(id="sc-d3", type="number", value=1,
                                   min=0, step=1, size="sm"), width=True),
-                dbc.Col(dbc.Input(id="sc-d4", type="number", value=8,
+                dbc.Col(dbc.Input(id="sc-d4", type="number", value=2,
                                   min=0, step=1, size="sm"), width=True),
             ], className="g-1"),
         ),
@@ -772,7 +780,7 @@ def _supercharge_controls():
             _lbl("Frequency"),
             dcc.Dropdown(id="sc-freq",
                          options=["Daily","Weekly","Monthly","Quarterly","Annually"],
-                         value="Monthly", clearable=False),
+                         value="Annually", clearable=False),
             _lbl("Inflation rate (0–100% / yr)"),
             dbc.Input(id="sc-infl", type="number", value=4,
                       min=0, max=100, step=0.5, size="sm"),
@@ -780,7 +788,7 @@ def _supercharge_controls():
         dbc.Collapse([
             _ctrl_card(
                 _lbl("Withdrawal/period ($)"),
-                dbc.Input(id="sc-wd", type="number", value=5000,
+                dbc.Input(id="sc-wd", type="number", value=100000,
                           min=1, step=1, size="sm"),
                 _lbl("End year"),
                 dcc.Slider(id="sc-end-yr", min=2030, max=2100,
@@ -830,7 +838,8 @@ def _supercharge_controls():
         _ctrl_card(
             _lbl("Quantiles"),
             dcc.Checklist(id="sc-qs", options=_q_options(),
-                          value=_DEF_QS, labelStyle={"display":"block"},
+                          value=[q for q in [0.001, 0.10] if q in M.qr_fits],
+                          labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
     ])
@@ -1408,6 +1417,7 @@ def auto_bubble_yrange(xrange, auto_y, yscale, sel_qs):
 
 @callback(
     Output("heatmap-graph", "figure"),
+    Input("main-tabs",    "active_tab"),
     Input("hm-entry-yr",  "value"),
     Input("hm-entry-q",   "value"),
     Input("hm-exit-range","value"),
@@ -1427,10 +1437,13 @@ def auto_bubble_yrange(xrange, auto_y, yscale, sel_qs):
     Input("hm-use-lots",  "value"),
     Input("effective-lots","data"),
     State("btc-price-store", "data"),
+    prevent_initial_call=True,
 )
-def update_heatmap(entry_yr, entry_q, exit_range, exit_qs, mode,
+def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
                    b1, b2, c_lo, c_mid1, c_mid2, c_hi, grad,
                    vfmt, cell_fs, toggles, stack, use_lots, lots_data, live_price):
+    if ctx.triggered_id == "main-tabs" and active_tab != "heatmap":
+        raise dash.exceptions.PreventUpdate
     exit_range = exit_range or [entry_yr or 2025, (entry_yr or 2025) + 10]
     toggles    = toggles or []
     yr_now = pd.Timestamp.today().year
@@ -1460,6 +1473,7 @@ def update_heatmap(entry_yr, entry_q, exit_range, exit_qs, mode,
 
 @callback(
     Output("dca-graph", "figure"),
+    Input("main-tabs",    "active_tab"),
     Input("dca-stack",    "value"),
     Input("dca-use-lots", "value"),
     Input("dca-amount",   "value"),
@@ -1480,10 +1494,13 @@ def update_heatmap(entry_yr, entry_q, exit_range, exit_qs, mode,
     Input("dca-sc-tax",          "value"),
     Input("dca-sc-rollover",     "value"),
     State("btc-price-store","data"),
+    prevent_initial_call=True,
 )
-def update_dca(stack, use_lots, amount, freq, yr_range, disp, toggles, sel_qs, lots_data,
+def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggles, sel_qs, lots_data,
                sc_enable, sc_loan, sc_rate, sc_term, sc_type, sc_repeats,
                sc_entry_mode, sc_custom_price, sc_tax, sc_rollover, price_data):
+    if ctx.triggered_id == "main-tabs" and active_tab != "dca":
+        raise dash.exceptions.PreventUpdate
     toggles    = toggles or []
     yr_range   = yr_range or [2024, 2034]
     live_price = float(price_data or 0)
@@ -1640,6 +1657,7 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
 
 @callback(
     Output("retire-graph", "figure"),
+    Input("main-tabs",    "active_tab"),
     Input("ret-stack",    "value"),
     Input("ret-use-lots", "value"),
     Input("ret-wd",       "value"),
@@ -1650,8 +1668,11 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     Input("ret-toggles",  "value"),
     Input("ret-qs",       "value"),
     Input("effective-lots","data"),
+    prevent_initial_call=True,
 )
-def update_retire(stack, use_lots, wd, freq, yr_range, infl, disp, toggles, sel_qs, lots_data):
+def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, sel_qs, lots_data):
+    if ctx.triggered_id == "main-tabs" and active_tab != "retire":
+        raise dash.exceptions.PreventUpdate
     toggles  = toggles or []
     yr_range = yr_range or [2025, 2045]
     return build_retire_figure(M, dict(
@@ -1679,6 +1700,7 @@ def update_retire(stack, use_lots, wd, freq, yr_range, infl, disp, toggles, sel_
 
 @callback(
     Output("supercharge-graph", "figure"),
+    Input("main-tabs",       "active_tab"),
     Input("sc-stack",        "value"),
     Input("sc-use-lots",     "value"),
     Input("sc-start-yr",     "value"),
@@ -1699,12 +1721,15 @@ def update_retire(stack, use_lots, wd, freq, yr_range, infl, disp, toggles, sel_
     Input("sc-chart-layout", "value"),
     Input("sc-display-q",    "value"),
     Input("effective-lots",  "data"),
+    prevent_initial_call=True,
 )
-def update_supercharge(stack, use_lots, start_yr,
+def update_supercharge(active_tab, stack, use_lots, start_yr,
                        d0, d1, d2, d3, d4,
                        freq, infl, sel_qs, mode,
                        wd, end_yr, target_yr, disp,
                        toggles, chart_layout, display_q, lots_data):
+    if ctx.triggered_id == "main-tabs" and active_tab != "supercharge":
+        raise dash.exceptions.PreventUpdate
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
     toggles = toggles or []
     yr_now  = pd.Timestamp.today().year
@@ -1739,10 +1764,11 @@ def update_supercharge(stack, use_lots, start_yr,
 @callback(
     Output("sc-mode-a-collapse", "is_open"),
     Output("sc-mode-b-collapse", "is_open"),
+    Output("sc-depl-note-collapse", "is_open"),
     Input("sc-mode", "value"),
 )
 def toggle_sc_mode(mode):
-    return mode == "a", mode == "b"
+    return mode == "a", mode == "b", mode == "a"
 
 
 @callback(

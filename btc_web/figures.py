@@ -575,6 +575,7 @@ def build_dca_figure(m, p):
     traces = []
     all_btc_vals = {}  # q -> BTC balance array
     all_usd_vals = {}  # q -> USD value array (always tracked for dual-y)
+    all_prices   = {}  # q -> price array — reused by SC loop to avoid redundant qr_price calls
     for q in sel_qs:
         if q not in m.qr_fits:
             continue
@@ -588,6 +589,7 @@ def build_dca_figure(m, p):
             prices_q[i] = price
         all_btc_vals[q] = vals.copy()
         all_usd_vals[q]  = vals * prices_q
+        all_prices[q]    = prices_q          # save for SC loop below
 
         if disp_mode == "usd":
             y_vals    = vals * prices_q
@@ -676,8 +678,9 @@ def build_dca_figure(m, p):
                 outstanding = 0.0
                 sc_vals     = np.empty(len(ts))
                 sc_prices   = np.empty(len(ts))
+                _prices_q   = all_prices[q]  # precomputed — same as qr_price(q, t, ...) for each t
                 for i, t in enumerate(ts):
-                    price           = float(qr_price(q, max(t, 0.5), m.qr_fits))
+                    price           = _prices_q[i]
                     cycle_idx       = i // term_periods
                     period_in_cycle = i % term_periods
 
@@ -881,13 +884,15 @@ def build_retire_figure(m, p):
             if depl_i is not None:
                 depl_t = ts[depl_i]
                 depl_yr = int(syr + (depl_t - t_start) * (eyr - syr) / max(t_end - t_start, 1e-6))
+                _ay = [-20, -33, -46][len(deplete_annots) % 3]
                 deplete_annots.append(dict(
-                    x=depl_t, y=0,
+                    x=depl_t, xref="x",
+                    y=0, yref="paper",
+                    ax=28, ay=_ay,
                     text=f"≈{depl_yr}",
                     showarrow=True, arrowhead=2, arrowsize=1,
                     arrowcolor=col,
-                    font=dict(size=9, color=col),
-                    xref="x", yref="y",
+                    font=dict(size=11, color=col),
                 ))
 
     shapes = []
@@ -956,7 +961,8 @@ def build_retire_figure(m, p):
 
 # ── HODL Supercharger ─────────────────────────────────────────────────────────
 
-_DELAY_COLORS = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A']
+_DELAY_COLORS = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#E07000']
+_ANNOT_COLORS = ['#636EFA', '#EF553B', '#1D8348', '#AB63FA', '#E07000']
 _DASH_STYLES  = ['solid', 'dash', 'dot', 'dashdot', 'longdash']
 
 
@@ -1046,14 +1052,18 @@ def build_supercharge_figure(m, p):
         traces         = []
         deplete_annots = []
 
-        def _depl_annot(depl_t, t_start_d, d, col):
+        _AY_LEVELS = [-20, -33, -46]   # stagger by ~1 font-height (13 px) each level
+
+        def _depl_annot(depl_t, t_start_d, d, col, stagger=0):
             depl_yr = int((syr + d) + (depl_t - t_start_d) *
                           (eyr - (syr + d)) / max(t_end - t_start_d, 1e-6))
             return dict(
-                x=depl_t, y=0, text=f"\u2248{depl_yr}",
+                x=depl_t - dt, xref="x",   # last nonzero step, aligns with band end
+                y=0, yref="paper",
+                ax=28, ay=_AY_LEVELS[stagger % 3],
+                text=f"\u2248{depl_yr}",
                 showarrow=True, arrowhead=2, arrowsize=1,
-                arrowcolor=col, font=dict(size=9, color=col),
-                xref="x", yref="y",
+                arrowcolor=col, font=dict(size=11, color=col),
             )
 
         if chart_layout == 0:
@@ -1074,7 +1084,9 @@ def build_supercharge_figure(m, p):
                     line=dict(color=col, width=2),
                 ))
                 if p.get("annotate") and depl_t is not None:
-                    deplete_annots.append(_depl_annot(depl_t, t_start_d, d, col))
+                    deplete_annots.append(_depl_annot(depl_t, t_start_d, d,
+                                                      _ANNOT_COLORS[di % len(_ANNOT_COLORS)],
+                                                      len(deplete_annots)))
 
         elif chart_layout == 1:
             # Color = quantile, line style = delay
@@ -1095,7 +1107,8 @@ def build_supercharge_figure(m, p):
                                   dash=_DASH_STYLES[di % len(_DASH_STYLES)]),
                     ))
                     if p.get("annotate") and depl_t is not None:
-                        deplete_annots.append(_depl_annot(depl_t, t_start_d, d, col))
+                        deplete_annots.append(_depl_annot(depl_t, t_start_d, d, col,
+                                                          len(deplete_annots)))
 
         else:
             # Layout 2: shaded band per delay (min/max across quantiles)
@@ -1129,6 +1142,16 @@ def build_supercharge_figure(m, p):
                     name=f"Delay {d_lbl}  \u2192  {med_final}",
                     line=dict(color=col, width=2),
                 ))
+                if p.get("annotate"):
+                    for q in sel_qs:
+                        key = (d, q)
+                        if key not in results:
+                            continue
+                        _, _, depl_t, t_start_d = results[key]
+                        if depl_t is not None:
+                            deplete_annots.append(_depl_annot(depl_t, t_start_d, d,
+                                                              _ANNOT_COLORS[di % len(_ANNOT_COLORS)],
+                                                              len(deplete_annots)))
 
         t_start_base = max(yr_to_t(syr, m.genesis), 1.0)
         tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis)

@@ -592,7 +592,8 @@ def build_dca_figure(m, p):
             final_lbl = fmt_price(float(y_vals[-1]))
         else:
             y_vals    = vals
-            final_lbl = f"{float(vals[-1]):.4f} BTC"
+            final_usd = fmt_price(float(all_usd_vals[q][-1]))
+            final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
 
         pct = q * 100
         lbl = (f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%") + f"  →  {final_lbl}"
@@ -632,10 +633,9 @@ def build_dca_figure(m, p):
     # ── Stack-cellerator overlay ─────────────────────────────────────────────
     all_sc_usd_vals = {}  # q -> SC USD value array (for dual-y median)
     if p.get("sc_enabled") and sel_qs:
-        sc_months  = float(p.get("sc_borrow_months", 12))
-        sc_rate    = float(p.get("sc_rate", 8.0))
+        principal  = float(p.get("sc_loan_amount", 0))
+        sc_rate    = float(p.get("sc_rate", 13.0))
         sc_live    = float(p.get("sc_live_price", 0))
-        principal  = sc_months * amount * ppy / 12
         payment    = principal * (sc_rate / 100.0) / ppy
         sc_dca_amt = amount - payment
 
@@ -658,8 +658,9 @@ def build_dca_figure(m, p):
                     y_sc     = sc_vals * sc_prices
                     final_sc = fmt_price(float(y_sc[-1]))
                 else:
-                    y_sc     = sc_vals
-                    final_sc = f"{float(sc_vals[-1]):.4f} BTC"
+                    y_sc      = sc_vals
+                    final_usd = fmt_price(float(all_sc_usd_vals[q][-1]))
+                    final_sc  = f"{float(sc_vals[-1]):.4f} BTC  ({final_usd})"
 
                 pct = q * 100
                 lbl_sc = (f"SC Q{pct:.4g}%" if pct >= 1 else f"SC Q{pct:.3g}%") + f"  \u2192  {final_sc}"
@@ -669,23 +670,36 @@ def build_dca_figure(m, p):
                     line=dict(color=col, width=1.8, dash="dash"),
                 ))
 
+    # ── SC factor (ratio of median SC to median DCA at end date) ─────────────
+    sc_factor_val = None
+    if all_sc_usd_vals and all_usd_vals:
+        _sc_end  = float(np.median([v[-1] for v in all_sc_usd_vals.values()]))
+        _dca_end = float(np.median([v[-1] for v in all_usd_vals.values()]))
+        if _dca_end > 0:
+            sc_factor_val = _sc_end / _dca_end
+
     # ── dual Y-axis — always USD Value (median) ───────────────────────────────
     if p.get("dual_y") and all_usd_vals:
         usd_axis = "y" if disp_mode == "usd" else "y2"
         # DCA USD median
         usd_med = np.median(np.array(list(all_usd_vals.values())), axis=0)
+        dca_med_final = fmt_price(float(usd_med[-1]))
         traces.append(go.Scatter(
             x=list(ts), y=list(usd_med),
-            mode="lines", name="USD Value (median)",
+            mode="lines", name=f"USD Value (median)  \u2192  {dca_med_final}",
             line=dict(color="#aaaaaa", dash="dot", width=1),
             yaxis=usd_axis, showlegend=True,
         ))
         # SC USD median (only when SC is active and ran successfully)
         if all_sc_usd_vals:
             sc_usd_med = np.median(np.array(list(all_sc_usd_vals.values())), axis=0)
+            sc_med_final = fmt_price(float(sc_usd_med[-1]))
+            sc_lbl = f"SC USD (median)  \u2192  {sc_med_final}"
+            if sc_factor_val is not None:
+                sc_lbl += f"  \u00b7  {sc_factor_val:.2f}\u00d7 DCA"
             traces.append(go.Scatter(
                 x=list(ts), y=list(sc_usd_med),
-                mode="lines", name="SC USD (median)",
+                mode="lines", name=sc_lbl,
                 line=dict(color="#888888", dash="dashdot", width=1),
                 yaxis=usd_axis, showlegend=True,
             ))
@@ -699,6 +713,12 @@ def build_dca_figure(m, p):
             )
             if p.get("log_y"):
                 layout["yaxis2"]["type"] = "log"
+
+    # ── Stack-celeration factor → append to title ────────────────────────────
+    if sc_factor_val is not None:
+        layout["title"]["text"] += (
+            f"  \u00b7  <b>Stack-celeration: {sc_factor_val:.2f}\u00d7</b>"
+        )
 
     layout["showlegend"] = bool(p.get("show_legend", True))
     fig = go.Figure(data=traces, layout=go.Layout(**layout))

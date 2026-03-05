@@ -115,8 +115,7 @@ _SNAPSHOT_CONTROLS = [
     ("dca-toggles",       "value"),
     ("dca-qs",            "value"),
     ("dca-sc-enable",     "value"),
-    ("dca-sc-n",          "value"),
-    ("dca-sc-unit",       "value"),
+    ("dca-sc-loan",       "value"),
     ("dca-sc-rate",       "value"),
     ("dca-sc-term",       "value"),
     ("ret-stack",         "value"),
@@ -527,20 +526,15 @@ def _stackcellerator_controls():
     return _ctrl_card(
         html.B("Stack-cellerator", style={"fontSize":"12px"}),
         dcc.Checklist(id="dca-sc-enable",
-                      options=[{"label":" Enable overlay","value":"yes"}],
+                      options=[{"label":" Enter Saylor Mode","value":"yes"}],
                       value=[], inputStyle={"marginRight":"5px"}),
         html.Div(id="dca-sc-body", style={"display":"none"}, children=[
-            _lbl("Borrow duration"),
-            dbc.Row([
-                dbc.Col(dbc.Input(id="dca-sc-n", type="number",
-                                  value=12, min=1, step=1, size="sm"), width=5),
-                dbc.Col(dcc.Dropdown(id="dca-sc-unit",
-                                     options=["Months","Years"],
-                                     value="Months", clearable=False), width=7),
-            ], className="g-1"),
+            _lbl("Loan amount ($)"),
+            dbc.Input(id="dca-sc-loan", type="number",
+                      value=1200, min=0, step=1, size="sm"),
             _lbl("Annual interest rate (0–100% / yr)"),
             dbc.Input(id="dca-sc-rate", type="number",
-                      value=8.0, min=0, max=100, step=0.5, size="sm"),
+                      value=13.0, min=0, max=100, step=0.5, size="sm"),
             _lbl("Loan term (months, rolls over)"),
             dbc.Input(id="dca-sc-term", type="number",
                       value=12, min=1, max=360, step=1, size="sm"),
@@ -1339,37 +1333,34 @@ def update_heatmap(entry_yr, entry_q, exit_range, exit_qs, mode,
     Input("dca-qs",       "value"),
     Input("effective-lots","data"),
     Input("dca-sc-enable","value"),
-    Input("dca-sc-n",     "value"),
-    Input("dca-sc-unit",  "value"),
+    Input("dca-sc-loan",  "value"),
     Input("dca-sc-rate",  "value"),
     Input("dca-sc-term",  "value"),
     State("btc-price-store","data"),
 )
 def update_dca(stack, use_lots, amount, freq, yr_range, disp, toggles, sel_qs, lots_data,
-               sc_enable, sc_n, sc_unit, sc_rate, sc_term, price_data):
-    toggles   = toggles or []
-    yr_range  = yr_range or [2024, 2034]
-    sc_n      = float(sc_n or 12)
-    sc_months = sc_n if (sc_unit or "Months") == "Months" else sc_n * 12
+               sc_enable, sc_loan, sc_rate, sc_term, price_data):
+    toggles    = toggles or []
+    yr_range   = yr_range or [2024, 2034]
     live_price = float(price_data or 0)
     return build_dca_figure(M, dict(
-        start_stack      = float(stack or 0),
-        use_lots         = bool(use_lots),
-        amount           = float(amount or 100),
-        freq             = freq or "Monthly",
-        start_yr         = int(yr_range[0]),
-        end_yr           = int(yr_range[1]),
-        disp_mode        = disp or "btc",
-        log_y            = "log_y"     in toggles,
-        show_today       = "show_today" in toggles,
-        dual_y           = "dual_y"    in toggles,
-        show_legend      = "show_legend" in toggles,
-        selected_qs      = sel_qs or [],
-        lots             = lots_data or [],
-        sc_enabled       = bool(sc_enable),
-        sc_borrow_months = sc_months,
-        sc_rate          = float(sc_rate or 8.0),
-        sc_live_price    = live_price,
+        start_stack    = float(stack or 0),
+        use_lots       = bool(use_lots),
+        amount         = float(amount or 100),
+        freq           = freq or "Monthly",
+        start_yr       = int(yr_range[0]),
+        end_yr         = int(yr_range[1]),
+        disp_mode      = disp or "btc",
+        log_y          = "log_y"      in toggles,
+        show_today     = "show_today" in toggles,
+        dual_y         = "dual_y"     in toggles,
+        show_legend    = "show_legend" in toggles,
+        selected_qs    = sel_qs or [],
+        lots           = lots_data or [],
+        sc_enabled     = bool(sc_enable),
+        sc_loan_amount = float(sc_loan or 0),
+        sc_rate        = float(sc_rate) if sc_rate is not None else 13.0,
+        sc_live_price  = live_price,
     ))
 
 
@@ -1383,22 +1374,19 @@ def _toggle_dca_sc_body(val):
     Input("dca-amount",   "value"),
     Input("dca-freq",     "value"),
     Input("dca-sc-enable","value"),
-    Input("dca-sc-n",     "value"),
-    Input("dca-sc-unit",  "value"),
+    Input("dca-sc-loan",  "value"),
     Input("dca-sc-rate",  "value"),
     Input("dca-sc-term",  "value"),
     State("btc-price-store","data"),
 )
-def update_sc_info(amount, freq, enabled, n, unit, rate, term, price_data):
+def update_sc_info(amount, freq, enabled, sc_loan, rate, term, price_data):
     if not enabled:
         return ""
     FREQ_PPY = {"Daily":365,"Weekly":52,"Monthly":12,"Quarterly":4,"Annually":1}
     ppy       = FREQ_PPY.get(freq or "Monthly", 12)
     amount    = float(amount or 100)
-    n         = float(n or 12)
-    borrow_mo = n if (unit or "Months") == "Months" else n * 12
-    rate      = float(rate or 8.0)
-    principal = borrow_mo * amount * ppy / 12
+    principal = float(sc_loan or 0)
+    rate      = float(rate) if rate is not None else 13.0
     payment   = principal * (rate / 100.0) / ppy
     reduced   = amount - payment
     live      = float(price_data or 0)
@@ -1410,7 +1398,7 @@ def update_sc_info(amount, freq, enabled, n, unit, rate, term, price_data):
     if lump_btc:
         lines.append(f"Buys \u2248 {lump_btc:.5f} BTC @ {fmt_price(live)}")
     if reduced <= 0:
-        lines.append("\u26a0 Payment \u2265 DCA amount \u2014 reduce borrow or rate")
+        lines.append("\u26a0 Payment \u2265 DCA amount \u2014 reduce loan or rate")
     return [html.Div(l) for l in lines]
 
 
@@ -1790,7 +1778,7 @@ _TAB_CONTROLS = {
                     "hm-grad","hm-vfmt","hm-cell-fs","hm-toggles","hm-stack","hm-use-lots"},
     "dca":         {"dca-stack","dca-use-lots","dca-amount","dca-freq","dca-yr-range",
                     "dca-disp","dca-toggles","dca-qs",
-                    "dca-sc-enable","dca-sc-n","dca-sc-unit","dca-sc-rate","dca-sc-term"},
+                    "dca-sc-enable","dca-sc-loan","dca-sc-rate","dca-sc-term"},
     "retire":      {"ret-stack","ret-use-lots","ret-wd","ret-freq","ret-yr-range",
                     "ret-infl","ret-disp","ret-toggles","ret-qs"},
     "supercharge": {"sc-stack","sc-use-lots","sc-start-yr","sc-d0","sc-d1","sc-d2",

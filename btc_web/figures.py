@@ -717,7 +717,7 @@ def build_dca_figure(m, p):
     # ── Stack-celeration factor → append to title ────────────────────────────
     if sc_factor_val is not None:
         layout["title"]["text"] += (
-            f"  \u00b7  <b>Stack-celeration: {sc_factor_val:.2f}\u00d7</b>"
+            f"<br><b>Stack-celeration: {sc_factor_val:.2f}\u00d7</b>"
         )
 
     layout["showlegend"] = bool(p.get("show_legend", True))

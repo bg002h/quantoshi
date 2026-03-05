@@ -373,7 +373,7 @@ def _heatmap_controls():
             _lbl("Entry percentile (%)"),
             dbc.Input(id="hm-entry-q", type="number",
                       value=_HM_ENTRY_Q_DEFAULT,
-                      min=0.001, max=99.999, step=0.1, size="sm"),
+                      min=0.1, max=99.9, step=0.1, size="sm"),
         ),
         _ctrl_card(
             _lbl("Exit year range"),
@@ -479,7 +479,7 @@ def _dca_controls():
         _ctrl_card(
             _lbl("Per-period amount ($)"),
             dbc.Input(id="dca-amount", type="number", value=100,
-                      min=1, step=10, size="sm"),
+                      min=1, step=1, size="sm"),
             _lbl("Frequency"),
             dcc.Dropdown(id="dca-freq",
                          options=["Weekly","Monthly","Quarterly","Annually"],
@@ -544,7 +544,7 @@ def _retire_controls():
         _ctrl_card(
             _lbl("Withdrawal/period ($)"),
             dbc.Input(id="ret-wd", type="number", value=5000,
-                      min=1, step=100, size="sm"),
+                      min=1, step=1, size="sm"),
             _lbl("Frequency"),
             dcc.Dropdown(id="ret-freq",
                          options=["Weekly","Monthly","Quarterly","Annually"],
@@ -655,7 +655,7 @@ def _supercharge_controls():
             _ctrl_card(
                 _lbl("Withdrawal/period ($)"),
                 dbc.Input(id="sc-wd", type="number", value=5000,
-                          min=1, step=100, size="sm"),
+                          min=1, step=1, size="sm"),
                 _lbl("End year"),
                 dcc.Slider(id="sc-end-yr", min=2030, max=2100,
                            value=2075, step=1,

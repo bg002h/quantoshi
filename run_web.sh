@@ -23,10 +23,10 @@ if [[ "${DEV:-0}" == "1" ]]; then
     echo "Starting Dash dev server on port $PORT..."
     exec "$PYTHON" "$SCRIPT_DIR/btc_web/app.py"
 else
-    echo "Starting gunicorn (4 workers) on port $PORT..."
+    echo "Starting gunicorn (5 workers) on port $PORT..."
     exec "$GUNICORN" btc_web.app:server \
         --bind "0.0.0.0:$PORT" \
-        --workers 4 \
+        --workers 5 \
         --timeout 120 \
         --preload \
         --access-logfile - \

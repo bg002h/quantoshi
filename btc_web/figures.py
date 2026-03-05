@@ -263,15 +263,26 @@ def build_bubble_figure(m, p):
 
     # ── historical price data ─────────────────────────────────────────────────
     if p.get("show_data"):
-        mask = (m.price_years >= t_lo) & (m.price_years <= t_hi)
-        y_data = m.price_prices[mask] * (stack if stack > 0 else 1)
-        dates  = [m.price_dates[i] for i in range(len(m.price_dates)) if mask[i]]
+        mask  = (m.price_years >= t_lo) & (m.price_years <= t_hi)
+        x_sc  = m.price_years[mask]
+        y_sc  = m.price_prices[mask] * (stack if stack > 0 else 1)
+        d_sc  = [m.price_dates[i] for i in range(len(m.price_dates)) if mask[i]]
+        # Downsample to ≤1 200 points — imperceptible on log scale but cuts
+        # figure JSON ~50 % and serialisation time meaningfully.
+        _MAX_PTS = 1200
+        n_pts = len(x_sc)
+        if n_pts > _MAX_PTS:
+            stride = max(1, n_pts // _MAX_PTS)
+            idx   = np.arange(0, n_pts, stride)
+            x_sc  = x_sc[idx]
+            y_sc  = y_sc[idx]
+            d_sc  = [d_sc[i] for i in idx]
         traces.append(go.Scatter(
-            x=list(m.price_years[mask]), y=list(y_data),
+            x=list(x_sc), y=list(y_sc),
             mode="markers", name="Price data",
             marker=dict(color=m.DATA_COLOR, size=max(2, int(p.get("pt_size", 3))),
                         opacity=float(p.get("pt_alpha", 0.6))),
-            text=dates, hovertemplate="%{text}<br>%{y:$,.0f}<extra></extra>",
+            text=d_sc, hovertemplate="%{text}<br>%{y:$,.0f}<extra></extra>",
         ))
 
     # ── LEO lot markers ───────────────────────────────────────────────────────

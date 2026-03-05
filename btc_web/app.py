@@ -2352,6 +2352,34 @@ def _prewarm_bubble():
 
 _prewarm_bubble()
 
+
+def _prewarm_supercharge():
+    """Pre-warm supercharge cache with default params (289 ms cold render)."""
+    yr_now = pd.Timestamp.today().year
+    _get_supercharge_fig(dict(
+        mode         = "a",
+        start_stack  = 1.0,
+        start_yr     = 2033,
+        delays       = [0.0, 0.0, 0.0, 1.0, 2.0],
+        freq         = "Annually",
+        inflation    = 4.0,
+        selected_qs  = [q for q in [0.001, 0.10] if q in M.qr_fits],
+        chart_layout = 2,
+        display_q    = _nearest_quantile(0.05, _ALL_QS),
+        wd_amount    = 100000,
+        end_yr       = 2075,
+        disp_mode    = "usd",
+        log_y        = True,
+        annotate     = True,
+        show_today   = False,
+        show_legend  = True,
+        target_yr    = 2060,
+        lots         = [],
+        use_lots     = False,
+    ))
+
+_prewarm_supercharge()
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Entry point
 # ══════════════════════════════════════════════════════════════════════════════

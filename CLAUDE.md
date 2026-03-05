@@ -204,8 +204,9 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 ### Snapshot / Share feature
 - `📸 Share` button → modal → **Scope** radio ("All tabs" / "Current tab only") → **Generate link** encodes control states + optional lots as gzip+base64 in URL hash.
 - URL format: `host/N#q2:...` where N is the tab path (`/1`–`/7`), so tab routing fires independently of hash decode.
-- **All tabs** scope: encodes all 66 controls (full fidelity). **Current tab only** scope: encodes only the active tab's controls via `tab_filter` — non-matching controls encode as `null` and fall back to defaults on restore (much shorter link).
-- `_SNAPSHOT_CONTROLS` — list of 66 `(component_id, property)` tuples (47 original + 18 DCA-SC + 1 `bub-auto-y`, inserted before `main-tabs` — backward compatible). Format: `#q2:...` current; `#q1:...` legacy (still decoded). DCA Stack-cellerator uses `dca-sc-loan` (not the old `dca-sc-n`/`dca-sc-unit`).
+- **All tabs** scope: encodes all 72 controls (full fidelity). **Current tab only** scope: encodes only the active tab's controls via `tab_filter` — non-matching controls encode as `null` and fall back to defaults on restore (much shorter link).
+- `_SNAPSHOT_CONTROLS` — list of 72 `(component_id, property)` tuples. Format: `#q2:...` current; `#q1:...` legacy (still decoded). DCA Stack-cellerator uses `dca-sc-loan`.
+- **Quantile bitmask encoding**: The 5 quantile checklist fields (`bub-qs`, `hm-exit-qs`, `dca-qs`, `ret-qs`, `sc-qs`) are stored as bitmask integers in new links (bit i set ↔ `_ALL_QS[i]` selected). 17 quantiles → max value 131071 (≤6 JSON chars vs up to 93 for a full list). Saves ~435 JSON chars / ~100–150 URL chars on All-tabs links. **Old `q2` links stored float lists** — `_decode_snapshot` handles both via `isinstance(val, int)` check. No version bump. Helpers: `_qs_to_mask()`, `_mask_to_qs()`. Encoding already uses `urlsafe_b64encode/decode`.
 - `_TAB_CONTROLS` — dict mapping each `tab_id` → set of component IDs belonging to that tab. `_TAB_TO_PATH` — reverse of `_PATH_TO_TAB`.
 - `_encode_snapshot(state_dict, tab_filter=None)` — pass `tab_filter=_TAB_CONTROLS[tab_id]` for single-tab links.
 - `restore_from_url` callback (`prevent_initial_call=False`) decodes hash on page load → restores all controls.

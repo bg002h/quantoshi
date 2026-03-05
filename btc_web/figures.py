@@ -571,24 +571,27 @@ def build_dca_figure(m, p):
     sel_qs    = sorted([float(q) for q in (p.get("selected_qs") or [])])
 
     traces = []
-    all_btc_vals = {}  # q -> BTC balance array (for dual-y median)
+    all_btc_vals = {}  # q -> BTC balance array
+    all_usd_vals = {}  # q -> USD value array (always tracked for dual-y)
     for q in sel_qs:
         if q not in m.qr_fits:
             continue
-        stack = start_stack
-        vals  = np.empty(len(ts))
+        stack    = start_stack
+        vals     = np.empty(len(ts))
+        prices_q = np.empty(len(ts))
         for i, t in enumerate(ts):
-            price   = float(qr_price(q, max(t, 0.5), m.qr_fits))
-            stack  += amount / price
-            vals[i] = stack
+            price      = float(qr_price(q, max(t, 0.5), m.qr_fits))
+            stack     += amount / price
+            vals[i]    = stack
+            prices_q[i] = price
         all_btc_vals[q] = vals.copy()
+        all_usd_vals[q]  = vals * prices_q
 
         if disp_mode == "usd":
-            prices_arr = np.array([float(qr_price(q, max(t, 0.5), m.qr_fits)) for t in ts])
-            y_vals = vals * prices_arr
+            y_vals    = vals * prices_q
             final_lbl = fmt_price(float(y_vals[-1]))
         else:
-            y_vals = vals
+            y_vals    = vals
             final_lbl = f"{float(vals[-1]):.4f} BTC"
 
         pct = q * 100
@@ -627,6 +630,7 @@ def build_dca_figure(m, p):
     layout["shapes"] = shapes
 
     # ── Stack-cellerator overlay ─────────────────────────────────────────────
+    all_sc_usd_vals = {}  # q -> SC USD value array (for dual-y median)
     if p.get("sc_enabled") and sel_qs:
         sc_months  = float(p.get("sc_borrow_months", 12))
         sc_rate    = float(p.get("sc_rate", 8.0))
@@ -639,20 +643,22 @@ def build_dca_figure(m, p):
             for q in sel_qs:
                 if q not in m.qr_fits:
                     continue
-                entry_price = sc_live if sc_live > 0 else float(qr_price(q, t_start, m.qr_fits))
-                sc_stack = start_stack + principal / entry_price
-                sc_vals  = np.empty(len(ts))
+                entry_price  = sc_live if sc_live > 0 else float(qr_price(q, t_start, m.qr_fits))
+                sc_stack     = start_stack + principal / entry_price
+                sc_vals      = np.empty(len(ts))
+                sc_prices    = np.empty(len(ts))
                 for i, t in enumerate(ts):
-                    price     = float(qr_price(q, max(t, 0.5), m.qr_fits))
-                    sc_stack += sc_dca_amt / price
-                    sc_vals[i] = sc_stack
+                    price        = float(qr_price(q, max(t, 0.5), m.qr_fits))
+                    sc_stack    += sc_dca_amt / price
+                    sc_vals[i]   = sc_stack
+                    sc_prices[i] = price
+                all_sc_usd_vals[q] = sc_vals * sc_prices
 
                 if disp_mode == "usd":
-                    prices_arr = np.array([float(qr_price(q, max(t, 0.5), m.qr_fits)) for t in ts])
-                    y_sc = sc_vals * prices_arr
+                    y_sc     = sc_vals * sc_prices
                     final_sc = fmt_price(float(y_sc[-1]))
                 else:
-                    y_sc = sc_vals
+                    y_sc     = sc_vals
                     final_sc = f"{float(sc_vals[-1]):.4f} BTC"
 
                 pct = q * 100
@@ -663,36 +669,36 @@ def build_dca_figure(m, p):
                     line=dict(color=col, width=1.8, dash="dash"),
                 ))
 
-    # ── dual Y-axis ───────────────────────────────────────────────────────────
-    if p.get("dual_y") and traces and all_btc_vals:
-        # median across all selected quantiles (not just the middle one)
-        stacked_btc = np.array(list(all_btc_vals.values()))
-        btc_med = np.median(stacked_btc, axis=0)
-        if disp_mode == "usd":
-            y2_vals = btc_med
-            y2_lbl  = "BTC Balance"
-        else:
-            all_usd = np.array([
-                all_btc_vals[q] * np.array([float(qr_price(q, max(t, 0.5), m.qr_fits))
-                                             for t in ts])
-                for q in all_btc_vals
-            ])
-            y2_vals = np.median(all_usd, axis=0)
-            y2_lbl  = "USD Value"
+    # ── dual Y-axis — always USD Value (median) ───────────────────────────────
+    if p.get("dual_y") and all_usd_vals:
+        usd_axis = "y" if disp_mode == "usd" else "y2"
+        # DCA USD median
+        usd_med = np.median(np.array(list(all_usd_vals.values())), axis=0)
         traces.append(go.Scatter(
-            x=list(ts), y=list(y2_vals),
-            mode="lines", name=f"{y2_lbl} (median)",
+            x=list(ts), y=list(usd_med),
+            mode="lines", name="USD Value (median)",
             line=dict(color="#aaaaaa", dash="dot", width=1),
-            yaxis="y2", showlegend=True,
+            yaxis=usd_axis, showlegend=True,
         ))
-        layout["yaxis2"] = dict(
-            title=dict(text=y2_lbl, font=dict(color=m.TEXT_COLOR)),
-            overlaying="y", side="right",
-            gridcolor=m.GRID_MAJOR_COLOR, linecolor=m.SPINE_COLOR,
-            tickcolor=m.TEXT_COLOR,
-        )
-        if p.get("log_y"):
-            layout["yaxis2"]["type"] = "log"
+        # SC USD median (only when SC is active and ran successfully)
+        if all_sc_usd_vals:
+            sc_usd_med = np.median(np.array(list(all_sc_usd_vals.values())), axis=0)
+            traces.append(go.Scatter(
+                x=list(ts), y=list(sc_usd_med),
+                mode="lines", name="SC USD (median)",
+                line=dict(color="#888888", dash="dashdot", width=1),
+                yaxis=usd_axis, showlegend=True,
+            ))
+        # y2 axis definition (BTC mode only — USD mode plots on y1)
+        if disp_mode == "btc":
+            layout["yaxis2"] = dict(
+                title=dict(text="USD Value", font=dict(color=m.TEXT_COLOR)),
+                overlaying="y", side="right",
+                gridcolor=m.GRID_MAJOR_COLOR, linecolor=m.SPINE_COLOR,
+                tickcolor=m.TEXT_COLOR,
+            )
+            if p.get("log_y"):
+                layout["yaxis2"]["type"] = "log"
 
     layout["showlegend"] = bool(p.get("show_legend", True))
     fig = go.Figure(data=traces, layout=go.Layout(**layout))

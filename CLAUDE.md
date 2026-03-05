@@ -26,10 +26,11 @@ The notebook generates `btc_app/model_data.pkl`, which both the web app and the 
 
 ### Run the notebook
 ```bash
-/scratch/code/bitcoinprojections/btc_venv/bin/jupyter nbconvert \
+~/.local/bin/jupyter nbconvert \
     --to notebook --execute --inplace \
-    --ExecutePreprocessor.timeout=120 SP.ipynb
+    --ExecutePreprocessor.timeout=600 SP.ipynb
 ```
+`jupyter` is installed via **pipx** (`~/.local/bin/jupyter`), not in `btc_venv`. The 600s timeout is required — cell 1 generates many charts and takes well over 2 minutes.
 
 ### Run the standalone app directly (for testing)
 ```bash
@@ -51,12 +52,23 @@ JOBS=8 bash build_appimage.sh   # override CPU count
 ```
 Output: `btc_app/Quantoshi-x86_64.AppImage` (~140 MB)
 
+### Update Bitcoin price data
+```bash
+python3 update_prices.py            # dry-run to preview
+python3 update_prices.py --dry-run  # (same — add flag explicitly)
+python3 update_prices.py            # live: appends CSV + re-runs notebook
+```
+- Fetches daily closes from Binance (primary) or CoinGecko (fallback if geo-blocked)
+- Intentionally skips the **8 most recent days** (settling period — data may be revised)
+- Appends new rows to `BitcoinPricesDaily.csv` then re-executes `SP.ipynb`
+- Prints a preview table of new rows; review before deploying
+
 ### Full rebuild after notebook changes
 ```bash
 # 1. Execute notebook (regenerates model_data.pkl)
-/scratch/code/bitcoinprojections/btc_venv/bin/jupyter nbconvert \
+~/.local/bin/jupyter nbconvert \
     --to notebook --execute --inplace \
-    --ExecutePreprocessor.timeout=120 SP.ipynb
+    --ExecutePreprocessor.timeout=600 SP.ipynb
 # 2. Build AppImage
 cd /scratch/code/bitcoinprojections/btc_app && bash build_appimage.sh
 ```
@@ -70,8 +82,7 @@ PORT=8080 bash run_web.sh # custom port
 
 ### Syntax-check the web app
 ```bash
-/scratch/code/bitcoinprojections/btc_venv/bin/python3 -m py_compile \
-    btc_web/app.py btc_web/figures.py && echo "OK"
+btc_venv/bin/python3 -m py_compile btc_web/app.py btc_web/figures.py && echo "OK"
 ```
 
 ### Deploy to production (Hetzner VPS)

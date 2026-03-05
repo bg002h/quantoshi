@@ -31,6 +31,8 @@ import gzip
 import base64
 import math
 import urllib.request
+from functools import lru_cache
+from datetime import date
 import pandas as pd
 import plotly.graph_objects as go
 
@@ -48,52 +50,72 @@ from figures import (build_bubble_figure, build_heatmap_figure,
 # ── load model (once at startup) ──────────────────────────────────────────────
 M = load_model_data()
 
-# ── bubble figure cache ────────────────────────────────────────────────────────
-# Single-entry cache keyed on JSON-serialised params. TTL=24h so the "today"
-# line stays fresh; server restarts (deploys / price updates) invalidate naturally.
-_BUBBLE_TTL   = 86_400   # seconds
-_bubble_cache = {"key": None, "fig": None, "ts": 0.0}
+# ── quantize floats to 3 significant figures for cache-friendly keys ───────────
+def _q3(x):
+    """Round a number to 3 significant figures."""
+    if x is None or x == 0:
+        return x
+    exp = math.floor(math.log10(abs(x)))
+    factor = 10 ** (exp - 2)
+    return round(x / factor) * factor
+
+def _quantize_params(p: dict) -> dict:
+    """Round all float values in a param dict to 3 sig figs."""
+    out = {}
+    for k, v in p.items():
+        if isinstance(v, float) and v != 0:
+            out[k] = _q3(v)
+        elif isinstance(v, list):
+            out[k] = [_q3(x) if isinstance(x, float) and x != 0 else x for x in v]
+        else:
+            out[k] = v
+    return out
+
+# ── LRU figure caches (maxsize=8 per tab) ─────────────────────────────────────
+# Each @lru_cache takes a JSON string key → go.Figure.  Bubble includes today's
+# date in the key so the "today" line stays fresh (natural daily expiry).
+# Server restarts on deploy clear all caches.
+
+@lru_cache(maxsize=8)
+def _cached_bubble_fig(key: str):
+    return build_bubble_figure(M, json.loads(key))
+
+@lru_cache(maxsize=8)
+def _cached_heatmap_fig(key: str):
+    return build_heatmap_figure(M, json.loads(key))
+
+@lru_cache(maxsize=8)
+def _cached_dca_fig(key: str):
+    return build_dca_figure(M, json.loads(key))
+
+@lru_cache(maxsize=8)
+def _cached_retire_fig(key: str):
+    return build_retire_figure(M, json.loads(key))
+
+@lru_cache(maxsize=8)
+def _cached_supercharge_fig(key: str):
+    return build_supercharge_figure(M, json.loads(key))
 
 def _get_bubble_fig(p: dict):
-    key = json.dumps(p, sort_keys=True, default=str)
-    if _bubble_cache["key"] == key and time.time() - _bubble_cache["ts"] < _BUBBLE_TTL:
-        return _bubble_cache["fig"]
-    fig = build_bubble_figure(M, p)
-    _bubble_cache.update({"key": key, "fig": fig, "ts": time.time()})
-    return fig
+    p = _quantize_params(p)
+    p['_day'] = str(date.today())
+    return _cached_bubble_fig(json.dumps(p, sort_keys=True, default=str))
 
-# ── per-tab figure caches ─────────────────────────────────────────────────────
-# Single-entry "memoize last call" cache per chart (same pattern as bubble).
-# Primarily benefits the default-params case where many visitors share the
-# same configuration.  TTL=3600s; server restarts invalidate naturally.
-_FIG_TTL          = 3_600   # seconds
-_dca_cache        = {"key": None, "fig": None, "ts": 0.0}
-_retire_cache     = {"key": None, "fig": None, "ts": 0.0}
-_supercharge_cache = {"key": None, "fig": None, "ts": 0.0}
+def _get_heatmap_fig(p: dict):
+    p = _quantize_params(p)
+    return _cached_heatmap_fig(json.dumps(p, sort_keys=True, default=str))
 
 def _get_dca_fig(p: dict):
-    key = json.dumps(p, sort_keys=True, default=str)
-    if _dca_cache["key"] == key and time.time() - _dca_cache["ts"] < _FIG_TTL:
-        return _dca_cache["fig"]
-    fig = build_dca_figure(M, p)
-    _dca_cache.update({"key": key, "fig": fig, "ts": time.time()})
-    return fig
+    p = _quantize_params(p)
+    return _cached_dca_fig(json.dumps(p, sort_keys=True, default=str))
 
 def _get_retire_fig(p: dict):
-    key = json.dumps(p, sort_keys=True, default=str)
-    if _retire_cache["key"] == key and time.time() - _retire_cache["ts"] < _FIG_TTL:
-        return _retire_cache["fig"]
-    fig = build_retire_figure(M, p)
-    _retire_cache.update({"key": key, "fig": fig, "ts": time.time()})
-    return fig
+    p = _quantize_params(p)
+    return _cached_retire_fig(json.dumps(p, sort_keys=True, default=str))
 
 def _get_supercharge_fig(p: dict):
-    key = json.dumps(p, sort_keys=True, default=str)
-    if _supercharge_cache["key"] == key and time.time() - _supercharge_cache["ts"] < _FIG_TTL:
-        return _supercharge_cache["fig"]
-    fig = build_supercharge_figure(M, p)
-    _supercharge_cache.update({"key": key, "fig": fig, "ts": time.time()})
-    return fig
+    p = _quantize_params(p)
+    return _cached_supercharge_fig(json.dumps(p, sort_keys=True, default=str))
 
 _ALL_QS = M.QR_QUANTILES   # full list from model
 _DEF_QS = [q for q in [0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
@@ -1498,7 +1520,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     exit_range = exit_range or [entry_yr or 2025, (entry_yr or 2025) + 10]
     toggles    = toggles or []
     yr_now = pd.Timestamp.today().year
-    return build_heatmap_figure(M, dict(
+    return _get_heatmap_fig(dict(
         entry_yr     = int(entry_yr or yr_now),
         entry_q      = float(entry_q or 50),
         live_price   = float(live_price) if live_price and int(entry_yr or yr_now) == yr_now else None,
@@ -2332,11 +2354,14 @@ def clear_history(_):
     return []
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ── pre-warm bubble cache on worker startup ────────────────────────────────────
-# Runs once per gunicorn worker at import time so the first real request is a
-# cache hit.  Uses the same default params as _bubble_controls().
-def _prewarm_bubble():
+# ── pre-warm LRU caches on worker startup ─────────────────────────────────────
+# Runs once per gunicorn worker at import time so first real requests are cache
+# hits.  Uses the same default params as each tab's callback.
+
+def _prewarm_caches():
     yr_now = pd.Timestamp.today().year
+
+    # Bubble (default: Q5%, log-log, 3 future bubbles)
     _get_bubble_fig(dict(
         selected_qs = [0.05],
         shade=True, show_ols=False, show_data=True, show_today=True,
@@ -2350,12 +2375,33 @@ def _prewarm_bubble():
         sup_color="#888888", sup_lw=1.5,
     ))
 
-_prewarm_bubble()
+    # DCA (default: $100/mo, Q50%, 2020–2030)
+    _get_dca_fig(dict(
+        start_stack=0, use_lots=False,
+        amount=100.0, freq="Monthly",
+        start_yr=2020, end_yr=2030,
+        disp_mode="btc", log_y=False, show_today=False,
+        dual_y=True, show_legend=True,
+        selected_qs=[0.50], lots=[],
+        sc_enabled=False, sc_loan_amount=0, sc_rate=13.0,
+        sc_loan_type="interest_only", sc_term_months=48.0,
+        sc_repeats=0, sc_rollover=False,
+        sc_entry_mode="live", sc_custom_price=80000.0,
+        sc_tax_rate=0.33, sc_live_price=None,
+    ))
 
+    # Retire (default: $5000/mo, Q50%, 2031–2075, 4% inflation)
+    _get_retire_fig(dict(
+        start_stack=1.0, use_lots=False,
+        wd_amount=5000.0, freq="Monthly",
+        start_yr=2031, end_yr=2075,
+        inflation=4.0, disp_mode="btc",
+        log_y=True, show_today=False,
+        dual_y=True, annotate=True, show_legend=True,
+        selected_qs=[0.50], lots=[],
+    ))
 
-def _prewarm_supercharge():
-    """Pre-warm supercharge cache with default params (289 ms cold render)."""
-    yr_now = pd.Timestamp.today().year
+    # Supercharge (default: Mode A, 1 BTC, annually, Q0.1%+Q10%)
     _get_supercharge_fig(dict(
         mode         = "a",
         start_stack  = 1.0,
@@ -2378,7 +2424,7 @@ def _prewarm_supercharge():
         use_lots     = False,
     ))
 
-_prewarm_supercharge()
+_prewarm_caches()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Entry point

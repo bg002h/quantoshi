@@ -459,7 +459,7 @@ def _bubble_controls():
         _ctrl_card(
             _lbl("Quantiles"),
             dcc.Checklist(id="bub-qs", options=_q_options(),
-                          value=[0.05], labelStyle={"display":"block"},
+                          value=[], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
         _ctrl_card(
@@ -775,7 +775,8 @@ def _retire_controls():
         _ctrl_card(
             _lbl("Quantiles"),
             dcc.Checklist(id="ret-qs", options=_q_options(),
-                          value=_DEF_QS, labelStyle={"display":"block"},
+                          value=[q for q in _DEF_QS if q not in (0.05, 0.10)],
+                          labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
     ])
@@ -2357,13 +2358,14 @@ def clear_history(_):
 # ── pre-warm LRU caches on worker startup ─────────────────────────────────────
 # Runs once per gunicorn worker at import time so first real requests are cache
 # hits.  Uses the same default params as each tab's callback.
+# IMPORTANT: when tab defaults change, update the matching params here too.
 
 def _prewarm_caches():
     yr_now = pd.Timestamp.today().year
 
-    # Bubble (default: Q5%, log-log, 3 future bubbles)
+    # Bubble (default: no quantiles, log-log, 3 future bubbles)
     _get_bubble_fig(dict(
-        selected_qs = [0.05],
+        selected_qs = [],
         shade=True, show_ols=False, show_data=True, show_today=True,
         show_legend=False, show_comp=True, show_sup=False,
         xscale="log", yscale="log",
@@ -2390,7 +2392,7 @@ def _prewarm_caches():
         sc_tax_rate=0.33, sc_live_price=None,
     ))
 
-    # Retire (default: $5000/mo, Q50%, 2031–2075, 4% inflation)
+    # Retire (default: $5000/mo, _DEF_QS minus Q5%/Q10%, 2031–2075, 4% inflation)
     _get_retire_fig(dict(
         start_stack=1.0, use_lots=False,
         wd_amount=5000.0, freq="Monthly",
@@ -2398,7 +2400,8 @@ def _prewarm_caches():
         inflation=4.0, disp_mode="btc",
         log_y=True, show_today=False,
         dual_y=True, annotate=True, show_legend=True,
-        selected_qs=[0.50], lots=[],
+        selected_qs=[q for q in _DEF_QS if q not in (0.05, 0.10)],
+        lots=[],
     ))
 
     # Supercharge (default: Mode A, 1 BTC, annually, Q0.1%+Q10%)

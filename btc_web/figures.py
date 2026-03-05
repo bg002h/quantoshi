@@ -652,6 +652,10 @@ def build_dca_figure(m, p):
                     sc_stack    += sc_dca_amt / price
                     sc_vals[i]   = sc_stack
                     sc_prices[i] = price
+                # Deduct loan principal repayment from the final BTC balance
+                # (sell BTC at end-date price to repay the loan)
+                if sc_prices[-1] > 0:
+                    sc_vals[-1] -= principal / sc_prices[-1]
                 all_sc_usd_vals[q] = sc_vals * sc_prices
 
                 if disp_mode == "usd":

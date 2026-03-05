@@ -512,7 +512,7 @@ def _dca_controls():
         _ctrl_card(
             _lbl("Quantiles"),
             dcc.Checklist(id="dca-qs", options=_q_options(),
-                          value=_DEF_QS, labelStyle={"display":"block"},
+                          value=[0.5], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
         _stackcellerator_controls(),

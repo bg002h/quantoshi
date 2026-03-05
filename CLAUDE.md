@@ -244,6 +244,17 @@ Heatmap colorscale: all three modes use `_dense_colorscale()` — 256-point `rgb
 
 Heatmap chart title format: `Entry: {year}  {price}  ·  Q{percentile}%` — price first, then quantile, matching the navbar ticker format.
 
+### Known gotchas
+
+**`dbc.Input(type="number")` step/min validation**: HTML5 number inputs send `null` (Python `None`) when the typed value doesn't satisfy `value = min + n × step`. With `min=1, step=10`, the valid series is 1, 11, 21, ... — so common values like 100, 200, 1000 silently become `None` and callbacks fall back to defaults, appearing to do nothing.
+- Rule: `min` must itself be a valid step value (i.e. `(min - base) % step == 0` where base=0 unless min is the anchor). Simplest safe choices: `step=1` for integer dollar amounts; `min=0` for BTC amounts with `step=0.001`; align `min` to be a multiple of `step` for decimal inputs.
+- Current state: `dca-amount`, `ret-wd`, `sc-wd` use `step=1`; `hm-entry-q` uses `min=0.1, step=0.1`.
+
+**Stale `/_dash-dependencies` between deploys**: Old browsers cache Dash's callback signature map. If the callback graph changes (new outputs added), cached clients send requests with old output-key hashes → server returns 500 → Dash marks those output components as errored → user interactions silently do nothing.
+- Fix (already in place): `@server.after_request` hook sets `Cache-Control: no-cache` on `/_dash-layout` and `/_dash-dependencies`. Defined immediately after `server = app.server`.
+
+**Versions**: Dash 4.0.0, DBC 2.0.4, React 18 (bundled with Dash 4).
+
 ### Production server
 - **VPS**: Hetzner, IP `89.167.70.45`, SSH as `root`
 - **App path**: `/opt/quantoshi/` (git clone of this repo)

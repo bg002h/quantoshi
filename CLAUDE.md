@@ -248,7 +248,11 @@ Heatmap chart title format: `Entry: {year}  {price}  ·  Q{percentile}%` — pri
 
 **`dbc.Input(type="number")` step/min validation**: HTML5 number inputs send `null` (Python `None`) when the typed value doesn't satisfy `value = min + n × step`. With `min=1, step=10`, the valid series is 1, 11, 21, ... — so common values like 100, 200, 1000 silently become `None` and callbacks fall back to defaults, appearing to do nothing.
 - Rule: `min` must itself be a valid step value (i.e. `(min - base) % step == 0` where base=0 unless min is the anchor). Simplest safe choices: `step=1` for integer dollar amounts; `min=0` for BTC amounts with `step=0.001`; align `min` to be a multiple of `step` for decimal inputs.
-- Current state: `dca-amount`, `ret-wd`, `sc-wd` use `step=1`; `hm-entry-q` uses `min=0.1, step=0.1`.
+- Current state: `dca-amount`, `ret-wd`, `sc-wd` use `step=1`; `hm-entry-q` uses `min=0.1, step=0.1`; `ret-infl`/`sc-infl` use `min=0, max=100, step=0.5`.
+- **Also**: `max` is enforced the same way — values above `max` send `null`. Always keep `max` in sync with actual valid range.
+- **Labels**: bounded inputs show their range/step in the label text, e.g. "Pt size (1–20)", "Inflation rate (0–100% / yr)".
+
+**Frequency options**: All three frequency dropdowns (dca-freq, ret-freq, sc-freq) offer Daily/Weekly/Monthly/Quarterly/Annually. `FREQ_PPY` in figures.py maps these to 365/52/12/4/1. `freq_label` maps to "/day"/"/wk"/"/mo"/"/qtr"/"/yr".
 
 **Stale `/_dash-dependencies` between deploys**: Old browsers cache Dash's callback signature map. If the callback graph changes (new outputs added), cached clients send requests with old output-key hashes → server returns 500 → Dash marks those output components as errored → user interactions silently do nothing.
 - Fix (already in place): `@server.after_request` hook sets `Cache-Control: no-cache` on `/_dash-layout` and `/_dash-dependencies`. Defined immediately after `server = app.server`.

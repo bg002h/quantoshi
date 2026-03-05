@@ -649,6 +649,14 @@ def build_dca_figure(m, p):
         n_cycles     = 1 + sc_repeats
         r            = sc_rate / 100.0 / ppy
 
+        # Cap principal so payment never exceeds DCA amount
+        if r > 0:
+            if loan_type == "amortizing":
+                max_principal = amount * (1 - (1 + r) ** (-term_periods)) / r
+            else:
+                max_principal = amount / r
+            principal = min(principal, max_principal)
+
         if loan_type == "amortizing":
             if r > 0:
                 pmt = principal * r / (1 - (1 + r) ** (-term_periods))
@@ -657,7 +665,7 @@ def build_dca_figure(m, p):
         else:  # interest_only
             pmt = principal * r
 
-        sc_dca_amt = amount - pmt
+        sc_dca_amt = amount - pmt  # guaranteed >= 0 after cap
 
         if principal > 0:
             for q in sel_qs:

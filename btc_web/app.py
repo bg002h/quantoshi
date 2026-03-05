@@ -1506,6 +1506,17 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     tax_rate     = float(tax) / 100.0 if tax is not None else 0.33
     live         = float(price_data or 0)
 
+    # Cap principal so payment never exceeds DCA amount
+    capped = False
+    if r > 0:
+        if loan_type == "amortizing":
+            max_principal = amount * (1 - (1 + r) ** (-term_periods)) / r
+        else:
+            max_principal = amount / r
+        if principal > max_principal + 0.005:
+            principal = max_principal
+            capped = True
+
     if loan_type == "amortizing":
         if r > 0:
             pmt = principal * r / (1 - (1 + r) ** (-term_periods))
@@ -1544,10 +1555,13 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     else:
         tax_lbl = None
 
+    loan_lbl = fmt_price(principal)
+    if capped:
+        loan_lbl += f"  (capped — max for {fmt_price(amount)}/period DCA)"
     lines = [
-        f"Loan: {fmt_price(principal)}  \u00b7  {type_lbl}",
+        f"Loan: {loan_lbl}  \u00b7  {type_lbl}",
         f"Entry: {ep_lbl}",
-        f"Payment: {fmt_price(pmt)}/period  \u2192  DCA: {fmt_price(max(reduced, 0))}/period",
+        f"Payment: {fmt_price(pmt)}/period  \u2192  DCA: {fmt_price(reduced)}/period",
         f"Total interest/cycle: {fmt_price(total_interest)}  (over {int(term)} mo)",
     ]
     if lump_btc:
@@ -1555,8 +1569,6 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     if tax_lbl:
         lines.append(tax_lbl)
     lines.append(f"Cycles: {n_cycles} total  \u00b7  Loan active {active_mo} mo")
-    if reduced <= 0:
-        lines.append("\u26a0 Payment \u2265 DCA amount \u2014 reduce loan, rate, or term")
     return [html.Div(l) for l in lines]
 
 

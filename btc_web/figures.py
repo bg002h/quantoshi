@@ -626,6 +626,43 @@ def build_dca_figure(m, p):
         layout["yaxis"]["type"] = "log"
     layout["shapes"] = shapes
 
+    # ── Stack-cellerator overlay ─────────────────────────────────────────────
+    if p.get("sc_enabled") and sel_qs:
+        sc_months  = float(p.get("sc_borrow_months", 12))
+        sc_rate    = float(p.get("sc_rate", 8.0))
+        sc_live    = float(p.get("sc_live_price", 0))
+        principal  = sc_months * amount * ppy / 12
+        payment    = principal * (sc_rate / 100.0) / ppy
+        sc_dca_amt = amount - payment
+
+        if sc_dca_amt > 0 and principal > 0:
+            for q in sel_qs:
+                if q not in m.qr_fits:
+                    continue
+                entry_price = sc_live if sc_live > 0 else float(qr_price(q, t_start, m.qr_fits))
+                sc_stack = start_stack + principal / entry_price
+                sc_vals  = np.empty(len(ts))
+                for i, t in enumerate(ts):
+                    price     = float(qr_price(q, max(t, 0.5), m.qr_fits))
+                    sc_stack += sc_dca_amt / price
+                    sc_vals[i] = sc_stack
+
+                if disp_mode == "usd":
+                    prices_arr = np.array([float(qr_price(q, max(t, 0.5), m.qr_fits)) for t in ts])
+                    y_sc = sc_vals * prices_arr
+                    final_sc = fmt_price(float(y_sc[-1]))
+                else:
+                    y_sc = sc_vals
+                    final_sc = f"{float(sc_vals[-1]):.4f} BTC"
+
+                pct = q * 100
+                lbl_sc = (f"SC Q{pct:.4g}%" if pct >= 1 else f"SC Q{pct:.3g}%") + f"  \u2192  {final_sc}"
+                col = m.qr_colors.get(q, "#888888")
+                traces.append(go.Scatter(
+                    x=list(ts), y=list(y_sc), mode="lines", name=lbl_sc,
+                    line=dict(color=col, width=1.8, dash="dash"),
+                ))
+
     # ── dual Y-axis ───────────────────────────────────────────────────────────
     if p.get("dual_y") and traces and all_btc_vals:
         # median across all selected quantiles (not just the middle one)

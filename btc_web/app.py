@@ -1550,8 +1550,8 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
         gross_btc_sold = principal / (ep * (1.0 - tax_rate))
         tax_cost_btc   = gross_btc_sold - principal / ep
         tax_lbl = f"Tax @{tax_rate*100:.4g}%: sell {gross_btc_sold:.5f} BTC to net {fmt_price(principal)} (costs {tax_cost_btc:.5f} BTC extra)"
-    elif loan_type == "amortizing" and tax_rate > 0:
-        tax_lbl = f"Tax @{tax_rate*100:.4g}%: applied if sim ends mid-cycle"
+    elif loan_type == "amortizing":
+        tax_lbl = f"Tax @{tax_rate*100:.4g}%: N/A — principal repaid in fiat (no BTC sold)"
     else:
         tax_lbl = None
 

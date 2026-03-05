@@ -1,5 +1,12 @@
 /* ── Bitcoin Projections Web App — custom styles ─────────────────────────── */
 
+/* Force light rendering — prevents browser dark-mode (and Dark Reader etc.)
+   from inverting or recoloring charts and UI. Plotly SVG backgrounds are
+   already explicitly white; this stops extensions overriding them. */
+:root {
+    color-scheme: light;
+}
+
 /* Light theme base */
 body {
     font-size: 13px;

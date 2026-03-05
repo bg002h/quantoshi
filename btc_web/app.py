@@ -271,6 +271,7 @@ app = dash.Dash(
     __name__,
     external_stylesheets=[dbc.themes.FLATLY],
     suppress_callback_exceptions=True,
+    meta_tags=[{"name": "color-scheme", "content": "light"}],
 )
 app.title = "Quantoshi"
 server = app.server  # for gunicorn

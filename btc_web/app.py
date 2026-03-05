@@ -511,6 +511,10 @@ def _dca_controls():
         ),
         _ctrl_card(
             _lbl("Quantiles"),
+            html.Small(
+                "Price path drives sat accumulation — lower quantile = lower price = more sats/period.",
+                style={"color":"#888","display":"block","marginBottom":"4px"},
+            ),
             dcc.Checklist(id="dca-qs", options=_q_options(),
                           value=[0.5], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),

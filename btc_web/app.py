@@ -1259,7 +1259,7 @@ app.index_string = """<!DOCTYPE html>
     <head>
         {%metas%}
         <title>{%title%}</title>
-        <link rel="icon" type="image/png" href="/assets/quantoshi_logo.png">
+        <link rel="icon" type="image/png" href="/assets/quantoshi_favicon.png">
         {%css%}
     </head>
     <body>
@@ -1285,7 +1285,7 @@ app.layout = dbc.Container([
     dbc.Navbar(
         dbc.Container([
             dbc.Row([
-                dbc.Col(html.Img(src="/assets/quantoshi_logo.png", height="40px"),
+                dbc.Col(html.Img(src="/assets/quantoshi_logo_nav.png", height="40px"),
                         width="auto"),
                 dbc.Col(dbc.NavbarBrand("Quantoshi", className="ms-2 fw-bold fs-4",
                                         style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif"}),

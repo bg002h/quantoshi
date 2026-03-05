@@ -74,7 +74,7 @@ def _year_ticks(start_yr, end_yr, genesis):
 
 _LOGO_B64 = None
 try:
-    _logo_path = Path(__file__).parent / "assets" / "quantoshi_logo.png"
+    _logo_path = Path(__file__).parent / "assets" / "quantoshi_logo_wm.png"
     with open(_logo_path, "rb") as _f:
         _LOGO_B64 = "data:image/png;base64," + base64.b64encode(_f.read()).decode()
 except Exception:

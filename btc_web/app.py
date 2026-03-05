@@ -1006,6 +1006,14 @@ _FAQ = [
                 "you refinance into a new loan. Your Bitcoin is never sold mid-simulation — "
                 "only once, at the very end of the final term."
             ),
+            html.Br(), html.Br(),
+            html.Span(
+                "Please note: it is possible to compound losses by using a loan if you buy "
+                "Bitcoin at a high percentile and sell at a lower percentile \u2014 sometimes "
+                "even many years in the future, according to quantile regression extrapolations. "
+                "Be careful when you choose to predict Bitcoin price from historical price data. "
+                "Past performance is not a guarantee of future returns."
+            ),
         ]),
     },
     {

@@ -1347,7 +1347,7 @@ def update_dca(stack, use_lots, amount, freq, yr_range, disp, toggles, sel_qs, l
     yr_range  = yr_range or [2024, 2034]
     sc_n      = float(sc_n or 12)
     sc_months = sc_n if (sc_unit or "Months") == "Months" else sc_n * 12
-    live_price = float((price_data or {}).get("price", 0))
+    live_price = float(price_data or 0)
     return build_dca_figure(M, dict(
         start_stack      = float(stack or 0),
         use_lots         = bool(use_lots),
@@ -1397,7 +1397,7 @@ def update_sc_info(amount, freq, enabled, n, unit, rate, term, price_data):
     principal = borrow_mo * amount * ppy / 12
     payment   = principal * (rate / 100.0) / ppy
     reduced   = amount - payment
-    live      = float((price_data or {}).get("price", 0))
+    live      = float(price_data or 0)
     lump_btc  = principal / live if live > 0 else None
     lines = [
         f"Loan: {fmt_price(principal)}",

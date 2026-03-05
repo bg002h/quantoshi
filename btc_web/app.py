@@ -153,30 +153,55 @@ _SNAPSHOT_CONTROLS = [
 _SNAP_PREFIX    = "q2:"   # current format
 _SNAP_PREFIX_V1 = "q1:"   # legacy format (dict-based), kept for backward compat
 
-# Component IDs whose value is a quantile checklist — encoded as a bitmask
-# integer (bit i set ↔ _ALL_QS[i] is selected).  Old q2 links store float
-# lists; the decoder handles both formats transparently.
-_QUANTILE_IDS = {"bub-qs", "hm-exit-qs", "dca-qs", "ret-qs", "sc-qs"}
+# All checklist component IDs → ordered list of their possible values.
+# Encoded as bitmask integers in new links (bit i set ↔ opts[i] selected).
+# Old q2 links store lists; the decoder handles both formats transparently
+# via isinstance(val, int).
+_CHECKLIST_OPTIONS = {
+    # quantile checklists (float values)
+    "bub-qs":             list(_ALL_QS),
+    "hm-exit-qs":         list(_ALL_QS),
+    "dca-qs":             list(_ALL_QS),
+    "ret-qs":             list(_ALL_QS),
+    "sc-qs":              list(_ALL_QS),
+    # toggle/boolean checklists (string values)
+    "bub-toggles":        ["shade", "show_ols", "show_data", "show_today", "show_legend"],
+    "bub-bubble-toggles": ["show_comp", "show_sup"],
+    "bub-show-stack":     ["yes"],
+    "bub-use-lots":       ["yes"],
+    "hm-toggles":         ["colorbar"],
+    "hm-use-lots":        ["yes"],
+    "dca-use-lots":       ["yes"],
+    "dca-toggles":        ["log_y", "dual_y", "show_legend"],
+    "dca-sc-enable":      ["yes"],
+    "ret-use-lots":       ["yes"],
+    "ret-toggles":        ["log_y", "dual_y", "annotate", "show_legend"],
+    "sc-use-lots":        ["yes"],
+    "sc-toggles":         ["annotate", "log_y", "show_legend"],
+    "sc-chart-layout":    ["shade"],
+    "bub-auto-y":         ["yes"],
+}
 
 
-def _qs_to_mask(val):
-    """Convert a quantile list (or None) to a bitmask integer."""
+def _list_to_mask(val, opts):
+    """Encode a checklist value list as a bitmask integer."""
     if not val:
         return 0
-    sel = {float(q) for q in val}
-    return sum(1 << i for i, q in enumerate(_ALL_QS) if q in sel)
+    sel = set(val)
+    return sum(1 << i for i, o in enumerate(opts) if o in sel)
 
 
-def _mask_to_qs(mask):
-    """Convert a bitmask integer back to a quantile list."""
-    return [_ALL_QS[i] for i in range(len(_ALL_QS)) if mask & (1 << i)]
+def _mask_to_list(mask, opts):
+    """Decode a bitmask integer back to a checklist value list."""
+    return [opts[i] for i in range(len(opts)) if mask & (1 << i)]
 
 
 def _encode_snapshot(state_dict, tab_filter=None):
     """v2: positional array — no key names, ~50% smaller than v1.
 
-    Quantile checklists are stored as bitmask integers for compactness.
-    Old links that stored float lists are still decoded transparently.
+    All checklist fields (quantiles and toggles) are stored as bitmask
+    integers for compactness.  Old links that stored lists are still decoded
+    transparently.
 
     If tab_filter is a set of component IDs, only those controls (plus
     main-tabs) are encoded; all others become None and fall back to defaults
@@ -187,8 +212,8 @@ def _encode_snapshot(state_dict, tab_filter=None):
         val = state_dict.get(f"{cid}:{prop}")
         if tab_filter is not None and cid != "main-tabs" and cid not in tab_filter:
             val = None
-        if val is not None and cid in _QUANTILE_IDS:
-            val = _qs_to_mask(val)
+        if val is not None and cid in _CHECKLIST_OPTIONS:
+            val = _list_to_mask(val, _CHECKLIST_OPTIONS[cid])
         values.append(val)
     lots   = state_dict.get("_lots")
     payload = [values, lots]
@@ -199,8 +224,8 @@ def _encode_snapshot(state_dict, tab_filter=None):
 def _decode_snapshot(encoded):
     """Decode v2 (positional array) snapshot.
 
-    Quantile fields may be either a bitmask int (new links) or a float list
-    (old links) — both are handled.
+    Checklist fields may be either a bitmask int (new links) or a list
+    (old links) — both are handled transparently.
     """
     try:
         payload = json.loads(gzip.decompress(base64.urlsafe_b64decode(encoded)))
@@ -209,8 +234,8 @@ def _decode_snapshot(encoded):
         for (cid, prop), val in zip(_SNAPSHOT_CONTROLS, values):
             if val is None:
                 continue
-            if cid in _QUANTILE_IDS and isinstance(val, int):
-                val = _mask_to_qs(val)
+            if cid in _CHECKLIST_OPTIONS and isinstance(val, int):
+                val = _mask_to_list(val, _CHECKLIST_OPTIONS[cid])
             state[f"{cid}:{prop}"] = val
         if lots:
             state["_lots"] = lots

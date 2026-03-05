@@ -542,7 +542,7 @@ def build_dca_figure(m, p):
             selected_qs, log_y, show_today, dual_y,
             lots, use_lots
     """
-    FREQ_PPY = {"Weekly": 52, "Monthly": 12, "Quarterly": 4, "Annually": 1}
+    FREQ_PPY = {"Daily": 365, "Weekly": 52, "Monthly": 12, "Quarterly": 4, "Annually": 1}
     freq_str = p.get("freq", "Monthly")
     ppy  = FREQ_PPY.get(freq_str, 12)
     dt   = 1.0 / ppy
@@ -671,7 +671,7 @@ def build_retire_figure(m, p):
             disp_mode, selected_qs, log_y, show_today, dual_y, annotate,
             lots, use_lots
     """
-    FREQ_PPY = {"Weekly": 52, "Monthly": 12, "Quarterly": 4, "Annually": 1}
+    FREQ_PPY = {"Daily": 365, "Weekly": 52, "Monthly": 12, "Quarterly": 4, "Annually": 1}
     freq_str = p.get("freq", "Monthly")
     ppy  = FREQ_PPY.get(freq_str, 12)
     dt   = 1.0 / ppy
@@ -827,7 +827,7 @@ def build_supercharge_figure(m, p):
             log_y, annotate, show_today, show_legend,
             target_yr (Mode B), lots, use_lots
     """
-    FREQ_PPY = {"Weekly": 52, "Monthly": 12, "Quarterly": 4, "Annually": 1}
+    FREQ_PPY = {"Daily": 365, "Weekly": 52, "Monthly": 12, "Quarterly": 4, "Annually": 1}
 
     mode         = p.get("mode", "a")
     freq_str     = p.get("freq", "Monthly")
@@ -862,7 +862,7 @@ def build_supercharge_figure(m, p):
     if not delays:
         delays = [0.0]
 
-    freq_label = {"Weekly": "/wk", "Monthly": "/mo",
+    freq_label = {"Daily": "/day", "Weekly": "/wk", "Monthly": "/mo",
                   "Quarterly": "/qtr", "Annually": "/yr"}.get(freq_str, "/mo")
 
     # ── MODE A: fixed spending \u2192 show how long savings last ───────────────────

@@ -4,7 +4,7 @@
    from inverting or recoloring charts and UI. Plotly SVG backgrounds are
    already explicitly white; this stops extensions overriding them. */
 :root {
-    color-scheme: light;
+    color-scheme: only light;
 }
 
 /* Light theme base */

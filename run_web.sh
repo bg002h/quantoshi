@@ -28,6 +28,7 @@ else
         --bind "0.0.0.0:$PORT" \
         --workers 4 \
         --timeout 120 \
+        --preload \
         --access-logfile - \
         --error-logfile -
 fi

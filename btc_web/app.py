@@ -62,6 +62,39 @@ def _get_bubble_fig(p: dict):
     _bubble_cache.update({"key": key, "fig": fig, "ts": time.time()})
     return fig
 
+# ── per-tab figure caches ─────────────────────────────────────────────────────
+# Single-entry "memoize last call" cache per chart (same pattern as bubble).
+# Primarily benefits the default-params case where many visitors share the
+# same configuration.  TTL=3600s; server restarts invalidate naturally.
+_FIG_TTL          = 3_600   # seconds
+_dca_cache        = {"key": None, "fig": None, "ts": 0.0}
+_retire_cache     = {"key": None, "fig": None, "ts": 0.0}
+_supercharge_cache = {"key": None, "fig": None, "ts": 0.0}
+
+def _get_dca_fig(p: dict):
+    key = json.dumps(p, sort_keys=True, default=str)
+    if _dca_cache["key"] == key and time.time() - _dca_cache["ts"] < _FIG_TTL:
+        return _dca_cache["fig"]
+    fig = build_dca_figure(M, p)
+    _dca_cache.update({"key": key, "fig": fig, "ts": time.time()})
+    return fig
+
+def _get_retire_fig(p: dict):
+    key = json.dumps(p, sort_keys=True, default=str)
+    if _retire_cache["key"] == key and time.time() - _retire_cache["ts"] < _FIG_TTL:
+        return _retire_cache["fig"]
+    fig = build_retire_figure(M, p)
+    _retire_cache.update({"key": key, "fig": fig, "ts": time.time()})
+    return fig
+
+def _get_supercharge_fig(p: dict):
+    key = json.dumps(p, sort_keys=True, default=str)
+    if _supercharge_cache["key"] == key and time.time() - _supercharge_cache["ts"] < _FIG_TTL:
+        return _supercharge_cache["fig"]
+    fig = build_supercharge_figure(M, p)
+    _supercharge_cache.update({"key": key, "fig": fig, "ts": time.time()})
+    return fig
+
 _ALL_QS = M.QR_QUANTILES   # full list from model
 _DEF_QS = [q for q in [0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
            if q in M.qr_fits]
@@ -1522,7 +1555,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
     toggles    = toggles or []
     yr_range   = yr_range or [2024, 2034]
     live_price = float(price_data or 0)
-    return build_dca_figure(M, dict(
+    return _get_dca_fig(dict(
         start_stack    = float(stack or 0),
         use_lots       = bool(use_lots),
         amount         = float(amount or 100),
@@ -1693,7 +1726,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         raise dash.exceptions.PreventUpdate
     toggles  = toggles or []
     yr_range = yr_range or [2025, 2045]
-    return build_retire_figure(M, dict(
+    return _get_retire_fig(dict(
         start_stack  = float(stack or 1.0),
         use_lots     = bool(use_lots),
         wd_amount    = float(wd or 5000),
@@ -1755,7 +1788,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
     _cl = (2 if "shade" in (chart_layout or []) else 0) \
           if isinstance(chart_layout, list) \
           else (int(chart_layout) if chart_layout is not None else 2)
-    return build_supercharge_figure(M, dict(
+    return _get_supercharge_fig(dict(
         mode         = mode or "a",
         start_stack  = float(stack or 1.0),
         start_yr     = int(start_yr or yr_now),

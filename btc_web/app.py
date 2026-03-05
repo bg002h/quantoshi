@@ -153,9 +153,30 @@ _SNAPSHOT_CONTROLS = [
 _SNAP_PREFIX    = "q2:"   # current format
 _SNAP_PREFIX_V1 = "q1:"   # legacy format (dict-based), kept for backward compat
 
+# Component IDs whose value is a quantile checklist — encoded as a bitmask
+# integer (bit i set ↔ _ALL_QS[i] is selected).  Old q2 links store float
+# lists; the decoder handles both formats transparently.
+_QUANTILE_IDS = {"bub-qs", "hm-exit-qs", "dca-qs", "ret-qs", "sc-qs"}
+
+
+def _qs_to_mask(val):
+    """Convert a quantile list (or None) to a bitmask integer."""
+    if not val:
+        return 0
+    sel = {float(q) for q in val}
+    return sum(1 << i for i, q in enumerate(_ALL_QS) if q in sel)
+
+
+def _mask_to_qs(mask):
+    """Convert a bitmask integer back to a quantile list."""
+    return [_ALL_QS[i] for i in range(len(_ALL_QS)) if mask & (1 << i)]
+
 
 def _encode_snapshot(state_dict, tab_filter=None):
     """v2: positional array — no key names, ~50% smaller than v1.
+
+    Quantile checklists are stored as bitmask integers for compactness.
+    Old links that stored float lists are still decoded transparently.
 
     If tab_filter is a set of component IDs, only those controls (plus
     main-tabs) are encoded; all others become None and fall back to defaults
@@ -166,6 +187,8 @@ def _encode_snapshot(state_dict, tab_filter=None):
         val = state_dict.get(f"{cid}:{prop}")
         if tab_filter is not None and cid != "main-tabs" and cid not in tab_filter:
             val = None
+        if val is not None and cid in _QUANTILE_IDS:
+            val = _qs_to_mask(val)
         values.append(val)
     lots   = state_dict.get("_lots")
     payload = [values, lots]
@@ -174,13 +197,21 @@ def _encode_snapshot(state_dict, tab_filter=None):
 
 
 def _decode_snapshot(encoded):
-    """Decode v2 (positional array) snapshot."""
+    """Decode v2 (positional array) snapshot.
+
+    Quantile fields may be either a bitmask int (new links) or a float list
+    (old links) — both are handled.
+    """
     try:
         payload = json.loads(gzip.decompress(base64.urlsafe_b64decode(encoded)))
         values, lots = payload
-        state = {f"{cid}:{prop}": val
-                 for (cid, prop), val in zip(_SNAPSHOT_CONTROLS, values)
-                 if val is not None}
+        state = {}
+        for (cid, prop), val in zip(_SNAPSHOT_CONTROLS, values):
+            if val is None:
+                continue
+            if cid in _QUANTILE_IDS and isinstance(val, int):
+                val = _mask_to_qs(val)
+            state[f"{cid}:{prop}"] = val
         if lots:
             state["_lots"] = lots
         return state

@@ -1536,7 +1536,7 @@ def update_supercharge(stack, use_lots, start_yr,
         start_yr     = int(start_yr or yr_now),
         delays       = delays if delays else [0, 1, 2, 4, 8],
         freq         = freq or "Monthly",
-        inflation    = float(infl or 4.0),
+        inflation    = float(infl) if infl is not None else 4.0,
         selected_qs  = sel_qs or [],
         chart_layout = _cl,
         display_q    = float(display_q) if display_q is not None

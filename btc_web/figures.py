@@ -659,7 +659,7 @@ def build_dca_figure(m, p):
 
         sc_dca_amt = amount - pmt
 
-        if sc_dca_amt > 0 and principal > 0:
+        if principal > 0:
             for q in sel_qs:
                 if q not in m.qr_fits:
                     continue

@@ -15,6 +15,7 @@ Privacy model:
 """
 
 import sys
+import time
 from pathlib import Path
 
 # ── make btc_app/ importable ──────────────────────────────────────────────────
@@ -46,6 +47,20 @@ from figures import (build_bubble_figure, build_heatmap_figure,
 
 # ── load model (once at startup) ──────────────────────────────────────────────
 M = load_model_data()
+
+# ── bubble figure cache ────────────────────────────────────────────────────────
+# Single-entry cache keyed on JSON-serialised params. TTL=24h so the "today"
+# line stays fresh; server restarts (deploys / price updates) invalidate naturally.
+_BUBBLE_TTL   = 86_400   # seconds
+_bubble_cache = {"key": None, "fig": None, "ts": 0.0}
+
+def _get_bubble_fig(p: dict):
+    key = json.dumps(p, sort_keys=True, default=str)
+    if _bubble_cache["key"] == key and time.time() - _bubble_cache["ts"] < _BUBBLE_TTL:
+        return _bubble_cache["fig"]
+    fig = build_bubble_figure(M, p)
+    _bubble_cache.update({"key": key, "fig": fig, "ts": time.time()})
+    return fig
 
 _ALL_QS = M.QR_QUANTILES   # full list from model
 _DEF_QS = [q for q in [0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
@@ -277,14 +292,17 @@ app.title = "Quantoshi"
 server = app.server  # for gunicorn
 
 @server.after_request
-def _no_cache_dash_internals(response):
-    """Prevent browsers caching Dash layout/dependency info between deploys."""
-    if flask_request.path in ('/_dash-layout', '/_dash-dependencies'):
+def _cache_headers(response):
+    """Dash internals: no-cache. Component suites: 1-year immutable (URLs are content-hashed)."""
+    path = flask_request.path
+    if path in ('/_dash-layout', '/_dash-dependencies'):
         response.headers.update({
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma':        'no-cache',
             'Expires':       '0',
         })
+    elif path.startswith('/_dash-component-suites/'):
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     return response
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1359,7 +1377,7 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
     yrange         = yrange or [0, 7]
     xrange         = xrange or [2012, 2030]
 
-    return build_bubble_figure(M, dict(
+    return _get_bubble_fig(dict(
         selected_qs = sel_qs or [],
         shade       = "shade"     in toggles,
         show_ols    = "show_ols"  in toggles,
@@ -2279,6 +2297,27 @@ def render_link_history(history):
 )
 def clear_history(_):
     return []
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ── pre-warm bubble cache on worker startup ────────────────────────────────────
+# Runs once per gunicorn worker at import time so the first real request is a
+# cache hit.  Uses the same default params as _bubble_controls().
+def _prewarm_bubble():
+    yr_now = pd.Timestamp.today().year
+    _get_bubble_fig(dict(
+        selected_qs = [0.05],
+        shade=True, show_ols=False, show_data=True, show_today=True,
+        show_legend=False, show_comp=True, show_sup=False,
+        xscale="log", yscale="log",
+        xmin=2012, xmax=yr_now + 4,
+        ymin=0.01, ymax=1e7,
+        n_future=3, pt_size=2, pt_alpha=0.2,
+        stack=0, show_stack=False, use_lots=False, lots=[],
+        comp_color="#FFD700", comp_lw=2.0,
+        sup_color="#888888", sup_lw=1.5,
+    ))
+
+_prewarm_bubble()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Entry point

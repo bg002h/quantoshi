@@ -180,7 +180,7 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 |-----|----|-------------|
 | Bubble + QR Overlay | `bubble` | Quantiles, axes scale/range, bubble composite, N future bubbles |
 | CAGR Heatmap | `heatmap` | Entry/exit year+quantile, color modes (Segmented/DataScaled/Diverging) |
-| BTC Accumulator | `dca` | DCA amount/frequency, year range, display mode |
+| BTC Accumulator | `dca` | DCA amount/frequency, year range, display mode, Stack-cellerator |
 | BTC RetireMentator | `retire` | Withdrawal amount, inflation rate, year range |
 | HODL Supercharger | `supercharge` | Mode A (fixed spending → depletion date) or Mode B (fixed depletion → max spending); 5 delay offsets, 2 chart layouts (single-quantile line or quantile bands) |
 | Stack Tracker | `stack` | Lot management (add/delete/import/export JSON) |
@@ -191,7 +191,7 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 |-----|-----------------|
 | Bubble | Q5% only, X scale=Log, N future bubbles=3, shade+show_data+show_today on (legend off). Pt size=2, Alpha=0.2. Panel order: scales, toggles, bubble, quantiles, pt size/alpha, stack, use lots. X range slider min=2010 (marks from '10), default value [2012, yr_now+4]. Auto Y checkbox (default on) rescales Y to fit selected quantiles at xmin/xmax. |
 | Heatmap | Entry year=current year, entry percentile=live BTC percentile (free numeric input 0–100%, NOT dropdown), exit years allow past. Entry price=live ticker when entry_yr==current year. Break1=0%, Break2=20%, Gradient Steps=32. |
-| DCA | dual_y+show_legend on. Dual-y "USD Value (median)" / "BTC Balance (median)" is the pointwise `np.median` across all selected quantile simulations. |
+| DCA | Default quantile Q50% only. dual_y+show_legend on. BTC-mode trace labels include final USD value in parentheses. Dual-y "USD Value (median)" always shows median USD across selected quantiles. **Stack-cellerator** ("Enter Saylor Mode" checkbox): takes out an interest-only loan (`dca-sc-loan` $, default $1,200) at `dca-sc-rate` % (default 13%, supports 0%), buys BTC lump sum upfront, reduces DCA by the interest payment. Dashed overlay traces per quantile. Stack-celeration factor (median SC / median DCA at end) shown in chart title in bold and in "SC USD (median)" legend entry. `dca-sc-term` stored for future use (loan rolls over indefinitely at constant rate). `dbc.Collapse` must NOT be used for SC body — use `html.Div(style={"display":"none"})` toggled via `Output("dca-sc-body","style")` so all Input components stay mounted in the React tree. `float(rate or default)` is wrong for 0-valid inputs — use `float(rate) if rate is not None else default`. |
 | Retire | year slider min=2024, default range 2031–2075, inflation=4%, log_y+dual_y+annotate on. Dual-y median same approach as DCA. |
 | HODL Supercharger | Mode A, stack=1.0 BTC, delays=[0,1,2,4,8] yr, Monthly, inflation=4%, wd=$5000/mo, end_yr=2075, USD display, annotate+log_y+show_legend on. `sc-chart-layout` is a `dcc.Checklist` with single option "shade"; default `["shade"]` (bands on = layout 2). Display-q dropdown hidden when bands on. Median final value shown in legend for both layouts. |
 | Stack Tracker | default lot Price=$69,420 |
@@ -204,8 +204,8 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 ### Snapshot / Share feature
 - `📸 Share` button → modal → **Scope** radio ("All tabs" / "Current tab only") → **Generate link** encodes control states + optional lots as gzip+base64 in URL hash.
 - URL format: `host/N#q2:...` where N is the tab path (`/1`–`/7`), so tab routing fires independently of hash decode.
-- **All tabs** scope: encodes all 67 controls (full fidelity). **Current tab only** scope: encodes only the active tab's controls via `tab_filter` — non-matching controls encode as `null` and fall back to defaults on restore (much shorter link).
-- `_SNAPSHOT_CONTROLS` — list of 67 `(component_id, property)` tuples (47 original + 19 `sc-*` + 1 `bub-auto-y`, inserted before `main-tabs` — backward compatible). Format: `#q2:...` current; `#q1:...` legacy (still decoded).
+- **All tabs** scope: encodes all 66 controls (full fidelity). **Current tab only** scope: encodes only the active tab's controls via `tab_filter` — non-matching controls encode as `null` and fall back to defaults on restore (much shorter link).
+- `_SNAPSHOT_CONTROLS` — list of 66 `(component_id, property)` tuples (47 original + 18 DCA-SC + 1 `bub-auto-y`, inserted before `main-tabs` — backward compatible). Format: `#q2:...` current; `#q1:...` legacy (still decoded). DCA Stack-cellerator uses `dca-sc-loan` (not the old `dca-sc-n`/`dca-sc-unit`).
 - `_TAB_CONTROLS` — dict mapping each `tab_id` → set of component IDs belonging to that tab. `_TAB_TO_PATH` — reverse of `_PATH_TO_TAB`.
 - `_encode_snapshot(state_dict, tab_filter=None)` — pass `tab_filter=_TAB_CONTROLS[tab_id]` for single-tab links.
 - `restore_from_url` callback (`prevent_initial_call=False`) decodes hash on page load → restores all controls.

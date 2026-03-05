@@ -635,29 +635,82 @@ def build_dca_figure(m, p):
     # ── Stack-cellerator overlay ─────────────────────────────────────────────
     all_sc_usd_vals = {}  # q -> SC USD value array (for dual-y median)
     if p.get("sc_enabled") and sel_qs:
-        principal  = float(p.get("sc_loan_amount", 0))
-        sc_rate    = float(p.get("sc_rate", 13.0))
-        sc_live    = float(p.get("sc_live_price", 0))
-        payment    = principal * (sc_rate / 100.0) / ppy
-        sc_dca_amt = amount - payment
+        principal    = float(p.get("sc_loan_amount", 0))
+        sc_rate      = float(p.get("sc_rate", 13.0))
+        sc_live      = float(p.get("sc_live_price", 0))
+        loan_type    = p.get("sc_loan_type", "interest_only")
+        term_months  = float(p.get("sc_term_months", 12))
+        sc_repeats   = int(p.get("sc_repeats", 0))
+        entry_mode   = p.get("sc_entry_mode", "live")
+        custom_price = float(p.get("sc_custom_price", 0))
+        tax_rate     = max(0.0, min(float(p.get("sc_tax_rate", 0.33)), 0.9999))
+
+        term_periods = max(1, round(term_months * ppy / 12))
+        n_cycles     = 1 + sc_repeats
+        r            = sc_rate / 100.0 / ppy
+
+        if loan_type == "amortizing":
+            if r > 0:
+                pmt = principal * r / (1 - (1 + r) ** (-term_periods))
+            else:
+                pmt = principal / term_periods
+        else:  # interest_only
+            pmt = principal * r
+
+        sc_dca_amt = amount - pmt
 
         if sc_dca_amt > 0 and principal > 0:
             for q in sel_qs:
                 if q not in m.qr_fits:
                     continue
-                entry_price  = sc_live if sc_live > 0 else float(qr_price(q, t_start, m.qr_fits))
-                sc_stack     = start_stack + principal / entry_price
-                sc_vals      = np.empty(len(ts))
-                sc_prices    = np.empty(len(ts))
+                sc_stack    = start_stack
+                outstanding = 0.0
+                sc_vals     = np.empty(len(ts))
+                sc_prices   = np.empty(len(ts))
                 for i, t in enumerate(ts):
-                    price        = float(qr_price(q, max(t, 0.5), m.qr_fits))
-                    sc_stack    += sc_dca_amt / price
+                    price           = float(qr_price(q, max(t, 0.5), m.qr_fits))
+                    cycle_idx       = i // term_periods
+                    period_in_cycle = i % term_periods
+
+                    if cycle_idx < n_cycles:
+                        if period_in_cycle == 0:        # start of new cycle
+                            if cycle_idx == 0:          # first cycle — use entry mode
+                                if entry_mode == "live" and sc_live > 0:
+                                    ep = sc_live
+                                elif entry_mode == "custom" and custom_price > 0:
+                                    ep = custom_price
+                                else:
+                                    ep = price          # model price
+                            else:
+                                ep = price              # subsequent cycles: model price
+                            sc_stack    += principal / ep
+                            outstanding  = principal
+
+                        sc_stack += sc_dca_amt / price  # DCA minus loan payment
+
+                        if loan_type == "amortizing":   # track amortizing balance
+                            interest_p  = outstanding * r
+                            principal_p = pmt - interest_p
+                            outstanding = max(outstanding - principal_p, 0.0)
+
+                        if loan_type == "interest_only" and period_in_cycle == term_periods - 1:
+                            # Sell BTC to repay; tax means we must sell more to net principal
+                            sc_stack   -= principal / (price * (1.0 - tax_rate))
+                            sc_stack    = max(sc_stack, 0.0)
+                            outstanding = 0.0
+                    else:                               # cycles exhausted → plain DCA
+                        sc_stack += amount / price
+
                     sc_vals[i]   = sc_stack
                     sc_prices[i] = price
-                # Deduct loan principal repayment from the final BTC balance
-                # (sell BTC at end-date price to repay the loan)
-                if sc_prices[-1] > 0:
-                    sc_vals[-1] -= principal / sc_prices[-1]
+
+                # Deduct any outstanding balance at simulation end
+                # (incomplete final cycle — sell BTC at final price to repay, tax-adjusted)
+                if outstanding > 1e-8 and sc_prices[-1] > 0:
+                    sc_vals[-1] = max(
+                        sc_vals[-1] - outstanding / (sc_prices[-1] * (1.0 - tax_rate)),
+                        0.0)
+
                 all_sc_usd_vals[q] = sc_vals * sc_prices
 
                 if disp_mode == "usd":

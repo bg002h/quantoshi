@@ -123,6 +123,7 @@ _SNAPSHOT_CONTROLS = [
     ("dca-sc-entry-mode", "value"),
     ("dca-sc-custom-price","value"),
     ("dca-sc-tax",        "value"),
+    ("dca-sc-rollover",   "value"),
     ("ret-stack",         "value"),
     ("ret-use-lots",      "value"),
     ("ret-wd",            "value"),
@@ -179,6 +180,7 @@ _CHECKLIST_OPTIONS = {
     "dca-use-lots":       ["yes"],
     "dca-toggles":        ["log_y", "dual_y", "show_legend"],
     "dca-sc-enable":      ["yes"],
+    "dca-sc-rollover":    ["yes"],
     "ret-use-lots":       ["yes"],
     "ret-toggles":        ["log_y", "dual_y", "annotate", "show_legend"],
     "sc-use-lots":        ["yes"],
@@ -613,6 +615,12 @@ def _stackcellerator_controls():
                          options=[{"label":"Interest-only","value":"interest_only"},
                                   {"label":"Amortizing","value":"amortizing"}],
                          value="interest_only", clearable=False),
+            html.Div(id="dca-sc-rollover-row", children=[
+                dbc.Checklist(id="dca-sc-rollover",
+                              options=[{"label":" Roll over (refinance; no BTC sold between cycles)",
+                                        "value":"yes"}],
+                              value=[], inputStyle={"marginRight":"5px"}),
+            ]),
             _lbl("Annual interest rate (0–100% / yr)"),
             dbc.Input(id="dca-sc-rate", type="number",
                       value=13.0, min=0, max=100, step=0.5, size="sm"),
@@ -1427,11 +1435,12 @@ def update_heatmap(entry_yr, entry_q, exit_range, exit_qs, mode,
     Input("dca-sc-entry-mode",   "value"),
     Input("dca-sc-custom-price", "value"),
     Input("dca-sc-tax",          "value"),
+    Input("dca-sc-rollover",     "value"),
     State("btc-price-store","data"),
 )
 def update_dca(stack, use_lots, amount, freq, yr_range, disp, toggles, sel_qs, lots_data,
                sc_enable, sc_loan, sc_rate, sc_term, sc_type, sc_repeats,
-               sc_entry_mode, sc_custom_price, sc_tax, price_data):
+               sc_entry_mode, sc_custom_price, sc_tax, sc_rollover, price_data):
     toggles    = toggles or []
     yr_range   = yr_range or [2024, 2034]
     live_price = float(price_data or 0)
@@ -1459,6 +1468,7 @@ def update_dca(stack, use_lots, amount, freq, yr_range, disp, toggles, sel_qs, l
         sc_entry_mode   = sc_entry_mode or "live",
         sc_custom_price = float(sc_custom_price or 80000),
         sc_tax_rate     = float(sc_tax) / 100.0 if sc_tax is not None else 0.33,
+        sc_rollover     = bool(sc_rollover),
     ))
 
 
@@ -1470,6 +1480,11 @@ def _toggle_dca_sc_body(val):
 @callback(Output("dca-sc-custom-price-row","style"), Input("dca-sc-entry-mode","value"))
 def _toggle_custom_price_row(mode):
     return {} if mode == "custom" else {"display": "none"}
+
+
+@callback(Output("dca-sc-rollover-row","style"), Input("dca-sc-type","value"))
+def _toggle_rollover_row(loan_type):
+    return {} if (loan_type or "interest_only") == "interest_only" else {"display": "none"}
 
 
 @callback(
@@ -1485,10 +1500,11 @@ def _toggle_custom_price_row(mode):
     Input("dca-sc-entry-mode",   "value"),
     Input("dca-sc-custom-price", "value"),
     Input("dca-sc-tax",          "value"),
+    Input("dca-sc-rollover",     "value"),
     State("btc-price-store","data"),
 )
 def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeats,
-                   entry_mode, custom_price, tax, price_data):
+                   entry_mode, custom_price, tax, rollover, price_data):
     if not enabled:
         return ""
     FREQ_PPY = {"Daily":365,"Weekly":52,"Monthly":12,"Quarterly":4,"Annually":1}
@@ -1498,6 +1514,7 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     rate         = float(rate) if rate is not None else 13.0
     term         = float(term or 12)
     loan_type    = loan_type or "interest_only"
+    sc_rollover  = bool(rollover) and loan_type == "interest_only"
     n_repeats    = int(repeats or 0)
     n_cycles     = 1 + n_repeats
     r            = rate / 100.0 / ppy
@@ -1527,7 +1544,7 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     else:
         pmt = principal * r
         total_interest = pmt * term_periods
-        type_lbl = "Interest-only"
+        type_lbl = "Interest-only (rollover)" if sc_rollover else "Interest-only"
 
     reduced = amount - pmt
 
@@ -1542,18 +1559,22 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
         ep = 0.0
         ep_lbl = "Model price"
 
-    lump_btc = principal / ep if ep > 0 else None
+    lump_btc  = principal / ep if ep > 0 else None
     active_mo = n_cycles * int(term)
 
-    # Tax cost line (only relevant for interest-only, where principal is repaid in BTC)
-    if loan_type == "interest_only" and tax_rate > 0 and ep and ep > 0:
-        gross_btc_sold = principal / (ep * (1.0 - tax_rate))
-        tax_cost_btc   = gross_btc_sold - principal / ep
-        tax_lbl = f"Tax @{tax_rate*100:.4g}%: sell {gross_btc_sold:.5f} BTC to net {fmt_price(principal)} (costs {tax_cost_btc:.5f} BTC extra)"
-    elif loan_type == "amortizing":
+    # Tax cost line
+    if loan_type == "interest_only":
+        if sc_rollover:
+            tax_lbl = f"Tax @{tax_rate*100:.4g}%: BTC sold once at simulation end to repay {fmt_price(principal)}"
+        elif tax_rate > 0 and ep > 0:
+            gross_btc_sold = principal / (ep * (1.0 - tax_rate))
+            tax_cost_btc   = gross_btc_sold - principal / ep
+            tax_lbl = (f"Tax @{tax_rate*100:.4g}%: sell {gross_btc_sold:.5f} BTC to net "
+                       f"{fmt_price(principal)} per cycle ({tax_cost_btc:.5f} BTC extra)")
+        else:
+            tax_lbl = None
+    else:  # amortizing
         tax_lbl = f"Tax @{tax_rate*100:.4g}%: N/A — principal repaid in fiat (no BTC sold)"
-    else:
-        tax_lbl = None
 
     loan_lbl = fmt_price(principal)
     if capped:
@@ -1565,7 +1586,8 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
         f"Total interest/cycle: {fmt_price(total_interest)}  (over {int(term)} mo)",
     ]
     if lump_btc:
-        lines.append(f"Buys \u2248 {lump_btc:.5f} BTC  (each cycle @ entry price)")
+        cycle_note = "first cycle only @ entry price" if sc_rollover else "each cycle @ entry price"
+        lines.append(f"Buys \u2248 {lump_btc:.5f} BTC  ({cycle_note})")
     if tax_lbl:
         lines.append(tax_lbl)
     lines.append(f"Cycles: {n_cycles} total  \u00b7  Loan active {active_mo} mo")
@@ -1950,7 +1972,8 @@ _TAB_CONTROLS = {
                     "dca-disp","dca-toggles","dca-qs",
                     "dca-sc-enable","dca-sc-loan","dca-sc-rate","dca-sc-term",
                     "dca-sc-type","dca-sc-repeats",
-                    "dca-sc-entry-mode","dca-sc-custom-price","dca-sc-tax"},
+                    "dca-sc-entry-mode","dca-sc-custom-price","dca-sc-tax",
+                    "dca-sc-rollover"},
     "retire":      {"ret-stack","ret-use-lots","ret-wd","ret-freq","ret-yr-range",
                     "ret-infl","ret-disp","ret-toggles","ret-qs"},
     "supercharge": {"sc-stack","sc-use-lots","sc-start-yr","sc-d0","sc-d1","sc-d2",

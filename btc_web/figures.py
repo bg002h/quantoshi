@@ -644,6 +644,7 @@ def build_dca_figure(m, p):
         entry_mode   = p.get("sc_entry_mode", "live")
         custom_price = float(p.get("sc_custom_price", 0))
         tax_rate     = max(0.0, min(float(p.get("sc_tax_rate", 0.33)), 0.9999))
+        sc_rollover  = bool(p.get("sc_rollover", False)) and loan_type == "interest_only"
 
         term_periods = max(1, round(term_months * ppy / 12))
         n_cycles     = 1 + sc_repeats
@@ -689,9 +690,11 @@ def build_dca_figure(m, p):
                                     ep = custom_price
                                 else:
                                     ep = price          # model price
-                            else:
-                                ep = price              # subsequent cycles: model price
-                            sc_stack    += principal / ep
+                                sc_stack    += principal / ep  # buy BTC with loan proceeds
+                            elif not sc_rollover:
+                                ep = price              # repeat cycle, no rollover: new independent loan
+                                sc_stack    += principal / ep
+                            # rollover repeat: new loan pays off old — no net BTC movement
                             outstanding  = principal
 
                         sc_stack += sc_dca_amt / price  # DCA minus loan payment
@@ -702,10 +705,13 @@ def build_dca_figure(m, p):
                             outstanding = max(outstanding - principal_p, 0.0)
 
                         if loan_type == "interest_only" and period_in_cycle == term_periods - 1:
-                            # Sell BTC to repay; tax means we must sell more to net principal
-                            sc_stack   -= principal / (price * (1.0 - tax_rate))
-                            sc_stack    = max(sc_stack, 0.0)
-                            outstanding = 0.0
+                            if sc_rollover:
+                                pass                    # rollover: no BTC sold; post-loop handles final repayment
+                            else:
+                                # Sell BTC to repay; tax means we must sell more to net principal
+                                sc_stack   -= principal / (price * (1.0 - tax_rate))
+                                sc_stack    = max(sc_stack, 0.0)
+                                outstanding = 0.0
                     else:                               # cycles exhausted → plain DCA
                         sc_stack += amount / price
 

@@ -1428,6 +1428,19 @@ _SPLASH_QUOTES = [
     ("It's Halving Day. Block reward drops from 6.25 to 3.125 BTC. "
      "840,000 blocks mined. Tick tock.",
      "Bitcoin Network, April 19, 2024"),
+    ("\"yay accidental hardfork?\" — Luke Dashjr spots a chain split on IRC caused by a "
+     "database change (BDB\u2009\u2192\u2009LevelDB). Developers convince miners to "
+     "[downgrade to v0.7](https://bitcoin.org/en/alert/2013-03-11-chain-fork), "
+     "saving the network.",
+     "March 12, 2013"),
+    ("\U0001f4a9 [Namecoin](https://bitcointalk.org/index.php?topic=6017.0) launches "
+     "as the first ever altcoin — a decentralized DNS built on Bitcoin's code. "
+     "The shitcoin era begins.",
+     "\U0001f4a9 April 18, 2011"),
+    ("\U0001f4a9 [SolidCoin](https://bitcointalk.org/index.php?topic=38453.0) announced: "
+     "\"new and improved block chain, secure from pools.\" "
+     "Bitcoin miners DoS it into oblivion. It doesn't survive.",
+     "\U0001f4a9 August 2011"),
 ]
 
 def _splash_quote_index():

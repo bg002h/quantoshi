@@ -2123,8 +2123,10 @@ app.clientside_callback(
                      !location.hostname.endsWith(".onion"));
         try {{
             var f = JSON.parse(localStorage.getItem(WK)) || {{}};
-            if (f.saylor_toast && !isDev) return NU;
-            f.saylor_toast = true;
+            var now = Date.now();
+            var day = 24 * 3600 * 1000;
+            if (f.saylor_toast_ts && (now - f.saylor_toast_ts < day) && !isDev) return NU;
+            f.saylor_toast_ts = now;
             localStorage.setItem(WK, JSON.stringify(f));
         }} catch(e) {{ return NU; }}
         var quotes = {_SAYLOR_QUOTES_JS};

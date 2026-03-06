@@ -288,9 +288,175 @@ body {
 .brand-q {
     transition: color 0.6s ease, text-shadow 0.6s ease;
 }
+/* Orange color (applied first during ceremony) */
+.brand-q.streak-orange,
 .brand-q.streak-unlocked {
     color: var(--btc-orange) !important;
-    text-shadow: 0 0 8px rgba(247,147,26,0.4);
+    text-shadow: none;
+    position: relative;
+}
+/* Hat (applied after color during ceremony) */
+.brand-q.streak-hat::before,
+.brand-q.streak-unlocked::before {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%) rotate(12deg);
+    width: 20px;
+    height: 17px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 18'%3E%3Cpolygon points='10,0 3,12 17,12' fill='%233a2d7c'/%3E%3Crect x='1' y='11' width='18' height='3' rx='1' fill='%232d2266'/%3E%3Ctext x='9' y='8' font-size='4' fill='%23ffd700' text-anchor='middle'%3E%E2%98%85%3C/text%3E%3C/svg%3E") no-repeat center/contain;
+    pointer-events: none;
+    animation: hatAppear 0.4s ease-out;
+}
+@keyframes hatAppear {
+    0%   { opacity: 0; transform: translateX(-50%) rotate(12deg) scale(0.3); }
+    60%  { transform: translateX(-50%) rotate(16deg) scale(1.15); }
+    100% { opacity: 1; transform: translateX(-50%) rotate(12deg) scale(1); }
+}
+
+/* ── Streak reward: gold reflection on "Quantoshi" text ──────────────── */
+.brand-uantoshi.streak-shimmer {
+    background: linear-gradient(
+        90deg,
+        #fff 0%, #fff 35%,
+        #ffd700 42%, #f7931a 50%, #ffd700 58%,
+        #fff 65%, #fff 100%
+    );
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: goldShimmer 20s ease-in-out infinite;
+}
+@keyframes goldShimmer {
+    0%   { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
+
+/* ── Knighting ceremony: Orange Q streak unlock ──────────────────────── */
+.knight-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 11000;
+    background: rgba(0, 0, 0, 0);
+    animation: knightDim 1.2s ease-out forwards;
+    pointer-events: none;
+}
+@keyframes knightDim {
+    to { background: rgba(0, 0, 0, 0.6); }
+}
+.knight-fade-out {
+    animation: knightFadeOut 1s ease-in forwards !important;
+}
+@keyframes knightFadeOut {
+    to { opacity: 0; }
+}
+
+.knight-staff {
+    position: fixed;
+    width: 40px;
+    top: -320px;
+    animation: staffDescend 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    z-index: 11001;
+    filter: drop-shadow(0 0 12px rgba(247, 147, 26, 0.6));
+}
+.knight-staff svg {
+    width: 40px;
+    height: 300px;
+}
+@keyframes staffDescend {
+    0%   { top: -320px; }
+    100% { top: 30px; }
+}
+.knight-staff-retract {
+    animation: staffRetract 1s cubic-bezier(0.55, 0, 1, 0.45) forwards !important;
+}
+@keyframes staffRetract {
+    to { top: -320px; }
+}
+
+.knight-flash {
+    animation: knightQFlash 2s ease-out !important;
+    color: var(--btc-orange) !important;
+}
+@keyframes knightQFlash {
+    0%   { text-shadow: 0 0 30px #ffd700, 0 0 60px #f7931a, 0 0 90px #ffd700; }
+    50%  { text-shadow: 0 0 20px #ffd700, 0 0 40px #f7931a; }
+    100% { text-shadow: 0 0 8px rgba(247, 147, 26, 0.4); }
+}
+
+.knight-ring {
+    position: fixed;
+    width: 0;
+    height: 0;
+    border: 2px solid #ffd700;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    animation: knightRing 1.5s ease-out forwards;
+    pointer-events: none;
+}
+@keyframes knightRing {
+    0%   { width: 0; height: 0; opacity: 1; border-width: 3px; }
+    100% { width: 300px; height: 300px; opacity: 0; border-width: 1px; }
+}
+
+.knight-particle {
+    position: fixed;
+    font-size: 16px;
+    color: #ffd700;
+    pointer-events: none;
+    animation: knightBurst 1.5s ease-out forwards;
+    z-index: 11002;
+}
+@keyframes knightBurst {
+    0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
+}
+
+.knight-text {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ffd700;
+    font-family: "Palatino Linotype", Palatino, "Book Antiqua", serif;
+    font-size: 28px;
+    font-weight: bold;
+    text-align: center;
+    line-height: 1.5;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 0 2px 8px rgba(0,0,0,0.5);
+    letter-spacing: 1px;
+    animation: knightTextIn 1s ease-out;
+    z-index: 11003;
+}
+@keyframes knightTextIn {
+    0%   { opacity: 0; transform: translate(-50%, -40%) scale(0.8); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.knight-confetti {
+    position: fixed;
+    top: -20px;
+    font-size: 14px;
+    color: #ffd700;
+    pointer-events: none;
+    animation: knightFall linear forwards;
+    opacity: 0.8;
+    z-index: 11002;
+}
+@keyframes knightFall {
+    0%   { top: -20px; opacity: 0.9; transform: rotate(0deg); }
+    100% { top: 110vh; opacity: 0.2; transform: rotate(360deg); }
+}
+
+@media (max-width: 767px) {
+    .knight-text {
+        font-size: 20px;
+    }
+    .knight-ring {
+        display: none;
+    }
 }
 
 /* ── #10: Parallax depth — navbar responds to mouse ──────────────────── */

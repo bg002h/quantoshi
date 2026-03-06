@@ -222,11 +222,12 @@
     var isDev = (location.hostname !== "quantoshi.xyz" &&
                  !location.hostname.endsWith(".onion"));
     if (isDev) {
+        var devDelay = window.innerWidth < 768 ? 5000 : 10000;
         setTimeout(function() {
             var fakeHeight = (lastHeight || 890000) + 1;
             lastHeight = fakeHeight - 1; /* ensure delta triggers */
             onNewBlock(fakeHeight, 2847);
-        }, 10000);
+        }, devDelay);
     }
 
     /* ── Bootstrap ───────────────────────────────────────────────────────── */

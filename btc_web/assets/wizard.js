@@ -182,6 +182,7 @@
             _origSummon(reason);
             setTimeout(function() {
                 try {
+                    window._wizardFlown = true;
                     var j = JSON.parse(localStorage.getItem("journey-store")) || {};
                     j.streak_unlocked = true;
                     localStorage.setItem("journey-store", JSON.stringify(j));

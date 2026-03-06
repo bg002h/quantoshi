@@ -689,7 +689,7 @@ def _stackcellerator_controls():
     return _ctrl_card(
         html.B("Stack-cellerator", style={"fontSize":"12px"}),
         dcc.Checklist(id="dca-sc-enable",
-                      options=[{"label":" Enter Saylor Mode","value":"yes"}],
+                      options=[{"label":" Activate Saylor Mode","value":"yes"}],
                       value=[], inputStyle={"marginRight":"5px"}),
         html.Div(id="dca-sc-body", style={"display":"none"}, children=[
             _lbl("Loan amount ($)"),
@@ -1093,7 +1093,7 @@ _FAQ = [
         "q": "What is the Stack-cellerator on the DCA tab?",
         "a": html.Span([
             html.Span(
-                "It's \u201cEnter Saylor Mode\u201d \u2014 a strategy popularized by Michael Saylor and "
+                "It's \u201cActivate Saylor Mode\u201d \u2014 a strategy popularized by Michael Saylor and "
                 "MicroStrategy: instead of only dollar-cost averaging, you also borrow money "
                 "and use the loan proceeds to buy a lump sum of Bitcoin up front. You then "
                 "service the loan from your regular DCA contributions. If Bitcoin appreciates "
@@ -1881,6 +1881,15 @@ app.layout = dbc.Container([
         dbc.Tab(_stack_tracker_tab(),label="Stack Tracker",       tab_id="stack"),
         dbc.Tab(_faq_tab(),          label="FAQ",                 tab_id="faq"),
     ], id="main-tabs", active_tab="bubble"),
+    # ── Footer: block height + halving countdown ──────────────────────────
+    html.Div([
+        html.Span(id="footer-block-height",
+                  style={"marginRight": "16px"}),
+        html.Span(id="footer-halving-countdown"),
+    ], className="site-footer",
+       style={"textAlign": "center", "fontSize": "11px",
+              "color": "rgba(0,0,0,0.35)", "padding": "10px 0 14px",
+              "fontFamily": "monospace", "letterSpacing": "0.5px"}),
 ], fluid=True, className="px-2 py-1")
 
 
@@ -2089,6 +2098,51 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
 @callback(Output("dca-sc-body","style"), Input("dca-sc-enable","value"))
 def _toggle_dca_sc_body(val):
     return {} if val else {"display": "none"}
+
+
+# ── Saylor Mode: first-time quote toast ──────────────────────────────────────
+_SAYLOR_QUOTES = [
+    "There is no second best.",
+    "If you\u2019ve got a billion-dollar problem, you need a trillion-dollar solution.",
+    "Buy bitcoin. Then go figure out what you sold.",
+    "You don\u2019t need a Plan B. You just need more Bitcoin.",
+    "Buy Bitcoin and wait. Not complicated.",
+    "The best time to buy bitcoin was yesterday. The second best time is today.",
+    "There is no top, because fiat has no bottom.",
+    "I decided to put all my eggs in one basket, and that basket is Bitcoin.",
+]
+_SAYLOR_QUOTES_JS = _json.dumps(_SAYLOR_QUOTES)
+
+app.clientside_callback(
+    f"""
+    function(val) {{
+        var NU = window.dash_clientside.no_update;
+        if (!val || !val.length) return NU;
+        var WK = "wizard-flags";
+        var isDev = (location.hostname !== "quantoshi.xyz" &&
+                     !location.hostname.endsWith(".onion"));
+        try {{
+            var f = JSON.parse(localStorage.getItem(WK)) || {{}};
+            if (f.saylor_toast && !isDev) return NU;
+            f.saylor_toast = true;
+            localStorage.setItem(WK, JSON.stringify(f));
+        }} catch(e) {{ return NU; }}
+        var quotes = {_SAYLOR_QUOTES_JS};
+        var q = quotes[Math.floor(Math.random() * quotes.length)];
+        var el = document.createElement("div");
+        el.className = "ambient-toast";
+        el.textContent = "\\u201c" + q + "\\u201d \\u2014 Michael Saylor";
+        document.body.appendChild(el);
+        setTimeout(function() {{
+            if (el.parentNode) el.parentNode.removeChild(el);
+        }}, 6500);
+        return NU;
+    }}
+    """,
+    Output("dca-sc-body", "style", allow_duplicate=True),
+    Input("dca-sc-enable", "value"),
+    prevent_initial_call="initial_duplicate",
+)
 
 
 @callback(Output("dca-sc-custom-price-row","style"), Input("dca-sc-entry-mode","value"))
@@ -2940,16 +2994,30 @@ app.clientside_callback(
     prevent_initial_call=False,
 )
 
-# ── Price ticker pulse animation ──────────────────────────────────────────────
+# ── Price ticker pulse + green/red flash ──────────────────────────────────────
 app.clientside_callback(
     """
     function(children) {
         ["price-ticker", "price-ticker-mobile"].forEach(function(id) {
             var el = document.getElementById(id);
-            if (el) {
-                el.classList.remove("price-pulse");
-                void el.offsetWidth;
-                el.classList.add("price-pulse");
+            if (!el) return;
+            /* Parse current price from text */
+            var m = (el.textContent || "").match(/\\$([\\d.]+)(K|M)?/);
+            var newPrice = null;
+            if (m) {
+                newPrice = parseFloat(m[1]);
+                if (m[2] === "K") newPrice *= 1000;
+                else if (m[2] === "M") newPrice *= 1000000;
+            }
+            /* Compare with stored previous price */
+            var prev = parseFloat(el.getAttribute("data-prev-price"));
+            if (newPrice) el.setAttribute("data-prev-price", newPrice);
+
+            el.classList.remove("price-pulse", "price-flash-green", "price-flash-red");
+            void el.offsetWidth;
+            el.classList.add("price-pulse");
+            if (newPrice && prev && newPrice !== prev) {
+                el.classList.add(newPrice > prev ? "price-flash-green" : "price-flash-red");
             }
         });
         return window.dash_clientside.no_update;

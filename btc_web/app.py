@@ -1383,11 +1383,51 @@ _SPLASH_QUOTES = [
      "Attributed to Mahatma Gandhi"),
     ("In a world of universal deceit, telling the truth is a revolutionary act.",
      "Attributed to George Orwell"),
+    # Trace Mayer
+    ("Bitcoin is the highest form of property rights mankind has ever invented.",
+     "Trace Mayer"),
+    ("He who has the gold makes the rules. Bitcoin is the gold of the digital age.",
+     "Trace Mayer"),
+    # Adam Back
+    ("Bitcoin is the one technology that could actually limit the power of government in a meaningful way.",
+     "Adam Back"),
+    ("Hashcash was my proof of work. Bitcoin was Satoshi's masterpiece.",
+     "Adam Back"),
+    # American HODL
+    ("Bitcoin is the exit. Everything else is a trap.",
+     "American HODL"),
+    ("Stay toxic. Stay humble. Stack sats. The signal will find you.",
+     "American HODL"),
     ("Not your keys, not your coins.", "Bitcoin Proverb"),
     ("Stay humble, stack sats.", "Bitcoin Proverb"),
     ("We are all Satoshi.", "Bitcoin Community"),
     ("Fix the money, fix the world.", "Bitcoin Community"),
     ("Tick tock, next block.", "Bitcoin Community"),
+    # Historical moments
+    ("How's this for a disruptive technology? An anonymous Internet group has "
+     "created a [working currency](https://news.slashdot.org/story/10/07/11/1747245/bitcoin-releases-version-03) "
+     "with no central authority, no banks, and no charge-backs.",
+     "Slashdot, July 11, 2010"),
+    ("Bitcoin P2P e-cash paper — "
+     "[I've been working on a new electronic cash system](https://www.metzdowd.com/pipermail/cryptography/2008-October/014810.html) "
+     "that's fully peer-to-peer, with no trusted third party.",
+     "Satoshi Nakamoto, Cryptography Mailing List, October 31, 2008"),
+    ("I'll pay 10,000 bitcoins for a couple of pizzas.. like maybe 2 large ones "
+     "so I have some left over for the next day.",
+     "Laszlo Hanyecz, BitcoinTalk, May 18, 2010"),
+    ("Bitcoin breaks $1 for the first time on Mt. Gox. "
+     "A mass of new users floods the [BitcoinTalk forums](https://bitcointalk.org/index.php?topic=3664.0) "
+     "as the media takes notice.",
+     "February 9, 2011"),
+    ("WikiLeaks has kicked the hornet's nest, and the swarm is headed towards us.",
+     "Satoshi Nakamoto, December 11, 2010"),
+    ("After a four-year struggle, the SEC approves "
+     "[spot Bitcoin ETFs](https://www.sec.gov/newsroom/press-releases/2024-10) "
+     "— eleven funds begin trading January 11, 2024.",
+     "U.S. Securities and Exchange Commission, January 10, 2024"),
+    ("It's Halving Day. Block reward drops from 6.25 to 3.125 BTC. "
+     "840,000 blocks mined. Tick tock.",
+     "Bitcoin Network, April 19, 2024"),
 ]
 
 def _splash_quote_index():
@@ -1433,10 +1473,11 @@ app.layout = dbc.Container([
             ], style={"display":"flex", "alignItems":"center",
                       "justifyContent":"center", "marginBottom":"20px"}),
             html.Div([
-                html.Div(id="splash-quote-text",
-                         style={"fontSize":"16px", "fontStyle":"italic",
-                                "color":"#2c3e50", "lineHeight":"1.5",
-                                "textAlign":"center", "marginBottom":"10px"}),
+                dcc.Markdown(id="splash-quote-text",
+                             style={"fontSize":"16px", "fontStyle":"italic",
+                                    "color":"#2c3e50", "lineHeight":"1.5",
+                                    "textAlign":"center", "marginBottom":"10px"},
+                             link_target="_blank"),
                 html.Div(id="splash-quote-attr",
                          style={"fontSize":"13px", "color":"#666",
                                 "textAlign":"center"}),

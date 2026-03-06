@@ -120,6 +120,10 @@
             var text = document.createElement("div");
             text.className = "knight-text";
             var title = NOBLE_TITLES[Math.floor(Math.random() * NOBLE_TITLES.length)];
+            /* Store the title permanently */
+            var f = _wizFlags();
+            f.noble_title = title;
+            localStorage.setItem(WIZ_KEY, JSON.stringify(f));
             text.innerHTML = "Rise, <em>" + title + "</em>.<br>The Orange Q is yours.";
             overlay.appendChild(text);
         }, 2500);

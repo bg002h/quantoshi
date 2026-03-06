@@ -2787,6 +2787,13 @@ _JOURNEY_BODY = """
             } else if (tabCount >= 7) {
                 parts.push("\\u2b50 All 7 tabs explored!");
             }
+            /* Prepend noble title if knighted */
+            try {
+                var wf = JSON.parse(localStorage.getItem("wizard-flags")) || {};
+                if (wf.noble_title) {
+                    parts.unshift("\\u2694\\ufe0f " + wf.noble_title);
+                }
+            } catch(e) {}
             if (parts.length > 0) {
                 jText = parts.join("  \\u00b7  ");
                 jStyle = {"display":"block", "textAlign":"center", "fontSize":"12px",

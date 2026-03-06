@@ -10,6 +10,19 @@
     var SPARKLE_COUNT = 12;
     var wizardActive  = false;
 
+    /* Wizard one-time flags live in their own localStorage key so Dash's
+       dcc.Store (which owns "journey-store") can never overwrite them. */
+    var WIZ_KEY = "wizard-flags";
+    function _wizFlags() {
+        try { return JSON.parse(localStorage.getItem(WIZ_KEY)) || {}; }
+        catch(e) { return {}; }
+    }
+    function _setWizFlag(flag) {
+        var f = _wizFlags();
+        f[flag] = true;
+        localStorage.setItem(WIZ_KEY, JSON.stringify(f));
+    }
+
     /* ── Wizard animation ────────────────────────────────────────────────── */
     function summonWizard(reason) {
         if (wizardActive) return;
@@ -249,11 +262,8 @@
         if (shareWatched) return;
         shareWatched = true;
         new MutationObserver(function() {
-            var j = null;
-            try { j = JSON.parse(localStorage.getItem("journey-store")); } catch(e) {}
-            if (j && !j.first_share) {
-                j.first_share = true;
-                localStorage.setItem("journey-store", JSON.stringify(j));
+            if (!_wizFlags().first_share) {
+                _setWizFlag("first_share");
                 summonWizard("First Share Link Created!");
             }
         }).observe(el, {childList: true, characterData: true, subtree: true});
@@ -261,22 +271,15 @@
     watchShare();
 
     /* ── Trigger 3: All 7 tabs explored (once only) ─────────────────────── */
-    var allTabsTriggered = false;
-    try {
-        var _j0 = JSON.parse(localStorage.getItem("journey-store"));
-        if (_j0 && _j0.all_tabs_wizard) allTabsTriggered = true;
-    } catch(e) {}
     /* Note: streak.js also wraps setItem — chain them properly */
     var _prevSetItem = Storage.prototype.setItem;
     Storage.prototype.setItem = function(key, val) {
         _prevSetItem.call(this, key, val);
-        if (key === "journey-store" && !allTabsTriggered) {
+        if (key === "journey-store" && !_wizFlags().all_tabs) {
             try {
                 var j = JSON.parse(val);
-                if (j && j.tabs_seen && j.tabs_seen.length >= 7 && !j.all_tabs_wizard) {
-                    allTabsTriggered = true;
-                    j.all_tabs_wizard = true;
-                    _prevSetItem.call(this, key, JSON.stringify(j));
+                if (j && j.tabs_seen && j.tabs_seen.length >= 7) {
+                    _setWizFlag("all_tabs");
                     setTimeout(function() {
                         summonWizard("All 7 Tabs Explored!");
                     }, 500);
@@ -296,16 +299,14 @@
             for (var i = 0; i < lots.length; i++) {
                 total += parseFloat(lots[i].amount || lots[i].amt || 0);
             }
-            var j = null;
-            try { j = JSON.parse(localStorage.getItem("journey-store")); } catch(e) {}
-            if (!j) return;
-            var passed = j.stack_milestones_passed || [];
+            var wf = _wizFlags();
+            var passed = wf.stack_milestones || [];
             for (var m = 0; m < STACK_MILESTONES.length; m++) {
                 var ms = STACK_MILESTONES[m];
                 if (total >= ms && passed.indexOf(ms) === -1) {
                     passed.push(ms);
-                    j.stack_milestones_passed = passed;
-                    _prevSetItem.call(localStorage, "journey-store", JSON.stringify(j));
+                    wf.stack_milestones = passed;
+                    localStorage.setItem(WIZ_KEY, JSON.stringify(wf));
                     summonWizard(ms >= 1 ? "1 Whole Coin! \u20bf" : "\u20bf " + ms + " BTC Stacked!");
                     break;
                 }

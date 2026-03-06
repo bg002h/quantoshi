@@ -1,0 +1,77 @@
+#!/bin/bash
+# Quantoshi health check — checks production server and app status.
+# Usage: quantoshi-health          # silent if OK, terminal popup on failure
+#        quantoshi-health --verbose # always print status
+#        quantoshi-health --popup   # called by timer; shows terminal only on failure
+set -euo pipefail
+
+LOCK="/tmp/quantoshi-health-alert.lock"
+URL="https://quantoshi.xyz/health"
+TIMEOUT=15
+MODE="${1:---verbose}"
+
+check_health() {
+    local errors=()
+
+    # 1. Check HTTPS health endpoint
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "$URL" 2>/dev/null) || http_code="000"
+    if [[ "$http_code" != "200" ]]; then
+        errors+=("Health endpoint returned HTTP $http_code")
+    fi
+
+    # 2. Check if server is SSH-reachable
+    if ! ssh -o ConnectTimeout=10 -o BatchMode=yes deploy@89.167.70.45 "true" 2>/dev/null; then
+        errors+=("SSH to server unreachable")
+    else
+        # 3. Check systemd service status
+        svc_status=$(ssh -o ConnectTimeout=10 deploy@89.167.70.45 "sudo /usr/bin/systemctl status quantoshi" 2>&1) || true
+        if ! echo "$svc_status" | grep -q "active (running)"; then
+            errors+=("quantoshi.service is not running")
+        fi
+    fi
+
+    # 4. Check recent gunicorn error log for panics/tracebacks
+    err_tail=$(ssh -o ConnectTimeout=10 root@89.167.70.45 "tail -20 /var/log/quantoshi-error.log 2>/dev/null" 2>/dev/null) || true
+    if echo "$err_tail" | grep -qiE "Traceback|CRITICAL|FATAL|Worker failed" 2>/dev/null; then
+        errors+=("Recent errors in gunicorn log")
+    fi
+
+    echo "${#errors[@]}"
+    printf '%s\n' "${errors[@]}"
+}
+
+result=$(check_health)
+n_errors=$(echo "$result" | head -1)
+error_msgs=$(echo "$result" | tail -n +2)
+
+if [[ "$n_errors" -eq 0 ]]; then
+    if [[ "$MODE" == "--verbose" ]]; then
+        echo "Quantoshi Status: ALL OK"
+        echo "  Health endpoint: 200"
+        echo "  Service: active (running)"
+        echo "  Error log: clean"
+    fi
+    # Remove alert lock if it exists (problem resolved)
+    rm -f "$LOCK"
+    exit 0
+else
+    msg="Quantoshi Status: $n_errors ERROR(s)\n\n$error_msgs\n\nChecked: $(date '+%Y-%m-%d %H:%M:%S')\nRun 'quantoshi-health' for details."
+
+    if [[ "$MODE" == "--verbose" ]]; then
+        echo -e "$msg"
+        exit 1
+    fi
+
+    # --popup mode: only open a terminal if one isn't already showing
+    if [[ "$MODE" == "--popup" ]]; then
+        if [[ -f "$LOCK" ]]; then
+            # Alert window already open, don't spawn another
+            exit 1
+        fi
+        touch "$LOCK"
+        # Open a terminal that stays open until dismissed
+        alacritty --title "Quantoshi Status — ERROR" \
+              -e bash -c "echo -e '$msg'; echo; echo 'Press Enter to dismiss...'; read; rm -f $LOCK" &
+        exit 1
+    fi
+fi

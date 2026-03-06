@@ -1326,9 +1326,86 @@ app.index_string = """<!DOCTYPE html>
     </body>
 </html>"""
 
+# ── Splash quotes ─────────────────────────────────────────────────────────────
+_SPLASH_QUOTES = [
+    # Satoshi
+    ("If you don't believe me or don't get it, I don't have time to try to convince you, sorry.",
+     "Satoshi Nakamoto"),
+    ("The root problem with conventional currency is all the trust that's required to make it work.",
+     "Satoshi Nakamoto"),
+    ("It might make sense just to get some in case it catches on.",
+     "Satoshi Nakamoto"),
+    ("Lost coins only make everyone else's coins worth slightly more. Think of it as a donation to everyone.",
+     "Satoshi Nakamoto"),
+    ("I've been working on a new electronic cash system that's fully peer-to-peer, with no trusted third party.",
+     "Satoshi Nakamoto"),
+    # Cypherpunk / sovereignty
+    ("Privacy is necessary for an open society in the electronic age.",
+     "Eric Hughes, A Cypherpunk's Manifesto"),
+    ("We must defend our own privacy if we expect to have any.",
+     "Eric Hughes, A Cypherpunk's Manifesto"),
+    ("Bitcoin is a remarkable cryptographic achievement, and the ability to create something "
+     "that is not duplicable in the digital world has enormous value.",
+     "Eric Schmidt"),
+    ("The computer can be used as a tool to liberate and protect people, rather than to control them.",
+     "Hal Finney"),
+    ("Running bitcoin.", "Hal Finney"),
+    # Sound money
+    ("Gold is money. Everything else is credit.", "J.P. Morgan, 1912"),
+    ("Money is a guarantee that we may have what we want in the future. "
+     "Though we need nothing at the moment, it insures the possibility of satisfying a new desire when it arises.",
+     "Aristotle"),
+    ("Inflation is taxation without legislation.", "Milton Friedman"),
+    ("The curious task of economics is to demonstrate to men how little they really know "
+     "about what they imagine they can design.", "F.A. Hayek"),
+    ("I don't believe we shall ever have a good money again before we take the thing out of "
+     "the hands of government.", "F.A. Hayek"),
+    ("There is no subtler, no surer means of overturning the existing basis of society than "
+     "to debauch the currency.", "John Maynard Keynes"),
+    ("The single most important thing in money is durability.", "Nick Szabo"),
+    # HODL culture / wisdom
+    ("The stock market is a device for transferring money from the impatient to the patient.",
+     "Warren Buffett"),
+    ("In the short run, the market is a voting machine, but in the long run, it is a weighing machine.",
+     "Benjamin Graham"),
+    ("Time in the market beats timing the market.", "Ken Fisher"),
+    ("Be fearful when others are greedy, and greedy when others are fearful.", "Warren Buffett"),
+    ("The best time to plant a tree was 20 years ago. The second best time is now.",
+     "Chinese Proverb"),
+    ("Compound interest is the eighth wonder of the world. He who understands it, earns it; "
+     "he who doesn't, pays it.", "Attributed to Albert Einstein"),
+    # Freedom / conviction
+    ("Those who would give up essential liberty, to purchase a little temporary safety, "
+     "deserve neither liberty nor safety.", "Benjamin Franklin"),
+    ("The only way to deal with an unfree world is to become so absolutely free "
+     "that your very existence is an act of rebellion.", "Albert Camus"),
+    ("First they ignore you, then they laugh at you, then they fight you, then you win.",
+     "Attributed to Mahatma Gandhi"),
+    ("In a world of universal deceit, telling the truth is a revolutionary act.",
+     "Attributed to George Orwell"),
+    ("Not your keys, not your coins.", "Bitcoin Proverb"),
+    ("Stay humble, stack sats.", "Bitcoin Proverb"),
+    ("We are all Satoshi.", "Bitcoin Community"),
+    ("Fix the money, fix the world.", "Bitcoin Community"),
+    ("The Times 03/Jan/2009 Chancellor on brink of second bailout for banks.",
+     "Bitcoin Genesis Block"),
+    ("Tick tock, next block.", "Bitcoin Community"),
+]
+
+def _splash_quote_index():
+    """Deterministic quote index: rotates every 6 hours, same for all users."""
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    epoch_6h = int(now.timestamp()) // (6 * 3600)
+    return epoch_6h % len(_SPLASH_QUOTES)
+
+_SPLASH_IDX = _splash_quote_index()
+_SPLASH_Q, _SPLASH_A = _SPLASH_QUOTES[_SPLASH_IDX]
+
 app.layout = dbc.Container([
     dcc.Interval(id="price-interval", interval=20*60*1000, n_intervals=0),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
+    dcc.Store(id="splash-ts-store", storage_type="local", data=None),
     dcc.Store(id="lots-store", storage_type="local", data=[]),
     dcc.Store(id="lots-export-dummy"),
     dcc.Location(id="url", refresh=False),
@@ -1336,6 +1413,37 @@ app.layout = dbc.Container([
     dcc.Store(id="effective-lots",    storage_type="memory", data=[]),
     dcc.Store(id="link-history",      storage_type="local",  data=[]),
     dcc.Store(id="loaded-hash-store", storage_type="memory"),
+    # ── Splash quote modal ────────────────────────────────────────────────
+    dbc.Modal([
+        dbc.ModalBody([
+            html.Div([
+                html.Img(src="/assets/quantoshi_logo_nav.png", height="50px",
+                         style={"opacity":"0.9"}),
+                html.Div("Quantoshi",
+                         style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif",
+                                "fontSize":"1.5rem", "fontWeight":"700",
+                                "color":"#2c3e50", "marginLeft":"10px"}),
+            ], style={"display":"flex", "alignItems":"center",
+                      "justifyContent":"center", "marginBottom":"20px"}),
+            html.Div([
+                html.Div(f'"{_SPLASH_Q}"',
+                         style={"fontSize":"16px", "fontStyle":"italic",
+                                "color":"#2c3e50", "lineHeight":"1.5",
+                                "textAlign":"center", "marginBottom":"10px"}),
+                html.Div(f"— {_SPLASH_A}",
+                         style={"fontSize":"13px", "color":"#666",
+                                "textAlign":"center"}),
+            ], style={"padding":"10px 20px"}),
+            html.Div(
+                dbc.Button("Let's go", id="splash-dismiss", size="lg",
+                           className="btn-share-accent",
+                           style={"padding":"8px 40px", "fontSize":"15px",
+                                  "borderRadius":"8px"}),
+                style={"textAlign":"center", "marginTop":"24px"},
+            ),
+        ], style={"padding":"30px 20px 24px"}),
+    ], id="splash-modal", is_open=False, centered=True, backdrop="static",
+       className="splash-modal"),
     dbc.Navbar(
         dbc.Container([
             # ── Desktop navbar (hidden on mobile portrait) ────────────────
@@ -2231,6 +2339,37 @@ app.clientside_callback(
     """,
     Output("main-tabs", "active_tab", allow_duplicate=True),
     Input("url", "pathname"),
+    prevent_initial_call="initial_duplicate",
+)
+
+# ── Splash quote: show if 6+ hours since last visit ──────────────────────────
+app.clientside_callback(
+    """
+    function(ts_store) {
+        var SIX_HOURS = 6 * 3600 * 1000;
+        var now = Date.now();
+        var last = ts_store ? parseInt(ts_store) : 0;
+        if (now - last >= SIX_HOURS) {
+            return [true, now.toString()];
+        }
+        return [false, window.dash_clientside.no_update];
+    }
+    """,
+    Output("splash-modal", "is_open"),
+    Output("splash-ts-store", "data"),
+    Input("splash-ts-store", "data"),
+    prevent_initial_call=False,
+)
+
+app.clientside_callback(
+    """
+    function(n) {
+        if (n) { return false; }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("splash-modal", "is_open", allow_duplicate=True),
+    Input("splash-dismiss", "n_clicks"),
     prevent_initial_call="initial_duplicate",
 )
 

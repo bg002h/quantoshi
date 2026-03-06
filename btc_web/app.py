@@ -1459,6 +1459,16 @@ _SPLASH_QUOTES = [
      "January 3rd — withdraw your coins, hold your own keys, run your own node. "
      "Grow a spine, have some personal power, be free.",
      "Trace Mayer, Proof of Keys Day"),
+    # Matt Odell
+    ("Stay humble, stack sats.",
+     "Matt Odell"),
+    ("Privacy is a prerequisite for freedom. If you don't have privacy, "
+     "people can use your private information to control you.",
+     "Matt Odell"),
+    ("My focus will continue to be freedom tech, forever. "
+     "Our politicians are corrupt and our institutions are broken — "
+     "freedom tech is the only real option we have.",
+     "Matt Odell"),
     # Matthew Mezinskis (Porkopolis Economics)
     ("Bitcoin isn't exponential — it's a power curve. "
      "And that's stronger than inflation and money printing.",
@@ -1470,7 +1480,6 @@ _SPLASH_QUOTES = [
      "It has nothing to do with the Fed or interest rates.",
      "Matthew Mezinskis"),
     ("Not your keys, not your coins.", "Bitcoin Proverb"),
-    ("Stay humble, stack sats.", "Bitcoin Proverb"),
     ("We are all Satoshi.", "Bitcoin Community"),
     ("Fix the money, fix the world.", "Bitcoin Community"),
     ("Tick tock, next block.", "Bitcoin Community"),

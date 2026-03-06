@@ -1,0 +1,7 @@
+#!/bin/bash
+# Restart Quantoshi on the production server (Hetzner VPS)
+# Pulls latest code and restarts the systemd service.
+set -e
+echo "Restarting Quantoshi on production server..."
+ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && systemctl restart quantoshi"
+echo "Done. Quantoshi restarted."

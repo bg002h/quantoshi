@@ -1675,13 +1675,15 @@ app.layout = dbc.Container([
     dcc.Store(id="effective-lots",    storage_type="memory", data=[]),
     dcc.Store(id="link-history",      storage_type="local",  data=[]),
     dcc.Store(id="loaded-hash-store", storage_type="memory"),
+    dcc.Store(id="journey-store",    storage_type="local",  data=None),
     # ── Splash quote modal ────────────────────────────────────────────────
     dbc.Modal([
         dbc.ModalBody([
             html.Div([
                 html.Img(src="/assets/quantoshi_logo_nav.png", height="50px",
                          style={"opacity":"0.9"}),
-                html.Div("Quantoshi",
+                html.Div([html.Span("Q", className="brand-q"),
+                          "uantoshi"],
                          style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif",
                                 "fontSize":"1.5rem", "fontWeight":"700",
                                 "color":"#2c3e50", "marginLeft":"10px"}),
@@ -1697,6 +1699,10 @@ app.layout = dbc.Container([
                          style={"fontSize":"13px", "color":"#666",
                                 "textAlign":"center"}),
             ], style={"padding":"10px 20px"}),
+            html.Div(id="journey-stats",
+                     style={"textAlign":"center", "fontSize":"12px",
+                            "color":"#888", "marginTop":"16px",
+                            "lineHeight":"1.7", "display":"none"}),
             html.Div([
                 dbc.Button("Let's go", id="splash-dismiss", size="lg",
                            className="btn-share-accent",
@@ -1723,7 +1729,9 @@ app.layout = dbc.Container([
                         html.Img(src="/assets/quantoshi_logo_nav.png", height="40px",
                                  id="logo-easter-egg", className="logo-glow",
                                  style={"cursor":"pointer"}),
-                        dbc.NavbarBrand("Quantoshi", className="ms-2 fw-bold fs-2",
+                        dbc.NavbarBrand([html.Span("Q", className="brand-q"),
+                                         "uantoshi"],
+                                        className="ms-2 fw-bold fs-2",
                                         style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif"}),
                         html.Div(id="price-ticker",
                                  style={"fontSize":"19px", "fontWeight":"600",
@@ -1776,7 +1784,9 @@ app.layout = dbc.Container([
                         html.Img(src="/assets/quantoshi_logo_nav.png", height="34px",
                                  id="logo-easter-egg-mobile", className="logo-glow",
                                  style={"cursor":"pointer"}),
-                        html.Span("Quantoshi", className="fw-bold ms-2",
+                        html.Span([html.Span("Q", className="brand-q"),
+                                   "uantoshi"],
+                                  className="fw-bold ms-2",
                                   style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif",
                                          "fontSize":"1.75rem", "color":"#fff"}),
                     ], style={"display":"flex", "alignItems":"center"}),
@@ -2616,6 +2626,119 @@ app.clientside_callback(
     prevent_initial_call="initial_duplicate",
 )
 
+# ── Journey tracker: update milestones in localStorage on every page load ─────
+app.clientside_callback(
+    """
+    function(pathname, journey, price) {
+        var NU = window.dash_clientside.no_update;
+        var now = Date.now();
+        var THIRTY_SIX_H = 36 * 3600 * 1000;
+        var ONE_DAY = 24 * 3600 * 1000;
+        if (!journey || !journey.first_ts) {
+            /* First ever visit */
+            return {
+                first_ts: now, first_price: price || null,
+                visits: 1, tabs_seen: [],
+                streak_days: 1, last_visit_ts: now, streak_unlocked: false
+            };
+        }
+        /* Returning visitor — update visits + streak */
+        journey.visits = (journey.visits || 0) + 1;
+        if (!journey.first_price && price) { journey.first_price = price; }
+        var gap = now - (journey.last_visit_ts || 0);
+        if (gap >= ONE_DAY / 2 && gap <= THIRTY_SIX_H) {
+            journey.streak_days = (journey.streak_days || 1) + 1;
+            journey.last_visit_ts = now;
+            if (journey.streak_days >= 7) { journey.streak_unlocked = true; }
+        } else if (gap > THIRTY_SIX_H) {
+            journey.streak_days = 1;
+            journey.last_visit_ts = now;
+        }
+        return journey;
+    }
+    """,
+    Output("journey-store", "data"),
+    Input("url", "pathname"),
+    State("journey-store", "data"),
+    State("btc-price-store", "data"),
+    prevent_initial_call=False,
+)
+
+# ── Journey: track tab visits ────────────────────────────────────────────────
+app.clientside_callback(
+    """
+    function(tab, journey) {
+        if (!tab || !journey) return window.dash_clientside.no_update;
+        var seen = journey.tabs_seen || [];
+        if (seen.indexOf(tab) === -1) {
+            seen.push(tab);
+            journey.tabs_seen = seen;
+            return journey;
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("journey-store", "data", allow_duplicate=True),
+    Input("main-tabs", "active_tab"),
+    State("journey-store", "data"),
+    prevent_initial_call="initial_duplicate",
+)
+
+# ── Easter egg: 6 clicks on logo → genesis quote in splash modal ─────────────
+_JOURNEY_BODY = """
+        var journey = null;
+        try { journey = JSON.parse(localStorage.getItem("journey-store")); } catch(e) {}
+        var jText = "";
+        var jStyle = {"display":"none"};
+        var _jnow = Date.now();
+        if (journey && journey.first_ts) {
+            var days = Math.floor((_jnow - journey.first_ts) / 86400000);
+            var parts = [];
+            if (days >= 1) {
+                parts.push("\\u2615 Day " + days + " of your Bitcoin journey");
+            } else {
+                parts.push("\\u2615 Welcome to the rabbit hole");
+            }
+            if (journey.first_price) {
+                var cp = null;
+                try {
+                    var el = document.getElementById("price-ticker");
+                    if (el) {
+                        var m = (el.textContent || "").match(/\\$([\\.\\d]+)(K|M)?/);
+                        if (m) {
+                            cp = parseFloat(m[1]);
+                            if (m[2] === "K") cp *= 1000;
+                            else if (m[2] === "M") cp *= 1000000;
+                        }
+                    }
+                } catch(e) {}
+                if (cp && cp > 0) {
+                    var pct = ((cp - journey.first_price) / journey.first_price * 100);
+                    var sign = pct >= 0 ? "+" : "";
+                    parts.push("\\u20bf was $" + Math.round(journey.first_price).toLocaleString()
+                               + " when you first visited (" + sign + pct.toFixed(1) + "%)");
+                } else {
+                    parts.push("\\u20bf was $" + Math.round(journey.first_price).toLocaleString()
+                               + " when you first visited");
+                }
+            }
+            if (journey.visits && journey.visits > 1) {
+                parts.push("Visit #" + journey.visits);
+            }
+            var tabCount = (journey.tabs_seen || []).length;
+            if (tabCount > 0 && tabCount < 7) {
+                parts.push(tabCount + "/7 tabs explored");
+            } else if (tabCount >= 7) {
+                parts.push("\\u2b50 All 7 tabs explored!");
+            }
+            if (parts.length > 0) {
+                jText = parts.join("  \\u00b7  ");
+                jStyle = {"display":"block", "textAlign":"center", "fontSize":"12px",
+                          "color":"#888", "marginTop":"16px", "lineHeight":"1.7"};
+            }
+        }
+"""
+
 # ── Splash quote: show if 6+ hours since last visit (regular quotes only) ─────
 app.clientside_callback(
     """
@@ -2640,12 +2763,14 @@ app.clientside_callback(
             }
             var idx = 0;
             var q = quotes[idx];
+            """ + _JOURNEY_BODY + """
             return [true, now.toString(), '"' + q[0] + '"', "\\u2014 " + q[1],
-                    {"display":"none"}];
+                    {"display":"none"}, jText, jStyle];
         }
         return [false, window.dash_clientside.no_update,
                 window.dash_clientside.no_update, window.dash_clientside.no_update,
-                window.dash_clientside.no_update];
+                window.dash_clientside.no_update,
+                window.dash_clientside.no_update, window.dash_clientside.no_update];
     }
     """,
     Output("splash-modal", "is_open"),
@@ -2653,6 +2778,8 @@ app.clientside_callback(
     Output("splash-quote-text", "children"),
     Output("splash-quote-attr", "children"),
     Output("splash-next-wrap", "style"),
+    Output("journey-stats", "children"),
+    Output("journey-stats", "style"),
     Input("splash-ts-store", "data"),
     prevent_initial_call=False,
 )
@@ -2670,24 +2797,24 @@ app.clientside_callback(
     prevent_initial_call="initial_duplicate",
 )
 
-# ── Easter egg: 6 clicks on logo → genesis quote in splash modal ─────────────
+
 _EGG_JS = """
     function(n) {
-        if (!n) return [window.dash_clientside.no_update, window.dash_clientside.no_update,
-                        window.dash_clientside.no_update, window.dash_clientside.no_update];
+        var NU = window.dash_clientside.no_update;
+        if (!n) return [NU, NU, NU, NU, NU, NU];
         window._eggClicks = (window._eggClicks || 0) + 1;
         clearTimeout(window._eggTimer);
         if (window._eggClicks >= 6) {
             window._eggClicks = 0;
             window._splashIdx = 0;
+            """ + _JOURNEY_BODY + """
             return [true,
                     "\\u201cThe Times 03/Jan/2009 Chancellor on brink of second bailout for banks.\\u201d",
                     "\\u2014 Bitcoin Genesis Block",
-                    {"display":"inline"}];
+                    {"display":"inline"}, jText, jStyle];
         }
         window._eggTimer = setTimeout(function() { window._eggClicks = 0; }, 3000);
-        return [window.dash_clientside.no_update, window.dash_clientside.no_update,
-                window.dash_clientside.no_update, window.dash_clientside.no_update];
+        return [NU, NU, NU, NU, NU, NU];
     }
 """
 app.clientside_callback(
@@ -2696,6 +2823,8 @@ app.clientside_callback(
     Output("splash-quote-text", "children", allow_duplicate=True),
     Output("splash-quote-attr", "children", allow_duplicate=True),
     Output("splash-next-wrap", "style", allow_duplicate=True),
+    Output("journey-stats", "children", allow_duplicate=True),
+    Output("journey-stats", "style", allow_duplicate=True),
     Input("logo-easter-egg", "n_clicks"),
     prevent_initial_call=True,
 )
@@ -2705,6 +2834,8 @@ app.clientside_callback(
     Output("splash-quote-text", "children", allow_duplicate=True),
     Output("splash-quote-attr", "children", allow_duplicate=True),
     Output("splash-next-wrap", "style", allow_duplicate=True),
+    Output("journey-stats", "children", allow_duplicate=True),
+    Output("journey-stats", "style", allow_duplicate=True),
     Input("logo-easter-egg-mobile", "n_clicks"),
     prevent_initial_call=True,
 )

@@ -350,6 +350,10 @@ app = dash.Dash(
 app.title = "Quantoshi"
 server = app.server  # for gunicorn
 
+@server.route("/health")
+def _health():
+    return "ok", 200
+
 @server.after_request
 def _cache_headers(response):
     """Dash internals: no-cache. Component suites: 1-year immutable (URLs are content-hashed)."""

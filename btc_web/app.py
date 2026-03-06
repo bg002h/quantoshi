@@ -1544,6 +1544,27 @@ _SPLASH_QUOTES = [
      "BitcoinTalk user GameKyuubi, drunk on whiskey during a crash from $1,100, "
      "misspells \"holding\" and accidentally creates the most enduring meme in Bitcoin.",
      "December 18, 2013"),
+    # NVK (Rodolfo Novak)
+    ("Bitcoin already won. Everyone is just catching up.",
+     "NVK (Rodolfo Novak), Coinkite"),
+    ("We all have reasonably similar needs for keeping bitcoins secure. "
+     "No compromises in privacy and security.",
+     "NVK"),
+    # bg002h
+    ("Hardforks aren't that hard. It's getting others to use them that's hard.",
+     "bg002h, BitcoinTalk (member since July 2010)"),
+    ("I stopped mining cause it was gonna take roughly a week to mine the next block of 50 bitcoins "
+     "— and I never even tried GPU mining.",
+     "bg002h, BitcoinTalk"),
+    ("It's fun to look back at this and think \"I was a small part in making it happen.\"",
+     "bg002h, BitcoinTalk"),
+    ("Continue converting a small amount of dollars every 2 weeks... "
+     "the only thing that'll be different is that I'll get more BTC.",
+     "bg002h, BitcoinTalk"),
+    ("I'll let you know my exit strategy in 10 years.",
+     "bg002h, BitcoinTalk"),
+    ("Trust? Why? You have nothing to gain and only stand to lose.",
+     "bg002h, BitcoinTalk"),
     # Ross Ulbricht
     ("Bitcoin's power comes from the fact that any one of us can mine, "
      "any one of us can generate addresses, any one of us can send bitcoin to anyone else. "
@@ -1594,6 +1615,10 @@ _SPLASH_QUOTES = [
      "on BitcoinTalk — the world's first Bitcoin hardware wallet. "
      "Self-custody just got a whole lot easier.",
      "2013"),
+    ("NVK launches [Coldcard](https://bitcointalk.org/index.php?topic=5033058.0) "
+     "— a no-compromise, air-gapped Bitcoin hardware wallet. "
+     "The cypherpunk DIY ethos in a signing device.",
+     "2018"),
     # Bitcoin documentaries
     ("Required viewing: [Banking on Bitcoin](https://www.imdb.com/title/tt5033790/) (2016) "
      "— the most disruptive invention since the Internet, "

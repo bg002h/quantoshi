@@ -1544,6 +1544,11 @@ _SPLASH_QUOTES = [
      "BitcoinTalk user GameKyuubi, drunk on whiskey during a crash from $1,100, "
      "misspells \"holding\" and accidentally creates the most enduring meme in Bitcoin.",
      "December 18, 2013"),
+    ("Charlie Shrem, CEO of BitInstant — which processed 30% of all Bitcoin transactions — "
+     "is [sentenced to two years](https://www.justice.gov/usao-sdny/pr/"
+     "former-ceo-bitcoin-exchange-company-sentenced-manhattan-federal-court-two-years-prison) "
+     "for aiding unlicensed money transmission tied to Silk Road. Bitcoin's first felon.",
+     "December 19, 2014"),
     ("[This is gentlemen.](https://bitcointalk.org/index.php?topic=855789.0) "
      "An overexcited Bitcoiner meant to type \"this is it, gentlemen\" during a price rally "
      "but left out a word — and accidentally created a battle cry.",

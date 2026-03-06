@@ -1,10 +1,14 @@
-/* ── Bitcoin Projections Web App — custom styles ─────────────────────────── */
+/* ── Quantoshi Web App — custom styles ─────────────────────────────────────── */
 
 /* Force light rendering — prevents browser dark-mode (and Dark Reader etc.)
    from inverting or recoloring charts and UI. Plotly SVG backgrounds are
    already explicitly white; this stops extensions overriding them. */
 :root {
     color-scheme: only light;
+    --btc-orange: #f7931a;
+    --nav-dark: #2c3e50;
+    --nav-darker: #1a252f;
+    --nav-lighter: #34495e;
 }
 
 /* Light theme base */
@@ -14,9 +18,14 @@ body {
     color: #212529 !important;
 }
 
+/* ── #1: Navbar gradient ──────────────────────────────────────────────────── */
+.navbar {
+    background: linear-gradient(135deg, var(--nav-darker) 0%, var(--nav-dark) 50%, var(--nav-lighter) 100%) !important;
+}
+
 /* Tab bar */
 .nav-tabs {
-    background-color: #2c3e50 !important;
+    background-color: var(--nav-dark) !important;
     border-bottom: none !important;
     padding: 4px 8px 0;
 }
@@ -24,30 +33,111 @@ body {
     color: rgba(255,255,255,0.75) !important;
     border: none !important;
     border-radius: 4px 4px 0 0;
+    padding: 4px 10px;
+    font-size: 13px;
+    transition: color 0.2s, background-color 0.2s;
 }
 .nav-tabs .nav-link:hover {
     color: #fff !important;
     background-color: rgba(255,255,255,0.15) !important;
 }
+
+/* ── #2: Active tab orange accent ─────────────────────────────────────────── */
 .nav-tabs .nav-link.active {
-    color: #2c3e50 !important;
+    color: var(--nav-dark) !important;
     background-color: #f0f2f5 !important;
     font-weight: 600;
+    border-top: 3px solid var(--btc-orange) !important;
 }
 
 /* Export row */
 .export-row {
-    background-color: #2c3e50 !important;
+    background-color: var(--nav-dark) !important;
     border-top: none !important;
     padding: 6px 12px !important;
 }
 .export-row .btn { color: #fff !important; border-color: rgba(255,255,255,0.4) !important; }
 
-.ctrl-card { border: 1px solid #dee2e6 !important; background: #f8f9fa !important; }
+/* ── #3: Card elevation on hover ──────────────────────────────────────────── */
+.ctrl-card {
+    border: 1px solid #dee2e6 !important;
+    background: #f8f9fa !important;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.ctrl-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-color: #c8ccd0 !important;
+}
 .ctrl-card .card-body { padding: 8px !important; }
 
-/* Form labels */
+/* ── #4: Bitcoin-orange accent for primary actions ────────────────────────── */
+.btn-share-accent {
+    background-color: var(--btc-orange) !important;
+    border-color: var(--btc-orange) !important;
+    color: #fff !important;
+    font-weight: 600;
+    transition: filter 0.15s;
+}
+.btn-share-accent:hover {
+    filter: brightness(1.1);
+    color: #fff !important;
+}
+.btn-generate-accent {
+    background-color: var(--btc-orange) !important;
+    border-color: var(--btc-orange) !important;
+    color: #fff !important;
+}
+.btn-generate-accent:hover {
+    filter: brightness(1.1);
+    color: #fff !important;
+}
+
+/* ── #6: Smooth tab content fade-in ───────────────────────────────────────── */
+.tab-content > .tab-pane {
+    animation: fadeInTab 0.2s ease-in;
+}
+@keyframes fadeInTab {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── #7: Price ticker pulse on update ─────────────────────────────────────── */
+.price-pulse {
+    animation: pricePulse 0.6s ease-out;
+}
+@keyframes pricePulse {
+    0%   { text-shadow: 0 0 8px rgba(247,147,26,0.8); }
+    100% { text-shadow: none; }
+}
+
+/* ── #8: Better typography hierarchy — section headers ────────────────────── */
 .form-label { font-size: 11px; color: #555; margin-bottom: 2px !important; }
+.ctrl-section-header {
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+/* ── #9: Export row polish ─────────────────────────────────────────────────── */
+.export-row-polished {
+    background: #ebeef1;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-top: 4px;
+}
+.export-row-polished .btn {
+    background-color: var(--nav-dark) !important;
+    border-color: var(--nav-dark) !important;
+    color: #fff !important;
+    font-weight: 500;
+}
+.export-row-polished .btn:hover {
+    filter: brightness(1.15);
+}
 
 /* Compact sliders */
 .rc-slider { margin-top: 4px; }
@@ -55,20 +145,21 @@ body {
 /* Compact checklists */
 .form-check-label { font-size: 12px; }
 
-/* Compact tab bar */
-.nav-tabs .nav-link { padding: 4px 10px; font-size: 13px; }
-
 /* Graph container — no excess padding */
 .js-plotly-plot { width: 100%; }
 
-/* Controls column scrollbar */
-.controls-col { padding-right: 6px !important; scrollbar-width: thin;
-                scrollbar-color: #adb5bd #f8f9fa; }
+/* ── #10: Controls column scrollbar — navy themed ─────────────────────────── */
+.controls-col {
+    padding-right: 6px !important;
+    scrollbar-width: thin;
+    scrollbar-color: var(--nav-dark) #f0f2f5;
+}
 .controls-col::-webkit-scrollbar { width: 6px; }
-.controls-col::-webkit-scrollbar-track { background: #f8f9fa; }
-.controls-col::-webkit-scrollbar-thumb { background: #adb5bd; border-radius: 3px; }
+.controls-col::-webkit-scrollbar-track { background: #f0f2f5; }
+.controls-col::-webkit-scrollbar-thumb { background: var(--nav-dark); border-radius: 3px; }
+.controls-col::-webkit-scrollbar-thumb:hover { background: var(--nav-lighter); }
 
-/* Export row */
+/* Export row (legacy — overridden by polished variant) */
 .export-row { border-top: 1px solid #dee2e6; padding-top: 4px; }
 
 /* DataTable tweaks — already styled inline but reinforce */
@@ -77,6 +168,19 @@ body {
 /* FAQ links — slightly muted vs default bright blue */
 .accordion a { color: #1a6fa8 !important; }
 .accordion a:hover { color: #154e78 !important; }
+
+/* ── #11: Loading skeleton shimmer ────────────────────────────────────────── */
+.chart-loading-skeleton {
+    background: linear-gradient(90deg, #e8eaed 25%, #f0f2f5 50%, #e8eaed 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px;
+    min-height: 400px;
+}
+@keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
 
 /* ── Mobile: stack controls below chart ─────────────────────────────────── */
 @media (max-width: 767px) {

@@ -336,7 +336,12 @@ def _q_options():
     opts = []
     for q in _ALL_QS:
         pct = q * 100
-        lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
+        lbl_text = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
+        col = M.qr_colors.get(q, "#888888")
+        lbl = html.Span([
+            html.Span("\u25CF ", style={"color": col, "fontSize": "10px"}),
+            lbl_text,
+        ])
         opts.append({"label": lbl, "value": q})
     return opts
 
@@ -392,14 +397,14 @@ def _export_row(tab_id):
             dbc.Col(dbc.Input(id=f"{tab_id}-fname", value=f"btc_{tab_id}",
                               type="text", size="sm"), width=True),
             dbc.Col(dbc.Button("⬇ Download", id=f"{tab_id}-export-btn",
-                               size="sm", color="secondary"), width="auto"),
+                               size="sm"), width="auto"),
             # dummy store — clientside callback needs an output target
             dcc.Store(id=f"{tab_id}-dl-dummy"),
-        ], className="g-1 mt-1 align-items-center"),
+        ], className="g-1 align-items-center"),
         html.Div("↓ Scroll down to configure",
                  className="d-md-none text-center text-muted py-1",
                  style={"fontSize":"11px", "letterSpacing":"0.02em"}),
-    ])
+    ], className="export-row-polished")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -410,6 +415,7 @@ def _bubble_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
         _ctrl_card(
+            html.Div("Axes & Range", className="ctrl-section-header"),
             _row(
                 html.Div([_lbl("X scale"), dcc.RadioItems(
                     id="bub-xscale", options=[{"label":"Log","value":"log"},
@@ -441,6 +447,7 @@ def _bubble_controls():
                             tooltip={"always_visible":False}),
         ),
         _ctrl_card(
+            html.Div("Display", className="ctrl-section-header"),
             dcc.Checklist(id="bub-toggles",
                           options=[{"label":" Shade bands","value":"shade"},
                                    {"label":" Show OLS","value":"show_ols"},
@@ -452,6 +459,7 @@ def _bubble_controls():
                           inputStyle={"marginRight":"5px"}),
         ),
         _ctrl_card(
+            html.Div("Bubble Model", className="ctrl-section-header"),
             _lbl("Bubble"),
             dcc.Checklist(id="bub-bubble-toggles",
                           options=[{"label":" Composite","value":"show_comp"},
@@ -465,7 +473,7 @@ def _bubble_controls():
                        tooltip={"always_visible":True}),
         ),
         _ctrl_card(
-            _lbl("Quantiles"),
+            html.Div("Quantiles", className="ctrl-section-header"),
             dcc.Checklist(id="bub-qs", options=_q_options(),
                           value=[], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
@@ -504,9 +512,12 @@ def _bubble_tab():
         dbc.Col(_bubble_controls(), width=3, className="controls-col overflow-auto",
                 style={"maxHeight":"85vh"}),
         dbc.Col([
-            dcc.Graph(id="bubble-graph", style={"height":"78vh"},
-                      config={"toImageButtonOptions":{"format":"png","scale":2,
-                                                       "filename":"btc_bubble"}}),
+            dcc.Loading(
+                dcc.Graph(id="bubble-graph", style={"height":"78vh"},
+                          config={"toImageButtonOptions":{"format":"png","scale":2,
+                                                           "filename":"btc_bubble"}}),
+                type="default", color="#f7931a",
+            ),
             _export_row("bubble"),
         ], width=9),
     ], className="g-0")
@@ -607,9 +618,12 @@ def _heatmap_tab():
         dbc.Col(_heatmap_controls(), width=3, className="controls-col overflow-auto",
                 style={"maxHeight":"85vh"}),
         dbc.Col([
-            dcc.Graph(id="heatmap-graph", style={"height":"78vh"},
-                      config={"toImageButtonOptions":{"format":"png","scale":2,
-                                                       "filename":"btc_heatmap"}}),
+            dcc.Loading(
+                dcc.Graph(id="heatmap-graph", style={"height":"78vh"},
+                          config={"toImageButtonOptions":{"format":"png","scale":2,
+                                                           "filename":"btc_heatmap"}}),
+                type="default", color="#f7931a",
+            ),
             _export_row("heatmap"),
         ], width=9),
     ], className="g-0")
@@ -726,9 +740,12 @@ def _dca_tab():
         dbc.Col(_dca_controls(), width=3, className="controls-col overflow-auto",
                 style={"maxHeight":"85vh"}),
         dbc.Col([
-            dcc.Graph(id="dca-graph", style={"height":"78vh"},
-                      config={"toImageButtonOptions":{"format":"png","scale":2,
-                                                       "filename":"btc_dca"}}),
+            dcc.Loading(
+                dcc.Graph(id="dca-graph", style={"height":"78vh"},
+                          config={"toImageButtonOptions":{"format":"png","scale":2,
+                                                           "filename":"btc_dca"}}),
+                type="default", color="#f7931a",
+            ),
             _export_row("dca"),
         ], width=9),
     ], className="g-0")
@@ -795,9 +812,12 @@ def _retire_tab():
         dbc.Col(_retire_controls(), width=3, className="controls-col overflow-auto",
                 style={"maxHeight":"85vh"}),
         dbc.Col([
-            dcc.Graph(id="retire-graph", style={"height":"78vh"},
-                      config={"toImageButtonOptions":{"format":"png","scale":2,
-                                                       "filename":"btc_retire"}}),
+            dcc.Loading(
+                dcc.Graph(id="retire-graph", style={"height":"78vh"},
+                          config={"toImageButtonOptions":{"format":"png","scale":2,
+                                                           "filename":"btc_retire"}}),
+                type="default", color="#f7931a",
+            ),
             _export_row("retire"),
         ], width=9),
     ], className="g-0")
@@ -932,9 +952,12 @@ def _supercharge_tab():
         dbc.Col(_supercharge_controls(), width=3, className="controls-col overflow-auto",
                 style={"maxHeight":"85vh"}),
         dbc.Col([
-            dcc.Graph(id="supercharge-graph", style={"height":"78vh"},
-                      config={"toImageButtonOptions":{"format":"png","scale":2,
-                                                       "filename":"btc_supercharge"}}),
+            dcc.Loading(
+                dcc.Graph(id="supercharge-graph", style={"height":"78vh"},
+                          config={"toImageButtonOptions":{"format":"png","scale":2,
+                                                           "filename":"btc_supercharge"}}),
+                type="default", color="#f7931a",
+            ),
             _export_row("supercharge"),
         ], width=9),
     ], className="g-0")
@@ -1344,8 +1367,8 @@ app.layout = dbc.Container([
                 ),
                 dbc.Col(
                     html.Div([
-                        dbc.Button("📸 Share", id="share-btn", color="light", size="sm",
-                                   outline=True, className="ms-2"),
+                        dbc.Button("📸 Share", id="share-btn", size="sm",
+                                   className="ms-2 btn-share-accent"),
                         html.Div("▲ Cooler than you think",
                                  style={"fontSize":"9px", "color":"rgba(255,255,255,0.4)",
                                         "whiteSpace":"nowrap", "textAlign":"center",
@@ -1378,7 +1401,7 @@ app.layout = dbc.Container([
                 className="small",
             ),
             dbc.Button("Generate link", id="share-copy-btn",
-                       color="primary", size="sm", className="mt-2 mb-3 w-100"),
+                       size="sm", className="mt-2 mb-3 w-100 btn-generate-accent"),
             dbc.InputGroup([
                 dbc.Input(id="share-url-display", type="text", readonly=True,
                           placeholder="Click 'Generate link' above…", size="sm"),
@@ -2148,6 +2171,24 @@ app.clientside_callback(
     """,
     Output("main-tabs", "active_tab", allow_duplicate=True),
     Input("url", "pathname"),
+    prevent_initial_call="initial_duplicate",
+)
+
+# ── Price ticker pulse animation ──────────────────────────────────────────────
+app.clientside_callback(
+    """
+    function(children) {
+        var el = document.getElementById("price-ticker");
+        if (el) {
+            el.classList.remove("price-pulse");
+            void el.offsetWidth;  // force reflow to restart animation
+            el.classList.add("price-pulse");
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("price-ticker", "className", allow_duplicate=True),
+    Input("price-ticker", "children"),
     prevent_initial_call="initial_duplicate",
 )
 

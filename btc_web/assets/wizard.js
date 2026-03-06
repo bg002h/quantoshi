@@ -260,9 +260,12 @@
     }
     watchShare();
 
-    /* ── Trigger 3: All 7 tabs explored ──────────────────────────────────── */
+    /* ── Trigger 3: All 7 tabs explored (once only) ─────────────────────── */
     var allTabsTriggered = false;
-    var origSetItem = Storage.prototype.setItem;
+    try {
+        var _j0 = JSON.parse(localStorage.getItem("journey-store"));
+        if (_j0 && _j0.all_tabs_wizard) allTabsTriggered = true;
+    } catch(e) {}
     /* Note: streak.js also wraps setItem — chain them properly */
     var _prevSetItem = Storage.prototype.setItem;
     Storage.prototype.setItem = function(key, val) {

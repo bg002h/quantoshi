@@ -1338,46 +1338,57 @@ app.layout = dbc.Container([
     dcc.Store(id="loaded-hash-store", storage_type="memory"),
     dbc.Navbar(
         dbc.Container([
-            # ── Desktop navbar (single row, hidden on mobile) ─────────────
-            dbc.Row([
-                dbc.Col(html.Img(src="/assets/quantoshi_logo_nav.png", height="40px"),
-                        width="auto"),
-                dbc.Col(dbc.NavbarBrand("Quantoshi", className="ms-2 fw-bold fs-4",
+            # ── Desktop navbar (hidden on mobile portrait) ────────────────
+            html.Div([
+                html.Div([
+                    # Left: logo + brand + ticker
+                    html.Div([
+                        html.Img(src="/assets/quantoshi_logo_nav.png", height="40px"),
+                        dbc.NavbarBrand("Quantoshi", className="ms-2 fw-bold fs-2",
                                         style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif"}),
-                        width="auto"),
-                dbc.Col(
-                    html.Div(id="price-ticker",
-                             style={"fontSize":"12px", "color":"rgba(255,255,255,0.85)",
-                                    "whiteSpace":"nowrap", "fontFamily":"monospace"}),
-                    className="ms-3", width="auto",
-                ),
-                dbc.Col(
-                    html.Div([
-                        html.Span("Stay dark, Anon →",
-                                  style={"fontSize":"9px", "color":"rgba(255,255,255,0.4)",
-                                         "whiteSpace":"nowrap", "marginRight":"6px"}),
-                        html.A(
-                            "🧅 Tor onion",
-                            href="http://u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion",
-                            target="_blank",
-                            rel="noopener noreferrer",
-                            className="text-white-50 small text-decoration-none",
-                        ),
+                        html.Div(id="price-ticker",
+                                 style={"fontSize":"19px", "fontWeight":"600",
+                                        "color":"rgba(255,255,255,0.9)",
+                                        "whiteSpace":"nowrap", "fontFamily":"monospace",
+                                        "marginLeft":"14px"}),
                     ], style={"display":"flex", "alignItems":"center"}),
-                    className="ms-auto", width="auto",
-                ),
-                dbc.Col(
+                    # Right: collapsible drawer (stacked vertically) + toggle
                     html.Div([
-                        dbc.Button("📸 Share", id="share-btn", size="sm",
-                                   className="ms-2 btn-share-accent"),
-                        html.Div("▲ Cooler than you think",
-                                 style={"fontSize":"9px", "color":"rgba(255,255,255,0.4)",
-                                        "whiteSpace":"nowrap", "textAlign":"center",
-                                        "marginTop":"1px"}),
-                    ]),
-                    width="auto",
-                ),
-            ], align="center", className="g-0 w-100 d-none d-md-flex"),
+                        html.Div([
+                            html.Div([
+                                html.Span("Stay dark, Anon ▶ ",
+                                          style={"fontSize":"9px", "color":"rgba(255,255,255,0.4)",
+                                                 "whiteSpace":"nowrap"}),
+                                html.A(
+                                    "🧅 Tor onion",
+                                    href="http://u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion",
+                                    target="_blank",
+                                    rel="noopener noreferrer",
+                                    className="text-decoration-none",
+                                    style={"fontSize":"15px", "color":"rgba(255,255,255,0.75)"},
+                                ),
+                            ], style={"display":"flex", "alignItems":"center",
+                                      "justifyContent":"flex-end"}),
+                            html.Div([
+                                html.Span("Cooler than you think ▶ ",
+                                          style={"fontSize":"9px", "color":"rgba(255,255,255,0.4)",
+                                                 "whiteSpace":"nowrap"}),
+                                dbc.Button("📸 Share", id="share-btn", size="sm",
+                                           className="btn-share-accent"),
+                            ], style={"display":"flex", "alignItems":"center",
+                                      "justifyContent":"flex-end",
+                                      "marginTop":"2px"}),
+                        ], id="desktop-nav-drawer", className="desktop-nav-drawer"),
+                        html.Div("⋯", id="desktop-nav-toggle",
+                                 className="desktop-nav-toggle desktop-nav-toggle-hidden",
+                                 style={"color":"rgba(255,255,255,0.5)",
+                                        "fontSize":"18px", "cursor":"pointer",
+                                        "letterSpacing":"2px", "padding":"4px 8px"}),
+                    ], style={"display":"flex", "alignItems":"center",
+                              "marginLeft":"auto"}),
+                ], style={"display":"flex", "alignItems":"center",
+                          "justifyContent":"space-between", "width":"100%"}),
+            ], className="d-none d-md-block w-100"),
             # ── Mobile navbar (hidden on desktop) ─────────────────────────
             html.Div([
                 # Row 1: logo+brand left, [toggle when collapsed], ticker right
@@ -1386,7 +1397,7 @@ app.layout = dbc.Container([
                         html.Img(src="/assets/quantoshi_logo_nav.png", height="34px"),
                         html.Span("Quantoshi", className="fw-bold ms-2",
                                   style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif",
-                                         "fontSize":"1.15rem", "color":"#fff"}),
+                                         "fontSize":"1.75rem", "color":"#fff"}),
                     ], style={"display":"flex", "alignItems":"center"}),
                     html.Div("⋯", id="mobile-nav-toggle",
                              className="mobile-nav-toggle mobile-nav-toggle-hidden",
@@ -1395,8 +1406,8 @@ app.layout = dbc.Container([
                                     "lineHeight":"1", "letterSpacing":"2px",
                                     "padding":"4px 8px"}),
                     html.Div(id="price-ticker-mobile",
-                             style={"fontSize":"13px", "fontWeight":"600",
-                                    "color":"rgba(255,255,255,0.9)",
+                             style={"fontSize":"18px", "fontWeight":"700",
+                                    "color":"rgba(255,255,255,0.95)",
                                     "whiteSpace":"nowrap", "fontFamily":"monospace"}),
                 ], style={"display":"flex", "alignItems":"center",
                           "justifyContent":"space-between", "width":"100%"}),
@@ -1424,7 +1435,7 @@ app.layout = dbc.Container([
                 ], id="mobile-nav-drawer", className="mobile-nav-drawer"),
             ], className="d-md-none w-100"),
         ], fluid=True),
-        color="#2c3e50", dark=True, className="mb-0 py-1",
+        color="#2c3e50", dark=True, className="mb-0 py-1 mt-1",
     ),
     dbc.Modal([
         dbc.ModalHeader(dbc.ModalTitle("Share / Restore Configuration")),
@@ -2131,7 +2142,8 @@ def update_price_ticker(_):
     pct_str = f"Q{pct*100:.1f}%" if pct is not None else "—"
     pct_val = round(pct * 100, 1) if pct is not None else no_update
     txt = f"₿ {fmt_price(price)}  ·  {pct_str}"
-    return txt, txt, price, pct_val
+    txt_m = f"₿{fmt_price(price)}·{pct_str}"
+    return txt, txt_m, price, pct_val
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2262,6 +2274,46 @@ app.clientside_callback(
     """,
     Output("mobile-nav-toggle", "className"),
     Input("mobile-nav-toggle", "n_clicks"),
+    prevent_initial_call=False,
+)
+
+# ── Desktop nav drawer: auto-collapse after 4s, toggle on tap ─────────────────
+app.clientside_callback(
+    """
+    function(n) {
+        var drawer = document.getElementById("desktop-nav-drawer");
+        var toggle = document.getElementById("desktop-nav-toggle");
+        if (!drawer || !toggle) return window.dash_clientside.no_update;
+
+        if (!window._deskDrawerInit) {
+            window._deskDrawerInit = true;
+            setTimeout(function() {
+                if (!window._deskDrawerManual) {
+                    drawer.classList.add("collapsed");
+                    toggle.classList.add("visible");
+                }
+            }, 4000);
+        }
+        if (n) {
+            window._deskDrawerManual = true;
+            var isCollapsed = drawer.classList.contains("collapsed");
+            if (isCollapsed) {
+                drawer.classList.remove("collapsed");
+                toggle.classList.remove("visible");
+                setTimeout(function() {
+                    drawer.classList.add("collapsed");
+                    toggle.classList.add("visible");
+                }, 5000);
+            } else {
+                drawer.classList.add("collapsed");
+                toggle.classList.add("visible");
+            }
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("desktop-nav-toggle", "className"),
+    Input("desktop-nav-toggle", "n_clicks"),
     prevent_initial_call=False,
 )
 

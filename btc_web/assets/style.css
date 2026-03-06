@@ -21,6 +21,10 @@ body {
 /* ── #1: Navbar gradient ──────────────────────────────────────────────────── */
 .navbar {
     background: linear-gradient(135deg, var(--nav-darker) 0%, var(--nav-dark) 50%, var(--nav-lighter) 100%) !important;
+    overflow: visible !important;
+    z-index: 1040;
+    position: relative;
+    border-radius: 10px;
 }
 
 /* Tab bar */
@@ -28,6 +32,8 @@ body {
     background-color: var(--nav-dark) !important;
     border-bottom: none !important;
     padding: 4px 8px 0;
+    border-radius: 10px;
+    margin-top: 4px;
 }
 .nav-tabs .nav-link {
     color: rgba(255,255,255,0.75) !important;
@@ -63,6 +69,7 @@ body {
     border: 1px solid #dee2e6 !important;
     background: #f8f9fa !important;
     transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    border-radius: 8px !important;
 }
 .ctrl-card:hover {
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -125,7 +132,7 @@ body {
 .export-row-polished {
     background: #ebeef1;
     border: 1px solid #dee2e6;
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 6px 10px;
     margin-top: 4px;
 }
@@ -145,8 +152,8 @@ body {
 /* Compact checklists */
 .form-check-label { font-size: 12px; }
 
-/* Graph container — no excess padding */
-.js-plotly-plot { width: 100%; }
+/* Graph container — no excess padding, rounded corners */
+.js-plotly-plot { width: 100%; border-radius: 8px; overflow: hidden; }
 
 /* ── #10: Controls column scrollbar — navy themed ─────────────────────────── */
 .controls-col {
@@ -201,6 +208,32 @@ body {
     pointer-events: none;
 }
 .mobile-nav-toggle.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ── Desktop nav drawer — auto-collapse after 4s ─────────────────────── */
+.desktop-nav-drawer {
+    overflow: hidden;
+    max-height: 50px;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    opacity: 1;
+    position: relative;
+    z-index: 1050;
+}
+.desktop-nav-drawer.collapsed {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+.desktop-nav-toggle {
+    transition: opacity 0.3s ease;
+}
+.desktop-nav-toggle-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+.desktop-nav-toggle.visible {
     opacity: 1;
     pointer-events: auto;
 }

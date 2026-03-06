@@ -1544,6 +1544,37 @@ _SPLASH_QUOTES = [
      "BitcoinTalk user GameKyuubi, drunk on whiskey during a crash from $1,100, "
      "misspells \"holding\" and accidentally creates the most enduring meme in Bitcoin.",
      "December 18, 2013"),
+    # Ross Ulbricht
+    ("Bitcoin's power comes from the fact that any one of us can mine, "
+     "any one of us can generate addresses, any one of us can send bitcoin to anyone else. "
+     "With Bitcoin, we are all free.",
+     "Ross Ulbricht"),
+    ("I made Silk Road because I thought I was furthering the things I cared about: "
+     "freedom, privacy, equality. I was impatient. I rushed ahead with my first idea.",
+     "Ross Ulbricht"),
+    ("Stay united. Those that oppose decentralization and freedom love it when we're divided. "
+     "So long as we can agree that we deserve freedom, the future is ours.",
+     "Ross Ulbricht, Bitcoin 2025"),
+    # Donald Trump
+    ("If you vote for me, on Day 1, I will commute the sentence of Ross Ulbricht. "
+     "He's already served 11 years. We're gonna get him home.",
+     "Donald Trump, Libertarian National Convention, May 2024"),
+    ("I will ensure that the future of crypto and Bitcoin will be made in the USA. "
+     "I will support the right to self-custody and never allow the creation of a CBDC.",
+     "Donald Trump, Bitcoin 2024 Conference"),
+    # Charlie Shrem
+    ("The first person to walk through the door always gets shot, "
+     "and then everyone else can come through.",
+     "Charlie Shrem"),
+    ("Bitcoin is cash with wings.",
+     "Charlie Shrem"),
+    # Ryan Selkis
+    ("Bitcoin is the least risky crypto asset and has the fewest headwinds. "
+     "It will be the first to cross the chasm to mainstream adoption.",
+     "Ryan Selkis (TwoBitIdiot), Messari"),
+    ("I started blogging as the Two-Bit Idiot in 2013 and broke the Mt. Gox story. "
+     "Transparency is the only way this industry survives.",
+     "Ryan Selkis"),
     ("Charlie Shrem, CEO of BitInstant — which processed 30% of all Bitcoin transactions — "
      "is [sentenced to two years](https://www.justice.gov/usao-sdny/pr/"
      "former-ceo-bitcoin-exchange-company-sentenced-manhattan-federal-court-two-years-prison) "
@@ -1559,6 +1590,27 @@ _SPLASH_QUOTES = [
      "texas-man-sentenced-operating-bitcoin-ponzi-scheme) — "
      "Bitcoin's first major fraud.",
      "2011\u20132016"),
+    ("Slush and Stick announce [Trezor](https://bitcointalk.org/index.php?topic=122438.0) "
+     "on BitcoinTalk — the world's first Bitcoin hardware wallet. "
+     "Self-custody just got a whole lot easier.",
+     "2013"),
+    # Bitcoin documentaries
+    ("Required viewing: [Banking on Bitcoin](https://www.imdb.com/title/tt5033790/) (2016) "
+     "— the most disruptive invention since the Internet, "
+     "and the ideological battle over its future.",
+     "Documentary"),
+    ("Required viewing: [The Rise and Rise of Bitcoin](https://www.imdb.com/title/tt2821314/) (2014) "
+     "— a programmer's journey into the rabbit hole, "
+     "featuring Vitalik Buterin and Julian Assange.",
+     "Documentary"),
+    ("Required viewing: [Bitcoin: The End of Money as We Know It]"
+     "(https://www.imdb.com/title/tt4654844/) (2015) "
+     "— how Bitcoin challenges everything we thought we knew about currency.",
+     "Documentary"),
+    ("Required viewing: [The Great Reset and the Rise of Bitcoin]"
+     "(https://www.imdb.com/title/tt17999542/) (2022) "
+     "— how the monetary system broke and why Bitcoin is the fix.",
+     "Documentary"),
 ]
 
 def _splash_quote_index():

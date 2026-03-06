@@ -1460,6 +1460,16 @@ _SPLASH_QUOTES = [
      "January 3rd — withdraw your coins, hold your own keys, run your own node. "
      "Grow a spine, have some personal power, be free.",
      "Trace Mayer, Proof of Keys Day"),
+    # Matthew Mezinskis (Porkopolis Economics)
+    ("Bitcoin isn't exponential — it's a power curve. "
+     "And that's stronger than inflation and money printing.",
+     "Matthew Mezinskis, Porkopolis Economics"),
+    ("The monetary base is to the core of the entire fiat financial system "
+     "as 21 million bitcoins are to the core of the Bitcoin protocol.",
+     "Matthew Mezinskis"),
+    ("95% of what we see in Bitcoin's price is the power curve of network adoption itself. "
+     "It has nothing to do with the Fed or interest rates.",
+     "Matthew Mezinskis"),
     ("Not your keys, not your coins.", "Bitcoin Proverb"),
     ("Stay humble, stack sats.", "Bitcoin Proverb"),
     ("We are all Satoshi.", "Bitcoin Community"),

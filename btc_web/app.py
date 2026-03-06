@@ -1368,7 +1368,6 @@ _SPLASH_QUOTES = [
      "Warren Buffett"),
     ("In the short run, the market is a voting machine, but in the long run, it is a weighing machine.",
      "Benjamin Graham"),
-    ("Time in the market beats timing the market.", "Ken Fisher"),
     ("Be fearful when others are greedy, and greedy when others are fearful.", "Warren Buffett"),
     ("The best time to plant a tree was 20 years ago. The second best time is now.",
      "Chinese Proverb"),

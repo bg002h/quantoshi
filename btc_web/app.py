@@ -1398,6 +1398,68 @@ _SPLASH_QUOTES = [
      "American HODL"),
     ("Stay toxic. Stay humble. Stack sats. The signal will find you.",
      "American HODL"),
+    # Lyn Alden
+    ("The system is built on constant growth. Like a shark, it dies if it stops swimming.",
+     "Lyn Alden"),
+    ("Bitcoin is the best at what it does. And in a world of negative real rates "
+     "and a host of currency failures in emerging markets, what it does has utility.",
+     "Lyn Alden"),
+    # Preston Pysh
+    ("The fact that you're watching the explosion in demand for stablecoins "
+     "is not them winning. That is them losing epically against Bitcoin.",
+     "Preston Pysh"),
+    ("To hand off the baton from legacy finance to the future Bitcoin system, "
+     "the systems have to match frequency.",
+     "Preston Pysh"),
+    # Jason Lowery
+    ("Bitcoin is not just money. It is a novel form of power projection — "
+     "an electro-cyber defense system that converts energy into security.",
+     "Jason Lowery, Softwar"),
+    ("Proof of work imposes real physical costs on digital actions. "
+     "That changes everything about how we think about cybersecurity.",
+     "Jason Lowery"),
+    # Bruce Fenton
+    ("Maximalists might not be that diplomatic, but they're also protecting my bitcoins "
+     "because I know they'll never compromise.",
+     "Bruce Fenton"),
+    ("Bitcoin is the most powerful and important open-source project out there.",
+     "Bruce Fenton"),
+    # Tuur Demeester
+    ("Bitcoin and the cryptocurrencies are the greatest investment opportunity of our day and age.",
+     "Tuur Demeester, 2013 (BTC at $100)"),
+    ("Bitcoin has the qualities to make for an ideal money — it is designed for the internet, "
+     "mobile and fast, with personal privacy, discrete and nonconfiscatable.",
+     "Tuur Demeester"),
+    # Samson Mow
+    ("$1M Bitcoin was already decided when the ETFs were approved. "
+     "We're just coasting along now.",
+     "Samson Mow"),
+    ("We haven't even really started the price run yet. "
+     "Faces won't be melted, they will be atomized.",
+     "Samson Mow"),
+    # Peter Todd
+    ("I am Satoshi, as is everyone else.",
+     "Peter Todd"),
+    ("The point is to make bitcoin the global currency.",
+     "Peter Todd"),
+    # Jameson Lopp
+    ("Bitcoin is a very interesting experiment that if successful could not only "
+     "revolutionize money, but revolutionize how we think about governance.",
+     "Jameson Lopp"),
+    ("Cryptographic protocols are powerful tools that provide asymmetric defense "
+     "capabilities to normal people.",
+     "Jameson Lopp"),
+    # Martti Malmi
+    ("Pursuing something greater than yourself brings meaning in life.",
+     "Martti Malmi (sirius), Bitcoin's second developer"),
+    ("That is regretful, but then again, with the early Bitcoiners we set in motion "
+     "something greater than personal gain.",
+     "Martti Malmi"),
+    # Trace Mayer — Proof of Keys
+    ("I started Proof of Keys as a celebration of our monetary sovereignty. "
+     "January 3rd — withdraw your coins, hold your own keys, run your own node. "
+     "Grow a spine, have some personal power, be free.",
+     "Trace Mayer, Proof of Keys Day"),
     ("Not your keys, not your coins.", "Bitcoin Proverb"),
     ("Stay humble, stack sats.", "Bitcoin Proverb"),
     ("We are all Satoshi.", "Bitcoin Community"),
@@ -1441,6 +1503,20 @@ _SPLASH_QUOTES = [
      "\"new and improved block chain, secure from pools.\" "
      "Bitcoin miners DoS it into oblivion. It doesn't survive.",
      "\U0001f4a9 August 2011"),
+    ("[\"I AM HODLING\"](https://bitcointalk.org/index.php?topic=375643.0) — "
+     "BitcoinTalk user GameKyuubi, drunk on whiskey during a crash from $1,100, "
+     "misspells \"holding\" and accidentally creates the most enduring meme in Bitcoin.",
+     "December 18, 2013"),
+    ("[This is gentlemen.](https://bitcointalk.org/index.php?topic=855789.0) "
+     "An overexcited Bitcoiner meant to type \"this is it, gentlemen\" during a price rally "
+     "but left out a word — and accidentally created a battle cry.",
+     "November 11, 2014"),
+    ("Trendon Shavers (pirateat40) promises 7% weekly returns on "
+     "[Bitcoin Savings & Trust](https://bitcointalk.org/index.php?topic=50822.0). "
+     "It's a Ponzi scheme. He's [convicted](https://www.justice.gov/usao-sdny/pr/"
+     "texas-man-sentenced-operating-bitcoin-ponzi-scheme) — "
+     "Bitcoin's first major fraud.",
+     "2011\u20132016"),
 ]
 
 def _splash_quote_index():

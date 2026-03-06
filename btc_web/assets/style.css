@@ -249,6 +249,31 @@ body {
     pointer-events: auto;
 }
 
+/* ── #12: Logo glow + pulsing orange accents ─────────────────────────── */
+.logo-glow {
+    filter: drop-shadow(0 0 6px rgba(247,147,26,0.5));
+    transition: filter 0.4s ease;
+}
+.logo-glow:hover {
+    filter: drop-shadow(0 0 12px rgba(247,147,26,0.8))
+            drop-shadow(0 0 24px rgba(247,147,26,0.3));
+}
+
+/* Gentle breathing pulse on the active tab's orange accent */
+.nav-tabs .nav-link.active {
+    animation: accentBreath 3s ease-in-out infinite;
+}
+@keyframes accentBreath {
+    0%, 100% { border-top-color: var(--btc-orange); }
+    50%      { border-top-color: #fbb034; }
+}
+
+/* ── #10: Parallax depth — navbar responds to mouse ──────────────────── */
+.navbar-parallax {
+    transition: transform 0.15s ease-out;
+    will-change: transform;
+}
+
 /* ── Mobile navbar touch targets — min 44px per Apple HIG ─────────────── */
 .nav-touch-target {
     min-width: 44px;

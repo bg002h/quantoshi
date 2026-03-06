@@ -1721,7 +1721,8 @@ app.layout = dbc.Container([
                     # Left: logo + brand + ticker
                     html.Div([
                         html.Img(src="/assets/quantoshi_logo_nav.png", height="40px",
-                                 id="logo-easter-egg", style={"cursor":"pointer"}),
+                                 id="logo-easter-egg", className="logo-glow",
+                                 style={"cursor":"pointer"}),
                         dbc.NavbarBrand("Quantoshi", className="ms-2 fw-bold fs-2",
                                         style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif"}),
                         html.Div(id="price-ticker",
@@ -1773,7 +1774,8 @@ app.layout = dbc.Container([
                 html.Div([
                     html.Div([
                         html.Img(src="/assets/quantoshi_logo_nav.png", height="34px",
-                                 id="logo-easter-egg-mobile", style={"cursor":"pointer"}),
+                                 id="logo-easter-egg-mobile", className="logo-glow",
+                                 style={"cursor":"pointer"}),
                         html.Span("Quantoshi", className="fw-bold ms-2",
                                   style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif",
                                          "fontSize":"1.75rem", "color":"#fff"}),
@@ -1814,7 +1816,8 @@ app.layout = dbc.Container([
                 ], id="mobile-nav-drawer", className="mobile-nav-drawer"),
             ], className="d-md-none w-100"),
         ], fluid=True),
-        color="#2c3e50", dark=True, className="mb-0 py-1 mt-1",
+        color="#2c3e50", dark=True, className="mb-0 py-1 mt-1 navbar-parallax",
+        id="main-navbar",
     ),
     dbc.Modal([
         dbc.ModalHeader(dbc.ModalTitle("Share / Restore Configuration")),

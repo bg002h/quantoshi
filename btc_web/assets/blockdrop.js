@@ -137,7 +137,7 @@
                 if (taps >= TAPS_TO_BREAK) {
                     overlay.removeEventListener("click", onTap);
                     overlay.removeEventListener("touchstart", onTap);
-                    shatterBlock(overlay, block, txCount);
+                    shatterBlock(overlay, block, txCount, height);
                 }
             }
             overlay.addEventListener("click", onTap);
@@ -155,7 +155,7 @@
     }
 
     /* ── Shatter block + scatter transactions ────────────────────────────── */
-    function shatterBlock(overlay, block, txCount) {
+    function shatterBlock(overlay, block, txCount, height) {
         /* Get position BEFORE hiding */
         var rect = block.getBoundingClientRect();
         var cx = rect.left + rect.width / 2;
@@ -199,6 +199,16 @@
 
         /* Cleanup after scatter finishes */
         setTimeout(function() { cleanup(overlay); }, SCATTER_MS + 500);
+
+        /* Trigger 7: wizard after block crack (1/10 chance, always in dev) */
+        if (typeof window._summonWizard === "function") {
+            var wizChance = isDev ? 1 : 0.1;
+            if (Math.random() < wizChance) {
+                setTimeout(function() {
+                    window._summonWizard("A wizard emerges from block #" + height + "!");
+                }, SCATTER_MS + 200);
+            }
+        }
     }
 
     function cleanup(overlay) {

@@ -59,11 +59,15 @@ def _q3(x):
     factor = 10 ** (exp - 2)
     return round(x / factor) * factor
 
+_NO_QUANTIZE_KEYS = {"selected_qs", "exit_qs"}  # must match qr_fits keys exactly
+
 def _quantize_params(p: dict) -> dict:
     """Round all float values in a param dict to 3 sig figs."""
     out = {}
     for k, v in p.items():
-        if isinstance(v, float) and v != 0:
+        if k in _NO_QUANTIZE_KEYS:
+            out[k] = v
+        elif isinstance(v, float) and v != 0:
             out[k] = _q3(v)
         elif isinstance(v, list):
             out[k] = [_q3(x) if isinstance(x, float) and x != 0 else x for x in v]
@@ -117,7 +121,7 @@ def _get_supercharge_fig(p: dict):
     p = _quantize_params(p)
     return _cached_supercharge_fig(json.dumps(p, sort_keys=True, default=str))
 
-_ALL_QS = M.QR_QUANTILES   # full list from model
+_ALL_QS = [q for q in M.QR_QUANTILES if 0.001 <= q <= 0.999]
 _DEF_QS = [q for q in [0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
            if q in M.qr_fits]
 
@@ -775,7 +779,7 @@ def _retire_controls():
         _ctrl_card(
             _lbl("Quantiles"),
             dcc.Checklist(id="ret-qs", options=_q_options(),
-                          value=[q for q in _DEF_QS if q not in (0.05, 0.10)],
+                          value=[0.01, 0.10, 0.25],
                           labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
@@ -2392,7 +2396,7 @@ def _prewarm_caches():
         sc_tax_rate=0.33, sc_live_price=None,
     ))
 
-    # Retire (default: $5000/mo, _DEF_QS minus Q5%/Q10%, 2031–2075, 4% inflation)
+    # Retire (default: $5000/mo, Q1%+Q5%+Q10%, 2031–2075, 4% inflation)
     _get_retire_fig(dict(
         start_stack=1.0, use_lots=False,
         wd_amount=5000.0, freq="Monthly",
@@ -2400,7 +2404,7 @@ def _prewarm_caches():
         inflation=4.0, disp_mode="btc",
         log_y=True, show_today=False,
         dual_y=True, annotate=True, show_legend=True,
-        selected_qs=[q for q in _DEF_QS if q not in (0.05, 0.10)],
+        selected_qs=[0.01, 0.10, 0.25],
         lots=[],
     ))
 

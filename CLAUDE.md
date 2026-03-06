@@ -181,7 +181,10 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | `app.py` | Dash app — layout, all callbacks, snapshot/share logic |
 | `figures.py` | Plotly chart builders — one function per tab |
 | `assets/style.css` | Light theme (FLATLY) overrides + mobile layout |
-| `assets/quantoshi_logo.png` | Logo — served as navbar image and favicon |
+| `assets/quantoshi_logo.png` | Master logo (575×360, 250KB — not directly served) |
+| `assets/quantoshi_favicon.png` | Favicon (48×48, 3KB) |
+| `assets/quantoshi_logo_nav.png` | Navbar image (128×80, 15KB) |
+| `assets/quantoshi_logo_wm.png` | Chart watermark (100×63, 10KB) |
 | `requirements.txt` | Python dependencies |
 
 ### Layout structure
@@ -200,10 +203,10 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 ### Tab defaults
 | Tab | Notable defaults |
 |-----|-----------------|
-| Bubble | Q5% only, X scale=Log, N future bubbles=3, shade+show_data+show_today on (legend off). Pt size=2, Alpha=0.2. Panel order: scales, toggles, bubble, quantiles, pt size/alpha, stack, use lots. X range slider min=2010 (marks from '10), default value [2012, yr_now+4]. Auto Y checkbox (default on) rescales Y to fit selected quantiles at xmin/xmax. When Stack (BTC) is enabled, each quantile legend label gains `→ $X` showing the final USD stack value at the right x-range edge. |
+| Bubble | No quantiles selected by default, X scale=Log, N future bubbles=3, shade+show_data+show_today on (legend off). Pt size=2, Alpha=0.2. Panel order: scales, toggles, bubble, quantiles, pt size/alpha, stack, use lots. X range slider min=2010 (marks from '10), default value [2012, yr_now+4]. Auto Y checkbox (default on) rescales Y to fit selected quantiles at xmin/xmax. When Stack (BTC) is enabled, each quantile legend label gains `→ $X` showing the final USD stack value at the right x-range edge. |
 | Heatmap | Entry year=current year, entry percentile=live BTC percentile (free numeric input 0–100%, NOT dropdown), exit years allow past. Entry price=live ticker when entry_yr==current year. Break1=0%, Break2=20%, Gradient Steps=32. |
 | DCA | Default quantile Q50% only. dual_y+show_legend on. BTC-mode trace labels include final USD value in parentheses. Dual-y "USD Value (median)" always shows median USD across selected quantiles. **Stack-cellerator** ("Enter Saylor Mode" checkbox): borrows `dca-sc-loan` $, buys BTC lump sum upfront, reduces DCA by the loan payment. Dashed overlay traces per quantile. Stack-celeration factor (median SC / median DCA) shown in chart title + legend. Controls: `dca-sc-type` (interest_only/amortizing), `dca-sc-rate`, `dca-sc-term`, `dca-sc-repeats` (0=one loan, N=N extra cycles back-to-back), `dca-sc-entry-mode` (live/model/custom for cycle 0; cycles 1+ always use model price), `dca-sc-custom-price`, `dca-sc-tax` (capital gains % on BTC sold to repay; default 33%). **Loan cap**: `principal` is silently capped at `max_principal = amount*(1-(1+r)^-n)/r` (amortizing) or `amount/r` (interest-only) when r>0, ensuring pmt ≤ DCA amount always. Info panel notes when cap is applied. **Tax applies only to interest-only**: BTC sold at cycle end to repay principal; tax applies **only to the capital gain** (sell_price − cost_basis), not full proceeds. Correct formula: `gain_per_btc = max(price - ep, 0.0); net_per_btc = price - tax_rate * gain_per_btc; sc_stack -= principal / net_per_btc`. If selling at a loss (`price ≤ ep`) no tax is owed. `ep` is the buy price at cycle start (tracked through the loop; rollover keeps first-cycle ep throughout). Amortizing repays principal in fiat — no BTC sold, tax has no effect. `outstanding` balance tracked per-period; deducted tax-adjusted at cycle end (interest-only) or post-loop (incomplete final cycle). **Rollover** (`dca-sc-rollover` checklist, interest-only only): repeat cycles skip BTC purchase (new loan pays off old, net zero BTC movement); cycle-end BTC sale skipped; single final repayment by post-loop deduction at simulation end price (with tax). Without rollover: each cycle independently buys BTC at start and sells at end. Rollover row hidden for amortizing. `dbc.Collapse` must NOT be used for SC body — use `html.Div(style={"display":"none"})` toggled via callback. Snapshot: 78 controls total. |
-| Retire | year slider min=2024, default range 2031–2075, inflation=4%, log_y+dual_y+annotate on. Dual-y median same approach as DCA. |
+| Retire | Default quantiles Q1%+Q10%+Q25%. year slider min=2024, default range 2031–2075, inflation=4%, log_y+dual_y+annotate on. Dual-y median same approach as DCA. |
 | HODL Supercharger | Mode A, stack=1.0 BTC, delays=[0,0,0,1,2] yr (deduped → 3 unique: 0,1,2), start_yr=2033, Annually, inflation=4%, wd=$100,000/yr, end_yr=2075, USD display, annotate+log_y+show_legend on. Quantiles: Q0.1%+Q10% only. `sc-chart-layout` is a `dcc.Checklist` with single option "shade"; default `["shade"]` (bands on = layout 2). Display-q dropdown hidden when bands on. Median final value shown in legend for both layouts. Depletion annotations: `_DELAY_COLORS` for traces/shading, `_ANNOT_COLORS` for arrow+text (darker at index 2: `#1D8348`). Annotation text staggered at 3 heights (ay=-20/-33/-46, 13px apart) to avoid overlap. |
 | Stack Tracker | default lot Price=$69,420 |
 
@@ -255,6 +258,14 @@ Module-level constants in `figures.py`: `_DELAY_COLORS = ['#636EFA','#EF553B','#
 Heatmap colorscale: all three modes use `_dense_colorscale()` — 256-point `rgb()` colorscale for browser compatibility. Diverging mode centers at 0% CAGR. The "Gradient steps" UI control is cosmetic (no longer affects rendering).
 
 Heatmap chart title format: `Entry: {year}  {price}  ·  Q{percentile}%` — price first, then quantile, matching the navbar ticker format.
+
+### LRU figure cache
+- `@lru_cache(maxsize=8)` per tab (bubble, heatmap, DCA, retire, supercharge).
+- `_q3(x)`: rounds floats to 3 significant figures for cache-friendly keys. Scales naturally across BTC's price range ($0.06 → $0.06, $95,437 → $95,400).
+- `_quantize_params(p)`: applies `_q3` to all float params. **Exempts `selected_qs` and `exit_qs`** (must match `qr_fits` keys exactly).
+- `_ALL_QS` filtered to Q0.1%–Q99.9% (extreme quantiles break `_q3` due to float rounding).
+- Bubble cache key includes `date.today()` for natural daily TTL.
+- `_prewarm_caches()` runs at worker startup. **Must be updated when tab defaults change.**
 
 ### Known gotchas
 

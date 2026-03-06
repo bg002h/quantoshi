@@ -1475,6 +1475,25 @@ _SPLASH_QUOTES = [
     ("We are all Satoshi.", "Bitcoin Community"),
     ("Fix the money, fix the world.", "Bitcoin Community"),
     ("Tick tock, next block.", "Bitcoin Community"),
+    # Peter Schiff (with BTC price at time of quote)
+    ("Keep dreaming. Bitcoin is never going to hit $100,000!",
+     "Peter Schiff, November 8, 2019 (BTC: $9,273)"),
+    ("Bitcoin is digital fool's gold. It's a natural Ponzi scheme "
+     "where new buyers keep it afloat.",
+     "Peter Schiff, December 2017 (BTC: $17,000)"),
+    ("Bitcoin will fall to $1,000. Sell your Bitcoins before it happens.",
+     "Peter Schiff, 2018 (BTC: $6,200)"),
+    # Bitcoin obituaries — declared dead 470+ times
+    ("Bitcoin is probably rat poison squared.",
+     "Warren Buffett, May 5, 2018 (BTC: $9,671)"),
+    ("Bitcoin is the biggest bubble in human history.",
+     "Nouriel Roubini, Bloomberg, February 2, 2018 (BTC: $9,641)"),
+    ("Bitcoin is the greatest scam in history.",
+     "Forbes, April 24, 2018 (BTC: $8,892)"),
+    ("Bitcoin has pretty much failed as a currency.",
+     "Bank of England Governor, February 19, 2018 (BTC: $10,825)"),
+    ("Bitcoin has failed.",
+     "European Central Bank, February 22, 2024 (BTC: $51,305)"),
     # Historical moments
     ("How's this for a disruptive technology? An anonymous Internet group has "
      "created a [working currency](https://news.slashdot.org/story/10/07/11/1747245/bitcoin-releases-version-03) "

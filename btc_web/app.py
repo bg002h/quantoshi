@@ -1338,6 +1338,7 @@ app.layout = dbc.Container([
     dcc.Store(id="loaded-hash-store", storage_type="memory"),
     dbc.Navbar(
         dbc.Container([
+            # ── Desktop navbar (single row, hidden on mobile) ─────────────
             dbc.Row([
                 dbc.Col(html.Img(src="/assets/quantoshi_logo_nav.png", height="40px"),
                         width="auto"),
@@ -1376,7 +1377,52 @@ app.layout = dbc.Container([
                     ]),
                     width="auto",
                 ),
-            ], align="center", className="g-0 w-100"),
+            ], align="center", className="g-0 w-100 d-none d-md-flex"),
+            # ── Mobile navbar (hidden on desktop) ─────────────────────────
+            html.Div([
+                # Row 1: logo+brand left, [toggle when collapsed], ticker right
+                html.Div([
+                    html.Div([
+                        html.Img(src="/assets/quantoshi_logo_nav.png", height="34px"),
+                        html.Span("Quantoshi", className="fw-bold ms-2",
+                                  style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif",
+                                         "fontSize":"1.15rem", "color":"#fff"}),
+                    ], style={"display":"flex", "alignItems":"center"}),
+                    html.Div("⋯", id="mobile-nav-toggle",
+                             className="mobile-nav-toggle mobile-nav-toggle-hidden",
+                             style={"color":"rgba(255,255,255,0.5)",
+                                    "fontSize":"18px", "cursor":"pointer",
+                                    "lineHeight":"1", "letterSpacing":"2px",
+                                    "padding":"4px 8px"}),
+                    html.Div(id="price-ticker-mobile",
+                             style={"fontSize":"13px", "fontWeight":"600",
+                                    "color":"rgba(255,255,255,0.9)",
+                                    "whiteSpace":"nowrap", "fontFamily":"monospace"}),
+                ], style={"display":"flex", "alignItems":"center",
+                          "justifyContent":"space-between", "width":"100%"}),
+                # Row 2: collapsible drawer — full content, auto-hides after 3s
+                html.Div([
+                    html.Hr(style={"borderColor":"rgba(255,255,255,0.12)",
+                                   "margin":"3px 0"}),
+                    html.Div([
+                        html.A([
+                            html.Span("🧅", style={"fontSize":"20px",
+                                                    "lineHeight":"1"}),
+                            html.Span(" ◂ Stay dark, Anon",
+                                      style={"fontSize":"11px",
+                                             "color":"rgba(255,255,255,0.5)",
+                                             "marginLeft":"5px"}),
+                        ], href="http://u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion",
+                           target="_blank", rel="noopener noreferrer",
+                           className="text-decoration-none",
+                           style={"display":"flex", "alignItems":"center"}),
+                        dbc.Button("📸 Share", id="share-btn-mobile", size="sm",
+                                   className="btn-share-accent",
+                                   style={"fontSize":"10px", "padding":"2px 8px"}),
+                    ], style={"display":"flex", "alignItems":"center",
+                              "justifyContent":"space-between", "width":"100%"}),
+                ], id="mobile-nav-drawer", className="mobile-nav-drawer"),
+            ], className="d-md-none w-100"),
         ], fluid=True),
         color="#2c3e50", dark=True, className="mb-0 py-1",
     ),
@@ -2070,20 +2116,22 @@ def _fetch_btc_price():
 
 
 @callback(
-    Output("price-ticker",    "children"),
-    Output("btc-price-store", "data"),
-    Output("hm-entry-q",      "value", allow_duplicate=True),
+    Output("price-ticker",        "children"),
+    Output("price-ticker-mobile", "children"),
+    Output("btc-price-store",     "data"),
+    Output("hm-entry-q",          "value", allow_duplicate=True),
     Input("price-interval", "n_intervals"),
     prevent_initial_call="initial_duplicate",
 )
 def update_price_ticker(_):
     price = _fetch_btc_price()
     if price is None:
-        return "₿ —", no_update, no_update
+        return "₿ —", "₿ —", no_update, no_update
     pct = _find_lot_percentile(today_t(M.genesis), price, M.qr_fits)
     pct_str = f"Q{pct*100:.1f}%" if pct is not None else "—"
     pct_val = round(pct * 100, 1) if pct is not None else no_update
-    return f"₿ {fmt_price(price)}  ·  {pct_str}", price, pct_val
+    txt = f"₿ {fmt_price(price)}  ·  {pct_str}"
+    return txt, txt, price, pct_val
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2174,16 +2222,61 @@ app.clientside_callback(
     prevent_initial_call="initial_duplicate",
 )
 
+# ── Mobile nav drawer: auto-collapse after 3s, toggle on tap ──────────────────
+app.clientside_callback(
+    """
+    function(n) {
+        var drawer = document.getElementById("mobile-nav-drawer");
+        var toggle = document.getElementById("mobile-nav-toggle");
+        if (!drawer || !toggle) return window.dash_clientside.no_update;
+
+        if (!window._navDrawerInit) {
+            window._navDrawerInit = true;
+            // Auto-collapse after 3 seconds
+            setTimeout(function() {
+                if (!window._navDrawerManual) {
+                    drawer.classList.add("collapsed");
+                    toggle.classList.add("visible");
+                }
+            }, 3000);
+        }
+        // On tap: toggle open/closed
+        if (n) {
+            window._navDrawerManual = true;
+            var isCollapsed = drawer.classList.contains("collapsed");
+            if (isCollapsed) {
+                drawer.classList.remove("collapsed");
+                toggle.classList.remove("visible");
+                // Re-collapse after 4s
+                setTimeout(function() {
+                    drawer.classList.add("collapsed");
+                    toggle.classList.add("visible");
+                }, 4000);
+            } else {
+                drawer.classList.add("collapsed");
+                toggle.classList.add("visible");
+            }
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("mobile-nav-toggle", "className"),
+    Input("mobile-nav-toggle", "n_clicks"),
+    prevent_initial_call=False,
+)
+
 # ── Price ticker pulse animation ──────────────────────────────────────────────
 app.clientside_callback(
     """
     function(children) {
-        var el = document.getElementById("price-ticker");
-        if (el) {
-            el.classList.remove("price-pulse");
-            void el.offsetWidth;  // force reflow to restart animation
-            el.classList.add("price-pulse");
-        }
+        ["price-ticker", "price-ticker-mobile"].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) {
+                el.classList.remove("price-pulse");
+                void el.offsetWidth;
+                el.classList.add("price-pulse");
+            }
+        });
         return window.dash_clientside.no_update;
     }
     """,
@@ -2218,11 +2311,12 @@ def open_faq_item(pathname):
 @callback(
     Output("share-modal", "is_open"),
     Input("share-btn",          "n_clicks"),
+    Input("share-btn-mobile",   "n_clicks"),
     Input("share-modal-close",  "n_clicks"),
     State("share-modal",        "is_open"),
     prevent_initial_call=True,
 )
-def toggle_share_modal(n1, n2, is_open):
+def toggle_share_modal(n1, n1m, n2, is_open):
     return not is_open
 
 

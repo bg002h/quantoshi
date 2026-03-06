@@ -182,6 +182,38 @@ body {
     100% { background-position: -200% 0; }
 }
 
+/* ── Mobile nav drawer — auto-collapse row 2 after 3s ─────────────────── */
+.mobile-nav-drawer {
+    overflow: hidden;
+    max-height: 40px;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    opacity: 1;
+}
+.mobile-nav-drawer.collapsed {
+    max-height: 0;
+    opacity: 0;
+}
+.mobile-nav-toggle {
+    transition: opacity 0.3s ease;
+}
+.mobile-nav-toggle-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+.mobile-nav-toggle.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ── Mobile navbar touch targets — min 44px per Apple HIG ─────────────── */
+.nav-touch-target {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 /* ── Mobile: stack controls below chart ─────────────────────────────────── */
 @media (max-width: 767px) {
     .controls-col {
@@ -189,11 +221,11 @@ body {
         max-height: none !important;
         width: 100% !important;
     }
-    .row.g-0 {
+    .tab-content .row.g-0 {
         flex-direction: column;
     }
-    .row.g-0 > .col-9,
-    .row.g-0 > .col-3 {
+    .tab-content .row.g-0 > .col-9,
+    .tab-content .row.g-0 > .col-3 {
         width: 100% !important;
         max-width: 100% !important;
         flex: 0 0 100%;

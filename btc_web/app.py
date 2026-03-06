@@ -1387,8 +1387,6 @@ _SPLASH_QUOTES = [
     ("Stay humble, stack sats.", "Bitcoin Proverb"),
     ("We are all Satoshi.", "Bitcoin Community"),
     ("Fix the money, fix the world.", "Bitcoin Community"),
-    ("The Times 03/Jan/2009 Chancellor on brink of second bailout for banks.",
-     "Bitcoin Genesis Block"),
     ("Tick tock, next block.", "Bitcoin Community"),
 ]
 
@@ -1401,6 +1399,15 @@ def _splash_quote_index():
 
 _SPLASH_IDX = _splash_quote_index()
 _SPLASH_Q, _SPLASH_A = _SPLASH_QUOTES[_SPLASH_IDX]
+
+# Genesis block quote always shown first in splash modal
+_GENESIS_QUOTE = ("The Times 03/Jan/2009 Chancellor on brink of second bailout for banks.",
+                  "Bitcoin Genesis Block")
+# Build JSON for clientside quote cycling (genesis first, then rotation quote, then rest shuffled)
+import json as _json
+_SPLASH_QUOTES_JS = _json.dumps(
+    [list(_GENESIS_QUOTE)] + [list(q) for q in _SPLASH_QUOTES]
+)
 
 app.layout = dbc.Container([
     dcc.Interval(id="price-interval", interval=20*60*1000, n_intervals=0),
@@ -1426,21 +1433,27 @@ app.layout = dbc.Container([
             ], style={"display":"flex", "alignItems":"center",
                       "justifyContent":"center", "marginBottom":"20px"}),
             html.Div([
-                html.Div(f'"{_SPLASH_Q}"',
+                html.Div(id="splash-quote-text",
                          style={"fontSize":"16px", "fontStyle":"italic",
                                 "color":"#2c3e50", "lineHeight":"1.5",
                                 "textAlign":"center", "marginBottom":"10px"}),
-                html.Div(f"— {_SPLASH_A}",
+                html.Div(id="splash-quote-attr",
                          style={"fontSize":"13px", "color":"#666",
                                 "textAlign":"center"}),
             ], style={"padding":"10px 20px"}),
-            html.Div(
+            html.Div([
                 dbc.Button("Let's go", id="splash-dismiss", size="lg",
                            className="btn-share-accent",
                            style={"padding":"8px 40px", "fontSize":"15px",
                                   "borderRadius":"8px"}),
-                style={"textAlign":"center", "marginTop":"24px"},
-            ),
+                html.Span(
+                    dbc.Button("More quotes", id="splash-next", size="sm",
+                               outline=True, color="secondary",
+                               style={"marginLeft":"12px", "fontSize":"13px",
+                                      "borderRadius":"8px"}),
+                    id="splash-next-wrap", style={"display":"none"},
+                ),
+            ], style={"textAlign":"center", "marginTop":"24px"}),
         ], style={"padding":"30px 20px 24px"}),
     ], id="splash-modal", is_open=False, centered=True, backdrop="static",
        className="splash-modal"),
@@ -1451,7 +1464,8 @@ app.layout = dbc.Container([
                 html.Div([
                     # Left: logo + brand + ticker
                     html.Div([
-                        html.Img(src="/assets/quantoshi_logo_nav.png", height="40px"),
+                        html.Img(src="/assets/quantoshi_logo_nav.png", height="40px",
+                                 id="logo-easter-egg", style={"cursor":"pointer"}),
                         dbc.NavbarBrand("Quantoshi", className="ms-2 fw-bold fs-2",
                                         style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif"}),
                         html.Div(id="price-ticker",
@@ -1502,7 +1516,8 @@ app.layout = dbc.Container([
                 # Row 1: logo+brand left, [toggle when collapsed], ticker right
                 html.Div([
                     html.Div([
-                        html.Img(src="/assets/quantoshi_logo_nav.png", height="34px"),
+                        html.Img(src="/assets/quantoshi_logo_nav.png", height="34px",
+                                 id="logo-easter-egg-mobile", style={"cursor":"pointer"}),
                         html.Span("Quantoshi", className="fw-bold ms-2",
                                   style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif",
                                          "fontSize":"1.75rem", "color":"#fff"}),
@@ -2342,7 +2357,7 @@ app.clientside_callback(
     prevent_initial_call="initial_duplicate",
 )
 
-# ── Splash quote: show if 6+ hours since last visit ──────────────────────────
+# ── Splash quote: show if 6+ hours since last visit (regular quotes only) ─────
 app.clientside_callback(
     """
     function(ts_store) {
@@ -2350,17 +2365,27 @@ app.clientside_callback(
         var now = Date.now();
         var last = ts_store ? parseInt(ts_store) : 0;
         if (now - last >= SIX_HOURS) {
-            return [true, now.toString()];
+            var quotes = """ + _json.dumps([list(q) for q in _SPLASH_QUOTES]) + """;
+            var idx = Math.floor(now / (6 * 3600 * 1000)) % quotes.length;
+            var q = quotes[idx];
+            return [true, now.toString(), '"' + q[0] + '"', "\\u2014 " + q[1],
+                    {"display":"none"}];
         }
-        return [false, window.dash_clientside.no_update];
+        return [false, window.dash_clientside.no_update,
+                window.dash_clientside.no_update, window.dash_clientside.no_update,
+                window.dash_clientside.no_update];
     }
     """,
     Output("splash-modal", "is_open"),
     Output("splash-ts-store", "data"),
+    Output("splash-quote-text", "children"),
+    Output("splash-quote-attr", "children"),
+    Output("splash-next-wrap", "style"),
     Input("splash-ts-store", "data"),
     prevent_initial_call=False,
 )
 
+# Dismiss splash
 app.clientside_callback(
     """
     function(n) {
@@ -2370,6 +2395,62 @@ app.clientside_callback(
     """,
     Output("splash-modal", "is_open", allow_duplicate=True),
     Input("splash-dismiss", "n_clicks"),
+    prevent_initial_call="initial_duplicate",
+)
+
+# ── Easter egg: 6 clicks on logo → genesis quote in splash modal ─────────────
+_EGG_JS = """
+    function(n) {
+        if (!n) return [window.dash_clientside.no_update, window.dash_clientside.no_update,
+                        window.dash_clientside.no_update, window.dash_clientside.no_update];
+        window._eggClicks = (window._eggClicks || 0) + 1;
+        clearTimeout(window._eggTimer);
+        if (window._eggClicks >= 6) {
+            window._eggClicks = 0;
+            window._splashIdx = 0;
+            return [true,
+                    "\\u201cThe Times 03/Jan/2009 Chancellor on brink of second bailout for banks.\\u201d",
+                    "\\u2014 Bitcoin Genesis Block",
+                    {"display":"inline"}];
+        }
+        window._eggTimer = setTimeout(function() { window._eggClicks = 0; }, 3000);
+        return [window.dash_clientside.no_update, window.dash_clientside.no_update,
+                window.dash_clientside.no_update, window.dash_clientside.no_update];
+    }
+"""
+app.clientside_callback(
+    _EGG_JS,
+    Output("splash-modal", "is_open", allow_duplicate=True),
+    Output("splash-quote-text", "children", allow_duplicate=True),
+    Output("splash-quote-attr", "children", allow_duplicate=True),
+    Output("splash-next-wrap", "style", allow_duplicate=True),
+    Input("logo-easter-egg", "n_clicks"),
+    prevent_initial_call=True,
+)
+app.clientside_callback(
+    _EGG_JS,
+    Output("splash-modal", "is_open", allow_duplicate=True),
+    Output("splash-quote-text", "children", allow_duplicate=True),
+    Output("splash-quote-attr", "children", allow_duplicate=True),
+    Output("splash-next-wrap", "style", allow_duplicate=True),
+    Input("logo-easter-egg-mobile", "n_clicks"),
+    prevent_initial_call=True,
+)
+
+# Next quote button — cycle through all quotes (genesis first, then regular)
+app.clientside_callback(
+    """
+    function(n) {
+        if (!n) return [window.dash_clientside.no_update, window.dash_clientside.no_update];
+        var quotes = """ + _SPLASH_QUOTES_JS + """;
+        window._splashIdx = ((window._splashIdx || 0) + 1) % quotes.length;
+        var q = quotes[window._splashIdx];
+        return ['"' + q[0] + '"', "\\u2014 " + q[1]];
+    }
+    """,
+    Output("splash-quote-text", "children", allow_duplicate=True),
+    Output("splash-quote-attr", "children", allow_duplicate=True),
+    Input("splash-next", "n_clicks"),
     prevent_initial_call="initial_duplicate",
 )
 

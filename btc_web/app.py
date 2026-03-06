@@ -1548,11 +1548,15 @@ _SPLASH_QUOTES = [
 ]
 
 def _splash_quote_index():
-    """Deterministic quote index: rotates every 6 hours, same for all users."""
+    """Deterministic pseudo-random quote index: rotates every 6 hours, same for all users."""
+    import random as _rnd
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc)
     epoch_6h = int(now.timestamp()) // (6 * 3600)
-    return epoch_6h % len(_SPLASH_QUOTES)
+    # Seed with epoch so all users get the same quote, but order looks random
+    indices = list(range(len(_SPLASH_QUOTES)))
+    _rnd.Random(epoch_6h).shuffle(indices)
+    return indices[0]
 
 _SPLASH_IDX = _splash_quote_index()
 _SPLASH_Q, _SPLASH_A = _SPLASH_QUOTES[_SPLASH_IDX]
@@ -1560,10 +1564,13 @@ _SPLASH_Q, _SPLASH_A = _SPLASH_QUOTES[_SPLASH_IDX]
 # Genesis block quote always shown first in splash modal
 _GENESIS_QUOTE = ("The Times 03/Jan/2009 Chancellor on brink of second bailout for banks.",
                   "Bitcoin Genesis Block")
-# Build JSON for clientside quote cycling (genesis first, then rotation quote, then rest shuffled)
+# Build JSON for clientside quote cycling (genesis first, then rest in shuffled order)
 import json as _json
+import random as _rnd
+_shuffled = list(_SPLASH_QUOTES)
+_rnd.Random(42).shuffle(_shuffled)
 _SPLASH_QUOTES_JS = _json.dumps(
-    [list(_GENESIS_QUOTE)] + [list(q) for q in _SPLASH_QUOTES]
+    [list(_GENESIS_QUOTE)] + [list(q) for q in _shuffled]
 )
 
 app.layout = dbc.Container([
@@ -2524,7 +2531,20 @@ app.clientside_callback(
         var last = ts_store ? parseInt(ts_store) : 0;
         if (now - last >= SIX_HOURS) {
             var quotes = """ + _json.dumps([list(q) for q in _SPLASH_QUOTES]) + """;
-            var idx = Math.floor(now / (6 * 3600 * 1000)) % quotes.length;
+            /* Deterministic pseudo-random shuffle using epoch as seed */
+            var seed = Math.floor(now / (6 * 3600 * 1000));
+            function mulberry32(a) { return function() {
+                a |= 0; a = a + 0x6D2B79F5 | 0;
+                var t = Math.imul(a ^ a >>> 15, 1 | a);
+                t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            }}
+            var rng = mulberry32(seed);
+            for (var i = quotes.length - 1; i > 0; i--) {
+                var j = Math.floor(rng() * (i + 1));
+                var tmp = quotes[i]; quotes[i] = quotes[j]; quotes[j] = tmp;
+            }
+            var idx = 0;
             var q = quotes[idx];
             return [true, now.toString(), '"' + q[0] + '"', "\\u2014 " + q[1],
                     {"display":"none"}];

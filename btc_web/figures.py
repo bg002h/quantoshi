@@ -478,7 +478,77 @@ def _hex_alpha(hex_color, alpha):
     return f"rgba({r},{g},{b},{alpha})"
 
 
-# ── CAGR Heatmap ──────────────────────────────────────────────────────────────
+# ── CAGR Heatmap — shared helpers ─────────────────────────────────────────────
+
+def _heatmap_colorscale(m, p, mc):
+    """Compute colorscale, zmin, zmax from heatmap params and CAGR matrix."""
+    mode   = int(p.get("color_mode", 0))
+    c_lo   = p.get("c_lo",   m.CAGR_SEG_C_LO)
+    c_mid1 = p.get("c_mid1", m.CAGR_SEG_C_MID1)
+    c_mid2 = p.get("c_mid2", m.CAGR_SEG_C_MID2)
+    c_hi   = p.get("c_hi",   m.CAGR_SEG_C_HI)
+    b1     = float(p.get("b1", m.CAGR_SEG_B1))
+    b2     = float(p.get("b2", m.CAGR_SEG_B2))
+
+    valid = mc[~np.isnan(mc)] if np.any(np.isnan(mc)) else mc
+    mn, mx = float(valid.min()), float(valid.max())
+
+    if mode == 0:
+        return _seg_colorscale(valid, b1, b2, c_lo, c_mid1, c_mid2, c_hi)
+    elif mode == 1:
+        return _dense_colorscale(lambda t: _lerp_hex(c_lo, c_hi, t)), mn, mx
+    else:
+        abs_max = max(abs(mn), abs(mx), 1e-6)
+        def _div_color(t):
+            if t < 0.5:
+                return _lerp_hex(c_lo, c_mid1, t * 2.0)
+            return _lerp_hex(c_mid2, c_hi, (t - 0.5) * 2.0)
+        return _dense_colorscale(_div_color), -abs_max, abs_max
+
+
+def _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax, cell_fs):
+    """Build cell text annotation dicts for a CAGR heatmap."""
+    annots = []
+    for ri in range(mc.shape[0]):
+        for ci in range(mc.shape[1]):
+            vc2 = mc[ri, ci]
+            if np.isnan(vc2):
+                continue
+            vp2 = mp[ri, ci]
+            vm  = mm[ri, ci]
+            if vfmt == "cagr":
+                tx = f"{vc2:+.0f}%"
+            elif vfmt == "price":
+                tx = fmt_price(vp2)
+            elif vfmt == "both":
+                tx = f"{vc2:+.0f}%\n{fmt_price(vp2)}"
+            elif vfmt == "stack":
+                pv = fmt_price(vp2 * hm_stk) if hm_stk > 0 else fmt_price(vp2)
+                tx = f"{vc2:+.0f}%\n{pv}"
+            elif vfmt == "port_only":
+                tx = fmt_price(vp2 * hm_stk) if hm_stk > 0 else fmt_price(vp2)
+            elif vfmt == "mult_only":
+                tx = f"{vm:.2f}\u00d7"
+            elif vfmt == "cagr_mult":
+                tx = f"{vc2:+.0f}%\n{vm:.2f}\u00d7"
+            elif vfmt == "mult_port":
+                pv = fmt_price(vp2 * hm_stk) if hm_stk > 0 else fmt_price(vp2)
+                tx = f"{vm:.2f}\u00d7\n{pv}"
+            else:
+                tx = ""
+
+            if tx:
+                cell_norm = (vc2 - zmin) / max(zmax - zmin, 1e-6)
+                txt_col = "#ffffff" if cell_norm < 0.55 else "#111111"
+                annots.append(dict(
+                    x=ci, y=ri,
+                    text=tx.replace("\n", "<br>"),
+                    showarrow=False,
+                    font=dict(size=cell_fs, color=txt_col),
+                    xref="x", yref="y",
+                ))
+    return annots
+
 
 def build_heatmap_figure(m, p):
     """
@@ -532,33 +602,7 @@ def build_heatmap_figure(m, p):
             else:
                 mc[ri, ci] = ((xpp / ep) ** (1.0 / nyr) - 1.0) * 100.0
 
-    # ── colorscale ────────────────────────────────────────────────────────────
-    mode   = int(p.get("color_mode", 0))
-    c_lo   = p.get("c_lo",   m.CAGR_SEG_C_LO)
-    c_mid1 = p.get("c_mid1", m.CAGR_SEG_C_MID1)
-    c_mid2 = p.get("c_mid2", m.CAGR_SEG_C_MID2)
-    c_hi   = p.get("c_hi",   m.CAGR_SEG_C_HI)
-    b1     = float(p.get("b1", m.CAGR_SEG_B1))
-    b2     = float(p.get("b2", m.CAGR_SEG_B2))
-    mn, mx = float(mc.min()), float(mc.max())
-
-    if mode == 0:  # Segmented — breakpoints anchored at b1/b2 CAGR values
-        colorscale, zmin, zmax = _seg_colorscale(mc, b1, b2, c_lo, c_mid1, c_mid2, c_hi)
-    elif mode == 1:  # Data-Scaled — simple linear gradient across data range
-        colorscale = _dense_colorscale(lambda t: _lerp_hex(c_lo, c_hi, t))
-        zmin, zmax = mn, mx
-    else:  # Diverging — centred at 0% CAGR; c_mid1/c_mid2 mark the zero crossing
-        abs_max = max(abs(mn), abs(mx), 1e-6)
-        zmin, zmax = -abs_max, abs_max
-
-        def _div_color(t):
-            # t=0 → c_lo, t=0.5 → c_mid1/c_mid2 boundary (0% CAGR), t=1 → c_hi
-            if t < 0.5:
-                return _lerp_hex(c_lo, c_mid1, t * 2.0)
-            else:
-                return _lerp_hex(c_mid2, c_hi, (t - 0.5) * 2.0)
-
-        colorscale = _dense_colorscale(_div_color)
+    colorscale, zmin, zmax = _heatmap_colorscale(m, p, mc)
 
     # ── cell text ─────────────────────────────────────────────────────────────
     vfmt    = p.get("vfmt", "cagr")
@@ -571,45 +615,8 @@ def build_heatmap_figure(m, p):
         ylabels.append(f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%")
 
     # ── cell annotations ──────────────────────────────────────────────────────
-    annots = []
-    for ri in range(mc.shape[0]):
-        for ci in range(mc.shape[1]):
-            vc2 = mc[ri, ci]
-            if np.isnan(vc2):
-                continue
-            vp2 = mp[ri, ci]
-            vm  = mm[ri, ci]
-            if vfmt == "cagr":
-                tx = f"{vc2:+.0f}%"
-            elif vfmt == "price":
-                tx = fmt_price(vp2)
-            elif vfmt == "both":
-                tx = f"{vc2:+.0f}%\n{fmt_price(vp2)}"
-            elif vfmt == "stack":
-                pv = fmt_price(vp2 * hm_stk) if hm_stk > 0 else fmt_price(vp2)
-                tx = f"{vc2:+.0f}%\n{pv}"
-            elif vfmt == "port_only":
-                tx = fmt_price(vp2 * hm_stk) if hm_stk > 0 else fmt_price(vp2)
-            elif vfmt == "mult_only":
-                tx = f"{vm:.2f}\u00d7"
-            elif vfmt == "cagr_mult":
-                tx = f"{vc2:+.0f}%\n{vm:.2f}\u00d7"
-            elif vfmt == "mult_port":
-                pv = fmt_price(vp2 * hm_stk) if hm_stk > 0 else fmt_price(vp2)
-                tx = f"{vm:.2f}\u00d7\n{pv}"
-            else:
-                tx = ""
-
-            if tx:
-                cell_norm = (vc2 - zmin) / max(zmax - zmin, 1e-6)
-                txt_col = "#ffffff" if cell_norm < 0.55 else "#111111"
-                annots.append(dict(
-                    x=ci, y=ri,
-                    text=tx.replace("\n", "<br>"),
-                    showarrow=False,
-                    font=dict(size=int(p.get("cell_font_size", 9)), color=txt_col),
-                    xref="x", yref="y",
-                ))
+    annots = _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax,
+                                   int(p.get("cell_font_size", 9)))
 
     fig = go.Figure(data=go.Heatmap(
         z=mc, x=[str(y) for y in eyrs], y=ylabels,
@@ -692,15 +699,6 @@ def build_mc_heatmap_figure(m, p):
     mp = mc_prices
     mm = mc_mults
 
-    # ── colorscale (same logic as QR heatmap) ────────────────────────────────
-    mode   = int(p.get("color_mode", 0))
-    c_lo   = p.get("c_lo",   m.CAGR_SEG_C_LO)
-    c_mid1 = p.get("c_mid1", m.CAGR_SEG_C_MID1)
-    c_mid2 = p.get("c_mid2", m.CAGR_SEG_C_MID2)
-    c_hi   = p.get("c_hi",   m.CAGR_SEG_C_HI)
-    b1     = float(p.get("b1", m.CAGR_SEG_B1))
-    b2     = float(p.get("b2", m.CAGR_SEG_B2))
-
     valid = mc[~np.isnan(mc)]
     if len(valid) == 0:
         fig = go.Figure()
@@ -711,67 +709,14 @@ def build_mc_heatmap_figure(m, p):
         )
         return fig, mc_result
 
-    mn, mx = float(valid.min()), float(valid.max())
-    if mode == 0:
-        colorscale, zmin, zmax = _seg_colorscale(valid, b1, b2, c_lo, c_mid1, c_mid2, c_hi)
-    elif mode == 1:
-        colorscale = _dense_colorscale(lambda t: _lerp_hex(c_lo, c_hi, t))
-        zmin, zmax = mn, mx
-    else:
-        abs_max = max(abs(mn), abs(mx), 1e-6)
-        zmin, zmax = -abs_max, abs_max
-
-        def _div_color(t):
-            if t < 0.5:
-                return _lerp_hex(c_lo, c_mid1, t * 2.0)
-            else:
-                return _lerp_hex(c_mid2, c_hi, (t - 0.5) * 2.0)
-
-        colorscale = _dense_colorscale(_div_color)
+    colorscale, zmin, zmax = _heatmap_colorscale(m, p, mc)
 
     # ── cell text ────────────────────────────────────────────────────────────
     vfmt   = p.get("vfmt", "cagr")
     hm_stk = float(p.get("stack", 0))
 
-    annots = []
-    for ri in range(mc.shape[0]):
-        for ci in range(mc.shape[1]):
-            vc2 = mc[ri, ci]
-            if np.isnan(vc2):
-                continue
-            vp2 = mp[ri, ci]
-            vm  = mm[ri, ci]
-            if vfmt == "cagr":
-                tx = f"{vc2:+.0f}%"
-            elif vfmt == "price":
-                tx = fmt_price(vp2)
-            elif vfmt == "both":
-                tx = f"{vc2:+.0f}%\n{fmt_price(vp2)}"
-            elif vfmt == "stack":
-                pv = fmt_price(vp2 * hm_stk) if hm_stk > 0 else fmt_price(vp2)
-                tx = f"{vc2:+.0f}%\n{pv}"
-            elif vfmt == "port_only":
-                tx = fmt_price(vp2 * hm_stk) if hm_stk > 0 else fmt_price(vp2)
-            elif vfmt == "mult_only":
-                tx = f"{vm:.2f}\u00d7"
-            elif vfmt == "cagr_mult":
-                tx = f"{vc2:+.0f}%\n{vm:.2f}\u00d7"
-            elif vfmt == "mult_port":
-                pv = fmt_price(vp2 * hm_stk) if hm_stk > 0 else fmt_price(vp2)
-                tx = f"{vm:.2f}\u00d7\n{pv}"
-            else:
-                tx = ""
-
-            if tx:
-                cell_norm = (vc2 - zmin) / max(zmax - zmin, 1e-6)
-                txt_col = "#ffffff" if cell_norm < 0.55 else "#111111"
-                annots.append(dict(
-                    x=ci, y=ri,
-                    text=tx.replace("\n", "<br>"),
-                    showarrow=False,
-                    font=dict(size=int(p.get("cell_font_size", 9)), color=txt_col),
-                    xref="x", yref="y",
-                ))
+    annots = _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax,
+                                   int(p.get("cell_font_size", 9)))
 
     fig = go.Figure(data=go.Heatmap(
         z=mc, x=[str(y) for y in eyrs], y=mc_labels,
@@ -1544,141 +1489,16 @@ def build_retire_figure(m, p):
     return fig, mc_result
 
 
-def _mc_retire_overlay(m, p, ts, t_start, t_end, dt,
-                        start_stack, disp_mode, existing_annot_count=0):
-    """Build Monte Carlo fan band traces for Retire overlay.
+def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
+                          start_stack, disp_mode, tab,
+                          existing_annot_count=0):
+    """Build Monte Carlo fan band traces for withdrawal-based overlays (Retire/SC).
+
+    Args:
+        tab: "ret" or "sc" — determines cache keys and result metadata.
 
     Returns (traces, annots, result) — annots is a list of depletion
     annotation dicts (empty if annotate is off or no depletion detected).
-    """
-    wd_amount  = float(p.get("mc_amount", 5000))
-    inflation  = float(p.get("mc_infl", 4)) / 100.0
-    n_bins     = int(p.get("mc_bins", 5))
-    n_sims    = int(p.get("mc_sims", 800))
-    mc_window = p.get("mc_window")
-    mc_freq   = p.get("mc_freq", "Monthly")
-    mc_ppy    = FREQ_PPY.get(mc_freq, 12)
-    mc_dt     = 1.0 / mc_ppy
-    step_days = _FREQ_STEP_DAYS.get(mc_freq, 30)
-
-    mc_years = int(p.get("mc_years", 10))
-    mc_start_yr = int(p.get("mc_start_yr", p.get("start_yr", 2031)))
-    mc_t_end = t_start + mc_years
-    mc_ts    = np.arange(t_start, mc_t_end + mc_dt * 0.5, mc_dt)
-
-    path_key    = _mc_path_key(p, "ret")
-    overlay_key = _mc_overlay_key(p, "ret", start_stack)
-    do_annot    = bool(p.get("annotate"))
-
-    def _depl_extra(dstats):
-        if dstats.get("pct_depleted", 0) > 0:
-            return f"  ({dstats['pct_depleted']:.0%} depleted)"
-        return ""
-
-    def _ret_result(fan_btc, fan, extra, result=None):
-        """Common return: build traces + depletion annotations."""
-        traces = _mc_build_traces(mc_ts, fan, extra)
-        annots = _mc_depletion_annots(mc_ts, fan_btc, mc_start_yr, mc_years,
-                                       existing_annot_count) if do_annot else []
-        return traces, annots, result
-
-    # ── Check cache ──────────────────────────────────────────────────────
-    cached = p.get("mc_cached")
-    if cached and cached.get("path_key") == path_key:
-        if cached.get("overlay_key") == overlay_key:
-            fan_btc = _mc_fan_from_lists(cached["fan_btc"])
-            fan_usd = _mc_fan_from_lists(cached["fan_usd"])
-            fan = fan_usd if disp_mode == "usd" else fan_btc
-            return _ret_result(fan_btc, fan, _depl_extra(cached.get("depletion", {})))
-
-        price_paths = _mc_paths_from_lists(cached["price_paths"])
-        btc_paths, usd_paths, depl_steps = mc_retire(
-            price_paths, start_stack, wd_amount, inflation, mc_dt,
-        )
-        fan_btc = compute_fan_percentiles(btc_paths, _MC_FAN_PCTS)
-        fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
-        dstats = depletion_stats(depl_steps, len(mc_ts), mc_dt, t_start)
-        fan = fan_usd if disp_mode == "usd" else fan_btc
-
-        result = {
-            "tab": "ret",
-            "path_key": path_key,
-            "overlay_key": overlay_key,
-            "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "ts": cached["ts"],
-            "price_paths": cached["price_paths"],
-            "fan_btc": _mc_fan_to_lists(fan_btc),
-            "fan_usd": _mc_fan_to_lists(fan_usd),
-            "depletion": dstats,
-        }
-        return _ret_result(fan_btc, fan, _depl_extra(dstats), result)
-
-    # ── Check pre-computed cache ─────────────────────────────────────────
-    mc_stack = float(p.get("mc_start_stack", start_stack))
-    if _HAS_MC_CACHE:
-        raw_pctile = float(p.get("mc_entry_q", 50)) / 100.0
-        pct_bin = snap_to_bin(raw_pctile)
-        infl_pct = int(round(inflation * 100))
-
-        fan_btc, fan_usd = get_cached_overlay(
-            mc_start_yr, pct_bin, mc_years,
-            int(wd_amount), infl_pct, mc_stack)
-        if fan_btc is not None:
-            fan = fan_usd if disp_mode == "usd" else fan_btc
-            return _ret_result(fan_btc, fan, "")
-
-        cached_paths = get_cached_paths(mc_start_yr, pct_bin, mc_years)
-        if cached_paths is not None:
-            btc_paths, usd_paths, depl_steps = mc_retire(
-                cached_paths, mc_stack, wd_amount, inflation, mc_dt,
-            )
-            fan_btc = compute_fan_percentiles(btc_paths, _MC_FAN_PCTS)
-            fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
-            dstats = depletion_stats(depl_steps, len(mc_ts), mc_dt, t_start)
-            fan = fan_usd if disp_mode == "usd" else fan_btc
-            return _ret_result(fan_btc, fan, _depl_extra(dstats))
-
-    # ── Run full simulation ──────────────────────────────────────────────
-    trans, bin_edges, n_bins = _get_transition_matrix(m, n_bins, step_days, mc_window)
-    n_steps = len(mc_ts)
-
-    start_pctile = float(p.get("mc_entry_q", 50)) / 100.0
-    start_pctile = round(start_pctile * 20) / 20
-    start_pctile = max(0.05, min(start_pctile, 0.95))
-
-    price_paths, _ = monte_carlo_prices(
-        trans, bin_edges, start_pctile, n_steps, n_sims,
-        m.qr_fits, m.genesis, t_start, mc_dt,
-    )
-    btc_paths, usd_paths, depl_steps = mc_retire(
-        price_paths, mc_stack, wd_amount, inflation, mc_dt,
-    )
-
-    fan_btc = compute_fan_percentiles(btc_paths, _MC_FAN_PCTS)
-    fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
-    dstats = depletion_stats(depl_steps, n_steps, mc_dt, t_start)
-    fan = fan_usd if disp_mode == "usd" else fan_btc
-
-    result = {
-        "tab": "ret",
-        "path_key": path_key,
-        "overlay_key": overlay_key,
-        "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "ts": [round(float(t), 6) for t in mc_ts],
-        "price_paths": _mc_paths_to_lists(price_paths),
-        "fan_btc": _mc_fan_to_lists(fan_btc),
-        "fan_usd": _mc_fan_to_lists(fan_usd),
-        "depletion": dstats,
-    }
-
-    return _ret_result(fan_btc, fan, _depl_extra(dstats), result)
-
-
-def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
-                             start_stack, disp_mode, existing_annot_count=0):
-    """Build Monte Carlo fan band traces for Supercharger overlay (Mode A).
-
-    Returns (traces, annots, result) — same contract as _mc_retire_overlay.
     """
     wd_amount  = float(p.get("mc_amount", 5000))
     inflation  = float(p.get("mc_infl", 4)) / 100.0
@@ -1695,8 +1515,8 @@ def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
     mc_t_end = t_start + mc_years
     mc_ts    = np.arange(t_start, mc_t_end + mc_dt * 0.5, mc_dt)
 
-    path_key    = _mc_path_key(p, "sc")
-    overlay_key = _mc_overlay_key(p, "sc", start_stack)
+    path_key    = _mc_path_key(p, tab)
+    overlay_key = _mc_overlay_key(p, tab, start_stack)
     do_annot    = bool(p.get("annotate"))
 
     def _depl_extra(dstats):
@@ -1704,7 +1524,7 @@ def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
             return f"  ({dstats['pct_depleted']:.0%} depleted)"
         return ""
 
-    def _sc_result(fan_btc, fan, extra, result=None):
+    def _build_return(fan_btc, fan, extra, result=None):
         traces = _mc_build_traces(mc_ts, fan, extra)
         annots = _mc_depletion_annots(mc_ts, fan_btc, mc_start_yr, mc_years,
                                        existing_annot_count) if do_annot else []
@@ -1717,7 +1537,7 @@ def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
             fan_btc = _mc_fan_from_lists(cached["fan_btc"])
             fan_usd = _mc_fan_from_lists(cached["fan_usd"])
             fan = fan_usd if disp_mode == "usd" else fan_btc
-            return _sc_result(fan_btc, fan, _depl_extra(cached.get("depletion", {})))
+            return _build_return(fan_btc, fan, _depl_extra(cached.get("depletion", {})))
 
         price_paths = _mc_paths_from_lists(cached["price_paths"])
         btc_paths, usd_paths, depl_steps = mc_retire(
@@ -1729,7 +1549,7 @@ def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
         fan = fan_usd if disp_mode == "usd" else fan_btc
 
         result = {
-            "tab": "sc",
+            "tab": tab,
             "path_key": path_key,
             "overlay_key": overlay_key,
             "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -1739,7 +1559,7 @@ def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
             "fan_usd": _mc_fan_to_lists(fan_usd),
             "depletion": dstats,
         }
-        return _sc_result(fan_btc, fan, _depl_extra(dstats), result)
+        return _build_return(fan_btc, fan, _depl_extra(dstats), result)
 
     # ── Check pre-computed cache ─────────────────────────────────────────
     mc_stack = float(p.get("mc_start_stack", start_stack))
@@ -1753,7 +1573,7 @@ def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
             int(wd_amount), infl_pct, mc_stack)
         if fan_btc is not None:
             fan = fan_usd if disp_mode == "usd" else fan_btc
-            return _sc_result(fan_btc, fan, "")
+            return _build_return(fan_btc, fan, "")
 
         cached_paths = get_cached_paths(mc_start_yr, pct_bin, mc_years)
         if cached_paths is not None:
@@ -1764,7 +1584,7 @@ def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
             fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
             dstats = depletion_stats(depl_steps, len(mc_ts), mc_dt, t_start)
             fan = fan_usd if disp_mode == "usd" else fan_btc
-            return _sc_result(fan_btc, fan, _depl_extra(dstats))
+            return _build_return(fan_btc, fan, _depl_extra(dstats))
 
     # ── Run full simulation ──────────────────────────────────────────────
     trans, bin_edges, n_bins = _get_transition_matrix(m, n_bins, step_days, mc_window)
@@ -1788,7 +1608,7 @@ def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
     fan = fan_usd if disp_mode == "usd" else fan_btc
 
     result = {
-        "tab": "sc",
+        "tab": tab,
         "path_key": path_key,
         "overlay_key": overlay_key,
         "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -1799,7 +1619,20 @@ def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
         "depletion": dstats,
     }
 
-    return _sc_result(fan_btc, fan, _depl_extra(dstats), result)
+    return _build_return(fan_btc, fan, _depl_extra(dstats), result)
+
+
+# Backward-compatible aliases
+def _mc_retire_overlay(m, p, ts, t_start, t_end, dt,
+                        start_stack, disp_mode, existing_annot_count=0):
+    return _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
+                                 start_stack, disp_mode, "ret", existing_annot_count)
+
+
+def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
+                             start_stack, disp_mode, existing_annot_count=0):
+    return _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
+                                 start_stack, disp_mode, "sc", existing_annot_count)
 
 
 def _mc_heatmap_overlay(m, p, ep, entry_t, eyrs):

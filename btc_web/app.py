@@ -44,8 +44,20 @@ from flask import request as flask_request
 from btc_core import (load_model_data, _find_lot_percentile, fmt_price,
                       yr_to_t, today_t, leo_weighted_entry, qr_price)
 from figures import (build_bubble_figure, build_heatmap_figure,
+                     build_mc_heatmap_figure,
                      build_dca_figure, build_retire_figure,
-                     build_supercharge_figure)
+                     build_supercharge_figure,
+                     _get_transition_matrix, save_trans_cache_to_disk)
+import atexit
+atexit.register(save_trans_cache_to_disk)
+try:
+    from markov import (build_transition_matrix, count_nonzero_entries,
+                        compute_cost, max_bins_for_window,
+                        FREQ_PPY as MC_FREQ_PPY)
+    _HAS_MARKOV = True
+except ImportError:
+    _HAS_MARKOV = False
+    MC_FREQ_PPY = {"Daily": 365, "Weekly": 52, "Monthly": 12, "Quarterly": 4, "Annually": 1}
 
 # ── load model (once at startup) ──────────────────────────────────────────────
 M = load_model_data()
@@ -105,21 +117,42 @@ def _get_bubble_fig(p: dict):
     p['_day'] = str(date.today())
     return _cached_bubble_fig(json.dumps(p, sort_keys=True, default=str))
 
-def _get_heatmap_fig(p: dict):
-    p = _quantize_params(p)
-    return _cached_heatmap_fig(json.dumps(p, sort_keys=True, default=str))
-
 def _get_dca_fig(p: dict):
-    p = _quantize_params(p)
-    return _cached_dca_fig(json.dumps(p, sort_keys=True, default=str))
+    # MC results bypass LRU cache (stochastic); non-MC params still benefit from it
+    mc_cached = p.pop("mc_cached", None)
+    p_q = _quantize_params(p)
+    if p.get("mc_enabled") and _HAS_MARKOV:
+        p_q["mc_cached"] = mc_cached  # pass through uncached for figures.py
+        return build_dca_figure(M, p_q)
+    return _cached_dca_fig(json.dumps(p_q, sort_keys=True, default=str))
 
 def _get_retire_fig(p: dict):
-    p = _quantize_params(p)
-    return _cached_retire_fig(json.dumps(p, sort_keys=True, default=str))
+    mc_cached = p.pop("mc_cached", None)
+    p_q = _quantize_params(p)
+    if p.get("mc_enabled") and _HAS_MARKOV:
+        p_q["mc_cached"] = mc_cached
+        return build_retire_figure(M, p_q)
+    return _cached_retire_fig(json.dumps(p_q, sort_keys=True, default=str))
 
 def _get_supercharge_fig(p: dict):
-    p = _quantize_params(p)
-    return _cached_supercharge_fig(json.dumps(p, sort_keys=True, default=str))
+    mc_cached = p.pop("mc_cached", None)
+    p_q = _quantize_params(p)
+    if p.get("mc_enabled") and _HAS_MARKOV:
+        p_q["mc_cached"] = mc_cached
+        return build_supercharge_figure(M, p_q)
+    return _cached_supercharge_fig(json.dumps(p_q, sort_keys=True, default=str))
+
+def _get_heatmap_fig(p: dict):
+    p.pop("mc_cached", None)  # not used for QR heatmap
+    p_q = _quantize_params(p)
+    return _cached_heatmap_fig(json.dumps(p_q, sort_keys=True, default=str))
+
+
+def _get_mc_heatmap_fig(p: dict):
+    mc_cached = p.pop("mc_cached", None)
+    p_q = _quantize_params(p)
+    p_q["mc_cached"] = mc_cached
+    return build_mc_heatmap_figure(M, p_q)
 
 _ALL_QS = [q for q in M.QR_QUANTILES if 0.001 <= q <= 0.999]
 _DEF_QS = [q for q in [0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
@@ -133,16 +166,35 @@ def _nearest_quantile(target, qs):
 
 def _startup_heatmap_defaults():
     """Fetch live BTC price at startup; return entry percentile (0–100 scale)."""
-    try:
-        url = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
-        with urllib.request.urlopen(url, timeout=5) as r:
-            price = float(json.loads(r.read())["price"])
+    price = _fetch_btc_price_startup()
+    if price is not None:
         pct = _find_lot_percentile(today_t(M.genesis), price, M.qr_fits)
         if pct is not None:
             return round(pct * 100, 1)   # e.g. 7.5
-    except Exception:
-        pass
     return 50.0   # fallback
+
+
+def _fetch_btc_price_startup():
+    """Startup-only price fetch (before _fetch_btc_price is defined)."""
+    sources = [
+        ("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
+         lambda d: float(d["price"])),
+        ("https://mempool.space/api/v1/prices",
+         lambda d: float(d["USD"])),
+        ("https://api.blockchain.info/ticker",
+         lambda d: float(d["USD"]["last"])),
+        ("https://api.kraken.com/0/public/Ticker?pair=XBTUSD",
+         lambda d: float(d["result"]["XXBTZUSD"]["c"][0])),
+        ("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+         lambda d: float(d["bitcoin"]["usd"])),
+    ]
+    for url, parse in sources:
+        try:
+            with urllib.request.urlopen(url, timeout=5) as r:
+                return parse(json.loads(r.read()))
+        except Exception:
+            continue
+    return None
 
 
 _HM_ENTRY_Q_DEFAULT = _startup_heatmap_defaults()
@@ -345,6 +397,36 @@ def _q_options():
         opts.append({"label": lbl, "value": q})
     return opts
 
+
+_Q_COLLAPSED_HEIGHT = "7.5em"   # ~4 rows visible when collapsed
+
+def _q_panel(checklist_id, default_value, hint=None):
+    """Quantile checklist with expand/collapse toggle.
+
+    Clicking anywhere in the panel expands it. After 4 s of no checkbox
+    interaction the panel collapses back automatically.
+    """
+    children = []
+    if hint:
+        children.append(html.Small(hint,
+            style={"color":"#888","display":"block","marginBottom":"4px"}))
+    toggle_id = f"{checklist_id}-expand"
+    children.extend([
+        html.Div(
+            dcc.Checklist(id=checklist_id, options=_q_options(),
+                          value=default_value, labelStyle={"display":"block"},
+                          inputStyle={"marginRight":"5px"}),
+            id=f"{checklist_id}-wrap", className="q-panel-wrap",
+            style={"maxHeight": _Q_COLLAPSED_HEIGHT, "overflow": "hidden",
+                   "transition": "max-height 0.25s ease"},
+        ),
+        html.Span("Show all \u25be", id=toggle_id, n_clicks=0,
+                  style={"fontSize": "11px", "color": "#1a6fa8", "display": "block",
+                         "marginTop": "2px", "cursor": "pointer",
+                         "userSelect": "none"}),
+    ])
+    return _ctrl_card(_lbl("Quantiles"), *children)
+
 # ── app init ──────────────────────────────────────────────────────────────────
 app = dash.Dash(
     __name__,
@@ -472,12 +554,7 @@ def _bubble_controls():
                        value=3, step=1, marks=None,
                        tooltip={"always_visible":True}),
         ),
-        _ctrl_card(
-            html.Div("Quantiles", className="ctrl-section-header"),
-            dcc.Checklist(id="bub-qs", options=_q_options(),
-                          value=[], labelStyle={"display":"block"},
-                          inputStyle={"marginRight":"5px"}),
-        ),
+        _q_panel("bub-qs", []),
         _ctrl_card(
             _row(
                 html.Div([_lbl("Pt size (1–20)"),
@@ -531,7 +608,8 @@ def _heatmap_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
         _ctrl_card(
-            _lbl(f"Entry year"),
+            html.Div("Entry Point", className="ctrl-section-header"),
+            _lbl("Entry year"),
             dcc.Slider(id="hm-entry-yr", min=2010, max=2039,
                        value=yr_now, step=1, marks=None,
                        tooltip={"always_visible":True}),
@@ -541,6 +619,7 @@ def _heatmap_controls():
                       min=0.1, max=99.9, step=0.1, size="sm"),
         ),
         _ctrl_card(
+            html.Div("Exit Range", className="ctrl-section-header"),
             _lbl("Exit year range"),
             dcc.RangeSlider(id="hm-exit-range", min=2010, max=2060,
                             value=[yr_now, yr_now + 15], step=1,
@@ -552,6 +631,7 @@ def _heatmap_controls():
                           inputStyle={"marginRight":"5px"}),
         ),
         _ctrl_card(
+            html.Div("Color & Style", className="ctrl-section-header"),
             _lbl("Color mode"),
             dcc.RadioItems(id="hm-mode",
                            options=[{"label":" Segmented","value":0},
@@ -578,8 +658,7 @@ def _heatmap_controls():
             _lbl("Gradient steps"),
             dbc.Input(id="hm-grad", type="number", value=32,
                       min=2, max=64, step=1, size="sm"),
-        ),
-        _ctrl_card(
+            html.Div("Cell Text", className="ctrl-section-header mt-2"),
             _lbl("Cell text"),
             dcc.Dropdown(id="hm-vfmt",
                 options=[
@@ -610,6 +689,8 @@ def _heatmap_controls():
                           options=[{"label":" Use Stack Tracker lots","value":"yes"}],
                           value=[], inputStyle={"marginRight":"5px"}),
         ),
+        # MC controls at the very bottom, below all quantile config
+        _mc_controls("hm", show_amount=False, show_entry=True),
     ])
 
 
@@ -618,15 +699,247 @@ def _heatmap_tab():
         dbc.Col(_heatmap_controls(), width=3, className="controls-col overflow-auto",
                 style={"maxHeight":"85vh"}),
         dbc.Col([
-            dcc.Loading(
-                dcc.Graph(id="heatmap-graph", style={"height":"78vh"},
-                          config={"toImageButtonOptions":{"format":"png","scale":2,
-                                                           "filename":"btc_heatmap"}}),
-                type="default", color="#f7931a",
-            ),
+            # Swipe indicator (hidden when MC disabled)
+            html.Div([
+                html.Span("◀ ", style={"opacity":"0.5"}),
+                html.Span("Quantile Regression", id="hm-sw-qr-lbl",
+                           className="fw-bold", style={"cursor":"pointer"}),
+                html.Span("  ·  ", style={"opacity":"0.4"}),
+                html.Span("Monte Carlo", id="hm-sw-mc-lbl",
+                           style={"cursor":"pointer", "opacity":"0.5"}),
+                html.Span(" ▶", style={"opacity":"0.5"}),
+            ], id="hm-swipe-indicator", className="text-center py-1",
+               style={"display":"none", "fontSize":"0.85rem", "color":"#6c757d",
+                       "userSelect":"none"}),
+            # Swipe container
+            html.Div([
+                html.Div([
+                    dcc.Loading(
+                        dcc.Graph(id="heatmap-graph", style={"height":"78vh"},
+                                  config={"scrollZoom":False,
+                                          "toImageButtonOptions":{"format":"png","scale":2,
+                                                                   "filename":"btc_heatmap"}}),
+                        type="default", color="#f7931a",
+                    ),
+                ], className="hm-swipe-panel"),
+                html.Div([
+                    dcc.Loading(
+                        dcc.Graph(id="hm-mc-graph", style={"height":"78vh"},
+                                  config={"scrollZoom":False,
+                                          "toImageButtonOptions":{"format":"png","scale":2,
+                                                                   "filename":"btc_mc_heatmap"}}),
+                        type="default", color="#f7931a",
+                    ),
+                ], className="hm-swipe-panel", id="hm-mc-panel",
+                   style={"display":"none"}),
+            ], className="hm-swipe-container", id="hm-swipe-wrap"),
+            html.Div(id="hm-swipe-scroll-dummy", style={"display":"none"}),
             _export_row("heatmap"),
         ], width=9),
     ], className="g-0")
+
+
+# ── Shared MC controls (DCA + Retire) ────────────────────────────────────────
+
+_MC_WD_AMOUNTS = [5000, 7500, 12500, 20000, 32500, 69420]
+_MC_STACK_SIZES = [0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+_MC_CACHED_START_YRS = {2026, 2028, 2031, 2035, 2040}
+_MC_START_YR_OPTIONS = [
+    {"label": html.Span(str(y), style={"fontWeight": "bold"}) if y in _MC_CACHED_START_YRS
+             else str(y),
+     "value": y}
+    for y in range(2026, 2051)
+]
+
+def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=100,
+                  show_inflation=False, show_amount=True, show_entry=False,
+                  amount_dropdown=False, show_stack=False, show_mc_entry_q=False):
+    """Monte Carlo simulation controls, reusable across tabs."""
+    yr_now_ph = pd.Timestamp.today().year
+    if not _HAS_MARKOV:
+        # Hidden placeholders so callback IDs exist even without markov module
+        return html.Div(style={"display": "none"}, children=[
+            dcc.Checklist(id=f"{prefix}-mc-enable", value=[]),
+            dbc.Input(id=f"{prefix}-mc-amount", value=amount_default),
+            dbc.Input(id=f"{prefix}-mc-infl", value=4),
+            dbc.Input(id=f"{prefix}-mc-bins", value=5),
+            dcc.Dropdown(id=f"{prefix}-mc-sims", value=800),
+            dcc.Dropdown(id=f"{prefix}-mc-years", value=10),
+            dcc.Dropdown(id=f"{prefix}-mc-freq", value="Monthly"),
+            dbc.Input(id=f"{prefix}-mc-ppy", value="12/yr"),
+            dcc.RangeSlider(id=f"{prefix}-mc-window", min=2010,
+                            max=yr_now_ph,
+                            value=[2010, yr_now_ph]),
+            html.Div(id=f"{prefix}-mc-cost"),
+            html.Div(id=f"{prefix}-mc-body"),
+            html.Div(id=f"{prefix}-mc-status"),
+            dbc.Button(id=f"{prefix}-mc-dl-btn", style={"display":"none"}),
+            dcc.Upload(id=f"{prefix}-mc-upload"),
+            html.Div(id=f"{prefix}-mc-upload-status"),
+            *([dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now_ph),
+              ] if show_entry else []),
+            dbc.Input(id=f"{prefix}-mc-entry-q",
+                      value=_HM_ENTRY_Q_DEFAULT),
+            dcc.Dropdown(id=f"{prefix}-mc-stack", value=1.0),
+            dcc.Dropdown(id=f"{prefix}-mc-start-yr", value=2031),
+        ])
+    yr_now = pd.Timestamp.today().year
+    return html.Div(style={"position": "relative"}, children=[
+        html.Span([
+            html.Span("\u2694", style={"fontSize": "16px", "marginRight": "3px"}),
+            html.Span("NEW", style={"position": "relative", "top": "-2px"}),
+        ], className="mc-new-badge", style={
+            "position": "absolute", "top": "4px", "right": "-2px",
+            "fontWeight": "900", "color": "#c0c0c0",
+            "fontFamily": "'Impact', 'Arial Black', sans-serif",
+            "textTransform": "uppercase",
+            "backgroundColor": "#1a1a1a",
+            "borderRadius": "5px", "transform": "rotate(18deg)",
+            "zIndex": "1", "lineHeight": "1.2",
+            "boxShadow": "0 2px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)",
+            "textShadow": "0 0 4px rgba(139,0,0,0.6)",
+        }),
+        _ctrl_card(
+        html.Span([
+            html.B("Monte Carlo", style={"fontSize": "12px"}),
+            html.Span([
+                html.Span("\u26a1", style={"fontSize": "15px"}),
+                " Paid feature",
+            ], style={"fontSize": "10px", "color": "#6b5300",
+                      "marginLeft": "6px", "fontWeight": "normal",
+                      "backgroundColor": "rgba(184,134,11,0.12)",
+                      "padding": "1px 6px", "borderRadius": "4px"}),
+        ]),
+        dcc.Checklist(id=f"{prefix}-mc-enable",
+                      options=[{"label": " Enable MC fan overlay", "value": "yes"}],
+                      value=[], inputStyle={"marginRight": "5px"}),
+        html.Div(id=f"{prefix}-mc-body", style={"display": "none"}, children=[
+            *([html.Div("Entry Point", className="ctrl-section-header"),
+               _lbl("Entry year"),
+               dcc.Slider(id=f"{prefix}-mc-entry-yr", min=2010, max=2039,
+                          value=yr_now, step=1, marks=None,
+                          tooltip={"always_visible": True}),
+               _lbl("Entry percentile (0.1–99.9%)"),
+               dbc.Input(id=f"{prefix}-mc-entry-q", type="number",
+                         value=round(_HM_ENTRY_Q_DEFAULT / 5) * 5 or 5,
+                         min=0.1, max=99.9, step=0.1, size="sm"),
+              ] if show_entry else []),
+            *([ _lbl("Retirement start year (bold = cached)"),
+                dcc.Dropdown(id=f"{prefix}-mc-start-yr",
+                             options=_MC_START_YR_OPTIONS,
+                             value=2031, clearable=False),
+                _lbl("Entry percentile (10% steps, cache-aligned)"),
+                dcc.Dropdown(id=f"{prefix}-mc-entry-q",
+                             options=[{"label": f"{int(v*100)}%", "value": int(v*100)}
+                                      for v in [round(i/10, 1) for i in range(1, 10)]],
+                             value=50, clearable=False),
+            ] if show_stack else [
+                _lbl("MC start year (bold = cached)"),
+                dcc.Dropdown(id=f"{prefix}-mc-start-yr",
+                             options=_MC_START_YR_OPTIONS,
+                             value=2026, clearable=False),
+                *([_lbl("Entry percentile (10% steps, cache-aligned)"),
+                   dcc.Dropdown(id=f"{prefix}-mc-entry-q",
+                                options=[{"label": f"{int(v*100)}%", "value": int(v*100)}
+                                         for v in [round(i/10, 1) for i in range(1, 10)]],
+                                value=max(10, min(90, round(_HM_ENTRY_Q_DEFAULT / 10) * 10 or 50)),
+                                clearable=False),
+                ] if show_mc_entry_q else []),
+            ]),
+            *([_lbl(amount_label),
+               dcc.Dropdown(id=f"{prefix}-mc-amount",
+                            options=[{"label": f"${v:,}/mo", "value": v}
+                                     for v in _MC_WD_AMOUNTS],
+                            value=amount_default, clearable=False),
+              ] if show_amount and amount_dropdown else
+              [_lbl(amount_label),
+               dbc.Input(id=f"{prefix}-mc-amount", type="number",
+                         value=amount_default, min=1, step=1, size="sm"),
+              ] if show_amount else [
+               dbc.Input(id=f"{prefix}-mc-amount", type="number",
+                         value=amount_default, style={"display": "none"}),
+              ]),
+            *([ _lbl("Inflation rate (% / yr)"),
+                dcc.Dropdown(id=f"{prefix}-mc-infl",
+                             options=[{"label": f"{v}%", "value": v}
+                                      for v in [2, 3, 4, 6, 8, 10, 12]],
+                             value=4, clearable=False),
+            ] if show_inflation else [
+                dcc.Dropdown(id=f"{prefix}-mc-infl", value=0,
+                             style={"display": "none"}),
+            ]),
+            *([ _lbl("Starting BTC stack"),
+                dcc.Dropdown(id=f"{prefix}-mc-stack",
+                             options=[{"label": f"{v} BTC", "value": v}
+                                      for v in _MC_STACK_SIZES],
+                             value=1.0, clearable=False),
+            ] if show_stack else [
+                dcc.Dropdown(id=f"{prefix}-mc-stack", value=1.0,
+                             style={"display": "none"}),
+            ]),
+            _lbl("Simulation matrix precision"),
+            dbc.Input(id=f"{prefix}-mc-bins", type="number",
+                      value=5, min=5, max=10, step=1, size="sm",
+                      disabled=True,
+                      style={"backgroundColor": "#eee", "color": "#888"}),
+            _lbl("Simulations"),
+            dcc.Dropdown(id=f"{prefix}-mc-sims",
+                         options=[800],
+                         value=800, clearable=False, disabled=True),
+            _lbl("Years to model"),
+            dcc.Dropdown(id=f"{prefix}-mc-years",
+                         options=[{"label": f"{y} yr", "value": y}
+                                  for y in [10, 20, 30, 40]],
+                         value=10, clearable=False),
+            _lbl("MC Frequency"),
+            dbc.Row([
+                dbc.Col(dcc.Dropdown(id=f"{prefix}-mc-freq",
+                                     options=["Monthly"],
+                                     value="Monthly", clearable=False,
+                                     disabled=True), width=8),
+                dbc.Col(dbc.Input(id=f"{prefix}-mc-ppy", type="text",
+                                  value="12/yr", size="sm", disabled=True,
+                                  style={"textAlign": "center", "backgroundColor": "#eee"}),
+                        width=4),
+            ], className="g-1"),
+            _lbl("Training window (years)"),
+            dcc.RangeSlider(id=f"{prefix}-mc-window", min=2010, max=yr_now,
+                            value=[2010, yr_now], step=1,
+                            marks={y: f"'{y % 100:02d}" for y in range(2010, yr_now + 1, 4)},
+                            tooltip={"always_visible": False},
+                            disabled=True),
+            html.Div(id=f"{prefix}-mc-cost",
+                     style={"fontSize": "11px", "color": "#555", "marginTop": "6px",
+                            "lineHeight": "1.4"}),
+            html.Small(
+                "Uses historical price data to build a Markov transition matrix, "
+                "then runs Monte Carlo simulations to project percentile fan bands.",
+                style={"color": "#888", "display": "block", "marginTop": "4px",
+                       "lineHeight": "1.3"},
+            ),
+            html.Hr(className="my-2"),
+            html.Div("Saved Simulation", className="ctrl-section-header"),
+            html.Div(id=f"{prefix}-mc-status",
+                     style={"fontSize": "10px", "color": "#555", "marginBottom": "4px"}),
+            dbc.Row([
+                dbc.Col(
+                    dbc.Button("\u2b07 Save", id=f"{prefix}-mc-dl-btn",
+                               size="sm", color="secondary", className="w-100"),
+                    width=6),
+                dbc.Col(
+                    dcc.Upload(
+                        id=f"{prefix}-mc-upload",
+                        children=dbc.Button("\u2b06 Load", size="sm",
+                                            color="secondary", className="w-100"),
+                        accept=".json", multiple=False,
+                    ),
+                    width=6),
+            ], className="g-1"),
+            html.Div(id=f"{prefix}-mc-upload-status", className="mt-1",
+                     style={"fontSize": "10px"}),
+        ]),
+    ),
+    ])
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -637,6 +950,7 @@ def _dca_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
         _ctrl_card(
+            html.Div("Starting Stack", className="ctrl-section-header"),
             _lbl("Starting BTC"),
             dbc.Input(id="dca-stack", type="number", value=0,
                       min=0, step=0.001, size="sm"),
@@ -645,6 +959,7 @@ def _dca_controls():
                           value=[], inputStyle={"marginRight":"5px"}),
         ),
         _ctrl_card(
+            html.Div("DCA Plan", className="ctrl-section-header"),
             _lbl("Per-period amount ($)"),
             dbc.Input(id="dca-amount", type="number", value=100,
                       min=1, step=1, size="sm"),
@@ -659,7 +974,7 @@ def _dca_controls():
                             tooltip={"always_visible":False}),
         ),
         _ctrl_card(
-            _lbl("Display"),
+            html.Div("Display", className="ctrl-section-header"),
             dcc.Dropdown(id="dca-disp",
                          options=[{"label":"BTC Balance","value":"btc"},
                                   {"label":"USD Value","value":"usd"}],
@@ -671,23 +986,17 @@ def _dca_controls():
                           value=["show_legend","dual_y"], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
-        _ctrl_card(
-            _lbl("Quantiles"),
-            html.Small(
-                "Price path drives sat accumulation — lower quantile = lower price = more sats/period.",
-                style={"color":"#888","display":"block","marginBottom":"4px"},
-            ),
-            dcc.Checklist(id="dca-qs", options=_q_options(),
-                          value=[0.5], labelStyle={"display":"block"},
-                          inputStyle={"marginRight":"5px"}),
-        ),
+        _q_panel("dca-qs", [0.5],
+                 hint="Price path drives sat accumulation — lower quantile = lower price = more sats/period."),
         _stackcellerator_controls(),
+        _mc_controls("dca", amount_label="DCA amount per period ($)", amount_default=100,
+                     show_mc_entry_q=True),
     ])
 
 
 def _stackcellerator_controls():
     return _ctrl_card(
-        html.B("Stack-cellerator", style={"fontSize":"12px"}),
+        html.B("Stack-celerator", style={"fontSize":"12px"}),
         dcc.Checklist(id="dca-sc-enable",
                       options=[{"label":" Activate Saylor Mode","value":"yes"}],
                       value=[], inputStyle={"marginRight":"5px"}),
@@ -759,6 +1068,7 @@ def _retire_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
         _ctrl_card(
+            html.Div("Starting Stack", className="ctrl-section-header"),
             _lbl("Starting BTC"),
             dbc.Input(id="ret-stack", type="number", value=1.0,
                       min=0, step=0.001, size="sm"),
@@ -767,6 +1077,7 @@ def _retire_controls():
                           value=[], inputStyle={"marginRight":"5px"}),
         ),
         _ctrl_card(
+            html.Div("Withdrawal Plan", className="ctrl-section-header"),
             _lbl("Withdrawal/period ($)"),
             dbc.Input(id="ret-wd", type="number", value=5000,
                       min=1, step=1, size="sm"),
@@ -784,7 +1095,7 @@ def _retire_controls():
                       min=0, max=100, step=0.5, size="sm"),
         ),
         _ctrl_card(
-            _lbl("Display"),
+            html.Div("Display", className="ctrl-section-header"),
             dcc.Dropdown(id="ret-disp",
                          options=[{"label":"BTC Remaining","value":"btc"},
                                   {"label":"USD Value","value":"usd"}],
@@ -797,13 +1108,9 @@ def _retire_controls():
                           value=["annotate","log_y","dual_y"], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
-        _ctrl_card(
-            _lbl("Quantiles"),
-            dcc.Checklist(id="ret-qs", options=_q_options(),
-                          value=[0.01, 0.10, 0.25],
-                          labelStyle={"display":"block"},
-                          inputStyle={"marginRight":"5px"}),
-        ),
+        _q_panel("ret-qs", [0.01, 0.10, 0.25]),
+        _mc_controls("ret", amount_label="Withdrawal per period ($)", amount_default=5000,
+                     show_inflation=True, amount_dropdown=True, show_stack=True),
     ])
 
 
@@ -833,7 +1140,7 @@ def _supercharge_controls():
     dq_default = _nearest_quantile(0.05, _ALL_QS)
     return html.Div([
         _ctrl_card(
-            _lbl("Mode"),
+            html.Div("Mode", className="ctrl-section-header"),
             dcc.RadioItems(id="sc-mode",
                 options=[{"label":" A — Fixed spending (depletion date)","value":"a"},
                          {"label":" B — Fixed depletion (max spending)","value":"b"}],
@@ -849,6 +1156,7 @@ def _supercharge_controls():
             ),
         ),
         _ctrl_card(
+            html.Div("Starting Stack", className="ctrl-section-header"),
             _lbl("Starting BTC"),
             dbc.Input(id="sc-stack", type="number", value=1.0,
                       min=0, step=0.001, size="sm"),
@@ -857,6 +1165,7 @@ def _supercharge_controls():
                           value=[], inputStyle={"marginRight":"5px"}),
         ),
         _ctrl_card(
+            html.Div("Timeline", className="ctrl-section-header"),
             _lbl("Base retirement year"),
             dcc.Slider(id="sc-start-yr", min=yr_now, max=2075,
                        value=2033, step=1,
@@ -864,7 +1173,8 @@ def _supercharge_controls():
                        tooltip={"always_visible":False}),
         ),
         _ctrl_card(
-            _lbl("Delay offsets (years)"),
+            html.Div("Delay Offsets", className="ctrl-section-header"),
+            _lbl("Years"),
             dbc.Row([
                 dbc.Col(dbc.Input(id="sc-d0", type="number", value=0,
                                   min=0, step=1, size="sm"), width=True),
@@ -879,6 +1189,7 @@ def _supercharge_controls():
             ], className="g-1"),
         ),
         _ctrl_card(
+            html.Div("Frequency & Inflation", className="ctrl-section-header"),
             _lbl("Frequency"),
             dcc.Dropdown(id="sc-freq",
                          options=["Daily","Weekly","Monthly","Quarterly","Annually"],
@@ -914,7 +1225,7 @@ def _supercharge_controls():
             ),
         ], id="sc-mode-b-collapse", is_open=False),
         _ctrl_card(
-            _lbl("Quantile band"),
+            html.Div("Chart Layout", className="ctrl-section-header"),
             dcc.Checklist(id="sc-chart-layout",
                 options=[{"label":" Shade quantile bands","value":"shade"}],
                 value=["shade"],
@@ -928,7 +1239,7 @@ def _supercharge_controls():
             ),
         ], id="sc-display-q-collapse", is_open=True),
         _ctrl_card(
-            _lbl("Display"),
+            html.Div("Display", className="ctrl-section-header"),
             dcc.Checklist(id="sc-toggles",
                           options=[{"label":" Annotate depletion","value":"annotate"},
                                    {"label":" Log Y","value":"log_y"},
@@ -937,13 +1248,12 @@ def _supercharge_controls():
                           labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
-        _ctrl_card(
-            _lbl("Quantiles"),
-            dcc.Checklist(id="sc-qs", options=_q_options(),
-                          value=[q for q in [0.001, 0.10] if q in M.qr_fits],
-                          labelStyle={"display":"block"},
-                          inputStyle={"marginRight":"5px"}),
-        ),
+        _q_panel("sc-qs", [q for q in [0.001, 0.10] if q in M.qr_fits]),
+        # Hidden MC controls — keeps component IDs alive for callbacks
+        html.Div(_mc_controls("sc", amount_label="Withdrawal per period ($)",
+                              amount_default=5000, show_inflation=True,
+                              amount_dropdown=True, show_stack=True),
+                 style={"display": "none"}),
     ])
 
 
@@ -1090,7 +1400,7 @@ _FAQ = [
         ),
     },
     {
-        "q": "What is the Stack-cellerator on the DCA tab?",
+        "q": "What is the Stack-celerator on the DCA tab?",
         "a": html.Span([
             html.Span(
                 "It's \u201cActivate Saylor Mode\u201d \u2014 a strategy popularized by Michael Saylor and "
@@ -1670,6 +1980,34 @@ app.layout = dbc.Container([
     dcc.Store(id="splash-ts-store", storage_type="local", data=None),
     dcc.Store(id="lots-store", storage_type="local", data=[]),
     dcc.Store(id="lots-export-dummy"),
+    # MC simulation result stores (localStorage — survives page reloads)
+    dcc.Store(id="dca-mc-results", storage_type="memory", data=None),
+    dcc.Store(id="ret-mc-results", storage_type="memory", data=None),
+    dcc.Store(id="hm-mc-results",  storage_type="memory", data=None),
+    dcc.Store(id="sc-mc-results",  storage_type="memory", data=None),
+    # Trigger stores: incremented on MC upload to force figure redraw
+    dcc.Store(id="dca-mc-loaded", storage_type="memory", data=0),
+    dcc.Store(id="ret-mc-loaded", storage_type="memory", data=0),
+    dcc.Store(id="hm-mc-loaded",  storage_type="memory", data=0),
+    dcc.Store(id="sc-mc-loaded",  storage_type="memory", data=0),
+    dcc.Store(id="dca-mc-dl-dummy"),
+    dcc.Store(id="ret-mc-dl-dummy"),
+    dcc.Store(id="hm-mc-dl-dummy"),
+    dcc.Store(id="sc-mc-dl-dummy"),
+    # MC save prompt modal — shown after cache miss (new simulation)
+    dcc.Store(id="mc-save-tab", storage_type="memory", data=None),
+    dcc.Store(id="mc-save-modal-dummy"),
+    dbc.Modal([
+        dbc.ModalHeader(dbc.ModalTitle("Monte Carlo Simulation Complete")),
+        dbc.ModalBody("This simulation took a while to compute. "
+                      "Save it now so you don't have to wait again."),
+        dbc.ModalFooter([
+            dbc.Button("\u2b07 Save simulation", id="mc-save-modal-dl",
+                       color="warning", className="me-2"),
+            dbc.Button("Dismiss", id="mc-save-modal-dismiss",
+                       color="secondary"),
+        ]),
+    ], id="mc-save-modal", is_open=False, backdrop="static", centered=True),
     dcc.Location(id="url", refresh=False),
     dcc.Store(id="snapshot-lots",     storage_type="memory", data=None),
     dcc.Store(id="effective-lots",    storage_type="memory", data=[]),
@@ -1979,7 +2317,14 @@ def auto_bubble_yrange(xrange, auto_y, yscale, sel_qs):
 
 
 @callback(
-    Output("heatmap-graph", "figure"),
+    Output("heatmap-graph",  "figure"),
+    Output("hm-mc-graph",    "figure"),
+    Output("hm-mc-results",  "data"),
+    Output("hm-mc-status",   "children"),
+    Output("hm-mc-panel",    "style"),
+    Output("hm-swipe-indicator", "style"),
+    Output("mc-save-modal", "is_open", allow_duplicate=True),
+    Output("mc-save-tab", "data", allow_duplicate=True),
     Input("main-tabs",    "active_tab"),
     Input("hm-entry-yr",  "value"),
     Input("hm-entry-q",   "value"),
@@ -1999,21 +2344,50 @@ def auto_bubble_yrange(xrange, auto_y, yscale, sel_qs):
     Input("hm-stack",     "value"),
     Input("hm-use-lots",  "value"),
     Input("effective-lots","data"),
+    Input("hm-mc-enable",  "value"),
+    Input("hm-mc-amount",  "value"),
+    Input("hm-mc-infl",    "value"),
+    Input("hm-mc-bins",    "value"),
+    Input("hm-mc-sims",    "value"),
+    Input("hm-mc-years",   "value"),
+    Input("hm-mc-freq",    "value"),
+    Input("hm-mc-window",  "value"),
+    Input("hm-mc-entry-yr", "value"),
+    Input("hm-mc-entry-q",  "value"),
+    Input("hm-mc-loaded",   "data"),
     State("btc-price-store", "data"),
+    State("hm-mc-results",  "data"),
     prevent_initial_call=True,
 )
 def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
                    b1, b2, c_lo, c_mid1, c_mid2, c_hi, grad,
-                   vfmt, cell_fs, toggles, stack, use_lots, lots_data, live_price):
+                   vfmt, cell_fs, toggles, stack, use_lots, lots_data,
+                   mc_enable, mc_amount, mc_infl, mc_bins, mc_sims, mc_years, mc_freq, mc_window,
+                   mc_entry_yr, mc_entry_q, _mc_loaded,
+                   live_price, mc_cached):
     if ctx.triggered_id == "main-tabs" and active_tab != "heatmap":
         raise dash.exceptions.PreventUpdate
     exit_range = exit_range or [entry_yr or 2025, (entry_yr or 2025) + 10]
     toggles    = toggles or []
     yr_now = pd.Timestamp.today().year
-    return _get_heatmap_fig(dict(
+
+    # Only use live ticker price when entry_yr == current year AND the user
+    # hasn't modified the entry percentile away from the ticker value.
+    def _use_live(eyr_val, eq_val):
+        if not live_price or int(eyr_val or yr_now) != yr_now:
+            return None
+        ticker_pct = _find_lot_percentile(today_t(M.genesis), float(live_price), M.qr_fits)
+        if ticker_pct is None:
+            return None
+        ticker_q = round(ticker_pct * 100, 1)
+        if abs(float(eq_val or 50) - ticker_q) > 0.05:
+            return None  # user changed entry percentile
+        return float(live_price)
+
+    shared_params = dict(
         entry_yr     = int(entry_yr or yr_now),
         entry_q      = float(entry_q or 50),
-        live_price   = float(live_price) if live_price and int(entry_yr or yr_now) == yr_now else None,
+        live_price   = _use_live(entry_yr, entry_q),
         exit_yr_lo   = int(exit_range[0]),
         exit_yr_hi   = int(exit_range[1]),
         exit_qs      = exit_qs or [],
@@ -2031,11 +2405,67 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
         stack        = float(stack or 0),
         use_lots     = bool(use_lots),
         lots         = lots_data or [],
-    ))
+    )
+
+    # QR heatmap (always)
+    qr_fig = _get_heatmap_fig(dict(shared_params))
+
+    # MC heatmap (only when enabled + module present)
+    mc_enabled = bool(mc_enable) and _HAS_MARKOV
+    if mc_enabled:
+        mc_eyr = int(mc_entry_yr or yr_now)
+        mc_eq  = float(mc_entry_q or 50)
+        # Auto-cap training window end at entry year for historical sims
+        mc_win = list(mc_window) if mc_window else [2010, yr_now]
+        if mc_eyr < yr_now:
+            mc_win[1] = min(mc_win[1], mc_eyr)
+        mc_params = dict(
+            shared_params,
+            # Override entry point with MC-specific values
+            entry_yr     = mc_eyr,
+            entry_q      = mc_eq,
+            live_price   = _use_live(mc_eyr, mc_eq),
+            mc_enabled   = True,
+            mc_amount    = float(mc_amount or 100),
+            mc_infl      = float(mc_infl) if mc_infl is not None else 0.0,
+            mc_bins      = int(mc_bins or 5),
+            mc_sims      = int(mc_sims or 800),
+            mc_years     = int(mc_years or 10),
+            mc_freq      = mc_freq or "Monthly",
+            mc_window    = mc_win,
+            mc_live_price = float(live_price or 0),
+            mc_cached    = mc_cached,
+        )
+        mc_fig, mc_result = _get_mc_heatmap_fig(mc_params)
+    else:
+        mc_fig = dash.no_update
+        mc_result = None
+
+    store_val = mc_result if mc_result else dash.no_update
+    if mc_result:
+        status = f"Saved: {mc_result['created'][:19]}Z"
+    elif mc_cached and mc_enabled:
+        status = f"Using saved: {mc_cached.get('created', '?')[:19]}Z"
+    else:
+        status = ""
+
+    # Show/hide MC panel and swipe indicator
+    mc_panel_style = {} if mc_enabled else {"display": "none"}
+    indicator_style = ({"fontSize": "0.85rem", "color": "#6c757d", "userSelect": "none"}
+                       if mc_enabled
+                       else {"display": "none"})
+
+    show_modal = bool(mc_result)
+    return (qr_fig, mc_fig, store_val, status, mc_panel_style, indicator_style,
+            show_modal, "hm" if show_modal else dash.no_update)
 
 
 @callback(
     Output("dca-graph", "figure"),
+    Output("dca-mc-results", "data"),
+    Output("dca-mc-status", "children"),
+    Output("mc-save-modal", "is_open", allow_duplicate=True),
+    Output("mc-save-tab", "data", allow_duplicate=True),
     Input("main-tabs",    "active_tab"),
     Input("dca-stack",    "value"),
     Input("dca-use-lots", "value"),
@@ -2056,18 +2486,32 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     Input("dca-sc-custom-price", "value"),
     Input("dca-sc-tax",          "value"),
     Input("dca-sc-rollover",     "value"),
+    Input("dca-mc-enable",  "value"),
+    Input("dca-mc-amount",  "value"),
+    Input("dca-mc-infl",    "value"),
+    Input("dca-mc-bins",    "value"),
+    Input("dca-mc-sims",    "value"),
+    Input("dca-mc-years",   "value"),
+    Input("dca-mc-freq",    "value"),
+    Input("dca-mc-window",  "value"),
+    Input("dca-mc-start-yr", "value"),
+    Input("dca-mc-entry-q", "value"),
+    Input("dca-mc-loaded",  "data"),
     State("btc-price-store","data"),
+    State("dca-mc-results", "data"),
     prevent_initial_call=True,
 )
 def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggles, sel_qs, lots_data,
                sc_enable, sc_loan, sc_rate, sc_term, sc_type, sc_repeats,
-               sc_entry_mode, sc_custom_price, sc_tax, sc_rollover, price_data):
+               sc_entry_mode, sc_custom_price, sc_tax, sc_rollover,
+               mc_enable, mc_amount, mc_infl, mc_bins, mc_sims, mc_years, mc_freq, mc_window,
+               mc_start_yr, mc_entry_q, _mc_loaded, price_data, mc_cached):
     if ctx.triggered_id == "main-tabs" and active_tab != "dca":
         raise dash.exceptions.PreventUpdate
     toggles    = toggles or []
     yr_range   = yr_range or [2024, 2034]
     live_price = float(price_data or 0)
-    return _get_dca_fig(dict(
+    fig, mc_result = _get_dca_fig(dict(
         start_stack    = float(stack or 0),
         use_lots       = bool(use_lots),
         amount         = float(amount or 100),
@@ -2092,12 +2536,293 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
         sc_custom_price = float(sc_custom_price or 80000),
         sc_tax_rate     = float(sc_tax) / 100.0 if sc_tax is not None else 0.33,
         sc_rollover     = bool(sc_rollover),
+        mc_enabled     = bool(mc_enable),
+        mc_amount      = float(mc_amount or 100),
+        mc_infl        = float(mc_infl) if mc_infl is not None else 4.0,
+        mc_bins        = int(mc_bins or 5),
+        mc_sims        = int(mc_sims or 800),
+        mc_years       = int(mc_years or 10),
+        mc_freq        = mc_freq or "Monthly",
+        mc_window      = mc_window,
+        mc_live_price  = live_price,
+        mc_start_yr    = int(mc_start_yr or 2026),
+        mc_entry_q     = float(mc_entry_q or 50),
+        mc_cached      = mc_cached,
     ))
+    # Store new MC result if simulation ran; otherwise keep existing
+    store_val = mc_result if mc_result else dash.no_update
+    if mc_result:
+        status = f"Saved: {mc_result['created'][:19]}Z"
+    elif mc_cached and bool(mc_enable):
+        status = f"Using saved: {mc_cached.get('created', '?')[:19]}Z"
+    else:
+        status = ""
+    show_modal = bool(mc_result)
+    return fig, store_val, status, show_modal, "dca" if show_modal else dash.no_update
 
 
 @callback(Output("dca-sc-body","style"), Input("dca-sc-enable","value"))
 def _toggle_dca_sc_body(val):
     return {} if val else {"display": "none"}
+
+@callback(Output("dca-mc-body","style"), Input("dca-mc-enable","value"))
+def _toggle_dca_mc_body(val):
+    return {} if val else {"display": "none"}
+
+@callback(Output("ret-mc-body","style"), Input("ret-mc-enable","value"))
+def _toggle_ret_mc_body(val):
+    return {} if val else {"display": "none"}
+
+@callback(Output("hm-mc-body","style"), Input("hm-mc-enable","value"))
+def _toggle_hm_mc_body(val):
+    return {} if val else {"display": "none"}
+
+@callback(Output("sc-mc-body","style"), Input("sc-mc-enable","value"))
+def _toggle_sc_mc_body(val):
+    return {} if val else {"display": "none"}
+
+# PPY display (steps/year) — clientside for instant feedback
+_PPY_JS = """
+function(freq) {
+    var m = {Daily:"365/yr", Weekly:"52/yr", Monthly:"12/yr", Quarterly:"4/yr", Annually:"1/yr"};
+    return m[freq] || "12/yr";
+}
+"""
+app.clientside_callback(_PPY_JS, Output("dca-mc-ppy","value"), Input("dca-mc-freq","value"))
+app.clientside_callback(_PPY_JS, Output("ret-mc-ppy","value"), Input("ret-mc-freq","value"))
+app.clientside_callback(_PPY_JS, Output("hm-mc-ppy","value"),  Input("hm-mc-freq","value"))
+app.clientside_callback(_PPY_JS, Output("sc-mc-ppy","value"),  Input("sc-mc-freq","value"))
+
+# Auto-scroll heatmap swipe container to MC panel when it becomes visible
+app.clientside_callback(
+    """
+    function(panelStyle) {
+        var isHidden = panelStyle && panelStyle.display === "none";
+        if (!isHidden) {
+            var wrap = document.getElementById("hm-swipe-wrap");
+            if (wrap) {
+                setTimeout(function() {
+                    wrap.scrollTo({ left: wrap.scrollWidth, behavior: "smooth" });
+                }, 200);
+            }
+        }
+        return "";
+    }
+    """,
+    Output("hm-swipe-scroll-dummy", "children"),
+    Input("hm-mc-panel", "style"),
+    prevent_initial_call=True,
+)
+
+# ── Dynamic years limit based on sims × freq (cap at 250K datapoints) ────────
+_MC_MAX_DATAPOINTS = 250_000
+_MC_YEARS_ALL = [10, 20, 30, 40]
+_MC_FREQ_PPY_MAP = {"Daily": 365, "Weekly": 52, "Monthly": 12, "Quarterly": 4, "Annually": 1}
+
+def _mc_years_options(sims, freq):
+    """Return filtered years dropdown options based on sims × freq cap."""
+    ppy = _MC_FREQ_PPY_MAP.get(freq or "Monthly", 12)
+    sims = int(sims or 800)
+    max_steps = _MC_MAX_DATAPOINTS // sims
+    max_years = max_steps // ppy if ppy > 0 else 50
+    opts = [{"label": f"{y} yr", "value": y}
+            for y in _MC_YEARS_ALL if y <= max_years]
+    return opts if opts else [{"label": "1 yr", "value": 1}]
+
+for _mc_pfx in ("dca", "ret", "hm", "sc"):
+    @callback(
+        Output(f"{_mc_pfx}-mc-years", "options"),
+        Output(f"{_mc_pfx}-mc-years", "value"),
+        Input(f"{_mc_pfx}-mc-sims", "value"),
+        Input(f"{_mc_pfx}-mc-freq", "value"),
+        State(f"{_mc_pfx}-mc-years", "value"),
+        prevent_initial_call=True,
+    )
+    def _update_mc_years_opts(sims, freq, cur_years, _pfx=_mc_pfx):
+        opts = _mc_years_options(sims, freq)
+        max_avail = opts[-1]["value"]
+        val = cur_years if (cur_years and cur_years <= max_avail) else max_avail
+        return opts, val
+
+# ── Quantile panel expand/collapse ────────────────────────────────────────────
+# Click anywhere in the wrap div OR the toggle link to expand.
+# After 4 s of no checkbox interaction the panel auto-collapses.
+_Q_COLLAPSE_DELAY_MS = 4000
+
+for _qid in ("bub-qs", "dca-qs", "ret-qs", "sc-qs"):
+    # Toggle on link click
+    app.clientside_callback(
+        """
+        function(n) {
+            var wrap = document.getElementById('""" + _qid + """-wrap');
+            var link = document.getElementById('""" + _qid + """-expand');
+            if (!wrap || !link) return window.dash_clientside.no_update;
+            if (wrap.style.maxHeight && wrap.style.maxHeight !== 'none') {
+                wrap.style.maxHeight = 'none';
+                link.textContent = 'Show less \\u25b4';
+            } else {
+                wrap.style.maxHeight = '""" + _Q_COLLAPSED_HEIGHT + """';
+                link.textContent = 'Show all \\u25be';
+            }
+            return window.dash_clientside.no_update;
+        }
+        """,
+        Output(_qid + "-expand", "style"),
+        Input(_qid + "-expand", "n_clicks"),
+        prevent_initial_call=True,
+    )
+
+    # Update toggle link text when hover expands (via CSS)
+    app.clientside_callback(
+        """
+        function(qsVal) {
+            var wrap = document.getElementById('""" + _qid + """-wrap');
+            var link = document.getElementById('""" + _qid + """-expand');
+            if (!wrap || !link) return window.dash_clientside.no_update;
+            // Sync toggle text with hover state via a brief check
+            var card = wrap.closest('.card');
+            if (card && !card._qHoverAttached) {
+                card._qHoverAttached = true;
+                card.addEventListener('mouseenter', function() {
+                    link.textContent = 'Show less \\u25b4';
+                });
+                card.addEventListener('mouseleave', function() {
+                    link.textContent = 'Show all \\u25be';
+                });
+            }
+            return window.dash_clientside.no_update;
+        }
+        """,
+        Output(_qid + "-wrap", "style"),
+        Input(_qid, "value"),
+        prevent_initial_call=True,
+    )
+
+
+_MC_FREQ_STEP_DAYS = {"Daily": 1, "Weekly": 7, "Monthly": 30, "Quarterly": 91, "Annually": 365}
+
+def _mc_cost_display(mc_freq, mc_years, mc_bins, mc_sims, mc_window):
+    """Compute MC cost and return list of html.Div elements for display."""
+    ppy      = MC_FREQ_PPY.get(mc_freq or "Monthly", 12)
+    mc_years = int(mc_years or 10)
+    n_steps  = mc_years * ppy
+    n_bins   = int(mc_bins or 5)
+    n_sims   = int(mc_sims or 400)
+    mc_window = mc_window or [2010, pd.Timestamp.today().year]
+    window_years = max(1, int(mc_window[1]) - int(mc_window[0]))
+    step_days = _MC_FREQ_STEP_DAYS.get(mc_freq or "Monthly", 30)
+
+    # Use cached transition matrix (pre-warmed at startup)
+    trans, _, n_bins = _get_transition_matrix(M, n_bins, step_days, list(mc_window))
+    n_nonzero = count_nonzero_entries(trans)
+    costs = compute_cost(n_steps, n_sims, n_nonzero, window_years)
+
+    def _fmt_sats(v):
+        if v >= 1_000_000:
+            return f"{v/1_000_000:.2f}M"
+        if v >= 1000:
+            return f"{v/1000:.1f}K"
+        if v == int(v):
+            return f"{int(v)}"
+        return f"{v:.1f}"
+
+    lines = [
+        html.Div(f"Simulation Matrix {n_bins}\u00d7{n_bins}: {n_nonzero} entries \u00b7 {_fmt_sats(costs['matrix_cost'])} sats"),
+        html.Div(f"Window: {window_years} yr \u00b7 {_fmt_sats(costs['window_cost'])} sats"),
+        html.Div(f"Steps: {mc_years} yr \u00d7 {ppy}/yr = {n_steps:,} steps"),
+        html.Div(f"Sims: {n_steps:,} steps \u00d7 {n_sims:,} = {_fmt_sats(costs['sim_cost'])} sats"),
+        html.Div(html.B(f"Total: {_fmt_sats(costs['total'])} sats"), style={"marginTop": "2px"}),
+    ]
+    if n_bins < int(mc_bins or 5):
+        lines.append(html.Div(
+            f"Bins capped to {n_bins} (max for {window_years}-year window)",
+            style={"color": "#c57600", "marginTop": "2px"},
+        ))
+    return lines
+
+
+@callback(
+    Output("dca-mc-cost", "children"),
+    Output("dca-mc-bins", "max"),
+    Input("dca-mc-enable", "value"),
+    Input("dca-mc-freq",   "value"),
+    Input("dca-mc-years",  "value"),
+    Input("dca-mc-bins",   "value"),
+    Input("dca-mc-sims",   "value"),
+    Input("dca-mc-window", "value"),
+    prevent_initial_call=True,
+)
+def _update_dca_mc_cost(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window):
+    mc_window = mc_window or [2010, pd.Timestamp.today().year]
+    window_years = max(1, int(mc_window[1]) - int(mc_window[0]))
+    step_days = _MC_FREQ_STEP_DAYS.get(mc_freq or "Monthly", 30)
+    mb = max_bins_for_window(window_years, step_days)
+    result = _mc_cost_display(mc_freq, mc_years, mc_bins, mc_sims, mc_window), mb
+    save_trans_cache_to_disk()
+    return result
+
+
+@callback(
+    Output("ret-mc-cost", "children"),
+    Output("ret-mc-bins", "max"),
+    Input("ret-mc-enable", "value"),
+    Input("ret-mc-freq",   "value"),
+    Input("ret-mc-years",  "value"),
+    Input("ret-mc-bins",   "value"),
+    Input("ret-mc-sims",   "value"),
+    Input("ret-mc-window", "value"),
+    prevent_initial_call=True,
+)
+def _update_ret_mc_cost(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window):
+    mc_window = mc_window or [2010, pd.Timestamp.today().year]
+    window_years = max(1, int(mc_window[1]) - int(mc_window[0]))
+    step_days = _MC_FREQ_STEP_DAYS.get(mc_freq or "Monthly", 30)
+    mb = max_bins_for_window(window_years, step_days)
+    result = _mc_cost_display(mc_freq, mc_years, mc_bins, mc_sims, mc_window), mb
+    save_trans_cache_to_disk()
+    return result
+
+
+@callback(
+    Output("hm-mc-cost", "children"),
+    Output("hm-mc-bins", "max"),
+    Input("hm-mc-enable", "value"),
+    Input("hm-mc-freq",   "value"),
+    Input("hm-mc-years",  "value"),
+    Input("hm-mc-bins",   "value"),
+    Input("hm-mc-sims",   "value"),
+    Input("hm-mc-window", "value"),
+    prevent_initial_call=True,
+)
+def _update_hm_mc_cost(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window):
+    mc_window = mc_window or [2010, pd.Timestamp.today().year]
+    window_years = max(1, int(mc_window[1]) - int(mc_window[0]))
+    step_days = _MC_FREQ_STEP_DAYS.get(mc_freq or "Monthly", 30)
+    mb = max_bins_for_window(window_years, step_days)
+    result = _mc_cost_display(mc_freq, mc_years, mc_bins, mc_sims, mc_window), mb
+    save_trans_cache_to_disk()
+    return result
+
+
+@callback(
+    Output("sc-mc-cost", "children"),
+    Output("sc-mc-bins", "max"),
+    Input("sc-mc-enable", "value"),
+    Input("sc-mc-freq",   "value"),
+    Input("sc-mc-years",  "value"),
+    Input("sc-mc-bins",   "value"),
+    Input("sc-mc-sims",   "value"),
+    Input("sc-mc-window", "value"),
+    prevent_initial_call=True,
+)
+def _update_sc_mc_cost(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window):
+    mc_window = mc_window or [2010, pd.Timestamp.today().year]
+    window_years = max(1, int(mc_window[1]) - int(mc_window[0]))
+    step_days = _MC_FREQ_STEP_DAYS.get(mc_freq or "Monthly", 30)
+    mb = max_bins_for_window(window_years, step_days)
+    result = _mc_cost_display(mc_freq, mc_years, mc_bins, mc_sims, mc_window), mb
+    save_trans_cache_to_disk()
+    return result
 
 
 # ── Saylor Mode: first-time quote toast ──────────────────────────────────────
@@ -2267,6 +2992,10 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
 
 @callback(
     Output("retire-graph", "figure"),
+    Output("ret-mc-results", "data"),
+    Output("ret-mc-status", "children"),
+    Output("mc-save-modal", "is_open", allow_duplicate=True),
+    Output("mc-save-tab", "data", allow_duplicate=True),
     Input("main-tabs",    "active_tab"),
     Input("ret-stack",    "value"),
     Input("ret-use-lots", "value"),
@@ -2278,14 +3007,30 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     Input("ret-toggles",  "value"),
     Input("ret-qs",       "value"),
     Input("effective-lots","data"),
+    Input("ret-mc-enable",  "value"),
+    Input("ret-mc-amount",  "value"),
+    Input("ret-mc-infl",    "value"),
+    Input("ret-mc-bins",    "value"),
+    Input("ret-mc-sims",    "value"),
+    Input("ret-mc-years",   "value"),
+    Input("ret-mc-freq",    "value"),
+    Input("ret-mc-window",  "value"),
+    Input("ret-mc-stack",    "value"),
+    Input("ret-mc-start-yr", "value"),
+    Input("ret-mc-entry-q",  "value"),
+    Input("ret-mc-loaded",   "data"),
+    State("btc-price-store","data"),
+    State("ret-mc-results", "data"),
     prevent_initial_call=True,
 )
-def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, sel_qs, lots_data):
+def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, sel_qs, lots_data,
+                  mc_enable, mc_amount, mc_infl, mc_bins, mc_sims, mc_years, mc_freq, mc_window,
+                  mc_stack, mc_start_yr, mc_entry_q, _mc_loaded, price_data, mc_cached):
     if ctx.triggered_id == "main-tabs" and active_tab != "retire":
         raise dash.exceptions.PreventUpdate
     toggles  = toggles or []
     yr_range = yr_range or [2025, 2045]
-    return _get_retire_fig(dict(
+    fig, mc_result = _get_retire_fig(dict(
         start_stack  = float(stack or 1.0),
         use_lots     = bool(use_lots),
         wd_amount    = float(wd or 5000),
@@ -2301,7 +3046,29 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         show_legend  = "show_legend" in toggles,
         selected_qs  = sel_qs or [],
         lots         = lots_data or [],
+        mc_enabled   = bool(mc_enable),
+        mc_amount    = float(mc_amount or 5000),
+        mc_infl      = float(mc_infl) if mc_infl is not None else 4.0,
+        mc_bins      = int(mc_bins or 5),
+        mc_sims      = int(mc_sims or 800),
+        mc_years     = int(mc_years or 10),
+        mc_freq      = mc_freq or "Monthly",
+        mc_window    = mc_window,
+        mc_live_price = float(price_data or 0),
+        mc_start_stack = float(mc_stack or 1.0),
+        mc_start_yr  = int(mc_start_yr or 2031),
+        mc_entry_q   = float(mc_entry_q or 50),
+        mc_cached    = mc_cached,
     ))
+    store_val = mc_result if mc_result else dash.no_update
+    if mc_result:
+        status = f"Saved: {mc_result['created'][:19]}Z"
+    elif mc_cached and bool(mc_enable):
+        status = f"Using saved: {mc_cached.get('created', '?')[:19]}Z"
+    else:
+        status = ""
+    show_modal = bool(mc_result)
+    return fig, store_val, status, show_modal, "ret" if show_modal else dash.no_update
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2310,6 +3077,10 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
 
 @callback(
     Output("supercharge-graph", "figure"),
+    Output("sc-mc-results",     "data"),
+    Output("sc-mc-status",      "children"),
+    Output("mc-save-modal", "is_open", allow_duplicate=True),
+    Output("mc-save-tab", "data", allow_duplicate=True),
     Input("main-tabs",       "active_tab"),
     Input("sc-stack",        "value"),
     Input("sc-use-lots",     "value"),
@@ -2331,13 +3102,29 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     Input("sc-chart-layout", "value"),
     Input("sc-display-q",    "value"),
     Input("effective-lots",  "data"),
+    Input("sc-mc-enable",    "value"),
+    Input("sc-mc-amount",    "value"),
+    Input("sc-mc-infl",      "value"),
+    Input("sc-mc-bins",      "value"),
+    Input("sc-mc-sims",      "value"),
+    Input("sc-mc-years",     "value"),
+    Input("sc-mc-freq",      "value"),
+    Input("sc-mc-window",    "value"),
+    Input("sc-mc-stack",      "value"),
+    Input("sc-mc-start-yr",  "value"),
+    Input("sc-mc-entry-q",   "value"),
+    Input("sc-mc-loaded",    "data"),
+    State("btc-price-store", "data"),
+    State("sc-mc-results",   "data"),
     prevent_initial_call=True,
 )
 def update_supercharge(active_tab, stack, use_lots, start_yr,
                        d0, d1, d2, d3, d4,
                        freq, infl, sel_qs, mode,
                        wd, end_yr, target_yr, disp,
-                       toggles, chart_layout, display_q, lots_data):
+                       toggles, chart_layout, display_q, lots_data,
+                       mc_enable, mc_amount, mc_infl, mc_bins, mc_sims, mc_years, mc_freq, mc_window,
+                       mc_stack, mc_start_yr, mc_entry_q, _mc_loaded, price_data, mc_cached):
     if ctx.triggered_id == "main-tabs" and active_tab != "supercharge":
         raise dash.exceptions.PreventUpdate
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
@@ -2347,7 +3134,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
     _cl = (2 if "shade" in (chart_layout or []) else 0) \
           if isinstance(chart_layout, list) \
           else (int(chart_layout) if chart_layout is not None else 2)
-    return _get_supercharge_fig(dict(
+    fig, mc_result = _get_supercharge_fig(dict(
         mode         = mode or "a",
         start_stack  = float(stack or 1.0),
         start_yr     = int(start_yr or yr_now),
@@ -2368,7 +3155,29 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         target_yr    = int(target_yr or 2060),
         lots         = lots_data or [],
         use_lots     = bool(use_lots),
+        mc_enabled   = bool(mc_enable),
+        mc_amount    = float(mc_amount or 5000),
+        mc_infl      = float(mc_infl) if mc_infl is not None else 4.0,
+        mc_bins      = int(mc_bins or 5),
+        mc_sims      = int(mc_sims or 800),
+        mc_years     = int(mc_years or 10),
+        mc_freq      = mc_freq or "Monthly",
+        mc_window    = mc_window,
+        mc_live_price = float(price_data or 0),
+        mc_start_stack = float(mc_stack or 1.0),
+        mc_start_yr  = int(mc_start_yr or 2031),
+        mc_entry_q   = float(mc_entry_q or 50),
+        mc_cached    = mc_cached,
     ))
+    store_val = mc_result if mc_result else dash.no_update
+    if mc_result:
+        status = f"Saved: {mc_result['created'][:19]}Z"
+    elif mc_cached and bool(mc_enable):
+        status = f"Using saved: {mc_cached.get('created', '?')[:19]}Z"
+    else:
+        status = ""
+    show_modal = bool(mc_result)
+    return fig, store_val, status, show_modal, "sc" if show_modal else dash.no_update
 
 
 @callback(
@@ -2553,15 +3362,285 @@ app.clientside_callback(
 )
 
 
+# ── MC simulation save (clientside JSON download) ────────────────────────────
+_MC_FILENAME_JS = """
+    function _mcFilename(tab, mc_data) {
+        var pk = mc_data.path_key || {};
+        var ok = mc_data.overlay_key || {};
+        var parts = ['mc', tab];
+        if (pk.mc_start_yr || pk.start_yr)
+            parts.push('yr' + (pk.mc_start_yr || pk.start_yr));
+        if (pk.mc_years) parts.push(pk.mc_years + 'y');
+        var eq = pk.mc_entry_q || pk.entry_q;
+        if (eq) parts.push('q' + Math.round(eq));
+        if (ok.mc_amount) parts.push('$' + ok.mc_amount);
+        if (ok.mc_infl) parts.push(ok.mc_infl + 'pctInfl');
+        if (ok.mc_start_stack) parts.push(ok.mc_start_stack + 'btc');
+        return parts.join('_') + '.json';
+    }
+"""
+
+for _mc_prefix in ("dca", "ret", "hm", "sc"):
+    app.clientside_callback(
+        _MC_FILENAME_JS + """
+        function(n_clicks, mc_data) {
+            if (!n_clicks || !mc_data) return window.dash_clientside.no_update;
+            var json = JSON.stringify(mc_data, null, 2);
+            var blob = new Blob([json], {type: 'application/json'});
+            var url  = URL.createObjectURL(blob);
+            var a    = document.createElement('a');
+            a.href     = url;
+            a.download = _mcFilename('""" + _mc_prefix + """', mc_data);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            return window.dash_clientside.no_update;
+        }
+        """,
+        Output(f"{_mc_prefix}-mc-dl-dummy", "data"),
+        Input(f"{_mc_prefix}-mc-dl-btn",    "n_clicks"),
+        State(f"{_mc_prefix}-mc-results",   "data"),
+        prevent_initial_call=True,
+    )
+
+
+# ── MC save-prompt modal: dismiss closes modal ──────────────────────────────
+@callback(
+    Output("mc-save-modal", "is_open", allow_duplicate=True),
+    Input("mc-save-modal-dismiss", "n_clicks"),
+    prevent_initial_call=True,
+)
+def _mc_modal_dismiss(n):
+    return False
+
+
+# ── MC save-prompt modal: save triggers download then closes ────────────────
+app.clientside_callback(
+    _MC_FILENAME_JS + """
+    function(n_clicks, tab, dca_data, ret_data, hm_data, sc_data) {
+        if (!n_clicks) return [window.dash_clientside.no_update, true];
+        var map = {dca: dca_data, ret: ret_data, hm: hm_data, sc: sc_data};
+        var mc_data = map[tab];
+        if (!mc_data) return [window.dash_clientside.no_update, false];
+        var json = JSON.stringify(mc_data, null, 2);
+        var blob = new Blob([json], {type: 'application/json'});
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        a.href     = url;
+        a.download = _mcFilename(tab, mc_data);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return [window.dash_clientside.no_update, false];
+    }
+    """,
+    Output("mc-save-modal-dummy", "data"),
+    Output("mc-save-modal", "is_open", allow_duplicate=True),
+    Input("mc-save-modal-dl", "n_clicks"),
+    State("mc-save-tab", "data"),
+    State("dca-mc-results", "data"),
+    State("ret-mc-results", "data"),
+    State("hm-mc-results", "data"),
+    State("sc-mc-results", "data"),
+    prevent_initial_call=True,
+)
+
+
+# ── MC simulation load (upload JSON → store + set UI controls) ───────────────
+
+_TAB_LABELS = {"dca": "DCA (tab 3)", "ret": "Retire (tab 4)",
+               "hm": "Heatmap (tab 2)", "sc": "Supercharger (tab 5)"}
+
+def _parse_mc_upload(contents, expected_tab=None):
+    """Decode uploaded MC JSON, return (data, error_msg).
+
+    If expected_tab is given, reject files saved from a different tab.
+    """
+    if not contents:
+        return None, None
+    _, b64 = contents.split(",", 1)
+    raw = base64.b64decode(b64)
+    data = json.loads(raw)
+    if "path_key" not in data and "params" not in data:
+        return None, "Invalid MC file (missing path data)."
+    file_tab = data.get("tab")
+    if expected_tab and file_tab and file_tab != expected_tab:
+        src = _TAB_LABELS.get(file_tab, file_tab)
+        dst = _TAB_LABELS.get(expected_tab, expected_tab)
+        return None, f"Wrong tab: this is a {src} simulation. Upload it on {dst}."
+    return data, None
+
+
+def _pk(data, key, default=None):
+    """Get a value from loaded data's path_key or overlay_key."""
+    pk = data.get("path_key", {})
+    ok = data.get("overlay_key", {})
+    return pk.get(key, ok.get(key, default))
+
+
+@callback(
+    Output("dca-mc-results", "data", allow_duplicate=True),
+    Output("dca-mc-upload-status", "children"),
+    Output("dca-mc-loaded", "data", allow_duplicate=True),
+    Output("dca-mc-enable", "value", allow_duplicate=True),
+    Output("dca-mc-years", "value", allow_duplicate=True),
+    Output("dca-mc-start-yr", "value", allow_duplicate=True),
+    Output("dca-mc-entry-q", "value", allow_duplicate=True),
+    Output("dca-mc-amount", "value", allow_duplicate=True),
+    Input("dca-mc-upload", "contents"),
+    State("dca-mc-loaded", "data"),
+    prevent_initial_call=True,
+)
+def _load_dca_mc(contents, loaded_count):
+    if not contents:
+        raise dash.exceptions.PreventUpdate
+    try:
+        data, err = _parse_mc_upload(contents, expected_tab="dca")
+        if err:
+            return (dash.no_update, err, dash.no_update,
+                    dash.no_update, dash.no_update, dash.no_update,
+                    dash.no_update, dash.no_update)
+        nu = dash.no_update
+        return (data,
+                f"Loaded: {data.get('created', '?')[:19]}Z",
+                (loaded_count or 0) + 1,
+                ["yes"],  # enable MC
+                _pk(data, "mc_years", nu),
+                _pk(data, "mc_start_yr", nu),
+                int(_pk(data, "mc_entry_q", 50)),
+                _pk(data, "mc_amount", nu))
+    except Exception as e:
+        return (dash.no_update, f"Error: {e}", dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update)
+
+
+@callback(
+    Output("ret-mc-results", "data", allow_duplicate=True),
+    Output("ret-mc-upload-status", "children"),
+    Output("ret-mc-loaded", "data", allow_duplicate=True),
+    Output("ret-mc-enable", "value", allow_duplicate=True),
+    Output("ret-mc-years", "value", allow_duplicate=True),
+    Output("ret-mc-start-yr", "value", allow_duplicate=True),
+    Output("ret-mc-entry-q", "value", allow_duplicate=True),
+    Output("ret-mc-amount", "value", allow_duplicate=True),
+    Output("ret-mc-stack", "value", allow_duplicate=True),
+    Output("ret-mc-infl", "value", allow_duplicate=True),
+    Input("ret-mc-upload", "contents"),
+    State("ret-mc-loaded", "data"),
+    prevent_initial_call=True,
+)
+def _load_ret_mc(contents, loaded_count):
+    if not contents:
+        raise dash.exceptions.PreventUpdate
+    try:
+        data, err = _parse_mc_upload(contents, expected_tab="ret")
+        if err:
+            return (dash.no_update, err, dash.no_update,
+                    *([dash.no_update] * 7))
+        nu = dash.no_update
+        return (data,
+                f"Loaded: {data.get('created', '?')[:19]}Z",
+                (loaded_count or 0) + 1,
+                ["yes"],
+                _pk(data, "mc_years", nu),
+                _pk(data, "mc_start_yr", nu),
+                int(_pk(data, "mc_entry_q", 50)),
+                _pk(data, "mc_amount", nu),
+                _pk(data, "mc_start_stack", nu),
+                _pk(data, "mc_infl", nu))
+    except Exception as e:
+        return (dash.no_update, f"Error: {e}", dash.no_update,
+                *([dash.no_update] * 7))
+
+
+@callback(
+    Output("hm-mc-results", "data", allow_duplicate=True),
+    Output("hm-mc-upload-status", "children"),
+    Output("hm-mc-loaded", "data", allow_duplicate=True),
+    Output("hm-mc-enable", "value", allow_duplicate=True),
+    Output("hm-mc-years", "value", allow_duplicate=True),
+    Output("hm-mc-entry-q", "value", allow_duplicate=True),
+    Input("hm-mc-upload", "contents"),
+    State("hm-mc-loaded", "data"),
+    prevent_initial_call=True,
+)
+def _load_hm_mc(contents, loaded_count):
+    if not contents:
+        raise dash.exceptions.PreventUpdate
+    try:
+        data, err = _parse_mc_upload(contents, expected_tab="hm")
+        if err:
+            return (dash.no_update, err, dash.no_update,
+                    dash.no_update, dash.no_update, dash.no_update)
+        nu = dash.no_update
+        return (data,
+                f"Loaded: {data.get('created', '?')[:19]}Z",
+                (loaded_count or 0) + 1,
+                ["yes"],
+                _pk(data, "mc_years", nu),
+                _pk(data, "entry_q", _pk(data, "mc_entry_q", nu)))
+    except Exception as e:
+        return (dash.no_update, f"Error: {e}", dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update)
+
+
+@callback(
+    Output("sc-mc-results", "data", allow_duplicate=True),
+    Output("sc-mc-upload-status", "children"),
+    Output("sc-mc-loaded", "data", allow_duplicate=True),
+    Output("sc-mc-enable", "value", allow_duplicate=True),
+    Output("sc-mc-years", "value", allow_duplicate=True),
+    Output("sc-mc-start-yr", "value", allow_duplicate=True),
+    Output("sc-mc-entry-q", "value", allow_duplicate=True),
+    Output("sc-mc-amount", "value", allow_duplicate=True),
+    Output("sc-mc-stack", "value", allow_duplicate=True),
+    Output("sc-mc-infl", "value", allow_duplicate=True),
+    Input("sc-mc-upload", "contents"),
+    State("sc-mc-loaded", "data"),
+    prevent_initial_call=True,
+)
+def _load_sc_mc(contents, loaded_count):
+    if not contents:
+        raise dash.exceptions.PreventUpdate
+    try:
+        data, err = _parse_mc_upload(contents, expected_tab="sc")
+        if err:
+            return (dash.no_update, err, dash.no_update,
+                    *([dash.no_update] * 7))
+        nu = dash.no_update
+        return (data,
+                f"Loaded: {data.get('created', '?')[:19]}Z",
+                (loaded_count or 0) + 1,
+                ["yes"],
+                _pk(data, "mc_years", nu),
+                _pk(data, "mc_start_yr", nu),
+                int(_pk(data, "mc_entry_q", 50)),
+                _pk(data, "mc_amount", nu),
+                _pk(data, "mc_start_stack", nu),
+                _pk(data, "mc_infl", nu))
+    except Exception as e:
+        return (dash.no_update, f"Error: {e}", dash.no_update,
+                *([dash.no_update] * 7))
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Callback — live BTC price ticker (Binance, refreshes every 5 min)
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _fetch_btc_price():
-    """Fetch current BTC price — Binance primary, CoinGecko fallback."""
+    """Fetch current BTC price from multiple sources with fallback chain."""
     sources = [
         ("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
          lambda d: float(d["price"])),
+        ("https://mempool.space/api/v1/prices",
+         lambda d: float(d["USD"])),
+        ("https://api.blockchain.info/ticker",
+         lambda d: float(d["USD"]["last"])),
+        ("https://api.kraken.com/0/public/Ticker?pair=XBTUSD",
+         lambda d: float(d["result"]["XXBTZUSD"]["c"][0])),
         ("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
          lambda d: float(d["bitcoin"]["usd"])),
     ]
@@ -2579,19 +3658,23 @@ def _fetch_btc_price():
     Output("price-ticker-mobile", "children"),
     Output("btc-price-store",     "data"),
     Output("hm-entry-q",          "value", allow_duplicate=True),
+    Output("hm-mc-entry-q",       "value", allow_duplicate=True),
+    Output("dca-mc-entry-q",      "value", allow_duplicate=True),
     Input("price-interval", "n_intervals"),
     prevent_initial_call="initial_duplicate",
 )
 def update_price_ticker(_):
     price = _fetch_btc_price()
     if price is None:
-        return "₿ —", "₿ —", no_update, no_update
+        return "₿ —", "₿ —", no_update, no_update, no_update, no_update
     pct = _find_lot_percentile(today_t(M.genesis), price, M.qr_fits)
     pct_str = f"Q{pct*100:.1f}%" if pct is not None else "—"
     pct_val = round(pct * 100, 1) if pct is not None else no_update
+    # Snap to nearest 10% for cache-aligned DCA dropdown
+    dca_pct = max(10, min(90, round(pct * 10) * 10)) if pct is not None else no_update
     txt = f"₿ {fmt_price(price)}  ·  {pct_str}"
     txt_m = f"₿{fmt_price(price)}·{pct_str}"
-    return txt, txt_m, price, pct_val
+    return txt, txt_m, price, pct_val, pct_val, dca_pct
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -3324,6 +4407,12 @@ def _prewarm_caches():
 
 _prewarm_caches()
 
+# ── Pre-warm default transition matrix (lazy cache handles the rest) ──────────
+if _HAS_MARKOV:
+    # Warm the most common config (default controls) so first MC run is fast.
+    # All other combos are cached lazily on first request via _get_transition_matrix().
+    _get_transition_matrix(M, 5, 30, [2010, pd.Timestamp.today().year])
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Entry point
 # ══════════════════════════════════════════════════════════════════════════════
@@ -3339,4 +4428,5 @@ if __name__ == "__main__":
     print(f"\n  Quantoshi Web App")
     print(f"  Local:   http://localhost:{port}")
     print(f"  Network: http://{local_ip}:{port}\n")
-    app.run(host="0.0.0.0", port=port, debug=False)
+    dev = os.environ.get("DEV", "0") == "1"
+    app.run(host="0.0.0.0", port=port, debug=dev)

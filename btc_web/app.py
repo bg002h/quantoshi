@@ -47,17 +47,16 @@ from figures import (build_bubble_figure, build_heatmap_figure,
                      build_mc_heatmap_figure,
                      build_dca_figure, build_retire_figure,
                      build_supercharge_figure,
-                     _get_transition_matrix, save_trans_cache_to_disk)
+                     _get_transition_matrix, save_trans_cache_to_disk,
+                     _FREQ_STEP_DAYS, FREQ_PPY)
 import atexit
 atexit.register(save_trans_cache_to_disk)
 try:
     from markov import (build_transition_matrix, count_nonzero_entries,
-                        compute_cost, max_bins_for_window,
-                        FREQ_PPY as MC_FREQ_PPY)
+                        compute_cost, max_bins_for_window)
     _HAS_MARKOV = True
 except ImportError:
     _HAS_MARKOV = False
-    MC_FREQ_PPY = {"Daily": 365, "Weekly": 52, "Monthly": 12, "Quarterly": 4, "Annually": 1}
 
 # ── load model (once at startup) ──────────────────────────────────────────────
 M = load_model_data()
@@ -164,18 +163,8 @@ def _nearest_quantile(target, qs):
     return min(qs, key=lambda q: abs(q - target))
 
 
-def _startup_heatmap_defaults():
-    """Fetch live BTC price at startup; return entry percentile (0–100 scale)."""
-    price = _fetch_btc_price_startup()
-    if price is not None:
-        pct = _find_lot_percentile(today_t(M.genesis), price, M.qr_fits)
-        if pct is not None:
-            return round(pct * 100, 1)   # e.g. 7.5
-    return 50.0   # fallback
-
-
-def _fetch_btc_price_startup():
-    """Startup-only price fetch (before _fetch_btc_price is defined)."""
+def _fetch_btc_price():
+    """Fetch current BTC price from multiple sources with fallback chain."""
     sources = [
         ("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
          lambda d: float(d["price"])),
@@ -195,6 +184,16 @@ def _fetch_btc_price_startup():
         except Exception:
             continue
     return None
+
+
+def _startup_heatmap_defaults():
+    """Fetch live BTC price at startup; return entry percentile (0–100 scale)."""
+    price = _fetch_btc_price()
+    if price is not None:
+        pct = _find_lot_percentile(today_t(M.genesis), price, M.qr_fits)
+        if pct is not None:
+            return round(pct * 100, 1)   # e.g. 7.5
+    return 50.0   # fallback
 
 
 _HM_ENTRY_Q_DEFAULT = _startup_heatmap_defaults()
@@ -2316,6 +2315,18 @@ def auto_bubble_yrange(xrange, auto_y, yscale, sel_qs):
     return [round(y_lo, 1), round(y_hi, 1)]
 
 
+def _mc_status(mc_result, mc_cached, mc_enable):
+    """Common MC result → (store_val, status, show_modal) for all tab callbacks."""
+    store_val = mc_result if mc_result else dash.no_update
+    if mc_result:
+        status = f"Saved: {mc_result['created'][:19]}Z"
+    elif mc_cached and bool(mc_enable):
+        status = f"Using saved: {mc_cached.get('created', '?')[:19]}Z"
+    else:
+        status = ""
+    return store_val, status, bool(mc_result)
+
+
 @callback(
     Output("heatmap-graph",  "figure"),
     Output("hm-mc-graph",    "figure"),
@@ -2441,13 +2452,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
         mc_fig = dash.no_update
         mc_result = None
 
-    store_val = mc_result if mc_result else dash.no_update
-    if mc_result:
-        status = f"Saved: {mc_result['created'][:19]}Z"
-    elif mc_cached and mc_enabled:
-        status = f"Using saved: {mc_cached.get('created', '?')[:19]}Z"
-    else:
-        status = ""
+    store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enabled)
 
     # Show/hide MC panel and swipe indicator
     mc_panel_style = {} if mc_enabled else {"display": "none"}
@@ -2455,7 +2460,6 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
                        if mc_enabled
                        else {"display": "none"})
 
-    show_modal = bool(mc_result)
     return (qr_fig, mc_fig, store_val, status, mc_panel_style, indicator_style,
             show_modal, "hm" if show_modal else dash.no_update)
 
@@ -2549,15 +2553,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
         mc_entry_q     = float(mc_entry_q or 50),
         mc_cached      = mc_cached,
     ))
-    # Store new MC result if simulation ran; otherwise keep existing
-    store_val = mc_result if mc_result else dash.no_update
-    if mc_result:
-        status = f"Saved: {mc_result['created'][:19]}Z"
-    elif mc_cached and bool(mc_enable):
-        status = f"Using saved: {mc_cached.get('created', '?')[:19]}Z"
-    else:
-        status = ""
-    show_modal = bool(mc_result)
+    store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enable)
     return fig, store_val, status, show_modal, "dca" if show_modal else dash.no_update
 
 
@@ -2565,21 +2561,10 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
 def _toggle_dca_sc_body(val):
     return {} if val else {"display": "none"}
 
-@callback(Output("dca-mc-body","style"), Input("dca-mc-enable","value"))
-def _toggle_dca_mc_body(val):
-    return {} if val else {"display": "none"}
-
-@callback(Output("ret-mc-body","style"), Input("ret-mc-enable","value"))
-def _toggle_ret_mc_body(val):
-    return {} if val else {"display": "none"}
-
-@callback(Output("hm-mc-body","style"), Input("hm-mc-enable","value"))
-def _toggle_hm_mc_body(val):
-    return {} if val else {"display": "none"}
-
-@callback(Output("sc-mc-body","style"), Input("sc-mc-enable","value"))
-def _toggle_sc_mc_body(val):
-    return {} if val else {"display": "none"}
+for _mc_tog in ("dca", "ret", "hm", "sc"):
+    @callback(Output(f"{_mc_tog}-mc-body","style"), Input(f"{_mc_tog}-mc-enable","value"))
+    def _toggle_mc_body(val):
+        return {} if val else {"display": "none"}
 
 # PPY display (steps/year) — clientside for instant feedback
 _PPY_JS = """
@@ -2617,11 +2602,10 @@ app.clientside_callback(
 # ── Dynamic years limit based on sims × freq (cap at 250K datapoints) ────────
 _MC_MAX_DATAPOINTS = 250_000
 _MC_YEARS_ALL = [10, 20, 30, 40]
-_MC_FREQ_PPY_MAP = {"Daily": 365, "Weekly": 52, "Monthly": 12, "Quarterly": 4, "Annually": 1}
 
 def _mc_years_options(sims, freq):
     """Return filtered years dropdown options based on sims × freq cap."""
-    ppy = _MC_FREQ_PPY_MAP.get(freq or "Monthly", 12)
+    ppy = FREQ_PPY.get(freq or "Monthly", 12)
     sims = int(sims or 800)
     max_steps = _MC_MAX_DATAPOINTS // sims
     max_years = max_steps // ppy if ppy > 0 else 50
@@ -2699,18 +2683,17 @@ for _qid in ("bub-qs", "dca-qs", "ret-qs", "sc-qs"):
     )
 
 
-_MC_FREQ_STEP_DAYS = {"Daily": 1, "Weekly": 7, "Monthly": 30, "Quarterly": 91, "Annually": 365}
 
 def _mc_cost_display(mc_freq, mc_years, mc_bins, mc_sims, mc_window):
     """Compute MC cost and return list of html.Div elements for display."""
-    ppy      = MC_FREQ_PPY.get(mc_freq or "Monthly", 12)
+    ppy      = FREQ_PPY.get(mc_freq or "Monthly", 12)
     mc_years = int(mc_years or 10)
     n_steps  = mc_years * ppy
     n_bins   = int(mc_bins or 5)
     n_sims   = int(mc_sims or 400)
     mc_window = mc_window or [2010, pd.Timestamp.today().year]
     window_years = max(1, int(mc_window[1]) - int(mc_window[0]))
-    step_days = _MC_FREQ_STEP_DAYS.get(mc_freq or "Monthly", 30)
+    step_days = _FREQ_STEP_DAYS.get(mc_freq or "Monthly", 30)
 
     # Use cached transition matrix (pre-warmed at startup)
     trans, _, n_bins = _get_transition_matrix(M, n_bins, step_days, list(mc_window))
@@ -2741,88 +2724,24 @@ def _mc_cost_display(mc_freq, mc_years, mc_bins, mc_sims, mc_window):
     return lines
 
 
-@callback(
-    Output("dca-mc-cost", "children"),
-    Output("dca-mc-bins", "max"),
-    Input("dca-mc-enable", "value"),
-    Input("dca-mc-freq",   "value"),
-    Input("dca-mc-years",  "value"),
-    Input("dca-mc-bins",   "value"),
-    Input("dca-mc-sims",   "value"),
-    Input("dca-mc-window", "value"),
-    prevent_initial_call=True,
-)
-def _update_dca_mc_cost(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window):
-    mc_window = mc_window or [2010, pd.Timestamp.today().year]
-    window_years = max(1, int(mc_window[1]) - int(mc_window[0]))
-    step_days = _MC_FREQ_STEP_DAYS.get(mc_freq or "Monthly", 30)
-    mb = max_bins_for_window(window_years, step_days)
-    result = _mc_cost_display(mc_freq, mc_years, mc_bins, mc_sims, mc_window), mb
-    save_trans_cache_to_disk()
-    return result
-
-
-@callback(
-    Output("ret-mc-cost", "children"),
-    Output("ret-mc-bins", "max"),
-    Input("ret-mc-enable", "value"),
-    Input("ret-mc-freq",   "value"),
-    Input("ret-mc-years",  "value"),
-    Input("ret-mc-bins",   "value"),
-    Input("ret-mc-sims",   "value"),
-    Input("ret-mc-window", "value"),
-    prevent_initial_call=True,
-)
-def _update_ret_mc_cost(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window):
-    mc_window = mc_window or [2010, pd.Timestamp.today().year]
-    window_years = max(1, int(mc_window[1]) - int(mc_window[0]))
-    step_days = _MC_FREQ_STEP_DAYS.get(mc_freq or "Monthly", 30)
-    mb = max_bins_for_window(window_years, step_days)
-    result = _mc_cost_display(mc_freq, mc_years, mc_bins, mc_sims, mc_window), mb
-    save_trans_cache_to_disk()
-    return result
-
-
-@callback(
-    Output("hm-mc-cost", "children"),
-    Output("hm-mc-bins", "max"),
-    Input("hm-mc-enable", "value"),
-    Input("hm-mc-freq",   "value"),
-    Input("hm-mc-years",  "value"),
-    Input("hm-mc-bins",   "value"),
-    Input("hm-mc-sims",   "value"),
-    Input("hm-mc-window", "value"),
-    prevent_initial_call=True,
-)
-def _update_hm_mc_cost(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window):
-    mc_window = mc_window or [2010, pd.Timestamp.today().year]
-    window_years = max(1, int(mc_window[1]) - int(mc_window[0]))
-    step_days = _MC_FREQ_STEP_DAYS.get(mc_freq or "Monthly", 30)
-    mb = max_bins_for_window(window_years, step_days)
-    result = _mc_cost_display(mc_freq, mc_years, mc_bins, mc_sims, mc_window), mb
-    save_trans_cache_to_disk()
-    return result
-
-
-@callback(
-    Output("sc-mc-cost", "children"),
-    Output("sc-mc-bins", "max"),
-    Input("sc-mc-enable", "value"),
-    Input("sc-mc-freq",   "value"),
-    Input("sc-mc-years",  "value"),
-    Input("sc-mc-bins",   "value"),
-    Input("sc-mc-sims",   "value"),
-    Input("sc-mc-window", "value"),
-    prevent_initial_call=True,
-)
-def _update_sc_mc_cost(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window):
-    mc_window = mc_window or [2010, pd.Timestamp.today().year]
-    window_years = max(1, int(mc_window[1]) - int(mc_window[0]))
-    step_days = _MC_FREQ_STEP_DAYS.get(mc_freq or "Monthly", 30)
-    mb = max_bins_for_window(window_years, step_days)
-    result = _mc_cost_display(mc_freq, mc_years, mc_bins, mc_sims, mc_window), mb
-    save_trans_cache_to_disk()
-    return result
+for _cost_pfx in ("dca", "ret", "hm", "sc"):
+    @callback(
+        Output(f"{_cost_pfx}-mc-cost", "children"),
+        Output(f"{_cost_pfx}-mc-bins", "max"),
+        Input(f"{_cost_pfx}-mc-enable", "value"),
+        Input(f"{_cost_pfx}-mc-freq",   "value"),
+        Input(f"{_cost_pfx}-mc-years",  "value"),
+        Input(f"{_cost_pfx}-mc-bins",   "value"),
+        Input(f"{_cost_pfx}-mc-sims",   "value"),
+        Input(f"{_cost_pfx}-mc-window", "value"),
+        prevent_initial_call=True,
+    )
+    def _update_mc_cost(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window):
+        mc_window = mc_window or [2010, pd.Timestamp.today().year]
+        window_years = max(1, int(mc_window[1]) - int(mc_window[0]))
+        step_days = _FREQ_STEP_DAYS.get(mc_freq or "Monthly", 30)
+        mb = max_bins_for_window(window_years, step_days)
+        return _mc_cost_display(mc_freq, mc_years, mc_bins, mc_sims, mc_window), mb
 
 
 # ── Saylor Mode: first-time quote toast ──────────────────────────────────────
@@ -2902,7 +2821,6 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
                    entry_mode, custom_price, tax, rollover, price_data):
     if not enabled:
         return ""
-    FREQ_PPY = {"Daily":365,"Weekly":52,"Monthly":12,"Quarterly":4,"Annually":1}
     ppy          = FREQ_PPY.get(freq or "Monthly", 12)
     amount       = float(amount or 100)
     principal    = float(sc_loan or 0)
@@ -3060,14 +2978,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         mc_entry_q   = float(mc_entry_q or 50),
         mc_cached    = mc_cached,
     ))
-    store_val = mc_result if mc_result else dash.no_update
-    if mc_result:
-        status = f"Saved: {mc_result['created'][:19]}Z"
-    elif mc_cached and bool(mc_enable):
-        status = f"Using saved: {mc_cached.get('created', '?')[:19]}Z"
-    else:
-        status = ""
-    show_modal = bool(mc_result)
+    store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enable)
     return fig, store_val, status, show_modal, "ret" if show_modal else dash.no_update
 
 
@@ -3169,14 +3080,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         mc_entry_q   = float(mc_entry_q or 50),
         mc_cached    = mc_cached,
     ))
-    store_val = mc_result if mc_result else dash.no_update
-    if mc_result:
-        status = f"Saved: {mc_result['created'][:19]}Z"
-    elif mc_cached and bool(mc_enable):
-        status = f"Using saved: {mc_cached.get('created', '?')[:19]}Z"
-    else:
-        status = ""
-    show_modal = bool(mc_result)
+    store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enable)
     return fig, store_val, status, show_modal, "sc" if show_modal else dash.no_update
 
 
@@ -3629,29 +3533,6 @@ def _load_sc_mc(contents, loaded_count):
 # ══════════════════════════════════════════════════════════════════════════════
 # Callback — live BTC price ticker (Binance, refreshes every 5 min)
 # ══════════════════════════════════════════════════════════════════════════════
-
-def _fetch_btc_price():
-    """Fetch current BTC price from multiple sources with fallback chain."""
-    sources = [
-        ("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
-         lambda d: float(d["price"])),
-        ("https://mempool.space/api/v1/prices",
-         lambda d: float(d["USD"])),
-        ("https://api.blockchain.info/ticker",
-         lambda d: float(d["USD"]["last"])),
-        ("https://api.kraken.com/0/public/Ticker?pair=XBTUSD",
-         lambda d: float(d["result"]["XXBTZUSD"]["c"][0])),
-        ("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
-         lambda d: float(d["bitcoin"]["usd"])),
-    ]
-    for url, parse in sources:
-        try:
-            with urllib.request.urlopen(url, timeout=5) as r:
-                return parse(json.loads(r.read()))
-        except Exception:
-            continue
-    return None
-
 
 @callback(
     Output("price-ticker",        "children"),

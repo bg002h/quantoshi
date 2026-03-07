@@ -1512,8 +1512,9 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
 
     mc_years = int(p.get("mc_years", 10))
     mc_start_yr = int(p.get("mc_start_yr", p.get("start_yr", 2031)))
-    mc_t_end = t_start + mc_years
-    mc_ts    = np.arange(t_start, mc_t_end + mc_dt * 0.5, mc_dt)
+    mc_t_start = max(yr_to_t(mc_start_yr, m.genesis), 1.0)
+    mc_t_end = mc_t_start + mc_years
+    mc_ts    = np.arange(mc_t_start, mc_t_end + mc_dt * 0.5, mc_dt)
 
     path_key    = _mc_path_key(p, tab)
     overlay_key = _mc_overlay_key(p, tab, start_stack)
@@ -1545,7 +1546,7 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
         )
         fan_btc = compute_fan_percentiles(btc_paths, _MC_FAN_PCTS)
         fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
-        dstats = depletion_stats(depl_steps, len(mc_ts), mc_dt, t_start)
+        dstats = depletion_stats(depl_steps, len(mc_ts), mc_dt, mc_t_start)
         fan = fan_usd if disp_mode == "usd" else fan_btc
 
         result = {
@@ -1582,7 +1583,7 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
             )
             fan_btc = compute_fan_percentiles(btc_paths, _MC_FAN_PCTS)
             fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
-            dstats = depletion_stats(depl_steps, len(mc_ts), mc_dt, t_start)
+            dstats = depletion_stats(depl_steps, len(mc_ts), mc_dt, mc_t_start)
             fan = fan_usd if disp_mode == "usd" else fan_btc
             return _build_return(fan_btc, fan, _depl_extra(dstats))
 
@@ -1596,7 +1597,7 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
 
     price_paths, _ = monte_carlo_prices(
         trans, bin_edges, start_pctile, n_steps, n_sims,
-        m.qr_fits, m.genesis, t_start, mc_dt,
+        m.qr_fits, m.genesis, mc_t_start, mc_dt,
     )
     btc_paths, usd_paths, depl_steps = mc_retire(
         price_paths, mc_stack, wd_amount, inflation, mc_dt,
@@ -1604,7 +1605,7 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
 
     fan_btc = compute_fan_percentiles(btc_paths, _MC_FAN_PCTS)
     fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
-    dstats = depletion_stats(depl_steps, n_steps, mc_dt, t_start)
+    dstats = depletion_stats(depl_steps, n_steps, mc_dt, mc_t_start)
     fan = fan_usd if disp_mode == "usd" else fan_btc
 
     result = {
@@ -1702,7 +1703,7 @@ def _mc_heatmap_overlay(m, p, ep, entry_t, eyrs):
 
     mc_labels = [f"MC P{int(pf*100)}%" for pf in _MC_FAN_PCTS]
 
-    # ── Check cache ──────────────────────────────────────────────────────
+    # ── Check client-side cache ───────────────────────────────────────────
     cached = p.get("mc_cached")
     if cached and cached.get("path_key") == path_key:
         price_paths = _mc_paths_from_lists(cached["price_paths"])
@@ -1721,27 +1722,22 @@ def _mc_heatmap_overlay(m, p, ep, entry_t, eyrs):
         }
         return mc_cagr, mc_prices_arr, mc_mults, mc_labels, result
 
+    # ── Check pre-computed server-side path cache ─────────────────────────
+    if _HAS_MC_CACHE:
+        _syr = int(p.get("entry_yr", 2024))
+        raw_pctile = float(p.get("entry_q", 50)) / 100.0
+        pct_bin = snap_to_bin(raw_pctile)
+        cached_paths = get_cached_paths(_syr, pct_bin, mc_years)
+        if cached_paths is not None:
+            mc_cagr, mc_prices_arr, mc_mults = _compute_cagr_rows(cached_paths, mc_ts)
+            return mc_cagr, mc_prices_arr, mc_mults, mc_labels, None
+
     # ── Run full simulation ──────────────────────────────────────────────
     trans, bin_edges, n_bins = _get_transition_matrix(m, n_bins, step_days, mc_window)
     n_steps = len(mc_ts)
 
-    # Starting percentile bin: for historical entry, use the user's entry
-    # percentile directly; for current-year entry, derive from live price.
-    eyr = int(p.get("entry_yr", 2024))
-    yr_now_hm = pd.Timestamp.today().year
-    if eyr < yr_now_hm:
-        # Historical: entry percentile IS the starting bin
-        raw_pctile = float(p.get("entry_q", 50)) / 100.0
-    else:
-        live_price = float(p.get("mc_live_price", 0))
-        t_now = max(t_start, 0.5)
-        if live_price > 0:
-            raw_pctile = _find_lot_percentile(t_now, live_price, m.qr_fits)
-        else:
-            raw_pctile = _find_lot_percentile(t_now,
-                                               float(qr_price(0.5, t_now, m.qr_fits)),
-                                               m.qr_fits)
-    start_pctile = round(raw_pctile * 20) / 20
+    # Starting percentile from entry_q (user-selected, cache-aligned 10% steps)
+    start_pctile = float(p.get("entry_q", 50)) / 100.0
     start_pctile = max(0.05, min(start_pctile, 0.95))
 
     price_paths, _ = monte_carlo_prices(

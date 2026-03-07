@@ -689,7 +689,7 @@ def _heatmap_controls():
                           value=[], inputStyle={"marginRight":"5px"}),
         ),
         # MC controls at the very bottom, below all quantile config
-        _mc_controls("hm", show_amount=False, show_entry=True),
+        _mc_controls("hm", show_amount=False, show_mc_entry_q=True),
     ])
 
 
@@ -751,7 +751,7 @@ _MC_START_YR_OPTIONS = [
 ]
 
 def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=100,
-                  show_inflation=False, show_amount=True, show_entry=False,
+                  show_inflation=False, show_amount=True,
                   amount_dropdown=False, show_stack=False, show_mc_entry_q=False):
     """Monte Carlo simulation controls, reusable across tabs."""
     yr_now_ph = pd.Timestamp.today().year
@@ -775,10 +775,9 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             dbc.Button(id=f"{prefix}-mc-dl-btn", style={"display":"none"}),
             dcc.Upload(id=f"{prefix}-mc-upload"),
             html.Div(id=f"{prefix}-mc-upload-status"),
-            *([dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now_ph),
-              ] if show_entry else []),
-            dbc.Input(id=f"{prefix}-mc-entry-q",
-                      value=_HM_ENTRY_Q_DEFAULT),
+            dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now_ph),
+            dcc.Dropdown(id=f"{prefix}-mc-entry-q",
+                        value=max(10, min(90, round(_HM_ENTRY_Q_DEFAULT / 10) * 10 or 50))),
             dcc.Dropdown(id=f"{prefix}-mc-stack", value=1.0),
             dcc.Dropdown(id=f"{prefix}-mc-start-yr", value=2031),
         ])
@@ -813,16 +812,8 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                       options=[{"label": " Enable MC fan overlay", "value": "yes"}],
                       value=[], inputStyle={"marginRight": "5px"}),
         html.Div(id=f"{prefix}-mc-body", style={"display": "none"}, children=[
-            *([html.Div("Entry Point", className="ctrl-section-header"),
-               _lbl("Entry year"),
-               dcc.Slider(id=f"{prefix}-mc-entry-yr", min=2010, max=2039,
-                          value=yr_now, step=1, marks=None,
-                          tooltip={"always_visible": True}),
-               _lbl("Entry percentile (0.1–99.9%)"),
-               dbc.Input(id=f"{prefix}-mc-entry-q", type="number",
-                         value=round(_HM_ENTRY_Q_DEFAULT / 5) * 5 or 5,
-                         min=0.1, max=99.9, step=0.1, size="sm"),
-              ] if show_entry else []),
+            html.Div(dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now),
+                     style={"display": "none"}),
             *([ _lbl("Retirement start year (bold = cached)"),
                 dcc.Dropdown(id=f"{prefix}-mc-start-yr",
                              options=_MC_START_YR_OPTIONS,
@@ -2363,7 +2354,7 @@ def _mc_status(mc_result, mc_cached, mc_enable):
     Input("hm-mc-years",   "value"),
     Input("hm-mc-freq",    "value"),
     Input("hm-mc-window",  "value"),
-    Input("hm-mc-entry-yr", "value"),
+    Input("hm-mc-start-yr", "value"),
     Input("hm-mc-entry-q",  "value"),
     Input("hm-mc-loaded",   "data"),
     State("btc-price-store", "data"),
@@ -2374,7 +2365,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
                    b1, b2, c_lo, c_mid1, c_mid2, c_hi, grad,
                    vfmt, cell_fs, toggles, stack, use_lots, lots_data,
                    mc_enable, mc_amount, mc_infl, mc_bins, mc_sims, mc_years, mc_freq, mc_window,
-                   mc_entry_yr, mc_entry_q, _mc_loaded,
+                   mc_start_yr, mc_entry_q, _mc_loaded,
                    live_price, mc_cached):
     if ctx.triggered_id == "main-tabs" and active_tab != "heatmap":
         raise dash.exceptions.PreventUpdate
@@ -2424,18 +2415,18 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     # MC heatmap (only when enabled + module present)
     mc_enabled = bool(mc_enable) and _HAS_MARKOV
     if mc_enabled:
-        mc_eyr = int(mc_entry_yr or yr_now)
+        mc_syr = int(mc_start_yr or yr_now)
         mc_eq  = float(mc_entry_q or 50)
-        # Auto-cap training window end at entry year for historical sims
+        # Auto-cap training window end at start year for historical sims
         mc_win = list(mc_window) if mc_window else [2010, yr_now]
-        if mc_eyr < yr_now:
-            mc_win[1] = min(mc_win[1], mc_eyr)
+        if mc_syr < yr_now:
+            mc_win[1] = min(mc_win[1], mc_syr)
         mc_params = dict(
             shared_params,
             # Override entry point with MC-specific values
-            entry_yr     = mc_eyr,
+            entry_yr     = mc_syr,
             entry_q      = mc_eq,
-            live_price   = _use_live(mc_eyr, mc_eq),
+            live_price   = _use_live(mc_syr, mc_eq),
             mc_enabled   = True,
             mc_amount    = float(mc_amount or 100),
             mc_infl      = float(mc_infl) if mc_infl is not None else 0.0,
@@ -3286,8 +3277,9 @@ _MC_FILENAME_JS = """
 
 for _mc_prefix in ("dca", "ret", "hm", "sc"):
     app.clientside_callback(
-        _MC_FILENAME_JS + """
+        """
         function(n_clicks, mc_data) {
+            """ + _MC_FILENAME_JS + """
             if (!n_clicks || !mc_data) return window.dash_clientside.no_update;
             var json = JSON.stringify(mc_data, null, 2);
             var blob = new Blob([json], {type: 'application/json'});
@@ -3321,8 +3313,9 @@ def _mc_modal_dismiss(n):
 
 # ── MC save-prompt modal: save triggers download then closes ────────────────
 app.clientside_callback(
-    _MC_FILENAME_JS + """
+    """
     function(n_clicks, tab, dca_data, ret_data, hm_data, sc_data) {
+        """ + _MC_FILENAME_JS + """
         if (!n_clicks) return [window.dash_clientside.no_update, true];
         var map = {dca: dca_data, ret: ret_data, hm: hm_data, sc: sc_data};
         var mc_data = map[tab];
@@ -3551,11 +3544,11 @@ def update_price_ticker(_):
     pct = _find_lot_percentile(today_t(M.genesis), price, M.qr_fits)
     pct_str = f"Q{pct*100:.1f}%" if pct is not None else "—"
     pct_val = round(pct * 100, 1) if pct is not None else no_update
-    # Snap to nearest 10% for cache-aligned DCA dropdown
-    dca_pct = max(10, min(90, round(pct * 10) * 10)) if pct is not None else no_update
+    # Snap to nearest 10% for cache-aligned dropdowns (hm-mc, dca-mc)
+    snapped_pct = max(10, min(90, round(pct * 10) * 10)) if pct is not None else no_update
     txt = f"₿ {fmt_price(price)}  ·  {pct_str}"
     txt_m = f"₿{fmt_price(price)}·{pct_str}"
-    return txt, txt_m, price, pct_val, pct_val, dca_pct
+    return txt, txt_m, price, pct_val, snapped_pct, snapped_pct
 
 
 # ══════════════════════════════════════════════════════════════════════════════

@@ -830,6 +830,11 @@ body {
     100% { opacity: 0; }
 }
 
+/* ── Mobile: hide minor grid (crashes Plotly.js on Safari) ────────────── */
+@media (max-width: 767px) {
+    label:has(.minor-grid-opt) { display: none !important; }
+}
+
 /* ── Mobile: block drop sizing ────────────────────────────────────────── */
 @media (max-width: 767px) {
     .blockdrop-cube {

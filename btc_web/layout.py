@@ -276,11 +276,8 @@ def _heatmap_controls():
                             value=[yr_now, yr_now + 15], step=1,
                             marks={y: f"'{y % 100:02d}" for y in range(2010, 2061, 5)},
                             tooltip={"always_visible":False}),
-            _lbl("Exit quantiles"),
-            dcc.Checklist(id="hm-exit-qs", options=_q_options(),
-                          value=_app_ctx._DEF_QS, labelStyle={"display":"block"},
-                          inputStyle={"marginRight":"5px"}),
         ),
+        _q_panel("hm-exit-qs", _app_ctx._DEF_QS),
         _ctrl_card(
             html.Div("Color & Style", className="ctrl-section-header"),
             _lbl("Color mode"),

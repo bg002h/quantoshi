@@ -463,7 +463,7 @@ for _mc_pfx in ("dca", "ret", "hm", "sc"):
 # After 4 s of no checkbox interaction the panel auto-collapses.
 _Q_COLLAPSE_DELAY_MS = 4000
 
-for _qid in ("bub-qs", "dca-qs", "ret-qs", "sc-qs"):
+for _qid in ("bub-qs", "hm-exit-qs", "dca-qs", "ret-qs", "sc-qs"):
     # Toggle on link click
     _app_ctx.app.clientside_callback(
         """

@@ -1345,24 +1345,20 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 all_y  = np.array(all_y)
                 y_min  = all_y.min(axis=0)
                 y_max  = all_y.max(axis=0)
-                y_med  = np.median(all_y, axis=0)
                 col    = _DELAY_COLORS[di % len(_DELAY_COLORS)]
                 d_lbl  = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
                 traces.append(go.Scatter(
                     x=list(ts_d), y=list(y_max), mode="lines",
                     line=dict(color=col, width=0), showlegend=False, hoverinfo="skip",
                 ))
+                max_final = (fmt_price(float(y_max[-1])) if disp_mode == "usd"
+                             else f"{float(y_max[-1]):.4f} BTC")
                 traces.append(go.Scatter(
                     x=list(ts_d), y=list(y_min), mode="lines",
                     fill="tonexty", fillcolor=_hex_alpha(col, 0.2),
-                    line=dict(color=col, width=0), showlegend=False, hoverinfo="skip",
-                ))
-                med_final = (fmt_price(float(y_med[-1])) if disp_mode == "usd"
-                             else f"{float(y_med[-1]):.4f} BTC")
-                traces.append(go.Scatter(
-                    x=list(ts_d), y=list(y_med), mode="lines",
-                    name=f"Delay {d_lbl}  \u2192  {med_final}",
-                    line=dict(color=col, width=2),
+                    line=dict(color=col, width=0),
+                    name=f"Delay {d_lbl}  \u2192  {max_final}",
+                    hoverinfo="skip",
                 ))
                 if p.get("annotate"):
                     for q in sel_qs:

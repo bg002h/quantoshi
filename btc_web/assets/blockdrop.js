@@ -228,7 +228,8 @@
         }
     }
 
-    /* ── Mini block toast (non-intrusive, bottom-right) ──────────────────── */
+    /* ── Mini block drop (non-intrusive, bottom-right) ──────────────────── */
+    var MINI_FALL_MS = 800;
     function dropBlockMini(height, txCount) {
         var el = document.createElement("div");
         el.className = "blockdrop-mini";
@@ -237,7 +238,7 @@
 
         document.body.appendChild(el);
 
-        /* Slide in */
+        /* Trigger fall */
         requestAnimationFrame(function() {
             requestAnimationFrame(function() { el.classList.add("blockdrop-mini-in"); });
         });
@@ -245,8 +246,8 @@
         /* Click to dismiss early */
         el.addEventListener("click", function() { dismissMini(el); });
 
-        /* Auto-dismiss after 5s */
-        setTimeout(function() { dismissMini(el); }, 5000);
+        /* Auto-dismiss 5s after landing */
+        setTimeout(function() { dismissMini(el); }, MINI_FALL_MS + 5000);
     }
 
     function dismissMini(el) {
@@ -270,16 +271,13 @@
     /* ── Dev/test mode: fake block 10s after load on non-production ─────── */
     var isDev = (location.hostname !== "quantoshi.xyz" &&
                  !location.hostname.endsWith(".onion"));
-    /* Dev block drop disabled — uncomment to re-enable
     if (isDev) {
-        var devDelay = window.innerWidth < 768 ? 5000 : 10000;
         setTimeout(function() {
             var fakeHeight = (lastHeight || 890000) + 1;
             lastHeight = fakeHeight - 1;
             onNewBlock(fakeHeight, 2847);
-        }, devDelay);
+        }, 2000);
     }
-    */
 
     /* ── Bootstrap ───────────────────────────────────────────────────────── */
     /* Seed lastHeight so first WS message doesn't trigger animation */

@@ -708,14 +708,14 @@ body {
     100% { transform: translate(var(--dx), var(--dy)) scale(0.5); opacity: 0; }
 }
 
-/* ── Mini block toast (non-intrusive, bottom-right) ──────────────────── */
+/* ── Mini block drop (non-intrusive, bottom-right) ───────────────────── */
 .blockdrop-mini {
     position: fixed;
-    bottom: 20px;
-    right: -200px;
+    right: 24px;
+    top: -60px;
     z-index: 9998;
-    width: 90px;
-    height: 80px;
+    width: 44px;
+    height: 38px;
     background:
         radial-gradient(ellipse at 25% 15%, rgba(180,160,120,0.25) 0%, transparent 40%),
         radial-gradient(ellipse at 75% 85%, rgba(0,0,0,0.2) 0%, transparent 35%),
@@ -733,30 +733,36 @@ body {
     cursor: pointer;
     user-select: none;
     pointer-events: auto;
-    opacity: 0.85;
-    transition: right 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    opacity: 0;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
 }
 .blockdrop-mini-in {
-    right: 20px;
+    animation: miniBlockFall 0.8s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+}
+@keyframes miniBlockFall {
+    0%   { top: -60px; opacity: 0; }
+    15%  { opacity: 0.85; }
+    100% { top: calc(100vh - 60px); opacity: 0.85; }
 }
 .blockdrop-mini-out {
-    right: -200px;
     opacity: 0;
+    transition: opacity 0.35s ease;
 }
 .blockdrop-mini-label {
     color: #f7931a;
-    font-size: 11px;
+    font-size: 8px;
     font-weight: 700;
     font-family: monospace;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+    line-height: 1;
 }
 .blockdrop-mini-sub {
     color: rgba(255,220,160,0.8);
-    font-size: 8px;
+    font-size: 6px;
     font-family: monospace;
     margin-top: 1px;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+    line-height: 1;
 }
 
 /* ── Magic Internet Money Wizard ──────────────────────────────────────── */

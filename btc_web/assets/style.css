@@ -54,6 +54,7 @@ body {
     background-color: #f0f2f5 !important;
     font-weight: 600;
     border-top: 3px solid var(--btc-orange) !important;
+    animation: accentBreath 3s ease-in-out infinite;
 }
 
 /* Export row */
@@ -197,9 +198,6 @@ body {
 .controls-col::-webkit-scrollbar-thumb { background: var(--nav-dark); border-radius: 3px; }
 .controls-col::-webkit-scrollbar-thumb:hover { background: var(--nav-lighter); }
 
-/* Export row (legacy — overridden by polished variant) */
-.export-row { border-top: 1px solid #dee2e6; padding-top: 4px; }
-
 /* DataTable tweaks — already styled inline but reinforce */
 .dash-table-container .dash-spreadsheet-container { font-size: 12px; }
 
@@ -279,10 +277,6 @@ body {
             drop-shadow(0 0 24px rgba(247,147,26,0.3));
 }
 
-/* Gentle breathing pulse on the active tab's orange accent */
-.nav-tabs .nav-link.active {
-    animation: accentBreath 3s ease-in-out infinite;
-}
 @keyframes accentBreath {
     0%, 100% { border-top-color: var(--btc-orange); }
     50%      { border-top-color: #fbb034; }

@@ -3,13 +3,11 @@
 import json
 import base64
 import math
-import time
 
 import dash
 from dash import dcc, html, Input, Output, State, ctx, callback, no_update
 import dash_bootstrap_components as dbc
 import pandas as pd
-import plotly.graph_objects as go
 
 import _app_ctx
 from btc_core import (_find_lot_percentile, fmt_price, yr_to_t, today_t,

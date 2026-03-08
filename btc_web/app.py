@@ -104,7 +104,8 @@ def _prewarm_caches():
     _get_bubble_fig(dict(
         selected_qs = [],
         shade=True, show_ols=False, show_data=True, show_today=True,
-        show_legend=False, show_comp=True, show_sup=False,
+        show_legend=False, minor_grid=False,
+        show_comp=True, show_sup=False,
         xscale="log", yscale="log",
         xmin=2012, xmax=yr_now + 4,
         ymin=0.01, ymax=1e7,
@@ -114,13 +115,13 @@ def _prewarm_caches():
         sup_color="#888888", sup_lw=1.5,
     ))
 
-    # DCA (default: $100/mo, Q50%, 2020–2030)
+    # DCA (default: $100/mo, Q50%, current_yr–current_yr+10)
     _get_dca_fig(dict(
         start_stack=0, use_lots=False,
         amount=100.0, freq="Monthly",
-        start_yr=2020, end_yr=2030,
+        start_yr=yr_now, end_yr=yr_now + 10,
         disp_mode="btc", log_y=False, show_today=False,
-        dual_y=True, show_legend=True,
+        dual_y=True, show_legend=True, minor_grid=False,
         selected_qs=[0.50], lots=[],
         sc_enabled=False, sc_loan_amount=0, sc_rate=13.0,
         sc_loan_type="interest_only", sc_term_months=48.0,
@@ -129,7 +130,7 @@ def _prewarm_caches():
         sc_tax_rate=0.33, sc_live_price=None,
     ))
 
-    # Retire (default: $5000/mo, Q1%+Q5%+Q10%, 2031–2075, 4% inflation)
+    # Retire (default: $5000/mo, Q1%+Q10%+Q25%, 2031–2075, 4% inflation)
     _get_retire_fig(dict(
         start_stack=1.0, use_lots=False,
         wd_amount=5000.0, freq="Monthly",
@@ -137,6 +138,7 @@ def _prewarm_caches():
         inflation=4.0, disp_mode="btc",
         log_y=True, show_today=False,
         dual_y=True, annotate=True, show_legend=True,
+        minor_grid=True,
         selected_qs=[0.01, 0.10, 0.25],
         lots=[],
     ))
@@ -159,6 +161,7 @@ def _prewarm_caches():
         annotate     = True,
         show_today   = False,
         show_legend  = True,
+        minor_grid   = True,
         target_yr    = 2060,
         lots         = [],
         use_lots     = False,

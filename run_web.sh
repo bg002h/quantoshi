@@ -19,8 +19,13 @@ PORT="${PORT:-8050}"
 export PORT
 export PYTHONPATH="$SCRIPT_DIR:$SCRIPT_DIR/btc_app:$SCRIPT_DIR/btc_web"
 
+# Kill any existing process on the port
+fuser -k -9 "$PORT/tcp" 2>/dev/null
+sleep 1
+
 if [[ "${DEV:-0}" == "1" ]]; then
     echo "Starting Dash dev server on port $PORT..."
+    export DEV_NO_RELOAD=1
     exec "$PYTHON" "$SCRIPT_DIR/btc_web/app.py"
 else
     echo "Starting gunicorn (5 workers) on port $PORT..."

@@ -1001,7 +1001,13 @@ body {
 }
 /* MC "NEW" badge — landscape phones / narrow desktops */
 @media (min-width: 768px) and (max-width: 1100px) {
-    .controls-col { overflow: visible !important; }
+    .controls-col { overflow: visible !important; max-height: none !important; }
+    /* Keep chart pinned while scrolling through tall control panels */
+    .controls-col + [class*="col-"] {
+        position: sticky;
+        top: 0;
+        align-self: flex-start;
+    }
     .mc-new-badge {
         font-size: 12px;
         padding: 2px 4px 1px 3px;

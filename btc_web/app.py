@@ -189,4 +189,5 @@ if __name__ == "__main__":
     print(f"  Local:   http://localhost:{port}")
     print(f"  Network: http://{local_ip}:{port}\n")
     dev = os.environ.get("DEV", "0") == "1"
-    app.run(host="0.0.0.0", port=port, debug=dev)
+    no_reload = os.environ.get("DEV_NO_RELOAD", "0") == "1"
+    app.run(host="0.0.0.0", port=port, debug=dev, use_reloader=not no_reload)

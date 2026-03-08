@@ -3,116 +3,36 @@
 Each function takes a ModelData instance and a params dict of control values
 and returns a go.Figure ready for dcc.Graph.
 """
+from __future__ import annotations
 
 import math
 import base64
-import datetime
 from pathlib import Path
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 # btc_app/ is added to sys.path by app.py before this import
 import bisect
-from btc_core import qr_price, yr_to_t, today_t, fmt_price, _fmt_btc, leo_weighted_entry, _find_lot_percentile
+from typing import Any
+import _app_ctx
+from btc_core import ModelData, qr_price, yr_to_t, today_t, fmt_price, leo_weighted_entry
 try:
-    from markov import (build_transition_matrix, monte_carlo_prices,
-                        mc_dca, mc_retire, compute_fan_percentiles, depletion_stats,
-                        max_bins_for_window)
+    from markov import build_transition_matrix  # noqa: F401 — presence check
     _HAS_MARKOV = True
 except ImportError:
     _HAS_MARKOV = False
 
-try:
-    from mc_cache import (load_caches as _load_mc_caches,
-                          get_cached_paths, get_cached_overlay,
-                          snap_to_bin, is_cached_year, FAN_PCTS as _MC_CACHE_FAN_PCTS)
-    _load_mc_caches()
-    _HAS_MC_CACHE = True
-except ImportError:
-    _HAS_MC_CACHE = False
-
-# Server-side cache for transition matrices.
-# Key: (n_bins, step_days, window_start_yr, window_end_yr) → (trans, bin_edges)
-# Persisted to disk and lazily populated.
-_TRANS_MATRIX_CACHE = {}
-_TRANS_CACHE_PATH = Path(__file__).parent / ".trans_matrix_cache.pkl"
-_TRANS_CACHE_DIRTY = False  # track whether cache has new entries to flush
+# MC overlay logic lives in mc_overlay.py
+from mc_overlay import (
+    _mc_build_traces, _mc_depletion_annots,
+    _mc_dca_overlay, _mc_withdraw_overlay,
+    _mc_retire_overlay, _mc_supercharge_overlay,
+    _mc_heatmap_overlay,
+)
 
 
-def _load_trans_cache_from_disk():
-    """Load cached transition matrices from disk if they match current model data."""
-    global _TRANS_MATRIX_CACHE
-    if not _TRANS_CACHE_PATH.exists():
-        return
-    try:
-        import pickle
-        with open(_TRANS_CACHE_PATH, "rb") as f:
-            saved = pickle.load(f)
-        # Invalidate if model_data.pkl has changed since cache was written
-        pkl_path = Path(__file__).parent.parent / "btc_app" / "model_data.pkl"
-        if pkl_path.exists():
-            pkl_mtime = pkl_path.stat().st_mtime
-            if saved.get("_pkl_mtime") != pkl_mtime:
-                return  # stale cache
-        _TRANS_MATRIX_CACHE = saved.get("matrices", {})
-    except Exception:
-        pass  # corrupt cache file — start fresh
-
-
-def save_trans_cache_to_disk():
-    """Flush transition matrix cache to disk for reuse across restarts."""
-    global _TRANS_CACHE_DIRTY
-    if not _TRANS_CACHE_DIRTY:
-        return
-    try:
-        import pickle
-        pkl_path = Path(__file__).parent.parent / "btc_app" / "model_data.pkl"
-        pkl_mtime = pkl_path.stat().st_mtime if pkl_path.exists() else None
-        with open(_TRANS_CACHE_PATH, "wb") as f:
-            pickle.dump({"matrices": _TRANS_MATRIX_CACHE, "_pkl_mtime": pkl_mtime}, f)
-        _TRANS_CACHE_DIRTY = False
-    except Exception:
-        pass
-
-
-# Load from disk at import time
-_load_trans_cache_from_disk()
-
-
-def _get_transition_matrix(m, n_bins, step_days, mc_window):
-    """Get transition matrix from cache or build on the fly."""
-    global _TRANS_CACHE_DIRTY
-    window_start_yr = None
-    window_end_yr   = None
-    ws_cal = we_cal = None
-    if mc_window:
-        ws_cal = int(mc_window[0])
-        we_cal = int(mc_window[1])
-        window_years = max(1, we_cal - ws_cal)
-        n_bins = min(n_bins, max_bins_for_window(window_years, step_days))
-        window_start_yr = yr_to_t(ws_cal, m.genesis)
-        window_end_yr   = yr_to_t(we_cal, m.genesis)
-
-    cache_key = (n_bins, step_days, ws_cal, we_cal)
-    cached = _TRANS_MATRIX_CACHE.get(cache_key)
-    if cached is not None:
-        return cached[0], cached[1], n_bins
-
-    trans, bin_edges, _ = build_transition_matrix(
-        m.price_prices, m.price_years, m.qr_fits,
-        n_bins=n_bins,
-        window_start_yr=window_start_yr,
-        window_end_yr=window_end_yr,
-        step_days=step_days,
-    )
-    _TRANS_MATRIX_CACHE[cache_key] = (trans, bin_edges)
-    _TRANS_CACHE_DIRTY = True
-    return trans, bin_edges, n_bins
-
-
-def _interp_qr_price(q, t, qr_fits):
+def _interp_qr_price(q: float, t: float, qr_fits: dict) -> float:
     """Return QR price for arbitrary quantile q in (0,1), interpolating in log space."""
     qs = sorted(qr_fits.keys())
     if q <= qs[0]:
@@ -126,15 +46,54 @@ def _interp_qr_price(q, t, qr_fits):
     frac = (q - q_lo) / (q_hi - q_lo)
     return float(np.exp(np.log(p_lo) + frac * (np.log(p_hi) - np.log(p_lo))))
 
+# ── shared constants ─────────────────────────────────────────────────────────
+
+_ANNOT_STAGGER_Y = _app_ctx.ANNOT_STAGGER_Y
+
+_BTC_ORANGE       = _app_ctx.BTC_ORANGE
+_TODAY_LINE_COLOR  = "#FF6600"
+_TODAY_LINE_WIDTH  = 1.5
+_TODAY_LINE_OPACITY = 0.85
+_QR_LINE_WIDTH    = 1.8
+_INTERP_POINTS    = 1500     # sample points for QR interpolation curves
+_MAX_SCATTER_PTS  = 1200     # max data points before downsampling
+_FONT_TITLE       = 14
+_FONT_SUBTITLE    = 13
+_FONT_BODY        = 11
+_FONT_LEGEND      = _app_ctx.FONT_LEGEND
+_FONT_WATERMARK   = 9
+_FONT_ANNOT       = 11       # depletion / edge annotation text
+
+# ── shared small helpers ──────────────────────────────────────────────────────
+
+
+def _fmt_q_label(q: float) -> str:
+    """Format quantile as 'Q{pct}%' with appropriate precision."""
+    pct = q * 100
+    return f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
+
+
+def _error_figure(m, title):
+    """Return a blank figure with a message title, styled for dark theme."""
+    fig = go.Figure()
+    fig.update_layout(
+        title=title,
+        paper_bgcolor=m.PLOT_BG_COLOR,
+        plot_bgcolor=m.PLOT_BG_COLOR,
+        font=dict(color=m.TEXT_COLOR),
+    )
+    return fig
+
+
 # ── shared theme helpers ──────────────────────────────────────────────────────
 
 def _dark_layout(m, title, xlabel, ylabel, **kwargs):
     """Base dark-theme layout dict."""
     return dict(
-        title=dict(text=title, font=dict(color=m.TITLE_COLOR, size=14)),
+        title=dict(text=title, font=dict(color=m.TITLE_COLOR, size=_FONT_TITLE)),
         paper_bgcolor=m.PLOT_BG_COLOR,
         plot_bgcolor=m.PLOT_BG_COLOR,
-        font=dict(color=m.TEXT_COLOR, size=11),
+        font=dict(color=m.TEXT_COLOR, size=_FONT_BODY),
         xaxis=dict(
             title=dict(text=xlabel, font=dict(color=m.TEXT_COLOR)),
             gridcolor=m.GRID_MAJOR_COLOR, gridwidth=0.6,
@@ -149,7 +108,7 @@ def _dark_layout(m, title, xlabel, ylabel, **kwargs):
         ),
         legend=dict(
             bgcolor="rgba(255,255,255,0.85)", bordercolor=m.GRID_MAJOR_COLOR,
-            borderwidth=1, font=dict(size=10),
+            borderwidth=1, font=dict(size=_FONT_LEGEND),
         ),
         margin=dict(l=60, r=20, t=50, b=60),
         **kwargs,
@@ -176,7 +135,7 @@ except Exception:
     pass
 
 
-def _apply_watermark(fig):
+def _apply_watermark(fig: go.Figure) -> None:
     """Stamp Quantoshi logo + URL onto a go.Figure (bottom-right corner)."""
     if _LOGO_B64:
         fig.add_layout_image(dict(
@@ -194,7 +153,7 @@ def _apply_watermark(fig):
         x=0.925, y=0.015,
         xanchor="right", yanchor="bottom",
         showarrow=False,
-        font=dict(size=9, color="rgba(180,180,180,0.65)"),
+        font=dict(size=_FONT_WATERMARK, color="rgba(180,180,180,0.65)"),
     ))
     return fig
 
@@ -267,7 +226,7 @@ def _seg_colorscale(mc, b1, b2, c_lo, c_mid1, c_mid2, c_hi):
 
 # ── Bubble + QR Overlay ───────────────────────────────────────────────────────
 
-def build_bubble_figure(m, p):
+def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     """
     p keys: selected_qs, shade, xscale, yscale, xmin, xmax, ymin, ymax,
             n_future, show_comp, comp_color, comp_lw,
@@ -279,7 +238,7 @@ def build_bubble_figure(m, p):
     t_hi = yr_to_t(p["xmax"], m.genesis)
     y_lo = float(p["ymin"])
     y_hi = float(p["ymax"])
-    t_arr = np.linspace(max(t_lo, 0.1), t_hi, 1500)
+    t_arr = np.linspace(max(t_lo, 0.1), t_hi, _INTERP_POINTS)
 
     stack = float(p.get("stack", 0)) if p.get("show_stack") else 0.0
 
@@ -309,15 +268,14 @@ def build_bubble_figure(m, p):
         if q not in m.qr_fits:
             continue
         prices = qr_price(q, t_arr, m.qr_fits) * (stack if stack > 0 else 1)
-        pct = q * 100
-        lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
+        lbl = _fmt_q_label(q)
         if stack > 0:
             lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
         col = m.qr_colors.get(q, "#888888")
         traces.append(go.Scatter(
             x=list(t_arr), y=list(prices),
             mode="lines", name=lbl,
-            line=dict(color=col, width=1.8),
+            line=dict(color=col, width=_QR_LINE_WIDTH),
         ))
 
     # ── OLS line ──────────────────────────────────────────────────────────────
@@ -364,7 +322,7 @@ def build_bubble_figure(m, p):
         d_sc  = [m.price_dates[i] for i in range(len(m.price_dates)) if mask[i]]
         # Downsample to ≤1 200 points — imperceptible on log scale but cuts
         # figure JSON ~50 % and serialisation time meaningfully.
-        _MAX_PTS = 1200
+        _MAX_PTS = _MAX_SCATTER_PTS
         n_pts = len(x_sc)
         if n_pts > _MAX_PTS:
             stride = max(1, n_pts // _MAX_PTS)
@@ -412,14 +370,14 @@ def build_bubble_figure(m, p):
         if t_lo <= td <= t_hi:
             shapes.append(dict(
                 type="line", x0=td, x1=td, y0=y_lo, y1=y_hi,
-                line=dict(color="#FF6600", dash="dash", width=1.5),
-                opacity=0.85, yref="y",
+                line=dict(color=_TODAY_LINE_COLOR, dash="dash", width=_TODAY_LINE_WIDTH),
+                opacity=_TODAY_LINE_OPACITY, yref="y",
             ))
 
     # ── x-axis ticks (calendar years) ─────────────────────────────────────────
     tick_ts, tick_lbls = _year_ticks(p["xmin"], p["xmax"], m.genesis)
-    tick_ts  = [t for t in tick_ts if t_lo <= t <= t_hi]
-    tick_lbls = tick_lbls[:len(tick_ts)]
+    filtered = [(t, lbl) for t, lbl in zip(tick_ts, tick_lbls) if t_lo <= t <= t_hi]
+    tick_ts, tick_lbls = (list(x) for x in zip(*filtered)) if filtered else ([], [])
 
     # ── y-axis ticks (log price) ──────────────────────────────────────────────
     maj = _price_tickvals(y_lo, y_hi)
@@ -463,7 +421,7 @@ def build_bubble_figure(m, p):
             text=f"Stack: {p['stack']:.6g} BTC",
             xref="paper", yref="paper", x=0.99, y=0.01,
             xanchor="right", yanchor="bottom",
-            showarrow=False, font=dict(size=10, color=m.TEXT_COLOR),
+            showarrow=False, font=dict(size=_FONT_LEGEND, color=m.TEXT_COLOR),
             bgcolor=m.PLOT_BG_COLOR, bordercolor=m.SPINE_COLOR, borderwidth=1,
         )]
 
@@ -550,7 +508,7 @@ def _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax, cell_fs):
     return annots
 
 
-def build_heatmap_figure(m, p):
+def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     """
     p keys: entry_yr, entry_q, exit_yr_lo, exit_yr_hi, exit_qs (list),
             color_mode (0=Segmented,1=DataScaled,2=Diverging),
@@ -579,13 +537,7 @@ def build_heatmap_figure(m, p):
     xqs = sorted([float(q) for q in xqs_raw if float(q) in m.qr_fits], reverse=True)
 
     if not eyrs or not xqs:
-        fig = go.Figure()
-        fig.update_layout(
-            title="No data — adjust Entry / Exit settings",
-            paper_bgcolor=m.PLOT_BG_COLOR, plot_bgcolor=m.PLOT_BG_COLOR,
-            font=dict(color=m.TEXT_COLOR),
-        )
-        return fig
+        return _error_figure(m, "No data — adjust Entry / Exit settings")
 
     mc = np.zeros((len(xqs), len(eyrs)))
     mp = np.zeros((len(xqs), len(eyrs)))
@@ -611,8 +563,7 @@ def build_heatmap_figure(m, p):
     # ── quantile y-axis labels ────────────────────────────────────────────────
     ylabels = []
     for q in xqs:
-        pct = q * 100
-        ylabels.append(f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%")
+        ylabels.append(_fmt_q_label(q))
 
     # ── cell annotations ──────────────────────────────────────────────────────
     annots = _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax,
@@ -637,7 +588,7 @@ def build_heatmap_figure(m, p):
 
     fig.update_layout(
         title=dict(text=f"CAGR Heatmap — {entry_lbl}",
-                   font=dict(color=m.TITLE_COLOR, size=13)),
+                   font=dict(color=m.TITLE_COLOR, size=_FONT_SUBTITLE)),
         paper_bgcolor=m.PLOT_BG_COLOR,
         plot_bgcolor=m.PLOT_BG_COLOR,
         font=dict(color=m.TEXT_COLOR),
@@ -654,12 +605,12 @@ def build_heatmap_figure(m, p):
     return fig
 
 
-def build_mc_heatmap_figure(m, p):
+def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     """Build a standalone MC heatmap figure from MC-simulated CAGR percentiles.
     Returns (fig, mc_result) or (empty_fig, None).
     """
-    eyr = int(p.get("entry_yr", 2020))
-    eq  = float(p.get("entry_q", 50)) / 100.0
+    eyr = int(p.get("mc_start_yr", p.get("entry_yr", 2020)))
+    eq  = float(p.get("mc_entry_q", p.get("entry_q", 50))) / 100.0
     entry_t = yr_to_t(eyr, m.genesis)
     live_price = p.get("live_price")
     ep  = float(live_price) if live_price else _interp_qr_price(eq, entry_t, m.qr_fits)
@@ -676,24 +627,12 @@ def build_mc_heatmap_figure(m, p):
     eyrs = list(range(xlo, xhi + 1))
 
     if not eyrs:
-        fig = go.Figure()
-        fig.update_layout(
-            title="No data — adjust Entry / Exit settings",
-            paper_bgcolor=m.PLOT_BG_COLOR, plot_bgcolor=m.PLOT_BG_COLOR,
-            font=dict(color=m.TEXT_COLOR),
-        )
-        return fig, None
+        return _error_figure(m, "No data — adjust Entry / Exit settings"), None
 
     mc_data = _mc_heatmap_overlay(m, p, ep, entry_t, eyrs)
     mc_cagr, mc_prices, mc_mults, mc_labels, mc_result = mc_data
     if mc_cagr is None:
-        fig = go.Figure()
-        fig.update_layout(
-            title="MC simulation error",
-            paper_bgcolor=m.PLOT_BG_COLOR, plot_bgcolor=m.PLOT_BG_COLOR,
-            font=dict(color=m.TEXT_COLOR),
-        )
-        return fig, None
+        return _error_figure(m, "MC simulation error"), None
 
     mc = mc_cagr
     mp = mc_prices
@@ -701,13 +640,7 @@ def build_mc_heatmap_figure(m, p):
 
     valid = mc[~np.isnan(mc)]
     if len(valid) == 0:
-        fig = go.Figure()
-        fig.update_layout(
-            title="MC: no valid data in range",
-            paper_bgcolor=m.PLOT_BG_COLOR, plot_bgcolor=m.PLOT_BG_COLOR,
-            font=dict(color=m.TEXT_COLOR),
-        )
-        return fig, mc_result
+        return _error_figure(m, "MC: no valid data in range"), mc_result
 
     colorscale, zmin, zmax = _heatmap_colorscale(m, p, mc)
 
@@ -737,7 +670,7 @@ def build_mc_heatmap_figure(m, p):
 
     fig.update_layout(
         title=dict(text=f"Monte Carlo CAGR — {entry_lbl}",
-                   font=dict(color=m.TITLE_COLOR, size=13)),
+                   font=dict(color=m.TITLE_COLOR, size=_FONT_SUBTITLE)),
         paper_bgcolor=m.PLOT_BG_COLOR,
         plot_bgcolor=m.PLOT_BG_COLOR,
         font=dict(color=m.TEXT_COLOR),
@@ -754,9 +687,152 @@ def build_mc_heatmap_figure(m, p):
     return fig, mc_result
 
 
+# ── DCA helpers ──────────────────────────────────────────────────────────────
+
+def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy):
+    """Run Stack-cellerator overlay simulation for DCA tab.
+
+    Returns (sc_traces, all_sc_usd_vals, all_sc_btc_vals).
+    """
+    from _app_ctx import _compute_sc_loan
+
+    principal    = float(p.get("sc_loan_amount", 0))
+    sc_rate      = float(p.get("sc_rate", 13.0))
+    sc_live      = float(p.get("sc_live_price", 0))
+    loan_type    = p.get("sc_loan_type", "interest_only")
+    term_months  = float(p.get("sc_term_months", 12))
+    sc_repeats   = int(p.get("sc_repeats", 0))
+    entry_mode   = p.get("sc_entry_mode", "live")
+    custom_price = float(p.get("sc_custom_price", 0))
+    tax_rate     = max(0.0, min(float(p.get("sc_tax_rate", 0.33)), 0.9999))
+    sc_rollover  = bool(p.get("sc_rollover", False)) and loan_type == "interest_only"
+    amount       = float(p.get("amount", 100))
+
+    term_periods = max(1, round(term_months * ppy / 12))
+    n_cycles     = 1 + sc_repeats
+    r            = sc_rate / 100.0 / ppy
+
+    principal, pmt, _ = _compute_sc_loan(principal, amount, r, term_periods, loan_type)
+    sc_dca_amt = amount - pmt
+
+    sc_traces       = []
+    all_sc_usd_vals = {}
+    all_sc_btc_vals = {}
+
+    if principal <= 0:
+        return sc_traces, all_sc_usd_vals, all_sc_btc_vals
+
+    for q in sel_qs:
+        if q not in m.qr_fits:
+            continue
+        sc_stack    = start_stack
+        outstanding = 0.0
+        sc_vals     = np.empty(len(ts))
+        sc_prices   = np.empty(len(ts))
+        _prices_q   = all_prices[q]
+        for i, t in enumerate(ts):
+            price           = _prices_q[i]
+            cycle_idx       = i // term_periods
+            period_in_cycle = i % term_periods
+
+            if cycle_idx < n_cycles:
+                if period_in_cycle == 0:
+                    if cycle_idx == 0:
+                        if entry_mode == "live" and sc_live > 0:
+                            ep = sc_live
+                        elif entry_mode == "custom" and custom_price > 0:
+                            ep = custom_price
+                        else:
+                            ep = price
+                        sc_stack += principal / ep
+                    elif not sc_rollover:
+                        ep = price
+                        sc_stack += principal / ep
+                    outstanding = principal
+
+                sc_stack += sc_dca_amt / price
+
+                if loan_type == "amortizing":
+                    interest_p  = outstanding * r
+                    principal_p = pmt - interest_p
+                    outstanding = max(outstanding - principal_p, 0.0)
+
+                if loan_type == "interest_only" and period_in_cycle == term_periods - 1:
+                    if sc_rollover:
+                        pass
+                    else:
+                        gain_per_btc = max(price - ep, 0.0)
+                        net_per_btc  = price - tax_rate * gain_per_btc
+                        sc_stack    -= principal / net_per_btc
+                        sc_stack     = max(sc_stack, 0.0)
+                        outstanding  = 0.0
+            else:
+                sc_stack += amount / price
+
+            sc_vals[i]   = sc_stack
+            sc_prices[i] = price
+
+        # Deduct outstanding balance at simulation end
+        if outstanding > 1e-8 and sc_prices[-1] > 0:
+            final_price  = sc_prices[-1]
+            gain_per_btc = max(final_price - ep, 0.0)
+            net_per_btc  = final_price - tax_rate * gain_per_btc
+            sc_vals[-1]  = max(sc_vals[-1] - outstanding / net_per_btc, 0.0)
+
+        all_sc_usd_vals[q] = sc_vals * sc_prices
+        all_sc_btc_vals[q] = sc_vals.copy()
+
+        if disp_mode == "usd":
+            y_sc     = sc_vals * sc_prices
+            final_sc = fmt_price(float(y_sc[-1]))
+        else:
+            y_sc      = sc_vals
+            final_usd = fmt_price(float(all_sc_usd_vals[q][-1]))
+            final_sc  = f"{float(sc_vals[-1]):.4f} BTC  ({final_usd})"
+
+        lbl_sc = f"SC {_fmt_q_label(q)}" + f"  \u2192  {final_sc}"
+        col = m.qr_colors.get(q, "#888888")
+        sc_traces.append(go.Scatter(
+            x=list(ts), y=list(y_sc), mode="lines", name=lbl_sc,
+            line=dict(color=col, width=_QR_LINE_WIDTH, dash="dash"),
+        ))
+
+    return sc_traces, all_sc_usd_vals, all_sc_btc_vals
+
+
+def _render_edge_annots(edge_items):
+    """Build staggered right-edge USD value annotations.
+
+    Each item: (x, final_y, final_usd, color, prefix).
+    Returns list of annotation dicts.
+    """
+    if not edge_items:
+        return []
+    edge_items.sort(key=lambda it: it[1])
+    _AY_STEP = 18
+    _X_POSITIONS = [0.97, 0.87, 0.77]
+    annots = []
+    n = len(edge_items)
+    for idx, (ax_x, fy, fusd, col, pfx) in enumerate(edge_items):
+        ay = -35 - int((n - 1 - idx) * _AY_STEP)
+        xp = _X_POSITIONS[idx % len(_X_POSITIONS)]
+        annots.append(dict(
+            x=xp, xref="paper",
+            y=fy, yref="y",
+            text=f"<b>{pfx}{fmt_price(fusd)}</b>",
+            showarrow=True, arrowhead=2, arrowsize=1,
+            arrowcolor=col, arrowwidth=1.5,
+            ax=0, ay=ay,
+            font=dict(size=_FONT_ANNOT, color=col),
+            bgcolor="rgba(255,255,255,0.8)",
+            bordercolor=col, borderwidth=1, borderpad=2,
+        ))
+    return annots
+
+
 # ── DCA Accumulator ───────────────────────────────────────────────────────────
 
-def build_dca_figure(m, p):
+def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     """
     p keys: start_yr, end_yr, start_stack, amount, freq, disp_mode,
             selected_qs, log_y, show_today, dual_y,
@@ -768,9 +844,7 @@ def build_dca_figure(m, p):
     syr  = int(p.get("start_yr", 2024))
     eyr  = int(p.get("end_yr",   2035))
     if eyr <= syr:
-        return go.Figure(layout=dict(
-            title="Set end year > start year",
-            paper_bgcolor=m.PLOT_BG_COLOR, font=dict(color=m.TEXT_COLOR))), None
+        return _error_figure(m, "Set end year > start year"), None
 
     t_start = max(yr_to_t(syr, m.genesis), 1.0)
     t_end   = yr_to_t(eyr, m.genesis)
@@ -793,20 +867,15 @@ def build_dca_figure(m, p):
     all_btc_vals = {}  # q -> BTC balance array
     all_usd_vals = {}  # q -> USD value array (always tracked for dual-y)
     all_prices   = {}  # q -> price array — reused by SC loop to avoid redundant qr_price calls
+    ts_clamped = np.maximum(ts, 0.5)
     for q in sel_qs:
         if q not in m.qr_fits:
             continue
-        stack    = start_stack
-        vals     = np.empty(len(ts))
-        prices_q = np.empty(len(ts))
-        for i, t in enumerate(ts):
-            price      = float(qr_price(q, max(t, 0.5), m.qr_fits))
-            stack     += amount / price
-            vals[i]    = stack
-            prices_q[i] = price
-        all_btc_vals[q] = vals.copy()
-        all_usd_vals[q]  = vals * prices_q
-        all_prices[q]    = prices_q          # save for SC loop below
+        prices_q = qr_price(q, ts_clamped, m.qr_fits)
+        vals = start_stack + np.cumsum(amount / prices_q)
+        all_btc_vals[q] = vals
+        all_usd_vals[q] = vals * prices_q
+        all_prices[q]   = prices_q          # save for SC loop below
 
         if disp_mode == "usd":
             y_vals    = vals * prices_q
@@ -816,12 +885,11 @@ def build_dca_figure(m, p):
             final_usd = fmt_price(float(all_usd_vals[q][-1]))
             final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
 
-        pct = q * 100
-        lbl = (f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%") + f"  →  {final_lbl}"
+        lbl = _fmt_q_label(q) + f"  →  {final_lbl}"
         col = m.qr_colors.get(q, "#888888")
         traces.append(go.Scatter(
             x=list(ts), y=list(y_vals), mode="lines", name=lbl,
-            line=dict(color=col, width=1.8),
+            line=dict(color=col, width=_QR_LINE_WIDTH),
         ))
 
     shapes = []
@@ -830,8 +898,8 @@ def build_dca_figure(m, p):
         if t_start <= td <= t_end:
             shapes.append(dict(
                 type="line", x0=td, x1=td, y0=0, y1=1,
-                yref="paper", line=dict(color="#FF6600", dash="dash", width=1.5),
-                opacity=0.85,
+                yref="paper", line=dict(color=_TODAY_LINE_COLOR, dash="dash", width=_TODAY_LINE_WIDTH),
+                opacity=_TODAY_LINE_OPACITY,
             ))
 
     tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis)
@@ -865,123 +933,12 @@ def build_dca_figure(m, p):
     layout["shapes"] = shapes
 
     # ── Stack-cellerator overlay ─────────────────────────────────────────────
-    all_sc_usd_vals = {}  # q -> SC USD value array
-    all_sc_btc_vals = {}  # q -> SC BTC value array (for right-edge annotations)
+    all_sc_usd_vals = {}
+    all_sc_btc_vals = {}
     if p.get("sc_enabled") and sel_qs:
-        principal    = float(p.get("sc_loan_amount", 0))
-        sc_rate      = float(p.get("sc_rate", 13.0))
-        sc_live      = float(p.get("sc_live_price", 0))
-        loan_type    = p.get("sc_loan_type", "interest_only")
-        term_months  = float(p.get("sc_term_months", 12))
-        sc_repeats   = int(p.get("sc_repeats", 0))
-        entry_mode   = p.get("sc_entry_mode", "live")
-        custom_price = float(p.get("sc_custom_price", 0))
-        tax_rate     = max(0.0, min(float(p.get("sc_tax_rate", 0.33)), 0.9999))
-        sc_rollover  = bool(p.get("sc_rollover", False)) and loan_type == "interest_only"
-
-        term_periods = max(1, round(term_months * ppy / 12))
-        n_cycles     = 1 + sc_repeats
-        r            = sc_rate / 100.0 / ppy
-
-        # Cap principal so payment never exceeds DCA amount
-        if r > 0:
-            if loan_type == "amortizing":
-                max_principal = amount * (1 - (1 + r) ** (-term_periods)) / r
-            else:
-                max_principal = amount / r
-            principal = min(principal, max_principal)
-
-        if loan_type == "amortizing":
-            if r > 0:
-                pmt = principal * r / (1 - (1 + r) ** (-term_periods))
-            else:
-                pmt = principal / term_periods
-        else:  # interest_only
-            pmt = principal * r
-
-        sc_dca_amt = amount - pmt  # guaranteed >= 0 after cap
-
-        if principal > 0:
-            for q in sel_qs:
-                if q not in m.qr_fits:
-                    continue
-                sc_stack    = start_stack
-                outstanding = 0.0
-                sc_vals     = np.empty(len(ts))
-                sc_prices   = np.empty(len(ts))
-                _prices_q   = all_prices[q]  # precomputed — same as qr_price(q, t, ...) for each t
-                for i, t in enumerate(ts):
-                    price           = _prices_q[i]
-                    cycle_idx       = i // term_periods
-                    period_in_cycle = i % term_periods
-
-                    if cycle_idx < n_cycles:
-                        if period_in_cycle == 0:        # start of new cycle
-                            if cycle_idx == 0:          # first cycle — use entry mode
-                                if entry_mode == "live" and sc_live > 0:
-                                    ep = sc_live
-                                elif entry_mode == "custom" and custom_price > 0:
-                                    ep = custom_price
-                                else:
-                                    ep = price          # model price
-                                sc_stack    += principal / ep  # buy BTC with loan proceeds
-                            elif not sc_rollover:
-                                ep = price              # repeat cycle, no rollover: new independent loan
-                                sc_stack    += principal / ep
-                            # rollover repeat: new loan pays off old — no net BTC movement
-                            outstanding  = principal
-
-                        sc_stack += sc_dca_amt / price  # DCA minus loan payment
-
-                        if loan_type == "amortizing":   # track amortizing balance
-                            interest_p  = outstanding * r
-                            principal_p = pmt - interest_p
-                            outstanding = max(outstanding - principal_p, 0.0)
-
-                        if loan_type == "interest_only" and period_in_cycle == term_periods - 1:
-                            if sc_rollover:
-                                pass                    # rollover: no BTC sold; post-loop handles final repayment
-                            else:
-                                # Sell BTC to repay principal.  Tax applies only to the gain
-                                # (sell price − buy price); if selling at a loss there is no tax.
-                                gain_per_btc = max(price - ep, 0.0)
-                                net_per_btc  = price - tax_rate * gain_per_btc
-                                sc_stack    -= principal / net_per_btc
-                                sc_stack     = max(sc_stack, 0.0)
-                                outstanding  = 0.0
-                    else:                               # cycles exhausted → plain DCA
-                        sc_stack += amount / price
-
-                    sc_vals[i]   = sc_stack
-                    sc_prices[i] = price
-
-                # Deduct any outstanding balance at simulation end
-                # (incomplete final cycle or rollover — sell BTC at final price to repay,
-                #  tax on gain only: sell_price − buy_price, zero if selling at a loss)
-                if outstanding > 1e-8 and sc_prices[-1] > 0:
-                    final_price  = sc_prices[-1]
-                    gain_per_btc = max(final_price - ep, 0.0)
-                    net_per_btc  = final_price - tax_rate * gain_per_btc
-                    sc_vals[-1]  = max(sc_vals[-1] - outstanding / net_per_btc, 0.0)
-
-                all_sc_usd_vals[q] = sc_vals * sc_prices
-                all_sc_btc_vals[q] = sc_vals.copy()
-
-                if disp_mode == "usd":
-                    y_sc     = sc_vals * sc_prices
-                    final_sc = fmt_price(float(y_sc[-1]))
-                else:
-                    y_sc      = sc_vals
-                    final_usd = fmt_price(float(all_sc_usd_vals[q][-1]))
-                    final_sc  = f"{float(sc_vals[-1]):.4f} BTC  ({final_usd})"
-
-                pct = q * 100
-                lbl_sc = (f"SC Q{pct:.4g}%" if pct >= 1 else f"SC Q{pct:.3g}%") + f"  \u2192  {final_sc}"
-                col = m.qr_colors.get(q, "#888888")
-                traces.append(go.Scatter(
-                    x=list(ts), y=list(y_sc), mode="lines", name=lbl_sc,
-                    line=dict(color=col, width=1.8, dash="dash"),
-                ))
+        sc_traces, all_sc_usd_vals, all_sc_btc_vals = _dca_sc_overlay(
+            m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy)
+        traces.extend(sc_traces)
 
     # ── SC factor (ratio of median SC to median DCA at end date) ─────────────
     sc_factor_val = None
@@ -1029,33 +986,11 @@ def build_dca_figure(m, p):
                 final_usd = float(mc_med_usd[-1])
                 mc_med_y = float(mc_traces[-1].y[-1]) if mc_traces else final_usd
                 mc_x = float(mc_traces[-1].x[-1]) if mc_traces else x_end
-                _edge_items.append((mc_x, mc_med_y, final_usd, "#f7931a", "MC "))
+                _edge_items.append((mc_x, mc_med_y, final_usd, _BTC_ORANGE, "MC "))
 
     # ── Render staggered right-edge annotations ─────────────────────────────
     if _edge_items:
-        # Sort by final_y so we can stagger close labels
-        _edge_items.sort(key=lambda it: it[1])
-        _AY_STEP = 18  # px between staggered labels
-        _X_POSITIONS = [0.97, 0.87, 0.77]  # 3 horizontal positions (paper coords)
-        usd_annots = []
-        n = len(_edge_items)
-        for idx, (ax_x, fy, fusd, col, pfx) in enumerate(_edge_items):
-            # Stagger: spread labels vertically, base offset -35px (above trace)
-            ay = -35 - int((n - 1 - idx) * _AY_STEP)
-            xp = _X_POSITIONS[idx % len(_X_POSITIONS)]
-            # Arrow points straight down (ax=0), text above trace
-            usd_annots.append(dict(
-                x=xp, xref="paper",
-                y=fy, yref="y",
-                text=f"<b>{pfx}{fmt_price(fusd)}</b>",
-                showarrow=True, arrowhead=2, arrowsize=1,
-                arrowcolor=col, arrowwidth=1.5,
-                ax=0, ay=ay,
-                font=dict(size=11, color=col),
-                bgcolor="rgba(255,255,255,0.8)",
-                bordercolor=col, borderwidth=1, borderpad=2,
-            ))
-        layout.setdefault("annotations", []).extend(usd_annots)
+        layout.setdefault("annotations", []).extend(_render_edge_annots(_edge_items))
 
     layout["showlegend"] = bool(p.get("show_legend", True))
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
@@ -1063,265 +998,14 @@ def build_dca_figure(m, p):
     return fig, mc_result
 
 
-_FREQ_STEP_DAYS = {"Daily": 1, "Weekly": 7, "Monthly": 30, "Quarterly": 91, "Annually": 365}
-FREQ_PPY = {"Daily": 365, "Weekly": 52, "Monthly": 12, "Quarterly": 4, "Annually": 1}
-
-_MC_FAN_PCTS = (0.01, 0.05, 0.25, 0.50, 0.75, 0.95)
-
-def _mc_path_key(p, tab):
-    """Build dict of params that determine price paths (expensive MC sampling).
-
-    If these match, cached price_paths can be reused — only the overlay
-    (DCA amount / withdrawal / inflation / start_stack) needs recomputing.
-    """
-    key = {
-        "tab": tab,
-        "mc_bins": int(p.get("mc_bins", 5)),
-        "mc_sims": int(p.get("mc_sims", 800)),
-        "mc_years": int(p.get("mc_years", 10)),
-        "mc_freq": p.get("mc_freq", "Monthly"),
-        "mc_window": p.get("mc_window"),
-        "start_yr": int(p.get("start_yr", 2024)),
-    }
-    # entry_q determines the starting bin (affects paths)
-    if tab == "hm":
-        key["entry_q"] = float(p.get("entry_q", 50))
-    elif tab == "dca":
-        key["mc_entry_q"] = float(p.get("mc_entry_q", 50))
-        key["mc_start_yr"] = int(p.get("mc_start_yr", 2026))
-    elif tab in ("ret", "sc"):
-        key["mc_entry_q"] = float(p.get("mc_entry_q", 50))
-        key["mc_start_yr"] = int(p.get("mc_start_yr", 2031))
-    return key
-
-
-def _mc_overlay_key(p, tab, start_stack):
-    """Build dict of overlay-specific params (cheap to recompute from paths)."""
-    key = {
-        "mc_amount": float(p.get("mc_amount", 100)),
-        "start_stack": float(start_stack),
-    }
-    if tab in ("ret", "sc"):
-        key["mc_infl"] = float(p.get("mc_infl", 0))
-    return key
-
-
-def _mc_fan_to_lists(fan):
-    """Convert fan dict {pct: ndarray} to JSON-serializable {str: list}."""
-    return {str(k): [round(float(v), 4) for v in arr] for k, arr in fan.items()}
-
-
-def _mc_fan_from_lists(d):
-    """Restore fan dict from JSON-serialized form."""
-    return {float(k): np.array(v) for k, v in d.items()}
-
-
-def _mc_paths_to_lists(paths):
-    """Convert price_paths ndarray (n_sims, n_steps) to compact JSON list (float32)."""
-    return np.asarray(paths, dtype=np.float32).tolist()
-
-
-def _mc_paths_from_lists(lst):
-    """Restore price_paths ndarray from JSON-serialized list."""
-    return np.array(lst, dtype=np.float32)
-
-
-def _mc_build_traces(mc_ts, fan, extra_label="", show_median=True,
-                     show_final_values=False, fan_usd=None):
-    """Build standard MC fan band traces from precomputed fan percentiles.
-
-    fan_usd: if provided, use these values for legend final-value labels
-             (always show USD regardless of display mode).
-    """
-    lf = fan_usd if fan_usd is not None else fan  # legend fan
-
-    traces = []
-    _MC_BANDS = [
-        (0.01, 0.95, "rgba(247,147,26,0.04)", "MC 1\u201395%"),
-        (0.05, 0.95, "rgba(247,147,26,0.08)", "MC 5\u201395%"),
-        (0.25, 0.75, "rgba(247,147,26,0.15)", "MC 25\u201375%"),
-    ]
-    for p_lo, p_hi, fill_color, label in _MC_BANDS:
-        if show_final_values:
-            lo_final = fmt_price(float(lf[p_lo][-1])) if len(lf[p_lo]) > 0 else ""
-            hi_final = fmt_price(float(lf[p_hi][-1])) if len(lf[p_hi]) > 0 else ""
-            label = f"{label}  ({lo_final} \u2013 {hi_final})"
-        traces.append(go.Scatter(
-            x=list(mc_ts), y=list(fan[p_hi]),
-            mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip",
-        ))
-        traces.append(go.Scatter(
-            x=list(mc_ts), y=list(fan[p_lo]),
-            mode="lines", line=dict(width=0), fill="tonexty",
-            fillcolor=fill_color, name=label, showlegend=True, hoverinfo="skip",
-        ))
-    if show_median:
-        med_label = "MC median" + extra_label
-        if show_final_values and 0.50 in lf and len(lf[0.50]) > 0:
-            med_label += f"  \u2192  {fmt_price(float(lf[0.50][-1]))}"
-        traces.append(go.Scatter(
-            x=list(mc_ts), y=list(fan[0.50]),
-            mode="lines", name=med_label,
-            line=dict(color="rgba(247,147,26,0.7)", width=1.5, dash="dot"),
-        ))
-    return traces
-
-
-def _mc_depletion_annots(mc_ts, fan, mc_start_yr, mc_years, existing_count=0):
-    """Detect depletion on MC fan percentiles and return annotations.
-
-    Matches the QR depletion annotation style (arrow to y=0 on paper coords).
-    Annotates median, P25, P75 if they deplete within the horizon.
-    """
-    annots = []
-    mc_col = "#f7931a"  # BTC orange
-    for pct in [0.01, 0.50, 0.95]:
-        vals = fan.get(pct)
-        if vals is None:
-            continue
-        depl_i = next((i for i, v in enumerate(vals) if v <= 0.0001), None)
-        if depl_i is not None:
-            depl_t = mc_ts[depl_i]
-            t0 = mc_ts[0]
-            t_span = mc_ts[-1] - t0 if mc_ts[-1] > t0 else 1.0
-            depl_yr = int(mc_start_yr + (depl_t - t0) / t_span * mc_years)
-            _ay = [-20, -33, -46][(existing_count + len(annots)) % 3]
-            annots.append(dict(
-                x=depl_t, xref="x",
-                y=0, yref="paper",
-                ax=28, ay=_ay,
-                text=f"\u2248{depl_yr}",
-                showarrow=True, arrowhead=2, arrowsize=1,
-                arrowcolor=mc_col,
-                font=dict(size=10, color=mc_col),
-            ))
-    return annots
-
-
-def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
-    """Build Monte Carlo fan band traces for DCA overlay.
-
-    Returns (traces, result_dict).  result_dict is JSON-serializable and
-    contains price_paths + fan bands so overlays can be recomputed cheaply.
-
-    Cache logic:
-    - If path_key matches cached data, reuse price_paths (skip expensive MC).
-    - If overlay_key also matches, reuse fan bands directly (no recompute).
-    - Otherwise run full simulation.
-    """
-    amount     = float(p.get("mc_amount", 100))
-    n_bins     = int(p.get("mc_bins", 5))
-    n_sims    = int(p.get("mc_sims", 800))
-    mc_window = p.get("mc_window")
-    mc_freq   = p.get("mc_freq", "Monthly")
-    mc_ppy    = FREQ_PPY.get(mc_freq, 12)
-    mc_dt     = 1.0 / mc_ppy
-    step_days = _FREQ_STEP_DAYS.get(mc_freq, 30)
-
-    mc_years = int(p.get("mc_years", 10))
-    mc_start_yr = int(p.get("mc_start_yr", 0))
-    mc_t_start = yr_to_t(mc_start_yr, m.genesis) if mc_start_yr else t_start
-    mc_t_end = mc_t_start + mc_years
-    mc_ts    = np.arange(mc_t_start, mc_t_end + mc_dt * 0.5, mc_dt)
-
-    # Clip MC fan to DCA year range so off-screen points don't distort y-axis
-    dca_t_end = ts[-1] if len(ts) > 0 else mc_t_end
-    clip_n = int(np.searchsorted(mc_ts, dca_t_end + mc_dt * 0.5))
-    clip_n = max(clip_n, 1)
-
-    def _clip(mc_ts_full, fan_full):
-        ct = mc_ts_full[:clip_n]
-        cf = {k: v[:clip_n] for k, v in fan_full.items()}
-        return ct, cf
-
-    path_key    = _mc_path_key(p, "dca")
-    overlay_key = _mc_overlay_key(p, "dca", start_stack)
-
-    # ── Check cache ──────────────────────────────────────────────────────
-    cached = p.get("mc_cached")
-    if cached and cached.get("path_key") == path_key:
-        if cached.get("overlay_key") == overlay_key:
-            # Full cache hit — reuse fan bands as-is
-            fan_btc = _mc_fan_from_lists(cached["fan_btc"])
-            fan_usd = _mc_fan_from_lists(cached["fan_usd"])
-            fan = fan_usd if disp_mode == "usd" else fan_btc
-            ct, cf = _clip(mc_ts, fan)
-            _, cf_usd = _clip(mc_ts, fan_usd)
-            return _mc_build_traces(ct, cf, show_final_values=True, fan_usd=cf_usd), None, cf_usd
-
-        # Path hit, overlay miss — recompute DCA from cached price paths
-        price_paths = _mc_paths_from_lists(cached["price_paths"])
-        btc_paths, usd_paths = mc_dca(price_paths, amount, start_stack)
-        fan_btc = compute_fan_percentiles(btc_paths, _MC_FAN_PCTS)
-        fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
-        fan = fan_usd if disp_mode == "usd" else fan_btc
-
-        result = {
-            "tab": "dca",
-            "path_key": path_key,
-            "overlay_key": overlay_key,
-            "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "ts": cached["ts"],
-            "price_paths": cached["price_paths"],
-            "fan_btc": _mc_fan_to_lists(fan_btc),
-            "fan_usd": _mc_fan_to_lists(fan_usd),
-        }
-        ct, cf = _clip(mc_ts, fan)
-        _, cf_usd = _clip(mc_ts, fan_usd)
-        return _mc_build_traces(ct, cf, show_final_values=True, fan_usd=cf_usd), result, cf_usd
-
-    # ── Check pre-computed path cache ────────────────────────────────────
-    if _HAS_MC_CACHE:
-        _syr = int(p.get("mc_start_yr", p.get("start_yr", 2024)))
-        raw_pctile = float(p.get("mc_entry_q", 50)) / 100.0
-        pct_bin = snap_to_bin(raw_pctile)
-        cached_paths = get_cached_paths(_syr, pct_bin, mc_years)
-        if cached_paths is not None:
-            btc_paths, usd_paths = mc_dca(cached_paths, amount, start_stack)
-            fan_btc = compute_fan_percentiles(btc_paths, _MC_FAN_PCTS)
-            fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
-            fan = fan_usd if disp_mode == "usd" else fan_btc
-            ct, cf = _clip(mc_ts, fan)
-            _, cf_usd = _clip(mc_ts, fan_usd)
-            return _mc_build_traces(ct, cf, show_final_values=True, fan_usd=cf_usd), None, cf_usd
-
-    # ── Run full simulation ──────────────────────────────────────────────
-    trans, bin_edges, n_bins = _get_transition_matrix(m, n_bins, step_days, mc_window)
-    n_steps = len(mc_ts)
-
-    # Start percentile from mc_entry_q param (user-selected, cache-aligned 10% steps)
-    start_pctile = float(p.get("mc_entry_q", 50)) / 100.0
-    start_pctile = max(0.05, min(start_pctile, 0.95))
-
-    price_paths, _ = monte_carlo_prices(
-        trans, bin_edges, start_pctile, n_steps, n_sims,
-        m.qr_fits, m.genesis, mc_t_start, mc_dt,
-    )
-    btc_paths, usd_paths = mc_dca(price_paths, amount, start_stack)
-
-    fan_btc = compute_fan_percentiles(btc_paths, _MC_FAN_PCTS)
-    fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
-    fan = fan_usd if disp_mode == "usd" else fan_btc
-
-    result = {
-        "tab": "dca",
-        "path_key": path_key,
-        "overlay_key": overlay_key,
-        "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "ts": [round(float(t), 6) for t in mc_ts],
-        "price_paths": _mc_paths_to_lists(price_paths),
-        "fan_btc": _mc_fan_to_lists(fan_btc),
-        "fan_usd": _mc_fan_to_lists(fan_usd),
-    }
-
-    ct, cf = _clip(mc_ts, fan)
-    _, cf_usd = _clip(mc_ts, fan_usd)
-    return _mc_build_traces(ct, cf, show_final_values=True, fan_usd=cf_usd), result, cf_usd
+# Re-export from _app_ctx for backward compat (used by chart builders and callbacks)
+FREQ_PPY = _app_ctx.FREQ_PPY
+_FREQ_STEP_DAYS = _app_ctx.FREQ_STEP_DAYS
 
 
 # ── BTC Retireator ────────────────────────────────────────────────────────────
 
-def build_retire_figure(m, p):
+def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     """
     p keys: start_yr, end_yr, start_stack, wd_amount, freq, inflation,
             disp_mode, selected_qs, log_y, show_today, dual_y, annotate,
@@ -1333,9 +1017,7 @@ def build_retire_figure(m, p):
     syr  = int(p.get("start_yr", 2025))
     eyr  = int(p.get("end_yr",   2045))
     if eyr <= syr:
-        return go.Figure(layout=dict(
-            title="Set end year > start year",
-            paper_bgcolor=m.PLOT_BG_COLOR, font=dict(color=m.TEXT_COLOR))), None
+        return _error_figure(m, "Set end year > start year"), None
 
     t_start = max(yr_to_t(syr, m.genesis), 1.0)
     t_end   = yr_to_t(eyr, m.genesis)
@@ -1359,34 +1041,28 @@ def build_retire_figure(m, p):
     deplete_annots = []
     all_btc_vals = {}  # q -> BTC balance array (for dual-y median)
 
+    ts_clamped = np.maximum(ts, 0.5)
+    adj_wd_arr = wd_amount * ((1 + inflation) ** (ts - t_start))
     for q in sel_qs:
         if q not in m.qr_fits:
             continue
-        stack = start_stack
-        vals  = np.empty(len(ts))
-        for i, t in enumerate(ts):
-            years_elapsed = t - t_start
-            adj_wd = wd_amount * ((1 + inflation) ** years_elapsed)
-            price  = float(qr_price(q, max(t, 0.5), m.qr_fits))
-            stack -= adj_wd / price
-            stack  = max(stack, 0.0)
-            vals[i] = stack
-        all_btc_vals[q] = vals.copy()
+        prices = qr_price(q, ts_clamped, m.qr_fits)
+        vals = np.maximum(start_stack - np.cumsum(adj_wd_arr / prices), 0.0)
+        all_btc_vals[q] = vals
 
         if disp_mode == "usd":
-            prices_arr = np.array([float(qr_price(q, max(t, 0.5), m.qr_fits)) for t in ts])
+            prices_arr = prices
             y_vals = vals * prices_arr
             final_lbl = fmt_price(float(y_vals[-1]))
         else:
             y_vals = vals
             final_lbl = f"{float(vals[-1]):.4f} BTC"
 
-        pct = q * 100
-        lbl = (f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%") + f"  →  {final_lbl}"
+        lbl = _fmt_q_label(q) + f"  →  {final_lbl}"
         col = m.qr_colors.get(q, "#888888")
         traces.append(go.Scatter(
             x=list(ts), y=list(y_vals), mode="lines", name=lbl,
-            line=dict(color=col, width=1.8),
+            line=dict(color=col, width=_QR_LINE_WIDTH),
         ))
 
         # depletion annotation
@@ -1395,7 +1071,7 @@ def build_retire_figure(m, p):
             if depl_i is not None:
                 depl_t = ts[depl_i]
                 depl_yr = int(syr + (depl_t - t_start) * (eyr - syr) / max(t_end - t_start, 1e-6))
-                _ay = [-20, -33, -46][len(deplete_annots) % 3]
+                _ay = _ANNOT_STAGGER_Y[len(deplete_annots) % 3]
                 deplete_annots.append(dict(
                     x=depl_t, xref="x",
                     y=0, yref="paper",
@@ -1403,7 +1079,7 @@ def build_retire_figure(m, p):
                     text=f"≈{depl_yr}",
                     showarrow=True, arrowhead=2, arrowsize=1,
                     arrowcolor=col,
-                    font=dict(size=11, color=col),
+                    font=dict(size=_FONT_ANNOT, color=col),
                 ))
 
     shapes = []
@@ -1412,8 +1088,8 @@ def build_retire_figure(m, p):
         if t_start <= td <= t_end:
             shapes.append(dict(
                 type="line", x0=td, x1=td, y0=0, y1=1,
-                yref="paper", line=dict(color="#FF6600", dash="dash", width=1.5),
-                opacity=0.85,
+                yref="paper", line=dict(color=_TODAY_LINE_COLOR, dash="dash", width=_TODAY_LINE_WIDTH),
+                opacity=_TODAY_LINE_OPACITY,
             ))
 
     tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis)
@@ -1443,8 +1119,7 @@ def build_retire_figure(m, p):
             y2_lbl  = "BTC Remaining"
         else:
             all_usd = np.array([
-                all_btc_vals[q] * np.array([float(qr_price(q, max(t, 0.5), m.qr_fits))
-                                             for t in ts])
+                all_btc_vals[q] * qr_price(q, ts_clamped, m.qr_fits)
                 for q in all_btc_vals
             ])
             y2_vals = np.median(all_usd, axis=0)
@@ -1478,285 +1153,14 @@ def build_retire_figure(m, p):
     # Sort all depletion annotations by x and reassign stagger levels
     if len(deplete_annots) > 1:
         deplete_annots.sort(key=lambda a: a["x"])
-        _AY = [-20, -33, -46]
         for i, a in enumerate(deplete_annots):
-            a["ay"] = _AY[i % 3]
+            a["ay"] = _ANNOT_STAGGER_Y[i % 3]
         layout["annotations"] = deplete_annots
 
     layout["showlegend"] = bool(p.get("show_legend", True))
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
     _apply_watermark(fig)
     return fig, mc_result
-
-
-def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
-                          start_stack, disp_mode, tab,
-                          existing_annot_count=0):
-    """Build Monte Carlo fan band traces for withdrawal-based overlays (Retire/SC).
-
-    Args:
-        tab: "ret" or "sc" — determines cache keys and result metadata.
-
-    Returns (traces, annots, result) — annots is a list of depletion
-    annotation dicts (empty if annotate is off or no depletion detected).
-    """
-    wd_amount  = float(p.get("mc_amount", 5000))
-    inflation  = float(p.get("mc_infl", 4)) / 100.0
-    n_bins     = int(p.get("mc_bins", 5))
-    n_sims     = int(p.get("mc_sims", 800))
-    mc_window  = p.get("mc_window")
-    mc_freq    = p.get("mc_freq", "Monthly")
-    mc_ppy     = FREQ_PPY.get(mc_freq, 12)
-    mc_dt      = 1.0 / mc_ppy
-    step_days  = _FREQ_STEP_DAYS.get(mc_freq, 30)
-
-    mc_years = int(p.get("mc_years", 10))
-    mc_start_yr = int(p.get("mc_start_yr", p.get("start_yr", 2031)))
-    mc_t_start = max(yr_to_t(mc_start_yr, m.genesis), 1.0)
-    mc_t_end = mc_t_start + mc_years
-    mc_ts    = np.arange(mc_t_start, mc_t_end + mc_dt * 0.5, mc_dt)
-
-    path_key    = _mc_path_key(p, tab)
-    overlay_key = _mc_overlay_key(p, tab, start_stack)
-    do_annot    = bool(p.get("annotate"))
-
-    def _depl_extra(dstats):
-        if dstats.get("pct_depleted", 0) > 0:
-            return f"  ({dstats['pct_depleted']:.0%} depleted)"
-        return ""
-
-    def _build_return(fan_btc, fan, extra, result=None):
-        traces = _mc_build_traces(mc_ts, fan, extra)
-        annots = _mc_depletion_annots(mc_ts, fan_btc, mc_start_yr, mc_years,
-                                       existing_annot_count) if do_annot else []
-        return traces, annots, result
-
-    # ── Check cache ──────────────────────────────────────────────────────
-    cached = p.get("mc_cached")
-    if cached and cached.get("path_key") == path_key:
-        if cached.get("overlay_key") == overlay_key:
-            fan_btc = _mc_fan_from_lists(cached["fan_btc"])
-            fan_usd = _mc_fan_from_lists(cached["fan_usd"])
-            fan = fan_usd if disp_mode == "usd" else fan_btc
-            return _build_return(fan_btc, fan, _depl_extra(cached.get("depletion", {})))
-
-        price_paths = _mc_paths_from_lists(cached["price_paths"])
-        btc_paths, usd_paths, depl_steps = mc_retire(
-            price_paths, start_stack, wd_amount, inflation, mc_dt,
-        )
-        fan_btc = compute_fan_percentiles(btc_paths, _MC_FAN_PCTS)
-        fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
-        dstats = depletion_stats(depl_steps, len(mc_ts), mc_dt, mc_t_start)
-        fan = fan_usd if disp_mode == "usd" else fan_btc
-
-        result = {
-            "tab": tab,
-            "path_key": path_key,
-            "overlay_key": overlay_key,
-            "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "ts": cached["ts"],
-            "price_paths": cached["price_paths"],
-            "fan_btc": _mc_fan_to_lists(fan_btc),
-            "fan_usd": _mc_fan_to_lists(fan_usd),
-            "depletion": dstats,
-        }
-        return _build_return(fan_btc, fan, _depl_extra(dstats), result)
-
-    # ── Check pre-computed cache ─────────────────────────────────────────
-    mc_stack = float(p.get("mc_start_stack", start_stack))
-    if _HAS_MC_CACHE:
-        raw_pctile = float(p.get("mc_entry_q", 50)) / 100.0
-        pct_bin = snap_to_bin(raw_pctile)
-        infl_pct = int(round(inflation * 100))
-
-        fan_btc, fan_usd = get_cached_overlay(
-            mc_start_yr, pct_bin, mc_years,
-            int(wd_amount), infl_pct, mc_stack)
-        if fan_btc is not None:
-            fan = fan_usd if disp_mode == "usd" else fan_btc
-            return _build_return(fan_btc, fan, "")
-
-        cached_paths = get_cached_paths(mc_start_yr, pct_bin, mc_years)
-        if cached_paths is not None:
-            btc_paths, usd_paths, depl_steps = mc_retire(
-                cached_paths, mc_stack, wd_amount, inflation, mc_dt,
-            )
-            fan_btc = compute_fan_percentiles(btc_paths, _MC_FAN_PCTS)
-            fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
-            dstats = depletion_stats(depl_steps, len(mc_ts), mc_dt, mc_t_start)
-            fan = fan_usd if disp_mode == "usd" else fan_btc
-            return _build_return(fan_btc, fan, _depl_extra(dstats))
-
-    # ── Run full simulation ──────────────────────────────────────────────
-    trans, bin_edges, n_bins = _get_transition_matrix(m, n_bins, step_days, mc_window)
-    n_steps = len(mc_ts)
-
-    start_pctile = float(p.get("mc_entry_q", 50)) / 100.0
-    start_pctile = round(start_pctile * 20) / 20
-    start_pctile = max(0.05, min(start_pctile, 0.95))
-
-    price_paths, _ = monte_carlo_prices(
-        trans, bin_edges, start_pctile, n_steps, n_sims,
-        m.qr_fits, m.genesis, mc_t_start, mc_dt,
-    )
-    btc_paths, usd_paths, depl_steps = mc_retire(
-        price_paths, mc_stack, wd_amount, inflation, mc_dt,
-    )
-
-    fan_btc = compute_fan_percentiles(btc_paths, _MC_FAN_PCTS)
-    fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
-    dstats = depletion_stats(depl_steps, n_steps, mc_dt, mc_t_start)
-    fan = fan_usd if disp_mode == "usd" else fan_btc
-
-    result = {
-        "tab": tab,
-        "path_key": path_key,
-        "overlay_key": overlay_key,
-        "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "ts": [round(float(t), 6) for t in mc_ts],
-        "price_paths": _mc_paths_to_lists(price_paths),
-        "fan_btc": _mc_fan_to_lists(fan_btc),
-        "fan_usd": _mc_fan_to_lists(fan_usd),
-        "depletion": dstats,
-    }
-
-    return _build_return(fan_btc, fan, _depl_extra(dstats), result)
-
-
-# Backward-compatible aliases
-def _mc_retire_overlay(m, p, ts, t_start, t_end, dt,
-                        start_stack, disp_mode, existing_annot_count=0):
-    return _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
-                                 start_stack, disp_mode, "ret", existing_annot_count)
-
-
-def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
-                             start_stack, disp_mode, existing_annot_count=0):
-    return _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
-                                 start_stack, disp_mode, "sc", existing_annot_count)
-
-
-def _mc_heatmap_overlay(m, p, ep, entry_t, eyrs):
-    """Compute MC-derived CAGR percentile rows for the heatmap.
-
-    Returns (mc_cagr, mc_prices, mc_mults, mc_labels, mc_result) or
-    (None, None, None, None, None) on cache hit / error.
-    mc_cagr:  (n_pcts, n_exit_years) CAGR array
-    mc_prices: (n_pcts, n_exit_years) exit price array
-    mc_mults:  (n_pcts, n_exit_years) price multiple array
-    mc_labels: row labels e.g. ['MC P5%', ...]
-    mc_result: JSON dict for localStorage (or None if cache hit)
-    """
-    n_bins    = int(p.get("mc_bins", 5))
-    n_sims    = int(p.get("mc_sims", 800))
-    mc_window = p.get("mc_window")
-    mc_freq   = p.get("mc_freq", "Monthly")
-    mc_ppy    = FREQ_PPY.get(mc_freq, 12)
-    mc_dt     = 1.0 / mc_ppy
-    step_days = _FREQ_STEP_DAYS.get(mc_freq, 30)
-
-    mc_years  = int(p.get("mc_years", 10))
-    t_start   = entry_t
-    mc_t_end  = t_start + mc_years
-    mc_ts     = np.arange(t_start, mc_t_end + mc_dt * 0.5, mc_dt)
-
-    # Ensure start_yr is set for path_key (heatmap uses entry_yr, not start_yr)
-    p_for_key = dict(p, start_yr=int(p.get("entry_yr", 2024)))
-    path_key    = _mc_path_key(p_for_key, "hm")
-    overlay_key = {"entry_price": float(ep)}
-
-    def _compute_cagr_rows(price_paths, mc_ts):
-        """From MC price paths, compute CAGR percentile rows for each exit year."""
-        n_pcts = len(_MC_FAN_PCTS)
-        n_eyrs = len(eyrs)
-        mc_cagr  = np.full((n_pcts, n_eyrs), np.nan)
-        mc_prices = np.full((n_pcts, n_eyrs), np.nan)
-        mc_mults  = np.full((n_pcts, n_eyrs), np.nan)
-
-        for ci, ey in enumerate(eyrs):
-            et = yr_to_t(ey, m.genesis)
-            nyr = et - entry_t
-            if et > mc_ts[-1]:
-                continue
-            if nyr <= 0:
-                # Same-year exit: use half-year offset for MC price lookup,
-                # show simple return (not annualized) like QR heatmap
-                et_eff = entry_t + 0.5
-                if et_eff > mc_ts[-1]:
-                    continue
-                idx = int(np.argmin(np.abs(mc_ts - et_eff)))
-                if idx == 0:
-                    idx = min(1, len(mc_ts) - 1)
-            else:
-                idx = int(np.argmin(np.abs(mc_ts - et)))
-            prices_at_exit = price_paths[:, idx]  # one per simulation
-            pct_prices = np.percentile(prices_at_exit, [pf * 100 for pf in _MC_FAN_PCTS])
-            for ri, pp in enumerate(pct_prices):
-                mc_prices[ri, ci] = pp
-                mc_mults[ri, ci] = pp / ep if ep > 0 else 0.0
-                if nyr <= 0:
-                    mc_cagr[ri, ci] = (pp / ep - 1.0) * 100.0 if ep > 0 else 0.0
-                else:
-                    mc_cagr[ri, ci] = ((pp / ep) ** (1.0 / nyr) - 1.0) * 100.0 if ep > 0 else 0.0
-
-        return mc_cagr, mc_prices, mc_mults
-
-    mc_labels = [f"MC P{int(pf*100)}%" for pf in _MC_FAN_PCTS]
-
-    # ── Check client-side cache ───────────────────────────────────────────
-    cached = p.get("mc_cached")
-    if cached and cached.get("path_key") == path_key:
-        price_paths = _mc_paths_from_lists(cached["price_paths"])
-        cached_ts = np.array(cached["ts"])
-        mc_cagr, mc_prices_arr, mc_mults = _compute_cagr_rows(price_paths, cached_ts)
-        if cached.get("overlay_key") == overlay_key:
-            return mc_cagr, mc_prices_arr, mc_mults, mc_labels, None
-        # Entry price changed — recompute CAGRs from cached paths
-        result = {
-            "tab": "hm",
-            "path_key": path_key,
-            "overlay_key": overlay_key,
-            "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "ts": cached["ts"],
-            "price_paths": cached["price_paths"],
-        }
-        return mc_cagr, mc_prices_arr, mc_mults, mc_labels, result
-
-    # ── Check pre-computed server-side path cache ─────────────────────────
-    if _HAS_MC_CACHE:
-        _syr = int(p.get("entry_yr", 2024))
-        raw_pctile = float(p.get("entry_q", 50)) / 100.0
-        pct_bin = snap_to_bin(raw_pctile)
-        cached_paths = get_cached_paths(_syr, pct_bin, mc_years)
-        if cached_paths is not None:
-            mc_cagr, mc_prices_arr, mc_mults = _compute_cagr_rows(cached_paths, mc_ts)
-            return mc_cagr, mc_prices_arr, mc_mults, mc_labels, None
-
-    # ── Run full simulation ──────────────────────────────────────────────
-    trans, bin_edges, n_bins = _get_transition_matrix(m, n_bins, step_days, mc_window)
-    n_steps = len(mc_ts)
-
-    # Starting percentile from entry_q (user-selected, cache-aligned 10% steps)
-    start_pctile = float(p.get("entry_q", 50)) / 100.0
-    start_pctile = max(0.05, min(start_pctile, 0.95))
-
-    price_paths, _ = monte_carlo_prices(
-        trans, bin_edges, start_pctile, n_steps, n_sims,
-        m.qr_fits, m.genesis, t_start, mc_dt,
-    )
-
-    mc_cagr, mc_prices_arr, mc_mults = _compute_cagr_rows(price_paths, mc_ts)
-
-    result = {
-        "tab": "hm",
-        "path_key": path_key,
-        "overlay_key": overlay_key,
-        "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "ts": [round(float(t), 6) for t in mc_ts],
-        "price_paths": _mc_paths_to_lists(price_paths),
-    }
-
-    return mc_cagr, mc_prices_arr, mc_mults, mc_labels, result
 
 
 # ── HODL Supercharger ─────────────────────────────────────────────────────────
@@ -1766,7 +1170,7 @@ _ANNOT_COLORS = ['#636EFA', '#EF553B', '#1D8348', '#AB63FA', '#E07000']
 _DASH_STYLES  = ['solid', 'dash', 'dot', 'dashdot', 'longdash']
 
 
-def build_supercharge_figure(m, p):
+def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     """
     p keys: mode ('a'/'b'), start_stack, start_yr, delays (list), freq, inflation,
             selected_qs, chart_layout (0/1/2), display_q,
@@ -1827,23 +1231,15 @@ def build_supercharge_figure(m, p):
             ts_d = np.arange(t_start_d, t_end + dt * 0.5, dt)
             if len(ts_d) == 0:
                 continue
+            ts_d_clamped = np.maximum(ts_d, 0.5)
+            adj_wd_d = wd_amount * ((1 + inflation) ** (ts_d - t_start_d))
             for q in sel_qs:
-                stack  = start_stack
-                vals   = np.empty(len(ts_d))
-                depl_t = None
-                for i, t in enumerate(ts_d):
-                    years_elapsed = t - t_start_d
-                    adj_wd = wd_amount * ((1 + inflation) ** years_elapsed)
-                    price  = float(qr_price(q, max(t, 0.5), m.qr_fits))
-                    stack -= adj_wd / price
-                    stack  = max(stack, 0.0)
-                    vals[i] = stack
-                    if stack == 0.0 and depl_t is None:
-                        depl_t = t
+                prices = qr_price(q, ts_d_clamped, m.qr_fits)
+                vals = np.maximum(start_stack - np.cumsum(adj_wd_d / prices), 0.0)
+                depl_mask = vals == 0.0
+                depl_t = float(ts_d[np.argmax(depl_mask)]) if depl_mask.any() else None
                 if disp_mode == "usd":
-                    prices_arr = np.array([float(qr_price(q, max(t, 0.5), m.qr_fits))
-                                           for t in ts_d])
-                    y_vals = vals * prices_arr
+                    y_vals = vals * prices
                 else:
                     y_vals = vals
                 results[(d, q)] = (ts_d, y_vals, depl_t, t_start_d)
@@ -1851,7 +1247,7 @@ def build_supercharge_figure(m, p):
         traces         = []
         deplete_annots = []
 
-        _AY_LEVELS = [-20, -33, -46]   # stagger by ~1 font-height (13 px) each level
+        _AY_LEVELS = _ANNOT_STAGGER_Y
 
         def _depl_annot(depl_t, t_start_d, d, col, stagger=0):
             depl_yr = int((syr + d) + (depl_t - t_start_d) *
@@ -1862,7 +1258,7 @@ def build_supercharge_figure(m, p):
                 ax=28, ay=_AY_LEVELS[stagger % 3],
                 text=f"\u2248{depl_yr}",
                 showarrow=True, arrowhead=2, arrowsize=1,
-                arrowcolor=col, font=dict(size=11, color=col),
+                arrowcolor=col, font=dict(size=_FONT_ANNOT, color=col),
             )
 
         if chart_layout == 0:
@@ -1891,8 +1287,7 @@ def build_supercharge_figure(m, p):
             # Color = quantile, line style = delay
             for q in sel_qs:
                 col   = m.qr_colors.get(q, "#888888")
-                pct   = q * 100
-                q_lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
+                q_lbl = _fmt_q_label(q)
                 for di, d in enumerate(delays):
                     key = (d, q)
                     if key not in results:
@@ -1902,7 +1297,7 @@ def build_supercharge_figure(m, p):
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
                         name=f"{q_lbl} delay={d_lbl}",
-                        line=dict(color=col, width=1.8,
+                        line=dict(color=col, width=_QR_LINE_WIDTH,
                                   dash=_DASH_STYLES[di % len(_DASH_STYLES)]),
                     ))
                     if p.get("annotate") and depl_t is not None:
@@ -1975,8 +1370,8 @@ def build_supercharge_figure(m, p):
                 shapes.append(dict(
                     type="line", x0=td, x1=td, y0=0, y1=1,
                     yref="paper",
-                    line=dict(color="#FF6600", dash="dash", width=1.5),
-                    opacity=0.85,
+                    line=dict(color=_TODAY_LINE_COLOR, dash="dash", width=_TODAY_LINE_WIDTH),
+                    opacity=_TODAY_LINE_OPACITY,
                 ))
         # ── Monte Carlo fan overlay ───────────────────────────────────────────
         mc_result = None
@@ -1994,9 +1389,8 @@ def build_supercharge_figure(m, p):
         # Sort all depletion annotations by x and reassign stagger levels
         if len(deplete_annots) > 1:
             deplete_annots.sort(key=lambda a: a["x"])
-            _AY = [-20, -33, -46]
             for i, a in enumerate(deplete_annots):
-                a["ay"] = _AY[i % 3]
+                a["ay"] = _ANNOT_STAGGER_Y[i % 3]
             layout["annotations"] = deplete_annots
 
         layout["shapes"]     = shapes
@@ -2005,98 +1399,100 @@ def build_supercharge_figure(m, p):
         _apply_watermark(fig)
         return fig, mc_result
 
-    # ── MODE B: fixed depletion date \u2192 max withdrawal per period ──────────────
+    # ── MODE B: fixed depletion date → max withdrawal per period ──────────────
     else:
-        target_yr = int(p.get("target_yr", 2060))
+        return _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
+                          inflation, chart_layout, display_q, show_legend, freq_label)
 
-        def _max_wd_for(d, q):
-            t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
-            t_end_b   = yr_to_t(target_yr, m.genesis)
-            if t_end_b <= t_start_d:
-                return 0.0
-            first_price = float(qr_price(q, max(t_start_d, 0.5), m.qr_fits))
-            lo, hi = 0.0, start_stack * first_price * ppy * 4
-            for _ in range(60):
-                mid = (lo + hi) / 2.0
-                s   = start_stack
-                survived = True
-                for t in np.arange(t_start_d, t_end_b + dt * 0.5, dt):
-                    adj = mid * ((1 + inflation) ** (t - t_start_d))
-                    s  -= adj / float(qr_price(q, max(t, 0.5), m.qr_fits))
-                    if s <= 0:
-                        survived = False
-                        break
-                if survived:
-                    lo = mid
-                else:
-                    hi = mid
-            return lo
 
-        max_wd = {(d, q): _max_wd_for(d, q) for d in delays for q in sel_qs}
-        traces = []
+def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
+               inflation, chart_layout, display_q, show_legend, freq_label):
+    """HODL Supercharger Mode B: binary-search max withdrawal per period."""
+    target_yr = int(p.get("target_yr", 2060))
 
-        if chart_layout == 0:
-            # Color = delay, one quantile closest to display_q
-            q_show = min(sel_qs, key=lambda q: abs(q - display_q))
-            y_line = [max_wd.get((d, q_show), 0) for d in delays]
+    def _max_wd_for(d, q):
+        t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
+        t_end_b   = yr_to_t(target_yr, m.genesis)
+        if t_end_b <= t_start_d:
+            return 0.0
+        first_price = float(qr_price(q, max(t_start_d, 0.5), m.qr_fits))
+        lo, hi = 0.0, start_stack * first_price * ppy * 4
+        for _ in range(60):
+            mid = (lo + hi) / 2.0
+            s   = start_stack
+            survived = True
+            for t in np.arange(t_start_d, t_end_b + dt * 0.5, dt):
+                adj = mid * ((1 + inflation) ** (t - t_start_d))
+                s  -= adj / float(qr_price(q, max(t, 0.5), m.qr_fits))
+                if s <= 0:
+                    survived = False
+                    break
+            if survived:
+                lo = mid
+            else:
+                hi = mid
+        return lo
+
+    max_wd = {(d, q): _max_wd_for(d, q) for d in delays for q in sel_qs}
+    traces = []
+
+    if chart_layout == 0:
+        q_show = min(sel_qs, key=lambda q: abs(q - display_q))
+        y_line = [max_wd.get((d, q_show), 0) for d in delays]
+        traces.append(go.Scatter(
+            x=delays, y=y_line, mode="lines",
+            line=dict(color="#888888", width=1, dash="dot"),
+            showlegend=False, hoverinfo="skip",
+        ))
+        for di, d in enumerate(delays):
+            col   = _DELAY_COLORS[di % len(_DELAY_COLORS)]
+            val   = max_wd.get((d, q_show), 0)
+            d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
             traces.append(go.Scatter(
-                x=delays, y=y_line, mode="lines",
-                line=dict(color="#888888", width=1, dash="dot"),
-                showlegend=False, hoverinfo="skip",
+                x=[d], y=[val], mode="markers+text",
+                marker=dict(color=col, size=12),
+                text=[fmt_price(val) + freq_label],
+                textposition="top center",
+                name=f"Delay {d_lbl}",
+                hovertemplate=f"Delay {d_lbl}<br>{fmt_price(val)}{freq_label}<extra></extra>",
             ))
-            for di, d in enumerate(delays):
-                col   = _DELAY_COLORS[di % len(_DELAY_COLORS)]
-                val   = max_wd.get((d, q_show), 0)
-                d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
-                traces.append(go.Scatter(
-                    x=[d], y=[val], mode="markers+text",
-                    marker=dict(color=col, size=12),
-                    text=[fmt_price(val) + freq_label],
-                    textposition="top center",
-                    name=f"Delay {d_lbl}",
-                    hovertemplate=f"Delay {d_lbl}<br>{fmt_price(val)}{freq_label}<extra></extra>",
-                ))
 
-        elif chart_layout == 1:
-            # Color = quantile, X = delay years
-            for q in sel_qs:
-                col   = m.qr_colors.get(q, "#888888")
-                pct   = q * 100
-                q_lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
-                y_q   = [max_wd.get((d, q), 0) for d in delays]
-                traces.append(go.Scatter(
-                    x=delays, y=y_q, mode="lines+markers",
-                    name=q_lbl,
-                    line=dict(color=col, width=2),
-                    marker=dict(color=col, size=7),
-                ))
+    elif chart_layout == 1:
+        for q in sel_qs:
+            col   = m.qr_colors.get(q, "#888888")
+            q_lbl = _fmt_q_label(q)
+            y_q   = [max_wd.get((d, q), 0) for d in delays]
+            traces.append(go.Scatter(
+                x=delays, y=y_q, mode="lines+markers",
+                name=q_lbl,
+                line=dict(color=col, width=2),
+                marker=dict(color=col, size=7),
+            ))
 
-        else:
-            # Layout 2: color = delay, X = quantile fraction
-            for di, d in enumerate(delays):
-                col   = _DELAY_COLORS[di % len(_DELAY_COLORS)]
-                d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
-                y_d   = [max_wd.get((d, q), 0) for q in sel_qs]
-                qlbls = [f"Q{q*100:.4g}%" if q*100 >= 1 else f"Q{q*100:.3g}%"
-                         for q in sel_qs]
-                med_val = y_d[len(y_d) // 2] if y_d else 0
-                traces.append(go.Scatter(
-                    x=list(sel_qs), y=y_d, mode="lines+markers",
-                    name=f"Delay {d_lbl}  \u2192  {fmt_price(med_val)}{freq_label} (med)",
-                    line=dict(color=col, width=2),
-                    marker=dict(color=col, size=6),
-                    customdata=qlbls,
-                    hovertemplate="%{customdata}: %{y:,.0f}<extra></extra>",
-                ))
+    else:
+        for di, d in enumerate(delays):
+            col   = _DELAY_COLORS[di % len(_DELAY_COLORS)]
+            d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
+            y_d   = [max_wd.get((d, q), 0) for q in sel_qs]
+            qlbls = [_fmt_q_label(q) for q in sel_qs]
+            med_val = y_d[len(y_d) // 2] if y_d else 0
+            traces.append(go.Scatter(
+                x=list(sel_qs), y=y_d, mode="lines+markers",
+                name=f"Delay {d_lbl}  \u2192  {fmt_price(med_val)}{freq_label} (med)",
+                line=dict(color=col, width=2),
+                marker=dict(color=col, size=6),
+                customdata=qlbls,
+                hovertemplate="%{customdata}: %{y:,.0f}<extra></extra>",
+            ))
 
-        xlabel = "Delay (years)" if chart_layout in (0, 1) else "Quantile"
-        layout = _dark_layout(
-            m,
-            title=f"HODL Supercharger \u2014 Max spend{freq_label} to deplete by {target_yr}",
-            xlabel=xlabel,
-            ylabel=f"Max withdrawal{freq_label}",
-        )
-        layout["showlegend"] = show_legend
-        fig = go.Figure(data=traces, layout=go.Layout(**layout))
-        _apply_watermark(fig)
-        return fig, None
+    xlabel = "Delay (years)" if chart_layout in (0, 1) else "Quantile"
+    layout = _dark_layout(
+        m,
+        title=f"HODL Supercharger \u2014 Max spend{freq_label} to deplete by {target_yr}",
+        xlabel=xlabel,
+        ylabel=f"Max withdrawal{freq_label}",
+    )
+    layout["showlegend"] = show_legend
+    fig = go.Figure(data=traces, layout=go.Layout(**layout))
+    _apply_watermark(fig)
+    return fig, None

@@ -143,10 +143,24 @@ _original_urlopen = urllib.request.urlopen
 urllib.request.urlopen = _mock_urlopen
 
 try:
-    from app import (_q3, _quantize_params, _list_to_mask, _mask_to_list,
-                     _encode_snapshot, _decode_snapshot,
-                     _SNAPSHOT_CONTROLS, _CHECKLIST_OPTIONS, _ALL_QS,
-                     _nearest_quantile, _parse_mc_upload, _pk)
+    import app as _app_module  # triggers full app init (populates _app_ctx)
+    from utils import _q3, _quantize_params, _nearest_quantile
+    from snapshot import (_list_to_mask, _mask_to_list,
+                          _encode_snapshot, _decode_snapshot,
+                          _SNAPSHOT_CONTROLS, _CHECKLIST_OPTIONS,
+                          _SNAP_PREFIX)
+    from callbacks import (_parse_mc_upload, _pk, _lots_summary,
+                           _MC_UPLOAD_FIELDS, _mc_years_options,
+                           _build_mc_params,
+                           update_bubble, update_heatmap, update_dca,
+                           update_retire, update_supercharge,
+                           manage_lots, preview_percentile,
+                           update_effective_lots, restore_from_url,
+                           _toggle_dca_sc_body, auto_bubble_yrange,
+                           update_sc_info, toggle_sc_mode,
+                           _TAB_CONTROLS, _TAB_TO_PATH)
+    import _app_ctx
+    _ALL_QS = _app_ctx._ALL_QS
 except Exception:
     # If app import fails, define stubs for the test — tests will be skipped
     _q3 = _quantize_params = None
@@ -479,10 +493,10 @@ class TestIsCachedYear:
 # Section 4: figures.py tests
 # ═══════════════════════════════════════════════════════════════════════════════
 
-from figures import (_mc_path_key, _mc_overlay_key, _mc_fan_to_lists,
-                     _mc_fan_from_lists, _mc_paths_to_lists, _mc_paths_from_lists,
-                     _apply_watermark, _interp_qr_price,
-                     _FREQ_STEP_DAYS, _MC_FAN_PCTS)
+from mc_overlay import (_mc_path_key, _mc_overlay_key, _mc_fan_to_lists,
+                        _mc_fan_from_lists, _mc_paths_to_lists, _mc_paths_from_lists,
+                        _MC_FAN_PCTS)
+from figures import _apply_watermark, _interp_qr_price, _FREQ_STEP_DAYS
 import plotly.graph_objects as go
 
 
@@ -499,22 +513,23 @@ class TestMcPathKey:
         assert "mc_entry_q" in key
 
     def test_ret_defaults(self):
+        """Unified key defaults mc_start_yr to 2026; callback sets tab-specific value."""
         key = _mc_path_key({}, "ret")
-        assert key["mc_start_yr"] == 2031
+        assert key["mc_start_yr"] == 2026
 
     def test_sc_defaults(self):
+        """Unified key defaults mc_start_yr to 2026; callback sets tab-specific value."""
         key = _mc_path_key({}, "sc")
-        assert key["mc_start_yr"] == 2031
+        assert key["mc_start_yr"] == 2026
 
-    def test_hm_uses_entry_q(self):
-        key = _mc_path_key({"entry_q": 75}, "hm")
-        assert key["entry_q"] == 75.0
-        assert "mc_entry_q" not in key
+    def test_hm_uses_mc_entry_q(self):
+        """Unified key reads mc_entry_q directly (callback maps entry_q → mc_entry_q)."""
+        key = _mc_path_key({"mc_entry_q": 75}, "hm")
+        assert key["mc_entry_q"] == 75.0
 
     def test_dca_uses_mc_entry_q(self):
         key = _mc_path_key({"mc_entry_q": 30}, "dca")
         assert key["mc_entry_q"] == 30.0
-        assert "entry_q" not in key
 
     def test_custom_params(self):
         p = {"mc_bins": 10, "mc_sims": 400, "mc_years": 20,
@@ -530,6 +545,134 @@ class TestMcPathKey:
     def test_path_key_deterministic(self):
         p = {"mc_start_yr": 2026, "mc_entry_q": 50}
         assert _mc_path_key(p, "dca") == _mc_path_key(p, "dca")
+
+    def test_no_start_yr_key_in_path_key(self):
+        """path_key must not contain 'start_yr' — only 'mc_start_yr'."""
+        for tab in ("dca", "ret", "sc", "hm"):
+            key = _mc_path_key({}, tab)
+            assert "start_yr" not in key, f"{tab} still has start_yr"
+            assert "mc_start_yr" in key
+
+    def test_no_fallback_to_non_mc_start_yr(self):
+        """Changing the main tab's start_yr must NOT affect path_key."""
+        p1 = {"mc_start_yr": 2030, "mc_entry_q": 40, "start_yr": 2024}
+        p2 = {"mc_start_yr": 2030, "mc_entry_q": 40, "start_yr": 9999}
+        assert _mc_path_key(p1, "dca") == _mc_path_key(p2, "dca")
+        assert _mc_path_key(p1, "ret") == _mc_path_key(p2, "ret")
+
+    def test_hm_reads_mc_start_yr(self):
+        """Unified key reads mc_start_yr directly (callback maps entry_yr → mc_start_yr)."""
+        key = _mc_path_key({"mc_start_yr": 2030, "start_yr": 9999}, "hm")
+        assert key["mc_start_yr"] == 2030
+
+    def test_uniform_key_names_across_tabs(self):
+        """All tabs use mc_start_yr and mc_entry_q — no tab uses entry_q or start_yr."""
+        for tab in ("dca", "ret", "sc", "hm"):
+            key = _mc_path_key({}, tab)
+            assert "mc_start_yr" in key
+            assert "mc_entry_q" in key
+            assert "entry_q" not in key
+            assert "start_yr" not in key
+
+    def test_upload_roundtrip_all_tabs(self):
+        """Saved path_key matches on reload when upload populates MC panel."""
+        for tab, default_yr in [("dca", 2026), ("ret", 2031), ("sc", 2031)]:
+            saved_p = {"mc_start_yr": 2030, "mc_entry_q": 40}
+            reload_p = {"mc_start_yr": 2030, "mc_entry_q": 40, "start_yr": 2024}
+            assert _mc_path_key(saved_p, tab) == _mc_path_key(reload_p, tab)
+
+
+class TestBuildMcParams:
+    """Tests for the _build_mc_params() centralized helper."""
+
+    def test_defaults(self):
+        """All-None inputs → tab defaults."""
+        d = _build_mc_params(
+            mc_enable=True, mc_amount=None, mc_infl=None,
+            mc_bins=None, mc_sims=None, mc_years=None,
+            mc_freq=None, mc_window=None,
+            mc_start_yr=None, mc_entry_q=None,
+            mc_cached=None, mc_live_price=0,
+        )
+        assert d["mc_enabled"] is True
+        assert d["mc_amount"] == 100
+        assert d["mc_infl"] == 4.0
+        assert d["mc_bins"] == 5
+        assert d["mc_sims"] == 800
+        assert d["mc_years"] == 10
+        assert d["mc_freq"] == "Monthly"
+        assert d["mc_start_yr"] == 2026
+        assert d["mc_entry_q"] == 50
+        assert "mc_start_stack" not in d
+
+    def test_custom_defaults(self):
+        """Tab-specific defaults override generic defaults."""
+        d = _build_mc_params(
+            mc_enable=False, mc_amount=None, mc_infl=None,
+            mc_bins=None, mc_sims=None, mc_years=None,
+            mc_freq=None, mc_window=None,
+            mc_start_yr=None, mc_entry_q=None,
+            mc_cached=None, mc_live_price=0,
+            amount_default=5000, infl_default=0.0, start_yr_default=2031,
+        )
+        assert d["mc_amount"] == 5000
+        assert d["mc_infl"] == 0.0
+        assert d["mc_start_yr"] == 2031
+
+    def test_explicit_values_override(self):
+        """Explicit values take precedence over defaults."""
+        d = _build_mc_params(
+            mc_enable=True, mc_amount=200, mc_infl=3.5,
+            mc_bins=10, mc_sims=400, mc_years=20,
+            mc_freq="Daily", mc_window=[2010, 2025],
+            mc_start_yr=2028, mc_entry_q=75,
+            mc_cached="data", mc_live_price=90000,
+            amount_default=5000,
+        )
+        assert d["mc_amount"] == 200
+        assert d["mc_infl"] == 3.5
+        assert d["mc_bins"] == 10
+        assert d["mc_sims"] == 400
+        assert d["mc_years"] == 20
+        assert d["mc_freq"] == "Daily"
+        assert d["mc_start_yr"] == 2028
+        assert d["mc_entry_q"] == 75
+
+    def test_infl_zero_not_falsy(self):
+        """mc_infl=0 must not fall through to default."""
+        d = _build_mc_params(
+            mc_enable=True, mc_amount=100, mc_infl=0,
+            mc_bins=5, mc_sims=800, mc_years=10,
+            mc_freq="Monthly", mc_window=None,
+            mc_start_yr=2026, mc_entry_q=50,
+            mc_cached=None, mc_live_price=0,
+            infl_default=4.0,
+        )
+        assert d["mc_infl"] == 0.0
+
+    def test_start_stack_included(self):
+        """mc_start_stack added when provided."""
+        d = _build_mc_params(
+            mc_enable=True, mc_amount=5000, mc_infl=4.0,
+            mc_bins=5, mc_sims=800, mc_years=10,
+            mc_freq="Monthly", mc_window=None,
+            mc_start_yr=2031, mc_entry_q=50,
+            mc_cached=None, mc_live_price=0,
+            mc_start_stack=2.5,
+        )
+        assert d["mc_start_stack"] == 2.5
+
+    def test_start_stack_none_excluded(self):
+        """mc_start_stack omitted when None."""
+        d = _build_mc_params(
+            mc_enable=True, mc_amount=100, mc_infl=4.0,
+            mc_bins=5, mc_sims=800, mc_years=10,
+            mc_freq="Monthly", mc_window=None,
+            mc_start_yr=2026, mc_entry_q=50,
+            mc_cached=None, mc_live_price=0,
+            mc_start_stack=None,
+        )
+        assert "mc_start_stack" not in d
 
 
 class TestMcOverlayKey:
@@ -632,6 +775,63 @@ class TestMcFanPcts:
 
     def test_count(self):
         assert len(_MC_FAN_PCTS) == 6
+
+
+class TestMcUploadFields:
+    """Ensure upload fields cover all MC path_key params for cache hits."""
+    def _suffixes(self, tab):
+        return {s for s, _, _, _ in _MC_UPLOAD_FIELDS[tab]}
+
+    def test_hm_has_start_yr(self):
+        assert "start-yr" in self._suffixes("hm")
+
+    def test_hm_has_entry_q(self):
+        assert "entry-q" in self._suffixes("hm")
+
+    def test_hm_has_years(self):
+        assert "years" in self._suffixes("hm")
+
+    def test_dca_has_start_yr(self):
+        assert "start-yr" in self._suffixes("dca")
+
+    def test_ret_has_start_yr(self):
+        assert "start-yr" in self._suffixes("ret")
+
+    def test_sc_has_start_yr(self):
+        assert "start-yr" in self._suffixes("sc")
+
+    def test_all_tabs_have_years(self):
+        for tab in _MC_UPLOAD_FIELDS:
+            assert "years" in self._suffixes(tab), f"{tab} missing years"
+
+    def test_all_tabs_have_window(self):
+        """mc_window in path_key changes yearly; upload must restore it."""
+        for tab in _MC_UPLOAD_FIELDS:
+            assert "window" in self._suffixes(tab), f"{tab} missing window"
+
+    def test_window_extracted_from_path_key(self):
+        data = {"path_key": {"mc_window": [2010, 2025]}, "overlay_key": {}}
+        assert _pk(data, "mc_window") == [2010, 2025]
+
+    def test_pk_extracts_mc_start_yr(self):
+        """_pk must find mc_start_yr in saved data's path_key."""
+        data = {"path_key": {"mc_start_yr": 2030, "mc_entry_q": 50},
+                "overlay_key": {}}
+        assert _pk(data, "mc_start_yr") == 2030
+        assert _pk(data, "mc_entry_q") == 50
+
+    def test_no_tuple_keys_in_upload_fields(self):
+        """All upload fields use direct string keys — no tuple fallbacks."""
+        for tab, fields in _MC_UPLOAD_FIELDS.items():
+            for suffix, data_key, _, _ in fields:
+                assert isinstance(data_key, str), \
+                    f"{tab}.{suffix} uses tuple key {data_key} — should be direct string"
+
+    def test_all_mc_years_available_at_defaults(self):
+        """800 sims × Monthly must allow all 4 year options (10, 20, 30, 40)."""
+        opts = _mc_years_options(800, "Monthly")
+        values = [o["value"] for o in opts]
+        assert values == [10, 20, 30, 40]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1009,6 +1209,232 @@ class TestAnnotationStagger:
         assert isinstance(fig, go.Figure)
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section 7: Financial math tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_Q50 = 0.5 if 0.5 in M.qr_fits else next(iter(M.qr_fits))
+
+
+class TestDCAMath:
+    """Verify DCA accumulation arithmetic against manual calculation."""
+
+    def _dca_params(self, **overrides):
+        p = {
+            "start_yr": 2030, "end_yr": 2031,
+            "start_stack": 0.0, "amount": 1000, "freq": "Monthly",
+            "disp_mode": "btc", "selected_qs": [_Q50],
+            "log_y": False, "show_today": False, "dual_y": False,
+            "show_legend": True, "lots": [], "use_lots": False,
+            "sc_enabled": False,
+        }
+        p.update(overrides)
+        return p
+
+    def test_accumulation_matches_manual(self):
+        """Final BTC stack should equal sum of (amount / price) for each period."""
+        p = self._dca_params()
+        fig, _ = build_dca_figure(M, p)
+        assert len(fig.data) >= 1
+        y_vals = fig.data[0].y
+        # Manual computation
+        t_start = max(yr_to_t(2030, M.genesis), 1.0)
+        t_end = yr_to_t(2031, M.genesis)
+        ts = np.arange(t_start, t_end + (1 / 12) * 0.5, 1 / 12)
+        expected = 0.0
+        for t in ts:
+            expected += 1000.0 / float(qr_price(_Q50, max(t, 0.5), M.qr_fits))
+        assert abs(y_vals[-1] - expected) < 1e-8
+
+    def test_start_stack_offset(self):
+        """Starting stack should shift all values by a constant."""
+        fig0, _ = build_dca_figure(M, self._dca_params(start_stack=0.0))
+        fig1, _ = build_dca_figure(M, self._dca_params(start_stack=2.5))
+        final0 = fig0.data[0].y[-1]
+        final1 = fig1.data[0].y[-1]
+        assert abs(final1 - final0 - 2.5) < 1e-8
+
+    def test_usd_mode_equals_btc_times_price(self):
+        """USD display mode = BTC balance × final price."""
+        fig_btc, _ = build_dca_figure(M, self._dca_params(disp_mode="btc"))
+        fig_usd, _ = build_dca_figure(M, self._dca_params(disp_mode="usd"))
+        btc_final = fig_btc.data[0].y[-1]
+        usd_final = fig_usd.data[0].y[-1]
+        t_end = yr_to_t(2031, M.genesis)
+        ts = np.arange(max(yr_to_t(2030, M.genesis), 1.0), t_end + (1 / 12) * 0.5, 1 / 12)
+        final_price = float(qr_price(_Q50, max(ts[-1], 0.5), M.qr_fits))
+        assert abs(usd_final - btc_final * final_price) < 1.0
+
+    def test_higher_quantile_less_btc(self):
+        """Higher quantile → higher price → less BTC accumulated per DCA."""
+        q_lo, q_hi = 0.1, 0.9
+        if q_lo not in M.qr_fits or q_hi not in M.qr_fits:
+            pytest.skip("Need Q10% and Q90%")
+        fig, _ = build_dca_figure(M, self._dca_params(
+            selected_qs=[q_lo, q_hi], disp_mode="btc"))
+        btc_lo = fig.data[0].y[-1]
+        btc_hi = fig.data[1].y[-1]
+        assert btc_lo > btc_hi  # lower price → more BTC per purchase
+
+    def test_end_before_start_returns_error(self):
+        """end_yr <= start_yr should return an error figure."""
+        fig, _ = build_dca_figure(M, self._dca_params(start_yr=2035, end_yr=2030))
+        assert isinstance(fig, go.Figure)
+        assert "end year" in (fig.layout.title.text or "").lower()
+
+
+class TestSCLoanCap:
+    """Verify Stack-cellerator loan cap formulas."""
+
+    def test_interest_only_cap_formula(self):
+        """max_principal = amount / r for interest-only."""
+        amount, r = 500, 0.01  # $500/period, 1% per period
+        assert abs(amount / r - 50_000) < 0.01
+
+    def test_amortizing_cap_formula(self):
+        """max_principal = amount * (1-(1+r)^-n) / r for amortizing."""
+        amount, r, n = 500, 0.01, 12
+        max_p = amount * (1 - (1 + r) ** (-n)) / r
+        # Verify: payment at max principal should equal amount
+        pmt = max_p * r / (1 - (1 + r) ** (-n))
+        assert abs(pmt - amount) < 0.01
+
+    def test_cap_prevents_negative_dca(self):
+        """Huge loan should be capped; SC trace still generated."""
+        p = {
+            "start_yr": 2030, "end_yr": 2031,
+            "start_stack": 0.0, "amount": 100, "freq": "Monthly",
+            "disp_mode": "btc", "selected_qs": [_Q50],
+            "log_y": False, "show_today": False, "dual_y": False,
+            "show_legend": True, "lots": [], "use_lots": False,
+            "sc_enabled": True,
+            "sc_loan_amount": 999_999_999, "sc_rate": 12.0,
+            "sc_term_months": 12, "sc_loan_type": "interest_only",
+            "sc_repeats": 0, "sc_entry_mode": "model",
+            "sc_custom_price": 0, "sc_tax_rate": 0.33,
+            "sc_rollover": False, "sc_live_price": 0,
+        }
+        fig, _ = build_dca_figure(M, p)
+        assert isinstance(fig, go.Figure)
+        sc_traces = [t for t in fig.data if "SC" in (t.name or "")]
+        assert len(sc_traces) >= 1
+
+    def test_zero_rate_no_cap(self):
+        """0% interest → no cap applied, amortizing payment = principal/n."""
+        p = {
+            "start_yr": 2030, "end_yr": 2031,
+            "start_stack": 0.0, "amount": 1000, "freq": "Monthly",
+            "disp_mode": "btc", "selected_qs": [_Q50],
+            "log_y": False, "show_today": False, "dual_y": False,
+            "show_legend": True, "lots": [], "use_lots": False,
+            "sc_enabled": True,
+            "sc_loan_amount": 5000, "sc_rate": 0.0,
+            "sc_term_months": 12, "sc_loan_type": "amortizing",
+            "sc_repeats": 0, "sc_entry_mode": "model",
+            "sc_custom_price": 0, "sc_tax_rate": 0,
+            "sc_rollover": False, "sc_live_price": 0,
+        }
+        fig, _ = build_dca_figure(M, p)
+        sc_traces = [t for t in fig.data if "SC" in (t.name or "")]
+        assert len(sc_traces) >= 1
+
+
+class TestSCTaxOnGain:
+    """Verify tax-on-gain formula for interest-only SC."""
+
+    def test_gain_taxed(self):
+        """net_per_btc = price - tax_rate * max(price - ep, 0)."""
+        price, ep, tax = 100_000, 60_000, 0.33
+        gain = max(price - ep, 0)
+        net = price - tax * gain
+        assert abs(net - 86_800) < 0.01
+
+    def test_loss_no_tax(self):
+        """No tax when selling at a loss."""
+        price, ep, tax = 50_000, 60_000, 0.33
+        gain = max(price - ep, 0)
+        net = price - tax * gain
+        assert abs(net - 50_000) < 0.01
+
+    def test_btc_sold_amount(self):
+        """BTC sold to repay = principal / net_per_btc."""
+        principal = 10_000
+        price, ep, tax = 100_000, 60_000, 0.33
+        net = price - tax * max(price - ep, 0)
+        btc_sold = principal / net
+        assert abs(btc_sold - 10_000 / 86_800) < 1e-8
+
+    def test_zero_tax_net_equals_price(self):
+        """With 0% tax, net_per_btc = price regardless of gain."""
+        price, ep = 100_000, 50_000
+        net = price - 0.0 * max(price - ep, 0)
+        assert abs(net - price) < 0.01
+
+
+class TestRetireMath:
+    """Verify retirement depletion arithmetic."""
+
+    def _retire_params(self, **overrides):
+        p = {
+            "start_yr": 2030, "end_yr": 2035,
+            "start_stack": 1.0, "wd_amount": 50000, "freq": "Annually",
+            "inflation": 0, "disp_mode": "btc",
+            "selected_qs": [_Q50], "log_y": False,
+            "show_today": False, "dual_y": False,
+            "show_legend": True, "annotate": False,
+            "lots": [], "use_lots": False,
+        }
+        p.update(overrides)
+        return p
+
+    def test_depletion_matches_manual(self):
+        """Step-by-step depletion should match manual calculation."""
+        p = self._retire_params()
+        fig, _ = build_retire_figure(M, p)
+        assert len(fig.data) >= 1
+        y_vals = list(fig.data[0].y)
+        # Manual
+        t_start = max(yr_to_t(2030, M.genesis), 1.0)
+        t_end = yr_to_t(2035, M.genesis)
+        ts = np.arange(t_start, t_end + 0.5, 1.0)
+        stack = 1.0
+        for i, t in enumerate(ts):
+            price = float(qr_price(_Q50, max(t, 0.5), M.qr_fits))
+            stack -= 50000.0 / price
+            stack = max(stack, 0.0)
+            assert abs(y_vals[i] - stack) < 1e-8
+
+    def test_zero_withdrawal_preserves_stack(self):
+        """Zero withdrawal should keep stack constant."""
+        fig, _ = build_retire_figure(M, self._retire_params(wd_amount=0))
+        for v in fig.data[0].y:
+            assert abs(v - 1.0) < 1e-8
+
+    def test_inflation_accelerates_depletion(self):
+        """Positive inflation should deplete faster than zero inflation."""
+        fig_no, _ = build_retire_figure(M, self._retire_params(
+            start_stack=10.0, wd_amount=10000, end_yr=2050, inflation=0))
+        fig_yes, _ = build_retire_figure(M, self._retire_params(
+            start_stack=10.0, wd_amount=10000, end_yr=2050, inflation=10))
+        assert fig_yes.data[0].y[-1] < fig_no.data[0].y[-1]
+
+    def test_large_withdrawal_depletes_to_zero(self):
+        """Huge withdrawal should reach zero quickly."""
+        fig, _ = build_retire_figure(M, self._retire_params(
+            start_stack=0.1, wd_amount=1_000_000, freq="Monthly"))
+        assert fig.data[0].y[-1] == 0.0
+
+    def test_depletion_annotation_present(self):
+        """When stack depletes and annotate=True, annotation should exist."""
+        fig, _ = build_retire_figure(M, self._retire_params(
+            start_stack=0.01, wd_amount=500_000, freq="Monthly",
+            annotate=True))
+        annots = fig.layout.annotations or []
+        # Should have at least one depletion annotation with year text
+        depl_annots = [a for a in annots if "≈" in (a.text or "")]
+        assert len(depl_annots) >= 1
+
+
 class TestSnapshotControlsCompleteness:
     """Verify snapshot controls list is self-consistent."""
 
@@ -1023,6 +1449,698 @@ class TestSnapshotControlsCompleteness:
         snapshot_ids = {cid for cid, _ in _SNAPSHOT_CONTROLS}
         for cid in _CHECKLIST_OPTIONS:
             assert cid in snapshot_ids, f"{cid} in _CHECKLIST_OPTIONS but not in _SNAPSHOT_CONTROLS"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section 5: Callback smoke tests (Phase E)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class _CallbackCtx:
+    """Minimal mock for dash.ctx (dash._callback_context)."""
+    def __init__(self, triggered_id=None):
+        self.triggered_id = triggered_id
+
+
+def _patch_ctx(triggered_id=None):
+    """Context manager that patches dash.ctx and dash.callback_context."""
+    ctx_obj = _CallbackCtx(triggered_id)
+    return patch.multiple("callbacks", ctx=ctx_obj)
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestUpdateBubbleCallback:
+    """Smoke-test the update_bubble callback."""
+
+    def test_returns_figure(self):
+        with _patch_ctx("bub-qs"):
+            fig = update_bubble(
+                sel_qs=[0.5], toggles=["show_data", "show_today"],
+                bubble_toggles=[], xscale="log", yscale="log",
+                xrange=[2012, 2030], yrange=[0, 7],
+                n_future=3, ptsize=3, ptalpha=0.6,
+                stack=0, show_stack=[], use_lots=[], lots_data=[],
+            )
+        assert isinstance(fig, go.Figure)
+
+    def test_empty_quantiles(self):
+        with _patch_ctx("bub-qs"):
+            fig = update_bubble(
+                sel_qs=[], toggles=[], bubble_toggles=[],
+                xscale="linear", yscale="log",
+                xrange=[2015, 2028], yrange=[1, 6],
+                n_future=0, ptsize=2, ptalpha=0.3,
+                stack=0, show_stack=[], use_lots=[], lots_data=[],
+            )
+        assert isinstance(fig, go.Figure)
+
+    def test_with_stack(self):
+        with _patch_ctx("bub-stack"):
+            fig = update_bubble(
+                sel_qs=[0.1, 0.5, 0.9], toggles=["show_legend"],
+                bubble_toggles=["show_comp"], xscale="log", yscale="log",
+                xrange=[2012, 2035], yrange=[0, 7],
+                n_future=2, ptsize=4, ptalpha=0.5,
+                stack=1.5, show_stack=["yes"], use_lots=[], lots_data=[],
+            )
+        assert isinstance(fig, go.Figure)
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestUpdateHeatmapCallback:
+    """Smoke-test the update_heatmap callback."""
+
+    def test_returns_figure(self):
+        yr = pd.Timestamp.today().year
+        with _patch_ctx("hm-entry-yr"):
+            result = update_heatmap(
+                active_tab="heatmap", entry_yr=yr, entry_q=50.0,
+                exit_range=[yr, yr + 10],
+                exit_qs=[0.01, 0.1, 0.5, 0.85, 0.99],
+                mode=0, b1=0, b2=20,
+                c_lo=None, c_mid1=None, c_mid2=None, c_hi=None,
+                grad=32, vfmt="cagr", cell_fs=9,
+                toggles=["colorbar"], stack=0, use_lots=[],
+                lots_data=[],
+                mc_enable=[], mc_amount=100, mc_infl=0,
+                mc_bins=5, mc_sims=800, mc_years=10,
+                mc_freq="Monthly", mc_window=[2010, yr],
+                mc_start_yr=yr, mc_entry_q=50,
+                _mc_loaded=None, live_price=0, mc_cached=None,
+            )
+        # Returns 8 outputs: qr_fig, mc_fig, store, status, panel_style, indicator_style, modal, tab
+        assert len(result) == 8
+        assert isinstance(result[0], go.Figure)
+
+    def test_wrong_tab_prevents_update(self):
+        with _patch_ctx("main-tabs"):
+            with pytest.raises(Exception):  # dash.exceptions.PreventUpdate
+                update_heatmap(
+                    active_tab="dca", entry_yr=2025, entry_q=50,
+                    exit_range=[2025, 2035], exit_qs=[0.5],
+                    mode=0, b1=0, b2=20,
+                    c_lo=None, c_mid1=None, c_mid2=None, c_hi=None,
+                    grad=32, vfmt="cagr", cell_fs=9,
+                    toggles=[], stack=0, use_lots=[], lots_data=[],
+                    mc_enable=[], mc_amount=100, mc_infl=0,
+                    mc_bins=5, mc_sims=800, mc_years=10,
+                    mc_freq="Monthly", mc_window=None,
+                    mc_start_yr=2025, mc_entry_q=50,
+                    _mc_loaded=None, live_price=0, mc_cached=None,
+                )
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestUpdateDcaCallback:
+    """Smoke-test the update_dca callback."""
+
+    def test_returns_figure_and_mc_outputs(self):
+        with _patch_ctx("dca-amount"):
+            result = update_dca(
+                active_tab="dca", stack=0, use_lots=[], amount=200,
+                freq="Monthly", yr_range=[2025, 2035],
+                disp="btc", toggles=["dual_y", "show_legend"],
+                sel_qs=[0.5], lots_data=[],
+                sc_enable=[], sc_loan=0, sc_rate=13, sc_term=12,
+                sc_type="interest_only", sc_repeats=0,
+                sc_entry_mode="live", sc_custom_price=80000,
+                sc_tax=33, sc_rollover=[],
+                mc_enable=[], mc_amount=100, mc_infl=4,
+                mc_bins=5, mc_sims=800, mc_years=10,
+                mc_freq="Monthly", mc_window=None,
+                mc_start_yr=2026, mc_entry_q=50,
+                _mc_loaded=None, price_data=0, mc_cached=None,
+            )
+        # 5 outputs: fig, mc_results, mc_status, mc_modal, mc_tab
+        assert len(result) == 5
+        assert isinstance(result[0], go.Figure)
+
+    def test_wrong_tab_prevents_update(self):
+        with _patch_ctx("main-tabs"):
+            with pytest.raises(Exception):
+                update_dca(
+                    active_tab="bubble", stack=0, use_lots=[], amount=200,
+                    freq="Monthly", yr_range=[2025, 2035],
+                    disp="btc", toggles=[], sel_qs=[0.5], lots_data=[],
+                    sc_enable=[], sc_loan=0, sc_rate=13, sc_term=12,
+                    sc_type="interest_only", sc_repeats=0,
+                    sc_entry_mode="live", sc_custom_price=80000,
+                    sc_tax=33, sc_rollover=[],
+                    mc_enable=[], mc_amount=100, mc_infl=4,
+                    mc_bins=5, mc_sims=800, mc_years=10,
+                    mc_freq="Monthly", mc_window=None,
+                    mc_start_yr=2026, mc_entry_q=50,
+                    _mc_loaded=None, price_data=0, mc_cached=None,
+                )
+
+    def test_with_sc_enabled(self):
+        with _patch_ctx("dca-sc-enable"):
+            result = update_dca(
+                active_tab="dca", stack=0, use_lots=[], amount=500,
+                freq="Monthly", yr_range=[2025, 2030],
+                disp="btc", toggles=["dual_y"],
+                sel_qs=[0.1, 0.5], lots_data=[],
+                sc_enable=["yes"], sc_loan=10000, sc_rate=13, sc_term=12,
+                sc_type="interest_only", sc_repeats=0,
+                sc_entry_mode="custom", sc_custom_price=90000,
+                sc_tax=33, sc_rollover=[],
+                mc_enable=[], mc_amount=100, mc_infl=4,
+                mc_bins=5, mc_sims=800, mc_years=10,
+                mc_freq="Monthly", mc_window=None,
+                mc_start_yr=2026, mc_entry_q=50,
+                _mc_loaded=None, price_data=0, mc_cached=None,
+            )
+        assert isinstance(result[0], go.Figure)
+
+    def test_usd_display_mode(self):
+        with _patch_ctx("dca-disp"):
+            result = update_dca(
+                active_tab="dca", stack=0.5, use_lots=[], amount=300,
+                freq="Weekly", yr_range=[2025, 2032],
+                disp="usd", toggles=["log_y"],
+                sel_qs=[0.5, 0.85], lots_data=[],
+                sc_enable=[], sc_loan=0, sc_rate=13, sc_term=12,
+                sc_type="interest_only", sc_repeats=0,
+                sc_entry_mode="live", sc_custom_price=80000,
+                sc_tax=33, sc_rollover=[],
+                mc_enable=[], mc_amount=100, mc_infl=4,
+                mc_bins=5, mc_sims=800, mc_years=10,
+                mc_freq="Monthly", mc_window=None,
+                mc_start_yr=2026, mc_entry_q=50,
+                _mc_loaded=None, price_data=0, mc_cached=None,
+            )
+        assert isinstance(result[0], go.Figure)
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestUpdateRetireCallback:
+    """Smoke-test the update_retire callback."""
+
+    def test_returns_figure(self):
+        with _patch_ctx("ret-wd"):
+            result = update_retire(
+                active_tab="retire", stack=1.0, use_lots=[], wd=5000,
+                freq="Monthly", yr_range=[2031, 2075], infl=4,
+                disp="btc", toggles=["log_y", "dual_y", "annotate"],
+                sel_qs=[0.01, 0.1, 0.25], lots_data=[],
+                mc_enable=[], mc_amount=5000, mc_infl=4,
+                mc_bins=5, mc_sims=800, mc_years=10,
+                mc_freq="Monthly", mc_window=None,
+                mc_stack=1.0, mc_start_yr=2031, mc_entry_q=50,
+                _mc_loaded=None, price_data=0, mc_cached=None,
+            )
+        assert len(result) == 5
+        assert isinstance(result[0], go.Figure)
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestUpdateSuperchargeCallback:
+    """Smoke-test the update_supercharge callback."""
+
+    def test_mode_a(self):
+        with _patch_ctx("sc-mode"):
+            result = update_supercharge(
+                active_tab="supercharge", stack=1.0, use_lots=[],
+                start_yr=2033, d0=0, d1=0, d2=0, d3=1, d4=2,
+                freq="Annually", infl=4, sel_qs=[0.001, 0.1],
+                mode="a", wd=100000, end_yr=2075, target_yr=2060,
+                disp="usd",
+                toggles=["annotate", "log_y", "show_legend"],
+                chart_layout=["shade"], display_q=0.5, lots_data=[],
+                mc_enable=[], mc_amount=5000, mc_infl=4,
+                mc_bins=5, mc_sims=800, mc_years=10,
+                mc_freq="Monthly", mc_window=None,
+                mc_stack=1.0, mc_start_yr=2031, mc_entry_q=50,
+                _mc_loaded=None, price_data=0, mc_cached=None,
+            )
+        assert len(result) == 5
+        assert isinstance(result[0], go.Figure)
+
+    def test_mode_b(self):
+        with _patch_ctx("sc-mode"):
+            result = update_supercharge(
+                active_tab="supercharge", stack=2.0, use_lots=[],
+                start_yr=2030, d0=0, d1=1, d2=3, d3=5, d4=10,
+                freq="Monthly", infl=3, sel_qs=[0.1, 0.5],
+                mode="b", wd=50000, end_yr=2080, target_yr=2055,
+                disp="usd", toggles=["show_legend"],
+                chart_layout=[], display_q=0.5, lots_data=[],
+                mc_enable=[], mc_amount=5000, mc_infl=4,
+                mc_bins=5, mc_sims=800, mc_years=10,
+                mc_freq="Monthly", mc_window=None,
+                mc_stack=1.0, mc_start_yr=2031, mc_entry_q=50,
+                _mc_loaded=None, price_data=0, mc_cached=None,
+            )
+        assert isinstance(result[0], go.Figure)
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestManageLotsCallback:
+    """Smoke-test manage_lots callback."""
+
+    def test_add_lot(self):
+        with _patch_ctx("lot-add-btn"):
+            result = manage_lots(
+                add_n=1, del_n=0, clear_n=0, import_contents=None,
+                date_str="2024-01-15", btc_amt="0.5", price_val="42000",
+                notes="test lot", selected_rows=[], lots_data=[],
+            )
+        lots, table_data, sel, summary, import_status = result
+        assert len(lots) == 1
+        assert lots[0]["btc"] == 0.5
+        assert lots[0]["price"] == 42000.0
+        assert lots[0]["notes"] == "test lot"
+        assert "pct_q" in lots[0]
+
+    def test_add_lot_special_chars(self):
+        """Lots with special characters in notes."""
+        with _patch_ctx("lot-add-btn"):
+            result = manage_lots(
+                add_n=1, del_n=0, clear_n=0, import_contents=None,
+                date_str="2023-06-01", btc_amt="1.0", price_val="30000",
+                notes='DCA "buy the dip" 🚀 <script>alert(1)</script>',
+                selected_rows=[], lots_data=[],
+            )
+        lots = result[0]
+        assert len(lots) == 1
+        assert '<script>' in lots[0]["notes"]  # stored as-is, XSS prevented by Dash rendering
+
+    def test_delete_lot(self):
+        existing = [
+            {"date": "2024-01-01", "btc": 0.1, "price": 40000, "pct_q": 0.5, "notes": "a"},
+            {"date": "2024-02-01", "btc": 0.2, "price": 45000, "pct_q": 0.6, "notes": "b"},
+        ]
+        with _patch_ctx("lot-del-btn"):
+            result = manage_lots(
+                add_n=0, del_n=1, clear_n=0, import_contents=None,
+                date_str=None, btc_amt=None, price_val=None, notes=None,
+                selected_rows=[0], lots_data=existing,
+            )
+        lots = result[0]
+        assert len(lots) == 1
+        assert lots[0]["notes"] == "b"
+
+    def test_clear_lots(self):
+        existing = [
+            {"date": "2024-01-01", "btc": 0.1, "price": 40000, "pct_q": 0.5, "notes": "a"},
+        ]
+        with _patch_ctx("lot-clear-btn"):
+            result = manage_lots(
+                add_n=0, del_n=0, clear_n=1, import_contents=None,
+                date_str=None, btc_amt=None, price_val=None, notes=None,
+                selected_rows=[], lots_data=existing,
+            )
+        assert result[0] == []
+
+    def test_import_lots(self):
+        lots_json = json.dumps([
+            {"date": "2024-03-01", "btc": 0.3, "price": 60000, "notes": "imported"},
+        ])
+        b64 = base64.b64encode(lots_json.encode()).decode()
+        contents = f"data:application/json;base64,{b64}"
+        with _patch_ctx("lots-import-upload"):
+            result = manage_lots(
+                add_n=0, del_n=0, clear_n=0, import_contents=contents,
+                date_str=None, btc_amt=None, price_val=None, notes=None,
+                selected_rows=[], lots_data=[],
+            )
+        lots = result[0]
+        assert len(lots) == 1
+        assert lots[0]["btc"] == 0.3
+        assert "pct_q" in lots[0]  # recomputed
+
+    def test_add_invalid_prevents_update(self):
+        """Missing fields should raise PreventUpdate."""
+        with _patch_ctx("lot-add-btn"):
+            with pytest.raises(Exception):
+                manage_lots(
+                    add_n=1, del_n=0, clear_n=0, import_contents=None,
+                    date_str=None, btc_amt=None, price_val=None, notes=None,
+                    selected_rows=[], lots_data=[],
+                )
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestLotsSummary:
+    def test_empty(self):
+        assert _lots_summary([]) == "No lots."
+
+    def test_single_lot(self):
+        lots = [{"btc": 0.5, "price": 40000, "pct_q": 0.45}]
+        s = _lots_summary(lots)
+        assert "1 lot(s)" in s
+        assert "0.5 BTC" in s
+
+    def test_multi_lot_avg(self):
+        lots = [
+            {"btc": 1.0, "price": 30000, "pct_q": 0.3},
+            {"btc": 1.0, "price": 60000, "pct_q": 0.7},
+        ]
+        s = _lots_summary(lots)
+        assert "2 lot(s)" in s
+        assert "2 BTC" in s
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestPreviewPercentile:
+    def test_valid_input(self):
+        with _patch_ctx():
+            result = preview_percentile("2024-06-15", 65000)
+        assert result.startswith("Q")
+        assert result.endswith("%")
+
+    def test_no_date(self):
+        with _patch_ctx():
+            assert preview_percentile(None, 65000) == ""
+
+    def test_no_price(self):
+        with _patch_ctx():
+            assert preview_percentile("2024-06-15", None) == ""
+
+    def test_zero_price(self):
+        with _patch_ctx():
+            assert preview_percentile("2024-06-15", 0) == ""
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestToggleCallbacks:
+    def test_sc_body_visible(self):
+        assert _toggle_dca_sc_body(["yes"]) == {}
+
+    def test_sc_body_hidden(self):
+        assert _toggle_dca_sc_body([]) == {"display": "none"}
+
+    def test_sc_body_falsy(self):
+        assert _toggle_dca_sc_body(None) == {"display": "none"}
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestEffectiveLots:
+    def test_snapshot_overrides(self):
+        local = [{"btc": 1}]
+        snap = [{"btc": 2}]
+        assert update_effective_lots(local, snap) == snap
+
+    def test_local_when_no_snapshot(self):
+        local = [{"btc": 1}]
+        assert update_effective_lots(local, None) == local
+
+    def test_empty_when_none(self):
+        assert update_effective_lots(None, None) == []
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestRestoreFromUrl:
+    def test_empty_hash(self):
+        result = restore_from_url("")
+        # All no_update
+        assert len(result) == len(_SNAPSHOT_CONTROLS) + 2
+
+    def test_none_hash(self):
+        result = restore_from_url(None)
+        assert len(result) == len(_SNAPSHOT_CONTROLS) + 2
+
+    def test_invalid_prefix(self):
+        result = restore_from_url("#garbage")
+        assert len(result) == len(_SNAPSHOT_CONTROLS) + 2
+
+    def test_valid_roundtrip(self):
+        """Encode a snapshot, then decode via restore_from_url."""
+        state = {
+            "bub-xscale:value": "log",
+            "bub-yscale:value": "log",
+            "main-tabs:active_tab": "bubble",
+            "bub-qs:value": [0.5],
+        }
+        encoded = _encode_snapshot(state)
+        hash_str = f"#q2:{encoded}"
+        result = restore_from_url(hash_str)
+        assert len(result) == len(_SNAPSHOT_CONTROLS) + 2
+        # main-tabs should be restored
+        main_tab_idx = next(i for i, (cid, _) in enumerate(_SNAPSHOT_CONTROLS)
+                           if cid == "main-tabs")
+        assert result[main_tab_idx] == "bubble"
+        # loaded-hash-store should be set
+        assert result[-1] == hash_str
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestAutoBubbleYrange:
+    def test_no_auto_prevents_update(self):
+        with _patch_ctx("bub-xrange"):
+            with pytest.raises(Exception):
+                auto_bubble_yrange(
+                    xrange=[2015, 2030], auto_y=[], yscale="log", sel_qs=[0.5],
+                )
+
+    def test_returns_yrange(self):
+        import math as _m
+        with _patch_ctx("bub-xrange"):
+            result = auto_bubble_yrange(
+                xrange=[2015, 2030], auto_y=["yes"], yscale="log", sel_qs=[0.5],
+            )
+        assert isinstance(result, list)
+        assert len(result) == 2
+        assert result[0] < result[1]
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestToggleScMode:
+    def test_mode_a(self):
+        result = toggle_sc_mode("a")
+        assert result == (True, False, True)
+
+    def test_mode_b(self):
+        result = toggle_sc_mode("b")
+        assert result == (False, True, False)
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestTabControlsMappings:
+    """Verify _TAB_CONTROLS and _TAB_TO_PATH consistency."""
+
+    def test_all_tabs_have_controls(self):
+        for tab in ["bubble", "heatmap", "dca", "retire", "supercharge"]:
+            assert tab in _TAB_CONTROLS
+            assert len(_TAB_CONTROLS[tab]) > 0
+
+    def test_tab_to_path_complete(self):
+        for tab in ["bubble", "heatmap", "dca", "retire", "supercharge", "stack", "faq"]:
+            assert tab in _TAB_TO_PATH
+
+    def test_snapshot_controls_covered(self):
+        """Every control ID (except main-tabs) should belong to some tab."""
+        all_tab_ids = set()
+        for ids in _TAB_CONTROLS.values():
+            all_tab_ids |= ids
+        for cid, _ in _SNAPSHOT_CONTROLS:
+            if cid == "main-tabs":
+                continue
+            assert cid in all_tab_ids, f"{cid} not in any _TAB_CONTROLS set"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section 6: Snapshot edge cases (Phase E)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestSnapshotSingleTabScope:
+    """Test single-tab scope filtering in snapshots."""
+
+    def test_tab_filter_encodes_only_matching(self):
+        """When tab_filter is set, non-matching controls become null."""
+        state = {}
+        for cid, prop in _SNAPSHOT_CONTROLS:
+            if cid in _TAB_CONTROLS.get("bubble", set()):
+                state[f"{cid}:{prop}"] = "test_val"
+            elif cid in _TAB_CONTROLS.get("dca", set()):
+                state[f"{cid}:{prop}"] = "dca_val"
+            elif cid == "main-tabs":
+                state[f"{cid}:{prop}"] = "bubble"
+        tab_filter = _TAB_CONTROLS["bubble"]
+        encoded = _encode_snapshot(state, tab_filter=tab_filter)
+        decoded = _decode_snapshot(encoded)
+        assert decoded is not None
+        # Bubble controls should be present
+        assert decoded.get("bub-xscale:value") == "test_val"
+        # DCA controls should NOT be present (filtered out)
+        assert "dca-amount:value" not in decoded
+        # main-tabs always present
+        assert decoded.get("main-tabs:active_tab") == "bubble"
+
+    def test_each_tab_filter_roundtrips(self):
+        """Each tab's filter should produce a decodable snapshot."""
+        for tab, ids in _TAB_CONTROLS.items():
+            state = {"main-tabs:active_tab": tab}
+            for cid, prop in _SNAPSHOT_CONTROLS:
+                if cid in ids:
+                    state[f"{cid}:{prop}"] = "val"
+            encoded = _encode_snapshot(state, tab_filter=ids)
+            decoded = _decode_snapshot(encoded)
+            assert decoded is not None, f"Failed to decode {tab} tab snapshot"
+            assert decoded.get("main-tabs:active_tab") == tab
+
+    def test_single_tab_shorter_than_all(self):
+        """Single-tab snapshot should produce shorter encoded string."""
+        state = {}
+        for cid, prop in _SNAPSHOT_CONTROLS:
+            state[f"{cid}:{prop}"] = "x"
+        encoded_all = _encode_snapshot(state)
+        encoded_one = _encode_snapshot(state, tab_filter=_TAB_CONTROLS["retire"])
+        assert len(encoded_one) < len(encoded_all)
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestBitmaskEdgeCases:
+    """Test bitmask encoding with edge-case states."""
+
+    def test_all_on(self):
+        """All options selected → all bits set."""
+        for cid, opts in _CHECKLIST_OPTIONS.items():
+            mask = _list_to_mask(opts, opts)
+            expected = (1 << len(opts)) - 1
+            assert mask == expected, f"{cid}: expected {expected}, got {mask}"
+            # Roundtrip
+            assert _mask_to_list(mask, opts) == opts
+
+    def test_all_off(self):
+        """No options selected → mask is 0."""
+        for cid, opts in _CHECKLIST_OPTIONS.items():
+            assert _list_to_mask([], opts) == 0
+            assert _mask_to_list(0, opts) == []
+
+    def test_single_bit_each(self):
+        """Each individual option should set exactly one bit."""
+        for cid, opts in _CHECKLIST_OPTIONS.items():
+            for i, opt in enumerate(opts):
+                mask = _list_to_mask([opt], opts)
+                assert mask == (1 << i), f"{cid}[{i}]={opt}: expected {1<<i}, got {mask}"
+                assert _mask_to_list(mask, opts) == [opt]
+
+    def test_quantile_all_on_roundtrip(self):
+        """All quantiles selected → roundtrip through encode/decode."""
+        all_qs = list(_ALL_QS)
+        state = {"bub-qs:value": all_qs, "main-tabs:active_tab": "bubble"}
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert decoded is not None
+        restored = decoded.get("bub-qs:value", [])
+        assert set(restored) == set(all_qs)
+
+    def test_empty_checklist_roundtrip(self):
+        """Empty checklist → 0 bitmask → empty list on decode."""
+        state = {"bub-toggles:value": [], "main-tabs:active_tab": "bubble"}
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert decoded is not None
+        # Empty list encodes as 0, which decodes to empty list
+        # But 0 might be stored as 0 in JSON; decoder should handle it
+        toggles = decoded.get("bub-toggles:value", None)
+        # Either not present (null → skipped) or empty list
+        assert toggles is None or toggles == []
+
+    def test_high_bit_quantile(self):
+        """Last quantile only → highest bit set."""
+        opts = _CHECKLIST_OPTIONS["bub-qs"]
+        last = opts[-1]
+        mask = _list_to_mask([last], opts)
+        assert mask == (1 << (len(opts) - 1))
+        assert _mask_to_list(mask, opts) == [last]
+
+    def test_mask_to_list_ignores_extra_bits(self):
+        """Bits beyond opts length should be ignored."""
+        opts = ["a", "b", "c"]
+        mask = 0b11111  # 5 bits, but only 3 opts
+        result = _mask_to_list(mask, opts)
+        assert result == ["a", "b", "c"]
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestSnapshotLotsSpecialChars:
+    """Test lots with special characters survive snapshot roundtrip."""
+
+    def test_unicode_notes(self):
+        lots = [{"date": "2024-01-01", "btc": 0.5, "price": 42000,
+                 "pct_q": 0.45, "notes": "🚀 Bitcoin — \"to the moon\" ✨"}]
+        state = {"_lots": lots, "main-tabs:active_tab": "stack"}
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert decoded is not None
+        assert decoded["_lots"][0]["notes"] == lots[0]["notes"]
+
+    def test_html_in_notes(self):
+        lots = [{"date": "2024-01-01", "btc": 1.0, "price": 50000,
+                 "pct_q": 0.5, "notes": '<b>bold</b> & "quotes" <script>x</script>'}]
+        state = {"_lots": lots, "main-tabs:active_tab": "stack"}
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert decoded["_lots"][0]["notes"] == lots[0]["notes"]
+
+    def test_empty_notes(self):
+        lots = [{"date": "2024-01-01", "btc": 1.0, "price": 50000,
+                 "pct_q": 0.5, "notes": ""}]
+        state = {"_lots": lots, "main-tabs:active_tab": "stack"}
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert decoded["_lots"][0]["notes"] == ""
+
+    def test_many_lots_roundtrip(self):
+        lots = [{"date": f"2024-{i:02d}-01", "btc": 0.01 * i, "price": 40000 + i * 1000,
+                 "pct_q": 0.3 + i * 0.02, "notes": f"lot #{i}"}
+                for i in range(1, 13)]
+        state = {"_lots": lots, "main-tabs:active_tab": "stack"}
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert len(decoded["_lots"]) == 12
+
+    def test_no_lots(self):
+        state = {"main-tabs:active_tab": "bubble"}
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert "_lots" not in decoded
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestSnapshotV1Compat:
+    """Legacy v1 snapshot format backward compatibility."""
+
+    def test_v1_decode(self):
+        """v1 format is a plain JSON dict, gzip+b64 encoded."""
+        state = {"bub-xscale:value": "log", "main-tabs:active_tab": "bubble"}
+        j = json.dumps(state, separators=(',', ':'))
+        from snapshot import _decode_snapshot_v1
+        encoded = base64.urlsafe_b64encode(gzip.compress(j.encode())).decode()
+        decoded = _decode_snapshot_v1(encoded)
+        assert decoded == state
+
+    def test_v1_invalid(self):
+        from snapshot import _decode_snapshot_v1
+        assert _decode_snapshot_v1("not-valid-base64!!!") is None
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestUpdateScInfo:
+    """Smoke-test the SC info panel callback."""
+
+    def test_disabled_returns_empty(self):
+        result = update_sc_info(
+            amount=200, freq="Monthly", enabled=[],
+            sc_loan=10000, rate=13, term=12,
+            loan_type="interest_only", repeats=0,
+            entry_mode="live", custom_price=80000,
+            tax=33, rollover=[], price_data=90000,
+        )
+        assert result == ""
+
+    def test_enabled_returns_info(self):
+        result = update_sc_info(
+            amount=500, freq="Monthly", enabled=["yes"],
+            sc_loan=10000, rate=13, term=12,
+            loan_type="interest_only", repeats=0,
+            entry_mode="custom", custom_price=90000,
+            tax=33, rollover=[], price_data=0,
+        )
+        assert isinstance(result, list)
+        assert len(result) > 0
 
 
 if __name__ == "__main__":

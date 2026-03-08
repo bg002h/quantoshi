@@ -76,9 +76,20 @@
             .catch(function() {});
     }
 
+    /* ── First-visit grace period (24 h) ─────────────────────────────────── */
+    var GRACE_MS = 24 * 60 * 60 * 1000;
+    var firstVisit = localStorage.getItem("quantoshi_first_visit");
+    if (!firstVisit) {
+        firstVisit = Date.now().toString();
+        localStorage.setItem("quantoshi_first_visit", firstVisit);
+    }
+    function inGracePeriod() {
+        return (Date.now() - parseInt(firstVisit, 10)) < GRACE_MS;
+    }
+
     /* ── New block handler ───────────────────────────────────────────────── */
     function onNewBlock(height, txCount) {
-        if (animating) return;
+        if (animating || inGracePeriod()) return;
         animating = true;
         screenShake();
         setTimeout(function() { dropBlock(height, txCount); }, SHAKE_MS);
@@ -221,14 +232,16 @@
     /* ── Dev/test mode: fake block 10s after load on non-production ─────── */
     var isDev = (location.hostname !== "quantoshi.xyz" &&
                  !location.hostname.endsWith(".onion"));
+    /* Dev block drop disabled — uncomment to re-enable
     if (isDev) {
         var devDelay = window.innerWidth < 768 ? 5000 : 10000;
         setTimeout(function() {
             var fakeHeight = (lastHeight || 890000) + 1;
-            lastHeight = fakeHeight - 1; /* ensure delta triggers */
+            lastHeight = fakeHeight - 1;
             onNewBlock(fakeHeight, 2847);
         }, devDelay);
     }
+    */
 
     /* ── Bootstrap ───────────────────────────────────────────────────────── */
     /* Seed lastHeight so first WS message doesn't trigger animation */

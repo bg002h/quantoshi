@@ -340,10 +340,7 @@ class FontPicker(QWidget):
         self._edit = QLineEdit(family)
         self._edit.setMinimumWidth(80)
         self._edit.editingFinished.connect(self._on_edit)
-        self._size_sp = QSpinBox()
-        self._size_sp.setRange(5, 36)
-        self._size_sp.setValue(size)
-        self._size_sp.setSuffix("pt")
+        self._size_sp = _spinbox(5, 36, size, suffix="pt")
         self._size_sp.setFixedWidth(52)
         self._size_sp.valueChanged.connect(self._on_size_changed)
         btn = QPushButton("…")
@@ -392,9 +389,46 @@ class FontPicker(QWidget):
         self._size_sp.blockSignals(False)
 
 
-# ── BubbleTab ─────────────────────────────────────────────────────────────────
+# ── Widget factory helpers ─────────────────────────────────────────────────────
 
-class BubbleTab(QWidget):
+def _spinbox(mn, mx, val, step=1, decimals=None, prefix=None, suffix=None, width=None):
+    """Create a QSpinBox or QDoubleSpinBox with common configuration."""
+    if decimals is not None or isinstance(val, float) or isinstance(step, float):
+        sp = QDoubleSpinBox()
+        sp.setDecimals(decimals if decimals is not None else 2)
+    else:
+        sp = QSpinBox()
+    sp.setRange(mn, mx)
+    sp.setValue(val)
+    sp.setSingleStep(step)
+    if prefix:
+        sp.setPrefix(prefix)
+    if suffix:
+        sp.setSuffix(suffix)
+    if width:
+        sp.setFixedWidth(width)
+    return sp
+
+
+def _checkbox(text, checked=False):
+    """Create a QCheckBox with initial checked state."""
+    cb = QCheckBox(text)
+    cb.setChecked(checked)
+    return cb
+
+
+def _form_group(title, spacing=4):
+    """Create a QGroupBox with a QFormLayout inside it."""
+    grp = QGroupBox(title)
+    form = QFormLayout(grp)
+    form.setSpacing(spacing)
+    return grp, form
+
+
+# ── ChartTab base class ──────────────────────────────────────────────────────
+
+class ChartTab(QWidget):
+    """Base class for chart tabs with quantile state and font management."""
     q_state_changed = pyqtSignal(list)
     all_fonts_applied = pyqtSignal(str, int)
 
@@ -402,7 +436,7 @@ class BubbleTab(QWidget):
         super().__init__()
         self.m = model
         self._busy = False
-        # quantile state list
+        self._lot_source = None
         self._q_state = []
         for i, q in enumerate(model.QR_QUANTILES):
             pct = q * 100
@@ -415,7 +449,115 @@ class BubbleTab(QWidget):
                 "ls":    model.qr_linestyles.get(q, _CB_STYLES[i % len(_CB_STYLES)]),
                 "lw":    2.0 if abs(q - 0.5) < 1e-6 else 1.5,
             })
-        self._lot_source = None
+
+    # ── quantile state ────────────────────────────────────────────────────────
+
+    def _emit_q_changed(self):
+        self.q_state_changed.emit(list(self._q_state))
+
+    def _q_vis(self, idx, v):   self._q_state[idx]["vis"] = v;   self._emit_q_changed(); self.redraw()
+    def _q_color(self, idx, c): self._q_state[idx]["color"] = c; self._emit_q_changed(); self.redraw()
+    def _q_ls(self, idx, v):    self._q_state[idx]["ls"] = LS_SPECS[v]; self._emit_q_changed(); self.redraw()
+    def _q_lw(self, idx, v):    self._q_state[idx]["lw"] = v;   self._emit_q_changed(); self.redraw()
+
+    def _q_remove(self, idx):
+        self._q_state.pop(idx)
+        self._rebuild_q_rows()
+        self._emit_q_changed()
+        self.redraw()
+
+    def _q_add(self):
+        q = self._add_q_sp.value() / 100.0
+        for s in self._q_state:
+            if abs(s["q"] - q) < 1e-6:
+                return
+        if q not in self.m.qr_fits:
+            try:
+                self.m.qr_fits[q] = _fit_one_qr(self.m, q)
+            except Exception as e:
+                QMessageBox.warning(self, "Fit error",
+                                    f"Could not fit Q{q*100:.4g}%:\n{e}")
+                return
+        n   = len(self._q_state)
+        pct = q * 100
+        lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
+        self._q_state.append({
+            "q":     q,
+            "lbl":   lbl,
+            "vis":   True,
+            "color": _CB_COLORS[n % len(_CB_COLORS)],
+            "ls":    _CB_STYLES[n % len(_CB_STYLES)],
+            "lw":    2.0 if abs(q - 0.5) < 1e-6 else 1.5,
+        })
+        self._q_state.sort(key=lambda s: s["q"])
+        self._rebuild_q_rows()
+        self._emit_q_changed()
+        self.redraw()
+
+    def _factory_q_state(self):
+        m = self.m
+        out = []
+        for i, q in enumerate(q for q in _DEFAULT_QS if q in m.qr_fits):
+            pct = q * 100
+            lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
+            out.append({
+                "q":     q,
+                "lbl":   lbl,
+                "vis":   True,
+                "color": m.qr_colors.get(q, _CB_COLORS[i % len(_CB_COLORS)]),
+                "ls":    m.qr_linestyles.get(q, _CB_STYLES[i % len(_CB_STYLES)]),
+                "lw":    2.0 if abs(q - 0.5) < 1e-6 else 1.5,
+            })
+        return out
+
+    # ── font helpers ──────────────────────────────────────────────────────────
+
+    def _get_font_config(self):
+        """Return dict of font families and sizes from FontPicker widgets."""
+        return {
+            "title":          self._font_title.family(),
+            "axis_t":         self._font_axis_t.family(),
+            "ticks":          self._font_ticks.family(),
+            "ticks_minor":    self._font_ticks_minor.family(),
+            "legend":         self._font_legend.family(),
+            "title_sz":       self._font_title.size(),
+            "axis_sz":        self._font_axis_t.size(),
+            "ticks_sz":       self._font_ticks.size(),
+            "ticks_minor_sz": self._font_ticks_minor.size(),
+            "legend_sz":      self._font_legend.size(),
+        }
+
+    # ── lot source ────────────────────────────────────────────────────────────
+
+    def set_lot_source(self, tracker_tab):
+        self._lot_source = tracker_tab
+
+    def refresh_lot_list(self):
+        self._lot_list.clear()
+        if self._lot_source is None:
+            return
+        for i, lot in enumerate(self._lot_source.get_lots()):
+            pct_str = f"Q{lot['pct_q']*100:.2f}%"
+            lbl = f"{lot['date']}  {lot['btc']:.4f} BTC @ {fmt_price(lot['price'])}  ({pct_str})"
+            item = QListWidgetItem(lbl)
+            item.setData(Qt.UserRole, i)
+            self._lot_list.addItem(item)
+            item.setSelected(True)
+
+    # ── common events ─────────────────────────────────────────────────────────
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        sizes = getattr(self, '_pending_splitter', None)
+        if sizes is not None:
+            self._splitter.setSizes(sizes)
+            self._pending_splitter = None
+
+
+class BubbleTab(ChartTab):
+
+    def __init__(self, model: ModelData):
+        super().__init__(model)
         self._build_ui()
 
     # ── build UI ──────────────────────────────────────────────────────────────
@@ -476,14 +618,10 @@ class BubbleTab(QWidget):
 
         rng_form = QFormLayout()
         rng_form.setSpacing(3)
-        self._xmin = QSpinBox(); self._xmin.setRange(2009, 2055); self._xmin.setValue(2009)
-        self._xmax = QSpinBox(); self._xmax.setRange(2010, 2060); self._xmax.setValue(2047)
-        self._ymin = QDoubleSpinBox()
-        self._ymin.setRange(0.001, 1e6); self._ymin.setValue(0.01)
-        self._ymin.setDecimals(3); self._ymin.setSingleStep(0.1)
-        self._ymax = QDoubleSpinBox()
-        self._ymax.setRange(1, 1e9); self._ymax.setValue(1e8)
-        self._ymax.setDecimals(0); self._ymax.setSingleStep(1e6)
+        self._xmin = _spinbox(2009, 2055, 2009)
+        self._xmax = _spinbox(2010, 2060, 2047)
+        self._ymin = _spinbox(0.001, 1e6, 0.01, step=0.1, decimals=3)
+        self._ymax = _spinbox(1, 1e9, 1e8, step=1e6, decimals=0)
         rng_form.addRow("X min (year):", self._xmin)
         rng_form.addRow("X max (year):", self._xmax)
         rng_form.addRow("Y min ($):",    self._ymin)
@@ -517,10 +655,7 @@ class BubbleTab(QWidget):
         add_row = QHBoxLayout()
         add_row.setSpacing(4)
         add_row.addWidget(QLabel("Add Q:"))
-        self._add_q_sp = QDoubleSpinBox()
-        self._add_q_sp.setRange(0.001, 99.999)
-        self._add_q_sp.setValue(75.0)
-        self._add_q_sp.setDecimals(3)
+        self._add_q_sp = _spinbox(0.001, 99.999, 75.0, step=1, decimals=3)
         self._add_q_sp.setSingleStep(5.0)
         self._add_q_sp.setSuffix(" %")
         add_btn = QPushButton("Add")
@@ -552,12 +687,10 @@ class BubbleTab(QWidget):
         sup_row.addWidget(self._sup_color)
         bm_form.addRow(sup_row)
 
-        self._comp_lw = QDoubleSpinBox()
-        self._comp_lw.setRange(0.5, 6.0); self._comp_lw.setValue(2.2); self._comp_lw.setSingleStep(0.2)
+        self._comp_lw = _spinbox(0.5, 6.0, 2.2, step=0.2)
         bm_form.addRow("Composite lw:", self._comp_lw)
 
-        self._sup_lw = QDoubleSpinBox()
-        self._sup_lw.setRange(0.5, 4.0); self._sup_lw.setValue(1.3); self._sup_lw.setSingleStep(0.1)
+        self._sup_lw = _spinbox(0.5, 4.0, 1.3, step=0.1)
         bm_form.addRow("Support lw:", self._sup_lw)
 
         n_row = QHBoxLayout()
@@ -578,15 +711,14 @@ class BubbleTab(QWidget):
         disp_grp  = QGroupBox("Display")
         disp_form = QFormLayout(disp_grp)
         disp_form.setSpacing(4)
-        self._show_ols  = QCheckBox("OLS line");   self._show_ols.setChecked(True)
-        self._show_data = QCheckBox("Price data"); self._show_data.setChecked(True)
-        self._show_today = QCheckBox("Today line"); self._show_today.setChecked(True)
+        self._show_ols  = _checkbox("OLS line", True)
+        self._show_data = _checkbox("Price data", True)
+        self._show_today = _checkbox("Today line", True)
         disp_form.addRow(self._show_ols)
         disp_form.addRow(self._show_data)
         disp_form.addRow(self._show_today)
-        self._pt_size = QSpinBox(); self._pt_size.setRange(1, 80); self._pt_size.setValue(self.m.DATA_PT_SIZE)
-        self._pt_alpha = QDoubleSpinBox()
-        self._pt_alpha.setRange(0.05, 1.0); self._pt_alpha.setValue(0.4); self._pt_alpha.setSingleStep(0.05)
+        self._pt_size = _spinbox(1, 80, self.m.DATA_PT_SIZE)
+        self._pt_alpha = _spinbox(0.05, 1.0, 0.4, step=0.05)
         disp_form.addRow("Pt size:", self._pt_size)
         disp_form.addRow("Pt alpha:", self._pt_alpha)
         self._bg_color_btn = ColorBtn(self.m.PLOT_BG_COLOR)
@@ -598,10 +730,7 @@ class BubbleTab(QWidget):
         stack_grp  = QGroupBox("Bitcoin Stack")
         stack_form = QFormLayout(stack_grp)
         stack_form.setSpacing(4)
-        self._stack_sp = QDoubleSpinBox()
-        self._stack_sp.setRange(0, 10_000_000)
-        self._stack_sp.setDecimals(8)
-        self._stack_sp.setValue(0.0)
+        self._stack_sp = _spinbox(0, 10_000_000, 0.0, decimals=8)
         self._stack_sp.setSingleStep(0.1)
         stack_form.addRow("BTC owned:", self._stack_sp)
         self._show_stack_cb = QCheckBox("Relabel Y-axis as stack value")
@@ -667,7 +796,7 @@ class BubbleTab(QWidget):
         save_form = QFormLayout(save_grp)
         save_form.setSpacing(4)
         self._fn_edit = QLineEdit("btc_bubble_overlay")
-        self._dpi_sp  = QSpinBox(); self._dpi_sp.setRange(72, 600); self._dpi_sp.setValue(150)
+        self._dpi_sp  = _spinbox(72, 600, 150)
         save_form.addRow("Filename:", self._fn_edit)
         save_form.addRow("DPI:", self._dpi_sp)
         btn_row = QHBoxLayout()
@@ -750,9 +879,7 @@ class BubbleTab(QWidget):
             ls_cb.setFixedWidth(105)
             ls_cb.currentIndexChanged.connect(lambda v, idx=i: self._q_ls(idx, v))
 
-            lw_sp = QDoubleSpinBox()
-            lw_sp.setRange(0.3, 6.0); lw_sp.setValue(qs["lw"]); lw_sp.setSingleStep(0.25)
-            lw_sp.setFixedWidth(56)
+            lw_sp = _spinbox(0.3, 6.0, qs["lw"], step=0.25, width=56)
             lw_sp.valueChanged.connect(lambda v, idx=i: self._q_lw(idx, v))
 
             rm_btn = QPushButton("×")
@@ -765,66 +892,6 @@ class BubbleTab(QWidget):
             row_l.addWidget(lw_sp)
             row_l.addWidget(rm_btn)
             self._q_rows_l.addWidget(row_w)
-
-    def _emit_q_changed(self):
-        self.q_state_changed.emit(list(self._q_state))
-
-    def _q_vis(self, idx, v):   self._q_state[idx]["vis"] = v;   self._emit_q_changed(); self.redraw()
-    def _q_color(self, idx, c): self._q_state[idx]["color"] = c; self._emit_q_changed(); self.redraw()
-    def _q_ls(self, idx, v):    self._q_state[idx]["ls"] = LS_SPECS[v]; self._emit_q_changed(); self.redraw()
-    def _q_lw(self, idx, v):    self._q_state[idx]["lw"] = v;   self._emit_q_changed(); self.redraw()
-
-    def _q_remove(self, idx):
-        self._q_state.pop(idx)
-        self._rebuild_q_rows()
-        self._emit_q_changed()
-        self.redraw()
-
-    def _q_add(self):
-        q = self._add_q_sp.value() / 100.0
-        # Ignore duplicates
-        for s in self._q_state:
-            if abs(s["q"] - q) < 1e-6:
-                return
-        # Fit if not already in model
-        if q not in self.m.qr_fits:
-            try:
-                self.m.qr_fits[q] = _fit_one_qr(self.m, q)
-            except Exception as e:
-                QMessageBox.warning(self, "Fit error",
-                                    f"Could not fit Q{q*100:.4g}%:\n{e}")
-                return
-        n   = len(self._q_state)
-        pct = q * 100
-        lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
-        self._q_state.append({
-            "q":     q,
-            "lbl":   lbl,
-            "vis":   True,
-            "color": _CB_COLORS[n % len(_CB_COLORS)],
-            "ls":    _CB_STYLES[n % len(_CB_STYLES)],
-            "lw":    2.0 if abs(q - 0.5) < 1e-6 else 1.5,
-        })
-        self._q_state.sort(key=lambda s: s["q"])
-        self._rebuild_q_rows()
-        self._emit_q_changed()
-        self.redraw()
-
-    def _factory_q_state(self):
-        m = self.m
-        out = []
-        for i, q in enumerate(q for q in _DEFAULT_QS if q in m.qr_fits):
-            pct = q * 100
-            lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
-            out.append({
-                "q":     q,
-                "lbl":   lbl,
-                "vis":   True,
-                "color": m.qr_colors.get(q, _CB_COLORS[i % len(_CB_COLORS)]),
-                "ls":    m.qr_linestyles.get(q, _CB_STYLES[i % len(_CB_STYLES)]),
-                "lw":    2.0 if abs(q - 0.5) < 1e-6 else 1.5,
-            })
-        return out
 
     def _factory_reset(self):
         self._busy = True
@@ -858,13 +925,6 @@ class BubbleTab(QWidget):
             fp.set_family("sans-serif")
         self._busy = False
         self.redraw()
-
-    def showEvent(self, event):
-        super().showEvent(event)
-        sizes = getattr(self, '_pending_splitter', None)
-        if sizes is not None:
-            self._splitter.setSizes(sizes)
-            self._pending_splitter = None
 
     def _collect_settings(self):
         def _ls_str(ls):
@@ -989,21 +1049,6 @@ class BubbleTab(QWidget):
             fp.set_size(sz)
         self.redraw()
 
-    def set_lot_source(self, tracker_tab):
-        self._lot_source = tracker_tab
-
-    def refresh_lot_list(self):
-        self._lot_list.clear()
-        if self._lot_source is None:
-            return
-        for i, lot in enumerate(self._lot_source.get_lots()):
-            pct_str = f"Q{lot['pct_q']*100:.2f}%"
-            lbl = f"{lot['date']}  {lot['btc']:.4f} BTC @ {fmt_price(lot['price'])}  ({pct_str})"
-            item = QListWidgetItem(lbl)
-            item.setData(Qt.UserRole, i)
-            self._lot_list.addItem(item)
-            item.setSelected(True)
-
     def _on_n_changed(self, v):
         self._n_label.setText(str(v))
         self.redraw()
@@ -1030,16 +1075,13 @@ class BubbleTab(QWidget):
         ax.tick_params(colors=m.TEXT_COLOR)
         ax.grid(True, which="major", color=m.GRID_MAJOR_COLOR, lw=0.6, alpha=0.8, zorder=0)
 
-        font_title       = self._font_title.family()
-        font_axis_t      = self._font_axis_t.family()
-        font_ticks       = self._font_ticks.family()
-        font_ticks_minor = self._font_ticks_minor.family()
-        font_legend      = self._font_legend.family()
-        font_title_sz    = self._font_title.size()
-        font_axis_sz     = self._font_axis_t.size()
-        font_ticks_sz       = self._font_ticks.size()
-        font_ticks_minor_sz = self._font_ticks_minor.size()
-        font_legend_sz      = self._font_legend.size()
+        fc = self._get_font_config()
+        font_title, font_axis_t = fc["title"], fc["axis_t"]
+        font_ticks, font_ticks_minor = fc["ticks"], fc["ticks_minor"]
+        font_legend = fc["legend"]
+        font_title_sz, font_axis_sz = fc["title_sz"], fc["axis_sz"]
+        font_ticks_sz, font_ticks_minor_sz = fc["ticks_sz"], fc["ticks_minor_sz"]
+        font_legend_sz = fc["legend_sz"]
         _stack = self._stack_sp.value()
         stack  = _stack if (self._show_stack_cb.isChecked() and _stack > 0) else 0
 
@@ -1325,10 +1367,7 @@ class HeatmapTab(QWidget):
 
         eq_add_row = QHBoxLayout()
         eq_add_row.setSpacing(4)
-        self._eq_add_sp = QDoubleSpinBox()
-        self._eq_add_sp.setRange(0.001, 99.999); self._eq_add_sp.setValue(75.0)
-        self._eq_add_sp.setDecimals(3); self._eq_add_sp.setSingleStep(5.0)
-        self._eq_add_sp.setSuffix(" %")
+        self._eq_add_sp = _spinbox(0.001, 99.999, 75.0, step=5.0, decimals=3, suffix=" %")
         eq_add_btn = QPushButton("Add")
         eq_add_btn.setFixedWidth(48)
         eq_add_btn.clicked.connect(self._hm_add_entry_q)
@@ -1401,10 +1440,7 @@ class HeatmapTab(QWidget):
 
         xq_add_row = QHBoxLayout()
         xq_add_row.setSpacing(4)
-        self._xq_add_sp = QDoubleSpinBox()
-        self._xq_add_sp.setRange(0.001, 99.999); self._xq_add_sp.setValue(75.0)
-        self._xq_add_sp.setDecimals(3); self._xq_add_sp.setSingleStep(5.0)
-        self._xq_add_sp.setSuffix(" %")
+        self._xq_add_sp = _spinbox(0.001, 99.999, 75.0, step=5.0, decimals=3, suffix=" %")
         xq_add_btn = QPushButton("Add")
         xq_add_btn.setFixedWidth(48)
         xq_add_btn.clicked.connect(self._hm_add_exit_q)
@@ -1435,12 +1471,8 @@ class HeatmapTab(QWidget):
 
         col_form = QFormLayout()
         col_form.setSpacing(4)
-        self._b1_sp = QDoubleSpinBox()
-        self._b1_sp.setRange(-50, 200); self._b1_sp.setValue(self.m.CAGR_SEG_B1)
-        self._b1_sp.setSingleStep(0.5); self._b1_sp.setDecimals(1)
-        self._b2_sp = QDoubleSpinBox()
-        self._b2_sp.setRange(-50, 500); self._b2_sp.setValue(self.m.CAGR_SEG_B2)
-        self._b2_sp.setSingleStep(0.5); self._b2_sp.setDecimals(1)
+        self._b1_sp = _spinbox(-50, 200, self.m.CAGR_SEG_B1, step=0.5, decimals=1)
+        self._b2_sp = _spinbox(-50, 500, self.m.CAGR_SEG_B2, step=0.5, decimals=1)
         col_form.addRow("Break 1 (%):", self._b1_sp)
         col_form.addRow("Break 2 (%):", self._b2_sp)
         col_l.addLayout(col_form)
@@ -1459,8 +1491,7 @@ class HeatmapTab(QWidget):
         col_l.addLayout(clr_row)
 
         grad_form = QFormLayout()
-        self._grad_sp = QSpinBox(); self._grad_sp.setRange(4, 64)
-        self._grad_sp.setValue(self.m.CAGR_GRAD_STEPS)
+        self._grad_sp = _spinbox(4, 64, self.m.CAGR_GRAD_STEPS)
         grad_form.addRow("Grad Steps:", self._grad_sp)
         col_l.addLayout(grad_form)
         ctrl_l.addWidget(col_grp)
@@ -1475,8 +1506,8 @@ class HeatmapTab(QWidget):
                          ("Multiple (×)","mult_only"),("CAGR % + Multiple","cagr_mult"),
                          ("Multiple + Portfolio","mult_port"),("None","none")]:
             self._vfmt_cb.addItem(lbl, val)
-        self._show_cb_chk = QCheckBox("Show colorbar"); self._show_cb_chk.setChecked(True)
-        self._tight_chk   = QCheckBox("Tight layout");  self._tight_chk.setChecked(True)
+        self._show_cb_chk = _checkbox("Show colorbar", True)
+        self._tight_chk   = _checkbox("Tight layout", True)
         disp_form.addRow("Cell Text:", self._vfmt_cb)
         disp_form.addRow(self._show_cb_chk)
         disp_form.addRow(self._tight_chk)
@@ -1489,10 +1520,7 @@ class HeatmapTab(QWidget):
         hstack_grp  = QGroupBox("Bitcoin Stack")
         hstack_form = QFormLayout(hstack_grp)
         hstack_form.setSpacing(4)
-        self._stack_sp_hm = QDoubleSpinBox()
-        self._stack_sp_hm.setRange(0, 10_000_000)
-        self._stack_sp_hm.setDecimals(8)
-        self._stack_sp_hm.setValue(0.0)
+        self._stack_sp_hm = _spinbox(0, 10_000_000, 0.0, decimals=8)
         self._stack_sp_hm.setSingleStep(0.1)
         hstack_form.addRow("BTC owned:", self._stack_sp_hm)
         ctrl_l.addWidget(hstack_grp)
@@ -1529,7 +1557,7 @@ class HeatmapTab(QWidget):
         save_form = QFormLayout(save_grp)
         save_form.setSpacing(4)
         self._fn_edit = QLineEdit("cagr_heatmap")
-        self._dpi_sp  = QSpinBox(); self._dpi_sp.setRange(72, 600); self._dpi_sp.setValue(150)
+        self._dpi_sp  = _spinbox(72, 600, 150)
         save_form.addRow("Filename:", self._fn_edit)
         save_form.addRow("DPI:", self._dpi_sp)
         btn_row = QHBoxLayout()
@@ -2001,26 +2029,11 @@ class HeatmapTab(QWidget):
 
 # ── DCATab ────────────────────────────────────────────────────────────────────
 
-class DCATab(QWidget):
+class DCATab(ChartTab):
     """Tab 3 — Bitcoin DCA Accumulator: simulate dollar-cost-averaging into BTC."""
-    q_state_changed = pyqtSignal(list)
-    all_fonts_applied = pyqtSignal(str, int)
 
     def __init__(self, model: ModelData):
-        super().__init__()
-        self.m = model
-        self._busy = False
-        self._q_state = []
-        for i, q in enumerate(model.QR_QUANTILES):
-            pct = q * 100
-            lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
-            self._q_state.append({
-                "q": q, "lbl": lbl, "vis": True,
-                "color": model.qr_colors.get(q, _CB_COLORS[i % len(_CB_COLORS)]),
-                "ls":    model.qr_linestyles.get(q, _CB_STYLES[i % len(_CB_STYLES)]),
-                "lw":    2.0 if abs(q - 0.5) < 1e-6 else 1.5,
-            })
-        self._lot_source = None
+        super().__init__(model)
         self._build_ui()
 
     # ── build UI ──────────────────────────────────────────────────────────────
@@ -2053,9 +2066,7 @@ class DCATab(QWidget):
         stk_grp  = QGroupBox("Bitcoin Stack")
         stk_form = QFormLayout(stk_grp)
         stk_form.setSpacing(4)
-        self._stack_sp = QDoubleSpinBox()
-        self._stack_sp.setRange(0, 10_000_000); self._stack_sp.setDecimals(8)
-        self._stack_sp.setValue(0.0); self._stack_sp.setSingleStep(0.1)
+        self._stack_sp = _spinbox(0, 10_000_000, 0.0, step=0.1, decimals=8)
         stk_form.addRow("BTC owned:", self._stack_sp)
         ctrl_l.addWidget(stk_grp)
 
@@ -2087,10 +2098,7 @@ class DCATab(QWidget):
         inv_grp  = QGroupBox("DCA Investment")
         inv_form = QFormLayout(inv_grp)
         inv_form.setSpacing(4)
-        self._amount_sp = QDoubleSpinBox()
-        self._amount_sp.setRange(1, 1_000_000); self._amount_sp.setValue(500)
-        self._amount_sp.setSingleStep(100); self._amount_sp.setDecimals(2)
-        self._amount_sp.setPrefix("$")
+        self._amount_sp = _spinbox(1, 1_000_000, 500, step=100, decimals=2, prefix="$")
         inv_form.addRow("Per period:", self._amount_sp)
         self._freq_cb = QComboBox()
         for lbl, val in [("Monthly","Monthly"),("Weekly","Weekly"),
@@ -2125,10 +2133,7 @@ class DCATab(QWidget):
         self._rebuild_q_rows()
         add_row = QHBoxLayout(); add_row.setSpacing(4)
         add_row.addWidget(QLabel("Add Q:"))
-        self._add_q_sp = QDoubleSpinBox()
-        self._add_q_sp.setRange(0.001, 99.999); self._add_q_sp.setValue(75.0)
-        self._add_q_sp.setDecimals(3); self._add_q_sp.setSingleStep(5.0)
-        self._add_q_sp.setSuffix(" %")
+        self._add_q_sp = _spinbox(0.001, 99.999, 75.0, step=5.0, decimals=3, suffix=" %")
         add_btn = QPushButton("Add"); add_btn.setFixedWidth(48)
         add_btn.clicked.connect(self._q_add)
         add_row.addWidget(self._add_q_sp); add_row.addWidget(add_btn)
@@ -2143,9 +2148,9 @@ class DCATab(QWidget):
         for lbl, val in [("BTC Balance","btc"),("USD Value","usd")]:
             self._disp_cb.addItem(lbl, val)
         disp_form.addRow("Y-axis:", self._disp_cb)
-        self._log_y_chk = QCheckBox("Log Y scale"); self._log_y_chk.setChecked(False)
-        self._today_chk = QCheckBox("Show today"); self._today_chk.setChecked(True)
-        self._dual_y_chk = QCheckBox("Dual Y-axis"); self._dual_y_chk.setChecked(False)
+        self._log_y_chk = _checkbox("Log Y scale")
+        self._today_chk = _checkbox("Show today", True)
+        self._dual_y_chk = _checkbox("Dual Y-axis")
         self._minor_ticks_chk = QCheckBox("Minor log ticks (×0.1 dec)")
         self._minor_ticks_chk.setChecked(False)
         disp_form.addRow(self._log_y_chk)
@@ -2194,7 +2199,7 @@ class DCATab(QWidget):
         save_form = QFormLayout(save_grp)
         save_form.setSpacing(4)
         self._fn_edit = QLineEdit("btc_dca")
-        self._dpi_sp  = QSpinBox(); self._dpi_sp.setRange(72, 600); self._dpi_sp.setValue(150)
+        self._dpi_sp  = _spinbox(72, 600, 150)
         save_form.addRow("Filename:", self._fn_edit)
         save_form.addRow("DPI:", self._dpi_sp)
         btn_row = QHBoxLayout()
@@ -2244,57 +2249,13 @@ class DCATab(QWidget):
             ls_cb = QComboBox(); ls_cb.addItems(LS_NAMES); ls_cb.setCurrentIndex(_ls_index(qs["ls"]))
             ls_cb.setFixedWidth(105)
             ls_cb.currentIndexChanged.connect(lambda v, idx=i: self._q_ls(idx, v))
-            lw_sp = QDoubleSpinBox(); lw_sp.setRange(0.3, 6.0); lw_sp.setValue(qs["lw"])
-            lw_sp.setSingleStep(0.25); lw_sp.setFixedWidth(56)
+            lw_sp = _spinbox(0.3, 6.0, qs["lw"], step=0.25, width=56)
             lw_sp.valueChanged.connect(lambda v, idx=i: self._q_lw(idx, v))
             rm_btn = QPushButton("×"); rm_btn.setFixedSize(22, 22)
             rm_btn.clicked.connect(lambda _, idx=i: self._q_remove(idx))
             row_l.addWidget(cb); row_l.addWidget(clr_btn)
             row_l.addWidget(ls_cb); row_l.addWidget(lw_sp); row_l.addWidget(rm_btn)
             self._q_rows_l.addWidget(row_w)
-
-    def _emit_q_changed(self):
-        self.q_state_changed.emit(list(self._q_state))
-
-    def _q_vis(self, idx, v):   self._q_state[idx]["vis"] = v;   self._emit_q_changed(); self.redraw()
-    def _q_color(self, idx, c): self._q_state[idx]["color"] = c; self._emit_q_changed(); self.redraw()
-    def _q_ls(self, idx, v):    self._q_state[idx]["ls"] = LS_SPECS[v]; self._emit_q_changed(); self.redraw()
-    def _q_lw(self, idx, v):    self._q_state[idx]["lw"] = v;   self._emit_q_changed(); self.redraw()
-
-    def _q_remove(self, idx):
-        self._q_state.pop(idx); self._rebuild_q_rows(); self._emit_q_changed(); self.redraw()
-
-    def _q_add(self):
-        q = self._add_q_sp.value() / 100.0
-        for s in self._q_state:
-            if abs(s["q"] - q) < 1e-6: return
-        if q not in self.m.qr_fits:
-            try: self.m.qr_fits[q] = _fit_one_qr(self.m, q)
-            except Exception as e:
-                QMessageBox.warning(self, "Fit error", f"Could not fit Q{q*100:.4g}%:\n{e}")
-                return
-        n = len(self._q_state); pct = q * 100
-        lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
-        self._q_state.append({"q": q, "lbl": lbl, "vis": True,
-                              "color": _CB_COLORS[n % len(_CB_COLORS)],
-                              "ls": _CB_STYLES[n % len(_CB_STYLES)], "lw": 1.5})
-        self._q_state.sort(key=lambda s: s["q"])
-        self._rebuild_q_rows(); self._emit_q_changed(); self.redraw()
-
-    def set_lot_source(self, tracker_tab):
-        self._lot_source = tracker_tab
-
-    def refresh_lot_list(self):
-        self._lot_list.clear()
-        if self._lot_source is None:
-            return
-        for i, lot in enumerate(self._lot_source.get_lots()):
-            pct_str = f"Q{lot['pct_q']*100:.2f}%"
-            lbl = f"{lot['date']}  {lot['btc']:.4f} BTC @ {fmt_price(lot['price'])}  ({pct_str})"
-            item = QListWidgetItem(lbl)
-            item.setData(Qt.UserRole, i)
-            self._lot_list.addItem(item)
-            item.setSelected(True)
 
     def _apply_font_to_all(self):
         fam = self._font_all_b.family()
@@ -2342,16 +2303,13 @@ class DCATab(QWidget):
             self._leo_lbl.setText("")
         amount      = self._amount_sp.value()
         disp_mode   = self._disp_cb.currentData()
-        font_title       = self._font_title.family()
-        font_axis_t      = self._font_axis_t.family()
-        font_ticks       = self._font_ticks.family()
-        font_ticks_minor = self._font_ticks_minor.family()
-        font_legend      = self._font_legend.family()
-        font_title_sz    = self._font_title.size()
-        font_axis_sz     = self._font_axis_t.size()
-        font_ticks_sz       = self._font_ticks.size()
-        font_ticks_minor_sz = self._font_ticks_minor.size()
-        font_legend_sz      = self._font_legend.size()
+        fc = self._get_font_config()
+        font_title, font_axis_t = fc["title"], fc["axis_t"]
+        font_ticks, font_ticks_minor = fc["ticks"], fc["ticks_minor"]
+        font_legend = fc["legend"]
+        font_title_sz, font_axis_sz = fc["title_sz"], fc["axis_sz"]
+        font_ticks_sz, font_ticks_minor_sz = fc["ticks_sz"], fc["ticks_minor_sz"]
+        font_legend_sz = fc["legend_sz"]
 
         self.fig.clear()
         ax = self.fig.add_subplot(111)
@@ -2500,17 +2458,6 @@ class DCATab(QWidget):
         self.canvas.draw_idle()
 
     # ── factory reset / settings ───────────────────────────────────────────────
-    def _factory_q_state(self):
-        m = self.m; out = []
-        for i, q in enumerate(q for q in _DEFAULT_QS if q in m.qr_fits):
-            pct = q * 100
-            lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
-            out.append({"q": q, "lbl": lbl, "vis": True,
-                        "color": m.qr_colors.get(q, _CB_COLORS[i % len(_CB_COLORS)]),
-                        "ls": m.qr_linestyles.get(q, _CB_STYLES[i % len(_CB_STYLES)]),
-                        "lw": 2.0 if abs(q - 0.5) < 1e-6 else 1.5})
-        return out
-
     def _factory_reset(self):
         self._busy = True
         self._stack_sp.setValue(0.0)
@@ -2530,13 +2477,6 @@ class DCATab(QWidget):
             fp.set_family("sans-serif")
         self._busy = False
         self.redraw()
-
-    def showEvent(self, event):
-        super().showEvent(event)
-        sizes = getattr(self, '_pending_splitter', None)
-        if sizes is not None:
-            self._splitter.setSizes(sizes)
-            self._pending_splitter = None
 
     def _collect_settings(self):
         def _ls_str(ls): return repr(ls) if isinstance(ls, tuple) else str(ls)
@@ -2626,26 +2566,11 @@ class DCATab(QWidget):
 
 # ── RetireTab ──────────────────────────────────────────────────────────────────
 
-class RetireTab(QWidget):
+class RetireTab(ChartTab):
     """Tab 4 — Bitcoin Retireator: simulate periodic USD withdrawals from BTC stack."""
-    q_state_changed = pyqtSignal(list)
-    all_fonts_applied = pyqtSignal(str, int)
 
     def __init__(self, model: ModelData):
-        super().__init__()
-        self.m = model
-        self._busy = False
-        self._q_state = []
-        for i, q in enumerate(model.QR_QUANTILES):
-            pct = q * 100
-            lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
-            self._q_state.append({
-                "q": q, "lbl": lbl, "vis": True,
-                "color": model.qr_colors.get(q, _CB_COLORS[i % len(_CB_COLORS)]),
-                "ls":    model.qr_linestyles.get(q, _CB_STYLES[i % len(_CB_STYLES)]),
-                "lw":    2.0 if abs(q - 0.5) < 1e-6 else 1.5,
-            })
-        self._lot_source = None
+        super().__init__(model)
         self._build_ui()
 
     def _build_ui(self):
@@ -2677,9 +2602,7 @@ class RetireTab(QWidget):
         stk_grp  = QGroupBox("Bitcoin Stack")
         stk_form = QFormLayout(stk_grp)
         stk_form.setSpacing(4)
-        self._stack_sp = QDoubleSpinBox()
-        self._stack_sp.setRange(0, 10_000_000); self._stack_sp.setDecimals(8)
-        self._stack_sp.setValue(0.0); self._stack_sp.setSingleStep(0.1)
+        self._stack_sp = _spinbox(0, 10_000_000, 0.0, step=0.1, decimals=8)
         stk_form.addRow("BTC owned:", self._stack_sp)
         ctrl_l.addWidget(stk_grp)
 
@@ -2711,10 +2634,7 @@ class RetireTab(QWidget):
         wd_grp  = QGroupBox("Withdrawals")
         wd_form = QFormLayout(wd_grp)
         wd_form.setSpacing(4)
-        self._wd_sp = QDoubleSpinBox()
-        self._wd_sp.setRange(1, 10_000_000); self._wd_sp.setValue(5000)
-        self._wd_sp.setSingleStep(500); self._wd_sp.setDecimals(2)
-        self._wd_sp.setPrefix("$")
+        self._wd_sp = _spinbox(1, 10_000_000, 5000, step=500, decimals=2, prefix="$")
         wd_form.addRow("Per period:", self._wd_sp)
         self._freq_cb = QComboBox()
         for lbl, val in [("Monthly","Monthly"),("Weekly","Weekly"),
@@ -2736,10 +2656,7 @@ class RetireTab(QWidget):
         eyr_row.addWidget(self._eyr_sl); eyr_row.addWidget(self._eyr_lbl)
         wd_form.addRow("End Year:", eyr_row)
 
-        self._infl_sp = QDoubleSpinBox()
-        self._infl_sp.setRange(0.0, 50.0); self._infl_sp.setValue(3.0)
-        self._infl_sp.setSingleStep(0.5); self._infl_sp.setDecimals(2)
-        self._infl_sp.setSuffix(" %")
+        self._infl_sp = _spinbox(0.0, 50.0, 3.0, step=0.5, decimals=2, suffix=" %")
         wd_form.addRow("USD Inflation:", self._infl_sp)
         ctrl_l.addWidget(wd_grp)
 
@@ -2755,10 +2672,7 @@ class RetireTab(QWidget):
         self._rebuild_q_rows()
         add_row = QHBoxLayout(); add_row.setSpacing(4)
         add_row.addWidget(QLabel("Add Q:"))
-        self._add_q_sp = QDoubleSpinBox()
-        self._add_q_sp.setRange(0.001, 99.999); self._add_q_sp.setValue(75.0)
-        self._add_q_sp.setDecimals(3); self._add_q_sp.setSingleStep(5.0)
-        self._add_q_sp.setSuffix(" %")
+        self._add_q_sp = _spinbox(0.001, 99.999, 75.0, step=5.0, decimals=3, suffix=" %")
         add_btn = QPushButton("Add"); add_btn.setFixedWidth(48)
         add_btn.clicked.connect(self._q_add)
         add_row.addWidget(self._add_q_sp); add_row.addWidget(add_btn)
@@ -2773,10 +2687,10 @@ class RetireTab(QWidget):
         for lbl, val in [("BTC Remaining","btc"),("USD Value","usd")]:
             self._disp_cb.addItem(lbl, val)
         disp_form.addRow("Y-axis:", self._disp_cb)
-        self._log_y_chk = QCheckBox("Log Y scale"); self._log_y_chk.setChecked(False)
-        self._today_chk = QCheckBox("Show today"); self._today_chk.setChecked(True)
-        self._annot_chk = QCheckBox("Annotate depletion"); self._annot_chk.setChecked(True)
-        self._dual_y_chk = QCheckBox("Dual Y-axis"); self._dual_y_chk.setChecked(False)
+        self._log_y_chk = _checkbox("Log Y scale")
+        self._today_chk = _checkbox("Show today", True)
+        self._annot_chk = _checkbox("Annotate depletion", True)
+        self._dual_y_chk = _checkbox("Dual Y-axis")
         self._minor_ticks_chk = QCheckBox("Minor log ticks (×0.1 dec)")
         self._minor_ticks_chk.setChecked(False)
         disp_form.addRow(self._log_y_chk)
@@ -2826,7 +2740,7 @@ class RetireTab(QWidget):
         save_form = QFormLayout(save_grp)
         save_form.setSpacing(4)
         self._fn_edit = QLineEdit("btc_retire")
-        self._dpi_sp  = QSpinBox(); self._dpi_sp.setRange(72, 600); self._dpi_sp.setValue(150)
+        self._dpi_sp  = _spinbox(72, 600, 150)
         save_form.addRow("Filename:", self._fn_edit)
         save_form.addRow("DPI:", self._dpi_sp)
         btn_row = QHBoxLayout()
@@ -2878,57 +2792,13 @@ class RetireTab(QWidget):
             ls_cb = QComboBox(); ls_cb.addItems(LS_NAMES); ls_cb.setCurrentIndex(_ls_index(qs["ls"]))
             ls_cb.setFixedWidth(105)
             ls_cb.currentIndexChanged.connect(lambda v, idx=i: self._q_ls(idx, v))
-            lw_sp = QDoubleSpinBox(); lw_sp.setRange(0.3, 6.0); lw_sp.setValue(qs["lw"])
-            lw_sp.setSingleStep(0.25); lw_sp.setFixedWidth(56)
+            lw_sp = _spinbox(0.3, 6.0, qs["lw"], step=0.25, width=56)
             lw_sp.valueChanged.connect(lambda v, idx=i: self._q_lw(idx, v))
             rm_btn = QPushButton("×"); rm_btn.setFixedSize(22, 22)
             rm_btn.clicked.connect(lambda _, idx=i: self._q_remove(idx))
             row_l.addWidget(cb); row_l.addWidget(clr_btn)
             row_l.addWidget(ls_cb); row_l.addWidget(lw_sp); row_l.addWidget(rm_btn)
             self._q_rows_l.addWidget(row_w)
-
-    def _emit_q_changed(self):
-        self.q_state_changed.emit(list(self._q_state))
-
-    def _q_vis(self, idx, v):   self._q_state[idx]["vis"] = v;   self._emit_q_changed(); self.redraw()
-    def _q_color(self, idx, c): self._q_state[idx]["color"] = c; self._emit_q_changed(); self.redraw()
-    def _q_ls(self, idx, v):    self._q_state[idx]["ls"] = LS_SPECS[v]; self._emit_q_changed(); self.redraw()
-    def _q_lw(self, idx, v):    self._q_state[idx]["lw"] = v;   self._emit_q_changed(); self.redraw()
-
-    def _q_remove(self, idx):
-        self._q_state.pop(idx); self._rebuild_q_rows(); self._emit_q_changed(); self.redraw()
-
-    def _q_add(self):
-        q = self._add_q_sp.value() / 100.0
-        for s in self._q_state:
-            if abs(s["q"] - q) < 1e-6: return
-        if q not in self.m.qr_fits:
-            try: self.m.qr_fits[q] = _fit_one_qr(self.m, q)
-            except Exception as e:
-                QMessageBox.warning(self, "Fit error", f"Could not fit Q{q*100:.4g}%:\n{e}")
-                return
-        n = len(self._q_state); pct = q * 100
-        lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
-        self._q_state.append({"q": q, "lbl": lbl, "vis": True,
-                              "color": _CB_COLORS[n % len(_CB_COLORS)],
-                              "ls": _CB_STYLES[n % len(_CB_STYLES)], "lw": 1.5})
-        self._q_state.sort(key=lambda s: s["q"])
-        self._rebuild_q_rows(); self._emit_q_changed(); self.redraw()
-
-    def set_lot_source(self, tracker_tab):
-        self._lot_source = tracker_tab
-
-    def refresh_lot_list(self):
-        self._lot_list.clear()
-        if self._lot_source is None:
-            return
-        for i, lot in enumerate(self._lot_source.get_lots()):
-            pct_str = f"Q{lot['pct_q']*100:.2f}%"
-            lbl = f"{lot['date']}  {lot['btc']:.4f} BTC @ {fmt_price(lot['price'])}  ({pct_str})"
-            item = QListWidgetItem(lbl)
-            item.setData(Qt.UserRole, i)
-            self._lot_list.addItem(item)
-            item.setSelected(True)
 
     def _apply_font_to_all(self):
         fam = self._font_all_b.family()
@@ -2975,16 +2845,13 @@ class RetireTab(QWidget):
         base_wd      = self._wd_sp.value()
         infl_rate    = self._infl_sp.value() / 100.0   # inflation ONLY affects withdrawal $
         disp_mode    = self._disp_cb.currentData()
-        font_title       = self._font_title.family()
-        font_axis_t      = self._font_axis_t.family()
-        font_ticks       = self._font_ticks.family()
-        font_ticks_minor = self._font_ticks_minor.family()
-        font_legend      = self._font_legend.family()
-        font_title_sz    = self._font_title.size()
-        font_axis_sz     = self._font_axis_t.size()
-        font_ticks_sz       = self._font_ticks.size()
-        font_ticks_minor_sz = self._font_ticks_minor.size()
-        font_legend_sz      = self._font_legend.size()
+        fc = self._get_font_config()
+        font_title, font_axis_t = fc["title"], fc["axis_t"]
+        font_ticks, font_ticks_minor = fc["ticks"], fc["ticks_minor"]
+        font_legend = fc["legend"]
+        font_title_sz, font_axis_sz = fc["title_sz"], fc["axis_sz"]
+        font_ticks_sz, font_ticks_minor_sz = fc["ticks_sz"], fc["ticks_minor_sz"]
+        font_legend_sz = fc["legend_sz"]
 
         # Inflation-adjusted withdrawal amounts (only $ changes, not BTC price)
         years_elapsed = (ts - ts[0])
@@ -3162,16 +3029,6 @@ class RetireTab(QWidget):
         self.canvas.draw_idle()
 
     # ── factory reset / settings ───────────────────────────────────────────────
-    def _factory_q_state(self):
-        m = self.m; out = []
-        for i, q in enumerate(q for q in _DEFAULT_QS if q in m.qr_fits):
-            pct = q * 100; lbl = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
-            out.append({"q": q, "lbl": lbl, "vis": True,
-                        "color": m.qr_colors.get(q, _CB_COLORS[i % len(_CB_COLORS)]),
-                        "ls": m.qr_linestyles.get(q, _CB_STYLES[i % len(_CB_STYLES)]),
-                        "lw": 2.0 if abs(q - 0.5) < 1e-6 else 1.5})
-        return out
-
     def _factory_reset(self):
         self._busy = True
         self._stack_sp.setValue(0.0)
@@ -3193,13 +3050,6 @@ class RetireTab(QWidget):
             fp.set_family("sans-serif")
         self._busy = False
         self.redraw()
-
-    def showEvent(self, event):
-        super().showEvent(event)
-        sizes = getattr(self, '_pending_splitter', None)
-        if sizes is not None:
-            self._splitter.setSizes(sizes)
-            self._pending_splitter = None
 
     def _collect_settings(self):
         def _ls_str(ls): return repr(ls) if isinstance(ls, tuple) else str(ls)
@@ -3342,15 +3192,9 @@ class StackTrackerTab(QWidget):
         self._date_edit.setCalendarPopup(True)
         self._date_edit.setDate(QDate.currentDate())
         self._date_edit.setDisplayFormat("yyyy-MM-dd")
-        self._btc_sp = QDoubleSpinBox()
-        self._btc_sp.setRange(1e-8, 21_000_000)
-        self._btc_sp.setDecimals(8)
-        self._btc_sp.setValue(0.1)
+        self._btc_sp = _spinbox(1e-8, 21_000_000, 0.1, decimals=8)
         self._btc_sp.setSingleStep(0.01)
-        self._price_sp = QDoubleSpinBox()
-        self._price_sp.setRange(1, 10_000_000)
-        self._price_sp.setDecimals(2)
-        self._price_sp.setValue(50000.0)
+        self._price_sp = _spinbox(1, 10_000_000, 50000.0, decimals=2)
         self._price_sp.setSingleStep(1000)
         self._price_sp.setPrefix("$")
         self._notes_edit = QLineEdit()

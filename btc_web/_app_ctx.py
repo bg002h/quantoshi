@@ -42,6 +42,7 @@ M = None                   # ModelData instance
 app = None                 # dash.Dash instance
 server = None              # Flask server (= app.server)
 _HAS_MARKOV = False
+_HAS_BTCPAY = False        # set True by app.py if BTCPay env vars present
 _ALL_QS = []               # filtered QR quantiles (0.001–0.999)
 _DEF_QS = []               # default quantile subset
 _HM_ENTRY_Q_DEFAULT = 50.0 # live heatmap entry percentile

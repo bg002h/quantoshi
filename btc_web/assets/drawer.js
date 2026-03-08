@@ -53,12 +53,11 @@
 
         cols.forEach(function(col, i) {
             timers[i] = null;
-            pinned[i] = false;
+            pinned[i] = true;
 
-            createPinButton(col, i);
-
-            /* Initial arm */
-            armCollapse(i, col, COLLAPSE_DELAY);
+            var pinBtn = createPinButton(col, i);
+            pinBtn.classList.add("pinned");
+            pinBtn.title = "Unpin panel";
 
             /* Hover: expand immediately, rearm on leave */
             col.addEventListener("mouseenter", function() {

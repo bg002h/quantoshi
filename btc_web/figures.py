@@ -143,7 +143,8 @@ def _year_ticks(start_yr, end_yr, genesis, minor_grid=False):
 
 _LOGO_B64 = None
 try:
-    _logo_path = Path(__file__).parent / "assets" / "quantoshi_logo_wm.png"
+    # Use 2x resolution for crisp rendering at both 1x screen and 2x export
+    _logo_path = Path(__file__).parent / "assets" / "quantoshi_logo_wm_2x.png"
     with open(_logo_path, "rb") as _f:
         _LOGO_B64 = "data:image/png;base64," + base64.b64encode(_f.read()).decode()
 except Exception:
@@ -157,7 +158,7 @@ def _apply_watermark(fig: go.Figure) -> None:
             source=_LOGO_B64,
             xref="paper", yref="paper",
             x=1.0, y=0.0,
-            sizex=0.07, sizey=0.12,
+            sizex=0.09, sizey=0.12,
             xanchor="right", yanchor="bottom",
             opacity=0.55,
             layer="above",

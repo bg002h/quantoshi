@@ -99,18 +99,29 @@ def _export_row(tab_id):
 
 _BTC_ORANGE = _app_ctx.BTC_ORANGE
 
-def _chart_tab_layout(controls_fn, graph_id, filename):
-    """Standard chart tab: 3-col controls (left) + 9-col graph (right)."""
+def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
+    """Standard chart tab: 3-col controls (left) + 9-col graph (right).
+
+    mc_prefix: if set, adds an MC overlay div (e.g. "dca" → "dca-mc-overlay").
+    """
+    overlay = []
+    if mc_prefix:
+        overlay = [html.Div(id=f"{mc_prefix}-mc-overlay",
+                            style={"display": "none"},
+                            className="mc-chart-overlay")]
     return dbc.Row([
         dbc.Col(controls_fn(), width=3, className="controls-col overflow-auto",
                 style={"maxHeight": "85vh"}),
         dbc.Col([
-            dcc.Loading(
-                dcc.Graph(id=graph_id, style={"height": "78vh"},
-                          config={"toImageButtonOptions": {"format": "png", "scale": 2,
-                                                           "filename": filename}}),
-                type="default", color=_BTC_ORANGE,
-            ),
+            html.Div(style={"position": "relative"}, children=[
+                dcc.Loading(
+                    dcc.Graph(id=graph_id, style={"height": "78vh"},
+                              config={"toImageButtonOptions": {"format": "png", "scale": 2,
+                                                               "filename": filename}}),
+                    type="default", color=_BTC_ORANGE,
+                ),
+                *overlay,
+            ]),
             _export_row(graph_id.replace("-graph", "")),
         ], width=9),
     ], className="g-0")
@@ -338,7 +349,7 @@ def _heatmap_controls():
                           value=[], inputStyle={"marginRight":"5px"}),
         ),
         # MC controls at the very bottom, below all quantile config
-        _mc_controls("hm", show_amount=False, show_mc_entry_q=True),
+        _mc_controls("hm", show_amount=False, show_mc_entry_q=True, default_entry_q=10),
     ])
 
 
@@ -378,6 +389,9 @@ def _heatmap_tab():
                                                                    "filename":"btc_mc_heatmap"}}),
                         type="default", color=_BTC_ORANGE,
                     ),
+                    # MC chart overlay (gray mask when MC not rendered)
+                    html.Div(id="hm-mc-overlay", style={"display": "none"},
+                             className="mc-chart-overlay"),
                 ], className="hm-swipe-panel", id="hm-mc-panel",
                    style={"display":"none"}),
             ], className="hm-swipe-container", id="hm-swipe-wrap"),
@@ -405,7 +419,8 @@ _MC_START_YR_OPTIONS = [
 
 def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=100,
                   show_inflation=False, show_amount=True,
-                  amount_dropdown=False, show_stack=False, show_mc_entry_q=False):
+                  amount_dropdown=False, show_stack=False, show_mc_entry_q=False,
+                  default_entry_q=50):
     """Monte Carlo simulation controls, reusable across tabs."""
     yr_now_ph = pd.Timestamp.today().year
     if not _app_ctx._HAS_MARKOV:
@@ -426,6 +441,10 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             html.Div(id=f"{prefix}-mc-body"),
             html.Div(id=f"{prefix}-mc-status"),
             dbc.Button(id=f"{prefix}-mc-dl-btn", style={"display":"none"}),
+            dbc.Button(id=f"{prefix}-mc-run-btn", style={"display":"none"}),
+            html.Div(id=f"{prefix}-mc-run-status"),
+            dcc.Store(id=f"{prefix}-mc-rendered-key", storage_type="memory"),
+            html.Div(id=f"{prefix}-mc-match"),
             dcc.Upload(id=f"{prefix}-mc-upload"),
             html.Div(id=f"{prefix}-mc-upload-status"),
             dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now_ph),
@@ -475,7 +494,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                 dcc.Dropdown(id=f"{prefix}-mc-entry-q",
                              options=[{"label": f"{int(v*100)}%", "value": int(v*100)}
                                       for v in [round(i/10, 1) for i in range(1, 10)]],
-                             value=50, clearable=False),
+                             value=default_entry_q, clearable=False),
             ] if show_stack else [
                 _lbl("MC start year (bold = cached)"),
                 dcc.Dropdown(id=f"{prefix}-mc-start-yr",
@@ -485,8 +504,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                    dcc.Dropdown(id=f"{prefix}-mc-entry-q",
                                 options=[{"label": f"{int(v*100)}%", "value": int(v*100)}
                                          for v in [round(i/10, 1) for i in range(1, 10)]],
-                                value=max(10, min(90, round(_app_ctx._HM_ENTRY_Q_DEFAULT / 10) * 10 or 50)),
-                                clearable=False),
+                                value=default_entry_q, clearable=False),
                 ] if show_mc_entry_q else []),
             ]),
             *([_lbl(amount_label),
@@ -537,6 +555,21 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             html.Div(id=f"{prefix}-mc-cost",
                      style={"fontSize": "11px", "color": "#555", "marginTop": "6px",
                             "lineHeight": "1.4"}),
+            # ── Run Simulation button (payment-gated when BTCPay active) ──
+            dbc.Button(
+                [html.Span("\u26a1 ", style={"fontSize": "14px"}), "Run Simulation"],
+                id=f"{prefix}-mc-run-btn", size="sm", color="warning",
+                className="w-100 mt-2",
+                style={"fontWeight": "600"}
+                    if _app_ctx._HAS_BTCPAY else {"display": "none"},
+            ),
+            html.Div(id=f"{prefix}-mc-run-status",
+                     style={"fontSize": "10px", "color": "#555", "marginTop": "4px",
+                            "textAlign": "center"}),
+            dcc.Store(id=f"{prefix}-mc-rendered-key", storage_type="memory"),
+            html.Div(id=f"{prefix}-mc-match",
+                     style={"fontSize": "10px", "marginTop": "4px",
+                            "textAlign": "center"}),
             html.Hr(className="my-2"),
             html.Div("Saved Simulation", className="ctrl-section-header"),
             html.Div(id=f"{prefix}-mc-status",
@@ -653,7 +686,7 @@ def _stackcelerator_controls():
 
 
 def _dca_tab():
-    return _chart_tab_layout(_dca_controls, "dca-graph", "btc_dca")
+    return _chart_tab_layout(_dca_controls, "dca-graph", "btc_dca", mc_prefix="dca")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -702,7 +735,7 @@ def _retire_controls():
 
 
 def _retire_tab():
-    return _chart_tab_layout(_retire_controls, "retire-graph", "btc_retire")
+    return _chart_tab_layout(_retire_controls, "retire-graph", "btc_retire", mc_prefix="ret")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1535,6 +1568,12 @@ _app_ctx.app.layout = dbc.Container([
     dcc.Store(id="ret-mc-dl-dummy"),
     dcc.Store(id="hm-mc-dl-dummy"),
     dcc.Store(id="sc-mc-dl-dummy"),
+    # ── MC payment stores + polling ──────────────────────────────────────
+    dcc.Store(id="mc-pay-invoice", storage_type="memory", data=None),
+    dcc.Store(id="mc-pay-token",   storage_type="memory", data=None),
+    dcc.Store(id="mc-pay-trigger", storage_type="memory", data=0),
+    dcc.Interval(id="mc-pay-poll", interval=3000, disabled=True,
+                 max_intervals=300, n_intervals=0),
     # MC save prompt modal — shown after cache miss (new simulation)
     dcc.Store(id="mc-save-tab", storage_type="memory", data=None),
     dcc.Store(id="mc-save-modal-dummy"),
@@ -1549,6 +1588,62 @@ _app_ctx.app.layout = dbc.Container([
                        color="secondary"),
         ]),
     ], id="mc-save-modal", is_open=False, backdrop="static", centered=True),
+    # ── MC payment modal ─────────────────────────────────────────────────
+    dbc.Modal([
+        dbc.ModalHeader(dbc.ModalTitle("Pay to Run Simulation")),
+        dbc.ModalBody([
+            html.Div(id="mc-pay-info",
+                     style={"fontSize": "13px", "marginBottom": "10px"}),
+            # Iframe container — shown for onion users (Tor Browser)
+            html.Div(id="mc-pay-iframe-wrap", style={"display": "none"}, children=[
+                html.Iframe(id="mc-pay-iframe",
+                            style={"width": "100%", "height": "420px",
+                                   "border": "none", "borderRadius": "8px"},
+                            src="about:blank"),
+            ]),
+            # Payment details — shown for clearnet users
+            html.Div(id="mc-pay-details", style={"display": "none"}, children=[
+                dbc.ButtonGroup([
+                    dbc.Button([html.Span("\u26a1 "), "Lightning"],
+                               id="mc-pay-ln-btn", color="warning",
+                               outline=False, size="sm", active=True),
+                    dbc.Button([html.Span("\u20bf "), "On-chain"],
+                               id="mc-pay-chain-btn", color="warning",
+                               outline=True, size="sm", active=False),
+                ], size="sm", className="w-100 mb-3"),
+                html.Div(
+                    html.Img(id="mc-pay-qr",
+                             style={"maxWidth": "220px", "width": "100%"}),
+                    style={"textAlign": "center", "margin": "10px 0"},
+                ),
+                html.Div([
+                    html.Code(id="mc-pay-dest",
+                              style={"fontSize": "10px", "wordBreak": "break-all",
+                                     "display": "block", "padding": "8px",
+                                     "backgroundColor": "#f5f5f5",
+                                     "borderRadius": "4px",
+                                     "fontFamily": "monospace",
+                                     "userSelect": "all", "lineHeight": "1.4",
+                                     "maxHeight": "80px", "overflow": "auto"}),
+                    dbc.Button("Copy", id="mc-pay-copy-btn", size="sm",
+                               color="secondary", outline=True,
+                               className="mt-1",
+                               style={"fontSize": "11px"}),
+                ]),
+                html.Div(id="mc-pay-amount-info",
+                         style={"fontSize": "12px", "color": "#555",
+                                "marginTop": "6px", "textAlign": "center"}),
+            ]),
+            dcc.Store(id="mc-pay-methods", storage_type="memory", data=None),
+            html.Div(id="mc-pay-status",
+                     style={"fontSize": "12px", "color": "#555",
+                            "textAlign": "center", "marginTop": "8px"}),
+        ]),
+        dbc.ModalFooter(
+            dbc.Button("Cancel", id="mc-pay-cancel", color="secondary"),
+        ),
+    ], id="mc-pay-modal", is_open=False, backdrop="static", centered=True,
+       size="lg"),
     dcc.Location(id="url", refresh=False),
     dcc.Store(id="snapshot-lots",     storage_type="memory", data=None),
     dcc.Store(id="effective-lots",    storage_type="memory", data=[]),

@@ -1525,10 +1525,11 @@ class TestUpdateHeatmapCallback:
                 mc_bins=5, mc_sims=800, mc_years=10,
                 mc_freq="Monthly", mc_window=[2010, yr],
                 mc_start_yr=yr, mc_entry_q=50,
-                _mc_loaded=None, live_price=0, mc_cached=None,
+                _mc_loaded=None, _pay_trigger=0,
+                live_price=0, mc_cached=None, pay_token=None,
             )
-        # Returns 8 outputs: qr_fig, mc_fig, store, status, panel_style, indicator_style, modal, tab
-        assert len(result) == 8
+        # Returns 9 outputs: qr_fig, mc_fig, store, status, panel_style, indicator_style, rendered_key, modal, tab
+        assert len(result) == 9
         assert isinstance(result[0], go.Figure)
 
     def test_wrong_tab_prevents_update(self):
@@ -1545,7 +1546,8 @@ class TestUpdateHeatmapCallback:
                     mc_bins=5, mc_sims=800, mc_years=10,
                     mc_freq="Monthly", mc_window=None,
                     mc_start_yr=2025, mc_entry_q=50,
-                    _mc_loaded=None, live_price=0, mc_cached=None,
+                    _mc_loaded=None, _pay_trigger=0,
+                    live_price=0, mc_cached=None, pay_token=None,
                 )
 
 
@@ -1568,10 +1570,11 @@ class TestUpdateDcaCallback:
                 mc_bins=5, mc_sims=800, mc_years=10,
                 mc_freq="Monthly", mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
-                _mc_loaded=None, price_data=0, mc_cached=None,
+                _mc_loaded=None, _pay_trigger=0,
+                price_data=0, mc_cached=None, pay_token=None,
             )
-        # 5 outputs: fig, mc_results, mc_status, mc_modal, mc_tab
-        assert len(result) == 5
+        # 6 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab
+        assert len(result) == 6
         assert isinstance(result[0], go.Figure)
 
     def test_wrong_tab_prevents_update(self):
@@ -1589,7 +1592,8 @@ class TestUpdateDcaCallback:
                     mc_bins=5, mc_sims=800, mc_years=10,
                     mc_freq="Monthly", mc_window=None,
                     mc_start_yr=2026, mc_entry_q=50,
-                    _mc_loaded=None, price_data=0, mc_cached=None,
+                    _mc_loaded=None, _pay_trigger=0,
+                price_data=0, mc_cached=None, pay_token=None,
                 )
 
     def test_with_sc_enabled(self):
@@ -1607,7 +1611,8 @@ class TestUpdateDcaCallback:
                 mc_bins=5, mc_sims=800, mc_years=10,
                 mc_freq="Monthly", mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
-                _mc_loaded=None, price_data=0, mc_cached=None,
+                _mc_loaded=None, _pay_trigger=0,
+                price_data=0, mc_cached=None, pay_token=None,
             )
         assert isinstance(result[0], go.Figure)
 
@@ -1626,7 +1631,8 @@ class TestUpdateDcaCallback:
                 mc_bins=5, mc_sims=800, mc_years=10,
                 mc_freq="Monthly", mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
-                _mc_loaded=None, price_data=0, mc_cached=None,
+                _mc_loaded=None, _pay_trigger=0,
+                price_data=0, mc_cached=None, pay_token=None,
             )
         assert isinstance(result[0], go.Figure)
 
@@ -1646,9 +1652,11 @@ class TestUpdateRetireCallback:
                 mc_bins=5, mc_sims=800, mc_years=10,
                 mc_freq="Monthly", mc_window=None,
                 mc_stack=1.0, mc_start_yr=2031, mc_entry_q=50,
-                _mc_loaded=None, price_data=0, mc_cached=None,
+                _mc_loaded=None, _pay_trigger=0,
+                price_data=0, mc_cached=None, pay_token=None,
             )
-        assert len(result) == 5
+        # 6 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab
+        assert len(result) == 6
         assert isinstance(result[0], go.Figure)
 
 
@@ -1670,7 +1678,8 @@ class TestUpdateSuperchargeCallback:
                 mc_bins=5, mc_sims=800, mc_years=10,
                 mc_freq="Monthly", mc_window=None,
                 mc_stack=1.0, mc_start_yr=2031, mc_entry_q=50,
-                _mc_loaded=None, price_data=0, mc_cached=None,
+                _mc_loaded=None, _pay_trigger=0,
+                price_data=0, mc_cached=None, pay_token=None,
             )
         assert len(result) == 5
         assert isinstance(result[0], go.Figure)
@@ -1688,7 +1697,8 @@ class TestUpdateSuperchargeCallback:
                 mc_bins=5, mc_sims=800, mc_years=10,
                 mc_freq="Monthly", mc_window=None,
                 mc_stack=1.0, mc_start_yr=2031, mc_entry_q=50,
-                _mc_loaded=None, price_data=0, mc_cached=None,
+                _mc_loaded=None, _pay_trigger=0,
+                price_data=0, mc_cached=None, pay_token=None,
             )
         assert isinstance(result[0], go.Figure)
 

@@ -19,18 +19,48 @@ PORT="${PORT:-8050}"
 export PORT
 export PYTHONPATH="$SCRIPT_DIR:$SCRIPT_DIR/btc_app:$SCRIPT_DIR/btc_web"
 
+# Load BTCPay config if present (not in git)
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+    set -a; source "$SCRIPT_DIR/.env"; set +a
+fi
+
 # Kill any existing process on the port, wait until it's actually free
+PIDFILE="/tmp/quantoshi_${PORT}.pid"
+if [[ -f "$PIDFILE" ]]; then
+    OLD_PID=$(cat "$PIDFILE" 2>/dev/null)
+    if [[ -n "$OLD_PID" ]] && kill -0 "$OLD_PID" 2>/dev/null; then
+        kill "$OLD_PID" 2>/dev/null
+        sleep 1
+        kill -0 "$OLD_PID" 2>/dev/null && kill -9 "$OLD_PID" 2>/dev/null
+    fi
+    rm -f "$PIDFILE"
+fi
+# Fallback: kill anything still on the port
 fuser -k -9 "$PORT/tcp" 2>/dev/null
 for _i in 1 2 3 4 5; do
     fuser -s "$PORT/tcp" 2>/dev/null || break
     sleep 1
 done
 
+_cleanup() {
+    local pid
+    pid=$(cat "$PIDFILE" 2>/dev/null)
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+        kill "$pid" 2>/dev/null
+        sleep 0.5
+        kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null
+    fi
+    rm -f "$PIDFILE"
+}
+trap _cleanup EXIT INT TERM
+
 if [[ "${DEV:-0}" == "1" ]]; then
     LOG="/tmp/quantoshi_dev.log"
     echo "Starting Dash dev server on port $PORT..."
     echo "Console output → $LOG"
-    exec "$PYTHON" "$SCRIPT_DIR/btc_web/app.py" > "$LOG" 2>&1
+    "$PYTHON" "$SCRIPT_DIR/btc_web/app.py" > "$LOG" 2>&1 &
+    echo $! > "$PIDFILE"
+    wait $!
 else
     echo "Starting gunicorn (5 workers) on port $PORT..."
     exec "$GUNICORN" btc_web.app:server \

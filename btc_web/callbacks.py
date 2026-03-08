@@ -27,6 +27,7 @@ from layout import (_Q_COLLAPSED_HEIGHT, _SPLASH_QUOTES, _SPLASH_QUOTES_JS,
                     _FAQ)
 from mc_cache import (MC_YEARS_OPTIONS, MC_BINS, MC_SIMS, MC_FREQ,
                       MC_DEFAULT_YEARS, MC_DEFAULT_ENTRY_Q, MC_DEFAULT_START_YR)
+import btcpay
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MC parameter helper — single assembly point for all 4 MC-enabled tabs
@@ -59,6 +60,24 @@ def _build_mc_params(*, mc_enable, mc_amount, mc_infl, mc_bins, mc_sims,
     if mc_start_stack is not None:
         d["mc_start_stack"] = float(mc_start_stack or 1.0)
     return d
+
+
+def _mc_payment_check(tab, mc_years, start_yr, entry_q, pay_token):
+    """Check if MC simulation is authorized (free tier, no BTCPay, or valid token)."""
+    if not _app_ctx._HAS_BTCPAY:
+        return True  # dev mode — all MC is free
+    mc_yrs = int(mc_years or MC_DEFAULT_YEARS)
+    s_yr   = int(start_yr or MC_DEFAULT_START_YR)
+    e_q    = float(entry_q or MC_DEFAULT_ENTRY_Q)
+    if btcpay.is_free_tier(mc_yrs, s_yr, e_q):
+        return True
+    if not pay_token:
+        return False
+    return btcpay.verify_payment_token(
+        pay_token.get("payment_token", ""),
+        pay_token.get("invoice_id", ""),
+        tab, mc_yrs,
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -177,6 +196,7 @@ def _mc_status(mc_result, mc_cached, mc_enable):
     Output("hm-mc-status",   "children"),
     Output("hm-mc-panel",    "style"),
     Output("hm-swipe-indicator", "style"),
+    Output("hm-mc-rendered-key", "data"),
     Output("mc-save-modal", "is_open", allow_duplicate=True),
     Output("mc-save-tab", "data", allow_duplicate=True),
     Input("main-tabs",    "active_tab"),
@@ -209,16 +229,18 @@ def _mc_status(mc_result, mc_cached, mc_enable):
     Input("hm-mc-start-yr", "value"),
     Input("hm-mc-entry-q",  "value"),
     Input("hm-mc-loaded",   "data"),
+    Input("mc-pay-trigger", "data"),
     State("btc-price-store", "data"),
     State("hm-mc-results",  "data"),
+    State("mc-pay-token",   "data"),
     prevent_initial_call=True,
 )
 def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
                    b1, b2, c_lo, c_mid1, c_mid2, c_hi, grad,
                    vfmt, cell_fs, toggles, stack, use_lots, lots_data,
                    mc_enable, mc_amount, mc_infl, mc_bins, mc_sims, mc_years, mc_freq, mc_window,
-                   mc_start_yr, mc_entry_q, _mc_loaded,
-                   live_price, mc_cached):
+                   mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger,
+                   live_price, mc_cached, pay_token):
     if ctx.triggered_id == "main-tabs" and active_tab != "heatmap":
         raise dash.exceptions.PreventUpdate
     exit_range = exit_range or [entry_yr or 2025, (entry_yr or 2025) + 10]
@@ -264,9 +286,10 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     # QR heatmap (always)
     qr_fig = _get_heatmap_fig(dict(shared_params))
 
-    # MC heatmap (only when enabled + module present)
+    # MC heatmap (only when enabled + module present + payment verified)
     mc_enabled = bool(mc_enable) and _app_ctx._HAS_MARKOV
-    if mc_enabled:
+    mc_payment_ok = _mc_payment_check("hm", mc_years, mc_start_yr, mc_entry_q, pay_token)
+    if mc_enabled and mc_payment_ok:
         mc_syr = int(mc_start_yr or yr_now)
         # Auto-cap training window end at start year for historical sims
         mc_win = list(mc_window) if mc_window else [2010, yr_now]
@@ -289,6 +312,12 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
 
     store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enabled)
 
+    # Track which MC params were actually rendered
+    rendered_key = ({"years": int(mc_years or MC_DEFAULT_YEARS),
+                     "start_yr": int(mc_start_yr or MC_DEFAULT_START_YR),
+                     "entry_q": int(mc_entry_q or MC_DEFAULT_ENTRY_Q)}
+                    if mc_enabled and mc_payment_ok else None)
+
     # Show/hide MC panel and swipe indicator
     mc_panel_style = {} if mc_enabled else {"display": "none"}
     indicator_style = ({"fontSize": "0.85rem", "color": "#6c757d", "userSelect": "none"}
@@ -296,6 +325,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
                        else {"display": "none"})
 
     return (qr_fig, mc_fig, store_val, status, mc_panel_style, indicator_style,
+            rendered_key,
             show_modal, "hm" if show_modal else dash.no_update)
 
 
@@ -303,6 +333,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     Output("dca-graph", "figure"),
     Output("dca-mc-results", "data"),
     Output("dca-mc-status", "children"),
+    Output("dca-mc-rendered-key", "data"),
     Output("mc-save-modal", "is_open", allow_duplicate=True),
     Output("mc-save-tab", "data", allow_duplicate=True),
     Input("main-tabs",    "active_tab"),
@@ -336,15 +367,18 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     Input("dca-mc-start-yr", "value"),
     Input("dca-mc-entry-q", "value"),
     Input("dca-mc-loaded",  "data"),
+    Input("mc-pay-trigger", "data"),
     State("btc-price-store","data"),
     State("dca-mc-results", "data"),
+    State("mc-pay-token",   "data"),
     prevent_initial_call=True,
 )
 def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggles, sel_qs, lots_data,
                sc_enable, sc_loan, sc_rate, sc_term, sc_type, sc_repeats,
                sc_entry_mode, sc_custom_price, sc_tax, sc_rollover,
                mc_enable, mc_amount, mc_infl, mc_bins, mc_sims, mc_years, mc_freq, mc_window,
-               mc_start_yr, mc_entry_q, _mc_loaded, price_data, mc_cached):
+               mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger,
+               price_data, mc_cached, pay_token):
     if ctx.triggered_id == "main-tabs" and active_tab != "dca":
         raise dash.exceptions.PreventUpdate
     toggles    = toggles or []
@@ -377,7 +411,8 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
         sc_tax_rate     = float(sc_tax) / 100.0 if sc_tax is not None else 0.33,
         sc_rollover     = bool(sc_rollover),
         **_build_mc_params(
-            mc_enable=mc_enable, mc_amount=mc_amount, mc_infl=mc_infl,
+            mc_enable=mc_enable and _mc_payment_check("dca", mc_years, mc_start_yr, mc_entry_q, pay_token),
+            mc_amount=mc_amount, mc_infl=mc_infl,
             mc_bins=mc_bins, mc_sims=mc_sims, mc_years=mc_years,
             mc_freq=mc_freq, mc_window=mc_window,
             mc_start_yr=mc_start_yr, mc_entry_q=mc_entry_q,
@@ -385,8 +420,13 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
             amount_default=100, infl_default=4.0, start_yr_default=2026,
         ),
     ))
+    mc_did_render = bool(mc_enable) and _mc_payment_check("dca", mc_years, mc_start_yr, mc_entry_q, pay_token)
+    rendered_key = ({"years": int(mc_years or MC_DEFAULT_YEARS),
+                     "start_yr": int(mc_start_yr or MC_DEFAULT_START_YR),
+                     "entry_q": int(mc_entry_q or MC_DEFAULT_ENTRY_Q)}
+                    if mc_did_render else None)
     store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enable)
-    return fig, store_val, status, show_modal, "dca" if show_modal else dash.no_update
+    return fig, store_val, status, rendered_key, show_modal, "dca" if show_modal else dash.no_update
 
 
 @callback(Output("dca-sc-body","style"), Input("dca-sc-enable","value"))
@@ -397,6 +437,56 @@ for _mc_tog in ("dca", "ret", "hm", "sc"):
     @callback(Output(f"{_mc_tog}-mc-body","style"), Input(f"{_mc_tog}-mc-enable","value"))
     def _toggle_mc_body(val):
         return {} if val else {"display": "none"}
+
+# MC match indicator — show whether chart reflects current MC settings
+# Returns: [match_text, match_style, overlay_style]
+_MC_MATCH_JS = """
+function(mc_enable, mc_years, mc_start_yr, mc_entry_q, rendered_key) {
+    var hide = {display: "none"};
+    var base = {fontSize: "10px", fontWeight: "600", textAlign: "center", marginTop: "4px"};
+    if (!mc_enable || !mc_enable.length) return ["", hide, hide];
+    if (!rendered_key) return [
+        "\u26a0 Chart does not include MC overlay",
+        Object.assign({}, base, {color: "#c57600"}),
+        {}
+    ];
+    var yrs = parseInt(mc_years) || 10;
+    var syr = parseInt(mc_start_yr) || 2026;
+    var eq  = parseInt(mc_entry_q) || 50;
+    if (yrs === rendered_key.years && syr === rendered_key.start_yr && eq === rendered_key.entry_q) {
+        return [
+            "\u2713 Chart reflects current MC settings",
+            Object.assign({}, base, {color: "#1a8f3c"}),
+            hide
+        ];
+    }
+    return [
+        "\u26a0 MC settings changed \u2014 chart is stale",
+        Object.assign({}, base, {color: "#c57600"}),
+        {}
+    ];
+}
+"""
+for _mc_m in ("dca", "ret", "hm"):
+    _app_ctx.app.clientside_callback(
+        _MC_MATCH_JS,
+        Output(f"{_mc_m}-mc-match", "children"),
+        Output(f"{_mc_m}-mc-match", "style"),
+        Output(f"{_mc_m}-mc-overlay", "style"),
+        Input(f"{_mc_m}-mc-enable", "value"),
+        Input(f"{_mc_m}-mc-years", "value"),
+        Input(f"{_mc_m}-mc-start-yr", "value"),
+        Input(f"{_mc_m}-mc-entry-q", "value"),
+        Input(f"{_mc_m}-mc-rendered-key", "data"),
+    )
+
+# SC tab has no MC overlay
+_app_ctx.app.clientside_callback(
+    "function() { return ['', {}]; }",
+    Output("sc-mc-match", "children"),
+    Output("sc-mc-match", "style"),
+    Input("sc-mc-enable", "value"),
+)
 
 # PPY display (steps/year) — clientside for instant feedback
 _PPY_JS = """
@@ -514,10 +604,11 @@ for _qid in ("bub-qs", "hm-exit-qs", "dca-qs", "ret-qs", "sc-qs"):
 
 
 
-def _mc_cost_display(mc_years, start_yr):
+def _mc_cost_display(mc_years, start_yr, entry_q=50, tab="dca"):
     """Return cost display elements showing cached vs live pricing."""
     mc_years = int(mc_years or 10)
     start_yr = int(start_yr or 2026)
+    entry_q  = int(entry_q or 50)
     is_cached = start_yr in _MC_CACHED_START_YRS
 
     if is_cached:
@@ -530,6 +621,22 @@ def _mc_cost_display(mc_years, start_yr):
         tier_label = "Live"
         tier_color = "#c57600"
         tier_note = "Computed on demand \u2022 ~1\u20133s"
+
+    # Heatmap gets 50% discount
+    if tab == "hm":
+        price = int(price * 0.5)
+
+    # Free tier: no cost
+    if btcpay.is_free_tier(mc_years, start_yr, entry_q):
+        return [
+            html.Div([
+                html.Span("Free tier", style={"fontWeight": "bold", "color": "#1a8f3c"}),
+                html.Span(f" \u2022 {mc_years} yr simulation", style={"color": "#555"}),
+            ]),
+            html.Div(tier_note, style={"color": "#888", "fontSize": "10px"}),
+            html.Div(html.B("Cost: Free \u2713"),
+                     style={"marginTop": "2px", "color": "#1a8f3c"}),
+        ]
 
     return [
         html.Div([
@@ -555,11 +662,295 @@ for _cost_pfx in ("dca", "ret", "hm", "sc"):
         Input(f"{_cost_pfx}-mc-sims",     "value"),
         Input(f"{_cost_pfx}-mc-window",   "value"),
         Input(f"{_cost_pfx}-mc-start-yr", "value"),
+        Input(f"{_cost_pfx}-mc-entry-q", "value"),
         prevent_initial_call=True,
     )
     def _update_mc_cost(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window,
-                        mc_start_yr):
-        return _mc_cost_display(mc_years, mc_start_yr), 10
+                        mc_start_yr, mc_entry_q, _tab=_cost_pfx):
+        return _mc_cost_display(mc_years, mc_start_yr, entry_q=mc_entry_q, tab=_tab), 10
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MC payment callbacks (BTCPay integration)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Map button IDs → tab short names used by btcpay/api
+_MC_BTN_TO_TAB = {
+    "dca-mc-run-btn": "dca",
+    "ret-mc-run-btn": "ret",
+    "hm-mc-run-btn":  "hm",
+    "sc-mc-run-btn":  "sc",
+}
+
+@callback(
+    Output("mc-pay-modal",   "is_open", allow_duplicate=True),
+    Output("mc-pay-invoice", "data",    allow_duplicate=True),
+    Output("mc-pay-info",    "children"),
+    Output("mc-pay-status",  "children",   allow_duplicate=True),
+    Output("mc-pay-poll",    "disabled",   allow_duplicate=True),
+    Output("mc-pay-poll",    "n_intervals", allow_duplicate=True),
+    Output("mc-pay-trigger", "data",    allow_duplicate=True),
+    *(Output(f"{pfx}-mc-run-status", "children", allow_duplicate=True)
+      for pfx in ("dca", "ret", "hm", "sc")),
+    Input("dca-mc-run-btn", "n_clicks"),
+    Input("ret-mc-run-btn", "n_clicks"),
+    Input("hm-mc-run-btn",  "n_clicks"),
+    Input("sc-mc-run-btn",  "n_clicks"),
+    State("dca-mc-years", "value"), State("dca-mc-start-yr", "value"),
+    State("dca-mc-entry-q", "value"),
+    State("ret-mc-years", "value"), State("ret-mc-start-yr", "value"),
+    State("ret-mc-entry-q", "value"),
+    State("hm-mc-years", "value"), State("hm-mc-start-yr", "value"),
+    State("hm-mc-entry-q", "value"),
+    State("sc-mc-years", "value"), State("sc-mc-start-yr", "value"),
+    State("sc-mc-entry-q", "value"),
+    State("mc-pay-trigger", "data"),
+    prevent_initial_call=True,
+)
+def _mc_payment_initiate(*args):
+    """Handle Run Simulation button clicks — check free tier or create invoice."""
+    # Determine which button was clicked
+    triggered = ctx.triggered_id
+    if triggered not in _MC_BTN_TO_TAB:
+        raise dash.exceptions.PreventUpdate
+    tab = _MC_BTN_TO_TAB[triggered]
+
+    # Extract the relevant tab's MC params from states
+    tab_idx = list(_MC_BTN_TO_TAB.keys()).index(triggered)
+    # States are grouped as (years, start_yr, entry_q) × 4 tabs, then trigger
+    state_base = 4  # skip the 4 button Inputs
+    mc_years  = int(args[state_base + tab_idx * 3]     or MC_DEFAULT_YEARS)
+    start_yr  = int(args[state_base + tab_idx * 3 + 1] or MC_DEFAULT_START_YR)
+    entry_q   = float(args[state_base + tab_idx * 3 + 2] or MC_DEFAULT_ENTRY_Q)
+    cur_trigger = args[-1] or 0
+
+    # Default outputs: modal closed, no change to per-tab status
+    no_tab_status = [dash.no_update] * 4
+
+    # If BTCPay not configured, just increment trigger (free mode)
+    if not _app_ctx._HAS_BTCPAY:
+        return (False, dash.no_update, dash.no_update,
+                dash.no_update, True, 0, cur_trigger + 1,
+                *no_tab_status)
+
+    # Free tier check
+    if btcpay.is_free_tier(mc_years, start_yr, entry_q):
+        tab_statuses = list(no_tab_status)
+        tab_statuses[tab_idx] = html.Span("Free tier", style={"color": "#1a8f3c"})
+        return (False, dash.no_update, dash.no_update,
+                dash.no_update, True, 0, cur_trigger + 1,
+                *tab_statuses)
+
+    # Create invoice directly via btcpay module
+    is_cached = btcpay.is_cached_request(start_yr)
+    try:
+        result = btcpay.create_invoice(tab, mc_years, is_cached)
+    except Exception:
+        tab_statuses = list(no_tab_status)
+        tab_statuses[tab_idx] = html.Span(
+            "Payment service unavailable", style={"color": "#c00"})
+        return (False, dash.no_update, "",
+                "", True, 0, dash.no_update, *tab_statuses)
+
+    # Open payment modal — clientside callback handles iframe vs QR display
+    invoice_data = {
+        "invoice_id": result["invoice_id"],
+        "tab": tab,
+        "mc_years": mc_years,
+        "checkout_url": result.get("checkout_url", ""),
+        "amount_sats": result.get("amount_sats", 0),
+    }
+    info = f"Cost: {invoice_data['amount_sats']} sats \u2022 {mc_years}yr MC simulation"
+
+    return (True, invoice_data, info,
+            "Waiting for payment...", False, 0,
+            dash.no_update, *no_tab_status)
+
+
+# ── Clientside polling: check invoice status every 3s ─────────────────────────
+_app_ctx.app.clientside_callback(
+    """
+    function(n, invoice_data, cur_trigger) {
+        if (!invoice_data || !invoice_data.invoice_id) {
+            return [window.dash_clientside.no_update, true,
+                    window.dash_clientside.no_update,
+                    window.dash_clientside.no_update,
+                    window.dash_clientside.no_update];
+        }
+        var inv = invoice_data;
+        var url = "/api/mc/invoice/" + inv.invoice_id
+                  + "?tab=" + inv.tab + "&mc_years=" + inv.mc_years;
+
+        return fetch(url)
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.paid) {
+                    // Payment confirmed — store token, close modal, trigger MC
+                    var token = {
+                        payment_token: d.payment_token,
+                        invoice_id: inv.invoice_id,
+                        tab: inv.tab,
+                        mc_years: inv.mc_years
+                    };
+                    return [token, true, false,
+                            "Payment confirmed!",
+                            (cur_trigger || 0) + 1];
+                }
+                if (d.status === "Expired" || d.status === "Invalid") {
+                    return [window.dash_clientside.no_update, true, false,
+                            "Invoice " + d.status.toLowerCase() + ". Please try again.",
+                            window.dash_clientside.no_update];
+                }
+                // Still waiting
+                return [window.dash_clientside.no_update,
+                        window.dash_clientside.no_update,
+                        window.dash_clientside.no_update,
+                        "Waiting for payment...",
+                        window.dash_clientside.no_update];
+            })
+            .catch(function(e) {
+                return [window.dash_clientside.no_update,
+                        window.dash_clientside.no_update,
+                        window.dash_clientside.no_update,
+                        "Checking payment...",
+                        window.dash_clientside.no_update];
+            });
+    }
+    """,
+    Output("mc-pay-token",   "data"),
+    Output("mc-pay-poll",    "disabled"),
+    Output("mc-pay-modal",   "is_open"),
+    Output("mc-pay-status",  "children"),
+    Output("mc-pay-trigger", "data"),
+    Input("mc-pay-poll",     "n_intervals"),
+    State("mc-pay-invoice",  "data"),
+    State("mc-pay-trigger",  "data"),
+    prevent_initial_call=True,
+)
+
+
+# ── Cancel payment modal ─────────────────────────────────────────────────────
+@callback(
+    Output("mc-pay-modal", "is_open",  allow_duplicate=True),
+    Output("mc-pay-poll",  "disabled", allow_duplicate=True),
+    Output("mc-pay-status","children", allow_duplicate=True),
+    Input("mc-pay-cancel", "n_clicks"),
+    prevent_initial_call=True,
+)
+def _mc_payment_cancel(n):
+    return False, True, ""
+
+
+# ── Clientside: detect onion vs clearnet and set up payment display ──────────
+_app_ctx.app.clientside_callback(
+    """
+    function(invoice_data) {
+        var nu = window.dash_clientside.no_update;
+        if (!invoice_data || !invoice_data.invoice_id) {
+            return [{"display":"none"}, "about:blank", {"display":"none"}, null];
+        }
+        var isOnion = window.location.hostname.endsWith('.onion');
+        if (isOnion) {
+            return [{}, invoice_data.checkout_url, {"display":"none"}, null];
+        }
+        // Clearnet: hide iframe, fetch payment methods, show QR + text
+        return fetch("/api/mc/invoice/" + invoice_data.invoice_id + "/payment")
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                return [{"display":"none"}, "about:blank", {}, d.methods || []];
+            })
+            .catch(function() {
+                return [{"display":"none"}, "about:blank", {},
+                        [{method:"error", destination:"Could not load payment methods",
+                          amount:"", qr_svg:""}]];
+            });
+    }
+    """,
+    Output("mc-pay-iframe-wrap", "style"),
+    Output("mc-pay-iframe",      "src"),
+    Output("mc-pay-details",     "style"),
+    Output("mc-pay-methods",     "data"),
+    Input("mc-pay-invoice",      "data"),
+    prevent_initial_call=True,
+)
+
+
+# ── Clientside: render active payment method (QR + dest + amount) ────────────
+_app_ctx.app.clientside_callback(
+    """
+    function(methods, ln_clicks, chain_clicks) {
+        var nu = window.dash_clientside.no_update;
+        if (!methods || !methods.length) return ["", "", ""];
+        var ctx = window.dash_clientside.callback_context;
+        var triggered = (ctx && ctx.triggered && ctx.triggered.length)
+                        ? ctx.triggered[0].prop_id : "";
+        var wantLn = triggered.indexOf("chain-btn") === -1;
+        var m;
+        if (wantLn) {
+            m = methods.find(function(x) { return x.method && x.method.indexOf("LN") !== -1; });
+        } else {
+            m = methods.find(function(x) { return x.method && x.method.indexOf("LN") === -1; });
+        }
+        if (!m) m = methods[0];
+        var qr = m.qr_svg || "";
+        var dest = m.destination || "";
+        var amt = parseFloat(m.amount || "0");
+        var info;
+        if (wantLn) {
+            var sats = Math.round(amt * 1e8);
+            info = sats.toLocaleString() + " sats";
+        } else {
+            info = amt + " BTC";
+        }
+        return [qr, dest, info];
+    }
+    """,
+    Output("mc-pay-qr",          "src"),
+    Output("mc-pay-dest",        "children"),
+    Output("mc-pay-amount-info", "children"),
+    Input("mc-pay-methods",      "data"),
+    Input("mc-pay-ln-btn",       "n_clicks"),
+    Input("mc-pay-chain-btn",    "n_clicks"),
+    prevent_initial_call=True,
+)
+
+
+# ── Clientside: toggle LN/on-chain button active state ──────────────────────
+_app_ctx.app.clientside_callback(
+    """
+    function(ln_clicks, chain_clicks) {
+        var ctx = window.dash_clientside.callback_context;
+        var triggered = (ctx && ctx.triggered && ctx.triggered.length)
+                        ? ctx.triggered[0].prop_id : "";
+        var isChain = triggered.indexOf("chain-btn") !== -1;
+        return [!isChain, !isChain, isChain, isChain];
+    }
+    """,
+    Output("mc-pay-ln-btn",    "active"),
+    Output("mc-pay-chain-btn", "outline"),
+    Output("mc-pay-chain-btn", "active"),
+    Output("mc-pay-ln-btn",    "outline"),
+    Input("mc-pay-ln-btn",     "n_clicks"),
+    Input("mc-pay-chain-btn",  "n_clicks"),
+    prevent_initial_call=True,
+)
+
+
+# ── Clientside: copy payment destination to clipboard ────────────────────────
+_app_ctx.app.clientside_callback(
+    """
+    function(n) {
+        var el = document.getElementById("mc-pay-dest");
+        if (el && el.textContent) {
+            navigator.clipboard.writeText(el.textContent);
+        }
+        return "";
+    }
+    """,
+    Output("mc-pay-status", "children", allow_duplicate=True),
+    Input("mc-pay-copy-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
 
 
 # ── Saylor Mode: first-time quote toast ──────────────────────────────────────
@@ -718,6 +1109,7 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     Output("retire-graph", "figure"),
     Output("ret-mc-results", "data"),
     Output("ret-mc-status", "children"),
+    Output("ret-mc-rendered-key", "data"),
     Output("mc-save-modal", "is_open", allow_duplicate=True),
     Output("mc-save-tab", "data", allow_duplicate=True),
     Input("main-tabs",    "active_tab"),
@@ -743,13 +1135,16 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     Input("ret-mc-start-yr", "value"),
     Input("ret-mc-entry-q",  "value"),
     Input("ret-mc-loaded",   "data"),
+    Input("mc-pay-trigger", "data"),
     State("btc-price-store","data"),
     State("ret-mc-results", "data"),
+    State("mc-pay-token",   "data"),
     prevent_initial_call=True,
 )
 def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, sel_qs, lots_data,
                   mc_enable, mc_amount, mc_infl, mc_bins, mc_sims, mc_years, mc_freq, mc_window,
-                  mc_stack, mc_start_yr, mc_entry_q, _mc_loaded, price_data, mc_cached):
+                  mc_stack, mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger,
+                  price_data, mc_cached, pay_token):
     if ctx.triggered_id == "main-tabs" and active_tab != "retire":
         raise dash.exceptions.PreventUpdate
     toggles  = toggles or []
@@ -772,7 +1167,8 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         selected_qs  = sel_qs or [],
         lots         = lots_data or [],
         **_build_mc_params(
-            mc_enable=mc_enable, mc_amount=mc_amount, mc_infl=mc_infl,
+            mc_enable=mc_enable and _mc_payment_check("ret", mc_years, mc_start_yr, mc_entry_q, pay_token),
+            mc_amount=mc_amount, mc_infl=mc_infl,
             mc_bins=mc_bins, mc_sims=mc_sims, mc_years=mc_years,
             mc_freq=mc_freq, mc_window=mc_window,
             mc_start_yr=mc_start_yr, mc_entry_q=mc_entry_q,
@@ -781,8 +1177,13 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
             mc_start_stack=mc_stack,
         ),
     ))
+    mc_did_render = bool(mc_enable) and _mc_payment_check("ret", mc_years, mc_start_yr, mc_entry_q, pay_token)
+    rendered_key = ({"years": int(mc_years or MC_DEFAULT_YEARS),
+                     "start_yr": int(mc_start_yr or MC_DEFAULT_START_YR),
+                     "entry_q": int(mc_entry_q or MC_DEFAULT_ENTRY_Q)}
+                    if mc_did_render else None)
     store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enable)
-    return fig, store_val, status, show_modal, "ret" if show_modal else dash.no_update
+    return fig, store_val, status, rendered_key, show_modal, "ret" if show_modal else dash.no_update
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -828,8 +1229,10 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     Input("sc-mc-start-yr",  "value"),
     Input("sc-mc-entry-q",   "value"),
     Input("sc-mc-loaded",    "data"),
+    Input("mc-pay-trigger", "data"),
     State("btc-price-store", "data"),
     State("sc-mc-results",   "data"),
+    State("mc-pay-token",   "data"),
     prevent_initial_call=True,
 )
 def update_supercharge(active_tab, stack, use_lots, start_yr,
@@ -838,7 +1241,8 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
                        wd, end_yr, target_yr, disp,
                        toggles, chart_layout, display_q, lots_data,
                        mc_enable, mc_amount, mc_infl, mc_bins, mc_sims, mc_years, mc_freq, mc_window,
-                       mc_stack, mc_start_yr, mc_entry_q, _mc_loaded, price_data, mc_cached):
+                       mc_stack, mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger,
+                       price_data, mc_cached, pay_token):
     if ctx.triggered_id == "main-tabs" and active_tab != "supercharge":
         raise dash.exceptions.PreventUpdate
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
@@ -871,7 +1275,8 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         lots         = lots_data or [],
         use_lots     = bool(use_lots),
         **_build_mc_params(
-            mc_enable=mc_enable, mc_amount=mc_amount, mc_infl=mc_infl,
+            mc_enable=mc_enable and _mc_payment_check("sc", mc_years, mc_start_yr, mc_entry_q, pay_token),
+            mc_amount=mc_amount, mc_infl=mc_infl,
             mc_bins=mc_bins, mc_sims=mc_sims, mc_years=mc_years,
             mc_freq=mc_freq, mc_window=mc_window,
             mc_start_yr=mc_start_yr, mc_entry_q=mc_entry_q,

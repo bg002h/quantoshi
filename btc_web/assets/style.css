@@ -1104,6 +1104,7 @@ body {
 .hm-swipe-container::-webkit-scrollbar { height: 6px; }
 .hm-swipe-container::-webkit-scrollbar-thumb { background: #bbb; border-radius: 3px; }
 .hm-swipe-panel {
+    position: relative;
     scroll-snap-align: start;
     min-width: 100%;
     flex-shrink: 0;
@@ -1125,4 +1126,18 @@ body {
 /* Quantile panel: expand on hover */
 .card:hover .q-panel-wrap {
     max-height: none !important;
+}
+
+/* MC chart overlay — grays out chart when MC settings don't match */
+.mc-chart-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(64, 64, 64, 0.65);
+    z-index: 10;
+    pointer-events: all;
+    cursor: not-allowed;
+    border-radius: 4px;
 }

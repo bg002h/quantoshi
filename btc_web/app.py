@@ -81,6 +81,12 @@ _app_ctx.M = M
 _app_ctx.app = app
 _app_ctx.server = server
 _app_ctx._HAS_MARKOV = _HAS_MARKOV
+
+import btcpay
+_app_ctx._HAS_BTCPAY = btcpay._HAS_BTCPAY
+
+import api
+api.register_routes(server)
 _app_ctx._ALL_QS = [q for q in M.QR_QUANTILES if 0.001 <= q <= 0.999]
 _app_ctx._DEF_QS = [q for q in [0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
                     if q in M.qr_fits]

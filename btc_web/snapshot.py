@@ -113,9 +113,9 @@ _CHECKLIST_OPTIONS = {
     "dca-sc-enable":      ["yes"],
     "dca-sc-rollover":    ["yes"],
     "ret-use-lots":       ["yes"],
-    "ret-toggles":        ["log_y", "dual_y", "annotate", "show_legend", "minor_grid"],
+    "ret-toggles":        ["log_y", "dual_y", "annotate", "show_legend", "minor_grid", "show_today"],
     "sc-use-lots":        ["yes"],
-    "sc-toggles":         ["annotate", "log_y", "show_legend", "minor_grid"],
+    "sc-toggles":         ["annotate", "log_y", "show_legend", "minor_grid", "show_today"],
     "sc-chart-layout":    ["shade"],
     "bub-auto-y":         ["yes"],
 }

@@ -149,6 +149,17 @@ def auto_bubble_yrange(xrange, auto_y, yscale, sel_qs):
     return [round(y_lo, 1), round(y_hi, 1)]
 
 
+_app_ctx.app.clientside_callback(
+    """
+    function(auto_y) {
+        return (auto_y && auto_y.length) ? {display: "none"} : {};
+    }
+    """,
+    Output("bub-yrange-wrap", "style"),
+    Input("bub-auto-y", "value"),
+)
+
+
 def _mc_status(mc_result, mc_cached, mc_enable):
     """Common MC result → (store_val, status, show_modal) for all tab callbacks."""
     store_val = mc_result if mc_result else dash.no_update
@@ -1307,14 +1318,14 @@ _EXPORT_TABS = [
 for _tab_id, _graph_id in _EXPORT_TABS:
     _app_ctx.app.clientside_callback(
         f"""
-        function(n_clicks, fmt, fname, figure) {{
+        function(n_clicks, fmt, fname, scale, figure) {{
             if (!n_clicks) return window.dash_clientside.no_update;
             if (!figure)   return window.dash_clientside.no_update;
             Plotly.downloadImage(figure, {{
                 format:   fmt   || 'png',
                 width:    1920,
                 height:   1080,
-                scale:    2,
+                scale:    scale || 2,
                 filename: fname || '{_tab_id}'
             }});
             return window.dash_clientside.no_update;
@@ -1324,6 +1335,7 @@ for _tab_id, _graph_id in _EXPORT_TABS:
         Input(f"{_tab_id}-export-btn", "n_clicks"),
         State(f"{_tab_id}-fmt",        "value"),
         State(f"{_tab_id}-fname",      "value"),
+        State(f"{_tab_id}-scale",      "value"),
         State(f"{_tab_id}-graph",      "figure"),
         prevent_initial_call=True,
     )

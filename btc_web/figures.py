@@ -164,7 +164,7 @@ for _scale, _wm_path in _WM_FILES.items():
 # ── MC premium figure styling ────────────────────────────────────────────────
 
 _MC_FONT_FAMILY = "Palatino Linotype, Palatino, Georgia, serif"
-_MC_TITLE_COLOR = "#e8c547"          # warm gold for title text
+_MC_TITLE_COLOR = "#996515"          # dark burnished gold — readable on light bg
 _MC_LEGEND_BORDER = "#c9a227"        # legend border gold
 
 
@@ -707,9 +707,7 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
             ep, entry_t, _pct, _tw = result
 
     mc_years = int(p.get("mc_years", 10))
-    xlo = max(int(p.get("exit_yr_lo", eyr)), eyr)
-    xhi = min(int(p.get("exit_yr_hi", eyr + mc_years)), eyr + mc_years)
-    eyrs = list(range(xlo, xhi + 1))
+    eyrs = list(range(eyr, eyr + mc_years + 1))
 
     if not eyrs:
         return _error_figure(m, "No data — adjust Entry / Exit settings"), None
@@ -887,26 +885,30 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy):
     return sc_traces, all_sc_usd_vals, all_sc_btc_vals
 
 
-def _render_edge_annots(edge_items):
-    """Build staggered right-edge USD value annotations.
+def _render_edge_annots(edge_items, x_positions=None, yref="y"):
+    """Build staggered right-edge value annotations.
 
-    Each item: (x, final_y, final_usd, color, prefix).
+    Each item: (x, final_y, label, color, prefix).
+    *label* may be a number (formatted via fmt_price) or a pre-formatted string.
+    *x_positions*: paper-x offsets for stagger columns (default [0.97, 0.87, 0.77]).
+    *yref*: y-axis reference for arrow targets (default "y").
     Returns list of annotation dicts.
     """
     if not edge_items:
         return []
     edge_items.sort(key=lambda it: it[1])
     _AY_STEP = 18
-    _X_POSITIONS = [0.97, 0.87, 0.77]
+    xp_list = x_positions or [0.97, 0.87, 0.77]
     annots = []
     n = len(edge_items)
-    for idx, (ax_x, fy, fusd, col, pfx) in enumerate(edge_items):
+    for idx, (ax_x, fy, lbl, col, pfx) in enumerate(edge_items):
         ay = -35 - int((n - 1 - idx) * _AY_STEP)
-        xp = _X_POSITIONS[idx % len(_X_POSITIONS)]
+        xp = xp_list[idx % len(xp_list)]
+        lbl_text = lbl if isinstance(lbl, str) else fmt_price(lbl)
         annots.append(dict(
             x=xp, xref="paper",
-            y=fy, yref="y",
-            text=f"<b>{pfx}{fmt_price(fusd)}</b>",
+            y=fy, yref=yref,
+            text=f"<b>{pfx}{lbl_text}</b>",
             showarrow=True, arrowhead=2, arrowsize=1,
             arrowcolor=col, arrowwidth=1.5,
             ax=0, ay=ay,
@@ -1000,10 +1002,11 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     # Build title — add cost info and median ROI if we have quantile data
     title_line = f"Bitcoin DCA — {fmt_price(amount)}/{freq_short}"
     title_line += f"  ·  {fmt_price(total_spent)} invested over {n_periods} periods"
+    _qr_med_final = None
     if all_usd_vals:
-        med_final_usd = float(np.median([v[-1] for v in all_usd_vals.values()]))
-        roi = med_final_usd / total_spent if total_spent > 0 else 0
-        title_line += f"<br>Median final value {fmt_price(med_final_usd)}  ·  {roi:.1f}× return on capital"
+        _qr_med_final = float(np.median([v[-1] for v in all_usd_vals.values()]))
+        roi = _qr_med_final / total_spent if total_spent > 0 else 0
+        title_line += f"<br>QR median {fmt_price(_qr_med_final)}  ·  {roi:.1f}\u00d7"
 
     ylabel = "USD Value" if disp_mode == "usd" else "BTC Balance"
     layout = _dark_layout(
@@ -1077,6 +1080,11 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                 mc_med_y = float(mc_traces[-1].y[-1]) if mc_traces else final_usd
                 mc_x = float(mc_traces[-1].x[-1]) if mc_traces else x_end
                 _edge_items.append((mc_x, mc_med_y, final_usd, _BTC_ORANGE, "MC "))
+        # MC median final value + multiplier → append to title
+        if mc_fan_usd and 0.50 in mc_fan_usd and len(mc_fan_usd[0.50]) > 0:
+            mc_med_final = float(mc_fan_usd[0.50][-1])
+            mc_roi = mc_med_final / total_spent if total_spent > 0 else 0
+            layout["title"]["text"] += f"  ·  MC median {fmt_price(mc_med_final)}  ·  {mc_roi:.1f}\u00d7"
 
     # ── Render staggered right-edge annotations ─────────────────────────────
     if _edge_items:
@@ -1234,6 +1242,46 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             layout["yaxis2"]["type"] = "log"
             if p.get("minor_grid"):
                 layout["yaxis2"]["minor"] = _LOG_MINOR
+
+    # ── Right-edge value annotations ────────────────────────────────────────
+    # Non-depleted traces: value label at right edge (same approach as DCA).
+    # Depleted traces already have year annotations above.
+    if p.get("annotate"):
+        ts_end_arr = np.maximum(np.array([ts[-1]]), 0.5)
+        y1_items = []
+        for q in sel_qs:
+            if q not in all_btc_vals:
+                continue
+            btc_final = float(all_btc_vals[q][-1])
+            if btc_final <= 0:
+                continue
+            col = m.qr_colors.get(q, "#888888")
+            usd_final = btc_final * float(qr_price(q, ts_end_arr, m.qr_fits)[0])
+            if disp_mode == "usd":
+                y1_items.append((0, usd_final, fmt_price(usd_final), col, ""))
+            else:
+                y1_items.append((0, btc_final, f"{btc_final:.4f} \u20bf", col, ""))
+        if y1_items:
+            layout.setdefault("annotations", []).extend(
+                _render_edge_annots(y1_items, yref="y"))
+        # Dual-y axis: opposite unit annotations (shifted left to avoid overlap)
+        if p.get("dual_y"):
+            y2_items = []
+            for q in sel_qs:
+                if q not in all_btc_vals:
+                    continue
+                btc_final = float(all_btc_vals[q][-1])
+                if btc_final <= 0:
+                    continue
+                col = m.qr_colors.get(q, "#888888")
+                usd_final = btc_final * float(qr_price(q, ts_end_arr, m.qr_fits)[0])
+                if disp_mode == "usd":
+                    y2_items.append((0, btc_final, f"{btc_final:.4f} \u20bf", col, ""))
+                else:
+                    y2_items.append((0, usd_final, fmt_price(usd_final), col, ""))
+            if y2_items:
+                layout.setdefault("annotations", []).extend(
+                    _render_edge_annots(y2_items, x_positions=[0.90, 0.82, 0.74], yref="y2"))
 
     # ── Monte Carlo fan overlay ─────────────────────────────────────────────
     mc_result = None

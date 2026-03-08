@@ -36,11 +36,11 @@ except ImportError:
 
 # ── Pre-computed MC cache (conditional) ──────────────────────────────────────
 try:
-    from mc_cache import (load_caches as _load_mc_caches,
+    from mc_cache import (load_startup_cache as _load_startup_cache,
                           get_cached_paths, get_cached_overlay,
                           snap_to_bin, is_cached_year,
                           FAN_PCTS as _MC_CACHE_FAN_PCTS)
-    _load_mc_caches()
+    _load_startup_cache()
     _HAS_MC_CACHE = True
 except ImportError:
     _HAS_MC_CACHE = False

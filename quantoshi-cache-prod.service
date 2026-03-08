@@ -1,0 +1,27 @@
+# quantoshi-cache-prod.service — Pre-load MC cache into /dev/shm at boot.
+#
+# PRODUCTION install (Hetzner VPS):
+#   scp quantoshi-cache-prod.service root@89.167.70.45:/etc/systemd/system/quantoshi-cache.service
+#   ssh root@89.167.70.45 "systemctl daemon-reload && systemctl enable quantoshi-cache.service"
+#
+# Then add to quantoshi.service [Unit] section:
+#   After=network.target quantoshi-cache.service
+#
+# To force reload after cache regeneration:
+#   systemctl restart quantoshi-cache.service && systemctl restart quantoshi
+
+[Unit]
+Description=Quantoshi MC cache pre-loader (/dev/shm)
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/quantoshi/btc_venv/bin/python3 \
+    /opt/quantoshi/btc_web/load_shm_cache.py \
+    /opt/quantoshi
+User=root
+Group=root
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

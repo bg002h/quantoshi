@@ -1,0 +1,28 @@
+# quantoshi-cache.service — Pre-load MC cache into /dev/shm at boot.
+#
+# LOCAL/TEST install:
+#   sudo cp quantoshi-cache.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable quantoshi-cache.service
+#
+# Runs once at boot (Type=oneshot). The main app service should start after:
+#   After=quantoshi-cache.service
+#
+# To force reload (e.g. after regenerating cache):
+#   sudo systemctl restart quantoshi-cache.service
+
+[Unit]
+Description=Quantoshi MC cache pre-loader (/dev/shm)
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/scratch/code/bitcoinprojections/btc_venv/bin/python3 \
+    /scratch/code/bitcoinprojections/btc_web/load_shm_cache.py \
+    /scratch/code/bitcoinprojections
+User=bcg
+Group=bcg
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -30,7 +30,7 @@ if [[ -f "$PIDFILE" ]]; then
     OLD_PID=$(cat "$PIDFILE" 2>/dev/null)
     if [[ -n "$OLD_PID" ]] && kill -0 "$OLD_PID" 2>/dev/null; then
         kill "$OLD_PID" 2>/dev/null
-        sleep 1
+        sleep 0.25
         kill -0 "$OLD_PID" 2>/dev/null && kill -9 "$OLD_PID" 2>/dev/null
     fi
     rm -f "$PIDFILE"
@@ -39,7 +39,7 @@ fi
 fuser -k -9 "$PORT/tcp" 2>/dev/null
 for _i in 1 2 3 4 5; do
     fuser -s "$PORT/tcp" 2>/dev/null || break
-    sleep 1
+    sleep 0.25
 done
 
 _cleanup() {
@@ -47,7 +47,7 @@ _cleanup() {
     pid=$(cat "$PIDFILE" 2>/dev/null)
     if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
         kill "$pid" 2>/dev/null
-        sleep 0.5
+        sleep 0.1
         kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null
     fi
     rm -f "$PIDFILE"

@@ -13,7 +13,14 @@ Overlay cache key: (entry_pct_bin, mc_years, withdrawal, inflation, stack)
     withdrawal: 5000, 7500, 12500, 20000, 32500, 69420
     inflation: 2, 3, 4, 6, 8, 10, 12  (percent, stored as int)
     stack: 0.1, 0.5, 1.0, 2.0, 5.0, 10.0
+
+Fast restart via /dev/shm:
+    After first full load from npz (slow, ~7s), the entire cache dict is pickled
+    to /dev/shm/quantoshi_mc.pkl (~834 MB). Subsequent restarts load from there
+    (~0.7s, 10x faster). The pickle is invalidated when any source npz changes.
 """
+import pickle
+import time
 import numpy as np
 from pathlib import Path
 
@@ -41,6 +48,7 @@ INFL_OPTIONS = [2, 3, 4, 6, 8, 10, 12]
 STACK_SIZES = [0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
 
 CACHE_DIR = Path(__file__).parent / "mc_cache"
+SHM_CACHE_PATH = Path("/dev/shm/quantoshi_mc.pkl")
 
 
 def _path_key_str(pct_bin, mc_years):
@@ -179,10 +187,137 @@ def generate_all_caches(m, progress_cb=None):
 
 # In-memory cache: {start_yr: {"paths": npz_dict, "overlays": npz_dict}}
 _CACHE = {}
+_FULL_LOADED = False   # True once the full 455 MB cache has been loaded
+
+# Free-tier defaults → entries to pre-load at startup (fast, ~1.5 MB)
+# Each tuple: (start_yr, pct_bin, mc_years)
+_STARTUP_PATH_ENTRIES = [
+    (2026, 0.1, 10),   # heatmap default
+    (2026, 0.5, 10),   # DCA default
+    (2031, 0.5, 10),   # retire/SC default
+]
+
+# Each tuple: (start_yr, pct_bin, mc_years, wd, infl_pct, stack)
+_STARTUP_OVERLAY_ENTRIES = [
+    (2031, 0.5, 10, 5000, 4, 1.0),   # retire/SC default
+]
+
+
+def load_startup_cache():
+    """Load free-tier path + overlay entries — fast startup (~1.5 MB)."""
+    if not CACHE_DIR.exists():
+        return
+    # ── Paths ────────────────────────────────────────────────────────────
+    yr_keys = {}
+    for syr, pct, yrs in _STARTUP_PATH_ENTRIES:
+        yr_keys.setdefault(syr, []).append(_path_key_str(pct, yrs))
+
+    for yr, keys in yr_keys.items():
+        path_file = CACHE_DIR / f"paths_{yr}.npz"
+        if not path_file.exists():
+            continue
+        npz = np.load(path_file)
+        paths = {}
+        for k in keys:
+            if k in npz:
+                paths[k] = npz[k]
+        npz.close()
+        if paths:
+            _CACHE.setdefault(yr, {}).setdefault("paths", {}).update(paths)
+
+    # ── Overlays ─────────────────────────────────────────────────────────
+    yr_okeys = {}
+    for syr, pct, yrs, wd, infl, stack in _STARTUP_OVERLAY_ENTRIES:
+        okey = _overlay_key_str(pct, yrs, wd, infl, stack)
+        yr_okeys.setdefault(syr, []).append(okey)
+
+    for yr, okeys in yr_okeys.items():
+        overlay_file = CACHE_DIR / f"overlays_{yr}.npz"
+        if not overlay_file.exists():
+            continue
+        npz = np.load(overlay_file)
+        overlays = {}
+        for okey in okeys:
+            btc_k = f"{okey}_btc"
+            usd_k = f"{okey}_usd"
+            if btc_k in npz and usd_k in npz:
+                overlays[btc_k] = npz[btc_k]
+                overlays[usd_k] = npz[usd_k]
+        npz.close()
+        if overlays:
+            _CACHE.setdefault(yr, {}).setdefault("overlays", {}).update(overlays)
+
+
+def _ensure_full_cache():
+    """Lazy-load the full cache on first non-startup cache miss."""
+    global _FULL_LOADED
+    if _FULL_LOADED:
+        return
+    _FULL_LOADED = True
+    load_caches()
+
+
+def _npz_fingerprint():
+    """Return a fingerprint (max mtime + total size) of source npz files."""
+    if not CACHE_DIR.exists():
+        return 0, 0
+    max_mt, total_sz = 0, 0
+    for yr in CACHED_START_YRS:
+        for kind in ("paths", "overlays"):
+            f = CACHE_DIR / f"{kind}_{yr}.npz"
+            if f.exists():
+                st = f.stat()
+                max_mt = max(max_mt, st.st_mtime)
+                total_sz += st.st_size
+    return max_mt, total_sz
+
+
+def _try_load_shm():
+    """Try loading cache from /dev/shm pickle. Returns True on success."""
+    if not SHM_CACHE_PATH.exists():
+        return False
+    try:
+        with open(SHM_CACHE_PATH, "rb") as f:
+            saved = pickle.load(f)
+        fp_saved = saved.pop("_fingerprint", None)
+        fp_now = _npz_fingerprint()
+        if fp_saved != fp_now:
+            print(f"[MC-CACHE] /dev/shm fingerprint mismatch, reloading from npz")
+            return False
+        _CACHE.update(saved)
+        return True
+    except Exception as exc:
+        print(f"[MC-CACHE] /dev/shm load failed: {exc}")
+        return False
+
+
+def _save_shm():
+    """Persist cache dict to /dev/shm for fast restart."""
+    try:
+        blob = dict(_CACHE)
+        blob["_fingerprint"] = _npz_fingerprint()
+        with open(SHM_CACHE_PATH, "wb") as f:
+            pickle.dump(blob, f, protocol=pickle.HIGHEST_PROTOCOL)
+        sz_mb = SHM_CACHE_PATH.stat().st_size / 1e6
+        print(f"[MC-CACHE] Saved /dev/shm pickle ({sz_mb:.0f} MB)")
+    except Exception as exc:
+        print(f"[MC-CACHE] /dev/shm save failed: {exc}")
 
 
 def load_caches():
-    """Load all cached .npz files into RAM at startup."""
+    """Load all cached data into RAM.
+
+    Tries /dev/shm pickle first (~0.7s), falls back to npz parsing (~7s).
+    After npz load, saves a pickle to /dev/shm for next restart.
+    """
+    # Fast path: /dev/shm pickle
+    t0 = time.perf_counter()
+    if _try_load_shm():
+        elapsed = time.perf_counter() - t0
+        print(f"[MC-CACHE] Loaded from /dev/shm in {elapsed:.2f}s")
+        return
+
+    # Slow path: parse npz files from disk
     if not CACHE_DIR.exists():
         return
     for yr in CACHED_START_YRS:
@@ -194,18 +329,27 @@ def load_caches():
         if overlay_file.exists():
             _CACHE.setdefault(yr, {})
             _CACHE[yr]["overlays"] = dict(np.load(overlay_file))
+    elapsed = time.perf_counter() - t0
+    print(f"[MC-CACHE] Loaded from npz in {elapsed:.2f}s")
+
+    # Persist to /dev/shm for next restart
+    _save_shm()
 
 
 def get_cached_paths(start_yr, pct_bin, mc_years):
     """Look up pre-computed price paths. Returns (800, n_steps) array or None."""
     yr_data = _CACHE.get(start_yr)
-    if yr_data is None:
-        return None
-    paths = yr_data.get("paths")
-    if paths is None:
-        return None
     key = _path_key_str(pct_bin, mc_years)
-    return paths.get(key)
+    # Try startup cache first
+    if yr_data and yr_data.get("paths", {}).get(key) is not None:
+        return yr_data["paths"][key]
+    # Lazy-load the full cache and retry
+    if not _FULL_LOADED:
+        _ensure_full_cache()
+        yr_data = _CACHE.get(start_yr)
+        if yr_data and yr_data.get("paths", {}).get(key) is not None:
+            return yr_data["paths"][key]
+    return None
 
 
 def get_cached_overlay(start_yr, pct_bin, mc_years, wd, infl_pct, stack):
@@ -217,22 +361,37 @@ def get_cached_overlay(start_yr, pct_bin, mc_years, wd, infl_pct, stack):
     Returns (fan_btc, fan_usd) dicts or (None, None).
     fan_btc/fan_usd: {pct: np.array} with keys from FAN_PCTS.
     """
-    yr_data = _CACHE.get(start_yr)
-    if yr_data is None:
-        return None, None
-    overlays = yr_data.get("overlays")
-    if overlays is None:
-        return None, None
-
     okey = _overlay_key_str(pct_bin, mc_years, wd, int(infl_pct), stack)
-    btc_arr = overlays.get(f"{okey}_btc")
-    usd_arr = overlays.get(f"{okey}_usd")
-    if btc_arr is None or usd_arr is None:
-        return None, None
+    btc_key = f"{okey}_btc"
+    usd_key = f"{okey}_usd"
 
-    fan_btc = {p: btc_arr[i] for i, p in enumerate(FAN_PCTS)}
-    fan_usd = {p: usd_arr[i] for i, p in enumerate(FAN_PCTS)}
-    return fan_btc, fan_usd
+    # Try startup cache first (avoids triggering full load)
+    yr_data = _CACHE.get(start_yr)
+    if yr_data:
+        overlays = yr_data.get("overlays")
+        if overlays:
+            btc_arr = overlays.get(btc_key)
+            usd_arr = overlays.get(usd_key)
+            if btc_arr is not None and usd_arr is not None:
+                fan_btc = {p: btc_arr[i] for i, p in enumerate(FAN_PCTS)}
+                fan_usd = {p: usd_arr[i] for i, p in enumerate(FAN_PCTS)}
+                return fan_btc, fan_usd
+
+    # Lazy-load the full cache and retry
+    if not _FULL_LOADED:
+        _ensure_full_cache()
+        yr_data = _CACHE.get(start_yr)
+        if yr_data:
+            overlays = yr_data.get("overlays")
+            if overlays:
+                btc_arr = overlays.get(btc_key)
+                usd_arr = overlays.get(usd_key)
+                if btc_arr is not None and usd_arr is not None:
+                    fan_btc = {p: btc_arr[i] for i, p in enumerate(FAN_PCTS)}
+                    fan_usd = {p: usd_arr[i] for i, p in enumerate(FAN_PCTS)}
+                    return fan_btc, fan_usd
+
+    return None, None
 
 
 def snap_to_bin(raw_pctile):

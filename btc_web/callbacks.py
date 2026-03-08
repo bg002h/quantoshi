@@ -3,6 +3,7 @@
 import json
 import base64
 import math
+import os
 
 import dash
 from dash import dcc, html, Input, Output, State, ctx, callback, no_update
@@ -64,7 +65,7 @@ def _build_mc_params(*, mc_enable, mc_amount, mc_infl, mc_bins, mc_sims,
 
 def _mc_payment_check(tab, mc_years, start_yr, entry_q, pay_token):
     """Check if MC simulation is authorized (free tier, no BTCPay, or valid token)."""
-    if not _app_ctx._HAS_BTCPAY:
+    if not _app_ctx._HAS_BTCPAY or os.environ.get("DEV") == "1":
         return True  # dev mode — all MC is free
     mc_yrs = int(mc_years or MC_DEFAULT_YEARS)
     s_yr   = int(start_yr or MC_DEFAULT_START_YR)
@@ -491,6 +492,37 @@ for _mc_m in ("dca", "ret", "hm"):
         Input(f"{_mc_m}-mc-start-yr", "value"),
         Input(f"{_mc_m}-mc-entry-q", "value"),
         Input(f"{_mc_m}-mc-rendered-key", "data"),
+    )
+
+# MC horizon → auto-extend year range slider (DCA + Retire)
+_MC_EXTEND_YR_JS = """
+function(mc_enable, mc_years, mc_start_yr, yr_range, slider_max) {
+    if (!mc_enable || !mc_enable.length)
+        return [window.dash_clientside.no_update, window.dash_clientside.no_update];
+    var yrs = parseInt(mc_years) || 10;
+    var syr = parseInt(mc_start_yr) || 2026;
+    var need = syr + yrs;
+    var cur = yr_range ? yr_range.slice() : [syr, need];
+    var mx = slider_max || cur[1];
+    var changed = false;
+    if (cur[1] < need) { cur[1] = need; changed = true; }
+    if (mx < need) { mx = need; changed = true; }
+    if (!changed)
+        return [window.dash_clientside.no_update, window.dash_clientside.no_update];
+    return [cur, mx];
+}
+"""
+for _ext_pfx in ("dca", "ret"):
+    _app_ctx.app.clientside_callback(
+        _MC_EXTEND_YR_JS,
+        Output(f"{_ext_pfx}-yr-range", "value", allow_duplicate=True),
+        Output(f"{_ext_pfx}-yr-range", "max", allow_duplicate=True),
+        Input(f"{_ext_pfx}-mc-enable", "value"),
+        Input(f"{_ext_pfx}-mc-years", "value"),
+        Input(f"{_ext_pfx}-mc-start-yr", "value"),
+        State(f"{_ext_pfx}-yr-range", "value"),
+        State(f"{_ext_pfx}-yr-range", "max"),
+        prevent_initial_call=True,
     )
 
 # SC tab has no MC overlay

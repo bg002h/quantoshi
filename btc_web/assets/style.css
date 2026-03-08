@@ -1141,3 +1141,39 @@ body {
     cursor: not-allowed;
     border-radius: 4px;
 }
+
+/* ── MC premium chart styling (all 6 options active for preview) ──────────── */
+
+/* Option 1: Gold border */
+.mc-premium-chart {
+    border: 2.5px solid #d4a017;
+    border-radius: 6px;
+}
+
+/* Option 2: Gold top accent bar */
+.mc-premium-chart::before {
+    content: "";
+    display: block;
+    height: 3.5px;
+    background: linear-gradient(90deg, #b8860b, #f7c948, #d4a017);
+    border-radius: 6px 6px 0 0;
+}
+
+/* Option 5: Gold box-shadow glow */
+.mc-premium-chart {
+    box-shadow: 0 0 10px rgba(212, 160, 23, 0.35);
+}
+
+/* Option 4: Corner badge (favicon Q) */
+.mc-premium-badge {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    z-index: 5;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    opacity: 0.7;
+    pointer-events: none;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));
+}

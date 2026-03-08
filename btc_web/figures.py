@@ -141,14 +141,74 @@ def _year_ticks(start_yr, end_yr, genesis, minor_grid=False):
 
 # ── Watermark (logo + URL) ────────────────────────────────────────────────────────────────────────────
 
-_LOGO_B64 = None
-try:
-    # Use 2x resolution for crisp rendering at both 1x screen and 2x export
-    _logo_path = Path(__file__).parent / "assets" / "quantoshi_logo_wm_2x.png"
-    with open(_logo_path, "rb") as _f:
-        _LOGO_B64 = "data:image/png;base64," + base64.b64encode(_f.read()).decode()
-except Exception:
-    pass
+_LOGO_B64 = None       # 1x — used for on-screen display
+_LOGO_B64_ALL = {}     # {1: b64, 2: b64, 3: b64, 4: b64} — for resolution-matched exports
+_ASSETS = Path(__file__).parent / "assets"
+_WM_FILES = {
+    1: _ASSETS / "quantoshi_logo_wm.png",
+    2: _ASSETS / "quantoshi_logo_wm_2x.png",
+    3: _ASSETS / "quantoshi_logo_wm_3x.png",
+    4: _ASSETS / "quantoshi_logo_wm_4x.png",
+}
+for _scale, _wm_path in _WM_FILES.items():
+    try:
+        with open(_wm_path, "rb") as _f:
+            _b64 = "data:image/png;base64," + base64.b64encode(_f.read()).decode()
+            _LOGO_B64_ALL[_scale] = _b64
+            if _scale == 1:
+                _LOGO_B64 = _b64
+    except Exception:
+        pass
+
+
+# ── MC premium figure styling ────────────────────────────────────────────────
+
+_MC_FONT_FAMILY = "Palatino Linotype, Palatino, Georgia, serif"
+_MC_TITLE_COLOR = "#e8c547"          # warm gold for title text
+_MC_LEGEND_BORDER = "#c9a227"        # legend border gold
+
+
+_MC_LEGEND_POS = {
+    "top-left":     dict(x=0.02, y=0.98, xanchor="left",  yanchor="top"),
+    "top-right":    dict(x=0.98, y=0.98, xanchor="right", yanchor="top"),
+    "bottom-left":  dict(x=0.02, y=0.02, xanchor="left",  yanchor="bottom"),
+    "bottom-right": dict(x=0.98, y=0.02, xanchor="right", yanchor="bottom"),
+}
+
+
+def _apply_mc_premium(fig: go.Figure, legend_pos: str = "top-left") -> None:
+    """Upgrade figure fonts / colours for premium MC-rendered charts.
+
+    *legend_pos*: move legend inside the plot area at the named corner.
+    Pass ``None`` to keep the default (outside) position.
+    """
+    # Title: serif, gold, centered, +2px
+    fig.layout.title.font.family = _MC_FONT_FAMILY
+    fig.layout.title.font.size = _FONT_TITLE + 2
+    fig.layout.title.font.color = _MC_TITLE_COLOR
+    fig.layout.title.x = 0.5
+    fig.layout.title.xanchor = "center"
+    # Global font (tick labels): serif, +1px
+    fig.layout.font.family = _MC_FONT_FAMILY
+    fig.layout.font.size = _FONT_BODY + 1
+    # Axis titles: serif, +2px
+    fig.layout.xaxis.title.font.family = _MC_FONT_FAMILY
+    fig.layout.xaxis.title.font.size = _FONT_BODY + 2
+    fig.layout.yaxis.title.font.family = _MC_FONT_FAMILY
+    fig.layout.yaxis.title.font.size = _FONT_BODY + 2
+    # Legend — inside the plot at the specified corner
+    fig.layout.legend.bordercolor = _MC_LEGEND_BORDER
+    if legend_pos and legend_pos in _MC_LEGEND_POS:
+        pos = _MC_LEGEND_POS[legend_pos]
+        fig.layout.legend.x = pos["x"]
+        fig.layout.legend.y = pos["y"]
+        fig.layout.legend.xanchor = pos["xanchor"]
+        fig.layout.legend.yanchor = pos["yanchor"]
+        fig.layout.legend.bgcolor = "rgba(255,255,255,0.7)"
+    # yaxis2 (dual-y) if present
+    if hasattr(fig.layout, "yaxis2") and fig.layout.yaxis2.title is not None:
+        fig.layout.yaxis2.title.font.family = _MC_FONT_FAMILY
+        fig.layout.yaxis2.title.font.size = _FONT_BODY + 2
 
 
 def _apply_watermark(fig: go.Figure) -> None:
@@ -708,6 +768,8 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
         annotations=annots,
         margin=dict(l=70, r=20, t=60, b=50),
     )
+    if p.get("mc_enabled"):
+        _apply_mc_premium(fig, legend_pos=None)
     _apply_watermark(fig)
     return fig, mc_result
 
@@ -1022,6 +1084,8 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
 
     layout["showlegend"] = bool(p.get("show_legend", True))
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
+    if p.get("mc_enabled"):
+        _apply_mc_premium(fig, legend_pos="top-left")
     _apply_watermark(fig)
     return fig, mc_result
 
@@ -1191,6 +1255,8 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
 
     layout["showlegend"] = bool(p.get("show_legend", True))
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
+    if p.get("mc_enabled"):
+        _apply_mc_premium(fig, legend_pos="top-right")
     _apply_watermark(fig)
     return fig, mc_result
 

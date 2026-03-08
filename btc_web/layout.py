@@ -10,6 +10,7 @@ import _app_ctx
 from utils import _nearest_quantile
 from snapshot import _SNAPSHOT_CONTROLS
 from mc_cache import CACHED_START_YRS, WD_AMOUNTS, STACK_SIZES
+from figures import _LOGO_B64_ALL
 
 def _q_options():
     opts = []
@@ -105,15 +106,21 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
     mc_prefix: if set, adds an MC overlay div (e.g. "dca" → "dca-mc-overlay").
     """
     overlay = []
+    badge = []
     if mc_prefix:
         overlay = [html.Div(id=f"{mc_prefix}-mc-overlay",
                             style={"display": "none"},
                             className="mc-chart-overlay")]
+        badge = [html.Img(id=f"{mc_prefix}-mc-badge",
+                          src="/assets/quantoshi_favicon.png",
+                          className="mc-premium-badge",
+                          style={"display": "none"})]
     return dbc.Row([
         dbc.Col(controls_fn(), width=3, className="controls-col overflow-auto",
                 style={"maxHeight": "85vh"}),
         dbc.Col([
-            html.Div(style={"position": "relative"}, children=[
+            html.Div(id=f"{mc_prefix or graph_id}-chart-wrap",
+                     style={"position": "relative"}, children=[
                 dcc.Loading(
                     dcc.Graph(id=graph_id, style={"height": "78vh"},
                               config={"toImageButtonOptions": {"format": "png", "scale": 2,
@@ -121,6 +128,7 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
                     type="default", color=_BTC_ORANGE,
                 ),
                 *overlay,
+                *badge,
             ]),
             _export_row(graph_id.replace("-graph", "")),
         ], width=9),
@@ -392,7 +400,11 @@ def _heatmap_tab():
                     # MC chart overlay (gray mask when MC not rendered)
                     html.Div(id="hm-mc-overlay", style={"display": "none"},
                              className="mc-chart-overlay"),
-                ], className="hm-swipe-panel", id="hm-mc-panel",
+                    html.Img(id="hm-mc-badge",
+                             src="/assets/quantoshi_favicon.png",
+                             className="mc-premium-badge",
+                             style={"display": "none"}),
+                ], className="hm-swipe-panel mc-premium-chart", id="hm-mc-panel",
                    style={"display":"none"}),
             ], className="hm-swipe-container", id="hm-swipe-wrap"),
             html.Div(id="hm-swipe-scroll-dummy", style={"display":"none"}),
@@ -481,7 +493,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                       "padding": "1px 6px", "borderRadius": "4px"}),
         ]),
         dcc.Checklist(id=f"{prefix}-mc-enable",
-                      options=[{"label": " Enable MC fan overlay", "value": "yes"}],
+                      options=[{"label": " Activate Markov chain stochastic engine", "value": "yes"}],
                       value=[], inputStyle={"marginRight": "5px"}),
         html.Div(id=f"{prefix}-mc-body", style={"display": "none"}, children=[
             html.Div(dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now),
@@ -1554,6 +1566,7 @@ _app_ctx.app.layout = dbc.Container([
     dcc.Store(id="splash-ts-store", storage_type="local", data=None),
     dcc.Store(id="lots-store", storage_type="local", data=[]),
     dcc.Store(id="lots-export-dummy"),
+    dcc.Store(id="wm-b64-store", storage_type="memory", data=_LOGO_B64_ALL),
     # MC simulation result stores (localStorage — survives page reloads)
     dcc.Store(id="dca-mc-results", storage_type="memory", data=None),
     dcc.Store(id="ret-mc-results", storage_type="memory", data=None),

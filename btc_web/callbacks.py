@@ -439,40 +439,53 @@ for _mc_tog in ("dca", "ret", "hm", "sc"):
         return {} if val else {"display": "none"}
 
 # MC match indicator — show whether chart reflects current MC settings
-# Returns: [match_text, match_style, overlay_style]
-_MC_MATCH_JS = """
-function(mc_enable, mc_years, mc_start_yr, mc_entry_q, rendered_key) {
-    var hide = {display: "none"};
-    var base = {fontSize: "10px", fontWeight: "600", textAlign: "center", marginTop: "4px"};
-    if (!mc_enable || !mc_enable.length) return ["", hide, hide];
+# Returns: [match_text, match_style, overlay_style, wrap_class, badge_style]
+_MC_MATCH_JS_TPL = """
+function(mc_enable, mc_years, mc_start_yr, mc_entry_q, rendered_key) {{
+    var hide = {{display: "none"}};
+    var base = {{fontSize: "10px", fontWeight: "600", textAlign: "center", marginTop: "4px"}};
+    var noPremium = "{base_cls}";
+    var premium = "{base_cls}{sep}mc-premium-chart";
+    if (!mc_enable || !mc_enable.length) return ["", hide, hide, noPremium, hide];
     if (!rendered_key) return [
         "\u26a0 Chart does not include MC overlay",
-        Object.assign({}, base, {color: "#c57600"}),
-        {}
+        Object.assign({{}}, base, {{color: "#c57600"}}),
+        {{}},
+        noPremium,
+        hide
     ];
     var yrs = parseInt(mc_years) || 10;
     var syr = parseInt(mc_start_yr) || 2026;
     var eq  = parseInt(mc_entry_q) || 50;
-    if (yrs === rendered_key.years && syr === rendered_key.start_yr && eq === rendered_key.entry_q) {
+    if (yrs === rendered_key.years && syr === rendered_key.start_yr && eq === rendered_key.entry_q) {{
         return [
             "\u2713 Chart reflects current MC settings",
-            Object.assign({}, base, {color: "#1a8f3c"}),
-            hide
+            Object.assign({{}}, base, {{color: "#1a8f3c"}}),
+            hide,
+            premium,
+            {{}}
         ];
-    }
+    }}
     return [
         "\u26a0 MC settings changed \u2014 chart is stale",
-        Object.assign({}, base, {color: "#c57600"}),
-        {}
+        Object.assign({{}}, base, {{color: "#c57600"}}),
+        {{}},
+        noPremium,
+        hide
     ];
-}
+}}
 """
 for _mc_m in ("dca", "ret", "hm"):
+    _wrap_id = {"dca": "dca-chart-wrap", "ret": "ret-chart-wrap", "hm": "hm-mc-panel"}[_mc_m]
+    _base_cls = "hm-swipe-panel" if _mc_m == "hm" else ""
+    _sep = " " if _base_cls else ""
     _app_ctx.app.clientside_callback(
-        _MC_MATCH_JS,
+        _MC_MATCH_JS_TPL.format(base_cls=_base_cls, sep=_sep),
         Output(f"{_mc_m}-mc-match", "children"),
         Output(f"{_mc_m}-mc-match", "style"),
         Output(f"{_mc_m}-mc-overlay", "style"),
+        Output(_wrap_id, "className"),
+        Output(f"{_mc_m}-mc-badge", "style"),
         Input(f"{_mc_m}-mc-enable", "value"),
         Input(f"{_mc_m}-mc-years", "value"),
         Input(f"{_mc_m}-mc-start-yr", "value"),
@@ -1721,14 +1734,28 @@ _EXPORT_TABS = [
 for _tab_id, _graph_id in _EXPORT_TABS:
     _app_ctx.app.clientside_callback(
         f"""
-        function(n_clicks, fmt, fname, scale, figure) {{
+        function(n_clicks, fmt, fname, scale, figure, wmStore) {{
             if (!n_clicks) return window.dash_clientside.no_update;
             if (!figure)   return window.dash_clientside.no_update;
-            Plotly.downloadImage(figure, {{
+            var s = scale || 2;
+            var fig = JSON.parse(JSON.stringify(figure));
+            if (wmStore && fig.layout && fig.layout.images) {{
+                var wmB64 = wmStore[String(s)];
+                if (wmB64) {{
+                    for (var i = 0; i < fig.layout.images.length; i++) {{
+                        if (fig.layout.images[i].source &&
+                            fig.layout.images[i].source.indexOf('data:image/png;base64,') === 0) {{
+                            fig.layout.images[i].source = wmB64;
+                            break;
+                        }}
+                    }}
+                }}
+            }}
+            Plotly.downloadImage(fig, {{
                 format:   fmt   || 'png',
                 width:    1920,
                 height:   1080,
-                scale:    scale || 2,
+                scale:    s,
                 filename: fname || '{_tab_id}'
             }});
             return window.dash_clientside.no_update;
@@ -1740,6 +1767,7 @@ for _tab_id, _graph_id in _EXPORT_TABS:
         State(f"{_tab_id}-fname",      "value"),
         State(f"{_tab_id}-scale",      "value"),
         State(f"{_tab_id}-graph",      "figure"),
+        State("wm-b64-store",          "data"),
         prevent_initial_call=True,
     )
 

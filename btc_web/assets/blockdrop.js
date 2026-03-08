@@ -91,8 +91,14 @@
     function onNewBlock(height, txCount) {
         if (animating || inGracePeriod()) return;
         animating = true;
-        screenShake();
-        setTimeout(function() { dropBlock(height, txCount); }, SHAKE_MS);
+        if (Math.random() < 0.1) {
+            /* 10% — full dramatic drop */
+            screenShake();
+            setTimeout(function() { dropBlock(height, txCount); }, SHAKE_MS);
+        } else {
+            /* 90% — quiet mini toast, bottom-right */
+            dropBlockMini(height, txCount);
+        }
     }
 
     /* ── Screen shake ────────────────────────────────────────────────────── */
@@ -220,6 +226,38 @@
                 }, SCATTER_MS + 200);
             }
         }
+    }
+
+    /* ── Mini block toast (non-intrusive, bottom-right) ──────────────────── */
+    function dropBlockMini(height, txCount) {
+        var el = document.createElement("div");
+        el.className = "blockdrop-mini";
+        el.innerHTML = '<div class="blockdrop-mini-label">#' + height.toLocaleString() + '</div>' +
+                       '<div class="blockdrop-mini-sub">' + (txCount > 0 ? txCount + ' tx' : 'new block') + '</div>';
+
+        document.body.appendChild(el);
+
+        /* Slide in */
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() { el.classList.add("blockdrop-mini-in"); });
+        });
+
+        /* Click to dismiss early */
+        el.addEventListener("click", function() { dismissMini(el); });
+
+        /* Auto-dismiss after 5s */
+        setTimeout(function() { dismissMini(el); }, 5000);
+    }
+
+    function dismissMini(el) {
+        if (!el || !el.parentNode || el.dataset.dismissed) return;
+        el.dataset.dismissed = "1";
+        el.classList.remove("blockdrop-mini-in");
+        el.classList.add("blockdrop-mini-out");
+        setTimeout(function() {
+            if (el.parentNode) el.parentNode.removeChild(el);
+            animating = false;
+        }, 400);
     }
 
     function cleanup(overlay) {

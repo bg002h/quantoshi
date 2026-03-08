@@ -708,6 +708,57 @@ body {
     100% { transform: translate(var(--dx), var(--dy)) scale(0.5); opacity: 0; }
 }
 
+/* ── Mini block toast (non-intrusive, bottom-right) ──────────────────── */
+.blockdrop-mini {
+    position: fixed;
+    bottom: 20px;
+    right: -200px;
+    z-index: 9998;
+    width: 90px;
+    height: 80px;
+    background:
+        radial-gradient(ellipse at 25% 15%, rgba(180,160,120,0.25) 0%, transparent 40%),
+        radial-gradient(ellipse at 75% 85%, rgba(0,0,0,0.2) 0%, transparent 35%),
+        linear-gradient(170deg, #7a6a4f 0%, #55472a 45%, #3a3018 85%, #2e2510 100%);
+    clip-path: polygon(
+        12% 2%, 28% 0%, 45% 4%, 60% 1%, 78% 3%, 92% 8%,
+        98% 22%, 100% 40%, 97% 58%, 99% 75%, 95% 88%, 88% 97%,
+        72% 100%, 55% 96%, 38% 100%, 22% 97%, 8% 92%,
+        2% 78%, 0% 60%, 3% 42%, 1% 25%, 5% 12%
+    );
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    pointer-events: auto;
+    opacity: 0.85;
+    transition: right 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.blockdrop-mini-in {
+    right: 20px;
+}
+.blockdrop-mini-out {
+    right: -200px;
+    opacity: 0;
+}
+.blockdrop-mini-label {
+    color: #f7931a;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: monospace;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+}
+.blockdrop-mini-sub {
+    color: rgba(255,220,160,0.8);
+    font-size: 8px;
+    font-family: monospace;
+    margin-top: 1px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
 /* ── Magic Internet Money Wizard ──────────────────────────────────────── */
 .wizard-overlay {
     position: fixed;

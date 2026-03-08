@@ -415,13 +415,18 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         tickvals=tick_ts, ticktext=tick_lbls, tickangle=-45,
     )
     if p.get("yscale", "log") == "log":
-        layout["yaxis"].update(
+        y_log_update = dict(
             type="log",
             range=[math.log10(max(y_lo, 1e-10)), math.log10(max(y_hi, 1e-10))],
-            tickvals=maj, ticktext=[_fmt_y(v) for v in maj],
         )
         if p.get("minor_grid"):
-            layout["yaxis"]["minor"] = _LOG_MINOR
+            # Plotly.js crashes when minor + explicit tickvals are combined.
+            # Use auto-ticks so minor gridlines render safely.
+            y_log_update["minor"] = _LOG_MINOR
+        else:
+            y_log_update["tickvals"] = maj
+            y_log_update["ticktext"] = [_fmt_y(v) for v in maj]
+        layout["yaxis"].update(y_log_update)
     else:
         layout["yaxis"].update(range=[y_lo, y_hi])
 
@@ -430,8 +435,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             type="log",
             range=[math.log10(max(t_lo, 1e-10)), math.log10(max(t_hi, 1e-10))],
         )
-        if p.get("minor_grid"):
-            layout["xaxis"]["minor"] = _LOG_MINOR
+        # X-axis uses explicit tickvals (year labels); skip minor to avoid crash.
 
     layout["showlegend"] = bool(p.get("show_legend", True))
     layout["shapes"] = shapes

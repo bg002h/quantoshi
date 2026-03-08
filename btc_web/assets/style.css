@@ -883,14 +883,14 @@ body {
         z-index: 1;
         filter: drop-shadow(1px 2px 3px rgba(0,0,0,0.3));
     }
-    /* Scroll text — writing hand + CONFIG */
+    /* Scroll text — feather quill + CONFIG */
     .controls-col.drawer-collapsed::after {
-        content: "\270D\FE0E\a\a C\a O\a N\a F\a I\a G";
+        content: "\1FAB6\a C\a O\a N\a F\a I\a G";
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        font-size: 9px;
+        font-size: 16px;
         font-weight: 700;
         font-family: "Palatino Linotype", Palatino, "Book Antiqua", serif;
         color: #3a2210;
@@ -1002,6 +1002,7 @@ body {
 /* MC "NEW" badge — landscape phones / narrow desktops */
 @media (min-width: 768px) and (max-width: 1100px) {
     .controls-col { overflow: visible !important; max-height: none !important; }
+    .controls-col.drawer-collapsed { max-height: 100vh !important; overflow: hidden !important; }
     /* Keep chart pinned while scrolling through tall control panels */
     .controls-col + [class*="col-"] {
         position: sticky;

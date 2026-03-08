@@ -1135,27 +1135,26 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     layout["shapes"]      = shapes
     layout["annotations"] = deplete_annots
 
-    # ── dual Y-axis ───────────────────────────────────────────────────────────
+    # ── dual Y-axis — one dotted trace per quantile on the opposite unit ────
     if p.get("dual_y") and traces and all_btc_vals:
-        # median across all selected quantiles (not just the middle one)
-        stacked_btc = np.array(list(all_btc_vals.values()))
-        btc_med = np.median(stacked_btc, axis=0)
         if disp_mode == "usd":
-            y2_vals = btc_med
-            y2_lbl  = "BTC Remaining"
+            y2_lbl = "BTC Remaining"
         else:
-            all_usd = np.array([
-                all_btc_vals[q] * qr_price(q, ts_clamped, m.qr_fits)
-                for q in all_btc_vals
-            ])
-            y2_vals = np.median(all_usd, axis=0)
-            y2_lbl  = "USD Value"
-        traces.append(go.Scatter(
-            x=list(ts), y=list(y2_vals),
-            mode="lines", name=f"{y2_lbl} (median)",
-            line=dict(color="#aaaaaa", dash="dot", width=1),
-            yaxis="y2", showlegend=True,
-        ))
+            y2_lbl = "USD Value"
+        for q in sel_qs:
+            if q not in all_btc_vals:
+                continue
+            if disp_mode == "usd":
+                y2_vals = all_btc_vals[q]
+            else:
+                y2_vals = all_btc_vals[q] * qr_price(q, ts_clamped, m.qr_fits)
+            col = m.qr_colors.get(q, "#888888")
+            traces.append(go.Scatter(
+                x=list(ts), y=list(y2_vals),
+                mode="lines", name=f"{_fmt_q_label(q)} {y2_lbl}",
+                line=dict(color=col, dash="dot", width=1),
+                yaxis="y2", showlegend=False,
+            ))
         layout["yaxis2"] = dict(
             title=dict(text=y2_lbl, font=dict(color=m.TEXT_COLOR)),
             overlaying="y", side="right",

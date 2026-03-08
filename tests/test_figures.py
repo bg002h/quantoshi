@@ -373,7 +373,7 @@ try:
     ok("start_stack=1.0")
 except Exception as e: fail("dca start_stack", e)
 
-# Stack-cellerator ON
+# Stack-celerator ON
 try:
     fig = build_dca_figure(M, dca_params(sc_enable=True, sc_loan=5000, sc_rate=10, sc_term=24))
     ok(f"SC on: {len(fig.data)} traces")

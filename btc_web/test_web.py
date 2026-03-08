@@ -972,7 +972,7 @@ class TestBuildDcaFigure:
         fig, _ = build_dca_figure(M, p)
         assert isinstance(fig, go.Figure)
 
-    def test_with_stack_cellerator(self):
+    def test_with_stack_celerator(self):
         p = {
             "start_yr": 2024,
             "end_yr": 2034,
@@ -1284,7 +1284,7 @@ class TestDCAMath:
 
 
 class TestSCLoanCap:
-    """Verify Stack-cellerator loan cap formulas."""
+    """Verify Stack-celerator loan cap formulas."""
 
     def test_interest_only_cap_formula(self):
         """max_principal = amount / r for interest-only."""

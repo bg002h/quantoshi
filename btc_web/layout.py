@@ -190,7 +190,8 @@ def _bubble_controls():
                                    {"label":" Show OLS","value":"show_ols"},
                                    {"label":" Show data","value":"show_data"},
                                    {"label":" Show today","value":"show_today"},
-                                   {"label":" Show legend","value":"show_legend"}],
+                                   {"label":" Show legend","value":"show_legend"},
+                                   {"label":" Minor grid","value":"minor_grid"}],
                           value=["shade","show_data","show_today"],
                           labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
@@ -584,19 +585,20 @@ def _dca_controls():
             dcc.Checklist(id="dca-toggles",
                           options=[{"label":" Log Y","value":"log_y"},
                                    {"label":" Dual Y-axis","value":"dual_y"},
-                                   {"label":" Show legend","value":"show_legend"}],
+                                   {"label":" Show legend","value":"show_legend"},
+                                   {"label":" Minor grid","value":"minor_grid"}],
                           value=["show_legend","dual_y"], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
         _q_panel("dca-qs", [0.5],
                  hint="Price path drives sat accumulation — lower quantile = lower price = more sats/period."),
-        _stackcellerator_controls(),
+        _stackcelerator_controls(),
         _mc_controls("dca", amount_label="DCA amount per period ($)", amount_default=100,
                      show_mc_entry_q=True),
     ])
 
 
-def _stackcellerator_controls():
+def _stackcelerator_controls():
     return _ctrl_card(
         html.B("Stack-celerator", style={"fontSize":"12px"}),
         dcc.Checklist(id="dca-sc-enable",
@@ -681,7 +683,8 @@ def _retire_controls():
                           options=[{"label":" Log Y","value":"log_y"},
                                    {"label":" Dual Y-axis","value":"dual_y"},
                                    {"label":" Annotate depletion","value":"annotate"},
-                                   {"label":" Show legend","value":"show_legend"}],
+                                   {"label":" Show legend","value":"show_legend"},
+                                   {"label":" Minor grid","value":"minor_grid"}],
                           value=["annotate","log_y","dual_y"], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
@@ -798,7 +801,8 @@ def _supercharge_controls():
             dcc.Checklist(id="sc-toggles",
                           options=[{"label":" Annotate depletion","value":"annotate"},
                                    {"label":" Log Y","value":"log_y"},
-                                   {"label":" Show legend","value":"show_legend"}],
+                                   {"label":" Show legend","value":"show_legend"},
+                                   {"label":" Minor grid","value":"minor_grid"}],
                           value=["annotate","log_y","show_legend"],
                           labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),

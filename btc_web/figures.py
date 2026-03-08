@@ -87,6 +87,10 @@ def _error_figure(m, title):
 
 # ── shared theme helpers ──────────────────────────────────────────────────────
 
+_LOG_MINOR = dict(showgrid=True, gridcolor="rgba(128,128,128,0.15)",
+                  griddash="dot", gridwidth=0.5)
+
+
 def _dark_layout(m, title, xlabel, ylabel, **kwargs):
     """Base dark-theme layout dict."""
     return dict(
@@ -115,13 +119,24 @@ def _dark_layout(m, title, xlabel, ylabel, **kwargs):
     )
 
 
-def _year_ticks(start_yr, end_yr, genesis):
-    """Return (tick_t_values, tick_year_labels) for a year-based x-axis."""
+def _year_ticks(start_yr, end_yr, genesis, minor_grid=False):
+    """Return (tick_t_values, tick_year_labels) for a year-based x-axis.
+
+    When *minor_grid* is True and the label step > 1, return tickvals for
+    every integer year (so each gets a vertical gridline) but only label
+    the years at the major step interval.
+    """
     span = end_yr - start_yr
     step = 1 if span <= 15 else (2 if span <= 30 else 5)
-    yrs  = list(range(start_yr, end_yr + 1, step))
-    ts   = [yr_to_t(y, genesis) for y in yrs]
-    return ts, [str(y) for y in yrs]
+    if minor_grid and step > 1:
+        all_yrs = list(range(start_yr, end_yr + 1))
+        ts   = [yr_to_t(y, genesis) for y in all_yrs]
+        lbls = [str(y) if (y - start_yr) % step == 0 else "" for y in all_yrs]
+    else:
+        yrs  = list(range(start_yr, end_yr + 1, step))
+        ts   = [yr_to_t(y, genesis) for y in yrs]
+        lbls = [str(y) for y in yrs]
+    return ts, lbls
 
 
 # ── Watermark (logo + URL) ────────────────────────────────────────────────────────────────────────────
@@ -375,7 +390,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             ))
 
     # ── x-axis ticks (calendar years) ─────────────────────────────────────────
-    tick_ts, tick_lbls = _year_ticks(p["xmin"], p["xmax"], m.genesis)
+    tick_ts, tick_lbls = _year_ticks(p["xmin"], p["xmax"], m.genesis,
+                                     minor_grid=p.get("minor_grid"))
     filtered = [(t, lbl) for t, lbl in zip(tick_ts, tick_lbls) if t_lo <= t <= t_hi]
     tick_ts, tick_lbls = (list(x) for x in zip(*filtered)) if filtered else ([], [])
 
@@ -404,6 +420,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             range=[math.log10(max(y_lo, 1e-10)), math.log10(max(y_hi, 1e-10))],
             tickvals=maj, ticktext=[_fmt_y(v) for v in maj],
         )
+        if p.get("minor_grid"):
+            layout["yaxis"]["minor"] = _LOG_MINOR
     else:
         layout["yaxis"].update(range=[y_lo, y_hi])
 
@@ -412,6 +430,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             type="log",
             range=[math.log10(max(t_lo, 1e-10)), math.log10(max(t_hi, 1e-10))],
         )
+        if p.get("minor_grid"):
+            layout["xaxis"]["minor"] = _LOG_MINOR
 
     layout["showlegend"] = bool(p.get("show_legend", True))
     layout["shapes"] = shapes
@@ -690,7 +710,7 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
 # ── DCA helpers ──────────────────────────────────────────────────────────────
 
 def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy):
-    """Run Stack-cellerator overlay simulation for DCA tab.
+    """Run Stack-celerator overlay simulation for DCA tab.
 
     Returns (sc_traces, all_sc_usd_vals, all_sc_btc_vals).
     """
@@ -902,7 +922,8 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                 opacity=_TODAY_LINE_OPACITY,
             ))
 
-    tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis)
+    tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis,
+                                     minor_grid=p.get("minor_grid"))
 
     # ── Total cost & value ratio ────────────────────────────────────────────
     n_periods = len(ts)
@@ -930,9 +951,11 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     )
     if p.get("log_y"):
         layout["yaxis"]["type"] = "log"
+        if p.get("minor_grid"):
+            layout["yaxis"]["minor"] = _LOG_MINOR
     layout["shapes"] = shapes
 
-    # ── Stack-cellerator overlay ─────────────────────────────────────────────
+    # ── Stack-celerator overlay ─────────────────────────────────────────────
     all_sc_usd_vals = {}
     all_sc_btc_vals = {}
     if p.get("sc_enabled") and sel_qs:
@@ -1092,7 +1115,8 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 opacity=_TODAY_LINE_OPACITY,
             ))
 
-    tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis)
+    tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis,
+                                     minor_grid=p.get("minor_grid"))
     ylabel = "USD Value" if disp_mode == "usd" else "BTC Remaining"
     layout = _dark_layout(
         m,
@@ -1106,6 +1130,8 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     )
     if p.get("log_y"):
         layout["yaxis"]["type"] = "log"
+        if p.get("minor_grid"):
+            layout["yaxis"]["minor"] = _LOG_MINOR
     layout["shapes"]      = shapes
     layout["annotations"] = deplete_annots
 
@@ -1138,6 +1164,8 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
         )
         if p.get("log_y"):
             layout["yaxis2"]["type"] = "log"
+            if p.get("minor_grid"):
+                layout["yaxis2"]["minor"] = _LOG_MINOR
 
     # ── Monte Carlo fan overlay ─────────────────────────────────────────────
     mc_result = None
@@ -1348,7 +1376,8 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                                                               len(deplete_annots)))
 
         t_start_base = max(yr_to_t(syr, m.genesis), 1.0)
-        tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis)
+        tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis,
+                                         minor_grid=p.get("minor_grid"))
         ylabel = "USD Value" if disp_mode == "usd" else "BTC Remaining"
         layout = _dark_layout(
             m,
@@ -1362,6 +1391,8 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
         )
         if p.get("log_y"):
             layout["yaxis"]["type"] = "log"
+            if p.get("minor_grid"):
+                layout["yaxis"]["minor"] = _LOG_MINOR
         layout["annotations"] = deplete_annots
         shapes = []
         if p.get("show_today"):

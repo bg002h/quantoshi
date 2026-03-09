@@ -1888,16 +1888,26 @@ _TAB_CONTROLS = {
 
 _app_ctx.app.clientside_callback(
     """
-    function(pathname) {
+    function(pathname, splashOpen) {
+        var NU = window.dash_clientside.no_update;
         var map = {"/1":"bubble","/2":"heatmap","/3":"dca",
                    "/4":"retire","/5":"supercharge","/6":"stack","/7":"faq"};
-        if (pathname && /^\\/7\\.\\d+$/.test(pathname)) { return "faq"; }
-        var tab = map[pathname];
-        return tab ? tab : window.dash_clientside.no_update;
+        /* While splash modal is open, defer the tab switch so chart
+           callbacks don't fire into a container hidden behind the modal. */
+        if (splashOpen) {
+            window._pendingTabPath = pathname;
+            return NU;
+        }
+        var p = window._pendingTabPath || pathname;
+        window._pendingTabPath = null;
+        if (p && /^\\/7\\.\\d+$/.test(p)) { return "faq"; }
+        var tab = map[p];
+        return tab ? tab : NU;
     }
     """,
     Output("main-tabs", "active_tab", allow_duplicate=True),
     Input("url", "pathname"),
+    Input("splash-modal", "is_open"),
     prevent_initial_call="initial_duplicate",
 )
 
@@ -2078,25 +2088,6 @@ _app_ctx.app.clientside_callback(
     Output("splash-modal", "is_open", allow_duplicate=True),
     Input("splash-dismiss", "n_clicks"),
     prevent_initial_call="initial_duplicate",
-)
-
-# After splash modal closes (any method: dismiss button, backdrop click,
-# easter egg), dispatch a resize event so Plotly redraws any charts that
-# were rendered behind the modal with broken layout dimensions.
-_app_ctx.app.clientside_callback(
-    """
-    function(isOpen) {
-        if (isOpen === false) {
-            setTimeout(function() {
-                window.dispatchEvent(new Event("resize"));
-            }, 500);
-        }
-        return "";
-    }
-    """,
-    Output("hm-relayout-dummy", "children"),
-    Input("splash-modal", "is_open"),
-    prevent_initial_call=True,
 )
 
 

@@ -1365,21 +1365,25 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 y_data = list(tr.y) if tr.y is not None else []
                 if not x_data or not y_data:
                     continue
-                final_y = float(y_data[-1])
-                if final_y <= 0:
+                mc_x_last = float(x_data[-1])
+                # Use the y-value at the visible right edge if MC extends beyond
+                if mc_x_last > x_right:
+                    ann_x = x_right
+                    ann_y = float(np.interp(x_right, x_data, y_data))
+                else:
+                    ann_x = mc_x_last
+                    ann_y = float(y_data[-1])
+                if ann_y <= 0:
                     continue
                 if disp_mode == "usd":
-                    mc_lbl = fmt_price(final_y)
+                    mc_lbl = fmt_price(ann_y)
                 else:
-                    mc_lbl = f"{final_y:.4f} \u20bf"
-                mc_x_last = float(x_data[-1])
-                # Clamp to visible range so annotation doesn't vanish
-                ann_x = min(mc_x_last, x_right)
+                    mc_lbl = f"{ann_y:.4f} \u20bf"
                 if mc_x_last < x_right:
                     ann_yr = int(syr + (mc_x_last - t_start)
                                  / max(t_end - t_start, 1e-6) * (eyr - syr))
                     mc_lbl = f"\u2248{ann_yr}  {mc_lbl}"
-                py = to_py1(final_y)
+                py = to_py1(ann_y)
                 edge_annots.append((ann_x, py, f"MC {mc_lbl}", mc_col))
 
         # Sort by paper_y, stagger overlapping labels

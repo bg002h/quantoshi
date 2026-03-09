@@ -1195,6 +1195,17 @@ _FAQ = [
                    target="_blank", rel="noopener noreferrer"),
         ]),
     },
+    {
+        "q": "Why are chart downloads corrupted on Tor Browser?",
+        "a": html.Span([
+            "Tor Browser's canvas fingerprinting protection adds noise to PNG image exports, "
+            "producing garbled results. To download a clean chart, click the camera icon in "
+            "the chart toolbar and select ",
+            html.Strong("SVG"),
+            " from the format dropdown. SVG files are vector graphics that scale to any size "
+            "and can be opened in any browser or converted to PNG with tools like Inkscape.",
+        ]),
+    },
 ]
 
 

@@ -64,6 +64,26 @@ _FONT_LEGEND      = _app_ctx.FONT_LEGEND
 _FONT_WATERMARK   = 9
 _FONT_ANNOT       = 11       # depletion / edge annotation text
 
+# ── Enhanced font stack (sans-serif base, serif for premium/MC) ──────────
+_SANS_FONT = "Inter, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif"
+_FONT_TITLE_LG    = 17
+_FONT_BODY_LG     = 13
+_FONT_TICK_LG     = 12
+_FONT_LEGEND_LG   = 11
+_FONT_ANNOT_LG    = 12
+_FONT_WATERMARK_LG = 10
+
+
+def _apply_sans_typography(layout: dict) -> None:
+    """Upgrade layout fonts to enhanced sans-serif stack with larger sizes."""
+    layout["title"]["font"].update(family=_SANS_FONT, size=_FONT_TITLE_LG)
+    layout["font"].update(family=_SANS_FONT, size=_FONT_TICK_LG)
+    layout["xaxis"]["title"]["font"].update(family=_SANS_FONT, size=_FONT_BODY_LG)
+    layout["yaxis"]["title"]["font"].update(family=_SANS_FONT, size=_FONT_BODY_LG)
+    layout["legend"]["font"] = dict(family=_SANS_FONT, size=_FONT_LEGEND_LG)
+    for ann in layout.get("annotations", []):
+        ann.setdefault("font", {}).update(family=_SANS_FONT, size=_FONT_ANNOT_LG)
+
 # ── shared small helpers ──────────────────────────────────────────────────────
 
 
@@ -492,6 +512,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         if p.get("minor_grid"):
             # Plotly.js crashes when minor + explicit tickvals are combined.
             # Use auto-ticks so minor gridlines render safely.
+            y_log_update["dtick"] = 1  # decade labels only (drop 2× and 5×)
             y_log_update["minor"] = _LOG_MINOR
         else:
             y_log_update["tickvals"] = maj
@@ -519,6 +540,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             bgcolor=m.PLOT_BG_COLOR, bordercolor=m.SPINE_COLOR, borderwidth=1,
         )]
 
+    _apply_sans_typography(layout)
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
     _apply_watermark(fig)
     return fig
@@ -695,6 +717,12 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         annotations=annots,
         margin=dict(l=70, r=20, t=60, b=50),
     )
+    fig.layout.title.font.update(family=_SANS_FONT, size=_FONT_TITLE_LG)
+    fig.layout.font.update(family=_SANS_FONT, size=_FONT_TICK_LG)
+    fig.layout.xaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
+    fig.layout.yaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
+    for ann in fig.layout.annotations:
+        ann.font.update(family=_SANS_FONT, size=_FONT_ANNOT_LG)
     _apply_watermark(fig)
     return fig
 
@@ -775,6 +803,12 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
         annotations=annots,
         margin=dict(l=70, r=20, t=60, b=50),
     )
+    fig.layout.title.font.update(family=_SANS_FONT, size=_FONT_TITLE_LG)
+    fig.layout.font.update(family=_SANS_FONT, size=_FONT_TICK_LG)
+    fig.layout.xaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
+    fig.layout.yaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
+    for ann in fig.layout.annotations:
+        ann.font.update(family=_SANS_FONT, size=_FONT_ANNOT_LG)
     if p.get("mc_enabled"):
         _apply_mc_premium(fig, legend_pos=None)
     _apply_watermark(fig)
@@ -1100,6 +1134,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
         layout.setdefault("annotations", []).extend(_render_edge_annots(_edge_items))
 
     layout["showlegend"] = bool(p.get("show_legend", True))
+    _apply_sans_typography(layout)
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
     if p.get("mc_enabled"):
         _apply_mc_premium(fig, legend_pos="top-left")
@@ -1411,6 +1446,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             xanchor=pos["xanchor"], yanchor=pos["yanchor"],
             bgcolor="rgba(255,255,255,0.7)",
         )
+    _apply_sans_typography(layout)
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
     if p.get("mc_enabled"):
         # legend_pos=None so MC premium doesn't override user's legend choice
@@ -1718,6 +1754,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
 
         layout["shapes"]     = shapes
         layout["showlegend"] = show_legend
+        _apply_sans_typography(layout)
         fig = go.Figure(data=traces, layout=go.Layout(**layout))
         _apply_watermark(fig)
         return fig, mc_result
@@ -1816,6 +1853,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
         ylabel=f"Max withdrawal{freq_label}",
     )
     layout["showlegend"] = show_legend
+    _apply_sans_typography(layout)
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
     _apply_watermark(fig)
     return fig, None

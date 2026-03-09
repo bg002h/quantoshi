@@ -1309,8 +1309,9 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             if y2_range:
                 layout["yaxis2"]["range"] = y2_range
 
-        edge_annots = []   # (paper_y, label, color)
+        edge_annots = []   # (x_data, paper_y, label, color)
         ts_end_arr = np.maximum(np.array([ts[-1]]), 0.5)
+        x_right = float(ts[-1])
 
         for q in sel_qs:
             if q not in all_btc_vals:
@@ -1329,7 +1330,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 else:
                     lbl1 = f"{btc_final:.4f} \u20bf"
                     py1 = to_py1(btc_final)
-                edge_annots.append((py1, lbl1, col))
+                edge_annots.append((x_right, py1, lbl1, col))
 
             # Secondary (dashed) trace annotation
             if to_py2:
@@ -1339,11 +1340,10 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 else:
                     lbl2 = fmt_price(usd_final)
                     py2 = to_py2(usd_final)
-                edge_annots.append((py2, lbl2, col))
+                edge_annots.append((x_right, py2, lbl2, col))
 
-        # MC median endpoint
+        # MC median endpoint — annotate at trace terminus, not right edge
         mc_col = "#F7931A"
-        x_end = float(ts[-1])
         if to_py1:
             for tr in mc_traces_list:
                 if not (getattr(getattr(tr, "line", None), "dash", None) == "dot"):
@@ -1360,35 +1360,34 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 else:
                     mc_lbl = f"{final_y:.4f} \u20bf"
                 mc_x_last = float(x_data[-1])
-                if mc_x_last < x_end:
+                # Clamp to visible range so annotation doesn't vanish
+                ann_x = min(mc_x_last, x_right)
+                if mc_x_last < x_right:
                     ann_yr = int(syr + (mc_x_last - t_start)
                                  / max(t_end - t_start, 1e-6) * (eyr - syr))
                     mc_lbl = f"\u2248{ann_yr}  {mc_lbl}"
                 py = to_py1(final_y)
-                edge_annots.append((py, f"MC {mc_lbl}", mc_col))
+                edge_annots.append((ann_x, py, f"MC {mc_lbl}", mc_col))
 
         # Sort by paper_y, stagger overlapping labels
-        edge_annots.sort(key=lambda x: x[0])
-        for i, (py, lbl, col) in enumerate(edge_annots):
-            ay_off = 0
-            if i > 0 and abs(py - edge_annots[i - 1][0]) < 0.05:
-                ay_off = _ANNOT_STAGGER_Y[i % 3]
+        edge_annots.sort(key=lambda x: x[1])
+        _EDGE_AY = [-25, -40, -55]
+        for i, (ax_x, py, lbl, col) in enumerate(edge_annots):
+            ay = _EDGE_AY[i % 3]
             layout.setdefault("annotations", []).append(dict(
-                x=float(ts[-1]), xref="x",
+                x=ax_x, xref="x",
                 y=py, yref="paper",
                 text=lbl,
                 showarrow=True, arrowhead=2, arrowsize=1,
                 arrowcolor=col, arrowwidth=1.5,
-                ax=28, ay=ay_off,
+                ax=-40, ay=ay,
                 font=dict(size=_FONT_ANNOT, color=col),
             ))
-        # Add right margin for annotation text
-        layout["margin"] = dict(l=60, r=100, t=50, b=60)
 
     layout["showlegend"] = bool(p.get("show_legend", True))
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
     if p.get("mc_enabled"):
-        _apply_mc_premium(fig, legend_pos="top-right")
+        _apply_mc_premium(fig, legend_pos=None)
     _apply_watermark(fig)
     return fig, mc_result
 

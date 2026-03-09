@@ -224,21 +224,25 @@ def _mc_paths_from_lists(lst):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _mc_build_traces(mc_ts, fan, extra_label="", show_median=True,
-                     show_final_values=False, fan_usd=None):
+                     show_final_values=False, fan_usd=None,
+                     hide_5_95_legend=False):
     """Build standard MC fan band traces from precomputed fan percentiles.
 
     fan_usd: if provided, use these values for legend final-value labels
              (always show USD regardless of display mode).
+    hide_5_95_legend: if True, suppress 5-95% band from legend.
     """
     lf = fan_usd if fan_usd is not None else fan  # legend fan
 
     traces = []
     _MC_BANDS = [
-        (0.01, 0.95, "rgba(247,147,26,0.04)", "MC 1\u201395%"),
-        (0.05, 0.95, "rgba(247,147,26,0.08)", "MC 5\u201395%"),
-        (0.25, 0.75, "rgba(247,147,26,0.15)", "MC 25\u201375%"),
+        (0.01, 0.95, "rgba(220,120,0,0.06)", "MC 1\u201395%"),
+        (0.05, 0.95, "rgba(220,120,0,0.10)", "MC 5\u201395%"),
+        (0.25, 0.75, "rgba(220,120,0,0.18)", "MC 25\u201375%"),
     ]
     for p_lo, p_hi, fill_color, label in _MC_BANDS:
+        is_5_95 = (p_lo == 0.05 and p_hi == 0.95)
+        show_leg = not (is_5_95 and hide_5_95_legend)
         if show_final_values:
             lo_final = fmt_price(float(lf[p_lo][-1])) if len(lf[p_lo]) > 0 else ""
             hi_final = fmt_price(float(lf[p_hi][-1])) if len(lf[p_hi]) > 0 else ""
@@ -250,7 +254,7 @@ def _mc_build_traces(mc_ts, fan, extra_label="", show_median=True,
         traces.append(go.Scatter(
             x=list(mc_ts), y=list(fan[p_lo]),
             mode="lines", line=dict(width=0), fill="tonexty",
-            fillcolor=fill_color, name=label, showlegend=True, hoverinfo="skip",
+            fillcolor=fill_color, name=label, showlegend=show_leg, hoverinfo="skip",
         ))
     if show_median:
         med_label = "MC median" + extra_label
@@ -259,7 +263,7 @@ def _mc_build_traces(mc_ts, fan, extra_label="", show_median=True,
         traces.append(go.Scatter(
             x=list(mc_ts), y=list(fan[0.50]),
             mode="lines", name=med_label,
-            line=dict(color="rgba(247,147,26,0.7)", width=1.5, dash="dot"),
+            line=dict(color="rgba(220,120,0,0.9)", width=1.5, dash="dot"),
         ))
     return traces
 
@@ -410,7 +414,9 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
 
 def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
                           start_stack, disp_mode, tab,
-                          existing_annot_count=0):
+                          existing_annot_count=0,
+                          show_final_values=False,
+                          hide_5_95_legend=False):
     """Build Monte Carlo fan band traces for withdrawal-based overlays (Retire/SC).
 
     Returns (traces, annots, result).
@@ -441,8 +447,11 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
             return f"  ({dstats['pct_depleted']:.0%} depleted)"
         return ""
 
-    def _build_return(fan_btc, fan, extra, result=None):
-        traces = _mc_build_traces(mc_ts, fan, extra)
+    def _build_return(fan_btc, fan, extra, result=None, fan_usd=None):
+        traces = _mc_build_traces(mc_ts, fan, extra,
+                                  show_final_values=show_final_values,
+                                  fan_usd=fan_usd,
+                                  hide_5_95_legend=hide_5_95_legend)
         annots = _mc_depletion_annots(mc_ts, fan_btc, mc_start_yr, mc_years,
                                        existing_annot_count) if do_annot else []
         return traces, annots, result
@@ -454,7 +463,8 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
             fan_btc = _mc_fan_from_lists(cached["fan_btc"])
             fan_usd = _mc_fan_from_lists(cached["fan_usd"])
             fan = fan_usd if disp_mode == "usd" else fan_btc
-            return _build_return(fan_btc, fan, _depl_extra(cached.get("depletion", {})))
+            return _build_return(fan_btc, fan, _depl_extra(cached.get("depletion", {})),
+                                fan_usd=fan_usd)
 
         price_paths = _mc_paths_from_lists(cached["price_paths"])
         btc_paths, usd_paths, depl_steps = mc_retire(
@@ -476,14 +486,15 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
             "fan_usd": _mc_fan_to_lists(fan_usd),
             "depletion": dstats,
         }
-        return _build_return(fan_btc, fan, _depl_extra(dstats), result)
+        return _build_return(fan_btc, fan, _depl_extra(dstats), result,
+                             fan_usd=fan_usd)
 
     # ── Check pre-computed cache ─────────────────────────────────────────
     fan_btc, fan_usd = try_precomputed_overlay(p, mc_years, wd_amount,
                                                 inflation, mc_stack)
     if fan_btc is not None:
         fan = fan_usd if disp_mode == "usd" else fan_btc
-        return _build_return(fan_btc, fan, "")
+        return _build_return(fan_btc, fan, "", fan_usd=fan_usd)
 
     cached_paths = try_precomputed_paths(p, mc_years)
     if cached_paths is not None:
@@ -494,7 +505,7 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
         fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
         dstats = depletion_stats(depl_steps, len(mc_ts), mc_dt, mc_t_start)
         fan = fan_usd if disp_mode == "usd" else fan_btc
-        return _build_return(fan_btc, fan, _depl_extra(dstats))
+        return _build_return(fan_btc, fan, _depl_extra(dstats), fan_usd=fan_usd)
 
     # ── Run full simulation ──────────────────────────────────────────────
     trans, bin_edges, n_bins = _get_transition_matrix(m, n_bins, step_days, mc_window)
@@ -529,13 +540,16 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
         "depletion": dstats,
     }
 
-    return _build_return(fan_btc, fan, _depl_extra(dstats), result)
+    return _build_return(fan_btc, fan, _depl_extra(dstats), result,
+                         fan_usd=fan_usd)
 
 
 def _mc_retire_overlay(m, p, ts, t_start, t_end, dt,
                         start_stack, disp_mode, existing_annot_count=0):
     return _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
-                                 start_stack, disp_mode, "ret", existing_annot_count)
+                                 start_stack, disp_mode, "ret", existing_annot_count,
+                                 show_final_values=True,
+                                 hide_5_95_legend=True)
 
 
 def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,

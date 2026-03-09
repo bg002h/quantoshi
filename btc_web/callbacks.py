@@ -2,8 +2,11 @@
 
 import json
 import base64
+import logging
 import math
 import os
+
+logger = logging.getLogger(__name__)
 
 import dash
 from dash import dcc, html, Input, Output, State, ctx, callback, no_update
@@ -73,12 +76,16 @@ def _mc_payment_check(tab, mc_years, start_yr, entry_q, pay_token):
     if btcpay.is_free_tier(mc_yrs, s_yr, e_q):
         return True
     if not pay_token:
+        logger.info("MC payment required: %s %dyr start=%d q=%g (no token)", tab, mc_yrs, s_yr, e_q)
         return False
-    return btcpay.verify_payment_token(
+    valid = btcpay.verify_payment_token(
         pay_token.get("payment_token", ""),
         pay_token.get("invoice_id", ""),
         tab, mc_yrs,
     )
+    if not valid:
+        logger.warning("MC payment token invalid: %s %dyr", tab, mc_yrs)
+    return valid
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -385,6 +392,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
     toggles    = toggles or []
     yr_range   = yr_range or [2024, 2034]
     live_price = float(price_data or 0)
+    mc_ok = bool(mc_enable) and _mc_payment_check("dca", mc_years, mc_start_yr, mc_entry_q, pay_token)
     fig, mc_result = _get_dca_fig(dict(
         start_stack    = float(stack or 0),
         use_lots       = bool(use_lots),
@@ -412,7 +420,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
         sc_tax_rate     = float(sc_tax) / 100.0 if sc_tax is not None else 0.33,
         sc_rollover     = bool(sc_rollover),
         **_build_mc_params(
-            mc_enable=mc_enable and _mc_payment_check("dca", mc_years, mc_start_yr, mc_entry_q, pay_token),
+            mc_enable=mc_ok,
             mc_amount=mc_amount, mc_infl=mc_infl,
             mc_bins=mc_bins, mc_sims=mc_sims, mc_years=mc_years,
             mc_freq=mc_freq, mc_window=mc_window,
@@ -421,7 +429,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
             amount_default=100, infl_default=4.0, start_yr_default=2026,
         ),
     ))
-    mc_did_render = bool(mc_enable) and _mc_payment_check("dca", mc_years, mc_start_yr, mc_entry_q, pay_token)
+    mc_did_render = mc_ok
     rendered_key = ({"years": int(mc_years or MC_DEFAULT_YEARS),
                      "start_yr": int(mc_start_yr or MC_DEFAULT_START_YR),
                      "entry_q": int(mc_entry_q or MC_DEFAULT_ENTRY_Q)}
@@ -1195,6 +1203,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         raise dash.exceptions.PreventUpdate
     toggles  = toggles or []
     yr_range = yr_range or [2025, 2045]
+    mc_ok = bool(mc_enable) and _mc_payment_check("ret", mc_years, mc_start_yr, mc_entry_q, pay_token)
     fig, mc_result = _get_retire_fig(dict(
         start_stack  = float(stack or 1.0),
         use_lots     = bool(use_lots),
@@ -1214,7 +1223,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         selected_qs  = sel_qs or [],
         lots         = lots_data or [],
         **_build_mc_params(
-            mc_enable=mc_enable and _mc_payment_check("ret", mc_years, mc_start_yr, mc_entry_q, pay_token),
+            mc_enable=mc_ok,
             mc_amount=mc_amount, mc_infl=mc_infl,
             mc_bins=mc_bins, mc_sims=mc_sims, mc_years=mc_years,
             mc_freq=mc_freq, mc_window=mc_window,
@@ -1224,7 +1233,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
             mc_start_stack=mc_stack,
         ),
     ))
-    mc_did_render = bool(mc_enable) and _mc_payment_check("ret", mc_years, mc_start_yr, mc_entry_q, pay_token)
+    mc_did_render = mc_ok
     rendered_key = ({"years": int(mc_years or MC_DEFAULT_YEARS),
                      "start_yr": int(mc_start_yr or MC_DEFAULT_START_YR),
                      "entry_q": int(mc_entry_q or MC_DEFAULT_ENTRY_Q)}
@@ -1295,6 +1304,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
     toggles = toggles or []
     yr_now  = pd.Timestamp.today().year
+    mc_ok = bool(mc_enable) and _mc_payment_check("sc", mc_years, mc_start_yr, mc_entry_q, pay_token)
     # chart_layout is now a checklist list; legacy snapshots may send an int
     _cl = (2 if "shade" in (chart_layout or []) else 0) \
           if isinstance(chart_layout, list) \
@@ -1322,7 +1332,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         lots         = lots_data or [],
         use_lots     = bool(use_lots),
         **_build_mc_params(
-            mc_enable=mc_enable and _mc_payment_check("sc", mc_years, mc_start_yr, mc_entry_q, pay_token),
+            mc_enable=mc_ok,
             mc_amount=mc_amount, mc_infl=mc_infl,
             mc_bins=mc_bins, mc_sims=mc_sims, mc_years=mc_years,
             mc_freq=mc_freq, mc_window=mc_window,
@@ -1434,9 +1444,19 @@ def manage_lots(add_n, del_n, clear_n, import_contents,
             data = json.loads(raw)
             if not isinstance(data, list):
                 raise ValueError("expected a JSON array")
+            if len(data) > 5000:
+                raise ValueError(f"too many lots ({len(data)}), max 5000")
             # recompute pct_q in case file came from a different model version
             parsed = []
             for row in data:
+                if not isinstance(row, dict):
+                    raise ValueError("each lot must be a JSON object")
+                if not isinstance(row.get("date"), str):
+                    raise ValueError("lot missing or invalid 'date'")
+                if not isinstance(row.get("btc"), (int, float)):
+                    raise ValueError("lot missing or invalid 'btc'")
+                if not isinstance(row.get("price"), (int, float)):
+                    raise ValueError("lot missing or invalid 'price'")
                 t     = (pd.Timestamp(row["date"]) - _app_ctx.M.genesis).days / 365.25
                 pct_q = _find_lot_percentile(t, float(row["price"]), _app_ctx.M.qr_fits)
                 parsed.append({
@@ -1444,13 +1464,15 @@ def manage_lots(add_n, del_n, clear_n, import_contents,
                     "btc":   round(float(row["btc"]), 8),
                     "price": round(float(row["price"]), 2),
                     "pct_q": round(pct_q, 6),
-                    "notes": str(row.get("notes", "")).strip(),
+                    "notes": str(row.get("notes", "")).strip()[:200],
                 })
             parsed.sort(key=lambda l: l["date"])
             lots = parsed
             import_status = f"Imported {len(lots)} lot(s) ✓"
+            logger.info("Lot import: %d lots", len(lots))
         except Exception as e:
             import_status = f"Import failed: {e}"
+            logger.warning("Lot import failed: %s", e)
             raise dash.exceptions.PreventUpdate
 
     table_data = [
@@ -2266,7 +2288,10 @@ def restore_from_url(hash_str):
     else:
         return blank
     if not state:
+        logger.warning("Snapshot decode failed for hash: %s…", hash_str[:20])
         return blank
+    logger.info("Snapshot restored: %d controls, lots=%s",
+                sum(1 for k in state if k != "_lots"), "yes" if "_lots" in state else "no")
     results = [state.get(f"{cid}:{prop}", no_update)
                for cid, prop in _SNAPSHOT_CONTROLS]
     results.append(state.get("_lots", None))  # snapshot-lots

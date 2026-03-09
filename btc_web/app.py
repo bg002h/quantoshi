@@ -60,7 +60,18 @@ server = app.server  # for gunicorn
 
 @server.route("/health")
 def _health():
-    return "ok", 200
+    from flask import jsonify as _jsonify
+    from utils import _price_cache
+    from mc_cache import _CACHE
+    price_age = time.time() - _price_cache["ts"] if _price_cache["price"] else -1
+    return _jsonify({
+        "status": "ok",
+        "model": M is not None,
+        "price_age_s": round(price_age),
+        "mc_cache": bool(_CACHE),
+        "markov": _HAS_MARKOV,
+        "btcpay": btcpay._HAS_BTCPAY,
+    }), 200
 
 @server.after_request
 def _cache_headers(response):
@@ -73,6 +84,17 @@ def _cache_headers(response):
         })
     elif path.startswith('/_dash-component-suites/'):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    # Content-Security-Policy
+    _frame_src = btcpay.BTCPAY_URL.rstrip('/') if btcpay._HAS_BTCPAY else "'none'"
+    response.headers['Content-Security-Policy'] = "; ".join([
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+        f"frame-src {_frame_src}",
+        "img-src 'self' data: blob:",
+        "connect-src 'self'",
+        "font-src 'self' https://cdn.jsdelivr.net",
+    ])
     return response
 
 # ── populate shared context ──────────────────────────────────────────────────

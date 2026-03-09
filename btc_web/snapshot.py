@@ -3,8 +3,11 @@
 import json
 import gzip
 import base64
+import logging
 
 import _app_ctx
+
+log = logging.getLogger(__name__)
 
 _SNAPSHOT_CONTROLS = [
     ("bub-qs",            "value"),
@@ -176,6 +179,16 @@ def _decode_snapshot(encoded):
     try:
         payload = json.loads(gzip.decompress(base64.urlsafe_b64decode(encoded)))
         values, lots = payload
+        # Forward/backward compat: pad or truncate to match current control count
+        n_expected = len(_SNAPSHOT_CONTROLS)
+        if len(values) < n_expected:
+            log.info("Snapshot has %d controls, expected %d — padding with defaults",
+                     len(values), n_expected)
+            values.extend([None] * (n_expected - len(values)))
+        elif len(values) > n_expected:
+            log.info("Snapshot has %d controls, expected %d — truncating",
+                     len(values), n_expected)
+            values = values[:n_expected]
         state = {}
         for (cid, prop), val in zip(_SNAPSHOT_CONTROLS, values):
             if val is None:

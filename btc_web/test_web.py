@@ -1647,6 +1647,7 @@ class TestUpdateRetireCallback:
                 active_tab="retire", stack=1.0, use_lots=[], wd=5000,
                 freq="Monthly", yr_range=[2031, 2075], infl=4,
                 disp="btc", toggles=["log_y", "dual_y", "annotate"],
+                legend_pos="outside",
                 sel_qs=[0.01, 0.1, 0.25], lots_data=[],
                 mc_enable=[], mc_amount=5000, mc_infl=4,
                 mc_bins=5, mc_sims=800, mc_years=10,
@@ -2151,6 +2152,206 @@ class TestUpdateScInfo:
         )
         assert isinstance(result, list)
         assert len(result) > 0
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section: BTCPay pricing and token tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+import btcpay
+
+
+class TestBTCPayPricing:
+    """Test compute_price and is_free_tier logic."""
+
+    def test_dca_cached_10yr(self):
+        assert btcpay.compute_price("dca", 10, True) == 100
+
+    def test_dca_live_10yr(self):
+        assert btcpay.compute_price("dca", 10, False) == 500
+
+    def test_hm_discount(self):
+        assert btcpay.compute_price("hm", 10, True) == 50
+
+    def test_hm_live_40yr(self):
+        assert btcpay.compute_price("hm", 40, False) == 1000
+
+    def test_ret_cached_20yr(self):
+        assert btcpay.compute_price("ret", 20, True) == 200
+
+    def test_all_horizons(self):
+        for yrs in (10, 20, 30, 40):
+            c = btcpay.compute_price("dca", yrs, True)
+            l = btcpay.compute_price("dca", yrs, False)
+            assert l > c, f"{yrs}yr: live ({l}) should exceed cached ({c})"
+
+    def test_free_tier_dca_default(self):
+        assert btcpay.is_free_tier(10, 2026, 50)
+
+    def test_free_tier_hm_default(self):
+        assert btcpay.is_free_tier(10, 2026, 10)
+
+    def test_free_tier_retire_default(self):
+        assert btcpay.is_free_tier(10, 2031, 50)
+
+    def test_not_free_20yr(self):
+        assert not btcpay.is_free_tier(20, 2026, 50)
+
+    def test_not_free_custom_q(self):
+        assert not btcpay.is_free_tier(10, 2026, 25)
+
+    def test_not_free_custom_yr(self):
+        assert not btcpay.is_free_tier(10, 2028, 50)
+
+    def test_is_cached_request(self):
+        assert btcpay.is_cached_request(2026)
+        assert btcpay.is_cached_request(2031)
+        assert not btcpay.is_cached_request(2027)
+
+
+class TestBTCPayTokens:
+    """Test HMAC payment token generation and verification."""
+
+    @pytest.fixture(autouse=True)
+    def _ensure_secret(self):
+        if not btcpay.HMAC_SECRET:
+            pytest.skip("No HMAC secret configured")
+
+    def test_roundtrip(self):
+        tok = btcpay.generate_payment_token("inv123", "dca", 10)
+        assert btcpay.verify_payment_token(tok, "inv123", "dca", 10)
+
+    def test_wrong_tab(self):
+        tok = btcpay.generate_payment_token("inv123", "dca", 10)
+        assert not btcpay.verify_payment_token(tok, "inv123", "ret", 10)
+
+    def test_wrong_years(self):
+        tok = btcpay.generate_payment_token("inv123", "dca", 10)
+        assert not btcpay.verify_payment_token(tok, "inv123", "dca", 20)
+
+    def test_wrong_invoice(self):
+        tok = btcpay.generate_payment_token("inv123", "dca", 10)
+        assert not btcpay.verify_payment_token(tok, "inv999", "dca", 10)
+
+    def test_token_is_string(self):
+        tok = btcpay.generate_payment_token("inv1", "hm", 10)
+        assert isinstance(tok, str)
+        assert len(tok) > 10
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section: API endpoint tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestAPIInvoiceValidation:
+    """Test invoice ID sanitization in api.py."""
+
+    def test_valid_invoice_id_regex(self):
+        from api import _INVOICE_ID_RE
+        assert _INVOICE_ID_RE.match("X31XGHwugKcCpeF38GtGxM")
+        assert _INVOICE_ID_RE.match("abc-123_DEF")
+
+    def test_invalid_invoice_id_regex(self):
+        from api import _INVOICE_ID_RE
+        assert not _INVOICE_ID_RE.match("")
+        assert not _INVOICE_ID_RE.match("../../../etc/passwd")
+        assert not _INVOICE_ID_RE.match("id with spaces")
+        assert not _INVOICE_ID_RE.match("a" * 65)  # too long
+
+    def test_valid_short_id(self):
+        from api import _INVOICE_ID_RE
+        assert _INVOICE_ID_RE.match("a")
+
+    def test_special_chars_rejected(self):
+        from api import _INVOICE_ID_RE
+        for bad in ["id;drop", "id<script>", "id&foo", "id=bar", "id/path"]:
+            assert not _INVOICE_ID_RE.match(bad), f"should reject: {bad}"
+
+
+class TestAPIRateLimiting:
+    """Test rate-limit helpers in api.py."""
+
+    def test_prune_removes_old(self):
+        from api import _invoice_log, _prune, _check_rate_limit
+        import time as _time
+        ip = "test-prune-ip"
+        _invoice_log[ip] = [(_time.time() - 7200, False)]  # 2 hours ago
+        _prune(ip)
+        assert len(_invoice_log[ip]) == 0
+
+    def test_unpaid_limit(self):
+        from api import _invoice_log, _check_rate_limit, _record_invoice
+        import time as _time
+        ip = "test-unpaid-ip"
+        _invoice_log[ip] = []
+        for _ in range(20):
+            _record_invoice(ip)
+        err = _check_rate_limit(ip)
+        assert err is not None
+        assert "unpaid" in err.lower()
+        _invoice_log[ip] = []  # cleanup
+
+    def test_under_limit_ok(self):
+        from api import _invoice_log, _check_rate_limit, _record_invoice
+        ip = "test-ok-ip"
+        _invoice_log[ip] = []
+        for _ in range(5):
+            _record_invoice(ip)
+        assert _check_rate_limit(ip) is None
+        _invoice_log[ip] = []  # cleanup
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section: Snapshot version compatibility
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestSnapshotVersionCompat:
+    """Test that snapshots with different control counts decode gracefully."""
+
+    def test_shorter_snapshot_pads(self):
+        """A snapshot with fewer controls than current should pad with None."""
+        from snapshot import _SNAPSHOT_CONTROLS, _decode_snapshot
+        # Create a truncated snapshot (only first 10 controls)
+        short_values = [None] * 10
+        payload = [short_values, None]
+        j = json.dumps(payload, separators=(',', ':'))
+        encoded = base64.urlsafe_b64encode(gzip.compress(j.encode())).decode()
+        state = _decode_snapshot(encoded)
+        assert state is not None  # should not fail
+        # First 10 are None → not in state; rest also None → not in state
+        # Key point: no crash
+
+    def test_longer_snapshot_truncates(self):
+        """A snapshot with more controls than current should truncate safely."""
+        from snapshot import _SNAPSHOT_CONTROLS, _decode_snapshot
+        n = len(_SNAPSHOT_CONTROLS)
+        long_values = [None] * (n + 20)  # 20 extra
+        payload = [long_values, None]
+        j = json.dumps(payload, separators=(',', ':'))
+        encoded = base64.urlsafe_b64encode(gzip.compress(j.encode())).decode()
+        state = _decode_snapshot(encoded)
+        assert state is not None
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section: Price cache tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestPriceCache:
+    """Test TTL cache and circuit breaker in _fetch_btc_price."""
+
+    def test_cache_returns_stale(self):
+        from utils import _price_cache
+        import time as _time
+        # Seed cache with a known price
+        _price_cache.update({"price": 99999.0, "ts": _time.time()})
+        from utils import _fetch_btc_price
+        # Should return cached price without hitting network
+        result = _fetch_btc_price()
+        assert result == 99999.0
+        # Cleanup
+        _price_cache.update({"price": None, "ts": 0})
 
 
 if __name__ == "__main__":

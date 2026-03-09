@@ -8,12 +8,15 @@ Routes:
 Registered on the Flask server via register_routes(server).
 """
 
+import re
 import time
 import logging
 from collections import defaultdict
 from flask import jsonify, request
 
 import btcpay
+
+_INVOICE_ID_RE = re.compile(r'^[a-zA-Z0-9_-]{1,64}$')
 
 log = logging.getLogger(__name__)
 
@@ -132,8 +135,7 @@ def register_routes(server):
 
     @server.route("/api/mc/invoice/<invoice_id>", methods=["GET"])
     def _mc_check_invoice(invoice_id):
-        # Validate invoice_id format (BTCPay uses alphanumeric IDs)
-        if not invoice_id or len(invoice_id) > 64:
+        if not _INVOICE_ID_RE.match(invoice_id):
             return jsonify({"error": "Invalid invoice ID"}), 400
 
         tab      = request.args.get("tab", "dca")
@@ -174,7 +176,7 @@ def register_routes(server):
 
     @server.route("/api/mc/invoice/<invoice_id>/payment", methods=["GET"])
     def _mc_payment_methods(invoice_id):
-        if not invoice_id or len(invoice_id) > 64:
+        if not _INVOICE_ID_RE.match(invoice_id):
             return jsonify({"error": "Invalid invoice ID"}), 400
 
         try:

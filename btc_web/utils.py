@@ -3,6 +3,7 @@
 import json
 import logging
 import math
+import time
 import urllib.request
 from functools import lru_cache
 from datetime import date
@@ -47,11 +48,11 @@ def _quantize_params(p: dict) -> dict:
 # date in the key so the "today" line stays fresh (natural daily expiry).
 # Server restarts on deploy clear all caches.
 
-@lru_cache(maxsize=8)
+@lru_cache(maxsize=16)
 def _cached_bubble_fig(key: str):
     return build_bubble_figure(_app_ctx.M, json.loads(key))
 
-@lru_cache(maxsize=8)
+@lru_cache(maxsize=32)
 def _cached_heatmap_fig(key: str):
     return build_heatmap_figure(_app_ctx.M, json.loads(key))
 
@@ -107,8 +108,28 @@ def _nearest_quantile(target, qs):
     return min(qs, key=lambda q: abs(q - target))
 
 
+_price_cache = {"price": None, "ts": 0}
+_PRICE_TTL = 60  # seconds — avoid hammering upstream APIs from multiple workers
+_fail_streak = 0
+_circuit_open_until = 0
+
 def _fetch_btc_price():
-    """Fetch current BTC price from multiple sources with fallback chain."""
+    """Fetch current BTC price from multiple sources with fallback chain.
+
+    Returns cached price if fetched within _PRICE_TTL seconds.
+    After 3 consecutive all-source failures, skips fetches for 1 hour.
+    """
+    global _fail_streak, _circuit_open_until
+    now = time.time()
+
+    # TTL cache — return recent price without hitting APIs
+    if _price_cache["price"] is not None and now - _price_cache["ts"] < _PRICE_TTL:
+        return _price_cache["price"]
+
+    # Circuit breaker — skip fetch if all sources repeatedly failed
+    if now < _circuit_open_until:
+        return _price_cache["price"]
+
     sources = [
         ("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
          lambda d: float(d["price"])),
@@ -124,12 +145,21 @@ def _fetch_btc_price():
     for url, parse in sources:
         try:
             with urllib.request.urlopen(url, timeout=5) as r:
-                return parse(json.loads(r.read()))
+                price = parse(json.loads(r.read()))
+                _price_cache.update({"price": price, "ts": now})
+                _fail_streak = 0
+                return price
         except Exception as exc:
             logger.debug("Price fetch failed for %s: %s", url.split("/")[2], exc)
             continue
-    logger.warning("All price sources failed")
-    return None
+
+    _fail_streak += 1
+    if _fail_streak >= 3:
+        _circuit_open_until = now + 3600
+        logger.warning("All price sources failed %d times, circuit open for 1hr", _fail_streak)
+    else:
+        logger.warning("All price sources failed (streak %d)", _fail_streak)
+    return _price_cache["price"]  # stale price better than None
 
 
 def _startup_heatmap_defaults():

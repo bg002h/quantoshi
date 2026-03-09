@@ -935,9 +935,14 @@ _FAQ = [
             "This is why MCMC is computationally expensive: each path requires stepping through "
             "hundreds of time periods in sequence, and we repeat this hundreds of times. A single QR "
             "lookup is O(1); a single MCMC fan requires O(paths \u00d7 periods) floating-point "
-            "operations — hundreds of paths times hundreds of steps per path. Quantoshi "
-            "uses a pre-computed cache and a compiled Cython engine to keep this tractable, but it "
-            "remains the most resource-intensive feature on the site.",
+            "operations — hundreds of paths times hundreds of steps per path.",
+            html.Br(), html.Br(),
+            "To keep this tractable, Quantoshi pre-computes a cache of over 45,000 scenarios "
+            "covering different entry percentiles, time horizons, withdrawal amounts, inflation "
+            "rates, and stack sizes. The full cache occupies roughly 834 MB of RAM, loaded at "
+            "server startup from compressed arrays on disk. A compiled Cython engine generates "
+            "the cache offline; at runtime, lookups are instantaneous. Even so, MCMC remains the "
+            "most resource-intensive feature on the site.",
         ]),
     },
     {

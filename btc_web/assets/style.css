@@ -1112,12 +1112,12 @@ body {
     min-width: 100%;
     flex-shrink: 0;
 }
-/* Let vertical scroll pass through heatmap charts to page */
+/* Allow browser-native pinch-to-zoom on heatmap charts (mobile readability).
+   pointer-events:none on drag layer lets touches fall through to the browser;
+   touch-action:manipulation enables pinch-to-zoom + pan without Plotly interference. */
 #heatmap-graph,
-#hm-mc-graph,
-#heatmap-graph *,
-#hm-mc-graph * {
-    touch-action: pan-y !important;
+#hm-mc-graph {
+    touch-action: manipulation !important;
 }
 #heatmap-graph .draglayer .nsewdrag,
 #heatmap-graph .draglayer .drag,

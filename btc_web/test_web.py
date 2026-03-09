@@ -149,7 +149,7 @@ try:
                           _encode_snapshot, _decode_snapshot,
                           _SNAPSHOT_CONTROLS, _CHECKLIST_OPTIONS,
                           _SNAP_PREFIX)
-    from callbacks import (_parse_mc_upload, _pk, _lots_summary,
+    from callbacks import (_parse_mc_upload, _extract_mc_key_val as _pk, _lots_summary,
                            _MC_UPLOAD_FIELDS, _mc_years_options,
                            _build_mc_params,
                            update_bubble, update_heatmap, update_dca,

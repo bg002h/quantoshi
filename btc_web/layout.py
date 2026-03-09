@@ -1,4 +1,18 @@
 """Layout builders: tab controls, main layout assembly, splash modal."""
+#
+# Sections:
+#   Imports & helpers ............... ~1-100
+#   Shared control builders ........ ~100-170
+#   Tab 1: Bubble + QR Overlay ..... ~173-270
+#   Tab 2: CAGR Heatmap ............ ~274-418
+#   MC controls (shared) ........... ~420-608
+#   Tab 3: BTC Accumulator (DCA) ... ~611-700
+#   Tab 4: BTC RetireMentator ...... ~705-760
+#   Tab 5: HODL Supercharger ....... ~762-868
+#   Tab 6: FAQ ..................... ~871-1165
+#   Tab 7: Stack Tracker ........... ~1170-1250
+#   Splash quotes .................. ~1274-1610
+#   App layout assembly ............ ~1612-end
 
 import json
 import pandas as pd
@@ -11,6 +25,10 @@ from utils import _nearest_quantile
 from snapshot import _SNAPSHOT_CONTROLS
 from mc_cache import CACHED_START_YRS, WD_AMOUNTS, STACK_SIZES
 from figures import _LOGO_B64_ALL
+
+_PRICE_INTERVAL_MS = 20 * 60 * 1000   # live price ticker refresh (20 minutes)
+_MC_POLL_INTERVAL_MS = 3000            # MC payment status poll interval (3 seconds)
+_MC_POLL_MAX = 300                     # max poll intervals (300 × 3s = 15 min timeout)
 
 def _q_options():
     opts = []
@@ -52,7 +70,7 @@ def _q_panel(checklist_id, default_value, hint=None):
                          "marginTop": "2px", "cursor": "pointer",
                          "userSelect": "none"}),
     ])
-    return _ctrl_card(html.Div("Quantile Regression Model", className="ctrl-section-header"), *children)
+    return _section_card("Quantile Regression Model", *children)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -62,6 +80,10 @@ def _q_panel(checklist_id, default_value, hint=None):
 def _ctrl_card(*children):
     return dbc.Card(dbc.CardBody(list(children), className="p-2"),
                     className="mb-2 ctrl-card")
+
+def _section_card(title, *children):
+    """Control card with a section header title."""
+    return _ctrl_card(html.Div(title, className="ctrl-section-header"), *children)
 
 def _row(*cols):
     return dbc.Row([dbc.Col(c) for c in cols], className="g-1 mb-1")
@@ -177,8 +199,7 @@ def _stack_control_card(prefix, default_btc=0, header=True):
 def _bubble_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
-        _ctrl_card(
-            html.Div("Axes & Range", className="ctrl-section-header"),
+        _section_card("Axes & Range",
             _row(
                 html.Div([_lbl("X scale"), dcc.RadioItems(
                     id="bub-xscale", options=[{"label":"Log","value":"log"},
@@ -211,8 +232,7 @@ def _bubble_controls():
                                 tooltip={"always_visible":False}),
             ]),
         ),
-        _ctrl_card(
-            html.Div("Display", className="ctrl-section-header"),
+        _section_card("Display",
             dcc.Checklist(id="bub-toggles",
                           options=[{"label":" Shade bands","value":"shade"},
                                    {"label":" Show OLS","value":"show_ols"},
@@ -224,8 +244,7 @@ def _bubble_controls():
                           labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
-        _ctrl_card(
-            html.Div("Bubble Model", className="ctrl-section-header"),
+        _section_card("Bubble Model",
             _lbl("Bubble"),
             dcc.Checklist(id="bub-bubble-toggles",
                           options=[{"label":" Composite","value":"show_comp"},
@@ -278,8 +297,7 @@ def _bubble_tab():
 def _heatmap_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
-        _ctrl_card(
-            html.Div("Entry Point", className="ctrl-section-header"),
+        _section_card("Entry Point",
             _lbl("Entry year"),
             dcc.Slider(id="hm-entry-yr", min=2010, max=2039,
                        value=yr_now, step=1, marks=None,
@@ -289,8 +307,7 @@ def _heatmap_controls():
                       value=_app_ctx._HM_ENTRY_Q_DEFAULT,
                       min=0.1, max=99.9, step=0.1, size="sm"),
         ),
-        _ctrl_card(
-            html.Div("Exit Range", className="ctrl-section-header"),
+        _section_card("Exit Range",
             _lbl("Exit year range"),
             dcc.RangeSlider(id="hm-exit-range", min=2010, max=2060,
                             value=[yr_now, yr_now + 15], step=1,
@@ -298,8 +315,7 @@ def _heatmap_controls():
                             tooltip={"always_visible":False}),
         ),
         _q_panel("hm-exit-qs", _app_ctx._DEF_QS),
-        _ctrl_card(
-            html.Div("Color & Style", className="ctrl-section-header"),
+        _section_card("Color & Style",
             _lbl("Color mode"),
             dcc.RadioItems(id="hm-mode",
                            options=[{"label":" Segmented","value":0},
@@ -435,7 +451,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                   amount_dropdown=False, show_stack=False, show_mc_entry_q=False,
                   default_entry_q=50):
     """Monte Carlo simulation controls, reusable across tabs."""
-    yr_now_ph = pd.Timestamp.today().year
+    yr_now = pd.Timestamp.today().year
     if not _app_ctx._HAS_MARKOV:
         # Hidden placeholders so callback IDs exist even without markov module
         return html.Div(style={"display": "none"}, children=[
@@ -448,8 +464,8 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             dcc.Dropdown(id=f"{prefix}-mc-freq", value="Monthly"),
             dbc.Input(id=f"{prefix}-mc-ppy", value="12/yr"),
             dcc.RangeSlider(id=f"{prefix}-mc-window", min=2010,
-                            max=yr_now_ph,
-                            value=[2010, yr_now_ph]),
+                            max=yr_now,
+                            value=[2010, yr_now]),
             html.Div(id=f"{prefix}-mc-cost"),
             html.Div(id=f"{prefix}-mc-body"),
             html.Div(id=f"{prefix}-mc-status"),
@@ -460,7 +476,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             html.Div(id=f"{prefix}-mc-match"),
             dcc.Upload(id=f"{prefix}-mc-upload"),
             html.Div(id=f"{prefix}-mc-upload-status"),
-            dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now_ph),
+            dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now),
             dcc.Dropdown(id=f"{prefix}-mc-entry-q",
                         value=max(10, min(90, round(_app_ctx._HM_ENTRY_Q_DEFAULT / 10) * 10 or 50))),
             dcc.Dropdown(id=f"{prefix}-mc-stack", value=1.0),
@@ -615,8 +631,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
 def _dca_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
-        _ctrl_card(
-            html.Div("DCA Plan", className="ctrl-section-header"),
+        _section_card("DCA Plan",
             _lbl("Per-period amount ($)"),
             dbc.Input(id="dca-amount", type="number", value=100,
                       min=1, step=1, size="sm"),
@@ -625,8 +640,7 @@ def _dca_controls():
             _lbl("Year range"),
             _year_range_slider("dca", 2009, 2060, yr_now, yr_now + 10),
         ),
-        _ctrl_card(
-            html.Div("Display", className="ctrl-section-header"),
+        _section_card("Display",
             dcc.Dropdown(id="dca-disp",
                          options=[{"label":"BTC Balance","value":"btc"},
                                   {"label":"USD Value","value":"usd"}],
@@ -654,6 +668,8 @@ def _stackcelerator_controls():
         dcc.Checklist(id="dca-sc-enable",
                       options=[{"label":" Activate Saylor Mode","value":"yes"}],
                       value=[], inputStyle={"marginRight":"5px"}),
+        # Why html.Div(display:none) instead of dbc.Collapse: Dash Collapse
+        # unmounts its children, destroying component state on toggle.
         html.Div(id="dca-sc-body", style={"display":"none"}, children=[
             _lbl("Loan amount ($)"),
             dbc.Input(id="dca-sc-loan", type="number",
@@ -709,8 +725,7 @@ def _dca_tab():
 def _retire_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
-        _ctrl_card(
-            html.Div("Withdrawal Plan", className="ctrl-section-header"),
+        _section_card("Withdrawal Plan",
             _lbl("Withdrawal/period ($)"),
             dbc.Input(id="ret-wd", type="number", value=5000,
                       min=1, step=1, size="sm"),
@@ -722,8 +737,7 @@ def _retire_controls():
             dbc.Input(id="ret-infl", type="number", value=4,
                       min=0, max=100, step=0.5, size="sm"),
         ),
-        _ctrl_card(
-            html.Div("Display", className="ctrl-section-header"),
+        _section_card("Display",
             dcc.Dropdown(id="ret-disp",
                          options=[{"label":"BTC Remaining","value":"btc"},
                                   {"label":"USD Value","value":"usd"}],
@@ -765,12 +779,11 @@ def _retire_tab():
 
 def _supercharge_controls():
     yr_now = pd.Timestamp.today().year
-    dq_opts = _q_options()
-    dq_default = _nearest_quantile(0.05, _app_ctx._ALL_QS)
+    display_q_opts = _q_options()
+    display_q_default = _nearest_quantile(0.05, _app_ctx._ALL_QS)
     return html.Div([
         # ── Scenario card: mode + timeline + delays + freq/infl + mode-specific ──
-        _ctrl_card(
-            html.Div("Scenario", className="ctrl-section-header"),
+        _section_card("Scenario",
             dcc.RadioItems(id="sc-mode",
                 options=[{"label":" A \u2014 Fixed spending (depletion date)","value":"a"},
                          {"label":" B \u2014 Fixed depletion (max spending)","value":"b"}],
@@ -828,16 +841,15 @@ def _supercharge_controls():
             ], id="sc-mode-b-collapse", is_open=False),
         ),
         # ── Display card: chart layout + display-q + BTC/USD + toggles ──
-        _ctrl_card(
-            html.Div("Display", className="ctrl-section-header"),
+        _section_card("Display",
             dcc.Checklist(id="sc-chart-layout",
                 options=[{"label":" Shade quantile bands","value":"shade"}],
                 value=["shade"],
                 inputStyle={"marginRight":"5px"}),
             dbc.Collapse([
                 _lbl("Display quantile"),
-                dcc.Dropdown(id="sc-display-q", options=dq_opts,
-                             value=dq_default, clearable=False),
+                dcc.Dropdown(id="sc-display-q", options=display_q_opts,
+                             value=display_q_default, clearable=False),
             ], id="sc-display-q-collapse", is_open=True),
             dcc.Dropdown(id="sc-disp",
                          options=[{"label":"BTC Remaining","value":"btc"},
@@ -1146,6 +1158,8 @@ _FAQ = [
 
 def _faq_tab():
     items = []
+    # Note: item_id uses loop index -- reordering _FAQ entries will break
+    # direct links (/7.N) since they reference items by position.
     for i, entry in enumerate(_FAQ):
         items.append(
             dbc.AccordionItem(
@@ -1610,7 +1624,7 @@ _SPLASH_QUOTES_JS = _json.dumps(
 )
 
 _app_ctx.app.layout = dbc.Container([
-    dcc.Interval(id="price-interval", interval=20*60*1000, n_intervals=0),
+    dcc.Interval(id="price-interval", interval=_PRICE_INTERVAL_MS, n_intervals=0),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="splash-ts-store", storage_type="local", data=None),
     dcc.Store(id="lots-store", storage_type="local", data=[]),
@@ -1634,8 +1648,8 @@ _app_ctx.app.layout = dbc.Container([
     dcc.Store(id="mc-pay-invoice", storage_type="memory", data=None),
     dcc.Store(id="mc-pay-token",   storage_type="memory", data=None),
     dcc.Store(id="mc-pay-trigger", storage_type="memory", data=0),
-    dcc.Interval(id="mc-pay-poll", interval=3000, disabled=True,
-                 max_intervals=300, n_intervals=0),
+    dcc.Interval(id="mc-pay-poll", interval=_MC_POLL_INTERVAL_MS, disabled=True,
+                 max_intervals=_MC_POLL_MAX, n_intervals=0),
     # MC save prompt modal — shown after cache miss (new simulation)
     dcc.Store(id="mc-save-tab", storage_type="memory", data=None),
     dcc.Store(id="mc-save-modal-dummy"),

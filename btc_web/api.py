@@ -25,12 +25,16 @@ log = logging.getLogger(__name__)
 # Two limits: 20 outstanding unpaid invoices/hr, 100 paid invoices/hr.
 
 _WINDOW = 3600  # 1 hour
+_MAX_UNPAID = 20                # max outstanding unpaid invoices per IP per window
+_MAX_PAID_PER_HR = 100          # max paid invoices per IP per window
+_ALLOWED_TABS = ("dca", "ret", "hm")
+_ALLOWED_MC_YEARS = (10, 20, 30, 40)
 
 # {ip: [(timestamp, paid_bool), ...]}
 _invoice_log: dict[str, list] = defaultdict(list)
 
 
-def _prune(ip: str):
+def _prune(ip: str) -> None:
     """Remove entries older than the rate-limit window."""
     cutoff = time.time() - _WINDOW
     _invoice_log[ip] = [(t, p) for t, p in _invoice_log[ip] if t > cutoff]
@@ -42,19 +46,19 @@ def _check_rate_limit(ip: str) -> str | None:
     entries = _invoice_log[ip]
     paid   = sum(1 for _, p in entries if p)
     unpaid = sum(1 for _, p in entries if not p)
-    if unpaid >= 20:
+    if unpaid >= _MAX_UNPAID:
         return "Too many unpaid invoices. Please pay existing invoices first."
-    if paid >= 100:
+    if paid >= _MAX_PAID_PER_HR:
         return "Hourly invoice limit reached. Please try again later."
     return None
 
 
-def _record_invoice(ip: str):
+def _record_invoice(ip: str) -> None:
     """Record a new invoice creation (initially unpaid)."""
     _invoice_log[ip].append((time.time(), False))
 
 
-def _mark_paid(ip: str, invoice_id: str):
+def _mark_paid(ip: str, invoice_id: str) -> None:
     """Mark the most recent unpaid entry as paid (approximate — just flips one)."""
     entries = _invoice_log[ip]
     for i in range(len(entries) - 1, -1, -1):
@@ -65,7 +69,7 @@ def _mark_paid(ip: str, invoice_id: str):
 
 # ── Route registration ───────────────────────────────────────────────────────
 
-def register_routes(server):
+def register_routes(server) -> None:
     """Register MC payment API routes on the Flask server."""
 
     if not btcpay._HAS_BTCPAY:
@@ -106,9 +110,9 @@ def register_routes(server):
         start_yr = int(data.get("start_yr", 2026))
 
         # Validate
-        if tab not in ("dca", "ret", "hm"):
+        if tab not in _ALLOWED_TABS:
             return jsonify({"error": "Invalid tab"}), 400
-        if mc_years not in (10, 20, 30, 40):
+        if mc_years not in _ALLOWED_MC_YEARS:
             return jsonify({"error": "Invalid mc_years"}), 400
 
         # Free tier check

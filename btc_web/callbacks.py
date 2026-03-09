@@ -1,4 +1,26 @@
 """Callbacks: chart updates, UI interactions, share/snapshot, tab routing."""
+#
+# Sections:
+#   Imports ........................ ~1-35
+#   MC parameter helpers ........... ~36-90
+#   Chart update callbacks ......... ~91-500
+#     Bubble ....................... ~95
+#     Heatmap ...................... ~200
+#     DCA .......................... ~330
+#     Retire ....................... ~400 (approx)
+#     Supercharge .................. ~450 (approx)
+#   MC match indicator ............. ~500-560
+#   MC datapoint cap ............... ~570-610
+#   Quantile panel collapse ........ ~610-660
+#   MC cost display ................ ~660-730
+#   MC payment flow ................ ~730-1000
+#   SC loan info & toggles ......... ~1000-1370
+#   Stack Tracker (lots CRUD) ...... ~1370-1590
+#   MC simulation save/load ........ ~1590-1760
+#   Live price ticker .............. ~1750-1775
+#   Image export ................... ~1777-1830
+#   Tab routing & navigation ....... ~1830-2250
+#   Snapshot / share ............... ~2250-end
 
 import json
 import base64
@@ -32,6 +54,16 @@ from layout import (_Q_COLLAPSED_HEIGHT, _SPLASH_QUOTES, _SPLASH_QUOTES_JS,
 from mc_cache import (MC_YEARS_OPTIONS, MC_BINS, MC_SIMS, MC_FREQ,
                       MC_DEFAULT_YEARS, MC_DEFAULT_ENTRY_Q, MC_DEFAULT_START_YR)
 import btcpay
+
+def _format_lots_for_table(lots):
+    """Format lot dicts for the Stack Tracker DataTable display."""
+    return [
+        {**l,
+         "total_paid": fmt_price(l["btc"] * l["price"]),
+         "pct_q":      f"Q{l['pct_q']*100:.2f}%"}
+        for l in lots
+    ]
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MC parameter helper — single assembly point for all 4 MC-enabled tabs
@@ -771,7 +803,7 @@ def _mc_payment_initiate(*args):
     # Extract the relevant tab's MC params from states
     tab_idx = list(_MC_BTN_TO_TAB.keys()).index(triggered)
     # States are grouped as (years, start_yr, entry_q) × 4 tabs, then trigger
-    state_base = 4  # skip the 4 button Inputs
+    state_base = 4  # skip the 4 button Inputs that precede the State args
     mc_years  = int(args[state_base + tab_idx * 3]     or MC_DEFAULT_YEARS)
     start_yr  = int(args[state_base + tab_idx * 3 + 1] or MC_DEFAULT_START_YR)
     entry_q   = float(args[state_base + tab_idx * 3 + 2] or MC_DEFAULT_ENTRY_Q)
@@ -1475,12 +1507,7 @@ def manage_lots(add_n, del_n, clear_n, import_contents,
             logger.warning("Lot import failed: %s", e)
             raise dash.exceptions.PreventUpdate
 
-    table_data = [
-        {**l,
-         "total_paid": fmt_price(l["btc"] * l["price"]),
-         "pct_q":      f"Q{l['pct_q']*100:.2f}%"}
-        for l in lots
-    ]
+    table_data = _format_lots_for_table(lots)
     return lots, table_data, [], _lots_summary(lots), import_status
 
 
@@ -1492,12 +1519,7 @@ def manage_lots(add_n, del_n, clear_n, import_contents,
 )
 def sync_table_on_load(lots_data):
     lots = lots_data or []
-    table_data = [
-        {**l,
-         "total_paid": fmt_price(l["btc"] * l["price"]),
-         "pct_q":      f"Q{l['pct_q']*100:.2f}%"}
-        for l in lots
-    ]
+    table_data = _format_lots_for_table(lots)
     return table_data, _lots_summary(lots)
 
 
@@ -1653,7 +1675,7 @@ def _parse_mc_upload(contents, expected_tab=None):
     return data, None
 
 
-def _pk(data, key, default=None):
+def _extract_mc_key_val(data, key, default=None):
     """Get a value from loaded data's path_key or overlay_key."""
     pk = data.get("path_key", {})
     ok = data.get("overlay_key", {})
@@ -1728,7 +1750,7 @@ def _register_mc_upload(prefix, fields):
                 return err_tuple[:1] + (err,) + err_tuple[2:]
             extra = []
             for _, data_key, default, cast_int in fields:
-                val = _pk(data, data_key, default if default is not None else nu)
+                val = _extract_mc_key_val(data, data_key, default if default is not None else nu)
                 if cast_int and val is not nu:
                     val = int(val)
                 extra.append(val)
@@ -2009,6 +2031,7 @@ _app_ctx.app.clientside_callback(
             var quotes = """ + _json.dumps([list(q) for q in _SPLASH_QUOTES]) + """;
             /* Deterministic pseudo-random shuffle using epoch as seed */
             var seed = Math.floor(now / (6 * 3600 * 1000));
+            // Mulberry32: fast deterministic PRNG (no crypto needed, just shuffling quotes)
             function mulberry32(a) { return function() {
                 a |= 0; a = a + 0x6D2B79F5 | 0;
                 var t = Math.imul(a ^ a >>> 15, 1 | a);

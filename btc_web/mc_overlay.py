@@ -47,6 +47,11 @@ except ImportError:
 
 _MC_FAN_PCTS = _MC_CACHE_FAN_PCTS if _HAS_MC_CACHE else (0.01, 0.05, 0.25, 0.50, 0.75, 0.95)
 
+# ── MC overlay constants ──────────────────────────────────────────────────────
+_PCTILE_MIN = 0.05              # min entry percentile (clip to avoid extreme tails)
+_PCTILE_MAX = 0.95              # max entry percentile
+_ANNOT_AX = 28                  # annotation arrow x-offset (pixels)
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Transition matrix cache (server-side, persisted to disk)
@@ -286,7 +291,7 @@ def _mc_depletion_annots(mc_ts, fan, mc_start_yr, mc_years, existing_count=0):
             annots.append(dict(
                 x=depl_t, xref="x",
                 y=0, yref="paper",
-                ax=28, ay=_ay,
+                ax=_ANNOT_AX, ay=_ay,
                 text=f"\u2248{depl_yr}",
                 showarrow=True, arrowhead=2, arrowsize=1,
                 arrowcolor=mc_col,
@@ -304,6 +309,11 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
 
     Returns (traces, result_dict, cf_usd).
     """
+    # Cache lookup order (3-level fallthrough):
+    #   1. Client-side cache: full match (path_key + overlay_key) → return directly
+    #      Partial match (path_key only) → recompute overlay from cached price paths
+    #   2. Pre-computed server cache: npz/shm paths → recompute overlay
+    #   3. Live simulation: build transition matrix, run MC, compute overlay
     amount     = float(p.get("mc_amount", 100))
     n_bins     = int(p.get("mc_bins", MC_BINS))
     n_sims     = int(p.get("mc_sims", MC_SIMS))
@@ -380,7 +390,7 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
     n_steps = len(mc_ts)
 
     start_pctile = float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)) / 100.0
-    start_pctile = max(0.05, min(start_pctile, 0.95))
+    start_pctile = max(_PCTILE_MIN, min(start_pctile, _PCTILE_MAX))
 
     price_paths, _ = monte_carlo_prices(
         trans, bin_edges, start_pctile, n_steps, n_sims,
@@ -421,6 +431,11 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
 
     Returns (traces, annots, result).
     """
+    # Cache lookup order (3-level fallthrough):
+    #   1. Client-side cache: full match (path_key + overlay_key) → return directly
+    #      Partial match (path_key only) → recompute overlay from cached price paths
+    #   2. Pre-computed server cache: npz/shm paths → recompute overlay
+    #   3. Live simulation: build transition matrix, run MC, compute overlay
     wd_amount  = float(p.get("mc_amount", 5000))
     inflation  = float(p.get("mc_infl", 4)) / 100.0
     n_bins     = int(p.get("mc_bins", MC_BINS))
@@ -513,7 +528,7 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
 
     start_pctile = float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)) / 100.0
     start_pctile = round(start_pctile * 20) / 20
-    start_pctile = max(0.05, min(start_pctile, 0.95))
+    start_pctile = max(_PCTILE_MIN, min(start_pctile, _PCTILE_MAX))
 
     price_paths, _ = monte_carlo_prices(
         trans, bin_edges, start_pctile, n_steps, n_sims,
@@ -651,7 +666,7 @@ def _mc_heatmap_overlay(m, p, ep, entry_t, eyrs):
     n_steps = len(mc_ts)
 
     start_pctile = float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)) / 100.0
-    start_pctile = max(0.05, min(start_pctile, 0.95))
+    start_pctile = max(_PCTILE_MIN, min(start_pctile, _PCTILE_MAX))
 
     price_paths, _ = monte_carlo_prices(
         trans, bin_edges, start_pctile, n_steps, n_sims,

@@ -94,6 +94,10 @@ _SNAPSHOT_CONTROLS = [
 _SNAP_PREFIX    = "q2:"   # current format
 _SNAP_PREFIX_V1 = "q1:"   # legacy format (dict-based), kept for backward compat
 
+# Why bitmask encoding: storing 17 quantile checkboxes as a list in JSON costs
+# ~150 chars; a single bitmask integer costs ~5 chars. Across 20 checklist fields,
+# this saves ~660 characters in share URLs — significant for link-sharing UX.
+#
 # All checklist component IDs → ordered list of their possible values.
 # Encoded as bitmask integers in new links (bit i set ↔ opts[i] selected).
 # Old q2 links store lists; the decoder handles both formats transparently

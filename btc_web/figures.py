@@ -3,6 +3,19 @@
 Each function takes a ModelData instance and a params dict of control values
 and returns a go.Figure ready for dcc.Graph.
 """
+#
+# Sections:
+#   Imports & QR interpolation ..... ~1-48
+#   Shared constants ............... ~49-75
+#   Theme helpers .................. ~77-160
+#   Watermark & MC premium ......... ~162-278
+#   Color helpers .................. ~280-345
+#   Bubble + QR Overlay ............ ~347-560
+#   CAGR Heatmap ................... ~562-830
+#   DCA + Stack-celerator .......... ~832-1200
+#   Retirement ..................... ~1202-1465
+#   HODL Supercharger .............. ~1467-1865
+
 from __future__ import annotations
 
 import math
@@ -63,6 +76,14 @@ _FONT_BODY        = 11
 _FONT_LEGEND      = _app_ctx.FONT_LEGEND
 _FONT_WATERMARK   = 9
 _FONT_ANNOT       = 11       # depletion / edge annotation text
+
+_SHADE_ALPHA      = 0.08     # fill opacity between adjacent quantile lines
+_WM_OPACITY       = 0.55     # watermark logo opacity
+_WM_SIZE_X        = 0.09     # watermark logo width (fraction of paper)
+_WM_SIZE_Y        = 0.12     # watermark logo height (fraction of paper)
+_COLORSCALE_STEPS = 256      # dense colorscale points (avoids browser interpolation bugs)
+_BISECT_ITERS     = 60       # binary search iterations for Mode B max-withdrawal
+_HM_TEXT_THRESHOLD = 0.55    # cell brightness threshold: white text below, dark above
 
 # ── Enhanced font stack (sans-serif base, serif for premium/MC) ──────────
 _SANS_FONT = "Inter, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif"
@@ -262,9 +283,9 @@ def _apply_watermark(fig: go.Figure, pos: str = "bottom-right") -> None:
             source=_LOGO_B64,
             xref="paper", yref="paper",
             x=img_x, y=0.0,
-            sizex=0.09, sizey=0.12,
+            sizex=_WM_SIZE_X, sizey=_WM_SIZE_Y,
             xanchor=img_xa, yanchor="bottom",
-            opacity=0.55,
+            opacity=_WM_OPACITY,
             layer="above",
         ))
     fig.add_annotation(dict(
@@ -297,7 +318,7 @@ def _lerp_hex(c1, c2, f):
     return f"#{r:02x}{g:02x}{b:02x}"
 
 
-def _dense_colorscale(color_fn, n=256):
+def _dense_colorscale(color_fn, n=_COLORSCALE_STEPS):
     """Sample color_fn(t) at n uniform points and return an rgb() colorscale.
 
     Using 256 rgb() entries avoids browser-specific colorscale interpolation
@@ -379,7 +400,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             traces.append(go.Scatter(
                 x=list(t_arr), y=list(hi_p),
                 mode="lines", line=dict(width=0), fill="tonexty",
-                fillcolor=col.replace("#", "rgba(").rstrip(")") if False else _hex_alpha(col, 0.08),
+                fillcolor=col.replace("#", "rgba(").rstrip(")") if False else _hex_alpha(col, _SHADE_ALPHA),
                 showlegend=False, hoverinfo="skip",
             ))
 
@@ -623,17 +644,22 @@ def _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax, cell_fs):
             elif vfmt == "mult_port":
                 pv = fmt_price(vp2 * hm_stk) if hm_stk > 0 else fmt_price(vp2)
                 tx = f"{vm:.2f}\u00d7\n{pv}"
+            elif vfmt == "none":
+                tx = ""
             else:
+                import logging as _log
+                _log.getLogger(__name__).warning("Unknown heatmap vfmt: %s", vfmt)
                 tx = ""
 
             if tx:
                 cell_norm = (vc2 - zmin) / max(zmax - zmin, 1e-6)
-                txt_col = "#ffffff" if cell_norm < 0.55 else "#111111"
+                txt_col = "#ffffff" if cell_norm < _HM_TEXT_THRESHOLD else "#111111"
                 annots.append(dict(
                     x=ci, y=ri,
                     text=tx.replace("\n", "<br>"),
                     showarrow=False,
-                    font=dict(size=cell_fs, color=txt_col),
+                    font=dict(size=cell_fs, color=txt_col,
+                              family=_SANS_FONT, weight="bold"),
                     xref="x", yref="y",
                 ))
     return annots
@@ -736,8 +762,7 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     fig.layout.font.update(family=_SANS_FONT, size=_FONT_TICK_LG)
     fig.layout.xaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
     fig.layout.yaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
-    for ann in fig.layout.annotations:
-        ann.font.update(family=_SANS_FONT, size=_FONT_ANNOT_LG)
+    # Cell font family/size/weight set in _heatmap_cell_annots; no override here.
     _apply_watermark(fig)
     return fig
 
@@ -822,8 +847,7 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
     fig.layout.font.update(family=_SANS_FONT, size=_FONT_TICK_LG)
     fig.layout.xaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
     fig.layout.yaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
-    for ann in fig.layout.annotations:
-        ann.font.update(family=_SANS_FONT, size=_FONT_ANNOT_LG)
+    # Cell font family/size/weight set in _heatmap_cell_annots; no override here.
     if p.get("mc_enabled"):
         _apply_mc_premium(fig, legend_pos=None)
     _apply_watermark(fig)
@@ -895,6 +919,13 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy):
 
                 sc_stack += sc_dca_amt / price
 
+                # ── Loan repayment logic ──────────────────────────────────
+                # Amortizing: each period pays interest + principal in fiat
+                #   (no BTC sold, tax has no effect on amortizing loans).
+                # Interest-only: at cycle end, sell BTC to repay principal.
+                #   Tax applies ONLY to capital gain (sell_price - buy_price),
+                #   not the full proceeds. If selling at a loss (price <= ep),
+                #   no tax is owed. Rollover defers all repayment to sim end.
                 if loan_type == "amortizing":
                     interest_p  = outstanding * r
                     principal_p = pmt - interest_p
@@ -1328,7 +1359,9 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
         layout["annotations"] = deplete_annots
 
     # ── Right-edge value annotations (arrow style, paper coords) ────────────
-    # Use yref="paper" to avoid dual-y / log-scale annotation positioning bug.
+    # Plotly bug workaround: annotations with yref="y" render at wrong
+    # positions on dual-y log-scale charts. We compute paper-space [0,1]
+    # coordinates manually and use yref="paper" instead.
     # Mirrors depleted annotation style: arrow from text to the right axis edge.
     if p.get("annotate"):
         is_log = bool(p.get("log_y"))
@@ -1781,8 +1814,11 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
         if t_end_b <= t_start_d:
             return 0.0
         first_price = float(qr_price(q, max(t_start_d, 0.5), m.qr_fits))
+        # Binary search: find max withdrawal where stack survives to target_yr.
+        # Upper bound = 4x annual stack value (generous overestimate).
+        # 60 iterations gives precision to ~1e-18 of the range (more than enough).
         lo, hi = 0.0, start_stack * first_price * ppy * 4
-        for _ in range(60):
+        for _ in range(_BISECT_ITERS):
             mid = (lo + hi) / 2.0
             s   = start_stack
             survived = True

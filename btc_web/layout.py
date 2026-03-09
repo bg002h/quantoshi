@@ -425,6 +425,7 @@ def _heatmap_tab():
                    style={"display":"none"}),
             ], className="hm-swipe-container", id="hm-swipe-wrap"),
             html.Div(id="hm-swipe-scroll-dummy", style={"display":"none"}),
+            html.Div(id="hm-relayout-dummy", style={"display":"none"}),
             _export_row("heatmap"),
         ], width=9),
     ], className="g-0")

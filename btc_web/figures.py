@@ -88,7 +88,7 @@ def _error_figure(m, title):
 # ── shared theme helpers ──────────────────────────────────────────────────────
 
 _LOG_MINOR = dict(showgrid=True, gridcolor="rgba(128,128,128,0.15)",
-                  griddash="dot", gridwidth=0.5)
+                  griddash="dot", gridwidth=0.5, dtick="D1")
 
 
 def _dark_layout(m, title, xlabel, ylabel, **kwargs):
@@ -1216,6 +1216,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     )
     if p.get("log_y"):
         layout["yaxis"]["type"] = "log"
+        layout["yaxis"]["dtick"] = 1  # decades only (drop 2× and 5×)
         if p.get("minor_grid"):
             layout["yaxis"]["minor"] = _LOG_MINOR
     layout["shapes"]      = shapes
@@ -1241,16 +1242,19 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 line=dict(color=col, dash="dot", width=1),
                 yaxis="y2", showlegend=False,
             ))
+        # $ prefix only when secondary axis shows USD
+        y2_tick_prefix = "$" if y2_lbl == "USD Value" else ""
         layout["yaxis2"] = dict(
             title=dict(text=y2_lbl, font=dict(color=m.TEXT_COLOR)),
             overlaying="y", side="right",
-            gridcolor=m.GRID_MAJOR_COLOR, linecolor=m.SPINE_COLOR,
+            showgrid=False, linecolor=m.SPINE_COLOR,
             tickcolor=m.TEXT_COLOR,
+            ticks="outside", ticklen=8, tickwidth=1.5,
+            tickprefix=y2_tick_prefix,
         )
         if p.get("log_y"):
             layout["yaxis2"]["type"] = "log"
-            if p.get("minor_grid"):
-                layout["yaxis2"]["minor"] = _LOG_MINOR
+            layout["yaxis2"]["dtick"] = 1
 
     # ── Monte Carlo fan overlay ─────────────────────────────────────────────
     mc_traces_list = []

@@ -28,12 +28,6 @@
             wrap.scrollTo({ left: wrap.scrollWidth, behavior: "smooth" });
         });
 
-        /* Force Plotly re-render so annotation font weights apply on initial
-           mobile portrait load (iOS Safari skips bold on first paint). */
-        setTimeout(function() {
-            window.dispatchEvent(new Event("resize"));
-        }, 800);
-
         /* Expose a scroll-to-MC function for Dash clientside callbacks */
         wrap._scrollToMC = function() {
             setTimeout(function() {

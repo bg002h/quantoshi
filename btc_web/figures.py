@@ -759,10 +759,12 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         margin=dict(l=70, r=20, t=60, b=50),
     )
     fig.layout.title.font.update(family=_SANS_FONT, size=_FONT_TITLE_LG)
-    fig.layout.font.update(family=_SANS_FONT, size=_FONT_TICK_LG)
+    fig.layout.font.update(family=_SANS_FONT, size=_FONT_TICK_LG, weight="bold")
     fig.layout.xaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
     fig.layout.yaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
     # Cell font family/size/weight set in _heatmap_cell_annots; no override here.
+    # Global font.weight="bold" ensures iOS Safari renders bold on first paint
+    # (per-annotation weight is unreliable on initial mobile render).
     _apply_watermark(fig)
     return fig
 

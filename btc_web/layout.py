@@ -941,8 +941,16 @@ _FAQ = [
             "covering different entry percentiles, time horizons, withdrawal amounts, inflation "
             "rates, and stack sizes. The full cache occupies roughly 834 MB of RAM, loaded at "
             "server startup from compressed arrays on disk. A compiled Cython engine generates "
-            "the cache offline; at runtime, lookups are instantaneous. Even so, MCMC remains the "
-            "most resource-intensive feature on the site.",
+            "the cache offline; at runtime, lookups are instantaneous.",
+            html.Br(), html.Br(),
+            "When you choose parameters outside the pre-computed cache — a custom withdrawal "
+            "amount, a different inflation rate, or a start year we haven't cached — Quantoshi "
+            "has to run a fresh simulation on the server in real time. This means generating "
+            "hundreds of full price paths from scratch, each stepping through hundreds of "
+            "transitions, and then computing withdrawal overlays on top of them. That is why "
+            "custom simulations cost a small lightning payment and may take a few seconds to "
+            "return: you are paying for dedicated compute time that cannot be amortized across "
+            "other users.",
         ]),
     },
     {

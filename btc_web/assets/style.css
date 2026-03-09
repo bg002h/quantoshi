@@ -971,7 +971,9 @@ body {
         opacity: 1;
     }
 
-    /* Expanded (hover) — push chart over, stay in flow */
+}
+/* Hover-expand only on devices with a real pointer (not sticky touch :hover) */
+@media (min-width: 768px) and (hover: hover) {
     .controls-col.drawer-collapsed:hover {
         flex: 0 0 25% !important;
         max-width: 25% !important;
@@ -987,7 +989,6 @@ body {
     .controls-col.drawer-collapsed:hover::after {
         display: none;
     }
-    /* Graph slides back when controls expand on hover */
     .controls-col.drawer-collapsed:hover + [class*="col-"] {
         flex: 0 0 75% !important;
         max-width: 75% !important;

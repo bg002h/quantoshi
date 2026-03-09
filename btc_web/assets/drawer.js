@@ -4,7 +4,7 @@
     "use strict";
 
     var COLLAPSE_DELAY = 5000;   /* ms before auto-collapse */
-    var REARM_DELAY    = 3000;   /* ms after mouse leaves before re-collapse */
+    var REARM_DELAY    = 2000;   /* ms after mouse leaves / unpin before re-collapse */
     var timers = [];             /* per-column collapse timers */
     var pinned = [];             /* per-column pin state */
 

@@ -1899,6 +1899,13 @@ _app_ctx.app.clientside_callback(
             return NU;
         }
         var p = window._pendingTabPath || pathname;
+        if (window._pendingTabPath) {
+            /* Splash just closed — force Plotly resize after chart renders
+               to handle rapid-dismiss edge case where layout hasn't settled. */
+            setTimeout(function() {
+                window.dispatchEvent(new Event("resize"));
+            }, 1200);
+        }
         window._pendingTabPath = null;
         if (p && /^\\/7\\.\\d+$/.test(p)) { return "faq"; }
         var tab = map[p];

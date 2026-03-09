@@ -31,7 +31,8 @@
                 clearTimeout(timers[i]);
                 col.classList.remove("drawer-collapsed");
             } else {
-                armCollapse(i, col, REARM_DELAY);
+                /* Delay so synthetic mouseenter from touch doesn't cancel the timer */
+                setTimeout(function() { armCollapse(i, col, REARM_DELAY); }, 100);
             }
         });
         /* Insert as first child so it sits above the scrolling content */

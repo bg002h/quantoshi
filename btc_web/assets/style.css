@@ -185,6 +185,7 @@ body {
 
 /* ── #10: Controls column — visible drawer frame ─────────────────────────── */
 .controls-col {
+    position: relative;
     padding: 6px 6px 6px 4px !important;
     scrollbar-width: thin;
     scrollbar-color: var(--nav-dark) #f0f2f5;
@@ -909,9 +910,9 @@ body {
     }
     /* Sword-in-stone pin button — top-right of open panel */
     .drawer-pin {
-        position: sticky;
+        position: absolute;
         top: 2px;
-        float: right;
+        right: 2px;
         z-index: 10;
         width: 64px;
         height: 64px;

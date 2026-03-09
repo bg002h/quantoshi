@@ -202,23 +202,29 @@ def _apply_mc_premium(fig: go.Figure, legend_pos: str = "top-left", hide_xlabel:
     *legend_pos*: move legend inside the plot area at the named corner.
     Pass ``None`` to keep the default (outside) position.
     """
-    # Title: serif, gold, centered, +2px
+    # Title: serif, gold, bold, centered, +4px
     fig.layout.title.font.family = _MC_FONT_FAMILY
-    fig.layout.title.font.size = _FONT_TITLE + 2
+    fig.layout.title.font.size = _FONT_TITLE + 4
     fig.layout.title.font.color = _MC_TITLE_COLOR
+    fig.layout.title.font.weight = "bold"
     fig.layout.title.x = 0.5
     fig.layout.title.xanchor = "center"
-    # Global font (tick labels): serif, +1px
+    # Global font (tick labels): serif, bold, +3px
     fig.layout.font.family = _MC_FONT_FAMILY
-    fig.layout.font.size = _FONT_BODY + 1
-    # Axis titles: serif, +2px
+    fig.layout.font.size = _FONT_BODY + 3
+    fig.layout.font.weight = "bold"
+    # Axis titles: serif, bold, +4px
     if hide_xlabel:
         fig.layout.xaxis.title.text = ""
     fig.layout.xaxis.title.font.family = _MC_FONT_FAMILY
-    fig.layout.xaxis.title.font.size = _FONT_BODY + 2
+    fig.layout.xaxis.title.font.size = _FONT_BODY + 4
+    fig.layout.xaxis.title.font.weight = "bold"
     fig.layout.yaxis.title.font.family = _MC_FONT_FAMILY
-    fig.layout.yaxis.title.font.size = _FONT_BODY + 2
-    # Legend — inside the plot at the specified corner
+    fig.layout.yaxis.title.font.size = _FONT_BODY + 4
+    fig.layout.yaxis.title.font.weight = "bold"
+    # Legend — bold but not enlarged
+    fig.layout.legend.font.weight = "bold"
+    fig.layout.legend.font.size = _FONT_LEGEND
     fig.layout.legend.bordercolor = _MC_LEGEND_BORDER
     if legend_pos and legend_pos in _MC_LEGEND_POS:
         pos = _MC_LEGEND_POS[legend_pos]
@@ -230,7 +236,14 @@ def _apply_mc_premium(fig: go.Figure, legend_pos: str = "top-left", hide_xlabel:
     # yaxis2 (dual-y) if present
     if hasattr(fig.layout, "yaxis2") and fig.layout.yaxis2.title is not None:
         fig.layout.yaxis2.title.font.family = _MC_FONT_FAMILY
-        fig.layout.yaxis2.title.font.size = _FONT_BODY + 2
+        fig.layout.yaxis2.title.font.size = _FONT_BODY + 4
+        fig.layout.yaxis2.title.font.weight = "bold"
+    # Top border line to close the plot area
+    fig.add_shape(
+        type="line", xref="paper", yref="paper",
+        x0=0, x1=1, y0=1, y1=1,
+        line=dict(color=fig.layout.yaxis.linecolor or "#999", width=1),
+    )
 
 
 def _apply_watermark(fig: go.Figure, pos: str = "bottom-right") -> None:
@@ -1060,15 +1073,50 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
         xlabel="Year",
         ylabel=ylabel,
     )
+    layout["yaxis"]["title"]["standoff"] = 5
     layout["xaxis"].update(
         tickvals=tick_ts, ticktext=tick_lbls, tickangle=-45,
         range=[t_start, t_end],
     )
     if p.get("log_y"):
         layout["yaxis"]["type"] = "log"
+        layout["yaxis"]["dtick"] = 1  # decades only
         if p.get("minor_grid"):
             layout["yaxis"]["minor"] = _LOG_MINOR
     layout["shapes"] = shapes
+
+    # ── dual Y-axis — one dotted trace per quantile on the opposite unit ────
+    if p.get("dual_y") and all_btc_vals:
+        if disp_mode == "usd":
+            y2_lbl = "BTC Balance"
+        else:
+            y2_lbl = "USD Value"
+        for q in sel_qs:
+            if q not in all_btc_vals:
+                continue
+            if disp_mode == "usd":
+                y2_vals = all_btc_vals[q]
+            else:
+                y2_vals = all_usd_vals[q]
+            col = m.qr_colors.get(q, "#888888")
+            traces.append(go.Scatter(
+                x=list(ts), y=list(y2_vals),
+                mode="lines", name=f"{_fmt_q_label(q)} {y2_lbl}",
+                line=dict(color=col, dash="dot", width=1),
+                yaxis="y2", showlegend=False,
+            ))
+        y2_tick_prefix = "$" if y2_lbl == "USD Value" else ""
+        layout["yaxis2"] = dict(
+            title=dict(text=y2_lbl, font=dict(color=m.TEXT_COLOR)),
+            overlaying="y", side="right",
+            showgrid=False, linecolor=m.SPINE_COLOR,
+            tickcolor=m.TEXT_COLOR,
+            ticks="outside", ticklen=8, tickwidth=1.5,
+            tickprefix=y2_tick_prefix,
+        )
+        if p.get("log_y"):
+            layout["yaxis2"]["type"] = "log"
+            layout["yaxis2"]["dtick"] = 1
 
     # ── Stack-celerator overlay ─────────────────────────────────────────────
     all_sc_usd_vals = {}
@@ -1247,6 +1295,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
         xlabel="Year",
         ylabel=ylabel,
     )
+    layout["yaxis"]["title"]["standoff"] = 5
     layout["xaxis"].update(
         tickvals=tick_ts, ticktext=tick_lbls, tickangle=-45,
         range=[t_start, t_end],
@@ -1416,7 +1465,10 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 if disp_mode == "usd":
                     mc_lbl = fmt_price(ann_y)
                 else:
-                    mc_lbl = f"{ann_y:.4f} \u20bf"
+                    # Show BTC + estimated USD value (QR median price)
+                    t_ann = np.array([max(ann_x, 0.5)])
+                    mc_usd = ann_y * float(qr_price(0.5, t_ann, m.qr_fits)[0])
+                    mc_lbl = f"{ann_y:.2f} \u20bf  {fmt_price(mc_usd)}"
                 if mc_x_last < x_right:
                     ann_yr = int(syr + (mc_x_last - t_start)
                                  / max(t_end - t_start, 1e-6) * (eyr - syr))

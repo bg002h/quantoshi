@@ -606,33 +606,30 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call=True,
 )
 
-# Force Plotly relayout after heatmap render — iOS Safari skips annotation
-# font weight/size on initial portrait paint; relayout forces a re-render.
+# Force Plotly full redraw after heatmap render — iOS Safari skips annotation
+# font weight/size on initial portrait paint and may not render the chart at
+# all if a modal (splash) was open during initial layout.
 _app_ctx.app.clientside_callback(
     """
-    function(fig) {
+    function(fig, splashOpen) {
         if (!fig) return "";
-        setTimeout(function() {
-            var el = document.getElementById("heatmap-graph");
-            if (el) {
+        function redrawHeatmaps() {
+            ["heatmap-graph", "hm-mc-graph"].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (!el) return;
                 var gd = el.querySelector(".js-plotly-plot");
-                if (gd && window.Plotly) {
-                    Plotly.relayout(gd, {autosize: true});
+                if (gd && gd.data && window.Plotly) {
+                    Plotly.newPlot(gd, gd.data, gd.layout, gd.config || {});
                 }
-            }
-            var el2 = document.getElementById("hm-mc-graph");
-            if (el2) {
-                var gd2 = el2.querySelector(".js-plotly-plot");
-                if (gd2 && window.Plotly) {
-                    Plotly.relayout(gd2, {autosize: true});
-                }
-            }
-        }, 100);
+            });
+        }
+        setTimeout(redrawHeatmaps, 300);
         return "";
     }
     """,
     Output("hm-relayout-dummy", "children"),
     Input("heatmap-graph", "figure"),
+    Input("splash-modal", "is_open"),
     prevent_initial_call=True,
 )
 

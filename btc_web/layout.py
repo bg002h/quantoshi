@@ -1827,6 +1827,14 @@ _app_ctx.app.layout = dbc.Container([
                      style={"textAlign":"center", "fontSize":"12px",
                             "color":"#888", "marginTop":"16px",
                             "lineHeight":"1.7", "display":"none"}),
+            html.Div(
+                dbc.Button("\u2694\ufe0f Accept Knighthood", id="onion-knight-btn",
+                           color="warning", size="lg",
+                           style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif",
+                                  "fontWeight":"700", "padding":"10px 30px",
+                                  "fontSize":"16px", "borderRadius":"8px"}),
+                id="onion-knight-wrap",
+                style={"textAlign":"center", "marginTop":"16px", "display":"none"}),
             html.Div([
                 dbc.Button("Let's go", id="splash-dismiss", size="lg",
                            className="btn-share-accent",

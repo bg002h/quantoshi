@@ -1,7 +1,8 @@
 /* ── Knighting ceremony: awarded when the Orange Q streak unlocks ─────────────
    Detects the moment streak_unlocked transitions to true in journey-store.
    Plays a full-screen ceremony: dim → staff descends → taps Q → golden burst →
-   Q turns orange → "Rise, Anon. The Orange Q is yours." */
+   Q turns orange → "Rise, Anon. The Orange Q is yours."
+   Onion variant: triggered by easter egg button for Tor users. */
 (function() {
     "use strict";
 
@@ -36,121 +37,204 @@
         "Keeper of the Orange Flame",
     ];
 
-    /* ── The ceremony ──────────────────────────────────────────────────────── */
+    var STAFF_SVG =
+        '<svg viewBox="0 0 40 300" xmlns="http://www.w3.org/2000/svg">' +
+        '<line x1="20" y1="0" x2="20" y2="260" stroke="#8B4513" stroke-width="5" stroke-linecap="round"/>' +
+        '<circle cx="20" cy="10" r="12" fill="#f7931a"/>' +
+        '<circle cx="20" cy="10" r="12" fill="url(#kOrbGlow)" opacity="0.5"/>' +
+        '<text x="20" y="15" font-size="14" font-weight="bold" fill="#fff" ' +
+        '  text-anchor="middle" font-family="monospace">&#x20bf;</text>' +
+        '<defs><radialGradient id="kOrbGlow">' +
+        '<stop offset="0%" stop-color="#fff"/>' +
+        '<stop offset="100%" stop-color="#f7931a"/>' +
+        '</radialGradient></defs></svg>';
+
+    /* Shared: apply burst effects (Q flash, orange, shimmer, hat, particles, rings) */
+    function _applyBurst(overlay, qEl, qCx, qCy) {
+        qEl.classList.add("knight-flash");
+        var allQs = document.querySelectorAll(".brand-q");
+        for (var qi = 0; qi < allQs.length; qi++) {
+            allQs[qi].classList.add("streak-orange");
+        }
+        var brands = document.querySelectorAll(".brand-uantoshi");
+        for (var b = 0; b < brands.length; b++) {
+            brands[b].classList.add("streak-shimmer");
+        }
+        setTimeout(function() {
+            var qs = document.querySelectorAll(".brand-q");
+            for (var h = 0; h < qs.length; h++) {
+                qs[h].classList.add("streak-hat");
+            }
+        }, 800);
+        for (var i = 0; i < 24; i++) {
+            spawnGoldParticle(overlay, qCx, qCy);
+        }
+        for (var r = 0; r < 3; r++) {
+            var ring = document.createElement("div");
+            ring.className = "knight-ring";
+            ring.style.left = qCx + "px";
+            ring.style.top = qCy + "px";
+            ring.style.animationDelay = (r * 0.3) + "s";
+            overlay.appendChild(ring);
+        }
+    }
+
+    /* Shared: create overlay + staff, return {overlay, staff, qEl, qCx, qCy} */
+    function _setupCeremony() {
+        var qEl = document.querySelector(".brand-q");
+        if (!qEl) return null;
+        var qRect = qEl.getBoundingClientRect();
+        var qCx = qRect.left + qRect.width / 2;
+        var qCy = qRect.top + qRect.height / 2;
+        var overlay = document.createElement("div");
+        overlay.className = "knight-overlay";
+        document.body.appendChild(overlay);
+        var staff = document.createElement("div");
+        staff.className = "knight-staff";
+        staff.innerHTML = STAFF_SVG;
+        staff.style.left = Math.max(4, qCx - 20) + "px";
+        overlay.appendChild(staff);
+        return {overlay: overlay, staff: staff, qEl: qEl, qCx: qCx, qCy: qCy};
+    }
+
+    /* Shared: pick a title and persist it + knighted flag + streak_unlocked */
+    function _knightAndTitle() {
+        var title = NOBLE_TITLES[Math.floor(Math.random() * NOBLE_TITLES.length)];
+        var f = _wizFlags();
+        f.knighted = true;
+        f.noble_title = title;
+        localStorage.setItem(WIZ_KEY, JSON.stringify(f));
+        /* Also set streak_unlocked so orange Q persists on future loads */
+        try {
+            var j = JSON.parse(localStorage.getItem("journey-store")) || {};
+            j.streak_unlocked = true;
+            localStorage.setItem("journey-store", JSON.stringify(j));
+        } catch(e) {}
+        return title;
+    }
+
+    /* ── Standard ceremony (7-day streak) ────────────────────────────────── */
     function playKnighting() {
         if (ceremonyPlayed) return;
         ceremonyPlayed = true;
 
-        /* Mark as played */
-        var f = _wizFlags();
-        f.knighted = true;
-        localStorage.setItem(WIZ_KEY, JSON.stringify(f));
+        var title = _knightAndTitle();
+        var c = _setupCeremony();
+        if (!c) return;
 
-        /* Find the Q element to position effects around it */
-        var qEl = document.querySelector(".brand-q");
-        if (!qEl) return;
-        var qRect = qEl.getBoundingClientRect();
-        var qCx = qRect.left + qRect.width / 2;
-        var qCy = qRect.top + qRect.height / 2;
+        /* Phase 1 (0–1.5s): Staff descends (CSS animation) */
 
-        /* ── Overlay ──────────────────────────────────────────────────────── */
-        var overlay = document.createElement("div");
-        overlay.className = "knight-overlay";
-        document.body.appendChild(overlay);
+        /* Phase 2 (1.5s): Staff touches Q → golden burst */
+        setTimeout(function() { _applyBurst(c.overlay, c.qEl, c.qCx, c.qCy); }, 1500);
 
-        /* ── Staff (descends from above) ──────────────────────────────────── */
-        var staff = document.createElement("div");
-        staff.className = "knight-staff";
-        staff.innerHTML =
-            '<svg viewBox="0 0 40 300" xmlns="http://www.w3.org/2000/svg">' +
-            '<line x1="20" y1="0" x2="20" y2="260" stroke="#8B4513" stroke-width="5" stroke-linecap="round"/>' +
-            '<circle cx="20" cy="10" r="12" fill="#f7931a"/>' +
-            '<circle cx="20" cy="10" r="12" fill="url(#kOrbGlow)" opacity="0.5"/>' +
-            '<text x="20" y="15" font-size="14" font-weight="bold" fill="#fff" ' +
-            '  text-anchor="middle" font-family="monospace">&#x20bf;</text>' +
-            '<defs><radialGradient id="kOrbGlow">' +
-            '<stop offset="0%" stop-color="#fff"/>' +
-            '<stop offset="100%" stop-color="#f7931a"/>' +
-            '</radialGradient></defs></svg>';
-        staff.style.left = Math.max(4, qCx - 20) + "px";
-        overlay.appendChild(staff);
-
-        /* ── Phase 1 (0–1.5s): Staff descends ─────────────────────────────── */
-        /* Staff starts above viewport, CSS animation brings it down */
-
-        /* ── Phase 2 (1.5s): Staff touches Q → golden burst ──────────────── */
-        setTimeout(function() {
-            /* Flash the Q → turn orange */
-            qEl.classList.add("knight-flash");
-            var allQs = document.querySelectorAll(".brand-q");
-            for (var qi = 0; qi < allQs.length; qi++) {
-                allQs[qi].classList.add("streak-orange");
-            }
-            /* Add shimmer to brand name */
-            var brands = document.querySelectorAll(".brand-uantoshi");
-            for (var b = 0; b < brands.length; b++) {
-                brands[b].classList.add("streak-shimmer");
-            }
-            /* Hat appears after color settles */
-            setTimeout(function() {
-                var qs = document.querySelectorAll(".brand-q");
-                for (var h = 0; h < qs.length; h++) {
-                    qs[h].classList.add("streak-hat");
-                }
-            }, 800);
-
-            /* Golden burst particles */
-            for (var i = 0; i < 24; i++) {
-                spawnGoldParticle(overlay, qCx, qCy);
-            }
-
-            /* Radiating rings */
-            for (var r = 0; r < 3; r++) {
-                var ring = document.createElement("div");
-                ring.className = "knight-ring";
-                ring.style.left = qCx + "px";
-                ring.style.top = qCy + "px";
-                ring.style.animationDelay = (r * 0.3) + "s";
-                overlay.appendChild(ring);
-            }
-        }, 1500);
-
-        /* ── Phase 3 (2.5s): Text appears ─────────────────────────────────── */
+        /* Phase 3 (2.5s): Text appears */
         setTimeout(function() {
             var text = document.createElement("div");
             text.className = "knight-text";
-            var title = NOBLE_TITLES[Math.floor(Math.random() * NOBLE_TITLES.length)];
-            /* Store the title permanently */
-            var f = _wizFlags();
-            f.noble_title = title;
-            localStorage.setItem(WIZ_KEY, JSON.stringify(f));
             text.innerHTML = "Rise, <em>" + title + "</em>.<br>The Orange Q is yours.";
-            overlay.appendChild(text);
+            c.overlay.appendChild(text);
         }, 2500);
 
-        /* ── Phase 4 (3s): Staff retracts ─────────────────────────────────── */
-        setTimeout(function() {
-            staff.classList.add("knight-staff-retract");
-        }, 3500);
+        /* Phase 4 (3.5s): Staff retracts */
+        setTimeout(function() { c.staff.classList.add("knight-staff-retract"); }, 3500);
 
-        /* ── Phase 5 (5.5s): Gold particle shower ─────────────────────────── */
+        /* Phase 5 (3s): Gold particle shower */
         setTimeout(function() {
             for (var s = 0; s < 30; s++) {
                 setTimeout(function() {
                     var x = Math.random() * window.innerWidth;
-                    spawnFallingGold(overlay, x);
+                    spawnFallingGold(c.overlay, x);
                 }, Math.random() * 1200);
             }
         }, 3000);
 
-        /* ── Cleanup (7s) ─────────────────────────────────────────────────── */
+        /* Cleanup (7s) */
         setTimeout(function() {
-            overlay.classList.add("knight-fade-out");
+            c.overlay.classList.add("knight-fade-out");
             setTimeout(function() {
-                if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-                qEl.classList.remove("knight-flash");
+                if (c.overlay.parentNode) c.overlay.parentNode.removeChild(c.overlay);
+                c.qEl.classList.remove("knight-flash");
             }, 1000);
         }, 6500);
+    }
+
+    /* ── Onion ceremony (dark web variant for Tor users) ─────────────────── */
+    function playOnionKnighting() {
+        if (ceremonyPlayed) return;
+        ceremonyPlayed = true;
+
+        var title = _knightAndTitle();
+        var c = _setupCeremony();
+        if (!c) return;
+
+        /* Phase 1 (0–1.5s): Staff descends */
+
+        /* Phase 2 (1.5s): Golden burst */
+        setTimeout(function() { _applyBurst(c.overlay, c.qEl, c.qCx, c.qCy); }, 1500);
+
+        /* Phase 3 (2.5s): Text 1 — dark web journey */
+        var text1;
+        setTimeout(function() {
+            text1 = document.createElement("div");
+            text1.className = "knight-text";
+            text1.innerHTML = "Through the treacherous depths of the dark web,<br>" +
+                              "you found your way to Quantoshi.";
+            c.overlay.appendChild(text1);
+        }, 2500);
+
+        /* Phase 4 (3.5s): Staff retracts */
+        setTimeout(function() { c.staff.classList.add("knight-staff-retract"); }, 3500);
+
+        /* Phase 5 (5.5s): Text 1 fades → Text 2 — Rise */
+        var text2;
+        setTimeout(function() {
+            if (text1) {
+                text1.style.transition = "opacity 0.6s";
+                text1.style.opacity = "0";
+                setTimeout(function() {
+                    if (text1.parentNode) text1.parentNode.removeChild(text1);
+                }, 600);
+            }
+            text2 = document.createElement("div");
+            text2.className = "knight-text";
+            text2.innerHTML = "Rise, <em>" + title + "</em>.<br>The Orange Q is yours.";
+            c.overlay.appendChild(text2);
+        }, 5500);
+
+        /* Phase 6 (6s): Gold shower */
+        setTimeout(function() {
+            for (var s = 0; s < 30; s++) {
+                setTimeout(function() {
+                    var x = Math.random() * window.innerWidth;
+                    spawnFallingGold(c.overlay, x);
+                }, Math.random() * 1200);
+            }
+        }, 6000);
+
+        /* Phase 7 (8.5s): Text 2 fades → Text 3 — pretend not to know */
+        setTimeout(function() {
+            if (text2) {
+                text2.style.transition = "opacity 0.6s";
+                text2.style.opacity = "0";
+                setTimeout(function() {
+                    if (text2.parentNode) text2.parentNode.removeChild(text2);
+                }, 600);
+            }
+            var text3 = document.createElement("div");
+            text3.className = "knight-text";
+            text3.innerHTML = "We shall pretend not to know each other next time&hellip;<br>" +
+                              "but the Orange Q will always be yours.";
+            c.overlay.appendChild(text3);
+        }, 8500);
+
+        /* Cleanup (12.5s) */
+        setTimeout(function() {
+            c.overlay.classList.add("knight-fade-out");
+            setTimeout(function() {
+                if (c.overlay.parentNode) c.overlay.parentNode.removeChild(c.overlay);
+                c.qEl.classList.remove("knight-flash");
+            }, 1000);
+        }, 12000);
     }
 
     function spawnGoldParticle(parent, cx, cy) {
@@ -202,10 +286,14 @@
         }
     };
 
-    /* Expose for dev testing */
+    /* Expose for dev testing + onion ceremony trigger */
     window._playKnighting = function() {
         ceremonyPlayed = false;
         playKnighting();
+    };
+    window._playOnionKnighting = function() {
+        ceremonyPlayed = false;
+        playOnionKnighting();
     };
 
     /* Dev: reset Q to white (no hat) on page load so we see the full transition.

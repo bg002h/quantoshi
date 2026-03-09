@@ -2173,6 +2173,9 @@ _app_ctx.app.clientside_callback(
             var idx = 0;
             var q = quotes[idx];
             """ + _JOURNEY_BODY + """
+            /* Hide onion knight button during regular splash */
+            var _kw2 = document.getElementById("onion-knight-wrap");
+            if (_kw2) _kw2.style.display = "none";
             return [true, now.toString(), '"' + q[0] + '"', "\\u2014 " + q[1],
                     {"display":"none"}, jText, jStyle];
         }
@@ -2217,6 +2220,19 @@ _EGG_JS = """
             window._eggClicks = 0;
             window._splashIdx = 0;
             """ + _JOURNEY_BODY + """
+            /* Show Accept Knighthood button on .onion (or dev) if not already knighted.
+               setTimeout: React re-renders modal children when is_open flips,
+               so DOM manipulation must happen after React settles. */
+            setTimeout(function() {
+                var _kw = document.getElementById("onion-knight-wrap");
+                if (_kw) {
+                    var _isOnion = location.hostname.endsWith(".onion");
+                    var _isDevE = !_isOnion && location.hostname !== "quantoshi.xyz";
+                    var _wfE = {};
+                    try { _wfE = JSON.parse(localStorage.getItem("wizard-flags")) || {}; } catch(e) {}
+                    _kw.style.display = ((_isOnion || _isDevE) && !_wfE.knighted) ? "block" : "none";
+                }
+            }, 200);
             return [true,
                     "\\u201cThe Times 03/Jan/2009 Chancellor on brink of second bailout for banks.\\u201d",
                     "\\u2014 Bitcoin Genesis Block",
@@ -2263,6 +2279,26 @@ _app_ctx.app.clientside_callback(
     Output("splash-quote-text", "children", allow_duplicate=True),
     Output("splash-quote-attr", "children", allow_duplicate=True),
     Input("splash-next", "n_clicks"),
+    prevent_initial_call="initial_duplicate",
+)
+
+# ── Onion knighting: Accept Knighthood button → close splash + play ceremony ──
+_app_ctx.app.clientside_callback(
+    """
+    function(n) {
+        if (!n) return window.dash_clientside.no_update;
+        /* Hide the button immediately */
+        var kw = document.getElementById("onion-knight-wrap");
+        if (kw) kw.style.display = "none";
+        /* Play the onion ceremony after modal closes */
+        setTimeout(function() {
+            if (window._playOnionKnighting) window._playOnionKnighting();
+        }, 400);
+        return false;
+    }
+    """,
+    Output("splash-modal", "is_open", allow_duplicate=True),
+    Input("onion-knight-btn", "n_clicks"),
     prevent_initial_call="initial_duplicate",
 )
 

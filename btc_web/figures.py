@@ -211,23 +211,32 @@ def _apply_mc_premium(fig: go.Figure, legend_pos: str = "top-left") -> None:
         fig.layout.yaxis2.title.font.size = _FONT_BODY + 2
 
 
-def _apply_watermark(fig: go.Figure) -> None:
-    """Stamp Quantoshi logo + URL onto a go.Figure (bottom-right corner)."""
+def _apply_watermark(fig: go.Figure, pos: str = "bottom-right") -> None:
+    """Stamp Quantoshi logo + URL onto a go.Figure.
+
+    pos: 'bottom-right' (default) or 'bottom-left'.
+    """
+    if pos == "bottom-left":
+        img_x, img_xa = 0.0, "left"
+        txt_x, txt_xa = 0.075, "left"
+    else:
+        img_x, img_xa = 1.0, "right"
+        txt_x, txt_xa = 0.925, "right"
     if _LOGO_B64:
         fig.add_layout_image(dict(
             source=_LOGO_B64,
             xref="paper", yref="paper",
-            x=1.0, y=0.0,
+            x=img_x, y=0.0,
             sizex=0.09, sizey=0.12,
-            xanchor="right", yanchor="bottom",
+            xanchor=img_xa, yanchor="bottom",
             opacity=0.55,
             layer="above",
         ))
     fig.add_annotation(dict(
         text="quantoshi.xyz",
         xref="paper", yref="paper",
-        x=0.925, y=0.015,
-        xanchor="right", yanchor="bottom",
+        x=txt_x, y=0.015,
+        xanchor=txt_xa, yanchor="bottom",
         showarrow=False,
         font=dict(size=_FONT_WATERMARK, color="rgba(180,180,180,0.65)"),
     ))
@@ -1385,10 +1394,21 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             ))
 
     layout["showlegend"] = bool(p.get("show_legend", True))
+    # Legend position — user-selectable
+    leg_pos = p.get("legend_pos", "outside")
+    if leg_pos != "outside" and leg_pos in _MC_LEGEND_POS:
+        pos = _MC_LEGEND_POS[leg_pos]
+        layout["legend"].update(
+            x=pos["x"], y=pos["y"],
+            xanchor=pos["xanchor"], yanchor=pos["yanchor"],
+            bgcolor="rgba(255,255,255,0.7)",
+        )
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
     if p.get("mc_enabled"):
+        # legend_pos=None so MC premium doesn't override user's legend choice
         _apply_mc_premium(fig, legend_pos=None)
-    _apply_watermark(fig)
+    wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
+    _apply_watermark(fig, pos=wm_pos)
     return fig, mc_result
 
 

@@ -1166,6 +1166,7 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     Input("ret-infl",     "value"),
     Input("ret-disp",     "value"),
     Input("ret-toggles",  "value"),
+    Input("ret-legend-pos","value"),
     Input("ret-qs",       "value"),
     Input("effective-lots","data"),
     Input("ret-mc-enable",  "value"),
@@ -1186,7 +1187,7 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     State("mc-pay-token",   "data"),
     prevent_initial_call=True,
 )
-def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, sel_qs, lots_data,
+def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, lots_data,
                   mc_enable, mc_amount, mc_infl, mc_bins, mc_sims, mc_years, mc_freq, mc_window,
                   mc_stack, mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger,
                   price_data, mc_cached, pay_token):
@@ -1208,6 +1209,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         dual_y       = "dual_y"    in toggles,
         annotate     = "annotate"  in toggles,
         show_legend  = "show_legend" in toggles,
+        legend_pos   = legend_pos or "outside",
         minor_grid   = "minor_grid" in toggles,
         selected_qs  = sel_qs or [],
         lots         = lots_data or [],
@@ -1830,7 +1832,7 @@ _TAB_CONTROLS = {
                     "dca-sc-entry-mode","dca-sc-custom-price","dca-sc-tax",
                     "dca-sc-rollover"},
     "retire":      {"ret-stack","ret-use-lots","ret-wd","ret-freq","ret-yr-range",
-                    "ret-infl","ret-disp","ret-toggles","ret-qs"},
+                    "ret-infl","ret-disp","ret-toggles","ret-legend-pos","ret-qs"},
     "supercharge": {"sc-stack","sc-use-lots","sc-start-yr","sc-d0","sc-d1","sc-d2",
                     "sc-d3","sc-d4","sc-freq","sc-infl","sc-qs","sc-mode","sc-wd",
                     "sc-end-yr","sc-target-yr","sc-disp","sc-toggles","sc-chart-layout",

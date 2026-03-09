@@ -63,6 +63,7 @@ _SNAPSHOT_CONTROLS = [
     ("ret-infl",          "value"),
     ("ret-disp",          "value"),
     ("ret-toggles",       "value"),
+    ("ret-legend-pos",    "value"),
     ("ret-qs",            "value"),
     ("sc-stack",          "value"),
     ("sc-use-lots",       "value"),

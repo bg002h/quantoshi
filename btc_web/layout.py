@@ -146,7 +146,7 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
                      style={"position": "relative"}, children=[
                 dcc.Loading(
                     dcc.Graph(id=graph_id, style={"height": "78vh"},
-                              config={"toImageButtonOptions": {"format": "png", "scale": 2,
+                              config={"toImageButtonOptions": {"format": "svg",
                                                                "filename": filename}}),
                     type="default", color=_BTC_ORANGE,
                 ),

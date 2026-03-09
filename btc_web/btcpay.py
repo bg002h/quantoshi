@@ -45,7 +45,7 @@ _HM_DISCOUNT = 0.5  # heatmap pays half
 
 # Free tier: 10yr horizon + tab-specific default (start_yr, entry_q)
 from mc_cache import MC_DEFAULT_YEARS, MC_DEFAULT_ENTRY_Q, MC_DEFAULT_START_YR, \
-    CACHED_START_YRS
+    CACHED_START_YRS, MC_BINS, MC_SIMS, MC_FREQ
 
 # Each tuple = (years, start_yr, entry_q) that qualifies for free tier
 _FREE_TIER_DEFAULTS = {
@@ -64,8 +64,16 @@ def compute_price(tab: str, mc_years: int, is_cached: bool) -> int:
     return price
 
 
-def is_free_tier(mc_years: int, start_yr: int, entry_q: float = 0) -> bool:
-    """Check if the requested params match the free tier (no payment needed)."""
+def is_free_tier(mc_years: int, start_yr: int, entry_q: float = 0,
+                 mc_bins: int = MC_BINS, mc_sims: int = MC_SIMS,
+                 mc_freq: str = MC_FREQ) -> bool:
+    """Check if the requested params match the free tier (no payment needed).
+
+    Free tier requires default simulator settings (bins, sims, freq)
+    in addition to matching a (years, start_yr, entry_q) tuple.
+    """
+    if int(mc_bins) != MC_BINS or int(mc_sims) > MC_SIMS or (mc_freq or MC_FREQ) != MC_FREQ:
+        return False
     return (int(mc_years), int(start_yr), int(entry_q)) in _FREE_TIER_DEFAULTS
 
 

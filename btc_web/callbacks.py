@@ -50,7 +50,9 @@ from snapshot import (_SNAPSHOT_CONTROLS, _CHECKLIST_OPTIONS,
 import json as _json
 from layout import (_Q_COLLAPSED_HEIGHT, _SPLASH_QUOTES, _SPLASH_QUOTES_JS,
                     _MC_CACHED_START_YRS, _MC_PRICE_CACHED, _MC_PRICE_LIVE,
-                    _FAQ)
+                    _FAQ, _bold_opts, _MC_CACHED_YEARS,
+                    _MC_CACHED_ENTRY_QS,
+                    _MC_ENTRY_Q_OPTIONS, _MC_ENTRY_Q_OPTIONS_ADV)
 from mc_cache import (MC_YEARS_OPTIONS, MC_BINS, MC_SIMS, MC_FREQ,
                       MC_DEFAULT_YEARS, MC_DEFAULT_ENTRY_Q, MC_DEFAULT_START_YR)
 import btcpay
@@ -98,14 +100,24 @@ def _build_mc_params(*, mc_enable, mc_amount, mc_infl, mc_bins, mc_sims,
     return d
 
 
-def _mc_payment_check(tab, mc_years, start_yr, entry_q, pay_token):
+def _mc_payment_check(tab, mc_years, start_yr, entry_q, pay_token,
+                      mc_bins=MC_BINS, mc_sims=MC_SIMS, mc_freq=MC_FREQ):
     """Check if MC simulation is authorized (free tier, no BTCPay, or valid token)."""
-    if not _app_ctx._HAS_BTCPAY or os.environ.get("DEV") == "1":
-        return True  # dev mode — all MC is free
     mc_yrs = int(mc_years or MC_DEFAULT_YEARS)
     s_yr   = int(start_yr or MC_DEFAULT_START_YR)
     e_q    = float(entry_q or MC_DEFAULT_ENTRY_Q)
-    if btcpay.is_free_tier(mc_yrs, s_yr, e_q):
+    _bins  = int(mc_bins or MC_BINS)
+    _sims  = int(mc_sims or MC_SIMS)
+    _freq  = mc_freq or MC_FREQ
+    if not _app_ctx._HAS_BTCPAY or os.environ.get("DEV") == "1":
+        # Free tier: auto-approve (renders on activation, no button needed)
+        if btcpay.is_free_tier(mc_yrs, s_yr, e_q,
+                               mc_bins=_bins, mc_sims=_sims, mc_freq=_freq):
+            return True
+        # Non-free: require Run Simulation button click
+        return ctx.triggered_id == "mc-pay-trigger"
+    if btcpay.is_free_tier(mc_yrs, s_yr, e_q,
+                           mc_bins=_bins, mc_sims=_sims, mc_freq=_freq):
         return True
     if not pay_token:
         logger.info("MC payment required: %s %dyr start=%d q=%g (no token)", tab, mc_yrs, s_yr, e_q)
@@ -328,7 +340,8 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
 
     # MC heatmap (only when enabled + module present + payment verified)
     mc_enabled = bool(mc_enable) and _app_ctx._HAS_MARKOV
-    mc_payment_ok = _mc_payment_check("hm", mc_years, mc_start_yr, mc_entry_q, pay_token)
+    mc_payment_ok = _mc_payment_check("hm", mc_years, mc_start_yr, mc_entry_q, pay_token,
+                                      mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq)
     if mc_enabled and mc_payment_ok:
         mc_syr = int(mc_start_yr or yr_now)
         # Auto-cap training window end at start year for historical sims
@@ -424,7 +437,8 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
     toggles    = toggles or []
     yr_range   = yr_range or [2024, 2034]
     live_price = float(price_data or 0)
-    mc_ok = bool(mc_enable) and _mc_payment_check("dca", mc_years, mc_start_yr, mc_entry_q, pay_token)
+    mc_ok = bool(mc_enable) and _mc_payment_check("dca", mc_years, mc_start_yr, mc_entry_q, pay_token,
+                                                  mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq)
     fig, mc_result = _get_dca_fig(dict(
         start_stack    = float(stack or 0),
         use_lots       = bool(use_lots),
@@ -478,6 +492,17 @@ for _mc_tog in ("dca", "ret", "hm", "sc"):
     @callback(Output(f"{_mc_tog}-mc-body","style"), Input(f"{_mc_tog}-mc-enable","value"))
     def _toggle_mc_body(val):
         return {} if val else {"display": "none"}
+
+for _mc_adv in ("dca", "ret", "hm", "sc"):
+    @callback(
+        Output(f"{_mc_adv}-mc-adv-body", "style"),
+        Output(f"{_mc_adv}-mc-entry-q", "options"),
+        Input(f"{_mc_adv}-mc-advanced", "value"),
+    )
+    def _toggle_mc_adv(val):
+        style = {} if val else {"display": "none"}
+        opts = _MC_ENTRY_Q_OPTIONS_ADV if val else _MC_ENTRY_Q_OPTIONS
+        return style, opts
 
 # MC match indicator — show whether chart reflects current MC settings
 # Returns: [match_text, match_style, overlay_style, wrap_class, badge_style]
@@ -608,16 +633,17 @@ _app_ctx.app.clientside_callback(
 
 
 # ── Dynamic years limit based on sims × freq (cap at 250K datapoints) ────────
-_MC_MAX_DATAPOINTS = 500_000
+_MC_MAX_DATAPOINTS = 50_000_000
 def _mc_years_options(sims, freq):
     """Return filtered years dropdown options based on sims × freq cap."""
     ppy = FREQ_PPY.get(freq or "Monthly", 12)
     sims = int(sims or 800)
     max_steps = _MC_MAX_DATAPOINTS // sims
     max_years = max_steps // ppy if ppy > 0 else 50
-    opts = [{"label": f"{y} yr", "value": y}
-            for y in MC_YEARS_OPTIONS if y <= max_years]
-    return opts if opts else [{"label": "1 yr", "value": 1}]
+    valid = [y for y in MC_YEARS_OPTIONS if y <= max_years]
+    if not valid:
+        return [{"label": "1 yr", "value": 1}]
+    return _bold_opts(valid, lambda v: f"{v} yr", _MC_CACHED_YEARS)
 
 for _mc_pfx in ("dca", "ret", "hm", "sc"):
     @callback(
@@ -690,31 +716,55 @@ for _qid in ("bub-qs", "hm-exit-qs", "dca-qs", "ret-qs", "sc-qs"):
 
 
 
-def _mc_cost_display(mc_years, start_yr, entry_q=50, tab="dca"):
+_MC_BASE_SIMS = 800  # pricing baseline — costs scale linearly from this
+_MC_BASE_PPY  = 12   # pricing baseline — Monthly
+
+_MC_BASE_BINS = 5    # cache uses 5×5 transition matrix
+
+def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=800, mc_freq="Monthly",
+                     mc_bins=5, tab="dca"):
     """Return cost display elements showing cached vs live pricing."""
     mc_years = int(mc_years or 10)
     start_yr = int(start_yr or 2026)
     entry_q  = int(entry_q or 50)
-    is_cached = start_yr in _MC_CACHED_START_YRS
+    mc_sims  = int(mc_sims or _MC_BASE_SIMS)
+    mc_bins  = int(mc_bins or _MC_BASE_BINS)
+    mc_ppy   = FREQ_PPY.get(mc_freq or "Monthly", _MC_BASE_PPY)
+    is_cached = (start_yr in _MC_CACHED_START_YRS
+                 and mc_bins == _MC_BASE_BINS
+                 and mc_sims <= _MC_BASE_SIMS
+                 and (mc_freq or "Monthly") == "Monthly"
+                 and entry_q in _MC_CACHED_ENTRY_QS
+                 and mc_years in _MC_CACHED_YEARS)
+
+    # Scale factor relative to baseline (800 sims, Monthly, 5×5 matrix)
+    scale = ((mc_sims / _MC_BASE_SIMS) * (mc_ppy / _MC_BASE_PPY)
+             * (mc_bins ** 2 / _MC_BASE_BINS ** 2))
 
     if is_cached:
-        price = _MC_PRICE_CACHED.get(mc_years, 100)
+        base_price = _MC_PRICE_CACHED.get(mc_years, 100)
         tier_label = "Cached"
         tier_color = "#1a8f3c"
         tier_note = "Pre-computed \u2022 instant"
     else:
-        price = _MC_PRICE_LIVE.get(mc_years, 500)
+        base_price = _MC_PRICE_LIVE.get(mc_years, 500)
         tier_label = "Live"
         tier_color = "#c57600"
-        tier_note = "Computed on demand \u2022 ~1\u20133s"
+        time_scale = scale * (mc_years / 10)  # baseline 1-3s calibrated for 10yr
+        lo, hi = max(1, round(1 * time_scale)), max(1, round(3 * time_scale))
+        tier_note = f"Computed on demand \u2022 ~{lo}\u2013{hi}s" if lo < hi \
+                    else f"Computed on demand \u2022 ~{lo}s"
+
+    price = int(base_price * scale)
 
     # Heatmap gets 50% discount
     if tab == "hm":
         price = int(price * 0.5)
 
     # Free tier: no cost
-    if btcpay.is_free_tier(mc_years, start_yr, entry_q):
-        return [
+    if btcpay.is_free_tier(mc_years, start_yr, entry_q,
+                           mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq):
+        return ([
             html.Div([
                 html.Span("Free tier", style={"fontWeight": "bold", "color": "#1a8f3c"}),
                 html.Span(f" \u2022 {mc_years} yr simulation", style={"color": "#555"}),
@@ -722,9 +772,9 @@ def _mc_cost_display(mc_years, start_yr, entry_q=50, tab="dca"):
             html.Div(tier_note, style={"color": "#888", "fontSize": "10px"}),
             html.Div(html.B("Cost: Free \u2713"),
                      style={"marginTop": "2px", "color": "#1a8f3c"}),
-        ]
+        ], 0)
 
-    return [
+    children = [
         html.Div([
             html.Span(f"{tier_label}", style={"fontWeight": "bold", "color": tier_color}),
             html.Span(f" \u2022 {mc_years} yr simulation", style={"color": "#555"}),
@@ -736,11 +786,20 @@ def _mc_cost_display(mc_years, start_yr, entry_q=50, tab="dca"):
         ], style={"marginTop": "2px"}),
     ]
 
+    if price > 10_000:
+        children.append(html.Div(
+            "\u26a0 Most users are unlikely to benefit from simulations "
+            "this expensive. Consider using cached (bold) settings.",
+            style={"fontSize": "10px", "color": "#b8860b", "marginTop": "4px",
+                   "fontStyle": "italic", "lineHeight": "1.3"}))
+
+    return children, price
+
 
 for _cost_pfx in ("dca", "ret", "hm", "sc"):
     @callback(
         Output(f"{_cost_pfx}-mc-cost", "children"),
-        Output(f"{_cost_pfx}-mc-bins", "max"),
+        Output(f"{_cost_pfx}-mc-price-val", "data"),
         Input(f"{_cost_pfx}-mc-enable",   "value"),
         Input(f"{_cost_pfx}-mc-freq",     "value"),
         Input(f"{_cost_pfx}-mc-years",    "value"),
@@ -753,7 +812,10 @@ for _cost_pfx in ("dca", "ret", "hm", "sc"):
     )
     def _update_mc_cost(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window,
                         mc_start_yr, mc_entry_q, _tab=_cost_pfx):
-        return _mc_cost_display(mc_years, mc_start_yr, entry_q=mc_entry_q, tab=_tab), 10
+        children, price = _mc_cost_display(mc_years, mc_start_yr, entry_q=mc_entry_q,
+                                           mc_sims=mc_sims, mc_freq=mc_freq,
+                                           mc_bins=mc_bins, tab=_tab)
+        return children, price
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -768,6 +830,8 @@ _MC_BTN_TO_TAB = {
     "sc-mc-run-btn":  "sc",
 }
 
+_MC_QUANT_THRESHOLD = 50_000  # sats — trigger quant warning modal
+
 @callback(
     Output("mc-pay-modal",   "is_open", allow_duplicate=True),
     Output("mc-pay-invoice", "data",    allow_duplicate=True),
@@ -776,6 +840,9 @@ _MC_BTN_TO_TAB = {
     Output("mc-pay-poll",    "disabled",   allow_duplicate=True),
     Output("mc-pay-poll",    "n_intervals", allow_duplicate=True),
     Output("mc-pay-trigger", "data",    allow_duplicate=True),
+    Output("mc-quant-modal", "is_open",    allow_duplicate=True),
+    Output("mc-quant-cost-info", "children", allow_duplicate=True),
+    Output("mc-quant-onchain-note", "children", allow_duplicate=True),
     *(Output(f"{pfx}-mc-run-status", "children", allow_duplicate=True)
       for pfx in ("dca", "ret", "hm", "sc")),
     Input("dca-mc-run-btn", "n_clicks"),
@@ -791,6 +858,7 @@ _MC_BTN_TO_TAB = {
     State("sc-mc-years", "value"), State("sc-mc-start-yr", "value"),
     State("sc-mc-entry-q", "value"),
     State("mc-pay-trigger", "data"),
+    *(State(f"{pfx}-mc-price-val", "data") for pfx in ("dca", "ret", "hm", "sc")),
     prevent_initial_call=True,
 )
 def _mc_payment_initiate(*args):
@@ -803,29 +871,46 @@ def _mc_payment_initiate(*args):
 
     # Extract the relevant tab's MC params from states
     tab_idx = list(_MC_BTN_TO_TAB.keys()).index(triggered)
-    # States are grouped as (years, start_yr, entry_q) × 4 tabs, then trigger
-    state_base = 4  # skip the 4 button Inputs that precede the State args
+    # Layout: 4 Inputs, then (years, start_yr, entry_q) × 4 tabs, trigger, 4 prices
+    state_base = 4  # skip the 4 button Inputs
     mc_years  = int(args[state_base + tab_idx * 3]     or MC_DEFAULT_YEARS)
     start_yr  = int(args[state_base + tab_idx * 3 + 1] or MC_DEFAULT_START_YR)
     entry_q   = float(args[state_base + tab_idx * 3 + 2] or MC_DEFAULT_ENTRY_Q)
-    cur_trigger = args[-1] or 0
+    cur_trigger = args[state_base + 12] or 0  # after 4×3 tab states
+    # Price stores: 4 values after trigger
+    price_vals = args[state_base + 13 : state_base + 17]
+    tab_price = int(price_vals[tab_idx] or 0)
 
     # Default outputs: modal closed, no change to per-tab status
     no_tab_status = [dash.no_update] * 4
+    # Helper: base return with quant modal closed
+    def _ret(*vals):
+        """Insert quant-modal defaults (closed, no update) into return tuple."""
+        # Original 7 outputs + 3 quant outputs + 4 tab statuses
+        return vals[:7] + (False, dash.no_update, "") + vals[7:]
+
+    # Quant-tier warning (>50k sats) — fires before payment/free checks
+    if tab_price > _MC_QUANT_THRESHOLD:
+        onchain_note = ("(Bitcoin on-chain payment may be necessary)"
+                        if tab_price > 250_000 else "")
+        return (dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                True, f"Estimated cost: {tab_price:,} sats", onchain_note,
+                *no_tab_status)
 
     # If BTCPay not configured, just increment trigger (free mode)
     if not _app_ctx._HAS_BTCPAY:
-        return (False, dash.no_update, dash.no_update,
-                dash.no_update, True, 0, cur_trigger + 1,
-                *no_tab_status)
+        return _ret(False, dash.no_update, dash.no_update,
+                    dash.no_update, True, 0, cur_trigger + 1,
+                    *no_tab_status)
 
-    # Free tier check
+    # Free tier check (bins/sims/freq not available here; uses defaults)
     if btcpay.is_free_tier(mc_years, start_yr, entry_q):
         tab_statuses = list(no_tab_status)
         tab_statuses[tab_idx] = html.Span("Free tier", style={"color": "#1a8f3c"})
-        return (False, dash.no_update, dash.no_update,
-                dash.no_update, True, 0, cur_trigger + 1,
-                *tab_statuses)
+        return _ret(False, dash.no_update, dash.no_update,
+                    dash.no_update, True, 0, cur_trigger + 1,
+                    *tab_statuses)
 
     # Create invoice directly via btcpay module
     is_cached = btcpay.is_cached_request(start_yr)
@@ -835,8 +920,8 @@ def _mc_payment_initiate(*args):
         tab_statuses = list(no_tab_status)
         tab_statuses[tab_idx] = html.Span(
             "Payment service unavailable", style={"color": "#c00"})
-        return (False, dash.no_update, "",
-                "", True, 0, dash.no_update, *tab_statuses)
+        return _ret(False, dash.no_update, "",
+                    "", True, 0, dash.no_update, *tab_statuses)
 
     # Open payment modal — clientside callback handles iframe vs QR display
     invoice_data = {
@@ -848,9 +933,31 @@ def _mc_payment_initiate(*args):
     }
     info = f"Cost: {invoice_data['amount_sats']} sats \u2022 {mc_years}yr MC simulation"
 
-    return (True, invoice_data, info,
-            "Waiting for payment...", False, 0,
-            dash.no_update, *no_tab_status)
+    return _ret(True, invoice_data, info,
+                "Waiting for payment...", False, 0,
+                dash.no_update, *no_tab_status)
+
+
+# ── Quant warning modal — proceed / cancel ────────────────────────────────────
+
+@callback(
+    Output("mc-quant-modal", "is_open", allow_duplicate=True),
+    Output("mc-pay-trigger", "data", allow_duplicate=True),
+    Input("mc-quant-proceed", "n_clicks"),
+    State("mc-pay-trigger", "data"),
+    prevent_initial_call=True,
+)
+def _quant_proceed(n, cur_trigger):
+    """User confirmed expensive simulation — increment trigger to run it."""
+    return False, (cur_trigger or 0) + 1
+
+@callback(
+    Output("mc-quant-modal", "is_open", allow_duplicate=True),
+    Input("mc-quant-cancel", "n_clicks"),
+    prevent_initial_call=True,
+)
+def _quant_cancel(n):
+    return False
 
 
 # ── Clientside polling: check invoice status every 3s ─────────────────────────
@@ -1236,7 +1343,8 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         raise dash.exceptions.PreventUpdate
     toggles  = toggles or []
     yr_range = yr_range or [2025, 2045]
-    mc_ok = bool(mc_enable) and _mc_payment_check("ret", mc_years, mc_start_yr, mc_entry_q, pay_token)
+    mc_ok = bool(mc_enable) and _mc_payment_check("ret", mc_years, mc_start_yr, mc_entry_q, pay_token,
+                                                  mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq)
     fig, mc_result = _get_retire_fig(dict(
         start_stack  = float(stack or 1.0),
         use_lots     = bool(use_lots),
@@ -1337,7 +1445,8 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
     toggles = toggles or []
     yr_now  = pd.Timestamp.today().year
-    mc_ok = bool(mc_enable) and _mc_payment_check("sc", mc_years, mc_start_yr, mc_entry_q, pay_token)
+    mc_ok = bool(mc_enable) and _mc_payment_check("sc", mc_years, mc_start_yr, mc_entry_q, pay_token,
+                                                  mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq)
     # chart_layout is now a checklist list; legacy snapshots may send an int
     _cl = (2 if "shade" in (chart_layout or []) else 0) \
           if isinstance(chart_layout, list) \

@@ -23,7 +23,8 @@ import dash_bootstrap_components as dbc
 import _app_ctx
 from utils import _nearest_quantile
 from snapshot import _SNAPSHOT_CONTROLS
-from mc_cache import CACHED_START_YRS, WD_AMOUNTS, STACK_SIZES
+from mc_cache import (CACHED_START_YRS, WD_AMOUNTS, STACK_SIZES,
+                      ENTRY_PCT_BINS, MC_YEARS_OPTIONS, INFL_OPTIONS)
 from figures import _LOGO_B64_ALL
 
 _PRICE_INTERVAL_MS = 20 * 60 * 1000   # live price ticker refresh (20 minutes)
@@ -425,7 +426,6 @@ def _heatmap_tab():
                    style={"display":"none"}),
             ], className="hm-swipe-container", id="hm-swipe-wrap"),
             html.Div(id="hm-swipe-scroll-dummy", style={"display":"none"}),
-            html.Div(id="hm-relayout-dummy", style={"display":"none"}),
             _export_row("heatmap"),
         ], width=9),
     ], className="g-0")
@@ -433,19 +433,40 @@ def _heatmap_tab():
 
 # ── Shared MC controls (DCA + Retire) ────────────────────────────────────────
 
+_QUANT_FONT = {"fontFamily": '"Palatino Linotype", Palatino, "Book Antiqua", serif',
+               "color": "#000", "letterSpacing": "1px"}
 _MC_CACHED_START_YRS = set(CACHED_START_YRS)
+_MC_CACHED_ENTRY_QS = {int(v * 100) for v in ENTRY_PCT_BINS}   # {10,20,...,90}
+_MC_CACHED_YEARS    = set(MC_YEARS_OPTIONS)                      # {10,20,30,40}
+_MC_CACHED_WD       = set(WD_AMOUNTS)
+_MC_CACHED_INFL     = set(INFL_OPTIONS)
+_MC_CACHED_STACKS   = set(STACK_SIZES)
+
+def _bold_opts(values, fmt, cached_set):
+    """Build dropdown options, bolding+enlarging values in the pre-computed cache."""
+    return [
+        {"label": html.Span(fmt(v), style={"fontWeight": "bold", "fontSize": "16px"})
+                  if v in cached_set else fmt(v),
+         "value": v}
+        for v in values
+    ]
 
 # ── MC pricing (sats) ────────────────────────────────────────────────────────
 # Cached: pre-computed paths on server, instant lookup
 # Non-cached: live Markov chain simulation (~1-3s compute)
 _MC_PRICE_CACHED = {10: 100, 20: 200, 30: 300, 40: 400}
 _MC_PRICE_LIVE   = {10: 500, 20: 1000, 30: 1500, 40: 2000}
-_MC_START_YR_OPTIONS = [
-    {"label": html.Span(str(y), style={"fontWeight": "bold"}) if y in _MC_CACHED_START_YRS
-             else str(y),
-     "value": y}
-    for y in range(2026, 2051)
-]
+_MC_START_YR_OPTIONS = _bold_opts(range(2026, 2051), str, _MC_CACHED_START_YRS)
+_MC_ENTRY_Q_OPTIONS  = _bold_opts(
+    [int(v * 100) for v in ENTRY_PCT_BINS],
+    lambda v: f"{v}%", _MC_CACHED_ENTRY_QS)
+_MC_ENTRY_Q_OPTIONS_ADV = _bold_opts(
+    list(range(1, 100)),
+    lambda v: f"{v}%", _MC_CACHED_ENTRY_QS)
+_MC_YEARS_OPTIONS    = _bold_opts(MC_YEARS_OPTIONS, lambda v: f"{v} yr", _MC_CACHED_YEARS)
+_MC_WD_OPTIONS       = _bold_opts(WD_AMOUNTS, lambda v: f"${v:,}/mo", _MC_CACHED_WD)
+_MC_INFL_OPTIONS     = _bold_opts(INFL_OPTIONS, lambda v: f"{v}%", _MC_CACHED_INFL)
+_MC_STACK_OPTIONS    = _bold_opts(STACK_SIZES, lambda v: f"{v} BTC", _MC_CACHED_STACKS)
 
 def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=100,
                   show_inflation=False, show_amount=True,
@@ -457,6 +478,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
         # Hidden placeholders so callback IDs exist even without markov module
         return html.Div(style={"display": "none"}, children=[
             dcc.Checklist(id=f"{prefix}-mc-enable", value=[]),
+            dcc.Checklist(id=f"{prefix}-mc-advanced", value=[]),
             dbc.Input(id=f"{prefix}-mc-amount", value=amount_default),
             dbc.Input(id=f"{prefix}-mc-infl", value=4),
             dbc.Input(id=f"{prefix}-mc-bins", value=5),
@@ -467,7 +489,9 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             dcc.RangeSlider(id=f"{prefix}-mc-window", min=2010,
                             max=yr_now,
                             value=[2010, yr_now]),
+            html.Div(id=f"{prefix}-mc-adv-body"),
             html.Div(id=f"{prefix}-mc-cost"),
+            dcc.Store(id=f"{prefix}-mc-price-val", storage_type="memory", data=0),
             html.Div(id=f"{prefix}-mc-body"),
             html.Div(id=f"{prefix}-mc-status"),
             dbc.Button(id=f"{prefix}-mc-dl-btn", style={"display":"none"}),
@@ -514,6 +538,10 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                       options=[{"label": " Activate Markov chain stochastic engine", "value": "yes"}],
                       value=[], inputStyle={"marginRight": "5px"}),
         html.Div(id=f"{prefix}-mc-body", style={"display": "none"}, children=[
+            dcc.Checklist(id=f"{prefix}-mc-advanced",
+                          options=[{"label": " Advanced simulator options", "value": "yes"}],
+                          value=[], inputStyle={"marginRight": "5px"},
+                          style={"fontSize": "11px", "color": "#666", "marginBottom": "6px"}),
             html.Div(dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now),
                      style={"display": "none"}),
             *([ _lbl("Retirement start year (bold = cached)"),
@@ -522,8 +550,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                              value=2031, clearable=False),
                 _lbl("Entry percentile (10% steps, cache-aligned)"),
                 dcc.Dropdown(id=f"{prefix}-mc-entry-q",
-                             options=[{"label": f"{int(v*100)}%", "value": int(v*100)}
-                                      for v in [round(i/10, 1) for i in range(1, 10)]],
+                             options=_MC_ENTRY_Q_OPTIONS,
                              value=default_entry_q, clearable=False),
             ] if show_stack else [
                 _lbl("MC start year (bold = cached)"),
@@ -532,15 +559,13 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                              value=2026, clearable=False),
                 *([_lbl("Entry percentile (10% steps, cache-aligned)"),
                    dcc.Dropdown(id=f"{prefix}-mc-entry-q",
-                                options=[{"label": f"{int(v*100)}%", "value": int(v*100)}
-                                         for v in [round(i/10, 1) for i in range(1, 10)]],
+                                options=_MC_ENTRY_Q_OPTIONS,
                                 value=default_entry_q, clearable=False),
                 ] if show_mc_entry_q else []),
             ]),
             *([_lbl(amount_label),
                dcc.Dropdown(id=f"{prefix}-mc-amount",
-                            options=[{"label": f"${v:,}/mo", "value": v}
-                                     for v in WD_AMOUNTS],
+                            options=_MC_WD_OPTIONS,
                             value=amount_default, clearable=False),
               ] if show_amount and amount_dropdown else
               [_lbl(amount_label),
@@ -552,8 +577,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
               ]),
             *([ _lbl("Inflation rate (% / yr)"),
                 dcc.Dropdown(id=f"{prefix}-mc-infl",
-                             options=[{"label": f"{v}%", "value": v}
-                                      for v in [2, 3, 4, 6, 8, 10, 12]],
+                             options=_MC_INFL_OPTIONS,
                              value=4, clearable=False),
             ] if show_inflation else [
                 dcc.Dropdown(id=f"{prefix}-mc-infl", value=0,
@@ -561,8 +585,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             ]),
             *([ _lbl("Starting BTC stack"),
                 dcc.Dropdown(id=f"{prefix}-mc-stack",
-                             options=[{"label": f"{v} BTC", "value": v}
-                                      for v in STACK_SIZES],
+                             options=_MC_STACK_OPTIONS,
                              value=1.0, clearable=False),
             ] if show_stack else [
                 dcc.Dropdown(id=f"{prefix}-mc-stack", value=1.0,
@@ -570,28 +593,46 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             ]),
             _lbl("Years to model"),
             dcc.Dropdown(id=f"{prefix}-mc-years",
-                         options=[{"label": f"{y} yr", "value": y}
-                                  for y in [10, 20, 30, 40]],
+                         options=_MC_YEARS_OPTIONS,
                          value=10, clearable=False),
-            # Hidden fixed-value controls (needed by callbacks)
-            html.Div(style={"display": "none"}, children=[
-                dbc.Input(id=f"{prefix}-mc-bins", type="number", value=5),
-                dcc.Dropdown(id=f"{prefix}-mc-sims", value=800),
-                dcc.Dropdown(id=f"{prefix}-mc-freq", value="Monthly"),
-                dbc.Input(id=f"{prefix}-mc-ppy", value="12/yr"),
+            # Advanced controls (hidden until checkbox toggled)
+            html.Div(id=f"{prefix}-mc-adv-body", style={"display": "none"}, children=[
+                _lbl("Markov transition matrix dimension"),
+                dcc.Dropdown(id=f"{prefix}-mc-bins",
+                             options=_bold_opts(
+                                 list(range(5, 11)),
+                                 lambda v: f"{v}×{v}", {5}),
+                             value=5, clearable=False),
+                _lbl("Simulations"),
+                dcc.Dropdown(id=f"{prefix}-mc-sims",
+                             options=_bold_opts(
+                                 [100, 200, 400, 800, 1600, 3200],
+                                 str, {100, 200, 400, 800}),
+                             value=800, clearable=False),
+                _lbl("Frequency"),
+                dcc.Dropdown(id=f"{prefix}-mc-freq",
+                             options=_bold_opts(
+                                 ["Monthly", "Weekly", "Daily"],
+                                 str, {"Monthly"}),
+                             value="Monthly", clearable=False),
+                _lbl("Periods per year"),
+                dbc.Input(id=f"{prefix}-mc-ppy", value="12/yr", size="sm",
+                          disabled=True),
+                _lbl("Historical window"),
                 dcc.RangeSlider(id=f"{prefix}-mc-window", min=2010,
-                                max=yr_now, value=[2010, yr_now]),
+                                max=yr_now, value=[2010, yr_now],
+                                marks={y: str(y) for y in range(2010, yr_now + 1, 5)}),
             ]),
             html.Div(id=f"{prefix}-mc-cost",
                      style={"fontSize": "11px", "color": "#555", "marginTop": "6px",
                             "lineHeight": "1.4"}),
+            dcc.Store(id=f"{prefix}-mc-price-val", storage_type="memory", data=0),
             # ── Run Simulation button (payment-gated when BTCPay active) ──
             dbc.Button(
                 [html.Span("\u26a1 ", style={"fontSize": "14px"}), "Run Simulation"],
                 id=f"{prefix}-mc-run-btn", size="sm", color="warning",
                 className="w-100 mt-2",
-                style={"fontWeight": "600"}
-                    if _app_ctx._HAS_BTCPAY else {"display": "none"},
+                style={"fontWeight": "600"},
             ),
             html.Div(id=f"{prefix}-mc-run-status",
                      style={"fontSize": "10px", "color": "#555", "marginTop": "4px",
@@ -1721,6 +1762,38 @@ _app_ctx.app.layout = dbc.Container([
         ),
     ], id="mc-pay-modal", is_open=False, backdrop="static", centered=True,
        size="lg"),
+    # ── Quant-tier cost warning modal (>50k sats) ──
+    dbc.Modal([
+        dbc.ModalHeader(html.Span(
+            "\u2694\ufe0f Entering Quant Territory \u2694\ufe0f",
+            style={**_QUANT_FONT, "fontWeight": "bold", "fontSize": "20px",
+                   "textAlign": "center", "width": "100%"})),
+        dbc.ModalBody([
+            html.P("I see your model costs have left the realm of mere mortals "
+                   "and entered the realm of Wall St. Quants.",
+                   style={**_QUANT_FONT, "fontSize": "15px", "lineHeight": "1.6",
+                          "textAlign": "center"}),
+            html.P(id="mc-quant-cost-info",
+                   style={"fontFamily": "'Courier New', Courier, monospace",
+                          "fontSize": "14px", "color": "#555", "textAlign": "center",
+                          "letterSpacing": "1px"}),
+            html.P("Are you sure you want to continue?",
+                   style={**_QUANT_FONT, "fontWeight": "bold",
+                          "fontSize": "15px", "marginTop": "10px",
+                          "textAlign": "center"}),
+            html.P(id="mc-quant-onchain-note",
+                   style={"fontStyle": "italic", "fontSize": "12px",
+                          "textAlign": "center", "color": "#555"}),
+        ]),
+        dbc.ModalFooter([
+            dbc.Button("Take me back", id="mc-quant-cancel",
+                       color="secondary", className="me-auto",
+                       style=_QUANT_FONT),
+            dbc.Button("\u26a1 Proceed, I am Sir Baller", id="mc-quant-proceed",
+                       color="warning",
+                       style={**_QUANT_FONT, "fontWeight": "600"}),
+        ]),
+    ], id="mc-quant-modal", is_open=False, centered=True),
     dcc.Location(id="url", refresh=False),
     dcc.Store(id="snapshot-lots",     storage_type="memory", data=None),
     dcc.Store(id="effective-lots",    storage_type="memory", data=[]),

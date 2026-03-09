@@ -927,15 +927,15 @@ _FAQ = [
             "Markov Chain Monte Carlo (MCMC) simulation is fundamentally different. It models "
             "Bitcoin's price as a random walk governed by a transition matrix estimated from "
             "historical returns. At each time step the simulation draws a random move from the "
-            "learned distribution, so every run produces a different price path. To get stable "
-            "statistics (median, percentile bands), we need thousands of independent paths — "
-            "Quantoshi runs 10,000 simulations per scenario.",
+            "learned distribution, so every run produces a different price path — and each path "
+            "consists of hundreds of sequential transitions. To get stable "
+            "statistics (median, percentile bands), we need to repeat this hundreds of times — "
+            "Quantoshi runs several hundred simulations per scenario.",
             html.Br(), html.Br(),
             "This is why MCMC is computationally expensive: each path requires stepping through "
-            "every time period in sequence, and we repeat this thousands of times. A single QR "
+            "hundreds of time periods in sequence, and we repeat this hundreds of times. A single QR "
             "lookup is O(1); a single MCMC fan requires O(paths \u00d7 periods) floating-point "
-            "operations. For a 10-year daily simulation with 10,000 paths that is ~36.5 million "
-            "steps — roughly six orders of magnitude more work than the QR equivalent. Quantoshi "
+            "operations — hundreds of paths times hundreds of steps per path. Quantoshi "
             "uses a pre-computed cache and a compiled Cython engine to keep this tractable, but it "
             "remains the most resource-intensive feature on the site.",
         ]),

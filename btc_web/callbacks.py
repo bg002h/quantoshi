@@ -606,13 +606,14 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call=True,
 )
 
-# Force Plotly full redraw after heatmap render — iOS Safari skips annotation
-# font weight/size on initial portrait paint and may not render the chart at
-# all if a modal (splash) was open during initial layout.
+# Force Plotly full redraw after splash modal closes — visiting /2 directly
+# causes Plotly to render the heatmap behind the splash modal with broken
+# layout dimensions. Redraw once the modal is gone and the container is
+# properly sized.  Also fires on figure changes for iOS Safari font fix.
 _app_ctx.app.clientside_callback(
     """
-    function(fig, splashOpen) {
-        if (!fig) return "";
+    function(splashOpen, fig) {
+        if (splashOpen || !fig) return window.dash_clientside.no_update;
         function redrawHeatmaps() {
             ["heatmap-graph", "hm-mc-graph"].forEach(function(id) {
                 var el = document.getElementById(id);
@@ -623,13 +624,16 @@ _app_ctx.app.clientside_callback(
                 }
             });
         }
-        setTimeout(redrawHeatmaps, 300);
+        /* Wait for modal close animation + browser layout reflow */
+        requestAnimationFrame(function() {
+            setTimeout(redrawHeatmaps, 400);
+        });
         return "";
     }
     """,
     Output("hm-relayout-dummy", "children"),
-    Input("heatmap-graph", "figure"),
     Input("splash-modal", "is_open"),
+    Input("heatmap-graph", "figure"),
     prevent_initial_call=True,
 )
 

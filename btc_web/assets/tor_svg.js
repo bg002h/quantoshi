@@ -6,18 +6,30 @@
     if (!location.hostname.endsWith(".onion")) return;
 
     function patchPlots() {
+        var patched = 0;
         var plots = document.querySelectorAll(".js-plotly-plot");
         for (var i = 0; i < plots.length; i++) {
             var ctx = plots[i]._context;
-            if (ctx && ctx.toImageButtonOptions) {
+            if (ctx && ctx.toImageButtonOptions && ctx.toImageButtonOptions.format !== "svg") {
                 ctx.toImageButtonOptions.format = "svg";
                 delete ctx.toImageButtonOptions.scale;
+                patched++;
             }
         }
+        return patched;
     }
 
-    /* Patch after Dash renders and on DOM changes (tab switches) */
-    var observer = new MutationObserver(patchPlots);
+    /* Plotly renders async — poll until contexts are available */
+    var attempts = 0;
+    var poller = setInterval(function() {
+        patchPlots();
+        attempts++;
+        if (attempts > 30) clearInterval(poller);
+    }, 500);
+
+    /* Also patch on DOM changes (tab switches create new graphs) */
+    var observer = new MutationObserver(function() {
+        setTimeout(patchPlots, 300);
+    });
     observer.observe(document.body, {childList: true, subtree: true});
-    setTimeout(patchPlots, 2000);
 })();

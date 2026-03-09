@@ -115,7 +115,7 @@ def _prewarm_caches():
         xscale="log", yscale="log",
         xmin=2012, xmax=yr_now + 4,
         ymin=0.01, ymax=1e7,
-        n_future=3, pt_size=2, pt_alpha=0.2,
+        n_future=3, pt_size=3, pt_alpha=0.3,
         stack=0, show_stack=False, use_lots=False, lots=[],
         comp_color="#FFD700", comp_lw=2.0,
         sup_color="#888888", sup_lw=1.5,

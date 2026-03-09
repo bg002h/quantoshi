@@ -196,7 +196,7 @@ _MC_LEGEND_POS = {
 }
 
 
-def _apply_mc_premium(fig: go.Figure, legend_pos: str = "top-left") -> None:
+def _apply_mc_premium(fig: go.Figure, legend_pos: str = "top-left", hide_xlabel: bool = False) -> None:
     """Upgrade figure fonts / colours for premium MC-rendered charts.
 
     *legend_pos*: move legend inside the plot area at the named corner.
@@ -212,6 +212,8 @@ def _apply_mc_premium(fig: go.Figure, legend_pos: str = "top-left") -> None:
     fig.layout.font.family = _MC_FONT_FAMILY
     fig.layout.font.size = _FONT_BODY + 1
     # Axis titles: serif, +2px
+    if hide_xlabel:
+        fig.layout.xaxis.title.text = ""
     fig.layout.xaxis.title.font.family = _MC_FONT_FAMILY
     fig.layout.xaxis.title.font.size = _FONT_BODY + 2
     fig.layout.yaxis.title.font.family = _MC_FONT_FAMILY
@@ -1096,13 +1098,13 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
             final_usd = float(all_usd_vals[q][-1])
             final_y = float(all_btc_vals[q][-1]) if disp_mode == "btc" else final_usd
             col = m.qr_colors.get(q, "#888888")
-            _edge_items.append((x_end, final_y, final_usd, col, ""))
+            _edge_items.append((x_end, final_y, final_usd, col, f"Q{q*100:g} "))
         # SC quantile final USD values
         for q, sc_usd in all_sc_usd_vals.items():
             final_usd = float(sc_usd[-1])
             final_y = final_usd if disp_mode == "usd" else float(all_sc_btc_vals[q][-1])
             col = m.qr_colors.get(q, "#888888")
-            _edge_items.append((x_end, final_y, final_usd, col, "SC "))
+            _edge_items.append((x_end, final_y, final_usd, col, f"SC Q{q*100:g} "))
 
     # ── Stack-celeration factor → append to title ────────────────────────────
     if sc_factor_val is not None:
@@ -1137,7 +1139,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     _apply_sans_typography(layout)
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
     if p.get("mc_enabled"):
-        _apply_mc_premium(fig, legend_pos="top-left")
+        _apply_mc_premium(fig, legend_pos="top-left", hide_xlabel=True)
     _apply_watermark(fig)
     return fig, mc_result
 
@@ -1371,22 +1373,23 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             usd_final = btc_final * float(qr_price(q, ts_end_arr, m.qr_fits)[0])
 
             # Primary (solid) trace annotation
+            qpfx = f"Q{q*100:g} "
             if to_py1:
                 if disp_mode == "usd":
-                    lbl1 = fmt_price(usd_final)
+                    lbl1 = f"{qpfx}{fmt_price(usd_final)}"
                     py1 = to_py1(usd_final)
                 else:
-                    lbl1 = f"{btc_final:.4f} \u20bf"
+                    lbl1 = f"{qpfx}{btc_final:.4f} \u20bf"
                     py1 = to_py1(btc_final)
                 edge_annots.append((x_right, py1, lbl1, col))
 
             # Secondary (dashed) trace annotation
             if to_py2:
                 if disp_mode == "usd":
-                    lbl2 = f"{btc_final:.4f} \u20bf"
+                    lbl2 = f"{qpfx}{btc_final:.4f} \u20bf"
                     py2 = to_py2(btc_final)
                 else:
-                    lbl2 = fmt_price(usd_final)
+                    lbl2 = f"{qpfx}{fmt_price(usd_final)}"
                     py2 = to_py2(usd_final)
                 edge_annots.append((x_right, py2, lbl2, col))
 
@@ -1450,7 +1453,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
     if p.get("mc_enabled"):
         # legend_pos=None so MC premium doesn't override user's legend choice
-        _apply_mc_premium(fig, legend_pos=None)
+        _apply_mc_premium(fig, legend_pos=None, hide_xlabel=True)
     wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
     _apply_watermark(fig, pos=wm_pos)
     return fig, mc_result

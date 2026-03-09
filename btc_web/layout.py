@@ -52,7 +52,7 @@ def _q_panel(checklist_id, default_value, hint=None):
                          "marginTop": "2px", "cursor": "pointer",
                          "userSelect": "none"}),
     ])
-    return _ctrl_card(_lbl("Quantiles"), *children)
+    return _ctrl_card(html.Div("Quantile Regression Model", className="ctrl-section-header"), *children)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -240,13 +240,14 @@ def _bubble_controls():
         ),
         _q_panel("bub-qs", []),
         _ctrl_card(
+            _lbl("Data Point Appearance"),
             _row(
                 html.Div([_lbl("Pt size (1–20)"),
                           dbc.Input(id="bub-ptsize", type="number",
-                                    value=2, min=1, max=20, size="sm")]),
+                                    value=3, min=1, max=20, size="sm")]),
                 html.Div([_lbl("Alpha (0.1–1)"),
                           dbc.Input(id="bub-ptalpha", type="number",
-                                    value=0.2, min=0.1, max=1.0, step=0.05, size="sm")]),
+                                    value=0.3, min=0.1, max=1.0, step=0.05, size="sm")]),
             ),
         ),
         _ctrl_card(

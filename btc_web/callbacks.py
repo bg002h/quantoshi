@@ -606,36 +606,6 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call=True,
 )
 
-# Force Plotly full redraw after splash modal closes — visiting /2 directly
-# causes Plotly to render the heatmap behind the splash modal with broken
-# layout dimensions. Redraw once the modal is gone and the container is
-# properly sized.  Also fires on figure changes for iOS Safari font fix.
-_app_ctx.app.clientside_callback(
-    """
-    function(splashOpen, fig) {
-        if (splashOpen || !fig) return window.dash_clientside.no_update;
-        function redrawHeatmaps() {
-            ["heatmap-graph", "hm-mc-graph"].forEach(function(id) {
-                var el = document.getElementById(id);
-                if (!el) return;
-                var gd = el.querySelector(".js-plotly-plot");
-                if (gd && gd.data && window.Plotly) {
-                    Plotly.newPlot(gd, gd.data, gd.layout, gd.config || {});
-                }
-            });
-        }
-        /* Wait for modal close animation + browser layout reflow */
-        requestAnimationFrame(function() {
-            setTimeout(redrawHeatmaps, 400);
-        });
-        return "";
-    }
-    """,
-    Output("hm-relayout-dummy", "children"),
-    Input("splash-modal", "is_open"),
-    Input("heatmap-graph", "figure"),
-    prevent_initial_call=True,
-)
 
 # ── Dynamic years limit based on sims × freq (cap at 250K datapoints) ────────
 _MC_MAX_DATAPOINTS = 500_000
@@ -2108,6 +2078,25 @@ _app_ctx.app.clientside_callback(
     Output("splash-modal", "is_open", allow_duplicate=True),
     Input("splash-dismiss", "n_clicks"),
     prevent_initial_call="initial_duplicate",
+)
+
+# After splash modal closes (any method: dismiss button, backdrop click,
+# easter egg), dispatch a resize event so Plotly redraws any charts that
+# were rendered behind the modal with broken layout dimensions.
+_app_ctx.app.clientside_callback(
+    """
+    function(isOpen) {
+        if (isOpen === false) {
+            setTimeout(function() {
+                window.dispatchEvent(new Event("resize"));
+            }, 500);
+        }
+        return "";
+    }
+    """,
+    Output("hm-relayout-dummy", "children"),
+    Input("splash-modal", "is_open"),
+    prevent_initial_call=True,
 )
 
 

@@ -51,7 +51,7 @@ M = load_model_data()
 # ── create Dash app ───────────────────────────────────────────────────────────
 app = dash.Dash(
     __name__,
-    external_stylesheets=[dbc.themes.FLATLY],
+    external_stylesheets=["/assets/bootstrap_flatly.min.css"],
     suppress_callback_exceptions=True,
     meta_tags=[{"name": "color-scheme", "content": "only light"}],
 )
@@ -89,11 +89,15 @@ def _cache_headers(response):
     response.headers['Content-Security-Policy'] = "; ".join([
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline'",
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+        "style-src 'self' 'unsafe-inline'",
         f"frame-src {_frame_src}",
         "img-src 'self' data: blob:",
-        "connect-src 'self'",
-        "font-src 'self' https://cdn.jsdelivr.net",
+        "connect-src 'self' https://mempool.space wss://mempool.space"
+        " https://blockstream.info"
+        " http://jxnpv6ef3yo2kqpeu6u3nmv343k7vpyn7katlfdoc3n7hgvz7l5woqid.onion"
+        " ws://jxnpv6ef3yo2kqpeu6u3nmv343k7vpyn7katlfdoc3n7hgvz7l5woqid.onion"
+        " http://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion",
+        "font-src 'self'",
     ])
     return response
 

@@ -92,16 +92,25 @@
     /* blockdrop.js stores lastHeight but doesn't expose it, so we
        piggyback on the same APIs it uses. */
 
+    /* Endpoint: own mempool onion for Tor, clearnet otherwise */
+    var _isOnion = location.hostname.endsWith(".onion");
+    var _mempoolHTTP = _isOnion
+        ? "http://jxnpv6ef3yo2kqpeu6u3nmv343k7vpyn7katlfdoc3n7hgvz7l5woqid.onion"
+        : "https://mempool.space";
+    var _fallbackHTTP = _isOnion
+        ? "http://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion"
+        : "https://blockstream.info";
+
     /* Fetch current height on load (delay to let Dash render footer) */
     function fetchHeight() {
-        fetch("https://mempool.space/api/blocks/tip/height")
+        fetch(_mempoolHTTP + "/api/blocks/tip/height")
             .then(function(r) { return r.text(); })
             .then(function(t) {
                 var h = parseInt(t, 10);
                 if (h && !isNaN(h)) updateFooter(h);
             })
             .catch(function() {
-                return fetch("https://blockstream.info/api/blocks/tip/height")
+                return fetch(_fallbackHTTP + "/api/blocks/tip/height")
                     .then(function(r) { return r.text(); })
                     .then(function(t) {
                         var h = parseInt(t, 10);

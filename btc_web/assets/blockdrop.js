@@ -20,10 +20,22 @@
     var pollTimer     = null;
     var wsRetryDelay  = 2000;
 
-    /* ── Mempool.space WebSocket (primary) ───────────────────────────────── */
+    /* ── Endpoint selection: own mempool onion for Tor, clearnet otherwise ─ */
+    var _isOnion = location.hostname.endsWith(".onion");
+    var _mempoolHTTP = _isOnion
+        ? "http://jxnpv6ef3yo2kqpeu6u3nmv343k7vpyn7katlfdoc3n7hgvz7l5woqid.onion"
+        : "https://mempool.space";
+    var _mempoolWS = _isOnion
+        ? "ws://jxnpv6ef3yo2kqpeu6u3nmv343k7vpyn7katlfdoc3n7hgvz7l5woqid.onion/api/v1/ws"
+        : "wss://mempool.space/api/v1/ws";
+    var _fallbackHTTP = _isOnion
+        ? "http://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion"
+        : "https://blockstream.info";
+
+    /* ── Mempool WebSocket (primary) ────────────────────────────────────── */
     function connectWS() {
         try {
-            ws = new WebSocket("wss://mempool.space/api/v1/ws");
+            ws = new WebSocket(_mempoolWS);
         } catch(e) { startPolling(); return; }
 
         ws.onopen = function() {
@@ -63,7 +75,7 @@
         pollBlock();
     }
     function pollBlock() {
-        fetch("https://blockstream.info/api/blocks/tip/height")
+        fetch(_fallbackHTTP + "/api/blocks/tip/height")
             .then(function(r) { return r.text(); })
             .then(function(t) {
                 var h = parseInt(t, 10);
@@ -281,14 +293,14 @@
 
     /* ── Bootstrap ───────────────────────────────────────────────────────── */
     /* Seed lastHeight so first WS message doesn't trigger animation */
-    fetch("https://mempool.space/api/blocks/tip/height")
+    fetch(_mempoolHTTP + "/api/blocks/tip/height")
         .then(function(r) { return r.text(); })
         .then(function(t) {
             var h = parseInt(t, 10);
             if (h && !isNaN(h)) lastHeight = h;
         })
         .catch(function() {
-            return fetch("https://blockstream.info/api/blocks/tip/height")
+            return fetch(_fallbackHTTP + "/api/blocks/tip/height")
                 .then(function(r) { return r.text(); })
                 .then(function(t) {
                     var h = parseInt(t, 10);

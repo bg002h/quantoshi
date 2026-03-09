@@ -1262,14 +1262,55 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             a["ay"] = _ANNOT_STAGGER_Y[i % 3]
         layout["annotations"] = deplete_annots
 
-    # ── Right-edge / endpoint value labels ───────────────────────────────────
-    # Use text traces (go.Scatter mode="markers+text") instead of annotations
-    # to guarantee labels share the exact same coordinate rendering as the
-    # data traces — avoids dual-y / log-scale annotation positioning issues.
+    # ── Right-edge value annotations (arrow style, paper coords) ────────────
+    # Use yref="paper" to avoid dual-y / log-scale annotation positioning bug.
+    # Mirrors depleted annotation style: arrow from text to the right axis edge.
     if p.get("annotate"):
+        is_log = bool(p.get("log_y"))
+
+        def _axis_paper_fn(axis_key):
+            """Compute paper_y function from explicit axis range."""
+            ys = []
+            for tr in traces:
+                ya = getattr(tr, 'yaxis', None) or 'y'
+                if ya != axis_key:
+                    continue
+                if tr.y is not None:
+                    ys.extend(float(v) for v in tr.y if float(v) > 0)
+            if not ys:
+                return None, None
+            if is_log:
+                lmin = float(np.log10(min(ys)))
+                lmax = float(np.log10(max(ys)))
+                span = max(lmax - lmin, 0.3)
+                pad = 0.05 * span
+                r0, r1 = lmin - pad, lmax + pad
+                def fn(v):
+                    if v <= 0:
+                        return 0.0
+                    return (float(np.log10(v)) - r0) / (r1 - r0)
+                return fn, [r0, r1]
+            else:
+                ylo, yhi = 0.0, max(ys)
+                span = max(yhi, 1e-6)
+                pad = 0.05 * span
+                r0, r1 = ylo - pad, yhi + pad
+                def fn(v):
+                    return (v - r0) / (r1 - r0)
+                return fn, [r0, r1]
+
+        to_py1, y1_range = _axis_paper_fn('y')
+        if y1_range:
+            layout["yaxis"]["range"] = y1_range
+
+        to_py2, y2_range = None, None
+        if p.get("dual_y") and "yaxis2" in layout:
+            to_py2, y2_range = _axis_paper_fn('y2')
+            if y2_range:
+                layout["yaxis2"]["range"] = y2_range
+
+        edge_annots = []   # (paper_y, label, color)
         ts_end_arr = np.maximum(np.array([ts[-1]]), 0.5)
-        # Place labels ~5% before the right edge so they're clearly on the trace
-        idx_ann = max(0, len(ts) - max(3, len(ts) // 20))
 
         for q in sel_qs:
             if q not in all_btc_vals:
@@ -1279,58 +1320,70 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 continue
             col = m.qr_colors.get(q, "#888888")
             usd_final = btc_final * float(qr_price(q, ts_end_arr, m.qr_fits)[0])
-            btc_at_ann = float(all_btc_vals[q][idx_ann])
-            if disp_mode == "usd":
-                lbl = fmt_price(usd_final)
-                price_at_ann = float(qr_price(q, np.maximum(
-                    np.array([ts[idx_ann]]), 0.5), m.qr_fits)[0])
-                y_ann = btc_at_ann * price_at_ann
-            else:
-                lbl = f"{btc_final:.4f} \u20bf"
-                y_ann = btc_at_ann
-            traces.append(go.Scatter(
-                x=[float(ts[idx_ann])], y=[y_ann],
-                mode="markers+text",
-                marker=dict(size=7, color=col, symbol="circle"),
-                text=[f"  \u2192 {lbl}"],
-                textposition="middle right",
-                textfont=dict(size=_FONT_ANNOT, color=col),
-                showlegend=False, hoverinfo="skip",
-            ))
+
+            # Primary (solid) trace annotation
+            if to_py1:
+                if disp_mode == "usd":
+                    lbl1 = fmt_price(usd_final)
+                    py1 = to_py1(usd_final)
+                else:
+                    lbl1 = f"{btc_final:.4f} \u20bf"
+                    py1 = to_py1(btc_final)
+                edge_annots.append((py1, lbl1, col))
+
+            # Secondary (dashed) trace annotation
+            if to_py2:
+                if disp_mode == "usd":
+                    lbl2 = f"{btc_final:.4f} \u20bf"
+                    py2 = to_py2(btc_final)
+                else:
+                    lbl2 = fmt_price(usd_final)
+                    py2 = to_py2(usd_final)
+                edge_annots.append((py2, lbl2, col))
 
         # MC median endpoint
         mc_col = "#F7931A"
         x_end = float(ts[-1])
-        for tr in mc_traces_list:
-            if not (getattr(getattr(tr, "line", None), "dash", None) == "dot"):
-                continue
-            x_data = list(tr.x) if tr.x is not None else []
-            y_data = list(tr.y) if tr.y is not None else []
-            if not x_data or not y_data:
-                continue
-            mc_n = len(x_data)
-            mc_idx = max(0, mc_n - max(3, mc_n // 20))
-            final_y = float(y_data[-1])
-            if final_y <= 0:
-                continue
-            if disp_mode == "usd":
-                mc_lbl = fmt_price(final_y)
-            else:
-                mc_lbl = f"{final_y:.4f} \u20bf"
-            mc_x_last = float(x_data[-1])
-            if mc_x_last < x_end:
-                ann_yr = int(syr + (mc_x_last - t_start)
-                             / max(t_end - t_start, 1e-6) * (eyr - syr))
-                mc_lbl = f"\u2248{ann_yr}  {mc_lbl}"
-            traces.append(go.Scatter(
-                x=[float(x_data[mc_idx])], y=[float(y_data[mc_idx])],
-                mode="markers+text",
-                marker=dict(size=7, color=mc_col, symbol="circle"),
-                text=[f"  MC \u2192 {mc_lbl}"],
-                textposition="middle right",
-                textfont=dict(size=_FONT_ANNOT, color=mc_col),
-                showlegend=False, hoverinfo="skip",
+        if to_py1:
+            for tr in mc_traces_list:
+                if not (getattr(getattr(tr, "line", None), "dash", None) == "dot"):
+                    continue
+                x_data = list(tr.x) if tr.x is not None else []
+                y_data = list(tr.y) if tr.y is not None else []
+                if not x_data or not y_data:
+                    continue
+                final_y = float(y_data[-1])
+                if final_y <= 0:
+                    continue
+                if disp_mode == "usd":
+                    mc_lbl = fmt_price(final_y)
+                else:
+                    mc_lbl = f"{final_y:.4f} \u20bf"
+                mc_x_last = float(x_data[-1])
+                if mc_x_last < x_end:
+                    ann_yr = int(syr + (mc_x_last - t_start)
+                                 / max(t_end - t_start, 1e-6) * (eyr - syr))
+                    mc_lbl = f"\u2248{ann_yr}  {mc_lbl}"
+                py = to_py1(final_y)
+                edge_annots.append((py, f"MC {mc_lbl}", mc_col))
+
+        # Sort by paper_y, stagger overlapping labels
+        edge_annots.sort(key=lambda x: x[0])
+        for i, (py, lbl, col) in enumerate(edge_annots):
+            ay_off = 0
+            if i > 0 and abs(py - edge_annots[i - 1][0]) < 0.05:
+                ay_off = _ANNOT_STAGGER_Y[i % 3]
+            layout.setdefault("annotations", []).append(dict(
+                x=float(ts[-1]), xref="x",
+                y=py, yref="paper",
+                text=lbl,
+                showarrow=True, arrowhead=2, arrowsize=1,
+                arrowcolor=col, arrowwidth=1.5,
+                ax=28, ay=ay_off,
+                font=dict(size=_FONT_ANNOT, color=col),
             ))
+        # Add right margin for annotation text
+        layout["margin"] = dict(l=60, r=100, t=50, b=60)
 
     layout["showlegend"] = bool(p.get("show_legend", True))
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
@@ -1570,10 +1623,11 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 a["ay"] = _ANNOT_STAGGER_Y[i % 3]
             layout["annotations"] = deplete_annots
 
-        # ── Right-edge / endpoint value annotations ─────────────────────────
+        # ── Right-edge / endpoint value labels ─────────────────────────────
+        # Use text traces (go.Scatter mode="markers+text") instead of
+        # annotations — consistent with Retire tab; avoids paper-x arrowhead
+        # misalignment on declining traces.
         if p.get("annotate"):
-            edge_items = []
-            # QR traces: non-depleted endpoints
             for (d, q), (ts_d_r, y_vals_r, depl_t_r, _) in results.items():
                 if depl_t_r is not None:
                     continue  # depleted — already has year annotation
@@ -1591,7 +1645,17 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     lbl = fmt_price(y_final)
                 else:
                     lbl = f"{y_final:.4f} \u20bf"
-                edge_items.append((float(ts_d_r[-1]), y_final, lbl, col, ""))
+                n_pts = len(ts_d_r)
+                idx_ann = max(0, n_pts - max(3, n_pts // 20))
+                traces.append(go.Scatter(
+                    x=[float(ts_d_r[idx_ann])], y=[float(y_vals_r[idx_ann])],
+                    mode="markers+text",
+                    marker=dict(size=7, color=col, symbol="circle"),
+                    text=[f"  \u2192 {lbl}"],
+                    textposition="middle right",
+                    textfont=dict(size=_FONT_ANNOT, color=col),
+                    showlegend=False, hoverinfo="skip",
+                ))
             # MC median endpoint
             mc_col = "#F7931A"
             for tr in mc_traces_list:
@@ -1601,25 +1665,29 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 y_data = list(tr.y) if tr.y is not None else []
                 if not x_data or not y_data:
                     continue
-                mc_x_last = float(x_data[-1])
-                if mc_x_last >= t_end:
-                    ann_y = float(np.interp(t_end, x_data, y_data))
-                else:
-                    ann_y = float(y_data[-1])
-                if ann_y <= 0:
+                mc_n = len(x_data)
+                mc_idx = max(0, mc_n - max(3, mc_n // 20))
+                final_y = float(y_data[-1])
+                if final_y <= 0:
                     continue
                 if disp_mode == "usd":
-                    mc_lbl = fmt_price(ann_y)
+                    mc_lbl = fmt_price(final_y)
                 else:
-                    mc_lbl = f"{ann_y:.4f} \u20bf"
+                    mc_lbl = f"{final_y:.4f} \u20bf"
+                mc_x_last = float(x_data[-1])
                 if mc_x_last < t_end:
                     ann_yr = int(syr + (mc_x_last - t_start_base)
                                  / max(t_end - t_start_base, 1e-6) * (eyr - syr))
                     mc_lbl = f"\u2248{ann_yr}  {mc_lbl}"
-                edge_items.append((t_end, ann_y, mc_lbl, mc_col, "MC "))
-            if edge_items:
-                layout.setdefault("annotations", []).extend(
-                    _render_edge_annots(edge_items))
+                traces.append(go.Scatter(
+                    x=[float(x_data[mc_idx])], y=[float(y_data[mc_idx])],
+                    mode="markers+text",
+                    marker=dict(size=7, color=mc_col, symbol="circle"),
+                    text=[f"  MC \u2192 {mc_lbl}"],
+                    textposition="middle right",
+                    textfont=dict(size=_FONT_ANNOT, color=mc_col),
+                    showlegend=False, hoverinfo="skip",
+                ))
 
         layout["shapes"]     = shapes
         layout["showlegend"] = show_legend

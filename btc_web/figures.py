@@ -1245,12 +1245,12 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
         all_btc_vals[q] = vals
 
         if disp_mode == "usd":
-            prices_arr = prices
-            y_vals = vals * prices_arr
+            y_vals = vals * prices
             final_lbl = fmt_price(float(y_vals[-1]))
         else:
             y_vals = vals
-            final_lbl = f"{float(vals[-1]):.4f} BTC"
+            final_usd = float(vals[-1]) * float(prices[-1])
+            final_lbl = fmt_price(final_usd)
 
         lbl = _fmt_q_label(q) + f"  →  {final_lbl}"
         col = m.qr_colors.get(q, "#888888")
@@ -1307,40 +1307,6 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             layout["yaxis"]["minor"] = _LOG_MINOR
     layout["shapes"]      = shapes
     layout["annotations"] = deplete_annots
-
-    # ── dual Y-axis — one dotted trace per quantile on the opposite unit ────
-    if p.get("dual_y") and traces and all_btc_vals:
-        if disp_mode == "usd":
-            y2_lbl = "BTC Remaining"
-        else:
-            y2_lbl = "USD Value"
-        for q in sel_qs:
-            if q not in all_btc_vals:
-                continue
-            if disp_mode == "usd":
-                y2_vals = all_btc_vals[q]
-            else:
-                y2_vals = all_btc_vals[q] * qr_price(q, ts_clamped, m.qr_fits)
-            col = m.qr_colors.get(q, "#888888")
-            traces.append(go.Scatter(
-                x=list(ts), y=list(y2_vals),
-                mode="lines", name=f"{_fmt_q_label(q)} {y2_lbl}",
-                line=dict(color=col, dash="dot", width=1),
-                yaxis="y2", showlegend=False,
-            ))
-        # $ prefix only when secondary axis shows USD
-        y2_tick_prefix = "$" if y2_lbl == "USD Value" else ""
-        layout["yaxis2"] = dict(
-            title=dict(text=y2_lbl, font=dict(color=m.TEXT_COLOR)),
-            overlaying="y", side="right",
-            showgrid=False, linecolor=m.SPINE_COLOR,
-            tickcolor=m.TEXT_COLOR,
-            ticks="outside", ticklen=8, tickwidth=1.5,
-            tickprefix=y2_tick_prefix,
-        )
-        if p.get("log_y"):
-            layout["yaxis2"]["type"] = "log"
-            layout["yaxis2"]["dtick"] = 1
 
     # ── Monte Carlo fan overlay ─────────────────────────────────────────────
     mc_traces_list = []
@@ -1402,12 +1368,6 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
         if y1_range:
             layout["yaxis"]["range"] = y1_range
 
-        to_py2, y2_range = None, None
-        if p.get("dual_y") and "yaxis2" in layout:
-            to_py2, y2_range = _axis_paper_fn('y2')
-            if y2_range:
-                layout["yaxis2"]["range"] = y2_range
-
         edge_annots = []   # (x_data, paper_y, label, color)
         ts_end_arr = np.maximum(np.array([ts[-1]]), 0.5)
         x_right = float(ts[-1])
@@ -1421,26 +1381,16 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             col = m.qr_colors.get(q, "#888888")
             usd_final = btc_final * float(qr_price(q, ts_end_arr, m.qr_fits)[0])
 
-            # Primary (solid) trace annotation
+            # Primary (solid) trace annotation — show both BTC and USD
             qpfx = f"Q{q*100:g} "
             if to_py1:
                 if disp_mode == "usd":
                     lbl1 = f"{qpfx}{fmt_price(usd_final)}"
                     py1 = to_py1(usd_final)
                 else:
-                    lbl1 = f"{qpfx}{btc_final:.4f} \u20bf"
+                    lbl1 = f"{qpfx}{btc_final:.2f} \u20bf  {fmt_price(usd_final)}"
                     py1 = to_py1(btc_final)
                 edge_annots.append((x_right, py1, lbl1, col))
-
-            # Secondary (dashed) trace annotation
-            if to_py2:
-                if disp_mode == "usd":
-                    lbl2 = f"{qpfx}{btc_final:.4f} \u20bf"
-                    py2 = to_py2(btc_final)
-                else:
-                    lbl2 = f"{qpfx}{fmt_price(usd_final)}"
-                    py2 = to_py2(usd_final)
-                edge_annots.append((x_right, py2, lbl2, col))
 
         # MC median endpoint — annotate at trace terminus, not right edge
         mc_col = "#F7931A"

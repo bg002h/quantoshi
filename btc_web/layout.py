@@ -44,33 +44,17 @@ def _q_options():
         opts.append({"label": lbl, "value": q})
     return opts
 
-_Q_COLLAPSED_HEIGHT = "7.5em"   # ~4 rows visible when collapsed
-
 def _q_panel(checklist_id, default_value, hint=None):
-    """Quantile checklist with expand/collapse toggle.
-
-    Clicking anywhere in the panel expands it. After 4 s of no checkbox
-    interaction the panel collapses back automatically.
-    """
+    """Quantile checklist — static multi-column grid, no collapse."""
     children = []
     if hint:
         children.append(html.Small(hint,
             style={"color":"#888","display":"block","marginBottom":"4px"}))
-    toggle_id = f"{checklist_id}-expand"
-    children.extend([
-        html.Div(
-            dcc.Checklist(id=checklist_id, options=_q_options(),
-                          value=default_value, labelStyle={"display":"block"},
-                          inputStyle={"marginRight":"5px"}),
-            id=f"{checklist_id}-wrap", className="q-panel-wrap",
-            style={"maxHeight": _Q_COLLAPSED_HEIGHT, "overflow": "hidden",
-                   "transition": "max-height 0.25s ease"},
-        ),
-        html.Span("Show all \u25be", id=toggle_id, n_clicks=0,
-                  style={"fontSize": "11px", "color": "#1a6fa8", "display": "block",
-                         "marginTop": "2px", "cursor": "pointer",
-                         "userSelect": "none"}),
-    ])
+    children.append(
+        dcc.Checklist(id=checklist_id, options=_q_options(),
+                      value=default_value, className="q-panel-grid",
+                      inputStyle={"marginRight":"4px"}),
+    )
     return _section_card("Quantile Regression Model", *children)
 
 
@@ -119,6 +103,21 @@ def _export_row(tab_id):
     ], className="export-row-polished")
 
 
+_LEGEND_POS_OPTIONS = [
+    {"label": "Outside (right)", "value": "outside"},
+    {"label": "Top-left",        "value": "top-left"},
+    {"label": "Top-right",       "value": "top-right"},
+    {"label": "Bottom-left",     "value": "bottom-left"},
+    {"label": "Bottom-right",    "value": "bottom-right"},
+]
+
+def _legend_pos_dropdown(prefix, default="outside"):
+    """Legend position dropdown — reused across chart tabs."""
+    return [_lbl("Legend position"),
+            dcc.Dropdown(id=f"{prefix}-legend-pos",
+                         options=_LEGEND_POS_OPTIONS,
+                         value=default, clearable=False)]
+
 # ── Shared control builders ──────────────────────────────────────────────────
 
 _BTC_ORANGE = _app_ctx.BTC_ORANGE
@@ -146,7 +145,8 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
                      style={"position": "relative"}, children=[
                 dcc.Loading(
                     dcc.Graph(id=graph_id, style={"height": "78vh"},
-                              config={"toImageButtonOptions": {"format": "png", "scale": 2,
+                              config={"scrollZoom": False,
+                                      "toImageButtonOptions": {"format": "png", "scale": 2,
                                                                "filename": filename}}),
                     type="default", color=_BTC_ORANGE,
                 ),
@@ -240,10 +240,12 @@ def _bubble_controls():
                                    {"label":" Show data","value":"show_data"},
                                    {"label":" Show today","value":"show_today"},
                                    {"label":" Show legend","value":"show_legend"},
-                                   {"label":html.Span(" Minor grid",className="minor-grid-opt"),"value":"minor_grid"}],
+                                   {"label":html.Span(" Minor grid",className="minor-grid-opt"),"value":"minor_grid"},
+                                   {"label":" Enable chart zoom","value":"chart_zoom"}],
                           value=["shade","show_data","show_today"],
                           labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
+            *_legend_pos_dropdown("bub", "top-left"),
         ),
         _section_card("Bubble Model",
             _lbl("Bubble"),
@@ -298,7 +300,10 @@ def _bubble_tab():
 def _heatmap_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
-        _section_card("Entry Point",
+        # ── Stack ───────────────────────────────────────────────────────
+        _stack_control_card("hm", default_btc=0),
+        # ── Entry ───────────────────────────────────────────────────────
+        _section_card("Entry",
             _lbl("Entry year"),
             dcc.Slider(id="hm-entry-yr", min=2010, max=2039,
                        value=yr_now, step=1, marks=None,
@@ -308,15 +313,17 @@ def _heatmap_controls():
                       value=_app_ctx._HM_ENTRY_Q_DEFAULT,
                       min=0.1, max=99.9, step=0.1, size="sm"),
         ),
-        _section_card("Exit Range",
+        # ── Price Model ─────────────────────────────────────────────────
+        _q_panel("hm-exit-qs", _app_ctx._DEF_QS,
+                 hint="Select exit quantiles for CAGR projection columns."),
+        _mc_controls("hm", show_amount=False, show_mc_entry_q=True, default_entry_q=10),
+        # ── Chart ───────────────────────────────────────────────────────
+        _section_card("Chart",
             _lbl("Exit year range"),
             dcc.RangeSlider(id="hm-exit-range", min=2010, max=2060,
                             value=[yr_now, yr_now + 15], step=1,
                             marks={y: f"'{y % 100:02d}" for y in range(2010, 2061, 5)},
                             tooltip={"always_visible":False}),
-        ),
-        _q_panel("hm-exit-qs", _app_ctx._DEF_QS),
-        _section_card("Color & Style",
             _lbl("Color mode"),
             dcc.RadioItems(id="hm-mode",
                            options=[{"label":" Segmented","value":0},
@@ -362,20 +369,11 @@ def _heatmap_controls():
             dbc.Input(id="hm-cell-fs", type="number", value=9,
                       min=5, max=20, step=1, size="sm"),
             dcc.Checklist(id="hm-toggles",
-                          options=[{"label":" Show colorbar","value":"colorbar"}],
+                          options=[{"label":" Show colorbar","value":"colorbar"},
+                                   {"label":" Enable chart zoom","value":"chart_zoom"}],
                           value=["colorbar"], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
-        _ctrl_card(
-            _lbl("Portfolio BTC"),
-            dbc.Input(id="hm-stack", type="number", value=0,
-                      min=0, step=0.001, size="sm"),
-            dcc.Checklist(id="hm-use-lots",
-                          options=[{"label":" Use Stack Tracker lots","value":"yes"}],
-                          value=[], inputStyle={"marginRight":"5px"}),
-        ),
-        # MC controls at the very bottom, below all quantile config
-        _mc_controls("hm", show_amount=False, show_mc_entry_q=True, default_entry_q=10),
     ])
 
 
@@ -461,7 +459,7 @@ _MC_ENTRY_Q_OPTIONS  = _bold_opts(
     [int(v * 100) for v in ENTRY_PCT_BINS],
     lambda v: f"{v}%", _MC_CACHED_ENTRY_QS)
 _MC_ENTRY_Q_OPTIONS_ADV = _bold_opts(
-    list(range(1, 100)),
+    [round(i / 10, 1) for i in range(1, 1000)],
     lambda v: f"{v}%", _MC_CACHED_ENTRY_QS)
 _MC_YEARS_OPTIONS    = _bold_opts(MC_YEARS_OPTIONS, lambda v: f"{v} yr", _MC_CACHED_YEARS)
 _MC_WD_OPTIONS       = _bold_opts(WD_AMOUNTS, lambda v: f"${v:,}/mo", _MC_CACHED_WD)
@@ -469,7 +467,7 @@ _MC_INFL_OPTIONS     = _bold_opts(INFL_OPTIONS, lambda v: f"{v}%", _MC_CACHED_IN
 
 def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=100,
                   show_inflation=False, show_amount=True,
-                  amount_dropdown=False, show_stack=False, show_mc_entry_q=False,
+                  show_stack=False, show_mc_entry_q=False,
                   default_entry_q=50):
     """Monte Carlo simulation controls, reusable across tabs."""
     yr_now = pd.Timestamp.today().year
@@ -562,14 +560,10 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                                 value=default_entry_q, clearable=False),
                 ] if show_mc_entry_q else []),
             ]),
-            *([_lbl(amount_label),
-               dcc.Dropdown(id=f"{prefix}-mc-amount",
-                            options=_MC_WD_OPTIONS,
-                            value=amount_default, clearable=False),
-              ] if show_amount and amount_dropdown else
-              [_lbl(amount_label),
+            *([_lbl(amount_label + " (0–4,294,967,295)"),
                dbc.Input(id=f"{prefix}-mc-amount", type="number",
-                         value=amount_default, min=1, step=1, size="sm"),
+                         value=amount_default, min=0, max=4294967295,
+                         step=1, size="sm"),
               ] if show_amount else [
                dbc.Input(id=f"{prefix}-mc-amount", type="number",
                          value=amount_default, style={"display": "none"}),
@@ -671,16 +665,26 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
 def _dca_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
-        _section_card("DCA Plan",
+        # ── Stack ───────────────────────────────────────────────────────
+        _stack_control_card("dca", default_btc=0),
+        # ── Plan ────────────────────────────────────────────────────────
+        _section_card("Plan",
             _lbl("Per-period amount ($)"),
             dbc.Input(id="dca-amount", type="number", value=100,
-                      min=1, step=1, size="sm"),
+                      min=0, max=4294967295, step=1, size="sm"),
             _lbl("Frequency"),
             _freq_dropdown("dca"),
+        ),
+        _stackcelerator_controls(),
+        # ── Price Model ─────────────────────────────────────────────────
+        _q_panel("dca-qs", [0.5],
+                 hint="Price path drives sat accumulation — lower quantile = lower price = more sats/period."),
+        _mc_controls("dca", amount_label="DCA amount per period ($)", amount_default=100,
+                     show_mc_entry_q=True),
+        # ── Chart ───────────────────────────────────────────────────────
+        _section_card("Chart",
             _lbl("Year range"),
             _year_range_slider("dca", 2009, 2060, yr_now, yr_now + 10),
-        ),
-        _section_card("Display",
             dcc.Dropdown(id="dca-disp",
                          options=[{"label":"BTC Balance","value":"btc"},
                                   {"label":"USD Value","value":"usd"}],
@@ -688,16 +692,12 @@ def _dca_controls():
             dcc.Checklist(id="dca-toggles",
                           options=[{"label":" Log Y","value":"log_y"},
                                    {"label":" Show legend","value":"show_legend"},
-                                   {"label":html.Span(" Minor grid",className="minor-grid-opt"),"value":"minor_grid"}],
-                          value=["show_legend"], labelStyle={"display":"block"},
+                                   {"label":html.Span(" Minor grid",className="minor-grid-opt"),"value":"minor_grid"},
+                                   {"label":" Enable chart zoom","value":"chart_zoom"}],
+                          value=[], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
+            *_legend_pos_dropdown("dca", "bottom-right"),
         ),
-        _q_panel("dca-qs", [0.5],
-                 hint="Price path drives sat accumulation — lower quantile = lower price = more sats/period."),
-        _stack_control_card("dca", default_btc=0),
-        _stackcelerator_controls(),
-        _mc_controls("dca", amount_label="DCA amount per period ($)", amount_default=100,
-                     show_mc_entry_q=True),
     ])
 
 
@@ -712,7 +712,7 @@ def _stackcelerator_controls():
         html.Div(id="dca-sc-body", style={"display":"none"}, children=[
             _lbl("Loan amount ($)"),
             dbc.Input(id="dca-sc-loan", type="number",
-                      value=1200, min=0, step=1, size="sm"),
+                      value=1200, min=0, max=4294967295, step=1, size="sm"),
             _lbl("Entry price (1st cycle)"),
             dcc.Dropdown(id="dca-sc-entry-mode",
                          options=[{"label":"Live ticker","value":"live"},
@@ -764,19 +764,28 @@ def _dca_tab():
 def _retire_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
-        _section_card("Withdrawal Plan",
+        # ── Stack ───────────────────────────────────────────────────────
+        _stack_control_card("ret", default_btc=1.0),
+        # ── Plan ────────────────────────────────────────────────────────
+        _section_card("Plan",
             _lbl("Withdrawal/period ($)"),
             dbc.Input(id="ret-wd", type="number", value=5000,
-                      min=1, step=1, size="sm"),
+                      min=0, max=4294967295, step=1, size="sm"),
             _lbl("Frequency"),
             _freq_dropdown("ret"),
-            _lbl("Year range"),
-            _year_range_slider("ret", 2024, 2075, 2031, 2075),
             _lbl("Inflation rate (0–100% / yr)"),
             dbc.Input(id="ret-infl", type="number", value=4,
                       min=0, max=100, step=0.5, size="sm"),
         ),
-        _section_card("Display",
+        # ── Price Model ─────────────────────────────────────────────────
+        _q_panel("ret-qs", [0.01, 0.10, 0.25],
+                 hint="Lower quantile = lower price = faster depletion \u2014 worst-case planning."),
+        _mc_controls("ret", amount_label="Withdrawal per period ($)", amount_default=5000,
+                     show_inflation=True, show_stack=True),
+        # ── Chart ───────────────────────────────────────────────────────
+        _section_card("Chart",
+            _lbl("Year range"),
+            _year_range_slider("ret", 2024, 2075, 2031, 2075),
             dcc.Dropdown(id="ret-disp",
                          options=[{"label":"BTC Remaining","value":"btc"},
                                   {"label":"USD Value","value":"usd"}],
@@ -785,24 +794,13 @@ def _retire_controls():
                           options=[{"label":" Log Y","value":"log_y"},
                                    {"label":" Annotate depletion","value":"annotate"},
                                    {"label":" Show legend","value":"show_legend"},
-                                   {"label":html.Span(" Minor grid",className="minor-grid-opt"),"value":"minor_grid"}],
+                                   {"label":html.Span(" Minor grid",className="minor-grid-opt"),"value":"minor_grid"},
+                                   {"label":" Enable chart zoom","value":"chart_zoom"}],
                           value=["annotate","log_y","minor_grid"],
                           labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
-            _lbl("Legend position"),
-            dcc.Dropdown(id="ret-legend-pos",
-                         options=[{"label":"Outside (right)","value":"outside"},
-                                  {"label":"Top-left","value":"top-left"},
-                                  {"label":"Top-right","value":"top-right"},
-                                  {"label":"Bottom-left","value":"bottom-left"},
-                                  {"label":"Bottom-right","value":"bottom-right"}],
-                         value="outside", clearable=False),
+            *_legend_pos_dropdown("ret", "bottom-right"),
         ),
-        _q_panel("ret-qs", [0.01, 0.10, 0.25],
-                 hint="Lower quantile = lower price = faster depletion \u2014 worst-case planning."),
-        _stack_control_card("ret", default_btc=1.0),
-        _mc_controls("ret", amount_label="Withdrawal per period ($)", amount_default=5000,
-                     show_inflation=True, amount_dropdown=True, show_stack=True),
     ])
 
 
@@ -819,8 +817,10 @@ def _supercharge_controls():
     display_q_opts = _q_options()
     display_q_default = _nearest_quantile(0.05, _app_ctx._ALL_QS)
     return html.Div([
-        # ── Scenario card: mode + timeline + delays + freq/infl + mode-specific ──
-        _section_card("Scenario",
+        # ── Stack ───────────────────────────────────────────────────────
+        _stack_control_card("sc", default_btc=1.0),
+        # ── Plan ────────────────────────────────────────────────────────
+        _section_card("Plan",
             dcc.RadioItems(id="sc-mode",
                 options=[{"label":" A \u2014 Fixed spending (depletion date)","value":"a"},
                          {"label":" B \u2014 Fixed depletion (max spending)","value":"b"}],
@@ -862,7 +862,7 @@ def _supercharge_controls():
             dbc.Collapse([
                 _lbl("Withdrawal/period ($)"),
                 dbc.Input(id="sc-wd", type="number", value=100000,
-                          min=1, step=1, size="sm"),
+                          min=0, max=4294967295, step=1, size="sm"),
                 _lbl("End year"),
                 html.Div(dcc.Slider(id="sc-end-yr", min=2030, max=2100,
                            value=2075, step=1,
@@ -877,8 +877,16 @@ def _supercharge_controls():
                            tooltip={"always_visible":False})),
             ], id="sc-mode-b-collapse", is_open=False),
         ),
-        # ── Display card: chart layout + display-q + BTC/USD + toggles ──
-        _section_card("Display",
+        # ── Price Model ─────────────────────────────────────────────────
+        _q_panel("sc-qs", [q for q in [0.001, 0.10] if q in _app_ctx.M.qr_fits],
+                 hint="Lower quantile = earlier depletion \u2014 use multiple quantiles to see the range."),
+        # Hidden MC controls — keeps component IDs alive for callbacks
+        html.Div(_mc_controls("sc", amount_label="Withdrawal per period ($)",
+                              amount_default=5000, show_inflation=True,
+                              show_stack=True),
+                 style={"display": "none"}),
+        # ── Chart ───────────────────────────────────────────────────────
+        _section_card("Chart",
             dcc.Checklist(id="sc-chart-layout",
                 options=[{"label":" Shade quantile bands","value":"shade"}],
                 value=["shade"],
@@ -896,19 +904,13 @@ def _supercharge_controls():
                           options=[{"label":" Annotate depletion","value":"annotate"},
                                    {"label":" Log Y","value":"log_y"},
                                    {"label":" Show legend","value":"show_legend"},
-                                   {"label":html.Span(" Minor grid",className="minor-grid-opt"),"value":"minor_grid"}],
-                          value=["annotate","log_y","show_legend","minor_grid"],
+                                   {"label":html.Span(" Minor grid",className="minor-grid-opt"),"value":"minor_grid"},
+                                   {"label":" Enable chart zoom","value":"chart_zoom"}],
+                          value=["annotate","log_y","minor_grid"],
                           labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
+            *_legend_pos_dropdown("sc", "top-left"),
         ),
-        _q_panel("sc-qs", [q for q in [0.001, 0.10] if q in _app_ctx.M.qr_fits],
-                 hint="Lower quantile = earlier depletion \u2014 use multiple quantiles to see the range."),
-        _stack_control_card("sc", default_btc=1.0),
-        # Hidden MC controls — keeps component IDs alive for callbacks
-        html.Div(_mc_controls("sc", amount_label="Withdrawal per period ($)",
-                              amount_default=5000, show_inflation=True,
-                              amount_dropdown=True, show_stack=True),
-                 style={"display": "none"}),
     ])
 
 

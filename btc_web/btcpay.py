@@ -45,7 +45,7 @@ _HM_DISCOUNT = 0.5  # heatmap pays half
 
 # Free tier: certain (years, start_yr) combos with default simulator settings.
 from mc_cache import MC_DEFAULT_YEARS, MC_DEFAULT_ENTRY_Q, MC_DEFAULT_START_YR, \
-    CACHED_START_YRS, MC_BINS, MC_SIMS, MC_FREQ
+    CACHED_START_YRS, MC_BINS, MC_SIMS, MC_FREQ, is_cache_aligned_q
 
 # (years, start_yr) combos where ANY entry percentile qualifies for free tier
 # (with default bins, sims, freq, and historical window).
@@ -70,11 +70,14 @@ def is_free_tier(mc_years: int, start_yr: int, entry_q: float = 0,
                  mc_freq: str = MC_FREQ) -> bool:
     """Check if the requested params match the free tier (no payment needed).
 
-    Free tier requires default simulator settings (bins, sims, freq).
-    Any entry percentile is free for (years, start_yr) combos in
-    _FREE_TIER_COMBOS.
+    Free tier requires default simulator settings (bins, sims, freq) AND a
+    cache-aligned entry percentile (10% bins: 10, 20, ..., 90).  Non-aligned
+    percentiles require a live simulation and therefore payment.
     """
     if int(mc_bins) != MC_BINS or int(mc_sims) > MC_SIMS or (mc_freq or MC_FREQ) != MC_FREQ:
+        return False
+    eq = float(entry_q)
+    if eq > 0 and not is_cache_aligned_q(eq):
         return False
     return (int(mc_years), int(start_yr)) in _FREE_TIER_COMBOS
 

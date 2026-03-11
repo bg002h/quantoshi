@@ -1126,9 +1126,20 @@ body {
     pointer-events: none !important;
 }
 
-/* Quantile panel: expand on hover */
-.card:hover .q-panel-wrap {
-    max-height: none !important;
+/* Quantile panel: static multi-column grid */
+.q-panel-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px 4px;
+}
+.q-panel-grid label {
+    white-space: nowrap;
+    font-size: 13px;
+}
+@media (max-width: 991px) {
+    .q-panel-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 /* MC chart overlay — grays out chart when MC settings don't match */
@@ -1179,4 +1190,24 @@ body {
     opacity: 0.7;
     pointer-events: none;
     filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));
+}
+
+/* ── Slider touch guard ─────────────────────────────────────────────────────
+   Prevent sliders from capturing vertical scroll gestures on mobile.
+   The slider's JS touch handlers still work for deliberate horizontal drags,
+   but the browser won't hijack the touch for page scroll vs slider conflict.
+*/
+.rc-slider {
+    touch-action: none;
+}
+
+/* ── Input accepted flash ───────────────────────────────────────────────────
+   Brief green border flash when user presses Enter on a numeric input.
+*/
+@keyframes input-accepted {
+    0%   { box-shadow: 0 0 0 2px rgba(26,143,60,0.6); }
+    100% { box-shadow: none; }
+}
+.input-accepted {
+    animation: input-accepted 0.6s ease-out;
 }

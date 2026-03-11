@@ -242,7 +242,8 @@ def _apply_mc_xlabel(fig: go.Figure, p: dict, tab: str) -> None:
         parts.append(f"{float(stack):g} BTC")
 
     # Filename mirrors the JS _mcFilename() convention
-    fn_parts = ["mc", tab, f"yr{start_yr}", f"{years}y", f"q{int(entry_q)}"]
+    _eq = round(float(entry_q), 1)
+    fn_parts = ["mc", tab, f"yr{start_yr}", f"{years}y", f"q{_eq:g}"]
     if amount is not None:
         fn_parts.append(f"${int(float(amount))}")
     if infl is not None and float(infl) > 0:
@@ -603,6 +604,14 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         # X-axis uses explicit tickvals (year labels); skip minor to avoid crash.
 
     layout["showlegend"] = bool(p.get("show_legend", True))
+    leg_pos = p.get("legend_pos", "outside")
+    if leg_pos != "outside" and leg_pos in _MC_LEGEND_POS:
+        pos = _MC_LEGEND_POS[leg_pos]
+        layout["legend"].update(
+            x=pos["x"], y=pos["y"],
+            xanchor=pos["xanchor"], yanchor=pos["yanchor"],
+            bgcolor="rgba(255,255,255,0.7)",
+        )
     layout["shapes"] = shapes
 
     if stack > 0:
@@ -616,7 +625,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     _apply_sans_typography(layout)
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
-    _apply_watermark(fig)
+    wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
+    _apply_watermark(fig, pos=wm_pos)
     return fig
 
 
@@ -1257,12 +1267,21 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                 col, log_y=_is_log))
 
     layout["showlegend"] = bool(p.get("show_legend", True))
+    leg_pos = p.get("legend_pos", "outside")
+    if leg_pos != "outside" and leg_pos in _MC_LEGEND_POS:
+        pos = _MC_LEGEND_POS[leg_pos]
+        layout["legend"].update(
+            x=pos["x"], y=pos["y"],
+            xanchor=pos["xanchor"], yanchor=pos["yanchor"],
+            bgcolor="rgba(255,255,255,0.7)",
+        )
     _apply_sans_typography(layout)
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
     if p.get("mc_enabled"):
-        _apply_mc_premium(fig, legend_pos="top-left", hide_xlabel=True)
+        _apply_mc_premium(fig, legend_pos=None, hide_xlabel=True)
         _apply_mc_xlabel(fig, p, "dca")
-    _apply_watermark(fig)
+    wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
+    _apply_watermark(fig, pos=wm_pos)
     return fig, mc_result
 
 
@@ -1740,11 +1759,20 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
 
         layout["shapes"]     = shapes
         layout["showlegend"] = show_legend
+        leg_pos = p.get("legend_pos", "outside")
+        if leg_pos != "outside" and leg_pos in _MC_LEGEND_POS:
+            pos = _MC_LEGEND_POS[leg_pos]
+            layout["legend"].update(
+                x=pos["x"], y=pos["y"],
+                xanchor=pos["xanchor"], yanchor=pos["yanchor"],
+                bgcolor="rgba(255,255,255,0.7)",
+            )
         _apply_sans_typography(layout)
         fig = go.Figure(data=traces, layout=go.Layout(**layout))
         if p.get("mc_enabled"):
             _apply_mc_xlabel(fig, p, "sc")
-        _apply_watermark(fig)
+        wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
+        _apply_watermark(fig, pos=wm_pos)
         return fig, mc_result
 
     # ── MODE B: fixed depletion date → max withdrawal per period ──────────────
@@ -1844,7 +1872,16 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
         ylabel=f"Max withdrawal{freq_label}",
     )
     layout["showlegend"] = show_legend
+    leg_pos = p.get("legend_pos", "outside")
+    if leg_pos != "outside" and leg_pos in _MC_LEGEND_POS:
+        pos = _MC_LEGEND_POS[leg_pos]
+        layout["legend"].update(
+            x=pos["x"], y=pos["y"],
+            xanchor=pos["xanchor"], yanchor=pos["yanchor"],
+            bgcolor="rgba(255,255,255,0.7)",
+        )
     _apply_sans_typography(layout)
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
-    _apply_watermark(fig)
+    wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
+    _apply_watermark(fig, pos=wm_pos)
     return fig, None

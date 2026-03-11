@@ -400,6 +400,16 @@ def snap_to_bin(raw_pctile):
     return max(0.1, min(binned, 0.9))
 
 
+def is_cache_aligned_q(entry_q_pct):
+    """Check if entry_q (percentage, e.g. 10, 20, 43.5) matches a 10% cache bin.
+
+    Returns True for values within 0.5% of a bin boundary (10, 20, ..., 90).
+    """
+    raw = float(entry_q_pct) / 100.0
+    pct_bin = snap_to_bin(raw)
+    return abs(raw - pct_bin) < 0.005
+
+
 def is_cached_year(yr):
     """Check if a start year has pre-computed cache."""
     return yr in _CACHE and "paths" in _CACHE[yr]

@@ -48,7 +48,7 @@ from snapshot import (_SNAPSHOT_CONTROLS, _CHECKLIST_OPTIONS,
                       _encode_snapshot, _decode_snapshot, _decode_snapshot_v1,
                       _list_to_mask, _mask_to_list)
 import json as _json
-from layout import (_Q_COLLAPSED_HEIGHT, _SPLASH_QUOTES, _SPLASH_QUOTES_JS,
+from layout import (_SPLASH_QUOTES, _SPLASH_QUOTES_JS,
                     _MC_CACHED_START_YRS, _MC_PRICE_CACHED, _MC_PRICE_LIVE,
                     _FAQ, _bold_opts, _MC_CACHED_YEARS,
                     _MC_CACHED_ENTRY_QS,
@@ -83,7 +83,7 @@ def _build_mc_params(*, mc_enable, mc_amount, mc_infl, mc_bins, mc_sims,
     """
     d = dict(
         mc_enabled    = bool(mc_enable),
-        mc_amount     = float(mc_amount or amount_default),
+        mc_amount     = max(0, min(4294967295, int(float(mc_amount or amount_default)))),
         mc_infl       = float(mc_infl) if mc_infl is not None else infl_default,
         mc_bins       = int(mc_bins or MC_BINS),
         mc_sims       = int(mc_sims or MC_SIMS),
@@ -135,7 +135,7 @@ def _mc_payment_check(tab, mc_years, start_yr, entry_q, pay_token,
         if (pk.get("tab") == tab
                 and int(pk.get("mc_years", 0)) == mc_yrs
                 and int(pk.get("mc_start_yr", 0)) == s_yr
-                and int(pk.get("mc_entry_q", -1)) == int(e_q)
+                and abs(float(pk.get("mc_entry_q", -1)) - e_q) < 0.05
                 and int(pk.get("mc_bins", 0)) == _bins
                 and int(pk.get("mc_sims", 0)) <= _sims
                 and (pk.get("mc_freq") or MC_FREQ) == _freq):
@@ -178,17 +178,18 @@ def _mc_payment_check(tab, mc_years, start_yr, entry_q, pay_token,
     Input("bub-stack",         "value"),
     Input("bub-show-stack",    "value"),
     Input("bub-use-lots",      "value"),
+    Input("bub-legend-pos",    "value"),
     Input("effective-lots",    "data"),
 )
 def update_bubble(sel_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,
-                  n_future, ptsize, ptalpha, stack, show_stack, use_lots, lots_data):
+                  n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, lots_data):
     toggles        = toggles or []
     bubble_toggles = bubble_toggles or []
     yrange         = yrange or [0, 7]
     xrange         = xrange or [2012, 2030]
 
-    return _get_bubble_fig(dict(
+    fig = _get_bubble_fig(dict(
         selected_qs = sel_qs or [],
         shade       = "shade"     in toggles,
         show_ols    = "show_ols"  in toggles,
@@ -209,9 +210,13 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
         show_stack  = bool(show_stack),
         use_lots    = bool(use_lots),
         lots        = lots_data or [],
+        legend_pos  = legend_pos or "outside",
         comp_color  = "#FFD700", comp_lw = 2.0,
         sup_color   = "#888888", sup_lw  = 1.5,
     ))
+    if "chart_zoom" not in toggles:
+        fig.update_layout(dragmode=False)
+    return fig
 
 
 @callback(
@@ -396,7 +401,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     # Track which MC params were actually rendered
     rendered_key = ({"years": int(mc_years or MC_DEFAULT_YEARS),
                      "start_yr": int(mc_start_yr or MC_DEFAULT_START_YR),
-                     "entry_q": int(mc_entry_q or MC_DEFAULT_ENTRY_Q)}
+                     "entry_q": round(float(mc_entry_q or MC_DEFAULT_ENTRY_Q), 1)}
                     if mc_enabled and mc_payment_ok else None)
 
     # Show/hide MC panel and swipe indicator
@@ -404,6 +409,11 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     indicator_style = ({"fontSize": "0.85rem", "color": "#6c757d", "userSelect": "none"}
                        if mc_enabled
                        else {"display": "none"})
+
+    if "chart_zoom" not in toggles:
+        qr_fig.update_layout(dragmode=False)
+        if mc_fig is not dash.no_update:
+            mc_fig.update_layout(dragmode=False)
 
     return (qr_fig, mc_fig, store_val, status, mc_panel_style, indicator_style,
             rendered_key,
@@ -425,6 +435,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     Input("dca-yr-range", "value"),
     Input("dca-disp",     "value"),
     Input("dca-toggles",  "value"),
+    Input("dca-legend-pos","value"),
     Input("dca-qs",       "value"),
     Input("effective-lots","data"),
     Input("dca-sc-enable",  "value"),
@@ -454,7 +465,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     State("mc-pay-token",   "data"),
     prevent_initial_call=True,
 )
-def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggles, sel_qs, lots_data,
+def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggles, legend_pos, sel_qs, lots_data,
                sc_enable, sc_loan, sc_rate, sc_term, sc_type, sc_repeats,
                sc_entry_mode, sc_custom_price, sc_tax, sc_rollover,
                mc_enable, mc_amount, mc_infl, mc_bins, mc_sims, mc_years, mc_freq, mc_window,
@@ -471,7 +482,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
     fig, mc_result = _get_dca_fig(dict(
         start_stack    = float(stack or 0),
         use_lots       = bool(use_lots),
-        amount         = float(amount or 100),
+        amount         = max(0, min(4294967295, int(float(amount or 100)))),
         freq           = freq or "Monthly",
         start_yr       = int(yr_range[0]),
         end_yr         = int(yr_range[1]),
@@ -479,6 +490,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
         log_y          = "log_y"      in toggles,
         show_today     = "show_today" in toggles,
         show_legend    = "show_legend" in toggles,
+        legend_pos     = legend_pos or "outside",
         minor_grid     = "minor_grid" in toggles,
         selected_qs    = sel_qs or [],
         lots           = lots_data or [],
@@ -506,9 +518,11 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
     mc_did_render = mc_ok
     rendered_key = ({"years": int(mc_years or MC_DEFAULT_YEARS),
                      "start_yr": int(mc_start_yr or MC_DEFAULT_START_YR),
-                     "entry_q": int(mc_entry_q or MC_DEFAULT_ENTRY_Q)}
+                     "entry_q": round(float(mc_entry_q or MC_DEFAULT_ENTRY_Q), 1)}
                     if mc_did_render else None)
     store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enable)
+    if "chart_zoom" not in toggles:
+        fig.update_layout(dragmode=False)
     return fig, store_val, status, rendered_key, show_modal, "dca" if show_modal else dash.no_update
 
 
@@ -736,59 +750,6 @@ for _mc_pfx in ("dca", "ret", "hm", "sc"):
         val = cur_years if (cur_years and cur_years <= max_avail) else max_avail
         return opts, val
 
-# ── Quantile panel expand/collapse ────────────────────────────────────────────
-# Click anywhere in the wrap div OR the toggle link to expand.
-# After 4 s of no checkbox interaction the panel auto-collapses.
-_Q_COLLAPSE_DELAY_MS = 4000
-
-for _qid in ("bub-qs", "hm-exit-qs", "dca-qs", "ret-qs", "sc-qs"):
-    # Toggle on link click
-    _app_ctx.app.clientside_callback(
-        """
-        function(n) {
-            var wrap = document.getElementById('""" + _qid + """-wrap');
-            var link = document.getElementById('""" + _qid + """-expand');
-            if (!wrap || !link) return window.dash_clientside.no_update;
-            if (wrap.style.maxHeight && wrap.style.maxHeight !== 'none') {
-                wrap.style.maxHeight = 'none';
-                link.textContent = 'Show less \\u25b4';
-            } else {
-                wrap.style.maxHeight = '""" + _Q_COLLAPSED_HEIGHT + """';
-                link.textContent = 'Show all \\u25be';
-            }
-            return window.dash_clientside.no_update;
-        }
-        """,
-        Output(_qid + "-expand", "style"),
-        Input(_qid + "-expand", "n_clicks"),
-        prevent_initial_call=True,
-    )
-
-    # Update toggle link text when hover expands (via CSS)
-    _app_ctx.app.clientside_callback(
-        """
-        function(qsVal) {
-            var wrap = document.getElementById('""" + _qid + """-wrap');
-            var link = document.getElementById('""" + _qid + """-expand');
-            if (!wrap || !link) return window.dash_clientside.no_update;
-            // Sync toggle text with hover state via a brief check
-            var card = wrap.closest('.card');
-            if (card && !card._qHoverAttached) {
-                card._qHoverAttached = true;
-                card.addEventListener('mouseenter', function() {
-                    link.textContent = 'Show less \\u25b4';
-                });
-                card.addEventListener('mouseleave', function() {
-                    link.textContent = 'Show all \\u25be';
-                });
-            }
-            return window.dash_clientside.no_update;
-        }
-        """,
-        Output(_qid + "-wrap", "style"),
-        Input(_qid, "value"),
-        prevent_initial_call=True,
-    )
 
 
 
@@ -802,7 +763,7 @@ def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=800, mc_freq="Month
     """Return cost display elements showing cached vs live pricing."""
     mc_years = int(mc_years or 10)
     start_yr = int(start_yr or 2026)
-    entry_q  = int(entry_q or 50)
+    entry_q  = round(float(entry_q or 50), 1)
     mc_sims  = int(mc_sims or _MC_BASE_SIMS)
     mc_bins  = int(mc_bins or _MC_BASE_BINS)
     mc_ppy   = FREQ_PPY.get(mc_freq or "Monthly", _MC_BASE_PPY)
@@ -1302,7 +1263,7 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     from _app_ctx import _compute_sc_loan
 
     ppy          = FREQ_PPY.get(freq or "Monthly", 12)
-    amount       = float(amount or 100)
+    amount       = max(0, min(4294967295, int(float(amount or 100))))
     principal    = float(sc_loan or 0)
     rate         = float(rate) if rate is not None else 13.0
     term         = float(term or 12)
@@ -1425,7 +1386,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     fig, mc_result = _get_retire_fig(dict(
         start_stack  = float(stack or 1.0),
         use_lots     = bool(use_lots),
-        wd_amount    = float(wd or 5000),
+        wd_amount    = max(0, min(4294967295, int(float(wd or 5000)))),
         freq         = freq or "Monthly",
         start_yr     = int(yr_range[0]),
         end_yr       = int(yr_range[1]),
@@ -1452,9 +1413,11 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     mc_did_render = mc_ok
     rendered_key = ({"years": int(mc_years or MC_DEFAULT_YEARS),
                      "start_yr": int(mc_start_yr or MC_DEFAULT_START_YR),
-                     "entry_q": int(mc_entry_q or MC_DEFAULT_ENTRY_Q)}
+                     "entry_q": round(float(mc_entry_q or MC_DEFAULT_ENTRY_Q), 1)}
                     if mc_did_render else None)
     store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enable)
+    if "chart_zoom" not in toggles:
+        fig.update_layout(dragmode=False)
     return fig, store_val, status, rendered_key, show_modal, "ret" if show_modal else dash.no_update
 
 
@@ -1486,6 +1449,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     Input("sc-target-yr",    "value"),
     Input("sc-disp",         "value"),
     Input("sc-toggles",      "value"),
+    Input("sc-legend-pos",   "value"),
     Input("sc-chart-layout", "value"),
     Input("sc-display-q",    "value"),
     Input("effective-lots",  "data"),
@@ -1511,7 +1475,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
                        d0, d1, d2, d3, d4,
                        freq, infl, sel_qs, mode,
                        wd, end_yr, target_yr, disp,
-                       toggles, chart_layout, display_q, lots_data,
+                       toggles, legend_pos, chart_layout, display_q, lots_data,
                        mc_enable, mc_amount, mc_infl, mc_bins, mc_sims, mc_years, mc_freq, mc_window,
                        mc_stack, mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger,
                        price_data, mc_cached, pay_token):
@@ -1538,12 +1502,13 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         chart_layout = _cl,
         display_q    = float(display_q) if display_q is not None
                        else _nearest_quantile(0.5, _app_ctx._ALL_QS),
-        wd_amount    = float(wd or 5000),
+        wd_amount    = max(0, min(4294967295, int(float(wd or 5000)))),
         end_yr       = int(end_yr or 2075),
         disp_mode    = disp or "usd",
         log_y        = "log_y"      in toggles,
         annotate     = "annotate"   in toggles,
         show_legend  = "show_legend" in toggles,
+        legend_pos   = legend_pos or "outside",
         minor_grid   = "minor_grid" in toggles,
         target_yr    = int(target_yr or 2060),
         lots         = lots_data or [],
@@ -1560,6 +1525,8 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         ),
     ))
     store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enable)
+    if "chart_zoom" not in toggles:
+        fig.update_layout(dragmode=False)
     return fig, store_val, status, show_modal, "sc" if show_modal else dash.no_update
 
 
@@ -2050,7 +2017,8 @@ _TAB_TO_PATH = {v: k for k, v in _PATH_TO_TAB.items()}
 _TAB_CONTROLS = {
     "bubble":      {"bub-qs","bub-xscale","bub-yscale","bub-xrange","bub-yrange",
                     "bub-toggles","bub-bubble-toggles","bub-n-future","bub-ptsize",
-                    "bub-ptalpha","bub-stack","bub-show-stack","bub-use-lots","bub-auto-y"},
+                    "bub-ptalpha","bub-stack","bub-show-stack","bub-use-lots","bub-auto-y",
+                    "bub-legend-pos"},
     "heatmap":     {"hm-entry-yr","hm-entry-q","hm-exit-range","hm-exit-qs","hm-mode",
                     "hm-b1","hm-b2","hm-c-lo","hm-c-mid1","hm-c-mid2","hm-c-hi",
                     "hm-grad","hm-vfmt","hm-cell-fs","hm-toggles","hm-stack","hm-use-lots"},
@@ -2059,13 +2027,13 @@ _TAB_CONTROLS = {
                     "dca-sc-enable","dca-sc-loan","dca-sc-rate","dca-sc-term",
                     "dca-sc-type","dca-sc-repeats",
                     "dca-sc-entry-mode","dca-sc-custom-price","dca-sc-tax",
-                    "dca-sc-rollover"},
+                    "dca-sc-rollover","dca-legend-pos"},
     "retire":      {"ret-stack","ret-use-lots","ret-wd","ret-freq","ret-yr-range",
                     "ret-infl","ret-disp","ret-toggles","ret-legend-pos","ret-qs"},
     "supercharge": {"sc-stack","sc-use-lots","sc-start-yr","sc-d0","sc-d1","sc-d2",
                     "sc-d3","sc-d4","sc-freq","sc-infl","sc-qs","sc-mode","sc-wd",
-                    "sc-end-yr","sc-target-yr","sc-disp","sc-toggles","sc-chart-layout",
-                    "sc-display-q"},
+                    "sc-end-yr","sc-target-yr","sc-disp","sc-toggles","sc-legend-pos",
+                    "sc-chart-layout","sc-display-q"},
     "stack":       set(),
     "faq":         set(),
 }

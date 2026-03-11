@@ -1562,7 +1562,7 @@ class TestUpdateBubbleCallback:
                 bubble_toggles=[], xscale="log", yscale="log",
                 xrange=[2012, 2030], yrange=[0, 7],
                 n_future=3, ptsize=3, ptalpha=0.6,
-                stack=0, show_stack=[], use_lots=[], lots_data=[],
+                stack=0, show_stack=[], use_lots=[], legend_pos="outside", lots_data=[],
             )
         assert isinstance(fig, go.Figure)
 
@@ -1573,7 +1573,7 @@ class TestUpdateBubbleCallback:
                 xscale="linear", yscale="log",
                 xrange=[2015, 2028], yrange=[1, 6],
                 n_future=0, ptsize=2, ptalpha=0.3,
-                stack=0, show_stack=[], use_lots=[], lots_data=[],
+                stack=0, show_stack=[], use_lots=[], legend_pos="outside", lots_data=[],
             )
         assert isinstance(fig, go.Figure)
 
@@ -1584,7 +1584,7 @@ class TestUpdateBubbleCallback:
                 bubble_toggles=["show_comp"], xscale="log", yscale="log",
                 xrange=[2012, 2035], yrange=[0, 7],
                 n_future=2, ptsize=4, ptalpha=0.5,
-                stack=1.5, show_stack=["yes"], use_lots=[], lots_data=[],
+                stack=1.5, show_stack=["yes"], use_lots=[], legend_pos="outside", lots_data=[],
             )
         assert isinstance(fig, go.Figure)
 
@@ -1644,7 +1644,7 @@ class TestUpdateDcaCallback:
             result = update_dca(
                 active_tab="dca", stack=0, use_lots=[], amount=200,
                 freq="Monthly", yr_range=[2025, 2035],
-                disp="btc", toggles=["show_legend"],
+                disp="btc", toggles=["show_legend"], legend_pos="outside",
                 sel_qs=[0.5], lots_data=[],
                 sc_enable=[], sc_loan=0, sc_rate=13, sc_term=12,
                 sc_type="interest_only", sc_repeats=0,
@@ -1667,7 +1667,7 @@ class TestUpdateDcaCallback:
                 update_dca(
                     active_tab="bubble", stack=0, use_lots=[], amount=200,
                     freq="Monthly", yr_range=[2025, 2035],
-                    disp="btc", toggles=[], sel_qs=[0.5], lots_data=[],
+                    disp="btc", toggles=[], legend_pos="outside", sel_qs=[0.5], lots_data=[],
                     sc_enable=[], sc_loan=0, sc_rate=13, sc_term=12,
                     sc_type="interest_only", sc_repeats=0,
                     sc_entry_mode="live", sc_custom_price=80000,
@@ -1685,7 +1685,7 @@ class TestUpdateDcaCallback:
             result = update_dca(
                 active_tab="dca", stack=0, use_lots=[], amount=500,
                 freq="Monthly", yr_range=[2025, 2030],
-                disp="btc", toggles=[],
+                disp="btc", toggles=[], legend_pos="outside",
                 sel_qs=[0.1, 0.5], lots_data=[],
                 sc_enable=["yes"], sc_loan=10000, sc_rate=13, sc_term=12,
                 sc_type="interest_only", sc_repeats=0,
@@ -1705,7 +1705,7 @@ class TestUpdateDcaCallback:
             result = update_dca(
                 active_tab="dca", stack=0.5, use_lots=[], amount=300,
                 freq="Weekly", yr_range=[2025, 2032],
-                disp="usd", toggles=["log_y"],
+                disp="usd", toggles=["log_y"], legend_pos="outside",
                 sel_qs=[0.5, 0.85], lots_data=[],
                 sc_enable=[], sc_loan=0, sc_rate=13, sc_term=12,
                 sc_type="interest_only", sc_repeats=0,
@@ -1757,7 +1757,7 @@ class TestUpdateSuperchargeCallback:
                 freq="Annually", infl=4, sel_qs=[0.001, 0.1],
                 mode="a", wd=100000, end_yr=2075, target_yr=2060,
                 disp="usd",
-                toggles=["annotate", "log_y", "show_legend"],
+                toggles=["annotate", "log_y", "show_legend"], legend_pos="outside",
                 chart_layout=["shade"], display_q=0.5, lots_data=[],
                 mc_enable=[], mc_amount=5000, mc_infl=4,
                 mc_bins=5, mc_sims=800, mc_years=10,
@@ -1776,7 +1776,7 @@ class TestUpdateSuperchargeCallback:
                 start_yr=2030, d0=0, d1=1, d2=3, d3=5, d4=10,
                 freq="Monthly", infl=3, sel_qs=[0.1, 0.5],
                 mode="b", wd=50000, end_yr=2080, target_yr=2055,
-                disp="usd", toggles=["show_legend"],
+                disp="usd", toggles=["show_legend"], legend_pos="outside",
                 chart_layout=[], display_q=0.5, lots_data=[],
                 mc_enable=[], mc_amount=5000, mc_infl=4,
                 mc_bins=5, mc_sims=800, mc_years=10,
@@ -2278,12 +2278,19 @@ class TestBTCPayPricing:
     def test_free_tier_retire_default(self):
         assert btcpay.is_free_tier(10, 2031, 50)
 
-    def test_free_tier_any_entry_q(self):
-        """Any entry percentile is free for covered (years, start_yr) combos."""
-        assert btcpay.is_free_tier(10, 2026, 25)
+    def test_free_tier_cache_aligned_entry_q(self):
+        """Cache-aligned entry percentiles (10% bins) are free."""
+        assert btcpay.is_free_tier(10, 2026, 20)
         assert btcpay.is_free_tier(10, 2026, 90)
-        assert btcpay.is_free_tier(20, 2028, 5)
-        assert btcpay.is_free_tier(20, 2031, 75)
+        assert btcpay.is_free_tier(20, 2028, 40)
+        assert btcpay.is_free_tier(20, 2031, 70)
+
+    def test_not_free_non_aligned_entry_q(self):
+        """Non-cache-aligned entry percentiles require payment."""
+        assert not btcpay.is_free_tier(10, 2026, 25)
+        assert not btcpay.is_free_tier(10, 2026, 4.3)
+        assert not btcpay.is_free_tier(20, 2028, 5)
+        assert not btcpay.is_free_tier(20, 2031, 75)
 
     def test_free_tier_20yr(self):
         assert btcpay.is_free_tier(20, 2026, 50)

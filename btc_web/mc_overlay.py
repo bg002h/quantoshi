@@ -177,12 +177,16 @@ def try_precomputed_paths(p, mc_years):
     """Look up pre-computed price paths using uniform mc_start_yr/mc_entry_q.
 
     Returns (n_sims, n_steps) ndarray or None.
+    Only returns cached data when entry_q is cache-aligned (within 0.5% of a
+    10% bin).  Non-aligned values fall through to live simulation.
     """
     if not _HAS_MC_CACHE:
         return None
     syr = int(p.get("mc_start_yr", MC_DEFAULT_START_YR))
     raw_pctile = float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)) / 100.0
     pct_bin = snap_to_bin(raw_pctile)
+    if abs(raw_pctile - pct_bin) > 0.005:
+        return None
     return get_cached_paths(syr, pct_bin, mc_years)
 
 
@@ -190,12 +194,16 @@ def try_precomputed_overlay(p, mc_years, wd_amount, inflation, mc_stack):
     """Look up pre-computed withdraw overlay fans.
 
     Returns (fan_btc, fan_usd) dicts or (None, None).
+    Only returns cached data when entry_q is cache-aligned (within 0.5% of a
+    10% bin).  Non-aligned values fall through to live simulation.
     """
     if not _HAS_MC_CACHE:
         return None, None
     syr = int(p.get("mc_start_yr", MC_DEFAULT_START_YR))
     raw_pctile = float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)) / 100.0
     pct_bin = snap_to_bin(raw_pctile)
+    if abs(raw_pctile - pct_bin) > 0.005:
+        return None, None
     infl_pct = int(round(inflation * 100))
     return get_cached_overlay(syr, pct_bin, mc_years, int(wd_amount), infl_pct, mc_stack)
 

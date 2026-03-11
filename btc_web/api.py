@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 _WINDOW = 3600  # 1 hour
 _MAX_UNPAID = 20                # max outstanding unpaid invoices per IP per window
 _MAX_PAID_PER_HR = 100          # max paid invoices per IP per window
-_ALLOWED_TABS = ("dca", "ret", "hm")
+_ALLOWED_TABS = ("dca", "ret", "hm", "sc")
 _ALLOWED_MC_YEARS = (10, 20, 30, 40)
 
 # {ip: [(timestamp, paid_bool), ...]}
@@ -116,7 +116,7 @@ def register_routes(server) -> None:
             return jsonify({"error": "Invalid mc_years"}), 400
 
         # Free tier check
-        entry_q = float(data.get("entry_q", btcpay.FREE_TIER_ENTRY_Q))
+        entry_q = float(data.get("entry_q", btcpay.MC_DEFAULT_ENTRY_Q))
         if btcpay.is_free_tier(mc_years, start_yr, entry_q):
             return jsonify({"free": True, "message": "Free tier — no payment needed"}), 200
 

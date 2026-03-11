@@ -449,7 +449,6 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
         disp_mode      = disp or "btc",
         log_y          = "log_y"      in toggles,
         show_today     = "show_today" in toggles,
-        dual_y         = "dual_y"     in toggles,
         show_legend    = "show_legend" in toggles,
         minor_grid     = "minor_grid" in toggles,
         selected_qs    = sel_qs or [],
@@ -503,6 +502,54 @@ for _mc_adv in ("dca", "ret", "hm", "sc"):
         style = {} if val else {"display": "none"}
         opts = _MC_ENTRY_Q_OPTIONS_ADV if val else _MC_ENTRY_Q_OPTIONS
         return style, opts
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MC ↔ Year Range sync — auto-extend year range to include MC horizon
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _mc_yr_sync_factory():
+    """Return a callback fn that extends a RangeSlider to include MC horizon."""
+    def _sync(mc_start_yr, mc_years, mc_enable, yr_range):
+        if not mc_enable:
+            return dash.no_update, dash.no_update
+        mc_end = int(mc_start_yr or 2031) + int(mc_years or 10)
+        yr_range = yr_range or [2024, 2034]
+        if yr_range[1] >= mc_end:
+            return dash.no_update, dash.no_update
+        return [yr_range[0], mc_end], mc_end
+    return _sync
+
+for _pfx in ("dca", "ret"):
+    callback(
+        Output(f"{_pfx}-yr-range", "value", allow_duplicate=True),
+        Output(f"{_pfx}-yr-range", "max", allow_duplicate=True),
+        Input(f"{_pfx}-mc-start-yr", "value"),
+        Input(f"{_pfx}-mc-years", "value"),
+        Input(f"{_pfx}-mc-enable", "value"),
+        State(f"{_pfx}-yr-range", "value"),
+        prevent_initial_call='initial_duplicate',
+    )(_mc_yr_sync_factory())
+
+# SC uses separate start/end sliders — sync end-yr slider
+@callback(
+    Output("sc-end-yr", "value", allow_duplicate=True),
+    Output("sc-end-yr", "max", allow_duplicate=True),
+    Input("sc-mc-start-yr", "value"),
+    Input("sc-mc-years", "value"),
+    Input("sc-mc-enable", "value"),
+    State("sc-end-yr", "value"),
+    prevent_initial_call='initial_duplicate',
+)
+def _mc_sc_yr_sync(mc_start_yr, mc_years, mc_enable, end_yr):
+    """Extend SC end-year slider to include MC horizon."""
+    if not mc_enable:
+        return dash.no_update, dash.no_update
+    mc_end = int(mc_start_yr or 2031) + int(mc_years or 10)
+    end_yr = int(end_yr or 2075)
+    if end_yr >= mc_end:
+        return dash.no_update, dash.no_update
+    return mc_end, max(mc_end, 2100)
+
 
 # MC match indicator — show whether chart reflects current MC settings
 # Returns: [match_text, match_style, overlay_style, wrap_class, badge_style]
@@ -898,8 +945,8 @@ def _mc_payment_initiate(*args):
                 True, f"Estimated cost: {tab_price:,} sats", onchain_note,
                 *no_tab_status)
 
-    # If BTCPay not configured, just increment trigger (free mode)
-    if not _app_ctx._HAS_BTCPAY:
+    # If BTCPay not configured or DEV mode, just increment trigger (free mode)
+    if not _app_ctx._HAS_BTCPAY or os.environ.get("DEV") == "1":
         return _ret(False, dash.no_update, dash.no_update,
                     dash.no_update, True, 0, cur_trigger + 1,
                     *no_tab_status)
@@ -1355,8 +1402,6 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         inflation    = float(infl or 0),
         disp_mode    = disp or "btc",
         log_y        = "log_y"     in toggles,
-        show_today   = "show_today" in toggles,
-        dual_y       = "dual_y"    in toggles,
         annotate     = "annotate"  in toggles,
         show_legend  = "show_legend" in toggles,
         legend_pos   = legend_pos or "outside",
@@ -1467,7 +1512,6 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         disp_mode    = disp or "usd",
         log_y        = "log_y"      in toggles,
         annotate     = "annotate"   in toggles,
-        show_today   = "show_today" in toggles,
         show_legend  = "show_legend" in toggles,
         minor_grid   = "minor_grid" in toggles,
         target_yr    = int(target_yr or 2060),

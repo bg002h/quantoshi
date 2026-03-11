@@ -943,7 +943,6 @@ class TestBuildDcaFigure:
             "selected_qs": [0.5] if 0.5 in M.qr_fits else [],
             "log_y": True,
             "show_today": True,
-            "dual_y": True,
             "show_legend": True,
             "lots": [],
             "use_lots": False,
@@ -963,7 +962,6 @@ class TestBuildDcaFigure:
             "selected_qs": [0.5] if 0.5 in M.qr_fits else [],
             "log_y": False,
             "show_today": False,
-            "dual_y": True,
             "show_legend": True,
             "lots": [],
             "use_lots": False,
@@ -983,7 +981,6 @@ class TestBuildDcaFigure:
             "selected_qs": [0.5] if 0.5 in M.qr_fits else [],
             "log_y": True,
             "show_today": True,
-            "dual_y": True,
             "show_legend": True,
             "lots": [],
             "use_lots": False,
@@ -1001,8 +998,8 @@ class TestBuildDcaFigure:
         fig, _ = build_dca_figure(M, p)
         assert isinstance(fig, go.Figure)
 
-    def test_annotations_present_with_dual_y(self):
-        """Verify right-edge USD annotations are added when dual_y is on."""
+    def test_annotations_present(self):
+        """Verify right-edge USD text-trace annotations are present."""
         p = {
             "start_yr": 2024,
             "end_yr": 2034,
@@ -1013,18 +1010,20 @@ class TestBuildDcaFigure:
             "selected_qs": [0.5] if 0.5 in M.qr_fits else [],
             "log_y": True,
             "show_today": False,
-            "dual_y": True,
             "show_legend": True,
             "lots": [],
             "use_lots": False,
             "sc_enabled": False,
         }
         fig, _ = build_dca_figure(M, p)
-        annots = fig.layout.annotations
-        # Should have watermark + at least 1 USD annotation per quantile
-        has_price_annot = any("$" in (a.text or "") for a in annots)
+        # Text-trace annotations: go.Scatter with mode="markers+text" and "$" in text
+        has_price_trace = any(
+            getattr(tr, "mode", "") == "markers+text"
+            and any("$" in t for t in (tr.text or []))
+            for tr in fig.data
+        )
         if p["selected_qs"]:
-            assert has_price_annot, "Expected USD price annotations with dual_y enabled"
+            assert has_price_trace, "Expected USD text-trace annotations"
 
 
 class TestBuildRetireFigure:
@@ -1041,8 +1040,6 @@ class TestBuildRetireFigure:
             "disp_mode": "usd",
             "selected_qs": [0.1, 0.25] if all(q in M.qr_fits for q in [0.1, 0.25]) else [0.5],
             "log_y": True,
-            "show_today": True,
-            "dual_y": True,
             "annotate": True,
             "show_legend": True,
             "lots": [],
@@ -1068,7 +1065,6 @@ class TestBuildSuperchargeFigure:
             "disp_mode": "usd",
             "selected_qs": [0.1] if 0.1 in M.qr_fits else [0.5],
             "log_y": True,
-            "show_today": True,
             "annotate": True,
             "show_legend": True,
             "lots": [],
@@ -1093,7 +1089,6 @@ class TestBuildSuperchargeFigure:
             "disp_mode": "usd",
             "selected_qs": [0.1] if 0.1 in M.qr_fits else [0.5],
             "log_y": True,
-            "show_today": True,
             "annotate": True,
             "show_legend": True,
             "lots": [],
@@ -1124,8 +1119,6 @@ class TestFalsyZeroGuard:
             "disp_mode": "usd",
             "selected_qs": [0.5] if 0.5 in M.qr_fits else [],
             "log_y": False,
-            "show_today": False,
-            "dual_y": False,
             "annotate": False,
             "show_legend": False,
             "lots": [],
@@ -1146,7 +1139,6 @@ class TestFalsyZeroGuard:
             "selected_qs": [0.5] if 0.5 in M.qr_fits else [],
             "log_y": True,
             "show_today": False,
-            "dual_y": True,
             "show_legend": True,
             "lots": [],
             "use_lots": False,
@@ -1181,7 +1173,6 @@ class TestAnnotationStagger:
             "selected_qs": sel,
             "log_y": True,
             "show_today": False,
-            "dual_y": True,
             "show_legend": True,
             "lots": [],
             "use_lots": False,
@@ -1224,8 +1215,7 @@ class TestDCAMath:
             "start_yr": 2030, "end_yr": 2031,
             "start_stack": 0.0, "amount": 1000, "freq": "Monthly",
             "disp_mode": "btc", "selected_qs": [_Q50],
-            "log_y": False, "show_today": False, "dual_y": False,
-            "show_legend": True, "lots": [], "use_lots": False,
+            "log_y": False, "show_today": False,            "show_legend": True, "lots": [], "use_lots": False,
             "sc_enabled": False,
         }
         p.update(overrides)
@@ -1305,8 +1295,7 @@ class TestSCLoanCap:
             "start_yr": 2030, "end_yr": 2031,
             "start_stack": 0.0, "amount": 100, "freq": "Monthly",
             "disp_mode": "btc", "selected_qs": [_Q50],
-            "log_y": False, "show_today": False, "dual_y": False,
-            "show_legend": True, "lots": [], "use_lots": False,
+            "log_y": False, "show_today": False,            "show_legend": True, "lots": [], "use_lots": False,
             "sc_enabled": True,
             "sc_loan_amount": 999_999_999, "sc_rate": 12.0,
             "sc_term_months": 12, "sc_loan_type": "interest_only",
@@ -1325,8 +1314,7 @@ class TestSCLoanCap:
             "start_yr": 2030, "end_yr": 2031,
             "start_stack": 0.0, "amount": 1000, "freq": "Monthly",
             "disp_mode": "btc", "selected_qs": [_Q50],
-            "log_y": False, "show_today": False, "dual_y": False,
-            "show_legend": True, "lots": [], "use_lots": False,
+            "log_y": False, "show_today": False,            "show_legend": True, "lots": [], "use_lots": False,
             "sc_enabled": True,
             "sc_loan_amount": 5000, "sc_rate": 0.0,
             "sc_term_months": 12, "sc_loan_type": "amortizing",
@@ -1380,7 +1368,6 @@ class TestRetireMath:
             "start_stack": 1.0, "wd_amount": 50000, "freq": "Annually",
             "inflation": 0, "disp_mode": "btc",
             "selected_qs": [_Q50], "log_y": False,
-            "show_today": False, "dual_y": False,
             "show_legend": True, "annotate": False,
             "lots": [], "use_lots": False,
         }
@@ -1433,6 +1420,103 @@ class TestRetireMath:
         # Should have at least one depletion annotation with year text
         depl_annots = [a for a in annots if "≈" in (a.text or "")]
         assert len(depl_annots) >= 1
+
+
+class TestAnnotationAlignment:
+    """Every text-trace annotation must sit at the last data point of a parent
+    line trace — guaranteeing pixel-perfect alignment regardless of zoom,
+    resize, or rotation.  Depletion layout annotations (≈YYYY) are checked
+    separately for correct x-coordinate placement."""
+
+    @staticmethod
+    def _assert_text_traces_at_endpoints(fig):
+        lines = [tr for tr in fig.data
+                 if getattr(tr, 'mode', '') in ('lines', 'lines+markers')
+                 and tr.y is not None and len(list(tr.y)) > 0]
+        texts = [tr for tr in fig.data
+                 if getattr(tr, 'mode', '') == 'markers+text']
+        for tt in texts:
+            ax, ay = float(tt.x[0]), float(tt.y[0])
+            ok = any(
+                abs(ax - float(list(lt.x)[-1])) < 1e-6
+                and abs(ay - float(list(lt.y)[-1])) < 1e-6
+                for lt in lines
+            )
+            lbl = tt.text[0] if tt.text else ""
+            assert ok, (
+                f"Annotation '{lbl}' at ({ax:.6f}, {ay:.6f}) "
+                f"does not match any line trace endpoint"
+            )
+
+    def test_dca_single_q_btc(self):
+        p = dict(start_yr=2024, end_yr=2034, start_stack=0, amount=500,
+                 freq="Monthly", disp_mode="btc", log_y=True,
+                 selected_qs=[0.5] if 0.5 in M.qr_fits else [],
+                 show_today=False, show_legend=True,
+                 lots=[], use_lots=False, sc_enabled=False)
+        fig, _ = build_dca_figure(M, p)
+        self._assert_text_traces_at_endpoints(fig)
+
+    def test_dca_multi_q_usd(self):
+        qs = [q for q in [0.10, 0.50] if q in M.qr_fits]
+        p = dict(start_yr=2024, end_yr=2034, start_stack=0, amount=500,
+                 freq="Monthly", disp_mode="usd", log_y=False,
+                 selected_qs=qs, show_today=False, show_legend=True,
+                 lots=[], use_lots=False, sc_enabled=False)
+        fig, _ = build_dca_figure(M, p)
+        self._assert_text_traces_at_endpoints(fig)
+
+    def test_dca_no_y2(self):
+        """No secondary Y-axis should be created."""
+        qs = [0.5] if 0.5 in M.qr_fits else []
+        p = dict(start_yr=2024, end_yr=2034, start_stack=0, amount=500,
+                 freq="Monthly", disp_mode="btc", log_y=True,
+                 selected_qs=qs, show_today=False,
+                 show_legend=True, lots=[], use_lots=False, sc_enabled=False)
+        fig, _ = build_dca_figure(M, p)
+        try:
+            y2 = fig.layout.yaxis2
+            assert y2 is None or y2.title is None
+        except AttributeError:
+            pass  # yaxis2 doesn't exist — correct behavior
+
+    def test_retire_non_depleted(self):
+        qs = [0.50] if 0.50 in M.qr_fits else []
+        p = dict(start_yr=2031, end_yr=2050, start_stack=10.0,
+                 wd_amount=1000, freq="Monthly", inflation=0,
+                 disp_mode="btc", selected_qs=qs, log_y=True,
+                 annotate=True,
+                 show_legend=True, minor_grid=False, lots=[], use_lots=False)
+        fig, _ = build_retire_figure(M, p)
+        self._assert_text_traces_at_endpoints(fig)
+
+    def test_retire_depleted_has_depletion_annot(self):
+        """Depleted traces get ≈YYYY annotations, not endpoint text traces."""
+        qs = [0.01] if 0.01 in M.qr_fits else []
+        if not qs:
+            pytest.skip("need Q1%")
+        p = dict(start_yr=2031, end_yr=2075, start_stack=0.01,
+                 wd_amount=500_000, freq="Monthly", inflation=0,
+                 disp_mode="btc", selected_qs=qs, log_y=True,
+                 annotate=True,
+                 show_legend=True, minor_grid=False, lots=[], use_lots=False)
+        fig, _ = build_retire_figure(M, p)
+        depl = [a for a in (fig.layout.annotations or []) if "≈" in (a.text or "")]
+        assert len(depl) >= 1
+        # Depleted trace should NOT have a text-trace annotation
+        texts = [tr for tr in fig.data if getattr(tr, 'mode', '') == 'markers+text']
+        assert len(texts) == 0
+
+    def test_supercharge_non_depleted(self):
+        qs = [0.50] if 0.50 in M.qr_fits else []
+        p = dict(mode="A", start_stack=10.0, delays=[0],
+                 start_yr=2033, end_yr=2050, freq="Annually",
+                 inflation=0, wd_amount=1000, disp_mode="usd",
+                 selected_qs=qs, log_y=True,
+                 annotate=True, show_legend=True, lots=[], use_lots=False,
+                 shade=False, display_q=0.50)
+        fig, _ = build_supercharge_figure(M, p)
+        self._assert_text_traces_at_endpoints(fig)
 
 
 class TestSnapshotControlsCompleteness:
@@ -1560,7 +1644,7 @@ class TestUpdateDcaCallback:
             result = update_dca(
                 active_tab="dca", stack=0, use_lots=[], amount=200,
                 freq="Monthly", yr_range=[2025, 2035],
-                disp="btc", toggles=["dual_y", "show_legend"],
+                disp="btc", toggles=["show_legend"],
                 sel_qs=[0.5], lots_data=[],
                 sc_enable=[], sc_loan=0, sc_rate=13, sc_term=12,
                 sc_type="interest_only", sc_repeats=0,
@@ -1601,7 +1685,7 @@ class TestUpdateDcaCallback:
             result = update_dca(
                 active_tab="dca", stack=0, use_lots=[], amount=500,
                 freq="Monthly", yr_range=[2025, 2030],
-                disp="btc", toggles=["dual_y"],
+                disp="btc", toggles=[],
                 sel_qs=[0.1, 0.5], lots_data=[],
                 sc_enable=["yes"], sc_loan=10000, sc_rate=13, sc_term=12,
                 sc_type="interest_only", sc_repeats=0,
@@ -1646,7 +1730,7 @@ class TestUpdateRetireCallback:
             result = update_retire(
                 active_tab="retire", stack=1.0, use_lots=[], wd=5000,
                 freq="Monthly", yr_range=[2031, 2075], infl=4,
-                disp="btc", toggles=["log_y", "dual_y", "annotate"],
+                disp="btc", toggles=["log_y", "annotate"],
                 legend_pos="outside",
                 sel_qs=[0.01, 0.1, 0.25], lots_data=[],
                 mc_enable=[], mc_amount=5000, mc_infl=4,

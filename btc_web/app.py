@@ -96,6 +96,7 @@ def _cache_headers(response):
         'camera=(), microphone=(), geolocation=(), '
         'interest-cohort=(), usb=()'
     )
+    response.headers['X-DNS-Prefetch-Control'] = 'off'
 
     # ── Onion-Location (clearnet only — shows ".onion available" in Tor) ─
     _is_onion = flask_request.host.endswith('.onion')

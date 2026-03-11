@@ -1101,6 +1101,292 @@ class TestBuildSuperchargeFigure:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Section 5b: Chart builder parameter fuzz tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Helper: pick quantiles that exist in the model
+_FUZZ_QS = [q for q in [0.001, 0.01, 0.10, 0.50, 0.90] if q in M.qr_fits]
+_FUZZ_Q1 = _FUZZ_QS[:1]
+_FUZZ_Q2 = _FUZZ_QS[:2] if len(_FUZZ_QS) >= 2 else _FUZZ_QS
+_YR_NOW = pd.Timestamp.today().year
+
+
+def _assert_figure(result, expect_tuple=False):
+    """Assert result is a valid figure (or (figure, mc_result) tuple)."""
+    if expect_tuple:
+        assert isinstance(result, tuple) and len(result) == 2
+        fig, _ = result
+    else:
+        fig = result
+    assert isinstance(fig, go.Figure)
+
+
+# ── Supercharger fuzz ────────────────────────────────────────────────────────
+
+_SC_BASE = dict(
+    mode="a", start_stack=1.0, start_yr=2033, end_yr=2075,
+    delays=[0, 1, 2], freq="Monthly", inflation=4.0,
+    selected_qs=_FUZZ_Q2, chart_layout=0, display_q=0.5,
+    wd_amount=5000, disp_mode="usd", log_y=True,
+    annotate=True, show_legend=True, legend_pos="outside",
+    minor_grid=False, target_yr=2060, lots=[], use_lots=False,
+)
+
+_SC_OVERRIDES = [
+    # ── Single-axis variations ───────────────────────────────────────
+    # Chart layouts
+    pytest.param({"chart_layout": 0}, id="sc-layout0"),
+    pytest.param({"chart_layout": 1}, id="sc-layout1"),
+    pytest.param({"chart_layout": 2}, id="sc-layout2"),
+    # Mode B
+    pytest.param({"mode": "b"}, id="sc-modeB"),
+    pytest.param({"mode": "b", "disp_mode": "btc"}, id="sc-modeB-btc"),
+    # Display mode
+    pytest.param({"disp_mode": "btc"}, id="sc-btc"),
+    # Toggles off
+    pytest.param({"log_y": False}, id="sc-linear"),
+    pytest.param({"annotate": False}, id="sc-no-annot"),
+    pytest.param({"show_legend": False}, id="sc-no-legend"),
+    # Delays
+    pytest.param({"delays": [0.0]}, id="sc-delay0-only"),
+    pytest.param({"delays": [0, 1, 2, 4, 8]}, id="sc-5delays"),
+    pytest.param({"delays": [5, 10]}, id="sc-late-delays"),
+    # Frequencies
+    pytest.param({"freq": "Daily"}, id="sc-daily"),
+    pytest.param({"freq": "Weekly"}, id="sc-weekly"),
+    pytest.param({"freq": "Quarterly"}, id="sc-quarterly"),
+    pytest.param({"freq": "Annually"}, id="sc-annual"),
+    # Year ranges
+    pytest.param({"end_yr": 2035}, id="sc-short-range"),
+    pytest.param({"start_yr": _YR_NOW, "end_yr": _YR_NOW + 3}, id="sc-very-short"),
+    pytest.param({"start_yr": 2070, "end_yr": 2075}, id="sc-far-future"),
+    # Amounts / inflation
+    pytest.param({"wd_amount": 0}, id="sc-wd0"),
+    pytest.param({"wd_amount": 1_000_000}, id="sc-wd-large"),
+    pytest.param({"inflation": 0}, id="sc-infl0"),
+    pytest.param({"inflation": 50}, id="sc-infl50"),
+    # Legend positions
+    pytest.param({"legend_pos": "top-left"}, id="sc-leg-tl"),
+    pytest.param({"legend_pos": "bottom-right"}, id="sc-leg-br"),
+    # Stack
+    pytest.param({"start_stack": 0.001}, id="sc-tiny-stack"),
+    pytest.param({"start_stack": 100.0}, id="sc-big-stack"),
+    # ── Critical multi-param combos ──────────────────────────────────
+    # Empty results + annotate (caught _sc_log bug)
+    pytest.param({"chart_layout": 2, "annotate": True, "end_yr": 2035},
+                 id="sc-bands-annot-short"),
+    pytest.param({"chart_layout": 0, "annotate": True, "end_yr": 2035},
+                 id="sc-lines-annot-short"),
+    pytest.param({"chart_layout": 1, "annotate": True, "end_yr": 2035},
+                 id="sc-qlines-annot-short"),
+    # Delays where all t_start_d >= t_end
+    pytest.param({"delays": [50, 60], "end_yr": 2040}, id="sc-all-delays-skip"),
+    # Mode B edge cases
+    pytest.param({"mode": "b", "delays": [0.0]}, id="sc-modeB-delay0"),
+    pytest.param({"mode": "b", "chart_layout": 2}, id="sc-modeB-bands"),
+    pytest.param({"mode": "b", "annotate": True, "log_y": False},
+                 id="sc-modeB-annot-linear"),
+    # Single quantile + each layout
+    pytest.param({"selected_qs": _FUZZ_Q1, "chart_layout": 0}, id="sc-1q-layout0"),
+    pytest.param({"selected_qs": _FUZZ_Q1, "chart_layout": 1}, id="sc-1q-layout1"),
+    pytest.param({"selected_qs": _FUZZ_Q1, "chart_layout": 2}, id="sc-1q-layout2"),
+    # Band layout + btc display + log
+    pytest.param({"chart_layout": 2, "disp_mode": "btc", "log_y": True,
+                  "annotate": True}, id="sc-bands-btc-log"),
+]
+
+
+class TestSuperchargeFuzz:
+    """Fuzz build_supercharge_figure with varied parameter combos."""
+
+    @pytest.mark.parametrize("override", _SC_OVERRIDES)
+    def test_no_crash(self, override):
+        p = {**_SC_BASE, **override}
+        _assert_figure(build_supercharge_figure(M, p), expect_tuple=True)
+
+
+# ── Bubble fuzz ──────────────────────────────────────────────────────────────
+
+_BUB_BASE = dict(
+    selected_qs=_FUZZ_Q2, xscale="Log", yscale="Log",
+    xmin=2012, xmax=2030, ymin=-2, ymax=8,
+    shade=True, show_ols=False, show_data=True, show_today=True,
+    show_legend=True, show_comp=True, show_sup=False,
+    n_future=3, ptsize=2, ptalpha=0.2,
+    stack=1.0, show_stack=False, lots=[], use_lots=False, auto_y=True,
+)
+
+_BUB_OVERRIDES = [
+    pytest.param({"selected_qs": []}, id="bub-no-qs"),
+    pytest.param({"xscale": "Linear", "yscale": "Linear"}, id="bub-linear"),
+    pytest.param({"shade": False, "show_comp": False}, id="bub-no-shade-comp"),
+    pytest.param({"n_future": 0}, id="bub-no-future"),
+    pytest.param({"n_future": 5}, id="bub-5future"),
+    pytest.param({"show_stack": True, "stack": 2.5}, id="bub-stack"),
+    pytest.param({"show_legend": False}, id="bub-no-legend"),
+    pytest.param({"auto_y": False}, id="bub-manual-y"),
+    pytest.param({"xmin": 2024, "xmax": 2026}, id="bub-narrow-x"),
+    pytest.param({"show_ols": True}, id="bub-ols"),
+    pytest.param({"show_sup": True}, id="bub-sup"),
+    pytest.param({"ptsize": 1, "ptalpha": 1.0}, id="bub-pt-extremes"),
+    pytest.param({"selected_qs": _FUZZ_QS, "shade": True, "auto_y": True},
+                 id="bub-many-qs-shade"),
+]
+
+
+class TestBubbleFuzz:
+    """Fuzz build_bubble_figure with varied parameter combos."""
+
+    @pytest.mark.parametrize("override", _BUB_OVERRIDES)
+    def test_no_crash(self, override):
+        p = {**_BUB_BASE, **override}
+        _assert_figure(build_bubble_figure(M, p))
+
+
+# ── Heatmap fuzz ─────────────────────────────────────────────────────────────
+
+_HM_BASE = dict(
+    entry_yr=_YR_NOW, entry_q=50.0,
+    exit_yrs=list(range(_YR_NOW + 1, _YR_NOW + 6)),
+    exit_qs=_FUZZ_Q2, mode="Segmented",
+    b1=0, b2=20, c_lo="#d73027", c_mid1="#fee08b",
+    c_mid2="#d9ef8b", c_hi="#1a9850", grad=32,
+    vfmt="cagr", cell_fs=10, show_colorbar=True,
+    live_price=None, stack=1.0, use_lots=False, lots=[],
+)
+
+_HM_OVERRIDES = [
+    pytest.param({"exit_qs": []}, id="hm-no-exit-qs"),
+    pytest.param({"exit_qs": _FUZZ_Q1}, id="hm-single-exit-q"),
+    pytest.param({"mode": "DataScaled"}, id="hm-datascaled"),
+    pytest.param({"mode": "Diverging"}, id="hm-diverging"),
+    pytest.param({"vfmt": "price"}, id="hm-price"),
+    pytest.param({"vfmt": "both"}, id="hm-both"),
+    pytest.param({"vfmt": "stack"}, id="hm-stack"),
+    pytest.param({"vfmt": "mult_only"}, id="hm-mult"),
+    pytest.param({"vfmt": "none"}, id="hm-none"),
+    pytest.param({"entry_yr": 2020, "exit_yrs": [2021, 2022, 2023]}, id="hm-past"),
+    pytest.param({"entry_q": 1.0}, id="hm-low-q"),
+    pytest.param({"entry_q": 99.0}, id="hm-high-q"),
+    pytest.param({"b1": -50, "b2": 100}, id="hm-wide-breaks"),
+    pytest.param({"show_colorbar": False}, id="hm-no-colorbar"),
+    pytest.param({"live_price": 95000.0}, id="hm-live-price"),
+    pytest.param({"exit_yrs": list(range(_YR_NOW + 1, _YR_NOW + 20))},
+                 id="hm-many-exit-yrs"),
+]
+
+
+class TestHeatmapFuzz:
+    """Fuzz build_heatmap_figure with varied parameter combos."""
+
+    @pytest.mark.parametrize("override", _HM_OVERRIDES)
+    def test_no_crash(self, override):
+        p = {**_HM_BASE, **override}
+        _assert_figure(build_heatmap_figure(M, p))
+
+
+# ── DCA fuzz ─────────────────────────────────────────────────────────────────
+
+_DCA_BASE = dict(
+    start_yr=2024, end_yr=2034, start_stack=0.0, amount=500,
+    freq="Monthly", disp_mode="btc",
+    selected_qs=_FUZZ_Q2, log_y=True,
+    show_today=True, show_legend=True, annotate=True,
+    legend_pos="outside", minor_grid=False,
+    lots=[], use_lots=False, sc_enabled=False,
+)
+
+_DCA_OVERRIDES = [
+    pytest.param({"selected_qs": []}, id="dca-no-qs"),
+    pytest.param({"selected_qs": _FUZZ_Q1}, id="dca-single-q"),
+    pytest.param({"disp_mode": "usd"}, id="dca-usd"),
+    pytest.param({"log_y": False}, id="dca-linear"),
+    pytest.param({"annotate": False}, id="dca-no-annot"),
+    pytest.param({"show_legend": False}, id="dca-no-legend"),
+    pytest.param({"show_today": False}, id="dca-no-today"),
+    pytest.param({"freq": "Daily"}, id="dca-daily"),
+    pytest.param({"freq": "Weekly"}, id="dca-weekly"),
+    pytest.param({"freq": "Quarterly"}, id="dca-quarterly"),
+    pytest.param({"freq": "Annually"}, id="dca-annual"),
+    pytest.param({"amount": 0}, id="dca-amount0"),
+    pytest.param({"amount": 1_000_000}, id="dca-large-amount"),
+    pytest.param({"start_stack": 1.0}, id="dca-with-stack"),
+    pytest.param({"start_yr": _YR_NOW, "end_yr": _YR_NOW + 2}, id="dca-short"),
+    pytest.param({"legend_pos": "top-left"}, id="dca-leg-tl"),
+    pytest.param({"legend_pos": "bottom-right"}, id="dca-leg-br"),
+    # Stack-celerator combos
+    pytest.param({"sc_enabled": True, "sc_loan": 1200, "sc_rate": 13,
+                  "sc_term": 12, "sc_type": "interest_only", "sc_repeats": 0,
+                  "sc_entry_mode": "model", "sc_custom_price": 100000,
+                  "sc_tax": 33, "sc_rollover": False}, id="dca-sc-io"),
+    pytest.param({"sc_enabled": True, "sc_loan": 5000, "sc_rate": 8,
+                  "sc_term": 24, "sc_type": "amortizing", "sc_repeats": 2,
+                  "sc_entry_mode": "model", "sc_custom_price": 100000,
+                  "sc_tax": 33, "sc_rollover": False}, id="dca-sc-amort"),
+    pytest.param({"sc_enabled": True, "sc_loan": 1200, "sc_rate": 0,
+                  "sc_term": 12, "sc_type": "interest_only", "sc_repeats": 0,
+                  "sc_entry_mode": "model", "sc_custom_price": 100000,
+                  "sc_tax": 33, "sc_rollover": False}, id="dca-sc-rate0"),
+    pytest.param({"disp_mode": "usd", "annotate": True, "log_y": True,
+                  "selected_qs": _FUZZ_QS}, id="dca-usd-annot-log-manyqs"),
+]
+
+
+class TestDcaFuzz:
+    """Fuzz build_dca_figure with varied parameter combos."""
+
+    @pytest.mark.parametrize("override", _DCA_OVERRIDES)
+    def test_no_crash(self, override):
+        p = {**_DCA_BASE, **override}
+        _assert_figure(build_dca_figure(M, p), expect_tuple=True)
+
+
+# ── Retire fuzz ──────────────────────────────────────────────────────────────
+
+_RET_BASE = dict(
+    start_yr=2031, end_yr=2075, start_stack=1.0,
+    wd_amount=5000, freq="Monthly", inflation=4.0,
+    disp_mode="usd",
+    selected_qs=_FUZZ_Q2, log_y=True, dual_y=True,
+    annotate=True, show_legend=True, legend_pos="outside",
+    minor_grid=False, lots=[], use_lots=False,
+)
+
+_RET_OVERRIDES = [
+    pytest.param({"selected_qs": []}, id="ret-no-qs"),
+    pytest.param({"selected_qs": _FUZZ_Q1}, id="ret-single-q"),
+    pytest.param({"disp_mode": "btc"}, id="ret-btc"),
+    pytest.param({"log_y": False}, id="ret-linear"),
+    pytest.param({"dual_y": False}, id="ret-no-dual"),
+    pytest.param({"annotate": False}, id="ret-no-annot"),
+    pytest.param({"show_legend": False}, id="ret-no-legend"),
+    pytest.param({"freq": "Daily"}, id="ret-daily"),
+    pytest.param({"freq": "Weekly"}, id="ret-weekly"),
+    pytest.param({"freq": "Quarterly"}, id="ret-quarterly"),
+    pytest.param({"freq": "Annually"}, id="ret-annual"),
+    pytest.param({"wd_amount": 0}, id="ret-wd0"),
+    pytest.param({"wd_amount": 1_000_000}, id="ret-wd-large"),
+    pytest.param({"inflation": 0}, id="ret-infl0"),
+    pytest.param({"inflation": 50}, id="ret-infl50"),
+    pytest.param({"start_yr": _YR_NOW, "end_yr": _YR_NOW + 3}, id="ret-short"),
+    pytest.param({"legend_pos": "top-left"}, id="ret-leg-tl"),
+    pytest.param({"legend_pos": "bottom-right"}, id="ret-leg-br"),
+    pytest.param({"disp_mode": "btc", "annotate": True, "log_y": True},
+                 id="ret-btc-annot-log"),
+    pytest.param({"selected_qs": _FUZZ_QS, "annotate": True}, id="ret-many-qs-annot"),
+]
+
+
+class TestRetireFuzz:
+    """Fuzz build_retire_figure with varied parameter combos."""
+
+    @pytest.mark.parametrize("override", _RET_OVERRIDES)
+    def test_no_crash(self, override):
+        p = {**_RET_BASE, **override}
+        _assert_figure(build_retire_figure(M, p), expect_tuple=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Section 6: Edge case / regression tests
 # ═══════════════════════════════════════════════════════════════════════════════
 

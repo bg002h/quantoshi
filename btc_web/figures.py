@@ -1690,7 +1690,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
         if _HAS_MARKOV and p.get("mc_enabled"):
             t_start_base = max(yr_to_t(syr, m.genesis), 1.0)
             mc_traces_list, mc_annots, mc_result = _mc_supercharge_overlay(
-                m, p, ts_d if delays == [0.0] else np.arange(t_start_base, t_end + dt * 0.5, dt),
+                m, p, np.arange(t_start_base, t_end + dt * 0.5, dt),
                 t_start_base, t_end, dt, start_stack, disp_mode,
                 len(deplete_annots))
             _sc_x_end = layout["xaxis"]["range"][1]
@@ -1713,26 +1713,42 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
         # annotations — consistent with Retire tab; avoids paper-x arrowhead
         # misalignment on declining traces.
         if p.get("annotate"):
-            for (d, q), (ts_d_r, y_vals_r, depl_t_r, _) in results.items():
-                if depl_t_r is not None:
-                    continue  # depleted — already has year annotation
-                y_final = float(y_vals_r[-1])
-                if y_final <= 0:
-                    continue
-                if chart_layout == 0:
-                    di = delays.index(d) if d in delays else 0
+            _sc_log = bool(p.get("log_y"))
+            if chart_layout == 2:
+                # Band endpoint labels: one per delay, upper-bound value
+                for di, d in enumerate(delays):
+                    band = [(q, results[(d, q)]) for q in sel_qs
+                            if (d, q) in results]
+                    surviving = [(q, r) for q, r in band
+                                 if r[2] is None and float(r[1][-1]) > 0]
+                    if not surviving:
+                        continue
                     col = _DELAY_COLORS[di % len(_DELAY_COLORS)]
-                elif chart_layout == 2:
-                    continue  # bands don't get individual labels
-                else:
-                    col = m.qr_colors.get(q, "#888888")
-                if disp_mode == "usd":
-                    lbl = fmt_price(y_final)
-                else:
-                    lbl = f"{y_final:.4f} \u20bf"
-                _sc_log = bool(p.get("log_y"))
-                traces.append(_edge_text_trace(ts_d_r, y_vals_r, lbl, col,
-                                               log_y=_sc_log))
+                    y_max = max(float(r[1][-1]) for _, r in surviving)
+                    lbl = (fmt_price(y_max) if disp_mode == "usd"
+                           else f"{y_max:.4f} \u20bf")
+                    # Upper-bound y array for slope detection
+                    y_arr = np.maximum.reduce(
+                        [r[1] for _, r in surviving])
+                    ts_d_r = surviving[0][1][0]
+                    traces.append(_edge_text_trace(
+                        ts_d_r, y_arr, lbl, col, log_y=_sc_log))
+            else:
+                for (d, q), (ts_d_r, y_vals_r, depl_t_r, _) in results.items():
+                    if depl_t_r is not None:
+                        continue  # depleted — already has year annotation
+                    y_final = float(y_vals_r[-1])
+                    if y_final <= 0:
+                        continue
+                    if chart_layout == 0:
+                        di = delays.index(d) if d in delays else 0
+                        col = _DELAY_COLORS[di % len(_DELAY_COLORS)]
+                    else:
+                        col = m.qr_colors.get(q, "#888888")
+                    lbl = (fmt_price(y_final) if disp_mode == "usd"
+                           else f"{y_final:.4f} \u20bf")
+                    traces.append(_edge_text_trace(
+                        ts_d_r, y_vals_r, lbl, col, log_y=_sc_log))
             # MC median endpoint
             for tr in mc_traces_list:
                 if getattr(getattr(tr, "line", None), "dash", None) != "dot":

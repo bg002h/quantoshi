@@ -880,11 +880,9 @@ def _supercharge_controls():
         # ── Price Model ─────────────────────────────────────────────────
         _q_panel("sc-qs", [q for q in [0.001, 0.10] if q in _app_ctx.M.qr_fits],
                  hint="Lower quantile = earlier depletion \u2014 use multiple quantiles to see the range."),
-        # Hidden MC controls — keeps component IDs alive for callbacks
-        html.Div(_mc_controls("sc", amount_label="Withdrawal per period ($)",
-                              amount_default=5000, show_inflation=True,
-                              show_stack=True),
-                 style={"display": "none"}),
+        _mc_controls("sc", amount_label="Withdrawal per period ($)",
+                     amount_default=5000, show_inflation=True,
+                     show_stack=True),
         # ── Chart ───────────────────────────────────────────────────────
         _section_card("Chart",
             dcc.Checklist(id="sc-chart-layout",

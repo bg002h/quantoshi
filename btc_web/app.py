@@ -84,19 +84,41 @@ def _cache_headers(response):
         })
     elif path.startswith('/_dash-component-suites/'):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
-    # Content-Security-Policy
+
+    # ── Security headers ─────────────────────────────────────────────────
+    response.headers['Referrer-Policy'] = 'no-referrer'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['Permissions-Policy'] = (
+        'camera=(), microphone=(), geolocation=(), '
+        'interest-cohort=(), usb=()'
+    )
+
+    # ── Onion-Location (clearnet only — shows ".onion available" in Tor) ─
+    _is_onion = flask_request.host.endswith('.onion')
+    if not _is_onion:
+        response.headers['Onion-Location'] = (
+            'http://u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion'
+            + flask_request.path
+        )
+
+    # ── Content-Security-Policy (tighter on .onion — no clearnet leaks) ──
     _frame_src = btcpay.BTCPAY_URL.rstrip('/') if btcpay._HAS_BTCPAY else "'none'"
+    if _is_onion:
+        _connect = ("'self'"
+                    " http://jxnpv6ef3yo2kqpeu6u3nmv343k7vpyn7katlfdoc3n7hgvz7l5woqid.onion"
+                    " ws://jxnpv6ef3yo2kqpeu6u3nmv343k7vpyn7katlfdoc3n7hgvz7l5woqid.onion"
+                    " http://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion")
+    else:
+        _connect = ("'self' https://mempool.space wss://mempool.space"
+                    " https://blockstream.info")
     response.headers['Content-Security-Policy'] = "; ".join([
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline'",
         "style-src 'self' 'unsafe-inline'",
         f"frame-src {_frame_src}",
         "img-src 'self' data: blob:",
-        "connect-src 'self' https://mempool.space wss://mempool.space"
-        " https://blockstream.info"
-        " http://jxnpv6ef3yo2kqpeu6u3nmv343k7vpyn7katlfdoc3n7hgvz7l5woqid.onion"
-        " ws://jxnpv6ef3yo2kqpeu6u3nmv343k7vpyn7katlfdoc3n7hgvz7l5woqid.onion"
-        " http://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion",
+        f"connect-src {_connect}",
         "font-src 'self'",
     ])
     return response

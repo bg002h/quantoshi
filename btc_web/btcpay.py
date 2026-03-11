@@ -43,15 +43,16 @@ else:
 _PRICE_BASE = {10: (100, 500), 20: (200, 1000), 30: (300, 1500), 40: (400, 2000)}
 _HM_DISCOUNT = 0.5  # heatmap pays half
 
-# Free tier: 10yr horizon + tab-specific default (start_yr, entry_q)
+# Free tier: certain (years, start_yr) combos with default simulator settings.
 from mc_cache import MC_DEFAULT_YEARS, MC_DEFAULT_ENTRY_Q, MC_DEFAULT_START_YR, \
     CACHED_START_YRS, MC_BINS, MC_SIMS, MC_FREQ
 
-# Each tuple = (years, start_yr, entry_q) that qualifies for free tier
-_FREE_TIER_DEFAULTS = {
-    (10, 2026, 10),   # heatmap
-    (10, 2026, 50),   # DCA
-    (10, 2031, 50),   # retire
+# (years, start_yr) combos where ANY entry percentile qualifies for free tier
+# (with default bins, sims, freq, and historical window).
+_FREE_TIER_COMBOS = {
+    (10, 2026), (20, 2026),
+    (10, 2028), (20, 2028),
+    (10, 2031), (20, 2031),
 }
 
 
@@ -69,12 +70,13 @@ def is_free_tier(mc_years: int, start_yr: int, entry_q: float = 0,
                  mc_freq: str = MC_FREQ) -> bool:
     """Check if the requested params match the free tier (no payment needed).
 
-    Free tier requires default simulator settings (bins, sims, freq)
-    in addition to matching a (years, start_yr, entry_q) tuple.
+    Free tier requires default simulator settings (bins, sims, freq).
+    Any entry percentile is free for (years, start_yr) combos in
+    _FREE_TIER_COMBOS.
     """
     if int(mc_bins) != MC_BINS or int(mc_sims) > MC_SIMS or (mc_freq or MC_FREQ) != MC_FREQ:
         return False
-    return (int(mc_years), int(start_yr), int(entry_q)) in _FREE_TIER_DEFAULTS
+    return (int(mc_years), int(start_yr)) in _FREE_TIER_COMBOS
 
 
 def is_cached_request(start_yr: int) -> bool:

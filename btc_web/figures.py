@@ -217,11 +217,11 @@ _MC_LEGEND_POS = {
 }
 
 
-def _mc_config_annotation(p: dict, tab: str) -> dict:
-    """Build a small paper-space annotation showing MC simulation config.
+def _apply_mc_xlabel(fig: go.Figure, p: dict, tab: str) -> None:
+    """Set x-axis title to MC simulation config in small monospace font.
 
-    Placed at bottom-left so the image is self-documenting — viewers know
-    what model generated it and can match it to the JSON download.
+    Shows simulation params + matching JSON download filename so the
+    exported image is self-documenting.
     """
     start_yr = int(p.get("mc_start_yr", 2031))
     years    = int(p.get("mc_years", 10))
@@ -251,13 +251,12 @@ def _mc_config_annotation(p: dict, tab: str) -> dict:
         fn_parts.append(f"{float(stack):g}btc")
     filename = "_".join(fn_parts) + ".json"
 
-    text = " · ".join(parts) + f"<br>{filename}"
-    return dict(
-        text=text, xref="paper", yref="paper",
-        x=0.0, y=-0.02, xanchor="left", yanchor="top",
-        showarrow=False,
-        font=dict(size=8, color="rgba(120,120,120,0.7)",
-                  family="monospace"),
+    text = " · ".join(parts) + "  |  " + filename
+    fig.layout.xaxis.title.text = text
+    fig.layout.xaxis.title.font.update(
+        family="'Courier New', Courier, monospace",
+        size=9,
+        color="rgba(100,100,100,0.8)",
     )
 
 
@@ -891,7 +890,7 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
     # Cell font family/size/weight set in _heatmap_cell_annots; no override here.
     if p.get("mc_enabled"):
         _apply_mc_premium(fig, legend_pos=None)
-        fig.add_annotation(_mc_config_annotation(p, "hm"))
+        _apply_mc_xlabel(fig, p, "hm")
     _apply_watermark(fig)
     return fig, mc_result
 
@@ -1262,7 +1261,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
     if p.get("mc_enabled"):
         _apply_mc_premium(fig, legend_pos="top-left", hide_xlabel=True)
-        fig.add_annotation(_mc_config_annotation(p, "dca"))
+        _apply_mc_xlabel(fig, p, "dca")
     _apply_watermark(fig)
     return fig, mc_result
 
@@ -1460,7 +1459,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     if p.get("mc_enabled"):
         # legend_pos=None so MC premium doesn't override user's legend choice
         _apply_mc_premium(fig, legend_pos=None, hide_xlabel=True)
-        fig.add_annotation(_mc_config_annotation(p, "ret"))
+        _apply_mc_xlabel(fig, p, "ret")
     wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
     _apply_watermark(fig, pos=wm_pos)
     return fig, mc_result
@@ -1744,7 +1743,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
         _apply_sans_typography(layout)
         fig = go.Figure(data=traces, layout=go.Layout(**layout))
         if p.get("mc_enabled"):
-            fig.add_annotation(_mc_config_annotation(p, "sc"))
+            _apply_mc_xlabel(fig, p, "sc")
         _apply_watermark(fig)
         return fig, mc_result
 

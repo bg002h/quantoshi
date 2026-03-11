@@ -39,19 +39,19 @@ class TestFmtPrice:
         assert fmt_price(999) == "$999"
 
     def test_exact_1k(self):
-        assert fmt_price(1000) == "$1.0K"
+        assert fmt_price(1000) == "$1,000"
 
     def test_thousands(self):
-        assert fmt_price(12345) == "$12.3K"
+        assert fmt_price(12345) == "$12,345"
 
     def test_millions(self):
-        assert fmt_price(1234567) == "$1.23M"
+        assert fmt_price(1234567) == "$1,234,567"
 
     def test_zero(self):
-        assert fmt_price(0) == "$0"
+        assert fmt_price(0) == "$0.00"
 
     def test_small(self):
-        assert fmt_price(0.5) == "$0"
+        assert fmt_price(0.5) == "$0.50"
 
 
 class TestYrToT:
@@ -2278,14 +2278,26 @@ class TestBTCPayPricing:
     def test_free_tier_retire_default(self):
         assert btcpay.is_free_tier(10, 2031, 50)
 
-    def test_not_free_20yr(self):
-        assert not btcpay.is_free_tier(20, 2026, 50)
+    def test_free_tier_any_entry_q(self):
+        """Any entry percentile is free for covered (years, start_yr) combos."""
+        assert btcpay.is_free_tier(10, 2026, 25)
+        assert btcpay.is_free_tier(10, 2026, 90)
+        assert btcpay.is_free_tier(20, 2028, 5)
+        assert btcpay.is_free_tier(20, 2031, 75)
 
-    def test_not_free_custom_q(self):
-        assert not btcpay.is_free_tier(10, 2026, 25)
+    def test_free_tier_20yr(self):
+        assert btcpay.is_free_tier(20, 2026, 50)
+        assert btcpay.is_free_tier(20, 2028, 10)
+        assert btcpay.is_free_tier(20, 2031, 50)
 
-    def test_not_free_custom_yr(self):
-        assert not btcpay.is_free_tier(10, 2028, 50)
+    def test_free_tier_2028(self):
+        assert btcpay.is_free_tier(10, 2028, 50)
+
+    def test_not_free_30yr(self):
+        assert not btcpay.is_free_tier(30, 2026, 50)
+
+    def test_not_free_uncovered_yr(self):
+        assert not btcpay.is_free_tier(10, 2035, 50)
 
     def test_is_cached_request(self):
         assert btcpay.is_cached_request(2026)

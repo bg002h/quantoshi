@@ -94,12 +94,10 @@ def today_year():
 
 
 def fmt_price(p):
-    """Format a USD price: $12.3K / $1.23M / $999."""
-    if p >= 1e6:
-        return f"${p/1e6:.2f}M"
-    if p >= 1e3:
-        return f"${p/1e3:.1f}K"
-    return f"${p:.0f}"
+    """Format a USD price with comma thousands separators."""
+    if p >= 1:
+        return f"${p:,.0f}"
+    return f"${p:.2f}"
 
 
 def _fmt_btc(v):

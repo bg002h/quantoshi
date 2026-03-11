@@ -96,7 +96,8 @@ def _build_mc_params(*, mc_enable, mc_amount, mc_infl, mc_bins, mc_sims,
         mc_cached     = mc_cached,
     )
     if mc_start_stack is not None:
-        d["mc_start_stack"] = float(mc_start_stack or 1.0)
+        v = round(max(0.0, min(1000.0, float(mc_start_stack or 1.0))), 2)
+        d["mc_start_stack"] = v
     return d
 
 

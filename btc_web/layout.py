@@ -23,7 +23,7 @@ import dash_bootstrap_components as dbc
 import _app_ctx
 from utils import _nearest_quantile
 from snapshot import _SNAPSHOT_CONTROLS
-from mc_cache import (CACHED_START_YRS, WD_AMOUNTS, STACK_SIZES,
+from mc_cache import (CACHED_START_YRS, WD_AMOUNTS,
                       ENTRY_PCT_BINS, MC_YEARS_OPTIONS, INFL_OPTIONS)
 from figures import _LOGO_B64_ALL
 
@@ -440,7 +440,7 @@ _MC_CACHED_ENTRY_QS = {int(v * 100) for v in ENTRY_PCT_BINS}   # {10,20,...,90}
 _MC_CACHED_YEARS    = set(MC_YEARS_OPTIONS)                      # {10,20,30,40}
 _MC_CACHED_WD       = set(WD_AMOUNTS)
 _MC_CACHED_INFL     = set(INFL_OPTIONS)
-_MC_CACHED_STACKS   = set(STACK_SIZES)
+
 
 def _bold_opts(values, fmt, cached_set):
     """Build dropdown options, bolding+enlarging values in the pre-computed cache."""
@@ -466,7 +466,6 @@ _MC_ENTRY_Q_OPTIONS_ADV = _bold_opts(
 _MC_YEARS_OPTIONS    = _bold_opts(MC_YEARS_OPTIONS, lambda v: f"{v} yr", _MC_CACHED_YEARS)
 _MC_WD_OPTIONS       = _bold_opts(WD_AMOUNTS, lambda v: f"${v:,}/mo", _MC_CACHED_WD)
 _MC_INFL_OPTIONS     = _bold_opts(INFL_OPTIONS, lambda v: f"{v}%", _MC_CACHED_INFL)
-_MC_STACK_OPTIONS    = _bold_opts(STACK_SIZES, lambda v: f"{v} BTC", _MC_CACHED_STACKS)
 
 def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=100,
                   show_inflation=False, show_amount=True,
@@ -504,7 +503,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now),
             dcc.Dropdown(id=f"{prefix}-mc-entry-q",
                         value=max(10, min(90, round(_app_ctx._HM_ENTRY_Q_DEFAULT / 10) * 10 or 50))),
-            dcc.Dropdown(id=f"{prefix}-mc-stack", value=1.0),
+            dbc.Input(id=f"{prefix}-mc-stack", type="number", value=1.0),
             dcc.Dropdown(id=f"{prefix}-mc-start-yr", value=2031),
         ])
     yr_now = pd.Timestamp.today().year
@@ -583,13 +582,12 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                 dcc.Dropdown(id=f"{prefix}-mc-infl", value=0,
                              style={"display": "none"}),
             ]),
-            *([ _lbl("Starting BTC stack"),
-                dcc.Dropdown(id=f"{prefix}-mc-stack",
-                             options=_MC_STACK_OPTIONS,
-                             value=1.0, clearable=False),
+            *([ _lbl("Starting BTC stack (0–1000)"),
+                dbc.Input(id=f"{prefix}-mc-stack", type="number",
+                          min=0, max=1000, step=0.01, value=1.0, size="sm"),
             ] if show_stack else [
-                dcc.Dropdown(id=f"{prefix}-mc-stack", value=1.0,
-                             style={"display": "none"}),
+                dbc.Input(id=f"{prefix}-mc-stack", type="number",
+                          value=1.0, style={"display": "none"}),
             ]),
             _lbl("Years to model"),
             dcc.Dropdown(id=f"{prefix}-mc-years",

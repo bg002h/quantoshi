@@ -217,6 +217,50 @@ _MC_LEGEND_POS = {
 }
 
 
+def _mc_config_annotation(p: dict, tab: str) -> dict:
+    """Build a small paper-space annotation showing MC simulation config.
+
+    Placed at bottom-left so the image is self-documenting — viewers know
+    what model generated it and can match it to the JSON download.
+    """
+    start_yr = int(p.get("mc_start_yr", 2031))
+    years    = int(p.get("mc_years", 10))
+    entry_q  = float(p.get("mc_entry_q", 50))
+    sims     = int(p.get("mc_sims", 800))
+    freq     = p.get("mc_freq", "Monthly")
+    amount   = p.get("mc_amount")
+    infl     = p.get("mc_infl")
+    stack    = p.get("mc_start_stack")
+
+    parts = [f"MC {tab.upper()}", f"{start_yr}", f"{years}yr",
+             f"Q{entry_q:g}%", f"{sims} sims", freq]
+    if amount is not None:
+        parts.append(f"${float(amount):,.0f}")
+    if infl is not None and float(infl) > 0:
+        parts.append(f"{float(infl):g}% infl")
+    if stack is not None and float(stack) > 0:
+        parts.append(f"{float(stack):g} BTC")
+
+    # Filename mirrors the JS _mcFilename() convention
+    fn_parts = ["mc", tab, f"yr{start_yr}", f"{years}y", f"q{int(entry_q)}"]
+    if amount is not None:
+        fn_parts.append(f"${int(float(amount))}")
+    if infl is not None and float(infl) > 0:
+        fn_parts.append(f"{float(infl):g}pctInfl")
+    if stack is not None and float(stack) > 0:
+        fn_parts.append(f"{float(stack):g}btc")
+    filename = "_".join(fn_parts) + ".json"
+
+    text = " · ".join(parts) + f"<br>{filename}"
+    return dict(
+        text=text, xref="paper", yref="paper",
+        x=0.0, y=-0.02, xanchor="left", yanchor="top",
+        showarrow=False,
+        font=dict(size=8, color="rgba(120,120,120,0.7)",
+                  family="monospace"),
+    )
+
+
 def _apply_mc_premium(fig: go.Figure, legend_pos: str = "top-left", hide_xlabel: bool = False) -> None:
     """Upgrade figure fonts / colours for premium MC-rendered charts.
 
@@ -847,6 +891,7 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
     # Cell font family/size/weight set in _heatmap_cell_annots; no override here.
     if p.get("mc_enabled"):
         _apply_mc_premium(fig, legend_pos=None)
+        fig.add_annotation(_mc_config_annotation(p, "hm"))
     _apply_watermark(fig)
     return fig, mc_result
 
@@ -969,6 +1014,30 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy):
         ))
 
     return sc_traces, all_sc_usd_vals, all_sc_btc_vals
+
+
+def _clip_mc_traces(mc_traces, x_max):
+    """Clip MC traces to x ≤ x_max so they don't extend beyond the visible chart.
+
+    Traces whose data is entirely beyond x_max are dropped.
+    Fill='tonexty' alignment is preserved because paired traces are
+    clipped to the same cutoff index (x arrays are identical).
+    """
+    clipped = []
+    for tr in mc_traces:
+        x = tr.x
+        if x is None or len(x) == 0:
+            clipped.append(tr)
+            continue
+        x_arr = np.asarray(x, dtype=float)
+        n = int(np.searchsorted(x_arr, x_max, side='right'))
+        if n == 0:
+            continue
+        if n < len(x_arr):
+            tr.x = list(x_arr[:n])
+            tr.y = list(np.asarray(tr.y, dtype=float)[:n])
+        clipped.append(tr)
+    return clipped
 
 
 def _edge_text_trace(x_arr, y_arr, label, color, *, log_y=False):
@@ -1146,6 +1215,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     mc_result = None
     if _HAS_MARKOV and p.get("mc_enabled"):
         mc_traces, mc_result, mc_fan_usd = _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode)
+        mc_traces = _clip_mc_traces(mc_traces, _x_end)
         traces.extend(mc_traces)
         # MC median text trace annotation
         if mc_fan_usd and 0.50 in mc_fan_usd:
@@ -1167,13 +1237,6 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
             mc_med_final = float(mc_fan_usd[0.50][-1])
             mc_roi = mc_med_final / total_spent if total_spent > 0 else 0
             layout["title"]["text"] += f"  ·  MC median {fmt_price(mc_med_final)}  ·  {mc_roi:.1f}\u00d7"
-        # Extend x-range to include MC trace endpoints
-        for _mtr in mc_traces:
-            if _mtr.x is not None and len(_mtr.x) > 0:
-                _mc_x_max = float(max(_mtr.x))
-                if _mc_x_max > _x_end:
-                    _x_end = _mc_x_max + dt * 0.15
-                    layout["xaxis"]["range"][1] = _x_end
 
     # ── Right-edge annotations (text traces for alignment stability) ─────────
     if all_usd_vals:
@@ -1199,6 +1262,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
     if p.get("mc_enabled"):
         _apply_mc_premium(fig, legend_pos="top-left", hide_xlabel=True)
+        fig.add_annotation(_mc_config_annotation(p, "dca"))
     _apply_watermark(fig)
     return fig, mc_result
 
@@ -1321,17 +1385,12 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
         mc_traces_list, mc_annots, mc_result = _mc_retire_overlay(
             m, p, ts, t_start, t_end, dt,
             start_stack, disp_mode, len(deplete_annots))
+        mc_traces_list = _clip_mc_traces(mc_traces_list, _x_end)
         traces.extend(mc_traces_list)
         if mc_annots:
+            mc_annots = [a for a in mc_annots if a["x"] <= _x_end]
             deplete_annots.extend(mc_annots)
             layout["annotations"] = deplete_annots
-        # Extend x-range to include MC trace endpoints
-        for _mtr in mc_traces_list:
-            if _mtr.x is not None and len(_mtr.x) > 0:
-                _mc_x_max = float(max(_mtr.x))
-                if _mc_x_max > _x_end:
-                    _x_end = _mc_x_max + dt * 0.15
-                    layout["xaxis"]["range"][1] = _x_end
 
     # Sort all depletion annotations by x and reassign stagger levels
     if len(deplete_annots) > 1:
@@ -1401,6 +1460,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     if p.get("mc_enabled"):
         # legend_pos=None so MC premium doesn't override user's legend choice
         _apply_mc_premium(fig, legend_pos=None, hide_xlabel=True)
+        fig.add_annotation(_mc_config_annotation(p, "ret"))
     wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
     _apply_watermark(fig, pos=wm_pos)
     return fig, mc_result
@@ -1615,17 +1675,13 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 m, p, ts_d if delays == [0.0] else np.arange(t_start_base, t_end + dt * 0.5, dt),
                 t_start_base, t_end, dt, start_stack, disp_mode,
                 len(deplete_annots))
+            _sc_x_end = layout["xaxis"]["range"][1]
+            mc_traces_list = _clip_mc_traces(mc_traces_list, _sc_x_end)
             traces.extend(mc_traces_list)
             if mc_annots:
+                mc_annots = [a for a in mc_annots if a["x"] <= _sc_x_end]
                 deplete_annots.extend(mc_annots)
                 layout["annotations"] = deplete_annots
-            # Extend x-range to include MC trace endpoints
-            for _mtr in mc_traces_list:
-                if _mtr.x is not None and len(_mtr.x) > 0:
-                    _mc_x_max = float(max(_mtr.x))
-                    _cur_xr = layout["xaxis"]["range"]
-                    if _mc_x_max > _cur_xr[1]:
-                        layout["xaxis"]["range"] = [_cur_xr[0], _mc_x_max + dt * 0.15]
 
         # Sort all depletion annotations by x and reassign stagger levels
         if len(deplete_annots) > 1:
@@ -1687,6 +1743,8 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
         layout["showlegend"] = show_legend
         _apply_sans_typography(layout)
         fig = go.Figure(data=traces, layout=go.Layout(**layout))
+        if p.get("mc_enabled"):
+            fig.add_annotation(_mc_config_annotation(p, "sc"))
         _apply_watermark(fig)
         return fig, mc_result
 

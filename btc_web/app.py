@@ -53,7 +53,10 @@ app = dash.Dash(
     __name__,
     external_stylesheets=["/assets/bootstrap_flatly.min.css"],
     suppress_callback_exceptions=True,
-    meta_tags=[{"name": "color-scheme", "content": "only light"}],
+    meta_tags=[
+        {"name": "color-scheme", "content": "only light"},
+        {"name": "referrer", "content": "no-referrer"},
+    ],
 )
 app.title = "Quantoshi"
 server = app.server  # for gunicorn
@@ -117,6 +120,8 @@ def _cache_headers(response):
         "script-src 'self' 'unsafe-inline'",
         "style-src 'self' 'unsafe-inline'",
         f"frame-src {_frame_src}",
+        "frame-ancestors 'none'",
+        "base-uri 'self'",
         "img-src 'self' data: blob:",
         f"connect-src {_connect}",
         "font-src 'self'",

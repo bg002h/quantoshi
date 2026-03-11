@@ -1173,15 +1173,26 @@ _FAQ = [
     {
         "q": "If I enter my purchases in Quantoshi as Stack Tracker lots, where does that data go?",
         "a": html.Span([
-            "The data is stored long-term in your browser's \"localStorage\" — it is never stored "
-            "long term on the server. That said, all charts are rendered server-side. "
-            "Logs are intentionally deleted every 27 days to prevent aggregation of data "
-            "by authorities, some of whom are allowed to demand data thirty days or older "
-            "without a warrant. So for optimal privacy, use the onion version of this website: ",
-            html.A("Stay dark, Anon",
+            html.Strong("Zero server-side storage."),
+            " Stack Tracker lots, journey stats, and all settings live in your browser's "
+            "localStorage — never on the server. Charts are rendered server-side but no "
+            "user-specific data is retained.",
+            html.Br(), html.Br(),
+            html.Strong("Logging: "),
+            "Server logs are stripped of User-Agent strings and referrer headers. "
+            "Logs are deleted every 27 days to prevent aggregation by authorities, "
+            "some of whom can demand data thirty days or older without a warrant. "
+            "No cookies are tracked. No analytics. No third-party scripts.",
+            html.Br(), html.Br(),
+            html.Strong("Onion site: "),
+            "The ",
+            html.A(".onion version",
                    href="http://u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion",
                    target="_blank", rel="noopener noreferrer"),
-            ".",
+            " goes further — all resources (CSS, fonts, block height data) are self-hosted "
+            "or routed through .onion endpoints. Your browser makes zero clearnet requests. "
+            "The Content-Security-Policy is tightened to block clearnet connections entirely. "
+            "Stay dark, Anon.",
         ]),
     },
     {

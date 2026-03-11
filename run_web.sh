@@ -71,5 +71,6 @@ else
         --max-requests 1000 \
         --max-requests-jitter 50 \
         --access-logfile - \
+        --access-logformat '%(t)s "%(r)s" %(s)s %(b)s' \
         --error-logfile -
 fi

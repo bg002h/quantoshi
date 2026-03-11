@@ -67,14 +67,18 @@ def _health():
     from utils import _price_cache
     from mc_cache import _CACHE
     price_age = time.time() - _price_cache["ts"] if _price_cache["price"] else -1
-    return _jsonify({
+    bp = btcpay.check_health() if flask_request.args.get("btcpay") else None
+    result = {
         "status": "ok",
         "model": M is not None,
         "price_age_s": round(price_age),
         "mc_cache": bool(_CACHE),
         "markov": _HAS_MARKOV,
         "btcpay": btcpay._HAS_BTCPAY,
-    }), 200
+    }
+    if bp is not None:
+        result["btcpay_health"] = bp
+    return _jsonify(result), 200
 
 @server.after_request
 def _cache_headers(response):

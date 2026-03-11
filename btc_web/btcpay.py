@@ -111,6 +111,28 @@ def verify_payment_token(token: str, invoice_id: str, tab: str, mc_years: int) -
     return hmac.compare_digest(token, expected)
 
 
+# ── BTCPay Health Check ───────────────────────────────────────────────────
+
+def check_health(timeout: int = 10) -> dict:
+    """Ping BTCPay server and return reachability status.
+
+    Returns:
+        {reachable: bool, latency_ms: int|None, error: str|None}
+    """
+    if not _HAS_BTCPAY:
+        return {"reachable": False, "latency_ms": None, "error": "not configured"}
+    import time as _time
+    try:
+        s = _session()
+        t0 = _time.monotonic()
+        resp = s.get(f"{BTCPAY_URL.rstrip('/')}/api/v1/health", timeout=timeout)
+        latency = round((_time.monotonic() - t0) * 1000)
+        resp.raise_for_status()
+        return {"reachable": True, "latency_ms": latency, "error": None}
+    except Exception as e:
+        return {"reachable": False, "latency_ms": None, "error": str(e)[:200]}
+
+
 # ── BTCPay Greenfield API ───────────────────────────────────────────────────
 
 def _session() -> requests.Session:

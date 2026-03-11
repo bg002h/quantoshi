@@ -102,24 +102,50 @@ def _build_mc_params(*, mc_enable, mc_amount, mc_infl, mc_bins, mc_sims,
 
 
 def _mc_payment_check(tab, mc_years, start_yr, entry_q, pay_token,
-                      mc_bins=MC_BINS, mc_sims=MC_SIMS, mc_freq=MC_FREQ):
-    """Check if MC simulation is authorized (free tier, no BTCPay, or valid token)."""
+                      mc_bins=MC_BINS, mc_sims=MC_SIMS, mc_freq=MC_FREQ,
+                      mc_cached=None):
+    """Check if MC simulation is authorized (free tier, cached, or paid).
+
+    Authorization passes if ANY of these hold:
+      1. Free tier (covered combo + default simulator settings)
+      2. MC data already cached with matching path_key (no new sim needed —
+         user already paid/triggered; just re-rendering with different
+         visual params like quantiles, display mode, log scale, etc.)
+      3. DEV/no-BTCPay + Run Simulation button was just clicked
+      4. Valid payment token (production)
+    """
     mc_yrs = int(mc_years or MC_DEFAULT_YEARS)
     s_yr   = int(start_yr or MC_DEFAULT_START_YR)
     e_q    = float(entry_q or MC_DEFAULT_ENTRY_Q)
     _bins  = int(mc_bins or MC_BINS)
     _sims  = int(mc_sims or MC_SIMS)
     _freq  = mc_freq or MC_FREQ
-    if not _app_ctx._HAS_BTCPAY or os.environ.get("DEV") == "1":
-        # Free tier: auto-approve (renders on activation, no button needed)
-        if btcpay.is_free_tier(mc_yrs, s_yr, e_q,
-                               mc_bins=_bins, mc_sims=_sims, mc_freq=_freq):
-            return True
-        # Non-free: require Run Simulation button click
-        return ctx.triggered_id == "mc-pay-trigger"
+
+    # 1. Free tier — always auto-approve
     if btcpay.is_free_tier(mc_yrs, s_yr, e_q,
                            mc_bins=_bins, mc_sims=_sims, mc_freq=_freq):
         return True
+
+    # 2. Already-cached data with matching path_key — re-render for free.
+    #    The simulation already ran (paid or triggered); changing QR visual
+    #    params (quantiles, display mode, log scale) should NOT require
+    #    re-payment — just re-draw the same MC overlay.
+    if mc_cached and isinstance(mc_cached, dict) and mc_cached.get("path_key"):
+        pk = mc_cached["path_key"]
+        if (pk.get("tab") == tab
+                and int(pk.get("mc_years", 0)) == mc_yrs
+                and int(pk.get("mc_start_yr", 0)) == s_yr
+                and int(pk.get("mc_entry_q", -1)) == int(e_q)
+                and int(pk.get("mc_bins", 0)) == _bins
+                and int(pk.get("mc_sims", 0)) <= _sims
+                and (pk.get("mc_freq") or MC_FREQ) == _freq):
+            return True
+
+    # 3. DEV / no BTCPay — require Run Simulation button click
+    if not _app_ctx._HAS_BTCPAY or os.environ.get("DEV") == "1":
+        return ctx.triggered_id == "mc-pay-trigger"
+
+    # 4. Production — verify payment token
     if not pay_token:
         logger.info("MC payment required: %s %dyr start=%d q=%g (no token)", tab, mc_yrs, s_yr, e_q)
         return False
@@ -342,7 +368,8 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     # MC heatmap (only when enabled + module present + payment verified)
     mc_enabled = bool(mc_enable) and _app_ctx._HAS_MARKOV
     mc_payment_ok = _mc_payment_check("hm", mc_years, mc_start_yr, mc_entry_q, pay_token,
-                                      mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq)
+                                      mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq,
+                                      mc_cached=mc_cached)
     if mc_enabled and mc_payment_ok:
         mc_syr = int(mc_start_yr or yr_now)
         # Auto-cap training window end at start year for historical sims
@@ -439,7 +466,8 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
     yr_range   = yr_range or [2024, 2034]
     live_price = float(price_data or 0)
     mc_ok = bool(mc_enable) and _mc_payment_check("dca", mc_years, mc_start_yr, mc_entry_q, pay_token,
-                                                  mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq)
+                                                  mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq,
+                                                  mc_cached=mc_cached)
     fig, mc_result = _get_dca_fig(dict(
         start_stack    = float(stack or 0),
         use_lots       = bool(use_lots),
@@ -1392,7 +1420,8 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     toggles  = toggles or []
     yr_range = yr_range or [2025, 2045]
     mc_ok = bool(mc_enable) and _mc_payment_check("ret", mc_years, mc_start_yr, mc_entry_q, pay_token,
-                                                  mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq)
+                                                  mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq,
+                                                  mc_cached=mc_cached)
     fig, mc_result = _get_retire_fig(dict(
         start_stack  = float(stack or 1.0),
         use_lots     = bool(use_lots),
@@ -1492,7 +1521,8 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
     toggles = toggles or []
     yr_now  = pd.Timestamp.today().year
     mc_ok = bool(mc_enable) and _mc_payment_check("sc", mc_years, mc_start_yr, mc_entry_q, pay_token,
-                                                  mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq)
+                                                  mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq,
+                                                  mc_cached=mc_cached)
     # chart_layout is now a checklist list; legacy snapshots may send an int
     _cl = (2 if "shade" in (chart_layout or []) else 0) \
           if isinstance(chart_layout, list) \

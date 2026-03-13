@@ -277,7 +277,7 @@ def _bubble_controls():
             _lbl("Stack (BTC)"),
             dbc.InputGroup([
                 dbc.Input(id="bub-stack", type="number", value=0,
-                          min=0, step=0.001, size="sm"),
+                          min=0, step=0.001, size="sm", debounce=True),
                 dbc.InputGroupText(dcc.Checklist(
                     id="bub-show-stack",
                     options=[{"label":" Show","value":"yes"}],
@@ -312,7 +312,8 @@ def _heatmap_controls():
             _lbl("Entry percentile (0.1–99.9%)"),
             dbc.Input(id="hm-entry-q", type="number",
                       value=_app_ctx._HM_ENTRY_Q_DEFAULT,
-                      min=0.1, max=99.9, step=0.1, size="sm"),
+                      min=0.1, max=99.9, step=0.1, size="sm",
+                      debounce=True),
         ),
         # ── Price Model ─────────────────────────────────────────────────
         _q_panel("hm-exit-qs", _app_ctx._DEF_QS,
@@ -572,7 +573,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             *([_lbl(amount_label + " (0–4,294,967,295)"),
                dbc.Input(id=f"{prefix}-mc-amount", type="number",
                          value=amount_default, min=0, max=4294967295,
-                         step=1, size="sm"),
+                         step=1, size="sm", debounce=True),
               ] if show_amount else [
                dbc.Input(id=f"{prefix}-mc-amount", type="number",
                          value=amount_default, style={"display": "none"}),
@@ -587,7 +588,8 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             ]),
             *([ _lbl("Starting BTC stack (0–1000)"),
                 dbc.Input(id=f"{prefix}-mc-stack", type="number",
-                          min=0, max=1000, step=0.01, value=1.0, size="sm"),
+                          min=0, max=1000, step=0.01, value=1.0, size="sm",
+                          debounce=True),
             ] if show_stack else [
                 dbc.Input(id=f"{prefix}-mc-stack", type="number",
                           value=1.0, style={"display": "none"}),
@@ -690,7 +692,8 @@ def _dca_controls():
         _section_card("Plan",
             _lbl("Per-period amount ($)"),
             dbc.Input(id="dca-amount", type="number", value=100,
-                      min=0, max=4294967295, step=1, size="sm"),
+                      min=0, max=4294967295, step=1, size="sm",
+                      debounce=True),
             _lbl("Frequency"),
             _freq_dropdown("dca"),
         ),
@@ -731,7 +734,8 @@ def _stackcelerator_controls():
         html.Div(id="dca-sc-body", style={"display":"none"}, children=[
             _lbl("Loan amount ($)"),
             dbc.Input(id="dca-sc-loan", type="number",
-                      value=1200, min=0, max=4294967295, step=1, size="sm"),
+                      value=1200, min=0, max=4294967295, step=1, size="sm",
+                      debounce=True),
             _lbl("Entry price (1st cycle)"),
             dcc.Dropdown(id="dca-sc-entry-mode",
                          options=[{"label":"Live ticker","value":"live"},
@@ -741,7 +745,8 @@ def _stackcelerator_controls():
             html.Div(id="dca-sc-custom-price-row", style={"display":"none"}, children=[
                 _lbl("Custom entry price ($)"),
                 dbc.Input(id="dca-sc-custom-price", type="number",
-                          value=80000, min=1, step=1, size="sm"),
+                          value=80000, min=1, step=1, size="sm",
+                          debounce=True),
             ]),
             _lbl("Loan type"),
             dcc.Dropdown(id="dca-sc-type",
@@ -789,7 +794,8 @@ def _retire_controls():
         _section_card("Plan",
             _lbl("Withdrawal/period ($)"),
             dbc.Input(id="ret-wd", type="number", value=5000,
-                      min=0, max=4294967295, step=1, size="sm"),
+                      min=0, max=4294967295, step=1, size="sm",
+                      debounce=True),
             _lbl("Frequency"),
             _freq_dropdown("ret"),
             _lbl("Inflation rate (0–100% / yr)"),
@@ -881,7 +887,8 @@ def _supercharge_controls():
             dbc.Collapse([
                 _lbl("Withdrawal/period ($)"),
                 dbc.Input(id="sc-wd", type="number", value=100000,
-                          min=0, max=4294967295, step=1, size="sm"),
+                          min=0, max=4294967295, step=1, size="sm",
+                          debounce=True),
                 _lbl("End year"),
                 html.Div(dcc.Slider(id="sc-end-yr", min=2030, max=2100,
                            value=2075, step=1,

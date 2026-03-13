@@ -1055,6 +1055,17 @@ body {
         height: 55vw !important;
         min-height: 280px !important;
     }
+    /* ── Mobile dropdown: larger touch targets, cleaner option list ──── */
+    .Select-control {
+        min-height: 38px;
+    }
+    .Select-menu-outer {
+        font-size: 14px;
+    }
+    .VirtualizedSelectOption {
+        min-height: 38px !important;
+        padding: 8px 12px !important;
+    }
 }
 
 /* ── Site footer: block height + halving countdown ────────────────────────── */
@@ -1141,6 +1152,20 @@ body {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+/* Mobile: larger quantile touch targets to reduce accidental taps */
+@media (max-width: 767px) {
+    .q-panel-grid label {
+        min-height: 36px;
+        padding: 6px 4px;
+        display: flex;
+        align-items: center;
+    }
+    .q-panel-grid input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        min-width: 18px;
+    }
+}
 
 /* MC chart overlay — grays out chart when MC settings don't match */
 .mc-chart-overlay {
@@ -1193,9 +1218,10 @@ body {
 }
 
 /* ── Slider touch guard ─────────────────────────────────────────────────────
-   Prevent sliders from capturing vertical scroll gestures on mobile.
-   The slider's JS touch handlers still work for deliberate horizontal drags,
-   but the browser won't hijack the touch for page scroll vs slider conflict.
+   Sliders need touch-action:none so their own drag handlers work.
+   The JS delay guard (inputs.js) temporarily disables pointer-events on
+   touchstart, re-enabling after 40ms only if no vertical scroll detected.
+   This prevents sliders from hijacking vertical page scrolls.
 */
 .rc-slider {
     touch-action: none;

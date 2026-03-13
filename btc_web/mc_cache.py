@@ -39,6 +39,12 @@ MC_DEFAULT_YEARS = 10
 MC_DEFAULT_ENTRY_Q = 50       # percentile, 0–100 scale
 MC_DEFAULT_START_YR = 2026    # default start year for MC simulations
 
+# ── Free tier constraints (restricted params for LRU-cached free-tier figures) ─
+MC_FREE_SIMS = 100
+MC_FREE_START_YRS = [2028, 2031]
+MC_FREE_ENTRY_Q = 10          # percentage, 0-100 scale
+MC_FREE_YEARS = [10, 20]
+
 # ── Variable parameters ──────────────────────────────────────────────────────
 CACHED_START_YRS = [2026, 2028, 2031, 2035, 2040]
 ENTRY_PCT_BINS = [round(i / 10, 1) for i in range(1, 10)]  # 0.1 .. 0.9
@@ -192,14 +198,18 @@ _FULL_LOADED = False   # True once the full 455 MB cache has been loaded
 # Free-tier defaults → entries to pre-load at startup (fast, ~1.5 MB)
 # Each tuple: (start_yr, pct_bin, mc_years)
 _STARTUP_PATH_ENTRIES = [
-    (2026, 0.1, 10),   # heatmap default
-    (2026, 0.5, 10),   # DCA default
-    (2031, 0.5, 10),   # retire/SC default
+    (2028, 0.1, 10),   # free tier: 2028/10yr
+    (2028, 0.1, 20),   # free tier: 2028/20yr
+    (2031, 0.1, 10),   # free tier: 2031/10yr
+    (2031, 0.1, 20),   # free tier: 2031/20yr
 ]
 
 # Each tuple: (start_yr, pct_bin, mc_years, wd, infl_pct, stack)
 _STARTUP_OVERLAY_ENTRIES = [
-    (2031, 0.5, 10, 5000, 4, 1.0),   # retire/SC default
+    (2028, 0.1, 10, 5000, 4, 1.0),   # free tier: ret/SC default
+    (2028, 0.1, 20, 5000, 4, 1.0),
+    (2031, 0.1, 10, 5000, 4, 1.0),
+    (2031, 0.1, 20, 5000, 4, 1.0),
 ]
 
 
@@ -336,20 +346,26 @@ def load_caches():
     _save_shm()
 
 
-def get_cached_paths(start_yr, pct_bin, mc_years):
-    """Look up pre-computed price paths. Returns (800, n_steps) array or None."""
+def get_cached_paths(start_yr, pct_bin, mc_years, max_sims=None):
+    """Look up pre-computed price paths. Returns (n_sims, n_steps) array or None.
+
+    If max_sims is set, subsample to at most max_sims paths (numpy view).
+    """
     yr_data = _CACHE.get(start_yr)
     key = _path_key_str(pct_bin, mc_years)
+    result = None
     # Try startup cache first
     if yr_data and yr_data.get("paths", {}).get(key) is not None:
-        return yr_data["paths"][key]
+        result = yr_data["paths"][key]
     # Lazy-load the full cache and retry
-    if not _FULL_LOADED:
+    if result is None and not _FULL_LOADED:
         _ensure_full_cache()
         yr_data = _CACHE.get(start_yr)
         if yr_data and yr_data.get("paths", {}).get(key) is not None:
-            return yr_data["paths"][key]
-    return None
+            result = yr_data["paths"][key]
+    if result is not None and max_sims and result.shape[0] > max_sims:
+        result = result[:max_sims]
+    return result
 
 
 def get_cached_overlay(start_yr, pct_bin, mc_years, wd, infl_pct, stack):

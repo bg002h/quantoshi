@@ -45,15 +45,12 @@ _HM_DISCOUNT = 0.5  # heatmap pays half
 
 # Free tier: certain (years, start_yr) combos with default simulator settings.
 from mc_cache import MC_DEFAULT_YEARS, MC_DEFAULT_ENTRY_Q, MC_DEFAULT_START_YR, \
-    CACHED_START_YRS, MC_BINS, MC_SIMS, MC_FREQ, is_cache_aligned_q
+    CACHED_START_YRS, MC_BINS, MC_SIMS, MC_FREQ, is_cache_aligned_q, \
+    MC_FREE_SIMS, MC_FREE_START_YRS, MC_FREE_ENTRY_Q, MC_FREE_YEARS
 
-# (years, start_yr) combos where ANY entry percentile qualifies for free tier
-# (with default bins, sims, freq, and historical window).
-_FREE_TIER_COMBOS = {
-    (10, 2026), (20, 2026),
-    (10, 2028), (20, 2028),
-    (10, 2031), (20, 2031),
-}
+# Free tier: restricted (years, start_yr) combos with entry_q == MC_FREE_ENTRY_Q,
+# sims <= MC_FREE_SIMS, and default bins/freq/window.
+_FREE_TIER_COMBOS = {(y, s) for s in MC_FREE_START_YRS for y in MC_FREE_YEARS}
 
 
 def compute_price(tab: str, mc_years: int, is_cached: bool) -> int:
@@ -66,18 +63,17 @@ def compute_price(tab: str, mc_years: int, is_cached: bool) -> int:
 
 
 def is_free_tier(mc_years: int, start_yr: int, entry_q: float = 0,
-                 mc_bins: int = MC_BINS, mc_sims: int = MC_SIMS,
+                 mc_bins: int = MC_BINS, mc_sims: int = MC_FREE_SIMS,
                  mc_freq: str = MC_FREQ) -> bool:
     """Check if the requested params match the free tier (no payment needed).
 
-    Free tier requires default simulator settings (bins, sims, freq) AND a
-    cache-aligned entry percentile (10% bins: 10, 20, ..., 90).  Non-aligned
-    percentiles require a live simulation and therefore payment.
+    Free tier requires: default bins/freq, sims <= MC_FREE_SIMS (100),
+    entry_q == MC_FREE_ENTRY_Q (10%), and a cached (years, start_yr) combo.
     """
-    if int(mc_bins) != MC_BINS or int(mc_sims) > MC_SIMS or (mc_freq or MC_FREQ) != MC_FREQ:
+    if int(mc_bins) != MC_BINS or int(mc_sims) > MC_FREE_SIMS or (mc_freq or MC_FREQ) != MC_FREQ:
         return False
-    eq = float(entry_q)
-    if eq > 0 and not is_cache_aligned_q(eq):
+    eq = float(entry_q or MC_FREE_ENTRY_Q)
+    if round(eq) != MC_FREE_ENTRY_Q:
         return False
     return (int(mc_years), int(start_yr)) in _FREE_TIER_COMBOS
 

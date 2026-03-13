@@ -1387,6 +1387,492 @@ class TestRetireFuzz:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Section 5c: Bin regime filter tests (_apply_bin_mask, _snap_start_pctile)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+from mc_overlay import (_apply_bin_mask, _snap_start_pctile,
+                        bin_regime_labels, _mc_path_key)
+
+
+class TestApplyBinMask:
+    """Test transition matrix bin blocking and re-normalization."""
+
+    def _uniform(self, n=5):
+        """Create a uniform n×n transition matrix."""
+        return np.ones((n, n)) / n
+
+    def test_no_blocked_bins_returns_same(self):
+        trans = self._uniform()
+        result = _apply_bin_mask(trans, [])
+        np.testing.assert_array_equal(result, trans)
+
+    def test_none_blocked_bins_returns_same(self):
+        trans = self._uniform()
+        result = _apply_bin_mask(trans, None)
+        np.testing.assert_array_equal(result, trans)
+
+    def test_block_single_bin_zeros_column(self):
+        trans = self._uniform()
+        result = _apply_bin_mask(trans, [4])
+        # Column 4 should be all zeros
+        assert np.all(result[:, 4] == 0.0)
+        # All rows still sum to 1
+        np.testing.assert_allclose(result.sum(axis=1), 1.0)
+
+    def test_block_single_bin_redistributes(self):
+        trans = self._uniform()
+        result = _apply_bin_mask(trans, [4])
+        # Each row's remaining 4 bins should be 0.25
+        for row in range(5):
+            for col in range(4):
+                assert abs(result[row, col] - 0.25) < 1e-10
+
+    def test_block_multiple_bins(self):
+        trans = self._uniform()
+        result = _apply_bin_mask(trans, [0, 4])
+        # Columns 0 and 4 should be zero
+        assert np.all(result[:, 0] == 0.0)
+        assert np.all(result[:, 4] == 0.0)
+        # Remaining 3 bins share probability equally
+        np.testing.assert_allclose(result.sum(axis=1), 1.0)
+        for row in range(5):
+            for col in [1, 2, 3]:
+                assert abs(result[row, col] - 1.0/3) < 1e-10
+
+    def test_block_all_but_one(self):
+        trans = self._uniform()
+        result = _apply_bin_mask(trans, [0, 1, 3, 4])
+        # Only column 2 should have probability
+        for row in range(5):
+            assert abs(result[row, 2] - 1.0) < 1e-10
+            for col in [0, 1, 3, 4]:
+                assert result[row, col] == 0.0
+
+    def test_does_not_mutate_original(self):
+        trans = self._uniform()
+        original = trans.copy()
+        _apply_bin_mask(trans, [2])
+        np.testing.assert_array_equal(trans, original)
+
+    def test_nonuniform_matrix(self):
+        """Test with a realistic non-uniform matrix."""
+        trans = np.array([
+            [0.5, 0.3, 0.1, 0.05, 0.05],
+            [0.2, 0.4, 0.2, 0.1, 0.1],
+            [0.1, 0.2, 0.4, 0.2, 0.1],
+            [0.05, 0.1, 0.2, 0.4, 0.25],
+            [0.05, 0.05, 0.1, 0.3, 0.5],
+        ])
+        result = _apply_bin_mask(trans, [4])
+        # Column 4 is zero
+        assert np.all(result[:, 4] == 0.0)
+        # Rows sum to 1
+        np.testing.assert_allclose(result.sum(axis=1), 1.0)
+        # Row 0: was [0.5, 0.3, 0.1, 0.05, 0.05], remove col4 (0.05)
+        # Remaining sum = 0.95, so each divided by 0.95
+        np.testing.assert_allclose(result[0, :4], [0.5/0.95, 0.3/0.95,
+                                                    0.1/0.95, 0.05/0.95])
+
+    def test_zero_row_gets_uniform_over_allowed(self):
+        """Row that only transitions to blocked bins gets uniform fallback."""
+        trans = np.zeros((3, 3))
+        trans[0] = [0.0, 0.0, 1.0]  # row 0 only goes to bin 2
+        trans[1] = [0.5, 0.5, 0.0]
+        trans[2] = [0.0, 0.0, 1.0]
+        result = _apply_bin_mask(trans, [2])
+        # Rows 0 and 2 had all weight in bin 2 (now blocked)
+        # Should get uniform over allowed bins [0, 1]
+        np.testing.assert_allclose(result[0], [0.5, 0.5, 0.0])
+        np.testing.assert_allclose(result[2], [0.5, 0.5, 0.0])
+        # Row 1 is unchanged (no weight in bin 2)
+        np.testing.assert_allclose(result[1], [0.5, 0.5, 0.0])
+
+    def test_out_of_range_bins_ignored(self):
+        trans = self._uniform()
+        result = _apply_bin_mask(trans, [99, -1])
+        # Out-of-range bins don't affect the matrix
+        np.testing.assert_allclose(result.sum(axis=1), 1.0)
+        np.testing.assert_allclose(result, trans)
+
+    def test_larger_matrix(self):
+        trans = self._uniform(n=10)
+        result = _apply_bin_mask(trans, [0, 5, 9])
+        for blocked_col in [0, 5, 9]:
+            assert np.all(result[:, blocked_col] == 0.0)
+        np.testing.assert_allclose(result.sum(axis=1), 1.0)
+
+
+class TestSnapStartPctile:
+    """Test starting percentile snapping when entry bin is blocked."""
+
+    def _edges5(self):
+        return np.linspace(0, 1, 6)  # [0, 0.2, 0.4, 0.6, 0.8, 1.0]
+
+    def test_no_blocked_returns_original(self):
+        assert _snap_start_pctile(0.5, self._edges5(), []) == 0.5
+
+    def test_none_blocked_returns_original(self):
+        assert _snap_start_pctile(0.5, self._edges5(), None) == 0.5
+
+    def test_allowed_bin_returns_original(self):
+        # 0.5 is in bin 2 (40-60%), block bin 4 only
+        assert _snap_start_pctile(0.5, self._edges5(), [4]) == 0.5
+
+    def test_blocked_bin_snaps_to_nearest(self):
+        # 0.9 is in bin 4 (80-100%), block bin 4
+        # Nearest allowed is bin 3 (60-80%), midpoint = 0.7
+        result = _snap_start_pctile(0.9, self._edges5(), [4])
+        assert abs(result - 0.7) < 1e-10
+
+    def test_blocked_low_bin_snaps_up(self):
+        # 0.1 is in bin 0 (0-20%), block bin 0
+        # Nearest allowed is bin 1 (20-40%), midpoint = 0.3
+        result = _snap_start_pctile(0.1, self._edges5(), [0])
+        assert abs(result - 0.3) < 1e-10
+
+    def test_blocked_middle_snaps_to_closer(self):
+        # 0.5 is in bin 2 (40-60%), block bin 2
+        # Nearest: bin 1 (mid=0.3, dist=0.2) or bin 3 (mid=0.7, dist=0.2)
+        # Either is fine — just check it's one of them and not blocked
+        edges = self._edges5()
+        result = _snap_start_pctile(0.5, edges, [2])
+        assert abs(result - 0.3) < 1e-10 or abs(result - 0.7) < 1e-10
+
+    def test_multiple_blocked_finds_best(self):
+        # 0.9 is in bin 4, block bins 3 and 4
+        # Nearest allowed is bin 2 (40-60%), midpoint = 0.5
+        result = _snap_start_pctile(0.9, self._edges5(), [3, 4])
+        assert abs(result - 0.5) < 1e-10
+
+    def test_all_blocked_returns_original(self):
+        # Degenerate case: all blocked
+        result = _snap_start_pctile(0.5, self._edges5(), [0, 1, 2, 3, 4])
+        assert result == 0.5
+
+    def test_boundary_percentile(self):
+        # 0.0 is in bin 0, block bin 0
+        result = _snap_start_pctile(0.0, self._edges5(), [0])
+        assert abs(result - 0.3) < 1e-10  # snaps to bin 1 midpoint
+
+    def test_1_0_percentile(self):
+        # 1.0 clips to bin 4, block bin 4
+        result = _snap_start_pctile(1.0, self._edges5(), [4])
+        assert abs(result - 0.7) < 1e-10  # snaps to bin 3 midpoint
+
+
+class TestBinRegimeLabels:
+    """Test human-readable bin label generation."""
+
+    def test_5_bins_named(self):
+        labels = bin_regime_labels(5)
+        assert len(labels) == 5
+        assert "Bargain" in labels[0]
+        assert "Bubble" in labels[4]
+        assert "0\u201320%" in labels[0]
+        assert "80\u2013100%" in labels[4]
+
+    def test_7_bins_percentile_ranges(self):
+        labels = bin_regime_labels(7)
+        assert len(labels) == 7
+        assert "0\u201314%" in labels[0]
+        assert "86\u2013100%" in labels[6]
+
+    def test_10_bins_percentile_ranges(self):
+        labels = bin_regime_labels(10)
+        assert len(labels) == 10
+        assert "0\u201310%" in labels[0]
+        assert "90\u2013100%" in labels[9]
+
+
+class TestPathKeyBlockedBins:
+    """Test that mc_blocked_bins is included in path cache key."""
+
+    def test_empty_blocked(self):
+        p = {"mc_bins": 5, "mc_sims": 800, "mc_years": 10,
+             "mc_freq": "Monthly", "mc_start_yr": 2026, "mc_entry_q": 50}
+        key = _mc_path_key(p, "dca")
+        assert key["mc_blocked_bins"] == ()
+
+    def test_blocked_in_key(self):
+        p = {"mc_bins": 5, "mc_sims": 800, "mc_years": 10,
+             "mc_freq": "Monthly", "mc_start_yr": 2026, "mc_entry_q": 50,
+             "mc_blocked_bins": [4, 0]}
+        key = _mc_path_key(p, "dca")
+        assert key["mc_blocked_bins"] == (0, 4)  # sorted
+
+    def test_different_blocked_different_keys(self):
+        base = {"mc_bins": 5, "mc_sims": 800, "mc_years": 10,
+                "mc_freq": "Monthly", "mc_start_yr": 2026, "mc_entry_q": 50}
+        k1 = _mc_path_key({**base, "mc_blocked_bins": [4]}, "dca")
+        k2 = _mc_path_key({**base, "mc_blocked_bins": [3]}, "dca")
+        k3 = _mc_path_key({**base}, "dca")
+        assert k1 != k2
+        assert k1 != k3
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section 5d: Ghost overlay tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestGhostBuildTraces:
+    """Test _mc_build_ghost_traces produces correct trace structure."""
+
+    def test_returns_traces_for_valid_fan(self):
+        from mc_overlay import _mc_build_ghost_traces
+        ts = np.linspace(10, 20, 50)
+        fan = {p: np.random.rand(50) * 100 for p in (0.01, 0.05, 0.25, 0.50, 0.75, 0.95)}
+        traces = _mc_build_ghost_traces(ts, fan)
+        # 3 bands × 2 traces each + 1 median = 7
+        assert len(traces) == 7
+
+    def test_no_median_when_disabled(self):
+        from mc_overlay import _mc_build_ghost_traces
+        ts = np.linspace(10, 20, 50)
+        fan = {p: np.random.rand(50) * 100 for p in (0.01, 0.05, 0.25, 0.50, 0.75, 0.95)}
+        traces = _mc_build_ghost_traces(ts, fan, show_median=False)
+        assert len(traces) == 6  # 3 bands × 2, no median
+
+    def test_empty_fan_returns_empty(self):
+        from mc_overlay import _mc_build_ghost_traces
+        ts = np.linspace(10, 20, 50)
+        traces = _mc_build_ghost_traces(ts, {})
+        assert traces == []
+
+    def test_ghost_traces_have_no_legend(self):
+        from mc_overlay import _mc_build_ghost_traces
+        ts = np.linspace(10, 20, 50)
+        fan = {p: np.random.rand(50) * 100 for p in (0.01, 0.05, 0.25, 0.50, 0.75, 0.95)}
+        traces = _mc_build_ghost_traces(ts, fan)
+        for t in traces:
+            assert t.showlegend is False
+
+    def test_median_is_dashed(self):
+        from mc_overlay import _mc_build_ghost_traces
+        ts = np.linspace(10, 20, 50)
+        fan = {p: np.random.rand(50) * 100 for p in (0.01, 0.05, 0.25, 0.50, 0.75, 0.95)}
+        traces = _mc_build_ghost_traces(ts, fan)
+        median_trace = traces[-1]
+        assert median_trace.line.dash == "dash"
+
+
+class TestGhostTracesFromParams:
+    """Test ghost_traces_from_params end-to-end."""
+
+    def _make_ghost_data(self):
+        from mc_overlay import _mc_fan_to_lists
+        ts = np.linspace(10.0, 20.0, 50)
+        fan = {p: np.random.rand(50) * 100 for p in (0.01, 0.05, 0.25, 0.50, 0.75, 0.95)}
+        return {
+            "fan_btc": _mc_fan_to_lists(fan),
+            "fan_usd": _mc_fan_to_lists(fan),
+            "ts": [round(float(t), 6) for t in ts],
+        }
+
+    def test_returns_traces_when_blocked(self):
+        from mc_overlay import ghost_traces_from_params
+        p = {"mc_ghost_fan": self._make_ghost_data(), "mc_blocked_bins": (4,)}
+        traces = ghost_traces_from_params(p, 20.0, "btc")
+        assert len(traces) == 7
+
+    def test_returns_empty_when_no_blocked(self):
+        from mc_overlay import ghost_traces_from_params
+        p = {"mc_ghost_fan": self._make_ghost_data(), "mc_blocked_bins": ()}
+        traces = ghost_traces_from_params(p, 20.0, "btc")
+        assert traces == []
+
+    def test_returns_empty_when_no_ghost_data(self):
+        from mc_overlay import ghost_traces_from_params
+        p = {"mc_blocked_bins": (4,)}
+        traces = ghost_traces_from_params(p, 20.0, "btc")
+        assert traces == []
+
+    def test_clips_to_x_end(self):
+        from mc_overlay import ghost_traces_from_params
+        p = {"mc_ghost_fan": self._make_ghost_data(), "mc_blocked_bins": (4,)}
+        traces = ghost_traces_from_params(p, 15.0, "btc")
+        # Traces should be clipped — shorter than full 50 points
+        assert len(traces) > 0
+        for t in traces:
+            if t.x is not None and len(list(t.x)) > 0:
+                assert max(list(t.x)) <= 15.1
+
+
+class TestGhostMatch:
+    """Test _ghost_match helper in callbacks."""
+
+    def test_matching_path_key(self):
+        from callbacks import _ghost_match
+        unblocked = {
+            "path_key": {"tab": "dca", "mc_bins": 5, "mc_sims": 800,
+                         "mc_years": 10, "mc_freq": "Monthly",
+                         "mc_window": None, "mc_start_yr": 2026,
+                         "mc_entry_q": 50.0, "mc_blocked_bins": ()},
+            "fan_btc": {}, "fan_usd": {},
+        }
+        mc_p = {"mc_bins": 5, "mc_sims": 800, "mc_years": 10,
+                "mc_freq": "Monthly", "mc_window": None,
+                "mc_start_yr": 2026, "mc_entry_q": 50.0,
+                "mc_blocked_bins": (4,)}
+        result = _ghost_match(unblocked, mc_p, "dca")
+        assert result is unblocked
+
+    def test_no_match_different_bins(self):
+        from callbacks import _ghost_match
+        unblocked = {
+            "path_key": {"tab": "dca", "mc_bins": 5, "mc_sims": 800,
+                         "mc_years": 10, "mc_freq": "Monthly",
+                         "mc_window": None, "mc_start_yr": 2026,
+                         "mc_entry_q": 50.0, "mc_blocked_bins": ()},
+        }
+        mc_p = {"mc_bins": 6, "mc_sims": 800, "mc_years": 10,
+                "mc_freq": "Monthly", "mc_window": None,
+                "mc_start_yr": 2026, "mc_entry_q": 50.0}
+        assert _ghost_match(unblocked, mc_p, "dca") is None
+
+    def test_no_match_wrong_tab(self):
+        from callbacks import _ghost_match
+        unblocked = {
+            "path_key": {"tab": "dca", "mc_bins": 5, "mc_sims": 800,
+                         "mc_years": 10, "mc_freq": "Monthly",
+                         "mc_window": None, "mc_start_yr": 2026,
+                         "mc_entry_q": 50.0, "mc_blocked_bins": ()},
+        }
+        mc_p = {"mc_bins": 5, "mc_sims": 800, "mc_years": 10,
+                "mc_freq": "Monthly", "mc_window": None,
+                "mc_start_yr": 2026, "mc_entry_q": 50.0}
+        assert _ghost_match(unblocked, mc_p, "ret") is None
+
+    def test_none_unblocked(self):
+        from callbacks import _ghost_match
+        assert _ghost_match(None, {}, "dca") is None
+
+    def test_empty_dict_unblocked(self):
+        from callbacks import _ghost_match
+        assert _ghost_match({}, {}, "dca") is None
+
+
+class TestUnblockedVal:
+    """Test _unblocked_val helper."""
+
+    def test_saves_when_no_blocked(self):
+        from callbacks import _unblocked_val
+        result = {"fan_btc": {}, "fan_usd": {}}
+        val = _unblocked_val(True, (), result, None)
+        assert val is result
+
+    def test_no_update_when_blocked(self):
+        from callbacks import _unblocked_val
+        import dash
+        val = _unblocked_val(True, (4,), {"fan_btc": {}}, None)
+        assert val is dash.no_update
+
+    def test_no_update_when_not_mc_ok(self):
+        from callbacks import _unblocked_val
+        import dash
+        val = _unblocked_val(False, (), {"fan_btc": {}}, None)
+        assert val is dash.no_update
+
+    def test_falls_back_to_cached(self):
+        from callbacks import _unblocked_val
+        cached = {"fan_btc": {}, "fan_usd": {}}
+        val = _unblocked_val(True, (), None, cached)
+        assert val is cached
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section 5e: Regime filter fuzz / edge-case tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestBinMaskFuzz:
+    """Parametrized fuzz: apply_bin_mask with various blocked-bin combos."""
+
+    @pytest.mark.parametrize("n_bins,blocked", [
+        (5, [0]),
+        (5, [4]),
+        (5, [0, 4]),
+        (5, [1, 2, 3]),
+        (5, [0, 1, 2, 3]),  # only bin 4 allowed
+        (6, [0, 5]),
+        (6, [1, 2, 3, 4]),
+        (8, [0, 1, 6, 7]),
+        (10, list(range(0, 10, 2))),   # block even bins
+        (10, list(range(1, 10, 2))),   # block odd bins
+    ])
+    def test_masked_matrix_is_valid(self, n_bins, blocked):
+        """After masking, matrix must be row-stochastic with zero blocked columns."""
+        trans = np.random.rand(n_bins, n_bins)
+        trans /= trans.sum(axis=1, keepdims=True)
+        result = _apply_bin_mask(trans, blocked)
+        # Blocked columns must be zero
+        for b in blocked:
+            assert np.allclose(result[:, b], 0.0), f"column {b} not zeroed"
+        # Each row must sum to 1
+        row_sums = result.sum(axis=1)
+        np.testing.assert_allclose(row_sums, 1.0, atol=1e-12)
+        # No negative values
+        assert np.all(result >= 0)
+
+    @pytest.mark.parametrize("n_bins", [5, 6, 7, 8, 10])
+    def test_single_allowed_bin(self, n_bins):
+        """With only 1 allowed bin, all probability should go there."""
+        blocked = list(range(1, n_bins))  # only bin 0 allowed
+        trans = np.random.rand(n_bins, n_bins)
+        trans /= trans.sum(axis=1, keepdims=True)
+        result = _apply_bin_mask(trans, blocked)
+        for r in range(n_bins):
+            assert abs(result[r, 0] - 1.0) < 1e-12
+            assert abs(result[r, 1:].sum()) < 1e-12
+
+
+class TestSnapStartPctileFuzz:
+    """Parametrized fuzz: snap_start_pctile with blocked-bin combos."""
+
+    @pytest.mark.parametrize("n_bins,blocked,pctile", [
+        (5, [4], 0.9),     # in blocked top bin → snap down
+        (5, [0], 0.1),     # in blocked bottom bin → snap up
+        (5, [2], 0.5),     # in blocked middle bin → snap to neighbor
+        (5, [0, 4], 0.1),  # bottom blocked → snap to bin 1
+        (5, [0, 4], 0.9),  # top blocked → snap to bin 3
+        (5, [0, 1, 2, 3], 0.5),  # only bin 4 allowed → snap to 0.9
+        (10, [0, 1, 8, 9], 0.05),  # bottom blocked → snap to bin 2
+    ])
+    def test_snapped_to_allowed_bin(self, n_bins, blocked, pctile):
+        """Snapped percentile must fall in an allowed bin."""
+        edges = np.linspace(0, 1, n_bins + 1)
+        result = _snap_start_pctile(pctile, edges, blocked)
+        # Find which bin the result falls in
+        result_bin = min(int(result * n_bins), n_bins - 1)
+        result_bin = max(result_bin, 0)
+        assert result_bin not in blocked, f"snapped to blocked bin {result_bin}"
+
+
+class TestBuildMcParamsAllUnchecked:
+    """Guard: all bins unchecked (mc_regime=[]) should not block all bins."""
+
+    def test_empty_regime_means_no_blocked(self):
+        from callbacks import _build_mc_params
+        p = _build_mc_params(
+            mc_enable=True, mc_amount=100, mc_infl=4, mc_bins=5, mc_sims=800,
+            mc_years=10, mc_freq="Monthly", mc_window=None,
+            mc_start_yr=2026, mc_entry_q=50,
+            mc_cached=None, mc_live_price=0,
+            mc_regime=[],   # all unchecked
+        )
+        assert p["mc_blocked_bins"] == ()
+
+    def test_single_bin_regime_allowed(self):
+        from callbacks import _build_mc_params
+        p = _build_mc_params(
+            mc_enable=True, mc_amount=100, mc_infl=4, mc_bins=5, mc_sims=800,
+            mc_years=10, mc_freq="Monthly", mc_window=None,
+            mc_start_yr=2026, mc_entry_q=50,
+            mc_cached=None, mc_live_price=0,
+            mc_regime=[2],   # only bin 2 allowed
+        )
+        assert p["mc_blocked_bins"] == (0, 1, 3, 4)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Section 6: Edge case / regression tests
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1892,7 +2378,7 @@ class TestUpdateHeatmapCallback:
                 toggles=["colorbar"], stack=0, use_lots=[],
                 lots_data=[],
                 mc_enable=[], mc_amount=100, mc_infl=0,
-                mc_bins=5, mc_sims=800, mc_years=10,
+                mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                 mc_freq="Monthly", mc_window=[2010, yr],
                 mc_start_yr=yr, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0,
@@ -1913,7 +2399,7 @@ class TestUpdateHeatmapCallback:
                     grad=32, vfmt="cagr", cell_fs=9,
                     toggles=[], stack=0, use_lots=[], lots_data=[],
                     mc_enable=[], mc_amount=100, mc_infl=0,
-                    mc_bins=5, mc_sims=800, mc_years=10,
+                    mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                     mc_freq="Monthly", mc_window=None,
                     mc_start_yr=2025, mc_entry_q=50,
                     _mc_loaded=None, _pay_trigger=0,
@@ -1937,14 +2423,14 @@ class TestUpdateDcaCallback:
                 sc_entry_mode="live", sc_custom_price=80000,
                 sc_tax=33, sc_rollover=[],
                 mc_enable=[], mc_amount=100, mc_infl=4,
-                mc_bins=5, mc_sims=800, mc_years=10,
+                mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                 mc_freq="Monthly", mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0,
-                price_data=0, mc_cached=None, pay_token=None,
+                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
             )
-        # 6 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab
-        assert len(result) == 6
+        # 7 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked
+        assert len(result) == 7
         assert isinstance(result[0], go.Figure)
 
     def test_wrong_tab_prevents_update(self):
@@ -1959,11 +2445,11 @@ class TestUpdateDcaCallback:
                     sc_entry_mode="live", sc_custom_price=80000,
                     sc_tax=33, sc_rollover=[],
                     mc_enable=[], mc_amount=100, mc_infl=4,
-                    mc_bins=5, mc_sims=800, mc_years=10,
+                    mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                     mc_freq="Monthly", mc_window=None,
                     mc_start_yr=2026, mc_entry_q=50,
                     _mc_loaded=None, _pay_trigger=0,
-                price_data=0, mc_cached=None, pay_token=None,
+                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
                 )
 
     def test_with_sc_enabled(self):
@@ -1978,11 +2464,11 @@ class TestUpdateDcaCallback:
                 sc_entry_mode="custom", sc_custom_price=90000,
                 sc_tax=33, sc_rollover=[],
                 mc_enable=[], mc_amount=100, mc_infl=4,
-                mc_bins=5, mc_sims=800, mc_years=10,
+                mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                 mc_freq="Monthly", mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0,
-                price_data=0, mc_cached=None, pay_token=None,
+                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
             )
         assert isinstance(result[0], go.Figure)
 
@@ -1998,11 +2484,11 @@ class TestUpdateDcaCallback:
                 sc_entry_mode="live", sc_custom_price=80000,
                 sc_tax=33, sc_rollover=[],
                 mc_enable=[], mc_amount=100, mc_infl=4,
-                mc_bins=5, mc_sims=800, mc_years=10,
+                mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                 mc_freq="Monthly", mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0,
-                price_data=0, mc_cached=None, pay_token=None,
+                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
             )
         assert isinstance(result[0], go.Figure)
 
@@ -2020,14 +2506,14 @@ class TestUpdateRetireCallback:
                 legend_pos="outside",
                 sel_qs=[0.01, 0.1, 0.25], lots_data=[],
                 mc_enable=[], mc_amount=5000, mc_infl=4,
-                mc_bins=5, mc_sims=800, mc_years=10,
+                mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                 mc_freq="Monthly", mc_window=None,
                 mc_stack=1.0, mc_start_yr=2031, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0,
-                price_data=0, mc_cached=None, pay_token=None,
+                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
             )
-        # 6 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab
-        assert len(result) == 6
+        # 7 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked
+        assert len(result) == 7
         assert isinstance(result[0], go.Figure)
 
 
@@ -2046,13 +2532,13 @@ class TestUpdateSuperchargeCallback:
                 toggles=["annotate", "log_y", "show_legend"], legend_pos="outside",
                 chart_layout=["shade"], display_q=0.5, lots_data=[],
                 mc_enable=[], mc_amount=5000, mc_infl=4,
-                mc_bins=5, mc_sims=800, mc_years=10,
+                mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                 mc_freq="Monthly", mc_window=None,
                 mc_stack=1.0, mc_start_yr=2031, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0,
-                price_data=0, mc_cached=None, pay_token=None,
+                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
             )
-        assert len(result) == 5
+        assert len(result) == 6
         assert isinstance(result[0], go.Figure)
 
     def test_mode_b(self):
@@ -2065,11 +2551,11 @@ class TestUpdateSuperchargeCallback:
                 disp="usd", toggles=["show_legend"], legend_pos="outside",
                 chart_layout=[], display_q=0.5, lots_data=[],
                 mc_enable=[], mc_amount=5000, mc_infl=4,
-                mc_bins=5, mc_sims=800, mc_years=10,
+                mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                 mc_freq="Monthly", mc_window=None,
                 mc_stack=1.0, mc_start_yr=2031, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0,
-                price_data=0, mc_cached=None, pay_token=None,
+                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
             )
         assert isinstance(result[0], go.Figure)
 

@@ -42,6 +42,7 @@ from mc_overlay import (
     _mc_dca_overlay, _mc_withdraw_overlay,
     _mc_retire_overlay, _mc_supercharge_overlay,
     _mc_heatmap_overlay,
+    ghost_traces_from_params,
 )
 
 
@@ -1224,6 +1225,8 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     mc_result = None
     if _HAS_MARKOV and p.get("mc_enabled"):
         mc_traces, mc_result, mc_fan_usd = _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode)
+        ghost = ghost_traces_from_params(p, _x_end, disp_mode)
+        mc_traces = ghost + mc_traces
         mc_traces = _clip_mc_traces(mc_traces, _x_end)
         traces.extend(mc_traces)
         # MC median text trace annotation
@@ -1403,6 +1406,8 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
         mc_traces_list, mc_annots, mc_result = _mc_retire_overlay(
             m, p, ts, t_start, t_end, dt,
             start_stack, disp_mode, len(deplete_annots))
+        ghost = ghost_traces_from_params(p, _x_end, disp_mode)
+        mc_traces_list = ghost + mc_traces_list
         mc_traces_list = _clip_mc_traces(mc_traces_list, _x_end)
         traces.extend(mc_traces_list)
         if mc_annots:
@@ -1694,6 +1699,8 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 t_start_base, t_end, dt, start_stack, disp_mode,
                 len(deplete_annots))
             _sc_x_end = layout["xaxis"]["range"][1]
+            ghost = ghost_traces_from_params(p, _sc_x_end, disp_mode)
+            mc_traces_list = ghost + mc_traces_list
             mc_traces_list = _clip_mc_traces(mc_traces_list, _sc_x_end)
             traces.extend(mc_traces_list)
             if mc_annots:

@@ -52,7 +52,8 @@ from layout import (_SPLASH_QUOTES, _SPLASH_QUOTES_JS,
                     _MC_CACHED_START_YRS, _MC_PRICE_CACHED, _MC_PRICE_LIVE,
                     _FAQ, _bold_opts, _MC_CACHED_YEARS,
                     _MC_CACHED_ENTRY_QS,
-                    _MC_ENTRY_Q_OPTIONS, _MC_ENTRY_Q_OPTIONS_ADV)
+                    _MC_ENTRY_Q_OPTIONS, _MC_ENTRY_Q_OPTIONS_ADV,
+                    _regime_options)
 from mc_cache import (MC_YEARS_OPTIONS, MC_BINS, MC_SIMS, MC_FREQ,
                       MC_DEFAULT_YEARS, MC_DEFAULT_ENTRY_Q, MC_DEFAULT_START_YR)
 import btcpay
@@ -73,7 +74,7 @@ def _format_lots_for_table(lots):
 
 def _build_mc_params(*, mc_enable, mc_amount, mc_infl, mc_bins, mc_sims,
                      mc_years, mc_freq, mc_window, mc_start_yr, mc_entry_q,
-                     mc_cached, mc_live_price,
+                     mc_cached, mc_live_price, mc_regime=None,
                      amount_default=100, infl_default=4.0,
                      start_yr_default=MC_DEFAULT_START_YR, mc_start_stack=None):
     """Assemble MC simulation parameters from raw callback inputs.
@@ -81,11 +82,18 @@ def _build_mc_params(*, mc_enable, mc_amount, mc_infl, mc_bins, mc_sims,
     Tab-specific defaults (amount_default, infl_default, start_yr_default)
     accommodate the different fallback values across HM/DCA/Ret/SC tabs.
     """
+    n_bins = int(mc_bins or MC_BINS)
+    # Compute blocked bins from regime checklist (checked = allowed).
+    # Guard: at least 1 bin must remain — if all unchecked, treat as all allowed.
+    if mc_regime is not None and 0 < len(mc_regime) < n_bins:
+        blocked = tuple(sorted(set(range(n_bins)) - set(mc_regime)))
+    else:
+        blocked = ()
     d = dict(
         mc_enabled    = bool(mc_enable),
         mc_amount     = max(0, min(4294967295, int(float(mc_amount or amount_default)))),
         mc_infl       = float(mc_infl) if mc_infl is not None else infl_default,
-        mc_bins       = int(mc_bins or MC_BINS),
+        mc_bins       = n_bins,
         mc_sims       = int(mc_sims or MC_SIMS),
         mc_years      = int(mc_years or MC_DEFAULT_YEARS),
         mc_freq       = mc_freq or MC_FREQ,
@@ -94,6 +102,7 @@ def _build_mc_params(*, mc_enable, mc_amount, mc_infl, mc_bins, mc_sims,
         mc_start_yr   = int(mc_start_yr or start_yr_default),
         mc_entry_q    = float(mc_entry_q or MC_DEFAULT_ENTRY_Q),
         mc_cached     = mc_cached,
+        mc_blocked_bins = blocked,
     )
     if mc_start_stack is not None:
         v = round(max(0.0, min(1000.0, float(mc_start_stack or 1.0))), 2)
@@ -273,6 +282,34 @@ def _mc_status(mc_result, mc_cached, mc_enable):
     return store_val, status, bool(mc_result)
 
 
+def _ghost_match(unblocked, mc_p, tab):
+    """Return unblocked cache data if its path_key matches current params
+    (ignoring mc_blocked_bins), otherwise None."""
+    if not unblocked or not isinstance(unblocked, dict):
+        return None
+    cpk = unblocked.get("path_key")
+    if not cpk or cpk.get("tab") != tab:
+        return None
+    for k in ("mc_bins", "mc_sims", "mc_years", "mc_freq",
+              "mc_window", "mc_start_yr", "mc_entry_q"):
+        if cpk.get(k) != mc_p.get(k):
+            return None
+    return unblocked
+
+
+def _unblocked_val(mc_ok, blocked, mc_result, mc_cached):
+    """Compute value for unblocked-cache store output.
+
+    Save effective result when no bins blocked; no_update otherwise.
+    """
+    if not mc_ok or blocked:
+        return dash.no_update
+    effective = mc_result or mc_cached
+    if effective and isinstance(effective, dict) and "fan_btc" in effective:
+        return effective
+    return dash.no_update
+
+
 @callback(
     Output("heatmap-graph",  "figure"),
     Output("hm-mc-graph",    "figure"),
@@ -306,6 +343,7 @@ def _mc_status(mc_result, mc_cached, mc_enable):
     Input("hm-mc-amount",  "value"),
     Input("hm-mc-infl",    "value"),
     Input("hm-mc-bins",    "value"),
+    Input("hm-mc-regime",  "value"),
     Input("hm-mc-sims",    "value"),
     Input("hm-mc-years",   "value"),
     Input("hm-mc-freq",    "value"),
@@ -322,7 +360,7 @@ def _mc_status(mc_result, mc_cached, mc_enable):
 def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
                    b1, b2, c_lo, c_mid1, c_mid2, c_hi, grad,
                    vfmt, cell_fs, toggles, stack, use_lots, lots_data,
-                   mc_enable, mc_amount, mc_infl, mc_bins, mc_sims, mc_years, mc_freq, mc_window,
+                   mc_enable, mc_amount, mc_infl, mc_bins, mc_regime, mc_sims, mc_years, mc_freq, mc_window,
                    mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger,
                    live_price, mc_cached, pay_token):
     if ctx.triggered_id == "main-tabs" and active_tab != "heatmap":
@@ -375,6 +413,11 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     mc_payment_ok = _mc_payment_check("hm", mc_years, mc_start_yr, mc_entry_q, pay_token,
                                       mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq,
                                       mc_cached=mc_cached)
+    is_free = mc_enabled and mc_payment_ok and btcpay.is_free_tier(
+        int(mc_years or MC_DEFAULT_YEARS), int(mc_start_yr or yr_now),
+        float(mc_entry_q or MC_DEFAULT_ENTRY_Q),
+        mc_bins=int(mc_bins or MC_BINS), mc_sims=int(mc_sims or MC_SIMS),
+        mc_freq=mc_freq or MC_FREQ)
     if mc_enabled and mc_payment_ok:
         mc_syr = int(mc_start_yr or yr_now)
         # Auto-cap training window end at start year for historical sims
@@ -387,8 +430,12 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
             mc_freq=mc_freq, mc_window=mc_win,
             mc_start_yr=mc_start_yr, mc_entry_q=mc_entry_q,
             mc_cached=mc_cached, mc_live_price=float(live_price or 0),
+            mc_regime=mc_regime,
             amount_default=100, infl_default=0.0, start_yr_default=yr_now,
         )
+        if is_free:
+            mc_p["mc_cached"] = None
+            mc_p["mc_free_tier"] = True
         mc_params = dict(shared_params, **mc_p,
                          live_price=_use_live(mc_syr, mc_p["mc_entry_q"]))
         mc_fig, mc_result = _get_mc_heatmap_fig(mc_params)
@@ -396,6 +443,8 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
         mc_fig = dash.no_update
         mc_result = None
 
+    if is_free and mc_result and isinstance(mc_result, dict):
+        mc_result = {k: v for k, v in mc_result.items() if k != "price_paths"}
     store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enabled)
 
     # Track which MC params were actually rendered
@@ -427,6 +476,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     Output("dca-mc-rendered-key", "data"),
     Output("mc-save-modal", "is_open", allow_duplicate=True),
     Output("mc-save-tab", "data", allow_duplicate=True),
+    Output("dca-mc-unblocked", "data"),
     Input("main-tabs",    "active_tab"),
     Input("dca-stack",    "value"),
     Input("dca-use-lots", "value"),
@@ -452,6 +502,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     Input("dca-mc-amount",  "value"),
     Input("dca-mc-infl",    "value"),
     Input("dca-mc-bins",    "value"),
+    Input("dca-mc-regime",  "value"),
     Input("dca-mc-sims",    "value"),
     Input("dca-mc-years",   "value"),
     Input("dca-mc-freq",    "value"),
@@ -463,14 +514,15 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     State("btc-price-store","data"),
     State("dca-mc-results", "data"),
     State("mc-pay-token",   "data"),
+    State("dca-mc-unblocked", "data"),
     prevent_initial_call=True,
 )
 def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggles, legend_pos, sel_qs, lots_data,
                sc_enable, sc_loan, sc_rate, sc_term, sc_type, sc_repeats,
                sc_entry_mode, sc_custom_price, sc_tax, sc_rollover,
-               mc_enable, mc_amount, mc_infl, mc_bins, mc_sims, mc_years, mc_freq, mc_window,
+               mc_enable, mc_amount, mc_infl, mc_bins, mc_regime, mc_sims, mc_years, mc_freq, mc_window,
                mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger,
-               price_data, mc_cached, pay_token):
+               price_data, mc_cached, pay_token, mc_unblocked):
     if ctx.triggered_id == "main-tabs" and active_tab != "dca":
         raise dash.exceptions.PreventUpdate
     toggles    = toggles or []
@@ -479,6 +531,29 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
     mc_ok = bool(mc_enable) and _mc_payment_check("dca", mc_years, mc_start_yr, mc_entry_q, pay_token,
                                                   mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq,
                                                   mc_cached=mc_cached)
+    is_free = mc_ok and btcpay.is_free_tier(
+        int(mc_years or MC_DEFAULT_YEARS), int(mc_start_yr or MC_DEFAULT_START_YR),
+        float(mc_entry_q or MC_DEFAULT_ENTRY_Q),
+        mc_bins=int(mc_bins or MC_BINS), mc_sims=int(mc_sims or MC_SIMS),
+        mc_freq=mc_freq or MC_FREQ)
+    mc_p = _build_mc_params(
+        mc_enable=mc_ok,
+        mc_amount=mc_amount, mc_infl=mc_infl,
+        mc_bins=mc_bins, mc_sims=mc_sims, mc_years=mc_years,
+        mc_freq=mc_freq, mc_window=mc_window,
+        mc_start_yr=mc_start_yr, mc_entry_q=mc_entry_q,
+        mc_cached=mc_cached, mc_live_price=live_price,
+        mc_regime=mc_regime,
+        amount_default=100, infl_default=4.0, start_yr_default=2026,
+    )
+    if is_free:
+        mc_p["mc_cached"] = None
+        mc_p["mc_free_tier"] = True
+    blocked = mc_p.get("mc_blocked_bins", ())
+    if mc_ok and blocked:
+        ghost = _ghost_match(mc_unblocked, mc_p, "dca")
+        if ghost:
+            mc_p["mc_ghost_fan"] = ghost
     fig, mc_result = _get_dca_fig(dict(
         start_stack    = float(stack or 0),
         use_lots       = bool(use_lots),
@@ -505,25 +580,21 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
         sc_custom_price = float(sc_custom_price or 80000),
         sc_tax_rate     = float(sc_tax) / 100.0 if sc_tax is not None else 0.33,
         sc_rollover     = bool(sc_rollover),
-        **_build_mc_params(
-            mc_enable=mc_ok,
-            mc_amount=mc_amount, mc_infl=mc_infl,
-            mc_bins=mc_bins, mc_sims=mc_sims, mc_years=mc_years,
-            mc_freq=mc_freq, mc_window=mc_window,
-            mc_start_yr=mc_start_yr, mc_entry_q=mc_entry_q,
-            mc_cached=mc_cached, mc_live_price=live_price,
-            amount_default=100, infl_default=4.0, start_yr_default=2026,
-        ),
+        **mc_p,
     ))
+    if is_free and mc_result and isinstance(mc_result, dict):
+        mc_result = {k: v for k, v in mc_result.items() if k != "price_paths"}
     mc_did_render = mc_ok
     rendered_key = ({"years": int(mc_years or MC_DEFAULT_YEARS),
                      "start_yr": int(mc_start_yr or MC_DEFAULT_START_YR),
                      "entry_q": round(float(mc_entry_q or MC_DEFAULT_ENTRY_Q), 1)}
                     if mc_did_render else None)
     store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enable)
+    ub_val = _unblocked_val(mc_ok, blocked, mc_result, mc_cached)
     if "chart_zoom" not in toggles:
         fig.update_layout(dragmode=False)
-    return fig, store_val, status, rendered_key, show_modal, "dca" if show_modal else dash.no_update
+    return (fig, store_val, status, rendered_key, show_modal,
+            "dca" if show_modal else dash.no_update, ub_val)
 
 
 @callback(Output("dca-sc-body","style"), Input("dca-sc-enable","value"))
@@ -545,6 +616,17 @@ for _mc_adv in ("dca", "ret", "hm", "sc"):
         style = {} if val else {"display": "none"}
         opts = _MC_ENTRY_Q_OPTIONS_ADV if val else _MC_ENTRY_Q_OPTIONS
         return style, opts
+
+for _mc_reg in ("dca", "ret", "hm", "sc"):
+    @callback(
+        Output(f"{_mc_reg}-mc-regime", "options"),
+        Output(f"{_mc_reg}-mc-regime", "value"),
+        Input(f"{_mc_reg}-mc-bins", "value"),
+        prevent_initial_call=True,
+    )
+    def _update_regime_opts(n_bins):
+        n = int(n_bins or 5)
+        return _regime_options(n), list(range(n))
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MC ↔ Year Range sync — auto-extend year range to include MC horizon
@@ -1342,6 +1424,7 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     Output("ret-mc-rendered-key", "data"),
     Output("mc-save-modal", "is_open", allow_duplicate=True),
     Output("mc-save-tab", "data", allow_duplicate=True),
+    Output("ret-mc-unblocked", "data"),
     Input("main-tabs",    "active_tab"),
     Input("ret-stack",    "value"),
     Input("ret-use-lots", "value"),
@@ -1358,6 +1441,7 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     Input("ret-mc-amount",  "value"),
     Input("ret-mc-infl",    "value"),
     Input("ret-mc-bins",    "value"),
+    Input("ret-mc-regime",  "value"),
     Input("ret-mc-sims",    "value"),
     Input("ret-mc-years",   "value"),
     Input("ret-mc-freq",    "value"),
@@ -1370,12 +1454,13 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     State("btc-price-store","data"),
     State("ret-mc-results", "data"),
     State("mc-pay-token",   "data"),
+    State("ret-mc-unblocked", "data"),
     prevent_initial_call=True,
 )
 def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, lots_data,
-                  mc_enable, mc_amount, mc_infl, mc_bins, mc_sims, mc_years, mc_freq, mc_window,
+                  mc_enable, mc_amount, mc_infl, mc_bins, mc_regime, mc_sims, mc_years, mc_freq, mc_window,
                   mc_stack, mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger,
-                  price_data, mc_cached, pay_token):
+                  price_data, mc_cached, pay_token, mc_unblocked):
     if ctx.triggered_id == "main-tabs" and active_tab != "retire":
         raise dash.exceptions.PreventUpdate
     toggles  = toggles or []
@@ -1383,6 +1468,30 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     mc_ok = bool(mc_enable) and _mc_payment_check("ret", mc_years, mc_start_yr, mc_entry_q, pay_token,
                                                   mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq,
                                                   mc_cached=mc_cached)
+    is_free = mc_ok and btcpay.is_free_tier(
+        int(mc_years or MC_DEFAULT_YEARS), int(mc_start_yr or MC_DEFAULT_START_YR),
+        float(mc_entry_q or MC_DEFAULT_ENTRY_Q),
+        mc_bins=int(mc_bins or MC_BINS), mc_sims=int(mc_sims or MC_SIMS),
+        mc_freq=mc_freq or MC_FREQ)
+    mc_p = _build_mc_params(
+        mc_enable=mc_ok,
+        mc_amount=mc_amount, mc_infl=mc_infl,
+        mc_bins=mc_bins, mc_sims=mc_sims, mc_years=mc_years,
+        mc_freq=mc_freq, mc_window=mc_window,
+        mc_start_yr=mc_start_yr, mc_entry_q=mc_entry_q,
+        mc_cached=mc_cached, mc_live_price=float(price_data or 0),
+        mc_regime=mc_regime,
+        amount_default=5000, infl_default=4.0, start_yr_default=2031,
+        mc_start_stack=mc_stack,
+    )
+    if is_free:
+        mc_p["mc_cached"] = None
+        mc_p["mc_free_tier"] = True
+    blocked = mc_p.get("mc_blocked_bins", ())
+    if mc_ok and blocked:
+        ghost = _ghost_match(mc_unblocked, mc_p, "ret")
+        if ghost:
+            mc_p["mc_ghost_fan"] = ghost
     fig, mc_result = _get_retire_fig(dict(
         start_stack  = float(stack or 1.0),
         use_lots     = bool(use_lots),
@@ -1399,26 +1508,21 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         minor_grid   = "minor_grid" in toggles,
         selected_qs  = sel_qs or [],
         lots         = lots_data or [],
-        **_build_mc_params(
-            mc_enable=mc_ok,
-            mc_amount=mc_amount, mc_infl=mc_infl,
-            mc_bins=mc_bins, mc_sims=mc_sims, mc_years=mc_years,
-            mc_freq=mc_freq, mc_window=mc_window,
-            mc_start_yr=mc_start_yr, mc_entry_q=mc_entry_q,
-            mc_cached=mc_cached, mc_live_price=float(price_data or 0),
-            amount_default=5000, infl_default=4.0, start_yr_default=2031,
-            mc_start_stack=mc_stack,
-        ),
+        **mc_p,
     ))
+    if is_free and mc_result and isinstance(mc_result, dict):
+        mc_result = {k: v for k, v in mc_result.items() if k != "price_paths"}
     mc_did_render = mc_ok
     rendered_key = ({"years": int(mc_years or MC_DEFAULT_YEARS),
                      "start_yr": int(mc_start_yr or MC_DEFAULT_START_YR),
                      "entry_q": round(float(mc_entry_q or MC_DEFAULT_ENTRY_Q), 1)}
                     if mc_did_render else None)
     store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enable)
+    ub_val = _unblocked_val(mc_ok, blocked, mc_result, mc_cached)
     if "chart_zoom" not in toggles:
         fig.update_layout(dragmode=False)
-    return fig, store_val, status, rendered_key, show_modal, "ret" if show_modal else dash.no_update
+    return (fig, store_val, status, rendered_key, show_modal,
+            "ret" if show_modal else dash.no_update, ub_val)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1431,6 +1535,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     Output("sc-mc-status",      "children"),
     Output("mc-save-modal", "is_open", allow_duplicate=True),
     Output("mc-save-tab", "data", allow_duplicate=True),
+    Output("sc-mc-unblocked",   "data"),
     Input("main-tabs",       "active_tab"),
     Input("sc-stack",        "value"),
     Input("sc-use-lots",     "value"),
@@ -1457,6 +1562,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     Input("sc-mc-amount",    "value"),
     Input("sc-mc-infl",      "value"),
     Input("sc-mc-bins",      "value"),
+    Input("sc-mc-regime",    "value"),
     Input("sc-mc-sims",      "value"),
     Input("sc-mc-years",     "value"),
     Input("sc-mc-freq",      "value"),
@@ -1469,6 +1575,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     State("btc-price-store", "data"),
     State("sc-mc-results",   "data"),
     State("mc-pay-token",   "data"),
+    State("sc-mc-unblocked", "data"),
     prevent_initial_call=True,
 )
 def update_supercharge(active_tab, stack, use_lots, start_yr,
@@ -1476,9 +1583,9 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
                        freq, infl, sel_qs, mode,
                        wd, end_yr, target_yr, disp,
                        toggles, legend_pos, chart_layout, display_q, lots_data,
-                       mc_enable, mc_amount, mc_infl, mc_bins, mc_sims, mc_years, mc_freq, mc_window,
+                       mc_enable, mc_amount, mc_infl, mc_bins, mc_regime, mc_sims, mc_years, mc_freq, mc_window,
                        mc_stack, mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger,
-                       price_data, mc_cached, pay_token):
+                       price_data, mc_cached, pay_token, mc_unblocked):
     if ctx.triggered_id == "main-tabs" and active_tab != "supercharge":
         raise dash.exceptions.PreventUpdate
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
@@ -1487,6 +1594,30 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
     mc_ok = bool(mc_enable) and _mc_payment_check("sc", mc_years, mc_start_yr, mc_entry_q, pay_token,
                                                   mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq,
                                                   mc_cached=mc_cached)
+    is_free = mc_ok and btcpay.is_free_tier(
+        int(mc_years or MC_DEFAULT_YEARS), int(mc_start_yr or MC_DEFAULT_START_YR),
+        float(mc_entry_q or MC_DEFAULT_ENTRY_Q),
+        mc_bins=int(mc_bins or MC_BINS), mc_sims=int(mc_sims or MC_SIMS),
+        mc_freq=mc_freq or MC_FREQ)
+    mc_p = _build_mc_params(
+        mc_enable=mc_ok,
+        mc_amount=mc_amount, mc_infl=mc_infl,
+        mc_bins=mc_bins, mc_sims=mc_sims, mc_years=mc_years,
+        mc_freq=mc_freq, mc_window=mc_window,
+        mc_start_yr=mc_start_yr, mc_entry_q=mc_entry_q,
+        mc_cached=mc_cached, mc_live_price=float(price_data or 0),
+        mc_regime=mc_regime,
+        amount_default=5000, infl_default=4.0, start_yr_default=2031,
+        mc_start_stack=mc_stack,
+    )
+    if is_free:
+        mc_p["mc_cached"] = None
+        mc_p["mc_free_tier"] = True
+    blocked = mc_p.get("mc_blocked_bins", ())
+    if mc_ok and blocked:
+        ghost = _ghost_match(mc_unblocked, mc_p, "sc")
+        if ghost:
+            mc_p["mc_ghost_fan"] = ghost
     # chart_layout is now a checklist list; legacy snapshots may send an int
     _cl = (2 if "shade" in (chart_layout or []) else 0) \
           if isinstance(chart_layout, list) \
@@ -1513,21 +1644,16 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         target_yr    = int(target_yr or 2060),
         lots         = lots_data or [],
         use_lots     = bool(use_lots),
-        **_build_mc_params(
-            mc_enable=mc_ok,
-            mc_amount=mc_amount, mc_infl=mc_infl,
-            mc_bins=mc_bins, mc_sims=mc_sims, mc_years=mc_years,
-            mc_freq=mc_freq, mc_window=mc_window,
-            mc_start_yr=mc_start_yr, mc_entry_q=mc_entry_q,
-            mc_cached=mc_cached, mc_live_price=float(price_data or 0),
-            amount_default=5000, infl_default=4.0, start_yr_default=2031,
-            mc_start_stack=mc_stack,
-        ),
+        **mc_p,
     ))
+    if is_free and mc_result and isinstance(mc_result, dict):
+        mc_result = {k: v for k, v in mc_result.items() if k != "price_paths"}
     store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enable)
+    ub_val = _unblocked_val(mc_ok, blocked, mc_result, mc_cached)
     if "chart_zoom" not in toggles:
         fig.update_layout(dragmode=False)
-    return fig, store_val, status, show_modal, "sc" if show_modal else dash.no_update
+    return (fig, store_val, status, show_modal,
+            "sc" if show_modal else dash.no_update, ub_val)
 
 
 @callback(

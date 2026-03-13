@@ -56,17 +56,21 @@ def _cached_bubble_fig(key: str):
 def _cached_heatmap_fig(key: str):
     return build_heatmap_figure(_app_ctx.M, json.loads(key))
 
-@lru_cache(maxsize=8)
+@lru_cache(maxsize=64)
 def _cached_dca_fig(key: str):
     return build_dca_figure(_app_ctx.M, json.loads(key))
 
-@lru_cache(maxsize=8)
+@lru_cache(maxsize=64)
 def _cached_retire_fig(key: str):
     return build_retire_figure(_app_ctx.M, json.loads(key))
 
-@lru_cache(maxsize=8)
+@lru_cache(maxsize=64)
 def _cached_supercharge_fig(key: str):
     return build_supercharge_figure(_app_ctx.M, json.loads(key))
+
+@lru_cache(maxsize=64)
+def _cached_mc_heatmap_fig(key: str):
+    return build_mc_heatmap_figure(_app_ctx.M, json.loads(key))
 
 def _get_bubble_fig(p: dict):
     p = _quantize_params(p)
@@ -74,10 +78,18 @@ def _get_bubble_fig(p: dict):
     return _cached_bubble_fig(json.dumps(p, sort_keys=True, default=str))
 
 def _get_mc_or_cached(p: dict, builder_fn, cache_fn):
-    """Route to live MC build (bypass LRU) or LRU cache based on mc_enabled."""
+    """Route to live MC build (bypass LRU) or LRU cache based on mc_enabled.
+
+    Free-tier MC (mc_free_tier=True) goes through LRU cache — mc_cached is
+    dropped so the key is JSON-serializable.  The overlay function falls
+    through to get_cached_paths() for pre-computed data.
+    """
     mc_cached = p.pop("mc_cached", None)
+    is_free = p.pop("mc_free_tier", False)
     p_q = _quantize_params(p)
     if p.get("mc_enabled") and _app_ctx._HAS_MARKOV:
+        if is_free:
+            return cache_fn(json.dumps(p_q, sort_keys=True, default=str))
         p_q["mc_cached"] = mc_cached
         return builder_fn(_app_ctx.M, p_q)
     return cache_fn(json.dumps(p_q, sort_keys=True, default=str))
@@ -93,13 +105,17 @@ def _get_supercharge_fig(p: dict):
 
 def _get_heatmap_fig(p: dict):
     p.pop("mc_cached", None)  # not used for QR heatmap
+    p.pop("mc_free_tier", None)
     p_q = _quantize_params(p)
     return _cached_heatmap_fig(json.dumps(p_q, sort_keys=True, default=str))
 
 
 def _get_mc_heatmap_fig(p: dict):
     mc_cached = p.pop("mc_cached", None)
+    is_free = p.pop("mc_free_tier", False)
     p_q = _quantize_params(p)
+    if is_free:
+        return _cached_mc_heatmap_fig(json.dumps(p_q, sort_keys=True, default=str))
     p_q["mc_cached"] = mc_cached
     return build_mc_heatmap_figure(_app_ctx.M, p_q)
 

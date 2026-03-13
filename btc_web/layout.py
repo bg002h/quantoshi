@@ -26,6 +26,7 @@ from snapshot import _SNAPSHOT_CONTROLS
 from mc_cache import (CACHED_START_YRS, WD_AMOUNTS,
                       ENTRY_PCT_BINS, MC_YEARS_OPTIONS, INFL_OPTIONS)
 from figures import _LOGO_B64_ALL
+from mc_overlay import bin_regime_labels
 
 _PRICE_INTERVAL_MS = 20 * 60 * 1000   # live price ticker refresh (20 minutes)
 _MC_POLL_INTERVAL_MS = 3000            # MC payment status poll interval (3 seconds)
@@ -465,6 +466,13 @@ _MC_YEARS_OPTIONS    = _bold_opts(MC_YEARS_OPTIONS, lambda v: f"{v} yr", _MC_CAC
 _MC_WD_OPTIONS       = _bold_opts(WD_AMOUNTS, lambda v: f"${v:,}/mo", _MC_CACHED_WD)
 _MC_INFL_OPTIONS     = _bold_opts(INFL_OPTIONS, lambda v: f"{v}%", _MC_CACHED_INFL)
 
+def _regime_options(n_bins=5):
+    """Build checklist options for the bin regime filter."""
+    labels = bin_regime_labels(n_bins)
+    return [{"label": labels[i], "value": i} for i in range(n_bins)]
+
+_MC_REGIME_OPTIONS_5 = _regime_options(5)   # pre-computed for default 5-bin case
+
 def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=100,
                   show_inflation=False, show_amount=True,
                   show_stack=False, show_mc_entry_q=False,
@@ -479,6 +487,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             dbc.Input(id=f"{prefix}-mc-amount", value=amount_default),
             dbc.Input(id=f"{prefix}-mc-infl", value=4),
             dbc.Input(id=f"{prefix}-mc-bins", value=5),
+            dcc.Checklist(id=f"{prefix}-mc-regime", value=list(range(5))),
             dcc.Dropdown(id=f"{prefix}-mc-sims", value=800),
             dcc.Dropdown(id=f"{prefix}-mc-years", value=10),
             dcc.Dropdown(id=f"{prefix}-mc-freq", value="Monthly"),
@@ -553,7 +562,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                 _lbl("MC start year (bold = cached)"),
                 dcc.Dropdown(id=f"{prefix}-mc-start-yr",
                              options=_MC_START_YR_OPTIONS,
-                             value=2026, clearable=False),
+                             value=2028, clearable=False),
                 *([_lbl("Entry percentile (10% steps, cache-aligned)"),
                    dcc.Dropdown(id=f"{prefix}-mc-entry-q",
                                 options=_MC_ENTRY_Q_OPTIONS,
@@ -595,12 +604,22 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                                  list(range(5, 11)),
                                  lambda v: f"{v}×{v}", {5}),
                              value=5, clearable=False),
+                _lbl("Price regime filter"),
+                dcc.Checklist(
+                    id=f"{prefix}-mc-regime",
+                    options=_MC_REGIME_OPTIONS_5,
+                    value=list(range(5)),
+                    inputStyle={"marginRight": "4px"},
+                    labelStyle={"display": "block", "fontSize": "11px",
+                                "lineHeight": "1.6", "color": "#444"},
+                    style={"marginBottom": "6px"},
+                ),
                 _lbl("Simulations"),
                 dcc.Dropdown(id=f"{prefix}-mc-sims",
                              options=_bold_opts(
                                  [100, 200, 400, 800, 1600, 3200],
                                  str, {100, 200, 400, 800}),
-                             value=800, clearable=False),
+                             value=100, clearable=False),
                 _lbl("Frequency"),
                 dcc.Dropdown(id=f"{prefix}-mc-freq",
                              options=_bold_opts(
@@ -680,7 +699,7 @@ def _dca_controls():
         _q_panel("dca-qs", [0.5],
                  hint="Price path drives sat accumulation — lower quantile = lower price = more sats/period."),
         _mc_controls("dca", amount_label="DCA amount per period ($)", amount_default=100,
-                     show_mc_entry_q=True),
+                     show_mc_entry_q=True, default_entry_q=10),
         # ── Chart ───────────────────────────────────────────────────────
         _section_card("Chart",
             _lbl("Year range"),
@@ -781,7 +800,7 @@ def _retire_controls():
         _q_panel("ret-qs", [0.01, 0.10, 0.25],
                  hint="Lower quantile = lower price = faster depletion \u2014 worst-case planning."),
         _mc_controls("ret", amount_label="Withdrawal per period ($)", amount_default=5000,
-                     show_inflation=True, show_stack=True),
+                     show_inflation=True, show_stack=True, default_entry_q=10),
         # ── Chart ───────────────────────────────────────────────────────
         _section_card("Chart",
             _lbl("Year range"),
@@ -882,7 +901,7 @@ def _supercharge_controls():
                  hint="Lower quantile = earlier depletion \u2014 use multiple quantiles to see the range."),
         _mc_controls("sc", amount_label="Withdrawal per period ($)",
                      amount_default=5000, show_inflation=True,
-                     show_stack=True),
+                     show_stack=True, default_entry_q=10),
         # ── Chart ───────────────────────────────────────────────────────
         _section_card("Chart",
             dcc.Checklist(id="sc-chart-layout",
@@ -1693,6 +1712,11 @@ _app_ctx.app.layout = dbc.Container([
     dcc.Store(id="ret-mc-results", storage_type="memory", data=None),
     dcc.Store(id="hm-mc-results",  storage_type="memory", data=None),
     dcc.Store(id="sc-mc-results",  storage_type="memory", data=None),
+    # Unblocked MC cache — stores unrestricted fan data for ghost overlay
+    dcc.Store(id="dca-mc-unblocked", storage_type="memory", data=None),
+    dcc.Store(id="ret-mc-unblocked", storage_type="memory", data=None),
+    dcc.Store(id="hm-mc-unblocked",  storage_type="memory", data=None),
+    dcc.Store(id="sc-mc-unblocked",  storage_type="memory", data=None),
     # Trigger stores: incremented on MC upload to force figure redraw
     dcc.Store(id="dca-mc-loaded", storage_type="memory", data=0),
     dcc.Store(id="ret-mc-loaded", storage_type="memory", data=0),

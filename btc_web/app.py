@@ -235,6 +235,89 @@ _prewarm_caches()
 if _HAS_MARKOV:
     _get_transition_matrix(M, 5, 30, [2010, pd.Timestamp.today().year])
 
+# ── Background MC figure prewarm (runs in each worker's first request) ───────
+def _prewarm_mc_caches():
+    """Pre-warm LRU caches for free-tier MC figures (DCA, Retire, SC)."""
+    import logging as _log
+    _log.getLogger(__name__).info("MC prewarm: starting background warm")
+    from mc_cache import MC_FREE_SIMS, MC_FREE_START_YRS, MC_FREE_ENTRY_Q, MC_FREE_YEARS
+    yr_now = pd.Timestamp.today().year
+    for s_yr in MC_FREE_START_YRS:
+        for mc_yrs in MC_FREE_YEARS:
+            try:
+                _get_dca_fig(dict(
+                    start_stack=0, use_lots=False,
+                    amount=100.0, freq="Monthly",
+                    start_yr=yr_now, end_yr=yr_now + mc_yrs,
+                    disp_mode="btc", log_y=False, show_today=False,
+                    show_legend=False, legend_pos="outside", minor_grid=False,
+                    selected_qs=[0.50], lots=[],
+                    sc_enabled=False, sc_loan_amount=0, sc_rate=13.0,
+                    sc_loan_type="interest_only", sc_term_months=48.0,
+                    sc_repeats=0, sc_rollover=False,
+                    sc_entry_mode="live", sc_custom_price=80000.0,
+                    sc_tax_rate=0.33, sc_live_price=None,
+                    mc_enabled=True, mc_amount=100, mc_infl=4.0,
+                    mc_bins=5, mc_sims=MC_FREE_SIMS, mc_years=mc_yrs,
+                    mc_freq="Monthly", mc_window=[2010, yr_now],
+                    mc_start_yr=s_yr, mc_entry_q=MC_FREE_ENTRY_Q,
+                    mc_live_price=0, mc_blocked_bins=(),
+                    mc_free_tier=True,
+                ))
+            except Exception as e:
+                _log.getLogger(__name__).warning("MC prewarm DCA %d/%d failed: %s", s_yr, mc_yrs, e)
+            try:
+                _get_retire_fig(dict(
+                    start_stack=1.0, use_lots=False,
+                    wd_amount=5000.0, freq="Monthly",
+                    start_yr=2031, end_yr=2075,
+                    inflation=4.0, disp_mode="btc",
+                    log_y=True, annotate=True,
+                    show_legend=False, legend_pos="outside", minor_grid=True,
+                    selected_qs=[0.01, 0.10, 0.25], lots=[],
+                    mc_enabled=True, mc_amount=5000, mc_infl=4.0,
+                    mc_bins=5, mc_sims=MC_FREE_SIMS, mc_years=mc_yrs,
+                    mc_freq="Monthly", mc_window=[2010, yr_now],
+                    mc_start_yr=s_yr, mc_entry_q=MC_FREE_ENTRY_Q,
+                    mc_live_price=0, mc_blocked_bins=(),
+                    mc_start_stack=1.0, mc_free_tier=True,
+                ))
+            except Exception as e:
+                _log.getLogger(__name__).warning("MC prewarm Ret %d/%d failed: %s", s_yr, mc_yrs, e)
+            try:
+                _get_supercharge_fig(dict(
+                    mode="a", start_stack=1.0, start_yr=2033,
+                    delays=[0.0, 0.0, 0.0, 1.0, 2.0],
+                    freq="Annually", inflation=4.0,
+                    selected_qs=[q for q in [0.001, 0.10] if q in M.qr_fits],
+                    chart_layout=2,
+                    display_q=_nearest_quantile(0.05, _app_ctx._ALL_QS),
+                    wd_amount=100000, end_yr=2075, disp_mode="usd",
+                    log_y=True, annotate=True,
+                    show_legend=False, legend_pos="outside", minor_grid=True,
+                    target_yr=2060, lots=[], use_lots=False,
+                    mc_enabled=True, mc_amount=5000, mc_infl=4.0,
+                    mc_bins=5, mc_sims=MC_FREE_SIMS, mc_years=mc_yrs,
+                    mc_freq="Monthly", mc_window=[2010, yr_now],
+                    mc_start_yr=s_yr, mc_entry_q=MC_FREE_ENTRY_Q,
+                    mc_live_price=0, mc_blocked_bins=(),
+                    mc_start_stack=1.0, mc_free_tier=True,
+                ))
+            except Exception as e:
+                _log.getLogger(__name__).warning("MC prewarm SC %d/%d failed: %s", s_yr, mc_yrs, e)
+    _log.getLogger(__name__).info("MC prewarm: done")
+
+_mc_prewarm_triggered = False
+
+@server.before_request
+def _trigger_mc_prewarm():
+    global _mc_prewarm_triggered
+    if not _mc_prewarm_triggered and _HAS_MARKOV:
+        _mc_prewarm_triggered = True
+        import threading
+        threading.Thread(target=_prewarm_mc_caches, daemon=True,
+                         name="mc-prewarm").start()
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Entry point
 # ══════════════════════════════════════════════════════════════════════════════

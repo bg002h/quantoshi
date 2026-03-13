@@ -194,6 +194,64 @@ def _stack_control_card(prefix, default_btc=0, header=True):
     return _ctrl_card(*children)
 
 
+# ── Tab hints (LT-7: collapsible "How to use this tab") ───────────────────────
+
+_TAB_HINTS = {
+    "bubble": [
+        "Select quantiles (left panel) to see projection channels on the chart.",
+        "Toggle between Log and Linear scale to see different perspectives.",
+        "Enable 'Show Data' to overlay historical BTC prices.",
+        "Adjust 'N Future Bubbles' to extrapolate the bubble model forward.",
+        "Enter your BTC stack to see projected USD values in the legend.",
+    ],
+    "heatmap": [
+        "Set your entry year and percentile to define your purchase scenario.",
+        "The grid shows projected CAGR for each exit year and quantile combination.",
+        "Green = positive CAGR, Red = negative. Brighter = stronger.",
+        "Try 'Data-Scaled' color mode for continuous gradients.",
+    ],
+    "dca": [
+        "Set your periodic DCA amount and frequency (e.g., $100/month).",
+        "Select quantiles to see accumulation under different price scenarios.",
+        "Toggle BTC/USD display to see sat count or dollar value.",
+        "Enable Stack-celerator to simulate leveraged accumulation.",
+    ],
+    "retire": [
+        "Set your withdrawal amount, frequency, and inflation rate.",
+        "Lower quantiles show worst-case depletion \u2014 use for conservative planning.",
+        "Depletion arrows mark when your stack hits zero under each scenario.",
+        "Adjust the year range to zoom into your planning horizon.",
+    ],
+    "supercharge": [
+        "Mode A: When does your stack run out at a given withdrawal rate?",
+        "Mode B: What's the maximum you can spend to last until a target year?",
+        "Delay offsets compare 'start now' vs 'wait N years' strategies.",
+        "Enable quantile bands (shade) to see the full range of outcomes.",
+    ],
+    "stack": [
+        "Add your BTC purchases with price, date, and amount.",
+        "All data stays in your browser \u2014 nothing is sent to the server.",
+        "Export/import JSON to back up or transfer your lot data.",
+        "Your lots appear on DCA/Retire/SC tabs when 'Use lots' is checked.",
+    ],
+}
+
+
+def _tab_hints(tab_id):
+    """Collapsible 'How to use this tab' section (native <details>/<summary>)."""
+    hints = _TAB_HINTS.get(tab_id, [])
+    if not hints:
+        return html.Div()
+    return html.Details([
+        html.Summary("How to use this tab",
+                     style={"cursor": "pointer", "fontSize": "13px",
+                            "color": "#666", "marginBottom": "6px"}),
+        html.Ul([html.Li(h, style={"fontSize": "12px", "color": "#555"})
+                 for h in hints],
+                style={"marginBottom": "8px", "paddingLeft": "20px"}),
+    ], style={"marginBottom": "10px"})
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Tab 1 — Bubble + QR Overlay
 # ══════════════════════════════════════════════════════════════════════════════
@@ -201,6 +259,7 @@ def _stack_control_card(prefix, default_btc=0, header=True):
 def _bubble_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
+        _tab_hints("bubble"),
         _section_card("Axes & Range",
             _row(
                 html.Div([_lbl("X scale"), dcc.RadioItems(
@@ -301,6 +360,7 @@ def _bubble_tab():
 def _heatmap_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
+        _tab_hints("heatmap"),
         # ── Stack ───────────────────────────────────────────────────────
         _stack_control_card("hm", default_btc=0),
         # ── Entry ───────────────────────────────────────────────────────
@@ -686,6 +746,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
 def _dca_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
+        _tab_hints("dca"),
         # ── Stack ───────────────────────────────────────────────────────
         _stack_control_card("dca", default_btc=0),
         # ── Plan ────────────────────────────────────────────────────────
@@ -792,6 +853,7 @@ def _dca_tab():
 def _retire_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
+        _tab_hints("retire"),
         # ── Stack ───────────────────────────────────────────────────────
         _stack_control_card("ret", default_btc=1.0),
         # ── Plan ────────────────────────────────────────────────────────
@@ -847,6 +909,7 @@ def _supercharge_controls():
     display_q_opts = _q_options()
     display_q_default = _nearest_quantile(0.05, _app_ctx._ALL_QS)
     return html.Div([
+        _tab_hints("supercharge"),
         # ── Stack ───────────────────────────────────────────────────────
         _stack_control_card("sc", default_btc=1.0),
         # ── Plan ────────────────────────────────────────────────────────
@@ -1243,6 +1306,15 @@ _FAQ = [
             "and can be opened in any browser or converted to PNG with tools like Inkscape.",
         ]),
     },
+    {
+        "q": "Can I replay the knighting ceremony?",
+        "a": html.Span([
+            "Yes! If you've earned the Orange Q (7-day streak), you can relive the ceremony: ",
+            html.A("Replay ceremony \u2694\ufe0f", href="#",
+                   id="replay-knight-link",
+                   style={"cursor": "pointer"}),
+        ]),
+    },
 ]
 
 
@@ -1278,6 +1350,7 @@ def _faq_tab():
 
 def _stack_tracker_tab():
     return html.Div([
+        _tab_hints("stack"),
         html.Div(id="snapshot-lots-banner"),
         dbc.Row([
             # ── table ────────────────────────────────────────────────────────
@@ -1880,6 +1953,9 @@ _app_ctx.app.layout = dbc.Container([
                      style={"textAlign":"center", "fontSize":"12px",
                             "color":"#888", "marginTop":"16px",
                             "lineHeight":"1.7", "display":"none"}),
+            html.Div(id="knight-welcome",
+                     style={"fontSize":"13px", "color":"#b8860b",
+                            "textAlign":"center", "marginTop":"8px"}),
             html.Div(
                 dbc.Button("\u2694\ufe0f Accept Knighthood", id="onion-knight-btn",
                            color="warning", size="lg",

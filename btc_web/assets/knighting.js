@@ -97,10 +97,30 @@
         return {overlay: overlay, staff: staff, qEl: qEl, qCx: qCx, qCy: qCy};
     }
 
-    /* Shared: pick a title and persist it + knighted flag + streak_unlocked */
+    /* Shared: pick a title (deterministic) and persist it + knighted flag + streak_unlocked */
     function _knightAndTitle() {
-        var title = NOBLE_TITLES[Math.floor(Math.random() * NOBLE_TITLES.length)];
         var f = _wizFlags();
+
+        /* Keep existing title (backward compat for already-knighted users) */
+        if (f.noble_title) {
+            f.knighted = true;
+            localStorage.setItem(WIZ_KEY, JSON.stringify(f));
+            /* Also set streak_unlocked so orange Q persists on future loads */
+            try {
+                var j2 = JSON.parse(localStorage.getItem("journey-store")) || {};
+                j2.streak_unlocked = true;
+                localStorage.setItem("journey-store", JSON.stringify(j2));
+            } catch(e2) {}
+            return f.noble_title;
+        }
+
+        /* Generate stable seed on first visit (cryptographic randomness) */
+        if (!f.user_seed) {
+            f.user_seed = crypto.getRandomValues(new Uint32Array(1))[0];
+        }
+
+        /* Deterministic selection from seed */
+        var title = NOBLE_TITLES[f.user_seed % NOBLE_TITLES.length];
         f.knighted = true;
         f.noble_title = title;
         localStorage.setItem(WIZ_KEY, JSON.stringify(f));
@@ -294,6 +314,18 @@
     window._playOnionKnighting = function() {
         ceremonyPlayed = false;
         playOnionKnighting();
+    };
+
+    /* Replay ceremony (for FAQ link / easter egg) */
+    window._replayKnighting = function() {
+        var f = _wizFlags();
+        if (!f.knighted) return;  /* only replay if previously knighted */
+        ceremonyPlayed = false;
+        if (location.hostname.endsWith(".onion")) {
+            playOnionKnighting();
+        } else {
+            playKnighting();
+        }
     };
 
     /* Dev: reset Q to white (no hat) on page load so we see the full transition.

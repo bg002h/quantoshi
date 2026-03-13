@@ -1863,9 +1863,14 @@ _MC_FILENAME_JS = """
         if (pk.mc_years) parts.push(pk.mc_years + 'y');
         var eq = pk.mc_entry_q || pk.entry_q;
         if (eq) parts.push('q' + Math.round(eq));
+        if (pk.mc_bins) parts.push(pk.mc_bins + 'b');
+        if (pk.mc_sims) parts.push(pk.mc_sims + 's');
+        if (pk.mc_freq) parts.push(pk.mc_freq.charAt(0).toLowerCase());
         if (ok.mc_amount) parts.push('$' + ok.mc_amount);
         if (ok.mc_infl) parts.push(ok.mc_infl + 'pctInfl');
-        if (ok.mc_start_stack) parts.push(ok.mc_start_stack + 'btc');
+        if (ok.start_stack) parts.push(ok.start_stack + 'btc');
+        var blocked = pk.mc_blocked_bins || [];
+        if (blocked.length) parts.push('no' + blocked.join('_'));
         return parts.join('_') + '.json';
     }
 """
@@ -1949,12 +1954,17 @@ def _parse_mc_upload(contents, expected_tab=None):
     """Decode uploaded MC JSON, return (data, error_msg).
 
     If expected_tab is given, reject files saved from a different tab.
+    Validates metadata.app == "Quantoshi" when metadata is present.
     """
     if not contents:
         return None, None
     _, b64 = contents.split(",", 1)
     raw = base64.b64decode(b64)
     data = json.loads(raw)
+    # Reject files with metadata from a different app
+    meta = data.get("metadata")
+    if meta and meta.get("app") and meta["app"] != "Quantoshi":
+        return None, f"Not a Quantoshi file (app: {meta['app']})."
     if "path_key" not in data and "params" not in data:
         return None, "Invalid MC file (missing path data)."
     file_tab = data.get("tab")
@@ -2482,6 +2492,40 @@ _app_ctx.app.clientside_callback(
     Input("onion-knight-btn", "n_clicks"),
     prevent_initial_call="initial_duplicate",
 )
+
+
+# ── LT-8b: Replay knighting ceremony from FAQ link ───────────────────────────
+_app_ctx.app.clientside_callback(
+    """
+    function(n) {
+        if (!n) return window.dash_clientside.no_update;
+        if (window._replayKnighting) window._replayKnighting();
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("replay-knight-link", "title"),
+    Input("replay-knight-link", "n_clicks"),
+    prevent_initial_call=True,
+)
+
+
+# ── LT-8c: Welcome message for returning knights ─────────────────────────────
+_app_ctx.app.clientside_callback(
+    """
+    function(ts) {
+        try {
+            var flags = JSON.parse(localStorage.getItem("wizard-flags") || "{}");
+            if (flags.noble_title) {
+                return "Welcome back, " + flags.noble_title + ". The quest continues.";
+            }
+        } catch(e) {}
+        return "";
+    }
+    """,
+    Output("knight-welcome", "children"),
+    Input("splash-ts-store", "data"),
+)
+
 
 # ── Mobile nav drawer: auto-collapse after 3s, toggle on tap ──────────────────
 _app_ctx.app.clientside_callback(

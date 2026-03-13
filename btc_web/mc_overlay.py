@@ -339,6 +339,33 @@ def try_precomputed_overlay(p, mc_years, wd_amount, inflation, mc_stack):
 # Serialization helpers
 # ══════════════════════════════════════════════════════════════════════════════
 
+def _mc_metadata(p, tab, mc_years=None):
+    """Build human-readable metadata dict for MC save files."""
+    n_bins, n_sims, mc_window, mc_freq, _, _, _, yrs = _mc_setup_vars(p)
+    if mc_years is None:
+        mc_years = yrs
+    return {
+        "app": "Quantoshi",
+        "version": "1.1",
+        "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "tab": tab,
+        "description": f"Monte Carlo {tab.upper()} simulation",
+        "config": {
+            "start_year": int(p.get("mc_start_yr", MC_DEFAULT_START_YR)),
+            "years": mc_years,
+            "entry_percentile": float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)),
+            "n_bins": n_bins,
+            "n_sims": n_sims,
+            "frequency": mc_freq,
+            "window": list(mc_window) if mc_window else None,
+            "blocked_bins": list(p.get("mc_blocked_bins", ())),
+            "amount": float(p.get("mc_amount", 0)),
+            "inflation_pct": float(p.get("mc_infl", 0)),
+            "start_stack_btc": float(p.get("mc_start_stack", 0)),
+        },
+    }
+
+
 def _mc_fan_to_lists(fan):
     """Convert fan dict {pct: ndarray} to JSON-serializable {str: list}."""
     return {str(k): [round(float(v), 4) for v in arr] for k, arr in fan.items()}
@@ -555,6 +582,7 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
             "price_paths": cached["price_paths"],
             "fan_btc": _mc_fan_to_lists(fan_btc),
             "fan_usd": _mc_fan_to_lists(fan_usd),
+            "metadata": _mc_metadata(p, "dca", mc_years),
         }
         ct, cf = _clip(mc_ts, fan)
         _, cf_usd = _clip(mc_ts, fan_usd)
@@ -605,6 +633,7 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
         "price_paths": _mc_paths_to_lists(price_paths),
         "fan_btc": _mc_fan_to_lists(fan_btc),
         "fan_usd": _mc_fan_to_lists(fan_usd),
+        "metadata": _mc_metadata(p, "dca", mc_years),
     }
 
     ct, cf = _clip(mc_ts, fan)
@@ -687,6 +716,7 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
             "fan_btc": _mc_fan_to_lists(fan_btc),
             "fan_usd": _mc_fan_to_lists(fan_usd),
             "depletion": dstats,
+            "metadata": _mc_metadata(p, tab, mc_years),
         }
         return _build_return(fan_btc, fan, _depl_extra(dstats), result,
                              fan_usd=fan_usd)
@@ -751,6 +781,7 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
         "fan_btc": _mc_fan_to_lists(fan_btc),
         "fan_usd": _mc_fan_to_lists(fan_usd),
         "depletion": dstats,
+        "metadata": _mc_metadata(p, tab, mc_years),
     }
 
     return _build_return(fan_btc, fan, _depl_extra(dstats), result,
@@ -843,6 +874,7 @@ def _mc_heatmap_overlay(m, p, ep, entry_t, eyrs):
             "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "ts": cached["ts"],
             "price_paths": cached["price_paths"],
+            "metadata": _mc_metadata(p, "hm", mc_years),
         }
         return mc_cagr, mc_prices_arr, mc_mults, mc_labels, result
 
@@ -881,6 +913,7 @@ def _mc_heatmap_overlay(m, p, ep, entry_t, eyrs):
         "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "ts": [round(float(t), 6) for t in mc_ts],
         "price_paths": _mc_paths_to_lists(price_paths),
+        "metadata": _mc_metadata(p, "hm", mc_years),
     }
 
     return mc_cagr, mc_prices_arr, mc_mults, mc_labels, result

@@ -187,10 +187,12 @@ def _prewarm_caches():
         disp_mode="btc", log_y=False, show_today=False,
         show_legend=False, minor_grid=False,
         selected_qs=[0.50], lots=[],
-        sc_enabled=False, sc_loan_amount=0, sc_rate=13.0,
+        sc_enabled=False, sc_loan_amount=0,
+        sc_rate=_app_ctx.SC_DEFAULT_RATE,
         sc_loan_type="interest_only", sc_term_months=48.0,
         sc_repeats=0, sc_rollover=False,
-        sc_entry_mode="live", sc_custom_price=80000.0,
+        sc_entry_mode="live",
+        sc_custom_price=float(_app_ctx.SC_DEFAULT_PRICE),
         sc_tax_rate=0.33, sc_live_price=None,
     ))
 
@@ -242,69 +244,70 @@ def _prewarm_mc_caches():
     _log.getLogger(__name__).info("MC prewarm: starting background warm")
     from mc_cache import MC_FREE_SIMS, MC_FREE_START_YRS, MC_FREE_ENTRY_Q, MC_FREE_YEARS
     yr_now = pd.Timestamp.today().year
+
+    def _mc_overrides(s_yr, mc_yrs):
+        return dict(
+            mc_enabled=True, mc_amount=100, mc_infl=4.0,
+            mc_bins=5, mc_sims=MC_FREE_SIMS, mc_years=mc_yrs,
+            mc_freq="Monthly", mc_window=[2010, yr_now],
+            mc_start_yr=s_yr, mc_entry_q=MC_FREE_ENTRY_Q,
+            mc_live_price=0, mc_blocked_bins=(),
+            mc_free_tier=True,
+        )
+
+    def _try(fig_fn, params, label, s_yr, mc_yrs):
+        try:
+            fig_fn(params)
+        except Exception as e:
+            _log.getLogger(__name__).warning("MC prewarm %s %d/%d failed: %s",
+                                             label, s_yr, mc_yrs, e)
+
     for s_yr in MC_FREE_START_YRS:
         for mc_yrs in MC_FREE_YEARS:
-            try:
-                _get_dca_fig(dict(
-                    start_stack=0, use_lots=False,
-                    amount=100.0, freq="Monthly",
-                    start_yr=yr_now, end_yr=yr_now + mc_yrs,
-                    disp_mode="btc", log_y=False, show_today=False,
-                    show_legend=False, legend_pos="outside", minor_grid=False,
-                    selected_qs=[0.50], lots=[],
-                    sc_enabled=False, sc_loan_amount=0, sc_rate=13.0,
-                    sc_loan_type="interest_only", sc_term_months=48.0,
-                    sc_repeats=0, sc_rollover=False,
-                    sc_entry_mode="live", sc_custom_price=80000.0,
-                    sc_tax_rate=0.33, sc_live_price=None,
-                    mc_enabled=True, mc_amount=100, mc_infl=4.0,
-                    mc_bins=5, mc_sims=MC_FREE_SIMS, mc_years=mc_yrs,
-                    mc_freq="Monthly", mc_window=[2010, yr_now],
-                    mc_start_yr=s_yr, mc_entry_q=MC_FREE_ENTRY_Q,
-                    mc_live_price=0, mc_blocked_bins=(),
-                    mc_free_tier=True,
-                ))
-            except Exception as e:
-                _log.getLogger(__name__).warning("MC prewarm DCA %d/%d failed: %s", s_yr, mc_yrs, e)
-            try:
-                _get_retire_fig(dict(
-                    start_stack=1.0, use_lots=False,
-                    wd_amount=5000.0, freq="Monthly",
-                    start_yr=2031, end_yr=2075,
-                    inflation=4.0, disp_mode="btc",
-                    log_y=True, annotate=True,
-                    show_legend=False, legend_pos="outside", minor_grid=True,
-                    selected_qs=[0.01, 0.10, 0.25], lots=[],
-                    mc_enabled=True, mc_amount=5000, mc_infl=4.0,
-                    mc_bins=5, mc_sims=MC_FREE_SIMS, mc_years=mc_yrs,
-                    mc_freq="Monthly", mc_window=[2010, yr_now],
-                    mc_start_yr=s_yr, mc_entry_q=MC_FREE_ENTRY_Q,
-                    mc_live_price=0, mc_blocked_bins=(),
-                    mc_start_stack=1.0, mc_free_tier=True,
-                ))
-            except Exception as e:
-                _log.getLogger(__name__).warning("MC prewarm Ret %d/%d failed: %s", s_yr, mc_yrs, e)
-            try:
-                _get_supercharge_fig(dict(
-                    mode="a", start_stack=1.0, start_yr=2033,
-                    delays=[0.0, 0.0, 0.0, 1.0, 2.0],
-                    freq="Annually", inflation=4.0,
-                    selected_qs=[q for q in [0.001, 0.10] if q in M.qr_fits],
-                    chart_layout=2,
-                    display_q=_nearest_quantile(0.05, _app_ctx._ALL_QS),
-                    wd_amount=100000, end_yr=2075, disp_mode="usd",
-                    log_y=True, annotate=True,
-                    show_legend=False, legend_pos="outside", minor_grid=True,
-                    target_yr=2060, lots=[], use_lots=False,
-                    mc_enabled=True, mc_amount=5000, mc_infl=4.0,
-                    mc_bins=5, mc_sims=MC_FREE_SIMS, mc_years=mc_yrs,
-                    mc_freq="Monthly", mc_window=[2010, yr_now],
-                    mc_start_yr=s_yr, mc_entry_q=MC_FREE_ENTRY_Q,
-                    mc_live_price=0, mc_blocked_bins=(),
-                    mc_start_stack=1.0, mc_free_tier=True,
-                ))
-            except Exception as e:
-                _log.getLogger(__name__).warning("MC prewarm SC %d/%d failed: %s", s_yr, mc_yrs, e)
+            mc = _mc_overrides(s_yr, mc_yrs)
+            _try(_get_dca_fig, dict(
+                start_stack=0, use_lots=False,
+                amount=100.0, freq="Monthly",
+                start_yr=yr_now, end_yr=yr_now + mc_yrs,
+                disp_mode="btc", log_y=False, show_today=False,
+                show_legend=False, legend_pos="outside", minor_grid=False,
+                selected_qs=[0.50], lots=[],
+                sc_enabled=False, sc_loan_amount=0,
+                sc_rate=_app_ctx.SC_DEFAULT_RATE,
+                sc_loan_type="interest_only", sc_term_months=48.0,
+                sc_repeats=0, sc_rollover=False,
+                sc_entry_mode="live",
+                sc_custom_price=float(_app_ctx.SC_DEFAULT_PRICE),
+                sc_tax_rate=0.33, sc_live_price=None,
+                **mc,
+            ), "DCA", s_yr, mc_yrs)
+            _try(_get_retire_fig, dict(
+                start_stack=1.0, use_lots=False,
+                wd_amount=5000.0, freq="Monthly",
+                start_yr=2031, end_yr=2075,
+                inflation=4.0, disp_mode="btc",
+                log_y=True, annotate=True,
+                show_legend=False, legend_pos="outside", minor_grid=True,
+                selected_qs=[0.01, 0.10, 0.25], lots=[],
+                mc_start_stack=1.0,
+                **{k: v for k, v in mc.items() if k != "mc_amount"},
+                mc_amount=5000,
+            ), "Ret", s_yr, mc_yrs)
+            _try(_get_supercharge_fig, dict(
+                mode="a", start_stack=1.0, start_yr=2033,
+                delays=[0.0, 0.0, 0.0, 1.0, 2.0],
+                freq="Annually", inflation=4.0,
+                selected_qs=[q for q in [0.001, 0.10] if q in M.qr_fits],
+                chart_layout=2,
+                display_q=_nearest_quantile(0.05, _app_ctx._ALL_QS),
+                wd_amount=100000, end_yr=2075, disp_mode="usd",
+                log_y=True, annotate=True,
+                show_legend=False, legend_pos="outside", minor_grid=True,
+                target_yr=2060, lots=[], use_lots=False,
+                mc_start_stack=1.0,
+                **{k: v for k, v in mc.items() if k != "mc_amount"},
+                mc_amount=5000,
+            ), "SC", s_yr, mc_yrs)
     _log.getLogger(__name__).info("MC prewarm: done")
 
 _mc_prewarm_triggered = False

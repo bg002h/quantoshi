@@ -67,79 +67,10 @@ document.addEventListener("keydown", function (e) {
    IDLE_MS (400ms) and no touch is active on the handle, re-lock it so the
    next scroll gesture isn't accidentally captured.
 */
-(function () {
-    var DELAY_MS       = 60;   // ms before arming slider
-    var SCROLL_PX      = 8;    // vertical movement that confirms scroll intent
-    var IDLE_MS        = 400;  // ms of no drag activity before re-locking
-    var activeSlider   = null;
-    var startY         = null;
-    var scrollDetected = false;
-    var timer          = null;
-    var idleTimer      = null;
-    var handleTouched  = false; // true while finger is on .rc-slider-handle
-
-    function lockSlider(slider) {
-        slider.style.pointerEvents = "none";
-    }
-
-    function unlockSlider(slider) {
-        slider.style.pointerEvents = "";
-    }
-
-    function cleanup() {
-        clearTimeout(timer);
-        clearTimeout(idleTimer);
-        if (activeSlider) {
-            unlockSlider(activeSlider);
-            activeSlider = null;
-        }
-        startY = null;
-        scrollDetected = false;
-        handleTouched = false;
-    }
-
-    document.addEventListener("touchstart", function (e) {
-        var slider = e.target.closest && e.target.closest(".rc-slider");
-        if (!slider) return;
-
-        // Track whether the touch landed on the handle itself
-        handleTouched = !!(e.target.closest &&
-                           e.target.closest(".rc-slider-handle"));
-
-        // Immediately block the slider so the browser handles the touch
-        clearTimeout(idleTimer);
-        activeSlider = slider;
-        startY = e.touches[0].clientY;
-        scrollDetected = false;
-        lockSlider(slider);
-
-        // After delay, if finger hasn't scrolled, arm slider for drag
-        timer = setTimeout(function () {
-            if (!scrollDetected && activeSlider) {
-                unlockSlider(activeSlider);
-                // Start idle countdown — re-lock if no drag happens
-                idleTimer = setTimeout(function () {
-                    if (activeSlider && !handleTouched) {
-                        lockSlider(activeSlider);
-                    }
-                }, IDLE_MS);
-            }
-        }, DELAY_MS);
-    }, { passive: true });
-
-    document.addEventListener("touchmove", function (e) {
-        if (!activeSlider || startY === null) return;
-        if (Math.abs(e.touches[0].clientY - startY) > SCROLL_PX) {
-            scrollDetected = true;
-        }
-        // If the handle is being dragged, cancel the idle re-lock
-        if (handleTouched) {
-            clearTimeout(idleTimer);
-        }
-    }, { passive: true });
-
-    document.addEventListener("touchend", function () { cleanup(); },
-                              { passive: true });
-    document.addEventListener("touchcancel", function () { cleanup(); },
-                              { passive: true });
-})();
+/* ── Slider scroll guard ───────────────────────────────────────────────────
+   CSS sets .rc-slider { touch-action: pan-y } which tells the browser to
+   handle vertical scrolling natively through slider areas.  Only
+   deliberately horizontal movements activate the slider.  No JS delay
+   guard is needed — the browser's built-in gesture disambiguation
+   handles the scroll-vs-drag distinction reliably.
+*/

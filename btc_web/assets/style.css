@@ -1217,14 +1217,12 @@ body {
     filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));
 }
 
-/* ── Slider touch guard ─────────────────────────────────────────────────────
-   Sliders need touch-action:none so their own drag handlers work.
-   The JS delay guard (inputs.js) temporarily disables pointer-events on
-   touchstart, re-enabling after 40ms only if no vertical scroll detected.
-   This prevents sliders from hijacking vertical page scrolls.
+/* ── Slider scroll guard ─────────────────────────────────────────────────────
+   pan-y lets the browser handle vertical scrolling natively through slider
+   areas.  Only deliberately horizontal movements activate the slider.
 */
 .rc-slider {
-    touch-action: none;
+    touch-action: pan-y;
 }
 
 /* ── Input accepted flash ───────────────────────────────────────────────────

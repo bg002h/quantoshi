@@ -51,6 +51,24 @@ _MC_FAN_PCTS = _MC_CACHE_FAN_PCTS if _HAS_MC_CACHE else (0.01, 0.05, 0.25, 0.50,
 _PCTILE_MIN = 0.05              # min entry percentile (clip to avoid extreme tails)
 _PCTILE_MAX = 0.95              # max entry percentile
 _ANNOT_AX = 28                  # annotation arrow x-offset (pixels)
+_CACHE_Q_TOLERANCE = 0.005      # max quantile distance for cache bin alignment
+
+def _mc_setup_vars(p):
+    """Extract common MC simulation variables from params dict.
+
+    Returns (n_bins, n_sims, mc_window, mc_freq, mc_ppy, mc_dt,
+    step_days, mc_years).
+    """
+    n_bins    = int(p.get("mc_bins", MC_BINS))
+    n_sims    = int(p.get("mc_sims", MC_SIMS))
+    mc_window = p.get("mc_window")
+    mc_freq   = p.get("mc_freq", MC_FREQ)
+    mc_ppy    = FREQ_PPY.get(mc_freq, 12)   # periods per year
+    mc_dt     = 1.0 / mc_ppy                # time step in years
+    step_days = FREQ_STEP_DAYS.get(mc_freq, 30)
+    mc_years  = int(p.get("mc_years", MC_DEFAULT_YEARS))
+    return n_bins, n_sims, mc_window, mc_freq, mc_ppy, mc_dt, step_days, mc_years
+
 
 # ── Bin regime labels (5 bins only; 6+ use percentile ranges) ────────────────
 _BIN_NAMES_5 = ("Bargain", "Cheap", "Fair", "Pricey", "Bubble")
@@ -293,7 +311,7 @@ def try_precomputed_paths(p, mc_years):
     syr = int(p.get("mc_start_yr", MC_DEFAULT_START_YR))
     raw_pctile = float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)) / 100.0
     pct_bin = snap_to_bin(raw_pctile)
-    if abs(raw_pctile - pct_bin) > 0.005:
+    if abs(raw_pctile - pct_bin) > _CACHE_Q_TOLERANCE:
         return None
     max_sims = int(p.get("mc_sims", MC_SIMS))
     return get_cached_paths(syr, pct_bin, mc_years, max_sims=max_sims)
@@ -311,7 +329,7 @@ def try_precomputed_overlay(p, mc_years, wd_amount, inflation, mc_stack):
     syr = int(p.get("mc_start_yr", MC_DEFAULT_START_YR))
     raw_pctile = float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)) / 100.0
     pct_bin = snap_to_bin(raw_pctile)
-    if abs(raw_pctile - pct_bin) > 0.005:
+    if abs(raw_pctile - pct_bin) > _CACHE_Q_TOLERANCE:
         return None, None
     infl_pct = int(round(inflation * 100))
     return get_cached_overlay(syr, pct_bin, mc_years, int(wd_amount), infl_pct, mc_stack)
@@ -490,15 +508,8 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
     #   2. Pre-computed server cache: npz/shm paths → recompute overlay
     #   3. Live simulation: build transition matrix, run MC, compute overlay
     amount     = float(p.get("mc_amount", 100))
-    n_bins     = int(p.get("mc_bins", MC_BINS))
-    n_sims     = int(p.get("mc_sims", MC_SIMS))
-    mc_window  = p.get("mc_window")
-    mc_freq    = p.get("mc_freq", MC_FREQ)
-    mc_ppy     = FREQ_PPY.get(mc_freq, 12)
-    mc_dt      = 1.0 / mc_ppy
-    step_days  = FREQ_STEP_DAYS.get(mc_freq, 30)
+    n_bins, n_sims, mc_window, mc_freq, mc_ppy, mc_dt, step_days, mc_years = _mc_setup_vars(p)
 
-    mc_years    = int(p.get("mc_years", MC_DEFAULT_YEARS))
     mc_start_yr = int(p.get("mc_start_yr", MC_DEFAULT_START_YR))
     mc_t_start  = yr_to_t(mc_start_yr, m.genesis)
     mc_t_end    = mc_t_start + mc_years
@@ -621,15 +632,8 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
     #   3. Live simulation: build transition matrix, run MC, compute overlay
     wd_amount  = float(p.get("mc_amount", 5000))
     inflation  = float(p.get("mc_infl", 4)) / 100.0
-    n_bins     = int(p.get("mc_bins", MC_BINS))
-    n_sims     = int(p.get("mc_sims", MC_SIMS))
-    mc_window  = p.get("mc_window")
-    mc_freq    = p.get("mc_freq", MC_FREQ)
-    mc_ppy     = FREQ_PPY.get(mc_freq, 12)
-    mc_dt      = 1.0 / mc_ppy
-    step_days  = FREQ_STEP_DAYS.get(mc_freq, 30)
+    n_bins, n_sims, mc_window, mc_freq, mc_ppy, mc_dt, step_days, mc_years = _mc_setup_vars(p)
 
-    mc_years    = int(p.get("mc_years", MC_DEFAULT_YEARS))
     mc_start_yr = int(p.get("mc_start_yr", 2031))
     mc_t_start  = max(yr_to_t(mc_start_yr, m.genesis), 1.0)
     mc_t_end    = mc_t_start + mc_years
@@ -780,15 +784,8 @@ def _mc_heatmap_overlay(m, p, ep, entry_t, eyrs):
     Uses mc_start_yr / mc_entry_q uniformly (same as all other tabs).
     The HM callback is responsible for mapping UI values into these keys.
     """
-    n_bins    = int(p.get("mc_bins", MC_BINS))
-    n_sims    = int(p.get("mc_sims", MC_SIMS))
-    mc_window = p.get("mc_window")
-    mc_freq   = p.get("mc_freq", MC_FREQ)
-    mc_ppy    = FREQ_PPY.get(mc_freq, 12)
-    mc_dt     = 1.0 / mc_ppy
-    step_days = FREQ_STEP_DAYS.get(mc_freq, 30)
+    n_bins, n_sims, mc_window, mc_freq, mc_ppy, mc_dt, step_days, mc_years = _mc_setup_vars(p)
 
-    mc_years  = int(p.get("mc_years", MC_DEFAULT_YEARS))
     t_start   = entry_t
     mc_t_end  = t_start + mc_years
     mc_ts     = np.arange(t_start, mc_t_end + mc_dt * 0.5, mc_dt)

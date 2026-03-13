@@ -14,6 +14,11 @@ ANNOT_STAGGER_Y = [-20, -33, -46]  # annotation y-offsets for staggering (~1 fon
 BTC_ORANGE = "#f7931a"
 FONT_LEGEND = 10              # legend / small info text
 
+# ── Dollar / loan defaults (shared across layout, callbacks, app prewarm) ────
+MAX_USD = 4_294_967_295        # uint32 max — clamp for dollar amount inputs
+SC_DEFAULT_RATE = 13.0         # Stack-celerator default annual interest rate (%)
+SC_DEFAULT_PRICE = 80_000      # Stack-celerator default custom entry price ($)
+
 # ── Shared financial math ────────────────────────────────────────────────────
 
 def _compute_sc_loan(principal, amount, r, term_periods, loan_type):

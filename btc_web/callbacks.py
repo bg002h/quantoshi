@@ -72,6 +72,26 @@ def _format_lots_for_table(lots):
 # MC parameter helper — single assembly point for all 4 MC-enabled tabs
 # ══════════════════════════════════════════════════════════════════════════════
 
+def _strip_free_paths(is_free, mc_result):
+    """Drop price_paths from MC result for free-tier users (saves memory)."""
+    if is_free and mc_result and isinstance(mc_result, dict):
+        return {k: v for k, v in mc_result.items() if k != "price_paths"}
+    return mc_result
+
+
+def _is_free_tier(mc_ok, mc_years, mc_start_yr, mc_entry_q,
+                  mc_bins, mc_sims, mc_freq,
+                  start_yr_default=MC_DEFAULT_START_YR):
+    """Check if MC request qualifies for the free tier."""
+    return mc_ok and btcpay.is_free_tier(
+        int(mc_years or MC_DEFAULT_YEARS),
+        int(mc_start_yr or start_yr_default),
+        float(mc_entry_q or MC_DEFAULT_ENTRY_Q),
+        mc_bins=int(mc_bins or MC_BINS),
+        mc_sims=int(mc_sims or MC_SIMS),
+        mc_freq=mc_freq or MC_FREQ)
+
+
 def _build_mc_params(*, mc_enable, mc_amount, mc_infl, mc_bins, mc_sims,
                      mc_years, mc_freq, mc_window, mc_start_yr, mc_entry_q,
                      mc_cached, mc_live_price, mc_regime=None,
@@ -81,6 +101,11 @@ def _build_mc_params(*, mc_enable, mc_amount, mc_infl, mc_bins, mc_sims,
 
     Tab-specific defaults (amount_default, infl_default, start_yr_default)
     accommodate the different fallback values across HM/DCA/Ret/SC tabs.
+
+    ``mc_regime`` is the list of *checked* (allowed) bin indices from the
+    regime filter checklist.  Blocked bins = all bins minus allowed bins.
+    If all bins are unchecked (empty list), treat as all-allowed to avoid
+    a degenerate simulation with no valid transitions.
     """
     n_bins = int(mc_bins or MC_BINS)
     # Compute blocked bins from regime checklist (checked = allowed).
@@ -91,7 +116,7 @@ def _build_mc_params(*, mc_enable, mc_amount, mc_infl, mc_bins, mc_sims,
         blocked = ()
     d = dict(
         mc_enabled    = bool(mc_enable),
-        mc_amount     = max(0, min(4294967295, int(float(mc_amount or amount_default)))),
+        mc_amount     = max(0, min(_app_ctx.MAX_USD, int(float(mc_amount or amount_default)))),
         mc_infl       = float(mc_infl) if mc_infl is not None else infl_default,
         mc_bins       = n_bins,
         mc_sims       = int(mc_sims or MC_SIMS),
@@ -123,16 +148,16 @@ def _mc_payment_check(tab, mc_years, start_yr, entry_q, pay_token,
       3. DEV/no-BTCPay + Run Simulation button was just clicked
       4. Valid payment token (production)
     """
-    mc_yrs = int(mc_years or MC_DEFAULT_YEARS)
-    s_yr   = int(start_yr or MC_DEFAULT_START_YR)
-    e_q    = float(entry_q or MC_DEFAULT_ENTRY_Q)
-    _bins  = int(mc_bins or MC_BINS)
-    _sims  = int(mc_sims or MC_SIMS)
-    _freq  = mc_freq or MC_FREQ
+    mc_yrs    = int(mc_years or MC_DEFAULT_YEARS)
+    start_yr_ = int(start_yr or MC_DEFAULT_START_YR)
+    entry_q_  = float(entry_q or MC_DEFAULT_ENTRY_Q)
+    bins_     = int(mc_bins or MC_BINS)
+    sims_     = int(mc_sims or MC_SIMS)
+    freq_     = mc_freq or MC_FREQ
 
     # 1. Free tier — always auto-approve
-    if btcpay.is_free_tier(mc_yrs, s_yr, e_q,
-                           mc_bins=_bins, mc_sims=_sims, mc_freq=_freq):
+    if btcpay.is_free_tier(mc_yrs, start_yr_, entry_q_,
+                           mc_bins=bins_, mc_sims=sims_, mc_freq=freq_):
         return True
 
     # 2. Already-cached data with matching path_key — re-render for free.
@@ -143,11 +168,11 @@ def _mc_payment_check(tab, mc_years, start_yr, entry_q, pay_token,
         pk = mc_cached["path_key"]
         if (pk.get("tab") == tab
                 and int(pk.get("mc_years", 0)) == mc_yrs
-                and int(pk.get("mc_start_yr", 0)) == s_yr
-                and abs(float(pk.get("mc_entry_q", -1)) - e_q) < 0.05
-                and int(pk.get("mc_bins", 0)) == _bins
-                and int(pk.get("mc_sims", 0)) <= _sims
-                and (pk.get("mc_freq") or MC_FREQ) == _freq):
+                and int(pk.get("mc_start_yr", 0)) == start_yr_
+                and abs(float(pk.get("mc_entry_q", -1)) - entry_q_) < 0.05
+                and int(pk.get("mc_bins", 0)) == bins_
+                and int(pk.get("mc_sims", 0)) <= sims_
+                and (pk.get("mc_freq") or MC_FREQ) == freq_):
             return True
 
     # 3. DEV / no BTCPay — require Run Simulation button click
@@ -156,7 +181,8 @@ def _mc_payment_check(tab, mc_years, start_yr, entry_q, pay_token,
 
     # 4. Production — verify payment token
     if not pay_token:
-        logger.info("MC payment required: %s %dyr start=%d q=%g (no token)", tab, mc_yrs, s_yr, e_q)
+        logger.info("MC payment required: %s %dyr start=%d q=%g (no token)",
+                     tab, mc_yrs, start_yr_, entry_q_)
         return False
     valid = btcpay.verify_payment_token(
         pay_token.get("payment_token", ""),
@@ -413,17 +439,16 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     mc_payment_ok = _mc_payment_check("hm", mc_years, mc_start_yr, mc_entry_q, pay_token,
                                       mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq,
                                       mc_cached=mc_cached)
-    is_free = mc_enabled and mc_payment_ok and btcpay.is_free_tier(
-        int(mc_years or MC_DEFAULT_YEARS), int(mc_start_yr or yr_now),
-        float(mc_entry_q or MC_DEFAULT_ENTRY_Q),
-        mc_bins=int(mc_bins or MC_BINS), mc_sims=int(mc_sims or MC_SIMS),
-        mc_freq=mc_freq or MC_FREQ)
+    is_free = _is_free_tier(mc_enabled and mc_payment_ok,
+                            mc_years, mc_start_yr, mc_entry_q,
+                            mc_bins, mc_sims, mc_freq,
+                            start_yr_default=yr_now)
     if mc_enabled and mc_payment_ok:
-        mc_syr = int(mc_start_yr or yr_now)
+        start = int(mc_start_yr or yr_now)
         # Auto-cap training window end at start year for historical sims
         mc_win = list(mc_window) if mc_window else [2010, yr_now]
-        if mc_syr < yr_now:
-            mc_win[1] = min(mc_win[1], mc_syr)
+        if start < yr_now:
+            mc_win[1] = min(mc_win[1], start)
         mc_p = _build_mc_params(
             mc_enable=True, mc_amount=mc_amount, mc_infl=mc_infl,
             mc_bins=mc_bins, mc_sims=mc_sims, mc_years=mc_years,
@@ -437,14 +462,13 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
             mc_p["mc_cached"] = None
             mc_p["mc_free_tier"] = True
         mc_params = dict(shared_params, **mc_p,
-                         live_price=_use_live(mc_syr, mc_p["mc_entry_q"]))
+                         live_price=_use_live(start, mc_p["mc_entry_q"]))
         mc_fig, mc_result = _get_mc_heatmap_fig(mc_params)
     else:
         mc_fig = dash.no_update
         mc_result = None
 
-    if is_free and mc_result and isinstance(mc_result, dict):
-        mc_result = {k: v for k, v in mc_result.items() if k != "price_paths"}
+    mc_result = _strip_free_paths(is_free, mc_result)
     store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enabled)
 
     # Track which MC params were actually rendered
@@ -531,11 +555,8 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
     mc_ok = bool(mc_enable) and _mc_payment_check("dca", mc_years, mc_start_yr, mc_entry_q, pay_token,
                                                   mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq,
                                                   mc_cached=mc_cached)
-    is_free = mc_ok and btcpay.is_free_tier(
-        int(mc_years or MC_DEFAULT_YEARS), int(mc_start_yr or MC_DEFAULT_START_YR),
-        float(mc_entry_q or MC_DEFAULT_ENTRY_Q),
-        mc_bins=int(mc_bins or MC_BINS), mc_sims=int(mc_sims or MC_SIMS),
-        mc_freq=mc_freq or MC_FREQ)
+    is_free = _is_free_tier(mc_ok, mc_years, mc_start_yr, mc_entry_q,
+                            mc_bins, mc_sims, mc_freq)
     mc_p = _build_mc_params(
         mc_enable=mc_ok,
         mc_amount=mc_amount, mc_infl=mc_infl,
@@ -557,7 +578,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
     fig, mc_result = _get_dca_fig(dict(
         start_stack    = float(stack or 0),
         use_lots       = bool(use_lots),
-        amount         = max(0, min(4294967295, int(float(amount or 100)))),
+        amount         = max(0, min(_app_ctx.MAX_USD, int(float(amount or 100)))),
         freq           = freq or "Monthly",
         start_yr       = int(yr_range[0]),
         end_yr         = int(yr_range[1]),
@@ -571,19 +592,18 @@ def update_dca(active_tab, stack, use_lots, amount, freq, yr_range, disp, toggle
         lots           = lots_data or [],
         sc_enabled     = bool(sc_enable),
         sc_loan_amount = float(sc_loan or 0),
-        sc_rate        = float(sc_rate) if sc_rate is not None else 13.0,
+        sc_rate        = float(sc_rate) if sc_rate is not None else _app_ctx.SC_DEFAULT_RATE,
         sc_loan_type   = sc_type or "interest_only",
         sc_term_months = float(sc_term or 12),
         sc_repeats     = int(sc_repeats or 0),
         sc_live_price   = live_price,
         sc_entry_mode   = sc_entry_mode or "live",
-        sc_custom_price = float(sc_custom_price or 80000),
+        sc_custom_price = float(sc_custom_price or _app_ctx.SC_DEFAULT_PRICE),
         sc_tax_rate     = float(sc_tax) / 100.0 if sc_tax is not None else 0.33,
         sc_rollover     = bool(sc_rollover),
         **mc_p,
     ))
-    if is_free and mc_result and isinstance(mc_result, dict):
-        mc_result = {k: v for k, v in mc_result.items() if k != "price_paths"}
+    mc_result = _strip_free_paths(is_free, mc_result)
     mc_did_render = mc_ok
     rendered_key = ({"years": int(mc_years or MC_DEFAULT_YEARS),
                      "start_yr": int(mc_start_yr or MC_DEFAULT_START_YR),
@@ -1345,7 +1365,7 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     from _app_ctx import _compute_sc_loan
 
     ppy          = FREQ_PPY.get(freq or "Monthly", 12)
-    amount       = max(0, min(4294967295, int(float(amount or 100))))
+    amount       = max(0, min(_app_ctx.MAX_USD, int(float(amount or 100))))
     principal    = float(sc_loan or 0)
     rate         = float(rate) if rate is not None else 13.0
     term         = float(term or 12)
@@ -1375,7 +1395,7 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
         ep = live
         ep_lbl = f"Live ticker ({fmt_price(live)})" if live > 0 else "Live ticker"
     elif entry_mode == "custom":
-        ep = float(custom_price or 80000)
+        ep = float(custom_price or _app_ctx.SC_DEFAULT_PRICE)
         ep_lbl = f"Custom ({fmt_price(ep)})"
     else:
         ep = 0.0
@@ -1468,11 +1488,8 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     mc_ok = bool(mc_enable) and _mc_payment_check("ret", mc_years, mc_start_yr, mc_entry_q, pay_token,
                                                   mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq,
                                                   mc_cached=mc_cached)
-    is_free = mc_ok and btcpay.is_free_tier(
-        int(mc_years or MC_DEFAULT_YEARS), int(mc_start_yr or MC_DEFAULT_START_YR),
-        float(mc_entry_q or MC_DEFAULT_ENTRY_Q),
-        mc_bins=int(mc_bins or MC_BINS), mc_sims=int(mc_sims or MC_SIMS),
-        mc_freq=mc_freq or MC_FREQ)
+    is_free = _is_free_tier(mc_ok, mc_years, mc_start_yr, mc_entry_q,
+                            mc_bins, mc_sims, mc_freq)
     mc_p = _build_mc_params(
         mc_enable=mc_ok,
         mc_amount=mc_amount, mc_infl=mc_infl,
@@ -1495,7 +1512,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     fig, mc_result = _get_retire_fig(dict(
         start_stack  = float(stack or 1.0),
         use_lots     = bool(use_lots),
-        wd_amount    = max(0, min(4294967295, int(float(wd or 5000)))),
+        wd_amount    = max(0, min(_app_ctx.MAX_USD, int(float(wd or 5000)))),
         freq         = freq or "Monthly",
         start_yr     = int(yr_range[0]),
         end_yr       = int(yr_range[1]),
@@ -1510,8 +1527,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         lots         = lots_data or [],
         **mc_p,
     ))
-    if is_free and mc_result and isinstance(mc_result, dict):
-        mc_result = {k: v for k, v in mc_result.items() if k != "price_paths"}
+    mc_result = _strip_free_paths(is_free, mc_result)
     mc_did_render = mc_ok
     rendered_key = ({"years": int(mc_years or MC_DEFAULT_YEARS),
                      "start_yr": int(mc_start_yr or MC_DEFAULT_START_YR),
@@ -1594,11 +1610,8 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
     mc_ok = bool(mc_enable) and _mc_payment_check("sc", mc_years, mc_start_yr, mc_entry_q, pay_token,
                                                   mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq,
                                                   mc_cached=mc_cached)
-    is_free = mc_ok and btcpay.is_free_tier(
-        int(mc_years or MC_DEFAULT_YEARS), int(mc_start_yr or MC_DEFAULT_START_YR),
-        float(mc_entry_q or MC_DEFAULT_ENTRY_Q),
-        mc_bins=int(mc_bins or MC_BINS), mc_sims=int(mc_sims or MC_SIMS),
-        mc_freq=mc_freq or MC_FREQ)
+    is_free = _is_free_tier(mc_ok, mc_years, mc_start_yr, mc_entry_q,
+                            mc_bins, mc_sims, mc_freq)
     mc_p = _build_mc_params(
         mc_enable=mc_ok,
         mc_amount=mc_amount, mc_infl=mc_infl,
@@ -1633,7 +1646,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         chart_layout = _cl,
         display_q    = float(display_q) if display_q is not None
                        else _nearest_quantile(0.5, _app_ctx._ALL_QS),
-        wd_amount    = max(0, min(4294967295, int(float(wd or 5000)))),
+        wd_amount    = max(0, min(_app_ctx.MAX_USD, int(float(wd or 5000)))),
         end_yr       = int(end_yr or 2075),
         disp_mode    = disp or "usd",
         log_y        = "log_y"      in toggles,
@@ -1646,8 +1659,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         use_lots     = bool(use_lots),
         **mc_p,
     ))
-    if is_free and mc_result and isinstance(mc_result, dict):
-        mc_result = {k: v for k, v in mc_result.items() if k != "price_paths"}
+    mc_result = _strip_free_paths(is_free, mc_result)
     store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enable)
     ub_val = _unblocked_val(mc_ok, blocked, mc_result, mc_cached)
     if "chart_zoom" not in toggles:

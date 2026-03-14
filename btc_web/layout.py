@@ -32,7 +32,15 @@ _PRICE_INTERVAL_MS = 20 * 60 * 1000   # live price ticker refresh (20 minutes)
 _MC_POLL_INTERVAL_MS = 3000            # MC payment status poll interval (3 seconds)
 _MC_POLL_MAX = 300                     # max poll intervals (300 × 3s = 15 min timeout)
 
-def _q_options():
+# ── Reusable style constants ────────────────────────────────────────────────
+_STYLE_HIDDEN     = {"display": "none"}
+_STYLE_HINT       = {"color": "#888", "display": "block", "marginBottom": "4px"}
+_STYLE_GRAPH_H    = {"height": "78vh"}
+_STYLE_COLOR_H    = {"height": "28px"}
+_STYLE_ADDR_CELL  = {"paddingRight": "12px", "whiteSpace": "nowrap", "verticalAlign": "top"}
+_STYLE_ADDR_CODE  = {"wordBreak": "break-all", "fontSize": "11px"}
+
+def _q_options() -> list[dict]:
     opts = []
     for q in _app_ctx._ALL_QS:
         pct = q * 100
@@ -45,12 +53,12 @@ def _q_options():
         opts.append({"label": lbl, "value": q})
     return opts
 
-def _q_panel(checklist_id, default_value, hint=None):
+def _q_panel(checklist_id: str, default_value: list, hint: str | None = None):
     """Quantile checklist — static multi-column grid, no collapse."""
     children = []
     if hint:
         children.append(html.Small(hint,
-            style={"color":"#888","display":"block","marginBottom":"4px"}))
+            style=_STYLE_HINT))
     children.append(
         dcc.Checklist(id=checklist_id, options=_q_options(),
                       value=default_value, className="q-panel-grid",
@@ -67,17 +75,17 @@ def _ctrl_card(*children):
     return dbc.Card(dbc.CardBody(list(children), className="p-2"),
                     className="mb-2 ctrl-card")
 
-def _section_card(title, *children):
+def _section_card(title: str, *children):
     """Control card with a section header title."""
     return _ctrl_card(html.Div(title, className="ctrl-section-header"), *children)
 
 def _row(*cols):
     return dbc.Row([dbc.Col(c) for c in cols], className="g-1 mb-1")
 
-def _lbl(text):
+def _lbl(text: str):
     return html.Label(text, className="form-label mb-0 small")
 
-def _export_row(tab_id):
+def _export_row(tab_id: str):
     """Export row — download triggered client-side via Plotly.downloadImage()."""
     return html.Div([
         dbc.Row([
@@ -132,12 +140,12 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
     badge = []
     if mc_prefix:
         overlay = [html.Div(id=f"{mc_prefix}-mc-overlay",
-                            style={"display": "none"},
+                            style=_STYLE_HIDDEN,
                             className="mc-chart-overlay")]
         badge = [html.Img(id=f"{mc_prefix}-mc-badge",
                           src="/assets/quantoshi_favicon.png",
                           className="mc-premium-badge",
-                          style={"display": "none"})]
+                          style=_STYLE_HIDDEN)]
     return dbc.Row([
         dbc.Col(controls_fn(), width=3, className="controls-col overflow-auto",
                 style={"maxHeight": "85vh"}),
@@ -145,7 +153,7 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
             html.Div(id=f"{mc_prefix or graph_id}-chart-wrap",
                      style={"position": "relative"}, children=[
                 dcc.Loading(
-                    dcc.Graph(id=graph_id, style={"height": "78vh"},
+                    dcc.Graph(id=graph_id, style=_STYLE_GRAPH_H,
                               config={"scrollZoom": False,
                                       "toImageButtonOptions": {"format": "png", "scale": 2,
                                                                "filename": filename}}),
@@ -367,7 +375,7 @@ def _bubble_controls():
                     className="small",
                 ), width="auto"),
             ], className="g-0 align-items-center"),
-            html.Div(id="bub-yrange-wrap", style={"display":"none"}, children=[
+            html.Div(id="bub-yrange-wrap", style=_STYLE_HIDDEN, children=[
                 dcc.RangeSlider(id="bub-yrange", min=-2, max=8,
                                 value=[0, 7], step=0.5,
                                 marks={-2:"1¢", 0:"$1", 2:"$100",
@@ -446,9 +454,9 @@ def _heatmap_controls():
         # ── Quantile Regression Model ──────────────────────────────────
         _section_card("Quantile Regression Model",
             html.Small("Select quantiles to follow.",
-                style={"color":"#888","display":"block","marginBottom":"4px"}),
+                style=_STYLE_HINT),
             html.Small("Select exit quantiles for CAGR projection columns.",
-                style={"color":"#888","display":"block","marginBottom":"4px"}),
+                style=_STYLE_HINT),
             dcc.Checklist(id="hm-exit-qs", options=_q_options(),
                           value=_app_ctx._DEF_QS, className="q-panel-grid",
                           inputStyle={"marginRight":"4px"}),
@@ -495,13 +503,13 @@ def _heatmap_controls():
                       step=1, size="sm"),
             _row(
                 html.Div([_lbl("Lo"), dbc.Input(id="hm-c-lo", type="color",
-                           value=_app_ctx.M.CAGR_SEG_C_LO, style={"height":"28px"})]),
+                           value=_app_ctx.M.CAGR_SEG_C_LO, style=_STYLE_COLOR_H)]),
                 html.Div([_lbl("Mid1"), dbc.Input(id="hm-c-mid1", type="color",
-                           value=_app_ctx.M.CAGR_SEG_C_MID1, style={"height":"28px"})]),
+                           value=_app_ctx.M.CAGR_SEG_C_MID1, style=_STYLE_COLOR_H)]),
                 html.Div([_lbl("Mid2"), dbc.Input(id="hm-c-mid2", type="color",
-                           value=_app_ctx.M.CAGR_SEG_C_MID2, style={"height":"28px"})]),
+                           value=_app_ctx.M.CAGR_SEG_C_MID2, style=_STYLE_COLOR_H)]),
                 html.Div([_lbl("Hi"), dbc.Input(id="hm-c-hi", type="color",
-                           value=_app_ctx.M.CAGR_SEG_C_HI, style={"height":"28px"})]),
+                           value=_app_ctx.M.CAGR_SEG_C_HI, style=_STYLE_COLOR_H)]),
             ),
             _lbl("Gradient steps"),
             dbc.Input(id="hm-grad", type="number", value=32,
@@ -554,7 +562,7 @@ def _heatmap_tab():
             html.Div([
                 html.Div([
                     dcc.Loading(
-                        dcc.Graph(id="heatmap-graph", style={"height":"78vh"},
+                        dcc.Graph(id="heatmap-graph", style=_STYLE_GRAPH_H,
                                   config={"scrollZoom":False,
                                           "toImageButtonOptions":{"format":"png","scale":2,
                                                                    "filename":"btc_heatmap"}}),
@@ -563,23 +571,23 @@ def _heatmap_tab():
                 ], className="hm-swipe-panel"),
                 html.Div([
                     dcc.Loading(
-                        dcc.Graph(id="hm-mc-graph", style={"height":"78vh"},
+                        dcc.Graph(id="hm-mc-graph", style=_STYLE_GRAPH_H,
                                   config={"scrollZoom":False,
                                           "toImageButtonOptions":{"format":"png","scale":2,
                                                                    "filename":"btc_mc_heatmap"}}),
                         type="default", color=_BTC_ORANGE,
                     ),
                     # MC chart overlay (gray mask when MC not rendered)
-                    html.Div(id="hm-mc-overlay", style={"display": "none"},
+                    html.Div(id="hm-mc-overlay", style=_STYLE_HIDDEN,
                              className="mc-chart-overlay"),
                     html.Img(id="hm-mc-badge",
                              src="/assets/quantoshi_favicon.png",
                              className="mc-premium-badge",
-                             style={"display": "none"}),
+                             style=_STYLE_HIDDEN),
                 ], className="hm-swipe-panel mc-premium-chart", id="hm-mc-panel",
-                   style={"display":"none"}),
+                   style=_STYLE_HIDDEN),
             ], className="hm-swipe-container", id="hm-swipe-wrap"),
-            html.Div(id="hm-swipe-scroll-dummy", style={"display":"none"}),
+            html.Div(id="hm-swipe-scroll-dummy", style=_STYLE_HIDDEN),
             _export_row("heatmap"),
         ], width=9),
     ], className="g-0")
@@ -658,8 +666,8 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
         _ph.append(dcc.Store(id=f"{prefix}-mc-price-val", storage_type="memory", data=0))
         _ph.append(html.Div(id=f"{prefix}-mc-body"))
         _ph.append(html.Div(id=f"{prefix}-mc-status"))
-        _ph.append(dbc.Button(id=f"{prefix}-mc-dl-btn", style={"display":"none"}))
-        _ph.append(dbc.Button(id=f"{prefix}-mc-run-btn", style={"display":"none"}))
+        _ph.append(dbc.Button(id=f"{prefix}-mc-dl-btn", style=_STYLE_HIDDEN))
+        _ph.append(dbc.Button(id=f"{prefix}-mc-run-btn", style=_STYLE_HIDDEN))
         _ph.append(html.Div(id=f"{prefix}-mc-run-status"))
         _ph.append(dcc.Store(id=f"{prefix}-mc-rendered-key", storage_type="memory"))
         _ph.append(html.Div(id=f"{prefix}-mc-match"))
@@ -671,7 +679,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
         if "stack" not in shared_controls:
             _ph.append(dbc.Input(id=f"{prefix}-mc-stack", type="number", value=1.0))
         _ph.append(dcc.Dropdown(id=f"{prefix}-mc-start-yr", value=2031))
-        return html.Div(style={"display": "none"}, children=_ph)
+        return html.Div(style=_STYLE_HIDDEN, children=_ph)
     yr_now = pd.Timestamp.today().year
     return html.Div(style={"position": "relative"}, children=[
         html.Span([
@@ -702,13 +710,13 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
         dcc.Checklist(id=f"{prefix}-mc-enable",
                       options=[{"label": " Activate Markov chain stochastic engine", "value": "yes"}],
                       value=[], inputStyle={"marginRight": "5px"}),
-        html.Div(id=f"{prefix}-mc-body", style={"display": "none"}, children=[
+        html.Div(id=f"{prefix}-mc-body", style=_STYLE_HIDDEN, children=[
             dcc.Checklist(id=f"{prefix}-mc-advanced",
                           options=[{"label": " Advanced simulator options", "value": "yes"}],
                           value=[], inputStyle={"marginRight": "5px"},
                           style={"fontSize": "11px", "color": "#666", "marginBottom": "6px"}),
             html.Div(dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now),
-                     style={"display": "none"}),
+                     style=_STYLE_HIDDEN),
             _lbl((start_yr_label or "MC start year") + " (bold = cached)"),
             dcc.Dropdown(id=f"{prefix}-mc-start-yr",
                          options=_MC_START_YR_OPTIONS,
@@ -723,7 +731,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                          step=1, size="sm", debounce=True),
               ] if show_amount and "amount" not in shared_controls else (
               [dbc.Input(id=f"{prefix}-mc-amount", type="number",
-                         value=amount_default, style={"display": "none"}),
+                         value=amount_default, style=_STYLE_HIDDEN),
               ] if "amount" not in shared_controls else [])),
             *([ _lbl("Inflation rate (% / yr)"),
                 dcc.Dropdown(id=f"{prefix}-mc-infl",
@@ -731,7 +739,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                              value=4, clearable=False),
             ] if show_inflation and "infl" not in shared_controls else (
             [   dcc.Dropdown(id=f"{prefix}-mc-infl", value=0,
-                             style={"display": "none"}),
+                             style=_STYLE_HIDDEN),
             ] if "infl" not in shared_controls else [])),
             *([ _lbl("Starting BTC stack (0–1000)"),
                 dbc.Input(id=f"{prefix}-mc-stack", type="number",
@@ -739,14 +747,14 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                           debounce=True),
             ] if show_stack and "stack" not in shared_controls else (
             [   dbc.Input(id=f"{prefix}-mc-stack", type="number",
-                          value=1.0, style={"display": "none"}),
+                          value=1.0, style=_STYLE_HIDDEN),
             ] if "stack" not in shared_controls else [])),
             _lbl("Years to model"),
             dcc.Dropdown(id=f"{prefix}-mc-years",
                          options=_MC_YEARS_OPTIONS,
                          value=10, clearable=False),
             # Advanced controls (hidden until checkbox toggled)
-            html.Div(id=f"{prefix}-mc-adv-body", style={"display": "none"}, children=[
+            html.Div(id=f"{prefix}-mc-adv-body", style=_STYLE_HIDDEN, children=[
                 _lbl("Markov transition matrix dimension"),
                 dcc.Dropdown(id=f"{prefix}-mc-bins",
                              options=_bold_opts(
@@ -842,9 +850,9 @@ def _dca_controls():
         # ── Quantile Regression Model ──────────────────────────────
         _section_card("Quantile Regression Model",
             html.Small("Select quantiles to follow.",
-                style={"color":"#888","display":"block","marginBottom":"4px"}),
+                style=_STYLE_HINT),
             html.Small("Price path drives sat accumulation \u2014 lower quantile = lower price = more sats/period.",
-                style={"color":"#888","display":"block","marginBottom":"4px"}),
+                style=_STYLE_HINT),
             dcc.Checklist(id="dca-qs", options=_q_options(),
                           value=[0.5], className="q-panel-grid",
                           inputStyle={"marginRight":"4px"}),
@@ -858,7 +866,7 @@ def _dca_controls():
         _section_card("Chart Settings",
             *_model_show_checklist("dca"),
             _lbl("Year range"),
-            _year_range_slider("dca", 2009, 2060, yr_now, yr_now + 10),
+            _year_range_slider("dca", 2009, 2080, yr_now, yr_now + 10),
             dcc.Dropdown(id="dca-disp",
                          options=[{"label":"BTC Balance","value":"btc"},
                                   {"label":"USD Value","value":"usd"}],
@@ -884,7 +892,7 @@ def _stackcelerator_controls():
                       value=[], inputStyle={"marginRight":"5px"}),
         # Why html.Div(display:none) instead of dbc.Collapse: Dash Collapse
         # unmounts its children, destroying component state on toggle.
-        html.Div(id="dca-sc-body", style={"display":"none"}, children=[
+        html.Div(id="dca-sc-body", style=_STYLE_HIDDEN, children=[
             _lbl("Loan amount ($)"),
             dbc.Input(id="dca-sc-loan", type="number",
                       value=1200, min=0, max=_app_ctx.MAX_USD, step=1, size="sm",
@@ -895,7 +903,7 @@ def _stackcelerator_controls():
                                   {"label":"Model price","value":"model"},
                                   {"label":"Custom price","value":"custom"}],
                          value="live", clearable=False),
-            html.Div(id="dca-sc-custom-price-row", style={"display":"none"}, children=[
+            html.Div(id="dca-sc-custom-price-row", style=_STYLE_HIDDEN, children=[
                 _lbl("Custom entry price ($)"),
                 dbc.Input(id="dca-sc-custom-price", type="number",
                           value=_app_ctx.SC_DEFAULT_PRICE, min=1, step=1, size="sm",
@@ -951,9 +959,9 @@ def _retire_controls():
                               amount_default=5000, infl_default=4, stack_default=1.0),
         _section_card("Quantile Regression Model",
             html.Small("Select quantiles to follow.",
-                style={"color":"#888","display":"block","marginBottom":"4px"}),
+                style=_STYLE_HINT),
             html.Small("Lower quantile = lower price = faster depletion \u2014 worst-case planning.",
-                style={"color":"#888","display":"block","marginBottom":"4px"}),
+                style=_STYLE_HINT),
             dcc.Checklist(id="ret-qs", options=_q_options(),
                           value=[0.01, 0.10, 0.25], className="q-panel-grid",
                           inputStyle={"marginRight":"4px"}),
@@ -966,7 +974,7 @@ def _retire_controls():
         _section_card("Chart Settings",
             *_model_show_checklist("ret"),
             _lbl("Year range"),
-            _year_range_slider("ret", 2024, 2075, 2031, 2075),
+            _year_range_slider("ret", 2024, 2080, 2031, 2075),
             dcc.Dropdown(id="ret-disp",
                          options=[{"label":"BTC Remaining","value":"btc"},
                                   {"label":"USD Value","value":"usd"}],
@@ -1002,9 +1010,9 @@ def _supercharge_controls():
         _shared_settings_card("sc", infl_default=4, stack_default=1.0),
         _section_card("Quantile Regression Model",
             html.Small("Select quantiles to follow.",
-                style={"color":"#888","display":"block","marginBottom":"4px"}),
+                style=_STYLE_HINT),
             html.Small("Lower quantile = earlier depletion \u2014 use multiple quantiles to see the range.",
-                style={"color":"#888","display":"block","marginBottom":"4px"}),
+                style=_STYLE_HINT),
             dcc.Checklist(id="sc-qs",
                           options=_q_options(),
                           value=[q for q in [0.001, 0.10] if q in _app_ctx.M.qr_fits],
@@ -1230,16 +1238,16 @@ _FAQ = [
         "q": "Can I send you a tip?",
         "a": html.Table([
             html.Tbody([
-                html.Tr([html.Td("Bitcoin", style={"paddingRight":"12px","whiteSpace":"nowrap","verticalAlign":"top"}),
-                         html.Td(html.Code("bc1qgh6kfnf02uvplq490nyslc7768tnvzftlrw5fe", style={"wordBreak":"break-all","fontSize":"11px"}))]),
-                html.Tr([html.Td("Lightning", style={"paddingRight":"12px","whiteSpace":"nowrap","verticalAlign":"top"}),
-                         html.Td(html.Code("lno1pgjrzv34xscxyvrp94jrvdej956rgdnp95ukydt9943rxdpkxucrqvpsv5ury93pqgfffll4jmjf0tffqtx47xt886gzp9fajp3966xz96gm2xj9cqedx", style={"wordBreak":"break-all","fontSize":"11px"}))]),
-                html.Tr([html.Td("Ecash", style={"paddingRight":"12px","whiteSpace":"nowrap","verticalAlign":"top"}),
-                         html.Td(html.Code("creqApGF0gaNhdGRwb3N0YWF4QGh0dHBzOi8vY29pbm9zLmlvL2FwaS9lY2FzaC8xMjU0MGIwYS1kNjcyLTQ0NmEtOWI1ZS1iMzQ2NzAwMDBlODJhZ/dhaXgkMTI1NDBiMGEtZDY3M:", style={"wordBreak":"break-all","fontSize":"11px"}))]),
-                html.Tr([html.Td("Liquid BTC", style={"paddingRight":"12px","whiteSpace":"nowrap","verticalAlign":"top"}),
-                         html.Td(html.Code("lq1qqfztsa6ffjkspk3qxp4ft8kn2sxu5ja9prn5d9vwuqjjut5g2tzc8rpsgz2pysayplrgemf9dt3vpkqhvsvtkfxvdyk9mlsel", style={"wordBreak":"break-all","fontSize":"11px"}))]),
-                html.Tr([html.Td("Liquid USDt", style={"paddingRight":"12px","whiteSpace":"nowrap","verticalAlign":"top"}),
-                         html.Td(html.Code("liquidnetwork:lq1qqfjgl0fvv7a5prqd7d0k4x80kq2v0cngzxuj7hz3pdhuj0xg57tuzk9q0knrsuevsrywqys92ttefak83xzqq6uqmngkkaa74?assetid=ce091c998b83c78bb71a632313ba3760f176", style={"wordBreak":"break-all","fontSize":"11px"}))]),
+                html.Tr([html.Td("Bitcoin", style=_STYLE_ADDR_CELL),
+                         html.Td(html.Code("bc1qgh6kfnf02uvplq490nyslc7768tnvzftlrw5fe", style=_STYLE_ADDR_CODE))]),
+                html.Tr([html.Td("Lightning", style=_STYLE_ADDR_CELL),
+                         html.Td(html.Code("lno1pgjrzv34xscxyvrp94jrvdej956rgdnp95ukydt9943rxdpkxucrqvpsv5ury93pqgfffll4jmjf0tffqtx47xt886gzp9fajp3966xz96gm2xj9cqedx", style=_STYLE_ADDR_CODE))]),
+                html.Tr([html.Td("Ecash", style=_STYLE_ADDR_CELL),
+                         html.Td(html.Code("creqApGF0gaNhdGRwb3N0YWF4QGh0dHBzOi8vY29pbm9zLmlvL2FwaS9lY2FzaC8xMjU0MGIwYS1kNjcyLTQ0NmEtOWI1ZS1iMzQ2NzAwMDBlODJhZ/dhaXgkMTI1NDBiMGEtZDY3M:", style=_STYLE_ADDR_CODE))]),
+                html.Tr([html.Td("Liquid BTC", style=_STYLE_ADDR_CELL),
+                         html.Td(html.Code("lq1qqfztsa6ffjkspk3qxp4ft8kn2sxu5ja9prn5d9vwuqjjut5g2tzc8rpsgz2pysayplrgemf9dt3vpkqhvsvtkfxvdyk9mlsel", style=_STYLE_ADDR_CODE))]),
+                html.Tr([html.Td("Liquid USDt", style=_STYLE_ADDR_CELL),
+                         html.Td(html.Code("liquidnetwork:lq1qqfjgl0fvv7a5prqd7d0k4x80kq2v0cngzxuj7hz3pdhuj0xg57tuzk9q0knrsuevsrywqys92ttefak83xzqq6uqmngkkaa74?assetid=ce091c998b83c78bb71a632313ba3760f176", style=_STYLE_ADDR_CODE))]),
             ])
         ], style={"width":"100%","borderCollapse":"collapse","marginTop":"4px"}),
     },
@@ -1924,14 +1932,14 @@ _app_ctx.app.layout = dbc.Container([
             html.Div(id="mc-pay-info",
                      style={"fontSize": "13px", "marginBottom": "10px"}),
             # Iframe container — shown for onion users (Tor Browser)
-            html.Div(id="mc-pay-iframe-wrap", style={"display": "none"}, children=[
+            html.Div(id="mc-pay-iframe-wrap", style=_STYLE_HIDDEN, children=[
                 html.Iframe(id="mc-pay-iframe",
                             style={"width": "100%", "height": "420px",
                                    "border": "none", "borderRadius": "8px"},
                             src="about:blank"),
             ]),
             # Payment details — shown for clearnet users
-            html.Div(id="mc-pay-details", style={"display": "none"}, children=[
+            html.Div(id="mc-pay-details", style=_STYLE_HIDDEN, children=[
                 dbc.ButtonGroup([
                     dbc.Button([html.Span("\u26a1 "), "Lightning"],
                                id="mc-pay-ln-btn", color="warning",
@@ -2067,7 +2075,7 @@ _app_ctx.app.layout = dbc.Container([
                                outline=True, color="secondary",
                                style={"marginLeft":"12px", "fontSize":"13px",
                                       "borderRadius":"8px"}),
-                    id="splash-next-wrap", style={"display":"none"},
+                    id="splash-next-wrap", style=_STYLE_HIDDEN,
                 ),
             ], style={"textAlign":"center", "marginTop":"24px"}),
         ], style={"padding":"30px 20px 24px"}),

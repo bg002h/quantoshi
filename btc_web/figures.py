@@ -417,6 +417,31 @@ def _apply_watermark(fig: go.Figure, pos: str = "bottom-right") -> None:
     return fig
 
 
+def _finalize_chart(traces: list, layout: dict, p: dict, tab: str,
+                    mc_result: dict | None = None, mc_premium: bool = True
+                    ) -> tuple[go.Figure, dict | None]:
+    """Shared chart finalization: legend, typography, MC premium, annotations, watermark."""
+    layout["showlegend"] = bool(p.get("show_legend", True))
+    leg_pos = p.get("legend_pos", "outside")
+    if leg_pos != "outside" and leg_pos in _MC_LEGEND_POS:
+        pos = _MC_LEGEND_POS[leg_pos]
+        layout["legend"].update(
+            x=pos["x"], y=pos["y"],
+            xanchor=pos["xanchor"], yanchor=pos["yanchor"],
+            bgcolor="rgba(255,255,255,0.7)",
+        )
+    _apply_sans_typography(layout)
+    fig = go.Figure(data=traces, layout=go.Layout(**layout))
+    show_qr = p.get("show_qr", True)
+    show_mc = p.get("show_mc", bool(p.get("mc_enabled")))
+    if mc_premium and p.get("mc_enabled"):
+        _apply_mc_premium(fig, legend_pos=None, hide_xlabel=True)
+    _apply_config_annotation(fig, p, tab, show_qr=show_qr, show_mc=show_mc)
+    wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
+    _apply_watermark(fig, pos=wm_pos)
+    return fig, mc_result
+
+
 def _price_tickvals(y_lo, y_hi):
     """Decade tick values for a log price y-axis."""
     decades = [0.01, 0.1, 1, 10, 100, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8]
@@ -1518,25 +1543,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                 break
     traces.extend(_resolve_edge_annotations(_pending_annots, _is_log))
 
-    layout["showlegend"] = bool(p.get("show_legend", True))
-    leg_pos = p.get("legend_pos", "outside")
-    if leg_pos != "outside" and leg_pos in _MC_LEGEND_POS:
-        pos = _MC_LEGEND_POS[leg_pos]
-        layout["legend"].update(
-            x=pos["x"], y=pos["y"],
-            xanchor=pos["xanchor"], yanchor=pos["yanchor"],
-            bgcolor="rgba(255,255,255,0.7)",
-        )
-    _apply_sans_typography(layout)
-    fig = go.Figure(data=traces, layout=go.Layout(**layout))
-    show_qr = p.get("show_qr", True)
-    show_mc = p.get("show_mc", bool(p.get("mc_enabled")))
-    if p.get("mc_enabled"):
-        _apply_mc_premium(fig, legend_pos=None, hide_xlabel=True)
-    _apply_config_annotation(fig, p, "dca", show_qr=show_qr, show_mc=show_mc)
-    wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
-    _apply_watermark(fig, pos=wm_pos)
-    return fig, mc_result
+    return _finalize_chart(traces, layout, p, "dca", mc_result)
 
 
 # Re-export from _app_ctx for backward compat (used by chart builders and callbacks)
@@ -1729,26 +1736,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             break
     traces.extend(_resolve_edge_annotations(_pending_annots, _is_log))
 
-    layout["showlegend"] = bool(p.get("show_legend", True))
-    # Legend position — user-selectable
-    leg_pos = p.get("legend_pos", "outside")
-    if leg_pos != "outside" and leg_pos in _MC_LEGEND_POS:
-        pos = _MC_LEGEND_POS[leg_pos]
-        layout["legend"].update(
-            x=pos["x"], y=pos["y"],
-            xanchor=pos["xanchor"], yanchor=pos["yanchor"],
-            bgcolor="rgba(255,255,255,0.7)",
-        )
-    _apply_sans_typography(layout)
-    fig = go.Figure(data=traces, layout=go.Layout(**layout))
-    show_qr = p.get("show_qr", True)
-    show_mc = p.get("show_mc", bool(p.get("mc_enabled")))
-    if p.get("mc_enabled"):
-        _apply_mc_premium(fig, legend_pos=None, hide_xlabel=True)
-    _apply_config_annotation(fig, p, "ret", show_qr=show_qr, show_mc=show_mc)
-    wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
-    _apply_watermark(fig, pos=wm_pos)
-    return fig, mc_result
+    return _finalize_chart(traces, layout, p, "ret", mc_result)
 
 
 # ── HODL Supercharger ─────────────────────────────────────────────────────────
@@ -2058,24 +2046,8 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 break
         traces.extend(_resolve_edge_annotations(_pending_annots, _sc_log))
 
-        layout["shapes"]     = shapes
-        layout["showlegend"] = show_legend
-        leg_pos = p.get("legend_pos", "outside")
-        if leg_pos != "outside" and leg_pos in _MC_LEGEND_POS:
-            pos = _MC_LEGEND_POS[leg_pos]
-            layout["legend"].update(
-                x=pos["x"], y=pos["y"],
-                xanchor=pos["xanchor"], yanchor=pos["yanchor"],
-                bgcolor="rgba(255,255,255,0.7)",
-            )
-        _apply_sans_typography(layout)
-        fig = go.Figure(data=traces, layout=go.Layout(**layout))
-        show_qr = p.get("show_qr", True)
-        show_mc = p.get("show_mc", bool(p.get("mc_enabled")))
-        _apply_config_annotation(fig, p, "sc", show_qr=show_qr, show_mc=show_mc)
-        wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
-        _apply_watermark(fig, pos=wm_pos)
-        return fig, mc_result
+        layout["shapes"] = shapes
+        return _finalize_chart(traces, layout, p, "sc", mc_result, mc_premium=False)
 
     # ── MODE B: fixed depletion date → max withdrawal per period ──────────────
     else:
@@ -2173,19 +2145,4 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
         xlabel=xlabel,
         ylabel=f"Max withdrawal{freq_label}",
     )
-    layout["showlegend"] = show_legend
-    leg_pos = p.get("legend_pos", "outside")
-    if leg_pos != "outside" and leg_pos in _MC_LEGEND_POS:
-        pos = _MC_LEGEND_POS[leg_pos]
-        layout["legend"].update(
-            x=pos["x"], y=pos["y"],
-            xanchor=pos["xanchor"], yanchor=pos["yanchor"],
-            bgcolor="rgba(255,255,255,0.7)",
-        )
-    _apply_sans_typography(layout)
-    fig = go.Figure(data=traces, layout=go.Layout(**layout))
-    show_qr = p.get("show_qr", True)
-    _apply_config_annotation(fig, p, "sc", show_qr=show_qr, show_mc=False)
-    wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
-    _apply_watermark(fig, pos=wm_pos)
-    return fig, None
+    return _finalize_chart(traces, layout, p, "sc", mc_premium=False)

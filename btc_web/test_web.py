@@ -589,9 +589,9 @@ class TestBuildMcParams:
         """All-None inputs → tab defaults."""
         d = _build_mc_params(
             mc_enable=True, mc_amount=None, mc_infl=None,
-            mc_bins=None, mc_sims=None, mc_years=None,
-            mc_freq=None, mc_window=None,
-            mc_start_yr=None, mc_entry_q=None,
+            mc_bins=5, mc_sims=800, mc_years=10,
+            mc_freq="Monthly", mc_window=None,
+            mc_start_yr=2026, mc_entry_q=50,
             mc_cached=None, mc_live_price=0,
         )
         assert d["mc_enabled"] is True
@@ -609,11 +609,11 @@ class TestBuildMcParams:
         """Tab-specific defaults override generic defaults."""
         d = _build_mc_params(
             mc_enable=False, mc_amount=None, mc_infl=None,
-            mc_bins=None, mc_sims=None, mc_years=None,
-            mc_freq=None, mc_window=None,
-            mc_start_yr=None, mc_entry_q=None,
+            mc_bins=5, mc_sims=800, mc_years=10,
+            mc_freq="Monthly", mc_window=None,
+            mc_start_yr=2031, mc_entry_q=50,
             mc_cached=None, mc_live_price=0,
-            amount_default=5000, infl_default=0.0, start_yr_default=2031,
+            amount_default=5000, infl_default=0.0,
         )
         assert d["mc_amount"] == 5000
         assert d["mc_infl"] == 0.0
@@ -1594,14 +1594,14 @@ class TestPathKeyBlockedBins:
         p = {"mc_bins": 5, "mc_sims": 800, "mc_years": 10,
              "mc_freq": "Monthly", "mc_start_yr": 2026, "mc_entry_q": 50}
         key = _mc_path_key(p, "dca")
-        assert key["mc_blocked_bins"] == ()
+        assert key["mc_blocked_bins"] == []
 
     def test_blocked_in_key(self):
         p = {"mc_bins": 5, "mc_sims": 800, "mc_years": 10,
              "mc_freq": "Monthly", "mc_start_yr": 2026, "mc_entry_q": 50,
              "mc_blocked_bins": [4, 0]}
         key = _mc_path_key(p, "dca")
-        assert key["mc_blocked_bins"] == (0, 4)  # sorted
+        assert key["mc_blocked_bins"] == [0, 4]  # sorted
 
     def test_different_blocked_different_keys(self):
         base = {"mc_bins": 5, "mc_sims": 800, "mc_years": 10,
@@ -1618,42 +1618,41 @@ class TestPathKeyBlockedBins:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class TestGhostBuildTraces:
-    """Test _mc_build_ghost_traces produces correct trace structure."""
+    """Test _mc_build_traces with ghost parameters produces correct trace structure."""
+
+    def _ghost(self, ts, fan, **kw):
+        from mc_overlay import _mc_build_traces, _GHOST_BANDS
+        return _mc_build_traces(ts, fan, bands=_GHOST_BANDS, suppress_legend=True, **kw)
 
     def test_returns_traces_for_valid_fan(self):
-        from mc_overlay import _mc_build_ghost_traces
         ts = np.linspace(10, 20, 50)
         fan = {p: np.random.rand(50) * 100 for p in (0.01, 0.05, 0.25, 0.50, 0.75, 0.95)}
-        traces = _mc_build_ghost_traces(ts, fan)
+        traces = self._ghost(ts, fan)
         # 3 bands × 2 traces each + 1 median = 7
         assert len(traces) == 7
 
     def test_no_median_when_disabled(self):
-        from mc_overlay import _mc_build_ghost_traces
         ts = np.linspace(10, 20, 50)
         fan = {p: np.random.rand(50) * 100 for p in (0.01, 0.05, 0.25, 0.50, 0.75, 0.95)}
-        traces = _mc_build_ghost_traces(ts, fan, show_median=False)
+        traces = self._ghost(ts, fan, show_median=False)
         assert len(traces) == 6  # 3 bands × 2, no median
 
     def test_empty_fan_returns_empty(self):
-        from mc_overlay import _mc_build_ghost_traces
         ts = np.linspace(10, 20, 50)
-        traces = _mc_build_ghost_traces(ts, {})
+        traces = self._ghost(ts, {})
         assert traces == []
 
     def test_ghost_traces_have_no_legend(self):
-        from mc_overlay import _mc_build_ghost_traces
         ts = np.linspace(10, 20, 50)
         fan = {p: np.random.rand(50) * 100 for p in (0.01, 0.05, 0.25, 0.50, 0.75, 0.95)}
-        traces = _mc_build_ghost_traces(ts, fan)
+        traces = self._ghost(ts, fan)
         for t in traces:
             assert t.showlegend is False
 
     def test_median_is_dashed(self):
-        from mc_overlay import _mc_build_ghost_traces
         ts = np.linspace(10, 20, 50)
         fan = {p: np.random.rand(50) * 100 for p in (0.01, 0.05, 0.25, 0.50, 0.75, 0.95)}
-        traces = _mc_build_ghost_traces(ts, fan)
+        traces = self._ghost(ts, fan)
         median_trace = traces[-1]
         assert median_trace.line.dash == "dash"
 
@@ -1861,7 +1860,7 @@ class TestBuildMcParamsAllUnchecked:
             mc_cached=None, mc_live_price=0,
             mc_regime=[],   # all unchecked
         )
-        assert p["mc_blocked_bins"] == ()
+        assert p["mc_blocked_bins"] == []
 
     def test_single_bin_regime_allowed(self):
         from callbacks import _build_mc_params
@@ -1872,7 +1871,7 @@ class TestBuildMcParamsAllUnchecked:
             mc_cached=None, mc_live_price=0,
             mc_regime=[2],   # only bin 2 allowed
         )
-        assert p["mc_blocked_bins"] == (0, 1, 3, 4)
+        assert p["mc_blocked_bins"] == [0, 1, 3, 4]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2495,7 +2494,7 @@ class TestUpdateHeatmapCallback:
                 mc_freq="Monthly", mc_window=[2010, yr],
                 mc_start_yr=yr, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
-                live_price=0, mc_cached=None, pay_token=None,
+                live_price=0, mc_cached=None, pay_token=None, mc_auth=None,
             )
         # Returns 9 outputs: qr_fig, mc_fig, store, status, panel_style, indicator_style, rendered_key, modal, tab
         assert len(result) == 9
@@ -2516,7 +2515,7 @@ class TestUpdateHeatmapCallback:
                     mc_freq="Monthly", mc_window=None,
                     mc_start_yr=2025, mc_entry_q=50,
                     _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
-                    live_price=0, mc_cached=None, pay_token=None,
+                    live_price=0, mc_cached=None, pay_token=None, mc_auth=None,
                 )
 
 
@@ -2540,7 +2539,7 @@ class TestUpdateDcaCallback:
                 mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
-                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
+                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         # 7 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked
         assert len(result) == 7
@@ -2562,7 +2561,7 @@ class TestUpdateDcaCallback:
                     mc_window=None,
                     mc_start_yr=2026, mc_entry_q=50,
                     _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
-                    price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
+                    price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
                 )
 
     def test_with_sc_enabled(self):
@@ -2581,7 +2580,7 @@ class TestUpdateDcaCallback:
                 mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
-                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
+                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         assert isinstance(result[0], go.Figure)
 
@@ -2601,7 +2600,7 @@ class TestUpdateDcaCallback:
                 mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
-                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
+                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         assert isinstance(result[0], go.Figure)
 
@@ -2623,7 +2622,7 @@ class TestUpdateRetireCallback:
                 mc_window=None,
                 mc_start_yr=2031, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
-                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
+                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         # 7 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked
         assert len(result) == 7
@@ -2649,9 +2648,9 @@ class TestUpdateSuperchargeCallback:
                 mc_window=None,
                 mc_start_yr=2031, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
-                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
+                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
-        assert len(result) == 6
+        assert len(result) == 7
         assert isinstance(result[0], go.Figure)
 
     def test_mode_b(self):
@@ -2668,7 +2667,7 @@ class TestUpdateSuperchargeCallback:
                 mc_window=None,
                 mc_start_yr=2031, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
-                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
+                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         assert isinstance(result[0], go.Figure)
 
@@ -3339,6 +3338,231 @@ class TestPriceCache:
         assert result == 99999.0
         # Cleanup
         _price_cache.update({"price": None, "ts": 0})
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section 10: MC stale mode & restore tests (P-6)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestMcStaleMode:
+    """Verify stale mode keeps cached overlay when MC params change."""
+
+    # Non-free-tier params (entry_q=50 breaks free tier which requires 10)
+    CACHED = {
+        "path_key": {
+            "tab": "dca", "mc_years": 10, "mc_start_yr": 2031,
+            "mc_entry_q": 50.0, "mc_bins": 5, "mc_sims": 100,
+            "mc_freq": "Monthly", "mc_window": None,
+            "mc_blocked_bins": [],
+        },
+    }
+
+    def test_stale_returns_mc_ok_true(self):
+        """Changing mc_years triggers stale mode — mc_ok still True."""
+        from callbacks import _mc_setup
+        with _patch_ctx("dca-mc-years"):
+            mc_ok, is_free, mc_p, blocked = _mc_setup(
+                tab="dca", mc_enable=[True],
+                mc_years=20,          # changed from cached 10
+                mc_start_yr=2031, mc_entry_q=50.0,
+                mc_bins=5, mc_sims=100, mc_freq="Monthly",
+                mc_window=None, mc_amount=100, mc_infl=4,
+                mc_cached=self.CACHED, live_price=100000,
+                mc_regime=None, mc_unblocked=None, pay_token=None,
+            )
+        assert mc_ok is True
+        assert mc_p.get("mc_stale") is True
+        # mc_p should use CACHED values, not the changed input
+        assert mc_p["mc_years"] == 10
+
+    def test_stale_not_triggered_without_cache(self):
+        """No cached data → stale mode does not activate."""
+        from callbacks import _mc_setup
+        with _patch_ctx("dca-mc-years"):
+            mc_ok, is_free, mc_p, blocked = _mc_setup(
+                tab="dca", mc_enable=[True],
+                mc_years=20, mc_start_yr=2031, mc_entry_q=50.0,
+                mc_bins=5, mc_sims=100, mc_freq="Monthly",
+                mc_window=None, mc_amount=100, mc_infl=4,
+                mc_cached=None, live_price=100000,
+                mc_regime=None, mc_unblocked=None, pay_token=None,
+            )
+        assert mc_ok is False
+        assert mc_p.get("mc_stale") is not True
+
+    def test_stale_wrong_tab_ignored(self):
+        """Cached data from a different tab should not trigger stale mode."""
+        from callbacks import _mc_setup
+        with _patch_ctx("ret-mc-years"):
+            mc_ok, is_free, mc_p, blocked = _mc_setup(
+                tab="ret",  # cache has tab="dca"
+                mc_enable=[True],
+                mc_years=20, mc_start_yr=2031, mc_entry_q=50.0,
+                mc_bins=5, mc_sims=100, mc_freq="Monthly",
+                mc_window=None, mc_amount=100, mc_infl=4,
+                mc_cached=self.CACHED, live_price=100000,
+                mc_regime=None, mc_unblocked=None, pay_token=None,
+            )
+        assert mc_ok is False
+        assert mc_p.get("mc_stale") is not True
+
+
+class TestMcRestore:
+    """Verify restore callback returns cached path_key values."""
+
+    def test_restore_returns_cached_params(self):
+        from callbacks import _restore_mc
+        cached = {
+            "path_key": {
+                "mc_years": 15, "mc_start_yr": 2028, "mc_entry_q": 25.0,
+                "mc_bins": 10, "mc_sims": 500, "mc_window": 4,
+            },
+        }
+        result = _restore_mc(1, cached)
+        assert result == (15, 2028, 25.0, 10, 500, 4)
+
+    def test_restore_no_cache_returns_no_update(self):
+        import dash
+        from callbacks import _restore_mc
+        result = _restore_mc(1, None)
+        assert result == [dash.no_update] * 6
+
+    def test_restore_no_path_key_returns_no_update(self):
+        import dash
+        from callbacks import _restore_mc
+        result = _restore_mc(1, {"some_data": True})
+        assert result == [dash.no_update] * 6
+
+
+class TestMcFinalizeStale:
+    """Verify _mc_finalize with mc_stale=True skips ghost cache update."""
+
+    def test_stale_skips_unblocked_update(self):
+        import dash
+        from callbacks import _mc_finalize
+        import plotly.graph_objects as go
+        fig = go.Figure()
+        result = _mc_finalize(
+            tab="dca", fig=fig, mc_result=None, mc_cached=None,
+            mc_enable=[True], mc_ok=True, is_free=False,
+            blocked=(), mc_years=10, mc_start_yr=2031, mc_entry_q=10.0,
+            toggles=[], has_rendered_key=True, mc_stale=True,
+        )
+        # result = (fig, store_val, status, rendered_key, show_modal, ub_val)
+        ub_val = result[5]
+        assert ub_val is dash.no_update
+
+
+class TestMcPaymentCheckAuth:
+    """Verify _mc_payment_check check 2 uses mc_auth (rendered_key)."""
+
+    def test_auth_matching_rendered_key_passes(self):
+        """Matching rendered_key should authorize without payment."""
+        from callbacks import _mc_payment_check
+        with _patch_ctx("dca-toggles"):
+            result = _mc_payment_check(
+                "dca", mc_years=10, start_yr=2031, entry_q=50.0,
+                pay_token=None, mc_bins=5, mc_sims=100, mc_freq="Monthly",
+                mc_auth={"years": 10, "start_yr": 2031, "entry_q": 50.0,
+                         "bins": 5, "sims": 100, "freq": "Monthly"},
+            )
+        assert result is True
+
+    def test_auth_mismatched_years_fails(self):
+        """Different years in rendered_key should NOT authorize."""
+        from callbacks import _mc_payment_check
+        with _patch_ctx("dca-toggles"):
+            result = _mc_payment_check(
+                "dca", mc_years=20, start_yr=2031, entry_q=50.0,
+                pay_token=None, mc_bins=5, mc_sims=100, mc_freq="Monthly",
+                mc_auth={"years": 10, "start_yr": 2031, "entry_q": 50.0,
+                         "bins": 5, "sims": 100, "freq": "Monthly"},
+            )
+        assert result is False
+
+    def test_auth_none_rendered_key_fails(self):
+        """No rendered_key should fall through to button/payment check."""
+        from callbacks import _mc_payment_check
+        with _patch_ctx("dca-toggles"):
+            result = _mc_payment_check(
+                "dca", mc_years=10, start_yr=2031, entry_q=50.0,
+                pay_token=None, mc_bins=5, mc_sims=100, mc_freq="Monthly",
+                mc_auth=None,
+            )
+        assert result is False
+
+    def test_auth_sims_leq_passes(self):
+        """Rendered_key with sims <= requested sims should pass (downgrade ok)."""
+        from callbacks import _mc_payment_check
+        with _patch_ctx("dca-toggles"):
+            result = _mc_payment_check(
+                "dca", mc_years=10, start_yr=2031, entry_q=50.0,
+                pay_token=None, mc_bins=5, mc_sims=200, mc_freq="Monthly",
+                mc_auth={"years": 10, "start_yr": 2031, "entry_q": 50.0,
+                         "bins": 5, "sims": 100, "freq": "Monthly"},
+            )
+        assert result is True
+
+    def test_auth_sims_gt_fails(self):
+        """Rendered_key with sims > requested sims should fail (upgrade needs payment)."""
+        from callbacks import _mc_payment_check
+        with _patch_ctx("dca-toggles"):
+            result = _mc_payment_check(
+                "dca", mc_years=10, start_yr=2031, entry_q=50.0,
+                pay_token=None, mc_bins=5, mc_sims=50, mc_freq="Monthly",
+                mc_auth={"years": 10, "start_yr": 2031, "entry_q": 50.0,
+                         "bins": 5, "sims": 200, "freq": "Monthly"},
+            )
+        assert result is False
+
+    def test_auth_mismatched_bins_fails(self):
+        """Different bins should NOT authorize."""
+        from callbacks import _mc_payment_check
+        with _patch_ctx("dca-toggles"):
+            result = _mc_payment_check(
+                "dca", mc_years=10, start_yr=2031, entry_q=50.0,
+                pay_token=None, mc_bins=10, mc_sims=100, mc_freq="Monthly",
+                mc_auth={"years": 10, "start_yr": 2031, "entry_q": 50.0,
+                         "bins": 5, "sims": 100, "freq": "Monthly"},
+            )
+        assert result is False
+
+
+class TestMcFinalizeRenderedKey:
+    """Verify _mc_finalize rendered_key includes extended billing fields."""
+
+    def test_rendered_key_has_billing_fields(self):
+        from callbacks import _mc_finalize
+        import plotly.graph_objects as go
+        fig = go.Figure()
+        mc_p = {"mc_bins": 5, "mc_sims": 100, "mc_freq": "Monthly"}
+        result = _mc_finalize(
+            tab="dca", fig=fig, mc_result=None, mc_cached=None,
+            mc_enable=[True], mc_ok=True, is_free=False,
+            blocked=(), mc_years=10, mc_start_yr=2031, mc_entry_q=50.0,
+            toggles=[], has_rendered_key=True, mc_p=mc_p,
+        )
+        rendered_key = result[3]
+        assert rendered_key is not None
+        assert rendered_key["years"] == 10
+        assert rendered_key["start_yr"] == 2031
+        assert rendered_key["entry_q"] == 50.0
+        assert rendered_key["bins"] == 5
+        assert rendered_key["sims"] == 100
+        assert rendered_key["freq"] == "Monthly"
+
+    def test_rendered_key_none_when_not_ok(self):
+        from callbacks import _mc_finalize
+        import plotly.graph_objects as go
+        fig = go.Figure()
+        result = _mc_finalize(
+            tab="dca", fig=fig, mc_result=None, mc_cached=None,
+            mc_enable=[True], mc_ok=False, is_free=False,
+            blocked=(), mc_years=10, mc_start_yr=2031, mc_entry_q=50.0,
+            toggles=[], has_rendered_key=True,
+        )
+        rendered_key = result[3]
+        assert rendered_key is None
 
 
 if __name__ == "__main__":

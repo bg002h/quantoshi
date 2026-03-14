@@ -11,8 +11,6 @@ from __future__ import annotations
 
 import datetime
 from pathlib import Path
-from typing import Any
-
 import numpy as np
 import plotly.graph_objects as go
 
@@ -279,7 +277,7 @@ def _mc_path_key(p, tab):
         "mc_window": p.get("mc_window"),
         "mc_start_yr": int(p.get("mc_start_yr", MC_DEFAULT_START_YR)),
         "mc_entry_q": float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)),
-        "mc_blocked_bins": tuple(sorted(blocked)) if blocked else (),
+        "mc_blocked_bins": sorted(blocked) if blocked else [],
     }
 
 
@@ -358,7 +356,7 @@ def _mc_metadata(p, tab, mc_years=None):
             "n_sims": n_sims,
             "frequency": mc_freq,
             "window": list(mc_window) if mc_window else None,
-            "blocked_bins": list(p.get("mc_blocked_bins", ())),
+            "blocked_bins": list(p.get("mc_blocked_bins", [])),
             "amount": float(p.get("mc_amount", 0)),
             "inflation_pct": float(p.get("mc_infl", 0)),
             "start_stack_btc": float(p.get("mc_start_stack", 0)),
@@ -390,27 +388,40 @@ def _mc_paths_from_lists(lst):
 # Trace builders
 # ══════════════════════════════════════════════════════════════════════════════
 
+_MC_BANDS = [
+    (0.01, 0.95, "rgba(220,120,0,0.06)", "MC 1\u201395%"),
+    (0.05, 0.95, "rgba(220,120,0,0.10)", "MC 5\u201395%"),
+    (0.25, 0.75, "rgba(220,120,0,0.18)", "MC 25\u201375%"),
+]
+_GHOST_BANDS = [
+    (0.01, 0.95, "rgba(150,150,150,0.04)", "MC ref 1\u201395%"),
+    (0.05, 0.95, "rgba(150,150,150,0.08)", "MC ref 5\u201395%"),
+    (0.25, 0.75, "rgba(150,150,150,0.14)", "MC ref 25\u201375%"),
+]
+
+
 def _mc_build_traces(mc_ts, fan, extra_label="", show_median=True,
                      show_final_values=False, fan_usd=None,
-                     hide_5_95_legend=False):
-    """Build standard MC fan band traces from precomputed fan percentiles.
+                     hide_5_95_legend=False, bands=None,
+                     suppress_legend=False):
+    """Build MC fan band traces from precomputed fan percentiles.
 
-    fan_usd: if provided, use these values for legend final-value labels
-             (always show USD regardless of display mode).
+    bands: band definitions (default: _MC_BANDS). Pass _GHOST_BANDS for ghost.
+    suppress_legend: if True, hide all traces from legend (ghost mode).
+    fan_usd: if provided, use these values for legend final-value labels.
     hide_5_95_legend: if True, suppress 5-95% band from legend.
     """
+    if bands is None:
+        bands = _MC_BANDS
     lf = fan_usd if fan_usd is not None else fan  # legend fan
 
     traces = []
-    _MC_BANDS = [
-        (0.01, 0.95, "rgba(220,120,0,0.06)", "MC 1\u201395%"),
-        (0.05, 0.95, "rgba(220,120,0,0.10)", "MC 5\u201395%"),
-        (0.25, 0.75, "rgba(220,120,0,0.18)", "MC 25\u201375%"),
-    ]
-    for p_lo, p_hi, fill_color, label in _MC_BANDS:
+    for p_lo, p_hi, fill_color, label in bands:
+        if p_lo not in fan or p_hi not in fan:
+            continue
         is_5_95 = (p_lo == 0.05 and p_hi == 0.95)
-        show_leg = not (is_5_95 and hide_5_95_legend)
-        if show_final_values:
+        show_leg = not suppress_legend and not (is_5_95 and hide_5_95_legend)
+        if show_final_values and not suppress_legend:
             lo_final = fmt_price(float(lf[p_lo][-1])) if len(lf[p_lo]) > 0 else ""
             hi_final = fmt_price(float(lf[p_hi][-1])) if len(lf[p_hi]) > 0 else ""
             label = f"{label}  ({lo_final} \u2013 {hi_final})"
@@ -423,48 +434,20 @@ def _mc_build_traces(mc_ts, fan, extra_label="", show_median=True,
             mode="lines", line=dict(width=0), fill="tonexty",
             fillcolor=fill_color, name=label, showlegend=show_leg, hoverinfo="skip",
         ))
-    if show_median:
-        med_label = "MC median" + extra_label
-        if show_final_values and 0.50 in lf and len(lf[0.50]) > 0:
-            med_label += f"  \u2192  {fmt_price(float(lf[0.50][-1]))}"
+    if show_median and 0.50 in fan:
+        if suppress_legend:
+            med_label = "MC ref median"
+            med_color, med_width, med_dash = "rgba(150,150,150,0.4)", 1.2, "dash"
+        else:
+            med_label = "MC median" + extra_label
+            if show_final_values and 0.50 in lf and len(lf[0.50]) > 0:
+                med_label += f"  \u2192  {fmt_price(float(lf[0.50][-1]))}"
+            med_color, med_width, med_dash = "rgba(220,120,0,0.9)", 1.5, "dot"
         traces.append(go.Scatter(
             x=list(mc_ts), y=list(fan[0.50]),
             mode="lines", name=med_label,
-            line=dict(color="rgba(220,120,0,0.9)", width=1.5, dash="dot"),
-        ))
-    return traces
-
-
-def _mc_build_ghost_traces(mc_ts, fan, show_median=True):
-    """Build faded 'reference' fan traces for ghost overlay comparison.
-
-    Rendered behind the restricted fan to show what unrestricted simulation
-    looks like.  Gray tones, reduced opacity, dashed median.
-    """
-    traces = []
-    _GHOST_BANDS = [
-        (0.01, 0.95, "rgba(150,150,150,0.04)", "MC ref 1\u201395%"),
-        (0.05, 0.95, "rgba(150,150,150,0.08)", "MC ref 5\u201395%"),
-        (0.25, 0.75, "rgba(150,150,150,0.14)", "MC ref 25\u201375%"),
-    ]
-    for p_lo, p_hi, fill_color, label in _GHOST_BANDS:
-        if p_lo not in fan or p_hi not in fan:
-            continue
-        traces.append(go.Scatter(
-            x=list(mc_ts), y=list(fan[p_hi]),
-            mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip",
-        ))
-        traces.append(go.Scatter(
-            x=list(mc_ts), y=list(fan[p_lo]),
-            mode="lines", line=dict(width=0), fill="tonexty",
-            fillcolor=fill_color, name=label, showlegend=False, hoverinfo="skip",
-        ))
-    if show_median and 0.50 in fan:
-        traces.append(go.Scatter(
-            x=list(mc_ts), y=list(fan[0.50]),
-            mode="lines", name="MC ref median",
-            line=dict(color="rgba(150,150,150,0.4)", width=1.2, dash="dash"),
-            showlegend=False,
+            line=dict(color=med_color, width=med_width, dash=med_dash),
+            showlegend=not suppress_legend,
         ))
     return traces
 
@@ -490,7 +473,7 @@ def ghost_traces_from_params(p, x_end, disp_mode):
     clip_n = max(clip_n, 1)
     ct = ts[:clip_n]
     cf = {k: v[:clip_n] for k, v in fan.items()}
-    return _mc_build_ghost_traces(ct, cf)
+    return _mc_build_traces(ct, cf, bands=_GHOST_BANDS, suppress_legend=True)
 
 
 def _mc_depletion_annots(mc_ts, fan, mc_start_yr, mc_years, existing_count=0):
@@ -520,6 +503,40 @@ def _mc_depletion_annots(mc_ts, fan, mc_start_yr, mc_years, existing_count=0):
     return annots
 
 
+# ── Shared simulation helpers ─────────────────────────────────────────────────
+
+def _build_mc_timeline(p, m, mc_years, mc_dt, clamp_start=False):
+    """Build MC simulation timeline from params. Returns (start_yr, t_start, t_end, ts)."""
+    mc_start_yr = int(p.get("mc_start_yr", MC_DEFAULT_START_YR))
+    mc_t_start = yr_to_t(mc_start_yr, m.genesis)
+    if clamp_start:
+        mc_t_start = max(mc_t_start, 1.0)
+    mc_t_end = mc_t_start + mc_years
+    mc_ts = np.arange(mc_t_start, mc_t_end + mc_dt * 0.5, mc_dt)
+    return mc_start_yr, mc_t_start, mc_t_end, mc_ts
+
+
+def _prepare_sim(m, p, n_bins, step_days, mc_window, blocked, snap_grid=0):
+    """Build transition matrix and compute start percentile. Returns (trans, bin_edges, n_bins, start_pctile)."""
+    trans, bin_edges, n_bins = _get_transition_matrix(m, n_bins, step_days, mc_window)
+    if blocked:
+        trans = _apply_bin_mask(trans, blocked)
+    start_pctile = float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)) / 100.0
+    if snap_grid > 0:
+        start_pctile = round(start_pctile / snap_grid) * snap_grid
+    start_pctile = max(_PCTILE_MIN, min(start_pctile, _PCTILE_MAX))
+    if blocked:
+        start_pctile = _snap_start_pctile(start_pctile, bin_edges, blocked)
+    return trans, bin_edges, n_bins, start_pctile
+
+
+def _try_cached(p, mc_years, blocked):
+    """Check pre-computed path cache (skip when bins blocked). Returns paths or None."""
+    if not blocked:
+        return try_precomputed_paths(p, mc_years)
+    return None
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # DCA overlay
 # ══════════════════════════════════════════════════════════════════════════════
@@ -537,10 +554,7 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
     amount     = float(p.get("mc_amount", 100))
     n_bins, n_sims, mc_window, mc_freq, mc_ppy, mc_dt, step_days, mc_years = _mc_setup_vars(p)
 
-    mc_start_yr = int(p.get("mc_start_yr", MC_DEFAULT_START_YR))
-    mc_t_start  = yr_to_t(mc_start_yr, m.genesis)
-    mc_t_end    = mc_t_start + mc_years
-    mc_ts       = np.arange(mc_t_start, mc_t_end + mc_dt * 0.5, mc_dt)
+    mc_start_yr, mc_t_start, mc_t_end, mc_ts = _build_mc_timeline(p, m, mc_years, mc_dt)
 
     # Clip MC fan to DCA year range so off-screen points don't distort y-axis
     dca_t_end = ts[-1] if len(ts) > 0 else mc_t_end
@@ -557,7 +571,8 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
 
     # ── Check client-side cache ──────────────────────────────────────────
     cached = p.get("mc_cached")
-    if cached and cached.get("path_key") == path_key:
+    if (cached and cached.get("path_key") == path_key
+            and "price_paths" in cached):
         if cached.get("overlay_key") == overlay_key:
             fan_btc = _mc_fan_from_lists(cached["fan_btc"])
             fan_usd = _mc_fan_from_lists(cached["fan_usd"])
@@ -589,11 +604,8 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
         return _mc_build_traces(ct, cf, show_final_values=True, fan_usd=cf_usd), result, cf_usd
 
     # ── Check pre-computed path cache (skip when bins blocked) ──────────
-    blocked = p.get("mc_blocked_bins", ())
-    if not blocked:
-        cached_paths = try_precomputed_paths(p, mc_years)
-    else:
-        cached_paths = None
+    blocked = p.get("mc_blocked_bins", [])
+    cached_paths = _try_cached(p, mc_years, blocked)
     if cached_paths is not None:
         btc_paths, usd_paths = mc_dca(cached_paths, amount, start_stack)
         fan_btc = compute_fan_percentiles(btc_paths, _MC_FAN_PCTS)
@@ -604,18 +616,11 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
         return _mc_build_traces(ct, cf, show_final_values=True, fan_usd=cf_usd), None, cf_usd
 
     # ── Run full simulation ──────────────────────────────────────────────
-    trans, bin_edges, n_bins = _get_transition_matrix(m, n_bins, step_days, mc_window)
-    if blocked:
-        trans = _apply_bin_mask(trans, blocked)
-    n_steps = len(mc_ts)
-
-    start_pctile = float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)) / 100.0
-    start_pctile = max(_PCTILE_MIN, min(start_pctile, _PCTILE_MAX))
-    if blocked:
-        start_pctile = _snap_start_pctile(start_pctile, bin_edges, blocked)
+    trans, bin_edges, n_bins, start_pctile = _prepare_sim(
+        m, p, n_bins, step_days, mc_window, blocked)
 
     price_paths, _ = monte_carlo_prices(
-        trans, bin_edges, start_pctile, n_steps, n_sims,
+        trans, bin_edges, start_pctile, len(mc_ts), n_sims,
         m.qr_fits, m.genesis, mc_t_start, mc_dt,
     )
     btc_paths, usd_paths = mc_dca(price_paths, amount, start_stack)
@@ -663,10 +668,8 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
     inflation  = float(p.get("mc_infl", 4)) / 100.0
     n_bins, n_sims, mc_window, mc_freq, mc_ppy, mc_dt, step_days, mc_years = _mc_setup_vars(p)
 
-    mc_start_yr = int(p.get("mc_start_yr", 2031))
-    mc_t_start  = max(yr_to_t(mc_start_yr, m.genesis), 1.0)
-    mc_t_end    = mc_t_start + mc_years
-    mc_ts       = np.arange(mc_t_start, mc_t_end + mc_dt * 0.5, mc_dt)
+    mc_start_yr, mc_t_start, mc_t_end, mc_ts = _build_mc_timeline(
+        p, m, mc_years, mc_dt, clamp_start=True)
 
     mc_stack    = float(p.get("mc_start_stack", 1.0))
     path_key    = _mc_path_key(p, tab)
@@ -689,7 +692,8 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
 
     # ── Check client-side cache ──────────────────────────────────────────
     cached = p.get("mc_cached")
-    if cached and cached.get("path_key") == path_key:
+    if (cached and cached.get("path_key") == path_key
+            and "price_paths" in cached):
         if cached.get("overlay_key") == overlay_key:
             fan_btc = _mc_fan_from_lists(cached["fan_btc"])
             fan_usd = _mc_fan_from_lists(cached["fan_usd"])
@@ -722,7 +726,7 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
                              fan_usd=fan_usd)
 
     # ── Check pre-computed cache (skip when bins blocked) ───────────────
-    blocked = p.get("mc_blocked_bins", ())
+    blocked = p.get("mc_blocked_bins", [])
     if not blocked:
         fan_btc, fan_usd = try_precomputed_overlay(p, mc_years, wd_amount,
                                                     inflation, mc_stack)
@@ -732,10 +736,7 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
         fan = fan_usd if disp_mode == "usd" else fan_btc
         return _build_return(fan_btc, fan, "", fan_usd=fan_usd)
 
-    if not blocked:
-        cached_paths = try_precomputed_paths(p, mc_years)
-    else:
-        cached_paths = None
+    cached_paths = _try_cached(p, mc_years, blocked)
     if cached_paths is not None:
         btc_paths, usd_paths, depl_steps = mc_retire(
             cached_paths, mc_stack, wd_amount, inflation, mc_dt,
@@ -747,19 +748,11 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
         return _build_return(fan_btc, fan, _depl_extra(dstats), fan_usd=fan_usd)
 
     # ── Run full simulation ──────────────────────────────────────────────
-    trans, bin_edges, n_bins = _get_transition_matrix(m, n_bins, step_days, mc_window)
-    if blocked:
-        trans = _apply_bin_mask(trans, blocked)
-    n_steps = len(mc_ts)
-
-    start_pctile = float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)) / 100.0
-    start_pctile = round(start_pctile * 20) / 20
-    start_pctile = max(_PCTILE_MIN, min(start_pctile, _PCTILE_MAX))
-    if blocked:
-        start_pctile = _snap_start_pctile(start_pctile, bin_edges, blocked)
+    trans, bin_edges, n_bins, start_pctile = _prepare_sim(
+        m, p, n_bins, step_days, mc_window, blocked, snap_grid=0.05)
 
     price_paths, _ = monte_carlo_prices(
-        trans, bin_edges, start_pctile, n_steps, n_sims,
+        trans, bin_edges, start_pctile, len(mc_ts), n_sims,
         m.qr_fits, m.genesis, mc_t_start, mc_dt,
     )
     btc_paths, usd_paths, depl_steps = mc_retire(
@@ -768,7 +761,7 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
 
     fan_btc = compute_fan_percentiles(btc_paths, _MC_FAN_PCTS)
     fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
-    dstats = depletion_stats(depl_steps, n_steps, mc_dt, mc_t_start)
+    dstats = depletion_stats(depl_steps, len(mc_ts), mc_dt, mc_t_start)
     fan = fan_usd if disp_mode == "usd" else fan_btc
 
     result = {
@@ -861,7 +854,8 @@ def _mc_heatmap_overlay(m, p, ep, entry_t, eyrs):
 
     # ── Check client-side cache ───────────────────────────────────────────
     cached = p.get("mc_cached")
-    if cached and cached.get("path_key") == path_key:
+    if (cached and cached.get("path_key") == path_key
+            and "price_paths" in cached):
         price_paths = _mc_paths_from_lists(cached["price_paths"])
         cached_ts = np.array(cached["ts"])
         mc_cagr, mc_prices_arr, mc_mults = _compute_cagr_rows(price_paths, cached_ts)
@@ -879,28 +873,18 @@ def _mc_heatmap_overlay(m, p, ep, entry_t, eyrs):
         return mc_cagr, mc_prices_arr, mc_mults, mc_labels, result
 
     # ── Check pre-computed server-side path cache (skip when bins blocked) ─
-    blocked = p.get("mc_blocked_bins", ())
-    if not blocked:
-        cached_paths = try_precomputed_paths(p, mc_years)
-    else:
-        cached_paths = None
+    blocked = p.get("mc_blocked_bins", [])
+    cached_paths = _try_cached(p, mc_years, blocked)
     if cached_paths is not None:
         mc_cagr, mc_prices_arr, mc_mults = _compute_cagr_rows(cached_paths, mc_ts)
         return mc_cagr, mc_prices_arr, mc_mults, mc_labels, None
 
     # ── Run full simulation ──────────────────────────────────────────────
-    trans, bin_edges, n_bins = _get_transition_matrix(m, n_bins, step_days, mc_window)
-    if blocked:
-        trans = _apply_bin_mask(trans, blocked)
-    n_steps = len(mc_ts)
-
-    start_pctile = float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)) / 100.0
-    start_pctile = max(_PCTILE_MIN, min(start_pctile, _PCTILE_MAX))
-    if blocked:
-        start_pctile = _snap_start_pctile(start_pctile, bin_edges, blocked)
+    trans, bin_edges, n_bins, start_pctile = _prepare_sim(
+        m, p, n_bins, step_days, mc_window, blocked)
 
     price_paths, _ = monte_carlo_prices(
-        trans, bin_edges, start_pctile, n_steps, n_sims,
+        trans, bin_edges, start_pctile, len(mc_ts), n_sims,
         m.qr_fits, m.genesis, t_start, mc_dt,
     )
 

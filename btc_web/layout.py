@@ -1948,6 +1948,14 @@ _app_ctx.app.layout = dbc.Container([
                      style={"fontSize":"13px", "color":"#b8860b",
                             "textAlign":"center", "marginTop":"8px"}),
             html.Div(
+                html.A("\u2694\ufe0f Replay ceremony", href="#",
+                       id="replay-knight-link",
+                       style={"cursor": "pointer", "fontSize": "12px",
+                              "color": "#b8860b", "textDecoration": "none"}),
+                id="replay-knight-wrap",
+                style={"textAlign": "center", "marginTop": "4px",
+                       "display": "none"}),
+            html.Div(
                 dbc.Button("\u2694\ufe0f Accept Knighthood", id="onion-knight-btn",
                            color="warning", size="lg",
                            style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif",

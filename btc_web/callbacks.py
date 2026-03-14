@@ -2415,14 +2415,16 @@ _EGG_JS = """
                setTimeout: React re-renders modal children when is_open flips,
                so DOM manipulation must happen after React settles. */
             setTimeout(function() {
+                var _wfE = {};
+                try { _wfE = JSON.parse(localStorage.getItem("wizard-flags")) || {}; } catch(e) {}
                 var _kw = document.getElementById("onion-knight-wrap");
                 if (_kw) {
                     var _isOnion = location.hostname.endsWith(".onion");
                     var _isDevE = !_isOnion && location.hostname !== "quantoshi.xyz";
-                    var _wfE = {};
-                    try { _wfE = JSON.parse(localStorage.getItem("wizard-flags")) || {}; } catch(e) {}
                     _kw.style.display = ((_isOnion || _isDevE) && !_wfE.knighted) ? "block" : "none";
                 }
+                var _rk = document.getElementById("replay-knight-wrap");
+                if (_rk) _rk.style.display = _wfE.knighted ? "block" : "none";
             }, 200);
             return [true,
                     "\\u201cThe Times 03/Jan/2009 Chancellor on brink of second bailout for banks.\\u201d",
@@ -2493,6 +2495,22 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call="initial_duplicate",
 )
 
+
+# ── Replay knighting from easter egg panel ────────────────────────────────────
+_app_ctx.app.clientside_callback(
+    """
+    function(n) {
+        if (!n) return window.dash_clientside.no_update;
+        if (window._replayKnighting) {
+            setTimeout(function() { window._replayKnighting(); }, 400);
+        }
+        return false;
+    }
+    """,
+    Output("splash-modal", "is_open", allow_duplicate=True),
+    Input("replay-knight-link", "n_clicks"),
+    prevent_initial_call=True,
+)
 
 # ── LT-8c: Welcome message for returning knights ─────────────────────────────
 _app_ctx.app.clientside_callback(

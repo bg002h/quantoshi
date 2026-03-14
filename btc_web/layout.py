@@ -90,7 +90,7 @@ def _export_row(tab_id: str):
     return html.Div([
         dbc.Row([
             dbc.Col(dcc.Dropdown(
-                id=f"{tab_id}-fmt", options=["png","svg","jpeg","webp"], value="png",
+                id=f"{tab_id}-fmt", options=["png","svg","jpeg","webp","html"], value="png",
                 clearable=False, style={"minWidth": "90px"}), width="auto"),
             dbc.Col(dcc.Dropdown(
                 id=f"{tab_id}-scale",

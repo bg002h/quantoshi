@@ -2267,6 +2267,31 @@ for _tab_id, _graph_id in _EXPORT_TABS:
                     }}
                 }}
             }}
+            if ((fmt || 'png') === 'html') {{
+                var fn = (fname || '{_tab_id}') + '.html';
+                var html = '<!DOCTYPE html>\\n<html><head>'
+                    + '<meta charset="utf-8">'
+                    + '<title>' + fn + ' — Quantoshi</title>'
+                    + '<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"><\\/script>'
+                    + '<style>body{{margin:0;background:#1a1a2e}}'
+                    + '#chart{{width:100vw;height:100vh}}</style>'
+                    + '</head><body>'
+                    + '<div id="chart"></div><script>'
+                    + 'Plotly.newPlot("chart",'
+                    + JSON.stringify(fig.data) + ','
+                    + JSON.stringify(fig.layout) + ','
+                    + '{{responsive:true}});'
+                    + '<\\/script></body></html>';
+                var blob = new Blob([html], {{type: 'text/html'}});
+                var a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = fn;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+                return window.dash_clientside.no_update;
+            }}
             Plotly.downloadImage(fig, {{
                 format:   fmt   || 'png',
                 width:    1920,

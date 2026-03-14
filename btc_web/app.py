@@ -26,9 +26,7 @@ for _p in (_ROOT, _BTC_APP):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-import json
-import pandas as pd
-from functools import lru_cache
+from datetime import date
 
 import dash
 import dash_bootstrap_components as dbc
@@ -162,7 +160,7 @@ import callbacks  # noqa: F401 — registers all callbacks
 # Pre-warm LRU caches on worker startup
 # ══════════════════════════════════════════════════════════════════════════════
 def _prewarm_caches():
-    yr_now = pd.Timestamp.today().year
+    yr_now = date.today().year
 
     # Bubble (default: no quantiles, log-log, 3 future bubbles)
     _get_bubble_fig(dict(
@@ -235,7 +233,7 @@ _prewarm_caches()
 
 # Pre-warm default transition matrix
 if _HAS_MARKOV:
-    _get_transition_matrix(M, 5, 30, [2010, pd.Timestamp.today().year])
+    _get_transition_matrix(M, 5, 30, [2010, date.today().year])
 
 # ── Background MC figure prewarm (runs in each worker's first request) ───────
 def _prewarm_mc_caches():
@@ -243,7 +241,7 @@ def _prewarm_mc_caches():
     import logging as _log
     _log.getLogger(__name__).info("MC prewarm: starting background warm")
     from mc_cache import MC_FREE_SIMS, MC_FREE_START_YRS, MC_FREE_ENTRY_Q, MC_FREE_YEARS
-    yr_now = pd.Timestamp.today().year
+    yr_now = date.today().year
 
     def _mc_overrides(s_yr, mc_yrs):
         return dict(

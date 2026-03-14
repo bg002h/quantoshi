@@ -384,6 +384,22 @@ def _mc_paths_from_lists(lst):
     return np.array(lst, dtype=np.float32)
 
 
+def _build_mc_result(tab, path_key, overlay_key, mc_ts, price_paths,
+                     p, mc_years, **extras):
+    """Build standard MC result dict for client-side caching."""
+    d = {
+        "tab": tab,
+        "path_key": path_key,
+        "overlay_key": overlay_key,
+        "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "ts": [round(float(t), 6) for t in mc_ts],
+        "price_paths": _mc_paths_to_lists(price_paths),
+        "metadata": _mc_metadata(p, tab, mc_years),
+    }
+    d.update(extras)
+    return d
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Trace builders
 # ══════════════════════════════════════════════════════════════════════════════
@@ -537,6 +553,32 @@ def _try_cached(p, mc_years, blocked):
     return None
 
 
+def _check_client_cache(p, path_key):
+    """Check client-side MC cache for a path_key match.
+
+    Returns (cached_dict, True) on path_key hit, (None, False) on miss.
+    Caller checks overlay_key for full vs partial match.
+    """
+    cached = p.get("mc_cached")
+    if (cached and cached.get("path_key") == path_key
+            and "price_paths" in cached):
+        return cached, True
+    return None, False
+
+
+def _run_full_simulation(m, p, n_bins, step_days, mc_window, mc_ts,
+                         n_sims, mc_t_start, mc_dt, snap_grid=0):
+    """Run full MC simulation: build transition matrix + generate price paths."""
+    blocked = p.get("mc_blocked_bins", [])
+    trans, bin_edges, n_bins, start_pctile = _prepare_sim(
+        m, p, n_bins, step_days, mc_window, blocked, snap_grid=snap_grid)
+    price_paths, _ = monte_carlo_prices(
+        trans, bin_edges, start_pctile, len(mc_ts), n_sims,
+        m.qr_fits, m.genesis, mc_t_start, mc_dt,
+    )
+    return price_paths
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # DCA overlay
 # ══════════════════════════════════════════════════════════════════════════════
@@ -569,10 +611,9 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
     path_key    = _mc_path_key(p, "dca")
     overlay_key = _mc_overlay_key(p, "dca", start_stack)
 
-    # ── Check client-side cache ──────────────────────────────────────────
-    cached = p.get("mc_cached")
-    if (cached and cached.get("path_key") == path_key
-            and "price_paths" in cached):
+    # ── Level 1: Client-side cache ────────────────────────────────────────
+    cached, cache_hit = _check_client_cache(p, path_key)
+    if cache_hit:
         if cached.get("overlay_key") == overlay_key:
             fan_btc = _mc_fan_from_lists(cached["fan_btc"])
             fan_usd = _mc_fan_from_lists(cached["fan_usd"])
@@ -588,22 +629,17 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
         fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
         fan = fan_usd if disp_mode == "usd" else fan_btc
 
-        result = {
-            "tab": "dca",
-            "path_key": path_key,
-            "overlay_key": overlay_key,
-            "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "ts": cached["ts"],
-            "price_paths": cached["price_paths"],
-            "fan_btc": _mc_fan_to_lists(fan_btc),
-            "fan_usd": _mc_fan_to_lists(fan_usd),
-            "metadata": _mc_metadata(p, "dca", mc_years),
-        }
+        result = _build_mc_result("dca", path_key, overlay_key,
+                                  mc_ts, None, p, mc_years,
+                                  fan_btc=_mc_fan_to_lists(fan_btc),
+                                  fan_usd=_mc_fan_to_lists(fan_usd))
+        result["ts"] = cached["ts"]
+        result["price_paths"] = cached["price_paths"]
         ct, cf = _clip(mc_ts, fan)
         _, cf_usd = _clip(mc_ts, fan_usd)
         return _mc_build_traces(ct, cf, show_final_values=True, fan_usd=cf_usd), result, cf_usd
 
-    # ── Check pre-computed path cache (skip when bins blocked) ──────────
+    # ── Level 2: Pre-computed server cache ─────────────────────────────────
     blocked = p.get("mc_blocked_bins", [])
     cached_paths = _try_cached(p, mc_years, blocked)
     if cached_paths is not None:
@@ -615,31 +651,19 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
         _, cf_usd = _clip(mc_ts, fan_usd)
         return _mc_build_traces(ct, cf, show_final_values=True, fan_usd=cf_usd), None, cf_usd
 
-    # ── Run full simulation ──────────────────────────────────────────────
-    trans, bin_edges, n_bins, start_pctile = _prepare_sim(
-        m, p, n_bins, step_days, mc_window, blocked)
-
-    price_paths, _ = monte_carlo_prices(
-        trans, bin_edges, start_pctile, len(mc_ts), n_sims,
-        m.qr_fits, m.genesis, mc_t_start, mc_dt,
-    )
+    # ── Level 3: Full simulation ───────────────────────────────────────────
+    price_paths = _run_full_simulation(
+        m, p, n_bins, step_days, mc_window, mc_ts, n_sims, mc_t_start, mc_dt)
     btc_paths, usd_paths = mc_dca(price_paths, amount, start_stack)
 
     fan_btc = compute_fan_percentiles(btc_paths, _MC_FAN_PCTS)
     fan_usd = compute_fan_percentiles(usd_paths, _MC_FAN_PCTS)
     fan = fan_usd if disp_mode == "usd" else fan_btc
 
-    result = {
-        "tab": "dca",
-        "path_key": path_key,
-        "overlay_key": overlay_key,
-        "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "ts": [round(float(t), 6) for t in mc_ts],
-        "price_paths": _mc_paths_to_lists(price_paths),
-        "fan_btc": _mc_fan_to_lists(fan_btc),
-        "fan_usd": _mc_fan_to_lists(fan_usd),
-        "metadata": _mc_metadata(p, "dca", mc_years),
-    }
+    result = _build_mc_result("dca", path_key, overlay_key,
+                              mc_ts, price_paths, p, mc_years,
+                              fan_btc=_mc_fan_to_lists(fan_btc),
+                              fan_usd=_mc_fan_to_lists(fan_usd))
 
     ct, cf = _clip(mc_ts, fan)
     _, cf_usd = _clip(mc_ts, fan_usd)
@@ -690,10 +714,9 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
                                        existing_annot_count) if do_annot else []
         return traces, annots, result
 
-    # ── Check client-side cache ──────────────────────────────────────────
-    cached = p.get("mc_cached")
-    if (cached and cached.get("path_key") == path_key
-            and "price_paths" in cached):
+    # ── Level 1: Client-side cache ────────────────────────────────────────
+    cached, cache_hit = _check_client_cache(p, path_key)
+    if cache_hit:
         if cached.get("overlay_key") == overlay_key:
             fan_btc = _mc_fan_from_lists(cached["fan_btc"])
             fan_usd = _mc_fan_from_lists(cached["fan_usd"])
@@ -710,22 +733,17 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
         dstats = depletion_stats(depl_steps, len(mc_ts), mc_dt, mc_t_start)
         fan = fan_usd if disp_mode == "usd" else fan_btc
 
-        result = {
-            "tab": tab,
-            "path_key": path_key,
-            "overlay_key": overlay_key,
-            "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "ts": cached["ts"],
-            "price_paths": cached["price_paths"],
-            "fan_btc": _mc_fan_to_lists(fan_btc),
-            "fan_usd": _mc_fan_to_lists(fan_usd),
-            "depletion": dstats,
-            "metadata": _mc_metadata(p, tab, mc_years),
-        }
+        result = _build_mc_result(tab, path_key, overlay_key,
+                                  mc_ts, None, p, mc_years,
+                                  fan_btc=_mc_fan_to_lists(fan_btc),
+                                  fan_usd=_mc_fan_to_lists(fan_usd),
+                                  depletion=dstats)
+        result["ts"] = cached["ts"]
+        result["price_paths"] = cached["price_paths"]
         return _build_return(fan_btc, fan, _depl_extra(dstats), result,
                              fan_usd=fan_usd)
 
-    # ── Check pre-computed cache (skip when bins blocked) ───────────────
+    # ── Level 2: Pre-computed server cache ─────────────────────────────────
     blocked = p.get("mc_blocked_bins", [])
     if not blocked:
         fan_btc, fan_usd = try_precomputed_overlay(p, mc_years, wd_amount,
@@ -747,14 +765,10 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
         fan = fan_usd if disp_mode == "usd" else fan_btc
         return _build_return(fan_btc, fan, _depl_extra(dstats), fan_usd=fan_usd)
 
-    # ── Run full simulation ──────────────────────────────────────────────
-    trans, bin_edges, n_bins, start_pctile = _prepare_sim(
-        m, p, n_bins, step_days, mc_window, blocked, snap_grid=0.05)
-
-    price_paths, _ = monte_carlo_prices(
-        trans, bin_edges, start_pctile, len(mc_ts), n_sims,
-        m.qr_fits, m.genesis, mc_t_start, mc_dt,
-    )
+    # ── Level 3: Full simulation ───────────────────────────────────────────
+    price_paths = _run_full_simulation(
+        m, p, n_bins, step_days, mc_window, mc_ts, n_sims,
+        mc_t_start, mc_dt, snap_grid=0.05)
     btc_paths, usd_paths, depl_steps = mc_retire(
         price_paths, mc_stack, wd_amount, inflation, mc_dt,
     )
@@ -764,18 +778,11 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
     dstats = depletion_stats(depl_steps, len(mc_ts), mc_dt, mc_t_start)
     fan = fan_usd if disp_mode == "usd" else fan_btc
 
-    result = {
-        "tab": tab,
-        "path_key": path_key,
-        "overlay_key": overlay_key,
-        "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "ts": [round(float(t), 6) for t in mc_ts],
-        "price_paths": _mc_paths_to_lists(price_paths),
-        "fan_btc": _mc_fan_to_lists(fan_btc),
-        "fan_usd": _mc_fan_to_lists(fan_usd),
-        "depletion": dstats,
-        "metadata": _mc_metadata(p, tab, mc_years),
-    }
+    result = _build_mc_result(tab, path_key, overlay_key,
+                              mc_ts, price_paths, p, mc_years,
+                              fan_btc=_mc_fan_to_lists(fan_btc),
+                              fan_usd=_mc_fan_to_lists(fan_usd),
+                              depletion=dstats)
 
     return _build_return(fan_btc, fan, _depl_extra(dstats), result,
                          fan_usd=fan_usd)
@@ -852,52 +859,34 @@ def _mc_heatmap_overlay(m, p, ep, entry_t, eyrs):
 
     mc_labels = [f"MC P{int(pf*100)}%" for pf in _MC_FAN_PCTS]
 
-    # ── Check client-side cache ───────────────────────────────────────────
-    cached = p.get("mc_cached")
-    if (cached and cached.get("path_key") == path_key
-            and "price_paths" in cached):
+    # ── Level 1: Client-side cache ────────────────────────────────────────
+    cached, cache_hit = _check_client_cache(p, path_key)
+    if cache_hit:
         price_paths = _mc_paths_from_lists(cached["price_paths"])
         cached_ts = np.array(cached["ts"])
         mc_cagr, mc_prices_arr, mc_mults = _compute_cagr_rows(price_paths, cached_ts)
         if cached.get("overlay_key") == overlay_key:
             return mc_cagr, mc_prices_arr, mc_mults, mc_labels, None
-        result = {
-            "tab": "hm",
-            "path_key": path_key,
-            "overlay_key": overlay_key,
-            "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "ts": cached["ts"],
-            "price_paths": cached["price_paths"],
-            "metadata": _mc_metadata(p, "hm", mc_years),
-        }
+        result = _build_mc_result("hm", path_key, overlay_key,
+                                  mc_ts, None, p, mc_years)
+        result["ts"] = cached["ts"]
+        result["price_paths"] = cached["price_paths"]
         return mc_cagr, mc_prices_arr, mc_mults, mc_labels, result
 
-    # ── Check pre-computed server-side path cache (skip when bins blocked) ─
+    # ── Level 2: Pre-computed server cache ─────────────────────────────────
     blocked = p.get("mc_blocked_bins", [])
     cached_paths = _try_cached(p, mc_years, blocked)
     if cached_paths is not None:
         mc_cagr, mc_prices_arr, mc_mults = _compute_cagr_rows(cached_paths, mc_ts)
         return mc_cagr, mc_prices_arr, mc_mults, mc_labels, None
 
-    # ── Run full simulation ──────────────────────────────────────────────
-    trans, bin_edges, n_bins, start_pctile = _prepare_sim(
-        m, p, n_bins, step_days, mc_window, blocked)
-
-    price_paths, _ = monte_carlo_prices(
-        trans, bin_edges, start_pctile, len(mc_ts), n_sims,
-        m.qr_fits, m.genesis, t_start, mc_dt,
-    )
+    # ── Level 3: Full simulation ───────────────────────────────────────────
+    price_paths = _run_full_simulation(
+        m, p, n_bins, step_days, mc_window, mc_ts, n_sims, t_start, mc_dt)
 
     mc_cagr, mc_prices_arr, mc_mults = _compute_cagr_rows(price_paths, mc_ts)
 
-    result = {
-        "tab": "hm",
-        "path_key": path_key,
-        "overlay_key": overlay_key,
-        "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "ts": [round(float(t), 6) for t in mc_ts],
-        "price_paths": _mc_paths_to_lists(price_paths),
-        "metadata": _mc_metadata(p, "hm", mc_years),
-    }
+    result = _build_mc_result("hm", path_key, overlay_key,
+                              mc_ts, price_paths, p, mc_years)
 
     return mc_cagr, mc_prices_arr, mc_mults, mc_labels, result

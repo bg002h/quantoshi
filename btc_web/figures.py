@@ -7,14 +7,14 @@ and returns a go.Figure ready for dcc.Graph.
 # Sections:
 #   Imports & QR interpolation ..... ~1-48
 #   Shared constants ............... ~49-75
-#   Theme helpers .................. ~77-160
-#   Watermark & MC premium ......... ~162-278
-#   Color helpers .................. ~280-345
-#   Bubble + QR Overlay ............ ~347-560
-#   CAGR Heatmap ................... ~562-830
-#   DCA + Stack-celerator .......... ~832-1200
-#   Retirement ..................... ~1202-1465
-#   HODL Supercharger .............. ~1467-1865
+#   Theme helpers .................. ~77-220
+#   Watermark & MC premium ......... ~270-340
+#   Color helpers .................. ~340-400
+#   Bubble + QR Overlay ............ ~600-830
+#   CAGR Heatmap ................... ~833-1100
+#   DCA + Stack-celerator .......... ~1103-1260
+#   Retirement ..................... ~1658-1775
+#   HODL Supercharger .............. ~1776-2127
 
 from __future__ import annotations
 
@@ -131,6 +131,92 @@ def _error_figure(m, title):
 
 _LOG_MINOR = dict(showgrid=True, gridcolor="rgba(128,128,128,0.15)",
                   griddash="dot", gridwidth=0.5, dtick="D1")
+
+
+def _apply_log_y(layout, p):
+    """Apply log-Y axis settings when enabled."""
+    if p.get("log_y"):
+        layout["yaxis"]["type"] = "log"
+        layout["yaxis"]["dtick"] = 1
+        if p.get("minor_grid"):
+            layout["yaxis"]["minor"] = _LOG_MINOR
+
+
+def _stagger_depletion_annots(deplete_annots, layout):
+    """Sort depletion annotations by x and reassign stagger heights."""
+    if len(deplete_annots) > 1:
+        deplete_annots.sort(key=lambda a: a["x"])
+        for i, a in enumerate(deplete_annots):
+            a["ay"] = _ANNOT_STAGGER_Y[i % 3]
+        layout["annotations"] = deplete_annots
+
+
+def _build_freq_config(p):
+    """Extract frequency string, periods-per-year, and dt from params."""
+    freq_str = p.get("freq", "Monthly")
+    ppy = FREQ_PPY.get(freq_str, 12)
+    dt = 1.0 / ppy
+    return freq_str, ppy, dt
+
+
+def _build_time_array(p, m, default_syr, default_eyr):
+    """Extract freq config, build time series, validate year range.
+
+    Returns (syr, eyr, t_start, t_end, ts, dt, freq_str, ppy) or
+    (fig, None) tuple when year range is invalid.
+    """
+    freq_str, ppy, dt = _build_freq_config(p)
+    syr = int(p.get("start_yr", default_syr))
+    eyr = int(p.get("end_yr", default_eyr))
+    if eyr <= syr:
+        return _error_figure(m, "Set end year > start year"), None
+    t_start = max(yr_to_t(syr, m.genesis), 1.0)
+    t_end = yr_to_t(eyr, m.genesis)
+    ts = np.arange(t_start, t_end + dt * 0.5, dt)
+    if len(ts) == 0:
+        return go.Figure(), None
+    return syr, eyr, t_start, t_end, ts, dt, freq_str, ppy
+
+
+def _get_starting_stack(p, default=0.0):
+    """Extract starting stack, applying lots override if enabled."""
+    start_stack = float(p.get("start_stack", default))
+    lots = p.get("lots") or []
+    if p.get("use_lots") and lots:
+        result = leo_weighted_entry(lots)
+        if result:
+            start_stack = result[3]  # total_btc
+    return start_stack
+
+
+def _sim_layout(m, p, title, ylabel, ts, t_start, t_end, dt, syr, eyr, shapes=None):
+    """Build dark layout with time-series axis, log_y, tick labels."""
+    tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis,
+                                     minor_grid=p.get("minor_grid"))
+    layout = _dark_layout(m, title=title, xlabel="Year", ylabel=ylabel)
+    layout["yaxis"]["title"]["standoff"] = 5
+    _x_end = max(float(ts[-1]), t_end) + dt * 0.15
+    layout["xaxis"].update(
+        tickvals=tick_ts, ticktext=tick_lbls, tickangle=-45,
+        range=[t_start, _x_end],
+    )
+    _apply_log_y(layout, p)
+    layout["shapes"] = shapes or []
+    return layout, _x_end
+
+
+def _apply_mc_overlay(m, p, overlay_fn, overlay_args, traces,
+                      deplete_annots, layout, x_end, disp_mode):
+    """Integrate MC overlay traces and annotations into chart.
+    Returns (mc_traces_list, mc_result)."""
+    mc_traces_list, mc_annots, mc_result = overlay_fn(*overlay_args)
+    mc_traces_list = _post_mc_overlay(mc_traces_list, p, x_end, disp_mode)
+    traces.extend(mc_traces_list)
+    if mc_annots:
+        mc_annots = [a for a in mc_annots if a["x"] <= x_end]
+        deplete_annots.extend(mc_annots)
+        layout["annotations"] = deplete_annots
+    return mc_traces_list, mc_result
 
 
 def _dark_layout(m, title, xlabel, ylabel, **kwargs):
@@ -486,7 +572,9 @@ def _seg_colorscale(mc, b1, b2, c_lo, c_mid1, c_mid2, c_hi):
     mn, mx = float(mc.min()), float(mc.max())
     if mx - mn < 1e-9:
         return [[0.0, c_mid1], [1.0, c_mid1]], mn, mx
-    # anchor points at breakpoints (normalised 0-1)
+    # Build piecewise-linear color ramp: anchor points at breakpoints b1/b2,
+    # normalised to [0,1] within [mn, mx]. _lerp_hex interpolates between
+    # adjacent anchors; _dense_colorscale samples the resulting ramp at 256 pts.
     anchors = [(0.0, c_lo if mn <= b1 else (c_mid1 if mn <= b2 else c_mid2))]
     if mn < b1 < mx:
         anchors.append(((b1 - mn) / (mx - mn), c_mid1))
@@ -736,6 +824,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
 
 def _hex_alpha(hex_color, alpha):
+    """Convert hex color + alpha float to an rgba() CSS string."""
     h = hex_color.lstrip("#")
     r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
     return f"rgba({r},{g},{b},{alpha})"
@@ -1092,6 +1181,9 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy):
                     if sc_rollover:
                         pass
                     else:
+                        # Sell BTC to repay principal. Tax is on capital gain
+                        # only: (sell_price - buy_price) per BTC. net_per_btc
+                        # is what you keep per BTC sold after tax on the gain.
                         gain_per_btc = max(price - ep, 0.0)
                         net_per_btc  = price - tax_rate * gain_per_btc
                         sc_stack    -= principal / net_per_btc
@@ -1153,6 +1245,61 @@ def _clip_mc_traces(mc_traces, x_max):
             tr.y = list(np.asarray(tr.y, dtype=float)[:n])
         clipped.append(tr)
     return clipped
+
+
+def _post_mc_overlay(mc_traces, p, x_end, disp_mode):
+    """Prepend ghost fan traces and clip to visible chart range."""
+    ghost = ghost_traces_from_params(p, x_end, disp_mode)
+    return _clip_mc_traces(ghost + mc_traces, x_end)
+
+
+def _find_mc_median_trace(mc_traces):
+    """Find the dotted MC median trace. Returns (x_list, y_list) or (None, None)."""
+    for tr in mc_traces:
+        if getattr(getattr(tr, "line", None), "dash", None) != "dot":
+            continue
+        mx = list(tr.x) if tr.x is not None else []
+        my = list(tr.y) if tr.y is not None else []
+        if mx and my:
+            return mx, my
+    return None, None
+
+
+def _mc_median_annot(mc_traces, disp_mode, m, ts_end, t_start, t_end,
+                     syr, eyr, btc_fmt=".2f", estimate_usd=True):
+    """Build MC median edge annotation for Retire/SC tabs, or return None.
+
+    btc_fmt: format spec for BTC value (e.g. ".2f" for Retire, ".4f" for SC).
+    estimate_usd: if True (Retire), estimate USD from BTC via qr_price(Q50%).
+    """
+    mx, my = _find_mc_median_trace(mc_traces)
+    if mx is None:
+        return None
+    mc_y_final = float(my[-1])
+    if mc_y_final <= 0:
+        return None
+    if disp_mode == "usd":
+        mc_lbl = fmt_price(mc_y_final)
+        _mc_btc, _mc_usd = 0, mc_y_final
+    else:
+        if estimate_usd:
+            mc_t = np.array([max(float(mx[-1]), 0.5)])
+            _mc_usd = mc_y_final * float(qr_price(0.5, mc_t, m.qr_fits)[0])
+            mc_lbl = f"{mc_y_final:{btc_fmt}} \u20bf  {fmt_price(_mc_usd)}"
+        else:
+            mc_lbl = f"{mc_y_final:{btc_fmt}} \u20bf"
+            _mc_usd = 0
+        _mc_btc = mc_y_final
+    mc_x_last = float(mx[-1])
+    if mc_x_last < ts_end:
+        ann_yr = int(syr + (mc_x_last - t_start)
+                     / max(t_end - t_start, 1e-6) * (eyr - syr))
+        mc_lbl = f"\u2248{ann_yr}  {mc_lbl}"
+    return dict(
+        x_arr=mx, y_arr=my,
+        label=f"MC {mc_lbl}",
+        short_label=_fmt_short(_mc_btc, _mc_usd),
+        color="#F7931A", y_last=mc_y_final)
 
 
 def _fmt_short(btc, usd):
@@ -1354,26 +1501,12 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
             selected_qs, log_y, show_today,
             lots, use_lots
     """
-    freq_str = p.get("freq", "Monthly")
-    ppy  = FREQ_PPY.get(freq_str, 12)
-    dt   = 1.0 / ppy
-    syr  = int(p.get("start_yr", 2024))
-    eyr  = int(p.get("end_yr",   2035))
-    if eyr <= syr:
-        return _error_figure(m, "Set end year > start year"), None
+    ta = _build_time_array(p, m, 2024, 2035)
+    if ta[1] is None:
+        return ta[0], None
+    syr, eyr, t_start, t_end, ts, dt, freq_str, ppy = ta
 
-    t_start = max(yr_to_t(syr, m.genesis), 1.0)
-    t_end   = yr_to_t(eyr, m.genesis)
-    ts      = np.arange(t_start, t_end + dt * 0.5, dt)
-    if len(ts) == 0:
-        return go.Figure(), None
-
-    start_stack = float(p.get("start_stack", 0))
-    lots = p.get("lots") or []
-    if p.get("use_lots") and lots:
-        result = leo_weighted_entry(lots)
-        if result:
-            start_stack = result[3]  # total_btc
+    start_stack = _get_starting_stack(p, default=0)
 
     amount    = float(p.get("amount", 100))
     inflation = float(p.get("inflation", 0)) / 100.0
@@ -1420,9 +1553,6 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                 opacity=_TODAY_LINE_OPACITY,
             ))
 
-    tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis,
-                                     minor_grid=p.get("minor_grid"))
-
     # ── Total cost & value ratio ────────────────────────────────────────────
     n_periods = len(ts)
     total_spent = amount * n_periods
@@ -1438,24 +1568,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
         title_line += f"<br>QR median {fmt_price(_qr_med_final)}  ·  {roi:.1f}\u00d7"
 
     ylabel = "USD Value" if disp_mode == "usd" else "BTC Balance"
-    layout = _dark_layout(
-        m,
-        title=title_line,
-        xlabel="Year",
-        ylabel=ylabel,
-    )
-    layout["yaxis"]["title"]["standoff"] = 5
-    _x_end = max(float(ts[-1]), t_end) + dt * 0.15   # pad so edge annotations aren't clipped
-    layout["xaxis"].update(
-        tickvals=tick_ts, ticktext=tick_lbls, tickangle=-45,
-        range=[t_start, _x_end],
-    )
-    if p.get("log_y"):
-        layout["yaxis"]["type"] = "log"
-        layout["yaxis"]["dtick"] = 1  # decades only
-        if p.get("minor_grid"):
-            layout["yaxis"]["minor"] = _LOG_MINOR
-    layout["shapes"] = shapes
+    layout, _x_end = _sim_layout(m, p, title_line, ylabel, ts, t_start, t_end, dt, syr, eyr, shapes)
 
     # ── Stack-celerator overlay ─────────────────────────────────────────────
     all_sc_usd_vals = {}
@@ -1486,9 +1599,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     mc_traces = []
     if _HAS_MARKOV and p.get("mc_enabled"):
         mc_traces, mc_result, mc_fan_usd = _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode)
-        ghost = ghost_traces_from_params(p, _x_end, disp_mode)
-        mc_traces = ghost + mc_traces
-        mc_traces = _clip_mc_traces(mc_traces, _x_end)
+        mc_traces = _post_mc_overlay(mc_traces, p, _x_end, disp_mode)
         traces.extend(mc_traces)
         # MC median text trace annotation — collected into pending below
         # MC median final value + multiplier → append to title
@@ -1525,22 +1636,15 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     if p.get("annotate") and mc_fan_usd and 0.50 in mc_fan_usd:
         mc_med_usd = mc_fan_usd[0.50]
         if len(mc_med_usd) > 0:
-            for _mtr in mc_traces:
-                if getattr(getattr(_mtr, "line", None), "dash", None) != "dot":
-                    continue
-                _mx = list(_mtr.x) if _mtr.x is not None else []
-                _my = list(_mtr.y) if _mtr.y is not None else []
-                if _mx and _my:
-                    _mc_usd_f = float(mc_med_usd[-1])
-                    _mc_lbl = f"MC {fmt_price(_mc_usd_f)}"
-                    # MC BTC: if display is BTC, trace y is BTC; else estimate
-                    _mc_btc_f = float(_my[-1]) if disp_mode == "btc" else 0
-                    _pending_annots.append(dict(
-                        x_arr=_mx, y_arr=_my,
-                        label=_mc_lbl,
-                        short_label=_fmt_short(_mc_btc_f, _mc_usd_f),
-                        color=_BTC_ORANGE, y_last=float(_my[-1])))
-                break
+            _mx, _my = _find_mc_median_trace(mc_traces)
+            if _mx is not None:
+                _mc_usd_f = float(mc_med_usd[-1])
+                _mc_btc_f = float(_my[-1]) if disp_mode == "btc" else 0
+                _pending_annots.append(dict(
+                    x_arr=_mx, y_arr=_my,
+                    label=f"MC {fmt_price(_mc_usd_f)}",
+                    short_label=_fmt_short(_mc_btc_f, _mc_usd_f),
+                    color=_BTC_ORANGE, y_last=float(_my[-1])))
     traces.extend(_resolve_edge_annotations(_pending_annots, _is_log))
 
     return _finalize_chart(traces, layout, p, "dca", mc_result)
@@ -1559,26 +1663,12 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             disp_mode, selected_qs, log_y, annotate,
             lots, use_lots
     """
-    freq_str = p.get("freq", "Monthly")
-    ppy  = FREQ_PPY.get(freq_str, 12)
-    dt   = 1.0 / ppy
-    syr  = int(p.get("start_yr", 2025))
-    eyr  = int(p.get("end_yr",   2045))
-    if eyr <= syr:
-        return _error_figure(m, "Set end year > start year"), None
+    ta = _build_time_array(p, m, 2025, 2045)
+    if ta[1] is None:
+        return ta[0], None
+    syr, eyr, t_start, t_end, ts, dt, freq_str, ppy = ta
 
-    t_start = max(yr_to_t(syr, m.genesis), 1.0)
-    t_end   = yr_to_t(eyr, m.genesis)
-    ts      = np.arange(t_start, t_end + dt * 0.5, dt)
-    if len(ts) == 0:
-        return go.Figure(), None
-
-    start_stack = float(p.get("start_stack", 1.0))
-    lots = p.get("lots") or []
-    if p.get("use_lots") and lots:
-        result = leo_weighted_entry(lots)
-        if result:
-            start_stack = result[3]  # total_btc
+    start_stack = _get_starting_stack(p, default=1.0)
 
     wd_amount = float(p.get("wd_amount", 5000))
     inflation = float(p.get("inflation", 0)) / 100.0
@@ -1633,51 +1723,21 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
 
     shapes = []
 
-    tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis,
-                                     minor_grid=p.get("minor_grid"))
     ylabel = "USD Value" if disp_mode == "usd" else "BTC Remaining"
-    layout = _dark_layout(
-        m,
-        title=f"Bitcoin Retireator — {fmt_price(wd_amount)}/{freq_str.lower()[:-2] if freq_str.endswith('ly') else freq_str}",
-        xlabel="Year",
-        ylabel=ylabel,
-    )
-    layout["yaxis"]["title"]["standoff"] = 5
-    _x_end = max(float(ts[-1]), t_end) + dt * 0.15   # pad so edge annotations aren't clipped
-    layout["xaxis"].update(
-        tickvals=tick_ts, ticktext=tick_lbls, tickangle=-45,
-        range=[t_start, _x_end],
-    )
-    if p.get("log_y"):
-        layout["yaxis"]["type"] = "log"
-        layout["yaxis"]["dtick"] = 1  # decades only (drop 2× and 5×)
-        if p.get("minor_grid"):
-            layout["yaxis"]["minor"] = _LOG_MINOR
-    layout["shapes"]      = shapes
+    title = f"Bitcoin Retireator — {fmt_price(wd_amount)}/{freq_str.lower()[:-2] if freq_str.endswith('ly') else freq_str}"
+    layout, _x_end = _sim_layout(m, p, title, ylabel, ts, t_start, t_end, dt, syr, eyr, shapes)
     layout["annotations"] = deplete_annots
 
     # ── Monte Carlo fan overlay ─────────────────────────────────────────────
     mc_traces_list = []
     mc_result = None
     if _HAS_MARKOV and p.get("mc_enabled"):
-        mc_traces_list, mc_annots, mc_result = _mc_retire_overlay(
-            m, p, ts, t_start, t_end, dt,
-            start_stack, disp_mode, len(deplete_annots))
-        ghost = ghost_traces_from_params(p, _x_end, disp_mode)
-        mc_traces_list = ghost + mc_traces_list
-        mc_traces_list = _clip_mc_traces(mc_traces_list, _x_end)
-        traces.extend(mc_traces_list)
-        if mc_annots:
-            mc_annots = [a for a in mc_annots if a["x"] <= _x_end]
-            deplete_annots.extend(mc_annots)
-            layout["annotations"] = deplete_annots
+        mc_traces_list, mc_result = _apply_mc_overlay(
+            m, p, _mc_retire_overlay,
+            (m, p, ts, t_start, t_end, dt, start_stack, disp_mode, len(deplete_annots)),
+            traces, deplete_annots, layout, _x_end, disp_mode)
 
-    # Sort all depletion annotations by x and reassign stagger levels
-    if len(deplete_annots) > 1:
-        deplete_annots.sort(key=lambda a: a["x"])
-        for i, a in enumerate(deplete_annots):
-            a["ay"] = _ANNOT_STAGGER_Y[i % 3]
-        layout["annotations"] = deplete_annots
+    _stagger_depletion_annots(deplete_annots, layout)
 
     # ── Right-edge annotations (text traces for alignment stability) ─────────
     _is_log = bool(p.get("log_y"))
@@ -1704,36 +1764,10 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 color=col, y_last=float(all_y_vals[q][-1])))
 
         # MC median endpoint
-        for tr in mc_traces_list:
-            if getattr(getattr(tr, "line", None), "dash", None) != "dot":
-                continue
-            _mx = list(tr.x) if tr.x is not None else []
-            _my = list(tr.y) if tr.y is not None else []
-            if not _mx or not _my:
-                continue
-            mc_y_final = float(_my[-1])
-            if mc_y_final <= 0:
-                continue
-            if disp_mode == "usd":
-                mc_lbl = fmt_price(mc_y_final)
-                _mc_btc = 0
-                _mc_usd = mc_y_final
-            else:
-                mc_t = np.array([max(float(_mx[-1]), 0.5)])
-                _mc_usd = mc_y_final * float(qr_price(0.5, mc_t, m.qr_fits)[0])
-                mc_lbl = f"{mc_y_final:.2f} \u20bf  {fmt_price(_mc_usd)}"
-                _mc_btc = mc_y_final
-            mc_x_last = float(_mx[-1])
-            if mc_x_last < float(ts[-1]):
-                ann_yr = int(syr + (mc_x_last - t_start)
-                             / max(t_end - t_start, 1e-6) * (eyr - syr))
-                mc_lbl = f"\u2248{ann_yr}  {mc_lbl}"
-            _pending_annots.append(dict(
-                x_arr=_mx, y_arr=_my,
-                label=f"MC {mc_lbl}",
-                short_label=_fmt_short(_mc_btc, _mc_usd),
-                color="#F7931A", y_last=mc_y_final))
-            break
+        _mc_ann = _mc_median_annot(mc_traces_list, disp_mode, m,
+                                   float(ts[-1]), t_start, t_end, syr, eyr)
+        if _mc_ann:
+            _pending_annots.append(_mc_ann)
     traces.extend(_resolve_edge_annotations(_pending_annots, _is_log))
 
     return _finalize_chart(traces, layout, p, "ret", mc_result)
@@ -1756,9 +1790,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
     """
 
     mode         = p.get("mode", "a")
-    freq_str     = p.get("freq", "Monthly")
-    ppy          = FREQ_PPY.get(freq_str, 12)
-    dt           = 1.0 / ppy
+    freq_str, ppy, dt = _build_freq_config(p)
     syr          = int(p.get("start_yr", pd.Timestamp.today().year))
     inflation    = float(p.get("inflation", 4)) / 100.0
     chart_layout = int(p.get("chart_layout", 0))
@@ -1766,12 +1798,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
     show_legend  = bool(p.get("show_legend", True))
 
     # Starting stack (lots override)
-    start_stack = float(p.get("start_stack", 1.0))
-    lots = p.get("lots") or []
-    if p.get("use_lots") and lots:
-        result = leo_weighted_entry(lots)
-        if result:
-            start_stack = result[3]
+    start_stack = _get_starting_stack(p, default=1.0)
 
     # Quantiles
     sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])
@@ -1919,50 +1946,25 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                                                           len(deplete_annots)))
 
         t_start_base = max(yr_to_t(syr, m.genesis), 1.0)
-        tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis,
-                                         minor_grid=p.get("minor_grid"))
         ylabel = "USD Value" if disp_mode == "usd" else "BTC Remaining"
-        layout = _dark_layout(
-            m,
-            title=(f"HODL Supercharger \u2014 {fmt_price(wd_amount)}{freq_label} \u00b7 "
-                   f"Retire {syr}+ \u00b7 to {eyr}"),
-            xlabel="Year", ylabel=ylabel,
-        )
-        layout["xaxis"].update(
-            tickvals=tick_ts, ticktext=tick_lbls, tickangle=-45,
-            range=[t_start_base, t_end + dt * 0.15],
-        )
-        if p.get("log_y"):
-            layout["yaxis"]["type"] = "log"
-            if p.get("minor_grid"):
-                layout["yaxis"]["minor"] = _LOG_MINOR
+        sc_title = (f"HODL Supercharger \u2014 {fmt_price(wd_amount)}{freq_label} \u00b7 "
+                    f"Retire {syr}+ \u00b7 to {eyr}")
+        layout, _ = _sim_layout(m, p, sc_title, ylabel, np.array([t_end]),
+                                t_start_base, t_end, dt, syr, eyr)
         layout["annotations"] = deplete_annots
-        shapes = []
         # ── Monte Carlo fan overlay ───────────────────────────────────────────
         mc_traces_list = []
         mc_result = None
         if _HAS_MARKOV and p.get("mc_enabled"):
             t_start_base = max(yr_to_t(syr, m.genesis), 1.0)
-            mc_traces_list, mc_annots, mc_result = _mc_supercharge_overlay(
-                m, p, np.arange(t_start_base, t_end + dt * 0.5, dt),
-                t_start_base, t_end, dt, start_stack, disp_mode,
-                len(deplete_annots))
             _sc_x_end = layout["xaxis"]["range"][1]
-            ghost = ghost_traces_from_params(p, _sc_x_end, disp_mode)
-            mc_traces_list = ghost + mc_traces_list
-            mc_traces_list = _clip_mc_traces(mc_traces_list, _sc_x_end)
-            traces.extend(mc_traces_list)
-            if mc_annots:
-                mc_annots = [a for a in mc_annots if a["x"] <= _sc_x_end]
-                deplete_annots.extend(mc_annots)
-                layout["annotations"] = deplete_annots
+            mc_traces_list, mc_result = _apply_mc_overlay(
+                m, p, _mc_supercharge_overlay,
+                (m, p, np.arange(t_start_base, t_end + dt * 0.5, dt),
+                 t_start_base, t_end, dt, start_stack, disp_mode, len(deplete_annots)),
+                traces, deplete_annots, layout, _sc_x_end, disp_mode)
 
-        # Sort all depletion annotations by x and reassign stagger levels
-        if len(deplete_annots) > 1:
-            deplete_annots.sort(key=lambda a: a["x"])
-            for i, a in enumerate(deplete_annots):
-                a["ay"] = _ANNOT_STAGGER_Y[i % 3]
-            layout["annotations"] = deplete_annots
+        _stagger_depletion_annots(deplete_annots, layout)
 
         # ── Right-edge / endpoint value labels ─────────────────────────────
         # Use text traces (go.Scatter mode="markers+text") instead of
@@ -2017,36 +2019,13 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         label=lbl, short_label=_fmt_short(_sc_btc, _sc_usd),
                         color=col, y_last=y_final))
             # MC median endpoint
-            for tr in mc_traces_list:
-                if getattr(getattr(tr, "line", None), "dash", None) != "dot":
-                    continue
-                _mx = list(tr.x) if tr.x is not None else []
-                _my = list(tr.y) if tr.y is not None else []
-                if not _mx or not _my:
-                    continue
-                mc_y_final = float(_my[-1])
-                if mc_y_final <= 0:
-                    continue
-                if disp_mode == "usd":
-                    mc_lbl = fmt_price(mc_y_final)
-                    _mc_btc, _mc_usd = 0, mc_y_final
-                else:
-                    mc_lbl = f"{mc_y_final:.4f} \u20bf"
-                    _mc_btc, _mc_usd = mc_y_final, 0
-                mc_x_last = float(_mx[-1])
-                if mc_x_last < t_end:
-                    ann_yr = int(syr + (mc_x_last - t_start_base)
-                                 / max(t_end - t_start_base, 1e-6) * (eyr - syr))
-                    mc_lbl = f"\u2248{ann_yr}  {mc_lbl}"
-                _pending_annots.append(dict(
-                    x_arr=_mx, y_arr=_my,
-                    label=f"MC {mc_lbl}",
-                    short_label=_fmt_short(_mc_btc, _mc_usd),
-                    color="#F7931A", y_last=mc_y_final))
-                break
+            _mc_ann = _mc_median_annot(
+                mc_traces_list, disp_mode, m, t_end, t_start_base, t_end,
+                syr, eyr, btc_fmt=".4f", estimate_usd=False)
+            if _mc_ann:
+                _pending_annots.append(_mc_ann)
         traces.extend(_resolve_edge_annotations(_pending_annots, _sc_log))
 
-        layout["shapes"] = shapes
         return _finalize_chart(traces, layout, p, "sc", mc_result, mc_premium=False)
 
     # ── MODE B: fixed depletion date → max withdrawal per period ──────────────

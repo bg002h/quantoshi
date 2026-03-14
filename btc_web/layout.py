@@ -120,6 +120,27 @@ _LEGEND_POS_OPTIONS = [
     {"label": "Bottom-right",    "value": "bottom-right"},
 ]
 
+def _chart_toggles(prefix, defaults=None):
+    """Reusable chart toggle checklist (Log Y, Annotate, Legend, Minor grid, Zoom)."""
+    opts = [{"label": " Log Y", "value": "log_y"},
+            {"label": " Annotate final values", "value": "annotate"},
+            {"label": " Show legend", "value": "show_legend"},
+            {"label": html.Span(" Minor grid", className="minor-grid-opt"),
+             "value": "minor_grid"},
+            {"label": " Enable chart zoom", "value": "chart_zoom"}]
+    return dcc.Checklist(id=f"{prefix}-toggles", options=opts,
+                         value=defaults or [], labelStyle={"display": "block"},
+                         inputStyle={"marginRight": "5px"})
+
+
+def _btc_usd_dropdown(prefix, btc_label="BTC Balance", default="btc"):
+    """Reusable BTC/USD display mode dropdown."""
+    return dcc.Dropdown(id=f"{prefix}-disp",
+                        options=[{"label": btc_label, "value": "btc"},
+                                 {"label": "USD Value", "value": "usd"}],
+                        value=default, clearable=False)
+
+
 def _legend_pos_dropdown(prefix, default="outside"):
     """Legend position dropdown — reused across chart tabs."""
     return [_lbl("Legend position"),
@@ -671,6 +692,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
         _ph.append(html.Div(id=f"{prefix}-mc-run-status"))
         _ph.append(dcc.Store(id=f"{prefix}-mc-rendered-key", storage_type="memory"))
         _ph.append(html.Div(id=f"{prefix}-mc-match"))
+        _ph.append(dbc.Button(id=f"{prefix}-mc-restore-btn", style=_STYLE_HIDDEN))
         _ph.append(dcc.Upload(id=f"{prefix}-mc-upload"))
         _ph.append(html.Div(id=f"{prefix}-mc-upload-status"))
         _ph.append(dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now))
@@ -810,6 +832,11 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             html.Div(id=f"{prefix}-mc-match",
                      style={"fontSize": "10px", "marginTop": "4px",
                             "textAlign": "center"}),
+            dbc.Button("\u21a9 Restore last settings",
+                       id=f"{prefix}-mc-restore-btn",
+                       color="warning", size="sm", outline=True,
+                       className="w-100 mt-1",
+                       style=_STYLE_HIDDEN),
             html.Hr(className="my-2"),
             html.Div("Saved Simulation", className="ctrl-section-header"),
             html.Div(id=f"{prefix}-mc-status",
@@ -839,49 +866,55 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
 # Tab 3 — BTC Accumulator (DCA)
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _dca_controls():
-    yr_now = pd.Timestamp.today().year
-    return html.Div([
-        _tab_hints("dca"),
-        # ── Shared Settings (QR + MC) ───────────────────────────────
-        _shared_settings_card("dca", amount_id="dca-amount",
-                              amount_label="Per-period amount ($)",
-                              amount_default=100, infl_default=0, stack_default=0),
-        # ── Quantile Regression Model ──────────────────────────────
+def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
+                              shared_kwargs, mc_kwargs, yr_range,
+                              chart_toggle_defaults, btc_usd_kwargs=None,
+                              extra_sections=None):
+    """Shared builder for DCA (tab 3) and Retire (tab 4) controls."""
+    children = [
+        _tab_hints(tab_key),
+        _shared_settings_card(prefix, **shared_kwargs),
         _section_card("Quantile Regression Model",
-            html.Small("Select quantiles to follow.",
-                style=_STYLE_HINT),
-            html.Small("Price path drives sat accumulation \u2014 lower quantile = lower price = more sats/period.",
-                style=_STYLE_HINT),
-            dcc.Checklist(id="dca-qs", options=_q_options(),
-                          value=[0.5], className="q-panel-grid",
+            html.Small("Select quantiles to follow.", style=_STYLE_HINT),
+            html.Small(q_hint, style=_STYLE_HINT),
+            dcc.Checklist(id=f"{prefix}-qs", options=_q_options(),
+                          value=q_defaults, className="q-panel-grid",
                           inputStyle={"marginRight":"4px"}),
         ),
-        _stackcelerator_controls(),
-        _mc_controls("dca", amount_label="DCA amount per period ($)", amount_default=100,
-                     show_inflation=True, show_stack=True,
-                     show_mc_entry_q=True, default_entry_q=10,
-                     shared_controls={"amount", "infl", "freq", "stack"}),
-        # ── Chart ───────────────────────────────────────────────────────
+    ]
+    if extra_sections:
+        children.extend(extra_sections)
+    children.append(_mc_controls(prefix, **mc_kwargs))
+    yr_now = pd.Timestamp.today().year
+    children.append(
         _section_card("Chart Settings",
-            *_model_show_checklist("dca"),
+            *_model_show_checklist(prefix),
             _lbl("Year range"),
-            _year_range_slider("dca", 2009, 2080, yr_now, yr_now + 10),
-            dcc.Dropdown(id="dca-disp",
-                         options=[{"label":"BTC Balance","value":"btc"},
-                                  {"label":"USD Value","value":"usd"}],
-                         value="btc", clearable=False),
-            dcc.Checklist(id="dca-toggles",
-                          options=[{"label":" Log Y","value":"log_y"},
-                                   {"label":" Annotate final values","value":"annotate"},
-                                   {"label":" Show legend","value":"show_legend"},
-                                   {"label":html.Span(" Minor grid",className="minor-grid-opt"),"value":"minor_grid"},
-                                   {"label":" Enable chart zoom","value":"chart_zoom"}],
-                          value=["annotate"], labelStyle={"display":"block"},
-                          inputStyle={"marginRight":"5px"}),
-            *_legend_pos_dropdown("dca", "bottom-right"),
+            _year_range_slider(prefix, *yr_range),
+            _btc_usd_dropdown(prefix, **(btc_usd_kwargs or {})),
+            _chart_toggles(prefix, chart_toggle_defaults),
+            *_legend_pos_dropdown(prefix, "bottom-right"),
         ),
-    ])
+    )
+    return html.Div(children)
+
+
+def _dca_controls():
+    yr_now = pd.Timestamp.today().year
+    return _accum_withdraw_controls(
+        "dca", "dca",
+        q_hint="Price path drives sat accumulation \u2014 lower quantile = lower price = more sats/period.",
+        q_defaults=[0.5],
+        shared_kwargs=dict(amount_id="dca-amount", amount_label="Per-period amount ($)",
+                           amount_default=100, infl_default=0, stack_default=0),
+        mc_kwargs=dict(amount_label="DCA amount per period ($)", amount_default=100,
+                       show_inflation=True, show_stack=True,
+                       show_mc_entry_q=True, default_entry_q=10,
+                       shared_controls={"amount", "infl", "freq", "stack"}),
+        yr_range=(2009, 2080, yr_now, yr_now + 10),
+        chart_toggle_defaults=["annotate"],
+        extra_sections=[_stackcelerator_controls()],
+    )
 
 
 def _stackcelerator_controls():
@@ -926,7 +959,7 @@ def _stackcelerator_controls():
                       debounce=True),
             _lbl("Loan term (months)"),
             dbc.Input(id="dca-sc-term", type="number",
-                      value=12, min=1, max=360, step=1, size="sm",
+                      value=_app_ctx.SC_DEFAULT_TERM, min=1, max=360, step=1, size="sm",
                       debounce=True),
             _lbl("Additional loan cycles (0 = one loan)"),
             dbc.Input(id="dca-sc-repeats", type="number",
@@ -934,7 +967,7 @@ def _stackcelerator_controls():
                       debounce=True),
             _lbl("Capital gains tax on repayment (0–100%)"),
             dbc.Input(id="dca-sc-tax", type="number",
-                      value=33, min=0, max=99, step=0.5, size="sm",
+                      value=_app_ctx.SC_DEFAULT_TAX, min=0, max=99, step=0.5, size="sm",
                       debounce=True),
             html.Div(id="dca-sc-info",
                      style={"fontSize":"11px","color":"#555","marginTop":"4px"}),
@@ -951,46 +984,20 @@ def _dca_tab():
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _retire_controls():
-    yr_now = pd.Timestamp.today().year
-    return html.Div([
-        _tab_hints("retire"),
-        _shared_settings_card("ret", amount_id="ret-wd",
-                              amount_label="Withdrawal/period ($)",
-                              amount_default=5000, infl_default=4, stack_default=1.0),
-        _section_card("Quantile Regression Model",
-            html.Small("Select quantiles to follow.",
-                style=_STYLE_HINT),
-            html.Small("Lower quantile = lower price = faster depletion \u2014 worst-case planning.",
-                style=_STYLE_HINT),
-            dcc.Checklist(id="ret-qs", options=_q_options(),
-                          value=[0.01, 0.10, 0.25], className="q-panel-grid",
-                          inputStyle={"marginRight":"4px"}),
-        ),
-        _mc_controls("ret", amount_label="Withdrawal per period ($)", amount_default=5000,
-                     show_inflation=True, show_stack=True, default_entry_q=10,
-                     start_yr_label="Retirement start year",
-                     shared_controls={"amount", "infl", "freq", "stack"}),
-        # ── Chart ───────────────────────────────────────────────────────
-        _section_card("Chart Settings",
-            *_model_show_checklist("ret"),
-            _lbl("Year range"),
-            _year_range_slider("ret", 2024, 2080, 2031, 2075),
-            dcc.Dropdown(id="ret-disp",
-                         options=[{"label":"BTC Remaining","value":"btc"},
-                                  {"label":"USD Value","value":"usd"}],
-                         value="btc", clearable=False),
-            dcc.Checklist(id="ret-toggles",
-                          options=[{"label":" Log Y","value":"log_y"},
-                                   {"label":" Annotate final values","value":"annotate"},
-                                   {"label":" Show legend","value":"show_legend"},
-                                   {"label":html.Span(" Minor grid",className="minor-grid-opt"),"value":"minor_grid"},
-                                   {"label":" Enable chart zoom","value":"chart_zoom"}],
-                          value=["annotate","log_y","minor_grid"],
-                          labelStyle={"display":"block"},
-                          inputStyle={"marginRight":"5px"}),
-            *_legend_pos_dropdown("ret", "bottom-right"),
-        ),
-    ])
+    return _accum_withdraw_controls(
+        "ret", "retire",
+        q_hint="Lower quantile = lower price = faster depletion \u2014 worst-case planning.",
+        q_defaults=[0.01, 0.10, 0.25],
+        shared_kwargs=dict(amount_id="ret-wd", amount_label="Withdrawal/period ($)",
+                           amount_default=5000, infl_default=4, stack_default=1.0),
+        mc_kwargs=dict(amount_label="Withdrawal per period ($)", amount_default=5000,
+                       show_inflation=True, show_stack=True, default_entry_q=10,
+                       start_yr_label="Retirement start year",
+                       shared_controls={"amount", "infl", "freq", "stack"}),
+        yr_range=(2024, 2080, 2031, 2075),
+        chart_toggle_defaults=["annotate", "log_y", "minor_grid"],
+        btc_usd_kwargs={"btc_label": "BTC Remaining"},
+    )
 
 
 def _retire_tab():
@@ -1037,7 +1044,7 @@ def _supercharge_controls():
             html.Hr(className="my-2"),
             _lbl("Base retirement year"),
             dcc.Slider(id="sc-start-yr", min=yr_now, max=2075,
-                       value=2033, step=1,
+                       value=_app_ctx.SC_DEFAULT_START_YR, step=1,
                        marks={y: f"'{y % 100:02d}" for y in range(yr_now, 2076, 5)},
                        tooltip={"always_visible":False}),
             _lbl("Delay offsets (years)"),
@@ -1056,12 +1063,12 @@ def _supercharge_controls():
             html.Hr(className="my-2"),
             dbc.Collapse([
                 _lbl("Withdrawal/period ($)"),
-                dbc.Input(id="sc-wd", type="number", value=5000,
+                dbc.Input(id="sc-wd", type="number", value=_app_ctx.SC_DEFAULT_WD,
                           min=0, max=_app_ctx.MAX_USD, step=1, size="sm",
                           debounce=True),
                 _lbl("End year"),
                 html.Div(dcc.Slider(id="sc-end-yr", min=2030, max=2100,
-                           value=2075, step=1,
+                           value=_app_ctx.SC_DEFAULT_END_YR, step=1,
                            marks={y: f"'{y % 100:02d}" for y in range(2030, 2101, 10)},
                            tooltip={"always_visible":False})),
             ], id="sc-mode-a-collapse", is_open=True),
@@ -1090,19 +1097,8 @@ def _supercharge_controls():
                 dcc.Dropdown(id="sc-display-q", options=display_q_opts,
                              value=display_q_default, clearable=False),
             ], id="sc-display-q-collapse", is_open=True),
-            dcc.Dropdown(id="sc-disp",
-                         options=[{"label":"BTC Remaining","value":"btc"},
-                                  {"label":"USD Value","value":"usd"}],
-                         value="usd", clearable=False),
-            dcc.Checklist(id="sc-toggles",
-                          options=[{"label":" Annotate final values","value":"annotate"},
-                                   {"label":" Log Y","value":"log_y"},
-                                   {"label":" Show legend","value":"show_legend"},
-                                   {"label":html.Span(" Minor grid",className="minor-grid-opt"),"value":"minor_grid"},
-                                   {"label":" Enable chart zoom","value":"chart_zoom"}],
-                          value=["annotate","log_y","minor_grid"],
-                          labelStyle={"display":"block"},
-                          inputStyle={"marginRight":"5px"}),
+            _btc_usd_dropdown("sc", btc_label="BTC Remaining", default="usd"),
+            _chart_toggles("sc", ["annotate", "log_y", "minor_grid"]),
             *_legend_pos_dropdown("sc", "top-left"),
         ),
     ])
@@ -1485,7 +1481,7 @@ def _stack_tracker_tab():
                     dbc.Input(id="lot-btc", type="number", value=0.01,
                               min=0, step=0.0001, size="sm"),
                     _lbl("Price ($/BTC)"),
-                    dbc.Input(id="lot-price", type="number", value=69420,
+                    dbc.Input(id="lot-price", type="number", value=_app_ctx.LOT_DEFAULT_PRICE,
                               min=0, step=1, size="sm"),
                     _lbl("Notes"),
                     dbc.Input(id="lot-notes", type="text", value="", size="sm"),
@@ -1886,25 +1882,14 @@ _app_ctx.app.layout = dbc.Container([
     dcc.Store(id="lots-store", storage_type="local", data=[]),
     dcc.Store(id="lots-export-dummy"),
     dcc.Store(id="wm-b64-store", storage_type="memory", data=_LOGO_B64_ALL),
-    # MC simulation result stores (localStorage — survives page reloads)
-    dcc.Store(id="dca-mc-results", storage_type="memory", data=None),
-    dcc.Store(id="ret-mc-results", storage_type="memory", data=None),
-    dcc.Store(id="hm-mc-results",  storage_type="memory", data=None),
-    dcc.Store(id="sc-mc-results",  storage_type="memory", data=None),
-    # Unblocked MC cache — stores unrestricted fan data for ghost overlay
-    dcc.Store(id="dca-mc-unblocked", storage_type="memory", data=None),
-    dcc.Store(id="ret-mc-unblocked", storage_type="memory", data=None),
-    dcc.Store(id="hm-mc-unblocked",  storage_type="memory", data=None),
-    dcc.Store(id="sc-mc-unblocked",  storage_type="memory", data=None),
-    # Trigger stores: incremented on MC upload to force figure redraw
-    dcc.Store(id="dca-mc-loaded", storage_type="memory", data=0),
-    dcc.Store(id="ret-mc-loaded", storage_type="memory", data=0),
-    dcc.Store(id="hm-mc-loaded",  storage_type="memory", data=0),
-    dcc.Store(id="sc-mc-loaded",  storage_type="memory", data=0),
-    dcc.Store(id="dca-mc-dl-dummy"),
-    dcc.Store(id="ret-mc-dl-dummy"),
-    dcc.Store(id="hm-mc-dl-dummy"),
-    dcc.Store(id="sc-mc-dl-dummy"),
+    # MC per-tab stores (results, unblocked cache, loaded trigger, download dummy)
+    *[dcc.Store(id=f"{pfx}-mc-results", storage_type="memory", data=None)
+      for pfx in ("dca", "ret", "hm", "sc")],
+    *[dcc.Store(id=f"{pfx}-mc-unblocked", storage_type="memory", data=None)
+      for pfx in ("dca", "ret", "hm", "sc")],
+    *[dcc.Store(id=f"{pfx}-mc-loaded", storage_type="memory", data=0)
+      for pfx in ("dca", "ret", "hm", "sc")],
+    *[dcc.Store(id=f"{pfx}-mc-dl-dummy") for pfx in ("dca", "ret", "hm", "sc")],
     # ── MC payment stores + polling ──────────────────────────────────────
     dcc.Store(id="mc-pay-invoice", storage_type="memory", data=None),
     dcc.Store(id="mc-pay-token",   storage_type="memory", data=None),

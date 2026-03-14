@@ -18,6 +18,12 @@ FONT_LEGEND = 10              # legend / small info text
 MAX_USD = 4_294_967_295        # uint32 max — clamp for dollar amount inputs
 SC_DEFAULT_RATE = 13.0         # Stack-celerator default annual interest rate (%)
 SC_DEFAULT_PRICE = 80_000      # Stack-celerator default custom entry price ($)
+SC_DEFAULT_TAX = 33            # capital gains tax rate (%)
+SC_DEFAULT_TERM = 12           # loan term (months)
+SC_DEFAULT_START_YR = 2033     # Supercharger default withdrawal start year
+SC_DEFAULT_WD = 5000           # Supercharger default withdrawal ($/period)
+SC_DEFAULT_END_YR = 2075       # Supercharger default end year
+LOT_DEFAULT_PRICE = 69_420     # Stack Tracker default lot price ($)
 
 # ── Shared financial math ────────────────────────────────────────────────────
 

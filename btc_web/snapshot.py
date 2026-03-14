@@ -10,96 +10,103 @@ import _app_ctx
 log = logging.getLogger(__name__)
 
 _SNAPSHOT_CONTROLS = [
-    ("bub-qs",            "value"),
-    ("bub-xscale",        "value"),
-    ("bub-yscale",        "value"),
-    ("bub-xrange",        "value"),
-    ("bub-yrange",        "value"),
-    ("bub-toggles",       "value"),
-    ("bub-bubble-toggles","value"),
-    ("bub-n-future",      "value"),
-    ("bub-ptsize",        "value"),
-    ("bub-ptalpha",       "value"),
-    ("bub-stack",         "value"),
-    ("bub-show-stack",    "value"),
-    ("bub-use-lots",      "value"),
-    ("hm-entry-yr",       "value"),
-    ("hm-entry-q",        "value"),
-    ("hm-exit-range",     "value"),
-    ("hm-exit-qs",        "value"),
-    ("hm-mode",           "value"),
-    ("hm-b1",             "value"),
-    ("hm-b2",             "value"),
-    ("hm-c-lo",           "value"),
-    ("hm-c-mid1",         "value"),
-    ("hm-c-mid2",         "value"),
-    ("hm-c-hi",           "value"),
-    ("hm-grad",           "value"),
-    ("hm-vfmt",           "value"),
-    ("hm-cell-fs",        "value"),
-    ("hm-toggles",        "value"),
-    ("hm-stack",          "value"),
-    ("hm-use-lots",       "value"),
-    ("dca-stack",         "value"),
-    ("dca-use-lots",      "value"),
-    ("dca-amount",        "value"),
-    ("dca-freq",          "value"),
-    ("dca-freq-unlock",   "value"),
-    ("dca-infl",          "value"),
-    ("dca-yr-range",      "value"),
-    ("dca-disp",          "value"),
-    ("dca-toggles",       "value"),
-    ("dca-qs",            "value"),
-    ("dca-sc-enable",     "value"),
-    ("dca-sc-loan",       "value"),
-    ("dca-sc-rate",       "value"),
-    ("dca-sc-term",       "value"),
-    ("dca-sc-type",       "value"),
-    ("dca-sc-repeats",    "value"),
-    ("dca-sc-entry-mode", "value"),
-    ("dca-sc-custom-price","value"),
-    ("dca-sc-tax",        "value"),
-    ("dca-sc-rollover",   "value"),
-    ("ret-stack",         "value"),
-    ("ret-use-lots",      "value"),
-    ("ret-wd",            "value"),
-    ("ret-freq",          "value"),
-    ("ret-freq-unlock",   "value"),
-    ("ret-yr-range",      "value"),
-    ("ret-infl",          "value"),
-    ("ret-disp",          "value"),
-    ("ret-toggles",       "value"),
-    ("ret-legend-pos",    "value"),
-    ("ret-qs",            "value"),
-    ("sc-stack",          "value"),
-    ("sc-use-lots",       "value"),
-    ("sc-start-yr",       "value"),
-    ("sc-d0",             "value"),
-    ("sc-d1",             "value"),
-    ("sc-d2",             "value"),
-    ("sc-d3",             "value"),
-    ("sc-d4",             "value"),
-    ("sc-freq",           "value"),
-    ("sc-freq-unlock",    "value"),
-    ("sc-infl",           "value"),
-    ("sc-qs",             "value"),
-    ("sc-mode",           "value"),
-    ("sc-wd",             "value"),
-    ("sc-end-yr",         "value"),
-    ("sc-target-yr",      "value"),
-    ("sc-disp",           "value"),
-    ("sc-toggles",        "value"),
-    ("sc-chart-layout",   "value"),
-    ("sc-display-q",      "value"),
-    ("bub-auto-y",        "value"),
-    ("bub-legend-pos",    "value"),
-    ("dca-legend-pos",    "value"),
-    ("sc-legend-pos",     "value"),
-    ("main-tabs",         "active_tab"),
-    ("dca-model-show",    "value"),
-    ("ret-model-show",    "value"),
-    ("sc-model-show",     "value"),
-    ("hm-model-show",     "value"),
+    # ── Bubble tab (indices 0–12) ──
+    ("bub-qs",            "value"),   # selected quantile lines
+    ("bub-xscale",        "value"),   # x-axis scale (Log/Linear)
+    ("bub-yscale",        "value"),   # y-axis scale (Log/Linear)
+    ("bub-xrange",        "value"),   # x-axis year range [start, end]
+    ("bub-yrange",        "value"),   # y-axis price range [lo, hi]
+    ("bub-toggles",       "value"),   # shade/data/today/legend toggles
+    ("bub-bubble-toggles","value"),   # bubble composite overlay toggles
+    ("bub-n-future",      "value"),   # number of projected future bubbles
+    ("bub-ptsize",        "value"),   # scatter point size (1–20)
+    ("bub-ptalpha",       "value"),   # scatter point opacity (0–1)
+    ("bub-stack",         "value"),   # starting BTC stack
+    ("bub-show-stack",    "value"),   # show stack value in legend
+    ("bub-use-lots",      "value"),   # use Stack Tracker lots for starting BTC
+    # ── Heatmap tab (indices 13–28) ──
+    ("hm-entry-yr",       "value"),   # heatmap entry year
+    ("hm-entry-q",        "value"),   # entry percentile (0.1–99.9%)
+    ("hm-exit-range",     "value"),   # exit year range [start, end]
+    ("hm-exit-qs",        "value"),   # exit quantile lines
+    ("hm-mode",           "value"),   # colorscale mode (Segmented/DataScaled/Diverging)
+    ("hm-b1",             "value"),   # segmented colorscale breakpoint 1 (CAGR %)
+    ("hm-b2",             "value"),   # segmented colorscale breakpoint 2 (CAGR %)
+    ("hm-c-lo",           "value"),   # color below breakpoint 1
+    ("hm-c-mid1",         "value"),   # color at breakpoint 1
+    ("hm-c-mid2",         "value"),   # color at breakpoint 2
+    ("hm-c-hi",           "value"),   # color above breakpoint 2
+    ("hm-grad",           "value"),   # gradient steps (cosmetic)
+    ("hm-vfmt",           "value"),   # cell text format (cagr/price/both/stack/...)
+    ("hm-cell-fs",        "value"),   # cell text font size
+    ("hm-toggles",        "value"),   # heatmap display toggles
+    ("hm-stack",          "value"),   # starting BTC stack
+    ("hm-use-lots",       "value"),   # use Stack Tracker lots
+    # ── DCA tab + Stack-celerator (indices 29–52) ──
+    ("dca-stack",         "value"),   # starting BTC stack
+    ("dca-use-lots",      "value"),   # use Stack Tracker lots
+    ("dca-amount",        "value"),   # DCA amount per period ($)
+    ("dca-freq",          "value"),   # DCA frequency (Daily/Weekly/Monthly/...)
+    ("dca-freq-unlock",   "value"),   # custom frequency unlock
+    ("dca-infl",          "value"),   # inflation rate (%)
+    ("dca-yr-range",      "value"),   # simulation year range [start, end]
+    ("dca-disp",          "value"),   # display mode (BTC/USD)
+    ("dca-toggles",       "value"),   # log_y/dual_y/annotate/legend toggles
+    ("dca-qs",            "value"),   # selected quantile lines
+    ("dca-sc-enable",     "value"),   # Stack-celerator enable
+    ("dca-sc-loan",       "value"),   # SC loan principal ($)
+    ("dca-sc-rate",       "value"),   # SC annual interest rate (%)
+    ("dca-sc-term",       "value"),   # SC loan term (months)
+    ("dca-sc-type",       "value"),   # SC loan type (amortizing/interest_only)
+    ("dca-sc-repeats",    "value"),   # SC loan repeat cycles (0=one-shot)
+    ("dca-sc-entry-mode", "value"),   # SC entry price mode (live/model/custom)
+    ("dca-sc-custom-price","value"),  # SC custom entry price ($)
+    ("dca-sc-tax",        "value"),   # SC capital gains tax rate (%)
+    ("dca-sc-rollover",   "value"),   # SC rollover (interest-only: defer repayment)
+    # ── Retire tab (indices 53–63) ──
+    ("ret-stack",         "value"),   # starting BTC stack
+    ("ret-use-lots",      "value"),   # use Stack Tracker lots
+    ("ret-wd",            "value"),   # withdrawal amount per period ($)
+    ("ret-freq",          "value"),   # withdrawal frequency
+    ("ret-freq-unlock",   "value"),   # custom frequency unlock
+    ("ret-yr-range",      "value"),   # simulation year range [start, end]
+    ("ret-infl",          "value"),   # inflation rate (%)
+    ("ret-disp",          "value"),   # display mode (BTC/USD)
+    ("ret-toggles",       "value"),   # log_y/dual_y/annotate/legend toggles
+    ("ret-legend-pos",    "value"),   # legend position
+    ("ret-qs",            "value"),   # selected quantile lines
+    # ── Supercharger tab (indices 64–83) ──
+    ("sc-stack",          "value"),   # starting BTC stack
+    ("sc-use-lots",       "value"),   # use Stack Tracker lots
+    ("sc-start-yr",       "value"),   # withdrawal start year
+    ("sc-d0",             "value"),   # delay offset 0 (years before withdrawal)
+    ("sc-d1",             "value"),   # delay offset 1
+    ("sc-d2",             "value"),   # delay offset 2
+    ("sc-d3",             "value"),   # delay offset 3
+    ("sc-d4",             "value"),   # delay offset 4
+    ("sc-freq",           "value"),   # withdrawal frequency
+    ("sc-freq-unlock",    "value"),   # custom frequency unlock
+    ("sc-infl",           "value"),   # inflation rate (%)
+    ("sc-qs",             "value"),   # selected quantile lines
+    ("sc-mode",           "value"),   # Mode A (fixed spending) / Mode B (fixed depletion)
+    ("sc-wd",             "value"),   # Mode A: withdrawal amount per period ($)
+    ("sc-end-yr",         "value"),   # Mode A: simulation end year
+    ("sc-target-yr",      "value"),   # Mode B: target depletion year
+    ("sc-disp",           "value"),   # display mode (BTC/USD)
+    ("sc-toggles",        "value"),   # log_y/annotate/legend toggles
+    ("sc-chart-layout",   "value"),   # chart layout (line/bands)
+    ("sc-display-q",      "value"),   # single quantile display (line layout only)
+    # ── Cross-tab settings (indices 84–92) ──
+    ("bub-auto-y",        "value"),   # auto-fit Y axis to selected quantiles
+    ("bub-legend-pos",    "value"),   # bubble legend position
+    ("dca-legend-pos",    "value"),   # DCA legend position
+    ("sc-legend-pos",     "value"),   # SC legend position
+    ("main-tabs",         "active_tab"),  # active tab selection
+    # ── Model display toggles (indices 89–92) ──
+    ("dca-model-show",    "value"),   # QR/MC display toggle (DCA)
+    ("ret-model-show",    "value"),   # QR/MC display toggle (Retire)
+    ("sc-model-show",     "value"),   # QR/MC display toggle (SC)
+    ("hm-model-show",     "value"),   # QR/MC display toggle (Heatmap)
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)

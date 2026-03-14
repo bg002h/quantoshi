@@ -554,60 +554,27 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     # QR heatmap (always)
     qr_fig = _get_heatmap_fig(dict(shared_params))
 
-    # MC heatmap (only when enabled + module present + payment verified)
+    # MC heatmap via sandwich helper
     mc_enabled = bool(mc_enable) and _app_ctx._HAS_MARKOV
-    mc_years_c, mc_start_yr_c, mc_entry_q_c, mc_bins_c, mc_sims_c, mc_freq_c = \
-        _coerce_mc(mc_years, mc_start_yr, mc_entry_q, mc_bins, mc_sims, mc_freq,
-                   start_yr_default=yr_now)
-    mc_payment_ok = _mc_payment_check("hm", mc_years_c, mc_start_yr_c, mc_entry_q_c,
-                                      pay_token, mc_bins=mc_bins_c, mc_sims=mc_sims_c,
-                                      mc_freq=mc_freq_c, mc_auth=mc_auth)
-    # ── Stale mode for heatmap (same logic as _mc_setup) ──
-    mc_stale = False
-    _spk = None
-    if (not mc_payment_ok and mc_enabled
-            and mc_cached and isinstance(mc_cached, dict)):
-        _spk = mc_cached.get("path_key")
-        if _spk and _spk.get("tab", "") == "hm":
-            mc_years_c    = int(_spk.get("mc_years", MC_DEFAULT_YEARS))
-            mc_start_yr_c = int(_spk.get("mc_start_yr", yr_now))
-            mc_entry_q_c  = float(_spk.get("mc_entry_q", MC_DEFAULT_ENTRY_Q))
-            mc_bins_c     = int(_spk.get("mc_bins", MC_BINS))
-            mc_sims_c     = int(_spk.get("mc_sims", MC_SIMS))
-            mc_freq_c     = _spk.get("mc_freq", MC_FREQ)
-            mc_payment_ok = True
-            mc_stale = True
-        else:
-            _spk = None
-    is_free = (mc_enabled and mc_payment_ok
-               and btcpay.is_free_tier(mc_years_c, mc_start_yr_c, mc_entry_q_c,
-                                       mc_bins=mc_bins_c, mc_sims=mc_sims_c,
-                                       mc_freq=mc_freq_c))
-    if mc_enabled and mc_payment_ok:
-        # Auto-cap training window end at start year for historical sims
-        mc_win = list(mc_window) if mc_window else [2010, yr_now]
-        if mc_stale:
-            mc_win = list(_spk.get("mc_window") or mc_win)
-        elif mc_start_yr_c < yr_now:
-            mc_win[1] = min(mc_win[1], mc_start_yr_c)
-        mc_p = _build_mc_params(
-            mc_enable=True, mc_amount=mc_amount, mc_infl=mc_infl,
-            mc_bins=mc_bins_c, mc_sims=mc_sims_c, mc_years=mc_years_c,
-            mc_freq=mc_freq_c, mc_window=mc_win,
-            mc_start_yr=mc_start_yr_c, mc_entry_q=mc_entry_q_c,
-            mc_cached=mc_cached, mc_live_price=_cf(live_price, 0),
-            mc_regime=None if mc_stale else mc_regime,
-            amount_default=100, infl_default=0.0,
-            mc_start_stack=stack,
-        )
-        if mc_stale:
-            mc_p["mc_stale"] = True
-            mc_p["mc_blocked_bins"] = list(_spk.get("mc_blocked_bins", []))
-        if is_free:
-            mc_p["mc_cached"] = None
-            mc_p["mc_free_tier"] = True
+    mc_ok, is_free, mc_p, blocked = _mc_setup(
+        "hm", mc_enable, mc_years, mc_start_yr, mc_entry_q,
+        mc_bins, mc_sims, mc_freq, mc_window, mc_amount, mc_infl,
+        mc_cached, _cf(live_price, 0), mc_regime, None, pay_token,
+        mc_auth=mc_auth,
+        stack=stack, amount_default=100, infl_default=0.0,
+        start_yr_default=yr_now)
+
+    # Heatmap-specific: cap MC training window at start year for historical sims
+    if mc_ok and not mc_p.get("mc_stale"):
+        mc_sy = mc_p.get("mc_start_yr", yr_now)
+        if mc_sy < yr_now:
+            win = mc_p.get("mc_window")
+            if win and isinstance(win, list) and len(win) >= 2:
+                mc_p["mc_window"] = [win[0], min(win[1], mc_sy)]
+
+    if mc_ok:
         mc_params = dict(shared_params, **mc_p,
-                         live_price=_use_live(mc_start_yr_c, mc_p["mc_entry_q"]))
+                         live_price=_use_live(mc_p["mc_start_yr"], mc_p["mc_entry_q"]))
         mc_fig, mc_result = _get_mc_heatmap_fig(mc_params)
     else:
         mc_fig = dash.no_update
@@ -615,16 +582,13 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
 
     mc_result = _strip_free_paths(is_free, mc_result)
     store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enabled)
-
-    # Track which MC params were actually rendered (use coerced values,
-    # which reflect cached path_key in stale mode).
-    rendered_key = ({"years": mc_years_c,
-                     "start_yr": mc_start_yr_c,
-                     "entry_q": round(mc_entry_q_c, 1),
-                     "bins": mc_bins_c,
-                     "sims": mc_sims_c,
-                     "freq": mc_freq_c}
-                    if mc_enabled and mc_payment_ok else None)
+    rendered_key = ({"years": _ci(mc_p["mc_years"], MC_DEFAULT_YEARS),
+                     "start_yr": _ci(mc_p["mc_start_yr"], MC_DEFAULT_START_YR),
+                     "entry_q": round(_cf(mc_p["mc_entry_q"], MC_DEFAULT_ENTRY_Q), 1),
+                     "bins": int(mc_p.get("mc_bins", MC_BINS)),
+                     "sims": int(mc_p.get("mc_sims", MC_SIMS)),
+                     "freq": mc_p.get("mc_freq") or MC_FREQ}
+                    if mc_ok else None)
 
     # Show/hide MC panel and swipe indicator
     model_show = model_show or ["qr", "mc"]
@@ -1058,9 +1022,14 @@ _MC_BASE_PPY  = 12   # pricing baseline — Monthly
 
 _MC_BASE_BINS = 5    # cache uses 5×5 transition matrix
 
-def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=800, mc_freq="Monthly",
-                     mc_bins=5, tab="dca"):
-    """Return cost display elements showing cached vs live pricing."""
+def _calc_mc_cost(mc_years, start_yr, entry_q=50, mc_sims=800, mc_freq="Monthly",
+                  mc_bins=5, tab="dca"):
+    """Calculate MC simulation cost and tier info.
+
+    Returns (price_sats: int, is_free: bool, is_cached: bool,
+             tier_label: str, tier_color: str, tier_note: str,
+             mc_years_c: int) where *mc_years_c* is the coerced value.
+    """
     mc_years = _ci(mc_years, 10)
     start_yr = _ci(start_yr, 2026)
     entry_q  = round(_cf(entry_q, 50), 1)
@@ -1089,8 +1058,8 @@ def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=800, mc_freq="Month
         tier_color = "#c57600"
         time_scale = scale * (mc_years / 10)  # baseline 1-3s calibrated for 10yr
         lo, hi = max(1, round(1 * time_scale)), max(1, round(3 * time_scale))
-        tier_note = f"Computed on demand \u2022 ~{lo}\u2013{hi}s" if lo < hi \
-                    else f"Computed on demand \u2022 ~{lo}s"
+        tier_note = (f"Computed on demand \u2022 ~{lo}\u2013{hi}s" if lo < hi
+                     else f"Computed on demand \u2022 ~{lo}s")
 
     price = int(base_price * scale)
 
@@ -1098,13 +1067,26 @@ def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=800, mc_freq="Month
     if tab == "hm":
         price = int(price * 0.5)
 
-    # Free tier: no cost
-    if btcpay.is_free_tier(mc_years, start_yr, entry_q,
-                           mc_bins=mc_bins, mc_sims=mc_sims, mc_freq=mc_freq):
+    is_free = btcpay.is_free_tier(mc_years, start_yr, entry_q,
+                                  mc_bins=mc_bins, mc_sims=mc_sims,
+                                  mc_freq=mc_freq)
+    if is_free:
+        price = 0
+
+    return price, is_free, is_cached, tier_label, tier_color, tier_note, mc_years
+
+
+def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=800, mc_freq="Monthly",
+                     mc_bins=5, tab="dca"):
+    """Return cost display elements showing cached vs live pricing."""
+    price, is_free, is_cached, tier_label, tier_color, tier_note, mc_years_c = \
+        _calc_mc_cost(mc_years, start_yr, entry_q, mc_sims, mc_freq, mc_bins, tab)
+
+    if is_free:
         return ([
             html.Div([
                 html.Span("Free tier", style={"fontWeight": "bold", "color": "#1a8f3c"}),
-                html.Span(f" \u2022 {mc_years} yr simulation", style={"color": "#555"}),
+                html.Span(f" \u2022 {mc_years_c} yr simulation", style={"color": "#555"}),
             ]),
             html.Div(tier_note, style={"color": "#888", "fontSize": "10px"}),
             html.Div(html.B("Cost: Free \u2713"),
@@ -1114,7 +1096,7 @@ def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=800, mc_freq="Month
     children = [
         html.Div([
             html.Span(f"{tier_label}", style={"fontWeight": "bold", "color": tier_color}),
-            html.Span(f" \u2022 {mc_years} yr simulation", style={"color": "#555"}),
+            html.Span(f" \u2022 {mc_years_c} yr simulation", style={"color": "#555"}),
         ]),
         html.Div(tier_note, style={"color": "#888", "fontSize": "10px"}),
         html.Div([

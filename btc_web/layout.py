@@ -178,6 +178,89 @@ def _freq_dropdown(prefix, default="Monthly"):
     )
 
 
+def _freq_warning_modal():
+    """Modal shown when user unlocks frequency editing."""
+    return dbc.Modal([
+        dbc.ModalHeader(dbc.ModalTitle("Frequency Change")),
+        dbc.ModalBody([
+            html.P("Changing simulation frequency affects the Markov chain transition "
+                   "matrix step size.  Higher frequencies (Daily, Weekly) produce more "
+                   "steps per year, which:"),
+            html.Ul([
+                html.Li("Increases Monte Carlo computation cost proportionally"),
+                html.Li("May not match pre-computed cache (cached at Monthly only)"),
+            ]),
+            html.P([html.B("Monthly"), " is recommended for most analyses."],
+                   style={"marginBottom": 0}),
+        ]),
+        dbc.ModalFooter(
+            dbc.Button("OK", id="freq-warning-ok", size="sm", color="primary")),
+    ], id="freq-warning-modal", is_open=False, centered=True)
+
+
+def _model_show_checklist(prefix):
+    """Display models checklist (QR / MC) for Chart section."""
+    return [
+        _lbl("Display models"),
+        dcc.Checklist(id=f"{prefix}-model-show",
+                      options=[
+                          {"label": " QR Model", "value": "qr"},
+                          {"label": " MC Model", "value": "mc"},
+                      ],
+                      value=["qr", "mc"], inline=True,
+                      inputStyle={"marginRight": "4px"},
+                      labelStyle={"marginRight": "12px", "fontSize": "11px"},
+                      style={"marginBottom": "8px"}),
+    ]
+
+
+def _shared_settings_card(prefix, *, amount_id=None, amount_label="Per-period amount ($)",
+                          amount_default=100, infl_default=0, stack_default=0,
+                          freq_default="Monthly"):
+    """Shared settings panel — controls used by both QR and MC models."""
+    children = [
+        _lbl("Starting BTC"),
+        dbc.Input(id=f"{prefix}-stack", type="number", value=stack_default,
+                  min=0, step=0.001, size="sm", debounce=True),
+        dcc.Checklist(id=f"{prefix}-use-lots",
+                      options=[{"label": " Use Stack Tracker lots", "value": "yes"}],
+                      value=[], inputStyle={"marginRight": "5px"}),
+    ]
+    if amount_id:
+        children.extend([
+            _lbl(amount_label),
+            dbc.Input(id=amount_id, type="number", value=amount_default,
+                      min=0, max=_app_ctx.MAX_USD, step=1, size="sm",
+                      debounce=True),
+        ])
+    children.extend([
+        _lbl("Frequency"),
+        dbc.Row([
+            dbc.Col(
+                dcc.Dropdown(
+                    id=f"{prefix}-freq",
+                    options=["Daily", "Weekly", "Monthly", "Quarterly", "Annually"],
+                    value=freq_default, clearable=False, disabled=True,
+                ),
+                width=8,
+            ),
+            dbc.Col(
+                dcc.Checklist(
+                    id=f"{prefix}-freq-unlock",
+                    options=[{"label": " Unlock", "value": "yes"}],
+                    value=[], inputStyle={"marginRight": "4px"},
+                    style={"fontSize": "11px", "paddingTop": "6px"},
+                ),
+                width=4,
+            ),
+        ], className="g-1"),
+        _lbl("Inflation rate (0\u2013100% / yr)"),
+        dbc.Input(id=f"{prefix}-infl", type="number", value=infl_default,
+                  min=0, max=100, step=0.5, size="sm", debounce=True),
+    ])
+    return _section_card("Shared Model Settings", *children)
+
+
 def _stack_control_card(prefix, default_btc=0, header=True):
     """Starting Stack card with BTC input and Use Stack Tracker lots checkbox."""
     children = []
@@ -205,28 +288,27 @@ _TAB_HINTS = {
         "Enter your BTC stack to see projected USD values in the legend.",
     ],
     "heatmap": [
-        "Set your entry year and percentile to define your purchase scenario.",
-        "The grid shows projected CAGR for each exit year and quantile combination.",
-        "Green = positive CAGR, Red = negative. Brighter = stronger.",
-        "Try 'Data-Scaled' color mode for continuous gradients.",
+        "Configure your Quantile Regression model or Markov Simulation.",
+        "Configure CAGR heatmap using the chart configuration tab below.",
     ],
     "dca": [
         "Set your periodic DCA amount and frequency (e.g., $100/month).",
-        "Select quantiles to see accumulation under different price scenarios.",
+        "Configure your Quantile Regression model or Markov Simulation.",
         "Toggle BTC/USD display to see sat count or dollar value.",
-        "Enable Stack-celerator to simulate leveraged accumulation.",
+        "Enable Stack-celerator to simulate leveraged accumulation using the chart configuration tab below.",
     ],
     "retire": [
         "Set your withdrawal amount, frequency, and inflation rate.",
-        "Lower quantiles show worst-case depletion \u2014 use for conservative planning.",
+        "Configure your Quantile Regression model or Markov Simulation.",
         "Depletion arrows mark when your stack hits zero under each scenario.",
-        "Adjust the year range to zoom into your planning horizon.",
+        "Adjust the year range to zoom into your planning horizon using the chart configuration tab below.",
     ],
     "supercharge": [
         "Mode A: When does your stack run out at a given withdrawal rate?",
-        "Mode B: What's the maximum you can spend to last until a target year?",
+        "Mode B: What is max withdrawal for depletion date.",
+        "Configure your Quantile Regression model or Markov Simulation.",
         "Delay offsets compare 'start now' vs 'wait N years' strategies.",
-        "Enable quantile bands (shade) to see the full range of outcomes.",
+        "Enable quantile bands (shade) to see the full range of outcomes using the chart configuration tab below.",
     ],
     "stack": [
         "Add your BTC purchases with price, date, and amount.",
@@ -361,26 +443,38 @@ def _heatmap_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
         _tab_hints("heatmap"),
-        # ── Stack ───────────────────────────────────────────────────────
-        _stack_control_card("hm", default_btc=0),
-        # ── Entry ───────────────────────────────────────────────────────
-        _section_card("Entry",
+        # ── Quantile Regression Model ──────────────────────────────────
+        _section_card("Quantile Regression Model",
+            html.Small("Select quantiles to follow.",
+                style={"color":"#888","display":"block","marginBottom":"4px"}),
+            html.Small("Select exit quantiles for CAGR projection columns.",
+                style={"color":"#888","display":"block","marginBottom":"4px"}),
+            dcc.Checklist(id="hm-exit-qs", options=_q_options(),
+                          value=_app_ctx._DEF_QS, className="q-panel-grid",
+                          inputStyle={"marginRight":"4px"}),
+            html.Hr(className="my-1"),
             _lbl("Entry year"),
             dcc.Slider(id="hm-entry-yr", min=2010, max=2039,
                        value=yr_now, step=1, marks=None,
                        tooltip={"always_visible":True}),
-            _lbl("Entry percentile (0.1–99.9%)"),
+            _lbl("Entry percentile (0.1\u201399.9%)"),
             dbc.Input(id="hm-entry-q", type="number",
                       value=_app_ctx._HM_ENTRY_Q_DEFAULT,
                       min=0.1, max=99.9, step=0.1, size="sm",
                       debounce=True),
+            _lbl("Starting BTC (for portfolio display)"),
+            dbc.Input(id="hm-stack", type="number", value=0,
+                      min=0, step=0.001, size="sm", debounce=True),
+            dcc.Checklist(id="hm-use-lots",
+                          options=[{"label": " Use Stack Tracker lots", "value": "yes"}],
+                          value=[], inputStyle={"marginRight": "5px"}),
         ),
-        # ── Price Model ─────────────────────────────────────────────────
-        _q_panel("hm-exit-qs", _app_ctx._DEF_QS,
-                 hint="Select exit quantiles for CAGR projection columns."),
-        _mc_controls("hm", show_amount=False, show_mc_entry_q=True, default_entry_q=10),
+        _mc_controls("hm", show_amount=True, show_inflation=True,
+                     show_stack=True, show_mc_entry_q=True, default_entry_q=10,
+                     shared_controls={"stack"}),
         # ── Chart ───────────────────────────────────────────────────────
-        _section_card("Chart",
+        _section_card("Chart Settings",
+            *_model_show_checklist("hm"),
             _lbl("Exit year range"),
             dcc.RangeSlider(id="hm-exit-range", min=2010, max=2060,
                             value=[yr_now, yr_now + 15], step=1,
@@ -537,43 +631,47 @@ _MC_REGIME_OPTIONS_5 = _regime_options(5)   # pre-computed for default 5-bin cas
 def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=100,
                   show_inflation=False, show_amount=True,
                   show_stack=False, show_mc_entry_q=False,
-                  default_entry_q=50):
+                  default_entry_q=50, start_yr_label=None,
+                  shared_controls=frozenset()):
     """Monte Carlo simulation controls, reusable across tabs."""
     yr_now = pd.Timestamp.today().year
     if not _app_ctx._HAS_MARKOV:
         # Hidden placeholders so callback IDs exist even without markov module
-        return html.Div(style={"display": "none"}, children=[
-            dcc.Checklist(id=f"{prefix}-mc-enable", value=[]),
-            dcc.Checklist(id=f"{prefix}-mc-advanced", value=[]),
-            dbc.Input(id=f"{prefix}-mc-amount", value=amount_default),
-            dbc.Input(id=f"{prefix}-mc-infl", value=4),
-            dbc.Input(id=f"{prefix}-mc-bins", value=5),
-            dcc.Checklist(id=f"{prefix}-mc-regime", value=list(range(5))),
-            dcc.Dropdown(id=f"{prefix}-mc-sims", value=800),
-            dcc.Dropdown(id=f"{prefix}-mc-years", value=10),
-            dcc.Dropdown(id=f"{prefix}-mc-freq", value="Monthly"),
-            dbc.Input(id=f"{prefix}-mc-ppy", value="12/yr"),
-            dcc.RangeSlider(id=f"{prefix}-mc-window", min=2010,
-                            max=yr_now,
-                            value=[2010, yr_now]),
-            html.Div(id=f"{prefix}-mc-adv-body"),
-            html.Div(id=f"{prefix}-mc-cost"),
-            dcc.Store(id=f"{prefix}-mc-price-val", storage_type="memory", data=0),
-            html.Div(id=f"{prefix}-mc-body"),
-            html.Div(id=f"{prefix}-mc-status"),
-            dbc.Button(id=f"{prefix}-mc-dl-btn", style={"display":"none"}),
-            dbc.Button(id=f"{prefix}-mc-run-btn", style={"display":"none"}),
-            html.Div(id=f"{prefix}-mc-run-status"),
-            dcc.Store(id=f"{prefix}-mc-rendered-key", storage_type="memory"),
-            html.Div(id=f"{prefix}-mc-match"),
-            dcc.Upload(id=f"{prefix}-mc-upload"),
-            html.Div(id=f"{prefix}-mc-upload-status"),
-            dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now),
-            dcc.Dropdown(id=f"{prefix}-mc-entry-q",
-                        value=max(10, min(90, round(_app_ctx._HM_ENTRY_Q_DEFAULT / 10) * 10 or 50))),
-            dbc.Input(id=f"{prefix}-mc-stack", type="number", value=1.0),
-            dcc.Dropdown(id=f"{prefix}-mc-start-yr", value=2031),
-        ])
+        _ph = []  # placeholder components
+        _ph.append(dcc.Checklist(id=f"{prefix}-mc-enable", value=[]))
+        _ph.append(dcc.Checklist(id=f"{prefix}-mc-advanced", value=[]))
+        if "amount" not in shared_controls:
+            _ph.append(dbc.Input(id=f"{prefix}-mc-amount", value=amount_default))
+        if "infl" not in shared_controls:
+            _ph.append(dbc.Input(id=f"{prefix}-mc-infl", value=4))
+        _ph.append(dbc.Input(id=f"{prefix}-mc-bins", value=5))
+        _ph.append(dcc.Checklist(id=f"{prefix}-mc-regime", value=list(range(5))))
+        _ph.append(dcc.Dropdown(id=f"{prefix}-mc-sims", value=800))
+        _ph.append(dcc.Dropdown(id=f"{prefix}-mc-years", value=10))
+        if "freq" not in shared_controls:
+            _ph.append(dcc.Dropdown(id=f"{prefix}-mc-freq", value="Monthly"))
+            _ph.append(dbc.Input(id=f"{prefix}-mc-ppy", value="12/yr"))
+        _ph.append(dcc.RangeSlider(id=f"{prefix}-mc-window", min=2010,
+                                    max=yr_now, value=[2010, yr_now]))
+        _ph.append(html.Div(id=f"{prefix}-mc-adv-body"))
+        _ph.append(html.Div(id=f"{prefix}-mc-cost"))
+        _ph.append(dcc.Store(id=f"{prefix}-mc-price-val", storage_type="memory", data=0))
+        _ph.append(html.Div(id=f"{prefix}-mc-body"))
+        _ph.append(html.Div(id=f"{prefix}-mc-status"))
+        _ph.append(dbc.Button(id=f"{prefix}-mc-dl-btn", style={"display":"none"}))
+        _ph.append(dbc.Button(id=f"{prefix}-mc-run-btn", style={"display":"none"}))
+        _ph.append(html.Div(id=f"{prefix}-mc-run-status"))
+        _ph.append(dcc.Store(id=f"{prefix}-mc-rendered-key", storage_type="memory"))
+        _ph.append(html.Div(id=f"{prefix}-mc-match"))
+        _ph.append(dcc.Upload(id=f"{prefix}-mc-upload"))
+        _ph.append(html.Div(id=f"{prefix}-mc-upload-status"))
+        _ph.append(dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now))
+        _ph.append(dcc.Dropdown(id=f"{prefix}-mc-entry-q",
+                    value=max(10, min(90, round(_app_ctx._HM_ENTRY_Q_DEFAULT / 10) * 10 or 50))))
+        if "stack" not in shared_controls:
+            _ph.append(dbc.Input(id=f"{prefix}-mc-stack", type="number", value=1.0))
+        _ph.append(dcc.Dropdown(id=f"{prefix}-mc-start-yr", value=2031))
+        return html.Div(style={"display": "none"}, children=_ph)
     yr_now = pd.Timestamp.today().year
     return html.Div(style={"position": "relative"}, children=[
         html.Span([
@@ -592,7 +690,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
         }),
         _ctrl_card(
         html.Span([
-            html.B("Monte Carlo", style={"fontSize": "12px"}),
+            html.B("Monte Carlo Simulation", style={"fontSize": "12px"}),
             html.Span([
                 html.Span("\u26a1", style={"fontSize": "15px"}),
                 " Paid feature",
@@ -611,49 +709,38 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                           style={"fontSize": "11px", "color": "#666", "marginBottom": "6px"}),
             html.Div(dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now),
                      style={"display": "none"}),
-            *([ _lbl("Retirement start year (bold = cached)"),
-                dcc.Dropdown(id=f"{prefix}-mc-start-yr",
-                             options=_MC_START_YR_OPTIONS,
-                             value=2031, clearable=False),
-                _lbl("Entry percentile (10% steps, cache-aligned)"),
-                dcc.Dropdown(id=f"{prefix}-mc-entry-q",
-                             options=_MC_ENTRY_Q_OPTIONS,
-                             value=default_entry_q, clearable=False),
-            ] if show_stack else [
-                _lbl("MC start year (bold = cached)"),
-                dcc.Dropdown(id=f"{prefix}-mc-start-yr",
-                             options=_MC_START_YR_OPTIONS,
-                             value=2028, clearable=False),
-                *([_lbl("Entry percentile (10% steps, cache-aligned)"),
-                   dcc.Dropdown(id=f"{prefix}-mc-entry-q",
-                                options=_MC_ENTRY_Q_OPTIONS,
-                                value=default_entry_q, clearable=False),
-                ] if show_mc_entry_q else []),
-            ]),
+            _lbl((start_yr_label or "MC start year") + " (bold = cached)"),
+            dcc.Dropdown(id=f"{prefix}-mc-start-yr",
+                         options=_MC_START_YR_OPTIONS,
+                         value=2031 if show_stack else 2028, clearable=False),
+            _lbl("Entry percentile (10% steps, cache-aligned)"),
+            dcc.Dropdown(id=f"{prefix}-mc-entry-q",
+                         options=_MC_ENTRY_Q_OPTIONS,
+                         value=default_entry_q, clearable=False),
             *([_lbl(amount_label + " (0–4,294,967,295)"),
                dbc.Input(id=f"{prefix}-mc-amount", type="number",
                          value=amount_default, min=0, max=_app_ctx.MAX_USD,
                          step=1, size="sm", debounce=True),
-              ] if show_amount else [
-               dbc.Input(id=f"{prefix}-mc-amount", type="number",
+              ] if show_amount and "amount" not in shared_controls else (
+              [dbc.Input(id=f"{prefix}-mc-amount", type="number",
                          value=amount_default, style={"display": "none"}),
-              ]),
+              ] if "amount" not in shared_controls else [])),
             *([ _lbl("Inflation rate (% / yr)"),
                 dcc.Dropdown(id=f"{prefix}-mc-infl",
                              options=_MC_INFL_OPTIONS,
                              value=4, clearable=False),
-            ] if show_inflation else [
-                dcc.Dropdown(id=f"{prefix}-mc-infl", value=0,
+            ] if show_inflation and "infl" not in shared_controls else (
+            [   dcc.Dropdown(id=f"{prefix}-mc-infl", value=0,
                              style={"display": "none"}),
-            ]),
+            ] if "infl" not in shared_controls else [])),
             *([ _lbl("Starting BTC stack (0–1000)"),
                 dbc.Input(id=f"{prefix}-mc-stack", type="number",
                           min=0, max=1000, step=0.01, value=1.0, size="sm",
                           debounce=True),
-            ] if show_stack else [
-                dbc.Input(id=f"{prefix}-mc-stack", type="number",
+            ] if show_stack and "stack" not in shared_controls else (
+            [   dbc.Input(id=f"{prefix}-mc-stack", type="number",
                           value=1.0, style={"display": "none"}),
-            ]),
+            ] if "stack" not in shared_controls else [])),
             _lbl("Years to model"),
             dcc.Dropdown(id=f"{prefix}-mc-years",
                          options=_MC_YEARS_OPTIONS,
@@ -682,15 +769,16 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                                  [100, 200, 400, 800, 1600, 3200],
                                  str, {100, 200, 400, 800}),
                              value=100, clearable=False),
-                _lbl("Frequency"),
-                dcc.Dropdown(id=f"{prefix}-mc-freq",
-                             options=_bold_opts(
-                                 ["Monthly", "Weekly", "Daily"],
-                                 str, {"Monthly"}),
-                             value="Monthly", clearable=False),
-                _lbl("Periods per year"),
-                dbc.Input(id=f"{prefix}-mc-ppy", value="12/yr", size="sm",
-                          disabled=True),
+                *([ _lbl("Frequency"),
+                    dcc.Dropdown(id=f"{prefix}-mc-freq",
+                                 options=_bold_opts(
+                                     ["Daily", "Weekly", "Monthly", "Quarterly", "Annually"],
+                                     str, {"Monthly"}),
+                                 value="Monthly", clearable=False),
+                    _lbl("Periods per year"),
+                    dbc.Input(id=f"{prefix}-mc-ppy", value="12/yr", size="sm",
+                              disabled=True),
+                ] if "freq" not in shared_controls else []),
                 _lbl("Historical window"),
                 dcc.RangeSlider(id=f"{prefix}-mc-window", min=2010,
                                 max=yr_now, value=[2010, yr_now],
@@ -747,25 +835,28 @@ def _dca_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
         _tab_hints("dca"),
-        # ── Stack ───────────────────────────────────────────────────────
-        _stack_control_card("dca", default_btc=0),
-        # ── Plan ────────────────────────────────────────────────────────
-        _section_card("Plan",
-            _lbl("Per-period amount ($)"),
-            dbc.Input(id="dca-amount", type="number", value=100,
-                      min=0, max=_app_ctx.MAX_USD, step=1, size="sm",
-                      debounce=True),
-            _lbl("Frequency"),
-            _freq_dropdown("dca"),
+        # ── Shared Settings (QR + MC) ───────────────────────────────
+        _shared_settings_card("dca", amount_id="dca-amount",
+                              amount_label="Per-period amount ($)",
+                              amount_default=100, infl_default=0, stack_default=0),
+        # ── Quantile Regression Model ──────────────────────────────
+        _section_card("Quantile Regression Model",
+            html.Small("Select quantiles to follow.",
+                style={"color":"#888","display":"block","marginBottom":"4px"}),
+            html.Small("Price path drives sat accumulation \u2014 lower quantile = lower price = more sats/period.",
+                style={"color":"#888","display":"block","marginBottom":"4px"}),
+            dcc.Checklist(id="dca-qs", options=_q_options(),
+                          value=[0.5], className="q-panel-grid",
+                          inputStyle={"marginRight":"4px"}),
         ),
         _stackcelerator_controls(),
-        # ── Price Model ─────────────────────────────────────────────────
-        _q_panel("dca-qs", [0.5],
-                 hint="Price path drives sat accumulation — lower quantile = lower price = more sats/period."),
         _mc_controls("dca", amount_label="DCA amount per period ($)", amount_default=100,
-                     show_mc_entry_q=True, default_entry_q=10),
+                     show_inflation=True, show_stack=True,
+                     show_mc_entry_q=True, default_entry_q=10,
+                     shared_controls={"amount", "infl", "freq", "stack"}),
         # ── Chart ───────────────────────────────────────────────────────
-        _section_card("Chart",
+        _section_card("Chart Settings",
+            *_model_show_checklist("dca"),
             _lbl("Year range"),
             _year_range_slider("dca", 2009, 2060, yr_now, yr_now + 10),
             dcc.Dropdown(id="dca-disp",
@@ -774,10 +865,11 @@ def _dca_controls():
                          value="btc", clearable=False),
             dcc.Checklist(id="dca-toggles",
                           options=[{"label":" Log Y","value":"log_y"},
+                                   {"label":" Annotate final values","value":"annotate"},
                                    {"label":" Show legend","value":"show_legend"},
                                    {"label":html.Span(" Minor grid",className="minor-grid-opt"),"value":"minor_grid"},
                                    {"label":" Enable chart zoom","value":"chart_zoom"}],
-                          value=[], labelStyle={"display":"block"},
+                          value=["annotate"], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
             *_legend_pos_dropdown("dca", "bottom-right"),
         ),
@@ -854,28 +946,25 @@ def _retire_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
         _tab_hints("retire"),
-        # ── Stack ───────────────────────────────────────────────────────
-        _stack_control_card("ret", default_btc=1.0),
-        # ── Plan ────────────────────────────────────────────────────────
-        _section_card("Plan",
-            _lbl("Withdrawal/period ($)"),
-            dbc.Input(id="ret-wd", type="number", value=5000,
-                      min=0, max=_app_ctx.MAX_USD, step=1, size="sm",
-                      debounce=True),
-            _lbl("Frequency"),
-            _freq_dropdown("ret"),
-            _lbl("Inflation rate (0–100% / yr)"),
-            dbc.Input(id="ret-infl", type="number", value=4,
-                      min=0, max=100, step=0.5, size="sm",
-                      debounce=True),
+        _shared_settings_card("ret", amount_id="ret-wd",
+                              amount_label="Withdrawal/period ($)",
+                              amount_default=5000, infl_default=4, stack_default=1.0),
+        _section_card("Quantile Regression Model",
+            html.Small("Select quantiles to follow.",
+                style={"color":"#888","display":"block","marginBottom":"4px"}),
+            html.Small("Lower quantile = lower price = faster depletion \u2014 worst-case planning.",
+                style={"color":"#888","display":"block","marginBottom":"4px"}),
+            dcc.Checklist(id="ret-qs", options=_q_options(),
+                          value=[0.01, 0.10, 0.25], className="q-panel-grid",
+                          inputStyle={"marginRight":"4px"}),
         ),
-        # ── Price Model ─────────────────────────────────────────────────
-        _q_panel("ret-qs", [0.01, 0.10, 0.25],
-                 hint="Lower quantile = lower price = faster depletion \u2014 worst-case planning."),
         _mc_controls("ret", amount_label="Withdrawal per period ($)", amount_default=5000,
-                     show_inflation=True, show_stack=True, default_entry_q=10),
+                     show_inflation=True, show_stack=True, default_entry_q=10,
+                     start_yr_label="Retirement start year",
+                     shared_controls={"amount", "infl", "freq", "stack"}),
         # ── Chart ───────────────────────────────────────────────────────
-        _section_card("Chart",
+        _section_card("Chart Settings",
+            *_model_show_checklist("ret"),
             _lbl("Year range"),
             _year_range_slider("ret", 2024, 2075, 2031, 2075),
             dcc.Dropdown(id="ret-disp",
@@ -884,7 +973,7 @@ def _retire_controls():
                          value="btc", clearable=False),
             dcc.Checklist(id="ret-toggles",
                           options=[{"label":" Log Y","value":"log_y"},
-                                   {"label":" Annotate depletion","value":"annotate"},
+                                   {"label":" Annotate final values","value":"annotate"},
                                    {"label":" Show legend","value":"show_legend"},
                                    {"label":html.Span(" Minor grid",className="minor-grid-opt"),"value":"minor_grid"},
                                    {"label":" Enable chart zoom","value":"chart_zoom"}],
@@ -910,8 +999,18 @@ def _supercharge_controls():
     display_q_default = _nearest_quantile(0.05, _app_ctx._ALL_QS)
     return html.Div([
         _tab_hints("supercharge"),
-        # ── Stack ───────────────────────────────────────────────────────
-        _stack_control_card("sc", default_btc=1.0),
+        _shared_settings_card("sc", infl_default=4, stack_default=1.0),
+        _section_card("Quantile Regression Model",
+            html.Small("Select quantiles to follow.",
+                style={"color":"#888","display":"block","marginBottom":"4px"}),
+            html.Small("Lower quantile = earlier depletion \u2014 use multiple quantiles to see the range.",
+                style={"color":"#888","display":"block","marginBottom":"4px"}),
+            dcc.Checklist(id="sc-qs",
+                          options=_q_options(),
+                          value=[q for q in [0.001, 0.10] if q in _app_ctx.M.qr_fits],
+                          className="q-panel-grid",
+                          inputStyle={"marginRight":"4px"}),
+        ),
         # ── Plan ────────────────────────────────────────────────────────
         _section_card("Plan",
             dcc.RadioItems(id="sc-mode",
@@ -946,16 +1045,10 @@ def _supercharge_controls():
                 dbc.Col(dbc.Input(id="sc-d4", type="number", value=2,
                                   min=0, step=1, size="sm"), width=True),
             ], className="g-1"),
-            _lbl("Frequency"),
-            _freq_dropdown("sc", default="Annually"),
-            _lbl("Inflation rate (0\u2013100% / yr)"),
-            dbc.Input(id="sc-infl", type="number", value=4,
-                      min=0, max=100, step=0.5, size="sm",
-                      debounce=True),
             html.Hr(className="my-2"),
             dbc.Collapse([
                 _lbl("Withdrawal/period ($)"),
-                dbc.Input(id="sc-wd", type="number", value=100000,
+                dbc.Input(id="sc-wd", type="number", value=5000,
                           min=0, max=_app_ctx.MAX_USD, step=1, size="sm",
                           debounce=True),
                 _lbl("End year"),
@@ -972,14 +1065,14 @@ def _supercharge_controls():
                            tooltip={"always_visible":False})),
             ], id="sc-mode-b-collapse", is_open=False),
         ),
-        # ── Price Model ─────────────────────────────────────────────────
-        _q_panel("sc-qs", [q for q in [0.001, 0.10] if q in _app_ctx.M.qr_fits],
-                 hint="Lower quantile = earlier depletion \u2014 use multiple quantiles to see the range."),
         _mc_controls("sc", amount_label="Withdrawal per period ($)",
                      amount_default=5000, show_inflation=True,
-                     show_stack=True, default_entry_q=10),
+                     show_stack=True, default_entry_q=10,
+                     start_yr_label="Withdrawal start year",
+                     shared_controls={"amount", "infl", "freq", "stack"}),
         # ── Chart ───────────────────────────────────────────────────────
-        _section_card("Chart",
+        _section_card("Chart Settings",
+            *_model_show_checklist("sc"),
             dcc.Checklist(id="sc-chart-layout",
                 options=[{"label":" Shade quantile bands","value":"shade"}],
                 value=["shade"],
@@ -994,7 +1087,7 @@ def _supercharge_controls():
                                   {"label":"USD Value","value":"usd"}],
                          value="usd", clearable=False),
             dcc.Checklist(id="sc-toggles",
-                          options=[{"label":" Annotate depletion","value":"annotate"},
+                          options=[{"label":" Annotate final values","value":"annotate"},
                                    {"label":" Log Y","value":"log_y"},
                                    {"label":" Show legend","value":"show_legend"},
                                    {"label":html.Span(" Minor grid",className="minor-grid-opt"),"value":"minor_grid"},
@@ -1778,6 +1871,7 @@ _SPLASH_QUOTES_JS = _json.dumps(
 )
 
 _app_ctx.app.layout = dbc.Container([
+    _freq_warning_modal(),
     dcc.Interval(id="price-interval", interval=_PRICE_INTERVAL_MS, n_intervals=0),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="splash-ts-store", storage_type="local", data=None),

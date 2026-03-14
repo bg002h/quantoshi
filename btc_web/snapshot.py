@@ -44,6 +44,8 @@ _SNAPSHOT_CONTROLS = [
     ("dca-use-lots",      "value"),
     ("dca-amount",        "value"),
     ("dca-freq",          "value"),
+    ("dca-freq-unlock",   "value"),
+    ("dca-infl",          "value"),
     ("dca-yr-range",      "value"),
     ("dca-disp",          "value"),
     ("dca-toggles",       "value"),
@@ -62,6 +64,7 @@ _SNAPSHOT_CONTROLS = [
     ("ret-use-lots",      "value"),
     ("ret-wd",            "value"),
     ("ret-freq",          "value"),
+    ("ret-freq-unlock",   "value"),
     ("ret-yr-range",      "value"),
     ("ret-infl",          "value"),
     ("ret-disp",          "value"),
@@ -77,6 +80,7 @@ _SNAPSHOT_CONTROLS = [
     ("sc-d3",             "value"),
     ("sc-d4",             "value"),
     ("sc-freq",           "value"),
+    ("sc-freq-unlock",    "value"),
     ("sc-infl",           "value"),
     ("sc-qs",             "value"),
     ("sc-mode",           "value"),
@@ -92,10 +96,15 @@ _SNAPSHOT_CONTROLS = [
     ("dca-legend-pos",    "value"),
     ("sc-legend-pos",     "value"),
     ("main-tabs",         "active_tab"),
+    ("dca-model-show",    "value"),
+    ("ret-model-show",    "value"),
+    ("sc-model-show",     "value"),
+    ("hm-model-show",     "value"),
 ]
 
-_SNAP_PREFIX    = "q2:"   # current format
-_SNAP_PREFIX_V1 = "q1:"   # legacy format (dict-based), kept for backward compat
+_SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)
+_SNAP_PREFIX_V2 = "q2:"   # prior format (positional array, different control list)
+_SNAP_PREFIX_V1 = "q1:"   # legacy format (dict-based)
 
 # Why bitmask encoding: storing 17 quantile checkboxes as a list in JSON costs
 # ~150 chars; a single bitmask integer costs ~5 chars. Across 20 checklist fields,
@@ -120,15 +129,22 @@ _CHECKLIST_OPTIONS = {
     "hm-toggles":         ["colorbar", "chart_zoom"],
     "hm-use-lots":        ["yes"],
     "dca-use-lots":       ["yes"],
-    "dca-toggles":        ["log_y", "show_legend", "minor_grid", "chart_zoom"],
+    "dca-freq-unlock":    ["yes"],
+    "dca-toggles":        ["log_y", "annotate", "show_legend", "minor_grid", "chart_zoom"],
     "dca-sc-enable":      ["yes"],
     "dca-sc-rollover":    ["yes"],
     "ret-use-lots":       ["yes"],
+    "ret-freq-unlock":    ["yes"],
     "ret-toggles":        ["log_y", "annotate", "show_legend", "minor_grid", "chart_zoom"],
     "sc-use-lots":        ["yes"],
+    "sc-freq-unlock":     ["yes"],
     "sc-toggles":         ["annotate", "log_y", "show_legend", "minor_grid", "chart_zoom"],
     "sc-chart-layout":    ["shade"],
     "bub-auto-y":         ["yes"],
+    "dca-model-show":     ["qr", "mc"],
+    "ret-model-show":     ["qr", "mc"],
+    "sc-model-show":      ["qr", "mc"],
+    "hm-model-show":      ["qr", "mc"],
 }
 
 

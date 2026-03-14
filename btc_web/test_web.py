@@ -840,7 +840,9 @@ class TestMcUploadFields:
 
 from figures import (build_bubble_figure, build_heatmap_figure,
                      build_dca_figure, build_retire_figure,
-                     build_supercharge_figure)
+                     build_supercharge_figure,
+                     _build_qr_config_text, _build_mc_config_text,
+                     _apply_config_annotation)
 
 
 class TestBuildBubbleFigure:
@@ -1009,6 +1011,7 @@ class TestBuildDcaFigure:
             "disp_mode": "btc",
             "selected_qs": [0.5] if 0.5 in M.qr_fits else [],
             "log_y": True,
+            "annotate": True,
             "show_today": False,
             "show_legend": True,
             "lots": [],
@@ -2291,6 +2294,116 @@ class TestAnnotationAlignment:
         self._assert_text_traces_at_endpoints(fig)
 
 
+class TestConfigAnnotations:
+    """Tests for chart config text annotations (P-1) and display toggle (P-2)."""
+
+    def test_qr_config_text_dca(self):
+        p = dict(selected_qs=[0.1, 0.5, 0.85], amount=200, freq="Monthly",
+                 start_yr=2025, end_yr=2035, start_stack=0.5, log_y=True)
+        text = _build_qr_config_text(p, "dca")
+        assert "QR:" in text
+        assert "Q10%" in text
+        assert "Q50%" in text
+        assert "Q85%" in text
+        assert "$200" in text
+        assert "/mo" in text
+        assert "2025" in text
+        assert "2035" in text
+        assert "0.5 BTC" in text
+        assert "Log Y" in text
+
+    def test_qr_config_text_empty_quantiles(self):
+        p = dict(selected_qs=[], start_yr=2025, end_yr=2035)
+        text = _build_qr_config_text(p, "dca")
+        assert "QR: none" in text
+
+    def test_qr_config_text_retire(self):
+        p = dict(selected_qs=[0.01], wd_amount=5000, freq="Annually",
+                 start_yr=2031, end_yr=2075, inflation=4, start_stack=1.0)
+        text = _build_qr_config_text(p, "ret")
+        assert "$5,000" in text
+        assert "/yr" in text
+        assert "4% infl" in text
+
+    def test_mc_config_text(self):
+        p = dict(mc_start_yr=2031, mc_years=10, mc_entry_q=50,
+                 mc_sims=800, mc_freq="Monthly", mc_amount=100,
+                 mc_infl=4, mc_start_stack=1.0)
+        text = _build_mc_config_text(p, "dca")
+        assert "MC DCA" in text
+        assert "2031" in text
+        assert "10yr" in text
+        assert "Q50%" in text
+        assert "800 sims" in text
+        assert "$100" in text
+        assert "4% infl" in text
+        assert "1 BTC" in text
+        assert ".json" in text
+
+    def test_apply_config_annotation_qr_only(self):
+        import plotly.graph_objects as go
+        fig = go.Figure()
+        p = dict(selected_qs=[0.5], start_yr=2025, end_yr=2035)
+        _apply_config_annotation(fig, p, "dca", show_qr=True, show_mc=False)
+        assert fig.layout.xaxis.title.text is not None
+        assert "QR:" in fig.layout.xaxis.title.text
+        assert "MC" not in fig.layout.xaxis.title.text
+
+    def test_apply_config_annotation_both(self):
+        import plotly.graph_objects as go
+        fig = go.Figure()
+        p = dict(selected_qs=[0.5], start_yr=2025, end_yr=2035,
+                 mc_start_yr=2031, mc_years=10, mc_entry_q=50,
+                 mc_sims=800, mc_freq="Monthly")
+        _apply_config_annotation(fig, p, "dca", show_qr=True, show_mc=True)
+        text = fig.layout.xaxis.title.text
+        assert "QR:" in text
+        assert "MC DCA" in text
+        assert "<br>" in text  # two lines
+
+    def test_apply_config_annotation_none(self):
+        import plotly.graph_objects as go
+        fig = go.Figure()
+        _apply_config_annotation(fig, {}, "dca", show_qr=False, show_mc=False)
+        # No annotation set
+        assert fig.layout.xaxis.title.text is None
+
+    def test_bubble_figure_has_qr_annotation(self):
+        p = dict(selected_qs=[0.5], shade=False, xscale="log", yscale="log",
+                 xmin=2012, xmax=2030, ymin=0, ymax=7, n_future=3,
+                 show_comp=False, show_ols=False, show_data=False,
+                 show_today=False, pt_size=2, pt_alpha=0.3,
+                 stack=0, show_stack=False, lots=[], use_lots=False,
+                 show_legend=False)
+        fig = build_bubble_figure(M, p)
+        xtitle = fig.layout.xaxis.title.text
+        assert xtitle is not None and "QR:" in xtitle
+
+    def test_dca_figure_show_qr_false_hides_qr_annotation(self):
+        p = dict(start_yr=2025, end_yr=2035, start_stack=0, amount=100,
+                 freq="Monthly", disp_mode="btc", selected_qs=[0.5],
+                 log_y=False, show_today=False, show_legend=False,
+                 lots=[], use_lots=False, show_qr=False, show_mc=False)
+        fig, _ = build_dca_figure(M, p)
+        xtitle = fig.layout.xaxis.title.text or ""
+        assert "QR:" not in xtitle
+
+    def test_model_show_snapshot_roundtrip(self):
+        """Verify model-show controls survive snapshot encode/decode."""
+        state = {"dca-model-show:value": ["qr"],
+                 "ret-model-show:value": ["mc"],
+                 "sc-model-show:value": ["qr", "mc"],
+                 "hm-model-show:value": []}
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert decoded["dca-model-show:value"] == ["qr"]
+        assert decoded["ret-model-show:value"] == ["mc"]
+        assert decoded["sc-model-show:value"] == ["qr", "mc"]
+        # empty list → bitmask 0 → decoded as empty list or omitted
+        hm_val = decoded.get("hm-model-show:value", [])
+        assert hm_val == []
+
+
 class TestSnapshotControlsCompleteness:
     """Verify snapshot controls list is self-consistent."""
 
@@ -2381,7 +2494,7 @@ class TestUpdateHeatmapCallback:
                 mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                 mc_freq="Monthly", mc_window=[2010, yr],
                 mc_start_yr=yr, mc_entry_q=50,
-                _mc_loaded=None, _pay_trigger=0,
+                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
                 live_price=0, mc_cached=None, pay_token=None,
             )
         # Returns 9 outputs: qr_fig, mc_fig, store, status, panel_style, indicator_style, rendered_key, modal, tab
@@ -2402,7 +2515,7 @@ class TestUpdateHeatmapCallback:
                     mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                     mc_freq="Monthly", mc_window=None,
                     mc_start_yr=2025, mc_entry_q=50,
-                    _mc_loaded=None, _pay_trigger=0,
+                    _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
                     live_price=0, mc_cached=None, pay_token=None,
                 )
 
@@ -2415,18 +2528,18 @@ class TestUpdateDcaCallback:
         with _patch_ctx("dca-amount"):
             result = update_dca(
                 active_tab="dca", stack=0, use_lots=[], amount=200,
-                freq="Monthly", yr_range=[2025, 2035],
+                freq="Monthly", dca_infl=0, yr_range=[2025, 2035],
                 disp="btc", toggles=["show_legend"], legend_pos="outside",
                 sel_qs=[0.5], lots_data=[],
                 sc_enable=[], sc_loan=0, sc_rate=13, sc_term=12,
                 sc_type="interest_only", sc_repeats=0,
                 sc_entry_mode="live", sc_custom_price=80000,
                 sc_tax=33, sc_rollover=[],
-                mc_enable=[], mc_amount=100, mc_infl=4,
+                mc_enable=[],
                 mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
-                mc_freq="Monthly", mc_window=None,
+                mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
-                _mc_loaded=None, _pay_trigger=0,
+                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
             )
         # 7 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked
@@ -2438,36 +2551,36 @@ class TestUpdateDcaCallback:
             with pytest.raises(Exception):
                 update_dca(
                     active_tab="bubble", stack=0, use_lots=[], amount=200,
-                    freq="Monthly", yr_range=[2025, 2035],
+                    freq="Monthly", dca_infl=0, yr_range=[2025, 2035],
                     disp="btc", toggles=[], legend_pos="outside", sel_qs=[0.5], lots_data=[],
                     sc_enable=[], sc_loan=0, sc_rate=13, sc_term=12,
                     sc_type="interest_only", sc_repeats=0,
                     sc_entry_mode="live", sc_custom_price=80000,
                     sc_tax=33, sc_rollover=[],
-                    mc_enable=[], mc_amount=100, mc_infl=4,
+                    mc_enable=[],
                     mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
-                    mc_freq="Monthly", mc_window=None,
+                    mc_window=None,
                     mc_start_yr=2026, mc_entry_q=50,
-                    _mc_loaded=None, _pay_trigger=0,
-                price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
+                    _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                    price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
                 )
 
     def test_with_sc_enabled(self):
         with _patch_ctx("dca-sc-enable"):
             result = update_dca(
                 active_tab="dca", stack=0, use_lots=[], amount=500,
-                freq="Monthly", yr_range=[2025, 2030],
+                freq="Monthly", dca_infl=0, yr_range=[2025, 2030],
                 disp="btc", toggles=[], legend_pos="outside",
                 sel_qs=[0.1, 0.5], lots_data=[],
                 sc_enable=["yes"], sc_loan=10000, sc_rate=13, sc_term=12,
                 sc_type="interest_only", sc_repeats=0,
                 sc_entry_mode="custom", sc_custom_price=90000,
                 sc_tax=33, sc_rollover=[],
-                mc_enable=[], mc_amount=100, mc_infl=4,
+                mc_enable=[],
                 mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
-                mc_freq="Monthly", mc_window=None,
+                mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
-                _mc_loaded=None, _pay_trigger=0,
+                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
             )
         assert isinstance(result[0], go.Figure)
@@ -2476,18 +2589,18 @@ class TestUpdateDcaCallback:
         with _patch_ctx("dca-disp"):
             result = update_dca(
                 active_tab="dca", stack=0.5, use_lots=[], amount=300,
-                freq="Weekly", yr_range=[2025, 2032],
+                freq="Weekly", dca_infl=0, yr_range=[2025, 2032],
                 disp="usd", toggles=["log_y"], legend_pos="outside",
                 sel_qs=[0.5, 0.85], lots_data=[],
                 sc_enable=[], sc_loan=0, sc_rate=13, sc_term=12,
                 sc_type="interest_only", sc_repeats=0,
                 sc_entry_mode="live", sc_custom_price=80000,
                 sc_tax=33, sc_rollover=[],
-                mc_enable=[], mc_amount=100, mc_infl=4,
+                mc_enable=[],
                 mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
-                mc_freq="Monthly", mc_window=None,
+                mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
-                _mc_loaded=None, _pay_trigger=0,
+                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
             )
         assert isinstance(result[0], go.Figure)
@@ -2505,11 +2618,11 @@ class TestUpdateRetireCallback:
                 disp="btc", toggles=["log_y", "annotate"],
                 legend_pos="outside",
                 sel_qs=[0.01, 0.1, 0.25], lots_data=[],
-                mc_enable=[], mc_amount=5000, mc_infl=4,
+                mc_enable=[],
                 mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
-                mc_freq="Monthly", mc_window=None,
-                mc_stack=1.0, mc_start_yr=2031, mc_entry_q=50,
-                _mc_loaded=None, _pay_trigger=0,
+                mc_window=None,
+                mc_start_yr=2031, mc_entry_q=50,
+                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
             )
         # 7 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked
@@ -2531,11 +2644,11 @@ class TestUpdateSuperchargeCallback:
                 disp="usd",
                 toggles=["annotate", "log_y", "show_legend"], legend_pos="outside",
                 chart_layout=["shade"], display_q=0.5, lots_data=[],
-                mc_enable=[], mc_amount=5000, mc_infl=4,
+                mc_enable=[],
                 mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
-                mc_freq="Monthly", mc_window=None,
-                mc_stack=1.0, mc_start_yr=2031, mc_entry_q=50,
-                _mc_loaded=None, _pay_trigger=0,
+                mc_window=None,
+                mc_start_yr=2031, mc_entry_q=50,
+                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
             )
         assert len(result) == 6
@@ -2550,11 +2663,11 @@ class TestUpdateSuperchargeCallback:
                 mode="b", wd=50000, end_yr=2080, target_yr=2055,
                 disp="usd", toggles=["show_legend"], legend_pos="outside",
                 chart_layout=[], display_q=0.5, lots_data=[],
-                mc_enable=[], mc_amount=5000, mc_infl=4,
+                mc_enable=[],
                 mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
-                mc_freq="Monthly", mc_window=None,
-                mc_stack=1.0, mc_start_yr=2031, mc_entry_q=50,
-                _mc_loaded=None, _pay_trigger=0,
+                mc_window=None,
+                mc_start_yr=2031, mc_entry_q=50,
+                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None,
             )
         assert isinstance(result[0], go.Figure)
@@ -2739,7 +2852,7 @@ class TestRestoreFromUrl:
             "bub-qs:value": [0.5],
         }
         encoded = _encode_snapshot(state)
-        hash_str = f"#q2:{encoded}"
+        hash_str = f"#q3:{encoded}"
         result = restore_from_url(hash_str)
         assert len(result) == len(_SNAPSHOT_CONTROLS) + 2
         # main-tabs should be restored
@@ -3042,35 +3155,34 @@ class TestBTCPayPricing:
             assert l > c, f"{yrs}yr: live ({l}) should exceed cached ({c})"
 
     def test_free_tier_dca_default(self):
-        assert btcpay.is_free_tier(10, 2026, 50)
+        assert btcpay.is_free_tier(10, 2028, 10)
 
     def test_free_tier_hm_default(self):
-        assert btcpay.is_free_tier(10, 2026, 10)
+        assert btcpay.is_free_tier(10, 2028, 10)
 
     def test_free_tier_retire_default(self):
-        assert btcpay.is_free_tier(10, 2031, 50)
+        assert btcpay.is_free_tier(10, 2031, 10)
 
     def test_free_tier_cache_aligned_entry_q(self):
-        """Cache-aligned entry percentiles (10% bins) are free."""
-        assert btcpay.is_free_tier(10, 2026, 20)
-        assert btcpay.is_free_tier(10, 2026, 90)
-        assert btcpay.is_free_tier(20, 2028, 40)
-        assert btcpay.is_free_tier(20, 2031, 70)
+        """Free tier requires entry_q == MC_FREE_ENTRY_Q (10) and a free (years, start_yr) combo."""
+        assert btcpay.is_free_tier(10, 2028, 10)
+        assert btcpay.is_free_tier(10, 2031, 10)
+        assert btcpay.is_free_tier(20, 2028, 10)
+        assert btcpay.is_free_tier(20, 2031, 10)
 
     def test_not_free_non_aligned_entry_q(self):
-        """Non-cache-aligned entry percentiles require payment."""
-        assert not btcpay.is_free_tier(10, 2026, 25)
-        assert not btcpay.is_free_tier(10, 2026, 4.3)
+        """Non-free entry percentiles require payment."""
+        assert not btcpay.is_free_tier(10, 2028, 25)
+        assert not btcpay.is_free_tier(10, 2028, 4.3)
         assert not btcpay.is_free_tier(20, 2028, 5)
         assert not btcpay.is_free_tier(20, 2031, 75)
 
     def test_free_tier_20yr(self):
-        assert btcpay.is_free_tier(20, 2026, 50)
         assert btcpay.is_free_tier(20, 2028, 10)
-        assert btcpay.is_free_tier(20, 2031, 50)
+        assert btcpay.is_free_tier(20, 2031, 10)
 
     def test_free_tier_2028(self):
-        assert btcpay.is_free_tier(10, 2028, 50)
+        assert btcpay.is_free_tier(10, 2028, 10)
 
     def test_not_free_30yr(self):
         assert not btcpay.is_free_tier(30, 2026, 50)

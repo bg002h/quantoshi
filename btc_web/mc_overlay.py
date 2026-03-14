@@ -221,7 +221,7 @@ def save_trans_cache_to_disk() -> None:
 _load_trans_cache_from_disk()
 
 
-def _get_transition_matrix(n_bins, step_days, mc_window):
+def _get_transition_matrix(m, n_bins, step_days, mc_window):
     """Get transition matrix from cache or build on the fly."""
     global _TRANS_CACHE_DIRTY
     window_start_yr = None
@@ -232,8 +232,8 @@ def _get_transition_matrix(n_bins, step_days, mc_window):
         we_cal = int(mc_window[1])
         window_years = max(1, we_cal - ws_cal)
         n_bins = min(n_bins, max_bins_for_window(window_years, step_days))
-        window_start_yr = yr_to_t(ws_cal, _app_ctx.model.genesis)
-        window_end_yr   = yr_to_t(we_cal, _app_ctx.model.genesis)
+        window_start_yr = yr_to_t(ws_cal, m.genesis)
+        window_end_yr   = yr_to_t(we_cal, m.genesis)
 
     cache_key = (n_bins, step_days, ws_cal, we_cal)
     cached = _TRANS_MATRIX_CACHE.get(cache_key)
@@ -241,7 +241,7 @@ def _get_transition_matrix(n_bins, step_days, mc_window):
         return cached[0], cached[1], n_bins
 
     trans, bin_edges, _ = build_transition_matrix(
-        _app_ctx.history.price_prices, _app_ctx.history.price_years, _app_ctx.model.mc_fits,
+        m.price_prices, m.price_years, m.qr_fits,
         n_bins=n_bins,
         window_start_yr=window_start_yr,
         window_end_yr=window_end_yr,
@@ -521,10 +521,10 @@ def _mc_depletion_annots(mc_ts, fan, mc_start_yr, mc_years, existing_count=0):
 
 # ── Shared simulation helpers ─────────────────────────────────────────────────
 
-def _build_mc_timeline(p, mc_years, mc_dt, clamp_start=False):
+def _build_mc_timeline(p, m, mc_years, mc_dt, clamp_start=False):
     """Build MC simulation timeline from params. Returns (start_yr, t_start, t_end, ts)."""
     mc_start_yr = int(p.get("mc_start_yr", MC_DEFAULT_START_YR))
-    mc_t_start = yr_to_t(mc_start_yr, _app_ctx.model.genesis)
+    mc_t_start = yr_to_t(mc_start_yr, m.genesis)
     if clamp_start:
         mc_t_start = max(mc_t_start, 1.0)
     mc_t_end = mc_t_start + mc_years
@@ -532,9 +532,9 @@ def _build_mc_timeline(p, mc_years, mc_dt, clamp_start=False):
     return mc_start_yr, mc_t_start, mc_t_end, mc_ts
 
 
-def _prepare_sim(p, n_bins, step_days, mc_window, blocked, snap_grid=0):
+def _prepare_sim(m, p, n_bins, step_days, mc_window, blocked, snap_grid=0):
     """Build transition matrix and compute start percentile. Returns (trans, bin_edges, n_bins, start_pctile)."""
-    trans, bin_edges, n_bins = _get_transition_matrix(n_bins, step_days, mc_window)
+    trans, bin_edges, n_bins = _get_transition_matrix(m, n_bins, step_days, mc_window)
     if blocked:
         trans = _apply_bin_mask(trans, blocked)
     start_pctile = float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)) / 100.0
@@ -566,14 +566,15 @@ def _check_client_cache(p, path_key):
     return None, False
 
 
-def _run_full_simulation(p, n_bins, step_days, mc_window, mc_ts,
+def _run_full_simulation(m, p, n_bins, step_days, mc_window, mc_ts,
                          n_sims, mc_t_start, mc_dt, snap_grid=0):
     """Run full MC simulation: build transition matrix + generate price paths."""
     blocked = p.get("mc_blocked_bins", [])
-    trans, bin_edges, n_bins, start_pctile = _prepare_sim(p, n_bins, step_days, mc_window, blocked, snap_grid=snap_grid)
+    trans, bin_edges, n_bins, start_pctile = _prepare_sim(
+        m, p, n_bins, step_days, mc_window, blocked, snap_grid=snap_grid)
     price_paths, _ = monte_carlo_prices(
         trans, bin_edges, start_pctile, len(mc_ts), n_sims,
-        _app_ctx.model.mc_fits, _app_ctx.model.genesis, mc_t_start, mc_dt,
+        m.qr_fits, m.genesis, mc_t_start, mc_dt,
     )
     return price_paths
 
@@ -582,7 +583,7 @@ def _run_full_simulation(p, n_bins, step_days, mc_window, mc_ts,
 # DCA overlay
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _mc_dca_overlay(p, ts, t_start, dt, start_stack, disp_mode):
+def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
     """Build Monte Carlo fan band traces for DCA overlay.
 
     Returns (traces, result_dict, cf_usd).
@@ -595,7 +596,7 @@ def _mc_dca_overlay(p, ts, t_start, dt, start_stack, disp_mode):
     amount     = float(p.get("mc_amount", 100))
     n_bins, n_sims, mc_window, mc_freq, mc_ppy, mc_dt, step_days, mc_years = _mc_setup_vars(p)
 
-    mc_start_yr, mc_t_start, mc_t_end, mc_ts = _build_mc_timeline(p, mc_years, mc_dt)
+    mc_start_yr, mc_t_start, mc_t_end, mc_ts = _build_mc_timeline(p, m, mc_years, mc_dt)
 
     # Clip MC fan to DCA year range so off-screen points don't distort y-axis
     dca_t_end = ts[-1] if len(ts) > 0 else mc_t_end
@@ -652,7 +653,7 @@ def _mc_dca_overlay(p, ts, t_start, dt, start_stack, disp_mode):
 
     # ── Level 3: Full simulation ───────────────────────────────────────────
     price_paths = _run_full_simulation(
-        p, n_bins, step_days, mc_window, mc_ts, n_sims, mc_t_start, mc_dt)
+        m, p, n_bins, step_days, mc_window, mc_ts, n_sims, mc_t_start, mc_dt)
     btc_paths, usd_paths = mc_dca(price_paths, amount, start_stack)
 
     fan_btc = compute_fan_percentiles(btc_paths, _MC_FAN_PCTS)
@@ -673,7 +674,7 @@ def _mc_dca_overlay(p, ts, t_start, dt, start_stack, disp_mode):
 # Withdraw overlay (Retire + Supercharger)
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _mc_withdraw_overlay(p, ts, t_start, t_end, dt,
+def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
                           start_stack, disp_mode, tab,
                           existing_annot_count=0,
                           show_final_values=False,
@@ -692,7 +693,7 @@ def _mc_withdraw_overlay(p, ts, t_start, t_end, dt,
     n_bins, n_sims, mc_window, mc_freq, mc_ppy, mc_dt, step_days, mc_years = _mc_setup_vars(p)
 
     mc_start_yr, mc_t_start, mc_t_end, mc_ts = _build_mc_timeline(
-        p, mc_years, mc_dt, clamp_start=True)
+        p, m, mc_years, mc_dt, clamp_start=True)
 
     mc_stack    = float(p.get("mc_start_stack", 1.0))
     path_key    = _mc_path_key(p, tab)
@@ -766,7 +767,7 @@ def _mc_withdraw_overlay(p, ts, t_start, t_end, dt,
 
     # ── Level 3: Full simulation ───────────────────────────────────────────
     price_paths = _run_full_simulation(
-        p, n_bins, step_days, mc_window, mc_ts, n_sims,
+        m, p, n_bins, step_days, mc_window, mc_ts, n_sims,
         mc_t_start, mc_dt, snap_grid=0.05)
     btc_paths, usd_paths, depl_steps = mc_retire(
         price_paths, mc_stack, wd_amount, inflation, mc_dt,
@@ -787,17 +788,17 @@ def _mc_withdraw_overlay(p, ts, t_start, t_end, dt,
                          fan_usd=fan_usd)
 
 
-def _mc_retire_overlay(p, ts, t_start, t_end, dt,
+def _mc_retire_overlay(m, p, ts, t_start, t_end, dt,
                         start_stack, disp_mode, existing_annot_count=0):
-    return _mc_withdraw_overlay(p, ts, t_start, t_end, dt,
+    return _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
                                  start_stack, disp_mode, "ret", existing_annot_count,
                                  show_final_values=True,
                                  hide_5_95_legend=True)
 
 
-def _mc_supercharge_overlay(p, ts, t_start, t_end, dt,
+def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
                              start_stack, disp_mode, existing_annot_count=0):
-    return _mc_withdraw_overlay(p, ts, t_start, t_end, dt,
+    return _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
                                  start_stack, disp_mode, "sc", existing_annot_count)
 
 
@@ -805,7 +806,7 @@ def _mc_supercharge_overlay(p, ts, t_start, t_end, dt,
 # Heatmap overlay
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _mc_heatmap_overlay(p, ep, entry_t, eyrs):
+def _mc_heatmap_overlay(m, p, ep, entry_t, eyrs):
     """Compute MC-derived CAGR percentile rows for the heatmap.
 
     Returns (mc_cagr, mc_prices, mc_mults, mc_labels, mc_result) or
@@ -831,7 +832,7 @@ def _mc_heatmap_overlay(p, ep, entry_t, eyrs):
         mc_mults  = np.full((n_pcts, n_eyrs), np.nan)
 
         for ci, ey in enumerate(eyrs):
-            et = yr_to_t(ey, _app_ctx.model.genesis)
+            et = yr_to_t(ey, m.genesis)
             nyr = et - entry_t
             if et > mc_ts[-1]:
                 continue
@@ -881,7 +882,7 @@ def _mc_heatmap_overlay(p, ep, entry_t, eyrs):
 
     # ── Level 3: Full simulation ───────────────────────────────────────────
     price_paths = _run_full_simulation(
-        p, n_bins, step_days, mc_window, mc_ts, n_sims, t_start, mc_dt)
+        m, p, n_bins, step_days, mc_window, mc_ts, n_sims, t_start, mc_dt)
 
     mc_cagr, mc_prices_arr, mc_mults = _compute_cagr_rows(price_paths, mc_ts)
 

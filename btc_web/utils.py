@@ -51,7 +51,7 @@ def _quantize_params(p: dict) -> dict:
 def _make_cached_builder(builder_fn, maxsize=64):
     @lru_cache(maxsize=maxsize)
     def _cached(key: str):
-        return builder_fn(json.loads(key))
+        return builder_fn(_app_ctx.M, json.loads(key))
     return _cached
 
 _cached_bubble_fig      = _make_cached_builder(build_bubble_figure, 16)
@@ -82,7 +82,7 @@ def _get_mc_or_cached(p: dict, builder_fn, cache_fn, always_mc=False):
         if is_free:
             return cache_fn(json.dumps(p_q, sort_keys=True, default=str))
         p_q["mc_cached"] = mc_cached
-        return builder_fn(p_q)
+        return builder_fn(_app_ctx.M, p_q)
     return cache_fn(json.dumps(p_q, sort_keys=True, default=str))
 
 def _get_dca_fig(p: dict):
@@ -168,7 +168,7 @@ def _startup_heatmap_defaults():
     """Fetch live BTC price at startup; return entry percentile (0–100 scale)."""
     price = _fetch_btc_price()
     if price is not None:
-        pct = _find_lot_percentile(today_t(_app_ctx.model.genesis), price, _app_ctx.model.mc_fits)
+        pct = _find_lot_percentile(today_t(_app_ctx.M.genesis), price, _app_ctx.M.qr_fits)
         if pct is not None:
             return round(pct * 100, 1)   # e.g. 7.5
     return 50.0   # fallback

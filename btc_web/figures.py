@@ -1,8 +1,7 @@
 """figures.py — Plotly chart builders for the Bitcoin Projections web app.
 
-Chart builders access model/history/theme via _app_ctx module globals.
-Each function takes a params dict of control values and returns a
-go.Figure ready for dcc.Graph.
+Each function takes a ModelData instance and a params dict of control values
+and returns a go.Figure ready for dcc.Graph.
 """
 #
 # Sections:
@@ -97,24 +96,6 @@ _FONT_ANNOT_LG    = 12
 _FONT_WATERMARK_LG = 10
 
 
-def _rotate_hue(hex_color: str, degrees: float) -> str:
-    """Rotate the hue of a hex color by *degrees* (0–360)."""
-    import colorsys
-    h = hex_color.lstrip("#")
-    if len(h) != 6:
-        return hex_color
-    r, g, b = int(h[0:2], 16) / 255, int(h[2:4], 16) / 255, int(h[4:6], 16) / 255
-    hue, s, v = colorsys.rgb_to_hsv(r, g, b)
-    hue = (hue + degrees / 360.0) % 1.0
-    r2, g2, b2 = colorsys.hsv_to_rgb(hue, s, v)
-    return f"#{int(r2 * 255):02x}{int(g2 * 255):02x}{int(b2 * 255):02x}"
-
-
-# Fixed hue offsets per model (consistent across sessions)
-_MODEL_HUE_OFFSETS: dict[str, float] = {"qr": 0.0, "pl": 50.0}
-_MODEL_HUE_DEFAULT_STEP = 60.0  # for future models not in the dict
-
-
 def _apply_sans_typography(layout: dict) -> None:
     """Upgrade layout fonts to enhanced sans-serif stack with larger sizes."""
     layout["title"]["font"].update(family=_SANS_FONT, size=_FONT_TITLE_LG)
@@ -134,14 +115,14 @@ def _fmt_q_label(q: float) -> str:
     return f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
 
 
-def _error_figure(title):
+def _error_figure(m, title):
     """Return a blank figure with a message title, styled for dark theme."""
     fig = go.Figure()
     fig.update_layout(
         title=title,
-        paper_bgcolor=_app_ctx.theme.PLOT_BG_COLOR,
-        plot_bgcolor=_app_ctx.theme.PLOT_BG_COLOR,
-        font=dict(color=_app_ctx.theme.TEXT_COLOR),
+        paper_bgcolor=m.PLOT_BG_COLOR,
+        plot_bgcolor=m.PLOT_BG_COLOR,
+        font=dict(color=m.TEXT_COLOR),
     )
     return fig
 
@@ -178,7 +159,7 @@ def _build_freq_config(p):
     return freq_str, ppy, dt
 
 
-def _build_time_array(p, default_syr, default_eyr):
+def _build_time_array(p, m, default_syr, default_eyr):
     """Extract freq config, build time series, validate year range.
 
     Returns (syr, eyr, t_start, t_end, ts, dt, freq_str, ppy) or
@@ -188,9 +169,9 @@ def _build_time_array(p, default_syr, default_eyr):
     syr = int(p.get("start_yr", default_syr))
     eyr = int(p.get("end_yr", default_eyr))
     if eyr <= syr:
-        return _error_figure("Set end year > start year"), None
-    t_start = max(yr_to_t(syr, _app_ctx.model.genesis), 1.0)
-    t_end = yr_to_t(eyr, _app_ctx.model.genesis)
+        return _error_figure(m, "Set end year > start year"), None
+    t_start = max(yr_to_t(syr, m.genesis), 1.0)
+    t_end = yr_to_t(eyr, m.genesis)
     ts = np.arange(t_start, t_end + dt * 0.5, dt)
     if len(ts) == 0:
         return go.Figure(), None
@@ -208,11 +189,11 @@ def _get_starting_stack(p, default=0.0):
     return start_stack
 
 
-def _sim_layout(p, title, ylabel, ts, t_start, t_end, dt, syr, eyr, shapes=None):
+def _sim_layout(m, p, title, ylabel, ts, t_start, t_end, dt, syr, eyr, shapes=None):
     """Build dark layout with time-series axis, log_y, tick labels."""
-    tick_ts, tick_lbls = _year_ticks(syr, eyr, _app_ctx.model.genesis,
+    tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis,
                                      minor_grid=p.get("minor_grid"))
-    layout = _dark_layout(title=title, xlabel="Year", ylabel=ylabel)
+    layout = _dark_layout(m, title=title, xlabel="Year", ylabel=ylabel)
     layout["yaxis"]["title"]["standoff"] = 5
     _x_end = max(float(ts[-1]), t_end) + dt * 0.15
     layout["xaxis"].update(
@@ -224,43 +205,41 @@ def _sim_layout(p, title, ylabel, ts, t_start, t_end, dt, syr, eyr, shapes=None)
     return layout, _x_end
 
 
-def _apply_mc_overlay(p, overlay_fn, overlay_args, traces,
+def _apply_mc_overlay(m, p, overlay_fn, overlay_args, traces,
                       deplete_annots, layout, x_end, disp_mode):
     """Integrate MC overlay traces and annotations into chart.
-    Returns (mc_traces_list, mc_result).
-    Respects p["show_mc"] — runs simulation for caching but hides traces."""
+    Returns (mc_traces_list, mc_result)."""
     mc_traces_list, mc_annots, mc_result = overlay_fn(*overlay_args)
     mc_traces_list = _post_mc_overlay(mc_traces_list, p, x_end, disp_mode)
-    if p.get("show_mc", True):
-        traces.extend(mc_traces_list)
-        if mc_annots:
-            mc_annots = [a for a in mc_annots if a["x"] <= x_end]
-            deplete_annots.extend(mc_annots)
-            layout["annotations"] = deplete_annots
+    traces.extend(mc_traces_list)
+    if mc_annots:
+        mc_annots = [a for a in mc_annots if a["x"] <= x_end]
+        deplete_annots.extend(mc_annots)
+        layout["annotations"] = deplete_annots
     return mc_traces_list, mc_result
 
 
-def _dark_layout(title, xlabel, ylabel, **kwargs):
+def _dark_layout(m, title, xlabel, ylabel, **kwargs):
     """Base dark-theme layout dict."""
     return dict(
-        title=dict(text=title, font=dict(color=_app_ctx.theme.TITLE_COLOR, size=_FONT_TITLE)),
-        paper_bgcolor=_app_ctx.theme.PLOT_BG_COLOR,
-        plot_bgcolor=_app_ctx.theme.PLOT_BG_COLOR,
-        font=dict(color=_app_ctx.theme.TEXT_COLOR, size=_FONT_BODY),
+        title=dict(text=title, font=dict(color=m.TITLE_COLOR, size=_FONT_TITLE)),
+        paper_bgcolor=m.PLOT_BG_COLOR,
+        plot_bgcolor=m.PLOT_BG_COLOR,
+        font=dict(color=m.TEXT_COLOR, size=_FONT_BODY),
         xaxis=dict(
-            title=dict(text=xlabel, font=dict(color=_app_ctx.theme.TEXT_COLOR)),
-            gridcolor=_app_ctx.theme.GRID_MAJOR_COLOR, gridwidth=0.6,
-            linecolor=_app_ctx.theme.SPINE_COLOR, tickcolor=_app_ctx.theme.TEXT_COLOR,
-            zerolinecolor=_app_ctx.theme.GRID_MAJOR_COLOR,
+            title=dict(text=xlabel, font=dict(color=m.TEXT_COLOR)),
+            gridcolor=m.GRID_MAJOR_COLOR, gridwidth=0.6,
+            linecolor=m.SPINE_COLOR, tickcolor=m.TEXT_COLOR,
+            zerolinecolor=m.GRID_MAJOR_COLOR,
         ),
         yaxis=dict(
-            title=dict(text=ylabel, font=dict(color=_app_ctx.theme.TEXT_COLOR)),
-            gridcolor=_app_ctx.theme.GRID_MAJOR_COLOR, gridwidth=0.6,
-            linecolor=_app_ctx.theme.SPINE_COLOR, tickcolor=_app_ctx.theme.TEXT_COLOR,
-            zerolinecolor=_app_ctx.theme.GRID_MAJOR_COLOR,
+            title=dict(text=ylabel, font=dict(color=m.TEXT_COLOR)),
+            gridcolor=m.GRID_MAJOR_COLOR, gridwidth=0.6,
+            linecolor=m.SPINE_COLOR, tickcolor=m.TEXT_COLOR,
+            zerolinecolor=m.GRID_MAJOR_COLOR,
         ),
         legend=dict(
-            bgcolor="rgba(255,255,255,0.85)", bordercolor=_app_ctx.theme.GRID_MAJOR_COLOR,
+            bgcolor="rgba(255,255,255,0.85)", bordercolor=m.GRID_MAJOR_COLOR,
             borderwidth=1, font=dict(size=_FONT_LEGEND),
         ),
         margin=dict(l=60, r=20, t=50, b=60),
@@ -619,7 +598,7 @@ def _seg_colorscale(mc, b1, b2, c_lo, c_mid1, c_mid2, c_hi):
 
 # ── Bubble + QR Overlay ───────────────────────────────────────────────────────
 
-def build_bubble_figure(p: dict[str, Any]) -> go.Figure:
+def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     """
     p keys: selected_qs, shade, xscale, yscale, xmin, xmax, ymin, ymax,
             n_future, show_comp, comp_color, comp_lw,
@@ -627,8 +606,8 @@ def build_bubble_figure(p: dict[str, Any]) -> go.Figure:
             show_ols, show_data, show_today, pt_size, pt_alpha,
             stack, show_stack, lots (list of lot dicts), use_lots
     """
-    t_lo = max(yr_to_t(p["xmin"], _app_ctx.model.genesis), 0.01)
-    t_hi = yr_to_t(p["xmax"], _app_ctx.model.genesis)
+    t_lo = max(yr_to_t(p["xmin"], m.genesis), 0.01)
+    t_hi = yr_to_t(p["xmax"], m.genesis)
     y_lo = float(p["ymin"])
     y_hi = float(p["ymax"])
     t_arr = np.linspace(max(t_lo, 0.1), t_hi, _INTERP_POINTS)
@@ -637,66 +616,43 @@ def build_bubble_figure(p: dict[str, Any]) -> go.Figure:
 
     traces = []
 
+    # ── shading between adjacent quantiles ───────────────────────────────────
     sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])])
-
-    # ── determine which models to draw ────────────────────────────────────────
-    show_models = p.get("show_models") or [p.get("_model_key", "qr")]
-    models_to_draw = []
-    for mk in show_models:
-        mdl = _app_ctx.models.get(mk)
-        if mdl is not None:
-            models_to_draw.append((mk, mdl))
-    if not models_to_draw:
-        models_to_draw = [(p.get("_model_key", "qr"), _app_ctx.model)]
-    multi = len(models_to_draw) > 1
-
-    for mi, (mk, mdl) in enumerate(models_to_draw):
-        hue_off = _MODEL_HUE_OFFSETS.get(mk, _MODEL_HUE_DEFAULT_STEP * (mi + 1))
-
-        def _col(q):
-            base = mdl.colors.get(q, "#888888")
-            return _rotate_hue(base, hue_off) if hue_off else base
-
-        prefix = f"{mk.upper()} " if multi else ""
-
-        # ── shading between adjacent quantiles ───────────────────────────
-        model_qs = [q for q in sel_qs if q in mdl.mc_fits]
-        shade_alpha = _SHADE_ALPHA * (0.6 if multi else 1.0)
-        if p.get("shade") and len(model_qs) >= 2:
-            for j in range(len(model_qs) - 1):
-                lo_p = mdl.price_at(model_qs[j], t_arr) * (stack if stack > 0 else 1)
-                hi_p = mdl.price_at(model_qs[j+1], t_arr) * (stack if stack > 0 else 1)
-                col = _col(model_qs[j])
-                traces.append(go.Scatter(
-                    x=list(t_arr), y=list(lo_p),
-                    mode="lines", line=dict(width=0),
-                    showlegend=False, hoverinfo="skip",
-                ))
-                traces.append(go.Scatter(
-                    x=list(t_arr), y=list(hi_p),
-                    mode="lines", line=dict(width=0), fill="tonexty",
-                    fillcolor=_hex_alpha(col, shade_alpha),
-                    showlegend=False, hoverinfo="skip",
-                ))
-
-        # ── quantile lines ───────────────────────────────────────────────
-        for q in model_qs:
-            prices = mdl.price_at(q, t_arr) * (stack if stack > 0 else 1)
-            lbl = prefix + _fmt_q_label(q)
-            if stack > 0:
-                lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
-            col = _col(q)
+    if p.get("shade") and len(sel_qs) >= 2:
+        for j in range(len(sel_qs) - 1):
+            lo_p = qr_price(sel_qs[j],   t_arr, m.qr_fits) * (stack if stack > 0 else 1)
+            hi_p = qr_price(sel_qs[j+1], t_arr, m.qr_fits) * (stack if stack > 0 else 1)
+            col  = m.qr_colors.get(sel_qs[j], "#888888")
             traces.append(go.Scatter(
-                x=list(t_arr), y=list(prices),
-                mode="lines", name=lbl,
-                line=dict(color=col, width=_QR_LINE_WIDTH),
+                x=list(t_arr), y=list(lo_p),
+                mode="lines", line=dict(width=0),
+                showlegend=False, hoverinfo="skip",
+            ))
+            traces.append(go.Scatter(
+                x=list(t_arr), y=list(hi_p),
+                mode="lines", line=dict(width=0), fill="tonexty",
+                fillcolor=col.replace("#", "rgba(").rstrip(")") if False else _hex_alpha(col, _SHADE_ALPHA),
+                showlegend=False, hoverinfo="skip",
             ))
 
-    # ── OLS line (bubble model only) ────────────────────────────────────────
-    # Show bubble overlays if ANY enabled model supports them
-    _bub_mdl = next((m for _, m in models_to_draw if m.has_bubble_overlay), None)
-    if p.get("show_ols") and _bub_mdl is not None:
-        p_ols = 10.0 ** (_bub_mdl.ols_intercept + _bub_mdl.ols_slope * np.log10(t_arr))
+    # ── quantile lines ────────────────────────────────────────────────────────
+    for q in sel_qs:
+        if q not in m.qr_fits:
+            continue
+        prices = qr_price(q, t_arr, m.qr_fits) * (stack if stack > 0 else 1)
+        lbl = _fmt_q_label(q)
+        if stack > 0:
+            lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
+        col = m.qr_colors.get(q, "#888888")
+        traces.append(go.Scatter(
+            x=list(t_arr), y=list(prices),
+            mode="lines", name=lbl,
+            line=dict(color=col, width=_QR_LINE_WIDTH),
+        ))
+
+    # ── OLS line ──────────────────────────────────────────────────────────────
+    if p.get("show_ols"):
+        p_ols = 10.0 ** (m.ols_intercept + m.ols_slope * np.log10(t_arr))
         if stack > 0:
             p_ols = p_ols * stack
         traces.append(go.Scatter(
@@ -706,36 +662,36 @@ def build_bubble_figure(p: dict[str, Any]) -> go.Figure:
             opacity=0.8,
         ))
 
-    # ── bubble support (bubble model only) ────────────────────────────────────
-    if p.get("show_sup") and _bub_mdl is not None:
-        mask = (_bub_mdl.years_plot_bm >= t_lo) & (_bub_mdl.years_plot_bm <= t_hi)
+    # ── bubble support ────────────────────────────────────────────────────────
+    if p.get("show_sup"):
+        mask = (m.years_plot_bm >= t_lo) & (m.years_plot_bm <= t_hi)
         traces.append(go.Scatter(
-            x=list(_bub_mdl.years_plot_bm[mask]), y=list(_bub_mdl.support_bm[mask]),
+            x=list(m.years_plot_bm[mask]), y=list(m.support_bm[mask]),
             mode="lines", name="Bubble support",
             line=dict(color=p.get("sup_color", "#888888"),
                       dash="dash", width=float(p.get("sup_lw", 1.5))),
             opacity=0.9,
         ))
 
-    # ── bubble composite (bubble model only) ──────────────────────────────────
-    if p.get("show_comp") and _bub_mdl is not None:
+    # ── bubble composite ──────────────────────────────────────────────────────
+    if p.get("show_comp"):
         n = int(p.get("n_future", 0))
-        n = min(n, len(_bub_mdl.comp_by_n) - 1)
-        mask = (_bub_mdl.years_plot_bm >= t_lo) & (_bub_mdl.years_plot_bm <= t_hi)
+        n = min(n, len(m.comp_by_n) - 1)
+        mask = (m.years_plot_bm >= t_lo) & (m.years_plot_bm <= t_hi)
         traces.append(go.Scatter(
-            x=list(_bub_mdl.years_plot_bm[mask]), y=list(_bub_mdl.comp_by_n[n][mask]),
+            x=list(m.years_plot_bm[mask]), y=list(m.comp_by_n[n][mask]),
             mode="lines",
-            name=f"Bubble composite (N={n})  R²={_bub_mdl.bm_r2:.4f}",
+            name=f"Bubble composite (N={n})  R²={m.bm_r2:.4f}",
             line=dict(color=p.get("comp_color", "#FFD700"),
                       width=float(p.get("comp_lw", 2.0))),
         ))
 
     # ── historical price data ─────────────────────────────────────────────────
     if p.get("show_data"):
-        mask  = (_app_ctx.history.price_years >= t_lo) & (_app_ctx.history.price_years <= t_hi)
-        x_sc  = _app_ctx.history.price_years[mask]
-        y_sc  = _app_ctx.history.price_prices[mask] * (stack if stack > 0 else 1)
-        d_sc  = [_app_ctx.history.price_dates[i] for i in range(len(_app_ctx.history.price_dates)) if mask[i]]
+        mask  = (m.price_years >= t_lo) & (m.price_years <= t_hi)
+        x_sc  = m.price_years[mask]
+        y_sc  = m.price_prices[mask] * (stack if stack > 0 else 1)
+        d_sc  = [m.price_dates[i] for i in range(len(m.price_dates)) if mask[i]]
         # Downsample to ≤1 200 points — imperceptible on log scale but cuts
         # figure JSON ~50 % and serialisation time meaningfully.
         _MAX_PTS = _MAX_SCATTER_PTS
@@ -749,7 +705,7 @@ def build_bubble_figure(p: dict[str, Any]) -> go.Figure:
         traces.append(go.Scatter(
             x=list(x_sc), y=list(y_sc),
             mode="markers", name="Price data",
-            marker=dict(color=_app_ctx.theme.DATA_COLOR, size=max(2, int(p.get("pt_size", 3))),
+            marker=dict(color=m.DATA_COLOR, size=max(2, int(p.get("pt_size", 3))),
                         opacity=float(p.get("pt_alpha", 0.6))),
             text=d_sc, hovertemplate="%{text}<br>%{y:$,.0f}<extra></extra>",
         ))
@@ -760,7 +716,7 @@ def build_bubble_figure(p: dict[str, Any]) -> go.Figure:
         lt_vals, lp_vals, lhover = [], [], []
         for lot in lots:
             try:
-                lt = (pd.Timestamp(lot["date"]) - _app_ctx.model.genesis).days / 365.25
+                lt = (pd.Timestamp(lot["date"]) - m.genesis).days / 365.25
                 lp = float(lot["price"]) * (stack if stack > 0 else 1)
                 if t_lo <= lt <= t_hi:
                     lt_vals.append(lt)
@@ -782,7 +738,7 @@ def build_bubble_figure(p: dict[str, Any]) -> go.Figure:
     # ── today line ────────────────────────────────────────────────────────────
     shapes = []
     if p.get("show_today"):
-        td = today_t(_app_ctx.model.genesis)
+        td = today_t(m.genesis)
         if t_lo <= td <= t_hi:
             shapes.append(dict(
                 type="line", x0=td, x1=td, y0=y_lo, y1=y_hi,
@@ -791,7 +747,7 @@ def build_bubble_figure(p: dict[str, Any]) -> go.Figure:
             ))
 
     # ── x-axis ticks (calendar years) ─────────────────────────────────────────
-    tick_ts, tick_lbls = _year_ticks(p["xmin"], p["xmax"], _app_ctx.model.genesis,
+    tick_ts, tick_lbls = _year_ticks(p["xmin"], p["xmax"], m.genesis,
                                      minor_grid=p.get("minor_grid"))
     filtered = [(t, lbl) for t, lbl in zip(tick_ts, tick_lbls) if t_lo <= t <= t_hi]
     tick_ts, tick_lbls = (list(x) for x in zip(*filtered)) if filtered else ([], [])
@@ -806,6 +762,7 @@ def build_bubble_figure(p: dict[str, Any]) -> go.Figure:
     ylabel = "Stack Value (USD)" if stack > 0 else "Bitcoin Price (USD)"
 
     layout = _dark_layout(
+        m,
         title="Bitcoin Bubble Model + Quantile Regression Channels",
         xlabel="Years since genesis (2009-01-03)",
         ylabel=ylabel,
@@ -854,8 +811,8 @@ def build_bubble_figure(p: dict[str, Any]) -> go.Figure:
             text=f"Stack: {p['stack']:.6g} BTC",
             xref="paper", yref="paper", x=0.99, y=0.01,
             xanchor="right", yanchor="bottom",
-            showarrow=False, font=dict(size=_FONT_LEGEND, color=_app_ctx.theme.TEXT_COLOR),
-            bgcolor=_app_ctx.theme.PLOT_BG_COLOR, bordercolor=_app_ctx.theme.SPINE_COLOR, borderwidth=1,
+            showarrow=False, font=dict(size=_FONT_LEGEND, color=m.TEXT_COLOR),
+            bgcolor=m.PLOT_BG_COLOR, bordercolor=m.SPINE_COLOR, borderwidth=1,
         )]
 
     _apply_sans_typography(layout)
@@ -875,15 +832,15 @@ def _hex_alpha(hex_color, alpha):
 
 # ── CAGR Heatmap — shared helpers ─────────────────────────────────────────────
 
-def _heatmap_colorscale(p, mc):
+def _heatmap_colorscale(m, p, mc):
     """Compute colorscale, zmin, zmax from heatmap params and CAGR matrix."""
     mode   = int(p.get("color_mode", 0))
-    c_lo   = p.get("c_lo",   _app_ctx.theme.CAGR_SEG_C_LO)
-    c_mid1 = p.get("c_mid1", _app_ctx.theme.CAGR_SEG_C_MID1)
-    c_mid2 = p.get("c_mid2", _app_ctx.theme.CAGR_SEG_C_MID2)
-    c_hi   = p.get("c_hi",   _app_ctx.theme.CAGR_SEG_C_HI)
-    b1     = float(p.get("b1", _app_ctx.theme.CAGR_SEG_B1))
-    b2     = float(p.get("b2", _app_ctx.theme.CAGR_SEG_B2))
+    c_lo   = p.get("c_lo",   m.CAGR_SEG_C_LO)
+    c_mid1 = p.get("c_mid1", m.CAGR_SEG_C_MID1)
+    c_mid2 = p.get("c_mid2", m.CAGR_SEG_C_MID2)
+    c_hi   = p.get("c_hi",   m.CAGR_SEG_C_HI)
+    b1     = float(p.get("b1", m.CAGR_SEG_B1))
+    b2     = float(p.get("b2", m.CAGR_SEG_B2))
 
     valid = mc[~np.isnan(mc)] if np.any(np.isnan(mc)) else mc
     mn, mx = float(valid.min()), float(valid.max())
@@ -950,7 +907,7 @@ def _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax, cell_fs):
     return annots
 
 
-def build_heatmap_figure(p: dict[str, Any]) -> go.Figure:
+def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     """
     p keys: entry_yr, entry_q, exit_yr_lo, exit_yr_hi, exit_qs (list),
             color_mode (0=Segmented,1=DataScaled,2=Diverging),
@@ -960,9 +917,9 @@ def build_heatmap_figure(p: dict[str, Any]) -> go.Figure:
     """
     eyr = int(p.get("entry_yr", 2020))
     eq  = float(p.get("entry_q", 50)) / 100.0   # stored as percentage (e.g. 7.5 → 0.075)
-    entry_t = yr_to_t(eyr, _app_ctx.model.genesis)
+    entry_t = yr_to_t(eyr, m.genesis)
     live_price = p.get("live_price")
-    ep  = float(live_price) if live_price else _app_ctx.model.interp_price(eq, entry_t)
+    ep  = float(live_price) if live_price else _interp_qr_price(eq, entry_t, m.qr_fits)
 
     # LOT ENTRY OVERRIDE
     lots = p.get("lots") or []
@@ -976,19 +933,19 @@ def build_heatmap_figure(p: dict[str, Any]) -> go.Figure:
     eyrs = list(range(xlo, xhi + 1))
 
     xqs_raw = p.get("exit_qs") or []
-    xqs = sorted([float(q) for q in xqs_raw if float(q) in _app_ctx.model.mc_fits], reverse=True)
+    xqs = sorted([float(q) for q in xqs_raw if float(q) in m.qr_fits], reverse=True)
 
     if not eyrs or not xqs:
-        return _error_figure("No data — adjust Entry / Exit settings")
+        return _error_figure(m, "No data — adjust Entry / Exit settings")
 
     mc = np.zeros((len(xqs), len(eyrs)))
     mp = np.zeros((len(xqs), len(eyrs)))
     mm = np.zeros((len(xqs), len(eyrs)))
     for ci, ey in enumerate(eyrs):
-        et = yr_to_t(ey, _app_ctx.model.genesis)
+        et = yr_to_t(ey, m.genesis)
         nyr = et - entry_t if p.get("use_lots") and lots else float(ey - eyr)
         for ri, xq in enumerate(xqs):
-            xpp = float(_app_ctx.model.price_at(xq, et))
+            xpp = float(qr_price(xq, et, m.qr_fits))
             mp[ri, ci] = xpp
             mm[ri, ci] = xpp / ep if ep > 0 else 0.0
             if nyr <= 0:
@@ -996,7 +953,7 @@ def build_heatmap_figure(p: dict[str, Any]) -> go.Figure:
             else:
                 mc[ri, ci] = ((xpp / ep) ** (1.0 / nyr) - 1.0) * 100.0
 
-    colorscale, zmin, zmax = _heatmap_colorscale(p, mc)
+    colorscale, zmin, zmax = _heatmap_colorscale(m, p, mc)
 
     # ── cell text ─────────────────────────────────────────────────────────────
     vfmt    = p.get("vfmt", "cagr")
@@ -1016,10 +973,10 @@ def build_heatmap_figure(p: dict[str, Any]) -> go.Figure:
         colorscale=colorscale, zmin=zmin, zmax=zmax,
         showscale=bool(p.get("show_colorbar", True)),
         colorbar=dict(
-            title=dict(text="CAGR %", font=dict(color=_app_ctx.theme.TEXT_COLOR)),
-            tickfont=dict(color=_app_ctx.theme.TEXT_COLOR),
-            bgcolor=_app_ctx.theme.PLOT_BG_COLOR,
-            outlinecolor=_app_ctx.theme.SPINE_COLOR,
+            title=dict(text="CAGR %", font=dict(color=m.TEXT_COLOR)),
+            tickfont=dict(color=m.TEXT_COLOR),
+            bgcolor=m.PLOT_BG_COLOR,
+            outlinecolor=m.SPINE_COLOR,
         ),
         hovertemplate="Exit: %{x}<br>Quantile: %{y}<br>CAGR: %{z:.1f}%<extra></extra>",
     ))
@@ -1030,15 +987,15 @@ def build_heatmap_figure(p: dict[str, Any]) -> go.Figure:
 
     fig.update_layout(
         title=dict(text=f"CAGR Heatmap — {entry_lbl}",
-                   font=dict(color=_app_ctx.theme.TITLE_COLOR, size=_FONT_SUBTITLE)),
-        paper_bgcolor=_app_ctx.theme.PLOT_BG_COLOR,
-        plot_bgcolor=_app_ctx.theme.PLOT_BG_COLOR,
-        font=dict(color=_app_ctx.theme.TEXT_COLOR),
-        xaxis=dict(title="Exit Year", gridcolor=_app_ctx.theme.GRID_MAJOR_COLOR,
-                   linecolor=_app_ctx.theme.SPINE_COLOR, tickcolor=_app_ctx.theme.TEXT_COLOR,
+                   font=dict(color=m.TITLE_COLOR, size=_FONT_SUBTITLE)),
+        paper_bgcolor=m.PLOT_BG_COLOR,
+        plot_bgcolor=m.PLOT_BG_COLOR,
+        font=dict(color=m.TEXT_COLOR),
+        xaxis=dict(title="Exit Year", gridcolor=m.GRID_MAJOR_COLOR,
+                   linecolor=m.SPINE_COLOR, tickcolor=m.TEXT_COLOR,
                    fixedrange=True),
-        yaxis=dict(title="Exit Quantile", gridcolor=_app_ctx.theme.GRID_MAJOR_COLOR,
-                   linecolor=_app_ctx.theme.SPINE_COLOR, tickcolor=_app_ctx.theme.TEXT_COLOR,
+        yaxis=dict(title="Exit Quantile", gridcolor=m.GRID_MAJOR_COLOR,
+                   linecolor=m.SPINE_COLOR, tickcolor=m.TEXT_COLOR,
                    fixedrange=True),
         annotations=annots,
         margin=dict(l=70, r=20, t=60, b=50),
@@ -1055,15 +1012,15 @@ def build_heatmap_figure(p: dict[str, Any]) -> go.Figure:
     return fig
 
 
-def build_mc_heatmap_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
+def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     """Build a standalone MC heatmap figure from MC-simulated CAGR percentiles.
     Returns (fig, mc_result) or (empty_fig, None).
     """
     eyr = int(p.get("mc_start_yr", p.get("entry_yr", 2020)))
     eq  = float(p.get("mc_entry_q", p.get("entry_q", 50))) / 100.0
-    entry_t = yr_to_t(eyr, _app_ctx.model.genesis)
+    entry_t = yr_to_t(eyr, m.genesis)
     live_price = p.get("live_price")
-    ep  = float(live_price) if live_price else _app_ctx.model.interp_price(eq, entry_t)
+    ep  = float(live_price) if live_price else _interp_qr_price(eq, entry_t, m.qr_fits)
 
     lots = p.get("lots") or []
     if p.get("use_lots") and lots:
@@ -1075,12 +1032,12 @@ def build_mc_heatmap_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     eyrs = list(range(eyr, eyr + mc_years + 1))
 
     if not eyrs:
-        return _error_figure("No data — adjust Entry / Exit settings"), None
+        return _error_figure(m, "No data — adjust Entry / Exit settings"), None
 
-    mc_data = _mc_heatmap_overlay(p, ep, entry_t, eyrs)
+    mc_data = _mc_heatmap_overlay(m, p, ep, entry_t, eyrs)
     mc_cagr, mc_prices, mc_mults, mc_labels, mc_result = mc_data
     if mc_cagr is None:
-        return _error_figure("MC simulation error"), None
+        return _error_figure(m, "MC simulation error"), None
 
     mc = mc_cagr
     mp = mc_prices
@@ -1088,9 +1045,9 @@ def build_mc_heatmap_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
 
     valid = mc[~np.isnan(mc)]
     if len(valid) == 0:
-        return _error_figure("MC: no valid data in range"), mc_result
+        return _error_figure(m, "MC: no valid data in range"), mc_result
 
-    colorscale, zmin, zmax = _heatmap_colorscale(p, mc)
+    colorscale, zmin, zmax = _heatmap_colorscale(m, p, mc)
 
     # ── cell text ────────────────────────────────────────────────────────────
     vfmt   = p.get("vfmt", "cagr")
@@ -1104,10 +1061,10 @@ def build_mc_heatmap_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
         colorscale=colorscale, zmin=zmin, zmax=zmax,
         showscale=bool(p.get("show_colorbar", True)),
         colorbar=dict(
-            title=dict(text="CAGR %", font=dict(color=_app_ctx.theme.TEXT_COLOR)),
-            tickfont=dict(color=_app_ctx.theme.TEXT_COLOR),
-            bgcolor=_app_ctx.theme.PLOT_BG_COLOR,
-            outlinecolor=_app_ctx.theme.SPINE_COLOR,
+            title=dict(text="CAGR %", font=dict(color=m.TEXT_COLOR)),
+            tickfont=dict(color=m.TEXT_COLOR),
+            bgcolor=m.PLOT_BG_COLOR,
+            outlinecolor=m.SPINE_COLOR,
         ),
         hovertemplate="Exit: %{x}<br>Percentile: %{y}<br>CAGR: %{z:.1f}%<extra></extra>",
     ))
@@ -1118,15 +1075,15 @@ def build_mc_heatmap_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
 
     fig.update_layout(
         title=dict(text=f"Monte Carlo CAGR — {entry_lbl}",
-                   font=dict(color=_app_ctx.theme.TITLE_COLOR, size=_FONT_SUBTITLE)),
-        paper_bgcolor=_app_ctx.theme.PLOT_BG_COLOR,
-        plot_bgcolor=_app_ctx.theme.PLOT_BG_COLOR,
-        font=dict(color=_app_ctx.theme.TEXT_COLOR),
-        xaxis=dict(title="Exit Year", gridcolor=_app_ctx.theme.GRID_MAJOR_COLOR,
-                   linecolor=_app_ctx.theme.SPINE_COLOR, tickcolor=_app_ctx.theme.TEXT_COLOR,
+                   font=dict(color=m.TITLE_COLOR, size=_FONT_SUBTITLE)),
+        paper_bgcolor=m.PLOT_BG_COLOR,
+        plot_bgcolor=m.PLOT_BG_COLOR,
+        font=dict(color=m.TEXT_COLOR),
+        xaxis=dict(title="Exit Year", gridcolor=m.GRID_MAJOR_COLOR,
+                   linecolor=m.SPINE_COLOR, tickcolor=m.TEXT_COLOR,
                    fixedrange=True),
-        yaxis=dict(title="MC Percentile", gridcolor=_app_ctx.theme.GRID_MAJOR_COLOR,
-                   linecolor=_app_ctx.theme.SPINE_COLOR, tickcolor=_app_ctx.theme.TEXT_COLOR,
+        yaxis=dict(title="MC Percentile", gridcolor=m.GRID_MAJOR_COLOR,
+                   linecolor=m.SPINE_COLOR, tickcolor=m.TEXT_COLOR,
                    fixedrange=True),
         annotations=annots,
         margin=dict(l=70, r=20, t=60, b=50),
@@ -1145,7 +1102,7 @@ def build_mc_heatmap_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
 
 # ── DCA helpers ──────────────────────────────────────────────────────────────
 
-def _dca_sc_overlay(p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy):
+def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy):
     """Run Stack-celerator overlay simulation for DCA tab.
 
     Returns (sc_traces, all_sc_usd_vals, all_sc_btc_vals).
@@ -1179,7 +1136,7 @@ def _dca_sc_overlay(p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy):
         return sc_traces, all_sc_usd_vals, all_sc_btc_vals
 
     for q in sel_qs:
-        if q not in _app_ctx.model.mc_fits:
+        if q not in m.qr_fits:
             continue
         sc_stack    = start_stack
         outstanding = 0.0
@@ -1257,7 +1214,7 @@ def _dca_sc_overlay(p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy):
             final_sc  = f"{float(sc_vals[-1]):.4f} BTC  ({final_usd})"
 
         lbl_sc = f"SC {_fmt_q_label(q)}" + f"  \u2192  {final_sc}"
-        col = _app_ctx.model.colors.get(q, "#888888")
+        col = m.qr_colors.get(q, "#888888")
         sc_traces.append(go.Scatter(
             x=list(ts), y=list(y_sc), mode="lines", name=lbl_sc,
             line=dict(color=col, width=_QR_LINE_WIDTH, dash="dash"),
@@ -1308,7 +1265,7 @@ def _find_mc_median_trace(mc_traces):
     return None, None
 
 
-def _mc_median_annot(mc_traces, disp_mode, ts_end, t_start, t_end,
+def _mc_median_annot(mc_traces, disp_mode, m, ts_end, t_start, t_end,
                      syr, eyr, btc_fmt=".2f", estimate_usd=True):
     """Build MC median edge annotation for Retire/SC tabs, or return None.
 
@@ -1327,7 +1284,7 @@ def _mc_median_annot(mc_traces, disp_mode, ts_end, t_start, t_end,
     else:
         if estimate_usd:
             mc_t = np.array([max(float(mx[-1]), 0.5)])
-            _mc_usd = mc_y_final * float(_app_ctx.model.price_at(0.5, mc_t)[0])
+            _mc_usd = mc_y_final * float(qr_price(0.5, mc_t, m.qr_fits)[0])
             mc_lbl = f"{mc_y_final:{btc_fmt}} \u20bf  {fmt_price(_mc_usd)}"
         else:
             mc_lbl = f"{mc_y_final:{btc_fmt}} \u20bf"
@@ -1538,13 +1495,13 @@ def _resolve_edge_annotations(pending, log_y):
 
 # ── DCA Accumulator ───────────────────────────────────────────────────────────
 
-def build_dca_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
+def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     """
     p keys: start_yr, end_yr, start_stack, amount, freq, disp_mode,
             selected_qs, log_y, show_today,
             lots, use_lots
     """
-    ta = _build_time_array(p, 2024, 2035)
+    ta = _build_time_array(p, m, 2024, 2035)
     if ta[1] is None:
         return ta[0], None
     syr, eyr, t_start, t_end, ts, dt, freq_str, ppy = ta
@@ -1555,8 +1512,6 @@ def build_dca_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     inflation = float(p.get("inflation", 0)) / 100.0
     disp_mode = p.get("disp_mode", "btc")
     sel_qs    = sorted([float(q) for q in (p.get("selected_qs") or [])])
-    show_qr   = p.get("show_qr", True)
-    show_mc   = p.get("show_mc", True)
 
     traces = []
     all_btc_vals = {}  # q -> BTC balance array
@@ -1565,16 +1520,13 @@ def build_dca_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     ts_clamped = np.maximum(ts, 0.5)
     adj_amount_arr = amount * ((1 + inflation) ** (ts - t_start))
     for q in sel_qs:
-        if q not in _app_ctx.model.mc_fits:
+        if q not in m.qr_fits:
             continue
-        prices_q = _app_ctx.model.price_at(q, ts_clamped)
+        prices_q = qr_price(q, ts_clamped, m.qr_fits)
         vals = start_stack + np.cumsum(adj_amount_arr / prices_q)
         all_btc_vals[q] = vals
         all_usd_vals[q] = vals * prices_q
         all_prices[q]   = prices_q          # save for SC loop below
-
-        if not show_qr:
-            continue  # compute data for title/cache, but skip QR traces
 
         if disp_mode == "usd":
             y_vals    = vals * prices_q
@@ -1585,7 +1537,7 @@ def build_dca_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
             final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
 
         lbl = _fmt_q_label(q) + f"  →  {final_lbl}"
-        col = _app_ctx.model.colors.get(q, "#888888")
+        col = m.qr_colors.get(q, "#888888")
         traces.append(go.Scatter(
             x=list(ts), y=list(y_vals), mode="lines", name=lbl,
             line=dict(color=col, width=_QR_LINE_WIDTH),
@@ -1593,7 +1545,7 @@ def build_dca_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
 
     shapes = []
     if p.get("show_today"):
-        td = today_t(_app_ctx.model.genesis)
+        td = today_t(m.genesis)
         if t_start <= td <= t_end:
             shapes.append(dict(
                 type="line", x0=td, x1=td, y0=0, y1=1,
@@ -1616,14 +1568,14 @@ def build_dca_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
         title_line += f"<br>QR median {fmt_price(_qr_med_final)}  ·  {roi:.1f}\u00d7"
 
     ylabel = "USD Value" if disp_mode == "usd" else "BTC Balance"
-    layout, _x_end = _sim_layout(p, title_line, ylabel, ts, t_start, t_end, dt, syr, eyr, shapes)
+    layout, _x_end = _sim_layout(m, p, title_line, ylabel, ts, t_start, t_end, dt, syr, eyr, shapes)
 
     # ── Stack-celerator overlay ─────────────────────────────────────────────
     all_sc_usd_vals = {}
     all_sc_btc_vals = {}
-    if show_qr and p.get("sc_enabled") and sel_qs:
+    if p.get("sc_enabled") and sel_qs:
         sc_traces, all_sc_usd_vals, all_sc_btc_vals = _dca_sc_overlay(
-            p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy)
+            m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy)
         traces.extend(sc_traces)
 
     # ── SC factor (ratio of median SC to median DCA at end date) ─────────────
@@ -1646,24 +1598,23 @@ def build_dca_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     mc_fan_usd = {}
     mc_traces = []
     if _HAS_MARKOV and p.get("mc_enabled"):
-        mc_traces, mc_result, mc_fan_usd = _mc_dca_overlay(p, ts, t_start, dt, start_stack, disp_mode)
+        mc_traces, mc_result, mc_fan_usd = _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode)
         mc_traces = _post_mc_overlay(mc_traces, p, _x_end, disp_mode)
-        if show_mc:
-            traces.extend(mc_traces)
+        traces.extend(mc_traces)
         # MC median text trace annotation — collected into pending below
         # MC median final value + multiplier → append to title
-        if show_mc and mc_fan_usd and 0.50 in mc_fan_usd and len(mc_fan_usd[0.50]) > 0:
+        if mc_fan_usd and 0.50 in mc_fan_usd and len(mc_fan_usd[0.50]) > 0:
             mc_med_final = float(mc_fan_usd[0.50][-1])
             mc_roi = mc_med_final / total_spent if total_spent > 0 else 0
             layout["title"]["text"] += f"  ·  MC median {fmt_price(mc_med_final)}  ·  {mc_roi:.1f}\u00d7"
 
     # ── Right-edge annotations (text traces for alignment stability) ─────────
     _pending_annots = []
-    if p.get("annotate") and show_qr and all_usd_vals:
+    if p.get("annotate") and all_usd_vals:
         for q in sel_qs:
             if q not in all_usd_vals:
                 continue
-            col = _app_ctx.model.colors.get(q, "#888888")
+            col = m.qr_colors.get(q, "#888888")
             y_arr = all_btc_vals[q] if disp_mode == "btc" else all_usd_vals[q]
             _btc_f = float(all_btc_vals[q][-1])
             _usd_f = float(all_usd_vals[q][-1])
@@ -1673,7 +1624,7 @@ def build_dca_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
                 short_label=_fmt_short(_btc_f, _usd_f),
                 color=col, y_last=float(y_arr[-1])))
         for q in all_sc_usd_vals:
-            col = _app_ctx.model.colors.get(q, "#888888")
+            col = m.qr_colors.get(q, "#888888")
             sc_y = all_sc_btc_vals[q] if disp_mode == "btc" else all_sc_usd_vals[q]
             _btc_f = float(all_sc_btc_vals[q][-1])
             _usd_f = float(all_sc_usd_vals[q][-1])
@@ -1682,7 +1633,7 @@ def build_dca_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
                 label=f"SC Q{q*100:g}% {fmt_price(_usd_f)}",
                 short_label=_fmt_short(_btc_f, _usd_f),
                 color=col, y_last=float(sc_y[-1])))
-    if p.get("annotate") and show_mc and mc_fan_usd and 0.50 in mc_fan_usd:
+    if p.get("annotate") and mc_fan_usd and 0.50 in mc_fan_usd:
         mc_med_usd = mc_fan_usd[0.50]
         if len(mc_med_usd) > 0:
             _mx, _my = _find_mc_median_trace(mc_traces)
@@ -1706,13 +1657,13 @@ _FREQ_STEP_DAYS = _app_ctx.FREQ_STEP_DAYS
 
 # ── BTC Retireator ────────────────────────────────────────────────────────────
 
-def build_retire_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
+def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     """
     p keys: start_yr, end_yr, start_stack, wd_amount, freq, inflation,
             disp_mode, selected_qs, log_y, annotate,
             lots, use_lots
     """
-    ta = _build_time_array(p, 2025, 2045)
+    ta = _build_time_array(p, m, 2025, 2045)
     if ta[1] is None:
         return ta[0], None
     syr, eyr, t_start, t_end, ts, dt, freq_str, ppy = ta
@@ -1723,8 +1674,6 @@ def build_retire_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     inflation = float(p.get("inflation", 0)) / 100.0
     disp_mode = p.get("disp_mode", "btc")
     sel_qs    = sorted([float(q) for q in (p.get("selected_qs") or [])])
-    show_qr   = p.get("show_qr", True)
-    show_mc   = p.get("show_mc", True)
 
     traces   = []
     deplete_annots = []
@@ -1734,14 +1683,11 @@ def build_retire_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     ts_clamped = np.maximum(ts, 0.5)
     adj_wd_arr = wd_amount * ((1 + inflation) ** (ts - t_start))
     for q in sel_qs:
-        if q not in _app_ctx.model.mc_fits:
+        if q not in m.qr_fits:
             continue
-        prices = _app_ctx.model.price_at(q, ts_clamped)
+        prices = qr_price(q, ts_clamped, m.qr_fits)
         vals = np.maximum(start_stack - np.cumsum(adj_wd_arr / prices), 0.0)
         all_btc_vals[q] = vals
-
-        if not show_qr:
-            continue  # compute data for caching, but skip QR traces
 
         if disp_mode == "usd":
             y_vals = vals * prices
@@ -1753,7 +1699,7 @@ def build_retire_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
         all_y_vals[q] = y_vals
 
         lbl = _fmt_q_label(q) + f"  →  {final_lbl}"
-        col = _app_ctx.model.colors.get(q, "#888888")
+        col = m.qr_colors.get(q, "#888888")
         traces.append(go.Scatter(
             x=list(ts), y=list(y_vals), mode="lines", name=lbl,
             line=dict(color=col, width=_QR_LINE_WIDTH),
@@ -1779,7 +1725,7 @@ def build_retire_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
 
     ylabel = "USD Value" if disp_mode == "usd" else "BTC Remaining"
     title = f"Bitcoin Retireator — {fmt_price(wd_amount)}/{freq_str.lower()[:-2] if freq_str.endswith('ly') else freq_str}"
-    layout, _x_end = _sim_layout(p, title, ylabel, ts, t_start, t_end, dt, syr, eyr, shapes)
+    layout, _x_end = _sim_layout(m, p, title, ylabel, ts, t_start, t_end, dt, syr, eyr, shapes)
     layout["annotations"] = deplete_annots
 
     # ── Monte Carlo fan overlay ─────────────────────────────────────────────
@@ -1787,8 +1733,8 @@ def build_retire_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     mc_result = None
     if _HAS_MARKOV and p.get("mc_enabled"):
         mc_traces_list, mc_result = _apply_mc_overlay(
-            p, _mc_retire_overlay,
-            (p, ts, t_start, t_end, dt, start_stack, disp_mode, len(deplete_annots)),
+            m, p, _mc_retire_overlay,
+            (m, p, ts, t_start, t_end, dt, start_stack, disp_mode, len(deplete_annots)),
             traces, deplete_annots, layout, _x_end, disp_mode)
 
     _stagger_depletion_annots(deplete_annots, layout)
@@ -1796,7 +1742,7 @@ def build_retire_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     # ── Right-edge annotations (text traces for alignment stability) ─────────
     _is_log = bool(p.get("log_y"))
     _pending_annots = []
-    if p.get("annotate") and show_qr and all_y_vals:
+    if p.get("annotate") and all_y_vals:
         ts_end_arr = np.maximum(np.array([ts[-1]]), 0.5)
         for q in sel_qs:
             if q not in all_y_vals:
@@ -1804,8 +1750,8 @@ def build_retire_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
             btc_final = float(all_btc_vals[q][-1])
             if btc_final <= 0:
                 continue
-            col = _app_ctx.model.colors.get(q, "#888888")
-            usd_final = btc_final * float(_app_ctx.model.price_at(q, ts_end_arr)[0])
+            col = m.qr_colors.get(q, "#888888")
+            usd_final = btc_final * float(qr_price(q, ts_end_arr, m.qr_fits)[0])
             qpfx = f"Q{q*100:g}%"
             if disp_mode == "usd":
                 lbl = f"{qpfx} {fmt_price(usd_final)}"
@@ -1818,10 +1764,10 @@ def build_retire_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
                 color=col, y_last=float(all_y_vals[q][-1])))
 
         # MC median endpoint
-        if show_mc:
-            _mc_ann = _mc_median_annot(mc_traces_list, disp_mode, float(ts[-1]), t_start, t_end, syr, eyr)
-            if _mc_ann:
-                _pending_annots.append(_mc_ann)
+        _mc_ann = _mc_median_annot(mc_traces_list, disp_mode, m,
+                                   float(ts[-1]), t_start, t_end, syr, eyr)
+        if _mc_ann:
+            _pending_annots.append(_mc_ann)
     traces.extend(_resolve_edge_annotations(_pending_annots, _is_log))
 
     return _finalize_chart(traces, layout, p, "ret", mc_result)
@@ -1834,7 +1780,7 @@ _ANNOT_COLORS = ['#636EFA', '#EF553B', '#1D8348', '#AB63FA', '#E07000']
 _DASH_STYLES  = ['solid', 'dash', 'dot', 'dashdot', 'longdash']
 
 
-def build_supercharge_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
+def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     """
     p keys: mode ('a'/'b'), start_stack, start_yr, delays (list), freq, inflation,
             selected_qs, chart_layout (0/1/2), display_q,
@@ -1850,20 +1796,18 @@ def build_supercharge_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]
     chart_layout = int(p.get("chart_layout", 0))
     display_q    = float(p.get("display_q", 0.5))
     show_legend  = bool(p.get("show_legend", True))
-    show_qr      = p.get("show_qr", True)
-    show_mc      = p.get("show_mc", True)
 
     # Starting stack (lots override)
     start_stack = _get_starting_stack(p, default=1.0)
 
     # Quantiles
     sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])
-                     if float(q) in _app_ctx.model.mc_fits])
+                     if float(q) in m.qr_fits])
     if not sel_qs:
         return go.Figure(layout=dict(
             title="Select at least one quantile",
-            paper_bgcolor=_app_ctx.theme.PLOT_BG_COLOR,
-            font=dict(color=_app_ctx.theme.TEXT_COLOR))), None
+            paper_bgcolor=m.PLOT_BG_COLOR,
+            font=dict(color=m.TEXT_COLOR))), None
 
     # Delays: filter None/negative, sort, deduplicate
     raw_delays = p.get("delays") or [0, 1, 2, 4, 8]
@@ -1879,12 +1823,12 @@ def build_supercharge_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]
         eyr       = int(p.get("end_yr", 2075))
         wd_amount = float(p.get("wd_amount", 5000))
         disp_mode = p.get("disp_mode", "usd")
-        t_end     = yr_to_t(eyr, _app_ctx.model.genesis)
+        t_end     = yr_to_t(eyr, m.genesis)
 
         # Simulate all (delay, quantile) combos
         results = {}
         for d in delays:
-            t_start_d = max(yr_to_t(syr + d, _app_ctx.model.genesis), 1.0)
+            t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
             if t_start_d >= t_end:
                 continue
             ts_d = np.arange(t_start_d, t_end + dt * 0.5, dt)
@@ -1893,7 +1837,7 @@ def build_supercharge_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]
             ts_d_clamped = np.maximum(ts_d, 0.5)
             adj_wd_d = wd_amount * ((1 + inflation) ** (ts_d - t_start_d))
             for q in sel_qs:
-                prices = _app_ctx.model.price_at(q, ts_d_clamped)
+                prices = qr_price(q, ts_d_clamped, m.qr_fits)
                 vals = np.maximum(start_stack - np.cumsum(adj_wd_d / prices), 0.0)
                 depl_mask = vals == 0.0
                 depl_t = float(ts_d[np.argmax(depl_mask)]) if depl_mask.any() else None
@@ -1920,7 +1864,7 @@ def build_supercharge_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]
                 arrowcolor=col, font=dict(size=_FONT_ANNOT, color=col),
             )
 
-        if chart_layout == 0 and show_qr:
+        if chart_layout == 0:
             # Color = delay, show quantile closest to display_q
             q_show = min(sel_qs, key=lambda q: abs(q - display_q))
             for di, d in enumerate(delays):
@@ -1942,10 +1886,10 @@ def build_supercharge_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]
                                                       _ANNOT_COLORS[di % len(_ANNOT_COLORS)],
                                                       len(deplete_annots)))
 
-        elif chart_layout == 1 and show_qr:
+        elif chart_layout == 1:
             # Color = quantile, line style = delay
             for q in sel_qs:
-                col   = _app_ctx.model.colors.get(q, "#888888")
+                col   = m.qr_colors.get(q, "#888888")
                 q_lbl = _fmt_q_label(q)
                 for di, d in enumerate(delays):
                     key = (d, q)
@@ -1963,10 +1907,10 @@ def build_supercharge_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]
                         deplete_annots.append(_depl_annot(depl_t, t_start_d, d, col,
                                                           len(deplete_annots)))
 
-        elif chart_layout == 2 and show_qr:
+        else:
             # Layout 2: shaded band per delay (min/max across quantiles)
             for di, d in enumerate(delays):
-                t_start_d = max(yr_to_t(syr + d, _app_ctx.model.genesis), 1.0)
+                t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
                 ts_d = np.arange(t_start_d, t_end + dt * 0.5, dt)
                 if len(ts_d) == 0:
                     continue
@@ -2001,22 +1945,22 @@ def build_supercharge_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]
                                                           _ANNOT_COLORS[di % len(_ANNOT_COLORS)],
                                                           len(deplete_annots)))
 
-        t_start_base = max(yr_to_t(syr, _app_ctx.model.genesis), 1.0)
+        t_start_base = max(yr_to_t(syr, m.genesis), 1.0)
         ylabel = "USD Value" if disp_mode == "usd" else "BTC Remaining"
         sc_title = (f"HODL Supercharger \u2014 {fmt_price(wd_amount)}{freq_label} \u00b7 "
                     f"Retire {syr}+ \u00b7 to {eyr}")
-        layout, _ = _sim_layout(p, sc_title, ylabel, np.array([t_end]),
+        layout, _ = _sim_layout(m, p, sc_title, ylabel, np.array([t_end]),
                                 t_start_base, t_end, dt, syr, eyr)
         layout["annotations"] = deplete_annots
         # ── Monte Carlo fan overlay ───────────────────────────────────────────
         mc_traces_list = []
         mc_result = None
         if _HAS_MARKOV and p.get("mc_enabled"):
-            t_start_base = max(yr_to_t(syr, _app_ctx.model.genesis), 1.0)
+            t_start_base = max(yr_to_t(syr, m.genesis), 1.0)
             _sc_x_end = layout["xaxis"]["range"][1]
             mc_traces_list, mc_result = _apply_mc_overlay(
-                p, _mc_supercharge_overlay,
-                (p, np.arange(t_start_base, t_end + dt * 0.5, dt),
+                m, p, _mc_supercharge_overlay,
+                (m, p, np.arange(t_start_base, t_end + dt * 0.5, dt),
                  t_start_base, t_end, dt, start_stack, disp_mode, len(deplete_annots)),
                 traces, deplete_annots, layout, _sc_x_end, disp_mode)
 
@@ -2029,7 +1973,7 @@ def build_supercharge_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]
         _sc_log = bool(p.get("log_y"))
         _pending_annots = []
         if p.get("annotate"):
-            if show_qr and chart_layout == 2:
+            if chart_layout == 2:
                 # Band endpoint labels: one per delay, upper-bound value
                 for di, d in enumerate(delays):
                     band = [(q, results[(d, q)]) for q in sel_qs
@@ -2053,7 +1997,7 @@ def build_supercharge_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]
                         x_arr=ts_d_r, y_arr=y_arr,
                         label=lbl, short_label=_fmt_short(_sc_btc, _sc_usd),
                         color=col, y_last=float(y_arr[-1])))
-            elif show_qr:
+            else:
                 for (d, q), res in results.items():
                     ts_d_r, y_vals_r, depl_t_r, _, btc_vals_r, prices_r = res
                     if depl_t_r is not None:
@@ -2065,7 +2009,7 @@ def build_supercharge_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]
                         di = delays.index(d) if d in delays else 0
                         col = _DELAY_COLORS[di % len(_DELAY_COLORS)]
                     else:
-                        col = _app_ctx.model.colors.get(q, "#888888")
+                        col = m.qr_colors.get(q, "#888888")
                     lbl = (fmt_price(y_final) if disp_mode == "usd"
                            else f"{y_final:.4f} \u20bf")
                     _sc_btc = float(btc_vals_r[-1])
@@ -2075,35 +2019,32 @@ def build_supercharge_figure(p: dict[str, Any]) -> tuple[go.Figure, dict | None]
                         label=lbl, short_label=_fmt_short(_sc_btc, _sc_usd),
                         color=col, y_last=y_final))
             # MC median endpoint
-            if show_mc:
-                _mc_ann = _mc_median_annot(
-                    mc_traces_list, disp_mode, t_end, t_start_base, t_end,
-                    syr, eyr, btc_fmt=".4f", estimate_usd=False)
-                if _mc_ann:
-                    _pending_annots.append(_mc_ann)
+            _mc_ann = _mc_median_annot(
+                mc_traces_list, disp_mode, m, t_end, t_start_base, t_end,
+                syr, eyr, btc_fmt=".4f", estimate_usd=False)
+            if _mc_ann:
+                _pending_annots.append(_mc_ann)
         traces.extend(_resolve_edge_annotations(_pending_annots, _sc_log))
 
         return _finalize_chart(traces, layout, p, "sc", mc_result, mc_premium=False)
 
     # ── MODE B: fixed depletion date → max withdrawal per period ──────────────
     else:
-        return _sc_mode_b(p, syr, delays, sel_qs, start_stack, ppy, dt,
-                          inflation, chart_layout, display_q, show_legend, freq_label,
-                          show_qr=show_qr)
+        return _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
+                          inflation, chart_layout, display_q, show_legend, freq_label)
 
 
-def _sc_mode_b(p, syr, delays, sel_qs, start_stack, ppy, dt,
-               inflation, chart_layout, display_q, show_legend, freq_label,
-               show_qr=True):
+def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
+               inflation, chart_layout, display_q, show_legend, freq_label):
     """HODL Supercharger Mode B: binary-search max withdrawal per period."""
     target_yr = int(p.get("target_yr", 2060))
 
     def _max_wd_for(d, q):
-        t_start_d = max(yr_to_t(syr + d, _app_ctx.model.genesis), 1.0)
-        t_end_b   = yr_to_t(target_yr, _app_ctx.model.genesis)
+        t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
+        t_end_b   = yr_to_t(target_yr, m.genesis)
         if t_end_b <= t_start_d:
             return 0.0
-        first_price = float(_app_ctx.model.price_at(q, max(t_start_d, 0.5)))
+        first_price = float(qr_price(q, max(t_start_d, 0.5), m.qr_fits))
         # Binary search: find max withdrawal where stack survives to target_yr.
         # Upper bound = 4x annual stack value (generous overestimate).
         # 60 iterations gives precision to ~1e-18 of the range (more than enough).
@@ -2114,7 +2055,7 @@ def _sc_mode_b(p, syr, delays, sel_qs, start_stack, ppy, dt,
             survived = True
             for t in np.arange(t_start_d, t_end_b + dt * 0.5, dt):
                 adj = mid * ((1 + inflation) ** (t - t_start_d))
-                s  -= adj / float(_app_ctx.model.price_at(q, max(t, 0.5)))
+                s  -= adj / float(qr_price(q, max(t, 0.5), m.qr_fits))
                 if s <= 0:
                     survived = False
                     break
@@ -2127,9 +2068,7 @@ def _sc_mode_b(p, syr, delays, sel_qs, start_stack, ppy, dt,
     max_wd = {(d, q): _max_wd_for(d, q) for d in delays for q in sel_qs}
     traces = []
 
-    if not show_qr:
-        pass  # data computed for caching; no QR traces
-    elif chart_layout == 0:
+    if chart_layout == 0:
         q_show = min(sel_qs, key=lambda q: abs(q - display_q))
         y_line = [max_wd.get((d, q_show), 0) for d in delays]
         traces.append(go.Scatter(
@@ -2152,7 +2091,7 @@ def _sc_mode_b(p, syr, delays, sel_qs, start_stack, ppy, dt,
 
     elif chart_layout == 1:
         for q in sel_qs:
-            col   = _app_ctx.model.colors.get(q, "#888888")
+            col   = m.qr_colors.get(q, "#888888")
             q_lbl = _fmt_q_label(q)
             y_q   = [max_wd.get((d, q), 0) for d in delays]
             traces.append(go.Scatter(
@@ -2180,6 +2119,7 @@ def _sc_mode_b(p, syr, delays, sel_qs, start_stack, ppy, dt,
 
     xlabel = "Delay (years)" if chart_layout in (0, 1) else "Quantile"
     layout = _dark_layout(
+        m,
         title=f"HODL Supercharger \u2014 Max spend{freq_label} to deplete by {target_yr}",
         xlabel=xlabel,
         ylabel=f"Max withdrawal{freq_label}",

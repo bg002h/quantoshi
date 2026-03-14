@@ -2060,16 +2060,12 @@ _MC_UPLOAD_FIELDS = {
         ("years",    "mc_years",                None, False),
         ("start-yr", "mc_start_yr",             None, False),
         ("entry-q",  "mc_entry_q",              50,   True),
-        ("amount",   "mc_amount",               None, False),
         ("window",   "mc_window",               None, False),
     ],
     "ret": [
         ("years",    "mc_years",                None, False),
         ("start-yr", "mc_start_yr",             None, False),
         ("entry-q",  "mc_entry_q",              50,   True),
-        ("amount",   "mc_amount",               None, False),
-        ("stack",    "mc_start_stack",           None, False),
-        ("infl",     "mc_infl",                 None, False),
         ("window",   "mc_window",               None, False),
     ],
     "hm": [
@@ -2082,9 +2078,6 @@ _MC_UPLOAD_FIELDS = {
         ("years",    "mc_years",                None, False),
         ("start-yr", "mc_start_yr",             None, False),
         ("entry-q",  "mc_entry_q",              50,   True),
-        ("amount",   "mc_amount",               None, False),
-        ("stack",    "mc_start_stack",           None, False),
-        ("infl",     "mc_infl",                 None, False),
         ("window",   "mc_window",               None, False),
     ],
 }

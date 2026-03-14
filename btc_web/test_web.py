@@ -871,7 +871,7 @@ class TestBuildBubbleFigure:
             "use_lots": False,
             "auto_y": True,
         }
-        fig = build_bubble_figure(M, p)
+        fig = build_bubble_figure(p)
         assert isinstance(fig, go.Figure)
 
     def test_no_quantiles(self):
@@ -899,7 +899,7 @@ class TestBuildBubbleFigure:
             "use_lots": False,
             "auto_y": False,
         }
-        fig = build_bubble_figure(M, p)
+        fig = build_bubble_figure(p)
         assert isinstance(fig, go.Figure)
 
 
@@ -927,7 +927,7 @@ class TestBuildHeatmapFigure:
             "use_lots": False,
             "lots": [],
         }
-        fig = build_heatmap_figure(M, p)
+        fig = build_heatmap_figure(p)
         assert isinstance(fig, go.Figure)
 
 
@@ -950,7 +950,7 @@ class TestBuildDcaFigure:
             "use_lots": False,
             "sc_enabled": False,
         }
-        fig, mc_result = build_dca_figure(M, p)
+        fig, mc_result = build_dca_figure(p)
         assert isinstance(fig, go.Figure)
 
     def test_usd_display_mode(self):
@@ -969,7 +969,7 @@ class TestBuildDcaFigure:
             "use_lots": False,
             "sc_enabled": False,
         }
-        fig, _ = build_dca_figure(M, p)
+        fig, _ = build_dca_figure(p)
         assert isinstance(fig, go.Figure)
 
     def test_with_stack_celerator(self):
@@ -997,7 +997,7 @@ class TestBuildDcaFigure:
             "sc_tax": 33,
             "sc_rollover": False,
         }
-        fig, _ = build_dca_figure(M, p)
+        fig, _ = build_dca_figure(p)
         assert isinstance(fig, go.Figure)
 
     def test_annotations_present(self):
@@ -1018,7 +1018,7 @@ class TestBuildDcaFigure:
             "use_lots": False,
             "sc_enabled": False,
         }
-        fig, _ = build_dca_figure(M, p)
+        fig, _ = build_dca_figure(p)
         # Text-trace annotations: go.Scatter with mode="markers+text" and "$" in text
         has_price_trace = any(
             getattr(tr, "mode", "") == "markers+text"
@@ -1048,7 +1048,7 @@ class TestBuildRetireFigure:
             "lots": [],
             "use_lots": False,
         }
-        fig, _ = build_retire_figure(M, p)
+        fig, _ = build_retire_figure(p)
         assert isinstance(fig, go.Figure)
 
 
@@ -1075,7 +1075,7 @@ class TestBuildSuperchargeFigure:
             "shade": True,
             "display_q": 0.05 if 0.05 in M.qr_fits else 0.5,
         }
-        fig, _ = build_supercharge_figure(M, p)
+        fig, _ = build_supercharge_figure(p)
         assert isinstance(fig, go.Figure)
 
     def test_mode_b_returns_figure(self):
@@ -1099,7 +1099,7 @@ class TestBuildSuperchargeFigure:
             "shade": True,
             "display_q": 0.05 if 0.05 in M.qr_fits else 0.5,
         }
-        fig, _ = build_supercharge_figure(M, p)
+        fig, _ = build_supercharge_figure(p)
         assert isinstance(fig, go.Figure)
 
 
@@ -1205,7 +1205,7 @@ class TestSuperchargeFuzz:
     @pytest.mark.parametrize("override", _SC_OVERRIDES)
     def test_no_crash(self, override):
         p = {**_SC_BASE, **override}
-        _assert_figure(build_supercharge_figure(M, p), expect_tuple=True)
+        _assert_figure(build_supercharge_figure(p), expect_tuple=True)
 
 
 # ── Bubble fuzz ──────────────────────────────────────────────────────────────
@@ -1243,7 +1243,7 @@ class TestBubbleFuzz:
     @pytest.mark.parametrize("override", _BUB_OVERRIDES)
     def test_no_crash(self, override):
         p = {**_BUB_BASE, **override}
-        _assert_figure(build_bubble_figure(M, p))
+        _assert_figure(build_bubble_figure(p))
 
 
 # ── Heatmap fuzz ─────────────────────────────────────────────────────────────
@@ -1285,7 +1285,7 @@ class TestHeatmapFuzz:
     @pytest.mark.parametrize("override", _HM_OVERRIDES)
     def test_no_crash(self, override):
         p = {**_HM_BASE, **override}
-        _assert_figure(build_heatmap_figure(M, p))
+        _assert_figure(build_heatmap_figure(p))
 
 
 # ── DCA fuzz ─────────────────────────────────────────────────────────────────
@@ -1341,7 +1341,7 @@ class TestDcaFuzz:
     @pytest.mark.parametrize("override", _DCA_OVERRIDES)
     def test_no_crash(self, override):
         p = {**_DCA_BASE, **override}
-        _assert_figure(build_dca_figure(M, p), expect_tuple=True)
+        _assert_figure(build_dca_figure(p), expect_tuple=True)
 
 
 # ── Retire fuzz ──────────────────────────────────────────────────────────────
@@ -1386,7 +1386,7 @@ class TestRetireFuzz:
     @pytest.mark.parametrize("override", _RET_OVERRIDES)
     def test_no_crash(self, override):
         p = {**_RET_BASE, **override}
-        _assert_figure(build_retire_figure(M, p), expect_tuple=True)
+        _assert_figure(build_retire_figure(p), expect_tuple=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1898,7 +1898,7 @@ class TestFalsyZeroGuard:
             "lots": [],
             "use_lots": False,
         }
-        fig, _ = build_retire_figure(M, p)
+        fig, _ = build_retire_figure(p)
         assert isinstance(fig, go.Figure)
 
     def test_zero_sc_rate(self):
@@ -1927,7 +1927,7 @@ class TestFalsyZeroGuard:
             "sc_tax": 0,  # zero tax too
             "sc_rollover": False,
         }
-        fig, _ = build_dca_figure(M, p)
+        fig, _ = build_dca_figure(p)
         assert isinstance(fig, go.Figure)
 
 
@@ -1954,23 +1954,23 @@ class TestAnnotationStagger:
         }
 
     def test_zero_quantiles(self):
-        fig, _ = build_dca_figure(M, self._make_dca_params(0))
+        fig, _ = build_dca_figure(self._make_dca_params(0))
         assert isinstance(fig, go.Figure)
 
     def test_one_quantile(self):
-        fig, _ = build_dca_figure(M, self._make_dca_params(1))
+        fig, _ = build_dca_figure(self._make_dca_params(1))
         assert isinstance(fig, go.Figure)
 
     def test_three_quantiles(self):
-        fig, _ = build_dca_figure(M, self._make_dca_params(3))
+        fig, _ = build_dca_figure(self._make_dca_params(3))
         assert isinstance(fig, go.Figure)
 
     def test_five_quantiles(self):
-        fig, _ = build_dca_figure(M, self._make_dca_params(5))
+        fig, _ = build_dca_figure(self._make_dca_params(5))
         assert isinstance(fig, go.Figure)
 
     def test_many_quantiles(self):
-        fig, _ = build_dca_figure(M, self._make_dca_params(10))
+        fig, _ = build_dca_figure(self._make_dca_params(10))
         assert isinstance(fig, go.Figure)
 
 
@@ -1998,7 +1998,7 @@ class TestDCAMath:
     def test_accumulation_matches_manual(self):
         """Final BTC stack should equal sum of (amount / price) for each period."""
         p = self._dca_params()
-        fig, _ = build_dca_figure(M, p)
+        fig, _ = build_dca_figure(p)
         assert len(fig.data) >= 1
         y_vals = fig.data[0].y
         # Manual computation
@@ -2012,16 +2012,16 @@ class TestDCAMath:
 
     def test_start_stack_offset(self):
         """Starting stack should shift all values by a constant."""
-        fig0, _ = build_dca_figure(M, self._dca_params(start_stack=0.0))
-        fig1, _ = build_dca_figure(M, self._dca_params(start_stack=2.5))
+        fig0, _ = build_dca_figure(self._dca_params(start_stack=0.0))
+        fig1, _ = build_dca_figure(self._dca_params(start_stack=2.5))
         final0 = fig0.data[0].y[-1]
         final1 = fig1.data[0].y[-1]
         assert abs(final1 - final0 - 2.5) < 1e-8
 
     def test_usd_mode_equals_btc_times_price(self):
         """USD display mode = BTC balance × final price."""
-        fig_btc, _ = build_dca_figure(M, self._dca_params(disp_mode="btc"))
-        fig_usd, _ = build_dca_figure(M, self._dca_params(disp_mode="usd"))
+        fig_btc, _ = build_dca_figure(self._dca_params(disp_mode="btc"))
+        fig_usd, _ = build_dca_figure(self._dca_params(disp_mode="usd"))
         btc_final = fig_btc.data[0].y[-1]
         usd_final = fig_usd.data[0].y[-1]
         t_end = yr_to_t(2031, M.genesis)
@@ -2034,7 +2034,7 @@ class TestDCAMath:
         q_lo, q_hi = 0.1, 0.9
         if q_lo not in M.qr_fits or q_hi not in M.qr_fits:
             pytest.skip("Need Q10% and Q90%")
-        fig, _ = build_dca_figure(M, self._dca_params(
+        fig, _ = build_dca_figure(self._dca_params(
             selected_qs=[q_lo, q_hi], disp_mode="btc"))
         btc_lo = fig.data[0].y[-1]
         btc_hi = fig.data[1].y[-1]
@@ -2042,7 +2042,7 @@ class TestDCAMath:
 
     def test_end_before_start_returns_error(self):
         """end_yr <= start_yr should return an error figure."""
-        fig, _ = build_dca_figure(M, self._dca_params(start_yr=2035, end_yr=2030))
+        fig, _ = build_dca_figure(self._dca_params(start_yr=2035, end_yr=2030))
         assert isinstance(fig, go.Figure)
         assert "end year" in (fig.layout.title.text or "").lower()
 
@@ -2077,7 +2077,7 @@ class TestSCLoanCap:
             "sc_custom_price": 0, "sc_tax_rate": 0.33,
             "sc_rollover": False, "sc_live_price": 0,
         }
-        fig, _ = build_dca_figure(M, p)
+        fig, _ = build_dca_figure(p)
         assert isinstance(fig, go.Figure)
         sc_traces = [t for t in fig.data if "SC" in (t.name or "")]
         assert len(sc_traces) >= 1
@@ -2096,7 +2096,7 @@ class TestSCLoanCap:
             "sc_custom_price": 0, "sc_tax_rate": 0,
             "sc_rollover": False, "sc_live_price": 0,
         }
-        fig, _ = build_dca_figure(M, p)
+        fig, _ = build_dca_figure(p)
         sc_traces = [t for t in fig.data if "SC" in (t.name or "")]
         assert len(sc_traces) >= 1
 
@@ -2151,7 +2151,7 @@ class TestRetireMath:
     def test_depletion_matches_manual(self):
         """Step-by-step depletion should match manual calculation."""
         p = self._retire_params()
-        fig, _ = build_retire_figure(M, p)
+        fig, _ = build_retire_figure(p)
         assert len(fig.data) >= 1
         y_vals = list(fig.data[0].y)
         # Manual
@@ -2167,27 +2167,27 @@ class TestRetireMath:
 
     def test_zero_withdrawal_preserves_stack(self):
         """Zero withdrawal should keep stack constant."""
-        fig, _ = build_retire_figure(M, self._retire_params(wd_amount=0))
+        fig, _ = build_retire_figure(self._retire_params(wd_amount=0))
         for v in fig.data[0].y:
             assert abs(v - 1.0) < 1e-8
 
     def test_inflation_accelerates_depletion(self):
         """Positive inflation should deplete faster than zero inflation."""
-        fig_no, _ = build_retire_figure(M, self._retire_params(
+        fig_no, _ = build_retire_figure(self._retire_params(
             start_stack=10.0, wd_amount=10000, end_yr=2050, inflation=0))
-        fig_yes, _ = build_retire_figure(M, self._retire_params(
+        fig_yes, _ = build_retire_figure(self._retire_params(
             start_stack=10.0, wd_amount=10000, end_yr=2050, inflation=10))
         assert fig_yes.data[0].y[-1] < fig_no.data[0].y[-1]
 
     def test_large_withdrawal_depletes_to_zero(self):
         """Huge withdrawal should reach zero quickly."""
-        fig, _ = build_retire_figure(M, self._retire_params(
+        fig, _ = build_retire_figure(self._retire_params(
             start_stack=0.1, wd_amount=1_000_000, freq="Monthly"))
         assert fig.data[0].y[-1] == 0.0
 
     def test_depletion_annotation_present(self):
         """When stack depletes and annotate=True, annotation should exist."""
-        fig, _ = build_retire_figure(M, self._retire_params(
+        fig, _ = build_retire_figure(self._retire_params(
             start_stack=0.01, wd_amount=500_000, freq="Monthly",
             annotate=True))
         annots = fig.layout.annotations or []
@@ -2228,7 +2228,7 @@ class TestAnnotationAlignment:
                  selected_qs=[0.5] if 0.5 in M.qr_fits else [],
                  show_today=False, show_legend=True,
                  lots=[], use_lots=False, sc_enabled=False)
-        fig, _ = build_dca_figure(M, p)
+        fig, _ = build_dca_figure(p)
         self._assert_text_traces_at_endpoints(fig)
 
     def test_dca_multi_q_usd(self):
@@ -2237,7 +2237,7 @@ class TestAnnotationAlignment:
                  freq="Monthly", disp_mode="usd", log_y=False,
                  selected_qs=qs, show_today=False, show_legend=True,
                  lots=[], use_lots=False, sc_enabled=False)
-        fig, _ = build_dca_figure(M, p)
+        fig, _ = build_dca_figure(p)
         self._assert_text_traces_at_endpoints(fig)
 
     def test_dca_no_y2(self):
@@ -2247,7 +2247,7 @@ class TestAnnotationAlignment:
                  freq="Monthly", disp_mode="btc", log_y=True,
                  selected_qs=qs, show_today=False,
                  show_legend=True, lots=[], use_lots=False, sc_enabled=False)
-        fig, _ = build_dca_figure(M, p)
+        fig, _ = build_dca_figure(p)
         try:
             y2 = fig.layout.yaxis2
             assert y2 is None or y2.title is None
@@ -2261,7 +2261,7 @@ class TestAnnotationAlignment:
                  disp_mode="btc", selected_qs=qs, log_y=True,
                  annotate=True,
                  show_legend=True, minor_grid=False, lots=[], use_lots=False)
-        fig, _ = build_retire_figure(M, p)
+        fig, _ = build_retire_figure(p)
         self._assert_text_traces_at_endpoints(fig)
 
     def test_retire_depleted_has_depletion_annot(self):
@@ -2274,7 +2274,7 @@ class TestAnnotationAlignment:
                  disp_mode="btc", selected_qs=qs, log_y=True,
                  annotate=True,
                  show_legend=True, minor_grid=False, lots=[], use_lots=False)
-        fig, _ = build_retire_figure(M, p)
+        fig, _ = build_retire_figure(p)
         depl = [a for a in (fig.layout.annotations or []) if "≈" in (a.text or "")]
         assert len(depl) >= 1
         # Depleted trace should NOT have a text-trace annotation
@@ -2289,7 +2289,7 @@ class TestAnnotationAlignment:
                  selected_qs=qs, log_y=True,
                  annotate=True, show_legend=True, lots=[], use_lots=False,
                  shade=False, display_q=0.50)
-        fig, _ = build_supercharge_figure(M, p)
+        fig, _ = build_supercharge_figure(p)
         self._assert_text_traces_at_endpoints(fig)
 
 
@@ -2374,7 +2374,7 @@ class TestConfigAnnotations:
                  show_today=False, pt_size=2, pt_alpha=0.3,
                  stack=0, show_stack=False, lots=[], use_lots=False,
                  show_legend=False)
-        fig = build_bubble_figure(M, p)
+        fig = build_bubble_figure(p)
         xtitle = fig.layout.xaxis.title.text
         assert xtitle is not None and "QR:" in xtitle
 
@@ -2383,7 +2383,7 @@ class TestConfigAnnotations:
                  freq="Monthly", disp_mode="btc", selected_qs=[0.5],
                  log_y=False, show_today=False, show_legend=False,
                  lots=[], use_lots=False, show_qr=False, show_mc=False)
-        fig, _ = build_dca_figure(M, p)
+        fig, _ = build_dca_figure(p)
         xtitle = fig.layout.xaxis.title.text or ""
         assert "QR:" not in xtitle
 
@@ -2447,6 +2447,7 @@ class TestUpdateBubbleCallback:
                 xrange=[2012, 2030], yrange=[0, 7],
                 n_future=3, ptsize=3, ptalpha=0.6,
                 stack=0, show_stack=[], use_lots=[], legend_pos="outside", lots_data=[],
+                show_models=['qr'],
             )
         assert isinstance(fig, go.Figure)
 
@@ -2458,6 +2459,7 @@ class TestUpdateBubbleCallback:
                 xrange=[2015, 2028], yrange=[1, 6],
                 n_future=0, ptsize=2, ptalpha=0.3,
                 stack=0, show_stack=[], use_lots=[], legend_pos="outside", lots_data=[],
+                show_models=['qr'],
             )
         assert isinstance(fig, go.Figure)
 
@@ -2469,6 +2471,7 @@ class TestUpdateBubbleCallback:
                 xrange=[2012, 2035], yrange=[0, 7],
                 n_future=2, ptsize=4, ptalpha=0.5,
                 stack=1.5, show_stack=["yes"], use_lots=[], legend_pos="outside", lots_data=[],
+                show_models=['qr'],
             )
         assert isinstance(fig, go.Figure)
 
@@ -2494,6 +2497,7 @@ class TestUpdateHeatmapCallback:
                 mc_freq="Monthly", mc_window=[2010, yr],
                 mc_start_yr=yr, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                model_key='qr',
                 live_price=0, mc_cached=None, pay_token=None, mc_auth=None,
             )
         # Returns 9 outputs: qr_fig, mc_fig, store, status, panel_style, indicator_style, rendered_key, modal, tab
@@ -2515,6 +2519,7 @@ class TestUpdateHeatmapCallback:
                     mc_freq="Monthly", mc_window=None,
                     mc_start_yr=2025, mc_entry_q=50,
                     _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                    model_key='qr',
                     live_price=0, mc_cached=None, pay_token=None, mc_auth=None,
                 )
 
@@ -2539,6 +2544,7 @@ class TestUpdateDcaCallback:
                 mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                model_key='qr',
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         # 7 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked
@@ -2561,6 +2567,7 @@ class TestUpdateDcaCallback:
                     mc_window=None,
                     mc_start_yr=2026, mc_entry_q=50,
                     _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                    model_key='qr',
                     price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
                 )
 
@@ -2580,6 +2587,7 @@ class TestUpdateDcaCallback:
                 mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                model_key='qr',
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         assert isinstance(result[0], go.Figure)
@@ -2600,6 +2608,7 @@ class TestUpdateDcaCallback:
                 mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                model_key='qr',
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         assert isinstance(result[0], go.Figure)
@@ -2622,6 +2631,7 @@ class TestUpdateRetireCallback:
                 mc_window=None,
                 mc_start_yr=2031, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                model_key='qr',
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         # 7 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked
@@ -2648,6 +2658,7 @@ class TestUpdateSuperchargeCallback:
                 mc_window=None,
                 mc_start_yr=2031, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                model_key='qr',
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         assert len(result) == 7
@@ -2667,6 +2678,7 @@ class TestUpdateSuperchargeCallback:
                 mc_window=None,
                 mc_start_yr=2031, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                model_key='qr',
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         assert isinstance(result[0], go.Figure)
@@ -2912,7 +2924,7 @@ class TestTabControlsMappings:
         for ids in _TAB_CONTROLS.values():
             all_tab_ids |= ids
         for cid, _ in _SNAPSHOT_CONTROLS:
-            if cid == "main-tabs":
+            if cid in ("main-tabs", "model-key-store"):
                 continue
             assert cid in all_tab_ids, f"{cid} not in any _TAB_CONTROLS set"
 
@@ -3563,6 +3575,147 @@ class TestMcFinalizeRenderedKey:
         )
         rendered_key = result[3]
         assert rendered_key is None
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section: PowerLawModel tests (Phase C)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+from btc_core import PowerLawModel, PriceModel
+
+_pl_model = None
+try:
+    _history = M.as_history()
+    _pl_model = PowerLawModel(
+        ols_intercept=M.ols_intercept, ols_slope=M.ols_slope,
+        genesis=M.genesis, history=_history,
+        quantiles=M.QR_QUANTILES, colors=M.qr_colors,
+    )
+except Exception:
+    pass
+
+
+@pytest.mark.skipif(_pl_model is None, reason="PowerLawModel init failed")
+class TestPowerLawModel:
+    def test_protocol_compliance(self):
+        assert isinstance(_pl_model, PriceModel)
+
+    def test_has_bubble_overlay_false(self):
+        assert _pl_model.has_bubble_overlay is False
+
+    def test_quantiles_match_input(self):
+        assert _pl_model.quantiles == sorted(M.QR_QUANTILES)
+
+    def test_price_at_positive(self):
+        for q in [0.05, 0.50, 0.95]:
+            if q in _pl_model._fits:
+                p = _pl_model.price_at(q, 10.0)
+                assert p > 0
+
+    def test_higher_q_higher_price(self):
+        t = 15.0
+        p5 = float(_pl_model.price_at(0.05, t))
+        p50 = float(_pl_model.price_at(0.50, t))
+        p95 = float(_pl_model.price_at(0.95, t))
+        assert p5 < p50 < p95
+
+    def test_mc_fits_structure(self):
+        fits = _pl_model.mc_fits
+        assert isinstance(fits, dict)
+        for q, f in fits.items():
+            assert "intercept" in f
+            assert "slope" in f
+            assert "r2" in f
+
+    def test_mc_fits_same_slope(self):
+        fits = _pl_model.mc_fits
+        slopes = [f["slope"] for f in fits.values()]
+        assert all(s == slopes[0] for s in slopes)
+
+    def test_find_percentile_range(self):
+        t = 15.0
+        price = float(_pl_model.price_at(0.50, t))
+        pct = _pl_model.find_percentile(t, price)
+        q_min = min(_pl_model.quantiles)
+        q_max = max(_pl_model.quantiles)
+        assert q_min <= pct <= q_max
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section: Hue rotation and multi-model bubble overlay tests (Phase C-2)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+try:
+    from figures import _rotate_hue
+    _has_rotate_hue = True
+except ImportError:
+    _has_rotate_hue = False
+
+
+@pytest.mark.skipif(not _has_rotate_hue, reason="figures import failed")
+class TestRotateHue:
+    def test_zero_rotation_identity(self):
+        assert _rotate_hue("#ff0000", 0) == "#ff0000"
+
+    def test_180_rotation(self):
+        # Red (#ff0000) rotated 180° → cyan (#00ffff)
+        result = _rotate_hue("#ff0000", 180)
+        assert result == "#00ffff"
+
+    def test_360_rotation_near_identity(self):
+        # Float rounding in HSV→RGB roundtrip allows ±1 per channel
+        orig = "#3366cc"
+        result = _rotate_hue(orig, 360)
+        for i in range(1, 7, 2):
+            assert abs(int(result[i:i+2], 16) - int(orig[i:i+2], 16)) <= 1
+
+    def test_returns_hex(self):
+        result = _rotate_hue("#abcdef", 45)
+        assert result.startswith("#")
+        assert len(result) == 7
+
+    def test_invalid_hex_passthrough(self):
+        assert _rotate_hue("bad", 45) == "bad"
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestMultiModelBubble:
+    """Test bubble chart renders with multiple models."""
+
+    def test_both_models(self):
+        with _patch_ctx("bub-qs"):
+            fig = update_bubble(
+                sel_qs=[0.5], toggles=["show_data"],
+                bubble_toggles=[], xscale="log", yscale="log",
+                xrange=[2012, 2030], yrange=[0, 7],
+                n_future=0, ptsize=3, ptalpha=0.6,
+                stack=0, show_stack=[], use_lots=[], legend_pos="outside",
+                lots_data=[],
+                show_models=["qr", "pl"],
+            )
+        assert isinstance(fig, go.Figure)
+        # Should have traces from both models (QR Q50% + PL Q50% at minimum)
+        names = [t.name for t in fig.data if t.name]
+        qr_traces = [n for n in names if n.startswith("QR ")]
+        pl_traces = [n for n in names if n.startswith("PL ")]
+        assert len(qr_traces) >= 1, f"Expected QR traces, got {names}"
+        assert len(pl_traces) >= 1, f"Expected PL traces, got {names}"
+
+    def test_single_model_no_prefix(self):
+        with _patch_ctx("bub-qs"):
+            fig = update_bubble(
+                sel_qs=[0.5], toggles=[],
+                bubble_toggles=[], xscale="log", yscale="log",
+                xrange=[2012, 2030], yrange=[0, 7],
+                n_future=0, ptsize=3, ptalpha=0.6,
+                stack=0, show_stack=[], use_lots=[], legend_pos="outside",
+                lots_data=[],
+                show_models=["qr"],
+            )
+        names = [t.name for t in fig.data if t.name]
+        # No prefix when only one model
+        prefixed = [n for n in names if n.startswith("QR ") or n.startswith("PL ")]
+        assert len(prefixed) == 0, f"Expected no prefix, got {prefixed}"
 
 
 if __name__ == "__main__":

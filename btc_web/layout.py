@@ -40,12 +40,14 @@ _STYLE_COLOR_H    = {"height": "28px"}
 _STYLE_ADDR_CELL  = {"paddingRight": "12px", "whiteSpace": "nowrap", "verticalAlign": "top"}
 _STYLE_ADDR_CODE  = {"wordBreak": "break-all", "fontSize": "11px"}
 
-def _q_options() -> list[dict]:
+def _q_options(model=None) -> list[dict]:
+    model = model or _app_ctx.model
+    qs = [q for q in model.quantiles if 0.001 <= q <= 0.999]
     opts = []
-    for q in _app_ctx._ALL_QS:
+    for q in qs:
         pct = q * 100
         lbl_text = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
-        col = _app_ctx.M.qr_colors.get(q, "#888888")
+        col = model.colors.get(q, "#888888")
         lbl = html.Span([
             html.Span("\u25CF ", style={"color": col, "fontSize": "10px"}),
             lbl_text,
@@ -417,6 +419,20 @@ def _bubble_controls():
                           labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
             *_legend_pos_dropdown("bub", "top-left"),
+            *([ _lbl("Models"),
+                dcc.Checklist(id="bub-show-models",
+                              options=[{"label": f" {m.name}", "value": k}
+                                       for k, m in _app_ctx.models.items()],
+                              value=[_app_ctx.model.short_name],
+                              labelStyle={"display": "block"},
+                              inputStyle={"marginRight": "5px"}),
+            ] if len(_app_ctx.models) > 1 else [
+                dcc.Checklist(id="bub-show-models",
+                              options=[{"label": f" {_app_ctx.model.name}",
+                                        "value": _app_ctx.model.short_name}],
+                              value=[_app_ctx.model.short_name],
+                              style=_STYLE_HIDDEN),
+            ]),
         ),
         _section_card("Bubble Model",
             _lbl("Bubble"),
@@ -427,7 +443,7 @@ def _bubble_controls():
                           labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
             _lbl("N future bubbles"),
-            dcc.Slider(id="bub-n-future", min=0, max=_app_ctx.M.n_future_max,
+            dcc.Slider(id="bub-n-future", min=0, max=_app_ctx.model.n_future_max,
                        value=3, step=1, marks=None,
                        tooltip={"always_visible":True}),
         ),
@@ -524,13 +540,13 @@ def _heatmap_controls():
                       step=1, size="sm"),
             _row(
                 html.Div([_lbl("Lo"), dbc.Input(id="hm-c-lo", type="color",
-                           value=_app_ctx.M.CAGR_SEG_C_LO, style=_STYLE_COLOR_H)]),
+                           value=_app_ctx.theme.CAGR_SEG_C_LO, style=_STYLE_COLOR_H)]),
                 html.Div([_lbl("Mid1"), dbc.Input(id="hm-c-mid1", type="color",
-                           value=_app_ctx.M.CAGR_SEG_C_MID1, style=_STYLE_COLOR_H)]),
+                           value=_app_ctx.theme.CAGR_SEG_C_MID1, style=_STYLE_COLOR_H)]),
                 html.Div([_lbl("Mid2"), dbc.Input(id="hm-c-mid2", type="color",
-                           value=_app_ctx.M.CAGR_SEG_C_MID2, style=_STYLE_COLOR_H)]),
+                           value=_app_ctx.theme.CAGR_SEG_C_MID2, style=_STYLE_COLOR_H)]),
                 html.Div([_lbl("Hi"), dbc.Input(id="hm-c-hi", type="color",
-                           value=_app_ctx.M.CAGR_SEG_C_HI, style=_STYLE_COLOR_H)]),
+                           value=_app_ctx.theme.CAGR_SEG_C_HI, style=_STYLE_COLOR_H)]),
             ),
             _lbl("Gradient steps"),
             dbc.Input(id="hm-grad", type="number", value=32,
@@ -675,6 +691,10 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             _ph.append(dbc.Input(id=f"{prefix}-mc-infl", value=4))
         _ph.append(dbc.Input(id=f"{prefix}-mc-bins", value=5))
         _ph.append(dcc.Checklist(id=f"{prefix}-mc-regime", value=list(range(5))))
+        _ph.append(html.Button(id=f"{prefix}-mc-regime-apply", n_clicks=0,
+                               style={"display": "none"}))
+        _ph.append(dcc.Store(id=f"{prefix}-mc-regime-store",
+                             storage_type="memory", data=list(range(5))))
         _ph.append(dcc.Dropdown(id=f"{prefix}-mc-sims", value=800))
         _ph.append(dcc.Dropdown(id=f"{prefix}-mc-years", value=10))
         if "freq" not in shared_controls:
@@ -791,8 +811,14 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                     inputStyle={"marginRight": "4px"},
                     labelStyle={"display": "block", "fontSize": "11px",
                                 "lineHeight": "1.6", "color": "#444"},
-                    style={"marginBottom": "6px"},
+                    style={"marginBottom": "4px"},
                 ),
+                html.Button("Apply filter", id=f"{prefix}-mc-regime-apply",
+                            n_clicks=0, className="btn btn-sm btn-outline-secondary",
+                            style={"display": "block", "marginBottom": "8px",
+                                   "fontSize": "11px", "padding": "2px 10px"}),
+                dcc.Store(id=f"{prefix}-mc-regime-store",
+                          storage_type="memory", data=list(range(5))),
                 _lbl("Simulations"),
                 dcc.Dropdown(id=f"{prefix}-mc-sims",
                              options=_bold_opts(
@@ -1022,7 +1048,7 @@ def _supercharge_controls():
                 style=_STYLE_HINT),
             dcc.Checklist(id="sc-qs",
                           options=_q_options(),
-                          value=[q for q in [0.001, 0.10] if q in _app_ctx.M.qr_fits],
+                          value=[q for q in [0.001, 0.10] if q in _app_ctx.model.mc_fits],
                           className="q-panel-grid",
                           inputStyle={"marginRight":"4px"}),
         ),
@@ -1878,6 +1904,8 @@ _app_ctx.app.layout = dbc.Container([
     _freq_warning_modal(),
     dcc.Interval(id="price-interval", interval=_PRICE_INTERVAL_MS, n_intervals=0),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
+    dcc.Store(id="model-key-store", storage_type="session",
+              data=_app_ctx.model.short_name),
     dcc.Store(id="splash-ts-store", storage_type="local", data=None),
     dcc.Store(id="lots-store", storage_type="local", data=[]),
     dcc.Store(id="lots-export-dummy"),
@@ -2176,6 +2204,23 @@ _app_ctx.app.layout = dbc.Container([
         color="#2c3e50", dark=True, className="mb-0 py-1 mt-1 navbar-parallax",
         id="main-navbar",
     ),
+    # ── Model selector bar (hidden when only one model available) ────────
+    html.Div([
+        html.Div([
+            html.Span("Model: ", style={"fontSize": "12px", "fontWeight": "600",
+                                         "marginRight": "6px", "color": "#2c3e50"}),
+            dcc.Dropdown(
+                id="model-selector",
+                options=[{"label": m.name, "value": k}
+                         for k, m in _app_ctx.models.items()],
+                value=_app_ctx.model.short_name,
+                clearable=False,
+                style={"width": "200px", "fontSize": "12px"},
+            ),
+        ], style={"display": "flex", "alignItems": "center",
+                  "justifyContent": "center", "padding": "4px 0"}),
+    ], id="model-bar",
+       style=_STYLE_HIDDEN if len(_app_ctx.models) <= 1 else {}),
     dbc.Modal([
         dbc.ModalHeader(dbc.ModalTitle("Share / Restore Configuration")),
         dbc.ModalBody([

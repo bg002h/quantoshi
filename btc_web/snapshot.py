@@ -24,7 +24,8 @@ _SNAPSHOT_CONTROLS = [
     ("bub-stack",         "value"),   # starting BTC stack
     ("bub-show-stack",    "value"),   # show stack value in legend
     ("bub-use-lots",      "value"),   # use Stack Tracker lots for starting BTC
-    # ── Heatmap tab (indices 13–28) ──
+    ("bub-show-models",   "value"),   # which models to display on bubble tab
+    # ── Heatmap tab (indices 13–29) ──
     ("hm-entry-yr",       "value"),   # heatmap entry year
     ("hm-entry-q",        "value"),   # entry percentile (0.1–99.9%)
     ("hm-exit-range",     "value"),   # exit year range [start, end]
@@ -107,6 +108,8 @@ _SNAPSHOT_CONTROLS = [
     ("ret-model-show",    "value"),   # QR/MC display toggle (Retire)
     ("sc-model-show",     "value"),   # QR/MC display toggle (SC)
     ("hm-model-show",     "value"),   # QR/MC display toggle (Heatmap)
+    # ── Model selector (index 93) ──
+    ("model-key-store",   "data"),    # active price model key ("qr", "pl", etc.)
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)
@@ -133,6 +136,7 @@ _CHECKLIST_OPTIONS = {
     "bub-bubble-toggles": ["show_comp", "show_sup"],
     "bub-show-stack":     ["yes"],
     "bub-use-lots":       ["yes"],
+    "bub-show-models":    list(_app_ctx.models.keys()),
     "hm-toggles":         ["colorbar", "chart_zoom"],
     "hm-use-lots":        ["yes"],
     "dca-use-lots":       ["yes"],
@@ -189,7 +193,7 @@ def _encode_snapshot(state_dict, tab_filter=None):
     values = []
     for cid, prop in _SNAPSHOT_CONTROLS:
         val = state_dict.get(f"{cid}:{prop}")
-        if tab_filter is not None and cid != "main-tabs" and cid not in tab_filter:
+        if tab_filter is not None and cid not in ("main-tabs", "model-key-store") and cid not in tab_filter:
             val = None
         if val is not None and cid in _CHECKLIST_OPTIONS:
             val = _list_to_mask(val, _CHECKLIST_OPTIONS[cid])

@@ -7,8 +7,10 @@ Note: btc_projections.py currently defines these inline for historical reasons.
 The web app imports from here directly.
 """
 
-import ast, json, pickle, sys
+import ast, bisect, json, pickle, sys
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Protocol, runtime_checkable
 
 import numpy as np
 import pandas as pd
@@ -147,6 +149,165 @@ def leo_weighted_entry(lots):
     return ep, et, pct, total_w
 
 
+def _interp_qr_price(q: float, t: float, qr_fits: dict) -> float:
+    """Return QR price for arbitrary quantile q in (0,1), interpolating in log space."""
+    qs = sorted(qr_fits.keys())
+    if q <= qs[0]:
+        return float(qr_price(qs[0], t, qr_fits))
+    if q >= qs[-1]:
+        return float(qr_price(qs[-1], t, qr_fits))
+    idx = bisect.bisect_left(qs, q)
+    q_lo, q_hi = qs[idx - 1], qs[idx]
+    p_lo = float(qr_price(q_lo, t, qr_fits))
+    p_hi = float(qr_price(q_hi, t, qr_fits))
+    frac = (q - q_lo) / (q_hi - q_lo)
+    return float(np.exp(np.log(p_lo) + frac * (np.log(p_hi) - np.log(p_lo))))
+
+
+# ── PriceModel protocol + data containers ────────────────────────────────
+
+@runtime_checkable
+class PriceModel(Protocol):
+    """Any model that projects Bitcoin price by quantile and time."""
+
+    name: str
+    short_name: str
+    quantiles: list[float]
+    colors: dict[float, str]
+    genesis: pd.Timestamp
+
+    def price_at(self, q: float, t) -> float | np.ndarray: ...
+    def find_percentile(self, t: float, price: float) -> float | None: ...
+    def interp_price(self, q: float, t: float) -> float: ...
+
+    @property
+    def has_bubble_overlay(self) -> bool: ...
+
+    @property
+    def mc_fits(self) -> dict | None: ...
+
+
+@dataclass
+class PriceHistory:
+    """Historical price data shared across all models."""
+
+    genesis: pd.Timestamp
+    price_dates: list
+    price_years: np.ndarray
+    price_prices: np.ndarray
+
+
+@dataclass
+class ThemeConfig:
+    """Visual configuration shared across all models."""
+
+    PLOT_BG_COLOR: str = "#888888"
+    TEXT_COLOR: str = "#888888"
+    TITLE_COLOR: str = "#888888"
+    SPINE_COLOR: str = "#888888"
+    GRID_MAJOR_COLOR: str = "#888888"
+    GRID_MINOR_COLOR: str = "#888888"
+    DATA_COLOR: str = "#888888"
+    CAGR_SEG_C_LO: str = "#888888"
+    CAGR_SEG_C_MID1: str = "#888888"
+    CAGR_SEG_C_MID2: str = "#888888"
+    CAGR_SEG_C_HI: str = "#888888"
+    DATA_PT_SIZE: int = 8
+    DATA_PT_SIZE_ZOOM: int = 8
+    ZOOM_YEAR_LO: int = 8
+    ZOOM_YEAR_HI: int = 8
+    CAGR_GRAD_STEPS: int = 8
+    CAGR_HEATMAP_FONTSIZE: int = 8
+    ZOOM_PRICE_LO: float = 0.0
+    ZOOM_PRICE_HI: float = 0.0
+    CAGR_SEG_B1: float = 0.0
+    CAGR_SEG_B2: float = 0.0
+    TABLE_YEARS: list = field(default_factory=lambda: list(range(2025, 2041)))
+
+
+class QRBubbleModel:
+    """Wraps current ModelData as a PriceModel (QR bubble model adapter)."""
+
+    name = "QR Bubble Model"
+    short_name = "qr"
+
+    def __init__(self, md: "ModelData"):
+        self._md = md
+        self.quantiles = sorted(md.qr_fits.keys())
+        self.colors = dict(md.qr_colors)
+        self.genesis = md.genesis
+        # Bubble-specific fields
+        self.ols_intercept = md.ols_intercept
+        self.ols_slope = md.ols_slope
+        self.years_plot_bm = md.years_plot_bm
+        self.support_bm = md.support_bm
+        self.comp_by_n = md.comp_by_n
+        self.bm_r2 = md.bm_r2
+        self.n_future_max = md.n_future_max
+
+    def price_at(self, q, t):
+        return qr_price(q, t, self._md.qr_fits)
+
+    def find_percentile(self, t, price):
+        return _find_lot_percentile(t, price, self._md.qr_fits)
+
+    def interp_price(self, q, t):
+        return _interp_qr_price(q, t, self._md.qr_fits)
+
+    @property
+    def has_bubble_overlay(self):
+        return True
+
+    @property
+    def mc_fits(self):
+        return self._md.qr_fits
+
+
+class PowerLawModel:
+    """Power Law: log₁₀(price) = intercept + slope × log₁₀(t) + residual offset."""
+
+    name = "Power Law"
+    short_name = "pl"
+
+    def __init__(self, ols_intercept, ols_slope, genesis, history, quantiles, colors):
+        self.genesis = genesis
+        self._intercept = ols_intercept
+        self._slope = ols_slope
+        self.colors = {float(k): v for k, v in colors.items()}
+
+        # Empirical residual distribution (2010+ data, matching OLS fit range)
+        mask = history.price_years >= yr_to_t(2010, genesis)
+        log_t = np.log10(history.price_years[mask])
+        log_p = np.log10(history.price_prices[mask])
+        self._residuals = log_p - (ols_intercept + ols_slope * log_t)
+
+        # Build fits dict — same structure as QR, compatible with MC engine
+        self._fits = {}
+        for q in quantiles:
+            q = float(q)
+            offset = float(np.quantile(self._residuals, q))
+            self._fits[q] = {"intercept": ols_intercept + offset, "slope": ols_slope, "r2": 0.0}
+        self.quantiles = sorted(self._fits.keys())
+
+    def price_at(self, q, t):
+        f = self._fits[q]
+        return 10.0 ** (f["intercept"] + f["slope"] * np.log10(np.asarray(t, float)))
+
+    def find_percentile(self, t, price):
+        return _find_lot_percentile(t, price, self._fits)
+
+    def interp_price(self, q, t):
+        return _interp_qr_price(q, t, self._fits)
+
+    @property
+    def has_bubble_overlay(self):
+        return False
+
+    @property
+    def mc_fits(self):
+        return self._fits
+
+
 # ── model fitting ─────────────────────────────────────────────────────────────
 
 def fit_qr_from_csv(csv_path, quantiles, genesis="2009-01-03", fit_min="2010-01-01"):
@@ -228,6 +389,25 @@ class ModelData:
         for key in ("ZOOM_PRICE_LO", "ZOOM_PRICE_HI", "CAGR_SEG_B1", "CAGR_SEG_B2"):
             setattr(self, key, float(d.get(key, 0)))
         self.TABLE_YEARS = d.get("TABLE_YEARS", list(range(2025, 2041)))
+
+    def as_model(self) -> QRBubbleModel:
+        """Wrap this ModelData as a PriceModel (QR bubble model)."""
+        return QRBubbleModel(self)
+
+    def as_history(self) -> PriceHistory:
+        """Extract historical price data."""
+        return PriceHistory(
+            genesis=self.genesis,
+            price_dates=self.price_dates,
+            price_years=self.price_years,
+            price_prices=self.price_prices,
+        )
+
+    def as_theme(self) -> ThemeConfig:
+        """Extract visual configuration."""
+        return ThemeConfig(**{
+            k: getattr(self, k) for k in ThemeConfig.__dataclass_fields__
+        })
 
     def update_from_csv(self, csv_path):
         df, qr, ols_int, ols_sl = fit_qr_from_csv(

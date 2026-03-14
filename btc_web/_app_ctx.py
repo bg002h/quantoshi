@@ -52,7 +52,11 @@ def _compute_sc_loan(principal, amount, r, term_periods, loan_type):
 
 
 # ── Dynamic state (populated by app.py at startup) ──────────────────────────
-M = None                   # ModelData instance
+M = None                   # ModelData instance (kept for transition)
+model = None               # PriceModel (QRBubbleModel wrapping M)
+history = None             # PriceHistory (genesis, price arrays)
+theme = None               # ThemeConfig (colors, sizes, CAGR constants)
+models = {}                # registry: short_name → PriceModel
 app = None                 # dash.Dash instance
 server = None              # Flask server (= app.server)
 _HAS_MARKOV = False

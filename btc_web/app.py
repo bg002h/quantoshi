@@ -134,6 +134,19 @@ def _cache_headers(response):
 # ── populate shared context ──────────────────────────────────────────────────
 import _app_ctx
 _app_ctx.M = M
+_app_ctx.model = M.as_model()
+_app_ctx.history = M.as_history()
+_app_ctx.theme = M.as_theme()
+_app_ctx.models = {_app_ctx.model.short_name: _app_ctx.model}
+
+from btc_core import PowerLawModel
+_pl = PowerLawModel(
+    ols_intercept=M.ols_intercept, ols_slope=M.ols_slope,
+    genesis=M.genesis, history=_app_ctx.history,
+    quantiles=M.QR_QUANTILES, colors=M.qr_colors,
+)
+_app_ctx.models[_pl.short_name] = _pl
+
 _app_ctx.app = app
 _app_ctx.server = server
 _app_ctx._HAS_MARKOV = _HAS_MARKOV
@@ -164,6 +177,8 @@ def _prewarm_caches():
 
     # Bubble (default: no quantiles, log-log, 3 future bubbles)
     _get_bubble_fig(dict(
+        _model_key="qr",
+        show_models=["qr"],
         selected_qs = [],
         shade=True, show_ols=False, show_data=True, show_today=True,
         show_legend=False, minor_grid=False,
@@ -179,6 +194,7 @@ def _prewarm_caches():
 
     # DCA (default: $100/mo, Q50%, current_yr–current_yr+10)
     _get_dca_fig(dict(
+        _model_key="qr",
         start_stack=0, use_lots=False,
         amount=100.0, freq="Monthly",
         start_yr=yr_now, end_yr=yr_now + 10,
@@ -196,6 +212,7 @@ def _prewarm_caches():
 
     # Retire (default: $5000/mo, Q1%+Q10%+Q25%, 2031–2075, 4% inflation)
     _get_retire_fig(dict(
+        _model_key="qr",
         start_stack=1.0, use_lots=False,
         wd_amount=5000.0, freq="Monthly",
         start_yr=2031, end_yr=2075,
@@ -208,6 +225,7 @@ def _prewarm_caches():
 
     # Supercharge (default: Mode A, 1 BTC, annually, Q0.1%+Q10%)
     _get_supercharge_fig(dict(
+        _model_key="qr",
         mode         = "a",
         start_stack  = 1.0,
         start_yr     = 2033,
@@ -233,7 +251,7 @@ _prewarm_caches()
 
 # Pre-warm default transition matrix
 if _HAS_MARKOV:
-    _get_transition_matrix(M, 5, 30, [2010, date.today().year])
+    _get_transition_matrix(5, 30, [2010, date.today().year])
 
 # ── Background MC figure prewarm (runs in each worker's first request) ───────
 def _prewarm_mc_caches():
@@ -264,6 +282,7 @@ def _prewarm_mc_caches():
         for mc_yrs in MC_FREE_YEARS:
             mc = _mc_overrides(s_yr, mc_yrs)
             _try(_get_dca_fig, dict(
+                _model_key="qr",
                 start_stack=0, use_lots=False,
                 amount=100.0, freq="Monthly",
                 start_yr=yr_now, end_yr=yr_now + mc_yrs,
@@ -280,6 +299,7 @@ def _prewarm_mc_caches():
                 **mc,
             ), "DCA", s_yr, mc_yrs)
             _try(_get_retire_fig, dict(
+                _model_key="qr",
                 start_stack=1.0, use_lots=False,
                 wd_amount=5000.0, freq="Monthly",
                 start_yr=2031, end_yr=2075,
@@ -292,6 +312,7 @@ def _prewarm_mc_caches():
                 mc_amount=5000,
             ), "Ret", s_yr, mc_yrs)
             _try(_get_supercharge_fig, dict(
+                _model_key="qr",
                 mode="a", start_stack=1.0, start_yr=2033,
                 delays=[0.0, 0.0, 0.0, 1.0, 2.0],
                 freq="Annually", inflation=4.0,

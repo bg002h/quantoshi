@@ -1306,15 +1306,6 @@ _FAQ = [
             "and can be opened in any browser or converted to PNG with tools like Inkscape.",
         ]),
     },
-    {
-        "q": "Can I replay the knighting ceremony?",
-        "a": html.Span([
-            "Yes! If you've earned the Orange Q (7-day streak), you can relive the ceremony: ",
-            html.A("Replay ceremony \u2694\ufe0f", href="#",
-                   id="replay-knight-link",
-                   style={"cursor": "pointer"}),
-        ]),
-    },
 ]
 
 

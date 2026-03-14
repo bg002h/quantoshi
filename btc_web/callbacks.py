@@ -2494,21 +2494,6 @@ _app_ctx.app.clientside_callback(
 )
 
 
-# ── LT-8b: Replay knighting ceremony from FAQ link ───────────────────────────
-_app_ctx.app.clientside_callback(
-    """
-    function(n) {
-        if (!n) return window.dash_clientside.no_update;
-        if (window._replayKnighting) window._replayKnighting();
-        return window.dash_clientside.no_update;
-    }
-    """,
-    Output("replay-knight-link", "title"),
-    Input("replay-knight-link", "n_clicks"),
-    prevent_initial_call=True,
-)
-
-
 # ── LT-8c: Welcome message for returning knights ─────────────────────────────
 _app_ctx.app.clientside_callback(
     """

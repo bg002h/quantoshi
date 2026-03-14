@@ -69,6 +69,11 @@ def _mark_paid(ip: str, invoice_id: str) -> None:
 
 # ── Route registration ───────────────────────────────────────────────────────
 
+def _client_ip() -> str:
+    """Real client IP — trusts nginx X-Real-IP, falls back to remote_addr."""
+    return request.headers.get("X-Real-IP", request.remote_addr) or "unknown"
+
+
 def register_routes(server) -> None:
     """Register MC payment API routes on the Flask server."""
 
@@ -97,7 +102,7 @@ def register_routes(server) -> None:
 
     @server.route("/api/mc/invoice", methods=["POST"])
     def _mc_create_invoice():
-        ip = request.remote_addr or "unknown"
+        ip = _client_ip()
 
         # Rate limit
         err = _check_rate_limit(ip)
@@ -155,7 +160,7 @@ def register_routes(server) -> None:
         if result["paid"]:
             token = btcpay.generate_payment_token(invoice_id, tab, mc_years)
             result["payment_token"] = token
-            ip = request.remote_addr or "unknown"
+            ip = _client_ip()
             _mark_paid(ip, invoice_id)
 
         return jsonify(result), 200

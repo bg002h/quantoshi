@@ -228,14 +228,18 @@ def _freq_warning_modal():
 
 
 def _model_show_checklist(prefix):
-    """Display models checklist (QR / MC) for Chart section."""
+    """Display models checklist (QR / MC / PL / S2F) for Chart section."""
+    opts = [
+        {"label": " Bubble Model", "value": "qr"},
+        {"label": " MC Simulation", "value": "mc"},
+    ]
+    for mdl in _app_ctx.PRICE_MODELS.values():
+        if mdl.short_name != "bub":
+            opts.append({"label": f" {mdl.name}", "value": mdl.short_name})
     return [
         _lbl("Display models"),
         dcc.Checklist(id=f"{prefix}-model-show",
-                      options=[
-                          {"label": " QR Model", "value": "qr"},
-                          {"label": " MC Model", "value": "mc"},
-                      ],
+                      options=opts,
                       value=["qr", "mc"], inline=True,
                       inputStyle={"marginRight": "4px"},
                       labelStyle={"marginRight": "12px", "fontSize": "11px"},
@@ -417,6 +421,15 @@ def _bubble_controls():
                           labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
             *_legend_pos_dropdown("bub", "top-left"),
+            _lbl("Overlay models"),
+            dcc.Checklist(id="bub-model-show",
+                          options=[{"label": f" {mdl.name}", "value": mdl.short_name}
+                                   for mdl in _app_ctx.PRICE_MODELS.values()
+                                   if mdl.short_name != "bub"],
+                          value=[], inline=True,
+                          inputStyle={"marginRight": "4px"},
+                          labelStyle={"marginRight": "12px", "fontSize": "11px"},
+                          style={"marginBottom": "8px"}),
         ),
         _section_card("Bubble Model",
             _lbl("Bubble"),
@@ -701,6 +714,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
         if "stack" not in shared_controls:
             _ph.append(dbc.Input(id=f"{prefix}-mc-stack", type="number", value=1.0))
         _ph.append(dcc.Dropdown(id=f"{prefix}-mc-start-yr", value=2031))
+        _ph.append(dcc.Dropdown(id=f"{prefix}-mc-model-src", value="bub"))
         return html.Div(style=_STYLE_HIDDEN, children=_ph)
     yr_now = pd.Timestamp.today().year
     return html.Div(style={"position": "relative"}, children=[
@@ -747,6 +761,12 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             dcc.Dropdown(id=f"{prefix}-mc-entry-q",
                          options=_MC_ENTRY_Q_OPTIONS,
                          value=default_entry_q, clearable=False),
+            _lbl("Model source (quantile bands)"),
+            dcc.Dropdown(id=f"{prefix}-mc-model-src",
+                         options=[{"label": f" {mdl.name}", "value": mdl.short_name}
+                                  for mdl in _app_ctx.PRICE_MODELS.values()
+                                  if mdl.quantized],
+                         value="bub", clearable=False),
             *([_lbl(amount_label + " (0–4,294,967,295)"),
                dbc.Input(id=f"{prefix}-mc-amount", type="number",
                          value=amount_default, min=0, max=_app_ctx.MAX_USD,
@@ -1022,7 +1042,7 @@ def _supercharge_controls():
                 style=_STYLE_HINT),
             dcc.Checklist(id="sc-qs",
                           options=_q_options(),
-                          value=[q for q in [0.001, 0.10] if q in _app_ctx.M.qr_fits],
+                          value=[q for q in [0.001, 0.10] if q in (_app_ctx.DEFAULT_MODEL.fits or {})],
                           className="q-panel-grid",
                           inputStyle={"marginRight":"4px"}),
         ),

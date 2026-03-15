@@ -32,7 +32,7 @@ import dash
 import dash_bootstrap_components as dbc
 from flask import request as flask_request
 
-from btc_core import load_model_data
+from btc_core import load_model_data, BubbleModel, PowerLawModel, S2FModel
 from figures import FREQ_PPY
 from mc_overlay import save_trans_cache_to_disk, _get_transition_matrix
 import atexit
@@ -138,6 +138,14 @@ _app_ctx.app = app
 _app_ctx.server = server
 _app_ctx._HAS_MARKOV = _HAS_MARKOV
 
+# ── register price models ──────────────────────────────────────────────────
+_app_ctx.PRICE_MODELS["bub"] = BubbleModel(M)
+_app_ctx.PRICE_MODELS["pl"]  = PowerLawModel(
+    M.ols_intercept, M.ols_slope, M.price_years, M.price_prices,
+    M.genesis, M.QR_QUANTILES)
+_app_ctx.PRICE_MODELS["s2f"] = S2FModel(M.price_years, M.price_prices, M.genesis)
+_app_ctx.DEFAULT_MODEL = _app_ctx.PRICE_MODELS["bub"]
+
 import btcpay
 _app_ctx._HAS_BTCPAY = btcpay._HAS_BTCPAY
 
@@ -145,7 +153,7 @@ import api
 api.register_routes(server)
 _app_ctx._ALL_QS = [q for q in M.QR_QUANTILES if 0.001 <= q <= 0.999]
 _app_ctx._DEF_QS = [q for q in [0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
-                    if q in M.qr_fits]
+                    if q in _app_ctx.DEFAULT_MODEL.fits]
 
 from utils import _startup_heatmap_defaults, _nearest_quantile, _get_bubble_fig, \
     _get_dca_fig, _get_retire_fig, _get_supercharge_fig, _get_heatmap_fig
@@ -214,7 +222,7 @@ def _prewarm_caches():
         delays       = [0.0, 0.0, 0.0, 1.0, 2.0],
         freq         = "Annually",
         inflation    = 4.0,
-        selected_qs  = [q for q in [0.001, 0.10] if q in M.qr_fits],
+        selected_qs  = [q for q in [0.001, 0.10] if q in _app_ctx.DEFAULT_MODEL.fits],
         chart_layout = 2,
         display_q    = _nearest_quantile(0.05, _app_ctx._ALL_QS),
         wd_amount    = 5000,
@@ -295,7 +303,7 @@ def _prewarm_mc_caches():
                 mode="a", start_stack=1.0, start_yr=2033,
                 delays=[0.0, 0.0, 0.0, 1.0, 2.0],
                 freq="Annually", inflation=4.0,
-                selected_qs=[q for q in [0.001, 0.10] if q in M.qr_fits],
+                selected_qs=[q for q in [0.001, 0.10] if q in _app_ctx.DEFAULT_MODEL.fits],
                 chart_layout=2,
                 display_q=_nearest_quantile(0.05, _app_ctx._ALL_QS),
                 wd_amount=5000, end_yr=2075, disp_mode="usd",

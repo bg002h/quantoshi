@@ -36,8 +36,8 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 
 import _app_ctx
-from btc_core import (_find_lot_percentile, fmt_price, yr_to_t, today_t,
-                      leo_weighted_entry, qr_price)
+from btc_core import (fmt_price, yr_to_t, today_t,
+                      leo_weighted_entry)
 from figures import FREQ_PPY
 from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
                    _get_supercharge_fig, _get_heatmap_fig, _get_mc_heatmap_fig,
@@ -117,7 +117,7 @@ def _build_mc_params(*, mc_enable, mc_amount, mc_infl, mc_bins, mc_sims,
                      mc_years, mc_freq, mc_window, mc_start_yr, mc_entry_q,
                      mc_cached, mc_live_price, mc_regime=None,
                      amount_default=100, infl_default=4.0,
-                     mc_start_stack=None):
+                     mc_start_stack=None, mc_model_src=None):
     """Assemble MC simulation parameters from pre-coerced callback inputs.
 
     All MC control values (mc_bins, mc_sims, mc_years, mc_freq, mc_start_yr,
@@ -149,6 +149,7 @@ def _build_mc_params(*, mc_enable, mc_amount, mc_infl, mc_bins, mc_sims,
         mc_entry_q    = mc_entry_q,
         mc_cached     = mc_cached,
         mc_blocked_bins = blocked,
+        mc_model_src  = mc_model_src or "bub",
     )
     if mc_start_stack is not None:
         v = round(_cf(mc_start_stack, 1.0, lo=0.0, hi=1000.0), 2)
@@ -224,7 +225,8 @@ def _mc_setup(tab: str, mc_enable, mc_years, mc_start_yr, mc_entry_q,
               mc_cached, live_price: float, mc_regime, mc_unblocked, pay_token,
               mc_auth=None,
               stack=None, amount_default: int = 100, infl_default: float = 0.0,
-              start_yr_default: int = MC_DEFAULT_START_YR
+              start_yr_default: int = MC_DEFAULT_START_YR,
+              mc_model_src=None,
               ) -> tuple[bool, bool, dict, tuple]:
     """Shared MC setup: coerce → payment check → free tier → build params → ghost."""
     mc_years_c, mc_start_yr_c, mc_entry_q_c, mc_bins_c, mc_sims_c, mc_freq_c = \
@@ -270,6 +272,7 @@ def _mc_setup(tab: str, mc_enable, mc_years, mc_start_yr, mc_entry_q,
         mc_regime=None if mc_stale else mc_regime,
         amount_default=amount_default, infl_default=infl_default,
         mc_start_stack=stack,
+        mc_model_src=_spk.get("mc_model_src", "bub") if mc_stale else mc_model_src,
     )
     if mc_stale:
         mc_p["mc_stale"] = True
@@ -330,11 +333,12 @@ def _mc_finalize(tab: str, fig, mc_result, mc_cached, mc_enable, mc_ok: bool,
     Input("bub-show-stack",    "value"),
     Input("bub-use-lots",      "value"),
     Input("bub-legend-pos",    "value"),
+    Input("bub-model-show",    "value"),
     Input("effective-lots",    "data"),
 )
 def update_bubble(sel_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,
-                  n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, lots_data):
+                  n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, model_show, lots_data):
     """Bubble + QR overlay chart callback — coerce inputs, build figure."""
     toggles        = toggles or []
     bubble_toggles = bubble_toggles or []
@@ -365,6 +369,7 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
         legend_pos  = legend_pos or "outside",
         comp_color  = "#FFD700", comp_lw = 2.0,
         sup_color   = "#888888", sup_lw  = 1.5,
+        active_models = model_show or [],
     ))
     if "chart_zoom" not in toggles:
         fig.update_layout(dragmode=False)
@@ -384,13 +389,13 @@ def auto_bubble_yrange(xrange, auto_y, yscale, sel_qs):
     if not auto_y or not xrange:
         raise dash.exceptions.PreventUpdate
     xmin, xmax = int(xrange[0]), int(xrange[1])
-    qs = sorted([float(q) for q in (sel_qs or []) if float(q) in _app_ctx.M.qr_fits])
+    qs = sorted([float(q) for q in (sel_qs or []) if float(q) in _app_ctx.DEFAULT_MODEL.fits])
     if not qs:
-        qs = sorted(_app_ctx.M.qr_fits.keys())
+        qs = sorted(_app_ctx.DEFAULT_MODEL.fits.keys())
     t_lo = max(yr_to_t(xmin, _app_ctx.M.genesis), 0.1)
     t_hi = yr_to_t(xmax, _app_ctx.M.genesis)
-    p_lo = float(qr_price(qs[0],  t_lo, _app_ctx.M.qr_fits))
-    p_hi = float(qr_price(qs[-1], t_hi, _app_ctx.M.qr_fits))
+    p_lo = float(_app_ctx.DEFAULT_MODEL.price_at(qs[0], t_lo))
+    p_hi = float(_app_ctx.DEFAULT_MODEL.price_at(qs[-1], t_hi))
     if (yscale or "log") == "log":
         y_lo = math.floor(math.log10(max(p_lo, 1e-10)) * 2) / 2 - 0.5
         y_hi = math.ceil( math.log10(max(p_hi, 1e-10)) * 2) / 2 + 0.5
@@ -497,6 +502,7 @@ def _unblocked_val(mc_ok, blocked, mc_result, mc_cached):
     Input("hm-mc-loaded",   "data"),
     Input("mc-pay-trigger", "data"),
     Input("hm-model-show",  "value"),
+    Input("hm-mc-model-src", "value"),
     State("btc-price-store", "data"),
     State("hm-mc-results",  "data"),
     State("mc-pay-token",   "data"),
@@ -507,7 +513,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
                    b1, b2, c_lo, c_mid1, c_mid2, c_hi, grad,
                    vfmt, cell_fs, toggles, stack, use_lots, lots_data,
                    mc_enable, mc_amount, mc_infl, mc_bins, mc_regime, mc_sims, mc_years, mc_freq, mc_window,
-                   mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show,
+                   mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                    live_price, mc_cached, pay_token, mc_auth):
     if ctx.triggered_id == "main-tabs" and active_tab != "heatmap":
         raise dash.exceptions.PreventUpdate
@@ -520,7 +526,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     def _use_live(eyr_val, eq_val):
         if not live_price or _ci(eyr_val, yr_now) != yr_now:
             return None
-        ticker_pct = _find_lot_percentile(today_t(_app_ctx.M.genesis), float(live_price), _app_ctx.M.qr_fits)
+        ticker_pct = _app_ctx.DEFAULT_MODEL.find_percentile(today_t(_app_ctx.M.genesis), float(live_price))
         if ticker_pct is None:
             return None
         ticker_q = round(ticker_pct * 100, 1)
@@ -549,6 +555,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
         stack        = _cf(stack, 0),
         use_lots     = bool(use_lots),
         lots         = lots_data or [],
+        active_models = [k for k in (model_show or []) if k not in ("qr", "mc")],
     )
 
     # QR heatmap (always)
@@ -562,7 +569,8 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
         mc_cached, _cf(live_price, 0), mc_regime, None, pay_token,
         mc_auth=mc_auth,
         stack=stack, amount_default=100, infl_default=0.0,
-        start_yr_default=yr_now)
+        start_yr_default=yr_now,
+        mc_model_src=mc_model_src)
 
     # Heatmap-specific: cap MC training window at start year for historical sims
     if mc_ok and not mc_p.get("mc_stale"):
@@ -649,6 +657,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     Input("dca-mc-loaded",  "data"),
     Input("mc-pay-trigger", "data"),
     Input("dca-model-show", "value"),
+    Input("dca-mc-model-src", "value"),
     State("btc-price-store","data"),
     State("dca-mc-results", "data"),
     State("mc-pay-token",   "data"),
@@ -660,7 +669,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
                sc_enable, sc_loan, sc_rate, sc_term, sc_type, sc_repeats,
                sc_entry_mode, sc_custom_price, sc_tax, sc_rollover,
                mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
-               mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show,
+               mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                price_data, mc_cached, pay_token, mc_unblocked, mc_auth):
     if ctx.triggered_id == "main-tabs" and active_tab != "dca":
         raise dash.exceptions.PreventUpdate
@@ -672,7 +681,8 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
         mc_bins, mc_sims, freq, mc_window, amount, dca_infl,
         mc_cached, live_price, mc_regime, mc_unblocked, pay_token,
         mc_auth=mc_auth,
-        stack=stack, amount_default=100, infl_default=0.0, start_yr_default=2026)
+        stack=stack, amount_default=100, infl_default=0.0, start_yr_default=2026,
+        mc_model_src=mc_model_src)
     model_show = model_show or ["qr", "mc"]
     fig, mc_result = _get_dca_fig(dict(
         start_stack    = _cf(stack, 0),
@@ -704,6 +714,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
         sc_rollover     = bool(sc_rollover),
         show_qr        = "qr" in model_show,
         show_mc        = "mc" in model_show,
+        active_models  = [k for k in model_show if k not in ("qr", "mc")],
         **mc_p,
     ))
     fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(
@@ -1649,6 +1660,7 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
     Input("ret-mc-loaded",   "data"),
     Input("mc-pay-trigger", "data"),
     Input("ret-model-show", "value"),
+    Input("ret-mc-model-src", "value"),
     State("btc-price-store","data"),
     State("ret-mc-results", "data"),
     State("mc-pay-token",   "data"),
@@ -1658,7 +1670,7 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
 )
 def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, lots_data,
                   mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
-                  mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show,
+                  mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                   price_data, mc_cached, pay_token, mc_unblocked, mc_auth):
     if ctx.triggered_id == "main-tabs" and active_tab != "retire":
         raise dash.exceptions.PreventUpdate
@@ -1669,7 +1681,8 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         mc_bins, mc_sims, freq, mc_window, wd, infl,
         mc_cached, _cf(price_data, 0), mc_regime, mc_unblocked, pay_token,
         mc_auth=mc_auth,
-        stack=stack, amount_default=5000, infl_default=4.0, start_yr_default=2031)
+        stack=stack, amount_default=5000, infl_default=4.0, start_yr_default=2031,
+        mc_model_src=mc_model_src)
     model_show = model_show or ["qr", "mc"]
     fig, mc_result = _get_retire_fig(dict(
         start_stack  = _cf(stack, 1.0),
@@ -1689,6 +1702,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         lots         = lots_data or [],
         show_qr      = "qr" in model_show,
         show_mc      = "mc" in model_show,
+        active_models = [k for k in model_show if k not in ("qr", "mc")],
         **mc_p,
     ))
     fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(
@@ -1745,6 +1759,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     Input("sc-mc-loaded",    "data"),
     Input("mc-pay-trigger", "data"),
     Input("sc-model-show",  "value"),
+    Input("sc-mc-model-src", "value"),
     State("btc-price-store", "data"),
     State("sc-mc-results",   "data"),
     State("mc-pay-token",   "data"),
@@ -1758,7 +1773,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
                        wd, end_yr, target_yr, disp,
                        toggles, legend_pos, chart_layout, display_q, lots_data,
                        mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
-                       mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show,
+                       mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                        price_data, mc_cached, pay_token, mc_unblocked, mc_auth):
     if ctx.triggered_id == "main-tabs" and active_tab != "supercharge":
         raise dash.exceptions.PreventUpdate
@@ -1770,7 +1785,8 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         mc_bins, mc_sims, freq, mc_window, wd, infl,
         mc_cached, _cf(price_data, 0), mc_regime, mc_unblocked, pay_token,
         mc_auth=mc_auth,
-        stack=stack, amount_default=5000, infl_default=4.0, start_yr_default=2031)
+        stack=stack, amount_default=5000, infl_default=4.0, start_yr_default=2031,
+        mc_model_src=mc_model_src)
     # chart_layout is now a checklist list; legacy snapshots may send an int
     _cl = (2 if "shade" in (chart_layout or []) else 0) \
           if isinstance(chart_layout, list) \
@@ -1799,6 +1815,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         use_lots     = bool(use_lots),
         show_qr      = "qr" in model_show,
         show_mc      = "mc" in model_show,
+        active_models = [k for k in model_show if k not in ("qr", "mc")],
         **mc_p,
     ))
     fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(
@@ -1843,7 +1860,7 @@ def preview_percentile(date_str, price):
         return ""
     try:
         t   = (pd.Timestamp(date_str) - _app_ctx.M.genesis).days / 365.25
-        pct = _find_lot_percentile(t, float(price), _app_ctx.M.qr_fits)
+        pct = _app_ctx.DEFAULT_MODEL.find_percentile(t, float(price))
         return f"Q{pct*100:.2f}%"
     except Exception:
         return ""
@@ -1884,7 +1901,7 @@ def manage_lots(add_n, del_n, clear_n, import_contents,
             if btc <= 0 or price <= 0:
                 raise ValueError
             t     = (pd.Timestamp(date_str) - _app_ctx.M.genesis).days / 365.25
-            pct_q = _find_lot_percentile(t, price, _app_ctx.M.qr_fits)
+            pct_q = _app_ctx.DEFAULT_MODEL.find_percentile(t, price)
             lots.append({
                 "date":  date_str,
                 "btc":   round(btc, 8),
@@ -1924,7 +1941,7 @@ def manage_lots(add_n, del_n, clear_n, import_contents,
                 if not isinstance(row.get("price"), (int, float)):
                     raise ValueError("lot missing or invalid 'price'")
                 t     = (pd.Timestamp(row["date"]) - _app_ctx.M.genesis).days / 365.25
-                pct_q = _find_lot_percentile(t, float(row["price"]), _app_ctx.M.qr_fits)
+                pct_q = _app_ctx.DEFAULT_MODEL.find_percentile(t, float(row["price"]))
                 parsed.append({
                     "date":  row["date"],
                     "btc":   round(float(row["btc"]), 8),
@@ -2224,7 +2241,7 @@ def update_price_ticker(_):
     price = _fetch_btc_price()
     if price is None:
         return "₿ —", "₿ —", no_update, no_update, no_update, no_update
-    pct = _find_lot_percentile(today_t(_app_ctx.M.genesis), price, _app_ctx.M.qr_fits)
+    pct = _app_ctx.DEFAULT_MODEL.find_percentile(today_t(_app_ctx.M.genesis), price)
     pct_str = f"Q{pct*100:.1f}%" if pct is not None else "—"
     pct_val = round(pct * 100, 1) if pct is not None else no_update
     # Snap to nearest 10% for cache-aligned dropdowns (hm-mc, dca-mc)
@@ -2329,27 +2346,27 @@ _TAB_CONTROLS = {
     "bubble":      {"bub-qs","bub-xscale","bub-yscale","bub-xrange","bub-yrange",
                     "bub-toggles","bub-bubble-toggles","bub-n-future","bub-ptsize",
                     "bub-ptalpha","bub-stack","bub-show-stack","bub-use-lots","bub-auto-y",
-                    "bub-legend-pos"},
+                    "bub-legend-pos","bub-model-show"},
     "heatmap":     {"hm-entry-yr","hm-entry-q","hm-exit-range","hm-exit-qs","hm-mode",
                     "hm-b1","hm-b2","hm-c-lo","hm-c-mid1","hm-c-mid2","hm-c-hi",
                     "hm-grad","hm-vfmt","hm-cell-fs","hm-toggles","hm-stack","hm-use-lots",
-                    "hm-model-show"},
+                    "hm-model-show","hm-mc-model-src"},
     "dca":         {"dca-stack","dca-use-lots","dca-amount","dca-freq","dca-freq-unlock",
                     "dca-infl","dca-yr-range",
                     "dca-disp","dca-toggles","dca-qs",
                     "dca-sc-enable","dca-sc-loan","dca-sc-rate","dca-sc-term",
                     "dca-sc-type","dca-sc-repeats",
                     "dca-sc-entry-mode","dca-sc-custom-price","dca-sc-tax",
-                    "dca-sc-rollover","dca-legend-pos","dca-model-show"},
+                    "dca-sc-rollover","dca-legend-pos","dca-model-show","dca-mc-model-src"},
     "retire":      {"ret-stack","ret-use-lots","ret-wd","ret-freq","ret-freq-unlock",
                     "ret-yr-range",
                     "ret-infl","ret-disp","ret-toggles","ret-legend-pos","ret-qs",
-                    "ret-model-show"},
+                    "ret-model-show","ret-mc-model-src"},
     "supercharge": {"sc-stack","sc-use-lots","sc-start-yr","sc-d0","sc-d1","sc-d2",
                     "sc-d3","sc-d4","sc-freq","sc-freq-unlock","sc-infl","sc-qs",
                     "sc-mode","sc-wd",
                     "sc-end-yr","sc-target-yr","sc-disp","sc-toggles","sc-legend-pos",
-                    "sc-chart-layout","sc-display-q","sc-model-show"},
+                    "sc-chart-layout","sc-display-q","sc-model-show","sc-mc-model-src"},
     "stack":       set(),
     "faq":         set(),
 }

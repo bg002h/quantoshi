@@ -107,6 +107,13 @@ _SNAPSHOT_CONTROLS = [
     ("ret-model-show",    "value"),   # QR/MC display toggle (Retire)
     ("sc-model-show",     "value"),   # QR/MC display toggle (SC)
     ("hm-model-show",     "value"),   # QR/MC display toggle (Heatmap)
+    # ── MC model source (indices 93–96) ──
+    ("dca-mc-model-src",  "value"),   # MC model source (DCA)
+    ("ret-mc-model-src",  "value"),   # MC model source (Retire)
+    ("sc-mc-model-src",   "value"),   # MC model source (SC)
+    ("hm-mc-model-src",   "value"),   # MC model source (Heatmap)
+    # ── Bubble overlay models (index 97) ──
+    ("bub-model-show",    "value"),   # PL/S2F overlay toggle (Bubble)
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)
@@ -148,10 +155,11 @@ _CHECKLIST_OPTIONS = {
     "sc-toggles":         ["annotate", "log_y", "show_legend", "minor_grid", "chart_zoom"],
     "sc-chart-layout":    ["shade"],
     "bub-auto-y":         ["yes"],
-    "dca-model-show":     ["qr", "mc"],
-    "ret-model-show":     ["qr", "mc"],
-    "sc-model-show":      ["qr", "mc"],
-    "hm-model-show":      ["qr", "mc"],
+    "dca-model-show":     ["qr", "mc", "pl", "s2f"],
+    "ret-model-show":     ["qr", "mc", "pl", "s2f"],
+    "sc-model-show":      ["qr", "mc", "pl", "s2f"],
+    "hm-model-show":      ["qr", "mc", "pl", "s2f"],
+    "bub-model-show":     ["pl", "s2f"],
 }
 
 

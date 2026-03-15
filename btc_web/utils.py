@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 import _app_ctx
 
-from btc_core import _find_lot_percentile, today_t
+from btc_core import today_t
 from figures import (build_bubble_figure, build_heatmap_figure,
                      build_mc_heatmap_figure,
                      build_dca_figure, build_retire_figure,
@@ -168,7 +168,7 @@ def _startup_heatmap_defaults():
     """Fetch live BTC price at startup; return entry percentile (0–100 scale)."""
     price = _fetch_btc_price()
     if price is not None:
-        pct = _find_lot_percentile(today_t(_app_ctx.M.genesis), price, _app_ctx.M.qr_fits)
+        pct = _app_ctx.DEFAULT_MODEL.find_percentile(today_t(_app_ctx.M.genesis), price)
         if pct is not None:
             return round(pct * 100, 1)   # e.g. 7.5
     return 50.0   # fallback

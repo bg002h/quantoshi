@@ -53,6 +53,8 @@ def _compute_sc_loan(principal, amount, r, term_periods, loan_type):
 
 # ── Dynamic state (populated by app.py at startup) ──────────────────────────
 M = None                   # ModelData instance
+PRICE_MODELS = {}          # {"bub": BubbleModel, "pl": PowerLawModel, ...}
+DEFAULT_MODEL = None       # set to PRICE_MODELS["bub"] by app.py
 app = None                 # dash.Dash instance
 server = None              # Flask server (= app.server)
 _HAS_MARKOV = False

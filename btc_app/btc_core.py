@@ -12,7 +12,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy.stats import linregress
+from scipy.stats import linregress, norm
 from statsmodels.regression.quantile_regression import QuantReg
 
 # ── constants ─────────────────────────────────────────────────────────────────
@@ -264,3 +264,202 @@ def load_model_data(explicit_path=None):
             "model_data.pkl not found. Run SP.ipynb export cell first, "
             "or pass an explicit path.")
     return ModelData(path)
+
+
+# ── PriceModel protocol + implementations ────────────────────────────────────
+
+from typing import Protocol, runtime_checkable
+
+
+@runtime_checkable
+class PriceModel(Protocol):
+    """Protocol all price models must satisfy.
+
+    Implement this to add a new model — then register in app.py and the UI
+    auto-discovers it via PRICE_MODELS iteration.
+    """
+    name: str              # human-readable name ("Bubble Model", "Power Law")
+    short_name: str        # registry key ("bub", "pl", "s2f")
+    quantized: bool        # True → has fits dict → MC-compatible
+    quantiles: list        # sorted list of available quantiles
+    colors: dict           # {q: "#hex"} for trace coloring
+    fits: dict | None      # {q: {"intercept","slope"}} or None
+    dash_style: str        # Plotly dash pattern ("solid", "dot", "longdash")
+
+    def price_at(self, q, t): ...
+    def interp_price(self, q, t): ...
+    def find_percentile(self, t, price): ...
+
+
+class _FitsBasedModel:
+    """Base for models whose quantile bands are log-linear in log10(t).
+
+    Subclasses must set self.fits, self.quantiles, and self.colors.
+    """
+    quantized = True
+
+    def price_at(self, q, t):
+        """Price at quantile q, time t (years since genesis)."""
+        f = self.fits[q]
+        return 10.0 ** (f["intercept"] + f["slope"] * np.log10(np.asarray(t, float)))
+
+    def interp_price(self, q, t):
+        """Log-space interpolated price for arbitrary quantile (e.g. Q7.5%)."""
+        if q in self.fits:
+            return float(self.price_at(q, t))
+        sorted_qs = self.quantiles
+        lo = max((qq for qq in sorted_qs if qq <= q), default=sorted_qs[0])
+        hi = min((qq for qq in sorted_qs if qq >= q), default=sorted_qs[-1])
+        if lo == hi:
+            return float(self.price_at(lo, t))
+        frac = (q - lo) / (hi - lo)
+        p_lo = np.log10(float(self.price_at(lo, t)))
+        p_hi = np.log10(float(self.price_at(hi, t)))
+        return 10.0 ** (p_lo + frac * (p_hi - p_lo))
+
+    def find_percentile(self, t, price):
+        """Interpolate the QR percentile (0–1) for a given time and price."""
+        sorted_qs = self.quantiles
+        if not sorted_qs:
+            return 0.5
+        t_safe = max(float(t), 0.5)
+        log_p = np.log10(max(float(price), 1e-10))
+        log_ps = [np.log10(max(float(self.price_at(q, t_safe)), 1e-10))
+                  for q in sorted_qs]
+        if log_p <= log_ps[0]:
+            return sorted_qs[0]
+        if log_p >= log_ps[-1]:
+            return sorted_qs[-1]
+        for i in range(len(sorted_qs) - 1):
+            if log_ps[i] <= log_p <= log_ps[i + 1]:
+                frac = (log_p - log_ps[i]) / (log_ps[i + 1] - log_ps[i] + 1e-30)
+                return sorted_qs[i] + frac * (sorted_qs[i + 1] - sorted_qs[i])
+        return sorted_qs[-1]
+
+
+class BubbleModel(_FitsBasedModel):
+    """Wraps existing QR bubble model fits."""
+    name = "Bubble Model"
+    short_name = "bub"
+    dash_style = "solid"
+
+    def __init__(self, md):
+        self.fits = md.qr_fits
+        self.colors = dict(md.qr_colors)
+        self.quantiles = sorted(md.qr_fits.keys())
+
+
+class PowerLawModel(_FitsBasedModel):
+    """OLS power law with Gaussian quantile bands.
+
+    All bands share the same slope (OLS slope) but have different intercepts
+    shifted by z_q * sigma where sigma is the OLS residual standard deviation.
+    This means the bands are parallel lines in log-log space.
+    """
+    name = "Power Law"
+    short_name = "pl"
+    dash_style = "dot"
+
+    def __init__(self, ols_intercept, ols_slope, price_years, price_prices,
+                 genesis, quantiles):
+        # Compute OLS residual sigma
+        mask = price_years >= 1.0  # skip very early data
+        ly = np.log10(price_years[mask])
+        lp = np.log10(price_prices[mask])
+        predicted = ols_intercept + ols_slope * ly
+        residuals = lp - predicted
+        sigma = float(np.std(residuals))
+
+        # Build fits: each quantile is the OLS line shifted by z_q * sigma
+        self.fits = {}
+        for q in quantiles:
+            z = norm.ppf(q)
+            self.fits[q] = {
+                "intercept": ols_intercept + z * sigma,
+                "slope": ols_slope,
+            }
+        self.quantiles = sorted(self.fits.keys())
+
+        # Cool blue/purple palette — visually distinct from Bubble's warm colors
+        self._build_colors()
+
+    def _build_colors(self):
+        self.colors = {}
+        n = len(self.quantiles)
+        for i, q in enumerate(self.quantiles):
+            frac = i / max(n - 1, 1)
+            r = int(40 + 140 * frac)    # 40 → 180
+            g = int(60 + 40 * frac)     # 60 → 100
+            b = int(200 - 30 * frac)    # 200 → 170
+            self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
+
+
+class S2FModel:
+    """Stock-to-Flow model — single price trajectory (not quantized).
+
+    Fits log10(price) = a + b * log10(S2F) from historical data, where
+    S2F = stock / annual_flow based on the Bitcoin halving schedule.
+    """
+    name = "Stock-to-Flow"
+    short_name = "s2f"
+    dash_style = "longdash"
+    quantized = False
+    fits = None
+    quantiles = []
+    colors = {}
+
+    _HALVING_BLOCKS = 210_000
+    _BLOCKS_PER_DAY = 144
+    _INITIAL_REWARD = 50.0
+
+    def __init__(self, price_years, price_prices, genesis):
+        self.genesis = genesis
+        # Fit log10(price) = a + b * log10(S2F) from historical data
+        mask = price_years >= 1.0
+        yrs = price_years[mask]
+        prices = price_prices[mask]
+
+        s2f_vals = np.array([self._s2f_at_t(t) for t in yrs])
+        valid = s2f_vals > 0
+        log_s2f = np.log10(s2f_vals[valid])
+        log_p = np.log10(prices[valid])
+
+        slope, intercept, *_ = linregress(log_s2f, log_p)
+        self._s2f_intercept = intercept
+        self._s2f_slope = slope
+
+    def _s2f_at_t(self, t):
+        """Compute stock-to-flow ratio at years-since-genesis t."""
+        days = t * 365.25
+        total_blocks = days * self._BLOCKS_PER_DAY
+        n_halvings = int(total_blocks // self._HALVING_BLOCKS)
+        reward = self._INITIAL_REWARD / (2 ** n_halvings)
+
+        # Cumulative stock
+        stock = 0.0
+        for h in range(n_halvings):
+            stock += self._HALVING_BLOCKS * self._INITIAL_REWARD / (2 ** h)
+        remaining = total_blocks - n_halvings * self._HALVING_BLOCKS
+        stock += remaining * reward
+
+        # Annual flow
+        annual_flow = reward * self._BLOCKS_PER_DAY * 365.25
+        if annual_flow <= 0:
+            return 1e10  # effectively infinite S2F after all BTC mined
+        return stock / annual_flow
+
+    def price_at(self, q, t):
+        """S2F model price (ignores quantile — single trajectory)."""
+        t_arr = np.asarray(t, float)
+        scalar = t_arr.ndim == 0
+        t_flat = t_arr.ravel()
+        s2f_vals = np.array([self._s2f_at_t(ti) for ti in t_flat])
+        log_p = self._s2f_intercept + self._s2f_slope * np.log10(s2f_vals)
+        result = 10.0 ** log_p
+        return float(result[0]) if scalar else result.reshape(t_arr.shape)
+
+    def interp_price(self, q, t):
+        return float(self.price_at(q, t))
+
+    def find_percentile(self, t, price):
+        return 0.5  # meaningless for non-quantized model

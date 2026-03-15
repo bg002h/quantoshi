@@ -51,6 +51,20 @@ _PCTILE_MAX = 0.95              # max entry percentile
 _ANNOT_AX = 28                  # annotation arrow x-offset (pixels)
 _CACHE_Q_TOLERANCE = 0.005      # max quantile distance for cache bin alignment
 
+def _resolve_fits(p):
+    """Resolve the QR fits dict for MC simulation from mc_model_src param.
+
+    Returns the fits dict from the selected model (or DEFAULT_MODEL if
+    the source model is not quantized or not found).
+    """
+    src = p.get("mc_model_src", "bub")
+    if src and src != "bub":
+        mdl = _app_ctx.PRICE_MODELS.get(src)
+        if mdl and getattr(mdl, "quantized", False) and mdl.fits:
+            return mdl.fits
+    return _app_ctx.DEFAULT_MODEL.fits
+
+
 def _mc_setup_vars(p):
     """Extract common MC simulation variables from params dict.
 
@@ -221,9 +235,10 @@ def save_trans_cache_to_disk() -> None:
 _load_trans_cache_from_disk()
 
 
-def _get_transition_matrix(m, n_bins, step_days, mc_window):
+def _get_transition_matrix(m, n_bins, step_days, mc_window, fits=None):
     """Get transition matrix from cache or build on the fly."""
     global _TRANS_CACHE_DIRTY
+    fits = fits or _app_ctx.DEFAULT_MODEL.fits
     window_start_yr = None
     window_end_yr   = None
     ws_cal = we_cal = None
@@ -235,13 +250,14 @@ def _get_transition_matrix(m, n_bins, step_days, mc_window):
         window_start_yr = yr_to_t(ws_cal, m.genesis)
         window_end_yr   = yr_to_t(we_cal, m.genesis)
 
-    cache_key = (n_bins, step_days, ws_cal, we_cal)
+    fits_id = id(fits)
+    cache_key = (n_bins, step_days, ws_cal, we_cal, fits_id)
     cached = _TRANS_MATRIX_CACHE.get(cache_key)
     if cached is not None:
         return cached[0], cached[1], n_bins
 
     trans, bin_edges, _ = build_transition_matrix(
-        m.price_prices, m.price_years, m.qr_fits,
+        m.price_prices, m.price_years, fits,
         n_bins=n_bins,
         window_start_yr=window_start_yr,
         window_end_yr=window_end_yr,
@@ -278,6 +294,7 @@ def _mc_path_key(p, tab):
         "mc_start_yr": int(p.get("mc_start_yr", MC_DEFAULT_START_YR)),
         "mc_entry_q": float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)),
         "mc_blocked_bins": sorted(blocked) if blocked else [],
+        "mc_model_src": p.get("mc_model_src", "bub"),
     }
 
 
@@ -532,9 +549,9 @@ def _build_mc_timeline(p, m, mc_years, mc_dt, clamp_start=False):
     return mc_start_yr, mc_t_start, mc_t_end, mc_ts
 
 
-def _prepare_sim(m, p, n_bins, step_days, mc_window, blocked, snap_grid=0):
+def _prepare_sim(m, p, n_bins, step_days, mc_window, blocked, snap_grid=0, fits=None):
     """Build transition matrix and compute start percentile. Returns (trans, bin_edges, n_bins, start_pctile)."""
-    trans, bin_edges, n_bins = _get_transition_matrix(m, n_bins, step_days, mc_window)
+    trans, bin_edges, n_bins = _get_transition_matrix(m, n_bins, step_days, mc_window, fits=fits)
     if blocked:
         trans = _apply_bin_mask(trans, blocked)
     start_pctile = float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)) / 100.0
@@ -547,8 +564,8 @@ def _prepare_sim(m, p, n_bins, step_days, mc_window, blocked, snap_grid=0):
 
 
 def _try_cached(p, mc_years, blocked):
-    """Check pre-computed path cache (skip when bins blocked). Returns paths or None."""
-    if not blocked:
+    """Check pre-computed path cache (skip when bins blocked or non-default model). Returns paths or None."""
+    if not blocked and p.get("mc_model_src", "bub") == "bub":
         return try_precomputed_paths(p, mc_years)
     return None
 
@@ -570,11 +587,12 @@ def _run_full_simulation(m, p, n_bins, step_days, mc_window, mc_ts,
                          n_sims, mc_t_start, mc_dt, snap_grid=0):
     """Run full MC simulation: build transition matrix + generate price paths."""
     blocked = p.get("mc_blocked_bins", [])
+    fits = _resolve_fits(p)
     trans, bin_edges, n_bins, start_pctile = _prepare_sim(
-        m, p, n_bins, step_days, mc_window, blocked, snap_grid=snap_grid)
+        m, p, n_bins, step_days, mc_window, blocked, snap_grid=snap_grid, fits=fits)
     price_paths, _ = monte_carlo_prices(
         trans, bin_edges, start_pctile, len(mc_ts), n_sims,
-        m.qr_fits, m.genesis, mc_t_start, mc_dt,
+        fits, m.genesis, mc_t_start, mc_dt,
     )
     return price_paths
 

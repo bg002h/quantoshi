@@ -496,7 +496,7 @@ class TestIsCachedYear:
 from mc_overlay import (_mc_path_key, _mc_overlay_key, _mc_fan_to_lists,
                         _mc_fan_from_lists, _mc_paths_to_lists, _mc_paths_from_lists,
                         _MC_FAN_PCTS)
-from figures import _apply_watermark, _interp_qr_price, _FREQ_STEP_DAYS
+from figures import _apply_watermark, _FREQ_STEP_DAYS
 import plotly.graph_objects as go
 
 
@@ -744,19 +744,23 @@ class TestApplyWatermark:
 
 
 class TestInterpQrPrice:
+    """Tests interp_price via BubbleModel (migrated from _interp_qr_price)."""
+    def setup_method(self):
+        self.model = BubbleModel(M)
+
     def test_known_quantile(self):
         t = yr_to_t(2025, M.genesis)
-        if 0.5 in M.qr_fits:
-            price = _interp_qr_price(0.5, t, M.qr_fits)
-            expected = qr_price(0.5, t, M.qr_fits)
+        if 0.5 in self.model.fits:
+            price = self.model.interp_price(0.5, t)
+            expected = float(self.model.price_at(0.5, t))
             assert abs(price - expected) / expected < 0.01
 
     def test_interpolated_quantile(self):
         t = yr_to_t(2025, M.genesis)
-        p_interp = _interp_qr_price(0.075, t, M.qr_fits)
-        if 0.05 in M.qr_fits and 0.1 in M.qr_fits:
-            p_05 = qr_price(0.05, t, M.qr_fits)
-            p_10 = qr_price(0.10, t, M.qr_fits)
+        p_interp = self.model.interp_price(0.075, t)
+        if 0.05 in self.model.fits and 0.1 in self.model.fits:
+            p_05 = float(self.model.price_at(0.05, t))
+            p_10 = float(self.model.price_at(0.10, t))
             assert p_05 <= p_interp <= p_10
 
 
@@ -2446,7 +2450,7 @@ class TestUpdateBubbleCallback:
                 bubble_toggles=[], xscale="log", yscale="log",
                 xrange=[2012, 2030], yrange=[0, 7],
                 n_future=3, ptsize=3, ptalpha=0.6,
-                stack=0, show_stack=[], use_lots=[], legend_pos="outside", lots_data=[],
+                stack=0, show_stack=[], use_lots=[], legend_pos="outside", model_show=[], lots_data=[],
             )
         assert isinstance(fig, go.Figure)
 
@@ -2457,7 +2461,7 @@ class TestUpdateBubbleCallback:
                 xscale="linear", yscale="log",
                 xrange=[2015, 2028], yrange=[1, 6],
                 n_future=0, ptsize=2, ptalpha=0.3,
-                stack=0, show_stack=[], use_lots=[], legend_pos="outside", lots_data=[],
+                stack=0, show_stack=[], use_lots=[], legend_pos="outside", model_show=[], lots_data=[],
             )
         assert isinstance(fig, go.Figure)
 
@@ -2468,7 +2472,7 @@ class TestUpdateBubbleCallback:
                 bubble_toggles=["show_comp"], xscale="log", yscale="log",
                 xrange=[2012, 2035], yrange=[0, 7],
                 n_future=2, ptsize=4, ptalpha=0.5,
-                stack=1.5, show_stack=["yes"], use_lots=[], legend_pos="outside", lots_data=[],
+                stack=1.5, show_stack=["yes"], use_lots=[], legend_pos="outside", model_show=[], lots_data=[],
             )
         assert isinstance(fig, go.Figure)
 
@@ -2493,7 +2497,7 @@ class TestUpdateHeatmapCallback:
                 mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                 mc_freq="Monthly", mc_window=[2010, yr],
                 mc_start_yr=yr, mc_entry_q=50,
-                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"], mc_model_src="bub",
                 live_price=0, mc_cached=None, pay_token=None, mc_auth=None,
             )
         # Returns 9 outputs: qr_fig, mc_fig, store, status, panel_style, indicator_style, rendered_key, modal, tab
@@ -2538,7 +2542,7 @@ class TestUpdateDcaCallback:
                 mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                 mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
-                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"], mc_model_src="bub",
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         # 7 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked
@@ -2579,7 +2583,7 @@ class TestUpdateDcaCallback:
                 mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                 mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
-                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"], mc_model_src="bub",
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         assert isinstance(result[0], go.Figure)
@@ -2599,7 +2603,7 @@ class TestUpdateDcaCallback:
                 mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                 mc_window=None,
                 mc_start_yr=2026, mc_entry_q=50,
-                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"], mc_model_src="bub",
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         assert isinstance(result[0], go.Figure)
@@ -2621,7 +2625,7 @@ class TestUpdateRetireCallback:
                 mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                 mc_window=None,
                 mc_start_yr=2031, mc_entry_q=50,
-                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"], mc_model_src="bub",
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         # 7 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked
@@ -2647,7 +2651,7 @@ class TestUpdateSuperchargeCallback:
                 mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                 mc_window=None,
                 mc_start_yr=2031, mc_entry_q=50,
-                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"], mc_model_src="bub",
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         assert len(result) == 7
@@ -2666,7 +2670,7 @@ class TestUpdateSuperchargeCallback:
                 mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
                 mc_window=None,
                 mc_start_yr=2031, mc_entry_q=50,
-                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"], mc_model_src="bub",
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
             )
         assert isinstance(result[0], go.Figure)
@@ -3563,6 +3567,490 @@ class TestMcFinalizeRenderedKey:
         )
         rendered_key = result[3]
         assert rendered_key is None
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section: PriceModel protocol + model classes
+# ═══════════════════════════════════════════════════════════════════════════════
+
+from btc_core import (PriceModel, _FitsBasedModel, BubbleModel, PowerLawModel,
+                      S2FModel)
+
+
+class TestPriceModelProtocol:
+    def test_bubble_implements_protocol(self):
+        bub = BubbleModel(M)
+        assert isinstance(bub, PriceModel)
+
+    def test_powerlaw_implements_protocol(self):
+        pl = PowerLawModel(M.ols_intercept, M.ols_slope, M.price_years,
+                           M.price_prices, M.genesis, M.QR_QUANTILES)
+        assert isinstance(pl, PriceModel)
+
+    def test_s2f_implements_protocol(self):
+        s2f = S2FModel(M.price_years, M.price_prices, M.genesis)
+        assert isinstance(s2f, PriceModel)
+
+
+class TestBubbleModel:
+    def setup_method(self):
+        self.bub = BubbleModel(M)
+
+    def test_fits_matches_model_data(self):
+        assert self.bub.fits is M.qr_fits
+
+    def test_colors_populated(self):
+        assert len(self.bub.colors) > 0
+        # Not all quantiles necessarily have colors (e.g. 0.86 may be in fits
+        # but not in qr_colors), but colors should be a non-empty subset
+        assert set(self.bub.colors.keys()).issubset(set(self.bub.quantiles))
+
+    def test_quantized_true(self):
+        assert self.bub.quantized is True
+
+    def test_quantiles_sorted(self):
+        assert self.bub.quantiles == sorted(self.bub.quantiles)
+
+    def test_price_at_matches_qr_price(self):
+        q = self.bub.quantiles[len(self.bub.quantiles) // 2]
+        t = 10.0
+        expected = qr_price(q, t, M.qr_fits)
+        result = self.bub.price_at(q, t)
+        np.testing.assert_allclose(result, expected)
+
+    def test_price_at_array(self):
+        q = self.bub.quantiles[0]
+        ts = np.array([5.0, 10.0, 15.0])
+        result = self.bub.price_at(q, ts)
+        assert result.shape == (3,)
+        assert np.all(result > 0)
+
+    def test_short_name(self):
+        assert self.bub.short_name == "bub"
+
+    def test_name(self):
+        assert self.bub.name == "Bubble Model"
+
+
+class TestPowerLawModel:
+    def setup_method(self):
+        self.pl = PowerLawModel(M.ols_intercept, M.ols_slope, M.price_years,
+                                M.price_prices, M.genesis, M.QR_QUANTILES)
+
+    def test_fits_has_quantile_keys_from_qr_quantiles(self):
+        # PL is built from M.QR_QUANTILES, which may differ from M.qr_fits keys
+        assert set(self.pl.fits.keys()) == set(M.QR_QUANTILES)
+
+    def test_fits_values_have_intercept_and_slope(self):
+        for q, f in self.pl.fits.items():
+            assert "intercept" in f
+            assert "slope" in f
+
+    def test_all_slopes_equal_ols(self):
+        for q, f in self.pl.fits.items():
+            np.testing.assert_allclose(f["slope"], M.ols_slope)
+
+    def test_median_intercept_matches_ols(self):
+        # Q50% should have z=0, so intercept ≈ ols_intercept
+        q50 = min(self.pl.quantiles, key=lambda q: abs(q - 0.5))
+        np.testing.assert_allclose(
+            self.pl.fits[q50]["intercept"], M.ols_intercept, atol=0.01)
+
+    def test_price_at_returns_positive(self):
+        result = self.pl.price_at(0.5, 10.0)
+        assert float(result) > 0
+
+    def test_quantized_true(self):
+        assert self.pl.quantized is True
+
+    def test_colors_populated(self):
+        assert len(self.pl.colors) == len(self.pl.quantiles)
+
+    def test_short_name(self):
+        assert self.pl.short_name == "pl"
+
+
+class TestS2FModel:
+    def setup_method(self):
+        self.s2f = S2FModel(M.price_years, M.price_prices, M.genesis)
+
+    def test_quantized_false(self):
+        assert self.s2f.quantized is False
+
+    def test_fits_is_none(self):
+        assert self.s2f.fits is None
+
+    def test_quantiles_empty(self):
+        assert self.s2f.quantiles == []
+
+    def test_colors_empty(self):
+        assert self.s2f.colors == {}
+
+    def test_price_at_scalar(self):
+        result = self.s2f.price_at(0.5, 10.0)
+        assert isinstance(result, float)
+        assert result > 0
+
+    def test_price_at_array(self):
+        ts = np.array([5.0, 10.0, 15.0])
+        result = self.s2f.price_at(0.5, ts)
+        assert result.shape == (3,)
+        assert np.all(result > 0)
+
+    def test_find_percentile_returns_half(self):
+        assert self.s2f.find_percentile(10.0, 50000) == 0.5
+
+    def test_short_name(self):
+        assert self.s2f.short_name == "s2f"
+
+
+class TestFitsBasedModelMethods:
+    def setup_method(self):
+        self.bub = BubbleModel(M)
+
+    def test_interp_price_exact_quantile(self):
+        q = self.bub.quantiles[5]
+        t = 10.0
+        expected = float(self.bub.price_at(q, t))
+        result = self.bub.interp_price(q, t)
+        np.testing.assert_allclose(result, expected)
+
+    def test_interp_price_between_quantiles(self):
+        q_lo = self.bub.quantiles[3]
+        q_hi = self.bub.quantiles[4]
+        q_mid = (q_lo + q_hi) / 2
+        t = 10.0
+        p_lo = self.bub.interp_price(q_lo, t)
+        p_hi = self.bub.interp_price(q_hi, t)
+        p_mid = self.bub.interp_price(q_mid, t)
+        assert p_lo <= p_mid <= p_hi
+
+    def test_find_percentile_roundtrip(self):
+        q = self.bub.quantiles[5]
+        t = 10.0
+        price = float(self.bub.price_at(q, t))
+        recovered_q = self.bub.find_percentile(t, price)
+        np.testing.assert_allclose(recovered_q, q, atol=0.01)
+
+    def test_find_percentile_below_min(self):
+        t = 10.0
+        price = 0.001  # well below any model price
+        result = self.bub.find_percentile(t, price)
+        assert result == self.bub.quantiles[0]
+
+    def test_find_percentile_above_max(self):
+        t = 10.0
+        price = 1e20  # well above any model price
+        result = self.bub.find_percentile(t, price)
+        assert result == self.bub.quantiles[-1]
+
+
+class TestPriceModelRegistry:
+    def test_registry_has_three_entries(self):
+        import _app_ctx
+        assert len(_app_ctx.PRICE_MODELS) == 3
+
+    def test_registry_keys(self):
+        import _app_ctx
+        assert set(_app_ctx.PRICE_MODELS.keys()) == {"bub", "pl", "s2f"}
+
+    def test_default_model_is_bubble(self):
+        import _app_ctx
+        assert _app_ctx.DEFAULT_MODEL is _app_ctx.PRICE_MODELS["bub"]
+
+    def test_only_bub_and_pl_quantized(self):
+        import _app_ctx
+        quantized = {k for k, v in _app_ctx.PRICE_MODELS.items() if v.quantized}
+        assert quantized == {"bub", "pl"}
+
+    def test_all_models_implement_protocol(self):
+        import _app_ctx
+        for mdl in _app_ctx.PRICE_MODELS.values():
+            assert isinstance(mdl, PriceModel)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section: Multi-model overlay (Phase 3)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestSnapshotModelShow:
+    """Snapshot roundtrip with 'pl' and 's2f' in model-show checklists."""
+
+    def test_roundtrip_pl_in_model_show(self):
+        from snapshot import _encode_snapshot, _decode_snapshot, _SNAPSHOT_CONTROLS
+        state = {}
+        for cid, prop in _SNAPSHOT_CONTROLS:
+            state[f"{cid}:{prop}"] = None
+        state["dca-model-show:value"] = ["qr", "pl"]
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert "pl" in decoded["dca-model-show:value"]
+        assert "qr" in decoded["dca-model-show:value"]
+
+    def test_roundtrip_s2f_in_model_show(self):
+        from snapshot import _encode_snapshot, _decode_snapshot, _SNAPSHOT_CONTROLS
+        state = {}
+        for cid, prop in _SNAPSHOT_CONTROLS:
+            state[f"{cid}:{prop}"] = None
+        state["sc-model-show:value"] = ["qr", "mc", "s2f"]
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert "s2f" in decoded["sc-model-show:value"]
+
+    def test_old_bitmask_without_pl_decodes_without_pl(self):
+        """Old snapshots with only 2-bit model-show (qr+mc) should not have pl/s2f."""
+        from snapshot import _encode_snapshot, _decode_snapshot, _SNAPSHOT_CONTROLS
+        state = {}
+        for cid, prop in _SNAPSHOT_CONTROLS:
+            state[f"{cid}:{prop}"] = None
+        # Simulate old link: only qr and mc selected (bits 0 and 1)
+        state["ret-model-show:value"] = ["qr", "mc"]
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert "pl" not in decoded["ret-model-show:value"]
+        assert "s2f" not in decoded["ret-model-show:value"]
+
+
+class TestMultiModelBubbleFigure:
+    """Bubble figure with active_models=["pl"]."""
+
+    def test_pl_overlay_adds_traces(self):
+        from datetime import date
+        yr_now = date.today().year
+        p_base = dict(
+            selected_qs=[0.10, 0.50],
+            shade=False, show_ols=False, show_data=False, show_today=False,
+            show_legend=False, minor_grid=False,
+            show_comp=False, show_sup=False,
+            xscale="log", yscale="log",
+            xmin=2012, xmax=yr_now + 4,
+            ymin=0.01, ymax=1e7,
+            n_future=0, pt_size=3, pt_alpha=0.3,
+            stack=0, show_stack=False, use_lots=False, lots=[],
+            comp_color="#FFD700", comp_lw=2.0,
+            sup_color="#888888", sup_lw=1.5,
+        )
+        from figures import build_bubble_figure
+        fig_no_pl = build_bubble_figure(M, dict(p_base, active_models=[]))
+        fig_with_pl = build_bubble_figure(M, dict(p_base, active_models=["pl"]))
+        assert len(fig_with_pl.data) > len(fig_no_pl.data)
+
+    def test_pl_traces_have_dot_dash(self):
+        from datetime import date
+        yr_now = date.today().year
+        from figures import build_bubble_figure
+        fig = build_bubble_figure(M, dict(
+            selected_qs=[0.50], shade=False, show_ols=False, show_data=False,
+            show_today=False, show_legend=False, minor_grid=False,
+            show_comp=False, show_sup=False,
+            xscale="log", yscale="log",
+            xmin=2012, xmax=yr_now + 4,
+            ymin=0.01, ymax=1e7, n_future=0, pt_size=3, pt_alpha=0.3,
+            stack=0, show_stack=False, use_lots=False, lots=[],
+            comp_color="#FFD700", comp_lw=2.0, sup_color="#888888", sup_lw=1.5,
+            active_models=["pl"],
+        ))
+        pl_traces = [t for t in fig.data if t.name and "Power Law" in t.name]
+        assert len(pl_traces) > 0
+        assert pl_traces[0].line.dash == "dot"
+
+
+class TestMultiModelDcaFigure:
+    """DCA figure with active_models=["pl"]."""
+
+    def test_pl_overlay_doesnt_crash(self):
+        from datetime import date
+        yr_now = date.today().year
+        from figures import build_dca_figure
+        fig, _ = build_dca_figure(M, dict(
+            start_stack=0, use_lots=False,
+            amount=100.0, freq="Monthly",
+            start_yr=yr_now, end_yr=yr_now + 5,
+            disp_mode="btc", log_y=False, show_today=False,
+            show_legend=False, minor_grid=False,
+            selected_qs=[0.50], lots=[],
+            sc_enabled=False, sc_loan_amount=0,
+            sc_rate=13.0, sc_loan_type="interest_only",
+            sc_term_months=48.0, sc_repeats=0, sc_rollover=False,
+            sc_entry_mode="live", sc_custom_price=80000,
+            sc_tax_rate=0.33, sc_live_price=None,
+            active_models=["pl"],
+        ))
+        pl_traces = [t for t in fig.data if t.name and "Power Law" in t.name]
+        assert len(pl_traces) > 0
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestMcModelSrc:
+    """Phase 4: MC model-source dropdown tests."""
+
+    def test_mc_path_key_includes_model_src(self):
+        from mc_overlay import _mc_path_key
+        key = _mc_path_key({"mc_model_src": "pl"}, "dca")
+        assert key["mc_model_src"] == "pl"
+
+    def test_mc_path_key_defaults_to_bub(self):
+        from mc_overlay import _mc_path_key
+        key = _mc_path_key({}, "dca")
+        assert key["mc_model_src"] == "bub"
+
+    def test_resolve_fits_bub(self):
+        from mc_overlay import _resolve_fits
+        fits = _resolve_fits({"mc_model_src": "bub"})
+        assert fits is _app_ctx.DEFAULT_MODEL.fits
+
+    def test_resolve_fits_default(self):
+        from mc_overlay import _resolve_fits
+        fits = _resolve_fits({})
+        assert fits is _app_ctx.DEFAULT_MODEL.fits
+
+    def test_resolve_fits_pl(self):
+        from mc_overlay import _resolve_fits
+        fits = _resolve_fits({"mc_model_src": "pl"})
+        pl_model = _app_ctx.PRICE_MODELS["pl"]
+        assert fits is pl_model.fits
+        assert fits is not _app_ctx.DEFAULT_MODEL.fits
+
+    def test_resolve_fits_nonquantized_falls_back(self):
+        from mc_overlay import _resolve_fits
+        fits = _resolve_fits({"mc_model_src": "s2f"})
+        assert fits is _app_ctx.DEFAULT_MODEL.fits
+
+    def test_build_mc_params_includes_model_src(self):
+        from callbacks import _build_mc_params
+        p = _build_mc_params(
+            mc_enable=True, mc_amount=100, mc_infl=0,
+            mc_bins=5, mc_sims=100, mc_years=10,
+            mc_freq="Monthly", mc_window=None,
+            mc_start_yr=2028, mc_entry_q=50,
+            mc_cached=None, mc_live_price=0,
+            mc_model_src="pl",
+        )
+        assert p["mc_model_src"] == "pl"
+
+    def test_build_mc_params_defaults_model_src(self):
+        from callbacks import _build_mc_params
+        p = _build_mc_params(
+            mc_enable=True, mc_amount=100, mc_infl=0,
+            mc_bins=5, mc_sims=100, mc_years=10,
+            mc_freq="Monthly", mc_window=None,
+            mc_start_yr=2028, mc_entry_q=50,
+            mc_cached=None, mc_live_price=0,
+        )
+        assert p["mc_model_src"] == "bub"
+
+    def test_snapshot_roundtrip_with_model_src(self):
+        from snapshot import _encode_snapshot, _decode_snapshot
+        state = {"dca-mc-model-src:value": "pl"}
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert decoded["dca-mc-model-src:value"] == "pl"
+
+    def test_old_snapshot_pads_model_src(self):
+        """Old snapshots without mc-model-src fields decode with None (defaults)."""
+        from snapshot import _encode_snapshot, _decode_snapshot, _SNAPSHOT_CONTROLS
+        # Build state with only old controls (no mc-model-src)
+        state = {"main-tabs:active_tab": "dca"}
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        # mc-model-src fields should not be present (None → skipped)
+        assert "dca-mc-model-src:value" not in decoded
+
+    def test_tab_controls_include_model_src(self):
+        from callbacks import _TAB_CONTROLS
+        assert "hm-mc-model-src" in _TAB_CONTROLS["heatmap"]
+        assert "dca-mc-model-src" in _TAB_CONTROLS["dca"]
+        assert "ret-mc-model-src" in _TAB_CONTROLS["retire"]
+        assert "sc-mc-model-src" in _TAB_CONTROLS["supercharge"]
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestPhase5Polish:
+    """Phase 5: dash styles, S2F overlay, model attributes."""
+
+    def test_dash_styles(self):
+        from btc_core import BubbleModel, PowerLawModel, S2FModel
+        assert BubbleModel.dash_style == "solid"
+        assert PowerLawModel.dash_style == "dot"
+        assert S2FModel.dash_style == "longdash"
+
+    def test_all_models_have_dash_style(self):
+        for key, mdl in _app_ctx.PRICE_MODELS.items():
+            assert hasattr(mdl, "dash_style"), f"{key} missing dash_style"
+            assert mdl.dash_style in ("solid", "dot", "longdash", "dash", "dashdot")
+
+    def test_s2f_bubble_overlay(self):
+        from figures import build_bubble_figure
+        yr_now = pd.Timestamp.today().year
+        fig = build_bubble_figure(M, dict(
+            selected_qs=[0.5], xscale="log", yscale="log",
+            xmin=2012, xmax=yr_now + 4, ymin=0.01, ymax=1e7,
+            shade=False, show_ols=False, show_data=False, show_today=False,
+            show_legend=False, minor_grid=False,
+            show_comp=False, show_sup=False,
+            n_future=0, pt_size=3, pt_alpha=0.3,
+            stack=0, show_stack=False, use_lots=False, lots=[],
+            comp_color="#FFD700", comp_lw=2.0, sup_color="#888888", sup_lw=1.5,
+            active_models=["s2f"],
+        ))
+        s2f_traces = [t for t in fig.data if t.name and "Stock-to-Flow" in t.name]
+        assert len(s2f_traces) == 1
+        assert s2f_traces[0].line.dash == "longdash"
+
+    def test_s2f_dca_overlay(self):
+        from figures import build_dca_figure
+        yr_now = pd.Timestamp.today().year
+        fig, _ = build_dca_figure(M, dict(
+            start_stack=0, use_lots=False,
+            amount=100.0, freq="Monthly",
+            start_yr=yr_now, end_yr=yr_now + 5,
+            disp_mode="btc", log_y=False, show_today=False,
+            show_legend=False, minor_grid=False,
+            selected_qs=[0.50], lots=[],
+            sc_enabled=False, sc_loan_amount=0,
+            sc_rate=13.0, sc_loan_type="interest_only",
+            sc_term_months=48.0, sc_repeats=0, sc_rollover=False,
+            sc_entry_mode="live", sc_custom_price=80000,
+            sc_tax_rate=0.33, sc_live_price=None,
+            active_models=["s2f"],
+        ))
+        s2f_traces = [t for t in fig.data if t.name and "Stock-to-Flow" in t.name]
+        assert len(s2f_traces) == 1
+        assert s2f_traces[0].line.dash == "longdash"
+
+    def test_s2f_retire_overlay(self):
+        from figures import build_retire_figure
+        fig, _ = build_retire_figure(M, dict(
+            start_stack=1.0, use_lots=False,
+            wd_amount=5000, freq="Monthly",
+            start_yr=2031, end_yr=2040, inflation=4.0,
+            disp_mode="btc", log_y=False,
+            annotate=False, show_legend=False, minor_grid=False,
+            legend_pos="outside",
+            selected_qs=[0.5], lots=[],
+            active_models=["s2f"],
+        ))
+        s2f_traces = [t for t in fig.data if t.name and "Stock-to-Flow" in t.name]
+        assert len(s2f_traces) == 1
+
+    def test_pl_uses_dot_dash(self):
+        from figures import build_bubble_figure
+        yr_now = pd.Timestamp.today().year
+        fig = build_bubble_figure(M, dict(
+            selected_qs=[0.5], xscale="log", yscale="log",
+            xmin=2012, xmax=yr_now + 4, ymin=0.01, ymax=1e7,
+            shade=False, show_ols=False, show_data=False, show_today=False,
+            show_legend=False, minor_grid=False,
+            show_comp=False, show_sup=False,
+            n_future=0, pt_size=3, pt_alpha=0.3,
+            stack=0, show_stack=False, use_lots=False, lots=[],
+            comp_color="#FFD700", comp_lw=2.0, sup_color="#888888", sup_lw=1.5,
+            active_models=["pl"],
+        ))
+        pl_traces = [t for t in fig.data if t.name and "Power Law" in t.name]
+        assert len(pl_traces) > 0
+        assert pl_traces[0].line.dash == "dot"
 
 
 if __name__ == "__main__":

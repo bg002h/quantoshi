@@ -26,10 +26,9 @@ import pandas as pd
 import plotly.graph_objects as go
 
 # btc_app/ is added to sys.path by app.py before this import
-import bisect
 from typing import Any
 import _app_ctx
-from btc_core import ModelData, qr_price, yr_to_t, today_t, fmt_price, leo_weighted_entry
+from btc_core import ModelData, yr_to_t, today_t, fmt_price, leo_weighted_entry
 try:
     from markov import build_transition_matrix  # noqa: F401 — presence check
     _HAS_MARKOV = True
@@ -45,20 +44,6 @@ from mc_overlay import (
     ghost_traces_from_params,
 )
 
-
-def _interp_qr_price(q: float, t: float, qr_fits: dict) -> float:
-    """Return QR price for arbitrary quantile q in (0,1), interpolating in log space."""
-    qs = sorted(qr_fits.keys())
-    if q <= qs[0]:
-        return float(qr_price(qs[0], t, qr_fits))
-    if q >= qs[-1]:
-        return float(qr_price(qs[-1], t, qr_fits))
-    idx = bisect.bisect_left(qs, q)
-    q_lo, q_hi = qs[idx - 1], qs[idx]
-    p_lo = float(qr_price(q_lo, t, qr_fits))
-    p_hi = float(qr_price(q_hi, t, qr_fits))
-    frac = (q - q_lo) / (q_hi - q_lo)
-    return float(np.exp(np.log(p_lo) + frac * (np.log(p_hi) - np.log(p_lo))))
 
 # ── shared constants ─────────────────────────────────────────────────────────
 
@@ -109,10 +94,11 @@ def _apply_sans_typography(layout: dict) -> None:
 # ── shared small helpers ──────────────────────────────────────────────────────
 
 
-def _fmt_q_label(q: float) -> str:
-    """Format quantile as 'Q{pct}%' with appropriate precision."""
+def _fmt_q_label(q: float, prefix: str = "BM") -> str:
+    """Format quantile as '{prefix} Q{pct}%' with appropriate precision."""
     pct = q * 100
-    return f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
+    ql = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
+    return f"{prefix} {ql}" if prefix else ql
 
 
 def _error_figure(m, title):
@@ -606,6 +592,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             show_ols, show_data, show_today, pt_size, pt_alpha,
             stack, show_stack, lots (list of lot dicts), use_lots
     """
+    model = _app_ctx.DEFAULT_MODEL
     t_lo = max(yr_to_t(p["xmin"], m.genesis), 0.01)
     t_hi = yr_to_t(p["xmax"], m.genesis)
     y_lo = float(p["ymin"])
@@ -620,9 +607,9 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])])
     if p.get("shade") and len(sel_qs) >= 2:
         for j in range(len(sel_qs) - 1):
-            lo_p = qr_price(sel_qs[j],   t_arr, m.qr_fits) * (stack if stack > 0 else 1)
-            hi_p = qr_price(sel_qs[j+1], t_arr, m.qr_fits) * (stack if stack > 0 else 1)
-            col  = m.qr_colors.get(sel_qs[j], "#888888")
+            lo_p = model.price_at(sel_qs[j], t_arr) * (stack if stack > 0 else 1)
+            hi_p = model.price_at(sel_qs[j+1], t_arr) * (stack if stack > 0 else 1)
+            col  = model.colors.get(sel_qs[j], "#888888")
             traces.append(go.Scatter(
                 x=list(t_arr), y=list(lo_p),
                 mode="lines", line=dict(width=0),
@@ -637,18 +624,54 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     # ── quantile lines ────────────────────────────────────────────────────────
     for q in sel_qs:
-        if q not in m.qr_fits:
+        if q not in model.fits:
             continue
-        prices = qr_price(q, t_arr, m.qr_fits) * (stack if stack > 0 else 1)
+        prices = model.price_at(q, t_arr) * (stack if stack > 0 else 1)
         lbl = _fmt_q_label(q)
         if stack > 0:
             lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
-        col = m.qr_colors.get(q, "#888888")
+        col = model.colors.get(q, "#888888")
         traces.append(go.Scatter(
             x=list(t_arr), y=list(prices),
             mode="lines", name=lbl,
             line=dict(color=col, width=_QR_LINE_WIDTH),
         ))
+
+    # ── alternative model overlays ────────────────────────────────────────────
+    for model_key in p.get("active_models", []):
+        mdl = _app_ctx.PRICE_MODELS.get(model_key)
+        if not mdl:
+            continue
+        if mdl.quantized:
+            for q in sel_qs:
+                if q not in mdl.fits:
+                    continue
+                prices = mdl.price_at(q, t_arr) * (stack if stack > 0 else 1)
+                col = mdl.colors.get(q, "#888888")
+                lbl = f"{mdl.name} {_fmt_q_label(q, '')}"
+                if stack > 0:
+                    lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
+                traces.append(go.Scatter(
+                    x=list(t_arr), y=list(prices),
+                    mode="lines", name=lbl,
+                    line=dict(color=col, width=_QR_LINE_WIDTH * 0.8, dash=mdl.dash_style),
+                    legendgroup=mdl.short_name,
+                    legendgrouptitle_text=mdl.name,
+                ))
+        else:
+            # Non-quantized model: single trajectory
+            prices = mdl.price_at(0.5, t_arr)
+            if stack > 0:
+                prices = prices * stack
+            lbl = mdl.name
+            if stack > 0:
+                lbl += f"  \u2192  {fmt_price(float(np.asarray(prices)[-1]))}"
+            traces.append(go.Scatter(
+                x=list(t_arr), y=list(np.asarray(prices)),
+                mode="lines", name=lbl,
+                line=dict(color="#8B4513", width=_QR_LINE_WIDTH * 0.8, dash=mdl.dash_style),
+                legendgroup=mdl.short_name,
+            ))
 
     # ── OLS line ──────────────────────────────────────────────────────────────
     if p.get("show_ols"):
@@ -915,11 +938,12 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             vfmt, show_colorbar, stack,
             lots (list), use_lots
     """
+    model = _app_ctx.DEFAULT_MODEL
     eyr = int(p.get("entry_yr", 2020))
     eq  = float(p.get("entry_q", 50)) / 100.0   # stored as percentage (e.g. 7.5 → 0.075)
     entry_t = yr_to_t(eyr, m.genesis)
     live_price = p.get("live_price")
-    ep  = float(live_price) if live_price else _interp_qr_price(eq, entry_t, m.qr_fits)
+    ep  = float(live_price) if live_price else model.interp_price(eq, entry_t)
 
     # LOT ENTRY OVERRIDE
     lots = p.get("lots") or []
@@ -933,7 +957,7 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     eyrs = list(range(xlo, xhi + 1))
 
     xqs_raw = p.get("exit_qs") or []
-    xqs = sorted([float(q) for q in xqs_raw if float(q) in m.qr_fits], reverse=True)
+    xqs = sorted([float(q) for q in xqs_raw if float(q) in model.fits], reverse=True)
 
     if not eyrs or not xqs:
         return _error_figure(m, "No data — adjust Entry / Exit settings")
@@ -945,7 +969,7 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         et = yr_to_t(ey, m.genesis)
         nyr = et - entry_t if p.get("use_lots") and lots else float(ey - eyr)
         for ri, xq in enumerate(xqs):
-            xpp = float(qr_price(xq, et, m.qr_fits))
+            xpp = float(model.price_at(xq, et))
             mp[ri, ci] = xpp
             mm[ri, ci] = xpp / ep if ep > 0 else 0.0
             if nyr <= 0:
@@ -1016,11 +1040,12 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
     """Build a standalone MC heatmap figure from MC-simulated CAGR percentiles.
     Returns (fig, mc_result) or (empty_fig, None).
     """
+    model = _app_ctx.DEFAULT_MODEL
     eyr = int(p.get("mc_start_yr", p.get("entry_yr", 2020)))
     eq  = float(p.get("mc_entry_q", p.get("entry_q", 50))) / 100.0
     entry_t = yr_to_t(eyr, m.genesis)
     live_price = p.get("live_price")
-    ep  = float(live_price) if live_price else _interp_qr_price(eq, entry_t, m.qr_fits)
+    ep  = float(live_price) if live_price else model.interp_price(eq, entry_t)
 
     lots = p.get("lots") or []
     if p.get("use_lots") and lots:
@@ -1107,6 +1132,7 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy):
 
     Returns (sc_traces, all_sc_usd_vals, all_sc_btc_vals).
     """
+    model = _app_ctx.DEFAULT_MODEL
     from _app_ctx import _compute_sc_loan
 
     principal    = float(p.get("sc_loan_amount", 0))
@@ -1136,7 +1162,7 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy):
         return sc_traces, all_sc_usd_vals, all_sc_btc_vals
 
     for q in sel_qs:
-        if q not in m.qr_fits:
+        if q not in model.fits:
             continue
         sc_stack    = start_stack
         outstanding = 0.0
@@ -1214,7 +1240,7 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy):
             final_sc  = f"{float(sc_vals[-1]):.4f} BTC  ({final_usd})"
 
         lbl_sc = f"SC {_fmt_q_label(q)}" + f"  \u2192  {final_sc}"
-        col = m.qr_colors.get(q, "#888888")
+        col = model.colors.get(q, "#888888")
         sc_traces.append(go.Scatter(
             x=list(ts), y=list(y_sc), mode="lines", name=lbl_sc,
             line=dict(color=col, width=_QR_LINE_WIDTH, dash="dash"),
@@ -1270,8 +1296,9 @@ def _mc_median_annot(mc_traces, disp_mode, m, ts_end, t_start, t_end,
     """Build MC median edge annotation for Retire/SC tabs, or return None.
 
     btc_fmt: format spec for BTC value (e.g. ".2f" for Retire, ".4f" for SC).
-    estimate_usd: if True (Retire), estimate USD from BTC via qr_price(Q50%).
+    estimate_usd: if True (Retire), estimate USD from BTC via model.price_at(Q50%).
     """
+    model = _app_ctx.DEFAULT_MODEL
     mx, my = _find_mc_median_trace(mc_traces)
     if mx is None:
         return None
@@ -1284,7 +1311,7 @@ def _mc_median_annot(mc_traces, disp_mode, m, ts_end, t_start, t_end,
     else:
         if estimate_usd:
             mc_t = np.array([max(float(mx[-1]), 0.5)])
-            _mc_usd = mc_y_final * float(qr_price(0.5, mc_t, m.qr_fits)[0])
+            _mc_usd = mc_y_final * float(model.price_at(0.5, mc_t)[0])
             mc_lbl = f"{mc_y_final:{btc_fmt}} \u20bf  {fmt_price(_mc_usd)}"
         else:
             mc_lbl = f"{mc_y_final:{btc_fmt}} \u20bf"
@@ -1501,6 +1528,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
             selected_qs, log_y, show_today,
             lots, use_lots
     """
+    model = _app_ctx.DEFAULT_MODEL
     ta = _build_time_array(p, m, 2024, 2035)
     if ta[1] is None:
         return ta[0], None
@@ -1520,9 +1548,9 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     ts_clamped = np.maximum(ts, 0.5)
     adj_amount_arr = amount * ((1 + inflation) ** (ts - t_start))
     for q in sel_qs:
-        if q not in m.qr_fits:
+        if q not in model.fits:
             continue
-        prices_q = qr_price(q, ts_clamped, m.qr_fits)
+        prices_q = model.price_at(q, ts_clamped)
         vals = start_stack + np.cumsum(adj_amount_arr / prices_q)
         all_btc_vals[q] = vals
         all_usd_vals[q] = vals * prices_q
@@ -1537,11 +1565,55 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
             final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
 
         lbl = _fmt_q_label(q) + f"  →  {final_lbl}"
-        col = m.qr_colors.get(q, "#888888")
+        col = model.colors.get(q, "#888888")
         traces.append(go.Scatter(
             x=list(ts), y=list(y_vals), mode="lines", name=lbl,
             line=dict(color=col, width=_QR_LINE_WIDTH),
         ))
+
+    # ── alternative model overlays ────────────────────────────────────────────
+    for model_key in p.get("active_models", []):
+        mdl = _app_ctx.PRICE_MODELS.get(model_key)
+        if not mdl:
+            continue
+        if mdl.quantized:
+            for q in sel_qs:
+                if q not in mdl.fits:
+                    continue
+                prices_q = mdl.price_at(q, ts_clamped)
+                vals = start_stack + np.cumsum(adj_amount_arr / prices_q)
+                if disp_mode == "usd":
+                    y_vals = vals * prices_q
+                    final_lbl = fmt_price(float(y_vals[-1]))
+                else:
+                    y_vals = vals
+                    final_usd = fmt_price(float(vals[-1] * prices_q[-1]))
+                    final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
+                col = mdl.colors.get(q, "#888888")
+                traces.append(go.Scatter(
+                    x=list(ts), y=list(y_vals), mode="lines",
+                    name=f"{mdl.name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
+                    line=dict(color=col, width=_QR_LINE_WIDTH * 0.8, dash=mdl.dash_style),
+                    legendgroup=mdl.short_name,
+                    legendgrouptitle_text=mdl.name,
+                ))
+        else:
+            # Non-quantized: single trajectory DCA simulation
+            prices_q = mdl.price_at(0.5, ts_clamped)
+            vals = start_stack + np.cumsum(adj_amount_arr / prices_q)
+            if disp_mode == "usd":
+                y_vals = vals * prices_q
+                final_lbl = fmt_price(float(y_vals[-1]))
+            else:
+                y_vals = vals
+                final_usd = fmt_price(float(vals[-1] * prices_q[-1]))
+                final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
+            traces.append(go.Scatter(
+                x=list(ts), y=list(y_vals), mode="lines",
+                name=f"{mdl.name}  \u2192  {final_lbl}",
+                line=dict(color="#8B4513", width=_QR_LINE_WIDTH * 0.8, dash=mdl.dash_style),
+                legendgroup=mdl.short_name,
+            ))
 
     shapes = []
     if p.get("show_today"):
@@ -1614,7 +1686,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
         for q in sel_qs:
             if q not in all_usd_vals:
                 continue
-            col = m.qr_colors.get(q, "#888888")
+            col = model.colors.get(q, "#888888")
             y_arr = all_btc_vals[q] if disp_mode == "btc" else all_usd_vals[q]
             _btc_f = float(all_btc_vals[q][-1])
             _usd_f = float(all_usd_vals[q][-1])
@@ -1624,7 +1696,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                 short_label=_fmt_short(_btc_f, _usd_f),
                 color=col, y_last=float(y_arr[-1])))
         for q in all_sc_usd_vals:
-            col = m.qr_colors.get(q, "#888888")
+            col = model.colors.get(q, "#888888")
             sc_y = all_sc_btc_vals[q] if disp_mode == "btc" else all_sc_usd_vals[q]
             _btc_f = float(all_sc_btc_vals[q][-1])
             _usd_f = float(all_sc_usd_vals[q][-1])
@@ -1663,6 +1735,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             disp_mode, selected_qs, log_y, annotate,
             lots, use_lots
     """
+    model = _app_ctx.DEFAULT_MODEL
     ta = _build_time_array(p, m, 2025, 2045)
     if ta[1] is None:
         return ta[0], None
@@ -1683,9 +1756,9 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     ts_clamped = np.maximum(ts, 0.5)
     adj_wd_arr = wd_amount * ((1 + inflation) ** (ts - t_start))
     for q in sel_qs:
-        if q not in m.qr_fits:
+        if q not in model.fits:
             continue
-        prices = qr_price(q, ts_clamped, m.qr_fits)
+        prices = model.price_at(q, ts_clamped)
         vals = np.maximum(start_stack - np.cumsum(adj_wd_arr / prices), 0.0)
         all_btc_vals[q] = vals
 
@@ -1694,12 +1767,12 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             final_lbl = fmt_price(float(y_vals[-1]))
         else:
             y_vals = vals
-            final_usd = float(vals[-1]) * float(prices[-1])
-            final_lbl = fmt_price(final_usd)
+            final_usd = fmt_price(float(vals[-1]) * float(prices[-1]))
+            final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
         all_y_vals[q] = y_vals
 
-        lbl = _fmt_q_label(q) + f"  →  {final_lbl}"
-        col = m.qr_colors.get(q, "#888888")
+        lbl = _fmt_q_label(q) + f"  \u2192  {final_lbl}"
+        col = model.colors.get(q, "#888888")
         traces.append(go.Scatter(
             x=list(ts), y=list(y_vals), mode="lines", name=lbl,
             line=dict(color=col, width=_QR_LINE_WIDTH),
@@ -1719,6 +1792,50 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 showarrow=True, arrowhead=2, arrowsize=1,
                 arrowcolor=col,
                 font=dict(size=_FONT_ANNOT, color=col),
+            ))
+
+    # ── alternative model overlays ────────────────────────────────────────────
+    for model_key in p.get("active_models", []):
+        mdl = _app_ctx.PRICE_MODELS.get(model_key)
+        if not mdl:
+            continue
+        if mdl.quantized:
+            for q in sel_qs:
+                if q not in mdl.fits:
+                    continue
+                prices = mdl.price_at(q, ts_clamped)
+                vals = np.maximum(start_stack - np.cumsum(adj_wd_arr / prices), 0.0)
+                if disp_mode == "usd":
+                    y_vals = vals * prices
+                    final_lbl = fmt_price(float(y_vals[-1]))
+                else:
+                    y_vals = vals
+                    final_usd = fmt_price(float(vals[-1]) * float(prices[-1]))
+                    final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
+                col = mdl.colors.get(q, "#888888")
+                traces.append(go.Scatter(
+                    x=list(ts), y=list(y_vals), mode="lines",
+                    name=f"{mdl.name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
+                    line=dict(color=col, width=_QR_LINE_WIDTH * 0.8, dash=mdl.dash_style),
+                    legendgroup=mdl.short_name,
+                    legendgrouptitle_text=mdl.name,
+                ))
+        else:
+            # Non-quantized: single trajectory withdrawal simulation
+            prices = mdl.price_at(0.5, ts_clamped)
+            vals = np.maximum(start_stack - np.cumsum(adj_wd_arr / prices), 0.0)
+            if disp_mode == "usd":
+                y_vals = vals * prices
+                final_lbl = fmt_price(float(y_vals[-1]))
+            else:
+                y_vals = vals
+                final_usd = fmt_price(float(vals[-1]) * float(prices[-1]))
+                final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
+            traces.append(go.Scatter(
+                x=list(ts), y=list(y_vals), mode="lines",
+                name=f"{mdl.name}  \u2192  {final_lbl}",
+                line=dict(color="#8B4513", width=_QR_LINE_WIDTH * 0.8, dash=mdl.dash_style),
+                legendgroup=mdl.short_name,
             ))
 
     shapes = []
@@ -1750,8 +1867,8 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             btc_final = float(all_btc_vals[q][-1])
             if btc_final <= 0:
                 continue
-            col = m.qr_colors.get(q, "#888888")
-            usd_final = btc_final * float(qr_price(q, ts_end_arr, m.qr_fits)[0])
+            col = model.colors.get(q, "#888888")
+            usd_final = btc_final * float(model.price_at(q, ts_end_arr)[0])
             qpfx = f"Q{q*100:g}%"
             if disp_mode == "usd":
                 lbl = f"{qpfx} {fmt_price(usd_final)}"
@@ -1788,6 +1905,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
             log_y, annotate, show_legend,
             target_yr (Mode B), lots, use_lots
     """
+    model = _app_ctx.DEFAULT_MODEL
 
     mode         = p.get("mode", "a")
     freq_str, ppy, dt = _build_freq_config(p)
@@ -1802,7 +1920,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
 
     # Quantiles
     sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])
-                     if float(q) in m.qr_fits])
+                     if float(q) in model.fits])
     if not sel_qs:
         return go.Figure(layout=dict(
             title="Select at least one quantile",
@@ -1837,7 +1955,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
             ts_d_clamped = np.maximum(ts_d, 0.5)
             adj_wd_d = wd_amount * ((1 + inflation) ** (ts_d - t_start_d))
             for q in sel_qs:
-                prices = qr_price(q, ts_d_clamped, m.qr_fits)
+                prices = model.price_at(q, ts_d_clamped)
                 vals = np.maximum(start_stack - np.cumsum(adj_wd_d / prices), 0.0)
                 depl_mask = vals == 0.0
                 depl_t = float(ts_d[np.argmax(depl_mask)]) if depl_mask.any() else None
@@ -1874,8 +1992,12 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 ts_d, y_vals, depl_t, t_start_d, *_ = results[key]
                 col   = _DELAY_COLORS[di % len(_DELAY_COLORS)]
                 d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
-                final = (fmt_price(float(y_vals[-1])) if disp_mode == "usd"
-                         else f"{float(y_vals[-1]):.4f} BTC")
+                if disp_mode == "usd":
+                    final = fmt_price(float(y_vals[-1]))
+                else:
+                    _vals, _prices = results[key][4], results[key][5]
+                    final_usd = fmt_price(float(_vals[-1]) * float(_prices[-1]))
+                    final = f"{float(y_vals[-1]):.4f} BTC  ({final_usd})"
                 traces.append(go.Scatter(
                     x=list(ts_d), y=list(y_vals), mode="lines",
                     name=f"Delay {d_lbl}  \u2192  {final}",
@@ -1889,7 +2011,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
         elif chart_layout == 1:
             # Color = quantile, line style = delay
             for q in sel_qs:
-                col   = m.qr_colors.get(q, "#888888")
+                col   = model.colors.get(q, "#888888")
                 q_lbl = _fmt_q_label(q)
                 for di, d in enumerate(delays):
                     key = (d, q)
@@ -1944,6 +2066,44 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         deplete_annots.append(_depl_annot(depl_t, t_start_d, d,
                                                           _ANNOT_COLORS[di % len(_ANNOT_COLORS)],
                                                           len(deplete_annots)))
+
+        # ── alternative model overlays ────────────────────────────────────────
+        for model_key in p.get("active_models", []):
+            mdl = _app_ctx.PRICE_MODELS.get(model_key)
+            if not mdl:
+                continue
+            _sc_overlay_qs = sel_qs if mdl.quantized else [0.5]
+            for q in _sc_overlay_qs:
+                if mdl.quantized and q not in mdl.fits:
+                    continue
+                for di, d in enumerate(delays):
+                    t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
+                    if t_start_d >= t_end:
+                        continue
+                    ts_d = np.arange(t_start_d, t_end + dt * 0.5, dt)
+                    if len(ts_d) == 0:
+                        continue
+                    ts_d_clamped = np.maximum(ts_d, 0.5)
+                    adj_wd_d = wd_amount * ((1 + inflation) ** (ts_d - t_start_d))
+                    prices = mdl.price_at(q, ts_d_clamped)
+                    vals = np.maximum(start_stack - np.cumsum(adj_wd_d / prices), 0.0)
+                    y_vals = vals * prices if disp_mode == "usd" else vals
+                    col = mdl.colors.get(q, "#888888") if mdl.quantized else "#8B4513"
+                    d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
+                    q_lbl = f" {_fmt_q_label(q, '')}" if mdl.quantized else ""
+                    if disp_mode == "usd":
+                        final = fmt_price(float(y_vals[-1]))
+                    else:
+                        final_usd = fmt_price(float(vals[-1]) * float(prices[-1]))
+                        final = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
+                    traces.append(go.Scatter(
+                        x=list(ts_d), y=list(y_vals), mode="lines",
+                        name=f"{mdl.name}{q_lbl} {d_lbl}  \u2192  {final}",
+                        line=dict(color=col, width=1.2, dash=mdl.dash_style),
+                        legendgroup=mdl.short_name,
+                        legendgrouptitle_text=mdl.name,
+                        showlegend=(di == 0),  # show legend only for first delay
+                    ))
 
         t_start_base = max(yr_to_t(syr, m.genesis), 1.0)
         ylabel = "USD Value" if disp_mode == "usd" else "BTC Remaining"
@@ -2009,7 +2169,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         di = delays.index(d) if d in delays else 0
                         col = _DELAY_COLORS[di % len(_DELAY_COLORS)]
                     else:
-                        col = m.qr_colors.get(q, "#888888")
+                        col = model.colors.get(q, "#888888")
                     lbl = (fmt_price(y_final) if disp_mode == "usd"
                            else f"{y_final:.4f} \u20bf")
                     _sc_btc = float(btc_vals_r[-1])
@@ -2037,6 +2197,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
 def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
                inflation, chart_layout, display_q, show_legend, freq_label):
     """HODL Supercharger Mode B: binary-search max withdrawal per period."""
+    model = _app_ctx.DEFAULT_MODEL
     target_yr = int(p.get("target_yr", 2060))
 
     def _max_wd_for(d, q):
@@ -2044,7 +2205,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
         t_end_b   = yr_to_t(target_yr, m.genesis)
         if t_end_b <= t_start_d:
             return 0.0
-        first_price = float(qr_price(q, max(t_start_d, 0.5), m.qr_fits))
+        first_price = float(model.price_at(q, max(t_start_d, 0.5)))
         # Binary search: find max withdrawal where stack survives to target_yr.
         # Upper bound = 4x annual stack value (generous overestimate).
         # 60 iterations gives precision to ~1e-18 of the range (more than enough).
@@ -2055,7 +2216,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
             survived = True
             for t in np.arange(t_start_d, t_end_b + dt * 0.5, dt):
                 adj = mid * ((1 + inflation) ** (t - t_start_d))
-                s  -= adj / float(qr_price(q, max(t, 0.5), m.qr_fits))
+                s  -= adj / float(model.price_at(q, max(t, 0.5)))
                 if s <= 0:
                     survived = False
                     break
@@ -2091,7 +2252,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
 
     elif chart_layout == 1:
         for q in sel_qs:
-            col   = m.qr_colors.get(q, "#888888")
+            col   = model.colors.get(q, "#888888")
             q_lbl = _fmt_q_label(q)
             y_q   = [max_wd.get((d, q), 0) for d in delays]
             traces.append(go.Scatter(

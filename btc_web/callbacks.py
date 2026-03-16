@@ -3282,6 +3282,29 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call="initial_duplicate",
 )
 
+# ── Heatmap color palette presets ─────────────────────────────────────────────
+_HM_PALETTES = {
+    "forge":   ("#1b0a2e", "#2c2c3a", "#1b4332", "#ffd700"),
+    "thermal": ("#0d47a1", "#80deea", "#e65100", "#c62828"),
+    "bitcoin": ("#1a1a2e", "#2c3e50", "#f7931a", "#ffd700"),
+    "ocean":   ("#0a1628", "#0d47a1", "#00838f", "#b2ebf2"),
+    "mono":    ("#1a1a1a", "#555555", "#999999", "#e0e0e0"),
+}
+
+@callback(
+    Output("hm-c-lo",   "value", allow_duplicate=True),
+    Output("hm-c-mid1", "value", allow_duplicate=True),
+    Output("hm-c-mid2", "value", allow_duplicate=True),
+    Output("hm-c-hi",   "value", allow_duplicate=True),
+    Input("hm-palette", "value"),
+    prevent_initial_call=True,
+)
+def apply_hm_palette(palette):
+    if palette == "custom" or palette not in _HM_PALETTES:
+        return no_update, no_update, no_update, no_update
+    return _HM_PALETTES[palette]
+
+
 # ── Share modal: QR code for generated link ──────────────────────────────────
 @callback(
     Output("share-qr-img", "src"),

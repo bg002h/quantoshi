@@ -557,6 +557,17 @@ def _heatmap_controls():
             _lbl("Break 2 (CAGR %, integer)"),
             dbc.Input(id="hm-b2", type="number", value=20,
                       step=1, size="sm"),
+            _lbl("Color palette"),
+            dcc.Dropdown(id="hm-palette",
+                options=[
+                    {"label": "Forge (dark → gold)",      "value": "forge"},
+                    {"label": "Thermal (blue → red)",     "value": "thermal"},
+                    {"label": "Bitcoin (dark → orange)",  "value": "bitcoin"},
+                    {"label": "Ocean (navy → cyan)",      "value": "ocean"},
+                    {"label": "Monochrome (gray)",        "value": "mono"},
+                    {"label": "Custom",                   "value": "custom"},
+                ],
+                value="forge", clearable=False),
             _row(
                 html.Div([_lbl("Lo"), dbc.Input(id="hm-c-lo", type="color",
                            value="#1b0a2e", style=_STYLE_COLOR_H)]),

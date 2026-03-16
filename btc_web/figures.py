@@ -1144,16 +1144,6 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             xref="x", yref="y",
         )
 
-    # ── Diagonal emphasis: highlight cells where hold time = 0 ───────────────
-    for ci, ey in enumerate(eyrs):
-        if ey == eyr:
-            fig.add_shape(type="line",
-                x0=ci - 0.5, x1=ci + 0.5,
-                y0=-0.5, y1=len(xqs) - 0.5,
-                line=dict(color="rgba(255,255,255,0.25)", width=1, dash="dot"),
-                xref="x", yref="y",
-            )
-            break
     # (per-annotation weight is unreliable on initial mobile render).
     _apply_config_annotation(fig, p, "hm", show_qr=True, show_mc=False)
     _apply_watermark(fig)

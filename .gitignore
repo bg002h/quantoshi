@@ -43,7 +43,7 @@ btc_web/.trans_matrix_cache.pkl
 btc_web/mc_cache/
 
 # Claude Code
-.claude/
+.claude/settings.local.json
 
 # Misc
 *.log

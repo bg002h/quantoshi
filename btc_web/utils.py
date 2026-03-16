@@ -112,6 +112,53 @@ def _nearest_quantile(target, qs):
 
 _price_cache = {"price": None, "ts": 0}
 _PRICE_TTL = 60  # seconds — avoid hammering upstream APIs from multiple workers
+
+# ── 24h sparkline cache ──────────────────────────────────────────────────────
+_spark_cache = {"svg": "", "ts": 0}
+_SPARK_TTL = 300  # refresh sparkline every 5 min
+
+
+def _fetch_sparkline_svg(width=60, height=18):
+    """Fetch 24h hourly prices from Binance and build a tiny SVG sparkline."""
+    now = time.time()
+    if _spark_cache["svg"] and now - _spark_cache["ts"] < _SPARK_TTL:
+        return _spark_cache["svg"]
+    try:
+        url = ("https://api.binance.com/api/v3/klines"
+               "?symbol=BTCUSDT&interval=1h&limit=24")
+        with urllib.request.urlopen(url, timeout=5) as r:
+            klines = json.loads(r.read())
+        closes = [float(k[4]) for k in klines]
+        if len(closes) < 2:
+            return _spark_cache["svg"]
+    except Exception:
+        return _spark_cache["svg"]
+
+    lo, hi = min(closes), max(closes)
+    rng = hi - lo or 1
+    pad = 1  # 1px padding top/bottom
+    yscale = (height - 2 * pad) / rng
+    xstep = width / (len(closes) - 1)
+
+    points = []
+    for i, c in enumerate(closes):
+        x = round(i * xstep, 1)
+        y = round(pad + (hi - c) * yscale, 1)
+        points.append(f"{x},{y}")
+
+    # Color: green if up over 24h, red if down
+    color = "#4cff88" if closes[-1] >= closes[0] else "#ff6b6b"
+    polyline = " ".join(points)
+    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}"'
+           f' viewBox="0 0 {width} {height}">'
+           f'<polyline points="{polyline}" fill="none" stroke="{color}"'
+           f' stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>'
+           f'</svg>')
+    import base64
+    b64 = base64.b64encode(svg.encode()).decode()
+    data_uri = f"data:image/svg+xml;base64,{b64}"
+    _spark_cache.update({"svg": data_uri, "ts": now})
+    return data_uri
 _fail_streak = 0
 _circuit_open_until = 0
 

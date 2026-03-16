@@ -75,9 +75,24 @@ def _ctrl_card(*children):
     return dbc.Card(dbc.CardBody(list(children), className="p-2"),
                     className="mb-2 ctrl-card")
 
+_SECTION_ICONS = {
+    "Axes & Range": "\U0001F4D0",
+    "Display": "\U0001F3A8",
+    "Bubble Model": "\U0001F4CA",
+    "Quantile Regression Model": "\U0001F4C9",
+    "Chart Settings": "\u2699\uFE0F",
+    "Plan": "\U0001F5D3\uFE0F",
+    "Shared Model Settings": "\u2699\uFE0F",
+    "Starting Stack": "\U0001F4E6",
+    "Monte Carlo Simulation": "\U0001F3B2",
+    "Saved Simulation": "\U0001F4BE",
+}
+
 def _section_card(title: str, *children):
-    """Control card with a section header title."""
-    return _ctrl_card(html.Div(title, className="ctrl-section-header"), *children)
+    """Control card with a section header title and optional icon."""
+    icon = _SECTION_ICONS.get(title, "")
+    prefix = f"{icon} " if icon else ""
+    return _ctrl_card(html.Div(f"{prefix}{title}", className="ctrl-section-header"), *children)
 
 def _row(*cols):
     return dbc.Row([dbc.Col(c) for c in cols], className="g-1 mb-1")
@@ -106,7 +121,7 @@ def _export_row(tab_id: str):
             # dummy store — clientside callback needs an output target
             dcc.Store(id=f"{tab_id}-dl-dummy"),
         ], className="g-1 align-items-center"),
-        html.Div("\u2193 Scroll down to configure",
+        html.Div("\u2191 Swipe up or tap \u2699\uFE0F to configure",
                  className="d-md-none text-center text-muted py-1",
                  style={"fontSize":"11px", "letterSpacing":"0.02em"}),
     ], className="export-row-polished")
@@ -168,7 +183,13 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
                           className="mc-premium-badge",
                           style=_STYLE_HIDDEN)]
     return dbc.Row([
-        dbc.Col(controls_fn(), width=3, className="controls-col overflow-auto",
+        dbc.Col([
+            html.Div([
+                html.Div("", className="sheet-handle-bar"),
+                html.Div("Configure", className="sheet-handle-label"),
+            ], className="sheet-handle"),
+            controls_fn(),
+        ], width=3, className="controls-col overflow-auto",
                 style={"maxHeight": "85vh"}),
         dbc.Col([
             html.Div(id=f"{mc_prefix or graph_id}-chart-wrap",
@@ -176,6 +197,7 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
                 dcc.Loading(
                     dcc.Graph(id=graph_id, style=_STYLE_GRAPH_H,
                               config={"scrollZoom": False,
+                                      "displayModeBar": "hover",
                                       "toImageButtonOptions": {"format": "png", "scale": 2,
                                                                "filename": filename}}),
                     type="default", color=_BTC_ORANGE,
@@ -537,13 +559,13 @@ def _heatmap_controls():
                       step=1, size="sm"),
             _row(
                 html.Div([_lbl("Lo"), dbc.Input(id="hm-c-lo", type="color",
-                           value=_app_ctx.M.CAGR_SEG_C_LO, style=_STYLE_COLOR_H)]),
+                           value="#1b0a2e", style=_STYLE_COLOR_H)]),
                 html.Div([_lbl("Mid1"), dbc.Input(id="hm-c-mid1", type="color",
-                           value=_app_ctx.M.CAGR_SEG_C_MID1, style=_STYLE_COLOR_H)]),
+                           value="#2c2c3a", style=_STYLE_COLOR_H)]),
                 html.Div([_lbl("Mid2"), dbc.Input(id="hm-c-mid2", type="color",
-                           value=_app_ctx.M.CAGR_SEG_C_MID2, style=_STYLE_COLOR_H)]),
+                           value="#1b4332", style=_STYLE_COLOR_H)]),
                 html.Div([_lbl("Hi"), dbc.Input(id="hm-c-hi", type="color",
-                           value=_app_ctx.M.CAGR_SEG_C_HI, style=_STYLE_COLOR_H)]),
+                           value="#ffd700", style=_STYLE_COLOR_H)]),
             ),
             _lbl("Gradient steps"),
             dbc.Input(id="hm-grad", type="number", value=32,
@@ -577,7 +599,13 @@ def _heatmap_controls():
 
 def _heatmap_tab():
     return dbc.Row([
-        dbc.Col(_heatmap_controls(), width=3, className="controls-col overflow-auto",
+        dbc.Col([
+            html.Div([
+                html.Div("", className="sheet-handle-bar"),
+                html.Div("Configure", className="sheet-handle-label"),
+            ], className="sheet-handle"),
+            _heatmap_controls(),
+        ], width=3, className="controls-col overflow-auto",
                 style={"maxHeight":"85vh"}),
         dbc.Col([
             # Swipe indicator (hidden when MC disabled)
@@ -598,6 +626,7 @@ def _heatmap_tab():
                     dcc.Loading(
                         dcc.Graph(id="heatmap-graph", style=_STYLE_GRAPH_H,
                                   config={"scrollZoom":False,
+                                          "displayModeBar":"hover",
                                           "toImageButtonOptions":{"format":"png","scale":2,
                                                                    "filename":"btc_heatmap"}}),
                         type="default", color=_BTC_ORANGE,
@@ -607,6 +636,7 @@ def _heatmap_tab():
                     dcc.Loading(
                         dcc.Graph(id="hm-mc-graph", style=_STYLE_GRAPH_H,
                                   config={"scrollZoom":False,
+                                          "displayModeBar":"hover",
                                           "toImageButtonOptions":{"format":"png","scale":2,
                                                                    "filename":"btc_mc_heatmap"}}),
                         type="default", color=_BTC_ORANGE,
@@ -1898,6 +1928,7 @@ _app_ctx.app.layout = dbc.Container([
     _freq_warning_modal(),
     dcc.Interval(id="price-interval", interval=_PRICE_INTERVAL_MS, n_intervals=0),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
+    dcc.Store(id="ticker-mode-store", storage_type="local", data="usd"),
     dcc.Store(id="splash-ts-store", storage_type="local", data=None),
     dcc.Store(id="lots-store", storage_type="local", data=[]),
     dcc.Store(id="lots-export-dummy"),
@@ -2018,6 +2049,7 @@ _app_ctx.app.layout = dbc.Container([
                        style={**_QUANT_FONT, "fontWeight": "600"}),
         ]),
     ], id="mc-quant-modal", is_open=False, centered=True),
+    html.Div(id="copy-toast-container"),
     dcc.Location(id="url", refresh=False),
     dcc.Store(id="snapshot-lots",     storage_type="memory", data=None),
     dcc.Store(id="effective-lots",    storage_type="memory", data=[]),
@@ -2100,11 +2132,22 @@ _app_ctx.app.layout = dbc.Container([
                                          html.Span("uantoshi", className="brand-uantoshi")],
                                         className="ms-2 fw-bold fs-2 brand-name",
                                         style={"fontFamily":"Palatino Linotype, Palatino, Book Antiqua, serif"}),
-                        html.Div(id="price-ticker",
-                                 style={"fontSize":"19px", "fontWeight":"600",
-                                        "color":"rgba(255,255,255,0.9)",
-                                        "whiteSpace":"nowrap", "fontFamily":"monospace",
-                                        "marginLeft":"14px"}),
+                        html.Div([
+                            html.Span(id="price-ticker",
+                                      style={"fontSize":"23px", "fontWeight":"600",
+                                             "color":"rgba(255,255,255,0.9)",
+                                             "whiteSpace":"nowrap",
+                                             "fontFamily":"'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace",
+                                             "fontVariantNumeric":"tabular-nums"}),
+                            html.Span(id="price-sparkline",
+                                      style={"display":"inline-block", "verticalAlign":"middle"}),
+                            html.Span(id="ticker-mode-toggle",
+                                      n_clicks=0,
+                                      style={"fontSize":"10px", "color":"rgba(255,255,255,0.45)",
+                                             "cursor":"pointer", "marginLeft":"8px",
+                                             "verticalAlign":"middle", "userSelect":"none"}),
+                        ], style={"display":"flex", "alignItems":"center",
+                                  "marginLeft":"14px"}),
                     ], style={"display":"flex", "alignItems":"center"}),
                     # Right: collapsible drawer (stacked vertically) + toggle
                     html.Div([
@@ -2163,10 +2206,12 @@ _app_ctx.app.layout = dbc.Container([
                                     "fontSize":"18px", "cursor":"pointer",
                                     "lineHeight":"1", "letterSpacing":"2px",
                                     "padding":"4px 8px"}),
-                    html.Div(id="price-ticker-mobile",
-                             style={"fontSize":"18px", "fontWeight":"700",
+                    html.Span(id="price-ticker-mobile",
+                             style={"fontSize":"20px", "fontWeight":"700",
                                     "color":"rgba(255,255,255,0.95)",
-                                    "whiteSpace":"nowrap", "fontFamily":"monospace"}),
+                                    "whiteSpace":"nowrap",
+                                    "fontFamily":"'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace",
+                                    "fontVariantNumeric":"tabular-nums"}),
                 ], style={"display":"flex", "alignItems":"center",
                           "justifyContent":"space-between", "width":"100%"}),
                 # Row 2: collapsible drawer — full content, auto-hides after 3s
@@ -2221,10 +2266,21 @@ _app_ctx.app.layout = dbc.Container([
             dbc.InputGroup([
                 dbc.Input(id="share-url-display", type="text", readonly=True,
                           placeholder="Click 'Generate link' above…", size="sm"),
-                dcc.Clipboard(target_id="share-url-display",
+                dcc.Clipboard(id="share-clipboard",
+                              target_id="share-url-display",
                               style={"cursor":"pointer","fontSize":"18px",
                                      "padding":"4px 8px"}),
             ], size="sm"),
+            html.Div([
+                html.Img(id="share-qr-img", src="", style={"display": "none"}),
+                html.Div("Scan to open on another device",
+                         id="share-qr-label",
+                         style={"display": "none", "fontSize": "10px",
+                                "color": "#888", "textAlign": "center",
+                                "marginBottom": "8px"}),
+            ]),
+            html.Img(id="share-preview-thumb", src="", className="share-preview-thumb",
+                     style={"display": "none"}),
             html.Hr(className="my-3"),
             html.Div([
                 html.Span("Link History", className="fw-semibold small"),
@@ -2240,14 +2296,20 @@ _app_ctx.app.layout = dbc.Container([
         ),
     ], id="share-modal", is_open=False, size="lg", scrollable=True),
     dbc.Tabs([
-        dbc.Tab(_bubble_tab(),       label="Bubble + QR Overlay", tab_id="bubble"),
-        dbc.Tab(_heatmap_tab(),      label="CAGR Heatmap",        tab_id="heatmap"),
-        dbc.Tab(_dca_tab(),          label="BTC Accumulator",     tab_id="dca"),
-        dbc.Tab(_retire_tab(),       label="BTC RetireMentator",  tab_id="retire"),
-        dbc.Tab(_supercharge_tab(),  label="HODL Supercharger",   tab_id="supercharge"),
-        dbc.Tab(_stack_tracker_tab(),label="Stack Tracker",       tab_id="stack"),
-        dbc.Tab(_faq_tab(),          label="FAQ",                 tab_id="faq"),
+        dbc.Tab(_bubble_tab(),       label="\U0001F4C8 Bubble + QR Overlay", tab_id="bubble"),
+        dbc.Tab(_heatmap_tab(),      label="\U0001F525 CAGR Heatmap",        tab_id="heatmap"),
+        dbc.Tab(_dca_tab(),          label="\U0001F4B0 BTC Accumulator",     tab_id="dca"),
+        dbc.Tab(_retire_tab(),       label="\U0001F3D6\uFE0F BTC RetireMentator",  tab_id="retire"),
+        dbc.Tab(_supercharge_tab(),  label="\u26A1 HODL Supercharger",   tab_id="supercharge"),
+        dbc.Tab(_stack_tracker_tab(),label="\U0001F5DD\uFE0F Stack Tracker",       tab_id="stack"),
+        dbc.Tab(_faq_tab(),          label="\u2753 FAQ",                 tab_id="faq"),
     ], id="main-tabs", active_tab="bubble"),
+    # ── Mobile bottom sheet scrim ──────────────────────────────────────────
+    html.Div(id="sheet-scrim", className="sheet-scrim", n_clicks=0),
+    # ── Mobile floating settings button ────────────────────────────────────
+    html.Button("\u2699\uFE0F", id="mobile-settings-fab",
+                className="mobile-settings-fab",
+                n_clicks=0),
     # ── Footer: block height + halving countdown ──────────────────────────
     html.Div([
         html.Span(id="footer-block-height",

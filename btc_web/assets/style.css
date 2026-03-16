@@ -9,18 +9,26 @@
     --nav-dark: #2c3e50;
     --nav-darker: #1a252f;
     --nav-lighter: #34495e;
+    /* UI typography — distinctive system fonts */
+    --font-ui: "Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, sans-serif;
+    --font-mono: "SF Mono", "Cascadia Code", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
+    --font-brand: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
 }
 
 /* Light theme base */
 body {
     font-size: 13px;
-    background-color: #f0f2f5 !important;
+    font-family: var(--font-ui);
+    background-color: #f4f3f0 !important;
     color: #212529 !important;
 }
 
-/* ── #1: Navbar gradient ──────────────────────────────────────────────────── */
+/* ── #1: Navbar gradient with subtle dot texture ─────────────────────────── */
 .navbar {
-    background: linear-gradient(135deg, var(--nav-darker) 0%, var(--nav-dark) 50%, var(--nav-lighter) 100%) !important;
+    background:
+        radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(135deg, var(--nav-darker) 0%, var(--nav-dark) 50%, var(--nav-lighter) 100%) !important;
+    background-size: 8px 8px, 100% 100%;
     overflow: visible !important;
     z-index: 1040;
     position: relative;
@@ -41,7 +49,8 @@ body {
     border-radius: 4px 4px 0 0;
     padding: 4px 10px;
     font-size: 13px;
-    transition: color 0.2s, background-color 0.2s;
+    font-family: var(--font-ui);
+    transition: color 0.2s, background-color 0.2s, border-top-color 0.3s ease;
 }
 .nav-tabs .nav-link:hover {
     color: #fff !important;
@@ -51,7 +60,7 @@ body {
 /* ── #2: Active tab orange accent ─────────────────────────────────────────── */
 .nav-tabs .nav-link.active {
     color: var(--nav-dark) !important;
-    background-color: #f0f2f5 !important;
+    background-color: #f4f3f0 !important;
     font-weight: 600;
     border-top: 3px solid var(--btc-orange) !important;
     animation: accentBreath 3s ease-in-out infinite;
@@ -65,16 +74,23 @@ body {
 }
 .export-row .btn { color: #fff !important; border-color: rgba(255,255,255,0.4) !important; }
 
-/* ── #3: Card elevation on hover ──────────────────────────────────────────── */
+/* ── #3: Card elevation on hover + active indicator ──────────────────────── */
 .ctrl-card {
     border: 1px solid #dee2e6 !important;
     background: #f8f9fa !important;
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease,
+                border-left-color 0.2s ease, border-left-width 0.2s ease;
     border-radius: 8px !important;
 }
 .ctrl-card:hover {
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     border-color: #c8ccd0 !important;
+    transform: translateY(-1px);
+}
+/* Active state indicator — orange left border when a control is checked */
+.ctrl-card:has(input[type="checkbox"]:checked),
+.ctrl-card:has(input[type="radio"]:checked) {
+    border-left: 3px solid var(--btc-orange) !important;
 }
 .ctrl-card .card-body { padding: 8px !important; }
 
@@ -146,7 +162,7 @@ body {
 }
 
 /* ── #8: Better typography hierarchy — section headers ────────────────────── */
-.form-label { font-size: 11px; color: #555; margin-bottom: 2px !important; }
+.form-label { font-size: 11px; color: #555; margin-bottom: 2px !important; font-family: var(--font-ui); }
 .ctrl-section-header {
     font-size: 12px;
     font-weight: 600;
@@ -154,6 +170,8 @@ body {
     margin-bottom: 4px;
     padding-bottom: 2px;
     border-bottom: 1px solid #e0e0e0;
+    font-family: var(--font-ui);
+    letter-spacing: 0.02em;
 }
 
 /* ── #9: Export row polish ─────────────────────────────────────────────────── */
@@ -188,14 +206,14 @@ body {
     position: relative;
     padding: 6px 6px 6px 4px !important;
     scrollbar-width: thin;
-    scrollbar-color: var(--nav-dark) #f0f2f5;
-    background: linear-gradient(180deg, #e8eaed 0%, #f0f2f5 8%, #f0f2f5 92%, #e8eaed 100%);
+    scrollbar-color: var(--nav-dark) #f4f3f0;
+    background: linear-gradient(180deg, #e8e6e1 0%, #f4f3f0 8%, #f4f3f0 92%, #e8e6e1 100%);
     border-right: 2px solid #ccc;
     box-shadow: 2px 0 6px rgba(0,0,0,0.08);
     border-radius: 0 6px 6px 0;
 }
 .controls-col::-webkit-scrollbar { width: 6px; }
-.controls-col::-webkit-scrollbar-track { background: #f0f2f5; }
+.controls-col::-webkit-scrollbar-track { background: #f4f3f0; }
 .controls-col::-webkit-scrollbar-thumb { background: var(--nav-dark); border-radius: 3px; }
 .controls-col::-webkit-scrollbar-thumb:hover { background: var(--nav-lighter); }
 
@@ -208,7 +226,7 @@ body {
 
 /* ── #11: Loading skeleton shimmer ────────────────────────────────────────── */
 .chart-loading-skeleton {
-    background: linear-gradient(90deg, #e8eaed 25%, #f0f2f5 50%, #e8eaed 75%);
+    background: linear-gradient(90deg, #e8e6e1 25%, #f4f3f0 50%, #e8e6e1 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
     border-radius: 4px;
@@ -218,6 +236,8 @@ body {
     0%   { background-position: 200% 0; }
     100% { background-position: -200% 0; }
 }
+/* Dash default spinner: brand-colored */
+._dash-loading .dash-spinner { color: var(--btc-orange) !important; }
 
 /* ── Mobile nav drawer — auto-collapse row 2 after 3s ─────────────────── */
 .mobile-nav-drawer {
@@ -1023,17 +1043,42 @@ body {
         z-index: 10 !important;
     }
 }
-/* ── Mobile: stack controls below chart ─────────────────────────────────── */
+/* ── Mobile: bottom sheet controls ──────────────────────────────────────── */
 @media (max-width: 767px) {
     .drawer-pin { display: none; }
     .controls-col {
-        order: 2;
-        max-height: none !important;
+        position: fixed !important;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1035;
         width: 100% !important;
+        max-height: 80vh !important;
         border-right: none !important;
-        box-shadow: none !important;
-        border-radius: 0 !important;
-        border-top: 2px solid #ccc;
+        border-top: none !important;
+        border-radius: 16px 16px 0 0 !important;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.15) !important;
+        background: #f4f3f0 !important;
+        transform: translateY(calc(100% - 40px));
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow-y: hidden !important;
+        padding-top: 0 !important;
+    }
+    .controls-col.sheet-expanded {
+        transform: translateY(0) !important;
+        overflow-y: auto !important;
+    }
+    /* Scrim overlay when sheet is expanded */
+    .sheet-scrim {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1034;
+        background: rgba(0,0,0,0.3);
+        transition: opacity 0.3s;
+    }
+    .sheet-scrim.active {
+        display: block;
     }
     .tab-content .row.g-0 {
         flex-direction: column;
@@ -1044,16 +1089,14 @@ body {
         max-width: 100% !important;
         flex: 0 0 100%;
     }
-    /* Constrain both the dcc.Graph wrapper and the inner Plotly div.
-       Without this the wrapper stays at 78vh while the plot is only 55vw,
-       leaving a large blank gap that makes controls appear unreachable. */
+    /* Chart fills viewport since controls are now a sheet overlay */
     [id$="-graph"] {
-        height: 55vw !important;
-        min-height: 280px !important;
+        height: 65vw !important;
+        min-height: 300px !important;
     }
     .js-plotly-plot {
-        height: 55vw !important;
-        min-height: 280px !important;
+        height: 65vw !important;
+        min-height: 300px !important;
     }
     /* ── Mobile dropdown: larger touch targets, cleaner option list ──── */
     .Select-control {
@@ -1066,6 +1109,64 @@ body {
         min-height: 38px !important;
         padding: 8px 12px !important;
     }
+}
+
+/* ── Bottom sheet drag handle ──────────────────────────────────────────── */
+.sheet-handle {
+    display: none;
+}
+@media (max-width: 767px) {
+    .sheet-handle {
+        display: block;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        padding: 10px 0 6px;
+        text-align: center;
+        cursor: grab;
+        background: #f4f3f0;
+        border-radius: 16px 16px 0 0;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: none;
+    }
+    .sheet-handle::before {
+        content: '';
+        display: block;
+        width: 40px;
+        height: 4px;
+        margin: 0 auto;
+        background: rgba(0,0,0,0.2);
+        border-radius: 2px;
+        transition: background 0.2s;
+    }
+    .sheet-handle:active::before {
+        background: rgba(0,0,0,0.4);
+    }
+    .sheet-handle-label {
+        font-size: 10px;
+        color: rgba(0,0,0,0.35);
+        margin-top: 4px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        font-family: var(--font-ui);
+    }
+}
+
+/* ── Heatmap low-contrast cell text pulse ─────────────────────────────── */
+@keyframes cellPulse {
+    0%, 70%  { opacity: 1; }
+    85%      { opacity: 0.3; }
+    100%     { opacity: 1; }
+}
+
+/* ── Share preview thumbnail ──────────────────────────────────────────── */
+.share-preview-thumb {
+    display: block;
+    max-width: 100%;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    margin: 10px auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 /* ── Site footer: block height + halving countdown ────────────────────────── */
@@ -1234,4 +1335,75 @@ body {
 }
 .input-accepted {
     animation: input-accepted 0.6s ease-out;
+}
+
+/* ── Tab labels with emoji icons ──────────────────────────────────────────── */
+/* (icons are plain text in the label string — no special CSS needed) */
+
+/* ── Mobile floating settings button ──────────────────────────────────────── */
+.mobile-settings-fab {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1050;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--btc-orange);
+    border: none;
+    color: #fff;
+    font-size: 22px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    line-height: 1;
+}
+.mobile-settings-fab:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+}
+@media (max-width: 767px) {
+    .mobile-settings-fab { display: flex; align-items: center; justify-content: center; }
+}
+
+/* ── Share modal: copy feedback toast ─────────────────────────────────────── */
+.copy-toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--nav-dark);
+    color: #fff;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-family: var(--font-ui);
+    z-index: 10000;
+    pointer-events: none;
+    animation: copyToastIn 0.3s ease-out, copyToastOut 0.3s ease-in 1.5s forwards;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+@keyframes copyToastIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes copyToastOut {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
+/* ── Plotly modebar: show on hover only ───────────────────────────────────── */
+.js-plotly-plot .modebar { opacity: 0; transition: opacity 0.2s ease; }
+.js-plotly-plot:hover .modebar { opacity: 1; }
+
+/* ── Stack Tracker: lot badge on tab ──────────────────────────────────────── */
+.tab-lot-badge {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--btc-orange);
+    border-radius: 50%;
+    margin-left: 4px;
+    vertical-align: middle;
 }

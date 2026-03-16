@@ -2234,21 +2234,35 @@ for _prefix, _fields in _MC_UPLOAD_FIELDS.items():
     Output("hm-entry-q",          "value", allow_duplicate=True),
     Output("hm-mc-entry-q",       "value", allow_duplicate=True),
     Output("dca-mc-entry-q",      "value", allow_duplicate=True),
+    Output("price-sparkline",     "children"),
     Input("price-interval", "n_intervals"),
+    Input("ticker-mode-store",    "data"),
     prevent_initial_call="initial_duplicate",
 )
-def update_price_ticker(_):
+def update_price_ticker(_, mode):
     price = _fetch_btc_price()
     if price is None:
-        return "₿ —", "₿ —", no_update, no_update, no_update, no_update
+        return "₿ —", "₿ —", no_update, no_update, no_update, no_update, ""
     pct = _app_ctx.DEFAULT_MODEL.find_percentile(today_t(_app_ctx.M.genesis), price)
     pct_str = f"Q{pct*100:.1f}%" if pct is not None else "—"
     pct_val = round(pct * 100, 1) if pct is not None else no_update
     # Snap to nearest 10% for cache-aligned dropdowns (hm-mc, dca-mc)
     snapped_pct = max(10, min(90, round(pct * 10) * 10)) if pct is not None else no_update
-    txt = f"₿ {fmt_price(price)}  ·  {pct_str}"
-    txt_m = f"₿{fmt_price(price)}·{pct_str}"
-    return txt, txt_m, price, pct_val, snapped_pct, snapped_pct
+    # Ticker mode: sats/$ or USD (both show percentile)
+    if mode == "sats":
+        sats = round(1e8 / price) if price > 0 else 0
+        txt = f"{sats:,} sats/$  ·  {pct_str}"
+        txt_m = f"{sats:,}s/$·{pct_str}"
+    else:
+        txt = f"₿ {fmt_price(price)}  ·  {pct_str}"
+        txt_m = f"₿{fmt_price(price)}·{pct_str}"
+    # Sparkline SVG (24h) — data URI image
+    from utils import _fetch_sparkline_svg
+    spark_uri = _fetch_sparkline_svg()
+    from dash import html
+    spark = html.Img(src=spark_uri, height="18",
+                     style={"verticalAlign": "middle"}) if spark_uri else ""
+    return txt, txt_m, price, pct_val, snapped_pct, snapped_pct, spark
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -3057,4 +3071,246 @@ def render_link_history(history):
 )
 def clear_history(_):
     return []
+
+
+# ── Ticker mode toggle (USD ↔ sats/$) ────────────────────────────────────────
+_app_ctx.app.clientside_callback(
+    """
+    function(n, current) {
+        if (!n) return window.dash_clientside.no_update;
+        return current === 'sats' ? 'usd' : 'sats';
+    }
+    """,
+    Output("ticker-mode-store", "data"),
+    Input("ticker-mode-toggle", "n_clicks"),
+    State("ticker-mode-store", "data"),
+    prevent_initial_call=True,
+)
+
+# ── Ticker mode toggle label ────────────────────────────────────────────────
+_app_ctx.app.clientside_callback(
+    """
+    function(mode) {
+        return mode === 'sats' ? '$/₿' : 'sats/$';
+    }
+    """,
+    Output("ticker-mode-toggle", "children"),
+    Input("ticker-mode-store", "data"),
+)
+
+# ── Share modal: copy feedback toast ──────────────────────────────────────────
+_app_ctx.app.clientside_callback(
+    """
+    function(n) {
+        if (!n) return '';
+        var toast = document.createElement('div');
+        toast.className = 'copy-toast';
+        toast.textContent = 'Copied!';
+        document.body.appendChild(toast);
+        setTimeout(function() { toast.remove(); }, 2000);
+        return '';
+    }
+    """,
+    Output("copy-toast-container", "children"),
+    Input("share-clipboard", "n_clicks"),
+    prevent_initial_call=True,
+)
+
+# ── Mobile bottom sheet — FAB toggle + scrim dismiss + touch drag ─────────────
+_app_ctx.app.clientside_callback(
+    """
+    function(fab_n, scrim_n) {
+        var ctrl = document.querySelector('.controls-col');
+        var scrim = document.getElementById('sheet-scrim');
+        if (!ctrl || !scrim) return window.dash_clientside.no_update;
+        var expanded = ctrl.classList.contains('sheet-expanded');
+        if (expanded) {
+            ctrl.classList.remove('sheet-expanded');
+            scrim.classList.remove('active');
+        } else {
+            ctrl.classList.add('sheet-expanded');
+            scrim.classList.add('active');
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("mobile-settings-fab", "className"),
+    Input("mobile-settings-fab", "n_clicks"),
+    Input("sheet-scrim", "n_clicks"),
+    prevent_initial_call=True,
+)
+
+# ── Mobile bottom sheet — touch drag on handle ───────────────────────────────
+_app_ctx.app.clientside_callback(
+    """
+    function(tab) {
+        /* Close any open sheet on tab switch */
+        var openSheet = document.querySelector('.controls-col.sheet-expanded');
+        if (openSheet) openSheet.classList.remove('sheet-expanded');
+        var scrim = document.getElementById('sheet-scrim');
+        if (scrim) scrim.classList.remove('active');
+        /* Attach touch handlers to all sheet handles (runs once per tab switch) */
+        setTimeout(function() {
+            var handles = document.querySelectorAll('.sheet-handle');
+            handles.forEach(function(handle) {
+                if (handle._dragBound) return;
+                handle._dragBound = true;
+                var startY = 0, startTranslate = 0, dragging = false;
+                var col = handle.closest('.controls-col');
+                var scrim = document.getElementById('sheet-scrim');
+                if (!col) return;
+
+                handle.addEventListener('touchstart', function(e) {
+                    dragging = true;
+                    startY = e.touches[0].clientY;
+                    var expanded = col.classList.contains('sheet-expanded');
+                    startTranslate = expanded ? 0 : col.offsetHeight - 40;
+                    col.style.transition = 'none';
+                }, {passive: true});
+
+                handle.addEventListener('touchmove', function(e) {
+                    if (!dragging) return;
+                    var dy = e.touches[0].clientY - startY;
+                    var newY = Math.max(0, startTranslate + dy);
+                    var maxY = col.offsetHeight - 40;
+                    newY = Math.min(newY, maxY);
+                    col.style.transform = 'translateY(' + newY + 'px)';
+                }, {passive: true});
+
+                handle.addEventListener('touchend', function(e) {
+                    if (!dragging) return;
+                    dragging = false;
+                    col.style.transition = '';
+                    var rect = col.getBoundingClientRect();
+                    var sheetH = col.offsetHeight;
+                    var visibleH = window.innerHeight - rect.top;
+                    /* Snap: if >30% visible, expand; otherwise collapse */
+                    if (visibleH > sheetH * 0.3) {
+                        col.classList.add('sheet-expanded');
+                        col.style.transform = '';
+                        if (scrim) scrim.classList.add('active');
+                    } else {
+                        col.classList.remove('sheet-expanded');
+                        col.style.transform = '';
+                        if (scrim) scrim.classList.remove('active');
+                    }
+                }, {passive: true});
+
+                /* Tap on handle toggles */
+                handle.addEventListener('click', function() {
+                    if (col.classList.contains('sheet-expanded')) {
+                        col.classList.remove('sheet-expanded');
+                        if (scrim) scrim.classList.remove('active');
+                    } else {
+                        col.classList.add('sheet-expanded');
+                        if (scrim) scrim.classList.add('active');
+                    }
+                });
+            });
+        }, 200);
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("sheet-scrim", "className", allow_duplicate=True),
+    Input("main-tabs", "active_tab"),
+    prevent_initial_call="initial_duplicate",
+)
+
+# ── Share modal: capture chart preview thumbnail ─────────────────────────────
+_TAB_GRAPH_MAP = {
+    "bubble": "bubble-graph",
+    "heatmap": "heatmap-graph",
+    "dca": "dca-graph",
+    "retire": "retire-graph",
+    "supercharge": "supercharge-graph",
+}
+_app_ctx.app.clientside_callback(
+    """
+    function(is_open, active_tab) {
+        if (!is_open) return {'display': 'none'};
+        var graphMap = %s;
+        var graphId = graphMap[active_tab];
+        if (!graphId) return {'display': 'none'};
+        var el = document.getElementById(graphId);
+        if (!el) return {'display': 'none'};
+        var plotDiv = el.querySelector('.js-plotly-plot');
+        if (!plotDiv || !plotDiv.data) return {'display': 'none'};
+        /* Use Plotly.toImage for a small preview */
+        Plotly.toImage(plotDiv, {format: 'png', width: 400, height: 240, scale: 1})
+            .then(function(dataUrl) {
+                var img = document.getElementById('share-preview-thumb');
+                if (img) {
+                    img.src = dataUrl;
+                    img.style.display = 'block';
+                }
+            });
+        return {'display': 'none'};  /* initial hide; JS sets it directly */
+    }
+    """ % str({k: v for k, v in _TAB_GRAPH_MAP.items()}).replace("'", '"'),
+    Output("share-preview-thumb", "style"),
+    Input("share-modal", "is_open"),
+    State("main-tabs", "active_tab"),
+    prevent_initial_call=True,
+)
+
+# ── Stack Tracker lot badge — orange dot on tab when lots exist ───────────────
+_app_ctx.app.clientside_callback(
+    """
+    function(lots) {
+        var tabs = document.querySelectorAll('.nav-tabs .nav-link');
+        for (var i = 0; i < tabs.length; i++) {
+            var text = tabs[i].textContent || '';
+            if (text.indexOf('Stack Tracker') !== -1) {
+                var existing = tabs[i].querySelector('.tab-lot-badge');
+                if (lots && lots.length > 0) {
+                    if (!existing) {
+                        var dot = document.createElement('span');
+                        dot.className = 'tab-lot-badge';
+                        tabs[i].appendChild(dot);
+                    }
+                } else if (existing) {
+                    existing.remove();
+                }
+                break;
+            }
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("lots-store", "data", allow_duplicate=True),
+    Input("lots-store", "data"),
+    prevent_initial_call="initial_duplicate",
+)
+
+# ── Share modal: QR code for generated link ──────────────────────────────────
+@callback(
+    Output("share-qr-img", "src"),
+    Output("share-qr-img", "style"),
+    Output("share-qr-label", "style"),
+    Input("share-url-display", "value"),
+    prevent_initial_call=True,
+)
+def generate_share_qr(url):
+    _hidden = {"display": "none"}
+    if not url or url.startswith("Click"):
+        return "", _hidden, _hidden
+    try:
+        import qrcode
+        import qrcode.image.svg
+        import io
+        import base64
+        qr = qrcode.QRCode(version=None, error_correction=qrcode.constants.ERROR_CORRECT_L,
+                            box_size=8, border=2)
+        qr.add_data(url)
+        qr.make(fit=True)
+        img = qr.make_image(image_factory=qrcode.image.svg.SvgPathImage)
+        buf = io.BytesIO()
+        img.save(buf)
+        b64 = base64.b64encode(buf.getvalue()).decode()
+        return (f"data:image/svg+xml;base64,{b64}",
+                {"display": "block", "margin": "10px auto", "maxWidth": "160px"},
+                {"display": "block", "fontSize": "10px", "color": "#888",
+                 "textAlign": "center", "marginBottom": "8px"})
+    except Exception:
+        return "", _hidden, _hidden
 

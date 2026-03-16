@@ -146,6 +146,12 @@ _app_ctx.PRICE_MODELS["pl"]  = PowerLawModel(
 _app_ctx.PRICE_MODELS["s2f"] = S2FModel(M.price_years, M.price_prices, M.genesis)
 _app_ctx.DEFAULT_MODEL = _app_ctx.PRICE_MODELS["bub"]
 
+# ── Apply thermal color palette to quantile traces ────────────────────────
+from figures import _build_thermal_colors
+_thermal = _build_thermal_colors(M.QR_QUANTILES)
+_app_ctx.DEFAULT_MODEL.colors.update(_thermal)
+M.qr_colors.update(_thermal)  # propagate to layout.py quantile panel dots
+
 import btcpay
 _app_ctx._HAS_BTCPAY = btcpay._HAS_BTCPAY
 

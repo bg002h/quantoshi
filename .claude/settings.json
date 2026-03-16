@@ -1,0 +1,28 @@
+{
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "command": "if echo \"$CLAUDE_FILE_PATH\" | grep -qE 'btc_web/.*\\.py$'; then btc_venv/bin/python3 -m py_compile \"$CLAUDE_FILE_PATH\" 2>&1 | tail -3; fi",
+        "description": "Syntax check Python files after edit"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "command": "if echo \"$CLAUDE_FILE_PATH\" | grep -qE '\\.(env|pem|key)$|credentials'; then echo 'BLOCKED: refusing to edit sensitive file'; exit 1; fi",
+        "description": "Block edits to secrets and credentials"
+      }
+    ]
+  }
+}

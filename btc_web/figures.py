@@ -51,8 +51,10 @@ _ANNOT_STAGGER_Y = _app_ctx.ANNOT_STAGGER_Y
 
 _BTC_ORANGE       = _app_ctx.BTC_ORANGE
 _TODAY_LINE_COLOR  = "#FF6600"
-_TODAY_LINE_WIDTH  = 1.5
+_TODAY_LINE_WIDTH  = 2.0
 _TODAY_LINE_OPACITY = 0.85
+_TODAY_GLOW_WIDTH  = 6
+_TODAY_GLOW_OPACITY = 0.12
 _QR_LINE_WIDTH    = 1.8
 _INTERP_POINTS    = 1500     # sample points for QR interpolation curves
 _MAX_SCATTER_PTS  = 1200     # max data points before downsampling
@@ -64,6 +66,8 @@ _FONT_WATERMARK   = 9
 _FONT_ANNOT       = 11       # depletion / edge annotation text
 
 _SHADE_ALPHA      = 0.08     # fill opacity between adjacent quantile lines
+_GLOW_WIDTH       = 6        # neon wire glow shadow width
+_GLOW_ALPHA       = 0.15     # neon wire glow opacity
 _WM_OPACITY       = 0.55     # watermark logo opacity
 _WM_SIZE_X        = 0.09     # watermark logo width (fraction of paper)
 _WM_SIZE_Y        = 0.12     # watermark logo height (fraction of paper)
@@ -72,7 +76,7 @@ _BISECT_ITERS     = 60       # binary search iterations for Mode B max-withdrawa
 _HM_TEXT_THRESHOLD = 0.55    # cell brightness threshold: white text below, dark above
 
 # ── Enhanced font stack (sans-serif base, serif for premium/MC) ──────────
-_SANS_FONT = "Inter, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif"
+_SANS_FONT = "Avenir Next, Avenir, Segoe UI, system-ui, -apple-system, sans-serif"
 _FONT_TITLE_LG    = 17
 _FONT_BODY_LG     = 13
 _FONT_TICK_LG     = 12
@@ -90,6 +94,57 @@ def _apply_sans_typography(layout: dict) -> None:
     layout["legend"]["font"] = dict(family=_SANS_FONT, size=_FONT_LEGEND_LG)
     for ann in layout.get("annotations", []):
         ann.setdefault("font", {}).update(family=_SANS_FONT, size=_FONT_ANNOT_LG)
+
+# ── Bitcoin Thermal palette — quantile → temperature color ────────────────────
+# Low percentiles (value zone) = cool blue, median = silver, high = hot orange/red
+_THERMAL_STOPS = [
+    (0.001, "#0d47a1"),   # deep sapphire
+    (0.01,  "#1565c0"),   # royal blue
+    (0.015, "#1976d2"),   # blue
+    (0.05,  "#42a5f5"),   # sky blue
+    (0.10,  "#80deea"),   # light cyan
+    (0.25,  "#b2dfdb"),   # pale teal
+    (0.50,  "#bdbdbd"),   # silver — the pivot
+    (0.75,  "#ffcc80"),   # light amber
+    (0.90,  "#f7931a"),   # Bitcoin orange
+    (0.95,  "#e65100"),   # deep orange
+    (0.99,  "#c62828"),   # crimson
+    (0.999, "#7f0000"),   # deep blood red
+]
+
+
+def _thermal_color(q: float) -> str:
+    """Map a quantile (0–1) to a temperature color via the thermal palette."""
+    if q <= _THERMAL_STOPS[0][0]:
+        return _THERMAL_STOPS[0][1]
+    if q >= _THERMAL_STOPS[-1][0]:
+        return _THERMAL_STOPS[-1][1]
+    for i in range(len(_THERMAL_STOPS) - 1):
+        q0, c0 = _THERMAL_STOPS[i]
+        q1, c1 = _THERMAL_STOPS[i + 1]
+        if q0 <= q <= q1:
+            f = (q - q0) / (q1 - q0) if q1 > q0 else 0
+            return _lerp_hex(c0, c1, f)
+    return "#bdbdbd"
+
+
+def _build_thermal_colors(quantiles: list) -> dict:
+    """Build a {quantile: hex_color} dict using the thermal palette."""
+    return {q: _thermal_color(q) for q in quantiles}
+
+
+def _add_glow_trace(traces: list, x, y, color: str, width: float = _GLOW_WIDTH,
+                    opacity: float = _GLOW_ALPHA) -> None:
+    """Add a wider semi-transparent 'neon wire' shadow trace behind a line."""
+    traces.append(go.Scatter(
+        x=list(x) if not isinstance(x, list) else x,
+        y=list(y) if not isinstance(y, list) else y,
+        mode="lines",
+        line=dict(color=color, width=width),
+        opacity=opacity,
+        showlegend=False, hoverinfo="skip",
+    ))
+
 
 # ── shared small helpers ──────────────────────────────────────────────────────
 
@@ -206,27 +261,31 @@ def _apply_mc_overlay(m, p, overlay_fn, overlay_args, traces,
 
 
 def _dark_layout(m, title, xlabel, ylabel, **kwargs):
-    """Base dark-theme layout dict."""
+    """Base dark-theme layout dict — shared Quantoshi chart template.
+
+    Includes consistent font family, sizes, colors, and grid styling
+    so all charts have a cohesive look.
+    """
     return dict(
-        title=dict(text=title, font=dict(color=m.TITLE_COLOR, size=_FONT_TITLE)),
+        title=dict(text=title, font=dict(family=_SANS_FONT, color=m.TITLE_COLOR, size=_FONT_TITLE)),
         paper_bgcolor=m.PLOT_BG_COLOR,
         plot_bgcolor=m.PLOT_BG_COLOR,
-        font=dict(color=m.TEXT_COLOR, size=_FONT_BODY),
+        font=dict(family=_SANS_FONT, color=m.TEXT_COLOR, size=_FONT_BODY),
         xaxis=dict(
-            title=dict(text=xlabel, font=dict(color=m.TEXT_COLOR)),
+            title=dict(text=xlabel, font=dict(family=_SANS_FONT, color=m.TEXT_COLOR)),
             gridcolor=m.GRID_MAJOR_COLOR, gridwidth=0.6,
             linecolor=m.SPINE_COLOR, tickcolor=m.TEXT_COLOR,
             zerolinecolor=m.GRID_MAJOR_COLOR,
         ),
         yaxis=dict(
-            title=dict(text=ylabel, font=dict(color=m.TEXT_COLOR)),
+            title=dict(text=ylabel, font=dict(family=_SANS_FONT, color=m.TEXT_COLOR)),
             gridcolor=m.GRID_MAJOR_COLOR, gridwidth=0.6,
             linecolor=m.SPINE_COLOR, tickcolor=m.TEXT_COLOR,
             zerolinecolor=m.GRID_MAJOR_COLOR,
         ),
         legend=dict(
             bgcolor="rgba(255,255,255,0.85)", bordercolor=m.GRID_MAJOR_COLOR,
-            borderwidth=1, font=dict(size=_FONT_LEGEND),
+            borderwidth=1, font=dict(family=_SANS_FONT, size=_FONT_LEGEND),
         ),
         margin=dict(l=60, r=20, t=50, b=60),
         **kwargs,
@@ -622,7 +681,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 showlegend=False, hoverinfo="skip",
             ))
 
-    # ── quantile lines ────────────────────────────────────────────────────────
+    # ── quantile lines (thermal palette + neon glow) ─────────────────────────
+    _thermal = _build_thermal_colors(sel_qs)
     for q in sel_qs:
         if q not in model.fits:
             continue
@@ -630,7 +690,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         lbl = _fmt_q_label(q)
         if stack > 0:
             lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
-        col = model.colors.get(q, "#888888")
+        col = _thermal.get(q, model.colors.get(q, "#888888"))
+        _add_glow_trace(traces, t_arr, prices, col)
         traces.append(go.Scatter(
             x=list(t_arr), y=list(prices),
             mode="lines", name=lbl,
@@ -725,10 +786,14 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             x_sc  = x_sc[idx]
             y_sc  = y_sc[idx]
             d_sc  = [d_sc[i] for i in idx]
+        # Temporal gradient: old data muted gray → recent data warm amber
+        n_sc = len(x_sc)
+        scatter_colors = [_lerp_hex("#4a5568", "#f7931a", i / max(n_sc - 1, 1))
+                          for i in range(n_sc)]
         traces.append(go.Scatter(
             x=list(x_sc), y=list(y_sc),
             mode="markers", name="Price data",
-            marker=dict(color=m.DATA_COLOR, size=max(2, int(p.get("pt_size", 3))),
+            marker=dict(color=scatter_colors, size=max(2, int(p.get("pt_size", 3))),
                         opacity=float(p.get("pt_alpha", 0.6))),
             text=d_sc, hovertemplate="%{text}<br>%{y:$,.0f}<extra></extra>",
         ))
@@ -758,11 +823,17 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 hovertemplate="%{text}<extra></extra>",
             ))
 
-    # ── today line ────────────────────────────────────────────────────────────
+    # ── today line (with glow shadow) ─────────────────────────────────────────
     shapes = []
     if p.get("show_today"):
         td = today_t(m.genesis)
         if t_lo <= td <= t_hi:
+            # Glow shadow behind the today line
+            shapes.append(dict(
+                type="line", x0=td, x1=td, y0=y_lo, y1=y_hi,
+                line=dict(color=_TODAY_LINE_COLOR, width=_TODAY_GLOW_WIDTH),
+                opacity=_TODAY_GLOW_OPACITY, yref="y",
+            ))
             shapes.append(dict(
                 type="line", x0=td, x1=td, y0=y_lo, y1=y_hi,
                 line=dict(color=_TODAY_LINE_COLOR, dash="dash", width=_TODAY_LINE_WIDTH),
@@ -881,8 +952,11 @@ def _heatmap_colorscale(m, p, mc):
         return _dense_colorscale(_div_color), -abs_max, abs_max
 
 
-def _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax, cell_fs):
+def _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax, cell_fs, colorscale=None):
     """Build cell text annotation dicts for a CAGR heatmap."""
+    if not colorscale:
+        # Fallback: use simple threshold-based approach
+        colorscale = [[0.0, "rgb(27,10,46)"], [1.0, "rgb(255,215,0)"]]
     annots = []
     for ri in range(mc.shape[0]):
         for ci in range(mc.shape[1]):
@@ -917,16 +991,43 @@ def _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax, cell_fs):
                 tx = ""
 
             if tx:
+                # Compute actual cell background brightness from the colorscale
                 cell_norm = (vc2 - zmin) / max(zmax - zmin, 1e-6)
-                txt_col = "#ffffff" if cell_norm < _HM_TEXT_THRESHOLD else "#111111"
-                annots.append(dict(
+                cell_norm = max(0.0, min(1.0, cell_norm))
+                # Sample the colorscale to get the actual cell RGB
+                cs_idx = int(cell_norm * (len(colorscale) - 1))
+                cs_idx = max(0, min(len(colorscale) - 1, cs_idx))
+                _cs_rgb = colorscale[cs_idx][1]  # "rgb(r,g,b)"
+                _rgb = [int(x) for x in _cs_rgb.replace("rgb(", "").replace(")", "").split(",")]
+                _lum = (0.299 * _rgb[0] + 0.587 * _rgb[1] + 0.114 * _rgb[2]) / 255.0
+                # Signed cell text colors: red for loss, gold for exceptional
+                _bg = None  # optional text background for low-contrast cells
+                if vc2 < 0:
+                    txt_col = "#ff8a80"     # soft red — loss
+                elif vc2 > 50:
+                    txt_col = "#ffd700"     # gold — exceptional
+                elif _lum < 0.45:
+                    txt_col = "#ffffff"     # white on dark cells
+                else:
+                    txt_col = "#111111"     # dark on light cells
+                # Low-contrast guard: if text and background are too close,
+                # add a semi-transparent backdrop so text is always readable
+                _txt_lum = 1.0 if txt_col in ("#ffffff", "#ff8a80", "#ffd700") else 0.07
+                if abs(_txt_lum - _lum) < 0.25:
+                    _bg = "rgba(0,0,0,0.55)" if _txt_lum > 0.5 else "rgba(255,255,255,0.6)"
+                    txt_col = "#ffffff" if _txt_lum > 0.5 else "#111111"
+                ann = dict(
                     x=ci, y=ri,
                     text=tx.replace("\n", "<br>"),
                     showarrow=False,
                     font=dict(size=cell_fs, color=txt_col,
                               family=_SANS_FONT, weight="bold"),
                     xref="x", yref="y",
-                ))
+                )
+                if _bg:
+                    ann["bgcolor"] = _bg
+                    ann["borderpad"] = 2
+                annots.append(ann)
     return annots
 
 
@@ -990,7 +1091,8 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     # ── cell annotations ──────────────────────────────────────────────────────
     annots = _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax,
-                                   int(p.get("cell_font_size", 9)))
+                                   int(p.get("cell_font_size", 9)),
+                                   colorscale=colorscale)
 
     fig = go.Figure(data=go.Heatmap(
         z=mc, x=[str(y) for y in eyrs], y=ylabels,
@@ -1030,6 +1132,28 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     fig.layout.yaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
     # Cell font family/size/weight set in _heatmap_cell_annots; no override here.
     # Global font.weight="bold" ensures iOS Safari renders bold on first paint
+
+    # ── Entry year column highlight (orange border around the entry column) ──
+    if str(eyr) in [str(y) for y in eyrs]:
+        entry_ci = [str(y) for y in eyrs].index(str(eyr))
+        fig.add_shape(type="rect",
+            x0=entry_ci - 0.5, x1=entry_ci + 0.5,
+            y0=-0.5, y1=len(xqs) - 0.5,
+            line=dict(color="#f7931a", width=2),
+            fillcolor="rgba(247,147,26,0.06)",
+            xref="x", yref="y",
+        )
+
+    # ── Diagonal emphasis: highlight cells where hold time = 0 ───────────────
+    for ci, ey in enumerate(eyrs):
+        if ey == eyr:
+            fig.add_shape(type="line",
+                x0=ci - 0.5, x1=ci + 0.5,
+                y0=-0.5, y1=len(xqs) - 0.5,
+                line=dict(color="rgba(255,255,255,0.25)", width=1, dash="dot"),
+                xref="x", yref="y",
+            )
+            break
     # (per-annotation weight is unreliable on initial mobile render).
     _apply_config_annotation(fig, p, "hm", show_qr=True, show_mc=False)
     _apply_watermark(fig)
@@ -1079,7 +1203,8 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
     hm_stk = float(p.get("stack", 0))
 
     annots = _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax,
-                                   int(p.get("cell_font_size", 9)))
+                                   int(p.get("cell_font_size", 9)),
+                                   colorscale=colorscale)
 
     fig = go.Figure(data=go.Heatmap(
         z=mc, x=[str(y) for y in eyrs], y=mc_labels,
@@ -1566,6 +1691,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
 
         lbl = _fmt_q_label(q) + f"  →  {final_lbl}"
         col = model.colors.get(q, "#888888")
+        _add_glow_trace(traces, ts, y_vals, col)
         traces.append(go.Scatter(
             x=list(ts), y=list(y_vals), mode="lines", name=lbl,
             line=dict(color=col, width=_QR_LINE_WIDTH),
@@ -1773,6 +1899,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
 
         lbl = _fmt_q_label(q) + f"  \u2192  {final_lbl}"
         col = model.colors.get(q, "#888888")
+        _add_glow_trace(traces, ts, y_vals, col)
         traces.append(go.Scatter(
             x=list(ts), y=list(y_vals), mode="lines", name=lbl,
             line=dict(color=col, width=_QR_LINE_WIDTH),
@@ -1892,8 +2019,8 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
 
 # ── HODL Supercharger ─────────────────────────────────────────────────────────
 
-_DELAY_COLORS = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#E07000']
-_ANNOT_COLORS = ['#636EFA', '#EF553B', '#1D8348', '#AB63FA', '#E07000']
+_DELAY_COLORS = ['#00c853', '#fdd835', '#ff9100', '#ff5252', '#b71c1c']
+_ANNOT_COLORS = ['#00a844', '#d4b12e', '#e07d00', '#d44040', '#8f1616']
 _DASH_STYLES  = ['solid', 'dash', 'dot', 'dashdot', 'longdash']
 
 
@@ -1998,6 +2125,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     _vals, _prices = results[key][4], results[key][5]
                     final_usd = fmt_price(float(_vals[-1]) * float(_prices[-1]))
                     final = f"{float(y_vals[-1]):.4f} BTC  ({final_usd})"
+                _add_glow_trace(traces, ts_d, y_vals, col)
                 traces.append(go.Scatter(
                     x=list(ts_d), y=list(y_vals), mode="lines",
                     name=f"Delay {d_lbl}  \u2192  {final}",
@@ -2019,6 +2147,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         continue
                     ts_d, y_vals, depl_t, t_start_d, *_ = results[key]
                     d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
+                    _add_glow_trace(traces, ts_d, y_vals, col)
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
                         name=f"{q_lbl} delay={d_lbl}",

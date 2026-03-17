@@ -121,7 +121,7 @@ def _export_row(tab_id: str):
             # dummy store — clientside callback needs an output target
             dcc.Store(id=f"{tab_id}-dl-dummy"),
         ], className="g-1 align-items-center"),
-        html.Div("\u2191 Swipe up or tap \U0001F4DC to configure",
+        html.Div("\u2193 Scroll down to configure",
                  className="d-md-none text-center text-muted py-1",
                  style={"fontSize":"11px", "letterSpacing":"0.02em"}),
     ], className="export-row-polished")
@@ -184,10 +184,6 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
                           style=_STYLE_HIDDEN)]
     return dbc.Row([
         dbc.Col([
-            html.Div([
-                html.Div("", className="sheet-grab-bar"),
-                html.Button("\u2715", className="sheet-close-btn", n_clicks=0),
-            ], className="sheet-handle"),
             controls_fn(),
         ], width=3, className="controls-col overflow-auto",
                 style={"maxHeight": "85vh"}),
@@ -611,10 +607,6 @@ def _heatmap_controls():
 def _heatmap_tab():
     return dbc.Row([
         dbc.Col([
-            html.Div([
-                html.Div("", className="sheet-grab-bar"),
-                html.Button("\u2715", className="sheet-close-btn", n_clicks=0),
-            ], className="sheet-handle"),
             _heatmap_controls(),
         ], width=3, className="controls-col overflow-auto",
                 style={"maxHeight":"85vh"}),
@@ -2315,12 +2307,6 @@ _app_ctx.app.layout = dbc.Container([
         dbc.Tab(_stack_tracker_tab(),label="\U0001F5DD\uFE0F Stack Tracker",       tab_id="stack"),
         dbc.Tab(_faq_tab(),          label="\u2753 FAQ",                 tab_id="faq"),
     ], id="main-tabs", active_tab="bubble"),
-    # ── Mobile bottom sheet scrim ──────────────────────────────────────────
-    html.Div(id="sheet-scrim", className="sheet-scrim", n_clicks=0),
-    # ── Mobile floating settings button ────────────────────────────────────
-    html.Button("\u2699\uFE0F", id="mobile-settings-fab",
-                className="mobile-settings-fab",
-                n_clicks=0),
     # ── Footer: block height + halving countdown ──────────────────────────
     html.Div([
         html.Span(id="footer-block-height",

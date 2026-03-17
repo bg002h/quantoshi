@@ -79,25 +79,40 @@
         }
     });
 
-    // ── Handle drag ─────────────────────────────────────────────────────────
+    // ── Drag (handle to open, anywhere in sheet to close when scrolled to top) ─
     var _startY = 0, _startTx = 0, _dragging = false, _dragCol = null;
 
     document.addEventListener('touchstart', function(e) {
         if (!isMobile()) return;
+        // Start drag from handle (open or close)
         var handle = e.target.closest('.sheet-handle');
-        if (!handle) return;
-        _dragCol = handle.closest('.controls-col');
-        if (!_dragCol) return;
-        _dragging = true;
-        _startY = e.touches[0].clientY;
-        var expanded = _dragCol.classList.contains('sheet-expanded');
-        _startTx = expanded ? 0 : _dragCol.offsetHeight - 90;
-        _dragCol.style.transition = 'none';
+        if (handle) {
+            _dragCol = handle.closest('.controls-col');
+            if (!_dragCol) return;
+            _dragging = true;
+            _startY = e.touches[0].clientY;
+            var expanded = _dragCol.classList.contains('sheet-expanded');
+            _startTx = expanded ? 0 : _dragCol.offsetHeight - 90;
+            _dragCol.style.transition = 'none';
+            return;
+        }
+        // Start drag from expanded sheet body (swipe down to close)
+        // Only when scrolled to top so it doesn't fight content scrolling
+        var col = e.target.closest('.controls-col');
+        if (col && col.classList.contains('sheet-expanded') && col.scrollTop <= 0) {
+            _dragCol = col;
+            _dragging = true;
+            _startY = e.touches[0].clientY;
+            _startTx = 0;
+            _dragCol.style.transition = 'none';
+        }
     }, {passive: true});
 
     document.addEventListener('touchmove', function(e) {
         if (!_dragging || !isMobile() || !_dragCol) return;
         var dy = e.touches[0].clientY - _startY;
+        // If dragging from expanded body, only allow downward movement
+        if (_startTx === 0 && dy < 0) return;
         var newY = Math.max(0, _startTx + dy);
         var maxY = _dragCol.offsetHeight - 90;
         newY = Math.min(newY, maxY);

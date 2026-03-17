@@ -1145,11 +1145,11 @@ body {
     }
     /* Feather quill + CONFIG text — horizontal for mobile */
     .sheet-handle::after {
-        content: "C O N F I G  \1FAB6";
+        content: "\1FAB6  C O N F I G";
         position: absolute;
         top: 50%;
         left: 50%;
-        transform: translate(-50%, -50%);
+        transform: translate(calc(-50% + 4px), -50%);
         font-size: 12px;
         font-weight: 700;
         font-family: "Palatino Linotype", Palatino, "Book Antiqua", serif;

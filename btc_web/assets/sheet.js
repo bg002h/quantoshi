@@ -10,23 +10,34 @@
     }
 
     function getSheet() {
-        return document.querySelector('.controls-col');
+        /* Find the controls-col inside the currently active tab pane */
+        var active = document.querySelector('.tab-pane.active .controls-col');
+        return active || document.querySelector('.controls-col');
     }
 
     function getScrim() {
         return document.getElementById('sheet-scrim');
     }
 
+    function collapseAll() {
+        /* Remove sheet-expanded from ALL controls-cols (prevents stale state across tabs) */
+        document.querySelectorAll('.controls-col.sheet-expanded').forEach(function(el) {
+            el.classList.remove('sheet-expanded');
+            el.style.transform = '';
+        });
+        var scrim = getScrim();
+        if (scrim) scrim.classList.remove('active');
+    }
+
     function expand() {
+        collapseAll();
         var sheet = getSheet(), scrim = getScrim();
         if (sheet) sheet.classList.add('sheet-expanded');
         if (scrim) scrim.classList.add('active');
     }
 
     function collapse() {
-        var sheet = getSheet(), scrim = getScrim();
-        if (sheet) { sheet.classList.remove('sheet-expanded'); sheet.style.transform = ''; }
-        if (scrim) scrim.classList.remove('active');
+        collapseAll();
     }
 
     function toggle() {
@@ -55,49 +66,60 @@
     document.addEventListener('click', function(e) {
         if (!isMobile()) return;
         var handle = e.target.closest('.sheet-handle');
-        if (handle) toggle();
+        if (!handle) return;
+        var col = handle.closest('.controls-col');
+        if (!col) return;
+        var scrim = getScrim();
+        if (col.classList.contains('sheet-expanded')) {
+            collapseAll();
+        } else {
+            collapseAll();
+            col.classList.add('sheet-expanded');
+            if (scrim) scrim.classList.add('active');
+        }
     });
 
     // ── Handle drag ─────────────────────────────────────────────────────────
-    var _startY = 0, _startTx = 0, _dragging = false;
+    var _startY = 0, _startTx = 0, _dragging = false, _dragCol = null;
 
     document.addEventListener('touchstart', function(e) {
         if (!isMobile()) return;
         var handle = e.target.closest('.sheet-handle');
         if (!handle) return;
+        _dragCol = handle.closest('.controls-col');
+        if (!_dragCol) return;
         _dragging = true;
         _startY = e.touches[0].clientY;
-        var sheet = getSheet();
-        if (!sheet) return;
-        var expanded = sheet.classList.contains('sheet-expanded');
-        _startTx = expanded ? 0 : sheet.offsetHeight - 90;
-        sheet.style.transition = 'none';
+        var expanded = _dragCol.classList.contains('sheet-expanded');
+        _startTx = expanded ? 0 : _dragCol.offsetHeight - 90;
+        _dragCol.style.transition = 'none';
     }, {passive: true});
 
     document.addEventListener('touchmove', function(e) {
-        if (!_dragging || !isMobile()) return;
-        var sheet = getSheet();
-        if (!sheet) return;
+        if (!_dragging || !isMobile() || !_dragCol) return;
         var dy = e.touches[0].clientY - _startY;
         var newY = Math.max(0, _startTx + dy);
-        var maxY = sheet.offsetHeight - 90;
+        var maxY = _dragCol.offsetHeight - 90;
         newY = Math.min(newY, maxY);
-        sheet.style.transform = 'translateY(' + newY + 'px)';
+        _dragCol.style.transform = 'translateY(' + newY + 'px)';
     }, {passive: true});
 
     document.addEventListener('touchend', function() {
-        if (!_dragging || !isMobile()) return;
+        if (!_dragging || !isMobile() || !_dragCol) return;
         _dragging = false;
-        var sheet = getSheet();
-        if (!sheet) return;
-        sheet.style.transition = '';
-        var rect = sheet.getBoundingClientRect();
+        _dragCol.style.transition = '';
+        var rect = _dragCol.getBoundingClientRect();
         var visibleH = window.innerHeight - rect.top;
-        if (visibleH > sheet.offsetHeight * 0.3) {
-            expand();
+        var scrim = getScrim();
+        if (visibleH > _dragCol.offsetHeight * 0.3) {
+            _dragCol.classList.add('sheet-expanded');
+            if (scrim) scrim.classList.add('active');
         } else {
-            collapse();
+            _dragCol.classList.remove('sheet-expanded');
+            _dragCol.style.transform = '';
+            if (scrim) scrim.classList.remove('active');
         }
+        _dragCol = null;
     }, {passive: true});
 
     // ── Close sheet on tab switch ───────────────────────────────────────────

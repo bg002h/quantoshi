@@ -1355,7 +1355,10 @@ body {
    areas.  Only deliberately horizontal movements activate the slider.
 */
 .rc-slider {
-    touch-action: pan-y;
+    touch-action: pan-y !important;
+}
+.rc-slider * {
+    touch-action: pan-y !important;
 }
 
 /* ── Input accepted flash ───────────────────────────────────────────────────

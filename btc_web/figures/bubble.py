@@ -9,10 +9,11 @@ import plotly.graph_objects as go
 from typing import Any
 
 import _app_ctx
-from btc_core import ModelData, yr_to_t, today_t, fmt_price, leo_weighted_entry
+from btc_core import yr_to_t, today_t, fmt_price
 
 from figures.common import (
     _INTERP_POINTS, _MAX_SCATTER_PTS, _QR_LINE_WIDTH, _SHADE_ALPHA,
+    _NON_QUANTIZED_MODEL_COLOR, _OVERLAY_LINE_WIDTH,
     _TODAY_LINE_COLOR, _TODAY_LINE_WIDTH, _TODAY_LINE_OPACITY,
     _TODAY_GLOW_WIDTH, _TODAY_GLOW_OPACITY,
     _FONT_LEGEND, _FONT_TITLE, _FONT_SUBTITLE,
@@ -46,10 +47,19 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     # ── shading between adjacent quantiles ───────────────────────────────────
     sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])])
+
+    # Pre-compute prices for all selected quantiles
+    _price_cache = {}
+    for q in sel_qs:
+        if q in model.fits:
+            _price_cache[q] = model.price_at(q, t_arr) * (stack if stack > 0 else 1)
+
     if p.get("shade") and len(sel_qs) >= 2:
         for j in range(len(sel_qs) - 1):
-            lo_p = model.price_at(sel_qs[j], t_arr) * (stack if stack > 0 else 1)
-            hi_p = model.price_at(sel_qs[j+1], t_arr) * (stack if stack > 0 else 1)
+            if sel_qs[j] not in _price_cache or sel_qs[j+1] not in _price_cache:
+                continue
+            lo_p = _price_cache[sel_qs[j]]
+            hi_p = _price_cache[sel_qs[j+1]]
             col  = model.colors.get(sel_qs[j], "#888888")
             traces.append(go.Scatter(
                 x=list(t_arr), y=list(lo_p),
@@ -59,16 +69,16 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             traces.append(go.Scatter(
                 x=list(t_arr), y=list(hi_p),
                 mode="lines", line=dict(width=0), fill="tonexty",
-                fillcolor=col.replace("#", "rgba(").rstrip(")") if False else _hex_alpha(col, _SHADE_ALPHA),
+                fillcolor=_hex_alpha(col, _SHADE_ALPHA),
                 showlegend=False, hoverinfo="skip",
             ))
 
     # ── quantile lines (thermal palette + neon glow) ─────────────────────────
     _thermal = _build_thermal_colors(sel_qs)
     for q in sel_qs:
-        if q not in model.fits:
+        if q not in _price_cache:
             continue
-        prices = model.price_at(q, t_arr) * (stack if stack > 0 else 1)
+        prices = _price_cache[q]
         lbl = _fmt_q_label(q)
         if stack > 0:
             lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
@@ -97,7 +107,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 traces.append(go.Scatter(
                     x=list(t_arr), y=list(prices),
                     mode="lines", name=lbl,
-                    line=dict(color=col, width=_QR_LINE_WIDTH * 0.8, dash=mdl.dash_style),
+                    line=dict(color=col, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                     legendgroup=mdl.short_name,
                     legendgrouptitle_text=mdl.name,
                 ))
@@ -112,7 +122,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             traces.append(go.Scatter(
                 x=list(t_arr), y=list(np.asarray(prices)),
                 mode="lines", name=lbl,
-                line=dict(color="#8B4513", width=_QR_LINE_WIDTH * 0.8, dash=mdl.dash_style),
+                line=dict(color=_NON_QUANTIZED_MODEL_COLOR, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                 legendgroup=mdl.short_name,
             ))
 

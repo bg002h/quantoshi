@@ -13,6 +13,7 @@ from mc_overlay import _mc_supercharge_overlay
 
 from figures.common import (
     _QR_LINE_WIDTH, _ANNOT_STAGGER_Y, _BISECT_ITERS,
+    _NON_QUANTIZED_MODEL_COLOR,
     _FONT_ANNOT,
     _HAS_MARKOV,
     _add_glow_trace, _fmt_q_label, _error_figure,
@@ -208,22 +209,22 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
             if not mdl:
                 continue
             _sc_overlay_qs = sel_qs if mdl.quantized else [0.5]
-            for q in _sc_overlay_qs:
-                if mdl.quantized and q not in mdl.fits:
+            for di, d in enumerate(delays):
+                t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
+                if t_start_d >= t_end:
                     continue
-                for di, d in enumerate(delays):
-                    t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
-                    if t_start_d >= t_end:
+                ts_d = np.arange(t_start_d, t_end + dt * 0.5, dt)
+                if len(ts_d) == 0:
+                    continue
+                ts_d_clamped = np.maximum(ts_d, 0.5)
+                adj_wd_d = wd_amount * ((1 + inflation) ** (ts_d - t_start_d))
+                for q in _sc_overlay_qs:
+                    if mdl.quantized and q not in mdl.fits:
                         continue
-                    ts_d = np.arange(t_start_d, t_end + dt * 0.5, dt)
-                    if len(ts_d) == 0:
-                        continue
-                    ts_d_clamped = np.maximum(ts_d, 0.5)
-                    adj_wd_d = wd_amount * ((1 + inflation) ** (ts_d - t_start_d))
                     prices = mdl.price_at(q, ts_d_clamped)
                     vals = np.maximum(start_stack - np.cumsum(adj_wd_d / prices), 0.0)
                     y_vals = vals * prices if disp_mode == "usd" else vals
-                    col = mdl.colors.get(q, "#888888") if mdl.quantized else "#8B4513"
+                    col = mdl.colors.get(q, "#888888") if mdl.quantized else _NON_QUANTIZED_MODEL_COLOR
                     d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
                     q_lbl = f" {_fmt_q_label(q, '')}" if mdl.quantized else ""
                     if disp_mode == "usd":
@@ -234,7 +235,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
                         name=f"{mdl.name}{q_lbl} {d_lbl}  \u2192  {final}",
-                        line=dict(color=col, width=1.2, dash=mdl.dash_style),
+                        line=dict(color=col, width=1.2, dash=mdl.dash_style),  # intentional: 1.2 not _OVERLAY_LINE_WIDTH
                         legendgroup=mdl.short_name,
                         legendgrouptitle_text=mdl.name,
                         showlegend=(di == 0),  # show legend only for first delay

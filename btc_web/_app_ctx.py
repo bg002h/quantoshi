@@ -13,6 +13,7 @@ FREQ_STEP_DAYS = {"Daily": 1, "Weekly": 7, "Monthly": 30, "Quarterly": 91, "Annu
 ANNOT_STAGGER_Y = [-20, -33, -46]  # annotation y-offsets for staggering (~1 font-height apart)
 BTC_ORANGE = "#f7931a"
 FONT_LEGEND = 10              # legend / small info text
+MODEL_SENTINELS = frozenset({"qr", "mc"})  # reserved keys in model-show checklists
 
 # ── Dollar / loan defaults (shared across layout, callbacks, app prewarm) ────
 MAX_USD = 4_294_967_295        # uint32 max — clamp for dollar amount inputs

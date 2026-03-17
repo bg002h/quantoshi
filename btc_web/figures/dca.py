@@ -11,6 +11,7 @@ from btc_core import ModelData, yr_to_t, today_t, fmt_price
 
 from figures.common import (
     _QR_LINE_WIDTH, _BTC_ORANGE,
+    _NON_QUANTIZED_MODEL_COLOR, _OVERLAY_LINE_WIDTH,
     _TODAY_LINE_COLOR, _TODAY_LINE_WIDTH, _TODAY_LINE_OPACITY,
     _FONT_ANNOT,
     _HAS_MARKOV,
@@ -219,7 +220,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                 traces.append(go.Scatter(
                     x=list(ts), y=list(y_vals), mode="lines",
                     name=f"{mdl.name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
-                    line=dict(color=col, width=_QR_LINE_WIDTH * 0.8, dash=mdl.dash_style),
+                    line=dict(color=col, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                     legendgroup=mdl.short_name,
                     legendgrouptitle_text=mdl.name,
                 ))
@@ -237,7 +238,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
             traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines",
                 name=f"{mdl.name}  \u2192  {final_lbl}",
-                line=dict(color="#8B4513", width=_QR_LINE_WIDTH * 0.8, dash=mdl.dash_style),
+                line=dict(color=_NON_QUANTIZED_MODEL_COLOR, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                 legendgroup=mdl.short_name,
             ))
 

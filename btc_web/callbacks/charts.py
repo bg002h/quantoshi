@@ -220,7 +220,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
         stack        = _cf(stack, 0),
         use_lots     = bool(use_lots),
         lots         = lots_data or [],
-        active_models = [k for k in (model_show or []) if k not in ("qr", "mc")],
+        active_models = [k for k in (model_show or []) if k not in _app_ctx.MODEL_SENTINELS],
     )
 
     # QR heatmap (always)
@@ -379,7 +379,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
         sc_rollover     = bool(sc_rollover),
         show_qr        = "qr" in model_show,
         show_mc        = "mc" in model_show,
-        active_models  = [k for k in model_show if k not in ("qr", "mc")],
+        active_models  = [k for k in model_show if k not in _app_ctx.MODEL_SENTINELS],
         **mc_p,
     ))
     fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(
@@ -464,7 +464,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         lots         = lots_data or [],
         show_qr      = "qr" in model_show,
         show_mc      = "mc" in model_show,
-        active_models = [k for k in model_show if k not in ("qr", "mc")],
+        active_models = [k for k in model_show if k not in _app_ctx.MODEL_SENTINELS],
         **mc_p,
     ))
     fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(
@@ -577,7 +577,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         use_lots     = bool(use_lots),
         show_qr      = "qr" in model_show,
         show_mc      = "mc" in model_show,
-        active_models = [k for k in model_show if k not in ("qr", "mc")],
+        active_models = [k for k in model_show if k not in _app_ctx.MODEL_SENTINELS],
         **mc_p,
     ))
     fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(

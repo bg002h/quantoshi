@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 # btc_app/ is added to sys.path by app.py before this import
 from typing import Any
 import _app_ctx
-from btc_core import ModelData, yr_to_t, today_t, fmt_price, leo_weighted_entry
+from btc_core import yr_to_t, fmt_price, leo_weighted_entry
 try:
     from markov import build_transition_matrix  # noqa: F401 — presence check
     _HAS_MARKOV = True
@@ -22,7 +22,7 @@ except ImportError:
 # MC overlay logic lives in mc_overlay.py
 from mc_overlay import (
     _mc_build_traces, _mc_depletion_annots,
-    _mc_dca_overlay, _mc_withdraw_overlay,
+    _mc_dca_overlay,
     _mc_retire_overlay, _mc_supercharge_overlay,
     _mc_heatmap_overlay,
     ghost_traces_from_params,
@@ -50,6 +50,8 @@ _FONT_WATERMARK   = 9
 _FONT_ANNOT       = 11       # depletion / edge annotation text
 
 _SHADE_ALPHA      = 0.08     # fill opacity between adjacent quantile lines
+_NON_QUANTIZED_MODEL_COLOR = "#8B4513"  # saddlebrown — single-trajectory models
+_OVERLAY_LINE_WIDTH = _QR_LINE_WIDTH * 0.8  # alt-model overlay lines
 _GLOW_WIDTH       = 6        # neon wire glow shadow width
 _GLOW_ALPHA       = 0.15     # neon wire glow opacity
 _WM_OPACITY       = 0.55     # watermark logo opacity

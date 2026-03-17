@@ -12,6 +12,7 @@ from mc_overlay import _mc_retire_overlay
 
 from figures.common import (
     _QR_LINE_WIDTH, _ANNOT_STAGGER_Y,
+    _NON_QUANTIZED_MODEL_COLOR, _OVERLAY_LINE_WIDTH,
     _FONT_ANNOT,
     _HAS_MARKOV,
     _add_glow_trace, _fmt_q_label,
@@ -46,6 +47,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     deplete_annots = []
     all_btc_vals = {}  # q -> BTC balance array
     all_y_vals   = {}  # q -> plotted y-values (for text trace annotations)
+    all_prices   = {}  # q -> price array — reused by annotation loop
 
     ts_clamped = np.maximum(ts, 0.5)
     adj_wd_arr = wd_amount * ((1 + inflation) ** (ts - t_start))
@@ -55,6 +57,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
         prices = model.price_at(q, ts_clamped)
         vals = np.maximum(start_stack - np.cumsum(adj_wd_arr / prices), 0.0)
         all_btc_vals[q] = vals
+        all_prices[q]   = prices
 
         if disp_mode == "usd":
             y_vals = vals * prices
@@ -111,7 +114,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 traces.append(go.Scatter(
                     x=list(ts), y=list(y_vals), mode="lines",
                     name=f"{mdl.name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
-                    line=dict(color=col, width=_QR_LINE_WIDTH * 0.8, dash=mdl.dash_style),
+                    line=dict(color=col, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                     legendgroup=mdl.short_name,
                     legendgrouptitle_text=mdl.name,
                 ))
@@ -129,7 +132,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines",
                 name=f"{mdl.name}  \u2192  {final_lbl}",
-                line=dict(color="#8B4513", width=_QR_LINE_WIDTH * 0.8, dash=mdl.dash_style),
+                line=dict(color=_NON_QUANTIZED_MODEL_COLOR, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                 legendgroup=mdl.short_name,
             ))
 
@@ -155,7 +158,6 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     _is_log = bool(p.get("log_y"))
     _pending_annots = []
     if p.get("annotate") and all_y_vals:
-        ts_end_arr = np.maximum(np.array([ts[-1]]), 0.5)
         for q in sel_qs:
             if q not in all_y_vals:
                 continue
@@ -163,7 +165,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             if btc_final <= 0:
                 continue
             col = model.colors.get(q, "#888888")
-            usd_final = btc_final * float(model.price_at(q, ts_end_arr)[0])
+            usd_final = btc_final * float(all_prices[q][-1])
             qpfx = f"Q{q*100:g}%"
             if disp_mode == "usd":
                 lbl = f"{qpfx} {fmt_price(usd_final)}"

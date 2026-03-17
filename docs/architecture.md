@@ -58,23 +58,22 @@ figures.py
 
 ### Module responsibilities
 
-| Module | Lines | Purpose | Key exports |
-|--------|-------|---------|-------------|
-| `app.py` | 340 | Orchestrator: app creation, model load, Flask routes, cache prewarm | `app`, `server` |
-| `_app_ctx.py` | 56 | Shared state and constants | `M`, `app`, `FREQ_PPY`, `BTC_ORANGE`, `_compute_sc_loan()` |
-| `utils.py` | 188 | Float quantization, 6 LRU figure caches, price fetching | `_q3()`, `_get_*_fig()`, `_fetch_btc_price()` |
-| `snapshot.py` | 234 | Snapshot encoding/decoding, bitmask helpers | `_encode_snapshot()`, `_decode_snapshot()`, `_SNAPSHOT_CONTROLS` |
-| `layout.py` | 2,256 | All 7 tab layouts, shared settings panels, splash modal, navbar | `main_layout()`, `_STYLE_*` constants |
-| `callbacks.py` | 2,950 | ~20 server callbacks + ~30 clientside JS callbacks, `_ci()`/`_cf()` coercion | `update_bubble()`, `update_heatmap()`, `update_dca()`, etc. |
-| `figures.py` | 2,148 | 6 Plotly chart builders, annotation overlap resolver, `_finalize_chart()` | `build_bubble_figure()`, `build_heatmap_figure()`, etc. |
-| `mc_overlay.py` | 919 | MC simulation, caching, fan band traces, regime filters | `_mc_dca_overlay()`, `_mc_retire_overlay()`, etc. |
-| `mc_cache.py` | 431 | Pre-computed MC cache generation/loading/lookup | `load_caches()`, `get_cached_paths()`, `get_cached_overlay()` |
-| `api.py` | 204 | REST API endpoints | `register_routes()` |
-| `btcpay.py` | 260 | BTCPay Server payment integration | Invoice lifecycle |
-| `btc_core.py` | 267 | ModelData class, QR pricing math, lot percentiles | `ModelData`, `qr_price()`, `yr_to_t()` |
-| `test_web.py` | 3,345 | 428 tests: utilities, builders, snapshots, callbacks, btcpay, regime filters | — |
-
-**Total web app**: ~10,000 lines across 12 modules + 3,345 lines of tests.
+| Module | Purpose | Key exports |
+|--------|---------|-------------|
+| `app.py` | Orchestrator: app creation, model load, Flask routes, cache prewarm | `app`, `server` |
+| `_app_ctx.py` | Shared state and constants (models, palettes, flags) | `M`, `app`, `FREQ_PPY`, `PALETTES`, `PRICE_MODELS`, `_compute_sc_loan()` |
+| `utils.py` | Float quantization, LRU figure caches, price fetching | `_q3()`, `_get_*_fig()`, `_fetch_btc_price()` |
+| `snapshot.py` | Snapshot encoding/decoding, bitmask helpers | `_encode_snapshot()`, `_decode_snapshot()`, `_SNAPSHOT_CONTROLS` |
+| `layout/` | Layout package (10 modules): `__init__` (navbar, modal, stores), `bubble`, `heatmap` (pill bar), `sim_tabs` (DCA+Retire), `supercharge`, `stack`, `faq`, `common` (shared helpers), `mc_controls`, `splash` | `main_layout()` |
+| `callbacks/` | Callbacks package (12 modules): `__init__`, `charts`, `nav` (tab routing, pill clicks), `ticker`, `snapshot_cb`, `mc_controls`, `mc_helpers`, `mc_payment`, `mc_upload`, `lots`, `coerce` (`_ci()`/`_cf()`), `sc_loan` | `update_bubble()`, `update_heatmap()`, etc. |
+| `figures/` | Figures package (7 modules): `__init__`, `common` (palette, watermark, annotations, MC overlay), `bubble` (+ PL/S2F overlays), `heatmap`, `dca`, `retire`, `supercharge` | `build_bubble_figure()`, `build_heatmap_figure()`, etc. |
+| `mc_overlay.py` | MC simulation, caching, fan band traces, regime filters | `_mc_dca_overlay()`, `_mc_retire_overlay()`, etc. |
+| `mc_cache.py` | Pre-computed MC cache generation/loading/lookup | `load_caches()`, `get_cached_paths()`, `get_cached_overlay()` |
+| `load_shm_cache.py` | Shared memory cache loading | — |
+| `api.py` | REST API endpoints | `register_routes()` |
+| `btcpay.py` | BTCPay Server payment integration | Invoice lifecycle |
+| `btc_core.py` | ModelData class, QR pricing math, lot percentiles | `ModelData`, `qr_price()`, `yr_to_t()` |
+| `test_web.py` | Tests: utilities, builders, snapshots, callbacks, btcpay, regime filters | — |
 
 ---
 
@@ -85,7 +84,7 @@ figures.py
 | # | Tab | ID | Chart builder | MC overlay | Key controls |
 |---|-----|----|---------------|------------|--------------|
 | 1 | Bubble + QR Overlay | `bubble` | `build_bubble_figure()` | None | Quantiles, axes, N future bubbles, stack |
-| 2 | CAGR Heatmap | `heatmap` | `build_heatmap_figure()` | `_mc_heatmap_overlay()` | Entry yr/percentile, color mode, gradient |
+| 2 | CAGR Heatmap | `heatmap` | `build_heatmap_figure()` | `_mc_heatmap_overlay()` | Entry yr/percentile, color mode, multi-model pill bar (Bubble/PL/S2F/MC) |
 | 3 | BTC Accumulator | `dca` | `build_dca_figure()` | `_mc_dca_overlay()` | DCA amount, freq, Stack-celerator |
 | 4 | BTC RetireMentator | `retire` | `build_retire_figure()` | `_mc_retire_overlay()` | Withdrawal, inflation, depletion arrows |
 | 5 | HODL Supercharger | `supercharge` | `build_supercharge_figure()` | `_mc_supercharge_overlay()` | Mode A/B, delays, depletion bands |
@@ -121,12 +120,19 @@ Each MC-enabled tab follows a consistent layout pattern:
 QR and MC on the same tab. HM is an exception — only stack is shared; HM retains
 its own mc-amount, mc-freq, mc-infl since QR heatmap doesn't use those parameters.
 
-### Display Models toggle
+### Price models & Display Models
 
-Each MC-enabled tab has a `{prefix}-model-show` checklist in Chart Settings
-with options `["qr", "mc"]` (both checked by default when MC is enabled).
-This controls which model's traces are visible on the chart. When MC is off,
-QR is always shown.
+Three price models registered at startup in `_app_ctx.PRICE_MODELS`:
+- **Bubble Model** (`"bub"`) — default, loaded from `model_data.pkl`
+- **Power Law** (`"pl"`) — OLS fit to log-log data
+- **S2F (Stock-to-Flow)** (`"s2f"`) — alternative parameterization
+
+Per-tab model display:
+- **Bubble tab**: `bub-model-show` checklist toggles PL + S2F overlays on the bubble chart.
+- **Heatmap tab**: pill bar carousel (`hm-active-model` Store) — one model active at a time. `hm-model-show` checklist exists in layout for snapshot compat but is hidden, replaced by the pill bar. Pill buttons are built dynamically from `PRICE_MODELS` + optional MC.
+- **DCA / Retire / Supercharger**: `{prefix}-model-show` checklist showing QR, MC (if available), PL, S2F.
+
+When `_HAS_MARKOV` is `False`, "MC Simulation" is hidden from all Display Models checklists.
 
 ---
 
@@ -174,7 +180,7 @@ Each key is a quantile (0.001 = Q0.1%, 0.50 = Q50%, etc.). The fitting uses
 
 ### Interpolation for arbitrary percentiles
 
-`_interp_qr_price(q, t, qr_fits)` in `figures.py` handles non-standard
+`_interp_qr_price(q, t, qr_fits)` in `figures/common.py` handles non-standard
 percentiles (e.g., Q7.5%) by interpolating in log-price space between the two
 nearest fitted quantiles.
 
@@ -321,7 +327,7 @@ After the first full npz load (~7s), the entire cache is pickled to
 `/dev/shm/quantoshi_mc.pkl` (~834 MB). Subsequent worker restarts load in ~0.7s.
 A fingerprint (npz mtime + total size) validates freshness.
 
-### Chart finalization (`_finalize_chart()` in figures.py)
+### Chart finalization (`_finalize_chart()` in figures/common.py)
 
 All chart builders (DCA, Retire, SC Modes A/B) share a common finalization
 sequence extracted into `_finalize_chart(traces, layout, p, tab, mc_result,
@@ -390,13 +396,13 @@ DCA, Retire, and SC tabs all support this toggle.
 
 ### Control inventory
 
-90 `_SNAPSHOT_CONTROLS` entries — `(component_id, property)` tuples covering
+97 `_SNAPSHOT_CONTROLS` entries — `(component_id, property)` tuples covering
 all UI controls across 7 tabs.
 
 ### Encoding pipeline
 
 ```
-Control states → JSON array (90 elements) → gzip → base64 urlsafe → URL hash
+Control states → JSON array (97 elements) → gzip → base64 urlsafe → URL hash
 ```
 
 URL format: `host/N#q3:ENCODED` where `N` is the tab path (1–7).
@@ -535,6 +541,8 @@ natural daily TTL.
 - Primary: Binance (`api.binance.com/api/v3/ticker/price?symbol=BTCUSDT`)
 - Fallback: CoinGecko (for US geo-blocked users)
 - Outputs: navbar `price-ticker` div, `btc-price-store`, heatmap `hm-entry-q`
+- Display: `₿ $X` · `QY.Y%` (current quantile) + 24h sparkline SVG (CoinGecko)
+- Sats/$ toggle: switches ticker between USD price and sats-per-dollar display
 - Heatmap uses `live_price` as entry price when `entry_yr == current_year`
 - Binance is geo-blocked in the US (HTTP 451) but works from the Hetzner server
 
@@ -544,7 +552,7 @@ natural daily TTL.
 
 ### Style constants
 
-Module-level constants in `layout.py` for repeated inline styles:
+Module-level constants in `layout/` for repeated inline styles:
 
 | Constant | Value | Used for |
 |----------|-------|----------|
@@ -723,7 +731,7 @@ class ModelData:
 | `SC_DEFAULT_PRICE` | `80,000` | Stack-celerator default entry price ($) |
 | `BTC_ORANGE` | `#f7931a` | Bitcoin brand color |
 
-### `figures.py` rendering constants
+### `figures/` rendering constants
 
 | Constant | Value | Purpose |
 |----------|-------|---------|

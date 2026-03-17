@@ -36,6 +36,17 @@ Server logs are retained for 27 days and contain only standard web server
 request data (IP, timestamp, URL path). Tor users can access the `.onion`
 address for additional privacy.
 
+### Navbar features
+
+- **Live ticker**: Shows the current BTC price (`₿ $X`) and your current
+  quantile percentile (`QY.Y%`), updated every 20 minutes. A 24-hour sparkline
+  chart appears next to the price.
+- **Sats/$ toggle**: Click the ticker mode button to switch between USD price
+  and sats-per-dollar display.
+- **Palette selector**: Choose between Default, Colorblind-RG (red-green safe),
+  and Colorblind-Full (fully colorblind-safe) color schemes. Your choice is
+  saved in `localStorage` and applies to all charts.
+
 ---
 
 ## 2. Tab-by-Tab Guide
@@ -58,6 +69,8 @@ channels and bubble model projections.
   quantile on the right edge of the chart.
 - **Use Stack Tracker lots**: Pull your BTC amount from the Stack Tracker tab
   instead of entering manually.
+- **Display Models**: Toggle overlay models (Power Law, Stock-to-Flow) on the
+  bubble chart to compare against the default bubble model projections.
 
 **Tips:**
 - Select a few quantiles that bracket your scenario (e.g., Q10% pessimistic,
@@ -70,6 +83,10 @@ channels and bubble model projections.
 
 A color-coded grid showing the Compound Annual Growth Rate (CAGR) for every
 combination of entry year/percentile and exit year.
+
+**Model pill bar:** Switch between price models using the pill buttons at the
+top of the tab — Bubble Model, Power Law, S2F, and Monte Carlo (if available).
+Each model produces its own heatmap using different price projections.
 
 **Key controls:**
 - **Entry Year**: When you (hypothetically) buy. Current year uses the live
@@ -173,8 +190,9 @@ total BTC from all lots becomes the starting stack for that simulation.
 
 ### Tab 7: FAQ
 
-14 entries covering common questions. Directly linkable via URL paths like
-`/7.3` (opens the 3rd FAQ item).
+18 entries covering common questions including quantile regression vs MCMC
+differences. Directly linkable via URL paths like `/7.3` (opens the 3rd FAQ
+item).
 
 ---
 

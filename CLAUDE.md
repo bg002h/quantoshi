@@ -179,8 +179,17 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | File | Purpose |
 |------|---------|
 | `app.py` | Dash app entry point — model loading, Flask config, cache prewarm |
-| `layout/` | Layout package — tab controls, navbar, main assembly (9 modules) |
-| `callbacks/` | Callbacks package — all Dash callbacks (12 modules) |
+| `_app_ctx.py` | Shared application context — static constants + dynamic state (models, palettes, flags) |
+| `snapshot.py` | Snapshot/URL state encoding and decoding for share links |
+| `api.py` | API route handlers |
+| `utils.py` | Shared utilities (cache, figure builders, price fetching) |
+| `btcpay.py` | BTCPay payment integration (Lightning/on-chain) |
+| `mc_overlay.py` | Monte Carlo overlay integration + transition matrix caching |
+| `mc_cache.py` | MC cache configuration and helpers |
+| `load_shm_cache.py` | Shared memory cache loading |
+| `test_web.py` | Comprehensive test suite |
+| `layout/` | Layout package — tab controls, navbar, main assembly (10 modules: `__init__`, `bubble`, `heatmap`, `sim_tabs`, `supercharge`, `stack`, `faq`, `common`, `mc_controls`, `splash`) |
+| `callbacks/` | Callbacks package — all Dash callbacks (12 modules: `__init__`, `charts`, `nav`, `ticker`, `snapshot_cb`, `mc_controls`, `mc_helpers`, `mc_payment`, `mc_upload`, `lots`, `coerce`, `sc_loan`) |
 | `figures/` | Figures package — chart builders + shared helpers (7 modules) |
 | `assets/style.css` | Light theme (FLATLY) overrides + mobile layout |
 | `assets/quantoshi_logo.png` | Master logo (575×360, 250KB — not directly served) |
@@ -190,24 +199,24 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | `requirements.txt` | Python dependencies |
 
 ### Layout structure
-`dbc.Navbar` (logo + "Quantoshi" in Palatino + "Stay dark, Anon →" + 🧅 Tor link + 📸 Share button with "▲ Cooler than you think") → `dbc.Tabs` (7 tabs):
+`dbc.Navbar` (logo + "Quantoshi" in Palatino + live price ticker with 24h sparkline SVG + sats/$ toggle + "Stay dark, Anon →" + 🧅 Tor link + palette dropdown + 📸 Share button with "▲ Cooler than you think") → `dbc.Tabs` (7 tabs):
 
 | Tab | ID | Key controls |
 |-----|----|-------------|
 | Bubble + QR Overlay | `bubble` | Quantiles, axes scale/range, bubble composite, N future bubbles |
-| CAGR Heatmap | `heatmap` | Entry/exit year+quantile, color modes (Segmented/DataScaled/Diverging) |
+| CAGR Heatmap | `heatmap` | Entry/exit year+quantile, color modes (Segmented/DataScaled/Diverging), multi-model pill bar carousel (Bubble/PL/S2F/MC) |
 | BTC Accumulator | `dca` | DCA amount/frequency, year range, display mode, Stack-celerator |
 | BTC RetireMentator | `retire` | Withdrawal amount, inflation rate, year range |
 | HODL Supercharger | `supercharge` | Mode A (fixed spending → depletion date) or Mode B (fixed depletion → max spending); 5 delay offsets, 2 chart layouts (single-quantile line or quantile bands) |
 | Stack Tracker | `stack` | Lot management (add/delete/import/export JSON) |
-| FAQ | `faq` | Static accordion — add entries to `_FAQ` list in app.py. 14 entries: Share, quantile regression, price prediction disclaimer, appearance, crossing projection lines, Power Law, bubble model, why I made this, podcast (porkopolis.io), direct tab linking (/1-/7), open source (BSD-2/GitHub/AppImage), data privacy (localStorage/27-day logs/onion), tip addresses, contact. Answers: plain strings or Dash components (`html.Span`/`html.A`/`html.Table`). Link color: `#1a6fa8` via `.accordion a` in style.css. |
+| FAQ | `faq` | Static accordion — `_FAQ` list in `layout/faq.py`. 18 entries including: Share, quantile regression, price prediction disclaimer, QR vs MCMC, appearance, crossing projection lines, Power Law, bubble model, why I made this, podcast (porkopolis.io), direct tab linking (/1-/7), open source (BSD-2/GitHub/AppImage), data privacy (localStorage/27-day logs/onion), tip addresses, contact. Answers: plain strings or Dash components (`html.Span`/`html.A`/`html.Table`). Link color: `#1a6fa8` via `.accordion a` in style.css. |
 
 ### Tab defaults
 | Tab | Notable defaults |
 |-----|-----------------|
 | Bubble | No quantiles selected by default, X scale=Log, N future bubbles=3, shade+show_data+show_today on (legend off). Pt size=2, Alpha=0.2. Panel order: scales, toggles, bubble, quantiles, pt size/alpha, stack, use lots. X range slider min=2010 (marks from '10), default value [2012, yr_now+4]. Auto Y checkbox (default on) rescales Y to fit selected quantiles at xmin/xmax. When Stack (BTC) is enabled, each quantile legend label gains `→ $X` showing the final USD stack value at the right x-range edge. |
 | Heatmap | Entry year=current year, entry percentile=live BTC percentile (free numeric input 0–100%, NOT dropdown), exit years allow past. Entry price=live ticker when entry_yr==current year. Break1=0%, Break2=20%, Gradient Steps=32. |
-| DCA | Default quantile Q50% only. dual_y+show_legend on. BTC-mode trace labels include final USD value in parentheses. Dual-y "USD Value (median)" always shows median USD across selected quantiles. **Stack-celerator** ("Enter Saylor Mode" checkbox): borrows `dca-sc-loan` $, buys BTC lump sum upfront, reduces DCA by the loan payment. Dashed overlay traces per quantile. Stack-celeration factor (median SC / median DCA) shown in chart title + legend. Controls: `dca-sc-type` (interest_only/amortizing), `dca-sc-rate`, `dca-sc-term`, `dca-sc-repeats` (0=one loan, N=N extra cycles back-to-back), `dca-sc-entry-mode` (live/model/custom for cycle 0; cycles 1+ always use model price), `dca-sc-custom-price`, `dca-sc-tax` (capital gains % on BTC sold to repay; default 33%). **Loan cap**: `principal` is silently capped at `max_principal = amount*(1-(1+r)^-n)/r` (amortizing) or `amount/r` (interest-only) when r>0, ensuring pmt ≤ DCA amount always. Info panel notes when cap is applied. **Tax applies only to interest-only**: BTC sold at cycle end to repay principal; tax applies **only to the capital gain** (sell_price − cost_basis), not full proceeds. Correct formula: `gain_per_btc = max(price - ep, 0.0); net_per_btc = price - tax_rate * gain_per_btc; sc_stack -= principal / net_per_btc`. If selling at a loss (`price ≤ ep`) no tax is owed. `ep` is the buy price at cycle start (tracked through the loop; rollover keeps first-cycle ep throughout). Amortizing repays principal in fiat — no BTC sold, tax has no effect. `outstanding` balance tracked per-period; deducted tax-adjusted at cycle end (interest-only) or post-loop (incomplete final cycle). **Rollover** (`dca-sc-rollover` checklist, interest-only only): repeat cycles skip BTC purchase (new loan pays off old, net zero BTC movement); cycle-end BTC sale skipped; single final repayment by post-loop deduction at simulation end price (with tax). Without rollover: each cycle independently buys BTC at start and sells at end. Rollover row hidden for amortizing. `dbc.Collapse` must NOT be used for SC body — use `html.Div(style={"display":"none"})` toggled via callback. Snapshot: 78 controls total. |
+| DCA | Default quantile Q50% only. dual_y+show_legend on. BTC-mode trace labels include final USD value in parentheses. Dual-y "USD Value (median)" always shows median USD across selected quantiles. **Stack-celerator** ("Enter Saylor Mode" checkbox): borrows `dca-sc-loan` $, buys BTC lump sum upfront, reduces DCA by the loan payment. Dashed overlay traces per quantile. Stack-celeration factor (median SC / median DCA) shown in chart title + legend. Controls: `dca-sc-type` (interest_only/amortizing), `dca-sc-rate`, `dca-sc-term`, `dca-sc-repeats` (0=one loan, N=N extra cycles back-to-back), `dca-sc-entry-mode` (live/model/custom for cycle 0; cycles 1+ always use model price), `dca-sc-custom-price`, `dca-sc-tax` (capital gains % on BTC sold to repay; default 33%). **Loan cap**: `principal` is silently capped at `max_principal = amount*(1-(1+r)^-n)/r` (amortizing) or `amount/r` (interest-only) when r>0, ensuring pmt ≤ DCA amount always. Info panel notes when cap is applied. **Tax applies only to interest-only**: BTC sold at cycle end to repay principal; tax applies **only to the capital gain** (sell_price − cost_basis), not full proceeds. Correct formula: `gain_per_btc = max(price - ep, 0.0); net_per_btc = price - tax_rate * gain_per_btc; sc_stack -= principal / net_per_btc`. If selling at a loss (`price ≤ ep`) no tax is owed. `ep` is the buy price at cycle start (tracked through the loop; rollover keeps first-cycle ep throughout). Amortizing repays principal in fiat — no BTC sold, tax has no effect. `outstanding` balance tracked per-period; deducted tax-adjusted at cycle end (interest-only) or post-loop (incomplete final cycle). **Rollover** (`dca-sc-rollover` checklist, interest-only only): repeat cycles skip BTC purchase (new loan pays off old, net zero BTC movement); cycle-end BTC sale skipped; single final repayment by post-loop deduction at simulation end price (with tax). Without rollover: each cycle independently buys BTC at start and sells at end. Rollover row hidden for amortizing. `dbc.Collapse` must NOT be used for SC body — use `html.Div(style={"display":"none"})` toggled via callback. |
 | Retire | Default quantiles Q1%+Q10%+Q25%. year slider min=2024, default range 2031–2075, inflation=4%, log_y+dual_y+annotate on. Dual-y median same approach as DCA. |
 | HODL Supercharger | Mode A, stack=1.0 BTC, delays=[0,0,0,1,2] yr (deduped → 3 unique: 0,1,2), start_yr=2033, Annually, inflation=4%, wd=$100,000/yr, end_yr=2075, USD display, annotate+log_y+show_legend on. Quantiles: Q0.1%+Q10% only. `sc-chart-layout` is a `dcc.Checklist` with single option "shade"; default `["shade"]` (bands on = layout 2). Display-q dropdown hidden when bands on. Median final value shown in legend for both layouts. Depletion annotations: `_DELAY_COLORS` for traces/shading, `_ANNOT_COLORS` for arrow+text (darker at index 2: `#1D8348`). Annotation text staggered at 3 heights (ay=-20/-33/-46, 13px apart) to avoid overlap. |
 | Stack Tracker | default lot Price=$69,420 |
@@ -219,9 +228,9 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 
 ### Snapshot / Share feature
 - `📸 Share` button → modal → **Scope** radio ("All tabs" / "Current tab only") → **Generate link** encodes control states + optional lots as gzip+base64 in URL hash. **Default scope: "Current tab only"** (shorter link; user can switch to "All tabs" for full cross-tab fidelity).
-- URL format: `host/N#q2:...` where N is the tab path (`/1`–`/7`), so tab routing fires independently of hash decode.
-- **All tabs** scope: encodes all 78 controls (full fidelity). **Current tab only** scope: encodes only the active tab's controls via `tab_filter` — non-matching controls encode as `null` and fall back to defaults on restore (much shorter link).
-- `_SNAPSHOT_CONTROLS` — list of 78 `(component_id, property)` tuples. Format: `#q2:...` current; `#q1:...` legacy (still decoded).
+- URL format: `host/N#q3:...` where N is the tab path (`/1`–`/7`), so tab routing fires independently of hash decode.
+- **All tabs** scope: encodes all 97 controls (full fidelity). **Current tab only** scope: encodes only the active tab's controls via `tab_filter` — non-matching controls encode as `null` and fall back to defaults on restore (much shorter link).
+- `_SNAPSHOT_CONTROLS` — list of 97 `(component_id, property)` tuples. Format: `#q3:...` current; `#q2:...` and `#q1:...` legacy (still decoded).
 - **Checklist bitmask encoding**: All 20 checklist fields (5 quantile + 15 toggle/boolean) are stored as bitmask integers in new links via `_CHECKLIST_OPTIONS` dict (component ID → ordered list of possible values) + `_list_to_mask(val, opts)` / `_mask_to_list(mask, opts)` helpers. Quantile fields: 17-bit each, saves ~435 JSON chars. Toggle fields: saves ~224 JSON chars. **Old `q2` links stored plain lists** — decoder handles both via `isinstance(val, int)` check. No version bump. Encoding uses `urlsafe_b64encode/decode`. Color fields (4 hex strings) are intentionally NOT bitmask-encoded (only ~14–20 URL chars savings, not worth complexity).
 - `_TAB_CONTROLS` — dict mapping each `tab_id` → set of component IDs belonging to that tab. `_TAB_TO_PATH` — reverse of `_PATH_TO_TAB`.
 - `_encode_snapshot(state_dict, tab_filter=None)` — pass `tab_filter=_TAB_CONTROLS[tab_id]` for single-tab links.
@@ -237,8 +246,9 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 - Uses `allow_duplicate=True` + `prevent_initial_call='initial_duplicate'`. **Never use `prevent_initial_call=False` with `allow_duplicate=True`** — Dash raises an error that crashes gunicorn (exit code 3).
 
 ### Live price ticker
-- `dcc.Interval(id="price-interval", interval=20*60*1000)` fires every 20 min.
+- `dcc.Interval(id="price-interval", interval=20*60*1000)` fires every 20 min (5 × 4 min intervals).
 - `update_price_ticker` callback fetches Binance (`api.binance.com/api/v3/ticker/price?symbol=BTCUSDT`), CoinGecko fallback. Outputs to `price-ticker` div (navbar), `btc-price-store` (memory Store), and `hm-entry-q` (keeps heatmap entry quantile in sync with ticker on every refresh).
+- Ticker displays: `₿ $X` · `QY.Y%` (current quantile percentile) + 24h sparkline SVG (from CoinGecko). Mode toggle switches between USD and sats/$ display.
 - `_startup_heatmap_defaults()` fetches price at module load → sets heatmap entry percentile default.
 - `_interp_qr_price(q, t, qr_fits)` in `figures/common.py` — log-space interpolation between adjacent QR fits for arbitrary quantile (e.g. Q7.5%).
 - Heatmap uses `live_price` from `btc-price-store` as entry price when `entry_yr == current_year`; falls back to model interpolation for historical entry years.
@@ -251,11 +261,39 @@ Split into a package with one module per chart type + shared helpers:
 | Module | Chart |
 |--------|-------|
 | `figures/common.py` | Shared helpers: `_get_palette`, `_thermal_color`, `_build_thermal_colors`, `_dark_layout`, `_sim_layout`, `_finalize_chart`, `_apply_watermark`, edge annotations, MC overlay integration |
-| `figures/bubble.py` | `build_bubble_figure(m, p)` — Bubble model + QR channels |
+| `figures/bubble.py` | `build_bubble_figure(m, p)` — Bubble model + QR channels + overlay models (PL, S2F) |
 | `figures/heatmap.py` | `build_heatmap_figure(m, p)` — CAGR heatmap (go.Heatmap) |
 | `figures/dca.py` | `build_dca_figure(m, p)` — DCA accumulation simulation |
 | `figures/retire.py` | `build_retire_figure(m, p)` — Retirement withdrawal simulation |
 | `figures/supercharge.py` | `build_supercharge_figure(m, p)` — HODL Supercharger |
+
+### Price models & Display Models
+
+Three price models registered at startup in `_app_ctx.PRICE_MODELS`:
+- **Bubble Model** (`"bub"`) — default, loaded from `model_data.pkl`
+- **Power Law** (`"pl"`) — OLS fit to log-log data
+- **S2F (Stock-to-Flow)** (`"s2f"`) — alternative parameterization
+
+Per-tab model display:
+- **Bubble tab**: `bub-model-show` checklist toggles PL + S2F overlays on the bubble chart.
+- **Heatmap tab**: pill bar carousel (`hm-active-model` Store) — one model active at a time; `hm-model-show` checklist exists in layout (for snapshot compat) but is hidden, replaced by the pill bar.
+- **DCA / Retire / Supercharger**: `{prefix}-model-show` checklist showing QR, MC (if available), PL, S2F.
+
+### Monte Carlo / Markov simulation
+
+- MC features are **paid** (Lightning/on-chain via BTCPay). Controlled by `_app_ctx._HAS_MARKOV` flag.
+- When `_HAS_MARKOV` is `False`, all MC controls are hidden via placeholder `dcc.Checklist` elements and "MC Simulation" is hidden from Display Models checklists.
+- Pre-computed cache: ~45,000 scenarios covering different entry percentiles, time horizons, withdrawal amounts, inflation, stack sizes (~834 MB RAM at startup).
+- MC controls appear on DCA, Retire, Heatmap, and Supercharger tabs.
+- Layout: `layout/mc_controls.py` (reusable MC control panel). Callbacks: `callbacks/mc_controls.py`, `callbacks/mc_helpers.py`, `callbacks/mc_payment.py`, `callbacks/mc_upload.py`.
+
+### Heatmap pill bar carousel
+
+Multi-model heatmap switching via pill buttons (added in `a94a987`):
+- Built dynamically from `_app_ctx.PRICE_MODELS` + optional MC in `layout/heatmap.py` `_hm_pill_bar()`.
+- Pill buttons: Bubble Model (solid blue), Power Law, S2F, Monte Carlo (warning orange, if Markov available).
+- One pill active at a time, stored in `hm-active-model` Store.
+- Callback `_hm_pill_click()` updates active model; `_hm_pill_sync()` syncs pill outlines on snapshot restore / page load.
 
 ### Colorblind palette system
 

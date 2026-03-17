@@ -114,6 +114,8 @@ _SNAPSHOT_CONTROLS = [
     ("hm-mc-model-src",   "value"),   # MC model source (Heatmap)
     # ── Bubble overlay models (index 97) ──
     ("bub-model-show",    "value"),   # PL/S2F overlay toggle (Bubble)
+    # ── Palette (index 98) ──
+    ("palette-store",     "data"),    # colorblind palette key
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)
@@ -128,13 +130,15 @@ _SNAP_PREFIX_V1 = "q1:"   # legacy format (dict-based)
 # Encoded as bitmask integers in new links (bit i set ↔ opts[i] selected).
 # Old q2 links store lists; the decoder handles both formats transparently
 # via isinstance(val, int).
+_QS_LIST = list(_app_ctx._ALL_QS)
+
 _CHECKLIST_OPTIONS = {
-    # quantile checklists (float values)
-    "bub-qs":             list(_app_ctx._ALL_QS),
-    "hm-exit-qs":         list(_app_ctx._ALL_QS),
-    "dca-qs":             list(_app_ctx._ALL_QS),
-    "ret-qs":             list(_app_ctx._ALL_QS),
-    "sc-qs":              list(_app_ctx._ALL_QS),
+    # quantile checklists (float values) — all share the same list object
+    "bub-qs":             _QS_LIST,
+    "hm-exit-qs":         _QS_LIST,
+    "dca-qs":             _QS_LIST,
+    "ret-qs":             _QS_LIST,
+    "sc-qs":              _QS_LIST,
     # toggle/boolean checklists (string values)
     "bub-toggles":        ["shade", "show_ols", "show_data", "show_today", "show_legend", "minor_grid", "chart_zoom"],
     "bub-bubble-toggles": ["show_comp", "show_sup"],

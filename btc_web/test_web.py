@@ -2434,9 +2434,20 @@ class _CallbackCtx:
 
 
 def _patch_ctx(triggered_id=None):
-    """Context manager that patches dash.ctx and dash.callback_context."""
+    """Context manager that patches dash.ctx across all callback submodules."""
     ctx_obj = _CallbackCtx(triggered_id)
-    return patch.multiple("callbacks", ctx=ctx_obj)
+    # After callbacks.py was split into callbacks/, each submodule imports ctx
+    # from dash directly.  Patch every submodule that uses ctx.
+    from contextlib import ExitStack
+    _targets = [
+        "callbacks", "callbacks.charts", "callbacks.lots",
+        "callbacks.mc_helpers", "callbacks.mc_payment",
+        "callbacks.snapshot_cb",
+    ]
+    stack = ExitStack()
+    for t in _targets:
+        stack.enter_context(patch.multiple(t, ctx=ctx_obj))
+    return stack
 
 
 @pytest.mark.skipif(_q3 is None, reason="app.py import failed")
@@ -2451,6 +2462,7 @@ class TestUpdateBubbleCallback:
                 xrange=[2012, 2030], yrange=[0, 7],
                 n_future=3, ptsize=3, ptalpha=0.6,
                 stack=0, show_stack=[], use_lots=[], legend_pos="outside", model_show=[], lots_data=[],
+                palette_key="default",
             )
         assert isinstance(fig, go.Figure)
 
@@ -2462,6 +2474,7 @@ class TestUpdateBubbleCallback:
                 xrange=[2015, 2028], yrange=[1, 6],
                 n_future=0, ptsize=2, ptalpha=0.3,
                 stack=0, show_stack=[], use_lots=[], legend_pos="outside", model_show=[], lots_data=[],
+                palette_key="default",
             )
         assert isinstance(fig, go.Figure)
 
@@ -2473,6 +2486,7 @@ class TestUpdateBubbleCallback:
                 xrange=[2012, 2035], yrange=[0, 7],
                 n_future=2, ptsize=4, ptalpha=0.5,
                 stack=1.5, show_stack=["yes"], use_lots=[], legend_pos="outside", model_show=[], lots_data=[],
+                palette_key="default",
             )
         assert isinstance(fig, go.Figure)
 
@@ -2499,6 +2513,7 @@ class TestUpdateHeatmapCallback:
                 mc_start_yr=yr, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"], mc_model_src="bub",
                 live_price=0, mc_cached=None, pay_token=None, mc_auth=None,
+                palette_key="default",
             )
         # Returns 9 outputs: qr_fig, mc_fig, store, status, panel_style, indicator_style, rendered_key, modal, tab
         assert len(result) == 9
@@ -2519,7 +2534,9 @@ class TestUpdateHeatmapCallback:
                     mc_freq="Monthly", mc_window=None,
                     mc_start_yr=2025, mc_entry_q=50,
                     _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                    mc_model_src="bub",
                     live_price=0, mc_cached=None, pay_token=None, mc_auth=None,
+                    palette_key="default",
                 )
 
 
@@ -2544,6 +2561,7 @@ class TestUpdateDcaCallback:
                 mc_start_yr=2026, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"], mc_model_src="bub",
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
+                palette_key="default",
             )
         # 7 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked
         assert len(result) == 7
@@ -2565,7 +2583,9 @@ class TestUpdateDcaCallback:
                     mc_window=None,
                     mc_start_yr=2026, mc_entry_q=50,
                     _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                    mc_model_src="bub",
                     price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
+                    palette_key="default",
                 )
 
     def test_with_sc_enabled(self):
@@ -2585,6 +2605,7 @@ class TestUpdateDcaCallback:
                 mc_start_yr=2026, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"], mc_model_src="bub",
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
+                palette_key="default",
             )
         assert isinstance(result[0], go.Figure)
 
@@ -2605,6 +2626,7 @@ class TestUpdateDcaCallback:
                 mc_start_yr=2026, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"], mc_model_src="bub",
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
+                palette_key="default",
             )
         assert isinstance(result[0], go.Figure)
 
@@ -2627,6 +2649,7 @@ class TestUpdateRetireCallback:
                 mc_start_yr=2031, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"], mc_model_src="bub",
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
+                palette_key="default",
             )
         # 7 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked
         assert len(result) == 7
@@ -2653,6 +2676,7 @@ class TestUpdateSuperchargeCallback:
                 mc_start_yr=2031, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"], mc_model_src="bub",
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
+                palette_key="default",
             )
         assert len(result) == 7
         assert isinstance(result[0], go.Figure)
@@ -2672,6 +2696,7 @@ class TestUpdateSuperchargeCallback:
                 mc_start_yr=2031, mc_entry_q=50,
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"], mc_model_src="bub",
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
+                palette_key="default",
             )
         assert isinstance(result[0], go.Figure)
 

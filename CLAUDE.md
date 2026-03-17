@@ -8,9 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 1. **`SP.ipynb`** — Jupyter notebook with bubble model + quantile regression analysis, chart generation, and PowerPoint export.
 2. **`btc_web/`** — Plotly Dash web app. Live at [quantoshi.xyz](https://quantoshi.xyz) and `u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion`.
-3. **`btc_app/btc_projections.py`** — Standalone PyQt5 GUI app (5 interactive tabs) distributed as a Linux AppImage.
+3. **`archive/btc_app/btc_projections.py`** — Standalone PyQt5 GUI app (5 interactive tabs) distributed as a Linux AppImage. **On back burner** — moved to `archive/` during simplification.
 
-The notebook generates `btc_app/model_data.pkl`, which both the web app and the standalone app load at runtime.
+The notebook generates `archive/btc_app/model_data.pkl`, which both the web app and the standalone app load at runtime.
 
 ---
 
@@ -34,14 +34,14 @@ The notebook generates `btc_app/model_data.pkl`, which both the web app and the 
 
 ### Run the standalone app directly (for testing)
 ```bash
-cd /scratch/code/bitcoinprojections/btc_app
+cd /scratch/code/bitcoinprojections/archive/btc_app
 /scratch/code/bitcoinprojections/btc_venv/bin/python3 btc_projections.py
 ```
 
 ### Syntax check the app
 ```bash
 /scratch/code/bitcoinprojections/btc_venv/bin/python3 -m py_compile \
-    btc_app/btc_projections.py && echo "OK"
+    archive/btc_app/btc_projections.py && echo "OK"
 ```
 
 ### Build the AppImage
@@ -50,7 +50,7 @@ cd /scratch/code/bitcoinprojections/btc_app
 bash build_appimage.sh          # uses up to 18 CPUs
 JOBS=8 bash build_appimage.sh   # override CPU count
 ```
-Output: `btc_app/Quantoshi-x86_64.AppImage` (~140 MB)
+Output: `archive/btc_app/Quantoshi-x86_64.AppImage` (~140 MB)
 
 ### Update Bitcoin price data
 ```bash
@@ -70,7 +70,7 @@ python3 update_prices.py            # live: appends CSV + re-runs notebook
     --to notebook --execute --inplace \
     --ExecutePreprocessor.timeout=600 SP.ipynb
 # 2. Build AppImage
-cd /scratch/code/bitcoinprojections/btc_app && bash build_appimage.sh
+cd /scratch/code/bitcoinprojections/archive/btc_app && bash build_appimage.sh
 ```
 
 ### Run the web app locally
@@ -82,7 +82,7 @@ PORT=8080 bash run_web.sh # custom port
 
 ### Syntax-check the web app
 ```bash
-btc_venv/bin/python3 -m py_compile btc_web/app.py btc_web/figures.py && echo "OK"
+PYTHONPATH=".:archive/btc_app:btc_web" btc_venv/bin/python3 -c "import sys; sys.path.insert(0,'btc_web'); sys.path.insert(0,'archive/btc_app'); import layout, figures, callbacks; print('OK')"
 ```
 
 ### Deploy to production (Hetzner VPS)
@@ -100,7 +100,7 @@ ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && systemctl restart quanto
 | 0 | ~1390 | Bubble model — **do not modify** |
 | 1 | ~1112 | QR config & chart generation — primary work cell |
 | 2 | ~293  | PowerPoint export (`bitcoin_projections.pptx`) |
-| 3 | ~93   | Export cell — writes `btc_app/model_data.pkl` |
+| 3 | ~93   | Export cell — writes `archive/btc_app/model_data.pkl` |
 | 4 | 0     | Empty |
 | 5 | ~396  | Interactive bubble+QR overlay (`_launch_interactive()`) |
 | 6 | ~316  | Interactive CAGR heatmap (`_launch_heatmap()`) |
@@ -130,7 +130,7 @@ Write scripts to `/tmp/` and run with `python3 /tmp/script.py`.
 
 ---
 
-## Standalone App Architecture (`btc_app/btc_projections.py`)
+## Standalone App Architecture (`archive/btc_app/btc_projections.py`) — ON BACK BURNER
 
 ~3900 lines, structured as a set of tab classes managed by `MainWindow`.
 
@@ -178,8 +178,10 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 ### Files
 | File | Purpose |
 |------|---------|
-| `app.py` | Dash app — layout, all callbacks, snapshot/share logic |
-| `figures.py` | Plotly chart builders — one function per tab |
+| `app.py` | Dash app entry point — model loading, Flask config, cache prewarm |
+| `layout/` | Layout package — tab controls, navbar, main assembly (9 modules) |
+| `callbacks/` | Callbacks package — all Dash callbacks (12 modules) |
+| `figures/` | Figures package — chart builders + shared helpers (7 modules) |
 | `assets/style.css` | Light theme (FLATLY) overrides + mobile layout |
 | `assets/quantoshi_logo.png` | Master logo (575×360, 250KB — not directly served) |
 | `assets/quantoshi_favicon.png` | Favicon (48×48, 3KB) |
@@ -238,20 +240,26 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 - `dcc.Interval(id="price-interval", interval=20*60*1000)` fires every 20 min.
 - `update_price_ticker` callback fetches Binance (`api.binance.com/api/v3/ticker/price?symbol=BTCUSDT`), CoinGecko fallback. Outputs to `price-ticker` div (navbar), `btc-price-store` (memory Store), and `hm-entry-q` (keeps heatmap entry quantile in sync with ticker on every refresh).
 - `_startup_heatmap_defaults()` fetches price at module load → sets heatmap entry percentile default.
-- `_interp_qr_price(q, t, qr_fits)` in `figures.py` — log-space interpolation between adjacent QR fits for arbitrary quantile (e.g. Q7.5%).
+- `_interp_qr_price(q, t, qr_fits)` in `figures/common.py` — log-space interpolation between adjacent QR fits for arbitrary quantile (e.g. Q7.5%).
 - Heatmap uses `live_price` from `btc-price-store` as entry price when `entry_yr == current_year`; falls back to model interpolation for historical entry years.
 - **Binance is geo-blocked in the US** (HTTP 451) but works fine from the Hetzner server (Germany).
 
-### Chart builders (`figures.py`)
-| Function | Chart |
-|----------|-------|
-| `build_bubble_figure(m, p)` | Bubble model + QR channels |
-| `build_heatmap_figure(m, p)` | CAGR heatmap (go.Heatmap) |
-| `build_dca_figure(m, p)` | DCA accumulation simulation |
-| `build_retire_figure(m, p)` | Retirement withdrawal simulation |
-| `build_supercharge_figure(m, p)` | HODL Supercharger — depletion curves (Mode A) or max-withdrawal bar (Mode B) per delay scenario |
+### Chart builders (`figures/`)
 
-Module-level constants in `figures.py`: `_DELAY_COLORS = ['#636EFA','#EF553B','#00CC96','#AB63FA','#FFA15A']`, `_DASH_STYLES = ['solid','dash','dot','dashdot','longdash']`.
+Split into a package with one module per chart type + shared helpers:
+
+| Module | Chart |
+|--------|-------|
+| `figures/common.py` | Shared helpers: `_get_palette`, `_thermal_color`, `_build_thermal_colors`, `_dark_layout`, `_sim_layout`, `_finalize_chart`, `_apply_watermark`, edge annotations, MC overlay integration |
+| `figures/bubble.py` | `build_bubble_figure(m, p)` — Bubble model + QR channels |
+| `figures/heatmap.py` | `build_heatmap_figure(m, p)` — CAGR heatmap (go.Heatmap) |
+| `figures/dca.py` | `build_dca_figure(m, p)` — DCA accumulation simulation |
+| `figures/retire.py` | `build_retire_figure(m, p)` — Retirement withdrawal simulation |
+| `figures/supercharge.py` | `build_supercharge_figure(m, p)` — HODL Supercharger |
+
+### Colorblind palette system
+
+Three-tier palette (Default / CB-RG / CB-Full) stored in `_app_ctx.PALETTES`. Navbar dropdown writes to `dcc.Store("palette-store", storage_type="local")`. Each chart callback passes `palette` key in the `p` params dict. Figure builders call `_get_palette(p)` to resolve colors. Palette choice is included in snapshot/share links via `_SNAPSHOT_CONTROLS`.
 
 **Watermark**: `_LOGO_B64` (base64-encoded logo loaded at module startup) and `_apply_watermark(fig)` add the Quantoshi logo (bottom-right, 55% opacity, `sizex=0.07 sizey=0.12`) plus `"quantoshi.xyz"` text annotation to all exported figures. Called in all 5 chart builders before return.
 
@@ -277,7 +285,7 @@ Heatmap chart title format: `Entry: {year}  {price}  ·  Q{percentile}%` — pri
 
 **Falsy-zero in callbacks**: `float(x or default)` substitutes `default` when `x=0` because 0 is falsy. For any numeric input where 0 is a valid value (inflation rate, interest rate, etc.), use `float(x) if x is not None else default`. Affected fields fixed: `dca-sc-rate`, `sc-infl`. `ret-infl` uses `float(infl or 0)` which is safe since its fallback is also 0.
 
-**Frequency options**: All three frequency dropdowns (dca-freq, ret-freq, sc-freq) offer Daily/Weekly/Monthly/Quarterly/Annually. `FREQ_PPY` in figures.py maps these to 365/52/12/4/1. `freq_label` maps to "/day"/"/wk"/"/mo"/"/qtr"/"/yr".
+**Frequency options**: All three frequency dropdowns (dca-freq, ret-freq, sc-freq) offer Daily/Weekly/Monthly/Quarterly/Annually. `FREQ_PPY` in `_app_ctx.py` maps these to 365/52/12/4/1. `freq_label` maps to "/day"/"/wk"/"/mo"/"/qtr"/"/yr".
 
 **Mobile portrait layout**: On small screens (`max-width: 767px`) columns stack vertically (controls below chart). The `dcc.Graph` inline `style="height:78vh"` must be overridden in CSS or it leaves a large blank gap above the controls. Fix in `style.css`: `[id$="-graph"] { height: 55vw !important; min-height: 280px !important; }` alongside the same rule on `.js-plotly-plot`. A mobile-only `↓ Scroll down to configure` hint is appended inside `_export_row()` (hidden on ≥768px via `d-md-none`), covering all 5 chart tabs automatically.
 
@@ -302,9 +310,9 @@ Heatmap chart title format: `Entry: {year}  {price}  ·  Q{percentile}%` — pri
 | File | Purpose |
 |------|---------|
 | `BitcoinPricesDaily.csv` | Daily BTC price data (read by notebook + web app + desktop app) |
-| `btc_app/model_data.pkl` | Precomputed QR fits + bubble composites (regenerated by Cell 3) |
-| `btc_app/btc_projections.spec` | PyInstaller spec — bundles pkl + CSV; excludes tkinter/jupyter/torch; **do not add `unittest` to excludes** (scipy dep) |
-| `btc_app/btc_projections.desktop` | Desktop entry for AppImage |
+| `archive/btc_app/model_data.pkl` | Precomputed QR fits + bubble composites (regenerated by Cell 3) |
+| `archive/btc_app/btc_projections.spec` | PyInstaller spec — bundles pkl + CSV; excludes tkinter/jupyter/torch; **do not add `unittest` to excludes** (scipy dep) |
+| `archive/btc_app/btc_projections.desktop` | Desktop entry for AppImage |
 | `quantoshi_logo.png` | Master logo file |
 | `run_web.sh` | Web app startup script (gunicorn or DEV mode) |
 | `btc-web.service` | systemd unit template for local installs |

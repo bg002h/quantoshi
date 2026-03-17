@@ -49,6 +49,9 @@
     }
 
     function setup() {
+        /* Skip entirely on mobile — sheet.js handles mobile controls */
+        if (!isDesktop()) return;
+
         var cols = document.querySelectorAll(".controls-col");
         if (!cols.length) { setTimeout(setup, 500); return; }
 

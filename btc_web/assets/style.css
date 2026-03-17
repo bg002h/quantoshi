@@ -1111,17 +1111,19 @@ body {
     }
 }
 
-/* ── Bottom sheet drag handle ──────────────────────────────────────────── */
+/* ── Bottom sheet drag handle (scroll icon) ────────────────────────────── */
 .sheet-handle {
     display: none;
 }
 @media (max-width: 767px) {
     .sheet-handle {
-        display: block;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         position: sticky;
         top: 0;
         z-index: 5;
-        padding: 10px 0 6px;
+        padding: 6px 0 4px;
         text-align: center;
         cursor: grab;
         background: #f4f3f0;
@@ -1129,26 +1131,22 @@ body {
         -webkit-tap-highlight-color: transparent;
         touch-action: none;
     }
-    .sheet-handle::before {
-        content: '';
-        display: block;
-        width: 40px;
-        height: 4px;
-        margin: 0 auto;
-        background: rgba(0,0,0,0.2);
-        border-radius: 2px;
-        transition: background 0.2s;
+    .sheet-handle-scroll {
+        width: 80px;
+        height: 28px;
+        transform: rotate(90deg);
+        filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+        opacity: 0.75;
+        transition: opacity 0.2s;
     }
-    .sheet-handle:active::before {
-        background: rgba(0,0,0,0.4);
+    .sheet-handle:active .sheet-handle-scroll {
+        opacity: 1;
     }
     .sheet-handle-label {
-        font-size: 10px;
-        color: rgba(0,0,0,0.35);
-        margin-top: 4px;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        font-family: var(--font-ui);
+        display: none;
+    }
+    .sheet-handle-bar {
+        display: none;
     }
 }
 
@@ -1340,31 +1338,9 @@ body {
 /* ── Tab labels with emoji icons ──────────────────────────────────────────── */
 /* (icons are plain text in the label string — no special CSS needed) */
 
-/* ── Mobile floating settings button ──────────────────────────────────────── */
+/* ── Mobile floating settings button (hidden — replaced by scroll handle) ── */
 .mobile-settings-fab {
-    display: none;
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1050;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: var(--btc-orange);
-    border: none;
-    color: #fff;
-    font-size: 22px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-    line-height: 1;
-}
-.mobile-settings-fab:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
-}
-@media (max-width: 767px) {
-    .mobile-settings-fab { display: flex; align-items: center; justify-content: center; }
+    display: none !important;
 }
 
 /* ── Share modal: copy feedback toast ─────────────────────────────────────── */

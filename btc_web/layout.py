@@ -185,8 +185,8 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
     return dbc.Row([
         dbc.Col([
             html.Div([
-                html.Div("", className="sheet-handle-bar"),
-                html.Div("Configure", className="sheet-handle-label"),
+                html.Img(src="/assets/scroll_handle.svg",
+                         className="sheet-handle-scroll"),
             ], className="sheet-handle"),
             controls_fn(),
         ], width=3, className="controls-col overflow-auto",
@@ -612,8 +612,8 @@ def _heatmap_tab():
     return dbc.Row([
         dbc.Col([
             html.Div([
-                html.Div("", className="sheet-handle-bar"),
-                html.Div("Configure", className="sheet-handle-label"),
+                html.Img(src="/assets/scroll_handle.svg",
+                         className="sheet-handle-scroll"),
             ], className="sheet-handle"),
             _heatmap_controls(),
         ], width=3, className="controls-col overflow-auto",

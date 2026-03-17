@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 140">
+  <defs><clipPath id="pb"><rect x="6" y="13" width="22" height="110"/></clipPath></defs>
+  <!-- Top dowel -->
+  <rect x="1" y="2" width="32" height="7" rx="3.5" fill="#5a3a18"/>
+  <rect x="1" y="2" width="32" height="4" rx="2" fill="#805020" opacity="0.7"/>
+  <rect x="3" y="3" width="28" height="1.5" rx="0.8" fill="#a07040" opacity="0.5"/>
+  <circle cx="3" cy="5.5" r="2.5" fill="#4a2e12"/>
+  <circle cx="3" cy="4.5" r="1.5" fill="#704820" opacity="0.5"/>
+  <circle cx="31" cy="5.5" r="2.5" fill="#4a2e12"/>
+  <circle cx="31" cy="4.5" r="1.5" fill="#704820" opacity="0.5"/>
+  <!-- Top roll -->
+  <ellipse cx="17" cy="13" rx="12" ry="5.5" fill="#c49a3c"/>
+  <ellipse cx="17" cy="11.5" rx="11" ry="3" fill="#dbb864" opacity="0.7"/>
+  <ellipse cx="17" cy="15" rx="10" ry="2" fill="#a07828" opacity="0.4"/>
+  <!-- Parchment body -->
+  <rect x="6" y="13" width="22" height="110" fill="#e8cc7a"/>
+  <g clip-path="url(#pb)">
+    <rect x="6" y="13" width="22" height="110" fill="#a07040" opacity="0.08"/>
+    <rect x="6" y="13" width="4" height="110" fill="#907030" opacity="0.18"/>
+    <rect x="24" y="13" width="4" height="110" fill="#906830" opacity="0.14"/>
+  </g>
+  <!-- Bottom roll -->
+  <ellipse cx="17" cy="123" rx="12" ry="5.5" fill="#c49a3c"/>
+  <ellipse cx="17" cy="121.5" rx="11" ry="3" fill="#dbb864" opacity="0.7"/>
+  <ellipse cx="17" cy="125" rx="10" ry="2" fill="#a07828" opacity="0.4"/>
+  <!-- Bottom dowel -->
+  <rect x="1" y="126" width="32" height="7" rx="3.5" fill="#5a3a18"/>
+  <rect x="1" y="126" width="32" height="4" rx="2" fill="#805020" opacity="0.7"/>
+  <circle cx="3" cy="129.5" r="2.5" fill="#4a2e12"/>
+  <circle cx="31" cy="129.5" r="2.5" fill="#4a2e12"/>
+</svg>

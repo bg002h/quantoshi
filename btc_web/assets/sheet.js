@@ -99,7 +99,7 @@
         // Start drag from expanded sheet body (swipe down to close)
         // Only when scrolled to top so it doesn't fight content scrolling
         var col = e.target.closest('.controls-col');
-        if (col && col.classList.contains('sheet-expanded') && col.scrollTop <= 0) {
+        if (col && col.classList.contains('sheet-expanded') && col.scrollTop <= 5) {
             _dragCol = col;
             _dragging = true;
             _startY = e.touches[0].clientY;
@@ -113,11 +113,15 @@
         var dy = e.touches[0].clientY - _startY;
         // If dragging from expanded body, only allow downward movement
         if (_startTx === 0 && dy < 0) return;
+        // Prevent browser scroll so our drag takes over
+        if (_startTx === 0 && dy > 5) {
+            try { e.preventDefault(); } catch(_) {}
+        }
         var newY = Math.max(0, _startTx + dy);
         var maxY = _dragCol.offsetHeight - 90;
         newY = Math.min(newY, maxY);
         _dragCol.style.transform = 'translateY(' + newY + 'px)';
-    }, {passive: true});
+    }, {passive: false});
 
     document.addEventListener('touchend', function() {
         if (!_dragging || !isMobile() || !_dragCol) return;

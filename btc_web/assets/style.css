@@ -1067,6 +1067,7 @@ body {
     .controls-col.sheet-expanded {
         transform: translateY(0) !important;
         overflow-y: auto !important;
+        overscroll-behavior-y: none;
     }
     /* Scrim overlay when sheet is expanded */
     .sheet-scrim {

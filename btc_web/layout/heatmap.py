@@ -116,7 +116,7 @@ def _heatmap_controls():
         ),
         # Hidden placeholder — hm-model-show is referenced by callbacks/snapshot
         # but no longer user-visible (pill bar replaces it on tab 2)
-        dcc.Checklist(id="hm-model-show", value=["qr", "mc"],
+        dcc.Checklist(id="hm-model-show", value=["qr"],
                       style=_STYLE_HIDDEN),
     ])
 

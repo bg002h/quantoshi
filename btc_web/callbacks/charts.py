@@ -272,7 +272,7 @@ def update_heatmap(active_tab, hm_model, entry_yr, entry_q, exit_range, exit_qs,
                     if mc_ok else None)
 
     # Show/hide MC panel and swipe indicator
-    model_show = model_show or ["qr", "mc"]
+    model_show = model_show or ["qr"]
     mc_visible = mc_enabled and "mc" in model_show
     mc_panel_style = {} if mc_visible else {"display": "none"}
     indicator_style = {"display": "none"}
@@ -353,7 +353,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
         mc_auth=mc_auth,
         stack=stack, amount_default=100, infl_default=0.0, start_yr_default=2026,
         mc_model_src=mc_model_src)
-    model_show = model_show or ["qr", "mc"]
+    model_show = model_show or ["qr"]
     fig, mc_result = _get_dca_fig(dict(
         start_stack    = _cf(stack, 0),
         use_lots       = bool(use_lots),
@@ -452,7 +452,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         mc_auth=mc_auth,
         stack=stack, amount_default=5000, infl_default=4.0, start_yr_default=2031,
         mc_model_src=mc_model_src)
-    model_show = model_show or ["qr", "mc"]
+    model_show = model_show or ["qr"]
     fig, mc_result = _get_retire_fig(dict(
         start_stack  = _cf(stack, 1.0),
         use_lots     = bool(use_lots),
@@ -562,7 +562,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
     _cl = (2 if "shade" in (chart_layout or []) else 0) \
           if isinstance(chart_layout, list) \
           else (int(chart_layout) if chart_layout is not None else 2)
-    model_show = model_show or ["qr", "mc"]
+    model_show = model_show or ["qr"]
     fig, mc_result = _get_supercharge_fig(dict(
         mode         = mode or "a",
         start_stack  = _cf(stack, 1.0),

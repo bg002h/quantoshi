@@ -1144,6 +1144,32 @@ body {
         z-index: 1;
         filter: drop-shadow(1px 2px 3px rgba(0,0,0,0.3));
     }
+    /* Pull-down zone — transparent touch target above content */
+    .sheet-pullzone {
+        display: none;
+        height: 0;
+    }
+    .sheet-expanded .sheet-pullzone {
+        display: block;
+        height: 50px;
+        width: 100%;
+        touch-action: none;
+        cursor: grab;
+        position: relative;
+        z-index: 4;
+        /* subtle visual hint */
+        background: linear-gradient(180deg, rgba(0,0,0,0.04) 0%, transparent 100%);
+    }
+    .sheet-pullzone::after {
+        content: "swipe \2193 to close";
+        display: block;
+        text-align: center;
+        font-size: 9px;
+        color: rgba(0,0,0,0.25);
+        padding-top: 4px;
+        font-family: var(--font-ui);
+        letter-spacing: 0.5px;
+    }
     /* Feather quill + CONFIG text — horizontal for mobile */
     .sheet-handle::after {
         content: "\1FAB6  C O N F I G";

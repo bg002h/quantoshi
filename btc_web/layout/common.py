@@ -57,7 +57,7 @@ _SECTION_ICONS = {
     "Projection Quantiles": "\U0001F4C9",
     "Chart Settings": "\u2699\uFE0F",
     "Plan": "\U0001F5D3\uFE0F",
-    "Shared Model Settings": "\u2699\uFE0F",
+    "Your Scenario": "\u2699\uFE0F",
     "Starting Stack": "\U0001F4E6",
     "Monte Carlo Simulation": "\U0001F3B2",
     "Saved Simulation": "\U0001F4BE",
@@ -275,7 +275,7 @@ def _shared_settings_card(prefix, *, amount_id=None, amount_label="Per-period am
         dbc.Input(id=f"{prefix}-infl", type="number", value=infl_default,
                   min=0, max=100, step=0.5, size="sm", debounce=True),
     ])
-    return _section_card("Shared Model Settings", *children)
+    return _section_card("Your Scenario", *children)
 
 
 # ── Tab hints (LT-7: collapsible "How to use this tab") ───────────────────────

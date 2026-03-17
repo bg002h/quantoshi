@@ -70,7 +70,7 @@
         var sheet = getSheet();
         if (!sheet) return;
         var expanded = sheet.classList.contains('sheet-expanded');
-        _startTx = expanded ? 0 : sheet.offsetHeight - 40;
+        _startTx = expanded ? 0 : sheet.offsetHeight - 90;
         sheet.style.transition = 'none';
     }, {passive: true});
 
@@ -80,7 +80,7 @@
         if (!sheet) return;
         var dy = e.touches[0].clientY - _startY;
         var newY = Math.max(0, _startTx + dy);
-        var maxY = sheet.offsetHeight - 40;
+        var maxY = sheet.offsetHeight - 90;
         newY = Math.min(newY, maxY);
         sheet.style.transform = 'translateY(' + newY + 'px)';
     }, {passive: true});

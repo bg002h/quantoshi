@@ -166,15 +166,22 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             color_mode (0=Segmented,1=DataScaled,2=Diverging),
             b1, b2, c_lo, c_mid1, c_mid2, c_hi, n_disc,
             vfmt, show_colorbar, stack,
-            lots (list), use_lots
+            lots (list), use_lots, hm_model (str, default "bub")
     """
-    model = _app_ctx.DEFAULT_MODEL
+    hm_model_key = p.get("hm_model", "bub")
+    model = _app_ctx.PRICE_MODELS.get(hm_model_key, _app_ctx.DEFAULT_MODEL)
     palette = _get_palette(p)
     eyr = int(p.get("entry_yr", 2020))
     eq  = float(p.get("entry_q", 50)) / 100.0   # stored as percentage (e.g. 7.5 -> 0.075)
     entry_t = yr_to_t(eyr, m.genesis)
     live_price = p.get("live_price")
-    ep  = float(live_price) if live_price else model.interp_price(eq, entry_t)
+    is_quantized = getattr(model, "quantized", True)
+
+    # For non-quantized models, entry price uses model median (0.5) or interp
+    if is_quantized:
+        ep = float(live_price) if live_price else model.interp_price(eq, entry_t)
+    else:
+        ep = float(live_price) if live_price else float(model.price_at(0.5, entry_t))
 
     # LOT ENTRY OVERRIDE
     lots = p.get("lots") or []
@@ -187,37 +194,62 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     xhi = int(p.get("exit_yr_hi", eyr + 10))
     eyrs = list(range(xlo, xhi + 1))
 
-    xqs_raw = p.get("exit_qs") or []
-    xqs = sorted([float(q) for q in xqs_raw if float(q) in model.fits], reverse=True)
+    if is_quantized:
+        # Quantized model: full quantile x year matrix
+        xqs_raw = p.get("exit_qs") or []
+        xqs = sorted([float(q) for q in xqs_raw if float(q) in model.fits], reverse=True)
 
-    if not eyrs or not xqs:
-        return _error_figure(m, "No data \u2014 adjust Entry / Exit settings")
+        if not eyrs or not xqs:
+            return _error_figure(m, "No data \u2014 adjust Entry / Exit settings")
 
-    mc = np.zeros((len(xqs), len(eyrs)))
-    mp = np.zeros((len(xqs), len(eyrs)))
-    mm = np.zeros((len(xqs), len(eyrs)))
-    for ci, ey in enumerate(eyrs):
-        et = yr_to_t(ey, m.genesis)
-        nyr = et - entry_t if p.get("use_lots") and lots else float(ey - eyr)
-        for ri, xq in enumerate(xqs):
-            xpp = float(model.price_at(xq, et))
-            mp[ri, ci] = xpp
-            mm[ri, ci] = xpp / ep if ep > 0 else 0.0
+        mc = np.zeros((len(xqs), len(eyrs)))
+        mp = np.zeros((len(xqs), len(eyrs)))
+        mm = np.zeros((len(xqs), len(eyrs)))
+        for ci, ey in enumerate(eyrs):
+            et = yr_to_t(ey, m.genesis)
+            nyr = et - entry_t if p.get("use_lots") and lots else float(ey - eyr)
+            for ri, xq in enumerate(xqs):
+                xpp = float(model.price_at(xq, et))
+                mp[ri, ci] = xpp
+                mm[ri, ci] = xpp / ep if ep > 0 else 0.0
+                if nyr <= 0:
+                    mc[ri, ci] = (xpp / ep - 1.0) * 100.0
+                else:
+                    mc[ri, ci] = ((xpp / ep) ** (1.0 / nyr) - 1.0) * 100.0
+
+        ylabels = [_fmt_q_label(q) for q in xqs]
+        y_title = "Exit Quantile"
+        hover_y_label = "Quantile"
+        n_rows = len(xqs)
+    else:
+        # Non-quantized model: single-row heatmap
+        if not eyrs:
+            return _error_figure(m, "No data \u2014 adjust Exit year range")
+
+        mc = np.zeros((1, len(eyrs)))
+        mp = np.zeros((1, len(eyrs)))
+        mm = np.zeros((1, len(eyrs)))
+        for ci, ey in enumerate(eyrs):
+            et = yr_to_t(ey, m.genesis)
+            nyr = et - entry_t if p.get("use_lots") and lots else float(ey - eyr)
+            xpp = float(model.price_at(0.5, et))
+            mp[0, ci] = xpp
+            mm[0, ci] = xpp / ep if ep > 0 else 0.0
             if nyr <= 0:
-                mc[ri, ci] = (xpp / ep - 1.0) * 100.0
+                mc[0, ci] = (xpp / ep - 1.0) * 100.0
             else:
-                mc[ri, ci] = ((xpp / ep) ** (1.0 / nyr) - 1.0) * 100.0
+                mc[0, ci] = ((xpp / ep) ** (1.0 / nyr) - 1.0) * 100.0
+
+        ylabels = [model.name]
+        y_title = "Model"
+        hover_y_label = "Model"
+        n_rows = 1
 
     colorscale, zmin, zmax = _heatmap_colorscale(m, p, mc)
 
     # ── cell text ─────────────────────────────────────────────────────────────
     vfmt    = p.get("vfmt", "cagr")
     hm_stk  = float(p.get("stack", 0))
-
-    # ── quantile y-axis labels ────────────────────────────────────────────────
-    ylabels = []
-    for q in xqs:
-        ylabels.append(_fmt_q_label(q))
 
     # ── cell annotations ──────────────────────────────────────────────────────
     annots = _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax,
@@ -234,15 +266,24 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             bgcolor=m.PLOT_BG_COLOR,
             outlinecolor=m.SPINE_COLOR,
         ),
-        hovertemplate="Exit: %{x}<br>Quantile: %{y}<br>CAGR: %{z:.1f}%<extra></extra>",
+        hovertemplate=f"Exit: %{{x}}<br>{hover_y_label}: %{{y}}<br>CAGR: %{{z:.1f}}%<extra></extra>",
     ))
 
     entry_lbl = (f"Entry: {eyr}  {fmt_price(ep)}  \u00b7  Q{eq*100:.4g}%"
                  if not (p.get("use_lots") and lots)
                  else f"Entry: lots weighted avg  {fmt_price(ep)}")
 
+    # Title varies by model type
+    is_default = (hm_model_key == "bub")
+    if not is_quantized:
+        title_text = f"{model.name} (non-quantized) \u2014 {entry_lbl}"
+    elif not is_default:
+        title_text = f"{model.name} \u2014 {entry_lbl}"
+    else:
+        title_text = f"CAGR Heatmap \u2014 {entry_lbl}"
+
     fig.update_layout(
-        title=dict(text=f"CAGR Heatmap \u2014 {entry_lbl}",
+        title=dict(text=title_text,
                    font=dict(color=m.TITLE_COLOR, size=_FONT_SUBTITLE)),
         paper_bgcolor=m.PLOT_BG_COLOR,
         plot_bgcolor=m.PLOT_BG_COLOR,
@@ -250,7 +291,7 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         xaxis=dict(title="Exit Year", gridcolor=m.GRID_MAJOR_COLOR,
                    linecolor=m.SPINE_COLOR, tickcolor=m.TEXT_COLOR,
                    fixedrange=True),
-        yaxis=dict(title="Exit Quantile", gridcolor=m.GRID_MAJOR_COLOR,
+        yaxis=dict(title=y_title, gridcolor=m.GRID_MAJOR_COLOR,
                    linecolor=m.SPINE_COLOR, tickcolor=m.TEXT_COLOR,
                    fixedrange=True),
         annotations=annots,
@@ -268,7 +309,7 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         entry_ci = [str(y) for y in eyrs].index(str(eyr))
         fig.add_shape(type="rect",
             x0=entry_ci - 0.5, x1=entry_ci + 0.5,
-            y0=-0.5, y1=len(xqs) - 0.5,
+            y0=-0.5, y1=n_rows - 0.5,
             line=dict(color="#f7931a", width=2),
             fillcolor="rgba(247,147,26,0.06)",
             xref="x", yref="y",

@@ -2499,7 +2499,7 @@ class TestUpdateHeatmapCallback:
         yr = pd.Timestamp.today().year
         with _patch_ctx("hm-entry-yr"):
             result = update_heatmap(
-                active_tab="heatmap", entry_yr=yr, entry_q=50.0,
+                active_tab="heatmap", hm_model="bub", entry_yr=yr, entry_q=50.0,
                 exit_range=[yr, yr + 10],
                 exit_qs=[0.01, 0.1, 0.5, 0.85, 0.99],
                 mode=0, b1=0, b2=20,
@@ -2515,15 +2515,15 @@ class TestUpdateHeatmapCallback:
                 live_price=0, mc_cached=None, pay_token=None, mc_auth=None,
                 palette_key="default",
             )
-        # Returns 9 outputs: qr_fig, mc_fig, store, status, panel_style, indicator_style, rendered_key, modal, tab
-        assert len(result) == 9
+        # Returns 8 outputs: fig, store, status, panel_style, indicator_style, rendered_key, modal, tab
+        assert len(result) == 8
         assert isinstance(result[0], go.Figure)
 
     def test_wrong_tab_prevents_update(self):
         with _patch_ctx("main-tabs"):
             with pytest.raises(Exception):  # dash.exceptions.PreventUpdate
                 update_heatmap(
-                    active_tab="dca", entry_yr=2025, entry_q=50,
+                    active_tab="dca", hm_model="bub", entry_yr=2025, entry_q=50,
                     exit_range=[2025, 2035], exit_qs=[0.5],
                     mode=0, b1=0, b2=20,
                     c_lo=None, c_mid1=None, c_mid2=None, c_hi=None,

@@ -13,10 +13,9 @@ from mc_overlay import _mc_supercharge_overlay
 
 from figures.common import (
     _QR_LINE_WIDTH, _ANNOT_STAGGER_Y, _BISECT_ITERS,
-    _NON_QUANTIZED_MODEL_COLOR,
     _FONT_ANNOT,
     _HAS_MARKOV,
-    _get_palette, _add_glow_trace, _fmt_q_label, _error_figure,
+    _get_palette, _build_thermal_colors, _add_glow_trace, _fmt_q_label, _error_figure,
     _build_freq_config, _get_starting_stack,
     _sim_layout, _apply_mc_overlay,
     _stagger_depletion_annots,
@@ -26,8 +25,6 @@ from figures.common import (
     _hex_alpha,
 )
 
-_DELAY_COLORS = ['#00c853', '#fdd835', '#ff9100', '#ff5252', '#b71c1c']
-_ANNOT_COLORS = ['#00a844', '#d4b12e', '#e07d00', '#d44040', '#8f1616']
 _DASH_STYLES  = ['solid', 'dash', 'dot', 'dashdot', 'longdash']
 
 
@@ -43,6 +40,8 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
     palette = _get_palette(p)
     delay_colors = palette["delay_colors"]
     annot_colors = palette["annot_colors"]
+    sel_qs_raw = sorted([float(q) for q in (p.get("selected_qs") or [])])
+    _thermal = _build_thermal_colors(sel_qs_raw, palette)
 
     mode         = p.get("mode", "a")
     freq_str, ppy, dt = _build_freq_config(p)
@@ -149,7 +148,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
         elif chart_layout == 1:
             # Color = quantile, line style = delay
             for q in sel_qs:
-                col   = model.colors.get(q, "#888888")
+                col   = _thermal.get(q, model.colors.get(q, "#888888"))
                 q_lbl = _fmt_q_label(q)
                 for di, d in enumerate(delays):
                     key = (d, q)
@@ -308,7 +307,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         di = delays.index(d) if d in delays else 0
                         col = delay_colors[di % len(delay_colors)]
                     else:
-                        col = model.colors.get(q, "#888888")
+                        col = _thermal.get(q, model.colors.get(q, "#888888"))
                     lbl = (fmt_price(y_final) if disp_mode == "usd"
                            else f"{y_final:.4f} \u20bf")
                     _sc_btc = float(btc_vals_r[-1])
@@ -339,6 +338,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
     model = _app_ctx.DEFAULT_MODEL
     palette = _get_palette(p)
     delay_colors = palette["delay_colors"]
+    _thermal = _build_thermal_colors(sel_qs, palette)
     target_yr = int(p.get("target_yr", 2060))
 
     def _max_wd_for(d, q):
@@ -393,7 +393,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
 
     elif chart_layout == 1:
         for q in sel_qs:
-            col   = model.colors.get(q, "#888888")
+            col   = _thermal.get(q, model.colors.get(q, "#888888"))
             q_lbl = _fmt_q_label(q)
             y_q   = [max_wd.get((d, q), 0) for d in delays]
             traces.append(go.Scatter(

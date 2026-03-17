@@ -13,7 +13,7 @@ from btc_core import yr_to_t, today_t, fmt_price
 
 from figures.common import (
     _INTERP_POINTS, _MAX_SCATTER_PTS, _QR_LINE_WIDTH, _SHADE_ALPHA,
-    _NON_QUANTIZED_MODEL_COLOR, _OVERLAY_LINE_WIDTH,
+    _OVERLAY_LINE_WIDTH,
     _TODAY_LINE_COLOR, _TODAY_LINE_WIDTH, _TODAY_LINE_OPACITY,
     _TODAY_GLOW_WIDTH, _TODAY_GLOW_OPACITY,
     _FONT_LEGEND, _FONT_TITLE, _FONT_SUBTITLE,
@@ -55,13 +55,15 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         if q in model.fits:
             _price_cache[q] = model.price_at(q, t_arr) * (stack if stack > 0 else 1)
 
+    _thermal = _build_thermal_colors(sel_qs, palette)
+
     if p.get("shade") and len(sel_qs) >= 2:
         for j in range(len(sel_qs) - 1):
             if sel_qs[j] not in _price_cache or sel_qs[j+1] not in _price_cache:
                 continue
             lo_p = _price_cache[sel_qs[j]]
             hi_p = _price_cache[sel_qs[j+1]]
-            col  = model.colors.get(sel_qs[j], "#888888")
+            col  = _thermal.get(sel_qs[j], model.colors.get(sel_qs[j], "#888888"))
             traces.append(go.Scatter(
                 x=list(t_arr), y=list(lo_p),
                 mode="lines", line=dict(width=0),
@@ -75,7 +77,6 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             ))
 
     # ── quantile lines (thermal palette + neon glow) ─────────────────────────
-    _thermal = _build_thermal_colors(sel_qs, palette)
     for q in sel_qs:
         if q not in _price_cache:
             continue
@@ -123,7 +124,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             traces.append(go.Scatter(
                 x=list(t_arr), y=list(np.asarray(prices)),
                 mode="lines", name=lbl,
-                line=dict(color=_NON_QUANTIZED_MODEL_COLOR, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
+                line=dict(color=palette["non_quantized_model"], width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                 legendgroup=mdl.short_name,
             ))
 

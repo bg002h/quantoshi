@@ -4078,5 +4078,87 @@ class TestPhase5Polish:
         assert pl_traces[0].line.dash == "dot"
 
 
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestPalettes:
+    """Test palette registry and palette-aware color functions."""
+
+    def test_get_palette_default(self):
+        from figures.common import _get_palette
+        pal = _get_palette({})
+        assert pal is _app_ctx.PALETTES["default"]
+
+    def test_get_palette_cb_rg(self):
+        from figures.common import _get_palette
+        pal = _get_palette({"palette": "cb-rg"})
+        assert pal is _app_ctx.PALETTES["cb-rg"]
+
+    def test_get_palette_unknown_falls_back(self):
+        from figures.common import _get_palette
+        pal = _get_palette({"palette": "nonexistent"})
+        assert pal is _app_ctx.PALETTES["default"]
+
+    def test_thermal_color_default_unchanged(self):
+        from figures.common import _thermal_color
+        assert _thermal_color(0.50).lower() == "#bdbdbd"
+
+    def test_thermal_color_cb_rg_differs(self):
+        from figures.common import _thermal_color
+        pal = _app_ctx.PALETTES["cb-rg"]
+        assert _thermal_color(0.90) != _thermal_color(0.90, pal)
+
+    def test_all_palettes_have_required_keys(self):
+        required = {"thermal_stops", "non_quantized_model", "delay_colors",
+                    "annot_colors", "today_line", "hm_c_lo", "hm_c_mid1",
+                    "hm_c_mid2", "hm_c_hi", "hm_loss_text", "hm_exceptional_text"}
+        for name, pal in _app_ctx.PALETTES.items():
+            missing = required - set(pal.keys())
+            assert not missing, f"Palette {name!r} missing keys: {missing}"
+
+    def test_all_palettes_thermal_stops_count(self):
+        for name, pal in _app_ctx.PALETTES.items():
+            assert len(pal["thermal_stops"]) == 12, f"{name} has wrong stop count"
+
+    def test_snapshot_roundtrip_palette(self):
+        from snapshot import (_encode_snapshot, _decode_snapshot,
+                              _SNAPSHOT_CONTROLS)
+        state = {f"{cid}:{prop}": None for cid, prop in _SNAPSHOT_CONTROLS}
+        state["palette-store:data"] = "cb-rg"
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert decoded.get("palette-store:data") == "cb-rg"
+
+    def test_build_bubble_all_palettes(self):
+        from figures import build_bubble_figure
+        yr_now = pd.Timestamp.today().year
+        for pal_key in _app_ctx.PALETTES:
+            fig = build_bubble_figure(M, dict(
+                selected_qs=[0.5], shade=False, show_data=False,
+                show_today=False, show_legend=False, minor_grid=False,
+                show_comp=False, show_sup=False, xscale="log", yscale="log",
+                xmin=2012, xmax=yr_now + 4, ymin=1, ymax=1e6,
+                n_future=1, pt_size=2, pt_alpha=0.2,
+                stack=0, show_stack=False, use_lots=False, lots=[],
+                comp_color="#FFD700", comp_lw=2, sup_color="#888", sup_lw=1.5,
+                palette=pal_key,
+            ))
+            assert fig is not None, f"bubble failed for {pal_key}"
+
+    def test_build_dca_all_palettes(self):
+        from figures import build_dca_figure
+        for pal_key in _app_ctx.PALETTES:
+            fig, _ = build_dca_figure(M, dict(
+                start_stack=0, use_lots=False, amount=100, freq="Monthly",
+                start_yr=2024, end_yr=2030, disp_mode="btc",
+                log_y=False, show_today=False, show_legend=False,
+                minor_grid=False, selected_qs=[0.5], lots=[],
+                sc_enabled=False, sc_loan_amount=0, sc_rate=13.0,
+                sc_loan_type="interest_only", sc_term_months=48,
+                sc_repeats=0, sc_rollover=False, sc_entry_mode="live",
+                sc_custom_price=80000, sc_tax_rate=0.33, sc_live_price=None,
+                palette=pal_key,
+            ))
+            assert fig is not None, f"dca failed for {pal_key}"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

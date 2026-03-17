@@ -26,7 +26,7 @@ from layout.mc_controls import (_bold_opts, _regime_options,
                                  _MC_ENTRY_Q_OPTIONS, _MC_ENTRY_Q_OPTIONS_ADV,
                                  _QUANT_FONT)
 from layout.faq import _FAQ
-from layout.splash import (_SPLASH_QUOTES, _SPLASH_QUOTES_JS,
+from layout.splash import (_SPLASH_QUOTES_JS,
                             _SPLASH_IDX, _SPLASH_Q, _SPLASH_A,
                             _GENESIS_QUOTE)
 

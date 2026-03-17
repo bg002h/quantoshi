@@ -6,16 +6,13 @@ from callbacks import mc_upload, sc_loan, lots, nav, snapshot_cb, ticker
 
 # Re-exports for test_web.py and app.py backward compatibility
 from callbacks.coerce import _ci, _cf, _format_lots_for_table
-from callbacks.mc_helpers import (_coerce_mc, _build_mc_params, _mc_setup,
+from callbacks.mc_helpers import (_build_mc_params, _mc_setup,
                                   _mc_finalize, _mc_payment_check,
-                                  _mc_status, _ghost_match, _unblocked_val,
-                                  _strip_free_paths)
+                                  _mc_status, _ghost_match, _unblocked_val)
 from callbacks.mc_upload import (_parse_mc_upload, _extract_mc_key_val,
                                  _MC_UPLOAD_FIELDS)
 from callbacks.mc_controls import (_mc_years_options, _toggle_dca_sc_body,
-                                   _restore_mc, _MC_MATCH_JS_TPL,
-                                   _MC_EXTEND_YR_JS, _PPY_JS,
-                                   _MC_MAX_DATAPOINTS)
+                                   _restore_mc)
 from callbacks.lots import (_lots_summary, manage_lots, preview_percentile,
                             sync_table_on_load)
 from callbacks.charts import (update_bubble, update_heatmap, update_dca,
@@ -31,4 +28,3 @@ from callbacks.nav import (_TAB_CONTROLS, _TAB_TO_PATH, _PATH_TO_TAB,
                             open_faq_item, toggle_share_modal)
 from callbacks.sc_loan import update_sc_info
 from callbacks.ticker import update_price_ticker
-from callbacks.mc_payment import (_MC_BTN_TO_TAB, _MC_QUANT_THRESHOLD)

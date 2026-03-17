@@ -1,12 +1,11 @@
 """Tab routing, navigation, splash, easter eggs, image export, drawers."""
 
-import json
-
 import dash
 from dash import Input, Output, State, callback, no_update
 
 import _app_ctx
-from layout import (_SPLASH_QUOTES, _SPLASH_QUOTES_JS, _FAQ)
+from layout.splash import _SPLASH_QUOTES_JS
+from layout.faq import _FAQ
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -231,7 +230,7 @@ _app_ctx.app.clientside_callback(
         var now = Date.now();
         var last = ts_store ? parseInt(ts_store) : 0;
         if (now - last >= SIX_HOURS) {
-            var quotes = """ + json.dumps([list(q) for q in _SPLASH_QUOTES]) + """;
+            var quotes = """ + _SPLASH_QUOTES_JS + """;
             /* Deterministic pseudo-random shuffle using epoch as seed */
             var seed = Math.floor(now / (6 * 3600 * 1000));
             // Mulberry32: fast deterministic PRNG (no crypto needed, just shuffling quotes)

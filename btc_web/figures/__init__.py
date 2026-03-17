@@ -7,7 +7,7 @@ continues to work unchanged after the monolith was split into sub-modules.
 from figures.common import (
     FREQ_PPY, _FREQ_STEP_DAYS, _LOGO_B64_ALL, _apply_watermark,
     _build_qr_config_text, _build_mc_config_text,
-    _apply_config_annotation, _build_thermal_colors, _price_tickvals,
+    _apply_config_annotation, _build_thermal_colors,
 )
 from figures.bubble import build_bubble_figure
 from figures.heatmap import build_heatmap_figure, build_mc_heatmap_figure

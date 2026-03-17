@@ -336,3 +336,8 @@ _rnd.Random(42).shuffle(_shuffled)
 _SPLASH_QUOTES_JS = _json.dumps(
     [list(_GENESIS_QUOTE)] + [list(q) for q in _shuffled]
 )
+
+# Free the original list — _SPLASH_IDX, _SPLASH_Q, _SPLASH_A have already
+# been extracted, and all JS consumers use _SPLASH_QUOTES_JS instead.
+del _shuffled
+_SPLASH_QUOTES = None

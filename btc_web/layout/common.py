@@ -191,15 +191,6 @@ def _year_range_slider(prefix, min_yr, max_yr, default_start, default_end, mark_
     )
 
 
-def _freq_dropdown(prefix, default="Monthly"):
-    """Frequency dropdown (Daily/Weekly/Monthly/Quarterly/Annually)."""
-    return dcc.Dropdown(
-        id=f"{prefix}-freq",
-        options=["Daily", "Weekly", "Monthly", "Quarterly", "Annually"],
-        value=default, clearable=False,
-    )
-
-
 def _freq_warning_modal():
     """Modal shown when user unlocks frequency editing."""
     return dbc.Modal([
@@ -285,22 +276,6 @@ def _shared_settings_card(prefix, *, amount_id=None, amount_label="Per-period am
                   min=0, max=100, step=0.5, size="sm", debounce=True),
     ])
     return _section_card("Shared Model Settings", *children)
-
-
-def _stack_control_card(prefix, default_btc=0, header=True):
-    """Starting Stack card with BTC input and Use Stack Tracker lots checkbox."""
-    children = []
-    if header:
-        children.append(html.Div("Starting Stack", className="ctrl-section-header"))
-    children.extend([
-        _lbl("Starting BTC"),
-        dbc.Input(id=f"{prefix}-stack", type="number", value=default_btc,
-                  min=0, step=0.001, size="sm", debounce=True),
-        dcc.Checklist(id=f"{prefix}-use-lots",
-                      options=[{"label": " Use Stack Tracker lots", "value": "yes"}],
-                      value=[], inputStyle={"marginRight": "5px"}),
-    ])
-    return _ctrl_card(*children)
 
 
 # ── Tab hints (LT-7: collapsible "How to use this tab") ───────────────────────

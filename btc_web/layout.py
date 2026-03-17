@@ -184,8 +184,10 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
                           style=_STYLE_HIDDEN)]
     return dbc.Row([
         dbc.Col([
-            html.Div("", className="sheet-handle"),
-            html.Div("", className="sheet-pullzone"),
+            html.Div([
+                html.Div("", className="sheet-grab-bar"),
+                html.Button("\u2715", className="sheet-close-btn", n_clicks=0),
+            ], className="sheet-handle"),
             controls_fn(),
         ], width=3, className="controls-col overflow-auto",
                 style={"maxHeight": "85vh"}),
@@ -609,8 +611,10 @@ def _heatmap_controls():
 def _heatmap_tab():
     return dbc.Row([
         dbc.Col([
-            html.Div("", className="sheet-handle"),
-            html.Div("", className="sheet-pullzone"),
+            html.Div([
+                html.Div("", className="sheet-grab-bar"),
+                html.Button("\u2715", className="sheet-close-btn", n_clicks=0),
+            ], className="sheet-handle"),
             _heatmap_controls(),
         ], width=3, className="controls-col overflow-auto",
                 style={"maxHeight":"85vh"}),

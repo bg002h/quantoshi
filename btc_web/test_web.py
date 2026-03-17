@@ -2897,14 +2897,16 @@ class TestAutoBubbleYrange:
         with _patch_ctx("bub-xrange"):
             with pytest.raises(Exception):
                 auto_bubble_yrange(
-                    xrange=[2015, 2030], auto_y=[], yscale="log", sel_qs=[0.5],
+                    xrange=[2015, 2030], auto_y=[], yscale="log",
+                    model_show=[], sel_qs=[0.5],
                 )
 
     def test_returns_yrange(self):
         import math as _m
         with _patch_ctx("bub-xrange"):
             result = auto_bubble_yrange(
-                xrange=[2015, 2030], auto_y=["yes"], yscale="log", sel_qs=[0.5],
+                xrange=[2015, 2030], auto_y=["yes"], yscale="log",
+                model_show=[], sel_qs=[0.5],
             )
         assert isinstance(result, list)
         assert len(result) == 2

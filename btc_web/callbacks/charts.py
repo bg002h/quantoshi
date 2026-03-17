@@ -89,10 +89,11 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
     Input("bub-xrange",  "value"),
     Input("bub-auto-y",  "value"),
     Input("bub-yscale",  "value"),
+    Input("bub-model-show", "value"),
     State("bub-qs",      "value"),
     prevent_initial_call=True,
 )
-def auto_bubble_yrange(xrange, auto_y, yscale, sel_qs):
+def auto_bubble_yrange(xrange, auto_y, yscale, model_show, sel_qs):
     """Auto-fit bubble Y range to selected quantiles at current X range."""
     if not auto_y or not xrange:
         raise dash.exceptions.PreventUpdate
@@ -104,6 +105,19 @@ def auto_bubble_yrange(xrange, auto_y, yscale, sel_qs):
     t_hi = yr_to_t(xmax, _app_ctx.M.genesis)
     p_lo = float(_app_ctx.DEFAULT_MODEL.price_at(qs[0], t_lo))
     p_hi = float(_app_ctx.DEFAULT_MODEL.price_at(qs[-1], t_hi))
+    # Include secondary models (PL, S2F) in Y range if active
+    for key in (model_show or []):
+        mdl = _app_ctx.PRICE_MODELS.get(key)
+        if mdl is None or mdl is _app_ctx.DEFAULT_MODEL:
+            continue
+        if mdl.quantized:
+            mdl_qs = [q for q in qs if q in mdl.fits]
+            if mdl_qs:
+                p_lo = min(p_lo, float(mdl.price_at(mdl_qs[0], t_lo)))
+                p_hi = max(p_hi, float(mdl.price_at(mdl_qs[-1], t_hi)))
+        else:
+            p_mid = float(mdl.price_at(0.5, t_hi))
+            p_hi = max(p_hi, p_mid)
     if (yscale or "log") == "log":
         y_lo = math.floor(math.log10(max(p_lo, 1e-10)) * 2) / 2 - 0.5
         y_hi = math.ceil( math.log10(max(p_hi, 1e-10)) * 2) / 2 + 0.5

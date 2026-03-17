@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from typing import Any
 
 import _app_ctx
-from btc_core import ModelData, yr_to_t, today_t, fmt_price
+from btc_core import ModelData, yr_to_t, fmt_price
 from mc_overlay import _mc_retire_overlay
 
 from figures.common import (

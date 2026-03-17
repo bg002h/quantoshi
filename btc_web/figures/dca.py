@@ -7,12 +7,11 @@ import plotly.graph_objects as go
 from typing import Any
 
 import _app_ctx
-from btc_core import ModelData, yr_to_t, today_t, fmt_price
+from btc_core import ModelData, yr_to_t, fmt_price
 
 from figures.common import (
     _QR_LINE_WIDTH, _BTC_ORANGE,
     _NON_QUANTIZED_MODEL_COLOR, _OVERLAY_LINE_WIDTH,
-    _TODAY_LINE_COLOR, _TODAY_LINE_WIDTH, _TODAY_LINE_OPACITY,
     _FONT_ANNOT,
     _HAS_MARKOV,
     _get_palette, _build_thermal_colors, _add_glow_trace, _fmt_q_label, _error_figure,
@@ -246,14 +245,6 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
             ))
 
     shapes = []
-    if p.get("show_today"):
-        td = today_t(m.genesis)
-        if t_start <= td <= t_end:
-            shapes.append(dict(
-                type="line", x0=td, x1=td, y0=0, y1=1,
-                yref="paper", line=dict(color=palette.get("today_line", _TODAY_LINE_COLOR), dash="dash", width=_TODAY_LINE_WIDTH),
-                opacity=_TODAY_LINE_OPACITY,
-            ))
 
     # ── Total cost & value ratio ────────────────────────────────────────────
     n_periods = len(ts)

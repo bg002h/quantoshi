@@ -1145,7 +1145,7 @@ body {
     }
     /* Feather quill + CONFIG text — horizontal for mobile */
     .sheet-handle::after {
-        content: "\1FAB6  C O N F I G";
+        content: "C O N F I G  \1FAB6";
         position: absolute;
         top: 50%;
         left: 50%;
@@ -1156,7 +1156,7 @@ body {
         color: #3a2210;
         text-align: center;
         white-space: nowrap;
-        letter-spacing: 3px;
+        letter-spacing: 1.5px;
         text-shadow: 0 1px 0 rgba(212,168,85,0.5);
         pointer-events: none;
         z-index: 2;

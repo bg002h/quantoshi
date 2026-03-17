@@ -121,7 +121,7 @@ def _export_row(tab_id: str):
             # dummy store — clientside callback needs an output target
             dcc.Store(id=f"{tab_id}-dl-dummy"),
         ], className="g-1 align-items-center"),
-        html.Div("\u2191 Swipe up or tap \u2699\uFE0F to configure",
+        html.Div("\u2191 Swipe up or tap \U0001F4DC to configure",
                  className="d-md-none text-center text-muted py-1",
                  style={"fontSize":"11px", "letterSpacing":"0.02em"}),
     ], className="export-row-polished")

@@ -1,141 +1,143 @@
 /* ── Mobile bottom sheet — vanilla JS (no Dash callback dependency) ─────────
-   Handles: FAB toggle, handle tap, handle drag, scrim dismiss, tab-switch close.
-   Only active on viewports ≤ 767px (matches CSS media query).
+   Handles: handle tap/drag, body swipe-down-to-close, scrim dismiss,
+   tab-switch close. Only active on viewports ≤ 767px.
 */
 (function() {
     "use strict";
+    var HANDLE_H = 90;   /* visible handle height when collapsed (matches CSS) */
+    var DIR_THRESHOLD = 8; /* px of movement before committing to direction */
 
-    function isMobile() {
-        return window.innerWidth <= 767;
-    }
+    function isMobile() { return window.innerWidth <= 767; }
 
-    function getSheet() {
-        /* Find the controls-col inside the currently active tab pane */
-        var active = document.querySelector('.tab-pane.active .controls-col');
-        return active || document.querySelector('.controls-col');
-    }
-
-    function getScrim() {
-        return document.getElementById('sheet-scrim');
-    }
+    function getScrim() { return document.getElementById('sheet-scrim'); }
 
     function collapseAll() {
-        /* Remove sheet-expanded from ALL controls-cols (prevents stale state across tabs) */
         document.querySelectorAll('.controls-col.sheet-expanded').forEach(function(el) {
             el.classList.remove('sheet-expanded');
             el.style.transform = '';
+            el.style.overflowY = '';
         });
         var scrim = getScrim();
         if (scrim) scrim.classList.remove('active');
     }
 
-    function expand() {
+    function expandCol(col) {
         collapseAll();
-        var sheet = getSheet(), scrim = getScrim();
-        if (sheet) sheet.classList.add('sheet-expanded');
+        if (col) col.classList.add('sheet-expanded');
+        var scrim = getScrim();
         if (scrim) scrim.classList.add('active');
     }
-
-    function collapse() {
-        collapseAll();
-    }
-
-    function toggle() {
-        var sheet = getSheet();
-        if (sheet && sheet.classList.contains('sheet-expanded')) {
-            collapse();
-        } else {
-            expand();
-        }
-    }
-
-    // ── FAB button ──────────────────────────────────────────────────────────
-    document.addEventListener('click', function(e) {
-        if (!isMobile()) return;
-        var fab = e.target.closest('#mobile-settings-fab');
-        if (fab) { e.preventDefault(); toggle(); }
-    });
 
     // ── Scrim dismiss ───────────────────────────────────────────────────────
     document.addEventListener('click', function(e) {
         if (!isMobile()) return;
-        if (e.target.id === 'sheet-scrim') collapse();
+        if (e.target.id === 'sheet-scrim') collapseAll();
     });
 
-    // ── Handle tap ──────────────────────────────────────────────────────────
+    // ── Handle tap to toggle ────────────────────────────────────────────────
     document.addEventListener('click', function(e) {
         if (!isMobile()) return;
         var handle = e.target.closest('.sheet-handle');
         if (!handle) return;
         var col = handle.closest('.controls-col');
         if (!col) return;
-        var scrim = getScrim();
         if (col.classList.contains('sheet-expanded')) {
             collapseAll();
         } else {
-            collapseAll();
-            col.classList.add('sheet-expanded');
-            if (scrim) scrim.classList.add('active');
+            expandCol(col);
         }
     });
 
-    // ── Drag (handle to open, anywhere in sheet to close when scrolled to top) ─
-    var _startY = 0, _startTx = 0, _dragging = false, _dragCol = null;
+    // ── Touch drag state ────────────────────────────────────────────────────
+    var _startY = 0, _startTx = 0;
+    var _dragging = false;    /* committed to dragging */
+    var _pending = false;     /* touch started, waiting for direction */
+    var _dragCol = null;
+    var _fromHandle = false;
 
     document.addEventListener('touchstart', function(e) {
         if (!isMobile()) return;
-        // Start drag from handle (open or close)
+        _dragging = false;
+        _pending = false;
+        _dragCol = null;
+        _fromHandle = false;
+
         var handle = e.target.closest('.sheet-handle');
         if (handle) {
             _dragCol = handle.closest('.controls-col');
             if (!_dragCol) return;
-            _dragging = true;
+            _fromHandle = true;
+            _dragging = true;  /* handle drag commits immediately (touch-action:none) */
             _startY = e.touches[0].clientY;
             var expanded = _dragCol.classList.contains('sheet-expanded');
-            _startTx = expanded ? 0 : _dragCol.offsetHeight - 90;
+            _startTx = expanded ? 0 : _dragCol.offsetHeight - HANDLE_H;
             _dragCol.style.transition = 'none';
             return;
         }
-        // Start drag from expanded sheet body (swipe down to close)
-        // Only when scrolled to top so it doesn't fight content scrolling
+
+        /* Body touch — only track if expanded and near top of scroll */
         var col = e.target.closest('.controls-col');
         if (col && col.classList.contains('sheet-expanded') && col.scrollTop <= 5) {
             _dragCol = col;
-            _dragging = true;
+            _pending = true;  /* don't commit yet — wait for direction */
             _startY = e.touches[0].clientY;
-            _startTx = 0;
-            _dragCol.style.transition = 'none';
         }
     }, {passive: true});
 
     document.addEventListener('touchmove', function(e) {
-        if (!_dragging || !isMobile() || !_dragCol) return;
-        var dy = e.touches[0].clientY - _startY;
-        // If dragging from expanded body, only allow downward movement
-        if (_startTx === 0 && dy < 0) return;
-        // Prevent browser scroll so our drag takes over
-        if (_startTx === 0 && dy > 5) {
-            try { e.preventDefault(); } catch(_) {}
+        if (!isMobile() || !_dragCol) return;
+
+        /* Direction detection: first DIR_THRESHOLD px decide scroll vs drag */
+        if (_pending) {
+            var dy0 = e.touches[0].clientY - _startY;
+            if (Math.abs(dy0) < DIR_THRESHOLD) return; /* not enough movement */
+            if (dy0 > 0 && _dragCol.scrollTop <= 5) {
+                /* Swiping DOWN from top → commit to drag-to-close */
+                _pending = false;
+                _dragging = true;
+                _startTx = 0;
+                _dragCol.style.overflowY = 'hidden';
+                _dragCol.style.transition = 'none';
+            } else {
+                /* Swiping UP or not at top → let browser scroll */
+                _pending = false;
+                _dragCol = null;
+                return;
+            }
         }
+
+        if (!_dragging) return;
+
+        var dy = e.touches[0].clientY - _startY;
+        /* When expanded (_startTx===0), only allow downward drag */
+        if (_startTx === 0 && dy < 0) return;
+        try { e.preventDefault(); } catch(_) {}
         var newY = Math.max(0, _startTx + dy);
-        var maxY = _dragCol.offsetHeight - 90;
+        var maxY = _dragCol.offsetHeight - HANDLE_H;
         newY = Math.min(newY, maxY);
         _dragCol.style.transform = 'translateY(' + newY + 'px)';
     }, {passive: false});
 
     document.addEventListener('touchend', function() {
-        if (!_dragging || !isMobile() || !_dragCol) return;
+        if (!isMobile()) return;
+        _pending = false;
+        if (!_dragging || !_dragCol) {
+            _dragCol = null;
+            return;
+        }
         _dragging = false;
         _dragCol.style.transition = '';
+        _dragCol.style.overflowY = '';
         var rect = _dragCol.getBoundingClientRect();
         var visibleH = window.innerHeight - rect.top;
-        var scrim = getScrim();
         if (visibleH > _dragCol.offsetHeight * 0.3) {
             _dragCol.classList.add('sheet-expanded');
+            var scrim = getScrim();
             if (scrim) scrim.classList.add('active');
         } else {
             _dragCol.classList.remove('sheet-expanded');
             _dragCol.style.transform = '';
+            var scrim = getScrim();
             if (scrim) scrim.classList.remove('active');
         }
         _dragCol = null;
@@ -147,20 +149,15 @@
         for (var i = 0; i < mutations.length; i++) {
             if (mutations[i].target.classList &&
                 mutations[i].target.classList.contains('tab-pane')) {
-                collapse();
+                collapseAll();
                 return;
             }
         }
     });
-
-    // Observe tab content changes
     function startObserving() {
-        var tabContent = document.querySelector('.tab-content');
-        if (tabContent) {
-            observer.observe(tabContent, {childList: true, subtree: true, attributes: true});
-        } else {
-            setTimeout(startObserving, 500);
-        }
+        var tc = document.querySelector('.tab-content');
+        if (tc) observer.observe(tc, {childList: true, subtree: true, attributes: true});
+        else setTimeout(startObserving, 500);
     }
     startObserving();
 })();

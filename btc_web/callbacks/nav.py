@@ -689,7 +689,7 @@ if _app_ctx._HAS_MARKOV:
 
 
 @callback(
-    Output("hm-active-model", "data"),
+    Output("hm-active-model", "data", allow_duplicate=True),
     *[Output(pid, "outline") for pid in _HM_PILL_IDS],
     *[Input(pid, "n_clicks") for pid in _HM_PILL_IDS],
     prevent_initial_call=True,

@@ -21,7 +21,7 @@ from pathlib import Path
 # ── make btc_app/ importable ──────────────────────────────────────────────────
 _HERE    = Path(__file__).parent
 _ROOT    = _HERE.parent
-_BTC_APP = _ROOT / "btc_app"
+_BTC_APP = _ROOT / "archive" / "btc_app"
 for _p in (_ROOT, _BTC_APP):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))

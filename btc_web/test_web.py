@@ -2434,9 +2434,20 @@ class _CallbackCtx:
 
 
 def _patch_ctx(triggered_id=None):
-    """Context manager that patches dash.ctx and dash.callback_context."""
+    """Context manager that patches dash.ctx across all callback submodules."""
     ctx_obj = _CallbackCtx(triggered_id)
-    return patch.multiple("callbacks", ctx=ctx_obj)
+    # After callbacks.py was split into callbacks/, each submodule imports ctx
+    # from dash directly.  Patch every submodule that uses ctx.
+    from contextlib import ExitStack
+    _targets = [
+        "callbacks", "callbacks.charts", "callbacks.lots",
+        "callbacks.mc_helpers", "callbacks.mc_payment",
+        "callbacks.snapshot_cb",
+    ]
+    stack = ExitStack()
+    for t in _targets:
+        stack.enter_context(patch.multiple(t, ctx=ctx_obj))
+    return stack
 
 
 @pytest.mark.skipif(_q3 is None, reason="app.py import failed")

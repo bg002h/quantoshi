@@ -99,24 +99,31 @@ _THERMAL_STOPS = [
 ]
 
 
-def _thermal_color(q: float) -> str:
+def _get_palette(p):
+    """Return active palette dict from params, defaulting to 'default'."""
+    key = p.get("palette", "default")
+    return _app_ctx.PALETTES.get(key, _app_ctx.PALETTES["default"])
+
+
+def _thermal_color(q: float, palette=None) -> str:
     """Map a quantile (0–1) to a temperature color via the thermal palette."""
-    if q <= _THERMAL_STOPS[0][0]:
-        return _THERMAL_STOPS[0][1]
-    if q >= _THERMAL_STOPS[-1][0]:
-        return _THERMAL_STOPS[-1][1]
-    for i in range(len(_THERMAL_STOPS) - 1):
-        q0, c0 = _THERMAL_STOPS[i]
-        q1, c1 = _THERMAL_STOPS[i + 1]
+    stops = palette["thermal_stops"] if palette is not None else _THERMAL_STOPS
+    if q <= stops[0][0]:
+        return stops[0][1]
+    if q >= stops[-1][0]:
+        return stops[-1][1]
+    for i in range(len(stops) - 1):
+        q0, c0 = stops[i]
+        q1, c1 = stops[i + 1]
         if q0 <= q <= q1:
             f = (q - q0) / (q1 - q0) if q1 > q0 else 0
             return _lerp_hex(c0, c1, f)
     return "#bdbdbd"
 
 
-def _build_thermal_colors(quantiles: list) -> dict:
+def _build_thermal_colors(quantiles: list, palette=None) -> dict:
     """Build a {quantile: hex_color} dict using the thermal palette."""
-    return {q: _thermal_color(q) for q in quantiles}
+    return {q: _thermal_color(q, palette) for q in quantiles}
 
 
 def _add_glow_trace(traces: list, x, y, color: str, width: float = _GLOW_WIDTH,

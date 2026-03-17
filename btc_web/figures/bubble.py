@@ -19,7 +19,7 @@ from figures.common import (
     _FONT_LEGEND, _FONT_TITLE, _FONT_SUBTITLE,
     _SANS_FONT, _FONT_TITLE_LG, _FONT_BODY_LG, _FONT_TICK_LG, _FONT_LEGEND_LG,
     _LOG_MINOR, _MC_LEGEND_POS,
-    _build_thermal_colors, _add_glow_trace, _fmt_q_label,
+    _get_palette, _build_thermal_colors, _add_glow_trace, _fmt_q_label,
     _dark_layout, _year_ticks, _price_tickvals,
     _apply_sans_typography, _apply_config_annotation, _apply_watermark,
     _lerp_hex, _hex_alpha,
@@ -35,6 +35,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             stack, show_stack, lots (list of lot dicts), use_lots
     """
     model = _app_ctx.DEFAULT_MODEL
+    palette = _get_palette(p)
     t_lo = max(yr_to_t(p["xmin"], m.genesis), 0.01)
     t_hi = yr_to_t(p["xmax"], m.genesis)
     y_lo = float(p["ymin"])
@@ -74,7 +75,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             ))
 
     # ── quantile lines (thermal palette + neon glow) ─────────────────────────
-    _thermal = _build_thermal_colors(sel_qs)
+    _thermal = _build_thermal_colors(sel_qs, palette)
     for q in sel_qs:
         if q not in _price_cache:
             continue
@@ -219,16 +220,17 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     shapes = []
     if p.get("show_today"):
         td = today_t(m.genesis)
+        today_color = palette.get("today_line", _TODAY_LINE_COLOR)
         if t_lo <= td <= t_hi:
             # Glow shadow behind the today line
             shapes.append(dict(
                 type="line", x0=td, x1=td, y0=y_lo, y1=y_hi,
-                line=dict(color=_TODAY_LINE_COLOR, width=_TODAY_GLOW_WIDTH),
+                line=dict(color=today_color, width=_TODAY_GLOW_WIDTH),
                 opacity=_TODAY_GLOW_OPACITY, yref="y",
             ))
             shapes.append(dict(
                 type="line", x0=td, x1=td, y0=y_lo, y1=y_hi,
-                line=dict(color=_TODAY_LINE_COLOR, dash="dash", width=_TODAY_LINE_WIDTH),
+                line=dict(color=today_color, dash="dash", width=_TODAY_LINE_WIDTH),
                 opacity=_TODAY_LINE_OPACITY, yref="y",
             ))
 

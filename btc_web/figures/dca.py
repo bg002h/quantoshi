@@ -15,7 +15,7 @@ from figures.common import (
     _TODAY_LINE_COLOR, _TODAY_LINE_WIDTH, _TODAY_LINE_OPACITY,
     _FONT_ANNOT,
     _HAS_MARKOV,
-    _add_glow_trace, _fmt_q_label, _error_figure,
+    _get_palette, _add_glow_trace, _fmt_q_label, _error_figure,
     _build_freq_config, _build_time_array, _get_starting_stack,
     _sim_layout, _apply_mc_overlay,
     _finalize_chart, _fmt_short, _find_mc_median_trace,
@@ -155,6 +155,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
             lots, use_lots
     """
     model = _app_ctx.DEFAULT_MODEL
+    palette = _get_palette(p)
     ta = _build_time_array(p, m, 2024, 2035)
     if ta[1] is None:
         return ta[0], None
@@ -238,7 +239,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
             traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines",
                 name=f"{mdl.name}  \u2192  {final_lbl}",
-                line=dict(color=_NON_QUANTIZED_MODEL_COLOR, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
+                line=dict(color=palette["non_quantized_model"], width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                 legendgroup=mdl.short_name,
             ))
 

@@ -16,7 +16,7 @@ from figures.common import (
     _NON_QUANTIZED_MODEL_COLOR,
     _FONT_ANNOT,
     _HAS_MARKOV,
-    _add_glow_trace, _fmt_q_label, _error_figure,
+    _get_palette, _add_glow_trace, _fmt_q_label, _error_figure,
     _build_freq_config, _get_starting_stack,
     _sim_layout, _apply_mc_overlay,
     _stagger_depletion_annots,
@@ -40,6 +40,9 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
             target_yr (Mode B), lots, use_lots
     """
     model = _app_ctx.DEFAULT_MODEL
+    palette = _get_palette(p)
+    delay_colors = palette["delay_colors"]
+    annot_colors = palette["annot_colors"]
 
     mode         = p.get("mode", "a")
     freq_str, ppy, dt = _build_freq_config(p)
@@ -124,7 +127,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 if key not in results:
                     continue
                 ts_d, y_vals, depl_t, t_start_d, *_ = results[key]
-                col   = _DELAY_COLORS[di % len(_DELAY_COLORS)]
+                col   = delay_colors[di % len(delay_colors)]
                 d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
                 if disp_mode == "usd":
                     final = fmt_price(float(y_vals[-1]))
@@ -140,7 +143,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 ))
                 if depl_t is not None:
                     deplete_annots.append(_depl_annot(depl_t, t_start_d, d,
-                                                      _ANNOT_COLORS[di % len(_ANNOT_COLORS)],
+                                                      annot_colors[di % len(annot_colors)],
                                                       len(deplete_annots)))
 
         elif chart_layout == 1:
@@ -178,7 +181,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 all_y  = np.array(all_y)
                 y_min  = all_y.min(axis=0)
                 y_max  = all_y.max(axis=0)
-                col    = _DELAY_COLORS[di % len(_DELAY_COLORS)]
+                col    = delay_colors[di % len(delay_colors)]
                 d_lbl  = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
                 traces.append(go.Scatter(
                     x=list(ts_d), y=list(y_max), mode="lines",
@@ -200,7 +203,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     _, _, depl_t, t_start_d, *_ = results[key]
                     if depl_t is not None:
                         deplete_annots.append(_depl_annot(depl_t, t_start_d, d,
-                                                          _ANNOT_COLORS[di % len(_ANNOT_COLORS)],
+                                                          annot_colors[di % len(annot_colors)],
                                                           len(deplete_annots)))
 
         # ── alternative model overlays ────────────────────────────────────────
@@ -224,7 +227,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     prices = mdl.price_at(q, ts_d_clamped)
                     vals = np.maximum(start_stack - np.cumsum(adj_wd_d / prices), 0.0)
                     y_vals = vals * prices if disp_mode == "usd" else vals
-                    col = mdl.colors.get(q, "#888888") if mdl.quantized else _NON_QUANTIZED_MODEL_COLOR
+                    col = mdl.colors.get(q, "#888888") if mdl.quantized else palette["non_quantized_model"]
                     d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
                     q_lbl = f" {_fmt_q_label(q, '')}" if mdl.quantized else ""
                     if disp_mode == "usd":
@@ -278,7 +281,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                                  if r[2] is None and float(r[1][-1]) > 0]
                     if not surviving:
                         continue
-                    col = _DELAY_COLORS[di % len(_DELAY_COLORS)]
+                    col = delay_colors[di % len(delay_colors)]
                     y_max = max(float(r[1][-1]) for _, r in surviving)
                     lbl = (fmt_price(y_max) if disp_mode == "usd"
                            else f"{y_max:.4f} \u20bf")
@@ -303,7 +306,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         continue
                     if chart_layout == 0:
                         di = delays.index(d) if d in delays else 0
-                        col = _DELAY_COLORS[di % len(_DELAY_COLORS)]
+                        col = delay_colors[di % len(delay_colors)]
                     else:
                         col = model.colors.get(q, "#888888")
                     lbl = (fmt_price(y_final) if disp_mode == "usd"
@@ -334,6 +337,8 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
                inflation, chart_layout, display_q, show_legend, freq_label):
     """HODL Supercharger Mode B: binary-search max withdrawal per period."""
     model = _app_ctx.DEFAULT_MODEL
+    palette = _get_palette(p)
+    delay_colors = palette["delay_colors"]
     target_yr = int(p.get("target_yr", 2060))
 
     def _max_wd_for(d, q):
@@ -374,7 +379,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
             showlegend=False, hoverinfo="skip",
         ))
         for di, d in enumerate(delays):
-            col   = _DELAY_COLORS[di % len(_DELAY_COLORS)]
+            col   = delay_colors[di % len(delay_colors)]
             val   = max_wd.get((d, q_show), 0)
             d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
             traces.append(go.Scatter(
@@ -400,7 +405,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
 
     else:
         for di, d in enumerate(delays):
-            col   = _DELAY_COLORS[di % len(_DELAY_COLORS)]
+            col   = delay_colors[di % len(delay_colors)]
             d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
             y_d   = [max_wd.get((d, q), 0) for q in sel_qs]
             qlbls = [_fmt_q_label(q) for q in sel_qs]

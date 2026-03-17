@@ -15,7 +15,7 @@ from figures.common import (
     _NON_QUANTIZED_MODEL_COLOR, _OVERLAY_LINE_WIDTH,
     _FONT_ANNOT,
     _HAS_MARKOV,
-    _add_glow_trace, _fmt_q_label,
+    _get_palette, _add_glow_trace, _fmt_q_label,
     _build_time_array, _get_starting_stack,
     _sim_layout, _apply_mc_overlay,
     _stagger_depletion_annots,
@@ -31,6 +31,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             lots, use_lots
     """
     model = _app_ctx.DEFAULT_MODEL
+    palette = _get_palette(p)
     ta = _build_time_array(p, m, 2025, 2045)
     if ta[1] is None:
         return ta[0], None
@@ -132,7 +133,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines",
                 name=f"{mdl.name}  \u2192  {final_lbl}",
-                line=dict(color=_NON_QUANTIZED_MODEL_COLOR, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
+                line=dict(color=palette["non_quantized_model"], width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                 legendgroup=mdl.short_name,
             ))
 

@@ -13,7 +13,7 @@ from mc_overlay import _mc_heatmap_overlay
 from figures.common import (
     _FONT_SUBTITLE, _FONT_TITLE_LG, _FONT_BODY_LG, _FONT_TICK_LG,
     _SANS_FONT,
-    _error_figure, _fmt_q_label,
+    _get_palette, _error_figure, _fmt_q_label,
     _lerp_hex, _dense_colorscale, _hex_alpha,
     _apply_config_annotation, _apply_watermark,
     _apply_mc_premium, _apply_mc_xlabel,
@@ -79,7 +79,7 @@ def _heatmap_colorscale(m, p, mc):
         return _dense_colorscale(_div_color), -abs_max, abs_max
 
 
-def _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax, cell_fs, colorscale=None):
+def _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax, cell_fs, colorscale=None, palette=None):
     """Build cell text annotation dicts for a CAGR heatmap."""
     if not colorscale:
         # Fallback: use simple threshold-based approach
@@ -129,17 +129,19 @@ def _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax, cell_fs, colorsca
                 _lum = (0.299 * _rgb[0] + 0.587 * _rgb[1] + 0.114 * _rgb[2]) / 255.0
                 # Signed cell text colors: red for loss, gold for exceptional
                 _bg = None  # optional text background for low-contrast cells
+                _loss_color = palette.get("hm_loss_text", "#ff8a80") if palette else "#ff8a80"
+                _exc_color = palette.get("hm_exceptional_text", "#ffd700") if palette else "#ffd700"
                 if vc2 < 0:
-                    txt_col = "#ff8a80"     # soft red — loss
+                    txt_col = _loss_color     # soft red — loss
                 elif vc2 > 50:
-                    txt_col = "#ffd700"     # gold — exceptional
+                    txt_col = _exc_color     # gold — exceptional
                 elif _lum < 0.45:
                     txt_col = "#ffffff"     # white on dark cells
                 else:
                     txt_col = "#111111"     # dark on light cells
                 # Low-contrast guard: if text and background are too close,
                 # add a semi-transparent backdrop so text is always readable
-                _txt_lum = 1.0 if txt_col in ("#ffffff", "#ff8a80", "#ffd700") else 0.07
+                _txt_lum = 1.0 if txt_col in ("#ffffff", _loss_color, _exc_color) else 0.07
                 if abs(_txt_lum - _lum) < 0.25:
                     _bg = "rgba(0,0,0,0.55)" if _txt_lum > 0.5 else "rgba(255,255,255,0.6)"
                     txt_col = "#ffffff" if _txt_lum > 0.5 else "#111111"
@@ -167,6 +169,7 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             lots (list), use_lots
     """
     model = _app_ctx.DEFAULT_MODEL
+    palette = _get_palette(p)
     eyr = int(p.get("entry_yr", 2020))
     eq  = float(p.get("entry_q", 50)) / 100.0   # stored as percentage (e.g. 7.5 -> 0.075)
     entry_t = yr_to_t(eyr, m.genesis)
@@ -219,7 +222,7 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     # ── cell annotations ──────────────────────────────────────────────────────
     annots = _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax,
                                    int(p.get("cell_font_size", 9)),
-                                   colorscale=colorscale)
+                                   colorscale=colorscale, palette=palette)
 
     fig = go.Figure(data=go.Heatmap(
         z=mc, x=[str(y) for y in eyrs], y=ylabels,
@@ -282,6 +285,7 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
     Returns (fig, mc_result) or (empty_fig, None).
     """
     model = _app_ctx.DEFAULT_MODEL
+    palette = _get_palette(p)
     eyr = int(p.get("mc_start_yr", p.get("entry_yr", 2020)))
     eq  = float(p.get("mc_entry_q", p.get("entry_q", 50))) / 100.0
     entry_t = yr_to_t(eyr, m.genesis)
@@ -321,7 +325,7 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
 
     annots = _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax,
                                    int(p.get("cell_font_size", 9)),
-                                   colorscale=colorscale)
+                                   colorscale=colorscale, palette=palette)
 
     fig = go.Figure(data=go.Heatmap(
         z=mc, x=[str(y) for y in eyrs], y=mc_labels,

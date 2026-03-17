@@ -15,6 +15,60 @@ BTC_ORANGE = "#f7931a"
 FONT_LEGEND = 10              # legend / small info text
 MODEL_SENTINELS = frozenset({"qr", "mc"})  # reserved keys in model-show checklists
 
+# ── Color palettes (default + colorblind-safe alternatives) ──────────────
+PALETTES = {
+    "default": {
+        "thermal_stops": [
+            (0.001, "#0d47a1"), (0.01, "#1565c0"), (0.015, "#1976d2"),
+            (0.05, "#42a5f5"), (0.10, "#80deea"), (0.25, "#b2dfdb"),
+            (0.50, "#bdbdbd"), (0.75, "#ffcc80"), (0.90, "#f7931a"),
+            (0.95, "#e65100"), (0.99, "#c62828"), (0.999, "#7f0000"),
+        ],
+        "non_quantized_model": "#8B4513",
+        "delay_colors": ["#00c853", "#fdd835", "#ff9100", "#ff5252", "#b71c1c"],
+        "annot_colors": ["#00a844", "#d4b12e", "#e07d00", "#d44040", "#8f1616"],
+        "today_line": "#FF6600",
+        "hm_c_lo": "#2166AC", "hm_c_mid1": "#F7F7F7",
+        "hm_c_mid2": "#FF8C00", "hm_c_hi": "#CC1100",
+        "hm_loss_text": "#ff8a80", "hm_exceptional_text": "#ffd700",
+    },
+    "cb-rg": {
+        "thermal_stops": [
+            (0.001, "#0d47a1"), (0.01, "#1565c0"), (0.015, "#1976d2"),
+            (0.05, "#56B4E9"), (0.10, "#88CCEE"), (0.25, "#AACCBB"),
+            (0.50, "#BBBBBB"), (0.75, "#E69F00"), (0.90, "#D55E00"),
+            (0.95, "#CC6633"), (0.99, "#882255"), (0.999, "#661155"),
+        ],
+        "non_quantized_model": "#CC79A7",
+        "delay_colors": ["#0072B2", "#E69F00", "#CC79A7", "#AA4499", "#332288"],
+        "annot_colors": ["#005B8E", "#B87E00", "#AA6088", "#883377", "#221166"],
+        "today_line": "#D55E00",
+        "hm_c_lo": "#2166AC", "hm_c_mid1": "#F7F7F7",
+        "hm_c_mid2": "#E69F00", "hm_c_hi": "#882255",
+        "hm_loss_text": "#CC79A7", "hm_exceptional_text": "#E69F00",
+    },
+    "cb-full": {
+        "thermal_stops": [
+            (0.001, "#1a1a2e"), (0.01, "#3d1f56"), (0.015, "#6B3074"),
+            (0.05, "#995588"), (0.10, "#BB7799"), (0.25, "#CCAAAA"),
+            (0.50, "#BBBBBB"), (0.75, "#88BBAA"), (0.90, "#558899"),
+            (0.95, "#336677"), (0.99, "#224466"), (0.999, "#112244"),
+        ],
+        "non_quantized_model": "#DDCC77",
+        "delay_colors": ["#882255", "#CC6677", "#DDCC77", "#117733", "#332288"],
+        "annot_colors": ["#661144", "#AA4455", "#BBAA55", "#0D5C28", "#221166"],
+        "today_line": "#CC79A7",
+        "hm_c_lo": "#882255", "hm_c_mid1": "#F7F7F7",
+        "hm_c_mid2": "#44AA99", "hm_c_hi": "#004488",
+        "hm_loss_text": "#CC6677", "hm_exceptional_text": "#DDCC77",
+    },
+}
+PALETTE_LABELS = {
+    "default": "Default",
+    "cb-rg": "Colorblind (R-G)",
+    "cb-full": "Colorblind (Full)",
+}
+
 # ── Dollar / loan defaults (shared across layout, callbacks, app prewarm) ────
 MAX_USD = 4_294_967_295        # uint32 max — clamp for dollar amount inputs
 SC_DEFAULT_RATE = 13.0         # Stack-celerator default annual interest rate (%)

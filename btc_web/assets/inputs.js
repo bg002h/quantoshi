@@ -48,6 +48,11 @@ document.addEventListener("keydown", function (e) {
         if (!wasScroll) return;
         var el = e.target;
         // Only guard checkbox inputs and their labels inside checklist grids
+        // Never suppress clicks on the sheet handle or close button
+        if (el.closest && el.closest(".sheet-handle, .sheet-close-btn")) {
+            wasScroll = false;
+            return;
+        }
         if (el.closest && el.closest(".q-panel-grid, .form-check")) {
             e.preventDefault();
             e.stopPropagation();

@@ -197,6 +197,7 @@ _app_ctx.app.layout = dbc.Container([
     dcc.Store(id="effective-lots",    storage_type="memory", data=[]),
     dcc.Store(id="link-history",      storage_type="local",  data=[]),
     dcc.Store(id="loaded-hash-store", storage_type="memory"),
+    dcc.Store(id="palette-store",    storage_type="local",  data="default"),
     dcc.Store(id="journey-store",    storage_type="local",  data=None),
     # ── Splash quote modal ────────────────────────────────────────────────
     dbc.Modal([
@@ -309,6 +310,15 @@ _app_ctx.app.layout = dbc.Container([
                             ], style={"display":"flex", "alignItems":"center",
                                       "justifyContent":"flex-end"}),
                             html.Div([
+                                dbc.Select(
+                                    id="palette-select",
+                                    options=[{"label": v, "value": k}
+                                             for k, v in _app_ctx.PALETTE_LABELS.items()],
+                                    value="default",
+                                    size="sm",
+                                    style={"width": "155px", "fontSize": "0.78rem",
+                                           "display": "inline-block", "marginRight": "8px"},
+                                ),
                                 html.Span("Cooler than you think \u25b6 ",
                                           style={"fontSize":"9px", "color":"rgba(255,255,255,0.4)",
                                                  "whiteSpace":"nowrap"}),

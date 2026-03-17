@@ -40,10 +40,12 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     Input("bub-legend-pos",    "value"),
     Input("bub-model-show",    "value"),
     Input("effective-lots",    "data"),
+    State("palette-store",     "data"),
 )
 def update_bubble(sel_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,
-                  n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, model_show, lots_data):
+                  n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, model_show, lots_data,
+                  palette_key):
     """Bubble + QR overlay chart callback — coerce inputs, build figure."""
     toggles        = toggles or []
     bubble_toggles = bubble_toggles or []
@@ -75,6 +77,7 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
         comp_color  = "#FFD700", comp_lw = 2.0,
         sup_color   = "#888888", sup_lw  = 1.5,
         active_models = model_show or [],
+        palette = palette_key or "default",
     ))
     if "chart_zoom" not in toggles:
         fig.update_layout(dragmode=False)
@@ -172,6 +175,7 @@ _app_ctx.app.clientside_callback(
     State("hm-mc-results",  "data"),
     State("mc-pay-token",   "data"),
     State("hm-mc-rendered-key", "data"),
+    State("palette-store",      "data"),
     prevent_initial_call=True,
 )
 def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
@@ -179,7 +183,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
                    vfmt, cell_fs, toggles, stack, use_lots, lots_data,
                    mc_enable, mc_amount, mc_infl, mc_bins, mc_regime, mc_sims, mc_years, mc_freq, mc_window,
                    mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
-                   live_price, mc_cached, pay_token, mc_auth):
+                   live_price, mc_cached, pay_token, mc_auth, palette_key):
     if ctx.triggered_id == "main-tabs" and active_tab != "heatmap":
         raise dash.exceptions.PreventUpdate
     exit_range = exit_range or [entry_yr or 2025, (entry_yr or 2025) + 10]
@@ -221,6 +225,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
         use_lots     = bool(use_lots),
         lots         = lots_data or [],
         active_models = [k for k in (model_show or []) if k not in _app_ctx.MODEL_SENTINELS],
+        palette = palette_key or "default",
     )
 
     # QR heatmap (always)
@@ -328,6 +333,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     State("mc-pay-token",   "data"),
     State("dca-mc-unblocked", "data"),
     State("dca-mc-rendered-key", "data"),
+    State("palette-store",      "data"),
     prevent_initial_call=True,
 )
 def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, disp, toggles, legend_pos, sel_qs, lots_data,
@@ -335,7 +341,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
                sc_entry_mode, sc_custom_price, sc_tax, sc_rollover,
                mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
-               price_data, mc_cached, pay_token, mc_unblocked, mc_auth):
+               price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key):
     if ctx.triggered_id == "main-tabs" and active_tab != "dca":
         raise dash.exceptions.PreventUpdate
     toggles    = toggles or []
@@ -380,6 +386,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
         show_qr        = "qr" in model_show,
         show_mc        = "mc" in model_show,
         active_models  = [k for k in model_show if k not in _app_ctx.MODEL_SENTINELS],
+        palette = palette_key or "default",
         **mc_p,
     ))
     fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(
@@ -428,12 +435,13 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
     State("mc-pay-token",   "data"),
     State("ret-mc-unblocked", "data"),
     State("ret-mc-rendered-key", "data"),
+    State("palette-store",      "data"),
     prevent_initial_call=True,
 )
 def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, lots_data,
                   mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                   mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
-                  price_data, mc_cached, pay_token, mc_unblocked, mc_auth):
+                  price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key):
     if ctx.triggered_id == "main-tabs" and active_tab != "retire":
         raise dash.exceptions.PreventUpdate
     toggles  = toggles or []
@@ -465,6 +473,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         show_qr      = "qr" in model_show,
         show_mc      = "mc" in model_show,
         active_models = [k for k in model_show if k not in _app_ctx.MODEL_SENTINELS],
+        palette = palette_key or "default",
         **mc_p,
     ))
     fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(
@@ -527,6 +536,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     State("mc-pay-token",   "data"),
     State("sc-mc-unblocked", "data"),
     State("sc-mc-rendered-key", "data"),
+    State("palette-store",     "data"),
     prevent_initial_call=True,
 )
 def update_supercharge(active_tab, stack, use_lots, start_yr,
@@ -536,7 +546,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
                        toggles, legend_pos, chart_layout, display_q, lots_data,
                        mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                        mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
-                       price_data, mc_cached, pay_token, mc_unblocked, mc_auth):
+                       price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key):
     if ctx.triggered_id == "main-tabs" and active_tab != "supercharge":
         raise dash.exceptions.PreventUpdate
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
@@ -578,6 +588,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         show_qr      = "qr" in model_show,
         show_mc      = "mc" in model_show,
         active_models = [k for k in model_show if k not in _app_ctx.MODEL_SENTINELS],
+        palette = palette_key or "default",
         **mc_p,
     ))
     fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(

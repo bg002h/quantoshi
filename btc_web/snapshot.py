@@ -114,6 +114,8 @@ _SNAPSHOT_CONTROLS = [
     ("hm-mc-model-src",   "value"),   # MC model source (Heatmap)
     # ── Bubble overlay models (index 97) ──
     ("bub-model-show",    "value"),   # PL/S2F overlay toggle (Bubble)
+    # ── Palette (index 98) ──
+    ("palette-store",     "data"),    # colorblind palette key
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)

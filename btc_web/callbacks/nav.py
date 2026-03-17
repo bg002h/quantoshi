@@ -1,7 +1,7 @@
 """Tab routing, navigation, splash, easter eggs, image export, drawers."""
 
 import dash
-from dash import Input, Output, State, callback, no_update
+from dash import Input, Output, State, callback, ctx, no_update
 
 import _app_ctx
 from layout.splash import _SPLASH_QUOTES_JS
@@ -69,6 +69,9 @@ _TAB_CONTROLS = {
     "stack":       set(),
     "faq":         set(),
 }
+# Palette is global — add to every tab so single-tab share links include it
+for _tab_set in _TAB_CONTROLS.values():
+    _tab_set.add("palette-store")
 
 _app_ctx.app.clientside_callback(
     """
@@ -639,3 +642,37 @@ for _tab_id, _graph_id in _EXPORT_TABS:
         State("wm-b64-store",          "data"),
         prevent_initial_call=True,
     )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Palette selector ↔ palette-store sync
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Select writes to store (clientside — no server round-trip)
+_app_ctx.app.clientside_callback(
+    "function(val) { return val || 'default'; }",
+    Output("palette-store", "data"),
+    Input("palette-select", "value"),
+)
+
+# Store restores select on page load / snapshot restore
+_app_ctx.app.clientside_callback(
+    "function(data) { return data || 'default'; }",
+    Output("palette-select", "value"),
+    Input("palette-store", "data"),
+    prevent_initial_call=True,
+)
+
+
+# ── Heatmap colors: update 4 color inputs when palette changes ───────────────
+@callback(
+    Output("hm-c-lo",   "value", allow_duplicate=True),
+    Output("hm-c-mid1", "value", allow_duplicate=True),
+    Output("hm-c-mid2", "value", allow_duplicate=True),
+    Output("hm-c-hi",   "value", allow_duplicate=True),
+    Input("palette-store", "data"),
+    prevent_initial_call=True,
+)
+def _update_hm_colors_on_palette(pal_key):
+    pal = _app_ctx.PALETTES.get(pal_key or "default", _app_ctx.PALETTES["default"])
+    return pal["hm_c_lo"], pal["hm_c_mid1"], pal["hm_c_mid2"], pal["hm_c_hi"]

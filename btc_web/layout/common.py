@@ -39,7 +39,7 @@ def _q_panel(checklist_id: str, default_value: list, hint: str | None = None):
                       value=default_value, className="q-panel-grid",
                       inputStyle={"marginRight":"4px"}),
     )
-    return _section_card("Quantile Regression Model", *children)
+    return _section_card("Projection Quantiles", *children)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -54,7 +54,7 @@ _SECTION_ICONS = {
     "Axes & Range": "\U0001F4D0",
     "Display": "\U0001F3A8",
     "Bubble Model": "\U0001F4CA",
-    "Quantile Regression Model": "\U0001F4C9",
+    "Projection Quantiles": "\U0001F4C9",
     "Chart Settings": "\u2699\uFE0F",
     "Plan": "\U0001F5D3\uFE0F",
     "Shared Model Settings": "\u2699\uFE0F",

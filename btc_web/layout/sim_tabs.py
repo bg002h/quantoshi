@@ -24,7 +24,7 @@ def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
     children = [
         _tab_hints(tab_key),
         _shared_settings_card(prefix, **shared_kwargs),
-        _section_card("Quantile Regression Model",
+        _section_card("Projection Quantiles",
             html.Small("Select quantiles to follow.", style=_STYLE_HINT),
             html.Small(q_hint, style=_STYLE_HINT),
             dcc.Checklist(id=f"{prefix}-qs", options=_q_options(),

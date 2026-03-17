@@ -17,8 +17,8 @@ def _heatmap_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
         _tab_hints("heatmap"),
-        # ── Quantile Regression Model ──────────────────────────────────
-        _section_card("Quantile Regression Model",
+        # ── Projection Quantiles ──────────────────────────────────────
+        _section_card("Projection Quantiles",
             html.Small("Select quantiles to follow.",
                 style=_STYLE_HINT),
             html.Small("Select exit quantiles for CAGR projection columns.",

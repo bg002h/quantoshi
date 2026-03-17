@@ -22,7 +22,7 @@ def _supercharge_controls():
     return html.Div([
         _tab_hints("supercharge"),
         _shared_settings_card("sc", infl_default=4, stack_default=1.0),
-        _section_card("Quantile Regression Model",
+        _section_card("Projection Quantiles",
             html.Small("Select quantiles to follow.",
                 style=_STYLE_HINT),
             html.Small("Lower quantile = earlier depletion \u2014 use multiple quantiles to see the range.",

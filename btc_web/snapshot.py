@@ -116,6 +116,8 @@ _SNAPSHOT_CONTROLS = [
     ("bub-model-show",    "value"),   # PL/S2F overlay toggle (Bubble)
     # ── Palette (index 98) ──
     ("palette-store",     "data"),    # colorblind palette key
+    # ── Heatmap model selector (index 99) ──
+    ("hm-active-model",   "data"),    # active heatmap model pill (bub/pl/s2f/mc)
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)

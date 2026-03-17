@@ -157,7 +157,7 @@ function(mc_enable, mc_years, mc_start_yr, mc_entry_q, rendered_key) {{
 """
 for _mc_m in ("dca", "ret", "hm"):
     _wrap_id = {"dca": "dca-chart-wrap", "ret": "ret-chart-wrap", "hm": "hm-mc-panel"}[_mc_m]
-    _base_cls = "hm-swipe-panel" if _mc_m == "hm" else ""
+    _base_cls = "" if _mc_m == "hm" else ""
     _sep = " " if _base_cls else ""
     _app_ctx.app.clientside_callback(
         _MC_MATCH_JS_TPL.format(base_cls=_base_cls, sep=_sep),
@@ -248,22 +248,9 @@ function(freq) {
 """
 _app_ctx.app.clientside_callback(_PPY_JS, Output("hm-mc-ppy","value"),  Input("hm-mc-freq","value"))
 
-# Auto-scroll heatmap swipe container to MC panel when it becomes visible
+# Placeholder callback for hm-swipe-scroll-dummy (swipe container removed; pills replaced it)
 _app_ctx.app.clientside_callback(
-    """
-    function(panelStyle) {
-        var isHidden = panelStyle && panelStyle.display === "none";
-        if (!isHidden) {
-            var wrap = document.getElementById("hm-swipe-wrap");
-            if (wrap) {
-                setTimeout(function() {
-                    wrap.scrollTo({ left: wrap.scrollWidth, behavior: "smooth" });
-                }, 200);
-            }
-        }
-        return "";
-    }
-    """,
+    "function(panelStyle) { return ''; }",
     Output("hm-swipe-scroll-dummy", "children"),
     Input("hm-mc-panel", "style"),
     prevent_initial_call=True,

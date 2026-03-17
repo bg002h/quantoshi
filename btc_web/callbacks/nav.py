@@ -49,7 +49,7 @@ _TAB_CONTROLS = {
     "heatmap":     {"hm-entry-yr","hm-entry-q","hm-exit-range","hm-exit-qs","hm-mode",
                     "hm-b1","hm-b2","hm-c-lo","hm-c-mid1","hm-c-mid2","hm-c-hi",
                     "hm-grad","hm-vfmt","hm-cell-fs","hm-toggles","hm-stack","hm-use-lots",
-                    "hm-model-show","hm-mc-model-src"},
+                    "hm-model-show","hm-mc-model-src","hm-active-model"},
     "dca":         {"dca-stack","dca-use-lots","dca-amount","dca-freq","dca-freq-unlock",
                     "dca-infl","dca-yr-range",
                     "dca-disp","dca-toggles","dca-qs",
@@ -677,3 +677,39 @@ _app_ctx.app.clientside_callback(
 def _update_hm_colors_on_palette(pal_key):
     pal = _app_ctx.PALETTES.get(pal_key or "default", _app_ctx.PALETTES["default"])
     return pal["hm_c_lo"], pal["hm_c_mid1"], pal["hm_c_mid2"], pal["hm_c_hi"]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Heatmap model pill bar — click to select active model
+# ══════════════════════════════════════════════════════════════════════════════
+
+_HM_PILL_IDS = ["hm-pill-bub"] + [f"hm-pill-{k}" for k in _app_ctx.PRICE_MODELS if k != "bub"]
+if _app_ctx._HAS_MARKOV:
+    _HM_PILL_IDS.append("hm-pill-mc")
+
+
+@callback(
+    Output("hm-active-model", "data", allow_duplicate=True),
+    *[Output(pid, "outline") for pid in _HM_PILL_IDS],
+    *[Input(pid, "n_clicks") for pid in _HM_PILL_IDS],
+    prevent_initial_call=True,
+)
+def _hm_pill_click(*args):
+    trigger = ctx.triggered_id
+    if not trigger:
+        raise dash.exceptions.PreventUpdate
+    model_key = trigger.replace("hm-pill-", "")
+    outlines = [pid != trigger for pid in _HM_PILL_IDS]
+    return (model_key, *outlines)
+
+
+# Sync pill styles on snapshot restore / page load (hm-active-model store update)
+@callback(
+    *[Output(pid, "outline", allow_duplicate=True) for pid in _HM_PILL_IDS],
+    Input("hm-active-model", "data"),
+    prevent_initial_call=True,
+)
+def _hm_pill_sync(model_key):
+    model_key = model_key or "bub"
+    active_id = f"hm-pill-{model_key}"
+    return tuple(pid != active_id for pid in _HM_PILL_IDS)

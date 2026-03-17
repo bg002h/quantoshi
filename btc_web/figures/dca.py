@@ -7,15 +7,14 @@ import plotly.graph_objects as go
 from typing import Any
 
 import _app_ctx
-from btc_core import ModelData, yr_to_t, today_t, fmt_price
+from btc_core import ModelData, yr_to_t, fmt_price
 
 from figures.common import (
     _QR_LINE_WIDTH, _BTC_ORANGE,
     _NON_QUANTIZED_MODEL_COLOR, _OVERLAY_LINE_WIDTH,
-    _TODAY_LINE_COLOR, _TODAY_LINE_WIDTH, _TODAY_LINE_OPACITY,
     _FONT_ANNOT,
     _HAS_MARKOV,
-    _get_palette, _add_glow_trace, _fmt_q_label, _error_figure,
+    _get_palette, _build_thermal_colors, _add_glow_trace, _fmt_q_label, _error_figure,
     _build_freq_config, _build_time_array, _get_starting_stack,
     _sim_layout, _apply_mc_overlay,
     _finalize_chart, _fmt_short, _find_mc_median_trace,
@@ -26,7 +25,7 @@ from figures.common import (
 )
 
 
-def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy):
+def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, thermal=None):
     """Run Stack-celerator overlay simulation for DCA tab.
 
     Returns (sc_traces, all_sc_usd_vals, all_sc_btc_vals).
@@ -139,7 +138,7 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy):
             final_sc  = f"{float(sc_vals[-1]):.4f} BTC  ({final_usd})"
 
         lbl_sc = f"SC {_fmt_q_label(q)}" + f"  \u2192  {final_sc}"
-        col = model.colors.get(q, "#888888")
+        col = thermal.get(q, model.colors.get(q, "#888888")) if thermal else model.colors.get(q, "#888888")
         sc_traces.append(go.Scatter(
             x=list(ts), y=list(y_sc), mode="lines", name=lbl_sc,
             line=dict(color=col, width=_QR_LINE_WIDTH, dash="dash"),
@@ -156,6 +155,8 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     """
     model = _app_ctx.DEFAULT_MODEL
     palette = _get_palette(p)
+    sel_qs_raw = sorted([float(q) for q in (p.get("selected_qs") or [])])
+    _thermal = _build_thermal_colors(sel_qs_raw, palette)
     ta = _build_time_array(p, m, 2024, 2035)
     if ta[1] is None:
         return ta[0], None
@@ -192,7 +193,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
             final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
 
         lbl = _fmt_q_label(q) + f"  \u2192  {final_lbl}"
-        col = model.colors.get(q, "#888888")
+        col = _thermal.get(q, model.colors.get(q, "#888888"))
         _add_glow_trace(traces, ts, y_vals, col)
         traces.append(go.Scatter(
             x=list(ts), y=list(y_vals), mode="lines", name=lbl,
@@ -244,14 +245,6 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
             ))
 
     shapes = []
-    if p.get("show_today"):
-        td = today_t(m.genesis)
-        if t_start <= td <= t_end:
-            shapes.append(dict(
-                type="line", x0=td, x1=td, y0=0, y1=1,
-                yref="paper", line=dict(color=_TODAY_LINE_COLOR, dash="dash", width=_TODAY_LINE_WIDTH),
-                opacity=_TODAY_LINE_OPACITY,
-            ))
 
     # ── Total cost & value ratio ────────────────────────────────────────────
     n_periods = len(ts)
@@ -275,7 +268,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     all_sc_btc_vals = {}
     if p.get("sc_enabled") and sel_qs:
         sc_traces, all_sc_usd_vals, all_sc_btc_vals = _dca_sc_overlay(
-            m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy)
+            m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, thermal=_thermal)
         traces.extend(sc_traces)
 
     # ── SC factor (ratio of median SC to median DCA at end date) ─────────────
@@ -314,7 +307,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
         for q in sel_qs:
             if q not in all_usd_vals:
                 continue
-            col = model.colors.get(q, "#888888")
+            col = _thermal.get(q, model.colors.get(q, "#888888"))
             y_arr = all_btc_vals[q] if disp_mode == "btc" else all_usd_vals[q]
             _btc_f = float(all_btc_vals[q][-1])
             _usd_f = float(all_usd_vals[q][-1])
@@ -324,7 +317,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                 short_label=_fmt_short(_btc_f, _usd_f),
                 color=col, y_last=float(y_arr[-1])))
         for q in all_sc_usd_vals:
-            col = model.colors.get(q, "#888888")
+            col = _thermal.get(q, model.colors.get(q, "#888888"))
             sc_y = all_sc_btc_vals[q] if disp_mode == "btc" else all_sc_usd_vals[q]
             _btc_f = float(all_sc_btc_vals[q][-1])
             _usd_f = float(all_sc_usd_vals[q][-1])

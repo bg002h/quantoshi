@@ -215,8 +215,9 @@ def _model_show_checklist(prefix):
     """Display models checklist (QR / MC / PL / S2F) for Chart section."""
     opts = [
         {"label": " Bubble Model", "value": "qr"},
-        {"label": " MC Simulation", "value": "mc"},
     ]
+    if _app_ctx._HAS_MARKOV:
+        opts.append({"label": " MC Simulation", "value": "mc"})
     for mdl in _app_ctx.PRICE_MODELS.values():
         if mdl.short_name != "bub":
             opts.append({"label": f" {mdl.name}", "value": mdl.short_name})
@@ -224,7 +225,8 @@ def _model_show_checklist(prefix):
         _lbl("Display models"),
         dcc.Checklist(id=f"{prefix}-model-show",
                       options=opts,
-                      value=["qr", "mc"], inline=True,
+                      value=["qr", "mc"] if _app_ctx._HAS_MARKOV else ["qr"],
+                      inline=True,
                       inputStyle={"marginRight": "4px"},
                       labelStyle={"marginRight": "12px", "fontSize": "11px"},
                       style={"marginBottom": "8px"}),

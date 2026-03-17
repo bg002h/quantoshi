@@ -9,7 +9,7 @@ import _app_ctx
 from layout.common import (_tab_hints, _section_card, _lbl, _row, _export_row,
                             _STYLE_HIDDEN, _STYLE_HINT, _STYLE_GRAPH_H,
                             _STYLE_COLOR_H, _BTC_ORANGE,
-                            _q_options, _model_show_checklist)
+                            _q_options)
 from layout.mc_controls import _mc_controls
 
 
@@ -48,7 +48,6 @@ def _heatmap_controls():
                      shared_controls={"stack"}),
         # ── Chart ───────────────────────────────────────────────────────
         _section_card("Chart Settings",
-            *_model_show_checklist("hm"),
             _lbl("Exit year range"),
             dcc.RangeSlider(id="hm-exit-range", min=2010, max=2060,
                             value=[yr_now, yr_now + 15], step=1,
@@ -115,7 +114,38 @@ def _heatmap_controls():
                           value=["colorbar"], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
+        # Hidden placeholder — hm-model-show is referenced by callbacks/snapshot
+        # but no longer user-visible (pill bar replaces it on tab 2)
+        dcc.Checklist(id="hm-model-show", value=["qr", "mc"],
+                      style=_STYLE_HIDDEN),
     ])
+
+
+def _hm_pill_bar():
+    """Build model-selector pill bar from registered PRICE_MODELS + optional MC."""
+    _pills = []
+    for key, mdl in _app_ctx.PRICE_MODELS.items():
+        if key == "bub":
+            continue
+        _pills.append({"label": mdl.name, "value": key})
+
+    buttons = [
+        dbc.Button("Bubble Model", id="hm-pill-bub", color="primary",
+                   size="sm", className="me-1"),
+    ] + [
+        dbc.Button(p["label"], id=f"hm-pill-{p['value']}", outline=True,
+                   color="primary", size="sm", className="me-1")
+        for p in _pills
+    ]
+    if _app_ctx._HAS_MARKOV:
+        buttons.append(
+            dbc.Button("Monte Carlo", id="hm-pill-mc", outline=True,
+                       color="warning", size="sm"),
+        )
+
+    return html.Div([
+        dbc.ButtonGroup(buttons, size="sm"),
+    ], className="mb-2 text-center")
 
 
 def _heatmap_tab():
@@ -125,49 +155,30 @@ def _heatmap_tab():
         ], width=3, className="controls-col overflow-auto",
                 style={"maxHeight":"85vh"}),
         dbc.Col([
-            # Swipe indicator (hidden when MC disabled)
-            html.Div([
-                html.Span("\u25c0 ", style={"opacity":"0.5"}),
-                html.Span("Quantile Regression", id="hm-sw-qr-lbl",
-                           className="fw-bold", style={"cursor":"pointer"}),
-                html.Span("  \u00b7  ", style={"opacity":"0.4"}),
-                html.Span("Monte Carlo", id="hm-sw-mc-lbl",
-                           style={"cursor":"pointer", "opacity":"0.5"}),
-                html.Span(" \u25b6", style={"opacity":"0.5"}),
-            ], id="hm-swipe-indicator", className="text-center py-1",
-               style={"display":"none", "fontSize":"0.85rem", "color":"#6c757d",
-                       "userSelect":"none"}),
-            # Swipe container
-            html.Div([
-                html.Div([
-                    dcc.Loading(
-                        dcc.Graph(id="heatmap-graph", style=_STYLE_GRAPH_H,
-                                  config={"scrollZoom":False,
-                                          "displayModeBar":"hover",
-                                          "toImageButtonOptions":{"format":"png","scale":2,
-                                                                   "filename":"btc_heatmap"}}),
-                        type="default", color=_BTC_ORANGE,
-                    ),
-                ], className="hm-swipe-panel"),
-                html.Div([
-                    dcc.Loading(
-                        dcc.Graph(id="hm-mc-graph", style=_STYLE_GRAPH_H,
-                                  config={"scrollZoom":False,
-                                          "displayModeBar":"hover",
-                                          "toImageButtonOptions":{"format":"png","scale":2,
-                                                                   "filename":"btc_mc_heatmap"}}),
-                        type="default", color=_BTC_ORANGE,
-                    ),
-                    # MC chart overlay (gray mask when MC not rendered)
-                    html.Div(id="hm-mc-overlay", style=_STYLE_HIDDEN,
-                             className="mc-chart-overlay"),
-                    html.Img(id="hm-mc-badge",
-                             src="/assets/quantoshi_favicon.png",
-                             className="mc-premium-badge",
-                             style=_STYLE_HIDDEN),
-                ], className="hm-swipe-panel mc-premium-chart", id="hm-mc-panel",
-                   style=_STYLE_HIDDEN),
-            ], className="hm-swipe-container", id="hm-swipe-wrap"),
+            # Model selector pills
+            _hm_pill_bar(),
+            # Active model store
+            dcc.Store(id="hm-active-model", storage_type="memory", data="bub"),
+            # Swipe indicator (kept as hidden placeholder for existing callbacks)
+            html.Div(id="hm-swipe-indicator", style=_STYLE_HIDDEN),
+            # Single chart
+            dcc.Loading(
+                dcc.Graph(id="heatmap-graph", style=_STYLE_GRAPH_H,
+                          config={"scrollZoom":False,
+                                  "displayModeBar":"hover",
+                                  "toImageButtonOptions":{"format":"png","scale":2,
+                                                           "filename":"btc_heatmap"}}),
+                type="default", color=_BTC_ORANGE,
+            ),
+            # MC status / overlay elements (kept for MC callbacks)
+            html.Div(id="hm-mc-panel", style=_STYLE_HIDDEN,
+                     className="mc-premium-chart"),
+            html.Div(id="hm-mc-overlay", style=_STYLE_HIDDEN,
+                     className="mc-chart-overlay"),
+            html.Img(id="hm-mc-badge",
+                     src="/assets/quantoshi_favicon.png",
+                     className="mc-premium-badge",
+                     style=_STYLE_HIDDEN),
             html.Div(id="hm-swipe-scroll-dummy", style=_STYLE_HIDDEN),
             _export_row("heatmap"),
         ], width=9),

@@ -40,7 +40,7 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     Input("bub-legend-pos",    "value"),
     Input("bub-model-show",    "value"),
     Input("effective-lots",    "data"),
-    State("palette-store",     "data"),
+    Input("palette-store",     "data"),
 )
 def update_bubble(sel_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,
@@ -129,7 +129,6 @@ _app_ctx.app.clientside_callback(
 
 @callback(
     Output("heatmap-graph",  "figure"),
-    Output("hm-mc-graph",    "figure"),
     Output("hm-mc-results",  "data"),
     Output("hm-mc-status",   "children"),
     Output("hm-mc-panel",    "style"),
@@ -138,6 +137,7 @@ _app_ctx.app.clientside_callback(
     Output("mc-save-modal", "is_open", allow_duplicate=True),
     Output("mc-save-tab", "data", allow_duplicate=True),
     Input("main-tabs",    "active_tab"),
+    Input("hm-active-model", "data"),
     Input("hm-entry-yr",  "value"),
     Input("hm-entry-q",   "value"),
     Input("hm-exit-range","value"),
@@ -175,10 +175,10 @@ _app_ctx.app.clientside_callback(
     State("hm-mc-results",  "data"),
     State("mc-pay-token",   "data"),
     State("hm-mc-rendered-key", "data"),
-    State("palette-store",      "data"),
+    Input("palette-store",      "data"),
     prevent_initial_call=True,
 )
-def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
+def update_heatmap(active_tab, hm_model, entry_yr, entry_q, exit_range, exit_qs, mode,
                    b1, b2, c_lo, c_mid1, c_mid2, c_hi, grad,
                    vfmt, cell_fs, toggles, stack, use_lots, lots_data,
                    mc_enable, mc_amount, mc_infl, mc_bins, mc_regime, mc_sims, mc_years, mc_freq, mc_window,
@@ -189,6 +189,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     exit_range = exit_range or [entry_yr or 2025, (entry_yr or 2025) + 10]
     toggles    = toggles or []
     yr_now = pd.Timestamp.today().year
+    hm_model = hm_model or "bub"
 
     # Only use live ticker price when entry_yr == current year AND the user
     # hasn't modified the entry percentile away from the ticker value.
@@ -228,9 +229,6 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
         palette = palette_key or "default",
     )
 
-    # QR heatmap (always)
-    qr_fig = _get_heatmap_fig(dict(shared_params))
-
     # MC heatmap via sandwich helper
     mc_enabled = bool(mc_enable) and _app_ctx._HAS_MARKOV
     mc_ok, is_free, mc_p, blocked = _mc_setup(
@@ -250,13 +248,18 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
             if win and isinstance(win, list) and len(win) >= 2:
                 mc_p["mc_window"] = [win[0], min(win[1], mc_sy)]
 
-    if mc_ok:
-        mc_params = dict(shared_params, **mc_p,
-                         live_price=_use_live(mc_p["mc_start_yr"], mc_p["mc_entry_q"]))
-        mc_fig, mc_result = _get_mc_heatmap_fig(mc_params)
+    mc_result = None
+    if hm_model == "mc":
+        # MC model selected via pill — render MC heatmap
+        if mc_ok:
+            mc_params = dict(shared_params, **mc_p,
+                             live_price=_use_live(mc_p["mc_start_yr"], mc_p["mc_entry_q"]))
+            fig, mc_result = _get_mc_heatmap_fig(mc_params)
+        else:
+            fig = _get_heatmap_fig(dict(shared_params))
     else:
-        mc_fig = dash.no_update
-        mc_result = None
+        # QR or alternative model heatmap
+        fig = _get_heatmap_fig(dict(shared_params, hm_model=hm_model))
 
     mc_result = _strip_free_paths(is_free, mc_result)
     store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enabled)
@@ -272,16 +275,12 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     model_show = model_show or ["qr", "mc"]
     mc_visible = mc_enabled and "mc" in model_show
     mc_panel_style = {} if mc_visible else {"display": "none"}
-    indicator_style = ({"fontSize": "0.85rem", "color": "#6c757d", "userSelect": "none"}
-                       if mc_visible
-                       else {"display": "none"})
+    indicator_style = {"display": "none"}
 
     if "chart_zoom" not in toggles:
-        qr_fig.update_layout(dragmode=False)
-        if mc_fig is not dash.no_update:
-            mc_fig.update_layout(dragmode=False)
+        fig.update_layout(dragmode=False)
 
-    return (qr_fig, mc_fig, store_val, status, mc_panel_style, indicator_style,
+    return (fig, store_val, status, mc_panel_style, indicator_style,
             rendered_key,
             show_modal, "hm" if show_modal else dash.no_update)
 
@@ -333,7 +332,7 @@ def update_heatmap(active_tab, entry_yr, entry_q, exit_range, exit_qs, mode,
     State("mc-pay-token",   "data"),
     State("dca-mc-unblocked", "data"),
     State("dca-mc-rendered-key", "data"),
-    State("palette-store",      "data"),
+    Input("palette-store",      "data"),
     prevent_initial_call=True,
 )
 def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, disp, toggles, legend_pos, sel_qs, lots_data,
@@ -435,7 +434,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
     State("mc-pay-token",   "data"),
     State("ret-mc-unblocked", "data"),
     State("ret-mc-rendered-key", "data"),
-    State("palette-store",      "data"),
+    Input("palette-store",      "data"),
     prevent_initial_call=True,
 )
 def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, lots_data,
@@ -536,7 +535,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     State("mc-pay-token",   "data"),
     State("sc-mc-unblocked", "data"),
     State("sc-mc-rendered-key", "data"),
-    State("palette-store",     "data"),
+    Input("palette-store",     "data"),
     prevent_initial_call=True,
 )
 def update_supercharge(active_tab, stack, use_lots, start_yr,

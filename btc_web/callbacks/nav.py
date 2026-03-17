@@ -651,8 +651,9 @@ for _tab_id, _graph_id in _EXPORT_TABS:
 # Select writes to store (clientside — no server round-trip)
 _app_ctx.app.clientside_callback(
     "function(val) { return val || 'default'; }",
-    Output("palette-store", "data"),
+    Output("palette-store", "data", allow_duplicate=True),
     Input("palette-select", "value"),
+    prevent_initial_call=True,
 )
 
 # Store restores select on page load / snapshot restore

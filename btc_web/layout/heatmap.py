@@ -9,7 +9,7 @@ import _app_ctx
 from layout.common import (_tab_hints, _section_card, _lbl, _row, _export_row,
                             _STYLE_HIDDEN, _STYLE_HINT, _STYLE_GRAPH_H,
                             _STYLE_COLOR_H, _BTC_ORANGE,
-                            _q_options, _model_show_checklist)
+                            _q_options)
 from layout.mc_controls import _mc_controls
 
 
@@ -48,7 +48,6 @@ def _heatmap_controls():
                      shared_controls={"stack"}),
         # ── Chart ───────────────────────────────────────────────────────
         _section_card("Chart Settings",
-            *_model_show_checklist("hm"),
             _lbl("Exit year range"),
             dcc.RangeSlider(id="hm-exit-range", min=2010, max=2060,
                             value=[yr_now, yr_now + 15], step=1,
@@ -115,6 +114,10 @@ def _heatmap_controls():
                           value=["colorbar"], labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
         ),
+        # Hidden placeholder — hm-model-show is referenced by callbacks/snapshot
+        # but no longer user-visible (pill bar replaces it on tab 2)
+        dcc.Checklist(id="hm-model-show", value=["qr", "mc"],
+                      style=_STYLE_HIDDEN),
     ])
 
 

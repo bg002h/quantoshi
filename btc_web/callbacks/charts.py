@@ -120,7 +120,7 @@ def auto_bubble_yrange(xrange, auto_y, yscale, model_show, sel_qs):
             p_hi = max(p_hi, p_mid)
     # Cap Y at $100M unless extreme models (S2F, Exponential) are active
     _extreme = {"s2f", "exp"}
-    y_cap = 20.0 if _extreme.intersection(model_show or []) else 8.0
+    y_cap = 20.0 if _extreme.intersection(model_show or []) else 9.0
     if (yscale or "log") == "log":
         y_lo = math.floor(math.log10(max(p_lo, 1e-10)) * 2) / 2 - 0.5
         y_hi = math.ceil( math.log10(max(p_hi, 1e-10)) * 2) / 2 + 0.5
@@ -143,9 +143,9 @@ _app_ctx.app.clientside_callback(
     Input("bub-auto-y", "value"),
 )
 
-_YRANGE_BASIC = {-2: "1\u00a2", 0: "$1", 2: "$100", 4: "$10K", 6: "$1M", 8: "$100M"}
-_YRANGE_EXT = {-2: "1\u00a2", 0: "$1", 2: "$100", 4: "$10K", 6: "$1M", 8: "$100M",
-               10: "$10B", 14: "$100T", 18: "$1Qi"}
+_YRANGE_BASIC = {-2: "1\u00a2", 0: "$1", 2: "$100", 4: "$10K", 6: "$1M", 9: "$1B"}
+_YRANGE_EXT = {-2: "1\u00a2", 0: "$1", 2: "$100", 4: "$10K", 6: "$1M", 9: "$1B",
+               12: "$1T", 15: "$1Q", 18: "$1Qi"}
 
 
 @callback(
@@ -158,7 +158,7 @@ def update_yrange_slider_limits(model_show):
     """Extend Y range slider when S2F or Exponential are active."""
     if {"s2f", "exp"}.intersection(model_show or []):
         return 20, _YRANGE_EXT
-    return 8, _YRANGE_BASIC
+    return 9, _YRANGE_BASIC
 
 
 @callback(

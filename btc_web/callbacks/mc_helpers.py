@@ -247,7 +247,7 @@ def _mc_status(mc_result, mc_cached, mc_enable):
         status = f"Using saved: {mc_cached.get('created', '?')[:19]}Z"
     else:
         status = ""
-    return store_val, status, False  # never auto-open save modal
+    return store_val, status, bool(mc_result)
 
 
 def _ghost_match(unblocked, mc_p, tab):

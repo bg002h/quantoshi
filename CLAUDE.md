@@ -97,7 +97,7 @@ ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && systemctl restart quanto
 
 | Cell | Lines | Purpose |
 |------|-------|---------|
-| 0 | ~1390 | Bubble model — **do not modify** |
+| 0 | ~1390 | Bubble model — **do not modify** except `t_max` (projection horizon, currently 72 ≈ year 2081) |
 | 1 | ~1112 | QR config & chart generation — primary work cell |
 | 2 | ~293  | PowerPoint export (`bitcoin_projections.pptx`) |
 | 3 | ~93   | Export cell — writes `archive/btc_app/model_data.pkl` |

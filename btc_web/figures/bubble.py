@@ -98,7 +98,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         if not mdl:
             continue
         if mdl.quantized:
-            for q in sel_qs:
+            overlay_qs = sel_qs if sel_qs else [0.5]
+            for q in overlay_qs:
                 if q not in mdl.fits:
                     continue
                 prices = mdl.price_at(q, t_arr) * (stack if stack > 0 else 1)

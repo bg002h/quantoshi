@@ -143,6 +143,23 @@ _app_ctx.app.clientside_callback(
     Input("bub-auto-y", "value"),
 )
 
+_YRANGE_BASIC = {-2: "1\u00a2", 0: "$1", 2: "$100", 4: "$10K", 6: "$1M", 8: "$100M"}
+_YRANGE_EXT = {-2: "1\u00a2", 0: "$1", 2: "$100", 4: "$10K", 6: "$1M", 8: "$100M",
+               10: "$10B", 14: "$100T", 18: "$1Qi"}
+
+
+@callback(
+    Output("bub-yrange", "max"),
+    Output("bub-yrange", "marks"),
+    Input("bub-model-show", "value"),
+    prevent_initial_call=True,
+)
+def update_yrange_slider_limits(model_show):
+    """Extend Y range slider when S2F or Exponential are active."""
+    if {"s2f", "exp"}.intersection(model_show or []):
+        return 20, _YRANGE_EXT
+    return 8, _YRANGE_BASIC
+
 
 @callback(
     Output("heatmap-graph",  "figure"),

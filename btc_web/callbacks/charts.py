@@ -118,15 +118,18 @@ def auto_bubble_yrange(xrange, auto_y, yscale, model_show, sel_qs):
         else:
             p_mid = float(mdl.price_at(0.5, t_hi))
             p_hi = max(p_hi, p_mid)
+    # Cap Y at $100M unless extreme models (S2F, Exponential) are active
+    _extreme = {"s2f", "exp"}
+    y_cap = 20.0 if _extreme.intersection(model_show or []) else 8.0
     if (yscale or "log") == "log":
         y_lo = math.floor(math.log10(max(p_lo, 1e-10)) * 2) / 2 - 0.5
         y_hi = math.ceil( math.log10(max(p_hi, 1e-10)) * 2) / 2 + 0.5
         y_lo = max(-2.0, min(y_lo, 6.0))
-        y_hi = min(20.0, max(y_hi, 1.0))
+        y_hi = min(y_cap, max(y_hi, 1.0))
     else:  # linear — floor near zero, ceiling at highest quantile + 10% headroom
         y_lo = -2.0
         y_hi = math.ceil(math.log10(max(p_hi * 1.1, 1e-10)) * 2) / 2
-        y_hi = min(20.0, max(y_hi, 1.0))
+        y_hi = min(y_cap, max(y_hi, 1.0))
     return [round(y_lo, 1), round(y_hi, 1)]
 
 

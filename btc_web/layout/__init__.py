@@ -36,6 +36,7 @@ from layout.heatmap import _heatmap_tab
 from layout.sim_tabs import _dca_tab, _retire_tab
 from layout.supercharge import _supercharge_tab
 from layout.stack import _stack_tracker_tab
+from layout.model_info import _model_info_tab
 from layout.faq import _faq_tab
 from layout.common import _export_row, _BTC_ORANGE
 
@@ -454,6 +455,7 @@ _app_ctx.app.layout = dbc.Container([
         dbc.Tab(_retire_tab(),       label="\U0001F3D6\uFE0F BTC RetireMentator",  tab_id="retire"),
         dbc.Tab(_supercharge_tab(),  label="\u26A1 HODL Supercharger",   tab_id="supercharge"),
         dbc.Tab(_stack_tracker_tab(),label="\U0001F5DD\uFE0F Stack Tracker",       tab_id="stack"),
+        dbc.Tab(_model_info_tab(),   label="\U0001F4D0 Model Info",      tab_id="model_info"),
         dbc.Tab(_faq_tab(),          label="\u2753 FAQ",                 tab_id="faq"),
     ], id="main-tabs", active_tab="bubble"),
     # ── Footer: block height + halving countdown ──────────────────────────

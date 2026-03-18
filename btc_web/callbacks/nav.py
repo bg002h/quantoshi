@@ -36,7 +36,8 @@ def toggle_sc_display_q(layout):
 
 _PATH_TO_TAB = {
     "/1": "bubble", "/2": "heatmap", "/3": "dca",
-    "/4": "retire",  "/5": "supercharge", "/6": "stack", "/7": "faq",
+    "/4": "retire",  "/5": "supercharge", "/6": "stack",
+    "/7": "model_info", "/8": "faq",
 }
 _TAB_TO_PATH = {v: k for k, v in _PATH_TO_TAB.items()}
 
@@ -67,6 +68,7 @@ _TAB_CONTROLS = {
                     "sc-end-yr","sc-target-yr","sc-disp","sc-toggles","sc-legend-pos",
                     "sc-chart-layout","sc-display-q","sc-model-show","sc-mc-model-src"},
     "stack":       set(),
+    "model_info":  set(),
     "faq":         set(),
 }
 # Palette is global — add to every tab so single-tab share links include it
@@ -78,7 +80,8 @@ _app_ctx.app.clientside_callback(
     function(pathname, splashOpen) {
         var NU = window.dash_clientside.no_update;
         var map = {"/1":"bubble","/2":"heatmap","/3":"dca",
-                   "/4":"retire","/5":"supercharge","/6":"stack","/7":"faq"};
+                   "/4":"retire","/5":"supercharge","/6":"stack",
+                   "/7":"model_info","/8":"faq"};
         /* While splash modal is open, defer the tab switch so chart
            callbacks don't fire into a container hidden behind the modal. */
         if (splashOpen) {
@@ -94,7 +97,7 @@ _app_ctx.app.clientside_callback(
             }, 1200);
         }
         window._pendingTabPath = null;
-        if (p && /^\\/7\\.\\d+$/.test(p)) { return "faq"; }
+        if (p && /^\\/8\\.\\d+$/.test(p)) { return "faq"; }
         var tab = map[p];
         return tab ? tab : NU;
     }
@@ -541,8 +544,8 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call=False,
 )
 def open_faq_item(pathname):
-    """Open a specific FAQ accordion item when pathname is /7.N (1-indexed)."""
-    if not pathname or not pathname.startswith("/7."):
+    """Open a specific FAQ accordion item when pathname is /8.N (1-indexed)."""
+    if not pathname or not pathname.startswith("/8."):
         return no_update
     try:
         n = int(pathname[3:])

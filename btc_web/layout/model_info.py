@@ -1,9 +1,22 @@
-"""Tab 8 — Model Info: detailed documentation of all price models."""
+"""Tab 7 — Model Info: detailed documentation of all price models."""
 
 from dash import html, dcc
 import dash_bootstrap_components as dbc
 
 import _app_ctx
+
+
+def _clickable_img(src, max_width="700px"):
+    """Image that opens in a lightbox modal on click."""
+    return html.Img(
+        src=src,
+        className="model-info-img",
+        n_clicks=0,
+        id={"type": "mi-img", "src": src},
+        style={"width": "100%", "maxWidth": max_width,
+               "borderRadius": "8px", "marginBottom": "16px",
+               "cursor": "zoom-in"},
+    )
 
 
 def _model_info_tab():
@@ -309,9 +322,18 @@ For each consecutive 30-day interval, the bin-to-bin transition is recorded. The
 $$T_{ij} = P(\text{bin}_{t+1} = j \mid \text{bin}_t = i)$$
                             """, mathjax=True),
 
-                            html.Img(src="/assets/markov_states.png",
-                                     style={"width": "100%", "maxWidth": "700px",
-                                            "borderRadius": "8px", "marginBottom": "16px"}),
+                            _clickable_img("/assets/markov_states.png", "700px"),
+
+                            html.H6("Transition Counts by Year"),
+                            html.P(
+                                "The grid below shows how many times each transition occurred in each "
+                                "calendar year. This reveals the temporal structure behind the matrix: "
+                                "Bargain\u2192Bargain dominates in early years, Bubble\u2192Bubble clusters "
+                                "around 2017 and 2021, and rare transitions like Bubble\u2192Fair have "
+                                "only occurred twice in Bitcoin\u2019s history.",
+                                className="small text-muted",
+                            ),
+                            _clickable_img("/assets/markov_histograms.png", "900px"),
 
                             html.H6("Forward Simulation"),
                             html.Ol([
@@ -411,6 +433,13 @@ $$T_{ij} = P(\text{bin}_{t+1} = j \mid \text{bin}_t = i)$$
                 width={"size": 10, "offset": 1},
             )
         ),
+        # Lightbox modal for enlarged images
+        dbc.Modal([
+            dbc.ModalBody(
+                html.Img(id="mi-lightbox-img", style={"width": "100%"}),
+                style={"padding": "0", "backgroundColor": "#1a1a2e"},
+            ),
+        ], id="mi-lightbox", size="xl", centered=True, is_open=False),
     ], className="p-3")
 
 

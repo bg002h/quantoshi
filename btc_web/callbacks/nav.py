@@ -1,7 +1,7 @@
 """Tab routing, navigation, splash, easter eggs, image export, drawers."""
 
 import dash
-from dash import Input, Output, State, callback, ctx, no_update
+from dash import Input, Output, State, callback, ctx, no_update, ALL
 
 import _app_ctx
 from layout.splash import _SPLASH_QUOTES_JS
@@ -558,6 +558,22 @@ def open_model_info_item(pathname):
     except (ValueError, IndexError):
         pass
     return no_update
+
+
+@callback(
+    Output("mi-lightbox", "is_open"),
+    Output("mi-lightbox-img", "src"),
+    Input({"type": "mi-img", "src": ALL}, "n_clicks"),
+    prevent_initial_call=True,
+)
+def open_model_info_lightbox(n_clicks_list):
+    """Open lightbox modal when a Model Info image is clicked."""
+    if not any(n_clicks_list):
+        return False, ""
+    triggered = ctx.triggered_id
+    if triggered and isinstance(triggered, dict):
+        return True, triggered["src"]
+    return False, ""
 
 
 @callback(

@@ -252,6 +252,10 @@ For each consecutive 30-day interval, the bin-to-bin transition is recorded. The
 $$T_{ij} = P(\text{bin}_{t+1} = j \mid \text{bin}_t = i)$$
                             """, mathjax=True),
 
+                            html.Img(src="/assets/markov_states.png",
+                                     style={"width": "100%", "maxWidth": "700px",
+                                            "borderRadius": "8px", "marginBottom": "16px"}),
+
                             html.H6("Forward Simulation"),
                             html.Ol([
                                 html.Li("Start all paths in the bin corresponding to the user\u2019s entry percentile."),

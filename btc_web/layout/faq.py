@@ -1,4 +1,4 @@
-"""Tab 7 — FAQ layout."""
+"""Tab 8 — FAQ layout."""
 
 from dash import html
 import dash_bootstrap_components as dbc
@@ -327,7 +327,7 @@ _FAQ = [
 def _faq_tab():
     items = []
     # Note: item_id uses loop index -- reordering _FAQ entries will break
-    # direct links (/7.N) since they reference items by position.
+    # direct links (/8.N) since they reference items by position.
     for i, entry in enumerate(_FAQ):
         items.append(
             dbc.AccordionItem(

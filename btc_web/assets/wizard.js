@@ -271,7 +271,7 @@
     }
     watchShare();
 
-    /* ── Trigger 3: All 7 tabs explored (once only) ─────────────────────── */
+    /* ── Trigger 3: All 8 tabs explored (once only) ─────────────────────── */
     /* Note: streak.js also wraps setItem — chain them properly */
     var _prevSetItem = Storage.prototype.setItem;
     Storage.prototype.setItem = function(key, val) {
@@ -279,10 +279,10 @@
         if (key === "journey-store" && !_wizFlags().all_tabs) {
             try {
                 var j = JSON.parse(val);
-                if (j && j.tabs_seen && j.tabs_seen.length >= 7) {
+                if (j && j.tabs_seen && j.tabs_seen.length >= 8) {
                     _setWizFlag("all_tabs");
                     setTimeout(function() {
-                        summonWizard("All 7 Tabs Explored!");
+                        summonWizard("All 8 Tabs Explored!");
                     }, 500);
                 }
             } catch(e) {}

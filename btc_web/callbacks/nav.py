@@ -208,10 +208,10 @@ _JOURNEY_BODY = """
                 parts.push("Visit #" + journey.visits);
             }
             var tabCount = (journey.tabs_seen || []).length;
-            if (tabCount > 0 && tabCount < 7) {
-                parts.push(tabCount + "/7 tabs explored");
-            } else if (tabCount >= 7) {
-                parts.push("\\u2b50 All 7 tabs explored!");
+            if (tabCount > 0 && tabCount < 8) {
+                parts.push(tabCount + "/8 tabs explored");
+            } else if (tabCount >= 8) {
+                parts.push("\\u2b50 All 8 tabs explored!");
             }
             /* Prepend noble title if knighted */
             try {

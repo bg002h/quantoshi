@@ -32,7 +32,7 @@ import dash
 import dash_bootstrap_components as dbc
 from flask import request as flask_request
 
-from btc_core import load_model_data, BubbleModel, PowerLawModel, S2FModel
+from btc_core import load_model_data, BubbleModel, PowerLawModel, LPPLModel, S2FModel
 from figures import FREQ_PPY
 from mc_overlay import save_trans_cache_to_disk, _get_transition_matrix
 import atexit
@@ -143,6 +143,7 @@ _app_ctx.PRICE_MODELS["bub"] = BubbleModel(M)
 _app_ctx.PRICE_MODELS["pl"]  = PowerLawModel(
     M.ols_intercept, M.ols_slope, M.price_years, M.price_prices,
     M.genesis, M.QR_QUANTILES)
+_app_ctx.PRICE_MODELS["lppl"] = LPPLModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["s2f"] = S2FModel(M.price_years, M.price_prices, M.genesis)
 _app_ctx.DEFAULT_MODEL = _app_ctx.PRICE_MODELS["bub"]
 

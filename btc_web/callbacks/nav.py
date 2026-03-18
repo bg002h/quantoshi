@@ -539,7 +539,7 @@ _app_ctx.app.clientside_callback(
 )
 
 
-_MODEL_INFO_ITEMS = ["mi-qr", "mi-pl", "mi-lppl", "mi-exp", "mi-s2f", "mi-mc", "mi-compare"]
+_MODEL_INFO_ITEMS = ["mi-qr", "mi-pl", "mi-ogpl", "mi-lppl", "mi-exp", "mi-s2f", "mi-mc", "mi-compare"]
 
 
 @callback(

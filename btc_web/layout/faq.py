@@ -124,6 +124,31 @@ _FAQ = [
         ]),
     },
     {
+        "q": "What is the difference between Bubble Model quantiles and Power Law quantiles?",
+        "a": html.Span([
+            "Both are Q-percentile power-law fits to Bitcoin\u2019s historical price data, "
+            "but they use different regression approaches.",
+            html.Br(), html.Br(),
+            html.Strong("Bubble Model (QR): "),
+            "Quantile regression fits each percentile independently \u2014 every line has "
+            "its own slope and intercept. Q25% is positioned so that exactly 25% of "
+            "historical data falls below it. Because each percentile is fitted separately, "
+            "the spacing between quantile lines can vary and the lines are not necessarily "
+            "parallel.",
+            html.Br(), html.Br(),
+            html.Strong("Power Law (PL): "),
+            "Ordinary Least Squares (OLS) regression fits a single line to the mean of "
+            "the data, then shifts that line up or down using the residual distribution "
+            "to create percentile bands. Q25% is computed as OLS intercept + z\u2080.\u2082\u2085 "
+            "\u00d7 \u03c3, where z is the normal distribution\u2019s 25th percentile z-score and "
+            "\u03c3 is the standard deviation of the residuals. All PL percentile lines are "
+            "parallel in log-log space because they share the same slope.",
+            html.Br(), html.Br(),
+            "In practice, the two models diverge most at extreme percentiles (Q1%, Q99%) "
+            "where the actual price distribution is not symmetric or normally distributed.",
+        ]),
+    },
+    {
         "q": "Can I send you a tip?",
         "a": html.Table([
             html.Tbody([

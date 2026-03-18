@@ -209,7 +209,7 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | BTC RetireMentator | `retire` | Withdrawal amount, inflation rate, year range |
 | HODL Supercharger | `supercharge` | Mode A (fixed spending → depletion date) or Mode B (fixed depletion → max spending); 5 delay offsets, 2 chart layouts (single-quantile line or quantile bands) |
 | Stack Tracker | `stack` | Lot management (add/delete/import/export JSON) |
-| FAQ | `faq` | Static accordion — `_FAQ` list in `layout/faq.py`. 18 entries including: Share, quantile regression, price prediction disclaimer, QR vs MCMC, appearance, crossing projection lines, Power Law, bubble model, why I made this, podcast (porkopolis.io), direct tab linking (/1-/7), open source (BSD-2/GitHub/AppImage), data privacy (localStorage/27-day logs/onion), tip addresses, contact. Answers: plain strings or Dash components (`html.Span`/`html.A`/`html.Table`). Link color: `#1a6fa8` via `.accordion a` in style.css. |
+| FAQ | `faq` | Static accordion — `_FAQ` list in `layout/faq.py`. 19 entries including: Share, quantile regression, price prediction disclaimer, QR vs MCMC, appearance, crossing projection lines, Power Law, bubble model, why I made this, podcast (porkopolis.io), direct tab linking (/1-/7), open source (BSD-2/GitHub/AppImage), data privacy (localStorage/27-day logs/onion), tip addresses, contact. Answers: plain strings or Dash components (`html.Span`/`html.A`/`html.Table`). Link color: `#1a6fa8` via `.accordion a` in style.css. |
 
 ### Tab defaults
 | Tab | Notable defaults |

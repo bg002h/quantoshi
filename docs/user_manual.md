@@ -190,7 +190,7 @@ total BTC from all lots becomes the starting stack for that simulation.
 
 ### Tab 7: FAQ
 
-18 entries covering common questions including quantile regression vs MCMC
+19 entries covering common questions including quantile regression vs MCMC
 differences. Directly linkable via URL paths like `/7.3` (opens the 3rd FAQ
 item).
 

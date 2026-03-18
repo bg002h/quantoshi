@@ -97,6 +97,7 @@ _app_ctx.app.clientside_callback(
             }, 1200);
         }
         window._pendingTabPath = null;
+        if (p && /^\\/7\\.\\d+$/.test(p)) { return "model_info"; }
         if (p && /^\\/8\\.\\d+$/.test(p)) { return "faq"; }
         var tab = map[p];
         return tab ? tab : NU;
@@ -536,6 +537,27 @@ _app_ctx.app.clientside_callback(
     Input("price-ticker", "children"),
     prevent_initial_call="initial_duplicate",
 )
+
+
+_MODEL_INFO_ITEMS = ["mi-qr", "mi-pl", "mi-lppl", "mi-exp", "mi-s2f", "mi-mc", "mi-compare"]
+
+
+@callback(
+    Output("model-info-accordion", "active_item"),
+    Input("url", "pathname"),
+    prevent_initial_call=False,
+)
+def open_model_info_item(pathname):
+    """Open a specific Model Info accordion item when pathname is /7.N (1-indexed)."""
+    if not pathname or not pathname.startswith("/7."):
+        return no_update
+    try:
+        n = int(pathname[3:])
+        if 1 <= n <= len(_MODEL_INFO_ITEMS):
+            return _MODEL_INFO_ITEMS[n - 1]
+    except (ValueError, IndexError):
+        pass
+    return no_update
 
 
 @callback(

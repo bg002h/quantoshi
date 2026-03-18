@@ -502,6 +502,86 @@ class LPPLModel:
             self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
 
 
+class ExponentialModel:
+    """Exponential growth model with Gaussian quantile bands.
+
+    Fits log10(price) = a + b*t (linear in time, exponential in price).
+    Quantile bands shifted by z_q * sigma like PowerLawModel.
+    Poor fit (R²~0.87) — included for comparison to show why power law
+    is preferred over exponential for Bitcoin.
+    """
+    name = "Exponential"
+    short_name = "exp"
+    dash_style = "longdashdot"
+    quantized = True
+
+    def __init__(self, price_years, price_prices, quantiles):
+        from scipy.stats import linregress as _lr
+        mask = price_years >= 1.0
+        t = price_years[mask]
+        lp = np.log10(price_prices[mask])
+        slope, intercept, r, _, _ = _lr(t, lp)
+        self._intercept = intercept
+        self._slope = slope
+        residuals = lp - (intercept + slope * t)
+        self._sigma = float(np.std(residuals))
+
+        self.fits = {}
+        for q in quantiles:
+            z = norm.ppf(q)
+            self.fits[q] = {"z_shift": z * self._sigma}
+        self.quantiles = sorted(self.fits.keys())
+        self._build_colors()
+
+    def price_at(self, q, t):
+        t_arr = np.asarray(t, float)
+        log_median = self._intercept + self._slope * t_arr
+        shift = self.fits[q]["z_shift"]
+        return 10.0 ** (log_median + shift)
+
+    def interp_price(self, q, t):
+        if q in self.fits:
+            return float(self.price_at(q, t))
+        sorted_qs = self.quantiles
+        lo = max((qq for qq in sorted_qs if qq <= q), default=sorted_qs[0])
+        hi = min((qq for qq in sorted_qs if qq >= q), default=sorted_qs[-1])
+        if lo == hi:
+            return float(self.price_at(lo, t))
+        frac = (q - lo) / (hi - lo)
+        p_lo = np.log10(float(self.price_at(lo, t)))
+        p_hi = np.log10(float(self.price_at(hi, t)))
+        return 10.0 ** (p_lo + frac * (p_hi - p_lo))
+
+    def find_percentile(self, t, price):
+        sorted_qs = self.quantiles
+        if not sorted_qs:
+            return 0.5
+        t_safe = max(float(t), 0.5)
+        log_p = np.log10(max(float(price), 1e-10))
+        log_ps = [np.log10(max(float(self.price_at(q, t_safe)), 1e-10))
+                  for q in sorted_qs]
+        if log_p <= log_ps[0]:
+            return sorted_qs[0]
+        if log_p >= log_ps[-1]:
+            return sorted_qs[-1]
+        for i in range(len(sorted_qs) - 1):
+            if log_ps[i] <= log_p <= log_ps[i + 1]:
+                frac = (log_p - log_ps[i]) / (log_ps[i + 1] - log_ps[i] + 1e-30)
+                return sorted_qs[i] + frac * (sorted_qs[i + 1] - sorted_qs[i])
+        return sorted_qs[-1]
+
+    def _build_colors(self):
+        """Red/pink palette — visually distinct, signals 'caution'."""
+        self.colors = {}
+        n = len(self.quantiles)
+        for i, q in enumerate(self.quantiles):
+            frac = i / max(n - 1, 1)
+            r = int(200 + 55 * frac)     # 200 → 255
+            g = int(60 + 80 * frac)      # 60 → 140
+            b = int(80 + 60 * frac)      # 80 → 140
+            self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
+
+
 class S2FModel:
     """Stock-to-Flow model — single price trajectory (not quantized).
 

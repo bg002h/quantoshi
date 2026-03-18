@@ -166,7 +166,64 @@ The first two terms are a standard power law. The third term adds **log-periodic
                             ]),
                         ], title="Log-Periodic Power Law (LPPL)", item_id="mi-lppl"),
 
-                        # ── 4. Stock-to-Flow ──
+                        # ── 4. Exponential ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = \alpha + \beta \cdot t + z_q \cdot \sigma$$
+
+Solved for price:
+
+$$\text{price}(q,\, t) = 10^{\,\alpha + z_q \sigma} \cdot 10^{\,\beta \, t}$$
+
+where $t$ = years since genesis (linear, not log-transformed), and $z_q = \Phi^{-1}(q)$.
+                            """, mathjax=True, className="mb-3"),
+
+                            html.H6("Method"),
+                            html.P(
+                                "OLS regression of log\u2081\u2080(price) against time (not log-time). "
+                                "This assumes constant percentage growth per year \u2014 exponential "
+                                "in price. Quantile bands use Gaussian shift like PL. Included for "
+                                "comparison to demonstrate why power-law models are preferred: "
+                                "Bitcoin\u2019s growth rate is not constant but decelerates over time, "
+                                "which exponential models cannot capture."
+                            ),
+
+                            html.H6("Fitted Coefficients"),
+                            _coeff_table([
+                                ("\u03b1 (intercept)", "0.240277"),
+                                ("\u03b2 (slope)", "0.317792 per year"),
+                                ("\u03c3 (residual std)", "0.553180"),
+                                ("R\u00b2", "0.871"),
+                            ]),
+
+                            html.H6("Why it fails"),
+                            html.Ul([
+                                html.Li([
+                                    html.Strong("R\u00b2 = 0.871:"),
+                                    " Substantially worse than QR (0.98), PL (0.97), or LPPL (0.98).",
+                                ]),
+                                html.Li([
+                                    html.Strong("\u03c3 = 0.553:"),
+                                    " Nearly double PL\u2019s 0.302 \u2014 the model explains much less "
+                                    "variance, so quantile bands are very wide.",
+                                ]),
+                                html.Li([
+                                    html.Strong("Constant growth rate:"),
+                                    " The model assumes Bitcoin grows at the same percentage rate "
+                                    "forever. In reality, growth decelerates \u2014 early years saw "
+                                    "1000\u00d7 gains while recent years see 2\u20135\u00d7. Power laws "
+                                    "naturally capture this deceleration; exponentials cannot.",
+                                ]),
+                                html.Li([
+                                    html.Strong("Extreme projections:"),
+                                    " By 2040 the median hits $12B, by 2050 $18T. The exponential "
+                                    "overshoots every other model by orders of magnitude at long horizons.",
+                                ]),
+                            ]),
+                        ], title="Exponential (included for comparison)", item_id="mi-exp"),
+
+                        # ── 5. Stock-to-Flow ──
                         dbc.AccordionItem([
                             html.H6("Formula"),
                             dcc.Markdown(r"""
@@ -327,6 +384,13 @@ $$T_{ij} = P(\text{bin}_{t+1} = j \mid \text{bin}_t = i)$$
                                     "because the oscillatory term absorbs bubble/bust variance.",
                                 ]),
                                 html.Li([
+                                    html.Strong("Exponential vs power law: "),
+                                    "Exponential assumes constant percentage growth (straight line in "
+                                    "log-price vs time). Power law assumes decelerating growth (straight "
+                                    "line in log-price vs log-time). Bitcoin\u2019s empirical deceleration "
+                                    "makes power law the better fit (R\u00b2 0.97 vs 0.87).",
+                                ]),
+                                html.Li([
                                     html.Strong("S2F vs all others: "),
                                     "S2F is driven by supply mechanics (halvings), not time. It produces "
                                     "step-function jumps and extreme far-future projections. Single "
@@ -405,6 +469,7 @@ def _comparison_table():
             html.Th("QR (Bubble)", style=hdr_style),
             html.Th("Power Law", style=hdr_style),
             html.Th("LPPL", style=hdr_style),
+            html.Th("Exponential", style=hdr_style),
             html.Th("S2F", style=hdr_style),
             html.Th("Monte Carlo", style=hdr_style),
         ])),
@@ -414,6 +479,7 @@ def _comparison_table():
                 html.Td("Quantile regression", style=cell_style),
                 html.Td("OLS + Gaussian shift", style=cell_style),
                 html.Td("Damped log-periodic + Gaussian", style=cell_style),
+                html.Td("OLS (linear time) + Gaussian", style=cell_style),
                 html.Td("Supply-driven regression", style=cell_style),
                 html.Td("Stochastic simulation", style=cell_style),
             ]),
@@ -422,6 +488,7 @@ def _comparison_table():
                 html.Td("Independent slopes", style=cell_style),
                 html.Td("Parallel (same slope)", style=cell_style),
                 html.Td("Parallel + oscillating", style=cell_style),
+                html.Td("Parallel (very wide)", style=cell_style),
                 html.Td("None (single line)", style=cell_style),
                 html.Td("Fan (P1\u2013P95)", style=cell_style),
             ]),
@@ -430,6 +497,7 @@ def _comparison_table():
                 html.Td("No", style=cell_style),
                 html.Td("No", style=cell_style),
                 html.Td("Yes (damped)", style=cell_style),
+                html.Td("No", style=cell_style),
                 html.Td("Halvings only", style=cell_style),
                 html.Td("Empirically", style=cell_style),
             ]),
@@ -438,6 +506,7 @@ def _comparison_table():
                 html.Td("2 per quantile", style=cell_style),
                 html.Td("3 (\u03b1, \u03b2, \u03c3)", style=cell_style),
                 html.Td("7 (A,B,C,\u03c9,\u03c6,D,\u03c3)", style=cell_style),
+                html.Td("3 (\u03b1, \u03b2, \u03c3)", style=cell_style),
                 html.Td("2 (\u03b1, \u03b2)", style=cell_style),
                 html.Td("5\u00d75 matrix", style=cell_style),
             ]),
@@ -446,6 +515,7 @@ def _comparison_table():
                 html.Td("Solid", style=cell_style),
                 html.Td("Dotted", style=cell_style),
                 html.Td("Dash-dot", style=cell_style),
+                html.Td("Long dash-dot", style=cell_style),
                 html.Td("Long dash", style=cell_style),
                 html.Td("Fan shading", style=cell_style),
             ]),

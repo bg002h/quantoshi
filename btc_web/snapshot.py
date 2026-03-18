@@ -161,11 +161,11 @@ _CHECKLIST_OPTIONS = {
     "sc-toggles":         ["annotate", "log_y", "show_legend", "minor_grid", "chart_zoom"],
     "sc-chart-layout":    ["shade"],
     "bub-auto-y":         ["yes"],
-    "dca-model-show":     ["qr", "mc", "pl", "lppl", "s2f"],
-    "ret-model-show":     ["qr", "mc", "pl", "lppl", "s2f"],
-    "sc-model-show":      ["qr", "mc", "pl", "lppl", "s2f"],
-    "hm-model-show":      ["qr", "mc", "pl", "lppl", "s2f"],
-    "bub-model-show":     ["pl", "lppl", "s2f"],
+    "dca-model-show":     ["qr", "mc", "pl", "lppl", "exp", "s2f"],
+    "ret-model-show":     ["qr", "mc", "pl", "lppl", "exp", "s2f"],
+    "sc-model-show":      ["qr", "mc", "pl", "lppl", "exp", "s2f"],
+    "hm-model-show":      ["qr", "mc", "pl", "lppl", "exp", "s2f"],
+    "bub-model-show":     ["pl", "lppl", "exp", "s2f"],
 }
 
 

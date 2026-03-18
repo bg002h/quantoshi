@@ -43,7 +43,7 @@ MC_DEFAULT_START_YR = 2026    # default start year for MC simulations
 
 # ── Free tier constraints (restricted params for LRU-cached free-tier figures) ─
 MC_FREE_SIMS = 100
-MC_FREE_START_YRS = [2028, 2031]
+MC_FREE_START_YRS = [2026, 2028, 2031]
 MC_FREE_ENTRY_Q = 10          # percentage, 0-100 scale
 MC_FREE_YEARS = [10, 20]
 

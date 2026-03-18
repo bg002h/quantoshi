@@ -94,7 +94,15 @@ def today_year():
 
 
 def fmt_price(p):
-    """Format a USD price with comma thousands separators."""
+    """Format a USD price with comma separators or suffixes for large values."""
+    if p >= 1e18:
+        return f"${p/1e18:,.1f}Qi"
+    if p >= 1e15:
+        return f"${p/1e15:,.1f}Q"
+    if p >= 1e12:
+        return f"${p/1e12:,.1f}T"
+    if p >= 1e9:
+        return f"${p/1e9:,.1f}B"
     if p >= 1:
         return f"${p:,.0f}"
     return f"${p:.2f}"

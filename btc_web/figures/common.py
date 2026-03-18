@@ -568,7 +568,8 @@ def _finalize_chart(traces: list, layout: dict, p: dict, tab: str,
 
 def _price_tickvals(y_lo, y_hi):
     """Decade tick values for a log price y-axis."""
-    decades = [0.01, 0.1, 1, 10, 100, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8]
+    decades = [0.01, 0.1, 1, 10, 100, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8,
+               1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20]
     return [p for p in decades if y_lo <= p <= y_hi]
 
 

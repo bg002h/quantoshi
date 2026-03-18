@@ -284,8 +284,10 @@ _FAQ = [
             html.Br(), html.Br(),
             html.Strong("Logging: "),
             "Server logs are stripped of User-Agent strings and referrer headers. "
-            "Logs are deleted every 27 days to prevent aggregation by authorities, "
-            "some of whom can demand data thirty days or older without a warrant. "
+            "IP addresses are anonymized daily \u2014 a nightly cron job replaces all IPs "
+            "with 0.0.0.0 and saves only aggregate counts (unique visitors, page loads) "
+            "to a summary CSV. Logs are deleted every 27 days to prevent aggregation by "
+            "authorities, some of whom can demand data thirty days or older without a warrant. "
             "No cookies are tracked. No analytics. No third-party scripts.",
             html.Br(), html.Br(),
             html.Strong("Onion site: "),

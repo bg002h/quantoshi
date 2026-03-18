@@ -28,6 +28,10 @@ def _model_info_tab():
                             dcc.Markdown(r"""
 $$\log_{10}(\text{price}) = \alpha_q + \beta_q \cdot \log_{10}(t)$$
 
+Solved for price:
+
+$$\text{price}(q,\, t) = 10^{\alpha_q} \cdot t^{\,\beta_q}$$
+
 where $t$ = years since genesis, and each quantile $q$ has its own independently fitted intercept $\alpha_q$ and slope $\beta_q$.
                             """, mathjax=True, className="mb-3"),
 
@@ -67,6 +71,10 @@ Future bubbles are extrapolated from the trend in historical bubble parameters (
                             dcc.Markdown(r"""
 $$\log_{10}(\text{price}) = (\alpha + z_q \cdot \sigma) + \beta \cdot \log_{10}(t)$$
 
+Solved for price:
+
+$$\text{price}(q,\, t) = 10^{\,\alpha + z_q \sigma} \cdot t^{\,\beta}$$
+
 where $\alpha$ and $\beta$ are the OLS regression coefficients, $\sigma$ is the residual standard deviation, and $z_q = \Phi^{-1}(q)$ is the inverse normal CDF at quantile $q$.
                             """, mathjax=True, className="mb-3"),
 
@@ -97,6 +105,10 @@ where $\alpha$ and $\beta$ are the OLS regression coefficients, $\sigma$ is the 
                             html.H6("Formula"),
                             dcc.Markdown(r"""
 $$\log_{10}(\text{price}) = A + B \cdot \log_{10}(t) + C \cdot t^{-D} \cdot \cos(\omega \cdot \ln(t) + \varphi) + z_q \cdot \sigma$$
+
+Solved for price:
+
+$$\text{price}(q,\, t) = 10^{\,A + z_q \sigma} \;\cdot\; t^{\,B} \;\cdot\; 10^{\,C \,\cdot\, t^{-D} \,\cdot\, \cos(\omega \ln t + \varphi)}$$
 
 The first two terms are a standard power law. The third term adds **log-periodic oscillations** — sinusoidal in $\ln(t)$ — with amplitude that decays as $t^{-D}$. Quantile bands use Gaussian shift like PL.
                             """, mathjax=True, className="mb-3"),
@@ -159,6 +171,10 @@ The first two terms are a standard power law. The third term adds **log-periodic
                             html.H6("Formula"),
                             dcc.Markdown(r"""
 $$\log_{10}(\text{price}) = \alpha + \beta \cdot \log_{10}(\text{S2F})$$
+
+Solved for price:
+
+$$\text{price}(t) = 10^{\,\alpha} \cdot \text{S2F}(t)^{\,\beta}$$
 
 $$\text{S2F}(t) = \frac{\text{stock}(t)}{\text{annual flow}(t)}$$
 

@@ -161,24 +161,28 @@ def _heatmap_tab():
             dcc.Store(id="hm-active-model", storage_type="memory", data="bub"),
             # Swipe indicator (kept as hidden placeholder for existing callbacks)
             html.Div(id="hm-swipe-indicator", style=_STYLE_HIDDEN),
-            # Single chart
-            dcc.Loading(
-                dcc.Graph(id="heatmap-graph", style=_STYLE_GRAPH_H,
-                          config={"scrollZoom":False,
-                                  "displayModeBar":"hover",
-                                  "toImageButtonOptions":{"format":"png","scale":2,
-                                                           "filename":"btc_heatmap"}}),
-                type="default", color=_BTC_ORANGE,
-            ),
-            # MC status / overlay elements (kept for MC callbacks)
-            html.Div(id="hm-mc-panel", style=_STYLE_HIDDEN,
-                     className="mc-premium-chart"),
-            html.Div(id="hm-mc-overlay", style=_STYLE_HIDDEN,
-                     className="mc-chart-overlay"),
-            html.Img(id="hm-mc-badge",
-                     src="/assets/quantoshi_favicon.png",
-                     className="mc-premium-badge",
-                     style=_STYLE_HIDDEN),
+            # Wrap chart + overlay in position:relative so mc-chart-overlay
+            # is scoped to the chart area (not the full page)
+            html.Div(id="hm-chart-wrap", style={"position": "relative"}, children=[
+                # Single chart
+                dcc.Loading(
+                    dcc.Graph(id="heatmap-graph", style=_STYLE_GRAPH_H,
+                              config={"scrollZoom":False,
+                                      "displayModeBar":"hover",
+                                      "toImageButtonOptions":{"format":"png","scale":2,
+                                                               "filename":"btc_heatmap"}}),
+                    type="default", color=_BTC_ORANGE,
+                ),
+                # MC status / overlay elements (kept for MC callbacks)
+                html.Div(id="hm-mc-panel", style=_STYLE_HIDDEN,
+                         className="mc-premium-chart"),
+                html.Div(id="hm-mc-overlay", style=_STYLE_HIDDEN,
+                         className="mc-chart-overlay"),
+                html.Img(id="hm-mc-badge",
+                         src="/assets/quantoshi_favicon.png",
+                         className="mc-premium-badge",
+                         style=_STYLE_HIDDEN),
+            ]),
             html.Div(id="hm-swipe-scroll-dummy", style=_STYLE_HIDDEN),
             _export_row("heatmap"),
         ], width=9),

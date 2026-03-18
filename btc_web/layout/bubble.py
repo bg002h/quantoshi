@@ -42,10 +42,11 @@ def _bubble_controls():
                 ), width="auto"),
             ], className="g-0 align-items-center"),
             html.Div(id="bub-yrange-wrap", style=_STYLE_HIDDEN, children=[
-                dcc.RangeSlider(id="bub-yrange", min=-2, max=8,
+                dcc.RangeSlider(id="bub-yrange", min=-2, max=20,
                                 value=[0, 7], step=0.5,
                                 marks={-2:"1\u00a2", 0:"$1", 2:"$100",
-                                        4:"$10K", 6:"$1M", 8:"$100M"},
+                                        4:"$10K", 6:"$1M", 8:"$100M",
+                                        10:"$10B", 14:"$100T", 18:"$1Qi"},
                                 tooltip={"always_visible":False}),
             ]),
         ),

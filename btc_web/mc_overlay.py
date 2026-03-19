@@ -35,10 +35,14 @@ except ImportError:
 # ── Pre-computed MC cache (conditional) ──────────────────────────────────────
 try:
     from mc_cache import (load_startup_cache as _load_startup_cache,
+                          load_caches as _load_full_cache,
                           get_cached_paths, get_cached_overlay,
                           snap_to_bin, is_cached_year,
                           FAN_PCTS as _MC_CACHE_FAN_PCTS)
-    _load_startup_cache()
+    # Load full MC cache in master process (before gunicorn fork) so all
+    # workers share it via copy-on-write.  Adds ~0.7s to startup (shm hit)
+    # or ~7s (cold npz parse), but eliminates per-worker 800 MB duplication.
+    _load_full_cache()
     _HAS_MC_CACHE = True
 except ImportError:
     _HAS_MC_CACHE = False

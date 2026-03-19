@@ -43,19 +43,19 @@ def _quantize_params(p: dict) -> dict:
             out[k] = v
     return out
 
-# ── LRU figure caches (maxsize=8 per tab) ─────────────────────────────────────
+# ── LRU figure caches (maxsize=32 per tab, ~16 MB/worker) ─────────────────────
 # Each @lru_cache takes a JSON string key → go.Figure.  Bubble includes today's
 # date in the key so the "today" line stays fresh (natural daily expiry).
 # Server restarts on deploy clear all caches.
 
-def _make_cached_builder(builder_fn, maxsize=8):
+def _make_cached_builder(builder_fn, maxsize=32):
     @lru_cache(maxsize=maxsize)
     def _cached(key: str):
         return builder_fn(_app_ctx.M, json.loads(key))
     return _cached
 
-_cached_bubble_fig      = _make_cached_builder(build_bubble_figure, 8)
-_cached_heatmap_fig     = _make_cached_builder(build_heatmap_figure, 8)
+_cached_bubble_fig      = _make_cached_builder(build_bubble_figure)
+_cached_heatmap_fig     = _make_cached_builder(build_heatmap_figure)
 _cached_dca_fig         = _make_cached_builder(build_dca_figure)
 _cached_retire_fig      = _make_cached_builder(build_retire_figure)
 _cached_supercharge_fig = _make_cached_builder(build_supercharge_figure)

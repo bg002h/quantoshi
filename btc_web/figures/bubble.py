@@ -19,10 +19,11 @@ from figures.common import (
     _FONT_LEGEND, _FONT_TITLE, _FONT_SUBTITLE,
     _SANS_FONT, _FONT_TITLE_LG, _FONT_BODY_LG, _FONT_TICK_LG, _FONT_LEGEND_LG,
     _LOG_MINOR, _MC_LEGEND_POS,
-    _get_palette, _build_thermal_colors, _add_glow_trace, _fmt_q_label,
+    _get_palette, _build_thermal_colors, _fmt_q_label,
     _dark_layout, _year_ticks, _price_tickvals,
     _apply_sans_typography, _apply_config_annotation, _apply_watermark,
     _lerp_hex, _hex_alpha,
+    _round_trace_data,
 )
 
 
@@ -41,6 +42,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     y_lo = float(p["ymin"])
     y_hi = float(p["ymax"])
     t_arr = np.linspace(max(t_lo, 0.1), t_hi, _INTERP_POINTS)
+    t_arr = _round_trace_data(t_arr)
 
     stack = float(p.get("stack", 0)) if p.get("show_stack") else 0.0
 
@@ -53,7 +55,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     _price_cache = {}
     for q in sel_qs:
         if q in model.fits:
-            _price_cache[q] = model.price_at(q, t_arr) * (stack if stack > 0 else 1)
+            _price_cache[q] = _round_trace_data(model.price_at(q, t_arr) * (stack if stack > 0 else 1))
 
     _thermal = _build_thermal_colors(sel_qs, palette)
 
@@ -85,7 +87,6 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         if stack > 0:
             lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
         col = _thermal.get(q, model.colors.get(q, "#888888"))
-        _add_glow_trace(traces, t_arr, prices, col)
         traces.append(go.Scatter(
             x=list(t_arr), y=list(prices),
             mode="lines", name=lbl,
@@ -102,7 +103,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             for q in overlay_qs:
                 if q not in mdl.fits:
                     continue
-                prices = mdl.price_at(q, t_arr) * (stack if stack > 0 else 1)
+                prices = _round_trace_data(mdl.price_at(q, t_arr) * (stack if stack > 0 else 1))
                 col = mdl.colors.get(q, "#888888")
                 lbl = f"{mdl.name} {_fmt_q_label(q, '')}"
                 if stack > 0:
@@ -122,8 +123,9 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             lbl = mdl.name
             if stack > 0:
                 lbl += f"  \u2192  {fmt_price(float(np.asarray(prices)[-1]))}"
+            prices = _round_trace_data(np.asarray(prices))
             traces.append(go.Scatter(
-                x=list(t_arr), y=list(np.asarray(prices)),
+                x=list(t_arr), y=list(prices),
                 mode="lines", name=lbl,
                 line=dict(color=palette["non_quantized_model"], width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                 legendgroup=mdl.short_name,

@@ -14,13 +14,14 @@ from figures.common import (
     _NON_QUANTIZED_MODEL_COLOR, _OVERLAY_LINE_WIDTH,
     _FONT_ANNOT,
     _HAS_MARKOV,
-    _get_palette, _build_thermal_colors, _add_glow_trace, _fmt_q_label, _error_figure,
+    _get_palette, _build_thermal_colors, _fmt_q_label, _error_figure,
     _build_freq_config, _build_time_array, _get_starting_stack,
     _sim_layout, _apply_mc_overlay,
     _finalize_chart, _fmt_short, _find_mc_median_trace,
     _resolve_edge_annotations,
     _post_mc_overlay,
     _mc_dca_overlay,
+    _round_trace_data,
     FREQ_PPY,
 )
 
@@ -140,7 +141,7 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, t
         lbl_sc = f"SC {_fmt_q_label(q)}" + f"  \u2192  {final_sc}"
         col = thermal.get(q, model.colors.get(q, "#888888")) if thermal else model.colors.get(q, "#888888")
         sc_traces.append(go.Scatter(
-            x=list(ts), y=list(y_sc), mode="lines", name=lbl_sc,
+            x=list(ts), y=_round_trace_data(y_sc), mode="lines", name=lbl_sc,
             line=dict(color=col, width=_QR_LINE_WIDTH, dash="dash"),
         ))
 
@@ -194,9 +195,8 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
 
         lbl = _fmt_q_label(q) + f"  \u2192  {final_lbl}"
         col = _thermal.get(q, model.colors.get(q, "#888888"))
-        _add_glow_trace(traces, ts, y_vals, col)
         traces.append(go.Scatter(
-            x=list(ts), y=list(y_vals), mode="lines", name=lbl,
+            x=list(ts), y=_round_trace_data(y_vals), mode="lines", name=lbl,
             line=dict(color=col, width=_QR_LINE_WIDTH),
         ))
 
@@ -220,7 +220,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                     final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
                 col = mdl.colors.get(q, "#888888")
                 traces.append(go.Scatter(
-                    x=list(ts), y=list(y_vals), mode="lines",
+                    x=list(ts), y=_round_trace_data(y_vals), mode="lines",
                     name=f"{mdl.name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
                     line=dict(color=col, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                     legendgroup=mdl.short_name,
@@ -238,7 +238,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                 final_usd = fmt_price(float(vals[-1] * prices_q[-1]))
                 final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
             traces.append(go.Scatter(
-                x=list(ts), y=list(y_vals), mode="lines",
+                x=list(ts), y=_round_trace_data(y_vals), mode="lines",
                 name=f"{mdl.name}  \u2192  {final_lbl}",
                 line=dict(color=palette["non_quantized_model"], width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                 legendgroup=mdl.short_name,

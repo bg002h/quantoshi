@@ -15,7 +15,7 @@ from figures.common import (
     _QR_LINE_WIDTH, _ANNOT_STAGGER_Y, _BISECT_ITERS,
     _FONT_ANNOT,
     _HAS_MARKOV,
-    _get_palette, _build_thermal_colors, _add_glow_trace, _fmt_q_label, _error_figure,
+    _get_palette, _build_thermal_colors, _fmt_q_label, _error_figure,
     _build_freq_config, _get_starting_stack,
     _sim_layout, _apply_mc_overlay,
     _stagger_depletion_annots,
@@ -23,6 +23,7 @@ from figures.common import (
     _fmt_short, _mc_median_annot,
     _resolve_edge_annotations,
     _hex_alpha,
+    _round_trace_data,
 )
 
 _DASH_STYLES  = ['solid', 'dash', 'dot', 'dashdot', 'longdash']
@@ -134,9 +135,8 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     _vals, _prices = results[key][4], results[key][5]
                     final_usd = fmt_price(float(_vals[-1]) * float(_prices[-1]))
                     final = f"{float(y_vals[-1]):.4f} BTC  ({final_usd})"
-                _add_glow_trace(traces, ts_d, y_vals, col)
                 traces.append(go.Scatter(
-                    x=list(ts_d), y=list(y_vals), mode="lines",
+                    x=list(ts_d), y=_round_trace_data(y_vals), mode="lines",
                     name=f"Delay {d_lbl}  \u2192  {final}",
                     line=dict(color=col, width=2),
                 ))
@@ -156,9 +156,8 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         continue
                     ts_d, y_vals, depl_t, t_start_d, *_ = results[key]
                     d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
-                    _add_glow_trace(traces, ts_d, y_vals, col)
                     traces.append(go.Scatter(
-                        x=list(ts_d), y=list(y_vals), mode="lines",
+                        x=list(ts_d), y=_round_trace_data(y_vals), mode="lines",
                         name=f"{q_lbl} delay={d_lbl}",
                         line=dict(color=col, width=_QR_LINE_WIDTH,
                                   dash=_DASH_STYLES[di % len(_DASH_STYLES)]),
@@ -183,13 +182,13 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 col    = delay_colors[di % len(delay_colors)]
                 d_lbl  = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
                 traces.append(go.Scatter(
-                    x=list(ts_d), y=list(y_max), mode="lines",
+                    x=list(ts_d), y=_round_trace_data(y_max), mode="lines",
                     line=dict(color=col, width=0), showlegend=False, hoverinfo="skip",
                 ))
                 max_final = (fmt_price(float(y_max[-1])) if disp_mode == "usd"
                              else f"{float(y_max[-1]):.4f} BTC")
                 traces.append(go.Scatter(
-                    x=list(ts_d), y=list(y_min), mode="lines",
+                    x=list(ts_d), y=_round_trace_data(y_min), mode="lines",
                     fill="tonexty", fillcolor=_hex_alpha(col, 0.2),
                     line=dict(color=col, width=0),
                     name=f"Delay {d_lbl}  \u2192  {max_final}",
@@ -235,7 +234,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         final_usd = fmt_price(float(vals[-1]) * float(prices[-1]))
                         final = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
                     traces.append(go.Scatter(
-                        x=list(ts_d), y=list(y_vals), mode="lines",
+                        x=list(ts_d), y=_round_trace_data(y_vals), mode="lines",
                         name=f"{mdl.name}{q_lbl} {d_lbl}  \u2192  {final}",
                         line=dict(color=col, width=1.2, dash=mdl.dash_style),  # intentional: 1.2 not _OVERLAY_LINE_WIDTH
                         legendgroup=mdl.short_name,

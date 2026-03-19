@@ -29,6 +29,19 @@ from mc_overlay import (
 )
 
 
+def _q3_trace(x):
+    """Round a number to 3 significant figures (local copy to avoid circular import)."""
+    if x is None or x == 0:
+        return x
+    exp = math.floor(math.log10(abs(x)))
+    factor = 10 ** (exp - 2)
+    return round(x / factor) * factor
+
+def _round_trace_data(arr):
+    """Round array to 3 sig figs for bandwidth savings. Passes through 0/None/NaN."""
+    return [_q3_trace(v) if v and v == v else v for v in arr]
+
+
 # ── shared constants ─────────────────────────────────────────────────────────
 
 _ANNOT_STAGGER_Y = _app_ctx.ANNOT_STAGGER_Y
@@ -40,7 +53,7 @@ _TODAY_LINE_OPACITY = 0.85
 _TODAY_GLOW_WIDTH  = 6
 _TODAY_GLOW_OPACITY = 0.12
 _QR_LINE_WIDTH    = 1.8
-_INTERP_POINTS    = 1500     # sample points for QR interpolation curves
+_INTERP_POINTS    = 400      # sample points for QR interpolation curves (400 > max screen px)
 _MAX_SCATTER_PTS  = 1200     # max data points before downsampling
 _FONT_TITLE       = 14
 _FONT_SUBTITLE    = 13
@@ -52,8 +65,6 @@ _FONT_ANNOT       = 11       # depletion / edge annotation text
 _SHADE_ALPHA      = 0.08     # fill opacity between adjacent quantile lines
 _NON_QUANTIZED_MODEL_COLOR = "#8B4513"  # saddlebrown — single-trajectory models
 _OVERLAY_LINE_WIDTH = _QR_LINE_WIDTH * 0.8  # alt-model overlay lines
-_GLOW_WIDTH       = 6        # neon wire glow shadow width
-_GLOW_ALPHA       = 0.15     # neon wire glow opacity
 _WM_OPACITY       = 0.55     # watermark logo opacity
 _WM_SIZE_X        = 0.09     # watermark logo width (fraction of paper)
 _WM_SIZE_Y        = 0.12     # watermark logo height (fraction of paper)
@@ -125,18 +136,6 @@ def _build_thermal_colors(quantiles: list, palette=None) -> dict:
     """Build a {quantile: hex_color} dict using the thermal palette."""
     return {q: _thermal_color(q, palette) for q in quantiles}
 
-
-def _add_glow_trace(traces: list, x, y, color: str, width: float = _GLOW_WIDTH,
-                    opacity: float = _GLOW_ALPHA) -> None:
-    """Add a wider semi-transparent 'neon wire' shadow trace behind a line."""
-    traces.append(go.Scatter(
-        x=list(x) if not isinstance(x, list) else x,
-        y=list(y) if not isinstance(y, list) else y,
-        mode="lines",
-        line=dict(color=color, width=width),
-        opacity=opacity,
-        showlegend=False, hoverinfo="skip",
-    ))
 
 
 # ── shared small helpers ──────────────────────────────────────────────────────

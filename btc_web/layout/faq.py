@@ -49,13 +49,17 @@ _FAQ = [
     {
         "q": "Why does the model start from July 2009, not the genesis block?",
         "a": (
-            "Bitcoin\u2019s genesis block was mined January 3, 2009, but the network had "
-            "no real market price for its first ~6 months. The model uses July 25, "
-            "2009 \u2014 when Bitcoin first had real exchange activity \u2014 as its time "
-            "origin. We call this the \u201ceconomic genesis.\u201d Three independent "
-            "statistical tests (measuring prediction accuracy, residual randomness, "
-            "and model consistency over time) all converge on this date as optimal "
-            "across 546 candidates tested."
+            "The model uses July 25, 2009 as its time origin \u2014 the statistically "
+            "optimal start date for the power law fit, confirmed independently by "
+            "multiple researchers. Three statistical tests (residual autocorrelation, "
+            "out-of-sample prediction, and slope stability) converge on this date "
+            "across 546 candidates. Blockchain data shows virtually no economic "
+            "transactions at this time \u2014 only ~62 blocks/day of mining activity "
+            "with near-zero on-chain transfers. The first dollar-denominated "
+            "transactions appear in late 2009, with real economic usage beginning "
+            "in mid-2010. The optimal origin likely marks the mathematical inflection "
+            "where Bitcoin\u2019s price behavior begins to follow a power law, rather "
+            "than a specific economic event."
         ),
     },
     {

@@ -152,8 +152,8 @@ All fitting happens in log-log space:
 log10(price) = intercept + slope * log10(t)
 ```
 
-where `t = (date - genesis).days / 365.25` (years since economic genesis,
-July 25, 2009 — when Bitcoin first had real exchange activity).
+where `t = (date - genesis).days / 365.25` (years since the optimal time
+origin, July 25, 2009 — the statistically optimal start date for the power law fit).
 
 Inverting:
 

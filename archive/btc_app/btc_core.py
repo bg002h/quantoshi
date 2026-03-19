@@ -406,7 +406,7 @@ class OptGenesisPLModel(_FitsBasedModel):
     """Power law with optimal genesis date for highest R².
 
     Sweeps genesis dates to find the one that maximizes OLS R² in log-log
-    space. Best fit: 2009-07-25 (= economic genesis, offset 0 days). Gaussian
+    space. Best fit: 2009-07-25 (= optimal time origin, offset 0 days). Gaussian
     quantile bands like PowerLawModel.
     """
     name = "Optimal Genesis PL"

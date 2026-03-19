@@ -28,10 +28,11 @@ def _model_info_tab():
                             className="mb-3 mt-2"),
                     html.P(
                         "Quantoshi uses four price models and a Monte Carlo simulation engine. "
-                        "All models operate in log\u2081\u2080 space where t is years since the "
-                        "Bitcoin economic genesis (2009-07-25) \u2014 the empirically optimal origin "
-                        "confirmed by three independent statistical tests. This page documents "
-                        "the mathematics, fitted coefficients, and methodology behind each.",
+                        "All models operate in log\u2081\u2080 space where t is years since "
+                        "July 25, 2009 \u2014 the statistically optimal time origin for the "
+                        "power law fit, confirmed independently by multiple researchers. "
+                        "This page documents the mathematics, fitted coefficients, and "
+                        "methodology behind each.",
                         className="text-muted mb-4",
                     ),
                     dbc.Accordion([
@@ -46,7 +47,7 @@ Solved for price:
 
 $$\text{price}(q,\, t) = 10^{\alpha_q} \cdot t^{\,\beta_q}$$
 
-where $t$ = years since economic genesis (2009-07-25), and each quantile $q$ has its own independently fitted intercept $\alpha_q$ and slope $\beta_q$.
+where $t$ = years since the optimal time origin (2009-07-25), and each quantile $q$ has its own independently fitted intercept $\alpha_q$ and slope $\beta_q$.
                             """, mathjax=True, className="mb-3"),
 
                             html.H6("Method"),
@@ -89,7 +90,7 @@ Solved for price:
 
 $$\text{price}(q,\, t) = 10^{\,\alpha + z_q \sigma} \cdot t^{\,\beta}$$
 
-where $t$ = years since economic genesis (2009-07-25), $\alpha$ and $\beta$ are the OLS regression coefficients, $\sigma$ is the residual standard deviation, and $z_q = \Phi^{-1}(q)$ is the inverse normal CDF at quantile $q$.
+where $t$ = years since the optimal time origin (2009-07-25), $\alpha$ and $\beta$ are the OLS regression coefficients, $\sigma$ is the residual standard deviation, and $z_q = \Phi^{-1}(q)$ is the inverse normal CDF at quantile $q$.
                             """, mathjax=True, className="mb-3"),
 
                             html.H6("Method"),
@@ -124,22 +125,22 @@ Solved for price:
 
 $$\text{price}(q,\, t) = 10^{\,\alpha + z_q \sigma} \cdot t^{\,\beta}$$
 
-With economic genesis (2009-07-25) as the model origin, the optimal genesis offset is zero — this model reduces to the standard Power Law, confirming that the chosen origin is statistically optimal.
+With optimal time origin (2009-07-25) as the model origin, the optimal genesis offset is zero — this model reduces to the standard Power Law, confirming that the chosen origin is statistically optimal.
                             """, mathjax=True, className="mb-3"),
 
                             html.H6("Method"),
                             html.P(
-                                "This model validates the economic genesis choice. It sweeps 546 "
+                                "This model validates the optimal time origin choice. It sweeps 546 "
                                 "candidate genesis dates (2009-01-01 through 2010-06-30) and selects "
                                 "the one that maximizes OLS R\u00b2 in log-log space. The optimal date is "
-                                "2009-07-25 \u2014 confirming that the economic genesis used by all models "
+                                "2009-07-25 \u2014 confirming that the optimal time origin used by all models "
                                 "is already the statistically optimal origin. Three independent tests "
                                 "(Durbin-Watson, out-of-sample RMSE, slope stability) corroborate this."
                             ),
 
                             html.H6("Fitted Coefficients"),
                             _coeff_table([
-                                ("Optimal genesis", "2009-07-25 (= economic genesis)"),
+                                ("Optimal genesis", "2009-07-25 (= optimal time origin)"),
                                 ("\u03b1 (intercept)", "\u22121.175443"),
                                 ("\u03b2 (slope)", "5.084045"),
                                 ("\u03c3 (residual std)", "~0.302"),
@@ -148,7 +149,7 @@ With economic genesis (2009-07-25) as the model origin, the optimal genesis offs
 
                             html.H6("Relationship to standard PL"),
                             html.P(
-                                "With the economic genesis as model origin, the optimal genesis search "
+                                "With the optimal time origin as model origin, the optimal genesis search "
                                 "converges on the same date \u2014 confirming that the chosen origin is "
                                 "statistically optimal. The PL and Optimal Genesis PL models produce "
                                 "identical fits."
@@ -231,7 +232,7 @@ Solved for price:
 
 $$\text{price}(q,\, t) = 10^{\,\alpha + z_q \sigma} \cdot 10^{\,\beta \, t}$$
 
-where $t$ = years since economic genesis (2009-07-25, linear, not log-transformed), and $z_q = \Phi^{-1}(q)$.
+where $t$ = years since optimal time origin (2009-07-25, linear, not log-transformed), and $z_q = \Phi^{-1}(q)$.
                             """, mathjax=True, className="mb-3"),
 
                             html.H6("Method"),

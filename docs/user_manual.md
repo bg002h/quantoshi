@@ -441,7 +441,8 @@ entry price calculations.
 | **Depletion year** | The year a withdrawal simulation's BTC stack reaches zero |
 | **Entry percentile** | Where the current price sits on the quantile model (0–100%) |
 | **Fan band** | Shaded region between MC simulation percentiles showing uncertainty |
-| **Genesis block** | Bitcoin's first block, mined January 3, 2009. All time calculations reference this date |
+| **Genesis block** | Bitcoin's first block, mined January 3, 2009 |
+| **Economic genesis** | July 25, 2009 — the empirically optimal model origin when Bitcoin first had real exchange activity. All time calculations reference this date |
 | **Markov chain** | A model where future state depends only on current state, not history |
 | **Monte Carlo** | Generating many random simulations to estimate probability distributions |
 | **Percentile** | The percentage of observations at or below a value (same as quantile × 100) |

@@ -47,6 +47,18 @@ _FAQ = [
         ),
     },
     {
+        "q": "Why does the model start from July 2009, not the genesis block?",
+        "a": (
+            "Bitcoin\u2019s genesis block was mined January 3, 2009, but the network had "
+            "no real market price for its first ~6 months. The model uses July 25, "
+            "2009 \u2014 when Bitcoin first had real exchange activity \u2014 as its time "
+            "origin. We call this the \u201ceconomic genesis.\u201d Three independent "
+            "statistical tests (measuring prediction accuracy, residual randomness, "
+            "and model consistency over time) all converge on this date as optimal "
+            "across 546 candidates tested."
+        ),
+    },
+    {
         "q": "What is the difference between Quantile Regression and Markov Chain Monte Carlo?",
         "a": html.Span([
             "Quantile Regression (QR) fits smooth percentile curves to the historical log-log "

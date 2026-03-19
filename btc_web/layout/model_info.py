@@ -46,7 +46,7 @@ Solved for price:
 
 $$\text{price}(q,\, t) = 10^{\alpha_q} \cdot t^{\,\beta_q}$$
 
-where $t$ = years since genesis, and each quantile $q$ has its own independently fitted intercept $\alpha_q$ and slope $\beta_q$.
+where $t$ = years since economic genesis (2009-07-25), and each quantile $q$ has its own independently fitted intercept $\alpha_q$ and slope $\beta_q$.
                             """, mathjax=True, className="mb-3"),
 
                             html.H6("Method"),
@@ -89,7 +89,7 @@ Solved for price:
 
 $$\text{price}(q,\, t) = 10^{\,\alpha + z_q \sigma} \cdot t^{\,\beta}$$
 
-where $\alpha$ and $\beta$ are the OLS regression coefficients, $\sigma$ is the residual standard deviation, and $z_q = \Phi^{-1}(q)$ is the inverse normal CDF at quantile $q$.
+where $t$ = years since economic genesis (2009-07-25), $\alpha$ and $\beta$ are the OLS regression coefficients, $\sigma$ is the residual standard deviation, and $z_q = \Phi^{-1}(q)$ is the inverse normal CDF at quantile $q$.
                             """, mathjax=True, className="mb-3"),
 
                             html.H6("Method"),
@@ -231,7 +231,7 @@ Solved for price:
 
 $$\text{price}(q,\, t) = 10^{\,\alpha + z_q \sigma} \cdot 10^{\,\beta \, t}$$
 
-where $t$ = years since genesis (linear, not log-transformed), and $z_q = \Phi^{-1}(q)$.
+where $t$ = years since economic genesis (2009-07-25, linear, not log-transformed), and $z_q = \Phi^{-1}(q)$.
                             """, mathjax=True, className="mb-3"),
 
                             html.H6("Method"),

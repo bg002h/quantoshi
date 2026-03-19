@@ -3776,11 +3776,11 @@ class TestFitsBasedModelMethods:
 class TestPriceModelRegistry:
     def test_registry_has_three_entries(self):
         import _app_ctx
-        assert len(_app_ctx.PRICE_MODELS) == 6
+        assert len(_app_ctx.PRICE_MODELS) == 5
 
     def test_registry_keys(self):
         import _app_ctx
-        assert set(_app_ctx.PRICE_MODELS.keys()) == {"bub", "pl", "s2f", "ogpl", "lppl", "exp"}
+        assert set(_app_ctx.PRICE_MODELS.keys()) == {"bub", "pl", "s2f", "lppl", "exp"}
 
     def test_default_model_is_bubble(self):
         import _app_ctx
@@ -3789,7 +3789,7 @@ class TestPriceModelRegistry:
     def test_only_bub_and_pl_quantized(self):
         import _app_ctx
         quantized = {k for k, v in _app_ctx.PRICE_MODELS.items() if v.quantized}
-        assert quantized == {"bub", "pl", "ogpl", "lppl", "exp"}
+        assert quantized == {"bub", "pl", "lppl", "exp"}
 
     def test_all_models_implement_protocol(self):
         import _app_ctx

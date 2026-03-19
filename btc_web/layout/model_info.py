@@ -115,47 +115,6 @@ where $t$ = years since the optimal time origin (2009-07-25), $\alpha$ and $\bet
                             ),
                         ], title="Power Law (OLS)", item_id="mi-pl"),
 
-                        # ── 2b. Optimal Genesis PL ──
-                        dbc.AccordionItem([
-                            html.H6("Formula"),
-                            dcc.Markdown(r"""
-$$\log_{10}(\text{price}) = (\alpha + z_q \cdot \sigma) + \beta \cdot \log_{10}(t)$$
-
-Solved for price:
-
-$$\text{price}(q,\, t) = 10^{\,\alpha + z_q \sigma} \cdot t^{\,\beta}$$
-
-With optimal time origin (2009-07-25) as the model origin, the optimal genesis offset is zero — this model reduces to the standard Power Law, confirming that the chosen origin is statistically optimal.
-                            """, mathjax=True, className="mb-3"),
-
-                            html.H6("Method"),
-                            html.P(
-                                "This model validates the optimal time origin choice. It sweeps 546 "
-                                "candidate genesis dates (2009-01-01 through 2010-06-30) and selects "
-                                "the one that maximizes OLS R\u00b2 in log-log space. The optimal date is "
-                                "2009-07-25 \u2014 confirming that the optimal time origin used by all models "
-                                "is already the statistically optimal origin. Three independent tests "
-                                "(Durbin-Watson, out-of-sample RMSE, slope stability) corroborate this."
-                            ),
-
-                            html.H6("Fitted Coefficients"),
-                            _coeff_table([
-                                ("Optimal genesis", "2009-07-25 (= optimal time origin)"),
-                                ("\u03b1 (intercept)", "\u22121.175443"),
-                                ("\u03b2 (slope)", "5.084045"),
-                                ("\u03c3 (residual std)", "~0.302"),
-                                ("R\u00b2", "0.963039"),
-                            ]),
-
-                            html.H6("Relationship to standard PL"),
-                            html.P(
-                                "With the optimal time origin as model origin, the optimal genesis search "
-                                "converges on the same date \u2014 confirming that the chosen origin is "
-                                "statistically optimal. The PL and Optimal Genesis PL models produce "
-                                "identical fits."
-                            ),
-                        ], title="Optimal Genesis Power Law", item_id="mi-ogpl"),
-
                         # ── 3. LPPL ──
                         dbc.AccordionItem([
                             html.H6("Formula"),

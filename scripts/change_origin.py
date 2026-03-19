@@ -19,7 +19,7 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -122,6 +122,21 @@ def main():
         f"GENESIS_DATE = pd.Timestamp('{new_str}')",
         1, "Cell 1 GENESIS_DATE")
     changes += 1
+
+    # Cell 1: FIT_MIN_DATE — must be after genesis + ~6 months for t >= 0.5
+    import re as _re
+    fit_min_match = _re.search(r"FIT_MIN_DATE\s*=\s*'(\d{4}-\d{2}-\d{2})'", src1)
+    if fit_min_match:
+        old_fit_min = datetime.strptime(fit_min_match.group(1), "%Y-%m-%d")
+        # Ensure FIT_MIN_DATE is at least genesis + 6 months
+        min_fit_date = new + timedelta(days=183)  # ~6 months
+        if min_fit_date > old_fit_min:
+            new_fit_min_str = min_fit_date.strftime("%Y-%m-%d")
+            src1 = src1.replace(
+                f"FIT_MIN_DATE = '{fit_min_match.group(1)}'",
+                f"FIT_MIN_DATE = '{new_fit_min_str}'")
+            print(f"  WARNING: FIT_MIN_DATE moved from {fit_min_match.group(1)} to {new_fit_min_str} (must be after genesis + 6mo)")
+            changes += 1
 
     # Cell 1: xlabels with month abbreviation (2 instances)
     src1 = replace_checked(src1,

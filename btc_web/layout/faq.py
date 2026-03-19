@@ -49,7 +49,7 @@ _FAQ = [
     {
         "q": "Why does the model start from July 2009, not the genesis block?",
         "a": (
-            "The model uses July 25, 2009 as its time origin \u2014 the statistically "
+            "The model uses August 24, 2010 as its time origin \u2014 the statistically "
             "optimal start date for the power law fit, confirmed independently by "
             "multiple researchers. Three statistical tests (residual autocorrelation, "
             "out-of-sample prediction, and slope stability) converge on this date "

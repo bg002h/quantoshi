@@ -57,11 +57,11 @@ class TestFmtPrice:
 class TestYrToT:
     def test_genesis_year(self):
         t = yr_to_t(2009, M.genesis)
-        assert abs(t - (-0.5613)) < 0.01  # Jan 1 vs Jul 25 genesis
+        assert abs(t - (-1.6427)) < 0.01  # Jan 1 2009 vs Aug 24 2010 genesis
 
     def test_2025(self):
         t = yr_to_t(2025, M.genesis)
-        assert 15.3 < t < 15.6
+        assert 14.2 < t < 14.5
 
     def test_monotonic(self):
         assert yr_to_t(2030, M.genesis) > yr_to_t(2025, M.genesis)

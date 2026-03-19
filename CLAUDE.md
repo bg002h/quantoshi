@@ -12,6 +12,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The notebook generates `archive/btc_app/model_data.pkl`, which both the web app and the standalone app load at runtime.
 
+**Economic genesis:** All models use `2009-07-25` as their time origin — the "economic genesis" when Bitcoin first had real exchange activity. This date was selected by three independent statistical tests (Durbin-Watson, out-of-sample RMSE, slope stability) across 546 candidates. It is distinct from the Bitcoin genesis block (2009-01-03).
+
 ---
 
 ## Workflow

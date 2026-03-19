@@ -259,19 +259,24 @@ Now run these manual steps:
        --to notebook --execute --inplace \\
        --ExecutePreprocessor.timeout=600 SP.ipynb
 
-2. Verify pkl:
+2. Clear notebook outputs (keeps file small for git/context):
+   ~/.local/bin/jupyter nbconvert \\
+       --to notebook --inplace \\
+       --ClearOutputPreprocessor.enabled=True SP.ipynb
+
+3. Verify pkl:
    btc_venv/bin/python3 -c "import pickle; d=pickle.load(open('archive/btc_app/model_data.pkl','rb')); print('GENESIS_DATE:', d['GENESIS_DATE'])"
 
-3. Run tests:
+4. Run tests:
    PYTHONPATH=".:archive/btc_app:btc_web" btc_venv/bin/python3 -m pytest btc_web/test_web.py -q --tb=short
 
-4. LPPL constants in btc_core.py may need refitting if origin changed significantly.
+5. LPPL constants in btc_core.py may need refitting if origin changed significantly.
    Current constants were fit with genesis=2009-07-25.
 
-5. Rebuild MC cache on desktop (10 min), scp to server.
+6. Rebuild MC cache on desktop (10 min), scp to server.
    Do NOT rebuild on VPS (8+ hours on 2 cores).
 
-6. Commit, push, deploy:
+7. Commit, push, deploy:
    git add -A && git commit -m "Change optimal time origin to {new_str}"
    git push origin master
    ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && systemctl restart quantoshi"

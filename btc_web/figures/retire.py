@@ -76,7 +76,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
         col = _thermal.get(q, model.colors.get(q, "#888888"))
         traces.append(go.Scatter(
             x=list(ts), y=list(y_vals), mode="lines", name=lbl,
-            line=dict(color=col, width=_QR_LINE_WIDTH),
+            line=dict(color=col, width=_QR_LINE_WIDTH), line_shape="hv",
         ))
 
         # depletion annotation — always shown

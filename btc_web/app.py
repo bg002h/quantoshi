@@ -32,7 +32,7 @@ import dash
 import dash_bootstrap_components as dbc
 from flask import request as flask_request
 
-from btc_core import load_model_data, BubbleModel, PowerLawModel, OptGenesisPLModel, LPPLModel, ExponentialModel, S2FModel
+from btc_core import load_model_data, BubbleModel, OptGenesisBubbleModel, PowerLawModel, OptGenesisPLModel, LPPLModel, ExponentialModel, S2FModel
 from figures import FREQ_PPY
 from mc_overlay import save_trans_cache_to_disk, _get_transition_matrix
 import atexit
@@ -140,6 +140,12 @@ _app_ctx._HAS_MARKOV = _HAS_MARKOV
 
 # ── register price models ──────────────────────────────────────────────────
 _app_ctx.PRICE_MODELS["bub"] = BubbleModel(M)
+_og_pkl = Path(__file__).parent.parent / "archive" / "btc_app" / "model_data_og.pkl"
+if not _og_pkl.exists():
+    _og_pkl = Path(__file__).parent.parent / "btc_app" / "model_data_og.pkl"
+_app_ctx.PRICE_MODELS["ogbub"] = OptGenesisBubbleModel(
+    str(Path(__file__).parent.parent / "BitcoinPricesDaily.csv"),
+    M.QR_QUANTILES, str(_og_pkl))
 _app_ctx.PRICE_MODELS["pl"]  = PowerLawModel(
     M.ols_intercept, M.ols_slope, M.price_years, M.price_prices,
     M.genesis, M.QR_QUANTILES)

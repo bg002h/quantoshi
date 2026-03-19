@@ -357,6 +357,53 @@ class BubbleModel(_FitsBasedModel):
         self.quantiles = sorted(md.qr_fits.keys())
 
 
+class OptGenesisBubbleModel(_FitsBasedModel):
+    """Bubble model variant with optimal genesis date (2009-07-25).
+
+    Uses the same QR fitting method as BubbleModel but with a shifted
+    time origin. Bubble composite comes from model_data_og.pkl (precomputed
+    in notebook Cell 0). QR fits are computed at startup via fit_qr_from_csv.
+    """
+    name = "OG Bubble Model"
+    short_name = "ogbub"
+    dash_style = "dash"
+
+    _OG_GENESIS = "2009-07-25"
+
+    def __init__(self, csv_path, quantiles, og_pkl_path=None):
+        import pickle as _pkl
+        # Fit QR with shifted genesis
+        _, self.fits, self._ols_int, self._ols_slope = fit_qr_from_csv(
+            csv_path, quantiles, genesis=self._OG_GENESIS)
+        self.quantiles = sorted(self.fits.keys())
+        # Load precomputed bubble composite from og pkl
+        self.og_data = None
+        if og_pkl_path and Path(og_pkl_path).exists():
+            with open(og_pkl_path, 'rb') as f:
+                self.og_data = _pkl.load(f)
+        self._build_colors()
+
+    def _build_colors(self):
+        """Amber/gold palette — distinct from primary bubble model."""
+        self.colors = {}
+        n = len(self.quantiles)
+        for i, q in enumerate(self.quantiles):
+            frac = i / max(n - 1, 1)
+            r = int(180 + 75 * frac)
+            g = int(120 + 80 * frac)
+            b = int(20 + 40 * frac)
+            self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
+
+    def price_at(self, q, t):
+        """Price at quantile q, time t (years since PRIMARY genesis 2009-01-09)."""
+        # Shift t to optimal genesis time base
+        t_arr = np.asarray(t, float)
+        offset = (pd.Timestamp(self._OG_GENESIS) - pd.Timestamp("2009-01-09")).days / 365.25
+        t_og = np.maximum(t_arr - offset, 0.01)
+        f = self.fits[q]
+        return 10.0 ** (f["intercept"] + f["slope"] * np.log10(t_og))
+
+
 class PowerLawModel(_FitsBasedModel):
     """OLS power law with Gaussian quantile bands.
 

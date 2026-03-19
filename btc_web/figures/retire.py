@@ -21,7 +21,7 @@ from figures.common import (
     _stagger_depletion_annots,
     _finalize_chart, _fmt_short, _mc_median_annot,
     _resolve_edge_annotations,
-    _round_trace_data,
+
 )
 
 
@@ -75,7 +75,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
         lbl = _fmt_q_label(q) + f"  \u2192  {final_lbl}"
         col = _thermal.get(q, model.colors.get(q, "#888888"))
         traces.append(go.Scatter(
-            x=list(ts), y=_round_trace_data(y_vals), mode="lines", name=lbl,
+            x=list(ts), y=list(y_vals), mode="lines", name=lbl,
             line=dict(color=col, width=_QR_LINE_WIDTH),
         ))
 
@@ -115,7 +115,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                     final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
                 col = mdl.colors.get(q, "#888888")
                 traces.append(go.Scatter(
-                    x=list(ts), y=_round_trace_data(y_vals), mode="lines",
+                    x=list(ts), y=list(y_vals), mode="lines",
                     name=f"{mdl.name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
                     line=dict(color=col, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                     legendgroup=mdl.short_name,
@@ -133,7 +133,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 final_usd = fmt_price(float(vals[-1]) * float(prices[-1]))
                 final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
             traces.append(go.Scatter(
-                x=list(ts), y=_round_trace_data(y_vals), mode="lines",
+                x=list(ts), y=list(y_vals), mode="lines",
                 name=f"{mdl.name}  \u2192  {final_lbl}",
                 line=dict(color=palette["non_quantized_model"], width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                 legendgroup=mdl.short_name,

@@ -48,14 +48,14 @@ def _quantize_params(p: dict) -> dict:
 # date in the key so the "today" line stays fresh (natural daily expiry).
 # Server restarts on deploy clear all caches.
 
-def _make_cached_builder(builder_fn, maxsize=64):
+def _make_cached_builder(builder_fn, maxsize=8):
     @lru_cache(maxsize=maxsize)
     def _cached(key: str):
         return builder_fn(_app_ctx.M, json.loads(key))
     return _cached
 
-_cached_bubble_fig      = _make_cached_builder(build_bubble_figure, 16)
-_cached_heatmap_fig     = _make_cached_builder(build_heatmap_figure, 32)
+_cached_bubble_fig      = _make_cached_builder(build_bubble_figure, 8)
+_cached_heatmap_fig     = _make_cached_builder(build_heatmap_figure, 8)
 _cached_dca_fig         = _make_cached_builder(build_dca_figure)
 _cached_retire_fig      = _make_cached_builder(build_retire_figure)
 _cached_supercharge_fig = _make_cached_builder(build_supercharge_figure)

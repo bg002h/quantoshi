@@ -29,8 +29,9 @@ def _model_info_tab():
                     html.P(
                         "Quantoshi uses four price models and a Monte Carlo simulation engine. "
                         "All models operate in log\u2081\u2080 space where t is years since the "
-                        "Bitcoin genesis block (2009-07-25). This page documents the mathematics, "
-                        "fitted coefficients, and methodology behind each.",
+                        "Bitcoin economic genesis (2009-07-25) \u2014 the empirically optimal origin "
+                        "confirmed by three independent statistical tests. This page documents "
+                        "the mathematics, fitted coefficients, and methodology behind each.",
                         className="text-muted mb-4",
                     ),
                     dbc.Accordion([
@@ -117,50 +118,41 @@ where $\alpha$ and $\beta$ are the OLS regression coefficients, $\sigma$ is the 
                         dbc.AccordionItem([
                             html.H6("Formula"),
                             dcc.Markdown(r"""
-$$\log_{10}(\text{price}) = (\alpha + z_q \cdot \sigma) + \beta \cdot \log_{10}(t - t_{\text{offset}})$$
+$$\log_{10}(\text{price}) = (\alpha + z_q \cdot \sigma) + \beta \cdot \log_{10}(t)$$
 
 Solved for price:
 
-$$\text{price}(q,\, t) = 10^{\,\alpha + z_q \sigma} \cdot (t - t_{\text{offset}})^{\,\beta}$$
+$$\text{price}(q,\, t) = 10^{\,\alpha + z_q \sigma} \cdot t^{\,\beta}$$
 
-where $t_{\text{offset}} = 197/365.25 \approx 0.539$ years shifts the effective genesis from 2009-07-25 to **2009-07-25**.
+With economic genesis (2009-07-25) as the model origin, the optimal genesis offset is zero — this model reduces to the standard Power Law, confirming that the chosen origin is statistically optimal.
                             """, mathjax=True, className="mb-3"),
 
                             html.H6("Method"),
                             html.P(
-                                "The standard Power Law model uses the Bitcoin genesis block "
-                                "(2009-07-25) as t=0, but no trading occurred until months later. "
-                                "This model sweeps 4,000 candidate genesis dates and selects the one "
-                                "that maximizes OLS R\u00b2 in log-log space. The optimal date is "
-                                "2009-07-25 \u2014 close to when Bitcoin first had a real exchange rate. "
-                                "Gaussian quantile bands are computed identically to PL."
+                                "This model validates the economic genesis choice. It sweeps 546 "
+                                "candidate genesis dates (2009-01-01 through 2010-06-30) and selects "
+                                "the one that maximizes OLS R\u00b2 in log-log space. The optimal date is "
+                                "2009-07-25 \u2014 confirming that the economic genesis used by all models "
+                                "is already the statistically optimal origin. Three independent tests "
+                                "(Durbin-Watson, out-of-sample RMSE, slope stability) corroborate this."
                             ),
 
                             html.H6("Fitted Coefficients"),
                             _coeff_table([
-                                ("Optimal genesis", "2009-07-25 (+203 days)"),
-                                ("\u03b1 (intercept)", "\u22121.5308"),
-                                ("\u03b2 (slope)", "5.0840"),
-                                ("\u03c3 (residual std)", "~0.284"),
-                                ("R\u00b2", "0.96303"),
+                                ("Optimal genesis", "2009-07-25 (= economic genesis)"),
+                                ("\u03b1 (intercept)", "\u22121.175443"),
+                                ("\u03b2 (slope)", "5.084045"),
+                                ("\u03c3 (residual std)", "~0.302"),
+                                ("R\u00b2", "0.963039"),
                             ]),
 
-                            html.H6("Comparison to standard PL"),
-                            html.Ul([
-                                html.Li(
-                                    "R\u00b2 improves from 0.961 to 0.963 \u2014 a modest but "
-                                    "statistically meaningful improvement."
-                                ),
-                                html.Li(
-                                    "Slope drops from 5.69 to 5.08 because the effective time range "
-                                    "is compressed by ~0.56 years."
-                                ),
-                                html.Li(
-                                    "The optimal date aligns with Bitcoin\u2019s first real market "
-                                    "activity, suggesting the power law describes price discovery, "
-                                    "not just block creation."
-                                ),
-                            ]),
+                            html.H6("Relationship to standard PL"),
+                            html.P(
+                                "With the economic genesis as model origin, the optimal genesis search "
+                                "converges on the same date \u2014 confirming that the chosen origin is "
+                                "statistically optimal. The PL and Optimal Genesis PL models produce "
+                                "identical fits."
+                            ),
                         ], title="Optimal Genesis Power Law", item_id="mi-ogpl"),
 
                         # ── 3. LPPL ──

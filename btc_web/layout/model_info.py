@@ -29,7 +29,7 @@ def _model_info_tab():
                     html.P(
                         "Quantoshi uses four price models and a Monte Carlo simulation engine. "
                         "All models operate in log\u2081\u2080 space where t is years since the "
-                        "Bitcoin genesis block (2009-01-03). This page documents the mathematics, "
+                        "Bitcoin genesis block (2009-01-09). This page documents the mathematics, "
                         "fitted coefficients, and methodology behind each.",
                         className="text-muted mb-4",
                     ),
@@ -101,9 +101,9 @@ where $\alpha$ and $\beta$ are the OLS regression coefficients, $\sigma$ is the 
 
                             html.H6("Fitted Coefficients"),
                             _coeff_table([
-                                ("\u03b1 (intercept)", "\u22121.931289"),
-                                ("\u03b2 (slope)", "5.694153"),
-                                ("\u03c3 (residual std)", "0.301877"),
+                                ("\u03b1 (intercept)", "\u22121.909572"),
+                                ("\u03b2 (slope)", "5.677054"),
+                                ("\u03c3 (residual std)", "~0.301"),
                             ]),
                             html.P(
                                 "The slope means Bitcoin\u2019s price has historically grown as "
@@ -123,13 +123,13 @@ Solved for price:
 
 $$\text{price}(q,\, t) = 10^{\,\alpha + z_q \sigma} \cdot (t - t_{\text{offset}})^{\,\beta}$$
 
-where $t_{\text{offset}} = 203/365.25 \approx 0.556$ years shifts the effective genesis from 2009-01-03 to **2009-07-25**.
+where $t_{\text{offset}} = 197/365.25 \approx 0.539$ years shifts the effective genesis from 2009-01-09 to **2009-07-25**.
                             """, mathjax=True, className="mb-3"),
 
                             html.H6("Method"),
                             html.P(
                                 "The standard Power Law model uses the Bitcoin genesis block "
-                                "(2009-01-03) as t=0, but no trading occurred until months later. "
+                                "(2009-01-09) as t=0, but no trading occurred until months later. "
                                 "This model sweeps 4,000 candidate genesis dates and selects the one "
                                 "that maximizes OLS R\u00b2 in log-log space. The optimal date is "
                                 "2009-07-25 \u2014 close to when Bitcoin first had a real exchange rate. "
@@ -193,13 +193,13 @@ The first two terms are a standard power law. The third term adds **log-periodic
 
                             html.H6("Fitted Coefficients"),
                             _coeff_table([
-                                ("A (intercept)", "\u22121.908643"),
-                                ("B (slope)", "5.696404"),
-                                ("C (oscillation amplitude)", "1.016022"),
-                                ("\u03c9 (log-frequency)", "8.892636"),
-                                ("\u03c6 (phase)", "4.478044"),
-                                ("D (damping exponent)", "0.698051"),
-                                ("\u03c3 (residual std)", "0.217144"),
+                                ("A (intercept)", "\u22121.886979"),
+                                ("B (slope)", "5.679426"),
+                                ("C (oscillation amplitude)", "1.006834"),
+                                ("\u03c9 (log-frequency)", "8.857667"),
+                                ("\u03c6 (phase)", "4.569049"),
+                                ("D (damping exponent)", "0.695006"),
+                                ("\u03c3 (residual std)", "0.217085"),
                                 ("R\u00b2", "0.9801"),
                             ]),
 

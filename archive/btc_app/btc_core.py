@@ -78,12 +78,12 @@ def qr_price(q, t, qr_fits):
     return 10.0 ** (f["intercept"] + f["slope"] * np.log10(np.asarray(t, float)))
 
 
-def yr_to_t(cal_year, genesis=pd.Timestamp("2009-01-03")):
+def yr_to_t(cal_year, genesis=pd.Timestamp("2009-01-09")):
     """Calendar year → years since genesis (float)."""
     return (pd.Timestamp(f"{int(cal_year)}-01-01") - genesis).days / 365.25
 
 
-def today_t(genesis=pd.Timestamp("2009-01-03")):
+def today_t(genesis=pd.Timestamp("2009-01-09")):
     """Today → years since genesis (float)."""
     return (pd.Timestamp.today() - genesis).days / 365.25
 
@@ -147,7 +147,7 @@ def leo_weighted_entry(lots):
     total_w = sum(l["btc"] for l in lots)
     if total_w <= 0:
         return None
-    genesis = pd.Timestamp("2009-01-03")
+    genesis = pd.Timestamp("2009-01-09")
     ep = sum(l["price"] * l["btc"] for l in lots) / total_w
     et = sum((pd.Timestamp(l["date"]) - genesis).days / 365.25 * l["btc"]
              for l in lots) / total_w
@@ -157,7 +157,7 @@ def leo_weighted_entry(lots):
 
 # ── model fitting ─────────────────────────────────────────────────────────────
 
-def fit_qr_from_csv(csv_path, quantiles, genesis="2009-01-03", fit_min="2010-01-01"):
+def fit_qr_from_csv(csv_path, quantiles, genesis="2009-01-09", fit_min="2010-01-01"):
     """Re-fit QR model from a price CSV.  Returns (df, qr_fits, ols_intercept, ols_slope)."""
     df = pd.read_csv(csv_path)
     df.columns = ["Date", "Price"]
@@ -213,7 +213,7 @@ class ModelData:
         self.QR_QUANTILES  = [float(q) for q in d["QR_QUANTILES"]]
         self.ols_intercept = d["ols_intercept"]
         self.ols_slope     = d["ols_slope"]
-        self.genesis       = pd.Timestamp(d.get("GENESIS_DATE", "2009-01-03"))
+        self.genesis       = pd.Timestamp(d.get("GENESIS_DATE", "2009-01-09"))
         self.years_plot_bm = np.array(d["years_plot_bm"])
         self.support_bm    = np.array(d["support_plot_bm"])
         self.comp_by_n     = [np.array(c) for c in d["bm_comp_by_n"]]
@@ -413,9 +413,9 @@ class OptGenesisPLModel(_FitsBasedModel):
     short_name = "ogpl"
     dash_style = "dash"
 
-    # Offset in days from actual genesis (2009-01-03) to optimal (2009-07-25)
-    _OFFSET_DAYS = 203
-    _OFFSET_YRS = 203 / 365.25
+    # Offset in days from actual genesis (2009-01-09) to optimal (2009-07-25)
+    _OFFSET_DAYS = 197
+    _OFFSET_YRS = 197 / 365.25
 
     def __init__(self, price_years, price_prices, genesis, quantiles):
         # Recompute t relative to optimal genesis
@@ -504,12 +504,13 @@ class LPPLModel:
     quantized = True
 
     # Best-fit parameters from differential evolution on full BTC history
-    _A   = -1.908643
-    _B   =  5.696404
-    _C   =  1.016022
-    _W   =  8.892636
-    _PHI =  4.478044
-    _D   =  0.698051
+    # (genesis = 2009-01-09)
+    _A   = -1.886979
+    _B   =  5.679426
+    _C   =  1.006834
+    _W   =  8.857667
+    _PHI =  4.569049
+    _D   =  0.695006
 
     def __init__(self, price_years, price_prices, quantiles):
         # Compute residual sigma from historical data

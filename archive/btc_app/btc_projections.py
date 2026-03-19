@@ -107,11 +107,11 @@ def qr_price(q, t, qr_fits):
     return 10.0 ** (f["intercept"] + f["slope"] * np.log10(np.asarray(t, float)))
 
 
-def yr_to_t(cal_year, genesis=pd.Timestamp("2009-01-03")):
+def yr_to_t(cal_year, genesis=pd.Timestamp("2009-01-09")):
     return (pd.Timestamp(f"{int(cal_year)}-01-01") - genesis).days / 365.25
 
 
-def today_t(genesis=pd.Timestamp("2009-01-03")):
+def today_t(genesis=pd.Timestamp("2009-01-09")):
     return (pd.Timestamp.today() - genesis).days / 365.25
 
 
@@ -194,7 +194,7 @@ def _find_lot_percentile(t, price, qr_fits):
     return sorted_qs[-1]
 
 
-def fit_qr_from_csv(csv_path, quantiles, genesis="2009-01-03", fit_min="2010-01-01"):
+def fit_qr_from_csv(csv_path, quantiles, genesis="2009-01-09", fit_min="2010-01-01"):
     """Re-fit QR model from a price CSV.  Returns (df, qr_fits, ols_intercept, ols_slope)."""
     df = pd.read_csv(csv_path)
     df.columns = ["Date", "Price"]
@@ -246,7 +246,7 @@ class ModelData:
         self.QR_QUANTILES  = [float(q) for q in d["QR_QUANTILES"]]
         self.ols_intercept = d["ols_intercept"]
         self.ols_slope     = d["ols_slope"]
-        self.genesis       = pd.Timestamp(d.get("GENESIS_DATE", "2009-01-03"))
+        self.genesis       = pd.Timestamp(d.get("GENESIS_DATE", "2009-01-09"))
         self.years_plot_bm = np.array(d["years_plot_bm"])
         self.support_bm    = np.array(d["support_plot_bm"])
         self.comp_by_n     = [np.array(c) for c in d["bm_comp_by_n"]]
@@ -1257,7 +1257,7 @@ class BubbleTab(ChartTab):
                 ax.set_yticklabels([_fmt_y(p) for p in maj], fontfamily=font_ticks,
                                   fontsize=font_ticks_sz)
 
-        ax.set_xlabel("Years since genesis (2009-01-03)", color=m.TEXT_COLOR,
+        ax.set_xlabel("Years since genesis (2009-01-09)", color=m.TEXT_COLOR,
                       fontfamily=font_axis_t, fontsize=font_axis_sz)
         ax.set_ylabel("Stack Value (USD)" if stack > 0 else "Bitcoin Price (USD)",
                       color=m.TEXT_COLOR, fontfamily=font_axis_t, fontsize=font_axis_sz)

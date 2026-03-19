@@ -256,7 +256,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     layout = _dark_layout(
         m,
         title="Bitcoin Bubble Model + Quantile Regression Channels",
-        xlabel="Years since genesis (2009-01-03)",
+        xlabel="Years since genesis (2009-01-09)",
         ylabel=ylabel,
     )
     layout["xaxis"].update(

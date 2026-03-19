@@ -703,7 +703,7 @@ class ModelData:
     QR_QUANTILES: list[float]      # all fitted quantiles (0.001–0.999)
     ols_intercept: float           # OLS regression intercept
     ols_slope: float               # OLS regression slope
-    genesis: pd.Timestamp          # "2009-01-03"
+    genesis: pd.Timestamp          # "2009-01-09"
     years_plot_bm: ndarray         # bubble model x-axis (years)
     support_bm: ndarray            # bubble support line
     comp_by_n: list[ndarray]       # composites for N=1..n_future_max

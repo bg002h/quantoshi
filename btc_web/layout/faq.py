@@ -166,6 +166,65 @@ _FAQ = [
         ]),
     },
     {
+        "q": "Is the power law a single regime, or are there multiple phases?",
+        "a": html.Span([
+            "A natural question: if residuals are highly autocorrelated "
+            "(Durbin-Watson \u2248 0.004, far from the ideal 2.0), does that imply "
+            "Bitcoin has undergone structural regime changes \u2014 different power "
+            "law slopes in different eras?",
+            html.Br(), html.Br(),
+            "We investigated this with four standard econometric tests, using "
+            "all available price data (2010\u20132026, N = 5,714) with no fit-window "
+            "filter:",
+            html.Br(), html.Br(),
+            html.Strong("Box-Cox \u03bb sweep: "),
+            "Before testing regimes, we checked whether log-log is even the "
+            "right coordinate system. Sweeping the Box-Cox parameter \u03bb from "
+            "\u22123 to +3, the optimal transformation is \u03bb = 0.012 \u2014 "
+            "essentially zero (pure log-log). RMSE improves by only 0.03% over "
+            "\u03bb = 0. The power law is the correct functional form; no "
+            "stretched-exponential or other transformation fits better.",
+            html.Br(), html.Br(),
+            html.Strong("Rolling Regression: "),
+            "A 2-year sliding OLS window shows the power law slope oscillating "
+            "between roughly \u22128 and +15, but it mean-reverts toward ~5.0 after "
+            "every cycle. If there were permanent regime changes, the slope would "
+            "shift and stay shifted. Instead, it always comes back \u2014 consistent "
+            "with one regime plus bubble cycles.",
+            html.Br(), html.Br(),
+            html.Strong("Bai-Perron structural breakpoints: "),
+            "The BIC-optimal segmentation finds 6 breakpoints (2011-01, 2013-03, "
+            "2013-11, 2014-10, 2017-05, 2020-11). But these all land at bubble "
+            "peaks and troughs. Segment slopes range from 2.1 to 5.2, bracketing "
+            "the full-sample slope of 5.08. These are cycle boundaries, not "
+            "permanent regime shifts.",
+            html.Br(), html.Br(),
+            html.Strong("Chow Test: "),
+            "F-tests at each breakpoint are highly significant (p \u2248 0), but "
+            "this is expected whenever bubble cycles temporarily alter the slope. "
+            "Statistical significance does not imply permanence.",
+            html.Br(), html.Br(),
+            html.Strong("CUSUM (cumulative sum of residuals): "),
+            "The CUSUM wanders above and below zero in a wave pattern \u2014 "
+            "classic bubble oscillation. There is no sharp one-way departure "
+            "that would indicate a true structural break.",
+            html.Br(), html.Br(),
+            html.Img(src="/assets/regime_analysis.jpg",
+                     style={"width": "100%", "maxWidth": "800px", "borderRadius": "8px",
+                            "marginTop": "4px", "marginBottom": "8px"}),
+            html.Br(),
+            html.Img(src="/assets/regime_analysis_table.jpg",
+                     style={"width": "100%", "maxWidth": "800px", "borderRadius": "8px",
+                            "marginTop": "4px", "marginBottom": "8px"}),
+            html.Br(), html.Br(),
+            html.Strong("Conclusion: "),
+            "Bitcoin follows a single power law regime (\u03bb = 0, slope \u2248 5.1). "
+            "The DW \u2248 0 and structural breaks reflect cyclic bubble deviations, "
+            "not permanent regime changes. The slope oscillates with market "
+            "cycles but always reverts to the same long-term trend.",
+        ]),
+    },
+    {
         "q": "What is the difference between Quantile Regression and Markov Chain Monte Carlo?",
         "a": html.Span([
             "Quantile Regression (QR) fits smooth percentile curves to the historical log-log "

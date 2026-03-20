@@ -188,11 +188,19 @@ never sent to the server. The Export feature creates a local file download.
 **Cross-tab usage**: When you check "Use Stack Tracker lots" in other tabs, your
 total BTC from all lots becomes the starting stack for that simulation.
 
-### Tab 7: FAQ
+### Tab 7: Model Info
 
-19 entries covering common questions including quantile regression vs MCMC
-differences. Directly linkable via URL paths like `/7.3` (opens the 3rd FAQ
-item).
+Detailed documentation of all four price models (Quantile Regression / Bubble
+Model, Power Law, Stock-to-Flow, Monte Carlo) including formulas, fitted
+coefficients, and methodology. Organized as an accordion — directly linkable
+via URL paths like `/7.3` (opens the 3rd section).
+
+### Tab 8: FAQ
+
+20 entries covering common questions including quantile regression, power law
+regime analysis (Box-Cox sweep, rolling regression, Bai-Perron breakpoints,
+Chow test, CUSUM), QR vs MCMC differences, privacy, and more. Directly
+linkable via URL paths like `/8.5` (opens the 5th FAQ item).
 
 ---
 
@@ -437,8 +445,12 @@ entry price calculations.
 
 | Term | Definition |
 |------|-----------|
+| **Bai-Perron test** | A method for finding structural breakpoints in time series data |
+| **Box-Cox transformation** | A family of power transformations parameterized by λ; λ=0 is log (power law), λ=1 is linear (exponential) |
 | **CAGR** | Compound Annual Growth Rate — annualized return between two dates |
+| **CUSUM** | Cumulative Sum of residuals — a test for detecting regime changes in time series |
 | **Depletion year** | The year a withdrawal simulation's BTC stack reaches zero |
+| **Durbin-Watson** | A statistic measuring residual autocorrelation; 2.0 = no autocorrelation, near 0 = extreme positive autocorrelation |
 | **Entry percentile** | Where the current price sits on the quantile model (0–100%) |
 | **Fan band** | Shaded region between MC simulation percentiles showing uncertainty |
 | **Genesis block** | Bitcoin's first block, mined January 3, 2009 |

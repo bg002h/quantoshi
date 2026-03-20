@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The notebook generates `archive/btc_app/model_data.pkl`, which both the web app and the standalone app load at runtime.
 
-**Optimal time origin:** All models use `2010-08-24` as their time origin — the statistically optimal start date for the power law fit, confirmed independently by multiple researchers. Three statistical tests (Durbin-Watson, out-of-sample RMSE, slope stability) converge on this date across 546 candidates. Blockchain data shows no economic transactions at this time; the first dollar-denominated transactions appear late 2009. The date marks where Bitcoin's price behavior begins to follow a power law, not a specific economic event. Distinct from the Bitcoin genesis block (2009-01-03).
+**Optimal time origin:** All models use `2009-07-25` as their time origin — the statistically optimal start date for the power law fit, confirmed independently by multiple researchers. Three statistical tests (Durbin-Watson, out-of-sample RMSE, slope stability) converge on this date across 546 candidates. Blockchain data shows no economic transactions at this time; the first dollar-denominated transactions appear late 2009. The date marks where Bitcoin's price behavior begins to follow a power law, not a specific economic event. Distinct from the Bitcoin genesis block (2009-01-03).
 
 ---
 

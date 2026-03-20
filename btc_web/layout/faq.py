@@ -47,20 +47,38 @@ _FAQ = [
         ),
     },
     {
-        "q": "Why does the model start from July 2009, not the genesis block?",
-        "a": (
-            "The model uses August 24, 2010 as its time origin \u2014 the statistically "
-            "optimal start date for the power law fit, confirmed independently by "
-            "multiple researchers. Three statistical tests (residual autocorrelation, "
-            "out-of-sample prediction, and slope stability) converge on this date "
-            "across 546 candidates. Blockchain data shows virtually no economic "
-            "transactions at this time \u2014 only ~62 blocks/day of mining activity "
-            "with near-zero on-chain transfers. The first dollar-denominated "
-            "transactions appear in late 2009, with real economic usage beginning "
-            "in mid-2010. The optimal origin likely marks the mathematical inflection "
-            "where Bitcoin\u2019s price behavior begins to follow a power law, rather "
-            "than a specific economic event."
-        ),
+        "q": "What time origin does the model use, and why?",
+        "a": html.Span([
+            "All models need a Day Zero \u2014 the point where t=0 in the power law. "
+            "Several candidates were considered:",
+            html.Br(), html.Br(),
+            html.Table([
+                html.Thead(html.Tr([
+                    html.Th("Date", style={"paddingRight": "12px"}),
+                    html.Th("Event", style={"paddingRight": "12px"}),
+                    html.Th("Slope"),
+                    html.Th("R\u00b2", style={"paddingLeft": "12px"}),
+                ])),
+                html.Tbody([
+                    html.Tr([html.Td("Jan 3, 2009"), html.Td("Genesis block mined"), html.Td("5.69"), html.Td("0.9615")]),
+                    html.Tr([html.Td("Jan 9, 2009"), html.Td("Bitcoin v0.1 released"), html.Td("5.68"), html.Td("0.9616")]),
+                    html.Tr([html.Td("Jul 25, 2009"), html.Td("Optimal R\u00b2 (DW + OOS + slope stability)"), html.Td("5.08"), html.Td("0.9630")]),
+                    html.Tr([html.Td("Nov 18, 2009"), html.Td("Power law: 1 block reward = $0.01"), html.Td("4.69"), html.Td("0.9620")]),
+                    html.Tr([html.Td("Apr 2, 2010"), html.Td("Power law: 1 BTC = $0.01"), html.Td("4.23"), html.Td("0.9521")]),
+                    html.Tr([html.Td("Aug 24, 2010"), html.Td("Power law: 1 BTC = $0.10"), html.Td("3.85"), html.Td("0.9324")]),
+                ]),
+            ], style={"fontSize": "13px", "marginBottom": "12px", "borderCollapse": "collapse"}),
+            html.Br(),
+            "The current model uses ",
+            html.Strong("August 24, 2010"),
+            " (1 BTC = $0.10 on the power law). "
+            "Earlier origins give higher R\u00b2 but steeper slopes and more aggressive "
+            "long-range projections. Later origins give more conservative projections "
+            "but worse fits. Blockchain analysis of 2009 shows virtually zero economic "
+            "transactions \u2014 all activity was mining with near-zero on-chain transfers. "
+            "The first dollar-denominated transactions appear in late 2009, with real "
+            "economic usage beginning mid-2010.",
+        ]),
     },
     {
         "q": "What is the difference between Quantile Regression and Markov Chain Monte Carlo?",

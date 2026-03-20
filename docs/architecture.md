@@ -123,10 +123,11 @@ its own mc-amount, mc-freq, mc-infl since QR heatmap doesn't use those parameter
 
 ### Price models & Display Models
 
-Three price models registered at startup in `_app_ctx.PRICE_MODELS`:
+Four price models registered at startup in `_app_ctx.PRICE_MODELS`:
 - **Bubble Model** (`"bub"`) — default, loaded from `model_data.pkl`
 - **Power Law** (`"pl"`) — OLS fit to log-log data
 - **S2F (Stock-to-Flow)** (`"s2f"`) — alternative parameterization
+- **BM Empirical Floor** (`"ef"`) — steeper support (slope 5.31) with Gaussian composite bands, loaded from `model_data_ef.pkl` (conditional — only if pkl exists)
 
 Per-tab model display:
 - **Bubble tab**: `bub-model-show` checklist toggles PL + S2F overlays on the bubble chart.
@@ -694,6 +695,48 @@ Set via `@server.after_request` in `app.py`:
 ```bash
 btc_venv/bin/python3 -m pytest btc_web/test_web.py -v
 ```
+
+---
+
+## 17. Developer Tools
+
+### `tools/sweep_support.py` — Support Line Parameter Sweep
+
+2D grid search over `SUPPORT_PERCENTILE` × `SUPPORT_QUANTILE` to find the
+combination that maximises the bubble model composite R². Extracts the core
+fitting logic from `SP.ipynb` cell 0 (support line → peak detection → bubble
+fitting → R²) without running the full notebook.
+
+```bash
+btc_venv/bin/python3 tools/sweep_support.py [--pct-lo 5] [--pct-hi 50] \
+    [--pct-step 5] [--q-lo 0.1] [--q-hi 0.9] [--q-step 0.1] \
+    [--out sweep_support.jpg]
+```
+
+Reads `BUBBLE_YEARS`, `FIT_MIN_DATE`, and other config from `SP.ipynb` cell 0
+automatically. Outputs a 2-panel heatmap (R² composite + support slope) and
+prints the top 10 parameter combinations. Run after changing `BUBBLE_YEARS`,
+`FIT_MIN_DATE`, or genesis date to re-optimise the support line.
+
+---
+
+## 18. Adding a New Price Model
+
+Checklist for adding a new model to Quantoshi:
+
+1. **Implement** the `PriceModel` protocol in `archive/btc_app/btc_core.py`:
+   - Required fields: `name`, `short_name`, `quantized`, `quantiles`, `colors`, `fits`, `dash_style`
+   - Required methods: `price_at(q, t)`, `interp_price(q, t)`, `find_percentile(t, price)`
+   - `fits` dict must contain keys for all quantiles — figure builders check `q in model.fits`
+   - Composite-median models (shaped curves): follow `LPPLModel` / `EmpiricalFloorModel` pattern
+   - Log-linear models (straight lines in log-log): extend `_FitsBasedModel`
+2. **Register** in `btc_web/app.py` inside the "register price models" block
+3. **Update `btc_web/snapshot.py`** — add the model's `short_name` to `_CHECKLIST_OPTIONS` for all `*-model-show` and `bub-model-show` keys (~lines 164–168). Without this, snapshot/share links cannot encode the model selection. Old links decode safely (missing bits default to unselected).
+4. **Update `btc_web/test_web.py`** — the `PRICE_MODELS.keys()` assertion uses a hardcoded set. Use `issubset()` or add the new key. Also add model-specific test class.
+5. **UI auto-discovers** via `PRICE_MODELS` iteration in `_model_show_checklist()` (`layout/common.py`) and heatmap pill bar (`layout/heatmap.py`) — no layout changes needed.
+6. Add accordion item to `btc_web/layout/model_info.py`
+7. Add FAQ entry if warranted in `btc_web/layout/faq.py`
+8. Update `docs/architecture.md` and `docs/user_manual.md`
 
 ---
 

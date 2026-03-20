@@ -71,6 +71,10 @@ channels and bubble model projections.
   instead of entering manually.
 - **Display Models**: Toggle overlay models (Power Law, Stock-to-Flow) on the
   bubble chart to compare against the default bubble model projections.
+  - **BM Empirical Floor** — An alternate bubble model with a steeper support
+    line anchored to observed bear-market lows. Projects faster bubble
+    convergence, suggesting the end of the 4-year halving cycle. Available
+    on all tabs when enabled.
 
 **Tips:**
 - Select a few quantiles that bracket your scenario (e.g., Q10% pessimistic,

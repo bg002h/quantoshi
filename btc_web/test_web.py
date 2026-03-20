@@ -4217,5 +4217,78 @@ class TestEmpiricalFloorModel:
         assert self.model.dash_style == "dashdot"
 
 
+class TestCompositeModelBands:
+    """Test asymmetric shrinking Gaussian band behavior."""
+
+    @pytest.fixture(autouse=True)
+    def _load_model(self):
+        import _app_ctx
+        model = _app_ctx.PRICE_MODELS.get("bub")
+        if model is None:
+            pytest.skip("BubbleModel not available")
+        self.model = model
+
+    def test_bands_narrow_over_time(self):
+        """σ(t) decreases → ratio of Q50/Q10 should be smaller at late t."""
+        p10_early = float(self.model.price_at(0.1, 5.0))
+        p50_early = float(self.model.price_at(0.5, 5.0))
+        p10_late = float(self.model.price_at(0.1, 30.0))
+        p50_late = float(self.model.price_at(0.5, 30.0))
+        ratio_early = p50_early / p10_early
+        ratio_late = p50_late / p10_late
+        assert ratio_early > ratio_late
+
+    def test_asymmetric_bands(self):
+        """Downside band narrower than upside at late times."""
+        t = 30.0
+        p50 = np.log10(float(self.model.price_at(0.5, t)))
+        p10 = np.log10(float(self.model.price_at(0.1, t)))
+        p90 = np.log10(float(self.model.price_at(0.9, t)))
+        down_width = p50 - p10
+        up_width = p90 - p50
+        assert up_width > down_width
+
+    def test_quantile_ordering_preserved(self):
+        """Q1 < Q10 < Q50 < Q90 < Q99 at all times."""
+        for t in [3.0, 10.0, 30.0, 50.0]:
+            prices = [float(self.model.price_at(q, t))
+                      for q in [0.01, 0.1, 0.5, 0.9, 0.99]]
+            for i in range(len(prices) - 1):
+                assert prices[i] < prices[i + 1]
+
+    def test_q1_never_exceeds_q50(self):
+        """The bug this change fixes: Q1% must never exceed Q50%."""
+        for t in [10, 20, 30, 40, 50, 60]:
+            p1 = float(self.model.price_at(0.01, t))
+            p50 = float(self.model.price_at(0.5, t))
+            assert p1 < p50
+
+
+@pytest.mark.skipif(_EF_SKIP, reason="model_data_ef.pkl not found")
+class TestEmpiricalFloorComposite:
+    """Test EmpiricalFloorModel with _CompositeModel bands."""
+
+    @pytest.fixture(autouse=True)
+    def _load_model(self):
+        from btc_core import EmpiricalFloorModel
+        self.model = EmpiricalFloorModel(_EF_PKL)
+
+    def test_bands_narrow_over_time(self):
+        p10_early = float(self.model.price_at(0.1, 5.0))
+        p50_early = float(self.model.price_at(0.5, 5.0))
+        p10_late = float(self.model.price_at(0.1, 30.0))
+        p50_late = float(self.model.price_at(0.5, 30.0))
+        ratio_early = p50_early / p10_early
+        ratio_late = p50_late / p10_late
+        assert ratio_early > ratio_late
+
+    def test_quantile_ordering_preserved(self):
+        for t in [3.0, 10.0, 30.0, 50.0]:
+            prices = [float(self.model.price_at(q, t))
+                      for q in [0.01, 0.1, 0.5, 0.9, 0.99]]
+            for i in range(len(prices) - 1):
+                assert prices[i] < prices[i + 1]
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

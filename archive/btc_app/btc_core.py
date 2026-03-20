@@ -236,6 +236,11 @@ class ModelData:
         for key in ("ZOOM_PRICE_LO", "ZOOM_PRICE_HI", "CAGR_SEG_B1", "CAGR_SEG_B2"):
             setattr(self, key, float(d.get(key, 0)))
         self.TABLE_YEARS = d.get("TABLE_YEARS", list(range(2025, 2041)))
+        # Shrinking sigma parameters (fitted by tools/fit_sigma.py)
+        self.bm_sigma0_up = d.get("bm_sigma0_up", 0.085)
+        self.bm_alpha_up = d.get("bm_alpha_up", 0.132)
+        self.bm_sigma0_down = d.get("bm_sigma0_down", 0.075)
+        self.bm_alpha_down = d.get("bm_alpha_down", 0.218)
 
     def update_from_csv(self, csv_path):
         df, qr, ols_int, ols_sl = fit_qr_from_csv(
@@ -345,16 +350,106 @@ class _FitsBasedModel:
         return sorted_qs[-1]
 
 
-class BubbleModel(_FitsBasedModel):
-    """Wraps existing QR bubble model fits."""
+class _CompositeModel:
+    """Base for models with a shaped composite median and asymmetric shrinking
+    Gaussian bands.
+
+    σ_up(t) = σ₀_up × t^(-α_up) for quantiles ≥ 0.5
+    σ_down(t) = σ₀_down × t^(-α_down) for quantiles < 0.5
+
+    Subclasses must set self._t_grid, self._log_comp, and call self._init_bands().
+    """
+    quantized = True
+
+    def _composite_log10(self, t):
+        """Interpolate composite curve in log10 space at arbitrary t."""
+        t = np.asarray(t, float)
+        return np.interp(t, self._t_grid, self._log_comp)
+
+    def _sigma_at(self, t, q):
+        """Compute σ at time t for quantile q (asymmetric, shrinking)."""
+        t = np.maximum(np.asarray(t, float), 0.5)
+        if q >= 0.5:
+            return self._sigma0_up * t ** (-self._alpha_up)
+        else:
+            return self._sigma0_down * t ** (-self._alpha_down)
+
+    def price_at(self, q, t):
+        """Price at quantile q, time t (years since genesis)."""
+        t_arr = np.asarray(t, float)
+        log_median = self._composite_log10(t_arr)
+        z = norm.ppf(q)
+        sigma = self._sigma_at(t_arr, q)
+        return 10.0 ** (log_median + z * sigma)
+
+    def interp_price(self, q, t):
+        """Log-space interpolated price for arbitrary quantile."""
+        if q in self.fits:
+            return float(self.price_at(q, t))
+        sorted_qs = self.quantiles
+        lo = max((qq for qq in sorted_qs if qq <= q), default=sorted_qs[0])
+        hi = min((qq for qq in sorted_qs if qq >= q), default=sorted_qs[-1])
+        if lo == hi:
+            return float(self.price_at(lo, t))
+        frac = (q - lo) / (hi - lo)
+        p_lo = np.log10(float(self.price_at(lo, t)))
+        p_hi = np.log10(float(self.price_at(hi, t)))
+        return 10.0 ** (p_lo + frac * (p_hi - p_lo))
+
+    def find_percentile(self, t, price):
+        """Reverse lookup: time + price → quantile."""
+        sorted_qs = self.quantiles
+        if not sorted_qs:
+            return 0.5
+        t_safe = max(float(t), 0.5)
+        log_p = np.log10(max(float(price), 1e-10))
+        log_ps = [np.log10(max(float(self.price_at(q, t_safe)), 1e-10))
+                  for q in sorted_qs]
+        if log_p <= log_ps[0]:
+            return sorted_qs[0]
+        if log_p >= log_ps[-1]:
+            return sorted_qs[-1]
+        for i in range(len(sorted_qs) - 1):
+            if log_ps[i] <= log_p <= log_ps[i + 1]:
+                frac = (log_p - log_ps[i]) / (log_ps[i + 1] - log_ps[i] + 1e-30)
+                return sorted_qs[i] + frac * (sorted_qs[i + 1] - sorted_qs[i])
+        return sorted_qs[-1]
+
+    def _init_bands(self, sigma0_up, alpha_up, sigma0_down, alpha_down, quantiles):
+        """Initialize σ parameters and build fits dict."""
+        self._sigma0_up = sigma0_up
+        self._alpha_up = alpha_up
+        self._sigma0_down = sigma0_down
+        self._alpha_down = alpha_down
+        self.fits = {}
+        for q in quantiles:
+            self.fits[q] = {"z": float(norm.ppf(q))}
+        self.quantiles = sorted(self.fits.keys())
+
+
+class BubbleModel(_CompositeModel):
+    """Bubble model with asymmetric shrinking Gaussian bands around composite."""
     name = "Bubble Model"
     short_name = "bub"
     dash_style = "solid"
 
     def __init__(self, md):
-        self.fits = md.qr_fits
+        # Composite curve (max future bubbles)
+        self._t_grid = np.asarray(md.years_plot_bm, float)
+        comp = md.comp_by_n[-1]
+        self._log_comp = np.log10(np.maximum(np.asarray(comp, float), 1e-10))
+
+        # Shrinking σ parameters (from pkl, fitted by tools/fit_sigma.py)
+        self._init_bands(
+            getattr(md, 'bm_sigma0_up', 0.085),
+            getattr(md, 'bm_alpha_up', 0.132),
+            getattr(md, 'bm_sigma0_down', 0.075),
+            getattr(md, 'bm_alpha_down', 0.218),
+            md.QR_QUANTILES,
+        )
+
+        # Colors set by app.py thermal palette after construction
         self.colors = dict(md.qr_colors)
-        self.quantiles = sorted(md.qr_fits.keys())
 
 
 class PowerLawModel(_FitsBasedModel):
@@ -583,21 +678,11 @@ class ExponentialModel:
             self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
 
 
-class EmpiricalFloorModel:
-    """BM Empirical Floor — steeper support line through observed bear-market lows.
-
-    Uses a bubble composite (support + fitted bubble shapes) as the median
-    curve. Quantile bands are generated by Gaussian z-shift of the composite,
-    like LPPLModel. The steeper support (slope ~5.31) produces faster bubble
-    convergence — the "end of the 4-year cycle" model.
-
-    Anchor points: 2010-10-05 ($0.06) and 2026-02-09 ($70,339), chosen to
-    maximize KS temporal uniformity of below-line data points.
-    """
+class EmpiricalFloorModel(_CompositeModel):
+    """BM Empirical Floor with asymmetric shrinking Gaussian bands."""
     name = "BM Empirical Floor"
     short_name = "ef"
     dash_style = "dashdot"
-    quantized = True
 
     def __init__(self, pkl_path):
         import pickle
@@ -609,79 +694,35 @@ class EmpiricalFloorModel:
         self._t_grid = np.asarray(d["years_plot"], float)
         self._support_plot = np.asarray(d["support_plot"], float)
         self._comp_by_n = d["comp_by_n"]
-        self._sigma = d["sigma"]
         self._bm_r2 = d["bm_r2"]
         self._n_future_max = d["n_future_max"]
 
-        # Default composite: use max future bubbles
         comp = self._comp_by_n[-1]
         self._log_comp = np.log10(np.maximum(np.asarray(comp, float), 1e-10))
 
-        # Build quantile fits (z-shifted, like LPPL)
+        # Shrinking σ parameters
         quantiles = d.get("QR_QUANTILES", [
             0.001, 0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3,
             0.5, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.99, 0.999])
-        self.fits = {}
-        for q in quantiles:
-            z = norm.ppf(q)
-            self.fits[q] = {"z_shift": z * self._sigma}
-        self.quantiles = sorted(self.fits.keys())
+
+        self._init_bands(
+            d.get("sigma0_up", 0.093),
+            d.get("alpha_up", 0.297),
+            d.get("sigma0_down", 0.085),
+            d.get("alpha_down", 0.295),
+            quantiles,
+        )
         self._build_colors()
 
-    def _composite_log10(self, t):
-        """Interpolate composite curve in log10 space at arbitrary t values."""
-        t = np.asarray(t, float)
-        return np.interp(t, self._t_grid, self._log_comp)
-
-    def price_at(self, q, t):
-        """Price at quantile q, time t (years since genesis)."""
-        t_arr = np.asarray(t, float)
-        log_median = self._composite_log10(t_arr)
-        shift = self.fits[q]["z_shift"]
-        return 10.0 ** (log_median + shift)
-
-    def interp_price(self, q, t):
-        """Log-space interpolated price for arbitrary quantile."""
-        if q in self.fits:
-            return float(self.price_at(q, t))
-        sorted_qs = self.quantiles
-        lo = max((qq for qq in sorted_qs if qq <= q), default=sorted_qs[0])
-        hi = min((qq for qq in sorted_qs if qq >= q), default=sorted_qs[-1])
-        if lo == hi:
-            return float(self.price_at(lo, t))
-        frac = (q - lo) / (hi - lo)
-        p_lo = np.log10(float(self.price_at(lo, t)))
-        p_hi = np.log10(float(self.price_at(hi, t)))
-        return 10.0 ** (p_lo + frac * (p_hi - p_lo))
-
-    def find_percentile(self, t, price):
-        """Reverse lookup: time + price → quantile."""
-        sorted_qs = self.quantiles
-        if not sorted_qs:
-            return 0.5
-        t_safe = max(float(t), 0.5)
-        log_p = np.log10(max(float(price), 1e-10))
-        log_ps = [np.log10(max(float(self.price_at(q, t_safe)), 1e-10))
-                  for q in sorted_qs]
-        if log_p <= log_ps[0]:
-            return sorted_qs[0]
-        if log_p >= log_ps[-1]:
-            return sorted_qs[-1]
-        for i in range(len(sorted_qs) - 1):
-            if log_ps[i] <= log_p <= log_ps[i + 1]:
-                frac = (log_p - log_ps[i]) / (log_ps[i + 1] - log_ps[i] + 1e-30)
-                return sorted_qs[i] + frac * (sorted_qs[i + 1] - sorted_qs[i])
-        return sorted_qs[-1]
-
     def _build_colors(self):
-        """Amber/warm palette — visually distinct from other models."""
+        """Amber/warm palette."""
         self.colors = {}
         n = len(self.quantiles)
         for i, q in enumerate(self.quantiles):
             frac = i / max(n - 1, 1)
-            r = int(139 + 100 * frac)    # 139 → 239
-            g = int(105 + 87 * frac)     # 105 → 192
-            b = int(20 + 44 * frac)      #  20 →  64
+            r = int(139 + 100 * frac)
+            g = int(105 + 87 * frac)
+            b = int(20 + 44 * frac)
             self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
 
 

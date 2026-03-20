@@ -388,6 +388,35 @@ $$T_{ij} = P(\text{bin}_{t+1} = j \mid \text{bin}_t = i)$$
                             ]),
                         ], title="Monte Carlo (Markov Chain) Simulation", item_id="mi-mc"),
 
+                        # ── BM Empirical Floor ──
+                        dbc.AccordionItem([
+                            html.H6("Overview"),
+                            html.P(
+                                "The Empirical Floor uses a power law support line drawn through "
+                                "two observed bear-market lows: 2010-10-05 ($0.06) and "
+                                "2026-02-09 ($70,339). These anchor points were chosen to maximize "
+                                "the temporal uniformity of below-line data points (KS = 0.247), "
+                                "ensuring the support is equally relevant across all eras of "
+                                "Bitcoin\u2019s history rather than being an artifact of one crash."
+                            ),
+                            html.H6("Parameters"),
+                            html.P([
+                                "Support slope: 5.3106 (vs 5.13 standard). ",
+                                "Support intercept: \u22121.6246. ",
+                                "R\u00b2 with bubble fitting: 0.9932. ",
+                                "Quantile bands: Gaussian z-shifted from the bubble composite median."
+                            ]),
+                            html.H6("Convergence Narrative"),
+                            html.P(
+                                "The steeper support line means bubble amplitudes decay faster. "
+                                "Predicted future bubbles converge on the support rapidly \u2014 "
+                                "implying that the classic 4-year halving-driven boom/bust cycle "
+                                "is approaching its end, with Bitcoin transitioning to a more "
+                                "mature, lower-volatility asset. See the FAQ for the full "
+                                "derivation."
+                            ),
+                        ], title="BM Empirical Floor", item_id="mi-ef"),
+
                         # ── 6. Model Comparison ──
                         dbc.AccordionItem([
                             html.H6("At a Glance"),

@@ -243,6 +243,46 @@ _FAQ = [
         ]),
     },
     {
+        "q": "What is the BM Empirical Floor model?",
+        "a": html.Span([
+            "The BM Empirical Floor is an alternate bubble model with a steeper "
+            "power law support line, anchored to two observed bear-market "
+            "floor prices:",
+            html.Br(), html.Br(),
+            html.Strong("Anchor 1: "),
+            "October 5, 2010 ($0.06) \u2014 the end of Bitcoin\u2019s initial "
+            "flat-price run, the earliest observable floor.",
+            html.Br(),
+            html.Strong("Anchor 2: "),
+            "February 9, 2026 ($70,339) \u2014 selected from several candidates "
+            "to maximize the temporal uniformity of below-line data points.",
+            html.Br(), html.Br(),
+            "The second anchor was chosen using the Kolmogorov-Smirnov (KS) "
+            "statistic, which measures how evenly the below-line points are "
+            "distributed across time. A good support line should have a "
+            "consistent fraction of prices below it in every era, not just "
+            "during one or two crashes. The standard bubble model support "
+            "(KS = 0.581) clusters its below-line points in 2\u20133 bear "
+            "markets; the Empirical Floor (KS = 0.247) distributes them "
+            "across 8 of 10 time bins.",
+            html.Br(), html.Br(),
+            html.Img(src="/assets/support_4way_loglog.jpg",
+                     style={"width": "100%", "maxWidth": "800px",
+                            "borderRadius": "8px",
+                            "marginTop": "4px", "marginBottom": "8px"}),
+            html.Br(),
+            html.Strong("End of the 4-year cycle: "),
+            "The steeper support (slope 5.31 vs 5.13) means each successive "
+            "bubble sits lower above the floor. When bubble shapes are fitted "
+            "and extrapolated, future bubbles converge on the support line "
+            "much faster than in the standard model \u2014 implying that the "
+            "classic halving-driven boom/bust cycle is approaching its end. "
+            "Bitcoin would transition from a volatile, cycle-driven asset to "
+            "one with steadily diminishing oscillations around a steep but "
+            "smooth power law growth path.",
+        ]),
+    },
+    {
         "q": "What is the difference between Quantile Regression and Markov Chain Monte Carlo?",
         "a": html.Span([
             "Quantile Regression (QR) fits smooth percentile curves to the historical log-log "

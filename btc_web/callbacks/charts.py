@@ -7,7 +7,7 @@ from dash import Input, Output, State, ctx, callback
 import pandas as pd
 
 import _app_ctx
-from btc_core import yr_to_t, today_t
+from btc_core import yr_to_t, today_t, _find_lot_percentile
 from callbacks.coerce import _ci, _cf
 from callbacks.mc_helpers import (_mc_setup, _mc_finalize, _mc_status,
                                   _strip_free_paths)
@@ -230,7 +230,7 @@ def update_heatmap(active_tab, hm_model, entry_yr, entry_q, exit_range, exit_qs,
     def _use_live(eyr_val, eq_val):
         if not live_price or _ci(eyr_val, yr_now) != yr_now:
             return None
-        ticker_pct = _app_ctx.DEFAULT_MODEL.find_percentile(today_t(_app_ctx.M.genesis), float(live_price))
+        ticker_pct = _find_lot_percentile(today_t(_app_ctx.M.genesis), float(live_price), _app_ctx.M.qr_fits)
         if ticker_pct is None:
             return None
         ticker_q = round(ticker_pct * 100, 1)

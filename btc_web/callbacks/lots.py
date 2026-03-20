@@ -9,7 +9,7 @@ from dash import html, Input, Output, State, ctx, callback
 import pandas as pd
 
 import _app_ctx
-from btc_core import fmt_price
+from btc_core import fmt_price, _find_lot_percentile
 from callbacks.coerce import _format_lots_for_table
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ def preview_percentile(date_str, price):
         return ""
     try:
         t   = (pd.Timestamp(date_str) - _app_ctx.M.genesis).days / 365.25
-        pct = _app_ctx.DEFAULT_MODEL.find_percentile(t, float(price))
+        pct = _find_lot_percentile(t, float(price), _app_ctx.M.qr_fits)
         return f"Q{pct*100:.2f}%"
     except Exception:
         return ""

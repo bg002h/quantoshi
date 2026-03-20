@@ -3,7 +3,7 @@
 from dash import html, Input, Output, callback, no_update
 
 import _app_ctx
-from btc_core import fmt_price, today_t
+from btc_core import fmt_price, today_t, _find_lot_percentile
 from utils import _fetch_btc_price
 
 
@@ -27,7 +27,7 @@ def update_price_ticker(_, mode):
     price = _fetch_btc_price()
     if price is None:
         return "\u20bf \u2014", "\u20bf \u2014", no_update, no_update, no_update, no_update, ""
-    pct = _app_ctx.DEFAULT_MODEL.find_percentile(today_t(_app_ctx.M.genesis), price)
+    pct = _find_lot_percentile(today_t(_app_ctx.M.genesis), price, _app_ctx.M.qr_fits)
     pct_str = f"Q{pct*100:.1f}%" if pct is not None else "\u2014"
     pct_val = round(pct * 100, 1) if pct is not None else no_update
     # Snap to nearest 10% for cache-aligned dropdowns (hm-mc, dca-mc)

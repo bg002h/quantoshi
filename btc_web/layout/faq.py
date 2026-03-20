@@ -156,6 +156,23 @@ _FAQ = [
             "anchored by the very first prices; the peaks start later because the first "
             "real bubble (2011) didn\u2019t happen until later. July 25 sits in the middle "
             "of this range, balancing floor and peak behavior.",
+            html.Br(), html.Br(),
+            html.Strong("7. Q5% temporal uniformity: "),
+            "A true 5th-percentile support line should have 5% of prices below it "
+            "at every point in time, not just 5% overall. Sweeping 870 candidate "
+            "genesis dates from 2008 through mid-2010 and optimizing the support "
+            "line slope and intercept to distribute the below-line points as "
+            "uniformly as possible across 15 log-time bins, the optimal genesis "
+            "is June 13, 2009. The top candidates cluster in June 2009 \u2014 "
+            "converging on the same window as the floor-support analysis above "
+            "from a completely independent angle. Perfect uniformity is "
+            "unachievable with a single power law because bubble cycles create "
+            "structural clustering: during bull runs zero prices touch the floor, "
+            "and after crashes many do.",
+            html.Br(),
+            html.Img(src="/assets/genesis_uniform_q5.jpg",
+                     style={"width": "100%", "maxWidth": "700px", "borderRadius": "8px",
+                            "marginTop": "8px", "marginBottom": "8px"}),
             # ── END JUL25 ANALYSIS ──
             html.Br(), html.Br(),
             "Blockchain analysis of 2009 shows virtually zero economic "

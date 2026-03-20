@@ -1109,6 +1109,29 @@ body {
 .site-footer:hover {
     opacity: 1;
 }
+.footer-link {
+    color: inherit;
+    text-decoration: none;
+}
+.footer-link:hover {
+    color: #1a6fa8;
+    text-decoration: underline;
+}
+.footer-docs {
+    display: inline;
+}
+.footer-sep-inline {
+    display: inline;
+}
+@media (max-width: 767px) and (orientation: portrait) {
+    .footer-docs {
+        display: block;
+        margin-top: 4px;
+    }
+    .footer-sep-inline {
+        display: none;
+    }
+}
 
 /* ── Ambient toast (birthday, night owl) ──────────────────────────────────── */
 .ambient-toast {

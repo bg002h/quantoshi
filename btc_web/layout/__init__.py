@@ -458,11 +458,19 @@ _app_ctx.app.layout = dbc.Container([
         dbc.Tab(_model_info_tab(),   label="\U0001F4D0 Model Info",      tab_id="model_info"),
         dbc.Tab(_faq_tab(),          label="\u2753 FAQ",                 tab_id="faq"),
     ], id="main-tabs", active_tab="bubble"),
-    # ── Footer: block height + halving countdown ──────────────────────────
+    # ── Footer: block height + halving countdown + doc links ──────────────
     html.Div([
         html.Span(id="footer-block-height",
                   style={"marginRight": "16px"}),
         html.Span(id="footer-halving-countdown"),
+        html.Span([
+            html.Span(" · ", className="footer-sep-inline"),
+            html.A("Architecture", href="/docs/architecture",
+                   className="footer-link"),
+            html.Span(" · "),
+            html.A("User Manual", href="/docs/user-manual",
+                   className="footer-link"),
+        ], className="footer-docs"),
     ], className="site-footer",
        style={"textAlign": "center", "fontSize": "11px",
               "color": "rgba(0,0,0,0.35)", "padding": "10px 0 14px",

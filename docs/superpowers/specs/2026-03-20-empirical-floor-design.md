@@ -13,8 +13,22 @@ reflecting faster bubble convergence — the "end of the 4-year cycle" narrative
 ## Motivation
 
 The standard Bubble Model (pct=20, q=0.50) produces a support line with
-slope ~5.13. The Empirical Floor, anchored to two observed bear-market lows,
-has slope ~5.31 — steeper, which means:
+slope ~5.13. Its below-line points cluster in just 2–3 bear-market eras
+(KS stat 0.581 — far from the uniform ideal of 0). We searched for a support
+line whose below-line points are distributed more evenly across time.
+
+The first anchor point (2010-10-05, $0.06) is the end of Bitcoin's initial
+flat-price run — the earliest observable floor. Several candidates were tested
+for the second anchor: the Dec 2022 bear bottom ($16,902, KS=0.580 — no
+improvement), the Feb 2026 local minimum at actual price ($64,114, KS=0.403),
+and the Feb 2026 date at $70,339 (KS=0.247 — best temporal distribution).
+The $70,339 value was chosen because it produces the most uniform distribution
+of below-line points across 10 equal time bins, meaning the support line is
+equally relevant in early, middle, and recent Bitcoin history rather than
+being an artifact of one or two crash eras.
+
+The resulting Empirical Floor has slope ~5.31 — steeper than the standard
+model, which means:
 
 - Bubbles sit lower above the floor (smaller log-excess)
 - The decay trend in bubble amplitudes is steeper

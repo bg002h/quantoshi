@@ -98,6 +98,7 @@ _FAQ = [
             "This confirms the date is where Bitcoin\u2019s ",
             html.I("floor price"),
             " begins following a power law, independent of bubble peaks.",
+            # ── BEGIN JUL25 ANALYSIS (change_origin.py toggles this block) ──
             html.Br(), html.Br(),
             html.Strong("4b. Log-time binned minimum support: "),
             "To address over-representation of recent data in log-time, the time axis "
@@ -133,6 +134,7 @@ _FAQ = [
             html.Img(src="/assets/floor_to_peaks.png",
                      style={"width": "100%", "maxWidth": "700px", "borderRadius": "8px",
                             "marginTop": "8px", "marginBottom": "8px"}),
+            # ── END JUL25 ANALYSIS ──
             html.Br(), html.Br(),
             "Blockchain analysis of 2009 shows virtually zero economic "
             "transactions \u2014 only ~62 blocks/day of mining (below the 144/day target) "

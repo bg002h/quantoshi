@@ -207,9 +207,52 @@ def main():
     # "July 25, 2009" → new long date
     count = src.count(old_long)
     src = src.replace(old_long, new_long)
+    # Toggle July 25 analysis block (images + text for 4b, 5, 6)
+    begin_marker = "# ── BEGIN JUL25 ANALYSIS (change_origin.py toggles this block) ──"
+    end_marker = "# ── END JUL25 ANALYSIS ──"
+    jul25_active = new_str == "2009-07-25"
+
+    if begin_marker in src and end_marker in src:
+        begin_idx = src.index(begin_marker)
+        end_idx = src.index(end_marker) + len(end_marker)
+        block = src[begin_idx:end_idx]
+
+        # Check if block is currently commented out
+        is_commented = "# DISABLED:" in block
+
+        if jul25_active and is_commented:
+            # Uncomment: remove "# DISABLED: " prefix from each line in the block
+            lines = block.split("\n")
+            restored = []
+            for line in lines:
+                if line.strip().startswith("# DISABLED: "):
+                    restored.append(line.replace("# DISABLED: ", "", 1))
+                else:
+                    restored.append(line)
+            src = src[:begin_idx] + "\n".join(restored) + src[end_idx:]
+            print(f"  faq.py: RESTORED Jul 25 analysis block (3 charts + text)")
+            changes += 1
+        elif not jul25_active and not is_commented:
+            # Comment out: prefix each content line with "# DISABLED: "
+            lines = block.split("\n")
+            disabled = []
+            for line in lines:
+                if line.strip() in (begin_marker.strip(), end_marker.strip()):
+                    disabled.append(line)  # keep markers
+                elif line.strip():
+                    disabled.append(line.replace(line.lstrip(), "# DISABLED: " + line.lstrip(), 1))
+                else:
+                    disabled.append(line)
+            src = src[:begin_idx] + "\n".join(disabled) + src[end_idx:]
+            print(f"  faq.py: DISABLED Jul 25 analysis block (genesis != 2009-07-25)")
+            changes += 1
+        else:
+            state = "active" if not is_commented else "disabled"
+            print(f"  faq.py: Jul 25 analysis block already {state}")
+
     if not dry:
         faq.write_text(src)
-    print(f"  faq.py: {count} replacements ({old_long} → {new_long})")
+    print(f"  faq.py: {count} date replacements ({old_long} → {new_long})")
     changes += count
 
     # ── bubble.py xlabel ─────────────────────────────────────────────────

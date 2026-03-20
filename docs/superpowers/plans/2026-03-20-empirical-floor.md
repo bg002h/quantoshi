@@ -302,11 +302,13 @@ git commit -m "feat: add EmpiricalFloorModel class with tests"
 
 ---
 
-### Task 3: Register EF model in `app.py`
+### Task 3: Register EF model and update snapshot/tests
 
 **Files:**
 - Modify: `btc_web/app.py:35` (add import)
 - Modify: `btc_web/app.py:148` (add registration, after S2F)
+- Modify: `btc_web/snapshot.py:164-168` (add "ef" to `_CHECKLIST_OPTIONS`)
+- Modify: `btc_web/test_web.py:3783` (fix hardcoded PRICE_MODELS key set)
 
 - [ ] **Step 1: Add import**
 
@@ -329,7 +331,38 @@ if _ef_pkl.exists():
 
 Add `from pathlib import Path` at top if not already imported.
 
-- [ ] **Step 3: Test locally**
+- [ ] **Step 3: Update snapshot.py `_CHECKLIST_OPTIONS`**
+
+In `btc_web/snapshot.py` lines 164–168, add `"ef"` to each model-show list:
+
+```python
+"dca-model-show":     ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"],
+"ret-model-show":     ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"],
+"sc-model-show":      ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"],
+"hm-model-show":      ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"],
+"bub-model-show":     ["pl", "lppl", "exp", "s2f", "ef"],
+```
+
+Without this, snapshot/share links cannot encode EF model selection. Old links without "ef" decode safely (bitmask treats missing bit as unset).
+
+- [ ] **Step 4: Fix hardcoded test assertion**
+
+In `btc_web/test_web.py` line 3783, the assertion `assert set(_app_ctx.PRICE_MODELS.keys()) == {"bub", "pl", "s2f", "lppl", "exp"}` will fail when EF is registered. Change to a superset check:
+
+```python
+assert {"bub", "pl", "s2f", "lppl", "exp"}.issubset(set(_app_ctx.PRICE_MODELS.keys()))
+```
+
+Or if the EF pkl is present:
+
+```python
+expected = {"bub", "pl", "s2f", "lppl", "exp"}
+actual = set(_app_ctx.PRICE_MODELS.keys())
+assert expected.issubset(actual), f"Missing models: {expected - actual}"
+# EF is optional (conditional on pkl)
+```
+
+- [ ] **Step 5: Test locally**
 
 ```bash
 DEV=1 bash run_web.sh &
@@ -338,11 +371,11 @@ DEV=1 bash run_web.sh &
 kill %1
 ```
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add btc_web/app.py
-git commit -m "feat: register EmpiricalFloorModel conditionally in app.py"
+git add btc_web/app.py btc_web/snapshot.py btc_web/test_web.py
+git commit -m "feat: register EmpiricalFloorModel, update snapshots and tests"
 ```
 
 ---
@@ -494,17 +527,19 @@ Add new section "How to Add a New Price Model" before the appendices:
 ```markdown
 ## N. Adding a New Price Model
 
-1. Implement the `PriceModel` protocol in `archive/btc_app/btc_core.py`:
+1. **Implement** the `PriceModel` protocol in `archive/btc_app/btc_core.py`:
    - Required fields: `name`, `short_name`, `quantized`, `quantiles`, `colors`, `fits`, `dash_style`
    - Required methods: `price_at(q, t)`, `interp_price(q, t)`, `find_percentile(t, price)`
    - For composite-median models (shaped curves): follow `LPPLModel` / `EmpiricalFloorModel` pattern
    - For log-linear models (straight lines in log-log): extend `_FitsBasedModel`
-2. Register in `btc_web/app.py` inside the "register price models" block
-3. The UI auto-discovers via `PRICE_MODELS` iteration — no layout changes needed
-4. Add accordion item to `btc_web/layout/model_info.py`
-5. Add entry to `btc_web/layout/faq.py` if the model warrants user-facing explanation
-6. Update `docs/architecture.md` and `docs/user_manual.md`
-7. Add tests to `btc_web/test_web.py`
+   - `fits` dict must contain keys for all quantiles (even if values are `z_shift` not `intercept/slope`) — figure builders check `q in model.fits`
+2. **Register** in `btc_web/app.py` inside the "register price models" block
+3. **Update `snapshot.py`** — add the model's `short_name` to `_CHECKLIST_OPTIONS` for all `*-model-show` and `bub-model-show` keys (lines ~164–168). Without this, snapshot/share links cannot encode the model selection. Old links decode safely (missing bits default to unselected).
+4. **Update `test_web.py`** — the `PRICE_MODELS.keys()` assertion (~line 3783) uses a hardcoded set. Use `issubset()` or add the new key. Also add model-specific test class.
+5. **UI auto-discovers** via `PRICE_MODELS` iteration in `_model_show_checklist()` (`layout/common.py`) and heatmap pill bar (`layout/heatmap.py`) — no layout changes needed.
+6. Add accordion item to `btc_web/layout/model_info.py`
+7. Add entry to `btc_web/layout/faq.py` if the model warrants user-facing explanation
+8. Update `docs/architecture.md` and `docs/user_manual.md`
 ```
 
 - [ ] **Step 2: Update user_manual.md**

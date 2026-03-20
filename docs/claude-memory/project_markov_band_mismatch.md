@@ -29,4 +29,10 @@ is tightly coupled to the QR fits format — it hardcodes `fits["intercept"]` an
   direct intercept+slope math. May need to pre-compute bin edges at all needed
   time points and pass as arrays instead of calling per-step
 
+**Related fix (already applied):** All `find_percentile` calls in the web app
+(ticker, lots, heatmap defaults, charts) were also using `model.find_percentile()`
+which gave wrong results with composite models. Fixed to use
+`_find_lot_percentile(t, price, M.qr_fits)` — the empirical QR-based calculation.
+Rule: anything asking "where does this price sit historically?" must use `M.qr_fits`.
+
 This is a separate project — do not attempt as part of other model changes.

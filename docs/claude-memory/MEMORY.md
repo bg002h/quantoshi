@@ -7,3 +7,4 @@
 - [reference_sweep_support.md](reference_sweep_support.md) — tools/sweep_support.py sweeps support line params for optimal R²
 - [reference_add_price_model.md](reference_add_price_model.md) — Complete checklist for adding a new price model (includes snapshot.py and test_web.py gotchas)
 - [project_markov_band_mismatch.md](project_markov_band_mismatch.md) — MC simulation uses old QR bands, not shrinking Gaussian — requires Cython recompile + cache rebuild to fix
+- [project_price_scanner_tab.md](project_price_scanner_tab.md) — Feature idea: Price Scanner tab showing percentile-per-model for any input price

@@ -15,7 +15,7 @@ BitcoinPricesDaily.csv
         │
         ▼
   ┌─────────────┐    model_data.pkl    ┌──────────────┐
-  │  SP.ipynb    │ ──────────────────►  │  btc_web/    │  (Plotly Dash, 7 tabs)
+  │  SP.ipynb    │ ──────────────────►  │  btc_web/    │  (Plotly Dash, 8 tabs)
   │  (notebook)  │                      └──────────────┘
   │              │    model_data.pkl    ┌──────────────┐
   │  Cell 0: BM  │ ──────────────────►  │  btc_app/    │  (PyQt5 desktop, 5 tabs)
@@ -64,7 +64,7 @@ figures.py
 | `_app_ctx.py` | Shared state and constants (models, palettes, flags) | `M`, `app`, `FREQ_PPY`, `PALETTES`, `PRICE_MODELS`, `_compute_sc_loan()` |
 | `utils.py` | Float quantization, LRU figure caches, price fetching | `_q3()`, `_get_*_fig()`, `_fetch_btc_price()` |
 | `snapshot.py` | Snapshot encoding/decoding, bitmask helpers | `_encode_snapshot()`, `_decode_snapshot()`, `_SNAPSHOT_CONTROLS` |
-| `layout/` | Layout package (10 modules): `__init__` (navbar, modal, stores), `bubble`, `heatmap` (pill bar), `sim_tabs` (DCA+Retire), `supercharge`, `stack`, `faq`, `common` (shared helpers), `mc_controls`, `splash` | `main_layout()` |
+| `layout/` | Layout package (11 modules): `__init__` (navbar, modal, stores), `bubble`, `heatmap` (pill bar), `sim_tabs` (DCA+Retire), `supercharge`, `stack`, `faq`, `common` (shared helpers), `mc_controls`, `splash`, `model_info` | `main_layout()` |
 | `callbacks/` | Callbacks package (12 modules): `__init__`, `charts`, `nav` (tab routing, pill clicks), `ticker`, `snapshot_cb`, `mc_controls`, `mc_helpers`, `mc_payment`, `mc_upload`, `lots`, `coerce` (`_ci()`/`_cf()`), `sc_loan` | `update_bubble()`, `update_heatmap()`, etc. |
 | `figures/` | Figures package (7 modules): `__init__`, `common` (palette, watermark, annotations, MC overlay), `bubble` (+ PL/S2F overlays), `heatmap`, `dca`, `retire`, `supercharge` | `build_bubble_figure()`, `build_heatmap_figure()`, etc. |
 | `mc_overlay.py` | MC simulation, caching, fan band traces, regime filters | `_mc_dca_overlay()`, `_mc_retire_overlay()`, etc. |
@@ -79,7 +79,7 @@ figures.py
 
 ## 3. Tab Architecture
 
-### 7 tabs
+### 8 tabs
 
 | # | Tab | ID | Chart builder | MC overlay | Key controls |
 |---|-----|----|---------------|------------|--------------|
@@ -89,7 +89,8 @@ figures.py
 | 4 | BTC RetireMentator | `retire` | `build_retire_figure()` | `_mc_retire_overlay()` | Withdrawal, inflation, depletion arrows |
 | 5 | HODL Supercharger | `supercharge` | `build_supercharge_figure()` | `_mc_supercharge_overlay()` | Mode A/B, delays, depletion bands |
 | 6 | Stack Tracker | `stack` | None (DataTable) | None | Lot CRUD, import/export |
-| 7 | FAQ | `faq` | None | None | Accordion, deep-linkable |
+| 7 | Model Info | `model_info` | None | None | Accordion, deep-linkable (`/7.N`) |
+| 8 | FAQ | `faq` | None | None | Accordion, 20 entries, deep-linkable (`/8.N`) |
 
 ### Control panel structure (tabs 2–5)
 
@@ -397,7 +398,7 @@ DCA, Retire, and SC tabs all support this toggle.
 ### Control inventory
 
 97 `_SNAPSHOT_CONTROLS` entries — `(component_id, property)` tuples covering
-all UI controls across 7 tabs.
+all UI controls across 8 tabs (Model Info has no snapshot controls).
 
 ### Encoding pipeline
 
@@ -405,7 +406,7 @@ all UI controls across 7 tabs.
 Control states → JSON array (97 elements) → gzip → base64 urlsafe → URL hash
 ```
 
-URL format: `host/N#q3:ENCODED` where `N` is the tab path (1–7).
+URL format: `host/N#q3:ENCODED` where `N` is the tab path (1–8).
 
 ### Versioning
 
@@ -504,11 +505,12 @@ internally by `_mc_setup()` — tab callbacks don't call it directly.
 ### Clientside callbacks
 
 30 clientside callbacks handle fast UI interactions without server round-trips:
-- Tab routing (`/1`–`/7` → tab switch)
+- Tab routing (`/1`–`/8` → tab switch)
 - Zoom toggle (dragmode enable/disable)
 - MC control visibility
 - SC mode A/B panel switching
-- FAQ deep-linking (`/7.N`)
+- Model Info deep-linking (`/7.N`)
+- FAQ deep-linking (`/8.N`)
 
 ---
 

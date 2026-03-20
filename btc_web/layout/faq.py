@@ -134,6 +134,27 @@ _FAQ = [
             html.Img(src="/assets/floor_to_peaks.png",
                      style={"width": "100%", "maxWidth": "700px", "borderRadius": "8px",
                             "marginTop": "8px", "marginBottom": "8px"}),
+            html.Br(),
+            html.Table([
+                html.Thead(html.Tr([
+                    html.Th("Percentile", style={"paddingRight": "12px"}),
+                    html.Th("Slope", style={"paddingRight": "12px"}),
+                    html.Th("Optimal Genesis", style={"paddingRight": "12px"}),
+                    html.Th("R\u00b2"),
+                ])),
+                html.Tbody([
+                    html.Tr([html.Td("Bin max (peaks)"), html.Td("5.09"), html.Td("Nov 23, 2009"), html.Td("0.949")]),
+                    html.Tr([html.Td("Bin P95"), html.Td("5.14"), html.Td("Nov 17, 2009"), html.Td("0.955")]),
+                    html.Tr([html.Td("Bin median"), html.Td("5.11"), html.Td("Oct 16, 2009"), html.Td("0.972")]),
+                    html.Tr([html.Td("Bin P5"), html.Td("5.03"), html.Td("Jun 1, 2009"), html.Td("0.978")]),
+                    html.Tr([html.Td("Bin min (floor)"), html.Td("5.02"), html.Td("Jun 25, 2009"), html.Td("0.984")]),
+                ]),
+            ], style={"fontSize": "13px", "marginBottom": "12px", "borderCollapse": "collapse"}),
+            "The optimal genesis shifts from June 2009 (floor) to November 2009 (peaks) "
+            "\u2014 about 5 months apart. The floor \u201cstarts\u201d earlier because it is "
+            "anchored by the very first prices; the peaks start later because the first "
+            "real bubble (2011) didn\u2019t happen until later. July 25 sits in the middle "
+            "of this range, balancing floor and peak behavior.",
             # ── END JUL25 ANALYSIS ──
             html.Br(), html.Br(),
             "Blockchain analysis of 2009 shows virtually zero economic "

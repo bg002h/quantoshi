@@ -3922,27 +3922,26 @@ class TestMcModelSrc:
         key = _mc_path_key({}, "dca")
         assert key["mc_model_src"] == "bub"
 
-    def test_resolve_fits_bub(self):
+    def test_resolve_fits_returns_qr_fits(self):
         from mc_overlay import _resolve_fits
         fits = _resolve_fits({"mc_model_src": "bub"})
-        assert fits is _app_ctx.DEFAULT_MODEL.fits
+        assert fits is _app_ctx.M.qr_fits
 
     def test_resolve_fits_default(self):
         from mc_overlay import _resolve_fits
         fits = _resolve_fits({})
-        assert fits is _app_ctx.DEFAULT_MODEL.fits
+        assert fits is _app_ctx.M.qr_fits
 
-    def test_resolve_fits_pl(self):
+    def test_resolve_fits_always_qr(self):
+        """_resolve_fits always returns M.qr_fits regardless of model source."""
         from mc_overlay import _resolve_fits
         fits = _resolve_fits({"mc_model_src": "pl"})
-        pl_model = _app_ctx.PRICE_MODELS["pl"]
-        assert fits is pl_model.fits
-        assert fits is not _app_ctx.DEFAULT_MODEL.fits
+        assert fits is _app_ctx.M.qr_fits
 
-    def test_resolve_fits_nonquantized_falls_back(self):
+    def test_resolve_fits_nonquantized(self):
         from mc_overlay import _resolve_fits
         fits = _resolve_fits({"mc_model_src": "s2f"})
-        assert fits is _app_ctx.DEFAULT_MODEL.fits
+        assert fits is _app_ctx.M.qr_fits
 
     def test_build_mc_params_includes_model_src(self):
         from callbacks import _build_mc_params

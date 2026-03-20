@@ -104,7 +104,7 @@ def generate_cache(start_yr, m, progress_cb=None):
     we_yr = yr_to_t(window_end, genesis)
 
     trans, bin_edges, _ = build_transition_matrix(
-        m.price_prices, m.price_years, _app_ctx.DEFAULT_MODEL.fits,
+        m.price_prices, m.price_years, _app_ctx.M.qr_fits,
         n_bins=MC_BINS,
         window_start_yr=ws_yr,
         window_end_yr=we_yr,
@@ -124,7 +124,7 @@ def generate_cache(start_yr, m, progress_cb=None):
 
             price_paths, _ = monte_carlo_prices(
                 trans, bin_edges, pct_bin, n_steps, MC_SIMS,
-                _app_ctx.DEFAULT_MODEL.fits, genesis, t_start, MC_DT,
+                _app_ctx.M.qr_fits, genesis, t_start, MC_DT,
             )
             key = _path_key_str(pct_bin, mc_years)
             paths_dict[key] = price_paths.astype(np.float32)

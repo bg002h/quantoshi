@@ -61,12 +61,10 @@ def _resolve_fits(p):
     Returns the fits dict from the selected model (or DEFAULT_MODEL if
     the source model is not quantized or not found).
     """
-    src = p.get("mc_model_src", "bub")
-    if src and src != "bub":
-        mdl = _app_ctx.PRICE_MODELS.get(src)
-        if mdl and getattr(mdl, "quantized", False) and mdl.fits:
-            return mdl.fits
-    return _app_ctx.DEFAULT_MODEL.fits
+    # Always use M.qr_fits for MC — these have intercept/slope format
+    # required by qr_price() and the Markov percentile calculations.
+    # Model.fits may use different formats (e.g. {"z": ...} for composite models).
+    return _app_ctx.M.qr_fits
 
 
 def _mc_setup_vars(p):
@@ -242,7 +240,7 @@ _load_trans_cache_from_disk()
 def _get_transition_matrix(m, n_bins, step_days, mc_window, fits=None):
     """Get transition matrix from cache or build on the fly."""
     global _TRANS_CACHE_DIRTY
-    fits = fits or _app_ctx.DEFAULT_MODEL.fits
+    fits = fits or _app_ctx.M.qr_fits
     window_start_yr = None
     window_end_yr   = None
     ws_cal = we_cal = None

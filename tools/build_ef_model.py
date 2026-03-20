@@ -248,7 +248,7 @@ def main():
         "comp_by_n":            comp_by_n.tolist(),
         "bm_r2":                float(bm_r2_comp),
         "n_future_max":         int(max_n),
-        "sigma":                sigma,
+        # σ parameters fitted separately by tools/fit_sigma.py
         "price_years":          years_all.tolist(),
         "price_prices":         y_all.tolist(),
         "QR_QUANTILES":         QR_QUANTILES,

@@ -122,6 +122,18 @@ _FAQ = [
                      style={"width": "100%", "maxWidth": "700px", "borderRadius": "8px",
                             "marginTop": "8px", "marginBottom": "8px"}),
             html.Br(), html.Br(),
+            html.Strong("6. Floor-to-peaks convergence: "),
+            "Dividing the time axis into 34 equal log-time bins and fitting power laws "
+            "to the minimum, P5, median, P95, and maximum price in each bin reveals that "
+            "all five percentiles follow nearly the same slope: 5.02 (floor) to 5.14 (P95). "
+            "The gap between peaks and floor narrows over time \u2014 Bitcoin\u2019s volatility "
+            "is decreasing while the underlying power law growth rate (~5.08) remains "
+            "constant across the entire price distribution.",
+            html.Br(),
+            html.Img(src="/assets/floor_to_peaks.png",
+                     style={"width": "100%", "maxWidth": "700px", "borderRadius": "8px",
+                            "marginTop": "8px", "marginBottom": "8px"}),
+            html.Br(), html.Br(),
             "Blockchain analysis of 2009 shows virtually zero economic "
             "transactions \u2014 only ~62 blocks/day of mining (below the 144/day target) "
             "with near-zero on-chain transfers. The first dollar-denominated transactions "

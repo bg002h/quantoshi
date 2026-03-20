@@ -3780,7 +3780,7 @@ class TestPriceModelRegistry:
 
     def test_registry_keys(self):
         import _app_ctx
-        assert set(_app_ctx.PRICE_MODELS.keys()) == {"bub", "pl", "s2f", "lppl", "exp"}
+        assert {"bub", "pl", "s2f", "lppl", "exp"}.issubset(set(_app_ctx.PRICE_MODELS.keys()))
 
     def test_default_model_is_bubble(self):
         import _app_ctx

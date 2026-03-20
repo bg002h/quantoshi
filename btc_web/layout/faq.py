@@ -74,7 +74,19 @@ _FAQ = [
             " (1 BTC = $0.10 on the power law). "
             "Earlier origins give higher R\u00b2 but steeper slopes and more aggressive "
             "long-range projections. Later origins give more conservative projections "
-            "but worse fits. Blockchain analysis of 2009 shows virtually zero economic "
+            "but worse fits.",
+            html.Br(), html.Br(),
+            html.Strong("Support-line evidence for July 2009: "),
+            "An independent analysis fitting a power law to only the bottom 5% of "
+            "prices in each 4-year window (removing all bubble effects) finds an optimal "
+            "origin of July 28, 2009 with R\u00b2 = 0.9903 \u2014 much higher than the "
+            "full-data fit. This suggests the late-July 2009 date is not a statistical "
+            "artifact of bubble peaks but rather where Bitcoin\u2019s ",
+            html.I("floor price"),
+            " behavior begins following a power law. The support-line slope (5.04) closely "
+            "matches the full-data optimal (5.08).",
+            html.Br(), html.Br(),
+            "Blockchain analysis of 2009 shows virtually zero economic "
             "transactions \u2014 all activity was mining with near-zero on-chain transfers. "
             "The first dollar-denominated transactions appear in late 2009, with real "
             "economic usage beginning mid-2010.",

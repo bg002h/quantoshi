@@ -1,16 +1,20 @@
-"""Flask API routes for BTCPay payment-gated MC simulations.
+"""Flask API routes for BTCPay payment-gated MC simulations and documentation.
 
 Routes:
     POST /api/mc/invoice          — create a BTCPay invoice
     GET  /api/mc/invoice/<id>     — check invoice status
     POST /api/mc/verify           — verify a payment token
+    GET  /docs/architecture       — architecture guide (HTML)
+    GET  /docs/user-manual        — user manual (HTML)
 
 Registered on the Flask server via register_routes(server).
 """
 
+import os
 import re
 import time
 import logging
+import markdown as _md
 from collections import defaultdict
 from flask import jsonify, request
 
@@ -76,6 +80,50 @@ def _client_ip() -> str:
 
 def register_routes(server) -> None:
     """Register MC payment API routes on the Flask server."""
+
+    # ── Documentation routes ─────────────────────────────────────────────
+    _DOC_DIR = os.path.join(os.path.dirname(__file__), "..", "docs")
+
+    def _render_doc(filename, title):
+        doc_path = os.path.join(_DOC_DIR, filename)
+        try:
+            with open(doc_path) as f:
+                md_content = f.read()
+        except FileNotFoundError:
+            return "Document not found", 404
+        html_body = _md.markdown(md_content, extensions=["tables", "fenced_code"])
+        return f"""<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{title} — Quantoshi</title>
+<style>
+body {{ background:#1a1a2e; color:#ddd; font-family:system-ui,sans-serif;
+       max-width:900px; margin:0 auto; padding:24px 16px; line-height:1.6; }}
+a {{ color:#00d4ff; }}
+h1,h2,h3 {{ color:#00d4ff; }}
+h4,h5,h6 {{ color:#8ecae6; }}
+table {{ border-collapse:collapse; width:100%; margin:16px 0; }}
+th,td {{ border:1px solid #444; padding:6px 10px; text-align:left; }}
+th {{ background:#2a3a5e; color:#00d4ff; }}
+code {{ background:#16213e; padding:2px 6px; border-radius:3px; font-size:0.9em; }}
+pre {{ background:#16213e; padding:12px; border-radius:6px; overflow-x:auto; }}
+pre code {{ background:none; padding:0; }}
+.back {{ display:inline-block; margin-bottom:16px; color:#888; text-decoration:none; }}
+.back:hover {{ color:#00d4ff; }}
+</style>
+</head><body>
+<a class="back" href="/">\u2190 Back to Quantoshi</a>
+<article>{html_body}</article>
+</body></html>"""
+
+    @server.route("/docs/architecture")
+    def _docs_architecture():
+        return _render_doc("architecture.md", "Architecture Guide")
+
+    @server.route("/docs/user-manual")
+    def _docs_user_manual():
+        return _render_doc("user_manual.md", "User Manual")
 
     if not btcpay._HAS_BTCPAY:
         # No BTCPay configured — register stub routes that always return "free"

@@ -74,9 +74,10 @@ _FAQ = [
             ". Five independent lines of evidence converge on this date:",
             html.Br(), html.Br(),
             html.Strong("1. Residual autocorrelation (Durbin-Watson): "),
-            "Sweeping 546 candidate genesis dates, July 25 produces residuals closest "
-            "to white noise (DW nearest 2.0), ranking #1. Low autocorrelation means "
-            "the model captures the true trend without systematic bias.",
+            "Sweeping 546 candidate genesis dates, July 25 produces the least "
+            "autocorrelated residuals (DW = 0.004, ranking #1 of 546 candidates). "
+            "While still far from the ideal 2.0 \u2014 due to bubble cycle structure, "
+            "not wrong model choice \u2014 this date minimizes the systematic bias.",
             html.Br(), html.Br(),
             html.Strong("2. Out-of-sample prediction: "),
             "Fitting on partial data (train up to 2016, 2019, or 2022) and predicting "

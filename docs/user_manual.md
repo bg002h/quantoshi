@@ -190,7 +190,7 @@ total BTC from all lots becomes the starting stack for that simulation.
 
 ### Tab 7: Model Info
 
-Detailed documentation of all four price models (Quantile Regression / Bubble
+Detailed documentation of the price models (Quantile Regression / Bubble
 Model, Power Law, Stock-to-Flow, Monte Carlo) including formulas, fitted
 coefficients, and methodology. Organized as an accordion — directly linkable
 via URL paths like `/7.3` (opens the 3rd section).

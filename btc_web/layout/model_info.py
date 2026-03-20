@@ -27,7 +27,7 @@ def _model_info_tab():
                     html.H5("Price Models & Simulation Reference",
                             className="mb-3 mt-2"),
                     html.P(
-                        "Quantoshi uses four price models and a Monte Carlo simulation engine. "
+                        "Quantoshi uses several price models and a Monte Carlo simulation engine. "
                         "All models operate in log\u2081\u2080 space where t is years since "
                         "July 25, 2009 \u2014 the statistically optimal time origin for the "
                         "power law fit, confirmed independently by multiple researchers. "

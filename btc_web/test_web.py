@@ -4163,5 +4163,59 @@ class TestPalettes:
             assert fig is not None, f"dca failed for {pal_key}"
 
 
+_EF_PKL = str(_ROOT / "btc_app" / "model_data_ef.pkl")
+_EF_SKIP = not Path(_EF_PKL).exists()
+
+
+@pytest.mark.skipif(_EF_SKIP, reason="model_data_ef.pkl not found")
+class TestEmpiricalFloorModel:
+    """Tests for EmpiricalFloorModel."""
+
+    @pytest.fixture(autouse=True)
+    def _load_model(self):
+        from btc_core import EmpiricalFloorModel
+        self.model = EmpiricalFloorModel(_EF_PKL)
+
+    def test_protocol_fields(self):
+        assert self.model.name == "BM Empirical Floor"
+        assert self.model.short_name == "ef"
+        assert self.model.quantized is True
+        assert isinstance(self.model.quantiles, list)
+        assert len(self.model.quantiles) > 10
+        assert isinstance(self.model.colors, dict)
+        assert isinstance(self.model.fits, dict)
+        assert 0.5 in self.model.fits
+
+    def test_price_at_scalar(self):
+        p = self.model.price_at(0.5, 10.0)
+        assert float(p) > 0
+
+    def test_price_at_array(self):
+        t = np.array([5.0, 10.0, 15.0])
+        prices = self.model.price_at(0.5, t)
+        assert len(prices) == 3
+        assert all(p > 0 for p in prices)
+
+    def test_quantile_ordering(self):
+        p10 = float(self.model.price_at(0.1, 10.0))
+        p50 = float(self.model.price_at(0.5, 10.0))
+        p90 = float(self.model.price_at(0.9, 10.0))
+        assert p10 < p50
+        assert p50 < p90
+
+    def test_interp_price(self):
+        p = self.model.interp_price(0.37, 10.0)
+        assert p > 0
+
+    def test_find_percentile(self):
+        t = 12.0
+        p50 = float(self.model.price_at(0.5, t))
+        q = self.model.find_percentile(t, p50)
+        assert abs(q - 0.5) < 0.1
+
+    def test_dash_style(self):
+        assert self.model.dash_style == "dashdot"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

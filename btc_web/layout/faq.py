@@ -99,6 +99,17 @@ _FAQ = [
             html.I("floor price"),
             " begins following a power law, independent of bubble peaks.",
             html.Br(), html.Br(),
+            html.Strong("4b. Log-time binned minimum support: "),
+            "To address over-representation of recent data in log-time, the time axis "
+            "is divided into 34 equal-width bins in log\u2081\u2080(t) and the minimum price "
+            "in each bin is taken. This gives each era equal weight regardless of data "
+            "density. The optimal genesis is June 25, 2009 (R\u00b2 = 0.984); July 28 "
+            "ranks #3 of 944 candidates.",
+            html.Br(),
+            html.Img(src="/assets/support_logbin34.png",
+                     style={"width": "100%", "maxWidth": "700px", "borderRadius": "8px",
+                            "marginTop": "8px", "marginBottom": "8px"}),
+            html.Br(),
             html.Strong("5. Hand-drawn Q10 support line: "),
             "A line drawn by eye through two support points \u2014 the end of the "
             "~$0.065 flat price run (Oct 2010, t\u22481.18 yr) and the Dec 2022 bear "
@@ -106,6 +117,10 @@ _FAQ = [
             "exactly 10% of all historical prices below it. Sweeping genesis dates to "
             "find which origin keeps this line at Q10%, the answer is July 26, 2009 "
             "\u2014 confirming the same week as all other methods.",
+            html.Br(),
+            html.Img(src="/assets/support_handdrawn_q10.png",
+                     style={"width": "100%", "maxWidth": "700px", "borderRadius": "8px",
+                            "marginTop": "8px", "marginBottom": "8px"}),
             html.Br(), html.Br(),
             "Blockchain analysis of 2009 shows virtually zero economic "
             "transactions \u2014 only ~62 blocks/day of mining (below the 144/day target) "

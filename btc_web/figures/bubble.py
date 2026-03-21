@@ -51,48 +51,50 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     # ── shading between adjacent quantiles ───────────────────────────────────
     sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])])
-
-    # Pre-compute prices for all selected quantiles
-    _price_cache = {}
-    for q in sel_qs:
-        if q in model.fits:
-            _price_cache[q] = _round_trace_data(model.price_at(q, t_arr) * (stack if stack > 0 else 1))
-
     _thermal = _build_thermal_colors(sel_qs, palette)
 
-    if p.get("shade") and len(sel_qs) >= 2:
-        for j in range(len(sel_qs) - 1):
-            if sel_qs[j] not in _price_cache or sel_qs[j+1] not in _price_cache:
-                continue
-            lo_p = _price_cache[sel_qs[j]]
-            hi_p = _price_cache[sel_qs[j+1]]
-            col  = _thermal.get(sel_qs[j], model.colors.get(sel_qs[j], "#888888"))
-            traces.append(go.Scatter(
-                x=list(t_arr), y=list(lo_p),
-                mode="lines", line=dict(width=0),
-                showlegend=False, hoverinfo="skip",
-            ))
-            traces.append(go.Scatter(
-                x=list(t_arr), y=list(hi_p),
-                mode="lines", line=dict(width=0), fill="tonexty",
-                fillcolor=_hex_alpha(col, _SHADE_ALPHA),
-                showlegend=False, hoverinfo="skip",
-            ))
+    bub_active = "bub" in p.get("active_models", ["bub"])
 
-    # ── quantile lines (thermal palette + neon glow) ─────────────────────────
-    for q in sel_qs:
-        if q not in _price_cache:
-            continue
-        prices = _price_cache[q]
-        lbl = _fmt_q_label(q)
-        if stack > 0:
-            lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
-        col = _thermal.get(q, model.colors.get(q, "#888888"))
-        traces.append(go.Scatter(
-            x=list(t_arr), y=list(prices),
-            mode="lines", name=lbl,
-            line=dict(color=col, width=_QR_LINE_WIDTH),
-        ))
+    if bub_active:
+        # Pre-compute prices for all selected quantiles
+        _price_cache = {}
+        for q in sel_qs:
+            if q in model.fits:
+                _price_cache[q] = _round_trace_data(model.price_at(q, t_arr) * (stack if stack > 0 else 1))
+
+        if p.get("shade") and len(sel_qs) >= 2:
+            for j in range(len(sel_qs) - 1):
+                if sel_qs[j] not in _price_cache or sel_qs[j+1] not in _price_cache:
+                    continue
+                lo_p = _price_cache[sel_qs[j]]
+                hi_p = _price_cache[sel_qs[j+1]]
+                col  = _thermal.get(sel_qs[j], model.colors.get(sel_qs[j], "#888888"))
+                traces.append(go.Scatter(
+                    x=list(t_arr), y=list(lo_p),
+                    mode="lines", line=dict(width=0),
+                    showlegend=False, hoverinfo="skip",
+                ))
+                traces.append(go.Scatter(
+                    x=list(t_arr), y=list(hi_p),
+                    mode="lines", line=dict(width=0), fill="tonexty",
+                    fillcolor=_hex_alpha(col, _SHADE_ALPHA),
+                    showlegend=False, hoverinfo="skip",
+                ))
+
+        # ── quantile lines (thermal palette + neon glow) ─────────────────────
+        for q in sel_qs:
+            if q not in _price_cache:
+                continue
+            prices = _price_cache[q]
+            lbl = _fmt_q_label(q)
+            if stack > 0:
+                lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
+            col = _thermal.get(q, model.colors.get(q, "#888888"))
+            traces.append(go.Scatter(
+                x=list(t_arr), y=list(prices),
+                mode="lines", name=lbl,
+                line=dict(color=col, width=_QR_LINE_WIDTH),
+            ))
 
     # ── alternative model overlays ────────────────────────────────────────────
     for model_key in p.get("active_models", []):
@@ -177,7 +179,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         ))
 
     # ── bubble support ────────────────────────────────────────────────────────
-    if p.get("show_sup"):
+    if bub_active and p.get("show_sup"):
         mask = (m.years_plot_bm >= t_lo) & (m.years_plot_bm <= t_hi)
         sup_y = m.support_bm[mask] * (stack if stack > 0 else 1)
         traces.append(go.Scatter(
@@ -189,7 +191,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         ))
 
     # ── bubble composite ──────────────────────────────────────────────────────
-    if p.get("show_comp"):
+    if bub_active and p.get("show_comp"):
         n = int(p.get("n_future", 0))
         n = min(n, len(m.comp_by_n) - 1)
         mask = (m.years_plot_bm >= t_lo) & (m.years_plot_bm <= t_hi)

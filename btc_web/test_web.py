@@ -4413,5 +4413,53 @@ class TestBubbleModelToggle:
         assert "bub" in cl.value  # checked by default
 
 
+class TestBubbleModelGating:
+    """Main BM traces are conditional on 'bub' in active_models."""
+
+    _BASE = dict(
+        selected_qs=[0.5] if 0.5 in _app_ctx.DEFAULT_MODEL.fits else [0.10],
+        shade=True, show_ols=False, show_ucl=False,
+        show_data=False, show_today=False,
+        show_legend=False, minor_grid=False,
+        show_comp=True, show_sup=True,
+        xscale="log", yscale="log",
+        xmin=2012, xmax=2030,
+        ymin=0.01, ymax=1e7,
+        n_future=3, pt_size=3, pt_alpha=0.3,
+        stack=0, show_stack=False, use_lots=False, lots=[],
+        comp_color="#FFD700", comp_lw=2.0,
+        sup_color="#888888", sup_lw=1.5,
+        palette="default",
+    )
+
+    def test_bub_active_draws_traces(self):
+        fig = build_bubble_figure(M, dict(self._BASE, active_models=["bub"]))
+        names = [t.name for t in fig.data if t.name]
+        assert any("Bubble composite" in n for n in names)
+        assert any("Bubble support" in n for n in names)
+
+    def test_bub_inactive_hides_traces(self):
+        fig = build_bubble_figure(M, dict(self._BASE, active_models=[]))
+        # No traces should lack legendgroup (BM traces lack it; overlays always set it)
+        bm_traces = [t for t in fig.data if t.name
+                     and not getattr(t, "legendgroup", None)
+                     and t.name not in ("Price data", "Lots")]
+        assert len(bm_traces) == 0, f"BM traces should be hidden, found: {[t.name for t in bm_traces]}"
+
+    def test_bub_inactive_preserves_data_scatter(self):
+        """Data scatter, OLS, UCL, today line survive when BM is off."""
+        fig = build_bubble_figure(M, dict(self._BASE,
+            active_models=[], show_data=True, show_today=True,
+            show_ols=True, show_ucl=True))
+        names = [t.name for t in fig.data if t.name]
+        assert any("Price data" in n for n in names)
+
+    def test_bub_inactive_still_has_axis_config(self):
+        """Even with BM hidden, chart should render without error."""
+        fig = build_bubble_figure(M, dict(self._BASE, active_models=[]))
+        assert isinstance(fig, go.Figure)
+        assert fig.layout.xaxis.type in ("log", "linear", "-")
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

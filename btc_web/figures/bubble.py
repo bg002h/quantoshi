@@ -28,6 +28,14 @@ from figures.common import (
 )
 
 
+def _r2_suffix(mdl, q):
+    """Return '  R²=X.XXXX' suffix if R² available for model at quantile q, else ''."""
+    r2 = getattr(mdl, 'r2_per_quantile', {}).get(q)
+    if r2 is not None:
+        return f"  R\u00b2={r2:.4f}"
+    return ""
+
+
 def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     """
     p keys: selected_qs, shade, xscale, yscale, xmin, xmax, ymin, ymax,
@@ -86,7 +94,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             if q not in _price_cache:
                 continue
             prices = _price_cache[q]
-            lbl = _fmt_q_label(q)
+            lbl = _fmt_q_label(q) + _r2_suffix(model, q)
             if stack > 0:
                 lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
             col = _thermal.get(q, model.colors.get(q, "#888888"))
@@ -110,7 +118,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     continue
                 prices = _round_trace_data(mdl.price_at(q, t_arr) * (stack if stack > 0 else 1))
                 col = mdl.colors.get(q, "#888888")
-                lbl = f"{mdl.name} {_fmt_q_label(q, '')}"
+                lbl = f"{mdl.name} {_fmt_q_label(q, '')}" + _r2_suffix(mdl, q)
                 if stack > 0:
                     lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
                 traces.append(go.Scatter(
@@ -125,7 +133,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             prices = mdl.price_at(0.5, t_arr)
             if stack > 0:
                 prices = prices * stack
-            lbl = mdl.name
+            lbl = mdl.name + _r2_suffix(mdl, 0.5)
             if stack > 0:
                 lbl += f"  \u2192  {fmt_price(float(np.asarray(prices)[-1]))}"
             prices = _round_trace_data(np.asarray(prices))
@@ -204,7 +212,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             p_ols = p_ols * stack
         traces.append(go.Scatter(
             x=list(t_arr), y=list(p_ols),
-            mode="lines", name="OLS",
+            mode="lines", name=f"OLS  R\u00b2={m.ols_r2:.4f}" if hasattr(m, 'ols_r2') and m.ols_r2 else "OLS",
             line=dict(color="#888888", dash="dash", width=1.3),
             opacity=0.8,
         ))

@@ -4584,5 +4584,62 @@ class TestModelR2:
         assert 0.9 < _M.ols_r2 <= 1.0
 
 
+class TestR2InLegend:
+    """Legend labels include R² where available."""
+
+    _BASE = dict(
+        selected_qs=[0.5] if 0.5 in _app_ctx.DEFAULT_MODEL.fits else [0.10],
+        shade=False, show_ols=True, show_ucl=True,
+        show_data=False, show_today=False,
+        show_legend=True, minor_grid=False,
+        show_comp=True, show_sup=True,
+        xscale="log", yscale="log",
+        xmin=2012, xmax=2030,
+        ymin=0.01, ymax=1e7,
+        n_future=3, pt_size=3, pt_alpha=0.3,
+        stack=0, show_stack=False, use_lots=False, lots=[],
+        comp_color="#FFD700", comp_lw=2.0,
+        sup_color="#888888", sup_lw=1.5,
+        palette="default",
+    )
+
+    def test_bm_quantile_has_r2(self):
+        fig = build_bubble_figure(M, dict(self._BASE, active_models=["bub"]))
+        q_traces = [t for t in fig.data if t.name and "Q" in t.name
+                    and "%" in t.name and "R\u00b2" in t.name
+                    and not getattr(t, "legendgroup", None)]
+        assert len(q_traces) > 0, "BM quantile lines should show R²"
+
+    def test_overlay_quantile_has_r2(self):
+        fig = build_bubble_figure(M, dict(self._BASE, active_models=["bub", "pl"]))
+        pl_traces = [t for t in fig.data if t.name and "Power Law" in t.name
+                     and "R\u00b2" in t.name]
+        assert len(pl_traces) > 0, "PL overlay lines should show R²"
+
+    def test_ols_has_r2(self):
+        fig = build_bubble_figure(_app_ctx.M, dict(self._BASE, active_models=["bub"]))
+        ols_traces = [t for t in fig.data if t.name and t.name.startswith("OLS")]
+        assert len(ols_traces) > 0
+        assert "R\u00b2" in ols_traces[0].name
+
+    def test_s2f_has_r2(self):
+        fig = build_bubble_figure(M, dict(self._BASE, active_models=["s2f"]))
+        s2f_traces = [t for t in fig.data if t.name and "Stock-to-Flow" in t.name]
+        assert len(s2f_traces) > 0
+        assert "R\u00b2" in s2f_traces[0].name
+
+    def test_support_no_r2(self):
+        fig = build_bubble_figure(M, dict(self._BASE, active_models=["bub"]))
+        sup_traces = [t for t in fig.data if t.name and "support" in t.name]
+        for t in sup_traces:
+            assert "R\u00b2" not in t.name, f"Support should not have R²: {t.name}"
+
+    def test_ucl_no_r2(self):
+        fig = build_bubble_figure(M, dict(self._BASE, active_models=["bub"]))
+        ucl_traces = [t for t in fig.data if t.name and "Unfairly Cheap" in t.name]
+        for t in ucl_traces:
+            assert "R\u00b2" not in t.name
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

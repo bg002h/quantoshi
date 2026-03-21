@@ -110,7 +110,7 @@ def _bubble_controls():
                               className="scan-output"),
                 ]),
             ),
-            dcc.Store(id="scan-output-field", data="q"),
+            dcc.Store(id="scan-output-field", data=["p", "d"]),  # last-2-edited history → q is output
             dcc.Store(id="scan-active-rows", data=[]),
             html.Div(id="scan-results"),
         ),

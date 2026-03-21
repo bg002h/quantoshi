@@ -23,6 +23,16 @@ def _solve_date(model, q_frac, target_price):
         return "\u2014"
 
 
+def _output_from_history(history):
+    """The output field is whichever of p/d/q is NOT in the last-two-edited list."""
+    all_fields = {"p", "d", "q"}
+    remaining = all_fields - set(history[-2:] if len(history) >= 2 else history)
+    if len(remaining) == 1:
+        return remaining.pop()
+    # Ambiguous — default to q
+    return "q"
+
+
 @callback(
     Output("scan-output-field", "data"),
     Output("scan-results", "children"),
@@ -34,25 +44,26 @@ def _solve_date(model, q_frac, target_price):
     Input("btc-price-store", "data"),
     prevent_initial_call=False,
 )
-def update_scanner(price_val, date_val, q_val, current_output, live_price):
+def update_scanner(price_val, date_val, q_val, edit_history, live_price):
     """Compute the missing variable across all models."""
     trigger = ctx.triggered_id if ctx.triggered_id else None
     genesis = _app_ctx.M.genesis
 
-    # Determine which field is output
-    if trigger == "scan-price":
-        output_field = "q"
-    elif trigger == "scan-date":
-        if current_output == "p":
-            output_field = "p"
-        else:
-            output_field = "q"
-    elif trigger == "scan-q":
-        output_field = "p"
-    elif trigger == "btc-price-store":
-        output_field = current_output or "q"
-    else:
-        output_field = "q"
+    # edit_history is a list of the last 2 edited fields, e.g. ["p", "d"]
+    if not isinstance(edit_history, list):
+        edit_history = ["p", "d"]  # default: price+date edited → q is output
+
+    # Update history based on what was just edited
+    trigger_map = {"scan-price": "p", "scan-date": "d", "scan-q": "q"}
+    if trigger in trigger_map:
+        field = trigger_map[trigger]
+        # Remove this field if already in history, then append
+        edit_history = [f for f in edit_history if f != field]
+        edit_history.append(field)
+        # Keep only last 2
+        edit_history = edit_history[-2:]
+
+    output_field = _output_from_history(edit_history)
 
     # Resolve defaults
     use_live = (price_val is None or price_val == "")
@@ -75,7 +86,7 @@ def update_scanner(price_val, date_val, q_val, current_output, live_price):
     rows = []
 
     if output_field == "q" and price is not None:
-        # Unfairly Cheap Line: show how far above the floor
+        # Unfairly Cheap Line
         ucl_price = 10 ** (_app_ctx.UCL_INTERCEPT + _app_ctx.UCL_SLOPE * np.log10(t))
         ucl_ratio = price / ucl_price
         ucl_style = {"fontSize": "11px", "color": "#ff6b6b"}
@@ -129,7 +140,7 @@ def update_scanner(price_val, date_val, q_val, current_output, live_price):
               "marginTop": "6px"}) if rows else html.Small(
                   "Enter values above", className="text-muted")
 
-    return (output_field, table, hint_style)
+    return (edit_history, table, hint_style)
 
 
 @callback(

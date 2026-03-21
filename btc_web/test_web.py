@@ -4383,5 +4383,35 @@ class TestModelScanner:
         assert _app_ctx.PRICE_MODELS["qr"].name == "Quantile Regression"
 
 
+class TestBubbleModelToggle:
+    """bub-model-show includes 'bub' checked by default."""
+
+    def test_bub_in_model_show_options(self):
+        """The bubble model appears in Display Models checklist."""
+        from layout.bubble import _bubble_controls
+        controls = _bubble_controls()
+        # Find the bub-model-show checklist
+        # Note: Dash components may be falsy (e.g. empty value=[]) so use `is not None`
+        def find_checklist(component):
+            if hasattr(component, 'id') and component.id == 'bub-model-show':
+                return component
+            if hasattr(component, 'children'):
+                kids = component.children
+                if isinstance(kids, list):
+                    for c in kids:
+                        r = find_checklist(c)
+                        if r is not None: return r
+                elif kids is not None:
+                    r = find_checklist(kids)
+                    if r is not None: return r
+            return None
+        cl = find_checklist(controls)
+        assert cl is not None
+        option_values = [o["value"] for o in cl.options]
+        assert "bub" in option_values
+        assert option_values[0] == "bub"  # first in list
+        assert "bub" in cl.value  # checked by default
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

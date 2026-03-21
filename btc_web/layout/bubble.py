@@ -63,12 +63,12 @@ def _bubble_controls():
                           labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
             *_legend_pos_dropdown("bub", "top-left"),
-            _lbl("Overlay models"),
+            _lbl("Display models"),
             dcc.Checklist(id="bub-model-show",
                           options=[{"label": f" {mdl.name}", "value": mdl.short_name}
                                    for mdl in _app_ctx.PRICE_MODELS.values()
-                                   if mdl.short_name != "bub"],
-                          value=[], inline=True,
+                                   if mdl.short_name not in _app_ctx.MODEL_SENTINELS],
+                          value=["bub"], inline=True,
                           inputStyle={"marginRight": "4px"},
                           labelStyle={"marginRight": "12px", "fontSize": "11px"},
                           style={"marginBottom": "8px"}),

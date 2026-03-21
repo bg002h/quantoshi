@@ -168,7 +168,7 @@ _CHECKLIST_OPTIONS = {
     "ret-model-show":     ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"],
     "sc-model-show":      ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"],
     "hm-model-show":      ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"],
-    "bub-model-show":     ["pl", "lppl", "exp", "s2f", "ef"],
+    "bub-model-show":     ["pl", "lppl", "exp", "s2f", "ef", "bub"],
 }
 
 
@@ -245,6 +245,11 @@ def _decode_snapshot(encoded):
             state[f"{cid}:{prop}"] = val
         if lots:
             state["_lots"] = lots
+        # Backward compat: old links didn't have "bub" in bub-model-show
+        _bms_key = "bub-model-show:value"
+        if _bms_key in state and isinstance(state[_bms_key], list):
+            if "bub" not in state[_bms_key]:
+                state[_bms_key] = ["bub"] + state[_bms_key]
         return state
     except Exception:
         return None

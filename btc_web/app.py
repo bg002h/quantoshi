@@ -153,6 +153,17 @@ if _ef_pkl.exists():
     _app_ctx.PRICE_MODELS["ef"] = EmpiricalFloorModel(str(_ef_pkl))
 _app_ctx.DEFAULT_MODEL = _app_ctx.PRICE_MODELS["bub"]
 
+# ── compute per-quantile R² for all models ───────────────────────────────
+import numpy as np
+from btc_core import compute_model_r2, _compute_log_r2
+for _mdl in _app_ctx.PRICE_MODELS.values():
+    compute_model_r2(_mdl, M.price_years, M.price_prices)
+
+# OLS R²
+_ols_pred = 10 ** (M.ols_intercept + M.ols_slope * np.log10(
+    np.maximum(M.price_years[M.price_years >= 1.0], 0.1)))
+M.ols_r2 = _compute_log_r2(M.price_prices[M.price_years >= 1.0], _ols_pred)
+
 # ── Apply thermal color palette to quantile traces ────────────────────────
 from figures import _build_thermal_colors
 _thermal = _build_thermal_colors(M.QR_QUANTILES)

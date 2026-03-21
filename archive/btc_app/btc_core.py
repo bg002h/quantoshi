@@ -279,6 +279,44 @@ def load_model_data(explicit_path=None):
     return ModelData(path)
 
 
+# ── R² computation ────────────────────────────────────────────────────────────
+
+def _compute_log_r2(actual_prices, predicted_prices):
+    """R² in log10 space. Returns float or None if degenerate."""
+    log_a = np.log10(np.maximum(np.asarray(actual_prices, float), 1e-10))
+    log_p = np.log10(np.maximum(np.asarray(predicted_prices, float), 1e-10))
+    ss_res = np.sum((log_a - log_p) ** 2)
+    ss_tot = np.sum((log_a - np.mean(log_a)) ** 2)
+    if ss_tot == 0:
+        return None
+    return float(1.0 - ss_res / ss_tot)
+
+
+def compute_model_r2(mdl, price_years, price_prices):
+    """Compute per-quantile R² for any model with price_at() and quantiles."""
+    mdl.r2_per_quantile = {}
+    mask = price_years >= 1.0
+    t = price_years[mask]
+    actual = price_prices[mask]
+    if hasattr(mdl, 'quantiles') and mdl.quantiles:
+        for q in mdl.quantiles:
+            try:
+                predicted = np.asarray(mdl.price_at(q, t), float)
+                r2 = _compute_log_r2(actual, predicted)
+                if r2 is not None:
+                    mdl.r2_per_quantile[q] = r2
+            except Exception:
+                pass
+    elif hasattr(mdl, 'price_at'):
+        try:
+            predicted = np.asarray(mdl.price_at(0.5, t), float)
+            r2 = _compute_log_r2(actual, predicted)
+            if r2 is not None:
+                mdl.r2_per_quantile[0.5] = r2
+        except Exception:
+            pass
+
+
 # ── PriceModel protocol + implementations ────────────────────────────────────
 
 from typing import Protocol, runtime_checkable

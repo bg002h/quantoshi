@@ -4532,5 +4532,57 @@ class TestAutoYWithBubToggle:
         assert len(result) == 2
 
 
+class TestModelR2:
+    """All registered models get r2_per_quantile after startup."""
+
+    def test_bubble_model_has_r2(self):
+        mdl = _app_ctx.PRICE_MODELS.get("bub")
+        assert hasattr(mdl, "r2_per_quantile")
+        assert isinstance(mdl.r2_per_quantile, dict)
+        assert len(mdl.r2_per_quantile) > 0
+        for q, r2 in mdl.r2_per_quantile.items():
+            assert 0 < r2 <= 1.0, f"BM Q{q}: R²={r2}"
+
+    def test_pl_model_has_r2(self):
+        mdl = _app_ctx.PRICE_MODELS.get("pl")
+        assert hasattr(mdl, "r2_per_quantile")
+        assert len(mdl.r2_per_quantile) > 0
+        vals = list(mdl.r2_per_quantile.values())
+        assert all(0 < v <= 1.0 for v in vals)
+
+    def test_ef_model_has_r2(self):
+        ef = _app_ctx.PRICE_MODELS.get("ef")
+        if ef is None:
+            pytest.skip("EF model not loaded")
+        assert hasattr(ef, "r2_per_quantile")
+        assert len(ef.r2_per_quantile) > 0
+
+    def test_s2f_model_has_r2(self):
+        mdl = _app_ctx.PRICE_MODELS.get("s2f")
+        assert hasattr(mdl, "r2_per_quantile")
+        assert 0.5 in mdl.r2_per_quantile
+
+    def test_lppl_model_has_r2(self):
+        mdl = _app_ctx.PRICE_MODELS.get("lppl")
+        assert hasattr(mdl, "r2_per_quantile")
+        assert len(mdl.r2_per_quantile) > 0
+
+    def test_exp_model_has_r2(self):
+        mdl = _app_ctx.PRICE_MODELS.get("exp")
+        assert hasattr(mdl, "r2_per_quantile")
+        assert len(mdl.r2_per_quantile) > 0
+
+    def test_qr_model_has_r2(self):
+        mdl = _app_ctx.PRICE_MODELS.get("qr")
+        assert hasattr(mdl, "r2_per_quantile")
+        assert len(mdl.r2_per_quantile) > 0
+
+    def test_ols_r2_on_model_data(self):
+        _M = _app_ctx.M
+        assert hasattr(_M, "ols_r2")
+        assert isinstance(_M.ols_r2, float)
+        assert 0.9 < _M.ols_r2 <= 1.0
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

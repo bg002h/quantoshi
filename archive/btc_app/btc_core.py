@@ -443,6 +443,26 @@ class _CompositeModel:
             self.fits[q] = {"z": float(norm.ppf(q))}
         self.quantiles = sorted(self.fits.keys())
 
+    @property
+    def comp_by_n(self):
+        return self._comp_by_n
+
+    @property
+    def support_plot(self):
+        return self._support_plot
+
+    @property
+    def t_grid(self):
+        return self._t_grid
+
+    @property
+    def bm_r2(self):
+        return self._bm_r2
+
+    @property
+    def n_future_max(self):
+        return self._n_future_max
+
 
 class BubbleModel(_CompositeModel):
     """Bubble model with asymmetric shrinking Gaussian bands around composite."""

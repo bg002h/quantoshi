@@ -838,6 +838,46 @@ class TestMcUploadFields:
         assert values == [10, 20, 30, 40]
 
 
+class TestCompositeModelAccessors:
+    """EmpiricalFloorModel exposes composite data via public properties."""
+
+    def test_ef_has_comp_by_n(self):
+        ef = _app_ctx.PRICE_MODELS.get("ef")
+        if ef is None:
+            pytest.skip("EF model not loaded")
+        assert hasattr(ef, "comp_by_n")
+        assert isinstance(ef.comp_by_n, list)
+        assert len(ef.comp_by_n) > 0
+
+    def test_ef_has_support_plot(self):
+        ef = _app_ctx.PRICE_MODELS.get("ef")
+        if ef is None:
+            pytest.skip("EF model not loaded")
+        assert hasattr(ef, "support_plot")
+        assert len(ef.support_plot) > 0
+
+    def test_ef_has_t_grid(self):
+        ef = _app_ctx.PRICE_MODELS.get("ef")
+        if ef is None:
+            pytest.skip("EF model not loaded")
+        assert hasattr(ef, "t_grid")
+        assert len(ef.t_grid) == len(ef.support_plot)
+
+    def test_ef_has_bm_r2(self):
+        ef = _app_ctx.PRICE_MODELS.get("ef")
+        if ef is None:
+            pytest.skip("EF model not loaded")
+        assert isinstance(ef.bm_r2, float)
+        assert 0 < ef.bm_r2 < 1
+
+    def test_ef_has_n_future_max(self):
+        ef = _app_ctx.PRICE_MODELS.get("ef")
+        if ef is None:
+            pytest.skip("EF model not loaded")
+        assert isinstance(ef.n_future_max, int)
+        assert ef.n_future_max >= 0
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Section 5: Figure builder smoke tests — verify each tab produces a go.Figure
 # ═══════════════════════════════════════════════════════════════════════════════

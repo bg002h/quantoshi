@@ -4461,5 +4461,62 @@ class TestBubbleModelGating:
         assert fig.layout.xaxis.type in ("log", "linear", "-")
 
 
+class TestEFCompositeOverlay:
+    """EF overlay renders composite/support/future when enabled."""
+
+    _BASE = dict(
+        selected_qs=[0.5] if 0.5 in _app_ctx.DEFAULT_MODEL.fits else [0.10],
+        shade=False, show_ols=False, show_ucl=False,
+        show_data=False, show_today=False,
+        show_legend=False, minor_grid=False,
+        show_comp=True, show_sup=True,
+        xscale="log", yscale="log",
+        xmin=2012, xmax=2030,
+        ymin=0.01, ymax=1e7,
+        n_future=3, pt_size=3, pt_alpha=0.3,
+        stack=0, show_stack=False, use_lots=False, lots=[],
+        comp_color="#FFD700", comp_lw=2.0,
+        sup_color="#888888", sup_lw=1.5,
+        palette="default",
+    )
+
+    def test_ef_overlay_draws_composite(self):
+        if "ef" not in _app_ctx.PRICE_MODELS:
+            pytest.skip("EF model not loaded")
+        fig = build_bubble_figure(M, dict(self._BASE, active_models=["ef"]))
+        names = [t.name for t in fig.data if t.name]
+        assert any("Empirical Floor" in n and "composite" in n for n in names)
+
+    def test_ef_overlay_draws_support(self):
+        if "ef" not in _app_ctx.PRICE_MODELS:
+            pytest.skip("EF model not loaded")
+        fig = build_bubble_figure(M, dict(self._BASE, active_models=["ef"]))
+        names = [t.name for t in fig.data if t.name]
+        assert any("Empirical Floor" in n and "support" in n for n in names)
+
+    def test_ef_composite_uses_own_color(self):
+        if "ef" not in _app_ctx.PRICE_MODELS:
+            pytest.skip("EF model not loaded")
+        fig = build_bubble_figure(M, dict(self._BASE, active_models=["ef"]))
+        comp_traces = [t for t in fig.data if t.name and "Empirical Floor" in t.name and "composite" in t.name]
+        assert len(comp_traces) > 0
+        assert comp_traces[0].line.color == "#D4A017"  # EF amber
+
+    def test_ef_no_composite_when_show_comp_off(self):
+        if "ef" not in _app_ctx.PRICE_MODELS:
+            pytest.skip("EF model not loaded")
+        fig = build_bubble_figure(M, dict(self._BASE, active_models=["ef"], show_comp=False))
+        names = [t.name for t in fig.data if t.name]
+        assert not any("composite" in n for n in names)
+
+    def test_both_bub_and_ef_composite(self):
+        if "ef" not in _app_ctx.PRICE_MODELS:
+            pytest.skip("EF model not loaded")
+        fig = build_bubble_figure(M, dict(self._BASE, active_models=["bub", "ef"]))
+        names = [t.name for t in fig.data if t.name]
+        assert any("Bubble composite" in n for n in names)
+        assert any("Empirical Floor" in n and "composite" in n for n in names)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

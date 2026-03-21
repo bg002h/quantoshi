@@ -134,6 +134,35 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 legendgroup=mdl.short_name,
             ))
 
+        # ── composite/support/future for _CompositeModel overlays ─────
+        if hasattr(mdl, "comp_by_n") and hasattr(mdl, "t_grid"):
+            _EF_COMP_COLOR = "#D4A017"
+            _EF_SUP_COLOR  = "#8B6914"
+            mdl_t = np.asarray(mdl.t_grid)
+            mdl_mask = (mdl_t >= t_lo) & (mdl_t <= t_hi)
+
+            if p.get("show_sup") and hasattr(mdl, "support_plot"):
+                sup_y = np.asarray(mdl.support_plot)[mdl_mask] * (stack if stack > 0 else 1)
+                traces.append(go.Scatter(
+                    x=list(mdl_t[mdl_mask]), y=list(sup_y),
+                    mode="lines", name=f"{mdl.name} support",
+                    line=dict(color=_EF_SUP_COLOR, dash="dash", width=1.5),
+                    opacity=0.9,
+                    legendgroup=mdl.short_name,
+                ))
+
+            if p.get("show_comp"):
+                n = int(p.get("n_future", 0))
+                n = min(n, len(mdl.comp_by_n) - 1)
+                comp_y = np.asarray(mdl.comp_by_n[n])[mdl_mask] * (stack if stack > 0 else 1)
+                traces.append(go.Scatter(
+                    x=list(mdl_t[mdl_mask]), y=list(comp_y),
+                    mode="lines",
+                    name=f"{mdl.name} composite (N={n})  R\u00b2={mdl.bm_r2:.4f}",
+                    line=dict(color=_EF_COMP_COLOR, width=2.0),
+                    legendgroup=mdl.short_name,
+                ))
+
     # ── scanner quantile lines ───────────────────────────────────────────────
     for sl in p.get("scanner_lines", []):
         mdl = _app_ctx.PRICE_MODELS.get(sl["model"])

@@ -24,14 +24,8 @@ def _solve_date(model, q_frac, target_price):
 
 
 @callback(
-    Output("scan-q", "value"),
-    Output("scan-price", "value"),
-    Output("scan-date", "value"),
     Output("scan-output-field", "data"),
     Output("scan-results", "children"),
-    Output("scan-q", "className"),
-    Output("scan-price", "className"),
-    Output("scan-date", "className"),
     Output("scan-price-hint", "style"),
     Input("scan-price", "value"),
     Input("scan-date", "value"),
@@ -49,9 +43,8 @@ def update_scanner(price_val, date_val, q_val, current_output, live_price):
     if trigger == "scan-price":
         output_field = "q"
     elif trigger == "scan-date":
-        # Date changed — keep the other most-recent input, solve for the third
         if current_output == "p":
-            output_field = "p"  # was already solving for price, keep that
+            output_field = "p"
         else:
             output_field = "q"
     elif trigger == "scan-q":
@@ -79,17 +72,9 @@ def update_scanner(price_val, date_val, q_val, current_output, live_price):
 
     q_frac = float(q_val) / 100.0 if q_val is not None and q_val != "" else None
 
-    input_cls = ""
-    output_cls = "scan-output"
-
     rows = []
-    out_price = no_update
-    out_date = no_update
-    out_q = no_update
-    p_cls, d_cls, q_cls = input_cls, input_cls, input_cls
 
     if output_field == "q" and price is not None:
-        q_cls = output_cls
         for key, mdl in _app_ctx.PRICE_MODELS.items():
             pct = mdl.find_percentile(t, price)
             rows.append(html.Tr([
@@ -98,13 +83,8 @@ def update_scanner(price_val, date_val, q_val, current_output, live_price):
                          "fontWeight": "bold"}),
             ], id={"type": "scan-row", "model": key},
                style={"cursor": "pointer"}))
-        qr = _app_ctx.PRICE_MODELS.get("qr")
-        if qr:
-            main_pct = qr.find_percentile(t, price)
-            out_q = round(main_pct * 100, 1)
 
     elif output_field == "p" and q_frac is not None:
-        p_cls = output_cls
         for key, mdl in _app_ctx.PRICE_MODELS.items():
             try:
                 p = float(mdl.price_at(q_frac, t))
@@ -117,15 +97,8 @@ def update_scanner(price_val, date_val, q_val, current_output, live_price):
                          "fontWeight": "bold"}),
             ], id={"type": "scan-row", "model": key},
                style={"cursor": "pointer"}))
-        qr = _app_ctx.PRICE_MODELS.get("qr")
-        if qr:
-            try:
-                out_price = round(float(qr.price_at(q_frac, t)), 2)
-            except Exception:
-                pass
 
     elif output_field == "d" and price is not None and q_frac is not None:
-        d_cls = output_cls
         for key, mdl in _app_ctx.PRICE_MODELS.items():
             date_str = _solve_date(mdl, q_frac, price)
             rows.append(html.Tr([
@@ -147,8 +120,7 @@ def update_scanner(price_val, date_val, q_val, current_output, live_price):
               "marginTop": "6px"}) if rows else html.Small(
                   "Enter values above", className="text-muted")
 
-    return (out_q, out_price, out_date, output_field, table,
-            q_cls, p_cls, d_cls, hint_style)
+    return (output_field, table, hint_style)
 
 
 @callback(

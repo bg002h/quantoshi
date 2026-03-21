@@ -202,15 +202,14 @@ To:
 
 In `btc_web/snapshot.py`, find the `_decode_snapshot` function. After the checklist bitmask decoding, add logic: if the decoded `bub-model-show` value is a list and `"bub"` is not in it, inject it. This ensures old links (which never encoded `"bub"`) still show the bubble model.
 
-Find the section where `_CHECKLIST_OPTIONS` values are decoded (look for `_mask_to_list` calls). After the loop that decodes all checklist values, add:
+In `_decode_snapshot()`, after the `for (cid, prop), val in zip(...)` loop builds the `state` dict (around line 245), before `return state`, add:
 
 ```python
-# Backward compat: old links didn't have "bub" in bub-model-show
-_bms_idx = next((i for i, (cid, _) in enumerate(_SNAPSHOT_CONTROLS)
-                 if cid == "bub-model-show"), None)
-if _bms_idx is not None and isinstance(vals[_bms_idx], list):
-    if "bub" not in vals[_bms_idx]:
-        vals[_bms_idx] = ["bub"] + vals[_bms_idx]
+        # Backward compat: old links didn't have "bub" in bub-model-show
+        _bms_key = "bub-model-show:value"
+        if _bms_key in state and isinstance(state[_bms_key], list):
+            if "bub" not in state[_bms_key]:
+                state[_bms_key] = ["bub"] + state[_bms_key]
 ```
 
 - [ ] **Step 6: Run tests**

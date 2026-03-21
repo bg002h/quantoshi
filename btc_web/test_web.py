@@ -3602,7 +3602,7 @@ class TestMcFinalizeRenderedKey:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 from btc_core import (PriceModel, _FitsBasedModel, BubbleModel, PowerLawModel,
-                      S2FModel)
+                      S2FModel, QuantileRegressionModel)
 
 
 class TestPriceModelProtocol:
@@ -3729,6 +3729,27 @@ class TestS2FModel:
 
     def test_short_name(self):
         assert self.s2f.short_name == "s2f"
+
+
+class TestQuantileRegressionModel:
+    def setup_method(self):
+        self.qr = QuantileRegressionModel(M)
+
+    def test_short_name(self):
+        assert self.qr.short_name == "qr"
+
+    def test_fits_are_qr_fits(self):
+        assert self.qr.fits is M.qr_fits
+
+    def test_price_at_matches_qr_price(self):
+        q = 0.5
+        t = 10.0
+        expected = qr_price(q, t, M.qr_fits)
+        result = self.qr.price_at(q, t)
+        np.testing.assert_allclose(result, expected)
+
+    def test_quantized(self):
+        assert self.qr.quantized is True
 
 
 class TestFitsBasedModelMethods:

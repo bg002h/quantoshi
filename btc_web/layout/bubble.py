@@ -66,7 +66,7 @@ def _bubble_controls():
             dcc.Checklist(id="bub-model-show",
                           options=[{"label": f" {mdl.name}", "value": mdl.short_name}
                                    for mdl in _app_ctx.PRICE_MODELS.values()
-                                   if mdl.short_name != "bub"],
+                                   if mdl.short_name not in ("bub", "qr")],
                           value=[], inline=True,
                           inputStyle={"marginRight": "4px"},
                           labelStyle={"marginRight": "12px", "fontSize": "11px"},

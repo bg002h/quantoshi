@@ -32,7 +32,7 @@ import dash
 import dash_bootstrap_components as dbc
 from flask import request as flask_request
 
-from btc_core import load_model_data, BubbleModel, PowerLawModel, LPPLModel, ExponentialModel, S2FModel, EmpiricalFloorModel
+from btc_core import load_model_data, BubbleModel, PowerLawModel, LPPLModel, ExponentialModel, S2FModel, EmpiricalFloorModel, QuantileRegressionModel
 from figures import FREQ_PPY
 from mc_overlay import save_trans_cache_to_disk, _get_transition_matrix
 import atexit
@@ -140,6 +140,7 @@ _app_ctx._HAS_MARKOV = _HAS_MARKOV
 
 # ── register price models ──────────────────────────────────────────────────
 _app_ctx.PRICE_MODELS["bub"] = BubbleModel(M)
+_app_ctx.PRICE_MODELS["qr"] = QuantileRegressionModel(M)
 _app_ctx.PRICE_MODELS["pl"]  = PowerLawModel(
     M.ols_intercept, M.ols_slope, M.price_years, M.price_prices,
     M.genesis, M.QR_QUANTILES)

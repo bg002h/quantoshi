@@ -350,6 +350,23 @@ class _FitsBasedModel:
         return sorted_qs[-1]
 
 
+class QuantileRegressionModel(_FitsBasedModel):
+    """Raw quantile regression fits — model-free, purely empirical.
+
+    Straight lines in log-log space. Each quantile has its own independently
+    fitted slope and intercept. This is what BubbleModel used to be before
+    the shrinking Gaussian conversion.
+    """
+    name = "Quantile Regression"
+    short_name = "qr"
+    dash_style = "solid"
+
+    def __init__(self, md):
+        self.fits = md.qr_fits
+        self.colors = dict(md.qr_colors)
+        self.quantiles = sorted(md.qr_fits.keys())
+
+
 class _CompositeModel:
     """Base for models with a shaped composite median and asymmetric shrinking
     Gaussian bands.

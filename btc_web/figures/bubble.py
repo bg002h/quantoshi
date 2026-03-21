@@ -98,6 +98,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     # ── alternative model overlays ────────────────────────────────────────────
     for model_key in p.get("active_models", []):
+        if model_key == "bub":
+            continue  # main BM drawn above, not as overlay
         mdl = _app_ctx.PRICE_MODELS.get(model_key)
         if not mdl:
             continue

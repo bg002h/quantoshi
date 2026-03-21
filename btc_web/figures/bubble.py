@@ -131,6 +131,26 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 legendgroup=mdl.short_name,
             ))
 
+    # ── scanner quantile lines ───────────────────────────────────────────────
+    for sl in p.get("scanner_lines", []):
+        mdl = _app_ctx.PRICE_MODELS.get(sl["model"])
+        if not mdl:
+            continue
+        q = sl["q"]
+        scan_prices = _round_trace_data(np.array([
+            float(mdl.price_at(q, t)) for t in t_arr]))
+        if stack > 0:
+            scan_prices = scan_prices * stack
+        nearest_q = min(mdl.quantiles, key=lambda qq: abs(qq - q)) if mdl.quantiles else q
+        col = mdl.colors.get(nearest_q, "#ffd93d")
+        traces.append(go.Scatter(
+            x=list(t_arr), y=list(scan_prices),
+            mode="lines",
+            name=f"{mdl.name} Q{q*100:.1f}%",
+            line=dict(color=col, width=2, dash=mdl.dash_style),
+            legendgroup=f"scan-{mdl.short_name}",
+        ))
+
     # ── OLS line ──────────────────────────────────────────────────────────────
     if p.get("show_ols"):
         p_ols = 10.0 ** (m.ols_intercept + m.ols_slope * np.log10(t_arr))

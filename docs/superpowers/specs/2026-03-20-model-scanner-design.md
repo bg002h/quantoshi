@@ -98,7 +98,18 @@ natural position: the user selects which quantiles to display, then the
 scanner tells them what those quantiles mean in terms of price/date across
 models. No new tab needed — no URL renumbering.
 
-### 4. Snapshot/Share
+### 4. Interaction with Projection Quantiles panel
+
+The scanner's quantile input and the Projection Quantiles checklist are
+**independent** — toggling quantile lines on the chart does not change the
+scanner, and editing the scanner does not change which lines are displayed.
+
+**Convenience feature**: clicking a model row in the scanner results table
+toggles that model's overlay on the bubble chart (adds/removes it from the
+`bub-model-show` checklist). This connects scanner → chart without the
+noisy reverse direction.
+
+### 5. Snapshot/Share
 
 Add the three scanner inputs to `_SNAPSHOT_CONTROLS` so share links preserve
 the scanner state. Add to `_TAB_CONTROLS["bubble"]`.
@@ -107,4 +118,5 @@ the scanner state. Add to `_TAB_CONTROLS["bubble"]`.
 
 - Changing other tabs to use the scanner
 - MC overlay for the QR model
+- Auto-populating scanner quantile from quantile panel clicks
 - Chart visualization of scanner results (just the table for now)

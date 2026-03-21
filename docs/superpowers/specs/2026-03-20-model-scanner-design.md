@@ -108,18 +108,24 @@ scanner, and editing the scanner does not change which lines are displayed.
 
 1. Draws that model's quantile line at the scanner's current quantile on the
    chart (e.g., EF Q38.8% in amber dashdot), spanning the full time range.
-2. Places an animated "you are here" beacon at the (date, price) point on the
-   chart — a solid blue dot with concentric rings pulsing outward and fading
-   (radar/sonar ping style, CSS `@keyframes` animation). The color matches
-   the model's palette.
+2. Places an animated radar-style marker at the (date, price) point on the
+   chart. The marker is a small radar sweep (simplified green-on-dark circle
+   with a rotating beam, CSS `@keyframes` animation). When the sweep passes
+   over the dot, the dot flares bright in the model's color then fades until
+   the next sweep. This creates a persistent "you are here" beacon that
+   draws the eye without being distracting.
 
-Clicking the same row again removes the line and beacon. Multiple rows can
+Clicking the same row again removes the line and marker. Multiple rows can
 be active simultaneously, building up a visual comparison of "here's where
-this price sits on each model's map."
+this price sits on each model's map." Each marker uses the model's palette
+color for the dot flare.
 
-Implementation: the beacon is a Plotly annotation with a custom CSS class
-for the pulsing animation. The quantile line is a `go.Scatter` trace added
-to the figure. A `dcc.Store` tracks which scanner rows are active.
+Implementation: the marker is a CSS-animated overlay div positioned over
+the Plotly chart via absolute positioning (calculated from the chart's axis
+coordinates). The quantile line is a `go.Scatter` trace added to the figure.
+A `dcc.Store` tracks which scanner rows are active. The radar CSS animation
+uses `@keyframes sweep` (conic-gradient rotation) and `@keyframes flare`
+(dot brightness pulse synchronized to the sweep period).
 
 ### 5. Snapshot/Share
 

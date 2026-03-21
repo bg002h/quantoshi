@@ -301,8 +301,35 @@ _FAQ = [
             "No other pair of widely-separated points in Bitcoin\u2019s history "
             "can serve as a two-point floor.",
             html.Br(), html.Br(),
-            "If you bought below this line, you got an unfairly cheap price by "
-            "any historical measure. The line is available as a toggle "
+            html.Strong("What made these prices unfairly cheap?"),
+            " Both breaches were caused by cascading failures of trust, not "
+            "failures of Bitcoin itself:",
+            html.Br(), html.Br(),
+            html.Strong("September 2015 ($229): "),
+            "Bitcoin was 22 months into its post-2013 bear market. The community "
+            "was consumed by the block size debate (the \u201cscaling wars\u201d), "
+            "which had fractured developer consensus and stalled progress. Media "
+            "coverage was overwhelmingly negative, pronouncing Bitcoin dead for "
+            "the 89th time. Trading volume had collapsed. Yet the network kept "
+            "mining blocks every 10 minutes, and adoption quietly grew beneath "
+            "the noise.",
+            html.Br(), html.Br(),
+            html.Strong("November 2022 \u2013 January 2023 ($16,169\u2013$16,905): "),
+            "A chain reaction of centralized failures. Terra/Luna\u2019s "
+            "algorithmic stablecoin imploded in May 2022, wiping out $40B and "
+            "taking down Three Arrows Capital (a $10B hedge fund) in June. "
+            "The contagion spread to lenders Celsius and Voyager, then "
+            "culminated in the FTX collapse in November 2022 \u2014 the "
+            "third-largest crypto exchange, revealed as an $8B fraud. Each "
+            "failure was a failure of people and institutions built on top of "
+            "Bitcoin, not of the protocol itself. The network processed every "
+            "transaction without interruption.",
+            html.Br(), html.Br(),
+            "In both cases, the price recovered to new all-time highs within "
+            "2\u20133 years. Anyone who bought at the Unfairly Cheap Line "
+            "captured the deepest value Bitcoin has ever offered.",
+            html.Br(), html.Br(),
+            "The line is available as a toggle "
             "(\u201cUnfairly Cheap Line\u201d) in the Bubble tab\u2019s Display "
             "section. The Model Scanner also shows how far above the UCL the "
             "current price sits.",

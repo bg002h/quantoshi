@@ -8,3 +8,5 @@
 - [reference_add_price_model.md](reference_add_price_model.md) — Complete checklist for adding a new price model (includes snapshot.py and test_web.py gotchas)
 - [project_markov_band_mismatch.md](project_markov_band_mismatch.md) — MC simulation uses old QR bands, not shrinking Gaussian — requires Cython recompile + cache rebuild to fix
 - [project_price_scanner_tab.md](project_price_scanner_tab.md) — Feature idea: Price Scanner tab showing percentile-per-model for any input price
+- [project_radar_debug.md](project_radar_debug.md) — Radar beacon on bubble chart not showing — needs JS debugging
+- [reference_unfairly_cheap_line.md](reference_unfairly_cheap_line.md) — UCL constants: slope=5.510508, intercept=-1.989444

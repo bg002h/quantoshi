@@ -96,6 +96,8 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price):
         ]))
 
         for key, mdl in _app_ctx.PRICE_MODELS.items():
+            if not mdl.quantized:
+                continue  # skip S2F etc — quantiles don't apply
             pct = mdl.find_percentile(t, price)
             rows.append(html.Tr([
                 html.Td(mdl.name, style={"fontSize": "11px"}),
@@ -106,6 +108,8 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price):
 
     elif output_field == "p" and q_frac is not None:
         for key, mdl in _app_ctx.PRICE_MODELS.items():
+            if not mdl.quantized:
+                continue
             try:
                 p = float(mdl.price_at(q_frac, t))
                 price_str = fmt_price(p)
@@ -120,6 +124,8 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price):
 
     elif output_field == "d" and price is not None and q_frac is not None:
         for key, mdl in _app_ctx.PRICE_MODELS.items():
+            if not mdl.quantized:
+                continue
             date_str = _solve_date(mdl, q_frac, price)
             rows.append(html.Tr([
                 html.Td(mdl.name, style={"fontSize": "11px"}),

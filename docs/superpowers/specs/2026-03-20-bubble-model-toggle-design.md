@@ -25,16 +25,18 @@ Currently `bub-model-show` is built dynamically from `_app_ctx.PRICE_MODELS`, ex
 
 #### Main BM traces become conditional
 
-Currently the main BM's quantile lines (lines 82–95), shading (lines 63–80), composite (lines 192–203), support (lines 180–189), and future bubble composites are drawn unconditionally. Wrap all of these in `if "bub" in active_models:`.
+Currently the main BM's quantile lines (lines 82–95), shading (lines 63–80), composite (lines 192–203), support (lines 180–189), and future bubble composites are drawn unconditionally. Wrap all of these in `if "bub" in p.get("active_models", []):`.
 
 The `model` variable (currently `_app_ctx.DEFAULT_MODEL`) is still used for axis config, tick computation, etc. — only the trace drawing becomes conditional.
 
+Note: UCL, OLS, historical data scatter, today line, and scanner overlays are NOT gated by the `"bub"` toggle. They remain independent.
+
 #### Overlay loop gains composite/support/future-bubble rendering
 
-The existing overlay loop (lines 98–133) draws quantile lines for quantized models and a single trajectory for non-quantized models. Add a new branch: if the overlay model has composite data (check for `comp_by_n` attribute or isinstance `_CompositeModel`), also draw:
+The existing overlay loop (lines 98–133) draws quantile lines for quantized models and a single trajectory for non-quantized models. Add a new branch: if the overlay model has composite data (check `hasattr(mdl, "comp_by_n")`), also draw:
 
 - **Composite curve**: `mdl.comp_by_n[n]` where `n = p["n_future"]`, masked to `[t_lo, t_hi]`. Line color from model's own palette. Legend: `"{mdl.name} composite (N={n})  R²={mdl.bm_r2:.4f}"`.
-- **Support line**: `mdl.support_plot` (or equivalent). Dashed line in model's support color. Legend: `"{mdl.name} support"`.
+- **Support line**: `mdl.support_plot`. Dashed line in model's support color. Legend: `"{mdl.name} support"`.
 - **Future bubble composites**: Same as main BM's future-bubble logic but using `mdl.comp_by_n` and `mdl.n_future_max`.
 
 All governed by the same params: `p["show_comp"]`, `p["show_sup"]`, `p["n_future"]`.
@@ -53,28 +55,50 @@ EF colors come from the model's own color definitions. Future models inheriting 
 
 The `update_bubble` callback passes `active_models = model_show or []` to the figure builder. No change needed — `"bub"` will flow through naturally when checked.
 
-The auto-Y-range callback should also consider BM traces only when `"bub"` is in `model_show`.
+#### Auto-Y-range fallback
 
-### 4. EmpiricalFloorModel data access
+The `auto_bubble_yrange` callback currently unconditionally computes Y range from `_app_ctx.DEFAULT_MODEL`. When `"bub"` is not in `model_show`:
 
-The EF model (`btc_core.py`, `EmpiricalFloorModel`) inherits from `_CompositeModel` and exposes:
-- `comp_by_n` — list of composite arrays indexed by N future bubbles
-- `support_plot` — pre-computed support line array
-- `bm_r2` — R² fit quality
-- `n_future_max` — maximum N
-- `years_plot` — time grid matching composite/support arrays
+- If other quantized models are active (e.g., EF), use the first active quantized model's price range for auto-Y.
+- If no quantized models are active, fall back to the default model's range (safe default to avoid empty Y axis).
 
-The figure builder needs to use `mdl.years_plot` (not `m.years_plot_bm`) for masking/plotting EF composites, since the time grids may differ.
+### 4. EmpiricalFloorModel data access (`btc_core.py`)
+
+The EF model inherits from `_CompositeModel`. Its composite/support data is stored in **private** attributes:
+- `_comp_by_n` — list of composite arrays indexed by N future bubbles
+- `_support_plot` — pre-computed support line array
+- `_bm_r2` — R² fit quality
+- `_n_future_max` — maximum N
+- `_t_grid` — time grid matching composite/support arrays
+
+**Required change**: Add public `@property` accessors to `_CompositeModel` (or directly on `EmpiricalFloorModel`) for `comp_by_n`, `support_plot`, `bm_r2`, `n_future_max`, and `t_grid`. The main `ModelData` class already exposes these as public attributes (`m.comp_by_n`, `m.support_bm`, etc.) — the properties make the interface consistent.
+
+The figure builder uses `mdl.t_grid` (not `m.years_plot_bm`) for masking/plotting EF composites, since the time grids may differ between models.
 
 ### 5. Snapshot/Share
 
-`bub-model-show` is already in `_SNAPSHOT_CONTROLS` and `_TAB_CONTROLS["bubble"]`. The new `"bub"` value is automatically encoded/decoded. Old share links without `"bub"` in `model_show` will restore with BM hidden — this is acceptable since they were created before the feature existed. Alternatively, the snapshot restore logic could default `"bub"` as checked when absent.
+`bub-model-show` is already in `_SNAPSHOT_CONTROLS` and `_TAB_CONTROLS["bubble"]`.
+
+**`_CHECKLIST_OPTIONS` update required**: In `snapshot.py`, the `_CHECKLIST_OPTIONS` dict has a `"bub-model-show"` entry listing valid bitmask values. Add `"bub"` as the first entry in this list.
+
+**Backward compatibility**: Old share links (without `"bub"` in the encoded `bub-model-show` value) must still show the bubble model. The snapshot decode logic should inject `"bub"` into the decoded `bub-model-show` list when it is absent and the link format is `q3` or `q2`. This prevents old links from unexpectedly hiding the main model.
 
 ### 6. Cache
 
 The bubble figure LRU cache key already includes `active_models` (via `model_show`). Adding `"bub"` to the list changes the key, so no stale-cache issues.
 
 The `_prewarm_caches()` function in `app.py` should be updated to include `"bub"` in the default `active_models` for the bubble tab prewarm call.
+
+## Files Modified
+
+| File | Change |
+|------|--------|
+| `btc_web/layout/bubble.py` | Add `"bub"` to `bub-model-show` options + default value |
+| `btc_web/figures/bubble.py` | Gate main BM traces; add composite/support/future to overlay loop |
+| `btc_web/callbacks/charts.py` | Auto-Y fallback when BM unchecked |
+| `archive/btc_app/btc_core.py` | Add `@property` accessors to `_CompositeModel` |
+| `btc_web/snapshot.py` | Add `"bub"` to `_CHECKLIST_OPTIONS["bub-model-show"]`; backward compat |
+| `btc_web/app.py` | Update `_prewarm_caches()` with `active_models=["bub"]` |
 
 ## Out of Scope
 

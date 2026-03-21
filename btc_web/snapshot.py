@@ -10,7 +10,7 @@ import _app_ctx
 log = logging.getLogger(__name__)
 
 _SNAPSHOT_CONTROLS = [
-    # ── Bubble tab (indices 0–12) ──
+    # ── Bubble tab (indices 0–15) ──
     ("bub-qs",            "value"),   # selected quantile lines
     ("bub-xscale",        "value"),   # x-axis scale (Log/Linear)
     ("bub-yscale",        "value"),   # y-axis scale (Log/Linear)
@@ -24,7 +24,10 @@ _SNAPSHOT_CONTROLS = [
     ("bub-stack",         "value"),   # starting BTC stack
     ("bub-show-stack",    "value"),   # show stack value in legend
     ("bub-use-lots",      "value"),   # use Stack Tracker lots for starting BTC
-    # ── Heatmap tab (indices 13–28) ──
+    ("scan-price",        "value"),   # scanner price input
+    ("scan-date",         "value"),   # scanner date input
+    ("scan-q",            "value"),   # scanner quantile input
+    # ── Heatmap tab (indices 16–31) ──
     ("hm-entry-yr",       "value"),   # heatmap entry year
     ("hm-entry-q",        "value"),   # entry percentile (0.1–99.9%)
     ("hm-exit-range",     "value"),   # exit year range [start, end]

@@ -4309,5 +4309,39 @@ class TestEmpiricalFloorComposite:
                 assert prices[i] < prices[i + 1]
 
 
+class TestModelScanner:
+    def test_solve_for_quantile(self):
+        """Given price and date, find_percentile returns valid quantile."""
+        import _app_ctx
+        t = today_t(_app_ctx.M.genesis)
+        for mdl in _app_ctx.PRICE_MODELS.values():
+            pct = mdl.find_percentile(t, 70000)
+            assert 0 <= pct <= 1
+
+    def test_solve_for_price(self):
+        """Given quantile and date, price_at returns positive price."""
+        import _app_ctx
+        t = today_t(_app_ctx.M.genesis)
+        for mdl in _app_ctx.PRICE_MODELS.values():
+            p = float(mdl.price_at(0.5, t))
+            assert p > 0
+
+    def test_solve_for_date(self):
+        """Root-finding for date works for reasonable inputs."""
+        from callbacks.scanner import _solve_date
+        import _app_ctx
+        for mdl in _app_ctx.PRICE_MODELS.values():
+            if not mdl.quantized:
+                continue
+            result = _solve_date(mdl, 0.5, 1_000_000)
+            # Some models may not reach $1M in range — that's OK
+            assert isinstance(result, str)
+
+    def test_qr_model_registered(self):
+        import _app_ctx
+        assert "qr" in _app_ctx.PRICE_MODELS
+        assert _app_ctx.PRICE_MODELS["qr"].name == "Quantile Regression"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

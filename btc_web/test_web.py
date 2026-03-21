@@ -4518,5 +4518,19 @@ class TestEFCompositeOverlay:
         assert any("Empirical Floor" in n and "composite" in n for n in names)
 
 
+class TestAutoYWithBubToggle:
+    """Auto-Y-range respects bub toggle."""
+
+    def test_auto_y_no_bub_uses_fallback(self):
+        """When BM is unchecked, auto-Y should not crash."""
+        from callbacks.charts import auto_bubble_yrange
+        try:
+            result = auto_bubble_yrange([2012, 2030], ["yes"], "log", [], [0.5])
+        except Exception:
+            pytest.fail("auto_bubble_yrange should not crash when bub is off")
+        assert isinstance(result, list)
+        assert len(result) == 2
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

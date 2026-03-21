@@ -109,13 +109,27 @@ def auto_bubble_yrange(xrange, auto_y, yscale, model_show, sel_qs):
     if not auto_y or not xrange:
         raise dash.exceptions.PreventUpdate
     xmin, xmax = int(xrange[0]), int(xrange[1])
-    qs = sorted([float(q) for q in (sel_qs or []) if float(q) in _app_ctx.DEFAULT_MODEL.fits])
-    if not qs:
-        qs = sorted(_app_ctx.DEFAULT_MODEL.fits.keys())
     t_lo = max(yr_to_t(xmin, _app_ctx.M.genesis), 0.1)
     t_hi = yr_to_t(xmax, _app_ctx.M.genesis)
-    p_lo = float(_app_ctx.DEFAULT_MODEL.price_at(qs[0], t_lo))
-    p_hi = float(_app_ctx.DEFAULT_MODEL.price_at(qs[-1], t_hi))
+
+    # Base Y range from BM (if active) or first active quantized model
+    if "bub" in (model_show or []):
+        base_mdl = _app_ctx.DEFAULT_MODEL
+    else:
+        base_mdl = None
+        for key in (model_show or []):
+            mdl = _app_ctx.PRICE_MODELS.get(key)
+            if mdl and mdl.quantized:
+                base_mdl = mdl
+                break
+        if base_mdl is None:
+            base_mdl = _app_ctx.DEFAULT_MODEL  # safe fallback
+
+    qs = sorted([float(q) for q in (sel_qs or []) if float(q) in base_mdl.fits])
+    if not qs:
+        qs = sorted(base_mdl.fits.keys())
+    p_lo = float(base_mdl.price_at(qs[0], t_lo))
+    p_hi = float(base_mdl.price_at(qs[-1], t_hi))
     # Include secondary models (PL, S2F) in Y range if active
     for key in (model_show or []):
         mdl = _app_ctx.PRICE_MODELS.get(key)

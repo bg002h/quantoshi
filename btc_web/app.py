@@ -196,6 +196,8 @@ def _prewarm_caches():
         stack=0, show_stack=False, use_lots=False, lots=[],
         comp_color="#FFD700", comp_lw=2.0,
         sup_color="#888888", sup_lw=1.5,
+        active_models=["bub"],
+        palette="default",
     ))
 
     # DCA (default: $100/mo, Q50%, current_yr–current_yr+10)

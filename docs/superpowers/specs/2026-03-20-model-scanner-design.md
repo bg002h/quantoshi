@@ -104,21 +104,28 @@ The scanner's quantile input and the Projection Quantiles checklist are
 **independent** — toggling quantile lines on the chart does not change the
 scanner, and editing the scanner does not change which lines are displayed.
 
+**Default beacon**: On initial load (before any row click), an animated radar
+beacon appears at the current live price position on the chart — showing "you
+are here" immediately. The default beacon uses the site accent color (#00d4ff).
+
 **Click-to-plot**: clicking a model row in the scanner results table:
 
 1. Draws that model's quantile line at the scanner's current quantile on the
    chart (e.g., EF Q38.8% in amber dashdot), spanning the full time range.
 2. Places an animated radar-style marker at the (date, price) point on the
    chart. The marker is a small radar sweep (simplified circle with transparent
-   background and a rotating beam, CSS `@keyframes` animation). When the sweep passes
-   over the dot, the dot flares bright in the model's color then fades until
-   the next sweep. This creates a persistent "you are here" beacon that
-   draws the eye without being distracting.
+   background and a rotating beam, CSS `@keyframes` animation). When the sweep
+   passes over the dot, the dot flares bright then fades until next sweep.
+
+**Radar color matches the model**: each model's radar sweep and dot flare use
+that model's palette color — BM thermal, EF amber, PL blue/purple, etc. This
+makes it immediately clear which radar belongs to which model when multiple
+are active. The CSS `--radar-color-rgb` variable is set per marker from the
+model's color.
 
 Clicking the same row again removes the line and marker. Multiple rows can
 be active simultaneously, building up a visual comparison of "here's where
-this price sits on each model's map." Each marker uses the model's palette
-color for the dot flare.
+this price sits on each model's map."
 
 Implementation: the marker is a CSS-animated overlay div positioned over
 the Plotly chart via absolute positioning (calculated from the chart's axis

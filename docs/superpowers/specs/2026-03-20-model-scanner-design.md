@@ -92,9 +92,11 @@ disappears and auto-update stops for that field. Clearing the field (or a
 ### 3. Tab placement
 
 The Model Scanner panel goes in tab 1's control column as a collapsible
-`_section_card("Model Scanner", ...)`, placed after the Display Models
-section and before the chart export row. No new tab needed — no URL
-renumbering.
+`_section_card("Model Scanner", ...)`, placed after the Projection Quantiles
+panel (`_q_panel`) and before the Data Point Appearance section. This is the
+natural position: the user selects which quantiles to display, then the
+scanner tells them what those quantiles mean in terms of price/date across
+models. No new tab needed — no URL renumbering.
 
 ### 4. Snapshot/Share
 

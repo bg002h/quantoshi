@@ -40,11 +40,36 @@ def _compute_log_r2(actual_prices, predicted_prices):
 
 ### Per-model computation
 
-Each model stores `r2_per_quantile: dict[float, float]` — mapping quantile → R² value. Computed via a `compute_r2(price_years, price_prices)` method added to each model's base class.
+Each model stores `r2_per_quantile: dict[float, float]` — mapping quantile → R² value.
 
-**Quantized models** (`_FitsBasedModel`, `_CompositeModel`): iterate `self.quantiles`, call `self.price_at(q, t)` for historical data, compute R² per quantile.
+Implemented as a **standalone function** (not a method) since the model classes have no common base:
 
-**Non-quantized models** (S2F): compute once at q=0.5, stored as `{0.5: r2}`.
+```python
+def compute_model_r2(mdl, price_years, price_prices):
+    """Compute per-quantile R² for any model with price_at() and quantiles."""
+    mdl.r2_per_quantile = {}
+    mask = price_years >= 1.0  # skip very early data
+    t = price_years[mask]
+    actual = price_prices[mask]
+    if hasattr(mdl, 'quantiles') and mdl.quantiles:
+        for q in mdl.quantiles:
+            predicted = mdl.price_at(q, t)
+            r2 = _compute_log_r2(actual, predicted)
+            if r2 is not None:
+                mdl.r2_per_quantile[q] = r2
+    elif hasattr(mdl, 'price_at'):
+        # Non-quantized (S2F): single trajectory at q=0.5
+        predicted = mdl.price_at(0.5, t)
+        r2 = _compute_log_r2(actual, predicted)
+        if r2 is not None:
+            mdl.r2_per_quantile[0.5] = r2
+```
+
+This handles all model classes uniformly:
+- `_FitsBasedModel` subclasses: QR, PL (have `quantiles`)
+- `_CompositeModel` subclasses: BM, EF (have `quantiles`)
+- Standalone classes: LPPL, Exp (have `quantiles`)
+- Non-quantized: S2F (no `quantiles`, single trajectory)
 
 ### When it runs
 
@@ -52,7 +77,7 @@ Called from `app.py` after model registration, passing `(m.price_years, m.price_
 
 ```python
 for mdl in _app_ctx.PRICE_MODELS.values():
-    mdl.compute_r2(m.price_years, m.price_prices)
+    compute_model_r2(mdl, m.price_years, m.price_prices)
 ```
 
 BubbleModel and EmpiricalFloorModel already have `bm_r2` (composite R²) — that stays unchanged. The new `r2_per_quantile` is separate (per-quantile, against raw price data).
@@ -76,7 +101,7 @@ Append `  R²=X.XXXX` (4 decimal places, Unicode ²) to any trace name where R²
 | Non-quantized overlay (S2F) | `Stock-to-Flow` | `Stock-to-Flow  R²=0.8721` | `mdl.r2_per_quantile[0.5]` |
 | OLS line | `OLS` | `OLS  R²=0.9503` | Compute from `m.ols_intercept`, `m.ols_slope` against price data |
 | UCL | `Unfairly Cheap Line` | unchanged | Reference line, not fitted |
-| Scanner lines | `{Model} Q38.8%` | `{Model} Q38.8%  R²=0.9456` | `mdl.r2_per_quantile[nearest_q]` or interpolated |
+| Scanner lines | `{Model} Q38.8%` | unchanged | Arbitrary quantile — skip R² (not precomputed) |
 | Data scatter | `Price data` | unchanged | Not a model |
 | Shade fills | (no legend) | unchanged | N/A |
 

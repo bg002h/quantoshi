@@ -168,7 +168,7 @@ _CHECKLIST_OPTIONS = {
     "ret-model-show":     ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"],
     "sc-model-show":      ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"],
     "hm-model-show":      ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"],
-    "bub-model-show":     ["pl", "lppl", "exp", "s2f", "ef", "bub"],
+    "bub-model-show":     ["pl", "lppl", "exp", "s2f", "ef", "bub", "qr"],
 }
 
 

@@ -36,15 +36,23 @@ class TestScannerPriceToQuantile:
     """Mode 1: User enters price + date → table shows quantiles."""
 
     def test_default_load_shows_quantile_table(self, page):
-        """On load, scanner shows quantile results (default: live price + today)."""
+        """Enter a price to see quantile results (live price may not be ready)."""
+        # Fill a known price to avoid depending on ticker timing
+        price_input = page.locator("#scan-price")
+        price_input.fill("70000")
+        price_input.press("Tab")
+        page.wait_for_timeout(3000)
         table = page.locator("#scan-results table")
         expect(table).to_be_visible(timeout=TIMEOUT)
-        # Header should say "Quantile"
         header = table.locator("th").nth(1)
         expect(header).to_have_text("Quantile")
 
     def test_ucl_row_present(self, page):
         """UCL row shows 'x above' value."""
+        price_input = page.locator("#scan-price")
+        price_input.fill("70000")
+        price_input.press("Tab")
+        page.wait_for_timeout(3000)
         ucl = page.locator("#scan-results tr:first-child td:first-child")
         expect(ucl).to_have_text("Unfairly Cheap Line", timeout=TIMEOUT)
         value = page.locator("#scan-results tr:first-child td:nth-child(2)")

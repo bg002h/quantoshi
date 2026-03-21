@@ -72,7 +72,10 @@
         if (xPx < xa._offset || xPx > xa._offset + plotArea.w) return;
         if (yPx < ya._offset || yPx > ya._offset + plotArea.h) return;
 
-        var container = graph.querySelector(".plot-container") || graph;
+        // The chart-wrap div has position:relative already
+        var container = document.getElementById("bubble-graph-chart-wrap") ||
+                        graph.closest("[style*='position']") ||
+                        graph;
         container.style.position = "relative";
 
         // Always show default beacon at current position

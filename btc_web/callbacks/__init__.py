@@ -28,3 +28,4 @@ from callbacks.nav import (_TAB_CONTROLS, _TAB_TO_PATH, _PATH_TO_TAB,
                             open_faq_item, toggle_share_modal)
 from callbacks.sc_loan import update_sc_info
 from callbacks.ticker import update_price_ticker
+import callbacks.scanner  # noqa: F401

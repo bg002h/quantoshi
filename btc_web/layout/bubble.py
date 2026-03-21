@@ -86,6 +86,33 @@ def _bubble_controls():
                        tooltip={"always_visible":True}),
         ),
         _q_panel("bub-qs", []),
+        _section_card("Model Scanner",
+            _row(
+                html.Div([
+                    _lbl("Price ($)"),
+                    dbc.Input(id="scan-price", type="number",
+                              placeholder="live", size="sm", debounce=True),
+                    html.Small("\u20bf live", id="scan-price-hint",
+                               className="text-muted", style={"fontSize": "9px"}),
+                ]),
+                html.Div([
+                    _lbl("Date"),
+                    dbc.Input(id="scan-date", type="date",
+                              value=pd.Timestamp.today().strftime("%Y-%m-%d"),
+                              size="sm", debounce=True),
+                ]),
+                html.Div([
+                    _lbl("Quantile (%)"),
+                    dbc.Input(id="scan-q", type="number",
+                              min=0.1, max=99.9, step=0.1,
+                              size="sm", debounce=True,
+                              className="scan-output"),
+                ]),
+            ),
+            dcc.Store(id="scan-output-field", data="q"),
+            dcc.Store(id="scan-active-rows", data=[]),
+            html.Div(id="scan-results"),
+        ),
         _ctrl_card(
             _lbl("Data Point Appearance"),
             _row(

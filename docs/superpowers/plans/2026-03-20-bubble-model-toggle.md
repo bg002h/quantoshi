@@ -267,10 +267,12 @@ class TestBubbleModelGating:
 
     def test_bub_inactive_hides_traces(self):
         fig = build_bubble_figure(M, dict(self._BASE, active_models=[]))
-        names = [t.name for t in fig.data if t.name]
-        assert not any("Q" in n and "%" in n for n in names), "BM quantile lines should be hidden"
-        assert not any("Bubble composite" in n for n in names)
-        assert not any("Bubble support" in n for n in names)
+        # No traces should have no legendgroup (BM traces lack legendgroup;
+        # overlay traces always set legendgroup=mdl.short_name)
+        bm_traces = [t for t in fig.data if t.name
+                     and not getattr(t, "legendgroup", None)
+                     and t.name not in ("Price data", "Lots")]
+        assert len(bm_traces) == 0, f"BM traces should be hidden, found: {[t.name for t in bm_traces]}"
 
     def test_bub_inactive_preserves_data_scatter(self):
         """Data scatter, OLS, UCL, today line survive when BM is off."""

@@ -109,8 +109,8 @@ scanner, and editing the scanner does not change which lines are displayed.
 1. Draws that model's quantile line at the scanner's current quantile on the
    chart (e.g., EF Q38.8% in amber dashdot), spanning the full time range.
 2. Places an animated radar-style marker at the (date, price) point on the
-   chart. The marker is a small radar sweep (simplified green-on-dark circle
-   with a rotating beam, CSS `@keyframes` animation). When the sweep passes
+   chart. The marker is a small radar sweep (simplified circle with transparent
+   background and a rotating beam, CSS `@keyframes` animation). When the sweep passes
    over the dot, the dot flares bright in the model's color then fades until
    the next sweep. This creates a persistent "you are here" beacon that
    draws the eye without being distracting.

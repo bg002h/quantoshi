@@ -11,6 +11,7 @@ Usage:
     btc_venv/bin/python3 -m pytest btc_web/test_scanner_e2e.py -v
 """
 
+import os
 import pytest
 from playwright.sync_api import sync_playwright, expect
 
@@ -18,21 +19,17 @@ BASE_URL = "http://localhost:8050"
 TIMEOUT = 15_000  # ms
 
 
-@pytest.fixture(scope="module")
-def browser():
-    with sync_playwright() as p:
-        b = p.chromium.launch(headless=True)
-        yield b
-        b.close()
-
-
 @pytest.fixture
-def page(browser):
-    pg = browser.new_page()
-    pg.goto(BASE_URL, wait_until="networkidle", timeout=30_000)
-    pg.wait_for_timeout(3000)  # let Dash callbacks settle
-    yield pg
-    pg.close()
+def page():
+    with sync_playwright() as p:
+        headed = os.environ.get("HEADED", "0") == "1"
+        b = p.chromium.launch(headless=not headed)
+        pg = b.new_page()
+        pg.goto(BASE_URL, wait_until="networkidle", timeout=30_000)
+        pg.wait_for_timeout(3000)  # let Dash callbacks settle
+        yield pg
+        pg.close()
+        b.close()
 
 
 class TestScannerPriceToQuantile:

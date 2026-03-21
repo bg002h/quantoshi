@@ -104,7 +104,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         if not mdl:
             continue
         if mdl.quantized:
-            overlay_qs = sel_qs if sel_qs else [0.5]
+            overlay_qs = sel_qs
             for q in overlay_qs:
                 if q not in mdl.fits:
                     continue

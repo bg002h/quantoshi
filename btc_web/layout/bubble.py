@@ -86,7 +86,7 @@ def _bubble_controls():
                        value=3, step=1, marks=None,
                        tooltip={"always_visible":True}),
         ),
-        _q_panel("bub-qs", []),
+        _q_panel("bub-qs", [0.5]),
         _section_card("Model Scanner",
             _row(
                 html.Div([

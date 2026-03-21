@@ -185,7 +185,7 @@ def _prewarm_caches():
 
     # Bubble (default: no quantiles, log-log, 3 future bubbles)
     _get_bubble_fig(dict(
-        selected_qs = [],
+        selected_qs = [0.5],
         shade=True, show_ols=False, show_data=True, show_today=True,
         show_legend=False, minor_grid=False,
         show_comp=True, show_sup=False,

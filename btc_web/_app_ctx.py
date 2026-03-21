@@ -80,6 +80,12 @@ SC_DEFAULT_WD = 5000           # Supercharger default withdrawal ($/period)
 SC_DEFAULT_END_YR = 2075       # Supercharger default end year
 LOT_DEFAULT_PRICE = 69_420     # Stack Tracker default lot price ($)
 
+# ── Unfairly Cheap Line — unique two-point power law floor ───────────────────
+# Pinned by Sept 21 2015 ($229) and Jan 1 2023 ($16,905) — only 2 breaches in
+# 16 years.  Feasible slope region is 0.0026 wide — effectively a unique line.
+UCL_SLOPE     = 5.510508
+UCL_INTERCEPT = -1.989444
+
 # ── Shared financial math ────────────────────────────────────────────────────
 
 def _compute_sc_loan(principal, amount, r, term_periods, loan_type):

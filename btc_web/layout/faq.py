@@ -283,6 +283,32 @@ _FAQ = [
         ]),
     },
     {
+        "q": "What is the Unfairly Cheap Line?",
+        "a": html.Span([
+            "Only 7 days in Bitcoin\u2019s entire history have ever fallen below "
+            "the Q0.1% quantile regression line. Of those 7, only two are "
+            "separated by more than a year: ",
+            html.Strong("September 21, 2015 ($229)"),
+            " and ",
+            html.Strong("January 1, 2023 ($16,905)"),
+            ".",
+            html.Br(), html.Br(),
+            "These two points, spanning 7.3 years across two completely different "
+            "bear markets, constrain the power law slope to within 0.05% \u2014 "
+            "effectively defining a ",
+            html.Strong("unique"),
+            " power law floor for Bitcoin (slope = 5.51, intercept = \u22121.99). "
+            "No other pair of widely-separated points in Bitcoin\u2019s history "
+            "can serve as a two-point floor.",
+            html.Br(), html.Br(),
+            "If you bought below this line, you got an unfairly cheap price by "
+            "any historical measure. The line is available as a toggle "
+            "(\u201cUnfairly Cheap Line\u201d) in the Bubble tab\u2019s Display "
+            "section. The Model Scanner also shows how far above the UCL the "
+            "current price sits.",
+        ]),
+    },
+    {
         "q": "What is the difference between Quantile Regression and Markov Chain Monte Carlo?",
         "a": html.Span([
             "Quantile Regression (QR) fits smooth percentile curves to the historical log-log "

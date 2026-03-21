@@ -75,6 +75,15 @@ def update_scanner(price_val, date_val, q_val, current_output, live_price):
     rows = []
 
     if output_field == "q" and price is not None:
+        # Unfairly Cheap Line: show how far above the floor
+        ucl_price = 10 ** (_app_ctx.UCL_INTERCEPT + _app_ctx.UCL_SLOPE * np.log10(t))
+        ucl_ratio = price / ucl_price
+        ucl_style = {"fontSize": "11px", "color": "#ff6b6b"}
+        rows.append(html.Tr([
+            html.Td("Unfairly Cheap Line", style=ucl_style),
+            html.Td(f"{ucl_ratio:.2f}x above", style={**ucl_style, "fontWeight": "bold"}),
+        ]))
+
         for key, mdl in _app_ctx.PRICE_MODELS.items():
             pct = mdl.find_percentile(t, price)
             rows.append(html.Tr([

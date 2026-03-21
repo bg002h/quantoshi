@@ -151,6 +151,18 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             legendgroup=f"scan-{mdl.short_name}",
         ))
 
+    # ── Unfairly Cheap Line ──────────────────────────────────────────────────
+    if p.get("show_ucl"):
+        p_ucl = 10.0 ** (_app_ctx.UCL_INTERCEPT + _app_ctx.UCL_SLOPE * np.log10(t_arr))
+        if stack > 0:
+            p_ucl = p_ucl * stack
+        traces.append(go.Scatter(
+            x=list(t_arr), y=list(p_ucl),
+            mode="lines", name="Unfairly Cheap Line",
+            line=dict(color="#ff6b6b", dash="dot", width=1.8),
+            opacity=0.9,
+        ))
+
     # ── OLS line ──────────────────────────────────────────────────────────────
     if p.get("show_ols"):
         p_ols = 10.0 ** (m.ols_intercept + m.ols_slope * np.log10(t_arr))

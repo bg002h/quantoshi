@@ -1330,7 +1330,35 @@ body {
     transition: background-color 0.15s;
 }
 
-/* ── Radar beacon marker ─────────────────────────────────────────────────── */
+/* ── Price ring — expanding ring at current price ("you are here") ──────── */
+.price-ring-marker {
+    position: absolute;
+    width: 0; height: 0;
+    pointer-events: none;
+    z-index: 100;
+}
+.price-ring-dot {
+    position: absolute;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #00d4ff;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 4px rgba(0, 212, 255, 0.6);
+}
+.price-ring-pulse {
+    position: absolute;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(0, 212, 255, 0.7);
+    transform: translate(-50%, -50%);
+    animation: ring-expand 2.5s ease-out infinite;
+}
+@keyframes ring-expand {
+    0%   { width: 8px; height: 8px; opacity: 0.8; }
+    100% { width: 40px; height: 40px; opacity: 0; }
+}
+
+/* ── Radar beacon — on clicked scanner model rows ──────────────────────── */
 .radar-marker {
     position: absolute;
     width: 40px;
@@ -1377,4 +1405,10 @@ body {
     0% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
     15% { opacity: 1; transform: translate(-50%, -50%) scale(1.8); }
     100% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* ── Scanner row active highlight ──────────────────────────────────────── */
+tr.scan-row-active {
+    background: rgba(0, 212, 255, 0.18);
+    outline: 1px solid rgba(0, 212, 255, 0.4);
 }

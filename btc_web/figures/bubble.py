@@ -21,7 +21,8 @@ from figures.common import (
     _LOG_MINOR, _MC_LEGEND_POS,
     _get_palette, _build_thermal_colors, _fmt_q_label,
     _dark_layout, _year_ticks, _price_tickvals,
-    _apply_sans_typography, _apply_config_annotation, _apply_watermark,
+    _apply_sans_typography, _apply_config_annotation, _apply_watermark, _add_date_hover,
+    _HOVER_FMT_USD,
     _lerp_hex, _hex_alpha,
     _round_trace_data,
 )
@@ -226,7 +227,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             mode="markers", name="Price data",
             marker=dict(color=scatter_colors, size=max(2, int(p.get("pt_size", 3))),
                         opacity=float(p.get("pt_alpha", 0.6))),
-            text=d_sc, hovertemplate="%{text}<br>%{y:$,.0f}<extra></extra>",
+            hovertemplate=_HOVER_FMT_USD,
         ))
 
     # ── LEO lot markers ───────────────────────────────────────────────────────
@@ -343,6 +344,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     _apply_sans_typography(layout)
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
+    _add_date_hover(fig, m.genesis)
     _apply_config_annotation(fig, p, "bub", show_qr=True, show_mc=False)
     wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
     _apply_watermark(fig, pos=wm_pos)

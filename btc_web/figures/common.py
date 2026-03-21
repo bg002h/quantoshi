@@ -72,6 +72,13 @@ _COLORSCALE_STEPS = 256      # dense colorscale points (avoids browser interpola
 _BISECT_ITERS     = 60       # binary search iterations for Mode B max-withdrawal
 _HM_TEXT_THRESHOLD = 0.55    # cell brightness threshold: white text below, dark above
 
+# ── Hover format templates ──────────────────────────────────────────────────
+# All chart traces (data points + model lines) use these via _add_date_hover.
+# customdata[0] = calendar date string.  %{fullData.name} = trace name.
+# Depletion/terminal annotations and heatmap hovers are separate.
+_HOVER_FMT_USD = "<b>%{fullData.name}</b><br>%{customdata[0]}<br>$%{y:,.0f}<extra></extra>"
+_HOVER_FMT_BTC = "<b>%{fullData.name}</b><br>%{customdata[0]}<br>%{y:,.4f} BTC<extra></extra>"
+
 # ── Enhanced font stack (sans-serif base, serif for premium/MC) ──────────
 _SANS_FONT = "Avenir Next, Avenir, Segoe UI, system-ui, -apple-system, sans-serif"
 _FONT_TITLE_LG    = 17
@@ -540,6 +547,43 @@ def _apply_watermark(fig: go.Figure, pos: str = "bottom-right") -> None:
     return fig
 
 
+def _t_to_datestr(t_val, genesis):
+    """Convert a single t (years since genesis) to a calendar date string."""
+    return (genesis + pd.Timedelta(days=float(t_val) * 365.25)).strftime("%b %d, %Y")
+
+
+def _add_date_hover(fig, genesis, fmt=None):
+    """Add calendar-date hover to all traces whose x-axis is t (years since genesis).
+
+    Traces with hoverinfo="skip" are left alone.  Traces whose x values fall
+    outside the plausible t range (0.5–100) are left alone (e.g. Mode B
+    supercharge uses delay-years or quantile fractions as x).
+    """
+    if fmt is None:
+        fmt = _HOVER_FMT_USD
+    for trace in fig.data:
+        if getattr(trace, "hoverinfo", None) == "skip":
+            continue
+        x = trace.x
+        if x is None or len(x) == 0:
+            continue
+        # Sanity check: x should be years-since-genesis (roughly 0.5–100).
+        # Skip traces whose x-range doesn't look like t values.
+        try:
+            x_min, x_max = float(min(x)), float(max(x))
+        except (TypeError, ValueError):
+            continue
+        if x_min < 0.3 or x_max > 120:
+            continue
+        try:
+            dates = [[_t_to_datestr(t, genesis)] for t in x]
+        except (TypeError, ValueError):
+            continue
+        trace.customdata = dates
+        if not getattr(trace, "hovertemplate", None):
+            trace.hovertemplate = fmt
+
+
 def _finalize_chart(traces: list, layout: dict, p: dict, tab: str,
                     mc_result: dict | None = None, mc_premium: bool = True
                     ) -> tuple[go.Figure, dict | None]:
@@ -555,6 +599,9 @@ def _finalize_chart(traces: list, layout: dict, p: dict, tab: str,
         )
     _apply_sans_typography(layout)
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
+    disp_mode = p.get("disp_mode", "usd")
+    _add_date_hover(fig, _app_ctx.M.genesis,
+                    fmt=_HOVER_FMT_BTC if disp_mode == "btc" else _HOVER_FMT_USD)
     show_qr = p.get("show_qr", True)
     show_mc = p.get("show_mc", bool(p.get("mc_enabled")))
     if mc_premium and p.get("mc_enabled"):

@@ -1,8 +1,8 @@
 /**
- * Model Scanner — radar beacon marker overlay.
+ * Model Scanner — chart overlay markers.
  *
- * Uses Plotly's afterplot event to position radar markers. The marker data
- * comes from data attributes set by a Dash clientside callback.
+ * - Expanding ring at current price/date ("you are here")
+ * - Radar beacon on each clicked model row in the scanner results
  */
 (function() {
     "use strict";
@@ -16,102 +16,211 @@
         "s2f": "180, 120, 200",
         "ef":  "210, 160, 40",
     };
+    var DEFAULT_COLOR = "0, 212, 255";
 
-    function updateMarkers() {
-        document.querySelectorAll(".radar-marker").forEach(function(el) {
-            el.remove();
-        });
+    // Track which model keys have active radar beacons
+    var _activeModels = {};
 
+    function getPlotContext() {
         var graph = document.getElementById("bubble-graph");
-        if (!graph) return;
-
+        if (!graph) return null;
         var plot = graph.querySelector(".js-plotly-plot");
-        if (!plot || !plot._fullLayout) return;
-
+        if (!plot || !plot._fullLayout) return null;
         var xa = plot._fullLayout.xaxis;
         var ya = plot._fullLayout.yaxis;
-        if (!xa || !ya || xa._offset === undefined) return;
+        if (!xa || !ya || xa._offset === undefined) return null;
+        return {plot: plot, xa: xa, ya: ya, size: plot._fullLayout._size};
+    }
 
-        // Read scanner inputs
+    function toPixel(ctx, t, price) {
+        var xVal = ctx.xa.type === "log" ? Math.log10(t) : t;
+        var yVal = ctx.ya.type === "log" ? Math.log10(price) : price;
+        var xPx = ctx.xa.l2p(xVal) + ctx.xa._offset;
+        var yPx = ctx.ya.l2p(yVal) + ctx.ya._offset;
+        if (isNaN(xPx) || isNaN(yPx)) return null;
+        // Bounds check
+        if (xPx < ctx.xa._offset || xPx > ctx.xa._offset + ctx.size.w) return null;
+        if (yPx < ctx.ya._offset || yPx > ctx.ya._offset + ctx.size.h) return null;
+        return {x: xPx, y: yPx};
+    }
+
+    function getLivePrice() {
+        var ticker = document.getElementById("price-ticker");
+        if (!ticker) return null;
+        var txt = ticker.textContent || "";
+        var m = txt.match(/\$([\d,.]+)(K|M)?/);
+        if (m) {
+            var val = parseFloat(m[1].replace(/,/g, ""));
+            if (m[2] === "K") val *= 1e3;
+            else if (m[2] === "M") val *= 1e6;
+            return val;
+        }
+        // sats/$ mode
+        var sm = txt.match(/([\d,]+)\s*sats\/\$/);
+        if (sm) {
+            var sats = parseFloat(sm[1].replace(/,/g, ""));
+            if (sats > 0) return 1e8 / sats;
+        }
+        return null;
+    }
+
+    function getScannerInputs() {
         var priceEl = document.getElementById("scan-price");
         var dateEl = document.getElementById("scan-date");
-        if (!priceEl || !dateEl) return;
+        if (!priceEl || !dateEl) return null;
 
         var priceVal = priceEl.value;
         var dateStr = dateEl.value;
 
-        // Fall back to live price if empty
+        // Fall back to live price
         if (!priceVal) {
-            var store = document.getElementById("btc-price-store");
-            if (store) {
-                // Dash stores render data as a hidden element
-                // Try multiple approaches
-                priceVal = store.getAttribute("data-dash-is-loading") !== null ?
-                    null : null;
-            }
+            var live = getLivePrice();
+            if (live) priceVal = String(live);
         }
 
         var price = parseFloat(priceVal);
-        if (!price || !dateStr) return;
+        if (!price || !dateStr) return null;
 
         var genesis = new Date("2009-07-25T00:00:00");
         var date = new Date(dateStr + "T00:00:00");
         var t = (date - genesis) / (365.25 * 86400000);
-        if (t <= 0) return;
+        if (t <= 0) return null;
 
-        var xVal = xa.type === "log" ? Math.log10(t) : t;
-        var yVal = ya.type === "log" ? Math.log10(price) : price;
-
-        var xPx = xa.l2p(xVal) + xa._offset;
-        var yPx = ya.l2p(yVal) + ya._offset;
-
-        if (isNaN(xPx) || isNaN(yPx)) return;
-
-        // Check bounds
-        var plotArea = plot._fullLayout._size;
-        if (xPx < xa._offset || xPx > xa._offset + plotArea.w) return;
-        if (yPx < ya._offset || yPx > ya._offset + plotArea.h) return;
-
-        // The chart-wrap div has position:relative already
-        var container = document.getElementById("bubble-graph-chart-wrap") ||
-                        graph.closest("[style*='position']") ||
-                        graph;
-        container.style.position = "relative";
-
-        // Always show default beacon at current position
-        placeMarker(container, xPx, yPx, "0, 212, 255", 0);
+        return {t: t, price: price};
     }
 
-    function placeMarker(container, xPx, yPx, colorRgb, idx) {
+    // ── Expanding ring at current price ──────────────────────────────────────
+
+    function placeRing(container, xPx, yPx) {
+        var ring = document.createElement("div");
+        ring.className = "price-ring-marker";
+        ring.style.left = xPx + "px";
+        ring.style.top = yPx + "px";
+        ring.innerHTML =
+            '<div class="price-ring-pulse"></div>' +
+            '<div class="price-ring-dot"></div>';
+        container.appendChild(ring);
+    }
+
+    // ── Radar beacon on clicked model rows ───────────────────────────────────
+
+    function placeRadar(container, xPx, yPx, colorRgb) {
         var marker = document.createElement("div");
         marker.className = "radar-marker";
         marker.style.left = xPx + "px";
         marker.style.top = yPx + "px";
         marker.style.setProperty("--radar-color-rgb", colorRgb);
-
-        var scale = 1 + idx * 0.3;
-        marker.style.width = (40 * scale) + "px";
-        marker.style.height = (40 * scale) + "px";
-
         marker.innerHTML =
             '<div class="radar-ring"></div>' +
             '<div class="radar-sweep"></div>' +
             '<div class="radar-dot"></div>';
-
-        var sweep = marker.querySelector(".radar-sweep");
-        sweep.style.animationDelay = (idx * 0.7) + "s";
-        var dot = marker.querySelector(".radar-dot");
-        dot.style.animationDelay = (idx * 0.7) + "s";
-
         container.appendChild(marker);
     }
 
-    // Re-render markers after every chart update
+    // ── Main update ──────────────────────────────────────────────────────────
+
+    function updateMarkers() {
+        document.querySelectorAll(".price-ring-marker, .radar-marker").forEach(function(el) {
+            el.remove();
+        });
+
+        var ctx = getPlotContext();
+        if (!ctx) return;
+
+        ctx.plot.style.position = "relative";
+
+        // 1. Expanding ring at today's live price ("you are here")
+        var livePrice = getLivePrice();
+        if (livePrice) {
+            var genesis = new Date("2009-07-25T00:00:00");
+            var now = new Date();
+            var tNow = (now - genesis) / (365.25 * 86400000);
+            var pos = toPixel(ctx, tNow, livePrice);
+            if (pos) placeRing(ctx.plot, pos.x, pos.y);
+        }
+
+        // 2. Radar beacons for active model rows
+        var rows = document.querySelectorAll("#scan-results tr[data-model]");
+        rows.forEach(function(row) {
+            var model = row.getAttribute("data-model");
+            if (!_activeModels[model]) return;
+
+            var rt = parseFloat(row.getAttribute("data-t"));
+            var rp = parseFloat(row.getAttribute("data-price"));
+            if (!rt || !rp) return;
+
+            var rPos = toPixel(ctx, rt, rp);
+            if (rPos) {
+                var color = COLOR_MAP[model] || DEFAULT_COLOR;
+                placeRadar(ctx.plot, rPos.x, rPos.y, color);
+            }
+        });
+    }
+
+    // ── Row click handling (event delegation) ────────────────────────────────
+
+    function handleRowClick(e) {
+        var row = e.target.closest("tr[data-model]");
+        if (!row) return;
+        var model = row.getAttribute("data-model");
+        if (_activeModels[model]) {
+            delete _activeModels[model];
+            row.classList.remove("scan-row-active");
+        } else {
+            _activeModels[model] = true;
+            row.classList.add("scan-row-active");
+        }
+        updateMarkers();
+    }
+
+    function reapplyActiveClasses() {
+        var rows = document.querySelectorAll("#scan-results tr[data-model]");
+        rows.forEach(function(row) {
+            var model = row.getAttribute("data-model");
+            if (_activeModels[model]) {
+                row.classList.add("scan-row-active");
+            }
+        });
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+
+    var _inputsBound = false;
+
+    function bindInputListeners() {
+        if (_inputsBound) return;
+        var allFound = true;
+        ["scan-price", "scan-date"].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) {
+                el.addEventListener("change", function() {
+                    setTimeout(updateMarkers, 300);
+                });
+                el.addEventListener("input", function() {
+                    setTimeout(updateMarkers, 300);
+                });
+            } else {
+                allFound = false;
+            }
+        });
+        if (allFound) _inputsBound = true;
+    }
+
     function init() {
-        var graph = document.getElementById("bubble-graph");
-        if (!graph) return;
+        // Watch scan-results for Dash re-renders → re-apply active classes
+        var resultsEl = document.getElementById("scan-results");
+        if (resultsEl) {
+            resultsEl.addEventListener("click", handleRowClick);
+            new MutationObserver(function() {
+                reapplyActiveClasses();
+                setTimeout(updateMarkers, 100);
+            }).observe(resultsEl, {childList: true, subtree: true});
+        }
 
         var checkPlot = setInterval(function() {
+            var graph = document.getElementById("bubble-graph");
+            if (!graph) return;
+
             var plot = graph.querySelector(".js-plotly-plot");
             if (plot && plot.on) {
                 plot.on("plotly_afterplot", function() {
@@ -121,20 +230,23 @@
                     setTimeout(updateMarkers, 150);
                 });
                 clearInterval(checkPlot);
-                // Initial marker
+                bindInputListeners();
                 setTimeout(updateMarkers, 2000);
             }
-        }, 500);
+            bindInputListeners();
 
-        // Also update when scanner inputs change
-        ["scan-price", "scan-date"].forEach(function(id) {
-            var el = document.getElementById(id);
-            if (el) {
-                el.addEventListener("change", function() {
-                    setTimeout(updateMarkers, 300);
-                });
+            // Also try to bind scan-results listener if it appeared late
+            if (!resultsEl) {
+                resultsEl = document.getElementById("scan-results");
+                if (resultsEl) {
+                    resultsEl.addEventListener("click", handleRowClick);
+                    new MutationObserver(function() {
+                        reapplyActiveClasses();
+                        setTimeout(updateMarkers, 100);
+                    }).observe(resultsEl, {childList: true, subtree: true});
+                }
             }
-        });
+        }, 500);
     }
 
     if (document.readyState === "loading") {

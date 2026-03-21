@@ -5,7 +5,7 @@ import pandas as pd
 from dash import html, Input, Output, State, callback, no_update, ctx, ALL
 
 import _app_ctx
-from btc_core import today_t, fmt_price
+from btc_core import today_t, fmt_price, yr_to_t
 
 
 def _solve_date(model, q_frac, target_price):
@@ -55,37 +55,45 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price):
 
     # Update history based on what was just edited
     trigger_map = {"scan-price": "p", "scan-date": "d", "scan-q": "q"}
+    val_map = {"scan-price": price_val, "scan-date": date_val, "scan-q": q_val}
     if trigger in trigger_map:
         field = trigger_map[trigger]
-        # Remove this field if already in history, then append
+        raw = val_map[trigger]
+        field_empty = (raw is None or raw == "")
+        # Remove this field from history
         edit_history = [f for f in edit_history if f != field]
-        edit_history.append(field)
-        # Keep only last 2
-        edit_history = edit_history[-2:]
+        if not field_empty:
+            # Field has a value → it's an input → add to history
+            edit_history.append(field)
+            edit_history = edit_history[-2:]
+        # else: field was cleared → leave it out → becomes output
 
     output_field = _output_from_history(edit_history)
 
     # Resolve defaults
     use_live = (price_val is None or price_val == "")
-    if use_live:
+    if use_live and output_field != "p":
         price = float(live_price) if live_price else None
+    elif use_live:
+        price = None
     else:
         price = float(price_val)
 
-    hint_style = {"fontSize": "9px"} if use_live else {"fontSize": "9px", "display": "none"}
+    hint_style = {"fontSize": "9px"} if (use_live and output_field != "p") else {"fontSize": "9px", "display": "none"}
 
-    if date_val is None or date_val == "":
+    if (date_val is None or date_val == "") and output_field != "d":
         date_val = pd.Timestamp.today().strftime("%Y-%m-%d")
 
-    t = (pd.to_datetime(date_val) - genesis).days / 365.25
-    if t <= 0:
+    date_empty = (date_val is None or date_val == "")
+    t = (pd.to_datetime(date_val) - genesis).days / 365.25 if not date_empty else None
+    if t is not None and t <= 0:
         t = 0.5
 
     q_frac = float(q_val) / 100.0 if q_val is not None and q_val != "" else None
 
     rows = []
 
-    if output_field == "q" and price is not None:
+    if output_field == "q" and price is not None and t is not None:
         # Unfairly Cheap Line
         ucl_price = 10 ** (_app_ctx.UCL_INTERCEPT + _app_ctx.UCL_SLOPE * np.log10(t))
         ucl_ratio = price / ucl_price
@@ -104,9 +112,11 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price):
                 html.Td(f"Q{pct*100:.1f}%", style={"fontSize": "11px",
                          "fontWeight": "bold"}),
             ], id={"type": "scan-row", "model": key},
-               style={"cursor": "pointer"}))
+               style={"cursor": "pointer"},
+               **{"data-t": f"{t:.6f}", "data-price": f"{price:.2f}",
+                  "data-model": key}))
 
-    elif output_field == "p" and q_frac is not None:
+    elif output_field == "p" and q_frac is not None and t is not None:
         for key, mdl in _app_ctx.PRICE_MODELS.items():
             if not mdl.quantized:
                 continue
@@ -114,25 +124,36 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price):
                 p = float(mdl.price_at(q_frac, t))
                 price_str = fmt_price(p)
             except Exception:
+                p = None
                 price_str = "\u2014"
+            row_data = {"data-t": f"{t:.6f}", "data-model": key}
+            if p is not None:
+                row_data["data-price"] = f"{p:.2f}"
             rows.append(html.Tr([
                 html.Td(mdl.name, style={"fontSize": "11px"}),
                 html.Td(price_str, style={"fontSize": "11px",
                          "fontWeight": "bold"}),
             ], id={"type": "scan-row", "model": key},
-               style={"cursor": "pointer"}))
+               style={"cursor": "pointer"}, **row_data))
 
     elif output_field == "d" and price is not None and q_frac is not None:
         for key, mdl in _app_ctx.PRICE_MODELS.items():
             if not mdl.quantized:
                 continue
             date_str = _solve_date(mdl, q_frac, price)
+            row_data = {"data-price": f"{price:.2f}", "data-model": key}
+            if date_str != "\u2014":
+                try:
+                    solved_t = (pd.to_datetime(date_str) - genesis).days / 365.25
+                    row_data["data-t"] = f"{solved_t:.6f}"
+                except Exception:
+                    pass
             rows.append(html.Tr([
                 html.Td(mdl.name, style={"fontSize": "11px"}),
                 html.Td(date_str, style={"fontSize": "11px",
                          "fontWeight": "bold"}),
             ], id={"type": "scan-row", "model": key},
-               style={"cursor": "pointer"}))
+               style={"cursor": "pointer"}, **row_data))
 
     header_map = {"q": "Quantile", "p": "Price", "d": "Date"}
     table = html.Table([
@@ -159,6 +180,10 @@ def toggle_scanner_row(n_clicks_list, active):
     """Toggle a model's scanner line on/off when its row is clicked."""
     if not ctx.triggered_id:
         return no_update
+    # Guard: ignore fires from component creation (n_clicks=None/0)
+    triggered = ctx.triggered
+    if not triggered or not triggered[0].get("value"):
+        return no_update
     model_key = ctx.triggered_id["model"]
     active = active or []
     if model_key in active:
@@ -166,3 +191,41 @@ def toggle_scanner_row(n_clicks_list, active):
     else:
         active.append(model_key)
     return active
+
+
+# ── Auto-extend bubble x-range when radar beacon falls outside ───────────────
+
+_app_ctx.app.clientside_callback(
+    """
+    function(active, xrange) {
+        var NU = window.dash_clientside.no_update;
+        if (!active || active.length === 0) return NU;
+
+        var genesis = new Date("2009-07-25T00:00:00");
+        var MS_PER_YR = 365.25 * 86400000;
+        var rows = document.querySelectorAll("#scan-results tr[data-model]");
+        var needMin = xrange[0], needMax = xrange[1];
+        var changed = false;
+
+        rows.forEach(function(row) {
+            var model = row.getAttribute("data-model");
+            if (active.indexOf(model) === -1) return;
+            var t = parseFloat(row.getAttribute("data-t"));
+            if (!t) return;
+            var d = new Date(genesis.getTime() + t * MS_PER_YR);
+            var yr = d.getFullYear() + d.getMonth() / 12;
+            if (yr < needMin) { needMin = Math.floor(yr) - 1; changed = true; }
+            if (yr > needMax) { needMax = Math.ceil(yr) + 1; changed = true; }
+        });
+
+        if (!changed) return NU;
+        needMin = Math.max(2010, needMin);
+        needMax = Math.min(2080, needMax);
+        return [needMin, needMax];
+    }
+    """,
+    Output("bub-xrange", "value", allow_duplicate=True),
+    Input("scan-active-rows", "data"),
+    State("bub-xrange", "value"),
+    prevent_initial_call=True,
+)

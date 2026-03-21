@@ -237,7 +237,8 @@ _app_ctx.app.clientside_callback(
         var SIX_HOURS = 6 * 3600 * 1000;
         var now = Date.now();
         var last = ts_store ? parseInt(ts_store) : 0;
-        if (now - last >= SIX_HOURS) {
+        var isDev = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+        if (!isDev && now - last >= SIX_HOURS) {
             var quotes = """ + _SPLASH_QUOTES_JS + """;
             /* Deterministic pseudo-random shuffle using epoch as seed */
             var seed = Math.floor(now / (6 * 3600 * 1000));

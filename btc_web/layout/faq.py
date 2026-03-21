@@ -306,13 +306,22 @@ _FAQ = [
             "failures of Bitcoin itself:",
             html.Br(), html.Br(),
             html.Strong("September 2015 ($229): "),
-            "Bitcoin was 22 months into its post-2013 bear market. The community "
-            "was consumed by the block size debate (the \u201cscaling wars\u201d), "
-            "which had fractured developer consensus and stalled progress. Media "
-            "coverage was overwhelmingly negative, pronouncing Bitcoin dead for "
-            "the 89th time. Trading volume had collapsed. Yet the network kept "
-            "mining blocks every 10 minutes, and adoption quietly grew beneath "
-            "the noise.",
+            "The 2013 bubble had peaked on Mt. Gox, which at the time handled "
+            "roughly 70% of all Bitcoin trading worldwide. In February 2014, "
+            "Mt. Gox halted withdrawals and filed for bankruptcy, revealing "
+            "that 850,000 BTC (\u223c$450M at the time) had been lost or stolen "
+            "\u2014 the largest exchange failure in Bitcoin\u2019s history until "
+            "FTX. For many early adopters, Mt. Gox ",
+            html.I("was"),
+            " Bitcoin; its collapse shattered confidence and triggered a "
+            "prolonged bear market. By September 2015 \u2014 19 months after "
+            "the Mt. Gox bankruptcy \u2014 the community was further divided by "
+            "the block size debate (the \u201cscaling wars\u201d), which had "
+            "fractured developer consensus. Media coverage was overwhelmingly "
+            "negative, pronouncing Bitcoin dead for the 89th time. Trading "
+            "volume had collapsed with no obvious successor exchange filling "
+            "the void Mt. Gox left. Yet the network kept mining blocks every "
+            "10 minutes, and adoption quietly grew beneath the noise.",
             html.Br(), html.Br(),
             html.Strong("November 2022 \u2013 January 2023 ($16,169\u2013$16,905): "),
             "A chain reaction of centralized failures. Terra/Luna\u2019s "

@@ -5,11 +5,12 @@ Cache structure on disk:
         paths_YYYY.npz          — price paths for start year YYYY
         overlays_YYYY.npz       — retire/SC fan percentiles for start year YYYY
 
-Path cache key:  (entry_pct_bin, mc_years)
-    entry_pct_bin: 0.1, 0.2, ..., 0.9  (9 values, 10% step)
-    mc_years: 10, 20, 30, 40
+Path cache key:  (model_key, entry_pct_bin, mc_years)
+    model_key: bub, qr, pl, lppl, exp, ef
+    entry_pct_bin: 0.01, 0.10, 0.50
+    mc_years: 40
 
-Overlay cache key: (entry_pct_bin, mc_years, withdrawal, inflation, stack)
+Overlay cache key: (model_key, entry_pct_bin, mc_years, withdrawal, inflation, stack)
     withdrawal: 5000, 7500, 12500, 20000, 32500, 69420
     inflation: 2, 3, 4, 6, 8, 10, 12  (percent, stored as int)
     stack: 0.1, 0.5, 1.0, 2.0, 5.0, 10.0
@@ -28,7 +29,7 @@ import _app_ctx
 
 # ── Fixed parameters ──────────────────────────────────────────────────────────
 MC_BINS = 5
-MC_SIMS = 800
+MC_SIMS = 200
 MC_FREQ = "Monthly"
 MC_PPY = 12
 MC_DT = 1.0 / MC_PPY
@@ -37,20 +38,18 @@ MC_WINDOW_START = 2010
 FAN_PCTS = (0.01, 0.05, 0.25, 0.50, 0.75, 0.95)
 
 # ── UI defaults (single source of truth for callbacks + figures + mc_overlay) ─
-MC_DEFAULT_YEARS = 10
-MC_DEFAULT_ENTRY_Q = 50       # percentile, 0–100 scale
-MC_DEFAULT_START_YR = 2026    # default start year for MC simulations
+MC_DEFAULT_YEARS = 40
+MC_DEFAULT_ENTRY_Q = 10       # percentile, 0–100 scale
+MC_DEFAULT_START_YR = 2028    # default start year for MC simulations
 
-# ── Free tier constraints (restricted params for LRU-cached free-tier figures) ─
-MC_FREE_SIMS = 100
-MC_FREE_START_YRS = [2026, 2028, 2031]
-MC_FREE_ENTRY_Q = 10          # percentage, 0-100 scale
-MC_FREE_YEARS = [10, 20]
+# ── Free tier = entire cache (all cached combos are free) ─────────────────────
+MC_FREE_SIMS = 200
 
 # ── Variable parameters ──────────────────────────────────────────────────────
-CACHED_START_YRS = [2026, 2028, 2031, 2035, 2040]
-ENTRY_PCT_BINS = [round(i / 10, 1) for i in range(1, 10)]  # 0.1 .. 0.9
-MC_YEARS_OPTIONS = [10, 20, 30, 40]
+CACHED_START_YRS = [2028, 2031, 2035]
+ENTRY_PCT_BINS = [0.01, 0.10, 0.50]
+MC_YEARS_OPTIONS = [40]
+_CACHED_MODEL_KEYS = frozenset(["bub", "qr", "pl", "lppl", "exp", "ef"])
 WD_AMOUNTS = [5000, 7500, 12500, 20000, 32500, 69420]
 INFL_OPTIONS = [2, 3, 4, 6, 8, 10, 12]
 STACK_SIZES = [0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
@@ -71,12 +70,13 @@ def _overlay_key_str(pct_bin, mc_years, wd, infl, stack):
 
 # ── Generation ────────────────────────────────────────────────────────────────
 
-def generate_cache(start_yr, m, progress_cb=None):
-    """Generate path + overlay cache files for a single start year.
+def generate_cache(start_yr, m, model, progress_cb=None):
+    """Generate path + overlay cache files for a single (model, start_yr) combo.
 
     Args:
         start_yr: Calendar year (e.g. 2031)
-        m: ModelData namespace (needs qr_fits, price_prices, price_years, genesis)
+        m: ModelData namespace (needs price_prices, price_years, genesis)
+        model: PriceModel with find_percentile/interp_price methods
         progress_cb: Optional callback(msg) for progress reporting
     """
     from markov import (build_transition_matrix, monte_carlo_prices,
@@ -90,12 +90,11 @@ def generate_cache(start_yr, m, progress_cb=None):
             print(msg)
 
     CACHE_DIR.mkdir(exist_ok=True)
+    model_key = model.short_name
 
     genesis = m.genesis
     t_start = yr_to_t(start_yr, genesis)
 
-    # Window end: min(start_yr, current_year) — but for future start years,
-    # use all available data up to now
     import pandas as pd
     yr_now = pd.Timestamp.today().year
     window_end = min(start_yr, yr_now)
@@ -104,7 +103,7 @@ def generate_cache(start_yr, m, progress_cb=None):
     we_yr = yr_to_t(window_end, genesis)
 
     trans, bin_edges, _ = build_transition_matrix(
-        m.price_prices, m.price_years, _app_ctx.M.qr_fits,
+        m.price_prices, m.price_years, model,
         n_bins=MC_BINS,
         window_start_yr=ws_yr,
         window_end_yr=we_yr,
@@ -124,17 +123,17 @@ def generate_cache(start_yr, m, progress_cb=None):
 
             price_paths, _ = monte_carlo_prices(
                 trans, bin_edges, pct_bin, n_steps, MC_SIMS,
-                _app_ctx.M.qr_fits, genesis, t_start, MC_DT,
+                model, t_start, MC_DT,
             )
             key = _path_key_str(pct_bin, mc_years)
             paths_dict[key] = price_paths.astype(np.float32)
 
             done += 1
-            log(f"  Paths {done}/{n_path_combos}: {key} "
+            log(f"  [{model_key}] Paths {done}/{n_path_combos}: {key} "
                 f"shape={price_paths.shape}")
 
     # Save paths
-    path_file = CACHE_DIR / f"paths_{start_yr}.npz"
+    path_file = CACHE_DIR / f"paths_{model_key}_{start_yr}.npz"
     np.savez(path_file, **paths_dict)
     log(f"  Saved {path_file} ({path_file.stat().st_size / 1e6:.1f} MB)")
 
@@ -148,7 +147,6 @@ def generate_cache(start_yr, m, progress_cb=None):
         for mc_years in MC_YEARS_OPTIONS:
             pkey = _path_key_str(pct_bin, mc_years)
             price_paths = paths_dict[pkey]
-            mc_ts = np.arange(t_start, t_start + mc_years + MC_DT * 0.5, MC_DT)
 
             for wd in WD_AMOUNTS:
                 for infl in INFL_OPTIONS:
@@ -161,7 +159,6 @@ def generate_cache(start_yr, m, progress_cb=None):
                         fan_usd = compute_fan_percentiles(usd_paths, FAN_PCTS)
 
                         okey = _overlay_key_str(pct_bin, mc_years, wd, infl, stack)
-                        # Store as (n_pcts, n_steps) arrays — 5 percentiles
                         btc_arr = np.array([fan_btc[p] for p in FAN_PCTS],
                                            dtype=np.float32)
                         usd_arr = np.array([fan_usd[p] for p in FAN_PCTS],
@@ -171,61 +168,64 @@ def generate_cache(start_yr, m, progress_cb=None):
 
                         done += 1
                         if done % 500 == 0 or done == n_overlay_combos:
-                            log(f"  Overlays {done}/{n_overlay_combos}")
+                            log(f"  [{model_key}] Overlays {done}/{n_overlay_combos}")
 
-    overlay_file = CACHE_DIR / f"overlays_{start_yr}.npz"
+    overlay_file = CACHE_DIR / f"overlays_{model_key}_{start_yr}.npz"
     np.savez(overlay_file, **overlay_dict)
     log(f"  Saved {overlay_file} ({overlay_file.stat().st_size / 1e6:.1f} MB)")
 
     return path_file, overlay_file
 
 
-def generate_all_caches(m, progress_cb=None):
-    """Generate caches for all cached start years."""
-    for yr in CACHED_START_YRS:
-        msg = f"Generating cache for start year {yr}..."
-        if progress_cb:
-            progress_cb(msg)
-        else:
-            print(msg)
-        generate_cache(yr, m, progress_cb)
+def generate_all_caches(m, models, progress_cb=None):
+    """Generate caches for all models × start years.
+
+    Args:
+        m: ModelData
+        models: dict of {key: model} (quantized models only)
+        progress_cb: Optional callback(msg)
+    """
+    for model_key, model in models.items():
+        if not model.quantized:
+            continue
+        for yr in CACHED_START_YRS:
+            msg = f"Generating cache for {model_key}/{yr}..."
+            if progress_cb:
+                progress_cb(msg)
+            else:
+                print(msg)
+            generate_cache(yr, m, model, progress_cb)
 
 
 # ── Loading ───────────────────────────────────────────────────────────────────
 
-# In-memory cache: {start_yr: {"paths": npz_dict, "overlays": npz_dict}}
+# In-memory cache: {(model_key, start_yr): {"paths": npz_dict, "overlays": npz_dict}}
 _CACHE = {}
-_FULL_LOADED = False   # True once the full 455 MB cache has been loaded
+_FULL_LOADED = False   # True once the full cache has been loaded
 
-# Free-tier defaults → entries to pre-load at startup (fast, ~1.5 MB)
-# Each tuple: (start_yr, pct_bin, mc_years)
+# Free-tier defaults → entries to pre-load at startup
+# Each tuple: (model_key, start_yr, pct_bin, mc_years)
 _STARTUP_PATH_ENTRIES = [
-    (2028, 0.1, 10),   # free tier: 2028/10yr
-    (2028, 0.1, 20),   # free tier: 2028/20yr
-    (2031, 0.1, 10),   # free tier: 2031/10yr
-    (2031, 0.1, 20),   # free tier: 2031/20yr
+    (mdl, 2028, 0.10, 40) for mdl in _CACHED_MODEL_KEYS
 ]
 
-# Each tuple: (start_yr, pct_bin, mc_years, wd, infl_pct, stack)
+# Each tuple: (model_key, start_yr, pct_bin, mc_years, wd, infl_pct, stack)
 _STARTUP_OVERLAY_ENTRIES = [
-    (2028, 0.1, 10, 5000, 4, 1.0),   # free tier: ret/SC default
-    (2028, 0.1, 20, 5000, 4, 1.0),
-    (2031, 0.1, 10, 5000, 4, 1.0),
-    (2031, 0.1, 20, 5000, 4, 1.0),
+    (mdl, 2028, 0.10, 40, 5000, 4, 1.0) for mdl in _CACHED_MODEL_KEYS
 ]
 
 
 def load_startup_cache():
-    """Load free-tier path + overlay entries — fast startup (~1.5 MB)."""
+    """Load free-tier path + overlay entries — fast startup."""
     if not CACHE_DIR.exists():
         return
     # ── Paths ────────────────────────────────────────────────────────────
-    yr_keys = {}
-    for syr, pct, yrs in _STARTUP_PATH_ENTRIES:
-        yr_keys.setdefault(syr, []).append(_path_key_str(pct, yrs))
+    file_keys = {}  # {(model, yr): [path_key_str, ...]}
+    for mdl, syr, pct, yrs in _STARTUP_PATH_ENTRIES:
+        file_keys.setdefault((mdl, syr), []).append(_path_key_str(pct, yrs))
 
-    for yr, keys in yr_keys.items():
-        path_file = CACHE_DIR / f"paths_{yr}.npz"
+    for (mdl, yr), keys in file_keys.items():
+        path_file = CACHE_DIR / f"paths_{mdl}_{yr}.npz"
         if not path_file.exists():
             continue
         npz = np.load(path_file)
@@ -235,16 +235,16 @@ def load_startup_cache():
                 paths[k] = npz[k]
         npz.close()
         if paths:
-            _CACHE.setdefault(yr, {}).setdefault("paths", {}).update(paths)
+            _CACHE.setdefault((mdl, yr), {}).setdefault("paths", {}).update(paths)
 
     # ── Overlays ─────────────────────────────────────────────────────────
-    yr_okeys = {}
-    for syr, pct, yrs, wd, infl, stack in _STARTUP_OVERLAY_ENTRIES:
+    file_okeys = {}  # {(model, yr): [overlay_key_str, ...]}
+    for mdl, syr, pct, yrs, wd, infl, stack in _STARTUP_OVERLAY_ENTRIES:
         okey = _overlay_key_str(pct, yrs, wd, infl, stack)
-        yr_okeys.setdefault(syr, []).append(okey)
+        file_okeys.setdefault((mdl, syr), []).append(okey)
 
-    for yr, okeys in yr_okeys.items():
-        overlay_file = CACHE_DIR / f"overlays_{yr}.npz"
+    for (mdl, yr), okeys in file_okeys.items():
+        overlay_file = CACHE_DIR / f"overlays_{mdl}_{yr}.npz"
         if not overlay_file.exists():
             continue
         npz = np.load(overlay_file)
@@ -257,7 +257,7 @@ def load_startup_cache():
                 overlays[usd_k] = npz[usd_k]
         npz.close()
         if overlays:
-            _CACHE.setdefault(yr, {}).setdefault("overlays", {}).update(overlays)
+            _CACHE.setdefault((mdl, yr), {}).setdefault("overlays", {}).update(overlays)
 
 
 def _ensure_full_cache():
@@ -274,13 +274,14 @@ def _npz_fingerprint():
     if not CACHE_DIR.exists():
         return 0, 0
     max_mt, total_sz = 0, 0
-    for yr in CACHED_START_YRS:
-        for kind in ("paths", "overlays"):
-            f = CACHE_DIR / f"{kind}_{yr}.npz"
-            if f.exists():
-                st = f.stat()
-                max_mt = max(max_mt, st.st_mtime)
-                total_sz += st.st_size
+    for mdl in _CACHED_MODEL_KEYS:
+        for yr in CACHED_START_YRS:
+            for kind in ("paths", "overlays"):
+                f = CACHE_DIR / f"{kind}_{mdl}_{yr}.npz"
+                if f.exists():
+                    st = f.stat()
+                    max_mt = max(max_mt, st.st_mtime)
+                    total_sz += st.st_size
     return max_mt, total_sz
 
 
@@ -332,15 +333,17 @@ def load_caches():
     # Slow path: parse npz files from disk
     if not CACHE_DIR.exists():
         return
-    for yr in CACHED_START_YRS:
-        path_file = CACHE_DIR / f"paths_{yr}.npz"
-        overlay_file = CACHE_DIR / f"overlays_{yr}.npz"
-        if path_file.exists():
-            _CACHE.setdefault(yr, {})
-            _CACHE[yr]["paths"] = dict(np.load(path_file))
-        if overlay_file.exists():
-            _CACHE.setdefault(yr, {})
-            _CACHE[yr]["overlays"] = dict(np.load(overlay_file))
+    for mdl in _CACHED_MODEL_KEYS:
+        for yr in CACHED_START_YRS:
+            path_file = CACHE_DIR / f"paths_{mdl}_{yr}.npz"
+            overlay_file = CACHE_DIR / f"overlays_{mdl}_{yr}.npz"
+            cache_key = (mdl, yr)
+            if path_file.exists():
+                _CACHE.setdefault(cache_key, {})
+                _CACHE[cache_key]["paths"] = dict(np.load(path_file))
+            if overlay_file.exists():
+                _CACHE.setdefault(cache_key, {})
+                _CACHE[cache_key]["overlays"] = dict(np.load(overlay_file))
     elapsed = time.perf_counter() - t0
     print(f"[MC-CACHE] Loaded from npz in {elapsed:.2f}s")
 
@@ -348,32 +351,34 @@ def load_caches():
     _save_shm()
 
 
-def get_cached_paths(start_yr, pct_bin, mc_years, max_sims=None):
+def get_cached_paths(model_key, start_yr, pct_bin, mc_years, max_sims=None):
     """Look up pre-computed price paths. Returns (n_sims, n_steps) array or None.
 
     If max_sims is set, subsample to at most max_sims paths (numpy view).
     """
-    yr_data = _CACHE.get(start_yr)
+    cache_key = (model_key, start_yr)
+    data = _CACHE.get(cache_key)
     key = _path_key_str(pct_bin, mc_years)
     result = None
     # Try startup cache first
-    if yr_data and yr_data.get("paths", {}).get(key) is not None:
-        result = yr_data["paths"][key]
+    if data and data.get("paths", {}).get(key) is not None:
+        result = data["paths"][key]
     # Lazy-load the full cache and retry
     if result is None and not _FULL_LOADED:
         _ensure_full_cache()
-        yr_data = _CACHE.get(start_yr)
-        if yr_data and yr_data.get("paths", {}).get(key) is not None:
-            result = yr_data["paths"][key]
+        data = _CACHE.get(cache_key)
+        if data and data.get("paths", {}).get(key) is not None:
+            result = data["paths"][key]
     if result is not None and max_sims and result.shape[0] > max_sims:
         result = result[:max_sims]
     return result
 
 
-def get_cached_overlay(start_yr, pct_bin, mc_years, wd, infl_pct, stack):
+def get_cached_overlay(model_key, start_yr, pct_bin, mc_years, wd, infl_pct, stack):
     """Look up pre-computed overlay fans.
 
     Args:
+        model_key: model short name (e.g. "bub", "pl")
         infl_pct: inflation as integer percent (e.g. 4 for 4%)
 
     Returns (fan_btc, fan_usd) dicts or (None, None).
@@ -383,10 +388,12 @@ def get_cached_overlay(start_yr, pct_bin, mc_years, wd, infl_pct, stack):
     btc_key = f"{okey}_btc"
     usd_key = f"{okey}_usd"
 
+    cache_key = (model_key, start_yr)
+
     # Try startup cache first (avoids triggering full load)
-    yr_data = _CACHE.get(start_yr)
-    if yr_data:
-        overlays = yr_data.get("overlays")
+    data = _CACHE.get(cache_key)
+    if data:
+        overlays = data.get("overlays")
         if overlays:
             btc_arr = overlays.get(btc_key)
             usd_arr = overlays.get(usd_key)
@@ -398,9 +405,9 @@ def get_cached_overlay(start_yr, pct_bin, mc_years, wd, infl_pct, stack):
     # Lazy-load the full cache and retry
     if not _FULL_LOADED:
         _ensure_full_cache()
-        yr_data = _CACHE.get(start_yr)
-        if yr_data:
-            overlays = yr_data.get("overlays")
+        data = _CACHE.get(cache_key)
+        if data:
+            overlays = data.get("overlays")
             if overlays:
                 btc_arr = overlays.get(btc_key)
                 usd_arr = overlays.get(usd_key)
@@ -413,21 +420,32 @@ def get_cached_overlay(start_yr, pct_bin, mc_years, wd, infl_pct, stack):
 
 
 def snap_to_bin(raw_pctile):
-    """Round a raw percentile (0–1) to the nearest 10% cache bin."""
-    binned = round(raw_pctile * 10) / 10
-    return max(0.1, min(binned, 0.9))
+    """Snap a raw percentile (0–1) to the nearest cached entry bin."""
+    return min(ENTRY_PCT_BINS, key=lambda b: abs(raw_pctile - b))
 
 
 def is_cache_aligned_q(entry_q_pct):
-    """Check if entry_q (percentage, e.g. 10, 20, 43.5) matches a 10% cache bin.
+    """Check if entry_q (percentage, e.g. 1, 10, 50) matches a cached bin.
 
-    Returns True for values within 0.5% of a bin boundary (10, 20, ..., 90).
+    Returns True for values within 0.5% of a bin boundary.
     """
     raw = float(entry_q_pct) / 100.0
     pct_bin = snap_to_bin(raw)
     return abs(raw - pct_bin) < 0.005
 
 
+def is_cached(model_key, start_yr, entry_q, mc_years):
+    """Check if a specific (model, start_yr, entry_q, mc_years) combo is pre-computed."""
+    if model_key not in _CACHED_MODEL_KEYS:
+        return False
+    if start_yr not in CACHED_START_YRS:
+        return False
+    if mc_years not in MC_YEARS_OPTIONS:
+        return False
+    return is_cache_aligned_q(entry_q)
+
+
+# Backward compat alias
 def is_cached_year(yr):
-    """Check if a start year has pre-computed cache."""
-    return yr in _CACHE and "paths" in _CACHE[yr]
+    """Check if a start year has any pre-computed cache."""
+    return yr in CACHED_START_YRS

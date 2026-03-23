@@ -46,7 +46,7 @@ _app_ctx.PRICE_MODELS["exp"]  = ExponentialModel(M.price_years, M.price_prices, 
 # EF model (conditional)
 _ef_pkl = ROOT / "btc_app" / "model_data_ef.pkl"
 if _ef_pkl.exists():
-    _app_ctx.PRICE_MODELS["ef"] = EmpiricalFloorModel(M, str(_ef_pkl))
+    _app_ctx.PRICE_MODELS["ef"] = EmpiricalFloorModel(str(_ef_pkl))
 
 # Set thermal colors on bubble model
 _thermal = _build_thermal_colors(M.QR_QUANTILES)

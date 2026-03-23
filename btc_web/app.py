@@ -194,10 +194,11 @@ import callbacks  # noqa: F401 — registers all callbacks
 def _prewarm_caches():
     yr_now = date.today().year
 
-    # Bubble (default: no quantiles, log-log, 3 future bubbles)
+    # Bubble (default: log-log, 3 future bubbles)
     _get_bubble_fig(dict(
         selected_qs = [0.5],
-        shade=True, show_ols=False, show_data=True, show_today=True,
+        shade=True, show_ols=False, show_ucl=False,
+        show_data=True, show_today=True,
         show_legend=False, minor_grid=False,
         show_comp=True, show_sup=False,
         xscale="log", yscale="log",
@@ -205,19 +206,24 @@ def _prewarm_caches():
         ymin=0.01, ymax=1e7,
         n_future=3, pt_size=3, pt_alpha=0.3,
         stack=0, show_stack=False, use_lots=False, lots=[],
+        legend_pos="outside",
         comp_color="#FFD700", comp_lw=2.0,
         sup_color="#888888", sup_lw=1.5,
         active_models=["bub"],
         palette="default",
+        scanner_lines=[],
     ))
 
     # DCA (default: $100/mo, Q50%, current_yr–current_yr+10)
     _get_dca_fig(dict(
         start_stack=0, use_lots=False,
         amount=100.0, freq="Monthly",
+        inflation=0.0,
         start_yr=yr_now, end_yr=yr_now + 10,
-        disp_mode="btc", log_y=False, show_today=False,
-        show_legend=False, minor_grid=False,
+        disp_mode="btc", log_y=False,
+        annotate=False, show_today=False,
+        show_legend=False, legend_pos="outside",
+        minor_grid=False,
         selected_qs=[0.50], lots=[],
         sc_enabled=False, sc_loan_amount=0,
         sc_rate=_app_ctx.SC_DEFAULT_RATE,
@@ -226,6 +232,8 @@ def _prewarm_caches():
         sc_entry_mode="live",
         sc_custom_price=float(_app_ctx.SC_DEFAULT_PRICE),
         sc_tax_rate=0.33, sc_live_price=None,
+        show_qr=True, show_mc=False,
+        active_models=[], palette="default",
     ))
 
     # Retire (default: $5000/mo, Q1%+Q10%+Q25%, 2031–2075, 4% inflation)
@@ -235,9 +243,12 @@ def _prewarm_caches():
         start_yr=2031, end_yr=2075,
         inflation=4.0, disp_mode="btc",
         log_y=True, annotate=True,
-        show_legend=False, minor_grid=True,
+        show_legend=False, legend_pos="outside",
+        minor_grid=True,
         selected_qs=[0.01, 0.10, 0.25],
         lots=[],
+        show_qr=True, show_mc=False,
+        active_models=[], palette="default",
     ))
 
     # Supercharge (default: Mode A, 1 BTC, annually, Q0.1%+Q10%)
@@ -257,10 +268,15 @@ def _prewarm_caches():
         log_y        = True,
         annotate     = True,
         show_legend  = False,
+        legend_pos   = "outside",
         minor_grid   = True,
         target_yr    = 2060,
         lots         = [],
         use_lots     = False,
+        show_qr      = True,
+        show_mc      = False,
+        active_models = [],
+        palette      = "default",
     ))
 
 _prewarm_caches()

@@ -84,7 +84,7 @@ def _build_mc_params(*, mc_enable, mc_amount, mc_infl, mc_bins, mc_sims,
 
 def _mc_payment_check(tab, mc_years, start_yr, entry_q, pay_token,
                       mc_bins=MC_BINS, mc_sims=MC_SIMS, mc_freq=MC_FREQ,
-                      mc_auth=None):
+                      mc_auth=None, mc_model_src="bub"):
     """Check if MC simulation is authorized (free tier, rendered_key, or paid).
 
     All MC control values must be pre-coerced by the caller.
@@ -104,7 +104,7 @@ def _mc_payment_check(tab, mc_years, start_yr, entry_q, pay_token,
     freq_     = mc_freq
 
     # 1. Free tier — always auto-approve
-    if btcpay.is_free_tier(mc_yrs, start_yr_, entry_q_,
+    if btcpay.is_free_tier(mc_model_src or "bub", mc_yrs, start_yr_, entry_q_,
                            mc_bins=bins_, mc_sims=sims_, mc_freq=freq_):
         return True
 
@@ -161,7 +161,7 @@ def _mc_setup(tab: str, mc_enable, mc_years, mc_start_yr, mc_entry_q,
     mc_ok = bool(mc_enable) and _mc_payment_check(
         tab, mc_years_c, mc_start_yr_c, mc_entry_q_c, pay_token,
         mc_bins=mc_bins_c, mc_sims=mc_sims_c, mc_freq=mc_freq_c,
-        mc_auth=mc_auth)
+        mc_auth=mc_auth, mc_model_src=mc_model_src or "bub")
 
     # ── Stale mode: keep cached overlay visible when MC params change ──
     # When payment check fails but cached MC data exists, override model
@@ -184,8 +184,9 @@ def _mc_setup(tab: str, mc_enable, mc_years, mc_start_yr, mc_entry_q,
         else:
             _spk = None
 
+    _model_src = _spk.get("mc_model_src", "bub") if mc_stale else (mc_model_src or "bub")
     is_free = mc_ok and btcpay.is_free_tier(
-        mc_years_c, mc_start_yr_c, mc_entry_q_c,
+        _model_src, mc_years_c, mc_start_yr_c, mc_entry_q_c,
         mc_bins=mc_bins_c, mc_sims=mc_sims_c, mc_freq=mc_freq_c)
     mc_p = _build_mc_params(
         mc_enable=mc_ok, mc_amount=mc_amount, mc_infl=mc_infl,

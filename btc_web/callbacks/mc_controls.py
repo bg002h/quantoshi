@@ -308,8 +308,8 @@ _MC_BASE_PPY  = 12   # pricing baseline — Monthly
 
 _MC_BASE_BINS = 5    # cache uses 5×5 transition matrix
 
-def _calc_mc_cost(mc_years, start_yr, entry_q=50, mc_sims=800, mc_freq="Monthly",
-                  mc_bins=5, tab="dca"):
+def _calc_mc_cost(mc_years, start_yr, entry_q=50, mc_sims=200, mc_freq="Monthly",
+                  mc_bins=5, tab="dca", model_key="bub"):
     """Calculate MC simulation cost and tier info.
 
     Returns (price_sats: int, is_free: bool, is_cached: bool,
@@ -353,7 +353,7 @@ def _calc_mc_cost(mc_years, start_yr, entry_q=50, mc_sims=800, mc_freq="Monthly"
     if tab == "hm":
         price = int(price * 0.5)
 
-    is_free = btcpay.is_free_tier(mc_years, start_yr, entry_q,
+    is_free = btcpay.is_free_tier(model_key, mc_years, start_yr, entry_q,
                                   mc_bins=mc_bins, mc_sims=mc_sims,
                                   mc_freq=mc_freq)
     if is_free:
@@ -362,11 +362,11 @@ def _calc_mc_cost(mc_years, start_yr, entry_q=50, mc_sims=800, mc_freq="Monthly"
     return price, is_free, is_cached, tier_label, tier_color, tier_note, mc_years
 
 
-def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=800, mc_freq="Monthly",
-                     mc_bins=5, tab="dca"):
+def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=200, mc_freq="Monthly",
+                     mc_bins=5, tab="dca", model_key="bub"):
     """Return cost display elements showing cached vs live pricing."""
     price, is_free, is_cached, tier_label, tier_color, tier_note, mc_years_c = \
-        _calc_mc_cost(mc_years, start_yr, entry_q, mc_sims, mc_freq, mc_bins, tab)
+        _calc_mc_cost(mc_years, start_yr, entry_q, mc_sims, mc_freq, mc_bins, tab, model_key=model_key)
 
     if is_free:
         return ([
@@ -414,11 +414,13 @@ for _cost_pfx in ("hm", "dca", "ret", "sc"):
         Input(f"{_cost_pfx}-mc-window",   "value"),
         Input(f"{_cost_pfx}-mc-start-yr", "value"),
         Input(f"{_cost_pfx}-mc-entry-q", "value"),
+        Input(f"{_cost_pfx}-mc-model-src", "value"),
         prevent_initial_call=True,
     )
     def _update_mc_cost(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window,
-                        mc_start_yr, mc_entry_q, _tab=_cost_pfx):
+                        mc_start_yr, mc_entry_q, mc_model_src, _tab=_cost_pfx):
         children, price = _mc_cost_display(mc_years, mc_start_yr, entry_q=mc_entry_q,
                                            mc_sims=mc_sims, mc_freq=mc_freq,
-                                           mc_bins=mc_bins, tab=_tab)
+                                           mc_bins=mc_bins, tab=_tab,
+                                           model_key=mc_model_src or "bub")
         return children, price

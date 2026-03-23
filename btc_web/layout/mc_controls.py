@@ -34,16 +34,17 @@ def _bold_opts(values, fmt, cached_set):
 # ── MC pricing (sats) ────────────────────────────────────────────────────────
 # Cached: pre-computed paths on server, instant lookup
 # Non-cached: live Markov chain simulation (~1-3s compute)
-_MC_PRICE_CACHED = {10: 100, 20: 200, 30: 300, 40: 400}
 _MC_PRICE_LIVE   = {10: 500, 20: 1000, 30: 1500, 40: 2000}
 _MC_START_YR_OPTIONS = _bold_opts(range(2026, 2051), str, _MC_CACHED_START_YRS)
+# Entry Q dropdown: show 1%–90% in 10% steps, with 1%/10%/50% bolded
+_MC_ENTRY_Q_VALS = sorted(set([1] + [int(v * 100) for v in ENTRY_PCT_BINS] + list(range(10, 100, 10))))
 _MC_ENTRY_Q_OPTIONS  = _bold_opts(
-    [int(v * 100) for v in ENTRY_PCT_BINS],
+    _MC_ENTRY_Q_VALS,
     lambda v: f"{v}%", _MC_CACHED_ENTRY_QS)
 _MC_ENTRY_Q_OPTIONS_ADV = _bold_opts(
     [round(i / 10, 1) for i in range(1, 1000)],
     lambda v: f"{v}%", _MC_CACHED_ENTRY_QS)
-_MC_YEARS_OPTIONS    = _bold_opts(MC_YEARS_OPTIONS, lambda v: f"{v} yr", _MC_CACHED_YEARS)
+_MC_YEARS_OPTIONS    = _bold_opts([10, 20, 30, 40], lambda v: f"{v} yr", _MC_CACHED_YEARS)
 _MC_WD_OPTIONS       = _bold_opts(WD_AMOUNTS, lambda v: f"${v:,}/mo", _MC_CACHED_WD)
 _MC_INFL_OPTIONS     = _bold_opts(INFL_OPTIONS, lambda v: f"{v}%", _MC_CACHED_INFL)
 

@@ -7,7 +7,7 @@ import _app_ctx
 from callbacks.coerce import _ci, _cf
 from figures import FREQ_PPY
 from layout import (_bold_opts, _MC_CACHED_START_YRS, _MC_CACHED_YEARS,
-                    _MC_CACHED_ENTRY_QS, _MC_PRICE_CACHED, _MC_PRICE_LIVE,
+                    _MC_CACHED_ENTRY_QS, _MC_PRICE_LIVE,
                     _MC_ENTRY_Q_OPTIONS, _MC_ENTRY_Q_OPTIONS_ADV,
                     _regime_options)
 from mc_cache import (MC_YEARS_OPTIONS, MC_BINS, MC_SIMS, MC_FREQ,
@@ -316,48 +316,38 @@ def _calc_mc_cost(mc_years, start_yr, entry_q=50, mc_sims=200, mc_freq="Monthly"
              tier_label: str, tier_color: str, tier_note: str,
              mc_years_c: int) where *mc_years_c* is the coerced value.
     """
-    mc_years = _ci(mc_years, 10)
-    start_yr = _ci(start_yr, 2026)
+    mc_years = _ci(mc_years, 40)
+    start_yr = _ci(start_yr, 2028)
     entry_q  = round(_cf(entry_q, 50), 1)
     mc_sims  = _ci(mc_sims, _MC_BASE_SIMS)
     mc_bins  = _ci(mc_bins, _MC_BASE_BINS)
     mc_ppy   = FREQ_PPY.get(mc_freq or "Monthly", _MC_BASE_PPY)
-    is_cached = (start_yr in _MC_CACHED_START_YRS
-                 and mc_bins == _MC_BASE_BINS
-                 and mc_sims <= _MC_BASE_SIMS
-                 and (mc_freq or "Monthly") == "Monthly"
-                 and entry_q in _MC_CACHED_ENTRY_QS
-                 and mc_years in _MC_CACHED_YEARS)
-
-    # Scale factor relative to baseline (800 sims, Monthly, 5×5 matrix)
-    scale = ((mc_sims / _MC_BASE_SIMS) * (mc_ppy / _MC_BASE_PPY)
-             * (mc_bins ** 2 / _MC_BASE_BINS ** 2))
-
-    if is_cached:
-        base_price = _MC_PRICE_CACHED.get(mc_years, 100)
-        tier_label = "Cached"
-        tier_color = "#1a8f3c"
-        tier_note = "Pre-computed \u2022 instant"
-    else:
-        base_price = _MC_PRICE_LIVE.get(mc_years, 500)
-        tier_label = "Live"
-        tier_color = "#c57600"
-        time_scale = scale * (mc_years / 10)  # baseline 1-3s calibrated for 10yr
-        lo, hi = max(1, round(1 * time_scale)), max(1, round(3 * time_scale))
-        tier_note = (f"Computed on demand \u2022 ~{lo}\u2013{hi}s" if lo < hi
-                     else f"Computed on demand \u2022 ~{lo}s")
-
-    price = int(base_price * scale)
-
-    # Heatmap gets 50% discount
-    if tab == "hm":
-        price = int(price * 0.5)
 
     is_free = btcpay.is_free_tier(model_key, mc_years, start_yr, entry_q,
                                   mc_bins=mc_bins, mc_sims=mc_sims,
                                   mc_freq=mc_freq)
+
     if is_free:
         price = 0
+        is_cached = True
+        tier_label = "Cached"
+        tier_color = "#1a8f3c"
+        tier_note = "Pre-computed \u2022 instant"
+    else:
+        # Scale factor relative to baseline (200 sims, Monthly, 5×5 matrix)
+        scale = ((mc_sims / _MC_BASE_SIMS) * (mc_ppy / _MC_BASE_PPY)
+                 * (mc_bins ** 2 / _MC_BASE_BINS ** 2))
+        base_price = _MC_PRICE_LIVE.get(mc_years, 2000)
+        tier_label = "Live"
+        tier_color = "#c57600"
+        time_scale = scale * (mc_years / 10)
+        lo, hi = max(1, round(1 * time_scale)), max(1, round(3 * time_scale))
+        tier_note = (f"Computed on demand \u2022 ~{lo}\u2013{hi}s" if lo < hi
+                     else f"Computed on demand \u2022 ~{lo}s")
+        price = int(base_price * scale)
+        if tab == "hm":
+            price = int(price * 0.5)
+        is_cached = False
 
     return price, is_free, is_cached, tier_label, tier_color, tier_note, mc_years
 

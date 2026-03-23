@@ -631,7 +631,7 @@ def _faq_tab():
     for i, entry in enumerate(_FAQ):
         items.append(
             dbc.AccordionItem(
-                html.P(entry["a"], className="mb-0"),
+                html.Div(entry["a"], className="mb-0"),
                 title=entry["q"],
                 item_id=f"faq-{i}",
             )

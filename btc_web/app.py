@@ -264,6 +264,8 @@ def _prewarm_caches():
     ))
 
 _prewarm_caches()
+from utils import _log_cache_stats
+_log_cache_stats()
 
 # Pre-warm default transition matrix
 if _HAS_MARKOV:

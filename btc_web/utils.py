@@ -65,6 +65,25 @@ _cached_retire_fig      = _make_cached_builder(build_retire_figure)
 _cached_supercharge_fig = _make_cached_builder(build_supercharge_figure)
 _cached_mc_heatmap_fig  = _make_cached_builder(build_mc_heatmap_figure)
 
+_ALL_CACHES = {
+    "bubble": _cached_bubble_fig,
+    "heatmap": _cached_heatmap_fig,
+    "dca": _cached_dca_fig,
+    "retire": _cached_retire_fig,
+    "supercharge": _cached_supercharge_fig,
+    "mc_heatmap": _cached_mc_heatmap_fig,
+}
+
+def _log_cache_stats():
+    """Log LRU cache hit rates for all figure caches."""
+    for name, cache in _ALL_CACHES.items():
+        info = cache.cache_info()
+        total = info.hits + info.misses
+        rate = f"{info.hits/total:.0%}" if total else "n/a"
+        logger.info("cache/%s: hits=%d misses=%d size=%d/%d rate=%s",
+                     name, info.hits, info.misses, info.currsize,
+                     info.maxsize, rate)
+
 def _get_bubble_fig(p: dict):
     p = _quantize_params(p)
     p['_day'] = str(date.today())

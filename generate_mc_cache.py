@@ -1,110 +1,125 @@
 #!/usr/bin/env python3
-"""Generate multi-model MC cache using parallel threads.
+"""Generate multi-model MC cache using parallel processes.
 
 Usage:
-    PYTHONPATH=".:btc_web:archive/btc_app" btc_venv/bin/python3 generate_mc_cache.py [--threads N]
+    btc_venv/bin/python3 generate_mc_cache.py [--workers N]
 
 Generates paths_{model}_{year}.npz and overlays_{model}_{year}.npz files
-for all 6 quantized models × 3 start years = 18 jobs.
+for all 6 quantized models x 3 start years = 18 jobs.
 
-Default: 18 threads (one per job). Use --threads to limit.
+Uses multiprocessing (not threading) for true CPU parallelism — each worker
+process initializes its own model objects and runs independently.
+
+Default: 12 workers. Use --workers to adjust.
 """
 
 import sys
+import os
 import time
 import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
-# ── Setup paths ──────────────────────────────────────────────────────────────
+# ── Setup paths (before any project imports) ─────────────────────────────────
 ROOT = Path(__file__).parent
-sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "btc_web"))
-sys.path.insert(0, str(ROOT / "archive" / "btc_app"))
+for p in (str(ROOT), str(ROOT / "btc_web"), str(ROOT / "archive" / "btc_app")):
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
-import _app_ctx
-from btc_core import (load_model_data, BubbleModel, PowerLawModel, LPPLModel,
-                      ExponentialModel, S2FModel, EmpiricalFloorModel,
-                      QuantileRegressionModel)
-from mc_cache import generate_cache, CACHED_START_YRS, _CACHED_MODEL_KEYS
-from figures.common import _build_thermal_colors
+from mc_cache import CACHED_START_YRS, _CACHED_MODEL_KEYS
 
-# ── Load models (same as app.py startup) ─────────────────────────────────────
-print("Loading model data...")
-M = load_model_data()
-_app_ctx.M = M
+# ── Per-worker initialization ────────────────────────────────────────────────
+# Each worker process calls this once to load models into its own memory space.
+# Model objects can't cross process boundaries, so each process needs its own.
 
-# Register all models (mirrors app.py lines 141-157)
-_app_ctx.PRICE_MODELS["bub"] = BubbleModel(M)
-_app_ctx.PRICE_MODELS["qr"]  = QuantileRegressionModel(M)
-_app_ctx.PRICE_MODELS["pl"]  = PowerLawModel(
-    M.ols_intercept, M.ols_slope, M.price_years, M.price_prices,
-    M.genesis, M.QR_QUANTILES)
-_app_ctx.PRICE_MODELS["lppl"] = LPPLModel(M.price_years, M.price_prices, M.QR_QUANTILES)
-_app_ctx.PRICE_MODELS["exp"]  = ExponentialModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+_worker_M = None
+_worker_models = None
 
-# EF model (conditional)
-_ef_pkl = ROOT / "btc_app" / "model_data_ef.pkl"
-if _ef_pkl.exists():
-    _app_ctx.PRICE_MODELS["ef"] = EmpiricalFloorModel(str(_ef_pkl))
+def _init_worker():
+    """Initialize ModelData and all price models in this worker process."""
+    global _worker_M, _worker_models
+    import _app_ctx
+    from btc_core import (load_model_data, BubbleModel, PowerLawModel, LPPLModel,
+                          ExponentialModel, S2FModel, EmpiricalFloorModel,
+                          QuantileRegressionModel)
+    from figures.common import _build_thermal_colors
 
-# Set thermal colors on bubble model
-_thermal = _build_thermal_colors(M.QR_QUANTILES)
-_app_ctx.PRICE_MODELS["bub"].colors.update(_thermal)
-_app_ctx.DEFAULT_MODEL = _app_ctx.PRICE_MODELS["bub"]
+    M = load_model_data()
+    _app_ctx.M = M
+    _worker_M = M
 
-# S2F is not quantized — skip
-_app_ctx.PRICE_MODELS["s2f"] = S2FModel(M.price_years, M.price_prices, M.genesis)
+    models = {}
+    models["bub"]  = BubbleModel(M)
+    models["qr"]   = QuantileRegressionModel(M)
+    models["pl"]   = PowerLawModel(M.ols_intercept, M.ols_slope,
+                                   M.price_years, M.price_prices,
+                                   M.genesis, M.QR_QUANTILES)
+    models["lppl"] = LPPLModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+    models["exp"]  = ExponentialModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+
+    ef_pkl = ROOT / "btc_app" / "model_data_ef.pkl"
+    if ef_pkl.exists():
+        models["ef"] = EmpiricalFloorModel(str(ef_pkl))
+
+    # Thermal colors for bubble model
+    thermal = _build_thermal_colors(M.QR_QUANTILES)
+    models["bub"].colors.update(thermal)
+
+    _app_ctx.PRICE_MODELS.update(models)
+    _app_ctx.DEFAULT_MODEL = models["bub"]
+    _worker_models = models
 
 
-def _run_one(model_key, start_yr):
-    """Generate cache for one (model, start_yr) combo."""
-    model = _app_ctx.PRICE_MODELS[model_key]
+def _run_one(args):
+    """Generate cache for one (model_key, start_yr) combo. Runs in worker process."""
+    model_key, start_yr = args
+    from mc_cache import generate_cache
+
+    model = _worker_models[model_key]
     label = f"{model_key}/{start_yr}"
+    pid = os.getpid()
     t0 = time.perf_counter()
     try:
-        pf, of = generate_cache(start_yr, M, model,
-                                progress_cb=lambda msg: print(f"  [{label}] {msg}"))
+        pf, of = generate_cache(start_yr, _worker_M, model,
+                                progress_cb=lambda msg: print(f"  [pid {pid}] [{label}] {msg}",
+                                                              flush=True))
         elapsed = time.perf_counter() - t0
         psz = pf.stat().st_size / 1e6
         osz = of.stat().st_size / 1e6
-        print(f"  [{label}] DONE in {elapsed:.1f}s  paths={psz:.1f}MB  overlays={osz:.1f}MB")
+        print(f"  [{label}] DONE in {elapsed:.1f}s  paths={psz:.1f}MB  overlays={osz:.1f}MB",
+              flush=True)
         return label, True, elapsed
     except Exception as e:
+        import traceback
         elapsed = time.perf_counter() - t0
-        print(f"  [{label}] FAILED after {elapsed:.1f}s: {e}")
+        print(f"  [{label}] FAILED after {elapsed:.1f}s: {e}", flush=True)
+        traceback.print_exc()
         return label, False, elapsed
 
 
 def main():
     parser = argparse.ArgumentParser(description="Generate multi-model MC cache")
-    parser.add_argument("--threads", type=int, default=18,
-                        help="Max parallel threads (default: 18)")
+    parser.add_argument("--workers", type=int, default=12,
+                        help="Number of parallel worker processes (default: 12)")
     args = parser.parse_args()
 
-    # Build job list: all quantized models × start years
+    # Build job list
     jobs = []
     for mk in sorted(_CACHED_MODEL_KEYS):
-        if mk not in _app_ctx.PRICE_MODELS:
-            print(f"WARNING: model '{mk}' not registered, skipping")
-            continue
-        mdl = _app_ctx.PRICE_MODELS[mk]
-        if not mdl.quantized:
-            continue
         for yr in CACHED_START_YRS:
             jobs.append((mk, yr))
 
-    n_threads = min(args.threads, len(jobs))
-    print(f"\nGenerating {len(jobs)} cache files using {n_threads} threads...")
+    n_workers = min(args.workers, len(jobs))
+    print(f"Generating {len(jobs)} cache files using {n_workers} worker processes")
     print(f"Models: {sorted(_CACHED_MODEL_KEYS)}")
     print(f"Start years: {CACHED_START_YRS}")
-    print()
+    print(flush=True)
 
     t0 = time.perf_counter()
     results = []
 
-    with ThreadPoolExecutor(max_workers=n_threads) as pool:
-        futures = {pool.submit(_run_one, mk, yr): (mk, yr) for mk, yr in jobs}
+    with ProcessPoolExecutor(max_workers=n_workers, initializer=_init_worker) as pool:
+        futures = {pool.submit(_run_one, job): job for job in jobs}
         for future in as_completed(futures):
             results.append(future.result())
 
@@ -119,8 +134,9 @@ def main():
     # Report total cache size
     cache_dir = Path("btc_web/mc_cache")
     if cache_dir.exists():
-        total = sum(f.stat().st_size for f in cache_dir.glob("*.npz"))
-        print(f"Total cache size: {total / 1e6:.0f} MB")
+        total = sum(f.stat().st_size for f in cache_dir.glob("*.npz")
+                    if any(m in f.name for m in _CACHED_MODEL_KEYS))
+        print(f"New cache size: {total / 1e6:.0f} MB")
 
     if fail:
         sys.exit(1)

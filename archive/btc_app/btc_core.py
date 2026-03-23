@@ -183,13 +183,9 @@ def fit_qr_from_csv(csv_path, quantiles, genesis="2009-07-25", fit_min="2010-01-
 # ── model data ────────────────────────────────────────────────────────────────
 
 def _find_model_data(explicit_path=None):
-    """Search for model_data.pkl: explicit > user config > bundle dir > cwd."""
+    """Search for model_data.pkl: explicit > bundle dir > cwd."""
     if explicit_path and Path(explicit_path).exists():
         return explicit_path
-    # ~/.config override (written by "Save Model Override")
-    cfg = Path.home() / ".config" / "btc-projections" / "model_data.pkl"
-    if cfg.exists():
-        return str(cfg)
     # PyInstaller bundle
     base = getattr(sys, "_MEIPASS", None) or Path(__file__).parent
     bundled = Path(base) / "model_data.pkl"

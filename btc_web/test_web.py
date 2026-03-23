@@ -464,26 +464,24 @@ class TestPkHelper:
 from mc_cache import (snap_to_bin, _path_key_str, _overlay_key_str,
                       CACHED_START_YRS, ENTRY_PCT_BINS, MC_YEARS_OPTIONS,
                       WD_AMOUNTS, INFL_OPTIONS, STACK_SIZES, FAN_PCTS,
-                      is_cached_year)
+                      is_cached, is_cached_year, _CACHED_MODEL_KEYS)
 
 
 class TestSnapToBin:
     def test_exact_bins(self):
-        for b in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+        for b in ENTRY_PCT_BINS:
             assert snap_to_bin(b) == b
 
     def test_rounds_to_nearest(self):
-        assert snap_to_bin(0.14) == 0.1
-        assert snap_to_bin(0.16) == 0.2
-        assert snap_to_bin(0.55) == 0.6
+        assert snap_to_bin(0.08) == 0.10
+        assert snap_to_bin(0.40) == 0.50
+        assert snap_to_bin(0.005) == 0.01
 
-    def test_clamps_low(self):
-        assert snap_to_bin(0.0) == 0.1
-        assert snap_to_bin(0.04) == 0.1
+    def test_extreme_low(self):
+        assert snap_to_bin(0.0) == 0.01
 
-    def test_clamps_high(self):
-        assert snap_to_bin(1.0) == 0.9
-        assert snap_to_bin(0.96) == 0.9
+    def test_extreme_high(self):
+        assert snap_to_bin(1.0) == 0.50
 
 
 class TestPathKeyStr:
@@ -509,29 +507,47 @@ class TestOverlayKeyStr:
 
 class TestCacheConstants:
     def test_cached_years(self):
-        assert 2026 in CACHED_START_YRS
-        assert 2040 in CACHED_START_YRS
-        assert len(CACHED_START_YRS) == 5
+        assert 2028 in CACHED_START_YRS
+        assert 2031 in CACHED_START_YRS
+        assert 2035 in CACHED_START_YRS
+        assert len(CACHED_START_YRS) == 3
 
     def test_entry_bins(self):
-        assert len(ENTRY_PCT_BINS) == 9
-        assert ENTRY_PCT_BINS[0] == 0.1
-        assert ENTRY_PCT_BINS[-1] == 0.9
+        assert len(ENTRY_PCT_BINS) == 3
+        assert 0.01 in ENTRY_PCT_BINS
+        assert 0.10 in ENTRY_PCT_BINS
+        assert 0.50 in ENTRY_PCT_BINS
 
     def test_mc_years_options(self):
-        assert 10 in MC_YEARS_OPTIONS
-        assert 20 in MC_YEARS_OPTIONS
-        assert 30 in MC_YEARS_OPTIONS
+        assert 40 in MC_YEARS_OPTIONS
+        assert len(MC_YEARS_OPTIONS) == 1
 
     def test_fan_pcts(self):
         assert 0.50 in FAN_PCTS  # median must exist
         assert len(FAN_PCTS) == 6
 
+    def test_cached_model_keys(self):
+        assert "bub" in _CACHED_MODEL_KEYS
+        assert "qr" in _CACHED_MODEL_KEYS
+        assert "pl" in _CACHED_MODEL_KEYS
+        assert "s2f" not in _CACHED_MODEL_KEYS
 
-class TestIsCachedYear:
+
+class TestIsCached:
+    def test_cached_combo(self):
+        assert is_cached("bub", 2028, 10, 40)
+        assert is_cached("pl", 2031, 50, 40)
+        assert is_cached("qr", 2035, 1, 40)
+
+    def test_uncached_model(self):
+        assert not is_cached("s2f", 2028, 10, 40)
+
     def test_uncached_year(self):
-        # 9999 should never be cached
+        assert not is_cached("bub", 9999, 10, 40)
         assert is_cached_year(9999) is False
+
+    def test_uncached_duration(self):
+        assert not is_cached("bub", 2028, 10, 20)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -3249,67 +3265,38 @@ import btcpay
 class TestBTCPayPricing:
     """Test compute_price and is_free_tier logic."""
 
-    def test_dca_cached_10yr(self):
-        assert btcpay.compute_price("dca", 10, True) == 100
-
     def test_dca_live_10yr(self):
-        assert btcpay.compute_price("dca", 10, False) == 500
+        assert btcpay.compute_price("dca", 10) == 500
 
     def test_hm_discount(self):
-        assert btcpay.compute_price("hm", 10, True) == 50
+        assert btcpay.compute_price("hm", 10) == 250
 
     def test_hm_live_40yr(self):
-        assert btcpay.compute_price("hm", 40, False) == 1000
-
-    def test_ret_cached_20yr(self):
-        assert btcpay.compute_price("ret", 20, True) == 200
+        assert btcpay.compute_price("hm", 40) == 1000
 
     def test_all_horizons(self):
         for yrs in (10, 20, 30, 40):
-            c = btcpay.compute_price("dca", yrs, True)
-            l = btcpay.compute_price("dca", yrs, False)
-            assert l > c, f"{yrs}yr: live ({l}) should exceed cached ({c})"
+            p = btcpay.compute_price("dca", yrs)
+            assert p > 0, f"{yrs}yr: price should be positive"
 
-    def test_free_tier_dca_default(self):
-        assert btcpay.is_free_tier(10, 2028, 10)
+    def test_free_tier_all_models(self):
+        """All 6 quantized models at cached params should be free."""
+        for model_key in ["bub", "qr", "pl", "lppl", "exp", "ef"]:
+            assert btcpay.is_free_tier(model_key, 40, 2028, 10)
+            assert btcpay.is_free_tier(model_key, 40, 2031, 50)
+            assert btcpay.is_free_tier(model_key, 40, 2035, 1)
 
-    def test_free_tier_hm_default(self):
-        assert btcpay.is_free_tier(10, 2028, 10)
+    def test_not_free_wrong_duration(self):
+        assert not btcpay.is_free_tier("bub", 20, 2028, 10)
 
-    def test_free_tier_retire_default(self):
-        assert btcpay.is_free_tier(10, 2031, 10)
+    def test_not_free_wrong_start_year(self):
+        assert not btcpay.is_free_tier("bub", 40, 2027, 10)
 
-    def test_free_tier_cache_aligned_entry_q(self):
-        """Free tier requires entry_q == MC_FREE_ENTRY_Q (10) and a free (years, start_yr) combo."""
-        assert btcpay.is_free_tier(10, 2028, 10)
-        assert btcpay.is_free_tier(10, 2031, 10)
-        assert btcpay.is_free_tier(20, 2028, 10)
-        assert btcpay.is_free_tier(20, 2031, 10)
+    def test_not_free_wrong_entry_bin(self):
+        assert not btcpay.is_free_tier("bub", 40, 2028, 30)
 
-    def test_not_free_non_aligned_entry_q(self):
-        """Non-free entry percentiles require payment."""
-        assert not btcpay.is_free_tier(10, 2028, 25)
-        assert not btcpay.is_free_tier(10, 2028, 4.3)
-        assert not btcpay.is_free_tier(20, 2028, 5)
-        assert not btcpay.is_free_tier(20, 2031, 75)
-
-    def test_free_tier_20yr(self):
-        assert btcpay.is_free_tier(20, 2028, 10)
-        assert btcpay.is_free_tier(20, 2031, 10)
-
-    def test_free_tier_2028(self):
-        assert btcpay.is_free_tier(10, 2028, 10)
-
-    def test_not_free_30yr(self):
-        assert not btcpay.is_free_tier(30, 2026, 50)
-
-    def test_not_free_uncovered_yr(self):
-        assert not btcpay.is_free_tier(10, 2035, 50)
-
-    def test_is_cached_request(self):
-        assert btcpay.is_cached_request(2026)
-        assert btcpay.is_cached_request(2031)
-        assert not btcpay.is_cached_request(2027)
+    def test_not_free_non_quantized_model(self):
+        assert not btcpay.is_free_tier("s2f", 40, 2028, 10)
 
 
 class TestBTCPayTokens:

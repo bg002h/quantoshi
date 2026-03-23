@@ -3903,6 +3903,50 @@ class TestPriceModelRegistry:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Section: MC model interface verification
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestModelMCInterface:
+    """All quantized models must support find_percentile and interp_price for MC."""
+
+    def test_all_quantized_have_find_percentile(self):
+        import _app_ctx
+        for key, mdl in _app_ctx.PRICE_MODELS.items():
+            if not mdl.quantized:
+                continue
+            assert hasattr(mdl, 'find_percentile'), f"{key} missing find_percentile"
+            assert callable(mdl.find_percentile), f"{key}.find_percentile not callable"
+
+    def test_all_quantized_have_interp_price(self):
+        import _app_ctx
+        for key, mdl in _app_ctx.PRICE_MODELS.items():
+            if not mdl.quantized:
+                continue
+            assert hasattr(mdl, 'interp_price'), f"{key} missing interp_price"
+            assert callable(mdl.interp_price), f"{key}.interp_price not callable"
+
+    def test_find_percentile_returns_float(self):
+        import _app_ctx
+        for key, mdl in _app_ctx.PRICE_MODELS.items():
+            if not mdl.quantized:
+                continue
+            pct = mdl.find_percentile(16.0, 60000.0)
+            assert isinstance(pct, float), f"{key}.find_percentile returned {type(pct)}"
+            assert 0.0 <= pct <= 1.0, f"{key} percentile {pct} out of range"
+
+    def test_interp_price_returns_positive(self):
+        import _app_ctx
+        for key, mdl in _app_ctx.PRICE_MODELS.items():
+            if not mdl.quantized:
+                continue
+            price = mdl.interp_price(0.5, 16.0)
+            assert isinstance(price, float), f"{key}.interp_price returned {type(price)}"
+            assert price > 0, f"{key} price {price} not positive"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Section: Multi-model overlay (Phase 3)
 # ═══════════════════════════════════════════════════════════════════════════════
 

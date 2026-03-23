@@ -214,6 +214,26 @@ def _prewarm_caches():
         scanner_lines=[],
     ))
 
+    # Bubble with PL overlay (common toggle)
+    _get_bubble_fig(dict(
+        selected_qs = [0.5],
+        shade=True, show_ols=False, show_ucl=False,
+        show_data=True, show_today=True,
+        show_legend=False, minor_grid=False,
+        show_comp=True, show_sup=False,
+        xscale="log", yscale="log",
+        xmin=2012, xmax=yr_now + 4,
+        ymin=0.01, ymax=1e7,
+        n_future=3, pt_size=3, pt_alpha=0.3,
+        stack=0, show_stack=False, use_lots=False, lots=[],
+        legend_pos="outside",
+        comp_color="#FFD700", comp_lw=2.0,
+        sup_color="#888888", sup_lw=1.5,
+        active_models=["bub", "pl"],
+        palette="default",
+        scanner_lines=[],
+    ))
+
     # DCA (default: $100/mo, Q50%, current_yr–current_yr+10)
     _get_dca_fig(dict(
         start_stack=0, use_lots=False,
@@ -275,6 +295,34 @@ def _prewarm_caches():
         use_lots     = False,
         show_qr      = True,
         show_mc      = False,
+        active_models = [],
+        palette      = "default",
+    ))
+
+    # Heatmap (default: bubble model, current year entry)
+    _hm_q = _app_ctx._HM_ENTRY_Q_DEFAULT
+    _get_heatmap_fig(dict(
+        entry_yr     = yr_now,
+        entry_q      = _hm_q,
+        live_price   = None,
+        exit_yr_lo   = yr_now,
+        exit_yr_hi   = yr_now + 10,
+        exit_qs      = [],
+        color_mode   = 0,
+        b1           = float(M.CAGR_SEG_B1),
+        b2           = float(M.CAGR_SEG_B2),
+        c_lo         = M.CAGR_SEG_C_LO,
+        c_mid1       = M.CAGR_SEG_C_MID1,
+        c_mid2       = M.CAGR_SEG_C_MID2,
+        c_hi         = M.CAGR_SEG_C_HI,
+        n_disc       = M.CAGR_GRAD_STEPS,
+        vfmt         = "cagr",
+        cell_font_size = 9,
+        show_colorbar = False,
+        stack        = 0,
+        use_lots     = False,
+        lots         = [],
+        hm_model     = "bub",
         active_models = [],
         palette      = "default",
     ))

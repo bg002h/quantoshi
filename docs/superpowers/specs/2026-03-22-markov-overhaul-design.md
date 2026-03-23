@@ -24,7 +24,7 @@ All three functions accept a `model` object (any `_FitsBasedModel` subclass with
 **Note:** The current `_interp_qr_price_safe` clamps `q` to `[0.001, 0.999]` and `t >= 0.5`. In the new design, `q` is implicitly bounded by bin sampling (always within `(0, 1)`), and `model.interp_price` handles boundary quantiles via nearest-neighbor fallback. No explicit clamping needed.
 
 ### Cython Impact
-- Source `.pyx` changes required
+- Source `.py` changes required (markov.py is pure Python compiled via Cython, not `.pyx`)
 - `.so` must be recompiled
 - Hot loop overhead unchanged — both old and new call Python-level functions
 

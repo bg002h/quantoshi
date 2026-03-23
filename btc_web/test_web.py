@@ -257,6 +257,23 @@ class TestQuantizeParams:
         assert out["active_models"] == ["bub", "pl"]
 
 
+# ── Cache maxsize ────────────────────────────────────────────────────────────
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestCacheMaxsize:
+    def test_bubble_cache_maxsize(self):
+        from utils import _cached_bubble_fig
+        assert _cached_bubble_fig.cache_info().maxsize == 64
+
+    def test_heatmap_cache_maxsize(self):
+        from utils import _cached_heatmap_fig
+        assert _cached_heatmap_fig.cache_info().maxsize == 64
+
+    def test_mc_heatmap_cache_maxsize(self):
+        from utils import _cached_mc_heatmap_fig
+        assert _cached_mc_heatmap_fig.cache_info().maxsize == 64
+
+
 # ── Bitmask encoding ─────────────────────────────────────────────────────────
 
 @pytest.mark.skipif(_list_to_mask is None, reason="app.py import failed")

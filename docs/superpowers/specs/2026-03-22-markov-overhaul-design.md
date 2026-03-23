@@ -21,6 +21,8 @@ All three functions accept a `model` object (any `_FitsBasedModel` subclass with
 - `monte_carlo_prices(..., model, ...)` calls `model.interp_price(q, t)` in hot loop
 - `_interp_qr_price_safe()` removed, replaced by `model.interp_price()`
 
+**Note:** The current `_interp_qr_price_safe` clamps `q` to `[0.001, 0.999]` and `t >= 0.5`. In the new design, `q` is implicitly bounded by bin sampling (always within `(0, 1)`), and `model.interp_price` handles boundary quantiles via nearest-neighbor fallback. No explicit clamping needed.
+
 ### Cython Impact
 - Source `.pyx` changes required
 - `.so` must be recompiled
@@ -62,6 +64,9 @@ Multi-model: 6 models x 3 start years x 3 entry bins x 1 duration x 200 sims = ~
 - **Path key:** `(model_key, start_yr, entry_pct_bin, mc_years)`
 - **Overlay key:** path key + `(wd_amount, inflation_pct, stack_btc)`
 
+### Overlay Grid
+Same wd/infl/stack grid as current (6 wd x 7 infl x 6 stack = 252 combos per path set), applied per-model. With 54 path sets (6 models x 3 start years x 3 entry bins) x 252 overlays = 13,608 overlay arrays. At 200 sims with fan percentile aggregation, overlay data is the majority of cache size (~800 MB of the ~828 MB total).
+
 ### npz File Naming
 `paths_{model}_{start_yr}.npz` (e.g., `paths_pl_2028.npz`)
 Replaces current `paths_{start_yr}.npz`.
@@ -83,7 +88,8 @@ Built per-model. Each model produces different percentile trajectories from the 
 `_resolve_model(p)` returns actual model object from `_app_ctx.PRICE_MODELS[p["mc_model_src"]]`. Falls back to `_app_ctx.DEFAULT_MODEL` if key missing or not quantized.
 
 - All overlay functions pass model object instead of fits
-- Transition matrix cache key includes model key
+- `_get_transition_matrix` cache key changes from `id(fits)` to `model.short_name` string (prevents cross-model cache collisions)
+- `_try_cached` guard `== "bub"` removed — all cached models can hit pre-computed cache
 - `try_precomputed_paths()` adds model key to cache lookup
 - Client-side `mc_cached` path_key includes `mc_model_src` (already does)
 - 3-level fallthrough unchanged: client cache -> server cache -> live simulation
@@ -100,8 +106,17 @@ Built per-model. Each model produces different percentile trajectories from the 
 ### New
 - **Free: entire cache** (6 models x 3 start years x 3 entry bins x 40yr x 200 sims)
 - **Paid: live simulations only** — same pricing as current live tier (500-2000 sats by duration), same price regardless of model
-- `is_free_tier()` returns True if `(model, start_yr, entry_q, mc_years)` is in the cache
-- Cached pricing tier removed entirely
+- `is_free_tier(model, mc_years, start_yr, entry_q, ...)` gains a `model` parameter; returns True if `(model, start_yr, entry_q, mc_years)` is in the cache
+- Cached pricing tier removed entirely — `is_cached` parameter removed from `compute_price()` and `create_invoice()`
+- `is_cached_request()` removed (dead code — free tier now gates all cached combos)
+
+**Call sites requiring `model` parameter addition (6 total):**
+1. `btcpay.py` — `_FREE_TIER_COMBOS` set construction
+2. `callbacks/mc_helpers.py:107` — `_mc_payment_check()`
+3. `callbacks/mc_helpers.py:187` — `_mc_setup()`
+4. `callbacks/mc_payment.py:104` — `_mc_payment_initiate()`
+5. `btcpay.py` or `api.py:173` — API validation
+6. `callbacks/mc_controls.py:356` — control state
 
 ### BTCPay Cost Verification
 Before triggering payment, verify the cost shown in the UI modal matches:
@@ -153,12 +168,13 @@ No new UI components required.
 |------|---------|
 | `btc_web/markov.py` | Model-aware API: accept model object instead of qr_fits. Remove `_interp_qr_price_safe`. Recompile `.so`. |
 | `btc_web/mc_overlay.py` | `_resolve_model()` replaces `_resolve_fits()`. Pass model to markov functions. Model key in transition matrix cache. |
-| `btc_web/mc_cache.py` | Model dimension in cache keys, npz naming, `is_cached()` replaces `is_cached_year()`. Updated constants. |
+| `btc_web/mc_cache.py` | Model dimension in cache keys, npz naming, `is_cached()` replaces `is_cached_year()`. Updated constants. `generate_cache()` updated to iterate all 6 models (currently hardcodes `qr_fits`). |
 | `btc_web/btcpay.py` | `is_free_tier()` checks full cache membership. Remove cached pricing tier. Cost verification. |
-| `btc_web/callbacks/mc_helpers.py` | Pass model key through `_mc_setup()` / `_build_mc_params()`. |
+| `btc_web/callbacks/mc_helpers.py` | Pass model key through `_mc_setup()` / `_build_mc_params()`. Add `model` to all `is_free_tier()` calls. |
+| `btc_web/callbacks/mc_payment.py` | Remove `is_cached` from `create_invoice()` call. Always pass `is_cached=False` (free tier gates cached combos). Add `model` to `is_free_tier()` call. |
 | `btc_web/layout/mc_controls.py` | Update cached indicators (start years, entry bins, durations). |
 | `btc_web/app.py` | Update prewarm for new cache dimensions. |
 | `btc_web/_app_ctx.py` | Update cache constants (start years, entry bins, free tier). |
 | `btc_web/test_web.py` | Update MC tests for new API, cache constants, free tier logic. |
 | `archive/btc_app/btc_core.py` | Verify all quantized models have `find_percentile()` and `interp_price()` methods. |
-| Cache generation script | New/updated script to generate 6-model cache. |
+| `btc_web/api.py` | Add `model` to `is_free_tier()` call at line 173. |

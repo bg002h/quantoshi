@@ -567,21 +567,19 @@ class TestMcPathKey:
         key = _mc_path_key(p, "dca")
         assert key["tab"] == "dca"
         assert key["mc_bins"] == 5
-        assert key["mc_sims"] == 800
-        assert key["mc_years"] == 10
+        assert key["mc_sims"] == 200
+        assert key["mc_years"] == 40
         assert key["mc_freq"] == "Monthly"
-        assert key["mc_start_yr"] == 2026
+        assert key["mc_start_yr"] == 2028
         assert "mc_entry_q" in key
 
     def test_ret_defaults(self):
-        """Unified key defaults mc_start_yr to 2026; callback sets tab-specific value."""
         key = _mc_path_key({}, "ret")
-        assert key["mc_start_yr"] == 2026
+        assert key["mc_start_yr"] == 2028
 
     def test_sc_defaults(self):
-        """Unified key defaults mc_start_yr to 2026; callback sets tab-specific value."""
         key = _mc_path_key({}, "sc")
-        assert key["mc_start_yr"] == 2026
+        assert key["mc_start_yr"] == 2028
 
     def test_hm_uses_mc_entry_q(self):
         """Unified key reads mc_entry_q directly (callback maps entry_q → mc_entry_q)."""
@@ -893,10 +891,12 @@ class TestMcUploadFields:
                     f"{tab}.{suffix} uses tuple key {data_key} — should be direct string"
 
     def test_all_mc_years_available_at_defaults(self):
-        """800 sims × Monthly must allow all 4 year options (10, 20, 30, 40)."""
-        opts = _mc_years_options(800, "Monthly")
+        """Default sims x Monthly must include at least the cached duration."""
+        from mc_cache import MC_SIMS, MC_YEARS_OPTIONS
+        opts = _mc_years_options(MC_SIMS, "Monthly")
         values = [o["value"] for o in opts]
-        assert values == [10, 20, 30, 40]
+        for yr in MC_YEARS_OPTIONS:
+            assert yr in values, f"{yr}yr should be available at default sims"
 
 
 class TestCompositeModelAccessors:
@@ -4059,26 +4059,25 @@ class TestMcModelSrc:
         key = _mc_path_key({}, "dca")
         assert key["mc_model_src"] == "bub"
 
-    def test_resolve_fits_returns_qr_fits(self):
-        from mc_overlay import _resolve_fits
-        fits = _resolve_fits({"mc_model_src": "bub"})
-        assert fits is _app_ctx.M.qr_fits
+    def test_resolve_model_returns_bub(self):
+        from mc_overlay import _resolve_model
+        mdl = _resolve_model({"mc_model_src": "bub"})
+        assert mdl is _app_ctx.PRICE_MODELS["bub"]
 
-    def test_resolve_fits_default(self):
-        from mc_overlay import _resolve_fits
-        fits = _resolve_fits({})
-        assert fits is _app_ctx.M.qr_fits
+    def test_resolve_model_default(self):
+        from mc_overlay import _resolve_model
+        mdl = _resolve_model({})
+        assert mdl is _app_ctx.DEFAULT_MODEL
 
-    def test_resolve_fits_always_qr(self):
-        """_resolve_fits always returns M.qr_fits regardless of model source."""
-        from mc_overlay import _resolve_fits
-        fits = _resolve_fits({"mc_model_src": "pl"})
-        assert fits is _app_ctx.M.qr_fits
+    def test_resolve_model_pl(self):
+        from mc_overlay import _resolve_model
+        mdl = _resolve_model({"mc_model_src": "pl"})
+        assert mdl is _app_ctx.PRICE_MODELS["pl"]
 
-    def test_resolve_fits_nonquantized(self):
-        from mc_overlay import _resolve_fits
-        fits = _resolve_fits({"mc_model_src": "s2f"})
-        assert fits is _app_ctx.M.qr_fits
+    def test_resolve_model_nonquantized_falls_back(self):
+        from mc_overlay import _resolve_model
+        mdl = _resolve_model({"mc_model_src": "s2f"})
+        assert mdl is _app_ctx.DEFAULT_MODEL
 
     def test_build_mc_params_includes_model_src(self):
         from callbacks import _build_mc_params

@@ -27,18 +27,22 @@ def _q3(x):
     factor = 10 ** (exp - 2)
     return round(x / factor) * factor
 
-_NO_QUANTIZE_KEYS = {"selected_qs", "exit_qs"}  # must match qr_fits keys exactly
+_NO_QUANTIZE_KEYS = {"selected_qs", "exit_qs", "active_models"}
+
+_SORT_LIST_KEYS = {"active_models", "selected_qs", "exit_qs", "delays"}
 
 def _quantize_params(p: dict) -> dict:
-    """Round all float values in a param dict to 3 sig figs."""
+    """Round all float values in a param dict to 3 sig figs.
+    Sort list-valued keys for cache-key stability."""
     out = {}
     for k, v in p.items():
         if k in _NO_QUANTIZE_KEYS:
-            out[k] = v
+            out[k] = sorted(v) if k in _SORT_LIST_KEYS and isinstance(v, list) else v
         elif isinstance(v, float) and v != 0:
             out[k] = _q3(v)
         elif isinstance(v, list):
-            out[k] = [_q3(x) if isinstance(x, float) and x != 0 else x for x in v]
+            normed = [_q3(x) if isinstance(x, float) and x != 0 else x for x in v]
+            out[k] = sorted(normed) if k in _SORT_LIST_KEYS else normed
         else:
             out[k] = v
     return out
@@ -73,12 +77,20 @@ def _get_mc_or_cached(p: dict, builder_fn, cache_fn, always_mc=False):
     dropped so the key is JSON-serializable.  The overlay function falls
     through to get_cached_paths() for pre-computed data.
 
+    When MC is not active, all mc_* params are stripped from the cache key
+    so that users with different MC settings but identical QR settings share
+    the same cache slot.
+
     always_mc: if True, skip mc_enabled check (used for MC-only heatmap).
     """
     mc_cached = p.pop("mc_cached", None)
     is_free = p.pop("mc_free_tier", False)
+    mc_active = always_mc or (p.get("mc_enabled") and _app_ctx._HAS_MARKOV)
+    if not mc_active:
+        for k in [k for k in p if k.startswith("mc_")]:
+            p.pop(k)
     p_q = _quantize_params(p)
-    if always_mc or (p.get("mc_enabled") and _app_ctx._HAS_MARKOV):
+    if mc_active:
         if is_free:
             return cache_fn(json.dumps(p_q, sort_keys=True, default=str))
         p_q["mc_cached"] = mc_cached
@@ -95,8 +107,8 @@ def _get_supercharge_fig(p: dict):
     return _get_mc_or_cached(p, build_supercharge_figure, _cached_supercharge_fig)
 
 def _get_heatmap_fig(p: dict):
-    p.pop("mc_cached", None)  # not used for QR heatmap
-    p.pop("mc_free_tier", None)
+    for k in [k for k in p if k.startswith("mc_")]:
+        p.pop(k)
     p_q = _quantize_params(p)
     return _cached_heatmap_fig(json.dumps(p_q, sort_keys=True, default=str))
 

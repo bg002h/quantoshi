@@ -163,7 +163,9 @@ try:
     _ALL_QS = _app_ctx._ALL_QS
 except Exception:
     # If app import fails, define stubs for the test — tests will be skipped
-    _q3 = _quantize_params = None
+    _q3 = _quantize_params = _list_to_mask = _mask_to_list = None
+    _encode_snapshot = _decode_snapshot = _SNAPSHOT_CONTROLS = None
+    _CHECKLIST_OPTIONS = _SNAP_PREFIX = _nearest_quantile = None
 finally:
     urllib.request.urlopen = _original_urlopen
 
@@ -227,6 +229,32 @@ class TestQuantizeParams:
         assert out["vals"][0] == _q3(1234.5)
         assert out["vals"][1] == 0.0  # zero unchanged
         assert out["vals"][2] == _q3(5678.9)
+
+    def test_active_models_sorted(self):
+        """active_models order should not affect cache key."""
+        out1 = _quantize_params({"active_models": ["pl", "bub", "s2f"]})
+        out2 = _quantize_params({"active_models": ["bub", "pl", "s2f"]})
+        assert out1["active_models"] == out2["active_models"]
+        assert out1["active_models"] == ["bub", "pl", "s2f"]
+
+    def test_selected_qs_sorted(self):
+        """selected_qs order should not affect cache key."""
+        out1 = _quantize_params({"selected_qs": [0.5, 0.1, 0.01]})
+        out2 = _quantize_params({"selected_qs": [0.01, 0.1, 0.5]})
+        assert out1["selected_qs"] == out2["selected_qs"]
+        assert out1["selected_qs"] == [0.01, 0.1, 0.5]
+
+    def test_delays_sorted(self):
+        """delays order should not affect cache key."""
+        out1 = _quantize_params({"delays": [2.0, 0.0, 1.0]})
+        out2 = _quantize_params({"delays": [0.0, 1.0, 2.0]})
+        assert out1["delays"] == out2["delays"]
+        assert out1["delays"] == [0.0, 1.0, 2.0]
+
+    def test_active_models_exempt_from_quantize(self):
+        """active_models contains strings, must not be quantized."""
+        out = _quantize_params({"active_models": ["bub", "pl"]})
+        assert out["active_models"] == ["bub", "pl"]
 
 
 # ── Bitmask encoding ─────────────────────────────────────────────────────────

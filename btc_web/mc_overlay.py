@@ -55,16 +55,17 @@ _PCTILE_MAX = 0.95              # max entry percentile
 _ANNOT_AX = 28                  # annotation arrow x-offset (pixels)
 _CACHE_Q_TOLERANCE = 0.005      # max quantile distance for cache bin alignment
 
-def _resolve_fits(p):
-    """Resolve the QR fits dict for MC simulation from mc_model_src param.
+def _resolve_model(p):
+    """Resolve the price model for MC simulation from mc_model_src param.
 
-    Returns the fits dict from the selected model (or DEFAULT_MODEL if
+    Returns the model object from PRICE_MODELS (or DEFAULT_MODEL if
     the source model is not quantized or not found).
     """
-    # Always use M.qr_fits for MC — these have intercept/slope format
-    # required by qr_price() and the Markov percentile calculations.
-    # Model.fits may use different formats (e.g. {"z": ...} for composite models).
-    return _app_ctx.M.qr_fits
+    key = p.get("mc_model_src", "bub")
+    mdl = _app_ctx.PRICE_MODELS.get(key)
+    if mdl is not None and mdl.quantized:
+        return mdl
+    return _app_ctx.DEFAULT_MODEL
 
 
 def _mc_setup_vars(p):
@@ -237,10 +238,10 @@ def save_trans_cache_to_disk() -> None:
 _load_trans_cache_from_disk()
 
 
-def _get_transition_matrix(m, n_bins, step_days, mc_window, fits=None):
+def _get_transition_matrix(m, n_bins, step_days, mc_window, model=None):
     """Get transition matrix from cache or build on the fly."""
     global _TRANS_CACHE_DIRTY
-    fits = fits or _app_ctx.M.qr_fits
+    model = model or _app_ctx.DEFAULT_MODEL
     window_start_yr = None
     window_end_yr   = None
     ws_cal = we_cal = None
@@ -252,14 +253,14 @@ def _get_transition_matrix(m, n_bins, step_days, mc_window, fits=None):
         window_start_yr = yr_to_t(ws_cal, m.genesis)
         window_end_yr   = yr_to_t(we_cal, m.genesis)
 
-    fits_id = id(fits)
-    cache_key = (n_bins, step_days, ws_cal, we_cal, fits_id)
+    model_key = model.short_name if model else "bub"
+    cache_key = (n_bins, step_days, ws_cal, we_cal, model_key)
     cached = _TRANS_MATRIX_CACHE.get(cache_key)
     if cached is not None:
         return cached[0], cached[1], n_bins
 
     trans, bin_edges, _ = build_transition_matrix(
-        m.price_prices, m.price_years, fits,
+        m.price_prices, m.price_years, model,
         n_bins=n_bins,
         window_start_yr=window_start_yr,
         window_end_yr=window_end_yr,
@@ -331,7 +332,8 @@ def try_precomputed_paths(p, mc_years):
     if abs(raw_pctile - pct_bin) > _CACHE_Q_TOLERANCE:
         return None
     max_sims = int(p.get("mc_sims", MC_SIMS))
-    return get_cached_paths(syr, pct_bin, mc_years, max_sims=max_sims)
+    model_key = p.get("mc_model_src", "bub")
+    return get_cached_paths(model_key, syr, pct_bin, mc_years, max_sims=max_sims)
 
 
 def try_precomputed_overlay(p, mc_years, wd_amount, inflation, mc_stack):
@@ -349,7 +351,8 @@ def try_precomputed_overlay(p, mc_years, wd_amount, inflation, mc_stack):
     if abs(raw_pctile - pct_bin) > _CACHE_Q_TOLERANCE:
         return None, None
     infl_pct = int(round(inflation * 100))
-    return get_cached_overlay(syr, pct_bin, mc_years, int(wd_amount), infl_pct, mc_stack)
+    model_key = p.get("mc_model_src", "bub")
+    return get_cached_overlay(model_key, syr, pct_bin, mc_years, int(wd_amount), infl_pct, mc_stack)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -551,9 +554,9 @@ def _build_mc_timeline(p, m, mc_years, mc_dt, clamp_start=False):
     return mc_start_yr, mc_t_start, mc_t_end, mc_ts
 
 
-def _prepare_sim(m, p, n_bins, step_days, mc_window, blocked, snap_grid=0, fits=None):
+def _prepare_sim(m, p, n_bins, step_days, mc_window, blocked, snap_grid=0, model=None):
     """Build transition matrix and compute start percentile. Returns (trans, bin_edges, n_bins, start_pctile)."""
-    trans, bin_edges, n_bins = _get_transition_matrix(m, n_bins, step_days, mc_window, fits=fits)
+    trans, bin_edges, n_bins = _get_transition_matrix(m, n_bins, step_days, mc_window, model=model)
     if blocked:
         trans = _apply_bin_mask(trans, blocked)
     start_pctile = float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)) / 100.0
@@ -566,8 +569,8 @@ def _prepare_sim(m, p, n_bins, step_days, mc_window, blocked, snap_grid=0, fits=
 
 
 def _try_cached(p, mc_years, blocked):
-    """Check pre-computed path cache (skip when bins blocked or non-default model). Returns paths or None."""
-    if not blocked and p.get("mc_model_src", "bub") == "bub":
+    """Check pre-computed path cache (skip when bins blocked). Returns paths or None."""
+    if not blocked:
         return try_precomputed_paths(p, mc_years)
     return None
 
@@ -589,12 +592,12 @@ def _run_full_simulation(m, p, n_bins, step_days, mc_window, mc_ts,
                          n_sims, mc_t_start, mc_dt, snap_grid=0):
     """Run full MC simulation: build transition matrix + generate price paths."""
     blocked = p.get("mc_blocked_bins", [])
-    fits = _resolve_fits(p)
+    model = _resolve_model(p)
     trans, bin_edges, n_bins, start_pctile = _prepare_sim(
-        m, p, n_bins, step_days, mc_window, blocked, snap_grid=snap_grid, fits=fits)
+        m, p, n_bins, step_days, mc_window, blocked, snap_grid=snap_grid, model=model)
     price_paths, _ = monte_carlo_prices(
         trans, bin_edges, start_pctile, len(mc_ts), n_sims,
-        fits, m.genesis, mc_t_start, mc_dt,
+        model, mc_t_start, mc_dt,
     )
     return price_paths
 

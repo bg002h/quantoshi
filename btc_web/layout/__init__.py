@@ -22,7 +22,7 @@ from layout.common import (_STYLE_HIDDEN, _STYLE_HINT, _STYLE_GRAPH_H,
 from layout.mc_controls import (_bold_opts, _regime_options,
                                  _MC_CACHED_START_YRS, _MC_CACHED_YEARS,
                                  _MC_CACHED_ENTRY_QS, _MC_CACHED_WD, _MC_CACHED_INFL,
-                                 _MC_PRICE_CACHED, _MC_PRICE_LIVE,
+                                 _MC_PRICE_LIVE,
                                  _MC_ENTRY_Q_OPTIONS, _MC_ENTRY_Q_OPTIONS_ADV,
                                  _QUANT_FONT)
 from layout.faq import _FAQ

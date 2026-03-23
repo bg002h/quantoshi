@@ -7,7 +7,7 @@ import _app_ctx
 from callbacks.coerce import _ci, _cf
 from figures import FREQ_PPY
 from layout import (_bold_opts, _MC_CACHED_START_YRS, _MC_CACHED_YEARS,
-                    _MC_CACHED_ENTRY_QS, _MC_PRICE_CACHED, _MC_PRICE_LIVE,
+                    _MC_CACHED_ENTRY_QS, _MC_PRICE_LIVE,
                     _MC_ENTRY_Q_OPTIONS, _MC_ENTRY_Q_OPTIONS_ADV,
                     _regime_options)
 from mc_cache import (MC_YEARS_OPTIONS, MC_BINS, MC_SIMS, MC_FREQ,
@@ -308,65 +308,55 @@ _MC_BASE_PPY  = 12   # pricing baseline — Monthly
 
 _MC_BASE_BINS = 5    # cache uses 5×5 transition matrix
 
-def _calc_mc_cost(mc_years, start_yr, entry_q=50, mc_sims=800, mc_freq="Monthly",
-                  mc_bins=5, tab="dca"):
+def _calc_mc_cost(mc_years, start_yr, entry_q=50, mc_sims=200, mc_freq="Monthly",
+                  mc_bins=5, tab="dca", model_key="bub"):
     """Calculate MC simulation cost and tier info.
 
     Returns (price_sats: int, is_free: bool, is_cached: bool,
              tier_label: str, tier_color: str, tier_note: str,
              mc_years_c: int) where *mc_years_c* is the coerced value.
     """
-    mc_years = _ci(mc_years, 10)
-    start_yr = _ci(start_yr, 2026)
+    mc_years = _ci(mc_years, 40)
+    start_yr = _ci(start_yr, 2028)
     entry_q  = round(_cf(entry_q, 50), 1)
     mc_sims  = _ci(mc_sims, _MC_BASE_SIMS)
     mc_bins  = _ci(mc_bins, _MC_BASE_BINS)
     mc_ppy   = FREQ_PPY.get(mc_freq or "Monthly", _MC_BASE_PPY)
-    is_cached = (start_yr in _MC_CACHED_START_YRS
-                 and mc_bins == _MC_BASE_BINS
-                 and mc_sims <= _MC_BASE_SIMS
-                 and (mc_freq or "Monthly") == "Monthly"
-                 and entry_q in _MC_CACHED_ENTRY_QS
-                 and mc_years in _MC_CACHED_YEARS)
 
-    # Scale factor relative to baseline (800 sims, Monthly, 5×5 matrix)
-    scale = ((mc_sims / _MC_BASE_SIMS) * (mc_ppy / _MC_BASE_PPY)
-             * (mc_bins ** 2 / _MC_BASE_BINS ** 2))
+    is_free = btcpay.is_free_tier(model_key, mc_years, start_yr, entry_q,
+                                  mc_bins=mc_bins, mc_sims=mc_sims,
+                                  mc_freq=mc_freq)
 
-    if is_cached:
-        base_price = _MC_PRICE_CACHED.get(mc_years, 100)
+    if is_free:
+        price = 0
+        is_cached = True
         tier_label = "Cached"
         tier_color = "#1a8f3c"
         tier_note = "Pre-computed \u2022 instant"
     else:
-        base_price = _MC_PRICE_LIVE.get(mc_years, 500)
+        # Scale factor relative to baseline (200 sims, Monthly, 5×5 matrix)
+        scale = ((mc_sims / _MC_BASE_SIMS) * (mc_ppy / _MC_BASE_PPY)
+                 * (mc_bins ** 2 / _MC_BASE_BINS ** 2))
+        base_price = _MC_PRICE_LIVE.get(mc_years, 2000)
         tier_label = "Live"
         tier_color = "#c57600"
-        time_scale = scale * (mc_years / 10)  # baseline 1-3s calibrated for 10yr
+        time_scale = scale * (mc_years / 10)
         lo, hi = max(1, round(1 * time_scale)), max(1, round(3 * time_scale))
         tier_note = (f"Computed on demand \u2022 ~{lo}\u2013{hi}s" if lo < hi
                      else f"Computed on demand \u2022 ~{lo}s")
-
-    price = int(base_price * scale)
-
-    # Heatmap gets 50% discount
-    if tab == "hm":
-        price = int(price * 0.5)
-
-    is_free = btcpay.is_free_tier(mc_years, start_yr, entry_q,
-                                  mc_bins=mc_bins, mc_sims=mc_sims,
-                                  mc_freq=mc_freq)
-    if is_free:
-        price = 0
+        price = int(base_price * scale)
+        if tab == "hm":
+            price = int(price * 0.5)
+        is_cached = False
 
     return price, is_free, is_cached, tier_label, tier_color, tier_note, mc_years
 
 
-def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=800, mc_freq="Monthly",
-                     mc_bins=5, tab="dca"):
+def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=200, mc_freq="Monthly",
+                     mc_bins=5, tab="dca", model_key="bub"):
     """Return cost display elements showing cached vs live pricing."""
     price, is_free, is_cached, tier_label, tier_color, tier_note, mc_years_c = \
-        _calc_mc_cost(mc_years, start_yr, entry_q, mc_sims, mc_freq, mc_bins, tab)
+        _calc_mc_cost(mc_years, start_yr, entry_q, mc_sims, mc_freq, mc_bins, tab, model_key=model_key)
 
     if is_free:
         return ([
@@ -414,11 +404,13 @@ for _cost_pfx in ("hm", "dca", "ret", "sc"):
         Input(f"{_cost_pfx}-mc-window",   "value"),
         Input(f"{_cost_pfx}-mc-start-yr", "value"),
         Input(f"{_cost_pfx}-mc-entry-q", "value"),
+        Input(f"{_cost_pfx}-mc-model-src", "value"),
         prevent_initial_call=True,
     )
     def _update_mc_cost(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window,
-                        mc_start_yr, mc_entry_q, _tab=_cost_pfx):
+                        mc_start_yr, mc_entry_q, mc_model_src, _tab=_cost_pfx):
         children, price = _mc_cost_display(mc_years, mc_start_yr, entry_q=mc_entry_q,
                                            mc_sims=mc_sims, mc_freq=mc_freq,
-                                           mc_bins=mc_bins, tab=_tab)
+                                           mc_bins=mc_bins, tab=_tab,
+                                           model_key=mc_model_src or "bub")
         return children, price

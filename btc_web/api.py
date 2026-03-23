@@ -170,21 +170,19 @@ pre code {{ background:none; padding:0; }}
 
         # Free tier check
         entry_q = float(data.get("entry_q", btcpay.MC_DEFAULT_ENTRY_Q))
-        if btcpay.is_free_tier(mc_years, start_yr, entry_q):
+        model_key = data.get("model_key", "bub")
+        if btcpay.is_free_tier(model_key, mc_years, start_yr, entry_q):
             return jsonify({"free": True, "message": "Free tier — no payment needed"}), 200
 
-        is_cached = btcpay.is_cached_request(start_yr)
-
         try:
-            result = btcpay.create_invoice(tab, mc_years, is_cached)
+            result = btcpay.create_invoice(tab, mc_years)
         except Exception as e:
             log.error("BTCPay create_invoice failed: %s", e)
             return jsonify({"error": "Payment service unavailable"}), 503
 
         _record_invoice(ip)
-        log.info("Invoice created: %s (%s sats, %s %dyr, %s)",
-                 result["invoice_id"], result["amount_sats"], tab, mc_years,
-                 "cached" if is_cached else "live")
+        log.info("Invoice created: %s (%s sats, %s %dyr, live)",
+                 result["invoice_id"], result["amount_sats"], tab, mc_years)
 
         return jsonify(result), 201
 

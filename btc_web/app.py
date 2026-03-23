@@ -340,15 +340,15 @@ def _prewarm_mc_caches():
     """Pre-warm LRU caches for free-tier MC figures (DCA, Retire, SC)."""
     import logging as _log
     _log.getLogger(__name__).info("MC prewarm: starting background warm")
-    from mc_cache import MC_FREE_SIMS, MC_FREE_START_YRS, MC_FREE_ENTRY_Q, MC_FREE_YEARS
+    from mc_cache import MC_FREE_SIMS, CACHED_START_YRS, ENTRY_PCT_BINS, MC_YEARS_OPTIONS
     yr_now = date.today().year
 
-    def _mc_overrides(s_yr, mc_yrs):
+    def _mc_overrides(s_yr, mc_yrs, entry_q=10):
         return dict(
             mc_enabled=True, mc_amount=100, mc_infl=4.0,
             mc_bins=5, mc_sims=MC_FREE_SIMS, mc_years=mc_yrs,
             mc_freq="Monthly", mc_window=[2010, yr_now],
-            mc_start_yr=s_yr, mc_entry_q=MC_FREE_ENTRY_Q,
+            mc_start_yr=s_yr, mc_entry_q=entry_q,
             mc_live_price=0, mc_blocked_bins=(),
             mc_free_tier=True,
         )
@@ -360,8 +360,9 @@ def _prewarm_mc_caches():
             _log.getLogger(__name__).warning("MC prewarm %s %d/%d failed: %s",
                                              label, s_yr, mc_yrs, e)
 
-    for s_yr in MC_FREE_START_YRS:
-        for mc_yrs in MC_FREE_YEARS:
+    # Prewarm one representative combo per start year (bub model, Q10%, 40yr)
+    for s_yr in CACHED_START_YRS:
+        for mc_yrs in MC_YEARS_OPTIONS:
             mc = _mc_overrides(s_yr, mc_yrs)
             _try(_get_dca_fig, dict(
                 start_stack=0, use_lots=False,

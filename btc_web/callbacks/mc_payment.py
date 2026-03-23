@@ -54,6 +54,7 @@ _MC_QUANT_THRESHOLD = 50_000  # sats — trigger quant warning modal
     State("sc-mc-years", "value"), State("sc-mc-start-yr", "value"),
     State("sc-mc-entry-q", "value"),
     State("mc-pay-trigger", "data"),
+    *(State(f"{pfx}-mc-model-src", "value") for pfx in ("dca", "ret", "hm", "sc")),
     *(State(f"{pfx}-mc-price-val", "data") for pfx in ("dca", "ret", "hm", "sc")),
     prevent_initial_call=True,
 )
@@ -73,8 +74,11 @@ def _mc_payment_initiate(*args):
     start_yr  = _ci(args[state_base + tab_idx * 3 + 1], MC_DEFAULT_START_YR)
     entry_q   = _cf(args[state_base + tab_idx * 3 + 2], MC_DEFAULT_ENTRY_Q)
     cur_trigger = args[state_base + 12] or 0  # after 4×3 tab states
-    # Price stores: 4 values after trigger
-    price_vals = args[state_base + 13 : state_base + 17]
+    # Model source: 4 values after trigger
+    model_srcs = args[state_base + 13 : state_base + 17]
+    mc_model_src = model_srcs[tab_idx] or "bub"
+    # Price stores: 4 values after model sources
+    price_vals = args[state_base + 17 : state_base + 21]
     tab_price = _ci(price_vals[tab_idx], 0)
 
     # Default outputs: modal closed, no change to per-tab status
@@ -101,17 +105,16 @@ def _mc_payment_initiate(*args):
                     *no_tab_status)
 
     # Free tier check (bins/sims/freq not available here; uses defaults)
-    if btcpay.is_free_tier(mc_years, start_yr, entry_q):
+    if btcpay.is_free_tier(mc_model_src, mc_years, start_yr, entry_q):
         tab_statuses = list(no_tab_status)
         tab_statuses[tab_idx] = html.Span("Free tier", style={"color": "#1a8f3c"})
         return _ret(False, dash.no_update, dash.no_update,
                     dash.no_update, True, 0, cur_trigger + 1,
                     *tab_statuses)
 
-    # Create invoice directly via btcpay module
-    is_cached = btcpay.is_cached_request(start_yr)
+    # Create invoice for live simulation
     try:
-        result = btcpay.create_invoice(tab, mc_years, is_cached)
+        result = btcpay.create_invoice(tab, mc_years)
     except Exception:
         tab_statuses = list(no_tab_status)
         tab_statuses[tab_idx] = html.Span(

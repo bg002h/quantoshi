@@ -39,48 +39,35 @@ else:
 
 # ── Pricing ──────────────────────────────────────────────────────────────────
 
-# {horizon_years: (cached_sats, live_sats)}
-_PRICE_BASE = {10: (100, 500), 20: (200, 1000), 30: (300, 1500), 40: (400, 2000)}
+# {horizon_years: live_sats}  — entire cache is free; paid = live only
+_PRICE_BASE = {10: 500, 20: 1000, 30: 1500, 40: 2000}
 _HM_DISCOUNT = 0.5  # heatmap pays half
 
-# Free tier: certain (years, start_yr) combos with default simulator settings.
 from mc_cache import MC_DEFAULT_YEARS, MC_DEFAULT_ENTRY_Q, MC_DEFAULT_START_YR, \
     CACHED_START_YRS, MC_BINS, MC_SIMS, MC_FREQ, is_cache_aligned_q, \
-    MC_FREE_SIMS, MC_FREE_START_YRS, MC_FREE_ENTRY_Q, MC_FREE_YEARS
-
-# Free tier: restricted (years, start_yr) combos with entry_q == MC_FREE_ENTRY_Q,
-# sims <= MC_FREE_SIMS, and default bins/freq/window.
-_FREE_TIER_COMBOS = {(y, s) for s in MC_FREE_START_YRS for y in MC_FREE_YEARS}
+    MC_FREE_SIMS, is_cached
 
 
-def compute_price(tab: str, mc_years: int, is_cached: bool) -> int:
-    """Return price in satoshis for a given MC simulation request."""
-    cached_sats, live_sats = _PRICE_BASE.get(mc_years, _PRICE_BASE[10])
-    price = cached_sats if is_cached else live_sats
+def compute_price(tab: str, mc_years: int) -> int:
+    """Return price in satoshis for a live MC simulation."""
+    sats = _PRICE_BASE.get(mc_years, 2000)
     if tab == "hm":
-        price = int(price * _HM_DISCOUNT)
-    return price
+        sats = int(sats * _HM_DISCOUNT)
+    return sats
 
 
-def is_free_tier(mc_years: int, start_yr: int, entry_q: float = 0,
+def is_free_tier(model_key: str, mc_years: int, start_yr: int,
+                 entry_q: float = 0,
                  mc_bins: int = MC_BINS, mc_sims: int = MC_FREE_SIMS,
                  mc_freq: str = MC_FREQ) -> bool:
-    """Check if the requested params match the free tier (no payment needed).
+    """Free tier: entire pre-computed cache is free.
 
-    Free tier requires: default bins/freq, sims <= MC_FREE_SIMS (100),
-    entry_q == MC_FREE_ENTRY_Q (10%), and a cached (years, start_yr) combo.
+    Returns True if (model, start_yr, entry_q, mc_years) is in the cache
+    and simulator settings are default (bins, sims, freq).
     """
     if int(mc_bins) != MC_BINS or int(mc_sims) > MC_FREE_SIMS or (mc_freq or MC_FREQ) != MC_FREQ:
         return False
-    eq = float(entry_q or MC_FREE_ENTRY_Q)
-    if round(eq) != MC_FREE_ENTRY_Q:
-        return False
-    return (int(mc_years), int(start_yr)) in _FREE_TIER_COMBOS
-
-
-def is_cached_request(start_yr: int) -> bool:
-    """Check if start_yr has pre-computed cache files."""
-    return start_yr in CACHED_START_YRS
+    return is_cached(model_key, int(start_yr), float(entry_q or MC_DEFAULT_ENTRY_Q), int(mc_years))
 
 
 # ── HMAC Payment Tokens ─────────────────────────────────────────────────────
@@ -145,7 +132,7 @@ def _api_url(path: str) -> str:
     return f"{BTCPAY_URL.rstrip('/')}/api/v1/stores/{BTCPAY_STORE_ID}{path}"
 
 
-def create_invoice(tab: str, mc_years: int, is_cached: bool,
+def create_invoice(tab: str, mc_years: int,
                    description: str = "") -> dict:
     """Create a BTCPay invoice via the Greenfield API.
 
@@ -155,10 +142,9 @@ def create_invoice(tab: str, mc_years: int, is_cached: bool,
     Raises:
         requests.RequestException on network/API errors.
     """
-    amount_sats = compute_price(tab, mc_years, is_cached)
+    amount_sats = compute_price(tab, mc_years)
     if not description:
-        tier = "cached" if is_cached else "live"
-        description = f"MC Simulation ({mc_years}yr, {tier})"
+        description = f"MC Simulation ({mc_years}yr, live)"
 
     payload = {
         "amount": str(amount_sats),
@@ -171,7 +157,6 @@ def create_invoice(tab: str, mc_years: int, is_cached: bool,
             "itemDesc": description,
             "tab": tab,
             "mc_years": mc_years,
-            "is_cached": is_cached,
         },
     }
 

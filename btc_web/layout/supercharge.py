@@ -112,4 +112,5 @@ def _supercharge_controls():
 
 
 def _supercharge_tab():
-    return _chart_tab_layout(_supercharge_controls, "supercharge-graph", "btc_supercharge")
+    return _chart_tab_layout(_supercharge_controls, "supercharge-graph", "btc_supercharge",
+                             mc_prefix="sc")

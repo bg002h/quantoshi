@@ -202,8 +202,8 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                 dcc.Dropdown(id=f"{prefix}-mc-sims",
                              options=_bold_opts(
                                  [100, 200, 400, 800, 1600, 3200],
-                                 str, {100, 200, 400, 800}),
-                             value=100, clearable=False),
+                                 str, {200}),
+                             value=200, clearable=False),
                 *([ _lbl("Frequency"),
                     dcc.Dropdown(id=f"{prefix}-mc-freq",
                                  options=_bold_opts(

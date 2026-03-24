@@ -118,7 +118,7 @@ def _mc_sc_yr_sync(mc_start_yr, mc_years, mc_enable, end_yr):
 # Returns: [match_text, match_style, overlay_style, wrap_class, badge_style,
 #           restore_btn_style]
 _MC_MATCH_JS_TPL = """
-function(mc_enable, mc_years, mc_start_yr, mc_entry_q, rendered_key) {{
+function(mc_enable, mc_years, mc_start_yr, mc_entry_q, mc_model_src, rendered_key) {{
     var hide = {{display: "none"}};
     var base = {{fontSize: "10px", fontWeight: "600", textAlign: "center", marginTop: "4px"}};
     var noPremium = "{base_cls}";
@@ -132,10 +132,14 @@ function(mc_enable, mc_years, mc_start_yr, mc_entry_q, rendered_key) {{
         hide,
         hide
     ];
-    var yrs = parseInt(mc_years) || 10;
-    var syr = parseInt(mc_start_yr) || 2026;
-    var eq  = parseInt(mc_entry_q) || 50;
-    if (yrs === rendered_key.years && syr === rendered_key.start_yr && eq === rendered_key.entry_q) {{
+    var yrs = parseInt(mc_years) || 40;
+    var syr = parseInt(mc_start_yr) || 2028;
+    var eq  = parseInt(mc_entry_q) || 10;
+    var msrc = mc_model_src || "bub";
+    var match = (yrs === rendered_key.years &&
+                 syr === rendered_key.start_yr &&
+                 eq === rendered_key.entry_q);
+    if (match) {{
         return [
             "\u2713 Chart reflects current MC settings",
             Object.assign({{}}, base, {{color: "#1a8f3c"}}),
@@ -155,9 +159,10 @@ function(mc_enable, mc_years, mc_start_yr, mc_entry_q, rendered_key) {{
     ];
 }}
 """
-for _mc_m in ("dca", "ret", "hm"):
-    _wrap_id = {"dca": "dca-chart-wrap", "ret": "ret-chart-wrap", "hm": "hm-mc-panel"}[_mc_m]
-    _base_cls = "" if _mc_m == "hm" else ""
+for _mc_m in ("dca", "ret", "hm", "sc"):
+    _wrap_id = {"dca": "dca-chart-wrap", "ret": "ret-chart-wrap",
+                "hm": "hm-mc-panel", "sc": "sc-chart-wrap"}[_mc_m]
+    _base_cls = ""
     _sep = " " if _base_cls else ""
     _app_ctx.app.clientside_callback(
         _MC_MATCH_JS_TPL.format(base_cls=_base_cls, sep=_sep),
@@ -171,6 +176,7 @@ for _mc_m in ("dca", "ret", "hm"):
         Input(f"{_mc_m}-mc-years", "value"),
         Input(f"{_mc_m}-mc-start-yr", "value"),
         Input(f"{_mc_m}-mc-entry-q", "value"),
+        Input(f"{_mc_m}-mc-model-src", "value"),
         Input(f"{_mc_m}-mc-rendered-key", "data"),
     )
 
@@ -231,13 +237,7 @@ for _ext_pfx in ("dca", "ret"):
         prevent_initial_call=True,
     )
 
-# SC tab has no MC overlay
-_app_ctx.app.clientside_callback(
-    "function() { return ['', {}]; }",
-    Output("sc-mc-match", "children"),
-    Output("sc-mc-match", "style"),
-    Input("sc-mc-enable", "value"),
-)
+# SC match callback now included in the loop above
 
 # PPY display (steps/year) — clientside for instant feedback
 _PPY_JS = """

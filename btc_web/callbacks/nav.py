@@ -596,6 +596,24 @@ def open_faq_item(pathname):
     return no_update
 
 
+# Scroll opened FAQ item to top of screen
+_app_ctx.app.clientside_callback(
+    """
+    function(activeItem) {
+        if (!activeItem) return window.dash_clientside.no_update;
+        setTimeout(function() {
+            var el = document.getElementById(activeItem);
+            if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+        }, 150);
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("faq-accordion", "className", allow_duplicate=True),
+    Input("faq-accordion", "active_item"),
+    prevent_initial_call='initial_duplicate',
+)
+
+
 @callback(
     Output("share-modal", "is_open"),
     Input("share-btn",          "n_clicks"),

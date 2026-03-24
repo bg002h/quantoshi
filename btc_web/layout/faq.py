@@ -85,9 +85,11 @@ _FAQ = [
             "the largest impact: the earliest prices sit noticeably farther from "
             "the regression lines when the time origin is wrong.",
             html.Br(), html.Br(),
-            "The current model uses ",
+            "Quantoshi uses ",
             html.Strong("July 25, 2009"),
-            ". Five independent lines of evidence converge on this date:",
+            " as the date of t=0 \u2014 the date when people first started using "
+            "Bitcoin like money \u2014 throughout the site. "
+            "Five independent lines of evidence converge on this date:",
             html.Br(), html.Br(),
             html.Strong("1. Residual autocorrelation (Durbin-Watson): "),
             "Sweeping 546 candidate genesis dates, July 25 produces the least "

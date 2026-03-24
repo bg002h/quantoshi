@@ -5,7 +5,7 @@ Build the Empirical Floor (EF) model data pickle.
 Uses the same bubble fitting pipeline as SP.ipynb cell 0, but with a hardcoded
 support line instead of fitting one from data.  The support line is the
 "Empirical Floor" — a two-point power law through 2010-10-05 ($0.06) and
-2026-02-09 ($70,339).
+2026-02-05 ($58,000).
 
 Output: btc_app/model_data_ef.pkl
 
@@ -38,8 +38,8 @@ OUT_DIR = REPO / "btc_app"
 OUT_PKL = OUT_DIR / "model_data_ef.pkl"
 
 # ── Empirical Floor constants ────────────────────────────────────────────────
-EF_SLOPE     = 5.3106
-EF_INTERCEPT = -1.6246
+EF_SLOPE     = 5.248017
+EF_INTERCEPT = -1.630623
 
 # ── Standard quantile list ───────────────────────────────────────────────────
 QR_QUANTILES = [

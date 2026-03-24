@@ -282,7 +282,7 @@ _FAQ = [
             "flat-price run, the earliest observable floor.",
             html.Br(),
             html.Strong("Anchor 2: "),
-            "February 9, 2026 ($70,339) \u2014 selected from several candidates "
+            "February 5, 2026 ($58,000) \u2014 selected from several candidates "
             "to maximize the temporal uniformity of below-line data points.",
             html.Br(), html.Br(),
             "The second anchor was chosen using the Kolmogorov-Smirnov (KS) "

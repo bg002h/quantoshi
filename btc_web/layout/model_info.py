@@ -394,8 +394,8 @@ $$T_{ij} = P(\text{bin}_{t+1} = j \mid \text{bin}_t = i)$$
                             html.P(
                                 "The Empirical Floor uses a power law support line drawn through "
                                 "two observed bear-market lows: 2010-10-05 ($0.06) and "
-                                "2026-02-09 ($70,339). These anchor points were chosen to maximize "
-                                "the temporal uniformity of below-line data points (KS = 0.247), "
+                                "2026-02-05 ($58,000). These anchor points were chosen to maximize "
+                                "the temporal uniformity of below-line data points, "
                                 "ensuring the support is equally relevant across all eras of "
                                 "Bitcoin\u2019s history rather than being an artifact of one crash."
                             ),

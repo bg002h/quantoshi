@@ -130,7 +130,11 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 arrowcolor=col, font=dict(size=_FONT_ANNOT, color=col),
             )
 
-        if chart_layout == 0:
+        show_qr = p.get("show_qr", True)
+
+        if not show_qr:
+            pass  # skip QR traces, keep results for MC/annotations
+        elif chart_layout == 0:
             # Color = delay, show quantile closest to display_q
             q_show = min(sel_qs, key=lambda q: abs(q - display_q))
             for di, d in enumerate(delays):

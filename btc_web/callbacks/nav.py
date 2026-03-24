@@ -602,9 +602,15 @@ _app_ctx.app.clientside_callback(
     function(activeItem) {
         if (!activeItem) return window.dash_clientside.no_update;
         setTimeout(function() {
-            var el = document.getElementById(activeItem);
-            if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
-        }, 150);
+            var acc = document.getElementById('faq-accordion');
+            if (!acc) return;
+            var items = acc.querySelectorAll('.accordion-item');
+            var idx = parseInt((activeItem || '').replace('faq-', ''), 10);
+            if (!isNaN(idx) && items[idx]) {
+                var y = items[idx].getBoundingClientRect().top + window.pageYOffset - 60;
+                window.scrollTo({top: y, behavior: 'smooth'});
+            }
+        }, 300);
         return window.dash_clientside.no_update;
     }
     """,

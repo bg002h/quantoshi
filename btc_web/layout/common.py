@@ -214,13 +214,14 @@ def _freq_warning_modal():
 def _model_show_checklist(prefix):
     """Display models checklist (QR / MC / PL / S2F) for Chart section."""
     opts = [
-        {"label": " Bubble Model", "value": "qr"},
+        {"label": " Bubble Model", "value": "bub"},
     ]
     if _app_ctx._HAS_MARKOV:
         opts.append({"label": " MC Simulation", "value": "mc"})
     for mdl in _app_ctx.PRICE_MODELS.values():
-        if mdl.short_name != "bub":
-            opts.append({"label": f" {mdl.name}", "value": mdl.short_name})
+        if mdl.short_name in ("bub", "s2f"):
+            continue  # bub already added above; s2f not quantized
+        opts.append({"label": f" {mdl.name}", "value": mdl.short_name})
     return [
         _lbl("Display models"),
         dcc.Checklist(id=f"{prefix}-model-show",

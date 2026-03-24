@@ -89,6 +89,16 @@ _FAQ = [
             html.Strong("July 25, 2009"),
             " as the date of t=0 \u2014 the date when people first started using "
             "Bitcoin like money \u2014 throughout the site. "
+            html.Br(), html.Br(),
+            "It should come as no surprise that there was a period of time during "
+            "which Bitcoin was treated unlike money; initially, bitcoin wasn\u2019t "
+            "treated like money at all. In fact, block 0 (the Genesis block) created "
+            "50 unspendable bitcoins due to a bug and block 1 wasn\u2019t mined until "
+            "5 days later \u2014 clearly Satoshi wasn\u2019t treating bitcoin as money at "
+            "this point. I suspect it wasn\u2019t until summer break that people started "
+            "using or at least thinking of Bitcoin as money, but there is simply no "
+            "price data available at this time.",
+            html.Br(), html.Br(),
             "Five independent lines of evidence converge on this date:",
             html.Br(), html.Br(),
             html.Strong("1. Residual autocorrelation (Durbin-Watson): "),

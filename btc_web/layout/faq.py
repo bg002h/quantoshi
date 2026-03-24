@@ -282,17 +282,20 @@ _FAQ = [
             "flat-price run, the earliest observable floor.",
             html.Br(),
             html.Strong("Anchor 2: "),
-            "February 5, 2026 ($58,000) \u2014 selected from several candidates "
-            "to maximize the temporal uniformity of below-line data points.",
+            "February 5, 2026 ($58,000) \u2014 selected to balance temporal "
+            "uniformity of below-line data points with the width of the "
+            "time window considered.",
             html.Br(), html.Br(),
-            "The second anchor was chosen using the Kolmogorov-Smirnov (KS) "
-            "statistic, which measures how evenly the below-line points are "
-            "distributed across time. A good support line should have a "
-            "consistent fraction of prices below it in every era, not just "
-            "during one or two crashes. The standard bubble model support "
-            "(KS = 0.581) clusters its below-line points in 2\u20133 bear "
-            "markets; the Empirical Floor (KS = 0.247) distributes them "
-            "across 8 of 10 time bins.",
+            "The second anchor reflects a trade-off: a higher price captures "
+            "more data points below the line (better statistics) but clusters "
+            "them in recent bear markets; a lower price distributes the "
+            "below-line points more evenly across eras but with fewer total "
+            "points. The Kolmogorov-Smirnov (KS) statistic measures this "
+            "uniformity \u2014 lower is better. The standard bubble model "
+            "support (KS = 0.581) clusters its below-line points in "
+            "2\u20133 bear markets; the Empirical Floor (KS = 0.425) "
+            "achieves a more balanced distribution while keeping ~12.6% "
+            "of prices below the line.",
             html.Br(), html.Br(),
             html.Img(src="/assets/support_4way_loglog.jpg",
                      style={"width": "100%", "maxWidth": "800px",

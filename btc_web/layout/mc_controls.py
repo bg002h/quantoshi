@@ -73,8 +73,8 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             _ph.append(dbc.Input(id=f"{prefix}-mc-infl", value=4))
         _ph.append(dbc.Input(id=f"{prefix}-mc-bins", value=5))
         _ph.append(dcc.Checklist(id=f"{prefix}-mc-regime", value=list(range(5))))
-        _ph.append(dcc.Dropdown(id=f"{prefix}-mc-sims", value=800))
-        _ph.append(dcc.Dropdown(id=f"{prefix}-mc-years", value=10))
+        _ph.append(dcc.Dropdown(id=f"{prefix}-mc-sims", value=200))
+        _ph.append(dcc.Dropdown(id=f"{prefix}-mc-years", value=40))
         if "freq" not in shared_controls:
             _ph.append(dcc.Dropdown(id=f"{prefix}-mc-freq", value="Monthly"))
             _ph.append(dbc.Input(id=f"{prefix}-mc-ppy", value="12/yr"))
@@ -179,7 +179,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             _lbl("Years to model"),
             dcc.Dropdown(id=f"{prefix}-mc-years",
                          options=_MC_YEARS_OPTIONS,
-                         value=10, clearable=False),
+                         value=40, clearable=False),
             # Advanced controls (hidden until checkbox toggled)
             html.Div(id=f"{prefix}-mc-adv-body", style=_STYLE_HIDDEN, children=[
                 _lbl("Markov transition matrix dimension"),

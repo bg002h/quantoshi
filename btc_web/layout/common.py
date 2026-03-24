@@ -226,7 +226,7 @@ def _model_show_checklist(prefix):
         _lbl("Display models"),
         dcc.Checklist(id=f"{prefix}-model-show",
                       options=opts,
-                      value=[],
+                      value=["bub"],
                       inline=True,
                       inputStyle={"marginRight": "4px"},
                       labelStyle={"marginRight": "12px", "fontSize": "11px"},

@@ -252,7 +252,7 @@ def _prewarm_caches():
         sc_entry_mode="live",
         sc_custom_price=float(_app_ctx.SC_DEFAULT_PRICE),
         sc_tax_rate=0.33, sc_live_price=None,
-        show_qr=False, show_mc=False,
+        show_qr=True, show_mc=False,
         active_models=[], palette="default",
     ))
 
@@ -267,7 +267,7 @@ def _prewarm_caches():
         minor_grid=True,
         selected_qs=[0.01, 0.10, 0.25],
         lots=[],
-        show_qr=False, show_mc=False,
+        show_qr=True, show_mc=False,
         active_models=[], palette="default",
     ))
 
@@ -293,7 +293,7 @@ def _prewarm_caches():
         target_yr    = 2060,
         lots         = [],
         use_lots     = False,
-        show_qr      = False,
+        show_qr      = True,
         show_mc      = False,
         active_models = [],
         palette      = "default",

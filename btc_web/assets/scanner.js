@@ -159,16 +159,27 @@
 
     // ── Row click handling (event delegation) ────────────────────────────────
 
+    function _rowHighlight(row, model, on) {
+        var rgb = COLOR_MAP[model] || DEFAULT_COLOR;
+        if (on) {
+            row.style.background = "rgba(" + rgb + ", 0.18)";
+            row.style.outline = "1px solid rgba(" + rgb + ", 0.4)";
+        } else {
+            row.style.background = "";
+            row.style.outline = "";
+        }
+    }
+
     function handleRowClick(e) {
         var row = e.target.closest("tr[data-model]");
         if (!row) return;
         var model = row.getAttribute("data-model");
         if (_activeModels[model]) {
             delete _activeModels[model];
-            row.classList.remove("scan-row-active");
+            _rowHighlight(row, model, false);
         } else {
             _activeModels[model] = true;
-            row.classList.add("scan-row-active");
+            _rowHighlight(row, model, true);
         }
         updateMarkers();
     }
@@ -178,7 +189,7 @@
         rows.forEach(function(row) {
             var model = row.getAttribute("data-model");
             if (_activeModels[model]) {
-                row.classList.add("scan-row-active");
+                _rowHighlight(row, model, true);
             }
         });
     }

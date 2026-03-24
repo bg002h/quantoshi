@@ -1407,8 +1407,4 @@ body {
     100% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
 }
 
-/* ── Scanner row active highlight ──────────────────────────────────────── */
-tr.scan-row-active {
-    background: rgba(0, 212, 255, 0.18);
-    outline: 1px solid rgba(0, 212, 255, 0.4);
-}
+/* Scanner row highlight: applied inline by scanner.js using per-model colors */

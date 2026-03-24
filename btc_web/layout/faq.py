@@ -642,6 +642,65 @@ _FAQ = [
         ]),
     },
     {
+        "q": "Was the 2013\u20132015 bear market unusually bad?",
+        "a": html.Span([
+            "It felt that way at the time, but statistically, the ",
+            html.Strong("depth was completely normal"),
+            ". The \u221282.5% drawdown from the November 2013 peak ($1,131) "
+            "to the January 2015 trough ($198) sits dead center of "
+            "the distribution \u2014 all four major BTC bear markets have "
+            "crashed between \u221276% and \u221293%.",
+            html.Br(), html.Br(),
+            html.Table([
+                html.Thead(html.Tr([
+                    html.Th("Bear Market", style={"paddingRight": "12px"}),
+                    html.Th("Peak", style={"paddingRight": "12px"}),
+                    html.Th("Trough", style={"paddingRight": "12px"}),
+                    html.Th("Drawdown", style={"paddingRight": "12px"}),
+                    html.Th("Days to trough", style={"paddingRight": "12px"}),
+                    html.Th("Days to new ATH"),
+                ])),
+                html.Tbody([
+                    html.Tr([html.Td("2011"), html.Td("$30"), html.Td("$2"),
+                             html.Td("\u221292%"), html.Td("164"), html.Td("623")]),
+                    html.Tr([html.Td(html.Strong("2013\u20132015")),
+                             html.Td(html.Strong("$1,131")), html.Td(html.Strong("$198")),
+                             html.Td(html.Strong("\u221283%")), html.Td(html.Strong("410")),
+                             html.Td(html.Strong("1,181"))],
+                            style={"background": "rgba(255, 100, 100, 0.1)"}),
+                    html.Tr([html.Td("2017\u20132018"), html.Td("$19,389"), html.Td("$3,212"),
+                             html.Td("\u221283%"), html.Td("363"), html.Td("1,095")]),
+                    html.Tr([html.Td("2021\u20132022"), html.Td("$66,847"), html.Td("$16,238"),
+                             html.Td("\u221276%"), html.Td("376"), html.Td("848")]),
+                ]),
+            ], style={"fontSize": "13px", "marginBottom": "12px", "borderCollapse": "collapse"}),
+            html.Br(),
+            "What made it ",
+            html.Em("feel"),
+            " awful was the ",
+            html.Strong("duration"),
+            ". At 1,181 days (3.2 years) from peak to new all-time high, "
+            "it was the longest recovery in Bitcoin\u2019s history \u2014 "
+            "roughly twice as long as the 2011 bear and 40% longer than "
+            "2021\u20132022. It also spent 346 days below \u221270% drawdown, "
+            "more than any other cycle.",
+            html.Br(), html.Br(),
+            "However, with only four major bear markets in Bitcoin\u2019s "
+            "history, none of these durations are statistically significant "
+            "outliers. The z-score for recovery time is 1.12 \u2014 about one "
+            "standard deviation above the mean, which is longer than average "
+            "but well within the range you\u2019d expect from normal variation "
+            "in a sample of four. You\u2019d need z > 2 (and a larger sample) "
+            "to call it truly unusual.",
+            html.Br(), html.Br(),
+            html.Strong("Bottom line: "),
+            "the 2013\u20132015 bear was the longest but not the deepest, "
+            "and with N=4 bear markets there simply isn\u2019t enough data to "
+            "label any single cycle as a statistical anomaly. Every BTC bear "
+            "market has been brutal by traditional-finance standards.",
+        ]),
+    },
+    {
         "q": "Why are chart downloads corrupted on Tor Browser?",
         "a": html.Span([
             "Tor Browser's canvas fingerprinting protection adds noise to PNG image exports, "

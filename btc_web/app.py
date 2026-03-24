@@ -81,7 +81,7 @@ def _health():
 @server.after_request
 def _cache_headers(response):
     path = flask_request.path
-    if path in ('/_dash-layout', '/_dash-dependencies'):
+    if path in ('/', '/_dash-layout', '/_dash-dependencies') or path.startswith('/1') or path.startswith('/2') or path.startswith('/3') or path.startswith('/4') or path.startswith('/5') or path.startswith('/6') or path.startswith('/7') or path.startswith('/8'):
         response.headers.update({
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma':        'no-cache',

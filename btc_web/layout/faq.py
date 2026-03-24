@@ -88,7 +88,7 @@ _FAQ = [
             "Quantoshi uses ",
             html.Strong("July 25, 2009"),
             " as the date of t=0 \u2014 the date when people first started using "
-            "Bitcoin like money \u2014 throughout the site. "
+            "Bitcoin like money \u2014 throughout the site.",
             html.Br(), html.Br(),
             "It should come as no surprise that there was a period of time during "
             "which Bitcoin was treated unlike money; initially, bitcoin wasn\u2019t "

@@ -69,6 +69,22 @@ _FAQ = [
                 ]),
             ], style={"fontSize": "13px", "marginBottom": "12px", "borderCollapse": "collapse"}),
             html.Br(),
+            html.Strong("Why does it matter?"),
+            " The same quantile regression lines, evaluated from two different "
+            "time origins, produce visibly different fits \u2014 especially at the "
+            "earliest price points where the time offset is a larger fraction of t:",
+            html.Br(),
+            html.Img(src="/assets/genesis_qr_comparison.jpg",
+                     style={"width": "100%", "maxWidth": "800px", "borderRadius": "8px",
+                            "marginTop": "8px", "marginBottom": "8px"}),
+            html.Br(),
+            "The Q50% line crosses $1 million roughly 7 months earlier with the "
+            "genesis-block origin (Aug 2034) vs. the optimal origin (Mar 2035) \u2014 "
+            "a meaningful shift from an identical set of fitted coefficients. "
+            "The orange-circled region shows where the choice of Day Zero has "
+            "the largest impact: the earliest prices sit noticeably farther from "
+            "the regression lines when the time origin is wrong.",
+            html.Br(), html.Br(),
             "The current model uses ",
             html.Strong("July 25, 2009"),
             ". Five independent lines of evidence converge on this date:",

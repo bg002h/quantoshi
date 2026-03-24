@@ -29,6 +29,17 @@ from figures.common import (
 _DASH_STYLES  = ['solid', 'dash', 'dot', 'dashdot', 'longdash']
 
 
+def _resolve_sc_model(p):
+    """Pick the primary quantized model from active_models, or fall back to default."""
+    for key in (p.get("active_models") or []):
+        mdl = _app_ctx.PRICE_MODELS.get(key)
+        if mdl and mdl.quantized:
+            return mdl
+    if p.get("show_qr"):
+        return _app_ctx.DEFAULT_MODEL
+    return _app_ctx.DEFAULT_MODEL
+
+
 def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     """
     p keys: mode ('a'/'b'), start_stack, start_yr, delays (list), freq, inflation,
@@ -37,7 +48,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
             log_y, annotate, show_legend,
             target_yr (Mode B), lots, use_lots
     """
-    model = _app_ctx.DEFAULT_MODEL
+    model = _resolve_sc_model(p)
     palette = _get_palette(p)
     delay_colors = palette["delay_colors"]
     annot_colors = palette["annot_colors"]
@@ -334,7 +345,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
 def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
                inflation, chart_layout, display_q, show_legend, freq_label):
     """HODL Supercharger Mode B: binary-search max withdrawal per period."""
-    model = _app_ctx.DEFAULT_MODEL
+    model = _resolve_sc_model(p)
     palette = _get_palette(p)
     delay_colors = palette["delay_colors"]
     _thermal = _build_thermal_colors(sel_qs, palette)
@@ -421,7 +432,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
     xlabel = "Delay (years)" if chart_layout in (0, 1) else "Quantile"
     layout = _dark_layout(
         m,
-        title=f"HODL Supercharger \u2014 Max spend{freq_label} to deplete by {target_yr}",
+        title=f"HODL Supercharger \u2014 Max spend{freq_label} to deplete by {target_yr}  ({model.name})",
         xlabel=xlabel,
         ylabel=f"Max withdrawal{freq_label}",
     )

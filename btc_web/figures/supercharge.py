@@ -232,7 +232,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     ts_d_q, y_vals_q, depl_t, t_start_d, *_ = results[key]
                     traces.append(go.Scatter(
                         x=list(ts_d_q), y=list(y_vals_q), mode="lines",
-                        line=dict(color=_tcol, width=_QR_LINE_WIDTH),
+                        line=dict(color=_tcol, width=_QR_LINE_WIDTH, dash=model.dash_style),
                         legendgroup=grp_model, showlegend=False,
                     ))
                     if depl_t is not None:

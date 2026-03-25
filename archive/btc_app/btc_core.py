@@ -394,7 +394,7 @@ class QuantileRegressionModel(_FitsBasedModel):
     name = "Quantile Regression"
     short_name = "qr"
     legend_name = "QR"
-    dash_style = "solid"
+    dash_style = "dash"
 
     def __init__(self, md):
         self.fits = md.qr_fits
@@ -759,7 +759,7 @@ class EmpiricalFloorModel(_CompositeModel):
     name = "BM Empirical Floor"
     short_name = "ef"
     legend_name = "EF"
-    dash_style = "dashdot"
+    dash_style = "longdash"
 
     def __init__(self, pkl_path):
         import pickle

@@ -200,7 +200,7 @@ def _stagger_depletion_annots(deplete_annots, layout):
     if len(deplete_annots) > 1:
         deplete_annots.sort(key=lambda a: a["x"])
         for i, a in enumerate(deplete_annots):
-            a["ay"] = _ANNOT_STAGGER_Y[i % 3]
+            a["ay"] = _ANNOT_STAGGER_Y[i % len(_ANNOT_STAGGER_Y)]
         layout["annotations"] = deplete_annots
 
 

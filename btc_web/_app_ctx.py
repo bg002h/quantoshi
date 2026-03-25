@@ -10,7 +10,7 @@ figures.py and mc_overlay.py can import them without circular dependencies.
 # ── Static constants (no population needed) ──────────────────────────────────
 FREQ_PPY = {"Daily": 365, "Weekly": 52, "Monthly": 12, "Quarterly": 4, "Annually": 1}
 FREQ_STEP_DAYS = {"Daily": 1, "Weekly": 7, "Monthly": 30, "Quarterly": 91, "Annually": 365}
-ANNOT_STAGGER_Y = [-20, -33, -46]  # annotation y-offsets for staggering (~1 font-height apart)
+ANNOT_STAGGER_Y = [-20, -33, -46, -59, -72]  # annotation y-offsets for staggering (~1 font-height apart)
 BTC_ORANGE = "#f7931a"
 FONT_LEGEND = 10              # legend / small info text
 MODEL_SENTINELS = frozenset({"mc", "bub"})  # reserved keys in model-show checklists

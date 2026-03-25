@@ -9,6 +9,17 @@ from layout.faq import _FAQ
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# Viewport width — fires on page load, provides mobile detection for charts
+# ══════════════════════════════════════════════════════════════════════════════
+
+_app_ctx.app.clientside_callback(
+    "function() { return window.innerWidth; }",
+    Output("viewport-width", "data"),
+    Input("url", "pathname"),
+)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # SC mode / display-q toggles
 # ══════════════════════════════════════════════════════════════════════════════
 

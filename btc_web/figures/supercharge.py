@@ -69,11 +69,14 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
     # Quantiles
     sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])
                      if float(q) in model.fits])
-    if not sel_qs:
+    mc_enabled = _HAS_MARKOV and p.get("mc_enabled")
+    if not sel_qs and not mc_enabled:
         return go.Figure(layout=dict(
             title="Select at least one quantile",
             paper_bgcolor=m.PLOT_BG_COLOR,
             font=dict(color=m.TEXT_COLOR))), None
+    if not sel_qs:
+        sel_qs = [0.5]  # need at least one for MC simulation grid
 
     # Delays: filter None/negative, sort, deduplicate
     raw_delays = p.get("delays") or [0, 1, 2, 4, 8]

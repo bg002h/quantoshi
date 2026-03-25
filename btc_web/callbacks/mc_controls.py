@@ -24,6 +24,24 @@ for _mc_tog in ("dca", "ret", "hm", "sc"):
     def _toggle_mc_body(val):
         return {} if val else {"display": "none"}
 
+# Auto-check "mc" in Display Models when MC engine is enabled
+for _mc_auto in ("dca", "ret", "sc"):
+    _app_ctx.app.clientside_callback(
+        """
+        function(mc_enable, cur_models) {
+            var models = (cur_models || []).slice();
+            if (mc_enable && mc_enable.length) {
+                if (models.indexOf("mc") === -1) models.push("mc");
+            }
+            return models;
+        }
+        """,
+        Output(f"{_mc_auto}-model-show", "value", allow_duplicate=True),
+        Input(f"{_mc_auto}-mc-enable", "value"),
+        State(f"{_mc_auto}-model-show", "value"),
+        prevent_initial_call='initial_duplicate',
+    )
+
 for _mc_adv in ("dca", "ret", "hm", "sc"):
     @callback(
         Output(f"{_mc_adv}-mc-adv-body", "style"),

@@ -9,7 +9,7 @@ Add a "Discrete steps" checkbox that switches simulation traces from smooth line
 
 ## Approach
 
-Use the existing `_chart_toggles()` helper in `layout/common.py`. Adding an option there automatically covers all three tabs with no new component IDs. The toggles checklist is already in `_SNAPSHOT_CONTROLS`, so share links work without changes.
+Use the existing `_chart_toggles()` helper in `layout/common.py`. Adding an option there automatically covers all three tabs with no new component IDs. The toggles checklist is already in `_SNAPSHOT_CONTROLS`, but `_CHECKLIST_OPTIONS` in `snapshot.py` must be updated explicitly for bitmask encoding.
 
 ## Changes
 
@@ -53,29 +53,38 @@ line=dict(color=col, width=2, shape=_line_shape)
 
 This includes:
 - Primary model quantile traces
-- Shade band boundary traces (upper/lower)
+- Shade band boundary traces (upper/lower) — `shape` on `width=0` boundary traces ensures the fill region steps correctly
 - Overlay model traces
 - Dual-Y median USD traces
-- MC overlay traces (if present — `mc_overlay.py` traces)
+- Stack-celerator overlay traces — `_dca_sc_overlay()` in `dca.py` constructs its own `go.Scatter` calls; `_line_shape` must be passed in as a parameter
 
 Traces that are NOT affected:
 - `mode="markers+text"` traces (endpoint annotations)
 - `mode="markers"` traces (Mode B scatter points)
 - `mode="lines+markers"` traces (Mode B line charts)
+- Supercharger Mode B connector line (`x=delays`, not time-series) — guard with `mode == "a"` check or compute `_line_shape` only inside Mode A branch
 
 ### 4. MC overlay traces — `btc_web/mc_overlay.py`
 
 MC fan overlay traces also use `mode="lines"`. Pass `discrete` through the params dict (already forwarded via `p`) and apply `shape=_line_shape` to MC traces in `_mc_dca_overlay`, `_mc_retire_overlay`, `_mc_supercharge_overlay`.
 
-### 5. Snapshot compatibility
+**Known limitation:** MC shade bands use `fill="tonexty"` between `width=0` boundary traces. Plotly's `tonexty` fill interpolates linearly between x-points regardless of `line_shape`. Setting `shape="hv"` on boundary traces does help (the invisible step boundaries define correct fill edges), but some visual artifacts may remain at coarse frequencies. This is a Plotly limitation, not a bug in our code.
 
-No changes needed. The `{prefix}-toggles` checklist is already in `_SNAPSHOT_CONTROLS` with bitmask encoding via `_CHECKLIST_OPTIONS`. The new `"discrete"` value will be encoded in the bitmask automatically.
+### 5. Snapshot compatibility — `btc_web/snapshot.py`
 
-**Legacy links:** Old links that don't include `"discrete"` in the bitmask will decode to an empty value for that bit, so the checkbox defaults to unchecked — correct behavior (preserves current rendering).
+Append `"discrete"` to the end of each toggles entry in `_CHECKLIST_OPTIONS`:
+
+```python
+"dca-toggles": ["log_y", "annotate", "show_legend", "minor_grid", "chart_zoom", "discrete"],
+"ret-toggles": ["log_y", "annotate", "show_legend", "minor_grid", "chart_zoom", "discrete"],
+"sc-toggles":  ["annotate", "log_y", "show_legend", "minor_grid", "chart_zoom", "discrete"],
+```
+
+Must be appended at the end so existing bit positions are preserved. Old links that predate this change will never set bit 5 → `"discrete"` absent → checkbox unchecked (correct backward compatibility).
 
 ### 6. LRU cache
 
-The `discrete` flag flows through the params dict which is already part of the cache key (via `_quantize_params`). Boolean values pass through `_q3` unchanged. No cache changes needed.
+The `discrete` flag flows through the params dict which is already part of the cache key (via `_quantize_params`). `_quantize_params` only applies `_q3` to `float` values; `bool` is not matched by `isinstance(v, float)`, so `discrete=True/False` is stored as-is. No cache changes needed.
 
 ### 7. Prewarm
 

@@ -33,6 +33,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     """
     model = _app_ctx.DEFAULT_MODEL
     palette = _get_palette(p)
+    _line_shape = "hv" if p.get("discrete") else "linear"
     sel_qs_raw = sorted([float(q) for q in (p.get("selected_qs") or [])])
     _thermal = _build_thermal_colors(sel_qs_raw, palette)
     ta = _build_time_array(p, m, 2025, 2045)
@@ -76,7 +77,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
         col = _thermal.get(q, model.colors.get(q, "#888888"))
         traces.append(go.Scatter(
             x=list(ts), y=list(y_vals), mode="lines", name=lbl,
-            line=dict(color=col, width=_QR_LINE_WIDTH),
+            line=dict(color=col, width=_QR_LINE_WIDTH, shape=_line_shape),
         ))
 
         # depletion annotation — always shown
@@ -117,7 +118,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 traces.append(go.Scatter(
                     x=list(ts), y=list(y_vals), mode="lines",
                     name=f"{mdl.legend_name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
-                    line=dict(color=col, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
+                    line=dict(color=col, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style, shape=_line_shape),
                     legendgroup=mdl.short_name,
                     legendgrouptitle_text=mdl.legend_name,
                 ))
@@ -135,7 +136,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines",
                 name=f"{mdl.legend_name}  \u2192  {final_lbl}",
-                line=dict(color=palette["non_quantized_model"], width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
+                line=dict(color=palette["non_quantized_model"], width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style, shape=_line_shape),
                 legendgroup=mdl.short_name,
             ))
 

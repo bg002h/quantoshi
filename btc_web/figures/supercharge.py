@@ -90,6 +90,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
         wd_amount = float(p.get("wd_amount", 5000))
         disp_mode = p.get("disp_mode", "usd")
         t_end     = yr_to_t(eyr, m.genesis)
+        _line_shape = "hv" if p.get("discrete") else "linear"
 
         # Simulate all (delay, quantile) combos
         results = {}
@@ -178,7 +179,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     name=_legend_name,
                     legendgroup=grp_model,
                     showlegend=_first_legend,
-                    line=dict(color=col, width=2),
+                    line=dict(color=col, width=2, shape=_line_shape),
                 ))
                 _first_legend = False
                 if depl_t is not None:
@@ -203,7 +204,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         legendgroup=grp_model,
                         showlegend=_first_legend,
                         line=dict(color=col, width=_QR_LINE_WIDTH,
-                                  dash=_DASH_STYLES[di % len(_DASH_STYLES)]),
+                                  dash=_DASH_STYLES[di % len(_DASH_STYLES)], shape=_line_shape),
                     ))
                     _first_legend = False
                     if depl_t is not None:
@@ -231,13 +232,13 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 # Shade band (never in legend)
                 traces.append(go.Scatter(
                     x=list(ts_d), y=list(y_max), mode="lines",
-                    line=dict(color=col, width=0), showlegend=False, hoverinfo="skip",
+                    line=dict(color=col, width=0, shape=_line_shape), showlegend=False, hoverinfo="skip",
                     legendgroup=grp_model,
                 ))
                 traces.append(go.Scatter(
                     x=list(ts_d), y=list(y_min), mode="lines",
                     fill="tonexty", fillcolor=_hex_alpha(col, 0.3),
-                    line=dict(color=col, width=0),
+                    line=dict(color=col, width=0, shape=_line_shape),
                     legendgroup=grp_model,
                     showlegend=False,
                     hoverinfo="skip",
@@ -251,7 +252,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     traces.append(go.Scatter(
                         x=list(ts_d_q), y=list(y_vals_q), mode="lines",
                         name=_legend_name,
-                        line=dict(color=_tcol, width=_QR_LINE_WIDTH, dash=model.dash_style),
+                        line=dict(color=_tcol, width=_QR_LINE_WIDTH, dash=model.dash_style, shape=_line_shape),
                         legendgroup=grp_model, showlegend=_first_legend,
                     ))
                     _first_legend = False
@@ -317,13 +318,13 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     # Shade band (never in legend)
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_max), mode="lines",
-                        line=dict(color=col, width=0), showlegend=False, hoverinfo="skip",
+                        line=dict(color=col, width=0, shape=_line_shape), showlegend=False, hoverinfo="skip",
                         legendgroup=_ov_grp,
                     ))
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_min), mode="lines",
                         fill="tonexty", fillcolor=_hex_alpha(col, 0.12),
-                        line=dict(color=col, width=0),
+                        line=dict(color=col, width=0, shape=_line_shape),
                         legendgroup=_ov_grp,
                         showlegend=False, hoverinfo="skip",
                     ))
@@ -335,7 +336,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         traces.append(go.Scatter(
                             x=list(ts_d_q), y=list(y_vals_q), mode="lines",
                             name=_ov_lbl,
-                            line=dict(color=_ov_tcol, width=1, dash=mdl.dash_style),
+                            line=dict(color=_ov_tcol, width=1, dash=mdl.dash_style, shape=_line_shape),
                             legendgroup=_ov_grp, showlegend=_ov_first,
                         ))
                         _ov_first = False
@@ -350,7 +351,6 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                                 text_col=_ov_tcol, legendgroup=_ov_grp,
                                 model_prefix=mdl.legend_name,
                                 stagger=len(deplete_annots)))
-                            break  # one arrow per (model, delay)
             else:
                 # Individual lines for overlay model
                 _ov_depl_seen = set()  # track (delay) to emit one arrow per delay
@@ -359,7 +359,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
                         name=_ov_lbl,
-                        line=dict(color=col, width=1.2, dash=mdl.dash_style),
+                        line=dict(color=col, width=1.2, dash=mdl.dash_style, shape=_line_shape),
                         legendgroup=_ov_grp,
                         showlegend=_ov_first,
                     ))

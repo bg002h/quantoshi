@@ -26,7 +26,7 @@ from figures.common import (
 )
 
 
-def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, thermal=None):
+def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, thermal=None, line_shape="linear"):
     """Run Stack-celerator overlay simulation for DCA tab.
 
     Returns (sc_traces, all_sc_usd_vals, all_sc_btc_vals).
@@ -142,7 +142,7 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, t
         col = thermal.get(q, model.colors.get(q, "#888888")) if thermal else model.colors.get(q, "#888888")
         sc_traces.append(go.Scatter(
             x=list(ts), y=list(y_sc), mode="lines", name=lbl_sc,
-            line=dict(color=col, width=_QR_LINE_WIDTH, dash="dash"),
+            line=dict(color=col, width=_QR_LINE_WIDTH, dash="dash", shape=line_shape),
         ))
 
     return sc_traces, all_sc_usd_vals, all_sc_btc_vals
@@ -156,6 +156,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     """
     model = _app_ctx.DEFAULT_MODEL
     palette = _get_palette(p)
+    _line_shape = "hv" if p.get("discrete") else "linear"
     sel_qs_raw = sorted([float(q) for q in (p.get("selected_qs") or [])])
     _thermal = _build_thermal_colors(sel_qs_raw, palette)
     ta = _build_time_array(p, m, 2024, 2035)
@@ -197,7 +198,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
         col = _thermal.get(q, model.colors.get(q, "#888888"))
         traces.append(go.Scatter(
             x=list(ts), y=list(y_vals), mode="lines", name=lbl,
-            line=dict(color=col, width=_QR_LINE_WIDTH),
+            line=dict(color=col, width=_QR_LINE_WIDTH, shape=_line_shape),
         ))
 
     # ── alternative model overlays ────────────────────────────────────────────
@@ -222,7 +223,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                 traces.append(go.Scatter(
                     x=list(ts), y=list(y_vals), mode="lines",
                     name=f"{mdl.legend_name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
-                    line=dict(color=col, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
+                    line=dict(color=col, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style, shape=_line_shape),
                     legendgroup=mdl.short_name,
                     legendgrouptitle_text=mdl.legend_name,
                 ))
@@ -240,7 +241,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
             traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines",
                 name=f"{mdl.legend_name}  \u2192  {final_lbl}",
-                line=dict(color=palette["non_quantized_model"], width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
+                line=dict(color=palette["non_quantized_model"], width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style, shape=_line_shape),
                 legendgroup=mdl.short_name,
             ))
 
@@ -268,7 +269,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     all_sc_btc_vals = {}
     if p.get("sc_enabled") and sel_qs:
         sc_traces, all_sc_usd_vals, all_sc_btc_vals = _dca_sc_overlay(
-            m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, thermal=_thermal)
+            m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, thermal=_thermal, line_shape=_line_shape)
         traces.extend(sc_traces)
 
     # ── SC factor (ratio of median SC to median DCA at end date) ─────────────

@@ -441,7 +441,7 @@ _GHOST_BANDS = [
 def _mc_build_traces(mc_ts, fan, extra_label="", show_median=True,
                      show_final_values=False, fan_usd=None,
                      hide_5_95_legend=False, bands=None,
-                     suppress_legend=False):
+                     suppress_legend=False, line_shape="linear"):
     """Build MC fan band traces from precomputed fan percentiles.
 
     bands: band definitions (default: _MC_BANDS). Pass _GHOST_BANDS for ghost.
@@ -465,11 +465,11 @@ def _mc_build_traces(mc_ts, fan, extra_label="", show_median=True,
             label = f"{label}  ({lo_final} \u2013 {hi_final})"
         traces.append(go.Scatter(
             x=list(mc_ts), y=list(fan[p_hi]),
-            mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip",
+            mode="lines", line=dict(width=0, shape=line_shape), showlegend=False, hoverinfo="skip",
         ))
         traces.append(go.Scatter(
             x=list(mc_ts), y=list(fan[p_lo]),
-            mode="lines", line=dict(width=0), fill="tonexty",
+            mode="lines", line=dict(width=0, shape=line_shape), fill="tonexty",
             fillcolor=fill_color, name=label, showlegend=show_leg, hoverinfo="skip",
         ))
     if show_median and 0.50 in fan:
@@ -484,7 +484,7 @@ def _mc_build_traces(mc_ts, fan, extra_label="", show_median=True,
         traces.append(go.Scatter(
             x=list(mc_ts), y=list(fan[0.50]),
             mode="lines", name=med_label,
-            line=dict(color=med_color, width=med_width, dash=med_dash),
+            line=dict(color=med_color, width=med_width, dash=med_dash, shape=line_shape),
             showlegend=not suppress_legend,
         ))
     return traces
@@ -611,6 +611,7 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
 
     Returns (traces, result_dict, cf_usd).
     """
+    _ls = "hv" if p.get("discrete") else "linear"
     # Cache lookup order (3-level fallthrough):
     #   1. Client-side cache: full match (path_key + overlay_key) → return directly
     #      Partial match (path_key only) → recompute overlay from cached price paths
@@ -643,7 +644,7 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
             fan = fan_usd if disp_mode == "usd" else fan_btc
             ct, cf = _clip(mc_ts, fan)
             _, cf_usd = _clip(mc_ts, fan_usd)
-            return _mc_build_traces(ct, cf, show_final_values=True, fan_usd=cf_usd), None, cf_usd
+            return _mc_build_traces(ct, cf, show_final_values=True, fan_usd=cf_usd, line_shape=_ls), None, cf_usd
 
         # Path hit, overlay miss — recompute DCA from cached price paths
         price_paths = _mc_paths_from_lists(cached["price_paths"])
@@ -660,7 +661,7 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
         result["price_paths"] = cached["price_paths"]
         ct, cf = _clip(mc_ts, fan)
         _, cf_usd = _clip(mc_ts, fan_usd)
-        return _mc_build_traces(ct, cf, show_final_values=True, fan_usd=cf_usd), result, cf_usd
+        return _mc_build_traces(ct, cf, show_final_values=True, fan_usd=cf_usd, line_shape=_ls), result, cf_usd
 
     # ── Level 2: Pre-computed server cache ─────────────────────────────────
     blocked = p.get("mc_blocked_bins", [])
@@ -672,7 +673,7 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
         fan = fan_usd if disp_mode == "usd" else fan_btc
         ct, cf = _clip(mc_ts, fan)
         _, cf_usd = _clip(mc_ts, fan_usd)
-        return _mc_build_traces(ct, cf, show_final_values=True, fan_usd=cf_usd), None, cf_usd
+        return _mc_build_traces(ct, cf, show_final_values=True, fan_usd=cf_usd, line_shape=_ls), None, cf_usd
 
     # ── Level 3: Full simulation ───────────────────────────────────────────
     price_paths = _run_full_simulation(
@@ -690,7 +691,7 @@ def _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode):
 
     ct, cf = _clip(mc_ts, fan)
     _, cf_usd = _clip(mc_ts, fan_usd)
-    return _mc_build_traces(ct, cf, show_final_values=True, fan_usd=cf_usd), result, cf_usd
+    return _mc_build_traces(ct, cf, show_final_values=True, fan_usd=cf_usd, line_shape=_ls), result, cf_usd
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -711,6 +712,7 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
     #      Partial match (path_key only) → recompute overlay from cached price paths
     #   2. Pre-computed server cache: npz/shm paths → recompute overlay
     #   3. Live simulation: build transition matrix, run MC, compute overlay
+    _ls = "hv" if p.get("discrete") else "linear"
     wd_amount  = float(p.get("mc_amount", 5000))
     inflation  = float(p.get("mc_infl", 4)) / 100.0
     n_bins, n_sims, mc_window, mc_freq, mc_ppy, mc_dt, step_days, mc_years = _mc_setup_vars(p)
@@ -732,7 +734,8 @@ def _mc_withdraw_overlay(m, p, ts, t_start, t_end, dt,
         traces = _mc_build_traces(mc_ts, fan, extra,
                                   show_final_values=show_final_values,
                                   fan_usd=fan_usd,
-                                  hide_5_95_legend=hide_5_95_legend)
+                                  hide_5_95_legend=hide_5_95_legend,
+                                  line_shape=_ls)
         annots = _mc_depletion_annots(mc_ts, fan_btc, mc_start_yr, mc_years,
                                        existing_annot_count) if do_annot else []
         return traces, annots, result

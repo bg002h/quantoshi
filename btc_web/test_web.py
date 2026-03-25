@@ -2779,6 +2779,7 @@ class TestUpdateSuperchargeCallback:
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"], mc_model_src="bub",
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
                 palette_key="default",
+                viewport_width=1200,
             )
         assert len(result) == 7
         assert isinstance(result[0], go.Figure)
@@ -2799,6 +2800,7 @@ class TestUpdateSuperchargeCallback:
                 _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"], mc_model_src="bub",
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
                 palette_key="default",
+                viewport_width=1200,
             )
         assert isinstance(result[0], go.Figure)
 

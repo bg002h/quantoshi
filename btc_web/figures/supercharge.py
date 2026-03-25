@@ -404,8 +404,8 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
                 marker=dict(color=col, size=12),
                 text=[fmt_price(val) + freq_label],
                 textposition="top center",
-                name=f"Delay {d_lbl}",
-                hovertemplate=f"Delay {d_lbl}<br>{fmt_price(val)}{freq_label}<extra></extra>",
+                name=f"{model.name} Delay {d_lbl}",
+                hovertemplate=f"{model.name} Delay {d_lbl}<br>{fmt_price(val)}{freq_label}<extra></extra>",
             ))
 
     elif chart_layout == 1:
@@ -415,7 +415,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
             y_q   = [max_wd.get((d, q), 0) for d in delays]
             traces.append(go.Scatter(
                 x=delays, y=y_q, mode="lines+markers",
-                name=q_lbl,
+                name=f"{model.name} {q_lbl}",
                 line=dict(color=col, width=2),
                 marker=dict(color=col, size=7),
             ))
@@ -429,7 +429,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
             med_val = y_d[len(y_d) // 2] if y_d else 0
             traces.append(go.Scatter(
                 x=list(sel_qs), y=y_d, mode="lines+markers",
-                name=f"Delay {d_lbl}  \u2192  {fmt_price(med_val)}{freq_label} (med)",
+                name=f"{model.name} Delay {d_lbl}  \u2192  {fmt_price(med_val)}{freq_label} (med)",
                 line=dict(color=col, width=2),
                 marker=dict(color=col, size=6),
                 customdata=qlbls,

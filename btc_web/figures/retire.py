@@ -72,7 +72,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
         all_y_vals[q] = y_vals
 
-        lbl = _fmt_q_label(q) + f"  \u2192  {final_lbl}"
+        lbl = f"{model.name} {_fmt_q_label(q)}" + f"  \u2192  {final_lbl}"
         col = _thermal.get(q, model.colors.get(q, "#888888"))
         traces.append(go.Scatter(
             x=list(ts), y=list(y_vals), mode="lines", name=lbl,

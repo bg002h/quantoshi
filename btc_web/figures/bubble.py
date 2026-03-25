@@ -94,7 +94,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             if q not in _price_cache:
                 continue
             prices = _price_cache[q]
-            lbl = _fmt_q_label(q) + _r2_suffix(model, q)
+            lbl = f"{model.name} {_fmt_q_label(q)}" + _r2_suffix(model, q)
             if stack > 0:
                 lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
             col = _thermal.get(q, model.colors.get(q, "#888888"))

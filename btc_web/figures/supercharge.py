@@ -155,7 +155,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     final = f"{float(y_vals[-1]):.4f} BTC  ({final_usd})"
                 traces.append(go.Scatter(
                     x=list(ts_d), y=list(y_vals), mode="lines",
-                    name=f"Delay {d_lbl}  \u2192  {final}",
+                    name=f"{model.name} Delay {d_lbl}  \u2192  {final}",
                     line=dict(color=col, width=2),
                 ))
                 if depl_t is not None:
@@ -176,7 +176,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
-                        name=f"{q_lbl} delay={d_lbl}",
+                        name=f"{model.name} {q_lbl} delay={d_lbl}",
                         line=dict(color=col, width=_QR_LINE_WIDTH,
                                   dash=_DASH_STYLES[di % len(_DASH_STYLES)]),
                     ))
@@ -209,7 +209,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     x=list(ts_d), y=list(y_min), mode="lines",
                     fill="tonexty", fillcolor=_hex_alpha(col, 0.2),
                     line=dict(color=col, width=0),
-                    name=f"Delay {d_lbl}  \u2192  {max_final}",
+                    name=f"{model.name} Delay {d_lbl}  \u2192  {max_final}",
                     hoverinfo="skip",
                 ))
                 for q in sel_qs:

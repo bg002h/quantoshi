@@ -195,6 +195,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
 
         else:
             # Layout 2: shaded band + individual traces per delay
+            _tcol = _app_ctx.MODEL_TRACE_COLORS.get(model.short_name, "#000000")
             for di, d in enumerate(delays):
                 t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
                 ts_d = np.arange(t_start_d, t_end + dt * 0.5, dt)
@@ -207,7 +208,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 y_min  = all_y.min(axis=0)
                 y_max  = all_y.max(axis=0)
                 col    = delay_colors[di % len(delay_colors)]
-                # Shade band
+                # Shade band (never in legend)
                 traces.append(go.Scatter(
                     x=list(ts_d), y=list(y_max), mode="lines",
                     line=dict(color=col, width=0), showlegend=False, hoverinfo="skip",
@@ -217,14 +218,11 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     x=list(ts_d), y=list(y_min), mode="lines",
                     fill="tonexty", fillcolor=_hex_alpha(col, 0.3),
                     line=dict(color=col, width=0),
-                    name=f"{model.legend_name} {q_range}",
                     legendgroup=grp_model,
-                    showlegend=_first_legend,
+                    showlegend=False,
                     hoverinfo="skip",
                 ))
-                _first_legend = False
                 # Individual quantile traces on top — single color per model
-                _tcol = _app_ctx.MODEL_TRACE_COLORS.get(model.short_name, "#FFFFFF")
                 for q in sel_qs:
                     key = (d, q)
                     if key not in results:
@@ -232,9 +230,11 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     ts_d_q, y_vals_q, depl_t, t_start_d, *_ = results[key]
                     traces.append(go.Scatter(
                         x=list(ts_d_q), y=list(y_vals_q), mode="lines",
+                        name=f"{model.legend_name} {q_range}",
                         line=dict(color=_tcol, width=_QR_LINE_WIDTH, dash=model.dash_style),
-                        legendgroup=grp_model, showlegend=False,
+                        legendgroup=grp_model, showlegend=_first_legend,
                     ))
+                    _first_legend = False
                     if depl_t is not None:
                         deplete_annots.append(_depl_annot(depl_t, t_start_d, d,
                                                           annot_colors[di % len(annot_colors)],
@@ -272,6 +272,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
 
             if chart_layout == 2 and len(_sc_overlay_qs) >= 2:
                 # Shade bands + traces for overlay model
+                _ov_tcol = _app_ctx.MODEL_TRACE_COLORS.get(mdl.short_name, "#CCCCCC")
                 for di, d in enumerate(delays):
                     all_y = [ov_results[(d, q)][1] for q in _sc_overlay_qs if (d, q) in ov_results]
                     if not all_y:
@@ -280,6 +281,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     all_y_arr = np.array(all_y)
                     y_min, y_max = all_y_arr.min(axis=0), all_y_arr.max(axis=0)
                     col = delay_colors[di % len(delay_colors)]
+                    # Shade band (never in legend)
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_max), mode="lines",
                         line=dict(color=col, width=0), showlegend=False, hoverinfo="skip",
@@ -288,22 +290,22 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_min), mode="lines",
                         fill="tonexty", fillcolor=_hex_alpha(col, 0.06),
-                        line=dict(color=col, width=0, dash=mdl.dash_style),
-                        name=_ov_lbl, legendgroup=_ov_grp,
-                        showlegend=_ov_first, hoverinfo="skip",
+                        line=dict(color=col, width=0),
+                        legendgroup=_ov_grp,
+                        showlegend=False, hoverinfo="skip",
                     ))
-                    _ov_first = False
-                    # Individual quantile traces on top — single color per model
-                    _ov_tcol = _app_ctx.MODEL_TRACE_COLORS.get(mdl.short_name, "#CCCCCC")
+                    # Quantile traces — legend shows dash + color
                     for q in _sc_overlay_qs:
                         if (d, q) not in ov_results:
                             continue
                         ts_d_q, y_vals_q = ov_results[(d, q)]
                         traces.append(go.Scatter(
                             x=list(ts_d_q), y=list(y_vals_q), mode="lines",
+                            name=_ov_lbl,
                             line=dict(color=_ov_tcol, width=1, dash=mdl.dash_style),
-                            legendgroup=_ov_grp, showlegend=False,
+                            legendgroup=_ov_grp, showlegend=_ov_first,
                         ))
+                        _ov_first = False
             else:
                 # Individual lines for overlay model
                 for (d, q), (ts_d, y_vals) in ov_results.items():

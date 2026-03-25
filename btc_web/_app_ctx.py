@@ -15,6 +15,19 @@ BTC_ORANGE = "#f7931a"
 FONT_LEGEND = 10              # legend / small info text
 MODEL_SENTINELS = frozenset({"mc", "bub"})  # reserved keys in model-show checklists
 
+# Per-model trace colors — high-contrast, colorblind-safe, one color per model.
+# Used when shade bands are active so traces stand out against any band color.
+# Designed for luminance variation (readable without color vision).
+MODEL_TRACE_COLORS = {
+    "bub": "#FFFFFF",   # white — primary, maximum contrast on dark bg
+    "qr":  "#FFD700",   # gold — warm, high luminance
+    "pl":  "#00E5FF",   # electric cyan — cool, very high luminance
+    "lppl":"#FF6D00",   # deep orange — warm, medium-high luminance
+    "exp": "#82B1FF",   # soft blue — cool, medium luminance
+    "ef":  "#FF80AB",   # pink — warm, medium luminance
+    "s2f": "#B0BEC5",   # blue-grey — neutral
+}
+
 # ── Color palettes (default + colorblind-safe alternatives) ──────────────
 PALETTES = {
     "default": {

@@ -223,16 +223,16 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     hoverinfo="skip",
                 ))
                 _first_legend = False
-                # Individual quantile traces on top of bands
+                # Individual quantile traces on top — single color per model
+                _tcol = _app_ctx.MODEL_TRACE_COLORS.get(model.short_name, "#FFFFFF")
                 for q in sel_qs:
                     key = (d, q)
                     if key not in results:
                         continue
                     ts_d_q, y_vals_q, depl_t, t_start_d, *_ = results[key]
-                    q_col = _thermal.get(q, model.colors.get(q, "#888888"))
                     traces.append(go.Scatter(
                         x=list(ts_d_q), y=list(y_vals_q), mode="lines",
-                        line=dict(color=q_col, width=_QR_LINE_WIDTH),
+                        line=dict(color=_tcol, width=_QR_LINE_WIDTH),
                         legendgroup=grp_model, showlegend=False,
                     ))
                     if depl_t is not None:
@@ -293,15 +293,15 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         showlegend=_ov_first, hoverinfo="skip",
                     ))
                     _ov_first = False
-                    # Individual quantile traces on top
+                    # Individual quantile traces on top — single color per model
+                    _ov_tcol = _app_ctx.MODEL_TRACE_COLORS.get(mdl.short_name, "#CCCCCC")
                     for q in _sc_overlay_qs:
                         if (d, q) not in ov_results:
                             continue
                         ts_d_q, y_vals_q = ov_results[(d, q)]
-                        q_col = mdl.colors.get(q, "#888888")
                         traces.append(go.Scatter(
                             x=list(ts_d_q), y=list(y_vals_q), mode="lines",
-                            line=dict(color=q_col, width=1, dash=mdl.dash_style),
+                            line=dict(color=_ov_tcol, width=1, dash=mdl.dash_style),
                             legendgroup=_ov_grp, showlegend=False,
                         ))
             else:

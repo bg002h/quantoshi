@@ -603,7 +603,14 @@ def _finalize_chart(traces: list, layout: dict, p: dict, tab: str,
     """Shared chart finalization: legend, typography, MC premium, annotations, watermark."""
     layout["showlegend"] = bool(p.get("show_legend", True))
     leg_pos = p.get("legend_pos", "outside")
-    if leg_pos != "outside" and leg_pos in _MC_LEGEND_POS:
+    if leg_pos == "outside":
+        # Horizontal legend below chart — prevents stealing width on mobile
+        layout["legend"].update(
+            orientation="h",
+            x=0.5, y=-0.15,
+            xanchor="center", yanchor="top",
+        )
+    elif leg_pos in _MC_LEGEND_POS:
         pos = _MC_LEGEND_POS[leg_pos]
         layout["legend"].update(
             x=pos["x"], y=pos["y"],

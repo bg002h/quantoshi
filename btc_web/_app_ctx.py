@@ -19,7 +19,7 @@ MODEL_SENTINELS = frozenset({"mc", "bub"})  # reserved keys in model-show checkl
 # Used when shade bands are active so traces stand out against any band color.
 # Designed for luminance variation (readable without color vision).
 MODEL_TRACE_COLORS = {
-    "bub": "#FFFFFF",   # white — primary, maximum contrast on dark bg
+    "bub": "#000000",   # black — primary, maximum contrast on light bg
     "qr":  "#FFD700",   # gold — warm, high luminance
     "pl":  "#00E5FF",   # electric cyan — cool, very high luminance
     "lppl":"#FF6D00",   # deep orange — warm, medium-high luminance

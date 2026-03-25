@@ -118,16 +118,19 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
 
         _AY_LEVELS = _ANNOT_STAGGER_Y
 
-        def _depl_annot(depl_t, t_start_d, d, col, stagger=0):
+        def _depl_trace(depl_t, t_start_d, d, col, legendgroup, mdl_legend=""):
+            """Create a depletion marker as a trace (toggles with legend)."""
             depl_yr = int((syr + d) + (depl_t - t_start_d) *
                           (eyr - (syr + d)) / max(t_end - t_start_d, 1e-6))
-            return dict(
-                x=depl_t - dt, xref="x",   # last nonzero step, aligns with band end
-                y=0, yref="paper",
-                ax=28, ay=_AY_LEVELS[stagger % 3],
-                text=f"\u2248{depl_yr}",
-                showarrow=True, arrowhead=2, arrowsize=1,
-                arrowcolor=col, font=dict(size=_FONT_ANNOT, color=col),
+            lbl = f"{mdl_legend} \u2248{depl_yr}" if mdl_legend else f"\u2248{depl_yr}"
+            return go.Scatter(
+                x=[depl_t - dt], y=[0.001 if p.get("log_y") else 0],
+                mode="markers+text",
+                marker=dict(symbol="triangle-down", size=10, color=col),
+                text=[lbl], textposition="top center",
+                textfont=dict(size=_FONT_ANNOT, color=col),
+                legendgroup=legendgroup, showlegend=False,
+                hoverinfo="skip",
             )
 
         show_qr = p.get("show_qr", True)
@@ -167,9 +170,9 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 ))
                 _first_legend = False
                 if depl_t is not None:
-                    deplete_annots.append(_depl_annot(depl_t, t_start_d, d,
-                                                      annot_colors[di % len(annot_colors)],
-                                                      len(deplete_annots)))
+                    traces.append(_depl_trace(depl_t, t_start_d, d,
+                                              annot_colors[di % len(annot_colors)],
+                                              grp_model, model.legend_name))
 
         elif chart_layout == 1:
             # Color = quantile, line style = delay
@@ -190,8 +193,8 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     ))
                     _first_legend = False
                     if depl_t is not None:
-                        deplete_annots.append(_depl_annot(depl_t, t_start_d, d, col,
-                                                          len(deplete_annots)))
+                        traces.append(_depl_trace(depl_t, t_start_d, d, col,
+                                                   grp_model, model.legend_name))
 
         else:
             # Layout 2: shaded band + individual traces per delay
@@ -236,9 +239,9 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     ))
                     _first_legend = False
                     if depl_t is not None:
-                        deplete_annots.append(_depl_annot(depl_t, t_start_d, d,
-                                                          annot_colors[di % len(annot_colors)],
-                                                          len(deplete_annots)))
+                        traces.append(_depl_trace(depl_t, t_start_d, d,
+                                                   annot_colors[di % len(annot_colors)],
+                                                   grp_model, model.legend_name))
 
         # ── alternative model overlays (same layout logic as primary) ─────────
         for model_key in p.get("active_models", []):
@@ -267,8 +270,10 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 for q in _sc_overlay_qs:
                     prices = mdl.price_at(q, ts_d_clamped) if mdl.quantized else np.full_like(ts_d_clamped, mdl.price_at(0.5, ts_d_clamped))
                     vals = np.maximum(start_stack - np.cumsum(adj_wd_d / prices), 0.0)
+                    depl_mask = vals == 0.0
+                    depl_t_ov = float(ts_d[np.argmax(depl_mask)]) if depl_mask.any() else None
                     y_vals = vals * prices if disp_mode == "usd" else vals
-                    ov_results[(d, q)] = (ts_d, y_vals)
+                    ov_results[(d, q)] = (ts_d, y_vals, depl_t_ov, t_start_d)
 
             if chart_layout == 2 and len(_sc_overlay_qs) >= 2:
                 # Shade bands + traces for overlay model
@@ -294,11 +299,11 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         legendgroup=_ov_grp,
                         showlegend=False, hoverinfo="skip",
                     ))
-                    # Quantile traces — legend shows dash + color
+                    # Quantile traces + depletion markers
                     for q in _sc_overlay_qs:
                         if (d, q) not in ov_results:
                             continue
-                        ts_d_q, y_vals_q = ov_results[(d, q)]
+                        ts_d_q, y_vals_q, depl_t_ov, t_start_d_ov = ov_results[(d, q)]
                         traces.append(go.Scatter(
                             x=list(ts_d_q), y=list(y_vals_q), mode="lines",
                             name=_ov_lbl,
@@ -306,9 +311,13 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                             legendgroup=_ov_grp, showlegend=_ov_first,
                         ))
                         _ov_first = False
+                        if depl_t_ov is not None:
+                            traces.append(_depl_trace(depl_t_ov, t_start_d_ov, d,
+                                                       _ov_tcol, _ov_grp, mdl.legend_name))
             else:
                 # Individual lines for overlay model
-                for (d, q), (ts_d, y_vals) in ov_results.items():
+                _ov_tcol2 = _app_ctx.MODEL_TRACE_COLORS.get(mdl.short_name, "#CCCCCC")
+                for (d, q), (ts_d, y_vals, depl_t_ov, t_start_d_ov) in ov_results.items():
                     col = mdl.colors.get(q, "#888888") if mdl.quantized else palette["non_quantized_model"]
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
@@ -318,6 +327,9 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         showlegend=_ov_first,
                     ))
                     _ov_first = False
+                    if depl_t_ov is not None:
+                        traces.append(_depl_trace(depl_t_ov, t_start_d_ov, d,
+                                                   _ov_tcol2, _ov_grp, mdl.legend_name))
 
         t_start_base = max(yr_to_t(syr, m.genesis), 1.0)
         ylabel = "USD Value" if disp_mode == "usd" else "BTC Remaining"
@@ -325,7 +337,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     f"Retire {syr}+ \u00b7 to {eyr}")
         layout, _ = _sim_layout(m, p, sc_title, ylabel, np.array([t_end]),
                                 t_start_base, t_end, dt, syr, eyr)
-        layout["annotations"] = deplete_annots
+        # Depletion markers are now traces (no layout annotations needed)
         # ── Monte Carlo fan overlay ───────────────────────────────────────────
         mc_traces_list = []
         mc_result = None
@@ -335,10 +347,8 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
             mc_traces_list, mc_result = _apply_mc_overlay(
                 m, p, _mc_supercharge_overlay,
                 (m, p, np.arange(t_start_base, t_end + dt * 0.5, dt),
-                 t_start_base, t_end, dt, start_stack, disp_mode, len(deplete_annots)),
-                traces, deplete_annots, layout, _sc_x_end, disp_mode)
-
-        _stagger_depletion_annots(deplete_annots, layout)
+                 t_start_base, t_end, dt, start_stack, disp_mode, 0),
+                traces, [], layout, _sc_x_end, disp_mode)
 
         # ── Right-edge / endpoint value labels ─────────────────────────────
         # Use text traces (go.Scatter mode="markers+text") instead of

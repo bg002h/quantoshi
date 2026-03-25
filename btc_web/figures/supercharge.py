@@ -15,7 +15,7 @@ from figures.common import (
     _QR_LINE_WIDTH, _ANNOT_STAGGER_Y, _BISECT_ITERS,
     _FONT_ANNOT,
     _HAS_MARKOV,
-    _get_palette, _build_thermal_colors, _fmt_q_label, _error_figure,
+    _get_palette, _build_thermal_colors, _fmt_q_label, _fmt_q_range, _error_figure,
     _build_freq_config, _get_starting_stack,
     _sim_layout, _apply_mc_overlay,
     _stagger_depletion_annots,
@@ -140,6 +140,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
         elif chart_layout == 0:
             # Color = delay, show quantile closest to display_q
             q_show = min(sel_qs, key=lambda q: abs(q - display_q))
+            q_range = _fmt_q_range(sel_qs)
             for di, d in enumerate(delays):
                 key = (d, q_show)
                 if key not in results:
@@ -155,7 +156,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     final = f"{float(y_vals[-1]):.4f} BTC  ({final_usd})"
                 traces.append(go.Scatter(
                     x=list(ts_d), y=list(y_vals), mode="lines",
-                    name=f"{model.name} Delay {d_lbl}  \u2192  {final}",
+                    name=f"{model.name} {q_range} Delay {d_lbl}  \u2192  {final}",
                     line=dict(color=col, width=2),
                 ))
                 if depl_t is not None:
@@ -164,19 +165,22 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                                                       len(deplete_annots)))
 
         elif chart_layout == 1:
-            # Color = quantile, line style = delay
-            for q in sel_qs:
-                col   = _thermal.get(q, model.colors.get(q, "#888888"))
-                q_lbl = _fmt_q_label(q)
-                for di, d in enumerate(delays):
+            # Color = quantile, line style = delay — group by delay
+            q_range = _fmt_q_range(sel_qs)
+            for di, d in enumerate(delays):
+                d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
+                grp = f"{model.short_name}-d{d}"
+                for qi, q in enumerate(sel_qs):
                     key = (d, q)
                     if key not in results:
                         continue
                     ts_d, y_vals, depl_t, t_start_d, *_ = results[key]
-                    d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
+                    col = _thermal.get(q, model.colors.get(q, "#888888"))
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
-                        name=f"{model.name} {q_lbl} delay={d_lbl}",
+                        name=f"{model.name} {q_range} delay={d_lbl}",
+                        legendgroup=grp,
+                        showlegend=(qi == 0),
                         line=dict(color=col, width=_QR_LINE_WIDTH,
                                   dash=_DASH_STYLES[di % len(_DASH_STYLES)]),
                     ))
@@ -186,6 +190,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
 
         else:
             # Layout 2: shaded band per delay (min/max across quantiles)
+            q_range = _fmt_q_range(sel_qs)
             for di, d in enumerate(delays):
                 t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
                 ts_d = np.arange(t_start_d, t_end + dt * 0.5, dt)
@@ -209,7 +214,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     x=list(ts_d), y=list(y_min), mode="lines",
                     fill="tonexty", fillcolor=_hex_alpha(col, 0.2),
                     line=dict(color=col, width=0),
-                    name=f"{model.name} Delay {d_lbl}  \u2192  {max_final}",
+                    name=f"{model.name} {q_range} Delay {d_lbl}  \u2192  {max_final}",
                     hoverinfo="skip",
                 ))
                 for q in sel_qs:
@@ -409,13 +414,16 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
             ))
 
     elif chart_layout == 1:
-        for q in sel_qs:
+        q_range = _fmt_q_range(sel_qs)
+        grp = f"{model.short_name}-b1"
+        for qi, q in enumerate(sel_qs):
             col   = _thermal.get(q, model.colors.get(q, "#888888"))
-            q_lbl = _fmt_q_label(q)
             y_q   = [max_wd.get((d, q), 0) for d in delays]
             traces.append(go.Scatter(
                 x=delays, y=y_q, mode="lines+markers",
-                name=f"{model.name} {q_lbl}",
+                name=f"{model.name} {q_range}",
+                legendgroup=grp,
+                showlegend=(qi == 0),
                 line=dict(color=col, width=2),
                 marker=dict(color=col, size=7),
             ))

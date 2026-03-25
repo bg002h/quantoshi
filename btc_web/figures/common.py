@@ -155,6 +155,19 @@ def _fmt_q_label(q: float, prefix: str = "BM") -> str:
     return f"{prefix} {ql}" if prefix else ql
 
 
+def _fmt_q_range(qs: list) -> str:
+    """Format a list of quantiles as a compact range, e.g. 'Q1\u201310%'."""
+    if not qs:
+        return ""
+    lo, hi = min(qs), max(qs)
+    def _pct(q):
+        p = q * 100
+        return f"{p:.4g}%" if p >= 1 else f"{p:.3g}%"
+    if lo == hi:
+        return f"Q{_pct(lo)}"
+    return f"Q{_pct(lo)}\u2013{_pct(hi)}"
+
+
 def _error_figure(m, title):
     """Return a blank figure with a message title, styled for dark theme."""
     fig = go.Figure()

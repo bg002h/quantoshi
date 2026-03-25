@@ -30,13 +30,10 @@ _DASH_STYLES  = ['solid', 'dash', 'dot', 'dashdot', 'longdash']
 
 
 def _resolve_sc_model(p):
-    """Pick the primary quantized model from active_models, or fall back to default."""
-    for key in (p.get("active_models") or []):
-        mdl = _app_ctx.PRICE_MODELS.get(key)
-        if mdl and mdl.quantized:
-            return mdl
-    if p.get("show_qr"):
-        return _app_ctx.DEFAULT_MODEL
+    """Primary model is always DEFAULT_MODEL (Bubble Model).
+
+    Overlay models from active_models are drawn as additional traces.
+    """
     return _app_ctx.DEFAULT_MODEL
 
 
@@ -235,16 +232,22 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                                                           annot_colors[di % len(annot_colors)],
                                                           len(deplete_annots)))
 
-        # ── alternative model overlays ────────────────────────────────────────
+        # ── alternative model overlays (same layout logic as primary) ─────────
         for model_key in p.get("active_models", []):
             mdl = _app_ctx.PRICE_MODELS.get(model_key)
             if not mdl:
                 continue
-            _sc_overlay_qs = sel_qs if mdl.quantized else [0.5]
+            _sc_overlay_qs = [q for q in sel_qs if not mdl.quantized or q in mdl.fits] if mdl.quantized else [0.5]
+            if not _sc_overlay_qs:
+                continue
             _ov_q_range = _fmt_q_range(_sc_overlay_qs) if mdl.quantized else ""
             _ov_grp = f"sc-{mdl.short_name}"
             _ov_first = True
-            for di, d in enumerate(delays):
+            _ov_lbl = f"{mdl.legend_name} {_ov_q_range}" if _ov_q_range else mdl.legend_name
+
+            # Compute all (delay, quantile) results for this overlay model
+            ov_results = {}
+            for d in delays:
                 t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
                 if t_start_d >= t_end:
                     continue
@@ -254,13 +257,38 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 ts_d_clamped = np.maximum(ts_d, 0.5)
                 adj_wd_d = wd_amount * ((1 + inflation) ** (ts_d - t_start_d))
                 for q in _sc_overlay_qs:
-                    if mdl.quantized and q not in mdl.fits:
-                        continue
-                    prices = mdl.price_at(q, ts_d_clamped)
+                    prices = mdl.price_at(q, ts_d_clamped) if mdl.quantized else np.full_like(ts_d_clamped, mdl.price_at(0.5, ts_d_clamped))
                     vals = np.maximum(start_stack - np.cumsum(adj_wd_d / prices), 0.0)
                     y_vals = vals * prices if disp_mode == "usd" else vals
+                    ov_results[(d, q)] = (ts_d, y_vals)
+
+            if chart_layout == 2 and len(_sc_overlay_qs) >= 2:
+                # Shade bands for overlay model (same as primary layout 2)
+                for di, d in enumerate(delays):
+                    all_y = [ov_results[(d, q)][1] for q in _sc_overlay_qs if (d, q) in ov_results]
+                    if not all_y:
+                        continue
+                    ts_d = ov_results[(d, _sc_overlay_qs[0])][0]
+                    all_y = np.array(all_y)
+                    y_min, y_max = all_y.min(axis=0), all_y.max(axis=0)
+                    col = delay_colors[di % len(delay_colors)]
+                    traces.append(go.Scatter(
+                        x=list(ts_d), y=list(y_max), mode="lines",
+                        line=dict(color=col, width=0), showlegend=False, hoverinfo="skip",
+                        legendgroup=_ov_grp,
+                    ))
+                    traces.append(go.Scatter(
+                        x=list(ts_d), y=list(y_min), mode="lines",
+                        fill="tonexty", fillcolor=_hex_alpha(col, 0.12),
+                        line=dict(color=col, width=0, dash=mdl.dash_style),
+                        name=_ov_lbl, legendgroup=_ov_grp,
+                        showlegend=_ov_first, hoverinfo="skip",
+                    ))
+                    _ov_first = False
+            else:
+                # Individual lines for overlay model
+                for (d, q), (ts_d, y_vals) in ov_results.items():
                     col = mdl.colors.get(q, "#888888") if mdl.quantized else palette["non_quantized_model"]
-                    _ov_lbl = f"{mdl.legend_name} {_ov_q_range}" if _ov_q_range else mdl.legend_name
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
                         name=_ov_lbl,

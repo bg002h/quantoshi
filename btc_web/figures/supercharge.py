@@ -156,7 +156,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     final = f"{float(y_vals[-1]):.4f} BTC  ({final_usd})"
                 traces.append(go.Scatter(
                     x=list(ts_d), y=list(y_vals), mode="lines",
-                    name=f"{model.name} {q_range} Delay {d_lbl}  \u2192  {final}",
+                    name=f"{model.legend_name} {q_range} Delay {d_lbl}  \u2192  {final}",
                     line=dict(color=col, width=2),
                 ))
                 if depl_t is not None:
@@ -178,7 +178,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     col = _thermal.get(q, model.colors.get(q, "#888888"))
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
-                        name=f"{model.name} {q_range} delay={d_lbl}",
+                        name=f"{model.legend_name} {q_range} delay={d_lbl}",
                         legendgroup=grp,
                         showlegend=(qi == 0),
                         line=dict(color=col, width=_QR_LINE_WIDTH,
@@ -214,7 +214,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     x=list(ts_d), y=list(y_min), mode="lines",
                     fill="tonexty", fillcolor=_hex_alpha(col, 0.2),
                     line=dict(color=col, width=0),
-                    name=f"{model.name} {q_range} Delay {d_lbl}  \u2192  {max_final}",
+                    name=f"{model.legend_name} {q_range} Delay {d_lbl}  \u2192  {max_final}",
                     hoverinfo="skip",
                 ))
                 for q in sel_qs:
@@ -258,10 +258,10 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         final = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
-                        name=f"{mdl.name}{q_lbl} {d_lbl}  \u2192  {final}",
+                        name=f"{mdl.legend_name}{q_lbl} {d_lbl}  \u2192  {final}",
                         line=dict(color=col, width=1.2, dash=mdl.dash_style),  # intentional: 1.2 not _OVERLAY_LINE_WIDTH
                         legendgroup=mdl.short_name,
-                        legendgrouptitle_text=mdl.name,
+                        legendgrouptitle_text=mdl.legend_name,
                         showlegend=(di == 0),  # show legend only for first delay
                     ))
 
@@ -409,8 +409,8 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
                 marker=dict(color=col, size=12),
                 text=[fmt_price(val) + freq_label],
                 textposition="top center",
-                name=f"{model.name} Delay {d_lbl}",
-                hovertemplate=f"{model.name} Delay {d_lbl}<br>{fmt_price(val)}{freq_label}<extra></extra>",
+                name=f"{model.legend_name} Delay {d_lbl}",
+                hovertemplate=f"{model.legend_name} Delay {d_lbl}<br>{fmt_price(val)}{freq_label}<extra></extra>",
             ))
 
     elif chart_layout == 1:
@@ -421,7 +421,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
             y_q   = [max_wd.get((d, q), 0) for d in delays]
             traces.append(go.Scatter(
                 x=delays, y=y_q, mode="lines+markers",
-                name=f"{model.name} {q_range}",
+                name=f"{model.legend_name} {q_range}",
                 legendgroup=grp,
                 showlegend=(qi == 0),
                 line=dict(color=col, width=2),
@@ -437,7 +437,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
             med_val = y_d[len(y_d) // 2] if y_d else 0
             traces.append(go.Scatter(
                 x=list(sel_qs), y=y_d, mode="lines+markers",
-                name=f"{model.name} Delay {d_lbl}  \u2192  {fmt_price(med_val)}{freq_label} (med)",
+                name=f"{model.legend_name} Delay {d_lbl}  \u2192  {fmt_price(med_val)}{freq_label} (med)",
                 line=dict(color=col, width=2),
                 marker=dict(color=col, size=6),
                 customdata=qlbls,

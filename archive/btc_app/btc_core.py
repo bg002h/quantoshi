@@ -393,6 +393,7 @@ class QuantileRegressionModel(_FitsBasedModel):
     """
     name = "Quantile Regression"
     short_name = "qr"
+    legend_name = "QR"
     dash_style = "solid"
 
     def __init__(self, md):
@@ -502,6 +503,7 @@ class BubbleModel(_CompositeModel):
     """Bubble model with asymmetric shrinking Gaussian bands around composite."""
     name = "Bubble Model"
     short_name = "bub"
+    legend_name = "BM"
     dash_style = "solid"
 
     def __init__(self, md):
@@ -532,6 +534,7 @@ class PowerLawModel(_FitsBasedModel):
     """
     name = "Power Law"
     short_name = "pl"
+    legend_name = "PL"
     dash_style = "dot"
 
     def __init__(self, ols_intercept, ols_slope, price_years, price_prices,
@@ -580,6 +583,7 @@ class LPPLModel:
     """
     name = "LPPL"
     short_name = "lppl"
+    legend_name = "LPPL"
     dash_style = "dashdot"
     quantized = True
 
@@ -679,6 +683,7 @@ class ExponentialModel:
     """
     name = "Exponential"
     short_name = "exp"
+    legend_name = "Exp"
     dash_style = "longdashdot"
     quantized = True
 
@@ -753,6 +758,7 @@ class EmpiricalFloorModel(_CompositeModel):
     """BM Empirical Floor with asymmetric shrinking Gaussian bands."""
     name = "BM Empirical Floor"
     short_name = "ef"
+    legend_name = "EF"
     dash_style = "dashdot"
 
     def __init__(self, pkl_path):
@@ -805,6 +811,7 @@ class S2FModel:
     """
     name = "Stock-to-Flow"
     short_name = "s2f"
+    legend_name = "S2F"
     dash_style = "longdash"
     quantized = False
     fits = None

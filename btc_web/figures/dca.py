@@ -138,7 +138,7 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, t
             final_usd = fmt_price(float(all_sc_usd_vals[q][-1]))
             final_sc  = f"{float(sc_vals[-1]):.4f} BTC  ({final_usd})"
 
-        lbl_sc = f"{model.name} SC {_fmt_q_label(q)}" + f"  \u2192  {final_sc}"
+        lbl_sc = f"{model.legend_name} SC {_fmt_q_label(q)}" + f"  \u2192  {final_sc}"
         col = thermal.get(q, model.colors.get(q, "#888888")) if thermal else model.colors.get(q, "#888888")
         sc_traces.append(go.Scatter(
             x=list(ts), y=list(y_sc), mode="lines", name=lbl_sc,
@@ -193,7 +193,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
             final_usd = fmt_price(float(all_usd_vals[q][-1]))
             final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
 
-        lbl = f"{model.name} {_fmt_q_label(q)}" + f"  \u2192  {final_lbl}"
+        lbl = f"{model.legend_name} {_fmt_q_label(q)}" + f"  \u2192  {final_lbl}"
         col = _thermal.get(q, model.colors.get(q, "#888888"))
         traces.append(go.Scatter(
             x=list(ts), y=list(y_vals), mode="lines", name=lbl,
@@ -221,10 +221,10 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                 col = mdl.colors.get(q, "#888888")
                 traces.append(go.Scatter(
                     x=list(ts), y=list(y_vals), mode="lines",
-                    name=f"{mdl.name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
+                    name=f"{mdl.legend_name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
                     line=dict(color=col, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                     legendgroup=mdl.short_name,
-                    legendgrouptitle_text=mdl.name,
+                    legendgrouptitle_text=mdl.legend_name,
                 ))
         else:
             # Non-quantized: single trajectory DCA simulation
@@ -239,7 +239,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                 final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
             traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines",
-                name=f"{mdl.name}  \u2192  {final_lbl}",
+                name=f"{mdl.legend_name}  \u2192  {final_lbl}",
                 line=dict(color=palette["non_quantized_model"], width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                 legendgroup=mdl.short_name,
             ))

@@ -94,7 +94,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             if q not in _price_cache:
                 continue
             prices = _price_cache[q]
-            lbl = f"{model.name} {_fmt_q_label(q)}" + _r2_suffix(model, q)
+            lbl = f"{model.legend_name} {_fmt_q_label(q)}" + _r2_suffix(model, q)
             if stack > 0:
                 lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
             col = _thermal.get(q, model.colors.get(q, "#888888"))
@@ -118,7 +118,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     continue
                 prices = _round_trace_data(mdl.price_at(q, t_arr) * (stack if stack > 0 else 1))
                 col = mdl.colors.get(q, "#888888")
-                lbl = f"{mdl.name} {_fmt_q_label(q, '')}" + _r2_suffix(mdl, q)
+                lbl = f"{mdl.legend_name} {_fmt_q_label(q, '')}" + _r2_suffix(mdl, q)
                 if stack > 0:
                     lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
                 traces.append(go.Scatter(
@@ -126,14 +126,14 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     mode="lines", name=lbl,
                     line=dict(color=col, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                     legendgroup=mdl.short_name,
-                    legendgrouptitle_text=mdl.name,
+                    legendgrouptitle_text=mdl.legend_name,
                 ))
         else:
             # Non-quantized model: single trajectory
             prices = mdl.price_at(0.5, t_arr)
             if stack > 0:
                 prices = prices * stack
-            lbl = mdl.name + _r2_suffix(mdl, 0.5)
+            lbl = mdl.legend_name + _r2_suffix(mdl, 0.5)
             if stack > 0:
                 lbl += f"  \u2192  {fmt_price(float(np.asarray(prices)[-1]))}"
             prices = _round_trace_data(np.asarray(prices))
@@ -155,7 +155,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 sup_y = np.asarray(mdl.support_plot)[mdl_mask] * (stack if stack > 0 else 1)
                 traces.append(go.Scatter(
                     x=list(mdl_t[mdl_mask]), y=list(sup_y),
-                    mode="lines", name=f"{mdl.name} support",
+                    mode="lines", name=f"{mdl.legend_name} support",
                     line=dict(color=_EF_SUP_COLOR, dash="dash", width=1.5),
                     opacity=0.9,
                     legendgroup=mdl.short_name,
@@ -168,7 +168,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 traces.append(go.Scatter(
                     x=list(mdl_t[mdl_mask]), y=list(comp_y),
                     mode="lines",
-                    name=f"{mdl.name} composite (N={n})  R\u00b2={mdl.bm_r2:.4f}",
+                    name=f"{mdl.legend_name} composite (N={n})  R\u00b2={mdl.bm_r2:.4f}",
                     line=dict(color=_EF_COMP_COLOR, width=2.0),
                     legendgroup=mdl.short_name,
                 ))
@@ -188,7 +188,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         traces.append(go.Scatter(
             x=list(t_arr), y=list(scan_prices),
             mode="lines",
-            name=f"{mdl.name} Q{q*100:.1f}%",
+            name=f"{mdl.legend_name} Q{q*100:.1f}%",
             line=dict(color=col, width=2, dash=mdl.dash_style),
             legendgroup=f"scan-{mdl.short_name}",
         ))

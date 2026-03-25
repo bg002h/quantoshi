@@ -72,7 +72,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
         all_y_vals[q] = y_vals
 
-        lbl = f"{model.name} {_fmt_q_label(q)}" + f"  \u2192  {final_lbl}"
+        lbl = f"{model.legend_name} {_fmt_q_label(q)}" + f"  \u2192  {final_lbl}"
         col = _thermal.get(q, model.colors.get(q, "#888888"))
         traces.append(go.Scatter(
             x=list(ts), y=list(y_vals), mode="lines", name=lbl,
@@ -116,10 +116,10 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 col = mdl.colors.get(q, "#888888")
                 traces.append(go.Scatter(
                     x=list(ts), y=list(y_vals), mode="lines",
-                    name=f"{mdl.name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
+                    name=f"{mdl.legend_name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
                     line=dict(color=col, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                     legendgroup=mdl.short_name,
-                    legendgrouptitle_text=mdl.name,
+                    legendgrouptitle_text=mdl.legend_name,
                 ))
         else:
             # Non-quantized: single trajectory withdrawal simulation
@@ -134,7 +134,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
             traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines",
-                name=f"{mdl.name}  \u2192  {final_lbl}",
+                name=f"{mdl.legend_name}  \u2192  {final_lbl}",
                 line=dict(color=palette["non_quantized_model"], width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                 legendgroup=mdl.short_name,
             ))

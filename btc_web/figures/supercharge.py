@@ -135,19 +135,26 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
 
         show_qr = p.get("show_qr", True)
 
+        q_range = _fmt_q_range(sel_qs)
+        grp_model = f"sc-{model.short_name}"
+        _first_legend = True  # only first trace gets showlegend=True
+
+        def _delay_suffix(d):
+            if d == 0:
+                return ""
+            return f" +{int(d)}yr" if d == int(d) else f" +{d:.1f}yr"
+
         if not show_qr:
             pass  # skip QR traces, keep results for MC/annotations
         elif chart_layout == 0:
             # Color = delay, show quantile closest to display_q
             q_show = min(sel_qs, key=lambda q: abs(q - display_q))
-            q_range = _fmt_q_range(sel_qs)
             for di, d in enumerate(delays):
                 key = (d, q_show)
                 if key not in results:
                     continue
                 ts_d, y_vals, depl_t, t_start_d, *_ = results[key]
                 col   = delay_colors[di % len(delay_colors)]
-                d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
                 if disp_mode == "usd":
                     final = fmt_price(float(y_vals[-1]))
                 else:
@@ -156,20 +163,20 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     final = f"{float(y_vals[-1]):.4f} BTC  ({final_usd})"
                 traces.append(go.Scatter(
                     x=list(ts_d), y=list(y_vals), mode="lines",
-                    name=f"{model.legend_name} {q_range} Delay {d_lbl}  \u2192  {final}",
+                    name=f"{model.legend_name} {q_range}",
+                    legendgroup=grp_model,
+                    showlegend=_first_legend,
                     line=dict(color=col, width=2),
                 ))
+                _first_legend = False
                 if depl_t is not None:
                     deplete_annots.append(_depl_annot(depl_t, t_start_d, d,
                                                       annot_colors[di % len(annot_colors)],
                                                       len(deplete_annots)))
 
         elif chart_layout == 1:
-            # Color = quantile, line style = delay — group by delay
-            q_range = _fmt_q_range(sel_qs)
+            # Color = quantile, line style = delay
             for di, d in enumerate(delays):
-                d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
-                grp = f"{model.short_name}-d{d}"
                 for qi, q in enumerate(sel_qs):
                     key = (d, q)
                     if key not in results:
@@ -178,19 +185,19 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     col = _thermal.get(q, model.colors.get(q, "#888888"))
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
-                        name=f"{model.legend_name} {q_range} delay={d_lbl}",
-                        legendgroup=grp,
-                        showlegend=(qi == 0),
+                        name=f"{model.legend_name} {q_range}",
+                        legendgroup=grp_model,
+                        showlegend=_first_legend,
                         line=dict(color=col, width=_QR_LINE_WIDTH,
                                   dash=_DASH_STYLES[di % len(_DASH_STYLES)]),
                     ))
+                    _first_legend = False
                     if depl_t is not None:
                         deplete_annots.append(_depl_annot(depl_t, t_start_d, d, col,
                                                           len(deplete_annots)))
 
         else:
             # Layout 2: shaded band per delay (min/max across quantiles)
-            q_range = _fmt_q_range(sel_qs)
             for di, d in enumerate(delays):
                 t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
                 ts_d = np.arange(t_start_d, t_end + dt * 0.5, dt)
@@ -203,20 +210,21 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 y_min  = all_y.min(axis=0)
                 y_max  = all_y.max(axis=0)
                 col    = delay_colors[di % len(delay_colors)]
-                d_lbl  = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
                 traces.append(go.Scatter(
                     x=list(ts_d), y=list(y_max), mode="lines",
                     line=dict(color=col, width=0), showlegend=False, hoverinfo="skip",
+                    legendgroup=grp_model,
                 ))
-                max_final = (fmt_price(float(y_max[-1])) if disp_mode == "usd"
-                             else f"{float(y_max[-1]):.4f} BTC")
                 traces.append(go.Scatter(
                     x=list(ts_d), y=list(y_min), mode="lines",
                     fill="tonexty", fillcolor=_hex_alpha(col, 0.2),
                     line=dict(color=col, width=0),
-                    name=f"{model.legend_name} {q_range} Delay {d_lbl}  \u2192  {max_final}",
+                    name=f"{model.legend_name} {q_range}",
+                    legendgroup=grp_model,
+                    showlegend=_first_legend,
                     hoverinfo="skip",
                 ))
+                _first_legend = False
                 for q in sel_qs:
                     key = (d, q)
                     if key not in results:
@@ -233,6 +241,9 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
             if not mdl:
                 continue
             _sc_overlay_qs = sel_qs if mdl.quantized else [0.5]
+            _ov_q_range = _fmt_q_range(_sc_overlay_qs) if mdl.quantized else ""
+            _ov_grp = f"sc-{mdl.short_name}"
+            _ov_first = True
             for di, d in enumerate(delays):
                 t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
                 if t_start_d >= t_end:
@@ -249,21 +260,15 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     vals = np.maximum(start_stack - np.cumsum(adj_wd_d / prices), 0.0)
                     y_vals = vals * prices if disp_mode == "usd" else vals
                     col = mdl.colors.get(q, "#888888") if mdl.quantized else palette["non_quantized_model"]
-                    d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
-                    q_lbl = f" {_fmt_q_label(q, '')}" if mdl.quantized else ""
-                    if disp_mode == "usd":
-                        final = fmt_price(float(y_vals[-1]))
-                    else:
-                        final_usd = fmt_price(float(vals[-1]) * float(prices[-1]))
-                        final = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
+                    _ov_lbl = f"{mdl.legend_name} {_ov_q_range}" if _ov_q_range else mdl.legend_name
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
-                        name=f"{mdl.legend_name}{q_lbl} {d_lbl}  \u2192  {final}",
-                        line=dict(color=col, width=1.2, dash=mdl.dash_style),  # intentional: 1.2 not _OVERLAY_LINE_WIDTH
-                        legendgroup=mdl.short_name,
-                        legendgrouptitle_text=mdl.legend_name,
-                        showlegend=(di == 0),  # show legend only for first delay
+                        name=_ov_lbl,
+                        line=dict(color=col, width=1.2, dash=mdl.dash_style),
+                        legendgroup=_ov_grp,
+                        showlegend=_ov_first,
                     ))
+                    _ov_first = False
 
         t_start_base = max(yr_to_t(syr, m.genesis), 1.0)
         ylabel = "USD Value" if disp_mode == "usd" else "BTC Remaining"

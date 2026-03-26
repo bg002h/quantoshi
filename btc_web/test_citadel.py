@@ -6,8 +6,27 @@ for _p in (str(_ROOT), str(_ROOT / "btc_web"), str(_ROOT / "archive" / "btc_app"
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+import numpy as np
 import pytest
-from engines.citadel import SimConfig, CitadelState, FREQ_PPY, validate_config, _apply_spending_waterfall, _enforce_floors
+from engines.citadel import SimConfig, CitadelState, FREQ_PPY, validate_config, _apply_spending_waterfall, _enforce_floors, _get_btc_price
+
+
+class MockPriceModel:
+    """Simple mock: price = 1000 * quantile * time."""
+    def __init__(self):
+        self.fits = {0.01: None, 0.10: None, 0.25: None, 0.50: None,
+                     0.75: None, 0.90: None, 0.99: None}
+        self.genesis = 14822.375
+
+    def price_at(self, q: float, t: float) -> float:
+        return 1000.0 * q * max(t, 0.1)
+
+    def quantile_at(self, price: float, t: float) -> float:
+        q = price / (1000.0 * max(t, 0.1))
+        return max(0.001, min(q, 0.999))
+
+def _mock_model_data():
+    return MockPriceModel()
 
 
 class TestSimConfig:
@@ -177,3 +196,23 @@ class TestFloorEnforcement:
         cfg.reserve_floors = [0, 0, 0]
         _enforce_floors(s, cfg)
         assert s.cash == 1000
+
+
+class TestBTCPricing:
+    def test_get_btc_price_deterministic(self):
+        model = _mock_model_data()
+        rng = np.random.default_rng(42)
+        cfg = SimConfig.default()
+        cfg.n_sims = 1
+        cfg.selected_qs = [0.50]
+        price = _get_btc_price(t=10.0, config=cfg, model=model,
+                               rng=rng, sim_mode="deterministic", q=0.50)
+        assert price == model.price_at(0.50, 10.0)
+
+    def test_price_to_quantile_roundtrip(self):
+        model = _mock_model_data()
+        t = 15.0
+        for q in [0.10, 0.50, 0.90]:
+            price = model.price_at(q, t)
+            q_back = model.quantile_at(price, t)
+            assert abs(q_back - q) < 0.01

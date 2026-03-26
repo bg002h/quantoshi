@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Protocol, runtime_checkable
+
+import numpy as np
 
 # Intentionally limited to Monthly/Quarterly/Annually — Daily/Weekly excluded
 # for v1 performance (Daily = 14,600 steps over 40yr). See spec section
@@ -103,6 +106,31 @@ class CitadelState:
     period_spend: float = 0.0
     spending_shortfall: float = 0.0
     rebal_event: dict | None = None
+
+
+@runtime_checkable
+class PriceModel(Protocol):
+    """Protocol for BTC price models. The callback layer wraps
+    _app_ctx.PRICE_MODELS entries to satisfy this interface."""
+    fits: dict
+    genesis: float
+
+    def price_at(self, q: float, t: float) -> float: ...
+    def quantile_at(self, price: float, t: float) -> float: ...
+
+
+def _get_btc_price(t: float, config: SimConfig, model: PriceModel,
+                   rng: np.random.Generator,
+                   sim_mode: str = "deterministic",
+                   q: float = 0.50,
+                   transition_matrix=None) -> float:
+    """Get BTC price for time t.
+    - deterministic: model.price_at(q, t)
+    - stochastic: Markov transition draw (future implementation)
+    """
+    if sim_mode == "deterministic":
+        return float(model.price_at(q, t))
+    raise NotImplementedError("MC BTC pricing requires Markov engine integration")
 
 
 def _apply_spending_waterfall(state: CitadelState, amount: float) -> float:

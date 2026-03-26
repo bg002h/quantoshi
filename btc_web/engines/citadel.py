@@ -103,3 +103,56 @@ class CitadelState:
     period_spend: float = 0.0
     spending_shortfall: float = 0.0
     rebal_event: dict | None = None
+
+
+def validate_config(config: SimConfig) -> None:
+    """Raise ValueError with descriptive message on invalid config."""
+    # Date range
+    if config.start_yr >= config.end_yr:
+        raise ValueError(f"start_yr ({config.start_yr}) must be < end_yr ({config.end_yr})")
+    # Frequency
+    if config.freq not in FREQ_PPY:
+        raise ValueError(f"freq must be one of {list(FREQ_PPY)}, got '{config.freq}'")
+    # Non-negative balances
+    for name, val in [("cash_initial", config.cash_initial),
+                      ("monthly_spend", config.monthly_spend)]:
+        if val < 0:
+            raise ValueError(f"{name} must be non-negative, got {val}")
+    for i, rb in enumerate(config.reserve_bins):
+        if rb["initial"] < 0:
+            raise ValueError(f"reserve_bins[{i}].initial must be non-negative")
+    for i, ib in enumerate(config.invest_bins):
+        if ib["initial"] < 0:
+            raise ValueError(f"invest_bins[{i}].initial must be non-negative")
+    # Trigger thresholds
+    if config.high_q_trigger <= config.low_q_trigger:
+        raise ValueError(
+            f"high_q_trigger ({config.high_q_trigger}) must be > "
+            f"low_q_trigger ({config.low_q_trigger})")
+    if (config.high_q_trigger - config.low_q_trigger) < 0.05:
+        raise ValueError(
+            "high_q_trigger and low_q_trigger must be at least "
+            "5 percentile points apart")
+    # Split validation
+    for name, action in [("high_q_action", config.high_q_action),
+                         ("low_q_action", config.low_q_action)]:
+        split = action.get("split", {})
+        total = sum(split.values())
+        if abs(total - 1.0) > 0.01:
+            raise ValueError(
+                f"{name}.split must sum to 1.0, got {total:.4f}")
+    # Floors non-negative
+    if config.cash_floor < 0:
+        raise ValueError("cash_floor must be non-negative")
+    for i, f in enumerate(config.reserve_floors):
+        if f < 0:
+            raise ValueError(f"reserve_floors[{i}] must be non-negative")
+    # n_sims
+    if config.n_sims < 1:
+        raise ValueError(f"n_sims must be >= 1, got {config.n_sims}")
+    # SCF validation
+    if config.scf_enabled:
+        if config.scf_type == "term" and config.scf_term <= 0:
+            raise ValueError("scf_term must be > 0 for term loans")
+        if config.scf_type == "perpetual" and config.scf_repay_trigger <= 0:
+            raise ValueError("scf_repay_trigger must be > 0 for perpetual loans")

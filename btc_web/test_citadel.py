@@ -7,7 +7,7 @@ for _p in (str(_ROOT), str(_ROOT / "btc_web"), str(_ROOT / "archive" / "btc_app"
         sys.path.insert(0, _p)
 
 import pytest
-from engines.citadel import SimConfig, CitadelState, FREQ_PPY
+from engines.citadel import SimConfig, CitadelState, FREQ_PPY, validate_config
 
 
 class TestSimConfig:
@@ -26,3 +26,56 @@ class TestSimConfig:
         assert FREQ_PPY["Monthly"] == 12
         assert FREQ_PPY["Quarterly"] == 4
         assert FREQ_PPY["Annually"] == 1
+
+
+class TestConfigValidation:
+    def test_valid_default_passes(self):
+        validate_config(SimConfig.default())  # should not raise
+
+    def test_inverted_triggers_rejected(self):
+        cfg = SimConfig.default()
+        cfg.high_q_trigger = 0.20
+        cfg.low_q_trigger = 0.80
+        with pytest.raises(ValueError, match="high_q_trigger"):
+            validate_config(cfg)
+
+    def test_triggers_too_close_rejected(self):
+        cfg = SimConfig.default()
+        cfg.high_q_trigger = 0.52
+        cfg.low_q_trigger = 0.50
+        with pytest.raises(ValueError, match="5 percentile"):
+            validate_config(cfg)
+
+    def test_split_not_summing_to_one(self):
+        cfg = SimConfig.default()
+        cfg.high_q_action["split"] = {"cash": 0.5, "res_short": 0.5,
+            "res_med": 0.5, "res_long": 0.0, "inv_eq": 0.0, "inv_bd": 0.0}
+        with pytest.raises(ValueError, match="sum to 1.0"):
+            validate_config(cfg)
+
+    def test_negative_initial_balance(self):
+        cfg = SimConfig.default()
+        cfg.cash_initial = -100
+        with pytest.raises(ValueError, match="non-negative"):
+            validate_config(cfg)
+
+    def test_invalid_freq(self):
+        cfg = SimConfig.default()
+        cfg.freq = "Daily"
+        with pytest.raises(ValueError, match="freq"):
+            validate_config(cfg)
+
+    def test_bad_date_range(self):
+        cfg = SimConfig.default()
+        cfg.start_yr = 2080
+        cfg.end_yr = 2030
+        with pytest.raises(ValueError, match="start_yr"):
+            validate_config(cfg)
+
+    def test_scf_term_zero_rejected(self):
+        cfg = SimConfig.default()
+        cfg.scf_enabled = True
+        cfg.scf_type = "term"
+        cfg.scf_term = 0
+        with pytest.raises(ValueError, match="scf_term"):
+            validate_config(cfg)

@@ -87,6 +87,25 @@ _TAB_CONTROLS = {
 for _tab_set in _TAB_CONTROLS.values():
     _tab_set.add("palette-store")
 
+# MC controls per tab (for single-tab share links)
+_TAB_CONTROLS["dca"].update({
+    "dca-mc-enable", "dca-mc-start-yr", "dca-mc-entry-q", "dca-mc-years",
+    "dca-mc-bins", "dca-mc-regime", "dca-mc-sims", "dca-mc-window", "dca-mc-advanced",
+})
+_TAB_CONTROLS["retire"].update({
+    "ret-mc-enable", "ret-mc-start-yr", "ret-mc-entry-q", "ret-mc-years",
+    "ret-mc-bins", "ret-mc-regime", "ret-mc-sims", "ret-mc-window", "ret-mc-advanced",
+})
+_TAB_CONTROLS["heatmap"].update({
+    "hm-mc-enable", "hm-mc-start-yr", "hm-mc-entry-q", "hm-mc-years",
+    "hm-mc-bins", "hm-mc-regime", "hm-mc-sims", "hm-mc-window", "hm-mc-advanced",
+    "hm-palette",
+})
+_TAB_CONTROLS["supercharge"].update({
+    "sc-mc-enable", "sc-mc-start-yr", "sc-mc-entry-q", "sc-mc-years",
+    "sc-mc-bins", "sc-mc-regime", "sc-mc-sims", "sc-mc-window", "sc-mc-advanced",
+})
+
 _app_ctx.app.clientside_callback(
     """
     function(pathname, splashOpen) {

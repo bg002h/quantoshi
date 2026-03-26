@@ -469,3 +469,14 @@ class TestAdapter:
         result = submit_simulation(cfg, _mock_model_data())
         assert result.time_axis is not None
         assert result.total_usd.shape[0] == 1
+
+
+class TestCitadelSnapshot:
+    def test_roundtrip(self):
+        from snapshot import _encode_snapshot, _decode_snapshot
+        state = {"cp-stack:value": 2.5, "cp-spend:value": 8000,
+                 "cp-qs:value": [0.01, 0.50]}
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert decoded["cp-stack:value"] == 2.5
+        assert decoded["cp-spend:value"] == 8000

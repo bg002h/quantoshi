@@ -7,6 +7,13 @@ import _app_ctx
 from callbacks.coerce import _ci, _cf
 from utils import _get_citadel_fig
 
+# ── SCF body visibility toggle ──────────────────────────────────────────────
+_app_ctx.app.clientside_callback(
+    "function(v) { return (v && v.length) ? {} : {display:'none'}; }",
+    Output("cp-scf-body", "style"),
+    Input("cp-scf-enable", "value"),
+)
+
 
 @callback(
     Output("citadel-graph", "figure"),

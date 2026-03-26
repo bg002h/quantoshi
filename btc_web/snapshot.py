@@ -164,6 +164,67 @@ _SNAPSHOT_CONTROLS = [
     ("sc-mc-advanced",   "value"),   # 135
     # ── Heatmap palette ──────────────────────────────────────────────────
     ("hm-palette",       "value"),   # 136
+    # ── Citadel Planner tab ──────────────────────────────────────────────
+    ("cp-stack",            "value"),   # 137
+    ("cp-use-lots",         "value"),   # 138
+    ("cp-cash-init",        "value"),   # 139
+    ("cp-cash-rate",        "value"),   # 140
+    ("cp-res-short-init",   "value"),   # 141
+    ("cp-res-short-rate",   "value"),   # 142
+    ("cp-res-short-vol",    "value"),   # 143
+    ("cp-res-med-init",     "value"),   # 144
+    ("cp-res-med-rate",     "value"),   # 145
+    ("cp-res-med-vol",      "value"),   # 146
+    ("cp-res-long-init",    "value"),   # 147
+    ("cp-res-long-rate",    "value"),   # 148
+    ("cp-res-long-vol",     "value"),   # 149
+    ("cp-inv-eq-init",      "value"),   # 150
+    ("cp-inv-eq-rate",      "value"),   # 151
+    ("cp-inv-eq-vol",       "value"),   # 152
+    ("cp-inv-bd-init",      "value"),   # 153
+    ("cp-inv-bd-rate",      "value"),   # 154
+    ("cp-inv-bd-vol",       "value"),   # 155
+    ("cp-spend",            "value"),   # 156
+    ("cp-infl",             "value"),   # 157
+    ("cp-spend-growth",     "value"),   # 158
+    ("cp-high-q-thresh",    "value"),   # 159
+    ("cp-high-q-mode",      "value"),   # 160
+    ("cp-high-q-rate",      "value"),   # 161
+    ("cp-high-q-dur",       "value"),   # 162
+    ("cp-high-q-split-cash","value"),   # 163
+    ("cp-high-q-split-rs",  "value"),   # 164
+    ("cp-high-q-split-rm",  "value"),   # 165
+    ("cp-high-q-split-rl",  "value"),   # 166
+    ("cp-high-q-split-eq",  "value"),   # 167
+    ("cp-high-q-split-bd",  "value"),   # 168
+    ("cp-low-q-thresh",     "value"),   # 169
+    ("cp-low-q-mode",       "value"),   # 170
+    ("cp-low-q-rate",       "value"),   # 171
+    ("cp-low-q-dur",        "value"),   # 172
+    ("cp-low-q-split-cash", "value"),   # 173
+    ("cp-low-q-split-rs",   "value"),   # 174
+    ("cp-low-q-split-rm",   "value"),   # 175
+    ("cp-low-q-split-rl",   "value"),   # 176
+    ("cp-low-q-split-eq",   "value"),   # 177
+    ("cp-low-q-split-bd",   "value"),   # 178
+    ("cp-lump-cooldown",    "value"),   # 179
+    ("cp-cash-floor",       "value"),   # 180
+    ("cp-res-short-floor",  "value"),   # 181
+    ("cp-res-med-floor",    "value"),   # 182
+    ("cp-res-long-floor",   "value"),   # 183
+    ("cp-scf-enable",       "value"),   # 184
+    ("cp-scf-amount",       "value"),   # 185
+    ("cp-scf-type",         "value"),   # 186
+    ("cp-scf-rate",         "value"),   # 187
+    ("cp-scf-term",         "value"),   # 188
+    ("cp-scf-trigger",      "value"),   # 189
+    ("cp-yr-range",         "value"),   # 190
+    ("cp-freq",             "value"),   # 191
+    ("cp-qs",               "value"),   # 192
+    ("cp-model-src",        "value"),   # 193
+    ("cp-disp",             "value"),   # 194
+    ("cp-toggles",          "value"),   # 195
+    ("cp-legend-pos",       "value"),   # 196
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)
@@ -226,6 +287,11 @@ _CHECKLIST_OPTIONS = {
     "ret-mc-regime":    [0, 1, 2, 3, 4],
     "hm-mc-regime":     [0, 1, 2, 3, 4],
     "sc-mc-regime":     [0, 1, 2, 3, 4],
+    # Citadel Planner checklists
+    "cp-qs":            _QS_LIST,
+    "cp-toggles":       ["log_y", "annotate", "show_legend", "minor_grid", "chart_zoom"],
+    "cp-use-lots":      ["yes"],
+    "cp-scf-enable":    ["yes"],
 }
 
 

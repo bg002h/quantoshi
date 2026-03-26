@@ -238,6 +238,135 @@ def _enforce_floors(state: CitadelState, config: SimConfig) -> None:
             state.reserves[idx] += replenished
 
 
+_SPLIT_KEYS = ["cash", "res_short", "res_med", "res_long", "inv_eq", "inv_bd"]
+
+def _distribute_to_accounts(state: CitadelState, amount: float, split: dict) -> None:
+    """Distribute `amount` to accounts according to `split` fractions."""
+    state.cash += amount * split.get("cash", 0)
+    state.reserves[0] += amount * split.get("res_short", 0)
+    state.reserves[1] += amount * split.get("res_med", 0)
+    state.reserves[2] += amount * split.get("res_long", 0)
+    state.investments[0] += amount * split.get("inv_eq", 0)
+    state.investments[1] += amount * split.get("inv_bd", 0)
+
+def _source_from_accounts(state: CitadelState, amount: float, split: dict) -> float:
+    """Draw `amount` from accounts according to `split` fractions.
+    Returns actual amount sourced (may be less if accounts insufficient)."""
+    total_sourced = 0.0
+    targets = [
+        ("cash", split.get("cash", 0)),
+        ("res_0", split.get("res_short", 0)),
+        ("res_1", split.get("res_med", 0)),
+        ("res_2", split.get("res_long", 0)),
+        ("inv_0", split.get("inv_eq", 0)),
+        ("inv_1", split.get("inv_bd", 0)),
+    ]
+    for acct, frac in targets:
+        want = amount * frac
+        if want <= 0:
+            continue
+        if acct == "cash":
+            got = min(state.cash, want)
+            state.cash -= got
+        elif acct.startswith("res_"):
+            i = int(acct[-1])
+            got = min(state.reserves[i], want)
+            state.reserves[i] -= got
+        elif acct.startswith("inv_"):
+            i = int(acct[-1])
+            got = min(state.investments[i], want)
+            state.investments[i] -= got
+        else:
+            got = 0
+        total_sourced += got
+    return total_sourced
+
+def _execute_sell_btc(state: CitadelState, rate_pct: float, split: dict) -> dict:
+    """Sell rate_pct% of BTC stack, distribute proceeds via split."""
+    btc_to_sell = state.btc_stack * (rate_pct / 100.0)
+    if btc_to_sell <= 0 or state.btc_price <= 0:
+        return {}
+    proceeds = btc_to_sell * state.btc_price
+    state.btc_stack -= btc_to_sell
+    _distribute_to_accounts(state, proceeds, split)
+    return {"action": "sell_btc", "btc_sold": btc_to_sell, "proceeds": proceeds}
+
+def _execute_buy_btc(state: CitadelState, rate_pct: float, split: dict) -> dict:
+    """Source funds from accounts via split, buy BTC."""
+    total_dollar = state.cash + sum(state.reserves) + sum(state.investments)
+    target = total_dollar * (rate_pct / 100.0)
+    if target <= 0 or state.btc_price <= 0:
+        return {}
+    sourced = _source_from_accounts(state, target, split)
+    btc_bought = sourced / state.btc_price
+    state.btc_stack += btc_bought
+    return {"action": "buy_btc", "btc_bought": btc_bought, "cost": sourced}
+
+def _evaluate_rebalancing(state: CitadelState, config: SimConfig,
+                          btc_quantile: float) -> None:
+    """Evaluate and execute rebalancing triggers. Mutates state."""
+    state.rebal_event = None
+    if state.rebal_cooldown > 0:
+        state.rebal_cooldown -= 1
+    # If gradual is active, continue it (ignoring new triggers)
+    if state.grad_active:
+        if state.grad_remaining > 0:
+            if state.grad_direction == "sell_btc":
+                evt = _execute_sell_btc(state, state.grad_rate, state.grad_split)
+            else:
+                evt = _execute_buy_btc(state, state.grad_rate, state.grad_split)
+            state.grad_remaining -= 1
+            if evt:
+                evt["type"] = "gradual_continue"
+                state.rebal_event = evt
+        if state.grad_remaining <= 0:
+            state.grad_active = False
+        return
+    # Check high-Q trigger
+    if btc_quantile >= config.high_q_trigger:
+        action = config.high_q_action
+        split = action.get("split", {})
+        if action["mode"] == "lump" and state.rebal_cooldown <= 0:
+            evt = _execute_sell_btc(state, action["rate"], split)
+            if evt:
+                evt["type"] = "lump_sell"
+                state.rebal_event = evt
+                state.rebal_cooldown = config.lump_cooldown
+        elif action["mode"] == "gradual":
+            state.grad_active = True
+            state.grad_remaining = action.get("duration", 6)
+            state.grad_rate = action["rate"]
+            state.grad_direction = "sell_btc"
+            state.grad_split = split
+            evt = _execute_sell_btc(state, state.grad_rate, split)
+            state.grad_remaining -= 1
+            if evt:
+                evt["type"] = "gradual_start"
+                state.rebal_event = evt
+        return
+    # Check low-Q trigger
+    if btc_quantile <= config.low_q_trigger:
+        action = config.low_q_action
+        split = action.get("split", {})
+        if action["mode"] == "lump" and state.rebal_cooldown <= 0:
+            evt = _execute_buy_btc(state, action["rate"], split)
+            if evt:
+                evt["type"] = "lump_buy"
+                state.rebal_event = evt
+                state.rebal_cooldown = config.lump_cooldown
+        elif action["mode"] == "gradual":
+            state.grad_active = True
+            state.grad_remaining = action.get("duration", 6)
+            state.grad_rate = action["rate"]
+            state.grad_direction = "buy_btc"
+            state.grad_split = split
+            evt = _execute_buy_btc(state, state.grad_rate, split)
+            state.grad_remaining -= 1
+            if evt:
+                evt["type"] = "gradual_start"
+                state.rebal_event = evt
+
+
 def validate_config(config: SimConfig) -> None:
     """Raise ValueError with descriptive message on invalid config."""
     # Date range

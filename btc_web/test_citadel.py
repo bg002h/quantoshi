@@ -8,7 +8,7 @@ for _p in (str(_ROOT), str(_ROOT / "btc_web"), str(_ROOT / "archive" / "btc_app"
 
 import numpy as np
 import pytest
-from engines.citadel import SimConfig, CitadelState, FREQ_PPY, validate_config, _apply_spending_waterfall, _enforce_floors, _get_btc_price
+from engines.citadel import SimConfig, CitadelState, FREQ_PPY, validate_config, _apply_spending_waterfall, _enforce_floors, _get_btc_price, _evaluate_rebalancing
 
 
 class MockPriceModel:
@@ -216,3 +216,100 @@ class TestBTCPricing:
             price = model.price_at(q, t)
             q_back = model.quantile_at(price, t)
             assert abs(q_back - q) < 0.01
+
+
+class TestRebalancing:
+    def test_high_q_lump_sells_btc(self):
+        s = CitadelState()
+        s.btc_stack = 10.0
+        s.btc_price = 100000.0
+        s.cash = 50000.0
+        s.reserves = [10000.0, 10000.0, 10000.0]
+        s.investments = [50000.0, 50000.0]
+        cfg = SimConfig.default()
+        cfg.high_q_action = {"mode": "lump", "rate": 10.0, "duration": 1,
+            "split": {"cash": 1.0, "res_short": 0.0, "res_med": 0.0,
+                      "res_long": 0.0, "inv_eq": 0.0, "inv_bd": 0.0}}
+        _evaluate_rebalancing(s, cfg, btc_quantile=0.90)
+        assert s.btc_stack < 10.0
+        assert s.cash > 50000.0
+        assert s.rebal_cooldown == cfg.lump_cooldown
+
+    def test_low_q_lump_buys_btc(self):
+        s = CitadelState()
+        s.btc_stack = 1.0
+        s.btc_price = 20000.0
+        s.cash = 50000.0
+        s.reserves = [10000.0, 10000.0, 10000.0]
+        s.investments = [50000.0, 50000.0]
+        cfg = SimConfig.default()
+        cfg.low_q_action = {"mode": "lump", "rate": 10.0, "duration": 1,
+            "split": {"cash": 0.5, "res_short": 0.0, "res_med": 0.0,
+                      "res_long": 0.0, "inv_eq": 0.5, "inv_bd": 0.0}}
+        _evaluate_rebalancing(s, cfg, btc_quantile=0.10)
+        assert s.btc_stack > 1.0
+        assert s.cash < 50000.0
+
+    def test_cooldown_prevents_lump(self):
+        s = CitadelState()
+        s.btc_stack = 10.0
+        s.btc_price = 100000.0
+        s.rebal_cooldown = 5
+        s.cash = 50000.0
+        s.reserves = [10000.0, 10000.0, 10000.0]
+        s.investments = [50000.0, 50000.0]
+        cfg = SimConfig.default()
+        cfg.high_q_action = {"mode": "lump", "rate": 10.0, "duration": 1,
+            "split": {"cash": 1.0, "res_short": 0.0, "res_med": 0.0,
+                      "res_long": 0.0, "inv_eq": 0.0, "inv_bd": 0.0}}
+        _evaluate_rebalancing(s, cfg, btc_quantile=0.90)
+        assert s.btc_stack == 10.0  # nothing sold
+
+    def test_gradual_starts_and_continues(self):
+        s = CitadelState()
+        s.btc_stack = 10.0
+        s.btc_price = 100000.0
+        s.cash = 0.0
+        s.reserves = [0.0, 0.0, 0.0]
+        s.investments = [0.0, 0.0]
+        cfg = SimConfig.default()
+        cfg.high_q_action = {"mode": "gradual", "rate": 5.0, "duration": 3,
+            "split": {"cash": 1.0, "res_short": 0.0, "res_med": 0.0,
+                      "res_long": 0.0, "inv_eq": 0.0, "inv_bd": 0.0}}
+        _evaluate_rebalancing(s, cfg, btc_quantile=0.90)
+        assert s.grad_active
+        assert s.grad_remaining == 2
+        btc_after_1 = s.btc_stack
+        assert btc_after_1 < 10.0
+        _evaluate_rebalancing(s, cfg, btc_quantile=0.50)
+        assert s.grad_remaining == 1
+        assert s.btc_stack < btc_after_1
+
+    def test_gradual_blocks_new_trigger(self):
+        s = CitadelState()
+        s.btc_stack = 10.0
+        s.btc_price = 100000.0
+        s.grad_active = True
+        s.grad_remaining = 5
+        s.grad_rate = 2.0
+        s.grad_direction = "sell_btc"
+        s.grad_split = {"cash": 1.0, "res_short": 0.0, "res_med": 0.0,
+                        "res_long": 0.0, "inv_eq": 0.0, "inv_bd": 0.0}
+        s.cash = 0.0
+        s.reserves = [0.0, 0.0, 0.0]
+        s.investments = [0.0, 0.0]
+        cfg = SimConfig.default()
+        _evaluate_rebalancing(s, cfg, btc_quantile=0.10)
+        assert s.grad_direction == "sell_btc"
+        assert s.grad_remaining == 4
+
+    def test_no_trigger_in_neutral_zone(self):
+        s = CitadelState()
+        s.btc_stack = 10.0
+        s.btc_price = 50000.0
+        s.cash = 50000.0
+        s.reserves = [10000.0, 10000.0, 10000.0]
+        s.investments = [50000.0, 50000.0]
+        cfg = SimConfig.default()
+        _evaluate_rebalancing(s, cfg, btc_quantile=0.50)
+        assert s.rebal_event is None

@@ -268,6 +268,16 @@ def _encode_snapshot(state_dict, tab_filter=None):
         if val is not None and cid in _CHECKLIST_OPTIONS:
             val = _list_to_mask(val, _CHECKLIST_OPTIONS[cid])
         values.append(val)
+    # ── Hybrid MC encoding: null-out MC controls for disabled tabs ────────
+    _mc_prefixes = {"dca": "dca-mc-", "ret": "ret-mc-", "hm": "hm-mc-", "sc": "sc-mc-"}
+    for _pfx_tab, _pfx_mc in _mc_prefixes.items():
+        enable_idx = next(i for i, (cid, _) in enumerate(_SNAPSHOT_CONTROLS)
+                          if cid == f"{_pfx_mc}enable")
+        mc_on = values[enable_idx] not in (None, [], 0)
+        if not mc_on:
+            for i, (cid, _) in enumerate(_SNAPSHOT_CONTROLS):
+                if cid.startswith(_pfx_mc) and cid != f"{_pfx_mc}model-src":
+                    values[i] = None
     lots   = state_dict.get("_lots")
     payload = [values, lots]
     j = json.dumps(payload, separators=(',', ':'))

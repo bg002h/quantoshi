@@ -48,7 +48,7 @@ def toggle_sc_display_q(layout):
 _PATH_TO_TAB = {
     "/1": "bubble", "/2": "heatmap", "/3": "dca",
     "/4": "retire",  "/5": "supercharge", "/6": "stack",
-    "/7": "model_info", "/8": "faq",
+    "/7": "model_info", "/8": "faq", "/9": "citadel",
 }
 _TAB_TO_PATH = {v: k for k, v in _PATH_TO_TAB.items()}
 
@@ -81,6 +81,25 @@ _TAB_CONTROLS = {
                     "sc-chart-layout","sc-display-q","sc-model-show","sc-mc-model-src"},
     "stack":       set(),
     "model_info":  set(),
+    "citadel":     {"cp-stack","cp-use-lots","cp-cash-init","cp-cash-rate",
+                    "cp-res-short-init","cp-res-short-rate","cp-res-short-vol",
+                    "cp-res-med-init","cp-res-med-rate","cp-res-med-vol",
+                    "cp-res-long-init","cp-res-long-rate","cp-res-long-vol",
+                    "cp-inv-eq-init","cp-inv-eq-rate","cp-inv-eq-vol",
+                    "cp-inv-bd-init","cp-inv-bd-rate","cp-inv-bd-vol",
+                    "cp-spend","cp-infl","cp-spend-growth",
+                    "cp-high-q-thresh","cp-high-q-mode","cp-high-q-rate","cp-high-q-dur",
+                    "cp-high-q-split-cash","cp-high-q-split-rs","cp-high-q-split-rm",
+                    "cp-high-q-split-rl","cp-high-q-split-eq","cp-high-q-split-bd",
+                    "cp-low-q-thresh","cp-low-q-mode","cp-low-q-rate","cp-low-q-dur",
+                    "cp-low-q-split-cash","cp-low-q-split-rs","cp-low-q-split-rm",
+                    "cp-low-q-split-rl","cp-low-q-split-eq","cp-low-q-split-bd",
+                    "cp-lump-cooldown","cp-cash-floor",
+                    "cp-res-short-floor","cp-res-med-floor","cp-res-long-floor",
+                    "cp-scf-enable","cp-scf-amount","cp-scf-type","cp-scf-rate",
+                    "cp-scf-term","cp-scf-trigger",
+                    "cp-yr-range","cp-freq","cp-model-src","cp-qs","cp-disp",
+                    "cp-toggles","cp-legend-pos"},
     "faq":         set(),
 }
 # Palette is global — add to every tab so single-tab share links include it
@@ -112,7 +131,7 @@ _app_ctx.app.clientside_callback(
         var NU = window.dash_clientside.no_update;
         var map = {"/1":"bubble","/2":"heatmap","/3":"dca",
                    "/4":"retire","/5":"supercharge","/6":"stack",
-                   "/7":"model_info","/8":"faq"};
+                   "/7":"model_info","/8":"faq","/9":"citadel"};
         /* While splash modal is open, defer the tab switch so chart
            callbacks don't fire into a container hidden behind the modal. */
         if (splashOpen) {

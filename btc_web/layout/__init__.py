@@ -37,6 +37,7 @@ from layout.sim_tabs import _dca_tab, _retire_tab
 from layout.supercharge import _supercharge_tab
 from layout.stack import _stack_tracker_tab
 from layout.model_info import _model_info_tab
+from layout.citadel import _citadel_tab
 from layout.faq import _faq_tab
 from layout.common import _export_row, _BTC_ORANGE
 
@@ -80,12 +81,12 @@ _app_ctx.app.layout = dbc.Container([
     dcc.Store(id="wm-b64-store", storage_type="memory", data=_LOGO_B64_ALL),
     # MC per-tab stores (results, unblocked cache, loaded trigger, download dummy)
     *[dcc.Store(id=f"{pfx}-mc-results", storage_type="memory", data=None)
-      for pfx in ("dca", "ret", "hm", "sc")],
+      for pfx in ("dca", "ret", "hm", "sc", "cp")],
     *[dcc.Store(id=f"{pfx}-mc-unblocked", storage_type="memory", data=None)
-      for pfx in ("dca", "ret", "hm", "sc")],
+      for pfx in ("dca", "ret", "hm", "sc", "cp")],
     *[dcc.Store(id=f"{pfx}-mc-loaded", storage_type="memory", data=0)
-      for pfx in ("dca", "ret", "hm", "sc")],
-    *[dcc.Store(id=f"{pfx}-mc-dl-dummy") for pfx in ("dca", "ret", "hm", "sc")],
+      for pfx in ("dca", "ret", "hm", "sc", "cp")],
+    *[dcc.Store(id=f"{pfx}-mc-dl-dummy") for pfx in ("dca", "ret", "hm", "sc", "cp")],
     # ── MC payment stores + polling ──────────────────────────────────────
     dcc.Store(id="mc-pay-invoice", storage_type="memory", data=None),
     dcc.Store(id="mc-pay-token",   storage_type="memory", data=None),
@@ -459,6 +460,7 @@ _app_ctx.app.layout = dbc.Container([
         dbc.Tab(_stack_tracker_tab(),label="\U0001F5DD\uFE0F Stack Tracker",       tab_id="stack"),
         dbc.Tab(_model_info_tab(),   label="\U0001F4D0 Model Info",      tab_id="model_info"),
         dbc.Tab(_faq_tab(),          label="\u2753 FAQ",                 tab_id="faq"),
+        dbc.Tab(_citadel_tab(),      label="\U0001F3F0 Citadel Planner", tab_id="citadel"),
     ], id="main-tabs", active_tab="bubble"),
     # ── Footer: block height + halving countdown + doc links ──────────────
     html.Div([

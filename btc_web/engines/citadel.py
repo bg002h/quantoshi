@@ -105,6 +105,50 @@ class CitadelState:
     rebal_event: dict | None = None
 
 
+def _apply_spending_waterfall(state: CitadelState, amount: float) -> float:
+    """Draw `amount` from accounts in waterfall order. Returns unmet shortfall.
+    Mutates state in place. Order: Cash -> Reserves (short->med->long) ->
+    Investments (bonds->equities) -> BTC (emergency liquidation)."""
+    remaining = amount
+    if remaining <= 0:
+        return 0.0
+
+    # 1. Cash
+    draw = min(state.cash, remaining)
+    state.cash -= draw
+    remaining -= draw
+    if remaining <= 0:
+        return 0.0
+
+    # 2. Reserves: short -> medium -> long
+    for i in range(len(state.reserves)):
+        draw = min(state.reserves[i], remaining)
+        state.reserves[i] -= draw
+        remaining -= draw
+        if remaining <= 0:
+            return 0.0
+
+    # 3. Investments: bonds (last index) -> equities (first index)
+    for i in reversed(range(len(state.investments))):
+        draw = min(state.investments[i], remaining)
+        state.investments[i] -= draw
+        remaining -= draw
+        if remaining <= 0:
+            return 0.0
+
+    # 4. BTC (emergency liquidation)
+    if state.btc_stack > 0 and state.btc_price > 0:
+        btc_value = state.btc_stack * state.btc_price
+        if btc_value >= remaining:
+            state.btc_stack -= remaining / state.btc_price
+            remaining = 0.0
+        else:
+            state.btc_stack = 0.0
+            remaining -= btc_value
+
+    return max(remaining, 0.0)
+
+
 def validate_config(config: SimConfig) -> None:
     """Raise ValueError with descriptive message on invalid config."""
     # Date range

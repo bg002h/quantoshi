@@ -7,7 +7,7 @@ for _p in (str(_ROOT), str(_ROOT / "btc_web"), str(_ROOT / "archive" / "btc_app"
         sys.path.insert(0, _p)
 
 import pytest
-from engines.citadel import SimConfig, CitadelState, FREQ_PPY, validate_config
+from engines.citadel import SimConfig, CitadelState, FREQ_PPY, validate_config, _apply_spending_waterfall
 
 
 class TestSimConfig:
@@ -79,3 +79,52 @@ class TestConfigValidation:
         cfg.scf_term = 0
         with pytest.raises(ValueError, match="scf_term"):
             validate_config(cfg)
+
+
+class TestSpendingWaterfall:
+    def _make_state(self, cash=10000, reserves=None, investments=None, btc=1.0, price=50000):
+        s = CitadelState()
+        s.cash = cash
+        s.reserves = reserves or [5000.0, 5000.0, 5000.0]
+        s.investments = investments or [10000.0, 10000.0]
+        s.btc_stack = btc
+        s.btc_price = price
+        return s
+
+    def test_cash_covers_all(self):
+        s = self._make_state(cash=10000)
+        shortfall = _apply_spending_waterfall(s, 5000)
+        assert shortfall == 0.0
+        assert s.cash == 5000.0
+
+    def test_cash_depleted_draws_reserves(self):
+        s = self._make_state(cash=2000)
+        shortfall = _apply_spending_waterfall(s, 5000)
+        assert shortfall == 0.0
+        assert s.cash == 0.0
+        assert s.reserves[0] == 2000.0  # short lost 3000
+
+    def test_full_waterfall_to_btc(self):
+        s = self._make_state(cash=100, reserves=[100, 100, 100],
+                             investments=[100, 100], btc=1.0, price=50000)
+        shortfall = _apply_spending_waterfall(s, 1000)
+        assert shortfall == 0.0
+        assert s.cash == 0.0
+        assert all(r == 0.0 for r in s.reserves)
+        assert all(inv == 0.0 for inv in s.investments)
+        # Remaining 400 drawn from BTC (400/50000 = 0.008 BTC)
+        assert abs(s.btc_stack - (1.0 - 400 / 50000)) < 1e-10
+
+    def test_total_depletion(self):
+        s = self._make_state(cash=100, reserves=[0, 0, 0],
+                             investments=[0, 0], btc=0.001, price=50000)
+        shortfall = _apply_spending_waterfall(s, 1000)
+        assert shortfall > 0  # can't cover full spend
+        assert s.btc_stack == 0.0
+        assert s.cash == 0.0
+
+    def test_zero_spend(self):
+        s = self._make_state(cash=10000)
+        shortfall = _apply_spending_waterfall(s, 0)
+        assert shortfall == 0.0
+        assert s.cash == 10000.0

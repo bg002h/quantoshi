@@ -23,29 +23,36 @@ from figures.common import (
 # ── ModelData → PriceModel adapter ────────────────────────────────────────────
 
 class _ModelAdapter:
-    """Adapts _app_ctx price model + ModelData to engines.citadel.PriceModel protocol."""
+    """Adapts _app_ctx price model + ModelData to engines.citadel.PriceModel protocol.
+
+    Precomputes a quantile lookup grid for fast quantile_at() calls during
+    MC simulations (avoids 50-iteration bisection per step)."""
+
+    _Q_GRID = np.linspace(0.001, 0.999, 200)  # 200-point quantile grid
 
     def __init__(self, m: ModelData, model_key: str = "bub"):
         self._model = _app_ctx.PRICE_MODELS.get(model_key, _app_ctx.DEFAULT_MODEL)
         self.fits = self._model.fits if hasattr(self._model, "fits") else {}
         self.genesis = m.genesis
+        self._price_grid_cache = {}  # t -> (qs, prices) for interpolation
 
     def price_at(self, q: float, t: float) -> float:
         return float(self._model.price_at(q, max(t, 0.5)))
 
+    def _get_price_grid(self, t: float):
+        """Get or build the price grid for time t (cached per integer year)."""
+        t_key = round(t, 1)  # cache at 0.1-year granularity
+        if t_key not in self._price_grid_cache:
+            prices = np.array([self.price_at(q, t) for q in self._Q_GRID])
+            self._price_grid_cache[t_key] = prices
+        return self._price_grid_cache[t_key]
+
     def quantile_at(self, price: float, t: float) -> float:
-        """Bisection search: find q such that price_at(q, t) ~ price."""
-        qs = sorted(self.fits.keys())
-        if not qs:
-            return 0.5
-        lo, hi = qs[0], qs[-1]
-        for _ in range(50):
-            mid = (lo + hi) / 2
-            if self.price_at(mid, t) < price:
-                lo = mid
-            else:
-                hi = mid
-        return max(0.001, min((lo + hi) / 2, 0.999))
+        """Fast numpy interpolation using precomputed price grid."""
+        prices = self._get_price_grid(t)
+        # prices is monotonically increasing (higher quantile = higher price)
+        q = float(np.interp(price, prices, self._Q_GRID))
+        return max(0.001, min(q, 0.999))
 
 
 # ── Trace colors ──────────────────────────────────────────────────────────────

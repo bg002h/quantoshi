@@ -107,6 +107,8 @@ def test_old_link_pads_mc_to_none(self):
     """Old links with 100 entries decode correctly — MC defaults to None."""
     from snapshot import _SNAPSHOT_CONTROLS, _encode_snapshot, _decode_snapshot
     import json, gzip, base64
+    # Pre-condition: new controls exist in the list
+    assert len(_SNAPSHOT_CONTROLS) >= 137, "MC controls not yet added"
     # Simulate old 100-entry link
     old_values = [None] * 100
     old_values[0] = [0.5]  # bub-qs
@@ -127,7 +129,9 @@ def test_old_link_pads_mc_to_none(self):
 PYTHONPATH=".:btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/test_web.py -k "test_mc_controls_roundtrip or test_mc_hybrid or test_mc_regime_bitmask or test_hm_palette_roundtrip or test_old_link_pads" -v --timeout=60
 ```
 
-Expected: 5 FAILED (component IDs not in `_SNAPSHOT_CONTROLS` yet).
+Expected: 5 FAILED — 4 from missing component IDs, 1 from `len(_SNAPSHOT_CONTROLS) >= 137` pre-condition. The backward compat test (`test_old_link_pads_mc_to_none`) uses a pre-condition assert to ensure it only runs meaningfully after the `_SNAPSHOT_CONTROLS` entries are added.
+
+**Note:** MC placeholder components are always rendered in the layout (even when `_HAS_MARKOV=False`) — `layout/mc_controls.py` line 65-103 creates hidden placeholders for all MC component IDs. The new `Output()` declarations in `restore_from_url` will find their targets.
 
 - [ ] **Step 7: Commit test file**
 

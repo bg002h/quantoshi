@@ -73,6 +73,8 @@ Append these 37 entries at the end of the `_SNAPSHOT_CONTROLS` list (after index
 
 **Total: 100 + 37 = 137 entries.**
 
+**Intentionally excluded:** `{prefix}-mc-entry-yr` is a hidden slider used for internal ticker sync, not user-set state. Its value is derived from `mc-entry-q` and the current price — it should NOT be snapshotted.
+
 ### 2. New `_CHECKLIST_OPTIONS` entries — `btc_web/snapshot.py`
 
 Add bitmask encoding for MC checklists:
@@ -87,7 +89,7 @@ Add bitmask encoding for MC checklists:
 "hm-mc-advanced":   ["yes"],
 "sc-mc-enable":     ["yes"],
 "sc-mc-advanced":   ["yes"],
-# MC regime checklists (5 bits each — regime bins 0-4)
+# MC regime checklists (5 bits each — regime bins 0-4, int values)
 "dca-mc-regime":    [0, 1, 2, 3, 4],
 "ret-mc-regime":    [0, 1, 2, 3, 4],
 "hm-mc-regime":     [0, 1, 2, 3, 4],
@@ -96,7 +98,9 @@ Add bitmask encoding for MC checklists:
 
 **Total: 12 new entries in `_CHECKLIST_OPTIONS`.**
 
-### 3. Update `_TAB_CONTROLS` — `btc_web/snapshot.py` (or `callbacks/nav.py`)
+**CRITICAL: Atomic deployment.** The `_CHECKLIST_OPTIONS` validation assertion at module load checks that every key in `_CHECKLIST_OPTIONS` exists in `_SNAPSHOT_CONTROLS`. Adding `_CHECKLIST_OPTIONS` entries without the matching `_SNAPSHOT_CONTROLS` entries raises `AssertionError` and crashes gunicorn. Both changes must be in the same commit.
+
+### 3. Update `_TAB_CONTROLS` — `btc_web/callbacks/nav.py`
 
 Add MC component IDs to each tab's control set:
 
@@ -154,19 +158,23 @@ The existing decoder handles this automatically:
 
 The existing `restore_from_url` callback outputs to all component IDs in `_SNAPSHOT_CONTROLS`. Adding 37 new entries means 37 new `Output()` declarations in the callback decorator. The callback body already iterates `_SNAPSHOT_CONTROLS` and returns values positionally — no logic change needed, just the Output list grows.
 
-**Important:** The `{prefix}-mc-enable` restore triggers the existing MC body visibility callback, which shows/hides the MC control panel. So restoring `["yes"]` will both populate the controls AND reveal the MC panel — correct cascading behavior.
+### 7. MC body visibility on restore — cascading callbacks
 
-### 7. MC body visibility on restore
+When `{prefix}-mc-enable` is restored to `["yes"]`, the existing callback `_toggle_mc_body` (in `callbacks/mc_controls.py`) fires reactively and sets `{prefix}-mc-body` style to `{}` (visible). Similarly, `{prefix}-mc-advanced` = `["yes"]` triggers `_toggle_mc_advanced` which reveals the advanced body and switches `mc-entry-q` options to fine-grained mode.
 
-When `{prefix}-mc-enable` is restored to `["yes"]`, the existing callback `_toggle_mc_body` (in `callbacks/mc_controls.py`) fires and sets `{prefix}-mc-body` style to `{}` (visible). Similarly, `{prefix}-mc-advanced` = `["yes"]` triggers `_toggle_mc_advanced` which reveals the advanced body. This cascading is already implemented — no new callbacks needed.
+**Cascade dependency:** This relies on `restore_from_url` having `prevent_initial_call=False` — it fires on initial page load, writes MC control values, which then trigger the downstream visibility callbacks. If `restore_from_url` ever changes to `prevent_initial_call=True`, MC body restore will silently break.
+
+**`mc-entry-q` race condition:** When `mc-advanced=["yes"]` was active at link creation, the user may have set a fine-grained `mc-entry-q` value (e.g. `7.5%`). On restore, `restore_from_url` sets both `mc-advanced=["yes"]` and `mc-entry-q=7.5` simultaneously. The `_toggle_mc_advanced` callback fires reactively, switching the dropdown to fine-grained options. During the brief window before this fires, the dropdown has standard options (10% steps) but a non-matching value. Dash handles this gracefully — the dropdown shows the numeric value and once options update, it renders correctly. This only affects advanced-mode links with non-10%-aligned entry quantiles and is cosmetic, not functional.
 
 ### 8. Free tier behavior
 
-Share links that encode free-tier MC settings (entry_q=10%, start_yr in {2028,2031}, years in {10,20}, sims=100) will work immediately on the recipient's browser — the pre-computed cache serves these without payment. Non-free-tier settings restore the controls but require the user to run/pay for the simulation.
+Share links that encode free-tier MC settings (entry_q=10%, start_yr in {2028, 2031, 2035}, years=40, sims=200 — the pre-computed cache parameters from `mc_cache.py`) will work immediately on the recipient's browser. The pre-computed cache serves these without payment. Non-cached settings restore the controls but require the user to click Run / pay for the simulation.
 
 ### 9. `hm-palette` fix
 
-Add `("hm-palette", "value")` to `_SNAPSHOT_CONTROLS` (index 136) and `"hm-palette"` to `_TAB_CONTROLS["heatmap"]`. On restore, the palette dropdown is set to the shared value (e.g. "forge"), which triggers the `apply_hm_palette` callback to update colors. Since the individual color values are also in the snapshot, the restore order matters: palette fires first (setting colors), then individual color restores override if present. This is correct — the individual colors are authoritative, the palette label is cosmetic context.
+Add `("hm-palette", "value")` to `_SNAPSHOT_CONTROLS` (index 136) and `"hm-palette"` to `_TAB_CONTROLS["heatmap"]`.
+
+**Restore mechanics:** `restore_from_url` is a single callback that outputs ALL values at once — including both `hm-palette` (index 136) and `hm-c-lo`/`hm-c-mid1`/`hm-c-mid2`/`hm-c-hi` (indices 23–26). These are set simultaneously. The `apply_hm_palette` callback has `prevent_initial_call=True`, so it does NOT fire during initial restore. The individual color values from the snapshot are the authoritative final state; the palette dropdown provides cosmetic context showing which preset was selected.
 
 ## Backward Compatibility
 
@@ -190,5 +198,7 @@ Add `("hm-palette", "value")` to `_SNAPSHOT_CONTROLS` (index 136) and `"hm-palet
 - MC results/cache sharing (simulation data is too large for URL encoding)
 - MC payment state (server-side, not shareable)
 - MC upload/download state (ephemeral)
-- `{prefix}-mc-amount/infl/stack` for DCA/Ret/SC (shared with tab controls, already encoded)
-- `hm-mc-amount/infl/stack/freq` (derived from heatmap entry settings, not independently configurable)
+- `{prefix}-mc-entry-yr` — hidden internal sync slider, not user-set state
+- `{prefix}-mc-amount/infl/stack` for DCA/Ret/SC — shared with tab controls, already encoded
+- `hm-mc-amount/infl/stack` — derived from heatmap entry settings
+- `hm-mc-freq` — locked to Monthly for cache alignment; uncommon to change and free-tier cache is Monthly-only. Could be added in a future iteration if needed.

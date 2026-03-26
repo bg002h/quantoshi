@@ -293,7 +293,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     ppy = _CITADEL_FREQ_PPY.get(config.freq, 12)
     dt = 1.0 / ppy
 
-    q_label = "/".join(f"Q{q*100:g}%" for q in config.selected_qs[:3])
+    q_label = f"Q{config.selected_qs[0]*100:g}%" if config.selected_qs else "Q25%"
     ylabel = "BTC Remaining" if disp_mode == "btc" else "USD Value"
     title = f"Citadel Planner \u2014 {fmt_price(config.monthly_spend)}/mo \u00b7 {q_label}"
     if mc_requested:

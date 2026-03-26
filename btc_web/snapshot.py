@@ -287,8 +287,7 @@ _CHECKLIST_OPTIONS = {
     "ret-mc-regime":    [0, 1, 2, 3, 4],
     "hm-mc-regime":     [0, 1, 2, 3, 4],
     "sc-mc-regime":     [0, 1, 2, 3, 4],
-    # Citadel Planner checklists
-    "cp-qs":            _QS_LIST,
+    # Citadel Planner checklists (cp-qs is a dropdown, not a checklist)
     "cp-toggles":       ["log_y", "annotate", "show_legend", "minor_grid", "chart_zoom"],
     "cp-use-lots":      ["yes"],
     "cp-scf-enable":    ["yes"],

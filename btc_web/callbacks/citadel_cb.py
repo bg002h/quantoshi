@@ -198,7 +198,7 @@ def update_citadel(
         freq            = freq or "Monthly",
         price_model     = model_src or "bub",
         n_sims          = _ci(mc_sims, 200, lo=1) if (mc_enable and "yes" in mc_enable) else 1,
-        selected_qs     = sel_qs or [0.01, 0.10, 0.25],
+        selected_qs     = [float(sel_qs)] if sel_qs is not None else [0.25],
         disp_mode       = disp or "usd_per_asset",
         # Chart toggles
         log_y           = "log_y"      in toggles,

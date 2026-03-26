@@ -1,6 +1,7 @@
 """Citadel Planner simulation engine — pure Python + NumPy, zero Dash deps."""
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 
@@ -390,6 +391,131 @@ def _evaluate_rebalancing(state: CitadelState, config: SimConfig,
             if evt:
                 evt["type"] = "gradual_start"
                 state.rebal_event = evt
+
+
+def _lognormal_return(annual_rate: float, annual_vol: float, ppy: int,
+                      deterministic: bool = False,
+                      rng: np.random.Generator | None = None) -> float:
+    """One-period return using lognormal model. Always > -1.0."""
+    if deterministic:
+        return (1 + annual_rate) ** (1.0 / ppy) - 1.0
+    if annual_rate <= 0 or annual_vol <= 0:
+        return (1 + annual_rate) ** (1.0 / ppy) - 1.0
+    sigma_ln = math.sqrt(math.log(1 + (annual_vol / (1 + annual_rate)) ** 2))
+    mu_ln = math.log(1 + annual_rate) - sigma_ln ** 2 / 2
+    period_mu = mu_ln / ppy
+    period_sigma = sigma_ln / math.sqrt(ppy)
+    return math.exp(rng.normal(period_mu, period_sigma)) - 1.0
+
+
+def _scf_payment_amount(config: SimConfig, ppy: int) -> float:
+    """Calculate monthly loan payment. Returns monthly $ amount."""
+    if not config.scf_enabled or config.scf_amount <= 0:
+        return 0.0
+    monthly_rate = (config.scf_rate / 100) / 12
+    if config.scf_type == "perpetual":
+        return config.scf_amount * monthly_rate
+    n = config.scf_term
+    if monthly_rate == 0:
+        return config.scf_amount / n
+    return config.scf_amount * monthly_rate / (1 - (1 + monthly_rate) ** -n)
+
+
+def _scf_check_repay(state: CitadelState, config: SimConfig,
+                     btc_annual_return: float) -> None:
+    """For perpetual loans: check if BTC return has fallen below threshold.
+    If so, sell BTC to repay outstanding principal."""
+    if not state.scf_active or config.scf_type != "perpetual":
+        return
+    threshold = (config.scf_rate / 100) * config.scf_repay_trigger
+    if btc_annual_return <= threshold:
+        if state.btc_price > 0 and state.btc_stack > 0:
+            btc_needed = state.scf_outstanding / state.btc_price
+            btc_sold = min(state.btc_stack, btc_needed)
+            repaid = btc_sold * state.btc_price
+            state.btc_stack -= btc_sold
+            state.scf_outstanding -= repaid
+        if state.scf_outstanding <= 0.01:
+            state.scf_outstanding = 0
+            state.scf_active = False
+
+
+def _initial_state(config: SimConfig, model: "PriceModel | None" = None) -> CitadelState:
+    """Create initial state from config."""
+    from btc_core import yr_to_t
+    t0 = yr_to_t(config.start_yr)
+    btc_price = 0.0
+    if model and config.selected_qs:
+        q = config.selected_qs[len(config.selected_qs) // 2]
+        btc_price = float(model.price_at(q, max(t0, 0.5)))
+    state = CitadelState(
+        t=t0, btc_stack=config.start_stack, btc_price=btc_price,
+        btc_cost_basis=btc_price, cash=config.cash_initial,
+        reserves=[rb["initial"] for rb in config.reserve_bins],
+        investments=[ib["initial"] for ib in config.invest_bins],
+    )
+    if config.scf_enabled and config.scf_amount > 0 and btc_price > 0:
+        btc_bought = config.scf_amount / btc_price
+        state.btc_stack += btc_bought
+        state.scf_outstanding = config.scf_amount
+        state.scf_active = True
+        total_btc = config.start_stack + btc_bought
+        if total_btc > 0:
+            state.btc_cost_basis = (config.start_stack * btc_price + config.scf_amount) / total_btc
+    return state
+
+
+def step(state: CitadelState, config: SimConfig,
+         btc_price_new: float, rng: np.random.Generator) -> CitadelState:
+    """Advance simulation by one period. Returns new state (does not mutate input)."""
+    from copy import deepcopy
+    new = deepcopy(state)
+    new.period += 1
+    ppy = FREQ_PPY[config.freq]
+    dt = 1.0 / ppy
+    new.t += dt
+    is_deterministic = (config.n_sims == 1)
+
+    # 1. Update BTC price
+    new.btc_price = btc_price_new
+
+    # 2. Dollar-asset returns
+    new.cash *= (1 + config.cash_rate / 100) ** (1.0 / ppy)
+    for i, rb in enumerate(config.reserve_bins):
+        r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
+                              deterministic=is_deterministic, rng=rng)
+        new.reserves[i] *= (1 + r)
+    for i, ib in enumerate(config.invest_bins):
+        r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
+                              deterministic=is_deterministic, rng=rng)
+        new.investments[i] *= (1 + r)
+
+    # 3. Enforce floor rules
+    _enforce_floors(new, config)
+
+    # 4. Compute BTC quantile (use model if available, else 0.5)
+    btc_quantile = 0.5  # default if no model available
+
+    # 5. Evaluate rebalancing triggers
+    _evaluate_rebalancing(new, config, btc_quantile)
+
+    # 6. Spending
+    years_elapsed = new.period / ppy
+    combined_rate = (config.inflation + config.spend_growth) / 100
+    period_spend = config.monthly_spend * (1 + combined_rate) ** years_elapsed
+    if new.scf_active:
+        period_spend += _scf_payment_amount(config, ppy)
+    period_spend *= (12 / ppy)  # scale monthly base to period frequency
+    new.period_spend = period_spend
+    new.spending_shortfall = _apply_spending_waterfall(new, period_spend)
+
+    # 7. Depletion check
+    total = (new.btc_stack * new.btc_price + new.cash
+             + sum(new.reserves) + sum(new.investments))
+    # (depletion tracking happens in simulate() runner)
+
+    new.rebal_event = new.rebal_event  # preserve for logging
+    return new
 
 
 def validate_config(config: SimConfig) -> None:

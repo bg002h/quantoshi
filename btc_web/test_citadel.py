@@ -6,9 +6,11 @@ for _p in (str(_ROOT), str(_ROOT / "btc_web"), str(_ROOT / "archive" / "btc_app"
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+import math
+
 import numpy as np
 import pytest
-from engines.citadel import SimConfig, CitadelState, FREQ_PPY, validate_config, _apply_spending_waterfall, _enforce_floors, _get_btc_price, _evaluate_rebalancing
+from engines.citadel import SimConfig, CitadelState, FREQ_PPY, validate_config, _apply_spending_waterfall, _enforce_floors, _get_btc_price, _evaluate_rebalancing, _lognormal_return, _initial_state, step, _scf_payment_amount, _scf_check_repay
 
 
 class MockPriceModel:
@@ -313,3 +315,112 @@ class TestRebalancing:
         cfg = SimConfig.default()
         _evaluate_rebalancing(s, cfg, btc_quantile=0.50)
         assert s.rebal_event is None
+
+
+class TestLognormalReturns:
+    def test_deterministic_return(self):
+        r = _lognormal_return(0.10, 0.16, 12, deterministic=True)
+        expected = (1 + 0.10) ** (1/12) - 1
+        assert abs(r - expected) < 1e-10
+
+    def test_stochastic_mode_has_variance(self):
+        rng = np.random.default_rng(42)
+        returns = [_lognormal_return(0.10, 0.16, 12, deterministic=False, rng=rng)
+                   for _ in range(100)]
+        assert max(returns) != min(returns)
+
+    def test_returns_always_above_minus_one(self):
+        rng = np.random.default_rng(42)
+        for _ in range(10000):
+            r = _lognormal_return(0.05, 0.30, 12, deterministic=False, rng=rng)
+            assert r > -1.0
+
+
+class TestStepFunction:
+    def test_basic_step_advances_period(self):
+        cfg = SimConfig.default()
+        cfg.n_sims = 1
+        s = _initial_state(cfg)
+        rng = np.random.default_rng(42)
+        s2 = step(s, cfg, btc_price_new=50000.0, rng=rng)
+        assert s2.period == 1
+        assert s2.btc_price == 50000.0
+
+    def test_cash_earns_interest(self):
+        cfg = SimConfig.default()
+        cfg.n_sims = 1
+        cfg.cash_rate = 12.0
+        cfg.monthly_spend = 0
+        cfg.cash_initial = 10000
+        s = _initial_state(cfg)
+        rng = np.random.default_rng(42)
+        s2 = step(s, cfg, btc_price_new=50000.0, rng=rng)
+        expected = 10000 * (1 + 0.12) ** (1/12)
+        assert abs(s2.cash - expected) < 0.01
+
+    def test_spending_reduces_cash(self):
+        cfg = SimConfig.default()
+        cfg.n_sims = 1
+        cfg.monthly_spend = 1000
+        cfg.inflation = 0
+        cfg.spend_growth = 0
+        cfg.cash_initial = 100000
+        s = _initial_state(cfg)
+        rng = np.random.default_rng(42)
+        s2 = step(s, cfg, btc_price_new=50000.0, rng=rng)
+        assert s2.cash < 100000
+
+
+class TestSaylorFortifier:
+    def test_scf_init_buys_btc(self):
+        cfg = SimConfig.default()
+        cfg.scf_enabled = True
+        cfg.scf_amount = 100000
+        cfg.scf_type = "term"
+        cfg.scf_rate = 8.0
+        cfg.scf_term = 60
+        s = _initial_state(cfg, model=_mock_model_data())
+        assert s.scf_active
+        assert s.scf_outstanding == 100000
+        assert s.btc_stack > cfg.start_stack
+
+    def test_term_loan_monthly_payment(self):
+        cfg = SimConfig.default()
+        cfg.scf_enabled = True
+        cfg.scf_amount = 120000
+        cfg.scf_rate = 12.0
+        cfg.scf_type = "term"
+        cfg.scf_term = 12
+        pmt = _scf_payment_amount(cfg, 12)
+        assert 10000 < pmt < 11000
+
+    def test_perpetual_interest_only(self):
+        cfg = SimConfig.default()
+        cfg.scf_enabled = True
+        cfg.scf_amount = 100000
+        cfg.scf_rate = 12.0
+        cfg.scf_type = "perpetual"
+        pmt = _scf_payment_amount(cfg, 12)
+        assert abs(pmt - 1000) < 1
+
+    def test_perpetual_repay_trigger(self):
+        cfg = SimConfig.default()
+        cfg.scf_enabled = True
+        cfg.scf_type = "perpetual"
+        cfg.scf_rate = 8.0
+        cfg.scf_repay_trigger = 1.0
+        s = CitadelState()
+        s.scf_active = True
+        s.scf_outstanding = 100000
+        s.btc_stack = 5.0
+        s.btc_price = 50000
+        _scf_check_repay(s, cfg, btc_annual_return=0.05)
+        assert s.scf_outstanding == 0
+        assert s.btc_stack < 5.0
+
+    def test_scf_disabled_no_effect(self):
+        cfg = SimConfig.default()
+        cfg.scf_enabled = False
+        s = _initial_state(cfg)
+        assert not s.scf_active
+        assert s.scf_outstanding == 0

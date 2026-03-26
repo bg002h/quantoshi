@@ -518,6 +518,177 @@ def step(state: CitadelState, config: SimConfig,
     return new
 
 
+@dataclass
+class SimResult:
+    """Serializable simulation output."""
+    time_axis: np.ndarray          # (n_periods,)
+    btc_holdings: np.ndarray       # (n_sims, n_periods)
+    btc_prices: np.ndarray         # (n_sims, n_periods)
+    cash_balances: np.ndarray      # (n_sims, n_periods)
+    reserve_balances: np.ndarray   # (n_sims, n_periods, n_reserve_bins)
+    invest_balances: np.ndarray    # (n_sims, n_periods, n_invest_bins)
+    total_usd: np.ndarray          # (n_sims, n_periods)
+    cumulative_spend: np.ndarray   # (n_sims, n_periods)
+    depletion_period: list[int | None]
+    rebal_events: list[list[dict]]
+    # Aggregated
+    median: dict                   # {asset_class: ndarray}
+    percentiles: dict              # {pct: {asset_class: ndarray}}
+
+    def to_dict(self) -> dict:
+        """Serialize for JSON transport. ndarrays -> lists."""
+        d = {}
+        for key in ["time_axis", "btc_holdings", "btc_prices", "cash_balances",
+                     "reserve_balances", "invest_balances", "total_usd", "cumulative_spend"]:
+            val = getattr(self, key)
+            d[key] = val.tolist() if isinstance(val, np.ndarray) else val
+        d["depletion_period"] = self.depletion_period
+        d["rebal_events"] = self.rebal_events
+        d["median"] = {k: v.tolist() for k, v in self.median.items()}
+        d["percentiles"] = {
+            str(p): {k: v.tolist() for k, v in assets.items()}
+            for p, assets in self.percentiles.items()
+        }
+        return d
+
+    @classmethod
+    def from_dict(cls, d: dict) -> SimResult:
+        """Deserialize from JSON."""
+        arrays = {}
+        for key in ["time_axis", "btc_holdings", "btc_prices", "cash_balances",
+                     "reserve_balances", "invest_balances", "total_usd", "cumulative_spend"]:
+            arrays[key] = np.array(d[key])
+        median = {k: np.array(v) for k, v in d["median"].items()}
+        percentiles = {
+            int(p): {k: np.array(v) for k, v in assets.items()}
+            for p, assets in d["percentiles"].items()
+        }
+        return cls(**arrays,
+                   depletion_period=d["depletion_period"],
+                   rebal_events=d["rebal_events"],
+                   median=median, percentiles=percentiles)
+
+
+def _compute_n_periods(config: SimConfig) -> int:
+    ppy = FREQ_PPY[config.freq]
+    return int((config.end_yr - config.start_yr) * ppy)
+
+
+def _snapshot_state(state: CitadelState) -> dict:
+    """Capture scalar values from state for history recording."""
+    return {
+        "btc_stack": state.btc_stack,
+        "btc_price": state.btc_price,
+        "cash": state.cash,
+        "reserves": list(state.reserves),
+        "investments": list(state.investments),
+        "total_usd": (state.btc_stack * state.btc_price + state.cash
+                      + sum(state.reserves) + sum(state.investments)),
+        "period_spend": state.period_spend,
+        "rebal_event": state.rebal_event,
+    }
+
+
+def _aggregate_results(all_histories: list[list[dict]], config: SimConfig,
+                       time_axis: np.ndarray) -> SimResult:
+    """Aggregate per-sim histories into SimResult with median/percentile bands."""
+    n_sims = len(all_histories)
+    n_periods = len(time_axis)
+    n_res = len(config.reserve_bins)
+    n_inv = len(config.invest_bins)
+
+    btc_h = np.zeros((n_sims, n_periods))
+    btc_p = np.zeros((n_sims, n_periods))
+    cash_b = np.zeros((n_sims, n_periods))
+    res_b = np.zeros((n_sims, n_periods, n_res))
+    inv_b = np.zeros((n_sims, n_periods, n_inv))
+    total = np.zeros((n_sims, n_periods))
+    cum_spend = np.zeros((n_sims, n_periods))
+    depl = []
+    rebal_events = []
+
+    for s, history in enumerate(all_histories):
+        sim_events = []
+        running_spend = 0.0
+        depl_period = None
+        for p, snap in enumerate(history):
+            btc_h[s, p] = snap["btc_stack"]
+            btc_p[s, p] = snap["btc_price"]
+            cash_b[s, p] = snap["cash"]
+            for i, rv in enumerate(snap["reserves"]):
+                res_b[s, p, i] = rv
+            for i, iv in enumerate(snap["investments"]):
+                inv_b[s, p, i] = iv
+            total[s, p] = snap["total_usd"]
+            running_spend += snap["period_spend"]
+            cum_spend[s, p] = running_spend
+            if snap["rebal_event"]:
+                sim_events.append({"period": p, **snap["rebal_event"]})
+            if depl_period is None and total[s, p] <= 0:
+                depl_period = p
+        depl.append(depl_period)
+        rebal_events.append(sim_events)
+
+    # Compute median and percentiles across sims
+    asset_keys = {
+        "btc_usd": btc_h * btc_p,
+        "cash": cash_b,
+        "reserves_total": res_b.sum(axis=2),
+        "investments_total": inv_b.sum(axis=2),
+        "total": total,
+    }
+    median = {k: np.median(v, axis=0) for k, v in asset_keys.items()}
+    percentiles = {}
+    for pct in [5, 25, 75, 95]:
+        percentiles[pct] = {k: np.percentile(v, pct, axis=0) for k, v in asset_keys.items()}
+
+    return SimResult(
+        time_axis=time_axis, btc_holdings=btc_h, btc_prices=btc_p,
+        cash_balances=cash_b, reserve_balances=res_b, invest_balances=inv_b,
+        total_usd=total, cumulative_spend=cum_spend,
+        depletion_period=depl, rebal_events=rebal_events,
+        median=median, percentiles=percentiles,
+    )
+
+
+def simulate(config: SimConfig, model: PriceModel,
+             rng_seed: int = 42) -> SimResult:
+    """Run n_sims simulations, aggregate results.
+    - For n_sims=1 (deterministic): uses median selected quantile for BTC price.
+    - For n_sims>1 (MC): raises NotImplementedError in v1 (Markov integration TBD).
+    """
+    validate_config(config)
+    ppy = FREQ_PPY[config.freq]
+    n_periods = _compute_n_periods(config)
+    rng = np.random.default_rng(rng_seed)
+
+    # Build time axis
+    from btc_core import yr_to_t
+    t0 = yr_to_t(config.start_yr)
+    dt = 1.0 / ppy
+    time_axis = np.array([t0 + i * dt for i in range(n_periods)])
+
+    all_histories = []
+    for sim_id in range(config.n_sims):
+        state = _initial_state(config, model=model)
+        history = []
+        for period_idx in range(n_periods):
+            t = time_axis[period_idx]
+            # Get BTC price for this period
+            if config.n_sims == 1:
+                q = config.selected_qs[len(config.selected_qs) // 2] if config.selected_qs else 0.5
+                btc_price = _get_btc_price(t, config, model, rng,
+                                           sim_mode="deterministic", q=q)
+            else:
+                raise NotImplementedError("MC mode requires Markov engine integration")
+            new_state = step(state, config, btc_price, rng)
+            history.append(_snapshot_state(new_state))
+            state = new_state
+        all_histories.append(history)
+
+    return _aggregate_results(all_histories, config, time_axis)
+
+
 def validate_config(config: SimConfig) -> None:
     """Raise ValueError with descriptive message on invalid config."""
     # Date range

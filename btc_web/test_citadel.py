@@ -10,7 +10,7 @@ import math
 
 import numpy as np
 import pytest
-from engines.citadel import SimConfig, CitadelState, FREQ_PPY, validate_config, _apply_spending_waterfall, _enforce_floors, _get_btc_price, _evaluate_rebalancing, _lognormal_return, _initial_state, step, _scf_payment_amount, _scf_check_repay
+from engines.citadel import SimConfig, CitadelState, FREQ_PPY, validate_config, _apply_spending_waterfall, _enforce_floors, _get_btc_price, _evaluate_rebalancing, _lognormal_return, _initial_state, step, _scf_payment_amount, _scf_check_repay, SimResult, simulate, _compute_n_periods
 
 
 class MockPriceModel:
@@ -424,3 +424,48 @@ class TestSaylorFortifier:
         s = _initial_state(cfg)
         assert not s.scf_active
         assert s.scf_outstanding == 0
+
+
+class TestSimulate:
+    def test_single_sim_returns_result(self):
+        cfg = SimConfig.default()
+        cfg.n_sims = 1
+        cfg.start_yr = 2031
+        cfg.end_yr = 2035
+        result = simulate(cfg, _mock_model_data())
+        assert result.time_axis is not None
+        assert len(result.time_axis) == 48  # 4 years * 12 months
+        assert result.btc_holdings.shape == (1, 48)
+        assert result.total_usd.shape == (1, 48)
+        assert len(result.depletion_period) == 1
+
+    def test_result_serialization_roundtrip(self):
+        cfg = SimConfig.default()
+        cfg.n_sims = 1
+        cfg.start_yr = 2031
+        cfg.end_yr = 2033
+        result = simulate(cfg, _mock_model_data())
+        d = result.to_dict()
+        assert isinstance(d, dict)
+        result2 = SimResult.from_dict(d)
+        assert np.allclose(result.total_usd, result2.total_usd)
+        assert result.depletion_period == result2.depletion_period
+
+    def test_n_periods_calculation(self):
+        cfg = SimConfig.default()
+        cfg.start_yr = 2031
+        cfg.end_yr = 2075
+        cfg.freq = "Monthly"
+        assert _compute_n_periods(cfg) == 528  # 44 * 12
+
+
+class TestAdapter:
+    def test_submit_returns_result(self):
+        from engines.adapter import submit_simulation
+        cfg = SimConfig.default()
+        cfg.n_sims = 1
+        cfg.start_yr = 2031
+        cfg.end_yr = 2033
+        result = submit_simulation(cfg, _mock_model_data())
+        assert result.time_axis is not None
+        assert result.total_usd.shape[0] == 1

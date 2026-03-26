@@ -78,6 +78,13 @@ class SimConfig:
     n_sims: int = 1
     tax_rate: float = 0.0  # placeholder
 
+    # Asset return model: "lognormal" (user-input rates) or "markov" (historical regimes)
+    asset_return_model: str = "lognormal"
+    # Transition matrices for Markov mode (loaded from data/asset_matrices.py)
+    # Keys: "equity", "bond", "tres_short", "tres_med", "tres_long"
+    # Each value: dict with "trans", "bin_edges", "bin_means", "bin_vols"
+    asset_matrices: dict | None = None
+
     @classmethod
     def default(cls) -> SimConfig:
         return cls()
@@ -104,6 +111,13 @@ class CitadelState:
     # Saylor Fortifier
     scf_outstanding: float = 0.0
     scf_active: bool = False
+    # Asset regime states (for Markov return model)
+    # Indices into the transition matrix bins for each asset class
+    equity_regime: int = 2     # middle bin = neutral
+    bond_regime: int = 2
+    res_short_regime: int = 2
+    res_med_regime: int = 2
+    res_long_regime: int = 2
     # Tracking
     period_spend: float = 0.0
     spending_shortfall: float = 0.0
@@ -439,6 +453,37 @@ def _lognormal_return(annual_rate: float, annual_vol: float, ppy: int,
     return math.exp(rng.normal(period_mu, period_sigma)) - 1.0
 
 
+def _markov_return(matrix: dict, current_regime: int,
+                   rng: np.random.Generator) -> tuple[float, int]:
+    """Sample one-period return from a Markov transition matrix.
+
+    Args:
+        matrix: dict with "trans" (n_bins x n_bins), "bin_means", "bin_vols"
+        current_regime: current bin index
+        rng: random number generator
+
+    Returns:
+        (monthly_return, new_regime) — the sampled return and the new regime bin
+    """
+    trans = matrix["trans"]
+    n_bins = trans.shape[0]
+    current_regime = max(0, min(current_regime, n_bins - 1))
+
+    # Sample next regime from transition probabilities
+    probs = trans[current_regime]
+    new_regime = int(rng.choice(n_bins, p=probs))
+
+    # Sample return from the new regime's distribution
+    mean = matrix["bin_means"][new_regime]
+    vol = matrix["bin_vols"][new_regime]
+    if vol > 0:
+        ret = rng.normal(mean, vol)
+    else:
+        ret = mean
+
+    return float(ret), new_regime
+
+
 def _scf_payment_amount(config: SimConfig, ppy: int) -> float:
     """Calculate monthly loan payment. Returns monthly $ amount."""
     if not config.scf_enabled or config.scf_amount <= 0:
@@ -512,15 +557,53 @@ def step(state: CitadelState, config: SimConfig,
     new.btc_price = btc_price_new
 
     # 2. Dollar-asset returns
+    use_markov = (config.asset_return_model == "markov"
+                  and config.asset_matrices is not None
+                  and not is_deterministic)
+
+    # Cash: always deterministic (zero volatility)
     new.cash *= (1 + config.cash_rate / 100) ** (1.0 / ppy)
-    for i, rb in enumerate(config.reserve_bins):
-        r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
-                              deterministic=is_deterministic, rng=rng)
-        new.reserves[i] *= (1 + r)
-    for i, ib in enumerate(config.invest_bins):
-        r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
-                              deterministic=is_deterministic, rng=rng)
-        new.investments[i] *= (1 + r)
+
+    if use_markov:
+        # Markov regime-based returns for reserves and investments
+        am = config.asset_matrices
+        _res_keys = ["tres_short", "tres_med", "tres_long"]
+        _inv_keys = ["equity", "bond"]
+        _regime_attrs = ["res_short_regime", "res_med_regime", "res_long_regime"]
+        _inv_regime_attrs = ["equity_regime", "bond_regime"]
+
+        for i, (mkey, rattr) in enumerate(zip(_res_keys, _regime_attrs)):
+            if mkey in am:
+                ret, new_regime = _markov_return(am[mkey], getattr(new, rattr), rng)
+                setattr(new, rattr, new_regime)
+                new.reserves[i] *= (1 + ret)
+            else:
+                # Fallback to lognormal
+                rb = config.reserve_bins[i]
+                r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
+                                      deterministic=is_deterministic, rng=rng)
+                new.reserves[i] *= (1 + r)
+
+        for i, (mkey, rattr) in enumerate(zip(_inv_keys, _inv_regime_attrs)):
+            if mkey in am:
+                ret, new_regime = _markov_return(am[mkey], getattr(new, rattr), rng)
+                setattr(new, rattr, new_regime)
+                new.investments[i] *= (1 + ret)
+            else:
+                ib = config.invest_bins[i]
+                r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
+                                      deterministic=is_deterministic, rng=rng)
+                new.investments[i] *= (1 + r)
+    else:
+        # Lognormal returns (user-input rates/volatility)
+        for i, rb in enumerate(config.reserve_bins):
+            r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
+                                  deterministic=is_deterministic, rng=rng)
+            new.reserves[i] *= (1 + r)
+        for i, ib in enumerate(config.invest_bins):
+            r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
+                                  deterministic=is_deterministic, rng=rng)
+            new.investments[i] *= (1 + r)
 
     # 3. Compute BTC quantile from price via model
     if model is not None:
@@ -710,6 +793,9 @@ def simulate(config: SimConfig, model: PriceModel,
         if price_paths.shape[1] < n_periods:
             raise ValueError(
                 f"price_paths has {price_paths.shape[1]} steps, need {n_periods}")
+        # Override config.n_sims so step() knows we're in MC mode
+        # (affects is_deterministic check for dollar-asset volatility)
+        config.n_sims = n_sims
     else:
         n_sims = 1  # deterministic
 

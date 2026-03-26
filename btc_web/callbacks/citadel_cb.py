@@ -1,10 +1,11 @@
-"""Citadel Planner chart callback."""
+"""Citadel Planner chart callback — 7-output MC sandwich pattern."""
 
 import dash
 from dash import Input, Output, State, ctx, callback
 
 import _app_ctx
 from callbacks.coerce import _ci, _cf
+from callbacks.mc_helpers import _mc_setup, _mc_finalize
 from utils import _get_citadel_fig
 
 # ── SCF body visibility toggle ──────────────────────────────────────────────
@@ -17,6 +18,12 @@ _app_ctx.app.clientside_callback(
 
 @callback(
     Output("citadel-graph", "figure"),
+    Output("cp-mc-results", "data"),
+    Output("cp-mc-status", "children"),
+    Output("cp-mc-rendered-key", "data"),
+    Output("mc-save-modal", "is_open", allow_duplicate=True),
+    Output("mc-save-tab", "data", allow_duplicate=True),
+    Output("cp-mc-unblocked", "data"),
     Input("main-tabs",           "active_tab"),
     # ── Assets panel ──
     Input("cp-stack",            "value"),
@@ -82,15 +89,31 @@ _app_ctx.app.clientside_callback(
     Input("cp-freq",             "value"),
     Input("cp-model-src",        "value"),
     Input("cp-qs",               "value"),
-    Input("cp-mc-enable",        "value"),
-    Input("cp-mc-sims",          "value"),
     Input("cp-disp",             "value"),
     Input("cp-toggles",          "value"),
     Input("cp-legend-pos",       "value"),
     # ── Global ──
     Input("effective-lots",      "data"),
+    # ── MC controls ──
+    Input("cp-mc-enable",        "value"),
+    Input("cp-mc-bins",          "value"),
+    Input("cp-mc-regime",        "value"),
+    Input("cp-mc-sims",          "value"),
+    Input("cp-mc-years",         "value"),
+    Input("cp-mc-window",        "value"),
+    Input("cp-mc-start-yr",      "value"),
+    Input("cp-mc-entry-q",       "value"),
+    Input("cp-mc-loaded",        "data"),
+    Input("mc-pay-trigger",      "data"),
+    Input("cp-mc-model-src",     "value"),
     Input("palette-store",       "data"),
-    prevent_initial_call=True,
+    # ── MC States ──
+    State("btc-price-store",     "data"),
+    State("cp-mc-results",       "data"),
+    State("mc-pay-token",        "data"),
+    State("cp-mc-unblocked",     "data"),
+    State("cp-mc-rendered-key",  "data"),
+    prevent_initial_call='initial_duplicate',
 )
 def update_citadel(
     active_tab,
@@ -118,18 +141,34 @@ def update_citadel(
     # SCF
     scf_enable, scf_amount, scf_type, scf_rate, scf_term, scf_trigger,
     # Simulation
-    yr_range, freq, model_src, sel_qs, mc_enable, mc_sims, disp, toggles, legend_pos,
+    yr_range, freq, model_src, sel_qs, disp, toggles, legend_pos,
     # Global
-    lots_data, palette_key,
+    lots_data,
+    # MC controls
+    mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
+    mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, mc_model_src,
+    palette_key,
+    # MC states
+    price_data, mc_cached, pay_token, mc_unblocked, mc_auth,
 ):
-    """Citadel Planner chart callback."""
+    """Citadel Planner chart callback — 7-output MC sandwich."""
     if ctx.triggered_id == "main-tabs" and active_tab != "citadel":
         raise dash.exceptions.PreventUpdate
 
     toggles = toggles or []
     yr_range = yr_range or [2031, 2075]
 
-    fig, _mc = _get_citadel_fig(dict(
+    # 1. MC setup
+    mc_ok, is_free, mc_p, blocked = _mc_setup(
+        "cp", mc_enable, mc_years, mc_start_yr, mc_entry_q,
+        mc_bins, mc_sims, freq, mc_window, spend, infl,
+        mc_cached, _cf(price_data, 0), mc_regime, mc_unblocked, pay_token,
+        mc_auth=mc_auth,
+        stack=stack, amount_default=5000, infl_default=4.0, start_yr_default=2031,
+        mc_model_src=mc_model_src)
+
+    # 2. Build figure (merge MC params)
+    fig, mc_result = _get_citadel_fig(dict(
         start_stack     = _cf(stack, 1.0),
         use_lots        = bool(use_lots),
         lots            = lots_data or [],
@@ -197,7 +236,7 @@ def update_citadel(
         end_yr          = int(yr_range[1]),
         freq            = freq or "Monthly",
         price_model     = model_src or "bub",
-        n_sims          = _ci(mc_sims, 200, lo=1) if (mc_enable and "yes" in mc_enable) else 1,
+        n_sims          = 1,
         selected_qs     = [float(sel_qs)] if sel_qs is not None else [0.25],
         disp_mode       = disp or "usd_per_asset",
         # Chart toggles
@@ -207,5 +246,15 @@ def update_citadel(
         legend_pos      = legend_pos or "bottom-right",
         minor_grid      = "minor_grid" in toggles,
         palette         = palette_key or "default",
+        **mc_p,
     ))
-    return fig
+
+    # 3. MC finalize
+    fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(
+        "cp", fig, mc_result, mc_cached, mc_enable, mc_ok,
+        is_free, blocked, mc_p["mc_years"], mc_p["mc_start_yr"],
+        mc_p["mc_entry_q"], toggles, mc_stale=mc_p.get("mc_stale", False),
+        mc_p=mc_p)
+
+    return (fig, store_val, status, rendered_key, show_modal,
+            "cp" if show_modal else dash.no_update, ub_val)

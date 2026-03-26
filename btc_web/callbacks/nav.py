@@ -124,6 +124,11 @@ _TAB_CONTROLS["supercharge"].update({
     "sc-mc-enable", "sc-mc-start-yr", "sc-mc-entry-q", "sc-mc-years",
     "sc-mc-bins", "sc-mc-regime", "sc-mc-sims", "sc-mc-window", "sc-mc-advanced",
 })
+_TAB_CONTROLS["citadel"].update({
+    "cp-mc-enable", "cp-mc-start-yr", "cp-mc-entry-q", "cp-mc-years",
+    "cp-mc-bins", "cp-mc-regime", "cp-mc-sims", "cp-mc-window",
+    "cp-mc-advanced", "cp-mc-model-src",
+})
 
 _app_ctx.app.clientside_callback(
     """

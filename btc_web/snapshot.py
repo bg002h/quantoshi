@@ -225,6 +225,7 @@ _SNAPSHOT_CONTROLS = [
     ("cp-disp",             "value"),   # 194
     ("cp-toggles",          "value"),   # 195
     ("cp-legend-pos",       "value"),   # 196
+    ("cp-asset-model",      "value"),   # 197
     # ── Citadel MC controls ──
     ("cp-mc-enable",        "value"),   # 197
     ("cp-mc-start-yr",      "value"),   # 198

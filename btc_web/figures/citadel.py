@@ -164,7 +164,16 @@ def _build_sim_config(p: dict) -> SimConfig:
         freq=p.get("freq", "Monthly"),
         n_sims=int(p.get("n_sims", 1)),
         tax_rate=0.0,
+        asset_return_model=p.get("asset_return_model", "lognormal"),
     )
+
+    # Load asset transition matrices when Markov mode selected
+    if config.asset_return_model == "markov":
+        try:
+            from data.asset_matrices import load_asset_matrices
+            config.asset_matrices = load_asset_matrices(n_bins=5)
+        except Exception:
+            config.asset_return_model = "lognormal"  # fallback
 
 
 def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict | None]:

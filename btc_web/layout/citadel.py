@@ -212,6 +212,15 @@ def _sim_panel():
                          {"label": "S2F", "value": "s2f"}],
                 value="bub", clearable=False),
         ),
+        _dd_section("Dollar Asset Returns",
+            html.Small("Lognormal uses your input rates/volatility. "
+                       "Markov uses historical regime transitions (S&P 500, bonds, treasuries).",
+                       style=_STYLE_HINT),
+            dcc.Dropdown(id="cp-asset-model",
+                options=[{"label": "Lognormal (user rates)", "value": "lognormal"},
+                         {"label": "Markov (historical regimes)", "value": "markov"}],
+                value="lognormal", clearable=False),
+        ),
         _dd_section("BTC Price Scenario",
             html.Small("Select one quantile for the deterministic BTC price path. "
                        "Lower = more pessimistic, higher = more optimistic.",

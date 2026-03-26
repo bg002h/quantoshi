@@ -88,6 +88,7 @@ _app_ctx.app.clientside_callback(
     Input("cp-yr-range",         "value"),
     Input("cp-freq",             "value"),
     Input("cp-model-src",        "value"),
+    Input("cp-asset-model",      "value"),
     Input("cp-qs",               "value"),
     Input("cp-disp",             "value"),
     Input("cp-toggles",          "value"),
@@ -141,7 +142,7 @@ def update_citadel(
     # SCF
     scf_enable, scf_amount, scf_type, scf_rate, scf_term, scf_trigger,
     # Simulation
-    yr_range, freq, model_src, sel_qs, disp, toggles, legend_pos,
+    yr_range, freq, model_src, asset_model, sel_qs, disp, toggles, legend_pos,
     # Global
     lots_data,
     # MC controls
@@ -236,6 +237,7 @@ def update_citadel(
         end_yr          = int(yr_range[1]),
         freq            = freq or "Monthly",
         price_model     = model_src or "bub",
+        asset_return_model = asset_model or "lognormal",
         n_sims          = 1,
         selected_qs     = [float(sel_qs)] if sel_qs is not None else [0.25],
         disp_mode       = disp or "usd_per_asset",

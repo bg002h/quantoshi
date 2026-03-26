@@ -16,7 +16,7 @@ from btc_core import today_t, _find_lot_percentile
 from figures import (build_bubble_figure, build_heatmap_figure,
                      build_mc_heatmap_figure,
                      build_dca_figure, build_retire_figure,
-                     build_supercharge_figure)
+                     build_supercharge_figure, build_citadel_figure)
 
 # ── quantize floats to 3 significant figures for cache-friendly keys ───────────
 def _q3(x):
@@ -64,6 +64,7 @@ _cached_dca_fig         = _make_cached_builder(build_dca_figure)
 _cached_retire_fig      = _make_cached_builder(build_retire_figure)
 _cached_supercharge_fig = _make_cached_builder(build_supercharge_figure)
 _cached_mc_heatmap_fig  = _make_cached_builder(build_mc_heatmap_figure)
+_cached_citadel_fig     = _make_cached_builder(build_citadel_figure)
 
 _ALL_CACHES = {
     "bubble": _cached_bubble_fig,
@@ -72,6 +73,7 @@ _ALL_CACHES = {
     "retire": _cached_retire_fig,
     "supercharge": _cached_supercharge_fig,
     "mc_heatmap": _cached_mc_heatmap_fig,
+    "citadel": _cached_citadel_fig,
 }
 
 def _log_cache_stats():
@@ -135,6 +137,10 @@ def _get_heatmap_fig(p: dict):
 def _get_mc_heatmap_fig(p: dict):
     return _get_mc_or_cached(p, build_mc_heatmap_figure,
                              _cached_mc_heatmap_fig, always_mc=True)
+
+def _get_citadel_fig(p: dict):
+    p_q = _quantize_params(p)
+    return _cached_citadel_fig(json.dumps(p_q, sort_keys=True, default=str))
 
 def _nearest_quantile(target, qs):
     """Snap a percentile value to the nearest available quantile."""

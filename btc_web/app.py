@@ -81,7 +81,7 @@ def _health():
 @server.after_request
 def _cache_headers(response):
     path = flask_request.path
-    if path in ('/', '/_dash-layout', '/_dash-dependencies') or path.startswith('/1') or path.startswith('/2') or path.startswith('/3') or path.startswith('/4') or path.startswith('/5') or path.startswith('/6') or path.startswith('/7') or path.startswith('/8'):
+    if path in ('/', '/_dash-layout', '/_dash-dependencies') or path.startswith('/1') or path.startswith('/2') or path.startswith('/3') or path.startswith('/4') or path.startswith('/5') or path.startswith('/6') or path.startswith('/7') or path.startswith('/8') or path.startswith('/9'):
         response.headers.update({
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma':        'no-cache',
@@ -180,7 +180,8 @@ _app_ctx._DEF_QS = [q for q in [0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
                     if q in _app_ctx.DEFAULT_MODEL.fits]
 
 from utils import _startup_heatmap_defaults, _nearest_quantile, _get_bubble_fig, \
-    _get_dca_fig, _get_retire_fig, _get_supercharge_fig, _get_heatmap_fig
+    _get_dca_fig, _get_retire_fig, _get_supercharge_fig, _get_heatmap_fig, \
+    _get_citadel_fig
 _app_ctx._HM_ENTRY_Q_DEFAULT = _startup_heatmap_defaults()
 
 # ── import layout (sets app.layout) and callbacks (registers @callbacks) ─────
@@ -297,6 +298,34 @@ def _prewarm_caches():
         show_mc      = False,
         active_models = [],
         palette      = "default",
+    ))
+
+    # Citadel Planner (default: 1 BTC, $5k/mo, Q1%+Q10%+Q25%, 2031–2075)
+    _get_citadel_fig(dict(
+        start_stack=1.0, use_lots=False, lots=[],
+        cash_initial=50000, cash_rate=4.0,
+        res_short_init=50000, res_short_rate=5.0, res_short_vol=2.0,
+        res_med_init=100000, res_med_rate=4.5, res_med_vol=8.0,
+        res_long_init=50000, res_long_rate=4.0, res_long_vol=15.0,
+        inv_eq_init=200000, inv_eq_rate=10.0, inv_eq_vol=16.0,
+        inv_bd_init=100000, inv_bd_rate=5.0, inv_bd_vol=7.0,
+        monthly_spend=5000, inflation=4.0, spend_growth=0.0,
+        high_q_trigger=80, high_q_mode="gradual", high_q_rate=2.0, high_q_dur=6,
+        high_q_split_cash=20, high_q_split_rs=20, high_q_split_rm=20,
+        high_q_split_rl=10, high_q_split_eq=20, high_q_split_bd=10,
+        low_q_trigger=20, low_q_mode="lump", low_q_rate=10.0, low_q_dur=1,
+        low_q_split_cash=10, low_q_split_rs=10, low_q_split_rm=10,
+        low_q_split_rl=10, low_q_split_eq=40, low_q_split_bd=20,
+        lump_cooldown=12,
+        cash_floor=0, res_short_floor=0, res_med_floor=0, res_long_floor=0,
+        scf_enabled=False, scf_amount=0, scf_type="term",
+        scf_rate=8.0, scf_term=60, scf_repay_trigger=1.0,
+        start_yr=2031, end_yr=2075, freq="Monthly", price_model="bub",
+        selected_qs=[0.01, 0.10, 0.25],
+        disp_mode="usd_per_asset",
+        log_y=True, annotate=True, show_legend=False,
+        legend_pos="bottom-right", minor_grid=True,
+        palette="default",
     ))
 
     # Heatmap (default: bubble model, current year entry)

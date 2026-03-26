@@ -14,3 +14,4 @@ from figures.heatmap import build_heatmap_figure, build_mc_heatmap_figure
 from figures.dca import build_dca_figure
 from figures.retire import build_retire_figure
 from figures.supercharge import build_supercharge_figure
+from figures.citadel import build_citadel_figure

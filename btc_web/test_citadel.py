@@ -7,7 +7,7 @@ for _p in (str(_ROOT), str(_ROOT / "btc_web"), str(_ROOT / "archive" / "btc_app"
         sys.path.insert(0, _p)
 
 import pytest
-from engines.citadel import SimConfig, CitadelState, FREQ_PPY, validate_config, _apply_spending_waterfall
+from engines.citadel import SimConfig, CitadelState, FREQ_PPY, validate_config, _apply_spending_waterfall, _enforce_floors
 
 
 class TestSimConfig:
@@ -128,3 +128,52 @@ class TestSpendingWaterfall:
         shortfall = _apply_spending_waterfall(s, 0)
         assert shortfall == 0.0
         assert s.cash == 10000.0
+
+
+class TestFloorEnforcement:
+    def test_cash_below_floor_replenished(self):
+        s = CitadelState()
+        s.cash = 1000
+        s.reserves = [5000.0, 5000.0, 5000.0]
+        s.investments = [10000.0, 10000.0]
+        cfg = SimConfig.default()
+        cfg.cash_floor = 5000
+        cfg.reserve_floors = [0, 0, 0]
+        _enforce_floors(s, cfg)
+        assert s.cash >= 5000.0
+        # Drawn from investments (bonds first)
+        assert s.investments[1] < 10000.0
+
+    def test_reserve_below_floor_replenished(self):
+        s = CitadelState()
+        s.cash = 50000
+        s.reserves = [100.0, 5000.0, 5000.0]
+        s.investments = [10000.0, 10000.0]
+        cfg = SimConfig.default()
+        cfg.cash_floor = 0
+        cfg.reserve_floors = [5000, 0, 0]
+        _enforce_floors(s, cfg)
+        assert s.reserves[0] >= 5000.0
+
+    def test_insufficient_funds_partial_fill(self):
+        s = CitadelState()
+        s.cash = 100
+        s.reserves = [100.0, 100.0, 100.0]
+        s.investments = [100.0, 100.0]
+        cfg = SimConfig.default()
+        cfg.cash_floor = 99999
+        cfg.reserve_floors = [0, 0, 0]
+        _enforce_floors(s, cfg)
+        assert s.cash > 100  # got some replenishment
+        assert s.btc_stack == 0.0  # BTC not touched
+
+    def test_no_floors_no_change(self):
+        s = CitadelState()
+        s.cash = 1000
+        s.reserves = [500.0, 500.0, 500.0]
+        s.investments = [500.0, 500.0]
+        cfg = SimConfig.default()
+        cfg.cash_floor = 0
+        cfg.reserve_floors = [0, 0, 0]
+        _enforce_floors(s, cfg)
+        assert s.cash == 1000

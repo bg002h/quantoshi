@@ -149,6 +149,67 @@ def _apply_spending_waterfall(state: CitadelState, amount: float) -> float:
     return max(remaining, 0.0)
 
 
+def _enforce_floors(state: CitadelState, config: SimConfig) -> None:
+    """Replenish accounts below their floor minimums.
+    Draw order for replenishment sources (reverse priority):
+    1. Investment Bonds (index 1)
+    2. Investment Equities (index 0)
+    3. Reserve Long (index 2)
+    4. Reserve Medium (index 1)
+    5. Reserve Short (index 0)
+    6. Cash (only for reserve replenishment, not self-replenishment)
+    BTC is NEVER sold for floors."""
+    accounts_to_check = []
+    if config.cash_floor > 0:
+        accounts_to_check.append(("cash", config.cash_floor))
+    for i, floor in enumerate(config.reserve_floors):
+        if floor > 0:
+            accounts_to_check.append((f"reserve_{i}", floor))
+
+    for acct_key, floor in accounts_to_check:
+        if acct_key == "cash":
+            current = state.cash
+        else:
+            idx = int(acct_key.split("_")[1])
+            current = state.reserves[idx]
+
+        deficit = floor - current
+        if deficit <= 0:
+            continue
+
+        sources = []
+        for i in reversed(range(len(state.investments))):
+            sources.append(("inv", i))
+        for i in reversed(range(len(state.reserves))):
+            if acct_key != f"reserve_{i}":
+                sources.append(("res", i))
+        if acct_key != "cash":
+            sources.append(("cash", 0))
+
+        for src_type, src_idx in sources:
+            if deficit <= 0:
+                break
+            if src_type == "inv":
+                draw = min(state.investments[src_idx], deficit)
+                state.investments[src_idx] -= draw
+            elif src_type == "res":
+                draw = min(state.reserves[src_idx], deficit)
+                state.reserves[src_idx] -= draw
+            elif src_type == "cash":
+                draw = min(state.cash, deficit)
+                state.cash -= draw
+            else:
+                draw = 0
+            deficit -= draw
+
+        replenished = (floor - current) - deficit
+        if acct_key == "cash":
+            state.cash += replenished
+        else:
+            idx = int(acct_key.split("_")[1])
+            state.reserves[idx] += replenished
+
+
 def validate_config(config: SimConfig) -> None:
     """Raise ValueError with descriptive message on invalid config."""
     # Date range

@@ -179,6 +179,11 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     model_key = p.get("price_model", "bub")
     model = _ModelAdapter(m, model_key=model_key)
 
+    # MC mode (n_sims > 1) not yet integrated — fall back to deterministic
+    mc_requested = config.n_sims > 1
+    if mc_requested:
+        config.n_sims = 1
+
     try:
         result = simulate(config, model)
     except (ValueError, NotImplementedError) as e:
@@ -291,6 +296,8 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     q_label = "/".join(f"Q{q*100:g}%" for q in config.selected_qs[:3])
     ylabel = "BTC Remaining" if disp_mode == "btc" else "USD Value"
     title = f"Citadel Planner \u2014 {fmt_price(config.monthly_spend)}/mo \u00b7 {q_label}"
+    if mc_requested:
+        title += "  \u00b7  MC coming soon \u2014 showing deterministic"
 
     layout, _x_end = _sim_layout(m, p, title, ylabel, ts, t_start, t_end, dt, syr, eyr)
     layout["annotations"] = deplete_annots

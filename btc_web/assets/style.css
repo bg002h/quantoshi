@@ -1407,4 +1407,18 @@ body {
     100% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
 }
 
+/* ── Citadel Planner inner tabs: dropdowns must escape tab-content ────────── */
+#cp-inner-tabs .tab-content {
+    overflow: visible !important;
+}
+#cp-inner-tabs .tab-pane {
+    overflow: visible !important;
+}
+/* Ensure Dash dropdown menus render above adjacent sections */
+#cp-inner-tabs .Select-menu-outer,
+#cp-inner-tabs .dash-dropdown .Select-menu-outer {
+    z-index: 1050 !important;
+    position: absolute !important;
+}
+
 /* Scanner row highlight: applied inline by scanner.js using per-model colors */

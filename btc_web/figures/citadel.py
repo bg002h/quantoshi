@@ -50,7 +50,7 @@ class _ModelAdapter:
 
 # ── Trace colors ──────────────────────────────────────────────────────────────
 
-_C_TOTAL      = "#FFFFFF"       # white — total portfolio
+_C_TOTAL      = "#000000"       # black — total portfolio
 _C_BTC        = "#F7931A"       # bitcoin orange — BTC holdings USD
 _C_CASH       = "#C0C0C0"       # silver — cash
 _C_RESERVES   = "#4A90D9"       # blue — reserves total

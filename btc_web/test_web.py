@@ -3071,6 +3071,69 @@ class TestRestoreFromUrl:
 
 
 @pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestNoDuplicateCallbackOutputs:
+    """Dash blocks ALL callbacks when two non-allow_duplicate callbacks
+    share an output.  These tests guard against regressions by checking
+    both the callback graph and the snapshot restore architecture."""
+
+    def test_no_unguarded_duplicate_outputs(self):
+        """No output property should be targeted by >1 callback without
+        allow_duplicate=True."""
+        from collections import defaultdict
+        import _app_ctx
+        app = _app_ctx.app
+
+        output_sources = defaultdict(list)  # "cid.prop" -> [has_allow_dup, ...]
+        for cb_key in app.callback_map:
+            for part in cb_key.split("..."):
+                has_dup = "@" in part
+                clean = part.split("@")[0] if "@" in part else part
+                if clean:
+                    output_sources[clean].append(has_dup)
+
+        violations = []
+        for out, flags in output_sources.items():
+            non_dup = sum(1 for f in flags if not f)
+            if non_dup > 1:
+                violations.append(out)
+
+        assert violations == [], (
+            f"Multiple callbacks output to the same property without "
+            f"allow_duplicate=True — Dash will block all callbacks: "
+            f"{violations}"
+        )
+
+    def test_restore_from_url_uses_intermediate_store(self):
+        """restore_from_url must NOT output directly to _SNAPSHOT_CONTROLS.
+
+        It must write to snapshot-state-store, which apply_snapshot then
+        fans out with allow_duplicate=True.  Outputting directly would
+        create duplicate-output conflicts with MC and other callbacks
+        that also target snapshot control properties.
+        """
+        import _app_ctx
+        app = _app_ctx.app
+
+        snap_cids = {f"{cid}.{prop}" for cid, prop in _SNAPSHOT_CONTROLS}
+
+        for cb_key in app.callback_map:
+            parts = cb_key.split("...")
+            clean_parts = [p.split("@")[0] for p in parts]
+            # Identify restore_from_url by its loaded-hash-store output
+            if "loaded-hash-store.data" not in clean_parts:
+                continue
+            # This callback should NOT contain any snapshot control outputs
+            overlap = snap_cids & set(clean_parts)
+            assert overlap == set(), (
+                f"restore_from_url outputs directly to snapshot controls "
+                f"without allow_duplicate — this breaks Dash's callback "
+                f"graph.  Use snapshot-state-store + apply_snapshot "
+                f"instead.  Offending outputs: {sorted(overlap)[:5]}..."
+            )
+            break
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
 class TestAutoBubbleYrange:
     def test_no_auto_prevents_update(self):
         with _patch_ctx("bub-xrange"):

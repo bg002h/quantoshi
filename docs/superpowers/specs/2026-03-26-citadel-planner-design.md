@@ -262,7 +262,7 @@ class SimConfig:
     high_q_action: dict        # {mode, rate, duration, split}
     # Rebalancing — low quantile trigger
     low_q_trigger: float       # quantile threshold (e.g., 0.20)
-    low_q_action: dict         # {mode, rate, duration, source_split}
+    low_q_action: dict         # {mode, rate, duration, split}
     lump_cooldown: int         # global cooldown in periods (applies to both high and low lump triggers)
 
     # Floor rules

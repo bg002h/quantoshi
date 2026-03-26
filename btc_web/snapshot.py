@@ -121,6 +121,49 @@ _SNAPSHOT_CONTROLS = [
     ("palette-store",     "data"),    # colorblind palette key
     # ── Heatmap model selector (index 99) ──
     ("hm-active-model",   "data"),    # active heatmap model pill (bub/pl/s2f/mc)
+    # ── MC controls (4 tabs x 9 controls) ────────────────────────────────
+    # DCA MC
+    ("dca-mc-enable",    "value"),   # 100
+    ("dca-mc-start-yr",  "value"),   # 101
+    ("dca-mc-entry-q",   "value"),   # 102
+    ("dca-mc-years",     "value"),   # 103
+    ("dca-mc-bins",      "value"),   # 104
+    ("dca-mc-regime",    "value"),   # 105
+    ("dca-mc-sims",      "value"),   # 106
+    ("dca-mc-window",    "value"),   # 107
+    ("dca-mc-advanced",  "value"),   # 108
+    # Retire MC
+    ("ret-mc-enable",    "value"),   # 109
+    ("ret-mc-start-yr",  "value"),   # 110
+    ("ret-mc-entry-q",   "value"),   # 111
+    ("ret-mc-years",     "value"),   # 112
+    ("ret-mc-bins",      "value"),   # 113
+    ("ret-mc-regime",    "value"),   # 114
+    ("ret-mc-sims",      "value"),   # 115
+    ("ret-mc-window",    "value"),   # 116
+    ("ret-mc-advanced",  "value"),   # 117
+    # Heatmap MC
+    ("hm-mc-enable",     "value"),   # 118
+    ("hm-mc-start-yr",   "value"),   # 119
+    ("hm-mc-entry-q",    "value"),   # 120
+    ("hm-mc-years",      "value"),   # 121
+    ("hm-mc-bins",       "value"),   # 122
+    ("hm-mc-regime",     "value"),   # 123
+    ("hm-mc-sims",       "value"),   # 124
+    ("hm-mc-window",     "value"),   # 125
+    ("hm-mc-advanced",   "value"),   # 126
+    # Supercharger MC
+    ("sc-mc-enable",     "value"),   # 127
+    ("sc-mc-start-yr",   "value"),   # 128
+    ("sc-mc-entry-q",    "value"),   # 129
+    ("sc-mc-years",      "value"),   # 130
+    ("sc-mc-bins",       "value"),   # 131
+    ("sc-mc-regime",     "value"),   # 132
+    ("sc-mc-sims",       "value"),   # 133
+    ("sc-mc-window",     "value"),   # 134
+    ("sc-mc-advanced",   "value"),   # 135
+    # ── Heatmap palette ──────────────────────────────────────────────────
+    ("hm-palette",       "value"),   # 136
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)
@@ -169,6 +212,20 @@ _CHECKLIST_OPTIONS = {
     "sc-model-show":      ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"],
     "hm-model-show":      ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"],
     "bub-model-show":     ["pl", "lppl", "exp", "s2f", "ef", "bub", "qr"],
+    # MC enable/advanced checklists (1 bit each)
+    "dca-mc-enable":    ["yes"],
+    "dca-mc-advanced":  ["yes"],
+    "ret-mc-enable":    ["yes"],
+    "ret-mc-advanced":  ["yes"],
+    "hm-mc-enable":     ["yes"],
+    "hm-mc-advanced":   ["yes"],
+    "sc-mc-enable":     ["yes"],
+    "sc-mc-advanced":   ["yes"],
+    # MC regime checklists (5 bits each — int values 0-4)
+    "dca-mc-regime":    [0, 1, 2, 3, 4],
+    "ret-mc-regime":    [0, 1, 2, 3, 4],
+    "hm-mc-regime":     [0, 1, 2, 3, 4],
+    "sc-mc-regime":     [0, 1, 2, 3, 4],
 }
 
 

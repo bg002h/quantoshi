@@ -1,12 +1,11 @@
 """Citadel Planner simulation engine — pure Python + NumPy, zero Dash deps."""
 from __future__ import annotations
 
-from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any
 
-import numpy as np
-
+# Intentionally limited to Monthly/Quarterly/Annually — Daily/Weekly excluded
+# for v1 performance (Daily = 14,600 steps over 40yr). See spec section
+# "Performance Notes". Diverges from _app_ctx.FREQ_PPY which includes all 5.
 FREQ_PPY = {"Monthly": 12, "Quarterly": 4, "Annually": 1}
 
 

@@ -7,7 +7,6 @@ for _p in (str(_ROOT), str(_ROOT / "btc_web"), str(_ROOT / "archive" / "btc_app"
         sys.path.insert(0, _p)
 
 import pytest
-import numpy as np
 from engines.citadel import SimConfig, CitadelState, FREQ_PPY
 
 

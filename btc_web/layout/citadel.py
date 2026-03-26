@@ -178,10 +178,23 @@ def _rules_panel():
     ])
 
 
+def _dd_section(title, *children):
+    """Section wrapper for controls with dropdowns — avoids dbc.Card which
+    clips dropdown menus on iOS due to transform creating a stacking context."""
+    return html.Div([
+        html.Div(title, style={"fontWeight": "bold", "fontSize": "12px",
+                                "color": "#555", "marginBottom": "4px",
+                                "textTransform": "uppercase", "letterSpacing": "0.03em"}),
+        *children,
+    ], style={"marginBottom": "12px", "padding": "8px",
+              "background": "#f8f9fa", "borderRadius": "8px",
+              "border": "1px solid #dee2e6"})
+
+
 def _sim_panel():
     """Sub-tab 4: Simulation settings, quantiles, MC, chart toggles."""
     return html.Div([
-        _section_card("Simulation",
+        _dd_section("Simulation",
             _lbl("Year range"),
             dcc.RangeSlider(id="cp-yr-range", min=2025, max=2080,
                 value=[2031, 2075], step=1,
@@ -199,7 +212,7 @@ def _sim_panel():
                          {"label": "S2F", "value": "s2f"}],
                 value="bub", clearable=False),
         ),
-        _section_card("BTC Price Scenario",
+        _dd_section("BTC Price Scenario",
             html.Small("Select one quantile for the deterministic BTC price path. "
                        "Lower = more pessimistic, higher = more optimistic.",
                        style=_STYLE_HINT),
@@ -210,7 +223,7 @@ def _sim_panel():
                                    0.85, 0.90, 0.95, 0.99, 0.999]],
                 value=0.25, clearable=False),
         ),
-        _section_card("Display",
+        _dd_section("Display",
             _lbl("Display mode"),
             dcc.Dropdown(id="cp-disp",
                 options=[{"label": "USD (total portfolio)", "value": "usd_total"},

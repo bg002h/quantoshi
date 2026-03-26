@@ -25,9 +25,9 @@ from figures.common import (
 class _ModelAdapter:
     """Adapts _app_ctx price model + ModelData to engines.citadel.PriceModel protocol."""
 
-    def __init__(self, m: ModelData):
-        self._model = _app_ctx.DEFAULT_MODEL  # BubbleModel with price_at()
-        self.fits = self._model.fits
+    def __init__(self, m: ModelData, model_key: str = "bub"):
+        self._model = _app_ctx.PRICE_MODELS.get(model_key, _app_ctx.DEFAULT_MODEL)
+        self.fits = self._model.fits if hasattr(self._model, "fits") else {}
         self.genesis = m.genesis
 
     def price_at(self, q: float, t: float) -> float:
@@ -155,7 +155,7 @@ def _build_sim_config(p: dict) -> SimConfig:
         start_yr=int(p.get("start_yr", 2031)),
         end_yr=int(p.get("end_yr", 2075)),
         freq=p.get("freq", "Monthly"),
-        n_sims=1,
+        n_sims=int(p.get("n_sims", 1)),
         tax_rate=0.0,
     )
 
@@ -176,7 +176,8 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     except (ValueError, TypeError) as e:
         return _error_figure(m, f"Config error: {e}"), None
 
-    model = _ModelAdapter(m)
+    model_key = p.get("price_model", "bub")
+    model = _ModelAdapter(m, model_key=model_key)
 
     try:
         result = simulate(config, model)

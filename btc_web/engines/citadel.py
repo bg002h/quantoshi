@@ -466,7 +466,8 @@ def _initial_state(config: SimConfig, model: "PriceModel | None" = None) -> Cita
 
 
 def step(state: CitadelState, config: SimConfig,
-         btc_price_new: float, rng: np.random.Generator) -> CitadelState:
+         btc_price_new: float, rng: np.random.Generator,
+         model: "PriceModel | None" = None) -> CitadelState:
     """Advance simulation by one period. Returns new state (does not mutate input)."""
     from copy import deepcopy
     new = deepcopy(state)
@@ -493,8 +494,11 @@ def step(state: CitadelState, config: SimConfig,
     # 3. Enforce floor rules
     _enforce_floors(new, config)
 
-    # 4. Compute BTC quantile (use model if available, else 0.5)
-    btc_quantile = 0.5  # default if no model available
+    # 4. Compute BTC quantile from price via model
+    if model is not None:
+        btc_quantile = model.quantile_at(new.btc_price, new.t)
+    else:
+        btc_quantile = 0.5
 
     # 5. Evaluate rebalancing triggers
     _evaluate_rebalancing(new, config, btc_quantile)
@@ -509,12 +513,16 @@ def step(state: CitadelState, config: SimConfig,
     new.period_spend = period_spend
     new.spending_shortfall = _apply_spending_waterfall(new, period_spend)
 
-    # 7. Depletion check
-    total = (new.btc_stack * new.btc_price + new.cash
-             + sum(new.reserves) + sum(new.investments))
-    # (depletion tracking happens in simulate() runner)
+    # 7. SCF perpetual loan repayment check
+    if new.scf_active and config.scf_type == "perpetual":
+        years_elapsed_scf = new.period / ppy
+        if years_elapsed_scf > 0 and new.btc_cost_basis > 0:
+            btc_annual_return = (new.btc_price / new.btc_cost_basis) ** (
+                1 / years_elapsed_scf) - 1
+        else:
+            btc_annual_return = 0.0
+        _scf_check_repay(new, config, btc_annual_return)
 
-    new.rebal_event = new.rebal_event  # preserve for logging
     return new
 
 
@@ -681,7 +689,7 @@ def simulate(config: SimConfig, model: PriceModel,
                                            sim_mode="deterministic", q=q)
             else:
                 raise NotImplementedError("MC mode requires Markov engine integration")
-            new_state = step(state, config, btc_price, rng)
+            new_state = step(state, config, btc_price, rng, model=model)
             history.append(_snapshot_state(new_state))
             state = new_state
         all_histories.append(history)

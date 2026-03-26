@@ -213,8 +213,12 @@ def _sim_panel():
                          {"label": "BTC Holdings", "value": "btc"}],
                 value="usd_per_asset", clearable=False),
         ),
+        _mc_controls("cp", amount_label="Spending per period ($)",
+                     amount_default=5000, show_inflation=True, show_stack=True,
+                     default_entry_q=10,
+                     shared_controls={"amount", "infl", "freq", "stack"}),
         _section_card("Chart Settings",
-            _chart_toggles("cp", ["annotate", "log_y", "minor_grid"]),
+            _chart_toggles("cp", ["annotate", "log_y", "show_legend", "minor_grid"]),
             *_legend_pos_dropdown("cp", "bottom-right"),
         ),
     ])

@@ -357,6 +357,76 @@ class TestSnapshotRoundtrip:
     def test_invalid_decode(self):
         assert _decode_snapshot("not-valid-base64!!!") is None
 
+    def test_mc_controls_roundtrip(self):
+        """MC controls survive encode -> decode roundtrip."""
+        state = {f"{cid}:{prop}": None for cid, prop in _SNAPSHOT_CONTROLS}
+        state["dca-mc-enable:value"] = ["yes"]
+        state["dca-mc-start-yr:value"] = 2035
+        state["dca-mc-entry-q:value"] = 30
+        state["dca-mc-years:value"] = 20
+        state["dca-mc-bins:value"] = 7
+        state["dca-mc-regime:value"] = [0, 2, 4]
+        state["dca-mc-sims:value"] = 1600
+        state["dca-mc-window:value"] = [2012, 2024]
+        state["dca-mc-advanced:value"] = ["yes"]
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert decoded["dca-mc-enable:value"] == ["yes"]
+        assert decoded["dca-mc-start-yr:value"] == 2035
+        assert decoded["dca-mc-entry-q:value"] == 30
+        assert decoded["dca-mc-years:value"] == 20
+        assert decoded["dca-mc-bins:value"] == 7
+        assert decoded["dca-mc-regime:value"] == [0, 2, 4]
+        assert decoded["dca-mc-sims:value"] == 1600
+        assert decoded["dca-mc-window:value"] == [2012, 2024]
+        assert decoded["dca-mc-advanced:value"] == ["yes"]
+
+    def test_mc_hybrid_encoding_nulls_disabled_tabs(self):
+        """MC controls encode as null when MC is not enabled on that tab."""
+        state = {f"{cid}:{prop}": None for cid, prop in _SNAPSHOT_CONTROLS}
+        state["dca-mc-enable:value"] = []
+        state["dca-mc-start-yr:value"] = 2035
+        state["dca-mc-bins:value"] = 7
+        state["ret-mc-enable:value"] = ["yes"]
+        state["ret-mc-start-yr:value"] = 2028
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert decoded.get("dca-mc-start-yr:value") is None
+        assert decoded.get("dca-mc-bins:value") is None
+        assert decoded["ret-mc-enable:value"] == ["yes"]
+        assert decoded["ret-mc-start-yr:value"] == 2028
+
+    def test_mc_regime_bitmask_roundtrip(self):
+        """MC regime checklist with int values survives bitmask encode/decode."""
+        state = {f"{cid}:{prop}": None for cid, prop in _SNAPSHOT_CONTROLS}
+        state["sc-mc-enable:value"] = ["yes"]
+        state["sc-mc-regime:value"] = [0, 1, 3]
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert sorted(decoded["sc-mc-regime:value"]) == [0, 1, 3]
+
+    def test_hm_palette_roundtrip(self):
+        """Heatmap palette name survives encode -> decode."""
+        state = {f"{cid}:{prop}": None for cid, prop in _SNAPSHOT_CONTROLS}
+        state["hm-palette:value"] = "ocean"
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert decoded["hm-palette:value"] == "ocean"
+
+    def test_old_link_pads_mc_to_none(self):
+        """Old links with 100 entries decode correctly — MC defaults to None."""
+        import gzip, base64
+        assert len(_SNAPSHOT_CONTROLS) >= 137, "MC controls not yet added"
+        old_values = [None] * 100
+        old_values[0] = [0.5]
+        payload = [old_values, None]
+        encoded = base64.urlsafe_b64encode(
+            gzip.compress(json.dumps(payload, separators=(',', ':')).encode())).decode()
+        decoded = _decode_snapshot(encoded)
+        assert decoded.get("bub-qs:value") == [0.5]
+        assert decoded.get("dca-mc-enable:value") is None
+        assert decoded.get("hm-palette:value") is None
+
 
 # ── _nearest_quantile ─────────────────────────────────────────────────────────
 

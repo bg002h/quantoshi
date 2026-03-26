@@ -691,15 +691,27 @@ def _aggregate_results(all_histories: list[list[dict]], config: SimConfig,
 
 
 def simulate(config: SimConfig, model: PriceModel,
-             rng_seed: int = 42) -> SimResult:
-    """Run n_sims simulations, aggregate results.
-    - For n_sims=1 (deterministic): uses median selected quantile for BTC price.
-    - For n_sims>1 (MC): raises NotImplementedError in v1 (Markov integration TBD).
+             rng_seed: int = 42,
+             price_paths: np.ndarray | None = None) -> SimResult:
+    """Run simulations, aggregate results.
+
+    - price_paths=None, n_sims=1: deterministic mode using median selected quantile
+    - price_paths provided: MC mode — one sim per row in price_paths array
+      shape (n_sims, n_periods). Each sim gets a unique RNG seed for
+      dollar-asset volatility (rng_seed + sim_id).
     """
     validate_config(config)
     ppy = FREQ_PPY[config.freq]
     n_periods = _compute_n_periods(config)
-    rng = np.random.default_rng(rng_seed)
+
+    # Determine sim count
+    if price_paths is not None:
+        n_sims = price_paths.shape[0]
+        if price_paths.shape[1] < n_periods:
+            raise ValueError(
+                f"price_paths has {price_paths.shape[1]} steps, need {n_periods}")
+    else:
+        n_sims = 1  # deterministic
 
     # Build time axis
     from btc_core import yr_to_t
@@ -708,18 +720,18 @@ def simulate(config: SimConfig, model: PriceModel,
     time_axis = np.array([t0 + i * dt for i in range(n_periods)])
 
     all_histories = []
-    for sim_id in range(config.n_sims):
+    for sim_id in range(n_sims):
+        # Each sim gets unique RNG for dollar-asset volatility
+        rng = np.random.default_rng(rng_seed + sim_id)
         state = _initial_state(config, model=model)
         history = []
         for period_idx in range(n_periods):
-            t = time_axis[period_idx]
-            # Get BTC price for this period
-            if config.n_sims == 1:
-                q = config.selected_qs[len(config.selected_qs) // 2] if config.selected_qs else 0.5
-                btc_price = _get_btc_price(t, config, model, rng,
-                                           sim_mode="deterministic", q=q)
+            if price_paths is not None:
+                btc_price = float(price_paths[sim_id, period_idx])
             else:
-                raise NotImplementedError("MC mode requires Markov engine integration")
+                q = config.selected_qs[len(config.selected_qs) // 2] if config.selected_qs else 0.5
+                btc_price = _get_btc_price(time_axis[period_idx], config, model, rng,
+                                           sim_mode="deterministic", q=q)
             new_state = step(state, config, btc_price, rng, model=model)
             history.append(_snapshot_state(new_state))
             state = new_state

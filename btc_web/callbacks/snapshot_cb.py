@@ -34,29 +34,39 @@ def _decode_snapshot_by_prefix(h):
 
 
 @callback(
-    *[Output(cid, prop) for cid, prop in _SNAPSHOT_CONTROLS],
-    Output("snapshot-lots",     "data"),
-    Output("loaded-hash-store", "data"),
+    Output("snapshot-state-store", "data"),
+    Output("loaded-hash-store",    "data"),
     Input("url", "hash"),
     prevent_initial_call=False,
 )
 def restore_from_url(hash_str):
-    """Decode snapshot hash from URL → restore all controls + lots."""
-    n_outs = len(_SNAPSHOT_CONTROLS) + 2
-    blank  = [no_update] * n_outs
+    """Decode snapshot hash from URL → intermediate store for apply_snapshot."""
     if not hash_str:
-        return blank
+        return no_update, no_update
     h = hash_str.lstrip("#")
     state, prefix, encoded = _decode_snapshot_by_prefix(h)
     if not state:
         logger.warning("Snapshot decode failed for hash: %s\u2026", hash_str[:20])
-        return blank
+        return no_update, no_update
     logger.info("Snapshot restored: %d controls, lots=%s",
                 sum(1 for k in state if k != "_lots"), "yes" if "_lots" in state else "no")
+    return state, hash_str
+
+
+@callback(
+    *[Output(cid, prop, allow_duplicate=True) for cid, prop in _SNAPSHOT_CONTROLS],
+    Output("snapshot-lots", "data", allow_duplicate=True),
+    Input("snapshot-state-store", "data"),
+    prevent_initial_call=True,
+)
+def apply_snapshot(state):
+    """Apply decoded snapshot state to all controls."""
+    n_outs = len(_SNAPSHOT_CONTROLS) + 1
+    if not state:
+        return [no_update] * n_outs
     results = [state.get(f"{cid}:{prop}", no_update)
                for cid, prop in _SNAPSHOT_CONTROLS]
     results.append(state.get("_lots", None))  # snapshot-lots
-    results.append(hash_str)                  # loaded-hash-store
     return results
 
 

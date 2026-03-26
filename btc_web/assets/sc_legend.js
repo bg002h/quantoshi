@@ -15,7 +15,7 @@
         var wrapper = document.getElementById(graphId);
         if (!wrapper) return;
         var gd = wrapper.querySelector(".js-plotly-plot") || wrapper;
-        if (gd._scLegendBound) return;
+        if (gd._scLegendBound || typeof gd.on !== "function") return;
         gd._scLegendBound = true;
 
         gd.on("plotly_legendclick", function(eventData) {

@@ -72,6 +72,7 @@ _app_ctx.app.layout = dbc.Container([
     dcc.Interval(id="price-interval", interval=_PRICE_INTERVAL_MS, n_intervals=0),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="viewport-width", storage_type="memory", data=1200),
+    dcc.Store(id="snapshot-state-store", storage_type="memory", data=None),
     dcc.Store(id="ticker-mode-store", storage_type="local", data="usd"),
     dcc.Store(id="splash-ts-store", storage_type="local", data=None),
     dcc.Store(id="lots-store", storage_type="local", data=[]),

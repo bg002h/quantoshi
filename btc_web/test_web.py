@@ -155,7 +155,7 @@ try:
                            update_bubble, update_heatmap, update_dca,
                            update_retire, update_supercharge,
                            manage_lots, preview_percentile,
-                           update_effective_lots, restore_from_url,
+                           update_effective_lots, restore_from_url, apply_snapshot,
                            _toggle_dca_sc_body, auto_bubble_yrange,
                            update_sc_info, toggle_sc_mode,
                            _TAB_CONTROLS, _TAB_TO_PATH)
@@ -3033,20 +3033,23 @@ class TestEffectiveLots:
 @pytest.mark.skipif(_q3 is None, reason="app.py import failed")
 class TestRestoreFromUrl:
     def test_empty_hash(self):
-        result = restore_from_url("")
-        # All no_update
-        assert len(result) == len(_SNAPSHOT_CONTROLS) + 2
+        state, loaded = restore_from_url("")
+        from dash import no_update
+        assert state is no_update
+        assert loaded is no_update
 
     def test_none_hash(self):
-        result = restore_from_url(None)
-        assert len(result) == len(_SNAPSHOT_CONTROLS) + 2
+        state, loaded = restore_from_url(None)
+        from dash import no_update
+        assert state is no_update
 
     def test_invalid_prefix(self):
-        result = restore_from_url("#garbage")
-        assert len(result) == len(_SNAPSHOT_CONTROLS) + 2
+        state, loaded = restore_from_url("#garbage")
+        from dash import no_update
+        assert state is no_update
 
     def test_valid_roundtrip(self):
-        """Encode a snapshot, then decode via restore_from_url."""
+        """Encode a snapshot, then decode via restore_from_url + apply_snapshot."""
         state = {
             "bub-xscale:value": "log",
             "bub-yscale:value": "log",
@@ -3055,14 +3058,16 @@ class TestRestoreFromUrl:
         }
         encoded = _encode_snapshot(state)
         hash_str = f"#q3:{encoded}"
-        result = restore_from_url(hash_str)
-        assert len(result) == len(_SNAPSHOT_CONTROLS) + 2
-        # main-tabs should be restored
+        decoded, loaded_hash = restore_from_url(hash_str)
+        assert loaded_hash == hash_str
+        assert isinstance(decoded, dict)
+        assert decoded["main-tabs:active_tab"] == "bubble"
+        # Apply to controls
+        result = apply_snapshot(decoded)
+        assert len(result) == len(_SNAPSHOT_CONTROLS) + 1
         main_tab_idx = next(i for i, (cid, _) in enumerate(_SNAPSHOT_CONTROLS)
                            if cid == "main-tabs")
         assert result[main_tab_idx] == "bubble"
-        # loaded-hash-store should be set
-        assert result[-1] == hash_str
 
 
 @pytest.mark.skipif(_q3 is None, reason="app.py import failed")

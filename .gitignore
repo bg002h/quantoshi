@@ -34,10 +34,7 @@ oldpp/
 github/
 gunicorn.ctl
 
-# Proprietary Markov/MC module (not open source)
-btc_web/markov.py
-btc_web/markov*.so
-btc_web/markov.c
+# Markov/MC build script (source .pyx is the canonical version)
 btc_web/build_markov.py
 btc_web/.trans_matrix_cache.pkl
 btc_web/mc_cache/

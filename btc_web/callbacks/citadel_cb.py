@@ -158,7 +158,7 @@ def update_citadel(
         inflation       = _cf(infl, 4.0, lo=0, hi=100),
         spend_growth    = _cf(spend_growth, 0.0, lo=0, hi=100),
         # High-Q trigger
-        high_q_trigger  = _cf(high_q_thresh, 80, lo=1, hi=99),
+        high_q_trigger  = _cf(high_q_thresh, 95, lo=1, hi=99),
         high_q_mode     = high_q_mode or "gradual",
         high_q_rate     = _cf(high_q_rate, 2.0, lo=0.1, hi=100),
         high_q_dur      = _ci(high_q_dur, 6, lo=1, hi=120),
@@ -169,7 +169,7 @@ def update_citadel(
         high_q_split_eq = _cf(high_q_split_eq, 20, lo=0, hi=100),
         high_q_split_bd = _cf(high_q_split_bd, 10, lo=0, hi=100),
         # Low-Q trigger
-        low_q_trigger   = _cf(low_q_thresh, 20, lo=1, hi=99),
+        low_q_trigger   = _cf(low_q_thresh, 5, lo=1, hi=99),
         low_q_mode      = low_q_mode or "lump",
         low_q_rate      = _cf(low_q_rate, 10.0, lo=0.1, hi=100),
         low_q_dur       = _ci(low_q_dur, 1, lo=1, hi=120),

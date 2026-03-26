@@ -229,6 +229,7 @@ class TestRebalancing:
         s.reserves = [10000.0, 10000.0, 10000.0]
         s.investments = [50000.0, 50000.0]
         cfg = SimConfig.default()
+        cfg.high_q_trigger = 0.80  # explicit for test
         cfg.high_q_action = {"mode": "lump", "rate": 10.0, "duration": 1,
             "split": {"cash": 1.0, "res_short": 0.0, "res_med": 0.0,
                       "res_long": 0.0, "inv_eq": 0.0, "inv_bd": 0.0}}
@@ -245,6 +246,7 @@ class TestRebalancing:
         s.reserves = [10000.0, 10000.0, 10000.0]
         s.investments = [50000.0, 50000.0]
         cfg = SimConfig.default()
+        cfg.low_q_trigger = 0.20  # explicit for test
         cfg.low_q_action = {"mode": "lump", "rate": 10.0, "duration": 1,
             "split": {"cash": 0.5, "res_short": 0.0, "res_med": 0.0,
                       "res_long": 0.0, "inv_eq": 0.5, "inv_bd": 0.0}}
@@ -261,6 +263,7 @@ class TestRebalancing:
         s.reserves = [10000.0, 10000.0, 10000.0]
         s.investments = [50000.0, 50000.0]
         cfg = SimConfig.default()
+        cfg.high_q_trigger = 0.80
         cfg.high_q_action = {"mode": "lump", "rate": 10.0, "duration": 1,
             "split": {"cash": 1.0, "res_short": 0.0, "res_med": 0.0,
                       "res_long": 0.0, "inv_eq": 0.0, "inv_bd": 0.0}}
@@ -275,6 +278,7 @@ class TestRebalancing:
         s.reserves = [0.0, 0.0, 0.0]
         s.investments = [0.0, 0.0]
         cfg = SimConfig.default()
+        cfg.high_q_trigger = 0.80
         cfg.high_q_action = {"mode": "gradual", "rate": 5.0, "duration": 3,
             "split": {"cash": 1.0, "res_short": 0.0, "res_med": 0.0,
                       "res_long": 0.0, "inv_eq": 0.0, "inv_bd": 0.0}}

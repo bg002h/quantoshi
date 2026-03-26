@@ -134,9 +134,9 @@ def _rules_panel():
     """Sub-tab 3: Rebalancing triggers, floor rules, Saylor Fortifier."""
     return html.Div([
         _trigger_section("high-q", "High-Quantile Trigger — Take Profits",
-                        80, "gradual", 2.0, 6, "Proceeds distribution (%)"),
+                        95, "gradual", 2.0, 6, "Proceeds distribution (%)"),
         _trigger_section("low-q", "Low-Quantile Trigger — Accumulate BTC",
-                        20, "lump", 10.0, 1, "Source allocation (%)"),
+                        5, "lump", 10.0, 1, "Source allocation (%)"),
         _section_card("Global Lump Cooldown",
             _lbl("Minimum periods between lump actions"),
             dbc.Input(id="cp-lump-cooldown", type="number", value=12, min=1, step=1),

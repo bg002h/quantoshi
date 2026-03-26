@@ -24,6 +24,7 @@ _MC_BTN_TO_TAB = {
     "ret-mc-run-btn": "ret",
     "hm-mc-run-btn":  "hm",
     "sc-mc-run-btn":  "sc",
+    "cp-mc-run-btn":  "cp",
 }
 
 _MC_QUANT_THRESHOLD = 50_000  # sats — trigger quant warning modal
@@ -40,11 +41,12 @@ _MC_QUANT_THRESHOLD = 50_000  # sats — trigger quant warning modal
     Output("mc-quant-cost-info", "children", allow_duplicate=True),
     Output("mc-quant-onchain-note", "children", allow_duplicate=True),
     *(Output(f"{pfx}-mc-run-status", "children", allow_duplicate=True)
-      for pfx in ("dca", "ret", "hm", "sc")),
+      for pfx in ("dca", "ret", "hm", "sc", "cp")),
     Input("dca-mc-run-btn", "n_clicks"),
     Input("ret-mc-run-btn", "n_clicks"),
     Input("hm-mc-run-btn",  "n_clicks"),
     Input("sc-mc-run-btn",  "n_clicks"),
+    Input("cp-mc-run-btn",  "n_clicks"),
     State("dca-mc-years", "value"), State("dca-mc-start-yr", "value"),
     State("dca-mc-entry-q", "value"),
     State("ret-mc-years", "value"), State("ret-mc-start-yr", "value"),
@@ -53,9 +55,11 @@ _MC_QUANT_THRESHOLD = 50_000  # sats — trigger quant warning modal
     State("hm-mc-entry-q", "value"),
     State("sc-mc-years", "value"), State("sc-mc-start-yr", "value"),
     State("sc-mc-entry-q", "value"),
+    State("cp-mc-years", "value"), State("cp-mc-start-yr", "value"),
+    State("cp-mc-entry-q", "value"),
     State("mc-pay-trigger", "data"),
-    *(State(f"{pfx}-mc-model-src", "value") for pfx in ("dca", "ret", "hm", "sc")),
-    *(State(f"{pfx}-mc-price-val", "data") for pfx in ("dca", "ret", "hm", "sc")),
+    *(State(f"{pfx}-mc-model-src", "value") for pfx in ("dca", "ret", "hm", "sc", "cp")),
+    *(State(f"{pfx}-mc-price-val", "data") for pfx in ("dca", "ret", "hm", "sc", "cp")),
     prevent_initial_call=True,
 )
 def _mc_payment_initiate(*args):
@@ -68,21 +72,23 @@ def _mc_payment_initiate(*args):
 
     # Extract the relevant tab's MC params from states
     tab_idx = list(_MC_BTN_TO_TAB.keys()).index(triggered)
-    # Layout: 4 Inputs, then (years, start_yr, entry_q) × 4 tabs, trigger, 4 prices
-    state_base = 4  # skip the 4 button Inputs
+    n_tabs = len(_MC_BTN_TO_TAB)  # 5 tabs
+    # Layout: n_tabs Inputs, then (years, start_yr, entry_q) × n_tabs, trigger, n_tabs model_srcs, n_tabs prices
+    state_base = n_tabs  # skip the button Inputs
     mc_years  = _ci(args[state_base + tab_idx * 3],     MC_DEFAULT_YEARS)
     start_yr  = _ci(args[state_base + tab_idx * 3 + 1], MC_DEFAULT_START_YR)
     entry_q   = _cf(args[state_base + tab_idx * 3 + 2], MC_DEFAULT_ENTRY_Q)
-    cur_trigger = args[state_base + 12] or 0  # after 4×3 tab states
-    # Model source: 4 values after trigger
-    model_srcs = args[state_base + 13 : state_base + 17]
+    cur_trigger = args[state_base + n_tabs * 3] or 0  # after n_tabs×3 tab states
+    # Model source: n_tabs values after trigger
+    model_srcs = args[state_base + n_tabs * 3 + 1 : state_base + n_tabs * 3 + 1 + n_tabs]
     mc_model_src = model_srcs[tab_idx] or "bub"
-    # Price stores: 4 values after model sources
-    price_vals = args[state_base + 17 : state_base + 21]
+    # Price stores: n_tabs values after model sources
+    price_start = state_base + n_tabs * 3 + 1 + n_tabs
+    price_vals = args[price_start : price_start + n_tabs]
     tab_price = _ci(price_vals[tab_idx], 0)
 
     # Default outputs: modal closed, no change to per-tab status
-    no_tab_status = [dash.no_update] * 4
+    no_tab_status = [dash.no_update] * n_tabs
     # Helper: base return with quant modal closed
     def _ret(*vals):
         """Insert quant-modal defaults (closed, no update) into return tuple."""

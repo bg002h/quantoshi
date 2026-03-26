@@ -90,7 +90,7 @@ _app_ctx.app.clientside_callback(
     # ── Global ──
     Input("effective-lots",      "data"),
     Input("palette-store",       "data"),
-    prevent_initial_call=False,
+    prevent_initial_call=True,
 )
 def update_citadel(
     active_tab,

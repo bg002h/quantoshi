@@ -82,6 +82,7 @@ _app_ctx.app.clientside_callback(
     Input("cp-freq",             "value"),
     Input("cp-model-src",        "value"),
     Input("cp-qs",               "value"),
+    Input("cp-mc-sims",          "value"),
     Input("cp-disp",             "value"),
     Input("cp-toggles",          "value"),
     Input("cp-legend-pos",       "value"),
@@ -116,7 +117,7 @@ def update_citadel(
     # SCF
     scf_enable, scf_amount, scf_type, scf_rate, scf_term, scf_trigger,
     # Simulation
-    yr_range, freq, model_src, sel_qs, disp, toggles, legend_pos,
+    yr_range, freq, model_src, sel_qs, mc_sims, disp, toggles, legend_pos,
     # Global
     lots_data, palette_key,
 ):
@@ -195,6 +196,7 @@ def update_citadel(
         end_yr          = int(yr_range[1]),
         freq            = freq or "Monthly",
         price_model     = model_src or "bub",
+        n_sims          = _ci(mc_sims, 1, lo=1),
         selected_qs     = sel_qs or [0.01, 0.10, 0.25],
         disp_mode       = disp or "usd_per_asset",
         # Chart toggles

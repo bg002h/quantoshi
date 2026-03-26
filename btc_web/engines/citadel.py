@@ -491,19 +491,16 @@ def step(state: CitadelState, config: SimConfig,
                               deterministic=is_deterministic, rng=rng)
         new.investments[i] *= (1 + r)
 
-    # 3. Enforce floor rules
-    _enforce_floors(new, config)
-
-    # 4. Compute BTC quantile from price via model
+    # 3. Compute BTC quantile from price via model
     if model is not None:
         btc_quantile = model.quantile_at(new.btc_price, new.t)
     else:
         btc_quantile = 0.5
 
-    # 5. Evaluate rebalancing triggers
+    # 4. Evaluate rebalancing triggers
     _evaluate_rebalancing(new, config, btc_quantile)
 
-    # 6. Spending
+    # 5. Spending
     years_elapsed = new.period / ppy
     combined_rate = (config.inflation + config.spend_growth) / 100
     period_spend = config.monthly_spend * (1 + combined_rate) ** years_elapsed
@@ -512,6 +509,9 @@ def step(state: CitadelState, config: SimConfig,
     period_spend *= (12 / ppy)  # scale monthly base to period frequency
     new.period_spend = period_spend
     new.spending_shortfall = _apply_spending_waterfall(new, period_spend)
+
+    # 6. Enforce floor rules (AFTER spending, so floors replenish drawdowns)
+    _enforce_floors(new, config)
 
     # 7. SCF perpetual loan repayment check
     if new.scf_active and config.scf_type == "perpetual":

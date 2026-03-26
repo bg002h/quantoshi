@@ -251,9 +251,27 @@ def _distribute_to_accounts(state: CitadelState, amount: float, split: dict) -> 
 
 def _source_from_accounts(state: CitadelState, amount: float, split: dict) -> float:
     """Draw `amount` from accounts according to `split` fractions.
-    Returns actual amount sourced (may be less if accounts insufficient)."""
-    total_sourced = 0.0
-    targets = [
+    Returns actual amount sourced (may be less if total insufficient).
+    When one account can't cover its share, shortfall is redistributed
+    proportionally to remaining accounts with nonzero allocation."""
+    def _get_balance(acct):
+        if acct == "cash":
+            return state.cash
+        if acct.startswith("res_"):
+            return state.reserves[int(acct[-1])]
+        if acct.startswith("inv_"):
+            return state.investments[int(acct[-1])]
+        return 0.0
+
+    def _debit(acct, amt):
+        if acct == "cash":
+            state.cash -= amt
+        elif acct.startswith("res_"):
+            state.reserves[int(acct[-1])] -= amt
+        elif acct.startswith("inv_"):
+            state.investments[int(acct[-1])] -= amt
+
+    accounts = [
         ("cash", split.get("cash", 0)),
         ("res_0", split.get("res_short", 0)),
         ("res_1", split.get("res_med", 0)),
@@ -261,24 +279,31 @@ def _source_from_accounts(state: CitadelState, amount: float, split: dict) -> fl
         ("inv_0", split.get("inv_eq", 0)),
         ("inv_1", split.get("inv_bd", 0)),
     ]
-    for acct, frac in targets:
-        want = amount * frac
-        if want <= 0:
-            continue
-        if acct == "cash":
-            got = min(state.cash, want)
-            state.cash -= got
-        elif acct.startswith("res_"):
-            i = int(acct[-1])
-            got = min(state.reserves[i], want)
-            state.reserves[i] -= got
-        elif acct.startswith("inv_"):
-            i = int(acct[-1])
-            got = min(state.investments[i], want)
-            state.investments[i] -= got
-        else:
-            got = 0
-        total_sourced += got
+
+    remaining = amount
+    total_sourced = 0.0
+    active = [(a, f) for a, f in accounts if f > 0]
+
+    # Iteratively source, redistributing shortfalls
+    while remaining > 0.01 and active:
+        frac_sum = sum(f for _, f in active)
+        if frac_sum <= 0:
+            break
+        next_active = []
+        shortfall = 0.0
+        for acct, frac in active:
+            want = remaining * (frac / frac_sum)
+            avail = _get_balance(acct)
+            got = min(avail, want)
+            _debit(acct, got)
+            total_sourced += got
+            if got < want - 0.01:
+                shortfall += want - got
+            else:
+                next_active.append((acct, frac))
+        remaining = shortfall
+        active = next_active
+
     return total_sourced
 
 def _execute_sell_btc(state: CitadelState, rate_pct: float, split: dict) -> dict:

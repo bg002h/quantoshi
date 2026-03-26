@@ -188,7 +188,9 @@ def _enforce_floors(state: CitadelState, config: SimConfig) -> None:
     4. Reserve Medium (index 1)
     5. Reserve Short (index 0)
     6. Cash (only for reserve replenishment, not self-replenishment)
-    BTC is NEVER sold for floors."""
+    7. BTC (last resort, for CASH FLOOR ONLY — ensures the retirement
+       spending account stays funded even when all dollar assets are depleted)
+    Reserve floors do NOT sell BTC — they only redistribute among dollar accounts."""
     accounts_to_check = []
     if config.cash_floor > 0:
         accounts_to_check.append(("cash", config.cash_floor))
@@ -231,6 +233,15 @@ def _enforce_floors(state: CitadelState, config: SimConfig) -> None:
             else:
                 draw = 0
             deficit -= draw
+
+        # BTC last resort — only for cash floor
+        if deficit > 0 and acct_key == "cash":
+            if state.btc_stack > 0 and state.btc_price > 0:
+                btc_needed = deficit / state.btc_price
+                btc_sold = min(state.btc_stack, btc_needed)
+                draw = btc_sold * state.btc_price
+                state.btc_stack -= btc_sold
+                deficit -= draw
 
         replenished = (floor - current) - deficit
         if acct_key == "cash":

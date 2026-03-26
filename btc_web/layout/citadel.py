@@ -144,7 +144,7 @@ def _rules_panel():
         _section_card("Account Floor Rules",
             html.Small("Minimum balances maintained each period", style=_STYLE_HINT),
             _lbl("Cash floor ($)"),
-            dbc.Input(id="cp-cash-floor", type="number", value=0, min=0, step=1),
+            dbc.Input(id="cp-cash-floor", type="number", value=50000, min=0, step=1),
             _lbl("Reserve Short floor ($)"),
             dbc.Input(id="cp-res-short-floor", type="number", value=0, min=0, step=1),
             _lbl("Reserve Medium floor ($)"),

@@ -459,8 +459,8 @@ _app_ctx.app.layout = dbc.Container([
         dbc.Tab(_supercharge_tab(),  label="\u26A1 HODL Supercharger",   tab_id="supercharge"),
         dbc.Tab(_stack_tracker_tab(),label="\U0001F5DD\uFE0F Stack Tracker",       tab_id="stack"),
         dbc.Tab(_model_info_tab(),   label="\U0001F4D0 Model Info",      tab_id="model_info"),
-        dbc.Tab(_citadel_tab(),      label="\U0001F3F0 Citadel Planner", tab_id="citadel"),
         dbc.Tab(_faq_tab(),          label="\u2753 FAQ",                 tab_id="faq"),
+        dbc.Tab(_citadel_tab(),      label="\U0001F3F0 Citadel Planner", tab_id="citadel"),
     ], id="main-tabs", active_tab="bubble"),
     # ── Footer: block height + halving countdown + doc links ──────────────
     html.Div([

@@ -118,7 +118,7 @@ _app_ctx.app.clientside_callback(
     State("mc-pay-token",        "data"),
     State("cp-mc-unblocked",     "data"),
     State("cp-mc-rendered-key",  "data"),
-    prevent_initial_call=True,
+    prevent_initial_call=False,
 )
 def update_citadel(
     active_tab, run_clicks, _pay_trigger, _mc_loaded,
@@ -157,8 +157,9 @@ def update_citadel(
     # MC states
     price_data, mc_cached, pay_token, mc_unblocked, mc_auth,
 ):
-    """Citadel Planner chart callback — runs on Run button click only."""
-    if ctx.triggered_id == "main-tabs" and active_tab != "citadel":
+    """Citadel Planner chart callback."""
+    # Skip if another tab is active (tab switch away, or initial load on different tab)
+    if active_tab != "citadel" and ctx.triggered_id in ("main-tabs", None):
         raise dash.exceptions.PreventUpdate
 
     # Only run simulation when Run button clicked, payment trigger fires,

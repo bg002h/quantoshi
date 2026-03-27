@@ -165,9 +165,21 @@ def update_citadel(
     if ctx.triggered_id not in ("cp-run-btn", "mc-pay-trigger", "cp-mc-loaded", None):
         raise dash.exceptions.PreventUpdate
 
-    # Show instructions if Run hasn't been clicked yet
+    # Before first click: try loading default cached chart from Redis
     if not run_clicks and ctx.triggered_id != "mc-pay-trigger":
         import plotly.graph_objects as go
+        import plotly.io as pio
+        try:
+            from cache import get_citadel_cached
+            # Default: bubble model, Q25%
+            cached = get_citadel_cached("default:bub:q0.25")
+            if cached and cached.get("figure"):
+                fig = pio.from_json(cached["figure"])
+                return (fig, dash.no_update, dash.no_update, dash.no_update,
+                        dash.no_update, dash.no_update, dash.no_update)
+        except Exception:
+            pass
+        # Fallback: show instructions
         fig = go.Figure()
         fig.add_annotation(
             text="Configure your settings, then click<br><b>Run Simulation</b>",

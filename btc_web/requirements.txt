@@ -7,3 +7,5 @@ scipy
 statsmodels
 PySocks>=1.7.1
 qrcode>=7.0
+redis
+celery

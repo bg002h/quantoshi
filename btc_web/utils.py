@@ -52,19 +52,53 @@ def _quantize_params(p: dict) -> dict:
 # date in the key so the "today" line stays fresh (natural daily expiry).
 # Server restarts on deploy clear all caches.
 
-def _make_cached_builder(builder_fn, maxsize=64):
+def _make_cached_builder(builder_fn, maxsize=64, prefix="fig"):
+    """Create an LRU-cached figure builder with optional Redis L2.
+
+    L1: per-worker @lru_cache (fast, no I/O)
+    L2: shared Redis cache (slower, but shared across all workers)
+    """
     @lru_cache(maxsize=maxsize)
     def _cached(key: str):
-        return builder_fn(_app_ctx.M, json.loads(key))
+        # L2: check Redis before computing
+        try:
+            from cache import get_cached, set_cached, redis_available
+            if redis_available():
+                hit = get_cached(prefix, key)
+                if hit is not None:
+                    import plotly.io as pio
+                    fig_data = hit.get("figure")
+                    mc_data = hit.get("mc_result")
+                    if fig_data:
+                        fig = pio.from_json(fig_data)
+                        return fig, mc_data
+        except Exception:
+            pass
+
+        # L2 miss — compute
+        result = builder_fn(_app_ctx.M, json.loads(key))
+
+        # Store in Redis L2
+        try:
+            from cache import set_cached, redis_available
+            if redis_available():
+                fig, mc = result if isinstance(result, tuple) else (result, None)
+                data = {"figure": fig.to_json() if hasattr(fig, 'to_json') else None,
+                        "mc_result": mc}
+                set_cached(prefix, key, data)
+        except Exception:
+            pass
+
+        return result
     return _cached
 
-_cached_bubble_fig      = _make_cached_builder(build_bubble_figure)
-_cached_heatmap_fig     = _make_cached_builder(build_heatmap_figure)
-_cached_dca_fig         = _make_cached_builder(build_dca_figure)
-_cached_retire_fig      = _make_cached_builder(build_retire_figure)
-_cached_supercharge_fig = _make_cached_builder(build_supercharge_figure)
-_cached_mc_heatmap_fig  = _make_cached_builder(build_mc_heatmap_figure)
-_cached_citadel_fig     = _make_cached_builder(build_citadel_figure)
+_cached_bubble_fig      = _make_cached_builder(build_bubble_figure, prefix="bub")
+_cached_heatmap_fig     = _make_cached_builder(build_heatmap_figure, prefix="hm")
+_cached_dca_fig         = _make_cached_builder(build_dca_figure, prefix="dca")
+_cached_retire_fig      = _make_cached_builder(build_retire_figure, prefix="ret")
+_cached_supercharge_fig = _make_cached_builder(build_supercharge_figure, prefix="sc")
+_cached_mc_heatmap_fig  = _make_cached_builder(build_mc_heatmap_figure, prefix="hm_mc")
+_cached_citadel_fig     = _make_cached_builder(build_citadel_figure, prefix="cp")
 
 _ALL_CACHES = {
     "bubble": _cached_bubble_fig,

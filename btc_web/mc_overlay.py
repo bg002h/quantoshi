@@ -899,9 +899,26 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
         resampled[s] = np.interp(mc_indices, np.arange(price_paths.shape[1]),
                                  price_paths[s])
 
-    # Run citadel engine with MC price paths
+    # Run citadel engine with MC price paths — use Celery if available
     try:
-        result = _citadel_sim(citadel_config, citadel_model, price_paths=resampled)
+        from engines.adapter import submit_simulation, _HAS_CELERY
+        if _HAS_CELERY:
+            task_or_result = submit_simulation(
+                citadel_config, citadel_model,
+                price_paths=resampled, use_celery=True)
+            # Check if it's an AsyncResult (Celery) or SimResult (in-process)
+            if hasattr(task_or_result, 'ready'):
+                # Celery task — check if already done
+                if task_or_result.ready():
+                    from engines.citadel import SimResult
+                    result = SimResult.from_dict(task_or_result.get(timeout=5))
+                else:
+                    # Task submitted but not done — return pending marker
+                    return [], {"_celery_task_id": task_or_result.id, "_pending": True}
+            else:
+                result = task_or_result
+        else:
+            result = _citadel_sim(citadel_config, citadel_model, price_paths=resampled)
     except (ValueError, NotImplementedError):
         return [], None
 

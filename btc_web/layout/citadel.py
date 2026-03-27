@@ -202,7 +202,7 @@ def _sim_panel():
             _lbl("Year range"),
             dcc.RangeSlider(id="cp-yr-range", min=2025, max=2080,
                 value=[2031, 2075], step=1,
-                marks={y: str(y) for y in range(2025, 2081, 5)}),
+                marks={y: f"'{y % 100:02d}" for y in range(2030, 2081, 10)}),
             _lbl("Frequency"),
             dcc.Dropdown(id="cp-freq",
                 options=[{"label": "Monthly", "value": "Monthly"},
@@ -258,6 +258,9 @@ def _sim_panel():
 def _citadel_controls():
     """All controls in inner tabbed sub-panels."""
     return html.Div([
+        # Celery task polling interval (disabled until MC task submitted)
+        dcc.Interval(id="cp-celery-poll", interval=3000, disabled=True,
+                     max_intervals=100, n_intervals=0),
         # Run button + instructions
         dbc.Button("\u25B6  Run Simulation", id="cp-run-btn",
                    color="warning", className="w-100 mb-2 fw-bold",
@@ -276,7 +279,37 @@ def _citadel_controls():
 
 
 def _citadel_tab():
-    """Tab 9 layout: controls (left) + graph (right) + export row."""
-    return _chart_tab_layout(
+    """Tab 9 layout: controls (left) + graph (right) + export row.
+
+    Loads a pre-computed default figure from Redis cache (if available)
+    so the chart renders instantly on first visit without a callback."""
+    import plotly.io as pio
+    initial_fig = None
+    try:
+        from cache import get_citadel_cached
+        cached = get_citadel_cached("default:bub:q0.25")
+        if cached and cached.get("figure"):
+            initial_fig = pio.from_json(cached["figure"])
+    except Exception:
+        pass
+
+    layout = _chart_tab_layout(
         _citadel_controls, "citadel-graph", "btc_citadel", mc_prefix="cp",
     )
+    # Inject initial figure into the dcc.Graph component
+    if initial_fig is not None:
+        _inject_initial_figure(layout, "citadel-graph", initial_fig)
+    return layout
+
+
+def _inject_initial_figure(layout, graph_id, fig):
+    """Walk the layout tree and set the initial figure on the Graph component."""
+    if hasattr(layout, 'children'):
+        children = layout.children
+        if isinstance(children, list):
+            for child in children:
+                _inject_initial_figure(child, graph_id, fig)
+        elif children is not None:
+            _inject_initial_figure(children, graph_id, fig)
+    if hasattr(layout, 'id') and layout.id == graph_id:
+        layout.figure = fig

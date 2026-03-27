@@ -26,32 +26,40 @@ class _ModelAdapter:
     """Adapts _app_ctx price model + ModelData to engines.citadel.PriceModel protocol.
 
     Precomputes a quantile lookup grid for fast quantile_at() calls during
-    MC simulations (avoids 50-iteration bisection per step)."""
-
-    _Q_GRID = np.linspace(0.001, 0.999, 200)  # 200-point quantile grid
+    MC simulations. Uses the model's own quantile keys (fits dict) to avoid
+    KeyError on models that don't interpolate (PL, QR, LPPL, EXP).
+    BUB and EF interpolate internally; others require exact key matches."""
 
     def __init__(self, m: ModelData, model_key: str = "bub"):
         self._model = _app_ctx.PRICE_MODELS.get(model_key, _app_ctx.DEFAULT_MODEL)
         self.fits = self._model.fits if hasattr(self._model, "fits") else {}
         self.genesis = m.genesis
-        self._price_grid_cache = {}  # t -> (qs, prices) for interpolation
+        self._price_grid_cache = {}  # t_key -> (q_grid, prices)
+        self._quantized = getattr(self._model, 'quantized', True)
+        # Build the quantile grid from model's actual fits keys
+        if self.fits:
+            self._q_grid = np.array(sorted(self.fits.keys()))
+        else:
+            # Non-quantized model (e.g., S2F) — use single median point
+            self._q_grid = np.array([0.5])
 
     def price_at(self, q: float, t: float) -> float:
         return float(self._model.price_at(q, max(t, 0.5)))
 
     def _get_price_grid(self, t: float):
-        """Get or build the price grid for time t."""
+        """Get or build price grid for time t using model's quantile keys."""
         t_key = round(t * 12) / 12  # cache at monthly granularity
         if t_key not in self._price_grid_cache:
-            prices = np.array([self.price_at(q, t) for q in self._Q_GRID])
+            prices = np.array([self.price_at(q, t) for q in self._q_grid])
             self._price_grid_cache[t_key] = prices
         return self._price_grid_cache[t_key]
 
     def quantile_at(self, price: float, t: float) -> float:
         """Fast numpy interpolation using precomputed price grid."""
+        if len(self._q_grid) < 2:
+            return 0.5  # non-quantized model, no inversion possible
         prices = self._get_price_grid(t)
-        # prices is monotonically increasing (higher quantile = higher price)
-        q = float(np.interp(price, prices, self._Q_GRID))
+        q = float(np.interp(price, prices, self._q_grid))
         return max(0.001, min(q, 0.999))
 
 
@@ -313,11 +321,14 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
 
     # MC overlay — generate fan band traces from Markov price paths
     mc_result = None
+    mc_pending = False
     try:
         from mc_overlay import _mc_citadel_overlay, _HAS_MARKOV
         if _HAS_MARKOV and p.get("mc_enabled"):
             mc_traces, mc_result = _mc_citadel_overlay(m, p, config, model)
-            if mc_traces:
+            if mc_result and isinstance(mc_result, dict) and mc_result.get("_pending"):
+                mc_pending = True  # Celery task submitted, not done yet
+            elif mc_traces:
                 traces.extend(mc_traces)
     except ImportError:
         pass
@@ -325,6 +336,8 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     q_label = f"Q{config.selected_qs[0]*100:g}%" if config.selected_qs else "Q25%"
     ylabel = "BTC Remaining" if disp_mode == "btc" else "USD Value"
     title = f"Citadel Planner \u2014 {fmt_price(config.monthly_spend)}/mo \u00b7 {q_label}"
+    if mc_pending:
+        title += "  \u00b7  MC computing..."
 
     layout, _x_end = _sim_layout(m, p, title, ylabel, ts, t_start, t_end, dt, syr, eyr)
     layout["annotations"] = deplete_annots

@@ -90,8 +90,14 @@ PYTHONPATH=".:archive/btc_app:btc_web" btc_venv/bin/python3 -c "import sys; sys.
 ### Deploy to production (Hetzner VPS)
 ```bash
 git push origin master
-ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && systemctl restart quantoshi"
+ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && redis-cli FLUSHDB && systemctl restart quantoshi"
 ```
+**After price data update** (new model_data.pkl), also regenerate Citadel cache:
+```bash
+ssh root@89.167.70.45 "PYTHONPATH=/opt/quantoshi:/opt/quantoshi/btc_app:/opt/quantoshi/archive/btc_app:/opt/quantoshi/btc_web \
+    btc_venv/bin/python3 btc_web/generate_citadel_cache.py"
+```
+Redis flush clears stale cache entries from old model data. New fingerprinted entries are built fresh on first request + Citadel cache regeneration.
 
 ---
 

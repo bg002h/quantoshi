@@ -1,8 +1,7 @@
 #!/bin/bash
-# Daily Bitcoin price update — run via cron.
-# Updates CSV, re-runs notebook, commits and pushes.
-# The production server is NOT restarted automatically.
-# Run ~/bin/quantoshi-restart manually when ready.
+# Daily Bitcoin price update — run via systemd timer at 6 AM.
+# Updates CSV, re-runs notebook, commits, pushes, and auto-deploys.
+# Deploy chain: git pull → redis-cli FLUSHDB → restart → regen Citadel cache.
 set -eo pipefail
 
 cd /scratch/code/bitcoinprojections
@@ -43,4 +42,15 @@ if ! git push origin master; then
     exit 1
 fi
 
-echo "$(date '+%Y-%m-%d %H:%M:%S') — Update complete. Run quantoshi-restart to deploy."
+# Deploy to production: pull, flush stale Redis cache, restart, regen Citadel cache
+echo "$(date '+%Y-%m-%d %H:%M:%S') — Deploying to production..."
+if ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && redis-cli FLUSHDB && systemctl restart quantoshi" 2>&1; then
+    echo "Production restarted. Regenerating Citadel cache..."
+    ssh root@89.167.70.45 "cd /opt/quantoshi && \
+        PYTHONPATH='/opt/quantoshi:/opt/quantoshi/btc_app:/opt/quantoshi/archive/btc_app:/opt/quantoshi/btc_web' \
+        btc_venv/bin/python3 btc_web/generate_citadel_cache.py" 2>&1 || true
+    echo "$(date '+%Y-%m-%d %H:%M:%S') — Deploy complete."
+else
+    notify_failure "Production deploy failed"
+    exit 1
+fi

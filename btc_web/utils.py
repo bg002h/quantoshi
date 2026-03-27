@@ -246,7 +246,22 @@ def _fetch_btc_price():
     global _fail_streak, _circuit_open_until
     now = time.time()
 
-    # TTL cache — return recent price without hitting APIs
+    # Check Redis first (populated by Celery Beat every 20min)
+    try:
+        from cache import _REDIS, _HAS_REDIS
+        if _HAS_REDIS:
+            cached = _REDIS.get("btc:price")
+            if cached:
+                import json as _json
+                price = _json.loads(cached).get("price")
+                if price:
+                    _price_cache["price"] = price
+                    _price_cache["ts"] = now
+                    return price
+    except Exception:
+        pass
+
+    # In-process TTL cache — return recent price without hitting APIs
     if _price_cache["price"] is not None and now - _price_cache["ts"] < _PRICE_TTL:
         return _price_cache["price"]
 

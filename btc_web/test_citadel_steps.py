@@ -555,26 +555,32 @@ class TestSCFTermLoan:
         assert state.btc_stack == pytest.approx(1.6, abs=1e-6), (
             f"BTC should be 1.0 + 0.6 = 1.6, got {state.btc_stack}")
 
-        # Each month: spending = $3K base + $monthly_pmt loan payment
+        # Months 1-11: spending = $3K base + $monthly_pmt loan payment
         total_monthly = 3_000.0 + monthly_pmt
-        for month in range(1, 13):
+        for month in range(1, 12):
             state = step(state, cfg, 100_000.0, rng, model=model)
             expected_cash = 500_000.0 - total_monthly * month
             assert state.cash == pytest.approx(expected_cash, abs=1.0), (
                 f"Month {month}: cash ${state.cash:.2f} != expected ${expected_cash:.2f}")
-            # BTC unchanged (no rebalancing, no BTC spending needed)
-            assert state.btc_stack == pytest.approx(1.6, abs=1e-6), (
-                f"Month {month}: BTC should remain at 1.6, got {state.btc_stack}")
+            assert state.scf_active is True, f"Month {month}: SCF should still be active"
 
-        # The engine doesn't auto-retire term loans after scf_term months —
-        # scf_active stays True, so loan payments continue indefinitely.
-        # This documents actual engine behavior (potential future enhancement).
+        # Month 12: loan retires at start of step (before payment), so only base spend
+        cash_before_12 = state.cash
+        state = step(state, cfg, 100_000.0, rng, model=model)
+        assert state.scf_active is False, "SCF should be retired after 12 months"
+        assert state.scf_outstanding == 0.0, "Outstanding should be $0 after retirement"
+        actual_spend_12 = cash_before_12 - state.cash
+        assert actual_spend_12 == pytest.approx(3_000.0, abs=1.0), (
+            f"Month 12: loan retired, only base spending. "
+            f"Spend ${actual_spend_12:.2f}, expected $3,000")
+
+        # Month 13: still only base spending
         cash_before_13 = state.cash
         state = step(state, cfg, 100_000.0, rng, model=model)
-        actual_spend = cash_before_13 - state.cash
-        assert actual_spend == pytest.approx(total_monthly, abs=1.0), (
-            f"Month 13: loan payment continues (scf_active stays True). "
-            f"Spend ${actual_spend:.2f}, expected ${total_monthly:.2f}")
+        actual_spend_13 = cash_before_13 - state.cash
+        assert actual_spend_13 == pytest.approx(3_000.0, abs=1.0), (
+            f"Month 13: loan still retired. "
+            f"Spend ${actual_spend_13:.2f}, expected $3,000")
 
 
 # ===================================================================

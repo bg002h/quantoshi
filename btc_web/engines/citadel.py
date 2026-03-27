@@ -622,7 +622,15 @@ def step(state: CitadelState, config: SimConfig,
     combined_rate = (config.inflation + config.spend_growth) / 100
     period_spend = config.monthly_spend * (1 + combined_rate) ** years_elapsed
     if new.scf_active:
-        period_spend += _scf_payment_amount(config, ppy)
+        # Retire term loan when term expires
+        if config.scf_type == "term":
+            # Term is in months; convert period count to months
+            months_elapsed = new.period * (12 / ppy)
+            if months_elapsed >= config.scf_term:
+                new.scf_active = False
+                new.scf_outstanding = 0.0
+        if new.scf_active:
+            period_spend += _scf_payment_amount(config, ppy)
     period_spend *= (12 / ppy)  # scale monthly base to period frequency
     new.period_spend = period_spend
     new.spending_shortfall = _apply_spending_waterfall(new, period_spend)

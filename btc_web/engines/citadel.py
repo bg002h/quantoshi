@@ -454,8 +454,9 @@ def _lognormal_return(annual_rate: float, annual_vol: float, ppy: int,
     """One-period return using lognormal model. Always > -1.0."""
     if deterministic:
         return (1 + annual_rate) ** (1.0 / ppy) - 1.0
-    if annual_rate <= 0 or annual_vol <= 0:
-        return (1 + annual_rate) ** (1.0 / ppy) - 1.0
+    if annual_vol <= 0:
+        return (1 + max(annual_rate, -0.99)) ** (1.0 / ppy) - 1.0
+    annual_rate = max(annual_rate, -0.99)  # guard: rate > -100%
     sigma_ln = math.sqrt(math.log(1 + (annual_vol / (1 + annual_rate)) ** 2))
     mu_ln = math.log(1 + annual_rate) - sigma_ln ** 2 / 2
     period_mu = mu_ln / ppy
@@ -807,6 +808,8 @@ def simulate(config: SimConfig, model: PriceModel,
       shape (n_sims, n_periods). Each sim gets a unique RNG seed for
       dollar-asset volatility (rng_seed + sim_id).
     """
+    from copy import deepcopy
+    config = deepcopy(config)  # avoid mutating caller's config
     validate_config(config)
     ppy = FREQ_PPY[config.freq]
     n_periods = _compute_n_periods(config)

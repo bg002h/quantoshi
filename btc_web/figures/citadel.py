@@ -131,7 +131,7 @@ def _build_sim_config(p: dict) -> SimConfig:
         "split": low_q_split,
     }
 
-    return SimConfig(
+    cfg = SimConfig(
         price_model=p.get("price_model", "bub"),
         start_stack=float(p.get("start_stack", 1.0)),
         selected_qs=sel_qs,
@@ -170,12 +170,14 @@ def _build_sim_config(p: dict) -> SimConfig:
     )
 
     # Load asset transition matrices when Markov mode selected
-    if config.asset_return_model == "markov":
+    if cfg.asset_return_model == "markov":
         try:
             from data.asset_matrices import load_asset_matrices
-            config.asset_matrices = load_asset_matrices(n_bins=5)
+            cfg.asset_matrices = load_asset_matrices(n_bins=5)
         except Exception:
-            config.asset_return_model = "lognormal"  # fallback
+            cfg.asset_return_model = "lognormal"  # fallback
+
+    return cfg
 
 
 def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict | None]:

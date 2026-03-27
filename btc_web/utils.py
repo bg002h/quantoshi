@@ -62,16 +62,17 @@ def _make_cached_builder(builder_fn, maxsize=64, prefix="fig"):
     def _cached(key: str):
         # L2: check Redis before computing
         try:
-            from cache import get_cached, set_cached, redis_available
+            from cache import get_cached, redis_available
             if redis_available():
                 hit = get_cached(prefix, key)
                 if hit is not None:
                     import plotly.io as pio
                     fig_data = hit.get("figure")
                     mc_data = hit.get("mc_result")
+                    is_tuple = hit.get("is_tuple", False)
                     if fig_data:
                         fig = pio.from_json(fig_data)
-                        return fig, mc_data
+                        return (fig, mc_data) if is_tuple else fig
         except Exception:
             pass
 
@@ -82,9 +83,12 @@ def _make_cached_builder(builder_fn, maxsize=64, prefix="fig"):
         try:
             from cache import set_cached, redis_available
             if redis_available():
-                fig, mc = result if isinstance(result, tuple) else (result, None)
+                is_tuple = isinstance(result, tuple)
+                fig = result[0] if is_tuple else result
+                mc = result[1] if is_tuple else None
                 data = {"figure": fig.to_json() if hasattr(fig, 'to_json') else None,
-                        "mc_result": mc}
+                        "mc_result": mc,
+                        "is_tuple": is_tuple}
                 set_cached(prefix, key, data)
         except Exception:
             pass

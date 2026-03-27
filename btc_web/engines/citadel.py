@@ -11,6 +11,7 @@ import numpy as np
 # for v1 performance (Daily = 14,600 steps over 40yr). See spec section
 # "Performance Notes". Diverges from _app_ctx.FREQ_PPY which includes all 5.
 FREQ_PPY = {"Monthly": 12, "Quarterly": 4, "Annually": 1}
+_SATOSHI = 1e-8  # smallest BTC unit — anything below this is zero
 
 
 @dataclass
@@ -636,6 +637,10 @@ def step(state: CitadelState, config: SimConfig,
         else:
             btc_annual_return = 0.0
         _scf_check_repay(new, config, btc_annual_return)
+
+    # Clamp sub-satoshi BTC to zero (1 sat = 10^-8 BTC is the smallest unit)
+    if 0 < new.btc_stack < _SATOSHI:
+        new.btc_stack = 0.0
 
     return new
 

@@ -463,6 +463,48 @@ class TestSimulate:
         assert _compute_n_periods(cfg) == 528  # 44 * 12
 
 
+class TestSimulateMultiSim:
+    def test_price_paths_produces_multi_sim(self):
+        """simulate() with price_paths should produce n_sims results."""
+        cfg = SimConfig.default()
+        cfg.start_yr = 2031
+        cfg.end_yr = 2033  # 24 months
+        model = _mock_model_data()
+        price_paths = np.array([[50000 + i * 100 + j * 10 for j in range(24)]
+                                for i in range(5)])
+        result = simulate(cfg, model, price_paths=price_paths)
+        assert result.btc_holdings.shape == (5, 24)
+        assert result.total_usd.shape == (5, 24)
+        assert len(result.depletion_period) == 5
+        assert "total" in result.median
+        assert "btc_usd" in result.median
+        assert result.median["total"].shape == (24,)
+
+    def test_fan_band_spread(self):
+        """MC with varying paths should produce nonzero percentile spread."""
+        cfg = SimConfig.default()
+        cfg.start_yr = 2031
+        cfg.end_yr = 2032  # 12 months
+        model = _mock_model_data()
+        # 10 paths with increasing price levels
+        paths = np.array([[30000 + i * 20000 + j * 100 for j in range(12)]
+                          for i in range(10)])
+        result = simulate(cfg, model, price_paths=paths)
+        p5 = result.percentiles[5]["total"]
+        p95 = result.percentiles[95]["total"]
+        assert np.any(p95 > p5), "Fan bands should have nonzero spread"
+
+    def test_price_paths_too_short_raises(self):
+        """price_paths with fewer steps than needed should raise."""
+        cfg = SimConfig.default()
+        cfg.start_yr = 2031
+        cfg.end_yr = 2033  # needs 24 steps
+        model = _mock_model_data()
+        short_paths = np.array([[50000] * 10])  # only 10 steps
+        with pytest.raises(ValueError, match="price_paths"):
+            simulate(cfg, model, price_paths=short_paths)
+
+
 class TestAdapter:
     def test_submit_returns_result(self):
         from engines.adapter import submit_simulation

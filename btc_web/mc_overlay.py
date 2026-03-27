@@ -829,6 +829,159 @@ def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# Citadel Planner overlay
+# ══════════════════════════════════════════════════════════════════════════════
+
+_CITADEL_MC_COLORS = {
+    "total":             "#000000",   # black
+    "btc_usd":           "#F7931A",   # orange
+    "cash":              "#C0C0C0",   # silver
+    "reserves_total":    "#4A90D9",   # blue
+    "investments_total": "#27AE60",   # green
+}
+
+
+def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
+    """Build Monte Carlo fan band traces for Citadel Planner.
+
+    Runs the citadel engine with MC-generated price paths.
+    Returns (traces, result_dict) where result_dict is SimResult.to_dict()
+    or ([], None) if MC is disabled / unavailable.
+    """
+    if not _HAS_MARKOV or not p.get("mc_enabled"):
+        return [], None
+
+    n_bins, n_sims, mc_window, mc_freq, mc_ppy, mc_dt, step_days, mc_years = _mc_setup_vars(p)
+    mc_start_yr, mc_t_start, mc_t_end, mc_ts = _build_mc_timeline(
+        p, m, mc_years, mc_dt, clamp_start=True)
+
+    # Generate price paths
+    path_key = _mc_path_key(p, "cp")
+
+    # Check client-side cache for price paths
+    cached, cache_hit = _check_client_cache(p, path_key)
+    if cache_hit:
+        price_paths = _mc_paths_from_lists(cached["price_paths"])
+    else:
+        # Try pre-computed server cache
+        blocked = p.get("mc_blocked_bins", [])
+        cached_paths = _try_cached(p, mc_years, blocked)
+        if cached_paths is not None:
+            price_paths = cached_paths
+        else:
+            # Full simulation
+            price_paths = _run_full_simulation(
+                m, p, n_bins, step_days, mc_window, mc_ts, n_sims,
+                mc_t_start, mc_dt, snap_grid=0.05)
+
+    # Ensure enough periods for citadel engine
+    from engines.citadel import FREQ_PPY as _CITADEL_FREQ_PPY, simulate as _citadel_sim
+    citadel_ppy = _CITADEL_FREQ_PPY.get(citadel_config.freq, 12)
+    n_periods_needed = int((citadel_config.end_yr - citadel_config.start_yr) * citadel_ppy)
+    if price_paths.shape[1] < n_periods_needed:
+        # Not enough MC steps for the citadel time range — skip MC
+        return [], None
+
+    # Resample MC price paths to citadel's time grid if frequencies differ
+    # MC runs at mc_freq (typically Monthly), citadel may use same or different freq
+    # Use linear interpolation along the time axis
+    citadel_dt = 1.0 / citadel_ppy
+    from btc_core import yr_to_t
+    citadel_t0 = yr_to_t(citadel_config.start_yr)
+    citadel_ts = np.array([citadel_t0 + i * citadel_dt for i in range(n_periods_needed)])
+
+    # Map citadel time points onto MC time indices
+    mc_indices = np.interp(citadel_ts, mc_ts, np.arange(len(mc_ts)))
+    # Interpolate price paths
+    n_mc_sims = price_paths.shape[0]
+    resampled = np.zeros((n_mc_sims, n_periods_needed))
+    for s in range(n_mc_sims):
+        resampled[s] = np.interp(mc_indices, np.arange(price_paths.shape[1]),
+                                 price_paths[s])
+
+    # Run citadel engine with MC price paths
+    try:
+        result = _citadel_sim(citadel_config, citadel_model, price_paths=resampled)
+    except (ValueError, NotImplementedError):
+        return [], None
+
+    # Build fan band traces per asset class
+    traces = []
+    ts_plot = result.time_axis
+
+    for asset_key, color in _CITADEL_MC_COLORS.items():
+        # Extract per-sim arrays for this asset
+        if asset_key == "total":
+            data_2d = result.total_usd                       # (n_sims, n_periods)
+        elif asset_key == "btc_usd":
+            data_2d = result.btc_holdings * result.btc_prices
+        elif asset_key == "cash":
+            data_2d = result.cash_balances
+        elif asset_key == "reserves_total":
+            data_2d = result.reserve_balances.sum(axis=2)
+        elif asset_key == "investments_total":
+            data_2d = result.invest_balances.sum(axis=2)
+        else:
+            continue
+
+        # Compute percentile bands
+        p5  = np.percentile(data_2d, 5, axis=0)
+        p25 = np.percentile(data_2d, 25, axis=0)
+        p50 = np.median(data_2d, axis=0)
+        p75 = np.percentile(data_2d, 75, axis=0)
+        p95 = np.percentile(data_2d, 95, axis=0)
+
+        nice_name = {"total": "Total", "btc_usd": "BTC",
+                     "cash": "Cash", "reserves_total": "Reserves",
+                     "investments_total": "Investments"}[asset_key]
+
+        # 5-95% band (alpha 0.06)
+        traces.append(go.Scatter(
+            x=list(ts_plot), y=list(p95), mode="lines",
+            line=dict(width=0), showlegend=False, hoverinfo="skip",
+        ))
+        traces.append(go.Scatter(
+            x=list(ts_plot), y=list(p5), mode="lines",
+            line=dict(width=0), fill="tonexty",
+            fillcolor=f"rgba({_hex_to_rgb(color)},0.06)",
+            name=f"MC {nice_name} 5\u201395%", showlegend=False, hoverinfo="skip",
+        ))
+
+        # 25-75% band (alpha 0.12)
+        traces.append(go.Scatter(
+            x=list(ts_plot), y=list(p75), mode="lines",
+            line=dict(width=0), showlegend=False, hoverinfo="skip",
+        ))
+        traces.append(go.Scatter(
+            x=list(ts_plot), y=list(p25), mode="lines",
+            line=dict(width=0), fill="tonexty",
+            fillcolor=f"rgba({_hex_to_rgb(color)},0.12)",
+            name=f"MC {nice_name} 25\u201375%", showlegend=False, hoverinfo="skip",
+        ))
+
+        # Median dotted line
+        final_val = fmt_price(float(p50[-1])) if len(p50) > 0 else ""
+        traces.append(go.Scatter(
+            x=list(ts_plot), y=list(p50), mode="lines",
+            name=f"MC {nice_name} median  \u2192  {final_val}",
+            line=dict(color=color, width=1.5, dash="dot"),
+        ))
+
+    result_dict = result.to_dict()
+    # Attach path_key for client-side caching
+    result_dict["path_key"] = path_key
+    result_dict["created"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+    return traces, result_dict
+
+
+def _hex_to_rgb(hex_color: str) -> str:
+    """Convert '#RRGGBB' to 'R,G,B' string for rgba()."""
+    h = hex_color.lstrip("#")
+    return f"{int(h[0:2], 16)},{int(h[2:4], 16)},{int(h[4:6], 16)}"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # Heatmap overlay
 # ══════════════════════════════════════════════════════════════════════════════
 

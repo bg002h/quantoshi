@@ -99,7 +99,8 @@ _TAB_CONTROLS = {
                     "cp-scf-enable","cp-scf-amount","cp-scf-type","cp-scf-rate",
                     "cp-scf-term","cp-scf-trigger",
                     "cp-yr-range","cp-freq","cp-model-src","cp-qs","cp-disp",
-                    "cp-toggles","cp-legend-pos"},
+                    "cp-toggles","cp-legend-pos","cp-asset-model",
+                    "cp-cash-floor-growth","cp-res-floor-growth"},
     "faq":         set(),
 }
 # Palette is global — add to every tab so single-tab share links include it
@@ -123,6 +124,11 @@ _TAB_CONTROLS["heatmap"].update({
 _TAB_CONTROLS["supercharge"].update({
     "sc-mc-enable", "sc-mc-start-yr", "sc-mc-entry-q", "sc-mc-years",
     "sc-mc-bins", "sc-mc-regime", "sc-mc-sims", "sc-mc-window", "sc-mc-advanced",
+})
+_TAB_CONTROLS["citadel"].update({
+    "cp-mc-enable", "cp-mc-start-yr", "cp-mc-entry-q", "cp-mc-years",
+    "cp-mc-bins", "cp-mc-regime", "cp-mc-sims", "cp-mc-window",
+    "cp-mc-advanced", "cp-mc-model-src",
 })
 
 _app_ctx.app.clientside_callback(

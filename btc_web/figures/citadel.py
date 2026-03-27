@@ -23,29 +23,36 @@ from figures.common import (
 # ── ModelData → PriceModel adapter ────────────────────────────────────────────
 
 class _ModelAdapter:
-    """Adapts _app_ctx price model + ModelData to engines.citadel.PriceModel protocol."""
+    """Adapts _app_ctx price model + ModelData to engines.citadel.PriceModel protocol.
+
+    Precomputes a quantile lookup grid for fast quantile_at() calls during
+    MC simulations (avoids 50-iteration bisection per step)."""
+
+    _Q_GRID = np.linspace(0.001, 0.999, 200)  # 200-point quantile grid
 
     def __init__(self, m: ModelData, model_key: str = "bub"):
         self._model = _app_ctx.PRICE_MODELS.get(model_key, _app_ctx.DEFAULT_MODEL)
         self.fits = self._model.fits if hasattr(self._model, "fits") else {}
         self.genesis = m.genesis
+        self._price_grid_cache = {}  # t -> (qs, prices) for interpolation
 
     def price_at(self, q: float, t: float) -> float:
         return float(self._model.price_at(q, max(t, 0.5)))
 
+    def _get_price_grid(self, t: float):
+        """Get or build the price grid for time t."""
+        t_key = round(t * 12) / 12  # cache at monthly granularity
+        if t_key not in self._price_grid_cache:
+            prices = np.array([self.price_at(q, t) for q in self._Q_GRID])
+            self._price_grid_cache[t_key] = prices
+        return self._price_grid_cache[t_key]
+
     def quantile_at(self, price: float, t: float) -> float:
-        """Bisection search: find q such that price_at(q, t) ~ price."""
-        qs = sorted(self.fits.keys())
-        if not qs:
-            return 0.5
-        lo, hi = qs[0], qs[-1]
-        for _ in range(50):
-            mid = (lo + hi) / 2
-            if self.price_at(mid, t) < price:
-                lo = mid
-            else:
-                hi = mid
-        return max(0.001, min((lo + hi) / 2, 0.999))
+        """Fast numpy interpolation using precomputed price grid."""
+        prices = self._get_price_grid(t)
+        # prices is monotonically increasing (higher quantile = higher price)
+        q = float(np.interp(price, prices, self._Q_GRID))
+        return max(0.001, min(q, 0.999))
 
 
 # ── Trace colors ──────────────────────────────────────────────────────────────
@@ -124,7 +131,7 @@ def _build_sim_config(p: dict) -> SimConfig:
         "split": low_q_split,
     }
 
-    return SimConfig(
+    cfg = SimConfig(
         price_model=p.get("price_model", "bub"),
         start_stack=float(p.get("start_stack", 1.0)),
         selected_qs=sel_qs,
@@ -141,11 +148,13 @@ def _build_sim_config(p: dict) -> SimConfig:
         low_q_action=low_q_action,
         lump_cooldown=int(p.get("lump_cooldown", 12)),
         cash_floor=float(p.get("cash_floor", 0)),
+        cash_floor_growth=float(p.get("cash_floor_growth", 0)),
         reserve_floors=[
             float(p.get("res_short_floor", 0)),
             float(p.get("res_med_floor", 0)),
             float(p.get("res_long_floor", 0)),
         ],
+        reserve_floor_growth=float(p.get("reserve_floor_growth", 0)),
         scf_enabled=bool(p.get("scf_enabled")),
         scf_amount=float(p.get("scf_amount", 0)),
         scf_type=p.get("scf_type", "term"),
@@ -157,7 +166,18 @@ def _build_sim_config(p: dict) -> SimConfig:
         freq=p.get("freq", "Monthly"),
         n_sims=int(p.get("n_sims", 1)),
         tax_rate=0.0,
+        asset_return_model=p.get("asset_return_model", "lognormal"),
     )
+
+    # Load asset transition matrices when Markov mode selected
+    if cfg.asset_return_model == "markov":
+        try:
+            from data.asset_matrices import load_asset_matrices
+            cfg.asset_matrices = load_asset_matrices(n_bins=5)
+        except Exception:
+            cfg.asset_return_model = "lognormal"  # fallback
+
+    return cfg
 
 
 def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
@@ -179,10 +199,8 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     model_key = p.get("price_model", "bub")
     model = _ModelAdapter(m, model_key=model_key)
 
-    # MC mode (n_sims > 1) not yet integrated — fall back to deterministic
-    mc_requested = config.n_sims > 1
-    if mc_requested:
-        config.n_sims = 1
+    # Deterministic always runs with n_sims=1; MC overlay runs separately
+    config.n_sims = 1
 
     try:
         result = simulate(config, model)
@@ -293,15 +311,24 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     ppy = _CITADEL_FREQ_PPY.get(config.freq, 12)
     dt = 1.0 / ppy
 
+    # MC overlay — generate fan band traces from Markov price paths
+    mc_result = None
+    try:
+        from mc_overlay import _mc_citadel_overlay, _HAS_MARKOV
+        if _HAS_MARKOV and p.get("mc_enabled"):
+            mc_traces, mc_result = _mc_citadel_overlay(m, p, config, model)
+            if mc_traces:
+                traces.extend(mc_traces)
+    except ImportError:
+        pass
+
     q_label = f"Q{config.selected_qs[0]*100:g}%" if config.selected_qs else "Q25%"
     ylabel = "BTC Remaining" if disp_mode == "btc" else "USD Value"
     title = f"Citadel Planner \u2014 {fmt_price(config.monthly_spend)}/mo \u00b7 {q_label}"
-    if mc_requested:
-        title += "  \u00b7  MC coming soon \u2014 showing deterministic"
 
     layout, _x_end = _sim_layout(m, p, title, ylabel, ts, t_start, t_end, dt, syr, eyr)
     layout["annotations"] = deplete_annots
 
     _stagger_depletion_annots(deplete_annots, layout)
 
-    return _finalize_chart(traces, layout, p, "cp", None)
+    return _finalize_chart(traces, layout, p, "cp", mc_result)

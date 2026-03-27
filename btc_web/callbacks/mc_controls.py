@@ -19,7 +19,7 @@ import btcpay
 def _toggle_dca_sc_body(val):
     return {} if val else {"display": "none"}
 
-for _mc_tog in ("dca", "ret", "hm", "sc"):
+for _mc_tog in ("dca", "ret", "hm", "sc", "cp"):
     @callback(Output(f"{_mc_tog}-mc-body","style"), Input(f"{_mc_tog}-mc-enable","value"))
     def _toggle_mc_body(val):
         return {} if val else {"display": "none"}
@@ -42,7 +42,7 @@ for _mc_auto in ("dca", "ret", "sc"):
         prevent_initial_call='initial_duplicate',
     )
 
-for _mc_adv in ("dca", "ret", "hm", "sc"):
+for _mc_adv in ("dca", "ret", "hm", "sc", "cp"):
     @callback(
         Output(f"{_mc_adv}-mc-adv-body", "style"),
         Output(f"{_mc_adv}-mc-entry-q", "options"),
@@ -53,7 +53,7 @@ for _mc_adv in ("dca", "ret", "hm", "sc"):
         opts = _MC_ENTRY_Q_OPTIONS_ADV if val else _MC_ENTRY_Q_OPTIONS
         return style, opts
 
-for _mc_reg in ("dca", "ret", "hm", "sc"):
+for _mc_reg in ("dca", "ret", "hm", "sc", "cp"):
     @callback(
         Output(f"{_mc_reg}-mc-regime", "options"),
         Output(f"{_mc_reg}-mc-regime", "value"),
@@ -177,9 +177,10 @@ function(mc_enable, mc_years, mc_start_yr, mc_entry_q, mc_model_src, rendered_ke
     ];
 }}
 """
-for _mc_m in ("dca", "ret", "hm", "sc"):
+for _mc_m in ("dca", "ret", "hm", "sc", "cp"):
     _wrap_id = {"dca": "dca-chart-wrap", "ret": "ret-chart-wrap",
-                "hm": "hm-mc-panel", "sc": "sc-chart-wrap"}[_mc_m]
+                "hm": "hm-mc-panel", "sc": "sc-chart-wrap",
+                "cp": "cp-chart-wrap"}[_mc_m]
     _base_cls = ""
     _sep = " " if _base_cls else ""
     _app_ctx.app.clientside_callback(
@@ -199,7 +200,7 @@ for _mc_m in ("dca", "ret", "hm", "sc"):
     )
 
 # MC restore button — revert controls to last cached simulation settings
-for _rpfx in ("hm", "dca", "ret", "sc"):
+for _rpfx in ("hm", "dca", "ret", "sc", "cp"):
     @callback(
         Output(f"{_rpfx}-mc-years",    "value", allow_duplicate=True),
         Output(f"{_rpfx}-mc-start-yr", "value", allow_duplicate=True),
@@ -304,7 +305,7 @@ def _update_hm_mc_years_opts(sims, freq, cur_years):
     return opts, val
 
 # DCA/Ret/SC use shared freq (consolidated)
-for _mc_pfx in ("dca", "ret", "sc"):
+for _mc_pfx in ("dca", "ret", "sc", "cp"):
     @callback(
         Output(f"{_mc_pfx}-mc-years", "options"),
         Output(f"{_mc_pfx}-mc-years", "value"),
@@ -409,7 +410,7 @@ def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=200, mc_freq="Month
     return children, price
 
 
-for _cost_pfx in ("hm", "dca", "ret", "sc"):
+for _cost_pfx in ("hm", "dca", "ret", "sc", "cp"):
     _freq_id = f"{_cost_pfx}-mc-freq" if _cost_pfx == "hm" else f"{_cost_pfx}-freq"
     @callback(
         Output(f"{_cost_pfx}-mc-cost", "children"),

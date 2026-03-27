@@ -11,6 +11,7 @@ import numpy as np
 # for v1 performance (Daily = 14,600 steps over 40yr). See spec section
 # "Performance Notes". Diverges from _app_ctx.FREQ_PPY which includes all 5.
 FREQ_PPY = {"Monthly": 12, "Quarterly": 4, "Annually": 1}
+_SATOSHI = 1e-8  # smallest BTC unit — anything below this is zero
 
 
 @dataclass
@@ -61,7 +62,9 @@ class SimConfig:
 
     # Floor rules
     cash_floor: float = 0.0
+    cash_floor_growth: float = 0.0     # annual % increase in cash floor
     reserve_floors: list[float] = field(default_factory=lambda: [0.0, 0.0, 0.0])
+    reserve_floor_growth: float = 0.0  # annual % increase in all reserve floors
 
     # Saylor Citadel Fortifier
     scf_enabled: bool = False
@@ -77,6 +80,13 @@ class SimConfig:
     freq: str = "Monthly"
     n_sims: int = 1
     tax_rate: float = 0.0  # placeholder
+
+    # Asset return model: "lognormal" (user-input rates) or "markov" (historical regimes)
+    asset_return_model: str = "lognormal"
+    # Transition matrices for Markov mode (loaded from data/asset_matrices.py)
+    # Keys: "equity", "bond", "tres_short", "tres_med", "tres_long"
+    # Each value: dict with "trans", "bin_edges", "bin_means", "bin_vols"
+    asset_matrices: dict | None = None
 
     @classmethod
     def default(cls) -> SimConfig:
@@ -104,6 +114,13 @@ class CitadelState:
     # Saylor Fortifier
     scf_outstanding: float = 0.0
     scf_active: bool = False
+    # Asset regime states (for Markov return model)
+    # Indices into the transition matrix bins for each asset class
+    equity_regime: int = 2     # middle bin = neutral
+    bond_regime: int = 2
+    res_short_regime: int = 2
+    res_med_regime: int = 2
+    res_long_regime: int = 2
     # Tracking
     period_spend: float = 0.0
     spending_shortfall: float = 0.0
@@ -191,12 +208,19 @@ def _enforce_floors(state: CitadelState, config: SimConfig) -> None:
     7. BTC (last resort, for CASH FLOOR ONLY — ensures the retirement
        spending account stays funded even when all dollar assets are depleted)
     Reserve floors do NOT sell BTC — they only redistribute among dollar accounts."""
+    # Compute time-adjusted floors (grow annually by configured %)
+    ppy = FREQ_PPY.get(config.freq, 12)
+    years_elapsed = state.period / ppy
+    cash_floor_eff = config.cash_floor * (1 + config.cash_floor_growth / 100) ** years_elapsed
+    res_floor_growth = (1 + config.reserve_floor_growth / 100) ** years_elapsed
+
     accounts_to_check = []
-    if config.cash_floor > 0:
-        accounts_to_check.append(("cash", config.cash_floor))
+    if cash_floor_eff > 0:
+        accounts_to_check.append(("cash", cash_floor_eff))
     for i, floor in enumerate(config.reserve_floors):
-        if floor > 0:
-            accounts_to_check.append((f"reserve_{i}", floor))
+        eff = floor * res_floor_growth
+        if eff > 0:
+            accounts_to_check.append((f"reserve_{i}", eff))
 
     for acct_key, floor in accounts_to_check:
         if acct_key == "cash":
@@ -430,13 +454,45 @@ def _lognormal_return(annual_rate: float, annual_vol: float, ppy: int,
     """One-period return using lognormal model. Always > -1.0."""
     if deterministic:
         return (1 + annual_rate) ** (1.0 / ppy) - 1.0
-    if annual_rate <= 0 or annual_vol <= 0:
-        return (1 + annual_rate) ** (1.0 / ppy) - 1.0
+    if annual_vol <= 0:
+        return (1 + max(annual_rate, -0.99)) ** (1.0 / ppy) - 1.0
+    annual_rate = max(annual_rate, -0.99)  # guard: rate > -100%
     sigma_ln = math.sqrt(math.log(1 + (annual_vol / (1 + annual_rate)) ** 2))
     mu_ln = math.log(1 + annual_rate) - sigma_ln ** 2 / 2
     period_mu = mu_ln / ppy
     period_sigma = sigma_ln / math.sqrt(ppy)
     return math.exp(rng.normal(period_mu, period_sigma)) - 1.0
+
+
+def _markov_return(matrix: dict, current_regime: int,
+                   rng: np.random.Generator) -> tuple[float, int]:
+    """Sample one-period return from a Markov transition matrix.
+
+    Args:
+        matrix: dict with "trans" (n_bins x n_bins), "bin_means", "bin_vols"
+        current_regime: current bin index
+        rng: random number generator
+
+    Returns:
+        (monthly_return, new_regime) — the sampled return and the new regime bin
+    """
+    trans = matrix["trans"]
+    n_bins = trans.shape[0]
+    current_regime = max(0, min(current_regime, n_bins - 1))
+
+    # Sample next regime from transition probabilities
+    probs = trans[current_regime]
+    new_regime = int(rng.choice(n_bins, p=probs))
+
+    # Sample return from the new regime's distribution
+    mean = matrix["bin_means"][new_regime]
+    vol = matrix["bin_vols"][new_regime]
+    if vol > 0:
+        ret = rng.normal(mean, vol)
+    else:
+        ret = mean
+
+    return float(ret), new_regime
 
 
 def _scf_payment_amount(config: SimConfig, ppy: int) -> float:
@@ -505,6 +561,7 @@ def step(state: CitadelState, config: SimConfig,
     new.period += 1
     ppy = FREQ_PPY[config.freq]
     dt = 1.0 / ppy
+    t_before = new.t  # save pre-increment time for quantile lookup
     new.t += dt
     is_deterministic = (config.n_sims == 1)
 
@@ -512,19 +569,58 @@ def step(state: CitadelState, config: SimConfig,
     new.btc_price = btc_price_new
 
     # 2. Dollar-asset returns
+    use_markov = (config.asset_return_model == "markov"
+                  and config.asset_matrices is not None
+                  and not is_deterministic)
+
+    # Cash: always deterministic (zero volatility)
     new.cash *= (1 + config.cash_rate / 100) ** (1.0 / ppy)
-    for i, rb in enumerate(config.reserve_bins):
-        r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
-                              deterministic=is_deterministic, rng=rng)
-        new.reserves[i] *= (1 + r)
-    for i, ib in enumerate(config.invest_bins):
-        r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
-                              deterministic=is_deterministic, rng=rng)
-        new.investments[i] *= (1 + r)
+
+    if use_markov:
+        # Markov regime-based returns for reserves and investments
+        am = config.asset_matrices
+        _res_keys = ["tres_short", "tres_med", "tres_long"]
+        _inv_keys = ["equity", "bond"]
+        _regime_attrs = ["res_short_regime", "res_med_regime", "res_long_regime"]
+        _inv_regime_attrs = ["equity_regime", "bond_regime"]
+
+        for i, (mkey, rattr) in enumerate(zip(_res_keys, _regime_attrs)):
+            if mkey in am:
+                ret, new_regime = _markov_return(am[mkey], getattr(new, rattr), rng)
+                setattr(new, rattr, new_regime)
+                new.reserves[i] *= (1 + ret)
+            else:
+                # Fallback to lognormal
+                rb = config.reserve_bins[i]
+                r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
+                                      deterministic=is_deterministic, rng=rng)
+                new.reserves[i] *= (1 + r)
+
+        for i, (mkey, rattr) in enumerate(zip(_inv_keys, _inv_regime_attrs)):
+            if mkey in am:
+                ret, new_regime = _markov_return(am[mkey], getattr(new, rattr), rng)
+                setattr(new, rattr, new_regime)
+                new.investments[i] *= (1 + ret)
+            else:
+                ib = config.invest_bins[i]
+                r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
+                                      deterministic=is_deterministic, rng=rng)
+                new.investments[i] *= (1 + r)
+    else:
+        # Lognormal returns (user-input rates/volatility)
+        for i, rb in enumerate(config.reserve_bins):
+            r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
+                                  deterministic=is_deterministic, rng=rng)
+            new.reserves[i] *= (1 + r)
+        for i, ib in enumerate(config.invest_bins):
+            r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
+                                  deterministic=is_deterministic, rng=rng)
+            new.investments[i] *= (1 + r)
 
     # 3. Compute BTC quantile from price via model
+    #    Use t_before (pre-increment) since the price was generated for that time
     if model is not None:
-        btc_quantile = model.quantile_at(new.btc_price, new.t)
+        btc_quantile = model.quantile_at(new.btc_price, t_before)
     else:
         btc_quantile = 0.5
 
@@ -536,7 +632,15 @@ def step(state: CitadelState, config: SimConfig,
     combined_rate = (config.inflation + config.spend_growth) / 100
     period_spend = config.monthly_spend * (1 + combined_rate) ** years_elapsed
     if new.scf_active:
-        period_spend += _scf_payment_amount(config, ppy)
+        # Retire term loan when term expires
+        if config.scf_type == "term":
+            # Term is in months; convert period count to months
+            months_elapsed = new.period * (12 / ppy)
+            if months_elapsed >= config.scf_term:
+                new.scf_active = False
+                new.scf_outstanding = 0.0
+        if new.scf_active:
+            period_spend += _scf_payment_amount(config, ppy)
     period_spend *= (12 / ppy)  # scale monthly base to period frequency
     new.period_spend = period_spend
     new.spending_shortfall = _apply_spending_waterfall(new, period_spend)
@@ -553,6 +657,10 @@ def step(state: CitadelState, config: SimConfig,
         else:
             btc_annual_return = 0.0
         _scf_check_repay(new, config, btc_annual_return)
+
+    # Clamp sub-satoshi BTC to zero (1 sat = 10^-8 BTC is the smallest unit)
+    if 0 < new.btc_stack < _SATOSHI:
+        new.btc_stack = 0.0
 
     return new
 
@@ -691,15 +799,32 @@ def _aggregate_results(all_histories: list[list[dict]], config: SimConfig,
 
 
 def simulate(config: SimConfig, model: PriceModel,
-             rng_seed: int = 42) -> SimResult:
-    """Run n_sims simulations, aggregate results.
-    - For n_sims=1 (deterministic): uses median selected quantile for BTC price.
-    - For n_sims>1 (MC): raises NotImplementedError in v1 (Markov integration TBD).
+             rng_seed: int = 42,
+             price_paths: np.ndarray | None = None) -> SimResult:
+    """Run simulations, aggregate results.
+
+    - price_paths=None, n_sims=1: deterministic mode using median selected quantile
+    - price_paths provided: MC mode — one sim per row in price_paths array
+      shape (n_sims, n_periods). Each sim gets a unique RNG seed for
+      dollar-asset volatility (rng_seed + sim_id).
     """
+    from copy import deepcopy
+    config = deepcopy(config)  # avoid mutating caller's config
     validate_config(config)
     ppy = FREQ_PPY[config.freq]
     n_periods = _compute_n_periods(config)
-    rng = np.random.default_rng(rng_seed)
+
+    # Determine sim count
+    if price_paths is not None:
+        n_sims = price_paths.shape[0]
+        if price_paths.shape[1] < n_periods:
+            raise ValueError(
+                f"price_paths has {price_paths.shape[1]} steps, need {n_periods}")
+        # Override config.n_sims so step() knows we're in MC mode
+        # (affects is_deterministic check for dollar-asset volatility)
+        config.n_sims = n_sims
+    else:
+        n_sims = 1  # deterministic
 
     # Build time axis
     from btc_core import yr_to_t
@@ -708,18 +833,18 @@ def simulate(config: SimConfig, model: PriceModel,
     time_axis = np.array([t0 + i * dt for i in range(n_periods)])
 
     all_histories = []
-    for sim_id in range(config.n_sims):
+    for sim_id in range(n_sims):
+        # Each sim gets unique RNG for dollar-asset volatility
+        rng = np.random.default_rng(rng_seed + sim_id)
         state = _initial_state(config, model=model)
         history = []
         for period_idx in range(n_periods):
-            t = time_axis[period_idx]
-            # Get BTC price for this period
-            if config.n_sims == 1:
-                q = config.selected_qs[len(config.selected_qs) // 2] if config.selected_qs else 0.5
-                btc_price = _get_btc_price(t, config, model, rng,
-                                           sim_mode="deterministic", q=q)
+            if price_paths is not None:
+                btc_price = float(price_paths[sim_id, period_idx])
             else:
-                raise NotImplementedError("MC mode requires Markov engine integration")
+                q = config.selected_qs[len(config.selected_qs) // 2] if config.selected_qs else 0.5
+                btc_price = _get_btc_price(time_axis[period_idx], config, model, rng,
+                                           sim_mode="deterministic", q=q)
             new_state = step(state, config, btc_price, rng, model=model)
             history.append(_snapshot_state(new_state))
             state = new_state

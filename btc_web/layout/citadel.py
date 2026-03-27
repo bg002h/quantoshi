@@ -151,6 +151,10 @@ def _rules_panel():
             dbc.Input(id="cp-res-med-floor", type="number", value=0, min=0, step=1),
             _lbl("Reserve Long floor ($)"),
             dbc.Input(id="cp-res-long-floor", type="number", value=0, min=0, step=1),
+            _lbl("Cash floor annual increase (%)"),
+            dbc.Input(id="cp-cash-floor-growth", type="number", value=0, min=0, max=50, step=0.5),
+            _lbl("Reserve floor annual increase (%)"),
+            dbc.Input(id="cp-res-floor-growth", type="number", value=0, min=0, max=50, step=0.5),
         ),
         # Saylor Citadel Fortifier
         dcc.Checklist(id="cp-scf-enable",
@@ -212,6 +216,15 @@ def _sim_panel():
                          {"label": "S2F", "value": "s2f"}],
                 value="bub", clearable=False),
         ),
+        _dd_section("Dollar Asset Returns",
+            html.Small("Lognormal uses your input rates/volatility. "
+                       "Markov uses historical regime transitions (S&P 500, bonds, treasuries).",
+                       style=_STYLE_HINT),
+            dcc.Dropdown(id="cp-asset-model",
+                options=[{"label": "Lognormal (user rates)", "value": "lognormal"},
+                         {"label": "Markov (historical regimes)", "value": "markov"}],
+                value="lognormal", clearable=False),
+        ),
         _dd_section("BTC Price Scenario",
             html.Small("Select one quantile for the deterministic BTC price path. "
                        "Lower = more pessimistic, higher = more optimistic.",
@@ -245,6 +258,14 @@ def _sim_panel():
 def _citadel_controls():
     """All controls in inner tabbed sub-panels."""
     return html.Div([
+        # Run button + instructions
+        dbc.Button("\u25B6  Run Simulation", id="cp-run-btn",
+                   color="warning", className="w-100 mb-2 fw-bold",
+                   style={"fontSize": "14px", "letterSpacing": "0.03em"}),
+        html.Small("Configure settings below, then click Run Simulation. "
+                   "1 deterministic sim is free. MC (multiple sims) requires payment.",
+                   style={"color": "#888", "display": "block", "marginBottom": "8px",
+                          "fontSize": "11px"}),
         dbc.Tabs([
             dbc.Tab(_assets_panel(), label="Assets", tab_id="cp-assets"),
             dbc.Tab(_spending_panel(), label="Spending", tab_id="cp-spending"),

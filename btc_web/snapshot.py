@@ -212,7 +212,9 @@ _SNAPSHOT_CONTROLS = [
     ("cp-res-short-floor",  "value"),   # 181
     ("cp-res-med-floor",    "value"),   # 182
     ("cp-res-long-floor",   "value"),   # 183
-    ("cp-scf-enable",       "value"),   # 184
+    ("cp-cash-floor-growth","value"),   # 184
+    ("cp-res-floor-growth", "value"),   # 185
+    ("cp-scf-enable",       "value"),   # 186
     ("cp-scf-amount",       "value"),   # 185
     ("cp-scf-type",         "value"),   # 186
     ("cp-scf-rate",         "value"),   # 187
@@ -225,6 +227,18 @@ _SNAPSHOT_CONTROLS = [
     ("cp-disp",             "value"),   # 194
     ("cp-toggles",          "value"),   # 195
     ("cp-legend-pos",       "value"),   # 196
+    ("cp-asset-model",      "value"),   # 197
+    # ── Citadel MC controls ──
+    ("cp-mc-enable",        "value"),   # 197
+    ("cp-mc-start-yr",      "value"),   # 198
+    ("cp-mc-entry-q",       "value"),   # 199
+    ("cp-mc-years",         "value"),   # 200
+    ("cp-mc-bins",          "value"),   # 201
+    ("cp-mc-regime",        "value"),   # 202
+    ("cp-mc-sims",          "value"),   # 203
+    ("cp-mc-window",        "value"),   # 204
+    ("cp-mc-advanced",      "value"),   # 205
+    ("cp-mc-model-src",     "value"),   # 206
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)
@@ -291,6 +305,10 @@ _CHECKLIST_OPTIONS = {
     "cp-toggles":       ["log_y", "annotate", "show_legend", "minor_grid", "chart_zoom"],
     "cp-use-lots":      ["yes"],
     "cp-scf-enable":    ["yes"],
+    # Citadel MC checklists
+    "cp-mc-enable":     ["yes"],
+    "cp-mc-advanced":   ["yes"],
+    "cp-mc-regime":     [0, 1, 2, 3, 4],
 }
 
 
@@ -334,7 +352,7 @@ def _encode_snapshot(state_dict, tab_filter=None):
             val = _list_to_mask(val, _CHECKLIST_OPTIONS[cid])
         values.append(val)
     # ── Hybrid MC encoding: null-out MC controls for disabled tabs ────────
-    _mc_prefixes = {"dca": "dca-mc-", "ret": "ret-mc-", "hm": "hm-mc-", "sc": "sc-mc-"}
+    _mc_prefixes = {"dca": "dca-mc-", "ret": "ret-mc-", "hm": "hm-mc-", "sc": "sc-mc-", "cp": "cp-mc-"}
     for _pfx_tab, _pfx_mc in _mc_prefixes.items():
         enable_idx = next(i for i, (cid, _) in enumerate(_SNAPSHOT_CONTROLS)
                           if cid == f"{_pfx_mc}enable")

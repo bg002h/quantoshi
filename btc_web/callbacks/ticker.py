@@ -28,7 +28,7 @@ def update_price_ticker(_, mode):
     if price is None:
         return "\u20bf \u2014", "\u20bf \u2014", no_update, no_update, no_update, no_update, ""
     pct = _find_lot_percentile(today_t(_app_ctx.M.genesis), price, _app_ctx.M.qr_fits)
-    pct_str = f"Q{pct*100:.1f}%" if pct is not None else "\u2014"
+    pct_str = f"QR{round(pct*100)}%" if pct is not None else "\u2014"
     pct_val = round(pct * 100, 1) if pct is not None else no_update
     # Snap to nearest 10% for cache-aligned dropdowns (hm-mc, dca-mc)
     snapped_pct = max(10, min(90, round(pct * 10) * 10)) if pct is not None else no_update

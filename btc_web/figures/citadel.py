@@ -321,11 +321,14 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
 
     # MC overlay — generate fan band traces from Markov price paths
     mc_result = None
+    mc_pending = False
     try:
         from mc_overlay import _mc_citadel_overlay, _HAS_MARKOV
         if _HAS_MARKOV and p.get("mc_enabled"):
             mc_traces, mc_result = _mc_citadel_overlay(m, p, config, model)
-            if mc_traces:
+            if mc_result and isinstance(mc_result, dict) and mc_result.get("_pending"):
+                mc_pending = True  # Celery task submitted, not done yet
+            elif mc_traces:
                 traces.extend(mc_traces)
     except ImportError:
         pass
@@ -333,6 +336,8 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     q_label = f"Q{config.selected_qs[0]*100:g}%" if config.selected_qs else "Q25%"
     ylabel = "BTC Remaining" if disp_mode == "btc" else "USD Value"
     title = f"Citadel Planner \u2014 {fmt_price(config.monthly_spend)}/mo \u00b7 {q_label}"
+    if mc_pending:
+        title += "  \u00b7  MC computing..."
 
     layout, _x_end = _sim_layout(m, p, title, ylabel, ts, t_start, t_end, dt, syr, eyr)
     layout["annotations"] = deplete_annots

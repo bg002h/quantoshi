@@ -1,7 +1,7 @@
 """Citadel Planner chart callback — 7-output MC sandwich pattern."""
 
 import dash
-from dash import Input, Output, State, ctx, callback
+from dash import Input, Output, State, ctx, callback, html, dcc
 
 import _app_ctx
 from callbacks.coerce import _ci, _cf
@@ -301,5 +301,44 @@ def update_citadel(
         mc_p["mc_entry_q"], toggles, mc_stale=mc_p.get("mc_stale", False),
         mc_p=mc_p)
 
+    # Check if MC result is a Celery pending marker
+    if mc_result and isinstance(mc_result, dict) and mc_result.get("_pending"):
+        task_id = mc_result.get("_celery_task_id")
+        # Store task_id so polling can check it
+        store_val = {"_celery_task_id": task_id, "_pending": True}
+        status = html.Span("MC simulation computing in background...",
+                           style={"color": "#b8860b", "fontSize": "12px"})
+        return (fig, store_val, status, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update)
+
     return (fig, store_val, status, rendered_key, show_modal,
             "cp" if show_modal else dash.no_update, ub_val)
+
+
+# ── Celery task polling — check if background MC sim is done ──────────────
+@callback(
+    Output("cp-mc-results", "data", allow_duplicate=True),
+    Output("cp-mc-status", "children", allow_duplicate=True),
+    Input("cp-mc-loaded", "data"),  # polling trigger
+    State("cp-mc-results", "data"),
+    prevent_initial_call=True,
+)
+def _check_celery_task(trigger, mc_cached):
+    """Check if a Celery MC task has completed. Called by mc-pay-poll interval."""
+    if not mc_cached or not isinstance(mc_cached, dict):
+        raise dash.exceptions.PreventUpdate
+    task_id = mc_cached.get("_celery_task_id")
+    if not task_id:
+        raise dash.exceptions.PreventUpdate
+
+    try:
+        from celery_app import celery_app
+        result = celery_app.AsyncResult(task_id)
+        if result.ready():
+            sim_result = result.get(timeout=5)
+            return sim_result, html.Span(
+                "MC simulation complete — click Run to render fan bands",
+                style={"color": "#27ae60", "fontSize": "12px"})
+    except Exception:
+        pass
+    raise dash.exceptions.PreventUpdate

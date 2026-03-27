@@ -118,7 +118,7 @@ _app_ctx.app.clientside_callback(
     State("mc-pay-token",        "data"),
     State("cp-mc-unblocked",     "data"),
     State("cp-mc-rendered-key",  "data"),
-    prevent_initial_call='initial_duplicate',
+    prevent_initial_call=True,
 )
 def update_citadel(
     active_tab, run_clicks, _pay_trigger, _mc_loaded,
@@ -161,12 +161,14 @@ def update_citadel(
     if ctx.triggered_id == "main-tabs" and active_tab != "citadel":
         raise dash.exceptions.PreventUpdate
 
-    # Only run simulation when Run button clicked or payment trigger fires
-    if ctx.triggered_id not in ("cp-run-btn", "mc-pay-trigger", "cp-mc-loaded", None):
+    # Only run simulation when Run button clicked, payment trigger fires,
+    # or tab becomes active (for loading cached default chart)
+    if ctx.triggered_id not in ("cp-run-btn", "mc-pay-trigger", "cp-mc-loaded",
+                                 "main-tabs", None):
         raise dash.exceptions.PreventUpdate
 
-    # Before first click: try loading default cached chart from Redis
-    if not run_clicks and ctx.triggered_id != "mc-pay-trigger":
+    # Before first click (or on tab switch without click): load cached default
+    if not run_clicks or ctx.triggered_id == "main-tabs":
         import plotly.graph_objects as go
         import plotly.io as pio
         try:

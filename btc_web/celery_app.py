@@ -15,6 +15,7 @@ celery_app = Celery(
     'quantoshi',
     broker='redis://localhost:6379/1',
     backend='redis://localhost:6379/2',
+    include=['btc_web.tasks'],
 )
 
 celery_app.conf.update(

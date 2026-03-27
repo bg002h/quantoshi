@@ -55,11 +55,19 @@ def _quantize_params(p: dict) -> dict:
 def _make_cached_builder(builder_fn, maxsize=64, prefix="fig"):
     """Create an LRU-cached figure builder with optional Redis L2.
 
-    L1: per-worker @lru_cache (fast, no I/O)
-    L2: shared Redis cache (slower, but shared across all workers)
+    Three cache layers:
+      L0: pinned dict for prewarm defaults (never evicted, clears on restart)
+      L1: per-worker @lru_cache (fast, no I/O, LRU eviction)
+      L2: shared Redis cache (shared across workers, model-fingerprinted)
     """
+    _pinned = {}  # L0: default figures, never evicted by LRU
+
     @lru_cache(maxsize=maxsize)
     def _cached(key: str):
+        # L0: check pinned defaults (never evicted)
+        if key in _pinned:
+            return _pinned[key]
+
         # L2: check Redis before computing
         try:
             from cache import get_cached, redis_available
@@ -94,6 +102,13 @@ def _make_cached_builder(builder_fn, maxsize=64, prefix="fig"):
             pass
 
         return result
+
+    def _pin(key: str, result):
+        """Pin a result so it's never evicted by LRU. Used by prewarm."""
+        _pinned[key] = result
+
+    _cached.pin = _pin
+    _cached.pinned = _pinned
     return _cached
 
 _cached_bubble_fig      = _make_cached_builder(build_bubble_figure, prefix="bub")

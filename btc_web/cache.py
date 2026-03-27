@@ -51,7 +51,7 @@ _REDIS_TTL = 0  # 0 = no expiry (Redis LRU eviction handles memory pressure)
 def _cache_key(prefix: str, params_json: str) -> str:
     """Deterministic cache key including model fingerprint.
     When model_data.pkl changes, all keys miss automatically."""
-    h = hashlib.sha256(params_json.encode()).hexdigest()[:16]
+    h = hashlib.sha256(params_json.encode()).hexdigest()[:32]
     return f"fig:{_MODEL_FP}:{prefix}:{h}"
 
 

@@ -258,6 +258,9 @@ def _sim_panel():
 def _citadel_controls():
     """All controls in inner tabbed sub-panels."""
     return html.Div([
+        # Celery task polling interval (disabled until MC task submitted)
+        dcc.Interval(id="cp-celery-poll", interval=3000, disabled=True,
+                     max_intervals=100, n_intervals=0),
         # Run button + instructions
         dbc.Button("\u25B6  Run Simulation", id="cp-run-btn",
                    color="warning", className="w-100 mb-2 fw-bold",

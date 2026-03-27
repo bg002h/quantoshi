@@ -118,7 +118,7 @@ _app_ctx.app.clientside_callback(
     State("mc-pay-token",        "data"),
     State("cp-mc-unblocked",     "data"),
     State("cp-mc-rendered-key",  "data"),
-    prevent_initial_call=True,
+    prevent_initial_call='initial_duplicate',
 )
 def update_citadel(
     active_tab, run_clicks, _pay_trigger, _mc_loaded,
@@ -301,10 +301,9 @@ def update_citadel(
         mc_p["mc_entry_q"], toggles, mc_stale=mc_p.get("mc_stale", False),
         mc_p=mc_p)
 
-    # Check if MC result is a Celery pending marker
+    # Check if MC result is a Celery pending marker — enable polling
     if mc_result and isinstance(mc_result, dict) and mc_result.get("_pending"):
         task_id = mc_result.get("_celery_task_id")
-        # Store task_id so polling can check it
         store_val = {"_celery_task_id": task_id, "_pending": True}
         status = html.Span("MC simulation computing in background...",
                            style={"color": "#b8860b", "fontSize": "12px"})
@@ -315,16 +314,29 @@ def update_citadel(
             "cp" if show_modal else dash.no_update, ub_val)
 
 
+# ── Celery polling: enable/disable interval based on pending state ────────
+@callback(
+    Output("cp-celery-poll", "disabled"),
+    Input("cp-mc-results", "data"),
+    prevent_initial_call=True,
+)
+def _toggle_celery_poll(mc_cached):
+    """Enable polling when Celery task is pending, disable when done."""
+    if mc_cached and isinstance(mc_cached, dict) and mc_cached.get("_pending"):
+        return False  # enable polling
+    return True  # disable polling
+
+
 # ── Celery task polling — check if background MC sim is done ──────────────
 @callback(
     Output("cp-mc-results", "data", allow_duplicate=True),
     Output("cp-mc-status", "children", allow_duplicate=True),
-    Input("cp-mc-loaded", "data"),  # polling trigger
+    Input("cp-celery-poll", "n_intervals"),
     State("cp-mc-results", "data"),
     prevent_initial_call=True,
 )
-def _check_celery_task(trigger, mc_cached):
-    """Check if a Celery MC task has completed. Called by mc-pay-poll interval."""
+def _check_celery_task(n_intervals, mc_cached):
+    """Periodically check if Celery MC task has completed."""
     if not mc_cached or not isinstance(mc_cached, dict):
         raise dash.exceptions.PreventUpdate
     task_id = mc_cached.get("_celery_task_id")
@@ -337,8 +349,12 @@ def _check_celery_task(trigger, mc_cached):
         if result.ready():
             sim_result = result.get(timeout=5)
             return sim_result, html.Span(
-                "MC simulation complete — click Run to render fan bands",
+                "\u2705 MC simulation complete — click Run to render fan bands",
                 style={"color": "#27ae60", "fontSize": "12px"})
+        elif result.failed():
+            return {"_failed": True}, html.Span(
+                "\u274c MC simulation failed",
+                style={"color": "#e74c3c", "fontSize": "12px"})
     except Exception:
         pass
     raise dash.exceptions.PreventUpdate

@@ -254,6 +254,14 @@ def _sim_panel():
 def _citadel_controls():
     """All controls in inner tabbed sub-panels."""
     return html.Div([
+        # Run button + instructions
+        dbc.Button("\u25B6  Run Simulation", id="cp-run-btn",
+                   color="warning", className="w-100 mb-2 fw-bold",
+                   style={"fontSize": "14px", "letterSpacing": "0.03em"}),
+        html.Small("Configure settings below, then click Run Simulation. "
+                   "1 deterministic sim is free. MC (multiple sims) requires payment.",
+                   style={"color": "#888", "display": "block", "marginBottom": "8px",
+                          "fontSize": "11px"}),
         dbc.Tabs([
             dbc.Tab(_assets_panel(), label="Assets", tab_id="cp-assets"),
             dbc.Tab(_spending_panel(), label="Spending", tab_id="cp-spending"),

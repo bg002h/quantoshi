@@ -25,89 +25,91 @@ _app_ctx.app.clientside_callback(
     Output("mc-save-tab", "data", allow_duplicate=True),
     Output("cp-mc-unblocked", "data"),
     Input("main-tabs",           "active_tab"),
-    # ── Assets panel ──
-    Input("cp-stack",            "value"),
-    Input("cp-use-lots",         "value"),
-    Input("cp-cash-init",        "value"),
-    Input("cp-cash-rate",        "value"),
-    Input("cp-res-short-init",   "value"),
-    Input("cp-res-short-rate",   "value"),
-    Input("cp-res-short-vol",    "value"),
-    Input("cp-res-med-init",     "value"),
-    Input("cp-res-med-rate",     "value"),
-    Input("cp-res-med-vol",      "value"),
-    Input("cp-res-long-init",    "value"),
-    Input("cp-res-long-rate",    "value"),
-    Input("cp-res-long-vol",     "value"),
-    Input("cp-inv-eq-init",      "value"),
-    Input("cp-inv-eq-rate",      "value"),
-    Input("cp-inv-eq-vol",       "value"),
-    Input("cp-inv-bd-init",      "value"),
-    Input("cp-inv-bd-rate",      "value"),
-    Input("cp-inv-bd-vol",       "value"),
-    # ── Spending panel ──
-    Input("cp-spend",            "value"),
-    Input("cp-infl",             "value"),
-    Input("cp-spend-growth",     "value"),
-    # ── Rules panel: high-Q trigger ──
-    Input("cp-high-q-thresh",    "value"),
-    Input("cp-high-q-mode",      "value"),
-    Input("cp-high-q-rate",      "value"),
-    Input("cp-high-q-dur",       "value"),
-    Input("cp-high-q-split-cash","value"),
-    Input("cp-high-q-split-rs",  "value"),
-    Input("cp-high-q-split-rm",  "value"),
-    Input("cp-high-q-split-rl",  "value"),
-    Input("cp-high-q-split-eq",  "value"),
-    Input("cp-high-q-split-bd",  "value"),
-    # ── Rules panel: low-Q trigger ──
-    Input("cp-low-q-thresh",     "value"),
-    Input("cp-low-q-mode",       "value"),
-    Input("cp-low-q-rate",       "value"),
-    Input("cp-low-q-dur",        "value"),
-    Input("cp-low-q-split-cash", "value"),
-    Input("cp-low-q-split-rs",   "value"),
-    Input("cp-low-q-split-rm",   "value"),
-    Input("cp-low-q-split-rl",   "value"),
-    Input("cp-low-q-split-eq",   "value"),
-    Input("cp-low-q-split-bd",   "value"),
-    # ── Rules panel: cooldown, floors ──
-    Input("cp-lump-cooldown",    "value"),
-    Input("cp-cash-floor",       "value"),
-    Input("cp-res-short-floor",  "value"),
-    Input("cp-res-med-floor",    "value"),
-    Input("cp-res-long-floor",   "value"),
-    # ── Rules panel: SCF ──
-    Input("cp-scf-enable",       "value"),
-    Input("cp-scf-amount",       "value"),
-    Input("cp-scf-type",         "value"),
-    Input("cp-scf-rate",         "value"),
-    Input("cp-scf-term",         "value"),
-    Input("cp-scf-trigger",      "value"),
-    # ── Simulation panel ──
-    Input("cp-yr-range",         "value"),
-    Input("cp-freq",             "value"),
-    Input("cp-model-src",        "value"),
-    Input("cp-asset-model",      "value"),
-    Input("cp-qs",               "value"),
-    Input("cp-disp",             "value"),
-    Input("cp-toggles",          "value"),
-    Input("cp-legend-pos",       "value"),
-    # ── Global ──
-    Input("effective-lots",      "data"),
-    # ── MC controls ──
-    Input("cp-mc-enable",        "value"),
-    Input("cp-mc-bins",          "value"),
-    Input("cp-mc-regime",        "value"),
-    Input("cp-mc-sims",          "value"),
-    Input("cp-mc-years",         "value"),
-    Input("cp-mc-window",        "value"),
-    Input("cp-mc-start-yr",      "value"),
-    Input("cp-mc-entry-q",       "value"),
-    Input("cp-mc-loaded",        "data"),
+    Input("cp-run-btn",          "n_clicks"),
     Input("mc-pay-trigger",      "data"),
-    Input("cp-mc-model-src",     "value"),
-    Input("palette-store",       "data"),
+    Input("cp-mc-loaded",        "data"),
+    # ── Everything else is State (read on run, don't trigger) ──
+    # Assets
+    State("cp-stack",            "value"),
+    State("cp-use-lots",         "value"),
+    State("cp-cash-init",        "value"),
+    State("cp-cash-rate",        "value"),
+    State("cp-res-short-init",   "value"),
+    State("cp-res-short-rate",   "value"),
+    State("cp-res-short-vol",    "value"),
+    State("cp-res-med-init",     "value"),
+    State("cp-res-med-rate",     "value"),
+    State("cp-res-med-vol",      "value"),
+    State("cp-res-long-init",    "value"),
+    State("cp-res-long-rate",    "value"),
+    State("cp-res-long-vol",     "value"),
+    State("cp-inv-eq-init",      "value"),
+    State("cp-inv-eq-rate",      "value"),
+    State("cp-inv-eq-vol",       "value"),
+    State("cp-inv-bd-init",      "value"),
+    State("cp-inv-bd-rate",      "value"),
+    State("cp-inv-bd-vol",       "value"),
+    # Spending
+    State("cp-spend",            "value"),
+    State("cp-infl",             "value"),
+    State("cp-spend-growth",     "value"),
+    # Rules: high-Q
+    State("cp-high-q-thresh",    "value"),
+    State("cp-high-q-mode",      "value"),
+    State("cp-high-q-rate",      "value"),
+    State("cp-high-q-dur",       "value"),
+    State("cp-high-q-split-cash","value"),
+    State("cp-high-q-split-rs",  "value"),
+    State("cp-high-q-split-rm",  "value"),
+    State("cp-high-q-split-rl",  "value"),
+    State("cp-high-q-split-eq",  "value"),
+    State("cp-high-q-split-bd",  "value"),
+    # Rules: low-Q
+    State("cp-low-q-thresh",     "value"),
+    State("cp-low-q-mode",       "value"),
+    State("cp-low-q-rate",       "value"),
+    State("cp-low-q-dur",        "value"),
+    State("cp-low-q-split-cash", "value"),
+    State("cp-low-q-split-rs",   "value"),
+    State("cp-low-q-split-rm",   "value"),
+    State("cp-low-q-split-rl",   "value"),
+    State("cp-low-q-split-eq",   "value"),
+    State("cp-low-q-split-bd",   "value"),
+    # Rules: cooldown, floors
+    State("cp-lump-cooldown",    "value"),
+    State("cp-cash-floor",       "value"),
+    State("cp-res-short-floor",  "value"),
+    State("cp-res-med-floor",    "value"),
+    State("cp-res-long-floor",   "value"),
+    # Rules: SCF
+    State("cp-scf-enable",       "value"),
+    State("cp-scf-amount",       "value"),
+    State("cp-scf-type",         "value"),
+    State("cp-scf-rate",         "value"),
+    State("cp-scf-term",         "value"),
+    State("cp-scf-trigger",      "value"),
+    # Simulation
+    State("cp-yr-range",         "value"),
+    State("cp-freq",             "value"),
+    State("cp-model-src",        "value"),
+    State("cp-asset-model",      "value"),
+    State("cp-qs",               "value"),
+    State("cp-disp",             "value"),
+    State("cp-toggles",          "value"),
+    State("cp-legend-pos",       "value"),
+    # Global
+    State("effective-lots",      "data"),
+    # MC controls
+    State("cp-mc-enable",        "value"),
+    State("cp-mc-bins",          "value"),
+    State("cp-mc-regime",        "value"),
+    State("cp-mc-sims",          "value"),
+    State("cp-mc-years",         "value"),
+    State("cp-mc-window",        "value"),
+    State("cp-mc-start-yr",      "value"),
+    State("cp-mc-entry-q",       "value"),
+    State("cp-mc-model-src",     "value"),
+    State("palette-store",       "data"),
     # ── MC States ──
     State("btc-price-store",     "data"),
     State("cp-mc-results",       "data"),
@@ -117,7 +119,7 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call='initial_duplicate',
 )
 def update_citadel(
-    active_tab,
+    active_tab, run_clicks, _pay_trigger, _mc_loaded,
     # Assets
     stack, use_lots,
     cash_init, cash_rate,
@@ -147,14 +149,35 @@ def update_citadel(
     lots_data,
     # MC controls
     mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
-    mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, mc_model_src,
+    mc_start_yr, mc_entry_q, mc_model_src,
     palette_key,
     # MC states
     price_data, mc_cached, pay_token, mc_unblocked, mc_auth,
 ):
-    """Citadel Planner chart callback — 7-output MC sandwich."""
+    """Citadel Planner chart callback — runs on Run button click only."""
     if ctx.triggered_id == "main-tabs" and active_tab != "citadel":
         raise dash.exceptions.PreventUpdate
+
+    # Only run simulation when Run button clicked or payment trigger fires
+    if ctx.triggered_id not in ("cp-run-btn", "mc-pay-trigger", "cp-mc-loaded", None):
+        raise dash.exceptions.PreventUpdate
+
+    # Show instructions if Run hasn't been clicked yet
+    if not run_clicks and ctx.triggered_id != "mc-pay-trigger":
+        import plotly.graph_objects as go
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Configure your settings, then click<br><b>Run Simulation</b>",
+            xref="paper", yref="paper", x=0.5, y=0.5,
+            showarrow=False, font=dict(size=18, color="#888"),
+        )
+        fig.update_layout(
+            template="plotly_white",
+            xaxis=dict(visible=False), yaxis=dict(visible=False),
+            height=500, margin=dict(t=40, b=40),
+        )
+        return (fig, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update)
 
     toggles = toggles or []
     yr_range = yr_range or [2031, 2075]

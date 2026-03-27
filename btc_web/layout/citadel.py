@@ -202,7 +202,7 @@ def _sim_panel():
             _lbl("Year range"),
             dcc.RangeSlider(id="cp-yr-range", min=2025, max=2080,
                 value=[2031, 2075], step=1,
-                marks={y: str(y) for y in range(2025, 2081, 5)}),
+                marks={y: str(y) for y in range(2030, 2081, 10)}),
             _lbl("Frequency"),
             dcc.Dropdown(id="cp-freq",
                 options=[{"label": "Monthly", "value": "Monthly"},

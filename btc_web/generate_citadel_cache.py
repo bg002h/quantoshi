@@ -30,8 +30,10 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 # Cache dimensions
-_MODELS = ["bub", "pl", "s2f"]
+_MODELS = ["bub", "pl", "qr", "s2f", "lppl", "exp", "ef"]
 _QUANTILES = [0.10, 0.25, 0.50]
+# Non-quantized models (e.g., S2F) only support Q50% (median)
+_NON_QUANTIZED_ONLY_Q50 = {"s2f"}
 _START_YR = 2031
 _END_YR = 2075
 _MONTHLY_SPEND = 5000
@@ -70,7 +72,8 @@ def generate():
             logger.warning("  Model '%s' not available, skipping", model_key)
             continue
 
-        for q in _QUANTILES:
+        quantiles = [0.50] if model_key in _NON_QUANTIZED_ONLY_Q50 else _QUANTILES
+        for q in quantiles:
             key = _cache_key(model_key, q)
             logger.info("  Computing %s...", key)
 
@@ -130,8 +133,9 @@ def generate():
                 logger.error("    FAILED: %s", e)
 
     elapsed_total = time.time() - t0
-    logger.info("\nDone: %d/%d results in %.1fs",
-                total, len(_MODELS) * len(_QUANTILES), elapsed_total)
+    expected = sum(1 if mk in _NON_QUANTIZED_ONLY_Q50 else len(_QUANTILES)
+                   for mk in _MODELS if mk in _app_ctx.PRICE_MODELS)
+    logger.info("\nDone: %d/%d results in %.1fs", total, expected, elapsed_total)
 
 
 if __name__ == "__main__":

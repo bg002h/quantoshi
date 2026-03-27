@@ -551,6 +551,7 @@ def step(state: CitadelState, config: SimConfig,
     new.period += 1
     ppy = FREQ_PPY[config.freq]
     dt = 1.0 / ppy
+    t_before = new.t  # save pre-increment time for quantile lookup
     new.t += dt
     is_deterministic = (config.n_sims == 1)
 
@@ -607,8 +608,9 @@ def step(state: CitadelState, config: SimConfig,
             new.investments[i] *= (1 + r)
 
     # 3. Compute BTC quantile from price via model
+    #    Use t_before (pre-increment) since the price was generated for that time
     if model is not None:
-        btc_quantile = model.quantile_at(new.btc_price, new.t)
+        btc_quantile = model.quantile_at(new.btc_price, t_before)
     else:
         btc_quantile = 0.5
 

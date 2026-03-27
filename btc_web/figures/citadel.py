@@ -40,8 +40,8 @@ class _ModelAdapter:
         return float(self._model.price_at(q, max(t, 0.5)))
 
     def _get_price_grid(self, t: float):
-        """Get or build the price grid for time t (cached per integer year)."""
-        t_key = round(t, 1)  # cache at 0.1-year granularity
+        """Get or build the price grid for time t."""
+        t_key = round(t * 12) / 12  # cache at monthly granularity
         if t_key not in self._price_grid_cache:
             prices = np.array([self.price_at(q, t) for q in self._Q_GRID])
             self._price_grid_cache[t_key] = prices

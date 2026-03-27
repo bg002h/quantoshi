@@ -54,9 +54,9 @@ Browser → nginx ──→ /assets/ [direct from disk, no gunicorn]
 | **Total** | **~2.2 GB** |
 | **Remaining** | **~1.8 GB** for buffers, spikes |
 
-**Critical constraint:** On 4GB, Celery workers CANNOT load the MC cache. They must receive pre-generated price paths via Redis task arguments (serialized numpy arrays, ~1-5 MB per task). The gunicorn worker generates price paths from its cached data, submits them with the Celery task, and the Celery worker runs only the simulation loop (no MC cache access needed).
+**With numpy.memmap refactor:** MC cache in `/dev/shm` is shared via OS page cache across ALL processes (gunicorn + Celery). No duplication. 834 MB MC + 200 MB Citadel cache = 1.0 GB in /dev/shm, shared by all processes.
 
-This is architecturally cleaner anyway: the Celery task is a pure function `simulate(config, price_paths) → SimResult` with no external dependencies.
+**Without memmap (fallback):** Celery workers receive pre-generated price paths via Redis task arguments (~1-5 MB per task). Gunicorn generates paths from its cached data, Celery worker runs only the simulation loop.
 
 ### Option B: Upgrade to 8GB (recommended for growth)
 
@@ -292,6 +292,59 @@ gunicorn btc_web.app:server --worker-class gevent --workers 1 -b 0.0.0.0:8051
 
 ---
 
+## MC Cache: numpy.memmap Refactor
+
+### Problem
+The MC cache is currently loaded via Python deserialization into heap objects (~834 MB). No sharing between gunicorn and Celery process groups.
+
+### Solution: numpy.memmap
+Convert cache from serialized Python dicts to structured binary files backed by `numpy.memmap`. Data stays in `/dev/shm` (tmpfs RAM), mapped directly into every process's virtual address space via OS page cache. Zero deserialization, zero duplication.
+
+**File structure:**
+```
+/dev/shm/quantoshi_mc/
+    index.json          # {path_key: {offset, shape, dtype}, ...}
+    paths.bin           # concatenated price path arrays
+    overlays.bin        # concatenated overlay arrays
+```
+
+**Access:** `np.memmap('/dev/shm/quantoshi_mc/paths.bin', dtype='float64', mode='r')` — lazy, zero-copy, shared physical RAM across all processes (gunicorn + Celery).
+
+**Benefits:** 834 MB shared regardless of process count. Near-instant startup. No serialization security concerns.
+
+---
+
+## Citadel Pre-Computed Cache
+
+### Goal
+Pre-compute Citadel results for common parameters. Target: ~200 MB cache. Tab 9 returns instantly for default/popular settings.
+
+### Cache Matrix
+
+| Dimension | Values | Count |
+|-----------|--------|-------|
+| Price model | bub, pl, s2f | 3 |
+| Start year | 2031 | 1 |
+| Entry quantile | Q10%, Q25%, Q50% | 3 |
+| Spending | $5K/mo (default) | 1 |
+
+**Base:** 3 models x 3 quantiles = 9 deterministic results (~2 MB)
+
+**Extended (200 MB budget):**
+- MC fan bands (200 sims per combo): 9 combos x ~6 MB = ~50 MB
+- Extra quantiles (Q1%, Q5%, Q75%, Q90%): +12 combos = ~3 MB
+- Extra start years (2028, 2035): x3 = ~15 MB
+- Spending variations ($3K, $8K, $10K/mo): x3 = ~45 MB
+- **Total: ~100 combos, ~115 MB**
+
+### Storage
+Store in `/dev/shm/quantoshi_citadel/` as mmap files (matching MC pattern), or in Redis with 1-week TTL. Generation script: `btc_web/generate_citadel_cache.py`, runs at boot via systemd oneshot (~2-5 minutes).
+
+### Free tier
+All cached combos are free. Non-cached MC parameters require payment.
+
+---
+
 ## Performance Targets
 
 | Metric | Current | Target |
@@ -342,4 +395,4 @@ gunicorn btc_web.app:server --worker-class gevent --workers 1 -b 0.0.0.0:8051
 - CDN — nginx caching sufficient
 - WebSocket — Dash uses HTTP polling
 - Docker/Kubernetes
-- numpy.memmap refactor of MC cache (deferred to future if needed)
+- numpy.memmap is IN scope (see MC Cache section above)

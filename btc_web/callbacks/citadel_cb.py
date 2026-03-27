@@ -118,7 +118,7 @@ _app_ctx.app.clientside_callback(
     State("mc-pay-token",        "data"),
     State("cp-mc-unblocked",     "data"),
     State("cp-mc-rendered-key",  "data"),
-    prevent_initial_call=False,
+    prevent_initial_call='initial_duplicate',
 )
 def update_citadel(
     active_tab, run_clicks, _pay_trigger, _mc_loaded,

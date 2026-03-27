@@ -212,7 +212,9 @@ _SNAPSHOT_CONTROLS = [
     ("cp-res-short-floor",  "value"),   # 181
     ("cp-res-med-floor",    "value"),   # 182
     ("cp-res-long-floor",   "value"),   # 183
-    ("cp-scf-enable",       "value"),   # 184
+    ("cp-cash-floor-growth","value"),   # 184
+    ("cp-res-floor-growth", "value"),   # 185
+    ("cp-scf-enable",       "value"),   # 186
     ("cp-scf-amount",       "value"),   # 185
     ("cp-scf-type",         "value"),   # 186
     ("cp-scf-rate",         "value"),   # 187

@@ -81,6 +81,8 @@ _app_ctx.app.clientside_callback(
     State("cp-res-short-floor",  "value"),
     State("cp-res-med-floor",    "value"),
     State("cp-res-long-floor",   "value"),
+    State("cp-cash-floor-growth","value"),
+    State("cp-res-floor-growth", "value"),
     # Rules: SCF
     State("cp-scf-enable",       "value"),
     State("cp-scf-amount",       "value"),
@@ -141,6 +143,7 @@ def update_citadel(
     # Cooldown, floors
     lump_cooldown,
     cash_floor, res_short_floor, res_med_floor, res_long_floor,
+    cash_floor_growth, res_floor_growth,
     # SCF
     scf_enable, scf_amount, scf_type, scf_rate, scf_term, scf_trigger,
     # Simulation
@@ -248,6 +251,8 @@ def update_citadel(
         res_short_floor = _cf(res_short_floor, 0, lo=0),
         res_med_floor   = _cf(res_med_floor, 0, lo=0),
         res_long_floor  = _cf(res_long_floor, 0, lo=0),
+        cash_floor_growth = _cf(cash_floor_growth, 0, lo=0, hi=50),
+        reserve_floor_growth = _cf(res_floor_growth, 0, lo=0, hi=50),
         # SCF
         scf_enabled     = "yes" in (scf_enable or []),
         scf_amount      = _cf(scf_amount, 0, lo=0),

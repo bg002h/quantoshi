@@ -969,3 +969,63 @@ class TestEdgeCases:
             validate_config(_make_config(freq="Daily"))
         with pytest.raises(ValueError, match="high_q_trigger.*low_q_trigger"):
             validate_config(_make_config(high_q_trigger=0.10, low_q_trigger=0.90))
+
+
+# ===================================================================
+# Test 15: Floor growth rate
+# ===================================================================
+
+class TestFloorGrowth:
+    """Verify cash_floor_growth and reserve_floor_growth increase floors over time."""
+
+    def test_cash_floor_grows_annually(self):
+        """Cash floor $50K with 10% annual growth. After 1 year floor = $55K."""
+        model = ControlledModel(price=100_000.0, quantile=0.50)
+        cfg = _make_config(
+            cash_initial=100_000.0,
+            cash_floor=50_000.0,
+            cash_floor_growth=10.0,  # 10% per year
+            monthly_spend=8_000.0,
+            invest_bins=[
+                {"label": "Equities", "initial": 500_000.0, "return_rate": 0.0, "volatility": 0.0},
+                {"label": "Bonds", "initial": 0.0, "return_rate": 0.0, "volatility": 0.0},
+            ],
+        )
+        state = _initial_state(cfg, model=model)
+        rng = _rng()
+
+        # Run 12 months — by month 12, floor should be ~$55K
+        for month in range(1, 13):
+            state = step(state, cfg, 100_000.0, rng, model=model)
+
+        # After 12 months of spending $8K/mo, cash would be depleted
+        # but floor enforcement should keep it at or above the grown floor
+        expected_floor = 50_000 * (1.10) ** 1.0  # $55K after 1 year
+        assert state.cash >= expected_floor - 1, (
+            f"Month 12: cash ${state.cash:.0f} < grown floor ${expected_floor:.0f}")
+
+    def test_reserve_floor_grows(self):
+        """Reserve short floor $20K with 5% growth. After 2 years floor = ~$22K."""
+        model = ControlledModel(price=100_000.0, quantile=0.50)
+        cfg = _make_config(
+            cash_initial=0,
+            monthly_spend=0,
+            reserve_floors=[20_000.0, 0, 0],
+            reserve_floor_growth=5.0,  # 5% per year
+            invest_bins=[
+                {"label": "Equities", "initial": 500_000.0, "return_rate": 0.0, "volatility": 0.0},
+                {"label": "Bonds", "initial": 0.0, "return_rate": 0.0, "volatility": 0.0},
+            ],
+        )
+        # Set initial reserve below floor to force enforcement
+        cfg.reserve_bins[0]["initial"] = 15_000.0
+        state = _initial_state(cfg, model=model)
+        rng = _rng()
+
+        # After 24 months (2 years), floor = 20000 * 1.05^2 = $22050
+        for month in range(1, 25):
+            state = step(state, cfg, 100_000.0, rng, model=model)
+
+        expected_floor = 20_000 * (1.05) ** 2.0
+        assert state.reserves[0] >= expected_floor - 1, (
+            f"Month 24: reserve short ${state.reserves[0]:.0f} < grown floor ${expected_floor:.0f}")

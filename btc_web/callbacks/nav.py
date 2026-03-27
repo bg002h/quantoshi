@@ -99,7 +99,8 @@ _TAB_CONTROLS = {
                     "cp-scf-enable","cp-scf-amount","cp-scf-type","cp-scf-rate",
                     "cp-scf-term","cp-scf-trigger",
                     "cp-yr-range","cp-freq","cp-model-src","cp-qs","cp-disp",
-                    "cp-toggles","cp-legend-pos","cp-asset-model"},
+                    "cp-toggles","cp-legend-pos","cp-asset-model",
+                    "cp-cash-floor-growth","cp-res-floor-growth"},
     "faq":         set(),
 }
 # Palette is global — add to every tab so single-tab share links include it

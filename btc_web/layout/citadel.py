@@ -151,6 +151,10 @@ def _rules_panel():
             dbc.Input(id="cp-res-med-floor", type="number", value=0, min=0, step=1),
             _lbl("Reserve Long floor ($)"),
             dbc.Input(id="cp-res-long-floor", type="number", value=0, min=0, step=1),
+            _lbl("Cash floor annual increase (%)"),
+            dbc.Input(id="cp-cash-floor-growth", type="number", value=0, min=0, max=50, step=0.5),
+            _lbl("Reserve floor annual increase (%)"),
+            dbc.Input(id="cp-res-floor-growth", type="number", value=0, min=0, max=50, step=0.5),
         ),
         # Saylor Citadel Fortifier
         dcc.Checklist(id="cp-scf-enable",

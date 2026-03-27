@@ -148,11 +148,13 @@ def _build_sim_config(p: dict) -> SimConfig:
         low_q_action=low_q_action,
         lump_cooldown=int(p.get("lump_cooldown", 12)),
         cash_floor=float(p.get("cash_floor", 0)),
+        cash_floor_growth=float(p.get("cash_floor_growth", 0)),
         reserve_floors=[
             float(p.get("res_short_floor", 0)),
             float(p.get("res_med_floor", 0)),
             float(p.get("res_long_floor", 0)),
         ],
+        reserve_floor_growth=float(p.get("reserve_floor_growth", 0)),
         scf_enabled=bool(p.get("scf_enabled")),
         scf_amount=float(p.get("scf_amount", 0)),
         scf_type=p.get("scf_type", "term"),

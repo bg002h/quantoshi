@@ -62,7 +62,9 @@ class SimConfig:
 
     # Floor rules
     cash_floor: float = 0.0
+    cash_floor_growth: float = 0.0     # annual % increase in cash floor
     reserve_floors: list[float] = field(default_factory=lambda: [0.0, 0.0, 0.0])
+    reserve_floor_growth: float = 0.0  # annual % increase in all reserve floors
 
     # Saylor Citadel Fortifier
     scf_enabled: bool = False
@@ -206,12 +208,19 @@ def _enforce_floors(state: CitadelState, config: SimConfig) -> None:
     7. BTC (last resort, for CASH FLOOR ONLY — ensures the retirement
        spending account stays funded even when all dollar assets are depleted)
     Reserve floors do NOT sell BTC — they only redistribute among dollar accounts."""
+    # Compute time-adjusted floors (grow annually by configured %)
+    ppy = FREQ_PPY.get(config.freq, 12)
+    years_elapsed = state.period / ppy
+    cash_floor_eff = config.cash_floor * (1 + config.cash_floor_growth / 100) ** years_elapsed
+    res_floor_growth = (1 + config.reserve_floor_growth / 100) ** years_elapsed
+
     accounts_to_check = []
-    if config.cash_floor > 0:
-        accounts_to_check.append(("cash", config.cash_floor))
+    if cash_floor_eff > 0:
+        accounts_to_check.append(("cash", cash_floor_eff))
     for i, floor in enumerate(config.reserve_floors):
-        if floor > 0:
-            accounts_to_check.append((f"reserve_{i}", floor))
+        eff = floor * res_floor_growth
+        if eff > 0:
+            accounts_to_check.append((f"reserve_{i}", eff))
 
     for acct_key, floor in accounts_to_check:
         if acct_key == "cash":

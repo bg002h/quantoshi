@@ -26,14 +26,33 @@ except Exception:
     _HAS_REDIS = False
     logger.info("Redis not available — using per-worker LRU only")
 
-_FIGURE_TTL = 3600       # 1 hour default
-_CITADEL_TTL = 86400     # 24 hours for pre-computed citadel results
+# ── Model fingerprint: invalidates cache when model_data.pkl changes ────────
+# Cache entries are keyed by this fingerprint. When new price data arrives
+# and the notebook regenerates model_data.pkl, all cache keys change
+# automatically — no TTL needed, no manual flush needed.
+
+def _compute_model_fingerprint() -> str:
+    """Fingerprint based on model_data.pkl mtime + size.
+    Changes whenever the pkl is regenerated (new price data)."""
+    import os
+    for path in ("btc_app/model_data.pkl", "archive/btc_app/model_data.pkl"):
+        if os.path.exists(path):
+            st = os.stat(path)
+            return hashlib.md5(f"{st.st_mtime}:{st.st_size}".encode()).hexdigest()[:8]
+    return "unknown"
+
+_MODEL_FP = _compute_model_fingerprint()
+logger.info("Model fingerprint: %s", _MODEL_FP)
+
+# No TTL — cache is invalidated only by model data changes (fingerprint)
+_REDIS_TTL = 0  # 0 = no expiry (Redis LRU eviction handles memory pressure)
 
 
 def _cache_key(prefix: str, params_json: str) -> str:
-    """Deterministic cache key from prefix + JSON params string."""
+    """Deterministic cache key including model fingerprint.
+    When model_data.pkl changes, all keys miss automatically."""
     h = hashlib.sha256(params_json.encode()).hexdigest()[:16]
-    return f"fig:{prefix}:{h}"
+    return f"fig:{_MODEL_FP}:{prefix}:{h}"
 
 
 def get_cached(prefix: str, params_json: str) -> dict | None:
@@ -47,14 +66,14 @@ def get_cached(prefix: str, params_json: str) -> dict | None:
         return None
 
 
-def set_cached(prefix: str, params_json: str, data: dict,
-               ttl: int = _FIGURE_TTL) -> None:
-    """Store a figure in Redis. Non-fatal on error."""
+def set_cached(prefix: str, params_json: str, data: dict) -> None:
+    """Store a figure in Redis. No TTL — persists until model changes
+    (fingerprint in key) or Redis LRU eviction. Non-fatal on error."""
     if not _HAS_REDIS:
         return
     try:
-        _REDIS.setex(_cache_key(prefix, params_json), ttl,
-                     json.dumps(data, default=str))
+        _REDIS.set(_cache_key(prefix, params_json),
+                   json.dumps(data, default=str))
     except Exception as e:
         logger.debug("Redis set failed: %s", e)
 
@@ -64,20 +83,20 @@ def get_citadel_cached(cache_key: str) -> dict | None:
     if not _HAS_REDIS:
         return None
     try:
-        data = _REDIS.get(f"citadel:{cache_key}")
+        data = _REDIS.get(f"citadel:{_MODEL_FP}:{cache_key}")
         return json.loads(data) if data else None
     except Exception:
         return None
 
 
-def set_citadel_cached(cache_key: str, data: dict,
-                       ttl: int = _CITADEL_TTL) -> None:
-    """Store a pre-computed Citadel result in Redis."""
+def set_citadel_cached(cache_key: str, data: dict) -> None:
+    """Store a pre-computed Citadel result in Redis. No TTL — persists
+    until model changes (fingerprint in key) or LRU eviction."""
     if not _HAS_REDIS:
         return
     try:
-        _REDIS.setex(f"citadel:{cache_key}", ttl,
-                     json.dumps(data, default=str))
+        _REDIS.set(f"citadel:{_MODEL_FP}:{cache_key}",
+                    json.dumps(data, default=str))
     except Exception as e:
         logger.debug("Redis citadel set failed: %s", e)
 

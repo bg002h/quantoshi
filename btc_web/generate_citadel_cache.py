@@ -122,7 +122,7 @@ def generate():
 
                 # Store in Redis
                 data = {"figure": fig_json, "mc_result": mc_result}
-                set_citadel_cached(key, data, ttl=86400 * 7)  # 1 week TTL
+                set_citadel_cached(key, data)  # no TTL — invalidated by model fingerprint
 
                 elapsed = time.time() - t1
                 size_kb = len(fig_json) / 1024

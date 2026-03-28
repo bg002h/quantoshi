@@ -307,6 +307,14 @@ def update_citadel(
         mc_p["mc_entry_q"], toggles, mc_stale=mc_p.get("mc_stale", False),
         mc_p=mc_p)
 
+    # Update title with MC info (the figure was built before MC overlay ran)
+    if mc_ok and mc_result and isinstance(mc_result, dict) and not mc_result.get("_pending"):
+        mc_eq = mc_p.get("mc_entry_q", "")
+        actual_sims = mc_result.get("n_sims", mc_p.get("mc_sims", "?"))
+        old_title = fig.layout.title.text if fig.layout.title else ""
+        if "MC entry" not in (old_title or ""):
+            fig.update_layout(title_text=f"{old_title}  \u00b7  MC entry Q{mc_eq}% ({actual_sims} sims)")
+
     # Check if MC result is a Celery pending marker — enable polling
     if mc_result and isinstance(mc_result, dict) and mc_result.get("_pending"):
         task_id = mc_result.get("_celery_task_id")

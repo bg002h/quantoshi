@@ -8,7 +8,7 @@ import pandas as pd
 
 import _app_ctx
 from btc_core import yr_to_t, today_t, _find_lot_percentile
-from tab_defaults import BUBBLE, HEATMAP
+from tab_defaults import BUBBLE, HEATMAP, DCA
 from callbacks.coerce import _ci, _cf
 from callbacks.mc_helpers import (_mc_setup, _mc_finalize, _mc_status,
                                   _strip_free_paths)
@@ -411,15 +411,15 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
         mc_bins, mc_sims, freq, mc_window, amount, dca_infl,
         mc_cached, live_price, mc_regime, mc_unblocked, pay_token,
         mc_auth=mc_auth,
-        stack=stack, amount_default=100, infl_default=0.0, start_yr_default=2026,
+        stack=stack, amount_default=DCA["amount"], infl_default=float(DCA["inflation"]), start_yr_default=2026,
         mc_model_src=mc_model_src)
     model_show = model_show if model_show is not None else []
     fig, mc_result = _get_dca_fig(dict(
-        start_stack    = _cf(stack, 0),
+        start_stack    = _cf(stack, DCA["start_stack"]),
         use_lots       = bool(use_lots),
-        amount         = _ci(amount, 100, lo=0, hi=_app_ctx.MAX_USD),
+        amount         = _ci(amount, DCA["amount"], lo=0, hi=_app_ctx.MAX_USD),
         freq           = freq or "Monthly",
-        inflation      = _cf(dca_infl, 0),
+        inflation      = _cf(dca_infl, DCA["inflation"]),
         start_yr       = int(yr_range[0]),
         end_yr         = int(yr_range[1]),
         disp_mode      = disp or "btc",
@@ -434,13 +434,13 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
         lots           = lots_data or [],
         sc_enabled     = bool(sc_enable),
         sc_loan_amount = _cf(sc_loan, 0),
-        sc_rate        = _cf(sc_rate, _app_ctx.SC_DEFAULT_RATE),
+        sc_rate        = _cf(sc_rate, DCA["sc_rate"]),
         sc_loan_type   = sc_type or "interest_only",
-        sc_term_months = _cf(sc_term, 12),
+        sc_term_months = _cf(sc_term, DCA["sc_term_months"]),
         sc_repeats     = _ci(sc_repeats, 0),
         sc_live_price   = live_price,
         sc_entry_mode   = sc_entry_mode or "live",
-        sc_custom_price = _cf(sc_custom_price, _app_ctx.SC_DEFAULT_PRICE),
+        sc_custom_price = _cf(sc_custom_price, DCA["sc_custom_price"]),
         sc_tax_rate     = _cf(sc_tax, 33, lo=0, hi=100) / 100.0,
         sc_rollover     = bool(sc_rollover),
         show_qr        = "bub" in model_show,

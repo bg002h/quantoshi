@@ -164,6 +164,7 @@ _EXPORT_TABS = [
     ("dca",     "dca-graph"),
     ("retire",  "retire-graph"),
     ("supercharge", "supercharge-graph"),
+    ("citadel", "citadel-graph"),
 ]
 
 for _tab_id, _graph_id in _EXPORT_TABS:

@@ -349,6 +349,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     q_label = f"Q{config.selected_qs[0]*100:g}%" if config.selected_qs else "Q25%"
     ylabel = "BTC Remaining" if disp_mode == "btc" else "USD Value"
     title = f"Citadel Planner \u2014 {fmt_price(config.monthly_spend)}/mo \u00b7 {q_label}"
+    print(f"[CITADEL] title: mc_enabled={p.get('mc_enabled')}, mc_result={type(mc_result).__name__}({bool(mc_result)}), mc_pending={mc_pending}", flush=True)
     if p.get("mc_enabled") and mc_result and not mc_pending:
         mc_eq = p.get("mc_entry_q", "")
         # Show actual sim count from result, not requested count

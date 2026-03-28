@@ -77,12 +77,11 @@ def submit_simulation(config: SimConfig, model: PriceModel,
                 "genesis": getattr(model, 'genesis', 0.0),
             }
 
-        # Check if a Celery worker is actually running before submitting
+        # Quick check: skip Celery if Redis isn't even available
         try:
-            insp = celery_app.control.inspect(timeout=1)
-            workers = insp.active_queues()
-            if not workers:
-                raise ConnectionError("No Celery workers available")
+            from cache import redis_available
+            if not redis_available():
+                raise ConnectionError("Redis not available — no Celery broker")
             task = celery_app.send_task(
                 'btc_web.tasks.run_citadel_simulation',
                 kwargs={

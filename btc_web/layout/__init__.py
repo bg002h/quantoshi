@@ -77,7 +77,6 @@ _app_ctx.app.layout = dbc.Container([
     dcc.Store(id="user-model-store", storage_type="memory", data=None),
     dcc.Store(id="draw-mode-store", storage_type="memory",
               data={"phase": "idle", "point1": None, "point2": None, "pre_draw_zoom": None}),
-    dcc.Store(id="raw-chart-click", storage_type="memory", data=None),
     dcc.Store(id="viewport-width", storage_type="memory", data=1200),
     dcc.Store(id="snapshot-state-store", storage_type="memory", data=None),
     dcc.Store(id="ticker-mode-store", storage_type="local", data="usd"),

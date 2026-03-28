@@ -270,8 +270,6 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                 confirm_menu,
                 model_menu,
                 toast,
-                html.Button(id="raw-click-trigger", n_clicks=0,
-                            style={"display": "none"}),
             ]),
             _export_row(graph_id.replace("-graph", "")),
         ], width=9),

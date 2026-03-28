@@ -1,13 +1,13 @@
 """User-defined model: draw-mode state machine + model construction."""
 
-from dash import Input, Output, State, callback, clientside_callback, no_update, ctx
+from dash import Input, Output, State, callback, no_update, ctx
 
 import _app_ctx
 from btc_core import UserModel
 
 _HIDDEN = {"display": "none"}
 _MENU_STYLE = {
-    "display": "flex", "position": "absolute", "bottom": "60px",
+    "display": "flex", "position": "absolute", "top": "10px",
     "left": "50%", "transform": "translateX(-50%)", "zIndex": 15,
     "backgroundColor": "rgba(30,30,40,0.95)", "borderRadius": "8px",
     "padding": "8px 12px", "boxShadow": "0 4px 16px rgba(0,0,0,0.5)",
@@ -234,42 +234,25 @@ def on_tab_switch(active_tab, draw_state):
 # 5. Chart click → capture point during draw mode
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Bridge: hidden button click → read global coords → write to store
-clientside_callback(
-    """
-    function(n) {
-        if (window._rawChartClick) {
-            var data = window._rawChartClick;
-            window._rawChartClick = null;
-            return data;
-        }
-        return window.dash_clientside.no_update;
-    }
-    """,
-    Output("raw-chart-click", "data"),
-    Input("raw-click-trigger", "n_clicks"),
-    prevent_initial_call=True,
-)
-
-
 @callback(
     Output("draw-mode-store", "data", allow_duplicate=True),
     Output("draw-confirm-menu", "style", allow_duplicate=True),
-    Input("raw-chart-click", "data"),
+    Input("bubble-graph", "clickData"),
     State("draw-mode-store", "data"),
     prevent_initial_call=True,
 )
 def on_chart_click(click_data, draw_state):
-    """Capture raw chart click (from JS pixel→data conversion, no trace snapping)."""
+    """Capture chart click via Plotly clickData (snaps to 200×200 background grid)."""
     phase = (draw_state or {}).get("phase", "idle")
 
     if phase not in ("placing_p1", "placing_p2"):
         return no_update, no_update
 
-    if not click_data or not click_data.get("t") or not click_data.get("price"):
+    if not click_data or not click_data.get("points"):
         return no_update, no_update
 
-    clicked = {"t": click_data["t"], "price": click_data["price"]}
+    pt = click_data["points"][0]
+    clicked = {"t": pt["x"], "price": pt["y"]}
     new_draw = dict(draw_state)
     new_draw.pop("_adjust_zoom", None)
 

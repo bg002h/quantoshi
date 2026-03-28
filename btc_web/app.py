@@ -280,9 +280,13 @@ def _prewarm_caches():
         logging.getLogger(__name__).info("L0 compute + Redis store: %d entries in %.1fs",
                     len(keyed), _time.time() - t0)
 
-_prewarm_caches()
-from utils import _log_cache_stats
-_log_cache_stats()
+import os as _os
+if _os.environ.get("DEV") != "1":
+    _prewarm_caches()
+    from utils import _log_cache_stats
+    _log_cache_stats()
+else:
+    logging.getLogger(__name__).info("DEV mode — skipping prewarm (first request per tab will be slower)")
 
 # Pre-warm default transition matrix
 if _HAS_MARKOV:

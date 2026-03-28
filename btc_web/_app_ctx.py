@@ -153,6 +153,13 @@ except ImportError:
     _HAS_CELERY = False
 
 try:
+    import socket as _socket
+    # Fast pre-check: can we even connect to Redis port? (avoids slow library timeout)
+    _sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+    _sock.settimeout(0.2)
+    _sock.connect(('localhost', 6379))
+    _sock.close()
+    # Port is open — now create the Redis client
     import redis as _redis_mod
     _REDIS = _redis_mod.Redis(host='localhost', port=6379, db=0,
                                socket_timeout=1, socket_connect_timeout=1)

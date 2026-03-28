@@ -855,6 +855,11 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
     import time as _time
     _mc_t0 = _time.time()
     n_bins, n_sims, mc_window, mc_freq, mc_ppy, mc_dt, step_days, mc_years = _mc_setup_vars(p)
+
+    # Ensure MC covers the full Citadel time range
+    citadel_span = citadel_config.end_yr - citadel_config.start_yr
+    if mc_years < citadel_span:
+        mc_years = int(citadel_span) + 1  # +1 for safety
     print(f"[MC-CITADEL] starting: n_sims={n_sims}, mc_years={mc_years}, bins={n_bins}", flush=True)
     mc_start_yr, mc_t_start, mc_t_end, mc_ts = _build_mc_timeline(
         p, m, mc_years, mc_dt, clamp_start=True)
@@ -885,8 +890,9 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
     from engines.citadel import FREQ_PPY as _CITADEL_FREQ_PPY, simulate as _citadel_sim
     citadel_ppy = _CITADEL_FREQ_PPY.get(citadel_config.freq, 12)
     n_periods_needed = int((citadel_config.end_yr - citadel_config.start_yr) * citadel_ppy)
+    print(f"[MC-CITADEL] paths: {price_paths.shape}, need {n_periods_needed} periods, citadel_ppy={citadel_ppy}", flush=True)
     if price_paths.shape[1] < n_periods_needed:
-        # Not enough MC steps for the citadel time range — skip MC
+        print(f"[MC-CITADEL] SKIP: paths have {price_paths.shape[1]} steps but need {n_periods_needed}", flush=True)
         return [], None
 
     # Resample MC price paths to citadel's time grid if frequencies differ

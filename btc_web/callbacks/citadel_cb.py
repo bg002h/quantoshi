@@ -21,6 +21,47 @@ _app_ctx.app.clientside_callback(
 )
 
 
+# ── Legend show/hide all ──────────────────────────────────────────────────────
+_app_ctx.app.clientside_callback(
+    """
+    function(n) {
+        if (!n) return window.dash_clientside.no_update;
+        var gd = document.getElementById('citadel-graph');
+        if (gd) {
+            var plot = gd.querySelector('.js-plotly-plot') || gd;
+            if (plot && plot.data) {
+                var vis = plot.data.map(function() { return true; });
+                Plotly.restyle(plot, {visible: vis});
+            }
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("cp-legend-all", "n_clicks"),
+    Input("cp-legend-all", "n_clicks"),
+    prevent_initial_call=True,
+)
+
+_app_ctx.app.clientside_callback(
+    """
+    function(n) {
+        if (!n) return window.dash_clientside.no_update;
+        var gd = document.getElementById('citadel-graph');
+        if (gd) {
+            var plot = gd.querySelector('.js-plotly-plot') || gd;
+            if (plot && plot.data) {
+                var vis = plot.data.map(function() { return 'legendonly'; });
+                Plotly.restyle(plot, {visible: vis});
+            }
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("cp-legend-none", "n_clicks"),
+    Input("cp-legend-none", "n_clicks"),
+    prevent_initial_call=True,
+)
+
 # ── Dollar Asset Returns model info ──────────────────────────────────────────
 @callback(
     Output("cp-asset-model-info", "children"),

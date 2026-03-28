@@ -270,6 +270,14 @@ def _sim_panel():
         _section_card("Chart Settings",
             _chart_toggles("cp", ["annotate", "log_y", "show_legend", "minor_grid"]),
             *_legend_pos_dropdown("cp", CITADEL["legend_pos"]),
+            html.Div([
+                dbc.Button("Show All", id="cp-legend-all", size="sm",
+                           color="secondary", outline=True, className="me-1",
+                           style={"fontSize": "11px", "padding": "1px 8px"}),
+                dbc.Button("Hide All", id="cp-legend-none", size="sm",
+                           color="secondary", outline=True,
+                           style={"fontSize": "11px", "padding": "1px 8px"}),
+            ], style={"marginTop": "4px"}),
         ),
     ])
 

@@ -458,6 +458,78 @@ $$T_{ij} = P(\text{bin}_{t+1} = j \mid \text{bin}_t = i)$$
                                     "models cannot.",
                                 ]),
                             ]),
+                        # ── User Model (U₁) ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = \alpha + \beta \cdot \log_{10}(t)$$
+
+where $\alpha$ (intercept) and $\beta$ (slope) are derived from **two user-selected data points** in log-log space.
+                            """, mathjax=True, className="mb-3"),
+
+                            html.H6("Method"),
+                            html.P([
+                                "The user clicks two historical data points on the Bubble chart. "
+                                "The slope and intercept define a power law line through those points. "
+                                "Parallel quantile bands are derived from the ",
+                                html.Strong("empirical residual distribution"),
+                                " \u2014 for each standard quantile, the shift equals the corresponding "
+                                "percentile of residuals between the user's line and all historical prices. "
+                                "This captures the asymmetric spread (bubbles push upper quantiles "
+                                "farther from the median than lower quantiles).",
+                            ]),
+
+                            html.H6("Properties"),
+                            html.Ul([
+                                html.Li("Fully quantized: all standard quantile bands available"),
+                                html.Li("Same slope for all quantile lines (parallel in log-log)"),
+                                html.Li("The user's drawn line has shift = 0 (passes exactly through both points)"),
+                                html.Li("Own quantile = fraction of historical data below the line"),
+                                html.Li("Session-only \u2014 disappears on page refresh"),
+                                html.Li([html.Strong("Color: "), html.Span("orange (#e67e22), 3px for the drawn line")]),
+                            ]),
+                        ], title="User Model (U\u2081)", item_id="mi-u1"),
+
+                        # ── Historical Regimes (Dollar Assets) ──
+                        dbc.AccordionItem([
+                            html.H6("Overview"),
+                            html.P([
+                                "The Historical Regimes model replaces user-input rates for dollar "
+                                "assets (equities, bonds, treasuries) with a Markov chain that "
+                                "transitions between regimes based on historical data. Used in the "
+                                "Citadel Planner's ",
+                                html.Strong("Dollar Asset Returns"),
+                                " dropdown.",
+                            ]),
+
+                            html.H6("Data Sources"),
+                            html.Ul([
+                                html.Li("Equities: S&P 500 monthly total returns (Yahoo Finance)"),
+                                html.Li("Bonds: AGG Bond ETF monthly total returns"),
+                                html.Li("Short Treasuries: 3-month T-bill yield → total return via duration approximation"),
+                                html.Li("Medium Treasuries: 5-year T-note yield → total return"),
+                                html.Li("Long Treasuries: 20-year T-bond yield → total return"),
+                            ]),
+
+                            html.H6("Method"),
+                            html.P([
+                                "Monthly returns are discretized into ",
+                                html.Code("n_bins"),
+                                " (default 5) regimes via percentile binning. A row-stochastic "
+                                "transition matrix records the probability of moving from one regime "
+                                "to another. At each simulation step, the current regime determines "
+                                "the return distribution, and a random draw selects the next regime.",
+                            ]),
+
+                            html.H6("Key Properties"),
+                            html.Ul([
+                                html.Li("5 independent Markov chains (one per asset class)"),
+                                html.Li("Regime transitions are independent of BTC price paths"),
+                                html.Li("When selected, user-input rates/volatility are ignored"),
+                                html.Li("Available in both deterministic (\u25b6) and MC (\u26a1) modes"),
+                            ]),
+                        ], title="Historical Regimes (Dollar Assets)", item_id="mi-regimes"),
+
                         ], title="Model Comparison", item_id="mi-compare"),
 
                     ], id="model-info-accordion", start_collapsed=True, flush=True),

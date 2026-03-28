@@ -183,100 +183,23 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
 
 
 def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
-    """Chart tab with FAB for user model drawing + confirmation menu + toast."""
-    import dash_bootstrap_components as dbc
-
-    fab = html.Button(
-        "\u270e",  # ✎ pencil
-        id="user-model-fab",
-        n_clicks=0,
-        style={
-            "position": "absolute", "bottom": "14px", "right": "14px",
-            "zIndex": 10, "width": "42px", "height": "42px",
-            "borderRadius": "50%", "border": "2px solid rgba(255,255,255,0.3)",
-            "backgroundColor": "rgba(30,30,40,0.85)",
-            "color": "#e67e22", "fontSize": "20px",
-            "cursor": "pointer", "display": "flex",
-            "alignItems": "center", "justifyContent": "center",
-            "boxShadow": "0 2px 8px rgba(0,0,0,0.4)",
-            "transition": "all 0.2s ease",
-            "lineHeight": "1",
-        },
-        title="Draw a custom model (click 2 points)",
-    )
-
-    confirm_menu = html.Div(
-        id="draw-confirm-menu",
-        style={"display": "none", "position": "absolute", "bottom": "60px",
-               "left": "50%", "transform": "translateX(-50%)", "zIndex": 15,
-               "backgroundColor": "rgba(30,30,40,0.95)", "borderRadius": "8px",
-               "padding": "8px 12px", "boxShadow": "0 4px 16px rgba(0,0,0,0.5)",
-               "whiteSpace": "nowrap"},
-        children=[
-            dbc.Button("\u2713", id="draw-accept-btn", color="success",
-                       size="sm", title="Accept point",
-                       style={"fontSize": "14px", "padding": "2px 8px"}),
-            dbc.Button("\u21bb", id="draw-adjust-btn", color="warning",
-                       size="sm", title="Zoom in to adjust",
-                       style={"fontSize": "14px", "padding": "2px 8px"}),
-            dbc.Button("\u2715", id="draw-cancel-btn", color="secondary",
-                       size="sm", title="Cancel point",
-                       style={"fontSize": "14px", "padding": "2px 8px"}),
-        ],
-    )
-
-    model_menu = html.Div(
-        id="draw-model-menu",
-        style={"display": "none", "position": "absolute", "bottom": "60px",
-               "left": "50%", "transform": "translateX(-50%)", "zIndex": 15,
-               "backgroundColor": "rgba(30,30,40,0.95)", "borderRadius": "8px",
-               "padding": "8px 12px", "boxShadow": "0 4px 16px rgba(0,0,0,0.5)",
-               "whiteSpace": "nowrap"},
-        children=[
-            dbc.Button("\u270e Redraw", id="draw-redraw-btn", color="warning",
-                       size="sm", className="me-2"),
-            dbc.Button("\u2715 Delete", id="draw-delete-btn", color="danger",
-                       size="sm", className="me-2"),
-            dbc.Button("Cancel", id="draw-dismiss-btn", color="secondary",
-                       size="sm"),
-        ],
-    )
-
-    toast = html.Div(
-        id="draw-toast",
-        style={"display": "none", "position": "absolute", "top": "10px",
-               "left": "50%", "transform": "translateX(-50%)", "zIndex": 15,
-               "backgroundColor": "rgba(230,126,34,0.9)", "color": "#fff",
-               "borderRadius": "6px", "padding": "6px 14px", "fontSize": "13px",
-               "fontWeight": "600", "whiteSpace": "nowrap",
-               "pointerEvents": "none"},
-        children="Tap two points to define your model",
-    )
-
+    """Chart tab with user model input panel (simple year+price fields)."""
     return dbc.Row([
         dbc.Col([
             controls_fn(),
         ], width=3, className="controls-col overflow-auto",
                 style={"maxHeight": "85vh"}),
         dbc.Col([
-            # Menus are OUTSIDE chart-wrap so clicks can't trigger Plotly clickData
-            html.Div(style={"position": "relative"}, children=[
-                html.Div(id=f"{graph_id}-chart-wrap",
-                         style={"position": "relative"}, children=[
-                    dcc.Loading(
-                        dcc.Graph(id=graph_id, style=_STYLE_GRAPH_H,
-                                  config={"scrollZoom": False,
-                                          "displayModeBar": "hover",
-                                          "toImageButtonOptions": {"format": "png", "scale": 2,
-                                                                   "filename": filename}}),
-                        type="default", color=_BTC_ORANGE,
-                    ),
-                    fab,
-                    toast,
-                ]),
-                # Positioned over the chart but outside the Plotly DOM tree
-                confirm_menu,
-                model_menu,
+            html.Div(id=f"{graph_id}-chart-wrap",
+                     style={"position": "relative"}, children=[
+                dcc.Loading(
+                    dcc.Graph(id=graph_id, style=_STYLE_GRAPH_H,
+                              config={"scrollZoom": False,
+                                      "displayModeBar": "hover",
+                                      "toImageButtonOptions": {"format": "png", "scale": 2,
+                                                               "filename": filename}}),
+                    type="default", color=_BTC_ORANGE,
+                ),
             ]),
             _export_row(graph_id.replace("-graph", "")),
         ], width=9),

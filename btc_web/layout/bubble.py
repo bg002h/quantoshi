@@ -142,6 +142,38 @@ def _bubble_controls():
                           options=[{"label":" Use Stack Tracker lots","value":"yes"}],
                           value=[], inputStyle={"marginRight":"5px"}),
         ),
+        _section_card("User Model",
+            html.Small("Define a power law by two points. Click a data point to auto-fill.",
+                       style={"color":"#888", "fontSize":"11px"}),
+            html.Div([
+                html.Label("Point 1", style={"fontWeight":"600", "fontSize":"12px", "marginTop":"6px"}),
+                html.Div([
+                    _lbl("Year"), dbc.Input(id="um-p1-year", type="number", size="sm",
+                                            step=0.1, debounce=True, placeholder="e.g. 2015",
+                                            style={"width":"90px", "display":"inline-block"}),
+                    html.Span(" ", style={"width":"8px", "display":"inline-block"}),
+                    _lbl("Price $"), dbc.Input(id="um-p1-price", type="number", size="sm",
+                                              step=1, debounce=True, placeholder="e.g. 300",
+                                              style={"width":"110px", "display":"inline-block"}),
+                ], style={"display":"flex", "alignItems":"center", "gap":"4px", "flexWrap":"wrap"}),
+                html.Label("Point 2", style={"fontWeight":"600", "fontSize":"12px", "marginTop":"6px"}),
+                html.Div([
+                    _lbl("Year"), dbc.Input(id="um-p2-year", type="number", size="sm",
+                                            step=0.1, debounce=True, placeholder="e.g. 2024",
+                                            style={"width":"90px", "display":"inline-block"}),
+                    html.Span(" ", style={"width":"8px", "display":"inline-block"}),
+                    _lbl("Price $"), dbc.Input(id="um-p2-price", type="number", size="sm",
+                                              step=1, debounce=True, placeholder="e.g. 60000",
+                                              style={"width":"110px", "display":"inline-block"}),
+                ], style={"display":"flex", "alignItems":"center", "gap":"4px", "flexWrap":"wrap"}),
+            ]),
+            html.Div([
+                dbc.Button("\u270e Draw", id="um-draw-btn", color="warning", size="sm",
+                           className="me-2", style={"marginTop":"8px"}),
+                dbc.Button("\u2715 Delete", id="um-delete-btn", color="secondary", size="sm",
+                           outline=True, style={"marginTop":"8px"}),
+            ]),
+        ),
     ])
 
 

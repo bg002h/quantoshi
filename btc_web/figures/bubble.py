@@ -105,26 +105,6 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 line=dict(color=col, width=_QR_LINE_WIDTH),
             ))
 
-    # ── draw-mode markers ────────────────────────────────────────────────────
-    # No invisible grid — users click on actual data scatter points.
-    # clickData returns exact data point coordinates, no snapping artifacts.
-    if p.get("draw_point1"):
-        pt = p["draw_point1"]
-        traces.append(go.Scatter(
-            x=[pt["t"]], y=[pt["price"]],
-            mode="markers", marker=dict(size=12, color="#e67e22", symbol="circle",
-                                         line=dict(color="white", width=2)),
-            showlegend=False, hoverinfo="skip", name="_draw_p1",
-        ))
-    if p.get("draw_point2"):
-        pt = p["draw_point2"]
-        traces.append(go.Scatter(
-            x=[pt["t"]], y=[pt["price"]],
-            mode="markers", marker=dict(size=12, color="#e67e22", symbol="circle",
-                                         line=dict(color="white", width=2)),
-            showlegend=False, hoverinfo="skip", name="_draw_p2",
-        ))
-
     # ── alternative model overlays ────────────────────────────────────────────
     for model_key in p.get("active_models", []):
         if model_key == "bub":

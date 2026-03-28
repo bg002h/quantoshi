@@ -260,7 +260,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     # ── Total cost & value ratio ────────────────────────────────────────────
     n_periods = len(ts)
     total_spent = amount * n_periods
-    freq_short = freq_str.lower()[:-2] if freq_str.endswith("ly") else freq_str
+    freq_short = _app_ctx.FREQ_LABEL.get(freq_str, freq_str)
 
     # Build title — add cost info and median ROI if we have quantile data
     title_line = f"Bitcoin DCA \u2014 {fmt_price(amount)}/{freq_short}"

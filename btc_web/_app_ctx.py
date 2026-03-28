@@ -7,8 +7,20 @@ Static constants (FREQ_PPY, FREQ_STEP_DAYS) are defined here so both
 figures.py and mc_overlay.py can import them without circular dependencies.
 """
 
+import math
+
+# ── Float quantization (shared by utils.py and figures/common.py) ────────────
+def _q3(x):
+    """Round a number to 3 significant figures."""
+    if x is None or x == 0:
+        return x
+    exp = math.floor(math.log10(abs(x)))
+    factor = 10 ** (exp - 2)
+    return round(x / factor) * factor
+
 # ── Static constants (no population needed) ──────────────────────────────────
 FREQ_PPY = {"Daily": 365, "Weekly": 52, "Monthly": 12, "Quarterly": 4, "Annually": 1}
+FREQ_LABEL = {"Daily": "/day", "Weekly": "/wk", "Monthly": "/mo", "Quarterly": "/qtr", "Annually": "/yr"}
 FREQ_STEP_DAYS = {"Daily": 1, "Weekly": 7, "Monthly": 30, "Quarterly": 91, "Annually": 365}
 ANNOT_STAGGER_Y = [-20, -33, -46, -59, -72]  # annotation y-offsets for staggering (~1 font-height apart)
 BTC_ORANGE = "#f7931a"

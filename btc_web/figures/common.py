@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 import base64
 from pathlib import Path
 import numpy as np
@@ -25,13 +24,7 @@ from mc_overlay import (
 )
 
 
-def _q3_trace(x):
-    """Round a number to 3 significant figures (local copy to avoid circular import)."""
-    if x is None or x == 0:
-        return x
-    exp = math.floor(math.log10(abs(x)))
-    factor = 10 ** (exp - 2)
-    return round(x / factor) * factor
+_q3_trace = _app_ctx._q3
 
 def _round_trace_data(arr):
     """Round array to 3 sig figs for bandwidth savings. Passes through 0/None/NaN."""
@@ -97,20 +90,7 @@ def _apply_sans_typography(layout: dict) -> None:
 
 # ── Bitcoin Thermal palette — quantile → temperature color ────────────────────
 # Low percentiles (value zone) = cool blue, median = silver, high = hot orange/red
-_THERMAL_STOPS = [
-    (0.001, "#0d47a1"),   # deep sapphire
-    (0.01,  "#1565c0"),   # royal blue
-    (0.015, "#1976d2"),   # blue
-    (0.05,  "#42a5f5"),   # sky blue
-    (0.10,  "#80deea"),   # light cyan
-    (0.25,  "#b2dfdb"),   # pale teal
-    (0.50,  "#bdbdbd"),   # silver — the pivot
-    (0.75,  "#ffcc80"),   # light amber
-    (0.90,  "#f7931a"),   # Bitcoin orange
-    (0.95,  "#e65100"),   # deep orange
-    (0.99,  "#c62828"),   # crimson
-    (0.999, "#7f0000"),   # deep blood red
-]
+_THERMAL_STOPS = _app_ctx.PALETTES["default"]["thermal_stops"]
 
 
 def _get_palette(p):

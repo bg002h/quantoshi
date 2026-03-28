@@ -82,8 +82,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
     if not delays:
         delays = [0.0]
 
-    freq_label = {"Daily": "/day", "Weekly": "/wk", "Monthly": "/mo",
-                  "Quarterly": "/qtr", "Annually": "/yr"}.get(freq_str, "/mo")
+    freq_label = _app_ctx.FREQ_LABEL.get(freq_str, "/mo")
 
     # ── MODE A: fixed spending -> show how long savings last ───────────────────
     if mode == "a":

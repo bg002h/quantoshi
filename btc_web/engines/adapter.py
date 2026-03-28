@@ -16,11 +16,12 @@ from engines.citadel import SimConfig, SimResult, simulate, PriceModel
 
 logger = logging.getLogger(__name__)
 
+import _app_ctx
+_HAS_CELERY = _app_ctx._HAS_CELERY
 try:
     from celery_app import celery_app
-    _HAS_CELERY = True
 except Exception:
-    _HAS_CELERY = False
+    celery_app = None
 
 
 def _encode_paths(paths: np.ndarray) -> tuple[str, list[int]]:
@@ -79,8 +80,7 @@ def submit_simulation(config: SimConfig, model: PriceModel,
 
         # Quick check: skip Celery if Redis isn't even available
         try:
-            from cache import redis_available
-            if not redis_available():
+            if not _app_ctx.redis_available():
                 raise ConnectionError("Redis not available — no Celery broker")
             task = celery_app.send_task(
                 'btc_web.tasks.run_citadel_simulation',

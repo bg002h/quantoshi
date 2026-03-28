@@ -10,7 +10,8 @@ import numpy as np
 # Intentionally limited to Monthly/Quarterly/Annually — Daily/Weekly excluded
 # for v1 performance (Daily = 14,600 steps over 40yr). See spec section
 # "Performance Notes". Diverges from _app_ctx.FREQ_PPY which includes all 5.
-FREQ_PPY = {"Monthly": 12, "Quarterly": 4, "Annually": 1}
+from _app_ctx import FREQ_PPY as _ALL_FREQ_PPY
+FREQ_PPY = {k: v for k, v in _ALL_FREQ_PPY.items() if k in ("Monthly", "Quarterly", "Annually")}
 _SATOSHI = 1e-8  # smallest BTC unit — anything below this is zero
 
 

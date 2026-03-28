@@ -83,7 +83,7 @@ def set_citadel_cached(cache_key: str, data: dict) -> None:
 
 def redis_available() -> bool:
     """Check if Redis is connected."""
-    return _HAS_REDIS
+    return _app_ctx.redis_available()
 
 
 # ── L0 persistent cache (pinned defaults in Redis) ──────────────────────────

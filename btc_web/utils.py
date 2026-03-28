@@ -3,7 +3,6 @@
 import hashlib
 import json
 import logging
-import math
 import time
 import urllib.request
 from functools import lru_cache
@@ -20,13 +19,7 @@ from figures import (build_bubble_figure, build_heatmap_figure,
                      build_supercharge_figure, build_citadel_figure)
 
 # ── quantize floats to 3 significant figures for cache-friendly keys ───────────
-def _q3(x):
-    """Round a number to 3 significant figures."""
-    if x is None or x == 0:
-        return x
-    exp = math.floor(math.log10(abs(x)))
-    factor = 10 ** (exp - 2)
-    return round(x / factor) * factor
+from _app_ctx import _q3
 
 _NO_QUANTIZE_KEYS = {"selected_qs", "exit_qs", "active_models"}
 

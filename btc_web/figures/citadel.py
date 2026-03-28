@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import numpy as np
 import plotly.graph_objects as go
 from typing import Any
 
 import _app_ctx
+
+logger = logging.getLogger(__name__)
 from btc_core import ModelData, yr_to_t, fmt_price
 from tab_defaults import CITADEL
 from engines.citadel import SimConfig, simulate, PriceModel
@@ -215,9 +218,9 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
 
     # Deterministic always runs with n_sims=1; MC overlay runs separately
     import time as _time
-    print(f"[CITADEL] build: model={model_key}, n_sims={p.get('n_sims', '?')} (forced→1), "
-          f"qs={config.selected_qs}, yr={config.start_yr}-{config.end_yr}, freq={config.freq}",
-          flush=True)
+    logger.debug("[CITADEL] build: model=%s, n_sims=%s (forced->1), qs=%s, yr=%s-%s, freq=%s",
+                 model_key, p.get('n_sims', '?'), config.selected_qs,
+                 config.start_yr, config.end_yr, config.freq)
     config.n_sims = 1
 
     _t0 = _time.time()
@@ -225,8 +228,8 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
         result = simulate(config, model)
     except (ValueError, NotImplementedError) as e:
         return _error_figure(m, f"Simulation error: {e}"), None
-    print(f"[CITADEL] simulate: {(_time.time()-_t0)*1000:.1f}ms (n_sims=1, {len(result.time_axis)} periods)",
-          flush=True)
+    logger.debug("[CITADEL] simulate: %.1fms (n_sims=1, %d periods)",
+                 (_time.time()-_t0)*1000, len(result.time_axis))
 
     # Extract time axis and median data
     ts = result.time_axis
@@ -344,7 +347,8 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     q_label = f"Q{config.selected_qs[0]*100:g}%" if config.selected_qs else "Q25%"
     ylabel = "BTC Remaining" if disp_mode == "btc" else "USD Value"
     title = f"Citadel Planner \u2014 {fmt_price(config.monthly_spend)}/mo \u00b7 {q_label}"
-    print(f"[CITADEL] title: mc_enabled={p.get('mc_enabled')}, mc_result={type(mc_result).__name__}({bool(mc_result)}), mc_pending={mc_pending}", flush=True)
+    logger.debug("[CITADEL] title: mc_enabled=%s, mc_result=%s(%s), mc_pending=%s",
+                 p.get('mc_enabled'), type(mc_result).__name__, bool(mc_result), mc_pending)
     if p.get("mc_enabled") and mc_result and not mc_pending:
         mc_eq = p.get("mc_entry_q", "")
         # Show actual sim count from result, not requested count

@@ -22,7 +22,7 @@ from figures.common import (
     _stagger_depletion_annots,
     _finalize_chart, _fmt_short, _mc_median_annot,
     _resolve_edge_annotations,
-
+    build_overlay_traces,
 )
 
 
@@ -98,57 +98,11 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             ))
 
     # ── alternative model overlays ────────────────────────────────────────────
-    for model_key in p.get("active_models", []):
-        if model_key == "u1":
-            from btc_core import UserModel
-            um_data = p.get("user_model")
-            if not um_data:
-                continue
-            mdl = UserModel.from_store_dict(um_data)
-            if not mdl:
-                continue
-        else:
-            mdl = _app_ctx.PRICE_MODELS.get(model_key)
-            if not mdl:
-                continue
-        if mdl.quantized:
-            for q in sel_qs:
-                if q not in mdl.fits:
-                    continue
-                prices = mdl.price_at(q, ts_clamped)
-                vals = np.maximum(start_stack - np.cumsum(adj_wd_arr / prices), 0.0)
-                if disp_mode == "usd":
-                    y_vals = vals * prices
-                    final_lbl = fmt_price(float(y_vals[-1]))
-                else:
-                    y_vals = vals
-                    final_usd = fmt_price(float(vals[-1]) * float(prices[-1]))
-                    final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
-                col = mdl.colors.get(q, "#888888")
-                traces.append(go.Scatter(
-                    x=list(ts), y=list(y_vals), mode="lines",
-                    name=f"{mdl.legend_name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
-                    line=dict(color=col, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style, shape=_line_shape),
-                    legendgroup=mdl.short_name,
-                    legendgrouptitle_text=mdl.legend_name,
-                ))
-        else:
-            # Non-quantized: single trajectory withdrawal simulation
-            prices = mdl.price_at(0.5, ts_clamped)
-            vals = np.maximum(start_stack - np.cumsum(adj_wd_arr / prices), 0.0)
-            if disp_mode == "usd":
-                y_vals = vals * prices
-                final_lbl = fmt_price(float(y_vals[-1]))
-            else:
-                y_vals = vals
-                final_usd = fmt_price(float(vals[-1]) * float(prices[-1]))
-                final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
-            traces.append(go.Scatter(
-                x=list(ts), y=list(y_vals), mode="lines",
-                name=f"{mdl.legend_name}  \u2192  {final_lbl}",
-                line=dict(color=palette["non_quantized_model"], width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style, shape=_line_shape),
-                legendgroup=mdl.short_name,
-            ))
+    _ret_sim = lambda prices: np.maximum(start_stack - np.cumsum(adj_wd_arr / prices), 0.0)
+    traces.extend(build_overlay_traces(
+        p, ts, ts_clamped, sel_qs, disp_mode, palette, _ret_sim,
+        line_shape=_line_shape,
+    ))
 
     shapes = []
 

@@ -1,9 +1,13 @@
 """Citadel Planner chart callback — 7-output MC sandwich pattern."""
 
+import logging
+
 import dash
 from dash import Input, Output, State, ctx, callback, html, dcc
 
 import _app_ctx
+
+logger = logging.getLogger(__name__)
 from callbacks.coerce import _ci, _cf
 from tab_defaults import CITADEL
 from callbacks.mc_helpers import _mc_setup, _mc_finalize
@@ -15,6 +19,31 @@ _app_ctx.app.clientside_callback(
     Output("cp-scf-body", "style"),
     Input("cp-scf-enable", "value"),
 )
+
+
+# ── Dollar Asset Returns model info ──────────────────────────────────────────
+@callback(
+    Output("cp-asset-model-info", "children"),
+    Output("cp-asset-model-info", "style"),
+    Input("cp-asset-model", "value"),
+)
+def show_asset_model_info(model):
+    _style_visible = {"display": "block", "marginTop": "6px", "fontSize": "11px",
+                      "color": "#aaa", "lineHeight": "1.4"}
+    if model == "markov":
+        return html.Div([
+            html.Span("Historical Regimes", style={"fontWeight": "600", "color": "#e67e22"}),
+            html.Span(" \u2014 ignores your input rates. Each asset class transitions "
+                      "between bull/bear/neutral regimes based on historical data:"),
+            html.Ul([
+                html.Li("Equities: S&P 500 monthly returns"),
+                html.Li("Bonds: AGG Bond ETF monthly returns"),
+                html.Li("Treasuries: yield-to-total-return (short/med/long duration)"),
+            ], style={"marginTop": "4px", "marginBottom": "0", "paddingLeft": "18px"}),
+            html.Small("Regime transitions are independent of BTC price paths.",
+                       style={"color": "#888", "fontStyle": "italic"}),
+        ]), _style_visible
+    return "", {"display": "none"}
 
 
 @callback(
@@ -160,7 +189,7 @@ def update_citadel(
     price_data, mc_cached, pay_token, mc_unblocked, mc_auth,
 ):
     """Citadel Planner chart callback."""
-    print(f"[CP-CB] triggered_id={ctx.triggered_id}, mc_enable={mc_enable}, run_clicks={run_clicks}", flush=True)
+    logger.debug("[CP-CB] triggered_id=%s, mc_enable=%s, run_clicks=%s", ctx.triggered_id, mc_enable, run_clicks)
     # Skip if another tab is active (tab switch away, or initial load on different tab)
     if active_tab != "citadel" and ctx.triggered_id in ("main-tabs", None):
         raise dash.exceptions.PreventUpdate
@@ -308,8 +337,9 @@ def update_citadel(
         mc_p=mc_p)
 
     # Update title with MC info (the figure was built before MC overlay ran)
-    print(f"[CP-CB] title update: mc_ok={mc_ok}, mc_result type={type(mc_result).__name__}, "
-          f"is_dict={isinstance(mc_result, dict)}, pending={mc_result.get('_pending') if isinstance(mc_result, dict) else 'N/A'}", flush=True)
+    logger.debug("[CP-CB] title update: mc_ok=%s, mc_result type=%s, is_dict=%s, pending=%s",
+                 mc_ok, type(mc_result).__name__, isinstance(mc_result, dict),
+                 mc_result.get('_pending') if isinstance(mc_result, dict) else 'N/A')
     if mc_ok and mc_result and isinstance(mc_result, dict) and not mc_result.get("_pending"):
         mc_eq = mc_p.get("mc_entry_q", "")
         actual_sims = mc_result.get("n_sims", mc_p.get("mc_sims", "?"))

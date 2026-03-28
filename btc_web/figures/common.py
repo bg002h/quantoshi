@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 import base64
 from pathlib import Path
 import numpy as np
@@ -13,7 +12,6 @@ import plotly.graph_objects as go
 from typing import Any
 import _app_ctx
 from btc_core import yr_to_t, fmt_price, leo_weighted_entry
-import _app_ctx
 _HAS_MARKOV = _app_ctx._HAS_MARKOV
 
 # MC overlay logic lives in mc_overlay.py
@@ -26,13 +24,7 @@ from mc_overlay import (
 )
 
 
-def _q3_trace(x):
-    """Round a number to 3 significant figures (local copy to avoid circular import)."""
-    if x is None or x == 0:
-        return x
-    exp = math.floor(math.log10(abs(x)))
-    factor = 10 ** (exp - 2)
-    return round(x / factor) * factor
+_q3_trace = _app_ctx._q3
 
 def _round_trace_data(arr):
     """Round array to 3 sig figs for bandwidth savings. Passes through 0/None/NaN."""
@@ -98,20 +90,7 @@ def _apply_sans_typography(layout: dict) -> None:
 
 # ── Bitcoin Thermal palette — quantile → temperature color ────────────────────
 # Low percentiles (value zone) = cool blue, median = silver, high = hot orange/red
-_THERMAL_STOPS = [
-    (0.001, "#0d47a1"),   # deep sapphire
-    (0.01,  "#1565c0"),   # royal blue
-    (0.015, "#1976d2"),   # blue
-    (0.05,  "#42a5f5"),   # sky blue
-    (0.10,  "#80deea"),   # light cyan
-    (0.25,  "#b2dfdb"),   # pale teal
-    (0.50,  "#bdbdbd"),   # silver — the pivot
-    (0.75,  "#ffcc80"),   # light amber
-    (0.90,  "#f7931a"),   # Bitcoin orange
-    (0.95,  "#e65100"),   # deep orange
-    (0.99,  "#c62828"),   # crimson
-    (0.999, "#7f0000"),   # deep blood red
-]
+_THERMAL_STOPS = _app_ctx.PALETTES["default"]["thermal_stops"]
 
 
 def _get_palette(p):
@@ -940,6 +919,114 @@ def _resolve_edge_annotations(pending, log_y):
                     cliponaxis=False,
                 ))
             flat_idx += len(cluster)
+    return traces
+
+
+# ── overlay model helpers ────────────────────────────────────────────────────
+
+def _resolve_model(model_key: str, p: dict):
+    """Resolve a model key to a model object.
+
+    Returns ``None`` when the key cannot be resolved (unknown key, missing
+    user-model data, etc.).  The caller should skip the model in that case.
+    """
+    if model_key == "bub":
+        return None  # primary model — callers draw it themselves
+    if model_key == "u1":
+        from btc_core import UserModel
+        um_data = p.get("user_model")
+        if not um_data:
+            return None
+        return UserModel.from_store_dict(um_data)
+    return _app_ctx.PRICE_MODELS.get(model_key)
+
+
+def build_overlay_traces(
+    p: dict,
+    ts: np.ndarray,
+    ts_clamped: np.ndarray,
+    sel_qs: list[float],
+    disp_mode: str,
+    palette: dict,
+    sim_fn,
+    *,
+    line_shape: str = "linear",
+) -> list[go.Scatter]:
+    """Build alternative-model overlay traces for simulation tabs (DCA / Retire).
+
+    Parameters
+    ----------
+    p : dict
+        Full params dict (must contain ``active_models`` list).
+    ts : array
+        Time array (x-axis values).
+    ts_clamped : array
+        ``np.maximum(ts, 0.5)`` — passed to ``mdl.price_at``.
+    sel_qs : list[float]
+        Selected quantiles from the primary model.
+    disp_mode : str
+        ``"usd"`` or ``"btc"``.
+    palette : dict
+        Active colour palette.
+    sim_fn : callable
+        ``sim_fn(prices_q) -> vals``  where *prices_q* is a 1-D price array
+        and *vals* is the resulting 1-D simulation output (e.g. accumulated
+        BTC for DCA, remaining BTC for Retire).
+    line_shape : str
+        Plotly line shape (``"linear"`` or ``"hv"``).
+
+    Returns
+    -------
+    list[go.Scatter]
+        Traces for every resolved overlay model × quantile.
+    """
+    traces: list[go.Scatter] = []
+    for model_key in p.get("active_models", []):
+        mdl = _resolve_model(model_key, p)
+        if not mdl:
+            continue
+
+        if mdl.quantized:
+            for q in sel_qs:
+                if q not in mdl.fits:
+                    continue
+                prices_q = mdl.price_at(q, ts_clamped)
+                vals = sim_fn(prices_q)
+                if disp_mode == "usd":
+                    y_vals = vals * prices_q
+                    final_lbl = fmt_price(float(y_vals[-1]))
+                else:
+                    y_vals = vals
+                    final_usd = fmt_price(float(vals[-1] * prices_q[-1]))
+                    final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
+                col = mdl.colors.get(q, "#888888")
+                traces.append(go.Scatter(
+                    x=list(ts), y=list(y_vals), mode="lines",
+                    name=f"{mdl.legend_name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
+                    line=dict(color=col, width=_OVERLAY_LINE_WIDTH,
+                              dash=mdl.dash_style, shape=line_shape),
+                    legendgroup=mdl.short_name,
+                    legendgrouptitle_text=mdl.legend_name,
+                ))
+        else:
+            # Non-quantized: single trajectory at Q50%
+            prices_q = mdl.price_at(0.5, ts_clamped)
+            vals = sim_fn(prices_q)
+            if disp_mode == "usd":
+                y_vals = vals * prices_q
+                final_lbl = fmt_price(float(y_vals[-1]))
+            else:
+                y_vals = vals
+                final_usd = fmt_price(float(vals[-1]) * float(prices_q[-1]))
+                final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
+            traces.append(go.Scatter(
+                x=list(ts), y=list(y_vals), mode="lines",
+                name=f"{mdl.legend_name}  \u2192  {final_lbl}",
+                line=dict(color=palette["non_quantized_model"],
+                          width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style,
+                          shape=line_shape),
+                legendgroup=mdl.short_name,
+            ))
     return traces
 
 

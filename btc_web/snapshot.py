@@ -10,7 +10,7 @@ import _app_ctx
 log = logging.getLogger(__name__)
 
 _SNAPSHOT_CONTROLS = [
-    # ── Bubble tab (indices 0–15) ──
+    # ── Bubble tab ──
     ("bub-qs",            "value"),   # selected quantile lines
     ("bub-xscale",        "value"),   # x-axis scale (Log/Linear)
     ("bub-yscale",        "value"),   # y-axis scale (Log/Linear)
@@ -27,7 +27,7 @@ _SNAPSHOT_CONTROLS = [
     ("scan-price",        "value"),   # scanner price input
     ("scan-date",         "value"),   # scanner date input
     ("scan-q",            "value"),   # scanner quantile input
-    # ── Heatmap tab (indices 16–31) ──
+    # ── Heatmap tab ──
     ("hm-entry-yr",       "value"),   # heatmap entry year
     ("hm-entry-q",        "value"),   # entry percentile (0.1–99.9%)
     ("hm-exit-range",     "value"),   # exit year range [start, end]
@@ -45,7 +45,7 @@ _SNAPSHOT_CONTROLS = [
     ("hm-toggles",        "value"),   # heatmap display toggles
     ("hm-stack",          "value"),   # starting BTC stack
     ("hm-use-lots",       "value"),   # use Stack Tracker lots
-    # ── DCA tab + Stack-celerator (indices 29–52) ──
+    # ── DCA tab + Stack-celerator ──
     ("dca-stack",         "value"),   # starting BTC stack
     ("dca-use-lots",      "value"),   # use Stack Tracker lots
     ("dca-amount",        "value"),   # DCA amount per period ($)
@@ -66,7 +66,7 @@ _SNAPSHOT_CONTROLS = [
     ("dca-sc-custom-price","value"),  # SC custom entry price ($)
     ("dca-sc-tax",        "value"),   # SC capital gains tax rate (%)
     ("dca-sc-rollover",   "value"),   # SC rollover (interest-only: defer repayment)
-    # ── Retire tab (indices 53–63) ──
+    # ── Retire tab ──
     ("ret-stack",         "value"),   # starting BTC stack
     ("ret-use-lots",      "value"),   # use Stack Tracker lots
     ("ret-wd",            "value"),   # withdrawal amount per period ($)
@@ -78,7 +78,7 @@ _SNAPSHOT_CONTROLS = [
     ("ret-toggles",       "value"),   # log_y/dual_y/annotate/legend toggles
     ("ret-legend-pos",    "value"),   # legend position
     ("ret-qs",            "value"),   # selected quantile lines
-    # ── Supercharger tab (indices 64–83) ──
+    # ── Supercharger tab ──
     ("sc-stack",          "value"),   # starting BTC stack
     ("sc-use-lots",       "value"),   # use Stack Tracker lots
     ("sc-start-yr",       "value"),   # withdrawal start year
@@ -99,146 +99,146 @@ _SNAPSHOT_CONTROLS = [
     ("sc-toggles",        "value"),   # log_y/annotate/legend toggles
     ("sc-chart-layout",   "value"),   # chart layout (line/bands)
     ("sc-display-q",      "value"),   # single quantile display (line layout only)
-    # ── Cross-tab settings (indices 84–92) ──
+    # ── Cross-tab settings ──
     ("bub-auto-y",        "value"),   # auto-fit Y axis to selected quantiles
     ("bub-legend-pos",    "value"),   # bubble legend position
     ("dca-legend-pos",    "value"),   # DCA legend position
     ("sc-legend-pos",     "value"),   # SC legend position
     ("main-tabs",         "active_tab"),  # active tab selection
-    # ── Model display toggles (indices 89–92) ──
+    # ── Model display toggles ──
     ("dca-model-show",    "value"),   # QR/MC display toggle (DCA)
     ("ret-model-show",    "value"),   # QR/MC display toggle (Retire)
     ("sc-model-show",     "value"),   # QR/MC display toggle (SC)
     ("hm-model-show",     "value"),   # QR/MC display toggle (Heatmap)
-    # ── MC model source (indices 93–96) ──
+    # ── MC model source ──
     ("dca-mc-model-src",  "value"),   # MC model source (DCA)
     ("ret-mc-model-src",  "value"),   # MC model source (Retire)
     ("sc-mc-model-src",   "value"),   # MC model source (SC)
     ("hm-mc-model-src",   "value"),   # MC model source (Heatmap)
-    # ── Bubble overlay models (index 97) ──
+    # ── Bubble overlay models ──
     ("bub-model-show",    "value"),   # PL/S2F overlay toggle (Bubble)
-    # ── Palette (index 98) ──
+    # ── Palette ──
     ("palette-store",     "data"),    # colorblind palette key
-    # ── Heatmap model selector (index 99) ──
+    # ── Heatmap model selector ──
     ("hm-active-model",   "data"),    # active heatmap model pill (bub/pl/s2f/mc)
     # ── MC controls (4 tabs x 9 controls) ────────────────────────────────
     # DCA MC
-    ("dca-mc-enable",    "value"),   # 100
-    ("dca-mc-start-yr",  "value"),   # 101
-    ("dca-mc-entry-q",   "value"),   # 102
-    ("dca-mc-years",     "value"),   # 103
-    ("dca-mc-bins",      "value"),   # 104
-    ("dca-mc-regime",    "value"),   # 105
-    ("dca-mc-sims",      "value"),   # 106
-    ("dca-mc-window",    "value"),   # 107
-    ("dca-mc-advanced",  "value"),   # 108
+    ("dca-mc-enable",    "value"),
+    ("dca-mc-start-yr",  "value"),
+    ("dca-mc-entry-q",   "value"),
+    ("dca-mc-years",     "value"),
+    ("dca-mc-bins",      "value"),
+    ("dca-mc-regime",    "value"),
+    ("dca-mc-sims",      "value"),
+    ("dca-mc-window",    "value"),
+    ("dca-mc-advanced",  "value"),
     # Retire MC
-    ("ret-mc-enable",    "value"),   # 109
-    ("ret-mc-start-yr",  "value"),   # 110
-    ("ret-mc-entry-q",   "value"),   # 111
-    ("ret-mc-years",     "value"),   # 112
-    ("ret-mc-bins",      "value"),   # 113
-    ("ret-mc-regime",    "value"),   # 114
-    ("ret-mc-sims",      "value"),   # 115
-    ("ret-mc-window",    "value"),   # 116
-    ("ret-mc-advanced",  "value"),   # 117
+    ("ret-mc-enable",    "value"),
+    ("ret-mc-start-yr",  "value"),
+    ("ret-mc-entry-q",   "value"),
+    ("ret-mc-years",     "value"),
+    ("ret-mc-bins",      "value"),
+    ("ret-mc-regime",    "value"),
+    ("ret-mc-sims",      "value"),
+    ("ret-mc-window",    "value"),
+    ("ret-mc-advanced",  "value"),
     # Heatmap MC
-    ("hm-mc-enable",     "value"),   # 118
-    ("hm-mc-start-yr",   "value"),   # 119
-    ("hm-mc-entry-q",    "value"),   # 120
-    ("hm-mc-years",      "value"),   # 121
-    ("hm-mc-bins",       "value"),   # 122
-    ("hm-mc-regime",     "value"),   # 123
-    ("hm-mc-sims",       "value"),   # 124
-    ("hm-mc-window",     "value"),   # 125
-    ("hm-mc-advanced",   "value"),   # 126
+    ("hm-mc-enable",     "value"),
+    ("hm-mc-start-yr",   "value"),
+    ("hm-mc-entry-q",    "value"),
+    ("hm-mc-years",      "value"),
+    ("hm-mc-bins",       "value"),
+    ("hm-mc-regime",     "value"),
+    ("hm-mc-sims",       "value"),
+    ("hm-mc-window",     "value"),
+    ("hm-mc-advanced",   "value"),
     # Supercharger MC
-    ("sc-mc-enable",     "value"),   # 127
-    ("sc-mc-start-yr",   "value"),   # 128
-    ("sc-mc-entry-q",    "value"),   # 129
-    ("sc-mc-years",      "value"),   # 130
-    ("sc-mc-bins",       "value"),   # 131
-    ("sc-mc-regime",     "value"),   # 132
-    ("sc-mc-sims",       "value"),   # 133
-    ("sc-mc-window",     "value"),   # 134
-    ("sc-mc-advanced",   "value"),   # 135
+    ("sc-mc-enable",     "value"),
+    ("sc-mc-start-yr",   "value"),
+    ("sc-mc-entry-q",    "value"),
+    ("sc-mc-years",      "value"),
+    ("sc-mc-bins",       "value"),
+    ("sc-mc-regime",     "value"),
+    ("sc-mc-sims",       "value"),
+    ("sc-mc-window",     "value"),
+    ("sc-mc-advanced",   "value"),
     # ── Heatmap palette ──────────────────────────────────────────────────
-    ("hm-palette",       "value"),   # 136
+    ("hm-palette",       "value"),
     # ── Citadel Planner tab ──────────────────────────────────────────────
-    ("cp-stack",            "value"),   # 137
-    ("cp-use-lots",         "value"),   # 138
-    ("cp-cash-init",        "value"),   # 139
-    ("cp-cash-rate",        "value"),   # 140
-    ("cp-res-short-init",   "value"),   # 141
-    ("cp-res-short-rate",   "value"),   # 142
-    ("cp-res-short-vol",    "value"),   # 143
-    ("cp-res-med-init",     "value"),   # 144
-    ("cp-res-med-rate",     "value"),   # 145
-    ("cp-res-med-vol",      "value"),   # 146
-    ("cp-res-long-init",    "value"),   # 147
-    ("cp-res-long-rate",    "value"),   # 148
-    ("cp-res-long-vol",     "value"),   # 149
-    ("cp-inv-eq-init",      "value"),   # 150
-    ("cp-inv-eq-rate",      "value"),   # 151
-    ("cp-inv-eq-vol",       "value"),   # 152
-    ("cp-inv-bd-init",      "value"),   # 153
-    ("cp-inv-bd-rate",      "value"),   # 154
-    ("cp-inv-bd-vol",       "value"),   # 155
-    ("cp-spend",            "value"),   # 156
-    ("cp-infl",             "value"),   # 157
-    ("cp-spend-growth",     "value"),   # 158
-    ("cp-high-q-thresh",    "value"),   # 159
-    ("cp-high-q-mode",      "value"),   # 160
-    ("cp-high-q-rate",      "value"),   # 161
-    ("cp-high-q-dur",       "value"),   # 162
-    ("cp-high-q-split-cash","value"),   # 163
-    ("cp-high-q-split-rs",  "value"),   # 164
-    ("cp-high-q-split-rm",  "value"),   # 165
-    ("cp-high-q-split-rl",  "value"),   # 166
-    ("cp-high-q-split-eq",  "value"),   # 167
-    ("cp-high-q-split-bd",  "value"),   # 168
-    ("cp-low-q-thresh",     "value"),   # 169
-    ("cp-low-q-mode",       "value"),   # 170
-    ("cp-low-q-rate",       "value"),   # 171
-    ("cp-low-q-dur",        "value"),   # 172
-    ("cp-low-q-split-cash", "value"),   # 173
-    ("cp-low-q-split-rs",   "value"),   # 174
-    ("cp-low-q-split-rm",   "value"),   # 175
-    ("cp-low-q-split-rl",   "value"),   # 176
-    ("cp-low-q-split-eq",   "value"),   # 177
-    ("cp-low-q-split-bd",   "value"),   # 178
-    ("cp-lump-cooldown",    "value"),   # 179
-    ("cp-cash-floor",       "value"),   # 180
-    ("cp-res-short-floor",  "value"),   # 181
-    ("cp-res-med-floor",    "value"),   # 182
-    ("cp-res-long-floor",   "value"),   # 183
-    ("cp-cash-floor-growth","value"),   # 184
-    ("cp-res-floor-growth", "value"),   # 185
-    ("cp-scf-enable",       "value"),   # 186
-    ("cp-scf-amount",       "value"),   # 185
-    ("cp-scf-type",         "value"),   # 186
-    ("cp-scf-rate",         "value"),   # 187
-    ("cp-scf-term",         "value"),   # 188
-    ("cp-scf-trigger",      "value"),   # 189
-    ("cp-yr-range",         "value"),   # 190
-    ("cp-freq",             "value"),   # 191
-    ("cp-qs",               "value"),   # 192
-    ("cp-model-src",        "value"),   # 193
-    ("cp-disp",             "value"),   # 194
-    ("cp-toggles",          "value"),   # 195
-    ("cp-legend-pos",       "value"),   # 196
-    ("cp-asset-model",      "value"),   # 197
+    ("cp-stack",            "value"),
+    ("cp-use-lots",         "value"),
+    ("cp-cash-init",        "value"),
+    ("cp-cash-rate",        "value"),
+    ("cp-res-short-init",   "value"),
+    ("cp-res-short-rate",   "value"),
+    ("cp-res-short-vol",    "value"),
+    ("cp-res-med-init",     "value"),
+    ("cp-res-med-rate",     "value"),
+    ("cp-res-med-vol",      "value"),
+    ("cp-res-long-init",    "value"),
+    ("cp-res-long-rate",    "value"),
+    ("cp-res-long-vol",     "value"),
+    ("cp-inv-eq-init",      "value"),
+    ("cp-inv-eq-rate",      "value"),
+    ("cp-inv-eq-vol",       "value"),
+    ("cp-inv-bd-init",      "value"),
+    ("cp-inv-bd-rate",      "value"),
+    ("cp-inv-bd-vol",       "value"),
+    ("cp-spend",            "value"),
+    ("cp-infl",             "value"),
+    ("cp-spend-growth",     "value"),
+    ("cp-high-q-thresh",    "value"),
+    ("cp-high-q-mode",      "value"),
+    ("cp-high-q-rate",      "value"),
+    ("cp-high-q-dur",       "value"),
+    ("cp-high-q-split-cash","value"),
+    ("cp-high-q-split-rs",  "value"),
+    ("cp-high-q-split-rm",  "value"),
+    ("cp-high-q-split-rl",  "value"),
+    ("cp-high-q-split-eq",  "value"),
+    ("cp-high-q-split-bd",  "value"),
+    ("cp-low-q-thresh",     "value"),
+    ("cp-low-q-mode",       "value"),
+    ("cp-low-q-rate",       "value"),
+    ("cp-low-q-dur",        "value"),
+    ("cp-low-q-split-cash", "value"),
+    ("cp-low-q-split-rs",   "value"),
+    ("cp-low-q-split-rm",   "value"),
+    ("cp-low-q-split-rl",   "value"),
+    ("cp-low-q-split-eq",   "value"),
+    ("cp-low-q-split-bd",   "value"),
+    ("cp-lump-cooldown",    "value"),
+    ("cp-cash-floor",       "value"),
+    ("cp-res-short-floor",  "value"),
+    ("cp-res-med-floor",    "value"),
+    ("cp-res-long-floor",   "value"),
+    ("cp-cash-floor-growth","value"),
+    ("cp-res-floor-growth", "value"),
+    ("cp-scf-enable",       "value"),
+    ("cp-scf-amount",       "value"),
+    ("cp-scf-type",         "value"),
+    ("cp-scf-rate",         "value"),
+    ("cp-scf-term",         "value"),
+    ("cp-scf-trigger",      "value"),
+    ("cp-yr-range",         "value"),
+    ("cp-freq",             "value"),
+    ("cp-qs",               "value"),
+    ("cp-model-src",        "value"),
+    ("cp-disp",             "value"),
+    ("cp-toggles",          "value"),
+    ("cp-legend-pos",       "value"),
+    ("cp-asset-model",      "value"),
     # ── Citadel MC controls ──
-    ("cp-mc-enable",        "value"),   # 197
-    ("cp-mc-start-yr",      "value"),   # 198
-    ("cp-mc-entry-q",       "value"),   # 199
-    ("cp-mc-years",         "value"),   # 200
-    ("cp-mc-bins",          "value"),   # 201
-    ("cp-mc-regime",        "value"),   # 202
-    ("cp-mc-sims",          "value"),   # 203
-    ("cp-mc-window",        "value"),   # 204
-    ("cp-mc-advanced",      "value"),   # 205
-    ("cp-mc-model-src",     "value"),   # 206
+    ("cp-mc-enable",        "value"),
+    ("cp-mc-start-yr",      "value"),
+    ("cp-mc-entry-q",       "value"),
+    ("cp-mc-years",         "value"),
+    ("cp-mc-bins",          "value"),
+    ("cp-mc-regime",        "value"),
+    ("cp-mc-sims",          "value"),
+    ("cp-mc-window",        "value"),
+    ("cp-mc-advanced",      "value"),
+    ("cp-mc-model-src",     "value"),
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)

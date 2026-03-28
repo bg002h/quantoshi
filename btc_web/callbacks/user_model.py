@@ -45,8 +45,10 @@ def on_data_click(click_data):
 # ══════════════════════════════════════════════════════════════════════════════
 
 @callback(
-    Output("um-p1-year", "value", allow_duplicate=True),
-    Output("um-p1-price", "value", allow_duplicate=True),
+    Output("um-p1-year", "data", allow_duplicate=True),
+    Output("um-p1-price", "data", allow_duplicate=True),
+    Output("um-p1-year-display", "children"),
+    Output("um-p1-price-display", "children"),
     Output("um-ctx-menu", "style", allow_duplicate=True),
     Input("um-ctx-p1", "n_clicks"),
     State("um-clicked-point", "data"),
@@ -54,13 +56,16 @@ def on_data_click(click_data):
 )
 def set_p1(n, pt):
     if not pt:
-        return no_update, no_update, no_update
-    return pt["year"], round(pt["price"], 2), _HIDDEN
+        return no_update, no_update, no_update, no_update, no_update
+    yr, pr = pt["year"], round(pt["price"], 2)
+    return yr, pr, str(yr), f"{pr:,.2f}", _HIDDEN
 
 
 @callback(
-    Output("um-p2-year", "value", allow_duplicate=True),
-    Output("um-p2-price", "value", allow_duplicate=True),
+    Output("um-p2-year", "data", allow_duplicate=True),
+    Output("um-p2-price", "data", allow_duplicate=True),
+    Output("um-p2-year-display", "children"),
+    Output("um-p2-price-display", "children"),
     Output("um-ctx-menu", "style", allow_duplicate=True),
     Input("um-ctx-p2", "n_clicks"),
     State("um-clicked-point", "data"),
@@ -68,8 +73,9 @@ def set_p1(n, pt):
 )
 def set_p2(n, pt):
     if not pt:
-        return no_update, no_update, no_update
-    return pt["year"], round(pt["price"], 2), _HIDDEN
+        return no_update, no_update, no_update, no_update, no_update
+    yr, pr = pt["year"], round(pt["price"], 2)
+    return yr, pr, str(yr), f"{pr:,.2f}", _HIDDEN
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -80,10 +86,10 @@ def set_p2(n, pt):
     Output("user-model-store", "data", allow_duplicate=True),
     Output("bub-model-show", "value", allow_duplicate=True),
     Input("um-draw-btn", "n_clicks"),
-    State("um-p1-year", "value"),
-    State("um-p1-price", "value"),
-    State("um-p2-year", "value"),
-    State("um-p2-price", "value"),
+    State("um-p1-year", "data"),
+    State("um-p1-price", "data"),
+    State("um-p2-year", "data"),
+    State("um-p2-price", "data"),
     State("bub-model-show", "value"),
     prevent_initial_call=True,
 )
@@ -118,15 +124,19 @@ def draw_user_model(n_clicks, p1y, p1p, p2y, p2p, cur_model_show):
 
 @callback(
     Output("user-model-store", "data", allow_duplicate=True),
-    Output("um-p1-year", "value", allow_duplicate=True),
-    Output("um-p1-price", "value", allow_duplicate=True),
-    Output("um-p2-year", "value", allow_duplicate=True),
-    Output("um-p2-price", "value", allow_duplicate=True),
+    Output("um-p1-year", "data", allow_duplicate=True),
+    Output("um-p1-price", "data", allow_duplicate=True),
+    Output("um-p2-year", "data", allow_duplicate=True),
+    Output("um-p2-price", "data", allow_duplicate=True),
+    Output("um-p1-year-display", "children", allow_duplicate=True),
+    Output("um-p1-price-display", "children", allow_duplicate=True),
+    Output("um-p2-year-display", "children", allow_duplicate=True),
+    Output("um-p2-price-display", "children", allow_duplicate=True),
     Input("um-delete-btn", "n_clicks"),
     prevent_initial_call=True,
 )
 def delete_user_model(n_clicks):
-    return None, None, None, None, None
+    return None, None, None, None, None, "\u2014", "\u2014", "\u2014", "\u2014"
 
 
 # ══════════════════════════════════════════════════════════════════════════════

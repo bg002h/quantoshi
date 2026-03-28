@@ -259,20 +259,24 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
         ], width=3, className="controls-col overflow-auto",
                 style={"maxHeight": "85vh"}),
         dbc.Col([
-            html.Div(id=f"{graph_id}-chart-wrap",
-                     style={"position": "relative"}, children=[
-                dcc.Loading(
-                    dcc.Graph(id=graph_id, style=_STYLE_GRAPH_H,
-                              config={"scrollZoom": False,
-                                      "displayModeBar": "hover",
-                                      "toImageButtonOptions": {"format": "png", "scale": 2,
-                                                               "filename": filename}}),
-                    type="default", color=_BTC_ORANGE,
-                ),
-                fab,
+            # Menus are OUTSIDE chart-wrap so clicks can't trigger Plotly clickData
+            html.Div(style={"position": "relative"}, children=[
+                html.Div(id=f"{graph_id}-chart-wrap",
+                         style={"position": "relative"}, children=[
+                    dcc.Loading(
+                        dcc.Graph(id=graph_id, style=_STYLE_GRAPH_H,
+                                  config={"scrollZoom": False,
+                                          "displayModeBar": "hover",
+                                          "toImageButtonOptions": {"format": "png", "scale": 2,
+                                                                   "filename": filename}}),
+                        type="default", color=_BTC_ORANGE,
+                    ),
+                    fab,
+                    toast,
+                ]),
+                # Positioned over the chart but outside the Plotly DOM tree
                 confirm_menu,
                 model_menu,
-                toast,
             ]),
             _export_row(graph_id.replace("-graph", "")),
         ], width=9),

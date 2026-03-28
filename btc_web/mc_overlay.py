@@ -849,9 +849,13 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
     or ([], None) if MC is disabled / unavailable.
     """
     if not _HAS_MARKOV or not p.get("mc_enabled"):
+        print(f"[MC-CITADEL] skipped: _HAS_MARKOV={_HAS_MARKOV}, mc_enabled={p.get('mc_enabled')}", flush=True)
         return [], None
 
+    import time as _time
+    _mc_t0 = _time.time()
     n_bins, n_sims, mc_window, mc_freq, mc_ppy, mc_dt, step_days, mc_years = _mc_setup_vars(p)
+    print(f"[MC-CITADEL] starting: n_sims={n_sims}, mc_years={mc_years}, bins={n_bins}", flush=True)
     mc_start_yr, mc_t_start, mc_t_end, mc_ts = _build_mc_timeline(
         p, m, mc_years, mc_dt, clamp_start=True)
 
@@ -918,8 +922,11 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
             else:
                 result = task_or_result
         else:
+            print(f"[MC-CITADEL] running in-process: {resampled.shape[0]} sims × {resampled.shape[1]} steps", flush=True)
             result = _citadel_sim(citadel_config, citadel_model, price_paths=resampled)
-    except (ValueError, NotImplementedError):
+            print(f"[MC-CITADEL] done: {(_time.time()-_mc_t0)*1000:.0f}ms total", flush=True)
+    except (ValueError, NotImplementedError) as e:
+        print(f"[MC-CITADEL] error: {e}", flush=True)
         return [], None
 
     # Build fan band traces per asset class
@@ -987,6 +994,7 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
     result_dict = result.to_dict()
     # Attach path_key for client-side caching
     result_dict["path_key"] = path_key
+    result_dict["n_sims"] = int(resampled.shape[0])  # actual sim count (may differ from requested)
     result_dict["created"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
     return traces, result_dict

@@ -280,11 +280,11 @@ def _citadel_controls():
         dcc.Interval(id="cp-celery-poll", interval=3000, disabled=True,
                      max_intervals=100, n_intervals=0),
         # Run button + instructions
-        dbc.Button("\u25B6  Run Simulation", id="cp-run-btn",
+        dbc.Button("\u25b6  Run Simulation", id="cp-run-btn",
                    color="warning", className="w-100 mb-2 fw-bold",
                    style={"fontSize": "14px", "letterSpacing": "0.03em"}),
-        html.Small("Configure settings below, then click Run Simulation. "
-                   "1 deterministic sim is free. MC (multiple sims) requires payment.",
+        html.Small("\u25b6 runs a single deterministic projection (free). "
+                   "\u26a1 runs Monte Carlo with multiple stochastic paths.",
                    style={"color": "#888", "display": "block", "marginBottom": "8px",
                           "fontSize": "11px"}),
         dbc.Tabs([

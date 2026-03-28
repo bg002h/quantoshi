@@ -160,6 +160,7 @@ def update_citadel(
     price_data, mc_cached, pay_token, mc_unblocked, mc_auth,
 ):
     """Citadel Planner chart callback."""
+    print(f"[CP-CB] triggered_id={ctx.triggered_id}, mc_enable={mc_enable}, run_clicks={run_clicks}", flush=True)
     # Skip if another tab is active (tab switch away, or initial load on different tab)
     if active_tab != "citadel" and ctx.triggered_id in ("main-tabs", None):
         raise dash.exceptions.PreventUpdate
@@ -170,8 +171,10 @@ def update_citadel(
                                  "main-tabs", None):
         raise dash.exceptions.PreventUpdate
 
-    # Before first click (or on tab switch without click): load cached default
-    if not run_clicks or ctx.triggered_id == "main-tabs":
+    # Before first click (or on tab switch): load cached default
+    # mc-pay-trigger and cp-mc-loaded bypass — they should always run
+    if (not run_clicks and ctx.triggered_id not in ("mc-pay-trigger", "cp-mc-loaded")) \
+       or ctx.triggered_id == "main-tabs":
         import plotly.graph_objects as go
         import plotly.io as pio
         try:

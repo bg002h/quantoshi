@@ -214,12 +214,19 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     model = _ModelAdapter(m, model_key=model_key, user_model=p.get("user_model"))
 
     # Deterministic always runs with n_sims=1; MC overlay runs separately
+    import time as _time
+    print(f"[CITADEL] build: model={model_key}, n_sims={p.get('n_sims', '?')} (forced→1), "
+          f"qs={config.selected_qs}, yr={config.start_yr}-{config.end_yr}, freq={config.freq}",
+          flush=True)
     config.n_sims = 1
 
+    _t0 = _time.time()
     try:
         result = simulate(config, model)
     except (ValueError, NotImplementedError) as e:
         return _error_figure(m, f"Simulation error: {e}"), None
+    print(f"[CITADEL] simulate: {(_time.time()-_t0)*1000:.1f}ms (n_sims=1, {len(result.time_axis)} periods)",
+          flush=True)
 
     # Extract time axis and median data
     ts = result.time_axis
@@ -342,6 +349,11 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     q_label = f"Q{config.selected_qs[0]*100:g}%" if config.selected_qs else "Q25%"
     ylabel = "BTC Remaining" if disp_mode == "btc" else "USD Value"
     title = f"Citadel Planner \u2014 {fmt_price(config.monthly_spend)}/mo \u00b7 {q_label}"
+    if p.get("mc_enabled") and mc_result and not mc_pending:
+        mc_eq = p.get("mc_entry_q", "")
+        # Show actual sim count from result, not requested count
+        actual_sims = mc_result.get("n_sims", p.get("mc_sims", "?")) if isinstance(mc_result, dict) else p.get("mc_sims", "?")
+        title += f"  \u00b7  MC entry Q{mc_eq}% ({actual_sims} sims)"
     if mc_pending:
         title += "  \u00b7  MC computing..."
 

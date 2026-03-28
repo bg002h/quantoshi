@@ -225,7 +225,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
             dcc.Store(id=f"{prefix}-mc-price-val", storage_type="memory", data=0),
             # ── Run Simulation button (payment-gated when BTCPay active) ──
             dbc.Button(
-                [html.Span("\u26a1 ", style={"fontSize": "14px"}), "Run Simulation"],
+                [html.Span("\u26a1 ", style={"fontSize": "14px"}), "Run MC Simulation"],
                 id=f"{prefix}-mc-run-btn", size="sm", color="warning",
                 className="w-100 mt-2",
                 style={"fontWeight": "600"},

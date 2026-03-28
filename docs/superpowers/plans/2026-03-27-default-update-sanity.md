@@ -1127,7 +1127,7 @@ def test_layout_values_match_defaults():
         "dca-sc-loan": "sc_loan_amount",
         "dca-sc-term": "sc_term_months",
         "dca-sc-rate": "sc_rate",
-        "dca-sc-tax": "sc_tax_rate",  # layout uses int %, defaults use fraction
+        # NOTE: dca-sc-tax is in skip_ids — layout value is int % (33), defaults is fraction (0.33)
         "dca-sc-custom-price": "sc_custom_price",
         "dca-sc-repeats": "sc_repeats",
         # Retire
@@ -1156,6 +1156,7 @@ def test_layout_values_match_defaults():
         "cp-scf-term": "scf_term",
         "cp-scf-trigger": "scf_repay_trigger",
         "cp-cash-floor": "cash_floor",
+        "cp-res-floor-growth": "reserve_floor_growth",
         # Stack
         "lot-price": "lot_price",
         "lot-btc": "lot_btc",
@@ -1172,6 +1173,7 @@ def test_layout_values_match_defaults():
         "hm-c-lo", "hm-c-mid1", "hm-c-mid2", "hm-c-hi",
         "dca-yr-range", "dca-qs", "dca-toggles", "dca-model-show",
         "dca-use-lots", "dca-sc-enable", "dca-sc-rollover",
+        "dca-sc-tax",  # layout=int% (33), defaults=fraction (0.33) — unit conversion in callback
         "ret-yr-range", "ret-qs", "ret-toggles", "ret-model-show", "ret-use-lots",
         "sc-qs", "sc-toggles", "sc-model-show", "sc-use-lots",
         "sc-chart-layout", "sc-display-q",

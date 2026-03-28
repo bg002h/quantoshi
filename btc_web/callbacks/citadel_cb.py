@@ -124,6 +124,9 @@ def show_asset_model_info(model):
     State("cp-spend",            "value"),
     State("cp-infl",             "value"),
     State("cp-spend-growth",     "value"),
+    # Rules: enable toggles
+    State("cp-high-q-enable",    "value"),
+    State("cp-low-q-enable",     "value"),
     # Rules: high-Q
     State("cp-high-q-thresh",    "value"),
     State("cp-high-q-mode",      "value"),
@@ -204,6 +207,8 @@ def update_citadel(
     inv_bd_init, inv_bd_rate, inv_bd_vol,
     # Spending
     spend, infl, spend_growth,
+    # Enable toggles
+    high_q_enable, low_q_enable,
     # High-Q
     high_q_thresh, high_q_mode, high_q_rate, high_q_dur,
     high_q_split_cash, high_q_split_rs, high_q_split_rm,
@@ -313,8 +318,8 @@ def update_citadel(
         monthly_spend   = _cf(spend, CITADEL["monthly_spend"], lo=0),
         inflation       = _cf(infl, CITADEL["inflation"], lo=0, hi=100),
         spend_growth    = _cf(spend_growth, CITADEL["spend_growth"], lo=0, hi=100),
-        # High-Q trigger
-        high_q_trigger  = _cf(high_q_thresh, CITADEL["high_q_trigger"], lo=1, hi=99),
+        # High-Q trigger (disabled → threshold 100 = never triggers)
+        high_q_trigger  = _cf(high_q_thresh, CITADEL["high_q_trigger"], lo=1, hi=99) if high_q_enable else 100,
         high_q_mode     = high_q_mode or CITADEL["high_q_mode"],
         high_q_rate     = _cf(high_q_rate, CITADEL["high_q_rate"], lo=0.1, hi=100),
         high_q_dur      = _ci(high_q_dur, CITADEL["high_q_dur"], lo=1, hi=120),
@@ -325,7 +330,8 @@ def update_citadel(
         high_q_split_eq = _cf(high_q_split_eq, CITADEL["high_q_split_eq"], lo=0, hi=100),
         high_q_split_bd = _cf(high_q_split_bd, CITADEL["high_q_split_bd"], lo=0, hi=100),
         # Low-Q trigger
-        low_q_trigger   = _cf(low_q_thresh, CITADEL["low_q_trigger"], lo=1, hi=99),
+        # Low-Q trigger (disabled → threshold 0 = never triggers)
+        low_q_trigger   = _cf(low_q_thresh, CITADEL["low_q_trigger"], lo=1, hi=99) if low_q_enable else 0,
         low_q_mode      = low_q_mode or CITADEL["low_q_mode"],
         low_q_rate      = _cf(low_q_rate, CITADEL["low_q_rate"], lo=0.1, hi=100),
         low_q_dur       = _ci(low_q_dur, CITADEL["low_q_dur"], lo=1, hi=120),

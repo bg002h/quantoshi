@@ -105,6 +105,11 @@ def _trigger_section(prefix, label, default_thresh, default_mode, default_rate, 
     if split_defaults is None:
         split_defaults = (20, 20, 20, 10, 20, 10)
     return _section_card(label,
+        dcc.Checklist(id=f"cp-{prefix}-enable",
+                      options=[{"label": " Enable", "value": "yes"}],
+                      value=["yes"],
+                      inputStyle={"marginRight": "4px"},
+                      style={"marginBottom": "6px"}),
         _lbl("Threshold (quantile %)"),
         dbc.Input(id=f"cp-{prefix}-thresh", type="number", value=default_thresh,
                   min=0, max=100, step=1),

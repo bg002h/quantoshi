@@ -42,12 +42,21 @@ def _output_from_history(history):
     Input("scan-q", "value"),
     State("scan-output-field", "data"),
     Input("btc-price-store", "data"),
+    State("user-model-store", "data"),
     prevent_initial_call=False,
 )
-def update_scanner(price_val, date_val, q_val, edit_history, live_price):
+def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_model_data):
     """Compute the missing variable across all models."""
     trigger = ctx.triggered_id if ctx.triggered_id else None
     genesis = _app_ctx.M.genesis
+
+    # Merge registered models + user model (if defined)
+    from btc_core import UserModel
+    _models = dict(_app_ctx.PRICE_MODELS)
+    if user_model_data:
+        um = UserModel.from_store_dict(user_model_data)
+        if um:
+            _models["u1"] = um
 
     # edit_history is a list of the last 2 edited fields, e.g. ["p", "d"]
     if not isinstance(edit_history, list):
@@ -103,7 +112,7 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price):
             html.Td(f"{ucl_ratio:.2f}x above", style={**ucl_style, "fontWeight": "bold"}),
         ]))
 
-        for key, mdl in _app_ctx.PRICE_MODELS.items():
+        for key, mdl in _models.items():
             if not mdl.quantized:
                 continue  # skip S2F etc — quantiles don't apply
             pct = mdl.find_percentile(t, price)
@@ -117,7 +126,7 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price):
                   "data-model": key}))
 
     elif output_field == "p" and q_frac is not None and t is not None:
-        for key, mdl in _app_ctx.PRICE_MODELS.items():
+        for key, mdl in _models.items():
             if not mdl.quantized:
                 continue
             try:
@@ -137,7 +146,7 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price):
                style={"cursor": "pointer"}, **row_data))
 
     elif output_field == "d" and price is not None and q_frac is not None:
-        for key, mdl in _app_ctx.PRICE_MODELS.items():
+        for key, mdl in _models.items():
             if not mdl.quantized:
                 continue
             date_str = _solve_date(mdl, q_frac, price)

@@ -96,11 +96,20 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
         draw_mode  = (draw_state or {}).get("phase", "idle") if (draw_state or {}).get("phase", "idle") != "idle" else None,
         draw_point1 = (draw_state or {}).get("point1"),
         draw_point2 = (draw_state or {}).get("point2"),
+        draw_zoom_range = (draw_state or {}).get("_zoom_range"),
         user_model = user_model_store,
     ))
     draw_active = (draw_state or {}).get("phase", "idle") not in ("idle", "showing_menu")
     if "chart_zoom" not in toggles or draw_active:
         fig.update_layout(dragmode=False)
+
+    # Apply draw-mode zoom (axis range set after figure build, grid already
+    # covers this range since draw_zoom_range was passed to the builder)
+    zr = (draw_state or {}).get("_zoom_range")
+    if zr and draw_active:
+        import math
+        fig.update_xaxes(range=[math.log10(zr["t_lo"]), math.log10(zr["t_hi"])])
+        fig.update_yaxes(range=[math.log10(zr["y_lo"]), math.log10(zr["y_hi"])])
 
     return fig
 

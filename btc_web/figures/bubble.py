@@ -105,13 +105,19 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 line=dict(color=col, width=_QR_LINE_WIDTH),
             ))
 
-    # ── draw-mode: invisible click grid (80×80, SVG — no WebGL required) ────
-    # Plotly clickData snaps to nearest trace point. 80×80 grid with size=8
-    # markers gives ~5px snap distance — fine for touch. Grid regenerates
-    # on zoom (slider-based) so coordinates stay consistent.
+    # ── draw-mode: invisible click grid + optional zoom ─────────────────────
     if p.get("draw_mode"):
-        bg_t = np.geomspace(max(t_lo, 0.1), max(t_hi, 1), 80)
-        bg_p = np.geomspace(max(y_lo, 0.01), max(y_hi, 1), 80)
+        # Use zoomed range if available, otherwise full chart range
+        zr = p.get("draw_zoom_range")
+        if zr:
+            grid_t_lo, grid_t_hi = zr["t_lo"], zr["t_hi"]
+            grid_y_lo, grid_y_hi = zr["y_lo"], zr["y_hi"]
+        else:
+            grid_t_lo, grid_t_hi = max(t_lo, 0.1), max(t_hi, 1)
+            grid_y_lo, grid_y_hi = max(y_lo, 0.01), max(y_hi, 1)
+
+        bg_t = np.geomspace(grid_t_lo, grid_t_hi, 80)
+        bg_p = np.geomspace(grid_y_lo, grid_y_hi, 80)
         bg_tt, bg_pp = np.meshgrid(bg_t, bg_p)
         traces.insert(0, go.Scatter(
             x=bg_tt.ravel().tolist(), y=bg_pp.ravel().tolist(),

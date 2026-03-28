@@ -110,12 +110,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     if um_data and "u1" in p.get("active_models", []):
         um_slope = um_data["slope"]
         um_oq = um_data.get("own_quantile", 0.5)
-        # The user's line: log10(price) = intercept + slope * log10(t)
-        # where intercept for own_quantile has shift=0
-        um_intercept = um_data["intercepts"].get(str(um_oq))
-        if um_intercept is None:
-            # Fallback: compute from any quantile with known shift
-            um_intercept = um_slope  # shouldn't happen, but safety
+        um_intercept = um_data["base_intercept"]  # exact, no float key lookup
         um_prices = _round_trace_data(10.0 ** (um_intercept + um_slope * np.log10(np.maximum(t_arr, 0.01))))
         if stack > 0:
             um_prices = _round_trace_data(np.asarray(um_prices) * stack)

@@ -935,8 +935,11 @@ class UserModel(_FitsBasedModel):
     def to_store_dict(self):
         """Serialize to JSON-safe dict for dcc.Store."""
         slope = self.fits[self.quantiles[0]]["slope"]
+        # base_intercept: the user's drawn line (shift=0, passes through both points)
+        base_intercept = self.fits[self.own_quantile]["intercept"]
         return {
             "slope": slope,
+            "base_intercept": base_intercept,
             "intercepts": {str(q): self.fits[q]["intercept"] for q in self.quantiles},
             "r2": {str(q): v for q, v in self.r2_per_quantile.items()},
             "own_quantile": self.own_quantile,

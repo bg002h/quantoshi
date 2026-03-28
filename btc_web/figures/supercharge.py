@@ -24,7 +24,7 @@ from figures.common import (
     _fmt_short, _mc_median_annot,
     _resolve_edge_annotations,
     _hex_alpha,
-
+    _resolve_model,
 )
 
 _DASH_STYLES  = ['solid', 'dash', 'dot', 'dashdot', 'longdash']
@@ -266,18 +266,9 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
         # ── alternative model overlays (same layout logic as primary) ─────────
         _pending_annots = []  # initialized here so overlays can append
         for model_key in p.get("active_models", []):
-            if model_key == "u1":
-                from btc_core import UserModel
-                um_data = p.get("user_model")
-                if not um_data:
-                    continue
-                mdl = UserModel.from_store_dict(um_data)
-                if not mdl:
-                    continue
-            else:
-                mdl = _app_ctx.PRICE_MODELS.get(model_key)
-                if not mdl:
-                    continue
+            mdl = _resolve_model(model_key, p)
+            if not mdl:
+                continue
             _sc_overlay_qs = [q for q in sel_qs if not mdl.quantized or q in mdl.fits] if mdl.quantized else [0.5]
             if not _sc_overlay_qs:
                 continue

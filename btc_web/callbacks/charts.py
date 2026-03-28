@@ -24,7 +24,7 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
 # ══════════════════════════════════════════════════════════════════════════════
 
 @callback(
-    Output("bubble-graph", "figure", allow_duplicate=True),
+    Output("bubble-graph", "figure"),
     Input("bub-qs",            "value"),
     Input("bub-toggles",       "value"),
     Input("bub-bubble-toggles","value"),
@@ -46,7 +46,6 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     State("scan-active-rows",  "data"),
     State("scan-q",            "value"),
     State("user-model-store",  "data"),
-    prevent_initial_call="initial_duplicate",
 )
 def update_bubble(sel_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,

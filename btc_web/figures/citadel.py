@@ -8,6 +8,7 @@ from typing import Any
 
 import _app_ctx
 from btc_core import ModelData, yr_to_t, fmt_price
+from tab_defaults import CITADEL
 from engines.citadel import SimConfig, simulate, PriceModel
 
 from figures.common import (
@@ -82,99 +83,99 @@ def _build_sim_config(p: dict) -> SimConfig:
     # Reserve bins
     reserve_bins = [
         {"label": "Short (T-Bills)",
-         "initial": float(p.get("res_short_init", 50000)),
-         "rate": float(p.get("res_short_rate", 5.0)),
-         "volatility": float(p.get("res_short_vol", 2.0))},
+         "initial": float(p.get("res_short_init", CITADEL["res_short_init"])),
+         "rate": float(p.get("res_short_rate", CITADEL["res_short_rate"])),
+         "volatility": float(p.get("res_short_vol", CITADEL["res_short_vol"]))},
         {"label": "Medium (T-Notes)",
-         "initial": float(p.get("res_med_init", 100000)),
-         "rate": float(p.get("res_med_rate", 4.5)),
-         "volatility": float(p.get("res_med_vol", 8.0))},
+         "initial": float(p.get("res_med_init", CITADEL["res_med_init"])),
+         "rate": float(p.get("res_med_rate", CITADEL["res_med_rate"])),
+         "volatility": float(p.get("res_med_vol", CITADEL["res_med_vol"]))},
         {"label": "Long (T-Bonds)",
-         "initial": float(p.get("res_long_init", 50000)),
-         "rate": float(p.get("res_long_rate", 4.0)),
-         "volatility": float(p.get("res_long_vol", 15.0))},
+         "initial": float(p.get("res_long_init", CITADEL["res_long_init"])),
+         "rate": float(p.get("res_long_rate", CITADEL["res_long_rate"])),
+         "volatility": float(p.get("res_long_vol", CITADEL["res_long_vol"]))},
     ]
 
     # Investment bins
     invest_bins = [
         {"label": "Equities",
-         "initial": float(p.get("inv_eq_init", 200000)),
-         "return_rate": float(p.get("inv_eq_rate", 10.0)),
-         "volatility": float(p.get("inv_eq_vol", 16.0))},
+         "initial": float(p.get("inv_eq_init", CITADEL["inv_eq_init"])),
+         "return_rate": float(p.get("inv_eq_rate", CITADEL["inv_eq_rate"])),
+         "volatility": float(p.get("inv_eq_vol", CITADEL["inv_eq_vol"]))},
         {"label": "Bonds",
-         "initial": float(p.get("inv_bd_init", 100000)),
-         "return_rate": float(p.get("inv_bd_rate", 5.0)),
-         "volatility": float(p.get("inv_bd_vol", 7.0))},
+         "initial": float(p.get("inv_bd_init", CITADEL["inv_bd_init"])),
+         "return_rate": float(p.get("inv_bd_rate", CITADEL["inv_bd_rate"])),
+         "volatility": float(p.get("inv_bd_vol", CITADEL["inv_bd_vol"]))},
     ]
 
     # High-Q trigger
     high_q_split = {
-        "cash": float(p.get("high_q_split_cash", 20)) / 100,
-        "res_short": float(p.get("high_q_split_rs", 20)) / 100,
-        "res_med": float(p.get("high_q_split_rm", 20)) / 100,
-        "res_long": float(p.get("high_q_split_rl", 10)) / 100,
-        "inv_eq": float(p.get("high_q_split_eq", 20)) / 100,
-        "inv_bd": float(p.get("high_q_split_bd", 10)) / 100,
+        "cash": float(p.get("high_q_split_cash", CITADEL["high_q_split_cash"])) / 100,
+        "res_short": float(p.get("high_q_split_rs", CITADEL["high_q_split_rs"])) / 100,
+        "res_med": float(p.get("high_q_split_rm", CITADEL["high_q_split_rm"])) / 100,
+        "res_long": float(p.get("high_q_split_rl", CITADEL["high_q_split_rl"])) / 100,
+        "inv_eq": float(p.get("high_q_split_eq", CITADEL["high_q_split_eq"])) / 100,
+        "inv_bd": float(p.get("high_q_split_bd", CITADEL["high_q_split_bd"])) / 100,
     }
     high_q_action = {
-        "mode": p.get("high_q_mode", "gradual"),
-        "rate": float(p.get("high_q_rate", 2.0)),
-        "duration": int(p.get("high_q_dur", 6)),
+        "mode": p.get("high_q_mode", CITADEL["high_q_mode"]),
+        "rate": float(p.get("high_q_rate", CITADEL["high_q_rate"])),
+        "duration": int(p.get("high_q_dur", CITADEL["high_q_dur"])),
         "split": high_q_split,
     }
 
     # Low-Q trigger
     low_q_split = {
-        "cash": float(p.get("low_q_split_cash", 10)) / 100,
-        "res_short": float(p.get("low_q_split_rs", 10)) / 100,
-        "res_med": float(p.get("low_q_split_rm", 10)) / 100,
-        "res_long": float(p.get("low_q_split_rl", 10)) / 100,
-        "inv_eq": float(p.get("low_q_split_eq", 40)) / 100,
-        "inv_bd": float(p.get("low_q_split_bd", 20)) / 100,
+        "cash": float(p.get("low_q_split_cash", CITADEL["low_q_split_cash"])) / 100,
+        "res_short": float(p.get("low_q_split_rs", CITADEL["low_q_split_rs"])) / 100,
+        "res_med": float(p.get("low_q_split_rm", CITADEL["low_q_split_rm"])) / 100,
+        "res_long": float(p.get("low_q_split_rl", CITADEL["low_q_split_rl"])) / 100,
+        "inv_eq": float(p.get("low_q_split_eq", CITADEL["low_q_split_eq"])) / 100,
+        "inv_bd": float(p.get("low_q_split_bd", CITADEL["low_q_split_bd"])) / 100,
     }
     low_q_action = {
-        "mode": p.get("low_q_mode", "lump"),
-        "rate": float(p.get("low_q_rate", 10.0)),
-        "duration": int(p.get("low_q_dur", 1)),
+        "mode": p.get("low_q_mode", CITADEL["low_q_mode"]),
+        "rate": float(p.get("low_q_rate", CITADEL["low_q_rate"])),
+        "duration": int(p.get("low_q_dur", CITADEL["low_q_dur"])),
         "split": low_q_split,
     }
 
     cfg = SimConfig(
-        price_model=p.get("price_model", "bub"),
-        start_stack=float(p.get("start_stack", 1.0)),
+        price_model=p.get("price_model", CITADEL["price_model"]),
+        start_stack=float(p.get("start_stack", CITADEL["start_stack"])),
         selected_qs=sel_qs,
-        cash_initial=float(p.get("cash_initial", 50000)),
-        cash_rate=float(p.get("cash_rate", 4.0)),
+        cash_initial=float(p.get("cash_initial", CITADEL["cash_initial"])),
+        cash_rate=float(p.get("cash_rate", CITADEL["cash_rate"])),
         reserve_bins=reserve_bins,
         invest_bins=invest_bins,
-        monthly_spend=float(p.get("monthly_spend", 5000)),
-        inflation=float(p.get("inflation", 4.0)),
-        spend_growth=float(p.get("spend_growth", 0.0)),
-        high_q_trigger=float(p.get("high_q_trigger", 80)) / 100,
+        monthly_spend=float(p.get("monthly_spend", CITADEL["monthly_spend"])),
+        inflation=float(p.get("inflation", CITADEL["inflation"])),
+        spend_growth=float(p.get("spend_growth", CITADEL["spend_growth"])),
+        high_q_trigger=float(p.get("high_q_trigger", CITADEL["high_q_trigger"])) / 100,
         high_q_action=high_q_action,
-        low_q_trigger=float(p.get("low_q_trigger", 20)) / 100,
+        low_q_trigger=float(p.get("low_q_trigger", CITADEL["low_q_trigger"])) / 100,
         low_q_action=low_q_action,
-        lump_cooldown=int(p.get("lump_cooldown", 12)),
-        cash_floor=float(p.get("cash_floor", 0)),
-        cash_floor_growth=float(p.get("cash_floor_growth", 0)),
+        lump_cooldown=int(p.get("lump_cooldown", CITADEL["lump_cooldown"])),
+        cash_floor=float(p.get("cash_floor", CITADEL["cash_floor"])),
+        cash_floor_growth=float(p.get("cash_floor_growth", CITADEL["cash_floor_growth"])),
         reserve_floors=[
-            float(p.get("res_short_floor", 0)),
-            float(p.get("res_med_floor", 0)),
-            float(p.get("res_long_floor", 0)),
+            float(p.get("res_short_floor", CITADEL["res_short_floor"])),
+            float(p.get("res_med_floor", CITADEL["res_med_floor"])),
+            float(p.get("res_long_floor", CITADEL["res_long_floor"])),
         ],
-        reserve_floor_growth=float(p.get("reserve_floor_growth", 0)),
+        reserve_floor_growth=float(p.get("reserve_floor_growth", CITADEL["reserve_floor_growth"])),
         scf_enabled=bool(p.get("scf_enabled")),
-        scf_amount=float(p.get("scf_amount", 0)),
-        scf_type=p.get("scf_type", "term"),
-        scf_rate=float(p.get("scf_rate", 8.0)),
-        scf_term=int(p.get("scf_term", 60)),
-        scf_repay_trigger=float(p.get("scf_repay_trigger", 1.0)),
-        start_yr=int(p.get("start_yr", 2031)),
-        end_yr=int(p.get("end_yr", 2075)),
-        freq=p.get("freq", "Monthly"),
+        scf_amount=float(p.get("scf_amount", CITADEL["scf_amount"])),
+        scf_type=p.get("scf_type", CITADEL["scf_type"]),
+        scf_rate=float(p.get("scf_rate", CITADEL["scf_rate"])),
+        scf_term=int(p.get("scf_term", CITADEL["scf_term"])),
+        scf_repay_trigger=float(p.get("scf_repay_trigger", CITADEL["scf_repay_trigger"])),
+        start_yr=int(p.get("start_yr", CITADEL["start_yr"])),
+        end_yr=int(p.get("end_yr", CITADEL["end_yr"])),
+        freq=p.get("freq", CITADEL["freq"]),
         n_sims=int(p.get("n_sims", 1)),
         tax_rate=0.0,
-        asset_return_model=p.get("asset_return_model", "lognormal"),
+        asset_return_model=p.get("asset_return_model", CITADEL["asset_return_model"]),
     )
 
     # Load asset transition matrices when Markov mode selected

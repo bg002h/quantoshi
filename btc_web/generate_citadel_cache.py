@@ -54,6 +54,7 @@ def generate():
     import _app_ctx
     from figures.citadel import _ModelAdapter, _build_sim_config, build_citadel_figure
     from cache import set_citadel_cached, redis_available
+    from tab_defaults import citadel_defaults
 
     if not redis_available():
         logger.error("Redis not available — cannot generate cache")
@@ -80,42 +81,10 @@ def generate():
             t1 = time.time()
             try:
                 # Build params matching default UI settings
-                p = {
-                    "start_stack": 1.0, "use_lots": False, "lots": [],
-                    "cash_initial": 50000, "cash_rate": 4.0,
-                    "res_short_init": 50000, "res_short_rate": 5.0, "res_short_vol": 2.0,
-                    "res_med_init": 100000, "res_med_rate": 4.5, "res_med_vol": 8.0,
-                    "res_long_init": 50000, "res_long_rate": 4.0, "res_long_vol": 15.0,
-                    "inv_eq_init": 200000, "inv_eq_rate": 10.0, "inv_eq_vol": 16.0,
-                    "inv_bd_init": 100000, "inv_bd_rate": 5.0, "inv_bd_vol": 7.0,
-                    "monthly_spend": _MONTHLY_SPEND, "inflation": _INFLATION,
-                    "spend_growth": 0.0,
-                    "high_q_trigger": 95, "high_q_mode": "gradual",
-                    "high_q_rate": 2.0, "high_q_dur": 6,
-                    "high_q_split_cash": 20, "high_q_split_rs": 20,
-                    "high_q_split_rm": 20, "high_q_split_rl": 10,
-                    "high_q_split_eq": 20, "high_q_split_bd": 10,
-                    "low_q_trigger": 5, "low_q_mode": "lump",
-                    "low_q_rate": 10.0, "low_q_dur": 1,
-                    "low_q_split_cash": 10, "low_q_split_rs": 10,
-                    "low_q_split_rm": 10, "low_q_split_rl": 10,
-                    "low_q_split_eq": 40, "low_q_split_bd": 20,
-                    "lump_cooldown": 12,
-                    "cash_floor": 50000, "cash_floor_growth": 0,
-                    "res_short_floor": 0, "res_med_floor": 0,
-                    "res_long_floor": 0, "reserve_floor_growth": 0,
-                    "scf_enabled": False, "scf_amount": 0,
-                    "scf_type": "term", "scf_rate": 8.0,
-                    "scf_term": 60, "scf_repay_trigger": 1.0,
-                    "start_yr": _START_YR, "end_yr": _END_YR,
-                    "freq": "Monthly", "price_model": model_key,
-                    "n_sims": 1, "selected_qs": [q],
-                    "asset_return_model": "lognormal",
-                    "disp_mode": "usd_per_asset",
-                    "log_y": False, "annotate": True,
-                    "show_legend": True, "legend_pos": "bottom-right",
-                    "minor_grid": True, "palette": "default",
-                }
+                p = citadel_defaults()
+                p["price_model"] = model_key
+                p["selected_qs"] = [q]
+                p["n_sims"] = 1
 
                 fig, mc_result = build_citadel_figure(_app_ctx.M, p)
                 fig_json = fig.to_json()

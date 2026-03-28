@@ -122,12 +122,10 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 continue
         if mdl.quantized:
             # For U1, always include the user's own quantile (the drawn line)
+            # own_quantile is in mdl.fits with shift=0 — passes through the two points exactly
             overlay_qs = list(sel_qs)
             if model_key == "u1" and hasattr(mdl, "own_quantile"):
                 oq = mdl.own_quantile
-                # Snap to nearest available quantile in fits
-                if mdl.quantiles:
-                    oq = min(mdl.quantiles, key=lambda q: abs(q - oq))
                 if oq not in overlay_qs:
                     overlay_qs.append(oq)
             for q in overlay_qs:

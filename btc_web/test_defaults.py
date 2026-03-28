@@ -325,7 +325,7 @@ def test_user_model_from_two_points():
         price_years=M.price_years, price_prices=M.price_prices,
         quantiles=M.QR_QUANTILES)
     assert 0 < model.own_quantile < 1
-    assert len(model.fits) == len(M.QR_QUANTILES)
+    assert len(model.fits) >= len(M.QR_QUANTILES)  # +1 for own_quantile
     assert all("intercept" in f and "slope" in f for f in model.fits.values())
     assert model.quantized is True
     assert model.short_name == "u1"

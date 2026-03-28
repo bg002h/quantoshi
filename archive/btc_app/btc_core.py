@@ -915,14 +915,22 @@ class UserModel(_FitsBasedModel):
         own_quantile = float(np.mean(residuals <= 0))
         shifts = {q: float(np.percentile(residuals, q * 100)) for q in quantiles}
 
+        # Ensure own_quantile is in the quantile list with shift=0
+        # (the user's drawn line passes exactly through the two points)
+        if own_quantile not in shifts:
+            shifts[own_quantile] = 0.0
+        else:
+            shifts[own_quantile] = 0.0  # force exact zero even if percentile is close
+        all_quantiles = sorted(set(quantiles) | {own_quantile})
+
         r2 = {}
-        for q in quantiles:
-            pred_q = 10.0 ** (intercept + shifts[q] + slope * np.log10(np.maximum(t_hist, 0.01)))
+        for q in all_quantiles:
+            pred_q = 10.0 ** (intercept + shifts.get(q, 0) + slope * np.log10(np.maximum(t_hist, 0.01)))
             r2_val = _compute_log_r2(p_hist, pred_q)
             if r2_val is not None:
                 r2[q] = r2_val
 
-        return cls(slope, intercept, shifts, quantiles, r2, own_quantile)
+        return cls(slope, intercept, shifts, all_quantiles, r2, own_quantile)
 
     def to_store_dict(self):
         """Serialize to JSON-safe dict for dcc.Store."""

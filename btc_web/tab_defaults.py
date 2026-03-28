@@ -1,0 +1,203 @@
+"""
+Single source of truth for all tab default values in Quantoshi.
+
+Constraints:
+- Never pass a MappingProxyType directly to json.dumps() — raises TypeError.
+  Use dict(DEFAULTS) or a _defaults() function to get a plain dict first.
+- Never pass a MappingProxyType directly to a figure builder — use _defaults()
+  or dict(DEFAULTS, **overrides) to produce a mutable copy.
+- All inner collection values must be tuples/frozensets, not lists/sets.
+- Dynamic values (yr_now, _ALL_QS) must NOT be resolved at import time —
+  only inside _defaults() functions.
+"""
+
+from types import MappingProxyType
+
+BUBBLE = MappingProxyType({
+    "selected_qs": (0.5,),
+    "xscale": "log", "yscale": "log",
+    "auto_y": ("yes",),
+    "ymin": 1.0, "ymax": 1e7,
+    "shade": True, "show_data": True, "show_today": True,
+    "show_legend": False, "minor_grid": False,
+    "show_ols": False, "show_ucl": False,
+    "show_comp": True, "show_sup": True,
+    "n_future": 3,
+    "pt_size": 3, "pt_alpha": 0.3,
+    "stack": 0, "show_stack": False, "use_lots": False,
+    "legend_pos": "top-left",
+    "comp_color": "#FFD700", "comp_lw": 2.0,
+    "sup_color": "#888888", "sup_lw": 1.5,
+    "active_models": ("bub",),
+    "palette": "default",
+    "scanner_lines": (),
+})
+
+HEATMAP = MappingProxyType({
+    "exit_qs": (),
+    "color_mode": 0,
+    "b1": 0, "b2": 20,
+    "hm_palette": "forge",
+    "c_lo": "#1b0a2e", "c_mid1": "#2c2c3a",
+    "c_mid2": "#1b4332", "c_hi": "#ffd700",
+    "n_disc": 32,
+    "vfmt": "cagr",
+    "cell_font_size": 9,
+    "show_colorbar": True,
+    "stack": 0, "use_lots": False,
+    "hm_model": "bub",
+    "active_models": (),
+    "palette": "default",
+})
+
+DCA = MappingProxyType({
+    "start_stack": 0, "use_lots": False,
+    "amount": 100, "freq": "Monthly", "inflation": 0.0,
+    "selected_qs": (0.5,),
+    "disp_mode": "btc",
+    "annotate": True, "show_today": False,
+    "show_legend": False, "minor_grid": False,
+    "log_y": False,
+    "legend_pos": "bottom-right",
+    "active_models": (),
+    "palette": "default",
+    "sc_enabled": False, "sc_loan_amount": 1200,
+    "sc_rate": 13.0, "sc_loan_type": "interest_only",
+    "sc_term_months": 12, "sc_repeats": 0, "sc_rollover": False,
+    "sc_entry_mode": "live", "sc_custom_price": 80000.0,
+    "sc_tax_rate": 0.33,
+    "show_qr": True, "show_mc": False,
+})
+
+RETIRE = MappingProxyType({
+    "start_stack": 1.0, "use_lots": False,
+    "wd_amount": 5000, "freq": "Monthly",
+    "inflation": 4.0,
+    "selected_qs": (0.01, 0.10, 0.25),
+    "start_yr": 2031, "end_yr": 2075,
+    "disp_mode": "btc",
+    "annotate": True, "log_y": True,
+    "show_legend": False, "minor_grid": True,
+    "legend_pos": "bottom-right",
+    "active_models": (),
+    "palette": "default",
+    "show_qr": True, "show_mc": False,
+})
+
+SUPERCHARGE = MappingProxyType({
+    "mode": "a", "start_stack": 1.0, "use_lots": False,
+    "start_yr": 2033,
+    "delays": (0.0, 0.0, 0.0, 1.0, 2.0),
+    "freq": "Monthly", "inflation": 4.0,
+    "selected_qs": (0.001, 0.10),
+    "chart_layout": 2,
+    "display_q": 0.05,
+    "wd_amount": 5000, "end_yr": 2075,
+    "disp_mode": "usd",
+    "annotate": True, "log_y": True,
+    "show_legend": False, "minor_grid": True,
+    "legend_pos": "top-left",
+    "target_yr": 2060,
+    "active_models": (),
+    "palette": "default",
+    "show_qr": True, "show_mc": False,
+})
+
+STACK = MappingProxyType({
+    "lot_btc": 0.01,
+    "lot_price": 69420,
+    "lot_notes": "",
+})
+
+CITADEL = MappingProxyType({
+    "start_stack": 1.0, "use_lots": False,
+    "cash_initial": 50000, "cash_rate": 4.0,
+    "res_short_init": 50000, "res_short_rate": 5.0, "res_short_vol": 2.0,
+    "res_med_init": 100000, "res_med_rate": 4.5, "res_med_vol": 8.0,
+    "res_long_init": 50000, "res_long_rate": 4.0, "res_long_vol": 15.0,
+    "inv_eq_init": 200000, "inv_eq_rate": 10.0, "inv_eq_vol": 16.0,
+    "inv_bd_init": 100000, "inv_bd_rate": 5.0, "inv_bd_vol": 7.0,
+    "monthly_spend": 5000, "inflation": 4.0, "spend_growth": 0.0,
+    "high_q_trigger": 95, "high_q_mode": "gradual", "high_q_rate": 2.0, "high_q_dur": 6,
+    "high_q_split_cash": 20, "high_q_split_rs": 20, "high_q_split_rm": 20,
+    "high_q_split_rl": 10, "high_q_split_eq": 20, "high_q_split_bd": 10,
+    "low_q_trigger": 5, "low_q_mode": "lump", "low_q_rate": 10.0, "low_q_dur": 1,
+    "low_q_split_cash": 20, "low_q_split_rs": 20, "low_q_split_rm": 20,
+    "low_q_split_rl": 10, "low_q_split_eq": 20, "low_q_split_bd": 10,
+    "lump_cooldown": 12,
+    "cash_floor": 50000, "res_short_floor": 0, "res_med_floor": 0, "res_long_floor": 0,
+    "cash_floor_growth": 0, "reserve_floor_growth": 0,
+    "scf_enabled": False, "scf_amount": 100000, "scf_type": "term",
+    "scf_rate": 8.0, "scf_term": 60, "scf_repay_trigger": 1.0,
+    "start_yr": 2031, "end_yr": 2075, "freq": "Monthly",
+    "price_model": "bub", "asset_return_model": "lognormal",
+    "selected_qs": (0.25,),
+    "disp_mode": "usd_per_asset",
+    "annotate": True, "log_y": True, "show_legend": True, "minor_grid": True,
+    "legend_pos": "bottom-right",
+    "palette": "default",
+})
+
+
+def bubble_defaults() -> dict:
+    import pandas as pd
+    yr_now = pd.Timestamp.today().year
+    d = dict(BUBBLE)
+    d["xmin"] = 2012
+    d["xmax"] = yr_now + 4
+    d["selected_qs"] = list(BUBBLE["selected_qs"])
+    d["active_models"] = list(BUBBLE["active_models"])
+    d["scanner_lines"] = list(BUBBLE["scanner_lines"])
+    d["auto_y"] = list(BUBBLE["auto_y"])
+    d["lots"] = []
+    return d
+
+
+def heatmap_defaults() -> dict:
+    import pandas as pd
+    yr_now = pd.Timestamp.today().year
+    d = dict(HEATMAP)
+    d["entry_yr"] = yr_now
+    d["entry_q"] = 50.0
+    d["exit_yr_lo"] = yr_now
+    d["exit_yr_hi"] = yr_now + 15
+    d["exit_qs"] = list(HEATMAP["exit_qs"])
+    d["active_models"] = list(HEATMAP["active_models"])
+    d["lots"] = []
+    return d
+
+
+def dca_defaults() -> dict:
+    import pandas as pd
+    yr_now = pd.Timestamp.today().year
+    d = dict(DCA)
+    d["start_yr"] = yr_now
+    d["end_yr"] = yr_now + 10
+    d["selected_qs"] = list(DCA["selected_qs"])
+    d["active_models"] = list(DCA["active_models"])
+    d["lots"] = []
+    return d
+
+
+def retire_defaults() -> dict:
+    d = dict(RETIRE)
+    d["selected_qs"] = list(RETIRE["selected_qs"])
+    d["active_models"] = list(RETIRE["active_models"])
+    d["lots"] = []
+    return d
+
+
+def supercharge_defaults() -> dict:
+    d = dict(SUPERCHARGE)
+    d["delays"] = list(SUPERCHARGE["delays"])
+    d["selected_qs"] = list(SUPERCHARGE["selected_qs"])
+    d["active_models"] = list(SUPERCHARGE["active_models"])
+    d["lots"] = []
+    return d
+
+
+def citadel_defaults() -> dict:
+    d = dict(CITADEL)
+    d["selected_qs"] = list(CITADEL["selected_qs"])
+    d["lots"] = []
+    return d

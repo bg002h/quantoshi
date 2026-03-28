@@ -856,10 +856,6 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
     _mc_t0 = _time.time()
     n_bins, n_sims, mc_window, mc_freq, mc_ppy, mc_dt, step_days, mc_years = _mc_setup_vars(p)
 
-    # Ensure MC covers the full Citadel time range
-    citadel_span = citadel_config.end_yr - citadel_config.start_yr
-    if mc_years < citadel_span:
-        mc_years = int(citadel_span) + 1  # +1 for safety
     print(f"[MC-CITADEL] starting: n_sims={n_sims}, mc_years={mc_years}, bins={n_bins}", flush=True)
     mc_start_yr, mc_t_start, mc_t_end, mc_ts = _build_mc_timeline(
         p, m, mc_years, mc_dt, clamp_start=True)
@@ -890,10 +886,11 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
     from engines.citadel import FREQ_PPY as _CITADEL_FREQ_PPY, simulate as _citadel_sim
     citadel_ppy = _CITADEL_FREQ_PPY.get(citadel_config.freq, 12)
     n_periods_needed = int((citadel_config.end_yr - citadel_config.start_yr) * citadel_ppy)
-    print(f"[MC-CITADEL] paths: {price_paths.shape}, need {n_periods_needed} periods, citadel_ppy={citadel_ppy}", flush=True)
+    # If MC paths are shorter than citadel range, truncate citadel to available MC data
     if price_paths.shape[1] < n_periods_needed:
-        print(f"[MC-CITADEL] SKIP: paths have {price_paths.shape[1]} steps but need {n_periods_needed}", flush=True)
-        return [], None
+        n_periods_needed = price_paths.shape[1]
+        print(f"[MC-CITADEL] truncating citadel to {n_periods_needed} periods (MC shorter than citadel range)", flush=True)
+    print(f"[MC-CITADEL] paths: {price_paths.shape}, using {n_periods_needed} periods", flush=True)
 
     # Resample MC price paths to citadel's time grid if frequencies differ
     # MC runs at mc_freq (typically Monthly), citadel may use same or different freq
@@ -911,6 +908,13 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
     for s in range(n_mc_sims):
         resampled[s] = np.interp(mc_indices, np.arange(price_paths.shape[1]),
                                  price_paths[s])
+
+    # Adjust citadel config to match available MC range
+    import copy
+    citadel_config = copy.deepcopy(citadel_config)
+    mc_end_yr = citadel_config.start_yr + n_periods_needed / citadel_ppy
+    if mc_end_yr < citadel_config.end_yr:
+        citadel_config.end_yr = int(mc_end_yr)
 
     # Run citadel engine with MC price paths — use Celery if available
     try:

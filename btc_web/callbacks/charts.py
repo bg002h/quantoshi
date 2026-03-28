@@ -116,7 +116,7 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
             cx, cy = pt["t"], pt["price"]
             is_log_x = (xscale or "log") == "log"
             # Use saved zoom level if available (compounds), else start from slider range
-            zoom_level = (draw_state or {}).get("_zoom_level", 0) + 1
+            zoom_level = (draw_state or {}).get("_zoom_level", 1)
             zoom_factor = 2 ** zoom_level  # 2x, 4x, 8x, ...
             # Base range from slider inputs
             x_lo, x_hi = float(xrange[0]), float(xrange[1])

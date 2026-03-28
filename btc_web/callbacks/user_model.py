@@ -34,9 +34,9 @@ def on_data_click(click_data):
     pt = click_data["points"][0]
     t_val = pt["x"]
     price = pt["y"]
-    year = round(_GENESIS_YR + t_val, 1)
+    year = round(_GENESIS_YR + t_val, 2)
 
-    label = f"{year}  ${price:,.0f}" if price >= 1 else f"{year}  ${price:.4f}"
+    label = f"{year}  ${price:,.2f}" if price >= 100 else f"{year}  ${price:.4f}" if price >= 1 else f"{year}  ${price:.6f}"
     return {"year": year, "price": price}, _CTX_VISIBLE, label
 
 
@@ -54,11 +54,21 @@ def on_data_click(click_data):
     State("um-clicked-point", "data"),
     prevent_initial_call=True,
 )
+def _fmt_price_display(p):
+    """Format price for display — adaptive decimals."""
+    if p >= 100:
+        return f"{p:,.2f}"
+    elif p >= 1:
+        return f"{p:.4f}"
+    else:
+        return f"{p:.6f}"
+
+
 def set_p1(n, pt):
     if not pt:
         return no_update, no_update, no_update, no_update, no_update
-    yr, pr = pt["year"], round(pt["price"], 2)
-    return yr, pr, str(yr), f"{pr:,.2f}", _HIDDEN
+    yr, pr = pt["year"], round(pt["price"], 6)
+    return yr, pr, str(yr), _fmt_price_display(pr), _HIDDEN
 
 
 @callback(
@@ -74,8 +84,8 @@ def set_p1(n, pt):
 def set_p2(n, pt):
     if not pt:
         return no_update, no_update, no_update, no_update, no_update
-    yr, pr = pt["year"], round(pt["price"], 2)
-    return yr, pr, str(yr), f"{pr:,.2f}", _HIDDEN
+    yr, pr = pt["year"], round(pt["price"], 6)
+    return yr, pr, str(yr), _fmt_price_display(pr), _HIDDEN
 
 
 # ══════════════════════════════════════════════════════════════════════════════

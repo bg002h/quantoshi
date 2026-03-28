@@ -862,11 +862,14 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
     # Generate price paths
     path_key = _mc_path_key(p, "cp")
 
-    # Check client-side cache for price paths
+    # Check client-side cache (reject if fewer sims than requested)
     cached, cache_hit = _check_client_cache(p, path_key)
     if cache_hit:
         price_paths = _mc_paths_from_lists(cached["price_paths"])
-    else:
+        if price_paths.shape[0] < n_sims:
+            print(f"[MC-CITADEL] client cache: {price_paths.shape[0]} paths < {n_sims} requested, bypassing", flush=True)
+            cache_hit = False
+    if not cache_hit:
         # Try pre-computed server cache
         blocked = p.get("mc_blocked_bins", [])
         cached_paths = _try_cached(p, mc_years, blocked)

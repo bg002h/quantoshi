@@ -98,6 +98,7 @@ Menu appears: **Redraw / Delete / Cancel**
 
   ANY draw phase ──[FAB tap]──→ idle (abort, previous model preserved)
   ANY draw phase ──[tab switch]──→ idle (abort, previous model preserved)
+  showing_menu ──[FAB tap]──→ idle (dismiss menu)
 ```
 
 ### State Store
@@ -172,7 +173,30 @@ class UserModel(_FitsBasedModel):
         self.quantiles = sorted(quantiles)
         self.r2_per_quantile = r2_per_quantile
         self.own_quantile = own_quantile  # what percentile the drawn line is
-        self._build_colors()  # inherited — thermal palette
+        self.colors = {q: "#e67e22" for q in quantiles}  # all orange
+
+    @classmethod
+    def from_points(cls, t1, p1, t2, p2, price_years, price_prices, quantiles):
+        """Factory: two points + historical data → fully quantized model."""
+        import numpy as np
+        log_t1, log_p1 = np.log10(t1), np.log10(p1)
+        log_t2, log_p2 = np.log10(t2), np.log10(p2)
+        slope = (log_p2 - log_p1) / (log_t2 - log_t1)
+        intercept = log_p1 - slope * log_t1
+        # Residuals against historical data
+        mask = price_years >= 0.5
+        t_hist = price_years[mask]
+        p_hist = price_prices[mask]
+        residuals = np.log10(np.maximum(p_hist, 1e-10)) - (intercept + slope * np.log10(t_hist))
+        own_quantile = float(np.mean(residuals <= 0))
+        shifts = {q: float(np.percentile(residuals, q * 100)) for q in quantiles}
+        # R² per quantile
+        from btc_core import _compute_log_r2
+        r2 = {}
+        for q in quantiles:
+            predicted = 10.0 ** (intercept + shifts[q] + slope * np.log10(t_hist))
+            r2[q] = _compute_log_r2(p_hist, predicted)
+        return cls(slope, intercept, shifts, quantiles, r2, own_quantile)
 ```
 
 Inherits `price_at`, `interp_price`, `find_percentile` from `_FitsBasedModel`.
@@ -276,6 +300,30 @@ Appears only during `confirming_p1` and `confirming_p2` phases. Hidden otherwise
 ### Toast
 
 Small text overlay at top center of chart during draw mode: "Tap two points to define your model." Fades after 3 seconds.
+
+---
+
+## Technical Notes
+
+### Click Capture on Empty Chart Space
+
+Plotly's `clickData` only fires when clicking on an existing trace (data point, line), not on empty chart background. To capture clicks anywhere during draw mode, the bubble figure builder adds an **invisible background scatter trace** when draw mode is active: a grid of transparent (`opacity=0`) points covering the full axis range at ~50×50 resolution. This ensures `clickData` fires for any tap location. The background trace is excluded from the legend and removed when draw mode exits.
+
+### LRU Cache Interaction
+
+The bubble figure cache (`@lru_cache`) keys on quantized params. When user model data (slope/intercept) is included in the params dict, different user models produce different cache keys naturally. When the user redraws, the new params produce a new key — no manual cache invalidation needed.
+
+### Dynamic Checklist Options
+
+Adding "U1" to existing `{prefix}-model-show` checklists dynamically: use a server-side callback that outputs both `options` and `value` atomically (not clientside) to avoid race conditions with snapshot restore. The callback watches `user-model-store` and re-renders options for each tab's checklist, preserving existing selections.
+
+### Ticker Integration
+
+U1 is appended to `model_data` **after** the main `_MODEL_CYCLE` loop in `update_price_ticker`, not added to the static `_MODEL_CYCLE` list. The callback reads `user-model-store` as `State`, reconstructs UserModel when present, calls `find_percentile(t, price)`, and appends `{"key": "u1", "label": "U1", "pct": pct, "color": "#e67e22"}` to the model_data list.
+
+### State Machine: `showing_menu` Phase
+
+`showing_menu` is explicitly included in the "abort on FAB tap" rule: `showing_menu --[FAB tap]--> idle`. It is not a draw phase — no markers or temporary traces exist during this phase.
 
 ---
 

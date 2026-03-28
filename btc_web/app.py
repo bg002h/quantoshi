@@ -14,6 +14,7 @@ Privacy model:
       transiently during Dash callbacks (never written to disk).
 """
 
+import logging
 import sys
 import time
 from pathlib import Path
@@ -193,37 +194,95 @@ import callbacks  # noqa: F401 — registers all callbacks
 # Pre-warm LRU caches on worker startup
 # ══════════════════════════════════════════════════════════════════════════════
 def _prewarm_caches():
+    """Pre-warm L0 caches. Tries Redis first; falls back to full compute."""
+    import time as _time
+    import hashlib as _hl
     from tab_defaults import (bubble_defaults, heatmap_defaults, dca_defaults,
                               retire_defaults, supercharge_defaults, citadel_defaults)
+    from utils import (_compute_cache_key, _serialize_result, _deserialize_result,
+                       _L0_BUILDERS)
+    import utils as _utils
 
-    # Bubble (default: log-log, 3 future bubbles)
-    _get_bubble_fig(bubble_defaults())
+    t0 = _time.time()
 
-    # Bubble with PL overlay (common toggle)
+    # Build the list of (prefix, params_dict) to prewarm
+    _entries = []
+
+    _entries.append(("bub", bubble_defaults()))
+
     bub_pl = bubble_defaults()
     bub_pl["active_models"] = ["bub", "pl"]
-    _get_bubble_fig(bub_pl)
+    _entries.append(("bub", bub_pl))
 
-    # DCA (default: $100/mo, Q50%, current_yr–current_yr+10)
-    _get_dca_fig(dca_defaults())
+    _entries.append(("dca", dca_defaults()))
+    _entries.append(("ret", retire_defaults()))
 
-    # Retire (default: $5000/mo, Q1%+Q10%+Q25%, 2031–2075, 4% inflation)
-    _get_retire_fig(retire_defaults())
-
-    # Supercharge (default: Mode A, 1 BTC, monthly, Q0.1%+Q10%)
     sc = supercharge_defaults()
     sc["selected_qs"] = [q for q in [0.001, 0.10] if q in _app_ctx.DEFAULT_MODEL.fits]
-    _get_supercharge_fig(sc)
+    _entries.append(("sc", sc))
 
-    # Citadel Planner (default: 1 BTC, $5k/mo, Q1%+Q10%+Q25%, 2031–2075)
     cp = citadel_defaults()
     cp["selected_qs"] = [0.01, 0.10, 0.25]
-    _get_citadel_fig(cp)
+    _entries.append(("cp", cp))
 
-    # Heatmap (default: bubble model, current year entry)
     hm = heatmap_defaults()
     hm["entry_q"] = _app_ctx._HM_ENTRY_Q_DEFAULT
-    _get_heatmap_fig(hm)
+    _entries.append(("hm", hm))
+
+    # Compute cache keys for each entry
+    keyed = [(pfx, p, _compute_cache_key(pfx, dict(p))) for pfx, p in _entries]
+
+    # Try loading from Redis L0
+    try:
+        from cache import get_l0, set_l0, redis_available
+        if redis_available():
+            hits = []
+            for pfx, p, json_key in keyed:
+                params_hash = _hl.sha256(json_key.encode()).hexdigest()[:16]
+                raw = get_l0(pfx, params_hash)
+                if raw:
+                    hits.append((pfx, json_key, raw))
+                else:
+                    break  # any miss → full recompute
+
+            if len(hits) == len(keyed):
+                # All found in Redis — pin in L0 and skip computation
+                for pfx, json_key, raw in hits:
+                    cache_fn = _L0_BUILDERS[pfx][0]
+                    result = _deserialize_result(raw)
+                    cache_fn.pin(json_key, result)
+                logging.getLogger(__name__).info("L0 warm from Redis: %d entries in %.1fs",
+                            len(hits), _time.time() - t0)
+                return
+    except Exception as e:
+        logging.getLogger(__name__).debug("L0 Redis check failed: %s", e)
+
+    # Redis miss or unavailable — full compute
+    logging.getLogger(__name__).info("L0 computing %d entries...", len(keyed))
+    redis_ok = True
+    for pfx, p, json_key in keyed:
+        cache_fn = _L0_BUILDERS[pfx][0]
+        get_fn = _L0_BUILDERS[pfx][1]
+        result = get_fn(dict(p))  # compute figure (also populates L1)
+        cache_fn.pin(json_key, result)  # pin in L0
+
+        # Store in Redis L0
+        try:
+            from cache import set_l0, redis_available
+            if redis_ok and redis_available():
+                params_hash = _hl.sha256(json_key.encode()).hexdigest()[:16]
+                set_l0(pfx, params_hash, _serialize_result(result))
+            else:
+                redis_ok = False
+        except Exception:
+            redis_ok = False
+
+    if not redis_ok:
+        _utils._l0_needs_flush = True
+        logging.getLogger(__name__).info("L0 compute done (Redis unavailable — deferred flush enabled)")
+    else:
+        logging.getLogger(__name__).info("L0 compute + Redis store: %d entries in %.1fs",
+                    len(keyed), _time.time() - t0)
 
 _prewarm_caches()
 from utils import _log_cache_stats

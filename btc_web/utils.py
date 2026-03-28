@@ -1,5 +1,6 @@
 """Utility functions: float quantization, LRU figure caches, price fetching."""
 
+import hashlib
 import json
 import logging
 import math
@@ -140,6 +141,7 @@ def _log_cache_stats():
                      info.maxsize, rate)
 
 def _get_bubble_fig(p: dict):
+    _try_flush_l0()
     p = _quantize_params(p)
     p['_day'] = str(date.today())
     return _cached_bubble_fig(json.dumps(p, sort_keys=True, default=str))
@@ -157,6 +159,7 @@ def _get_mc_or_cached(p: dict, builder_fn, cache_fn, always_mc=False):
 
     always_mc: if True, skip mc_enabled check (used for MC-only heatmap).
     """
+    _try_flush_l0()
     mc_cached = p.pop("mc_cached", None)
     is_free = p.pop("mc_free_tier", False)
     mc_active = always_mc or (p.get("mc_enabled") and _app_ctx._HAS_MARKOV)
@@ -181,6 +184,7 @@ def _get_supercharge_fig(p: dict):
     return _get_mc_or_cached(p, build_supercharge_figure, _cached_supercharge_fig)
 
 def _get_heatmap_fig(p: dict):
+    _try_flush_l0()
     for k in [k for k in p if k.startswith("mc_")]:
         p.pop(k)
     p_q = _quantize_params(p)
@@ -192,8 +196,84 @@ def _get_mc_heatmap_fig(p: dict):
                              _cached_mc_heatmap_fig, always_mc=True)
 
 def _get_citadel_fig(p: dict):
+    _try_flush_l0()
     p_q = _quantize_params(p)
     return _cached_citadel_fig(json.dumps(p_q, sort_keys=True, default=str))
+
+
+# ── L0 prewarm helpers ───────────────────────────────────────────────────────
+import plotly.io as _pio
+
+_l0_needs_flush = False  # set True when Redis was down at boot
+
+_L0_BUILDERS = {
+    "bub":  (_cached_bubble_fig, _get_bubble_fig),
+    "hm":   (_cached_heatmap_fig, _get_heatmap_fig),
+    "dca":  (_cached_dca_fig, _get_dca_fig),
+    "ret":  (_cached_retire_fig, _get_retire_fig),
+    "sc":   (_cached_supercharge_fig, _get_supercharge_fig),
+    "cp":   (_cached_citadel_fig, _get_citadel_fig),
+}
+
+
+def _compute_cache_key(prefix: str, p: dict) -> str:
+    """Compute the JSON cache key for a param dict, same as _get_*_fig would.
+
+    NOTE: Only correct for prewarm defaults (no mc_* keys). For params with
+    mc_* keys, the strip order differs from _get_mc_or_cached. This is fine
+    because L0 only stores prewarm defaults.
+    """
+    p_q = _quantize_params(p)
+    if not p_q.get("mc_enabled"):
+        p_q = {k: v for k, v in p_q.items() if not k.startswith("mc_")}
+    p_q.pop("mc_cached", None)
+    p_q.pop("mc_free_tier", None)
+    if prefix == "bub":
+        p_q["_day"] = str(date.today())
+    return json.dumps(p_q, sort_keys=True, default=str)
+
+
+def _serialize_result(result) -> str:
+    """Serialize a figure (or fig+mc tuple) to JSON for Redis storage."""
+    is_tuple = isinstance(result, tuple)
+    fig = result[0] if is_tuple else result
+    mc = result[1] if is_tuple else None
+    return json.dumps({
+        "figure": fig.to_json() if hasattr(fig, 'to_json') else None,
+        "mc_result": mc,
+        "is_tuple": is_tuple,
+    }, default=str)
+
+
+def _deserialize_result(json_str: str):
+    """Deserialize a figure (or fig+mc tuple) from Redis JSON."""
+    data = json.loads(json_str)
+    fig = _pio.from_json(data["figure"]) if data.get("figure") else None
+    if data.get("is_tuple"):
+        return (fig, data.get("mc_result"))
+    return fig
+
+
+def _try_flush_l0():
+    """One-shot: write in-memory L0 to Redis if not written at boot."""
+    global _l0_needs_flush
+    if not _l0_needs_flush:
+        return
+    try:
+        from cache import set_l0, redis_available
+        if not redis_available():
+            return
+        count = 0
+        for prefix, (cache_fn, _) in _L0_BUILDERS.items():
+            for key, result in cache_fn.pinned.items():
+                params_hash = hashlib.sha256(key.encode()).hexdigest()[:16]
+                set_l0(prefix, params_hash, _serialize_result(result))
+                count += 1
+        _l0_needs_flush = False
+        logger.info("L0 deferred flush: wrote %d entries to Redis", count)
+    except Exception as e:
+        logger.debug("L0 deferred flush failed: %s", e)
+
 
 def _nearest_quantile(target, qs):
     """Snap a percentile value to the nearest available quantile."""

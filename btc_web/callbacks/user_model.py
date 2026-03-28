@@ -44,16 +44,6 @@ def on_data_click(click_data):
 # 2. "P1" / "P2" buttons → fill inputs + hide menu
 # ══════════════════════════════════════════════════════════════════════════════
 
-@callback(
-    Output("um-p1-year", "data", allow_duplicate=True),
-    Output("um-p1-price", "data", allow_duplicate=True),
-    Output("um-p1-year-display", "children"),
-    Output("um-p1-price-display", "children"),
-    Output("um-ctx-menu", "style", allow_duplicate=True),
-    Input("um-ctx-p1", "n_clicks"),
-    State("um-clicked-point", "data"),
-    prevent_initial_call=True,
-)
 def _fmt_price_display(p):
     """Format price for display — adaptive decimals."""
     if p >= 100:
@@ -64,6 +54,16 @@ def _fmt_price_display(p):
         return f"{p:.6f}"
 
 
+@callback(
+    Output("um-p1-year", "data", allow_duplicate=True),
+    Output("um-p1-price", "data", allow_duplicate=True),
+    Output("um-p1-year-display", "children"),
+    Output("um-p1-price-display", "children"),
+    Output("um-ctx-menu", "style", allow_duplicate=True),
+    Input("um-ctx-p1", "n_clicks"),
+    State("um-clicked-point", "data"),
+    prevent_initial_call=True,
+)
 def set_p1(n, pt):
     if not pt:
         return no_update, no_update, no_update, no_update, no_update

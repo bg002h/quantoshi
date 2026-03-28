@@ -183,7 +183,9 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
 
 
 def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
-    """Chart tab with a floating action button for user model drawing."""
+    """Chart tab with FAB for user model drawing + confirmation menu + toast."""
+    import dash_bootstrap_components as dbc
+
     fab = html.Button(
         "\u270e",  # ✎ pencil
         id="user-model-fab",
@@ -202,6 +204,52 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
         },
         title="Draw a custom model (click 2 points)",
     )
+
+    confirm_menu = html.Div(
+        id="draw-confirm-menu",
+        style={"display": "none", "position": "absolute", "bottom": "60px",
+               "left": "50%", "transform": "translateX(-50%)", "zIndex": 15,
+               "backgroundColor": "rgba(30,30,40,0.95)", "borderRadius": "8px",
+               "padding": "8px 12px", "boxShadow": "0 4px 16px rgba(0,0,0,0.5)",
+               "whiteSpace": "nowrap"},
+        children=[
+            dbc.Button("\u2713 Accept", id="draw-accept-btn", color="success",
+                       size="sm", className="me-2"),
+            dbc.Button("\u21bb Adjust", id="draw-adjust-btn", color="warning",
+                       size="sm", className="me-2"),
+            dbc.Button("\u2715 Cancel", id="draw-cancel-btn", color="secondary",
+                       size="sm"),
+        ],
+    )
+
+    model_menu = html.Div(
+        id="draw-model-menu",
+        style={"display": "none", "position": "absolute", "bottom": "60px",
+               "left": "50%", "transform": "translateX(-50%)", "zIndex": 15,
+               "backgroundColor": "rgba(30,30,40,0.95)", "borderRadius": "8px",
+               "padding": "8px 12px", "boxShadow": "0 4px 16px rgba(0,0,0,0.5)",
+               "whiteSpace": "nowrap"},
+        children=[
+            dbc.Button("\u270e Redraw", id="draw-redraw-btn", color="warning",
+                       size="sm", className="me-2"),
+            dbc.Button("\u2715 Delete", id="draw-delete-btn", color="danger",
+                       size="sm", className="me-2"),
+            dbc.Button("Cancel", id="draw-dismiss-btn", color="secondary",
+                       size="sm"),
+        ],
+    )
+
+    toast = html.Div(
+        id="draw-toast",
+        style={"display": "none", "position": "absolute", "top": "10px",
+               "left": "50%", "transform": "translateX(-50%)", "zIndex": 15,
+               "backgroundColor": "rgba(230,126,34,0.9)", "color": "#fff",
+               "borderRadius": "6px", "padding": "6px 14px", "fontSize": "13px",
+               "fontWeight": "600", "whiteSpace": "nowrap",
+               "pointerEvents": "none"},
+        children="Tap two points to define your model",
+    )
+
     return dbc.Row([
         dbc.Col([
             controls_fn(),
@@ -219,6 +267,9 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                     type="default", color=_BTC_ORANGE,
                 ),
                 fab,
+                confirm_menu,
+                model_menu,
+                toast,
             ]),
             _export_row(graph_id.replace("-graph", "")),
         ], width=9),

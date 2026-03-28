@@ -273,6 +273,36 @@ def on_chart_click(click_data, draw_state):
         new_draw["point2"] = clicked
         new_draw["phase"] = "confirming_p2"
 
+    # Auto-zoom 2x centered on the placed point for immediate visual feedback.
+    # Uses the current zoom range (if any) or falls back to full chart range.
+    import math
+    from btc_core import yr_to_t
+    prev_zr = new_draw.get("_zoom_range")
+    if prev_zr:
+        cur_t_lo, cur_t_hi = prev_zr["t_lo"], prev_zr["t_hi"]
+        cur_y_lo, cur_y_hi = prev_zr["y_lo"], prev_zr["y_hi"]
+    else:
+        cur_t_lo = yr_to_t(2010, _app_ctx.M.genesis)
+        cur_t_hi = yr_to_t(2080, _app_ctx.M.genesis)
+        cur_y_lo, cur_y_hi = 0.01, 1e9
+
+    log_t_lo = math.log10(max(cur_t_lo, 0.01))
+    log_t_hi = math.log10(max(cur_t_hi, 0.02))
+    log_y_lo = math.log10(max(cur_y_lo, 1e-10))
+    log_y_hi = math.log10(max(cur_y_hi, 1e-10))
+    log_cx = math.log10(max(clicked["t"], 0.01))
+    log_cy = math.log10(max(clicked["price"], 1e-10))
+
+    t_half = (log_t_hi - log_t_lo) / 4
+    y_half = (log_y_hi - log_y_lo) / 4
+
+    new_draw["_zoom_range"] = {
+        "t_lo": 10 ** (log_cx - t_half),
+        "t_hi": 10 ** (log_cx + t_half),
+        "y_lo": 10 ** (log_cy - y_half),
+        "y_hi": 10 ** (log_cy + y_half),
+    }
+
     return new_draw, _MENU_STYLE
 
 

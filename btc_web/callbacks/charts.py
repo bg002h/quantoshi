@@ -103,7 +103,7 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
     if "chart_zoom" not in toggles or draw_active:
         fig.update_layout(dragmode=False)
 
-    # Adjust zoom: 2x centered on the point being refined
+    # Adjust zoom: 2x centered on the point being refined (compounds on successive adjusts)
     if (draw_state or {}).get("_adjust_zoom"):
         import math
         phase = (draw_state or {}).get("phase", "idle")
@@ -114,27 +114,24 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
             pt = draw_state["point2"]
         if pt:
             cx, cy = pt["t"], pt["price"]
-            # x-axis: clickData returns t values (years since genesis)
-            # In log mode, Plotly stores range as [log10(min), log10(max)]
-            # In linear mode, range is [min, max]
             is_log_x = (xscale or "log") == "log"
-            is_log_y = (yscale or "log") == "log"
-            # Current range from slider inputs
+            # Use saved zoom level if available (compounds), else start from slider range
+            zoom_level = (draw_state or {}).get("_zoom_level", 0) + 1
+            zoom_factor = 2 ** zoom_level  # 2x, 4x, 8x, ...
+            # Base range from slider inputs
             x_lo, x_hi = float(xrange[0]), float(xrange[1])
-            y_lo, y_hi = float(yrange[0]), float(yrange[1])  # log10 exponents for y
-            # Center point in axis coordinate space
+            y_lo, y_hi = float(yrange[0]), float(yrange[1])  # log10 exponents
             if is_log_x:
                 log_cx = math.log10(max(cx, 0.01))
                 log_xlo = math.log10(max(x_lo, 0.01))
                 log_xhi = math.log10(max(x_hi, 0.02))
-                half_span = (log_xhi - log_xlo) / 4  # 2x zoom = quarter span each side
-                fig.update_xaxes(range=[log_cx - half_span, log_cx + half_span])
+                x_half = (log_xhi - log_xlo) / (2 * zoom_factor)
+                fig.update_xaxes(range=[log_cx - x_half, log_cx + x_half])
             else:
-                half_span = (x_hi - x_lo) / 4
-                fig.update_xaxes(range=[cx - half_span, cx + half_span])
-            # y: yrange slider values are already log10 exponents
+                x_half = (x_hi - x_lo) / (2 * zoom_factor)
+                fig.update_xaxes(range=[cx - x_half, cx + x_half])
             log_cy = math.log10(max(cy, 1e-10))
-            y_half = (y_hi - y_lo) / 4
+            y_half = (y_hi - y_lo) / (2 * zoom_factor)
             fig.update_yaxes(range=[log_cy - y_half, log_cy + y_half])
 
     return fig

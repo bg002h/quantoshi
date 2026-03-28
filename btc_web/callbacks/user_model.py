@@ -131,11 +131,13 @@ def on_confirm_action(accept, adjust, cancel, draw_state):
             new_state = dict(draw_state)
             new_state["phase"] = "placing_p1"
             new_state["_adjust_zoom"] = True
+            new_state["_zoom_level"] = (draw_state or {}).get("_zoom_level", 0) + 1
             return new_state, _HIDDEN, no_update, "draw-active", ""
         elif phase == "confirming_p2":
             new_state = dict(draw_state)
             new_state["phase"] = "placing_p2"
             new_state["_adjust_zoom"] = True
+            new_state["_zoom_level"] = (draw_state or {}).get("_zoom_level", 0) + 1
             return new_state, _HIDDEN, no_update, "draw-active", ""
         return no_update, _HIDDEN, no_update, "draw-active", ""
 
@@ -143,6 +145,8 @@ def on_confirm_action(accept, adjust, cancel, draw_state):
         if phase == "confirming_p1":
             new_state = dict(draw_state)
             new_state["phase"] = "placing_p2"
+            new_state.pop("_adjust_zoom", None)
+            new_state.pop("_zoom_level", None)  # reset zoom for point 2
             return new_state, _HIDDEN, no_update, "draw-active", ""
         elif phase == "confirming_p2":
             # Construct model from two accepted points

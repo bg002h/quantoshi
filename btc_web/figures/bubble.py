@@ -141,7 +141,15 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             if not mdl:
                 continue
         if mdl.quantized:
-            overlay_qs = sel_qs
+            # For U1, always include the user's own quantile (the drawn line)
+            overlay_qs = list(sel_qs)
+            if model_key == "u1" and hasattr(mdl, "own_quantile"):
+                oq = mdl.own_quantile
+                # Snap to nearest available quantile in fits
+                if mdl.quantiles:
+                    oq = min(mdl.quantiles, key=lambda q: abs(q - oq))
+                if oq not in overlay_qs:
+                    overlay_qs.append(oq)
             for q in overlay_qs:
                 if q not in mdl.fits:
                     continue

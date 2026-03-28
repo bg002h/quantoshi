@@ -1,6 +1,6 @@
 """User-defined model: draw-mode state machine + model construction."""
 
-from dash import Input, Output, State, callback, no_update, ctx
+from dash import Input, Output, State, callback, clientside_callback, no_update, ctx
 
 import _app_ctx
 from btc_core import UserModel
@@ -234,6 +234,24 @@ def on_tab_switch(active_tab, draw_state):
 # 5. Chart click → capture point during draw mode
 # ══════════════════════════════════════════════════════════════════════════════
 
+# Bridge: hidden button click → read global coords → write to store
+clientside_callback(
+    """
+    function(n) {
+        if (window._rawChartClick) {
+            var data = window._rawChartClick;
+            window._rawChartClick = null;
+            return data;
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("raw-chart-click", "data"),
+    Input("raw-click-trigger", "n_clicks"),
+    prevent_initial_call=True,
+)
+
+
 @callback(
     Output("draw-mode-store", "data", allow_duplicate=True),
     Output("draw-confirm-menu", "style", allow_duplicate=True),
@@ -253,7 +271,7 @@ def on_chart_click(click_data, draw_state):
 
     clicked = {"t": click_data["t"], "price": click_data["price"]}
     new_draw = dict(draw_state)
-    new_draw.pop("_adjust_zoom", None)  # clear zoom flag from previous adjust
+    new_draw.pop("_adjust_zoom", None)
 
     if phase == "placing_p1":
         new_draw["point1"] = clicked

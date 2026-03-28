@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 from typing import Any
 
 import _app_ctx
-from btc_core import yr_to_t, today_t, fmt_price
+from btc_core import yr_to_t, today_t, fmt_price, UserModel
 from tab_defaults import BUBBLE
 
 from figures.common import (
@@ -105,15 +105,48 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 line=dict(color=col, width=_QR_LINE_WIDTH),
             ))
 
+    # ── U1 user model: direct line through two points ───────────────────────
+    um_data = p.get("user_model")
+    if um_data and "u1" in p.get("active_models", []):
+        um_slope = um_data["slope"]
+        um_oq = um_data.get("own_quantile", 0.5)
+        um_intercept = um_data["base_intercept"]  # exact, no float key lookup
+        um_prices = _round_trace_data(10.0 ** (um_intercept + um_slope * np.log10(np.maximum(t_arr, 0.01))))
+        if stack > 0:
+            um_prices = _round_trace_data(np.asarray(um_prices) * stack)
+        um_lbl = f"U\u2081  m={um_slope:.3f}  Q{um_oq*100:.2f}%"
+        traces.append(go.Scatter(
+            x=list(t_arr), y=list(um_prices),
+            mode="lines", name=um_lbl,
+            line=dict(color="#e67e22", width=3.0, dash="solid"),
+            legendgroup="u1", legendgrouptitle_text=f"U\u2081  m={um_slope:.3f}",
+        ))
+        # Also draw standard quantile bands from the UserModel overlay loop below
+        # (they'll be drawn at 1.5px via the normal overlay path)
+
     # ── alternative model overlays ────────────────────────────────────────────
     for model_key in p.get("active_models", []):
         if model_key == "bub":
             continue  # main BM drawn above, not as overlay
-        mdl = _app_ctx.PRICE_MODELS.get(model_key)
-        if not mdl:
-            continue
+        if model_key == "u1":
+            um_data2 = p.get("user_model")
+            if not um_data2:
+                continue
+            mdl = UserModel.from_store_dict(um_data2)
+            if not mdl:
+                continue
+        else:
+            mdl = _app_ctx.PRICE_MODELS.get(model_key)
+            if not mdl:
+                continue
         if mdl.quantized:
-            overlay_qs = sel_qs
+            # For U1, only draw user-selected quantiles (same as other models).
+            # The user's own line is already drawn above at 3px.
+            overlay_qs = list(sel_qs)
+            if model_key == "u1":
+                # Skip own_quantile — already drawn as direct line above
+                overlay_qs = [q for q in overlay_qs
+                              if not (hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005)]
             for q in overlay_qs:
                 if q not in mdl.fits:
                     continue
@@ -125,9 +158,12 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 traces.append(go.Scatter(
                     x=list(t_arr), y=list(prices),
                     mode="lines", name=lbl,
-                    line=dict(color=col, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
+                    line=dict(color=col, width=3.0 if (model_key == "u1" and hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005) else _OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                     legendgroup=mdl.short_name,
-                    legendgrouptitle_text=mdl.legend_name,
+                    legendgrouptitle_text=(
+                        f"{mdl.legend_name}  m={mdl.fits[mdl.quantiles[0]]['slope']:.3f}"
+                        if model_key == "u1" else mdl.legend_name
+                    ),
                 ))
         else:
             # Non-quantized model: single trajectory

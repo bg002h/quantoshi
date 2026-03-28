@@ -873,3 +873,92 @@ class S2FModel:
 
     def find_percentile(self, t, price):
         return 0.5  # meaningless for non-quantized model
+
+
+class UserModel(_FitsBasedModel):
+    """User-defined power law model from two clicked points on log-log chart.
+
+    Fully quantized: parallel lines (same slope, shifted intercepts) derived
+    from the empirical residual distribution against historical prices.
+    """
+    name = "User Model"
+    short_name = "u1"
+    legend_name = "U\u2081"
+    dash_style = "solid"
+    quantized = True
+
+    def __init__(self, slope, intercept, shifts, quantiles, r2_per_quantile, own_quantile):
+        self.fits = {q: {"intercept": intercept + shifts[q], "slope": slope}
+                     for q in quantiles}
+        self.quantiles = sorted(quantiles)
+        self.r2_per_quantile = r2_per_quantile or {}
+        self.own_quantile = own_quantile
+        self.colors = {q: "#e67e22" for q in self.quantiles}
+
+    @classmethod
+    def from_points(cls, t1, p1, t2, p2, price_years, price_prices, quantiles):
+        """Factory: two chart points + historical data → fully quantized model."""
+        log_t1, log_p1 = np.log10(max(t1, 0.01)), np.log10(max(p1, 1e-10))
+        log_t2, log_p2 = np.log10(max(t2, 0.01)), np.log10(max(p2, 1e-10))
+        denom = log_t2 - log_t1
+        if abs(denom) < 1e-12:
+            denom = 1e-12
+        slope = (log_p2 - log_p1) / denom
+        intercept = log_p1 - slope * log_t1
+
+        mask = price_years >= 0.5
+        t_hist = np.asarray(price_years[mask], float)
+        p_hist = np.asarray(price_prices[mask], float)
+        predicted = intercept + slope * np.log10(np.maximum(t_hist, 0.01))
+        residuals = np.log10(np.maximum(p_hist, 1e-10)) - predicted
+
+        own_quantile = float(np.mean(residuals <= 0))
+        shifts = {q: float(np.percentile(residuals, q * 100)) for q in quantiles}
+
+        # Ensure own_quantile is in the quantile list with shift=0
+        # (the user's drawn line passes exactly through the two points)
+        if own_quantile not in shifts:
+            shifts[own_quantile] = 0.0
+        else:
+            shifts[own_quantile] = 0.0  # force exact zero even if percentile is close
+        all_quantiles = sorted(set(quantiles) | {own_quantile})
+
+        r2 = {}
+        for q in all_quantiles:
+            pred_q = 10.0 ** (intercept + shifts.get(q, 0) + slope * np.log10(np.maximum(t_hist, 0.01)))
+            r2_val = _compute_log_r2(p_hist, pred_q)
+            if r2_val is not None:
+                r2[q] = r2_val
+
+        return cls(slope, intercept, shifts, all_quantiles, r2, own_quantile)
+
+    def to_store_dict(self):
+        """Serialize to JSON-safe dict for dcc.Store."""
+        slope = self.fits[self.quantiles[0]]["slope"]
+        # base_intercept: the user's drawn line (shift=0, passes through both points)
+        base_intercept = self.fits[self.own_quantile]["intercept"]
+        return {
+            "slope": slope,
+            "base_intercept": base_intercept,
+            "intercepts": {str(q): self.fits[q]["intercept"] for q in self.quantiles},
+            "r2": {str(q): v for q, v in self.r2_per_quantile.items()},
+            "own_quantile": self.own_quantile,
+            "quantiles": [float(q) for q in self.quantiles],
+        }
+
+    @classmethod
+    def from_store_dict(cls, d):
+        """Reconstruct from dcc.Store dict."""
+        if not d:
+            return None
+        quantiles = [float(q) for q in d["quantiles"]]
+        slope = d["slope"]
+        intercepts = {float(q): v for q, v in d["intercepts"].items()}
+        r2 = {float(q): v for q, v in d["r2"].items()} if d.get("r2") else {}
+        model = cls.__new__(cls)
+        model.fits = {q: {"intercept": intercepts[q], "slope": slope} for q in quantiles}
+        model.quantiles = sorted(quantiles)
+        model.r2_per_quantile = r2
+        model.own_quantile = d["own_quantile"]
+        model.colors = {q: "#e67e22" for q in quantiles}
+        return model

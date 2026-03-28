@@ -183,42 +183,47 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
 
 
 def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
-    """Chart tab with a floating action button for user model drawing."""
-    fab = html.Button(
-        "\u270e",  # ✎ pencil
-        id="user-model-fab",
-        n_clicks=0,
-        style={
-            "position": "absolute", "bottom": "14px", "right": "14px",
-            "zIndex": 10, "width": "42px", "height": "42px",
-            "borderRadius": "50%", "border": "2px solid rgba(255,255,255,0.3)",
-            "backgroundColor": "rgba(30,30,40,0.85)",
-            "color": "#e67e22", "fontSize": "20px",
-            "cursor": "pointer", "display": "flex",
-            "alignItems": "center", "justifyContent": "center",
-            "boxShadow": "0 2px 8px rgba(0,0,0,0.4)",
-            "transition": "all 0.2s ease",
-            "lineHeight": "1",
-        },
-        title="Draw a custom model (click 2 points)",
+    """Chart tab with user model input panel + click context menu."""
+    import dash_bootstrap_components as dbc
+
+    ctx_menu = html.Div(
+        id="um-ctx-menu",
+        style={"display": "none", "position": "absolute", "bottom": "14px",
+               "left": "14px", "zIndex": 20,
+               "backgroundColor": "rgba(30,30,40,0.95)", "borderRadius": "8px",
+               "padding": "6px 10px", "boxShadow": "0 2px 12px rgba(0,0,0,0.5)"},
+        children=[
+            html.Span(id="um-ctx-label",
+                      style={"color": "#e67e22", "fontSize": "13px",
+                             "fontWeight": "600", "marginRight": "8px"}),
+            dbc.Button("P1", id="um-ctx-p1", color="warning", size="sm",
+                       outline=True, className="me-1",
+                       style={"fontSize": "12px", "padding": "1px 8px"}),
+            dbc.Button("P2", id="um-ctx-p2", color="warning", size="sm",
+                       outline=True,
+                       style={"fontSize": "12px", "padding": "1px 8px"}),
+        ],
     )
+
     return dbc.Row([
         dbc.Col([
             controls_fn(),
         ], width=3, className="controls-col overflow-auto",
                 style={"maxHeight": "85vh"}),
         dbc.Col([
-            html.Div(id=f"{graph_id}-chart-wrap",
-                     style={"position": "relative"}, children=[
-                dcc.Loading(
-                    dcc.Graph(id=graph_id, style=_STYLE_GRAPH_H,
-                              config={"scrollZoom": False,
-                                      "displayModeBar": "hover",
-                                      "toImageButtonOptions": {"format": "png", "scale": 2,
-                                                               "filename": filename}}),
-                    type="default", color=_BTC_ORANGE,
-                ),
-                fab,
+            html.Div(style={"position": "relative"}, children=[
+                html.Div(id=f"{graph_id}-chart-wrap",
+                         style={"position": "relative"}, children=[
+                    dcc.Loading(
+                        dcc.Graph(id=graph_id, style=_STYLE_GRAPH_H,
+                                  config={"scrollZoom": False,
+                                          "displayModeBar": "hover",
+                                          "toImageButtonOptions": {"format": "png", "scale": 2,
+                                                                   "filename": filename}}),
+                        type="default", color=_BTC_ORANGE,
+                    ),
+                ]),
+                ctx_menu,
             ]),
             _export_row(graph_id.replace("-graph", "")),
         ], width=9),

@@ -3,7 +3,7 @@
 from dash import html, Input, Output, State, callback, clientside_callback, no_update
 
 import _app_ctx
-from btc_core import fmt_price, today_t
+from btc_core import fmt_price, today_t, UserModel
 from utils import _fetch_btc_price
 
 
@@ -40,9 +40,10 @@ _MODEL_COLORS = {
     Output("ticker-model-idx",    "data",     allow_duplicate=True),
     Input("price-interval", "n_intervals"),
     Input("ticker-mode-store",    "data"),
+    Input("user-model-store", "data"),
     prevent_initial_call="initial_duplicate",
 )
-def update_price_ticker(_, mode):
+def update_price_ticker(_, mode, user_model_data):
     price = _fetch_btc_price()
     if price is None:
         return ("\u20bf \u2014", "\u20bf \u2014", no_update,
@@ -94,6 +95,19 @@ def update_price_ticker(_, mode):
         color = _MODEL_COLORS.get(key, "#ffffff")
         if p is not None:
             model_data.append({"key": key, "label": label, "pct": p, "color": color})
+
+    # Append user model if defined
+    if user_model_data:
+        try:
+            um = UserModel.from_store_dict(user_model_data)
+            if um:
+                um_pct = um.find_percentile(t, price)
+                um_pct_int = round(um_pct * 100) if um_pct is not None else None
+                if um_pct_int is not None:
+                    model_data.append({"key": "u1", "label": "U\u2081",
+                                       "pct": um_pct_int, "color": "#e67e22"})
+        except Exception:
+            pass
 
     # Default display: QR (index 0)
     default = model_data[0] if model_data else {"label": "QR", "pct": 0, "color": "#5dade2"}

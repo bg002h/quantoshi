@@ -308,6 +308,8 @@ def update_citadel(
         mc_p=mc_p)
 
     # Update title with MC info (the figure was built before MC overlay ran)
+    print(f"[CP-CB] title update: mc_ok={mc_ok}, mc_result type={type(mc_result).__name__}, "
+          f"is_dict={isinstance(mc_result, dict)}, pending={mc_result.get('_pending') if isinstance(mc_result, dict) else 'N/A'}", flush=True)
     if mc_ok and mc_result and isinstance(mc_result, dict) and not mc_result.get("_pending"):
         mc_eq = mc_p.get("mc_entry_q", "")
         actual_sims = mc_result.get("n_sims", mc_p.get("mc_sims", "?"))

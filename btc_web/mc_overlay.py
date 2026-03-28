@@ -972,36 +972,43 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
                      "cash": "Cash", "reserves_total": "Reserves",
                      "investments_total": "Investments"}[asset_key]
 
+        lg = f"mc_{asset_key}"
+
         # 5-95% band (alpha 0.06)
         traces.append(go.Scatter(
             x=list(ts_plot), y=list(p95), mode="lines",
             line=dict(width=0), showlegend=False, hoverinfo="skip",
+            legendgroup=lg,
         ))
         traces.append(go.Scatter(
             x=list(ts_plot), y=list(p5), mode="lines",
             line=dict(width=0), fill="tonexty",
             fillcolor=f"rgba({_hex_to_rgb(color)},0.06)",
             name=f"MC {nice_name} 5\u201395%", showlegend=False, hoverinfo="skip",
+            legendgroup=lg,
         ))
 
         # 25-75% band (alpha 0.12)
         traces.append(go.Scatter(
             x=list(ts_plot), y=list(p75), mode="lines",
             line=dict(width=0), showlegend=False, hoverinfo="skip",
+            legendgroup=lg,
         ))
         traces.append(go.Scatter(
             x=list(ts_plot), y=list(p25), mode="lines",
             line=dict(width=0), fill="tonexty",
             fillcolor=f"rgba({_hex_to_rgb(color)},0.12)",
             name=f"MC {nice_name} 25\u201375%", showlegend=False, hoverinfo="skip",
+            legendgroup=lg,
         ))
 
-        # Median dotted line
+        # Median dotted line (legend entry — clicking toggles all bands in group)
         final_val = fmt_price(float(p50[-1])) if len(p50) > 0 else ""
         traces.append(go.Scatter(
             x=list(ts_plot), y=list(p50), mode="lines",
             name=f"MC {nice_name} median  \u2192  {final_val}",
             line=dict(color=color, width=1.5, dash="dot"),
+            legendgroup=lg,
         ))
 
     result_dict = result.to_dict()

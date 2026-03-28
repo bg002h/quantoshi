@@ -8,6 +8,7 @@ import pandas as pd
 
 import _app_ctx
 from btc_core import yr_to_t, today_t, _find_lot_percentile
+from tab_defaults import BUBBLE
 from callbacks.coerce import _ci, _cf
 from callbacks.mc_helpers import (_mc_setup, _mc_finalize, _mc_status,
                                   _strip_free_paths)
@@ -72,14 +73,14 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
         minor_grid  = "minor_grid" in toggles,
         show_comp   = "show_comp" in bubble_toggles,
         show_sup    = "show_sup"  in bubble_toggles,
-        xscale      = xscale or "linear",
+        xscale      = xscale or BUBBLE["xscale"],
         yscale      = yscale or "log",
         xmin        = int(xrange[0]), xmax = int(xrange[1]),
         ymin        = 10 ** yrange[0], ymax = 10 ** yrange[1],
-        n_future    = _ci(n_future, 0),
-        pt_size     = _ci(ptsize, 3),
-        pt_alpha    = _cf(ptalpha, 0.6),
-        stack       = _cf(stack, 0),
+        n_future    = _ci(n_future, BUBBLE["n_future"]),
+        pt_size     = _ci(ptsize, BUBBLE["pt_size"]),
+        pt_alpha    = _cf(ptalpha, BUBBLE["pt_alpha"]),
+        stack       = _cf(stack, BUBBLE["stack"]),
         show_stack  = bool(show_stack),
         use_lots    = bool(use_lots),
         lots        = lots_data or [],

@@ -7,11 +7,11 @@ from btc_core import UserModel
 
 _HIDDEN = {"display": "none"}
 _MENU_STYLE = {
-    "display": "flex", "position": "absolute", "top": "10px",
-    "left": "50%", "transform": "translateX(-50%)", "zIndex": 15,
+    "display": "flex", "position": "absolute", "bottom": "14px",
+    "left": "14px", "zIndex": 15,
     "backgroundColor": "rgba(30,30,40,0.95)", "borderRadius": "8px",
-    "padding": "8px 12px", "boxShadow": "0 4px 16px rgba(0,0,0,0.5)",
-    "whiteSpace": "nowrap",
+    "padding": "4px 8px", "boxShadow": "0 2px 8px rgba(0,0,0,0.4)",
+    "whiteSpace": "nowrap", "gap": "4px",
 }
 
 

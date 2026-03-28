@@ -213,12 +213,15 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                "padding": "8px 12px", "boxShadow": "0 4px 16px rgba(0,0,0,0.5)",
                "whiteSpace": "nowrap"},
         children=[
-            dbc.Button("\u2713 Accept", id="draw-accept-btn", color="success",
-                       size="sm", className="me-2"),
-            dbc.Button("\u21bb Adjust", id="draw-adjust-btn", color="warning",
-                       size="sm", className="me-2"),
-            dbc.Button("\u2715 Cancel", id="draw-cancel-btn", color="secondary",
-                       size="sm"),
+            dbc.Button("\u2713", id="draw-accept-btn", color="success",
+                       size="sm", title="Accept point",
+                       style={"fontSize": "14px", "padding": "2px 8px"}),
+            dbc.Button("\u21bb", id="draw-adjust-btn", color="warning",
+                       size="sm", title="Zoom in to adjust",
+                       style={"fontSize": "14px", "padding": "2px 8px"}),
+            dbc.Button("\u2715", id="draw-cancel-btn", color="secondary",
+                       size="sm", title="Cancel point",
+                       style={"fontSize": "14px", "padding": "2px 8px"}),
         ],
     )
 

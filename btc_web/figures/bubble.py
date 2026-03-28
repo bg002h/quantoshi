@@ -105,16 +105,17 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 line=dict(color=col, width=_QR_LINE_WIDTH),
             ))
 
-    # ── draw-mode: dense invisible click grid (WebGL, 200×200 = 40k points) ──
-    # Plotly's clickData snaps to the nearest trace point. With a 200×200
-    # grid, snap distance is ~2px — imperceptible on any screen.
+    # ── draw-mode: invisible click grid (80×80, SVG — no WebGL required) ────
+    # Plotly clickData snaps to nearest trace point. 80×80 grid with size=8
+    # markers gives ~5px snap distance — fine for touch. Grid regenerates
+    # on zoom (slider-based) so coordinates stay consistent.
     if p.get("draw_mode"):
-        bg_t = np.geomspace(max(t_lo, 0.1), max(t_hi, 1), 200)
-        bg_p = np.geomspace(max(y_lo, 0.01), max(y_hi, 1), 200)
+        bg_t = np.geomspace(max(t_lo, 0.1), max(t_hi, 1), 80)
+        bg_p = np.geomspace(max(y_lo, 0.01), max(y_hi, 1), 80)
         bg_tt, bg_pp = np.meshgrid(bg_t, bg_p)
-        traces.insert(0, go.Scattergl(
+        traces.insert(0, go.Scatter(
             x=bg_tt.ravel().tolist(), y=bg_pp.ravel().tolist(),
-            mode="markers", marker=dict(size=1, opacity=0.001),
+            mode="markers", marker=dict(size=8, opacity=0.001),
             hoverinfo="skip", showlegend=False, name="_bg_click",
         ))
 

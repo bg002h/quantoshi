@@ -241,7 +241,8 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
 
     # Build traces — tag with quantile so deterministic is distinguishable from MC
     traces = []
-    _qtag = f" ({q_label})" if p.get("mc_enabled") else ""
+    _q_str = f"Q{config.selected_qs[0]*100:g}%" if config.selected_qs else "Q25%"
+    _qtag = f" ({_q_str})" if p.get("mc_enabled") else ""
 
     if disp_mode in ("usd_total", "usd_per_asset"):
         total_y = med["total"]

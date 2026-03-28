@@ -181,7 +181,10 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     mode="lines", name=lbl,
                     line=dict(color=col, width=3.0 if (model_key == "u1" and hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005) else _OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                     legendgroup=mdl.short_name,
-                    legendgrouptitle_text=mdl.legend_name,
+                    legendgrouptitle_text=(
+                        f"{mdl.legend_name}  m={mdl.fits[mdl.quantiles[0]]['slope']:.3f}"
+                        if model_key == "u1" else mdl.legend_name
+                    ),
                 ))
         else:
             # Non-quantized model: single trajectory

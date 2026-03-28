@@ -182,6 +182,49 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
     ], className="g-0")
 
 
+def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
+    """Chart tab with a floating action button for user model drawing."""
+    fab = html.Button(
+        "\u270e",  # ✎ pencil
+        id="user-model-fab",
+        n_clicks=0,
+        style={
+            "position": "absolute", "bottom": "14px", "right": "14px",
+            "zIndex": 10, "width": "42px", "height": "42px",
+            "borderRadius": "50%", "border": "2px solid rgba(255,255,255,0.3)",
+            "backgroundColor": "rgba(30,30,40,0.85)",
+            "color": "#e67e22", "fontSize": "20px",
+            "cursor": "pointer", "display": "flex",
+            "alignItems": "center", "justifyContent": "center",
+            "boxShadow": "0 2px 8px rgba(0,0,0,0.4)",
+            "transition": "all 0.2s ease",
+            "lineHeight": "1",
+        },
+        title="Draw a custom model (click 2 points)",
+    )
+    return dbc.Row([
+        dbc.Col([
+            controls_fn(),
+        ], width=3, className="controls-col overflow-auto",
+                style={"maxHeight": "85vh"}),
+        dbc.Col([
+            html.Div(id=f"{graph_id}-chart-wrap",
+                     style={"position": "relative"}, children=[
+                dcc.Loading(
+                    dcc.Graph(id=graph_id, style=_STYLE_GRAPH_H,
+                              config={"scrollZoom": False,
+                                      "displayModeBar": "hover",
+                                      "toImageButtonOptions": {"format": "png", "scale": 2,
+                                                               "filename": filename}}),
+                    type="default", color=_BTC_ORANGE,
+                ),
+                fab,
+            ]),
+            _export_row(graph_id.replace("-graph", "")),
+        ], width=9),
+    ], className="g-0")
+
+
 def _year_range_slider(prefix, min_yr, max_yr, default_start, default_end, mark_step=5):
     """Year range slider with abbreviated tick marks."""
     return dcc.RangeSlider(

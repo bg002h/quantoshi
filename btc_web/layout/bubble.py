@@ -146,4 +146,5 @@ def _bubble_controls():
 
 
 def _bubble_tab():
-    return _chart_tab_layout(_bubble_controls, "bubble-graph", "btc_bubble")
+    from layout.common import _chart_tab_layout_with_fab
+    return _chart_tab_layout_with_fab(_bubble_controls, "bubble-graph", "btc_bubble")

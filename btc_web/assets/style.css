@@ -1435,3 +1435,33 @@ body {
 }
 
 /* Scanner row highlight: applied inline by scanner.js using per-model colors */
+
+/* ── User Model FAB (floating action button on bubble chart) ─────────────── */
+#user-model-fab:hover {
+    background-color: rgba(230, 126, 34, 0.9) !important;
+    color: #fff !important;
+    border-color: rgba(255,255,255,0.6) !important;
+    transform: scale(1.1);
+}
+#user-model-fab:active {
+    transform: scale(0.95);
+}
+#user-model-fab.draw-active {
+    background-color: #e67e22 !important;
+    color: #fff !important;
+    border-color: #fff !important;
+    animation: fab-pulse 1.5s ease-in-out infinite;
+}
+@keyframes fab-pulse {
+    0%, 100% { box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+    50% { box-shadow: 0 2px 16px rgba(230,126,34,0.6); }
+}
+@media (max-width: 767px) {
+    #user-model-fab {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 16px !important;
+        bottom: 10px !important;
+        right: 10px !important;
+    }
+}

@@ -3,6 +3,7 @@ from dash import ctx  # noqa: F401 — re-export for test_web.py mock patching
 
 from callbacks import coerce, mc_helpers, charts, mc_controls, mc_payment
 from callbacks import mc_upload, sc_loan, lots, nav, snapshot_cb, ticker
+from callbacks import routing, splash  # noqa: F401
 
 # Re-exports for test_web.py and app.py backward compatibility
 from callbacks.coerce import _ci, _cf, _format_lots_for_table
@@ -24,9 +25,10 @@ from callbacks.snapshot_cb import (restore_from_url, apply_snapshot,
                                    restore_my_lots, render_link_history,
                                    clear_history, apply_hm_palette,
                                    generate_share_qr)
-from callbacks.nav import (_TAB_CONTROLS, _TAB_TO_PATH, _PATH_TO_TAB,
-                            toggle_sc_mode, toggle_sc_display_q,
-                            open_faq_item, toggle_share_modal)
+from callbacks.routing import (_TAB_CONTROLS, _TAB_TO_PATH, _PATH_TO_TAB,
+                               toggle_sc_mode, toggle_sc_display_q,
+                               open_faq_item)
+from callbacks.nav import toggle_share_modal
 from callbacks.sc_loan import update_sc_info
 from callbacks.ticker import update_price_ticker
 import callbacks.citadel_cb  # noqa: F401

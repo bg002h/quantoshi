@@ -14,7 +14,7 @@ from snapshot import (_SNAPSHOT_CONTROLS, _CHECKLIST_OPTIONS,
                       _SNAP_PREFIX, _SNAP_PREFIX_V1, _SNAP_PREFIX_V2,
                       _encode_snapshot, _decode_snapshot, _decode_snapshot_v1,
                       _list_to_mask, _mask_to_list)
-from callbacks.nav import _TAB_CONTROLS, _TAB_TO_PATH
+from callbacks.routing import _TAB_CONTROLS, _TAB_TO_PATH
 
 logger = logging.getLogger(__name__)
 

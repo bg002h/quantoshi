@@ -16,11 +16,16 @@ _SATOSHI = 1e-8  # smallest BTC unit — anything below this is zero
 
 @dataclass
 class SimConfig:
-    """All user inputs, frozen for a simulation run."""
+    """Simulation configuration for the Citadel Planner engine.
+
+    Field defaults here serve as the engine's 'unset sentinel' — what you get
+    if a field isn't explicitly passed. UI defaults live in tab_defaults.CITADEL.
+    Where they differ intentionally, a comment explains why.
+    """
     # BTC
     price_model: str = "bub"
     start_stack: float = 1.0
-    selected_qs: list[float] = field(default_factory=lambda: [0.01, 0.10, 0.25])
+    selected_qs: list[float] = field(default_factory=lambda: [0.01, 0.10, 0.25])  # INTENTIONAL: engine default is [0.1%, 10%, 25%]; UI default is (25%,)
 
     # Cash
     cash_initial: float = 50_000.0
@@ -61,7 +66,7 @@ class SimConfig:
     lump_cooldown: int = 12  # periods
 
     # Floor rules
-    cash_floor: float = 0.0
+    cash_floor: float = 0.0  # INTENTIONAL: engine sentinel is 0.0; UI default is 50000 via CITADEL["cash_floor"]
     cash_floor_growth: float = 0.0     # annual % increase in cash floor
     reserve_floors: list[float] = field(default_factory=lambda: [0.0, 0.0, 0.0])
     reserve_floor_growth: float = 0.0  # annual % increase in all reserve floors
@@ -78,7 +83,7 @@ class SimConfig:
     start_yr: int = 2031
     end_yr: int = 2075
     freq: str = "Monthly"
-    n_sims: int = 1
+    n_sims: int = 1  # INTENTIONAL: engine default is 1 (deterministic); UI default not exposed (always 1)
     tax_rate: float = 0.0  # placeholder
 
     # Asset return model: "lognormal" (user-input rates) or "markov" (historical regimes)

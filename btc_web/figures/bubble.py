@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 from typing import Any
 
 import _app_ctx
-from btc_core import yr_to_t, today_t, fmt_price
+from btc_core import yr_to_t, today_t, fmt_price, UserModel
 from tab_defaults import BUBBLE
 
 from figures.common import (
@@ -105,13 +105,51 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 line=dict(color=col, width=_QR_LINE_WIDTH),
             ))
 
+    # ── invisible click target for draw mode ─────────────────────────────────
+    if p.get("draw_mode"):
+        bg_t = np.logspace(np.log10(max(t_lo, 0.1)), np.log10(max(t_hi, 1)), 50)
+        bg_p = np.logspace(np.log10(max(y_lo, 0.01)), np.log10(max(y_hi, 1)), 50)
+        bg_tt, bg_pp = np.meshgrid(bg_t, bg_p)
+        traces.insert(0, go.Scatter(
+            x=bg_tt.ravel().tolist(), y=bg_pp.ravel().tolist(),
+            mode="markers", marker=dict(size=20, opacity=0.001),
+            hoverinfo="skip", showlegend=False,
+            name="_bg_click_target",
+        ))
+
+    # ── draw-mode markers ────────────────────────────────────────────────────
+    if p.get("draw_point1"):
+        pt = p["draw_point1"]
+        traces.append(go.Scatter(
+            x=[pt["t"]], y=[pt["price"]],
+            mode="markers", marker=dict(size=12, color="#e67e22", symbol="circle",
+                                         line=dict(color="white", width=2)),
+            showlegend=False, hoverinfo="skip", name="_draw_p1",
+        ))
+    if p.get("draw_point2"):
+        pt = p["draw_point2"]
+        traces.append(go.Scatter(
+            x=[pt["t"]], y=[pt["price"]],
+            mode="markers", marker=dict(size=12, color="#e67e22", symbol="circle",
+                                         line=dict(color="white", width=2)),
+            showlegend=False, hoverinfo="skip", name="_draw_p2",
+        ))
+
     # ── alternative model overlays ────────────────────────────────────────────
     for model_key in p.get("active_models", []):
         if model_key == "bub":
             continue  # main BM drawn above, not as overlay
-        mdl = _app_ctx.PRICE_MODELS.get(model_key)
-        if not mdl:
-            continue
+        if model_key == "u1":
+            um_data = p.get("user_model")
+            if not um_data:
+                continue
+            mdl = UserModel.from_store_dict(um_data)
+            if not mdl:
+                continue
+        else:
+            mdl = _app_ctx.PRICE_MODELS.get(model_key)
+            if not mdl:
+                continue
         if mdl.quantized:
             overlay_qs = sel_qs
             for q in overlay_qs:
@@ -125,7 +163,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 traces.append(go.Scatter(
                     x=list(t_arr), y=list(prices),
                     mode="lines", name=lbl,
-                    line=dict(color=col, width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
+                    line=dict(color=col, width=3.0 if (model_key == "u1" and hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005) else _OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                     legendgroup=mdl.short_name,
                     legendgrouptitle_text=mdl.legend_name,
                 ))

@@ -24,7 +24,7 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
 # ══════════════════════════════════════════════════════════════════════════════
 
 @callback(
-    Output("bubble-graph", "figure"),
+    Output("bubble-graph", "figure", allow_duplicate=True),
     Input("bub-qs",            "value"),
     Input("bub-toggles",       "value"),
     Input("bub-bubble-toggles","value"),
@@ -42,13 +42,17 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     Input("bub-model-show",    "value"),
     Input("effective-lots",    "data"),
     Input("palette-store",     "data"),
+    Input("draw-mode-store",   "data"),
     State("scan-active-rows",  "data"),
     State("scan-q",            "value"),
+    State("user-model-store",  "data"),
+    prevent_initial_call="initial_duplicate",
 )
 def update_bubble(sel_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,
                   n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, model_show, lots_data,
-                  palette_key, scan_active, scan_q_val):
+                  palette_key, draw_state=None,
+                  scan_active=None, scan_q_val=None, user_model_store=None):
     """Bubble + QR overlay chart callback — coerce inputs, build figure."""
     toggles        = toggles or []
     bubble_toggles = bubble_toggles or []
@@ -90,8 +94,13 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
         active_models = model_show or [],
         palette = palette_key or "default",
         scanner_lines = scanner_lines,
+        draw_mode  = (draw_state or {}).get("phase", "idle") if (draw_state or {}).get("phase", "idle") != "idle" else None,
+        draw_point1 = (draw_state or {}).get("point1"),
+        draw_point2 = (draw_state or {}).get("point2"),
+        user_model = user_model_store,
     ))
-    if "chart_zoom" not in toggles:
+    draw_active = (draw_state or {}).get("phase", "idle") not in ("idle", "showing_menu")
+    if "chart_zoom" not in toggles or draw_active:
         fig.update_layout(dragmode=False)
     return fig
 

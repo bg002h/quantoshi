@@ -6,6 +6,7 @@ from dash import dcc, html
 import dash_bootstrap_components as dbc
 
 import _app_ctx
+from tab_defaults import DCA, RETIRE
 from layout.common import (_tab_hints, _section_card, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT,
                             _q_options, _model_show_checklist,
@@ -19,7 +20,7 @@ from layout.mc_controls import _mc_controls
 def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
                               shared_kwargs, mc_kwargs, yr_range,
                               chart_toggle_defaults, btc_usd_kwargs=None,
-                              extra_sections=None):
+                              extra_sections=None, legend_pos_default="bottom-right"):
     """Shared builder for DCA (tab 3) and Retire (tab 4) controls."""
     children = [
         _tab_hints(tab_key),
@@ -43,7 +44,7 @@ def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
             _year_range_slider(prefix, *yr_range),
             _btc_usd_dropdown(prefix, **(btc_usd_kwargs or {})),
             _chart_toggles(prefix, chart_toggle_defaults),
-            *_legend_pos_dropdown(prefix, "bottom-right"),
+            *_legend_pos_dropdown(prefix, legend_pos_default),
         ),
     )
     return html.Div(children)
@@ -114,14 +115,16 @@ def _dca_controls():
         q_hint="Price path drives sat accumulation \u2014 lower quantile = lower price = more sats/period.",
         q_defaults=[0.5],
         shared_kwargs=dict(amount_id="dca-amount", amount_label="Per-period amount ($)",
-                           amount_default=100, infl_default=0, stack_default=0),
-        mc_kwargs=dict(amount_label="DCA amount per period ($)", amount_default=100,
+                           amount_default=DCA["amount"], infl_default=DCA["inflation"],
+                           stack_default=DCA["start_stack"]),
+        mc_kwargs=dict(amount_label="DCA amount per period ($)", amount_default=DCA["amount"],
                        show_inflation=True, show_stack=True,
                        show_mc_entry_q=True, default_entry_q=10,
                        shared_controls={"amount", "infl", "freq", "stack"}),
         yr_range=(2009, 2080, yr_now, yr_now + 10),
         chart_toggle_defaults=["annotate"],
         extra_sections=[_stackcelerator_controls()],
+        legend_pos_default=DCA["legend_pos"],
     )
 
 
@@ -135,14 +138,16 @@ def _retire_controls():
         q_hint="Lower quantile = lower price = faster depletion \u2014 worst-case planning.",
         q_defaults=[0.01, 0.10, 0.25],
         shared_kwargs=dict(amount_id="ret-wd", amount_label="Withdrawal/period ($)",
-                           amount_default=5000, infl_default=4, stack_default=1.0),
-        mc_kwargs=dict(amount_label="Withdrawal per period ($)", amount_default=5000,
+                           amount_default=RETIRE["wd_amount"], infl_default=RETIRE["inflation"],
+                           stack_default=RETIRE["start_stack"]),
+        mc_kwargs=dict(amount_label="Withdrawal per period ($)", amount_default=RETIRE["wd_amount"],
                        show_inflation=True, show_stack=True, default_entry_q=10,
                        start_yr_label="Retirement start year",
                        shared_controls={"amount", "infl", "freq", "stack"}),
         yr_range=(2024, 2080, 2031, 2075),
         chart_toggle_defaults=["annotate", "log_y", "minor_grid"],
         btc_usd_kwargs={"btc_label": "BTC Remaining"},
+        legend_pos_default=RETIRE["legend_pos"],
     )
 
 

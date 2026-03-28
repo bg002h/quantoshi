@@ -9,6 +9,7 @@ from typing import Any
 import _app_ctx
 from btc_core import ModelData, yr_to_t, fmt_price
 from mc_overlay import _mc_retire_overlay
+from tab_defaults import RETIRE
 
 from figures.common import (
     _QR_LINE_WIDTH, _ANNOT_STAGGER_Y,
@@ -43,8 +44,8 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
 
     start_stack = _get_starting_stack(p, default=1.0)
 
-    wd_amount = float(p.get("wd_amount", 5000))
-    inflation = float(p.get("inflation", 0)) / 100.0
+    wd_amount = float(p.get("wd_amount", RETIRE["wd_amount"]))
+    inflation = float(p.get("inflation", RETIRE["inflation"])) / 100.0
     disp_mode = p.get("disp_mode", "btc")
     sel_qs    = sorted([float(q) for q in (p.get("selected_qs") or [])])
 

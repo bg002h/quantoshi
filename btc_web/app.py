@@ -14,6 +14,7 @@ Privacy model:
       transiently during Dash callbacks (never written to disk).
 """
 
+import logging
 import sys
 import time
 from pathlib import Path
@@ -193,168 +194,95 @@ import callbacks  # noqa: F401 — registers all callbacks
 # Pre-warm LRU caches on worker startup
 # ══════════════════════════════════════════════════════════════════════════════
 def _prewarm_caches():
-    yr_now = date.today().year
+    """Pre-warm L0 caches. Tries Redis first; falls back to full compute."""
+    import time as _time
+    import hashlib as _hl
+    from tab_defaults import (bubble_defaults, heatmap_defaults, dca_defaults,
+                              retire_defaults, supercharge_defaults, citadel_defaults)
+    from utils import (_compute_cache_key, _serialize_result, _deserialize_result,
+                       _L0_BUILDERS)
+    import utils as _utils
 
-    # Bubble (default: log-log, 3 future bubbles)
-    _get_bubble_fig(dict(
-        selected_qs = [0.5],
-        shade=True, show_ols=False, show_ucl=False,
-        show_data=True, show_today=True,
-        show_legend=False, minor_grid=False,
-        show_comp=True, show_sup=False,
-        xscale="log", yscale="log",
-        xmin=2012, xmax=yr_now + 4,
-        ymin=0.01, ymax=1e7,
-        n_future=3, pt_size=3, pt_alpha=0.3,
-        stack=0, show_stack=False, use_lots=False, lots=[],
-        legend_pos="outside",
-        comp_color="#FFD700", comp_lw=2.0,
-        sup_color="#888888", sup_lw=1.5,
-        active_models=["bub"],
-        palette="default",
-        scanner_lines=[],
-    ))
+    t0 = _time.time()
 
-    # Bubble with PL overlay (common toggle)
-    _get_bubble_fig(dict(
-        selected_qs = [0.5],
-        shade=True, show_ols=False, show_ucl=False,
-        show_data=True, show_today=True,
-        show_legend=False, minor_grid=False,
-        show_comp=True, show_sup=False,
-        xscale="log", yscale="log",
-        xmin=2012, xmax=yr_now + 4,
-        ymin=0.01, ymax=1e7,
-        n_future=3, pt_size=3, pt_alpha=0.3,
-        stack=0, show_stack=False, use_lots=False, lots=[],
-        legend_pos="outside",
-        comp_color="#FFD700", comp_lw=2.0,
-        sup_color="#888888", sup_lw=1.5,
-        active_models=["bub", "pl"],
-        palette="default",
-        scanner_lines=[],
-    ))
+    # Build the list of (prefix, params_dict) to prewarm
+    _entries = []
 
-    # DCA (default: $100/mo, Q50%, current_yr–current_yr+10)
-    _get_dca_fig(dict(
-        start_stack=0, use_lots=False,
-        amount=100.0, freq="Monthly",
-        inflation=0.0,
-        start_yr=yr_now, end_yr=yr_now + 10,
-        disp_mode="btc", log_y=False,
-        annotate=False, show_today=False,
-        show_legend=False, legend_pos="outside",
-        minor_grid=False,
-        selected_qs=[0.50], lots=[],
-        sc_enabled=False, sc_loan_amount=0,
-        sc_rate=_app_ctx.SC_DEFAULT_RATE,
-        sc_loan_type="interest_only", sc_term_months=48.0,
-        sc_repeats=0, sc_rollover=False,
-        sc_entry_mode="live",
-        sc_custom_price=float(_app_ctx.SC_DEFAULT_PRICE),
-        sc_tax_rate=0.33, sc_live_price=None,
-        show_qr=True, show_mc=False,
-        active_models=[], palette="default",
-    ))
+    _entries.append(("bub", bubble_defaults()))
 
-    # Retire (default: $5000/mo, Q1%+Q10%+Q25%, 2031–2075, 4% inflation)
-    _get_retire_fig(dict(
-        start_stack=1.0, use_lots=False,
-        wd_amount=5000.0, freq="Monthly",
-        start_yr=2031, end_yr=2075,
-        inflation=4.0, disp_mode="btc",
-        log_y=True, annotate=True,
-        show_legend=False, legend_pos="outside",
-        minor_grid=True,
-        selected_qs=[0.01, 0.10, 0.25],
-        lots=[],
-        show_qr=True, show_mc=False,
-        active_models=[], palette="default",
-    ))
+    bub_pl = bubble_defaults()
+    bub_pl["active_models"] = ["bub", "pl"]
+    _entries.append(("bub", bub_pl))
 
-    # Supercharge (default: Mode A, 1 BTC, annually, Q0.1%+Q10%)
-    _get_supercharge_fig(dict(
-        mode         = "a",
-        start_stack  = 1.0,
-        start_yr     = 2033,
-        delays       = [0.0, 0.0, 0.0, 1.0, 2.0],
-        freq         = "Annually",
-        inflation    = 4.0,
-        selected_qs  = [q for q in [0.001, 0.10] if q in _app_ctx.DEFAULT_MODEL.fits],
-        chart_layout = 2,
-        display_q    = _nearest_quantile(0.05, _app_ctx._ALL_QS),
-        wd_amount    = 5000,
-        end_yr       = 2075,
-        disp_mode    = "usd",
-        log_y        = True,
-        annotate     = True,
-        show_legend  = False,
-        legend_pos   = "outside",
-        minor_grid   = True,
-        target_yr    = 2060,
-        lots         = [],
-        use_lots     = False,
-        show_qr      = True,
-        show_mc      = False,
-        active_models = [],
-        palette      = "default",
-    ))
+    _entries.append(("dca", dca_defaults()))
+    _entries.append(("ret", retire_defaults()))
 
-    # Citadel Planner (default: 1 BTC, $5k/mo, Q1%+Q10%+Q25%, 2031–2075)
-    _get_citadel_fig(dict(
-        start_stack=1.0, use_lots=False, lots=[],
-        cash_initial=50000, cash_rate=4.0,
-        res_short_init=50000, res_short_rate=5.0, res_short_vol=2.0,
-        res_med_init=100000, res_med_rate=4.5, res_med_vol=8.0,
-        res_long_init=50000, res_long_rate=4.0, res_long_vol=15.0,
-        inv_eq_init=200000, inv_eq_rate=10.0, inv_eq_vol=16.0,
-        inv_bd_init=100000, inv_bd_rate=5.0, inv_bd_vol=7.0,
-        monthly_spend=5000, inflation=4.0, spend_growth=0.0,
-        high_q_trigger=80, high_q_mode="gradual", high_q_rate=2.0, high_q_dur=6,
-        high_q_split_cash=20, high_q_split_rs=20, high_q_split_rm=20,
-        high_q_split_rl=10, high_q_split_eq=20, high_q_split_bd=10,
-        low_q_trigger=20, low_q_mode="lump", low_q_rate=10.0, low_q_dur=1,
-        low_q_split_cash=10, low_q_split_rs=10, low_q_split_rm=10,
-        low_q_split_rl=10, low_q_split_eq=40, low_q_split_bd=20,
-        lump_cooldown=12,
-        cash_floor=0, res_short_floor=0, res_med_floor=0, res_long_floor=0,
-        scf_enabled=False, scf_amount=0, scf_type="term",
-        scf_rate=8.0, scf_term=60, scf_repay_trigger=1.0,
-        start_yr=2031, end_yr=2075, freq="Monthly", price_model="bub",
-        selected_qs=[0.01, 0.10, 0.25],
-        disp_mode="usd_per_asset",
-        log_y=True, annotate=True, show_legend=False,
-        legend_pos="bottom-right", minor_grid=True,
-        palette="default",
-    ))
+    sc = supercharge_defaults()
+    sc["selected_qs"] = [q for q in [0.001, 0.10] if q in _app_ctx.DEFAULT_MODEL.fits]
+    _entries.append(("sc", sc))
 
-    # Heatmap (default: bubble model, current year entry)
-    _hm_q = _app_ctx._HM_ENTRY_Q_DEFAULT
-    _get_heatmap_fig(dict(
-        entry_yr     = yr_now,
-        entry_q      = _hm_q,
-        live_price   = None,
-        exit_yr_lo   = yr_now,
-        exit_yr_hi   = yr_now + 10,
-        exit_qs      = [],
-        color_mode   = 0,
-        b1           = float(M.CAGR_SEG_B1),
-        b2           = float(M.CAGR_SEG_B2),
-        c_lo         = M.CAGR_SEG_C_LO,
-        c_mid1       = M.CAGR_SEG_C_MID1,
-        c_mid2       = M.CAGR_SEG_C_MID2,
-        c_hi         = M.CAGR_SEG_C_HI,
-        n_disc       = M.CAGR_GRAD_STEPS,
-        vfmt         = "cagr",
-        cell_font_size = 9,
-        show_colorbar = False,
-        stack        = 0,
-        use_lots     = False,
-        lots         = [],
-        hm_model     = "bub",
-        active_models = [],
-        palette      = "default",
-    ))
+    cp = citadel_defaults()
+    cp["selected_qs"] = [0.01, 0.10, 0.25]
+    _entries.append(("cp", cp))
+
+    hm = heatmap_defaults()
+    hm["entry_q"] = _app_ctx._HM_ENTRY_Q_DEFAULT
+    _entries.append(("hm", hm))
+
+    # Compute cache keys for each entry
+    keyed = [(pfx, p, _compute_cache_key(pfx, dict(p))) for pfx, p in _entries]
+
+    # Try loading from Redis L0
+    try:
+        from cache import get_l0, set_l0, redis_available
+        if redis_available():
+            hits = []
+            for pfx, p, json_key in keyed:
+                params_hash = _hl.sha256(json_key.encode()).hexdigest()[:16]
+                raw = get_l0(pfx, params_hash)
+                if raw:
+                    hits.append((pfx, json_key, raw))
+                else:
+                    break  # any miss → full recompute
+
+            if len(hits) == len(keyed):
+                # All found in Redis — pin in L0 and skip computation
+                for pfx, json_key, raw in hits:
+                    cache_fn = _L0_BUILDERS[pfx][0]
+                    result = _deserialize_result(raw)
+                    cache_fn.pin(json_key, result)
+                logging.getLogger(__name__).info("L0 warm from Redis: %d entries in %.1fs",
+                            len(hits), _time.time() - t0)
+                return
+    except Exception as e:
+        logging.getLogger(__name__).debug("L0 Redis check failed: %s", e)
+
+    # Redis miss or unavailable — full compute
+    logging.getLogger(__name__).info("L0 computing %d entries...", len(keyed))
+    redis_ok = True
+    for pfx, p, json_key in keyed:
+        cache_fn = _L0_BUILDERS[pfx][0]
+        get_fn = _L0_BUILDERS[pfx][1]
+        result = get_fn(dict(p))  # compute figure (also populates L1)
+        cache_fn.pin(json_key, result)  # pin in L0
+
+        # Store in Redis L0
+        try:
+            from cache import set_l0, redis_available
+            if redis_ok and redis_available():
+                params_hash = _hl.sha256(json_key.encode()).hexdigest()[:16]
+                set_l0(pfx, params_hash, _serialize_result(result))
+            else:
+                redis_ok = False
+        except Exception:
+            redis_ok = False
+
+    if not redis_ok:
+        _utils._l0_needs_flush = True
+        logging.getLogger(__name__).info("L0 compute done (Redis unavailable — deferred flush enabled)")
+    else:
+        logging.getLogger(__name__).info("L0 compute + Redis store: %d entries in %.1fs",
+                    len(keyed), _time.time() - t0)
 
 _prewarm_caches()
 from utils import _log_cache_stats
@@ -389,53 +317,30 @@ def _prewarm_mc_caches():
             _log.getLogger(__name__).warning("MC prewarm %s %d/%d failed: %s",
                                              label, s_yr, mc_yrs, e)
 
+    from tab_defaults import dca_defaults, retire_defaults, supercharge_defaults
+
     # Prewarm one representative combo per start year (bub model, Q10%, 40yr)
     for s_yr in CACHED_START_YRS:
         for mc_yrs in MC_YEARS_OPTIONS:
             mc = _mc_overrides(s_yr, mc_yrs)
-            _try(_get_dca_fig, dict(
-                start_stack=0, use_lots=False,
-                amount=100.0, freq="Monthly",
-                start_yr=yr_now, end_yr=yr_now + mc_yrs,
-                disp_mode="btc", log_y=False, show_today=False,
-                show_legend=False, legend_pos="outside", minor_grid=False,
-                selected_qs=[0.50], lots=[],
-                sc_enabled=False, sc_loan_amount=0,
-                sc_rate=_app_ctx.SC_DEFAULT_RATE,
-                sc_loan_type="interest_only", sc_term_months=48.0,
-                sc_repeats=0, sc_rollover=False,
-                sc_entry_mode="live",
-                sc_custom_price=float(_app_ctx.SC_DEFAULT_PRICE),
-                sc_tax_rate=0.33, sc_live_price=None,
-                **mc,
-            ), "DCA", s_yr, mc_yrs)
-            _try(_get_retire_fig, dict(
-                start_stack=1.0, use_lots=False,
-                wd_amount=5000.0, freq="Monthly",
-                start_yr=2031, end_yr=2075,
-                inflation=4.0, disp_mode="btc",
-                log_y=True, annotate=True,
-                show_legend=False, legend_pos="outside", minor_grid=True,
-                selected_qs=[0.01, 0.10, 0.25], lots=[],
-                mc_start_stack=1.0,
-                **{k: v for k, v in mc.items() if k != "mc_amount"},
-                mc_amount=5000,
-            ), "Ret", s_yr, mc_yrs)
-            _try(_get_supercharge_fig, dict(
-                mode="a", start_stack=1.0, start_yr=2033,
-                delays=[0.0, 0.0, 0.0, 1.0, 2.0],
-                freq="Annually", inflation=4.0,
-                selected_qs=[q for q in [0.001, 0.10] if q in _app_ctx.DEFAULT_MODEL.fits],
-                chart_layout=2,
-                display_q=_nearest_quantile(0.05, _app_ctx._ALL_QS),
-                wd_amount=5000, end_yr=2075, disp_mode="usd",
-                log_y=True, annotate=True,
-                show_legend=False, legend_pos="outside", minor_grid=True,
-                target_yr=2060, lots=[], use_lots=False,
-                mc_start_stack=1.0,
-                **{k: v for k, v in mc.items() if k != "mc_amount"},
-                mc_amount=5000,
-            ), "SC", s_yr, mc_yrs)
+            _dca = dca_defaults()
+            _dca["end_yr"] = yr_now + mc_yrs
+            _dca.update(mc)
+            _try(_get_dca_fig, _dca, "DCA", s_yr, mc_yrs)
+
+            _ret = retire_defaults()
+            _ret["mc_start_stack"] = 1.0
+            _ret.update({k: v for k, v in mc.items() if k != "mc_amount"})
+            _ret["mc_amount"] = 5000
+            _try(_get_retire_fig, _ret, "Ret", s_yr, mc_yrs)
+
+            _sc = supercharge_defaults()
+            _sc["selected_qs"] = [q for q in [0.001, 0.10] if q in _app_ctx.DEFAULT_MODEL.fits]
+            _sc["display_q"] = _nearest_quantile(0.05, _app_ctx._ALL_QS)
+            _sc["mc_start_stack"] = 1.0
+            _sc.update({k: v for k, v in mc.items() if k != "mc_amount"})
+            _sc["mc_amount"] = 5000
+            _try(_get_supercharge_fig, _sc, "SC", s_yr, mc_yrs)
     _log.getLogger(__name__).info("MC prewarm: done")
 
 _mc_prewarm_triggered = False

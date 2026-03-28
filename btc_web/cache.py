@@ -104,3 +104,54 @@ def set_citadel_cached(cache_key: str, data: dict) -> None:
 def redis_available() -> bool:
     """Check if Redis is connected."""
     return _HAS_REDIS
+
+
+# ── L0 persistent cache (pinned defaults in Redis) ──────────────────────────
+from tab_defaults import _DEFAULTS_HASH
+
+_L0_FINGERPRINT = hashlib.md5(
+    f"{_MODEL_FP}:{_DEFAULTS_HASH}".encode()
+).hexdigest()[:12]
+logger.info("L0 fingerprint: %s (model=%s, defaults=%s)",
+            _L0_FINGERPRINT, _MODEL_FP, _DEFAULTS_HASH)
+
+_L0_TTL = 7 * 24 * 3600  # 7 days
+
+
+def _l0_key(prefix: str, params_hash: str) -> str:
+    """Redis key for an L0 pinned entry."""
+    return f"l0:{_L0_FINGERPRINT}:{prefix}:{params_hash}"
+
+
+def get_l0(prefix: str, params_hash: str) -> str | None:
+    """Get an L0 entry from Redis. Returns raw JSON string or None."""
+    if not _HAS_REDIS:
+        return None
+    try:
+        data = _REDIS.get(_l0_key(prefix, params_hash))
+        return data.decode() if data else None
+    except Exception:
+        return None
+
+
+def set_l0(prefix: str, params_hash: str, json_str: str) -> bool:
+    """Store an L0 entry in Redis with 7-day TTL. Returns True on success."""
+    if not _HAS_REDIS:
+        return False
+    try:
+        _REDIS.setex(_l0_key(prefix, params_hash), _L0_TTL, json_str)
+        return True
+    except Exception as e:
+        logger.debug("Redis L0 set failed: %s", e)
+        return False
+
+
+def scan_l0_keys() -> list[str]:
+    """Return all L0 keys matching current fingerprint. Diagnostic utility."""
+    if not _HAS_REDIS:
+        return []
+    try:
+        pattern = f"l0:{_L0_FINGERPRINT}:*"
+        return [k.decode() for k in _REDIS.scan_iter(match=pattern, count=100)]
+    except Exception:
+        return []

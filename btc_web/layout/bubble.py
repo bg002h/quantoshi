@@ -6,6 +6,7 @@ from dash import dcc, html
 import dash_bootstrap_components as dbc
 
 import _app_ctx
+from tab_defaults import BUBBLE
 from layout.common import (_tab_hints, _section_card, _row, _lbl,
                             _STYLE_HIDDEN, _q_panel, _q_options,
                             _ctrl_card, _legend_pos_dropdown,
@@ -21,11 +22,11 @@ def _bubble_controls():
                 html.Div([_lbl("X scale"), dcc.RadioItems(
                     id="bub-xscale", options=[{"label":"Log","value":"log"},
                                                {"label":"Linear","value":"linear"}],
-                    value="log", inline=True)]),
+                    value=BUBBLE["xscale"], inline=True)]),
                 html.Div([_lbl("Y scale"), dcc.RadioItems(
                     id="bub-yscale", options=[{"label":"Log","value":"log"},
                                                {"label":"Linear","value":"linear"}],
-                    value="log", inline=True)]),
+                    value=BUBBLE["yscale"], inline=True)]),
             ),
             _lbl("X range (year)"),
             dcc.RangeSlider(id="bub-xrange", min=2010, max=2080,
@@ -62,7 +63,7 @@ def _bubble_controls():
                           value=["shade","show_data","show_today"],
                           labelStyle={"display":"block"},
                           inputStyle={"marginRight":"5px"}),
-            *_legend_pos_dropdown("bub", "top-left"),
+            *_legend_pos_dropdown("bub", BUBBLE["legend_pos"]),
             _lbl("Display models"),
             dcc.Checklist(id="bub-model-show",
                           options=[{"label": " Bubble Model", "value": "bub"}] +
@@ -85,7 +86,7 @@ def _bubble_controls():
                           inputStyle={"marginRight":"5px"}),
             _lbl("N future bubbles"),
             dcc.Slider(id="bub-n-future", min=0, max=_app_ctx.M.n_future_max,
-                       value=3, step=1, marks=None,
+                       value=BUBBLE["n_future"], step=1, marks=None,
                        tooltip={"always_visible":True}),
         ),
         _q_panel("bub-qs", [0.5]),
@@ -121,16 +122,16 @@ def _bubble_controls():
             _row(
                 html.Div([_lbl("Pt size (1\u201320)"),
                           dbc.Input(id="bub-ptsize", type="number",
-                                    value=3, min=1, max=20, size="sm")]),
+                                    value=BUBBLE["pt_size"], min=1, max=20, size="sm")]),
                 html.Div([_lbl("Alpha (0.1\u20131)"),
                           dbc.Input(id="bub-ptalpha", type="number",
-                                    value=0.3, min=0.1, max=1.0, step=0.05, size="sm")]),
+                                    value=BUBBLE["pt_alpha"], min=0.1, max=1.0, step=0.05, size="sm")]),
             ),
         ),
         _ctrl_card(
             _lbl("Stack (BTC)"),
             dbc.InputGroup([
-                dbc.Input(id="bub-stack", type="number", value=0,
+                dbc.Input(id="bub-stack", type="number", value=BUBBLE["stack"],
                           min=0, step=0.001, size="sm", debounce=True),
                 dbc.InputGroupText(dcc.Checklist(
                     id="bub-show-stack",

@@ -10,6 +10,7 @@ from typing import Any
 
 import _app_ctx
 from btc_core import yr_to_t, today_t, fmt_price
+from tab_defaults import BUBBLE
 
 from figures.common import (
     _INTERP_POINTS, _MAX_SCATTER_PTS, _QR_LINE_WIDTH, _SHADE_ALPHA,
@@ -162,7 +163,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 ))
 
             if p.get("show_comp"):
-                n = int(p.get("n_future", 0))
+                n = int(p.get("n_future", BUBBLE["n_future"]))
                 n = min(n, len(mdl.comp_by_n) - 1)
                 comp_y = np.asarray(mdl.comp_by_n[n])[mdl_mask] * (stack if stack > 0 else 1)
                 traces.append(go.Scatter(
@@ -224,14 +225,14 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         traces.append(go.Scatter(
             x=list(m.years_plot_bm[mask]), y=list(sup_y),
             mode="lines", name="Bubble support",
-            line=dict(color=p.get("sup_color", "#888888"),
-                      dash="dash", width=float(p.get("sup_lw", 1.5))),
+            line=dict(color=p.get("sup_color", BUBBLE["sup_color"]),
+                      dash="dash", width=float(p.get("sup_lw", BUBBLE["sup_lw"]))),
             opacity=0.9,
         ))
 
     # ── bubble composite ──────────────────────────────────────────────────────
     if bub_active and p.get("show_comp"):
-        n = int(p.get("n_future", 0))
+        n = int(p.get("n_future", BUBBLE["n_future"]))
         n = min(n, len(m.comp_by_n) - 1)
         mask = (m.years_plot_bm >= t_lo) & (m.years_plot_bm <= t_hi)
         comp_y = m.comp_by_n[n][mask] * (stack if stack > 0 else 1)
@@ -239,8 +240,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             x=list(m.years_plot_bm[mask]), y=list(comp_y),
             mode="lines",
             name=f"Bubble composite (N={n})  R\u00b2={m.bm_r2:.4f}",
-            line=dict(color=p.get("comp_color", "#FFD700"),
-                      width=float(p.get("comp_lw", 2.0))),
+            line=dict(color=p.get("comp_color", BUBBLE["comp_color"]),
+                      width=float(p.get("comp_lw", BUBBLE["comp_lw"]))),
         ))
 
     # ── historical price data ─────────────────────────────────────────────────
@@ -266,8 +267,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         traces.append(go.Scatter(
             x=list(x_sc), y=list(y_sc),
             mode="markers", name="Price data",
-            marker=dict(color=scatter_colors, size=max(2, int(p.get("pt_size", 3))),
-                        opacity=float(p.get("pt_alpha", 0.6))),
+            marker=dict(color=scatter_colors, size=max(2, int(p.get("pt_size", BUBBLE["pt_size"]))),
+                        opacity=float(p.get("pt_alpha", BUBBLE["pt_alpha"]))),
             hovertemplate=_HOVER_FMT_USD,
         ))
 
@@ -339,7 +340,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         range=[t_lo, t_hi],
         tickvals=tick_ts, ticktext=tick_lbls, tickangle=-45,
     )
-    if p.get("yscale", "log") == "log":
+    if p.get("yscale", BUBBLE["yscale"]) == "log":
         y_log_update = dict(
             type="log",
             range=[math.log10(max(y_lo, 1e-10)), math.log10(max(y_hi, 1e-10))],
@@ -356,15 +357,15 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     else:
         layout["yaxis"].update(range=[y_lo, y_hi])
 
-    if p.get("xscale", "linear") == "log":
+    if p.get("xscale", BUBBLE["xscale"]) == "log":
         layout["xaxis"].update(
             type="log",
             range=[math.log10(max(t_lo, 1e-10)), math.log10(max(t_hi, 1e-10))],
         )
         # X-axis uses explicit tickvals (year labels); skip minor to avoid crash.
 
-    layout["showlegend"] = bool(p.get("show_legend", True))
-    leg_pos = p.get("legend_pos", "outside")
+    layout["showlegend"] = bool(p.get("show_legend", BUBBLE["show_legend"]))
+    leg_pos = p.get("legend_pos", BUBBLE["legend_pos"])
     if leg_pos != "outside" and leg_pos in _MC_LEGEND_POS:
         pos = _MC_LEGEND_POS[leg_pos]
         layout["legend"].update(

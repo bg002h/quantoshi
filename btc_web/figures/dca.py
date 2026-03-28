@@ -8,6 +8,7 @@ from typing import Any
 
 import _app_ctx
 from btc_core import ModelData, yr_to_t, fmt_price
+from tab_defaults import DCA
 
 from figures.common import (
     _QR_LINE_WIDTH, _BTC_ORANGE,
@@ -34,17 +35,17 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, t
     model = _app_ctx.DEFAULT_MODEL
     from _app_ctx import _compute_sc_loan
 
-    principal    = float(p.get("sc_loan_amount", 0))
-    sc_rate      = float(p.get("sc_rate", 13.0))
+    principal    = float(p.get("sc_loan_amount", DCA["sc_loan_amount"]))
+    sc_rate      = float(p.get("sc_rate", DCA["sc_rate"]))
     sc_live      = float(p.get("sc_live_price", 0))
     loan_type    = p.get("sc_loan_type", "interest_only")
-    term_months  = float(p.get("sc_term_months", 12))
+    term_months  = float(p.get("sc_term_months", DCA["sc_term_months"]))
     sc_repeats   = int(p.get("sc_repeats", 0))
     entry_mode   = p.get("sc_entry_mode", "live")
-    custom_price = float(p.get("sc_custom_price", 0))
-    tax_rate     = max(0.0, min(float(p.get("sc_tax_rate", 0.33)), 0.9999))
+    custom_price = float(p.get("sc_custom_price", DCA["sc_custom_price"]))
+    tax_rate     = max(0.0, min(float(p.get("sc_tax_rate", DCA["sc_tax_rate"])), 0.9999))
     sc_rollover  = bool(p.get("sc_rollover", False)) and loan_type == "interest_only"
-    amount       = float(p.get("amount", 100))
+    amount       = float(p.get("amount", DCA["amount"]))
 
     term_periods = max(1, round(term_months * ppy / 12))
     n_cycles     = 1 + sc_repeats
@@ -166,8 +167,8 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
 
     start_stack = _get_starting_stack(p, default=0)
 
-    amount    = float(p.get("amount", 100))
-    inflation = float(p.get("inflation", 0)) / 100.0
+    amount    = float(p.get("amount", DCA["amount"]))
+    inflation = float(p.get("inflation", DCA["inflation"])) / 100.0
     disp_mode = p.get("disp_mode", "btc")
     sel_qs    = sorted([float(q) for q in (p.get("selected_qs") or [])])
 

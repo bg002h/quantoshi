@@ -948,13 +948,22 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
     # Build fan band traces per asset class
     traces = []
     ts_plot = result.time_axis
+    disp_mode = p.get("disp_mode", "usd_per_asset")
 
-    for asset_key, color in _CITADEL_MC_COLORS.items():
+    # In BTC mode, only show BTC holdings (in BTC, not USD)
+    if disp_mode == "btc":
+        _mc_assets = {"btc": _CITADEL_MC_COLORS.get("btc_usd", "#f7931a")}
+    else:
+        _mc_assets = _CITADEL_MC_COLORS
+
+    for asset_key, color in _mc_assets.items():
         # Extract per-sim arrays for this asset
         if asset_key == "total":
             data_2d = result.total_usd                       # (n_sims, n_periods)
         elif asset_key == "btc_usd":
-            data_2d = result.btc_holdings * result.btc_prices
+            data_2d = result.btc_holdings * result.btc_prices  # USD value
+        elif asset_key == "btc":
+            data_2d = result.btc_holdings                      # BTC units
         elif asset_key == "cash":
             data_2d = result.cash_balances
         elif asset_key == "reserves_total":
@@ -971,9 +980,10 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
         p75 = np.percentile(data_2d, 75, axis=0)
         p95 = np.percentile(data_2d, 95, axis=0)
 
-        nice_name = {"total": "Total", "btc_usd": "BTC",
-                     "cash": "Cash", "reserves_total": "Reserves",
-                     "investments_total": "Investments"}[asset_key]
+        nice_name = {"total": "Total", "btc_usd": "BTC (USD)",
+                     "btc": "BTC", "cash": "Cash",
+                     "reserves_total": "Reserves",
+                     "investments_total": "Investments"}.get(asset_key, asset_key)
 
         lg = f"mc_{asset_key}"
 

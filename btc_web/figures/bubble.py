@@ -105,15 +105,39 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 line=dict(color=col, width=_QR_LINE_WIDTH),
             ))
 
+    # ── U1 user model: direct line through two points ───────────────────────
+    um_data = p.get("user_model")
+    if um_data and "u1" in p.get("active_models", []):
+        um_slope = um_data["slope"]
+        um_oq = um_data.get("own_quantile", 0.5)
+        # The user's line: log10(price) = intercept + slope * log10(t)
+        # where intercept for own_quantile has shift=0
+        um_intercept = um_data["intercepts"].get(str(um_oq))
+        if um_intercept is None:
+            # Fallback: compute from any quantile with known shift
+            um_intercept = um_slope  # shouldn't happen, but safety
+        um_prices = _round_trace_data(10.0 ** (um_intercept + um_slope * np.log10(np.maximum(t_arr, 0.01))))
+        if stack > 0:
+            um_prices = _round_trace_data(np.asarray(um_prices) * stack)
+        um_lbl = f"U1  m={um_slope:.3f}  Q{round(um_oq*100)}%"
+        traces.append(go.Scatter(
+            x=list(t_arr), y=list(um_prices),
+            mode="lines", name=um_lbl,
+            line=dict(color="#e67e22", width=3.0, dash="solid"),
+            legendgroup="u1", legendgrouptitle_text=f"U1  m={um_slope:.3f}",
+        ))
+        # Also draw standard quantile bands from the UserModel overlay loop below
+        # (they'll be drawn at 1.5px via the normal overlay path)
+
     # ── alternative model overlays ────────────────────────────────────────────
     for model_key in p.get("active_models", []):
         if model_key == "bub":
             continue  # main BM drawn above, not as overlay
         if model_key == "u1":
-            um_data = p.get("user_model")
-            if not um_data:
+            um_data2 = p.get("user_model")
+            if not um_data2:
                 continue
-            mdl = UserModel.from_store_dict(um_data)
+            mdl = UserModel.from_store_dict(um_data2)
             if not mdl:
                 continue
         else:

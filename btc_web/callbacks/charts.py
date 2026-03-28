@@ -102,6 +102,41 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
     draw_active = (draw_state or {}).get("phase", "idle") not in ("idle", "showing_menu")
     if "chart_zoom" not in toggles or draw_active:
         fig.update_layout(dragmode=False)
+
+    # Adjust zoom: 2x centered on the point being refined
+    if (draw_state or {}).get("_adjust_zoom"):
+        import math
+        phase = (draw_state or {}).get("phase", "idle")
+        pt = None
+        if phase == "placing_p1" and (draw_state or {}).get("point1"):
+            pt = draw_state["point1"]
+        elif phase == "placing_p2" and (draw_state or {}).get("point2"):
+            pt = draw_state["point2"]
+        if pt:
+            cx, cy = pt["t"], pt["price"]
+            # x-axis: clickData returns t values (years since genesis)
+            # In log mode, Plotly stores range as [log10(min), log10(max)]
+            # In linear mode, range is [min, max]
+            is_log_x = (xscale or "log") == "log"
+            is_log_y = (yscale or "log") == "log"
+            # Current range from slider inputs
+            x_lo, x_hi = float(xrange[0]), float(xrange[1])
+            y_lo, y_hi = float(yrange[0]), float(yrange[1])  # log10 exponents for y
+            # Center point in axis coordinate space
+            if is_log_x:
+                log_cx = math.log10(max(cx, 0.01))
+                log_xlo = math.log10(max(x_lo, 0.01))
+                log_xhi = math.log10(max(x_hi, 0.02))
+                half_span = (log_xhi - log_xlo) / 4  # 2x zoom = quarter span each side
+                fig.update_xaxes(range=[log_cx - half_span, log_cx + half_span])
+            else:
+                half_span = (x_hi - x_lo) / 4
+                fig.update_xaxes(range=[cx - half_span, cx + half_span])
+            # y: yrange slider values are already log10 exponents
+            log_cy = math.log10(max(cy, 1e-10))
+            y_half = (y_hi - y_lo) / 4
+            fig.update_yaxes(range=[log_cy - y_half, log_cy + y_half])
+
     return fig
 
 

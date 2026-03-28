@@ -205,6 +205,7 @@ def on_chart_click(click_data, draw_state):
     pt = click_data["points"][0]
     clicked = {"t": pt["x"], "price": pt["y"]}
     new_draw = dict(draw_state)
+    new_draw.pop("_adjust_zoom", None)  # clear zoom flag from previous adjust
 
     if phase == "placing_p1":
         new_draw["point1"] = clicked

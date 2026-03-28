@@ -1,50 +1,79 @@
-"""User-defined model: simple input fields + Draw/Delete buttons."""
+"""User-defined model: input fields + click-to-set context menu."""
 
 from dash import Input, Output, State, callback, no_update, ctx
+from btc_core import fmt_price
 
 import _app_ctx
 from btc_core import UserModel
 
 _GENESIS_YR = 2009.56  # 2009-07-25
+_HIDDEN = {"display": "none"}
+_CTX_VISIBLE = {
+    "display": "flex", "alignItems": "center",
+    "position": "absolute", "bottom": "14px", "left": "14px", "zIndex": 20,
+    "backgroundColor": "rgba(30,30,40,0.95)", "borderRadius": "8px",
+    "padding": "6px 10px", "boxShadow": "0 2px 12px rgba(0,0,0,0.5)",
+}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 1. Click data point → auto-fill the next empty input pair
+# 1. Click data point → show context menu with year+price
+# ══════════════════════════════════════════════════════════════════════════════
+
+@callback(
+    Output("um-clicked-point", "data"),
+    Output("um-ctx-menu", "style"),
+    Output("um-ctx-label", "children"),
+    Input("bubble-graph", "clickData"),
+    prevent_initial_call=True,
+)
+def on_data_click(click_data):
+    if not click_data or not click_data.get("points"):
+        return no_update, no_update, no_update
+
+    pt = click_data["points"][0]
+    t_val = pt["x"]
+    price = pt["y"]
+    year = round(_GENESIS_YR + t_val, 1)
+
+    label = f"{year}  ${price:,.0f}" if price >= 1 else f"{year}  ${price:.4f}"
+    return {"year": year, "price": price}, _CTX_VISIBLE, label
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 2. "P1" / "P2" buttons → fill inputs + hide menu
 # ══════════════════════════════════════════════════════════════════════════════
 
 @callback(
     Output("um-p1-year", "value", allow_duplicate=True),
     Output("um-p1-price", "value", allow_duplicate=True),
-    Output("um-p2-year", "value", allow_duplicate=True),
-    Output("um-p2-price", "value", allow_duplicate=True),
-    Input("bubble-graph", "clickData"),
-    State("um-p1-year", "value"),
-    State("um-p1-price", "value"),
-    State("um-p2-year", "value"),
-    State("um-p2-price", "value"),
+    Output("um-ctx-menu", "style", allow_duplicate=True),
+    Input("um-ctx-p1", "n_clicks"),
+    State("um-clicked-point", "data"),
     prevent_initial_call=True,
 )
-def autofill_from_click(click_data, p1y, p1p, p2y, p2p):
-    """Click a data point → fill the next empty point pair."""
-    if not click_data or not click_data.get("points"):
-        return no_update, no_update, no_update, no_update
+def set_p1(n, pt):
+    if not pt:
+        return no_update, no_update, no_update
+    return pt["year"], round(pt["price"], 2), _HIDDEN
 
-    pt = click_data["points"][0]
-    year = round(_GENESIS_YR + pt["x"], 1)
-    price = round(pt["y"], 2)
 
-    # Fill point 1 if empty, else point 2
-    if not p1y and not p1p:
-        return year, price, no_update, no_update
-    elif not p2y and not p2p:
-        return no_update, no_update, year, price
-    else:
-        # Both filled — overwrite point 2 (user is adjusting)
-        return no_update, no_update, year, price
+@callback(
+    Output("um-p2-year", "value", allow_duplicate=True),
+    Output("um-p2-price", "value", allow_duplicate=True),
+    Output("um-ctx-menu", "style", allow_duplicate=True),
+    Input("um-ctx-p2", "n_clicks"),
+    State("um-clicked-point", "data"),
+    prevent_initial_call=True,
+)
+def set_p2(n, pt):
+    if not pt:
+        return no_update, no_update, no_update
+    return pt["year"], round(pt["price"], 2), _HIDDEN
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 2. Draw button → construct UserModel from inputs
+# 3. Draw button → construct UserModel
 # ══════════════════════════════════════════════════════════════════════════════
 
 @callback(
@@ -76,7 +105,6 @@ def draw_user_model(n_clicks, p1y, p1p, p2y, p2p, cur_model_show):
     )
     store_data = model.to_store_dict()
 
-    # Auto-check U1 in Display Models
     ms = list(cur_model_show or [])
     if "u1" not in ms:
         ms.append("u1")
@@ -84,7 +112,7 @@ def draw_user_model(n_clicks, p1y, p1p, p2y, p2p, cur_model_show):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 3. Delete button → clear model
+# 4. Delete button → clear model + inputs
 # ══════════════════════════════════════════════════════════════════════════════
 
 @callback(
@@ -101,10 +129,10 @@ def delete_user_model(n_clicks):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 4. Dynamic Display Models checklist injection
+# 5. Dynamic Display Models checklist injection
 # ══════════════════════════════════════════════════════════════════════════════
 
-_MODEL_SHOW_PREFIXES = ["bub", "dca", "ret", "sc"]  # heatmap uses pill bar, not checklist
+_MODEL_SHOW_PREFIXES = ["bub", "dca", "ret", "sc"]
 
 
 @callback(
@@ -114,7 +142,6 @@ _MODEL_SHOW_PREFIXES = ["bub", "dca", "ret", "sc"]  # heatmap uses pill bar, not
     prevent_initial_call=True,
 )
 def inject_user_model_option(user_data, *current_options_list):
-    """Add or remove U1 option from Display Models checklists on all tabs."""
     results = []
     u1_opt = {"label": " U1 (User)", "value": "u1"}
     for opts in current_options_list:

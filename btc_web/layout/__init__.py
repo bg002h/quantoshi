@@ -75,6 +75,7 @@ _app_ctx.app.layout = dbc.Container([
     dcc.Store(id="model-percentiles-store", storage_type="memory", data=None),
     dcc.Store(id="ticker-model-idx", storage_type="memory", data=0),
     dcc.Store(id="user-model-store", storage_type="memory", data=None),
+    dcc.Store(id="um-clicked-point", storage_type="memory", data=None),
     dcc.Store(id="viewport-width", storage_type="memory", data=1200),
     dcc.Store(id="snapshot-state-store", storage_type="memory", data=None),
     dcc.Store(id="ticker-mode-store", storage_type="local", data="usd"),

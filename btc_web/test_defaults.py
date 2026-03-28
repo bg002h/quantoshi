@@ -268,3 +268,46 @@ def test_l0_fingerprint_combines_model_and_defaults():
     # Verify it's derived from both (not equal to either alone)
     assert _L0_FINGERPRINT != _MODEL_FP[:12]
     assert _L0_FINGERPRINT != _DEFAULTS_HASH
+
+
+def test_l0_serialize_deserialize_roundtrip():
+    """Figure survives serialize → deserialize."""
+    import plotly.graph_objects as go
+    from utils import _serialize_result, _deserialize_result
+    fig = go.Figure(data=[go.Scatter(x=[1, 2], y=[3, 4], name="test")])
+    raw = _serialize_result(fig)
+    loaded = _deserialize_result(raw)
+    assert len(loaded.data) == 1
+    assert loaded.data[0].name == "test"
+
+
+def test_l0_serialize_tuple_roundtrip():
+    """(fig, mc_result) tuple survives roundtrip."""
+    import plotly.graph_objects as go
+    from utils import _serialize_result, _deserialize_result
+    fig = go.Figure(data=[go.Scatter(x=[1], y=[2])])
+    result = (fig, {"some": "data"})
+    raw = _serialize_result(result)
+    loaded = _deserialize_result(raw)
+    assert isinstance(loaded, tuple)
+    assert len(loaded[0].data) == 1
+    assert loaded[1]["some"] == "data"
+
+
+def test_compute_cache_key_deterministic():
+    """Same params → same key."""
+    from utils import _compute_cache_key
+    from tab_defaults import bubble_defaults
+    p1 = bubble_defaults()
+    p2 = bubble_defaults()
+    assert _compute_cache_key("bub", p1) == _compute_cache_key("bub", p2)
+
+
+def test_compute_cache_key_changes_with_params():
+    """Different params → different key."""
+    from utils import _compute_cache_key
+    from tab_defaults import bubble_defaults
+    p1 = bubble_defaults()
+    p2 = bubble_defaults()
+    p2["pt_alpha"] = 0.99
+    assert _compute_cache_key("bub", p1) != _compute_cache_key("bub", p2)

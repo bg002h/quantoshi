@@ -106,7 +106,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             ))
 
     # ── draw-mode: invisible click grid + optional zoom ─────────────────────
-    if p.get("draw_mode"):
+    if p.get("draw_mode") in ("placing_p1", "placing_p2"):
         # Use zoomed range if available, otherwise full chart range
         zr = p.get("draw_zoom_range")
         if zr:

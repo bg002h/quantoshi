@@ -7,6 +7,7 @@ import dash_bootstrap_components as dbc
 
 import _app_ctx
 from utils import _nearest_quantile
+from tab_defaults import SUPERCHARGE
 from layout.common import (_tab_hints, _section_card, _lbl,
                             _STYLE_HINT, _q_options,
                             _shared_settings_card, _model_show_checklist,
@@ -18,10 +19,10 @@ from layout.mc_controls import _mc_controls
 def _supercharge_controls():
     yr_now = pd.Timestamp.today().year
     display_q_opts = _q_options()
-    display_q_default = _nearest_quantile(0.05, _app_ctx._ALL_QS)
+    display_q_default = _nearest_quantile(SUPERCHARGE["display_q"], _app_ctx._ALL_QS)
     return html.Div([
         _tab_hints("supercharge"),
-        _shared_settings_card("sc", infl_default=4, stack_default=1.0),
+        _shared_settings_card("sc", infl_default=SUPERCHARGE["inflation"], stack_default=SUPERCHARGE["start_stack"]),
         _section_card("Projection Quantiles",
             html.Small("Select quantiles to follow.",
                 style=_STYLE_HINT),
@@ -38,7 +39,7 @@ def _supercharge_controls():
             dcc.RadioItems(id="sc-mode",
                 options=[{"label":" A \u2014 Fixed spending (depletion date)","value":"a"},
                          {"label":" B \u2014 Fixed depletion (max spending)","value":"b"}],
-                value="a", labelStyle={"display":"block"},
+                value=SUPERCHARGE["mode"], labelStyle={"display":"block"},
                 inputStyle={"marginRight":"5px"}),
             dbc.Collapse(
                 html.Div(
@@ -51,38 +52,38 @@ def _supercharge_controls():
             html.Hr(className="my-2"),
             _lbl("Base retirement year"),
             dcc.Slider(id="sc-start-yr", min=yr_now, max=2075,
-                       value=_app_ctx.SC_DEFAULT_START_YR, step=1,
+                       value=SUPERCHARGE["start_yr"], step=1,
                        marks={y: f"'{y % 100:02d}" for y in range(yr_now, 2076, 5)},
                        tooltip={"always_visible":False}),
             _lbl("Delay offsets (years)"),
             dbc.Row([
-                dbc.Col(dbc.Input(id="sc-d0", type="number", value=0,
+                dbc.Col(dbc.Input(id="sc-d0", type="number", value=SUPERCHARGE["delays"][0],
                                   min=0, step=1, size="sm"), width=True),
-                dbc.Col(dbc.Input(id="sc-d1", type="number", value=0,
+                dbc.Col(dbc.Input(id="sc-d1", type="number", value=SUPERCHARGE["delays"][1],
                                   min=0, step=1, size="sm"), width=True),
-                dbc.Col(dbc.Input(id="sc-d2", type="number", value=0,
+                dbc.Col(dbc.Input(id="sc-d2", type="number", value=SUPERCHARGE["delays"][2],
                                   min=0, step=1, size="sm"), width=True),
-                dbc.Col(dbc.Input(id="sc-d3", type="number", value=1,
+                dbc.Col(dbc.Input(id="sc-d3", type="number", value=SUPERCHARGE["delays"][3],
                                   min=0, step=1, size="sm"), width=True),
-                dbc.Col(dbc.Input(id="sc-d4", type="number", value=2,
+                dbc.Col(dbc.Input(id="sc-d4", type="number", value=SUPERCHARGE["delays"][4],
                                   min=0, step=1, size="sm"), width=True),
             ], className="g-1"),
             html.Hr(className="my-2"),
             dbc.Collapse([
                 _lbl("Withdrawal/period ($)"),
-                dbc.Input(id="sc-wd", type="number", value=_app_ctx.SC_DEFAULT_WD,
+                dbc.Input(id="sc-wd", type="number", value=SUPERCHARGE["wd_amount"],
                           min=0, max=_app_ctx.MAX_USD, step=1, size="sm",
                           debounce=True),
                 _lbl("End year"),
                 html.Div(dcc.Slider(id="sc-end-yr", min=2030, max=2100,
-                           value=_app_ctx.SC_DEFAULT_END_YR, step=1,
+                           value=SUPERCHARGE["end_yr"], step=1,
                            marks={y: f"'{y % 100:02d}" for y in range(2030, 2101, 10)},
                            tooltip={"always_visible":False})),
             ], id="sc-mode-a-collapse", is_open=True),
             dbc.Collapse([
                 _lbl("Target depletion year"),
                 html.Div(dcc.Slider(id="sc-target-yr", min=2030, max=2100,
-                           value=2060, step=1,
+                           value=SUPERCHARGE["target_yr"], step=1,
                            marks={y: f"'{y % 100:02d}" for y in range(2030, 2101, 10)},
                            tooltip={"always_visible":False})),
             ], id="sc-mode-b-collapse", is_open=False),
@@ -106,7 +107,7 @@ def _supercharge_controls():
             ], id="sc-display-q-collapse", is_open=True),
             _btc_usd_dropdown("sc", btc_label="BTC Remaining", default="usd"),
             _chart_toggles("sc", ["annotate", "log_y", "minor_grid"]),
-            *_legend_pos_dropdown("sc", "top-left"),
+            *_legend_pos_dropdown("sc", SUPERCHARGE["legend_pos"]),
         ),
     ])
 

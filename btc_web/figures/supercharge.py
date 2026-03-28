@@ -9,6 +9,7 @@ from typing import Any
 
 import _app_ctx
 from btc_core import ModelData, yr_to_t, fmt_price
+from tab_defaults import SUPERCHARGE
 from mc_overlay import _mc_supercharge_overlay
 
 from figures.common import (
@@ -52,13 +53,13 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
     sel_qs_raw = sorted([float(q) for q in (p.get("selected_qs") or [])])
     _thermal = _build_thermal_colors(sel_qs_raw, palette)
 
-    mode         = p.get("mode", "a")
+    mode         = p.get("mode", SUPERCHARGE["mode"])
     freq_str, ppy, dt = _build_freq_config(p)
-    syr          = int(p.get("start_yr", pd.Timestamp.today().year))
-    inflation    = float(p.get("inflation", 4)) / 100.0
-    chart_layout = int(p.get("chart_layout", 0))
-    display_q    = float(p.get("display_q", 0.5))
-    show_legend  = bool(p.get("show_legend", True))
+    syr          = int(p.get("start_yr", SUPERCHARGE["start_yr"]))
+    inflation    = float(p.get("inflation", SUPERCHARGE["inflation"])) / 100.0
+    chart_layout = int(p.get("chart_layout", SUPERCHARGE["chart_layout"]))
+    display_q    = float(p.get("display_q", SUPERCHARGE["display_q"]))
+    show_legend  = bool(p.get("show_legend", SUPERCHARGE["show_legend"]))
 
     # Starting stack (lots override)
     start_stack = _get_starting_stack(p, default=1.0)
@@ -76,7 +77,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
         sel_qs = [0.5]  # need at least one for MC simulation grid
 
     # Delays: filter None/negative, sort, deduplicate
-    raw_delays = p.get("delays") or [0, 1, 2, 4, 8]
+    raw_delays = p.get("delays") or list(SUPERCHARGE["delays"])
     delays = sorted(set(float(d) for d in raw_delays if d is not None and float(d) >= 0))
     if not delays:
         delays = [0.0]
@@ -86,8 +87,8 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
 
     # ── MODE A: fixed spending -> show how long savings last ───────────────────
     if mode == "a":
-        eyr       = int(p.get("end_yr", 2075))
-        wd_amount = float(p.get("wd_amount", 5000))
+        eyr       = int(p.get("end_yr", SUPERCHARGE["end_yr"]))
+        wd_amount = float(p.get("wd_amount", SUPERCHARGE["wd_amount"]))
         disp_mode = p.get("disp_mode", "usd")
         t_end     = yr_to_t(eyr, m.genesis)
         _line_shape = "hv" if p.get("discrete") else "linear"
@@ -487,7 +488,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
     palette = _get_palette(p)
     delay_colors = palette["delay_colors"]
     _thermal = _build_thermal_colors(sel_qs, palette)
-    target_yr = int(p.get("target_yr", 2060))
+    target_yr = int(p.get("target_yr", SUPERCHARGE["target_yr"]))
 
     def _max_wd_for(d, q):
         t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)

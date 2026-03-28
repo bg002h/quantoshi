@@ -8,7 +8,7 @@ import pandas as pd
 
 import _app_ctx
 from btc_core import yr_to_t, today_t, _find_lot_percentile
-from tab_defaults import BUBBLE, HEATMAP, DCA, RETIRE
+from tab_defaults import BUBBLE, HEATMAP, DCA, RETIRE, SUPERCHARGE
 from callbacks.coerce import _ci, _cf
 from callbacks.mc_helpers import (_mc_setup, _mc_finalize, _mc_status,
                                   _strip_free_paths)
@@ -629,16 +629,16 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
     model_show = model_show if model_show is not None else []
     fig, mc_result = _get_supercharge_fig(dict(
         mode         = mode or "a",
-        start_stack  = _cf(stack, 1.0),
-        start_yr     = _ci(start_yr, yr_now),
+        start_stack  = _cf(stack, SUPERCHARGE["start_stack"]),
+        start_yr     = _ci(start_yr, SUPERCHARGE["start_yr"]),
         delays       = delays if delays else [0, 1, 2, 4, 8],
         freq         = freq or "Monthly",
-        inflation    = _cf(infl, 4.0),
+        inflation    = _cf(infl, SUPERCHARGE["inflation"]),
         selected_qs  = sel_qs or [],
         chart_layout = _cl,
-        display_q    = _cf(display_q, _nearest_quantile(0.5, _app_ctx._ALL_QS)),
-        wd_amount    = _ci(wd, 5000, lo=0, hi=_app_ctx.MAX_USD),
-        end_yr       = _ci(end_yr, 2075),
+        display_q    = _cf(display_q, _nearest_quantile(SUPERCHARGE["display_q"], _app_ctx._ALL_QS)),
+        wd_amount    = _ci(wd, SUPERCHARGE["wd_amount"], lo=0, hi=_app_ctx.MAX_USD),
+        end_yr       = _ci(end_yr, SUPERCHARGE["end_yr"]),
         disp_mode    = disp or "usd",
         log_y        = "log_y"      in toggles,
         annotate     = "annotate"   in toggles,
@@ -646,7 +646,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         show_legend  = "show_legend" in toggles,
         legend_pos   = legend_pos or "outside",
         minor_grid   = "minor_grid" in toggles,
-        target_yr    = _ci(target_yr, 2060),
+        target_yr    = _ci(target_yr, SUPERCHARGE["target_yr"]),
         lots         = lots_data or [],
         use_lots     = bool(use_lots),
         show_qr      = "bub" in model_show,

@@ -8,7 +8,7 @@ import pandas as pd
 
 import _app_ctx
 from btc_core import yr_to_t, today_t, _find_lot_percentile
-from tab_defaults import BUBBLE
+from tab_defaults import BUBBLE, HEATMAP
 from callbacks.coerce import _ci, _cf
 from callbacks.mc_helpers import (_mc_setup, _mc_finalize, _mc_status,
                                   _strip_free_paths)
@@ -271,18 +271,18 @@ def update_heatmap(active_tab, hm_model, entry_yr, entry_q, exit_range, exit_qs,
         exit_yr_lo   = int(exit_range[0]),
         exit_yr_hi   = int(exit_range[1]),
         exit_qs      = exit_qs or [],
-        color_mode   = _ci(mode, 0),
+        color_mode   = _ci(mode, HEATMAP["color_mode"]),
         b1           = _cf(b1, _app_ctx.M.CAGR_SEG_B1),
         b2           = _cf(b2, _app_ctx.M.CAGR_SEG_B2),
         c_lo         = c_lo   or _app_ctx.M.CAGR_SEG_C_LO,
         c_mid1       = c_mid1 or _app_ctx.M.CAGR_SEG_C_MID1,
         c_mid2       = c_mid2 or _app_ctx.M.CAGR_SEG_C_MID2,
         c_hi         = c_hi   or _app_ctx.M.CAGR_SEG_C_HI,
-        n_disc       = _ci(grad, _app_ctx.M.CAGR_GRAD_STEPS),
-        vfmt         = vfmt or "cagr",
-        cell_font_size = _ci(cell_fs, 9),
+        n_disc       = _ci(grad, HEATMAP["n_disc"]),
+        vfmt         = vfmt or HEATMAP["vfmt"],
+        cell_font_size = _ci(cell_fs, HEATMAP["cell_font_size"]),
         show_colorbar = "colorbar" in toggles,
-        stack        = _cf(stack, 0),
+        stack        = _cf(stack, HEATMAP["stack"]),
         use_lots     = bool(use_lots),
         lots         = lots_data or [],
         active_models = [k for k in (model_show or []) if k not in _app_ctx.MODEL_SENTINELS],

@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from typing import Any
 
 import _app_ctx
+from tab_defaults import HEATMAP
 from btc_core import ModelData, yr_to_t, fmt_price, leo_weighted_entry
 from mc_overlay import _mc_heatmap_overlay
 
@@ -248,12 +249,12 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     colorscale, zmin, zmax = _heatmap_colorscale(m, p, mc)
 
     # ── cell text ─────────────────────────────────────────────────────────────
-    vfmt    = p.get("vfmt", "cagr")
-    hm_stk  = float(p.get("stack", 0))
+    vfmt    = p.get("vfmt", HEATMAP["vfmt"])
+    hm_stk  = float(p.get("stack", HEATMAP["stack"]))
 
     # ── cell annotations ──────────────────────────────────────────────────────
     annots = _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax,
-                                   int(p.get("cell_font_size", 9)),
+                                   int(p.get("cell_font_size", HEATMAP["cell_font_size"])),
                                    colorscale=colorscale, palette=palette)
 
     fig = go.Figure(data=go.Heatmap(
@@ -365,7 +366,7 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
     hm_stk = float(p.get("stack", 0))
 
     annots = _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax,
-                                   int(p.get("cell_font_size", 9)),
+                                   int(p.get("cell_font_size", HEATMAP["cell_font_size"])),
                                    colorscale=colorscale, palette=palette)
 
     fig = go.Figure(data=go.Heatmap(

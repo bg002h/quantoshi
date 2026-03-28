@@ -257,3 +257,14 @@ def test_defaults_hash_changes_on_value_change():
     h.update(repr(sorted(fake.items())).encode())
     partial = h.hexdigest()[:12]
     assert partial != original[:12]
+
+
+def test_l0_fingerprint_combines_model_and_defaults():
+    """L0 fingerprint includes both model and defaults hashes."""
+    from cache import _L0_FINGERPRINT, _MODEL_FP
+    from tab_defaults import _DEFAULTS_HASH
+    assert isinstance(_L0_FINGERPRINT, str)
+    assert len(_L0_FINGERPRINT) == 12
+    # Verify it's derived from both (not equal to either alone)
+    assert _L0_FINGERPRINT != _MODEL_FP[:12]
+    assert _L0_FINGERPRINT != _DEFAULTS_HASH

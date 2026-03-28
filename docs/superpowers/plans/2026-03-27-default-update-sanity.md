@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Eliminate ~18 default value divergences across the app by consolidating into a single `MappingProxyType`-based source of truth per tab, with immutability protection and drift-detection tests.
+**Goal:** Eliminate ~23 default value divergences across the app by consolidating into a single `MappingProxyType`-based source of truth per tab, with immutability protection and drift-detection tests.
 
 **Architecture:** One new file `btc_web/tab_defaults.py` holds frozen `MappingProxyType` dicts per tab (static values) plus `_defaults()` functions (dynamic values like `yr_now`). All consumers — layout builders, callback fallbacks, figure builder fallbacks, prewarm, and the Citadel cache generator — import from this file instead of hardcoding. Tests enforce immutability, tuple-only inner values, and layout-vs-defaults consistency.
 
@@ -28,6 +28,7 @@
 | `btc_web/figures/retire.py` | Modify | Replace `p.get("key", HARDCODED)` with `p.get("key", RETIRE["key"])` |
 | `btc_web/figures/supercharge.py` | Modify | Replace `p.get("key", HARDCODED)` with `p.get("key", SUPERCHARGE["key"])` |
 | `btc_web/figures/citadel.py` | Modify | Replace `p.get("key", HARDCODED)` with `p.get("key", CITADEL["key"])` |
+| `btc_web/figures/common.py` | Modify | Replace `_finalize_chart()` fallbacks (`legend_pos`, `show_legend`) — shared by DCA/Retire/SC/Citadel |
 | `btc_web/app.py` | Modify | Replace `_prewarm_caches()` inline dicts with `_defaults()` calls |
 | `btc_web/generate_citadel_cache.py` | Modify | Replace inline `p = {...}` with `citadel_defaults()` |
 | `btc_web/engines/citadel.py` | Modify (light) | Document intentional divergences between `SimConfig` field defaults and `CITADEL` UI defaults |
@@ -59,6 +60,11 @@ These are verified from the current codebase. **Layout values are the source of 
 | 16 | Citadel | `high_q_trigger` | 95 | 95 | **80** | **80** | 95 | Fig+PW→95 |
 | 17 | Citadel | `low_q_trigger` | 5 | 5 | **20** | **20** | 5 | Fig+PW→5 |
 | 18 | Citadel | `cash_floor` | 50000 | **0** | — | **0** | 50000 | CB+PW→50000 |
+| 19 | Bubble | `n_future` | 3 | **0** | — | 3 | — | CB→3 |
+| 20 | Bubble | `xscale` | "log" | **"linear"** | — | "log" | — | CB→"log" |
+| 21 | Citadel | `show_legend` | True | — | — | **False** | True | PW→True |
+| 22 | Citadel | `log_y` | True | — | — | True | **False** | CacheGen→True |
+| 23 | Citadel | `low_q_split_*` | 20/20/20/10/20/10 | **10/10/10/10/40/20** | **10/10/10/10/40/20** | — | 10/10/10/10/40/20 | CB+Fig+CG→layout |
 
 ---
 
@@ -159,7 +165,7 @@ BUBBLE = MappingProxyType({
     "xscale": "log",
     "yscale": "log",
     "auto_y": ("yes",),
-    "ymin": 0.01, "ymax": 1e7,  # actual prices, not log exponents — figure builder reads p["ymin"] directly
+    "ymin": 1.0, "ymax": 1e7,  # actual prices (10**0, 10**7) — figure builder reads p["ymin"] directly
     # Display toggles
     "shade": True, "show_data": True, "show_today": True,
     "show_legend": False, "minor_grid": False,
@@ -220,7 +226,7 @@ DCA = MappingProxyType({
     "active_models": (),
     "palette": "default",
     # Stack-celerator
-    "sc_enabled": False, "sc_loan_amount": 0,
+    "sc_enabled": False, "sc_loan_amount": 1200,
     "sc_rate": 13.0, "sc_loan_type": "interest_only",
     "sc_term_months": 12, "sc_repeats": 0, "sc_rollover": False,
     "sc_entry_mode": "live", "sc_custom_price": 80000.0,
@@ -298,10 +304,10 @@ CITADEL = MappingProxyType({
     "high_q_trigger": 95, "high_q_mode": "gradual", "high_q_rate": 2.0, "high_q_dur": 6,
     "high_q_split_cash": 20, "high_q_split_rs": 20, "high_q_split_rm": 20,
     "high_q_split_rl": 10, "high_q_split_eq": 20, "high_q_split_bd": 10,
-    # Low-Q rebalancing
+    # Low-Q rebalancing (layout uses shared _trigger_section template → same splits as high-q)
     "low_q_trigger": 5, "low_q_mode": "lump", "low_q_rate": 10.0, "low_q_dur": 1,
-    "low_q_split_cash": 10, "low_q_split_rs": 10, "low_q_split_rm": 10,
-    "low_q_split_rl": 10, "low_q_split_eq": 40, "low_q_split_bd": 20,
+    "low_q_split_cash": 20, "low_q_split_rs": 20, "low_q_split_rm": 20,
+    "low_q_split_rl": 10, "low_q_split_eq": 20, "low_q_split_bd": 10,
     # Cooldown
     "lump_cooldown": 12,
     # Floors
@@ -522,9 +528,10 @@ from tab_defaults import BUBBLE
 ```
 
 Replace these specific hardcoded fallbacks:
-- Line 81: `_cf(ptalpha, 0.6)` → `_cf(ptalpha, BUBBLE["pt_alpha"])` — **fixes divergence #1**
+- Line 75: `xscale or "linear"` → `xscale or BUBBLE["xscale"]` — **fixes divergence #20**
+- Line 79: `_ci(n_future, 0)` → `_ci(n_future, BUBBLE["n_future"])` — **fixes divergence #19**
 - Line 80: `_ci(ptsize, 3)` → `_ci(ptsize, BUBBLE["pt_size"])`
-- Line 79: `_ci(n_future, 0)` → `_ci(n_future, BUBBLE["n_future"])`
+- Line 81: `_cf(ptalpha, 0.6)` → `_cf(ptalpha, BUBBLE["pt_alpha"])` — **fixes divergence #1**
 - Line 82: `_cf(stack, 0)` → `_cf(stack, BUBBLE["stack"])`
 
 - [ ] **Step 3: Wire figures/bubble.py — p.get() fallbacks**
@@ -656,7 +663,15 @@ Replace:
 
 Note: `sc_tax_rate` in DCA defaults is stored as 0.33 (fraction), matching the figure builder convention (`p.get("sc_tax_rate", 0.33)`). The callback converts from UI percentage: `_cf(sc_tax, 33, ...) / 100.0`. Keep the defaults at 0.33 (fraction) — the callback does the division.
 
-- [ ] **Step 3: Wire figures/dca.py — p.get() fallbacks**
+- [ ] **Step 3: Wire figures/common.py — shared `_finalize_chart()` fallbacks**
+
+`_finalize_chart()` in `figures/common.py` (line ~600) serves DCA, Retire, Supercharge, and Citadel. It has:
+- `p.get("show_legend", True)` → leave as-is (True is a safe fallback; each tab's callback always provides this)
+- `p.get("legend_pos", "outside")` → leave as-is (each tab's callback always provides this explicitly)
+
+These fallbacks are only hit if a callback fails to supply the key. Since all callbacks do supply them, no change is strictly needed. But if you want belt-and-suspenders, you could import a default — the trade-off is that `_finalize_chart` serves multiple tabs with different legend defaults. **Decision: leave `figures/common.py` unchanged** — the per-tab fallbacks in callbacks and figure builders are the ones that matter.
+
+- [ ] **Step 4: Wire figures/dca.py — p.get() fallbacks**
 
 Add import: `from tab_defaults import DCA`
 
@@ -668,12 +683,12 @@ Replace:
 - `p.get("sc_tax_rate", 0.33)` → `p.get("sc_tax_rate", DCA["sc_tax_rate"])`
 - `p.get("sc_custom_price", 0)` → `p.get("sc_custom_price", DCA["sc_custom_price"])`
 
-- [ ] **Step 4: Run tests**
+- [ ] **Step 5: Run tests**
 
 Run: `cd /scratch/code/bitcoinprojections && PYTHONPATH=".:btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/test_web.py -k "dca" -v --timeout=60`
 Expected: All DCA tests pass.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add btc_web/layout/sim_tabs.py btc_web/callbacks/charts.py btc_web/figures/dca.py
@@ -750,7 +765,7 @@ Replace hardcoded `value=` props:
 | `sc-infl` | `4` | `SUPERCHARGE["inflation"]` |
 | `sc-mode` | `"a"` | `SUPERCHARGE["mode"]` |
 | `sc-start-yr` | `2033` | `SUPERCHARGE["start_yr"]` |
-| `sc-wd` | `100000` | `SUPERCHARGE["wd_amount"]` |
+| `sc-wd` | `5000` (via `SC_DEFAULT_WD`) | `SUPERCHARGE["wd_amount"]` |
 | `sc-end-yr` | `2075` | `SUPERCHARGE["end_yr"]` |
 | `sc-target-yr` | `2060` | `SUPERCHARGE["target_yr"]` |
 | `sc-legend-pos` | `"top-left"` | `SUPERCHARGE["legend_pos"]` |
@@ -1096,16 +1111,54 @@ def test_layout_values_match_defaults():
 
     # Some component IDs don't map directly to defaults keys.
     # This maps component_id → defaults_key for non-obvious mappings.
+    # IMPORTANT: when adding new controls, check if the ID suffix matches
+    # the defaults key. If not, add a mapping here.
     id_to_key = {
+        # Bubble
         "bub-ptsize": "pt_size",
         "bub-ptalpha": "pt_alpha",
         "bub-n-future": "n_future",
+        # Heatmap
         "hm-mode": "color_mode",
         "hm-grad": "n_disc",
         "hm-cell-fs": "cell_font_size",
+        # DCA
+        "dca-infl": "inflation",
+        "dca-sc-loan": "sc_loan_amount",
+        "dca-sc-term": "sc_term_months",
+        "dca-sc-rate": "sc_rate",
+        "dca-sc-tax": "sc_tax_rate",  # layout uses int %, defaults use fraction
+        "dca-sc-custom-price": "sc_custom_price",
+        "dca-sc-repeats": "sc_repeats",
+        # Retire
+        "ret-wd": "wd_amount",
+        "ret-infl": "inflation",
+        # Supercharge
+        "sc-infl": "inflation",
+        "sc-wd": "wd_amount",
+        "sc-start-yr": "start_yr",
+        "sc-end-yr": "end_yr",
+        "sc-target-yr": "target_yr",
+        # Citadel
+        "cp-cash-init": "cash_initial",
+        "cp-cash-rate": "cash_rate",
+        "cp-spend": "monthly_spend",
+        "cp-infl": "inflation",
+        "cp-spend-growth": "spend_growth",
+        "cp-high-q-thresh": "high_q_trigger",
+        "cp-high-q-rate": "high_q_rate",
+        "cp-high-q-dur": "high_q_dur",
+        "cp-low-q-thresh": "low_q_trigger",
+        "cp-low-q-rate": "low_q_rate",
+        "cp-low-q-dur": "low_q_dur",
+        "cp-scf-amount": "scf_amount",
+        "cp-scf-rate": "scf_rate",
+        "cp-scf-term": "scf_term",
+        "cp-scf-trigger": "scf_repay_trigger",
+        "cp-cash-floor": "cash_floor",
+        # Stack
         "lot-price": "lot_price",
         "lot-btc": "lot_btc",
-        # Add more as needed
     }
 
     # Components to skip (dynamic defaults, not in frozen dict)
@@ -1243,3 +1296,8 @@ git commit -m "fix: resolve test regressions from defaults consolidation"
 | #16 Citadel `high_q_trigger` (80→95) | Task 8 |
 | #17 Citadel `low_q_trigger` (20→5) | Task 8 |
 | #18 Citadel `cash_floor` (0→50000) | Task 8 |
+| #19 Bubble `n_future` (0→3 in callback) | Task 3 |
+| #20 Bubble `xscale` ("linear"→"log" in callback) | Task 3 |
+| #21 Citadel `show_legend` (False→True in prewarm) | Task 9 |
+| #22 Citadel `log_y` (False→True in cache gen) | Task 8 |
+| #23 Citadel `low_q_split_*` (callback/fig→layout values) | Task 8 |

@@ -214,3 +214,31 @@ def on_chart_click(click_data, draw_state):
         new_draw["phase"] = "confirming_p2"
 
     return new_draw, _MENU_STYLE
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 6. Dynamic Display Models checklist injection
+# ══════════════════════════════════════════════════════════════════════════════
+
+_MODEL_SHOW_PREFIXES = ["bub", "dca", "ret", "sc"]  # heatmap uses pill bar, not checklist
+
+
+@callback(
+    [Output(f"{p}-model-show", "options", allow_duplicate=True) for p in _MODEL_SHOW_PREFIXES],
+    Input("user-model-store", "data"),
+    [State(f"{p}-model-show", "options") for p in _MODEL_SHOW_PREFIXES],
+    prevent_initial_call=True,
+)
+def inject_user_model_option(user_data, *current_options_list):
+    """Add or remove U1 option from Display Models checklists on all tabs."""
+    results = []
+    u1_opt = {"label": " U1 (User)", "value": "u1"}
+    for opts in current_options_list:
+        opts = list(opts or [])
+        # Remove any existing u1 option
+        opts = [o for o in opts if o.get("value") != "u1"]
+        # Add if user model exists
+        if user_data:
+            opts.append(u1_opt)
+        results.append(opts)
+    return results

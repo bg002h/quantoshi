@@ -91,10 +91,11 @@ def draw_user_model(n_clicks, p1y, p1p, p2y, p2p, cur_model_show):
     if not all([p1y, p1p, p2y, p2p]):
         return no_update, no_update
 
-    from btc_core import yr_to_t
     M = _app_ctx.M
-    t1 = yr_to_t(float(p1y), M.genesis)
-    t2 = yr_to_t(float(p2y), M.genesis)
+    # Direct conversion: year = _GENESIS_YR + t, so t = year - _GENESIS_YR
+    # This is the exact reverse of how the context menu computes the year
+    t1 = float(p1y) - _GENESIS_YR
+    t2 = float(p2y) - _GENESIS_YR
 
     model = UserModel.from_points(
         t1=t1, p1=float(p1p),

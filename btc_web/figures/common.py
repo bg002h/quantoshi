@@ -13,7 +13,6 @@ import plotly.graph_objects as go
 from typing import Any
 import _app_ctx
 from btc_core import yr_to_t, fmt_price, leo_weighted_entry
-import _app_ctx
 _HAS_MARKOV = _app_ctx._HAS_MARKOV
 
 # MC overlay logic lives in mc_overlay.py

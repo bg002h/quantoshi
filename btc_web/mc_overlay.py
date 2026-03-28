@@ -10,11 +10,14 @@ figures.py imports from mc_overlay (one-directional, no circular dependency).
 from __future__ import annotations
 
 import datetime
+import logging
 from pathlib import Path
 import numpy as np
 import plotly.graph_objects as go
 
 import _app_ctx
+
+logger = logging.getLogger(__name__)
 from btc_core import ModelData, yr_to_t, fmt_price
 
 from mc_cache import (MC_BINS, MC_SIMS, MC_FREQ, MC_DEFAULT_YEARS,
@@ -849,14 +852,14 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
     or ([], None) if MC is disabled / unavailable.
     """
     if not _HAS_MARKOV or not p.get("mc_enabled"):
-        print(f"[MC-CITADEL] skipped: _HAS_MARKOV={_HAS_MARKOV}, mc_enabled={p.get('mc_enabled')}", flush=True)
+        logger.debug("[MC-CITADEL] skipped: _HAS_MARKOV=%s, mc_enabled=%s", _HAS_MARKOV, p.get('mc_enabled'))
         return [], None
 
     import time as _time
     _mc_t0 = _time.time()
     n_bins, n_sims, mc_window, mc_freq, mc_ppy, mc_dt, step_days, mc_years = _mc_setup_vars(p)
 
-    print(f"[MC-CITADEL] starting: n_sims={n_sims}, mc_years={mc_years}, bins={n_bins}", flush=True)
+    logger.debug("[MC-CITADEL] starting: n_sims=%s, mc_years=%s, bins=%s", n_sims, mc_years, n_bins)
     mc_start_yr, mc_t_start, mc_t_end, mc_ts = _build_mc_timeline(
         p, m, mc_years, mc_dt, clamp_start=True)
 
@@ -868,7 +871,7 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
     if cache_hit:
         price_paths = _mc_paths_from_lists(cached["price_paths"])
         if price_paths.shape[0] < n_sims:
-            print(f"[MC-CITADEL] client cache: {price_paths.shape[0]} paths < {n_sims} requested, bypassing", flush=True)
+            logger.debug("[MC-CITADEL] client cache: %d paths < %d requested, bypassing", price_paths.shape[0], n_sims)
             cache_hit = False
     if not cache_hit:
         # Try pre-computed server cache
@@ -889,8 +892,8 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
     # If MC paths are shorter than citadel range, truncate citadel to available MC data
     if price_paths.shape[1] < n_periods_needed:
         n_periods_needed = price_paths.shape[1]
-        print(f"[MC-CITADEL] truncating citadel to {n_periods_needed} periods (MC shorter than citadel range)", flush=True)
-    print(f"[MC-CITADEL] paths: {price_paths.shape}, using {n_periods_needed} periods", flush=True)
+        logger.debug("[MC-CITADEL] truncating citadel to %d periods (MC shorter than citadel range)", n_periods_needed)
+    logger.debug("[MC-CITADEL] paths: %s, using %d periods", price_paths.shape, n_periods_needed)
 
     # Resample MC price paths to citadel's time grid if frequencies differ
     # MC runs at mc_freq (typically Monthly), citadel may use same or different freq
@@ -935,11 +938,11 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
             else:
                 result = task_or_result
         else:
-            print(f"[MC-CITADEL] running in-process: {resampled.shape[0]} sims × {resampled.shape[1]} steps", flush=True)
+            logger.debug("[MC-CITADEL] running in-process: %d sims x %d steps", resampled.shape[0], resampled.shape[1])
             result = _citadel_sim(citadel_config, citadel_model, price_paths=resampled)
-            print(f"[MC-CITADEL] done: {(_time.time()-_mc_t0)*1000:.0f}ms total", flush=True)
+            logger.debug("[MC-CITADEL] done: %.0fms total", (_time.time()-_mc_t0)*1000)
     except (ValueError, NotImplementedError) as e:
-        print(f"[MC-CITADEL] error: {e}", flush=True)
+        logger.debug("[MC-CITADEL] error: %s", e)
         return [], None
 
     # Build fan band traces per asset class

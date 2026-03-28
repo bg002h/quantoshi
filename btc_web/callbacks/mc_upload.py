@@ -71,10 +71,10 @@ def _mc_modal_dismiss(n):
 # ── MC save-prompt modal: save triggers download then closes ────────────────
 _app_ctx.app.clientside_callback(
     """
-    function(n_clicks, tab, dca_data, ret_data, hm_data, sc_data) {
+    function(n_clicks, tab, dca_data, ret_data, hm_data, sc_data, cp_data) {
         """ + _MC_FILENAME_JS + """
         if (!n_clicks) return [window.dash_clientside.no_update, true];
-        var map = {dca: dca_data, ret: ret_data, hm: hm_data, sc: sc_data};
+        var map = {dca: dca_data, ret: ret_data, hm: hm_data, sc: sc_data, cp: cp_data};
         var mc_data = map[tab];
         if (!mc_data) return [window.dash_clientside.no_update, false];
         var json = JSON.stringify(mc_data, null, 2);
@@ -98,6 +98,7 @@ _app_ctx.app.clientside_callback(
     State("ret-mc-results", "data"),
     State("hm-mc-results", "data"),
     State("sc-mc-results", "data"),
+    State("cp-mc-results", "data"),
     prevent_initial_call=True,
 )
 
@@ -105,7 +106,8 @@ _app_ctx.app.clientside_callback(
 # ── MC simulation load (upload JSON → store + set UI controls) ───────────────
 
 _TAB_LABELS = {"dca": "DCA (tab 3)", "ret": "Retire (tab 4)",
-               "hm": "Heatmap (tab 2)", "sc": "Supercharger (tab 5)"}
+               "hm": "Heatmap (tab 2)", "sc": "Supercharger (tab 5)",
+               "cp": "Citadel Planner (tab 9)"}
 
 def _parse_mc_upload(contents, expected_tab=None):
     """Decode uploaded MC JSON, return (data, error_msg).

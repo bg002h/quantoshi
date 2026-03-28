@@ -58,7 +58,7 @@ def on_fab_click(n_clicks, draw_state, model_data):
 
     # idle + no model → enter draw mode
     new_state = {"phase": "placing_p1", "point1": None, "point2": None,
-                 "pre_draw_zoom": None, "_skip_next_click": True}
+                 "pre_draw_zoom": None, }
     return new_state, _HIDDEN, _HIDDEN, "visible", "draw-active"
 
 
@@ -83,7 +83,7 @@ def on_model_menu(redraw_clicks, delete_clicks, dismiss_clicks, draw_state):
 
     if triggered == "draw-redraw-btn":
         new_state = {"phase": "placing_p1", "point1": None, "point2": None,
-                     "pre_draw_zoom": None, "_skip_next_click": True}
+                     "pre_draw_zoom": None, }
         return new_state, None, _HIDDEN, "visible", "draw-active"
 
     if triggered == "draw-delete-btn":
@@ -122,7 +122,7 @@ def on_confirm_action(accept, adjust, cancel, draw_state, cur_model_show):
     if triggered == "draw-cancel-btn":
         new_state = dict(draw_state)
         new_state.pop("_zoom_range", None)
-        new_state["_skip_next_click"] = True  # prevent click-through
+
         if phase == "confirming_p1":
             new_state["phase"] = "placing_p1"
             new_state["point1"] = None
@@ -174,12 +174,12 @@ def on_confirm_action(accept, adjust, cancel, draw_state, cur_model_show):
                 "y_hi": 10 ** (log_cy + y_half),
             }
             new_state["phase"] = "placing_p1" if phase == "confirming_p1" else "placing_p2"
-            new_state["_skip_next_click"] = True  # prevent click-through
+    
             return new_state, _HIDDEN, no_update, "draw-active", "", _MS
 
         new_state = dict(draw_state)
         new_state["phase"] = "placing_p1" if phase == "confirming_p1" else "placing_p2"
-        new_state["_skip_next_click"] = True
+
         return new_state, _HIDDEN, no_update, "draw-active", "", _MS
 
     if triggered == "draw-accept-btn":
@@ -187,7 +187,7 @@ def on_confirm_action(accept, adjust, cancel, draw_state, cur_model_show):
             new_state = dict(draw_state)
             new_state["phase"] = "placing_p2"
             new_state.pop("_zoom_range", None)  # reset zoom for point 2
-            new_state["_skip_next_click"] = True  # prevent click-through
+    
             return new_state, _HIDDEN, no_update, "draw-active", "", _MS
         elif phase == "confirming_p2":
             p1 = draw_state["point1"]
@@ -247,13 +247,6 @@ def on_chart_click(click_data, draw_state):
 
     if phase not in ("placing_p1", "placing_p2"):
         return no_update, no_update
-
-    # Skip click-through from menu buttons (Adjust/Accept/Cancel clicks
-    # bubble to the chart underneath — ignore the resulting clickData)
-    if (draw_state or {}).get("_skip_next_click"):
-        new_draw = dict(draw_state)
-        new_draw.pop("_skip_next_click")
-        return new_draw, no_update
 
     if not click_data or not click_data.get("points"):
         return no_update, no_update

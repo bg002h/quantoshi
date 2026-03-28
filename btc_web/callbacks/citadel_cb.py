@@ -21,6 +21,31 @@ _app_ctx.app.clientside_callback(
 )
 
 
+# ── Dollar Asset Returns model info ──────────────────────────────────────────
+@callback(
+    Output("cp-asset-model-info", "children"),
+    Output("cp-asset-model-info", "style"),
+    Input("cp-asset-model", "value"),
+)
+def show_asset_model_info(model):
+    _style_visible = {"display": "block", "marginTop": "6px", "fontSize": "11px",
+                      "color": "#aaa", "lineHeight": "1.4"}
+    if model == "markov":
+        return html.Div([
+            html.Span("Historical Regimes", style={"fontWeight": "600", "color": "#e67e22"}),
+            html.Span(" \u2014 ignores your input rates. Each asset class transitions "
+                      "between bull/bear/neutral regimes based on historical data:"),
+            html.Ul([
+                html.Li("Equities: S&P 500 monthly returns"),
+                html.Li("Bonds: AGG Bond ETF monthly returns"),
+                html.Li("Treasuries: yield-to-total-return (short/med/long duration)"),
+            ], style={"marginTop": "4px", "marginBottom": "0", "paddingLeft": "18px"}),
+            html.Small("Regime transitions are independent of BTC price paths.",
+                       style={"color": "#888", "fontStyle": "italic"}),
+        ]), _style_visible
+    return "", {"display": "none"}
+
+
 @callback(
     Output("citadel-graph", "figure"),
     Output("cp-mc-results", "data"),

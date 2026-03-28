@@ -235,13 +235,14 @@ def _sim_panel():
                 value=CITADEL["price_model"], clearable=False),
         ),
         _dd_section("Dollar Asset Returns",
-            html.Small("Lognormal uses your input rates/volatility. "
-                       "Markov uses historical regime transitions (S&P 500, bonds, treasuries).",
+            html.Small("How non-BTC assets grow each period.",
                        style=_STYLE_HINT),
             dcc.Dropdown(id="cp-asset-model",
-                options=[{"label": "Lognormal (user rates)", "value": "lognormal"},
-                         {"label": "Markov (historical regimes)", "value": "markov"}],
+                options=[{"label": "Fixed Rates (your input rates/vol)", "value": "lognormal"},
+                         {"label": "Historical Regimes", "value": "markov"}],
                 value=CITADEL["asset_return_model"], clearable=False),
+            html.Div(id="cp-asset-model-info",
+                     style={"display": "none", "marginTop": "6px"}),
         ),
         _dd_section("BTC Price Scenario",
             html.Small("Select one quantile for the deterministic BTC price path. "

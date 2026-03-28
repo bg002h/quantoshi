@@ -311,3 +311,77 @@ def test_compute_cache_key_changes_with_params():
     p2 = bubble_defaults()
     p2["pt_alpha"] = 0.99
     assert _compute_cache_key("bub", p1) != _compute_cache_key("bub", p2)
+
+
+# ── UserModel tests ──────────────────────────────────────────────────────────
+
+def test_user_model_from_two_points():
+    from btc_web.app import app  # noqa: F401
+    import _app_ctx
+    from btc_core import UserModel
+    M = _app_ctx.M
+    model = UserModel.from_points(
+        t1=5.0, p1=1000.0, t2=15.0, p2=100000.0,
+        price_years=M.price_years, price_prices=M.price_prices,
+        quantiles=M.QR_QUANTILES)
+    assert 0 < model.own_quantile < 1
+    assert len(model.fits) == len(M.QR_QUANTILES)
+    assert all("intercept" in f and "slope" in f for f in model.fits.values())
+    assert model.quantized is True
+    assert model.short_name == "u1"
+
+
+def test_user_model_parallel_lines():
+    from btc_web.app import app  # noqa: F401
+    import _app_ctx
+    from btc_core import UserModel
+    M = _app_ctx.M
+    model = UserModel.from_points(
+        t1=5.0, p1=1000.0, t2=15.0, p2=100000.0,
+        price_years=M.price_years, price_prices=M.price_prices,
+        quantiles=M.QR_QUANTILES)
+    slopes = [f["slope"] for f in model.fits.values()]
+    assert len(set(round(s, 10) for s in slopes)) == 1
+
+
+def test_user_model_colors_are_orange():
+    from btc_web.app import app  # noqa: F401
+    import _app_ctx
+    from btc_core import UserModel
+    M = _app_ctx.M
+    model = UserModel.from_points(
+        t1=5.0, p1=1000.0, t2=15.0, p2=100000.0,
+        price_years=M.price_years, price_prices=M.price_prices,
+        quantiles=M.QR_QUANTILES)
+    assert all(c == "#e67e22" for c in model.colors.values())
+
+
+def test_user_model_r2_reasonable():
+    from btc_web.app import app  # noqa: F401
+    import _app_ctx
+    from btc_core import UserModel
+    M = _app_ctx.M
+    model = UserModel.from_points(
+        t1=5.0, p1=1000.0, t2=15.0, p2=100000.0,
+        price_years=M.price_years, price_prices=M.price_prices,
+        quantiles=M.QR_QUANTILES)
+    for q, r2 in model.r2_per_quantile.items():
+        assert r2 is None or -5 < r2 < 1
+
+
+def test_user_model_store_roundtrip():
+    from btc_web.app import app  # noqa: F401
+    import _app_ctx
+    from btc_core import UserModel
+    M = _app_ctx.M
+    model = UserModel.from_points(
+        t1=5.0, p1=1000.0, t2=15.0, p2=100000.0,
+        price_years=M.price_years, price_prices=M.price_prices,
+        quantiles=M.QR_QUANTILES)
+    store = model.to_store_dict()
+    restored = UserModel.from_store_dict(store)
+    assert restored.own_quantile == model.own_quantile
+    assert len(restored.fits) == len(model.fits)
+    for q in model.fits:
+        assert abs(restored.fits[q]["slope"] - model.fits[q]["slope"]) < 1e-10
+        assert abs(restored.fits[q]["intercept"] - model.fits[q]["intercept"]) < 1e-10

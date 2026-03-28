@@ -369,8 +369,11 @@ def get_cached_paths(model_key, start_yr, pct_bin, mc_years, max_sims=None):
         data = _CACHE.get(cache_key)
         if data and data.get("paths", {}).get(key) is not None:
             result = data["paths"][key]
-    if result is not None and max_sims and result.shape[0] > max_sims:
-        result = result[:max_sims]
+    if result is not None and max_sims:
+        if result.shape[0] < max_sims:
+            return None  # not enough sims — force live computation
+        if result.shape[0] > max_sims:
+            result = result[:max_sims]
     return result
 
 

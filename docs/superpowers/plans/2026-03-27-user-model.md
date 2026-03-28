@@ -804,7 +804,7 @@ Add a callback that watches `user-model-store` and injects/removes the "U1" opti
 
 ```python
 # Prefixes for all tabs with model-show checklists
-_MODEL_SHOW_PREFIXES = ["bub", "hm", "dca", "ret", "sc"]
+_MODEL_SHOW_PREFIXES = ["bub", "dca", "ret", "sc"]  # heatmap uses pill bar, not checklist
 
 @callback(
     [Output(f"{p}-model-show", "options", allow_duplicate=True) for p in _MODEL_SHOW_PREFIXES],
@@ -844,9 +844,8 @@ git commit -m "feat: U1 in ticker cycling + dynamic Display Models checklist inj
 ## Task 6: Wire Other Tab Figure Builders for U1 Overlay
 
 **Files:**
-- Modify: `btc_web/callbacks/charts.py` (Heatmap, DCA, Retire, SC callbacks)
+- Modify: `btc_web/callbacks/charts.py` (DCA, Retire, SC callbacks)
 - Modify: `btc_web/callbacks/citadel_cb.py`
-- Modify: `btc_web/figures/heatmap.py`
 
 Each chart callback needs to pass `user-model-store` data to its figure builder when `"u1"` is in `active_models`.
 
@@ -883,8 +882,8 @@ Run: `cd /scratch/code/bitcoinprojections && PYTHONPATH=".:btc_web:archive/btc_a
 - [ ] **Step 3: Commit**
 
 ```bash
-git add btc_web/callbacks/charts.py btc_web/callbacks/citadel_cb.py btc_web/figures/dca.py btc_web/figures/retire.py btc_web/figures/supercharge.py btc_web/figures/citadel.py btc_web/figures/heatmap.py
-git commit -m "feat: U1 overlay support on Heatmap, DCA, Retire, Supercharge, Citadel tabs"
+git add btc_web/callbacks/charts.py btc_web/callbacks/citadel_cb.py btc_web/figures/dca.py btc_web/figures/retire.py btc_web/figures/supercharge.py btc_web/figures/citadel.py
+git commit -m "feat: U1 overlay support on DCA, Retire, Supercharge, Citadel tabs"
 ```
 
 ---

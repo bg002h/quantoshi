@@ -114,12 +114,12 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         um_prices = _round_trace_data(10.0 ** (um_intercept + um_slope * np.log10(np.maximum(t_arr, 0.01))))
         if stack > 0:
             um_prices = _round_trace_data(np.asarray(um_prices) * stack)
-        um_lbl = f"U1  m={um_slope:.3f}  Q{round(um_oq*100)}%"
+        um_lbl = f"U\u2081  m={um_slope:.3f}  Q{round(um_oq*100)}%"
         traces.append(go.Scatter(
             x=list(t_arr), y=list(um_prices),
             mode="lines", name=um_lbl,
             line=dict(color="#e67e22", width=3.0, dash="solid"),
-            legendgroup="u1", legendgrouptitle_text=f"U1  m={um_slope:.3f}",
+            legendgroup="u1", legendgrouptitle_text=f"U\u2081  m={um_slope:.3f}",
         ))
         # Also draw standard quantile bands from the UserModel overlay loop below
         # (they'll be drawn at 1.5px via the normal overlay path)

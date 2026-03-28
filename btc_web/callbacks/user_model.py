@@ -144,7 +144,7 @@ _MODEL_SHOW_PREFIXES = ["bub", "dca", "ret", "sc"]
 )
 def inject_user_model_option(user_data, *current_options_list):
     results = []
-    u1_opt = {"label": " U1 (User)", "value": "u1"}
+    u1_opt = {"label": " U\u2081 (User)", "value": "u1"}
     for opts in current_options_list:
         opts = list(opts or [])
         opts = [o for o in opts if o.get("value") != "u1"]

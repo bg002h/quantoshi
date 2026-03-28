@@ -104,7 +104,7 @@ def update_price_ticker(_, mode, user_model_data):
                 um_pct = um.find_percentile(t, price)
                 um_pct_int = round(um_pct * 100) if um_pct is not None else None
                 if um_pct_int is not None:
-                    model_data.append({"key": "u1", "label": "U1",
+                    model_data.append({"key": "u1", "label": "U\u2081",
                                        "pct": um_pct_int, "color": "#e67e22"})
         except Exception:
             pass

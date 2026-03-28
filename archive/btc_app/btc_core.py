@@ -883,7 +883,7 @@ class UserModel(_FitsBasedModel):
     """
     name = "User Model"
     short_name = "u1"
-    legend_name = "U1"
+    legend_name = "U\u2081"
     dash_style = "solid"
     quantized = True
 

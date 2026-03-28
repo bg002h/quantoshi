@@ -125,14 +125,64 @@ def _compute_sc_loan(principal, amount, r, term_periods, loan_type):
     return principal, pmt, capped
 
 
+# ── Singleton capability flags (evaluated ONCE at import time) ────────────────
+# Every module reads these from _app_ctx instead of doing its own try/except.
+
+try:
+    from markov import build_transition_matrix  # noqa: F401
+    _HAS_MARKOV = True
+except ImportError:
+    _HAS_MARKOV = False
+
+try:
+    from celery import Celery  # noqa: F401
+    _HAS_CELERY = True
+except ImportError:
+    _HAS_CELERY = False
+
+try:
+    import redis as _redis_mod
+    _REDIS = _redis_mod.Redis(host='localhost', port=6379, db=0,
+                               socket_timeout=1, socket_connect_timeout=1)
+    _REDIS.ping()
+    _HAS_REDIS = True
+except Exception:
+    _REDIS = None
+    _HAS_REDIS = False
+
+
+def redis_available() -> bool:
+    """Check if Redis is connected."""
+    return _HAS_REDIS
+
+
+def redis_client():
+    """Return the shared Redis client (or None)."""
+    return _REDIS
+
+
+# Model fingerprint: changes when model_data.pkl is regenerated
+import hashlib as _hashlib
+import os as _os
+
+def _compute_model_fingerprint() -> str:
+    for path in ("btc_app/model_data.pkl", "archive/btc_app/model_data.pkl"):
+        if _os.path.exists(path):
+            st = _os.stat(path)
+            return _hashlib.md5(f"{st.st_mtime}:{st.st_size}".encode()).hexdigest()[:8]
+    return "unknown"
+
+_MODEL_FP = _compute_model_fingerprint()
+
+# BTCPay (evaluated after env vars are loaded)
+_HAS_BTCPAY = False  # overwritten by app.py from btcpay._HAS_BTCPAY
+
 # ── Dynamic state (populated by app.py at startup) ──────────────────────────
 M = None                   # ModelData instance
 PRICE_MODELS = {}          # {"bub": BubbleModel, "pl": PowerLawModel, ...}
 DEFAULT_MODEL = None       # set to PRICE_MODELS["bub"] by app.py
 app = None                 # dash.Dash instance
 server = None              # Flask server (= app.server)
-_HAS_MARKOV = False
-_HAS_BTCPAY = False        # set True by app.py if BTCPay env vars present
 _ALL_QS = []               # filtered QR quantiles (0.001–0.999)
 _DEF_QS = []               # default quantile subset
 _HM_ENTRY_Q_DEFAULT = 50.0 # live heatmap entry percentile

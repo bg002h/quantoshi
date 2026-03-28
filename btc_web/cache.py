@@ -5,6 +5,9 @@ Two-layer cache:
   L2: Redis shared across all workers (slower, but shared)
 
 If Redis is unavailable, falls back to L1-only (pre-Celery behavior).
+
+All singleton flags (_HAS_REDIS, _MODEL_FP, etc.) live in _app_ctx.py.
+This module reads them from there — no independent evaluation.
 """
 from __future__ import annotations
 
@@ -12,37 +15,14 @@ import hashlib
 import json
 import logging
 
+import _app_ctx
+
 logger = logging.getLogger(__name__)
 
-try:
-    import redis
-    _REDIS = redis.Redis(host='localhost', port=6379, db=0,
-                         socket_timeout=1, socket_connect_timeout=1)
-    _REDIS.ping()
-    _HAS_REDIS = True
-    logger.info("Redis connected for shared figure cache")
-except Exception:
-    _REDIS = None
-    _HAS_REDIS = False
-    logger.info("Redis not available — using per-worker LRU only")
-
-# ── Model fingerprint: invalidates cache when model_data.pkl changes ────────
-# Cache entries are keyed by this fingerprint. When new price data arrives
-# and the notebook regenerates model_data.pkl, all cache keys change
-# automatically — no TTL needed, no manual flush needed.
-
-def _compute_model_fingerprint() -> str:
-    """Fingerprint based on model_data.pkl mtime + size.
-    Changes whenever the pkl is regenerated (new price data)."""
-    import os
-    for path in ("btc_app/model_data.pkl", "archive/btc_app/model_data.pkl"):
-        if os.path.exists(path):
-            st = os.stat(path)
-            return hashlib.md5(f"{st.st_mtime}:{st.st_size}".encode()).hexdigest()[:8]
-    return "unknown"
-
-_MODEL_FP = _compute_model_fingerprint()
-logger.info("Model fingerprint: %s", _MODEL_FP)
+_REDIS = _app_ctx._REDIS
+_HAS_REDIS = _app_ctx._HAS_REDIS
+_MODEL_FP = _app_ctx._MODEL_FP
+logger.info("Model fingerprint: %s (Redis: %s)", _MODEL_FP, _HAS_REDIS)
 
 # No TTL — cache is invalidated only by model data changes (fingerprint)
 _REDIS_TTL = 0  # 0 = no expiry (Redis LRU eviction handles memory pressure)

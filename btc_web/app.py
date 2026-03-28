@@ -18,6 +18,7 @@ import logging
 import sys
 import time
 from pathlib import Path
+import _app_ctx
 
 # ── make btc_app/ importable ──────────────────────────────────────────────────
 _HERE    = Path(__file__).parent
@@ -38,11 +39,7 @@ from figures import FREQ_PPY
 from mc_overlay import save_trans_cache_to_disk, _get_transition_matrix
 import atexit
 atexit.register(save_trans_cache_to_disk)
-try:
-    from markov import build_transition_matrix
-    _HAS_MARKOV = True
-except ImportError:
-    _HAS_MARKOV = False
+_HAS_MARKOV = _app_ctx._HAS_MARKOV
 
 # ── load model (once at startup) ──────────────────────────────────────────────
 M = load_model_data()
@@ -137,7 +134,6 @@ import _app_ctx
 _app_ctx.M = M
 _app_ctx.app = app
 _app_ctx.server = server
-_app_ctx._HAS_MARKOV = _HAS_MARKOV
 
 # ── register price models ──────────────────────────────────────────────────
 _app_ctx.PRICE_MODELS["bub"] = BubbleModel(M)

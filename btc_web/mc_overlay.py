@@ -28,9 +28,9 @@ try:
     from markov import (build_transition_matrix, monte_carlo_prices,
                         mc_dca, mc_retire, compute_fan_percentiles,
                         depletion_stats, max_bins_for_window)
-    _HAS_MARKOV = True
 except ImportError:
-    _HAS_MARKOV = False
+    pass
+_HAS_MARKOV = _app_ctx._HAS_MARKOV
 
 # ── Pre-computed MC cache (conditional) ──────────────────────────────────────
 try:

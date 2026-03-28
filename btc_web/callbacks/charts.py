@@ -402,6 +402,7 @@ def update_heatmap(active_tab, hm_model, entry_yr, entry_q, exit_range, exit_qs,
     State("dca-mc-unblocked", "data"),
     State("dca-mc-rendered-key", "data"),
     Input("palette-store",      "data"),
+    State("user-model-store",   "data"),
     prevent_initial_call=True,
 )
 def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, disp, toggles, legend_pos, sel_qs, lots_data,
@@ -409,7 +410,8 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
                sc_entry_mode, sc_custom_price, sc_tax, sc_rollover,
                mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
-               price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key):
+               price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
+               user_model_store=None):
     if ctx.triggered_id == "main-tabs" and active_tab != "dca":
         raise dash.exceptions.PreventUpdate
     toggles    = toggles or []
@@ -456,6 +458,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
         show_mc        = "mc" in model_show,
         active_models  = [k for k in model_show if k not in _app_ctx.MODEL_SENTINELS],
         palette = palette_key or "default",
+        user_model = user_model_store,
         **mc_p,
     ))
     fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(
@@ -505,12 +508,14 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
     State("ret-mc-unblocked", "data"),
     State("ret-mc-rendered-key", "data"),
     Input("palette-store",      "data"),
+    State("user-model-store",   "data"),
     prevent_initial_call=True,
 )
 def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, lots_data,
                   mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                   mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
-                  price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key):
+                  price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
+                  user_model_store=None):
     if ctx.triggered_id == "main-tabs" and active_tab != "retire":
         raise dash.exceptions.PreventUpdate
     toggles  = toggles or []
@@ -544,6 +549,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         show_mc      = "mc" in model_show,
         active_models = [k for k in model_show if k not in _app_ctx.MODEL_SENTINELS],
         palette = palette_key or "default",
+        user_model = user_model_store,
         **mc_p,
     ))
     fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(
@@ -608,6 +614,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     State("sc-mc-rendered-key", "data"),
     Input("palette-store",     "data"),
     State("viewport-width",    "data"),
+    State("user-model-store",  "data"),
     prevent_initial_call=True,
 )
 def update_supercharge(active_tab, stack, use_lots, start_yr,
@@ -618,7 +625,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
                        mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                        mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                        price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
-                       viewport_width):
+                       viewport_width, user_model_store=None):
     if ctx.triggered_id == "main-tabs" and active_tab != "supercharge":
         raise dash.exceptions.PreventUpdate
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
@@ -663,6 +670,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         active_models = [k for k in model_show if k not in _app_ctx.MODEL_SENTINELS],
         palette = palette_key or "default",
         is_mobile = (viewport_width or 1200) < 768,
+        user_model = user_model_store,
         **mc_p,
     ))
     fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(

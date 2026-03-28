@@ -113,6 +113,7 @@ _app_ctx.app.clientside_callback(
     State("cp-mc-entry-q",       "value"),
     State("cp-mc-model-src",     "value"),
     State("palette-store",       "data"),
+    State("user-model-store",    "data"),
     # ── MC States ──
     State("btc-price-store",     "data"),
     State("cp-mc-results",       "data"),
@@ -154,7 +155,7 @@ def update_citadel(
     # MC controls
     mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
     mc_start_yr, mc_entry_q, mc_model_src,
-    palette_key,
+    palette_key, user_model_store,
     # MC states
     price_data, mc_cached, pay_token, mc_unblocked, mc_auth,
 ):
@@ -292,6 +293,7 @@ def update_citadel(
         legend_pos      = legend_pos or CITADEL["legend_pos"],
         minor_grid      = "minor_grid" in toggles,
         palette         = palette_key or CITADEL["palette"],
+        user_model      = user_model_store,
         **mc_p,
     ))
 

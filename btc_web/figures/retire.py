@@ -99,9 +99,18 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
 
     # ── alternative model overlays ────────────────────────────────────────────
     for model_key in p.get("active_models", []):
-        mdl = _app_ctx.PRICE_MODELS.get(model_key)
-        if not mdl:
-            continue
+        if model_key == "u1":
+            from btc_core import UserModel
+            um_data = p.get("user_model")
+            if not um_data:
+                continue
+            mdl = UserModel.from_store_dict(um_data)
+            if not mdl:
+                continue
+        else:
+            mdl = _app_ctx.PRICE_MODELS.get(model_key)
+            if not mdl:
+                continue
         if mdl.quantized:
             for q in sel_qs:
                 if q not in mdl.fits:

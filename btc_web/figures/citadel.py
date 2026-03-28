@@ -31,8 +31,13 @@ class _ModelAdapter:
     KeyError on models that don't interpolate (PL, QR, LPPL, EXP).
     BUB and EF interpolate internally; others require exact key matches."""
 
-    def __init__(self, m: ModelData, model_key: str = "bub"):
-        self._model = _app_ctx.PRICE_MODELS.get(model_key, _app_ctx.DEFAULT_MODEL)
+    def __init__(self, m: ModelData, model_key: str = "bub", user_model=None):
+        if model_key == "u1" and user_model is not None:
+            from btc_core import UserModel
+            mdl = UserModel.from_store_dict(user_model) if isinstance(user_model, dict) else user_model
+            self._model = mdl if mdl else _app_ctx.DEFAULT_MODEL
+        else:
+            self._model = _app_ctx.PRICE_MODELS.get(model_key, _app_ctx.DEFAULT_MODEL)
         self.fits = self._model.fits if hasattr(self._model, "fits") else {}
         self.genesis = m.genesis
         self._price_grid_cache = {}  # t_key -> (q_grid, prices)
@@ -206,7 +211,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
         return _error_figure(m, f"Config error: {e}"), None
 
     model_key = p.get("price_model", "bub")
-    model = _ModelAdapter(m, model_key=model_key)
+    model = _ModelAdapter(m, model_key=model_key, user_model=p.get("user_model"))
 
     # Deterministic always runs with n_sims=1; MC overlay runs separately
     config.n_sims = 1

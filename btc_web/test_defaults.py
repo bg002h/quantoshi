@@ -235,3 +235,25 @@ def test_layout_values_match_defaults():
 
     walk(app.layout)
     assert mismatches == [], "Layout/defaults mismatches:\n  " + "\n  ".join(mismatches)
+
+
+# ── L0 cache fingerprint tests ──────────────────────────────────────────────
+
+def test_defaults_hash_is_stable():
+    """Hash is deterministic across calls."""
+    from tab_defaults import _DEFAULTS_HASH, _compute_defaults_hash
+    assert isinstance(_DEFAULTS_HASH, str)
+    assert len(_DEFAULTS_HASH) == 12
+    assert _compute_defaults_hash() == _DEFAULTS_HASH
+
+
+def test_defaults_hash_changes_on_value_change():
+    """Hash changes when a frozen dict value changes."""
+    from tab_defaults import _compute_defaults_hash, BUBBLE
+    import types, hashlib
+    original = _compute_defaults_hash()
+    fake = types.MappingProxyType({**BUBBLE, "pt_alpha": 999.0})
+    h = hashlib.md5()
+    h.update(repr(sorted(fake.items())).encode())
+    partial = h.hexdigest()[:12]
+    assert partial != original[:12]

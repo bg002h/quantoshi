@@ -201,3 +201,23 @@ def citadel_defaults() -> dict:
     d["selected_qs"] = list(CITADEL["selected_qs"])
     d["lots"] = []
     return d
+
+
+# ── Defaults fingerprint (for L0 cache invalidation) ────────────────────────
+import hashlib as _hashlib
+
+
+def _compute_defaults_hash() -> str:
+    """Hash all frozen dicts. Changes when any default value changes.
+
+    Uses repr(sorted(items)) — deterministic for primitives and tuples.
+    If a set or dict value is ever added, this may become non-deterministic.
+    The test_inner_collections_are_tuples test guards against this.
+    """
+    h = _hashlib.md5()
+    for d in (BUBBLE, HEATMAP, DCA, RETIRE, SUPERCHARGE, STACK, CITADEL):
+        h.update(repr(sorted(d.items())).encode())
+    return h.hexdigest()[:12]
+
+
+_DEFAULTS_HASH = _compute_defaults_hash()

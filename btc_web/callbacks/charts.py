@@ -103,37 +103,6 @@ def update_bubble(sel_qs, toggles, bubble_toggles,
     if "chart_zoom" not in toggles or draw_active:
         fig.update_layout(dragmode=False)
 
-    # Adjust zoom: 2x centered on the point being refined (compounds on successive adjusts)
-    if (draw_state or {}).get("_adjust_zoom"):
-        import math
-        phase = (draw_state or {}).get("phase", "idle")
-        pt = None
-        if phase == "placing_p1" and (draw_state or {}).get("point1"):
-            pt = draw_state["point1"]
-        elif phase == "placing_p2" and (draw_state or {}).get("point2"):
-            pt = draw_state["point2"]
-        if pt:
-            cx, cy = pt["t"], pt["price"]
-            zoom_level = (draw_state or {}).get("_zoom_level", 1)
-            zoom_factor = 2 ** zoom_level  # 2x, 4x, 8x, ...
-            # Read the figure's actual axis range (in axis coordinate space)
-            # On log axes, range is [log10(min), log10(max)]
-            x_range = fig.layout.xaxis.range
-            y_range = fig.layout.yaxis.range
-            if x_range and y_range:
-                xr_lo, xr_hi = float(x_range[0]), float(x_range[1])
-                yr_lo, yr_hi = float(y_range[0]), float(y_range[1])
-                # Center point in axis coordinate space
-                is_log_x = (xscale or "log") == "log"
-                is_log_y = (yscale or "log") == "log"
-                cx_ax = math.log10(max(cx, 0.01)) if is_log_x else cx
-                cy_ax = math.log10(max(cy, 1e-10)) if is_log_y else cy
-                # Full span divided by zoom_factor, centered on point
-                x_half = (xr_hi - xr_lo) / (2 * zoom_factor)
-                y_half = (yr_hi - yr_lo) / (2 * zoom_factor)
-                fig.update_xaxes(range=[cx_ax - x_half, cx_ax + x_half])
-                fig.update_yaxes(range=[cy_ax - y_half, cy_ax + y_half])
-
     return fig
 
 

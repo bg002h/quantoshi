@@ -97,57 +97,98 @@ def on_model_menu(redraw_clicks, delete_clicks, dismiss_clicks, draw_state):
 # 3. Accept / Adjust / Cancel buttons
 # ══════════════════════════════════════════════════════════════════════════════
 
+# Genesis year fraction for t→year conversion
+_GENESIS_YR = 2009.56  # 2009-07-25 ≈ 2009.56
+
 @callback(
     Output("draw-mode-store", "data", allow_duplicate=True),
     Output("draw-confirm-menu", "style", allow_duplicate=True),
     Output("user-model-store", "data", allow_duplicate=True),
     Output("user-model-fab", "className", allow_duplicate=True),
     Output("draw-toast", "className", allow_duplicate=True),
+    Output("bub-xrange", "value", allow_duplicate=True),
+    Output("bub-yrange", "value", allow_duplicate=True),
     Input("draw-accept-btn", "n_clicks"),
     Input("draw-adjust-btn", "n_clicks"),
     Input("draw-cancel-btn", "n_clicks"),
     State("draw-mode-store", "data"),
+    State("bub-xrange", "value"),
+    State("bub-yrange", "value"),
     prevent_initial_call=True,
 )
-def on_confirm_action(accept, adjust, cancel, draw_state):
+def on_confirm_action(accept, adjust, cancel, draw_state, cur_xrange, cur_yrange):
     triggered = ctx.triggered_id
     phase = (draw_state or {}).get("phase", "idle")
+    cur_xrange = cur_xrange or [2012, 2030]
+    cur_yrange = cur_yrange or [0, 7]
 
     if triggered == "draw-cancel-btn":
+        # Restore original range if we zoomed
+        orig = (draw_state or {}).get("pre_draw_zoom")
+        xr = orig["xrange"] if orig else no_update
+        yr = orig["yrange"] if orig else no_update
         if phase == "confirming_p1":
             new_state = dict(draw_state)
             new_state["phase"] = "placing_p1"
             new_state["point1"] = None
-            return new_state, _HIDDEN, no_update, "draw-active", ""
+            return new_state, _HIDDEN, no_update, "draw-active", "", xr, yr
         elif phase == "confirming_p2":
             new_state = dict(draw_state)
             new_state["phase"] = "placing_p2"
             new_state["point2"] = None
-            return new_state, _HIDDEN, no_update, "draw-active", ""
-        return no_update, _HIDDEN, no_update, "draw-active", ""
+            return new_state, _HIDDEN, no_update, "draw-active", "", xr, yr
+        return no_update, _HIDDEN, no_update, "draw-active", "", no_update, no_update
 
     if triggered == "draw-adjust-btn":
-        if phase == "confirming_p1":
+        import math
+        # Determine which point to center on
+        pt = None
+        if phase == "confirming_p1" and (draw_state or {}).get("point1"):
+            pt = draw_state["point1"]
+        elif phase == "confirming_p2" and (draw_state or {}).get("point2"):
+            pt = draw_state["point2"]
+
+        if pt:
+            # Save original range on first adjust
             new_state = dict(draw_state)
-            new_state["phase"] = "placing_p1"
-            new_state["_adjust_zoom"] = True
-            new_state["_zoom_level"] = (draw_state or {}).get("_zoom_level", 0) + 1
-            return new_state, _HIDDEN, no_update, "draw-active", ""
-        elif phase == "confirming_p2":
-            new_state = dict(draw_state)
-            new_state["phase"] = "placing_p2"
-            new_state["_adjust_zoom"] = True
-            new_state["_zoom_level"] = (draw_state or {}).get("_zoom_level", 0) + 1
-            return new_state, _HIDDEN, no_update, "draw-active", ""
-        return no_update, _HIDDEN, no_update, "draw-active", ""
+            if not new_state.get("pre_draw_zoom"):
+                new_state["pre_draw_zoom"] = {"xrange": list(cur_xrange), "yrange": list(cur_yrange)}
+
+            # Convert click t-value to calendar year for x slider
+            click_year = _GENESIS_YR + pt["t"]
+            click_log_price = math.log10(max(pt["price"], 1e-10))
+
+            # 2x zoom: halve the current slider span, center on point
+            x_lo, x_hi = float(cur_xrange[0]), float(cur_xrange[1])
+            y_lo, y_hi = float(cur_yrange[0]), float(cur_yrange[1])
+
+            x_half = (x_hi - x_lo) / 4  # quarter-span each side = 2x zoom
+            y_half = (y_hi - y_lo) / 4
+
+            new_xrange = [max(2010, round(click_year - x_half)),
+                          min(2080, round(click_year + x_half))]
+            new_yrange = [max(-2, round(click_log_price - y_half, 1)),
+                          min(9, round(click_log_price + y_half, 1))]
+
+            new_state["phase"] = "placing_p1" if phase == "confirming_p1" else "placing_p2"
+            new_state.pop("_adjust_zoom", None)
+            return new_state, _HIDDEN, no_update, "draw-active", "", new_xrange, new_yrange
+
+        # No point to center on — just go back to placing
+        new_state = dict(draw_state)
+        new_state["phase"] = "placing_p1" if phase == "confirming_p1" else "placing_p2"
+        return new_state, _HIDDEN, no_update, "draw-active", "", no_update, no_update
 
     if triggered == "draw-accept-btn":
         if phase == "confirming_p1":
             new_state = dict(draw_state)
             new_state["phase"] = "placing_p2"
-            new_state.pop("_adjust_zoom", None)
-            new_state.pop("_zoom_level", None)  # reset zoom for point 2
-            return new_state, _HIDDEN, no_update, "draw-active", ""
+            # Restore original range for point 2 placement
+            orig = new_state.get("pre_draw_zoom")
+            xr = orig["xrange"] if orig else no_update
+            yr = orig["yrange"] if orig else no_update
+            new_state["pre_draw_zoom"] = None  # reset for point 2
+            return new_state, _HIDDEN, no_update, "draw-active", "", xr, yr
         elif phase == "confirming_p2":
             # Construct model from two accepted points
             p1 = draw_state["point1"]
@@ -161,9 +202,13 @@ def on_confirm_action(accept, adjust, cancel, draw_state):
                 quantiles=list(M.QR_QUANTILES),
             )
             store_data = model.to_store_dict()
-            return _idle_state(), _HIDDEN, store_data, "", ""
+            # Restore original range
+            orig = (draw_state or {}).get("pre_draw_zoom")
+            xr = orig["xrange"] if orig else no_update
+            yr = orig["yrange"] if orig else no_update
+            return _idle_state(), _HIDDEN, store_data, "", "", xr, yr
 
-    return no_update, _HIDDEN, no_update, "", ""
+    return no_update, _HIDDEN, no_update, "", "", no_update, no_update
 
 
 # ══════════════════════════════════════════════════════════════════════════════

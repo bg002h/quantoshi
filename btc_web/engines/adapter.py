@@ -77,17 +77,25 @@ def submit_simulation(config: SimConfig, model: PriceModel,
                 "genesis": getattr(model, 'genesis', 0.0),
             }
 
-        task = celery_app.send_task(
-            'btc_web.tasks.run_citadel_simulation',
-            kwargs={
-                "config_dict": config_dict,
-                "price_paths_b64": paths_b64,
-                "price_paths_shape": paths_shape,
-                "model_data": model_data,
-            },
-        )
-        logger.info("Citadel MC task submitted: %s", task.id)
-        return task
+        # Check if a Celery worker is actually running before submitting
+        try:
+            insp = celery_app.control.inspect(timeout=1)
+            workers = insp.active_queues()
+            if not workers:
+                raise ConnectionError("No Celery workers available")
+            task = celery_app.send_task(
+                'btc_web.tasks.run_citadel_simulation',
+                kwargs={
+                    "config_dict": config_dict,
+                    "price_paths_b64": paths_b64,
+                    "price_paths_shape": paths_shape,
+                    "model_data": model_data,
+                },
+            )
+            logger.info("Citadel MC task submitted: %s", task.id)
+            return task
+        except Exception as e:
+            logger.info("Celery unavailable (%s) — falling through to in-process", e)
 
-    # In-process (deterministic or no Celery)
+    # In-process (deterministic, no Celery, or Celery unavailable)
     return simulate(config, model, rng_seed=rng_seed, price_paths=price_paths)

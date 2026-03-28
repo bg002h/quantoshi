@@ -7,6 +7,7 @@ import dash_bootstrap_components as dbc
 
 import _app_ctx
 from layout.common import _tab_hints, _ctrl_card, _lbl
+from tab_defaults import STACK
 
 
 def _stack_tracker_tab():
@@ -51,10 +52,10 @@ def _stack_tracker_tab():
                     _lbl("Date"), dbc.Input(id="lot-date", type="date",
                         value=str(pd.Timestamp.today().date()), size="sm"),
                     _lbl("BTC amount"),
-                    dbc.Input(id="lot-btc", type="number", value=0.01,
+                    dbc.Input(id="lot-btc", type="number", value=STACK["lot_btc"],
                               min=0, step=0.0001, size="sm"),
                     _lbl("Price ($/BTC)"),
-                    dbc.Input(id="lot-price", type="number", value=_app_ctx.LOT_DEFAULT_PRICE,
+                    dbc.Input(id="lot-price", type="number", value=STACK["lot_price"],
                               min=0, step=1, size="sm"),
                     _lbl("Notes"),
                     dbc.Input(id="lot-notes", type="text", value="", size="sm"),

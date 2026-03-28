@@ -105,27 +105,9 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 line=dict(color=col, width=_QR_LINE_WIDTH),
             ))
 
-    # ── draw-mode: invisible click grid + optional zoom ─────────────────────
-    if p.get("draw_mode") in ("placing_p1", "placing_p2"):
-        # Use zoomed range if available, otherwise full chart range
-        zr = p.get("draw_zoom_range")
-        if zr:
-            grid_t_lo, grid_t_hi = zr["t_lo"], zr["t_hi"]
-            grid_y_lo, grid_y_hi = zr["y_lo"], zr["y_hi"]
-        else:
-            grid_t_lo, grid_t_hi = max(t_lo, 0.1), max(t_hi, 1)
-            grid_y_lo, grid_y_hi = max(y_lo, 0.01), max(y_hi, 1)
-
-        bg_t = np.geomspace(grid_t_lo, grid_t_hi, 80)
-        bg_p = np.geomspace(grid_y_lo, grid_y_hi, 80)
-        bg_tt, bg_pp = np.meshgrid(bg_t, bg_p)
-        traces.insert(0, go.Scatter(
-            x=bg_tt.ravel().tolist(), y=bg_pp.ravel().tolist(),
-            mode="markers", marker=dict(size=8, opacity=0.001),
-            hoverinfo="skip", showlegend=False, name="_bg_click",
-        ))
-
     # ── draw-mode markers ────────────────────────────────────────────────────
+    # No invisible grid — users click on actual data scatter points.
+    # clickData returns exact data point coordinates, no snapping artifacts.
     if p.get("draw_point1"):
         pt = p["draw_point1"]
         traces.append(go.Scatter(

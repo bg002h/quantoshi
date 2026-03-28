@@ -108,22 +108,26 @@ _GENESIS_YR = 2009.56  # 2009-07-25 ≈ 2009.56
     Output("draw-toast", "className", allow_duplicate=True),
     Output("bub-xrange", "value", allow_duplicate=True),
     Output("bub-yrange", "value", allow_duplicate=True),
+    Output("bub-model-show", "value", allow_duplicate=True),
     Input("draw-accept-btn", "n_clicks"),
     Input("draw-adjust-btn", "n_clicks"),
     Input("draw-cancel-btn", "n_clicks"),
     State("draw-mode-store", "data"),
     State("bub-xrange", "value"),
     State("bub-yrange", "value"),
+    State("bub-model-show", "value"),
     prevent_initial_call=True,
 )
-def on_confirm_action(accept, adjust, cancel, draw_state, cur_xrange, cur_yrange):
+def on_confirm_action(accept, adjust, cancel, draw_state, cur_xrange, cur_yrange, cur_model_show):
     triggered = ctx.triggered_id
     phase = (draw_state or {}).get("phase", "idle")
     cur_xrange = cur_xrange or [2012, 2030]
     cur_yrange = cur_yrange or [0, 7]
 
+    # no_update shorthand for model-show (8th output)
+    _MS = no_update
+
     if triggered == "draw-cancel-btn":
-        # Restore original range if we zoomed
         orig = (draw_state or {}).get("pre_draw_zoom")
         xr = orig["xrange"] if orig else no_update
         yr = orig["yrange"] if orig else no_update
@@ -131,17 +135,16 @@ def on_confirm_action(accept, adjust, cancel, draw_state, cur_xrange, cur_yrange
             new_state = dict(draw_state)
             new_state["phase"] = "placing_p1"
             new_state["point1"] = None
-            return new_state, _HIDDEN, no_update, "draw-active", "", xr, yr
+            return new_state, _HIDDEN, no_update, "draw-active", "", xr, yr, _MS
         elif phase == "confirming_p2":
             new_state = dict(draw_state)
             new_state["phase"] = "placing_p2"
             new_state["point2"] = None
-            return new_state, _HIDDEN, no_update, "draw-active", "", xr, yr
-        return no_update, _HIDDEN, no_update, "draw-active", "", no_update, no_update
+            return new_state, _HIDDEN, no_update, "draw-active", "", xr, yr, _MS
+        return no_update, _HIDDEN, no_update, "draw-active", "", no_update, no_update, _MS
 
     if triggered == "draw-adjust-btn":
         import math
-        # Determine which point to center on
         pt = None
         if phase == "confirming_p1" and (draw_state or {}).get("point1"):
             pt = draw_state["point1"]
@@ -149,20 +152,16 @@ def on_confirm_action(accept, adjust, cancel, draw_state, cur_xrange, cur_yrange
             pt = draw_state["point2"]
 
         if pt:
-            # Save original range on first adjust
             new_state = dict(draw_state)
             if not new_state.get("pre_draw_zoom"):
                 new_state["pre_draw_zoom"] = {"xrange": list(cur_xrange), "yrange": list(cur_yrange)}
 
-            # Convert click t-value to calendar year for x slider
             click_year = _GENESIS_YR + pt["t"]
             click_log_price = math.log10(max(pt["price"], 1e-10))
 
-            # 2x zoom: halve the current slider span, center on point
             x_lo, x_hi = float(cur_xrange[0]), float(cur_xrange[1])
             y_lo, y_hi = float(cur_yrange[0]), float(cur_yrange[1])
-
-            x_half = (x_hi - x_lo) / 4  # quarter-span each side = 2x zoom
+            x_half = (x_hi - x_lo) / 4
             y_half = (y_hi - y_lo) / 4
 
             new_xrange = [max(2010, round(click_year - x_half)),
@@ -172,25 +171,22 @@ def on_confirm_action(accept, adjust, cancel, draw_state, cur_xrange, cur_yrange
 
             new_state["phase"] = "placing_p1" if phase == "confirming_p1" else "placing_p2"
             new_state.pop("_adjust_zoom", None)
-            return new_state, _HIDDEN, no_update, "draw-active", "", new_xrange, new_yrange
+            return new_state, _HIDDEN, no_update, "draw-active", "", new_xrange, new_yrange, _MS
 
-        # No point to center on — just go back to placing
         new_state = dict(draw_state)
         new_state["phase"] = "placing_p1" if phase == "confirming_p1" else "placing_p2"
-        return new_state, _HIDDEN, no_update, "draw-active", "", no_update, no_update
+        return new_state, _HIDDEN, no_update, "draw-active", "", no_update, no_update, _MS
 
     if triggered == "draw-accept-btn":
         if phase == "confirming_p1":
             new_state = dict(draw_state)
             new_state["phase"] = "placing_p2"
-            # Restore original range for point 2 placement
             orig = new_state.get("pre_draw_zoom")
             xr = orig["xrange"] if orig else no_update
             yr = orig["yrange"] if orig else no_update
-            new_state["pre_draw_zoom"] = None  # reset for point 2
-            return new_state, _HIDDEN, no_update, "draw-active", "", xr, yr
+            new_state["pre_draw_zoom"] = None
+            return new_state, _HIDDEN, no_update, "draw-active", "", xr, yr, _MS
         elif phase == "confirming_p2":
-            # Construct model from two accepted points
             p1 = draw_state["point1"]
             p2 = draw_state["point2"]
             M = _app_ctx.M
@@ -202,13 +198,16 @@ def on_confirm_action(accept, adjust, cancel, draw_state, cur_xrange, cur_yrange
                 quantiles=list(M.QR_QUANTILES),
             )
             store_data = model.to_store_dict()
-            # Restore original range
             orig = (draw_state or {}).get("pre_draw_zoom")
             xr = orig["xrange"] if orig else no_update
             yr = orig["yrange"] if orig else no_update
-            return _idle_state(), _HIDDEN, store_data, "", "", xr, yr
+            # Auto-check U1 in Display Models
+            ms = list(cur_model_show or [])
+            if "u1" not in ms:
+                ms.append("u1")
+            return _idle_state(), _HIDDEN, store_data, "", "", xr, yr, ms
 
-    return no_update, _HIDDEN, no_update, "", "", no_update, no_update
+    return no_update, _HIDDEN, no_update, "", "", no_update, no_update, _MS
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -238,21 +237,21 @@ def on_tab_switch(active_tab, draw_state):
 @callback(
     Output("draw-mode-store", "data", allow_duplicate=True),
     Output("draw-confirm-menu", "style", allow_duplicate=True),
-    Input("bubble-graph", "clickData"),
+    Input("raw-chart-click", "data"),
     State("draw-mode-store", "data"),
     prevent_initial_call=True,
 )
 def on_chart_click(click_data, draw_state):
+    """Capture raw chart click (from JS pixel→data conversion, no trace snapping)."""
     phase = (draw_state or {}).get("phase", "idle")
 
     if phase not in ("placing_p1", "placing_p2"):
         return no_update, no_update
 
-    if not click_data or not click_data.get("points"):
+    if not click_data or not click_data.get("t") or not click_data.get("price"):
         return no_update, no_update
 
-    pt = click_data["points"][0]
-    clicked = {"t": pt["x"], "price": pt["y"]}
+    clicked = {"t": click_data["t"], "price": click_data["price"]}
     new_draw = dict(draw_state)
     new_draw.pop("_adjust_zoom", None)  # clear zoom flag from previous adjust
 

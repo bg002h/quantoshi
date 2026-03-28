@@ -40,7 +40,7 @@ _MODEL_COLORS = {
     Output("ticker-model-idx",    "data",     allow_duplicate=True),
     Input("price-interval", "n_intervals"),
     Input("ticker-mode-store",    "data"),
-    State("user-model-store", "data"),
+    Input("user-model-store", "data"),
     prevent_initial_call="initial_duplicate",
 )
 def update_price_ticker(_, mode, user_model_data):

@@ -140,17 +140,13 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             if not mdl:
                 continue
         if mdl.quantized:
-            # For U1, draw key quantiles to show asymmetric band structure.
-            # For other models, only draw user-selected quantiles.
+            # For U1, only draw user-selected quantiles (same as other models).
+            # The user's own line is already drawn above at 3px.
+            overlay_qs = list(sel_qs)
             if model_key == "u1":
-                _U1_SHOW = {0.01, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99}
-                overlay_qs = [q for q in mdl.quantiles if q in _U1_SHOW]
-                # Always include own quantile (the drawn line)
-                if hasattr(mdl, "own_quantile") and mdl.own_quantile not in overlay_qs:
-                    overlay_qs.append(mdl.own_quantile)
-                overlay_qs.sort()
-            else:
-                overlay_qs = list(sel_qs)
+                # Skip own_quantile — already drawn as direct line above
+                overlay_qs = [q for q in overlay_qs
+                              if not (hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005)]
             for q in overlay_qs:
                 if q not in mdl.fits:
                     continue

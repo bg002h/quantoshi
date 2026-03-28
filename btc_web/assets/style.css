@@ -1070,6 +1070,17 @@ body {
         height: 55vw !important;
         min-height: 280px !important;
     }
+    /* Heatmap: horizontal scroll on mobile — too many columns to squeeze */
+    #heatmap-graph {
+        height: auto !important;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    #heatmap-graph .js-plotly-plot {
+        min-width: 600px;
+        height: 70vw !important;
+        min-height: 350px !important;
+    }
     /* ── Mobile dropdown: larger touch targets, cleaner option list ──── */
     .Select-control {
         min-height: 38px;

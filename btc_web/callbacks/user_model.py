@@ -253,8 +253,18 @@ def on_chart_click(click_data, draw_state):
 
     pt = click_data["points"][0]
     clicked = {"t": pt["x"], "price": pt["y"]}
+
+    # Ignore click-through from menu buttons: if the click coordinates
+    # match the already-saved point, this is the same clickData that
+    # placed the point originally (menu button tap bubbled to chart).
+    # A real repositioning click will always have different coordinates.
+    existing = draw_state.get("point1") if phase == "placing_p1" else draw_state.get("point2")
+    if existing:
+        if (abs(clicked["t"] - existing["t"]) < 1e-6 and
+                abs(clicked["price"] - existing["price"]) < 1e-6):
+            return no_update, no_update
+
     new_draw = dict(draw_state)
-    new_draw.pop("_adjust_zoom", None)
 
     if phase == "placing_p1":
         new_draw["point1"] = clicked

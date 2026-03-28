@@ -8,7 +8,7 @@ import pandas as pd
 
 import _app_ctx
 from btc_core import yr_to_t, today_t, _find_lot_percentile
-from tab_defaults import BUBBLE, HEATMAP, DCA
+from tab_defaults import BUBBLE, HEATMAP, DCA, RETIRE
 from callbacks.coerce import _ci, _cf
 from callbacks.mc_helpers import (_mc_setup, _mc_finalize, _mc_status,
                                   _strip_free_paths)
@@ -505,23 +505,23 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     if ctx.triggered_id == "main-tabs" and active_tab != "retire":
         raise dash.exceptions.PreventUpdate
     toggles  = toggles or []
-    yr_range = yr_range or [2025, 2045]
+    yr_range = yr_range or [RETIRE["start_yr"], RETIRE["end_yr"]]
     mc_ok, is_free, mc_p, blocked = _mc_setup(
         "ret", mc_enable, mc_years, mc_start_yr, mc_entry_q,
         mc_bins, mc_sims, freq, mc_window, wd, infl,
         mc_cached, _cf(price_data, 0), mc_regime, mc_unblocked, pay_token,
         mc_auth=mc_auth,
-        stack=stack, amount_default=5000, infl_default=4.0, start_yr_default=2031,
+        stack=stack, amount_default=RETIRE["wd_amount"], infl_default=RETIRE["inflation"], start_yr_default=RETIRE["start_yr"],
         mc_model_src=mc_model_src)
     model_show = model_show if model_show is not None else []
     fig, mc_result = _get_retire_fig(dict(
-        start_stack  = _cf(stack, 1.0),
+        start_stack  = _cf(stack, RETIRE["start_stack"]),
         use_lots     = bool(use_lots),
-        wd_amount    = _ci(wd, 5000, lo=0, hi=_app_ctx.MAX_USD),
+        wd_amount    = _ci(wd, RETIRE["wd_amount"], lo=0, hi=_app_ctx.MAX_USD),
         freq         = freq or "Monthly",
         start_yr     = int(yr_range[0]),
         end_yr       = int(yr_range[1]),
-        inflation    = _cf(infl, 0),
+        inflation    = _cf(infl, RETIRE["inflation"]),
         disp_mode    = disp or "btc",
         log_y        = "log_y"     in toggles,
         annotate     = "annotate"  in toggles,

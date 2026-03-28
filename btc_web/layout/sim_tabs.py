@@ -6,7 +6,7 @@ from dash import dcc, html
 import dash_bootstrap_components as dbc
 
 import _app_ctx
-from tab_defaults import DCA
+from tab_defaults import DCA, RETIRE
 from layout.common import (_tab_hints, _section_card, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT,
                             _q_options, _model_show_checklist,
@@ -138,14 +138,16 @@ def _retire_controls():
         q_hint="Lower quantile = lower price = faster depletion \u2014 worst-case planning.",
         q_defaults=[0.01, 0.10, 0.25],
         shared_kwargs=dict(amount_id="ret-wd", amount_label="Withdrawal/period ($)",
-                           amount_default=5000, infl_default=4, stack_default=1.0),
-        mc_kwargs=dict(amount_label="Withdrawal per period ($)", amount_default=5000,
+                           amount_default=RETIRE["wd_amount"], infl_default=RETIRE["inflation"],
+                           stack_default=RETIRE["start_stack"]),
+        mc_kwargs=dict(amount_label="Withdrawal per period ($)", amount_default=RETIRE["wd_amount"],
                        show_inflation=True, show_stack=True, default_entry_q=10,
                        start_yr_label="Retirement start year",
                        shared_controls={"amount", "infl", "freq", "stack"}),
         yr_range=(2024, 2080, 2031, 2075),
         chart_toggle_defaults=["annotate", "log_y", "minor_grid"],
         btc_usd_kwargs={"btc_label": "BTC Remaining"},
+        legend_pos_default=RETIRE["legend_pos"],
     )
 
 

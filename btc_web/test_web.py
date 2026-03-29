@@ -2201,7 +2201,7 @@ class TestDCAMath:
         usd_final = fig_usd.data[0].y[-1]
         t_end = yr_to_t(2031, M.genesis)
         ts = np.arange(max(yr_to_t(2030, M.genesis), 1.0), t_end + (1 / 12) * 0.5, 1 / 12)
-        final_price = float(qr_price(_Q50, max(ts[-1], 0.5), M.qr_fits))
+        final_price = float(_app_ctx.DEFAULT_MODEL.price_at(_Q50, max(ts[-1], 0.5)))
         assert abs(usd_final - btc_final * final_price) < 100.0  # loosened for 3-sig-fig trace rounding
 
     def test_higher_quantile_less_btc(self):
@@ -2329,13 +2329,13 @@ class TestRetireMath:
         fig, _ = build_retire_figure(M, p)
         assert len(fig.data) >= 1
         y_vals = list(fig.data[0].y)
-        # Manual
+        # Manual — use DEFAULT_MODEL.price_at (same as figure code)
         t_start = max(yr_to_t(2030, M.genesis), 1.0)
         t_end = yr_to_t(2035, M.genesis)
         ts = np.arange(t_start, t_end + 0.5, 1.0)
         stack = 1.0
         for i, t in enumerate(ts):
-            price = float(qr_price(_Q50, max(t, 0.5), M.qr_fits))
+            price = float(_app_ctx.DEFAULT_MODEL.price_at(_Q50, max(t, 0.5)))
             stack -= 50000.0 / price
             stack = max(stack, 0.0)
             assert abs(y_vals[i] - stack) < 0.01  # loosened for 3-sig-fig trace rounding
@@ -4155,7 +4155,7 @@ class TestMultiModelBubbleFigure:
             comp_color="#FFD700", comp_lw=2.0, sup_color="#888888", sup_lw=1.5,
             active_models=["pl"],
         ))
-        pl_traces = [t for t in fig.data if t.name and "Power Law" in t.name]
+        pl_traces = [t for t in fig.data if t.name and t.legendgroup == "pl"]
         assert len(pl_traces) > 0
         assert pl_traces[0].line.dash == "dot"
 
@@ -4181,7 +4181,7 @@ class TestMultiModelDcaFigure:
             sc_tax_rate=0.33, sc_live_price=None,
             active_models=["pl"],
         ))
-        pl_traces = [t for t in fig.data if t.name and "Power Law" in t.name]
+        pl_traces = [t for t in fig.data if t.name and t.legendgroup == "pl"]
         assert len(pl_traces) > 0
 
 
@@ -4296,7 +4296,7 @@ class TestPhase5Polish:
             comp_color="#FFD700", comp_lw=2.0, sup_color="#888888", sup_lw=1.5,
             active_models=["s2f"],
         ))
-        s2f_traces = [t for t in fig.data if t.name and "Stock-to-Flow" in t.name]
+        s2f_traces = [t for t in fig.data if t.name and t.legendgroup == "s2f"]
         assert len(s2f_traces) == 1
         assert s2f_traces[0].line.dash == "longdash"
 
@@ -4317,7 +4317,7 @@ class TestPhase5Polish:
             sc_tax_rate=0.33, sc_live_price=None,
             active_models=["s2f"],
         ))
-        s2f_traces = [t for t in fig.data if t.name and "Stock-to-Flow" in t.name]
+        s2f_traces = [t for t in fig.data if t.name and t.legendgroup == "s2f"]
         assert len(s2f_traces) == 1
         assert s2f_traces[0].line.dash == "longdash"
 
@@ -4333,7 +4333,7 @@ class TestPhase5Polish:
             selected_qs=[0.5], lots=[],
             active_models=["s2f"],
         ))
-        s2f_traces = [t for t in fig.data if t.name and "Stock-to-Flow" in t.name]
+        s2f_traces = [t for t in fig.data if t.name and t.legendgroup == "s2f"]
         assert len(s2f_traces) == 1
 
     def test_pl_uses_dot_dash(self):
@@ -4350,7 +4350,7 @@ class TestPhase5Polish:
             comp_color="#FFD700", comp_lw=2.0, sup_color="#888888", sup_lw=1.5,
             active_models=["pl"],
         ))
-        pl_traces = [t for t in fig.data if t.name and "Power Law" in t.name]
+        pl_traces = [t for t in fig.data if t.name and t.legendgroup == "pl"]
         assert len(pl_traces) > 0
         assert pl_traces[0].line.dash == "dot"
 
@@ -4488,7 +4488,7 @@ class TestEmpiricalFloorModel:
         assert abs(q - 0.5) < 0.1
 
     def test_dash_style(self):
-        assert self.model.dash_style == "dashdot"
+        assert self.model.dash_style == "longdash"
 
 
 class TestCompositeModelBands:
@@ -4700,20 +4700,20 @@ class TestEFCompositeOverlay:
             pytest.skip("EF model not loaded")
         fig = build_bubble_figure(M, dict(self._BASE, active_models=["ef"]))
         names = [t.name for t in fig.data if t.name]
-        assert any("Empirical Floor" in n and "composite" in n for n in names)
+        assert any("EF" in n and "composite" in n for n in names)
 
     def test_ef_overlay_draws_support(self):
         if "ef" not in _app_ctx.PRICE_MODELS:
             pytest.skip("EF model not loaded")
         fig = build_bubble_figure(M, dict(self._BASE, active_models=["ef"]))
         names = [t.name for t in fig.data if t.name]
-        assert any("Empirical Floor" in n and "support" in n for n in names)
+        assert any("EF" in n and "support" in n for n in names)
 
     def test_ef_composite_uses_own_color(self):
         if "ef" not in _app_ctx.PRICE_MODELS:
             pytest.skip("EF model not loaded")
         fig = build_bubble_figure(M, dict(self._BASE, active_models=["ef"]))
-        comp_traces = [t for t in fig.data if t.name and "Empirical Floor" in t.name and "composite" in t.name]
+        comp_traces = [t for t in fig.data if t.name and "EF" in t.name and "composite" in t.name]
         assert len(comp_traces) > 0
         assert comp_traces[0].line.color == "#D4A017"  # EF amber
 
@@ -4730,7 +4730,7 @@ class TestEFCompositeOverlay:
         fig = build_bubble_figure(M, dict(self._BASE, active_models=["bub", "ef"]))
         names = [t.name for t in fig.data if t.name]
         assert any("Bubble composite" in n for n in names)
-        assert any("Empirical Floor" in n and "composite" in n for n in names)
+        assert any("EF" in n and "composite" in n for n in names)
 
 
 class TestAutoYWithBubToggle:
@@ -4827,7 +4827,7 @@ class TestR2InLegend:
 
     def test_overlay_quantile_has_r2(self):
         fig = build_bubble_figure(M, dict(self._BASE, active_models=["bub", "pl"]))
-        pl_traces = [t for t in fig.data if t.name and "Power Law" in t.name
+        pl_traces = [t for t in fig.data if t.name and t.legendgroup == "pl"
                      and "R\u00b2" in t.name]
         assert len(pl_traces) > 0, "PL overlay lines should show R²"
 
@@ -4839,7 +4839,7 @@ class TestR2InLegend:
 
     def test_s2f_has_r2(self):
         fig = build_bubble_figure(M, dict(self._BASE, active_models=["s2f"]))
-        s2f_traces = [t for t in fig.data if t.name and "Stock-to-Flow" in t.name]
+        s2f_traces = [t for t in fig.data if t.name and t.legendgroup == "s2f"]
         assert len(s2f_traces) > 0
         assert "R\u00b2" in s2f_traces[0].name
 

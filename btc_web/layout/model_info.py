@@ -530,6 +530,10 @@ where $\alpha$ (intercept) and $\beta$ (slope) are derived from **two user-selec
                                 html.Li("When selected, user-input rates/volatility are ignored"),
                                 html.Li("Available in both deterministic (\u25b6) and MC (\u26a1) modes"),
                             ]),
+
+                            html.H6("Historical Data Summary"),
+                            _regime_data_tables(),
+
                         ], title="Historical Regimes (Dollar Assets)", item_id="mi-regimes"),
 
                     ], id="model-info-accordion", start_collapsed=True, flush=True),
@@ -654,3 +658,91 @@ def _comparison_table():
             ]),
         ]),
     ], style={"marginBottom": "16px", "width": "100%", "borderCollapse": "collapse"})
+
+
+def _regime_data_tables():
+    """Build summary tables + transition matrices for all asset classes."""
+    try:
+        from data.asset_matrices import load_asset_matrices
+        matrices = load_asset_matrices()
+    except Exception as e:
+        return html.P(f"Data not available: {e}", className="text-muted")
+
+    sections = []
+    _cell = {"fontSize": "11px", "padding": "2px 6px", "border": "1px solid #ddd",
+             "textAlign": "right"}
+    _hdr = {**_cell, "fontWeight": "bold", "backgroundColor": "#f5f5f0", "textAlign": "center"}
+
+    for key in ("equity", "bond", "tres_short", "tres_med", "tres_long"):
+        m = matrices.get(key)
+        if not m:
+            continue
+
+        label = m.get("label", key)
+        n_bins = len(m["bin_means"])
+
+        # Summary stats
+        sections.append(html.H6(f"{label}", style={"marginTop": "12px"}))
+        sections.append(html.Table([
+            html.Tbody([
+                html.Tr([
+                    html.Td("Observations", style={**_cell, "fontWeight": "bold"}),
+                    html.Td(f"{m['n_obs']} months", style=_cell),
+                    html.Td("Ann. Return", style={**_cell, "fontWeight": "bold"}),
+                    html.Td(f"{m['ann_return']*100:.1f}%", style=_cell),
+                    html.Td("Ann. Vol", style={**_cell, "fontWeight": "bold"}),
+                    html.Td(f"{m['ann_vol']*100:.1f}%", style=_cell),
+                ]),
+            ]),
+        ], style={"marginBottom": "4px", "borderCollapse": "collapse"}))
+
+        # Regime bins: mean return + volatility per bin
+        bin_header = [html.Th("Regime", style=_hdr)] + [
+            html.Th(f"Bin {i+1}", style=_hdr) for i in range(n_bins)
+        ]
+        bin_means_row = [html.Td("Mean mo. return", style={**_cell, "fontWeight": "bold"})] + [
+            html.Td(f"{m['bin_means'][i]*100:+.2f}%", style=_cell) for i in range(n_bins)
+        ]
+        bin_vols_row = [html.Td("Mo. volatility", style={**_cell, "fontWeight": "bold"})] + [
+            html.Td(f"{m['bin_vols'][i]*100:.2f}%", style=_cell) for i in range(n_bins)
+        ]
+        bin_edges_row = [html.Td("Return range", style={**_cell, "fontWeight": "bold"})] + [
+            html.Td(f"{m['bin_edges'][i]*100:+.1f} to {m['bin_edges'][i+1]*100:+.1f}%",
+                     style={**_cell, "fontSize": "10px"})
+            for i in range(n_bins)
+        ]
+
+        sections.append(html.Table([
+            html.Thead(html.Tr(bin_header)),
+            html.Tbody([
+                html.Tr(bin_means_row),
+                html.Tr(bin_vols_row),
+                html.Tr(bin_edges_row),
+            ]),
+        ], style={"marginBottom": "4px", "borderCollapse": "collapse", "width": "100%"}))
+
+        # Transition matrix
+        trans = m["trans"]
+        t_header = [html.Th("From \u2193 To \u2192", style=_hdr)] + [
+            html.Th(f"Bin {j+1}", style=_hdr) for j in range(n_bins)
+        ]
+        t_rows = []
+        for i in range(n_bins):
+            cells = [html.Td(f"Bin {i+1}", style={**_cell, "fontWeight": "bold"})]
+            for j in range(n_bins):
+                p = trans[i, j]
+                # Color-code: darker for higher probability
+                bg = f"rgba(230,126,34,{min(p * 1.5, 0.4):.2f})" if p > 0.1 else "transparent"
+                cells.append(html.Td(f"{p:.0%}", style={**_cell, "backgroundColor": bg}))
+            t_rows.append(html.Tr(cells))
+
+        sections.append(html.Details([
+            html.Summary("Transition matrix", style={"fontSize": "12px", "cursor": "pointer",
+                                                      "color": "#888", "marginBottom": "4px"}),
+            html.Table([
+                html.Thead(html.Tr(t_header)),
+                html.Tbody(t_rows),
+            ], style={"borderCollapse": "collapse", "width": "100%"}),
+        ], style={"marginBottom": "12px"}))
+
+    return html.Div(sections)

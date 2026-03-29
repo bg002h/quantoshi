@@ -154,8 +154,10 @@ def _build_layout(initial_tab="bubble"):
     dcc.Store(id="lots-store", storage_type="local", data=[]),
     dcc.Store(id="lots-export-dummy"),
     dcc.Store(id="wm-b64-store", storage_type="memory", data=_LOGO_B64_ALL),
-    # Per-tab render triggers (clientside callback fires on tab switch)
-    *[dcc.Store(id=f"{tab}-first-render", storage_type="memory", data=0)
+    # Per-tab render triggers — start at 1 (figures already injected at layout time).
+    # Clientside trigger only fires for cur=0 (unvisited), so no callback fires
+    # until the user changes a control. Double-click tab forces reload.
+    *[dcc.Store(id=f"{tab}-first-render", storage_type="memory", data=1)
       for tab in ("bubble", "heatmap", "dca", "retire", "supercharge", "citadel")],
     # MC per-tab stores (results, unblocked cache, loaded trigger, download dummy)
     *[dcc.Store(id=f"{pfx}-mc-results", storage_type="memory", data=None)

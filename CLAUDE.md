@@ -85,7 +85,7 @@ PORT=8080 bash run_web.sh # custom port
 ### Syntax-check the web app
 ```bash
 cd btc_web && PYTHONPATH=".:../archive/btc_app" ../btc_venv/bin/python3 -c \
-  "import layout, figures, callbacks, cache, engines.adapter, engines.citadel, data.asset_matrices; print('OK')"
+  "import layout, figures, callbacks, cache, engines.adapter, engines.citadel, engines.tax, engines.tax_lots, engines.tax_data, data.asset_matrices; print('OK')"
 ```
 
 ### Deploy to production (Hetzner VPS)
@@ -199,12 +199,13 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | `cache.py` | L0 pinned + L2 Redis-backed figure cache (fingerprint invalidation) |
 | `celery_app.py` | Celery application factory |
 | `tasks.py` | Celery background tasks |
-| `engines/` | `adapter.py` (Celery-or-in-process fallback), `citadel.py` (Citadel simulation engine) |
+| `engines/` | `adapter.py` (Celery-or-in-process fallback), `citadel.py` (Citadel simulation engine), `tax.py` (annual tax computation), `tax_lots.py` (BTC lot tracking), `tax_data.py` (static bracket/rate data) |
 | `data/` | `asset_matrices.py`, `fetch_historical.py`, historical CSV data files |
 | `load_shm_cache.py` | Shared memory cache loading |
-| `test_web.py` | Comprehensive test suite |
-| `layout/` | Layout package — tab controls, navbar, main assembly (13 modules incl. `citadel`, `model_info`) |
-| `callbacks/` | Callbacks package — all Dash callbacks (17 modules incl. `routing`, `splash`, `user_model`, `citadel_cb`, `scanner`) |
+| `test_web.py` | Comprehensive test suite (~650+ tests) |
+| `test_tax_e2e.py` | Playwright E2E smoke tests for tax UI (15 tests, requires dev server + Firefox) |
+| `layout/` | Layout package — tab controls, navbar, main assembly (14 modules incl. `citadel`, `citadel_tax`, `model_info`) |
+| `callbacks/` | Callbacks package — all Dash callbacks (18 modules incl. `routing`, `splash`, `user_model`, `citadel_cb`, `citadel_tax_cb`, `scanner`) |
 | `figures/` | Figures package — chart builders + shared helpers (8 modules incl. `citadel`) |
 | `assets/style.css` | Light theme (FLATLY) overrides + mobile layout |
 | `assets/quantoshi_logo.png` | Master logo (575×360, 250KB — not directly served) |
@@ -335,6 +336,51 @@ Multi-model heatmap switching via pill buttons (added in `a94a987`):
 - **"▶ Run Simulation"** button triggers computation (via Celery if available, in-process fallback via `engines/adapter.py`).
 - Engine: `engines/citadel.py`. Figure builder: `figures/citadel.py`. Layout: `layout/citadel.py`. Callbacks: `callbacks/citadel_cb.py`.
 - Historical data in `data/`: equity, bond, treasury CSV files + `asset_matrices.py` for correlation/return matrices.
+
+### Citadel Tax System
+
+Opt-in US federal + state tax simulation layer. Master toggle `cp-tax-toggle` in the Simulation sub-tab. When off, engine runs unmodified. When on, full tax system activates.
+
+**Architecture:**
+- `engines/tax_data.py` — Static data: federal brackets (TCJA + sunset), LTCG brackets, state rates (51 entries), RMD factors, standard deductions, NIIT constants.
+- `engines/tax_lots.py` — `TaxLot` dataclass, `sell_lots()` (FIFO/LIFO), `seed_lots()` from Stack Tracker. Per-lot ST/LT classification (365-day threshold).
+- `engines/tax.py` — `TaxYearAccumulator`, `compute_annual_tax()` (full pipeline: loss netting → AGI → standard deduction → ordinary brackets → LTCG stacking → NIIT → state tax), `_inflate_brackets()`.
+- `engines/citadel.py` — Tax fields on `SimConfig`/`CitadelState`, `_tax_aware_waterfall()` (growth-aware 8-tier ordering), `_year_boundary_tax()`, `_compute_rmd()`.
+- `layout/citadel_tax.py` — Full-screen modal (`cp-tax-modal`), master toggle, state dropdown, tax summary panel.
+- `callbacks/citadel_tax_cb.py` — Modal open/close, state auto-fill, save config, summary table builder.
+
+**Three account wrappers:**
+- **Taxable** — BTC (lot-tracked), cash, reserves, investments. BTC/investment sales → capital gains. Cash/reserve withdrawals → no tax. Interest → ordinary income. Treasury interest → state-exempt.
+- **Tax-Deferred** (Traditional IRA/401k) — All assets incl. BTC. All withdrawals → ordinary income. No lot tracking. Subject to RMDs (age 73/75 based on birth year).
+- **Tax-Free** (Roth) — All assets incl. BTC. All withdrawals → tax-free. No lot tracking. No RMDs.
+
+**Tax computation (annual, at year boundary):**
+1. IRS §1(h) capital loss netting (ST/LT separate categories, cross-offset, $3k deduction, carryforward)
+2. AGI = TD withdrawals + interest + other_income + net gains − loss deduction
+3. Standard deduction: reduces ordinary income first, overflow reduces LTCG
+4. Federal ordinary tax: progressive brackets (inflation-indexed from 2025 base)
+5. Federal LTCG: 0%/15%/20% brackets stacked above ordinary taxable income
+6. NIIT: 3.8% on min(NII, MAGI − threshold). Threshold NOT inflation-indexed.
+7. State tax: flat top marginal rate on AGI minus treasury interest
+8. Tax payment: from taxable wrapper (cash → investments → TD → BTC), gross-up formula for tax-on-tax
+
+**Investment cost basis:** Tracked dynamically as parallel array to investment values. User enters current value + cost basis in Assets sub-tab. On sale, proportional basis is removed. Gain = proceeds − basis_fraction.
+
+**Withdrawal ordering (growth-aware):**
+When BTC growth is high (early decades): taxable principal → TD bracket-fill → taxable investments → TD remaining → taxable BTC → Roth → Roth BTC.
+When BTC growth is low (late decades): taxable BTC moves earlier in the order.
+Roth BTC is always absolute last (tax-free compounding on highest-growth asset).
+
+**Key tax law rules implemented:**
+- AMT skipped (LTCG rates identical under both systems for pure investment income)
+- TCJA sunset toggle: 39.6% top rate, lower standard deduction
+- Treasury interest (reserves): federal ordinary income + NIIT, but state-exempt
+- RMD start age: 73 for born 1951-1959, 75 for born 1960+ (SECURE 2.0)
+- Birth year input: min=1900, max=2099
+
+**Component IDs:** All use `cp-tax-*`, `cp-td-*`, `cp-tf-*` prefixes. 16 entries in `_SNAPSHOT_CONTROLS`, `_TAB_CONTROLS["citadel"]`.
+
+**Tests:** 92 tax-specific tests (unit + integration + E2E). `test_tax_e2e.py` requires Playwright + Firefox + running dev server.
 
 ### Colorblind palette system
 

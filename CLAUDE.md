@@ -346,6 +346,32 @@ Heatmap colorscale: all three modes use `_dense_colorscale()` — 256-point `rgb
 
 Heatmap chart title format: `Entry: {year}  {price}  ·  Q{percentile}%` — price first, then quantile, matching the navbar ticker format.
 
+### Callback performance
+
+**Per-tab render triggers**: Each chart tab has a `dcc.Store("{tab}-first-render")` initialized to 0. A single clientside callback watches `main-tabs.active_tab` and increments the matching tab's store. Chart callbacks use `Input("{tab}-first-render", "data")` instead of `Input("main-tabs", "active_tab")`, with `prevent_initial_call=True` — they ONLY fire when their trigger increments. Result: switching tabs fires exactly 1 chart callback (the active tab), not all 6.
+
+**URL-based initial tab**: The layout is a function (`_serve_layout`) that reads `flask.request.path` to determine the initial `active_tab`. Visiting `/9` builds the layout with `active_tab="citadel"` — the bubble callback never fires. No wasted computation for tabs the user didn't request.
+
+**`prevent_initial_call` settings**:
+
+| Callback | Setting | Why |
+|---|---|---|
+| All chart callbacks (bubble, heatmap, DCA, retire, SC, citadel) | `True` | Only fire via first-render trigger on tab visit |
+| MC body toggles (5x) | N/A (clientside) | Zero server round-trips |
+| SC mode/display toggles | N/A (clientside) | Same |
+| Price ticker | `'initial_duplicate'` | Must fire once on load to populate price |
+
+Constraint: `allow_duplicate=True` on outputs is incompatible with `prevent_initial_call=False` (crashes gunicorn). The first-render trigger pattern solves this — callbacks use `prevent_initial_call=True` and get triggered by the clientside store instead.
+
+**Clientside callback pattern**: Trivial visibility toggles should be clientside callbacks (no server round-trip):
+```python
+_app_ctx.app.clientside_callback(
+    "function(v) { return (v && v.length) ? {} : {display:'none'}; }",
+    Output("component-id", "style"),
+    Input("toggle-id", "value"),
+)
+```
+
 ### Figure cache (three layers)
 - **L0 (pinned)**: Redis-backed persistent cache for default params. Fingerprint = `md5(model_fp + defaults_hash)`. 7-day TTL. Survives restarts. Defined in `cache.py`.
 - **L1 (LRU)**: `@lru_cache(maxsize=8)` per tab (bubble, heatmap, DCA, retire, supercharge, citadel). Per-worker, in-memory.
@@ -356,6 +382,7 @@ Heatmap chart title format: `Entry: {year}  {price}  ·  Q{percentile}%` — pri
 - `_ALL_QS` filtered to Q0.1%–Q99.9% (extreme quantiles break `_q3` due to float rounding).
 - Bubble cache key includes `date.today()` for natural daily TTL.
 - `_prewarm_caches()` runs at worker startup (skipped in `DEV=1` mode). **Must be updated when tab defaults change** — canonical defaults in `tab_defaults.py`.
+- **Cache key alignment**: The `*_defaults()` functions in `tab_defaults.py` must include ALL keys that callbacks add to the params dict (including `show_qr`, `show_mc`, `palette`, `user_model`, `sc_live_price`). This ensures the prewarm cache key matches the runtime callback cache key, yielding an L1 cache hit on first tab visit.
 
 ### Known gotchas
 

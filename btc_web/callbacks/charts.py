@@ -542,7 +542,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         lots         = lots_data or [],
         show_qr      = "bub" in model_show,
         show_mc      = "mc" in model_show,
-        active_models = [k for k in model_show if k not in _app_ctx.MODEL_SENTINELS],
+        active_models = [k for k in model_show if k != "mc"],  # pass "bub" through for toggle
         palette = palette_key or "default",
         user_model = user_model_store,
         **mc_p,

@@ -48,6 +48,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     inflation = float(p.get("inflation", RETIRE["inflation"])) / 100.0
     disp_mode = p.get("disp_mode", "btc")
     sel_qs    = sorted([float(q) for q in (p.get("selected_qs") or [])])
+    show_bm   = "bub" in (p.get("active_models") or ["bub"])
 
     traces   = []
     deplete_annots = []
@@ -74,28 +75,29 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
         all_y_vals[q] = y_vals
 
-        lbl = f"{model.legend_name} {_fmt_q_label(q)}" + f"  \u2192  {final_lbl}"
         col = _thermal.get(q, model.colors.get(q, "#888888"))
-        traces.append(go.Scatter(
-            x=list(ts), y=list(y_vals), mode="lines", name=lbl,
-            line=dict(color=col, width=_QR_LINE_WIDTH, shape=_line_shape),
-        ))
-
-        # depletion annotation — always shown
-        depl_i = next((i for i, v in enumerate(vals) if v <= 0), None)
-        if depl_i is not None:
-            depl_t = ts[depl_i]
-            depl_yr = int(syr + (depl_t - t_start) * (eyr - syr) / max(t_end - t_start, 1e-6))
-            _ay = _ANNOT_STAGGER_Y[len(deplete_annots) % 3]
-            deplete_annots.append(dict(
-                x=depl_t, xref="x",
-                y=0, yref="paper",
-                ax=28, ay=_ay,
-                text=f"\u2248{depl_yr}",
-                showarrow=True, arrowhead=2, arrowsize=1,
-                arrowcolor=col,
-                font=dict(size=_FONT_ANNOT, color=col),
+        if show_bm:
+            lbl = f"{model.legend_name} {_fmt_q_label(q)}" + f"  \u2192  {final_lbl}"
+            traces.append(go.Scatter(
+                x=list(ts), y=list(y_vals), mode="lines", name=lbl,
+                line=dict(color=col, width=_QR_LINE_WIDTH, shape=_line_shape),
             ))
+
+            # depletion annotation
+            depl_i = next((i for i, v in enumerate(vals) if v <= 0), None)
+            if depl_i is not None:
+                depl_t = ts[depl_i]
+                depl_yr = int(syr + (depl_t - t_start) * (eyr - syr) / max(t_end - t_start, 1e-6))
+                _ay = _ANNOT_STAGGER_Y[len(deplete_annots) % 3]
+                deplete_annots.append(dict(
+                    x=depl_t, xref="x",
+                    y=0, yref="paper",
+                    ax=28, ay=_ay,
+                    text=f"\u2248{depl_yr}",
+                    showarrow=True, arrowhead=2, arrowsize=1,
+                    arrowcolor=col,
+                    font=dict(size=_FONT_ANNOT, color=col),
+                ))
 
     # ── alternative model overlays ────────────────────────────────────────────
     _ret_sim = lambda prices: np.maximum(start_stack - np.cumsum(adj_wd_arr / prices), 0.0)
@@ -107,7 +109,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     shapes = []
 
     ylabel = "USD Value" if disp_mode == "usd" else "BTC Remaining"
-    title = f"Bitcoin Retireator \u2014 {fmt_price(wd_amount)}/{freq_str.lower()[:-2] if freq_str.endswith('ly') else freq_str}"
+    title = f"Bitcoin RetireMentator \u2014 {fmt_price(wd_amount)}/{_app_ctx.FREQ_LABEL.get(freq_str, freq_str)}"
     layout, _x_end = _sim_layout(m, p, title, ylabel, ts, t_start, t_end, dt, syr, eyr, shapes)
     layout["annotations"] = deplete_annots
 
@@ -151,5 +153,13 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
         if _mc_ann:
             _pending_annots.append(_mc_ann)
     traces.extend(_resolve_edge_annotations(_pending_annots, _is_log))
+
+    # Handle empty plot (all models unchecked)
+    if not traces:
+        layout["annotations"] = [dict(
+            text="No models selected \u2014 check Display Models",
+            xref="paper", yref="paper", x=0.5, y=0.5,
+            showarrow=False, font=dict(size=16, color="#888"),
+        )]
 
     return _finalize_chart(traces, layout, p, "ret", mc_result)

@@ -531,6 +531,13 @@ where $\alpha$ (intercept) and $\beta$ (slope) are derived from **two user-selec
                                 html.Li("Available in both deterministic (\u25b6) and MC (\u26a1) modes"),
                             ]),
 
+                            html.H6("Assumptions"),
+                            html.P(
+                                "Investment gains in the Citadel Planner are classified as "
+                                "long-term capital gains. Individual equity and bond lot "
+                                "tracking is not modeled."
+                            ),
+
                             html.H6("Historical Data Summary"),
                             _regime_data_tables(),
 

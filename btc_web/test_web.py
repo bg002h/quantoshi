@@ -6974,3 +6974,30 @@ class TestTaxAccountingHelpers:
         r = simulate(cfg, _test_model())
         assert r.taxes_paid is None
         assert r.annual_taxes is None
+
+    def test_gradual_rebalancing_consumes_lots_across_periods(self):
+        """Gradual sell over multiple periods correctly consumes lots."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _evaluate_rebalancing)
+        from engines.tax import TaxYearAccumulator
+        from engines.tax_lots import TaxLot
+        state = CitadelState(
+            btc_stack=10.0, btc_price=50_000, sim_date="2035-06-15",
+            cash=100_000, reserves=[0, 0, 0], investments=[0, 0],
+            tax_lots=[TaxLot(date="2031-01-01", btc=10.0,
+                             cost_basis=20_000, source="initial")],
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = SimConfig(
+            cost_basis_method="fifo",
+            high_q_trigger=0.90,
+            high_q_action={"mode": "gradual", "rate": 5.0, "duration": 3,
+                           "split": {"cash": 1.0}},
+        )
+        initial_btc = state.btc_stack
+        for i in range(3):
+            _evaluate_rebalancing(state, cfg, btc_quantile=0.95)
+        assert state.btc_stack < initial_btc
+        lot_sum = sum(l.btc for l in state.tax_lots)
+        assert abs(lot_sum - state.btc_stack) < 1e-8
+        assert state.tax_year_accum.lt_capital_gains > 0

@@ -5309,3 +5309,28 @@ class TestTaxSummaryPanel:
         is_open, children = _build_tax_summary(data)
         assert is_open is True
         assert len(children) == 2  # header + tbody
+
+
+class TestTreasuryStateExemption:
+    def test_treasury_interest_exempt_from_state_tax(self):
+        """Treasury interest should not be state-taxed (US law)."""
+        from engines.tax import TaxYearAccumulator, compute_annual_tax
+        # $100k treasury interest only — no other income
+        accum_treasury = TaxYearAccumulator(treasury_interest=100_000)
+        result_treasury = compute_annual_tax(
+            accum_treasury, filing_status="single", tcja_sunset=False,
+            sim_year=2025, inflation_rate=0.0, state_rate=10.0)
+
+        # $100k cash interest only — same amount
+        accum_cash = TaxYearAccumulator(interest_income=100_000)
+        result_cash = compute_annual_tax(
+            accum_cash, filing_status="single", tcja_sunset=False,
+            sim_year=2025, inflation_rate=0.0, state_rate=10.0)
+
+        # Federal tax should be identical (both are ordinary income)
+        assert result_treasury["federal_ordinary"] == pytest.approx(
+            result_cash["federal_ordinary"])
+
+        # State tax: treasury should be $0, cash should be ~$10k
+        assert result_treasury["state"] == pytest.approx(0.0)
+        assert result_cash["state"] > 0

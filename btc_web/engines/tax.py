@@ -167,7 +167,8 @@ def compute_niit(
 class TaxYearAccumulator:
     """Collects all taxable events for one simulation year."""
     tax_deferred_withdrawals: float = 0.0
-    interest_income: float = 0.0       # taxable-wrapper only
+    interest_income: float = 0.0       # taxable-wrapper only (non-treasury)
+    treasury_interest: float = 0.0     # T-Bill/T-Note/T-Bond — exempt from state tax
     other_income: float = 0.0
     st_capital_gains: float = 0.0
     st_capital_losses: float = 0.0
@@ -223,9 +224,10 @@ def compute_annual_tax(
     )
 
     # --- 2. AGI ---
+    total_interest = accum.interest_income + accum.treasury_interest
     agi = (
         accum.tax_deferred_withdrawals
-        + accum.interest_income
+        + total_interest
         + accum.other_income
         + max(cap.net_st, 0)
         + max(cap.net_lt, 0)
@@ -257,11 +259,13 @@ def compute_annual_tax(
         federal_ltcg = total_ltcg - base_ltcg
 
     # --- 7. NIIT ---
-    nii = max(cap.net_st, 0) + max(cap.net_lt, 0) + accum.interest_income
+    nii = max(cap.net_st, 0) + max(cap.net_lt, 0) + total_interest
     niit = NIIT_RATE * min(nii, max(magi - niit_threshold, 0)) if magi > niit_threshold else 0.0
 
-    # --- 8. State tax (flat rate on AGI, v1 simplification) ---
-    state_tax = (state_rate / 100.0) * max(agi, 0)
+    # --- 8. State tax (flat rate on AGI minus treasury interest) ---
+    # US Treasury interest is exempt from state/local income tax
+    state_taxable = max(agi - accum.treasury_interest, 0)
+    state_tax = (state_rate / 100.0) * state_taxable
 
     # --- 9. Totals ---
     total = federal_ordinary + federal_ltcg + niit + state_tax

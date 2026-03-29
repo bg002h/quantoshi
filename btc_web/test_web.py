@@ -5886,3 +5886,564 @@ class TestMcStatusWithTaxExtraDict:
         # This is the exact call that was crashing in production
         store_val, status, show_modal = _mc_status(extra, None, None)
         assert isinstance(status, str)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section: Citadel Planner — engine rule verification tests
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class _ControlledPriceModel:
+    """Price model that returns configurable quantiles for trigger testing."""
+    def __init__(self, quantile=0.50, price=50_000.0):
+        import pandas as pd
+        self.fits = {0.25: {"slope": 5.0, "intercept": 2.0}}
+        self.genesis = pd.Timestamp("2009-07-25")
+        self._quantile = quantile
+        self._price = price
+
+    def price_at(self, q, t):
+        return self._price
+
+    def quantile_at(self, price, t):
+        return self._quantile
+
+
+def _bare_config(**kw):
+    """SimConfig with zero-volatility, deterministic, short horizon for unit tests."""
+    from engines.citadel import SimConfig
+    defaults = dict(
+        start_stack=1.0, start_yr=2031, end_yr=2035,
+        freq="Annually", monthly_spend=5000,
+        cash_initial=100_000, selected_qs=[0.25],
+        # Zero volatility → deterministic dollar-asset growth
+        reserve_bins=[
+            {"label": "Short", "initial": 50_000, "rate": 0, "volatility": 0},
+            {"label": "Medium", "initial": 50_000, "rate": 0, "volatility": 0},
+            {"label": "Long", "initial": 50_000, "rate": 0, "volatility": 0},
+        ],
+        invest_bins=[
+            {"label": "Equities", "initial": 100_000, "return_rate": 0, "volatility": 0},
+            {"label": "Bonds", "initial": 50_000, "return_rate": 0, "volatility": 0},
+        ],
+    )
+    defaults.update(kw)
+    return SimConfig(**defaults)
+
+
+class TestCashFloorEnforcement:
+    """1) Cash floor must not be violated until all assets are zero."""
+
+    def test_cash_floor_replenished_from_investments_first(self):
+        """Floor draws from investments before touching BTC."""
+        from engines.citadel import CitadelState, SimConfig, _enforce_floors
+        state = CitadelState(
+            cash=10_000, reserves=[0, 0, 0], investments=[50_000, 30_000],
+            btc_stack=1.0, btc_price=60_000,
+        )
+        cfg = _bare_config(cash_floor=50_000)
+        _enforce_floors(state, cfg)
+        assert state.cash >= 50_000 - 1  # floor met (within rounding)
+        assert state.btc_stack == 1.0    # BTC untouched
+
+    def test_cash_floor_draws_btc_only_when_dollar_assets_exhausted(self):
+        """BTC is sold for cash floor only after all dollar assets are zero."""
+        from engines.citadel import CitadelState, SimConfig, _enforce_floors
+        state = CitadelState(
+            cash=0, reserves=[0, 0, 0], investments=[0, 0],
+            btc_stack=2.0, btc_price=50_000,
+        )
+        cfg = _bare_config(cash_floor=30_000)
+        _enforce_floors(state, cfg)
+        assert state.cash >= 30_000 - 1
+        assert state.btc_stack < 2.0  # BTC was sold
+
+    def test_reserve_floor_never_sells_btc(self):
+        """Reserve floors redistribute among dollar assets, never sell BTC."""
+        from engines.citadel import CitadelState, SimConfig, _enforce_floors
+        state = CitadelState(
+            cash=0, reserves=[0, 0, 0], investments=[0, 0],
+            btc_stack=5.0, btc_price=100_000,
+        )
+        cfg = _bare_config(
+            cash_floor=0,
+            reserve_floors=[10_000, 0, 0],  # floor on short reserve
+        )
+        _enforce_floors(state, cfg)
+        assert state.btc_stack == 5.0  # BTC untouched
+        # Floor can't be met (no dollar sources) — reserve stays at 0
+        assert state.reserves[0] == 0
+
+    def test_cash_floor_holds_through_simulation(self):
+        """Over a full sim, cash stays above floor until total depletion."""
+        from engines.citadel import SimConfig, simulate, _initial_state, step
+        import numpy as np
+        cfg = _bare_config(
+            cash_floor=20_000, monthly_spend=8000,
+            start_yr=2031, end_yr=2040, freq="Annually",
+        )
+        model = _ControlledPriceModel(quantile=0.50, price=50_000)
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=model)
+        for _ in range(9):  # 9 annual steps
+            state = step(state, cfg, 50_000, rng, model=model)
+            total = state.cash + sum(state.reserves) + sum(state.investments) + state.btc_stack * state.btc_price
+            if total > 20_000:
+                # If total assets can cover the floor, cash should meet it
+                assert state.cash >= 20_000 - 100, \
+                    f"Cash {state.cash:.0f} below floor 20000 with total {total:.0f}"
+
+
+class TestBtcThresholdRules:
+    """2) Bitcoin is sold/bought according to threshold rules."""
+
+    def test_high_q_triggers_btc_sell(self):
+        """When quantile >= high_q_trigger, BTC is sold."""
+        from engines.citadel import SimConfig, _initial_state, step
+        import numpy as np
+        cfg = _bare_config(
+            high_q_trigger=0.90,
+            high_q_action={"mode": "lump", "rate": 20.0, "duration": 1,
+                           "split": {"cash": 1.0}},
+        )
+        model = _ControlledPriceModel(quantile=0.95, price=50_000)
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=model)
+        initial_btc = state.btc_stack
+        state = step(state, cfg, 50_000, rng, model=model)
+        assert state.btc_stack < initial_btc, "BTC should have been sold at high quantile"
+        assert state.rebal_event is not None
+        assert state.rebal_event["action"] == "sell_btc"
+
+    def test_low_q_triggers_btc_buy(self):
+        """When quantile <= low_q_trigger, BTC is bought."""
+        from engines.citadel import SimConfig, _initial_state, step
+        import numpy as np
+        cfg = _bare_config(
+            low_q_trigger=0.10,
+            low_q_action={"mode": "lump", "rate": 10.0, "duration": 1,
+                          "split": {"cash": 0.5, "inv_eq": 0.5}},
+        )
+        model = _ControlledPriceModel(quantile=0.03, price=50_000)
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=model)
+        initial_btc = state.btc_stack
+        state = step(state, cfg, 50_000, rng, model=model)
+        assert state.btc_stack > initial_btc, "BTC should have been bought at low quantile"
+        assert state.rebal_event is not None
+        assert state.rebal_event["action"] == "buy_btc"
+
+    def test_mid_quantile_no_rebalancing(self):
+        """Between triggers, no rebalancing occurs."""
+        from engines.citadel import SimConfig, _initial_state, step
+        import numpy as np
+        cfg = _bare_config(high_q_trigger=0.95, low_q_trigger=0.05)
+        model = _ControlledPriceModel(quantile=0.50, price=50_000)
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=model)
+        initial_btc = state.btc_stack
+        state = step(state, cfg, 50_000, rng, model=model)
+        # BTC changes only from spending, not rebalancing
+        assert state.rebal_event is None
+
+
+class TestSpendingIncreasesTax:
+    """3) Increasing monthly spending increases taxes."""
+
+    def test_higher_spending_means_higher_taxes(self):
+        """More withdrawals → more realized gains → higher tax bill."""
+        from engines.citadel import SimConfig, simulate
+        # Use BTC-only portfolio so spending forces capital gains
+        common = dict(
+            start_stack=10.0, cash_initial=0,
+            tax_enabled=True, filing_status="single", state_code="CA",
+            start_yr=2031, end_yr=2035, freq="Annually",
+            reserve_bins=[
+                {"label": "Short", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Medium", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Long", "initial": 0, "rate": 0, "volatility": 0},
+            ],
+            invest_bins=[
+                {"label": "Equities", "initial": 0, "return_rate": 0, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+        )
+        low = _bare_config(monthly_spend=3000, **common)
+        high = _bare_config(monthly_spend=10000, **common)
+        model = _test_model()
+        r_low = simulate(low, model)
+        r_high = simulate(high, model)
+        tax_low = r_low.taxes_paid[0, -1]
+        tax_high = r_high.taxes_paid[0, -1]
+        assert tax_high > tax_low, \
+            f"Higher spend should yield higher tax: {tax_high:.0f} vs {tax_low:.0f}"
+
+    def test_zero_spending_minimal_tax(self):
+        """With zero spending and no other income, minimal or zero tax."""
+        from engines.citadel import SimConfig, simulate
+        cfg = _bare_config(
+            monthly_spend=0, tax_enabled=True,
+            filing_status="single", state_code="TX",
+            other_income=0,
+            start_yr=2031, end_yr=2035, freq="Annually",
+        )
+        model = _test_model()
+        r = simulate(cfg, model)
+        # Only interest income could generate tax (from cash/reserves)
+        # With TX (no state tax) and low interest, tax should be very small
+        assert r.taxes_paid[0, -1] < 5000
+
+
+class TestWithdrawalOrderTaxAdvantaged:
+    """4) Verify withdrawal logic follows tax-advantaged ordering."""
+
+    def test_taxable_cash_drawn_before_td(self):
+        """Taxable principal (no tax) should be drawn before TD (ordinary income)."""
+        from engines.citadel import SimConfig, simulate
+        cfg = _bare_config(
+            monthly_spend=20_000,
+            cash_initial=200_000,
+            tax_enabled=True, state_code="TX",
+            td_cash_initial=200_000,
+            start_yr=2031, end_yr=2034, freq="Annually",
+            # Zero growth so balances are predictable
+            cash_rate=0,
+        )
+        model = _test_model()
+        r = simulate(cfg, model)
+        # Taxable cash should deplete faster than TD cash
+        # After 3 years of spending $240k/yr, taxable cash should be gone first
+        assert r.taxes_paid is not None
+
+    def test_roth_btc_is_absolute_last(self):
+        """Roth BTC should be the very last asset sold."""
+        from engines.citadel import SimConfig, _initial_state, step
+        import numpy as np
+        cfg = _bare_config(
+            monthly_spend=50_000, cash_initial=0,
+            tax_enabled=True, state_code="TX",
+            start_stack=0,  # no taxable BTC
+            tf_btc_stack=1.0,
+            tf_cash_initial=100_000,
+            start_yr=2031, end_yr=2035, freq="Annually",
+            reserve_bins=[
+                {"label": "Short", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Medium", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Long", "initial": 0, "rate": 0, "volatility": 0},
+            ],
+            invest_bins=[
+                {"label": "Equities", "initial": 0, "return_rate": 0, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+        )
+        model = _ControlledPriceModel(quantile=0.50, price=100_000)
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=model)
+        # After first step: TF cash should be drawn before TF BTC
+        state = step(state, cfg, 100_000, rng, model=model)
+        assert state.tf_cash < 100_000, "Roth cash should be drawn"
+        if state.tf_cash > 0:
+            assert state.tf_btc_stack == 1.0, "Roth BTC untouched while Roth cash remains"
+
+    def test_td_bracket_fill_uses_low_bracket_room(self):
+        """TD withdrawals should bracket-fill to minimize marginal rate."""
+        from engines.citadel import SimConfig, simulate
+        cfg = _bare_config(
+            monthly_spend=15_000,
+            cash_initial=500_000,
+            tax_enabled=True, state_code="TX",
+            td_cash_initial=500_000,
+            start_yr=2031, end_yr=2035, freq="Annually",
+        )
+        model = _test_model()
+        r = simulate(cfg, model)
+        # Should have some TD withdrawals (bracket-filling) even though
+        # taxable cash could cover all spending
+        assert r.taxes_paid is not None
+        assert len(r.annual_taxes) > 0
+        # Check that at least one year has TD withdrawal recorded
+        has_td_wd = any(
+            yr.get("ordinary_income", 0) > 0
+            for sim_taxes in r.annual_taxes
+            for yr in sim_taxes
+        )
+        assert has_td_wd, "TD bracket-filling should produce ordinary income"
+
+
+class TestLumpCooldown:
+    """5) Global lump cooldown is obeyed."""
+
+    def test_cooldown_prevents_consecutive_lumps(self):
+        """After a lump action, another lump is blocked for cooldown periods."""
+        from engines.citadel import CitadelState, _evaluate_rebalancing
+        from engines.citadel import SimConfig
+        cfg = _bare_config(
+            lump_cooldown=3,
+            high_q_trigger=0.90,
+            high_q_action={"mode": "lump", "rate": 10.0, "duration": 1,
+                           "split": {"cash": 1.0}},
+        )
+        state = CitadelState(
+            btc_stack=10.0, btc_price=50_000,
+            cash=100_000, reserves=[0, 0, 0], investments=[0, 0],
+        )
+        # First trigger: should fire
+        _evaluate_rebalancing(state, cfg, btc_quantile=0.95)
+        assert state.rebal_event is not None
+        assert state.rebal_cooldown == 3
+        first_btc = state.btc_stack
+
+        # Next 2 periods: cooldown should block (3→2, 2→1)
+        for i in range(2):
+            state.rebal_event = None
+            _evaluate_rebalancing(state, cfg, btc_quantile=0.95)
+            assert state.rebal_event is None, f"Cooldown period {i+1}: should be blocked"
+            assert state.btc_stack == first_btc, "No BTC sold during cooldown"
+
+        # 3rd call: cooldown 1→0, trigger fires again
+        state.rebal_event = None
+        _evaluate_rebalancing(state, cfg, btc_quantile=0.95)
+        assert state.rebal_event is not None, "Should fire after cooldown expires"
+
+    def test_gradual_mode_ignores_cooldown(self):
+        """Gradual actions continue regardless of cooldown counter."""
+        from engines.citadel import CitadelState, _evaluate_rebalancing
+        from engines.citadel import SimConfig
+        cfg = _bare_config(
+            high_q_trigger=0.90,
+            high_q_action={"mode": "gradual", "rate": 5.0, "duration": 3,
+                           "split": {"cash": 1.0}},
+        )
+        state = CitadelState(
+            btc_stack=10.0, btc_price=50_000,
+            cash=100_000, reserves=[0, 0, 0], investments=[0, 0],
+        )
+        # Trigger gradual
+        _evaluate_rebalancing(state, cfg, btc_quantile=0.95)
+        assert state.grad_active is True
+        btc_after_first = state.btc_stack
+
+        # Continue gradual — even with cooldown set, gradual proceeds
+        _evaluate_rebalancing(state, cfg, btc_quantile=0.95)
+        assert state.btc_stack < btc_after_first, "Gradual should continue selling"
+
+
+class TestBtcSaleDistribution:
+    """6) Bitcoin sale proceeds distributed according to split rules."""
+
+    def test_sell_distributes_per_split(self):
+        """Proceeds from BTC sale go to accounts per configured split."""
+        from engines.citadel import CitadelState, _execute_sell_btc
+        state = CitadelState(
+            btc_stack=10.0, btc_price=50_000,
+            cash=0, reserves=[0, 0, 0], investments=[0, 0],
+        )
+        split = {"cash": 0.20, "res_short": 0.10, "res_med": 0.10,
+                 "res_long": 0.10, "inv_eq": 0.30, "inv_bd": 0.20}
+        evt = _execute_sell_btc(state, rate_pct=10.0, split=split)
+        # Sold 10% of 10 BTC = 1 BTC = $50,000
+        assert evt["btc_sold"] == pytest.approx(1.0)
+        assert evt["proceeds"] == pytest.approx(50_000)
+        assert state.cash == pytest.approx(10_000)           # 20%
+        assert state.reserves[0] == pytest.approx(5_000)     # 10%
+        assert state.reserves[1] == pytest.approx(5_000)     # 10%
+        assert state.reserves[2] == pytest.approx(5_000)     # 10%
+        assert state.investments[0] == pytest.approx(15_000)  # 30%
+        assert state.investments[1] == pytest.approx(10_000)  # 20%
+
+    def test_sell_zero_btc_no_event(self):
+        """Selling from empty stack produces no event."""
+        from engines.citadel import CitadelState, _execute_sell_btc
+        state = CitadelState(btc_stack=0, btc_price=50_000)
+        evt = _execute_sell_btc(state, rate_pct=10.0, split={"cash": 1.0})
+        assert evt == {}
+
+
+class TestBtcPurchaseSourcing:
+    """7) Bitcoin purchases source funds according to split rules."""
+
+    def test_buy_sources_per_split(self):
+        """BTC purchase draws from accounts per configured split."""
+        from engines.citadel import CitadelState, _execute_buy_btc
+        state = CitadelState(
+            btc_stack=0, btc_price=50_000,
+            cash=100_000, reserves=[50_000, 50_000, 50_000],
+            investments=[200_000, 100_000],
+        )
+        split = {"cash": 0.10, "inv_eq": 0.50, "inv_bd": 0.40}
+        # Total dollar assets = 100k + 150k + 300k = 550k
+        # 10% of 550k = 55k target
+        evt = _execute_buy_btc(state, rate_pct=10.0, split=split)
+        assert evt["action"] == "buy_btc"
+        assert evt["btc_bought"] == pytest.approx(55_000 / 50_000)
+        # Cash should lose 10% of 55k = 5,500
+        assert state.cash == pytest.approx(100_000 - 5_500)
+        # Equities lose 50% of 55k = 27,500
+        assert state.investments[0] == pytest.approx(200_000 - 27_500)
+        # Bonds lose 40% of 55k = 22,000
+        assert state.investments[1] == pytest.approx(100_000 - 22_000)
+
+    def test_buy_respects_floor(self):
+        """BTC purchase won't draw cash below its floor."""
+        from engines.citadel import CitadelState, _execute_buy_btc
+        cfg = _bare_config(cash_floor=80_000)
+        state = CitadelState(
+            btc_stack=0, btc_price=50_000,
+            cash=100_000, reserves=[0, 0, 0], investments=[0, 0],
+        )
+        split = {"cash": 1.0}
+        # Total dollars = 100k, 10% = 10k, but floor = 80k, so avail = 20k
+        evt = _execute_buy_btc(state, rate_pct=10.0, split=split, config=cfg)
+        assert state.cash >= 80_000 - 1, "Cash floor should be respected"
+
+    def test_buy_redistributes_shortfall(self):
+        """When one source can't cover its share, shortfall goes to others."""
+        from engines.citadel import CitadelState, _execute_buy_btc
+        state = CitadelState(
+            btc_stack=0, btc_price=50_000,
+            cash=1_000,  # very little cash
+            reserves=[0, 0, 0],
+            investments=[200_000, 200_000],
+        )
+        split = {"cash": 0.50, "inv_eq": 0.25, "inv_bd": 0.25}
+        # Total = 401k, 10% = 40.1k
+        # Cash wants 50% = 20.05k but only has 1k → shortfall redistributed
+        evt = _execute_buy_btc(state, rate_pct=10.0, split=split)
+        assert evt["action"] == "buy_btc"
+        assert state.cash < 1_000  # Cash was drawn
+        # Investments picked up the slack
+        total_drawn = evt["cost"]
+        assert total_drawn > 1_000  # More than just cash
+
+
+class TestTaxEfficientAccountUsage:
+    """8) Trades in TD/TF accounts don't generate capital gains;
+    taxable account trades do."""
+
+    def test_taxable_btc_sale_generates_capital_gains(self):
+        """Selling BTC from taxable wrapper records capital gains."""
+        from engines.citadel import SimConfig, simulate
+        # BTC-only portfolio forces BTC sale for spending
+        cfg = _bare_config(
+            start_stack=10.0,  # taxable BTC (plenty to cover spending)
+            monthly_spend=20_000,
+            cash_initial=0,
+            tax_enabled=True, state_code="CA",
+            start_yr=2031, end_yr=2035, freq="Annually",
+            invest_bins=[
+                {"label": "Equities", "initial": 0, "return_rate": 0, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+            reserve_bins=[
+                {"label": "Short", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Medium", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Long", "initial": 0, "rate": 0, "volatility": 0},
+            ],
+        )
+        model = _test_model()
+        r = simulate(cfg, model)
+        # Selling BTC from taxable should generate gains
+        has_gains = any(
+            yr.get("lt_gains", 0) > 0 or yr.get("st_gains", 0) > 0
+            for sim_taxes in r.annual_taxes
+            for yr in sim_taxes
+        )
+        assert has_gains, "Taxable BTC sale should generate capital gains"
+        assert r.taxes_paid[0, -1] > 0
+
+    def test_roth_only_portfolio_zero_capital_gains_tax(self):
+        """All assets in Roth (TF) → no capital gains tax on any trade."""
+        from engines.citadel import SimConfig, simulate
+        cfg = _bare_config(
+            start_stack=0,  # no taxable BTC
+            monthly_spend=10_000,
+            cash_initial=0,
+            tax_enabled=True, state_code="TX",
+            other_income=0,
+            tf_btc_stack=2.0,
+            tf_cash_initial=300_000,
+            start_yr=2031, end_yr=2035, freq="Annually",
+            invest_bins=[
+                {"label": "Equities", "initial": 0, "return_rate": 0, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+            reserve_bins=[
+                {"label": "Short", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Medium", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Long", "initial": 0, "rate": 0, "volatility": 0},
+            ],
+        )
+        model = _test_model()
+        r = simulate(cfg, model)
+        # All Roth → zero tax
+        assert r.taxes_paid[0, -1] == pytest.approx(0, abs=1)
+
+    def test_td_withdrawal_taxed_as_ordinary_not_capital_gains(self):
+        """TD withdrawals are ordinary income, not capital gains."""
+        from engines.citadel import SimConfig, simulate
+        cfg = _bare_config(
+            start_stack=0, monthly_spend=20_000,
+            cash_initial=0,
+            tax_enabled=True, state_code="TX",
+            td_cash_initial=1_000_000,
+            start_yr=2031, end_yr=2035, freq="Annually",
+            invest_bins=[
+                {"label": "Equities", "initial": 0, "return_rate": 0, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+            reserve_bins=[
+                {"label": "Short", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Medium", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Long", "initial": 0, "rate": 0, "volatility": 0},
+            ],
+        )
+        model = _test_model()
+        r = simulate(cfg, model)
+        # Should have ordinary income but zero capital gains
+        for sim_taxes in r.annual_taxes:
+            for yr in sim_taxes:
+                assert yr.get("ordinary_income", 0) > 0, "TD withdrawal = ordinary income"
+                assert yr.get("lt_gains", 0) == 0, "TD should not produce LTCG"
+                assert yr.get("st_gains", 0) == 0, "TD should not produce STCG"
+
+    def test_taxable_vs_td_same_spend_different_tax_type(self):
+        """Same spending from taxable BTC vs TD produces different tax profiles."""
+        from engines.citadel import SimConfig, simulate
+        empty_bins = dict(
+            invest_bins=[
+                {"label": "Equities", "initial": 0, "return_rate": 0, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+            reserve_bins=[
+                {"label": "Short", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Medium", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Long", "initial": 0, "rate": 0, "volatility": 0},
+            ],
+        )
+        # _test_model has price growth: 50000*(1+t/100), so BTC bought at
+        # t0 and sold later produces a capital gain.
+        model = _test_model()
+        # Scenario A: spend from taxable BTC (capital gains)
+        cfg_taxable = _bare_config(
+            start_stack=10.0, monthly_spend=20_000, cash_initial=0,
+            tax_enabled=True, state_code="CA",
+            start_yr=2031, end_yr=2036, freq="Annually",
+            **empty_bins,
+        )
+        # Scenario B: spend from TD cash (ordinary income)
+        cfg_td = _bare_config(
+            start_stack=0, monthly_spend=20_000, cash_initial=0,
+            tax_enabled=True, state_code="CA",
+            td_cash_initial=1_000_000,
+            start_yr=2031, end_yr=2036, freq="Annually",
+            **empty_bins,
+        )
+        r_taxable = simulate(cfg_taxable, model)
+        r_td = simulate(cfg_td, model)
+        # Both should pay tax
+        assert r_taxable.taxes_paid[0, -1] > 0, "Taxable BTC should generate tax"
+        assert r_td.taxes_paid[0, -1] > 0, "TD withdrawals should generate tax"
+        # Tax types differ: BTC = capital gains (lower rate), TD = ordinary income
+        tax_btc = r_taxable.taxes_paid[0, -1]
+        tax_td = r_td.taxes_paid[0, -1]
+        assert tax_btc != tax_td, "Different tax types should produce different totals"

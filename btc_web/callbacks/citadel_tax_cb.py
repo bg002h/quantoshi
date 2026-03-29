@@ -81,29 +81,34 @@ def _save_or_cancel(save_clicks, cancel_clicks, filing, state, state_rate, birth
     if triggered == "cp-tax-cancel":
         return no_update, False
 
+    def _pos(v): return max(float(v or 0), 0.0)
+    _by = None
+    if birth_year:
+        _by = max(1900, min(int(birth_year), 2099))
+
     config = {
         "filing_status": filing or "single",
         "state_code": state or "TX",
-        "state_rate_override": float(state_rate) if state_rate is not None else None,
-        "birth_year": int(birth_year) if birth_year else None,
-        "other_income": float(other_income or 0),
-        "other_income_growth": float(other_income_growth or 0),
+        "state_rate_override": max(float(state_rate), 0.0) if state_rate is not None else None,
+        "birth_year": _by,
+        "other_income": _pos(other_income),
+        "other_income_growth": max(float(other_income_growth or 0), 0.0),
         "tcja_sunset": (tcja == "sunset"),
         "cost_basis_method": basis_method or "fifo",
-        "td_btc": float(td_btc or 0),
-        "td_cash": float(td_cash or 0),
-        "td_res_short": float(td_rs or 0),
-        "td_res_med": float(td_rm or 0),
-        "td_res_long": float(td_rl or 0),
-        "td_inv_eq": float(td_eq or 0),
-        "td_inv_bd": float(td_bd or 0),
-        "tf_btc": float(tf_btc or 0),
-        "tf_cash": float(tf_cash or 0),
-        "tf_res_short": float(tf_rs or 0),
-        "tf_res_med": float(tf_rm or 0),
-        "tf_res_long": float(tf_rl or 0),
-        "tf_inv_eq": float(tf_eq or 0),
-        "tf_inv_bd": float(tf_bd or 0),
+        "td_btc": _pos(td_btc),
+        "td_cash": _pos(td_cash),
+        "td_res_short": _pos(td_rs),
+        "td_res_med": _pos(td_rm),
+        "td_res_long": _pos(td_rl),
+        "td_inv_eq": _pos(td_eq),
+        "td_inv_bd": _pos(td_bd),
+        "tf_btc": _pos(tf_btc),
+        "tf_cash": _pos(tf_cash),
+        "tf_res_short": _pos(tf_rs),
+        "tf_res_med": _pos(tf_rm),
+        "tf_res_long": _pos(tf_rl),
+        "tf_inv_eq": _pos(tf_eq),
+        "tf_inv_bd": _pos(tf_bd),
     }
     return config, False
 

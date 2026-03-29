@@ -4858,3 +4858,94 @@ class TestTaxData:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+class TestTaxLots:
+    def test_create_lot(self):
+        from engines.tax_lots import TaxLot
+        lot = TaxLot(date="2024-01-15", btc=0.5, cost_basis=42_000.0, source="initial")
+        assert lot.btc == 0.5
+        assert lot.cost_basis == 42_000.0
+
+    def test_sell_fifo_single_lot(self):
+        from engines.tax_lots import TaxLot, sell_lots
+        lots = [TaxLot("2023-01-01", 1.0, 20_000.0, "initial")]
+        result = sell_lots(lots, btc_to_sell=0.5, sale_price=50_000.0,
+                          sale_date="2025-06-01", method="fifo")
+        assert result.btc_sold == 0.5
+        assert len(result.gains) == 1
+        g = result.gains[0]
+        assert g.btc == 0.5
+        assert g.proceeds == 25_000.0
+        assert g.cost == 10_000.0
+        assert g.gain == 15_000.0
+        assert g.is_long_term is True
+        assert len(result.remaining_lots) == 1
+        assert result.remaining_lots[0].btc == 0.5
+
+    def test_sell_fifo_multiple_lots(self):
+        from engines.tax_lots import TaxLot, sell_lots
+        lots = [
+            TaxLot("2023-01-01", 0.3, 20_000.0, "initial"),
+            TaxLot("2025-03-01", 0.7, 80_000.0, "rebal_buy"),
+        ]
+        result = sell_lots(lots, btc_to_sell=0.5, sale_price=100_000.0,
+                          sale_date="2025-06-01", method="fifo")
+        assert result.btc_sold == 0.5
+        assert len(result.gains) == 2
+        assert result.gains[0].btc == 0.3
+        assert result.gains[0].is_long_term is True
+        assert abs(result.gains[1].btc - 0.2) < 1e-8
+        assert result.gains[1].is_long_term is False
+        assert len(result.remaining_lots) == 1
+        assert abs(result.remaining_lots[0].btc - 0.5) < 1e-8
+
+    def test_sell_lifo(self):
+        from engines.tax_lots import TaxLot, sell_lots
+        lots = [
+            TaxLot("2023-01-01", 0.5, 20_000.0, "initial"),
+            TaxLot("2025-05-01", 0.5, 80_000.0, "rebal_buy"),
+        ]
+        result = sell_lots(lots, btc_to_sell=0.3, sale_price=100_000.0,
+                          sale_date="2025-06-01", method="lifo")
+        assert result.gains[0].cost_basis == 80_000.0
+        assert result.gains[0].is_long_term is False
+
+    def test_sell_loss(self):
+        from engines.tax_lots import TaxLot, sell_lots
+        lots = [TaxLot("2024-01-01", 1.0, 100_000.0, "initial")]
+        result = sell_lots(lots, btc_to_sell=0.5, sale_price=50_000.0,
+                          sale_date="2025-06-01", method="fifo")
+        assert result.gains[0].gain == -25_000.0
+
+    def test_sell_more_than_available(self):
+        from engines.tax_lots import TaxLot, sell_lots
+        lots = [TaxLot("2024-01-01", 0.3, 50_000.0, "initial")]
+        result = sell_lots(lots, btc_to_sell=1.0, sale_price=60_000.0,
+                          sale_date="2025-06-01", method="fifo")
+        assert result.btc_sold == 0.3
+        assert len(result.remaining_lots) == 0
+
+    def test_seed_from_stack_tracker(self):
+        from engines.tax_lots import seed_lots
+        st_lots = [
+            {"date": "2023-06-15", "btc": 0.5, "price": 30_000},
+            {"date": "2024-01-10", "btc": 0.3, "price": 45_000},
+        ]
+        tax_lots = seed_lots(st_lots)
+        assert len(tax_lots) == 2
+        assert tax_lots[0].date == "2023-06-15"
+        assert tax_lots[0].cost_basis == 30_000
+        assert tax_lots[1].source == "initial"
+
+    def test_seed_manual_entry(self):
+        from engines.tax_lots import seed_lots
+        tax_lots = seed_lots([], start_stack=1.0, start_price=60_000.0,
+                             start_date="2031-01-01")
+        assert len(tax_lots) == 1
+        assert tax_lots[0].btc == 1.0
+        assert tax_lots[0].cost_basis == 60_000.0
+
+    def test_seed_empty(self):
+        from engines.tax_lots import seed_lots
+        assert seed_lots([]) == []

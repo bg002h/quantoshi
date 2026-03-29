@@ -5201,3 +5201,32 @@ class TestCitadelTaxIntegration:
         from engines.citadel import SimConfig
         cfg = SimConfig()
         assert not hasattr(cfg, "tax_rate")
+
+
+class TestTaxDefaults:
+    def test_citadel_has_tax_defaults(self):
+        from tab_defaults import CITADEL
+        assert CITADEL["tax_enabled"] is False
+        assert CITADEL["filing_status"] == "single"
+        assert CITADEL["state_code"] == "TX"
+        assert CITADEL["td_btc"] == 0.0
+        assert CITADEL["tf_btc"] == 0.0
+        assert CITADEL["cost_basis_method"] == "fifo"
+
+    def test_build_sim_config_passes_tax_fields(self):
+        from figures.citadel import _build_sim_config
+        from tab_defaults import citadel_defaults
+        p = citadel_defaults()
+        p["tax_enabled"] = True
+        p["filing_status"] = "mfj"
+        p["state_code"] = "CA"
+        p["birth_year"] = 1985
+        p["td_btc"] = 0.5
+        p["tf_cash"] = 100_000
+        cfg = _build_sim_config(p)
+        assert cfg.tax_enabled is True
+        assert cfg.filing_status == "mfj"
+        assert cfg.state_code == "CA"
+        assert cfg.birth_year == 1985
+        assert cfg.td_btc_stack == 0.5
+        assert cfg.tf_cash_initial == 100_000

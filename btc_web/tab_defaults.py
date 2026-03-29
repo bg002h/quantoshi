@@ -136,6 +136,20 @@ CITADEL = MappingProxyType({
     "annotate": True, "log_y": True, "show_legend": True, "minor_grid": True,
     "legend_pos": "bottom-right",
     "palette": "default",
+    # Tax system (off by default)
+    "tax_enabled": False,
+    "filing_status": "single",
+    "state_code": "TX",
+    "state_rate_override": None,
+    "tcja_sunset": False,
+    "birth_year": None,
+    "cost_basis_method": "fifo",
+    "other_income": 0,
+    "other_income_growth": 0,
+    "td_btc": 0.0, "td_cash": 0, "td_res_short": 0, "td_res_med": 0, "td_res_long": 0,
+    "td_inv_eq": 0, "td_inv_bd": 0,
+    "tf_btc": 0.0, "tf_cash": 0, "tf_res_short": 0, "tf_res_med": 0, "tf_res_long": 0,
+    "tf_inv_eq": 0, "tf_inv_bd": 0,
 })
 
 

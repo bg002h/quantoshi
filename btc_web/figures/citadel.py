@@ -182,7 +182,38 @@ def _build_sim_config(p: dict) -> SimConfig:
         end_yr=int(p.get("end_yr", CITADEL["end_yr"])),
         freq=p.get("freq", CITADEL["freq"]),
         n_sims=int(p.get("n_sims", 1)),
-        tax_enabled=False,
+        # Tax configuration
+        tax_enabled=bool(p.get("tax_enabled", False)),
+        filing_status=str(p.get("filing_status", CITADEL["filing_status"])),
+        state_code=str(p.get("state_code", CITADEL["state_code"])),
+        state_rate_override=p.get("state_rate_override"),
+        tcja_sunset=bool(p.get("tcja_sunset", False)),
+        birth_year=p.get("birth_year"),
+        cost_basis_method=str(p.get("cost_basis_method", CITADEL["cost_basis_method"])),
+        other_income=float(p.get("other_income") or 0),
+        other_income_growth=float(p.get("other_income_growth") or 0),
+        td_btc_stack=float(p.get("td_btc") or 0),
+        td_cash_initial=float(p.get("td_cash") or 0),
+        td_reserve_bins=[
+            {"label": "Short", "initial": float(p.get("td_res_short") or 0)},
+            {"label": "Medium", "initial": float(p.get("td_res_med") or 0)},
+            {"label": "Long", "initial": float(p.get("td_res_long") or 0)},
+        ],
+        td_invest_bins=[
+            {"label": "Equities", "initial": float(p.get("td_inv_eq") or 0)},
+            {"label": "Bonds", "initial": float(p.get("td_inv_bd") or 0)},
+        ],
+        tf_btc_stack=float(p.get("tf_btc") or 0),
+        tf_cash_initial=float(p.get("tf_cash") or 0),
+        tf_reserve_bins=[
+            {"label": "Short", "initial": float(p.get("tf_res_short") or 0)},
+            {"label": "Medium", "initial": float(p.get("tf_res_med") or 0)},
+            {"label": "Long", "initial": float(p.get("tf_res_long") or 0)},
+        ],
+        tf_invest_bins=[
+            {"label": "Equities", "initial": float(p.get("tf_inv_eq") or 0)},
+            {"label": "Bonds", "initial": float(p.get("tf_inv_bd") or 0)},
+        ],
         asset_return_model=p.get("asset_return_model", CITADEL["asset_return_model"]),
     )
 

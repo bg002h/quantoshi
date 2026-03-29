@@ -141,7 +141,7 @@ def tax_toggle_widget():
     return html.Div([
         html.Div("Taxation", style=_TITLE_STYLE),
         dbc.Switch(id="cp-tax-toggle",
-                   label="Enable taxation & retirement accounts",
+                   label="Enable taxation & tax advantaged retirement accounts",
                    value=False,
                    style={"marginBottom": "4px", "transform": "scale(1.2)",
                           "transformOrigin": "left center"}),

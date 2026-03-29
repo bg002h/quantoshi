@@ -27,6 +27,38 @@ _app_ctx.app.clientside_callback(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# Per-tab render triggers — fires the matching tab's store on each tab switch
+# ══════════════════════════════════════════════════════════════════════════════
+
+_app_ctx.app.clientside_callback(
+    """
+    function(tab, hm, dca, ret, sc, cp) {
+        var NU = window.dash_clientside.no_update;
+        var out = [NU, NU, NU, NU, NU];
+        var map = {heatmap:0, dca:1, retire:2, supercharge:3, citadel:4};
+        var idx = map[tab];
+        if (idx !== undefined) {
+            out[idx] = (arguments[idx + 1] || 0) + 1;
+        }
+        return out;
+    }
+    """,
+    Output("heatmap-first-render", "data", allow_duplicate=True),
+    Output("dca-first-render", "data", allow_duplicate=True),
+    Output("retire-first-render", "data", allow_duplicate=True),
+    Output("supercharge-first-render", "data", allow_duplicate=True),
+    Output("citadel-first-render", "data", allow_duplicate=True),
+    Input("main-tabs", "active_tab"),
+    State("heatmap-first-render", "data"),
+    State("dca-first-render", "data"),
+    State("retire-first-render", "data"),
+    State("supercharge-first-render", "data"),
+    State("citadel-first-render", "data"),
+    prevent_initial_call=True,
+)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # Path ↔ tab mappings and per-tab control IDs (used by snapshot)
 # ══════════════════════════════════════════════════════════════════════════════
 

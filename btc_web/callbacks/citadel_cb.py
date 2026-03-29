@@ -97,7 +97,7 @@ def show_asset_model_info(model):
     Output("mc-save-tab", "data", allow_duplicate=True),
     Output("cp-mc-unblocked", "data"),
     Output("cp-yr-range", "value", allow_duplicate=True),
-    Input("main-tabs",           "active_tab"),
+    Input("citadel-first-render", "data"),
     Input("cp-run-btn",          "n_clicks"),
     Input("mc-pay-trigger",      "data"),
     Input("cp-mc-loaded",        "data"),
@@ -198,7 +198,7 @@ def show_asset_model_info(model):
     prevent_initial_call=True,
 )
 def update_citadel(
-    active_tab, run_clicks, _pay_trigger, _mc_loaded,
+    _first_render, run_clicks, _pay_trigger, _mc_loaded,
     # Assets
     stack, use_lots,
     cash_init, cash_rate,
@@ -238,20 +238,17 @@ def update_citadel(
 ):
     """Citadel Planner chart callback."""
     logger.debug("[CP-CB] triggered_id=%s, mc_enable=%s, run_clicks=%s", ctx.triggered_id, mc_enable, run_clicks)
-    # Skip if another tab is active (tab switch away, or initial load on different tab)
-    if active_tab != "citadel" and ctx.triggered_id in ("main-tabs", None):
-        raise dash.exceptions.PreventUpdate
 
     # Only run simulation when Run button clicked, payment trigger fires,
     # or tab becomes active (for loading cached default chart)
     if ctx.triggered_id not in ("cp-run-btn", "mc-pay-trigger", "cp-mc-loaded",
-                                 "main-tabs", None):
+                                 "citadel-first-render", None):
         raise dash.exceptions.PreventUpdate
 
     # Before first click (or on tab switch): load cached default
     # mc-pay-trigger and cp-mc-loaded bypass — they should always run
     if (not run_clicks and ctx.triggered_id not in ("mc-pay-trigger", "cp-mc-loaded")) \
-       or ctx.triggered_id == "main-tabs":
+       or ctx.triggered_id == "citadel-first-render":
         import plotly.graph_objects as go
         import plotly.io as pio
         try:

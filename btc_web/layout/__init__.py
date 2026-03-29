@@ -83,6 +83,9 @@ _app_ctx.app.layout = dbc.Container([
     dcc.Store(id="lots-store", storage_type="local", data=[]),
     dcc.Store(id="lots-export-dummy"),
     dcc.Store(id="wm-b64-store", storage_type="memory", data=_LOGO_B64_ALL),
+    # Per-tab render triggers (clientside callback fires on tab switch)
+    *[dcc.Store(id=f"{tab}-first-render", storage_type="memory", data=0)
+      for tab in ("heatmap", "dca", "retire", "supercharge", "citadel")],
     # MC per-tab stores (results, unblocked cache, loaded trigger, download dummy)
     *[dcc.Store(id=f"{pfx}-mc-results", storage_type="memory", data=None)
       for pfx in ("dca", "ret", "hm", "sc", "cp")],

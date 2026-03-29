@@ -156,8 +156,8 @@ try:
                            update_retire, update_supercharge,
                            manage_lots, preview_percentile,
                            update_effective_lots, restore_from_url, apply_snapshot,
-                           _toggle_dca_sc_body, auto_bubble_yrange,
-                           update_sc_info, toggle_sc_mode,
+                           auto_bubble_yrange,
+                           update_sc_info,
                            _TAB_CONTROLS, _TAB_TO_PATH)
     import _app_ctx
     _ALL_QS = _app_ctx._ALL_QS
@@ -3004,18 +3004,6 @@ class TestPreviewPercentile:
 
 
 @pytest.mark.skipif(_q3 is None, reason="app.py import failed")
-class TestToggleCallbacks:
-    def test_sc_body_visible(self):
-        assert _toggle_dca_sc_body(["yes"]) == {}
-
-    def test_sc_body_hidden(self):
-        assert _toggle_dca_sc_body([]) == {"display": "none"}
-
-    def test_sc_body_falsy(self):
-        assert _toggle_dca_sc_body(None) == {"display": "none"}
-
-
-@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
 class TestEffectiveLots:
     def test_snapshot_overrides(self):
         local = [{"btc": 1}]
@@ -3153,17 +3141,6 @@ class TestAutoBubbleYrange:
         assert isinstance(result, list)
         assert len(result) == 2
         assert result[0] < result[1]
-
-
-@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
-class TestToggleScMode:
-    def test_mode_a(self):
-        result = toggle_sc_mode("a")
-        assert result == (True, False, True)
-
-    def test_mode_b(self):
-        result = toggle_sc_mode("b")
-        assert result == (False, True, False)
 
 
 @pytest.mark.skipif(_q3 is None, reason="app.py import failed")

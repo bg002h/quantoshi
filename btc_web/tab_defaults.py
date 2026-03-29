@@ -150,6 +150,7 @@ def bubble_defaults() -> dict:
     d["scanner_lines"] = list(BUBBLE["scanner_lines"])
     d["auto_y"] = list(BUBBLE["auto_y"])
     d["lots"] = []
+    d["user_model"] = None
     return d
 
 
@@ -176,6 +177,8 @@ def dca_defaults() -> dict:
     d["selected_qs"] = list(DCA["selected_qs"])
     d["active_models"] = list(DCA["active_models"])
     d["lots"] = []
+    d["user_model"] = None
+    d["sc_live_price"] = None
     return d
 
 
@@ -184,6 +187,7 @@ def retire_defaults() -> dict:
     d["selected_qs"] = list(RETIRE["selected_qs"])
     d["active_models"] = list(RETIRE["active_models"])
     d["lots"] = []
+    d["user_model"] = None
     return d
 
 
@@ -193,6 +197,7 @@ def supercharge_defaults() -> dict:
     d["selected_qs"] = list(SUPERCHARGE["selected_qs"])
     d["active_models"] = list(SUPERCHARGE["active_models"])
     d["lots"] = []
+    d["user_model"] = None
     return d
 
 
@@ -200,6 +205,7 @@ def citadel_defaults() -> dict:
     d = dict(CITADEL)
     d["selected_qs"] = list(CITADEL["selected_qs"])
     d["lots"] = []
+    d["user_model"] = None
     return d
 
 

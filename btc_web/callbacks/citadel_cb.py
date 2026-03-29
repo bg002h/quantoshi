@@ -67,6 +67,7 @@ _app_ctx.app.clientside_callback(
     Output("cp-asset-model-info", "children"),
     Output("cp-asset-model-info", "style"),
     Input("cp-asset-model", "value"),
+    prevent_initial_call=True,
 )
 def show_asset_model_info(model):
     _style_visible = {"display": "block", "marginTop": "6px", "fontSize": "11px",
@@ -194,7 +195,7 @@ def show_asset_model_info(model):
     State("mc-pay-token",        "data"),
     State("cp-mc-unblocked",     "data"),
     State("cp-mc-rendered-key",  "data"),
-    prevent_initial_call='initial_duplicate',
+    prevent_initial_call=True,
 )
 def update_citadel(
     active_tab, run_clicks, _pay_trigger, _mc_loaded,

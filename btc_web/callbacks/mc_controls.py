@@ -15,14 +15,17 @@ from mc_cache import (MC_YEARS_OPTIONS, MC_BINS, MC_SIMS, MC_FREQ,
 import btcpay
 
 
-@callback(Output("dca-sc-body","style"), Input("dca-sc-enable","value"))
-def _toggle_dca_sc_body(val):
-    return {} if val else {"display": "none"}
-
+_app_ctx.app.clientside_callback(
+    "function(v) { return (v && v.length) ? {} : {display:'none'}; }",
+    Output("dca-sc-body", "style"),
+    Input("dca-sc-enable", "value"),
+)
 for _mc_tog in ("dca", "ret", "hm", "sc", "cp"):
-    @callback(Output(f"{_mc_tog}-mc-body","style"), Input(f"{_mc_tog}-mc-enable","value"))
-    def _toggle_mc_body(val):
-        return {} if val else {"display": "none"}
+    _app_ctx.app.clientside_callback(
+        "function(v) { return (v && v.length) ? {} : {display:'none'}; }",
+        Output(f"{_mc_tog}-mc-body", "style"),
+        Input(f"{_mc_tog}-mc-enable", "value"),
+    )
 
 # MC engine toggle → inject/remove MC from Display Models options + value
 for _mc_auto in ("dca", "ret", "sc"):

@@ -11,22 +11,19 @@ from layout.faq import _FAQ
 # SC mode / display-q toggles
 # ══════════════════════════════════════════════════════════════════════════════
 
-@callback(
+_app_ctx.app.clientside_callback(
+    "function(m) { return [m==='a', m==='b', m==='a']; }",
     Output("sc-mode-a-collapse", "is_open"),
     Output("sc-mode-b-collapse", "is_open"),
     Output("sc-depl-note-collapse", "is_open"),
     Input("sc-mode", "value"),
 )
-def toggle_sc_mode(mode):
-    return mode == "a", mode == "b", mode == "a"
 
-
-@callback(
+_app_ctx.app.clientside_callback(
+    "function(v) { return !(v && v.indexOf('shade') !== -1); }",
     Output("sc-display-q-collapse", "is_open"),
     Input("sc-chart-layout", "value"),
 )
-def toggle_sc_display_q(layout):
-    return "shade" not in (layout or [])
 
 
 # ══════════════════════════════════════════════════════════════════════════════

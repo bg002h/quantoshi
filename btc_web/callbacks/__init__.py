@@ -12,8 +12,7 @@ from callbacks.mc_helpers import (_build_mc_params, _mc_setup,
                                   _mc_status, _ghost_match, _unblocked_val)
 from callbacks.mc_upload import (_parse_mc_upload, _extract_mc_key_val,
                                  _MC_UPLOAD_FIELDS)
-from callbacks.mc_controls import (_mc_years_options, _toggle_dca_sc_body,
-                                   _restore_mc)
+from callbacks.mc_controls import (_mc_years_options, _restore_mc)
 from callbacks.lots import (_lots_summary, manage_lots, preview_percentile,
                             sync_table_on_load)
 from callbacks.charts import (update_bubble, update_heatmap, update_dca,
@@ -26,7 +25,6 @@ from callbacks.snapshot_cb import (restore_from_url, apply_snapshot,
                                    clear_history, apply_hm_palette,
                                    generate_share_qr)
 from callbacks.routing import (_TAB_CONTROLS, _TAB_TO_PATH, _PATH_TO_TAB,
-                               toggle_sc_mode, toggle_sc_display_q,
                                open_faq_item)
 from callbacks.nav import toggle_share_modal
 from callbacks.sc_loan import update_sc_info

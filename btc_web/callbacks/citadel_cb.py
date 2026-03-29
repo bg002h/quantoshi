@@ -95,6 +95,7 @@ def show_asset_model_info(model):
     Output("mc-save-modal", "is_open", allow_duplicate=True),
     Output("mc-save-tab", "data", allow_duplicate=True),
     Output("cp-mc-unblocked", "data"),
+    Output("cp-yr-range", "value", allow_duplicate=True),
     Input("main-tabs",           "active_tab"),
     Input("cp-run-btn",          "n_clicks"),
     Input("mc-pay-trigger",      "data"),
@@ -259,7 +260,7 @@ def update_citadel(
             if cached and cached.get("figure"):
                 fig = pio.from_json(cached["figure"])
                 return (fig, dash.no_update, dash.no_update, dash.no_update,
-                        dash.no_update, dash.no_update, dash.no_update)
+                        dash.no_update, dash.no_update, dash.no_update, dash.no_update)
         except Exception:
             pass
         # Fallback: show instructions
@@ -401,10 +402,17 @@ def update_citadel(
         status = html.Span("MC simulation computing in background...",
                            style={"color": "#b8860b", "fontSize": "12px"})
         return (fig, store_val, status, dash.no_update,
-                dash.no_update, dash.no_update, dash.no_update)
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update)
+
+    # Nudge year range slider if MC starts before visible range
+    yr_adjust = dash.no_update
+    if mc_ok and mc_p.get("mc_start_yr"):
+        mc_sy = int(mc_p["mc_start_yr"])
+        if mc_sy < int(yr_range[0]):
+            yr_adjust = [mc_sy, int(yr_range[1])]
 
     return (fig, store_val, status, rendered_key, show_modal,
-            "cp" if show_modal else dash.no_update, ub_val)
+            "cp" if show_modal else dash.no_update, ub_val, yr_adjust)
 
 
 # ── Celery polling: enable/disable interval based on pending state ────────

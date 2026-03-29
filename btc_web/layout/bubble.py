@@ -10,7 +10,7 @@ from tab_defaults import BUBBLE
 from layout.common import (_tab_hints, _section_card, _row, _lbl,
                             _STYLE_HIDDEN, _q_panel, _q_options,
                             _ctrl_card, _legend_pos_dropdown,
-                            _chart_tab_layout)
+                            _chart_tab_layout, _CB_MARGIN)
 
 
 def _bubble_controls():
@@ -38,7 +38,7 @@ def _bubble_controls():
                 dbc.Col(dcc.Checklist(
                     id="bub-auto-y",
                     options=[{"label":" Auto","value":"yes"}],
-                    value=["yes"], inputStyle={"marginRight":"3px"},
+                    value=["yes"], inputStyle=_CB_MARGIN,
                     className="small",
                 ), width="auto"),
             ], className="g-0 align-items-center"),
@@ -62,7 +62,7 @@ def _bubble_controls():
                                    {"label":" Enable chart zoom","value":"chart_zoom"}],
                           value=["shade","show_data","show_today"],
                           labelStyle={"display":"block"},
-                          inputStyle={"marginRight":"5px"}),
+                          inputStyle=_CB_MARGIN),
             *_legend_pos_dropdown("bub", BUBBLE["legend_pos"]),
             _lbl("Display models"),
             dcc.Checklist(id="bub-model-show",
@@ -72,7 +72,7 @@ def _bubble_controls():
                                    if mdl.short_name not in _app_ctx.MODEL_SENTINELS
                                    and mdl.short_name != "bub"],
                           value=["bub"], inline=True,
-                          inputStyle={"marginRight": "4px"},
+                          inputStyle=_CB_MARGIN,
                           labelStyle={"marginRight": "12px", "fontSize": "11px"},
                           style={"marginBottom": "8px"}),
         ),
@@ -83,7 +83,7 @@ def _bubble_controls():
                                    {"label":" Support","value":"show_sup"}],
                           value=["show_comp","show_sup"],
                           labelStyle={"display":"block"},
-                          inputStyle={"marginRight":"5px"}),
+                          inputStyle=_CB_MARGIN),
             _lbl("N future bubbles"),
             dcc.Slider(id="bub-n-future", min=0, max=_app_ctx.M.n_future_max,
                        value=BUBBLE["n_future"], step=1, marks=None,
@@ -136,11 +136,11 @@ def _bubble_controls():
                 dbc.InputGroupText(dcc.Checklist(
                     id="bub-show-stack",
                     options=[{"label":" Show","value":"yes"}],
-                    value=[], inputStyle={"marginRight":"4px"})),
+                    value=[], inputStyle=_CB_MARGIN)),
             ], size="sm"),
             dcc.Checklist(id="bub-use-lots",
                           options=[{"label":" Use Stack Tracker lots","value":"yes"}],
-                          value=[], inputStyle={"marginRight":"5px"}),
+                          value=[], inputStyle=_CB_MARGIN),
         ),
         _section_card("User Model",
             html.Small("Click a data point on the chart, then tap P1 or P2.",

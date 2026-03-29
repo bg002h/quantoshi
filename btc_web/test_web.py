@@ -2719,7 +2719,7 @@ class TestUpdateDcaCallback:
     def test_returns_figure_and_mc_outputs(self):
         with _patch_ctx("dca-amount"):
             result = update_dca(
-                stack=0, use_lots=[], amount=200,
+                active_tab="dca", stack=0, use_lots=[], amount=200,
                 freq="Monthly", dca_infl=0, yr_range=[2025, 2035],
                 disp="btc", toggles=["show_legend"], legend_pos="outside",
                 sel_qs=[0.5], lots_data=[],
@@ -2739,12 +2739,31 @@ class TestUpdateDcaCallback:
         assert len(result) == 8
         assert isinstance(result[0], go.Figure)
 
-    # test_wrong_tab_prevents_update removed — main-tabs no longer an Input for DCA
+    def test_wrong_tab_prevents_update(self):
+        with _patch_ctx("main-tabs"):
+            with pytest.raises(Exception):
+                update_dca(
+                    active_tab="bubble", stack=0, use_lots=[], amount=200,
+                    freq="Monthly", dca_infl=0, yr_range=[2025, 2035],
+                    disp="btc", toggles=[], legend_pos="outside", sel_qs=[0.5], lots_data=[],
+                    sc_enable=[], sc_loan=0, sc_rate=13, sc_term=12,
+                    sc_type="interest_only", sc_repeats=0,
+                    sc_entry_mode="live", sc_custom_price=80000,
+                    sc_tax=33, sc_rollover=[],
+                    mc_enable=[],
+                    mc_bins=5, mc_regime=list(range(5)), mc_sims=800, mc_years=10,
+                    mc_window=None,
+                    mc_start_yr=2026, mc_entry_q=50,
+                    _mc_loaded=None, _pay_trigger=0, model_show=["qr", "mc"],
+                    mc_model_src="bub",
+                    price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
+                    palette_key="default",
+                )
 
     def test_with_sc_enabled(self):
         with _patch_ctx("dca-sc-enable"):
             result = update_dca(
-                stack=0, use_lots=[], amount=500,
+                active_tab="dca", stack=0, use_lots=[], amount=500,
                 freq="Monthly", dca_infl=0, yr_range=[2025, 2030],
                 disp="btc", toggles=[], legend_pos="outside",
                 sel_qs=[0.1, 0.5], lots_data=[],
@@ -2765,7 +2784,7 @@ class TestUpdateDcaCallback:
     def test_usd_display_mode(self):
         with _patch_ctx("dca-disp"):
             result = update_dca(
-                stack=0.5, use_lots=[], amount=300,
+                active_tab="dca", stack=0.5, use_lots=[], amount=300,
                 freq="Weekly", dca_infl=0, yr_range=[2025, 2032],
                 disp="usd", toggles=["log_y"], legend_pos="outside",
                 sel_qs=[0.5, 0.85], lots_data=[],
@@ -2791,7 +2810,7 @@ class TestUpdateRetireCallback:
     def test_returns_figure(self):
         with _patch_ctx("ret-wd"):
             result = update_retire(
-                stack=1.0, use_lots=[], wd=5000,
+                active_tab="retire", stack=1.0, use_lots=[], wd=5000,
                 freq="Monthly", yr_range=[2031, 2075], infl=4,
                 disp="btc", toggles=["log_y", "annotate"],
                 legend_pos="outside",
@@ -2816,7 +2835,7 @@ class TestUpdateSuperchargeCallback:
     def test_mode_a(self):
         with _patch_ctx("sc-mode"):
             result = update_supercharge(
-                stack=1.0, use_lots=[],
+                active_tab="supercharge", stack=1.0, use_lots=[],
                 start_yr=2033, d0=0, d1=0, d2=0, d3=1, d4=2,
                 freq="Annually", infl=4, sel_qs=[0.001, 0.1],
                 mode="a", wd=100000, end_yr=2075, target_yr=2060,
@@ -2838,7 +2857,7 @@ class TestUpdateSuperchargeCallback:
     def test_mode_b(self):
         with _patch_ctx("sc-mode"):
             result = update_supercharge(
-                stack=2.0, use_lots=[],
+                active_tab="supercharge", stack=2.0, use_lots=[],
                 start_yr=2030, d0=0, d1=1, d2=3, d3=5, d4=10,
                 freq="Monthly", infl=3, sel_qs=[0.1, 0.5],
                 mode="b", wd=50000, end_yr=2080, target_yr=2055,

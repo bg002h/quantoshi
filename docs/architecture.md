@@ -75,14 +75,18 @@ engines/adapter.py
 | `callbacks/` | Callbacks package (17 modules): `__init__`, `charts`, `nav` (tab routing, pill clicks), `ticker`, `snapshot_cb`, `mc_controls`, `mc_helpers`, `mc_payment`, `mc_upload`, `lots`, `coerce` (`_ci()`/`_cf()`), `sc_loan`, `routing`, `splash`, `user_model`, `citadel_cb`, `scanner` | `update_bubble()`, `update_heatmap()`, etc. |
 | `figures/` | Figures package (8 modules): `__init__`, `common` (palette, watermark, annotations, MC overlay), `bubble` (+ PL/S2F overlays), `heatmap`, `dca`, `retire`, `supercharge`, `citadel` | `build_bubble_figure()`, `build_heatmap_figure()`, etc. |
 | `engines/adapter.py` | Simulation engine adapter — routes to QR, MC, or Citadel engine | — |
-| `engines/citadel.py` | Citadel planning simulation engine | `run_citadel()` |
+| `engines/citadel.py` | Citadel planning simulation engine | `SimConfig`, `CitadelState`, `simulate()` |
+| `engines/tax.py` | Annual tax computation (brackets, NIIT, loss netting) | `compute_annual_tax()`, `TaxYearAccumulator` |
+| `engines/tax_lots.py` | Lot-level BTC tracking for capital gains | `TaxLot`, `sell_lots()`, `seed_lots()` |
+| `engines/tax_data.py` | Static US tax data (brackets, state rates, RMD factors) | `FEDERAL_BRACKETS_TCJA`, `STATE_TAX_RATES`, `RMD_FACTORS` |
 | `mc_overlay.py` | MC simulation, caching, fan band traces, regime filters | `_mc_dca_overlay()`, `_mc_retire_overlay()`, etc. |
 | `mc_cache.py` | Pre-computed MC cache generation/loading/lookup | `load_caches()`, `get_cached_paths()`, `get_cached_overlay()` |
 | `load_shm_cache.py` | Shared memory cache loading | — |
 | `api.py` | REST API endpoints | `register_routes()` |
 | `btcpay.py` | BTCPay Server payment integration | Invoice lifecycle |
 | `btc_core.py` | ModelData class, QR pricing math, lot percentiles | `ModelData`, `qr_price()`, `yr_to_t()` |
-| `test_web.py` | Tests: utilities, builders, snapshots, callbacks, btcpay, regime filters (~590+ passing) | — |
+| `test_web.py` | Tests: utilities, builders, snapshots, callbacks, btcpay, regime filters, tax (~650+ passing) | — |
+| `test_tax_e2e.py` | Playwright E2E smoke tests for tax UI (15 tests, requires dev server + Firefox) | — |
 
 ---
 
@@ -653,14 +657,41 @@ UI.
 
 ## 11c. Citadel Simulation Engine
 
-The Citadel Planner (tab 7) uses a dedicated simulation engine in
-`engines/citadel.py`. It models multi-phase Bitcoin accumulation and
-drawdown scenarios (e.g., accumulate → hold → fund a citadel / sovereign
-community). `engines/adapter.py` provides a unified interface so figure
-builders can call any engine (QR, MC, Citadel) through a single dispatch
-layer. `figures/citadel.py` builds the chart; `callbacks/citadel_cb.py`
-wires the Dash callbacks; `callbacks/scanner.py` handles any scanning or
-detection logic for the Citadel tab.
+The Citadel Planner (tab 9) uses a dedicated simulation engine in
+`engines/citadel.py`. It models multi-asset retirement with BTC + cash +
+treasuries + equities + bonds. `engines/adapter.py` provides a unified
+interface. `figures/citadel.py` builds the chart; `callbacks/citadel_cb.py`
+wires the Dash callbacks.
+
+### Tax System (opt-in)
+
+Master toggle `cp-tax-toggle` activates US federal + state tax simulation.
+When off, the engine runs unmodified (zero tax drag).
+
+**Three account wrappers** — each can hold BTC, cash, reserves, investments:
+- **Taxable**: BTC sales → lot-level capital gains (ST/LT via `sell_lots()`).
+  Investment sales → LT gains with dynamic cost basis tracking. Cash/reserve
+  withdrawals → no tax. Interest → ordinary income. Treasury interest →
+  state-exempt.
+- **Tax-Deferred** (Traditional IRA/401k): All withdrawals → ordinary income.
+  Subject to RMDs (age 73 for born 1951-1959, 75 for born 1960+).
+- **Tax-Free** (Roth): All withdrawals → tax-free. No RMDs.
+
+**Annual tax pipeline** (at year boundary in `step()`):
+1. IRS §1(h) loss netting → AGI → standard deduction split → ordinary brackets
+   → LTCG stacking → NIIT (3.8%) → state tax → total
+2. Tax paid from taxable wrapper via gross-up formula
+3. Brackets inflation-indexed from 2025 base. NIIT threshold NOT indexed.
+4. TCJA sunset toggle reverts to 39.6% top rate + lower standard deduction.
+
+**Growth-aware withdrawal ordering**: Engine consults BTC price model's
+forward-looking growth rate each period. High BTC growth → avoid selling BTC.
+Low BTC growth (late decades) → BTC moves earlier in withdrawal order. Roth BTC
+is always last (tax-free compounding on highest-growth asset).
+
+**Modules**: `engines/tax.py` (computation), `engines/tax_lots.py` (lot tracking),
+`engines/tax_data.py` (static data), `layout/citadel_tax.py` (full-screen modal),
+`callbacks/citadel_tax_cb.py` (modal callbacks + summary table builder).
 
 ---
 

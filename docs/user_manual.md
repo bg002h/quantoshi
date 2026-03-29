@@ -270,6 +270,47 @@ with flexible rebalancing and withdrawal rules.
   - **Show All / Hide All** buttons toggle all legend traces at once for
     cleaner chart reading.
 
+**Tax Simulation (optional):**
+
+Toggle **Taxation** ON in the Simulation sub-tab to model US federal + state
+income tax on your portfolio withdrawals. Click **Configure Tax Settings** to
+open the full-screen tax modal:
+
+- **Filing Status** — Single or Married Filing Jointly. Affects bracket
+  thresholds, LTCG brackets, and NIIT threshold.
+- **State** — Select your state from the dropdown. The top marginal rate auto-
+  fills (editable). Texas and other no-income-tax states show 0%.
+- **Birth Year** — Enter for RMD modeling. The IRS forces withdrawals from
+  Traditional IRA/401k starting at age 73 (born 1951-1959) or 75 (born 1960+).
+  Leave blank to skip RMD modeling.
+- **Other Income** — Annual external income (wages, Social Security, pensions).
+  Increases your tax bracket and may trigger NIIT.
+- **Tax Law** — "Current law (TCJA)" uses 2025 brackets. "Scheduled sunset"
+  models what happens if TCJA expires (39.6% top rate, lower standard deduction).
+- **Cost Basis Method** — FIFO sells your oldest BTC first (usually long-term,
+  lower tax). LIFO sells newest first (may trigger short-term rates).
+- **Account Wrappers** — Enter balances for Tax-Deferred (Traditional IRA/401k)
+  and Tax-Free (Roth) accounts. All three wrappers can hold BTC. The Taxable
+  wrapper uses your existing Assets sub-tab configuration.
+- **Investment Cost Basis** — In the Assets sub-tab, enter what you originally
+  paid for your equities and bonds. If your $200k in equities has a $100k basis,
+  selling generates $100k in capital gains. Default = current value (no prior gains).
+
+**How the tax engine works:**
+
+The engine optimizes withdrawal order to minimize lifetime tax burden:
+- Spends taxable cash/reserves first (no tax)
+- Fills low tax brackets with Tax-Deferred withdrawals
+- Sells taxable investments and BTC (capital gains) in the middle
+- Preserves Roth for last (tax-free growth is most valuable)
+- BTC's position shifts based on its projected growth rate — early in the sim
+  (high growth), BTC is protected. Late (low growth), BTC becomes expendable.
+
+When tax is on, the chart shows:
+- Dashed "no-tax" ghost traces for comparison
+- A tax-drag annotation showing how much taxes reduced your terminal wealth
+- A year-by-year Tax Summary panel below the chart
+
 **Tips:**
 - Use Fixed Rates for a quick "baseline" scenario, then switch to Historical
   Regimes to see how sequence-of-returns risk affects the outcome.
@@ -277,6 +318,9 @@ with flexible rebalancing and withdrawal rules.
   re-enable them one by one to see which triggers matter most.
 - The Citadel Planner uses the same BTC price model as the other tabs — your
   selected quantile for BTC projections feeds directly into the simulation.
+- Compare tax ON vs OFF to see the true cost of taxes over a 40-year horizon.
+  The drag is often 20-40% of terminal wealth — a powerful motivator for Roth
+  conversions and tax-loss harvesting (future features).
 
 ---
 

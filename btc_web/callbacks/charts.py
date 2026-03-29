@@ -451,7 +451,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
         sc_rollover     = bool(sc_rollover),
         show_qr        = "bub" in model_show,
         show_mc        = "mc" in model_show,
-        active_models  = [k for k in model_show if k not in _app_ctx.MODEL_SENTINELS],
+        active_models  = [k for k in model_show if k != "mc"],  # pass "bub" through for toggle
         palette = palette_key or "default",
         user_model = user_model_store,
         **mc_p,
@@ -662,7 +662,7 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         use_lots     = bool(use_lots),
         show_qr      = "bub" in model_show,
         show_mc      = "mc" in model_show,
-        active_models = [k for k in model_show if k not in _app_ctx.MODEL_SENTINELS],
+        active_models = [k for k in model_show if k != "mc"],  # pass "bub" through for toggle
         palette = palette_key or "default",
         is_mobile = (viewport_width or 1200) < 768,
         user_model = user_model_store,

@@ -135,7 +135,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 name=legendgroup,
             )
 
-        show_qr = p.get("show_qr", True)
+        show_bm = "bub" in (p.get("active_models") or ["bub"])
 
         q_range = _fmt_q_range(sel_qs)
         grp_model = f"sc-{model.short_name}"
@@ -157,7 +157,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 return ""
             return f" +{int(d)}yr" if d == int(d) else f" +{d:.1f}yr"
 
-        if not show_qr:
+        if not show_bm:
             pass  # skip QR traces, keep results for MC/annotations
         elif chart_layout == 0:
             # Color = delay, show quantile closest to display_q
@@ -472,6 +472,14 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 _pending_annots.append(_mc_ann)
         traces.extend(_resolve_edge_annotations(_pending_annots, _sc_log))
 
+        # Handle empty plot (all models unchecked)
+        if not traces:
+            layout["annotations"] = [dict(
+                text="No models selected \u2014 check Display Models",
+                xref="paper", yref="paper", x=0.5, y=0.5,
+                showarrow=False, font=dict(size=16, color="#888"),
+            )]
+
         return _finalize_chart(traces, layout, p, "sc", mc_result, mc_premium=False)
 
     # ── MODE B: fixed depletion date -> max withdrawal per period ──────────────
@@ -517,8 +525,11 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
 
     max_wd = {(d, q): _max_wd_for(d, q) for d in delays for q in sel_qs}
     traces = []
+    show_bm = "bub" in (p.get("active_models") or ["bub"])
 
-    if chart_layout == 0:
+    if not show_bm:
+        pass  # skip all BM traces
+    elif chart_layout == 0:
         q_show = min(sel_qs, key=lambda q: abs(q - display_q))
         y_line = [max_wd.get((d, q_show), 0) for d in delays]
         traces.append(go.Scatter(
@@ -577,4 +588,13 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
         xlabel=xlabel,
         ylabel=f"Max withdrawal{freq_label}",
     )
+
+    # Handle empty plot (all models unchecked)
+    if not traces:
+        layout["annotations"] = [dict(
+            text="No models selected \u2014 check Display Models",
+            xref="paper", yref="paper", x=0.5, y=0.5,
+            showarrow=False, font=dict(size=16, color="#888"),
+        )]
+
     return _finalize_chart(traces, layout, p, "sc", mc_premium=False)

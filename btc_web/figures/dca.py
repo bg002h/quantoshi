@@ -172,6 +172,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     inflation = float(p.get("inflation", DCA["inflation"])) / 100.0
     disp_mode = p.get("disp_mode", "btc")
     sel_qs    = sorted([float(q) for q in (p.get("selected_qs") or [])])
+    show_bm   = "bub" in (p.get("active_models") or ["bub"])
 
     traces = []
     all_btc_vals = {}  # q -> BTC balance array
@@ -188,20 +189,21 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
         all_usd_vals[q] = vals * prices_q
         all_prices[q]   = prices_q          # save for SC loop below
 
-        if disp_mode == "usd":
-            y_vals    = vals * prices_q
-            final_lbl = fmt_price(float(y_vals[-1]))
-        else:
-            y_vals    = vals
-            final_usd = fmt_price(float(all_usd_vals[q][-1]))
-            final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
+        if show_bm:
+            if disp_mode == "usd":
+                y_vals    = vals * prices_q
+                final_lbl = fmt_price(float(y_vals[-1]))
+            else:
+                y_vals    = vals
+                final_usd = fmt_price(float(all_usd_vals[q][-1]))
+                final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
 
-        lbl = f"{model.legend_name} {_fmt_q_label(q)}" + f"  \u2192  {final_lbl}"
-        col = _thermal.get(q, model.colors.get(q, "#888888"))
-        traces.append(go.Scatter(
-            x=list(ts), y=list(y_vals), mode="lines", name=lbl,
-            line=dict(color=col, width=_QR_LINE_WIDTH, shape=_line_shape),
-        ))
+            lbl = f"{model.legend_name} {_fmt_q_label(q)}" + f"  \u2192  {final_lbl}"
+            col = _thermal.get(q, model.colors.get(q, "#888888"))
+            traces.append(go.Scatter(
+                x=list(ts), y=list(y_vals), mode="lines", name=lbl,
+                line=dict(color=col, width=_QR_LINE_WIDTH, shape=_line_shape),
+            ))
 
     # ── alternative model overlays ────────────────────────────────────────────
     _dca_sim = lambda prices_q: start_stack + np.cumsum(adj_amount_arr / prices_q)
@@ -305,5 +307,13 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                     short_label=_fmt_short(_mc_btc_f, _mc_usd_f),
                     color=_BTC_ORANGE, y_last=float(_my[-1])))
     traces.extend(_resolve_edge_annotations(_pending_annots, _is_log))
+
+    # Handle empty plot (all models unchecked)
+    if not traces:
+        layout["annotations"] = [dict(
+            text="No models selected \u2014 check Display Models",
+            xref="paper", yref="paper", x=0.5, y=0.5,
+            showarrow=False, font=dict(size=16, color="#888"),
+        )]
 
     return _finalize_chart(traces, layout, p, "dca", mc_result)

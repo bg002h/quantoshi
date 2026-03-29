@@ -14,6 +14,9 @@ _STYLE_GRAPH_H    = {"height": "78vh"}
 _STYLE_COLOR_H    = {"height": "28px"}
 _STYLE_ADDR_CELL  = {"paddingRight": "12px", "whiteSpace": "nowrap", "verticalAlign": "top"}
 _STYLE_ADDR_CODE  = {"wordBreak": "break-all", "fontSize": "11px"}
+_CB_MARGIN        = {"marginRight": "4px"}
+_INFL_LABEL       = "Inflation rate (0\u2013100% / yr)"
+_Q_HINT_BASE      = "Lower quantiles = more conservative price paths."
 
 def _q_options() -> list[dict]:
     opts = []
@@ -37,7 +40,7 @@ def _q_panel(checklist_id: str, default_value: list, hint: str | None = None):
     children.append(
         dcc.Checklist(id=checklist_id, options=_q_options(),
                       value=default_value, className="q-panel-grid",
-                      inputStyle={"marginRight":"4px"}),
+                      inputStyle=_CB_MARGIN),
     )
     return _section_card("Projection Quantiles", *children)
 
@@ -121,7 +124,7 @@ def _chart_toggles(prefix, defaults=None):
             {"label": " Enable chart zoom", "value": "chart_zoom"}]
     return dcc.Checklist(id=f"{prefix}-toggles", options=opts,
                          value=defaults or [], labelStyle={"display": "block"},
-                         inputStyle={"marginRight": "5px"})
+                         inputStyle=_CB_MARGIN)
 
 
 def _btc_usd_dropdown(prefix, btc_label="BTC Balance", default="btc"):
@@ -295,7 +298,7 @@ def _model_show_checklist(prefix):
                       options=opts,
                       value=["bub"],
                       inline=True,
-                      inputStyle={"marginRight": "4px"},
+                      inputStyle=_CB_MARGIN,
                       labelStyle={"marginRight": "12px", "fontSize": "11px"},
                       style={"marginBottom": "8px"}),
     ]
@@ -311,7 +314,7 @@ def _shared_settings_card(prefix, *, amount_id=None, amount_label="Per-period am
                   min=0, step=0.001, size="sm", debounce=True),
         dcc.Checklist(id=f"{prefix}-use-lots",
                       options=[{"label": " Use Stack Tracker lots", "value": "yes"}],
-                      value=[], inputStyle={"marginRight": "5px"}),
+                      value=[], inputStyle=_CB_MARGIN),
     ]
     if amount_id:
         children.extend([
@@ -335,7 +338,7 @@ def _shared_settings_card(prefix, *, amount_id=None, amount_label="Per-period am
                 dcc.Checklist(
                     id=f"{prefix}-freq-unlock",
                     options=[{"label": " Unlock", "value": "yes"}],
-                    value=[], inputStyle={"marginRight": "4px"},
+                    value=[], inputStyle=_CB_MARGIN,
                     style={"fontSize": "11px", "paddingTop": "6px"},
                 ),
                 width=4,

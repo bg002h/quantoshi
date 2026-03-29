@@ -1,19 +1,22 @@
 # Tax Accounting Fixes
 
 **Date:** 2026-03-29
-**Scope:** Fix 4 tax accounting gaps, merge waterfalls, always lot-track BTC.
+**Scope:** Fix 7 tax accounting gaps, merge waterfalls, always lot-track BTC.
 **Prerequisite for:** Dynamic waterfall ordering (separate spec).
 
 ---
 
 ## Problem
 
-Four code paths sell/buy BTC or investments without proper tax accounting:
+Seven code paths sell/buy BTC or investments without proper tax accounting:
 
 1. **Floor enforcement BTC sales** (`_enforce_floors`, line ~332) — raw `btc_stack -= btc_sold`, no `sell_lots()`, no capital gains recorded.
 2. **Rebalancing BTC sales** (`_execute_sell_btc`, line ~429) — raw stack reduction, no lot tracking, no gain recorded.
 3. **Rebalancing BTC purchases** (`_execute_buy_btc`, line ~450) — no `TaxLot` created, so future sales of this BTC have no cost basis.
 4. **Investment sales during tax payment** (`_pay_tax_amount`, lines ~1041-1058) — LTCG computed for gross-up but never recorded in `TaxYearAccumulator`. Gains are invisible to subsequent tax computation.
+5. **SCF initial BTC purchase** (`_initial_state`, lines ~619-626) — Saylor Fortifier buys BTC at startup but `seed_lots()` only covers `start_stack`. The SCF BTC has no lot, so future sales undercount.
+6. **SCF perpetual loan repayment BTC sale** (`_scf_check_repay`, lines ~589-592) — raw `btc_stack -= btc_sold`, same bug class as #1 and #2.
+7. **Floor enforcement investment sales** (`_enforce_floors`, lines ~317-318) — `investments[i] -= draw` without adjusting `invest_cost_basis`. Cost basis drifts from actual value.
 
 Additionally, two separate waterfall functions (`_apply_spending_waterfall` and `_tax_aware_waterfall`) duplicate logic and will diverge as the dynamic waterfall is added next. They should be merged.
 
@@ -29,7 +32,7 @@ Add `sim_date: str = ""` to `CitadelState`. Set once per period in `step()` befo
 
 ## Always Seed Lots
 
-`_initial_state` moves the `seed_lots()` call outside the `if config.tax_enabled:` block. Lots are always created for the starting BTC stack. The `TaxYearAccumulator` is still only created when `tax_enabled=True`.
+`_initial_state` moves the `seed_lots()` call outside the `if config.tax_enabled:` block. Lots are always created for the starting BTC stack. If SCF is enabled, a second lot is created for the SCF BTC purchase (source="scf") immediately after the SCF stack addition. The `TaxYearAccumulator` is still only created when `tax_enabled=True`.
 
 ## Three Tracking Helpers
 
@@ -39,7 +42,7 @@ Placed near the top of `citadel.py`, before functions that use them.
 
 - If `state.tax_lots` is non-empty: calls `sell_lots(state.tax_lots, btc_to_sell, state.btc_price, state.sim_date, method=config.cost_basis_method)`. Updates `state.btc_stack -= result.btc_sold` and `state.tax_lots = result.remaining_lots`. If `state.tax_year_accum is not None`: records each gain as ST or LT in the accumulator.
 - If `state.tax_lots` is empty (defensive): raw `state.btc_stack -= min(btc_to_sell, state.btc_stack)`.
-- Returns the `SaleResult` (or a minimal equivalent for the empty-lots path) so callers can access `btc_sold`.
+- Returns the `SaleResult` (or a minimal equivalent for the empty-lots path) so callers can access `btc_sold`. **Callers that need a dollar amount** (e.g., `_enforce_floors` for deficit reduction) must use `result.btc_sold * state.btc_price`, not the requested amount, since `sell_lots()` may sell fewer BTC than requested if lots are exhausted.
 
 ### `_buy_btc_tracked(state, config, btc_bought, source="rebal_buy")`
 
@@ -69,9 +72,12 @@ Lots are maintained regardless (metadata only), but no tax events are recorded o
 
 | Function | Current behavior | New behavior |
 |---|---|---|
-| `_enforce_floors` (BTC sale for cash floor) | `state.btc_stack -= btc_sold` | `_sell_btc_tracked(state, config, btc_sold)` |
+| `_enforce_floors` (BTC sale for cash floor) | `state.btc_stack -= btc_sold` | `_sell_btc_tracked(state, config, btc_sold)`; use `result.btc_sold * price` for deficit |
+| `_enforce_floors` (investment sales for floor) | `state.investments[i] -= draw` | `_sell_investments_tracked(state, config, i, draw)` |
 | `_execute_sell_btc` (rebalancing) | `state.btc_stack -= btc_to_sell` | `_sell_btc_tracked(state, config, btc_to_sell)` |
 | `_execute_buy_btc` (rebalancing) | `state.btc_stack += btc_bought` | `_buy_btc_tracked(state, config, btc_bought, source="rebal_buy")` |
+| `_scf_check_repay` (SCF loan repayment) | `state.btc_stack -= btc_sold` | `_sell_btc_tracked(state, config, btc_sold)` |
+| `_initial_state` (SCF purchase) | `state.btc_stack += btc_bought`, no lot | `_buy_btc_tracked(state, config, btc_bought, source="scf")` (or inline lot creation since `sim_date` may not be set yet) |
 | `_pay_tax_amount` (investment sales) | Computes gain for gross-up, not recorded | Calls `_sell_investments_tracked`, gain auto-recorded |
 | `_tax_aware_waterfall` (investment sales) | Inline basis tracking + accumulator | Calls `_sell_investments_tracked` |
 | `_tax_aware_waterfall` (BTC sales) | Calls `sell_lots` inline | Calls `_sell_btc_tracked` |
@@ -115,7 +121,7 @@ Add to the Model Info accordion: "Investment gains in the Citadel Planner are cl
 
 | File | Change |
 |---|---|
-| `engines/citadel.py` | Add `sim_date` to state, add 3 helpers, update 7 call sites, merge waterfalls, always seed lots, update `_execute_sell/buy_btc` signatures |
+| `engines/citadel.py` | Add `sim_date` to state, add 3 helpers, update 10 call sites, merge waterfalls, always seed lots (incl. SCF), update `_execute_sell/buy_btc` and `_scf_check_repay` signatures |
 | `engines/tax_lots.py` | No changes |
 | `layout/model_info.py` | Add investment gains classification note |
 | `test_web.py` | Tests for each helper, regression tests for floor/rebalancing lot tracking, waterfall merge, tax-off-still-works |
@@ -130,16 +136,26 @@ Add to the Model Info accordion: "Investment gains in the Citadel Planner are cl
 
 ## Tests
 
+### Helper unit tests
 1. `_sell_btc_tracked` creates gains in accumulator when tax on
 2. `_sell_btc_tracked` works with empty lots (defensive path)
 3. `_sell_btc_tracked` does not record gains when `tax_year_accum is None`
 4. `_buy_btc_tracked` creates a lot with correct date/basis/source
 5. `_sell_investments_tracked` records LTCG in accumulator
 6. `_sell_investments_tracked` no-ops accumulator when tax off
-7. Floor enforcement BTC sale now lot-tracked (regression)
-8. Rebalancing BTC sell now lot-tracked (regression)
-9. Rebalancing BTC buy creates lot (regression)
-10. Investment sale during tax payment now recorded (regression)
-11. Merged waterfall produces same results as old non-tax waterfall (for tax-off scenarios)
-12. Tax-off simulation still pays zero tax (critical regression)
-13. Lots are seeded even when tax is off
+
+### Regression tests (each bug fixed)
+7. Floor enforcement BTC sale now lot-tracked
+8. Floor enforcement investment sale now updates cost basis
+9. Rebalancing BTC sell now lot-tracked
+10. Rebalancing BTC buy creates lot
+11. SCF initial purchase creates lot
+12. SCF perpetual repayment BTC sale lot-tracked
+13. Investment sale during tax payment now recorded in accumulator
+
+### Integration / safety tests
+14. Merged waterfall produces same results as old non-tax waterfall (for tax-off scenarios)
+15. Tax-off simulation still pays zero tax (critical regression)
+16. Lots are seeded even when tax is off
+17. Lot inventory sum matches `btc_stack` after sell operations (consistency check)
+18. Gradual rebalancing multi-period correctly consumes lots across successive sells

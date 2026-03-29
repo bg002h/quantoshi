@@ -762,10 +762,23 @@ def _tax_aware_waterfall(state: CitadelState, config: SimConfig,
         if remaining <= 0:
             return 0.0
 
-    # --- 2. Tax-Deferred bracket-filling (small amount to stay in low brackets) ---
-    # For v1: draw up to 12% bracket top (~$48k single, ~$97k mfj, inflation-adjusted)
-    # This is a simplification; we just draw a modest amount from TD
-    td_bracket_fill = min(remaining, 20_000.0)  # conservative bracket fill
+    # --- 2. Tax-Deferred bracket-filling (stay in low ordinary brackets) ---
+    # Draw enough from TD to fill up to the 12% bracket top (inflation-adjusted).
+    # Pro-rate to the period frequency so monthly sims don't over-fill.
+    from .tax_data import FEDERAL_BRACKETS_TCJA
+    _bracket_12_top = FEDERAL_BRACKETS_TCJA[config.filing_status][1][0]  # 2nd bracket upper
+    _years_elapsed = state.period / FREQ_PPY[config.freq]
+    _bracket_inflated = _bracket_12_top * (1 + config.inflation / 100) ** _years_elapsed
+    # Subtract ordinary income already accumulated this year
+    _already_ordinary = 0.0
+    if state.tax_year_accum is not None:
+        _already_ordinary = (state.tax_year_accum.tax_deferred_withdrawals
+                             + state.tax_year_accum.interest_income
+                             + state.tax_year_accum.treasury_interest
+                             + state.tax_year_accum.other_income)
+    _annual_room = max(_bracket_inflated - _already_ordinary, 0.0)
+    _ppy = FREQ_PPY[config.freq]
+    td_bracket_fill = min(remaining, _annual_room / _ppy)  # pro-rate to period
     td_avail = (state.td_cash + sum(state.td_reserves) + sum(state.td_investments)
                 + state.td_btc_stack * max(state.btc_price, 0))
     td_draw = min(td_bracket_fill, td_avail)

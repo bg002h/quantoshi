@@ -1051,6 +1051,30 @@ def step(state: CitadelState, config: SimConfig,
                                   deterministic=is_deterministic, rng=rng)
             new.investments[i] *= (1 + r)
 
+    # 2b. TD/TF wrapper growth (same rates as taxable wrapper)
+    if config.tax_enabled:
+        cash_growth = (1 + config.cash_rate / 100) ** (1.0 / ppy)
+        new.td_cash *= cash_growth
+        new.tf_cash *= cash_growth
+        for i, rb in enumerate(config.reserve_bins):
+            r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
+                                  deterministic=is_deterministic, rng=rng)
+            if i < len(new.td_reserves):
+                new.td_reserves[i] *= (1 + r)
+            r2 = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
+                                   deterministic=is_deterministic, rng=rng)
+            if i < len(new.tf_reserves):
+                new.tf_reserves[i] *= (1 + r2)
+        for i, ib in enumerate(config.invest_bins):
+            r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
+                                  deterministic=is_deterministic, rng=rng)
+            if i < len(new.td_investments):
+                new.td_investments[i] *= (1 + r)
+            r2 = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
+                                   deterministic=is_deterministic, rng=rng)
+            if i < len(new.tf_investments):
+                new.tf_investments[i] *= (1 + r2)
+
     # 3. Compute BTC quantile from price via model
     #    Use t_before (pre-increment) since the price was generated for that time
     if model is not None:

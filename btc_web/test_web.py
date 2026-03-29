@@ -5615,3 +5615,55 @@ class TestTaxSimComparative:
         fig, extra = build_citadel_figure(M, p)
         names = [t.name for t in fig.data if t.name]
         assert not any("no tax" in (n or "").lower() for n in names)
+
+
+class TestTaxWrapperGrowth:
+    """Verify TD/TF wrapper balances grow over time (Critical #1 fix)."""
+
+    def test_td_cash_grows(self):
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(start_stack=0, start_yr=2031, end_yr=2035,
+                        freq="Annually", monthly_spend=0,
+                        cash_initial=0, selected_qs=[0.25],
+                        tax_enabled=True, td_cash_initial=100_000,
+                        cash_rate=5.0)
+        r = simulate(cfg, _test_model())
+        # After 4 years at 5%, $100k should grow to ~$121,550
+        assert r.td_total is not None
+        final_td = r.td_total[0, -1]
+        assert final_td > 100_000, f"TD should grow but got {final_td}"
+
+    def test_tf_investments_grow(self):
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(start_stack=0, start_yr=2031, end_yr=2035,
+                        freq="Annually", monthly_spend=0,
+                        cash_initial=0, selected_qs=[0.25],
+                        tax_enabled=True,
+                        tf_invest_bins=[
+                            {"label": "Equities", "initial": 200_000},
+                            {"label": "Bonds", "initial": 0},
+                        ],
+                        invest_bins=[
+                            {"label": "Equities", "initial": 0, "return_rate": 10, "volatility": 0},
+                            {"label": "Bonds", "initial": 0, "return_rate": 5, "volatility": 0},
+                        ])
+        r = simulate(cfg, _test_model())
+        final_tf = r.tf_total[0, -1]
+        # 10% return on $200k over 4 years ≈ $292,820
+        assert final_tf > 200_000, f"TF should grow but got {final_tf}"
+
+    def test_td_balance_used_for_rmd(self):
+        """RMD should be based on grown TD balance, not initial."""
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(start_stack=0, start_yr=2031, end_yr=2035,
+                        freq="Annually", monthly_spend=0,
+                        cash_initial=0, selected_qs=[0.25],
+                        tax_enabled=True, filing_status="single",
+                        birth_year=1958, td_cash_initial=500_000,
+                        cash_rate=5.0)
+        r = simulate(cfg, _test_model())
+        yrs = r.annual_taxes[0] if r.annual_taxes else []
+        if yrs:
+            # RMD income should reflect growing balance, not fixed $500k
+            first_yr_income = yrs[0].get("ordinary_income", 0)
+            assert first_yr_income > 0

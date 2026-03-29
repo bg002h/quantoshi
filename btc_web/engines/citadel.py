@@ -728,19 +728,19 @@ def _compute_rmd(state: CitadelState, config: SimConfig, sim_year: int) -> float
 
 
 def _tax_aware_waterfall(state: CitadelState, config: SimConfig,
-                         amount: float, sim_date: str) -> float:
-    """Draw `amount` from accounts in tax-efficient order.
+                         amount: float, sim_date: str,
+                         model: "PriceModel | None" = None) -> float:
+    """Draw `amount` from accounts in growth-aware tax-efficient order.
     Returns unmet shortfall. Mutates state in place.
 
     Order:
     1. Taxable principal (cash, reserves) — no tax event
-    2. Tax-Deferred bracket-filling (recorded as ordinary income)
-    3. Taxable investments (LT gains assumed)
-    4. Taxable BTC long-term lots (via sell_lots)
+    2. Tax-Deferred bracket-filling (12% bracket, inflation-adjusted)
+    3-4. Taxable investments vs BTC — DYNAMIC: if BTC forward growth > equity
+         return, sell investments first (protect BTC). Otherwise sell BTC first.
     5. Tax-Deferred remaining
-    6. Taxable BTC short-term lots (via sell_lots — any remaining)
-    7. Roth cash/reserves/investments
-    8. Roth BTC (absolute last)
+    6. Roth cash/reserves/investments
+    7. Roth BTC (absolute last — tax-free compounding on highest-growth asset)
     """
     from .tax_lots import sell_lots
 
@@ -812,30 +812,88 @@ def _tax_aware_waterfall(state: CitadelState, config: SimConfig,
         if remaining <= 0:
             return 0.0
 
-    # --- 3. Taxable investments (LT gains — tracked cost basis) ---
-    for i in reversed(range(len(state.investments))):
-        draw = min(state.investments[i], remaining)
-        if draw > 0:
-            # Proportional cost basis: selling draw/current_value fraction
-            current = state.investments[i]
-            if current > 0:
-                fraction = draw / current
-                basis_sold = state.invest_cost_basis[i] * fraction
-                gain = draw - basis_sold
-                state.invest_cost_basis[i] -= basis_sold
-            else:
-                gain = draw  # all gain if basis is somehow zero
-            if state.tax_year_accum is not None:
-                if gain >= 0:
-                    state.tax_year_accum.lt_capital_gains += gain
-                else:
-                    state.tax_year_accum.lt_capital_losses += abs(gain)
-        state.investments[i] -= draw
-        remaining -= draw
-        if remaining <= 0:
-            return 0.0
+    # --- 3-4. Taxable investments vs BTC: growth-aware ordering ---
+    # Compare BTC forward growth to equity return rate. If BTC growth is high,
+    # sell investments first (protect BTC). If low, sell BTC first.
+    _equity_rate = config.invest_bins[0]["return_rate"] / 100 if config.invest_bins else 0.10
+    _btc_fwd_growth = _equity_rate  # default: same as equities
+    if model is not None and state.btc_price > 0:
+        try:
+            _t_now = state.t
+            _q = config.selected_qs[len(config.selected_qs) // 2] if config.selected_qs else 0.25
+            _price_now = float(model.price_at(_q, max(_t_now, 0.5)))
+            _price_next = float(model.price_at(_q, max(_t_now + 1, 0.5)))
+            if _price_now > 0:
+                _btc_fwd_growth = (_price_next / _price_now) - 1
+        except Exception:
+            pass  # fall back to equity rate
 
-    # --- 4. Taxable BTC (via sell_lots) ---
+    _sell_investments_first = (_btc_fwd_growth > _equity_rate)
+
+    def _sell_taxable_investments():
+        nonlocal remaining
+        for i in reversed(range(len(state.investments))):
+            draw = min(state.investments[i], remaining)
+            if draw > 0:
+                current = state.investments[i]
+                if current > 0:
+                    fraction = draw / current
+                    basis_sold = state.invest_cost_basis[i] * fraction
+                    gain = draw - basis_sold
+                    state.invest_cost_basis[i] -= basis_sold
+                else:
+                    gain = draw
+                if state.tax_year_accum is not None:
+                    if gain >= 0:
+                        state.tax_year_accum.lt_capital_gains += gain
+                    else:
+                        state.tax_year_accum.lt_capital_losses += abs(gain)
+            state.investments[i] -= draw
+            remaining -= draw
+            if remaining <= 0:
+                return True
+        return False
+
+    def _sell_taxable_btc():
+        nonlocal remaining
+        if remaining > 0 and state.btc_price > 0 and state.tax_lots:
+            btc_to_sell = remaining / state.btc_price
+            btc_to_sell = min(btc_to_sell, state.btc_stack)
+            if btc_to_sell > _SATOSHI:
+                result = sell_lots(
+                    state.tax_lots, btc_to_sell, state.btc_price,
+                    sim_date, method=config.cost_basis_method,
+                )
+                state.tax_lots = result.remaining_lots
+                state.btc_stack -= result.btc_sold
+                proceeds = result.btc_sold * state.btc_price
+                remaining -= proceeds
+                if state.tax_year_accum is not None:
+                    for g in result.gains:
+                        if g.is_long_term:
+                            if g.gain >= 0:
+                                state.tax_year_accum.lt_capital_gains += g.gain
+                            else:
+                                state.tax_year_accum.lt_capital_losses += abs(g.gain)
+                        else:
+                            if g.gain >= 0:
+                                state.tax_year_accum.st_capital_gains += g.gain
+                            else:
+                                state.tax_year_accum.st_capital_losses += abs(g.gain)
+        return remaining <= 0
+
+    if _sell_investments_first:
+        # BTC growth > equity growth: protect BTC, sell investments first
+        if _sell_taxable_investments():
+            return 0.0
+        if _sell_taxable_btc():
+            return 0.0
+    else:
+        # BTC growth <= equity growth: sell BTC first (lower opportunity cost)
+        if _sell_taxable_btc():
+            return 0.0
+        if _sell_taxable_investments():
+            return 0.0
     if remaining > 0 and state.btc_price > 0 and state.tax_lots:
         btc_to_sell = remaining / state.btc_price
         btc_to_sell = min(btc_to_sell, state.btc_stack)
@@ -1185,7 +1243,7 @@ def step(state: CitadelState, config: SimConfig,
         # Tax-aware spending waterfall
         sim_year = config.start_yr + int(years_elapsed)
         sim_date = f"{sim_year}-{min(max(1, int((years_elapsed % 1) * 12) + 1), 12):02d}-15"
-        new.spending_shortfall = _tax_aware_waterfall(new, config, period_spend, sim_date)
+        new.spending_shortfall = _tax_aware_waterfall(new, config, period_spend, sim_date, model=model)
     else:
         new.spending_shortfall = _apply_spending_waterfall(new, period_spend)
 

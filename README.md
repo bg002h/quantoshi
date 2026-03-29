@@ -174,6 +174,37 @@ btc_web/
   requirements.txt
 btc-web.service             systemd unit file
 run_web.sh                  Convenience startup script
+scripts/
+  quantoshi-health          Production health check (HTTP, SSH, systemd, error log)
+  quantoshi-restart         Production restart helper
+  change_origin.py          Git remote URL updater
+```
+
+---
+
+## Operations scripts
+
+`scripts/` contains helper scripts for managing the production deployment.
+
+### Health check
+
+```bash
+# Verbose status report
+scripts/quantoshi-health
+
+# Fullscreen PyQt6 alert popup on failure (for systemd timer)
+scripts/quantoshi-health --popup
+
+# Simulate a random failure (test the alert pipeline)
+scripts/quantoshi-health --test --popup
+```
+
+Checks: HTTPS health endpoint, SSH reachability, systemd service status, and gunicorn error log for tracebacks/`BackgroundCallbackError` **since the last restart** (avoids false alarms from pre-fix errors).
+
+To install for local use, symlink into your PATH:
+
+```bash
+ln -s "$(pwd)/scripts/quantoshi-health" ~/bin/quantoshi/quantoshi-health
 ```
 
 ---

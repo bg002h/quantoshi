@@ -11,7 +11,7 @@ from mc_cache import (CACHED_START_YRS, WD_AMOUNTS,
 from mc_overlay import bin_regime_labels
 
 from layout.common import (_section_card, _ctrl_card, _row, _lbl,
-                            _STYLE_HIDDEN, _STYLE_HINT)
+                            _STYLE_HIDDEN, _STYLE_HINT, _CB_MARGIN)
 
 _QUANT_FONT = {"fontFamily": '"Palatino Linotype", Palatino, "Book Antiqua", serif',
                "color": "#000", "letterSpacing": "1px"}
@@ -130,11 +130,11 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
         ]),
         dcc.Checklist(id=f"{prefix}-mc-enable",
                       options=[{"label": " Activate Markov chain stochastic engine", "value": "yes"}],
-                      value=[], inputStyle={"marginRight": "5px"}),
+                      value=[], inputStyle=_CB_MARGIN),
         html.Div(id=f"{prefix}-mc-body", style=_STYLE_HIDDEN, children=[
             dcc.Checklist(id=f"{prefix}-mc-advanced",
                           options=[{"label": " Advanced simulator options", "value": "yes"}],
-                          value=[], inputStyle={"marginRight": "5px"},
+                          value=[], inputStyle=_CB_MARGIN,
                           style={"fontSize": "11px", "color": "#666", "marginBottom": "6px"}),
             html.Div(dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now),
                      style=_STYLE_HIDDEN),
@@ -193,7 +193,7 @@ def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=10
                     id=f"{prefix}-mc-regime",
                     options=_MC_REGIME_OPTIONS_5,
                     value=list(range(5)),
-                    inputStyle={"marginRight": "4px"},
+                    inputStyle=_CB_MARGIN,
                     labelStyle={"display": "block", "fontSize": "11px",
                                 "lineHeight": "1.6", "color": "#444"},
                     style={"marginBottom": "6px"},

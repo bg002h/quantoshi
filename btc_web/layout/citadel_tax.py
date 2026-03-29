@@ -137,6 +137,7 @@ def tax_toggle_widget():
                    color="secondary", size="sm", outline=True,
                    style={"display": "none"}),
         dcc.Store(id="cp-tax-config", storage_type="memory", data={}),
+        dcc.Store(id="cp-tax-annual-data", data=[]),
     ], className="p-2"), className="mb-2")
 
 

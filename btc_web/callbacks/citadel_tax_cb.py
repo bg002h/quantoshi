@@ -1,6 +1,6 @@
 """Tax configuration modal callbacks for the Citadel Planner."""
 
-from dash import Input, Output, State, callback, ctx, no_update
+from dash import Input, Output, State, callback, ctx, html, no_update
 
 import _app_ctx
 
@@ -106,6 +106,42 @@ def _save_or_cancel(save_clicks, cancel_clicks, filing, state, state_rate, birth
         "tf_inv_bd": float(tf_bd or 0),
     }
     return config, False
+
+
+# ── Tax summary table builder ────────────────────────────────────────────────
+@callback(
+    Output("cp-tax-summary", "is_open"),
+    Output("cp-tax-summary-table", "children"),
+    Input("cp-tax-annual-data", "data"),
+    prevent_initial_call=True,
+)
+def _build_tax_summary(annual_data):
+    if not annual_data:
+        return False, []
+
+    header = html.Thead(html.Tr([
+        html.Th("Year"), html.Th("Ordinary"), html.Th("ST Gains"),
+        html.Th("LT Gains"), html.Th("Federal"), html.Th("NIIT"),
+        html.Th("State"), html.Th("Total"), html.Th("Eff. Rate"),
+    ]))
+
+    rows = []
+    for yr in annual_data:
+        fed = yr.get("federal_ordinary", 0) + yr.get("federal_ltcg", 0)
+        eff = yr.get("effective_rate", 0)
+        rows.append(html.Tr([
+            html.Td(yr.get("year", "")),
+            html.Td(f"${yr.get('ordinary_income', 0):,.0f}"),
+            html.Td(f"${yr.get('st_gains', 0):,.0f}"),
+            html.Td(f"${yr.get('lt_gains', 0):,.0f}"),
+            html.Td(f"${fed:,.0f}"),
+            html.Td(f"${yr.get('niit', 0):,.0f}"),
+            html.Td(f"${yr.get('state', 0):,.0f}"),
+            html.Td(f"${yr.get('total', 0):,.0f}"),
+            html.Td(f"{eff * 100:.1f}%" if isinstance(eff, (int, float)) else "0.0%"),
+        ]))
+
+    return True, [header, html.Tbody(rows)]
 
 
 # ── Helper for testing ────────────────────────────────────────────────────────

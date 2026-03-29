@@ -5287,3 +5287,25 @@ class TestTaxSnapshot:
     def test_tax_checklist_options(self):
         from snapshot import _CHECKLIST_OPTIONS
         assert "cp-tax-toggle" in _CHECKLIST_OPTIONS
+
+
+class TestTaxSummaryPanel:
+    def test_summary_panel_exists(self):
+        from layout.citadel_tax import tax_summary_panel
+        panel = tax_summary_panel()
+        assert panel is not None
+
+    def test_build_tax_summary_empty(self):
+        from callbacks.citadel_tax_cb import _build_tax_summary
+        is_open, children = _build_tax_summary([])
+        assert is_open is False
+        assert children == []
+
+    def test_build_tax_summary_with_data(self):
+        from callbacks.citadel_tax_cb import _build_tax_summary
+        data = [{"year": 2031, "ordinary_income": 60000, "st_gains": 0,
+                 "lt_gains": 45000, "federal_ordinary": 8000, "federal_ltcg": 6750,
+                 "niit": 0, "state": 5000, "total": 19750, "effective_rate": 0.175}]
+        is_open, children = _build_tax_summary(data)
+        assert is_open is True
+        assert len(children) == 2  # header + tbody

@@ -97,6 +97,7 @@ def show_asset_model_info(model):
     Output("mc-save-tab", "data", allow_duplicate=True),
     Output("cp-mc-unblocked", "data"),
     Output("cp-yr-range", "value", allow_duplicate=True),
+    Output("cp-tax-annual-data", "data", allow_duplicate=True),
     Input("citadel-first-render", "data"),
     Input("cp-run-btn",          "n_clicks"),
     Input("mc-pay-trigger",      "data"),
@@ -268,7 +269,8 @@ def update_citadel(
             if cached and cached.get("figure"):
                 fig = pio.from_json(cached["figure"])
                 return (fig, dash.no_update, dash.no_update, dash.no_update,
-                        dash.no_update, dash.no_update, dash.no_update, dash.no_update)
+                        dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                        dash.no_update)
         except Exception:
             pass
         # Fallback: compute default simulation live
@@ -404,6 +406,11 @@ def update_citadel(
 
     fig, mc_result = _get_citadel_fig(p)
 
+    # Extract annual tax data before MC finalize transforms mc_result
+    _annual_taxes = []
+    if tax_toggle and isinstance(mc_result, dict):
+        _annual_taxes = mc_result.get("annual_taxes", [])
+
     # 3. MC finalize
     fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(
         "cp", fig, mc_result, mc_cached, mc_enable, mc_ok,
@@ -429,7 +436,8 @@ def update_citadel(
         status = html.Span("MC simulation computing in background...",
                            style={"color": "#b8860b", "fontSize": "12px"})
         return (fig, store_val, status, dash.no_update,
-                dash.no_update, dash.no_update, dash.no_update, dash.no_update)
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update)
 
     # Nudge year range slider if MC starts before visible range
     yr_adjust = dash.no_update
@@ -439,7 +447,8 @@ def update_citadel(
             yr_adjust = [mc_sy, int(yr_range[1])]
 
     return (fig, store_val, status, rendered_key, show_modal,
-            "cp" if show_modal else dash.no_update, ub_val, yr_adjust)
+            "cp" if show_modal else dash.no_update, ub_val, yr_adjust,
+            _annual_taxes)
 
 
 # ── Celery polling: enable/disable interval based on pending state ────────

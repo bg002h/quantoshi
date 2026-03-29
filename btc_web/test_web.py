@@ -5232,6 +5232,41 @@ class TestTaxDefaults:
         assert cfg.tf_cash_initial == 100_000
 
 
+class TestTaxFigures:
+    def test_tax_on_produces_ghost_traces(self):
+        from figures.citadel import build_citadel_figure
+        from tab_defaults import citadel_defaults
+        p = citadel_defaults()
+        p["tax_enabled"] = True
+        p["filing_status"] = "single"
+        p["state_code"] = "CA"
+        p["start_yr"] = 2031
+        p["end_yr"] = 2033
+        fig, extra = build_citadel_figure(M, p)
+        trace_names = [t.name for t in fig.data if t.name]
+        assert any("no tax" in (n or "").lower() for n in trace_names)
+
+    def test_tax_off_no_ghost_traces(self):
+        from figures.citadel import build_citadel_figure
+        from tab_defaults import citadel_defaults
+        p = citadel_defaults()
+        p["start_yr"] = 2031
+        p["end_yr"] = 2033
+        fig, extra = build_citadel_figure(M, p)
+        trace_names = [t.name for t in fig.data if t.name]
+        assert not any("no tax" in (n or "").lower() for n in trace_names)
+
+    def test_tax_summary_data_returned(self):
+        from figures.citadel import build_citadel_figure
+        from tab_defaults import citadel_defaults
+        p = citadel_defaults()
+        p["tax_enabled"] = True
+        p["start_yr"] = 2031
+        p["end_yr"] = 2033
+        fig, extra = build_citadel_figure(M, p)
+        assert "annual_taxes" in extra
+
+
 class TestTaxCallbacks:
     def test_state_to_rate(self):
         from callbacks.citadel_tax_cb import _state_to_rate

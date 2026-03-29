@@ -393,4 +393,80 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
 
     _stagger_depletion_annots(deplete_annots, layout)
 
-    return _finalize_chart(traces, layout, p, "cp", mc_result)
+    # ── Tax ghost traces + annotations ────────────────────────────────────────
+    extra_tax = {}
+    if p.get("tax_enabled"):
+        # Run a parallel no-tax simulation for comparison
+        try:
+            cfg_notax = _build_sim_config({**p, "tax_enabled": False})
+            cfg_notax.n_sims = 1
+            result_notax = simulate(cfg_notax, model)
+        except Exception:
+            result_notax = None
+
+        if result_notax is not None and len(result_notax.time_axis) > 0:
+            # Ghost "no-tax" total portfolio trace
+            notax_total = result_notax.median["total"]
+            traces.append(go.Scatter(
+                x=list(ts), y=list(notax_total), mode="lines",
+                name=f"Total Portfolio (no tax){_qtag}",
+                line=dict(dash="dash", color="rgba(100,100,100,0.5)"),
+                showlegend=True,
+            ))
+
+            # Ghost "no-tax" BTC holdings trace (per-asset mode only)
+            if disp_mode == "usd_per_asset":
+                notax_btc = result_notax.median["btc_usd"]
+                traces.append(go.Scatter(
+                    x=list(ts), y=list(notax_btc), mode="lines",
+                    name=f"BTC Holdings (no tax){_qtag}",
+                    line=dict(dash="dash", color="rgba(247,147,26,0.5)"),
+                    showlegend=True,
+                ))
+
+            # Tax-drag annotation at the final period
+            final_tax = float(med["total"][-1])
+            final_notax = float(notax_total[-1])
+            drag = final_notax - final_tax
+            drag_pct = (drag / final_notax * 100) if final_notax > 0 else 0
+            if drag > 0:
+                deplete_annots.append(dict(
+                    x=ts[-1], xref="x",
+                    y=final_tax, yref="y",
+                    ax=0, ay=-40,
+                    text=f"Tax drag: \u2212{fmt_price(drag)} ({drag_pct:.1f}%)",
+                    showarrow=True, arrowhead=2, arrowsize=1,
+                    arrowcolor="#E74C3C",
+                    font=dict(size=_FONT_ANNOT, color="#E74C3C"),
+                ))
+
+        # Append tax info to chart title
+        state = p.get("state_code", "TX")
+        title += f"  (Federal + {state} Tax)"
+        layout["title"]["text"] = title
+
+        # Cumulative "Taxes Paid" trace
+        taxes_paid = getattr(result, 'taxes_paid', None)
+        if taxes_paid is not None:
+            traces.append(go.Scatter(
+                x=list(ts), y=list(taxes_paid[0]),
+                name=f"Cumulative Taxes Paid  \u2192  {fmt_price(float(taxes_paid[0, -1]))}",
+                fill="tozeroy",
+                line=dict(color="rgba(220,50,50,0.6)"),
+            ))
+
+        # Store annual tax data in extra dict
+        annual_taxes = getattr(result, 'annual_taxes', None)
+        if annual_taxes is not None:
+            extra_tax["annual_taxes"] = annual_taxes
+
+    fig, extra = _finalize_chart(traces, layout, p, "cp", mc_result)
+
+    # Merge tax data into extra dict
+    if extra_tax:
+        if extra is None:
+            extra = extra_tax
+        else:
+            extra.update(extra_tax)
+
+    return fig, extra

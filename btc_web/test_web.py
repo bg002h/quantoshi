@@ -6728,3 +6728,90 @@ class TestTaxAccountingHelpers:
         assert state.tax_lots[1].source == "scf"
         total_lot_btc = sum(l.btc for l in state.tax_lots)
         assert abs(total_lot_btc - state.btc_stack) < 1e-8
+
+    def test_sell_btc_tracked_records_gains_tax_on(self):
+        """With tax on, selling BTC records capital gains in accumulator."""
+        from engines.citadel import CitadelState, SimConfig, _sell_btc_tracked
+        from engines.tax import TaxYearAccumulator
+        from engines.tax_lots import TaxLot
+        state = CitadelState(
+            btc_stack=2.0, btc_price=100_000, sim_date="2035-06-15",
+            tax_lots=[TaxLot(date="2031-01-01", btc=2.0,
+                             cost_basis=50_000, source="initial")],
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = SimConfig(tax_enabled=True, cost_basis_method="fifo")
+        result = _sell_btc_tracked(state, cfg, 1.0)
+        assert result.btc_sold == pytest.approx(1.0)
+        assert state.btc_stack == pytest.approx(1.0)
+        assert len(state.tax_lots) == 1
+        assert state.tax_lots[0].btc == pytest.approx(1.0)
+        assert state.tax_year_accum.lt_capital_gains == pytest.approx(50_000)
+
+    def test_sell_btc_tracked_no_gains_tax_off(self):
+        """With tax off (accum=None), BTC still sold but no gains recorded."""
+        from engines.citadel import CitadelState, SimConfig, _sell_btc_tracked
+        from engines.tax_lots import TaxLot
+        state = CitadelState(
+            btc_stack=2.0, btc_price=100_000, sim_date="2035-06-15",
+            tax_lots=[TaxLot(date="2031-01-01", btc=2.0,
+                             cost_basis=50_000, source="initial")],
+            tax_year_accum=None,
+        )
+        cfg = SimConfig(tax_enabled=False, cost_basis_method="fifo")
+        result = _sell_btc_tracked(state, cfg, 1.0)
+        assert result.btc_sold == pytest.approx(1.0)
+        assert state.btc_stack == pytest.approx(1.0)
+
+    def test_sell_btc_tracked_empty_lots_fallback(self):
+        """With no lots, raw stack decrement as fallback."""
+        from engines.citadel import CitadelState, SimConfig, _sell_btc_tracked
+        state = CitadelState(btc_stack=3.0, btc_price=50_000, sim_date="2035-01-15")
+        cfg = SimConfig(cost_basis_method="fifo")
+        result = _sell_btc_tracked(state, cfg, 1.0)
+        assert result.btc_sold == pytest.approx(1.0)
+        assert state.btc_stack == pytest.approx(2.0)
+
+    def test_buy_btc_tracked_creates_lot(self):
+        """Buying BTC creates a lot with correct date/basis/source."""
+        from engines.citadel import CitadelState, SimConfig, _buy_btc_tracked
+        state = CitadelState(btc_stack=1.0, btc_price=80_000, sim_date="2033-03-15")
+        cfg = SimConfig()
+        _buy_btc_tracked(state, cfg, 0.5, source="rebal_buy")
+        assert state.btc_stack == pytest.approx(1.5)
+        assert len(state.tax_lots) == 1
+        lot = state.tax_lots[0]
+        assert lot.btc == pytest.approx(0.5)
+        assert lot.cost_basis == 80_000
+        assert lot.date == "2033-03-15"
+        assert lot.source == "rebal_buy"
+
+    def test_sell_investments_tracked_records_ltcg(self):
+        """Investment sale records LTCG in accumulator."""
+        from engines.citadel import CitadelState, SimConfig, _sell_investments_tracked
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            investments=[200_000, 100_000],
+            invest_cost_basis=[100_000, 80_000],
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = SimConfig(tax_enabled=True)
+        drawn, gain = _sell_investments_tracked(state, cfg, 0, 50_000)
+        assert drawn == pytest.approx(50_000)
+        assert gain == pytest.approx(25_000)
+        assert state.tax_year_accum.lt_capital_gains == pytest.approx(25_000)
+        assert state.investments[0] == pytest.approx(150_000)
+        assert state.invest_cost_basis[0] == pytest.approx(75_000)
+
+    def test_sell_investments_tracked_noop_tax_off(self):
+        """Investment sale updates balances but skips accumulator when tax off."""
+        from engines.citadel import CitadelState, SimConfig, _sell_investments_tracked
+        state = CitadelState(
+            investments=[200_000, 0],
+            invest_cost_basis=[100_000, 0],
+            tax_year_accum=None,
+        )
+        cfg = SimConfig(tax_enabled=False)
+        drawn, gain = _sell_investments_tracked(state, cfg, 0, 50_000)
+        assert drawn == pytest.approx(50_000)
+        assert state.investments[0] == pytest.approx(150_000)

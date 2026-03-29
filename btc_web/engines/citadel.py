@@ -979,27 +979,74 @@ def _year_boundary_tax(state: CitadelState, config: SimConfig,
 
     tax_owed = tax_result["total"]
 
-    # Pay tax from taxable wrapper: cash first, then investments
+    # Pay tax from taxable wrapper with gross-up for taxable payment sources.
+    # Cash/reserves: no additional tax. Investments: LTCG on gain portion.
+    # Gross-up formula: gross = net_needed / (1 - marginal_rate)
     if tax_owed > 0:
         tax_remaining = tax_owed
+
+        # 1. Cash — no gross-up (paying cash is not a taxable event)
         draw = min(state.cash, tax_remaining)
         state.cash -= draw
         tax_remaining -= draw
-        for i in reversed(range(len(state.investments))):
-            if tax_remaining <= 0:
-                break
-            draw = min(state.investments[i], tax_remaining)
-            if draw > 0 and state.investments[i] > 0:
-                fraction = draw / state.investments[i]
-                state.invest_cost_basis[i] -= state.invest_cost_basis[i] * fraction
-            state.investments[i] -= draw
-            tax_remaining -= draw
+
+        # 2. Reserves — no gross-up (principal withdrawal)
         for i in range(len(state.reserves)):
             if tax_remaining <= 0:
                 break
             draw = min(state.reserves[i], tax_remaining)
             state.reserves[i] -= draw
             tax_remaining -= draw
+
+        # 3. Investments — gross-up for LTCG on the gain portion
+        if tax_remaining > 0:
+            # Estimate marginal LTCG rate (15% typical, 20% + 3.8% NIIT at top)
+            agi = tax_result.get("agi", 0)
+            from .tax_data import NIIT_THRESHOLD
+            niit_applies = agi > NIIT_THRESHOLD.get(config.filing_status, 200_000)
+            ltcg_rate = 0.15 + (0.038 if niit_applies else 0) + _get_state_rate(config) / 100
+            for i in reversed(range(len(state.investments))):
+                if tax_remaining <= 0:
+                    break
+                current = state.investments[i]
+                if current <= 0:
+                    continue
+                basis_frac = state.invest_cost_basis[i] / current if current > 0 else 0
+                gain_frac = 1.0 - basis_frac  # fraction of each dollar that is gain
+                effective_rate = ltcg_rate * gain_frac  # tax per dollar sold
+                gross = tax_remaining / max(1.0 - effective_rate, 0.1)  # gross-up
+                draw = min(current, gross)
+                fraction = draw / current
+                basis_removed = state.invest_cost_basis[i] * fraction
+                state.invest_cost_basis[i] -= basis_removed
+                state.investments[i] -= draw
+                net_received = draw  # proceeds from sale
+                tax_on_sale = (draw - basis_removed) * ltcg_rate
+                tax_remaining -= (net_received - tax_on_sale)  # net after tax-on-sale
+
+        # 4. TD withdrawal — gross-up for ordinary income
+        if tax_remaining > 0:
+            from .tax_data import FEDERAL_BRACKETS_TCJA, FEDERAL_BRACKETS_SUNSET
+            if config.tcja_sunset:
+                top_rate = FEDERAL_BRACKETS_SUNSET[config.filing_status][-1][1]
+            else:
+                top_rate = FEDERAL_BRACKETS_TCJA[config.filing_status][-1][1]
+            ordinary_rate = top_rate + _get_state_rate(config) / 100
+            gross = tax_remaining / max(1.0 - ordinary_rate, 0.1)
+            td_avail = state.td_cash + sum(state.td_reserves) + sum(state.td_investments)
+            td_draw = min(gross, td_avail)
+            if td_draw > 0:
+                rem = td_draw
+                d = min(state.td_cash, rem); state.td_cash -= d; rem -= d
+                for j in range(len(state.td_reserves)):
+                    if rem <= 0: break
+                    d = min(state.td_reserves[j], rem); state.td_reserves[j] -= d; rem -= d
+                for j in reversed(range(len(state.td_investments))):
+                    if rem <= 0: break
+                    d = min(state.td_investments[j], rem); state.td_investments[j] -= d; rem -= d
+                actual = td_draw - rem
+                tax_on_td = actual * ordinary_rate
+                tax_remaining -= (actual - tax_on_td)
 
     state.total_taxes_paid += tax_owed
     state.loss_carryforward = tax_result["loss_carryforward"]

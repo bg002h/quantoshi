@@ -5775,3 +5775,47 @@ class TestTaxEdgeCases:
         is_open, children = _build_tax_summary(nested)
         assert is_open is True
         assert len(children) == 2  # header + tbody
+
+
+class TestGrossUpTaxPayment:
+    """Verify gross-up when paying taxes from taxable investments/TD."""
+
+    def test_gross_up_pays_from_investments_without_crash(self):
+        """Paying taxes by selling investments with low basis should work."""
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(
+            start_stack=0, start_yr=2031, end_yr=2033,
+            freq="Annually", monthly_spend=0,
+            cash_initial=0, selected_qs=[0.25],
+            tax_enabled=True, filing_status="single", state_code="CA",
+            other_income=200_000,
+            invest_bins=[
+                {"label": "Equities", "initial": 500_000, "return_rate": 10, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+            invest_cost_basis_initial=[250_000, 0],  # 50% unrealized gain
+        )
+        r = simulate(cfg, _test_model())
+        assert r.taxes_paid is not None
+        assert r.taxes_paid[0, -1] > 0
+        # Investments should be reduced (tax was paid from them)
+        assert r.invest_balances[0, -1, 0] < 500_000 * 1.1 ** 2
+
+    def test_gross_up_pays_from_td_without_crash(self):
+        """Paying taxes from TD (ordinary income) with gross-up should work."""
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(
+            start_stack=0, start_yr=2031, end_yr=2033,
+            freq="Annually", monthly_spend=0,
+            cash_initial=0, selected_qs=[0.25],
+            tax_enabled=True, filing_status="single", state_code="CA",
+            other_income=300_000,  # high income → high tax
+            td_cash_initial=1_000_000,
+            invest_bins=[
+                {"label": "Equities", "initial": 0, "return_rate": 0, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+        )
+        r = simulate(cfg, _test_model())
+        assert r.taxes_paid is not None
+        assert r.taxes_paid[0, -1] > 0

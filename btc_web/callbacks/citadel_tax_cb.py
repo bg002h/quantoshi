@@ -124,6 +124,10 @@ def _build_tax_summary(annual_data):
     if not annual_data:
         return False, []
 
+    # Flatten list-of-lists (one per sim) to flat list of year dicts
+    if annual_data and isinstance(annual_data[0], list):
+        annual_data = annual_data[0]
+
     header = html.Thead(html.Tr([
         html.Th("Year"), html.Th("Ordinary"), html.Th("ST Gains"),
         html.Th("LT Gains"), html.Th("Federal"), html.Th("NIIT"),

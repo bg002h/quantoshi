@@ -1137,7 +1137,7 @@ def step(state: CitadelState, config: SimConfig,
     if config.tax_enabled:
         # Tax-aware spending waterfall
         sim_year = config.start_yr + int(years_elapsed)
-        sim_date = f"{sim_year}-{max(1, int((years_elapsed % 1) * 12) + 1):02d}-15"
+        sim_date = f"{sim_year}-{min(max(1, int((years_elapsed % 1) * 12) + 1), 12):02d}-15"
         new.spending_shortfall = _tax_aware_waterfall(new, config, period_spend, sim_date)
     else:
         new.spending_shortfall = _apply_spending_waterfall(new, period_spend)

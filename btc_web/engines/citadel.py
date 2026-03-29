@@ -231,7 +231,10 @@ def _sell_btc_tracked(state: CitadelState, config: SimConfig,
     If lots are empty (defensive), does raw stack decrement.
     Accumulator gains are only recorded when state.tax_year_accum is not None.
     """
-    from .tax_lots import sell_lots, SaleResult, LotGain
+    from .tax_lots import sell_lots, SaleResult
+
+    if btc_to_sell <= 0:
+        return SaleResult(btc_sold=0.0, gains=[], remaining_lots=list(state.tax_lots))
 
     if state.tax_lots:
         result = sell_lots(
@@ -262,6 +265,8 @@ def _sell_btc_tracked(state: CitadelState, config: SimConfig,
 def _buy_btc_tracked(state: CitadelState, config: SimConfig,
                      btc_bought: float, source: str = "rebal_buy") -> None:
     """Buy BTC and create a tax lot for cost basis tracking."""
+    if btc_bought <= 0:
+        return
     from .tax_lots import TaxLot
     state.btc_stack += btc_bought
     state.tax_lots.append(TaxLot(
@@ -416,7 +421,11 @@ def _source_from_accounts(state: CitadelState, amount: float, split: dict,
         elif acct.startswith("res_"):
             state.reserves[int(acct[-1])] -= amt
         elif acct.startswith("inv_"):
-            state.investments[int(acct[-1])] -= amt
+            idx = int(acct[-1])
+            if config is not None:
+                _sell_investments_tracked(state, config, idx, amt)
+            else:
+                state.investments[idx] -= amt
 
     accounts = [
         ("cash", split.get("cash", 0)),

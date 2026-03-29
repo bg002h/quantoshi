@@ -125,13 +125,13 @@ def _serve_layout():
     initial_tab = _PATH_TO_TAB.get(clean, "bubble")
     layout = _build_layout(initial_tab)
 
-    # Inject pre-computed figure for the active tab (L1 cache hit, ~0ms)
-    graph_id = _TAB_TO_GRAPH.get(initial_tab)
-    if graph_id:
-        fig = _get_initial_figure(initial_tab)
+    # Inject pre-computed figures for ALL chart tabs (L1 cache hit, ~0ms each).
+    # This prevents the flash/resize when switching to a new tab.
+    from layout.common import _inject_initial_figure
+    for tab, gid in _TAB_TO_GRAPH.items():
+        fig = _get_initial_figure(tab)
         if fig:
-            from layout.common import _inject_initial_figure
-            _inject_initial_figure(layout, graph_id, fig)
+            _inject_initial_figure(layout, gid, fig)
 
     return layout
 

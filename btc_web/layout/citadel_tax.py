@@ -223,8 +223,10 @@ def tax_config_modal():
                         html.Small("Uses existing Citadel asset configuration "
                                    "from the Assets sub-tab.",
                                    style=_HINT),
-                        html.Small("BTC sales are subject to capital gains tax. "
-                                   "Other asset withdrawals taxed as ordinary income.",
+                        html.Small("BTC & investment sales: capital gains tax "
+                                   "(ST or LT based on holding period). "
+                                   "Cash/reserve withdrawals: no tax event. "
+                                   "Interest earned: ordinary income.",
                                    style=_HINT),
                     ], className="p-2"), color="light"), md=4),
 

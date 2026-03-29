@@ -1262,6 +1262,8 @@ def step(state: CitadelState, config: SimConfig,
                 new.tax_year_accum.rmd_taken = rmd
             # Compute and pay taxes
             _year_boundary_tax(new, config, sim_year, ppy)
+            # Re-enforce floors — tax payment may have drawn cash below floor
+            _enforce_floors(new, config)
 
     # Clamp sub-satoshi BTC to zero (1 sat = 10^-8 BTC is the smallest unit)
     if 0 < new.btc_stack < _SATOSHI:

@@ -5994,6 +5994,37 @@ class TestCashFloorEnforcement:
                     f"Cash {state.cash:.0f} below floor 20000 with total {total:.0f}"
 
 
+    def test_cash_floor_respected_after_tax_payment(self):
+        """Regression: tax payment at year-end must not leave cash below floor
+        when other assets are available to replenish it."""
+        from engines.citadel import SimConfig, _initial_state, step
+        import numpy as np
+        cfg = _bare_config(
+            start_stack=5.0, cash_initial=100_000,
+            cash_floor=80_000,
+            monthly_spend=1000,
+            tax_enabled=True, state_code="CA",
+            other_income=500_000,  # large income → large tax bill
+            start_yr=2031, end_yr=2035, freq="Annually",
+            reserve_bins=[
+                {"label": "Short", "initial": 200_000, "rate": 0, "volatility": 0},
+                {"label": "Medium", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Long", "initial": 0, "rate": 0, "volatility": 0},
+            ],
+        )
+        model = _ControlledPriceModel(quantile=0.50, price=50_000)
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=model)
+        for i in range(4):
+            state = step(state, cfg, 50_000, rng, model=model)
+            total_other = (sum(state.reserves) + sum(state.investments)
+                           + state.btc_stack * state.btc_price)
+            if total_other > 80_000:
+                assert state.cash >= 80_000 - 100, (
+                    f"Period {i+1}: cash {state.cash:.0f} below floor 80000 "
+                    f"with {total_other:.0f} in other assets")
+
+
 class TestBtcThresholdRules:
     """2) Bitcoin is sold/bought according to threshold rules."""
 

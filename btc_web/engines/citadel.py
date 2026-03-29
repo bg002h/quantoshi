@@ -947,12 +947,7 @@ def _year_boundary_tax(state: CitadelState, config: SimConfig,
     other_inc = config.other_income * (1 + config.other_income_growth / 100) ** years_elapsed
     state.tax_year_accum.other_income += other_inc
 
-    # Add interest income from taxable wrapper (approximate annual)
-    # Cash interest = ordinary income (state-taxable)
-    state.tax_year_accum.interest_income += state.cash * (config.cash_rate / 100)
-    # Treasury interest = ordinary income (federal) but EXEMPT from state tax
-    for i, rb in enumerate(config.reserve_bins):
-        state.tax_year_accum.treasury_interest += state.reserves[i] * (rb["rate"] / 100)
+    # Interest income is now accumulated per-period in step(), not here.
 
     # Set loss carryforward
     state.tax_year_accum.loss_carryforward = state.loss_carryforward
@@ -1087,6 +1082,15 @@ def step(state: CitadelState, config: SimConfig,
                                    deterministic=is_deterministic, rng=rng)
             if i < len(new.tf_investments):
                 new.tf_investments[i] *= (1 + r2)
+
+    # 2c. Accumulate taxable-wrapper interest income per period
+    if config.tax_enabled and new.tax_year_accum is not None:
+        _period_frac = 1.0 / ppy
+        # Cash interest → ordinary income (state-taxable)
+        new.tax_year_accum.interest_income += new.cash * (config.cash_rate / 100) * _period_frac
+        # Treasury interest → ordinary income (federal) but state-exempt
+        for _ri, _rb in enumerate(config.reserve_bins):
+            new.tax_year_accum.treasury_interest += new.reserves[_ri] * (_rb["rate"] / 100) * _period_frac
 
     # 3. Compute BTC quantile from price via model
     #    Use t_before (pre-increment) since the price was generated for that time

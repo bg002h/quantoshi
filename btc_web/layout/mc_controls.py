@@ -55,7 +55,7 @@ def _regime_options(n_bins=5):
 
 _MC_REGIME_OPTIONS_5 = _regime_options(5)   # pre-computed for default 5-bin case
 
-def _mc_controls(prefix, amount_label="Per-period amount ($)", amount_default=100,
+def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                   show_inflation=False, show_amount=True,
                   show_stack=False, show_mc_entry_q=False,
                   default_entry_q=50, start_yr_label=None,

@@ -304,7 +304,7 @@ def _model_show_checklist(prefix):
     ]
 
 
-def _shared_settings_card(prefix, *, amount_id=None, amount_label="Per-period amount ($)",
+def _shared_settings_card(prefix, *, amount_id=None, amount_label="Purchase amount ($)",
                           amount_default=100, infl_default=0, stack_default=0,
                           freq_default="Monthly"):
     """Shared settings panel — controls used by both QR and MC models."""

@@ -18,7 +18,7 @@ from snapshot import _SNAPSHOT_CONTROLS
 
 # ── Re-exports (consumed by callbacks.py, app.py, etc.) ─────────────────────
 from layout.common import (_STYLE_HIDDEN, _STYLE_HINT, _STYLE_GRAPH_H,
-                            _STYLE_COLOR_H, _freq_warning_modal)
+                            _STYLE_COLOR_H, _CB_MARGIN, _freq_warning_modal)
 from layout.mc_controls import (_bold_opts, _regime_options,
                                  _MC_CACHED_START_YRS, _MC_CACHED_YEARS,
                                  _MC_CACHED_ENTRY_QS, _MC_CACHED_WD, _MC_CACHED_INFL,
@@ -500,13 +500,13 @@ def _build_layout(initial_tab="bubble"):
                     {"label": " Current tab only — shorter link",    "value": "tab"},
                 ],
                 value="tab",
-                inputStyle={"marginRight": "5px"},
+                inputStyle=_CB_MARGIN,
                 className="mb-2 small",
             ),
             dcc.Checklist(
                 id="share-include-lots",
                 options=[{"label": " Include Stack Tracker lots in link", "value": "yes"}],
-                value=[], inputStyle={"marginRight": "5px"},
+                value=[], inputStyle=_CB_MARGIN,
                 className="small",
             ),
             dbc.Button("Generate link", id="share-copy-btn",

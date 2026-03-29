@@ -2851,7 +2851,7 @@ class TestUpdateSuperchargeCallback:
                 palette_key="default",
                 viewport_width=1200,
             )
-        assert len(result) == 7
+        assert len(result) == 8
         assert isinstance(result[0], go.Figure)
 
     def test_mode_b(self):

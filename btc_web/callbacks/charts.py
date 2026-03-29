@@ -583,6 +583,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     Output("mc-save-modal", "is_open", allow_duplicate=True),
     Output("mc-save-tab", "data", allow_duplicate=True),
     Output("sc-mc-unblocked",   "data"),
+    Output("sc-start-yr", "value", allow_duplicate=True),
     Input("main-tabs",       "active_tab"),
     Input("sc-stack",        "value"),
     Input("sc-use-lots",     "value"),
@@ -689,5 +690,10 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
         mc_p["mc_entry_q"], toggles,
         mc_stale=mc_p.get("mc_stale", False),
         mc_p=mc_p)
+    yr_adjust = dash.no_update
+    if mc_ok and mc_p.get("mc_start_yr"):
+        mc_sy = int(mc_p["mc_start_yr"])
+        if mc_sy < int(start_yr or 2033):
+            yr_adjust = mc_sy
     return (fig, store_val, status, rendered_key, show_modal,
-            "sc" if show_modal else dash.no_update, ub_val)
+            "sc" if show_modal else dash.no_update, ub_val, yr_adjust)

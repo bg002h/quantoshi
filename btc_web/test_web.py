@@ -5209,8 +5209,8 @@ class TestTaxDefaults:
         assert CITADEL["tax_enabled"] is False
         assert CITADEL["filing_status"] == "single"
         assert CITADEL["state_code"] == "TX"
-        assert CITADEL["td_btc"] == 0.0
-        assert CITADEL["tf_btc"] == 0.0
+        assert CITADEL["td_btc"] == 0.5
+        assert CITADEL["tf_btc"] == 0.5
         assert CITADEL["cost_basis_method"] == "fifo"
 
     def test_build_sim_config_passes_tax_fields(self):

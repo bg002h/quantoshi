@@ -111,12 +111,12 @@ STACK = MappingProxyType({
 
 CITADEL = MappingProxyType({
     "start_stack": 1.0, "use_lots": False,
-    "cash_initial": 50000, "cash_rate": 4.0,
-    "res_short_init": 50000, "res_short_rate": 5.0, "res_short_vol": 2.0,
-    "res_med_init": 100000, "res_med_rate": 4.5, "res_med_vol": 8.0,
-    "res_long_init": 50000, "res_long_rate": 4.0, "res_long_vol": 15.0,
-    "inv_eq_init": 200000, "inv_eq_basis": 200000, "inv_eq_rate": 10.0, "inv_eq_vol": 16.0,
-    "inv_bd_init": 100000, "inv_bd_basis": 100000, "inv_bd_rate": 5.0, "inv_bd_vol": 7.0,
+    "cash_initial": 20000, "cash_rate": 4.0,
+    "res_short_init": 10000, "res_short_rate": 5.0, "res_short_vol": 2.0,
+    "res_med_init": 10000, "res_med_rate": 4.5, "res_med_vol": 8.0,
+    "res_long_init": 10000, "res_long_rate": 4.0, "res_long_vol": 15.0,
+    "inv_eq_init": 100000, "inv_eq_basis": 100000, "inv_eq_rate": 10.0, "inv_eq_vol": 16.0,
+    "inv_bd_init": 50000, "inv_bd_basis": 50000, "inv_bd_rate": 5.0, "inv_bd_vol": 7.0,
     "monthly_spend": 5000, "inflation": 4.0, "spend_growth": 0.0,
     "high_q_trigger": 95, "high_q_mode": "gradual", "high_q_rate": 2.0, "high_q_dur": 6,
     "high_q_split_cash": 20, "high_q_split_rs": 20, "high_q_split_rm": 20,
@@ -125,7 +125,7 @@ CITADEL = MappingProxyType({
     "low_q_split_cash": 20, "low_q_split_rs": 20, "low_q_split_rm": 20,
     "low_q_split_rl": 10, "low_q_split_eq": 20, "low_q_split_bd": 10,
     "lump_cooldown": 12,
-    "cash_floor": 50000, "res_short_floor": 0, "res_med_floor": 0, "res_long_floor": 0,
+    "cash_floor": 10000, "res_short_floor": 0, "res_med_floor": 0, "res_long_floor": 0,
     "cash_floor_growth": 0, "reserve_floor_growth": 0,
     "scf_enabled": False, "scf_amount": 100000, "scf_type": "term",
     "scf_rate": 8.0, "scf_term": 60, "scf_repay_trigger": 1.0,
@@ -146,10 +146,10 @@ CITADEL = MappingProxyType({
     "cost_basis_method": "fifo",
     "other_income": 0,
     "other_income_growth": 0,
-    "td_btc": 0.0, "td_cash": 0, "td_res_short": 0, "td_res_med": 0, "td_res_long": 0,
-    "td_inv_eq": 0, "td_inv_bd": 0,
-    "tf_btc": 0.0, "tf_cash": 0, "tf_res_short": 0, "tf_res_med": 0, "tf_res_long": 0,
-    "tf_inv_eq": 0, "tf_inv_bd": 0,
+    "td_btc": 0.5, "td_cash": 20000, "td_res_short": 30000, "td_res_med": 50000, "td_res_long": 0,
+    "td_inv_eq": 200000, "td_inv_bd": 100000,
+    "tf_btc": 0.5, "tf_cash": 20000, "tf_res_short": 30000, "tf_res_med": 50000, "tf_res_long": 0,
+    "tf_inv_eq": 200000, "tf_inv_bd": 100000,
 })
 
 

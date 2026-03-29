@@ -38,7 +38,8 @@ _app_ctx.app.clientside_callback(
         var map = {heatmap:0, dca:1, retire:2, supercharge:3, citadel:4};
         var idx = map[tab];
         if (idx !== undefined) {
-            out[idx] = (arguments[idx + 1] || 0) + 1;
+            var cur = [hm, dca, ret, sc, cp][idx];
+            if (!cur) out[idx] = 1;
         }
         return out;
     }

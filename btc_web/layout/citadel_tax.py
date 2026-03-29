@@ -136,8 +136,9 @@ def _bracket_reference_section():
 def tax_toggle_widget():
     """Compact card for the Simulation sub-tab — master toggle + config button + store."""
     return dbc.Card(dbc.CardBody([
-        dbc.Switch(id="cp-tax-toggle", label="Taxation", value=False,
-                   style={"marginBottom": "4px"}),
+        dbc.Switch(id="cp-tax-toggle", label=html.Strong("Taxation"), value=False,
+                   style={"marginBottom": "4px", "transform": "scale(1.3)",
+                          "transformOrigin": "left center"}),
         dbc.Button("Configure Tax Settings\u2026", id="cp-tax-config-btn",
                    color="secondary", size="sm", outline=True,
                    style={"display": "none"}),

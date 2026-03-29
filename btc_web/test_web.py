@@ -6815,3 +6815,42 @@ class TestTaxAccountingHelpers:
         drawn, gain = _sell_investments_tracked(state, cfg, 0, 50_000)
         assert drawn == pytest.approx(50_000)
         assert state.investments[0] == pytest.approx(150_000)
+
+    def test_floor_enforcement_btc_sale_lot_tracked(self):
+        """Bug 1: BTC sold to replenish cash floor must be lot-tracked."""
+        from engines.citadel import CitadelState, SimConfig, _enforce_floors
+        from engines.tax import TaxYearAccumulator
+        from engines.tax_lots import TaxLot
+        state = CitadelState(
+            cash=0, reserves=[0, 0, 0], investments=[0, 0],
+            btc_stack=2.0, btc_price=50_000, sim_date="2035-06-15",
+            tax_lots=[TaxLot(date="2031-01-01", btc=2.0,
+                             cost_basis=30_000, source="initial")],
+            tax_year_accum=TaxYearAccumulator(),
+            invest_cost_basis=[0, 0],
+        )
+        cfg = SimConfig(cash_floor=20_000, cost_basis_method="fifo")
+        _enforce_floors(state, cfg)
+        assert state.cash >= 20_000 - 1
+        assert state.btc_stack < 2.0
+        # Capital gain should be recorded (sold at 50k, basis 30k)
+        assert state.tax_year_accum.lt_capital_gains > 0
+
+    def test_floor_enforcement_investment_sale_tracks_basis(self):
+        """Bug 7: Investment sold for floor must update cost basis."""
+        from engines.citadel import CitadelState, SimConfig, _enforce_floors
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            cash=0, reserves=[0, 0, 0],
+            investments=[100_000, 50_000],
+            invest_cost_basis=[60_000, 30_000],
+            btc_stack=0, btc_price=50_000, sim_date="2035-06-15",
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = SimConfig(cash_floor=30_000, cost_basis_method="fifo")
+        _enforce_floors(state, cfg)
+        assert state.cash >= 30_000 - 1
+        # Cost basis should have been reduced proportionally
+        assert state.invest_cost_basis[1] < 30_000 or state.invest_cost_basis[0] < 60_000
+        # LTCG should be recorded
+        assert state.tax_year_accum.lt_capital_gains > 0

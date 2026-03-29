@@ -386,8 +386,8 @@ def _enforce_floors(state: CitadelState, config: SimConfig) -> None:
             if deficit <= 0:
                 break
             if src_type == "inv":
-                draw = min(state.investments[src_idx], deficit)
-                state.investments[src_idx] -= draw
+                draw_want = min(state.investments[src_idx], deficit)
+                draw, _gain = _sell_investments_tracked(state, config, src_idx, draw_want)
             elif src_type == "res":
                 draw = min(state.reserves[src_idx], deficit)
                 state.reserves[src_idx] -= draw
@@ -402,9 +402,8 @@ def _enforce_floors(state: CitadelState, config: SimConfig) -> None:
         if deficit > 0 and acct_key == "cash":
             if state.btc_stack > 0 and state.btc_price > 0:
                 btc_needed = deficit / state.btc_price
-                btc_sold = min(state.btc_stack, btc_needed)
-                draw = btc_sold * state.btc_price
-                state.btc_stack -= btc_sold
+                result = _sell_btc_tracked(state, config, btc_needed)
+                draw = result.btc_sold * state.btc_price
                 deficit -= draw
 
         replenished = (floor - current) - deficit

@@ -2735,8 +2735,8 @@ class TestUpdateDcaCallback:
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
                 palette_key="default",
             )
-        # 7 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked
-        assert len(result) == 7
+        # 8 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked, yr_adjust
+        assert len(result) == 8
         assert isinstance(result[0], go.Figure)
 
     def test_wrong_tab_prevents_update(self):
@@ -2823,8 +2823,8 @@ class TestUpdateRetireCallback:
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
                 palette_key="default",
             )
-        # 7 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked
-        assert len(result) == 7
+        # 8 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked, yr_adjust
+        assert len(result) == 8
         assert isinstance(result[0], go.Figure)
 
 

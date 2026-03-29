@@ -357,6 +357,7 @@ def update_heatmap(active_tab, hm_model, entry_yr, entry_q, exit_range, exit_qs,
     Output("mc-save-modal", "is_open", allow_duplicate=True),
     Output("mc-save-tab", "data", allow_duplicate=True),
     Output("dca-mc-unblocked", "data"),
+    Output("dca-yr-range", "value", allow_duplicate=True),
     Input("main-tabs",    "active_tab"),
     Input("dca-stack",    "value"),
     Input("dca-use-lots", "value"),
@@ -461,8 +462,13 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
         is_free, blocked, mc_p["mc_years"], mc_p["mc_start_yr"],
         mc_p["mc_entry_q"], toggles, mc_stale=mc_p.get("mc_stale", False),
         mc_p=mc_p)
+    yr_adjust = dash.no_update
+    if mc_ok and mc_p.get("mc_start_yr"):
+        mc_sy = int(mc_p["mc_start_yr"])
+        if mc_sy < int(yr_range[0]):
+            yr_adjust = [mc_sy, int(yr_range[1])]
     return (fig, store_val, status, rendered_key, show_modal,
-            "dca" if show_modal else dash.no_update, ub_val)
+            "dca" if show_modal else dash.no_update, ub_val, yr_adjust)
 
 
 @callback(
@@ -473,6 +479,7 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
     Output("mc-save-modal", "is_open", allow_duplicate=True),
     Output("mc-save-tab", "data", allow_duplicate=True),
     Output("ret-mc-unblocked", "data"),
+    Output("ret-yr-range", "value", allow_duplicate=True),
     Input("main-tabs",    "active_tab"),
     Input("ret-stack",    "value"),
     Input("ret-use-lots", "value"),
@@ -552,8 +559,16 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
         is_free, blocked, mc_p["mc_years"], mc_p["mc_start_yr"],
         mc_p["mc_entry_q"], toggles, mc_stale=mc_p.get("mc_stale", False),
         mc_p=mc_p)
+
+    # Nudge year range slider if MC starts before visible range
+    yr_adjust = dash.no_update
+    if mc_ok and mc_p.get("mc_start_yr"):
+        mc_sy = int(mc_p["mc_start_yr"])
+        if mc_sy < int(yr_range[0]):
+            yr_adjust = [mc_sy, int(yr_range[1])]
+
     return (fig, store_val, status, rendered_key, show_modal,
-            "ret" if show_modal else dash.no_update, ub_val)
+            "ret" if show_modal else dash.no_update, ub_val, yr_adjust)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

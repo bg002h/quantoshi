@@ -6922,3 +6922,55 @@ class TestTaxAccountingHelpers:
         _buy_btc_tracked(state, cfg, 1.0, source="rebal_buy")
         lot_sum = sum(l.btc for l in state.tax_lots)
         assert abs(lot_sum - state.btc_stack) < 1e-8
+
+    def test_pay_tax_investment_sale_recorded(self):
+        """Bug 4: Investment gains during tax payment must be in accumulator."""
+        from engines.citadel import CitadelState, SimConfig, _pay_tax_amount
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            cash=0, reserves=[0, 0, 0],
+            investments=[200_000, 0],
+            invest_cost_basis=[100_000, 0],
+            td_cash=0, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            tax_year_accum=TaxYearAccumulator(),
+            sim_date="2035-06-15",
+        )
+        cfg = SimConfig(tax_enabled=True, state_code="TX")
+        _pay_tax_amount(state, cfg, amount=50_000, sim_year=2035)
+        assert state.tax_year_accum.lt_capital_gains > 0
+
+    def test_merged_waterfall_tax_off_same_behavior(self):
+        """Merged waterfall with tax_enabled=False works correctly."""
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(
+            start_stack=1.0, start_yr=2031, end_yr=2035,
+            freq="Annually", monthly_spend=5000,
+            cash_initial=50_000, selected_qs=[0.25],
+            tax_enabled=False,
+            reserve_bins=[
+                {"label": "Short", "initial": 20_000, "rate": 0, "volatility": 0},
+                {"label": "Medium", "initial": 20_000, "rate": 0, "volatility": 0},
+                {"label": "Long", "initial": 0, "rate": 0, "volatility": 0},
+            ],
+            invest_bins=[
+                {"label": "Equities", "initial": 50_000, "return_rate": 0, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+        )
+        r = simulate(cfg, _test_model())
+        assert r.total_usd.shape[1] > 0
+        assert r.taxes_paid is None
+        assert r.total_usd[0, -1] >= 0
+
+    def test_tax_off_still_zero_tax(self):
+        """Critical regression: tax_enabled=False must produce zero tax."""
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(
+            start_stack=5.0, start_yr=2031, end_yr=2035,
+            freq="Monthly", monthly_spend=5000,
+            cash_initial=100_000, selected_qs=[0.25],
+            tax_enabled=False,
+        )
+        r = simulate(cfg, _test_model())
+        assert r.taxes_paid is None
+        assert r.annual_taxes is None

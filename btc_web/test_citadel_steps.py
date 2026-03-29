@@ -18,7 +18,6 @@ from engines.citadel import (
     CitadelState,
     SimConfig,
     _SATOSHI,
-    _apply_spending_waterfall,
     _enforce_floors,
     _evaluate_rebalancing,
     _initial_state,
@@ -494,26 +493,27 @@ class TestSpendingWaterfall:
         assert state.reserves[2] == pytest.approx(2_000.0, abs=0.01), (
             f"Month 2: reserves_long should be $2K, got ${state.reserves[2]:.2f}")
 
-        # Month 3: $5K from res_long($2K) + inv_bonds($3K)
+        # Month 3: $5K from res_long($2K) + BTC($3K worth = 0.03 BTC)
+        # Growth-aware ordering: BTC growth == equity (both 0%) → BTC sold before investments
         state = step(state, cfg, 100_000.0, rng, model=model)
         assert state.reserves[2] == pytest.approx(0.0, abs=0.01), (
             f"Month 3: reserves_long should be 0, got ${state.reserves[2]:.2f}")
-        assert state.investments[1] == pytest.approx(0.0, abs=0.01), (
-            f"Month 3: bonds should be 0, got ${state.investments[1]:.2f}")
+        assert state.btc_stack == pytest.approx(1.0 - 3_000.0 / 100_000.0, abs=1e-6), (
+            f"Month 3: BTC should have lost $3K worth, got {state.btc_stack}")
         assert state.investments[0] == pytest.approx(3_000.0, abs=0.01), (
             f"Month 3: equities should still be $3K, got ${state.investments[0]:.2f}")
+        assert state.investments[1] == pytest.approx(3_000.0, abs=0.01), (
+            f"Month 3: bonds should still be $3K, got ${state.investments[1]:.2f}")
 
-        # Month 4: $5K from equities($3K) + BTC($2K worth = 0.02 BTC)
+        # Month 4: $5K all from BTC
         state = step(state, cfg, 100_000.0, rng, model=model)
-        assert state.investments[0] == pytest.approx(0.0, abs=0.01), (
-            f"Month 4: equities should be 0, got ${state.investments[0]:.2f}")
-        assert state.btc_stack == pytest.approx(1.0 - 2_000.0 / 100_000.0, abs=1e-6), (
-            f"Month 4: BTC should be ~0.98, got {state.btc_stack}")
+        assert state.btc_stack == pytest.approx(1.0 - 8_000.0 / 100_000.0, abs=1e-6), (
+            f"Month 4: BTC should have lost $8K worth total, got {state.btc_stack}")
 
         # Month 5+: all from BTC
         state = step(state, cfg, 100_000.0, rng, model=model)
-        assert state.btc_stack == pytest.approx(1.0 - 7_000.0 / 100_000.0, abs=1e-6), (
-            f"Month 5: BTC should have lost $7K worth total, got {state.btc_stack}")
+        assert state.btc_stack == pytest.approx(1.0 - 13_000.0 / 100_000.0, abs=1e-6), (
+            f"Month 5: BTC should have lost $13K worth total, got {state.btc_stack}")
 
 
 # ===================================================================

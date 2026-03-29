@@ -10,7 +10,7 @@ import math
 
 import numpy as np
 import pytest
-from engines.citadel import SimConfig, CitadelState, FREQ_PPY, validate_config, _apply_spending_waterfall, _enforce_floors, _get_btc_price, _evaluate_rebalancing, _lognormal_return, _initial_state, step, _scf_payment_amount, _scf_check_repay, SimResult, simulate, _compute_n_periods
+from engines.citadel import SimConfig, CitadelState, FREQ_PPY, validate_config, _spending_waterfall, _enforce_floors, _get_btc_price, _evaluate_rebalancing, _lognormal_return, _initial_state, step, _scf_payment_amount, _scf_check_repay, SimResult, simulate, _compute_n_periods
 
 
 class MockPriceModel:
@@ -104,23 +104,24 @@ class TestConfigValidation:
 
 class TestSpendingWaterfall:
     def _make_state(self, cash=10000, reserves=None, investments=None, btc=1.0, price=50000):
-        s = CitadelState()
+        s = CitadelState(sim_date="2035-01-15")
         s.cash = cash
         s.reserves = reserves or [5000.0, 5000.0, 5000.0]
         s.investments = investments or [10000.0, 10000.0]
+        s.invest_cost_basis = [v for v in s.investments]
         s.btc_stack = btc
         s.btc_price = price
         return s
 
     def test_cash_covers_all(self):
         s = self._make_state(cash=10000)
-        shortfall = _apply_spending_waterfall(s, 5000)
+        shortfall = _spending_waterfall(s, SimConfig(), 5000)
         assert shortfall == 0.0
         assert s.cash == 5000.0
 
     def test_cash_depleted_draws_reserves(self):
         s = self._make_state(cash=2000)
-        shortfall = _apply_spending_waterfall(s, 5000)
+        shortfall = _spending_waterfall(s, SimConfig(), 5000)
         assert shortfall == 0.0
         assert s.cash == 0.0
         assert s.reserves[0] == 2000.0  # short lost 3000
@@ -128,25 +129,27 @@ class TestSpendingWaterfall:
     def test_full_waterfall_to_btc(self):
         s = self._make_state(cash=100, reserves=[100, 100, 100],
                              investments=[100, 100], btc=1.0, price=50000)
-        shortfall = _apply_spending_waterfall(s, 1000)
+        shortfall = _spending_waterfall(s, SimConfig(), 1000)
         assert shortfall == 0.0
         assert s.cash == 0.0
         assert all(r == 0.0 for r in s.reserves)
-        assert all(inv == 0.0 for inv in s.investments)
-        # Remaining 400 drawn from BTC (400/50000 = 0.008 BTC)
-        assert abs(s.btc_stack - (1.0 - 400 / 50000)) < 1e-10
+        # Growth-aware ordering (no model → BTC growth == equity → BTC sold first)
+        # Remaining 600 after cash(100)+reserves(300) drawn from BTC (600/50000 = 0.012)
+        assert abs(s.btc_stack - (1.0 - 600 / 50000)) < 1e-10
+        # Investments untouched since BTC covered the shortfall
+        assert s.investments == [100, 100]
 
     def test_total_depletion(self):
         s = self._make_state(cash=100, reserves=[0, 0, 0],
                              investments=[0, 0], btc=0.001, price=50000)
-        shortfall = _apply_spending_waterfall(s, 1000)
+        shortfall = _spending_waterfall(s, SimConfig(), 1000)
         assert shortfall > 0  # can't cover full spend
         assert s.btc_stack == 0.0
         assert s.cash == 0.0
 
     def test_zero_spend(self):
         s = self._make_state(cash=10000)
-        shortfall = _apply_spending_waterfall(s, 0)
+        shortfall = _spending_waterfall(s, SimConfig(), 0)
         assert shortfall == 0.0
         assert s.cash == 10000.0
 

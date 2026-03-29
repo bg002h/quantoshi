@@ -15,7 +15,7 @@ import pytest
 from copy import deepcopy
 from engines.citadel import (
     SimConfig, CitadelState, FREQ_PPY, PriceModel,
-    validate_config, _apply_spending_waterfall, _enforce_floors,
+    validate_config, _enforce_floors,
     _evaluate_rebalancing, _lognormal_return, _scf_payment_amount,
     _scf_check_repay, _initial_state, step, simulate,
     SimResult, _compute_n_periods, _get_btc_price,

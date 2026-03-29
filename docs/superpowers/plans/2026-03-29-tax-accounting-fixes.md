@@ -844,11 +844,31 @@ def _spending_waterfall(state: CitadelState, config: SimConfig,
 
 Remove the `sim_date` parameter — read from `state.sim_date` instead. Update the internal reference where `sim_date` was used (in the `_sell_taxable_btc` closure).
 
-Wrap the TD/TF steps (steps 2, 5, 6, 7, 8) in `if config.tax_enabled:` guards.
+The merged function has two modes. The structure should be:
 
-Replace the inline `_sell_taxable_investments()` closure with calls to `_sell_investments_tracked`.
+```
+Step 1: Taxable cash + reserves (always — identical in both modes)
+if config.tax_enabled:
+    Step 2: TD bracket-fill
+Step 3-4: Growth-aware investments vs BTC (always — uses helpers)
+    Replace _sell_taxable_investments() closure → loop calling _sell_investments_tracked()
+    Replace _sell_taxable_btc() closure → call _sell_btc_tracked()
+    Growth-aware ordering (_btc_fwd_growth > _equity_rate) applies in BOTH modes
+if config.tax_enabled:
+    Step 5: TD remaining
+    Step 6: (no-op, already handled)
+    Step 7: TF cash/reserves/investments
+    Step 8: TF BTC
+return shortfall
+```
 
-Replace the inline `_sell_taxable_btc()` closure with calls to `_sell_btc_tracked`.
+**Non-tax path**: Steps 1 → 3-4 → return. This matches the old `_apply_spending_waterfall` ordering (cash → reserves → investments → BTC) but with growth-aware ordering and lot tracking via the helpers. The old non-tax waterfall sold investments in reverse order (bonds before equities) — the merged waterfall's `_sell_investments_tracked` loop should preserve this reverse iteration.
+
+**Key changes to the existing `_tax_aware_waterfall` closures:**
+- Delete the `_sell_taxable_investments()` inner function. Replace its body with a loop: `for i in reversed(range(len(state.investments))): drawn, gain = _sell_investments_tracked(state, config, i, remaining); remaining -= drawn; if remaining <= 0: return 0.0`
+- Delete the `_sell_taxable_btc()` inner function. Replace its body with: `if remaining > 0 and state.btc_price > 0: btc_to_sell = remaining / state.btc_price; result = _sell_btc_tracked(state, config, btc_to_sell); remaining -= result.btc_sold * state.btc_price`
+- Remove `sim_date` parameter — read `state.sim_date` (already set in step())
+- Remove the `from .tax_lots import sell_lots` import inside the function (now in the helpers)
 
 - [ ] **Step 5: Delete `_apply_spending_waterfall`**
 
@@ -953,7 +973,7 @@ Add to `TestTaxAccountingHelpers`:
 - [ ] **Step 3: Run full test suite**
 
 ```bash
-PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/test_web.py -v --tb=short 2>&1 | tail -20
+PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/ -v --tb=short 2>&1 | tail -20
 ```
 
 Expected: All tests PASS.

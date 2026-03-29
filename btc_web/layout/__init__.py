@@ -68,7 +68,31 @@ _app_ctx.app.index_string = """<!DOCTYPE html>
     </body>
 </html>"""
 
-_app_ctx.app.layout = dbc.Container([
+_PATH_TO_TAB = {
+    "/1": "bubble", "/2": "heatmap", "/3": "dca", "/4": "retire",
+    "/5": "supercharge", "/6": "stack", "/7": "model_info", "/8": "faq",
+    "/9": "citadel",
+}
+
+def _serve_layout():
+    """Layout function — called on each page request.
+
+    Reads the URL path to set the initial active tab, so visiting /9
+    builds the layout with active_tab='citadel' from the start (no
+    wasted bubble render).
+    """
+    import flask
+    path = flask.request.path if flask.has_request_context() else "/"
+    # Strip trailing slash, handle /7.N deep links
+    clean = path.rstrip("/").split(".")[0] or "/"
+    initial_tab = _PATH_TO_TAB.get(clean, "bubble")
+    return _build_layout(initial_tab)
+
+_app_ctx.app.layout = _serve_layout
+
+
+def _build_layout(initial_tab="bubble"):
+    return dbc.Container([
     _freq_warning_modal(),
     dcc.Interval(id="price-interval", interval=_PRICE_INTERVAL_MS, n_intervals=0),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
@@ -85,7 +109,7 @@ _app_ctx.app.layout = dbc.Container([
     dcc.Store(id="wm-b64-store", storage_type="memory", data=_LOGO_B64_ALL),
     # Per-tab render triggers (clientside callback fires on tab switch)
     *[dcc.Store(id=f"{tab}-first-render", storage_type="memory", data=0)
-      for tab in ("heatmap", "dca", "retire", "supercharge", "citadel")],
+      for tab in ("bubble", "heatmap", "dca", "retire", "supercharge", "citadel")],
     # MC per-tab stores (results, unblocked cache, loaded trigger, download dummy)
     *[dcc.Store(id=f"{pfx}-mc-results", storage_type="memory", data=None)
       for pfx in ("dca", "ret", "hm", "sc", "cp")],
@@ -480,7 +504,7 @@ _app_ctx.app.layout = dbc.Container([
         dbc.Tab(_model_info_tab(),   label="\U0001F4D0 Model Info",      tab_id="model_info"),
         dbc.Tab(_faq_tab(),          label="\u2753 FAQ",                 tab_id="faq"),
         dbc.Tab(_citadel_tab(),      label="\U0001F3F0 Citadel Planner", tab_id="citadel"),
-    ], id="main-tabs", active_tab="bubble"),
+    ], id="main-tabs", active_tab=initial_tab),
     # ── Footer: block height + halving countdown + doc links ──────────────
     html.Div([
         html.Span(id="footer-block-height",

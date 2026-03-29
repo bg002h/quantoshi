@@ -2629,7 +2629,7 @@ class TestUpdateBubbleCallback:
     def test_returns_figure(self):
         with _patch_ctx("bub-qs"):
             fig = update_bubble(
-                sel_qs=[0.5], toggles=["show_data", "show_today"],
+                _first_render=1, sel_qs=[0.5], toggles=["show_data", "show_today"],
                 bubble_toggles=[], xscale="log", yscale="log",
                 xrange=[2012, 2030], yrange=[0, 7],
                 n_future=3, ptsize=3, ptalpha=0.6,
@@ -2641,7 +2641,7 @@ class TestUpdateBubbleCallback:
     def test_empty_quantiles(self):
         with _patch_ctx("bub-qs"):
             fig = update_bubble(
-                sel_qs=[], toggles=[], bubble_toggles=[],
+                _first_render=1, sel_qs=[], toggles=[], bubble_toggles=[],
                 xscale="linear", yscale="log",
                 xrange=[2015, 2028], yrange=[1, 6],
                 n_future=0, ptsize=2, ptalpha=0.3,
@@ -2653,7 +2653,7 @@ class TestUpdateBubbleCallback:
     def test_with_stack(self):
         with _patch_ctx("bub-stack"):
             fig = update_bubble(
-                sel_qs=[0.1, 0.5, 0.9], toggles=["show_legend"],
+                _first_render=1, sel_qs=[0.1, 0.5, 0.9], toggles=["show_legend"],
                 bubble_toggles=["show_comp"], xscale="log", yscale="log",
                 xrange=[2012, 2035], yrange=[0, 7],
                 n_future=2, ptsize=4, ptalpha=0.5,

@@ -32,10 +32,10 @@ _app_ctx.app.clientside_callback(
 
 _app_ctx.app.clientside_callback(
     """
-    function(tab, hm, dca, ret, sc, cp) {
+    function(tab, bub, hm, dca, ret, sc, cp) {
         var NU = window.dash_clientside.no_update;
-        var out = [NU, NU, NU, NU, NU];
-        var map = {heatmap:0, dca:1, retire:2, supercharge:3, citadel:4};
+        var out = [NU, NU, NU, NU, NU, NU];
+        var map = {bubble:0, heatmap:1, dca:2, retire:3, supercharge:4, citadel:5};
         var idx = map[tab];
         if (idx !== undefined) {
             out[idx] = (arguments[idx + 1] || 0) + 1;
@@ -43,18 +43,20 @@ _app_ctx.app.clientside_callback(
         return out;
     }
     """,
+    Output("bubble-first-render", "data", allow_duplicate=True),
     Output("heatmap-first-render", "data", allow_duplicate=True),
     Output("dca-first-render", "data", allow_duplicate=True),
     Output("retire-first-render", "data", allow_duplicate=True),
     Output("supercharge-first-render", "data", allow_duplicate=True),
     Output("citadel-first-render", "data", allow_duplicate=True),
     Input("main-tabs", "active_tab"),
+    State("bubble-first-render", "data"),
     State("heatmap-first-render", "data"),
     State("dca-first-render", "data"),
     State("retire-first-render", "data"),
     State("supercharge-first-render", "data"),
     State("citadel-first-render", "data"),
-    prevent_initial_call=True,
+    prevent_initial_call='initial_duplicate',
 )
 
 

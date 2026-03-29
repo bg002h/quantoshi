@@ -25,6 +25,7 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
 
 @callback(
     Output("bubble-graph", "figure"),
+    Input("bubble-first-render", "data"),
     Input("bub-qs",            "value"),
     Input("bub-toggles",       "value"),
     Input("bub-bubble-toggles","value"),
@@ -45,8 +46,9 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     Input("user-model-store",  "data"),
     State("scan-active-rows",  "data"),
     State("scan-q",            "value"),
+    prevent_initial_call=True,
 )
-def update_bubble(sel_qs, toggles, bubble_toggles,
+def update_bubble(_first_render, sel_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,
                   n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, model_show, lots_data,
                   palette_key, user_model_store=None,

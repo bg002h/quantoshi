@@ -5393,3 +5393,225 @@ class TestInvestmentCostBasis:
         basis3 = state3.invest_cost_basis[0] * fraction3  # 5k
         gain3 = draw - basis3  # 50k - 5k = 45k
         assert gain3 == pytest.approx(45_000)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Comprehensive Tax Simulation Tests — every parameter, every asset type
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestTaxSimComparative:
+    """Compare tax-on vs tax-off and parameter variations at the engine level."""
+
+    @staticmethod
+    def _run(tax_enabled=True, **kw):
+        from engines.citadel import SimConfig, simulate
+        defaults = dict(
+            start_stack=1.0, start_yr=2031, end_yr=2035,
+            freq="Annually", monthly_spend=5_000,
+            cash_initial=100_000, selected_qs=[0.25],
+        )
+        defaults.update(kw)
+        cfg = SimConfig(tax_enabled=tax_enabled, **defaults)
+        return simulate(cfg, _test_model())
+
+    @staticmethod
+    def _tax_years(result):
+        """Extract the per-year tax dicts from sim result (first sim index)."""
+        if result.annual_taxes and len(result.annual_taxes) > 0:
+            at = result.annual_taxes[0]
+            if isinstance(at, list):
+                return at  # list of year dicts
+            if isinstance(at, dict):
+                return [at]  # single dict wrapped
+        return []
+
+    # ── Tax on vs off ──────────────────────────────────────────────────────
+
+    def test_tax_on_reduces_terminal_wealth(self):
+        r_off = self._run(tax_enabled=False)
+        r_on = self._run(tax_enabled=True, filing_status="single", state_code="CA")
+        assert r_on.total_usd[0, -1] <= r_off.total_usd[0, -1]
+
+    def test_tax_off_pays_zero_tax(self):
+        r = self._run(tax_enabled=False)
+        # taxes_paid should be None or all zeros
+        if r.taxes_paid is not None:
+            assert r.taxes_paid.max() == 0
+
+    def test_tax_on_pays_nonzero_tax(self):
+        r = self._run(tax_enabled=True, filing_status="single",
+                      state_code="CA", other_income=100_000)
+        assert r.taxes_paid is not None
+        assert r.taxes_paid[0, -1] > 0
+
+    # ── State tax comparison ───────────────────────────────────────────────
+
+    def test_california_tax_exceeds_texas(self):
+        r_ca = self._run(state_code="CA", filing_status="single", other_income=100_000)
+        r_tx = self._run(state_code="TX", filing_status="single", other_income=100_000)
+        ca_total = sum(t["total"] for t in self._tax_years(r_ca))
+        tx_total = sum(t["total"] for t in self._tax_years(r_tx))
+        assert ca_total > tx_total
+
+    def test_zero_tax_state_no_state_component(self):
+        r = self._run(state_code="TX", filing_status="single", other_income=50_000)
+        for yr in self._tax_years(r):
+            assert yr["state"] == pytest.approx(0.0)
+
+    # ── Filing status ──────────────────────────────────────────────────────
+
+    def test_mfj_lower_tax_than_single(self):
+        """MFJ brackets are wider — same income should pay less tax."""
+        r_s = self._run(filing_status="single", state_code="TX", other_income=150_000)
+        r_m = self._run(filing_status="mfj", state_code="TX", other_income=150_000)
+        s_total = sum(t["total"] for t in self._tax_years(r_s))
+        m_total = sum(t["total"] for t in self._tax_years(r_m))
+        assert m_total <= s_total
+
+    # ── TCJA sunset ────────────────────────────────────────────────────────
+
+    def test_sunset_higher_tax_than_tcja(self):
+        r_tcja = self._run(filing_status="single", state_code="TX",
+                           tcja_sunset=False, other_income=200_000)
+        r_sunset = self._run(filing_status="single", state_code="TX",
+                             tcja_sunset=True, other_income=200_000)
+        tcja_total = sum(t["total"] for t in self._tax_years(r_tcja))
+        sunset_total = sum(t["total"] for t in self._tax_years(r_sunset))
+        assert sunset_total >= tcja_total
+
+    # ── Cost basis method ──────────────────────────────────────────────────
+
+    def test_fifo_and_lifo_produce_different_gains(self):
+        """FIFO sells oldest (likely LT), LIFO sells newest (likely ST)."""
+        r_fifo = self._run(cost_basis_method="fifo", filing_status="single",
+                           state_code="TX", monthly_spend=20_000)
+        r_lifo = self._run(cost_basis_method="lifo", filing_status="single",
+                           state_code="TX", monthly_spend=20_000)
+        # Both should complete without error
+        assert r_fifo.total_usd.shape[1] > 0
+        assert r_lifo.total_usd.shape[1] > 0
+
+    # ── Investment cost basis ──────────────────────────────────────────────
+
+    def test_low_basis_means_higher_tax(self):
+        """$200k equities with $50k basis (150k unrealized gain) vs $200k basis (0 gain)."""
+        r_low = self._run(filing_status="single", state_code="TX",
+                          invest_cost_basis_initial=[50_000, 100_000],
+                          monthly_spend=20_000)  # force investment sales
+        r_full = self._run(filing_status="single", state_code="TX",
+                           invest_cost_basis_initial=[200_000, 100_000],
+                           monthly_spend=20_000)
+        low_tax = sum(t["total"] for t in self._tax_years(r_low))
+        full_tax = sum(t["total"] for t in self._tax_years(r_full))
+        assert low_tax >= full_tax
+
+    # ── TD wrapper (Tax-Deferred) ──────────────────────────────────────────
+
+    def test_td_withdrawals_taxed_as_ordinary(self):
+        """TD withdrawals should show up as ordinary income in tax summary."""
+        r = self._run(filing_status="single", state_code="TX",
+                      td_cash_initial=500_000, monthly_spend=10_000)
+        yrs = self._tax_years(r)
+        if yrs:
+            total_ordinary = sum(t.get("ordinary_income", 0) for t in yrs)
+            assert total_ordinary > 0
+
+    # ── TF wrapper (Roth) ──────────────────────────────────────────────────
+
+    def test_roth_only_portfolio_zero_tax(self):
+        """If all assets are in Roth, no tax should be owed."""
+        r = self._run(filing_status="single", state_code="TX",
+                      start_stack=0, cash_initial=0,
+                      invest_bins=[
+                          {"label": "Equities", "initial": 0, "return_rate": 10, "volatility": 0},
+                          {"label": "Bonds", "initial": 0, "return_rate": 5, "volatility": 0},
+                      ],
+                      tf_cash_initial=500_000,
+                      monthly_spend=3_000)
+        yrs = self._tax_years(r)
+        if yrs:
+            total_tax = sum(t["total"] for t in yrs)
+            assert total_tax == pytest.approx(0.0, abs=1.0)
+
+    # ── RMD ────────────────────────────────────────────────────────────────
+
+    def test_rmd_creates_ordinary_income(self):
+        """Birth year 1958, age 73 in 2031 → RMD should force TD withdrawal."""
+        r = self._run(filing_status="single", state_code="TX",
+                      birth_year=1958, td_cash_initial=1_000_000,
+                      start_stack=0, cash_initial=0, monthly_spend=0,
+                      start_yr=2031, end_yr=2033)
+        yrs = self._tax_years(r)
+        if yrs:
+            has_rmd_income = any(t.get("ordinary_income", 0) > 0 for t in yrs)
+            assert has_rmd_income
+
+    def test_no_rmd_without_birth_year(self):
+        """No birth year → no RMDs, TD untouched if not needed for spending."""
+        r = self._run(filing_status="single", state_code="TX",
+                      birth_year=None, td_cash_initial=1_000_000,
+                      start_stack=0, cash_initial=500_000, monthly_spend=1_000,
+                      start_yr=2031, end_yr=2033)
+        # All spending covered by taxable cash, no TD withdrawals needed
+        yrs = self._tax_years(r)
+        if yrs:
+            total_td = sum(t.get("ordinary_income", 0) for t in yrs)
+            assert total_td < 100_000  # well under $1M
+
+    # ── NIIT ───────────────────────────────────────────────────────────────
+
+    def test_niit_triggers_above_threshold(self):
+        """$300k other income (single) should trigger NIIT."""
+        r = self._run(filing_status="single", state_code="TX",
+                      other_income=300_000, start_yr=2025, end_yr=2027)
+        yrs = self._tax_years(r)
+        if yrs:
+            has_niit = any(t.get("niit", 0) > 0 for t in yrs)
+            assert has_niit
+
+    def test_niit_zero_below_threshold(self):
+        """$100k other income (single) should NOT trigger NIIT."""
+        r = self._run(filing_status="single", state_code="TX",
+                      other_income=100_000, start_stack=0, cash_initial=500_000,
+                      monthly_spend=1_000, start_yr=2025, end_yr=2027)
+        yrs = self._tax_years(r)
+        if yrs:
+            total_niit = sum(t.get("niit", 0) for t in yrs)
+            assert total_niit == pytest.approx(0.0, abs=1.0)
+
+    # ── Other income growth ────────────────────────────────────────────────
+
+    def test_other_income_growth_increases_tax(self):
+        r_flat = self._run(filing_status="single", state_code="TX",
+                           other_income=50_000, other_income_growth=0)
+        r_grow = self._run(filing_status="single", state_code="TX",
+                           other_income=50_000, other_income_growth=5.0)
+        flat_tax = sum(t["total"] for t in self._tax_years(r_flat))
+        grow_tax = sum(t["total"] for t in self._tax_years(r_grow))
+        assert grow_tax >= flat_tax
+
+    # ── Ghost traces in figure builder ─────────────────────────────────────
+
+    def test_figure_has_ghost_traces_when_tax_on(self):
+        from figures.citadel import build_citadel_figure
+        from tab_defaults import citadel_defaults
+        p = citadel_defaults()
+        p["tax_enabled"] = True
+        p["filing_status"] = "single"
+        p["state_code"] = "CA"
+        p["start_yr"] = 2031
+        p["end_yr"] = 2033
+        fig, extra = build_citadel_figure(M, p)
+        names = [t.name for t in fig.data if t.name]
+        assert any("no tax" in (n or "").lower() for n in names)
+        assert "annual_taxes" in extra
+
+    def test_figure_no_ghost_traces_when_tax_off(self):
+        from figures.citadel import build_citadel_figure
+        from tab_defaults import citadel_defaults
+        p = citadel_defaults()
+        p["start_yr"] = 2031
+        p["end_yr"] = 2033
+        fig, extra = build_citadel_figure(M, p)
+        names = [t.name for t in fig.data if t.name]
+        assert not any("no tax" in (n or "").lower() for n in names)

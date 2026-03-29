@@ -909,8 +909,10 @@ def _year_boundary_tax(state: CitadelState, config: SimConfig,
     other_inc = config.other_income * (1 + config.other_income_growth / 100) ** years_elapsed
     state.tax_year_accum.other_income += other_inc
 
-    # Add interest income from taxable wrapper (approximate)
+    # Add interest income from taxable wrapper (approximate annual)
     state.tax_year_accum.interest_income += state.cash * (config.cash_rate / 100)
+    for i, rb in enumerate(config.reserve_bins):
+        state.tax_year_accum.interest_income += state.reserves[i] * (rb["rate"] / 100)
 
     # Set loss carryforward
     state.tax_year_accum.loss_carryforward = state.loss_carryforward

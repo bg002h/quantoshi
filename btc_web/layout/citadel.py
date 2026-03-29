@@ -12,6 +12,7 @@ from layout.common import (
     _STYLE_HIDDEN, _STYLE_HINT, _export_row, _chart_tab_layout,
 )
 from layout.mc_controls import _mc_controls
+from layout.citadel_tax import tax_toggle_widget, tax_config_modal, tax_summary_panel
 
 
 def _assets_panel():
@@ -249,6 +250,7 @@ def _sim_panel():
             html.Div(id="cp-asset-model-info",
                      style={"display": "none", "marginTop": "6px"}),
         ),
+        tax_toggle_widget(),
         _dd_section("BTC Price Scenario",
             html.Small("Select one quantile for the deterministic BTC price path. "
                        "Lower = more pessimistic, higher = more optimistic.",
@@ -307,6 +309,7 @@ def _citadel_controls():
             dbc.Tab(_rules_panel(), label="Rules", tab_id="cp-rules"),
             dbc.Tab(_sim_panel(), label="Simulation", tab_id="cp-sim"),
         ], id="cp-inner-tabs", active_tab="cp-assets"),
+        tax_config_modal(),
     ])
 
 
@@ -333,4 +336,7 @@ def _citadel_tab():
     if initial_fig is not None:
         from layout.common import _inject_initial_figure
         _inject_initial_figure(layout, "citadel-graph", initial_fig)
+    # Insert tax summary panel below the chart (inside the graph column)
+    graph_col = layout.children[1]
+    graph_col.children.append(tax_summary_panel())
     return layout

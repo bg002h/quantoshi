@@ -5819,3 +5819,70 @@ class TestGrossUpTaxPayment:
         r = simulate(cfg, _test_model())
         assert r.taxes_paid is not None
         assert r.taxes_paid[0, -1] > 0
+
+
+class TestMcStatusWithTaxExtraDict:
+    """Regression test: _mc_status must not crash when the extra dict
+    contains tax keys (annual_taxes) but no MC keys (created).
+    This was the root cause of the silent background callback crash
+    when running deterministic simulations with tax enabled."""
+
+    def test_mc_status_with_tax_only_extra(self):
+        """Deterministic run: extra dict has annual_taxes but no 'created'."""
+        from callbacks.mc_helpers import _mc_status
+        tax_extra = {"annual_taxes": [{"year": 2031, "total": 5000}]}
+        store_val, status, show_modal = _mc_status(tax_extra, None, None)
+        assert status == ""
+        assert show_modal is True  # mc_result is truthy (non-empty dict)
+
+    def test_mc_status_with_mc_result(self):
+        """Stochastic run: extra dict has MC 'created' key."""
+        from callbacks.mc_helpers import _mc_status
+        mc_result = {"created": "2026-03-29T12:00:00.000Z", "sims": 1000}
+        store_val, status, show_modal = _mc_status(mc_result, None, None)
+        assert "Saved:" in status
+        assert show_modal is True
+
+    def test_mc_status_with_empty_result(self):
+        """No result at all (first render, no sim run)."""
+        from callbacks.mc_helpers import _mc_status
+        store_val, status, show_modal = _mc_status(None, None, None)
+        assert status == ""
+        assert show_modal is False
+
+    def test_mc_status_with_cached_only(self):
+        """No new result, but cached MC exists."""
+        from callbacks.mc_helpers import _mc_status
+        cached = {"created": "2026-03-28T10:00:00.000Z"}
+        store_val, status, show_modal = _mc_status(None, cached, ["mc"])
+        assert "Using saved:" in status
+        assert show_modal is False
+
+    def test_mc_status_with_combined_tax_and_mc(self):
+        """Both tax extra and MC result keys in the same dict."""
+        from callbacks.mc_helpers import _mc_status
+        combined = {"annual_taxes": [{"year": 2031}],
+                    "created": "2026-03-29T12:00:00.000Z", "sims": 500}
+        store_val, status, show_modal = _mc_status(combined, None, None)
+        assert "Saved:" in status
+        assert show_modal is True
+
+    def test_full_figure_builder_extra_survives_mc_status(self):
+        """End-to-end: build_citadel_figure with tax → extra → _mc_status."""
+        from figures.citadel import build_citadel_figure
+        from callbacks.mc_helpers import _mc_status
+        from tab_defaults import citadel_defaults, CITADEL
+        p = citadel_defaults()
+        p["tax_enabled"] = True
+        p["filing_status"] = "single"
+        p["state_code"] = "CA"
+        p["start_yr"] = 2031
+        p["end_yr"] = 2033
+        for k in ("td_btc", "td_cash", "td_res_short", "td_res_med", "td_res_long",
+                   "td_inv_eq", "td_inv_bd", "tf_btc", "tf_cash", "tf_res_short",
+                   "tf_res_med", "tf_res_long", "tf_inv_eq", "tf_inv_bd"):
+            p[k] = CITADEL.get(k, 0)
+        fig, extra = build_citadel_figure(M, p)
+        # This is the exact call that was crashing in production
+        store_val, status, show_modal = _mc_status(extra, None, None)
+        assert isinstance(status, str)

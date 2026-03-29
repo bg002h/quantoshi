@@ -1,17 +1,43 @@
 #!/bin/bash
 # Quantoshi health check — checks production server and app status.
-# Usage: quantoshi-health          # silent if OK, terminal popup on failure
-#        quantoshi-health --verbose # always print status
-#        quantoshi-health --popup   # called by timer; shows terminal only on failure
+# Usage: quantoshi-health             # verbose: print status
+#        quantoshi-health --popup     # called by timer; popup on failure
+#        quantoshi-health --test      # simulate random failure (verbose)
+#        quantoshi-health --test --popup  # simulate random failure (popup alert)
 set -euo pipefail
 
 LOCK="/tmp/quantoshi-health-alert.lock"
 URL="https://quantoshi.xyz/health"
 TIMEOUT=15
-MODE="${1:---verbose}"
+FAKE_TEST=false
+
+# Parse args: --test sets fake mode, remaining arg sets display mode
+MODE="--verbose"
+for arg in "$@"; do
+    case "$arg" in
+        --test)  FAKE_TEST=true ;;
+        *)       MODE="$arg" ;;
+    esac
+done
 
 check_health() {
     local errors=()
+
+    # Simulated failure for testing the alert pipeline
+    if $FAKE_TEST; then
+        local FAKE_ERRORS=(
+            "Health endpoint returned HTTP 502"
+            "SSH to server unreachable"
+            "quantoshi.service is not running"
+            "Recent errors in gunicorn log"
+            "BTCPay Server unreachable (Tor timeout)"
+        )
+        local idx=$(( RANDOM % ${#FAKE_ERRORS[@]} ))
+        errors+=("[TEST] ${FAKE_ERRORS[$idx]}")
+        echo "${#errors[@]}"
+        printf '%s\n' "${errors[@]}"
+        return
+    fi
 
     # 1. Check HTTPS health endpoint
     http_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "$URL" 2>/dev/null) || http_code="000"
@@ -30,10 +56,21 @@ check_health() {
         fi
     fi
 
-    # 4. Check recent gunicorn error log for panics/tracebacks
-    err_tail=$(ssh -o ConnectTimeout=10 root@89.167.70.45 "tail -20 /var/log/quantoshi-error.log 2>/dev/null" 2>/dev/null) || true
-    if echo "$err_tail" | grep -qiE "Traceback|CRITICAL|FATAL|Worker failed" 2>/dev/null; then
-        errors+=("Recent errors in gunicorn log")
+    # 4. Check gunicorn error log for errors since last restart
+    err_check=$(ssh -o ConnectTimeout=10 root@89.167.70.45 '
+        # Get service start time, find errors logged after it
+        start_ts=$(systemctl show quantoshi --property=ActiveEnterTimestamp --value 2>/dev/null)
+        if [ -n "$start_ts" ] && [ -f /var/log/quantoshi-error.log ]; then
+            # Look for Traceback or BackgroundCallbackError since restart
+            awk -v start="$(date -d "$start_ts" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || echo "1970-01-01")" \
+                "/^\[/ { ts=substr($0,2,19) } ts >= start && /Traceback|BackgroundCallbackError|CRITICAL|FATAL|Worker failed/ { found=1 } END { print found+0 }" \
+                /var/log/quantoshi-error.log
+        else
+            echo 0
+        fi
+    ' 2>/dev/null) || err_check="0"
+    if [[ "$err_check" != "0" ]]; then
+        errors+=("Errors in gunicorn log since last restart (BackgroundCallbackError/Traceback)")
     fi
 
     echo "${#errors[@]}"
@@ -62,16 +99,84 @@ else
         exit 1
     fi
 
-    # --popup mode: only open a terminal if one isn't already showing
+    # --popup mode: desktop notification + fullscreen alert dialog
     if [[ "$MODE" == "--popup" ]]; then
-        if [[ -f "$LOCK" ]]; then
-            # Alert window already open, don't spawn another
-            exit 1
+        if ! $FAKE_TEST; then
+            if [[ -f "$LOCK" ]]; then
+                # Dialog already open, don't spam
+                exit 1
+            fi
+            touch "$LOCK"
         fi
-        touch "$LOCK"
-        # Open a terminal that stays open until dismissed
-        alacritty --title "Quantoshi Status — ERROR" \
-              -e bash -c "echo -e '$msg'; echo; echo 'Press Enter to dismiss...'; read; rm -f $LOCK" &
+        # Desktop notification (non-blocking)
+        notify-send -u critical -a "Quantoshi" \
+            "Quantoshi: $n_errors ERROR(s)" \
+            "$error_msgs" \
+            -i dialog-error
+        # Fullscreen stay-on-top Qt dialog on ALL monitors
+        python3 -c "
+import sys
+from PyQt6.QtWidgets import QApplication, QDialog, QVBoxLayout, QLabel, QPushButton
+from PyQt6.QtCore import Qt
+
+app = QApplication(sys.argv)
+screens = app.screens()
+dialogs = []
+
+def dismiss_all():
+    for d in dialogs:
+        d.accept()
+
+for i, screen in enumerate(screens):
+    dlg = QDialog()
+    dlg.setWindowTitle('Quantoshi Production Alert')
+    dlg.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)
+    dlg.setStyleSheet('background: #1a1a1a;')
+
+    # Position on this screen's geometry
+    geo = screen.geometry()
+    dlg.setGeometry(geo)
+
+    layout = QVBoxLayout(dlg)
+    layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+    icon = QLabel('\u26a0')
+    icon.setStyleSheet('font-size: 120px; color: #ff4444;')
+    icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    layout.addWidget(icon)
+
+    title = QLabel('QUANTOSHI DOWN')
+    title.setStyleSheet('font-size: 64px; font-weight: bold; color: #ff4444; margin: 20px;')
+    title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    layout.addWidget(title)
+
+    body = QLabel('''$(echo -e "$error_msgs" | sed "s/'/\\\\'/g")''')
+    body.setStyleSheet('font-size: 28px; color: #cccccc; margin: 20px;')
+    body.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    body.setWordWrap(True)
+    layout.addWidget(body)
+
+    ts = QLabel('$(date \"+%Y-%m-%d %H:%M:%S\")')
+    ts.setStyleSheet('font-size: 20px; color: #888888; margin: 10px;')
+    ts.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    layout.addWidget(ts)
+
+    # Only show dismiss button on primary screen
+    if i == 0:
+        btn = QPushButton('DISMISS')
+        btn.setStyleSheet('font-size: 32px; font-weight: bold; color: white; background: #cc0000; border: none; border-radius: 12px; padding: 20px 80px; margin-top: 40px;')
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.clicked.connect(dismiss_all)
+        layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
+
+    dlg.showFullScreen()
+    dialogs.append(dlg)
+
+app.exec()
+" &
+        DIALOG_PID=$!
+        # Clean up lock when dialog is dismissed
+        (wait $DIALOG_PID 2>/dev/null; rm -f "$LOCK") &
         exit 1
     fi
 fi

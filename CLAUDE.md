@@ -483,3 +483,5 @@ _app_ctx.app.clientside_callback(
 | `quantoshi_logo.png` | Master logo file |
 | `run_web.sh` | Web app startup script (gunicorn or DEV mode) |
 | `btc-web.service` | systemd unit template for local installs |
+| `scripts/quantoshi-health` | Production health check — HTTP, SSH, systemd, error log (since last restart). `--popup` for fullscreen PyQt6 alert. Catches `BackgroundCallbackError` (silent Dash callback crashes). |
+| `scripts/quantoshi-restart` | Production restart helper |

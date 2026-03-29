@@ -4793,5 +4793,68 @@ class TestR2InLegend:
             assert "R\u00b2" not in t.name
 
 
+class TestTaxData:
+    def test_federal_brackets_single_tcja(self):
+        from engines.tax_data import FEDERAL_BRACKETS_TCJA
+        single = FEDERAL_BRACKETS_TCJA["single"]
+        assert single[0] == (11_925, 0.10)
+        assert single[-1][1] == 0.37
+        assert len(single) == 7
+
+    def test_federal_brackets_mfj_tcja(self):
+        from engines.tax_data import FEDERAL_BRACKETS_TCJA
+        mfj = FEDERAL_BRACKETS_TCJA["mfj"]
+        assert mfj[0] == (23_850, 0.10)
+        assert mfj[-1][1] == 0.37
+
+    def test_federal_brackets_sunset(self):
+        from engines.tax_data import FEDERAL_BRACKETS_SUNSET
+        single = FEDERAL_BRACKETS_SUNSET["single"]
+        assert single[-1][1] == 0.396
+        assert len(single) == 7
+
+    def test_ltcg_brackets_single(self):
+        from engines.tax_data import LTCG_BRACKETS
+        single = LTCG_BRACKETS["single"]
+        assert single[0] == (48_350, 0.00)
+        assert single[1] == (533_400, 0.15)
+        assert single[2] == (float("inf"), 0.20)
+
+    def test_standard_deduction_tcja(self):
+        from engines.tax_data import STANDARD_DEDUCTION_TCJA, STANDARD_DEDUCTION_SUNSET
+        assert STANDARD_DEDUCTION_TCJA["single"] == 15_000
+        assert STANDARD_DEDUCTION_TCJA["mfj"] == 30_000
+        assert STANDARD_DEDUCTION_SUNSET["single"] == 8_300
+        assert STANDARD_DEDUCTION_SUNSET["mfj"] == 16_600
+
+    def test_niit_thresholds(self):
+        from engines.tax_data import NIIT_RATE, NIIT_THRESHOLD
+        assert NIIT_RATE == 0.038
+        assert NIIT_THRESHOLD["single"] == 200_000
+        assert NIIT_THRESHOLD["mfj"] == 250_000
+
+    def test_state_tax_no_income_tax(self):
+        from engines.tax_data import STATE_TAX_RATES
+        for st in ("AK", "FL", "NV", "NH", "SD", "TN", "TX", "WA", "WY"):
+            assert STATE_TAX_RATES[st] == 0.0, f"{st} should be 0"
+
+    def test_state_tax_california(self):
+        from engines.tax_data import STATE_TAX_RATES
+        assert STATE_TAX_RATES["CA"] == 13.30
+
+    def test_state_tax_count(self):
+        from engines.tax_data import STATE_TAX_RATES
+        assert len(STATE_TAX_RATES) == 51  # 50 states + DC
+
+    def test_rmd_factors(self):
+        from engines.tax_data import RMD_FACTORS
+        assert RMD_FACTORS[73] == 26.5
+        assert RMD_FACTORS[75] == 24.6
+        assert RMD_FACTORS[80] == 20.2
+        assert RMD_FACTORS[90] == 12.2
+        assert 72 in RMD_FACTORS
+        assert 120 in RMD_FACTORS
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

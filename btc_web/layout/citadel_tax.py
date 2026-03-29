@@ -42,36 +42,41 @@ def _lbl(text: str):
 
 def _account_asset_grid(prefix: str):
     """Shared asset inputs for tax-deferred / tax-free account cards."""
+    from tab_defaults import CITADEL
+    # Map prefix "cp-td" → key prefix "td_", "cp-tf" → "tf_"
+    _kp = prefix.replace("cp-", "") + "_"  # "td_" or "tf_"
+    def _d(suffix):
+        return CITADEL.get(f"{_kp}{suffix}", 0)
     return html.Div([
         _lbl("BTC Stack"),
         dbc.Input(id=f"{prefix}-btc", type="number", min=0, step=0.001,
-                  value=0, size="sm"),
+                  value=_d("btc"), size="sm"),
         _lbl("Cash ($)"),
         dbc.Input(id=f"{prefix}-cash", type="number", min=0, step=1000,
-                  value=0, size="sm"),
+                  value=_d("cash"), size="sm"),
         html.Hr(style={"margin": "6px 0"}),
         html.Small("Reserves", className="fw-bold d-block mb-1",
                    style={"fontSize": "11px"}),
         dbc.Row([
             dbc.Col([html.Small("Short"),
                      dbc.Input(id=f"{prefix}-res-short", type="number",
-                               min=0, step=1000, value=0, size="sm")], width=4),
+                               min=0, step=1000, value=_d("res_short"), size="sm")], width=4),
             dbc.Col([html.Small("Med"),
                      dbc.Input(id=f"{prefix}-res-med", type="number",
-                               min=0, step=1000, value=0, size="sm")], width=4),
+                               min=0, step=1000, value=_d("res_med"), size="sm")], width=4),
             dbc.Col([html.Small("Long"),
                      dbc.Input(id=f"{prefix}-res-long", type="number",
-                               min=0, step=1000, value=0, size="sm")], width=4),
+                               min=0, step=1000, value=_d("res_long"), size="sm")], width=4),
         ], className="g-1 mb-1"),
         html.Small("Investments", className="fw-bold d-block mb-1",
                    style={"fontSize": "11px"}),
         dbc.Row([
             dbc.Col([html.Small("Equities"),
                      dbc.Input(id=f"{prefix}-inv-eq", type="number",
-                               min=0, step=1000, value=0, size="sm")], width=6),
+                               min=0, step=1000, value=_d("inv_eq"), size="sm")], width=6),
             dbc.Col([html.Small("Bonds"),
                      dbc.Input(id=f"{prefix}-inv-bd", type="number",
-                               min=0, step=1000, value=0, size="sm")], width=6),
+                               min=0, step=1000, value=_d("inv_bd"), size="sm")], width=6),
         ], className="g-1"),
     ])
 

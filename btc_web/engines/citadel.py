@@ -1068,6 +1068,54 @@ def _pay_tax_amount(state: CitadelState, config: SimConfig,
             tax_remaining -= (actual - tax_on_td)
 
 
+def _quarterly_estimated_payment(state: CitadelState, config: SimConfig,
+                                  quarter: int, sim_year: int) -> None:
+    """Pay estimated quarterly tax (Q1-Q3). Annualizes YTD income.
+
+    quarter: 1, 2, or 3 (Q4 is handled by _year_boundary_tax as the true-up).
+    Mutates state: draws payment from accounts, updates quarterly_tax_paid_ytd.
+    """
+    from .tax import compute_annual_tax, TaxYearAccumulator
+    from copy import copy
+
+    if state.tax_year_accum is None or quarter < 1 or quarter > 3:
+        return
+
+    ytd_fraction = quarter / 4.0  # 0.25, 0.50, 0.75
+
+    # Annualize YTD income by scaling up
+    ann = copy(state.tax_year_accum)
+    scale = 1.0 / ytd_fraction
+    ann.tax_deferred_withdrawals *= scale
+    ann.interest_income *= scale
+    ann.treasury_interest *= scale
+    ann.other_income *= scale
+    ann.st_capital_gains *= scale
+    ann.st_capital_losses *= scale
+    ann.lt_capital_gains *= scale
+    ann.lt_capital_losses *= scale
+    ann.roth_withdrawals *= scale
+    ann.loss_carryforward = state.loss_carryforward  # not scaled
+
+    state_rate = _get_state_rate(config)
+    projected = compute_annual_tax(
+        ann,
+        filing_status=config.filing_status,
+        tcja_sunset=config.tcja_sunset,
+        sim_year=sim_year,
+        inflation_rate=config.inflation / 100,
+        state_rate=state_rate,
+    )
+
+    cumulative_target = projected["total"] * (quarter / 4.0)
+    payment = max(cumulative_target - state.quarterly_tax_paid_ytd, 0)
+
+    if payment > 0:
+        _pay_tax_amount(state, config, payment, sim_year)
+        state.quarterly_tax_paid_ytd += payment
+        state.total_taxes_paid += payment
+
+
 def _year_boundary_tax(state: CitadelState, config: SimConfig,
                        sim_year: int, ppy: int) -> None:
     """Compute and pay annual tax at year boundary. Mutates state."""

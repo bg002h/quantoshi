@@ -6513,3 +6513,55 @@ class TestQuarterlyTaxPayments:
         _pay_tax_amount(state, cfg, amount=30_000, sim_year=2031)
         assert state.cash == 0
         assert state.investments[0] < 100_000
+
+    def test_quarterly_payment_annualizes_ytd(self):
+        """Q1 payment should be ~25% of annualized tax projection."""
+        from engines.citadel import (SimConfig, CitadelState,
+                                      _quarterly_estimated_payment)
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            cash=500_000, reserves=[0, 0, 0], investments=[0, 0],
+            td_cash=0, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            invest_cost_basis=[0, 0],
+            tax_year_accum=TaxYearAccumulator(other_income=50_000),
+            quarterly_tax_paid_ytd=0,
+        )
+        cfg = SimConfig(tax_enabled=True, state_code="CA",
+                        filing_status="single", inflation=4.0)
+        _quarterly_estimated_payment(state, cfg, quarter=1, sim_year=2031)
+        assert state.quarterly_tax_paid_ytd > 0
+        assert state.cash < 500_000
+
+    def test_quarterly_payment_cumulative_tracking(self):
+        """Q2 payment accounts for Q1 already paid."""
+        from engines.citadel import (SimConfig, CitadelState,
+                                      _quarterly_estimated_payment)
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            cash=500_000, reserves=[0, 0, 0], investments=[0, 0],
+            td_cash=0, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            invest_cost_basis=[0, 0],
+            tax_year_accum=TaxYearAccumulator(other_income=100_000),
+            quarterly_tax_paid_ytd=10_000,
+        )
+        cfg = SimConfig(tax_enabled=True, state_code="CA",
+                        filing_status="single", inflation=4.0)
+        _quarterly_estimated_payment(state, cfg, quarter=2, sim_year=2031)
+        assert state.quarterly_tax_paid_ytd > 10_000
+
+    def test_quarterly_no_payment_if_overpaid(self):
+        """If already overpaid relative to cumulative target, pay $0."""
+        from engines.citadel import (SimConfig, CitadelState,
+                                      _quarterly_estimated_payment)
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            cash=500_000, reserves=[0, 0, 0], investments=[0, 0],
+            td_cash=0, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            invest_cost_basis=[0, 0],
+            tax_year_accum=TaxYearAccumulator(other_income=10_000),
+            quarterly_tax_paid_ytd=100_000,
+        )
+        cfg = SimConfig(tax_enabled=True, state_code="TX",
+                        filing_status="single", inflation=4.0)
+        _quarterly_estimated_payment(state, cfg, quarter=2, sim_year=2031)
+        assert state.cash == 500_000  # no payment drawn

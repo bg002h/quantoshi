@@ -6,7 +6,7 @@ from dash import dcc, html, dash_table
 import dash_bootstrap_components as dbc
 
 import _app_ctx
-from layout.common import _tab_hints, _ctrl_card, _lbl
+from layout.common import _tab_hints, _ctrl_card, _section_card, _lbl
 from tab_defaults import STACK
 
 
@@ -47,8 +47,7 @@ def _stack_tracker_tab():
 
             # ── controls ─────────────────────────────────────────────────────
             dbc.Col([
-                _ctrl_card(
-                    html.H6("Add Lot", className="mb-2"),
+                _section_card("Add Lot",
                     _lbl("Date"), dbc.Input(id="lot-date", type="date",
                         value=str(pd.Timestamp.today().date()), size="sm"),
                     _lbl("BTC amount"),
@@ -69,8 +68,7 @@ def _stack_tracker_tab():
                     dbc.Button("Clear all", id="lot-clear-btn",
                                color="warning", size="sm", className="w-100"),
                 ),
-                _ctrl_card(
-                    html.H6("Export / Import", className="mb-2"),
+                _section_card("Export / Import",
                     dbc.Button("\u2b07 Export JSON", id="lots-export-btn",
                                color="secondary", size="sm", className="w-100 mb-2"),
                     html.Hr(className="my-1"),

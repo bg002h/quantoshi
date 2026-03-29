@@ -243,25 +243,26 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                        className="w-100 mt-1",
                        style=_STYLE_HIDDEN),
             html.Hr(className="my-2"),
-            html.Div("Saved Simulation", className="ctrl-section-header"),
-            html.Div(id=f"{prefix}-mc-status",
-                     style={"fontSize": "10px", "color": "#555", "marginBottom": "4px"}),
-            dbc.Row([
-                dbc.Col(
-                    dbc.Button("\u2b07 Save", id=f"{prefix}-mc-dl-btn",
-                               size="sm", color="secondary", className="w-100"),
-                    width=6),
-                dbc.Col(
-                    dcc.Upload(
-                        id=f"{prefix}-mc-upload",
-                        children=dbc.Button("\u2b06 Load", size="sm",
-                                            color="secondary", className="w-100"),
-                        accept=".json", multiple=False,
-                    ),
-                    width=6),
-            ], className="g-1"),
-            html.Div(id=f"{prefix}-mc-upload-status", className="mt-1",
-                     style={"fontSize": "10px"}),
+            _section_card("Saved Simulation",
+                html.Div(id=f"{prefix}-mc-status",
+                         style={"fontSize": "10px", "color": "#555", "marginBottom": "4px"}),
+                dbc.Row([
+                    dbc.Col(
+                        dbc.Button("\u2b07 Save", id=f"{prefix}-mc-dl-btn",
+                                   size="sm", color="secondary", className="w-100"),
+                        width=6),
+                    dbc.Col(
+                        dcc.Upload(
+                            id=f"{prefix}-mc-upload",
+                            children=dbc.Button("\u2b06 Load", size="sm",
+                                                color="secondary", className="w-100"),
+                            accept=".json", multiple=False,
+                        ),
+                        width=6),
+                ], className="g-1"),
+                html.Div(id=f"{prefix}-mc-upload-status", className="mt-1",
+                         style={"fontSize": "10px"}),
+            ),
         ]),
     ),
     ])

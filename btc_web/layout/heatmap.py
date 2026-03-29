@@ -9,6 +9,7 @@ import _app_ctx
 from layout.common import (_tab_hints, _section_card, _lbl, _row, _export_row,
                             _STYLE_HIDDEN, _STYLE_HINT, _STYLE_GRAPH_H,
                             _STYLE_COLOR_H, _BTC_ORANGE,
+                            _CB_MARGIN, _Q_HINT_BASE,
                             _q_options)
 from layout.mc_controls import _mc_controls
 from tab_defaults import HEATMAP
@@ -20,13 +21,13 @@ def _heatmap_controls():
         _tab_hints("heatmap"),
         # ── Projection Quantiles ──────────────────────────────────────
         _section_card("Projection Quantiles",
-            html.Small("Select quantiles to follow.",
+            html.Small(_Q_HINT_BASE,
                 style=_STYLE_HINT),
-            html.Small("Select exit quantiles for CAGR projection columns.",
+            html.Small("Select quantiles for CAGR projection columns.",
                 style=_STYLE_HINT),
             dcc.Checklist(id="hm-exit-qs", options=_q_options(),
                           value=_app_ctx._DEF_QS, className="q-panel-grid",
-                          inputStyle={"marginRight":"4px"}),
+                          inputStyle=_CB_MARGIN),
             html.Hr(className="my-1"),
             _lbl("Entry year"),
             dcc.Slider(id="hm-entry-yr", min=2010, max=2039,
@@ -42,7 +43,7 @@ def _heatmap_controls():
                       min=0, step=0.001, size="sm", debounce=True),
             dcc.Checklist(id="hm-use-lots",
                           options=[{"label": " Use Stack Tracker lots", "value": "yes"}],
-                          value=[], inputStyle={"marginRight": "5px"}),
+                          value=[], inputStyle=_CB_MARGIN),
         ),
         _mc_controls("hm", show_amount=True, show_inflation=True,
                      show_stack=True, show_mc_entry_q=True, default_entry_q=10,
@@ -60,7 +61,7 @@ def _heatmap_controls():
                                     {"label":" Data-Scaled","value":1},
                                     {"label":" Diverging","value":2}],
                            value=HEATMAP["color_mode"], labelStyle={"display":"block"},
-                           inputStyle={"marginRight":"5px"}),
+                           inputStyle=_CB_MARGIN),
             _lbl("Break 1 (CAGR %, integer)"),
             dbc.Input(id="hm-b1", type="number", value=HEATMAP["b1"],
                       step=1, size="sm"),
@@ -113,7 +114,7 @@ def _heatmap_controls():
                           options=[{"label":" Show colorbar","value":"colorbar"},
                                    {"label":" Enable chart zoom","value":"chart_zoom"}],
                           value=["colorbar"], labelStyle={"display":"block"},
-                          inputStyle={"marginRight":"5px"}),
+                          inputStyle=_CB_MARGIN),
         ),
         # Hidden placeholder — hm-model-show is referenced by callbacks/snapshot
         # but no longer user-visible (pill bar replaces it on tab 2)

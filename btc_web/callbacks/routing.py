@@ -150,6 +150,13 @@ _TAB_CONTROLS["citadel"].update({
     "cp-mc-bins", "cp-mc-regime", "cp-mc-sims", "cp-mc-window",
     "cp-mc-advanced", "cp-mc-model-src",
 })
+_TAB_CONTROLS["citadel"].update({
+    "cp-tax-toggle", "cp-tax-config",
+    "cp-td-btc", "cp-td-cash", "cp-td-res-short", "cp-td-res-med", "cp-td-res-long",
+    "cp-td-inv-eq", "cp-td-inv-bd",
+    "cp-tf-btc", "cp-tf-cash", "cp-tf-res-short", "cp-tf-res-med", "cp-tf-res-long",
+    "cp-tf-inv-eq", "cp-tf-inv-bd",
+})
 
 
 # ══════════════════════════════════════════════════════════════════════════════

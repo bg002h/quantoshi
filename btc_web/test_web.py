@@ -5273,3 +5273,17 @@ class TestTaxCallbacks:
         assert _state_to_rate("CA") == 13.30
         assert _state_to_rate("TX") == 0.0
         assert _state_to_rate("NY") == 10.90
+
+
+class TestTaxSnapshot:
+    def test_tax_controls_in_snapshot(self):
+        from snapshot import _SNAPSHOT_CONTROLS
+        ids = [c[0] for c in _SNAPSHOT_CONTROLS]
+        assert "cp-tax-toggle" in ids
+        assert "cp-tax-config" in ids
+        assert "cp-td-btc" in ids
+        assert "cp-tf-btc" in ids
+
+    def test_tax_checklist_options(self):
+        from snapshot import _CHECKLIST_OPTIONS
+        assert "cp-tax-toggle" in _CHECKLIST_OPTIONS

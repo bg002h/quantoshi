@@ -239,6 +239,23 @@ _SNAPSHOT_CONTROLS = [
     ("cp-mc-window",        "value"),
     ("cp-mc-advanced",      "value"),
     ("cp-mc-model-src",     "value"),
+    # ── Citadel Tax controls ──
+    ("cp-tax-toggle",       "value"),
+    ("cp-tax-config",       "data"),
+    ("cp-td-btc",           "value"),
+    ("cp-td-cash",          "value"),
+    ("cp-td-res-short",     "value"),
+    ("cp-td-res-med",       "value"),
+    ("cp-td-res-long",      "value"),
+    ("cp-td-inv-eq",        "value"),
+    ("cp-td-inv-bd",        "value"),
+    ("cp-tf-btc",           "value"),
+    ("cp-tf-cash",          "value"),
+    ("cp-tf-res-short",     "value"),
+    ("cp-tf-res-med",       "value"),
+    ("cp-tf-res-long",      "value"),
+    ("cp-tf-inv-eq",        "value"),
+    ("cp-tf-inv-bd",        "value"),
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)
@@ -309,6 +326,8 @@ _CHECKLIST_OPTIONS = {
     "cp-mc-enable":     ["yes"],
     "cp-mc-advanced":   ["yes"],
     "cp-mc-regime":     [0, 1, 2, 3, 4],
+    # Citadel Tax checklists
+    "cp-tax-toggle":    [True],
 }
 
 

@@ -1270,10 +1270,6 @@ body {
 */
 .rc-slider {
     touch-action: pan-y;
-    pointer-events: none;
-}
-.rc-slider-handle {
-    pointer-events: auto;
 }
 
 /* ── Input accepted flash ───────────────────────────────────────────────────

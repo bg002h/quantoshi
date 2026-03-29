@@ -329,6 +329,22 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
             line=dict(color=_C_SPEND, width=_QR_LINE_WIDTH * 0.7, dash="dot"),
         ))
 
+        # TD/TF wrapper traces (only when tax is on)
+        if p.get("tax_enabled") and result.td_total is not None:
+            td_y = np.median(result.td_total, axis=0)
+            traces.append(go.Scatter(
+                x=list(ts), y=list(td_y), mode="lines",
+                name=f"Tax-Deferred  \u2192  {fmt_price(float(td_y[-1]))}",
+                line=dict(color="#8B4513", width=_QR_LINE_WIDTH, dash="dashdot"),
+            ))
+        if p.get("tax_enabled") and result.tf_total is not None:
+            tf_y = np.median(result.tf_total, axis=0)
+            traces.append(go.Scatter(
+                x=list(ts), y=list(tf_y), mode="lines",
+                name=f"Tax-Free (Roth)  \u2192  {fmt_price(float(tf_y[-1]))}",
+                line=dict(color="#228B22", width=_QR_LINE_WIDTH, dash="dashdot"),
+            ))
+
     elif disp_mode == "btc":
         btc_stack = result.btc_holdings[0]  # sim 0
         traces.append(go.Scatter(

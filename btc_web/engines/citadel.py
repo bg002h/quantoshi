@@ -44,6 +44,9 @@ class SimConfig:
         {"label": "Equities", "initial": 200_000.0, "return_rate": 10.0, "volatility": 16.0},
         {"label": "Bonds", "initial": 100_000.0, "return_rate": 5.0, "volatility": 7.0},
     ])
+    # Cost basis for taxable investments (what user originally paid).
+    # None = use initial value (no prior gains). List of floats, one per invest_bin.
+    invest_cost_basis_initial: list[float] | None = None
 
     # Spending
     monthly_spend: float = 5_000.0
@@ -600,12 +603,17 @@ def _initial_state(config: SimConfig, model: "PriceModel | None" = None) -> Cita
         q = config.selected_qs[len(config.selected_qs) // 2]
         btc_price = float(model.price_at(q, max(t0, 0.5)))
     inv_initials = [ib["initial"] for ib in config.invest_bins]
+    # Cost basis: user-specified if provided, else same as initial value (no prior gains)
+    if config.invest_cost_basis_initial is not None:
+        inv_basis = list(config.invest_cost_basis_initial)
+    else:
+        inv_basis = list(inv_initials)
     state = CitadelState(
         t=t0, btc_stack=config.start_stack, btc_price=btc_price,
         btc_cost_basis=btc_price, cash=config.cash_initial,
         reserves=[rb["initial"] for rb in config.reserve_bins],
         investments=list(inv_initials),
-        invest_cost_basis=list(inv_initials),  # cost basis = initial value at start
+        invest_cost_basis=inv_basis,
     )
     if config.scf_enabled and config.scf_amount > 0 and btc_price > 0:
         btc_bought = config.scf_amount / btc_price

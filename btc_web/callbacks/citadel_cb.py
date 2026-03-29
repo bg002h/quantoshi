@@ -118,9 +118,11 @@ def show_asset_model_info(model):
     State("cp-res-long-rate",    "value"),
     State("cp-res-long-vol",     "value"),
     State("cp-inv-eq-init",      "value"),
+    State("cp-inv-eq-basis",     "value"),
     State("cp-inv-eq-rate",      "value"),
     State("cp-inv-eq-vol",       "value"),
     State("cp-inv-bd-init",      "value"),
+    State("cp-inv-bd-basis",     "value"),
     State("cp-inv-bd-rate",      "value"),
     State("cp-inv-bd-vol",       "value"),
     # Spending
@@ -214,8 +216,8 @@ def update_citadel(
     res_short_init, res_short_rate, res_short_vol,
     res_med_init, res_med_rate, res_med_vol,
     res_long_init, res_long_rate, res_long_vol,
-    inv_eq_init, inv_eq_rate, inv_eq_vol,
-    inv_bd_init, inv_bd_rate, inv_bd_vol,
+    inv_eq_init, inv_eq_basis, inv_eq_rate, inv_eq_vol,
+    inv_bd_init, inv_bd_basis, inv_bd_rate, inv_bd_vol,
     # Spending
     spend, infl, spend_growth,
     # Enable toggles
@@ -321,9 +323,11 @@ def update_citadel(
         res_long_vol    = _cf(res_long_vol, CITADEL["res_long_vol"], lo=0),
         # Investments
         inv_eq_init     = _cf(inv_eq_init, CITADEL["inv_eq_init"], lo=0),
+        inv_eq_basis    = _cf(inv_eq_basis, CITADEL["inv_eq_basis"], lo=0),
         inv_eq_rate     = _cf(inv_eq_rate, CITADEL["inv_eq_rate"], lo=0),
         inv_eq_vol      = _cf(inv_eq_vol, CITADEL["inv_eq_vol"], lo=0),
         inv_bd_init     = _cf(inv_bd_init, CITADEL["inv_bd_init"], lo=0),
+        inv_bd_basis    = _cf(inv_bd_basis, CITADEL["inv_bd_basis"], lo=0),
         inv_bd_rate     = _cf(inv_bd_rate, CITADEL["inv_bd_rate"], lo=0),
         inv_bd_vol      = _cf(inv_bd_vol, CITADEL["inv_bd_vol"], lo=0),
         # Spending

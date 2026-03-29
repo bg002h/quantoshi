@@ -105,16 +105,23 @@ def _build_sim_config(p: dict) -> SimConfig:
     ]
 
     # Investment bins
+    eq_init = float(p.get("inv_eq_init", CITADEL["inv_eq_init"]))
+    bd_init = float(p.get("inv_bd_init", CITADEL["inv_bd_init"]))
     invest_bins = [
         {"label": "Equities",
-         "initial": float(p.get("inv_eq_init", CITADEL["inv_eq_init"])),
+         "initial": eq_init,
          "return_rate": float(p.get("inv_eq_rate", CITADEL["inv_eq_rate"])),
          "volatility": float(p.get("inv_eq_vol", CITADEL["inv_eq_vol"]))},
         {"label": "Bonds",
-         "initial": float(p.get("inv_bd_init", CITADEL["inv_bd_init"])),
+         "initial": bd_init,
          "return_rate": float(p.get("inv_bd_rate", CITADEL["inv_bd_rate"])),
          "volatility": float(p.get("inv_bd_vol", CITADEL["inv_bd_vol"]))},
     ]
+
+    # Investment cost basis (what user originally paid; defaults to initial value)
+    eq_basis = float(p.get("inv_eq_basis", eq_init))
+    bd_basis = float(p.get("inv_bd_basis", bd_init))
+    invest_cost_basis = [eq_basis, bd_basis]
 
     # High-Q trigger
     high_q_split = {
@@ -156,6 +163,7 @@ def _build_sim_config(p: dict) -> SimConfig:
         cash_rate=float(p.get("cash_rate", CITADEL["cash_rate"])),
         reserve_bins=reserve_bins,
         invest_bins=invest_bins,
+        invest_cost_basis_initial=invest_cost_basis,
         monthly_spend=float(p.get("monthly_spend", CITADEL["monthly_spend"])),
         inflation=float(p.get("inflation", CITADEL["inflation"])),
         spend_growth=float(p.get("spend_growth", CITADEL["spend_growth"])),

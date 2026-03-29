@@ -3,6 +3,7 @@
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 
+from layout.common import _CB_MARGIN
 from engines.tax_data import STATE_TAX_RATES
 
 # ── State dropdown options (sorted by name) ─────────────────────────────────
@@ -171,7 +172,7 @@ def tax_config_modal():
                             options=[{"label": "Single", "value": "single"},
                                      {"label": "Married Filing Jointly", "value": "mfj"}],
                             value="single", inline=True,
-                            inputStyle={"marginRight": "4px"},
+                            inputStyle=_CB_MARGIN,
                             labelStyle={"marginRight": "12px"}),
                     ], md=6),
                     dbc.Col([
@@ -180,7 +181,7 @@ def tax_config_modal():
                             options=[{"label": "Current law (TCJA)", "value": "tcja"},
                                      {"label": "Scheduled sunset", "value": "sunset"}],
                             value="tcja", inline=True,
-                            inputStyle={"marginRight": "4px"},
+                            inputStyle=_CB_MARGIN,
                             labelStyle={"marginRight": "12px"}),
                     ], md=6),
                 ], className="mb-2"),
@@ -207,7 +208,7 @@ def tax_config_modal():
                             options=[{"label": "FIFO (oldest first)", "value": "fifo"},
                                      {"label": "LIFO (newest first)", "value": "lifo"}],
                             value="fifo", inline=True,
-                            inputStyle={"marginRight": "4px"},
+                            inputStyle=_CB_MARGIN,
                             labelStyle={"marginRight": "12px"}),
                     ], md=4),
                 ], className="mb-2"),

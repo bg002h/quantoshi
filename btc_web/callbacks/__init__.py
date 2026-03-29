@@ -30,5 +30,6 @@ from callbacks.nav import toggle_share_modal
 from callbacks.sc_loan import update_sc_info
 from callbacks.ticker import update_price_ticker
 import callbacks.citadel_cb  # noqa: F401
+import callbacks.citadel_tax_cb  # noqa: F401
 import callbacks.scanner  # noqa: F401
 import callbacks.user_model  # noqa: F401

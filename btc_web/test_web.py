@@ -5230,3 +5230,11 @@ class TestTaxDefaults:
         assert cfg.birth_year == 1985
         assert cfg.td_btc_stack == 0.5
         assert cfg.tf_cash_initial == 100_000
+
+
+class TestTaxCallbacks:
+    def test_state_to_rate(self):
+        from callbacks.citadel_tax_cb import _state_to_rate
+        assert _state_to_rate("CA") == 13.30
+        assert _state_to_rate("TX") == 0.0
+        assert _state_to_rate("NY") == 10.90

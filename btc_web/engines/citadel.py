@@ -181,6 +181,7 @@ class CitadelState:
     total_taxes_paid: float = 0.0
     annual_tax_history: list = field(default_factory=list)  # list[dict]
     quarterly_tax_paid_ytd: float = 0.0       # cumulative estimated payments this tax year
+    sim_date: str = ""                        # ISO date string, set each period in step()
 
     # Tax-Deferred wrapper balances
     td_btc_stack: float = 0.0
@@ -625,17 +626,24 @@ def _initial_state(config: SimConfig, model: "PriceModel | None" = None) -> Cita
         if total_btc > 0:
             state.btc_cost_basis = (config.start_stack * btc_price + config.scf_amount) / total_btc
 
-    # Tax initialization
-    if config.tax_enabled:
-        from .tax_lots import seed_lots, TaxLot
-        from .tax import TaxYearAccumulator
+    # Always seed lots (even when tax_enabled=False) — forward-compatible
+    from .tax_lots import seed_lots, TaxLot
+    start_date = f"{config.start_yr}-01-01"
+    state.tax_lots = seed_lots(
+        [], start_stack=config.start_stack, start_price=btc_price,
+        start_date=start_date,
+    )
+    # SCF initial purchase gets its own lot
+    if config.scf_enabled and config.scf_amount > 0 and btc_price > 0:
+        scf_btc = config.scf_amount / btc_price
+        state.tax_lots.append(TaxLot(
+            date=start_date, btc=scf_btc,
+            cost_basis=btc_price, source="scf",
+        ))
 
-        # Seed tax lots for taxable BTC
-        start_date = f"{config.start_yr}-01-01"
-        state.tax_lots = seed_lots(
-            [], start_stack=config.start_stack, start_price=btc_price,
-            start_date=start_date,
-        )
+    # Tax-specific initialization (accumulator, wrappers)
+    if config.tax_enabled:
+        from .tax import TaxYearAccumulator
 
         # TD/TF wrapper balances from config
         state.td_btc_stack = config.td_btc_stack
@@ -1176,6 +1184,13 @@ def step(state: CitadelState, config: SimConfig,
     dt = 1.0 / ppy
     t_before = new.t  # save pre-increment time for quantile lookup
     new.t += dt
+
+    # Set sim_date for this period (used by tracking helpers)
+    _date_years = new.period / ppy
+    _date_yr = config.start_yr + int(_date_years)
+    _date_mo = min(max(1, int((_date_years % 1) * 12) + 1), 12)
+    new.sim_date = f"{_date_yr}-{_date_mo:02d}-15"
+
     is_deterministic = (config.n_sims == 1)
 
     # 1. Update BTC price

@@ -6693,3 +6693,38 @@ class TestQuarterlyTaxPayments:
             if total_other > 80_000:
                 assert state.cash >= 80_000 - 100, \
                     f"Period {i+1}: cash {state.cash:.0f} below floor"
+
+
+class TestTaxAccountingHelpers:
+    """Tests for the 3 tracking helpers and related infrastructure."""
+
+    def test_state_has_sim_date(self):
+        from engines.citadel import CitadelState
+        s = CitadelState()
+        assert hasattr(s, "sim_date")
+        assert s.sim_date == ""
+
+    def test_lots_seeded_when_tax_off(self):
+        """Lots should be created even when tax_enabled=False."""
+        from engines.citadel import SimConfig, _initial_state
+        cfg = SimConfig(start_stack=2.0, start_yr=2031, end_yr=2035,
+                        cash_initial=100_000, selected_qs=[0.25],
+                        tax_enabled=False)
+        state = _initial_state(cfg, model=_test_model())
+        assert len(state.tax_lots) == 1
+        assert state.tax_lots[0].btc == 2.0
+        assert state.tax_year_accum is None
+
+    def test_scf_purchase_creates_lot(self):
+        """SCF initial BTC purchase must create a separate lot."""
+        from engines.citadel import SimConfig, _initial_state
+        cfg = SimConfig(start_stack=1.0, start_yr=2031, end_yr=2035,
+                        cash_initial=100_000, selected_qs=[0.25],
+                        tax_enabled=False,
+                        scf_enabled=True, scf_amount=50_000)
+        state = _initial_state(cfg, model=_test_model())
+        assert len(state.tax_lots) == 2
+        assert state.tax_lots[0].source == "initial"
+        assert state.tax_lots[1].source == "scf"
+        total_lot_btc = sum(l.btc for l in state.tax_lots)
+        assert abs(total_lot_btc - state.btc_stack) < 1e-8

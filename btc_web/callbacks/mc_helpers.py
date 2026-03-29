@@ -242,7 +242,7 @@ def _mc_finalize(tab: str, fig, mc_result, mc_cached, mc_enable, mc_ok: bool,
 def _mc_status(mc_result, mc_cached, mc_enable):
     """Common MC result → (store_val, status, show_modal) for all tab callbacks."""
     store_val = mc_result if mc_result else dash.no_update
-    if mc_result:
+    if mc_result and "created" in mc_result:
         status = f"Saved: {mc_result['created'][:19]}Z"
     elif mc_cached and bool(mc_enable):
         status = f"Using saved: {mc_cached.get('created', '?')[:19]}Z"

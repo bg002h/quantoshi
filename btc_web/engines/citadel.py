@@ -901,35 +901,50 @@ def _tax_aware_waterfall(state: CitadelState, config: SimConfig,
     # --- 6. (BTC short-term lots already handled in step 4 — sell_lots uses FIFO) ---
 
     # --- 7. Roth cash/reserves/investments (no tax impact) ---
+    _roth_drawn = 0.0
     draw = min(state.tf_cash, remaining)
     state.tf_cash -= draw
+    _roth_drawn += draw
     remaining -= draw
     if remaining <= 0:
+        if state.tax_year_accum is not None:
+            state.tax_year_accum.roth_withdrawals += _roth_drawn
         return 0.0
 
     for i in range(len(state.tf_reserves)):
         draw = min(state.tf_reserves[i], remaining)
         state.tf_reserves[i] -= draw
+        _roth_drawn += draw
         remaining -= draw
         if remaining <= 0:
+            if state.tax_year_accum is not None:
+                state.tax_year_accum.roth_withdrawals += _roth_drawn
             return 0.0
 
     for i in reversed(range(len(state.tf_investments))):
         draw = min(state.tf_investments[i], remaining)
         state.tf_investments[i] -= draw
+        _roth_drawn += draw
         remaining -= draw
         if remaining <= 0:
+            if state.tax_year_accum is not None:
+                state.tax_year_accum.roth_withdrawals += _roth_drawn
             return 0.0
 
     # --- 8. Roth BTC (absolute last, no tax) ---
     if state.tf_btc_stack > 0 and state.btc_price > 0:
         btc_val = state.tf_btc_stack * state.btc_price
         if btc_val >= remaining:
+            _roth_drawn += remaining
             state.tf_btc_stack -= remaining / state.btc_price
             remaining = 0.0
         else:
+            _roth_drawn += btc_val
             state.tf_btc_stack = 0.0
             remaining -= btc_val
+
+    if state.tax_year_accum is not None:
+        state.tax_year_accum.roth_withdrawals += _roth_drawn
 
     return max(remaining, 0.0)
 

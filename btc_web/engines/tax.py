@@ -246,17 +246,14 @@ def compute_annual_tax(
     # --- 5. Federal ordinary tax ---
     federal_ordinary = apply_progressive_brackets(ordinary_taxable, ord_brackets)
 
-    # --- 6. Federal LTCG tax (stacking) ---
-    federal_ltcg = compute_ltcg_tax(
-        taxable_ltcg, stacking_base=ordinary_taxable, filing_status=filing_status
+    # --- 6. Federal LTCG tax (stacking, inflation-indexed brackets) ---
+    # LTCG brackets start where ordinary income left off (stacking rule).
+    # Always use inflated brackets (factor=1.0 when years_from_base=0).
+    total_ltcg = apply_progressive_brackets(
+        ordinary_taxable + taxable_ltcg, ltcg_brackets
     )
-    # Use inflated LTCG brackets for stacking
-    if years_from_base > 0:
-        total_ltcg = apply_progressive_brackets(
-            ordinary_taxable + taxable_ltcg, ltcg_brackets
-        )
-        base_ltcg = apply_progressive_brackets(ordinary_taxable, ltcg_brackets)
-        federal_ltcg = total_ltcg - base_ltcg
+    base_ltcg = apply_progressive_brackets(ordinary_taxable, ltcg_brackets)
+    federal_ltcg = total_ltcg - base_ltcg
 
     # --- 7. NIIT ---
     nii = max(cap.net_st, 0) + max(cap.net_lt, 0) + total_interest

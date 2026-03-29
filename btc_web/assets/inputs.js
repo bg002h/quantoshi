@@ -57,10 +57,6 @@ document.addEventListener("keydown", function (e) {
 })();
 
 /* ── Slider scroll guard ───────────────────────────────────────────────────
-   Two-layer defense against accidental slider activation on mobile:
-   1. CSS: .rc-slider { touch-action: pan-y } — browser handles vertical
-      scrolling natively through slider areas.
-   2. JS:  slider_guard.js — capture-phase pointerdown blocks non-thumb
-      touches from reaching the Radix UI onPointerDown handler, which
-      otherwise calls setPointerCapture + preventDefault on any touch.
+   Pure CSS solution in style.css — see ".dash-slider-root" rules.
+   touch-action: pan-y + ::before overlay on touch devices.
 */

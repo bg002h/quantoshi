@@ -192,8 +192,8 @@ body {
     filter: brightness(1.15);
 }
 
-/* Compact sliders */
-.rc-slider { margin-top: 4px; }
+/* Compact sliders (Dash 4 uses Radix, class is dash-slider-root not rc-slider) */
+.dash-slider-root { margin-top: 4px; }
 
 /* Compact checklists */
 .form-check-label { font-size: 12px; }
@@ -1265,11 +1265,34 @@ body {
 }
 
 /* ── Slider scroll guard ─────────────────────────────────────────────────────
-   pan-y lets the browser handle vertical scrolling natively through slider
-   areas.  Only deliberately horizontal movements activate the slider.
+   Two-layer defense against accidental slider activation on touch devices:
+
+   1. touch-action: pan-y — browser handles vertical scrolling natively.
+   2. ::before overlay — invisible pseudo-element covers the slider track at
+      z-index 1.  Thumb sits at z-index 2 (above overlay).  Touches on the
+      track hit the overlay → event target becomes the root div, NOT the
+      Radix inner span that has onPointerDown + setPointerCapture.  Result:
+      track taps do nothing, only grabbing the thumb activates the slider.
+
+   Scoped to pointer:coarse (touch/pen) — desktop mouse clicks unaffected.
 */
-.rc-slider {
+.dash-slider-root {
     touch-action: pan-y;
+}
+@media (pointer: coarse) {
+    .dash-slider-root {
+        position: relative;
+    }
+    .dash-slider-root::before {
+        content: '';
+        position: absolute;
+        top: -12px; left: 0; right: 0; bottom: -12px;
+        z-index: 1;
+    }
+    .dash-slider-thumb {
+        position: relative;
+        z-index: 2;
+    }
 }
 
 /* ── Input accepted flash ───────────────────────────────────────────────────

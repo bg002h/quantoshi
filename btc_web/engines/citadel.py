@@ -497,20 +497,23 @@ def _source_from_accounts(state: CitadelState, amount: float, split: dict,
 
     return total_sourced
 
-def _execute_sell_btc(state: CitadelState, rate_pct: float, split: dict) -> dict:
+def _execute_sell_btc(state: CitadelState, config: SimConfig,
+                      rate_pct: float, split: dict) -> dict:
     """Sell rate_pct% of BTC stack, distribute proceeds via split."""
     btc_to_sell = state.btc_stack * (rate_pct / 100.0)
     if btc_to_sell <= 0 or state.btc_price <= 0:
         return {}
-    proceeds = btc_to_sell * state.btc_price
-    state.btc_stack -= btc_to_sell
+    result = _sell_btc_tracked(state, config, btc_to_sell)
+    if result.btc_sold <= 0:
+        return {}
+    proceeds = result.btc_sold * state.btc_price
     _distribute_to_accounts(state, proceeds, split)
-    return {"action": "sell_btc", "btc_sold": btc_to_sell, "proceeds": proceeds}
+    return {"action": "sell_btc", "btc_sold": result.btc_sold, "proceeds": proceeds}
 
-def _execute_buy_btc(state: CitadelState, rate_pct: float, split: dict,
-                     config: "SimConfig | None" = None) -> dict:
+def _execute_buy_btc(state: CitadelState, config: SimConfig,
+                     rate_pct: float, split: dict) -> dict:
     """Source funds from accounts via split, buy BTC.
-    Respects floor rules if config provided — won't draw accounts below floors."""
+    Respects floor rules — won't draw accounts below floors."""
     total_dollar = state.cash + sum(state.reserves) + sum(state.investments)
     target = total_dollar * (rate_pct / 100.0)
     if target <= 0 or state.btc_price <= 0:
@@ -519,7 +522,7 @@ def _execute_buy_btc(state: CitadelState, rate_pct: float, split: dict,
     if sourced <= 0:
         return {}
     btc_bought = sourced / state.btc_price
-    state.btc_stack += btc_bought
+    _buy_btc_tracked(state, config, btc_bought, source="rebal_buy")
     return {"action": "buy_btc", "btc_bought": btc_bought, "cost": sourced}
 
 def _evaluate_rebalancing(state: CitadelState, config: SimConfig,
@@ -532,9 +535,9 @@ def _evaluate_rebalancing(state: CitadelState, config: SimConfig,
     if state.grad_active:
         if state.grad_remaining > 0:
             if state.grad_direction == "sell_btc":
-                evt = _execute_sell_btc(state, state.grad_rate, state.grad_split)
+                evt = _execute_sell_btc(state, config, state.grad_rate, state.grad_split)
             else:
-                evt = _execute_buy_btc(state, state.grad_rate, state.grad_split, config=config)
+                evt = _execute_buy_btc(state, config, state.grad_rate, state.grad_split)
             state.grad_remaining -= 1
             if evt:
                 evt["type"] = "gradual_continue"
@@ -547,7 +550,7 @@ def _evaluate_rebalancing(state: CitadelState, config: SimConfig,
         action = config.high_q_action
         split = action.get("split", {})
         if action["mode"] == "lump" and state.rebal_cooldown <= 0:
-            evt = _execute_sell_btc(state, action["rate"], split)
+            evt = _execute_sell_btc(state, config, action["rate"], split)
             if evt:
                 evt["type"] = "lump_sell"
                 state.rebal_event = evt
@@ -558,7 +561,7 @@ def _evaluate_rebalancing(state: CitadelState, config: SimConfig,
             state.grad_rate = action["rate"]
             state.grad_direction = "sell_btc"
             state.grad_split = split
-            evt = _execute_sell_btc(state, state.grad_rate, split)
+            evt = _execute_sell_btc(state, config, state.grad_rate, split)
             state.grad_remaining -= 1
             if evt:
                 evt["type"] = "gradual_start"
@@ -569,7 +572,7 @@ def _evaluate_rebalancing(state: CitadelState, config: SimConfig,
         action = config.low_q_action
         split = action.get("split", {})
         if action["mode"] == "lump" and state.rebal_cooldown <= 0:
-            evt = _execute_buy_btc(state, action["rate"], split, config=config)
+            evt = _execute_buy_btc(state, config, action["rate"], split)
             if evt:
                 evt["type"] = "lump_buy"
                 state.rebal_event = evt
@@ -580,7 +583,7 @@ def _evaluate_rebalancing(state: CitadelState, config: SimConfig,
             state.grad_rate = action["rate"]
             state.grad_direction = "buy_btc"
             state.grad_split = split
-            evt = _execute_buy_btc(state, state.grad_rate, split, config=config)
+            evt = _execute_buy_btc(state, config, state.grad_rate, split)
             state.grad_remaining -= 1
             if evt:
                 evt["type"] = "gradual_start"
@@ -657,9 +660,8 @@ def _scf_check_repay(state: CitadelState, config: SimConfig,
     if btc_annual_return <= threshold:
         if state.btc_price > 0 and state.btc_stack > 0:
             btc_needed = state.scf_outstanding / state.btc_price
-            btc_sold = min(state.btc_stack, btc_needed)
-            repaid = btc_sold * state.btc_price
-            state.btc_stack -= btc_sold
+            result = _sell_btc_tracked(state, config, btc_needed)
+            repaid = result.btc_sold * state.btc_price
             state.scf_outstanding -= repaid
         if state.scf_outstanding <= 0.01:
             state.scf_outstanding = 0

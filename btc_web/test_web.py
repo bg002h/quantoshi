@@ -6264,14 +6264,14 @@ class TestBtcSaleDistribution:
 
     def test_sell_distributes_per_split(self):
         """Proceeds from BTC sale go to accounts per configured split."""
-        from engines.citadel import CitadelState, _execute_sell_btc
+        from engines.citadel import CitadelState, SimConfig, _execute_sell_btc
         state = CitadelState(
-            btc_stack=10.0, btc_price=50_000,
+            btc_stack=10.0, btc_price=50_000, sim_date="2035-01-15",
             cash=0, reserves=[0, 0, 0], investments=[0, 0],
         )
         split = {"cash": 0.20, "res_short": 0.10, "res_med": 0.10,
                  "res_long": 0.10, "inv_eq": 0.30, "inv_bd": 0.20}
-        evt = _execute_sell_btc(state, rate_pct=10.0, split=split)
+        evt = _execute_sell_btc(state, SimConfig(cost_basis_method="fifo"), rate_pct=10.0, split=split)
         # Sold 10% of 10 BTC = 1 BTC = $50,000
         assert evt["btc_sold"] == pytest.approx(1.0)
         assert evt["proceeds"] == pytest.approx(50_000)
@@ -6284,9 +6284,9 @@ class TestBtcSaleDistribution:
 
     def test_sell_zero_btc_no_event(self):
         """Selling from empty stack produces no event."""
-        from engines.citadel import CitadelState, _execute_sell_btc
-        state = CitadelState(btc_stack=0, btc_price=50_000)
-        evt = _execute_sell_btc(state, rate_pct=10.0, split={"cash": 1.0})
+        from engines.citadel import CitadelState, SimConfig, _execute_sell_btc
+        state = CitadelState(btc_stack=0, btc_price=50_000, sim_date="2035-01-15")
+        evt = _execute_sell_btc(state, SimConfig(cost_basis_method="fifo"), rate_pct=10.0, split={"cash": 1.0})
         assert evt == {}
 
 
@@ -6295,16 +6295,16 @@ class TestBtcPurchaseSourcing:
 
     def test_buy_sources_per_split(self):
         """BTC purchase draws from accounts per configured split."""
-        from engines.citadel import CitadelState, _execute_buy_btc
+        from engines.citadel import CitadelState, SimConfig, _execute_buy_btc
         state = CitadelState(
-            btc_stack=0, btc_price=50_000,
+            btc_stack=0, btc_price=50_000, sim_date="2035-01-15",
             cash=100_000, reserves=[50_000, 50_000, 50_000],
             investments=[200_000, 100_000],
         )
         split = {"cash": 0.10, "inv_eq": 0.50, "inv_bd": 0.40}
         # Total dollar assets = 100k + 150k + 300k = 550k
         # 10% of 550k = 55k target
-        evt = _execute_buy_btc(state, rate_pct=10.0, split=split)
+        evt = _execute_buy_btc(state, SimConfig(), rate_pct=10.0, split=split)
         assert evt["action"] == "buy_btc"
         assert evt["btc_bought"] == pytest.approx(55_000 / 50_000)
         # Cash should lose 10% of 55k = 5,500
@@ -6319,19 +6319,19 @@ class TestBtcPurchaseSourcing:
         from engines.citadel import CitadelState, _execute_buy_btc
         cfg = _bare_config(cash_floor=80_000)
         state = CitadelState(
-            btc_stack=0, btc_price=50_000,
+            btc_stack=0, btc_price=50_000, sim_date="2035-01-15",
             cash=100_000, reserves=[0, 0, 0], investments=[0, 0],
         )
         split = {"cash": 1.0}
         # Total dollars = 100k, 10% = 10k, but floor = 80k, so avail = 20k
-        evt = _execute_buy_btc(state, rate_pct=10.0, split=split, config=cfg)
+        evt = _execute_buy_btc(state, cfg, rate_pct=10.0, split=split)
         assert state.cash >= 80_000 - 1, "Cash floor should be respected"
 
     def test_buy_redistributes_shortfall(self):
         """When one source can't cover its share, shortfall goes to others."""
-        from engines.citadel import CitadelState, _execute_buy_btc
+        from engines.citadel import CitadelState, SimConfig, _execute_buy_btc
         state = CitadelState(
-            btc_stack=0, btc_price=50_000,
+            btc_stack=0, btc_price=50_000, sim_date="2035-01-15",
             cash=1_000,  # very little cash
             reserves=[0, 0, 0],
             investments=[200_000, 200_000],
@@ -6339,7 +6339,7 @@ class TestBtcPurchaseSourcing:
         split = {"cash": 0.50, "inv_eq": 0.25, "inv_bd": 0.25}
         # Total = 401k, 10% = 40.1k
         # Cash wants 50% = 20.05k but only has 1k → shortfall redistributed
-        evt = _execute_buy_btc(state, rate_pct=10.0, split=split)
+        evt = _execute_buy_btc(state, SimConfig(), rate_pct=10.0, split=split)
         assert evt["action"] == "buy_btc"
         assert state.cash < 1_000  # Cash was drawn
         # Investments picked up the slack
@@ -6854,3 +6854,71 @@ class TestTaxAccountingHelpers:
         assert state.invest_cost_basis[1] < 30_000 or state.invest_cost_basis[0] < 60_000
         # LTCG should be recorded
         assert state.tax_year_accum.lt_capital_gains > 0
+
+    def test_rebalancing_sell_btc_lot_tracked(self):
+        """Bug 2: Rebalancing BTC sell must be lot-tracked."""
+        from engines.citadel import CitadelState, SimConfig, _execute_sell_btc
+        from engines.tax import TaxYearAccumulator
+        from engines.tax_lots import TaxLot
+        state = CitadelState(
+            btc_stack=10.0, btc_price=50_000, sim_date="2035-06-15",
+            cash=0, reserves=[0, 0, 0], investments=[0, 0],
+            tax_lots=[TaxLot(date="2031-01-01", btc=10.0,
+                             cost_basis=20_000, source="initial")],
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = SimConfig(cost_basis_method="fifo")
+        evt = _execute_sell_btc(state, cfg, rate_pct=10.0, split={"cash": 1.0})
+        assert evt["btc_sold"] == pytest.approx(1.0)
+        assert state.btc_stack == pytest.approx(9.0)
+        assert state.tax_year_accum.lt_capital_gains == pytest.approx(30_000)
+
+    def test_rebalancing_buy_btc_creates_lot(self):
+        """Bug 3: Rebalancing BTC buy must create a tax lot."""
+        from engines.citadel import CitadelState, SimConfig, _execute_buy_btc
+        state = CitadelState(
+            btc_stack=1.0, btc_price=50_000, sim_date="2033-03-15",
+            cash=100_000, reserves=[0, 0, 0], investments=[0, 0],
+        )
+        cfg = SimConfig(cash_floor=0)
+        evt = _execute_buy_btc(state, cfg, rate_pct=10.0, split={"cash": 1.0})
+        assert evt["action"] == "buy_btc"
+        assert state.btc_stack > 1.0
+        new_lots = [l for l in state.tax_lots if l.source == "rebal_buy"]
+        assert len(new_lots) == 1
+        assert new_lots[0].cost_basis == 50_000
+
+    def test_scf_repay_btc_sale_lot_tracked(self):
+        """Bug 6: SCF perpetual loan repayment must lot-track BTC sale."""
+        from engines.citadel import CitadelState, SimConfig, _scf_check_repay
+        from engines.tax import TaxYearAccumulator
+        from engines.tax_lots import TaxLot
+        state = CitadelState(
+            btc_stack=5.0, btc_price=50_000, sim_date="2040-01-15",
+            scf_outstanding=100_000, scf_active=True,
+            tax_lots=[TaxLot(date="2031-01-01", btc=5.0,
+                             cost_basis=30_000, source="initial")],
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = SimConfig(scf_enabled=True, scf_type="perpetual",
+                        scf_rate=8.0, scf_repay_trigger=1.0,
+                        cost_basis_method="fifo")
+        _scf_check_repay(state, cfg, btc_annual_return=0.0)
+        assert state.btc_stack < 5.0
+        assert state.tax_year_accum.lt_capital_gains > 0
+
+    def test_lot_inventory_matches_stack_after_operations(self):
+        """Lot sum must match btc_stack after sell/buy operations."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _sell_btc_tracked, _buy_btc_tracked)
+        from engines.tax_lots import TaxLot
+        state = CitadelState(
+            btc_stack=5.0, btc_price=60_000, sim_date="2035-06-15",
+            tax_lots=[TaxLot(date="2031-01-01", btc=5.0,
+                             cost_basis=30_000, source="initial")],
+        )
+        cfg = SimConfig(cost_basis_method="fifo")
+        _sell_btc_tracked(state, cfg, 2.0)
+        _buy_btc_tracked(state, cfg, 1.0, source="rebal_buy")
+        lot_sum = sum(l.btc for l in state.tax_lots)
+        assert abs(lot_sum - state.btc_stack) < 1e-8

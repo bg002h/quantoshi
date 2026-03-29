@@ -9,6 +9,7 @@ import _app_ctx
 from tab_defaults import DCA, RETIRE
 from layout.common import (_tab_hints, _section_card, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT,
+                            _CB_MARGIN, _Q_HINT_BASE,
                             _q_options, _model_show_checklist,
                             _shared_settings_card, _year_range_slider,
                             _btc_usd_dropdown, _chart_toggles,
@@ -30,7 +31,7 @@ def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
             html.Small(q_hint, style=_STYLE_HINT),
             dcc.Checklist(id=f"{prefix}-qs", options=_q_options(),
                           value=q_defaults, className="q-panel-grid",
-                          inputStyle={"marginRight":"4px"}),
+                          inputStyle=_CB_MARGIN),
         ),
     ]
     if extra_sections:
@@ -55,7 +56,7 @@ def _stackcelerator_controls():
         html.B("Stack-celerator", style={"fontSize":"12px"}),
         dcc.Checklist(id="dca-sc-enable",
                       options=[{"label":" Activate Saylor Mode","value":"yes"}],
-                      value=[], inputStyle={"marginRight":"5px"}),
+                      value=[], inputStyle=_CB_MARGIN),
         # Why html.Div(display:none) instead of dbc.Collapse: Dash Collapse
         # unmounts its children, destroying component state on toggle.
         html.Div(id="dca-sc-body", style=_STYLE_HIDDEN, children=[
@@ -84,7 +85,7 @@ def _stackcelerator_controls():
                 dbc.Checklist(id="dca-sc-rollover",
                               options=[{"label":" Roll over (refinance; no BTC sold between cycles)",
                                         "value":"yes"}],
-                              value=[], inputStyle={"marginRight":"5px"}),
+                              value=[], inputStyle=_CB_MARGIN),
             ]),
             _lbl("Annual interest rate (0\u2013100% / yr)"),
             dbc.Input(id="dca-sc-rate", type="number",
@@ -112,12 +113,12 @@ def _dca_controls():
     yr_now = pd.Timestamp.today().year
     return _accum_withdraw_controls(
         "dca", "dca",
-        q_hint="Price path drives sat accumulation \u2014 lower quantile = lower price = more sats/period.",
+        q_hint=_Q_HINT_BASE + " Lower prices mean more sats per period.",
         q_defaults=[0.5],
-        shared_kwargs=dict(amount_id="dca-amount", amount_label="Per-period amount ($)",
+        shared_kwargs=dict(amount_id="dca-amount", amount_label="Purchase amount ($)",
                            amount_default=DCA["amount"], infl_default=DCA["inflation"],
                            stack_default=DCA["start_stack"]),
-        mc_kwargs=dict(amount_label="DCA amount per period ($)", amount_default=DCA["amount"],
+        mc_kwargs=dict(amount_label="Purchase amount per period ($)", amount_default=DCA["amount"],
                        show_inflation=True, show_stack=True,
                        show_mc_entry_q=True, default_entry_q=10,
                        shared_controls={"amount", "infl", "freq", "stack"}),
@@ -135,12 +136,12 @@ def _dca_tab():
 def _retire_controls():
     return _accum_withdraw_controls(
         "ret", "retire",
-        q_hint="Lower quantile = lower price = faster depletion \u2014 worst-case planning.",
+        q_hint=_Q_HINT_BASE + " Lower prices mean faster depletion.",
         q_defaults=[0.01, 0.10, 0.25],
-        shared_kwargs=dict(amount_id="ret-wd", amount_label="Withdrawal/period ($)",
+        shared_kwargs=dict(amount_id="ret-wd", amount_label="Withdrawal amount ($)",
                            amount_default=RETIRE["wd_amount"], infl_default=RETIRE["inflation"],
                            stack_default=RETIRE["start_stack"]),
-        mc_kwargs=dict(amount_label="Withdrawal per period ($)", amount_default=RETIRE["wd_amount"],
+        mc_kwargs=dict(amount_label="Withdrawal amount per period ($)", amount_default=RETIRE["wd_amount"],
                        show_inflation=True, show_stack=True, default_entry_q=10,
                        start_yr_label="Retirement start year",
                        shared_controls={"amount", "infl", "freq", "stack"}),

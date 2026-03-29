@@ -196,6 +196,11 @@ def show_asset_model_info(model):
     State("cp-mc-unblocked",     "data"),
     State("cp-mc-rendered-key",  "data"),
     prevent_initial_call=True,
+    background=True,
+    running=[
+        (Output("cp-run-btn", "disabled"), True, False),
+        (Output("cp-run-btn", "children"), "\u23f3 Computing...", "\u25b6  Run Simulation"),
+    ],
 )
 def update_citadel(
     _first_render, run_clicks, _pay_trigger, _mc_loaded,

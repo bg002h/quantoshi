@@ -44,11 +44,21 @@ _HAS_MARKOV = _app_ctx._HAS_MARKOV
 # ── load model (once at startup) ──────────────────────────────────────────────
 M = load_model_data()
 
+# ── Background callback manager (diskcache) ─────────────────────────────────
+try:
+    from dash import DiskcacheManager
+    import diskcache
+    _bg_cache = diskcache.Cache("/tmp/quantoshi-dash-cache")
+    _bg_manager = DiskcacheManager(_bg_cache, expire=600)
+except ImportError:
+    _bg_manager = None
+
 # ── create Dash app ───────────────────────────────────────────────────────────
 app = dash.Dash(
     __name__,
     external_stylesheets=["/assets/bootstrap_flatly.min.css"],
     suppress_callback_exceptions=True,
+    background_callback_manager=_bg_manager,
     meta_tags=[
         {"name": "color-scheme", "content": "only light"},
         {"name": "referrer", "content": "no-referrer"},

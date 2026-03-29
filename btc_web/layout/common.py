@@ -143,10 +143,12 @@ def _legend_pos_dropdown(prefix, default="outside"):
 
 _BTC_ORANGE = _app_ctx.BTC_ORANGE
 
-def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
+def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None,
+                      start_collapsed=False):
     """Standard chart tab: 3-col controls (left) + 9-col graph (right).
 
     mc_prefix: if set, adds an MC overlay div (e.g. "dca" → "dca-mc-overlay").
+    start_collapsed: if True, controls drawer starts collapsed on desktop.
     """
     overlay = []
     badge = []
@@ -158,10 +160,13 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None):
                           src="/assets/quantoshi_favicon.png",
                           className="mc-premium-badge",
                           style=_STYLE_HIDDEN)]
+    _col_cls = "controls-col overflow-auto"
+    if start_collapsed:
+        _col_cls += " drawer-collapsed"
     return dbc.Row([
         dbc.Col([
             controls_fn(),
-        ], width=3, className="controls-col overflow-auto",
+        ], width=3, className=_col_cls,
                 style={"maxHeight": "85vh"}),
         dbc.Col([
             html.Div(id=f"{mc_prefix or graph_id}-chart-wrap",

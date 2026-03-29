@@ -182,7 +182,7 @@ def _build_sim_config(p: dict) -> SimConfig:
         end_yr=int(p.get("end_yr", CITADEL["end_yr"])),
         freq=p.get("freq", CITADEL["freq"]),
         n_sims=int(p.get("n_sims", 1)),
-        tax_rate=0.0,
+        tax_enabled=False,
         asset_return_model=p.get("asset_return_model", CITADEL["asset_return_model"]),
     )
 

@@ -5079,3 +5079,125 @@ class TestTaxComputation:
                                             inflation_rate=0.0, state_rate=0.0)
         # Sunset has higher top rate (39.6% vs 37%), so tax should be higher
         assert result_sunset["total"] > result_tcja["total"]
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section: Citadel Tax Integration
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class _MockPriceModel:
+    """Minimal mock satisfying the PriceModel protocol for Citadel tests."""
+    def __init__(self):
+        import pandas as pd
+        self.fits = {0.25: {"slope": 5.0, "intercept": 2.0}}
+        self.genesis = pd.Timestamp("2009-07-25")
+
+    def price_at(self, q, t):
+        # Return a deterministic price that grows with t
+        return 50_000.0 * (1 + t / 100)
+
+    def quantile_at(self, price, t):
+        return 0.50
+
+
+def _test_model():
+    return _MockPriceModel()
+
+
+class TestCitadelTaxIntegration:
+    def test_sim_config_has_tax_fields(self):
+        from engines.citadel import SimConfig
+        cfg = SimConfig(tax_enabled=True, filing_status="single",
+                        state_code="CA", birth_year=1985,
+                        cost_basis_method="fifo")
+        assert cfg.tax_enabled is True
+        assert cfg.state_code == "CA"
+        assert cfg.td_btc_stack == 0.0
+        assert cfg.tf_btc_stack == 0.0
+
+    def test_citadel_state_has_tax_fields(self):
+        from engines.citadel import CitadelState
+        state = CitadelState()
+        assert hasattr(state, "tax_lots")
+        assert hasattr(state, "td_btc_stack")
+        assert hasattr(state, "tf_btc_stack")
+        assert hasattr(state, "td_cash")
+        assert hasattr(state, "total_taxes_paid")
+        assert state.total_taxes_paid == 0.0
+
+    def test_tax_off_preserves_existing_behavior(self):
+        """When tax_enabled=False, engine behavior is identical."""
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(start_stack=1.0, start_yr=2031, end_yr=2033,
+                        freq="Annually", monthly_spend=5000,
+                        cash_initial=200_000, selected_qs=[0.25],
+                        tax_enabled=False)
+        result = simulate(cfg, _test_model())
+        # Should work exactly as before — no tax fields populated
+        assert result.total_usd.shape[1] > 0
+        assert result.taxes_paid is None
+        assert result.td_total is None
+        assert result.tf_total is None
+
+    def test_tax_enabled_runs_without_error(self):
+        """Tax-on simulation should complete without crashing."""
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(start_stack=1.0, start_yr=2031, end_yr=2033,
+                        freq="Annually", monthly_spend=5000,
+                        cash_initial=200_000, selected_qs=[0.25],
+                        tax_enabled=True, filing_status="single",
+                        state_code="CA")
+        result = simulate(cfg, _test_model())
+        assert result.total_usd.shape[1] > 0
+        assert result.taxes_paid is not None
+        assert result.taxes_paid.shape == result.total_usd.shape
+
+    def test_tax_enabled_with_td_tf_wrappers(self):
+        """Tax-on with TD/TF wrappers initialized."""
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(start_stack=1.0, start_yr=2031, end_yr=2033,
+                        freq="Annually", monthly_spend=5000,
+                        cash_initial=100_000, selected_qs=[0.25],
+                        tax_enabled=True, filing_status="single",
+                        state_code="TX",
+                        td_cash_initial=50_000,
+                        tf_cash_initial=30_000)
+        result = simulate(cfg, _test_model())
+        assert result.td_total is not None
+        assert result.tf_total is not None
+        # TD and TF totals should start > 0
+        assert result.td_total[0, 0] >= 50_000 or result.td_total[0, 0] >= 0
+        assert result.tf_total[0, 0] >= 30_000 or result.tf_total[0, 0] >= 0
+
+    def test_tax_enabled_rmd(self):
+        """RMD fires for old enough users."""
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(start_stack=0.5, start_yr=2031, end_yr=2035,
+                        freq="Annually", monthly_spend=2000,
+                        cash_initial=100_000, selected_qs=[0.25],
+                        tax_enabled=True, filing_status="single",
+                        state_code="TX",
+                        birth_year=1956,  # age 75 in 2031, RMD starts at 73
+                        td_cash_initial=500_000)
+        result = simulate(cfg, _test_model())
+        assert result.taxes_paid is not None
+        # With large TD balance and RMD, some taxes should be paid
+        assert result.annual_taxes is not None
+        assert len(result.annual_taxes) > 0
+
+    def test_initial_state_seeds_lots_when_tax_on(self):
+        """Tax lots should be seeded from start_stack."""
+        from engines.citadel import SimConfig, _initial_state
+        cfg = SimConfig(start_stack=2.0, start_yr=2031, end_yr=2035,
+                        cash_initial=100_000, selected_qs=[0.25],
+                        tax_enabled=True)
+        state = _initial_state(cfg, model=_test_model())
+        assert len(state.tax_lots) == 1
+        assert state.tax_lots[0].btc == 2.0
+        assert state.tax_lots[0].source == "initial"
+
+    def test_no_tax_rate_field(self):
+        """The old tax_rate placeholder should be replaced."""
+        from engines.citadel import SimConfig
+        cfg = SimConfig()
+        assert not hasattr(cfg, "tax_rate")

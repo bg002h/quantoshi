@@ -85,7 +85,42 @@ class SimConfig:
     end_yr: int = 2075
     freq: str = "Monthly"
     n_sims: int = 1  # INTENTIONAL: engine default is 1 (deterministic); UI default not exposed (always 1)
-    tax_rate: float = 0.0  # placeholder
+    # Tax configuration
+    tax_enabled: bool = False
+    filing_status: str = "single"           # "single" or "mfj"
+    state_code: str = "TX"                  # default: no income tax
+    state_rate_override: float | None = None
+    tcja_sunset: bool = False
+    birth_year: int | None = None           # for RMD (None = disabled)
+    cost_basis_method: str = "fifo"
+    other_income: float = 0.0               # external income (wages, SS, etc.)
+    other_income_growth: float = 0.0        # annual growth rate
+
+    # Tax-Deferred wrapper
+    td_btc_stack: float = 0.0
+    td_cash_initial: float = 0.0
+    td_reserve_bins: list[dict] = field(default_factory=lambda: [
+        {"label": "Short", "initial": 0.0},
+        {"label": "Medium", "initial": 0.0},
+        {"label": "Long", "initial": 0.0},
+    ])
+    td_invest_bins: list[dict] = field(default_factory=lambda: [
+        {"label": "Equities", "initial": 0.0},
+        {"label": "Bonds", "initial": 0.0},
+    ])
+
+    # Tax-Free (Roth) wrapper
+    tf_btc_stack: float = 0.0
+    tf_cash_initial: float = 0.0
+    tf_reserve_bins: list[dict] = field(default_factory=lambda: [
+        {"label": "Short", "initial": 0.0},
+        {"label": "Medium", "initial": 0.0},
+        {"label": "Long", "initial": 0.0},
+    ])
+    tf_invest_bins: list[dict] = field(default_factory=lambda: [
+        {"label": "Equities", "initial": 0.0},
+        {"label": "Bonds", "initial": 0.0},
+    ])
 
     # Asset return model: "lognormal" (user-input rates) or "markov" (historical regimes)
     asset_return_model: str = "lognormal"
@@ -131,6 +166,25 @@ class CitadelState:
     period_spend: float = 0.0
     spending_shortfall: float = 0.0
     rebal_event: dict | None = None
+
+    # Tax state (only used when config.tax_enabled)
+    tax_lots: list = field(default_factory=list)         # list[TaxLot]
+    tax_year_accum: object | None = None                 # TaxYearAccumulator
+    loss_carryforward: float = 0.0
+    total_taxes_paid: float = 0.0
+    annual_tax_history: list = field(default_factory=list)  # list[dict]
+
+    # Tax-Deferred wrapper balances
+    td_btc_stack: float = 0.0
+    td_cash: float = 0.0
+    td_reserves: list[float] = field(default_factory=lambda: [0.0, 0.0, 0.0])
+    td_investments: list[float] = field(default_factory=lambda: [0.0, 0.0])
+
+    # Tax-Free (Roth) wrapper balances
+    tf_btc_stack: float = 0.0
+    tf_cash: float = 0.0
+    tf_reserves: list[float] = field(default_factory=lambda: [0.0, 0.0, 0.0])
+    tf_investments: list[float] = field(default_factory=lambda: [0.0, 0.0])
 
 
 @runtime_checkable
@@ -555,7 +609,349 @@ def _initial_state(config: SimConfig, model: "PriceModel | None" = None) -> Cita
         total_btc = config.start_stack + btc_bought
         if total_btc > 0:
             state.btc_cost_basis = (config.start_stack * btc_price + config.scf_amount) / total_btc
+
+    # Tax initialization
+    if config.tax_enabled:
+        from .tax_lots import seed_lots, TaxLot
+        from .tax import TaxYearAccumulator
+
+        # Seed tax lots for taxable BTC
+        start_date = f"{config.start_yr}-01-01"
+        state.tax_lots = seed_lots(
+            [], start_stack=config.start_stack, start_price=btc_price,
+            start_date=start_date,
+        )
+
+        # TD/TF wrapper balances from config
+        state.td_btc_stack = config.td_btc_stack
+        state.td_cash = config.td_cash_initial
+        state.td_reserves = [rb["initial"] for rb in config.td_reserve_bins]
+        state.td_investments = [ib["initial"] for ib in config.td_invest_bins]
+
+        state.tf_btc_stack = config.tf_btc_stack
+        state.tf_cash = config.tf_cash_initial
+        state.tf_reserves = [rb["initial"] for rb in config.tf_reserve_bins]
+        state.tf_investments = [ib["initial"] for ib in config.tf_invest_bins]
+
+        state.tax_year_accum = TaxYearAccumulator()
+        state.loss_carryforward = 0.0
+        state.total_taxes_paid = 0.0
+
     return state
+
+
+def _get_state_rate(config: SimConfig) -> float:
+    """Resolve effective state tax rate (percentage)."""
+    if config.state_rate_override is not None:
+        return config.state_rate_override
+    from .tax_data import STATE_TAX_RATES
+    return STATE_TAX_RATES.get(config.state_code, 0.0)
+
+
+def _rmd_start_age(birth_year: int) -> int:
+    """RMD start age based on birth year (SECURE 2.0 Act)."""
+    if birth_year <= 1959:
+        return 73
+    return 75
+
+
+def _compute_rmd(state: CitadelState, config: SimConfig, sim_year: int) -> float:
+    """Compute Required Minimum Distribution for the year. Returns $ amount.
+    Withdraws from TD accounts and records as ordinary income."""
+    if config.birth_year is None:
+        return 0.0
+    age = sim_year - config.birth_year
+    start_age = _rmd_start_age(config.birth_year)
+    if age < start_age:
+        return 0.0
+
+    from .tax_data import RMD_FACTORS
+    factor = RMD_FACTORS.get(age)
+    if factor is None or factor <= 0:
+        return 0.0
+
+    # Total TD balance
+    td_total = (state.td_btc_stack * state.btc_price + state.td_cash
+                + sum(state.td_reserves) + sum(state.td_investments))
+    if td_total <= 0:
+        return 0.0
+
+    rmd_amount = td_total / factor
+
+    # Withdraw from TD: cash -> reserves -> investments -> BTC
+    remaining = rmd_amount
+    draw = min(state.td_cash, remaining)
+    state.td_cash -= draw
+    remaining -= draw
+
+    for i in range(len(state.td_reserves)):
+        if remaining <= 0:
+            break
+        draw = min(state.td_reserves[i], remaining)
+        state.td_reserves[i] -= draw
+        remaining -= draw
+
+    for i in reversed(range(len(state.td_investments))):
+        if remaining <= 0:
+            break
+        draw = min(state.td_investments[i], remaining)
+        state.td_investments[i] -= draw
+        remaining -= draw
+
+    if remaining > 0 and state.td_btc_stack > 0 and state.btc_price > 0:
+        btc_val = state.td_btc_stack * state.btc_price
+        if btc_val >= remaining:
+            state.td_btc_stack -= remaining / state.btc_price
+            remaining = 0.0
+        else:
+            state.td_btc_stack = 0.0
+            remaining -= btc_val
+
+    actual_rmd = rmd_amount - remaining
+    # RMD becomes taxable cash in the taxable wrapper
+    state.cash += actual_rmd
+    return actual_rmd
+
+
+def _tax_aware_waterfall(state: CitadelState, config: SimConfig,
+                         amount: float, sim_date: str) -> float:
+    """Draw `amount` from accounts in tax-efficient order.
+    Returns unmet shortfall. Mutates state in place.
+
+    Order:
+    1. Taxable principal (cash, reserves) — no tax event
+    2. Tax-Deferred bracket-filling (recorded as ordinary income)
+    3. Taxable investments (LT gains assumed)
+    4. Taxable BTC long-term lots (via sell_lots)
+    5. Tax-Deferred remaining
+    6. Taxable BTC short-term lots (via sell_lots — any remaining)
+    7. Roth cash/reserves/investments
+    8. Roth BTC (absolute last)
+    """
+    from .tax_lots import sell_lots
+
+    remaining = amount
+    if remaining <= 0:
+        return 0.0
+
+    # --- 1. Taxable principal: cash, then reserves (no tax event) ---
+    draw = min(state.cash, remaining)
+    state.cash -= draw
+    remaining -= draw
+    if remaining <= 0:
+        return 0.0
+
+    for i in range(len(state.reserves)):
+        draw = min(state.reserves[i], remaining)
+        state.reserves[i] -= draw
+        remaining -= draw
+        if remaining <= 0:
+            return 0.0
+
+    # --- 2. Tax-Deferred bracket-filling (small amount to stay in low brackets) ---
+    # For v1: draw up to 12% bracket top (~$48k single, ~$97k mfj, inflation-adjusted)
+    # This is a simplification; we just draw a modest amount from TD
+    td_bracket_fill = min(remaining, 20_000.0)  # conservative bracket fill
+    td_avail = (state.td_cash + sum(state.td_reserves) + sum(state.td_investments)
+                + state.td_btc_stack * max(state.btc_price, 0))
+    td_draw = min(td_bracket_fill, td_avail)
+    if td_draw > 0:
+        td_remaining = td_draw
+        d = min(state.td_cash, td_remaining)
+        state.td_cash -= d
+        td_remaining -= d
+        for i in range(len(state.td_reserves)):
+            if td_remaining <= 0:
+                break
+            d = min(state.td_reserves[i], td_remaining)
+            state.td_reserves[i] -= d
+            td_remaining -= d
+        for i in reversed(range(len(state.td_investments))):
+            if td_remaining <= 0:
+                break
+            d = min(state.td_investments[i], td_remaining)
+            state.td_investments[i] -= d
+            td_remaining -= d
+        if td_remaining > 0 and state.td_btc_stack > 0 and state.btc_price > 0:
+            btc_val = state.td_btc_stack * state.btc_price
+            d = min(btc_val, td_remaining)
+            state.td_btc_stack -= d / state.btc_price
+            td_remaining -= d
+        actual_td = td_draw - td_remaining
+        state.cash += actual_td  # flows into taxable cash
+        if state.tax_year_accum is not None:
+            state.tax_year_accum.tax_deferred_withdrawals += actual_td
+        remaining -= actual_td
+        if remaining <= 0:
+            return 0.0
+
+    # --- 3. Taxable investments (assume LT gains) ---
+    for i in reversed(range(len(state.investments))):
+        draw = min(state.investments[i], remaining)
+        if draw > 0 and state.tax_year_accum is not None:
+            # Assume 50% cost basis (simplified)
+            gain = draw * 0.5
+            state.tax_year_accum.lt_capital_gains += gain
+        state.investments[i] -= draw
+        remaining -= draw
+        if remaining <= 0:
+            return 0.0
+
+    # --- 4. Taxable BTC (via sell_lots) ---
+    if remaining > 0 and state.btc_price > 0 and state.tax_lots:
+        btc_to_sell = remaining / state.btc_price
+        btc_to_sell = min(btc_to_sell, state.btc_stack)
+        if btc_to_sell > _SATOSHI:
+            result = sell_lots(
+                state.tax_lots, btc_to_sell, state.btc_price,
+                sim_date, method=config.cost_basis_method,
+            )
+            state.tax_lots = result.remaining_lots
+            state.btc_stack -= result.btc_sold
+            proceeds = result.btc_sold * state.btc_price
+            remaining -= proceeds
+            # Record gains
+            if state.tax_year_accum is not None:
+                for g in result.gains:
+                    if g.is_long_term:
+                        if g.gain >= 0:
+                            state.tax_year_accum.lt_capital_gains += g.gain
+                        else:
+                            state.tax_year_accum.lt_capital_losses += abs(g.gain)
+                    else:
+                        if g.gain >= 0:
+                            state.tax_year_accum.st_capital_gains += g.gain
+                        else:
+                            state.tax_year_accum.st_capital_losses += abs(g.gain)
+
+    if remaining <= 0:
+        return 0.0
+
+    # --- 5. Tax-Deferred remaining ---
+    td_avail2 = (state.td_cash + sum(state.td_reserves) + sum(state.td_investments)
+                 + state.td_btc_stack * max(state.btc_price, 0))
+    if td_avail2 > 0:
+        td_remaining = min(remaining, td_avail2)
+        d = min(state.td_cash, td_remaining)
+        state.td_cash -= d
+        td_remaining -= d
+        for i in range(len(state.td_reserves)):
+            if td_remaining <= 0:
+                break
+            d = min(state.td_reserves[i], td_remaining)
+            state.td_reserves[i] -= d
+            td_remaining -= d
+        for i in reversed(range(len(state.td_investments))):
+            if td_remaining <= 0:
+                break
+            d = min(state.td_investments[i], td_remaining)
+            state.td_investments[i] -= d
+            td_remaining -= d
+        if td_remaining > 0 and state.td_btc_stack > 0 and state.btc_price > 0:
+            btc_val = state.td_btc_stack * state.btc_price
+            d = min(btc_val, td_remaining)
+            state.td_btc_stack -= d / state.btc_price
+            td_remaining -= d
+        actual_td2 = min(remaining, td_avail2) - td_remaining
+        if state.tax_year_accum is not None:
+            state.tax_year_accum.tax_deferred_withdrawals += actual_td2
+        remaining -= actual_td2
+
+    if remaining <= 0:
+        return 0.0
+
+    # --- 6. (BTC short-term lots already handled in step 4 — sell_lots uses FIFO) ---
+
+    # --- 7. Roth cash/reserves/investments (no tax impact) ---
+    draw = min(state.tf_cash, remaining)
+    state.tf_cash -= draw
+    remaining -= draw
+    if remaining <= 0:
+        return 0.0
+
+    for i in range(len(state.tf_reserves)):
+        draw = min(state.tf_reserves[i], remaining)
+        state.tf_reserves[i] -= draw
+        remaining -= draw
+        if remaining <= 0:
+            return 0.0
+
+    for i in reversed(range(len(state.tf_investments))):
+        draw = min(state.tf_investments[i], remaining)
+        state.tf_investments[i] -= draw
+        remaining -= draw
+        if remaining <= 0:
+            return 0.0
+
+    # --- 8. Roth BTC (absolute last, no tax) ---
+    if state.tf_btc_stack > 0 and state.btc_price > 0:
+        btc_val = state.tf_btc_stack * state.btc_price
+        if btc_val >= remaining:
+            state.tf_btc_stack -= remaining / state.btc_price
+            remaining = 0.0
+        else:
+            state.tf_btc_stack = 0.0
+            remaining -= btc_val
+
+    return max(remaining, 0.0)
+
+
+def _year_boundary_tax(state: CitadelState, config: SimConfig,
+                       sim_year: int, ppy: int) -> None:
+    """Compute and pay annual tax at year boundary. Mutates state."""
+    from .tax import compute_annual_tax, TaxYearAccumulator
+
+    if state.tax_year_accum is None:
+        return
+
+    # Add other income
+    years_elapsed = max(sim_year - config.start_yr, 0)
+    other_inc = config.other_income * (1 + config.other_income_growth / 100) ** years_elapsed
+    state.tax_year_accum.other_income += other_inc
+
+    # Add interest income from taxable wrapper (approximate)
+    state.tax_year_accum.interest_income += state.cash * (config.cash_rate / 100)
+
+    # Set loss carryforward
+    state.tax_year_accum.loss_carryforward = state.loss_carryforward
+
+    state_rate = _get_state_rate(config)
+    tax_result = compute_annual_tax(
+        state.tax_year_accum,
+        filing_status=config.filing_status,
+        tcja_sunset=config.tcja_sunset,
+        sim_year=sim_year,
+        inflation_rate=config.inflation / 100,
+        state_rate=state_rate,
+    )
+
+    tax_owed = tax_result["total"]
+
+    # Pay tax from taxable wrapper: cash first, then investments
+    if tax_owed > 0:
+        tax_remaining = tax_owed
+        draw = min(state.cash, tax_remaining)
+        state.cash -= draw
+        tax_remaining -= draw
+        for i in reversed(range(len(state.investments))):
+            if tax_remaining <= 0:
+                break
+            draw = min(state.investments[i], tax_remaining)
+            state.investments[i] -= draw
+            tax_remaining -= draw
+        for i in range(len(state.reserves)):
+            if tax_remaining <= 0:
+                break
+            draw = min(state.reserves[i], tax_remaining)
+            state.reserves[i] -= draw
+            tax_remaining -= draw
+
+    state.total_taxes_paid += tax_owed
+    state.loss_carryforward = tax_result["loss_carryforward"]
+    state.annual_tax_history.append(tax_result)
+
+    # Reset accumulator for next year
+    state.tax_year_accum = TaxYearAccumulator()
 
 
 def step(state: CitadelState, config: SimConfig,
@@ -649,7 +1045,14 @@ def step(state: CitadelState, config: SimConfig,
             period_spend += _scf_payment_amount(config, ppy)
     period_spend *= (12 / ppy)  # scale monthly base to period frequency
     new.period_spend = period_spend
-    new.spending_shortfall = _apply_spending_waterfall(new, period_spend)
+
+    if config.tax_enabled:
+        # Tax-aware spending waterfall
+        sim_year = config.start_yr + int(years_elapsed)
+        sim_date = f"{sim_year}-{max(1, int((years_elapsed % 1) * 12) + 1):02d}-15"
+        new.spending_shortfall = _tax_aware_waterfall(new, config, period_spend, sim_date)
+    else:
+        new.spending_shortfall = _apply_spending_waterfall(new, period_spend)
 
     # 6. Enforce floor rules (AFTER spending, so floors replenish drawdowns)
     _enforce_floors(new, config)
@@ -663,6 +1066,20 @@ def step(state: CitadelState, config: SimConfig,
         else:
             btc_annual_return = 0.0
         _scf_check_repay(new, config, btc_annual_return)
+
+    # 8. Year-boundary tax computation and RMD
+    if config.tax_enabled:
+        sim_year = config.start_yr + int(years_elapsed)
+        # Detect year boundary: period is a multiple of ppy
+        if new.period > 0 and new.period % ppy == 0:
+            # RMD first (adds ordinary income)
+            rmd = _compute_rmd(new, config, sim_year)
+            if rmd > 0 and new.tax_year_accum is not None:
+                new.tax_year_accum.tax_deferred_withdrawals += rmd
+                new.tax_year_accum.rmd_required = rmd
+                new.tax_year_accum.rmd_taken = rmd
+            # Compute and pay taxes
+            _year_boundary_tax(new, config, sim_year, ppy)
 
     # Clamp sub-satoshi BTC to zero (1 sat = 10^-8 BTC is the smallest unit)
     if 0 < new.btc_stack < _SATOSHI:
@@ -687,6 +1104,12 @@ class SimResult:
     # Aggregated
     median: dict                   # {asset_class: ndarray}
     percentiles: dict              # {pct: {asset_class: ndarray}}
+    # Tax arrays (only populated when tax_enabled)
+    taxes_paid: np.ndarray | None = None       # (n_sims, n_periods) cumulative
+    annual_taxes: list | None = None           # list[list[dict]] per sim per year
+    td_total: np.ndarray | None = None         # (n_sims, n_periods)
+    tf_total: np.ndarray | None = None         # (n_sims, n_periods)
+    taxable_total: np.ndarray | None = None    # (n_sims, n_periods)
 
     def to_dict(self) -> dict:
         """Serialize for JSON transport. ndarrays -> lists."""
@@ -702,6 +1125,11 @@ class SimResult:
             str(p): {k: v.tolist() for k, v in assets.items()}
             for p, assets in self.percentiles.items()
         }
+        # Tax fields (optional)
+        for key in ["taxes_paid", "td_total", "tf_total", "taxable_total"]:
+            val = getattr(self, key, None)
+            d[key] = val.tolist() if isinstance(val, np.ndarray) else None
+        d["annual_taxes"] = self.annual_taxes
         return d
 
     @classmethod
@@ -716,10 +1144,17 @@ class SimResult:
             int(p): {k: np.array(v) for k, v in assets.items()}
             for p, assets in d["percentiles"].items()
         }
+        # Tax fields (optional)
+        tax_kw = {}
+        for key in ["taxes_paid", "td_total", "tf_total", "taxable_total"]:
+            val = d.get(key)
+            tax_kw[key] = np.array(val) if val is not None else None
+        tax_kw["annual_taxes"] = d.get("annual_taxes")
         return cls(**arrays,
                    depletion_period=d["depletion_period"],
                    rebal_events=d["rebal_events"],
-                   median=median, percentiles=percentiles)
+                   median=median, percentiles=percentiles,
+                   **tax_kw)
 
 
 def _compute_n_periods(config: SimConfig) -> int:
@@ -727,9 +1162,9 @@ def _compute_n_periods(config: SimConfig) -> int:
     return int((config.end_yr - config.start_yr) * ppy)
 
 
-def _snapshot_state(state: CitadelState) -> dict:
+def _snapshot_state(state: CitadelState, tax_enabled: bool = False) -> dict:
     """Capture scalar values from state for history recording."""
-    return {
+    snap = {
         "btc_stack": state.btc_stack,
         "btc_price": state.btc_price,
         "cash": state.cash,
@@ -740,10 +1175,24 @@ def _snapshot_state(state: CitadelState) -> dict:
         "period_spend": state.period_spend,
         "rebal_event": state.rebal_event,
     }
+    if tax_enabled:
+        td_total = (state.td_btc_stack * max(state.btc_price, 0) + state.td_cash
+                    + sum(state.td_reserves) + sum(state.td_investments))
+        tf_total = (state.tf_btc_stack * max(state.btc_price, 0) + state.tf_cash
+                    + sum(state.tf_reserves) + sum(state.tf_investments))
+        taxable = snap["total_usd"]
+        snap["td_total"] = td_total
+        snap["tf_total"] = tf_total
+        snap["taxable_total"] = taxable
+        snap["total_taxes_paid"] = state.total_taxes_paid
+        # Include wrapper totals in the grand total
+        snap["total_usd"] += td_total + tf_total
+    return snap
 
 
 def _aggregate_results(all_histories: list[list[dict]], config: SimConfig,
-                       time_axis: np.ndarray) -> SimResult:
+                       time_axis: np.ndarray,
+                       sim_annual_taxes: list | None = None) -> SimResult:
     """Aggregate per-sim histories into SimResult with median/percentile bands."""
     n_sims = len(all_histories)
     n_periods = len(time_axis)
@@ -759,6 +1208,13 @@ def _aggregate_results(all_histories: list[list[dict]], config: SimConfig,
     cum_spend = np.zeros((n_sims, n_periods))
     depl = []
     rebal_events = []
+
+    tax_en = config.tax_enabled
+    taxes_paid_arr = np.zeros((n_sims, n_periods)) if tax_en else None
+    td_total_arr = np.zeros((n_sims, n_periods)) if tax_en else None
+    tf_total_arr = np.zeros((n_sims, n_periods)) if tax_en else None
+    taxable_total_arr = np.zeros((n_sims, n_periods)) if tax_en else None
+    all_annual_taxes = [] if tax_en else None
 
     for s, history in enumerate(all_histories):
         sim_events = []
@@ -779,8 +1235,15 @@ def _aggregate_results(all_histories: list[list[dict]], config: SimConfig,
                 sim_events.append({"period": p, **snap["rebal_event"]})
             if depl_period is None and total[s, p] <= 0:
                 depl_period = p
+            if tax_en:
+                taxes_paid_arr[s, p] = snap.get("total_taxes_paid", 0.0)
+                td_total_arr[s, p] = snap.get("td_total", 0.0)
+                tf_total_arr[s, p] = snap.get("tf_total", 0.0)
+                taxable_total_arr[s, p] = snap.get("taxable_total", 0.0)
         depl.append(depl_period)
         rebal_events.append(sim_events)
+        if tax_en and sim_annual_taxes is not None:
+            all_annual_taxes.append(sim_annual_taxes[s] if s < len(sim_annual_taxes) else [])
 
     # Compute median and percentiles across sims
     asset_keys = {
@@ -800,6 +1263,9 @@ def _aggregate_results(all_histories: list[list[dict]], config: SimConfig,
         cash_balances=cash_b, reserve_balances=res_b, invest_balances=inv_b,
         total_usd=total, cumulative_spend=cum_spend,
         depletion_period=depl, rebal_events=rebal_events,
+        taxes_paid=taxes_paid_arr, annual_taxes=all_annual_taxes,
+        td_total=td_total_arr, tf_total=tf_total_arr,
+        taxable_total=taxable_total_arr,
         median=median, percentiles=percentiles,
     )
 
@@ -839,6 +1305,7 @@ def simulate(config: SimConfig, model: PriceModel,
     time_axis = np.array([t0 + i * dt for i in range(n_periods)])
 
     all_histories = []
+    sim_annual_taxes = [] if config.tax_enabled else None
     for sim_id in range(n_sims):
         # Each sim gets unique RNG for dollar-asset volatility
         rng = np.random.default_rng(rng_seed + sim_id)
@@ -852,11 +1319,14 @@ def simulate(config: SimConfig, model: PriceModel,
                 btc_price = _get_btc_price(time_axis[period_idx], config, model, rng,
                                            sim_mode="deterministic", q=q)
             new_state = step(state, config, btc_price, rng, model=model)
-            history.append(_snapshot_state(new_state))
+            history.append(_snapshot_state(new_state, tax_enabled=config.tax_enabled))
             state = new_state
         all_histories.append(history)
+        if config.tax_enabled:
+            sim_annual_taxes.append(list(state.annual_tax_history))
 
-    return _aggregate_results(all_histories, config, time_axis)
+    return _aggregate_results(all_histories, config, time_axis,
+                              sim_annual_taxes=sim_annual_taxes)
 
 
 def validate_config(config: SimConfig) -> None:

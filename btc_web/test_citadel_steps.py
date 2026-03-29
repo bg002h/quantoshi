@@ -104,7 +104,7 @@ def _make_config(**overrides) -> SimConfig:
         scf_type="term",
         scf_rate=8.0,
         scf_term=60,
-        tax_rate=0.0,
+        tax_enabled=False,
     )
     defaults.update(overrides)
     return SimConfig(**defaults)

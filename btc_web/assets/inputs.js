@@ -56,21 +56,11 @@ document.addEventListener("keydown", function (e) {
     }, true); // capture phase — fire before React handlers
 })();
 
-/* ── Slider touch delay ─────────────────────────────────────────────────────
-   On mobile, sliders capture vertical scroll gestures before the browser can
-   distinguish scroll from drag.  Fix: on touchstart inside an .rc-slider,
-   immediately disable pointer-events (lets scroll pass through).  After a
-   short delay, if no significant vertical movement occurred, re-enable the
-   slider so horizontal drags work normally.
-
-   Auto-relock: if the slider is armed but no handle drag occurs within
-   IDLE_MS (400ms) and no touch is active on the handle, re-lock it so the
-   next scroll gesture isn't accidentally captured.
-*/
 /* ── Slider scroll guard ───────────────────────────────────────────────────
-   CSS sets .rc-slider { touch-action: pan-y } which tells the browser to
-   handle vertical scrolling natively through slider areas.  Only
-   deliberately horizontal movements activate the slider.  No JS delay
-   guard is needed — the browser's built-in gesture disambiguation
-   handles the scroll-vs-drag distinction reliably.
+   Two-layer defense against accidental slider activation on mobile:
+   1. CSS: .rc-slider { touch-action: pan-y } — browser handles vertical
+      scrolling natively through slider areas.
+   2. JS:  slider_guard.js — capture-phase pointerdown blocks non-thumb
+      touches from reaching the Radix UI onPointerDown handler, which
+      otherwise calls setPointerCapture + preventDefault on any touch.
 */

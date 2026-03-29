@@ -263,18 +263,19 @@ def update_citadel(
                         dash.no_update, dash.no_update, dash.no_update, dash.no_update)
         except Exception:
             pass
-        # Fallback: show instructions
-        fig = go.Figure()
-        fig.add_annotation(
-            text="Configure your settings, then click<br><b>Run Simulation</b>",
-            xref="paper", yref="paper", x=0.5, y=0.5,
-            showarrow=False, font=dict(size=18, color="#888"),
-        )
-        fig.update_layout(
-            template="plotly_white",
-            xaxis=dict(visible=False), yaxis=dict(visible=False),
-            height=500, margin=dict(t=40, b=40),
-        )
+        # Fallback: compute default simulation live
+        from tab_defaults import citadel_defaults
+        _dp = citadel_defaults()
+        _dp["selected_qs"] = [0.25]
+        _dp["disp_mode"] = CITADEL["disp_mode"]
+        _dp["log_y"] = True
+        _dp["annotate"] = True
+        _dp["show_legend"] = True
+        _dp["minor_grid"] = True
+        _dp["legend_pos"] = CITADEL["legend_pos"]
+        _dp["palette"] = "default"
+        _dp["active_models"] = ["bub"]
+        fig, _ = _get_citadel_fig(_dp)
         return (fig, dash.no_update, dash.no_update, dash.no_update,
                 dash.no_update, dash.no_update, dash.no_update, dash.no_update)
 

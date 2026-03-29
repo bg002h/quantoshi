@@ -4949,3 +4949,133 @@ class TestTaxLots:
     def test_seed_empty(self):
         from engines.tax_lots import seed_lots
         assert seed_lots([]) == []
+
+
+class TestTaxComputation:
+    def test_apply_brackets_10pct_only(self):
+        from engines.tax import apply_progressive_brackets
+        from engines.tax_data import FEDERAL_BRACKETS_TCJA
+        tax = apply_progressive_brackets(10_000, FEDERAL_BRACKETS_TCJA["single"])
+        assert tax == pytest.approx(1_000.0)
+
+    def test_apply_brackets_two_brackets(self):
+        from engines.tax import apply_progressive_brackets
+        from engines.tax_data import FEDERAL_BRACKETS_TCJA
+        tax = apply_progressive_brackets(30_000, FEDERAL_BRACKETS_TCJA["single"])
+        expected = 11_925 * 0.10 + (30_000 - 11_925) * 0.12
+        assert tax == pytest.approx(expected)
+
+    def test_apply_brackets_top_bracket(self):
+        from engines.tax import apply_progressive_brackets
+        from engines.tax_data import FEDERAL_BRACKETS_TCJA
+        tax = apply_progressive_brackets(1_000_000, FEDERAL_BRACKETS_TCJA["single"])
+        assert tax > 300_000
+
+    def test_apply_brackets_zero(self):
+        from engines.tax import apply_progressive_brackets
+        from engines.tax_data import FEDERAL_BRACKETS_TCJA
+        assert apply_progressive_brackets(0, FEDERAL_BRACKETS_TCJA["single"]) == 0.0
+
+    def test_ltcg_stacking_zero_ordinary(self):
+        from engines.tax import compute_ltcg_tax
+        tax = compute_ltcg_tax(50_000, stacking_base=0, filing_status="single")
+        expected = (50_000 - 48_350) * 0.15
+        assert tax == pytest.approx(expected)
+
+    def test_ltcg_stacking_high_ordinary(self):
+        from engines.tax import compute_ltcg_tax
+        tax = compute_ltcg_tax(100_000, stacking_base=80_000, filing_status="single")
+        assert tax == pytest.approx(100_000 * 0.15)
+
+    def test_loss_netting_st_loss_offsets_lt_gain(self):
+        from engines.tax import net_capital_gains
+        result = net_capital_gains(st_gains=1_000, st_losses=5_000,
+                                   lt_gains=10_000, lt_losses=0, carryforward=0)
+        assert result.net_lt == 6_000
+        assert result.net_st == 0
+        assert result.loss_deduction == 0
+        assert result.new_carryforward == 0
+
+    def test_loss_netting_excess_carries_forward(self):
+        from engines.tax import net_capital_gains
+        result = net_capital_gains(st_gains=0, st_losses=10_000,
+                                   lt_gains=0, lt_losses=0, carryforward=0)
+        assert result.loss_deduction == 3_000
+        assert result.new_carryforward == 7_000
+
+    def test_loss_netting_with_carryforward(self):
+        from engines.tax import net_capital_gains
+        result = net_capital_gains(st_gains=5_000, st_losses=0,
+                                   lt_gains=0, lt_losses=0, carryforward=8_000)
+        assert result.loss_deduction == 3_000
+        assert result.new_carryforward == 0
+
+    def test_niit_below_threshold(self):
+        from engines.tax import compute_niit
+        assert compute_niit(magi=150_000, nii=50_000, filing_status="single") == 0.0
+
+    def test_niit_above_threshold(self):
+        from engines.tax import compute_niit
+        assert compute_niit(300_000, 80_000, "single") == pytest.approx(3_040.0)
+
+    def test_niit_lesser_of_rule(self):
+        from engines.tax import compute_niit
+        assert compute_niit(220_000, 50_000, "single") == pytest.approx(760.0)
+
+    def test_annual_tax_simple_case(self):
+        from engines.tax import TaxYearAccumulator, compute_annual_tax
+        accum = TaxYearAccumulator(
+            tax_deferred_withdrawals=60_000,
+            interest_income=5_000,
+            other_income=0,
+            lt_capital_gains=45_000,
+        )
+        result = compute_annual_tax(accum, filing_status="single",
+                                     tcja_sunset=False, sim_year=2031,
+                                     inflation_rate=0.04, state_rate=0.0)
+        assert result["total"] > 0
+        assert result["federal_ordinary"] > 0
+        assert result["federal_ltcg"] >= 0
+        assert result["niit"] == 0  # AGI ~$110k, under $200k
+        assert result["effective_rate"] > 0
+        assert "loss_carryforward" in result
+
+    def test_annual_tax_with_niit(self):
+        from engines.tax import TaxYearAccumulator, compute_annual_tax
+        accum = TaxYearAccumulator(
+            tax_deferred_withdrawals=100_000,
+            interest_income=20_000,
+            lt_capital_gains=200_000,
+        )
+        result = compute_annual_tax(accum, filing_status="single",
+                                     tcja_sunset=False, sim_year=2025,
+                                     inflation_rate=0.0, state_rate=0.0)
+        assert result["niit"] > 0  # AGI ~$320k, well above $200k
+
+    def test_annual_tax_with_state(self):
+        from engines.tax import TaxYearAccumulator, compute_annual_tax
+        accum = TaxYearAccumulator(tax_deferred_withdrawals=100_000)
+        result = compute_annual_tax(accum, filing_status="single",
+                                     tcja_sunset=False, sim_year=2025,
+                                     inflation_rate=0.0, state_rate=13.30)
+        assert result["state"] > 0
+
+    def test_brackets_inflation_indexed(self):
+        from engines.tax import _inflate_brackets
+        from engines.tax_data import FEDERAL_BRACKETS_TCJA
+        base = FEDERAL_BRACKETS_TCJA["single"]
+        inflated = _inflate_brackets(base, years=10, rate=0.04)
+        assert inflated[0][0] == pytest.approx(11_925 * 1.04**10, rel=0.01)
+        assert inflated[0][1] == 0.10
+
+    def test_annual_tax_sunset_brackets(self):
+        from engines.tax import TaxYearAccumulator, compute_annual_tax
+        accum = TaxYearAccumulator(tax_deferred_withdrawals=600_000)
+        result_tcja = compute_annual_tax(accum, filing_status="single",
+                                          tcja_sunset=False, sim_year=2025,
+                                          inflation_rate=0.0, state_rate=0.0)
+        result_sunset = compute_annual_tax(accum, filing_status="single",
+                                            tcja_sunset=True, sim_year=2025,
+                                            inflation_rate=0.0, state_rate=0.0)
+        # Sunset has higher top rate (39.6% vs 37%), so tax should be higher
+        assert result_sunset["total"] > result_tcja["total"]

@@ -327,7 +327,7 @@ def _citadel_tab():
 
     layout = _chart_tab_layout(
         _citadel_controls, "citadel-graph", "btc_citadel", mc_prefix="cp",
-        start_collapsed=True,
+        start_collapsed=False,
     )
     # Inject initial figure into the dcc.Graph component
     if initial_fig is not None:

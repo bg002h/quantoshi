@@ -74,19 +74,65 @@ _PATH_TO_TAB = {
     "/9": "citadel",
 }
 
+_TAB_TO_GRAPH = {
+    "bubble": "bubble-graph", "heatmap": "heatmap-graph",
+    "dca": "dca-graph", "retire": "retire-graph",
+    "supercharge": "supercharge-graph", "citadel": "citadel-graph",
+}
+_TAB_TO_FIG_FN = {}  # populated lazily below
+
+
+def _get_initial_figure(tab):
+    """Get pre-computed figure for a tab from L1 cache. Returns fig or None."""
+    if not _TAB_TO_FIG_FN:
+        # Lazy init — imports only available after app.py finishes setup
+        try:
+            from utils import (_get_bubble_fig, _get_heatmap_fig, _get_dca_fig,
+                               _get_retire_fig, _get_supercharge_fig, _get_citadel_fig)
+            from tab_defaults import (bubble_defaults, heatmap_defaults, dca_defaults,
+                                      retire_defaults, supercharge_defaults, citadel_defaults)
+            _TAB_TO_FIG_FN["bubble"] = (_get_bubble_fig, bubble_defaults)
+            _TAB_TO_FIG_FN["heatmap"] = (_get_heatmap_fig, heatmap_defaults)
+            _TAB_TO_FIG_FN["dca"] = (_get_dca_fig, dca_defaults)
+            _TAB_TO_FIG_FN["retire"] = (_get_retire_fig, retire_defaults)
+            _TAB_TO_FIG_FN["supercharge"] = (_get_supercharge_fig, supercharge_defaults)
+            _TAB_TO_FIG_FN["citadel"] = (_get_citadel_fig, citadel_defaults)
+        except Exception:
+            return None
+
+    entry = _TAB_TO_FIG_FN.get(tab)
+    if not entry:
+        return None
+    get_fn, defaults_fn = entry
+    try:
+        result = get_fn(defaults_fn())
+        return result[0] if isinstance(result, tuple) else result
+    except Exception:
+        return None
+
+
 def _serve_layout():
     """Layout function — called on each page request.
 
     Reads the URL path to set the initial active tab, so visiting /9
-    builds the layout with active_tab='citadel' from the start (no
-    wasted bubble render).
+    builds the layout with active_tab='citadel' from the start.
+    Injects the pre-computed figure for the active tab into the HTML
+    so it renders before any callbacks fire.
     """
     import flask
     path = flask.request.path if flask.has_request_context() else "/"
-    # Strip trailing slash, handle /7.N deep links
     clean = path.rstrip("/").split(".")[0] or "/"
     initial_tab = _PATH_TO_TAB.get(clean, "bubble")
-    return _build_layout(initial_tab)
+    layout = _build_layout(initial_tab)
+
+    # Inject pre-computed figure for the active tab (L1 cache hit, ~0ms)
+    graph_id = _TAB_TO_GRAPH.get(initial_tab)
+    if graph_id:
+        fig = _get_initial_figure(initial_tab)
+        if fig:
+            _inject_initial_figure(layout, graph_id, fig)
+
+    return layout
 
 _app_ctx.app.layout = _serve_layout
 

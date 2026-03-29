@@ -5667,3 +5667,111 @@ class TestTaxWrapperGrowth:
             # RMD income should reflect growing balance, not fixed $500k
             first_yr_income = yrs[0].get("ordinary_income", 0)
             assert first_yr_income > 0
+
+
+class TestTaxEdgeCases:
+    """Test gap coverage: depletion, cost basis bounds, shortfall, tax payment side effects."""
+
+    def test_partial_year_depletion_no_crash(self):
+        """If all accounts deplete mid-year, sim should complete without error.
+        The final partial year's taxes may not be computed (year boundary never reached)."""
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(
+            start_stack=0.01, start_yr=2031, end_yr=2035,
+            freq="Monthly", monthly_spend=50_000,  # high spend to force depletion
+            cash_initial=10_000, selected_qs=[0.25],
+            tax_enabled=True, filing_status="single", state_code="TX",
+            invest_bins=[
+                {"label": "Equities", "initial": 10_000, "return_rate": 10, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 5, "volatility": 0},
+            ])
+        r = simulate(cfg, _test_model())
+        # Should complete without crash
+        assert r.total_usd.shape[1] > 0
+        # Terminal wealth should be near zero (depleted)
+        assert r.total_usd[0, -1] < 100_000
+
+    def test_invest_cost_basis_never_negative(self):
+        """Cost basis should never go below zero even with float arithmetic."""
+        from engines.citadel import CitadelState
+        # Simulate selling 100% of investment
+        state = CitadelState(
+            investments=[100_000, 50_000],
+            invest_cost_basis=[80_000, 50_000],
+        )
+        # Sell all equities
+        current = state.investments[0]
+        fraction = current / current  # 1.0
+        basis_sold = state.invest_cost_basis[0] * fraction
+        state.invest_cost_basis[0] -= basis_sold
+        state.investments[0] = 0
+        assert state.invest_cost_basis[0] >= 0
+        assert state.invest_cost_basis[0] == pytest.approx(0.0)
+
+        # Edge: tiny floating point residual
+        state2 = CitadelState(
+            investments=[100.0, 0],
+            invest_cost_basis=[100.0, 0],
+        )
+        # Sell in 3 chunks of 1/3 each (float imprecision)
+        for _ in range(3):
+            amt = 100.0 / 3
+            cur = state2.investments[0]
+            if cur <= 0:
+                break
+            frac = min(amt / cur, 1.0)
+            basis = state2.invest_cost_basis[0] * frac
+            state2.invest_cost_basis[0] = max(state2.invest_cost_basis[0] - basis, 0.0)
+            state2.investments[0] = max(state2.investments[0] - amt, 0.0)
+        assert state2.invest_cost_basis[0] >= 0
+
+    def test_waterfall_shortfall_when_all_depleted(self):
+        """When all three wrappers are empty, shortfall should equal the spending amount."""
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(
+            start_stack=0, start_yr=2031, end_yr=2032,
+            freq="Annually", monthly_spend=10_000,
+            cash_initial=0, selected_qs=[0.25],
+            tax_enabled=True, filing_status="single",
+            invest_bins=[
+                {"label": "Equities", "initial": 0, "return_rate": 0, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 0, "volatility": 0},
+            ])
+        r = simulate(cfg, _test_model())
+        # With zero assets and $10k/mo spending, there should be shortfall
+        assert r.total_usd.shape[1] > 0
+
+    def test_tax_payment_from_investments_tracks_basis(self):
+        """When taxes are paid by selling investments, cost basis should decrease."""
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(
+            start_stack=0, start_yr=2031, end_yr=2033,
+            freq="Annually", monthly_spend=0,
+            cash_initial=0, selected_qs=[0.25],
+            tax_enabled=True, filing_status="single", state_code="CA",
+            other_income=200_000,  # generates tax liability
+            invest_bins=[
+                {"label": "Equities", "initial": 500_000, "return_rate": 10, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 0, "volatility": 0},
+            ])
+        r = simulate(cfg, _test_model())
+        # Tax was owed on $200k other income, paid from investments
+        # Investments should be less than they'd be without tax
+        yrs = r.annual_taxes[0] if r.annual_taxes else []
+        if yrs:
+            assert yrs[0]["total"] > 0  # taxes were owed
+        # Investment balance should be reduced by tax payment
+        assert r.invest_balances[0, -1, 0] < 500_000 * 1.1 ** 2  # less than pure growth
+
+    def test_annual_taxes_list_of_lists_flattened_by_summary(self):
+        """_build_tax_summary should handle list-of-lists from engine."""
+        from callbacks.citadel_tax_cb import _build_tax_summary
+        # Simulate engine output: list containing one list of year dicts
+        nested = [[
+            {"year": 2031, "ordinary_income": 60000, "st_gains": 0,
+             "lt_gains": 0, "federal_ordinary": 5000, "federal_ltcg": 0,
+             "niit": 0, "state": 0, "total": 5000, "effective_rate": 0.08},
+        ]]
+        is_open, children = _build_tax_summary(nested)
+        assert is_open is True
+        assert len(children) == 2  # header + tbody

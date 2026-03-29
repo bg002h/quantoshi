@@ -15,7 +15,7 @@ BitcoinPricesDaily.csv
         │
         ▼
   ┌─────────────┐    model_data.pkl    ┌──────────────┐
-  │  SP.ipynb    │ ──────────────────►  │  btc_web/    │  (Plotly Dash, 8 tabs)
+  │  SP.ipynb    │ ──────────────────►  │  btc_web/    │  (Plotly Dash, 9 tabs)
   │  (notebook)  │                      └──────────────┘
   │              │    model_data.pkl    ┌──────────────┐
   │  Cell 0: BM  │ ──────────────────►  │  btc_app/    │  (PyQt5 desktop, 5 tabs)
@@ -42,11 +42,13 @@ in browser `localStorage` — nothing is stored server-side.
 ```
 app.py
   ├── populates _app_ctx (M, app, server, flags)
-  ├── imports utils.py       (LRU caches, price fetching)
-  ├── imports snapshot.py    (state encoding/decoding)
-  ├── imports layout.py      (all tab layouts)
-  ├── imports callbacks.py   (all callback registrations)
-  └── imports api.py         (REST API routes)
+  ├── imports cache.py        (three-layer figure cache + Redis)
+  ├── imports tab_defaults.py (per-tab default param dicts)
+  ├── imports utils.py        (float quantization, price fetching)
+  ├── imports snapshot.py     (state encoding/decoding)
+  ├── imports layout.py       (all tab layouts)
+  ├── imports callbacks.py    (all callback registrations)
+  └── imports api.py          (REST API routes)
 
 figures.py
   ├── imports mc_overlay.py  (MC simulation + trace builders)
@@ -54,6 +56,9 @@ figures.py
   │     ├── imports btc_core.py   (ModelData, qr_price)
   │     └── imports markov        (Cython engine, optional)
   └── imports _app_ctx.py    (shared constants)
+
+engines/adapter.py
+  └── imports engines/citadel.py  (Citadel simulation engine)
 ```
 
 ### Module responsibilities
@@ -62,24 +67,28 @@ figures.py
 |--------|---------|-------------|
 | `app.py` | Orchestrator: app creation, model load, Flask routes, cache prewarm | `app`, `server` |
 | `_app_ctx.py` | Shared state and constants (models, palettes, flags) | `M`, `app`, `FREQ_PPY`, `PALETTES`, `PRICE_MODELS`, `_compute_sc_loan()` |
-| `utils.py` | Float quantization, LRU figure caches, price fetching | `_q3()`, `_get_*_fig()`, `_fetch_btc_price()` |
+| `cache.py` | Three-layer figure cache (L0 pinned, L1 LRU, L2 Redis) | `get_figure()`, `invalidate()` |
+| `tab_defaults.py` | Per-tab default parameter dicts, used by prewarm and coercion | `TAB_DEFAULTS` |
+| `utils.py` | Float quantization, price fetching | `_q3()`, `_fetch_btc_price()` |
 | `snapshot.py` | Snapshot encoding/decoding, bitmask helpers | `_encode_snapshot()`, `_decode_snapshot()`, `_SNAPSHOT_CONTROLS` |
-| `layout/` | Layout package (11 modules): `__init__` (navbar, modal, stores), `bubble`, `heatmap` (pill bar), `sim_tabs` (DCA+Retire), `supercharge`, `stack`, `faq`, `common` (shared helpers), `mc_controls`, `splash`, `model_info` | `main_layout()` |
-| `callbacks/` | Callbacks package (12 modules): `__init__`, `charts`, `nav` (tab routing, pill clicks), `ticker`, `snapshot_cb`, `mc_controls`, `mc_helpers`, `mc_payment`, `mc_upload`, `lots`, `coerce` (`_ci()`/`_cf()`), `sc_loan` | `update_bubble()`, `update_heatmap()`, etc. |
-| `figures/` | Figures package (7 modules): `__init__`, `common` (palette, watermark, annotations, MC overlay), `bubble` (+ PL/S2F overlays), `heatmap`, `dca`, `retire`, `supercharge` | `build_bubble_figure()`, `build_heatmap_figure()`, etc. |
+| `layout/` | Layout package (13 modules): `__init__` (navbar, modal, stores), `bubble`, `heatmap` (pill bar), `sim_tabs` (DCA+Retire), `supercharge`, `stack`, `faq`, `common` (shared helpers), `mc_controls`, `splash`, `model_info`, `citadel` (+1 TBD) | `main_layout()` |
+| `callbacks/` | Callbacks package (17 modules): `__init__`, `charts`, `nav` (tab routing, pill clicks), `ticker`, `snapshot_cb`, `mc_controls`, `mc_helpers`, `mc_payment`, `mc_upload`, `lots`, `coerce` (`_ci()`/`_cf()`), `sc_loan`, `routing`, `splash`, `user_model`, `citadel_cb`, `scanner` | `update_bubble()`, `update_heatmap()`, etc. |
+| `figures/` | Figures package (8 modules): `__init__`, `common` (palette, watermark, annotations, MC overlay), `bubble` (+ PL/S2F overlays), `heatmap`, `dca`, `retire`, `supercharge`, `citadel` | `build_bubble_figure()`, `build_heatmap_figure()`, etc. |
+| `engines/adapter.py` | Simulation engine adapter — routes to QR, MC, or Citadel engine | — |
+| `engines/citadel.py` | Citadel planning simulation engine | `run_citadel()` |
 | `mc_overlay.py` | MC simulation, caching, fan band traces, regime filters | `_mc_dca_overlay()`, `_mc_retire_overlay()`, etc. |
 | `mc_cache.py` | Pre-computed MC cache generation/loading/lookup | `load_caches()`, `get_cached_paths()`, `get_cached_overlay()` |
 | `load_shm_cache.py` | Shared memory cache loading | — |
 | `api.py` | REST API endpoints | `register_routes()` |
 | `btcpay.py` | BTCPay Server payment integration | Invoice lifecycle |
 | `btc_core.py` | ModelData class, QR pricing math, lot percentiles | `ModelData`, `qr_price()`, `yr_to_t()` |
-| `test_web.py` | Tests: utilities, builders, snapshots, callbacks, btcpay, regime filters | — |
+| `test_web.py` | Tests: utilities, builders, snapshots, callbacks, btcpay, regime filters (~590+ passing) | — |
 
 ---
 
 ## 3. Tab Architecture
 
-### 8 tabs
+### 9 tabs
 
 | # | Tab | ID | Chart builder | MC overlay | Key controls |
 |---|-----|----|---------------|------------|--------------|
@@ -89,8 +98,9 @@ figures.py
 | 4 | BTC RetireMentator | `retire` | `build_retire_figure()` | `_mc_retire_overlay()` | Withdrawal, inflation, depletion arrows |
 | 5 | HODL Supercharger | `supercharge` | `build_supercharge_figure()` | `_mc_supercharge_overlay()` | Mode A/B, delays, depletion bands |
 | 6 | Stack Tracker | `stack` | None (DataTable) | None | Lot CRUD, import/export |
-| 7 | Model Info | `model_info` | None | None | Accordion, deep-linkable (`/7.N`) |
-| 8 | FAQ | `faq` | None | None | Accordion, 20 entries, deep-linkable (`/8.N`) |
+| 7 | Citadel Planner | `citadel` | `build_citadel_figure()` | None | Citadel simulation engine, multi-scenario planning |
+| 8 | Model Info | `model_info` | None | None | Accordion, deep-linkable (`/8.N`) |
+| 9 | FAQ | `faq` | None | None | Accordion, 20 entries, deep-linkable (`/9.N`) |
 
 ### Control panel structure (tabs 2–5)
 
@@ -123,11 +133,15 @@ its own mc-amount, mc-freq, mc-infl since QR heatmap doesn't use those parameter
 
 ### Price models & Display Models
 
-Four price models registered at startup in `_app_ctx.PRICE_MODELS`:
+Seven or more price models registered at startup in `_app_ctx.PRICE_MODELS`:
 - **Bubble Model** (`"bub"`) — default, loaded from `model_data.pkl`
 - **Power Law** (`"pl"`) — OLS fit to log-log data
 - **S2F (Stock-to-Flow)** (`"s2f"`) — alternative parameterization
 - **BM Empirical Floor** (`"ef"`) — steeper support (slope 5.31) with Gaussian composite bands, loaded from `model_data_ef.pkl` (conditional — only if pkl exists)
+- **Quantile Regression** (`"qr"`) — direct QR power law channels (standalone display model)
+- **LPPL** (`"lppl"`) — Log-Periodic Power Law model
+- **Exponential** (`"exp"`) — exponential trend fit
+- **U₁** (`"u1"`) — additional alternative parameterization
 
 Per-tab model display:
 - **Bubble tab**: `bub-model-show` checklist toggles PL + S2F overlays on the bubble chart.
@@ -398,16 +412,16 @@ DCA, Retire, and SC tabs all support this toggle.
 
 ### Control inventory
 
-97 `_SNAPSHOT_CONTROLS` entries — `(component_id, property)` tuples covering
-all UI controls across 8 tabs (Model Info has no snapshot controls).
+~206 `_SNAPSHOT_CONTROLS` entries — `(component_id, property)` tuples covering
+all UI controls across 9 tabs (Model Info has no snapshot controls).
 
 ### Encoding pipeline
 
 ```
-Control states → JSON array (97 elements) → gzip → base64 urlsafe → URL hash
+Control states → JSON array (~206 elements) → gzip → base64 urlsafe → URL hash
 ```
 
-URL format: `host/N#q3:ENCODED` where `N` is the tab path (1–8).
+URL format: `host/N#q3:ENCODED` where `N` is the tab path (1–9).
 
 ### Versioning
 
@@ -506,12 +520,12 @@ internally by `_mc_setup()` — tab callbacks don't call it directly.
 ### Clientside callbacks
 
 30 clientside callbacks handle fast UI interactions without server round-trips:
-- Tab routing (`/1`–`/8` → tab switch)
+- Tab routing (`/1`–`/9` → tab switch)
 - Zoom toggle (dragmode enable/disable)
 - MC control visibility
 - SC mode A/B panel switching
-- Model Info deep-linking (`/7.N`)
-- FAQ deep-linking (`/8.N`)
+- Model Info deep-linking (`/8.N`)
+- FAQ deep-linking (`/9.N`)
 
 ---
 
@@ -535,6 +549,48 @@ Scales naturally across BTC's price range ($0.06 → $0.06, $95,437 → $95,400)
 `_prewarm_caches()` runs at worker startup, pre-building figures for default
 parameters across all tabs. Bubble cache key includes `date.today()` for
 natural daily TTL.
+
+### Three-layer figure cache (`cache.py`)
+
+Figure caching has three layers with fallthrough:
+
+```
+L0: Pinned cache — always-warm entries for default params (never evicted)
+    │ miss
+    ▼
+L1: LRU cache — @lru_cache(maxsize=8) per tab, in-process (fast)
+    │ miss
+    ▼
+L2: Redis cache — cross-worker shared cache, serialized figures
+```
+
+`cache.py` provides `get_figure()` and `invalidate()`. Tab defaults live in
+`tab_defaults.py` (`TAB_DEFAULTS` dict) and are consumed by both the prewarm
+logic and the coercion helpers in `callbacks/coerce.py`.
+
+---
+
+## 11b. User Model Feature
+
+The User Model feature allows users to supply custom price model parameters
+(intercept, slope, or full QR fits) to overlay a personalized price path on
+charts. `callbacks/user_model.py` handles upload, validation, and storage.
+User model state is kept in a `dcc.Store` (memory) and wired into the figure
+builders via `_app_ctx`. The `layout/model_info.py` module exposes the upload
+UI.
+
+---
+
+## 11c. Citadel Simulation Engine
+
+The Citadel Planner (tab 7) uses a dedicated simulation engine in
+`engines/citadel.py`. It models multi-phase Bitcoin accumulation and
+drawdown scenarios (e.g., accumulate → hold → fund a citadel / sovereign
+community). `engines/adapter.py` provides a unified interface so figure
+builders can call any engine (QR, MC, Citadel) through a single dispatch
+layer. `figures/citadel.py` builds the chart; `callbacks/citadel_cb.py`
+wires the Dash callbacks; `callbacks/scanner.py` handles any scanning or
+detection logic for the Citadel tab.
 
 ---
 

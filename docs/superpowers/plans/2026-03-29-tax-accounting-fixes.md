@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-03-29-tax-accounting-fixes-design.md`
 
-**Test command:** `PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/test_web.py --tb=short`
+**Test command:** `PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/ --tb=short` (runs ALL test files including test_citadel.py, test_citadel_steps.py, test_citadel_diag.py)
 
 ---
 
@@ -130,7 +130,7 @@ In the `step()` function, after the time advance (`new.period += 1`, around line
     new.sim_date = f"{_sim_yr}-{_sim_mo:02d}-15"
 ```
 
-This should go early in `step()`, before the spending waterfall call.
+This MUST go after `new.t += dt` (~line 1178) and BEFORE `_evaluate_rebalancing` (~line 1279), since rebalancing now calls `_execute_sell_btc` → `_sell_btc_tracked` which reads `state.sim_date`. Place it right after the time advance block, before any asset returns or rebalancing.
 
 - [ ] **Step 6: Run tests**
 
@@ -143,7 +143,7 @@ Expected: All 3 PASS.
 - [ ] **Step 7: Run full suite**
 
 ```bash
-PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/test_web.py --tb=short 2>&1 | tail -10
+PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/ --tb=short 2>&1 | tail -15
 ```
 
 Expected: All tests PASS (some existing tests may need `_test_model()` adjustments if `_initial_state` import changed — investigate any failures).
@@ -368,7 +368,7 @@ Expected: All PASS.
 - [ ] **Step 9: Run full suite**
 
 ```bash
-PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/test_web.py --tb=short 2>&1 | tail -10
+PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/ --tb=short 2>&1 | tail -15
 ```
 
 Expected: All tests PASS.
@@ -495,7 +495,7 @@ Expected: All PASS.
 - [ ] **Step 6: Run full suite**
 
 ```bash
-PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/test_web.py --tb=short 2>&1 | tail -10
+PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/ --tb=short 2>&1 | tail -15
 ```
 
 Expected: All PASS.
@@ -650,6 +650,30 @@ Line ~479: `_execute_sell_btc(state, action["rate"], split)` → `_execute_sell_
 
 Line ~490: `_execute_sell_btc(state, state.grad_rate, split)` → `_execute_sell_btc(state, config, state.grad_rate, split)`
 
+- [ ] **Step 5b: Update all `_execute_buy_btc` callers in `_evaluate_rebalancing`**
+
+The old calls use `config=config` as a keyword arg. The new signature has `config` as the 2nd positional arg. Find and replace all 3 occurrences:
+
+Line ~466: `_execute_buy_btc(state, state.grad_rate, state.grad_split, config=config)` → `_execute_buy_btc(state, config, state.grad_rate, state.grad_split)`
+
+Line ~501: `_execute_buy_btc(state, action["rate"], split, config=config)` → `_execute_buy_btc(state, config, action["rate"], split)`
+
+Line ~512: `_execute_buy_btc(state, state.grad_rate, split, config=config)` → `_execute_buy_btc(state, config, state.grad_rate, split)`
+
+- [ ] **Step 5c: Update existing tests that call `_execute_sell_btc` / `_execute_buy_btc` with old signatures**
+
+In `btc_web/test_web.py`, update the `TestBtcSaleDistribution` and `TestBtcPurchaseSourcing` tests:
+
+- `test_sell_distributes_per_split` (~line 6267): add `from engines.citadel import SimConfig` and change `_execute_sell_btc(state, rate_pct=10.0, split=split)` → `_execute_sell_btc(state, SimConfig(cost_basis_method="fifo"), rate_pct=10.0, split=split)`. Also add `sim_date="2035-01-15"` to the CitadelState constructor.
+
+- `test_sell_zero_btc_no_event` (~line 6287): same pattern — add `SimConfig` as 2nd arg.
+
+- `test_buy_sources_per_split` (~line 6298): change `_execute_buy_btc(state, rate_pct=10.0, split=split)` → `_execute_buy_btc(state, SimConfig(), rate_pct=10.0, split=split)`. Add `sim_date="2035-01-15"` to state.
+
+- `test_buy_respects_floor` (~line 6319): change `_execute_buy_btc(state, rate_pct=10.0, split=split, config=cfg)` → `_execute_buy_btc(state, cfg, rate_pct=10.0, split=split)`. Add `sim_date`.
+
+- `test_buy_redistributes_shortfall` (~line 6332): same pattern.
+
 - [ ] **Step 6: Update `_scf_check_repay` to use `_sell_btc_tracked`**
 
 Replace the BTC sale block (lines ~587-592):
@@ -680,7 +704,7 @@ Expected: All PASS.
 - [ ] **Step 8: Run full suite**
 
 ```bash
-PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/test_web.py --tb=short 2>&1 | tail -10
+PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/ --tb=short 2>&1 | tail -15
 ```
 
 Expected: All PASS. Existing rebalancing tests (TestBtcThresholdRules, TestBtcSaleDistribution, etc.) should still pass with the new signatures.
@@ -830,6 +854,16 @@ Replace the inline `_sell_taxable_btc()` closure with calls to `_sell_btc_tracke
 
 Remove the entire function (lines ~223-264).
 
+- [ ] **Step 5b: Update 3 other test files that import `_apply_spending_waterfall`**
+
+These files will break when the function is deleted:
+
+**`btc_web/test_citadel.py`** (line 13): Remove `_apply_spending_waterfall` from the import. Replace the 5 call sites (lines ~117, 123, 131, 142, 149) with `_spending_waterfall(s, SimConfig(...), amount, model=None)`. Each test creates a `CitadelState` — add `sim_date="2035-01-15"` to each. Add `SimConfig` import if not present. The `_spending_waterfall` needs `config` for the growth-aware logic; use `SimConfig()` defaults.
+
+**`btc_web/test_citadel_steps.py`** (line 21): Remove `_apply_spending_waterfall` from import. Update any calls similarly.
+
+**`btc_web/test_citadel_diag.py`** (line 18): Remove `_apply_spending_waterfall` from import. If it's only imported but not called, just remove the import.
+
 - [ ] **Step 6: Update `step()` to use the merged waterfall**
 
 Replace:
@@ -854,7 +888,7 @@ The `sim_date` computation was already moved to earlier in step() (Task 1, Step 
 - [ ] **Step 7: Run tests**
 
 ```bash
-PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/test_web.py --tb=short 2>&1 | tail -15
+PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/ --tb=short 2>&1 | tail -15
 ```
 
 Expected: All PASS. This is the highest-risk task — investigate any failures carefully.

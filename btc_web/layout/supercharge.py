@@ -113,5 +113,17 @@ def _supercharge_controls():
 
 
 def _supercharge_tab():
-    return _chart_tab_layout(_supercharge_controls, "supercharge-graph", "btc_supercharge",
-                             mc_prefix="sc")
+    layout = _chart_tab_layout(_supercharge_controls, "supercharge-graph", "btc_supercharge",
+                               mc_prefix="sc")
+    try:
+        from tab_defaults import supercharge_defaults
+        from utils import _get_supercharge_fig
+        sd = supercharge_defaults()
+        sd["selected_qs"] = [q for q in [0.001, 0.10] if q in (_app_ctx.DEFAULT_MODEL.fits or {})]
+        fig = _get_supercharge_fig(sd)
+        fig = fig[0] if isinstance(fig, tuple) else fig
+        from layout.common import _inject_initial_figure
+        _inject_initial_figure(layout, "supercharge-graph", fig)
+    except Exception:
+        pass
+    return layout

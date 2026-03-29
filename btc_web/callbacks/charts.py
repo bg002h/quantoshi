@@ -358,7 +358,6 @@ def update_heatmap(active_tab, hm_model, entry_yr, entry_q, exit_range, exit_qs,
     Output("mc-save-tab", "data", allow_duplicate=True),
     Output("dca-mc-unblocked", "data"),
     Output("dca-yr-range", "value", allow_duplicate=True),
-    Input("main-tabs",    "active_tab"),
     Input("dca-stack",    "value"),
     Input("dca-use-lots", "value"),
     Input("dca-amount",   "value"),
@@ -401,15 +400,13 @@ def update_heatmap(active_tab, hm_model, entry_yr, entry_q, exit_range, exit_qs,
     State("user-model-store",   "data"),
     prevent_initial_call=True,
 )
-def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, disp, toggles, legend_pos, sel_qs, lots_data,
+def update_dca(stack, use_lots, amount, freq, dca_infl, yr_range, disp, toggles, legend_pos, sel_qs, lots_data,
                sc_enable, sc_loan, sc_rate, sc_term, sc_type, sc_repeats,
                sc_entry_mode, sc_custom_price, sc_tax, sc_rollover,
                mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
                user_model_store=None):
-    if ctx.triggered_id == "main-tabs" and active_tab != "dca":
-        raise dash.exceptions.PreventUpdate
     toggles    = toggles or []
     yr_range   = yr_range or [2024, 2034]
     live_price = _cf(price_data, 0)
@@ -480,7 +477,6 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
     Output("mc-save-tab", "data", allow_duplicate=True),
     Output("ret-mc-unblocked", "data"),
     Output("ret-yr-range", "value", allow_duplicate=True),
-    Input("main-tabs",    "active_tab"),
     Input("ret-stack",    "value"),
     Input("ret-use-lots", "value"),
     Input("ret-wd",       "value"),
@@ -513,13 +509,11 @@ def update_dca(active_tab, stack, use_lots, amount, freq, dca_infl, yr_range, di
     State("user-model-store",   "data"),
     prevent_initial_call=True,
 )
-def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, lots_data,
+def update_retire(stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, lots_data,
                   mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                   mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                   price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
                   user_model_store=None):
-    if ctx.triggered_id == "main-tabs" and active_tab != "retire":
-        raise dash.exceptions.PreventUpdate
     toggles  = toggles or []
     yr_range = yr_range or [RETIRE["start_yr"], RETIRE["end_yr"]]
     mc_ok, is_free, mc_p, blocked = _mc_setup(
@@ -584,7 +578,6 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     Output("mc-save-tab", "data", allow_duplicate=True),
     Output("sc-mc-unblocked",   "data"),
     Output("sc-start-yr", "value", allow_duplicate=True),
-    Input("main-tabs",       "active_tab"),
     Input("sc-stack",        "value"),
     Input("sc-use-lots",     "value"),
     Input("sc-start-yr",     "value"),
@@ -628,7 +621,7 @@ def update_retire(active_tab, stack, use_lots, wd, freq, yr_range, infl, disp, t
     State("user-model-store",  "data"),
     prevent_initial_call=True,
 )
-def update_supercharge(active_tab, stack, use_lots, start_yr,
+def update_supercharge(stack, use_lots, start_yr,
                        d0, d1, d2, d3, d4,
                        freq, infl, sel_qs, mode,
                        wd, end_yr, target_yr, disp,
@@ -637,8 +630,6 @@ def update_supercharge(active_tab, stack, use_lots, start_yr,
                        mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                        price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
                        viewport_width, user_model_store=None):
-    if ctx.triggered_id == "main-tabs" and active_tab != "supercharge":
-        raise dash.exceptions.PreventUpdate
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
     toggles = toggles or []
     yr_now  = pd.Timestamp.today().year

@@ -129,7 +129,17 @@ def _dca_controls():
 
 
 def _dca_tab():
-    return _chart_tab_layout(_dca_controls, "dca-graph", "btc_dca", mc_prefix="dca")
+    layout = _chart_tab_layout(_dca_controls, "dca-graph", "btc_dca", mc_prefix="dca")
+    try:
+        from tab_defaults import dca_defaults
+        from utils import _get_dca_fig
+        fig = _get_dca_fig(dca_defaults())
+        fig = fig[0] if isinstance(fig, tuple) else fig
+        from layout.common import _inject_initial_figure
+        _inject_initial_figure(layout, "dca-graph", fig)
+    except Exception:
+        pass
+    return layout
 
 
 def _retire_controls():
@@ -152,4 +162,14 @@ def _retire_controls():
 
 
 def _retire_tab():
-    return _chart_tab_layout(_retire_controls, "retire-graph", "btc_retire", mc_prefix="ret")
+    layout = _chart_tab_layout(_retire_controls, "retire-graph", "btc_retire", mc_prefix="ret")
+    try:
+        from tab_defaults import retire_defaults
+        from utils import _get_retire_fig
+        fig = _get_retire_fig(retire_defaults())
+        fig = fig[0] if isinstance(fig, tuple) else fig
+        from layout.common import _inject_initial_figure
+        _inject_initial_figure(layout, "retire-graph", fig)
+    except Exception:
+        pass
+    return layout

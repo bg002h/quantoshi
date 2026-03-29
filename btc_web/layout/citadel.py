@@ -331,18 +331,6 @@ def _citadel_tab():
     )
     # Inject initial figure into the dcc.Graph component
     if initial_fig is not None:
+        from layout.common import _inject_initial_figure
         _inject_initial_figure(layout, "citadel-graph", initial_fig)
     return layout
-
-
-def _inject_initial_figure(layout, graph_id, fig):
-    """Walk the layout tree and set the initial figure on the Graph component."""
-    if hasattr(layout, 'children'):
-        children = layout.children
-        if isinstance(children, list):
-            for child in children:
-                _inject_initial_figure(child, graph_id, fig)
-        elif children is not None:
-            _inject_initial_figure(children, graph_id, fig)
-    if hasattr(layout, 'id') and layout.id == graph_id:
-        layout.figure = fig

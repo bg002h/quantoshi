@@ -894,31 +894,6 @@ def _tax_aware_waterfall(state: CitadelState, config: SimConfig,
             return 0.0
         if _sell_taxable_investments():
             return 0.0
-    if remaining > 0 and state.btc_price > 0 and state.tax_lots:
-        btc_to_sell = remaining / state.btc_price
-        btc_to_sell = min(btc_to_sell, state.btc_stack)
-        if btc_to_sell > _SATOSHI:
-            result = sell_lots(
-                state.tax_lots, btc_to_sell, state.btc_price,
-                sim_date, method=config.cost_basis_method,
-            )
-            state.tax_lots = result.remaining_lots
-            state.btc_stack -= result.btc_sold
-            proceeds = result.btc_sold * state.btc_price
-            remaining -= proceeds
-            # Record gains
-            if state.tax_year_accum is not None:
-                for g in result.gains:
-                    if g.is_long_term:
-                        if g.gain >= 0:
-                            state.tax_year_accum.lt_capital_gains += g.gain
-                        else:
-                            state.tax_year_accum.lt_capital_losses += abs(g.gain)
-                    else:
-                        if g.gain >= 0:
-                            state.tax_year_accum.st_capital_gains += g.gain
-                        else:
-                            state.tax_year_accum.st_capital_losses += abs(g.gain)
 
     if remaining <= 0:
         return 0.0
@@ -1082,14 +1057,23 @@ def _year_boundary_tax(state: CitadelState, config: SimConfig,
                 tax_on_sale = (draw - basis_removed) * ltcg_rate
                 tax_remaining -= (net_received - tax_on_sale)  # net after tax-on-sale
 
-        # 4. TD withdrawal — gross-up for ordinary income
+        # 4. TD withdrawal — gross-up for ordinary income at actual marginal rate
         if tax_remaining > 0:
+            # Estimate marginal ordinary rate from the tax result's effective rate,
+            # or compute from AGI position in brackets
+            from .tax import apply_progressive_brackets, _inflate_brackets
             from .tax_data import FEDERAL_BRACKETS_TCJA, FEDERAL_BRACKETS_SUNSET
+            _agi = tax_result.get("agi", 0)
+            _yrs = max(sim_year - 2025, 0)
             if config.tcja_sunset:
-                top_rate = FEDERAL_BRACKETS_SUNSET[config.filing_status][-1][1]
+                _brk = _inflate_brackets(FEDERAL_BRACKETS_SUNSET[config.filing_status], _yrs, config.inflation / 100)
             else:
-                top_rate = FEDERAL_BRACKETS_TCJA[config.filing_status][-1][1]
-            ordinary_rate = top_rate + _get_state_rate(config) / 100
+                _brk = _inflate_brackets(FEDERAL_BRACKETS_TCJA[config.filing_status], _yrs, config.inflation / 100)
+            # Marginal rate = rate on the next dollar above current AGI
+            _tax_at_agi = apply_progressive_brackets(_agi, _brk)
+            _tax_at_agi_plus = apply_progressive_brackets(_agi + 1, _brk)
+            _marginal_fed = _tax_at_agi_plus - _tax_at_agi
+            ordinary_rate = _marginal_fed + _get_state_rate(config) / 100
             gross = tax_remaining / max(1.0 - ordinary_rate, 0.1)
             td_avail = state.td_cash + sum(state.td_reserves) + sum(state.td_investments)
             td_draw = min(gross, td_avail)
@@ -1204,13 +1188,18 @@ def step(state: CitadelState, config: SimConfig,
                 new.tf_investments[i] *= (1 + r2)
 
     # 2c. Accumulate taxable-wrapper interest income per period
+    # Use PRE-GROWTH balances to avoid double-counting (the growth IS the interest)
     if config.tax_enabled and new.tax_year_accum is not None:
         _period_frac = 1.0 / ppy
-        # Cash interest → ordinary income (state-taxable)
-        new.tax_year_accum.interest_income += new.cash * (config.cash_rate / 100) * _period_frac
+        _cash_growth_factor = (1 + config.cash_rate / 100) ** _period_frac
+        _pre_growth_cash = new.cash / _cash_growth_factor if _cash_growth_factor > 0 else new.cash
+        new.tax_year_accum.interest_income += _pre_growth_cash * (config.cash_rate / 100) * _period_frac
         # Treasury interest → ordinary income (federal) but state-exempt
         for _ri, _rb in enumerate(config.reserve_bins):
-            new.tax_year_accum.treasury_interest += new.reserves[_ri] * (_rb["rate"] / 100) * _period_frac
+            _res_rate = _rb["rate"] / 100
+            _res_growth = (1 + _res_rate) ** _period_frac
+            _pre_growth_res = new.reserves[_ri] / _res_growth if _res_growth > 0 else new.reserves[_ri]
+            new.tax_year_accum.treasury_interest += _pre_growth_res * _res_rate * _period_frac
 
     # 3. Compute BTC quantile from price via model
     #    Use t_before (pre-increment) since the price was generated for that time

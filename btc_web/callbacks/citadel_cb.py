@@ -276,7 +276,7 @@ def update_citadel(
             height=500, margin=dict(t=40, b=40),
         )
         return (fig, dash.no_update, dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update, dash.no_update)
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update)
 
     toggles = toggles or []
     yr_range = yr_range or [2031, 2075]

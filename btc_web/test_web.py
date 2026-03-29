@@ -6488,3 +6488,28 @@ class TestQuarterlyTaxPayments:
         state = CitadelState()
         assert hasattr(state, "quarterly_tax_paid_ytd")
         assert state.quarterly_tax_paid_ytd == 0.0
+
+    def test_pay_tax_amount_draws_from_cash_first(self):
+        """_pay_tax_amount draws cash before other sources."""
+        from engines.citadel import CitadelState, SimConfig, _pay_tax_amount
+        state = CitadelState(
+            cash=50_000, reserves=[0, 0, 0], investments=[0, 0],
+            td_cash=0, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            invest_cost_basis=[0, 0],
+        )
+        cfg = SimConfig(tax_enabled=True, state_code="TX")
+        _pay_tax_amount(state, cfg, amount=30_000, sim_year=2031)
+        assert state.cash == pytest.approx(20_000)
+
+    def test_pay_tax_amount_uses_investments_after_cash(self):
+        """_pay_tax_amount falls through to investments when cash exhausted."""
+        from engines.citadel import CitadelState, SimConfig, _pay_tax_amount
+        state = CitadelState(
+            cash=10_000, reserves=[0, 0, 0], investments=[100_000, 0],
+            td_cash=0, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            invest_cost_basis=[100_000, 0],  # full basis = no gain = no gross-up needed
+        )
+        cfg = SimConfig(tax_enabled=True, state_code="TX")
+        _pay_tax_amount(state, cfg, amount=30_000, sim_year=2031)
+        assert state.cash == 0
+        assert state.investments[0] < 100_000

@@ -40,7 +40,10 @@ address for additional privacy.
 
 - **Live ticker**: Shows the current BTC price (`₿ $X`) and your current
   quantile percentile (`QY.Y%`), updated every 20 minutes. A 24-hour sparkline
-  chart appears next to the price.
+  chart appears next to the price. **Tap the percentile badge to cycle through
+  models** — each tap steps through QR → Bubble Model → Power Law → LPPL →
+  Exponential → Empirical Floor → User Model (U₁), showing where the current
+  price sits relative to each model.
 - **Sats/$ toggle**: Click the ticker mode button to switch between USD price
   and sats-per-dollar display.
 - **Palette selector**: Choose between Default, Colorblind-RG (red-green safe),
@@ -69,12 +72,33 @@ channels and bubble model projections.
   quantile on the right edge of the chart.
 - **Use Stack Tracker lots**: Pull your BTC amount from the Stack Tracker tab
   instead of entering manually.
-- **Display Models**: Toggle overlay models (Power Law, Stock-to-Flow) on the
-  bubble chart to compare against the default bubble model projections.
+- **Display Models**: Toggle overlay models on the bubble chart to compare
+  against the default bubble model projections.
+  - **Power Law** — Simple OLS log-log power law fit.
+  - **S2F (Stock-to-Flow)** — Alternative parameterization based on scarcity.
+  - **LPPL** — Log-Periodic Power Law, a model that captures oscillatory
+    patterns superimposed on the long-run power-law trend.
+  - **Exponential** — An exponential growth fit to price history.
   - **BM Empirical Floor** — An alternate bubble model with a steeper support
     line anchored to observed bear-market lows. Projects faster bubble
-    convergence, suggesting the end of the 4-year halving cycle. Available
-    on all tabs when enabled.
+    convergence, suggesting the end of the 4-year halving cycle.
+  - **User Model (U₁)** — Your own custom power law drawn through two points
+    you pick on the chart. See the User Model section below. Available on
+    all tabs once drawn.
+
+**User Model (U₁):**
+
+Draw your own power-law line by clicking two points directly on the chart:
+
+1. Right-click (or long-press on mobile) a data point on the chart to open
+   the context menu and set it as **P1**.
+2. Right-click a second point to set **P2**.
+3. Click **Draw** — an orange power-law line is fitted through your two points
+   and added to the chart.
+
+The line persists for the current browser session. It appears as an overlay
+option ("User Model") on all tabs while it exists. Close the browser tab to
+clear it; it is not saved to `localStorage`.
 
 **Tips:**
 - Select a few quantiles that bracket your scenario (e.g., Q10% pessimistic,
@@ -194,10 +218,22 @@ total BTC from all lots becomes the starting stack for that simulation.
 
 ### Tab 7: Model Info
 
-Detailed documentation of the price models (Quantile Regression / Bubble
-Model, Power Law, Stock-to-Flow, Monte Carlo) including formulas, fitted
+Detailed documentation of the price models including formulas, fitted
 coefficients, and methodology. Organized as an accordion — directly linkable
-via URL paths like `/7.3` (opens the 3rd section).
+via URL paths like `/7.3` (opens the 3rd section). Sections include:
+
+- **Quantile Regression / Bubble Model** — power-law channels fitted at each
+  percentile, with bubble composite construction.
+- **Power Law** — OLS log-log fit.
+- **S2F (Stock-to-Flow)** — scarcity-based alternative.
+- **Monte Carlo** — Markov chain transition matrix, regime bins.
+- **LPPL** — Log-Periodic Power Law formula and fitted parameters.
+- **Exponential** — Exponential growth fit coefficients.
+- **User Model (U₁)** — How the custom two-point power law is constructed;
+  shows the fitted slope and intercept once a U₁ line has been drawn.
+- **Historical Regimes** — Documentation of the price regime bins
+  (Bargain / Cheap / Fair / Pricey / Bubble) used by the Monte Carlo engine,
+  including transition probabilities.
 
 ### Tab 8: FAQ
 
@@ -205,6 +241,42 @@ via URL paths like `/7.3` (opens the 3rd section).
 regime analysis (Box-Cox sweep, rolling regression, Bai-Perron breakpoints,
 Chow test, CUSUM), QR vs MCMC differences, privacy, and more. Directly
 linkable via URL paths like `/8.5` (opens the 5th FAQ item).
+
+### Tab 9: Citadel Planner
+
+Long-horizon financial planning across multiple asset classes — Bitcoin, stocks,
+bonds, real estate, and cash. Model how a mixed portfolio evolves over decades,
+with flexible rebalancing and withdrawal rules.
+
+**Sub-tabs:**
+
+- **Assets** — Define your starting portfolio. Add holdings by asset class,
+  enter initial values, and configure expected returns. Toggle between
+  **Fixed Rates** (you specify a single annual return per asset) and
+  **Historical Regimes** (returns are drawn from historical distributions for
+  each asset class, capturing sequence-of-returns risk).
+- **Spending** — Set your annual withdrawal amount, frequency, inflation rate,
+  and simulation start/end years.
+- **Rules** — Configure rebalancing triggers. Each trigger has an **enable/
+  disable checkbox** so you can compare "rebalance vs hold" scenarios.
+  Triggers include threshold-based (e.g., any asset drifts > N% from target)
+  and calendar-based (annual, quarterly) options.
+- **Simulation** — Run the simulation and view results:
+  - **▶ Run Simulation** — deterministic run using your fixed rates or median
+    historical regime returns. Instant; no randomness.
+  - **⚡ Run MC Simulation** — stochastic run sampling from historical return
+    distributions across many paths. Shows fan bands of outcomes. Requires
+    MC access (same Lightning payment as other MC features).
+  - **Show All / Hide All** buttons toggle all legend traces at once for
+    cleaner chart reading.
+
+**Tips:**
+- Use Fixed Rates for a quick "baseline" scenario, then switch to Historical
+  Regimes to see how sequence-of-returns risk affects the outcome.
+- Disable all rebalancing rules to model a pure "buy and hold" strategy, then
+  re-enable them one by one to see which triggers matter most.
+- The Citadel Planner uses the same BTC price model as the other tabs — your
+  selected quantile for BTC projections feeds directly into the simulation.
 
 ---
 

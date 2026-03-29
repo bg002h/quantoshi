@@ -265,8 +265,8 @@ def _model_show_checklist(prefix):
     opts = [
         {"label": " Bubble Model", "value": "bub"},
     ]
-    if _app_ctx._HAS_MARKOV:
-        opts.append({"label": " MC Simulation", "value": "mc"})
+    # MC Simulation option is injected dynamically when Markov engine is activated
+    # (see callbacks/mc_controls.py)
     for mdl in _app_ctx.PRICE_MODELS.values():
         if mdl.short_name in ("bub", "s2f"):
             continue  # bub already added above; s2f not quantized

@@ -24,20 +24,31 @@ for _mc_tog in ("dca", "ret", "hm", "sc", "cp"):
     def _toggle_mc_body(val):
         return {} if val else {"display": "none"}
 
-# Auto-check "mc" in Display Models when MC engine is enabled
+# MC engine toggle → inject/remove MC from Display Models options + value
 for _mc_auto in ("dca", "ret", "sc"):
     _app_ctx.app.clientside_callback(
         """
-        function(mc_enable, cur_models) {
+        function(mc_enable, cur_opts, cur_models) {
+            var opts = (cur_opts || []).slice();
             var models = (cur_models || []).slice();
+            var mc_opt = {label: " MC Simulation", value: "mc"};
+            var has_mc_opt = opts.some(function(o) { return o.value === "mc"; });
             if (mc_enable && mc_enable.length) {
+                // Activating: add MC option if missing, check it
+                if (!has_mc_opt) opts.push(mc_opt);
                 if (models.indexOf("mc") === -1) models.push("mc");
+            } else {
+                // Deactivating: remove MC option and uncheck it
+                opts = opts.filter(function(o) { return o.value !== "mc"; });
+                models = models.filter(function(v) { return v !== "mc"; });
             }
-            return models;
+            return [opts, models];
         }
         """,
+        Output(f"{_mc_auto}-model-show", "options", allow_duplicate=True),
         Output(f"{_mc_auto}-model-show", "value", allow_duplicate=True),
         Input(f"{_mc_auto}-mc-enable", "value"),
+        State(f"{_mc_auto}-model-show", "options"),
         State(f"{_mc_auto}-model-show", "value"),
         prevent_initial_call='initial_duplicate',
     )

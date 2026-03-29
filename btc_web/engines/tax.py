@@ -211,7 +211,7 @@ def compute_annual_tax(
     ord_brackets = _inflate_brackets(ord_brackets_base, years_from_base, inflation_rate)
     ltcg_brackets = _inflate_brackets(LTCG_BRACKETS[filing_status], years_from_base, inflation_rate)
     std_ded = std_ded_base * (1 + inflation_rate) ** years_from_base
-    niit_threshold = NIIT_THRESHOLD[filing_status] * (1 + inflation_rate) ** years_from_base
+    niit_threshold = NIIT_THRESHOLD[filing_status]  # NOT inflation-indexed per IRS
 
     # --- 1. Capital loss netting ---
     cap = net_capital_gains(

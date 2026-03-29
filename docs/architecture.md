@@ -464,10 +464,28 @@ The app uses a "first-render trigger" pattern for lazy tab rendering:
    their trigger increments
 5. Result: switching tabs fires exactly 1 callback (the active tab), not 6
 
-**URL-based initial tab**: The layout is a function (`_serve_layout`) that reads
-`flask.request.path` to determine the initial `active_tab`. Visiting `/9`
-builds the layout with `active_tab="citadel"` — the bubble callback never
-fires. No wasted computation for tabs the user didn't request.
+**URL-based initial tab + pre-injected figures**: The layout is a function
+(`_serve_layout`) that reads `flask.request.path` to determine the initial
+`active_tab`. It also pre-builds ALL tab figures from the L1 LRU cache
+(populated by prewarm) and injects them directly into the initial HTML. All
+`{tab}-first-render` stores start at `1`. Visiting `/9` builds the layout with
+`active_tab="citadel"` — the bubble callback never fires. Switching tabs
+requires **zero server round-trips** — figures are already present in the DOM;
+callbacks only fire when the user changes a control.
+
+**`tab_resize.js`**: Forces `Plotly.Plots.resize()` when a tab becomes
+visible. Required because hidden tabs render at zero/wrong size when the
+browser has not painted them yet.
+
+**`tab_dblclick.js`**: Double-clicking a tab header increments its
+`{tab}-first-render` store, triggering a full figure reload from the server.
+Escape hatch for stale-looking figures.
+
+**Background callbacks (Citadel)**: The Citadel "Run Simulation" button uses
+Dash's `background=True` with `DiskcacheManager`. The simulation runs in a
+separate process and does not block gunicorn workers. Button shows
+"⏳ Computing..." during long MC runs. Requires `diskcache`, `psutil`, `dill`,
+`multiprocess` in the environment.
 
 ### `prevent_initial_call` settings
 
@@ -764,6 +782,28 @@ systemd services:
 git push origin master
 ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && systemctl restart quantoshi"
 ```
+
+### nginx JS caching
+
+`/_dash-component-suites/` URLs contain version hashes (immutable assets).
+nginx caches them for 7 days:
+
+```nginx
+location /_dash-component-suites/ {
+    add_header Cache-Control "public, max-age=604800, immutable";
+}
+```
+
+Plotly.js is 4.7 MB (gzipped ~1.5 MB) — fetched once, then served from
+browser cache. `/_dash-layout` and `/_dash-dependencies` are explicitly set
+to `no-cache` so callback-graph changes are always detected.
+
+### Redis socket pre-check
+
+`redis_available()` in `_app_ctx.py` probes the Redis socket with a 0.2s
+timeout before attempting a full `ping`. Without this, a missing Redis
+instance causes an 8.6s TCP connection timeout that blocks gunicorn worker
+startup.
 
 ### Security headers
 

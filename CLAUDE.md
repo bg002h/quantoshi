@@ -352,6 +352,16 @@ Heatmap chart title format: `Entry: {year}  {price}  ·  Q{percentile}%` — pri
 
 **URL-based initial tab**: The layout is a function (`_serve_layout`) that reads `flask.request.path` to determine the initial `active_tab`. Visiting `/9` builds the layout with `active_tab="citadel"` — the bubble callback never fires. No wasted computation for tabs the user didn't request.
 
+**Pre-injected figures / zero-callback tab switching**: `_serve_layout` pre-builds ALL tab figures from the L1 LRU cache (which prewarm populated) and injects them directly into the initial HTML. All `{tab}-first-render` stores start at `1`, not `0`. Switching tabs requires zero server round-trips — figures are already present in the DOM. Callbacks only fire when the user changes a control.
+
+**`tab_resize.js`**: Calls `Plotly.Plots.resize()` when a tab becomes visible. Required because hidden tabs render at zero/wrong size when the browser hasn't painted them yet.
+
+**`tab_dblclick.js`**: Double-clicking a tab header increments its `{tab}-first-render` store, triggering a full figure reload from server. Escape hatch if a figure looks stale.
+
+**Background callbacks (Citadel)**: The Citadel "Run Simulation" button uses `background=True` with Dash's `DiskcacheManager`. The simulation runs in a separate process and does not block gunicorn workers. The button shows "⏳ Computing..." during long MC runs. Requires `diskcache`, `psutil`, `dill`, `multiprocess` in the environment.
+
+**Redis socket pre-check**: At startup, `redis_available()` probes the Redis socket with a 0.2s timeout before attempting a full `ping`. Without this, a missing Redis instance causes an 8.6s connection timeout that blocks gunicorn worker startup.
+
 **`prevent_initial_call` settings**:
 
 | Callback | Setting | Why |
@@ -397,6 +407,8 @@ _app_ctx.app.clientside_callback(
 **Frequency options**: All frequency dropdowns (dca-freq, ret-freq, sc-freq, cp-freq) offer Daily/Weekly/Monthly/Quarterly/Annually. `FREQ_PPY` in `_app_ctx.py` maps these to 365/52/12/4/1. `FREQ_LABEL` maps to "/day"/"/wk"/"/mo"/"/qtr"/"/yr".
 
 **Mobile portrait layout**: On small screens (`max-width: 767px`) columns stack vertically (controls below chart). The `dcc.Graph` inline `style="height:78vh"` must be overridden in CSS or it leaves a large blank gap above the controls. Fix in `style.css`: `[id$="-graph"] { height: 55vw !important; min-height: 280px !important; }` alongside the same rule on `.js-plotly-plot`. A mobile-only `↓ Scroll down to configure` hint is appended inside `_export_row()` (hidden on ≥768px via `d-md-none`), covering all 5 chart tabs automatically.
+
+**Nginx JS caching**: `/_dash-component-suites/` URLs contain version hashes (immutable assets). nginx caches them for 7 days with `Cache-Control: public, max-age=604800, immutable`. Plotly.js is 4.7 MB (gzipped ~1.5 MB) — cached after the first load, not re-fetched on subsequent visits or deploys.
 
 **Stale `/_dash-dependencies` between deploys**: Old browsers cache Dash's callback signature map. If the callback graph changes (new outputs added), cached clients send requests with old output-key hashes → server returns 500 → Dash marks those output components as errored → user interactions silently do nothing.
 - Fix (already in place): `@server.after_request` hook sets `Cache-Control: no-cache` on `/_dash-layout` and `/_dash-dependencies`. Defined immediately after `server = app.server`.

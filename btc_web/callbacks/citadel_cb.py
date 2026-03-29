@@ -189,6 +189,9 @@ def show_asset_model_info(model):
     State("cp-mc-model-src",     "value"),
     State("palette-store",       "data"),
     State("user-model-store",    "data"),
+    # ── Tax ──
+    State("cp-tax-toggle",       "value"),
+    State("cp-tax-config",       "data"),
     # ── MC States ──
     State("btc-price-store",     "data"),
     State("cp-mc-results",       "data"),
@@ -238,6 +241,8 @@ def update_citadel(
     mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
     mc_start_yr, mc_entry_q, mc_model_src,
     palette_key, user_model_store,
+    # Tax
+    tax_toggle, tax_config,
     # MC states
     price_data, mc_cached, pay_token, mc_unblocked, mc_auth,
 ):
@@ -294,8 +299,8 @@ def update_citadel(
         stack=stack, amount_default=5000, infl_default=4.0, start_yr_default=2031,
         mc_model_src=mc_model_src)
 
-    # 2. Build figure (merge MC params)
-    fig, mc_result = _get_citadel_fig(dict(
+    # 2. Build params dict, then pass to figure builder
+    p = dict(
         start_stack     = _cf(stack, CITADEL["start_stack"]),
         use_lots        = bool(use_lots),
         lots            = lots_data or [],
@@ -334,7 +339,6 @@ def update_citadel(
         high_q_split_rl = _cf(high_q_split_rl, CITADEL["high_q_split_rl"], lo=0, hi=100),
         high_q_split_eq = _cf(high_q_split_eq, CITADEL["high_q_split_eq"], lo=0, hi=100),
         high_q_split_bd = _cf(high_q_split_bd, CITADEL["high_q_split_bd"], lo=0, hi=100),
-        # Low-Q trigger
         # Low-Q trigger (disabled → threshold 0 = never triggers)
         low_q_trigger   = _cf(low_q_thresh, CITADEL["low_q_trigger"], lo=1, hi=99) if low_q_enable else 0,
         low_q_mode      = low_q_mode or CITADEL["low_q_mode"],
@@ -379,7 +383,26 @@ def update_citadel(
         palette         = palette_key or CITADEL["palette"],
         user_model      = user_model_store,
         **mc_p,
-    ))
+    )
+
+    # Tax configuration
+    if tax_toggle:
+        tc = tax_config or {}
+        p["tax_enabled"] = True
+        p["filing_status"] = tc.get("filing_status", "single")
+        p["state_code"] = tc.get("state_code", "TX")
+        p["state_rate_override"] = tc.get("state_rate_override")
+        p["tcja_sunset"] = tc.get("tcja_sunset", False)
+        p["birth_year"] = tc.get("birth_year")
+        p["cost_basis_method"] = tc.get("cost_basis_method", "fifo")
+        p["other_income"] = tc.get("other_income", 0)
+        p["other_income_growth"] = tc.get("other_income_growth", 0)
+        for key in ("td_btc", "td_cash", "td_res_short", "td_res_med", "td_res_long",
+                    "td_inv_eq", "td_inv_bd", "tf_btc", "tf_cash", "tf_res_short",
+                    "tf_res_med", "tf_res_long", "tf_inv_eq", "tf_inv_bd"):
+            p[key] = tc.get(key, 0)
+
+    fig, mc_result = _get_citadel_fig(p)
 
     # 3. MC finalize
     fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(

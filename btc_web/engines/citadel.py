@@ -167,6 +167,10 @@ class CitadelState:
     spending_shortfall: float = 0.0
     rebal_event: dict | None = None
 
+    # Investment cost basis (taxable wrapper) — tracks original purchase value
+    # so capital gains = current_value - cost_basis on sale
+    invest_cost_basis: list[float] = field(default_factory=lambda: [0.0, 0.0])
+
     # Tax state (only used when config.tax_enabled)
     tax_lots: list = field(default_factory=list)         # list[TaxLot]
     tax_year_accum: object | None = None                 # TaxYearAccumulator
@@ -595,11 +599,13 @@ def _initial_state(config: SimConfig, model: "PriceModel | None" = None) -> Cita
     if model and config.selected_qs:
         q = config.selected_qs[len(config.selected_qs) // 2]
         btc_price = float(model.price_at(q, max(t0, 0.5)))
+    inv_initials = [ib["initial"] for ib in config.invest_bins]
     state = CitadelState(
         t=t0, btc_stack=config.start_stack, btc_price=btc_price,
         btc_cost_basis=btc_price, cash=config.cash_initial,
         reserves=[rb["initial"] for rb in config.reserve_bins],
-        investments=[ib["initial"] for ib in config.invest_bins],
+        investments=list(inv_initials),
+        invest_cost_basis=list(inv_initials),  # cost basis = initial value at start
     )
     if config.scf_enabled and config.scf_amount > 0 and btc_price > 0:
         btc_bought = config.scf_amount / btc_price
@@ -785,13 +791,24 @@ def _tax_aware_waterfall(state: CitadelState, config: SimConfig,
         if remaining <= 0:
             return 0.0
 
-    # --- 3. Taxable investments (assume LT gains) ---
+    # --- 3. Taxable investments (LT gains — tracked cost basis) ---
     for i in reversed(range(len(state.investments))):
         draw = min(state.investments[i], remaining)
-        if draw > 0 and state.tax_year_accum is not None:
-            # Assume 50% cost basis (simplified)
-            gain = draw * 0.5
-            state.tax_year_accum.lt_capital_gains += gain
+        if draw > 0:
+            # Proportional cost basis: selling draw/current_value fraction
+            current = state.investments[i]
+            if current > 0:
+                fraction = draw / current
+                basis_sold = state.invest_cost_basis[i] * fraction
+                gain = draw - basis_sold
+                state.invest_cost_basis[i] -= basis_sold
+            else:
+                gain = draw  # all gain if basis is somehow zero
+            if state.tax_year_accum is not None:
+                if gain >= 0:
+                    state.tax_year_accum.lt_capital_gains += gain
+                else:
+                    state.tax_year_accum.lt_capital_losses += abs(gain)
         state.investments[i] -= draw
         remaining -= draw
         if remaining <= 0:
@@ -941,6 +958,9 @@ def _year_boundary_tax(state: CitadelState, config: SimConfig,
             if tax_remaining <= 0:
                 break
             draw = min(state.investments[i], tax_remaining)
+            if draw > 0 and state.investments[i] > 0:
+                fraction = draw / state.investments[i]
+                state.invest_cost_basis[i] -= state.invest_cost_basis[i] * fraction
             state.investments[i] -= draw
             tax_remaining -= draw
         for i in range(len(state.reserves)):

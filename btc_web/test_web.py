@@ -5334,3 +5334,62 @@ class TestTreasuryStateExemption:
         # State tax: treasury should be $0, cash should be ~$10k
         assert result_treasury["state"] == pytest.approx(0.0)
         assert result_cash["state"] > 0
+
+
+class TestInvestmentCostBasis:
+    def test_cost_basis_initialized_from_initial_value(self):
+        from engines.citadel import SimConfig, _initial_state
+        cfg = SimConfig(invest_bins=[
+            {"label": "Equities", "initial": 200_000, "return_rate": 10, "volatility": 0},
+            {"label": "Bonds", "initial": 100_000, "return_rate": 5, "volatility": 0},
+        ])
+        state = _initial_state(cfg)
+        assert state.invest_cost_basis == [200_000, 100_000]
+
+    def test_cost_basis_decreases_proportionally_on_sale(self):
+        """Selling 50% of an investment should remove 50% of its cost basis."""
+        from engines.citadel import CitadelState
+        state = CitadelState(
+            investments=[400_000, 100_000],       # equities doubled from 200k
+            invest_cost_basis=[200_000, 100_000],  # original cost
+        )
+        # Simulate selling $200k of equities (50% of current $400k)
+        draw = 200_000
+        current = state.investments[0]
+        fraction = draw / current  # 0.5
+        basis_sold = state.invest_cost_basis[0] * fraction  # 100k
+        gain = draw - basis_sold  # 200k - 100k = 100k gain
+        state.invest_cost_basis[0] -= basis_sold
+        state.investments[0] -= draw
+
+        assert gain == pytest.approx(100_000)
+        assert state.invest_cost_basis[0] == pytest.approx(100_000)  # half basis remains
+        assert state.investments[0] == pytest.approx(200_000)        # half value remains
+
+    def test_gain_increases_as_investments_appreciate(self):
+        """After appreciation, same dollar withdrawal has higher gain %."""
+        from engines.citadel import CitadelState
+        # Start: $100k equities, $100k basis → 0% gain
+        state1 = CitadelState(
+            investments=[100_000, 0], invest_cost_basis=[100_000, 0])
+        draw = 50_000
+        fraction1 = draw / state1.investments[0]
+        basis1 = state1.invest_cost_basis[0] * fraction1
+        gain1 = draw - basis1
+        assert gain1 == pytest.approx(0)  # no appreciation yet
+
+        # After 2x appreciation: $200k equities, still $100k basis
+        state2 = CitadelState(
+            investments=[200_000, 0], invest_cost_basis=[100_000, 0])
+        fraction2 = draw / state2.investments[0]  # 25%
+        basis2 = state2.invest_cost_basis[0] * fraction2  # 25k
+        gain2 = draw - basis2  # 50k - 25k = 25k
+        assert gain2 == pytest.approx(25_000)
+
+        # After 10x appreciation: $1M equities, still $100k basis
+        state3 = CitadelState(
+            investments=[1_000_000, 0], invest_cost_basis=[100_000, 0])
+        fraction3 = draw / state3.investments[0]  # 5%
+        basis3 = state3.invest_cost_basis[0] * fraction3  # 5k
+        gain3 = draw - basis3  # 50k - 5k = 45k
+        assert gain3 == pytest.approx(45_000)

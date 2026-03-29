@@ -6565,3 +6565,131 @@ class TestQuarterlyTaxPayments:
                         filing_status="single", inflation=4.0)
         _quarterly_estimated_payment(state, cfg, quarter=2, sim_year=2031)
         assert state.cash == 500_000  # no payment drawn
+
+    def test_monthly_sim_pays_quarterly(self):
+        """Monthly frequency produces quarterly payments + year-end true-up."""
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(
+            start_stack=0, start_yr=2031, end_yr=2033,
+            freq="Monthly", monthly_spend=0,
+            cash_initial=1_000_000, selected_qs=[0.25],
+            tax_enabled=True, filing_status="single", state_code="CA",
+            other_income=300_000,
+            reserve_bins=[
+                {"label": "Short", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Medium", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Long", "initial": 0, "rate": 0, "volatility": 0},
+            ],
+            invest_bins=[
+                {"label": "Equities", "initial": 0, "return_rate": 0, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+        )
+        r = simulate(cfg, _test_model())
+        assert r.taxes_paid[0, -1] > 0
+
+    def test_annual_freq_falls_back_to_year_end(self):
+        """Annually frequency: no quarterly payments, all at year-end."""
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(
+            start_stack=0, start_yr=2031, end_yr=2034,
+            freq="Annually", monthly_spend=0,
+            cash_initial=1_000_000, selected_qs=[0.25],
+            tax_enabled=True, filing_status="single", state_code="CA",
+            other_income=200_000,
+            reserve_bins=[
+                {"label": "Short", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Medium", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Long", "initial": 0, "rate": 0, "volatility": 0},
+            ],
+            invest_bins=[
+                {"label": "Equities", "initial": 0, "return_rate": 0, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+        )
+        r = simulate(cfg, _test_model())
+        assert r.taxes_paid[0, -1] > 0
+
+    def test_q4_trueup_matches_annual(self):
+        """Monthly and annual sims should produce approximately equal total tax."""
+        from engines.citadel import SimConfig, simulate
+        common = dict(
+            start_stack=0, start_yr=2031, end_yr=2034,
+            monthly_spend=0, cash_initial=1_000_000,
+            selected_qs=[0.25],
+            tax_enabled=True, filing_status="single", state_code="CA",
+            other_income=200_000,
+            reserve_bins=[
+                {"label": "Short", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Medium", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Long", "initial": 0, "rate": 0, "volatility": 0},
+            ],
+            invest_bins=[
+                {"label": "Equities", "initial": 0, "return_rate": 0, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+        )
+        r_monthly = simulate(SimConfig(freq="Monthly", **common), _test_model())
+        r_annual = simulate(SimConfig(freq="Annually", **common), _test_model())
+        tax_monthly = r_monthly.taxes_paid[0, -1]
+        tax_annual = r_annual.taxes_paid[0, -1]
+        assert abs(tax_monthly - tax_annual) / max(tax_annual, 1) < 0.05, \
+            f"Monthly {tax_monthly:.0f} vs Annual {tax_annual:.0f} differ by >5%"
+
+    def test_quarterly_tax_paid_ytd_resets_each_year(self):
+        """quarterly_tax_paid_ytd must be 0 at each year boundary."""
+        from engines.citadel import SimConfig, _initial_state, step
+        import numpy as np
+        cfg = SimConfig(
+            start_stack=0, start_yr=2031, end_yr=2033,
+            freq="Monthly", monthly_spend=0,
+            cash_initial=1_000_000, selected_qs=[0.25],
+            tax_enabled=True, state_code="CA", other_income=200_000,
+            reserve_bins=[
+                {"label": "Short", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Medium", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Long", "initial": 0, "rate": 0, "volatility": 0},
+            ],
+            invest_bins=[
+                {"label": "Equities", "initial": 0, "return_rate": 0, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+        )
+        model = _test_model()
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=model)
+        for i in range(24):
+            state = step(state, cfg, 50_000, rng, model=model)
+            if state.period % 12 == 0:
+                assert state.quarterly_tax_paid_ytd == 0, \
+                    f"Period {state.period}: ytd should be 0, got {state.quarterly_tax_paid_ytd:.0f}"
+
+    def test_cash_floor_respected_after_quarterly_payment(self):
+        """Cash floor must hold after each quarterly tax payment."""
+        from engines.citadel import SimConfig, _initial_state, step
+        import numpy as np
+        cfg = SimConfig(
+            start_stack=5.0, start_yr=2031, end_yr=2033,
+            freq="Monthly", monthly_spend=1000,
+            cash_initial=100_000, cash_floor=80_000,
+            selected_qs=[0.25],
+            tax_enabled=True, state_code="CA", other_income=500_000,
+            reserve_bins=[
+                {"label": "Short", "initial": 200_000, "rate": 0, "volatility": 0},
+                {"label": "Medium", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "Long", "initial": 0, "rate": 0, "volatility": 0},
+            ],
+            invest_bins=[
+                {"label": "Equities", "initial": 200_000, "return_rate": 0, "volatility": 0},
+                {"label": "Bonds", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+        )
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=_test_model())
+        for i in range(24):
+            state = step(state, cfg, 50_000, rng, model=_test_model())
+            total_other = (sum(state.reserves) + sum(state.investments)
+                           + state.btc_stack * state.btc_price)
+            if total_other > 80_000:
+                assert state.cash >= 80_000 - 100, \
+                    f"Period {i+1}: cash {state.cash:.0f} below floor"

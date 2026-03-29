@@ -1144,16 +1144,25 @@ def _year_boundary_tax(state: CitadelState, config: SimConfig,
         state_rate=state_rate,
     )
 
-    tax_owed = tax_result["total"]
+    tax_owed_full = tax_result["total"]
 
-    _pay_tax_amount(state, config, tax_owed, sim_year, tax_result=tax_result)
+    # Q4 true-up: subtract quarterly estimated payments already made
+    q4_payment = tax_owed_full - state.quarterly_tax_paid_ytd
+    if q4_payment > 0:
+        _pay_tax_amount(state, config, q4_payment, sim_year, tax_result=tax_result)
 
-    state.total_taxes_paid += tax_owed
+    # total_taxes_paid: quarterly payments already added their amounts,
+    # so only add the Q4 true-up portion (may be negative for overpayment credit)
+    state.total_taxes_paid += max(q4_payment, 0)
+    if q4_payment < 0:
+        state.total_taxes_paid += q4_payment  # negative → reduces total
+
     state.loss_carryforward = tax_result["loss_carryforward"]
     state.annual_tax_history.append(tax_result)
 
     # Reset accumulator for next year
     state.tax_year_accum = TaxYearAccumulator()
+    state.quarterly_tax_paid_ytd = 0.0
 
 
 def step(state: CitadelState, config: SimConfig,
@@ -1307,20 +1316,30 @@ def step(state: CitadelState, config: SimConfig,
             btc_annual_return = 0.0
         _scf_check_repay(new, config, btc_annual_return)
 
-    # 8. Year-boundary tax computation and RMD
+    # 8. Tax: quarterly estimated payments + year-end true-up
     if config.tax_enabled:
         sim_year = config.start_yr + int(years_elapsed)
-        # Detect year boundary: period is a multiple of ppy
-        if new.period > 0 and new.period % ppy == 0:
+        is_year_end = new.period > 0 and new.period % ppy == 0
+
+        # Quarterly estimated payments (Q1-Q3) — only for freq >= Quarterly
+        if ppy >= 4 and not is_year_end:
+            qtr_periods = ppy // 4  # periods per quarter
+            if new.period % qtr_periods == 0:
+                quarter = (new.period % ppy) // qtr_periods  # 1, 2, or 3
+                if 1 <= quarter <= 3:
+                    _quarterly_estimated_payment(new, config, quarter, sim_year)
+                    _enforce_floors(new, config)
+
+        # Year-end: RMD + Q4 true-up
+        if is_year_end:
             # RMD first (adds ordinary income)
             rmd = _compute_rmd(new, config, sim_year)
             if rmd > 0 and new.tax_year_accum is not None:
                 new.tax_year_accum.tax_deferred_withdrawals += rmd
                 new.tax_year_accum.rmd_required = rmd
                 new.tax_year_accum.rmd_taken = rmd
-            # Compute and pay taxes
+            # Q4 true-up: actual tax minus quarterly payments already made
             _year_boundary_tax(new, config, sim_year, ppy)
-            # Re-enforce floors — tax payment may have drawn cash below floor
             _enforce_floors(new, config)
 
     # Clamp sub-satoshi BTC to zero (1 sat = 10^-8 BTC is the smallest unit)

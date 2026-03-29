@@ -180,6 +180,7 @@ class CitadelState:
     loss_carryforward: float = 0.0
     total_taxes_paid: float = 0.0
     annual_tax_history: list = field(default_factory=list)  # list[dict]
+    quarterly_tax_paid_ytd: float = 0.0       # cumulative estimated payments this tax year
 
     # Tax-Deferred wrapper balances
     td_btc_stack: float = 0.0

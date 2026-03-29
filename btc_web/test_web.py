@@ -6478,3 +6478,13 @@ class TestTaxEfficientAccountUsage:
         tax_btc = r_taxable.taxes_paid[0, -1]
         tax_td = r_td.taxes_paid[0, -1]
         assert tax_btc != tax_td, "Different tax types should produce different totals"
+
+
+class TestQuarterlyTaxPayments:
+    """Quarterly estimated tax payment tests."""
+
+    def test_state_has_quarterly_field(self):
+        from engines.citadel import CitadelState
+        state = CitadelState()
+        assert hasattr(state, "quarterly_tax_paid_ytd")
+        assert state.quarterly_tax_paid_ytd == 0.0

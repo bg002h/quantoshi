@@ -130,6 +130,7 @@ def _serve_layout():
     if graph_id:
         fig = _get_initial_figure(initial_tab)
         if fig:
+            from layout.common import _inject_initial_figure
             _inject_initial_figure(layout, graph_id, fig)
 
     return layout

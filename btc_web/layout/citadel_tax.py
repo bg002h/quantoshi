@@ -134,17 +134,25 @@ def _bracket_reference_section():
 # ═════════════════════════════════════════════════════════════════════════════
 
 def tax_toggle_widget():
-    """Compact card for the Simulation sub-tab — master toggle + config button + store."""
-    return dbc.Card(dbc.CardBody([
-        dbc.Switch(id="cp-tax-toggle", label=html.Strong("Taxation"), value=False,
-                   style={"marginBottom": "4px", "transform": "scale(1.3)",
+    """Compact section for the Simulation sub-tab — title + toggle + config button + stores."""
+    _TITLE_STYLE = {"fontWeight": "bold", "fontSize": "12px",
+                    "color": "#555", "marginBottom": "4px",
+                    "textTransform": "uppercase", "letterSpacing": "0.03em"}
+    return html.Div([
+        html.Div("Taxation", style=_TITLE_STYLE),
+        dbc.Switch(id="cp-tax-toggle",
+                   label="Enable taxation & retirement accounts",
+                   value=False,
+                   style={"marginBottom": "4px", "transform": "scale(1.2)",
                           "transformOrigin": "left center"}),
         dbc.Button("Configure Tax Settings\u2026", id="cp-tax-config-btn",
                    color="secondary", size="sm", outline=True,
                    style={"display": "none"}),
         dcc.Store(id="cp-tax-config", storage_type="memory", data={}),
         dcc.Store(id="cp-tax-annual-data", data=[]),
-    ], className="p-2"), className="mb-2")
+    ], style={"marginBottom": "12px", "padding": "8px",
+              "background": "#f8f9fa", "borderRadius": "8px",
+              "border": "1px solid #dee2e6"})
 
 
 def tax_config_modal():

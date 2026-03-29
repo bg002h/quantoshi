@@ -12,7 +12,8 @@ from layout.common import (_tab_hints, _section_card, _lbl,
                             _STYLE_HINT, _q_options,
                             _shared_settings_card, _model_show_checklist,
                             _btc_usd_dropdown, _chart_toggles,
-                            _legend_pos_dropdown, _chart_tab_layout)
+                            _legend_pos_dropdown, _chart_tab_layout,
+                            _CB_MARGIN, _Q_HINT_BASE)
 from layout.mc_controls import _mc_controls
 
 
@@ -24,15 +25,15 @@ def _supercharge_controls():
         _tab_hints("supercharge"),
         _shared_settings_card("sc", infl_default=SUPERCHARGE["inflation"], stack_default=SUPERCHARGE["start_stack"]),
         _section_card("Projection Quantiles",
-            html.Small("Select quantiles to follow.",
+            html.Small(_Q_HINT_BASE,
                 style=_STYLE_HINT),
-            html.Small("Lower quantile = earlier depletion \u2014 use multiple quantiles to see the range.",
+            html.Small("Lower prices mean earlier depletion.",
                 style=_STYLE_HINT),
             dcc.Checklist(id="sc-qs",
                           options=_q_options(),
                           value=[q for q in [0.001, 0.10] if q in (_app_ctx.DEFAULT_MODEL.fits or {})],
                           className="q-panel-grid",
-                          inputStyle={"marginRight":"4px"}),
+                          inputStyle=_CB_MARGIN),
         ),
         # ── Plan ────────────────────────────────────────────────────────
         _section_card("Plan",
@@ -40,7 +41,7 @@ def _supercharge_controls():
                 options=[{"label":" A \u2014 Fixed spending (depletion date)","value":"a"},
                          {"label":" B \u2014 Fixed depletion (max spending)","value":"b"}],
                 value=SUPERCHARGE["mode"], labelStyle={"display":"block"},
-                inputStyle={"marginRight":"5px"}),
+                inputStyle=_CB_MARGIN),
             dbc.Collapse(
                 html.Div(
                     "\u2248YYYY annotations mark the year each scenario\u2019s BTC stack reaches zero \u2014 savings exhausted.",
@@ -70,7 +71,7 @@ def _supercharge_controls():
             ], className="g-1"),
             html.Hr(className="my-2"),
             dbc.Collapse([
-                _lbl("Withdrawal/period ($)"),
+                _lbl("Withdrawal amount ($)"),
                 dbc.Input(id="sc-wd", type="number", value=SUPERCHARGE["wd_amount"],
                           min=0, max=_app_ctx.MAX_USD, step=1, size="sm",
                           debounce=True),
@@ -88,7 +89,7 @@ def _supercharge_controls():
                            tooltip={"always_visible":False})),
             ], id="sc-mode-b-collapse", is_open=False),
         ),
-        _mc_controls("sc", amount_label="Withdrawal per period ($)",
+        _mc_controls("sc", amount_label="Withdrawal amount per period ($)",
                      amount_default=5000, show_inflation=True,
                      show_stack=True, default_entry_q=10,
                      start_yr_label="Withdrawal start year",
@@ -99,7 +100,7 @@ def _supercharge_controls():
             dcc.Checklist(id="sc-chart-layout",
                 options=[{"label":" Shade quantile bands","value":"shade"}],
                 value=["shade"],
-                inputStyle={"marginRight":"5px"}),
+                inputStyle=_CB_MARGIN),
             dbc.Collapse([
                 _lbl("Display quantile"),
                 dcc.Dropdown(id="sc-display-q", options=display_q_opts,

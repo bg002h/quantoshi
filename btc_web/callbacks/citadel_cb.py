@@ -391,22 +391,22 @@ def update_citadel(
         **mc_p,
     )
 
-    # Tax configuration
+    # Tax configuration — use saved modal config, fall back to CITADEL defaults
     if tax_toggle:
-        tc = tax_config or {}
+        tc = tax_config if tax_config else {}
         p["tax_enabled"] = True
-        p["filing_status"] = tc.get("filing_status", "single")
-        p["state_code"] = tc.get("state_code", "TX")
-        p["state_rate_override"] = tc.get("state_rate_override")
-        p["tcja_sunset"] = tc.get("tcja_sunset", False)
-        p["birth_year"] = tc.get("birth_year")
-        p["cost_basis_method"] = tc.get("cost_basis_method", "fifo")
-        p["other_income"] = tc.get("other_income", 0)
-        p["other_income_growth"] = tc.get("other_income_growth", 0)
+        p["filing_status"] = tc.get("filing_status", CITADEL["filing_status"])
+        p["state_code"] = tc.get("state_code", CITADEL["state_code"])
+        p["state_rate_override"] = tc.get("state_rate_override", CITADEL["state_rate_override"])
+        p["tcja_sunset"] = tc.get("tcja_sunset", CITADEL["tcja_sunset"])
+        p["birth_year"] = tc.get("birth_year", CITADEL["birth_year"])
+        p["cost_basis_method"] = tc.get("cost_basis_method", CITADEL["cost_basis_method"])
+        p["other_income"] = tc.get("other_income", CITADEL["other_income"])
+        p["other_income_growth"] = tc.get("other_income_growth", CITADEL["other_income_growth"])
         for key in ("td_btc", "td_cash", "td_res_short", "td_res_med", "td_res_long",
                     "td_inv_eq", "td_inv_bd", "tf_btc", "tf_cash", "tf_res_short",
                     "tf_res_med", "tf_res_long", "tf_inv_eq", "tf_inv_bd"):
-            p[key] = tc.get(key, 0)
+            p[key] = tc.get(key, CITADEL.get(key, 0))
 
     fig, mc_result = _get_citadel_fig(p)
 

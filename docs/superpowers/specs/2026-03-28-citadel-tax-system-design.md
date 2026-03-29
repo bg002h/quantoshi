@@ -192,6 +192,8 @@ Rules:
 
 ## 4. Lot-Level BTC Tracking
 
+**Why lot-level, not average cost basis?** The 17 percentage point spread between short-term (up to 40.8% with NIIT) and long-term (up to 23.8%) capital gains rates makes average cost basis dangerously misleading. A mix of 6-month-old and 3-year-old BTC would be taxed identically under average basis, but the real tax difference is enormous. Lot-level tracking is essential for accurate simulation.
+
 ### 4.1 Lot Data Structure
 
 Extends the existing Stack Tracker lot format:
@@ -794,7 +796,7 @@ Add to `tab_defaults.py` CITADEL dict:
 
 ## 13. Future Extensions (Not In Scope v1)
 
-- **AMT:** Full parallel tax computation. Add when "other deductions" input is available.
+- **AMT:** Full parallel tax computation. Skipped for v1 because long-term capital gains use the same preferential rates (0/15/20%) under both regular tax and AMT — the 26%/28% AMT rates only apply to ordinary income items. For a pure investment/BTC simulation without SALT deductions or ISOs, AMT rarely produces a different result. Add when "other deductions" input is available.
 - **Tax-loss harvesting optimizer:** Proactively sell losing lots to offset gains.
 - **Roth conversion ladder:** Model strategic Traditional → Roth conversions.
 - **State-specific capital gains:** WA's 7%/9.9% capital gains tax, state-level LTCG exemptions.

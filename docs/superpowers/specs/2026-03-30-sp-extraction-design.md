@@ -131,7 +131,7 @@ Standalone Python script following the `tools/build_ef_model.py` pattern. Produc
 
 **Dependencies:** pandas, numpy, scipy (differential_evolution, linregress), statsmodels (QuantReg)
 
-**Verification:** `sha256(build_bm_model.py output) == sha256(sp_stripped.ipynb output)`. Byte-identical pkl files. This is the hard constraint — same key order, same pickle protocol (4), same numpy/float serialization.
+**Verification:** Compute both `sha256(build_bm_model.py output)` vs `sha256(sp_stripped.ipynb output)` AND key-by-key value comparison. Report both results. If sha256 matches, byte-identical. If only values match, accept and document why bytes differ.
 
 **Integration:**
 - `update_prices.py`: Replace `jupyter nbconvert --execute SP.ipynb` with `python3 tools/build_bm_model.py`
@@ -161,16 +161,33 @@ Recommended execution order: Phase 1 → Phase 2 → Phase 3.
 
 ## Constraints
 
-- **Byte-identical model data**: Phase 1 lean pkl model keys must be value-identical to current pkl. Phase 3 script output must be sha256-identical to Phase 1 output.
+- **Value-identical model data**: Phase 1 lean pkl model keys must be value-identical to current pkl (key-by-key bitwise float comparison).
 - **Zero visual regression**: After Phase 2, all 6 chart builders produce identical figures.
-- **Standalone app compatibility**: `BubbleModel` in `btc_core.py` must handle both old full pkls and new lean pkls gracefully (fallback for missing visual keys).
+- **Standalone app compatibility**: `BubbleModel` in `btc_core.py` must handle both old full pkls and new lean pkls gracefully (fallback for missing visual keys). `ModelData.__init__` has hard reads on `qr_colors` and `QR_LINESTYLES` — must be patched to use `.get()` with defaults.
 - **No matplotlib in build script**: Phase 3 script has no visualization dependencies.
 - **Pickle protocol 4**: Same as current Cell 3 export.
+- **Deterministic computation**: Cell 0 uses `differential_evolution(seed=42+idx)` — fully seeded. Cell 1 QR/OLS fitting is deterministic. No random state anywhere. Same inputs + same library versions = identical output.
+
+## Sigma keys pipeline
+
+The 4 shrinking gaussian keys (`bm_sigma0_up`, `bm_sigma0_down`, `bm_alpha_up`, `bm_alpha_down`) are NOT written by Cell 3. They are injected into the pkl by `tools/fit_sigma.py` as a post-processing step. The Phase 3 build script must either:
+- (a) Incorporate sigma fitting inline, or
+- (b) Call `fit_sigma.py` as a post-step, or
+- (c) Document a two-step build: `build_bm_model.py` then `fit_sigma.py`
+
+Decision deferred to implementation plan.
+
+## Serialization notes
+
+- `qr_fits` uses **string keys** in the pkl: `{str(q): {intercept, slope, r2}}`. Both the stripped notebook and build script must match this convention.
+- `qr_colors` and `QR_LINESTYLES` are removed from the lean pkl. `ModelData.__init__` must use `.get()` fallbacks. `app.py` already overwrites `qr_colors` with thermal palette at startup.
 
 ## Verification Summary
 
+All phases compute **both** sha256 whole-file hash and key-by-key value comparison. If sha256 matches, we have byte-identical output. If only value comparison matches, we accept that and document why bytes differ.
+
 | Phase | Verification |
 |-------|-------------|
-| 1 | Key-by-key comparison: 17 model keys from lean pkl match current full pkl |
+| 1 | Key-by-key value comparison: 13 model keys from lean pkl match current full pkl. (4 sigma keys come from `fit_sigma.py`, not Cell 3 — verified separately.) |
 | 2 | All 6 chart figures byte-identical before/after theme.py migration |
-| 3 | `sha256(build_bm_model output) == sha256(sp_stripped output)` |
+| 3 | sha256 of build script output vs. sp_stripped output (report match/mismatch). Key-by-key value comparison as fallback. |

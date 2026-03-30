@@ -518,7 +518,7 @@ def _max_draw_before_boundary(state: CitadelState, config: SimConfig,
         else:
             ord_taxable = ordinary_ytd - std_ded
             for upper, _rate in ord_brackets:
-                if ord_taxable < upper:
+                if ord_taxable < upper - 0.01:  # skip brackets within float rounding
                     distances.append(upper - ord_taxable)
                     break
 
@@ -533,7 +533,7 @@ def _max_draw_before_boundary(state: CitadelState, config: SimConfig,
         stacked = ord_taxable + ltcg_ytd
         ltcg_brackets = _inflate_brackets(LTCG_BRACKETS[config.filing_status], yrs, infl)
         for upper, _rate in ltcg_brackets:
-            if stacked < upper:
+            if stacked < upper - 0.01:  # skip brackets within float rounding
                 gain_distance = upper - stacked  # distance in gain-space
                 # Convert to sale-space: if gain_fraction=0.5, need to sell $2 to generate $1 gain
                 gf = max(source.gain_fraction, 0.01)  # avoid div-by-zero
@@ -694,52 +694,49 @@ def _sell_investments_tracked(state: CitadelState, config: SimConfig,
     return (draw, gain)
 
 
-def _enforce_floors(state: CitadelState, config: SimConfig) -> None:
+def _enforce_floors(state: CitadelState, config: SimConfig,
+                    model: "PriceModel | None" = None) -> None:
     """Replenish accounts below their floor minimums.
-    Draw order for replenishment sources (reverse priority):
-    1. Investment Bonds (index 1)
-    2. Investment Equities (index 0)
-    3. Reserve Long (index 2)
-    4. Reserve Medium (index 1)
-    5. Reserve Short (index 0)
-    6. Cash (only for reserve replenishment, not self-replenishment)
-    7. BTC (last resort, for CASH FLOOR ONLY — ensures the retirement
-       spending account stays funded even when all dollar assets are depleted)
-    Reserve floors do NOT sell BTC — they only redistribute among dollar accounts."""
-    # Compute time-adjusted floors (grow annually by configured %)
+
+    For cash floor: uses _spending_waterfall to draw from the cheapest
+    source with full tax accounting, lot tracking, and bracket awareness.
+    For reserve floors: redistributes among taxable dollar accounts only
+    (never sells BTC or touches TD/TF for reserve replenishment).
+    """
     ppy = FREQ_PPY.get(config.freq, 12)
     years_elapsed = state.period / ppy
     cash_floor_eff = config.cash_floor * (1 + config.cash_floor_growth / 100) ** years_elapsed
     res_floor_growth = (1 + config.reserve_floor_growth / 100) ** years_elapsed
 
-    accounts_to_check = []
+    # --- Cash floor: delegate to _spending_waterfall ---
     if cash_floor_eff > 0:
-        accounts_to_check.append(("cash", cash_floor_eff))
+        deficit = cash_floor_eff - state.cash
+        if deficit > 0:
+            # Temporarily zero cash so the waterfall doesn't draw from it
+            saved_cash = state.cash
+            state.cash = 0.0
+            shortfall = _spending_waterfall(state, config, deficit, model=model)
+            drawn = deficit - shortfall
+            state.cash += saved_cash + drawn
+
+    # --- Reserve floors: redistribute among taxable dollar accounts only ---
     for i, floor in enumerate(config.reserve_floors):
         eff = floor * res_floor_growth
-        if eff > 0:
-            accounts_to_check.append((f"reserve_{i}", eff))
-
-    for acct_key, floor in accounts_to_check:
-        if acct_key == "cash":
-            current = state.cash
-        else:
-            idx = int(acct_key.split("_")[1])
-            current = state.reserves[idx]
-
-        deficit = floor - current
+        if eff <= 0:
+            continue
+        deficit = eff - state.reserves[i]
         if deficit <= 0:
             continue
 
         sources = []
-        for i in reversed(range(len(state.investments))):
-            sources.append(("inv", i))
-        for i in reversed(range(len(state.reserves))):
-            if acct_key != f"reserve_{i}":
-                sources.append(("res", i))
-        if acct_key != "cash":
-            sources.append(("cash", 0))
+        for j in reversed(range(len(state.investments))):
+            sources.append(("inv", j))
+        for j in reversed(range(len(state.reserves))):
+            if j != i:
+                sources.append(("res", j))
+        sources.append(("cash", 0))
 
+        drawn_total = 0.0
         for src_type, src_idx in sources:
             if deficit <= 0:
                 break
@@ -755,89 +752,9 @@ def _enforce_floors(state: CitadelState, config: SimConfig) -> None:
             else:
                 draw = 0
             deficit -= draw
+            drawn_total += draw
 
-        # BTC last resort — only for cash floor
-        if deficit > 0 and acct_key == "cash":
-            if state.btc_stack > 0 and state.btc_price > 0:
-                btc_needed = deficit / state.btc_price
-                result = _sell_btc_tracked(state, config, btc_needed)
-                draw = result.btc_sold * state.btc_price
-                deficit -= draw
-
-        # TD/TF last resort — only for cash floor, only when tax_enabled
-        # When all taxable assets are depleted, draw from tax-advantaged
-        # wrappers to maintain the cash floor (spending account).
-        if deficit > 0 and acct_key == "cash" and config.tax_enabled:
-            # TD first (ordinary income — cheaper than wasting Roth)
-            for td_source in [("td_cash",), ("td_res",), ("td_inv",), ("td_btc",)]:
-                if deficit <= 0:
-                    break
-                tag = td_source[0]
-                if tag == "td_cash":
-                    d = min(state.td_cash, deficit)
-                    state.td_cash -= d
-                elif tag == "td_res":
-                    for i in range(len(state.td_reserves)):
-                        if deficit <= 0:
-                            break
-                        d = min(state.td_reserves[i], deficit)
-                        state.td_reserves[i] -= d
-                        if state.tax_year_accum is not None and d > 0:
-                            state.tax_year_accum.tax_deferred_withdrawals += d
-                        deficit -= d
-                    continue
-                elif tag == "td_inv":
-                    for i in reversed(range(len(state.td_investments))):
-                        if deficit <= 0:
-                            break
-                        d = min(state.td_investments[i], deficit)
-                        state.td_investments[i] -= d
-                        if state.tax_year_accum is not None and d > 0:
-                            state.tax_year_accum.tax_deferred_withdrawals += d
-                        deficit -= d
-                    continue
-                elif tag == "td_btc":
-                    if state.td_btc_stack > 0 and state.btc_price > 0:
-                        btc_val = state.td_btc_stack * state.btc_price
-                        d = min(btc_val, deficit)
-                        state.td_btc_stack -= d / state.btc_price
-                    else:
-                        d = 0
-                else:
-                    d = 0
-                if state.tax_year_accum is not None and d > 0:
-                    state.tax_year_accum.tax_deferred_withdrawals += d
-                deficit -= d
-
-            # TF (Roth) absolute last — tax-free but highest opportunity cost
-            if deficit > 0:
-                _roth_drawn = 0.0
-                d = min(state.tf_cash, deficit)
-                state.tf_cash -= d; _roth_drawn += d; deficit -= d
-                for i in range(len(state.tf_reserves)):
-                    if deficit <= 0:
-                        break
-                    d = min(state.tf_reserves[i], deficit)
-                    state.tf_reserves[i] -= d; _roth_drawn += d; deficit -= d
-                for i in reversed(range(len(state.tf_investments))):
-                    if deficit <= 0:
-                        break
-                    d = min(state.tf_investments[i], deficit)
-                    state.tf_investments[i] -= d; _roth_drawn += d; deficit -= d
-                if deficit > 0 and state.tf_btc_stack > 0 and state.btc_price > 0:
-                    btc_val = state.tf_btc_stack * state.btc_price
-                    d = min(btc_val, deficit)
-                    state.tf_btc_stack -= d / state.btc_price
-                    _roth_drawn += d; deficit -= d
-                if state.tax_year_accum is not None and _roth_drawn > 0:
-                    state.tax_year_accum.roth_withdrawals += _roth_drawn
-
-        replenished = (floor - current) - deficit
-        if acct_key == "cash":
-            state.cash += replenished
-        else:
-            idx = int(acct_key.split("_")[1])
-            state.reserves[idx] += replenished
+        state.reserves[i] += drawn_total
 
 
 _SPLIT_KEYS = ["cash", "res_short", "res_med", "res_long", "inv_eq", "inv_bd"]
@@ -1605,7 +1522,7 @@ def step(state: CitadelState, config: SimConfig,
     new.spending_shortfall = _spending_waterfall(new, config, period_spend, model=model)
 
     # 6. Enforce floor rules (AFTER spending, so floors replenish drawdowns)
-    _enforce_floors(new, config)
+    _enforce_floors(new, config, model=model)
 
     # 7. SCF perpetual loan repayment check
     if new.scf_active and config.scf_type == "perpetual":
@@ -1629,7 +1546,7 @@ def step(state: CitadelState, config: SimConfig,
                 quarter = (new.period % ppy) // qtr_periods  # 1, 2, or 3
                 if 1 <= quarter <= 3:
                     _quarterly_estimated_payment(new, config, quarter, sim_year)
-                    _enforce_floors(new, config)
+                    _enforce_floors(new, config, model=model)
 
         # Year-end: RMD + Q4 true-up
         if is_year_end:
@@ -1641,7 +1558,7 @@ def step(state: CitadelState, config: SimConfig,
                 new.tax_year_accum.rmd_taken = rmd
             # Q4 true-up: actual tax minus quarterly payments already made
             _year_boundary_tax(new, config, sim_year, ppy)
-            _enforce_floors(new, config)
+            _enforce_floors(new, config, model=model)
 
     # Clamp sub-satoshi BTC to zero (1 sat = 10^-8 BTC is the smallest unit)
     if 0 < new.btc_stack < _SATOSHI:

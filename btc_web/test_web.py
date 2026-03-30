@@ -7001,3 +7001,103 @@ class TestTaxAccountingHelpers:
         lot_sum = sum(l.btc for l in state.tax_lots)
         assert abs(lot_sum - state.btc_stack) < 1e-8
         assert state.tax_year_accum.lt_capital_gains > 0
+
+
+class TestDynamicWaterfall:
+    """Tests for the dynamic cost-ranked spending waterfall."""
+
+    def test_build_source_list_taxable_only(self):
+        """Non-tax mode produces only taxable sources."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _build_source_list)
+        state = CitadelState(
+            cash=10_000, reserves=[20_000, 30_000, 5_000],
+            investments=[100_000, 50_000], invest_cost_basis=[60_000, 30_000],
+            btc_stack=1.0, btc_price=50_000, sim_date="2035-06-15",
+        )
+        cfg = SimConfig(tax_enabled=False, cash_rate=4.0,
+                        reserve_bins=[
+                            {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                            {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                            {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+                        ],
+                        invest_bins=[
+                            {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                            {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+                        ])
+        sources = _build_source_list(state, cfg, model=None)
+        # 7 taxable sources: cash + 3 reserves + 2 investments + BTC
+        assert len(sources) == 7
+        assert all(not s.is_roth for s in sources)
+        # Check available balances
+        cash_src = [s for s in sources if s.key == "cash"][0]
+        assert cash_src.available == pytest.approx(10_000)
+        btc_src = [s for s in sources if s.key == "btc"][0]
+        assert btc_src.available == pytest.approx(50_000)
+
+    def test_build_source_list_with_tax(self):
+        """Tax mode produces taxable + TD + TF sources."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _build_source_list)
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            cash=10_000, reserves=[0, 0, 0],
+            investments=[0, 0], invest_cost_basis=[0, 0],
+            btc_stack=1.0, btc_price=50_000, sim_date="2035-06-15",
+            td_cash=20_000, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            td_btc_stack=0.5,
+            tf_cash=10_000, tf_reserves=[0, 0, 0], tf_investments=[0, 0],
+            tf_btc_stack=0.3,
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = SimConfig(tax_enabled=True, cash_rate=4.0,
+                        reserve_bins=[
+                            {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                            {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                            {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+                        ],
+                        invest_bins=[
+                            {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                            {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+                        ])
+        sources = _build_source_list(state, cfg, model=None)
+        # Should have taxable + TD + TF sources
+        wrappers = set(s.wrapper for s in sources)
+        assert "taxable" in wrappers
+        assert "td" in wrappers
+        assert "tf" in wrappers
+        # TF sources should be marked is_roth
+        tf_sources = [s for s in sources if s.wrapper == "tf"]
+        assert all(s.is_roth for s in tf_sources)
+        # Only include sources with available > 0
+        assert all(s.available > 0.01 for s in sources)
+
+    def test_source_gain_fraction(self):
+        """Gain fraction computed correctly for investments and BTC."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _build_source_list)
+        from engines.tax_lots import TaxLot
+        state = CitadelState(
+            cash=0, reserves=[0, 0, 0],
+            investments=[200_000, 0], invest_cost_basis=[100_000, 0],
+            btc_stack=2.0, btc_price=80_000, sim_date="2035-06-15",
+            tax_lots=[TaxLot(date="2031-01-01", btc=2.0,
+                             cost_basis=30_000, source="initial")],
+        )
+        cfg = SimConfig(tax_enabled=False,
+                        reserve_bins=[
+                            {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                            {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                            {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+                        ],
+                        invest_bins=[
+                            {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                            {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+                        ])
+        sources = _build_source_list(state, cfg, model=None)
+        eq_src = [s for s in sources if s.key == "invest_0"][0]
+        # Gain fraction: 1 - (100k / 200k) = 0.5
+        assert eq_src.gain_fraction == pytest.approx(0.5)
+        btc_src = [s for s in sources if s.key == "btc"][0]
+        # BTC gain fraction: 1 - (30k / 80k) = 0.625
+        assert btc_src.gain_fraction == pytest.approx(0.625)

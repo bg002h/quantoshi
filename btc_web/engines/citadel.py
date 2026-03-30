@@ -16,6 +16,23 @@ _SATOSHI = 1e-8  # smallest BTC unit — anything below this is zero
 
 
 @dataclass
+class _WithdrawalSource:
+    """Represents one drawable account for the cost-ranked waterfall."""
+    key: str              # e.g., "cash", "reserve_0", "invest_1", "btc", "td_cash", "tf_btc"
+    wrapper: str          # "taxable", "td", or "tf"
+    asset_type: str       # "cash", "reserve", "invest", "btc"
+    index: int            # bin index (0-2 for reserves, 0-1 for investments, 0 for cash/btc)
+    available: float      # current dollar balance available to draw
+    growth_rate: float    # annual growth rate for opportunity cost
+    horizon: int          # opportunity cost horizon in years
+    gain_fraction: float  # for investments/BTC: 1 - (basis/value). 0 for cash/reserves
+    is_roth: bool         # True for TF sources — forced last
+    is_bracket_sensitive: bool  # True if draw affects tax bracket position
+    bracket_type: str     # "ordinary", "ltcg", or "none"
+    cost: float = 0.0     # computed by _score_sources
+
+
+@dataclass
 class SimConfig:
     """Simulation configuration for the Citadel Planner engine.
 
@@ -221,6 +238,143 @@ def _get_btc_price(t: float, config: SimConfig, model: PriceModel,
     raise NotImplementedError("MC BTC pricing requires Markov engine integration")
 
 
+
+
+def _build_source_list(state: "CitadelState", config: "SimConfig",
+                       model: "PriceModel | None" = None) -> list[_WithdrawalSource]:
+    """Enumerate all available withdrawal sources from current state."""
+    sources = []
+    ppy = FREQ_PPY.get(config.freq, 12)
+
+    # Compute BTC opportunity cost horizon and growth
+    _btc_growth = config.invest_bins[0]["return_rate"] / 100 if config.invest_bins else 0.10
+    if model is not None and state.btc_price > 0:
+        try:
+            _q = config.selected_qs[len(config.selected_qs) // 2] if config.selected_qs else 0.25
+            _p_now = float(model.price_at(_q, max(state.t, 0.5)))
+            _p_fwd = float(model.price_at(_q, max(state.t + 10, 0.5)))
+            if _p_now > 0:
+                _btc_growth = (_p_fwd / _p_now) - 1
+        except Exception:
+            pass
+
+    # Treasury horizon: remaining lifetime
+    if config.birth_year:
+        _age = config.start_yr + int(state.period / ppy) - config.birth_year
+    else:
+        _age = 0
+    _tres_horizon = max(min(90 - _age, 40), 1)
+
+    # BTC gain fraction (lot-weighted average)
+    _btc_gain_frac = 0.0
+    if state.btc_stack > 0 and state.btc_price > 0:
+        btc_value = state.btc_stack * state.btc_price
+        lot_basis_total = sum(l.btc * l.cost_basis for l in state.tax_lots) if state.tax_lots else 0
+        if btc_value > 0:
+            _btc_gain_frac = max(1.0 - lot_basis_total / btc_value, 0.0)
+
+    # --- Taxable sources ---
+    if state.cash > 0.01:
+        sources.append(_WithdrawalSource(
+            key="cash", wrapper="taxable", asset_type="cash", index=0,
+            available=state.cash, growth_rate=config.cash_rate / 100,
+            horizon=15, gain_fraction=0.0, is_roth=False,
+            is_bracket_sensitive=False, bracket_type="none",
+        ))
+    for i, rb in enumerate(config.reserve_bins):
+        bal = state.reserves[i] if i < len(state.reserves) else 0
+        if bal > 0.01:
+            sources.append(_WithdrawalSource(
+                key=f"reserve_{i}", wrapper="taxable", asset_type="reserve", index=i,
+                available=bal, growth_rate=rb["rate"] / 100,
+                horizon=_tres_horizon, gain_fraction=0.0, is_roth=False,
+                is_bracket_sensitive=False, bracket_type="none",
+            ))
+    for i, ib in enumerate(config.invest_bins):
+        bal = state.investments[i] if i < len(state.investments) else 0
+        if bal > 0.01:
+            basis = state.invest_cost_basis[i] if i < len(state.invest_cost_basis) else bal
+            gf = max(1.0 - basis / bal, 0.0) if bal > 0 else 0.0
+            sources.append(_WithdrawalSource(
+                key=f"invest_{i}", wrapper="taxable", asset_type="invest", index=i,
+                available=bal, growth_rate=ib.get("return_rate", ib.get("rate", 5.0)) / 100,
+                horizon=15, gain_fraction=gf, is_roth=False,
+                is_bracket_sensitive=True, bracket_type="ltcg",
+            ))
+    if state.btc_stack > 0.01 and state.btc_price > 0:
+        sources.append(_WithdrawalSource(
+            key="btc", wrapper="taxable", asset_type="btc", index=0,
+            available=state.btc_stack * state.btc_price,
+            growth_rate=_btc_growth if isinstance(_btc_growth, float) else 0.10,
+            horizon=10, gain_fraction=_btc_gain_frac, is_roth=False,
+            is_bracket_sensitive=True, bracket_type="ltcg",
+        ))
+
+    # --- TD sources (tax_enabled only) ---
+    if config.tax_enabled:
+        if state.td_cash > 0.01:
+            sources.append(_WithdrawalSource(
+                key="td_cash", wrapper="td", asset_type="cash", index=0,
+                available=state.td_cash, growth_rate=config.cash_rate / 100,
+                horizon=15, gain_fraction=0.0, is_roth=False,
+                is_bracket_sensitive=True, bracket_type="ordinary",
+            ))
+        for i, rb in enumerate(config.reserve_bins):
+            bal = state.td_reserves[i] if i < len(state.td_reserves) else 0
+            if bal > 0.01:
+                sources.append(_WithdrawalSource(
+                    key=f"td_reserve_{i}", wrapper="td", asset_type="reserve", index=i,
+                    available=bal, growth_rate=rb["rate"] / 100,
+                    horizon=_tres_horizon, gain_fraction=0.0, is_roth=False,
+                    is_bracket_sensitive=True, bracket_type="ordinary",
+                ))
+        for i, ib in enumerate(config.invest_bins):
+            bal = state.td_investments[i] if i < len(state.td_investments) else 0
+            if bal > 0.01:
+                sources.append(_WithdrawalSource(
+                    key=f"td_invest_{i}", wrapper="td", asset_type="invest", index=i,
+                    available=bal, growth_rate=ib.get("return_rate", ib.get("rate", 5.0)) / 100,
+                    horizon=15, gain_fraction=0.0, is_roth=False,
+                    is_bracket_sensitive=True, bracket_type="ordinary",
+                ))
+        if state.td_btc_stack > 0.01 and state.btc_price > 0:
+            sources.append(_WithdrawalSource(
+                key="td_btc", wrapper="td", asset_type="btc", index=0,
+                available=state.td_btc_stack * state.btc_price,
+                growth_rate=_btc_growth if isinstance(_btc_growth, float) else 0.10,
+                horizon=10, gain_fraction=0.0, is_roth=False,
+                is_bracket_sensitive=True, bracket_type="ordinary",
+            ))
+
+    # --- TF (Roth) sources (tax_enabled only) ---
+    if config.tax_enabled:
+        tf_cash_res = state.tf_cash + sum(state.tf_reserves)
+        if tf_cash_res > 0.01:
+            sources.append(_WithdrawalSource(
+                key="tf_cash_res", wrapper="tf", asset_type="cash", index=0,
+                available=tf_cash_res, growth_rate=config.cash_rate / 100,
+                horizon=15, gain_fraction=0.0, is_roth=True,
+                is_bracket_sensitive=False, bracket_type="none",
+            ))
+        tf_inv = sum(state.tf_investments)
+        if tf_inv > 0.01:
+            avg_rate = sum(ib.get("return_rate", 5.0) for ib in config.invest_bins) / max(len(config.invest_bins), 1)
+            sources.append(_WithdrawalSource(
+                key="tf_invest", wrapper="tf", asset_type="invest", index=0,
+                available=tf_inv, growth_rate=avg_rate / 100,
+                horizon=15, gain_fraction=0.0, is_roth=True,
+                is_bracket_sensitive=False, bracket_type="none",
+            ))
+        if state.tf_btc_stack > 0.01 and state.btc_price > 0:
+            sources.append(_WithdrawalSource(
+                key="tf_btc", wrapper="tf", asset_type="btc", index=0,
+                available=state.tf_btc_stack * state.btc_price,
+                growth_rate=_btc_growth if isinstance(_btc_growth, float) else 0.10,
+                horizon=10, gain_fraction=0.0, is_roth=True,
+                is_bracket_sensitive=False, bracket_type="none",
+            ))
+
+    return sources
 
 
 def _sell_btc_tracked(state: CitadelState, config: SimConfig,

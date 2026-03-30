@@ -218,19 +218,33 @@ class ModelData:
         self.price_dates   = d["price_dates"]
         self.price_years   = np.array(d["price_years"])
         self.price_prices  = np.array(d["price_prices"])
-        self.qr_colors     = {float(k): v for k, v in d["qr_colors"].items()}
-        raw_ls = d["QR_LINESTYLES"]
+        self.qr_colors     = {float(k): v for k, v in d["qr_colors"].items()} if "qr_colors" in d else {}
+        raw_ls = d.get("QR_LINESTYLES", {})
         self.qr_linestyles = {float(k): _parse_ls(v) for k, v in raw_ls.items()}
-        # Visual config
-        for key in ("PLOT_BG_COLOR", "TEXT_COLOR", "TITLE_COLOR", "SPINE_COLOR",
-                    "GRID_MAJOR_COLOR", "GRID_MINOR_COLOR", "DATA_COLOR",
-                    "CAGR_SEG_C_LO", "CAGR_SEG_C_MID1", "CAGR_SEG_C_MID2", "CAGR_SEG_C_HI"):
-            setattr(self, key, d.get(key, "#888888"))
-        for key in ("DATA_PT_SIZE", "DATA_PT_SIZE_ZOOM", "ZOOM_YEAR_LO", "ZOOM_YEAR_HI",
-                    "CAGR_GRAD_STEPS", "CAGR_HEATMAP_FONTSIZE"):
-            setattr(self, key, int(d.get(key, 8)))
-        for key in ("ZOOM_PRICE_LO", "ZOOM_PRICE_HI", "CAGR_SEG_B1", "CAGR_SEG_B2"):
-            setattr(self, key, float(d.get(key, 0)))
+        # Visual config — .get() fallbacks so lean pkls (missing visual keys) don't crash
+        _VIS_STR = {
+            "PLOT_BG_COLOR": "#FFFFFF", "TEXT_COLOR": "#222222",
+            "TITLE_COLOR": "#1A3060", "SPINE_COLOR": "#888888",
+            "GRID_MAJOR_COLOR": "#BBBBBB", "GRID_MINOR_COLOR": "#E8E8E8",
+            "DATA_COLOR": "#606060",
+            "CAGR_SEG_C_LO": "#2166AC", "CAGR_SEG_C_MID1": "#F7F7F7",
+            "CAGR_SEG_C_MID2": "#FF8C00", "CAGR_SEG_C_HI": "#CC1100",
+        }
+        _VIS_INT = {
+            "DATA_PT_SIZE": 16, "DATA_PT_SIZE_ZOOM": 32,
+            "ZOOM_YEAR_LO": 2025, "ZOOM_YEAR_HI": 2038,
+            "CAGR_GRAD_STEPS": 24, "CAGR_HEATMAP_FONTSIZE": 6,
+        }
+        _VIS_FLOAT = {
+            "ZOOM_PRICE_LO": 40000.0, "ZOOM_PRICE_HI": 1750000.0,
+            "CAGR_SEG_B1": 5.0, "CAGR_SEG_B2": 16.0,
+        }
+        for key, default in _VIS_STR.items():
+            setattr(self, key, d.get(key, default))
+        for key, default in _VIS_INT.items():
+            setattr(self, key, int(d.get(key, default)))
+        for key, default in _VIS_FLOAT.items():
+            setattr(self, key, float(d.get(key, default)))
         self.TABLE_YEARS = d.get("TABLE_YEARS", list(range(2025, 2041)))
         # Shrinking sigma parameters (fitted by tools/fit_sigma.py)
         self.bm_sigma0_up = d.get("bm_sigma0_up", 0.085)

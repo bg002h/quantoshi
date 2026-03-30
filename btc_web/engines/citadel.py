@@ -544,6 +544,71 @@ def _max_draw_before_boundary(state: CitadelState, config: SimConfig,
     return max(min(distances), 0.0)
 
 
+def _execute_draw(state: CitadelState, config: SimConfig,
+                  source: _WithdrawalSource, amount: float) -> None:
+    """Execute a withdrawal from the specified source. Mutates state."""
+    if amount <= 0:
+        return
+
+    if source.wrapper == "taxable":
+        if source.asset_type == "cash":
+            state.cash -= min(amount, state.cash)
+        elif source.asset_type == "reserve":
+            state.reserves[source.index] -= min(amount, state.reserves[source.index])
+        elif source.asset_type == "invest":
+            _sell_investments_tracked(state, config, source.index, amount)
+        elif source.asset_type == "btc":
+            if state.btc_price > 0:
+                btc_to_sell = amount / state.btc_price
+                _sell_btc_tracked(state, config, btc_to_sell)
+
+    elif source.wrapper == "td":
+        remaining = amount
+        if source.asset_type == "cash":
+            d = min(state.td_cash, remaining); state.td_cash -= d; remaining -= d
+        elif source.asset_type == "reserve":
+            d = min(state.td_reserves[source.index], remaining)
+            state.td_reserves[source.index] -= d; remaining -= d
+        elif source.asset_type == "invest":
+            d = min(state.td_investments[source.index], remaining)
+            state.td_investments[source.index] -= d; remaining -= d
+        elif source.asset_type == "btc":
+            if state.btc_price > 0 and state.td_btc_stack > 0:
+                btc_val = state.td_btc_stack * state.btc_price
+                d = min(btc_val, remaining)
+                state.td_btc_stack -= d / state.btc_price
+                remaining -= d
+        actual = amount - remaining
+        if state.tax_year_accum is not None and actual > 0:
+            state.tax_year_accum.tax_deferred_withdrawals += actual
+
+    elif source.wrapper == "tf":
+        remaining = amount
+        if source.asset_type == "cash":
+            # TF cash + reserves combined source — draw cash first, then reserves
+            d = min(state.tf_cash, remaining); state.tf_cash -= d; remaining -= d
+            for i in range(len(state.tf_reserves)):
+                if remaining <= 0:
+                    break
+                d = min(state.tf_reserves[i], remaining)
+                state.tf_reserves[i] -= d; remaining -= d
+        elif source.asset_type == "invest":
+            for i in reversed(range(len(state.tf_investments))):
+                if remaining <= 0:
+                    break
+                d = min(state.tf_investments[i], remaining)
+                state.tf_investments[i] -= d; remaining -= d
+        elif source.asset_type == "btc":
+            if state.btc_price > 0 and state.tf_btc_stack > 0:
+                btc_val = state.tf_btc_stack * state.btc_price
+                d = min(btc_val, remaining)
+                state.tf_btc_stack -= d / state.btc_price
+                remaining -= d
+        actual = amount - remaining
+        if state.tax_year_accum is not None and actual > 0:
+            state.tax_year_accum.roth_withdrawals += actual
+
+
 def _sell_btc_tracked(state: CitadelState, config: SimConfig,
                       btc_to_sell: float) -> "SaleResult":
     """Sell BTC with lot tracking + accumulator update. Returns SaleResult.

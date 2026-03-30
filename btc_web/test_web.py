@@ -7313,3 +7313,68 @@ class TestDynamicWaterfall:
         max_draw = _max_draw_before_boundary(state, cfg, td_source)
         # At exact boundary → distance to NEXT bracket should be > 0
         assert max_draw > 0
+
+    def test_execute_draw_td_records_ordinary(self):
+        """Drawing from TD records ordinary income in accumulator."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _WithdrawalSource, _execute_draw)
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            td_cash=50_000, sim_date="2035-06-15",
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = SimConfig(tax_enabled=True)
+        source = _WithdrawalSource(
+            key="td_cash", wrapper="td", asset_type="cash", index=0,
+            available=50_000, growth_rate=0.04, horizon=15,
+            gain_fraction=0.0, is_roth=False,
+            is_bracket_sensitive=True, bracket_type="ordinary",
+        )
+        _execute_draw(state, cfg, source, 10_000)
+        assert state.td_cash == pytest.approx(40_000)
+        assert state.tax_year_accum.tax_deferred_withdrawals == pytest.approx(10_000)
+
+    def test_execute_draw_btc_uses_sell_tracked(self):
+        """Drawing BTC uses _sell_btc_tracked for lot tracking."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _WithdrawalSource, _execute_draw)
+        from engines.tax import TaxYearAccumulator
+        from engines.tax_lots import TaxLot
+        state = CitadelState(
+            btc_stack=2.0, btc_price=50_000, sim_date="2035-06-15",
+            tax_lots=[TaxLot(date="2031-01-01", btc=2.0,
+                             cost_basis=30_000, source="initial")],
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = SimConfig(tax_enabled=True, cost_basis_method="fifo")
+        source = _WithdrawalSource(
+            key="btc", wrapper="taxable", asset_type="btc", index=0,
+            available=100_000, growth_rate=0.5, horizon=10,
+            gain_fraction=0.7, is_roth=False,
+            is_bracket_sensitive=True, bracket_type="ltcg",
+        )
+        _execute_draw(state, cfg, source, 25_000)  # sell $25k worth
+        assert state.btc_stack < 2.0
+        assert state.tax_year_accum.lt_capital_gains > 0
+
+    def test_execute_draw_roth_records_roth(self):
+        """Drawing from Roth records roth_withdrawals, no tax."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _WithdrawalSource, _execute_draw)
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            tf_cash=30_000, tf_reserves=[10_000, 0, 0],
+            sim_date="2035-06-15",
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = SimConfig(tax_enabled=True)
+        source = _WithdrawalSource(
+            key="tf_cash_res", wrapper="tf", asset_type="cash", index=0,
+            available=40_000, growth_rate=0.04, horizon=15,
+            gain_fraction=0.0, is_roth=True,
+            is_bracket_sensitive=False, bracket_type="none",
+        )
+        _execute_draw(state, cfg, source, 35_000)
+        assert state.tf_cash == 0  # drained cash first
+        assert state.tf_reserves[0] == pytest.approx(5_000)  # then reserves
+        assert state.tax_year_accum.roth_withdrawals == pytest.approx(35_000)

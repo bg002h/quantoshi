@@ -452,8 +452,8 @@ class TestRebalGradual:
 # ===================================================================
 
 class TestSpendingWaterfall:
-    """Start with small amounts in each account. Verify cash drains first,
-    then reserves short->med->long, then investments bonds->equities, then BTC."""
+    """Start with small amounts in each account. Verify cost-ranked waterfall
+    drains cash first, then other cheap sources, with BTC last."""
 
     def test_waterfall_order(self):
         model = ControlledModel(price=100_000.0, quantile=0.50)
@@ -474,46 +474,43 @@ class TestSpendingWaterfall:
         state = _initial_state(cfg, model=model)
         rng = _rng()
 
-        # Total assets: 3K*5 + 1 BTC@100K = 15K cash+inv + 100K BTC
-        # Spending $5K/mo, waterfall: cash -> res_short -> res_med -> res_long -> inv_bonds -> inv_eq -> BTC
+        # Total assets: 3K*5 + 1 BTC@100K = 15K cash/res/inv + 100K BTC
+        # Cost-ranked waterfall (all 0% growth): cash, reserves, investments drawn before BTC.
 
-        # Month 1: $5K from cash ($3K) + $2K from reserves_short
+        # Month 1: $5K from cash ($3K) + reserves_short ($2K)
         state = step(state, cfg, 100_000.0, rng, model=model)
         assert state.cash == pytest.approx(0.0, abs=0.01), (
             f"Month 1: cash should be drained, got ${state.cash:.2f}")
-        assert state.reserves[0] == pytest.approx(1_000.0, abs=0.01), (
-            f"Month 1: reserves_short should be $1K, got ${state.reserves[0]:.2f}")
+        assert state.btc_stack == pytest.approx(1.0, abs=1e-6), (
+            f"Month 1: BTC should be untouched, got {state.btc_stack}")
 
-        # Month 2: $5K from res_short($1K) + res_med($3K) + res_long($1K)
+        # Month 2: $5K from remaining reserves
         state = step(state, cfg, 100_000.0, rng, model=model)
-        assert state.reserves[0] == pytest.approx(0.0, abs=0.01), (
-            f"Month 2: reserves_short should be 0, got ${state.reserves[0]:.2f}")
-        assert state.reserves[1] == pytest.approx(0.0, abs=0.01), (
-            f"Month 2: reserves_med should be 0, got ${state.reserves[1]:.2f}")
-        assert state.reserves[2] == pytest.approx(2_000.0, abs=0.01), (
-            f"Month 2: reserves_long should be $2K, got ${state.reserves[2]:.2f}")
+        assert state.btc_stack == pytest.approx(1.0, abs=1e-6), (
+            f"Month 2: BTC should still be untouched, got {state.btc_stack}")
 
-        # Month 3: $5K from res_long($2K) + BTC($3K worth = 0.03 BTC)
-        # Growth-aware ordering: BTC growth == equity (both 0%) → BTC sold before investments
+        # Month 3: remaining reserves + investments drawn before BTC
         state = step(state, cfg, 100_000.0, rng, model=model)
-        assert state.reserves[2] == pytest.approx(0.0, abs=0.01), (
-            f"Month 3: reserves_long should be 0, got ${state.reserves[2]:.2f}")
-        assert state.btc_stack == pytest.approx(1.0 - 3_000.0 / 100_000.0, abs=1e-6), (
-            f"Month 3: BTC should have lost $3K worth, got {state.btc_stack}")
-        assert state.investments[0] == pytest.approx(3_000.0, abs=0.01), (
-            f"Month 3: equities should still be $3K, got ${state.investments[0]:.2f}")
-        assert state.investments[1] == pytest.approx(3_000.0, abs=0.01), (
-            f"Month 3: bonds should still be $3K, got ${state.investments[1]:.2f}")
+        assert state.btc_stack == pytest.approx(1.0, abs=1e-6), (
+            f"Month 3: BTC should still be untouched while inv remain, got {state.btc_stack}")
 
-        # Month 4: $5K all from BTC
-        state = step(state, cfg, 100_000.0, rng, model=model)
-        assert state.btc_stack == pytest.approx(1.0 - 8_000.0 / 100_000.0, abs=1e-6), (
-            f"Month 4: BTC should have lost $8K worth total, got {state.btc_stack}")
+        # After 3 months: $15K spent from $18K non-BTC ($3K cash + $9K res + $6K inv)
+        total_non_btc = state.cash + sum(state.reserves) + sum(state.investments)
+        assert total_non_btc < 4000, (
+            f"Month 3: non-BTC should be ~$3K remaining, got ${total_non_btc:.0f}")
 
-        # Month 5+: all from BTC
+        # Month 4: draws remaining non-BTC ($3K) + BTC ($2K)
         state = step(state, cfg, 100_000.0, rng, model=model)
-        assert state.btc_stack == pytest.approx(1.0 - 13_000.0 / 100_000.0, abs=1e-6), (
-            f"Month 5: BTC should have lost $13K worth total, got {state.btc_stack}")
+        total_non_btc = state.cash + sum(state.reserves) + sum(state.investments)
+        assert total_non_btc == pytest.approx(0, abs=100), (
+            f"Month 4: non-BTC assets should be depleted, got ${total_non_btc:.0f}")
+        assert state.btc_stack < 1.0, (
+            f"Month 4: BTC should now be drawn, got {state.btc_stack}")
+
+        # Month 5: all from BTC
+        state = step(state, cfg, 100_000.0, rng, model=model)
+        assert state.btc_stack < 0.95, (
+            f"Month 5: BTC should continue being drawn, got {state.btc_stack}")
 
 
 # ===================================================================

@@ -1164,211 +1164,48 @@ def _compute_rmd(state: CitadelState, config: SimConfig, sim_year: int) -> float
 def _spending_waterfall(state: CitadelState, config: SimConfig,
                         amount: float,
                         model: "PriceModel | None" = None) -> float:
-    """Draw `amount` from accounts in growth-aware order.
+    """Draw `amount` from accounts using cost-ranked dynamic ordering.
     Returns unmet shortfall. Mutates state in place.
 
-    Order:
-    1. Taxable principal (cash, reserves) — no tax event
-    2. Tax-Deferred bracket-filling (tax_enabled only)
-    3-4. Taxable investments vs BTC — DYNAMIC ordering by forward growth
-    5. Tax-Deferred remaining (tax_enabled only)
-    7. Roth cash/reserves/investments (tax_enabled only)
-    8. Roth BTC (tax_enabled only)
+    Computes tax cost + opportunity cost for each available source,
+    draws from cheapest first, re-ranks at bracket boundaries.
+    Roth sources always rank after all non-Roth.
     """
     remaining = amount
     if remaining <= 0:
         return 0.0
 
-    # --- 1. Taxable principal: cash, then reserves (no tax event) ---
-    draw = min(state.cash, remaining)
-    state.cash -= draw
-    remaining -= draw
-    if remaining <= 0:
-        return 0.0
+    sources = _build_source_list(state, config, model)
+    if not sources:
+        return remaining
 
-    for i in range(len(state.reserves)):
-        draw = min(state.reserves[i], remaining)
-        state.reserves[i] -= draw
-        remaining -= draw
-        if remaining <= 0:
-            return 0.0
+    while remaining > 0.01 and sources:
+        _score_sources(sources, state, config, model)
+        ranked = _rank_sources(sources)
 
-    # --- 2. Tax-Deferred bracket-filling (tax_enabled only) ---
-    if config.tax_enabled:
-        from .tax_data import FEDERAL_BRACKETS_TCJA
-        _bracket_12_top = FEDERAL_BRACKETS_TCJA[config.filing_status][1][0]
-        _years_elapsed = state.period / FREQ_PPY[config.freq]
-        _bracket_inflated = _bracket_12_top * (1 + config.inflation / 100) ** _years_elapsed
-        _already_ordinary = 0.0
-        if state.tax_year_accum is not None:
-            _already_ordinary = (state.tax_year_accum.tax_deferred_withdrawals
-                                 + state.tax_year_accum.interest_income
-                                 + state.tax_year_accum.treasury_interest
-                                 + state.tax_year_accum.other_income)
-        _annual_room = max(_bracket_inflated - _already_ordinary, 0.0)
-        _ppy = FREQ_PPY[config.freq]
-        td_bracket_fill = min(remaining, _annual_room / _ppy)
-        td_avail = (state.td_cash + sum(state.td_reserves) + sum(state.td_investments)
-                    + state.td_btc_stack * max(state.btc_price, 0))
-        td_draw = min(td_bracket_fill, td_avail)
-        if td_draw > 0:
-            td_remaining = td_draw
-            d = min(state.td_cash, td_remaining)
-            state.td_cash -= d
-            td_remaining -= d
-            for i in range(len(state.td_reserves)):
-                if td_remaining <= 0:
-                    break
-                d = min(state.td_reserves[i], td_remaining)
-                state.td_reserves[i] -= d
-                td_remaining -= d
-            for i in reversed(range(len(state.td_investments))):
-                if td_remaining <= 0:
-                    break
-                d = min(state.td_investments[i], td_remaining)
-                state.td_investments[i] -= d
-                td_remaining -= d
-            if td_remaining > 0 and state.td_btc_stack > 0 and state.btc_price > 0:
-                btc_val = state.td_btc_stack * state.btc_price
-                d = min(btc_val, td_remaining)
-                state.td_btc_stack -= d / state.btc_price
-                td_remaining -= d
-            actual_td = td_draw - td_remaining
-            state.cash += actual_td
-            if state.tax_year_accum is not None:
-                state.tax_year_accum.tax_deferred_withdrawals += actual_td
-            remaining -= actual_td
-            if remaining <= 0:
-                return 0.0
+        drew_something = False
+        for best in ranked:
+            if best.available < 0.01:
+                continue
 
-    # --- 3-4. Taxable investments vs BTC: growth-aware ordering ---
-    _equity_rate = config.invest_bins[0]["return_rate"] / 100 if config.invest_bins else 0.10
-    _btc_fwd_growth = _equity_rate
-    if model is not None and state.btc_price > 0:
-        try:
-            _t_now = state.t
-            _q = config.selected_qs[len(config.selected_qs) // 2] if config.selected_qs else 0.25
-            _price_now = float(model.price_at(_q, max(_t_now, 0.5)))
-            _price_next = float(model.price_at(_q, max(_t_now + 1, 0.5)))
-            if _price_now > 0:
-                _btc_fwd_growth = (_price_next / _price_now) - 1
-        except Exception:
-            pass
+            max_draw = _max_draw_before_boundary(state, config, best)
+            if max_draw < 0.01:
+                continue
 
-    _sell_investments_first = (_btc_fwd_growth > _equity_rate)
-
-    def _sell_taxable_investments():
-        nonlocal remaining
-        for i in reversed(range(len(state.investments))):
-            if remaining <= 0:
-                return True
-            drawn, _gain = _sell_investments_tracked(state, config, i, remaining)
-            remaining -= drawn
-        return remaining <= 0
-
-    def _sell_taxable_btc():
-        nonlocal remaining
-        if remaining > 0 and state.btc_price > 0 and (state.tax_lots or state.btc_stack > 0):
-            btc_to_sell = remaining / state.btc_price
-            btc_to_sell = min(btc_to_sell, state.btc_stack)
-            if btc_to_sell > 1e-8:  # _SATOSHI
-                result = _sell_btc_tracked(state, config, btc_to_sell)
-                remaining -= result.btc_sold * state.btc_price
-        return remaining <= 0
-
-    if _sell_investments_first:
-        if _sell_taxable_investments():
-            return 0.0
-        if _sell_taxable_btc():
-            return 0.0
-    else:
-        if _sell_taxable_btc():
-            return 0.0
-        if _sell_taxable_investments():
-            return 0.0
-
-    if remaining <= 0:
-        return 0.0
-
-    # --- 5. Tax-Deferred remaining (tax_enabled only) ---
-    if config.tax_enabled:
-        td_avail2 = (state.td_cash + sum(state.td_reserves) + sum(state.td_investments)
-                     + state.td_btc_stack * max(state.btc_price, 0))
-        if td_avail2 > 0:
-            td_remaining = min(remaining, td_avail2)
-            d = min(state.td_cash, td_remaining)
-            state.td_cash -= d
-            td_remaining -= d
-            for i in range(len(state.td_reserves)):
-                if td_remaining <= 0:
-                    break
-                d = min(state.td_reserves[i], td_remaining)
-                state.td_reserves[i] -= d
-                td_remaining -= d
-            for i in reversed(range(len(state.td_investments))):
-                if td_remaining <= 0:
-                    break
-                d = min(state.td_investments[i], td_remaining)
-                state.td_investments[i] -= d
-                td_remaining -= d
-            if td_remaining > 0 and state.td_btc_stack > 0 and state.btc_price > 0:
-                btc_val = state.td_btc_stack * state.btc_price
-                d = min(btc_val, td_remaining)
-                state.td_btc_stack -= d / state.btc_price
-                td_remaining -= d
-            actual_td2 = min(remaining, td_avail2) - td_remaining
-            if state.tax_year_accum is not None:
-                state.tax_year_accum.tax_deferred_withdrawals += actual_td2
-            remaining -= actual_td2
-
-        if remaining <= 0:
-            return 0.0
-
-        # --- 7. Roth cash/reserves/investments (no tax impact) ---
-        _roth_drawn = 0.0
-        draw = min(state.tf_cash, remaining)
-        state.tf_cash -= draw
-        _roth_drawn += draw
-        remaining -= draw
-        if remaining <= 0:
-            if state.tax_year_accum is not None:
-                state.tax_year_accum.roth_withdrawals += _roth_drawn
-            return 0.0
-
-        for i in range(len(state.tf_reserves)):
-            draw = min(state.tf_reserves[i], remaining)
-            state.tf_reserves[i] -= draw
-            _roth_drawn += draw
+            draw = min(remaining, best.available, max_draw)
+            _execute_draw(state, config, best, draw)
             remaining -= draw
-            if remaining <= 0:
-                if state.tax_year_accum is not None:
-                    state.tax_year_accum.roth_withdrawals += _roth_drawn
-                return 0.0
 
-        for i in reversed(range(len(state.tf_investments))):
-            draw = min(state.tf_investments[i], remaining)
-            state.tf_investments[i] -= draw
-            _roth_drawn += draw
-            remaining -= draw
-            if remaining <= 0:
-                if state.tax_year_accum is not None:
-                    state.tax_year_accum.roth_withdrawals += _roth_drawn
-                return 0.0
+            # Update source availability
+            best.available -= draw
+            # BTC/investment gain fractions may have changed — rebuild on next score
+            drew_something = True
+            break  # re-rank with updated state
 
-        # --- 8. Roth BTC (absolute last, no tax) ---
-        if state.tf_btc_stack > 0 and state.btc_price > 0:
-            btc_val = state.tf_btc_stack * state.btc_price
-            if btc_val >= remaining:
-                _roth_drawn += remaining
-                state.tf_btc_stack -= remaining / state.btc_price
-                remaining = 0.0
-            else:
-                _roth_drawn += btc_val
-                state.tf_btc_stack = 0.0
-                remaining -= btc_val
+        if not drew_something:
+            break
 
-        if state.tax_year_accum is not None:
-            state.tax_year_accum.roth_withdrawals += _roth_drawn
+        sources = [s for s in sources if s.available > 0.01]
 
     return max(remaining, 0.0)
 

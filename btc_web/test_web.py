@@ -7378,3 +7378,144 @@ class TestDynamicWaterfall:
         assert state.tf_cash == 0  # drained cash first
         assert state.tf_reserves[0] == pytest.approx(5_000)  # then reserves
         assert state.tax_year_accum.roth_withdrawals == pytest.approx(35_000)
+
+    def test_full_waterfall_btc_protected_early(self):
+        """Cash and reserves (no-tax principal) should be drawn before BTC."""
+        from engines.citadel import SimConfig, _initial_state, step
+        import numpy as np
+        cfg = SimConfig(
+            start_stack=1.0, start_yr=2035, end_yr=2037,
+            freq="Annually", monthly_spend=2_000,
+            cash_initial=50_000, cash_rate=4.0,
+            selected_qs=[0.25], tax_enabled=True, state_code="TX",
+            td_cash_initial=100_000,
+            reserve_bins=[
+                {"label": "S", "initial": 20_000, "rate": 5.0, "volatility": 0},
+                {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+            ],
+            invest_bins=[
+                {"label": "Eq", "initial": 50_000, "return_rate": 10.0, "volatility": 0},
+                {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+            ],
+        )
+        model = _test_model()
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=model)
+        initial_btc = state.btc_stack
+        # $24k annual spend × 2 = $48k. Non-BTC assets = $220k+ (ample coverage).
+        # Cash+reserves (zero-tax sources) should be drawn first.
+        for _ in range(2):
+            state = step(state, cfg, model.price_at(0.25, state.t + 1), rng, model=model)
+        # BTC should be fully preserved — non-BTC assets more than cover spending
+        assert state.btc_stack >= initial_btc * 0.95, \
+            f"BTC should be mostly preserved in early retirement, got {state.btc_stack:.3f}"
+        # Cash should be depleted or significantly reduced (drawn first as cheapest)
+        assert state.cash < 50_000, "Cash should have been drawn from"
+
+    def test_full_waterfall_roth_last(self):
+        """Roth is never touched while other sources remain."""
+        from engines.citadel import SimConfig, _initial_state, step
+        import numpy as np
+        cfg = SimConfig(
+            start_stack=0, start_yr=2035, end_yr=2037,
+            freq="Annually", monthly_spend=5000,
+            cash_initial=100_000, selected_qs=[0.25],
+            tax_enabled=True, state_code="TX",
+            td_cash_initial=100_000,
+            tf_cash_initial=50_000,
+            reserve_bins=[
+                {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+            ],
+            invest_bins=[
+                {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+            ],
+        )
+        model = _test_model()
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=model)
+        for _ in range(2):
+            state = step(state, cfg, 50_000, rng, model=model)
+        # Taxable cash ($100k) + TD cash ($100k) should cover $120k spending.
+        # Roth untouched (may grow slightly due to cash_rate interest).
+        assert state.tf_cash >= 49_000, \
+            f"Roth should be untouched while non-Roth covers spending, got {state.tf_cash}"
+
+    def test_full_waterfall_non_tax_mode(self):
+        """Non-tax mode still works with the dynamic waterfall."""
+        from engines.citadel import SimConfig, simulate
+        cfg = SimConfig(
+            start_stack=1.0, start_yr=2031, end_yr=2035,
+            freq="Annually", monthly_spend=5000,
+            cash_initial=50_000, selected_qs=[0.25],
+            tax_enabled=False,
+            reserve_bins=[
+                {"label": "S", "initial": 20_000, "rate": 0, "volatility": 0},
+                {"label": "M", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "L", "initial": 0, "rate": 0, "volatility": 0},
+            ],
+            invest_bins=[
+                {"label": "Eq", "initial": 50_000, "return_rate": 0, "volatility": 0},
+                {"label": "Bd", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+        )
+        r = simulate(cfg, _test_model())
+        assert r.total_usd.shape[1] > 0
+        assert r.taxes_paid is None
+        assert r.total_usd[0, -1] >= 0
+
+    def test_full_waterfall_high_spender_crosses_brackets(self):
+        """$500k monthly spend should cross multiple brackets without hanging."""
+        from engines.citadel import SimConfig, _initial_state, step
+        import numpy as np
+        cfg = SimConfig(
+            start_stack=0, start_yr=2035, end_yr=2036,
+            freq="Monthly", monthly_spend=500_000,
+            cash_initial=0, selected_qs=[0.25],
+            tax_enabled=True, state_code="CA",
+            td_cash_initial=10_000_000,
+            reserve_bins=[
+                {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+            ],
+            invest_bins=[
+                {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+            ],
+        )
+        model = _test_model()
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=model)
+        # Run 1 month — should not hang and should draw from TD
+        state = step(state, cfg, 50_000, rng, model=model)
+        assert state.td_cash < 10_000_000
+        assert state.spending_shortfall == 0
+
+    def test_full_waterfall_shortfall_when_all_depleted(self):
+        """Returns shortfall when all sources exhausted."""
+        from engines.citadel import SimConfig, _initial_state, step
+        import numpy as np
+        cfg = SimConfig(
+            start_stack=0, start_yr=2035, end_yr=2036,
+            freq="Annually", monthly_spend=100_000,
+            cash_initial=1_000, selected_qs=[0.25],
+            tax_enabled=False,
+            reserve_bins=[
+                {"label": "S", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "M", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "L", "initial": 0, "rate": 0, "volatility": 0},
+            ],
+            invest_bins=[
+                {"label": "Eq", "initial": 0, "return_rate": 0, "volatility": 0},
+                {"label": "Bd", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+        )
+        model = _test_model()
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=model)
+        state = step(state, cfg, 50_000, rng, model=model)
+        assert state.spending_shortfall > 0

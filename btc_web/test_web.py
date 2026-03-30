@@ -7297,8 +7297,8 @@ class TestDynamicWaterfall:
         cost_2065 = _btc_cost_at_year(2065)
         assert cost_2035 > cost_2065, "BTC cost should decrease as growth slows"
 
-    def test_rank_roth_always_last(self):
-        """Roth sources rank after all non-Roth regardless of cost."""
+    def test_rank_by_cost_ascending(self):
+        """Sources ranked purely by cost — cheapest first, regardless of wrapper."""
         from engines.citadel import _WithdrawalSource, _rank_sources
         sources = [
             _WithdrawalSource(key="btc", wrapper="taxable", asset_type="btc",
@@ -7311,9 +7311,9 @@ class TestDynamicWaterfall:
                               is_bracket_sensitive=False, bracket_type="none", cost=0.01),
         ]
         ranked = _rank_sources(sources)
-        # TF cash has lower cost (0.01) but must rank after taxable BTC (5.0)
-        assert ranked[0].key == "btc"
-        assert ranked[1].key == "tf_cash_res"
+        # Roth cash (cost=0.01) is cheaper than taxable BTC (cost=5.0)
+        assert ranked[0].key == "tf_cash_res"
+        assert ranked[1].key == "btc"
 
     def test_max_draw_ordinary_bracket(self):
         """Distance to next ordinary bracket computed correctly."""

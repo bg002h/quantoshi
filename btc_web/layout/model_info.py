@@ -570,11 +570,12 @@ where $\alpha$ (intercept) and $\beta$ (slope) are derived from **two user-selec
                                 "aggressively each asset is protected from withdrawal."
                             ),
 
-                            html.H6("Roth-Last Policy"),
+                            html.H6("Roth Ordering"),
                             html.P(
-                                "Roth (tax-free) account withdrawals are always deferred until "
-                                "all taxable and tax-deferred sources are exhausted, preserving "
-                                "the benefit of tax-free compounding."
+                                "Roth (tax-free) accounts have zero tax cost but full opportunity "
+                                "cost from tax-free compounding, so the cost function naturally "
+                                "ranks them as expensive to withdraw. No special rule forces Roth "
+                                "last \u2014 the math handles it."
                             ),
                         ], title="Citadel Planner", item_id="mi-citadel"),
 

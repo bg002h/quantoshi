@@ -463,10 +463,10 @@ def _score_sources(sources: list[_WithdrawalSource], state: CitadelState,
 
 
 def _rank_sources(sources: list[_WithdrawalSource]) -> list[_WithdrawalSource]:
-    """Sort sources: non-Roth by cost ascending, then Roth by cost ascending."""
-    non_roth = sorted([s for s in sources if not s.is_roth], key=lambda s: s.cost)
-    roth = sorted([s for s in sources if s.is_roth], key=lambda s: s.cost)
-    return non_roth + roth
+    """Sort all sources by cost ascending. The cost function already accounts
+    for tax-free compounding (Roth has zero tax but full opportunity cost),
+    so Roth naturally ranks expensive — no need to force it last."""
+    return sorted(sources, key=lambda s: s.cost)
 
 
 def _max_draw_before_boundary(state: CitadelState, config: SimConfig,

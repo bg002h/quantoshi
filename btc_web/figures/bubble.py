@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 from typing import Any
 
 import _app_ctx
+import theme
 from btc_core import yr_to_t, today_t, fmt_price, UserModel
 from tab_defaults import BUBBLE
 
@@ -367,7 +368,6 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     ylabel = "Stack Value (USD)" if stack > 0 else "Bitcoin Price (USD)"
 
     layout = _base_layout(
-        m,
         title="Bitcoin Bubble Model + Quantile Regression Channels",
         xlabel="Years since genesis (2009-07-25)",
         ylabel=ylabel,
@@ -416,8 +416,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             text=f"Stack: {p['stack']:.6g} BTC",
             xref="paper", yref="paper", x=0.99, y=0.01,
             xanchor="right", yanchor="bottom",
-            showarrow=False, font=dict(size=_FONT_LEGEND, color=m.TEXT_COLOR),
-            bgcolor=m.PLOT_BG_COLOR, bordercolor=m.SPINE_COLOR, borderwidth=1,
+            showarrow=False, font=dict(size=_FONT_LEGEND, color=theme.TEXT_COLOR),
+            bgcolor=theme.PLOT_BG_COLOR, bordercolor=theme.SPINE_COLOR, borderwidth=1,
         )]
 
     _apply_sans_typography(layout)

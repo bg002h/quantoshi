@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 # btc_app/ is added to sys.path by app.py before this import
 from typing import Any
 import _app_ctx
+import theme
 from btc_core import yr_to_t, fmt_price, leo_weighted_entry
 _HAS_MARKOV = _app_ctx._HAS_MARKOV
 
@@ -144,14 +145,14 @@ def _fmt_q_range(qs: list) -> str:
     return f"Q{_pct(lo)}\u2013{_pct(hi)}"
 
 
-def _error_figure(m, title):
+def _error_figure(title):
     """Return a blank figure with a message title, styled for dark theme."""
     fig = go.Figure()
     fig.update_layout(
         title=title,
-        paper_bgcolor=m.PLOT_BG_COLOR,
-        plot_bgcolor=m.PLOT_BG_COLOR,
-        font=dict(color=m.TEXT_COLOR),
+        paper_bgcolor=theme.PLOT_BG_COLOR,
+        plot_bgcolor=theme.PLOT_BG_COLOR,
+        font=dict(color=theme.TEXT_COLOR),
     )
     return fig
 
@@ -198,7 +199,7 @@ def _build_time_array(p, m, default_syr, default_eyr):
     syr = int(p.get("start_yr", default_syr))
     eyr = int(p.get("end_yr", default_eyr))
     if eyr <= syr:
-        return _error_figure(m, "Set end year > start year"), None
+        return _error_figure("Set end year > start year"), None
     t_start = max(yr_to_t(syr, m.genesis), 1.0)
     t_end = yr_to_t(eyr, m.genesis)
     ts = np.arange(t_start, t_end + dt * 0.5, dt)
@@ -222,7 +223,7 @@ def _sim_layout(m, p, title, ylabel, ts, t_start, t_end, dt, syr, eyr, shapes=No
     """Build dark layout with time-series axis, log_y, tick labels."""
     tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis,
                                      minor_grid=p.get("minor_grid"))
-    layout = _base_layout(m, title=title, xlabel="Year", ylabel=ylabel)
+    layout = _base_layout(title=title, xlabel="Year", ylabel=ylabel)
     layout["yaxis"]["title"]["standoff"] = 5
     _x_end = max(float(ts[-1]), t_end) + dt * 0.15
     layout["xaxis"].update(
@@ -248,31 +249,31 @@ def _apply_mc_overlay(m, p, overlay_fn, overlay_args, traces,
     return mc_traces_list, mc_result
 
 
-def _base_layout(m, title, xlabel, ylabel, **kwargs):
+def _base_layout(title, xlabel, ylabel, **kwargs):
     """Base layout dict — shared Quantoshi chart template.
 
     Includes consistent font family, sizes, colors, and grid styling
     so all charts have a cohesive look.
     """
     return dict(
-        title=dict(text=title, font=dict(family=_SANS_FONT, color=m.TITLE_COLOR, size=_FONT_TITLE)),
-        paper_bgcolor=m.PLOT_BG_COLOR,
-        plot_bgcolor=m.PLOT_BG_COLOR,
-        font=dict(family=_SANS_FONT, color=m.TEXT_COLOR, size=_FONT_BODY),
+        title=dict(text=title, font=dict(family=_SANS_FONT, color=theme.TITLE_COLOR, size=_FONT_TITLE)),
+        paper_bgcolor=theme.PLOT_BG_COLOR,
+        plot_bgcolor=theme.PLOT_BG_COLOR,
+        font=dict(family=_SANS_FONT, color=theme.TEXT_COLOR, size=_FONT_BODY),
         xaxis=dict(
-            title=dict(text=xlabel, font=dict(family=_SANS_FONT, color=m.TEXT_COLOR)),
-            gridcolor=m.GRID_MAJOR_COLOR, gridwidth=0.6,
-            linecolor=m.SPINE_COLOR, tickcolor=m.TEXT_COLOR,
-            zerolinecolor=m.GRID_MAJOR_COLOR,
+            title=dict(text=xlabel, font=dict(family=_SANS_FONT, color=theme.TEXT_COLOR)),
+            gridcolor=theme.GRID_MAJOR_COLOR, gridwidth=0.6,
+            linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
+            zerolinecolor=theme.GRID_MAJOR_COLOR,
         ),
         yaxis=dict(
-            title=dict(text=ylabel, font=dict(family=_SANS_FONT, color=m.TEXT_COLOR)),
-            gridcolor=m.GRID_MAJOR_COLOR, gridwidth=0.6,
-            linecolor=m.SPINE_COLOR, tickcolor=m.TEXT_COLOR,
-            zerolinecolor=m.GRID_MAJOR_COLOR,
+            title=dict(text=ylabel, font=dict(family=_SANS_FONT, color=theme.TEXT_COLOR)),
+            gridcolor=theme.GRID_MAJOR_COLOR, gridwidth=0.6,
+            linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
+            zerolinecolor=theme.GRID_MAJOR_COLOR,
         ),
         legend=dict(
-            bgcolor="rgba(255,255,255,0.85)", bordercolor=m.GRID_MAJOR_COLOR,
+            bgcolor="rgba(255,255,255,0.85)", bordercolor=theme.GRID_MAJOR_COLOR,
             borderwidth=1, font=dict(family=_SANS_FONT, size=_FONT_LEGEND),
         ),
         margin=dict(l=60, r=20, t=50, b=60),

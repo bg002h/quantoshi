@@ -250,7 +250,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     try:
         config = _build_sim_config(p)
     except (ValueError, TypeError) as e:
-        return _error_figure(m, f"Config error: {e}"), None
+        return _error_figure(f"Config error: {e}"), None
 
     model_key = p.get("price_model", "bub")
     model = _ModelAdapter(m, model_key=model_key, user_model=p.get("user_model"))
@@ -266,7 +266,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     try:
         result = simulate(config, model)
     except (ValueError, NotImplementedError) as e:
-        return _error_figure(m, f"Simulation error: {e}"), None
+        return _error_figure(f"Simulation error: {e}"), None
     logger.debug("[CITADEL] simulate: %.1fms (n_sims=1, %d periods)",
                  (_time.time()-_t0)*1000, len(result.time_axis))
 
@@ -275,7 +275,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     med = result.median
     n_periods = len(ts)
     if n_periods == 0:
-        return _error_figure(m, "No simulation periods"), None
+        return _error_figure("No simulation periods"), None
 
     # Spending per period (cumulative -> per-period via diff)
     cum_spend = result.cumulative_spend[0]  # sim 0 (deterministic)

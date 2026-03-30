@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from typing import Any
 
 import _app_ctx
+import theme
 from tab_defaults import HEATMAP
 from btc_core import ModelData, yr_to_t, fmt_price, leo_weighted_entry
 from mc_overlay import _mc_heatmap_overlay
@@ -201,7 +202,7 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         xqs = sorted([float(q) for q in xqs_raw if float(q) in model.fits], reverse=True)
 
         if not eyrs or not xqs:
-            return _error_figure(m, "No data \u2014 adjust Entry / Exit settings")
+            return _error_figure("No data \u2014 adjust Entry / Exit settings")
 
         mc = np.zeros((len(xqs), len(eyrs)))
         mp = np.zeros((len(xqs), len(eyrs)))
@@ -225,7 +226,7 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     else:
         # Non-quantized model: single-row heatmap
         if not eyrs:
-            return _error_figure(m, "No data \u2014 adjust Exit year range")
+            return _error_figure("No data \u2014 adjust Exit year range")
 
         mc = np.zeros((1, len(eyrs)))
         mp = np.zeros((1, len(eyrs)))
@@ -262,10 +263,10 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         colorscale=colorscale, zmin=zmin, zmax=zmax,
         showscale=bool(p.get("show_colorbar", True)),
         colorbar=dict(
-            title=dict(text="CAGR %", font=dict(color=m.TEXT_COLOR)),
-            tickfont=dict(color=m.TEXT_COLOR),
-            bgcolor=m.PLOT_BG_COLOR,
-            outlinecolor=m.SPINE_COLOR,
+            title=dict(text="CAGR %", font=dict(color=theme.TEXT_COLOR)),
+            tickfont=dict(color=theme.TEXT_COLOR),
+            bgcolor=theme.PLOT_BG_COLOR,
+            outlinecolor=theme.SPINE_COLOR,
         ),
         hovertemplate=f"Exit: %{{x}}<br>{hover_y_label}: %{{y}}<br>CAGR: %{{z:.1f}}%<extra></extra>",
     ))
@@ -285,15 +286,15 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     fig.update_layout(
         title=dict(text=title_text,
-                   font=dict(color=m.TITLE_COLOR, size=_FONT_SUBTITLE)),
-        paper_bgcolor=m.PLOT_BG_COLOR,
-        plot_bgcolor=m.PLOT_BG_COLOR,
-        font=dict(color=m.TEXT_COLOR),
-        xaxis=dict(title="Exit Year", gridcolor=m.GRID_MAJOR_COLOR,
-                   linecolor=m.SPINE_COLOR, tickcolor=m.TEXT_COLOR,
+                   font=dict(color=theme.TITLE_COLOR, size=_FONT_SUBTITLE)),
+        paper_bgcolor=theme.PLOT_BG_COLOR,
+        plot_bgcolor=theme.PLOT_BG_COLOR,
+        font=dict(color=theme.TEXT_COLOR),
+        xaxis=dict(title="Exit Year", gridcolor=theme.GRID_MAJOR_COLOR,
+                   linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
                    fixedrange=True),
-        yaxis=dict(title=y_title, gridcolor=m.GRID_MAJOR_COLOR,
-                   linecolor=m.SPINE_COLOR, tickcolor=m.TEXT_COLOR,
+        yaxis=dict(title=y_title, gridcolor=theme.GRID_MAJOR_COLOR,
+                   linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
                    fixedrange=True),
         annotations=annots,
         margin=dict(l=70, r=20, t=60, b=50),
@@ -344,12 +345,12 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
     eyrs = list(range(eyr, eyr + mc_years + 1))
 
     if not eyrs:
-        return _error_figure(m, "No data \u2014 adjust Entry / Exit settings"), None
+        return _error_figure("No data \u2014 adjust Entry / Exit settings"), None
 
     mc_data = _mc_heatmap_overlay(m, p, ep, entry_t, eyrs)
     mc_cagr, mc_prices, mc_mults, mc_labels, mc_result = mc_data
     if mc_cagr is None:
-        return _error_figure(m, "MC simulation error"), None
+        return _error_figure("MC simulation error"), None
 
     mc = mc_cagr
     mp = mc_prices
@@ -357,7 +358,7 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
 
     valid = mc[~np.isnan(mc)]
     if len(valid) == 0:
-        return _error_figure(m, "MC: no valid data in range"), mc_result
+        return _error_figure("MC: no valid data in range"), mc_result
 
     colorscale, zmin, zmax = _heatmap_colorscale(m, p, mc)
 
@@ -374,10 +375,10 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
         colorscale=colorscale, zmin=zmin, zmax=zmax,
         showscale=bool(p.get("show_colorbar", True)),
         colorbar=dict(
-            title=dict(text="CAGR %", font=dict(color=m.TEXT_COLOR)),
-            tickfont=dict(color=m.TEXT_COLOR),
-            bgcolor=m.PLOT_BG_COLOR,
-            outlinecolor=m.SPINE_COLOR,
+            title=dict(text="CAGR %", font=dict(color=theme.TEXT_COLOR)),
+            tickfont=dict(color=theme.TEXT_COLOR),
+            bgcolor=theme.PLOT_BG_COLOR,
+            outlinecolor=theme.SPINE_COLOR,
         ),
         hovertemplate="Exit: %{x}<br>Percentile: %{y}<br>CAGR: %{z:.1f}%<extra></extra>",
     ))
@@ -388,15 +389,15 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
 
     fig.update_layout(
         title=dict(text=f"Monte Carlo CAGR \u2014 {entry_lbl}",
-                   font=dict(color=m.TITLE_COLOR, size=_FONT_SUBTITLE)),
-        paper_bgcolor=m.PLOT_BG_COLOR,
-        plot_bgcolor=m.PLOT_BG_COLOR,
-        font=dict(color=m.TEXT_COLOR),
-        xaxis=dict(title="Exit Year", gridcolor=m.GRID_MAJOR_COLOR,
-                   linecolor=m.SPINE_COLOR, tickcolor=m.TEXT_COLOR,
+                   font=dict(color=theme.TITLE_COLOR, size=_FONT_SUBTITLE)),
+        paper_bgcolor=theme.PLOT_BG_COLOR,
+        plot_bgcolor=theme.PLOT_BG_COLOR,
+        font=dict(color=theme.TEXT_COLOR),
+        xaxis=dict(title="Exit Year", gridcolor=theme.GRID_MAJOR_COLOR,
+                   linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
                    fixedrange=True),
-        yaxis=dict(title="MC Percentile", gridcolor=m.GRID_MAJOR_COLOR,
-                   linecolor=m.SPINE_COLOR, tickcolor=m.TEXT_COLOR,
+        yaxis=dict(title="MC Percentile", gridcolor=theme.GRID_MAJOR_COLOR,
+                   linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
                    fixedrange=True),
         annotations=annots,
         margin=dict(l=70, r=20, t=60, b=50),

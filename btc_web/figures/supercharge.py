@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 from typing import Any
 
 import _app_ctx
+import theme
 from btc_core import ModelData, yr_to_t, fmt_price
 from tab_defaults import SUPERCHARGE
 from mc_overlay import _mc_supercharge_overlay
@@ -71,8 +72,8 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
     if not sel_qs and not mc_enabled:
         return go.Figure(layout=dict(
             title="Select at least one quantile",
-            paper_bgcolor=m.PLOT_BG_COLOR,
-            font=dict(color=m.TEXT_COLOR))), None
+            paper_bgcolor=theme.PLOT_BG_COLOR,
+            font=dict(color=theme.TEXT_COLOR))), None
     if not sel_qs:
         sel_qs = [0.5]  # need at least one for MC simulation grid
 
@@ -583,7 +584,6 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
 
     xlabel = "Delay (years)" if chart_layout in (0, 1) else "Quantile"
     layout = _base_layout(
-        m,
         title=f"HODL Supercharger \u2014 Max spend{freq_label} to deplete by {target_yr}  ({model.name})",
         xlabel=xlabel,
         ylabel=f"Max withdrawal{freq_label}",

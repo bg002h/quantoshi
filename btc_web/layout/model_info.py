@@ -566,8 +566,13 @@ where $\alpha$ (intercept) and $\beta$ (slope) are derived from **two user-selec
                                 "tax plus forgone compounding. Bitcoin uses a 10-year horizon "
                                 "(twice the historical 5-year break-even). Equities and bonds "
                                 "use 15 years. Treasuries use the holder\u2019s remaining "
-                                "lifetime (capped at 40 years). These horizons determine how "
-                                "aggressively each asset is protected from withdrawal."
+                                "lifetime (capped at 40 years). Tax-deferred (401k/IRA) "
+                                "horizons shorten as RMDs approach: before RMD age, capped "
+                                "at years until forced distributions begin; at RMD age and "
+                                "beyond, the IRS Uniform Lifetime Table factor sets the "
+                                "horizon directly. This makes TD progressively cheaper to "
+                                "withdraw voluntarily, shifting spending toward TD before "
+                                "RMDs force it out at potentially higher marginal rates."
                             ),
 
                             html.H6("Roth Ordering"),

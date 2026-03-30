@@ -7857,6 +7857,129 @@ class TestDynamicWaterfall:
         # Should fall back to equity rate (10%)
         assert btc.growth_rate == pytest.approx(0.10)
 
+    def test_td_horizon_before_rmd_age(self):
+        """TD horizon ramps down as RMD start age approaches."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _build_source_list)
+        from engines.tax import TaxYearAccumulator
+        # Age 50, RMD at 75 → horizon = min(15, 25) = 15
+        state = CitadelState(
+            td_cash=100_000, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            sim_date="2035-06-15",
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = SimConfig(tax_enabled=True, birth_year=1985, start_yr=2035,
+                        reserve_bins=[
+                            {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                            {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                            {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+                        ],
+                        invest_bins=[
+                            {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                            {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+                        ])
+        sources = _build_source_list(state, cfg, model=None)
+        td = [s for s in sources if s.key == "td_cash"][0]
+        assert td.horizon == 15  # 25 years until RMD, capped at 15
+
+        # Age 65, RMD at 75 → horizon = min(15, 10) = 10
+        state2 = CitadelState(
+            td_cash=100_000, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            sim_date="2050-06-15",
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg2 = SimConfig(tax_enabled=True, birth_year=1985, start_yr=2050,
+                         reserve_bins=cfg.reserve_bins, invest_bins=cfg.invest_bins)
+        sources2 = _build_source_list(state2, cfg2, model=None)
+        td2 = [s for s in sources2 if s.key == "td_cash"][0]
+        assert td2.horizon == 10
+
+        # Age 70, RMD at 75 → horizon = 5
+        state3 = CitadelState(
+            td_cash=100_000, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            sim_date="2055-06-15",
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg3 = SimConfig(tax_enabled=True, birth_year=1985, start_yr=2055,
+                         reserve_bins=cfg.reserve_bins, invest_bins=cfg.invest_bins)
+        sources3 = _build_source_list(state3, cfg3, model=None)
+        td3 = [s for s in sources3 if s.key == "td_cash"][0]
+        assert td3.horizon == 5
+
+    def test_td_horizon_at_rmd_age_uses_factor(self):
+        """At RMD age, TD horizon equals the IRS RMD factor."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _build_source_list)
+        from engines.tax import TaxYearAccumulator
+        from engines.tax_data import RMD_FACTORS
+        # Age 75, RMD factor = 24.6
+        state = CitadelState(
+            td_cash=100_000, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            sim_date="2060-06-15",
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = SimConfig(tax_enabled=True, birth_year=1985, start_yr=2060,
+                        reserve_bins=[
+                            {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                            {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                            {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+                        ],
+                        invest_bins=[
+                            {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                            {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+                        ])
+        sources = _build_source_list(state, cfg, model=None)
+        td = [s for s in sources if s.key == "td_cash"][0]
+        assert td.horizon == int(RMD_FACTORS[75])  # 24
+
+        # Age 85, RMD factor = 16.0
+        state2 = CitadelState(
+            td_cash=100_000, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            sim_date="2070-06-15",
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg2 = SimConfig(tax_enabled=True, birth_year=1985, start_yr=2070,
+                         reserve_bins=cfg.reserve_bins, invest_bins=cfg.invest_bins)
+        sources2 = _build_source_list(state2, cfg2, model=None)
+        td2 = [s for s in sources2 if s.key == "td_cash"][0]
+        assert td2.horizon == int(RMD_FACTORS[85])
+
+    def test_td_cheaper_near_rmd_age(self):
+        """TD becomes cheaper to withdraw as RMD age approaches."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _build_source_list, _score_sources)
+        from engines.tax import TaxYearAccumulator
+
+        def _td_cost_at_age(age):
+            yr = 1985 + age
+            state = CitadelState(
+                cash=50_000, td_cash=100_000,
+                td_reserves=[0, 0, 0], td_investments=[0, 0],
+                sim_date=f"{yr}-06-15",
+                tax_year_accum=TaxYearAccumulator(),
+            )
+            cfg = SimConfig(tax_enabled=True, birth_year=1985, start_yr=yr,
+                            state_code="TX", filing_status="single", inflation=4.0,
+                            reserve_bins=[
+                                {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                                {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                                {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+                            ],
+                            invest_bins=[
+                                {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                                {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+                            ])
+            sources = _build_source_list(state, cfg, model=None)
+            _score_sources(sources, state, cfg, model=None)
+            td = [s for s in sources if s.key == "td_cash"][0]
+            return td.cost
+
+        cost_50 = _td_cost_at_age(50)
+        cost_65 = _td_cost_at_age(65)
+        cost_73 = _td_cost_at_age(73)
+        # TD gets cheaper as RMD approaches (shorter horizon = less forgone compounding)
+        assert cost_50 > cost_65 > cost_73
+
     def test_td_free_below_standard_deduction(self):
         """TD draws are free (0% marginal rate) when below standard deduction."""
         from engines.citadel import (CitadelState, SimConfig,

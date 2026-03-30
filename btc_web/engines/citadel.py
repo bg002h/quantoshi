@@ -265,6 +265,18 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
         _age = 0
     _tres_horizon = max(min(90 - _age, 40), 1)
 
+    # TD horizon: RMD factor reduces effective compounding horizon
+    # Before RMD age: ramps down as forced distributions approach
+    # At/after RMD age: IRS actuarial factor IS the expected remaining years
+    _td_horizon = 15  # default when no birth_year
+    if config.birth_year:
+        from .tax_data import RMD_FACTORS
+        _rmd_start = _rmd_start_age(config.birth_year)
+        if _age >= _rmd_start:
+            _td_horizon = max(int(RMD_FACTORS.get(_age, 1.0)), 1)
+        else:
+            _td_horizon = min(15, max(_rmd_start - _age, 1))
+
     # BTC aggregate gain fraction
     _btc_gain_frac = 0.0
     if state.btc_stack > 0 and state.btc_price > 0:
@@ -316,7 +328,7 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
             sources.append(_WithdrawalSource(
                 key="td_cash", wrapper="td", asset_type="cash", index=0,
                 available=state.td_cash, growth_rate=config.cash_rate / 100,
-                horizon=15, gain_fraction=0.0, is_roth=False,
+                horizon=_td_horizon, gain_fraction=0.0, is_roth=False,
                 is_bracket_sensitive=True, bracket_type="ordinary",
             ))
         for i, rb in enumerate(config.reserve_bins):
@@ -325,7 +337,7 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
                 sources.append(_WithdrawalSource(
                     key=f"td_reserve_{i}", wrapper="td", asset_type="reserve", index=i,
                     available=bal, growth_rate=rb["rate"] / 100,
-                    horizon=_tres_horizon, gain_fraction=0.0, is_roth=False,
+                    horizon=_td_horizon, gain_fraction=0.0, is_roth=False,
                     is_bracket_sensitive=True, bracket_type="ordinary",
                 ))
         for i, ib in enumerate(config.invest_bins):
@@ -334,7 +346,7 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
                 sources.append(_WithdrawalSource(
                     key=f"td_invest_{i}", wrapper="td", asset_type="invest", index=i,
                     available=bal, growth_rate=ib.get("return_rate", ib.get("rate", 5.0)) / 100,
-                    horizon=15, gain_fraction=0.0, is_roth=False,
+                    horizon=_td_horizon, gain_fraction=0.0, is_roth=False,
                     is_bracket_sensitive=True, bracket_type="ordinary",
                 ))
         if state.td_btc_stack * max(state.btc_price, 0) > 0.01:
@@ -342,7 +354,7 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
                 key="td_btc", wrapper="td", asset_type="btc", index=0,
                 available=state.td_btc_stack * state.btc_price,
                 growth_rate=_btc_growth if isinstance(_btc_growth, float) else 0.10,
-                horizon=10, gain_fraction=0.0, is_roth=False,
+                horizon=min(_td_horizon, 10), gain_fraction=0.0, is_roth=False,
                 is_bracket_sensitive=True, bracket_type="ordinary",
             ))
 

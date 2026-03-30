@@ -350,7 +350,7 @@ Add to `TestDynamicWaterfall`:
                                       _build_source_list, _score_sources)
         from engines.tax import TaxYearAccumulator
         state = CitadelState(
-            cash=0, reserves=[0, 0, 0],
+            cash=50_000, reserves=[0, 0, 0],
             investments=[0, 0], invest_cost_basis=[0, 0],
             btc_stack=0, btc_price=50_000, sim_date="2035-06-15",
             td_cash=100_000, td_reserves=[0, 0, 0], td_investments=[0, 0],
@@ -374,7 +374,8 @@ Add to `TestDynamicWaterfall`:
         # At $0 YTD ordinary income, marginal rate = 10% (first bracket)
         # TX = 0% state. Tax cost = 0.10. Opportunity = (1.04^15 - 1) × (1-0.10)
         assert td.cost > 0.10  # tax cost alone
-        assert td.cost > cash.cost if (cash := [s for s in sources if s.key == "cash"]) else True
+        cash_src = [s for s in sources if s.key == "cash"][0]
+        assert td.cost > cash_src.cost  # TD more expensive than cash (tax + opp)
 
     def test_score_niit_above_threshold(self):
         """NIIT adds 3.8% to capital gains sources when MAGI > threshold."""
@@ -520,7 +521,8 @@ def _score_sources(sources: list[_WithdrawalSource], state: CitadelState,
             opp = ((1 + s.growth_rate) ** s.horizon - 1) * (1 - _marginal_ord)
         elif s.wrapper == "taxable" and s.asset_type == "reserve":
             # Taxable treasury: after-tax interest compounding
-            after_tax_rate = s.growth_rate * (1 - _marginal_ord - state_rate)
+            # Treasury interest is state-exempt (US law) — only federal tax on coupons
+            after_tax_rate = s.growth_rate * (1 - _marginal_ord)
             opp = (1 + max(after_tax_rate, 0)) ** s.horizon - 1
         else:
             opp = (1 + s.growth_rate) ** s.horizon - 1
@@ -725,13 +727,19 @@ def _max_draw_before_boundary(state: CitadelState, config: SimConfig,
         ltcg_brackets = _inflate_brackets(LTCG_BRACKETS[config.filing_status], yrs, infl)
         for upper, _rate in ltcg_brackets:
             if stacked < upper:
-                distances.append(upper - stacked)
+                gain_distance = upper - stacked  # distance in gain-space
+                # Convert to sale-space: if gain_fraction=0.5, need to sell $2 to generate $1 gain
+                gf = max(source.gain_fraction, 0.01)  # avoid div-by-zero
+                distances.append(gain_distance / gf)
                 break
 
-        # NIIT threshold
+        # NIIT threshold (MAGI-based). For LTCG sources, the MAGI increase per
+        # dollar sold = gain_fraction (only the gain portion increases MAGI)
         niit_thresh = NIIT_THRESHOLD[config.filing_status]
         if magi < niit_thresh:
-            distances.append(niit_thresh - magi)
+            magi_distance = niit_thresh - magi
+            gf = max(source.gain_fraction, 0.01)
+            distances.append(magi_distance / gf)
 
     if not distances:
         return float("inf")  # in top bracket, no boundary ahead
@@ -1131,9 +1139,10 @@ Investigate any failures — the full suite includes existing tests that exercis
 - [ ] **Step 5: Fix any failing existing tests**
 
 Existing tests that assert specific withdrawal ordering or terminal balances may fail because the dynamic waterfall draws from different sources than the old fixed sequence. Update expectations to match the new cost-ranked behavior. Key tests to check:
-- `TestTaxSimComparative` — may see different tax totals
-- `TestCashFloorEnforcement` — floor behavior should be unchanged (runs after waterfall)
-- `TestWithdrawalOrderTaxAdvantaged` — ordering assertions will likely change
+- `TestTaxSimComparative` in `test_web.py` — may see different tax totals
+- `TestCashFloorEnforcement` in `test_web.py` — floor behavior should be unchanged (runs after waterfall)
+- `TestWithdrawalOrderTaxAdvantaged` in `test_web.py` — ordering assertions will likely change
+- **`test_citadel.py`** — 5 direct calls to `_spending_waterfall` (lines ~118, 124, 132, 145, 152) with ordering assertions based on the old fixed sequence. Tests like `test_full_waterfall_to_btc` and `test_cash_depleted_draws_reserves` expect specific reserve draw order (by index) that will change under cost-ranked ordering (reserves drawn by ascending opportunity cost, not by index). Update assertions to match new behavior.
 
 - [ ] **Step 6: Commit**
 
@@ -1163,6 +1172,156 @@ Read `btc_web/layout/model_info.py`. Add two notes to the Citadel Planner sectio
 Add to `TestDynamicWaterfall`:
 
 ```python
+    def test_btc_midpack_in_2065(self):
+        """Spec test 6: In 2065 BTC moves to mid-pack ranking (growth slowed)."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _build_source_list, _score_sources)
+        from engines.tax_lots import TaxLot
+        from engines.tax import TaxYearAccumulator
+        from btc_core import yr_to_t
+        t = yr_to_t(2065)
+        state = CitadelState(
+            cash=50_000, reserves=[50_000, 0, 0],
+            investments=[100_000, 0], invest_cost_basis=[50_000, 0],
+            btc_stack=1.0, btc_price=50_000, t=t, sim_date="2065-06-15",
+            tax_lots=[TaxLot(date="2031-01-01", btc=1.0,
+                             cost_basis=10_000, source="initial")],
+            td_cash=50_000, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = SimConfig(tax_enabled=True, state_code="TX", start_yr=2065,
+                        filing_status="single", inflation=4.0,
+                        reserve_bins=[
+                            {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                            {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                            {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+                        ],
+                        invest_bins=[
+                            {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                            {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+                        ])
+        sources = _build_source_list(state, cfg, model=_test_model())
+        _score_sources(sources, state, cfg, model=_test_model())
+        non_roth = [s for s in sources if not s.is_roth]
+        ranked = sorted(non_roth, key=lambda s: s.cost)
+        btc = [s for s in ranked if s.key == "btc"][0]
+        btc_rank = ranked.index(btc)
+        # BTC should NOT be last (it was in 2035) — should be mid-pack
+        assert btc_rank < len(ranked) - 1, "BTC should be mid-pack in 2065"
+
+    def test_td_draw_shifts_ltcg_stack_base(self):
+        """Spec test 8: TD draw increases ordinary income → shifts LTCG bracket base."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _WithdrawalSource, _execute_draw,
+                                      _max_draw_before_boundary)
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            td_cash=500_000, sim_date="2035-06-15",
+            investments=[200_000, 0], invest_cost_basis=[100_000, 0],
+            btc_stack=0, btc_price=50_000,
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = SimConfig(tax_enabled=True, state_code="TX",
+                        filing_status="single", inflation=4.0, start_yr=2031,
+                        freq="Monthly",
+                        reserve_bins=[
+                            {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                            {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                            {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+                        ],
+                        invest_bins=[
+                            {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                            {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+                        ])
+        inv_src = _WithdrawalSource(
+            key="invest_0", wrapper="taxable", asset_type="invest", index=0,
+            available=200_000, growth_rate=0.10, horizon=15,
+            gain_fraction=0.5, is_roth=False,
+            is_bracket_sensitive=True, bracket_type="ltcg",
+        )
+        # LTCG boundary before TD draw
+        before = _max_draw_before_boundary(state, cfg, inv_src)
+        # Draw $100k from TD → adds $100k ordinary income
+        td_src = _WithdrawalSource(
+            key="td_cash", wrapper="td", asset_type="cash", index=0,
+            available=500_000, growth_rate=0.04, horizon=15,
+            gain_fraction=0.0, is_roth=False,
+            is_bracket_sensitive=True, bracket_type="ordinary",
+        )
+        _execute_draw(state, cfg, td_src, 100_000)
+        # LTCG boundary after TD draw — should be smaller (base shifted up)
+        after = _max_draw_before_boundary(state, cfg, inv_src)
+        assert after < before, "TD draw should shift LTCG stack base, reducing boundary distance"
+
+    def test_gain_fraction_updates_after_partial_sale(self):
+        """Spec test 15: Partial BTC sale changes gain fraction for next scoring."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _build_source_list, _score_sources,
+                                      _sell_btc_tracked)
+        from engines.tax_lots import TaxLot
+        state = CitadelState(
+            cash=0, reserves=[0, 0, 0],
+            investments=[0, 0], invest_cost_basis=[0, 0],
+            btc_stack=2.0, btc_price=100_000, sim_date="2035-06-15",
+            tax_lots=[
+                TaxLot(date="2031-01-01", btc=1.0, cost_basis=10_000, source="initial"),
+                TaxLot(date="2034-01-01", btc=1.0, cost_basis=90_000, source="rebal_buy"),
+            ],
+        )
+        cfg = SimConfig(tax_enabled=False, cost_basis_method="fifo",
+                        reserve_bins=[
+                            {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                            {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                            {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+                        ],
+                        invest_bins=[
+                            {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                            {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+                        ])
+        # Before sale: avg basis = (10k + 90k) / (2 * 100k) = 50%, gain_frac = 50%
+        sources_before = _build_source_list(state, cfg, model=None)
+        btc_before = [s for s in sources_before if s.key == "btc"][0]
+        # Sell the cheap lot (FIFO sells the 10k-basis lot first)
+        _sell_btc_tracked(state, cfg, 1.0)
+        # After sale: only the 90k-basis lot remains, gain_frac = 1 - 90k/100k = 10%
+        sources_after = _build_source_list(state, cfg, model=None)
+        btc_after = [s for s in sources_after if s.key == "btc"][0]
+        assert btc_after.gain_fraction < btc_before.gain_fraction
+
+    def test_late_retirement_crossover(self):
+        """Spec test 17: BTC becomes cheaper to sell than treasuries in late retirement."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _build_source_list, _score_sources)
+        from engines.tax_lots import TaxLot
+        from btc_core import yr_to_t
+        t = yr_to_t(2070)
+        state = CitadelState(
+            cash=0, reserves=[100_000, 0, 0],
+            investments=[0, 0], invest_cost_basis=[0, 0],
+            btc_stack=1.0, btc_price=50_000, t=t, sim_date="2070-06-15",
+            tax_lots=[TaxLot(date="2031-01-01", btc=1.0,
+                             cost_basis=10_000, source="initial")],
+        )
+        cfg = SimConfig(tax_enabled=False, start_yr=2070, birth_year=1990,
+                        reserve_bins=[
+                            {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                            {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                            {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+                        ],
+                        invest_bins=[
+                            {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                            {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+                        ])
+        sources = _build_source_list(state, cfg, model=_test_model())
+        _score_sources(sources, state, cfg, model=_test_model())
+        btc = [s for s in sources if s.key == "btc"][0]
+        tres = [s for s in sources if s.key == "reserve_0"][0]
+        # In 2070, age 80, treasury horizon = min(90-80, 40) = 10 years
+        # BTC 10yr growth has slowed. Treasury at 5% over 10yr = 63%
+        # BTC should be cheaper or comparable to treasury
+        assert btc.cost < tres.cost * 1.5, \
+            f"BTC ({btc.cost:.2f}) should be comparable or cheaper than treasury ({tres.cost:.2f}) in 2070"
+
     def test_negative_btc_growth_ranks_first(self):
         """When model returns negative 10yr growth, BTC is cheapest to sell."""
         from engines.citadel import (CitadelState, SimConfig,

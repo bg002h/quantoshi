@@ -72,7 +72,7 @@ def test_citadel_defaults_returns_mutable_dict():
     d = citadel_defaults()
     assert isinstance(d, dict)
     assert d["high_q_trigger"] == 95
-    assert d["cash_floor"] == 50000
+    assert d["cash_floor"] == 10000
     assert isinstance(d["selected_qs"], list)
 
 

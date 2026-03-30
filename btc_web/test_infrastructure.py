@@ -23,7 +23,7 @@ import pytest
 class TestModelFingerprint:
     def test_fingerprint_is_stable(self):
         """Same pkl produces same fingerprint."""
-        from cache import _compute_model_fingerprint
+        from _app_ctx import _compute_model_fingerprint
         fp1 = _compute_model_fingerprint()
         fp2 = _compute_model_fingerprint()
         assert fp1 == fp2

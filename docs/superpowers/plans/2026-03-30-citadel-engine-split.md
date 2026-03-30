@@ -179,6 +179,14 @@ from .citadel_tax_integration import _rmd_start_age
 
 Add this as a lazy import inside `_build_source_list` where `_rmd_start_age` is called (inside the `if config.birth_year:` block around the `_td_horizon` computation).
 
+`_score_sources` calls `_get_state_rate(config)` which will live in `citadel_tax_integration.py`. Add a lazy import inside `_score_sources`:
+
+```python
+from .citadel_tax_integration import _get_state_rate
+```
+
+Place this at the top of the `_score_sources` function body, alongside the existing lazy imports from `.tax` and `.tax_data`.
+
 - [ ] **Step 2: Update `citadel.py`**
 
 Remove the six functions. Add import:
@@ -331,14 +339,7 @@ __all__ = [
 ]
 ```
 
-Paste the six functions verbatim. They contain lazy imports to `.tax` and `.tax_data` — leave those as-is.
-
-**Note:** `_year_boundary_tax` calls `step()` recursively (for RMD processing). This creates a circular dependency: `citadel_tax_integration` → `citadel_step` → `citadel_tax_integration`. Fix this with a lazy import inside `_year_boundary_tax`:
-
-```python
-# Inside _year_boundary_tax, where step() is called:
-from .citadel_step import step
-```
+Paste the six functions verbatim. They contain lazy imports to `.tax` and `.tax_data` — leave those as-is. No circular dependency issues — `_year_boundary_tax` does not call `step()`.
 
 - [ ] **Step 2: Update `citadel.py`**
 
@@ -384,7 +385,7 @@ Extract from `citadel.py`: `_get_btc_price` (227–238), `_lognormal_return` (95
 from __future__ import annotations
 
 import math
-from copy import copy
+from copy import deepcopy
 
 import numpy as np
 
@@ -521,18 +522,11 @@ lives in 8 focused citadel_*.py modules, each under 450 lines."
 
 ---
 
-### Task 9: Verify circular dependency handling
+### Task 9: End-to-end verification
 
-**Files:**
-- Modify: `btc_web/engines/citadel_tax_integration.py` (if needed)
-- Modify: `btc_web/engines/citadel_waterfall.py` (if needed)
+Verify the complete split works with both tax-enabled and non-tax simulations.
 
-This task verifies that the two known cross-module calls work correctly:
-
-1. `_year_boundary_tax` (in `citadel_tax_integration`) calls `step()` (in `citadel_step`) — potential circular import since `citadel_step` imports from `citadel_tax_integration`.
-2. `_build_source_list` (in `citadel_waterfall`) calls `_rmd_start_age` (in `citadel_tax_integration`).
-
-- [ ] **Step 1: Verify `_year_boundary_tax` → `step()` works**
+- [ ] **Step 1: Verify tax-enabled simulation works**
 
 ```bash
 PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -c "
@@ -555,24 +549,63 @@ print(f'OK — {r.total_usd.shape[1]} periods, final=\${r.total_usd[0,-1]:,.0f}'
 "
 ```
 
-If this fails with `ImportError: circular import`, add a lazy import inside `_year_boundary_tax`:
+- [ ] **Step 2: Verify non-tax simulation works**
 
-```python
-# At the point where step() is called inside _year_boundary_tax:
-from .citadel_step import step
+```bash
+PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -c "
+from engines.citadel import SimConfig, simulate
+cfg = SimConfig(tax_enabled=False, start_yr=2031, end_yr=2035, freq='Annually',
+                monthly_spend=5000, selected_qs=[0.25], start_stack=1.0,
+                cash_initial=100000)
+
+class M:
+    def __init__(self):
+        import pandas as pd
+        self.fits = {0.25: {'slope': 5.0, 'intercept': 2.0}}
+        self.genesis = pd.Timestamp('2009-07-25')
+    def price_at(self, q, t): return 50000.0 * (1 + t/100)
+    def quantile_at(self, price, t): return 0.5
+
+r = simulate(cfg, M())
+print(f'OK — {r.total_usd.shape[1]} periods, final=\${r.total_usd[0,-1]:,.0f}')
+"
 ```
 
-- [ ] **Step 2: Run full test suite**
+- [ ] **Step 3: Verify lazy imports resolve correctly**
+
+```bash
+PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -c "
+# Verify the two lazy cross-module imports work:
+# 1. _score_sources -> _get_state_rate (waterfall -> tax_integration)
+# 2. _build_source_list -> _rmd_start_age (waterfall -> tax_integration)
+from engines.citadel import (CitadelState, SimConfig, _build_source_list,
+                              _score_sources)
+from engines.tax import TaxYearAccumulator
+state = CitadelState(
+    cash=50000, td_cash=50000, td_reserves=[0,0,0], td_investments=[0,0],
+    sim_date='2035-06-15', tax_year_accum=TaxYearAccumulator(),
+)
+cfg = SimConfig(tax_enabled=True, birth_year=1985, start_yr=2035,
+                state_code='TX', filing_status='single', inflation=4.0,
+                reserve_bins=[
+                    {'label': 'S', 'initial': 0, 'rate': 5.0, 'volatility': 0},
+                    {'label': 'M', 'initial': 0, 'rate': 4.5, 'volatility': 0},
+                    {'label': 'L', 'initial': 0, 'rate': 4.0, 'volatility': 0},
+                ],
+                invest_bins=[
+                    {'label': 'Eq', 'initial': 0, 'return_rate': 10.0, 'volatility': 0},
+                    {'label': 'Bd', 'initial': 0, 'return_rate': 5.0, 'volatility': 0},
+                ])
+sources = _build_source_list(state, cfg, model=None)
+_score_sources(sources, state, cfg, model=None)
+print(f'OK — {len(sources)} sources scored')
+"
+```
+
+- [ ] **Step 4: Run full test suite one final time**
 
 ```bash
 PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 -m pytest btc_web/ --tb=short 2>&1 | tail -5
 ```
 
-- [ ] **Step 3: Commit (if changes were needed)**
-
-```bash
-git add btc_web/engines/citadel_tax_integration.py btc_web/engines/citadel_waterfall.py
-git commit -m "fix(citadel): resolve circular imports with lazy imports"
-```
-
-If no changes were needed, skip this commit.
+Expected: 902 passed, 2 pre-existing failures, 5 skipped.

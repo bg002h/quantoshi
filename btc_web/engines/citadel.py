@@ -764,6 +764,74 @@ def _enforce_floors(state: CitadelState, config: SimConfig) -> None:
                 draw = result.btc_sold * state.btc_price
                 deficit -= draw
 
+        # TD/TF last resort — only for cash floor, only when tax_enabled
+        # When all taxable assets are depleted, draw from tax-advantaged
+        # wrappers to maintain the cash floor (spending account).
+        if deficit > 0 and acct_key == "cash" and config.tax_enabled:
+            # TD first (ordinary income — cheaper than wasting Roth)
+            for td_source in [("td_cash",), ("td_res",), ("td_inv",), ("td_btc",)]:
+                if deficit <= 0:
+                    break
+                tag = td_source[0]
+                if tag == "td_cash":
+                    d = min(state.td_cash, deficit)
+                    state.td_cash -= d
+                elif tag == "td_res":
+                    for i in range(len(state.td_reserves)):
+                        if deficit <= 0:
+                            break
+                        d = min(state.td_reserves[i], deficit)
+                        state.td_reserves[i] -= d
+                        if state.tax_year_accum is not None and d > 0:
+                            state.tax_year_accum.tax_deferred_withdrawals += d
+                        deficit -= d
+                    continue
+                elif tag == "td_inv":
+                    for i in reversed(range(len(state.td_investments))):
+                        if deficit <= 0:
+                            break
+                        d = min(state.td_investments[i], deficit)
+                        state.td_investments[i] -= d
+                        if state.tax_year_accum is not None and d > 0:
+                            state.tax_year_accum.tax_deferred_withdrawals += d
+                        deficit -= d
+                    continue
+                elif tag == "td_btc":
+                    if state.td_btc_stack > 0 and state.btc_price > 0:
+                        btc_val = state.td_btc_stack * state.btc_price
+                        d = min(btc_val, deficit)
+                        state.td_btc_stack -= d / state.btc_price
+                    else:
+                        d = 0
+                else:
+                    d = 0
+                if state.tax_year_accum is not None and d > 0:
+                    state.tax_year_accum.tax_deferred_withdrawals += d
+                deficit -= d
+
+            # TF (Roth) absolute last — tax-free but highest opportunity cost
+            if deficit > 0:
+                _roth_drawn = 0.0
+                d = min(state.tf_cash, deficit)
+                state.tf_cash -= d; _roth_drawn += d; deficit -= d
+                for i in range(len(state.tf_reserves)):
+                    if deficit <= 0:
+                        break
+                    d = min(state.tf_reserves[i], deficit)
+                    state.tf_reserves[i] -= d; _roth_drawn += d; deficit -= d
+                for i in reversed(range(len(state.tf_investments))):
+                    if deficit <= 0:
+                        break
+                    d = min(state.tf_investments[i], deficit)
+                    state.tf_investments[i] -= d; _roth_drawn += d; deficit -= d
+                if deficit > 0 and state.tf_btc_stack > 0 and state.btc_price > 0:
+                    btc_val = state.tf_btc_stack * state.btc_price
+                    d = min(btc_val, deficit)
+                    state.tf_btc_stack -= d / state.btc_price
+                    _roth_drawn += d; deficit -= d
+                if state.tax_year_accum is not None and _roth_drawn > 0:
+                    state.tax_year_accum.roth_withdrawals += _roth_drawn
+
         replenished = (floor - current) - deficit
         if acct_key == "cash":
             state.cash += replenished

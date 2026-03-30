@@ -6025,6 +6025,76 @@ class TestCashFloorEnforcement:
                     f"with {total_other:.0f} in other assets")
 
 
+    def test_cash_floor_draws_from_td_when_taxable_exhausted(self):
+        """Cash floor replenished from TD when all taxable assets are depleted."""
+        from engines.citadel import CitadelState, SimConfig, _enforce_floors
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            cash=0, reserves=[0, 0, 0], investments=[0, 0],
+            invest_cost_basis=[0, 0],
+            btc_stack=0, btc_price=50_000,
+            td_cash=100_000, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = _bare_config(cash_floor=10_000, tax_enabled=True, state_code="TX")
+        _enforce_floors(state, cfg)
+        assert state.cash >= 10_000 - 1
+        assert state.td_cash == pytest.approx(90_000)
+        assert state.tax_year_accum.tax_deferred_withdrawals == pytest.approx(10_000)
+
+    def test_cash_floor_draws_tf_after_td_exhausted(self):
+        """Cash floor falls through to TF (Roth) when TD is also exhausted."""
+        from engines.citadel import CitadelState, SimConfig, _enforce_floors
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            cash=0, reserves=[0, 0, 0], investments=[0, 0],
+            invest_cost_basis=[0, 0],
+            btc_stack=0, btc_price=50_000,
+            td_cash=0, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            tf_cash=50_000, tf_reserves=[0, 0, 0], tf_investments=[0, 0],
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = _bare_config(cash_floor=10_000, tax_enabled=True, state_code="TX")
+        _enforce_floors(state, cfg)
+        assert state.cash >= 10_000 - 1
+        assert state.tf_cash == pytest.approx(40_000)
+        assert state.tax_year_accum.roth_withdrawals == pytest.approx(10_000)
+
+    def test_cash_floor_holds_through_tax_sim_with_td(self):
+        """Over a full tax-enabled sim, cash floor holds while TD/TF have funds."""
+        from engines.citadel import SimConfig, _initial_state, step
+        import numpy as np
+        cfg = _bare_config(
+            start_stack=0, cash_initial=50_000, cash_floor=10_000,
+            monthly_spend=10_000,
+            tax_enabled=True, state_code="TX",
+            td_cash_initial=200_000, tf_cash_initial=100_000,
+            start_yr=2031, end_yr=2040, freq="Monthly",
+            # Zero growth for predictability
+            cash_rate=0,
+            reserve_bins=[
+                {"label": "S", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "M", "initial": 0, "rate": 0, "volatility": 0},
+                {"label": "L", "initial": 0, "rate": 0, "volatility": 0},
+            ],
+            invest_bins=[
+                {"label": "Eq", "initial": 0, "return_rate": 0, "volatility": 0},
+                {"label": "Bd", "initial": 0, "return_rate": 0, "volatility": 0},
+            ],
+        )
+        model = _ControlledPriceModel(quantile=0.50, price=50_000)
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=model)
+        for p in range(36):  # 3 years monthly
+            state = step(state, cfg, 50_000, rng, model=model)
+            total_all = (state.cash + state.td_cash + state.tf_cash
+                        + sum(state.td_reserves) + sum(state.tf_reserves)
+                        + sum(state.td_investments) + sum(state.tf_investments))
+            if total_all > 10_000:
+                assert state.cash >= 10_000 - 100, \
+                    f"Period {p}: cash {state.cash:.0f} below floor with {total_all:.0f} total"
+
+
 class TestBtcThresholdRules:
     """2) Bitcoin is sold/bought according to threshold rules."""
 

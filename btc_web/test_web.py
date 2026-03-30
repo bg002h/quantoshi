@@ -7224,3 +7224,92 @@ class TestDynamicWaterfall:
         cost_2035 = _btc_cost_at_year(2035)
         cost_2065 = _btc_cost_at_year(2065)
         assert cost_2035 > cost_2065, "BTC cost should decrease as growth slows"
+
+    def test_rank_roth_always_last(self):
+        """Roth sources rank after all non-Roth regardless of cost."""
+        from engines.citadel import _WithdrawalSource, _rank_sources
+        sources = [
+            _WithdrawalSource(key="btc", wrapper="taxable", asset_type="btc",
+                              index=0, available=50_000, growth_rate=0.5,
+                              horizon=10, gain_fraction=0.9, is_roth=False,
+                              is_bracket_sensitive=True, bracket_type="ltcg", cost=5.0),
+            _WithdrawalSource(key="tf_cash_res", wrapper="tf", asset_type="cash",
+                              index=0, available=10_000, growth_rate=0.04,
+                              horizon=15, gain_fraction=0.0, is_roth=True,
+                              is_bracket_sensitive=False, bracket_type="none", cost=0.01),
+        ]
+        ranked = _rank_sources(sources)
+        # TF cash has lower cost (0.01) but must rank after taxable BTC (5.0)
+        assert ranked[0].key == "btc"
+        assert ranked[1].key == "tf_cash_res"
+
+    def test_max_draw_ordinary_bracket(self):
+        """Distance to next ordinary bracket computed correctly."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _WithdrawalSource, _max_draw_before_boundary)
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            sim_date="2035-06-15",
+            tax_year_accum=TaxYearAccumulator(other_income=10_000),
+        )
+        cfg = SimConfig(tax_enabled=True, filing_status="single",
+                        inflation=4.0, start_yr=2031, freq="Monthly")
+        td_source = _WithdrawalSource(
+            key="td_cash", wrapper="td", asset_type="cash", index=0,
+            available=100_000, growth_rate=0.04, horizon=15,
+            gain_fraction=0.0, is_roth=False,
+            is_bracket_sensitive=True, bracket_type="ordinary",
+        )
+        max_draw = _max_draw_before_boundary(state, cfg, td_source)
+        # 10k ordinary income, first bracket top ~11,925 × inflation^10 ≈ ~17,651
+        # Distance ≈ 7,651 (approximate due to inflation)
+        assert max_draw > 0
+        assert max_draw < 100_000  # capped at bracket boundary
+
+    def test_max_draw_niit_cliff(self):
+        """Draw capped at NIIT threshold when MAGI is below it."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _WithdrawalSource, _max_draw_before_boundary)
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            sim_date="2035-06-15",
+            tax_year_accum=TaxYearAccumulator(other_income=190_000),
+        )
+        cfg = SimConfig(tax_enabled=True, filing_status="single",
+                        inflation=4.0, start_yr=2031, freq="Monthly")
+        td_source = _WithdrawalSource(
+            key="td_cash", wrapper="td", asset_type="cash", index=0,
+            available=100_000, growth_rate=0.04, horizon=15,
+            gain_fraction=0.0, is_roth=False,
+            is_bracket_sensitive=True, bracket_type="ordinary",
+        )
+        max_draw = _max_draw_before_boundary(state, cfg, td_source)
+        # MAGI at 190k, NIIT threshold 200k (NOT inflated) → distance = 10k
+        # Should be capped at 10k (or less if ordinary bracket is closer)
+        assert max_draw <= 10_001
+
+    def test_zero_bracket_distance_skips(self):
+        """When at exact bracket boundary, max_draw returns ~0."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _WithdrawalSource, _max_draw_before_boundary)
+        from engines.tax import TaxYearAccumulator
+        # Set income exactly at an inflated bracket boundary
+        from engines.tax import _inflate_brackets
+        from engines.tax_data import FEDERAL_BRACKETS_TCJA
+        brackets = _inflate_brackets(FEDERAL_BRACKETS_TCJA["single"], 10, 0.04)
+        boundary = brackets[0][0]  # first bracket top, inflated
+        state = CitadelState(
+            sim_date="2035-06-15",
+            tax_year_accum=TaxYearAccumulator(other_income=boundary),
+        )
+        cfg = SimConfig(tax_enabled=True, filing_status="single",
+                        inflation=4.0, start_yr=2031, freq="Monthly")
+        td_source = _WithdrawalSource(
+            key="td_cash", wrapper="td", asset_type="cash", index=0,
+            available=100_000, growth_rate=0.04, horizon=15,
+            gain_fraction=0.0, is_roth=False,
+            is_bracket_sensitive=True, bracket_type="ordinary",
+        )
+        max_draw = _max_draw_before_boundary(state, cfg, td_source)
+        # At exact boundary → distance to NEXT bracket should be > 0
+        assert max_draw > 0

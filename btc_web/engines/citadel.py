@@ -459,6 +459,91 @@ def _score_sources(sources: list[_WithdrawalSource], state: CitadelState,
         s.cost = tax_cost + max(opp, 0.0)
 
 
+def _rank_sources(sources: list[_WithdrawalSource]) -> list[_WithdrawalSource]:
+    """Sort sources: non-Roth by cost ascending, then Roth by cost ascending."""
+    non_roth = sorted([s for s in sources if not s.is_roth], key=lambda s: s.cost)
+    roth = sorted([s for s in sources if s.is_roth], key=lambda s: s.cost)
+    return non_roth + roth
+
+
+def _max_draw_before_boundary(state: CitadelState, config: SimConfig,
+                               source: _WithdrawalSource) -> float:
+    """Max dollars drawable before crossing a tax bracket boundary.
+    Returns float("inf") for non-bracket-sensitive sources.
+    """
+    if not source.is_bracket_sensitive:
+        return float("inf")
+
+    from .tax import _inflate_brackets
+    from .tax_data import (FEDERAL_BRACKETS_TCJA, FEDERAL_BRACKETS_SUNSET,
+                           LTCG_BRACKETS, NIIT_THRESHOLD,
+                           STANDARD_DEDUCTION_TCJA, STANDARD_DEDUCTION_SUNSET)
+
+    ppy = FREQ_PPY.get(config.freq, 12)
+    sim_year = config.start_yr + int(state.period / ppy)
+    yrs = max(sim_year - 2025, 0)
+    infl = config.inflation / 100
+
+    if config.tcja_sunset:
+        ord_brackets = _inflate_brackets(FEDERAL_BRACKETS_SUNSET[config.filing_status], yrs, infl)
+        std_ded = STANDARD_DEDUCTION_SUNSET[config.filing_status] * (1 + infl) ** yrs
+    else:
+        ord_brackets = _inflate_brackets(FEDERAL_BRACKETS_TCJA[config.filing_status], yrs, infl)
+        std_ded = STANDARD_DEDUCTION_TCJA[config.filing_status] * (1 + infl) ** yrs
+
+    # Current positions from accumulator
+    ordinary_ytd = 0.0
+    ltcg_ytd = 0.0
+    magi = 0.0
+    if state.tax_year_accum is not None:
+        a = state.tax_year_accum
+        ordinary_ytd = (a.tax_deferred_withdrawals + a.interest_income
+                        + a.treasury_interest + a.other_income)
+        ltcg_ytd = max(a.lt_capital_gains - a.lt_capital_losses, 0)
+        stcg_ytd = max(a.st_capital_gains - a.st_capital_losses, 0)
+        magi = ordinary_ytd + ltcg_ytd + stcg_ytd
+
+    distances = []
+
+    if source.bracket_type == "ordinary":
+        # Distance to next ordinary bracket
+        ord_taxable = max(ordinary_ytd - std_ded, 0)
+        for upper, _rate in ord_brackets:
+            if ord_taxable < upper:
+                distances.append(upper - ord_taxable)
+                break
+
+        # NIIT threshold (MAGI-based, NOT inflated)
+        niit_thresh = NIIT_THRESHOLD[config.filing_status]
+        if magi < niit_thresh:
+            distances.append(niit_thresh - magi)
+
+    elif source.bracket_type == "ltcg":
+        # LTCG brackets stacked on ordinary taxable income
+        ord_taxable = max(ordinary_ytd - std_ded, 0)
+        stacked = ord_taxable + ltcg_ytd
+        ltcg_brackets = _inflate_brackets(LTCG_BRACKETS[config.filing_status], yrs, infl)
+        for upper, _rate in ltcg_brackets:
+            if stacked < upper:
+                gain_distance = upper - stacked  # distance in gain-space
+                # Convert to sale-space: if gain_fraction=0.5, need to sell $2 to generate $1 gain
+                gf = max(source.gain_fraction, 0.01)  # avoid div-by-zero
+                distances.append(gain_distance / gf)
+                break
+
+        # NIIT threshold (MAGI-based). For LTCG sources, the MAGI increase per
+        # dollar sold = gain_fraction (only the gain portion increases MAGI)
+        niit_thresh = NIIT_THRESHOLD[config.filing_status]
+        if magi < niit_thresh:
+            magi_distance = niit_thresh - magi
+            gf = max(source.gain_fraction, 0.01)
+            distances.append(magi_distance / gf)
+
+    if not distances:
+        return float("inf")  # in top bracket, no boundary ahead
+    return max(min(distances), 0.0)
+
+
 def _sell_btc_tracked(state: CitadelState, config: SimConfig,
                       btc_to_sell: float) -> "SaleResult":
     """Sell BTC with lot tracking + accumulator update. Returns SaleResult.

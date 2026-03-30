@@ -1,11 +1,12 @@
+celery
 dash>=2.16
 dash-bootstrap-components>=1.5
-plotly>=5.20
-pandas
+diskcache
 numpy
-scipy
-statsmodels
+pandas
+plotly>=5.20
 PySocks>=1.7.1
 qrcode>=7.0
 redis
-celery
+scipy
+statsmodels

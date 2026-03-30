@@ -543,6 +543,41 @@ where $\alpha$ (intercept) and $\beta$ (slope) are derived from **two user-selec
 
                         ], title="Historical Regimes (Dollar Assets)", item_id="mi-regimes"),
 
+                        # ── Citadel Planner ──
+                        dbc.AccordionItem([
+                            html.H6("Overview"),
+                            html.P(
+                                "The Citadel Planner is a multi-asset retirement simulation "
+                                "engine. It combines BTC price projections with dollar assets "
+                                "(cash, treasuries, equities, bonds) and an optional US federal "
+                                "+ state tax layer."
+                            ),
+
+                            html.H6("Withdrawal Cost Ranking"),
+                            html.P(
+                                "Each withdrawal period, assets are ranked by their true "
+                                "opportunity cost before any funds are drawn. The cheapest "
+                                "source is consumed first, preserving higher-growth assets "
+                                "for as long as possible."
+                            ),
+                            html.H6("Opportunity Cost Horizons"),
+                            html.P(
+                                "The Citadel Planner computes withdrawal cost as immediate "
+                                "tax plus forgone compounding. Bitcoin uses a 10-year horizon "
+                                "(twice the historical 5-year break-even). Equities and bonds "
+                                "use 15 years. Treasuries use the holder\u2019s remaining "
+                                "lifetime (capped at 40 years). These horizons determine how "
+                                "aggressively each asset is protected from withdrawal."
+                            ),
+
+                            html.H6("Roth-Last Policy"),
+                            html.P(
+                                "Roth (tax-free) account withdrawals are always deferred until "
+                                "all taxable and tax-deferred sources are exhausted, preserving "
+                                "the benefit of tax-free compounding."
+                            ),
+                        ], title="Citadel Planner", item_id="mi-citadel"),
+
                     ], id="model-info-accordion", start_collapsed=True, flush=True),
                 ]),
                 width={"size": 10, "offset": 1},

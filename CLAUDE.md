@@ -26,13 +26,22 @@ The notebook generates `archive/btc_app/model_data.pkl`, which both the web app 
 
 ## Commands
 
-### Run the notebook
+### Build the model (model_data.pkl)
+`SP.ipynb` is now for **exploration only** — not the source of truth for model builds. Use the build scripts instead:
+
+```bash
+btc_venv/bin/python3 tools/build_bm_model.py
+btc_venv/bin/python3 tools/fit_sigma.py --pkl archive/btc_app/model_data.pkl --type bm
+```
+This is what `update_prices.py` runs after appending new data.
+
+### Run the notebook (exploration / chart generation)
 ```bash
 ~/.local/bin/jupyter nbconvert \
     --to notebook --execute --inplace \
     --ExecutePreprocessor.timeout=600 SP.ipynb
 ```
-`jupyter` is installed via **pipx** (`~/.local/bin/jupyter`), not in `btc_venv`. The 600s timeout is required — cell 1 generates many charts and takes well over 2 minutes.
+`jupyter` is installed via **pipx** (`~/.local/bin/jupyter`), not in `btc_venv`. The 600s timeout is required — cell 1 generates many charts and takes well over 2 minutes. **Not needed for model builds** — use `tools/build_bm_model.py` instead.
 
 ### Run the standalone app directly (for testing)
 ```bash
@@ -58,19 +67,18 @@ Output: `archive/btc_app/Quantoshi-x86_64.AppImage` (~140 MB)
 ```bash
 python3 update_prices.py            # dry-run to preview
 python3 update_prices.py --dry-run  # (same — add flag explicitly)
-python3 update_prices.py            # live: appends CSV + re-runs notebook
+python3 update_prices.py            # live: appends CSV + rebuilds model_data.pkl
 ```
 - Fetches daily closes from Binance (primary) or CoinGecko (fallback if geo-blocked)
 - Intentionally skips the **8 most recent days** (settling period — data may be revised)
-- Appends new rows to `BitcoinPricesDaily.csv` then re-executes `SP.ipynb`
+- Appends new rows to `BitcoinPricesDaily.csv` then runs `tools/build_bm_model.py` + `tools/fit_sigma.py`
 - Prints a preview table of new rows; review before deploying
 
-### Full rebuild after notebook changes
+### Full rebuild (model_data.pkl + AppImage)
 ```bash
-# 1. Execute notebook (regenerates model_data.pkl)
-~/.local/bin/jupyter nbconvert \
-    --to notebook --execute --inplace \
-    --ExecutePreprocessor.timeout=600 SP.ipynb
+# 1. Rebuild model_data.pkl
+btc_venv/bin/python3 tools/build_bm_model.py
+btc_venv/bin/python3 tools/fit_sigma.py --pkl archive/btc_app/model_data.pkl --type bm
 # 2. Build AppImage
 cd /scratch/code/bitcoinprojections/archive/btc_app && bash build_appimage.sh
 ```

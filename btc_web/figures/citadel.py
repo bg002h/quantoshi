@@ -420,9 +420,20 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     # ── Tax ghost traces + annotations ────────────────────────────────────────
     extra_tax = {}
     if p.get("tax_enabled"):
-        # Run a parallel no-tax simulation for comparison
+        # Run a parallel no-tax simulation for comparison.
+        # Fold TD/TF balances into taxable accounts so starting capital
+        # is identical — the difference is purely tax drag.
         try:
-            cfg_notax = _build_sim_config({**p, "tax_enabled": False})
+            p_notax = {**p, "tax_enabled": False}
+            cfg_notax = _build_sim_config(p_notax)
+            cfg_notax.start_stack += cfg_notax.td_btc_stack + cfg_notax.tf_btc_stack
+            cfg_notax.cash_initial += cfg_notax.td_cash_initial + cfg_notax.tf_cash_initial
+            for i, rb in enumerate(cfg_notax.reserve_bins):
+                rb["initial"] += (cfg_notax.td_reserve_bins[i]["initial"]
+                                  + cfg_notax.tf_reserve_bins[i]["initial"])
+            for i, ib in enumerate(cfg_notax.invest_bins):
+                ib["initial"] += (cfg_notax.td_invest_bins[i]["initial"]
+                                  + cfg_notax.tf_invest_bins[i]["initial"])
             cfg_notax.n_sims = 1
             result_notax = simulate(cfg_notax, model)
         except Exception:

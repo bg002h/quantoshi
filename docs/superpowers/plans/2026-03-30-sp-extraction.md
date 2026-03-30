@@ -25,13 +25,17 @@
 | `sp_stripped.ipynb` | Create | Minimal 3-cell notebook -- computation only, lean pkl |
 | `tools/verify_pkl.py` | Create | Key-by-key + sha256 pkl comparison script |
 | `btc_web/theme.py` | Create | Visual constants for figure builders |
-| `btc_web/figures/common.py` | Modify | Import from theme instead of model object |
-| `btc_web/figures/heatmap.py` | Modify | Import from theme instead of model object |
-| `btc_web/figures/bubble.py` | Modify | Import from theme instead of model object |
-| `btc_web/figures/supercharge.py` | Modify | Import from theme instead of model object |
+| `btc_web/figures/common.py` | Modify | Import from theme; drop `m` from `_base_layout`, `_error_figure` |
+| `btc_web/figures/heatmap.py` | Modify | Import from theme; update `_error_figure` calls |
+| `btc_web/figures/bubble.py` | Modify | Import from theme; update `_base_layout` call |
+| `btc_web/figures/supercharge.py` | Modify | Import from theme; update `_base_layout`/`_error_figure` calls |
+| `btc_web/figures/dca.py` | Modify | Update `_error_figure` calls (drop `m`) |
+| `btc_web/figures/retire.py` | Modify | Update `_error_figure` calls if present (drop `m`) |
+| `btc_web/figures/citadel.py` | Modify | Update `_error_figure` calls (drop `m`) |
 | `archive/btc_app/btc_core.py` | Modify | `.get()` fallbacks for removed visual keys |
 | `tools/build_bm_model.py` | Create | Standalone model build script |
 | `update_prices.py` | Modify | Call build script instead of notebook |
+| `CLAUDE.md` | Modify | Update notebook/rebuild sections |
 
 ---
 
@@ -263,29 +267,32 @@ pre_dict = "\n".join(lines3[:model_start]) if model_start else "\n".join(lines3[
 cell2 = pre_dict + '''
 
 _model = {
-    "qr_fits":        {str(k): dict(v) for k, v in qr_fits.items()},
-    "QR_QUANTILES":   list(QR_QUANTILES),
-    "ols_intercept":  ols_intercept,
-    "ols_slope":      ols_slope,
-    "GENESIS_DATE":   str(GENESIS_DATE.date()) if hasattr(GENESIS_DATE, "date") else str(GENESIS_DATE),
-    "years_plot_bm":  years_plot_bm.tolist() if hasattr(years_plot_bm, "tolist") else list(years_plot_bm),
-    "support_plot_bm": support_plot_bm.tolist() if hasattr(support_plot_bm, "tolist") else list(support_plot_bm),
-    "bm_comp_by_n":   [c.tolist() if hasattr(c, "tolist") else list(c) for c in _comp_by_n],
-    "bm_r2_comp":     bm_r2_comp,
+    "qr_fits":         {str(k): dict(v) for k, v in qr_fits.items()},
+    "QR_QUANTILES":    list(QR_QUANTILES),
+    "ols_intercept":   float(ols_intercept),
+    "ols_slope":       float(ols_slope),
+    "GENESIS_DATE":    str(GENESIS_DATE.date()),
+    "years_plot_bm":   years_plot_bm.tolist(),
+    "support_plot_bm": support_plot_bm.tolist(),
+    "bm_comp_by_n":    [c.tolist() for c in _comp_by_n],
+    "bm_r2_comp":      float(bm_r2_comp),
     "bm_n_future_max": _max_n,
-    "price_dates":    df["date"].dt.strftime("%Y-%m-%d").tolist(),
-    "price_years":    df["years"].tolist(),
-    "price_prices":   df["price"].tolist(),
+    "price_dates":     df["date"].dt.strftime("%Y-%m-%d").tolist(),
+    "price_years":     df["years"].tolist(),
+    "price_prices":    df["price"].tolist(),
 }
 
-import os as _os
-_export_dir = _os.path.join(_os.path.dirname(_os.path.abspath(".")), "btc_app")
+# NOTE: Export path logic must match original Cell 3.
+# The implementer should copy the original Cell 3 export path
+# logic verbatim rather than rewriting it. The path below is
+# a template -- verify against the actual Cell 3 before using.
+import pickle as _pkl, os as _os
+_export_dir = "archive/btc_app"
 if not _os.path.isdir(_export_dir):
     _export_dir = "btc_app"
 if not _os.path.isdir(_export_dir):
     _os.makedirs(_export_dir)
 _out = _os.path.join(_export_dir, "model_data.pkl")
-import pickle as _pkl
 with open(_out, "wb") as _f:
     _pkl.dump(_model, _f, protocol=4)
 print(f"Wrote {_out}  ({_os.path.getsize(_out)/1024:.0f} KB, {len(_model)} keys)")
@@ -371,8 +378,9 @@ from figures.heatmap import build_heatmap_figure
 from figures.dca import build_dca_figure
 from figures.retire import build_retire_figure
 from figures.supercharge import build_supercharge_figure
+from figures.citadel import build_citadel_figure
 from tab_defaults import (bubble_defaults, heatmap_defaults, dca_defaults,
-                           retire_defaults, supercharge_defaults)
+                           retire_defaults, supercharge_defaults, citadel_defaults)
 import plotly.io as pio
 builders = [
     ('bubble', build_bubble_figure, bubble_defaults()),
@@ -380,6 +388,7 @@ builders = [
     ('dca', build_dca_figure, dca_defaults()),
     ('retire', build_retire_figure, retire_defaults()),
     ('supercharge', build_supercharge_figure, supercharge_defaults()),
+    ('citadel', build_citadel_figure, citadel_defaults()),
 ]
 baselines = {}
 for name, builder, params in builders:
@@ -466,22 +475,43 @@ git commit -m "feat: add theme.py -- visual constants extracted from pkl"
 - Modify: `btc_web/figures/heatmap.py`
 - Modify: `btc_web/figures/bubble.py`
 - Modify: `btc_web/figures/supercharge.py`
+- Modify: `btc_web/figures/dca.py`
+- Modify: `btc_web/figures/citadel.py`
+
+**Signature changes:**
+- `_base_layout(m, title, xlabel, ylabel)` → `_base_layout(title, xlabel, ylabel)` — `m` removed, only used visual keys
+- `_error_figure(m, title)` → `_error_figure(title)` — `m` removed, only used visual keys
+- `_sim_layout(m, p, ...)` — keeps `m` (needs `m.genesis`), but its `_base_layout` call drops `m`
 
 - [ ] **Step 1: Update `figures/common.py`**
 
-Add `import theme` at top. In `_base_layout()`, replace `m.PLOT_BG_COLOR` with `theme.PLOT_BG_COLOR`, `m.TEXT_COLOR` with `theme.TEXT_COLOR`, etc. for all visual keys. If `_base_layout` no longer needs `m`, remove the parameter and update callers (`_sim_layout`, `build_bubble_figure`, `build_supercharge_figure`).
+Add `import theme` at top.
+
+`_error_figure`: replace `m.PLOT_BG_COLOR` → `theme.PLOT_BG_COLOR`, `m.TEXT_COLOR` → `theme.TEXT_COLOR`. Remove `m` from signature: `def _error_figure(title):`.
+
+`_base_layout`: replace all `m.*` visual keys with `theme.*`. Remove `m` from signature: `def _base_layout(title, xlabel, ylabel, **kwargs):`.
+
+`_sim_layout`: update call from `_base_layout(m, title=..., xlabel=..., ylabel=...)` to `_base_layout(title=..., xlabel=..., ylabel=...)`. Keep `m` in `_sim_layout` signature (still needs `m.genesis`).
 
 - [ ] **Step 2: Update `figures/heatmap.py`**
 
-Add `import theme`. Replace `m.TEXT_COLOR`, `m.PLOT_BG_COLOR`, `m.SPINE_COLOR`, `m.TITLE_COLOR`, `m.GRID_MAJOR_COLOR`, `m.CAGR_SEG_*`, `m.CAGR_SEG_B1/B2` with `theme.*`.
+Add `import theme`. Replace all `m.TEXT_COLOR`, `m.PLOT_BG_COLOR`, `m.SPINE_COLOR`, `m.TITLE_COLOR`, `m.GRID_MAJOR_COLOR`, `m.CAGR_SEG_*`, `m.CAGR_SEG_B1/B2` with `theme.*`. Update all `_error_figure(m, ...)` calls to `_error_figure(...)` (5 call sites).
 
 - [ ] **Step 3: Update `figures/bubble.py`**
 
-Add `import theme`. Replace `m.PLOT_BG_COLOR`, `m.SPINE_COLOR`, `m.TEXT_COLOR` in legend annotation.
+Add `import theme`. Replace `m.PLOT_BG_COLOR`, `m.SPINE_COLOR`, `m.TEXT_COLOR` in legend annotation. Update `_base_layout(m, ...)` call to `_base_layout(...)`.
 
 - [ ] **Step 4: Update `figures/supercharge.py`**
 
-Add `import theme`. Replace `m.PLOT_BG_COLOR`, `m.TEXT_COLOR` in early-return layout.
+Add `import theme`. Replace `m.PLOT_BG_COLOR`, `m.TEXT_COLOR` in early-return layout. Update any `_error_figure(m, ...)` calls to `_error_figure(...)`.
+
+- [ ] **Step 4b: Update `figures/dca.py`**
+
+Update `_error_figure(m, ...)` calls to `_error_figure(...)`. (dca.py imports `_error_figure` but may not use visual keys directly — check.)
+
+- [ ] **Step 4c: Update `figures/citadel.py`**
+
+Update `_error_figure(m, ...)` calls to `_error_figure(...)` (3 call sites).
 
 - [ ] **Step 5: Syntax check**
 
@@ -640,6 +670,11 @@ def main():
     with open(args.notebook) as f:
         nb = json.load(f)
 
+    # Set non-interactive backend before Cell 0 imports matplotlib.
+    # Required for headless servers (production VPS).
+    import matplotlib
+    matplotlib.use("Agg")
+
     os.chdir(ROOT)
     ns = {"__name__": "__main__"}
 
@@ -724,6 +759,23 @@ btc_venv/bin/python3 update_prices.py --dry-run
 ```bash
 git add update_prices.py
 git commit -m "refactor: update_prices.py uses build_bm_model.py instead of notebook"
+```
+
+- [ ] **Step 5: Update CLAUDE.md**
+
+Update the "Run the notebook" section to document the new build command:
+```
+btc_venv/bin/python3 tools/build_bm_model.py
+btc_venv/bin/python3 tools/fit_sigma.py --pkl archive/btc_app/model_data.pkl --type bm
+```
+
+Update the "Full rebuild after notebook changes" section similarly. Note that `SP.ipynb` is now for exploration only — the model is built via `tools/build_bm_model.py`.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add CLAUDE.md
+git commit -m "docs: update CLAUDE.md — build_bm_model.py replaces notebook execution"
 ```
 
 ---

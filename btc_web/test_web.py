@@ -7156,9 +7156,11 @@ class TestDynamicWaterfall:
         td = [s for s in sources if s.key == "td_cash"][0]
         # At $0 YTD ordinary income, marginal rate = 10% (first bracket)
         # TX = 0% state. Tax cost = 0.10. Opportunity = (1.04^15 - 1) × (1-0.10)
-        assert td.cost > 0.10  # tax cost alone
+        # At $0 YTD, TD is within standard deduction (0% marginal rate) so
+        # tax cost = 0 + state (TX=0) = 0. TD cost equals cash cost.
+        # Once income exceeds the deduction, TD becomes more expensive.
         cash_src = [s for s in sources if s.key == "cash"][0]
-        assert td.cost > cash_src.cost  # TD more expensive than cash (tax + opp)
+        assert td.cost >= cash_src.cost  # TD at least as expensive as cash
 
     def test_score_niit_above_threshold(self):
         """NIIT adds 3.8% to capital gains sources when MAGI > threshold."""
@@ -7784,3 +7786,63 @@ class TestDynamicWaterfall:
         btc = [s for s in sources if s.key == "btc"][0]
         # Should fall back to equity rate (10%)
         assert btc.growth_rate == pytest.approx(0.10)
+
+    def test_td_free_below_standard_deduction(self):
+        """TD draws are free (0% marginal rate) when below standard deduction."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _build_source_list, _score_sources)
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            cash=50_000, reserves=[0, 0, 0],
+            investments=[0, 0], invest_cost_basis=[0, 0],
+            btc_stack=0, btc_price=50_000, sim_date="2035-06-15",
+            td_cash=100_000, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            tax_year_accum=TaxYearAccumulator(),  # zero YTD income
+        )
+        cfg = SimConfig(tax_enabled=True, state_code="TX", cash_rate=4.0,
+                        filing_status="single", inflation=4.0, start_yr=2031,
+                        reserve_bins=[
+                            {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                            {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                            {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+                        ],
+                        invest_bins=[
+                            {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                            {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+                        ])
+        sources = _build_source_list(state, cfg, model=None)
+        _score_sources(sources, state, cfg, model=None)
+        cash_src = [s for s in sources if s.key == "cash"][0]
+        td_src = [s for s in sources if s.key == "td_cash"][0]
+        # At zero YTD income, TD marginal rate = 0% (within standard deduction)
+        # TD cost should equal cash cost (both have 4% growth, same horizon,
+        # zero tax, and TD opp adjusted by (1-0) = 1.0)
+        assert td_src.cost == pytest.approx(cash_src.cost, rel=0.01)
+
+    def test_boundary_includes_deduction_cushion(self):
+        """Bracket boundary includes remaining standard deduction cushion."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _WithdrawalSource, _max_draw_before_boundary)
+        from engines.tax import TaxYearAccumulator
+        # Zero YTD income → full standard deduction + first bracket available
+        state = CitadelState(
+            sim_date="2035-06-15",
+            tax_year_accum=TaxYearAccumulator(),  # zero income
+        )
+        cfg = SimConfig(tax_enabled=True, filing_status="single",
+                        inflation=4.0, start_yr=2031, freq="Monthly")
+        td_source = _WithdrawalSource(
+            key="td_cash", wrapper="td", asset_type="cash", index=0,
+            available=500_000, growth_rate=0.04, horizon=15,
+            gain_fraction=0.0, is_roth=False,
+            is_bracket_sensitive=True, bracket_type="ordinary",
+        )
+        max_draw = _max_draw_before_boundary(state, cfg, td_source)
+        # sim_year=2031, yrs_from_base=6 (2031-2025)
+        # Should be std_ded(inflated 6yr) + first_bracket_top(inflated 6yr)
+        from engines.tax import _inflate_brackets
+        from engines.tax_data import FEDERAL_BRACKETS_TCJA, STANDARD_DEDUCTION_TCJA
+        std_ded = STANDARD_DEDUCTION_TCJA["single"] * (1.04 ** 6)
+        brackets = _inflate_brackets(FEDERAL_BRACKETS_TCJA["single"], 6, 0.04)
+        expected = std_ded + brackets[0][0]
+        assert max_draw == pytest.approx(expected, rel=0.01)

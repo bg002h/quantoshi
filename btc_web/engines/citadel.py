@@ -265,7 +265,7 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
         _age = 0
     _tres_horizon = max(min(90 - _age, 40), 1)
 
-    # BTC gain fraction (lot-weighted average)
+    # BTC aggregate gain fraction
     _btc_gain_frac = 0.0
     if state.btc_stack > 0 and state.btc_price > 0:
         btc_value = state.btc_stack * state.btc_price
@@ -416,11 +416,14 @@ def _score_sources(sources: list[_WithdrawalSource], state: CitadelState,
 
     # Marginal ordinary rate at current YTD position
     _ord_taxable = max(_ordinary_ytd - _std_ded, 0)
-    _marginal_ord = 0.10  # default
-    for upper, rate in _ord_brackets:
-        if _ord_taxable < upper:
-            _marginal_ord = rate
-            break
+    if _ordinary_ytd < _std_ded:
+        _marginal_ord = 0.0  # still within standard deduction — no tax
+    else:
+        _marginal_ord = 0.10  # default (first bracket)
+        for upper, rate in _ord_brackets:
+            if _ord_taxable < upper:
+                _marginal_ord = rate
+                break
 
     # LTCG rate at stacked position (ordinary + LTCG)
     _stacked = _ord_taxable + _ltcg_ytd
@@ -506,12 +509,18 @@ def _max_draw_before_boundary(state: CitadelState, config: SimConfig,
     distances = []
 
     if source.bracket_type == "ordinary":
-        # Distance to next ordinary bracket
-        ord_taxable = max(ordinary_ytd - std_ded, 0)
-        for upper, _rate in ord_brackets:
-            if ord_taxable < upper:
-                distances.append(upper - ord_taxable)
-                break
+        # Distance to next ordinary bracket (in gross income space)
+        if ordinary_ytd < std_ded:
+            # Still within standard deduction — distance includes remaining cushion
+            # plus the first bracket's full width
+            remaining_ded = std_ded - ordinary_ytd
+            distances.append(remaining_ded + ord_brackets[0][0])
+        else:
+            ord_taxable = ordinary_ytd - std_ded
+            for upper, _rate in ord_brackets:
+                if ord_taxable < upper:
+                    distances.append(upper - ord_taxable)
+                    break
 
         # NIIT threshold (MAGI-based, NOT inflated)
         niit_thresh = NIIT_THRESHOLD[config.filing_status]

@@ -377,6 +377,88 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
     return sources
 
 
+def _score_sources(sources: list[_WithdrawalSource], state: CitadelState,
+                   config: SimConfig, model: "PriceModel | None" = None) -> None:
+    """Compute cost-per-dollar for each source. Mutates source.cost in place."""
+    from .tax import _inflate_brackets
+    from .tax_data import (FEDERAL_BRACKETS_TCJA, FEDERAL_BRACKETS_SUNSET,
+                           LTCG_BRACKETS, NIIT_RATE, NIIT_THRESHOLD,
+                           STANDARD_DEDUCTION_TCJA, STANDARD_DEDUCTION_SUNSET)
+
+    state_rate = _get_state_rate(config) / 100  # as fraction
+
+    # Current bracket position from accumulator
+    _years_from_base = 0
+    _ordinary_ytd = 0.0
+    _ltcg_ytd = 0.0
+    _magi = 0.0
+    if state.tax_year_accum is not None:
+        a = state.tax_year_accum
+        _ordinary_ytd = (a.tax_deferred_withdrawals + a.interest_income
+                         + a.treasury_interest + a.other_income)
+        _ltcg_ytd = max(a.lt_capital_gains - a.lt_capital_losses, 0)
+        _magi = _ordinary_ytd + _ltcg_ytd + max(a.st_capital_gains - a.st_capital_losses, 0)
+
+    ppy = FREQ_PPY.get(config.freq, 12)
+    sim_year = config.start_yr + int(state.period / ppy)
+    _years_from_base = max(sim_year - 2025, 0)
+    infl = config.inflation / 100
+
+    # Inflate brackets
+    if config.tcja_sunset:
+        _ord_brackets = _inflate_brackets(FEDERAL_BRACKETS_SUNSET[config.filing_status], _years_from_base, infl)
+        _std_ded = STANDARD_DEDUCTION_SUNSET[config.filing_status] * (1 + infl) ** _years_from_base
+    else:
+        _ord_brackets = _inflate_brackets(FEDERAL_BRACKETS_TCJA[config.filing_status], _years_from_base, infl)
+        _std_ded = STANDARD_DEDUCTION_TCJA[config.filing_status] * (1 + infl) ** _years_from_base
+    _ltcg_brackets = _inflate_brackets(LTCG_BRACKETS[config.filing_status], _years_from_base, infl)
+    _niit_threshold = NIIT_THRESHOLD[config.filing_status]  # NOT inflation-indexed
+
+    # Marginal ordinary rate at current YTD position
+    _ord_taxable = max(_ordinary_ytd - _std_ded, 0)
+    _marginal_ord = 0.10  # default
+    for upper, rate in _ord_brackets:
+        if _ord_taxable < upper:
+            _marginal_ord = rate
+            break
+
+    # LTCG rate at stacked position (ordinary + LTCG)
+    _stacked = _ord_taxable + _ltcg_ytd
+    _marginal_ltcg = 0.15  # default
+    for upper, rate in _ltcg_brackets:
+        if _stacked < upper:
+            _marginal_ltcg = rate
+            break
+
+    # NIIT applies?
+    _niit = NIIT_RATE if _magi > _niit_threshold else 0.0
+
+    for s in sources:
+        # Tax cost per dollar
+        if s.wrapper == "tf":
+            tax_cost = 0.0  # Roth — no tax
+        elif s.wrapper == "td":
+            tax_cost = _marginal_ord + state_rate
+        elif s.asset_type in ("invest", "btc"):
+            tax_cost = (_marginal_ltcg + _niit + state_rate) * s.gain_fraction
+        else:
+            tax_cost = 0.0  # taxable cash/reserves — principal
+
+        # Opportunity cost
+        if s.wrapper == "td":
+            # TD grows gross, taxed on withdrawal → reduce by (1 - marginal_rate)
+            opp = ((1 + s.growth_rate) ** s.horizon - 1) * (1 - _marginal_ord)
+        elif s.wrapper == "taxable" and s.asset_type == "reserve":
+            # Taxable treasury: after-tax interest compounding
+            # Treasury interest is state-exempt (US law) — only federal tax on coupons
+            after_tax_rate = s.growth_rate * (1 - _marginal_ord)
+            opp = (1 + max(after_tax_rate, 0)) ** s.horizon - 1
+        else:
+            opp = (1 + s.growth_rate) ** s.horizon - 1
+
+        s.cost = tax_cost + max(opp, 0.0)
+
+
 def _sell_btc_tracked(state: CitadelState, config: SimConfig,
                       btc_to_sell: float) -> "SaleResult":
     """Sell BTC with lot tracking + accumulator update. Returns SaleResult.

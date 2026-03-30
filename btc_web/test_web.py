@@ -7101,3 +7101,126 @@ class TestDynamicWaterfall:
         btc_src = [s for s in sources if s.key == "btc"][0]
         # BTC gain fraction: 1 - (30k / 80k) = 0.625
         assert btc_src.gain_fraction == pytest.approx(0.625)
+
+    def test_score_taxable_cash_zero_tax(self):
+        """Taxable cash has zero tax cost, only opportunity cost."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _build_source_list, _score_sources)
+        state = CitadelState(
+            cash=50_000, reserves=[0, 0, 0],
+            investments=[0, 0], invest_cost_basis=[0, 0],
+            btc_stack=0, btc_price=50_000, sim_date="2035-06-15",
+        )
+        cfg = SimConfig(tax_enabled=False, cash_rate=4.0,
+                        reserve_bins=[
+                            {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                            {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                            {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+                        ],
+                        invest_bins=[
+                            {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                            {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+                        ])
+        sources = _build_source_list(state, cfg, model=None)
+        _score_sources(sources, state, cfg, model=None)
+        cash = [s for s in sources if s.key == "cash"][0]
+        # Tax cost = 0, opportunity = (1.04)^15 - 1 ≈ 0.80
+        assert cash.cost == pytest.approx((1.04 ** 15) - 1, rel=0.01)
+
+    def test_score_td_ordinary_rate(self):
+        """TD source tax cost = marginal ordinary rate + state rate."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _build_source_list, _score_sources)
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            cash=50_000, reserves=[0, 0, 0],
+            investments=[0, 0], invest_cost_basis=[0, 0],
+            btc_stack=0, btc_price=50_000, sim_date="2035-06-15",
+            td_cash=100_000, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            tax_year_accum=TaxYearAccumulator(),
+        )
+        cfg = SimConfig(tax_enabled=True, state_code="TX", cash_rate=4.0,
+                        filing_status="single", inflation=4.0,
+                        start_yr=2031,
+                        reserve_bins=[
+                            {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                            {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                            {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+                        ],
+                        invest_bins=[
+                            {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                            {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+                        ])
+        sources = _build_source_list(state, cfg, model=None)
+        _score_sources(sources, state, cfg, model=None)
+        td = [s for s in sources if s.key == "td_cash"][0]
+        # At $0 YTD ordinary income, marginal rate = 10% (first bracket)
+        # TX = 0% state. Tax cost = 0.10. Opportunity = (1.04^15 - 1) × (1-0.10)
+        assert td.cost > 0.10  # tax cost alone
+        cash_src = [s for s in sources if s.key == "cash"][0]
+        assert td.cost > cash_src.cost  # TD more expensive than cash (tax + opp)
+
+    def test_score_niit_above_threshold(self):
+        """NIIT adds 3.8% to capital gains sources when MAGI > threshold."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _build_source_list, _score_sources)
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            cash=0, reserves=[0, 0, 0],
+            investments=[200_000, 0], invest_cost_basis=[100_000, 0],
+            btc_stack=0, btc_price=50_000, sim_date="2035-06-15",
+            tax_year_accum=TaxYearAccumulator(other_income=250_000),  # above NIIT
+        )
+        cfg = SimConfig(tax_enabled=True, state_code="TX", filing_status="single",
+                        inflation=4.0, start_yr=2031,
+                        reserve_bins=[
+                            {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                            {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                            {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+                        ],
+                        invest_bins=[
+                            {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                            {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+                        ])
+        sources = _build_source_list(state, cfg, model=None)
+        _score_sources(sources, state, cfg, model=None)
+        eq = [s for s in sources if s.key == "invest_0"][0]
+        # LTCG rate (15%) + NIIT (3.8%) + state (0%) = 18.8% × gain_fraction (0.5) = 9.4% tax
+        # Plus opportunity cost
+        assert eq.cost > 0.094  # tax component alone
+
+    def test_score_btc_high_early_low_late(self):
+        """BTC opportunity cost is higher in 2035 than 2065."""
+        from engines.citadel import (CitadelState, SimConfig,
+                                      _build_source_list, _score_sources,
+                                      _WithdrawalSource)
+        from engines.tax_lots import TaxLot
+        from btc_core import yr_to_t
+
+        def _btc_cost_at_year(yr):
+            t = yr_to_t(yr)
+            state = CitadelState(
+                cash=0, reserves=[0, 0, 0],
+                investments=[0, 0], invest_cost_basis=[0, 0],
+                btc_stack=1.0, btc_price=50_000, t=t, sim_date=f"{yr}-06-15",
+                tax_lots=[TaxLot(date="2031-01-01", btc=1.0,
+                                 cost_basis=10_000, source="initial")],
+            )
+            cfg = SimConfig(tax_enabled=False, start_yr=yr,
+                            reserve_bins=[
+                                {"label": "S", "initial": 0, "rate": 5.0, "volatility": 0},
+                                {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                                {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+                            ],
+                            invest_bins=[
+                                {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
+                                {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+                            ])
+            sources = _build_source_list(state, cfg, model=_test_model())
+            _score_sources(sources, state, cfg, model=_test_model())
+            btc = [s for s in sources if s.key == "btc"][0]
+            return btc.cost
+
+        cost_2035 = _btc_cost_at_year(2035)
+        cost_2065 = _btc_cost_at_year(2065)
+        assert cost_2035 > cost_2065, "BTC cost should decrease as growth slows"

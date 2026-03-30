@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
 update_prices.py — Append missing daily BTC/USD closes to BitcoinPricesDaily.csv,
-then re-execute SP.ipynb so model_data.pkl is refreshed.
+then rebuild model_data.pkl via tools/build_bm_model.py + tools/fit_sigma.py.
 
 Usage:
-    python3 update_prices.py            # fetch, append, run notebook
+    python3 update_prices.py            # fetch, append, rebuild model
     python3 update_prices.py --dry-run  # preview only; no file changes
 
 Data sources (tried in order):
@@ -15,7 +15,6 @@ Data sources (tried in order):
 import csv
 import datetime
 import json
-import shutil
 import subprocess
 import sys
 import urllib.error
@@ -25,22 +24,7 @@ from pathlib import Path
 # ── Paths ────────────────────────────────────────────────────────────────────
 REPO_ROOT = Path(__file__).parent.resolve()
 CSV_PATH  = REPO_ROOT / "BitcoinPricesDaily.csv"
-NOTEBOOK  = REPO_ROOT / "SP.ipynb"
-
-def _find_jupyter() -> Path:
-    """Locate the jupyter executable: venv → pipx → PATH."""
-    candidates = [
-        REPO_ROOT / "btc_venv" / "bin" / "jupyter",
-        Path.home() / ".local" / "share" / "pipx" / "venvs" / "jupyter" / "bin" / "jupyter",
-        Path.home() / ".local" / "bin" / "jupyter",
-    ]
-    for c in candidates:
-        if c.is_file():
-            return c
-    found = shutil.which("jupyter")
-    if found:
-        return Path(found)
-    raise FileNotFoundError("jupyter not found — install with: pipx install jupyter")
+PKL_PATH  = REPO_ROOT / "archive" / "btc_app" / "model_data.pkl"
 
 DRY_RUN   = "--dry-run" in sys.argv
 
@@ -133,25 +117,32 @@ def fetch_prices(start: datetime.date, end: datetime.date) -> dict:
     raise RuntimeError("All price sources failed — check your network connection.")
 
 
-# ── Notebook runner ───────────────────────────────────────────────────────────
+# ── Model builder ─────────────────────────────────────────────────────────────
 
-def run_notebook() -> None:
-    print("\nRe-executing SP.ipynb …")
-    jupyter = _find_jupyter()
-    print(f"  Using jupyter: {jupyter}")
-    cmd = [
-        str(jupyter), "nbconvert",
-        "--to", "notebook",
-        "--execute", "--inplace",
-        "--ExecutePreprocessor.timeout=600",
-        str(NOTEBOOK),
-    ]
-    res = subprocess.run(cmd, capture_output=True, text=True)
+def run_model_build() -> None:
+    print("\nRebuilding model_data.pkl …")
+    build_script = REPO_ROOT / "tools" / "build_bm_model.py"
+    sigma_script = REPO_ROOT / "tools" / "fit_sigma.py"
+
+    print("  Step 1/2: build_bm_model.py")
+    res = subprocess.run([sys.executable, str(build_script)], capture_output=True, text=True)
     if res.returncode != 0:
-        print("NOTEBOOK FAILED — stderr (last 3 000 chars):")
+        print("BUILD FAILED — stderr (last 3 000 chars):")
         print(res.stderr[-3000:])
         sys.exit(1)
-    print("Notebook executed successfully — model_data.pkl updated.")
+
+    print("  Step 2/2: fit_sigma.py")
+    res = subprocess.run(
+        [sys.executable, str(sigma_script),
+         "--pkl", str(PKL_PATH), "--type", "bm"],
+        capture_output=True, text=True,
+    )
+    if res.returncode != 0:
+        print("FIT_SIGMA FAILED — stderr (last 3 000 chars):")
+        print(res.stderr[-3000:])
+        sys.exit(1)
+
+    print("Model build complete — model_data.pkl updated.")
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
@@ -239,8 +230,8 @@ def main() -> None:
 
     print(f"\nAppended {len(new_rows)} row(s) → {CSV_PATH.name}")
 
-    # ── Re-run notebook ───────────────────────────────────────────────────────
-    run_notebook()
+    # ── Rebuild model ─────────────────────────────────────────────────────────
+    run_model_build()
 
     # ── Done ─────────────────────────────────────────────────────────────────
     print("\n" + "=" * 60)

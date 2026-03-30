@@ -412,7 +412,7 @@ class QuantileRegressionModel(_FitsBasedModel):
 
     def __init__(self, md):
         self.fits = md.qr_fits
-        self.colors = dict(md.qr_colors)
+        self.colors = dict(md.qr_colors) if md.qr_colors else {}
         self.quantiles = sorted(md.qr_fits.keys())
 
 
@@ -535,8 +535,13 @@ class BubbleModel(_CompositeModel):
             md.QR_QUANTILES,
         )
 
-        # Colors set by app.py thermal palette after construction
-        self.colors = dict(md.qr_colors)
+        # Colors: from pkl if present, otherwise generate thermal defaults.
+        # app.py overwrites these with the full thermal palette at startup.
+        if md.qr_colors:
+            self.colors = dict(md.qr_colors)
+        else:
+            self.colors = {q: f"#{int(255*q):02x}80{int(255*(1-q)):02x}"
+                           for q in self.quantiles}
 
 
 class PowerLawModel(_FitsBasedModel):

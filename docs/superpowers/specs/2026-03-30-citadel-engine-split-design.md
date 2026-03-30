@@ -6,6 +6,12 @@
 
 ---
 
+## Key Rule: `__all__` in Every Module
+
+Python's `import *` skips names starting with `_`. Since 25 of 32 exported names are underscore-prefixed (e.g., `_sell_btc_tracked`, `_spending_waterfall`, `_WithdrawalSource`), every submodule **must** define `__all__` listing all names it exports. Without this, the facade's wildcard re-exports silently drop most of the public API.
+
+---
+
 ## Module Breakdown
 
 ### `citadel_types.py` (~280 lines)
@@ -73,6 +79,8 @@ Floor enforcement — maintains minimum balances by drawing from the waterfall.
 - `_distribute_to_accounts(state, amount, split)` — distributes cash to accounts by split fractions
 - `_source_from_accounts(state, config, amount)` — draws from taxable accounts for BTC purchases
 
+**Dead code to remove:** `_SPLIT_KEYS` (line 772 in current file) — unused constant, delete during split.
+
 **Imports:** `citadel_types`, `citadel_waterfall` (_spending_waterfall), `citadel_transactions` (_sell_investments_tracked)
 
 **Depends on:** `citadel_types`, `citadel_waterfall`, `citadel_transactions`
@@ -108,7 +116,7 @@ Tax computation integration — RMDs, estimated payments, year-end true-up, tax 
 
 **Imports:** `citadel_types`, `citadel_transactions` (_sell_investments_tracked)
 
-**Lazy imports:** `.tax` (TaxYearAccumulator, compute_annual_tax), `.tax_data` (STATE_TAX_RATES, RMD_FACTORS, brackets)
+**Lazy imports:** `.tax` (TaxYearAccumulator, compute_annual_tax, apply_progressive_brackets, _inflate_brackets), `.tax_data` (STATE_TAX_RATES, RMD_FACTORS, FEDERAL_BRACKETS_TCJA, FEDERAL_BRACKETS_SUNSET, NIIT_THRESHOLD)
 
 **Depends on:** `citadel_types`, `citadel_transactions`
 

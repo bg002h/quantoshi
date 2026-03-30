@@ -301,7 +301,7 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
                 horizon=15, gain_fraction=gf, is_roth=False,
                 is_bracket_sensitive=True, bracket_type="ltcg",
             ))
-    if state.btc_stack > 0.01 and state.btc_price > 0:
+    if state.btc_stack * max(state.btc_price, 0) > 0.01:
         sources.append(_WithdrawalSource(
             key="btc", wrapper="taxable", asset_type="btc", index=0,
             available=state.btc_stack * state.btc_price,
@@ -337,7 +337,7 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
                     horizon=15, gain_fraction=0.0, is_roth=False,
                     is_bracket_sensitive=True, bracket_type="ordinary",
                 ))
-        if state.td_btc_stack > 0.01 and state.btc_price > 0:
+        if state.td_btc_stack * max(state.btc_price, 0) > 0.01:
             sources.append(_WithdrawalSource(
                 key="td_btc", wrapper="td", asset_type="btc", index=0,
                 available=state.td_btc_stack * state.btc_price,
@@ -365,7 +365,7 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
                 horizon=15, gain_fraction=0.0, is_roth=True,
                 is_bracket_sensitive=False, bracket_type="none",
             ))
-        if state.tf_btc_stack > 0.01 and state.btc_price > 0:
+        if state.tf_btc_stack * max(state.btc_price, 0) > 0.01:
             sources.append(_WithdrawalSource(
                 key="tf_btc", wrapper="tf", asset_type="btc", index=0,
                 available=state.tf_btc_stack * state.btc_price,
@@ -1190,14 +1190,26 @@ def _spending_waterfall(state: CitadelState, config: SimConfig,
             _execute_draw(state, config, best, draw)
             remaining -= draw
 
-            # Update source availability
             best.available -= draw
-            # BTC/investment gain fractions may have changed — rebuild on next score
             drew_something = True
             break  # re-rank with updated state
 
         if not drew_something:
-            break
+            # All sources were skipped on bracket boundaries, but money
+            # remains. A shortfall is infinitely more expensive than any
+            # tax bracket — draw from cheapest available, ignoring caps.
+            for best in ranked:
+                if best.available < 0.01:
+                    continue
+                draw = min(remaining, best.available)
+                _execute_draw(state, config, best, draw)
+                remaining -= draw
+                best.available -= draw
+                drew_something = True
+                break
+
+            if not drew_something:
+                break  # truly exhausted
 
         sources = [s for s in sources if s.available > 0.01]
 

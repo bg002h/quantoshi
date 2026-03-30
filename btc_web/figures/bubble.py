@@ -21,7 +21,7 @@ from figures.common import (
     _SANS_FONT, _FONT_TITLE_LG, _FONT_BODY_LG, _FONT_TICK_LG, _FONT_LEGEND_LG,
     _LOG_MINOR, _MC_LEGEND_POS,
     _get_palette, _build_thermal_colors, _fmt_q_label,
-    _dark_layout, _year_ticks, _price_tickvals,
+    _base_layout, _year_ticks, _price_tickvals,
     _apply_sans_typography, _apply_config_annotation, _apply_watermark, _add_date_hover,
     _HOVER_FMT_USD,
     _lerp_hex, _hex_alpha,
@@ -366,7 +366,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     ylabel = "Stack Value (USD)" if stack > 0 else "Bitcoin Price (USD)"
 
-    layout = _dark_layout(
+    layout = _base_layout(
         m,
         title="Bitcoin Bubble Model + Quantile Regression Channels",
         xlabel="Years since genesis (2009-07-25)",

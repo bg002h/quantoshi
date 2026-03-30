@@ -222,7 +222,7 @@ def _sim_layout(m, p, title, ylabel, ts, t_start, t_end, dt, syr, eyr, shapes=No
     """Build dark layout with time-series axis, log_y, tick labels."""
     tick_ts, tick_lbls = _year_ticks(syr, eyr, m.genesis,
                                      minor_grid=p.get("minor_grid"))
-    layout = _dark_layout(m, title=title, xlabel="Year", ylabel=ylabel)
+    layout = _base_layout(m, title=title, xlabel="Year", ylabel=ylabel)
     layout["yaxis"]["title"]["standoff"] = 5
     _x_end = max(float(ts[-1]), t_end) + dt * 0.15
     layout["xaxis"].update(
@@ -248,8 +248,8 @@ def _apply_mc_overlay(m, p, overlay_fn, overlay_args, traces,
     return mc_traces_list, mc_result
 
 
-def _dark_layout(m, title, xlabel, ylabel, **kwargs):
-    """Base dark-theme layout dict — shared Quantoshi chart template.
+def _base_layout(m, title, xlabel, ylabel, **kwargs):
+    """Base layout dict — shared Quantoshi chart template.
 
     Includes consistent font family, sizes, colors, and grid styling
     so all charts have a cohesive look.

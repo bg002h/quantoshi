@@ -20,7 +20,7 @@ from figures.common import (
     _build_freq_config, _get_starting_stack,
     _sim_layout, _apply_mc_overlay,
     _stagger_depletion_annots,
-    _dark_layout, _finalize_chart,
+    _base_layout, _finalize_chart,
     _fmt_short, _mc_median_annot,
     _resolve_edge_annotations,
     _hex_alpha,
@@ -582,7 +582,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
             ))
 
     xlabel = "Delay (years)" if chart_layout in (0, 1) else "Quantile"
-    layout = _dark_layout(
+    layout = _base_layout(
         m,
         title=f"HODL Supercharger \u2014 Max spend{freq_label} to deplete by {target_yr}  ({model.name})",
         xlabel=xlabel,

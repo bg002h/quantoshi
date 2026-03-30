@@ -43,7 +43,7 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
     _td_horizon = 15  # default when no birth_year
     if config.birth_year:
         from .tax_data import RMD_FACTORS
-        from .citadel import _rmd_start_age
+        from .citadel_tax_integration import _rmd_start_age
         _rmd_start = _rmd_start_age(config.birth_year)
         if _age >= _rmd_start:
             _td_horizon = max(int(RMD_FACTORS.get(_age, 1.0)), 1)
@@ -169,7 +169,7 @@ def _score_sources(sources: list[_WithdrawalSource], state: CitadelState,
     from .tax_data import (FEDERAL_BRACKETS_TCJA, FEDERAL_BRACKETS_SUNSET,
                            LTCG_BRACKETS, NIIT_RATE, NIIT_THRESHOLD,
                            STANDARD_DEDUCTION_TCJA, STANDARD_DEDUCTION_SUNSET)
-    from .citadel import _get_state_rate
+    from .citadel_tax_integration import _get_state_rate
 
     state_rate = _get_state_rate(config) / 100  # as fraction
 

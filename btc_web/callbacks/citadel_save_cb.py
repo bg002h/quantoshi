@@ -273,6 +273,17 @@ _app_ctx.app.clientside_callback(
         if (scenario.tax_config) sp("cp-tax-config",      {data: scenario.tax_config});
         if (scenario.tax_annual) sp("cp-tax-annual-data", {data: scenario.tax_annual});
 
+        // Clear dcc.Loading overlay — set_props triggers the loading state
+        // but no callback "completes" to clear it. The spinner is a fixed
+        // full-screen div with class "dash-spinner-container".
+        if (scenario.figure) {
+            setTimeout(function() {
+                var spinners = document.querySelectorAll(".dash-spinner-container");
+                for (var s = 0; s < spinners.length; s++)
+                    spinners[s].parentNode.removeChild(spinners[s]);
+            }, 200);
+        }
+
         // Status message
         sp("cp-load-status", {children: "Loaded: " + (scenario.created || "unknown")});
 

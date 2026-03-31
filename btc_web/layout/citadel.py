@@ -327,6 +327,7 @@ def _citadel_controls():
         ], className="mb-2 gx-2"),
         html.Div(id="cp-load-status", className="text-muted small mb-2"),
         dcc.Store(id="cp-save-prep", storage_type="memory"),
+        dcc.Store(id="cp-save-dl-dummy", storage_type="memory"),
         dbc.Tabs([
             dbc.Tab(_assets_panel(), label="Assets", tab_id="cp-assets"),
             dbc.Tab(_spending_panel(), label="Spending", tab_id="cp-spending"),

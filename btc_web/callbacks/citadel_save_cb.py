@@ -172,28 +172,21 @@ _app_ctx.app.clientside_callback(
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        return '';
+        return window.dash_clientside.no_update;
     }
     """,
-    Output("cp-load-status", "children"),
+    Output("cp-save-dl-dummy", "data"),
     Input("cp-save-prep", "data"),
     prevent_initial_call=True,
 )
 
 
-# ── Enable/disable Save button based on graph data ─────────────────────────
 
-_app_ctx.app.clientside_callback(
-    """
-    function(fig) {
-        if (!fig || !fig.data || fig.data.length === 0) return true;
-        return false;
-    }
-    """,
-    Output("cp-save-btn", "disabled"),
-    Input("citadel-graph", "figure"),
-    prevent_initial_call=True,
-)
+# Save button enabled via the main Citadel callback's running= parameter.
+# Background callbacks use running= to set component properties during/after
+# execution. We add cp-save-btn.disabled to the citadel_cb.py running= list
+# instead of using a separate clientside callback (which can't detect
+# background callback figure updates).
 
 
 # ── Load: parse uploaded JSON, restore controls + inject figure ──────────────

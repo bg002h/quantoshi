@@ -206,6 +206,7 @@ def show_asset_model_info(model):
     running=[
         (Output("cp-run-btn", "disabled"), True, False),
         (Output("cp-run-btn", "children"), "\u23f3 Computing...", "\u25b6  Run Simulation"),
+        (Output("cp-save-btn", "disabled"), True, False),
     ],
 )
 def update_citadel(

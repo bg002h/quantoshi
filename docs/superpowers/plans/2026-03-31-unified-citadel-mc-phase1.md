@@ -400,6 +400,10 @@ In `btc_web/engines/citadel_step.py`, replace the TD/TF wrapper growth section (
 
 ```python
     # 2b. TD/TF wrapper growth (same return model as taxable wrapper)
+    # Guard: only runs when tax_enabled=True. When tax_enabled=False,
+    # TD/TF balances are zero (not initialized by _initial_state()),
+    # so growing them has no effect. The regime fields ARE seeded
+    # unconditionally (Task 2), but that's harmless — they just sit unused.
     if config.tax_enabled:
         cash_growth = (1 + config.cash_rate / 100) ** (1.0 / ppy)
         new.td_cash *= cash_growth
@@ -637,9 +641,9 @@ Update the percentile and median computation in `_aggregate_results()` to use al
     _btc_usd = btc_h * btc_p
     _res_total = res_b.sum(axis=2)
     _inv_total = inv_b.sum(axis=2)
-    _td = td_total_arr if td_total_arr is not None else np.zeros(n_periods)
-    _tf = tf_total_arr if tf_total_arr is not None else np.zeros(n_periods)
-    _tax = taxes_paid_arr if taxes_paid_arr is not None else np.zeros(n_periods)
+    _td = td_total_arr if td_total_arr is not None else np.zeros((n_sims, n_periods))
+    _tf = tf_total_arr if tf_total_arr is not None else np.zeros((n_sims, n_periods))
+    _tax = taxes_paid_arr if taxes_paid_arr is not None else np.zeros((n_sims, n_periods))
 
     # Build series dict for consistent iteration
     series = {

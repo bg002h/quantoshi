@@ -1,10 +1,12 @@
-"""Citadel Planner — save scenario (server prep + clientside download)."""
+"""Citadel Planner — save/load scenario callbacks."""
 
+import base64
 import datetime
 import json
 import logging
 
-from dash import callback, Input, Output, State
+import dash
+from dash import callback, Input, Output, State, no_update
 
 import _app_ctx
 from snapshot import _SNAPSHOT_CONTROLS
@@ -192,3 +194,72 @@ _app_ctx.app.clientside_callback(
     Input("citadel-graph", "figure"),
     prevent_initial_call=True,
 )
+
+
+# ── Load: parse uploaded JSON, restore controls + inject figure ──────────────
+
+_load_outputs = [
+    Output("cp-scenario-upload", "contents"),
+    Output("cp-load-status", "children", allow_duplicate=True),
+    Output("citadel-graph", "figure", allow_duplicate=True),
+    Output("cp-mc-results", "data", allow_duplicate=True),
+    Output("cp-tax-config", "data", allow_duplicate=True),
+    Output("cp-tax-annual-data", "data", allow_duplicate=True),
+] + [
+    Output(cid, prop, allow_duplicate=True) for cid, prop in _CP_CONTROLS
+]
+
+
+@callback(
+    *_load_outputs,
+    Input("cp-scenario-upload", "contents"),
+    prevent_initial_call=True,
+)
+def _load_scenario(contents):
+    if not contents:
+        raise dash.exceptions.PreventUpdate
+
+    n_fixed = 6  # non-control outputs
+    n_total = n_fixed + len(_CP_CONTROLS)
+
+    def _err(msg):
+        return (None, msg) + (no_update,) * (n_total - 2)
+
+    try:
+        _content_type, content_string = contents.split(",", 1)
+        raw = base64.b64decode(content_string)
+        if len(raw) > 2_000_000:
+            return _err("File too large (max 2 MB)")
+        data = json.loads(raw)
+    except Exception as e:
+        return _err(f"Parse error: {e}")
+
+    if data.get("type") != "citadel_scenario":
+        return _err("Not a Quantoshi Citadel scenario file")
+    if data.get("version", 0) > 1:
+        return _err(f"Unsupported version: {data.get('version')}")
+
+    controls = data.get("controls", {})
+    figure = data.get("figure", no_update)
+    mc_results = data.get("mc_results", no_update)
+    tax_config = data.get("tax_config", no_update)
+    tax_annual = data.get("tax_annual", no_update)
+
+    # Restore controls in _CP_CONTROLS order; controls dict is keyed by cid
+    control_vals = []
+    for cid, _prop in _CP_CONTROLS:
+        if cid in controls:
+            control_vals.append(controls[cid])
+        else:
+            control_vals.append(no_update)
+
+    created = data.get("created", "unknown")[:19]
+    return (
+        None,           # clear upload
+        f"Loaded: {created}",
+        figure,
+        mc_results,
+        tax_config,
+        tax_annual,
+        *control_vals,
+    )

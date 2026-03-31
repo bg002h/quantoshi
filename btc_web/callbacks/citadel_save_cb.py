@@ -200,6 +200,24 @@ _app_ctx.app.clientside_callback(
 # callback uses dash_clientside.set_props() to distribute values — zero
 # allow_duplicate outputs needed.
 
+# Open the loading modal immediately when the user picks a file.
+# Uses 'filename' (not 'contents') because the server callback clears
+# 'contents' to None, which would re-trigger a 'contents'-based callback.
+_app_ctx.app.clientside_callback(
+    """
+    function(fn) {
+        if (!fn) return window.dash_clientside.no_update;
+        window.dash_clientside.set_props("cp-load-modal-body",
+            {children: "\\u23f3 Loading scenario..."});
+        return true;
+    }
+    """,
+    Output("cp-load-modal", "is_open"),
+    Input("cp-scenario-upload", "filename"),
+    prevent_initial_call=True,
+)
+
+
 @callback(
     Output("cp-scenario-upload", "contents"),
     Output("cp-load-store", "data"),
@@ -228,7 +246,6 @@ def _load_scenario(contents):
         return _err(f"Unsupported version: {data.get('version')}")
 
     created = data.get("created", "unknown")[:19]
-    # Pass the full scenario to the clientside distributor
     return None, {
         "controls": data.get("controls", {}),
         "figure": data.get("figure"),
@@ -240,7 +257,7 @@ def _load_scenario(contents):
 
 
 # Clientside callback: distributes loaded scenario to individual controls
-# via set_props (no allow_duplicate outputs needed).
+# via set_props (no allow_duplicate outputs needed), manages loading modal.
 _app_ctx.app.clientside_callback(
     """
     function(scenario) {
@@ -249,7 +266,9 @@ _app_ctx.app.clientside_callback(
         var NU = window.dash_clientside.no_update;
 
         if (scenario.error) {
-            sp("cp-load-status", {children: scenario.error});
+            // Show error in modal, close after 2s
+            sp("cp-load-modal-body", {children: scenario.error});
+            setTimeout(function() { sp("cp-load-modal", {is_open: false}); }, 2000);
             return NU;
         }
 
@@ -273,18 +292,20 @@ _app_ctx.app.clientside_callback(
         if (scenario.tax_config) sp("cp-tax-config",      {data: scenario.tax_config});
         if (scenario.tax_annual) sp("cp-tax-annual-data", {data: scenario.tax_annual});
 
-        // Clear dcc.Loading overlay — set_props triggers the loading state
-        // but no callback "completes" to clear it. The spinner is a fixed
-        // full-screen div with class "dash-spinner-container".
-        if (scenario.figure) {
-            setTimeout(function() {
-                var spinners = document.querySelectorAll(".dash-spinner-container");
-                for (var s = 0; s < spinners.length; s++)
-                    spinners[s].parentNode.removeChild(spinners[s]);
-            }, 200);
-        }
+        // Clear dcc.Loading spinner that set_props triggers
+        setTimeout(function() {
+            var spinners = document.querySelectorAll(".dash-spinner-container");
+            for (var s = 0; s < spinners.length; s++)
+                spinners[s].parentNode.removeChild(spinners[s]);
+        }, 200);
 
-        // Status message
+        // Show completion in modal, then close
+        sp("cp-load-modal-body", {children:
+            "\\u2705 Scenario loaded: " + (scenario.created || "unknown")
+        });
+        setTimeout(function() { sp("cp-load-modal", {is_open: false}); }, 1200);
+
+        // Status message (persists after modal closes)
         sp("cp-load-status", {children: "Loaded: " + (scenario.created || "unknown")});
 
         return NU;

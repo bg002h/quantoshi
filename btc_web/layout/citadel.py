@@ -329,6 +329,15 @@ def _citadel_controls():
         dcc.Store(id="cp-save-prep", storage_type="memory"),
         dcc.Store(id="cp-save-dl-dummy", storage_type="memory"),
         dcc.Store(id="cp-load-store", storage_type="memory"),
+        dbc.Modal([
+            dbc.ModalBody(id="cp-load-modal-body", children=[
+                html.Div([
+                    dbc.Spinner(size="sm", color="primary", spinner_class_name="me-2"),
+                    html.Span("Loading scenario..."),
+                ], className="d-flex align-items-center justify-content-center py-3"),
+            ]),
+        ], id="cp-load-modal", is_open=False, centered=True, backdrop="static",
+           keyboard=False, size="sm"),
         dbc.Tabs([
             dbc.Tab(_assets_panel(), label="Assets", tab_id="cp-assets"),
             dbc.Tab(_spending_panel(), label="Spending", tab_id="cp-spending"),

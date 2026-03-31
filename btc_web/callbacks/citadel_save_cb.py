@@ -292,12 +292,39 @@ _app_ctx.app.clientside_callback(
         if (scenario.tax_config) sp("cp-tax-config",      {data: scenario.tax_config});
         if (scenario.tax_annual) sp("cp-tax-annual-data", {data: scenario.tax_annual});
 
-        // Clear dcc.Loading spinner that set_props triggers
+        // Clear any loading overlays that set_props triggers.
+        // dcc.Loading adds a full-screen spinner and/or dims the content.
+        // The overlay can appear at different times depending on figure size
+        // and network latency, so we sweep repeatedly.
+        function clearLoadingOverlays() {
+            // Remove full-screen spinners
+            document.querySelectorAll(".dash-spinner-container").forEach(
+                function(el) { el.remove(); });
+            // Remove any lingering modal backdrops
+            document.querySelectorAll(".modal-backdrop").forEach(
+                function(el) { el.remove(); });
+            // Force the dcc.Loading wrapper to show content normally
+            var wrap = document.getElementById("cp-chart-wrap");
+            if (wrap) {
+                wrap.querySelectorAll("[data-dash-is-loading]").forEach(
+                    function(el) { el.removeAttribute("data-dash-is-loading"); });
+                // Reset any inline visibility/opacity the Loading component set
+                wrap.querySelectorAll("div").forEach(function(el) {
+                    if (el.style.visibility === "hidden") el.style.visibility = "";
+                    if (parseFloat(el.style.opacity) < 1) el.style.opacity = "";
+                });
+            }
+        }
+        // Sweep at multiple intervals to catch late-appearing overlays
+        [100, 300, 600, 1200, 2500].forEach(function(ms) {
+            setTimeout(clearLoadingOverlays, ms);
+        });
+
+        // Reset the file input so the same file can be re-loaded
         setTimeout(function() {
-            var spinners = document.querySelectorAll(".dash-spinner-container");
-            for (var s = 0; s < spinners.length; s++)
-                spinners[s].parentNode.removeChild(spinners[s]);
-        }, 200);
+            var inp = document.querySelector("#cp-scenario-upload input[type=file]");
+            if (inp) inp.value = "";
+        }, 100);
 
         // Show completion in modal, then close
         sp("cp-load-modal-body", {children:

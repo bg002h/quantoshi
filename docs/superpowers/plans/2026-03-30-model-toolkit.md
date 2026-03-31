@@ -31,6 +31,87 @@ for i, line in enumerate(src.split('\n')[START-1:END], START):
 
 ---
 
+## ERRATA — Read Before Implementing
+
+These corrections override specific details in the tasks below. The notebook source (`sp_stripped.ipynb`) is the ground truth — when in doubt, read the actual code.
+
+### E1: `bubble_shape` uses `slope_sup` as a closure variable (CRITICAL)
+
+In the notebook, `bubble_shape()` references `slope_sup` (the support line slope) as a global/closure variable at Cell 0 lines ~396, 408, 419. When extracted to `bubble_shape.py`, this global won't exist.
+
+**Fix:** Add `slope_sup` as a parameter to `bubble_shape`:
+
+```python
+def bubble_shape(t, t_rise, r, t_plateau, t_decay, d, plat_pow=0.0, slope_sup=0.0):
+```
+
+Every caller must pass `support.slope` (or `support.B`). This affects:
+- `fitting.py`: all `bubble_shape()` calls inside `fit_bubble` and `fit_sequential`
+- `composite.py`: all `bubble_shape()` calls inside `_total_bubble` and `build_comp_by_n`
+- Any test code that calls `bubble_shape` directly
+
+### E2: `fit_manual_bubble` globals not enumerated (CRITICAL)
+
+The notebook's `fit_manual_bubble` (Cell 0 lines 507-635) closes over many globals beyond `slope_sup`. These must ALL be threaded through `config` or as explicit parameters:
+
+- `slope_sup` — via `bubble_shape` calls and directly for K_peak computation
+- `years_fit` — use `price_data.years` instead
+- `FIT_CONTEXT_YR = 1.0` — add to `DEFAULT_CONFIG`
+- `FIT_RISE_LOOKBACK_YR = 0.75` — add to `DEFAULT_CONFIG`
+- `PLATEAU_PARALLEL_SUPPORT = True` — already in `DEFAULT_CONFIG`
+- `PLAT_POW_RANGE = 8.0` — add to `DEFAULT_CONFIG`
+- `DE_MAXITER = 2000` — already in `DEFAULT_CONFIG`
+- `DE_POPSIZE = 18` — **NOT 30** (see E5)
+- `genesis` — use `pd.Timestamp(genesis_date)` from config or hardcode "2009-07-25"
+
+The implementer must read Cell 0 lines 507-635 line by line and identify every global reference.
+
+### E3: DE seed uses original peak index, not magnitude rank (CRITICAL)
+
+The notebook's fitting loop (Cell 0 ~line 620) passes `orig_idx` to `fit_manual_bubble`, where `orig_idx` is the peak's position in the **discovery order** (order of `BUBBLE_YEARS`), NOT the magnitude-sorted rank.
+
+**Fix:** `fit_sequential` must track the original peak index and pass it as the seed index. Do NOT use the magnitude-sorted position.
+
+### E4: `N_MAJOR = 5`, not 2 (IMPORTANT)
+
+The notebook uses `N_MAJOR = 5` (Cell 0 line 128). With 5 bubble years and `N_MAJOR=5`, ALL bubbles are classified as major. The plan's `classify(fitted, n_major=2)` is WRONG and would fundamentally change the model.
+
+**Fix:** Use `n_major=5` in build scripts and tests. Also implement `MAX_MAJOR_BUBBLES` and `MAX_MINOR_BUBBLES` caps from Cell 0 lines 658-663 in the `classify` function.
+
+### E5: `DE_POPSIZE = 18`, not 30 (IMPORTANT)
+
+Cell 0 line 122: `DE_POPSIZE = 18`. The plan's `DEFAULT_CONFIG` says 30. Wrong default = different optimization results.
+
+**Fix:** `"de_popsize": 18` in `DEFAULT_CONFIG`.
+
+### E6: `price_dates/years/prices` source data (IMPORTANT)
+
+Cell 2 exports price data from the Cell 1 `df` which includes ALL dates with `years >= 1.0` (no `fit_min_date` filter applied to the export data). The plan's `build_bm_pkl_dict` uses `price_data.df` (which IS filtered by `fit_min_date`).
+
+**Fix:** Use `price_data.df_full` filtered to `years >= 1.0` for the price export keys, matching the original Cell 2 behavior. Or add a separate `df_export` field to `PriceData` that applies only the `years >= 1.0` filter.
+
+### E7: `composite_at_grid` is linear USD, sigma fitting needs log10 (IMPORTANT)
+
+`comp.composite_at_grid` is in linear USD. `fit_sigma.py` converts to log10 before interpolation. The `fit_asymmetric_sigma` implementation must apply `np.log10()` internally, matching `fit_sigma.py` line 33.
+
+### E8: `comp_by_n` must return Python lists, not numpy arrays (MINOR)
+
+Both BM Cell 2 and EF `build_ef_model.py` call `.tolist()` on comp_by_n arrays before writing to pkl. `build_comp_by_n` should return `[array.tolist() for array in results]`.
+
+### Errata verification
+
+After each task, the implementer (or reviewer) must verify:
+- [ ] E1: `bubble_shape` accepts `slope_sup` parameter; all callers pass it
+- [ ] E2: No `NameError` on any global when running the full pipeline
+- [ ] E3: DE seeds match notebook's original-index pattern
+- [ ] E4: `n_major=5` in build scripts; `classify` supports MAX caps
+- [ ] E5: `de_popsize=18` in DEFAULT_CONFIG
+- [ ] E6: Price export uses full date range (years >= 1.0, no fit_min_date filter)
+- [ ] E7: Sigma fitting applies log10 to composite before interpolation
+- [ ] E8: comp_by_n entries are Python lists
+
+---
+
 ## File Structure
 
 | File | Action | Purpose |

@@ -3,6 +3,7 @@
 
 NOTE: Uses pickle.load for trusted, locally-generated model data files only.
 """
+import argparse
 import hashlib
 import struct
 import sys
@@ -15,6 +16,13 @@ MODEL_KEYS = [
     "years_plot_bm", "support_plot_bm", "bm_comp_by_n", "bm_r2_comp",
     "bm_n_future_max", "bm_sigma0_up", "bm_sigma0_down", "bm_alpha_up",
     "bm_alpha_down", "price_dates", "price_years", "price_prices",
+]
+
+EF_KEYS = [
+    "ef_support_slope", "ef_support_intercept", "genesis",
+    "years_plot", "support_plot", "comp_by_n", "bm_r2", "n_future_max",
+    "sigma0_up", "sigma0_down", "alpha_up", "alpha_down",
+    "price_years", "price_prices", "QR_QUANTILES", "fitted_bubbles",
 ]
 
 
@@ -69,11 +77,16 @@ def load_pkl(path):
 
 
 def main():
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <reference.pkl> <candidate.pkl>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="Compare two model_data pkl files key-by-key.")
+    parser.add_argument("reference", help="Reference pkl file")
+    parser.add_argument("candidate", help="Candidate pkl file")
+    parser.add_argument("--type", choices=["bm", "ef"], default="bm",
+                        help="Model type: bm (default) or ef")
+    args = parser.parse_args()
 
-    ref_path, cand_path = sys.argv[1], sys.argv[2]
+    keys = MODEL_KEYS if args.type == "bm" else EF_KEYS
+    ref_path, cand_path = args.reference, args.candidate
 
     # SHA256 comparison
     ref_hash = sha256(ref_path)
@@ -88,7 +101,7 @@ def main():
     cand = load_pkl(cand_path)
 
     all_ok = True
-    for key in MODEL_KEYS:
+    for key in keys:
         if key not in ref:
             print(f"  {key:25s}  SKIP (not in reference)")
             continue
@@ -105,7 +118,7 @@ def main():
         else:
             print(f"  {key:25s}  OK")
 
-    extra = set(cand.keys()) - set(ref.keys()) - set(MODEL_KEYS)
+    extra = set(cand.keys()) - set(ref.keys()) - set(keys)
     if extra:
         print(f"\nExtra keys in candidate: {sorted(extra)}")
 

@@ -43,8 +43,9 @@ def fit_qr_channels(price_data: PriceData, quantiles=None) -> QRResult:
     if quantiles is None:
         quantiles = BM_QUANTILES
 
-    log_years = price_data.log_years
-    log_prices = price_data.log_prices
+    # Use df_full (date >= fit_min_date, no years>=1 filter) to match Cell 1
+    log_years = price_data.df_full["log_years"].values
+    log_prices = price_data.df_full["log_price"].values
 
     # OLS (mean) regression
     ols_slope, ols_intercept, ols_r, _, _ = linregress(log_years, log_prices)

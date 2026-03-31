@@ -9,7 +9,7 @@ def build_bm_pkl_dict(price_data, support, composite, comp_by_n, qr, sigma,
                        genesis_date="2009-07-25"):
     """17 keys. String keys for qr_fits. float() wrappers on scalars.
 
-    E6: price_dates/years/prices from df_full (years>=1.0, no fit_min_date filter).
+    E6: price_dates/years/prices from df_full (date>=fit_min_date).
     """
     return {
         "qr_fits": {str(k): dict(v) for k, v in qr.fits.items()},

@@ -7,9 +7,9 @@ import pandas as pd
 
 @dataclass
 class PriceData:
-    df: pd.DataFrame          # filtered by fit_min_date + years>=1: date, price, years, log_years, log_price
-    df_full: pd.DataFrame     # all rows with years>=1 (for price export -- no fit_min_date filter)
-    years: np.ndarray         # from df (filtered)
+    df: pd.DataFrame          # filtered by years>=1 AND date>=fit_min_date (for support/bubble fitting)
+    df_full: pd.DataFrame     # filtered by date>=fit_min_date only (for QR fitting + price export)
+    years: np.ndarray         # from df (years>=1 subset)
     log_years: np.ndarray
     prices: np.ndarray
     log_prices: np.ndarray
@@ -32,6 +32,12 @@ def load_prices(csv_path, genesis_date="2009-07-25", fit_min_date="2010-07-17"):
     -------
     PriceData
         Dataclass with filtered df, full df, and convenience arrays.
+
+    Notes
+    -----
+    Two datasets match the notebook's dual filtering:
+    - Cell 0 (support/bubble): years >= 1.0 AND date >= fit_min_date
+    - Cell 1 (QR/OLS/export): date >= fit_min_date only
     """
     genesis = pd.Timestamp(genesis_date)
     fit_min = pd.Timestamp(fit_min_date)
@@ -46,10 +52,10 @@ def load_prices(csv_path, genesis_date="2009-07-25", fit_min_date="2010-07-17"):
     df["log_years"] = np.log10(df["years"].clip(lower=1e-10))
     df["log_price"] = np.log10(df["price"].clip(lower=1e-10))
 
-    # df_full: years >= 1.0 only (for price export -- no fit_min_date filter)
-    df_full = df[df["years"] >= 1.0].reset_index(drop=True)
+    # df_full: date >= fit_min_date (for QR/OLS fitting + price export)
+    df_full = df[df["date"] >= fit_min].reset_index(drop=True)
 
-    # df: years >= 1.0 AND date >= fit_min_date (for model fitting)
+    # df: years >= 1.0 AND date >= fit_min_date (for support/bubble fitting)
     mask = (df["years"] >= 1.0) & (df["date"] >= fit_min)
     df = df[mask].reset_index(drop=True)
 

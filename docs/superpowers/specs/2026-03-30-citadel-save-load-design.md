@@ -43,13 +43,15 @@ Single JSON file. All tabs use the same structure:
 - `type`: always `"quantoshi_scenario"` (validates on load)
 - `tab`: which tab produced this (`"cp"`, `"dca"`, `"ret"`, `"sc"`, `"hm"`)
 - `controls`: all controls for this tab in snapshot key format
-- `figure`: full Plotly figure dict for instant interactive restore
+- `figure`: full Plotly figure dict for instant interactive restore. Note: saved figures may become visually inconsistent after app updates (new trace styles, layout changes). The `version` field flags this — future version bumps can trigger re-render from `sim_data` instead of using the stale figure.
 - `sim_data`: tab-specific — MC results dict for DCA/Retire/SC/HM; SimResult dict for Citadel
 
 **Citadel sim_data details:**
-- Deterministic: full `SimResult.to_dict()` output
-- MC: `SimResult.to_dict()` with per-sim arrays stripped (keep `time_axis`, `percentiles`, `depletion_period`, `annual_taxes` — drop `btc_holdings`, `cash_balances`, etc. where first dimension is n_sims)
-- Detection: automatic — if `n_sims > 1` in the result, strip per-sim arrays
+- Deterministic (`n_sims == 1`): full `SimResult.to_dict()` output — all keys kept
+- MC (`n_sims > 1`): `SimResult.to_dict()` with per-sim arrays stripped. **Keep:** `time_axis`, `percentiles`, `depletion_period`, `annual_taxes`, `n_sims`. **Drop:** any top-level value that is a 2D array/list with first dimension == n_sims (`btc_holdings`, `btc_prices`, `cash_balances`, `reserve_balances`, `invest_balances`, `total_usd`, `td_total`, `tf_total`, `taxable_total`)
+- Detection: automatic from `n_sims` field in the dict
+
+**Version migration:** Loader rejects files with `version` > supported. Future format changes bump `version` and add sequential migration transforms (v1→v2→...→current).
 
 **Other tabs sim_data:** The existing MC result dict (with `price_paths`, `fan_btc`, `fan_usd`, `path_key`, `overlay_key`). Same as what they already save — just now wrapped in the unified format.
 
@@ -111,13 +113,12 @@ Follows the proven MC upload pattern from DCA/Retire/SC/HM.
    - Write `sim_data` to `cp-mc-results.data`
    - Write `annual_taxes` to `cp-tax-annual-data.data`
    - Write `tax_config` to `cp-tax-config.data`
-   - Increment `cp-mc-loaded.data` — this triggers the figure callback
-4. Figure callback fires (triggered by `cp-mc-loaded`):
-   - Detects `cp-mc-results` has valid data
-   - Renders figure from saved simulation data
-   - OR: inject saved `figure` directly into graph (faster, preserves exact view)
+   - Write saved `figure` directly to `citadel-graph.figure` — **bypasses the figure callback entirely**
+4. Instant interactive chart appears. No simulation re-run, no background process, no spinner.
 
-**Fast-path consideration:** The figure callback currently re-runs simulation when triggered. For loaded scenarios, it should detect pre-existing results and skip simulation. Alternatively, the load callback can write the saved figure directly to `citadel-graph.figure` as an output, bypassing the figure callback entirely.
+**Why direct figure injection (not cp-mc-loaded trigger):** The figure callback uses `background=True` with DiskcacheManager. Triggering it would spawn a background process, show "Computing..." spinner, disable the Run button, and re-run the full simulation — defeating the purpose of save/load. Writing the figure directly as a callback `Output` avoids all of this.
+
+**Implementation note:** The load callback restores ~96 controls simultaneously. Audit for cascading callback triggers — if any callbacks have these controls as `Input` and have side effects (clearing stores, resetting state), the load could be partially undone. Use `prevent_initial_call=True` and test thoroughly.
 
 ---
 

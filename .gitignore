@@ -45,3 +45,4 @@ btc_web/mc_cache/
 # Misc
 *.log
 .env
+debris/

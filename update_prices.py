@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 update_prices.py — Append missing daily BTC/USD closes to BitcoinPricesDaily.csv,
-then rebuild model_data.pkl via tools/build_bm_model.py + tools/fit_sigma.py.
+then rebuild model_data.pkl via tools/build_bm_model.py.
 
 Usage:
     python3 update_prices.py            # fetch, append, rebuild model
@@ -24,7 +24,6 @@ from pathlib import Path
 # ── Paths ────────────────────────────────────────────────────────────────────
 REPO_ROOT = Path(__file__).parent.resolve()
 CSV_PATH  = REPO_ROOT / "BitcoinPricesDaily.csv"
-PKL_PATH  = REPO_ROOT / "archive" / "btc_app" / "model_data.pkl"
 
 DRY_RUN   = "--dry-run" in sys.argv
 
@@ -122,23 +121,10 @@ def fetch_prices(start: datetime.date, end: datetime.date) -> dict:
 def run_model_build() -> None:
     print("\nRebuilding model_data.pkl …")
     build_script = REPO_ROOT / "tools" / "build_bm_model.py"
-    sigma_script = REPO_ROOT / "tools" / "fit_sigma.py"
 
-    print("  Step 1/2: build_bm_model.py")
     res = subprocess.run([sys.executable, str(build_script)], capture_output=True, text=True)
     if res.returncode != 0:
         print("BUILD FAILED — stderr (last 3 000 chars):")
-        print(res.stderr[-3000:])
-        sys.exit(1)
-
-    print("  Step 2/2: fit_sigma.py")
-    res = subprocess.run(
-        [sys.executable, str(sigma_script),
-         "--pkl", str(PKL_PATH), "--type", "bm"],
-        capture_output=True, text=True,
-    )
-    if res.returncode != 0:
-        print("FIT_SIGMA FAILED — stderr (last 3 000 chars):")
         print(res.stderr[-3000:])
         sys.exit(1)
 

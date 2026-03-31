@@ -21,8 +21,9 @@ def _citadel_control_ids():
 
 _CP_CONTROLS = _citadel_control_ids()
 
-# Map from component id to index in _CP_CONTROLS for fast lookup
-_CID_IDX = {cid: i for i, (cid, _) in enumerate(_CP_CONTROLS)}
+# JSON map of [{id, prop}, ...] for the clientside load callback
+_CP_CONTROLS_JSON = json.dumps([{"id": cid, "prop": prop}
+                                 for cid, prop in _CP_CONTROLS])
 
 
 def _build_filename(controls_dict):
@@ -189,22 +190,19 @@ _app_ctx.app.clientside_callback(
 # background callback figure updates).
 
 
-# ── Load: parse uploaded JSON, restore controls + inject figure ──────────────
-
-_load_outputs = [
-    Output("cp-scenario-upload", "contents"),
-    Output("cp-load-status", "children", allow_duplicate=True),
-    Output("citadel-graph", "figure", allow_duplicate=True),
-    Output("cp-mc-results", "data", allow_duplicate=True),
-    Output("cp-tax-config", "data", allow_duplicate=True),
-    Output("cp-tax-annual-data", "data", allow_duplicate=True),
-] + [
-    Output(cid, prop, allow_duplicate=True) for cid, prop in _CP_CONTROLS
-]
-
+# ── Load: server-side parse → single store → clientside set_props ────────────
+#
+# The original approach used ~100 Output(..., allow_duplicate=True) to restore
+# each control directly. This broke Dash 4's client-side callback graph and
+# prevented tab routing from working (backlog #22).
+#
+# Fix: server callback parses JSON into a single store, then a clientside
+# callback uses dash_clientside.set_props() to distribute values — zero
+# allow_duplicate outputs needed.
 
 @callback(
-    *_load_outputs,
+    Output("cp-scenario-upload", "contents"),
+    Output("cp-load-store", "data"),
     Input("cp-scenario-upload", "contents"),
     prevent_initial_call=True,
 )
@@ -212,11 +210,8 @@ def _load_scenario(contents):
     if not contents:
         raise dash.exceptions.PreventUpdate
 
-    n_fixed = 6  # non-control outputs
-    n_total = n_fixed + len(_CP_CONTROLS)
-
     def _err(msg):
-        return (None, msg) + (no_update,) * (n_total - 2)
+        return None, {"error": msg}
 
     try:
         _content_type, content_string = contents.split(",", 1)
@@ -232,27 +227,59 @@ def _load_scenario(contents):
     if data.get("version", 0) > 1:
         return _err(f"Unsupported version: {data.get('version')}")
 
-    controls = data.get("controls", {})
-    figure = data.get("figure", no_update)
-    mc_results = data.get("mc_results", no_update)
-    tax_config = data.get("tax_config", no_update)
-    tax_annual = data.get("tax_annual", no_update)
-
-    # Restore controls in _CP_CONTROLS order; controls dict is keyed by cid
-    control_vals = []
-    for cid, _prop in _CP_CONTROLS:
-        if cid in controls:
-            control_vals.append(controls[cid])
-        else:
-            control_vals.append(no_update)
-
     created = data.get("created", "unknown")[:19]
-    return (
-        None,           # clear upload
-        f"Loaded: {created}",
-        figure,
-        mc_results,
-        tax_config,
-        tax_annual,
-        *control_vals,
-    )
+    # Pass the full scenario to the clientside distributor
+    return None, {
+        "controls": data.get("controls", {}),
+        "figure": data.get("figure"),
+        "mc_results": data.get("mc_results"),
+        "tax_config": data.get("tax_config"),
+        "tax_annual": data.get("tax_annual"),
+        "created": created,
+    }
+
+
+# Clientside callback: distributes loaded scenario to individual controls
+# via set_props (no allow_duplicate outputs needed).
+_app_ctx.app.clientside_callback(
+    """
+    function(scenario) {
+        if (!scenario) return window.dash_clientside.no_update;
+        var sp = window.dash_clientside.set_props;
+        var NU = window.dash_clientside.no_update;
+
+        if (scenario.error) {
+            sp("cp-load-status", {children: scenario.error});
+            return NU;
+        }
+
+        var controls = scenario.controls || {};
+        var map = %s;
+
+        // Restore each control via set_props
+        for (var i = 0; i < map.length; i++) {
+            var cid = map[i].id;
+            var prop = map[i].prop;
+            if (controls.hasOwnProperty(cid)) {
+                var obj = {};
+                obj[prop] = controls[cid];
+                sp(cid, obj);
+            }
+        }
+
+        // Restore figure, MC results, tax config, tax annual
+        if (scenario.figure)     sp("citadel-graph",      {figure: scenario.figure});
+        if (scenario.mc_results) sp("cp-mc-results",      {data: scenario.mc_results});
+        if (scenario.tax_config) sp("cp-tax-config",      {data: scenario.tax_config});
+        if (scenario.tax_annual) sp("cp-tax-annual-data", {data: scenario.tax_annual});
+
+        // Status message
+        sp("cp-load-status", {children: "Loaded: " + (scenario.created || "unknown")});
+
+        return NU;
+    }
+    """ % _CP_CONTROLS_JSON,
+    Output("cp-load-store", "data", allow_duplicate=True),  # dummy output
+    Input("cp-load-store", "data"),
+    prevent_initial_call=True,
+)

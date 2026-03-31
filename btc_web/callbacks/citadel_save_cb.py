@@ -201,18 +201,16 @@ _app_ctx.app.clientside_callback(
 # allow_duplicate outputs needed.
 
 # Open the loading modal immediately when the user picks a file.
-# Uses 'filename' (not 'contents') because the server callback clears
-# 'contents' to None, which would re-trigger a 'contents'-based callback.
 _app_ctx.app.clientside_callback(
     """
     function(fn) {
-        if (!fn) return window.dash_clientside.no_update;
-        window.dash_clientside.set_props("cp-load-modal-body",
-            {children: "\\u23f3 Loading scenario..."});
-        return true;
+        if (!fn) return [window.dash_clientside.no_update,
+                         window.dash_clientside.no_update];
+        return [true, "\\u23f3 Loading scenario..."];
     }
     """,
     Output("cp-load-modal", "is_open"),
+    Output("cp-load-modal-body", "children"),
     Input("cp-scenario-upload", "filename"),
     prevent_initial_call=True,
 )
@@ -257,19 +255,19 @@ def _load_scenario(contents):
 
 
 # Clientside callback: distributes loaded scenario to individual controls
-# via set_props (no allow_duplicate outputs needed), manages loading modal.
+# via set_props, then closes the modal via proper Dash outputs.
+# Using real Outputs for modal is_open/body ensures Bootstrap cleans up
+# the backdrop correctly (set_props doesn't on iOS Safari).
 _app_ctx.app.clientside_callback(
     """
     function(scenario) {
-        if (!scenario) return window.dash_clientside.no_update;
-        var sp = window.dash_clientside.set_props;
         var NU = window.dash_clientside.no_update;
+        if (!scenario) return [NU, NU, NU];
+        var sp = window.dash_clientside.set_props;
 
         if (scenario.error) {
-            // Show error in modal, close after 2s
-            sp("cp-load-modal-body", {children: scenario.error});
-            setTimeout(function() { sp("cp-load-modal", {is_open: false}); }, 2000);
-            return NU;
+            return [false, scenario.error,
+                    "Load failed"];
         }
 
         var controls = scenario.controls || {};
@@ -292,53 +290,37 @@ _app_ctx.app.clientside_callback(
         if (scenario.tax_config) sp("cp-tax-config",      {data: scenario.tax_config});
         if (scenario.tax_annual) sp("cp-tax-annual-data", {data: scenario.tax_annual});
 
-        // Clear any loading overlays that set_props triggers.
-        // dcc.Loading adds a full-screen spinner and/or dims the content.
-        // The overlay can appear at different times depending on figure size
-        // and network latency, so we sweep repeatedly.
+        // Clear dcc.Loading overlays that set_props on the figure triggers
         function clearLoadingOverlays() {
-            // Remove full-screen spinners
             document.querySelectorAll(".dash-spinner-container").forEach(
                 function(el) { el.remove(); });
-            // Remove any lingering modal backdrops
-            document.querySelectorAll(".modal-backdrop").forEach(
-                function(el) { el.remove(); });
-            // Force the dcc.Loading wrapper to show content normally
             var wrap = document.getElementById("cp-chart-wrap");
             if (wrap) {
                 wrap.querySelectorAll("[data-dash-is-loading]").forEach(
                     function(el) { el.removeAttribute("data-dash-is-loading"); });
-                // Reset any inline visibility/opacity the Loading component set
                 wrap.querySelectorAll("div").forEach(function(el) {
                     if (el.style.visibility === "hidden") el.style.visibility = "";
                     if (parseFloat(el.style.opacity) < 1) el.style.opacity = "";
                 });
             }
         }
-        // Sweep at multiple intervals to catch late-appearing overlays
-        [100, 300, 600, 1200, 2500].forEach(function(ms) {
+        [100, 300, 600, 1500, 3000].forEach(function(ms) {
             setTimeout(clearLoadingOverlays, ms);
         });
 
-        // Reset the file input so the same file can be re-loaded
+        // Reset file input so the same file can be re-loaded
         setTimeout(function() {
             var inp = document.querySelector("#cp-scenario-upload input[type=file]");
             if (inp) inp.value = "";
         }, 100);
 
-        // Show completion in modal, then close
-        sp("cp-load-modal-body", {children:
-            "\\u2705 Scenario loaded: " + (scenario.created || "unknown")
-        });
-        setTimeout(function() { sp("cp-load-modal", {is_open: false}); }, 1200);
-
-        // Status message (persists after modal closes)
-        sp("cp-load-status", {children: "Loaded: " + (scenario.created || "unknown")});
-
-        return NU;
+        var msg = "Loaded: " + (scenario.created || "unknown");
+        return [false, "\\u2705 " + msg, msg];
     }
     """ % _CP_CONTROLS_JSON,
-    Output("cp-load-store", "data", allow_duplicate=True),  # dummy output
+    Output("cp-load-modal", "is_open", allow_duplicate=True),
+    Output("cp-load-modal-body", "children", allow_duplicate=True),
+    Output("cp-load-status", "children"),
     Input("cp-load-store", "data"),
     prevent_initial_call=True,
 )

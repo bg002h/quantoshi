@@ -307,6 +307,26 @@ def _citadel_controls():
                    "\u26a1 runs Monte Carlo with multiple stochastic paths.",
                    style={"color": "#888", "display": "block", "marginBottom": "8px",
                           "fontSize": "11px"}),
+        dbc.Row([
+            dbc.Col(
+                dbc.Button("\u2193 Save Scenario", id="cp-save-btn",
+                           color="secondary", outline=True, size="sm",
+                           className="w-100", disabled=True),
+                width=6,
+            ),
+            dbc.Col(
+                dcc.Upload(
+                    id="cp-scenario-upload",
+                    children=dbc.Button("\u2191 Load", color="secondary",
+                                        outline=True, size="sm",
+                                        className="w-100"),
+                    accept=".json",
+                ),
+                width=6,
+            ),
+        ], className="mb-2 gx-2"),
+        html.Div(id="cp-load-status", className="text-muted small mb-2"),
+        dcc.Store(id="cp-save-prep", storage_type="memory"),
         dbc.Tabs([
             dbc.Tab(_assets_panel(), label="Assets", tab_id="cp-assets"),
             dbc.Tab(_spending_panel(), label="Spending", tab_id="cp-spending"),

@@ -329,15 +329,17 @@ def _citadel_controls():
         dcc.Store(id="cp-save-prep", storage_type="memory"),
         dcc.Store(id="cp-save-dl-dummy", storage_type="memory"),
         dcc.Store(id="cp-load-store", storage_type="memory"),
-        dbc.Modal([
-            dbc.ModalBody(id="cp-load-modal-body", children=[
-                html.Div([
-                    dbc.Spinner(size="sm", color="primary", spinner_class_name="me-2"),
-                    html.Span("Loading scenario..."),
-                ], className="d-flex align-items-center justify-content-center py-3"),
-            ]),
-        ], id="cp-load-modal", is_open=False, centered=True, backdrop="static",
-           keyboard=False, size="sm"),
+        html.Div(id="cp-load-overlay", children=[
+            html.Div(id="cp-load-overlay-text",
+                     children="\u23f3 Loading scenario...",
+                     style={"background": "#fff", "borderRadius": "8px",
+                            "padding": "18px 32px", "fontSize": "15px",
+                            "boxShadow": "0 2px 16px rgba(0,0,0,0.18)"}),
+        ], style={"display": "none", "position": "fixed", "top": 0, "left": 0,
+                  "width": "100vw", "height": "100vh", "zIndex": 1060,
+                  "background": "rgba(0,0,0,0.35)",
+                  "display": "none",
+                  "justifyContent": "center", "alignItems": "center"}),
         dbc.Tabs([
             dbc.Tab(_assets_panel(), label="Assets", tab_id="cp-assets"),
             dbc.Tab(_spending_panel(), label="Spending", tab_id="cp-spending"),

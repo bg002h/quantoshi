@@ -200,17 +200,21 @@ _app_ctx.app.clientside_callback(
 # callback uses dash_clientside.set_props() to distribute values — zero
 # allow_duplicate outputs needed.
 
-# Open the loading modal immediately when the user picks a file.
+# Show the loading overlay immediately when the user picks a file.
 _app_ctx.app.clientside_callback(
     """
     function(fn) {
         if (!fn) return [window.dash_clientside.no_update,
                          window.dash_clientside.no_update];
-        return [true, "\\u23f3 Loading scenario..."];
+        return [{display: "flex", position: "fixed", top: 0, left: 0,
+                 width: "100vw", height: "100vh", zIndex: 1060,
+                 background: "rgba(0,0,0,0.35)",
+                 justifyContent: "center", alignItems: "center"},
+                "\\u23f3 Loading scenario..."];
     }
     """,
-    Output("cp-load-modal", "is_open"),
-    Output("cp-load-modal-body", "children"),
+    Output("cp-load-overlay", "style"),
+    Output("cp-load-overlay-text", "children"),
     Input("cp-scenario-upload", "filename"),
     prevent_initial_call=True,
 )
@@ -265,9 +269,9 @@ _app_ctx.app.clientside_callback(
         if (!scenario) return [NU, NU, NU];
         var sp = window.dash_clientside.set_props;
 
+        var HIDE = {display: "none"};
         if (scenario.error) {
-            return [false, scenario.error,
-                    "Load failed"];
+            return [HIDE, scenario.error, "Load failed"];
         }
 
         var controls = scenario.controls || {};
@@ -290,22 +294,21 @@ _app_ctx.app.clientside_callback(
         if (scenario.tax_config) sp("cp-tax-config",      {data: scenario.tax_config});
         if (scenario.tax_annual) sp("cp-tax-annual-data", {data: scenario.tax_annual});
 
+        // Hide the MC mismatch overlay — loading a scenario with MC data
+        // can trigger the "settings don't match" overlay since controls and
+        // MC results are set independently via set_props.
+        sp("cp-mc-overlay", {style: {display: "none"}});
+
         // Clear dcc.Loading overlays that set_props on the figure triggers
-        function clearLoadingOverlays() {
+        function clearOverlays() {
             document.querySelectorAll(".dash-spinner-container").forEach(
                 function(el) { el.remove(); });
-            var wrap = document.getElementById("cp-chart-wrap");
-            if (wrap) {
-                wrap.querySelectorAll("[data-dash-is-loading]").forEach(
-                    function(el) { el.removeAttribute("data-dash-is-loading"); });
-                wrap.querySelectorAll("div").forEach(function(el) {
-                    if (el.style.visibility === "hidden") el.style.visibility = "";
-                    if (parseFloat(el.style.opacity) < 1) el.style.opacity = "";
-                });
-            }
+            // Re-hide MC overlay in case the match callback re-shows it
+            var mco = document.getElementById("cp-mc-overlay");
+            if (mco) mco.style.display = "none";
         }
-        [100, 300, 600, 1500, 3000].forEach(function(ms) {
-            setTimeout(clearLoadingOverlays, ms);
+        [100, 300, 800, 2000].forEach(function(ms) {
+            setTimeout(clearOverlays, ms);
         });
 
         // Reset file input so the same file can be re-loaded
@@ -315,11 +318,11 @@ _app_ctx.app.clientside_callback(
         }, 100);
 
         var msg = "Loaded: " + (scenario.created || "unknown");
-        return [false, "\\u2705 " + msg, msg];
+        return [HIDE, "\\u2705 " + msg, msg];
     }
     """ % _CP_CONTROLS_JSON,
-    Output("cp-load-modal", "is_open", allow_duplicate=True),
-    Output("cp-load-modal-body", "children", allow_duplicate=True),
+    Output("cp-load-overlay", "style", allow_duplicate=True),
+    Output("cp-load-overlay-text", "children", allow_duplicate=True),
     Output("cp-load-status", "children"),
     Input("cp-load-store", "data"),
     prevent_initial_call=True,

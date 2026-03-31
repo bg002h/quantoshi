@@ -1,6 +1,6 @@
 # Citadel Save/Load — Design Spec
 
-**Goal:** Add save/load for Citadel Planner scenarios. A saved file captures all controls, tax config, and simulation results. Loading restores everything instantly — controls populate, figure re-renders from saved data without re-running the simulation.
+**Goal:** Add save/load for Citadel Planner scenarios. A saved file captures all controls, tax config, and simulation results. Loading restores controls and injects saved results — the figure re-renders from data without re-running the simulation.
 
 **Motivation:** The Citadel Planner has 92+ controls across 4 sub-tabs. Users build complex retirement scenarios (physician with $2M portfolio, specific tax settings, rebalancing triggers) that take time to configure and may take minutes to simulate with MC. There's no way to save and revisit a scenario.
 
@@ -8,7 +8,7 @@
 
 ## Save File Format
 
-Single JSON file, ~50-200KB:
+Single JSON file. Deterministic scenarios ~50-300KB, MC scenarios ~50-100KB (aggregated data only).
 
 ```json
 {
@@ -47,6 +47,8 @@ Single JSON file, ~50-200KB:
 
 Key format uses `"{cid}:{prop}"` matching the snapshot system for trivial restore.
 
+**MC size handling:** For MC simulations (1000+ sims), `SimResult.to_dict()` produces ~84MB of per-sim arrays. The save flow must save only the **aggregated** data (median, percentile bands — the arrays the figure actually renders), not per-sim raw arrays. This keeps MC saves under ~100KB. The `to_dict()` method already includes percentile data; the save flow strips the full per-sim arrays (`btc_holdings`, `cash_balances`, etc. where shape is `(n_sims, n_periods)` with n_sims > 1).
+
 ---
 
 ## Filename
@@ -81,38 +83,49 @@ Two buttons below "Run Simulation" in the Simulation sub-tab:
 
 ## Save Flow
 
+Hybrid approach: server callback collects controls, clientside callback does the download.
+
 1. User clicks "Save Scenario"
-2. Clientside JS callback:
-   - Reads all `cp-*` control values from the DOM
-   - Reads `cp-tax-config.data`, `cp-mc-results.data`, annual taxes from stores
-   - Builds JSON dict with controls, tax_config, sim_result, annual_taxes
+2. Server callback:
+   - Reads all `cp-*` control values via `State()` inputs
+   - Reads `cp-tax-config.data`, `cp-mc-results.data`, `cp-tax-annual-data.data`
+   - For MC results: strips per-sim arrays, keeps only aggregated percentile data
+   - Builds the scenario dict
    - Generates filename from control values
-   - Creates Blob and triggers browser download
-3. No server round-trip needed
+   - Writes to `cp-save-prep` store (new memory store) as `{"filename": "...", "data": {...}}`
+3. Clientside callback watches `cp-save-prep`:
+   - Creates Blob from `data`
+   - Triggers browser download with `filename`
 
 ---
 
 ## Load Flow
 
+Follows the existing MC upload pattern used by DCA/Retire/Heatmap/SC tabs.
+
 1. User clicks "Load" and selects a `.json` file
 2. Server callback (`citadel_save_cb.py`):
-   - Parses JSON from upload
+   - Parses JSON from upload (base64 decode)
    - Validates `type == "citadel_scenario"` and `version`
    - Whitelists control IDs against known `cp-*` set (drops unknown keys)
-   - Caps file size (reject > 500KB)
-3. Writes control values to `cp-scenario-store` (new memory store)
-4. A separate callback watches `cp-scenario-store` and outputs to all `cp-*` controls using `allow_duplicate=True`
-5. Writes `sim_result` to `cp-mc-results.data` and `annual_taxes` to the tax store
-6. The existing figure callback detects the new data and re-renders the chart from the saved simulation results — no re-run needed
+   - Validates value types (numbers stay numbers, lists stay lists)
+   - File size sanity check (reject > 2MB)
+3. Outputs:
+   - All `cp-*` control values restored via multi-output callback with `allow_duplicate=True` (~96 outputs)
+   - `cp-tax-config.data` restored from `tax_config`
+   - `cp-mc-results.data` restored from `sim_result`
+   - `cp-tax-annual-data.data` restored from `annual_taxes`
+   - `cp-mc-loaded.data` **incremented** — this is the existing trigger that fires the figure callback
+4. The main Citadel figure callback fires (triggered by `cp-mc-loaded`):
+   - Detects `cp-mc-results` already contains valid data
+   - **Fast-path**: renders figure from saved results without re-running simulation
+   - The callback already has this fast-path for MC uploads — it checks if results match current params
 
 ---
 
-## Auto-Save Modal (Paid MC Only)
+## Auto-Save Modal (Paid MC)
 
-The existing `mc-save-modal` behavior stays for paid MC simulations. Change: the saved file now uses the citadel_scenario format (controls + results) instead of MC-results-only format. This means:
-
-- The clientside download callback for `mc-save-modal-dl` (in `mc_upload.py`) gets a special case for `mc-save-tab.data == "cp"`: it saves the full scenario format instead of bare MC results
-- Other tabs (DCA, Retire, Heatmap, SC) continue using the existing MC-only format
+Deferred to v2. The dedicated Save button handles all cases including post-MC. The existing MC modal continues saving MC-only data in the current format. Users who want the full scenario use the Save button.
 
 ---
 
@@ -120,12 +133,12 @@ The existing `mc-save-modal` behavior stays for paid MC simulations. Change: the
 
 These controls are `State` inputs to the Citadel callback but missing from `_SNAPSHOT_CONTROLS` in `snapshot.py`:
 
-- `cp-high-q-enable` (checklist)
-- `cp-low-q-enable` (checklist)
+- `cp-high-q-enable` (checklist — add to `_CHECKLIST_OPTIONS`)
+- `cp-low-q-enable` (checklist — add to `_CHECKLIST_OPTIONS`)
 - `cp-inv-eq-basis` (number)
 - `cp-inv-bd-basis` (number)
 
-Fix: add them to `_SNAPSHOT_CONTROLS` and `_TAB_CONTROLS["citadel"]`. The save/load feature inherits the fix. This also fixes snapshot share links silently dropping these values.
+Fix: add to `_SNAPSHOT_CONTROLS`, `_TAB_CONTROLS["citadel"]`, and `_CHECKLIST_OPTIONS` (for the two checklists). The save/load feature inherits the fix. This also fixes snapshot share links silently dropping these values.
 
 ---
 
@@ -133,11 +146,10 @@ Fix: add them to `_SNAPSHOT_CONTROLS` and `_TAB_CONTROLS["citadel"]`. The save/l
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `btc_web/callbacks/citadel_save_cb.py` | Create | Save (clientside) + load (server) callbacks |
-| `btc_web/layout/citadel.py` | Modify | Add Save/Load buttons + `dcc.Upload` + `dcc.Store("cp-scenario-store")` |
-| `btc_web/callbacks/citadel_cb.py` | Modify | Accept `cp-scenario-store` trigger for figure re-render |
-| `btc_web/callbacks/mc_upload.py` | Modify | Special-case Citadel in MC save modal to use scenario format |
-| `btc_web/snapshot.py` | Modify | Add 4 missing controls |
+| `btc_web/callbacks/citadel_save_cb.py` | Create | Save (server prep + clientside download) + load (server parse + restore) |
+| `btc_web/layout/citadel.py` | Modify | Add Save/Load buttons, `dcc.Upload`, `dcc.Store("cp-save-prep")` |
+| `btc_web/callbacks/citadel_cb.py` | Modify | Fast-path for loaded scenarios (skip simulation when results already present) |
+| `btc_web/snapshot.py` | Modify | Add 4 missing controls + `_CHECKLIST_OPTIONS` entries |
 | `btc_web/callbacks/__init__.py` | Modify | Import citadel_save_cb |
 
 ---
@@ -147,4 +159,5 @@ Fix: add them to `_SNAPSHOT_CONTROLS` and `_TAB_CONTROLS["citadel"]`. The save/l
 - **No server-side storage** — files download to/upload from user's device only
 - **Privacy** — scenario files contain financial planning data; never sent to server beyond the upload parse
 - **Backward compatible** — existing MC save/load for other tabs unchanged
-- **Version field** — enables future format changes without breaking old files
+- **MC size cap** — per-sim arrays stripped from MC saves; only aggregated data saved
+- **Version field** — enables future format changes. Migration strategy: version N reader applies transforms sequentially (v1→v2→...→current)

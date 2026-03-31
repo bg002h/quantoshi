@@ -33,3 +33,4 @@ import callbacks.citadel_cb  # noqa: F401
 import callbacks.citadel_tax_cb  # noqa: F401
 import callbacks.scanner  # noqa: F401
 import callbacks.user_model  # noqa: F401
+import callbacks.citadel_save_cb  # noqa: F401

@@ -17,7 +17,7 @@ BUBBLE = MappingProxyType({
     "selected_qs": (0.5,),
     "xscale": "log", "yscale": "log",
     "auto_y": ("yes",),
-    "ymin": 0.1, "ymax": 1e6,
+    "ymin": 0.03, "ymax": 1e6,
     "shade": True, "show_data": True, "show_today": True,
     "show_legend": False, "minor_grid": False,
     "show_ols": False, "show_ucl": False,
@@ -157,7 +157,7 @@ def bubble_defaults() -> dict:
     import pandas as pd
     yr_now = pd.Timestamp.today().year
     d = dict(BUBBLE)
-    d["xmin"] = 2011
+    d["xmin"] = 2010
     d["xmax"] = 2036
     d["selected_qs"] = list(BUBBLE["selected_qs"])
     d["active_models"] = list(BUBBLE["active_models"])

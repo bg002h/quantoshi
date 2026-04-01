@@ -30,7 +30,7 @@ def _bubble_controls():
             ),
             _lbl("X range (year)"),
             dcc.RangeSlider(id="bub-xrange", min=2010, max=2080,
-                            value=[2011, 2036], step=1,
+                            value=[2010, 2036], step=1,
                             marks={y: f"'{y % 100:02d}" for y in range(2010, 2081, 10)},
                             tooltip={"always_visible":False}),
             dbc.Row([
@@ -44,7 +44,7 @@ def _bubble_controls():
             ], className="g-0 align-items-center"),
             html.Div(id="bub-yrange-wrap", style=_STYLE_HIDDEN, children=[
                 dcc.RangeSlider(id="bub-yrange", min=-2, max=9,
-                                value=[-1, 6], step=0.5,
+                                value=[-1.5, 6], step=0.5,
                                 marks={-2:"1\u00a2", 0:"$1", 2:"$100",
                                         4:"$10K", 6:"$1M", 9:"$1B"},
                                 tooltip={"always_visible":False}),

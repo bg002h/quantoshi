@@ -355,15 +355,15 @@ def _build_qr_config_text(p: dict, tab: str) -> str:
     sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])])
     qs_str = "/".join(_fmt_q_label(q) for q in sel_qs) if sel_qs else "Q50%"
 
-    # Show active models (bubble tab has active_models list)
+    # Show active models and quantiles as separate labeled lists
     active = p.get("active_models", [])
     _MODEL_LABELS = {"bub": "BM", "qr": "QR", "pl": "PL", "lppl": "LPPL",
                      "exp": "Exp", "s2f": "S2F", "ef": "EF", "u1": "U\u2081"}
     if active:
-        model_str = "+".join(_MODEL_LABELS.get(m, m) for m in active)
-        parts = [f"{model_str} {qs_str}"]
+        model_str = ", ".join(_MODEL_LABELS.get(m, m) for m in active)
+        parts = [f"Model: {model_str}", f"Quantiles: {qs_str}"]
     else:
-        parts = [qs_str]
+        parts = [f"Quantiles: {qs_str}"]
 
     # Amount + frequency (DCA/Retire/SC)
     if tab == "dca":

@@ -70,6 +70,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     bub_active = "bub" in p.get("active_models", ["bub"])
     # If no quantiles selected but models are active, fall back to Q50%
     _fallback_q50 = not sel_qs and p.get("active_models")
+    _default_mode = "advanced" not in (p.get("qs_mode") or [])
     if _fallback_q50:
         sel_qs = [0.5]
         _thermal = _build_thermal_colors(sel_qs, palette)
@@ -140,6 +141,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 x=list(t_arr), y=list(prices),
                 mode="lines", name=lbl,
                 line=dict(color=col, width=_QR_LINE_WIDTH),
+                opacity=0.5 if (_fallback_q50 and _default_mode) else None,
             ))
 
     # ── U1 user model: direct line through two points ───────────────────────

@@ -44,6 +44,7 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     Input("effective-lots",    "data"),
     Input("palette-store",     "data"),
     Input("user-model-store",  "data"),
+    State("bub-qs-mode",       "value"),
     State("scan-active-rows",  "data"),
     State("scan-q",            "value"),
     prevent_initial_call=True,
@@ -52,7 +53,7 @@ def update_bubble(_first_render, sel_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,
                   n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, model_show, lots_data,
                   palette_key, user_model_store=None,
-                  scan_active=None, scan_q_val=None):
+                  qs_mode=None, scan_active=None, scan_q_val=None):
     """Bubble + QR overlay chart callback — coerce inputs, build figure."""
     toggles        = toggles or []
     bubble_toggles = bubble_toggles or []
@@ -95,6 +96,7 @@ def update_bubble(_first_render, sel_qs, toggles, bubble_toggles,
         palette = palette_key or "default",
         scanner_lines = scanner_lines,
         user_model = user_model_store,
+        qs_mode = qs_mode or [],
     ))
     if "chart_zoom" not in toggles:
         fig.update_layout(dragmode=False)

@@ -8932,3 +8932,39 @@ class TestQuantileModeSwitch:
         assert "qs_mode" in DCA
         assert "qs_mode" in RETIRE
         assert "qs_mode" in SUPERCHARGE
+
+
+class TestDefaultModeOpacity:
+    def test_fallback_q50_has_opacity_in_default_mode(self):
+        """Q50% fallback in default mode should have 50% opacity."""
+        from figures.bubble import build_bubble_figure
+        import _app_ctx
+        M = _app_ctx.M
+        p = dict(selected_qs=[], shade=False, xscale="log", yscale="log",
+                 xmin=2012, xmax=2030, ymin=0, ymax=7, n_future=3,
+                 show_comp=False, show_ols=False, show_data=False,
+                 show_today=False, pt_size=2, pt_alpha=0.3,
+                 stack=0, show_stack=False, lots=[], use_lots=False,
+                 show_legend=False, active_models=["bub"],
+                 qs_mode=[])
+        fig = build_bubble_figure(M, p)
+        q50_traces = [t for t in fig.data if hasattr(t, 'name') and t.name and 'Q50%' in str(t.name)]
+        assert len(q50_traces) > 0
+        assert q50_traces[0].opacity == 0.5
+
+    def test_fallback_q50_full_opacity_in_advanced_mode(self):
+        """Q50% fallback in advanced mode should have full opacity."""
+        from figures.bubble import build_bubble_figure
+        import _app_ctx
+        M = _app_ctx.M
+        p = dict(selected_qs=[], shade=False, xscale="log", yscale="log",
+                 xmin=2012, xmax=2030, ymin=0, ymax=7, n_future=3,
+                 show_comp=False, show_ols=False, show_data=False,
+                 show_today=False, pt_size=2, pt_alpha=0.3,
+                 stack=0, show_stack=False, lots=[], use_lots=False,
+                 show_legend=False, active_models=["bub"],
+                 qs_mode=["advanced"])
+        fig = build_bubble_figure(M, p)
+        q50_traces = [t for t in fig.data if hasattr(t, 'name') and t.name and 'Q50%' in str(t.name)]
+        assert len(q50_traces) > 0
+        assert q50_traces[0].opacity is None

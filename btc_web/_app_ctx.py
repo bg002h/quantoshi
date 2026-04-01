@@ -32,12 +32,12 @@ MODEL_SENTINELS = frozenset({"mc", "bub"})  # reserved keys in model-show checkl
 # Designed for luminance variation (readable without color vision).
 MODEL_TRACE_COLORS = {
     "bub": "#DAA520",   # goldenrod — matches bubble composite, distinct from QR gold
-    "qr":  "#FFD700",   # gold — warm, high luminance
+    "qr":  "#B0BEC5",   # blue-grey — muted
     "pl":  "#00E5FF",   # electric cyan — cool, very high luminance
     "lppl":"#FF6D00",   # deep orange — warm, medium-high luminance
     "exp": "#CE93D8",   # muted lavender — low-priority model
     "ef":  "#82B1FF",   # soft blue — cool, medium luminance
-    "s2f": "#B0BEC5",   # blue-grey — low-priority model
+    "s2f": "#FFD700",   # gold — warm, high luminance
 }
 
 # ── Color palettes (default + colorblind-safe alternatives) ──────────────

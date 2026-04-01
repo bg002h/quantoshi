@@ -8039,3 +8039,28 @@ class TestDynamicWaterfall:
         brackets = _inflate_brackets(FEDERAL_BRACKETS_TCJA["single"], 6, 0.04)
         expected = std_ded + brackets[0][0]
         assert max_draw == pytest.approx(expected, rel=0.01)
+
+
+# ── Phase 1: Unified Citadel MC ──────────────────────────────────────────────
+
+class TestInitialRegimeConfig:
+    def test_default_initial_regimes_are_neutral(self):
+        from engines.citadel_types import SimConfig
+        cfg = SimConfig()
+        assert cfg.initial_equity_regime == 2
+        assert cfg.initial_bond_regime == 2
+        assert cfg.initial_res_short_regime == 2
+        assert cfg.initial_res_med_regime == 2
+        assert cfg.initial_res_long_regime == 2
+
+    def test_initial_regimes_are_configurable(self):
+        from engines.citadel_types import SimConfig
+        cfg = SimConfig(
+            initial_equity_regime=0,
+            initial_bond_regime=4,
+            initial_res_short_regime=1,
+            initial_res_med_regime=3,
+            initial_res_long_regime=0,
+        )
+        assert cfg.initial_equity_regime == 0
+        assert cfg.initial_bond_regime == 4

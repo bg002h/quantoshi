@@ -159,6 +159,15 @@ class SimConfig:
     # Each value: dict with "trans", "bin_edges", "bin_means", "bin_vols"
     asset_matrices: dict | None = None
 
+    # Starting regime bins for Markov model (0=bearish, 2=neutral, 4=bullish)
+    # Used by _initial_state() to seed CitadelState regime fields.
+    # Macro regime presets (Bear/Neutral/Bull) set all five to the same bin.
+    initial_equity_regime: int = 2
+    initial_bond_regime: int = 2
+    initial_res_short_regime: int = 2
+    initial_res_med_regime: int = 2
+    initial_res_long_regime: int = 2
+
     @classmethod
     def default(cls) -> SimConfig:
         return cls()

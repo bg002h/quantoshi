@@ -132,7 +132,7 @@ def step(state: CitadelState, config: SimConfig,
     _date_mo = min(max(1, int((_date_years % 1) * 12) + 1), 12)
     new.sim_date = f"{_date_yr}-{_date_mo:02d}-15"
 
-    is_deterministic = (config.n_sims == 1)
+    deterministic = (config.n_sims == 1)
 
     # 1. Update BTC price
     new.btc_price = btc_price_new
@@ -140,7 +140,7 @@ def step(state: CitadelState, config: SimConfig,
     # 2. Dollar-asset returns
     use_markov = (config.asset_return_model == "markov"
                   and config.asset_matrices is not None
-                  and not is_deterministic)
+                  and config.n_sims > 1)
 
     # Cash: always deterministic (zero volatility)
     new.cash *= (1 + config.cash_rate / 100) ** (1.0 / ppy)
@@ -162,7 +162,7 @@ def step(state: CitadelState, config: SimConfig,
                 # Fallback to lognormal
                 rb = config.reserve_bins[i]
                 r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
-                                      deterministic=is_deterministic, rng=rng)
+                                      deterministic=deterministic, rng=rng)
                 new.reserves[i] *= (1 + r)
 
         for i, (mkey, rattr) in enumerate(zip(_inv_keys, _inv_regime_attrs)):
@@ -173,17 +173,17 @@ def step(state: CitadelState, config: SimConfig,
             else:
                 ib = config.invest_bins[i]
                 r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
-                                      deterministic=is_deterministic, rng=rng)
+                                      deterministic=deterministic, rng=rng)
                 new.investments[i] *= (1 + r)
     else:
         # Lognormal returns (user-input rates/volatility)
         for i, rb in enumerate(config.reserve_bins):
             r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
-                                  deterministic=is_deterministic, rng=rng)
+                                  deterministic=deterministic, rng=rng)
             new.reserves[i] *= (1 + r)
         for i, ib in enumerate(config.invest_bins):
             r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
-                                  deterministic=is_deterministic, rng=rng)
+                                  deterministic=deterministic, rng=rng)
             new.investments[i] *= (1 + r)
 
     # 2b. TD/TF wrapper growth (same rates as taxable wrapper)
@@ -193,20 +193,20 @@ def step(state: CitadelState, config: SimConfig,
         new.tf_cash *= cash_growth
         for i, rb in enumerate(config.reserve_bins):
             r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
-                                  deterministic=is_deterministic, rng=rng)
+                                  deterministic=deterministic, rng=rng)
             if i < len(new.td_reserves):
                 new.td_reserves[i] *= (1 + r)
             r2 = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
-                                   deterministic=is_deterministic, rng=rng)
+                                   deterministic=deterministic, rng=rng)
             if i < len(new.tf_reserves):
                 new.tf_reserves[i] *= (1 + r2)
         for i, ib in enumerate(config.invest_bins):
             r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
-                                  deterministic=is_deterministic, rng=rng)
+                                  deterministic=deterministic, rng=rng)
             if i < len(new.td_investments):
                 new.td_investments[i] *= (1 + r)
             r2 = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
-                                   deterministic=is_deterministic, rng=rng)
+                                   deterministic=deterministic, rng=rng)
             if i < len(new.tf_investments):
                 new.tf_investments[i] *= (1 + r2)
 

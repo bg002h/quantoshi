@@ -8110,3 +8110,45 @@ class TestInitialRegimeWiring:
         assert state.td_bond_regime == 0
         assert state.tf_equity_regime == 4
         assert state.tf_bond_regime == 0
+
+
+class TestMarkovGuard:
+    def _make_markov_config(self, n_sims=10):
+        import numpy as np
+        from engines.citadel_types import SimConfig
+        matrices = {}
+        for key in ("equity", "bond", "tres_short", "tres_med", "tres_long"):
+            n_bins = 5
+            trans = np.ones((n_bins, n_bins)) / n_bins
+            bin_means = np.array([-0.02, -0.005, 0.005, 0.01, 0.02])
+            bin_vols = np.array([0.01, 0.005, 0.003, 0.005, 0.01])
+            matrices[key] = {"trans": trans, "bin_means": bin_means, "bin_vols": bin_vols}
+        cfg = SimConfig()
+        cfg.asset_return_model = "markov"
+        cfg.asset_matrices = matrices
+        cfg.n_sims = n_sims
+        return cfg
+
+    def test_markov_fires_when_n_sims_gt_1(self):
+        import numpy as np
+        from engines.citadel_step import step
+        from engines.citadel_sim import _initial_state
+        cfg = self._make_markov_config(n_sims=10)
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=None)
+        for _ in range(20):
+            state = step(state, cfg, 100_000.0, rng, model=None)
+        regimes = [state.equity_regime, state.bond_regime,
+                   state.res_short_regime, state.res_med_regime, state.res_long_regime]
+        assert any(r != 2 for r in regimes), "After 20 Markov steps, at least one regime should change"
+
+    def test_markov_does_not_fire_when_n_sims_1(self):
+        import numpy as np
+        from engines.citadel_step import step
+        from engines.citadel_sim import _initial_state
+        cfg = self._make_markov_config(n_sims=1)
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=None)
+        state = step(state, cfg, 100_000.0, rng, model=None)
+        assert state.equity_regime == 2
+        assert state.bond_regime == 2

@@ -267,6 +267,7 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
             zerolinecolor=theme.GRID_MAJOR_COLOR,
             ticks="",
             ticklabelstandoff=0,
+            ticklabelposition="inside",
         ),
         yaxis=dict(
             title=dict(text=ylabel, font=dict(family=_SANS_FONT, color=theme.TEXT_COLOR)),
@@ -352,12 +353,17 @@ def _build_qr_config_text(p: dict, tab: str) -> str:
     Format: QR: Q10%/Q50%/Q85% · $100/mo · 2026–2036 · 1.0 BTC · Log Y
     """
     sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])])
-    if sel_qs:
-        qs_str = "/".join(_fmt_q_label(q) for q in sel_qs)
-    else:
-        qs_str = "none"
+    qs_str = "/".join(_fmt_q_label(q) for q in sel_qs) if sel_qs else "Q50%"
 
-    parts = ["QR: " + qs_str]
+    # Show active models (bubble tab has active_models list)
+    active = p.get("active_models", [])
+    _MODEL_LABELS = {"bub": "BM", "qr": "QR", "pl": "PL", "lppl": "LPPL",
+                     "exp": "Exp", "s2f": "S2F", "ef": "EF", "u1": "U\u2081"}
+    if active:
+        model_str = "+".join(_MODEL_LABELS.get(m, m) for m in active)
+        parts = [f"{model_str} {qs_str}"]
+    else:
+        parts = [qs_str]
 
     # Amount + frequency (DCA/Retire/SC)
     if tab == "dca":

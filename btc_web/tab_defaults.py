@@ -158,7 +158,7 @@ def bubble_defaults() -> dict:
     yr_now = pd.Timestamp.today().year
     d = dict(BUBBLE)
     d["xmin"] = 2010
-    d["xmax"] = 2036
+    d["xmax"] = 2033
     d["selected_qs"] = list(BUBBLE["selected_qs"])
     d["active_models"] = list(BUBBLE["active_models"])
     d["scanner_lines"] = list(BUBBLE["scanner_lines"])

@@ -612,11 +612,19 @@ _FAQ = [
             "user-specific data is retained.",
             html.Br(), html.Br(),
             html.Strong("Logging: "),
-            "Server logs are stripped of User-Agent strings and referrer headers. "
-            "IP addresses are anonymized daily \u2014 a nightly cron job replaces all IPs "
-            "with 0.0.0.0 and saves only aggregate counts (unique visitors, page loads) "
-            "to a summary CSV. Logs are deleted every 27 days to prevent aggregation by "
-            "authorities, some of whom can demand data thirty days or older without a warrant. "
+            "IP addresses are never stored. The nginx log format hardcodes "
+            "0.0.0.0 in place of the client IP \u2014 your real address never "
+            "touches disk. The template is:",
+            html.Br(),
+            html.Code(
+                "0.0.0.0 - $remote_user [$time_local] \"$request\" "
+                "$status $body_bytes_sent \"$http_referer\" \"$http_user_agent\"",
+                style={"fontSize": "11px", "display": "block",
+                       "margin": "6px 0", "padding": "4px 8px",
+                       "background": "#f5f5f5", "borderRadius": "4px",
+                       "wordBreak": "break-all"},
+            ),
+            "Logs are deleted every 27 days. "
             "No cookies are tracked. No analytics. No third-party scripts.",
             html.Br(), html.Br(),
             html.Strong("Onion site: "),

@@ -145,12 +145,18 @@ def main():
                         help="Number of parallel workers (default: cpu_count - 2)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Print combos without generating")
+    parser.add_argument("--sims", type=int, default=SIMS_PER_SCENARIO,
+                        help=f"Sims per combo (default: {SIMS_PER_SCENARIO})")
+    parser.add_argument("--flush-every", type=int, default=50,
+                        help="Write npz files every N completed combos (default: 50)")
     parser.add_argument("--cache-dir", type=str, default=None,
                         help="Override cache directory")
     args = parser.parse_args()
 
     import os
     n_workers = args.workers or max(1, (os.cpu_count() or 4) - 2)
+    n_sims = args.sims
+    flush_every = args.flush_every
     cache_dir = Path(args.cache_dir) if args.cache_dir else BAND_CACHE_DIR
 
     combos = list(product(
@@ -159,8 +165,9 @@ def main():
     ))
     n_total = len(combos)
     print(f"Total combos: {n_total}")
-    print(f"Sims per combo: {SIMS_PER_SCENARIO}")
+    print(f"Sims per combo: {n_sims}")
     print(f"Workers: {n_workers}")
+    print(f"Flush every: {flush_every}")
     print(f"Cache dir: {cache_dir}")
 
     if args.dry_run:
@@ -175,7 +182,22 @@ def main():
 
     npz_batches: dict[tuple, dict] = {}
 
-    tasks = [(*combo, SIMS_PER_SCENARIO) for combo in combos]
+    def _flush_batches():
+        """Write accumulated results to npz files."""
+        for (model, start_yr), entries in npz_batches.items():
+            npz_file = cache_dir / f"bands_{model}_{start_yr}.npz"
+            # Merge with existing file if present
+            existing = {}
+            if npz_file.exists():
+                with np.load(npz_file) as npz:
+                    existing = dict(npz)
+            existing.update(entries)
+            np.savez(npz_file, **existing)
+            print(f"  Saved {npz_file.name}: {len(existing)} entries, "
+                  f"{npz_file.stat().st_size / 1e6:.1f} MB")
+        npz_batches.clear()
+
+    tasks = [(*combo, n_sims) for combo in combos]
 
     with ProcessPoolExecutor(max_workers=n_workers, initializer=_init_worker) as pool:
         for key, packed, err in pool.map(_worker_task, tasks):
@@ -185,21 +207,19 @@ def main():
                 model = parts[0]
                 start_yr = int(parts[-2])
                 npz_batches.setdefault((model, start_yr), {})[key] = packed
-                if done % 50 == 0 or done == n_total:
+                if done % flush_every == 0:
                     elapsed = time.perf_counter() - t0
                     rate = done / elapsed
                     eta = (n_total - done) / rate if rate > 0 else 0
-                    print(f"[{done}/{n_total}] {key}  "
-                          f"({rate:.1f}/s, ETA {eta/60:.0f}min)")
+                    print(f"[{done}/{n_total}] ({rate:.2f}/s, ETA {eta/60:.0f}min)")
+                    _flush_batches()
             else:
                 failed += 1
                 print(f"[FAIL] {key}: {err}")
 
-    for (model, start_yr), entries in npz_batches.items():
-        npz_file = cache_dir / f"bands_{model}_{start_yr}.npz"
-        np.savez(npz_file, **entries)
-        print(f"  Saved {npz_file.name}: {len(entries)} entries, "
-              f"{npz_file.stat().st_size / 1e6:.1f} MB")
+    # Final flush
+    if npz_batches:
+        _flush_batches()
 
     elapsed = time.perf_counter() - t0
     print(f"\nDone: {done - failed}/{n_total} OK, {failed} failed, "

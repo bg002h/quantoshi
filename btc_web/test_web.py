@@ -8968,3 +8968,74 @@ class TestDefaultModeOpacity:
         q50_traces = [t for t in fig.data if hasattr(t, 'name') and t.name and 'Q50%' in str(t.name)]
         assert len(q50_traces) > 0
         assert q50_traces[0].opacity is None
+
+
+class TestSymmetricBandShading:
+    def test_symmetric_bands_5_quantiles(self):
+        """5 quantiles → 2 bands (outer + inner)."""
+        from figures.bubble import _build_symmetric_bands
+        import numpy as np
+        qs = [0.01, 0.15, 0.50, 0.85, 0.99]
+        prices = {q: np.linspace(100 * (1 + q), 200 * (1 + q), 10) for q in qs}
+        t_arr = np.linspace(1, 10, 10)
+        traces = _build_symmetric_bands(qs, prices, t_arr, model_color="#000000")
+        assert len(traces) == 4  # 2 bands × 2 traces each
+
+    def test_symmetric_bands_3_quantiles(self):
+        """3 quantiles → 1 band (outer only)."""
+        from figures.bubble import _build_symmetric_bands
+        import numpy as np
+        qs = [0.15, 0.50, 0.85]
+        prices = {q: np.linspace(100, 200, 10) for q in qs}
+        t_arr = np.linspace(1, 10, 10)
+        traces = _build_symmetric_bands(qs, prices, t_arr, model_color="#FF0000")
+        assert len(traces) == 2
+
+    def test_symmetric_bands_2_quantiles(self):
+        """2 quantiles → 1 band."""
+        from figures.bubble import _build_symmetric_bands
+        import numpy as np
+        qs = [0.15, 0.85]
+        prices = {q: np.linspace(100, 200, 10) for q in qs}
+        t_arr = np.linspace(1, 10, 10)
+        traces = _build_symmetric_bands(qs, prices, t_arr, model_color="#000000")
+        assert len(traces) == 2
+
+    def test_symmetric_bands_1_quantile(self):
+        """1 quantile → 0 bands."""
+        from figures.bubble import _build_symmetric_bands
+        import numpy as np
+        qs = [0.50]
+        prices = {0.50: np.linspace(100, 200, 10)}
+        t_arr = np.linspace(1, 10, 10)
+        traces = _build_symmetric_bands(qs, prices, t_arr, model_color="#000000")
+        assert len(traces) == 0
+
+    def test_symmetric_bands_outer_lighter_than_inner(self):
+        """Outer band should have lower opacity than inner."""
+        from figures.bubble import _build_symmetric_bands
+        import numpy as np
+        qs = [0.01, 0.15, 0.50, 0.85, 0.99]
+        prices = {q: np.linspace(100, 200, 10) for q in qs}
+        t_arr = np.linspace(1, 10, 10)
+        traces = _build_symmetric_bands(qs, prices, t_arr, model_color="#000000")
+        outer_fill = traces[1].fillcolor
+        inner_fill = traces[3].fillcolor
+        outer_alpha = float(outer_fill.split(",")[-1].rstrip(")"))
+        inner_alpha = float(inner_fill.split(",")[-1].rstrip(")"))
+        assert outer_alpha < inner_alpha
+
+
+class TestSymmetricQuantileColors:
+    def test_mirror_quantiles_same_color(self):
+        """Q15% and Q85% should get the same color."""
+        from figures.common import _symmetric_thermal_color
+        c15 = _symmetric_thermal_color(0.15)
+        c85 = _symmetric_thermal_color(0.85)
+        assert c15 == c85
+
+    def test_q50_gets_median_color(self):
+        """Q50% should get the median (gray) color."""
+        from figures.common import _symmetric_thermal_color
+        c50 = _symmetric_thermal_color(0.50)
+        assert c50 == "#bdbdbd"

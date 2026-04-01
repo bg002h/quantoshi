@@ -21,7 +21,7 @@ from figures.common import (
     _FONT_LEGEND, _FONT_TITLE, _FONT_SUBTITLE,
     _SANS_FONT, _FONT_TITLE_LG, _FONT_BODY_LG, _FONT_TICK_LG, _FONT_LEGEND_LG,
     _LOG_MINOR, _MC_LEGEND_POS,
-    _get_palette, _build_thermal_colors, _fmt_q_label,
+    _get_palette, _build_thermal_colors, _build_symmetric_thermal_colors, _fmt_q_label,
     _base_layout, _year_ticks, _price_tickvals,
     _apply_sans_typography, _apply_config_annotation, _apply_watermark, _add_date_hover,
     _HOVER_FMT_USD,
@@ -36,6 +36,50 @@ def _r2_suffix(mdl, q):
     if r2 is not None:
         return f"  R\u00b2={r2:.4f}"
     return ""
+
+
+def _build_symmetric_bands(sel_qs, price_cache, t_arr, model_color="#000000",
+                            max_bands=2):
+    """Build shaded band traces from symmetric quantile pairs.
+
+    Pairs from outside in: (lowest, highest), (2nd lowest, 2nd highest).
+    Outer band = lighter opacity, inner = darker.
+    """
+    if len(sel_qs) < 2:
+        return []
+
+    n = len(sel_qs)
+    pairs = []
+    for i in range(n // 2):
+        lo_q = sel_qs[i]
+        hi_q = sel_qs[n - 1 - i]
+        if lo_q != hi_q and lo_q in price_cache and hi_q in price_cache:
+            pairs.append((lo_q, hi_q))
+    pairs = pairs[:max_bands]
+
+    if not pairs:
+        return []
+
+    opacities = [0.08, 0.15] if len(pairs) >= 2 else [0.10]
+
+    traces = []
+    x = list(t_arr)
+    for i, (lo_q, hi_q) in enumerate(pairs):
+        alpha = opacities[i] if i < len(opacities) else opacities[-1]
+        lo_p = price_cache[lo_q]
+        hi_p = price_cache[hi_q]
+        traces.append(go.Scatter(
+            x=x, y=list(lo_p), mode="lines", line=dict(width=0),
+            showlegend=False, hoverinfo="skip",
+        ))
+        traces.append(go.Scatter(
+            x=x, y=list(hi_p), mode="lines", line=dict(width=0),
+            fill="tonexty",
+            fillcolor=_hex_alpha(model_color, alpha),
+            showlegend=False, hoverinfo="skip",
+        ))
+
+    return traces
 
 
 def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
@@ -65,7 +109,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     # ── shading between adjacent quantiles ───────────────────────────────────
     sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])])
-    _thermal = _build_thermal_colors(sel_qs, palette)
+    _thermal = _build_symmetric_thermal_colors(sel_qs, palette)
 
     bub_active = "bub" in p.get("active_models", ["bub"])
     # If no quantiles selected but models are active, fall back to Q50%
@@ -73,7 +117,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     _default_mode = "advanced" not in (p.get("qs_mode") or [])
     if _fallback_q50:
         sel_qs = [0.5]
-        _thermal = _build_thermal_colors(sel_qs, palette)
+        _thermal = _build_symmetric_thermal_colors(sel_qs, palette)
 
     if bub_active:
         # Pre-compute prices for all selected quantiles
@@ -83,23 +127,9 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 _price_cache[q] = _round_trace_data(model.price_at(q, t_arr) * (stack if stack > 0 else 1))
 
         if p.get("shade") and len(sel_qs) >= 2:
-            for j in range(len(sel_qs) - 1):
-                if sel_qs[j] not in _price_cache or sel_qs[j+1] not in _price_cache:
-                    continue
-                lo_p = _price_cache[sel_qs[j]]
-                hi_p = _price_cache[sel_qs[j+1]]
-                col  = _thermal.get(sel_qs[j], model.colors.get(sel_qs[j], "#888888"))
-                traces.append(go.Scatter(
-                    x=list(t_arr), y=list(lo_p),
-                    mode="lines", line=dict(width=0),
-                    showlegend=False, hoverinfo="skip",
-                ))
-                traces.append(go.Scatter(
-                    x=list(t_arr), y=list(hi_p),
-                    mode="lines", line=dict(width=0), fill="tonexty",
-                    fillcolor=_hex_alpha(col, _SHADE_ALPHA),
-                    showlegend=False, hoverinfo="skip",
-                ))
+            _model_color = _app_ctx.MODEL_TRACE_COLORS.get("bub", "#000000")
+            traces.extend(_build_symmetric_bands(
+                sel_qs, _price_cache, t_arr, model_color=_model_color))
 
     # ── historical price data (behind all lines) ───────────────────────────
     if p.get("show_data"):

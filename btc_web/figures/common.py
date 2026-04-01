@@ -121,6 +121,16 @@ def _build_thermal_colors(quantiles: list, palette=None) -> dict:
     return {q: _thermal_color(q, palette) for q in quantiles}
 
 
+def _symmetric_thermal_color(q: float, palette=None) -> str:
+    """Map quantile to symmetric thermal color (mirrors about 0.5)."""
+    mirror = min(q, 1.0 - q)
+    return _thermal_color(mirror, palette)
+
+
+def _build_symmetric_thermal_colors(quantiles: list, palette=None) -> dict:
+    """Build {quantile: hex_color} with symmetric colors about Q50%."""
+    return {q: _symmetric_thermal_color(q, palette) for q in quantiles}
+
 
 # ── shared small helpers ──────────────────────────────────────────────────────
 

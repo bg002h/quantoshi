@@ -404,10 +404,10 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             y_log_update["minor"] = _LOG_MINOR
         else:
             y_log_update["tickvals"] = maj
-            # Top tick ($1M) label sits under the line; others sit on the line
+            # Top tick ($1M): label below line. All others: label above line.
             y_top = maj[-1] if maj else None
             y_log_update["ticktext"] = [
-                f"\n{_fmt_y(v)}" if v == y_top else _fmt_y(v)
+                f"\n{_fmt_y(v)}" if v == y_top else f"{_fmt_y(v)}\n"
                 for v in maj
             ]
         layout["yaxis"].update(y_log_update)

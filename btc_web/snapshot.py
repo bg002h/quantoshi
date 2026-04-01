@@ -291,12 +291,13 @@ _SNAP_PREFIX_V1 = "q1:"   # legacy format (dict-based)
 _QS_LIST = list(_app_ctx._ALL_QS)
 
 _CHECKLIST_OPTIONS = {
-    # quantile checklists (float values) — all share the same list object
-    "bub-qs":             _QS_LIST,
+    # quantile band checklists (default mode: string band names)
+    "bub-qs":             ["inner", "outer", "median"],
+    "dca-qs":             ["inner", "outer", "median"],
+    "ret-qs":             ["inner", "outer", "median"],
+    "sc-qs":              ["inner", "outer", "median"],
+    # heatmap exit quantiles (unchanged — still float values)
     "hm-exit-qs":         _QS_LIST,
-    "dca-qs":             _QS_LIST,
-    "ret-qs":             _QS_LIST,
-    "sc-qs":              _QS_LIST,
     # quantile mode toggles (1 bit each — "advanced" or empty)
     "bub-qs-mode":        ["advanced"],
     "dca-qs-mode":        ["advanced"],

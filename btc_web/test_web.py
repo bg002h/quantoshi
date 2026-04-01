@@ -3206,14 +3206,14 @@ class TestBitmaskEdgeCases:
                 assert _mask_to_list(mask, opts) == [opt]
 
     def test_quantile_all_on_roundtrip(self):
-        """All quantiles selected → roundtrip through encode/decode."""
-        all_qs = list(_ALL_QS)
-        state = {"bub-qs:value": all_qs, "main-tabs:active_tab": "bubble"}
+        """All bands selected → roundtrip through encode/decode."""
+        all_bands = ["inner", "outer", "median"]
+        state = {"bub-qs:value": all_bands, "main-tabs:active_tab": "bubble"}
         encoded = _encode_snapshot(state)
         decoded = _decode_snapshot(encoded)
         assert decoded is not None
         restored = decoded.get("bub-qs:value", [])
-        assert set(restored) == set(all_qs)
+        assert set(restored) == set(all_bands)
 
     def test_empty_checklist_roundtrip(self):
         """Empty checklist → 0 bitmask → empty list on decode."""
@@ -8886,11 +8886,13 @@ class TestScenarioStaleIndicator:
 
 class TestSimplifiedQuantilePanel:
     def test_default_quantile_options(self):
-        from layout.common import _q_options_default, _DEFAULT_QS
+        from layout.common import _q_options_default, _DEFAULT_BANDS
         opts = _q_options_default()
         values = [o["value"] for o in opts]
-        assert values == _DEFAULT_QS
-        assert 0.50 in values
+        assert values == [b["value"] for b in _DEFAULT_BANDS]
+        assert "median" in values
+        assert "inner" in values
+        assert "outer" in values
 
     def test_default_qs_values(self):
         from layout.common import _DEFAULT_QS

@@ -9,6 +9,7 @@ import pandas as pd
 import _app_ctx
 from btc_core import yr_to_t, today_t, _find_lot_percentile
 from tab_defaults import BUBBLE, HEATMAP, DCA, RETIRE, SUPERCHARGE
+from layout.common import _bands_to_qs
 from callbacks.coerce import _ci, _cf
 from callbacks.mc_helpers import (_mc_setup, _mc_finalize, _mc_status,
                                   _strip_free_paths)
@@ -68,9 +69,13 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
         for model_key in (scan_active or []):
             scanner_lines.append({"model": model_key, "q": q_frac})
 
-    _effective_qs = adv_qs if "advanced" in (qs_mode or []) else sel_qs
+    if "advanced" in (qs_mode or []):
+        _effective_qs = adv_qs or []
+    else:
+        # Default mode: expand band names to quantile floats
+        _effective_qs = _bands_to_qs(sel_qs)
     fig = _get_bubble_fig(dict(
-        selected_qs = _effective_qs or [],
+        selected_qs = _effective_qs,
         shade       = "shade"     in toggles,
         show_ols    = "show_ols"  in toggles,
         show_ucl    = "show_ucl"  in toggles,
@@ -439,7 +444,7 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
         show_legend    = "show_legend" in toggles,
         legend_pos     = legend_pos or "outside",
         minor_grid     = "minor_grid" in toggles,
-        selected_qs    = sel_qs or [],
+        selected_qs    = _bands_to_qs(sel_qs) if sel_qs and isinstance(sel_qs[0], str) else (sel_qs or []),
         lots           = lots_data or [],
         sc_enabled     = bool(sc_enable),
         sc_loan_amount = _cf(sc_loan, 0),
@@ -545,7 +550,7 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
         show_legend  = "show_legend" in toggles,
         legend_pos   = legend_pos or "outside",
         minor_grid   = "minor_grid" in toggles,
-        selected_qs  = sel_qs or [],
+        selected_qs  = _bands_to_qs(sel_qs) if sel_qs and isinstance(sel_qs[0], str) else (sel_qs or []),
         lots         = lots_data or [],
         show_qr      = "bub" in model_show,
         show_mc      = "mc" in model_show,
@@ -659,7 +664,7 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
         delays       = delays if delays else [0, 1, 2, 4, 8],
         freq         = freq or "Monthly",
         inflation    = _cf(infl, SUPERCHARGE["inflation"]),
-        selected_qs  = sel_qs or [],
+        selected_qs  = _bands_to_qs(sel_qs) if sel_qs and isinstance(sel_qs[0], str) else (sel_qs or []),
         chart_layout = _cl,
         display_q    = _cf(display_q, _nearest_quantile(SUPERCHARGE["display_q"], _app_ctx._ALL_QS)),
         wd_amount    = _ci(wd, SUPERCHARGE["wd_amount"], lo=0, hi=_app_ctx.MAX_USD),
@@ -713,58 +718,21 @@ def _register_qs_mode_callbacks(prefix):
         prevent_initial_call=True,
     )
     def toggle_mode(mode, default_vals, adv_vals):
+        from layout.common import _DEFAULT_BANDS
         is_advanced = "advanced" in (mode or [])
         if is_advanced:
-            return ({"display": "none"}, {}, dash.no_update, default_vals or [])
+            # Expand band names to quantile floats for advanced checklist
+            expanded = _bands_to_qs(default_vals) if default_vals else []
+            return ({"display": "none"}, {}, dash.no_update, expanded)
         else:
-            from layout.common import _DEFAULT_QS
-            filtered = [q for q in (adv_vals or []) if q in _DEFAULT_QS]
-            return ({}, {"display": "none"}, filtered[:3], dash.no_update)
+            # Convert quantile floats back to band names
+            adv_set = set(adv_vals or [])
+            bands = []
+            for b in _DEFAULT_BANDS:
+                if any(q in adv_set for q in b["qs"]):
+                    bands.append(b["value"])
+            return ({}, {"display": "none"}, bands or ["median"], dash.no_update)
 
-    # Symmetric pairs in default mode
-    _PAIRS = {0.01: 0.99, 0.99: 0.01, 0.15: 0.85, 0.85: 0.15}
-
-    @callback(
-        Output(f"{prefix}-qs", "value", allow_duplicate=True),
-        Input(f"{prefix}-qs", "value"),
-        State(f"{prefix}-qs-mode", "value"),
-        prevent_initial_call=True,
-    )
-    def enforce_symmetric(selected, mode):
-        if "advanced" in (mode or []):
-            return dash.no_update
-        if not selected:
-            return dash.no_update
-
-        # Separate median from band quantiles
-        has_median = 0.5 in selected
-        band_qs = [q for q in selected if q != 0.5]
-
-        # Find which pairs are represented
-        active_pairs = set()
-        for q in band_qs:
-            pair_key = (min(q, _PAIRS.get(q, q)), max(q, _PAIRS.get(q, q)))
-            active_pairs.add(pair_key)
-
-        # Keep only the most recently added pair (last band quantile)
-        if len(active_pairs) > 1:
-            # Find which pair contains the last-added quantile
-            last_q = band_qs[-1]
-            keep_pair = (min(last_q, _PAIRS.get(last_q, last_q)),
-                         max(last_q, _PAIRS.get(last_q, last_q)))
-            active_pairs = {keep_pair}
-
-        # Build result: the active pair + optional median
-        result = []
-        for lo, hi in sorted(active_pairs):
-            result.extend([lo, hi])
-        if has_median:
-            result.append(0.5)
-        result = sorted(set(result))
-
-        if result != sorted(selected):
-            return result
-        return dash.no_update
 
 
 for _prefix in ("bub", "dca", "ret", "sc"):

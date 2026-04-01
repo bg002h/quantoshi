@@ -33,19 +33,25 @@ def _q_options() -> list[dict]:
 
 _DEFAULT_QS = [0.01, 0.15, 0.50, 0.85, 0.99]
 
+# Band definitions for default mode: each checkbox selects a symmetric pair
+_DEFAULT_BANDS = [
+    {"value": "inner", "qs": [0.15, 0.85], "label": "Q15% \u2013 Q85%"},
+    {"value": "outer", "qs": [0.01, 0.99], "label": "Q1% \u2013 Q99%"},
+    {"value": "median", "qs": [0.50], "label": "Q50% (median)"},
+]
+
+def _bands_to_qs(band_values: list) -> list[float]:
+    """Expand band checkbox values to quantile floats."""
+    qs = []
+    for b in _DEFAULT_BANDS:
+        if b["value"] in (band_values or []):
+            qs.extend(b["qs"])
+    return sorted(set(qs))
+
 def _q_options_default() -> list[dict]:
-    """Simplified quantile options for default mode (5 options)."""
-    opts = []
-    for q in _DEFAULT_QS:
-        pct = q * 100
-        lbl_text = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
-        col = _app_ctx.M.qr_colors.get(q, "#888888")
-        lbl = html.Span([
-            html.Span("\u25CF ", style={"color": col, "fontSize": "10px"}),
-            lbl_text,
-        ])
-        opts.append({"label": lbl, "value": q})
-    return opts
+    """Band-pair options for default mode (3 checkboxes)."""
+    return [{"label": f" {b['label']}", "value": b["value"]}
+            for b in _DEFAULT_BANDS]
 
 
 def _q_panel_with_mode(checklist_id: str, default_value: list,
@@ -66,15 +72,19 @@ def _q_panel_with_mode(checklist_id: str, default_value: list,
                       value=[], inputStyle=_CB_MARGIN,
                       className="small mb-1"),
     )
-    default_filtered = [v for v in default_value if v in _DEFAULT_QS] or [0.5]
+    # Map raw quantile defaults to band values
+    default_bands = []
+    for b in _DEFAULT_BANDS:
+        if any(q in default_value for q in b["qs"]):
+            default_bands.append(b["value"])
+    if not default_bands:
+        default_bands = ["median"]
     children.append(
         html.Div(id=f"{checklist_id}-default-wrap", children=[
             dcc.Checklist(id=checklist_id, options=_q_options_default(),
-                          value=default_filtered,
-                          className="q-panel-grid",
+                          value=default_bands,
+                          labelStyle={"display": "block"},
                           inputStyle=_CB_MARGIN),
-            html.Small("Up to 3 bands", className="text-muted",
-                       style={"fontSize": "10px"}),
         ]),
     )
     children.append(

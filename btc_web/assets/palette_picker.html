@@ -686,6 +686,13 @@ function deltaE(c1,c2){
   return Math.sqrt(Math.pow(lab1.L-lab2.L,2)+Math.pow(lab1.a-lab2.a,2)+Math.pow(lab1.b-lab2.b,2));
 }
 
+function deltaE_reflected(c1,c2){
+  // Delta-E in reflected space: |a*| collapses red-green axis
+  var lab1=hexToLab(c1), lab2=hexToLab(c2);
+  var a1=Math.abs(lab1.a), a2=Math.abs(lab2.a);
+  return Math.sqrt(Math.pow(lab1.L-lab2.L,2)+Math.pow(a1-a2,2)+Math.pow(lab1.b-lab2.b,2));
+}
+
 function addCSColor(hex, label){
   // Don't duplicate
   if(csColors.some(function(c){ return c.hex===hex; })) return;
@@ -728,40 +735,42 @@ function renderCS(){
   var plotsEl = document.getElementById('cs-plots');
   var W=360, H=240;
 
-  // ── Plot 1: CIELAB a* vs b* (perceptual) ──
+  // ── Plot 1: CIELAB |a*| vs b* (R-G collapsed) ──
   var svg1 = '<svg viewBox="-10 -10 '+(W+20)+' '+(H+40)+'" xmlns="http://www.w3.org/2000/svg">';
   svg1 += '<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#111" rx="4"/>';
-  // Axes
-  svg1 += '<line x1="'+W/2+'" y1="0" x2="'+W/2+'" y2="'+H+'" stroke="#333" stroke-width="0.5"/>';
+  // Axes — only right half, |a*| on x
+  svg1 += '<line x1="10" y1="0" x2="10" y2="'+H+'" stroke="#333" stroke-width="0.5"/>';
   svg1 += '<line x1="0" y1="'+H/2+'" x2="'+W+'" y2="'+H/2+'" stroke="#333" stroke-width="0.5"/>';
-  svg1 += '<text x="'+W/2+'" y="'+(H+14)+'" text-anchor="middle" fill="#555" font-size="8" font-family="JetBrains Mono">a* (green\u2190 \u2192red)</text>';
-  svg1 += '<text x="-4" y="'+(H/2)+'" text-anchor="end" fill="#555" font-size="7" font-family="JetBrains Mono" transform="rotate(-90,-4,'+(H/2)+')">b* (blue\u2190 \u2192yellow)</text>';
-  svg1 += '<text x="'+(W/2)+'" y="'+(H+28)+'" text-anchor="middle" fill="#777" font-size="9" font-family="JetBrains Mono">CIELAB a* vs b*</text>';
+  svg1 += '<text x="'+W/2+'" y="'+(H+14)+'" text-anchor="middle" fill="#555" font-size="8" font-family="JetBrains Mono">|a*| (R-G collapsed \u2192 higher = more chromatic)</text>';
+  svg1 += '<text x="2" y="'+(H/2-4)+'" fill="#555" font-size="6" font-family="JetBrains Mono" transform="rotate(-90,2,'+(H/2)+')">b* (blue\u2190 \u2192yellow)</text>';
+  svg1 += '<text x="'+(W/2)+'" y="'+(H+28)+'" text-anchor="middle" fill="#777" font-size="9" font-family="JetBrains Mono">CIELAB |a*| vs b* \u2014 R/G axis folded</text>';
 
-  // Plot points (a* range ~-128..128, b* same)
-  var scale = W/256;
+  // Plot points: |a*| range 0..128 mapped to full width, b* range -128..128
+  var scaleX = (W-20)/128;  // |a*| 0..128 → 10..W
+  var scaleY = H/256;       // b* -128..128 → 0..H
   csColors.forEach(function(c){
     var lab = hexToLab(c.hex);
-    var cx = W/2 + lab.a * scale;
-    var cy = H/2 - lab.b * scale; // flip y
+    var absA = Math.abs(lab.a);
+    var cx = 10 + absA * scaleX;
+    var cy = H/2 - lab.b * scaleY;
     cx = Math.max(4, Math.min(W-4, cx));
     cy = Math.max(4, Math.min(H-4, cy));
     svg1 += '<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="8" fill="'+c.hex+'" stroke="#fff" stroke-width="1.5"/>';
     svg1 += '<text x="'+(cx+10).toFixed(1)+'" y="'+(cy+3).toFixed(1)+'" fill="#aaa" font-size="7" font-family="JetBrains Mono">'+c.label+'</text>';
   });
 
-  // Draw lines between all pairs with deltaE label
+  // Draw lines between all pairs with reflected deltaE
   for(var i=0;i<csColors.length;i++){
     for(var j=i+1;j<csColors.length;j++){
       var lab1=hexToLab(csColors[i].hex), lab2=hexToLab(csColors[j].hex);
-      var x1=W/2+lab1.a*scale, y1=H/2-lab1.b*scale;
-      var x2=W/2+lab2.a*scale, y2=H/2-lab2.b*scale;
+      var x1=10+Math.abs(lab1.a)*scaleX, y1=H/2-lab1.b*scaleY;
+      var x2=10+Math.abs(lab2.a)*scaleX, y2=H/2-lab2.b*scaleY;
       x1=Math.max(4,Math.min(W-4,x1)); y1=Math.max(4,Math.min(H-4,y1));
       x2=Math.max(4,Math.min(W-4,x2)); y2=Math.max(4,Math.min(H-4,y2));
-      var de = deltaE(csColors[i].hex, csColors[j].hex);
+      var de = deltaE_reflected(csColors[i].hex, csColors[j].hex);
       svg1 += '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="rgba(255,255,255,0.15)" stroke-width="0.5" stroke-dasharray="3,3"/>';
       var mx=(x1+x2)/2, my=(y1+y2)/2;
-      svg1 += '<text x="'+mx.toFixed(1)+'" y="'+(my-3).toFixed(1)+'" text-anchor="middle" fill="#666" font-size="6" font-family="JetBrains Mono">\u0394E='+de.toFixed(0)+'</text>';
+      svg1 += '<text x="'+mx.toFixed(1)+'" y="'+(my-3).toFixed(1)+'" text-anchor="middle" fill="#666" font-size="6" font-family="JetBrains Mono">\u0394E\u2032='+de.toFixed(0)+'</text>';
     }
   }
   svg1 += '</svg>';
@@ -795,7 +804,11 @@ function renderCS(){
   svg2 += '</svg>';
 
   // ── Distance matrix ──
-  var matHtml = '<div style="margin-top:12px;"><div style="font-size:0.65rem;color:#777;margin-bottom:6px;">Perceptual Distance Matrix (\u0394E)</div>';
+  // ── Distance matrices: regular + reflected ──
+  var matHtml = '<div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">';
+
+  // Regular ΔE
+  matHtml += '<div><div style="font-size:0.65rem;color:#777;margin-bottom:6px;">\u0394E — Full Color Vision</div>';
   matHtml += '<table style="border-collapse:collapse;font-size:0.55rem;color:#aaa;">';
   matHtml += '<tr><th style="padding:3px 6px;"></th>';
   csColors.forEach(function(c){ matHtml += '<th style="padding:3px 6px;"><span style="display:inline-block;width:10px;height:10px;background:'+c.hex+';border-radius:2px;vertical-align:middle;margin-right:2px;"></span>'+c.label+'</th>'; });
@@ -803,15 +816,33 @@ function renderCS(){
   csColors.forEach(function(c1,i){
     matHtml += '<tr><td style="padding:3px 6px;text-align:right;"><span style="display:inline-block;width:10px;height:10px;background:'+c1.hex+';border-radius:2px;vertical-align:middle;margin-right:2px;"></span>'+c1.label+'</td>';
     csColors.forEach(function(c2,j){
-      var de = i===j ? '—' : deltaE(c1.hex, c2.hex).toFixed(0);
-      var bg = i===j ? '#0a0a12' : (de!=='—' && parseFloat(de)<20 ? 'rgba(198,40,40,0.2)' : (de!=='—' && parseFloat(de)>60 ? 'rgba(76,175,80,0.15)' : '#111'));
+      var de = i===j ? '\u2014' : deltaE(c1.hex, c2.hex).toFixed(0);
+      var bg = i===j ? '#0a0a12' : (de!=='\u2014' && parseFloat(de)<20 ? 'rgba(198,40,40,0.2)' : (de!=='\u2014' && parseFloat(de)>60 ? 'rgba(76,175,80,0.15)' : '#111'));
       matHtml += '<td style="padding:3px 8px;text-align:center;background:'+bg+';border:1px solid #1a1a22;">'+de+'</td>';
     });
     matHtml += '</tr>';
   });
-  matHtml += '</table>';
-  matHtml += '<div style="font-size:0.5rem;color:#555;margin-top:4px;">\u0394E &lt; 20 = hard to distinguish (red). \u0394E &gt; 60 = very distinct (green).</div>';
+  matHtml += '</table></div>';
+
+  // Reflected ΔE' (R-G collapsed)
+  matHtml += '<div><div style="font-size:0.65rem;color:#777;margin-bottom:6px;">\u0394E\u2032 — R-G Collapsed (colorblind sim)</div>';
+  matHtml += '<table style="border-collapse:collapse;font-size:0.55rem;color:#aaa;">';
+  matHtml += '<tr><th style="padding:3px 6px;"></th>';
+  csColors.forEach(function(c){ matHtml += '<th style="padding:3px 6px;"><span style="display:inline-block;width:10px;height:10px;background:'+c.hex+';border-radius:2px;vertical-align:middle;margin-right:2px;"></span>'+c.label+'</th>'; });
+  matHtml += '</tr>';
+  csColors.forEach(function(c1,i){
+    matHtml += '<tr><td style="padding:3px 6px;text-align:right;"><span style="display:inline-block;width:10px;height:10px;background:'+c1.hex+';border-radius:2px;vertical-align:middle;margin-right:2px;"></span>'+c1.label+'</td>';
+    csColors.forEach(function(c2,j){
+      var de = i===j ? '\u2014' : deltaE_reflected(c1.hex, c2.hex).toFixed(0);
+      var bg = i===j ? '#0a0a12' : (de!=='\u2014' && parseFloat(de)<20 ? 'rgba(198,40,40,0.2)' : (de!=='\u2014' && parseFloat(de)>60 ? 'rgba(76,175,80,0.15)' : '#111'));
+      matHtml += '<td style="padding:3px 8px;text-align:center;background:'+bg+';border:1px solid #1a1a22;">'+de+'</td>';
+    });
+    matHtml += '</tr>';
+  });
+  matHtml += '</table></div>';
+
   matHtml += '</div>';
+  matHtml += '<div style="font-size:0.5rem;color:#555;margin-top:4px;">\u0394E: perceptual distance (full vision). \u0394E\u2032: R-G axis folded (simulates deuteranopia/protanopia). Red &lt; 20, Green &gt; 60.</div>';
 
   plotsEl.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
     '<div>'+svg1+'</div><div>'+svg2+'</div></div>' + matHtml;

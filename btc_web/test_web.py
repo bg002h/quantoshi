@@ -8240,3 +8240,11 @@ class TestBandAggregation:
             vals = [bands[p]["total"][t] for p in [5, 25, 50, 75, 95]]
             for k in range(len(vals) - 1):
                 assert vals[k] <= vals[k + 1] + 1e-6
+
+
+class TestDevBypass:
+    def test_dev_bypass_exists_in_mc_payment(self):
+        import inspect
+        from callbacks import mc_payment
+        source = inspect.getsource(mc_payment)
+        assert "DEV" in source, "mc_payment should check DEV env var for bypass"

@@ -8583,3 +8583,82 @@ class TestCitadelBandCacheLoader:
         from citadel_band_cache import load_band_caches, _BAND_CACHE
         load_band_caches(cache_dir=tmp_path)
         assert len(_BAND_CACHE) == 0
+
+
+class TestCitadelBandCacheIntegration:
+    def test_full_pipeline_build_simulate_store_lookup(self, tmp_path):
+        """End-to-end: build_config -> simulate -> compute_bands -> store -> lookup."""
+        import numpy as np
+        from citadel_presets import build_config
+        from engines.citadel_sim import simulate
+        from engines.citadel_bands import compute_bands, BAND_PERCENTILES, BAND_SERIES
+        from citadel_band_cache import store_entry, lookup_entry
+
+        cfg = build_config(
+            wealth="bitcoin", regime="bull", rules="aggressive",
+            start_year=2028, tax_status="mfj",
+        )
+        cfg.end_yr = 2029  # 12 periods for speed
+        n_sims = 10
+        n_periods = 12
+        rng = np.random.default_rng(77)
+        base = np.linspace(60000, 200000, n_periods)
+        paths = np.array([base * (1 + rng.normal(0, 0.1, n_periods))
+                          for _ in range(n_sims)])
+
+        result = simulate(cfg, model=None, price_paths=paths)
+        bands = compute_bands(result)
+
+        store_entry("bub", 50, "bull", "bitcoin", "aggressive",
+                    2028, "mfj", bands, cache_dir=tmp_path)
+
+        loaded = lookup_entry("bub", 50, "bull", "bitcoin", "aggressive",
+                              2028, "mfj", cache_dir=tmp_path)
+
+        assert loaded is not None
+        assert set(loaded.keys()) == set(BAND_PERCENTILES)
+        for pct in BAND_PERCENTILES:
+            assert set(loaded[pct].keys()) == set(BAND_SERIES)
+            assert len(loaded[pct]["total"]) == n_periods
+
+        # Verify band ordering
+        for t in range(n_periods):
+            assert loaded[5]["total"][t] <= loaded[50]["total"][t] + 1e-6
+            assert loaded[50]["total"][t] <= loaded[95]["total"][t] + 1e-6
+
+    def test_multiple_entries_same_npz(self, tmp_path):
+        """Multiple entries for same (model, start_yr) share one npz."""
+        import numpy as np
+        from engines.citadel_bands import BAND_PERCENTILES, BAND_SERIES
+        from citadel_band_cache import store_entry, lookup_entry
+
+        n_periods = 12
+        for regime in ["bear", "neutral", "bull"]:
+            bands = {}
+            for pct in BAND_PERCENTILES:
+                bands[pct] = {s: np.full(n_periods, float(pct), dtype=np.float32)
+                              for s in BAND_SERIES}
+            store_entry("qr", 10, regime, "starter", "no_rebal",
+                        2035, "single", bands, cache_dir=tmp_path)
+
+        # All three in same npz, all retrievable
+        for regime in ["bear", "neutral", "bull"]:
+            loaded = lookup_entry("qr", 10, regime, "starter", "no_rebal",
+                                  2035, "single", cache_dir=tmp_path)
+            assert loaded is not None
+            assert loaded[50]["total"][0] == 50.0
+
+    def test_cache_key_uniqueness_across_all_dimensions(self):
+        """All 1620 combos produce unique cache keys."""
+        from itertools import product as iproduct
+        from citadel_presets import (BTC_MODELS, BTC_ENTRY_QS, MACRO_REGIMES,
+                                     WEALTH_LEVELS, RULE_SETS, START_YEARS,
+                                     TAX_STATUSES)
+        from citadel_band_cache import band_cache_key
+        keys = set()
+        for m, eq, reg, wl, rs, yr, ts in iproduct(
+            BTC_MODELS, BTC_ENTRY_QS, MACRO_REGIMES.keys(),
+            WEALTH_LEVELS.keys(), RULE_SETS.keys(), START_YEARS, TAX_STATUSES,
+        ):
+            keys.add(band_cache_key(m, eq, reg, wl, rs, yr, ts))
+        assert len(keys) == 1620

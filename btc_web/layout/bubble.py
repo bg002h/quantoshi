@@ -66,11 +66,30 @@ def _bubble_controls():
             *_legend_pos_dropdown("bub", BUBBLE["legend_pos"]),
             _lbl("Display models"),
             dcc.Checklist(id="bub-model-show",
-                          options=[{"label": " Bubble Model", "value": "bub"}] +
-                                  [{"label": f" {mdl.name}", "value": mdl.short_name}
-                                   for mdl in _app_ctx.PRICE_MODELS.values()
-                                   if mdl.short_name not in _app_ctx.MODEL_SENTINELS
-                                   and mdl.short_name != "bub"],
+                          options=[
+                              {"label": html.Span([
+                                  html.Span(" ", style={
+                                      "display": "inline-block", "width": "12px",
+                                      "height": "12px", "borderRadius": "2px",
+                                      "backgroundColor": _app_ctx.MODEL_TRACE_COLORS.get("bub", "#000"),
+                                      "verticalAlign": "middle", "marginRight": "4px",
+                                  }),
+                                  "Bubble Model",
+                              ]), "value": "bub"},
+                          ] + [
+                              {"label": html.Span([
+                                  html.Span(" ", style={
+                                      "display": "inline-block", "width": "12px",
+                                      "height": "12px", "borderRadius": "2px",
+                                      "backgroundColor": _app_ctx.MODEL_TRACE_COLORS.get(mdl.short_name, "#888"),
+                                      "verticalAlign": "middle", "marginRight": "4px",
+                                  }),
+                                  mdl.name,
+                              ]), "value": mdl.short_name}
+                              for mdl in _app_ctx.PRICE_MODELS.values()
+                              if mdl.short_name not in _app_ctx.MODEL_SENTINELS
+                              and mdl.short_name != "bub"
+                          ],
                           value=["bub"], inline=True,
                           inputStyle=_CB_MARGIN,
                           labelStyle={"marginRight": "12px", "fontSize": "11px"},

@@ -9058,3 +9058,11 @@ class TestOverlayModelShading:
         fig = build_bubble_figure(M, p)
         fill_traces = [t for t in fig.data if t.fill == "tonexty"]
         assert len(fill_traces) >= 2  # at least 1 band per model
+
+
+class TestColorCodedModelLabels:
+    def test_model_labels_have_color_swatch(self):
+        """Display Models labels should have colored boxes."""
+        from layout.bubble import _bubble_controls
+        layout_str = repr(_bubble_controls())
+        assert "backgroundColor" in layout_str

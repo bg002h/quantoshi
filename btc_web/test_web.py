@@ -8875,3 +8875,10 @@ class TestScenarioDynamicLookup:
         assert _snap_entry_q(0.06) == 10    # closer to 10%
         assert _snap_entry_q(0.31) == 50    # closer to 50% (midpoint 30% ties to 10)
         assert _snap_entry_q(0.999) == 50
+
+
+class TestScenarioStaleIndicator:
+    def test_stale_badge_in_layout(self):
+        from layout.citadel import _citadel_controls
+        layout = _citadel_controls()
+        assert "cp-scenario-stale" in repr(layout)

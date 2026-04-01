@@ -104,3 +104,36 @@ def auto_fill_controls(active_key, wealth, regime, rules, start_yr):
     from citadel_presets import preset_control_values
     vals = preset_control_values(wealth, regime, rules, int(start_yr or 2035))
     return [vals[cid] for cid in _FILL_OUTPUTS]
+
+
+# ── Stale indicator ──────────────────────────────────────────────────────────
+
+@callback(
+    Output("cp-scenario-stale", "style"),
+    Input("cp-stack", "value"),
+    Input("cp-spend", "value"),
+    Input("cp-cash-init", "value"),
+    Input("cp-infl", "value"),
+    Input("cp-cash-floor", "value"),
+    State("cp-scenario-active", "data"),
+    State("cp-scenario-wealth", "data"),
+    State("cp-scenario-regime", "data"),
+    State("cp-scenario-rules", "data"),
+    State("cp-scenario-start-yr", "value"),
+    prevent_initial_call=True,
+)
+def detect_stale(stack, spend, cash_init, infl, cash_floor,
+                 active_key, wealth, regime, rules, start_yr):
+    """Show stale indicator when controls differ from loaded preset."""
+    if not active_key or not wealth:
+        return {"display": "none"}
+    from citadel_presets import preset_control_values
+    vals = preset_control_values(wealth, regime, rules, int(start_yr or 2035))
+    is_stale = False
+    for cid, cur in [("cp-stack", stack), ("cp-spend", spend),
+                      ("cp-cash-init", cash_init), ("cp-infl", infl),
+                      ("cp-cash-floor", cash_floor)]:
+        if cur is not None and float(cur) != vals[cid]:
+            is_stale = True
+            break
+    return {} if is_stale else {"display": "none"}

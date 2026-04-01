@@ -343,7 +343,12 @@ def _citadel_controls():
                   "justifyContent": "center", "alignItems": "center"}),
         # ── Quick Scenarios ──────────────────────────────────────────────
         _ctrl_card(
-            html.Div("Quick Scenarios (Free)", className="ctrl-section-header"),
+            html.Div([
+                html.Span("Quick Scenarios (Free)"),
+                html.Span(" — stale", id="cp-scenario-stale",
+                          className="text-warning small",
+                          style={"display": "none"}),
+            ], className="ctrl-section-header"),
             # Wealth row
             html.Div([
                 html.Small("Wealth", className="text-muted me-2",

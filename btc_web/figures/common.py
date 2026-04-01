@@ -268,7 +268,7 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
             ticks="",
             ticklabelstandoff=0,
             ticklabelposition="inside",
-            ticklabelshift=-20,
+            ticklabelshift=10,
         ),
         yaxis=dict(
             title=dict(text=ylabel, font=dict(family=_SANS_FONT, color=theme.TEXT_COLOR)),

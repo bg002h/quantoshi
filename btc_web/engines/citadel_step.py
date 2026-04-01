@@ -186,29 +186,92 @@ def step(state: CitadelState, config: SimConfig,
                                   deterministic=deterministic, rng=rng)
             new.investments[i] *= (1 + r)
 
-    # 2b. TD/TF wrapper growth (same rates as taxable wrapper)
+    # 2b. TD/TF wrapper growth (same return model as taxable wrapper)
     if config.tax_enabled:
         cash_growth = (1 + config.cash_rate / 100) ** (1.0 / ppy)
         new.td_cash *= cash_growth
         new.tf_cash *= cash_growth
-        for i, rb in enumerate(config.reserve_bins):
-            r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
-                                  deterministic=deterministic, rng=rng)
-            if i < len(new.td_reserves):
-                new.td_reserves[i] *= (1 + r)
-            r2 = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
-                                   deterministic=deterministic, rng=rng)
-            if i < len(new.tf_reserves):
-                new.tf_reserves[i] *= (1 + r2)
-        for i, ib in enumerate(config.invest_bins):
-            r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
-                                  deterministic=deterministic, rng=rng)
-            if i < len(new.td_investments):
-                new.td_investments[i] *= (1 + r)
-            r2 = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
-                                   deterministic=deterministic, rng=rng)
-            if i < len(new.tf_investments):
-                new.tf_investments[i] *= (1 + r2)
+
+        if use_markov:
+            am = config.asset_matrices
+            _res_keys = ["tres_short", "tres_med", "tres_long"]
+            _inv_keys = ["equity", "bond"]
+
+            # TD reserves
+            for i, mkey in enumerate(_res_keys):
+                rattr = f"td_res_{'short' if i == 0 else 'med' if i == 1 else 'long'}_regime"
+                if mkey in am:
+                    ret, nr = _markov_return(am[mkey], getattr(new, rattr), rng)
+                    setattr(new, rattr, nr)
+                    if i < len(new.td_reserves):
+                        new.td_reserves[i] *= (1 + ret)
+                elif i < len(new.td_reserves):
+                    rb = config.reserve_bins[i]
+                    r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
+                                          deterministic=deterministic, rng=rng)
+                    new.td_reserves[i] *= (1 + r)
+
+            # TF reserves
+            for i, mkey in enumerate(_res_keys):
+                rattr = f"tf_res_{'short' if i == 0 else 'med' if i == 1 else 'long'}_regime"
+                if mkey in am:
+                    ret, nr = _markov_return(am[mkey], getattr(new, rattr), rng)
+                    setattr(new, rattr, nr)
+                    if i < len(new.tf_reserves):
+                        new.tf_reserves[i] *= (1 + ret)
+                elif i < len(new.tf_reserves):
+                    rb = config.reserve_bins[i]
+                    r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
+                                          deterministic=deterministic, rng=rng)
+                    new.tf_reserves[i] *= (1 + r)
+
+            # TD investments
+            for i, mkey in enumerate(_inv_keys):
+                rattr = f"td_{'equity' if i == 0 else 'bond'}_regime"
+                if mkey in am:
+                    ret, nr = _markov_return(am[mkey], getattr(new, rattr), rng)
+                    setattr(new, rattr, nr)
+                    if i < len(new.td_investments):
+                        new.td_investments[i] *= (1 + ret)
+                elif i < len(new.td_investments):
+                    ib = config.invest_bins[i]
+                    r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
+                                          deterministic=deterministic, rng=rng)
+                    new.td_investments[i] *= (1 + r)
+
+            # TF investments
+            for i, mkey in enumerate(_inv_keys):
+                rattr = f"tf_{'equity' if i == 0 else 'bond'}_regime"
+                if mkey in am:
+                    ret, nr = _markov_return(am[mkey], getattr(new, rattr), rng)
+                    setattr(new, rattr, nr)
+                    if i < len(new.tf_investments):
+                        new.tf_investments[i] *= (1 + ret)
+                elif i < len(new.tf_investments):
+                    ib = config.invest_bins[i]
+                    r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
+                                          deterministic=deterministic, rng=rng)
+                    new.tf_investments[i] *= (1 + r)
+        else:
+            # Lognormal returns for TD/TF (original behavior)
+            for i, rb in enumerate(config.reserve_bins):
+                r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
+                                      deterministic=deterministic, rng=rng)
+                if i < len(new.td_reserves):
+                    new.td_reserves[i] *= (1 + r)
+                r2 = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
+                                       deterministic=deterministic, rng=rng)
+                if i < len(new.tf_reserves):
+                    new.tf_reserves[i] *= (1 + r2)
+            for i, ib in enumerate(config.invest_bins):
+                r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
+                                      deterministic=deterministic, rng=rng)
+                if i < len(new.td_investments):
+                    new.td_investments[i] *= (1 + r)
+                r2 = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
+                                       deterministic=deterministic, rng=rng)
+                if i < len(new.tf_investments):
+                    new.tf_investments[i] *= (1 + r2)
 
     # 2c. Accumulate taxable-wrapper interest income per period
     # Use PRE-GROWTH balances to avoid double-counting (the growth IS the interest)

@@ -11,3 +11,4 @@ from .citadel_rebalancing import *
 from .citadel_tax_integration import *
 from .citadel_step import *
 from .citadel_sim import *
+from .citadel_bands import compute_bands, BAND_PERCENTILES, BAND_SERIES  # noqa: F401

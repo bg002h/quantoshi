@@ -8208,3 +8208,35 @@ class TestTdTfMarkovReturns:
         state = step(state, cfg, 100_000.0, rng, model=None)
         assert state.td_equity_regime == 2, "TD regimes unchanged when n_sims=1"
         assert state.tf_equity_regime == 2, "TF regimes unchanged when n_sims=1"
+
+
+class TestBandAggregation:
+    def test_compute_bands_returns_7_percentiles(self):
+        from engines.citadel_bands import compute_bands, BAND_PERCENTILES
+        assert BAND_PERCENTILES == (5, 10, 25, 50, 75, 90, 95)
+
+    def test_compute_bands_returns_11_series(self):
+        from engines.citadel_bands import BAND_SERIES
+        assert len(BAND_SERIES) == 11
+        assert "total" in BAND_SERIES
+        assert "btc_stack" in BAND_SERIES
+        assert "td_total" in BAND_SERIES
+        assert "tf_total" in BAND_SERIES
+        assert "depletion" in BAND_SERIES
+
+    def test_band_ordering(self):
+        """P5 <= P25 <= P50 <= P75 <= P95 for total portfolio."""
+        import numpy as np
+        from engines.citadel_types import SimConfig
+        from engines.citadel_sim import simulate
+        from engines.citadel_bands import compute_bands
+        cfg = SimConfig()
+        cfg.start_yr = 2031; cfg.end_yr = 2032
+        paths = np.array([[20000 + i * 30000 + j * 100 for j in range(12)]
+                          for i in range(20)])
+        result = simulate(cfg, model=None, price_paths=paths)
+        bands = compute_bands(result)
+        for t in range(12):
+            vals = [bands[p]["total"][t] for p in [5, 25, 50, 75, 95]]
+            for k in range(len(vals) - 1):
+                assert vals[k] <= vals[k + 1] + 1e-6

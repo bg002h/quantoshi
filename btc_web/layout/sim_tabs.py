@@ -10,7 +10,8 @@ from tab_defaults import DCA, RETIRE
 from layout.common import (_tab_hints, _section_card, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT,
                             _CB_MARGIN, _Q_HINT_BASE,
-                            _q_options, _model_show_checklist,
+                            _q_options, _q_panel_with_mode,
+                            _model_show_checklist,
                             _shared_settings_card, _year_range_slider,
                             _btc_usd_dropdown, _chart_toggles,
                             _legend_pos_dropdown, _ctrl_card,
@@ -26,13 +27,7 @@ def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
     children = [
         _tab_hints(tab_key),
         _shared_settings_card(prefix, **shared_kwargs),
-        _section_card("Projection Quantiles",
-            html.Small("Select quantiles to follow.", style=_STYLE_HINT),
-            html.Small(q_hint, style=_STYLE_HINT),
-            dcc.Checklist(id=f"{prefix}-qs", options=_q_options(),
-                          value=q_defaults, className="q-panel-grid",
-                          inputStyle=_CB_MARGIN),
-        ),
+        _q_panel_with_mode(f"{prefix}-qs", q_defaults, hint=q_hint),
     ]
     if extra_sections:
         children.extend(extra_sections)

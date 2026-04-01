@@ -31,6 +31,64 @@ def _q_options() -> list[dict]:
         opts.append({"label": lbl, "value": q})
     return opts
 
+_DEFAULT_QS = [0.01, 0.15, 0.50, 0.85, 0.99]
+
+def _q_options_default() -> list[dict]:
+    """Simplified quantile options for default mode (5 options)."""
+    opts = []
+    for q in _DEFAULT_QS:
+        pct = q * 100
+        lbl_text = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
+        col = _app_ctx.M.qr_colors.get(q, "#888888")
+        lbl = html.Span([
+            html.Span("\u25CF ", style={"color": col, "fontSize": "10px"}),
+            lbl_text,
+        ])
+        opts.append({"label": lbl, "value": q})
+    return opts
+
+
+def _q_panel_with_mode(checklist_id: str, default_value: list,
+                       hint: str | None = None):
+    """Quantile panel with default/advanced toggle.
+
+    Default mode: 5 options (Q1/15/50/85/99%), max 3 bands.
+    Advanced mode: all quantiles, no limit.
+    """
+    children = []
+    if hint:
+        children.append(html.Small(hint, style=_STYLE_HINT))
+
+    mode_id = f"{checklist_id}-mode"
+    children.append(
+        dcc.Checklist(id=mode_id,
+                      options=[{"label": " Advanced", "value": "advanced"}],
+                      value=[], inputStyle=_CB_MARGIN,
+                      className="small mb-1"),
+    )
+    default_filtered = [v for v in default_value if v in _DEFAULT_QS] or [0.5]
+    children.append(
+        html.Div(id=f"{checklist_id}-default-wrap", children=[
+            dcc.Checklist(id=checklist_id, options=_q_options_default(),
+                          value=default_filtered,
+                          className="q-panel-grid",
+                          inputStyle=_CB_MARGIN),
+            html.Small("Up to 3 bands", className="text-muted",
+                       style={"fontSize": "10px"}),
+        ]),
+    )
+    children.append(
+        html.Div(id=f"{checklist_id}-advanced-wrap",
+                 style=_STYLE_HIDDEN, children=[
+            dcc.Checklist(id=f"{checklist_id}-adv", options=_q_options(),
+                          value=default_value, className="q-panel-grid",
+                          inputStyle=_CB_MARGIN),
+        ]),
+    )
+
+    return _section_card("Projection Quantiles", *children)
+
+
 def _q_panel(checklist_id: str, default_value: list, hint: str | None = None):
     """Quantile checklist — static multi-column grid, no collapse."""
     children = []

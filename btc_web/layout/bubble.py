@@ -8,8 +8,8 @@ import dash_bootstrap_components as dbc
 import _app_ctx
 from tab_defaults import BUBBLE
 from layout.common import (_tab_hints, _section_card, _row, _lbl,
-                            _STYLE_HIDDEN, _q_panel, _q_options,
-                            _ctrl_card, _legend_pos_dropdown,
+                            _STYLE_HIDDEN, _q_panel, _q_panel_with_mode,
+                            _q_options, _ctrl_card, _legend_pos_dropdown,
                             _chart_tab_layout, _CB_MARGIN)
 
 
@@ -89,8 +89,8 @@ def _bubble_controls():
                        value=BUBBLE["n_future"], step=1, marks=None,
                        tooltip={"always_visible":True}),
         ),
-        _q_panel("bub-qs", [0.5],
-                 hint="If none selected, Q50% is shown for active models."),
+        _q_panel_with_mode("bub-qs", [0.5],
+                           hint="If none selected, Q50% is shown at 50% opacity."),
         _section_card("Model Scanner",
             _row(
                 html.Div([

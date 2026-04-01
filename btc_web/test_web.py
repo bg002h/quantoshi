@@ -8882,3 +8882,24 @@ class TestScenarioStaleIndicator:
         from layout.citadel import _citadel_controls
         layout = _citadel_controls()
         assert "cp-scenario-stale" in repr(layout)
+
+
+class TestSimplifiedQuantilePanel:
+    def test_default_quantile_options(self):
+        from layout.common import _q_options_default, _DEFAULT_QS
+        opts = _q_options_default()
+        values = [o["value"] for o in opts]
+        assert values == _DEFAULT_QS
+        assert 0.50 in values
+
+    def test_default_qs_values(self):
+        from layout.common import _DEFAULT_QS
+        assert _DEFAULT_QS == [0.01, 0.15, 0.50, 0.85, 0.99]
+
+    def test_quantile_mode_toggle_in_bubble(self):
+        from layout.bubble import _bubble_controls
+        layout_str = repr(_bubble_controls())
+        assert "bub-qs-mode" in layout_str
+        assert "bub-qs-default-wrap" in layout_str
+        assert "bub-qs-advanced-wrap" in layout_str
+        assert "bub-qs-adv" in layout_str

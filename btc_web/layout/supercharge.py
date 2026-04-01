@@ -9,7 +9,7 @@ import _app_ctx
 from utils import _nearest_quantile
 from tab_defaults import SUPERCHARGE
 from layout.common import (_tab_hints, _section_card, _lbl,
-                            _STYLE_HINT, _q_options,
+                            _STYLE_HINT, _q_options, _q_panel_with_mode,
                             _shared_settings_card, _model_show_checklist,
                             _btc_usd_dropdown, _chart_toggles,
                             _legend_pos_dropdown, _chart_tab_layout,
@@ -24,17 +24,9 @@ def _supercharge_controls():
     return html.Div([
         _tab_hints("supercharge"),
         _shared_settings_card("sc", infl_default=SUPERCHARGE["inflation"], stack_default=SUPERCHARGE["start_stack"]),
-        _section_card("Projection Quantiles",
-            html.Small(_Q_HINT_BASE,
-                style=_STYLE_HINT),
-            html.Small("Lower prices mean earlier depletion.",
-                style=_STYLE_HINT),
-            dcc.Checklist(id="sc-qs",
-                          options=_q_options(),
-                          value=[q for q in [0.001, 0.10] if q in (_app_ctx.DEFAULT_MODEL.fits or {})],
-                          className="q-panel-grid",
-                          inputStyle=_CB_MARGIN),
-        ),
+        _q_panel_with_mode("sc-qs",
+                           [q for q in [0.001, 0.10] if q in (_app_ctx.DEFAULT_MODEL.fits or {})],
+                           hint="Lower prices mean earlier depletion."),
         # ── Plan ────────────────────────────────────────────────────────
         _section_card("Plan",
             dcc.RadioItems(id="sc-mode",

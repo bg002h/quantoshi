@@ -8690,3 +8690,41 @@ class TestCitadelQuickScenariosLayout:
             assert f"cp-pill-{reg}" in layout_str
         for rs in ["no_rebal", "cautious", "aggressive"]:
             assert f"cp-pill-{rs}" in layout_str
+
+
+class TestCitadelScenarioCallback:
+    def test_scenario_lookup_returns_bands_for_valid_combo(self, tmp_path):
+        """Verify lookup returns bands when cache exists."""
+        import numpy as np
+        from citadel_band_cache import store_entry, lookup_entry
+        from engines.citadel_bands import BAND_PERCENTILES, BAND_SERIES
+        n_periods = 480
+        bands = {}
+        for pct in BAND_PERCENTILES:
+            bands[pct] = {s: np.ones(n_periods, dtype=np.float32) * pct
+                          for s in BAND_SERIES}
+        store_entry("bub", 10, "neutral", "starter", "no_rebal",
+                    2035, "single", bands, cache_dir=tmp_path)
+        result = lookup_entry("bub", 10, "neutral", "starter", "no_rebal",
+                              2035, "single", cache_dir=tmp_path)
+        assert result is not None
+        assert 50 in result
+        assert "total" in result[50]
+        assert len(result[50]["total"]) == n_periods
+
+    def test_scenario_lookup_returns_none_for_missing(self, tmp_path):
+        from citadel_band_cache import lookup_entry
+        result = lookup_entry("bub", 10, "neutral", "starter", "no_rebal",
+                              2099, "single", cache_dir=tmp_path)
+        assert result is None
+
+    def test_snap_quantile_to_cached_bin(self):
+        """cp-qs value (float 0.25) should snap to nearest cached bin (10)."""
+        from callbacks.citadel_scenarios import _snap_entry_q
+        assert _snap_entry_q(0.01) == 1
+        assert _snap_entry_q(0.05) == 1
+        assert _snap_entry_q(0.10) == 10
+        assert _snap_entry_q(0.25) == 10
+        assert _snap_entry_q(0.50) == 50
+        assert _snap_entry_q(0.75) == 50
+        assert _snap_entry_q(0.999) == 50

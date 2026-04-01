@@ -8248,3 +8248,68 @@ class TestDevBypass:
         from callbacks import mc_payment
         source = inspect.getsource(mc_payment)
         assert "DEV" in source, "mc_payment should check DEV env var for bypass"
+
+
+class TestUnifiedMcIntegration:
+    def _make_matrices(self):
+        import numpy as np
+        matrices = {}
+        for key in ("equity", "bond", "tres_short", "tres_med", "tres_long"):
+            n_bins = 5
+            trans = np.full((n_bins, n_bins), 0.05)
+            np.fill_diagonal(trans, 0.80)
+            trans /= trans.sum(axis=1, keepdims=True)
+            bin_means = np.array([-0.03, -0.01, 0.005, 0.015, 0.03])
+            bin_vols = np.array([0.015, 0.008, 0.005, 0.008, 0.015])
+            matrices[key] = {"trans": trans, "bin_means": bin_means, "bin_vols": bin_vols}
+        return matrices
+
+    def test_full_mc_20_sims_produces_spread(self):
+        import numpy as np
+        from engines.citadel_types import SimConfig
+        from engines.citadel_sim import simulate
+        cfg = SimConfig()
+        cfg.start_yr = 2031; cfg.end_yr = 2033
+        cfg.asset_return_model = "markov"
+        cfg.asset_matrices = self._make_matrices()
+        cfg.initial_equity_regime = 4  # Bull
+        cfg.initial_bond_regime = 0    # Bear
+        rng = np.random.default_rng(123)
+        base = np.linspace(50000, 150000, 24)
+        paths = np.array([base * (1 + rng.normal(0, 0.1, 24)) for _ in range(20)])
+        result = simulate(cfg, model=None, price_paths=paths)
+        assert result.total_usd.shape == (20, 24)
+        assert set(result.percentiles.keys()) == {5, 10, 25, 50, 75, 90, 95}
+        p5 = result.percentiles[5]["total"]
+        p95 = result.percentiles[95]["total"]
+        assert np.any(p95 > p5 + 1.0), "MC should produce nonzero spread"
+
+    def test_deterministic_unchanged(self):
+        """n_sims=1 with a single price path: all percentiles identical."""
+        import numpy as np
+        from engines.citadel_types import SimConfig
+        from engines.citadel_sim import simulate
+        cfg = SimConfig()
+        cfg.start_yr = 2031; cfg.end_yr = 2033; cfg.n_sims = 1
+        paths = np.array([[80000 + j * 200 for j in range(24)]])
+        result = simulate(cfg, model=None, price_paths=paths)
+        assert result.total_usd.shape[0] == 1
+        for key in ["total", "btc_usd", "cash"]:
+            np.testing.assert_array_almost_equal(
+                result.percentiles[5][key], result.percentiles[95][key],
+                err_msg=f"Deterministic: P5 should equal P95 for {key}")
+
+    def test_bands_match_standalone_compute(self):
+        import numpy as np
+        from engines.citadel_types import SimConfig
+        from engines.citadel_sim import simulate
+        from engines.citadel_bands import compute_bands
+        cfg = SimConfig()
+        cfg.start_yr = 2031; cfg.end_yr = 2032
+        paths = np.array([[50000 + i * 10000 + j * 100 for j in range(12)]
+                          for i in range(10)])
+        result = simulate(cfg, model=None, price_paths=paths)
+        bands = compute_bands(result)
+        for pct in [5, 50, 95]:
+            np.testing.assert_array_almost_equal(
+                bands[pct]["total"], result.percentiles[pct]["total"])

@@ -362,7 +362,14 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     def _fmt_y(price_val):
         v = price_val * stack if stack > 0 else price_val
-        return fmt_price(v)
+        if v >= 1e18:  return f"${v/1e18:.0f}Qi"
+        if v >= 1e15:  return f"${v/1e15:.0f}Q"
+        if v >= 1e12:  return f"${v/1e12:.0f}T"
+        if v >= 1e9:   return f"${v/1e9:.0f}B"
+        if v >= 1e6:   return f"${v/1e6:.0f}M"
+        if v >= 1e3:   return f"${v/1e3:.0f}k"
+        if v >= 1:     return f"${v:.0f}"
+        return f"${v:.2f}"
 
     ylabel = "Stack Value (USD)" if stack > 0 else "Bitcoin Price (USD)"
 

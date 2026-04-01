@@ -408,7 +408,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             # Top tick ($1M): label below line. All others: label above line.
             y_top = maj[-1] if maj else None
             y_log_update["ticktext"] = [
-                f"\n{_fmt_y(v)}" if v == y_top else f"{_fmt_y(v)}\n"
+                f"\n{_fmt_y(v)}" if v == y_top else f"{_fmt_y(v)}\n\u200b"
                 for v in maj
             ]
         layout["yaxis"].update(y_log_update)

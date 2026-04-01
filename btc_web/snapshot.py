@@ -12,6 +12,8 @@ log = logging.getLogger(__name__)
 _SNAPSHOT_CONTROLS = [
     # ── Bubble tab ──
     ("bub-qs",            "value"),   # selected quantile lines
+    ("bub-qs-mode",       "value"),   # quantile mode (default/advanced)
+    ("bub-qs-adv",        "value"),   # advanced quantile selection
     ("bub-xscale",        "value"),   # x-axis scale (Log/Linear)
     ("bub-yscale",        "value"),   # y-axis scale (Log/Linear)
     ("bub-xrange",        "value"),   # x-axis year range [start, end]
@@ -56,6 +58,8 @@ _SNAPSHOT_CONTROLS = [
     ("dca-disp",          "value"),   # display mode (BTC/USD)
     ("dca-toggles",       "value"),   # log_y/dual_y/annotate/legend toggles
     ("dca-qs",            "value"),   # selected quantile lines
+    ("dca-qs-mode",       "value"),   # quantile mode (default/advanced)
+    ("dca-qs-adv",        "value"),   # advanced quantile selection
     ("dca-sc-enable",     "value"),   # Stack-celerator enable
     ("dca-sc-loan",       "value"),   # SC loan principal ($)
     ("dca-sc-rate",       "value"),   # SC annual interest rate (%)
@@ -78,6 +82,8 @@ _SNAPSHOT_CONTROLS = [
     ("ret-toggles",       "value"),   # log_y/dual_y/annotate/legend toggles
     ("ret-legend-pos",    "value"),   # legend position
     ("ret-qs",            "value"),   # selected quantile lines
+    ("ret-qs-mode",       "value"),   # quantile mode (default/advanced)
+    ("ret-qs-adv",        "value"),   # advanced quantile selection
     # ── Supercharger tab ──
     ("sc-stack",          "value"),   # starting BTC stack
     ("sc-use-lots",       "value"),   # use Stack Tracker lots
@@ -91,6 +97,8 @@ _SNAPSHOT_CONTROLS = [
     ("sc-freq-unlock",    "value"),   # custom frequency unlock
     ("sc-infl",           "value"),   # inflation rate (%)
     ("sc-qs",             "value"),   # selected quantile lines
+    ("sc-qs-mode",        "value"),   # quantile mode (default/advanced)
+    ("sc-qs-adv",         "value"),   # advanced quantile selection
     ("sc-mode",           "value"),   # Mode A (fixed spending) / Mode B (fixed depletion)
     ("sc-wd",             "value"),   # Mode A: withdrawal amount per period ($)
     ("sc-end-yr",         "value"),   # Mode A: simulation end year
@@ -289,6 +297,16 @@ _CHECKLIST_OPTIONS = {
     "dca-qs":             _QS_LIST,
     "ret-qs":             _QS_LIST,
     "sc-qs":              _QS_LIST,
+    # quantile mode toggles (1 bit each — "advanced" or empty)
+    "bub-qs-mode":        ["advanced"],
+    "dca-qs-mode":        ["advanced"],
+    "ret-qs-mode":        ["advanced"],
+    "sc-qs-mode":         ["advanced"],
+    # advanced quantile selections (same list as standard quantile checklists)
+    "bub-qs-adv":         _QS_LIST,
+    "dca-qs-adv":         _QS_LIST,
+    "ret-qs-adv":         _QS_LIST,
+    "sc-qs-adv":          _QS_LIST,
     # toggle/boolean checklists (string values)
     "bub-toggles":        ["shade", "show_ols", "show_data", "show_today", "show_legend", "minor_grid", "chart_zoom"],
     "bub-bubble-toggles": ["show_comp", "show_sup"],

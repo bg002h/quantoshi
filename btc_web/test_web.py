@@ -8903,3 +8903,32 @@ class TestSimplifiedQuantilePanel:
         assert "bub-qs-default-wrap" in layout_str
         assert "bub-qs-advanced-wrap" in layout_str
         assert "bub-qs-adv" in layout_str
+
+
+class TestQuantileModeSwitch:
+    def test_mode_controls_in_snapshot(self):
+        from snapshot import _SNAPSHOT_CONTROLS
+        ids = {c[0] for c in _SNAPSHOT_CONTROLS}
+        for prefix in ["bub", "dca", "ret", "sc"]:
+            assert f"{prefix}-qs-mode" in ids, f"{prefix}-qs-mode missing"
+            assert f"{prefix}-qs-adv" in ids, f"{prefix}-qs-adv missing"
+
+    def test_mode_controls_in_checklist_options(self):
+        from snapshot import _CHECKLIST_OPTIONS
+        for prefix in ["bub", "dca", "ret", "sc"]:
+            assert f"{prefix}-qs-mode" in _CHECKLIST_OPTIONS
+            assert f"{prefix}-qs-adv" in _CHECKLIST_OPTIONS
+
+    def test_mode_controls_in_tab_controls(self):
+        from callbacks.routing import _TAB_CONTROLS
+        assert "bub-qs-mode" in _TAB_CONTROLS["bubble"]
+        assert "dca-qs-mode" in _TAB_CONTROLS["dca"]
+        assert "ret-qs-mode" in _TAB_CONTROLS["retire"]
+        assert "sc-qs-mode" in _TAB_CONTROLS["supercharge"]
+
+    def test_qs_mode_in_tab_defaults(self):
+        from tab_defaults import BUBBLE, DCA, RETIRE, SUPERCHARGE
+        assert "qs_mode" in BUBBLE
+        assert "qs_mode" in DCA
+        assert "qs_mode" in RETIRE
+        assert "qs_mode" in SUPERCHARGE

@@ -691,3 +691,45 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
             yr_adjust = mc_sy
     return (fig, store_val, status, rendered_key, show_modal,
             "sc" if show_modal else dash.no_update, ub_val, yr_adjust)
+
+
+# ── Quantile mode toggle (default ↔ advanced) — all tabs ─────────────────────
+
+def _register_qs_mode_callbacks(prefix):
+    """Register mode toggle + band limit callbacks for one tab's quantile panel."""
+
+    @callback(
+        Output(f"{prefix}-qs-default-wrap", "style"),
+        Output(f"{prefix}-qs-advanced-wrap", "style"),
+        Output(f"{prefix}-qs", "value", allow_duplicate=True),
+        Output(f"{prefix}-qs-adv", "value", allow_duplicate=True),
+        Input(f"{prefix}-qs-mode", "value"),
+        State(f"{prefix}-qs", "value"),
+        State(f"{prefix}-qs-adv", "value"),
+        prevent_initial_call=True,
+    )
+    def toggle_mode(mode, default_vals, adv_vals):
+        is_advanced = "advanced" in (mode or [])
+        if is_advanced:
+            return ({"display": "none"}, {}, dash.no_update, default_vals or [])
+        else:
+            from layout.common import _DEFAULT_QS
+            filtered = [q for q in (adv_vals or []) if q in _DEFAULT_QS]
+            return ({}, {"display": "none"}, filtered[:3], dash.no_update)
+
+    @callback(
+        Output(f"{prefix}-qs", "value", allow_duplicate=True),
+        Input(f"{prefix}-qs", "value"),
+        State(f"{prefix}-qs-mode", "value"),
+        prevent_initial_call=True,
+    )
+    def enforce_limit(selected, mode):
+        if "advanced" in (mode or []):
+            return dash.no_update
+        if selected and len(selected) > 3:
+            return selected[-3:]
+        return dash.no_update
+
+
+for _prefix in ("bub", "dca", "ret", "sc"):
+    _register_qs_mode_callbacks(_prefix)

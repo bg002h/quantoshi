@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quantoshi Model Color Palettes</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a0f;
+  color: #e8e6e3;
+  font-family: 'JetBrains Mono', monospace;
+  min-height: 100vh;
+  padding: 2rem 1rem;
+}
+h1 {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  text-align: center;
+  margin-bottom: 0.3em;
+  color: #f7931a;
+  letter-spacing: -0.02em;
+}
+.subtitle {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 3rem;
+}
+.mode-section {
+  max-width: 1100px;
+  margin: 0 auto 4rem;
+}
+.mode-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.8rem;
+  margin-bottom: 0.3em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid #222;
+}
+.mode-title .tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  padding: 2px 8px;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+.mode-desc {
+  font-size: 0.72rem;
+  color: #888;
+  margin-bottom: 1.5rem;
+}
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+.palette-card {
+  background: #111118;
+  border: 1px solid #1a1a25;
+  border-radius: 10px;
+  padding: 1.2rem;
+  transition: border-color 0.2s, transform 0.15s;
+  position: relative;
+  overflow: hidden;
+  opacity: 0;
+  animation: fadeUp 0.4s ease forwards;
+}
+.palette-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--c1), var(--c2), var(--c3), var(--c4));
+  opacity: 0.7;
+}
+.palette-card:hover {
+  border-color: #333;
+  transform: translateY(-2px);
+}
+.palette-card.current { border-color: #f7931a; }
+.palette-card.current::after {
+  content: 'CURRENT';
+  position: absolute;
+  top: 10px; right: 10px;
+  font-size: 0.55rem;
+  color: #f7931a;
+  letter-spacing: 0.1em;
+}
+.palette-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 0.8rem;
+  color: #ccc;
+}
+.palette-name em {
+  font-weight: 400;
+  font-style: italic;
+  font-family: 'Instrument Serif', serif;
+  color: #777;
+  font-size: 0.9rem;
+}
+.swatch-row { display: flex; gap: 6px; margin-bottom: 0.6rem; flex-wrap: wrap; }
+.swatch { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.swatch-box {
+  width: 44px; height: 28px; border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.08);
+  position: relative;
+}
+.swatch-box .inner {
+  position: absolute; inset: 4px; border-radius: 2px; opacity: 0.4;
+}
+.swatch-label {
+  font-size: 0.5rem; color: #555;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.chart-preview {
+  height: 60px; margin-top: 0.8rem;
+  background: #0d0d14; border-radius: 6px;
+  padding: 8px; position: relative; overflow: hidden;
+}
+.chart-preview svg { width: 100%; height: 100%; }
+.hex-row { display: flex; gap: 4px; margin-top: 0.5rem; flex-wrap: wrap; }
+.hex-val {
+  font-size: 0.55rem; color: #444;
+  padding: 1px 4px; background: #0a0a10;
+  border-radius: 2px; border: 1px solid #1a1a22;
+}
+.opacity-demo { display: flex; gap: 2px; margin-top: 6px; height: 8px; }
+.opacity-demo span { flex: 1; border-radius: 2px; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.palette-card:nth-child(1) { animation-delay: 0.05s; }
+.palette-card:nth-child(2) { animation-delay: 0.1s; }
+.palette-card:nth-child(3) { animation-delay: 0.15s; }
+.palette-card:nth-child(4) { animation-delay: 0.2s; }
+.palette-card:nth-child(5) { animation-delay: 0.25s; }
+@media (max-width: 600px) {
+  .palette-grid { grid-template-columns: 1fr; }
+  body { padding: 1rem 0.5rem; }
+}
+</style>
+</head>
+<body>
+<h1>Model Color Palettes</h1>
+<p class="subtitle">5 candidates per mode. Colors at full opacity + band opacity (8%/15%). Models: BM QR PL LPPL EF Exp S2F</p>
+<div id="app"></div>
+<script>
+/* All data is hardcoded — no user input, safe to build DOM from constants */
+var MODELS = ['bub','qr','pl','lppl','ef','exp','s2f'];
+var LABELS = {bub:'BM',qr:'QR',pl:'PL',lppl:'LPPL',ef:'EF',exp:'Exp',s2f:'S2F'};
+var CURRENT = {bub:'#DAA520',qr:'#B0BEC5',pl:'#00E5FF',lppl:'#FF6D00',ef:'#82B1FF',exp:'#CE93D8',s2f:'#FFD700'};
+var PALETTES = {
+  "default": {
+    title:"Default", tag:{text:"Full color",bg:"#1a3a1a",color:"#4caf50"},
+    desc:"Maximum visual distinction. All hues available.",
+    candidates:[
+      {name:"Forge",note:"warm metals",colors:{bub:'#DAA520',qr:'#78909C',pl:'#00BCD4',lppl:'#FF6D00',ef:'#5C6BC0',exp:'#A1887F',s2f:'#FFD54F'}},
+      {name:"Neon Circuit",note:"electric",colors:{bub:'#FFB300',qr:'#90A4AE',pl:'#00E5FF',lppl:'#FF3D00',ef:'#448AFF',exp:'#B0BEC5',s2f:'#FFAB00'}},
+      {name:"Earth & Sky",note:"natural",colors:{bub:'#C8A415',qr:'#8D9EAA',pl:'#26C6DA',lppl:'#E65100',ef:'#7986CB',exp:'#BCAAA4',s2f:'#FFC107'}},
+      {name:"Midnight",note:"deep contrast",colors:{bub:'#FFA726',qr:'#607D8B',pl:'#00ACC1',lppl:'#FF5722',ef:'#42A5F5',exp:'#9E9E9E',s2f:'#FFD740'}},
+      {name:"Campfire",note:"warm dominant",colors:{bub:'#E6A817',qr:'#B0BEC5',pl:'#4DD0E1',lppl:'#FF7043',ef:'#64B5F6',exp:'#CE93D8',s2f:'#FFE082'}}
+    ]
+  },
+  "cb-rg": {
+    title:"Colorblind (R-G)", tag:{text:"Deuteranopia / Protanopia safe",bg:"#1a2a3a",color:"#42a5f5"},
+    desc:"No red-green reliance. Uses blue/orange/purple axis.",
+    candidates:[
+      {name:"Tol Bright",note:"Paul Tol palette",colors:{bub:'#EE7733',qr:'#999999',pl:'#0077BB',lppl:'#EE3377',ef:'#33BBEE',exp:'#BBBBBB',s2f:'#CCBB44'}},
+      {name:"Okabe-Ito",note:"universal design",colors:{bub:'#E69F00',qr:'#999999',pl:'#56B4E9',lppl:'#CC79A7',ef:'#0072B2',exp:'#BBBBBB',s2f:'#F0E442'}},
+      {name:"IBM Carbon",note:"corporate clarity",colors:{bub:'#FE6100',qr:'#999999',pl:'#648FFF',lppl:'#DC267F',ef:'#785EF0',exp:'#B0B0B0',s2f:'#FFB000'}},
+      {name:"Petroff 8",note:"high contrast",colors:{bub:'#F5793A',qr:'#A8A8A8',pl:'#0F2080',lppl:'#85C0F9',ef:'#A95AA1',exp:'#BBBBBB',s2f:'#F5C242'}},
+      {name:"Safe Seas",note:"blue-orange focus",colors:{bub:'#D4820C',qr:'#90A4AE',pl:'#0288D1',lppl:'#AB47BC',ef:'#4FC3F7',exp:'#B0BEC5',s2f:'#FFD54F'}}
+    ]
+  },
+  "cb-full": {
+    title:"Colorblind (Full)", tag:{text:"All CVD types",bg:"#2a1a2a",color:"#ab47bc"},
+    desc:"Safe for deuteranopia, protanopia, AND tritanopia. Relies on luminance contrast.",
+    candidates:[
+      {name:"Luminance First",note:"pure brightness",colors:{bub:'#E0A526',qr:'#888888',pl:'#BBDDEE',lppl:'#333333',ef:'#AAAAAA',exp:'#CCCCCC',s2f:'#FFDD44'}},
+      {name:"Tol Muted",note:"Paul Tol muted",colors:{bub:'#CC6677',qr:'#999933',pl:'#88CCEE',lppl:'#332288',ef:'#DDCC77',exp:'#AAAAAA',s2f:'#AA4499'}},
+      {name:"Shape & Shade",note:"monochrome+accent",colors:{bub:'#D4A017',qr:'#777777',pl:'#AADDCC',lppl:'#444444',ef:'#BBBBBB',exp:'#999999',s2f:'#EEBB55'}},
+      {name:"Ink Wash",note:"calligraphy",colors:{bub:'#B8860B',qr:'#A0A0A0',pl:'#7EC8E3',lppl:'#2C2C2C',ef:'#C0C0C0',exp:'#B0B0B0',s2f:'#DAA520'}},
+      {name:"High Contrast",note:"maximum separation",colors:{bub:'#F0C040',qr:'#606060',pl:'#B0E0E6',lppl:'#1A1A1A',ef:'#D0D0D0',exp:'#909090',s2f:'#FFE066'}}
+    ]
+  }
+};
+
+function hexToRgba(h,a){var r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return'rgba('+r+','+g+','+b+','+a+')';}
+
+function svgPreview(colors){
+  var w=200,h=44,paths='';
+  var keys=Object.keys(colors);
+  keys.forEach(function(k,i){
+    var y0=6+i*5,amp=3+(i%3)*2,freq=0.03+i*0.005,op=1.0-i*0.12;
+    var d='M 0 '+y0;
+    for(var x=1;x<=w;x++){var y=y0+Math.sin(x*freq+i)*amp;d+=' L '+x+' '+y.toFixed(1);}
+    paths+='<path d="'+d+'" stroke="'+colors[k]+'" stroke-width="1.5" fill="none" opacity="'+op.toFixed(2)+'"/>';
+  });
+  return '<svg viewBox="0 0 '+w+' '+h+'" xmlns="http://www.w3.org/2000/svg">'+paths+'</svg>';
+}
+
+function buildCard(c,i,isCurrent){
+  var card=document.createElement('div');
+  card.className='palette-card'+(isCurrent?' current':'');
+  card.style.cssText='--c1:'+c.colors.bub+';--c2:'+c.colors.pl+';--c3:'+c.colors.lppl+';--c4:'+c.colors.ef+';animation-delay:'+(i*0.05)+'s';
+  var h='<div class="palette-name">'+c.name+' <em>'+c.note+'</em></div><div class="swatch-row">';
+  MODELS.forEach(function(m){
+    h+='<div class="swatch"><div class="swatch-box" style="background:'+c.colors[m]+'"><div class="inner" style="background:'+c.colors[m]+'"></div></div><span class="swatch-label">'+LABELS[m]+'</span></div>';
+  });
+  h+='</div><div class="opacity-demo">';
+  MODELS.forEach(function(m){h+='<span style="background:'+hexToRgba(c.colors[m],0.15)+'"></span>';});
+  h+='</div><div class="chart-preview">'+svgPreview(c.colors)+'</div><div class="hex-row">';
+  MODELS.forEach(function(m){h+='<span class="hex-val" style="border-color:'+hexToRgba(c.colors[m],0.3)+'">'+c.colors[m]+'</span>';});
+  h+='</div>';
+  card.innerHTML=h;
+  return card;
+}
+
+var app=document.getElementById('app');
+Object.keys(PALETTES).forEach(function(mode){
+  var data=PALETTES[mode];
+  var sec=document.createElement('div');
+  sec.className='mode-section';
+  var titleEl=document.createElement('h2');
+  titleEl.className='mode-title';
+  titleEl.textContent=data.title+' ';
+  var tag=document.createElement('span');
+  tag.className='tag';
+  tag.style.cssText='background:'+data.tag.bg+';color:'+data.tag.color;
+  tag.textContent=data.tag.text;
+  titleEl.appendChild(tag);
+  sec.appendChild(titleEl);
+  var desc=document.createElement('p');
+  desc.className='mode-desc';
+  desc.textContent=data.desc;
+  sec.appendChild(desc);
+  var grid=document.createElement('div');
+  grid.className='palette-grid';
+  data.candidates.forEach(function(c,i){
+    var isCurrent=(mode==='default'&&i===0);
+    grid.appendChild(buildCard(c,i,isCurrent));
+  });
+  sec.appendChild(grid);
+  app.appendChild(sec);
+});
+</script>
+</body>
+</html>

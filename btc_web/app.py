@@ -67,6 +67,12 @@ app = dash.Dash(
 app.title = "Quantoshi"
 server = app.server  # for gunicorn
 
+@server.route("/A")
+def _palette_picker():
+    from flask import send_from_directory
+    return send_from_directory("assets", "palette_picker.html")
+
+
 @server.route("/health")
 def _health():
     from flask import jsonify as _jsonify

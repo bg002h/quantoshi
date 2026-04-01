@@ -2476,7 +2476,7 @@ class TestConfigAnnotations:
         p = dict(selected_qs=[0.1, 0.5, 0.85], amount=200, freq="Monthly",
                  start_yr=2025, end_yr=2035, start_stack=0.5, log_y=True)
         text = _build_qr_config_text(p, "dca")
-        assert "QR:" in text
+        assert "Quantiles:" in text
         assert "Q10%" in text
         assert "Q50%" in text
         assert "Q85%" in text
@@ -2490,7 +2490,7 @@ class TestConfigAnnotations:
     def test_qr_config_text_empty_quantiles(self):
         p = dict(selected_qs=[], start_yr=2025, end_yr=2035)
         text = _build_qr_config_text(p, "dca")
-        assert "QR: none" in text
+        assert "Q50%" in text  # fallback to Q50%
 
     def test_qr_config_text_retire(self):
         p = dict(selected_qs=[0.01], wd_amount=5000, freq="Annually",
@@ -2521,7 +2521,7 @@ class TestConfigAnnotations:
         p = dict(selected_qs=[0.5], start_yr=2025, end_yr=2035)
         _apply_config_annotation(fig, p, "dca", show_qr=True, show_mc=False)
         assert fig.layout.xaxis.title.text is not None
-        assert "QR:" in fig.layout.xaxis.title.text
+        assert "Quantiles:" in fig.layout.xaxis.title.text
         assert "MC" not in fig.layout.xaxis.title.text
 
     def test_apply_config_annotation_both(self):
@@ -2532,7 +2532,7 @@ class TestConfigAnnotations:
                  mc_sims=800, mc_freq="Monthly")
         _apply_config_annotation(fig, p, "dca", show_qr=True, show_mc=True)
         text = fig.layout.xaxis.title.text
-        assert "QR:" in text
+        assert "Quantiles:" in text
         assert "MC DCA" in text
         assert "<br>" in text  # two lines
 
@@ -2552,7 +2552,7 @@ class TestConfigAnnotations:
                  show_legend=False)
         fig = build_bubble_figure(M, p)
         xtitle = fig.layout.xaxis.title.text
-        assert xtitle is not None and "QR:" in xtitle
+        assert xtitle is not None and "Quantiles:" in xtitle
 
     def test_dca_figure_show_qr_false_hides_qr_annotation(self):
         p = dict(start_yr=2025, end_yr=2035, start_stack=0, amount=100,
@@ -2561,7 +2561,7 @@ class TestConfigAnnotations:
                  lots=[], use_lots=False, show_qr=False, show_mc=False)
         fig, _ = build_dca_figure(M, p)
         xtitle = fig.layout.xaxis.title.text or ""
-        assert "QR:" not in xtitle
+        assert "Quantiles:" not in xtitle
 
     def test_model_show_snapshot_roundtrip(self):
         """Verify model-show controls survive snapshot encode/decode."""

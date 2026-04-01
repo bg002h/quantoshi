@@ -288,14 +288,16 @@ def _year_ticks(start_yr, end_yr, genesis, minor_grid=False):
     every integer year (so each gets a vertical gridline) but only label
     the years at the major step interval.
     """
-    span = end_yr - start_yr
+    s = int(start_yr)
+    e = int(end_yr)
+    span = e - s
     step = 1 if span <= 15 else (2 if span <= 30 else 5)
     if minor_grid and step > 1:
-        all_yrs = list(range(start_yr, end_yr + 1))
+        all_yrs = list(range(s, e + 1))
         ts   = [yr_to_t(y, genesis) for y in all_yrs]
-        lbls = [str(y) if (y - start_yr) % step == 0 else "" for y in all_yrs]
+        lbls = [str(y) if (y - s) % step == 0 else "" for y in all_yrs]
     else:
-        yrs  = list(range(start_yr, end_yr + 1, step))
+        yrs  = list(range(s, e + 1, step))
         ts   = [yr_to_t(y, genesis) for y in yrs]
         lbls = [str(y) for y in yrs]
     return ts, lbls

@@ -1142,6 +1142,10 @@ body {
     .footer-sep-inline {
         display: none;
     }
+    /* Hide Y axis title on bubble chart to save screen space */
+    #bub-graph .ytitle {
+        display: none !important;
+    }
 }
 
 /* ── Ambient toast (birthday, night owl) ──────────────────────────────────── */

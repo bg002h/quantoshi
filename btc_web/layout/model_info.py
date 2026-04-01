@@ -37,7 +37,31 @@ def _model_info_tab():
                     ),
                     dbc.Accordion([
 
-                        # ── 1. Quantile Regression (Bubble Model) ──
+                        # ── 1. Bubble Model ──
+                        dbc.AccordionItem([
+                            html.H6("Overview"),
+                            html.P([
+                                "The Bubble Model combines quantile regression power-law channels "
+                                "with a bubble composite overlay. The QR channels provide the "
+                                "long-term structural framework; the bubble composite captures "
+                                "cyclical deviations above support.",
+                            ]),
+
+                            html.H6("Bubble Composite"),
+                            html.P([
+                                "The gold composite line on Tab 1 fits a parameterized trapezoid shape "
+                                "(rise, plateau, decay) to each historical Bitcoin bubble (2013, 2017, 2021, 2025) "
+                                "in log-residual space above a power-law support line (bottom ~25% of data). "
+                                "The composite is:"
+                            ]),
+                            dcc.Markdown(r"""
+$$\text{composite}(t) = 10^{\,\log_{10}(\text{support}(t)) \;+\; \sum_{i} \text{bubble}_i(t)}$$
+
+Future bubbles are extrapolated from the trend in historical bubble parameters (amplitude decreasing, width increasing).
+                            """, mathjax=True),
+                        ], title="Bubble Model", item_id="mi-bub"),
+
+                        # ── 1b. Quantile Regression ──
                         dbc.AccordionItem([
                             html.H6("Formula"),
                             dcc.Markdown(r"""
@@ -65,20 +89,7 @@ where $t$ = years since the optimal time origin (2009-07-25), and each quantile 
                             html.H6("Fitted Coefficients"),
                             html.P("27 quantiles fitted to daily BTC prices from 2010-07-17 onward:"),
                             _qr_table(),
-
-                            html.H6("Bubble Model Overlay"),
-                            html.P([
-                                "The gold composite line on Tab 1 is a separate model layered on top of QR. "
-                                "It fits a parameterized trapezoid shape (rise, plateau, decay) to each "
-                                "historical Bitcoin bubble (2013, 2017, 2021, 2025) in log-residual space "
-                                "above a power-law support line (bottom ~25% of data). The composite is:"
-                            ]),
-                            dcc.Markdown(r"""
-$$\text{composite}(t) = 10^{\,\log_{10}(\text{support}(t)) \;+\; \sum_{i} \text{bubble}_i(t)}$$
-
-Future bubbles are extrapolated from the trend in historical bubble parameters (amplitude decreasing, width increasing).
-                            """, mathjax=True),
-                        ], title="Quantile Regression (Bubble Model)", item_id="mi-qr"),
+                        ], title="Quantile Regression", item_id="mi-qr"),
 
                         # ── 2. Power Law ──
                         dbc.AccordionItem([

@@ -79,8 +79,11 @@ def qr_price(q, t, qr_fits):
 
 
 def yr_to_t(cal_year, genesis=pd.Timestamp("2009-07-25")):
-    """Calendar year → years since genesis (float)."""
-    return (pd.Timestamp(f"{int(cal_year)}-01-01") - genesis).days / 365.25
+    """Calendar year (possibly fractional) → years since genesis (float)."""
+    yr = int(cal_year)
+    frac = float(cal_year) - yr
+    base = (pd.Timestamp(f"{yr}-01-01") - genesis).days / 365.25
+    return base + frac
 
 
 def today_t(genesis=pd.Timestamp("2009-07-25")):

@@ -274,7 +274,7 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
             zerolinecolor=theme.GRID_MAJOR_COLOR,
             automargin=False,
             side="left", ticklabelposition="inside",
-            ticklabelshift=-7,
+            ticklabelshift=-5,
         ),
         legend=dict(
             bgcolor="rgba(255,255,255,0.85)", bordercolor=theme.GRID_MAJOR_COLOR,

@@ -388,7 +388,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     )
     layout["xaxis"].update(
         range=[t_lo, t_hi],
-        tickvals=tick_ts, ticktext=tick_lbls, tickangle=-45,
+        tickvals=tick_ts, ticktext=tick_lbls, tickangle=45,
         tickfont=dict(family="Arial Narrow, sans-serif-condensed, sans-serif"),
     )
     if p.get("yscale", BUBBLE["yscale"]) == "log":

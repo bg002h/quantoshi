@@ -125,7 +125,12 @@ def _worker_task(args):
         n_periods = int((cfg.end_yr - cfg.start_yr) * 12)
 
         paths = _generate_btc_paths(model_key, entry_q, start_yr, n_sims, n_periods)
-        result = simulate(cfg, model=None, price_paths=paths)
+
+        # Pass model so _initial_state gets correct BTC price and
+        # rebalancing triggers can compute quantile position
+        from figures.citadel import _ModelAdapter
+        model = _ModelAdapter(_worker_M, model_key)
+        result = simulate(cfg, model=model, price_paths=paths)
         bands = compute_bands(result)
         packed = pack_bands(bands)
 

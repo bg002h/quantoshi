@@ -64,6 +64,11 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     _thermal = _build_thermal_colors(sel_qs, palette)
 
     bub_active = "bub" in p.get("active_models", ["bub"])
+    # If no quantiles selected but models are active, fall back to Q50%
+    _fallback_q50 = not sel_qs and p.get("active_models")
+    if _fallback_q50:
+        sel_qs = [0.5]
+        _thermal = _build_thermal_colors(sel_qs, palette)
 
     if bub_active:
         # Pre-compute prices for all selected quantiles

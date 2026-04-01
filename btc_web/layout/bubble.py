@@ -89,7 +89,8 @@ def _bubble_controls():
                        value=BUBBLE["n_future"], step=1, marks=None,
                        tooltip={"always_visible":True}),
         ),
-        _q_panel("bub-qs", [0.5]),
+        _q_panel("bub-qs", [0.5],
+                 hint="If none selected, Q50% is shown for active models."),
         _section_card("Model Scanner",
             _row(
                 html.Div([

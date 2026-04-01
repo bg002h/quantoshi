@@ -721,17 +721,49 @@ def _register_qs_mode_callbacks(prefix):
             filtered = [q for q in (adv_vals or []) if q in _DEFAULT_QS]
             return ({}, {"display": "none"}, filtered[:3], dash.no_update)
 
+    # Symmetric pairs in default mode
+    _PAIRS = {0.01: 0.99, 0.99: 0.01, 0.15: 0.85, 0.85: 0.15}
+
     @callback(
         Output(f"{prefix}-qs", "value", allow_duplicate=True),
         Input(f"{prefix}-qs", "value"),
         State(f"{prefix}-qs-mode", "value"),
         prevent_initial_call=True,
     )
-    def enforce_limit(selected, mode):
+    def enforce_symmetric(selected, mode):
         if "advanced" in (mode or []):
             return dash.no_update
-        if selected and len(selected) > 3:
-            return selected[-3:]
+        if not selected:
+            return dash.no_update
+
+        # Separate median from band quantiles
+        has_median = 0.5 in selected
+        band_qs = [q for q in selected if q != 0.5]
+
+        # Find which pairs are represented
+        active_pairs = set()
+        for q in band_qs:
+            pair_key = (min(q, _PAIRS.get(q, q)), max(q, _PAIRS.get(q, q)))
+            active_pairs.add(pair_key)
+
+        # Keep only the most recently added pair (last band quantile)
+        if len(active_pairs) > 1:
+            # Find which pair contains the last-added quantile
+            last_q = band_qs[-1]
+            keep_pair = (min(last_q, _PAIRS.get(last_q, last_q)),
+                         max(last_q, _PAIRS.get(last_q, last_q)))
+            active_pairs = {keep_pair}
+
+        # Build result: the active pair + optional median
+        result = []
+        for lo, hi in sorted(active_pairs):
+            result.extend([lo, hi])
+        if has_median:
+            result.append(0.5)
+        result = sorted(set(result))
+
+        if result != sorted(selected):
+            return result
         return dash.no_update
 
 

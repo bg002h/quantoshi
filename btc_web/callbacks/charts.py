@@ -79,7 +79,7 @@ def update_bubble(_first_render, sel_qs, toggles, bubble_toggles,
         show_sup    = "show_sup"  in bubble_toggles,
         xscale      = xscale or BUBBLE["xscale"],
         yscale      = yscale or "log",
-        xmin        = float(xrange[0]), xmax = float(xrange[1]),
+        xmin        = int(xrange[0]), xmax = int(xrange[1]),
         ymin        = 10 ** yrange[0], ymax = 10 ** yrange[1],
         n_future    = _ci(n_future, BUBBLE["n_future"]),
         pt_size     = _ci(ptsize, BUBBLE["pt_size"]),
@@ -115,7 +115,7 @@ def auto_bubble_yrange(xrange, auto_y, yscale, model_show, sel_qs):
     """Auto-fit bubble Y range to selected quantiles at current X range."""
     if not auto_y or not xrange:
         raise dash.exceptions.PreventUpdate
-    xmin, xmax = float(xrange[0]), float(xrange[1])
+    xmin, xmax = int(xrange[0]), int(xrange[1])
     t_lo = max(yr_to_t(xmin, _app_ctx.M.genesis), 0.1)
     t_hi = yr_to_t(xmax, _app_ctx.M.genesis)
 

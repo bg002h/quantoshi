@@ -48,7 +48,11 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     """
     model = _app_ctx.DEFAULT_MODEL
     palette = _get_palette(p)
-    t_lo = max(yr_to_t(p["xmin"], m.genesis), 0.01)
+    _xmin = float(p["xmin"])
+    # When starting at/before 2010, begin at mid-2010 (first BTC price data)
+    if _xmin <= 2010:
+        _xmin = 2010.5
+    t_lo = max(yr_to_t(_xmin, m.genesis), 0.01)
     t_hi = yr_to_t(p["xmax"], m.genesis)
     y_lo = float(p["ymin"])
     y_hi = float(p["ymax"])

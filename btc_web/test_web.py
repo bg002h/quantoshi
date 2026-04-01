@@ -8313,3 +8313,112 @@ class TestUnifiedMcIntegration:
         for pct in [5, 50, 95]:
             np.testing.assert_array_almost_equal(
                 bands[pct]["total"], result.percentiles[pct]["total"])
+
+
+# ── Phase 2: Citadel Presets & Cache ─────────────────────────────────────────
+
+class TestCitadelPresets:
+    def test_wealth_levels_exist(self):
+        from citadel_presets import WEALTH_LEVELS
+        assert set(WEALTH_LEVELS.keys()) == {"starter", "full", "bitcoin"}
+
+    def test_wealth_level_has_required_keys(self):
+        from citadel_presets import WEALTH_LEVELS
+        required = {"label", "dollar_assets", "btc", "monthly_spend",
+                    "spend_growth", "inflation", "allocation"}
+        for key, wl in WEALTH_LEVELS.items():
+            assert required.issubset(wl.keys()), f"{key} missing {required - wl.keys()}"
+
+    def test_allocation_sums_to_100(self):
+        from citadel_presets import WEALTH_LEVELS
+        for key, wl in WEALTH_LEVELS.items():
+            total = sum(wl["allocation"].values())
+            assert abs(total - 100) < 0.01, f"{key} allocation sums to {total}"
+
+    def test_macro_regimes_exist(self):
+        from citadel_presets import MACRO_REGIMES
+        assert set(MACRO_REGIMES.keys()) == {"bear", "neutral", "bull"}
+        assert MACRO_REGIMES["bear"]["bin"] == 0
+        assert MACRO_REGIMES["neutral"]["bin"] == 2
+        assert MACRO_REGIMES["bull"]["bin"] == 4
+
+    def test_rule_sets_exist(self):
+        from citadel_presets import RULE_SETS
+        assert set(RULE_SETS.keys()) == {"no_rebal", "cautious", "aggressive"}
+
+    def test_cache_dimensions(self):
+        from citadel_presets import (BTC_MODELS, BTC_ENTRY_QS, START_YEARS,
+                                     SIMS_PER_SCENARIO, WEALTH_LEVELS,
+                                     MACRO_REGIMES, RULE_SETS, TAX_STATUSES)
+        assert BTC_MODELS == ["bub", "qr", "pl", "lppl", "ef"]
+        assert BTC_ENTRY_QS == [1, 10, 50]
+        assert START_YEARS == [2028, 2035]
+        assert SIMS_PER_SCENARIO == 800
+        total = (len(BTC_MODELS) * len(BTC_ENTRY_QS) * len(MACRO_REGIMES) *
+                 len(WEALTH_LEVELS) * len(RULE_SETS) * len(START_YEARS) *
+                 len(TAX_STATUSES))
+        assert total == 1620
+
+    def test_build_config_returns_simconfig(self):
+        from citadel_presets import build_config
+        from engines.citadel_types import SimConfig
+        cfg = build_config(
+            wealth="starter", regime="neutral", rules="no_rebal",
+            start_year=2035, tax_status="single",
+        )
+        assert isinstance(cfg, SimConfig)
+
+    def test_build_config_starter_values(self):
+        from citadel_presets import build_config
+        cfg = build_config(
+            wealth="starter", regime="neutral", rules="no_rebal",
+            start_year=2035, tax_status="single",
+        )
+        assert cfg.start_stack == 0.5
+        assert cfg.monthly_spend == 5000
+        assert cfg.cash_initial == 50_000
+        assert cfg.start_yr == 2035
+        assert cfg.end_yr == 2075
+        assert cfg.freq == "Monthly"
+        assert cfg.inflation == 4.0
+
+    def test_build_config_regime_sets_initial_regimes(self):
+        from citadel_presets import build_config
+        cfg = build_config(
+            wealth="starter", regime="bull", rules="no_rebal",
+            start_year=2035, tax_status="single",
+        )
+        assert cfg.initial_equity_regime == 4
+        assert cfg.initial_bond_regime == 4
+        assert cfg.initial_res_short_regime == 4
+        assert cfg.initial_res_med_regime == 4
+        assert cfg.initial_res_long_regime == 4
+
+    def test_build_config_tax_status_mfj(self):
+        from citadel_presets import build_config
+        cfg = build_config(
+            wealth="starter", regime="neutral", rules="no_rebal",
+            start_year=2035, tax_status="mfj",
+        )
+        assert cfg.tax_enabled is True
+        assert cfg.filing_status == "mfj"
+
+    def test_build_config_tax_status_single(self):
+        from citadel_presets import build_config
+        cfg = build_config(
+            wealth="starter", regime="neutral", rules="no_rebal",
+            start_year=2035, tax_status="single",
+        )
+        assert cfg.tax_enabled is True
+        assert cfg.filing_status == "single"
+
+    def test_build_config_loads_asset_matrices(self):
+        from citadel_presets import build_config
+        cfg = build_config(
+            wealth="starter", regime="neutral", rules="no_rebal",
+            start_year=2035, tax_status="single",
+        )
+        assert cfg.asset_matrices is not None
+        assert "equity" in cfg.asset_matrices
+        assert "bond" in cfg.asset_matrices
+        assert "tres_short" in cfg.asset_matrices

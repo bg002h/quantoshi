@@ -202,7 +202,7 @@ _app_ctx.app.clientside_callback(
 # Model Info accordion deep-linking (/7.N)
 # ══════════════════════════════════════════════════════════════════════════════
 
-_MODEL_INFO_ITEMS = ["mi-qr", "mi-pl", "mi-lppl", "mi-exp", "mi-s2f", "mi-mc", "mi-compare"]
+_MODEL_INFO_ITEMS = ["mi-bub", "mi-qr", "mi-pl", "mi-lppl", "mi-exp", "mi-s2f", "mi-mc", "mi-compare"]
 
 
 @callback(

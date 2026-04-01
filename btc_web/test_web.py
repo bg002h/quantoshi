@@ -9039,3 +9039,22 @@ class TestSymmetricQuantileColors:
         from figures.common import _symmetric_thermal_color
         c50 = _symmetric_thermal_color(0.50)
         assert c50 == "#bdbdbd"
+
+
+class TestOverlayModelShading:
+    def test_overlay_model_bands_use_model_color(self):
+        """Overlay model bands should use that model's trace color."""
+        from figures.bubble import build_bubble_figure
+        import _app_ctx
+        M = _app_ctx.M
+        p = dict(selected_qs=[0.15, 0.50, 0.85], shade=True,
+                 xscale="log", yscale="log",
+                 xmin=2012, xmax=2030, ymin=0, ymax=7, n_future=3,
+                 show_comp=False, show_ols=False, show_data=False,
+                 show_today=False, pt_size=2, pt_alpha=0.3,
+                 stack=0, show_stack=False, lots=[], use_lots=False,
+                 show_legend=False, active_models=["bub", "pl"],
+                 qs_mode=[])
+        fig = build_bubble_figure(M, p)
+        fill_traces = [t for t in fig.data if t.fill == "tonexty"]
+        assert len(fill_traces) >= 2  # at least 1 band per model

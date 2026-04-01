@@ -234,6 +234,17 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                         if model_key == "u1" else mdl.legend_name
                     ),
                 ))
+            # Symmetric band shading for overlay model
+            if p.get("shade") and len(overlay_qs) >= 2:
+                _overlay_prices = {}
+                for q in overlay_qs:
+                    if q in mdl.fits:
+                        _overlay_prices[q] = _round_trace_data(
+                            mdl.price_at(q, t_arr) * (stack if stack > 0 else 1))
+                _overlay_color = _app_ctx.MODEL_TRACE_COLORS.get(model_key, "#888888")
+                traces.extend(_build_symmetric_bands(
+                    sorted(_overlay_prices.keys()), _overlay_prices, t_arr,
+                    model_color=_overlay_color))
         else:
             # Non-quantized model: single trajectory
             prices = mdl.price_at(0.5, t_arr)

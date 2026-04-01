@@ -8490,4 +8490,65 @@ class TestCitadelBandCache:
         from citadel_band_cache import lookup_entry
         result = lookup_entry("bub", 10, "neutral", "starter", "no_rebal",
                               2035, "single", cache_dir=tmp_path)
+
         assert result is None
+
+class TestCitadelBandGeneration:
+    def test_generate_single_entry(self, tmp_path):
+        """Smoke test: generate one combo with 5 sims (fast)."""
+        import numpy as np
+        from citadel_presets import build_config
+        from engines.citadel_sim import simulate
+        from engines.citadel_bands import compute_bands, BAND_PERCENTILES, BAND_SERIES
+        from citadel_band_cache import store_entry, lookup_entry
+
+        cfg = build_config(
+            wealth="starter", regime="neutral", rules="no_rebal",
+            start_year=2035, tax_status="single",
+        )
+        cfg.end_yr = 2036  # 1 year = 12 periods (fast)
+        n_sims = 5
+        n_periods = 12
+        rng = np.random.default_rng(42)
+        base = np.linspace(80000, 120000, n_periods)
+        paths = np.array([base * (1 + rng.normal(0, 0.05, n_periods))
+                          for _ in range(n_sims)])
+        result = simulate(cfg, model=None, price_paths=paths)
+        bands = compute_bands(result)
+        store_entry("bub", 10, "neutral", "starter", "no_rebal",
+                    2035, "single", bands, cache_dir=tmp_path)
+        loaded = lookup_entry("bub", 10, "neutral", "starter", "no_rebal",
+                              2035, "single", cache_dir=tmp_path)
+        assert loaded is not None
+        assert set(loaded.keys()) == set(BAND_PERCENTILES)
+        assert set(loaded[50].keys()) == set(BAND_SERIES)
+        assert len(loaded[50]["total"]) == n_periods
+
+    def test_generate_preserves_band_ordering(self, tmp_path):
+        """P5 <= P50 <= P95 in generated bands."""
+        import numpy as np
+        from citadel_presets import build_config
+        from engines.citadel_sim import simulate
+        from engines.citadel_bands import compute_bands
+        from citadel_band_cache import store_entry, lookup_entry
+
+        cfg = build_config(
+            wealth="full", regime="bear", rules="cautious",
+            start_year=2028, tax_status="mfj",
+        )
+        cfg.end_yr = 2029
+        n_sims = 20
+        n_periods = 12
+        rng = np.random.default_rng(99)
+        base = np.linspace(50000, 100000, n_periods)
+        paths = np.array([base * (1 + rng.normal(0, 0.15, n_periods))
+                          for _ in range(n_sims)])
+        result = simulate(cfg, model=None, price_paths=paths)
+        bands = compute_bands(result)
+        store_entry("pl", 50, "bear", "full", "cautious",
+                    2028, "mfj", bands, cache_dir=tmp_path)
+        loaded = lookup_entry("pl", 50, "bear", "full", "cautious",
+                              2028, "mfj", cache_dir=tmp_path)
+        for t in range(n_periods):
+            assert loaded[5]["total"][t] <= loaded[50]["total"][t] + 1e-6
+            assert loaded[50]["total"][t] <= loaded[95]["total"][t] + 1e-6

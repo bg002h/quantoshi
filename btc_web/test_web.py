@@ -8787,3 +8787,47 @@ class TestCitadelScenarioSnapshot:
         assert "cp-scenario-rules" in citadel_ids
         assert "cp-scenario-start-yr" in citadel_ids
         assert "cp-scenario-active" in citadel_ids
+
+
+class TestCitadelQuickScenariosIntegration:
+    def test_full_scenario_pipeline(self, tmp_path):
+        """End-to-end: store bands → lookup → build traces."""
+        import numpy as np
+        from citadel_band_cache import store_entry, lookup_entry
+        from figures.citadel import _build_band_traces
+        from engines.citadel_bands import BAND_PERCENTILES, BAND_SERIES
+
+        n_periods = 24
+        bands = {}
+        for pct in BAND_PERCENTILES:
+            bands[pct] = {s: np.linspace(100 * pct, 200 * pct, n_periods).astype(np.float32)
+                          for s in BAND_SERIES}
+        store_entry("bub", 10, "neutral", "starter", "no_rebal",
+                    2035, "single", bands, cache_dir=tmp_path)
+
+        loaded = lookup_entry("bub", 10, "neutral", "starter", "no_rebal",
+                              2035, "single", cache_dir=tmp_path)
+        assert loaded is not None
+
+        # Serialize like the callback does
+        serialized = {}
+        for pct, series_dict in loaded.items():
+            serialized[str(pct)] = {k: v.tolist() for k, v in series_dict.items()}
+
+        time_axis = np.linspace(26, 28, n_periods).tolist()
+        traces = _build_band_traces(serialized, time_axis,
+                                     series_key="total", color="#000000")
+        assert len(traces) == 4
+        # P5 lower bound should be less than P95 upper bound
+        assert traces[0].y[0] < traces[1].y[0]
+
+    def test_all_preset_combos_produce_valid_configs(self):
+        """Every preset combo builds a valid SimConfig."""
+        from citadel_presets import (WEALTH_LEVELS, MACRO_REGIMES, RULE_SETS,
+                                     START_YEARS, TAX_STATUSES, build_config)
+        from engines.citadel_sim import validate_config
+        for wealth in WEALTH_LEVELS:
+            for regime in MACRO_REGIMES:
+                for rules in RULE_SETS:
+                    cfg = build_config(wealth, regime, rules, 2035, "single")
+                    validate_config(cfg)  # raises on invalid

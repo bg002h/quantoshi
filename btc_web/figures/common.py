@@ -267,7 +267,7 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
             zerolinecolor=theme.GRID_MAJOR_COLOR,
             ticks="",
             ticklabelstandoff=-20,
-            ticklabelposition="inside",
+            ticklabelposition="outside",
             ticklabelshift=0,
         ),
         yaxis=dict(

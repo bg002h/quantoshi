@@ -8864,3 +8864,14 @@ class TestPresetControlValues:
         vals = preset_control_values("starter", "neutral", "no_rebal", 2035)
         assert vals["cp-high-q-thresh"] == 99
         assert vals["cp-low-q-thresh"] == 1
+
+
+class TestScenarioDynamicLookup:
+    def test_snap_entry_q_boundary_values(self):
+        from callbacks.citadel_scenarios import _snap_entry_q
+        # Values near boundaries (bins: [1, 10, 50])
+        assert _snap_entry_q(0.005) == 1    # closer to 1%
+        assert _snap_entry_q(0.05) == 1     # closer to 1% than 10%
+        assert _snap_entry_q(0.06) == 10    # closer to 10%
+        assert _snap_entry_q(0.31) == 50    # closer to 50% (midpoint 30% ties to 10)
+        assert _snap_entry_q(0.999) == 50

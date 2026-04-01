@@ -47,20 +47,23 @@ _register_pill_cb("rules", list(RULE_SETS.keys()))
     Input("cp-scenario-rules", "data"),
     Input("cp-scenario-start-yr", "value"),
     State("cp-qs", "value"),
+    State("cp-model-src", "value"),
+    State("cp-tax-config", "data"),
     prevent_initial_call=True,
 )
-def load_scenario_bands(wealth, regime, rules, start_yr, quantile):
+def load_scenario_bands(wealth, regime, rules, start_yr, quantile, model_src, tax_config):
     """Look up pre-computed bands for the selected scenario."""
     if not all([wealth, regime, rules, start_yr]):
         return no_update, no_update
 
     from citadel_band_cache import lookup_entry
 
-    model_key = "bub"
+    model_key = model_src or "bub"
     entry_q = _snap_entry_q(float(quantile or 0.25))
+    tax_status = tax_config.get("filing_status", "single") if isinstance(tax_config, dict) else "single"
 
     bands = lookup_entry(model_key, entry_q, regime, wealth, rules,
-                         int(start_yr), "single")
+                         int(start_yr), tax_status)
     if bands is None:
         return None, None
 
@@ -69,7 +72,7 @@ def load_scenario_bands(wealth, regime, rules, start_yr, quantile):
     for pct, series_dict in bands.items():
         serialized[str(pct)] = {k: v.tolist() for k, v in series_dict.items()}
 
-    active_key = f"{model_key}_q{entry_q}_{regime}_{wealth}_{rules}_{start_yr}_single"
+    active_key = f"{model_key}_q{entry_q}_{regime}_{wealth}_{rules}_{start_yr}_{tax_status}"
     return serialized, active_key
 
 

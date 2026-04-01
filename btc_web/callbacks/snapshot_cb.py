@@ -325,6 +325,7 @@ _app_ctx.app.clientside_callback(
 
 # ── Heatmap color palette presets ─────────────────────────────────────────────
 _HM_PALETTES = {
+    "finance": ("#b71c1c", "#ffffff", "#ffffff", "#1b5e20"),
     "forge":   ("#1b0a2e", "#2c2c3a", "#1b4332", "#ffd700"),
     "thermal": ("#0d47a1", "#80deea", "#e65100", "#c62828"),
     "bitcoin": ("#1a1a2e", "#2c3e50", "#f7931a", "#ffd700"),

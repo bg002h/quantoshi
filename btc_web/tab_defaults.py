@@ -17,7 +17,7 @@ BUBBLE = MappingProxyType({
     "selected_qs": (0.5,),
     "xscale": "log", "yscale": "log",
     "auto_y": ("yes",),
-    "ymin": 0.03, "ymax": 1.3e6,
+    "ymin": 0.03, "ymax": 1e6,
     "shade": True, "show_data": True, "show_today": True,
     "show_legend": False, "minor_grid": False,
     "show_ols": False, "show_ucl": False,

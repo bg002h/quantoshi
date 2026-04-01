@@ -8552,3 +8552,34 @@ class TestCitadelBandGeneration:
         for t in range(n_periods):
             assert loaded[5]["total"][t] <= loaded[50]["total"][t] + 1e-6
             assert loaded[50]["total"][t] <= loaded[95]["total"][t] + 1e-6
+
+
+class TestCitadelBandCacheLoader:
+    @pytest.fixture(autouse=True)
+    def _clear_band_cache(self):
+        """Isolate tests from shared module state."""
+        from citadel_band_cache import _BAND_CACHE
+        _BAND_CACHE.clear()
+        yield
+        _BAND_CACHE.clear()
+
+    def test_load_band_caches_from_disk(self, tmp_path):
+        import numpy as np
+        from citadel_band_cache import store_entry, load_band_caches, _BAND_CACHE
+        from engines.citadel_bands import BAND_PERCENTILES, BAND_SERIES
+        n_periods = 12
+        bands = {}
+        for pct in BAND_PERCENTILES:
+            bands[pct] = {s: np.ones(n_periods, dtype=np.float32) * pct
+                          for s in BAND_SERIES}
+        store_entry("bub", 10, "neutral", "starter", "no_rebal",
+                    2035, "single", bands, cache_dir=tmp_path)
+        load_band_caches(cache_dir=tmp_path)
+        assert len(_BAND_CACHE) == 1
+        key = "bub_q10_neutral_starter_no_rebal_2035_single"
+        assert key in _BAND_CACHE
+
+    def test_load_empty_dir(self, tmp_path):
+        from citadel_band_cache import load_band_caches, _BAND_CACHE
+        load_band_caches(cache_dir=tmp_path)
+        assert len(_BAND_CACHE) == 0

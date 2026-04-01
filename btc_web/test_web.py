@@ -8967,7 +8967,7 @@ class TestDefaultModeOpacity:
         fig = build_bubble_figure(M, p)
         q50_traces = [t for t in fig.data if hasattr(t, 'name') and t.name and 'Q50%' in str(t.name)]
         assert len(q50_traces) > 0
-        assert q50_traces[0].opacity is None
+        assert q50_traces[0].opacity == 1.0  # Q50% = full opacity
 
 
 class TestSymmetricBandShading:

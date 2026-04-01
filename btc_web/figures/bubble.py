@@ -21,7 +21,7 @@ from figures.common import (
     _FONT_LEGEND, _FONT_TITLE, _FONT_SUBTITLE,
     _SANS_FONT, _FONT_TITLE_LG, _FONT_BODY_LG, _FONT_TICK_LG, _FONT_LEGEND_LG,
     _LOG_MINOR, _MC_LEGEND_POS,
-    _get_palette, _build_thermal_colors, _build_symmetric_thermal_colors, _fmt_q_label,
+    _get_palette, _build_thermal_colors, _fmt_q_label,
     _base_layout, _year_ticks, _price_tickvals,
     _apply_sans_typography, _apply_config_annotation, _apply_watermark, _add_date_hover,
     _HOVER_FMT_USD,
@@ -109,7 +109,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     # ── shading between adjacent quantiles ───────────────────────────────────
     sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])])
-    _thermal = _build_symmetric_thermal_colors(sel_qs, palette)
+    _thermal = _build_thermal_colors(sel_qs, palette)
 
     bub_active = "bub" in p.get("active_models", ["bub"])
     # If no quantiles selected but models are active, fall back to Q50%
@@ -117,7 +117,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     _default_mode = "advanced" not in (p.get("qs_mode") or [])
     if _fallback_q50:
         sel_qs = [0.5]
-        _thermal = _build_symmetric_thermal_colors(sel_qs, palette)
+        _thermal = _build_thermal_colors(sel_qs, palette)
 
     if bub_active:
         # Pre-compute prices for all selected quantiles
@@ -159,6 +159,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     if bub_active:
         # ── quantile lines (thermal palette + neon glow) ─────────────────────
+        _bub_color = _app_ctx.MODEL_TRACE_COLORS.get("bub", "#DAA520")
         for q in sel_qs:
             if q not in _price_cache:
                 continue
@@ -166,12 +167,16 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             lbl = _fmt_q_label(q) + _r2_suffix(model, q)
             if stack > 0:
                 lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
-            col = _thermal.get(q, model.colors.get(q, "#888888"))
+            # Opacity: Q50% = 1.0, Q5%/Q95% = 0.25, linear between
+            _dist = min(abs(q - 0.5) / 0.45, 1.0)  # 0 at Q50%, 1 at Q5%/Q95%
+            _q_opacity = 1.0 - _dist * 0.75  # 1.0 → 0.25
+            if _fallback_q50 and _default_mode:
+                _q_opacity = 0.5
             traces.append(go.Scatter(
                 x=list(t_arr), y=list(prices),
                 mode="lines", name=lbl,
-                line=dict(color=col, width=_QR_LINE_WIDTH),
-                opacity=0.5 if (_fallback_q50 and _default_mode) else None,
+                line=dict(color=_bub_color, width=_QR_LINE_WIDTH),
+                opacity=_q_opacity,
             ))
 
     # ── U1 user model: direct line through two points ───────────────────────

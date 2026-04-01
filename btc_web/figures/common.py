@@ -266,8 +266,8 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
             linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
             zerolinecolor=theme.GRID_MAJOR_COLOR,
             ticks="",
-            ticklabelstandoff=-20,
-            ticklabelposition="outside",
+            ticklabelstandoff=0,
+            ticklabelposition="outside top",
             ticklabelshift=0,
         ),
         yaxis=dict(

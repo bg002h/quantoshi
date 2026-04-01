@@ -260,6 +260,12 @@ _SNAPSHOT_CONTROLS = [
     ("cp-tf-res-long",      "value"),
     ("cp-tf-inv-eq",        "value"),
     ("cp-tf-inv-bd",        "value"),
+    # ── Citadel Quick Scenario controls ──
+    ("cp-scenario-wealth",    "data"),
+    ("cp-scenario-regime",    "data"),
+    ("cp-scenario-rules",     "data"),
+    ("cp-scenario-start-yr",  "value"),
+    ("cp-scenario-active",    "data"),
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)

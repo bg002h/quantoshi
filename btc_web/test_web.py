@@ -8767,3 +8767,23 @@ class TestCitadelBandRendering:
         traces = _build_band_traces(bands, list(range(10)),
                                      series_key="total", color="#FF0000")
         assert len(traces) == 4
+
+
+class TestCitadelScenarioSnapshot:
+    def test_scenario_controls_in_snapshot(self):
+        from snapshot import _SNAPSHOT_CONTROLS
+        ids = {c[0] for c in _SNAPSHOT_CONTROLS}
+        assert "cp-scenario-wealth" in ids
+        assert "cp-scenario-regime" in ids
+        assert "cp-scenario-rules" in ids
+        assert "cp-scenario-start-yr" in ids
+        assert "cp-scenario-active" in ids
+
+    def test_scenario_controls_in_tab_controls(self):
+        from callbacks.routing import _TAB_CONTROLS
+        citadel_ids = _TAB_CONTROLS["citadel"]
+        assert "cp-scenario-wealth" in citadel_ids
+        assert "cp-scenario-regime" in citadel_ids
+        assert "cp-scenario-rules" in citadel_ids
+        assert "cp-scenario-start-yr" in citadel_ids
+        assert "cp-scenario-active" in citadel_ids

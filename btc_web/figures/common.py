@@ -266,7 +266,7 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
             linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
             zerolinecolor=theme.GRID_MAJOR_COLOR,
             ticklabelstandoff=0,
-            ticklabelshift=10,
+            ticklabelshift=20,
         ),
         yaxis=dict(
             title=dict(text=ylabel, font=dict(family=_SANS_FONT, color=theme.TEXT_COLOR)),

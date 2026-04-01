@@ -44,7 +44,7 @@ def _bubble_controls():
             ], className="g-0 align-items-center"),
             html.Div(id="bub-yrange-wrap", style=_STYLE_HIDDEN, children=[
                 dcc.RangeSlider(id="bub-yrange", min=-2, max=9,
-                                value=[0, 7], step=0.5,
+                                value=[-1, 6], step=0.5,
                                 marks={-2:"1\u00a2", 0:"$1", 2:"$100",
                                         4:"$10K", 6:"$1M", 9:"$1B"},
                                 tooltip={"always_visible":False}),

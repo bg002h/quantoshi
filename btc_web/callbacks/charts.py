@@ -156,7 +156,7 @@ def auto_bubble_yrange(xrange, auto_y, yscale, model_show, sel_qs):
     if (yscale or "log") == "log":
         y_lo = math.floor(math.log10(max(p_lo, 1e-10)) * 2) / 2
         y_hi = math.ceil( math.log10(max(p_hi, 1e-10)) * 2) / 2
-        y_lo = max(-2.0, min(y_lo, 6.0))
+        y_lo = max(-1.0, min(y_lo, 6.0))
         y_hi = min(y_cap, max(y_hi, 1.0))
     else:  # linear — floor near zero, ceiling at highest quantile + 10% headroom
         y_lo = -2.0

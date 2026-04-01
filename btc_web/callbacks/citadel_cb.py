@@ -192,6 +192,8 @@ def show_asset_model_info(model):
     State("cp-mc-model-src",     "value"),
     State("palette-store",       "data"),
     State("user-model-store",    "data"),
+    # Quick Scenarios
+    State("cp-scenario-bands",   "data"),
     # ── Tax ──
     State("cp-tax-toggle",       "value"),
     State("cp-tax-config",       "data"),
@@ -245,6 +247,8 @@ def update_citadel(
     mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
     mc_start_yr, mc_entry_q, mc_model_src,
     palette_key, user_model_store,
+    # Quick Scenarios
+    scenario_bands_data,
     # Tax
     tax_toggle, tax_config,
     # MC states
@@ -389,6 +393,7 @@ def update_citadel(
         minor_grid      = "minor_grid" in toggles,
         palette         = palette_key or CITADEL["palette"],
         user_model      = user_model_store,
+        scenario_bands  = scenario_bands_data,
         **mc_p,
     )
 

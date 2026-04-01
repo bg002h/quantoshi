@@ -8728,3 +8728,42 @@ class TestCitadelScenarioCallback:
         assert _snap_entry_q(0.50) == 50
         assert _snap_entry_q(0.75) == 50
         assert _snap_entry_q(0.999) == 50
+
+
+class TestCitadelBandRendering:
+    def test_build_band_traces_returns_traces(self):
+        """Verify band trace builder produces scatter traces."""
+        import numpy as np
+        from figures.citadel import _build_band_traces
+        from engines.citadel_bands import BAND_PERCENTILES, BAND_SERIES
+        n_periods = 24
+        bands = {}
+        for pct in BAND_PERCENTILES:
+            bands[pct] = {s: np.linspace(1000, 2000, n_periods).tolist()
+                          for s in BAND_SERIES}
+        time_axis = np.linspace(22, 24, n_periods).tolist()
+        traces = _build_band_traces(bands, time_axis, series_key="total",
+                                     color="#000000")
+        assert len(traces) == 4
+        import plotly.graph_objects as go
+        for t in traces:
+            assert isinstance(t, go.Scatter)
+
+    def test_build_band_traces_empty_bands(self):
+        from figures.citadel import _build_band_traces
+        traces = _build_band_traces(None, [], series_key="total", color="#000")
+        assert traces == []
+
+    def test_build_band_traces_string_keys(self):
+        """Verify works with string percentile keys (from JSON store)."""
+        import numpy as np
+        from figures.citadel import _build_band_traces
+        bands = {
+            "5": {"total": [100] * 10},
+            "25": {"total": [200] * 10},
+            "75": {"total": [300] * 10},
+            "95": {"total": [400] * 10},
+        }
+        traces = _build_band_traces(bands, list(range(10)),
+                                     series_key="total", color="#FF0000")
+        assert len(traces) == 4

@@ -8064,3 +8064,49 @@ class TestInitialRegimeConfig:
         )
         assert cfg.initial_equity_regime == 0
         assert cfg.initial_bond_regime == 4
+
+
+class TestInitialRegimeWiring:
+    def test_td_tf_regime_fields_exist(self):
+        from engines.citadel_types import CitadelState
+        state = CitadelState()
+        assert state.td_equity_regime == 2
+        assert state.td_bond_regime == 2
+        assert state.td_res_short_regime == 2
+        assert state.td_res_med_regime == 2
+        assert state.td_res_long_regime == 2
+        assert state.tf_equity_regime == 2
+        assert state.tf_bond_regime == 2
+        assert state.tf_res_short_regime == 2
+        assert state.tf_res_med_regime == 2
+        assert state.tf_res_long_regime == 2
+
+    def test_initial_state_uses_config_regimes(self):
+        from engines.citadel_types import SimConfig
+        from engines.citadel_sim import _initial_state
+        cfg = SimConfig()
+        cfg.initial_equity_regime = 0
+        cfg.initial_bond_regime = 4
+        cfg.initial_res_short_regime = 1
+        cfg.initial_res_med_regime = 3
+        cfg.initial_res_long_regime = 0
+        state = _initial_state(cfg, model=None)
+        assert state.equity_regime == 0
+        assert state.bond_regime == 4
+        assert state.res_short_regime == 1
+        assert state.res_med_regime == 3
+        assert state.res_long_regime == 0
+
+    def test_initial_state_seeds_td_tf_regimes_unconditionally(self):
+        """TD/TF regimes seeded from config regardless of tax_enabled."""
+        from engines.citadel_types import SimConfig
+        from engines.citadel_sim import _initial_state
+        cfg = SimConfig()
+        cfg.tax_enabled = False
+        cfg.initial_equity_regime = 4
+        cfg.initial_bond_regime = 0
+        state = _initial_state(cfg, model=None)
+        assert state.td_equity_regime == 4
+        assert state.td_bond_regime == 0
+        assert state.tf_equity_regime == 4
+        assert state.tf_bond_regime == 0

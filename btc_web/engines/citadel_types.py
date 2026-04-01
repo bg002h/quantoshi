@@ -201,6 +201,18 @@ class CitadelState:
     res_short_regime: int = 2
     res_med_regime: int = 2
     res_long_regime: int = 2
+    # TD wrapper regime states (independent from taxable regimes)
+    td_equity_regime: int = 2
+    td_bond_regime: int = 2
+    td_res_short_regime: int = 2
+    td_res_med_regime: int = 2
+    td_res_long_regime: int = 2
+    # TF wrapper regime states (independent from taxable regimes)
+    tf_equity_regime: int = 2
+    tf_bond_regime: int = 2
+    tf_res_short_regime: int = 2
+    tf_res_med_regime: int = 2
+    tf_res_long_regime: int = 2
     # Tracking
     period_spend: float = 0.0
     spending_shortfall: float = 0.0

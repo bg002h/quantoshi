@@ -35,6 +35,26 @@ def _initial_state(config: SimConfig, model: "PriceModel | None" = None) -> Cita
         investments=list(inv_initials),
         invest_cost_basis=inv_basis,
     )
+
+    # Seed taxable-wrapper regimes from config
+    state.equity_regime = config.initial_equity_regime
+    state.bond_regime = config.initial_bond_regime
+    state.res_short_regime = config.initial_res_short_regime
+    state.res_med_regime = config.initial_res_med_regime
+    state.res_long_regime = config.initial_res_long_regime
+
+    # Seed TD/TF wrapper regimes from config (same starting point as taxable)
+    state.td_equity_regime = config.initial_equity_regime
+    state.td_bond_regime = config.initial_bond_regime
+    state.td_res_short_regime = config.initial_res_short_regime
+    state.td_res_med_regime = config.initial_res_med_regime
+    state.td_res_long_regime = config.initial_res_long_regime
+    state.tf_equity_regime = config.initial_equity_regime
+    state.tf_bond_regime = config.initial_bond_regime
+    state.tf_res_short_regime = config.initial_res_short_regime
+    state.tf_res_med_regime = config.initial_res_med_regime
+    state.tf_res_long_regime = config.initial_res_long_regime
+
     if config.scf_enabled and config.scf_amount > 0 and btc_price > 0:
         btc_bought = config.scf_amount / btc_price
         state.btc_stack += btc_bought

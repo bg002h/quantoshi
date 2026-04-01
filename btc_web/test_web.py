@@ -8422,3 +8422,72 @@ class TestCitadelPresets:
         assert "equity" in cfg.asset_matrices
         assert "bond" in cfg.asset_matrices
         assert "tres_short" in cfg.asset_matrices
+
+
+class TestCitadelBandCache:
+    def test_band_cache_key_format(self):
+        from citadel_band_cache import band_cache_key
+        key = band_cache_key("bub", 10, "neutral", "starter",
+                             "no_rebal", 2035, "single")
+        assert key == "bub_q10_neutral_starter_no_rebal_2035_single"
+
+    def test_band_cache_key_all_combos_unique(self):
+        from citadel_band_cache import band_cache_key
+        from citadel_presets import (BTC_MODELS, BTC_ENTRY_QS, MACRO_REGIMES,
+                                     WEALTH_LEVELS, RULE_SETS, START_YEARS,
+                                     TAX_STATUSES)
+        keys = set()
+        for model in BTC_MODELS:
+            for eq in BTC_ENTRY_QS:
+                for regime in MACRO_REGIMES:
+                    for wealth in WEALTH_LEVELS:
+                        for rules in RULE_SETS:
+                            for yr in START_YEARS:
+                                for tax in TAX_STATUSES:
+                                    k = band_cache_key(model, eq, regime,
+                                                       wealth, rules, yr, tax)
+                                    keys.add(k)
+        assert len(keys) == 1620
+
+    def test_pack_unpack_bands_roundtrip(self):
+        import numpy as np
+        from citadel_band_cache import pack_bands, unpack_bands
+        from engines.citadel_bands import BAND_PERCENTILES, BAND_SERIES
+        n_periods = 480
+        bands = {}
+        for pct in BAND_PERCENTILES:
+            bands[pct] = {}
+            for series in BAND_SERIES:
+                bands[pct][series] = np.random.rand(n_periods).astype(np.float32)
+        packed = pack_bands(bands)
+        assert isinstance(packed, np.ndarray)
+        assert packed.dtype == np.float32
+        unpacked = unpack_bands(packed)
+        for pct in BAND_PERCENTILES:
+            for series in BAND_SERIES:
+                np.testing.assert_array_almost_equal(
+                    unpacked[pct][series], bands[pct][series], decimal=5)
+
+    def test_store_and_lookup(self, tmp_path):
+        import numpy as np
+        from citadel_band_cache import store_entry, lookup_entry
+        from engines.citadel_bands import BAND_PERCENTILES, BAND_SERIES
+        n_periods = 24
+        bands = {}
+        for pct in BAND_PERCENTILES:
+            bands[pct] = {s: np.ones(n_periods, dtype=np.float32) * pct
+                          for s in BAND_SERIES}
+        store_entry("bub", 10, "neutral", "starter", "no_rebal",
+                    2035, "single", bands, cache_dir=tmp_path)
+        result = lookup_entry("bub", 10, "neutral", "starter", "no_rebal",
+                              2035, "single", cache_dir=tmp_path)
+        assert result is not None
+        for pct in BAND_PERCENTILES:
+            np.testing.assert_array_almost_equal(
+                result[pct]["total"], np.ones(n_periods) * pct, decimal=5)
+
+    def test_lookup_missing_returns_none(self, tmp_path):
+        from citadel_band_cache import lookup_entry
+        result = lookup_entry("bub", 10, "neutral", "starter", "no_rebal",
+                              2035, "single", cache_dir=tmp_path)
+        assert result is None

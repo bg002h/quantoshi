@@ -381,12 +381,10 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         if v >= 0.01:  return f"{v*100:.0f}\u00a2"
         return f"${v:.2f}"
 
-    ylabel = "Stack Value (USD)" if stack > 0 else "Bitcoin Price (USD)"
-
     layout = _base_layout(
         title="Bitcoin Bubble Model + Quantile Regression Channels",
         xlabel="Years since genesis (2009-07-25)",
-        ylabel=ylabel,
+        ylabel="",
     )
     layout["xaxis"].update(
         range=[t_lo, t_hi],

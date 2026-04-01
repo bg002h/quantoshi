@@ -59,6 +59,9 @@
             var pinBtn = createPinButton(col, i);
             pinBtn.title = "Pin panel open";
 
+            /* Start collapsed */
+            col.classList.add("drawer-collapsed");
+
             /* Hover: expand immediately, rearm on leave */
             col.addEventListener("mouseenter", function() {
                 col.classList.remove("drawer-collapsed");

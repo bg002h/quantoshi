@@ -14,6 +14,7 @@ from layout.common import (
 )
 from layout.mc_controls import _mc_controls
 from layout.citadel_tax import tax_toggle_widget, tax_config_modal, tax_summary_panel
+from citadel_presets import WEALTH_LEVELS, MACRO_REGIMES, RULE_SETS, START_YEARS
 
 
 def _assets_panel():
@@ -340,6 +341,63 @@ def _citadel_controls():
                   "background": "rgba(0,0,0,0.35)",
                   "display": "none",
                   "justifyContent": "center", "alignItems": "center"}),
+        # ── Quick Scenarios ──────────────────────────────────────────────
+        _ctrl_card(
+            html.Div("Quick Scenarios (Free)", className="ctrl-section-header"),
+            # Wealth row
+            html.Div([
+                html.Small("Wealth", className="text-muted me-2",
+                           style={"minWidth": "50px"}),
+                dbc.ButtonGroup([
+                    dbc.Button(WEALTH_LEVELS[k]["label"].split()[0], id=f"cp-pill-{k}",
+                               outline=(k != "starter"), color="primary", size="sm")
+                    for k in WEALTH_LEVELS
+                ], size="sm"),
+            ], className="d-flex align-items-center mb-1"),
+            # Regime row
+            html.Div([
+                html.Small("Regime", className="text-muted me-2",
+                           style={"minWidth": "50px"}),
+                dbc.ButtonGroup([
+                    dbc.Button(MACRO_REGIMES[k]["label"], id=f"cp-pill-{k}",
+                               outline=(k != "neutral"), color="primary", size="sm")
+                    for k in MACRO_REGIMES
+                ], size="sm"),
+            ], className="d-flex align-items-center mb-1"),
+            # Rules row
+            html.Div([
+                html.Small("Rules", className="text-muted me-2",
+                           style={"minWidth": "50px"}),
+                dbc.ButtonGroup([
+                    dbc.Button(RULE_SETS[k]["label"], id=f"cp-pill-{k}",
+                               outline=(k != "no_rebal"), color="primary", size="sm")
+                    for k in RULE_SETS
+                ], size="sm"),
+            ], className="d-flex align-items-center mb-1"),
+            # Start year dropdown
+            html.Div([
+                html.Small("Start", className="text-muted me-2",
+                           style={"minWidth": "50px"}),
+                dcc.Dropdown(id="cp-scenario-start-yr",
+                    options=[
+                        {"label": html.Span(str(y), style={"fontWeight": "bold"}), "value": y}
+                        if y in START_YEARS else
+                        {"label": str(y), "value": y}
+                        for y in range(2025, 2041)
+                    ],
+                    value=2035, clearable=False,
+                    style={"width": "100px", "fontSize": "13px"}),
+            ], className="d-flex align-items-center mb-1"),
+            html.Small("800 simulations per scenario",
+                       style={"color": "#888", "fontSize": "10px",
+                              "display": "block", "marginTop": "4px"}),
+        ),
+        # Scenario stores
+        dcc.Store(id="cp-scenario-wealth", data="starter"),
+        dcc.Store(id="cp-scenario-regime", data="neutral"),
+        dcc.Store(id="cp-scenario-rules", data="no_rebal"),
+        dcc.Store(id="cp-scenario-bands", storage_type="memory"),
+        dcc.Store(id="cp-scenario-active", data=None),
         dbc.Tabs([
             dbc.Tab(_assets_panel(), label="Assets", tab_id="cp-assets"),
             dbc.Tab(_spending_panel(), label="Spending", tab_id="cp-spending"),

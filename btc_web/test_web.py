@@ -8662,3 +8662,31 @@ class TestCitadelBandCacheIntegration:
         ):
             keys.add(band_cache_key(m, eq, reg, wl, rs, yr, ts))
         assert len(keys) == 1620
+
+
+# ── Phase 3: Quick Scenarios UI ──────────────────────────────────────────────
+
+class TestCitadelQuickScenariosLayout:
+    def test_scenario_stores_exist(self):
+        """Verify scenario-related stores are in the layout."""
+        from layout.citadel import _citadel_controls
+        layout = _citadel_controls()
+        layout_str = str(layout)
+        assert "cp-scenario-wealth" in layout_str
+        assert "cp-scenario-regime" in layout_str
+        assert "cp-scenario-rules" in layout_str
+        assert "cp-scenario-start-yr" in layout_str
+        assert "cp-scenario-bands" in layout_str
+        assert "cp-scenario-active" in layout_str
+
+    def test_scenario_pill_buttons_exist(self):
+        """Verify pill button IDs are present."""
+        from layout.citadel import _citadel_controls
+        layout = _citadel_controls()
+        layout_str = str(layout)
+        for wl in ["starter", "full", "bitcoin"]:
+            assert f"cp-pill-{wl}" in layout_str
+        for reg in ["bear", "neutral", "bull"]:
+            assert f"cp-pill-{reg}" in layout_str
+        for rs in ["no_rebal", "cautious", "aggressive"]:
+            assert f"cp-pill-{rs}" in layout_str

@@ -132,7 +132,7 @@ def step(state: CitadelState, config: SimConfig,
     _date_mo = min(max(1, int((_date_years % 1) * 12) + 1), 12)
     new.sim_date = f"{_date_yr}-{_date_mo:02d}-15"
 
-    is_deterministic = (config.n_sims == 1)
+    deterministic = (config.n_sims == 1)
 
     # 1. Update BTC price
     new.btc_price = btc_price_new
@@ -140,7 +140,7 @@ def step(state: CitadelState, config: SimConfig,
     # 2. Dollar-asset returns
     use_markov = (config.asset_return_model == "markov"
                   and config.asset_matrices is not None
-                  and not is_deterministic)
+                  and config.n_sims > 1)
 
     # Cash: always deterministic (zero volatility)
     new.cash *= (1 + config.cash_rate / 100) ** (1.0 / ppy)
@@ -162,7 +162,7 @@ def step(state: CitadelState, config: SimConfig,
                 # Fallback to lognormal
                 rb = config.reserve_bins[i]
                 r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
-                                      deterministic=is_deterministic, rng=rng)
+                                      deterministic=deterministic, rng=rng)
                 new.reserves[i] *= (1 + r)
 
         for i, (mkey, rattr) in enumerate(zip(_inv_keys, _inv_regime_attrs)):
@@ -173,42 +173,105 @@ def step(state: CitadelState, config: SimConfig,
             else:
                 ib = config.invest_bins[i]
                 r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
-                                      deterministic=is_deterministic, rng=rng)
+                                      deterministic=deterministic, rng=rng)
                 new.investments[i] *= (1 + r)
     else:
         # Lognormal returns (user-input rates/volatility)
         for i, rb in enumerate(config.reserve_bins):
             r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
-                                  deterministic=is_deterministic, rng=rng)
+                                  deterministic=deterministic, rng=rng)
             new.reserves[i] *= (1 + r)
         for i, ib in enumerate(config.invest_bins):
             r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
-                                  deterministic=is_deterministic, rng=rng)
+                                  deterministic=deterministic, rng=rng)
             new.investments[i] *= (1 + r)
 
-    # 2b. TD/TF wrapper growth (same rates as taxable wrapper)
+    # 2b. TD/TF wrapper growth (same return model as taxable wrapper)
     if config.tax_enabled:
         cash_growth = (1 + config.cash_rate / 100) ** (1.0 / ppy)
         new.td_cash *= cash_growth
         new.tf_cash *= cash_growth
-        for i, rb in enumerate(config.reserve_bins):
-            r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
-                                  deterministic=is_deterministic, rng=rng)
-            if i < len(new.td_reserves):
-                new.td_reserves[i] *= (1 + r)
-            r2 = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
-                                   deterministic=is_deterministic, rng=rng)
-            if i < len(new.tf_reserves):
-                new.tf_reserves[i] *= (1 + r2)
-        for i, ib in enumerate(config.invest_bins):
-            r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
-                                  deterministic=is_deterministic, rng=rng)
-            if i < len(new.td_investments):
-                new.td_investments[i] *= (1 + r)
-            r2 = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
-                                   deterministic=is_deterministic, rng=rng)
-            if i < len(new.tf_investments):
-                new.tf_investments[i] *= (1 + r2)
+
+        if use_markov:
+            am = config.asset_matrices
+            _res_keys = ["tres_short", "tres_med", "tres_long"]
+            _inv_keys = ["equity", "bond"]
+
+            # TD reserves
+            for i, mkey in enumerate(_res_keys):
+                rattr = f"td_res_{'short' if i == 0 else 'med' if i == 1 else 'long'}_regime"
+                if mkey in am:
+                    ret, nr = _markov_return(am[mkey], getattr(new, rattr), rng)
+                    setattr(new, rattr, nr)
+                    if i < len(new.td_reserves):
+                        new.td_reserves[i] *= (1 + ret)
+                elif i < len(new.td_reserves):
+                    rb = config.reserve_bins[i]
+                    r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
+                                          deterministic=deterministic, rng=rng)
+                    new.td_reserves[i] *= (1 + r)
+
+            # TF reserves
+            for i, mkey in enumerate(_res_keys):
+                rattr = f"tf_res_{'short' if i == 0 else 'med' if i == 1 else 'long'}_regime"
+                if mkey in am:
+                    ret, nr = _markov_return(am[mkey], getattr(new, rattr), rng)
+                    setattr(new, rattr, nr)
+                    if i < len(new.tf_reserves):
+                        new.tf_reserves[i] *= (1 + ret)
+                elif i < len(new.tf_reserves):
+                    rb = config.reserve_bins[i]
+                    r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
+                                          deterministic=deterministic, rng=rng)
+                    new.tf_reserves[i] *= (1 + r)
+
+            # TD investments
+            for i, mkey in enumerate(_inv_keys):
+                rattr = f"td_{'equity' if i == 0 else 'bond'}_regime"
+                if mkey in am:
+                    ret, nr = _markov_return(am[mkey], getattr(new, rattr), rng)
+                    setattr(new, rattr, nr)
+                    if i < len(new.td_investments):
+                        new.td_investments[i] *= (1 + ret)
+                elif i < len(new.td_investments):
+                    ib = config.invest_bins[i]
+                    r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
+                                          deterministic=deterministic, rng=rng)
+                    new.td_investments[i] *= (1 + r)
+
+            # TF investments
+            for i, mkey in enumerate(_inv_keys):
+                rattr = f"tf_{'equity' if i == 0 else 'bond'}_regime"
+                if mkey in am:
+                    ret, nr = _markov_return(am[mkey], getattr(new, rattr), rng)
+                    setattr(new, rattr, nr)
+                    if i < len(new.tf_investments):
+                        new.tf_investments[i] *= (1 + ret)
+                elif i < len(new.tf_investments):
+                    ib = config.invest_bins[i]
+                    r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
+                                          deterministic=deterministic, rng=rng)
+                    new.tf_investments[i] *= (1 + r)
+        else:
+            # Lognormal returns for TD/TF (original behavior)
+            for i, rb in enumerate(config.reserve_bins):
+                r = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
+                                      deterministic=deterministic, rng=rng)
+                if i < len(new.td_reserves):
+                    new.td_reserves[i] *= (1 + r)
+                r2 = _lognormal_return(rb["rate"] / 100, rb["volatility"] / 100, ppy,
+                                       deterministic=deterministic, rng=rng)
+                if i < len(new.tf_reserves):
+                    new.tf_reserves[i] *= (1 + r2)
+            for i, ib in enumerate(config.invest_bins):
+                r = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
+                                      deterministic=deterministic, rng=rng)
+                if i < len(new.td_investments):
+                    new.td_investments[i] *= (1 + r)
+                r2 = _lognormal_return(ib["return_rate"] / 100, ib["volatility"] / 100, ppy,
+                                       deterministic=deterministic, rng=rng)
+                if i < len(new.tf_investments):
+                    new.tf_investments[i] *= (1 + r2)
 
     # 2c. Accumulate taxable-wrapper interest income per period
     # Use PRE-GROWTH balances to avoid double-counting (the growth IS the interest)

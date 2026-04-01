@@ -35,6 +35,26 @@ def _initial_state(config: SimConfig, model: "PriceModel | None" = None) -> Cita
         investments=list(inv_initials),
         invest_cost_basis=inv_basis,
     )
+
+    # Seed taxable-wrapper regimes from config
+    state.equity_regime = config.initial_equity_regime
+    state.bond_regime = config.initial_bond_regime
+    state.res_short_regime = config.initial_res_short_regime
+    state.res_med_regime = config.initial_res_med_regime
+    state.res_long_regime = config.initial_res_long_regime
+
+    # Seed TD/TF wrapper regimes from config (same starting point as taxable)
+    state.td_equity_regime = config.initial_equity_regime
+    state.td_bond_regime = config.initial_bond_regime
+    state.td_res_short_regime = config.initial_res_short_regime
+    state.td_res_med_regime = config.initial_res_med_regime
+    state.td_res_long_regime = config.initial_res_long_regime
+    state.tf_equity_regime = config.initial_equity_regime
+    state.tf_bond_regime = config.initial_bond_regime
+    state.tf_res_short_regime = config.initial_res_short_regime
+    state.tf_res_med_regime = config.initial_res_med_regime
+    state.tf_res_long_regime = config.initial_res_long_regime
+
     if config.scf_enabled and config.scf_amount > 0 and btc_price > 0:
         btc_bought = config.scf_amount / btc_price
         state.btc_stack += btc_bought
@@ -170,17 +190,35 @@ def _aggregate_results(all_histories: list[list[dict]], config: SimConfig,
             all_annual_taxes.append(sim_annual_taxes[s] if s < len(sim_annual_taxes) else [])
 
     # Compute median and percentiles across sims
-    asset_keys = {
-        "btc_usd": btc_h * btc_p,
-        "cash": cash_b,
-        "reserves_total": res_b.sum(axis=2),
-        "investments_total": inv_b.sum(axis=2),
-        "total": total,
+    _zero = np.zeros((n_sims, n_periods)) if n_sims > 0 else np.zeros((1, n_periods))
+    _btc_usd = btc_h * btc_p
+    _res_total = res_b.sum(axis=2)
+    _inv_total = inv_b.sum(axis=2)
+    _td = td_total_arr if td_total_arr is not None else np.zeros((n_sims, n_periods))
+    _tf = tf_total_arr if tf_total_arr is not None else np.zeros((n_sims, n_periods))
+    _tax = taxes_paid_arr if taxes_paid_arr is not None else np.zeros((n_sims, n_periods))
+
+    # Build series dict for consistent iteration
+    series = {
+        "total": total, "btc_stack": btc_h, "btc_usd": _btc_usd,
+        "cash": cash_b, "reserves_total": _res_total,
+        "investments_total": _inv_total,
+        "td_total": _td, "tf_total": _tf,
+        "cumulative_spend": cum_spend, "taxes_paid": _tax,
     }
-    median = {k: np.median(v, axis=0) for k, v in asset_keys.items()}
+
+    # Median across all 10 numeric series
+    median = {k: np.median(v, axis=0) for k, v in series.items()}
+    # Depletion: fraction of sims depleted at each step (not a percentile)
+    median["depletion"] = (total <= 0).astype(np.float64).mean(axis=0)
+
+    # Percentiles (7 levels) across all 10 numeric series
+    depletion_frac = median["depletion"]  # same for all percentile levels
     percentiles = {}
-    for pct in [5, 25, 75, 95]:
-        percentiles[pct] = {k: np.percentile(v, pct, axis=0) for k, v in asset_keys.items()}
+    for pct in [5, 10, 25, 50, 75, 90, 95]:
+        pct_dict = {k: np.percentile(v, pct, axis=0) for k, v in series.items()}
+        pct_dict["depletion"] = depletion_frac  # fraction, not percentile
+        percentiles[pct] = pct_dict
 
     return SimResult(
         time_axis=time_axis, btc_holdings=btc_h, btc_prices=btc_p,

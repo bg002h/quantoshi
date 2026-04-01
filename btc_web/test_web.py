@@ -2476,7 +2476,7 @@ class TestConfigAnnotations:
         p = dict(selected_qs=[0.1, 0.5, 0.85], amount=200, freq="Monthly",
                  start_yr=2025, end_yr=2035, start_stack=0.5, log_y=True)
         text = _build_qr_config_text(p, "dca")
-        assert "QR:" in text
+        assert "Quantiles:" in text
         assert "Q10%" in text
         assert "Q50%" in text
         assert "Q85%" in text
@@ -2490,7 +2490,7 @@ class TestConfigAnnotations:
     def test_qr_config_text_empty_quantiles(self):
         p = dict(selected_qs=[], start_yr=2025, end_yr=2035)
         text = _build_qr_config_text(p, "dca")
-        assert "QR: none" in text
+        assert "Q50%" in text  # fallback to Q50%
 
     def test_qr_config_text_retire(self):
         p = dict(selected_qs=[0.01], wd_amount=5000, freq="Annually",
@@ -2521,7 +2521,7 @@ class TestConfigAnnotations:
         p = dict(selected_qs=[0.5], start_yr=2025, end_yr=2035)
         _apply_config_annotation(fig, p, "dca", show_qr=True, show_mc=False)
         assert fig.layout.xaxis.title.text is not None
-        assert "QR:" in fig.layout.xaxis.title.text
+        assert "Quantiles:" in fig.layout.xaxis.title.text
         assert "MC" not in fig.layout.xaxis.title.text
 
     def test_apply_config_annotation_both(self):
@@ -2532,7 +2532,7 @@ class TestConfigAnnotations:
                  mc_sims=800, mc_freq="Monthly")
         _apply_config_annotation(fig, p, "dca", show_qr=True, show_mc=True)
         text = fig.layout.xaxis.title.text
-        assert "QR:" in text
+        assert "Quantiles:" in text
         assert "MC DCA" in text
         assert "<br>" in text  # two lines
 
@@ -2552,7 +2552,7 @@ class TestConfigAnnotations:
                  show_legend=False)
         fig = build_bubble_figure(M, p)
         xtitle = fig.layout.xaxis.title.text
-        assert xtitle is not None and "QR:" in xtitle
+        assert xtitle is not None and "Quantiles:" in xtitle
 
     def test_dca_figure_show_qr_false_hides_qr_annotation(self):
         p = dict(start_yr=2025, end_yr=2035, start_stack=0, amount=100,
@@ -2561,7 +2561,7 @@ class TestConfigAnnotations:
                  lots=[], use_lots=False, show_qr=False, show_mc=False)
         fig, _ = build_dca_figure(M, p)
         xtitle = fig.layout.xaxis.title.text or ""
-        assert "QR:" not in xtitle
+        assert "Quantiles:" not in xtitle
 
     def test_model_show_snapshot_roundtrip(self):
         """Verify model-show controls survive snapshot encode/decode."""
@@ -8039,3 +8039,846 @@ class TestDynamicWaterfall:
         brackets = _inflate_brackets(FEDERAL_BRACKETS_TCJA["single"], 6, 0.04)
         expected = std_ded + brackets[0][0]
         assert max_draw == pytest.approx(expected, rel=0.01)
+
+
+# ── Phase 1: Unified Citadel MC ──────────────────────────────────────────────
+
+class TestInitialRegimeConfig:
+    def test_default_initial_regimes_are_neutral(self):
+        from engines.citadel_types import SimConfig
+        cfg = SimConfig()
+        assert cfg.initial_equity_regime == 2
+        assert cfg.initial_bond_regime == 2
+        assert cfg.initial_res_short_regime == 2
+        assert cfg.initial_res_med_regime == 2
+        assert cfg.initial_res_long_regime == 2
+
+    def test_initial_regimes_are_configurable(self):
+        from engines.citadel_types import SimConfig
+        cfg = SimConfig(
+            initial_equity_regime=0,
+            initial_bond_regime=4,
+            initial_res_short_regime=1,
+            initial_res_med_regime=3,
+            initial_res_long_regime=0,
+        )
+        assert cfg.initial_equity_regime == 0
+        assert cfg.initial_bond_regime == 4
+
+
+class TestInitialRegimeWiring:
+    def test_td_tf_regime_fields_exist(self):
+        from engines.citadel_types import CitadelState
+        state = CitadelState()
+        assert state.td_equity_regime == 2
+        assert state.td_bond_regime == 2
+        assert state.td_res_short_regime == 2
+        assert state.td_res_med_regime == 2
+        assert state.td_res_long_regime == 2
+        assert state.tf_equity_regime == 2
+        assert state.tf_bond_regime == 2
+        assert state.tf_res_short_regime == 2
+        assert state.tf_res_med_regime == 2
+        assert state.tf_res_long_regime == 2
+
+    def test_initial_state_uses_config_regimes(self):
+        from engines.citadel_types import SimConfig
+        from engines.citadel_sim import _initial_state
+        cfg = SimConfig()
+        cfg.initial_equity_regime = 0
+        cfg.initial_bond_regime = 4
+        cfg.initial_res_short_regime = 1
+        cfg.initial_res_med_regime = 3
+        cfg.initial_res_long_regime = 0
+        state = _initial_state(cfg, model=None)
+        assert state.equity_regime == 0
+        assert state.bond_regime == 4
+        assert state.res_short_regime == 1
+        assert state.res_med_regime == 3
+        assert state.res_long_regime == 0
+
+    def test_initial_state_seeds_td_tf_regimes_unconditionally(self):
+        """TD/TF regimes seeded from config regardless of tax_enabled."""
+        from engines.citadel_types import SimConfig
+        from engines.citadel_sim import _initial_state
+        cfg = SimConfig()
+        cfg.tax_enabled = False
+        cfg.initial_equity_regime = 4
+        cfg.initial_bond_regime = 0
+        state = _initial_state(cfg, model=None)
+        assert state.td_equity_regime == 4
+        assert state.td_bond_regime == 0
+        assert state.tf_equity_regime == 4
+        assert state.tf_bond_regime == 0
+
+
+class TestMarkovGuard:
+    def _make_markov_config(self, n_sims=10):
+        import numpy as np
+        from engines.citadel_types import SimConfig
+        matrices = {}
+        for key in ("equity", "bond", "tres_short", "tres_med", "tres_long"):
+            n_bins = 5
+            trans = np.ones((n_bins, n_bins)) / n_bins
+            bin_means = np.array([-0.02, -0.005, 0.005, 0.01, 0.02])
+            bin_vols = np.array([0.01, 0.005, 0.003, 0.005, 0.01])
+            matrices[key] = {"trans": trans, "bin_means": bin_means, "bin_vols": bin_vols}
+        cfg = SimConfig()
+        cfg.asset_return_model = "markov"
+        cfg.asset_matrices = matrices
+        cfg.n_sims = n_sims
+        return cfg
+
+    def test_markov_fires_when_n_sims_gt_1(self):
+        import numpy as np
+        from engines.citadel_step import step
+        from engines.citadel_sim import _initial_state
+        cfg = self._make_markov_config(n_sims=10)
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=None)
+        for _ in range(20):
+            state = step(state, cfg, 100_000.0, rng, model=None)
+        regimes = [state.equity_regime, state.bond_regime,
+                   state.res_short_regime, state.res_med_regime, state.res_long_regime]
+        assert any(r != 2 for r in regimes), "After 20 Markov steps, at least one regime should change"
+
+    def test_markov_does_not_fire_when_n_sims_1(self):
+        import numpy as np
+        from engines.citadel_step import step
+        from engines.citadel_sim import _initial_state
+        cfg = self._make_markov_config(n_sims=1)
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=None)
+        state = step(state, cfg, 100_000.0, rng, model=None)
+        assert state.equity_regime == 2
+        assert state.bond_regime == 2
+
+
+class TestTdTfMarkovReturns:
+    def _make_markov_config(self, n_sims=10):
+        import numpy as np
+        from engines.citadel_types import SimConfig
+        matrices = {}
+        for key in ("equity", "bond", "tres_short", "tres_med", "tres_long"):
+            n_bins = 5
+            trans = np.ones((n_bins, n_bins)) / n_bins
+            bin_means = np.array([-0.02, -0.005, 0.005, 0.01, 0.02])
+            bin_vols = np.array([0.01, 0.005, 0.003, 0.005, 0.01])
+            matrices[key] = {"trans": trans, "bin_means": bin_means, "bin_vols": bin_vols}
+        cfg = SimConfig()
+        cfg.asset_return_model = "markov"
+        cfg.asset_matrices = matrices
+        cfg.n_sims = n_sims
+        cfg.tax_enabled = True
+        return cfg
+
+    def test_td_regimes_evolve_under_markov(self):
+        import numpy as np
+        from engines.citadel_step import step
+        from engines.citadel_sim import _initial_state
+        cfg = self._make_markov_config(n_sims=10)
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=None)
+        for _ in range(30):
+            state = step(state, cfg, 100_000.0, rng, model=None)
+        td_regimes = [state.td_equity_regime, state.td_bond_regime,
+                      state.td_res_short_regime, state.td_res_med_regime,
+                      state.td_res_long_regime]
+        assert any(r != 2 for r in td_regimes), "TD regimes should evolve under Markov"
+
+    def test_tf_regimes_evolve_under_markov(self):
+        import numpy as np
+        from engines.citadel_step import step
+        from engines.citadel_sim import _initial_state
+        cfg = self._make_markov_config(n_sims=10)
+        rng = np.random.default_rng(99)
+        state = _initial_state(cfg, model=None)
+        for _ in range(30):
+            state = step(state, cfg, 100_000.0, rng, model=None)
+        tf_regimes = [state.tf_equity_regime, state.tf_bond_regime]
+        assert any(r != 2 for r in tf_regimes), "TF regimes should evolve under Markov"
+
+    def test_td_tf_use_lognormal_when_n_sims_1(self):
+        import numpy as np
+        from engines.citadel_step import step
+        from engines.citadel_sim import _initial_state
+        cfg = self._make_markov_config(n_sims=1)
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=None)
+        state = step(state, cfg, 100_000.0, rng, model=None)
+        assert state.td_equity_regime == 2, "TD regimes unchanged when n_sims=1"
+        assert state.tf_equity_regime == 2, "TF regimes unchanged when n_sims=1"
+
+
+class TestBandAggregation:
+    def test_compute_bands_returns_7_percentiles(self):
+        from engines.citadel_bands import compute_bands, BAND_PERCENTILES
+        assert BAND_PERCENTILES == (5, 10, 25, 50, 75, 90, 95)
+
+    def test_compute_bands_returns_11_series(self):
+        from engines.citadel_bands import BAND_SERIES
+        assert len(BAND_SERIES) == 11
+        assert "total" in BAND_SERIES
+        assert "btc_stack" in BAND_SERIES
+        assert "td_total" in BAND_SERIES
+        assert "tf_total" in BAND_SERIES
+        assert "depletion" in BAND_SERIES
+
+    def test_band_ordering(self):
+        """P5 <= P25 <= P50 <= P75 <= P95 for total portfolio."""
+        import numpy as np
+        from engines.citadel_types import SimConfig
+        from engines.citadel_sim import simulate
+        from engines.citadel_bands import compute_bands
+        cfg = SimConfig()
+        cfg.start_yr = 2031; cfg.end_yr = 2032
+        paths = np.array([[20000 + i * 30000 + j * 100 for j in range(12)]
+                          for i in range(20)])
+        result = simulate(cfg, model=None, price_paths=paths)
+        bands = compute_bands(result)
+        for t in range(12):
+            vals = [bands[p]["total"][t] for p in [5, 25, 50, 75, 95]]
+            for k in range(len(vals) - 1):
+                assert vals[k] <= vals[k + 1] + 1e-6
+
+
+class TestDevBypass:
+    def test_dev_bypass_exists_in_mc_payment(self):
+        import inspect
+        from callbacks import mc_payment
+        source = inspect.getsource(mc_payment)
+        assert "DEV" in source, "mc_payment should check DEV env var for bypass"
+
+
+class TestUnifiedMcIntegration:
+    def _make_matrices(self):
+        import numpy as np
+        matrices = {}
+        for key in ("equity", "bond", "tres_short", "tres_med", "tres_long"):
+            n_bins = 5
+            trans = np.full((n_bins, n_bins), 0.05)
+            np.fill_diagonal(trans, 0.80)
+            trans /= trans.sum(axis=1, keepdims=True)
+            bin_means = np.array([-0.03, -0.01, 0.005, 0.015, 0.03])
+            bin_vols = np.array([0.015, 0.008, 0.005, 0.008, 0.015])
+            matrices[key] = {"trans": trans, "bin_means": bin_means, "bin_vols": bin_vols}
+        return matrices
+
+    def test_full_mc_20_sims_produces_spread(self):
+        import numpy as np
+        from engines.citadel_types import SimConfig
+        from engines.citadel_sim import simulate
+        cfg = SimConfig()
+        cfg.start_yr = 2031; cfg.end_yr = 2033
+        cfg.asset_return_model = "markov"
+        cfg.asset_matrices = self._make_matrices()
+        cfg.initial_equity_regime = 4  # Bull
+        cfg.initial_bond_regime = 0    # Bear
+        rng = np.random.default_rng(123)
+        base = np.linspace(50000, 150000, 24)
+        paths = np.array([base * (1 + rng.normal(0, 0.1, 24)) for _ in range(20)])
+        result = simulate(cfg, model=None, price_paths=paths)
+        assert result.total_usd.shape == (20, 24)
+        assert set(result.percentiles.keys()) == {5, 10, 25, 50, 75, 90, 95}
+        p5 = result.percentiles[5]["total"]
+        p95 = result.percentiles[95]["total"]
+        assert np.any(p95 > p5 + 1.0), "MC should produce nonzero spread"
+
+    def test_deterministic_unchanged(self):
+        """n_sims=1 with a single price path: all percentiles identical."""
+        import numpy as np
+        from engines.citadel_types import SimConfig
+        from engines.citadel_sim import simulate
+        cfg = SimConfig()
+        cfg.start_yr = 2031; cfg.end_yr = 2033; cfg.n_sims = 1
+        paths = np.array([[80000 + j * 200 for j in range(24)]])
+        result = simulate(cfg, model=None, price_paths=paths)
+        assert result.total_usd.shape[0] == 1
+        for key in ["total", "btc_usd", "cash"]:
+            np.testing.assert_array_almost_equal(
+                result.percentiles[5][key], result.percentiles[95][key],
+                err_msg=f"Deterministic: P5 should equal P95 for {key}")
+
+    def test_bands_match_standalone_compute(self):
+        import numpy as np
+        from engines.citadel_types import SimConfig
+        from engines.citadel_sim import simulate
+        from engines.citadel_bands import compute_bands
+        cfg = SimConfig()
+        cfg.start_yr = 2031; cfg.end_yr = 2032
+        paths = np.array([[50000 + i * 10000 + j * 100 for j in range(12)]
+                          for i in range(10)])
+        result = simulate(cfg, model=None, price_paths=paths)
+        bands = compute_bands(result)
+        for pct in [5, 50, 95]:
+            np.testing.assert_array_almost_equal(
+                bands[pct]["total"], result.percentiles[pct]["total"])
+
+
+# ── Phase 2: Citadel Presets & Cache ─────────────────────────────────────────
+
+class TestCitadelPresets:
+    def test_wealth_levels_exist(self):
+        from citadel_presets import WEALTH_LEVELS
+        assert set(WEALTH_LEVELS.keys()) == {"starter", "full", "bitcoin"}
+
+    def test_wealth_level_has_required_keys(self):
+        from citadel_presets import WEALTH_LEVELS
+        required = {"label", "dollar_assets", "btc", "monthly_spend",
+                    "spend_growth", "inflation", "allocation"}
+        for key, wl in WEALTH_LEVELS.items():
+            assert required.issubset(wl.keys()), f"{key} missing {required - wl.keys()}"
+
+    def test_allocation_sums_to_100(self):
+        from citadel_presets import WEALTH_LEVELS
+        for key, wl in WEALTH_LEVELS.items():
+            total = sum(wl["allocation"].values())
+            assert abs(total - 100) < 0.01, f"{key} allocation sums to {total}"
+
+    def test_macro_regimes_exist(self):
+        from citadel_presets import MACRO_REGIMES
+        assert set(MACRO_REGIMES.keys()) == {"bear", "neutral", "bull"}
+        assert MACRO_REGIMES["bear"]["bin"] == 0
+        assert MACRO_REGIMES["neutral"]["bin"] == 2
+        assert MACRO_REGIMES["bull"]["bin"] == 4
+
+    def test_rule_sets_exist(self):
+        from citadel_presets import RULE_SETS
+        assert set(RULE_SETS.keys()) == {"no_rebal", "cautious", "aggressive"}
+
+    def test_cache_dimensions(self):
+        from citadel_presets import (BTC_MODELS, BTC_ENTRY_QS, START_YEARS,
+                                     SIMS_PER_SCENARIO, WEALTH_LEVELS,
+                                     MACRO_REGIMES, RULE_SETS, TAX_STATUSES)
+        assert BTC_MODELS == ["bub", "qr", "pl", "lppl", "ef"]
+        assert BTC_ENTRY_QS == [1, 10, 50]
+        assert START_YEARS == [2028, 2035]
+        assert SIMS_PER_SCENARIO == 800
+        total = (len(BTC_MODELS) * len(BTC_ENTRY_QS) * len(MACRO_REGIMES) *
+                 len(WEALTH_LEVELS) * len(RULE_SETS) * len(START_YEARS) *
+                 len(TAX_STATUSES))
+        assert total == 1620
+
+    def test_build_config_returns_simconfig(self):
+        from citadel_presets import build_config
+        from engines.citadel_types import SimConfig
+        cfg = build_config(
+            wealth="starter", regime="neutral", rules="no_rebal",
+            start_year=2035, tax_status="single",
+        )
+        assert isinstance(cfg, SimConfig)
+
+    def test_build_config_starter_values(self):
+        from citadel_presets import build_config
+        cfg = build_config(
+            wealth="starter", regime="neutral", rules="no_rebal",
+            start_year=2035, tax_status="single",
+        )
+        assert cfg.start_stack == 0.5
+        assert cfg.monthly_spend == 5000
+        assert cfg.cash_initial == 50_000
+        assert cfg.start_yr == 2035
+        assert cfg.end_yr == 2075
+        assert cfg.freq == "Monthly"
+        assert cfg.inflation == 4.0
+
+    def test_build_config_regime_sets_initial_regimes(self):
+        from citadel_presets import build_config
+        cfg = build_config(
+            wealth="starter", regime="bull", rules="no_rebal",
+            start_year=2035, tax_status="single",
+        )
+        assert cfg.initial_equity_regime == 4
+        assert cfg.initial_bond_regime == 4
+        assert cfg.initial_res_short_regime == 4
+        assert cfg.initial_res_med_regime == 4
+        assert cfg.initial_res_long_regime == 4
+
+    def test_build_config_tax_status_mfj(self):
+        from citadel_presets import build_config
+        cfg = build_config(
+            wealth="starter", regime="neutral", rules="no_rebal",
+            start_year=2035, tax_status="mfj",
+        )
+        assert cfg.tax_enabled is True
+        assert cfg.filing_status == "mfj"
+
+    def test_build_config_tax_status_single(self):
+        from citadel_presets import build_config
+        cfg = build_config(
+            wealth="starter", regime="neutral", rules="no_rebal",
+            start_year=2035, tax_status="single",
+        )
+        assert cfg.tax_enabled is True
+        assert cfg.filing_status == "single"
+
+    def test_build_config_loads_asset_matrices(self):
+        from citadel_presets import build_config
+        cfg = build_config(
+            wealth="starter", regime="neutral", rules="no_rebal",
+            start_year=2035, tax_status="single",
+        )
+        assert cfg.asset_matrices is not None
+        assert "equity" in cfg.asset_matrices
+        assert "bond" in cfg.asset_matrices
+        assert "tres_short" in cfg.asset_matrices
+
+
+class TestCitadelBandCache:
+    def test_band_cache_key_format(self):
+        from citadel_band_cache import band_cache_key
+        key = band_cache_key("bub", 10, "neutral", "starter",
+                             "no_rebal", 2035, "single")
+        assert key == "bub_q10_neutral_starter_no_rebal_2035_single"
+
+    def test_band_cache_key_all_combos_unique(self):
+        from citadel_band_cache import band_cache_key
+        from citadel_presets import (BTC_MODELS, BTC_ENTRY_QS, MACRO_REGIMES,
+                                     WEALTH_LEVELS, RULE_SETS, START_YEARS,
+                                     TAX_STATUSES)
+        keys = set()
+        for model in BTC_MODELS:
+            for eq in BTC_ENTRY_QS:
+                for regime in MACRO_REGIMES:
+                    for wealth in WEALTH_LEVELS:
+                        for rules in RULE_SETS:
+                            for yr in START_YEARS:
+                                for tax in TAX_STATUSES:
+                                    k = band_cache_key(model, eq, regime,
+                                                       wealth, rules, yr, tax)
+                                    keys.add(k)
+        assert len(keys) == 1620
+
+    def test_pack_unpack_bands_roundtrip(self):
+        import numpy as np
+        from citadel_band_cache import pack_bands, unpack_bands
+        from engines.citadel_bands import BAND_PERCENTILES, BAND_SERIES
+        n_periods = 480
+        bands = {}
+        for pct in BAND_PERCENTILES:
+            bands[pct] = {}
+            for series in BAND_SERIES:
+                bands[pct][series] = np.random.rand(n_periods).astype(np.float32)
+        packed = pack_bands(bands)
+        assert isinstance(packed, np.ndarray)
+        assert packed.dtype == np.float32
+        unpacked = unpack_bands(packed)
+        for pct in BAND_PERCENTILES:
+            for series in BAND_SERIES:
+                np.testing.assert_array_almost_equal(
+                    unpacked[pct][series], bands[pct][series], decimal=5)
+
+    def test_store_and_lookup(self, tmp_path):
+        import numpy as np
+        from citadel_band_cache import store_entry, lookup_entry
+        from engines.citadel_bands import BAND_PERCENTILES, BAND_SERIES
+        n_periods = 24
+        bands = {}
+        for pct in BAND_PERCENTILES:
+            bands[pct] = {s: np.ones(n_periods, dtype=np.float32) * pct
+                          for s in BAND_SERIES}
+        store_entry("bub", 10, "neutral", "starter", "no_rebal",
+                    2035, "single", bands, cache_dir=tmp_path)
+        result = lookup_entry("bub", 10, "neutral", "starter", "no_rebal",
+                              2035, "single", cache_dir=tmp_path)
+        assert result is not None
+        for pct in BAND_PERCENTILES:
+            np.testing.assert_array_almost_equal(
+                result[pct]["total"], np.ones(n_periods) * pct, decimal=5)
+
+    def test_lookup_missing_returns_none(self, tmp_path):
+        from citadel_band_cache import lookup_entry
+        result = lookup_entry("bub", 10, "neutral", "starter", "no_rebal",
+                              2035, "single", cache_dir=tmp_path)
+
+        assert result is None
+
+class TestCitadelBandGeneration:
+    def test_generate_single_entry(self, tmp_path):
+        """Smoke test: generate one combo with 5 sims (fast)."""
+        import numpy as np
+        from citadel_presets import build_config
+        from engines.citadel_sim import simulate
+        from engines.citadel_bands import compute_bands, BAND_PERCENTILES, BAND_SERIES
+        from citadel_band_cache import store_entry, lookup_entry
+
+        cfg = build_config(
+            wealth="starter", regime="neutral", rules="no_rebal",
+            start_year=2035, tax_status="single",
+        )
+        cfg.end_yr = 2036  # 1 year = 12 periods (fast)
+        n_sims = 5
+        n_periods = 12
+        rng = np.random.default_rng(42)
+        base = np.linspace(80000, 120000, n_periods)
+        paths = np.array([base * (1 + rng.normal(0, 0.05, n_periods))
+                          for _ in range(n_sims)])
+        result = simulate(cfg, model=None, price_paths=paths)
+        bands = compute_bands(result)
+        store_entry("bub", 10, "neutral", "starter", "no_rebal",
+                    2035, "single", bands, cache_dir=tmp_path)
+        loaded = lookup_entry("bub", 10, "neutral", "starter", "no_rebal",
+                              2035, "single", cache_dir=tmp_path)
+        assert loaded is not None
+        assert set(loaded.keys()) == set(BAND_PERCENTILES)
+        assert set(loaded[50].keys()) == set(BAND_SERIES)
+        assert len(loaded[50]["total"]) == n_periods
+
+    def test_generate_preserves_band_ordering(self, tmp_path):
+        """P5 <= P50 <= P95 in generated bands."""
+        import numpy as np
+        from citadel_presets import build_config
+        from engines.citadel_sim import simulate
+        from engines.citadel_bands import compute_bands
+        from citadel_band_cache import store_entry, lookup_entry
+
+        cfg = build_config(
+            wealth="full", regime="bear", rules="cautious",
+            start_year=2028, tax_status="mfj",
+        )
+        cfg.end_yr = 2029
+        n_sims = 20
+        n_periods = 12
+        rng = np.random.default_rng(99)
+        base = np.linspace(50000, 100000, n_periods)
+        paths = np.array([base * (1 + rng.normal(0, 0.15, n_periods))
+                          for _ in range(n_sims)])
+        result = simulate(cfg, model=None, price_paths=paths)
+        bands = compute_bands(result)
+        store_entry("pl", 50, "bear", "full", "cautious",
+                    2028, "mfj", bands, cache_dir=tmp_path)
+        loaded = lookup_entry("pl", 50, "bear", "full", "cautious",
+                              2028, "mfj", cache_dir=tmp_path)
+        for t in range(n_periods):
+            assert loaded[5]["total"][t] <= loaded[50]["total"][t] + 1e-6
+            assert loaded[50]["total"][t] <= loaded[95]["total"][t] + 1e-6
+
+
+class TestCitadelBandCacheLoader:
+    @pytest.fixture(autouse=True)
+    def _clear_band_cache(self):
+        """Isolate tests from shared module state."""
+        from citadel_band_cache import _BAND_CACHE
+        _BAND_CACHE.clear()
+        yield
+        _BAND_CACHE.clear()
+
+    def test_load_band_caches_from_disk(self, tmp_path):
+        import numpy as np
+        from citadel_band_cache import store_entry, load_band_caches, _BAND_CACHE
+        from engines.citadel_bands import BAND_PERCENTILES, BAND_SERIES
+        n_periods = 12
+        bands = {}
+        for pct in BAND_PERCENTILES:
+            bands[pct] = {s: np.ones(n_periods, dtype=np.float32) * pct
+                          for s in BAND_SERIES}
+        store_entry("bub", 10, "neutral", "starter", "no_rebal",
+                    2035, "single", bands, cache_dir=tmp_path)
+        load_band_caches(cache_dir=tmp_path)
+        assert len(_BAND_CACHE) == 1
+        key = "bub_q10_neutral_starter_no_rebal_2035_single"
+        assert key in _BAND_CACHE
+
+    def test_load_empty_dir(self, tmp_path):
+        from citadel_band_cache import load_band_caches, _BAND_CACHE
+        load_band_caches(cache_dir=tmp_path)
+        assert len(_BAND_CACHE) == 0
+
+
+class TestCitadelBandCacheIntegration:
+    def test_full_pipeline_build_simulate_store_lookup(self, tmp_path):
+        """End-to-end: build_config -> simulate -> compute_bands -> store -> lookup."""
+        import numpy as np
+        from citadel_presets import build_config
+        from engines.citadel_sim import simulate
+        from engines.citadel_bands import compute_bands, BAND_PERCENTILES, BAND_SERIES
+        from citadel_band_cache import store_entry, lookup_entry
+
+        cfg = build_config(
+            wealth="bitcoin", regime="bull", rules="aggressive",
+            start_year=2028, tax_status="mfj",
+        )
+        cfg.end_yr = 2029  # 12 periods for speed
+        n_sims = 10
+        n_periods = 12
+        rng = np.random.default_rng(77)
+        base = np.linspace(60000, 200000, n_periods)
+        paths = np.array([base * (1 + rng.normal(0, 0.1, n_periods))
+                          for _ in range(n_sims)])
+
+        result = simulate(cfg, model=None, price_paths=paths)
+        bands = compute_bands(result)
+
+        store_entry("bub", 50, "bull", "bitcoin", "aggressive",
+                    2028, "mfj", bands, cache_dir=tmp_path)
+
+        loaded = lookup_entry("bub", 50, "bull", "bitcoin", "aggressive",
+                              2028, "mfj", cache_dir=tmp_path)
+
+        assert loaded is not None
+        assert set(loaded.keys()) == set(BAND_PERCENTILES)
+        for pct in BAND_PERCENTILES:
+            assert set(loaded[pct].keys()) == set(BAND_SERIES)
+            assert len(loaded[pct]["total"]) == n_periods
+
+        # Verify band ordering
+        for t in range(n_periods):
+            assert loaded[5]["total"][t] <= loaded[50]["total"][t] + 1e-6
+            assert loaded[50]["total"][t] <= loaded[95]["total"][t] + 1e-6
+
+    def test_multiple_entries_same_npz(self, tmp_path):
+        """Multiple entries for same (model, start_yr) share one npz."""
+        import numpy as np
+        from engines.citadel_bands import BAND_PERCENTILES, BAND_SERIES
+        from citadel_band_cache import store_entry, lookup_entry
+
+        n_periods = 12
+        for regime in ["bear", "neutral", "bull"]:
+            bands = {}
+            for pct in BAND_PERCENTILES:
+                bands[pct] = {s: np.full(n_periods, float(pct), dtype=np.float32)
+                              for s in BAND_SERIES}
+            store_entry("qr", 10, regime, "starter", "no_rebal",
+                        2035, "single", bands, cache_dir=tmp_path)
+
+        # All three in same npz, all retrievable
+        for regime in ["bear", "neutral", "bull"]:
+            loaded = lookup_entry("qr", 10, regime, "starter", "no_rebal",
+                                  2035, "single", cache_dir=tmp_path)
+            assert loaded is not None
+            assert loaded[50]["total"][0] == 50.0
+
+    def test_cache_key_uniqueness_across_all_dimensions(self):
+        """All 1620 combos produce unique cache keys."""
+        from itertools import product as iproduct
+        from citadel_presets import (BTC_MODELS, BTC_ENTRY_QS, MACRO_REGIMES,
+                                     WEALTH_LEVELS, RULE_SETS, START_YEARS,
+                                     TAX_STATUSES)
+        from citadel_band_cache import band_cache_key
+        keys = set()
+        for m, eq, reg, wl, rs, yr, ts in iproduct(
+            BTC_MODELS, BTC_ENTRY_QS, MACRO_REGIMES.keys(),
+            WEALTH_LEVELS.keys(), RULE_SETS.keys(), START_YEARS, TAX_STATUSES,
+        ):
+            keys.add(band_cache_key(m, eq, reg, wl, rs, yr, ts))
+        assert len(keys) == 1620
+
+
+# ── Phase 3: Quick Scenarios UI ──────────────────────────────────────────────
+
+class TestCitadelQuickScenariosLayout:
+    def test_scenario_stores_exist(self):
+        """Verify scenario-related stores are in the layout."""
+        from layout.citadel import _citadel_controls
+        layout = _citadel_controls()
+        layout_str = str(layout)
+        assert "cp-scenario-wealth" in layout_str
+        assert "cp-scenario-regime" in layout_str
+        assert "cp-scenario-rules" in layout_str
+        assert "cp-scenario-start-yr" in layout_str
+        assert "cp-scenario-bands" in layout_str
+        assert "cp-scenario-active" in layout_str
+
+    def test_scenario_pill_buttons_exist(self):
+        """Verify pill button IDs are present."""
+        from layout.citadel import _citadel_controls
+        layout = _citadel_controls()
+        layout_str = str(layout)
+        for wl in ["starter", "full", "bitcoin"]:
+            assert f"cp-pill-{wl}" in layout_str
+        for reg in ["bear", "neutral", "bull"]:
+            assert f"cp-pill-{reg}" in layout_str
+        for rs in ["no_rebal", "cautious", "aggressive"]:
+            assert f"cp-pill-{rs}" in layout_str
+
+
+class TestCitadelScenarioCallback:
+    def test_scenario_lookup_returns_bands_for_valid_combo(self, tmp_path):
+        """Verify lookup returns bands when cache exists."""
+        import numpy as np
+        from citadel_band_cache import store_entry, lookup_entry
+        from engines.citadel_bands import BAND_PERCENTILES, BAND_SERIES
+        n_periods = 480
+        bands = {}
+        for pct in BAND_PERCENTILES:
+            bands[pct] = {s: np.ones(n_periods, dtype=np.float32) * pct
+                          for s in BAND_SERIES}
+        store_entry("bub", 10, "neutral", "starter", "no_rebal",
+                    2035, "single", bands, cache_dir=tmp_path)
+        result = lookup_entry("bub", 10, "neutral", "starter", "no_rebal",
+                              2035, "single", cache_dir=tmp_path)
+        assert result is not None
+        assert 50 in result
+        assert "total" in result[50]
+        assert len(result[50]["total"]) == n_periods
+
+    def test_scenario_lookup_returns_none_for_missing(self, tmp_path):
+        from citadel_band_cache import lookup_entry
+        result = lookup_entry("bub", 10, "neutral", "starter", "no_rebal",
+                              2099, "single", cache_dir=tmp_path)
+        assert result is None
+
+    def test_snap_quantile_to_cached_bin(self):
+        """cp-qs value (float 0.25) should snap to nearest cached bin (10)."""
+        from callbacks.citadel_scenarios import _snap_entry_q
+        assert _snap_entry_q(0.01) == 1
+        assert _snap_entry_q(0.05) == 1
+        assert _snap_entry_q(0.10) == 10
+        assert _snap_entry_q(0.25) == 10
+        assert _snap_entry_q(0.50) == 50
+        assert _snap_entry_q(0.75) == 50
+        assert _snap_entry_q(0.999) == 50
+
+
+class TestCitadelBandRendering:
+    def test_build_band_traces_returns_traces(self):
+        """Verify band trace builder produces scatter traces."""
+        import numpy as np
+        from figures.citadel import _build_band_traces
+        from engines.citadel_bands import BAND_PERCENTILES, BAND_SERIES
+        n_periods = 24
+        bands = {}
+        for pct in BAND_PERCENTILES:
+            bands[pct] = {s: np.linspace(1000, 2000, n_periods).tolist()
+                          for s in BAND_SERIES}
+        time_axis = np.linspace(22, 24, n_periods).tolist()
+        traces = _build_band_traces(bands, time_axis, series_key="total",
+                                     color="#000000")
+        assert len(traces) == 4
+        import plotly.graph_objects as go
+        for t in traces:
+            assert isinstance(t, go.Scatter)
+
+    def test_build_band_traces_empty_bands(self):
+        from figures.citadel import _build_band_traces
+        traces = _build_band_traces(None, [], series_key="total", color="#000")
+        assert traces == []
+
+    def test_build_band_traces_string_keys(self):
+        """Verify works with string percentile keys (from JSON store)."""
+        import numpy as np
+        from figures.citadel import _build_band_traces
+        bands = {
+            "5": {"total": [100] * 10},
+            "25": {"total": [200] * 10},
+            "75": {"total": [300] * 10},
+            "95": {"total": [400] * 10},
+        }
+        traces = _build_band_traces(bands, list(range(10)),
+                                     series_key="total", color="#FF0000")
+        assert len(traces) == 4
+
+
+class TestCitadelScenarioSnapshot:
+    def test_scenario_controls_in_snapshot(self):
+        from snapshot import _SNAPSHOT_CONTROLS
+        ids = {c[0] for c in _SNAPSHOT_CONTROLS}
+        assert "cp-scenario-wealth" in ids
+        assert "cp-scenario-regime" in ids
+        assert "cp-scenario-rules" in ids
+        assert "cp-scenario-start-yr" in ids
+        assert "cp-scenario-active" in ids
+
+    def test_scenario_controls_in_tab_controls(self):
+        from callbacks.routing import _TAB_CONTROLS
+        citadel_ids = _TAB_CONTROLS["citadel"]
+        assert "cp-scenario-wealth" in citadel_ids
+        assert "cp-scenario-regime" in citadel_ids
+        assert "cp-scenario-rules" in citadel_ids
+        assert "cp-scenario-start-yr" in citadel_ids
+        assert "cp-scenario-active" in citadel_ids
+
+
+class TestCitadelQuickScenariosIntegration:
+    def test_full_scenario_pipeline(self, tmp_path):
+        """End-to-end: store bands → lookup → build traces."""
+        import numpy as np
+        from citadel_band_cache import store_entry, lookup_entry
+        from figures.citadel import _build_band_traces
+        from engines.citadel_bands import BAND_PERCENTILES, BAND_SERIES
+
+        n_periods = 24
+        bands = {}
+        for pct in BAND_PERCENTILES:
+            bands[pct] = {s: np.linspace(100 * pct, 200 * pct, n_periods).astype(np.float32)
+                          for s in BAND_SERIES}
+        store_entry("bub", 10, "neutral", "starter", "no_rebal",
+                    2035, "single", bands, cache_dir=tmp_path)
+
+        loaded = lookup_entry("bub", 10, "neutral", "starter", "no_rebal",
+                              2035, "single", cache_dir=tmp_path)
+        assert loaded is not None
+
+        # Serialize like the callback does
+        serialized = {}
+        for pct, series_dict in loaded.items():
+            serialized[str(pct)] = {k: v.tolist() for k, v in series_dict.items()}
+
+        time_axis = np.linspace(26, 28, n_periods).tolist()
+        traces = _build_band_traces(serialized, time_axis,
+                                     series_key="total", color="#000000")
+        assert len(traces) == 4
+        # P5 lower bound should be less than P95 upper bound
+        assert traces[0].y[0] < traces[1].y[0]
+
+    def test_all_preset_combos_produce_valid_configs(self):
+        """Every preset combo builds a valid SimConfig."""
+        from citadel_presets import (WEALTH_LEVELS, MACRO_REGIMES, RULE_SETS,
+                                     START_YEARS, TAX_STATUSES, build_config)
+        from engines.citadel_sim import validate_config
+        for wealth in WEALTH_LEVELS:
+            for regime in MACRO_REGIMES:
+                for rules in RULE_SETS:
+                    cfg = build_config(wealth, regime, rules, 2035, "single")
+                    validate_config(cfg)  # raises on invalid
+
+
+class TestPresetControlValues:
+    def test_preset_control_values_returns_dict(self):
+        from citadel_presets import preset_control_values
+        vals = preset_control_values("starter", "neutral", "no_rebal", 2035)
+        assert isinstance(vals, dict)
+        assert "cp-stack" in vals
+        assert "cp-spend" in vals
+        assert "cp-cash-init" in vals
+
+    def test_preset_control_values_starter(self):
+        from citadel_presets import preset_control_values
+        vals = preset_control_values("starter", "neutral", "no_rebal", 2035)
+        assert vals["cp-stack"] == 0.5
+        assert vals["cp-spend"] == 5000
+        assert vals["cp-cash-init"] == 50000
+        assert vals["cp-infl"] == 4.0
+        assert vals["cp-spend-growth"] == 1.0
+
+    def test_preset_control_values_bitcoin_bull_aggressive(self):
+        from citadel_presets import preset_control_values
+        vals = preset_control_values("bitcoin", "bull", "aggressive", 2028)
+        assert vals["cp-stack"] == 12.5
+        assert vals["cp-spend"] == 50000
+        assert vals["cp-cash-floor"] == 100000
+        assert vals["cp-yr-range"] == [2028, 2075]
+
+    def test_preset_control_values_rules_no_rebal(self):
+        from citadel_presets import preset_control_values
+        vals = preset_control_values("starter", "neutral", "no_rebal", 2035)
+        assert vals["cp-high-q-thresh"] == 99
+        assert vals["cp-low-q-thresh"] == 1
+
+
+class TestScenarioDynamicLookup:
+    def test_snap_entry_q_boundary_values(self):
+        from callbacks.citadel_scenarios import _snap_entry_q
+        # Values near boundaries (bins: [1, 10, 50])
+        assert _snap_entry_q(0.005) == 1    # closer to 1%
+        assert _snap_entry_q(0.05) == 1     # closer to 1% than 10%
+        assert _snap_entry_q(0.06) == 10    # closer to 10%
+        assert _snap_entry_q(0.31) == 50    # closer to 50% (midpoint 30% ties to 10)
+        assert _snap_entry_q(0.999) == 50
+
+
+class TestScenarioStaleIndicator:
+    def test_stale_badge_in_layout(self):
+        from layout.citadel import _citadel_controls
+        layout = _citadel_controls()
+        assert "cp-scenario-stale" in repr(layout)

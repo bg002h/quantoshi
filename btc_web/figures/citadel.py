@@ -24,6 +24,61 @@ from figures.common import (
 )
 
 
+def _build_band_traces(bands, time_axis, series_key="total", color="#000000",
+                       name_prefix="MC spread"):
+    """Build shaded band traces from percentile band data.
+
+    Returns 4 traces: P5-P95 (light fill) lower/upper + P25-P75 (dark fill) lower/upper.
+    """
+    if not bands or not time_axis:
+        return []
+
+    def _hex_alpha(hex_color, alpha):
+        r = int(hex_color[1:3], 16)
+        g = int(hex_color[3:5], 16)
+        b = int(hex_color[5:7], 16)
+        return f"rgba({r},{g},{b},{alpha})"
+
+    # Keys may be string (from JSON store) or int
+    def _get(pct):
+        return bands.get(pct) or bands.get(str(pct)) or {}
+
+    p5 = _get(5).get(series_key, [])
+    p25 = _get(25).get(series_key, [])
+    p75 = _get(75).get(series_key, [])
+    p95 = _get(95).get(series_key, [])
+
+    if not p5 or not p95:
+        return []
+
+    x = list(time_axis)
+
+    traces = []
+    # P5-P95 band (light fill, opacity 0.15)
+    traces.append(go.Scatter(
+        x=x, y=list(p5), mode="lines", line=dict(width=0),
+        showlegend=False, hoverinfo="skip",
+    ))
+    traces.append(go.Scatter(
+        x=x, y=list(p95), mode="lines", line=dict(width=0),
+        fill="tonexty", fillcolor=_hex_alpha(color, 0.15),
+        name=f"{name_prefix} (P5\u2013P95)",
+        legendgroup="mc-bands",
+    ))
+    # P25-P75 band (dark fill, opacity 0.30)
+    traces.append(go.Scatter(
+        x=x, y=list(p25), mode="lines", line=dict(width=0),
+        showlegend=False, hoverinfo="skip",
+    ))
+    traces.append(go.Scatter(
+        x=x, y=list(p75), mode="lines", line=dict(width=0),
+        fill="tonexty", fillcolor=_hex_alpha(color, 0.30),
+        name=f"{name_prefix} (P25\u2013P75)",
+        legendgroup="mc-bands",
+    ))
+    return traces
+
+
 # ── ModelData → PriceModel adapter ────────────────────────────────────────────
 
 class _ModelAdapter:
@@ -384,6 +439,16 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     from engines.citadel import FREQ_PPY as _CITADEL_FREQ_PPY
     ppy = _CITADEL_FREQ_PPY.get(config.freq, 12)
     dt = 1.0 / ppy
+
+    # Quick Scenario bands from cached presets
+    scenario_bands = p.get("scenario_bands")
+    if scenario_bands:
+        _band_series = "btc_stack" if disp_mode == "btc" else "total"
+        _band_color = "#F7931A" if disp_mode == "btc" else "#000000"
+        band_traces = _build_band_traces(
+            scenario_bands, ts.tolist(),
+            series_key=_band_series, color=_band_color)
+        traces.extend(band_traces)
 
     # MC overlay — generate fan band traces from Markov price paths
     mc_result = None

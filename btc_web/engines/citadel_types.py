@@ -159,6 +159,15 @@ class SimConfig:
     # Each value: dict with "trans", "bin_edges", "bin_means", "bin_vols"
     asset_matrices: dict | None = None
 
+    # Starting regime bins for Markov model (0=bearish, 2=neutral, 4=bullish)
+    # Used by _initial_state() to seed CitadelState regime fields.
+    # Macro regime presets (Bear/Neutral/Bull) set all five to the same bin.
+    initial_equity_regime: int = 2
+    initial_bond_regime: int = 2
+    initial_res_short_regime: int = 2
+    initial_res_med_regime: int = 2
+    initial_res_long_regime: int = 2
+
     @classmethod
     def default(cls) -> SimConfig:
         return cls()
@@ -192,6 +201,18 @@ class CitadelState:
     res_short_regime: int = 2
     res_med_regime: int = 2
     res_long_regime: int = 2
+    # TD wrapper regime states (independent from taxable regimes)
+    td_equity_regime: int = 2
+    td_bond_regime: int = 2
+    td_res_short_regime: int = 2
+    td_res_med_regime: int = 2
+    td_res_long_regime: int = 2
+    # TF wrapper regime states (independent from taxable regimes)
+    tf_equity_regime: int = 2
+    tf_bond_regime: int = 2
+    tf_res_short_regime: int = 2
+    tf_res_med_regime: int = 2
+    tf_res_long_regime: int = 2
     # Tracking
     period_spend: float = 0.0
     spending_shortfall: float = 0.0

@@ -120,7 +120,9 @@ _TAB_CONTROLS = {
                     "cp-scf-term","cp-scf-trigger",
                     "cp-yr-range","cp-freq","cp-model-src","cp-qs","cp-disp",
                     "cp-toggles","cp-legend-pos","cp-asset-model",
-                    "cp-cash-floor-growth","cp-res-floor-growth"},
+                    "cp-cash-floor-growth","cp-res-floor-growth",
+                    "cp-scenario-wealth","cp-scenario-regime","cp-scenario-rules",
+                    "cp-scenario-start-yr","cp-scenario-active"},
     "faq":         set(),
 }
 # Palette is global -- add to every tab so single-tab share links include it

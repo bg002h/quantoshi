@@ -167,9 +167,9 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             lbl = _fmt_q_label(q) + _r2_suffix(model, q)
             if stack > 0:
                 lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
-            # Opacity: Q50% = 1.0, Q5%/Q95% = 0.25, extrapolated beyond
+            # Opacity: Q50% = 1.0, Q5%/Q95% = 0.5, extrapolated beyond
             _dist = abs(q - 0.5) / 0.45  # 0 at Q50%, 1.0 at Q5%/Q95%
-            _q_opacity = max(0.1, 1.0 - _dist * 0.75)  # floor at 0.1
+            _q_opacity = max(0.1, 1.0 - _dist * 0.5)  # floor at 0.1
             if _fallback_q50 and _default_mode:
                 _q_opacity = 0.5
             traces.append(go.Scatter(

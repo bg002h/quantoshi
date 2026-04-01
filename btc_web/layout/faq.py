@@ -625,7 +625,7 @@ _FAQ = [
                        "wordBreak": "break-all"},
             ),
             "Logs are deleted every 27 days. "
-            "No cookies are tracked. No analytics. No third-party scripts.",
+            "No cookies are used. No analytics. No third-party scripts.",
             html.Br(), html.Br(),
             html.Strong("Onion site: "),
             "The ",

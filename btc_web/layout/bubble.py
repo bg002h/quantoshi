@@ -30,7 +30,7 @@ def _bubble_controls():
             ),
             _lbl("X range (year)"),
             dcc.RangeSlider(id="bub-xrange", min=2010, max=2080,
-                            value=[2010.5, 2036], step=0.5,
+                            value=[2010, 2036], step=1,
                             marks={y: f"'{y % 100:02d}" for y in range(2010, 2081, 10)},
                             tooltip={"always_visible":False}),
             dbc.Row([

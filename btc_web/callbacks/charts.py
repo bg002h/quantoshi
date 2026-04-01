@@ -27,6 +27,7 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     Output("bubble-graph", "figure"),
     Input("bubble-first-render", "data"),
     Input("bub-qs",            "value"),
+    Input("bub-qs-adv",        "value"),
     Input("bub-toggles",       "value"),
     Input("bub-bubble-toggles","value"),
     Input("bub-xscale",        "value"),
@@ -49,7 +50,7 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     State("scan-q",            "value"),
     prevent_initial_call=True,
 )
-def update_bubble(_first_render, sel_qs, toggles, bubble_toggles,
+def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,
                   n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, model_show, lots_data,
                   palette_key, user_model_store=None,
@@ -67,8 +68,9 @@ def update_bubble(_first_render, sel_qs, toggles, bubble_toggles,
         for model_key in (scan_active or []):
             scanner_lines.append({"model": model_key, "q": q_frac})
 
+    _effective_qs = adv_qs if "advanced" in (qs_mode or []) else sel_qs
     fig = _get_bubble_fig(dict(
-        selected_qs = sel_qs or [],
+        selected_qs = _effective_qs or [],
         shade       = "shade"     in toggles,
         show_ols    = "show_ols"  in toggles,
         show_ucl    = "show_ucl"  in toggles,

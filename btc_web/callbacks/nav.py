@@ -253,6 +253,22 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call=True,
 )
 
+# Tab palette selector → store
+_app_ctx.app.clientside_callback(
+    "function(val) { return val; }",
+    Output("palette-store", "data", allow_duplicate=True),
+    Input("palette-select-tab", "value"),
+    prevent_initial_call=True,
+)
+
+# Store → tab palette selector (sync)
+_app_ctx.app.clientside_callback(
+    "function(data) { return data || 'default'; }",
+    Output("palette-select-tab", "value"),
+    Input("palette-store", "data"),
+    prevent_initial_call=True,
+)
+
 
 # ── Heatmap colors: update 4 color inputs when palette changes ───────────────
 @callback(

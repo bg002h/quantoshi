@@ -103,6 +103,28 @@ def _q_panel(checklist_id: str, default_value: list, hint: str | None = None):
     return _section_card("Projection Quantiles", *children)
 
 
+def _palette_selector():
+    """Palette selector widget for bottom of tab control panels.
+
+    Syncs with palette-store via clientside callbacks in nav.py.
+    Uses palette-select-tab ID (distinct from navbar's palette-select).
+    """
+    return _ctrl_card(
+        html.Div([
+            html.Small("\U0001f3a8 Color palette", className="text-muted me-2"),
+            dbc.Select(
+                id="palette-select-tab",
+                options=[{"label": v, "value": k}
+                         for k, v in _app_ctx.PALETTE_LABELS.items()],
+                value="default",
+                size="sm",
+                style={"width": "155px", "fontSize": "0.78rem",
+                       "display": "inline-block"},
+            ),
+        ], className="d-flex align-items-center"),
+    )
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Layout helpers
 # ══════════════════════════════════════════════════════════════════════════════

@@ -91,6 +91,33 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     showlegend=False, hoverinfo="skip",
                 ))
 
+    # ── historical price data (behind all lines) ───────────────────────────
+    if p.get("show_data"):
+        mask  = (m.price_years >= t_lo) & (m.price_years <= t_hi)
+        x_sc  = m.price_years[mask]
+        y_sc  = m.price_prices[mask] * (stack if stack > 0 else 1)
+        d_sc  = [m.price_dates[i] for i in range(len(m.price_dates)) if mask[i]]
+        _MAX_PTS = _MAX_SCATTER_PTS
+        n_pts = len(x_sc)
+        if n_pts > _MAX_PTS:
+            stride = max(1, n_pts // _MAX_PTS)
+            idx   = np.arange(0, n_pts, stride)
+            x_sc  = x_sc[idx]
+            y_sc  = y_sc[idx]
+            d_sc  = [d_sc[i] for i in idx]
+        # Temporal gradient: old data muted gray -> recent data warm amber
+        n_sc = len(x_sc)
+        scatter_colors = [_lerp_hex("#4a5568", "#f7931a", i / max(n_sc - 1, 1))
+                          for i in range(n_sc)]
+        traces.append(go.Scatter(
+            x=list(x_sc), y=list(y_sc),
+            mode="markers", name="Price data",
+            marker=dict(color=scatter_colors, size=max(2, int(p.get("pt_size", BUBBLE["pt_size"]))),
+                        opacity=float(p.get("pt_alpha", BUBBLE["pt_alpha"]))),
+            hovertemplate=_HOVER_FMT_USD,
+        ))
+
+    if bub_active:
         # ── quantile lines (thermal palette + neon glow) ─────────────────────
         for q in sel_qs:
             if q not in _price_cache:
@@ -279,34 +306,6 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             name=f"Bubble composite (N={n})  R\u00b2={m.bm_r2:.4f}",
             line=dict(color=p.get("comp_color", BUBBLE["comp_color"]),
                       width=float(p.get("comp_lw", BUBBLE["comp_lw"]))),
-        ))
-
-    # ── historical price data ─────────────────────────────────────────────────
-    if p.get("show_data"):
-        mask  = (m.price_years >= t_lo) & (m.price_years <= t_hi)
-        x_sc  = m.price_years[mask]
-        y_sc  = m.price_prices[mask] * (stack if stack > 0 else 1)
-        d_sc  = [m.price_dates[i] for i in range(len(m.price_dates)) if mask[i]]
-        # Downsample to <=1 200 points — imperceptible on log scale but cuts
-        # figure JSON ~50 % and serialisation time meaningfully.
-        _MAX_PTS = _MAX_SCATTER_PTS
-        n_pts = len(x_sc)
-        if n_pts > _MAX_PTS:
-            stride = max(1, n_pts // _MAX_PTS)
-            idx   = np.arange(0, n_pts, stride)
-            x_sc  = x_sc[idx]
-            y_sc  = y_sc[idx]
-            d_sc  = [d_sc[i] for i in idx]
-        # Temporal gradient: old data muted gray -> recent data warm amber
-        n_sc = len(x_sc)
-        scatter_colors = [_lerp_hex("#4a5568", "#f7931a", i / max(n_sc - 1, 1))
-                          for i in range(n_sc)]
-        traces.append(go.Scatter(
-            x=list(x_sc), y=list(y_sc),
-            mode="markers", name="Price data",
-            marker=dict(color=scatter_colors, size=max(2, int(p.get("pt_size", BUBBLE["pt_size"]))),
-                        opacity=float(p.get("pt_alpha", BUBBLE["pt_alpha"]))),
-            hovertemplate=_HOVER_FMT_USD,
         ))
 
     # ── LEO lot markers ───────────────────────────────────────────────────────

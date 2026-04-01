@@ -272,12 +272,13 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
             linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
             zerolinecolor=theme.GRID_MAJOR_COLOR,
             automargin=False,
+            side="left", ticklabelposition="inside",
         ),
         legend=dict(
             bgcolor="rgba(255,255,255,0.85)", bordercolor=theme.GRID_MAJOR_COLOR,
             borderwidth=1, font=dict(family=_SANS_FONT, size=_FONT_LEGEND),
         ),
-        margin=dict(l=40, r=20, t=50, b=60, autoexpand=False),
+        margin=dict(l=5, r=20, t=50, b=60, autoexpand=False),
         **kwargs,
     )
 

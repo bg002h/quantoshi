@@ -20,7 +20,7 @@ __all__ = [
     "WEALTH_LEVELS", "MACRO_REGIMES", "RULE_SETS",
     "BTC_MODELS", "BTC_ENTRY_QS", "START_YEARS", "TAX_STATUSES",
     "SIMS_PER_SCENARIO", "END_YEAR", "FREQ",
-    "build_config",
+    "build_config", "preset_control_values",
 ]
 
 # ── Cache dimensions ─────────────────────────────────────────────────────────
@@ -91,6 +91,35 @@ RULE_SETS = {
         "low_q_trigger": 0.25,
     },
 }
+
+
+# ── Control value mapper ─────────────────────────────────────────────────────
+
+def preset_control_values(wealth: str, regime: str, rules: str,
+                          start_year: int) -> dict[str, object]:
+    """Map preset selections to {component_id: value} for Citadel controls."""
+    wl = WEALTH_LEVELS[wealth]
+    rs = RULE_SETS[rules]
+    alloc = wl["allocation"]
+    da = wl["dollar_assets"]
+
+    return {
+        "cp-stack": wl["btc"],
+        "cp-cash-init": da * alloc["cash"] / 100,
+        "cp-res-short-init": da * alloc["res_short"] / 100,
+        "cp-res-med-init": da * alloc["res_med"] / 100,
+        "cp-res-long-init": da * alloc["res_long"] / 100,
+        "cp-inv-eq-init": da * alloc["inv_eq"] / 100,
+        "cp-inv-bd-init": da * alloc["inv_bd"] / 100,
+        "cp-spend": wl["monthly_spend"],
+        "cp-infl": wl["inflation"],
+        "cp-spend-growth": wl["spend_growth"],
+        "cp-cash-floor": rs["cash_floor"],
+        "cp-high-q-thresh": int(rs["high_q_trigger"] * 100),
+        "cp-low-q-thresh": int(rs["low_q_trigger"] * 100),
+        "cp-yr-range": [start_year, END_YEAR],
+        "cp-asset-model": "markov",
+    }
 
 
 # ── Config builder ───────────────────────────────────────────────────────────

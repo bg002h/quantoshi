@@ -8831,3 +8831,36 @@ class TestCitadelQuickScenariosIntegration:
                 for rules in RULE_SETS:
                     cfg = build_config(wealth, regime, rules, 2035, "single")
                     validate_config(cfg)  # raises on invalid
+
+
+class TestPresetControlValues:
+    def test_preset_control_values_returns_dict(self):
+        from citadel_presets import preset_control_values
+        vals = preset_control_values("starter", "neutral", "no_rebal", 2035)
+        assert isinstance(vals, dict)
+        assert "cp-stack" in vals
+        assert "cp-spend" in vals
+        assert "cp-cash-init" in vals
+
+    def test_preset_control_values_starter(self):
+        from citadel_presets import preset_control_values
+        vals = preset_control_values("starter", "neutral", "no_rebal", 2035)
+        assert vals["cp-stack"] == 0.5
+        assert vals["cp-spend"] == 5000
+        assert vals["cp-cash-init"] == 50000
+        assert vals["cp-infl"] == 4.0
+        assert vals["cp-spend-growth"] == 1.0
+
+    def test_preset_control_values_bitcoin_bull_aggressive(self):
+        from citadel_presets import preset_control_values
+        vals = preset_control_values("bitcoin", "bull", "aggressive", 2028)
+        assert vals["cp-stack"] == 12.5
+        assert vals["cp-spend"] == 50000
+        assert vals["cp-cash-floor"] == 100000
+        assert vals["cp-yr-range"] == [2028, 2075]
+
+    def test_preset_control_values_rules_no_rebal(self):
+        from citadel_presets import preset_control_values
+        vals = preset_control_values("starter", "neutral", "no_rebal", 2035)
+        assert vals["cp-high-q-thresh"] == 99
+        assert vals["cp-low-q-thresh"] == 1

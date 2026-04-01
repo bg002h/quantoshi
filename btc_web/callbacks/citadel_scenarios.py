@@ -71,3 +71,33 @@ def load_scenario_bands(wealth, regime, rules, start_yr, quantile):
 
     active_key = f"{model_key}_q{entry_q}_{regime}_{wealth}_{rules}_{start_yr}_single"
     return serialized, active_key
+
+
+# ── Auto-fill controls when scenario loads ───────────────────────────────────
+
+_FILL_OUTPUTS = [
+    "cp-stack", "cp-cash-init",
+    "cp-res-short-init", "cp-res-med-init", "cp-res-long-init",
+    "cp-inv-eq-init", "cp-inv-bd-init",
+    "cp-spend", "cp-infl", "cp-spend-growth",
+    "cp-cash-floor", "cp-high-q-thresh", "cp-low-q-thresh",
+    "cp-yr-range", "cp-asset-model",
+]
+
+
+@callback(
+    [Output(cid, "value", allow_duplicate=True) for cid in _FILL_OUTPUTS],
+    Input("cp-scenario-active", "data"),
+    State("cp-scenario-wealth", "data"),
+    State("cp-scenario-regime", "data"),
+    State("cp-scenario-rules", "data"),
+    State("cp-scenario-start-yr", "value"),
+    prevent_initial_call=True,
+)
+def auto_fill_controls(active_key, wealth, regime, rules, start_yr):
+    """Fill Citadel controls with preset values when a scenario loads."""
+    if not active_key or not wealth:
+        return [no_update] * len(_FILL_OUTPUTS)
+    from citadel_presets import preset_control_values
+    vals = preset_control_values(wealth, regime, rules, int(start_yr or 2035))
+    return [vals[cid] for cid in _FILL_OUTPUTS]

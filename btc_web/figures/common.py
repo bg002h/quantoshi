@@ -296,11 +296,11 @@ def _year_ticks(start_yr, end_yr, genesis, minor_grid=False):
     if minor_grid and step > 1:
         all_yrs = list(range(s, e + 1))
         ts   = [yr_to_t(y, genesis) for y in all_yrs]
-        lbls = [str(y) if (y - s) % step == 0 else "" for y in all_yrs]
+        lbls = [f"'{y % 100:02d}" if (y - s) % step == 0 else "" for y in all_yrs]
     else:
         yrs  = list(range(s, e + 1, step))
         ts   = [yr_to_t(y, genesis) for y in yrs]
-        lbls = [str(y) for y in yrs]
+        lbls = [f"'{y % 100:02d}" for y in yrs]
     return ts, lbls
 
 

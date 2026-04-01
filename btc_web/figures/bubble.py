@@ -221,18 +221,23 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 # Skip own_quantile — already drawn as direct line above
                 overlay_qs = [q for q in overlay_qs
                               if not (hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005)]
+            _ovl_color = _app_ctx.MODEL_TRACE_COLORS.get(model_key, "#888888")
             for q in overlay_qs:
                 if q not in mdl.fits:
                     continue
                 prices = _round_trace_data(mdl.price_at(q, t_arr) * (stack if stack > 0 else 1))
-                col = mdl.colors.get(q, "#888888")
                 lbl = f"{mdl.legend_name} {_fmt_q_label(q, '')}" + _r2_suffix(mdl, q)
                 if stack > 0:
                     lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
+                # Opacity: Q50% = 1.0, Q5%/Q95% = 0.5, extrapolated
+                _dist = abs(q - 0.5) / 0.45
+                _q_opacity = max(0.1, 1.0 - _dist * 0.5)
+                _lw = 3.0 if (model_key == "u1" and hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005) else _OVERLAY_LINE_WIDTH
                 traces.append(go.Scatter(
                     x=list(t_arr), y=list(prices),
                     mode="lines", name=lbl,
-                    line=dict(color=col, width=3.0 if (model_key == "u1" and hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005) else _OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
+                    line=dict(color=_ovl_color, width=_lw, dash=mdl.dash_style),
+                    opacity=_q_opacity,
                     legendgroup=mdl.short_name,
                     legendgrouptitle_text=(
                         f"{mdl.legend_name}  m={mdl.fits[mdl.quantiles[0]]['slope']:.3f}"

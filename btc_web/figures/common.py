@@ -275,6 +275,7 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
             automargin=False,
             side="left", ticklabelposition="inside",
             ticklabelshift=-5,
+            ticklabeloverflow="allow",
         ),
         legend=dict(
             bgcolor="rgba(255,255,255,0.85)", bordercolor=theme.GRID_MAJOR_COLOR,

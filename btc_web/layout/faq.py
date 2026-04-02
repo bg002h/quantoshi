@@ -47,7 +47,7 @@ _FAQ = [
         ),
     },
     {
-        "q": "What time origin does the model use, and why?",
+        "q": "What time origin does Quantoshi use, and why?",
         "a": html.Span([
             "All models need a Day Zero \u2014 the point where t=0 in the power law. "
             "Several candidates were considered:",

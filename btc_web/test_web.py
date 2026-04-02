@@ -4652,7 +4652,9 @@ class TestEFCompositeOverlay:
         fig = build_bubble_figure(M, dict(self._BASE, active_models=["ef"]))
         comp_traces = [t for t in fig.data if t.name and "EF" in t.name and "composite" in t.name]
         assert len(comp_traces) > 0
-        assert comp_traces[0].line.color == "#D4A017"  # EF amber
+        # EF composite uses palette model color (default palette)
+        expected = _app_ctx.PALETTES["default"]["model_colors"]["ef"]
+        assert comp_traces[0].line.color == expected
 
     def test_ef_no_composite_when_show_comp_off(self):
         if "ef" not in _app_ctx.PRICE_MODELS:

@@ -267,14 +267,13 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             traces.append(go.Scatter(
                 x=list(t_arr), y=list(prices),
                 mode="lines", name=lbl,
-                line=dict(color=palette["non_quantized_model"], width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
+                line=dict(color=_get_model_color(model_key, p), width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
                 legendgroup=mdl.short_name,
             ))
 
         # ── composite/support/future for _CompositeModel overlays ─────
         if hasattr(mdl, "comp_by_n") and hasattr(mdl, "t_grid"):
-            _EF_COMP_COLOR = "#D4A017"
-            _EF_SUP_COLOR  = "#8B6914"
+            _mdl_color = _get_model_color(model_key, p)
             mdl_t = np.asarray(mdl.t_grid)
             mdl_mask = (mdl_t >= t_lo) & (mdl_t <= t_hi)
 
@@ -283,8 +282,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 traces.append(go.Scatter(
                     x=list(mdl_t[mdl_mask]), y=list(sup_y),
                     mode="lines", name=f"{mdl.legend_name} support",
-                    line=dict(color=_EF_SUP_COLOR, dash="dash", width=1.5),
-                    opacity=0.9,
+                    line=dict(color=_mdl_color, dash="dash", width=1.5),
+                    opacity=0.6,
                     legendgroup=mdl.short_name,
                 ))
 
@@ -296,7 +295,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     x=list(mdl_t[mdl_mask]), y=list(comp_y),
                     mode="lines",
                     name=f"{mdl.legend_name} composite (N={n})  R\u00b2={mdl.bm_r2:.4f}",
-                    line=dict(color=_EF_COMP_COLOR, width=2.0),
+                    line=dict(color=_mdl_color, width=2.0),
                     legendgroup=mdl.short_name,
                 ))
 
@@ -345,15 +344,16 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         ))
 
     # ── bubble support ────────────────────────────────────────────────────────
+    _bm_color = _get_model_color("bub", p)
     if bub_active and p.get("show_sup"):
         mask = (m.years_plot_bm >= t_lo) & (m.years_plot_bm <= t_hi)
         sup_y = m.support_bm[mask] * (stack if stack > 0 else 1)
         traces.append(go.Scatter(
             x=list(m.years_plot_bm[mask]), y=list(sup_y),
             mode="lines", name="Bubble support",
-            line=dict(color=p.get("sup_color", BUBBLE["sup_color"]),
+            line=dict(color=_bm_color,
                       dash="dash", width=float(p.get("sup_lw", BUBBLE["sup_lw"]))),
-            opacity=0.9,
+            opacity=0.6,
         ))
 
     # ── bubble composite ──────────────────────────────────────────────────────
@@ -366,7 +366,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             x=list(m.years_plot_bm[mask]), y=list(comp_y),
             mode="lines",
             name=f"Bubble composite (N={n})  R\u00b2={m.bm_r2:.4f}",
-            line=dict(color=p.get("comp_color", BUBBLE["comp_color"]),
+            line=dict(color=_bm_color,
                       width=float(p.get("comp_lw", BUBBLE["comp_lw"]))),
         ))
 

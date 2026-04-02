@@ -71,7 +71,7 @@ def _bubble_controls():
                                   html.Span(" ", style={
                                       "display": "inline-block", "width": "12px",
                                       "height": "12px", "borderRadius": "2px",
-                                      "backgroundColor": _app_ctx.MODEL_TRACE_COLORS.get("bub", "#000"),
+                                      "backgroundColor": _app_ctx.PALETTES["default"]["model_colors"].get("bub", "#000"),
                                       "verticalAlign": "middle", "marginRight": "4px",
                                   }),
                                   "Bubble Model",
@@ -81,7 +81,7 @@ def _bubble_controls():
                                   html.Span(" ", style={
                                       "display": "inline-block", "width": "12px",
                                       "height": "12px", "borderRadius": "2px",
-                                      "backgroundColor": _app_ctx.MODEL_TRACE_COLORS.get(mdl.short_name, "#888"),
+                                      "backgroundColor": _app_ctx.PALETTES["default"]["model_colors"].get(mdl.short_name, "#888"),
                                       "verticalAlign": "middle", "marginRight": "4px",
                                   }),
                                   mdl.name,

@@ -287,6 +287,8 @@ var CANDIDATES = {
     {name:"Pinnacle",note:"core \u0394E\u2033=39",colors:{bub:'#FFB300',qr:'#283593',pl:'#E8E8E8',lppl:'#C62828',ef:'#00BFA5',exp:'#888888',s2f:'#777777'}},
     {name:"Forge Pro",note:"core \u0394E\u2033=38",colors:{bub:'#F9A825',qr:'#01579B',pl:'#F0F0F0',lppl:'#AD1457',ef:'#26A69A',exp:'#999999',s2f:'#777777'}},
     {name:"Perigee Pro",note:"core \u0394E\u2033=36",colors:{bub:'#FFB300',qr:'#01579B',pl:'#E0E0E0',lppl:'#AD1457',ef:'#00BFA5',exp:'#777777',s2f:'#999999'}},
+    {name:"Olive+Pink",note:"core \u0394E\u2033=41 \u2605 olive QR!",colors:{bub:'#FFD54F',qr:'#556B2F',pl:'#E0E0E0',lppl:'#AD1457',ef:'#1A237E',exp:'#999999',s2f:'#777777'}},
+    {name:"Olive QR v3",note:"core \u0394E\u2033=37 olive QR",colors:{bub:'#FFD54F',qr:'#808000',pl:'#E0E0E0',lppl:'#1A237E',ef:'#00897B',exp:'#999999',s2f:'#777777'}},
     {name:"Pure Red",note:"(255,0,0)",colors:{bub:'#FF0000',qr:'#FF0000',pl:'#FF0000',lppl:'#FF0000',ef:'#FF0000',exp:'#FF0000',s2f:'#FF0000'}},
     {name:"Pure Green",note:"(0,255,0)",colors:{bub:'#00FF00',qr:'#00FF00',pl:'#00FF00',lppl:'#00FF00',ef:'#00FF00',exp:'#00FF00',s2f:'#00FF00'}},
     {name:"Pure Blue",note:"(0,0,255)",colors:{bub:'#0000FF',qr:'#0000FF',pl:'#0000FF',lppl:'#0000FF',ef:'#0000FF',exp:'#0000FF',s2f:'#0000FF'}},
@@ -294,14 +296,15 @@ var CANDIDATES = {
     {name:"Pure Magenta",note:"R+B",colors:{bub:'#FF00FF',qr:'#FF00FF',pl:'#FF00FF',lppl:'#FF00FF',ef:'#FF00FF',exp:'#FF00FF',s2f:'#FF00FF'}},
     {name:"Pure Cyan",note:"G+B",colors:{bub:'#00FFFF',qr:'#00FFFF',pl:'#00FFFF',lppl:'#00FFFF',ef:'#00FFFF',exp:'#00FFFF',s2f:'#00FFFF'}},
     {name:"Purple",note:"Red reflected in b*",colors:{bub:'#C635F5',qr:'#C635F5',pl:'#C635F5',lppl:'#C635F5',ef:'#C635F5',exp:'#C635F5',s2f:'#C635F5'}},
-    {name:"18-Color R=0",note:"*=R\u2261G",colors:{bub:'#000000',qr:'#000080',pl:'#0000FF',lppl:'#00FF00',ef:'#00FF80',exp:'#00FFFF',s2f:'#333333'}},
-    {name:"18-Color R=128",note:"no *",colors:{bub:'#800000',qr:'#800080',pl:'#8000FF',lppl:'#80FF00',ef:'#80FF80',exp:'#80FFFF',s2f:'#333333'}},
-    {name:"18-Color R=255",note:"*=R\u2261G",colors:{bub:'#FF0000',qr:'#FF0080',pl:'#FF00FF',lppl:'#FFFF00',ef:'#FFFF80',exp:'#FFFFFF',s2f:'#333333'}},
+    {name:"18-Color R=0",note:"*=R\u2261G | 4,5,6 look identical\u2193",colors:{bub:'#000000',qr:'#000080',pl:'#0000FF',lppl:'#00FF00',ef:'#00FF80',exp:'#00FFFF',s2f:'#333333'}},
+    {name:"18-Color R=128",note:"4,5,6 look \u2248 same as R=0 row\u2191",colors:{bub:'#800000',qr:'#800080',pl:'#8000FF',lppl:'#80FF00',ef:'#80FF80',exp:'#80FFFF',s2f:'#333333'}},
+    {name:"18-Color R=255",note:"*=R\u2261G | 4,5,6 look \u2248 same as above\u2191",colors:{bub:'#FF0000',qr:'#FF0080',pl:'#FF00FF',lppl:'#FFFF00',ef:'#FFFF80',exp:'#FFFFFF',s2f:'#333333'}},
     {name:"* Colors Only",note:"R=G (6 of 18)",colors:{bub:'#000000',qr:'#000080',pl:'#0000FF',lppl:'#FFFF00',ef:'#FFFF80',exp:'#FFFFFF',s2f:'#333333'}},
+    {name:"Olive Zone",note:"dark yellows \u2192 look GREEN to you",colors:{bub:'#808000',qr:'#6B8E23',pl:'#556B2F',lppl:'#777700',ef:'#555500',exp:'#333300',s2f:'#111100'}},
     {name:"Green-Free 4x4",note:"R,B\u2208{0,85,170,255} G=0",colors:{bub:'#000055',qr:'#0000AA',pl:'#0000FF',lppl:'#550055',ef:'#AA0000',exp:'#FF0000',s2f:'#FF00FF'}},
     {name:"Green-Free Dark",note:"low R values",colors:{bub:'#000000',qr:'#000055',pl:'#0000AA',lppl:'#0000FF',ef:'#550000',exp:'#550055',s2f:'#5500AA'}},
     {name:"Green-Free Bright",note:"high R values",colors:{bub:'#AA0000',qr:'#AA0055',pl:'#AA00AA',lppl:'#AA00FF',ef:'#FF0000',exp:'#FF0055',s2f:'#FF00FF'}},
-    {name:"Dark Yellows",note:"R=G descending",colors:{bub:'#BBBB00',qr:'#999900',pl:'#777700',lppl:'#555500',ef:'#333300',exp:'#111100',s2f:'#BBBB00'}}
+    {name:"Dark Yellows",note:"R=G: bright=yellow dark=green (Bezold-Br\u00fccke)",colors:{bub:'#BBBB00',qr:'#999900',pl:'#777700',lppl:'#555500',ef:'#333300',exp:'#111100',s2f:'#BBBB00'}}
   ],
   "CB-RG":[
     {name:"Tol Bright",colors:{bub:'#EE7733',qr:'#999999',pl:'#0077BB',lppl:'#EE3377',ef:'#33BBEE',exp:'#BBBBBB',s2f:'#CCBB44'}},
@@ -979,7 +982,12 @@ function renderCS(){
     '</table>' +
     '<p style="margin-bottom:0.5rem;"><strong style="color:#ccc;">Deuteranomaly</strong> (anomalous trichromacy) \u2014 the M (green) cone is present but its peak sensitivity is shifted toward the L (red) cone. Three cones are active, but L and M overlap more than typical, compressing the red-green axis.</p>' +
     '<p style="margin-bottom:0.5rem;">This is the most common color vision variation (~5% of males). It is <em>not</em> full red-green blindness (deuteranopia) \u2014 some red-green discrimination remains, but green appears yellowish and cyan appears desaturated.</p>' +
-    '<p style="color:#777;">The \u0394E\u2032 metric (|a*| reflection) is a slightly conservative model of this condition \u2014 it assumes full R-G collapse, whereas deuteranomaly retains partial discrimination. CB-Brian palettes are optimized for this profile.</p>';
+    '<p style="color:#777;">The \u0394E\u2033 metric (Machado 2009 simulation, severity 0.75) models this condition. CB-Brian palettes are optimized using this metric, with S2F/Exp deprioritized.</p>' +
+    '<p style="margin-top:0.6rem;"><strong style="color:#ccc;">Bezold-Br\u00fccke Shift</strong> \u2014 dark yellows (R=G, low brightness) shift toward green in your perception. ' +
+    '<span style="display:inline-block;width:12px;height:12px;background:#BBBB00;border-radius:2px;vertical-align:middle;"></span> #BBBB00 looks yellow, but ' +
+    '<span style="display:inline-block;width:12px;height:12px;background:#555500;border-radius:2px;vertical-align:middle;"></span> #555500 looks green. ' +
+    'This means dark olive/khaki colors are usable as a distinct \u201cgreen\u201d channel in your palette \u2014 they separate well from both bright yellow (\u0394E\u2033\u224862) and red (\u0394E\u2033\u224837).</p>' +
+    '<p style="margin-top:0.4rem;color:#777;">When G=255, adding R (0\u2192128\u2192255) is nearly invisible (\u0394E\u2033=12\u201331). Columns 4/5/6 in the 18-color cards demonstrate this collapse.</p>';
   document.body.appendChild(dxNote);
 })();
 

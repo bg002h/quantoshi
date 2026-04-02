@@ -304,7 +304,13 @@ var CANDIDATES = {
     {name:"Green-Free 4x4",note:"R,B\u2208{0,85,170,255} G=0",colors:{bub:'#000055',qr:'#0000AA',pl:'#0000FF',lppl:'#550055',ef:'#AA0000',exp:'#FF0000',s2f:'#FF00FF'}},
     {name:"Green-Free Dark",note:"low R values",colors:{bub:'#000000',qr:'#000055',pl:'#0000AA',lppl:'#0000FF',ef:'#550000',exp:'#550055',s2f:'#5500AA'}},
     {name:"Green-Free Bright",note:"high R values",colors:{bub:'#AA0000',qr:'#AA0055',pl:'#AA00AA',lppl:'#AA00FF',ef:'#FF0000',exp:'#FF0055',s2f:'#FF00FF'}},
-    {name:"Dark Yellows",note:"R=G: bright=yellow dark=green (Bezold-Br\u00fccke)",colors:{bub:'#BBBB00',qr:'#999900',pl:'#777700',lppl:'#555500',ef:'#333300',exp:'#111100',s2f:'#BBBB00'}}
+    {name:"Dark Yellows",note:"R=G: bright=yellow dark=green (Bezold-Br\u00fccke)",colors:{bub:'#BBBB00',qr:'#999900',pl:'#777700',lppl:'#555500',ef:'#333300',exp:'#111100',s2f:'#BBBB00'}},
+    {name:"Confusing R+G=0",note:"B varies, R+G=0",colors:{bub:'#000000',qr:'#0000FF',pl:'#000080',lppl:'#000000',ef:'#0000FF',exp:'#000080',s2f:'#333333'}},
+    {name:"Confusing R+G=128",note:"R\u2194G swap, same sum?",colors:{bub:'#008000',qr:'#800000',pl:'#0080FF',lppl:'#8000FF',ef:'#008080',exp:'#800080',s2f:'#333333'}},
+    {name:"Confusing R+G=255",note:"R\u2194G swap, same sum?",colors:{bub:'#00FF00',qr:'#FF0000',pl:'#00FFFF',lppl:'#FF00FF',ef:'#00FF80',exp:'#FF0080',s2f:'#333333'}},
+    {name:"Confusing R+G=256",note:"R=G=128, B varies",colors:{bub:'#808000',qr:'#8080FF',pl:'#808080',lppl:'#808000',ef:'#8080FF',exp:'#808080',s2f:'#333333'}},
+    {name:"Confusing R+G=383",note:"R\u2194G swap, same sum?",colors:{bub:'#80FF00',qr:'#FF8000',pl:'#80FFFF',lppl:'#FF80FF',ef:'#80FF80',exp:'#FF8080',s2f:'#333333'}},
+    {name:"Confusing R+G=510",note:"R=G=255, B varies",colors:{bub:'#FFFF00',qr:'#FFFFFF',pl:'#FFFF80',lppl:'#FFFF00',ef:'#FFFFFF',exp:'#FFFF80',s2f:'#333333'}}
   ],
   "CB-RG":[
     {name:"Tol Bright",colors:{bub:'#EE7733',qr:'#999999',pl:'#0077BB',lppl:'#EE3377',ef:'#33BBEE',exp:'#BBBBBB',s2f:'#CCBB44'}},
@@ -778,6 +784,21 @@ function deltaE_deutan(c1,c2){
   return Math.sqrt(Math.pow(lab1.L-lab2.L,2)+Math.pow(lab1.a-lab2.a,2)+Math.pow(lab1.b-lab2.b,2));
 }
 
+// R+G collapsed colorspace
+function hexToRGBSum(hex){
+  var r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return {rg: r+g, b: b, r: r, g: g};
+}
+
+function deltaE_rgsum(c1,c2){
+  // Distance in (R+G, B, Lightness) space
+  var a=hexToRGBSum(c1), b2=hexToRGBSum(c2);
+  var lab1=hexToLab(c1), lab2=hexToLab(c2);
+  // Normalize R+G to 0-255 range (sum is 0-510)
+  var rg1=a.rg/2, rg2=b2.rg/2;
+  return Math.sqrt(Math.pow(lab1.L-lab2.L,2)+Math.pow(rg1-rg2,2)+Math.pow(a.b-b2.b,2));
+}
+
 function addCSColor(hex, label){
   // Don't duplicate
   if(csColors.some(function(c){ return c.hex===hex; })) return;
@@ -955,8 +976,47 @@ function renderCS(){
   matHtml += '</div>';
   matHtml += '<div style="font-size:0.5rem;color:#555;margin-top:4px;">\u0394E: full color vision. \u0394E\u2033: Machado 2009 deuteranomaly simulation (severity 0.75). Red &lt; 20 = confusable. Green &gt; 60 = clearly distinct.</div>';
 
-  plotsEl.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">' +
-    '<div>'+svg0+'</div><div>'+svg1+'</div><div>'+svg2+'</div></div>' + matHtml;
+  // ── Plot 3: R+G vs B (collapsed colorspace) ──
+  var svg3 = '<svg viewBox="-10 -10 '+(W+20)+' '+(H+40)+'" xmlns="http://www.w3.org/2000/svg">';
+  svg3 += '<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#111" rx="4"/>';
+  svg3 += '<line x1="0" y1="'+H+'" x2="'+W+'" y2="'+H+'" stroke="#333" stroke-width="0.5"/>';
+  svg3 += '<line x1="0" y1="0" x2="0" y2="'+H+'" stroke="#333" stroke-width="0.5"/>';
+  // Grid lines for R+G sums
+  var rgSteps = [0, 128, 255, 383, 510];
+  rgSteps.forEach(function(rg){
+    var gx = (rg/510)*W;
+    svg3 += '<line x1="'+gx.toFixed(0)+'" y1="0" x2="'+gx.toFixed(0)+'" y2="'+H+'" stroke="#222" stroke-width="0.5" stroke-dasharray="2,4"/>';
+    svg3 += '<text x="'+gx.toFixed(0)+'" y="'+(H+12)+'" text-anchor="middle" fill="#444" font-size="6" font-family="JetBrains Mono">'+rg+'</text>';
+  });
+  svg3 += '<text x="'+W/2+'" y="'+(H+22)+'" text-anchor="middle" fill="#555" font-size="8" font-family="JetBrains Mono">R+G (collapsed)</text>';
+  svg3 += '<text x="'+(W/2)+'" y="'+(H+34)+'" text-anchor="middle" fill="#f7931a" font-size="9" font-family="JetBrains Mono">R+G vs Blue \u2014 same column = confusable</text>';
+
+  csColors.forEach(function(c){
+    var rgb = hexToRGBSum(c.hex);
+    var cx = (rgb.rg / 510) * W;
+    var cy = H - (rgb.b / 255) * H;
+    cx = Math.max(4, Math.min(W-4, cx));
+    cy = Math.max(4, Math.min(H-4, cy));
+    svg3 += '<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="8" fill="'+c.hex+'" stroke="#fff" stroke-width="1.5"/>';
+    svg3 += '<text x="'+(cx+10).toFixed(1)+'" y="'+(cy+3).toFixed(1)+'" fill="#aaa" font-size="7" font-family="JetBrains Mono">'+c.label+'</text>';
+  });
+
+  // Lines between colors at same R+G sum (vertically aligned = confusable)
+  for(var i3=0;i3<csColors.length;i3++){
+    for(var j3=i3+1;j3<csColors.length;j3++){
+      var a3=hexToRGBSum(csColors[i3].hex), b3=hexToRGBSum(csColors[j3].hex);
+      if(Math.abs(a3.rg - b3.rg) < 20 && a3.b === b3.b){
+        // Same R+G sum AND same B = very confusable
+        var cx1=(a3.rg/510)*W, cy1=H-(a3.b/255)*H;
+        var cx2=(b3.rg/510)*W, cy2=H-(b3.b/255)*H;
+        svg3 += '<line x1="'+cx1.toFixed(0)+'" y1="'+cy1.toFixed(0)+'" x2="'+cx2.toFixed(0)+'" y2="'+cy2.toFixed(0)+'" stroke="rgba(255,0,0,0.4)" stroke-width="2"/>';
+      }
+    }
+  }
+  svg3 += '</svg>';
+
+  plotsEl.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+    '<div>'+svg0+'</div><div>'+svg1+'</div><div>'+svg3+'</div><div>'+svg2+'</div></div>' + matHtml;
 }
 
 // Build color space section

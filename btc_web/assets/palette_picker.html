@@ -754,6 +754,38 @@ function renderCS(){
   var plotsEl = document.getElementById('cs-plots');
   var W=360, H=240;
 
+  // ── Plot 0: CIELAB a* vs b* (full, unreflected) ──
+  var svg0 = '<svg viewBox="-10 -10 '+(W+20)+' '+(H+40)+'" xmlns="http://www.w3.org/2000/svg">';
+  svg0 += '<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#111" rx="4"/>';
+  svg0 += '<line x1="'+W/2+'" y1="0" x2="'+W/2+'" y2="'+H+'" stroke="#333" stroke-width="0.5"/>';
+  svg0 += '<line x1="0" y1="'+H/2+'" x2="'+W+'" y2="'+H/2+'" stroke="#333" stroke-width="0.5"/>';
+  svg0 += '<text x="'+W/2+'" y="'+(H+14)+'" text-anchor="middle" fill="#555" font-size="8" font-family="JetBrains Mono">a* (green\u2190 \u2192red)</text>';
+  svg0 += '<text x="'+(W/2)+'" y="'+(H+28)+'" text-anchor="middle" fill="#777" font-size="9" font-family="JetBrains Mono">CIELAB a* vs b* \u2014 Full Color Vision (\u0394E)</text>';
+  var scale0 = W/256;
+  csColors.forEach(function(c){
+    var lab = hexToLab(c.hex);
+    var cx = W/2 + lab.a * scale0;
+    var cy = H/2 - lab.b * scale0;
+    cx = Math.max(4, Math.min(W-4, cx));
+    cy = Math.max(4, Math.min(H-4, cy));
+    svg0 += '<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="8" fill="'+c.hex+'" stroke="#fff" stroke-width="1.5"/>';
+    svg0 += '<text x="'+(cx+10).toFixed(1)+'" y="'+(cy+3).toFixed(1)+'" fill="#aaa" font-size="7" font-family="JetBrains Mono">'+c.label+'</text>';
+  });
+  for(var i0=0;i0<csColors.length;i0++){
+    for(var j0=i0+1;j0<csColors.length;j0++){
+      var lab1_0=hexToLab(csColors[i0].hex), lab2_0=hexToLab(csColors[j0].hex);
+      var x1_0=W/2+lab1_0.a*scale0, y1_0=H/2-lab1_0.b*scale0;
+      var x2_0=W/2+lab2_0.a*scale0, y2_0=H/2-lab2_0.b*scale0;
+      x1_0=Math.max(4,Math.min(W-4,x1_0)); y1_0=Math.max(4,Math.min(H-4,y1_0));
+      x2_0=Math.max(4,Math.min(W-4,x2_0)); y2_0=Math.max(4,Math.min(H-4,y2_0));
+      var de0 = deltaE(csColors[i0].hex, csColors[j0].hex);
+      svg0 += '<line x1="'+x1_0.toFixed(1)+'" y1="'+y1_0.toFixed(1)+'" x2="'+x2_0.toFixed(1)+'" y2="'+y2_0.toFixed(1)+'" stroke="rgba(255,255,255,0.15)" stroke-width="0.5" stroke-dasharray="3,3"/>';
+      var mx0=(x1_0+x2_0)/2, my0=(y1_0+y2_0)/2;
+      svg0 += '<text x="'+mx0.toFixed(1)+'" y="'+(my0-3).toFixed(1)+'" text-anchor="middle" fill="#666" font-size="6" font-family="JetBrains Mono">\u0394E='+de0.toFixed(0)+'</text>';
+    }
+  }
+  svg0 += '</svg>';
+
   // ── Plot 1: CIELAB |a*| vs b* (R-G collapsed) ──
   var svg1 = '<svg viewBox="-10 -10 '+(W+20)+' '+(H+40)+'" xmlns="http://www.w3.org/2000/svg">';
   svg1 += '<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#111" rx="4"/>';
@@ -863,8 +895,8 @@ function renderCS(){
   matHtml += '</div>';
   matHtml += '<div style="font-size:0.5rem;color:#555;margin-top:4px;">\u0394E: perceptual distance (full vision). \u0394E\u2032: R-G axis folded (simulates deuteranopia/protanopia). Red &lt; 20, Green &gt; 60.</div>';
 
-  plotsEl.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-    '<div>'+svg1+'</div><div>'+svg2+'</div></div>' + matHtml;
+  plotsEl.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">' +
+    '<div>'+svg0+'</div><div>'+svg1+'</div><div>'+svg2+'</div></div>' + matHtml;
 }
 
 // Build color space section

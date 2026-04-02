@@ -926,6 +926,24 @@ function renderCS(){
   csSection.appendChild(plots);
 
   document.body.appendChild(csSection);
+
+  // ── Diagnosis note ──
+  var dxNote = document.createElement('div');
+  dxNote.style.cssText = 'max-width:1100px;margin:2rem auto;padding:1.2rem;background:#111118;border:1px solid #1a1a28;border-radius:10px;font-size:0.72rem;color:#999;line-height:1.7;';
+  dxNote.innerHTML = '<div style="font-family:Instrument Serif,serif;font-size:1.3rem;color:#f7931a;margin-bottom:0.6rem;">Color Vision Profile: Deuteranomaly</div>' +
+    '<table style="border-collapse:collapse;margin-bottom:0.8rem;font-size:0.65rem;">' +
+    '<tr style="color:#777;"><th style="padding:3px 10px;text-align:left;">Pure color</th><th style="padding:3px 10px;">Appears as</th><th style="padding:3px 10px;">Interpretation</th></tr>' +
+    '<tr><td style="padding:3px 10px;"><span style="display:inline-block;width:12px;height:12px;background:#FF0000;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Red</td><td style="padding:3px 10px;">Red</td><td style="padding:3px 10px;color:#666;">L cone (red) works normally</td></tr>' +
+    '<tr><td style="padding:3px 10px;"><span style="display:inline-block;width:12px;height:12px;background:#00FF00;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Green</td><td style="padding:3px 10px;">Neon green/yellow</td><td style="padding:3px 10px;color:#666;">M cone shifted toward L \u2014 green looks yellowish</td></tr>' +
+    '<tr><td style="padding:3px 10px;"><span style="display:inline-block;width:12px;height:12px;background:#0000FF;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Blue</td><td style="padding:3px 10px;">Blue</td><td style="padding:3px 10px;color:#666;">S cone (blue) works normally</td></tr>' +
+    '<tr><td style="padding:3px 10px;"><span style="display:inline-block;width:12px;height:12px;background:#FFFF00;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Yellow</td><td style="padding:3px 10px;">Yellow (confusable with green)</td><td style="padding:3px 10px;color:#666;">R+G \u2192 same percept as shifted green</td></tr>' +
+    '<tr><td style="padding:3px 10px;"><span style="display:inline-block;width:12px;height:12px;background:#FF00FF;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Magenta</td><td style="padding:3px 10px;">Pinkish blue</td><td style="padding:3px 10px;color:#666;">R+B, but R contribution muted by M overlap</td></tr>' +
+    '<tr><td style="padding:3px 10px;"><span style="display:inline-block;width:12px;height:12px;background:#00FFFF;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Cyan</td><td style="padding:3px 10px;">Near white</td><td style="padding:3px 10px;color:#666;">G+B, but G washed out \u2192 desaturated</td></tr>' +
+    '</table>' +
+    '<p style="margin-bottom:0.5rem;"><strong style="color:#ccc;">Deuteranomaly</strong> (anomalous trichromacy) \u2014 the M (green) cone is present but its peak sensitivity is shifted toward the L (red) cone. Three cones are active, but L and M overlap more than typical, compressing the red-green axis.</p>' +
+    '<p style="margin-bottom:0.5rem;">This is the most common color vision variation (~5% of males). It is <em>not</em> full red-green blindness (deuteranopia) \u2014 some red-green discrimination remains, but green appears yellowish and cyan appears desaturated.</p>' +
+    '<p style="color:#777;">The \u0394E\u2032 metric (|a*| reflection) is a slightly conservative model of this condition \u2014 it assumes full R-G collapse, whereas deuteranomaly retains partial discrimination. CB-Brian palettes are optimized for this profile.</p>';
+  document.body.appendChild(dxNote);
 })();
 
 // Make all source swatches clickable to add to CS

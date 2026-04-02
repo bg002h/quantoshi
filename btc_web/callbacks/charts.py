@@ -141,7 +141,11 @@ def auto_bubble_yrange(xrange, auto_y, yscale, model_show, sel_qs):
         if base_mdl is None:
             base_mdl = _app_ctx.DEFAULT_MODEL  # safe fallback
 
-    qs = sorted([float(q) for q in (sel_qs or []) if float(q) in base_mdl.fits])
+    # sel_qs may be band names ("inner","outer","median") or float quantiles
+    raw_qs = sel_qs or []
+    if raw_qs and isinstance(raw_qs[0], str):
+        raw_qs = _bands_to_qs(raw_qs)
+    qs = sorted([float(q) for q in raw_qs if float(q) in base_mdl.fits])
     if not qs:
         qs = sorted(base_mdl.fits.keys())
     p_lo = float(base_mdl.price_at(qs[0], t_lo))

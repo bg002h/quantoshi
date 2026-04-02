@@ -702,6 +702,44 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
             "sc" if show_modal else dash.no_update, ub_val, yr_adjust)
 
 
+# ── Update Display Models swatches when palette changes ──────────────────────
+
+@callback(
+    Output("bub-model-show", "options"),
+    Input("palette-store", "data"),
+    prevent_initial_call=True,
+)
+def update_model_swatches(palette_key):
+    pal = _app_ctx.PALETTES.get(palette_key or "default", _app_ctx.PALETTES["default"])
+    mc = pal.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
+    from dash import html
+    opts = [
+        {"label": html.Span([
+            html.Span(" ", style={
+                "display": "inline-block", "width": "12px", "height": "12px",
+                "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "4px",
+                "backgroundColor": mc.get("bub", "#000"),
+            }),
+            "Bubble Model",
+        ]), "value": "bub"},
+    ]
+    for mdl in _app_ctx.PRICE_MODELS.values():
+        if mdl.short_name in _app_ctx.MODEL_SENTINELS or mdl.short_name == "bub":
+            continue
+        opts.append({
+            "label": html.Span([
+                html.Span(" ", style={
+                    "display": "inline-block", "width": "12px", "height": "12px",
+                    "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "4px",
+                    "backgroundColor": mc.get(mdl.short_name, "#888"),
+                }),
+                mdl.name,
+            ]),
+            "value": mdl.short_name,
+        })
+    return opts
+
+
 # ── Quantile mode toggle (default ↔ advanced) — all tabs ─────────────────────
 
 def _register_qs_mode_callbacks(prefix):

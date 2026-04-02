@@ -744,6 +744,7 @@ def update_model_swatches(palette_key):
     pal = _app_ctx.PALETTES.get(palette_key or "default", _app_ctx.PALETTES["default"])
     mc = pal.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
     from dash import html
+    _DEPRIORITIZED = {"exp", "s2f"}
     opts = [
         {"label": html.Span([
             html.Span(" ", style={
@@ -754,9 +755,12 @@ def update_model_swatches(palette_key):
             "Bubble Model",
         ]), "value": "bub"},
     ]
-    for mdl in _app_ctx.PRICE_MODELS.values():
-        if mdl.short_name in _app_ctx.MODEL_SENTINELS or mdl.short_name == "bub":
-            continue
+    # Main models first, then deprioritized (exp, s2f) last
+    all_models = [mdl for mdl in _app_ctx.PRICE_MODELS.values()
+                  if mdl.short_name not in _app_ctx.MODEL_SENTINELS and mdl.short_name != "bub"]
+    ordered = [m for m in all_models if m.short_name not in _DEPRIORITIZED] + \
+              [m for m in all_models if m.short_name in _DEPRIORITIZED]
+    for mdl in ordered:
         opts.append({
             "label": html.Span([
                 html.Span(" ", style={

@@ -4212,7 +4212,7 @@ class TestPhase5Polish:
         from btc_core import BubbleModel, PowerLawModel, S2FModel
         assert BubbleModel.dash_style == "solid"
         assert PowerLawModel.dash_style == "dot"
-        assert S2FModel.dash_style == "longdash"
+        assert S2FModel.dash_style == "dot"
 
     def test_all_models_have_dash_style(self):
         for key, mdl in _app_ctx.PRICE_MODELS.items():
@@ -4235,7 +4235,7 @@ class TestPhase5Polish:
         ))
         s2f_traces = [t for t in fig.data if t.name and t.legendgroup == "s2f"]
         assert len(s2f_traces) == 1
-        assert s2f_traces[0].line.dash == "longdash"
+        assert s2f_traces[0].line.dash == "dot"
 
     def test_s2f_dca_overlay(self):
         from figures import build_dca_figure
@@ -4256,7 +4256,7 @@ class TestPhase5Polish:
         ))
         s2f_traces = [t for t in fig.data if t.name and t.legendgroup == "s2f"]
         assert len(s2f_traces) == 1
-        assert s2f_traces[0].line.dash == "longdash"
+        assert s2f_traces[0].line.dash == "dot"
 
     def test_s2f_retire_overlay(self):
         from figures import build_retire_figure

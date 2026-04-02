@@ -86,9 +86,13 @@ def _bubble_controls():
                                   }),
                                   mdl.name,
                               ]), "value": mdl.short_name}
-                              for mdl in _app_ctx.PRICE_MODELS.values()
-                              if mdl.short_name not in _app_ctx.MODEL_SENTINELS
-                              and mdl.short_name != "bub"
+                              for mdl in (
+                                  [m for m in _app_ctx.PRICE_MODELS.values()
+                                   if m.short_name not in _app_ctx.MODEL_SENTINELS
+                                   and m.short_name != "bub" and m.short_name not in ("exp", "s2f")]
+                                  + [m for m in _app_ctx.PRICE_MODELS.values()
+                                     if m.short_name in ("exp", "s2f")]
+                              )
                           ],
                           value=["bub"], inline=True,
                           inputStyle=_CB_MARGIN,

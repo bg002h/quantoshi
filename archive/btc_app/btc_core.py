@@ -834,7 +834,7 @@ class S2FModel:
     name = "Stock-to-Flow"
     short_name = "s2f"
     legend_name = "S2F"
-    dash_style = "longdash"
+    dash_style = "dot"
     quantized = False
     fits = None
     quantiles = []

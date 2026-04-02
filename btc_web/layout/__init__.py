@@ -282,6 +282,12 @@ def _build_layout(initial_tab="bubble"):
     dcc.Store(id="link-history",      storage_type="local",  data=[]),
     dcc.Store(id="loaded-hash-store", storage_type="memory"),
     dcc.Store(id="palette-store",    storage_type="local",  data="default"),
+    # Model warning dismissal (localStorage — persists across sessions, no cookies)
+    dcc.Store(id="model-warn-dismissed", storage_type="local", data={}),
+    dcc.ConfirmDialog(id="s2f-warn-dialog",
+        message="Remember: all models are wrong, some are useful, and some are no longer useful."),
+    dcc.ConfirmDialog(id="exp-warn-dialog",
+        message="WARNING: this model is not useful at extremes of past and future."),
     dcc.Store(id="journey-store",    storage_type="local",  data=None),
     # ── Splash quote modal ────────────────────────────────────────────────
     dbc.Modal([

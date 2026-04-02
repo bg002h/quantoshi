@@ -702,6 +702,33 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
             "sc" if show_modal else dash.no_update, ub_val, yr_adjust)
 
 
+# ── Model warning modals (S2F, Exponential) ──────────────────────────────────
+
+@callback(
+    Output("s2f-warn-dialog", "displayed"),
+    Output("exp-warn-dialog", "displayed"),
+    Output("model-warn-dismissed", "data", allow_duplicate=True),
+    Input("bub-model-show", "value"),
+    Input("dca-model-show", "value"),
+    Input("ret-model-show", "value"),
+    Input("sc-model-show", "value"),
+    State("model-warn-dismissed", "data"),
+    prevent_initial_call=True,
+)
+def model_warnings(bub_models, dca_models, ret_models, sc_models, dismissed):
+    dismissed = dismissed or {}
+    all_active = set((bub_models or []) + (dca_models or []) + (ret_models or []) + (sc_models or []))
+    show_s2f = "s2f" in all_active and not dismissed.get("s2f")
+    show_exp = "exp" in all_active and not dismissed.get("exp")
+    if show_s2f:
+        dismissed["s2f"] = True
+    if show_exp:
+        dismissed["exp"] = True
+    if show_s2f or show_exp:
+        return show_s2f, show_exp, dismissed
+    return False, False, dash.no_update
+
+
 # ── Update Display Models swatches when palette changes ──────────────────────
 
 @callback(

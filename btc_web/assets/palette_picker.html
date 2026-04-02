@@ -675,10 +675,30 @@ function updateChart(mode){
   chartEl.innerHTML = svg;
 }
 
+// Current production palettes — pre-fill builders on load
+var PRODUCTION = {
+  'Default':  {bub:'#FFD700',qr:'#0055FF',pl:'#00BB00',lppl:'#EE0000',ef:'#00CCBB',exp:'#9933FF',s2f:'#FF7700'},
+  'CB-Brian': {bub:'#FFD54F',qr:'#556B2F',pl:'#C635F5',lppl:'#AD1457',ef:'#1A237E',exp:'#E0E0E0',s2f:'#777777'},
+  'CB-RG':    {bub:'#F5793A',qr:'#A8A8A8',pl:'#0F2080',lppl:'#85C0F9',ef:'#A95AA1',exp:'#BBBBBB',s2f:'#F5C242'},
+  'CB-Full':  {bub:'#F0C040',qr:'#606060',pl:'#B0E0E6',lppl:'#1A1A1A',ef:'#D0D0D0',exp:'#909090',s2f:'#FFE066'},
+};
+
 // Init
 buildSources();
 buildTargets();
-MODES.forEach(function(mode){ updateChart(mode); });
+
+// Pre-fill builders with production palettes + activate all toggles
+MODES.forEach(function(mode){
+  var prod = PRODUCTION[mode];
+  if(prod){
+    MODELS.forEach(function(m){
+      built[mode][m] = prod[m];
+      updateSlot(mode, m);
+      active[mode][m] = true;
+    });
+  }
+  updateChart(mode);
+});
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Color Space Visualizer

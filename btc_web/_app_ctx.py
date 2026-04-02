@@ -43,6 +43,29 @@ MODEL_TRACE_COLORS = {
 # ── Color palettes (default + colorblind-safe alternatives) ──────────────
 PALETTES = {
     "default": {
+        "model_colors": {
+            "bub": "#FFD700", "qr": "#0055FF", "pl": "#00BB00",
+            "lppl": "#EE0000", "ef": "#00CCBB", "exp": "#9933FF", "s2f": "#FF7700",
+        },
+        "thermal_stops": [
+            (0.001, "#0d47a1"), (0.01, "#1565c0"), (0.015, "#1976d2"),
+            (0.05, "#42a5f5"), (0.10, "#80deea"), (0.25, "#b2dfdb"),
+            (0.50, "#bdbdbd"), (0.75, "#ffcc80"), (0.90, "#f7931a"),
+            (0.95, "#e65100"), (0.99, "#c62828"), (0.999, "#7f0000"),
+        ],
+        "non_quantized_model": "#8B4513",
+        "delay_colors": ["#00c853", "#fdd835", "#ff9100", "#ff5252", "#b71c1c"],
+        "annot_colors": ["#00a844", "#d4b12e", "#e07d00", "#d44040", "#8f1616"],
+        "today_line": "#FF6600",
+        "hm_c_lo": "#2166AC", "hm_c_mid1": "#F7F7F7",
+        "hm_c_mid2": "#FF8C00", "hm_c_hi": "#CC1100",
+        "hm_loss_text": "#ff8a80", "hm_exceptional_text": "#ffd700",
+    },
+    "cb-brian": {
+        "model_colors": {
+            "bub": "#FFD54F", "qr": "#556B2F", "pl": "#C635F5",
+            "lppl": "#AD1457", "ef": "#1A237E", "exp": "#E0E0E0", "s2f": "#777777",
+        },
         "thermal_stops": [
             (0.001, "#0d47a1"), (0.01, "#1565c0"), (0.015, "#1976d2"),
             (0.05, "#42a5f5"), (0.10, "#80deea"), (0.25, "#b2dfdb"),
@@ -58,6 +81,10 @@ PALETTES = {
         "hm_loss_text": "#ff8a80", "hm_exceptional_text": "#ffd700",
     },
     "cb-rg": {
+        "model_colors": {
+            "bub": "#F5793A", "qr": "#A8A8A8", "pl": "#0F2080",
+            "lppl": "#85C0F9", "ef": "#A95AA1", "exp": "#BBBBBB", "s2f": "#F5C242",
+        },
         "thermal_stops": [
             (0.001, "#0d47a1"), (0.01, "#1565c0"), (0.015, "#1976d2"),
             (0.05, "#56B4E9"), (0.10, "#88CCEE"), (0.25, "#AACCBB"),
@@ -73,6 +100,10 @@ PALETTES = {
         "hm_loss_text": "#CC79A7", "hm_exceptional_text": "#E69F00",
     },
     "cb-full": {
+        "model_colors": {
+            "bub": "#F0C040", "qr": "#606060", "pl": "#B0E0E6",
+            "lppl": "#1A1A1A", "ef": "#D0D0D0", "exp": "#909090", "s2f": "#FFE066",
+        },
         "thermal_stops": [
             (0.001, "#1a1a2e"), (0.01, "#3d1f56"), (0.015, "#6B3074"),
             (0.05, "#995588"), (0.10, "#BB7799"), (0.25, "#CCAAAA"),
@@ -90,6 +121,7 @@ PALETTES = {
 }
 PALETTE_LABELS = {
     "default": "Default",
+    "cb-brian": "Deuteranomaly",
     "cb-rg": "Colorblind (R-G)",
     "cb-full": "Colorblind (Full)",
 }

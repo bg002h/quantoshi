@@ -21,7 +21,7 @@ from figures.common import (
     _FONT_LEGEND, _FONT_TITLE, _FONT_SUBTITLE,
     _SANS_FONT, _FONT_TITLE_LG, _FONT_BODY_LG, _FONT_TICK_LG, _FONT_LEGEND_LG,
     _LOG_MINOR, _MC_LEGEND_POS,
-    _get_palette, _build_thermal_colors, _fmt_q_label,
+    _get_palette, _get_model_color, _build_thermal_colors, _fmt_q_label,
     _base_layout, _year_ticks, _price_tickvals,
     _apply_sans_typography, _apply_config_annotation, _apply_watermark, _add_date_hover,
     _HOVER_FMT_USD,
@@ -127,7 +127,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 _price_cache[q] = _round_trace_data(model.price_at(q, t_arr) * (stack if stack > 0 else 1))
 
         if p.get("shade") and len(sel_qs) >= 2:
-            _model_color = _app_ctx.MODEL_TRACE_COLORS.get("bub", "#000000")
+            _model_color = _get_model_color("bub", p)
             traces.extend(_build_symmetric_bands(
                 sel_qs, _price_cache, t_arr, model_color=_model_color))
 
@@ -159,7 +159,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     if bub_active:
         # ── quantile lines (thermal palette + neon glow) ─────────────────────
-        _bub_color = _app_ctx.MODEL_TRACE_COLORS.get("bub", "#DAA520")
+        _bub_color = _get_model_color("bub", p)
         for q in sel_qs:
             if q not in _price_cache:
                 continue
@@ -221,7 +221,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 # Skip own_quantile — already drawn as direct line above
                 overlay_qs = [q for q in overlay_qs
                               if not (hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005)]
-            _ovl_color = _app_ctx.MODEL_TRACE_COLORS.get(model_key, "#888888")
+            _ovl_color = _get_model_color(model_key, p)
             for q in overlay_qs:
                 if q not in mdl.fits:
                     continue
@@ -251,7 +251,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     if q in mdl.fits:
                         _overlay_prices[q] = _round_trace_data(
                             mdl.price_at(q, t_arr) * (stack if stack > 0 else 1))
-                _overlay_color = _app_ctx.MODEL_TRACE_COLORS.get(model_key, "#888888")
+                _overlay_color = _get_model_color(model_key, p)
                 traces.extend(_build_symmetric_bands(
                     sorted(_overlay_prices.keys()), _overlay_prices, t_arr,
                     model_color=_overlay_color))

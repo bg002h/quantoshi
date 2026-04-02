@@ -100,6 +100,13 @@ def _get_palette(p):
     return _app_ctx.PALETTES.get(key, _app_ctx.PALETTES["default"])
 
 
+def _get_model_color(model_key, p=None):
+    """Return the palette-aware color for a model key."""
+    palette = _get_palette(p) if p else _app_ctx.PALETTES["default"]
+    mc = palette.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
+    return mc.get(model_key, "#888888")
+
+
 def _thermal_color(q: float, palette=None) -> str:
     """Map a quantile (0–1) to a temperature color via the thermal palette."""
     stops = palette["thermal_stops"] if palette is not None else _THERMAL_STOPS

@@ -151,8 +151,6 @@ def toggle_bub_view(price_clicks, cagr_clicks):
 def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
                     toggles, xscale, yscale, model_show, legend_pos,
                     palette_key, qs_mode):
-    if view_mode != "cagr":
-        raise dash.exceptions.PreventUpdate
 
     from figures.heatmap import build_cagr_line_figure
 

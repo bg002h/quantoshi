@@ -412,3 +412,94 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
         _apply_mc_xlabel(fig, p, "hm")
     _apply_watermark(fig)
     return fig, mc_result
+
+
+def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
+    """Build a CAGR vs exit-year line chart for multiple models.
+
+    Uses the same entry year/quantile/price as the heatmap. Each active
+    model gets a trace showing projected CAGR at the selected entry quantile.
+    """
+    from figures.common import _get_model_color, _base_layout
+
+    eyr = int(p.get("entry_yr", 2020))
+    eq = float(p.get("entry_q", 50)) / 100.0
+    entry_t = yr_to_t(eyr, m.genesis)
+    live_price = p.get("live_price")
+
+    xlo = int(p.get("exit_yr_lo", eyr))
+    xhi = int(p.get("exit_yr_hi", eyr + 10))
+    eyrs = list(range(max(xlo, eyr + 1), xhi + 1))  # skip entry year (CAGR=0)
+
+    if not eyrs:
+        return _error_figure("No exit years \u2014 adjust range")
+
+    active_models = p.get("cagr_models") or ["bub"]
+    palette = _get_palette(p)
+
+    traces = []
+    for model_key in active_models:
+        model = _app_ctx.PRICE_MODELS.get(model_key)
+        if not model:
+            continue
+
+        is_q = getattr(model, "quantized", True)
+        if is_q:
+            ep = float(live_price) if live_price else model.interp_price(eq, entry_t)
+        else:
+            ep = float(live_price) if live_price else float(model.price_at(0.5, entry_t))
+
+        if ep <= 0:
+            continue
+
+        cagrs = []
+        for ey in eyrs:
+            et = yr_to_t(ey, m.genesis)
+            nyr = float(ey - eyr)
+            if nyr <= 0:
+                cagrs.append(0.0)
+                continue
+            if is_q:
+                xp = model.interp_price(eq, et)
+            else:
+                xp = float(model.price_at(0.5, et))
+            cagr = ((xp / ep) ** (1.0 / nyr) - 1.0) * 100.0
+            cagrs.append(cagr)
+
+        color = _get_model_color(model_key, p)
+        traces.append(go.Scatter(
+            x=[str(y) for y in eyrs],
+            y=cagrs,
+            mode="lines+markers",
+            name=model.legend_name if hasattr(model, 'legend_name') else model_key,
+            line=dict(color=color, width=2),
+            marker=dict(size=4, color=color),
+        ))
+
+    # Zero line
+    traces.append(go.Scatter(
+        x=[str(eyrs[0]), str(eyrs[-1])],
+        y=[0, 0],
+        mode="lines",
+        line=dict(color="#888", width=0.5, dash="dot"),
+        showlegend=False, hoverinfo="skip",
+    ))
+
+    entry_lbl = f"Entry: {eyr}  Q{eq*100:.4g}%"
+    layout = _base_layout(
+        title=f"Projected CAGR \u2014 {entry_lbl}",
+        xlabel="Exit Year",
+        ylabel="CAGR (%)",
+    )
+    layout["margin"] = dict(l=50, r=20, t=50, b=40)
+    layout["yaxis"]["automargin"] = True
+    layout["yaxis"]["ticklabelposition"] = "outside"
+    layout["yaxis"]["ticksuffix"] = "%"
+    layout["legend"] = dict(
+        orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+        font=dict(size=10),
+    )
+
+    fig = go.Figure(data=traces, layout=go.Layout(**layout))
+    _apply_watermark(fig)
+    return fig

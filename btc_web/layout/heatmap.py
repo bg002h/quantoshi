@@ -188,5 +188,31 @@ def _heatmap_tab():
             ]),
             html.Div(id="hm-swipe-scroll-dummy", style=_STYLE_HIDDEN),
             _export_row("heatmap"),
+            # ── CAGR line chart below heatmap ────────────────────────────
+            html.Hr(style={"margin": "12px 0", "borderColor": "#ddd"}),
+            html.Div([
+                html.Small("CAGR vs Exit Year — overlay models:",
+                           style={"color": "#888", "marginRight": "8px"}),
+                dcc.Checklist(
+                    id="hm-cagr-models",
+                    options=[
+                        {"label": f" {mdl.legend_name}" if hasattr(mdl, 'legend_name') else f" {k}",
+                         "value": k}
+                        for k, mdl in _app_ctx.PRICE_MODELS.items()
+                        if k not in ("mc",)
+                    ],
+                    value=["bub"],
+                    inline=True,
+                    inputStyle={"marginRight": "3px"},
+                    labelStyle={"marginRight": "10px", "fontSize": "11px"},
+                ),
+            ], style={"display": "flex", "alignItems": "center", "flexWrap": "wrap",
+                      "marginBottom": "6px"}),
+            dcc.Graph(id="hm-cagr-graph",
+                      style={"height": "300px"},
+                      config={"scrollZoom": False,
+                              "displayModeBar": "hover",
+                              "toImageButtonOptions": {"format": "png", "scale": 2,
+                                                       "filename": "btc_cagr_line"}}),
         ], width=9),
     ], className="g-0")

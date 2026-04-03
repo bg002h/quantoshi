@@ -550,8 +550,8 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 hovertemplate=(
                     "%{x:.1f}<br>"
                     "CAGR: %{y:.1f}% (\u00d7%{customdata[4]:.2f})<br>"
-                    "Peak: %{customdata[0]:.1f}% (\u00d7%{customdata[5]:.2f}) @ %{customdata[2]}<br>"
-                    "Trough: %{customdata[1]:.1f}% (\u00d7%{customdata[6]:.2f}) @ %{customdata[3]}"
+                    "Peak: \u00d7%{customdata[5]:.2f} @ %{customdata[2]}<br>"
+                    "Trough: \u00d7%{customdata[6]:.2f} @ %{customdata[3]}"
                     "<extra>%{fullData.name}</extra>"
                 ),
             ))
@@ -594,8 +594,8 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 if hasattr(tr, 'customdata') and tr.customdata and idx < len(tr.customdata):
                     cd = tr.customdata[idx]
                     cagr_mult_str = f" (\u00d7{cd[4]:.2f})"
-                    peak_str = f"<br>Peak: {cd[0]:.1f}% (\u00d7{cd[5]:.2f}) @ {cd[2]}"
-                    trough_str = f"<br>Trough: {cd[1]:.1f}% (\u00d7{cd[6]:.2f}) @ {cd[3]}"
+                    peak_str = f"<br>Peak: \u00d7{cd[5]:.2f} @ {cd[2]}"
+                    trough_str = f"<br>Trough: \u00d7{cd[6]:.2f} @ {cd[3]}"
                 traces.append(go.Scatter(
                     x=[yr_now], y=[y_val], mode="markers",
                     marker=dict(size=7, color=tr_color,

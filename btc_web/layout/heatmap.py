@@ -170,7 +170,7 @@ def _heatmap_tab():
     return dbc.Row([
         dbc.Col([
             _heatmap_controls(),
-        ], width=2, className="controls-col overflow-auto",
+        ], width=3, className="controls-col overflow-auto",
                 style={"maxHeight":"85vh"}),
         dbc.Col([
             # Model selector pills
@@ -203,5 +203,5 @@ def _heatmap_tab():
             ]),
             html.Div(id="hm-swipe-scroll-dummy", style=_STYLE_HIDDEN),
             _export_row("heatmap"),
-        ], width=10),
+        ], width=9),
     ], className="g-0")

@@ -285,7 +285,7 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                    linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
                    fixedrange=True),
         annotations=annots,
-        margin=dict(l=70, r=20, t=60, b=50),
+        margin=dict(l=50, r=10, t=50, b=40),
     )
     fig.layout.title.font.update(family=_SANS_FONT, size=_FONT_TITLE_LG)
     fig.layout.font.update(family=_SANS_FONT, size=_FONT_TICK_LG, weight="bold")
@@ -388,7 +388,7 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
                    linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
                    fixedrange=True),
         annotations=annots,
-        margin=dict(l=70, r=20, t=60, b=50),
+        margin=dict(l=50, r=10, t=50, b=40),
     )
     fig.layout.title.font.update(family=_SANS_FONT, size=_FONT_TITLE_LG)
     fig.layout.font.update(family=_SANS_FONT, size=_FONT_TICK_LG)

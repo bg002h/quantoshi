@@ -125,6 +125,28 @@ pre code {{ background:none; padding:0; }}
     def _docs_user_manual():
         return _render_doc("user_manual.md", "User Manual")
 
+    # ── Cache stats endpoint ────────────────────────────────────────────
+    @server.route("/api/cache-stats")
+    def _cache_stats():
+        from utils import _ALL_CACHES
+        from cache import redis_available
+        stats = {}
+        for name, cache in _ALL_CACHES.items():
+            info = cache.cache_info()
+            total = info.hits + info.misses
+            stats[name] = {
+                "hits": info.hits,
+                "misses": info.misses,
+                "size": info.currsize,
+                "maxsize": info.maxsize,
+                "rate": f"{info.hits/total:.1%}" if total else "n/a",
+            }
+        return jsonify({
+            "worker_pid": os.getpid(),
+            "redis": redis_available(),
+            "caches": stats,
+        })
+
     if not btcpay._HAS_BTCPAY:
         # No BTCPay configured — register stub routes that always return "free"
         @server.route("/api/mc/invoice", methods=["POST"])

@@ -84,7 +84,7 @@ def _cagr_sampling():
     for spy in rates:
         p = dict(
             entry_q=50,
-            exit_yr_lo=2010, exit_yr_hi=2040,
+            exit_yr_lo=2025, exit_yr_hi=2036,
             fwd_years=1,
             cagr_qs=[0.5],
             cagr_models=["bub"],

@@ -531,7 +531,12 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 showlegend=False, hoverinfo="skip",
             ))
 
-            # Endpoint CAGR trace with peak/trough in hover
+            # Precompute multiples for hover: (1 + pct/100)^fwd_n
+            cagr_mult = [(1 + c / 100) ** fwd_n for c in cagrs]
+            peak_mult = [1 + c / 100 for c in cagr_max]  # peak is raw return, not CAGR
+            trough_mult = [1 + c / 100 for c in cagr_min]
+
+            # Endpoint CAGR trace with peak/trough + multiples in hover
             traces.append(go.Scatter(
                 x=years,
                 y=cagrs,
@@ -540,12 +545,13 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 line=dict(color=color, width=2),
                 opacity=_q_opacity,
                 legendgroup=model_key,
-                customdata=list(zip(cagr_max, cagr_min, peak_dates, trough_dates)),
+                customdata=list(zip(cagr_max, cagr_min, peak_dates, trough_dates,
+                                    cagr_mult, peak_mult, trough_mult)),
                 hovertemplate=(
                     "%{x:.1f}<br>"
-                    "CAGR: %{y:.1f}%<br>"
-                    "Peak: %{customdata[0]:.1f}% @ %{customdata[2]}<br>"
-                    "Trough: %{customdata[1]:.1f}% @ %{customdata[3]}"
+                    "CAGR: %{y:.1f}% (\u00d7%{customdata[4]:.2f})<br>"
+                    "Peak: %{customdata[0]:.1f}% (\u00d7%{customdata[5]:.2f}) @ %{customdata[2]}<br>"
+                    "Trough: %{customdata[1]:.1f}% (\u00d7%{customdata[6]:.2f}) @ %{customdata[3]}"
                     "<extra>%{fullData.name}</extra>"
                 ),
             ))
@@ -584,16 +590,18 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 # Peak/trough from customdata if available
                 peak_str = ""
                 trough_str = ""
+                cagr_mult_str = ""
                 if hasattr(tr, 'customdata') and tr.customdata and idx < len(tr.customdata):
                     cd = tr.customdata[idx]
-                    peak_str = f"<br>Peak: {cd[0]:.1f}% @ {cd[2]}"
-                    trough_str = f"<br>Trough: {cd[1]:.1f}% @ {cd[3]}"
+                    cagr_mult_str = f" (\u00d7{cd[4]:.2f})"
+                    peak_str = f"<br>Peak: {cd[0]:.1f}% (\u00d7{cd[5]:.2f}) @ {cd[2]}"
+                    trough_str = f"<br>Trough: {cd[1]:.1f}% (\u00d7{cd[6]:.2f}) @ {cd[3]}"
                 traces.append(go.Scatter(
                     x=[yr_now], y=[y_val], mode="markers",
                     marker=dict(size=7, color=tr_color,
                                 line=dict(color="#fff", width=1.5)),
                     showlegend=False,
-                    hovertemplate=f"Today: {y_val:.1f}%{peak_str}{trough_str}<extra></extra>",
+                    hovertemplate=f"Today: {y_val:.1f}%{cagr_mult_str}{peak_str}{trough_str}<extra></extra>",
                 ))
 
     # Build title from quantiles shown

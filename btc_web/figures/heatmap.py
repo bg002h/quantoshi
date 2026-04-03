@@ -546,6 +546,12 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             font=dict(size=10),
         )
 
+    # Apply axis scales
+    if p.get("yscale") == "log":
+        layout["yaxis"]["type"] = "log"
+    if p.get("xscale") == "log":
+        layout["xaxis"]["type"] = "log"
+
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
 
     # Zoom control

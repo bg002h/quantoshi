@@ -190,7 +190,7 @@ _app_ctx.app.clientside_callback(
         window._pendingTabPath = null;
         if (p && /^\\/7\\.\\d+$/.test(p)) { return "model_info"; }
         if (p && /^\\/8\\.\\d+$/.test(p)) { return "faq"; }
-        if (p === "/1.2") { return "bubble"; }
+        if (p && p.indexOf("/1.2") === 0) { return "bubble"; }
         if (p && /^\\/2\\.\\d+$/.test(p)) { return "heatmap"; }
         var tab = map[p];
         return tab ? tab : NU;
@@ -217,16 +217,27 @@ _app_ctx.app.clientside_callback(
     Output("bub-bubble-panel", "style", allow_duplicate=True),
     Output("bub-cagr-fwd-wrap", "style", allow_duplicate=True),
     Output("bub-xrange", "value", allow_duplicate=True),
+    Output("bub-cagr-fwd-yrs", "value", allow_duplicate=True),
     Input("url", "pathname"),
     prevent_initial_call=True,
 )
 def deep_link_cagr(pathname):
     from dash import no_update
-    if pathname != "/1.2":
-        return (no_update,) * 9
+    if not pathname or not pathname.startswith("/1.2"):
+        return (no_update,) * 10
     _hide = {"display": "none"}
+    _FWD_OPTIONS = [1, 2, 4, 10, 20, 30]
+    fwd_yrs = no_update
+    # /1.2.N selects Nth forward year option (1-indexed)
+    if "." in pathname[3:]:
+        try:
+            n = int(pathname.split(".")[-1])
+            if 1 <= n <= len(_FWD_OPTIONS):
+                fwd_yrs = _FWD_OPTIONS[n - 1]
+        except ValueError:
+            pass
     return ("cagr", _hide, {}, True, False, _hide, _hide,
-            {"display": "inline"}, [2025, 2050])
+            {"display": "inline"}, [2025, 2050], fwd_yrs)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

@@ -460,6 +460,8 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             cagrs = []
             cagr_max = []
             cagr_min = []
+            peak_dates = []
+            trough_dates = []
             for yr in years:
                 t0 = yr_to_t(yr, m.genesis)
                 t_safe = max(t0, 0.5)
@@ -471,6 +473,8 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     cagrs.append(0.0)
                     cagr_max.append(0.0)
                     cagr_min.append(0.0)
+                    peak_dates.append("")
+                    trough_dates.append("")
                     continue
                 # Endpoint CAGR
                 t1 = yr_to_t(yr + 1, m.genesis)
@@ -479,19 +483,27 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 else:
                     p1 = float(model.price_at(0.5, max(t1, 0.5)))
                 cagrs.append((p1 / p0 - 1.0) * 100.0)
-                # Intra-year min/max excursion
+                # Intra-year min/max excursion with dates
                 px_max = p0
                 px_min = p0
+                s_max = 0
+                s_min = 0
                 for s in range(1, _intra_steps + 1):
                     ts = yr_to_t(yr + s / _intra_steps, m.genesis)
                     if is_q:
                         ps = model.interp_price(q, max(ts, 0.5))
                     else:
                         ps = float(model.price_at(0.5, max(ts, 0.5)))
-                    px_max = max(px_max, ps)
-                    px_min = min(px_min, ps)
+                    if ps > px_max:
+                        px_max = ps
+                        s_max = s
+                    if ps < px_min:
+                        px_min = ps
+                        s_min = s
                 cagr_max.append((px_max / p0 - 1.0) * 100.0)
                 cagr_min.append((px_min / p0 - 1.0) * 100.0)
+                peak_dates.append(f"{yr + s_max / _intra_steps:.1f}")
+                trough_dates.append(f"{yr + s_min / _intra_steps:.1f}")
 
             _dist = abs(q - 0.5) / 0.45
             _q_opacity = max(0.1, 1.0 - _dist * 0.5)
@@ -523,12 +535,12 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 line=dict(color=color, width=2),
                 opacity=_q_opacity,
                 legendgroup=model_key,
-                customdata=list(zip(cagr_max, cagr_min)),
+                customdata=list(zip(cagr_max, cagr_min, peak_dates, trough_dates)),
                 hovertemplate=(
                     "%{x:.1f}<br>"
                     "CAGR: %{y:.1f}%<br>"
-                    "Peak: %{customdata[0]:.1f}%<br>"
-                    "Trough: %{customdata[1]:.1f}%"
+                    "Peak: %{customdata[0]:.1f}% @ %{customdata[2]}<br>"
+                    "Trough: %{customdata[1]:.1f}% @ %{customdata[3]}"
                     "<extra>%{fullData.name}</extra>"
                 ),
             ))
@@ -569,8 +581,8 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 trough_str = ""
                 if hasattr(tr, 'customdata') and tr.customdata and idx < len(tr.customdata):
                     cd = tr.customdata[idx]
-                    peak_str = f"<br>Peak: {cd[0]:.1f}%"
-                    trough_str = f"<br>Trough: {cd[1]:.1f}%"
+                    peak_str = f"<br>Peak: {cd[0]:.1f}% @ {cd[2]}"
+                    trough_str = f"<br>Trough: {cd[1]:.1f}% @ {cd[3]}"
                 traces.append(go.Scatter(
                     x=[yr_now], y=[y_val], mode="markers",
                     marker=dict(size=7, color=tr_color,

@@ -7,6 +7,13 @@ import _app_ctx
 from layout.faq import _FAQ
 
 
+def _norm(pathname: str | None) -> str | None:
+    """Normalize pathname: treat '-' as '.' so /1-2-5-1 == /1.2.5.1."""
+    if pathname and "-" in pathname:
+        return pathname.replace("-", ".")
+    return pathname
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # SC mode / display-q toggles
 # ══════════════════════════════════════════════════════════════════════════════
@@ -173,6 +180,10 @@ _app_ctx.app.clientside_callback(
         var map = {"/1":"bubble","/2":"heatmap","/3":"dca",
                    "/4":"retire","/5":"supercharge","/6":"stack",
                    "/7":"model_info","/8":"faq","/9":"citadel"};
+        /* Normalize: treat '-' as '.' so /1-2-5-1 == /1.2.5.1 */
+        if (pathname && pathname.indexOf('-') !== -1) {
+            pathname = pathname.replace(/-/g, '.');
+        }
         /* While splash modal is open, defer the tab switch so chart
            callbacks don't fire into a container hidden behind the modal. */
         if (splashOpen) {
@@ -224,6 +235,7 @@ _app_ctx.app.clientside_callback(
 )
 def deep_link_cagr(pathname):
     from dash import no_update
+    pathname = _norm(pathname)
     if not pathname or not pathname.startswith("/1.2"):
         return (no_update,) * 11
     _hide = {"display": "none"}
@@ -360,6 +372,7 @@ _MODEL_INFO_ITEMS = ["mi-bub", "mi-qr", "mi-pl", "mi-lppl", "mi-exp", "mi-s2f", 
 )
 def open_model_info_item(pathname):
     """Open a specific Model Info accordion item when pathname is /7.N (1-indexed)."""
+    pathname = _norm(pathname)
     if not pathname or not pathname.startswith("/7."):
         return no_update
     try:
@@ -398,6 +411,7 @@ def open_model_info_lightbox(n_clicks_list):
 )
 def open_faq_item(pathname):
     """Open a specific FAQ accordion item when pathname is /8.N (1-indexed)."""
+    pathname = _norm(pathname)
     if not pathname or not pathname.startswith("/8."):
         return no_update
     try:
@@ -449,6 +463,7 @@ if _app_ctx._HAS_MARKOV:
     prevent_initial_call=True,
 )
 def _hm_deep_link(pathname):
+    pathname = _norm(pathname)
     if not pathname or not pathname.startswith("/2."):
         return no_update
     try:

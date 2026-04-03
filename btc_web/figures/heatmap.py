@@ -514,7 +514,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 showlegend=False, hoverinfo="skip",
             ))
 
-            # Endpoint CAGR trace
+            # Endpoint CAGR trace with peak/trough in hover
             traces.append(go.Scatter(
                 x=years,
                 y=cagrs,
@@ -523,6 +523,14 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 line=dict(color=color, width=2),
                 opacity=_q_opacity,
                 legendgroup=model_key,
+                customdata=list(zip(cagr_max, cagr_min)),
+                hovertemplate=(
+                    "%{x:.1f}<br>"
+                    "CAGR: %{y:.1f}%<br>"
+                    "Peak: %{customdata[0]:.1f}%<br>"
+                    "Trough: %{customdata[1]:.1f}%"
+                    "<extra>%{fullData.name}</extra>"
+                ),
             ))
 
     # Zero line

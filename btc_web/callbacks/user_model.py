@@ -156,6 +156,37 @@ def delete_user_model(n_clicks):
 _MODEL_SHOW_PREFIXES = ["bub", "dca", "ret", "sc"]
 
 
-# U₁ option is now statically included in the Display Models checklist
-# (layout/bubble.py + callbacks/charts.py update_model_swatches).
-# No dynamic injection needed.
+# U₁ option is now statically included in the Display Models checklist.
+# Show/hide the P1/P2 panel based on whether U1 is checked.
+_app_ctx.app.clientside_callback(
+    """function(model_show) {
+        var has_u1 = (model_show || []).indexOf('u1') >= 0;
+        return has_u1 ? {} : {display: 'none'};
+    }""",
+    Output("um-panel-wrap", "style"),
+    Input("bub-model-show", "value"),
+)
+
+
+# Auto-draw: when P2 is set and P1 already exists, auto-construct the model
+@callback(
+    Output("user-model-store", "data", allow_duplicate=True),
+    Input("um-p2-year", "data"),
+    State("um-p2-price", "data"),
+    State("um-p1-year", "data"),
+    State("um-p1-price", "data"),
+    prevent_initial_call=True,
+)
+def auto_draw_on_p2(p2y, p2p, p1y, p1p):
+    """Auto-construct UserModel when both P1 and P2 are set."""
+    if not all([p1y, p1p, p2y, p2p]):
+        return no_update
+    M = _app_ctx.M
+    t1 = float(p1y) - _GENESIS_YR
+    t2 = float(p2y) - _GENESIS_YR
+    model = UserModel.from_points(
+        t1=t1, p1=float(p1p), t2=t2, p2=float(p2p),
+        price_years=M.price_years, price_prices=M.price_prices,
+        quantiles=list(M.QR_QUANTILES),
+    )
+    return model.to_store_dict()

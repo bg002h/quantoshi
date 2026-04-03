@@ -196,8 +196,14 @@ def _heatmap_tab():
                 dcc.Checklist(
                     id="hm-cagr-models",
                     options=[
-                        {"label": f" {mdl.legend_name}" if hasattr(mdl, 'legend_name') else f" {k}",
-                         "value": k}
+                        {"label": html.Span([
+                            html.Span(" ", style={
+                                "display": "inline-block", "width": "10px", "height": "10px",
+                                "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "3px",
+                                "backgroundColor": _app_ctx.PALETTES["default"]["model_colors"].get(k, "#888"),
+                            }),
+                            mdl.legend_name if hasattr(mdl, 'legend_name') else k,
+                        ]), "value": k}
                         for k, mdl in _app_ctx.PRICE_MODELS.items()
                         if k not in ("mc",)
                     ],

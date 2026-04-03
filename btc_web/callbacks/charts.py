@@ -820,6 +820,7 @@ def _build_model_opts(mc, include_u1=False):
     Output("dca-model-show", "options", allow_duplicate=True),
     Output("ret-model-show", "options", allow_duplicate=True),
     Output("sc-model-show", "options", allow_duplicate=True),
+    Output("hm-cagr-models", "options"),
     Input("palette-store", "data"),
     prevent_initial_call=True,
 )
@@ -828,7 +829,24 @@ def update_model_swatches(palette_key):
     mc = pal.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
     bub_opts = _build_model_opts(mc, include_u1=True)
     other_opts = _build_model_opts(mc, include_u1=False)
-    return bub_opts, other_opts, other_opts, other_opts
+    # CAGR checklist includes all models (no sentinels filter)
+    from dash import html
+    cagr_opts = []
+    for k, mdl in _app_ctx.PRICE_MODELS.items():
+        if k == "mc":
+            continue
+        cagr_opts.append({
+            "label": html.Span([
+                html.Span(" ", style={
+                    "display": "inline-block", "width": "10px", "height": "10px",
+                    "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "3px",
+                    "backgroundColor": mc.get(k, "#888"),
+                }),
+                mdl.legend_name if hasattr(mdl, 'legend_name') else k,
+            ]),
+            "value": k,
+        })
+    return bub_opts, other_opts, other_opts, other_opts, cagr_opts
 
 
 # ── Quantile mode toggle (default ↔ advanced) — all tabs ─────────────────────

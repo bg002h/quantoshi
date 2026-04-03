@@ -258,15 +258,15 @@ _app_ctx.app.clientside_callback(
     """
     function(flag) {
         if (!flag) return window.dash_clientside.no_update;
-        // Poll until the CAGR graph is rendered with data
         var attempts = 0;
         function tryHover() {
-            var el = document.getElementById('bub-cagr-graph');
+            var wrap = document.getElementById('bub-cagr-graph');
+            var el = wrap && wrap.querySelector('.js-plotly-plot');
             if (!el || !el.data || el.data.length === 0) {
-                if (++attempts < 30) { setTimeout(tryHover, 200); }
+                if (++attempts < 50) { setTimeout(tryHover, 200); }
                 return;
             }
-            // Find the beacon dot trace (single-point marker)
+            // Find the beacon dot trace (single-point marker, last one)
             for (var i = el.data.length - 1; i >= 0; i--) {
                 var tr = el.data[i];
                 if (tr.x && tr.x.length === 1 && tr.mode === 'markers') {
@@ -275,7 +275,7 @@ _app_ctx.app.clientside_callback(
                 }
             }
         }
-        setTimeout(tryHover, 500);
+        setTimeout(tryHover, 1000);
         return false;
     }
     """,

@@ -318,9 +318,12 @@ _app_ctx.app.clientside_callback(
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Heatmap deep-linking (/2.N → select Nth pill, 1-indexed)
-_HM_PILL_MODELS = ["bub"] + [k for k in _app_ctx.PRICE_MODELS if k != "bub"]
+# Must match pill bar order in layout/heatmap.py: BM, then all models except bub/mc, then MC
+_HM_PILL_MODELS = ["bub"] + [k for k in _app_ctx.PRICE_MODELS if k not in ("bub", "mc")]
 if _app_ctx._HAS_MARKOV:
     _HM_PILL_MODELS.append("mc")
+# Log the mapping for CLAUDE.md reference
+# /2.1=bub, /2.2=qr, /2.3=pl, /2.4=lppl, /2.5=exp, /2.6=ef (if loaded), /2.7=s2f, /2.N+1=mc
 
 
 @callback(

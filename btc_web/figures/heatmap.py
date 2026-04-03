@@ -557,19 +557,19 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     xlo = int(p.get("exit_yr_lo", 2010))
     xhi = int(p.get("exit_yr_hi", 2040))
     span = xhi - xlo
-    step = 1 if span <= 15 else (2 if span <= 30 else 5)
-    # Align to multiples of step (e.g. 2010, 2015, 2020 not 2011, 2016)
+    step = 1 if span <= 15 else (2 if span <= 30 else (5 if span <= 50 else 10))
+    # Align ticks to round multiples (2010, 2020, 2030...)
     first_tick = xlo + (-xlo % step) if xlo % step else xlo
-    tick_yrs = list(range(first_tick, xhi, step))
+    tick_yrs = list(range(first_tick, xhi + 1, step))
     layout["xaxis"].update(
+        tickmode="array",
         tickvals=tick_yrs,
         ticktext=[f"'{y % 100:02d}" for y in tick_yrs],
-        tickangle=-45,
+        tickangle=0,
         ticks="",
-        ticklabelstandoff=0,
-        ticklabelposition="outside top",
         tickfont=dict(family="Arial Narrow, sans-serif-condensed, sans-serif"),
-        range=[xlo - 0.5, xhi - 0.5],
+        range=[xlo - 0.5, xhi + 0.5],
+        autorange=False,
     )
 
     # Legend

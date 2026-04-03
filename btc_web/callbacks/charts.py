@@ -370,12 +370,13 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     Input("hm-entry-yr",  "value"),
     Input("hm-entry-q",   "value"),
     Input("hm-exit-range","value"),
+    Input("hm-exit-qs",   "value"),
     Input("hm-cagr-models", "value"),
     Input("palette-store", "data"),
     State("btc-price-store", "data"),
     prevent_initial_call=True,
 )
-def update_cagr_line(_first_render, entry_yr, entry_q, exit_range, cagr_models, palette_key, live_price):
+def update_cagr_line(_first_render, entry_yr, entry_q, exit_range, exit_qs, cagr_models, palette_key, live_price):
     from figures.heatmap import build_cagr_line_figure
     entry_yr = int(entry_yr) if entry_yr else 2025
     exit_range = exit_range or [entry_yr, entry_yr + 10]
@@ -384,6 +385,7 @@ def update_cagr_line(_first_render, entry_yr, entry_q, exit_range, cagr_models, 
         entry_q=float(entry_q) if entry_q is not None else 50,
         exit_yr_lo=int(exit_range[0]),
         exit_yr_hi=int(exit_range[1]),
+        cagr_qs=exit_qs or [float(entry_q or 50) / 100.0],
         cagr_models=cagr_models or ["bub"],
         palette=palette_key or "default",
         live_price=float(live_price) if live_price else None,

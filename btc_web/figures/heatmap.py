@@ -422,16 +422,25 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     each model at the selected quantile.
     """
     from figures.common import _get_model_color, _base_layout
+    from layout.common import _bands_to_qs
 
     eq = float(p.get("entry_q", 50)) / 100.0
     xlo = int(p.get("exit_yr_lo", 2010))
     xhi = int(p.get("exit_yr_hi", 2040))
-    years = list(range(xlo, xhi))  # CAGR at year t = growth from t to t+1
+    years = list(range(xlo, xhi))
 
     if not years:
         return _error_figure("No years \u2014 adjust range")
 
     active_models = p.get("cagr_models") or ["bub"]
+
+    # Quantiles to plot — from heatmap exit quantiles or default bands
+    raw_qs = p.get("cagr_qs") or [eq]
+    if raw_qs and isinstance(raw_qs[0], str):
+        raw_qs = _bands_to_qs(raw_qs)
+    sel_qs = sorted(set([float(q) for q in raw_qs]))
+    if not sel_qs:
+        sel_qs = [eq]
 
     traces = []
     for model_key in active_models:
@@ -440,29 +449,39 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             continue
 
         is_q = getattr(model, "quantized", True)
-        cagrs = []
-        for yr in years:
-            t0 = yr_to_t(yr, m.genesis)
-            t1 = yr_to_t(yr + 1, m.genesis)
-            if is_q:
-                p0 = model.interp_price(eq, max(t0, 0.5))
-                p1 = model.interp_price(eq, max(t1, 0.5))
-            else:
-                p0 = float(model.price_at(0.5, max(t0, 0.5)))
-                p1 = float(model.price_at(0.5, max(t1, 0.5)))
-            if p0 > 0:
-                cagrs.append((p1 / p0 - 1.0) * 100.0)
-            else:
-                cagrs.append(0.0)
-
         color = _get_model_color(model_key, p)
-        traces.append(go.Scatter(
-            x=[str(y) for y in years],
-            y=cagrs,
-            mode="lines",
-            name=model.legend_name if hasattr(model, 'legend_name') else model_key,
-            line=dict(color=color, width=2),
-        ))
+
+        qs_to_plot = sel_qs if is_q else [0.5]
+        for q in qs_to_plot:
+            cagrs = []
+            for yr in years:
+                t0 = yr_to_t(yr, m.genesis)
+                t1 = yr_to_t(yr + 1, m.genesis)
+                if is_q:
+                    p0 = model.interp_price(q, max(t0, 0.5))
+                    p1 = model.interp_price(q, max(t1, 0.5))
+                else:
+                    p0 = float(model.price_at(0.5, max(t0, 0.5)))
+                    p1 = float(model.price_at(0.5, max(t1, 0.5)))
+                if p0 > 0:
+                    cagrs.append((p1 / p0 - 1.0) * 100.0)
+                else:
+                    cagrs.append(0.0)
+
+            _dist = abs(q - 0.5) / 0.45
+            _q_opacity = max(0.1, 1.0 - _dist * 0.5)
+            q_pct = q * 100
+            q_lbl = f"Q{q_pct:.4g}%" if q_pct >= 1 else f"Q{q_pct:.3g}%"
+            lbl = f"{model.legend_name} {q_lbl}" if len(qs_to_plot) > 1 else model.legend_name
+            traces.append(go.Scatter(
+                x=[str(y) for y in years],
+                y=cagrs,
+                mode="lines",
+                name=lbl,
+                line=dict(color=color, width=2),
+                opacity=_q_opacity,
+                legendgroup=model_key,
+            ))
 
     # Zero line
     traces.append(go.Scatter(

@@ -316,6 +316,8 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                     {"label": "2yr", "value": 2},
                     {"label": "4yr", "value": 4},
                     {"label": "10yr", "value": 10},
+                    {"label": "20yr", "value": 20},
+                    {"label": "30yr", "value": 30},
                 ],
                 value=1, clearable=False,
                 style={"width": "75px", "fontSize": "12px",

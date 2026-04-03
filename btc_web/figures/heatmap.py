@@ -492,20 +492,65 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         showlegend=False, hoverinfo="skip",
     ))
 
+    # Build title from quantiles shown
+    if len(sel_qs) == 1:
+        q_lbl = f"Q{sel_qs[0]*100:.4g}%"
+    elif len(sel_qs) <= 3:
+        q_lbl = "/".join(f"Q{q*100:.4g}%" for q in sel_qs)
+    else:
+        q_lbl = f"{len(sel_qs)} quantiles"
+
     layout = _base_layout(
-        title=f"1-Year Forward Growth Rate \u2014 Q{eq*100:.4g}%",
+        title=f"1-Year Forward Growth Rate \u2014 {q_lbl}",
         xlabel="",
         ylabel="",
     )
-    layout["margin"] = dict(l=50, r=20, t=50, b=40)
-    layout["yaxis"]["automargin"] = True
-    layout["yaxis"]["ticklabelposition"] = "outside"
+    layout["margin"] = dict(l=5, r=20, t=50, b=30, autoexpand=False)
+    layout["yaxis"]["automargin"] = False
+    layout["yaxis"]["side"] = "left"
+    layout["yaxis"]["ticklabelposition"] = "inside"
+    layout["yaxis"]["ticklabelshift"] = -5
+    layout["yaxis"]["ticklabeloverflow"] = "allow"
     layout["yaxis"]["ticksuffix"] = "%"
-    layout["legend"] = dict(
-        orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
-        font=dict(size=10),
+    layout["yaxis"]["ticks"] = ""
+
+    # X axis tick labels
+    from figures.common import _year_ticks
+    xlo = int(p.get("exit_yr_lo", 2010))
+    xhi = int(p.get("exit_yr_hi", 2040))
+    tick_ts, tick_lbls = _year_ticks(xlo, xhi, m.genesis,
+                                      minor_grid=p.get("minor_grid"))
+    layout["xaxis"].update(
+        tickvals=[str(y) for y in range(xlo, xhi)],
+        ticktext=[f"'{y % 100:02d}" for y in range(xlo, xhi)],
+        tickangle=-45,
+        ticks="",
+        ticklabelstandoff=0,
+        ticklabelposition="outside top",
+        tickfont=dict(family="Arial Narrow, sans-serif-condensed, sans-serif"),
     )
 
+    # Legend
+    show_legend = p.get("show_legend", True)
+    legend_pos = p.get("legend_pos", "outside")
+    if not show_legend:
+        layout["showlegend"] = False
+    elif legend_pos != "outside":
+        from figures.common import _MC_LEGEND_POS
+        lp = _MC_LEGEND_POS.get(legend_pos, {})
+        layout["legend"] = dict(**lp, font=dict(size=10),
+                                bgcolor="rgba(255,255,255,0.85)")
+    else:
+        layout["legend"] = dict(
+            orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+            font=dict(size=10),
+        )
+
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
+
+    # Zoom control
+    if not p.get("chart_zoom"):
+        fig.update_layout(dragmode=False)
+
     _apply_watermark(fig)
     return fig

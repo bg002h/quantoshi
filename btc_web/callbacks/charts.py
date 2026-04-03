@@ -139,19 +139,24 @@ def toggle_bub_view(price_clicks, cagr_clicks):
     Input("bub-qs", "value"),
     Input("bub-qs-adv", "value"),
     Input("bub-xrange", "value"),
+    Input("bub-toggles", "value"),
+    Input("bub-xscale", "value"),
+    Input("bub-yscale", "value"),
     Input("bub-model-show", "value"),
+    Input("bub-legend-pos", "value"),
     Input("palette-store", "data"),
     State("bub-qs-mode", "value"),
     prevent_initial_call=True,
 )
 def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
-                    model_show, palette_key, qs_mode):
+                    toggles, xscale, yscale, model_show, legend_pos,
+                    palette_key, qs_mode):
     if view_mode != "cagr":
         raise dash.exceptions.PreventUpdate
 
     from figures.heatmap import build_cagr_line_figure
 
-    # Resolve quantiles (same logic as bubble callback)
+    toggles = toggles or []
     if "advanced" in (qs_mode or []):
         effective_qs = adv_qs or []
     else:
@@ -159,12 +164,18 @@ def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
 
     xrange = xrange or [2010, 2033]
     p = dict(
-        entry_q=50,  # not used for 1-year forward CAGR
+        entry_q=50,
         exit_yr_lo=int(xrange[0]),
         exit_yr_hi=int(xrange[1]),
         cagr_qs=effective_qs,
         cagr_models=model_show or ["bub"],
         palette=palette_key or "default",
+        xscale=xscale or "log",
+        yscale=yscale or "log",
+        show_legend="show_legend" in toggles,
+        minor_grid="minor_grid" in toggles,
+        chart_zoom="chart_zoom" in toggles,
+        legend_pos=legend_pos or "outside",
     )
     return build_cagr_line_figure(_app_ctx.M, p)
 

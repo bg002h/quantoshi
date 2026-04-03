@@ -307,7 +307,7 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
     view_pills = html.Div([
         dbc.ButtonGroup([
             dbc.Button("Price", id="bub-view-price", color="primary", size="sm"),
-            dbc.Button("CAGR", id="bub-view-cagr", outline=True, color="primary", size="sm"),
+            dbc.Button("Forward CAGR", id="bub-view-cagr", outline=True, color="primary", size="sm"),
         ], size="sm"),
         html.Span(id="bub-cagr-fwd-wrap", style={"display": "none"}, children=[
             dcc.Dropdown(id="bub-cagr-fwd-yrs",

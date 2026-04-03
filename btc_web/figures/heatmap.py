@@ -492,7 +492,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         showlegend=False, hoverinfo="skip",
     ))
 
-    # Today line (vertical shape spanning full y-range)
+    # Today line + beacon markers
     import pandas as pd
     yr_now = pd.Timestamp.today().year + pd.Timestamp.today().day_of_year / 365.25
     today_shapes = []
@@ -504,6 +504,32 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             x0=yr_now, x1=yr_now, y0=0, y1=1,
             line=dict(color=today_color, width=1.5, dash="dash"),
         ))
+        # Beacon dots — interpolate each trace's y-value at today
+        yr_idx = int(yr_now)
+        if yr_idx in years:
+            idx = years.index(yr_idx)
+            for tr in traces:
+                if not hasattr(tr, 'y') or not tr.y or idx >= len(tr.y):
+                    continue
+                if tr.showlegend is False:
+                    continue
+                y_val = tr.y[idx]
+                tr_color = tr.line.color if tr.line and tr.line.color else today_color
+                # Glow ring
+                traces.append(go.Scatter(
+                    x=[yr_now], y=[y_val], mode="markers",
+                    marker=dict(size=16, color=tr_color, opacity=0.2,
+                                line=dict(width=0)),
+                    showlegend=False, hoverinfo="skip",
+                ))
+                # Core dot
+                traces.append(go.Scatter(
+                    x=[yr_now], y=[y_val], mode="markers",
+                    marker=dict(size=6, color=tr_color,
+                                line=dict(color="#fff", width=1)),
+                    showlegend=False,
+                    hovertemplate=f"Today: {y_val:.1f}%<extra></extra>",
+                ))
 
     # Build title from quantiles shown
     if len(sel_qs) == 1:

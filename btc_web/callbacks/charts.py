@@ -164,7 +164,7 @@ def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
                     toggles, xscale, yscale, model_show, legend_pos,
                     fwd_yrs, palette_key, qs_mode):
 
-    from figures.heatmap import build_cagr_line_figure
+    from utils import _get_cagr_fig
 
     toggles = toggles or []
     if "advanced" in (qs_mode or []):
@@ -189,7 +189,7 @@ def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
         chart_zoom="chart_zoom" in toggles,
         legend_pos=legend_pos or "outside",
     )
-    return build_cagr_line_figure(_app_ctx.M, p)
+    return _get_cagr_fig(p)
 
 
 @callback(

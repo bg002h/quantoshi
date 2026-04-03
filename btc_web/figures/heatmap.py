@@ -129,24 +129,12 @@ def _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax, cell_fs, colorsca
                 _cs_rgb = colorscale[cs_idx][1]  # "rgb(r,g,b)"
                 _rgb = [int(x) for x in _cs_rgb.replace("rgb(", "").replace(")", "").split(",")]
                 _lum = (0.299 * _rgb[0] + 0.587 * _rgb[1] + 0.114 * _rgb[2]) / 255.0
-                # Signed cell text colors: red for loss, gold for exceptional
-                _bg = None  # optional text background for low-contrast cells
-                _loss_color = palette.get("hm_loss_text", "#ff8a80") if palette else "#ff8a80"
-                _exc_color = palette.get("hm_exceptional_text", "#ffd700") if palette else "#ffd700"
-                if vc2 < 0:
-                    txt_col = _loss_color     # soft red — loss
-                elif vc2 > 50:
-                    txt_col = _exc_color     # gold — exceptional
-                elif _lum < 0.45:
+                # Cell text color: contrast against background
+                _bg = None
+                if _lum < 0.45:
                     txt_col = "#ffffff"     # white on dark cells
                 else:
                     txt_col = "#111111"     # dark on light cells
-                # Low-contrast guard: if text and background are too close,
-                # add a semi-transparent backdrop so text is always readable
-                _txt_lum = 1.0 if txt_col in ("#ffffff", _loss_color, _exc_color) else 0.07
-                if abs(_txt_lum - _lum) < 0.25:
-                    _bg = "rgba(0,0,0,0.55)" if _txt_lum > 0.5 else "rgba(255,255,255,0.6)"
-                    txt_col = "#ffffff" if _txt_lum > 0.5 else "#111111"
                 ann = dict(
                     x=ci, y=ri,
                     text=tx.replace("\n", "<br>"),

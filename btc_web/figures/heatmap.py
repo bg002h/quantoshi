@@ -427,14 +427,17 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     eq = float(p.get("entry_q", 50)) / 100.0
     xlo = int(p.get("exit_yr_lo", 2010))
     xhi = int(p.get("exit_yr_hi", 2040))
-    years = list(range(xlo, xhi))
 
-    if not years:
+    # Monthly resolution for smooth curves
+    steps_per_year = 12
+    n_steps = (xhi - xlo) * steps_per_year
+    if n_steps < 1:
         return _error_figure("No years \u2014 adjust range")
+    years = [xlo + i / steps_per_year for i in range(n_steps)]
 
     active_models = p.get("cagr_models") or ["bub"]
 
-    # Quantiles to plot — from heatmap exit quantiles or default bands
+    # Quantiles to plot
     raw_qs = p.get("cagr_qs") or [eq]
     if raw_qs and isinstance(raw_qs[0], str):
         raw_qs = _bands_to_qs(raw_qs)
@@ -456,7 +459,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             cagrs = []
             for yr in years:
                 t0 = yr_to_t(yr, m.genesis)
-                t1 = yr_to_t(yr + 1, m.genesis)
+                t1 = yr_to_t(yr + 1, m.genesis)  # always 1-year forward
                 if is_q:
                     p0 = model.interp_price(q, max(t0, 0.5))
                     p1 = model.interp_price(q, max(t1, 0.5))
@@ -504,10 +507,9 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             x0=yr_now, x1=yr_now, y0=0, y1=1,
             line=dict(color=today_color, width=1.5, dash="dash"),
         ))
-        # Beacon dots — interpolate each trace's y-value at today
-        yr_idx = int(yr_now)
-        if yr_idx in years:
-            idx = years.index(yr_idx)
+        # Beacon dots — find nearest data point to today
+        idx = min(range(len(years)), key=lambda i: abs(years[i] - yr_now))
+        if abs(years[idx] - yr_now) < 0.5:
             for tr in traces:
                 if not hasattr(tr, 'y') or not tr.y or idx >= len(tr.y):
                     continue

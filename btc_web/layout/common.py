@@ -303,14 +303,23 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
         ],
     )
 
-    # Pill bar to switch Price / CAGR views
+    # Pill bar to switch Price / CAGR views + forward-years input
     view_pills = html.Div([
         dbc.ButtonGroup([
             dbc.Button("Price", id="bub-view-price", color="primary", size="sm"),
             dbc.Button("CAGR", id="bub-view-cagr", outline=True, color="primary", size="sm"),
         ], size="sm"),
+        html.Span(id="bub-cagr-fwd-wrap", style={"display": "none"}, children=[
+            html.Small(" Forward: ", style={"color": "#888", "marginLeft": "8px"}),
+            dbc.Input(id="bub-cagr-fwd-yrs", type="number", value=1,
+                      min=1, max=20, step=1, size="sm",
+                      style={"width": "50px", "display": "inline-block",
+                             "fontSize": "12px", "padding": "2px 4px"}),
+            html.Small(" yr", style={"color": "#888"}),
+        ]),
         dcc.Store(id="bub-view-mode", data="price"),
-    ], className="mb-1 text-center")
+    ], style={"display": "flex", "alignItems": "center", "justifyContent": "center"},
+       className="mb-1")
 
     return dbc.Row([
         dbc.Col([

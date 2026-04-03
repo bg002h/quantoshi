@@ -121,6 +121,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     Output("bub-view-cagr", "outline"),
     Output("bub-scale-controls", "style"),
     Output("bub-bubble-panel", "style"),
+    Output("bub-cagr-fwd-wrap", "style"),
     Input("bub-view-price", "n_clicks"),
     Input("bub-view-cagr", "n_clicks"),
     prevent_initial_call=True,
@@ -128,9 +129,10 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
 def toggle_bub_view(price_clicks, cagr_clicks):
     triggered = ctx.triggered_id
     _hide = {"display": "none"}
+    _show_inline = {"display": "inline"}
     if triggered == "bub-view-cagr":
-        return "cagr", _hide, {}, True, False, _hide, _hide
-    return "price", {}, _hide, False, True, {}, {}
+        return "cagr", _hide, {}, True, False, _hide, _hide, _show_inline
+    return "price", {}, _hide, False, True, {}, {}, _hide
 
 
 # ── CAGR chart for tab 1 ────────────────────────────────────────────────────
@@ -147,13 +149,14 @@ def toggle_bub_view(price_clicks, cagr_clicks):
     Input("bub-yscale", "value"),
     Input("bub-model-show", "value"),
     Input("bub-legend-pos", "value"),
+    Input("bub-cagr-fwd-yrs", "value"),
     Input("palette-store", "data"),
     State("bub-qs-mode", "value"),
     prevent_initial_call=True,
 )
 def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
                     toggles, xscale, yscale, model_show, legend_pos,
-                    palette_key, qs_mode):
+                    fwd_yrs, palette_key, qs_mode):
 
     from figures.heatmap import build_cagr_line_figure
 
@@ -164,10 +167,12 @@ def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
         effective_qs = _bands_to_qs(sel_qs) if sel_qs else [0.5]
 
     xrange = xrange or [2010, 2033]
+    _fwd = max(1, int(fwd_yrs)) if fwd_yrs else 1
     p = dict(
         entry_q=50,
         exit_yr_lo=int(xrange[0]),
         exit_yr_hi=int(xrange[1]),
+        fwd_years=_fwd,
         cagr_qs=effective_qs,
         cagr_models=model_show or ["bub"],
         palette=palette_key or "default",

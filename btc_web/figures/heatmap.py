@@ -427,6 +427,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     eq = float(p.get("entry_q", 50)) / 100.0
     xlo = int(p.get("exit_yr_lo", 2010))
     xhi = int(p.get("exit_yr_hi", 2040))
+    fwd_n = max(1, int(p.get("fwd_years", 1)))
 
     # Monthly resolution for smooth curves
     steps_per_year = 12
@@ -476,20 +477,24 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     peak_dates.append("")
                     trough_dates.append("")
                     continue
-                # Endpoint CAGR
-                t1 = yr_to_t(yr + 1, m.genesis)
+                # Endpoint CAGR over fwd_n years
+                t1 = yr_to_t(yr + fwd_n, m.genesis)
                 if is_q:
                     p1 = model.interp_price(q, max(t1, 0.5))
                 else:
                     p1 = float(model.price_at(0.5, max(t1, 0.5)))
-                cagrs.append((p1 / p0 - 1.0) * 100.0)
-                # Intra-year min/max excursion with dates
+                if fwd_n == 1:
+                    cagrs.append((p1 / p0 - 1.0) * 100.0)
+                else:
+                    cagrs.append(((p1 / p0) ** (1.0 / fwd_n) - 1.0) * 100.0)
+                # Intra-window min/max excursion with dates
+                _total_steps = _intra_steps * fwd_n
                 px_max = p0
                 px_min = p0
                 s_max = 0
                 s_min = 0
-                for s in range(1, _intra_steps + 1):
-                    ts = yr_to_t(yr + s / _intra_steps, m.genesis)
+                for s in range(1, _total_steps + 1):
+                    ts = yr_to_t(yr + s * fwd_n / _total_steps, m.genesis)
                     if is_q:
                         ps = model.interp_price(q, max(ts, 0.5))
                     else:
@@ -502,8 +507,8 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                         s_min = s
                 cagr_max.append((px_max / p0 - 1.0) * 100.0)
                 cagr_min.append((px_min / p0 - 1.0) * 100.0)
-                peak_dates.append(f"{yr + s_max / _intra_steps:.1f}")
-                trough_dates.append(f"{yr + s_min / _intra_steps:.1f}")
+                peak_dates.append(f"{yr + s_max * fwd_n / _total_steps:.1f}")
+                trough_dates.append(f"{yr + s_min * fwd_n / _total_steps:.1f}")
 
             _dist = abs(q - 0.5) / 0.45
             _q_opacity = max(0.1, 1.0 - _dist * 0.5)
@@ -599,8 +604,9 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     else:
         q_lbl = f"{len(sel_qs)} quantiles"
 
+    _fwd_lbl = f"{fwd_n}-Year" if fwd_n > 1 else "1-Year"
     layout = _base_layout(
-        title=f"1-Year Forward Growth Rate \u2014 {q_lbl}",
+        title=f"{_fwd_lbl} Forward {'CAGR' if fwd_n > 1 else 'Growth Rate'} \u2014 {q_lbl}",
         xlabel="",
         ylabel="",
     )

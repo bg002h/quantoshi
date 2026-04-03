@@ -415,27 +415,23 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
 
 
 def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
-    """Build a CAGR vs exit-year line chart for multiple models.
+    """Build a 1-year forward CAGR vs time chart for multiple models.
 
-    Uses the same entry year/quantile/price as the heatmap. Each active
-    model gets a trace showing projected CAGR at the selected entry quantile.
+    At each year t, plots: (model_price(t+1) / model_price(t) - 1) * 100
+    This shows how the implied annual growth rate evolves over time for
+    each model at the selected quantile.
     """
     from figures.common import _get_model_color, _base_layout
 
-    eyr = int(p.get("entry_yr", 2020))
     eq = float(p.get("entry_q", 50)) / 100.0
-    entry_t = yr_to_t(eyr, m.genesis)
-    live_price = p.get("live_price")
+    xlo = int(p.get("exit_yr_lo", 2010))
+    xhi = int(p.get("exit_yr_hi", 2040))
+    years = list(range(xlo, xhi))  # CAGR at year t = growth from t to t+1
 
-    xlo = int(p.get("exit_yr_lo", eyr))
-    xhi = int(p.get("exit_yr_hi", eyr + 10))
-    eyrs = list(range(max(xlo, eyr + 1), xhi + 1))  # skip entry year (CAGR=0)
-
-    if not eyrs:
-        return _error_figure("No exit years \u2014 adjust range")
+    if not years:
+        return _error_figure("No years \u2014 adjust range")
 
     active_models = p.get("cagr_models") or ["bub"]
-    palette = _get_palette(p)
 
     traces = []
     for model_key in active_models:
@@ -444,52 +440,43 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             continue
 
         is_q = getattr(model, "quantized", True)
-        if is_q:
-            ep = float(live_price) if live_price else model.interp_price(eq, entry_t)
-        else:
-            ep = float(live_price) if live_price else float(model.price_at(0.5, entry_t))
-
-        if ep <= 0:
-            continue
-
         cagrs = []
-        for ey in eyrs:
-            et = yr_to_t(ey, m.genesis)
-            nyr = float(ey - eyr)
-            if nyr <= 0:
-                cagrs.append(0.0)
-                continue
+        for yr in years:
+            t0 = yr_to_t(yr, m.genesis)
+            t1 = yr_to_t(yr + 1, m.genesis)
             if is_q:
-                xp = model.interp_price(eq, et)
+                p0 = model.interp_price(eq, max(t0, 0.5))
+                p1 = model.interp_price(eq, max(t1, 0.5))
             else:
-                xp = float(model.price_at(0.5, et))
-            cagr = ((xp / ep) ** (1.0 / nyr) - 1.0) * 100.0
-            cagrs.append(cagr)
+                p0 = float(model.price_at(0.5, max(t0, 0.5)))
+                p1 = float(model.price_at(0.5, max(t1, 0.5)))
+            if p0 > 0:
+                cagrs.append((p1 / p0 - 1.0) * 100.0)
+            else:
+                cagrs.append(0.0)
 
         color = _get_model_color(model_key, p)
         traces.append(go.Scatter(
-            x=[str(y) for y in eyrs],
+            x=[str(y) for y in years],
             y=cagrs,
-            mode="lines+markers",
+            mode="lines",
             name=model.legend_name if hasattr(model, 'legend_name') else model_key,
             line=dict(color=color, width=2),
-            marker=dict(size=4, color=color),
         ))
 
     # Zero line
     traces.append(go.Scatter(
-        x=[str(eyrs[0]), str(eyrs[-1])],
+        x=[str(years[0]), str(years[-1])],
         y=[0, 0],
         mode="lines",
         line=dict(color="#888", width=0.5, dash="dot"),
         showlegend=False, hoverinfo="skip",
     ))
 
-    entry_lbl = f"Entry: {eyr}  Q{eq*100:.4g}%"
     layout = _base_layout(
-        title=f"Projected CAGR \u2014 {entry_lbl}",
-        xlabel="Exit Year",
-        ylabel="CAGR (%)",
+        title=f"1-Year Forward Growth Rate \u2014 Q{eq*100:.4g}%",
+        xlabel="",
+        ylabel="",
     )
     layout["margin"] = dict(l=50, r=20, t=50, b=40)
     layout["yaxis"]["automargin"] = True

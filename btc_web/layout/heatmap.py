@@ -125,30 +125,45 @@ def _heatmap_controls():
 
 
 def _hm_pill_bar():
-    """Build model-selector pill bar from registered PRICE_MODELS + optional MC."""
-    _pills = []
-    for key, mdl in _app_ctx.PRICE_MODELS.items():
-        if key == "bub":
-            continue
-        _pills.append({"label": mdl.name, "value": key})
+    """Build model-selector pill bar matching tab 1's Price/CAGR style."""
+    mc = _app_ctx.PALETTES["default"]["model_colors"]
 
     buttons = [
-        dbc.Button("Bubble Model", id="hm-pill-bub", color="primary",
-                   size="sm", className="me-1"),
-    ] + [
-        dbc.Button(p["label"], id=f"hm-pill-{p['value']}", outline=True,
-                   color="primary", size="sm", className="me-1")
-        for p in _pills
+        dbc.Button(
+            html.Span([
+                html.Span(" ", style={
+                    "display": "inline-block", "width": "8px", "height": "8px",
+                    "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "4px",
+                    "backgroundColor": mc.get("bub", "#000"),
+                }),
+                "BM",
+            ]),
+            id="hm-pill-bub", color="primary", size="sm"),
     ]
+    for key, mdl in _app_ctx.PRICE_MODELS.items():
+        if key in ("bub", "mc"):
+            continue
+        buttons.append(
+            dbc.Button(
+                html.Span([
+                    html.Span(" ", style={
+                        "display": "inline-block", "width": "8px", "height": "8px",
+                        "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "4px",
+                        "backgroundColor": mc.get(key, "#888"),
+                    }),
+                    mdl.legend_name if hasattr(mdl, 'legend_name') else key,
+                ]),
+                id=f"hm-pill-{key}", outline=True, color="primary", size="sm"),
+        )
     if _app_ctx._HAS_MARKOV:
         buttons.append(
-            dbc.Button("Monte Carlo", id="hm-pill-mc", outline=True,
+            dbc.Button("MC", id="hm-pill-mc", outline=True,
                        color="warning", size="sm"),
         )
 
     return html.Div([
         dbc.ButtonGroup(buttons, size="sm"),
-    ], className="mb-2 text-center")
+    ], className="mb-1 text-center")
 
 
 def _heatmap_tab():

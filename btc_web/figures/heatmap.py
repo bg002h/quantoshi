@@ -508,7 +508,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             traces.append(go.Scatter(
                 x=years, y=cagr_max, mode="lines",
                 line=dict(width=0), fill="tonexty",
-                fillcolor=_hex_alpha(color, 0.1 * _q_opacity),
+                fillcolor=_hex_alpha(color, 0.2 * _q_opacity),
                 name=f"{lbl} excursion",
                 legendgroup=model_key,
                 showlegend=False, hoverinfo="skip",
@@ -564,20 +564,19 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     continue
                 y_val = tr.y[idx]
                 tr_color = tr.line.color if tr.line and tr.line.color else today_color
-                # Glow ring
+                # Peak/trough from customdata if available
+                peak_str = ""
+                trough_str = ""
+                if hasattr(tr, 'customdata') and tr.customdata and idx < len(tr.customdata):
+                    cd = tr.customdata[idx]
+                    peak_str = f"<br>Peak: {cd[0]:.1f}%"
+                    trough_str = f"<br>Trough: {cd[1]:.1f}%"
                 traces.append(go.Scatter(
                     x=[yr_now], y=[y_val], mode="markers",
-                    marker=dict(size=16, color=tr_color, opacity=0.2,
-                                line=dict(width=0)),
-                    showlegend=False, hoverinfo="skip",
-                ))
-                # Core dot
-                traces.append(go.Scatter(
-                    x=[yr_now], y=[y_val], mode="markers",
-                    marker=dict(size=6, color=tr_color,
-                                line=dict(color="#fff", width=1)),
+                    marker=dict(size=7, color=tr_color,
+                                line=dict(color="#fff", width=1.5)),
                     showlegend=False,
-                    hovertemplate=f"Today: {y_val:.1f}%<extra></extra>",
+                    hovertemplate=f"Today: {y_val:.1f}%{peak_str}{trough_str}<extra></extra>",
                 ))
 
     # Build title from quantiles shown

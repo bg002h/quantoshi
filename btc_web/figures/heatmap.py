@@ -514,15 +514,15 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     layout["yaxis"]["ticksuffix"] = "%"
     layout["yaxis"]["ticks"] = ""
 
-    # X axis tick labels
-    from figures.common import _year_ticks
+    # X axis tick labels — step by 1/2/5 depending on span
     xlo = int(p.get("exit_yr_lo", 2010))
     xhi = int(p.get("exit_yr_hi", 2040))
-    tick_ts, tick_lbls = _year_ticks(xlo, xhi, m.genesis,
-                                      minor_grid=p.get("minor_grid"))
+    span = xhi - xlo
+    step = 1 if span <= 15 else (2 if span <= 30 else 5)
+    tick_yrs = list(range(xlo, xhi, step))
     layout["xaxis"].update(
-        tickvals=[str(y) for y in range(xlo, xhi)],
-        ticktext=[f"'{y % 100:02d}" for y in range(xlo, xhi)],
+        tickvals=[str(y) for y in tick_yrs],
+        ticktext=[f"'{y % 100:02d}" for y in tick_yrs],
         tickangle=-45,
         ticks="",
         ticklabelstandoff=0,

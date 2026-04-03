@@ -122,17 +122,23 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     Output("bub-scale-controls", "style"),
     Output("bub-bubble-panel", "style"),
     Output("bub-cagr-fwd-wrap", "style"),
+    Output("bub-xrange", "value", allow_duplicate=True),
     Input("bub-view-price", "n_clicks"),
     Input("bub-view-cagr", "n_clicks"),
+    State("bub-xrange", "value"),
     prevent_initial_call=True,
 )
-def toggle_bub_view(price_clicks, cagr_clicks):
+def toggle_bub_view(price_clicks, cagr_clicks, cur_xrange):
     triggered = ctx.triggered_id
     _hide = {"display": "none"}
     _show_inline = {"display": "inline"}
     if triggered == "bub-view-cagr":
-        return "cagr", _hide, {}, True, False, _hide, _hide, _show_inline
-    return "price", {}, _hide, False, True, {}, {}, _hide
+        # Switch to CAGR default range if at Price default
+        xr = [2025, 2050] if cur_xrange == [2010, 2033] else dash.no_update
+        return "cagr", _hide, {}, True, False, _hide, _hide, _show_inline, xr
+    # Switch back to Price default range if at CAGR default
+    xr = [2010, 2033] if cur_xrange == [2025, 2050] else dash.no_update
+    return "price", {}, _hide, False, True, {}, {}, _hide, xr
 
 
 # ── CAGR chart for tab 1 ────────────────────────────────────────────────────

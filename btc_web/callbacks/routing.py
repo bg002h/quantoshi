@@ -190,6 +190,7 @@ _app_ctx.app.clientside_callback(
         window._pendingTabPath = null;
         if (p && /^\\/7\\.\\d+$/.test(p)) { return "model_info"; }
         if (p && /^\\/8\\.\\d+$/.test(p)) { return "faq"; }
+        if (p === "/1.2") { return "bubble"; }
         var tab = map[p];
         return tab ? tab : NU;
     }
@@ -199,6 +200,32 @@ _app_ctx.app.clientside_callback(
     Input("splash-modal", "is_open"),
     prevent_initial_call="initial_duplicate",
 )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Bubble sub-view deep-linking (/1.2 → Forward CAGR)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@callback(
+    Output("bub-view-mode", "data", allow_duplicate=True),
+    Output("bub-price-wrap", "style", allow_duplicate=True),
+    Output("bub-cagr-wrap", "style", allow_duplicate=True),
+    Output("bub-view-price", "outline", allow_duplicate=True),
+    Output("bub-view-cagr", "outline", allow_duplicate=True),
+    Output("bub-scale-controls", "style", allow_duplicate=True),
+    Output("bub-bubble-panel", "style", allow_duplicate=True),
+    Output("bub-cagr-fwd-wrap", "style", allow_duplicate=True),
+    Output("bub-xrange", "value", allow_duplicate=True),
+    Input("url", "pathname"),
+    prevent_initial_call=True,
+)
+def deep_link_cagr(pathname):
+    from dash import no_update
+    if pathname != "/1.2":
+        return (no_update,) * 9
+    _hide = {"display": "none"}
+    return ("cagr", _hide, {}, True, False, _hide, _hide,
+            {"display": "inline"}, [2025, 2050])
 
 
 # ══════════════════════════════════════════════════════════════════════════════

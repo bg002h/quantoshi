@@ -72,46 +72,6 @@ def _palette_picker():
     return send_from_directory("assets", "palette_picker.html")
 
 
-@server.route("/B")
-def _cagr_sampling():
-    """Show CAGR chart at different sampling rates for visual comparison."""
-    import json
-    import plotly
-    from figures.heatmap import build_cagr_line_figure
-
-    rates = [1, 6, 12, 24, 48]
-    figs_json = []
-    for spy in rates:
-        p = dict(
-            entry_q=50,
-            exit_yr_lo=2025, exit_yr_hi=2036,
-            fwd_years=1,
-            cagr_qs=[0.5],
-            cagr_models=["bub"],
-            palette="default",
-            show_legend=True,
-            steps_per_year_override=spy,
-        )
-        fig = build_cagr_line_figure(M, p)
-        fig.update_layout(title=f"1-Year Forward CAGR — {spy}× per year",
-                          height=300, margin=dict(l=50, r=20, t=50, b=30))
-        figs_json.append(json.loads(plotly.io.to_json(fig)))
-
-    html = """<!DOCTYPE html><html><head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>CAGR Sampling Rates</title>
-    <script src="/_dash-component-suites/plotly/package_data/plotly.min.js"></script>
-    <style>body{background:#0a0a0f;color:#ccc;font-family:monospace;padding:1rem}
-    .chart{margin-bottom:1rem;background:#fff;border-radius:8px;height:350px}</style>
-    </head><body><h2 style="color:#f7931a;text-align:center">Forward CAGR — Sampling Rate Comparison</h2>"""
-    for i, (spy, fj) in enumerate(zip(rates, figs_json)):
-        html += f'<div id="chart{i}" class="chart"></div>'
-    html += "<script>"
-    for i, fj in enumerate(figs_json):
-        html += f"Plotly.newPlot('chart{i}',{json.dumps(fj['data'])},{json.dumps(fj['layout'])},{{responsive:true}});\n"
-    html += "</script></body></html>"
-    return html
-
 
 @server.route("/health")
 def _health():

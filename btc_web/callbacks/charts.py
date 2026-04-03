@@ -111,6 +111,64 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     return fig
 
 
+# ── Price/CAGR view pill bar ─────────────────────────────────────────────────
+
+@callback(
+    Output("bub-view-mode", "data"),
+    Output("bub-price-wrap", "style"),
+    Output("bub-cagr-wrap", "style"),
+    Output("bub-view-price", "outline"),
+    Output("bub-view-cagr", "outline"),
+    Input("bub-view-price", "n_clicks"),
+    Input("bub-view-cagr", "n_clicks"),
+    prevent_initial_call=True,
+)
+def toggle_bub_view(price_clicks, cagr_clicks):
+    triggered = ctx.triggered_id
+    if triggered == "bub-view-cagr":
+        return "cagr", {"display": "none"}, {}, True, False
+    return "price", {}, {"display": "none"}, False, True
+
+
+# ── CAGR chart for tab 1 ────────────────────────────────────────────────────
+
+@callback(
+    Output("bub-cagr-graph", "figure"),
+    Input("bub-view-mode", "data"),
+    Input("bubble-first-render", "data"),
+    Input("bub-qs", "value"),
+    Input("bub-qs-adv", "value"),
+    Input("bub-xrange", "value"),
+    Input("bub-model-show", "value"),
+    Input("palette-store", "data"),
+    State("bub-qs-mode", "value"),
+    prevent_initial_call=True,
+)
+def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
+                    model_show, palette_key, qs_mode):
+    if view_mode != "cagr":
+        raise dash.exceptions.PreventUpdate
+
+    from figures.heatmap import build_cagr_line_figure
+
+    # Resolve quantiles (same logic as bubble callback)
+    if "advanced" in (qs_mode or []):
+        effective_qs = adv_qs or []
+    else:
+        effective_qs = _bands_to_qs(sel_qs) if sel_qs else [0.5]
+
+    xrange = xrange or [2010, 2033]
+    p = dict(
+        entry_q=50,  # not used for 1-year forward CAGR
+        exit_yr_lo=int(xrange[0]),
+        exit_yr_hi=int(xrange[1]),
+        cagr_qs=effective_qs,
+        cagr_models=model_show or ["bub"],
+        palette=palette_key or "default",
+    )
+    return build_cagr_line_figure(_app_ctx.M, p)
+
+
 @callback(
     Output("bub-yrange", "value", allow_duplicate=True),
     Input("bub-xrange",  "value"),
@@ -363,35 +421,6 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
 
 
 # ── CAGR line chart (below heatmap) ─────────────────────────────────────────
-
-@callback(
-    Output("hm-cagr-graph", "figure"),
-    Input("heatmap-first-render", "data"),
-    Input("hm-entry-yr",  "value"),
-    Input("hm-entry-q",   "value"),
-    Input("hm-exit-range","value"),
-    Input("hm-exit-qs",   "value"),
-    Input("hm-cagr-models", "value"),
-    Input("palette-store", "data"),
-    State("btc-price-store", "data"),
-    prevent_initial_call=True,
-)
-def update_cagr_line(_first_render, entry_yr, entry_q, exit_range, exit_qs, cagr_models, palette_key, live_price):
-    from figures.heatmap import build_cagr_line_figure
-    entry_yr = int(entry_yr) if entry_yr else 2025
-    exit_range = exit_range or [entry_yr, entry_yr + 10]
-    p = dict(
-        entry_yr=entry_yr,
-        entry_q=float(entry_q) if entry_q is not None else 50,
-        exit_yr_lo=int(exit_range[0]),
-        exit_yr_hi=int(exit_range[1]),
-        cagr_qs=exit_qs or [float(entry_q or 50) / 100.0],
-        cagr_models=cagr_models or ["bub"],
-        palette=palette_key or "default",
-        live_price=float(live_price) if live_price else None,
-    )
-    return build_cagr_line_figure(_app_ctx.M, p)
-
 
 @callback(
     Output("dca-graph", "figure"),
@@ -820,7 +849,6 @@ def _build_model_opts(mc, include_u1=False):
     Output("dca-model-show", "options", allow_duplicate=True),
     Output("ret-model-show", "options", allow_duplicate=True),
     Output("sc-model-show", "options", allow_duplicate=True),
-    Output("hm-cagr-models", "options"),
     Input("palette-store", "data"),
     prevent_initial_call=True,
 )
@@ -829,24 +857,7 @@ def update_model_swatches(palette_key):
     mc = pal.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
     bub_opts = _build_model_opts(mc, include_u1=True)
     other_opts = _build_model_opts(mc, include_u1=False)
-    # CAGR checklist includes all models (no sentinels filter)
-    from dash import html
-    cagr_opts = []
-    for k, mdl in _app_ctx.PRICE_MODELS.items():
-        if k == "mc":
-            continue
-        cagr_opts.append({
-            "label": html.Span([
-                html.Span(" ", style={
-                    "display": "inline-block", "width": "10px", "height": "10px",
-                    "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "3px",
-                    "backgroundColor": mc.get(k, "#888"),
-                }),
-                mdl.legend_name if hasattr(mdl, 'legend_name') else k,
-            ]),
-            "value": k,
-        })
-    return bub_opts, other_opts, other_opts, other_opts, cagr_opts
+    return bub_opts, other_opts, other_opts, other_opts
 
 
 # ── Quantile mode toggle (default ↔ advanced) — all tabs ─────────────────────

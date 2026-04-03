@@ -303,23 +303,44 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
         ],
     )
 
+    # Pill bar to switch Price / CAGR views
+    view_pills = html.Div([
+        dbc.ButtonGroup([
+            dbc.Button("Price", id="bub-view-price", color="primary", size="sm"),
+            dbc.Button("CAGR", id="bub-view-cagr", outline=True, color="primary", size="sm"),
+        ], size="sm"),
+        dcc.Store(id="bub-view-mode", data="price"),
+    ], className="mb-1 text-center")
+
     return dbc.Row([
         dbc.Col([
             controls_fn(),
         ], width=3, className="controls-col overflow-auto",
                 style={"maxHeight": "85vh"}),
         dbc.Col([
+            view_pills,
             html.Div(style={"position": "relative"}, children=[
-                html.Div(id=f"{graph_id}-chart-wrap",
-                         style={"position": "relative"}, children=[
-                    dcc.Loading(
-                        dcc.Graph(id=graph_id, style=_STYLE_GRAPH_H,
-                                  config={"scrollZoom": False,
-                                          "displayModeBar": "hover",
-                                          "toImageButtonOptions": {"format": "png", "scale": 2,
-                                                                   "filename": filename}}),
-                        type="default", color=_BTC_ORANGE,
-                    ),
+                # Price chart (default visible)
+                html.Div(id="bub-price-wrap", children=[
+                    html.Div(id=f"{graph_id}-chart-wrap",
+                             style={"position": "relative"}, children=[
+                        dcc.Loading(
+                            dcc.Graph(id=graph_id, style=_STYLE_GRAPH_H,
+                                      config={"scrollZoom": False,
+                                              "displayModeBar": "hover",
+                                              "toImageButtonOptions": {"format": "png", "scale": 2,
+                                                                       "filename": filename}}),
+                            type="default", color=_BTC_ORANGE,
+                        ),
+                    ]),
+                ]),
+                # CAGR chart (hidden by default)
+                html.Div(id="bub-cagr-wrap", style=_STYLE_HIDDEN, children=[
+                    dcc.Graph(id="bub-cagr-graph", style=_STYLE_GRAPH_H,
+                              config={"scrollZoom": False,
+                                      "displayModeBar": "hover",
+                                      "toImageButtonOptions": {"format": "png", "scale": 2,
+                                                               "filename": "btc_cagr"}}),
                 ]),
                 ctx_menu,
             ]),

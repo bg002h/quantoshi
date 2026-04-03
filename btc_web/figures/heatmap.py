@@ -492,6 +492,19 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         showlegend=False, hoverinfo="skip",
     ))
 
+    # Today line (vertical shape spanning full y-range)
+    import pandas as pd
+    yr_now = pd.Timestamp.today().year + pd.Timestamp.today().day_of_year / 365.25
+    today_shapes = []
+    if years[0] <= yr_now <= years[-1]:
+        palette = _get_palette(p)
+        today_color = palette.get("today_line", "#FF6600")
+        today_shapes.append(dict(
+            type="line", xref="x", yref="paper",
+            x0=yr_now, x1=yr_now, y0=0, y1=1,
+            line=dict(color=today_color, width=1.5, dash="dash"),
+        ))
+
     # Build title from quantiles shown
     if len(sel_qs) == 1:
         q_lbl = f"Q{sel_qs[0]*100:.4g}%"
@@ -550,6 +563,9 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         )
 
     # CAGR always uses linear axes (negative values possible)
+
+    if today_shapes:
+        layout["shapes"] = today_shapes
 
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
 

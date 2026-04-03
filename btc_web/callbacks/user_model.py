@@ -25,11 +25,15 @@ _CTX_VISIBLE = {
     Output("um-ctx-menu", "style"),
     Output("um-ctx-label", "children"),
     Input("bubble-graph", "clickData"),
+    State("bub-model-show", "value"),
     prevent_initial_call=True,
 )
-def on_data_click(click_data):
+def on_data_click(click_data, model_show):
     if not click_data or not click_data.get("points"):
         return no_update, no_update, no_update
+    # Only show P1/P2 picker when U1 is enabled
+    if "u1" not in (model_show or []):
+        return no_update, _HIDDEN, no_update
 
     pt = click_data["points"][0]
     t_val = pt["x"]

@@ -324,6 +324,7 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                        "display": "inline-block", "marginLeft": "8px"}),
         ]),
         dcc.Store(id="bub-view-mode", data="price"),
+        dcc.Store(id="bub-cagr-hover-today", data=False),
     ], style={"display": "flex", "alignItems": "center", "justifyContent": "center"},
        className="mb-1")
 

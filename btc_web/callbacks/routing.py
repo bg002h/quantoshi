@@ -218,26 +218,71 @@ _app_ctx.app.clientside_callback(
     Output("bub-cagr-fwd-wrap", "style", allow_duplicate=True),
     Output("bub-xrange", "value", allow_duplicate=True),
     Output("bub-cagr-fwd-yrs", "value", allow_duplicate=True),
+    Output("bub-cagr-hover-today", "data", allow_duplicate=True),
     Input("url", "pathname"),
     prevent_initial_call=True,
 )
 def deep_link_cagr(pathname):
     from dash import no_update
     if not pathname or not pathname.startswith("/1.2"):
-        return (no_update,) * 10
+        return (no_update,) * 11
     _hide = {"display": "none"}
     _FWD_OPTIONS = [1, 2, 4, 10, 20, 30]
     fwd_yrs = no_update
-    # /1.2.N selects Nth forward year option (1-indexed)
-    if "." in pathname[3:]:
+    hover_today = no_update
+    # Parse /1.2.N.B
+    parts = pathname[1:].split(".")  # ["1", "2"] or ["1","2","N"] or ["1","2","N","B"]
+    if len(parts) >= 3:
         try:
-            n = int(pathname.split(".")[-1])
+            n = int(parts[2])
             if 1 <= n <= len(_FWD_OPTIONS):
                 fwd_yrs = _FWD_OPTIONS[n - 1]
         except ValueError:
             pass
+    if len(parts) >= 4:
+        try:
+            b = int(parts[3])
+            if b == 1:
+                hover_today = True
+        except ValueError:
+            pass
     return ("cagr", _hide, {}, True, False, _hide, _hide,
-            {"display": "inline"}, [2025, 2050], fwd_yrs)
+            {"display": "inline"}, [2025, 2050], fwd_yrs, hover_today)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CAGR today-hover deep-link trigger (/1.2.N.1)
+# ══════════════════════════════════════════════════════════════════════════════
+
+_app_ctx.app.clientside_callback(
+    """
+    function(flag) {
+        if (!flag) return window.dash_clientside.no_update;
+        // Poll until the CAGR graph is rendered with data
+        var attempts = 0;
+        function tryHover() {
+            var el = document.getElementById('bub-cagr-graph');
+            if (!el || !el.data || el.data.length === 0) {
+                if (++attempts < 30) { setTimeout(tryHover, 200); }
+                return;
+            }
+            // Find the beacon dot trace (single-point marker)
+            for (var i = el.data.length - 1; i >= 0; i--) {
+                var tr = el.data[i];
+                if (tr.x && tr.x.length === 1 && tr.mode === 'markers') {
+                    Plotly.Fx.hover(el, [{curveNumber: i, pointNumber: 0}]);
+                    break;
+                }
+            }
+        }
+        setTimeout(tryHover, 500);
+        return false;
+    }
+    """,
+    Output("bub-cagr-hover-today", "data", allow_duplicate=True),
+    Input("bub-cagr-hover-today", "data"),
+    prevent_initial_call=True,
+)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

@@ -455,27 +455,66 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         color = _get_model_color(model_key, p)
 
         qs_to_plot = sel_qs if is_q else [0.5]
+        _intra_steps = 12  # sample monthly within each 1-year window
         for q in qs_to_plot:
             cagrs = []
+            cagr_max = []
+            cagr_min = []
             for yr in years:
                 t0 = yr_to_t(yr, m.genesis)
-                t1 = yr_to_t(yr + 1, m.genesis)  # always 1-year forward
+                t_safe = max(t0, 0.5)
                 if is_q:
-                    p0 = model.interp_price(q, max(t0, 0.5))
+                    p0 = model.interp_price(q, t_safe)
+                else:
+                    p0 = float(model.price_at(0.5, t_safe))
+                if p0 <= 0:
+                    cagrs.append(0.0)
+                    cagr_max.append(0.0)
+                    cagr_min.append(0.0)
+                    continue
+                # Endpoint CAGR
+                t1 = yr_to_t(yr + 1, m.genesis)
+                if is_q:
                     p1 = model.interp_price(q, max(t1, 0.5))
                 else:
-                    p0 = float(model.price_at(0.5, max(t0, 0.5)))
                     p1 = float(model.price_at(0.5, max(t1, 0.5)))
-                if p0 > 0:
-                    cagrs.append((p1 / p0 - 1.0) * 100.0)
-                else:
-                    cagrs.append(0.0)
+                cagrs.append((p1 / p0 - 1.0) * 100.0)
+                # Intra-year min/max excursion
+                px_max = p0
+                px_min = p0
+                for s in range(1, _intra_steps + 1):
+                    ts = yr_to_t(yr + s / _intra_steps, m.genesis)
+                    if is_q:
+                        ps = model.interp_price(q, max(ts, 0.5))
+                    else:
+                        ps = float(model.price_at(0.5, max(ts, 0.5)))
+                    px_max = max(px_max, ps)
+                    px_min = min(px_min, ps)
+                cagr_max.append((px_max / p0 - 1.0) * 100.0)
+                cagr_min.append((px_min / p0 - 1.0) * 100.0)
 
             _dist = abs(q - 0.5) / 0.45
             _q_opacity = max(0.1, 1.0 - _dist * 0.5)
             q_pct = q * 100
             q_lbl = f"Q{q_pct:.4g}%" if q_pct >= 1 else f"Q{q_pct:.3g}%"
             lbl = f"{model.legend_name} {q_lbl}" if len(qs_to_plot) > 1 else model.legend_name
+
+            # Excursion band (min → max shaded)
+            traces.append(go.Scatter(
+                x=years, y=cagr_min, mode="lines",
+                line=dict(width=0), showlegend=False, hoverinfo="skip",
+                legendgroup=model_key,
+            ))
+            traces.append(go.Scatter(
+                x=years, y=cagr_max, mode="lines",
+                line=dict(width=0), fill="tonexty",
+                fillcolor=_hex_alpha(color, 0.1 * _q_opacity),
+                name=f"{lbl} excursion",
+                legendgroup=model_key,
+                showlegend=False, hoverinfo="skip",
+            ))
+
+            # Endpoint CAGR trace
             traces.append(go.Scatter(
                 x=years,
                 y=cagrs,

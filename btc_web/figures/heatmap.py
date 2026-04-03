@@ -597,9 +597,10 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
 
-    # Zoom control
+    # Zoom + click control
     if not p.get("chart_zoom"):
         fig.update_layout(dragmode=False)
+    fig.update_layout(clickmode="none")
 
     _apply_watermark(fig)
     return fig

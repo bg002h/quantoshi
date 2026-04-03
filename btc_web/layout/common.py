@@ -351,11 +351,14 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                 ]),
                 # CAGR chart (hidden by default)
                 html.Div(id="bub-cagr-wrap", style=_STYLE_HIDDEN, children=[
-                    dcc.Graph(id="bub-cagr-graph", style=_STYLE_GRAPH_H,
-                              config={"scrollZoom": False,
-                                      "displayModeBar": "hover",
-                                      "toImageButtonOptions": {"format": "png", "scale": 2,
-                                                               "filename": "btc_cagr"}}),
+                    dcc.Loading(
+                        dcc.Graph(id="bub-cagr-graph", style=_STYLE_GRAPH_H,
+                                  config={"scrollZoom": False,
+                                          "displayModeBar": "hover",
+                                          "toImageButtonOptions": {"format": "png", "scale": 2,
+                                                                   "filename": "btc_cagr"}}),
+                        type="default", color=_BTC_ORANGE,
+                    ),
                 ]),
                 ctx_menu,
             ]),

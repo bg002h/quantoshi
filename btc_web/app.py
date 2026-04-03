@@ -100,9 +100,9 @@ def _cagr_sampling():
     html = """<!DOCTYPE html><html><head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
     <title>CAGR Sampling Rates</title>
-    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <style>body{background:#0a0a0f;color:#ccc;font-family:monospace;padding:1rem}
-    .chart{margin-bottom:1rem;background:#fff;border-radius:8px}</style>
+    .chart{margin-bottom:1rem;background:#fff;border-radius:8px;height:350px}</style>
     </head><body><h2 style="color:#f7931a;text-align:center">Forward CAGR — Sampling Rate Comparison</h2>"""
     for i, (spy, fj) in enumerate(zip(rates, figs_json)):
         html += f'<div id="chart{i}" class="chart"></div>'

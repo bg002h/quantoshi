@@ -269,7 +269,7 @@ _app_ctx.app.clientside_callback(
         bar.style.width = '0%';
         // Estimate duration: ~0.5s per forward year
         var yrs = parseInt(fwd_yrs) || 1;
-        var estMs = Math.max(2000, yrs * 660);
+        var estMs = Math.max(2000, yrs * 850);
         var startTime = Date.now();
         window._cagrProgressTimer = setInterval(function() {
             var elapsed = Date.now() - startTime;

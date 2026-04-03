@@ -177,7 +177,7 @@ def main():
 
     # ── btc_core.py ──────────────────────────────────────────────────────
 
-    btc_core = root / "archive" / "btc_app" / "btc_core.py"
+    btc_core = root / "btc_core.py"
     src = btc_core.read_text()
     count = src.count(old_str)
     if count == 0:
@@ -323,10 +323,10 @@ Now run these manual steps:
        --ClearOutputPreprocessor.enabled=True SP.ipynb
 
 3. Verify pkl:
-   btc_venv/bin/python3 -c "import pickle; d=pickle.load(open('archive/btc_app/model_data.pkl','rb')); print('GENESIS_DATE:', d['GENESIS_DATE'])"
+   btc_venv/bin/python3 -c "import pickle; d=pickle.load(open('model_data.pkl','rb')); print('GENESIS_DATE:', d['GENESIS_DATE'])"
 
 4. Run tests:
-   PYTHONPATH=".:archive/btc_app:btc_web" btc_venv/bin/python3 -m pytest btc_web/test_web.py -q --tb=short
+   PYTHONPATH=".:btc_web" btc_venv/bin/python3 -m pytest btc_web/test_web.py -q --tb=short
 
 5. LPPL constants in btc_core.py may need refitting if origin changed significantly.
    Current constants were fit with genesis=2009-07-25.

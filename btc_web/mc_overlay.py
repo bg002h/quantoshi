@@ -212,7 +212,7 @@ def _load_trans_cache_from_disk():
         import pickle
         with open(_TRANS_CACHE_PATH, "rb") as f:
             saved = pickle.load(f)
-        pkl_path = Path(__file__).parent.parent / "btc_app" / "model_data.pkl"
+        pkl_path = Path(__file__).parent.parent / "model_data.pkl"
         if pkl_path.exists():
             pkl_mtime = pkl_path.stat().st_mtime
             if saved.get("_pkl_mtime") != pkl_mtime:
@@ -229,7 +229,7 @@ def save_trans_cache_to_disk() -> None:
         return
     try:
         import pickle
-        pkl_path = Path(__file__).parent.parent / "btc_app" / "model_data.pkl"
+        pkl_path = Path(__file__).parent.parent / "model_data.pkl"
         pkl_mtime = pkl_path.stat().st_mtime if pkl_path.exists() else None
         with open(_TRANS_CACHE_PATH, "wb") as f:
             pickle.dump({"matrices": _TRANS_MATRIX_CACHE, "_pkl_mtime": pkl_mtime}, f)

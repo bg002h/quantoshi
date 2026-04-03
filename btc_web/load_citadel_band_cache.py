@@ -11,7 +11,7 @@ from pathlib import Path
 
 project_root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent
 
-for p in [project_root, project_root / "btc_web", project_root / "archive" / "btc_app"]:
+for p in [project_root, project_root / "btc_web", project_root]:
     sys.path.insert(0, str(p))
 
 from citadel_band_cache import (

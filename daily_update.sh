@@ -47,7 +47,7 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') — Deploying to production..."
 if ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && redis-cli FLUSHDB && systemctl restart quantoshi" 2>&1; then
     echo "Production restarted. Regenerating Citadel cache..."
     ssh root@89.167.70.45 "cd /opt/quantoshi && \
-        PYTHONPATH='/opt/quantoshi:/opt/quantoshi/btc_app:/opt/quantoshi/archive/btc_app:/opt/quantoshi/btc_web' \
+        PYTHONPATH='/opt/quantoshi:/opt/quantoshi/btc_web' \
         btc_venv/bin/python3 btc_web/generate_citadel_cache.py" 2>&1 || true
     echo "$(date '+%Y-%m-%d %H:%M:%S') — Deploy complete."
 else

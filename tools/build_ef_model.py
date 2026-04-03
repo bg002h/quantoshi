@@ -59,7 +59,7 @@ def main():
         prices.df_full["price"].tolist(),
         EF_QUANTILES,
     )
-    write_pkl(pkl_dict, os.path.join(ROOT, "btc_app", "model_data_ef.pkl"))
+    write_pkl(pkl_dict, os.path.join(ROOT, "model_data_ef.pkl"))
     print("Done.")
 
 

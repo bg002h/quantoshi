@@ -11,9 +11,9 @@ npz files after all workers complete (avoids concurrent npz write races).
 Requires the Cython `markov` module for BTC price path generation.
 
 Usage:
-    PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 tools/generate_citadel_bands.py
-    PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 tools/generate_citadel_bands.py --workers 8
-    PYTHONPATH="btc_web:archive/btc_app" btc_venv/bin/python3 tools/generate_citadel_bands.py --dry-run
+    PYTHONPATH=".:btc_web" btc_venv/bin/python3 tools/generate_citadel_bands.py
+    PYTHONPATH=".:btc_web" btc_venv/bin/python3 tools/generate_citadel_bands.py --workers 8
+    PYTHONPATH=".:btc_web" btc_venv/bin/python3 tools/generate_citadel_bands.py --dry-run
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from pathlib import Path
 
 # Setup import paths
 _ROOT = Path(__file__).parent.parent
-for _p in (str(_ROOT), str(_ROOT / "btc_web"), str(_ROOT / "archive" / "btc_app")):
+for _p in (str(_ROOT), str(_ROOT / "btc_web"), str(_ROOT)):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
@@ -51,7 +51,7 @@ _worker_models = None
 def _init_worker():
     """Initialize ModelData and price models in this worker process."""
     global _worker_M, _worker_models
-    for _p in (str(_ROOT), str(_ROOT / "btc_web"), str(_ROOT / "archive" / "btc_app")):
+    for _p in (str(_ROOT), str(_ROOT / "btc_web"), str(_ROOT)):
         if _p not in sys.path:
             sys.path.insert(0, _p)
 
@@ -73,7 +73,7 @@ def _init_worker():
     models["lppl"] = LPPLModel(M.price_years, M.price_prices, M.QR_QUANTILES)
     models["exp"]  = ExponentialModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 
-    ef_pkl = _ROOT / "archive" / "btc_app" / "model_data_ef.pkl"
+    ef_pkl = _ROOT / "model_data_ef.pkl"
     if ef_pkl.exists():
         models["ef"] = EmpiricalFloorModel(str(ef_pkl))
 

@@ -17,7 +17,7 @@ fi
 
 PORT="${PORT:-8050}"
 export PORT
-export PYTHONPATH="$SCRIPT_DIR:$SCRIPT_DIR/archive/btc_app:$SCRIPT_DIR/btc_web"
+export PYTHONPATH="$SCRIPT_DIR:$SCRIPT_DIR/btc_web"
 
 # Load BTCPay config if present (not in git)
 if [[ -f "$SCRIPT_DIR/.env" ]]; then

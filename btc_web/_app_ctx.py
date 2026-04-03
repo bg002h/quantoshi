@@ -217,7 +217,7 @@ import hashlib as _hashlib
 import os as _os
 
 def _compute_model_fingerprint() -> str:
-    for path in ("btc_app/model_data.pkl", "archive/btc_app/model_data.pkl"):
+    for path in ("model_data.pkl", "btc_app/model_data.pkl", "archive/btc_app/model_data.pkl"):
         if _os.path.exists(path):
             st = _os.stat(path)
             return _hashlib.md5(f"{st.st_mtime}:{st.st_size}".encode()).hexdigest()[:8]

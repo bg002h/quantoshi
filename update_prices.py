@@ -231,7 +231,7 @@ def main() -> None:
     print("  ssh root@89.167.70.45 \\")
     print("    'cd /opt/quantoshi && git pull && redis-cli FLUSHDB && \\")
     print("     systemctl restart quantoshi && \\")
-    print("     PYTHONPATH=/opt/quantoshi:/opt/quantoshi/btc_app:/opt/quantoshi/archive/btc_app:/opt/quantoshi/btc_web \\")
+    print("     PYTHONPATH=/opt/quantoshi:/opt/quantoshi/btc_web \\")
     print("     btc_venv/bin/python3 btc_web/generate_citadel_cache.py'")
     print("=" * 60)
 

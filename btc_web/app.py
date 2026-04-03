@@ -20,11 +20,10 @@ import time
 from pathlib import Path
 import _app_ctx
 
-# ── make btc_app/ importable ──────────────────────────────────────────────────
+# ── make project root importable (btc_core.py lives there) ───────────────────
 _HERE    = Path(__file__).parent
 _ROOT    = _HERE.parent
-_BTC_APP = _ROOT / "archive" / "btc_app"
-for _p in (_ROOT, _BTC_APP):
+for _p in (_ROOT,):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
@@ -161,7 +160,7 @@ _app_ctx.PRICE_MODELS["lppl"] = LPPLModel(M.price_years, M.price_prices, M.QR_QU
 _app_ctx.PRICE_MODELS["exp"] = ExponentialModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["s2f"] = S2FModel(M.price_years, M.price_prices, M.genesis)
 # ── Empirical Floor (conditional — only if pkl exists) ────────────────
-_ef_pkl = Path(__file__).parent.parent / "btc_app" / "model_data_ef.pkl"
+_ef_pkl = Path(__file__).parent.parent / "model_data_ef.pkl"
 if _ef_pkl.exists():
     _app_ctx.PRICE_MODELS["ef"] = EmpiricalFloorModel(str(_ef_pkl))
 _app_ctx.DEFAULT_MODEL = _app_ctx.PRICE_MODELS["bub"]

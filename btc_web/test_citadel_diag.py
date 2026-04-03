@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 _ROOT = Path(__file__).parent.parent
-for _p in (str(_ROOT), str(_ROOT / "btc_web"), str(_ROOT / "archive" / "btc_app")):
+for _p in (str(_ROOT), str(_ROOT / "btc_web"), str(_ROOT)):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 

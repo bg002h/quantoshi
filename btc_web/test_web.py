@@ -17,8 +17,7 @@ import pytest
 
 # ── Setup sys.path so imports work ──────────────────────────────────────────
 _ROOT = Path(__file__).parent.parent
-_BTC_APP = _ROOT / "btc_app"
-for _p in (str(_ROOT), str(_BTC_APP), str(_ROOT / "btc_web")):
+for _p in (str(_ROOT), str(_ROOT / "btc_web")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
@@ -4374,7 +4373,7 @@ class TestPalettes:
             assert fig is not None, f"dca failed for {pal_key}"
 
 
-_EF_PKL = str(_ROOT / "btc_app" / "model_data_ef.pkl")
+_EF_PKL = str(_ROOT / "model_data_ef.pkl")
 _EF_SKIP = not Path(_EF_PKL).exists()
 
 

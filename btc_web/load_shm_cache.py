@@ -13,7 +13,7 @@ from pathlib import Path
 project_root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent
 
 # Set up import paths (same as run_web.sh PYTHONPATH)
-for p in [project_root, project_root / "btc_app", project_root / "btc_web"]:
+for p in [project_root, project_root / "btc_web"]:
     sys.path.insert(0, str(p))
 
 from mc_cache import load_caches, SHM_CACHE_PATH, _CACHE, CACHE_DIR

@@ -10,7 +10,7 @@ Cache matrix:
   - Target: ~9 deterministic results, ~2 MB in Redis
 
 Usage:
-    PYTHONPATH=".:btc_web:archive/btc_app" python3 btc_web/generate_citadel_cache.py
+    PYTHONPATH=".:btc_web" python3 btc_web/generate_citadel_cache.py
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ from pathlib import Path
 
 # Setup paths
 _ROOT = Path(__file__).parent.parent
-for _p in (str(_ROOT), str(_ROOT / "btc_web"), str(_ROOT / "archive" / "btc_app")):
+for _p in (str(_ROOT), str(_ROOT / "btc_web"), str(_ROOT)):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 

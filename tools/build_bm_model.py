@@ -61,7 +61,7 @@ def main():
     print(f"  sigma0_up={sigma.sigma0_up:.4f}, alpha_up={sigma.alpha_up:.4f}")
 
     print("Writing pkl...")
-    pkl_path = os.path.join(ROOT, "archive", "btc_app", "model_data.pkl")
+    pkl_path = os.path.join(ROOT, "model_data.pkl")
     write_pkl(build_bm_pkl_dict(prices, sup, comp, cbn, qr, sigma), pkl_path)
     print("Done.")
 

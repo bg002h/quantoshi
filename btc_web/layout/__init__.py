@@ -288,6 +288,10 @@ def _build_layout(initial_tab="bubble"):
         message="Remember: all models are wrong, some are useful, and some are no longer useful."),
     dcc.ConfirmDialog(id="exp-warn-dialog",
         message="WARNING: this model is not useful at extremes of past and future."),
+    dcc.ConfirmDialog(id="u1-warn-dialog",
+        message="User Model (U\u2081): Right-click the chart to set P1 and P2 points. "
+                "A power law is fitted through both points to generate quantile bands. "
+                "The model is session-only \u2014 it disappears on page refresh."),
     dcc.Store(id="journey-store",    storage_type="local",  data=None),
     # ── Splash quote modal ────────────────────────────────────────────────
     dbc.Modal([

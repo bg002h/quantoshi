@@ -156,19 +156,6 @@ def delete_user_model(n_clicks):
 _MODEL_SHOW_PREFIXES = ["bub", "dca", "ret", "sc"]
 
 
-@callback(
-    [Output(f"{p}-model-show", "options", allow_duplicate=True) for p in _MODEL_SHOW_PREFIXES],
-    Input("user-model-store", "data"),
-    [State(f"{p}-model-show", "options") for p in _MODEL_SHOW_PREFIXES],
-    prevent_initial_call=True,
-)
-def inject_user_model_option(user_data, *current_options_list):
-    results = []
-    u1_opt = {"label": " U\u2081 (User)", "value": "u1"}
-    for opts in current_options_list:
-        opts = list(opts or [])
-        opts = [o for o in opts if o.get("value") != "u1"]
-        if user_data:
-            opts.append(u1_opt)
-        results.append(opts)
-    return results
+# U₁ option is now statically included in the Display Models checklist
+# (layout/bubble.py + callbacks/charts.py update_model_swatches).
+# No dynamic injection needed.

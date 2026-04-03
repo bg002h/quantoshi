@@ -711,6 +711,7 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
 @callback(
     Output("s2f-warn-dialog", "displayed"),
     Output("exp-warn-dialog", "displayed"),
+    Output("u1-warn-dialog", "displayed"),
     Output("model-warn-dismissed", "data", allow_duplicate=True),
     Input("bub-model-show", "value"),
     Input("dca-model-show", "value"),
@@ -724,13 +725,16 @@ def model_warnings(bub_models, dca_models, ret_models, sc_models, dismissed):
     all_active = set((bub_models or []) + (dca_models or []) + (ret_models or []) + (sc_models or []))
     show_s2f = "s2f" in all_active and not dismissed.get("s2f")
     show_exp = "exp" in all_active and not dismissed.get("exp")
+    show_u1 = "u1" in all_active and not dismissed.get("u1")
     if show_s2f:
         dismissed["s2f"] = True
     if show_exp:
         dismissed["exp"] = True
-    if show_s2f or show_exp:
-        return show_s2f, show_exp, dismissed
-    return False, False, dash.no_update
+    if show_u1:
+        dismissed["u1"] = True
+    if show_s2f or show_exp or show_u1:
+        return show_s2f, show_exp, show_u1, dismissed
+    return False, False, False, dash.no_update
 
 
 # ── Update Display Models swatches when palette changes ──────────────────────
@@ -772,6 +776,18 @@ def update_model_swatches(palette_key):
             ]),
             "value": mdl.short_name,
         })
+    # U₁ (User Model) — always present at end
+    opts.append({
+        "label": html.Span([
+            html.Span(" ", style={
+                "display": "inline-block", "width": "12px", "height": "12px",
+                "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "4px",
+                "backgroundColor": mc.get("u1", "#333333"),
+            }),
+            "U\u2081 (User)",
+        ]),
+        "value": "u1",
+    })
     return opts
 
 

@@ -93,6 +93,16 @@ def _bubble_controls():
                                   + [m for m in _app_ctx.PRICE_MODELS.values()
                                      if m.short_name in ("exp", "s2f")]
                               )
+                          ] + [
+                              {"label": html.Span([
+                                  html.Span(" ", style={
+                                      "display": "inline-block", "width": "12px",
+                                      "height": "12px", "borderRadius": "2px",
+                                      "backgroundColor": _app_ctx.PALETTES["default"]["model_colors"].get("u1", "#333"),
+                                      "verticalAlign": "middle", "marginRight": "4px",
+                                  }),
+                                  "U\u2081 (User)",
+                              ]), "value": "u1"},
                           ],
                           value=["bub"], inline=True,
                           inputStyle=_CB_MARGIN,

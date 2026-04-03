@@ -228,7 +228,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
         roi = _qr_med_final / total_spent if total_spent > 0 else 0
         title_line += f"<br>QR median {fmt_price(_qr_med_final)}  \u00b7  {roi:.1f}\u00d7"
 
-    ylabel = "USD Value" if disp_mode == "usd" else "BTC Balance"
+    ylabel = ""
     layout, _x_end = _sim_layout(m, p, title_line, ylabel, ts, t_start, t_end, dt, syr, eyr, shapes)
 
     # ── Stack-celerator overlay ─────────────────────────────────────────────

@@ -394,7 +394,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         color=_ov_tcol, y_last=y_final))
 
         t_start_base = max(yr_to_t(syr, m.genesis), 1.0)
-        ylabel = "USD Value" if disp_mode == "usd" else "BTC Remaining"
+        ylabel = ""
         sc_title = (f"HODL Supercharger \u2014 {fmt_price(wd_amount)}{freq_label} \u00b7 "
                     f"Retire {syr}+ \u00b7 to {eyr}")
         layout, _ = _sim_layout(m, p, sc_title, ylabel, np.array([t_end]),
@@ -586,7 +586,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
     layout = _base_layout(
         title=f"HODL Supercharger \u2014 Max spend{freq_label} to deplete by {target_yr}  ({model.name})",
         xlabel=xlabel,
-        ylabel=f"Max withdrawal{freq_label}",
+        ylabel="",
     )
 
     # Handle empty plot (all models unchecked)

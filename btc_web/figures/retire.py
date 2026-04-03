@@ -108,7 +108,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
 
     shapes = []
 
-    ylabel = "USD Value" if disp_mode == "usd" else "BTC Remaining"
+    ylabel = ""
     title = f"Bitcoin RetireMentator \u2014 {fmt_price(wd_amount)}/{_app_ctx.FREQ_LABEL.get(freq_str, freq_str)}"
     layout, _x_end = _sim_layout(m, p, title, ylabel, ts, t_start, t_end, dt, syr, eyr, shapes)
     layout["annotations"] = deplete_annots

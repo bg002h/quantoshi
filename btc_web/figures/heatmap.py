@@ -474,7 +474,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             q_lbl = f"Q{q_pct:.4g}%" if q_pct >= 1 else f"Q{q_pct:.3g}%"
             lbl = f"{model.legend_name} {q_lbl}" if len(qs_to_plot) > 1 else model.legend_name
             traces.append(go.Scatter(
-                x=[str(y) for y in years],
+                x=years,
                 y=cagrs,
                 mode="lines",
                 name=lbl,
@@ -485,7 +485,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     # Zero line
     traces.append(go.Scatter(
-        x=[str(years[0]), str(years[-1])],
+        x=[years[0], years[-1]],
         y=[0, 0],
         mode="lines",
         line=dict(color="#888", width=0.5, dash="dot"),
@@ -514,20 +514,23 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     layout["yaxis"]["ticksuffix"] = "%"
     layout["yaxis"]["ticks"] = ""
 
-    # X axis tick labels — step by 1/2/5 depending on span
+    # X axis tick labels — aligned to round years, step by 1/2/5
     xlo = int(p.get("exit_yr_lo", 2010))
     xhi = int(p.get("exit_yr_hi", 2040))
     span = xhi - xlo
     step = 1 if span <= 15 else (2 if span <= 30 else 5)
-    tick_yrs = list(range(xlo, xhi, step))
+    # Align to multiples of step (e.g. 2010, 2015, 2020 not 2011, 2016)
+    first_tick = xlo + (-xlo % step) if xlo % step else xlo
+    tick_yrs = list(range(first_tick, xhi, step))
     layout["xaxis"].update(
-        tickvals=[str(y) for y in tick_yrs],
+        tickvals=tick_yrs,
         ticktext=[f"'{y % 100:02d}" for y in tick_yrs],
         tickangle=-45,
         ticks="",
         ticklabelstandoff=0,
         ticklabelposition="outside top",
         tickfont=dict(family="Arial Narrow, sans-serif-condensed, sans-serif"),
+        range=[xlo - 0.5, xhi - 0.5],
     )
 
     # Legend

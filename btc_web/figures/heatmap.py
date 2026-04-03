@@ -417,8 +417,8 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     xhi = int(p.get("exit_yr_hi", 2040))
     fwd_n = max(1, int(p.get("fwd_years", 1)))
 
-    # Monthly resolution for smooth curves
-    steps_per_year = 12
+    # Sampling resolution (default monthly, overridable for comparison)
+    steps_per_year = int(p.get("steps_per_year_override", 12))
     n_steps = (xhi - xlo) * steps_per_year
     if n_steps < 1:
         return _error_figure("No years \u2014 adjust range")

@@ -172,16 +172,16 @@ _app_ctx.app.clientside_callback(
 )
 
 
-# Auto-draw: when P2 is set and P1 already exists, auto-construct the model
+# Auto-draw: when both P1 and P2 exist, auto-construct the model
 @callback(
     Output("user-model-store", "data", allow_duplicate=True),
+    Input("um-p1-year", "data"),
+    Input("um-p1-price", "data"),
     Input("um-p2-year", "data"),
-    State("um-p2-price", "data"),
-    State("um-p1-year", "data"),
-    State("um-p1-price", "data"),
+    Input("um-p2-price", "data"),
     prevent_initial_call=True,
 )
-def auto_draw_on_p2(p2y, p2p, p1y, p1p):
+def auto_draw(p1y, p1p, p2y, p2p):
     """Auto-construct UserModel when both P1 and P2 are set."""
     if not all([p1y, p1p, p2y, p2p]):
         return no_update

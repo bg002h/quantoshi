@@ -42,7 +42,7 @@ HEATMAP = MappingProxyType({
     "c_lo": "#1a1a1a", "c_mid1": "#555555",
     "c_mid2": "#999999", "c_hi": "#e0e0e0",
     "n_disc": 32,
-    "vfmt": "cagr",
+    "vfmt": "cagr_mult",
     "cell_font_size": 9,
     "show_colorbar": True,
     "stack": 0, "use_lots": False,

@@ -108,7 +108,7 @@ def _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax, cell_fs, colorsca
             elif vfmt == "mult_only":
                 tx = f"{vm:.2f}\u00d7"
             elif vfmt == "cagr_mult":
-                tx = f"{vc2:+.0f}%\n{vm:.2f}\u00d7"
+                tx = f"{vc2:+.0f}%\n{vm:.1f}\u00d7"
             elif vfmt == "mult_port":
                 pv = fmt_price(vp2 * hm_stk) if hm_stk > 0 else fmt_price(vp2)
                 tx = f"{vm:.2f}\u00d7\n{pv}"

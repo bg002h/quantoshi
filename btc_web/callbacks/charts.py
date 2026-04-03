@@ -768,14 +768,8 @@ def model_warnings(bub_models, dca_models, ret_models, sc_models, dismissed):
 
 # ── Update Display Models swatches when palette changes ──────────────────────
 
-@callback(
-    Output("bub-model-show", "options"),
-    Input("palette-store", "data"),
-    prevent_initial_call=True,
-)
-def update_model_swatches(palette_key):
-    pal = _app_ctx.PALETTES.get(palette_key or "default", _app_ctx.PALETTES["default"])
-    mc = pal.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
+def _build_model_opts(mc, include_u1=False):
+    """Build model checklist options with palette-colored swatches."""
     from dash import html
     _DEPRIORITIZED = {"exp", "s2f"}
     opts = [
@@ -788,7 +782,6 @@ def update_model_swatches(palette_key):
             "Bubble Model",
         ]), "value": "bub"},
     ]
-    # Main models first, then deprioritized (exp, s2f) last
     all_models = [mdl for mdl in _app_ctx.PRICE_MODELS.values()
                   if mdl.short_name not in _app_ctx.MODEL_SENTINELS and mdl.short_name != "bub"]
     ordered = [m for m in all_models if m.short_name not in _DEPRIORITIZED] + \
@@ -805,19 +798,35 @@ def update_model_swatches(palette_key):
             ]),
             "value": mdl.short_name,
         })
-    # U₁ (User Model) — always present at end
-    opts.append({
-        "label": html.Span([
-            html.Span(" ", style={
-                "display": "inline-block", "width": "12px", "height": "12px",
-                "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "4px",
-                "backgroundColor": mc.get("u1", "#333333"),
-            }),
-            "U\u2081 (User)",
-        ]),
-        "value": "u1",
-    })
+    if include_u1:
+        opts.append({
+            "label": html.Span([
+                html.Span(" ", style={
+                    "display": "inline-block", "width": "12px", "height": "12px",
+                    "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "4px",
+                    "backgroundColor": mc.get("u1", "#333333"),
+                }),
+                "U\u2081 (User)",
+            ]),
+            "value": "u1",
+        })
     return opts
+
+
+@callback(
+    Output("bub-model-show", "options"),
+    Output("dca-model-show", "options", allow_duplicate=True),
+    Output("ret-model-show", "options", allow_duplicate=True),
+    Output("sc-model-show", "options", allow_duplicate=True),
+    Input("palette-store", "data"),
+    prevent_initial_call=True,
+)
+def update_model_swatches(palette_key):
+    pal = _app_ctx.PALETTES.get(palette_key or "default", _app_ctx.PALETTES["default"])
+    mc = pal.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
+    bub_opts = _build_model_opts(mc, include_u1=True)
+    other_opts = _build_model_opts(mc, include_u1=False)
+    return bub_opts, other_opts, other_opts, other_opts
 
 
 # ── Quantile mode toggle (default ↔ advanced) — all tabs ─────────────────────

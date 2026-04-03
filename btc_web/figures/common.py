@@ -1019,6 +1019,7 @@ def build_overlay_traces(
         if not mdl:
             continue
 
+        _mdl_color = _get_model_color(model_key, p)
         if mdl.quantized:
             for q in sel_qs:
                 if q not in mdl.fits:
@@ -1032,12 +1033,15 @@ def build_overlay_traces(
                     y_vals = vals
                     final_usd = fmt_price(float(vals[-1] * prices_q[-1]))
                     final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
-                col = mdl.colors.get(q, "#888888")
+                # Opacity: Q50% = 1.0, Q5%/Q95% = 0.5, extrapolated
+                _dist = abs(q - 0.5) / 0.45
+                _q_opacity = max(0.1, 1.0 - _dist * 0.5)
                 traces.append(go.Scatter(
                     x=list(ts), y=list(y_vals), mode="lines",
                     name=f"{mdl.legend_name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
-                    line=dict(color=col, width=_OVERLAY_LINE_WIDTH,
+                    line=dict(color=_mdl_color, width=_OVERLAY_LINE_WIDTH,
                               dash=mdl.dash_style, shape=line_shape),
+                    opacity=_q_opacity,
                     legendgroup=mdl.short_name,
                     legendgrouptitle_text=mdl.legend_name,
                 ))
@@ -1055,7 +1059,7 @@ def build_overlay_traces(
             traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines",
                 name=f"{mdl.legend_name}  \u2192  {final_lbl}",
-                line=dict(color=palette["non_quantized_model"],
+                line=dict(color=_mdl_color,
                           width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style,
                           shape=line_shape),
                 legendgroup=mdl.short_name,

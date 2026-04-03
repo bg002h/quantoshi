@@ -184,7 +184,7 @@ def _heatmap_tab():
             html.Div(id="hm-chart-wrap", style={"position": "relative"}, children=[
                 # Single chart
                 dcc.Loading(
-                    dcc.Graph(id="heatmap-graph", style=_STYLE_GRAPH_H,
+                    dcc.Graph(id="heatmap-graph", style={"height": "100vh"},
                               config={"scrollZoom":False,
                                       "displayModeBar":"hover",
                                       "toImageButtonOptions":{"format":"png","scale":2,

@@ -119,6 +119,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     Output("bub-cagr-wrap", "style"),
     Output("bub-view-price", "outline"),
     Output("bub-view-cagr", "outline"),
+    Output("bub-scale-controls", "style"),
     Input("bub-view-price", "n_clicks"),
     Input("bub-view-cagr", "n_clicks"),
     prevent_initial_call=True,
@@ -126,8 +127,8 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
 def toggle_bub_view(price_clicks, cagr_clicks):
     triggered = ctx.triggered_id
     if triggered == "bub-view-cagr":
-        return "cagr", {"display": "none"}, {}, True, False
-    return "price", {}, {"display": "none"}, False, True
+        return "cagr", {"display": "none"}, {}, True, False, {"display": "none"}
+    return "price", {}, {"display": "none"}, False, True, {}
 
 
 # ── CAGR chart for tab 1 ────────────────────────────────────────────────────

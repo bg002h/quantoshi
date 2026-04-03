@@ -18,16 +18,18 @@ def _bubble_controls():
     return html.Div([
         _tab_hints("bubble"),
         _section_card("Axes & Range",
-            _row(
-                html.Div([_lbl("X scale"), dcc.RadioItems(
-                    id="bub-xscale", options=[{"label":"Log","value":"log"},
-                                               {"label":"Linear","value":"linear"}],
-                    value=BUBBLE["xscale"], inline=True)]),
-                html.Div([_lbl("Y scale"), dcc.RadioItems(
-                    id="bub-yscale", options=[{"label":"Log","value":"log"},
-                                               {"label":"Linear","value":"linear"}],
-                    value=BUBBLE["yscale"], inline=True)]),
-            ),
+            html.Div(id="bub-scale-controls", children=[
+                _row(
+                    html.Div([_lbl("X scale"), dcc.RadioItems(
+                        id="bub-xscale", options=[{"label":"Log","value":"log"},
+                                                   {"label":"Linear","value":"linear"}],
+                        value=BUBBLE["xscale"], inline=True)]),
+                    html.Div([_lbl("Y scale"), dcc.RadioItems(
+                        id="bub-yscale", options=[{"label":"Log","value":"log"},
+                                                   {"label":"Linear","value":"linear"}],
+                        value=BUBBLE["yscale"], inline=True)]),
+                ),
+            ]),
             _lbl("X range (year)"),
             dcc.RangeSlider(id="bub-xrange", min=2010, max=2080,
                             value=[2010, 2033], step=1,

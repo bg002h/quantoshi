@@ -352,14 +352,35 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                 ]),
                 # CAGR chart (hidden by default)
                 html.Div(id="bub-cagr-wrap", style=_STYLE_HIDDEN, children=[
-                    dcc.Loading(
+                    html.Div(style={"position": "relative"}, children=[
                         dcc.Graph(id="bub-cagr-graph", style=_STYLE_GRAPH_H,
                                   config={"scrollZoom": False,
                                           "displayModeBar": "hover",
                                           "toImageButtonOptions": {"format": "png", "scale": 2,
                                                                    "filename": "btc_cagr"}}),
-                        type="default", color=_BTC_ORANGE,
-                    ),
+                        # Progress bar overlay — shown while CAGR computes
+                        html.Div(id="bub-cagr-progress-wrap", style={"display": "none"}, children=[
+                            html.Div(style={
+                                "position": "absolute", "top": "50%", "left": "50%",
+                                "transform": "translate(-50%, -50%)",
+                                "width": "260px", "textAlign": "center",
+                            }, children=[
+                                html.Div("Computing Forward CAGR\u2026",
+                                         style={"color": "#888", "fontSize": "13px", "marginBottom": "6px"}),
+                                html.Div(style={
+                                    "height": "6px", "borderRadius": "3px",
+                                    "background": "#e0e0e0", "overflow": "hidden",
+                                }, children=[
+                                    html.Div(id="bub-cagr-progress-bar", style={
+                                        "height": "100%", "width": "0%",
+                                        "background": _BTC_ORANGE, "borderRadius": "3px",
+                                        "transition": "width 0.3s linear",
+                                    }),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                    dcc.Store(id="bub-cagr-loading", data=False),
                 ]),
                 ctx_menu,
             ]),

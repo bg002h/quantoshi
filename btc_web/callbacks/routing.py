@@ -251,6 +251,67 @@ def deep_link_cagr(pathname):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# CAGR progress bar — show on input change, hide on figure arrival
+# ══════════════════════════════════════════════════════════════════════════════
+
+_app_ctx.app.clientside_callback(
+    """
+    function(fwd_yrs, view_mode) {
+        if (view_mode !== 'cagr') return window.dash_clientside.no_update;
+        var wrap = document.getElementById('bub-cagr-progress-wrap');
+        var bar = document.getElementById('bub-cagr-progress-bar');
+        if (!wrap || !bar) return window.dash_clientside.no_update;
+        // Stop any previous animation
+        if (window._cagrProgressTimer) clearInterval(window._cagrProgressTimer);
+        // Show overlay and reset bar
+        wrap.style.display = 'block';
+        bar.style.transition = 'none';
+        bar.style.width = '0%';
+        // Estimate duration: ~0.5s per forward year
+        var yrs = parseInt(fwd_yrs) || 1;
+        var estMs = Math.max(2000, yrs * 500);
+        var startTime = Date.now();
+        window._cagrProgressTimer = setInterval(function() {
+            var elapsed = Date.now() - startTime;
+            // Ease out — slows down as it approaches 95%
+            var pct = Math.min(95, 95 * (1 - Math.exp(-3 * elapsed / estMs)));
+            bar.style.transition = 'width 0.2s linear';
+            bar.style.width = pct + '%';
+            if (pct >= 94.5) clearInterval(window._cagrProgressTimer);
+        }, 100);
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("bub-cagr-loading", "data"),
+    Input("bub-cagr-fwd-yrs", "value"),
+    Input("bub-view-mode", "data"),
+    prevent_initial_call=True,
+)
+
+_app_ctx.app.clientside_callback(
+    """
+    function(fig) {
+        if (window._cagrProgressTimer) {
+            clearInterval(window._cagrProgressTimer);
+            window._cagrProgressTimer = null;
+        }
+        var wrap = document.getElementById('bub-cagr-progress-wrap');
+        var bar = document.getElementById('bub-cagr-progress-bar');
+        if (wrap && bar) {
+            bar.style.transition = 'width 0.2s linear';
+            bar.style.width = '100%';
+            setTimeout(function() { wrap.style.display = 'none'; }, 300);
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("bub-cagr-loading", "data", allow_duplicate=True),
+    Input("bub-cagr-graph", "figure"),
+    prevent_initial_call=True,
+)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # CAGR today-hover deep-link trigger (/1.2.N.1)
 # ══════════════════════════════════════════════════════════════════════════════
 

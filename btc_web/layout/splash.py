@@ -5,13 +5,13 @@ import random as _rnd
 
 _SPLASH_QUOTES = [
     # Satoshi
-    ("If you don't believe me or don't get it, I don't have time to try to convince you, sorry.",
+    ("[If you don't believe me or don't get it, I don't have time to try to convince you, sorry.](https://bitcointalk.org/index.php?topic=532.msg6306#msg6306)",
      "Satoshi Nakamoto"),
     ("The root problem with conventional currency is all the trust that's required to make it work.",
      "Satoshi Nakamoto"),
-    ("It might make sense just to get some in case it catches on.",
-     "Satoshi Nakamoto"),
-    ("Lost coins only make everyone else's coins worth slightly more. Think of it as a donation to everyone.",
+    ("[It might make sense just to get some in case it catches on.](https://satoshi.nakamotoinstitute.org/emails/cryptography/17/)",
+     "Satoshi Nakamoto, Cryptography Mailing List, January 2009"),
+    ("[Lost coins only make everyone else's coins worth slightly more. Think of it as a donation to everyone.](https://bitcointalk.org/index.php?topic=198.msg1647#msg1647)",
      "Satoshi Nakamoto"),
     ("I've been working on a new electronic cash system that's fully peer-to-peer, with no trusted third party.",
      "Satoshi Nakamoto"),
@@ -24,8 +24,8 @@ _SPLASH_QUOTES = [
      "that is not duplicable in the digital world has enormous value.",
      "Eric Schmidt"),
     ("The computer can be used as a tool to liberate and protect people, rather than to control them.",
-     "Hal Finney"),
-    ("Running bitcoin.", "Hal Finney"),
+     "Hal Finney, Cypherpunks Mailing List, 1992"),
+    ("[Running bitcoin.](https://x.com/halfin/status/1110302988)", "Hal Finney, January 11, 2009"),
     # Sound money
     ("Gold is money. Everything else is credit.", "J.P. Morgan, 1912"),
     ("Money is a guarantee that we may have what we want in the future. "
@@ -187,14 +187,14 @@ _SPLASH_QUOTES = [
      "[I've been working on a new electronic cash system](https://www.metzdowd.com/pipermail/cryptography/2008-October/014810.html) "
      "that's fully peer-to-peer, with no trusted third party.",
      "Satoshi Nakamoto, Cryptography Mailing List, October 31, 2008"),
-    ("I'll pay 10,000 bitcoins for a couple of pizzas.. like maybe 2 large ones "
-     "so I have some left over for the next day.",
+    ("[I'll pay 10,000 bitcoins for a couple of pizzas.. like maybe 2 large ones "
+     "so I have some left over for the next day.](https://bitcointalk.org/index.php?topic=137.0)",
      "Laszlo Hanyecz, BitcoinTalk, May 18, 2010"),
     ("Bitcoin breaks $1 for the first time on Mt. Gox. "
      "A mass of new users floods the [BitcoinTalk forums](https://bitcointalk.org/index.php?topic=3664.0) "
      "as the media takes notice.",
      "February 9, 2011"),
-    ("WikiLeaks has kicked the hornet's nest, and the swarm is headed towards us.",
+    ("[WikiLeaks has kicked the hornet's nest, and the swarm is headed towards us.](https://bitcointalk.org/index.php?topic=2216.msg29280#msg29280)",
      "Satoshi Nakamoto, December 11, 2010"),
     ("After a four-year struggle, the SEC approves "
      "[spot Bitcoin ETFs](https://www.sec.gov/newsroom/press-releases/2024-10) "
@@ -229,17 +229,17 @@ _SPLASH_QUOTES = [
     # bg002h
     ("Hardforks aren't that hard. It's getting others to use them that's hard.",
      "bg002h, BitcoinTalk (member since July 2010)"),
-    ("I stopped mining cause it was gonna take roughly a week to mine the next block of 50 bitcoins "
-     "— and I never even tried GPU mining.",
+    ("[I stopped mining cause it was gonna take roughly a week to mine the next block of 50 bitcoins "
+     "— and I never even tried GPU mining.](https://bitcointalk.org/index.php?topic=305952.msg17878989#msg17878989)",
      "bg002h, BitcoinTalk"),
-    ("It's fun to look back at this and think \"I was a small part in making it happen.\"",
+    ("[It's fun to look back at this and think \"I was a small part in making it happen.\"](https://bitcointalk.org/index.php?topic=323580.msg10145271#msg10145271)",
      "bg002h, BitcoinTalk"),
-    ("Continue converting a small amount of dollars every 2 weeks... "
-     "the only thing that'll be different is that I'll get more BTC.",
+    ("[Continue converting a small amount of dollars every 2 weeks... "
+     "the only thing that'll be different is that I'll get more BTC.](https://bitcointalk.org/index.php?topic=886432.msg9782367#msg9782367)",
      "bg002h, BitcoinTalk"),
-    ("I'll let you know my exit strategy in 10 years.",
+    ("[I'll let you know my exit strategy in 10 years.](https://bitcointalk.org/index.php?topic=824296.msg9209593#msg9209593)",
      "bg002h, BitcoinTalk"),
-    ("Trust? Why? You have nothing to gain and only stand to lose.",
+    ("[Trust? Why? You have nothing to gain and only stand to lose.](https://bitcointalk.org/index.php?topic=750771.msg8477417#msg8477417)",
      "bg002h, BitcoinTalk"),
     # Ross Ulbricht
     ("Bitcoin's power comes from the fact that any one of us can mine, "

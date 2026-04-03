@@ -191,6 +191,7 @@ _app_ctx.app.clientside_callback(
         if (p && /^\\/7\\.\\d+$/.test(p)) { return "model_info"; }
         if (p && /^\\/8\\.\\d+$/.test(p)) { return "faq"; }
         if (p === "/1.2") { return "bubble"; }
+        if (p && /^\\/2\\.\\d+$/.test(p)) { return "heatmap"; }
         var tab = map[p];
         return tab ? tab : NU;
     }
@@ -316,6 +317,29 @@ _app_ctx.app.clientside_callback(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# Heatmap deep-linking (/2.N → select Nth pill, 1-indexed)
+_HM_PILL_MODELS = ["bub"] + [k for k in _app_ctx.PRICE_MODELS if k != "bub"]
+if _app_ctx._HAS_MARKOV:
+    _HM_PILL_MODELS.append("mc")
+
+
+@callback(
+    Output("hm-active-model", "data", allow_duplicate=True),
+    Input("url", "pathname"),
+    prevent_initial_call=True,
+)
+def _hm_deep_link(pathname):
+    if not pathname or not pathname.startswith("/2."):
+        return no_update
+    try:
+        n = int(pathname[3:])
+        if 1 <= n <= len(_HM_PILL_MODELS):
+            return _HM_PILL_MODELS[n - 1]
+    except (ValueError, IndexError):
+        pass
+    return no_update
+
+
 # Heatmap model pill bar -- click to select active model
 # ══════════════════════════════════════════════════════════════════════════════
 

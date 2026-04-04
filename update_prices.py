@@ -155,6 +155,19 @@ def run_model_build() -> None:
     else:
         print(res.stdout.strip().split("\n")[-1])  # "btc_core.py updated."
 
+    # LPPL₂ model: refit 2nd harmonic parameters
+    print("\nRefitting LPPL\u2082 parameters …")
+    lppl2_script = REPO_ROOT / "tools" / "fit_lppl2.py"
+
+    res = subprocess.run([sys.executable, str(lppl2_script), "--update"],
+                         capture_output=True, text=True)
+    if res.returncode != 0:
+        print("LPPL\u2082 FIT FAILED — stderr (last 3 000 chars):")
+        print(res.stderr[-3000:])
+        print("WARNING: LPPL\u2082 fit failed. Continuing with existing parameters.")
+    else:
+        print(res.stdout.strip().split("\n")[-1])
+
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 

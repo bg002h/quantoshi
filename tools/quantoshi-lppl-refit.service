@@ -19,6 +19,10 @@ WorkingDirectory=/opt/quantoshi
 # Stash local btc_core.py changes, fit, then stash pop to preserve prod-only
 # param updates. Git sync with dev is left to manual deploys.
 ExecStart=/opt/quantoshi/btc_venv/bin/python3 /opt/quantoshi/tools/fit_lppl_variants.py --update
+# Flush Redis cache: LPPL param changes don't bump the model fingerprint
+# (which is based on model_data.pkl), so cached figures would otherwise
+# serve stale LPPL traces until Redis LRU evicts them.
+ExecStartPost=/usr/bin/redis-cli FLUSHDB
 ExecStartPost=/bin/systemctl restart quantoshi
 StandardOutput=append:/var/log/quantoshi-lppl-refit.log
 StandardError=append:/var/log/quantoshi-lppl-refit.log

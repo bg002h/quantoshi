@@ -94,8 +94,10 @@ error_msgs=$(echo "$result" | tail -n +2)
 
 if [[ "$n_errors" -eq 0 ]]; then
     if [[ "$MODE" == "--verbose" ]]; then
-        # Parse cache age for display
-        cache_age=$(echo "$health_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cache_age_days',-1))" 2>/dev/null || echo "?")
+        # Re-fetch cache age for display (health_json is scoped in check_health)
+        cache_age=$(curl -s --max-time "$TIMEOUT" "$URL" 2>/dev/null \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cache_age_days',-1))" 2>/dev/null \
+            || echo "?")
         echo "Quantoshi Status: ALL OK"
         echo "  Health endpoint: 200"
         echo "  Service: active (running)"

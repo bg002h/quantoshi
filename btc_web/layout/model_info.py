@@ -351,6 +351,111 @@ even as bubble amplitude shrinks. $\omega_2$ is **not constrained** to be a harm
                             ),
                         ], title="LPPL\u2082 (Two-Frequency)", item_id="mi-lp2"),
 
+                        # ── 3c. LPPL weighting / regime shift story ──
+                        dbc.AccordionItem([
+                            html.H6("The Non-Uniform Sampling Problem"),
+                            html.P([
+                                "Bitcoin trades 24/7 and we have exactly one price point per calendar day. "
+                                "But LPPL models oscillations in ",
+                                html.Em("log-time"),
+                                ", and daily-uniform sampling is ",
+                                html.Strong("non-uniform in log-time"),
+                                ": at t=1 yr we have ~730 samples per unit of ln(t); at t=16 yr we have "
+                                "~5,840 — about 8\u00d7 denser. The standard least-squares fit therefore "
+                                "over-weights recent years by roughly that ratio.",
+                            ]),
+
+                            html.H6("Systematic Effect on the Damping Exponent D"),
+                            html.P([
+                                "Refitting each LPPL variant with log-time-uniform weighting "
+                                "(residuals weighted by 1/t) shifts the damping exponent dramatically:"
+                            ]),
+                            _coeff_table([
+                                ("LPPL D (unweighted)", "0.61"),
+                                ("LPPL D (log-time weighted)", "0.36"),
+                                ("LPPL\u2082 D (unweighted)", "0.57"),
+                                ("LPPL\u2082 D (log-time weighted)", "0.30"),
+                                ("LPPL\u2083 D (unweighted)", "0.37"),
+                                ("LPPL\u2083 D (log-time weighted)", "0.25"),
+                            ]),
+                            html.P([
+                                "Every variant shows D reduced by 30\u201347% under weighted fitting. "
+                                "The narrative that ",
+                                html.Em("\u201cBitcoin's bubble cycles are dramatically shrinking\u201d"),
+                                " is ",
+                                html.Strong("partly an artifact"),
+                                " of the 2020\u20132024 cycle being larger in absolute log-price terms AND "
+                                "over-weighted by the uniform-in-calendar-time sampling. Under a uniform-in-log-time "
+                                "weighting each successive cycle is smaller than the previous, but by less than "
+                                "the unweighted fit suggests.",
+                            ]),
+
+                            html.H6("Regime Shift: the Secondary Frequency Flips"),
+                            html.P([
+                                "For LPPL\u2082, the fitted secondary frequency ",
+                                html.Strong("depends strongly on weighting"),
+                                ":"
+                            ]),
+                            _coeff_table([
+                                ("LPPL\u2082 \u03c9\u2082 unweighted", "20.90 (ratio 2.83 \u2248 3\u00d7 W\u2081)"),
+                                ("LPPL\u2082 \u03c9\u2082 weighted",  "9.26 (ratio 1.35, non-harmonic)"),
+                            ]),
+                            html.P([
+                                "When LPPL\u2082 is forced to pick only ONE secondary oscillation, "
+                                "the two weightings choose completely different frequencies. The data "
+                                "actually contains BOTH oscillations \u2014 the weighting just determines "
+                                "which one dominates the fit.",
+                            ]),
+
+                            html.H6("What This Means: A Regime Shift Around 2017\u20132020"),
+                            html.P([
+                                "Bitcoin's market structure changed materially during 2017 (retail boom, "
+                                "CME futures launch) and 2020\u20132021 (institutional adoption, spot ETFs). "
+                                "The 2010\u20132019 era and the 2020\u20132025 era have ",
+                                html.Strong("different oscillation spectra"),
+                                ". LPPL\u2083 is rich enough to capture both simultaneously "
+                                "(\u03c9\u22489, \u03c9\u224821 are both present regardless of weighting), but "
+                                "LPPL and LPPL\u2082 are forced to pick the dominant frequency for whichever "
+                                "era the fit weights more heavily. ",
+                                html.Strong("Neither weighting is \u201cwrong\u201d"),
+                                " \u2014 they answer different questions:",
+                            ]),
+                            html.Ul([
+                                html.Li([
+                                    html.Strong("Unweighted fit: "),
+                                    "\u201cWhat's the dominant structure in the data that I have?\u201d "
+                                    "(recent-era focused, good for near-term prediction)"
+                                ]),
+                                html.Li([
+                                    html.Strong("Weighted fit: "),
+                                    "\u201cWhat's the universal log-periodic structure across Bitcoin's entire history?\u201d "
+                                    "(matches LPPL's theoretical framing, treats all cycles equally)"
+                                ]),
+                            ]),
+
+                            html.H6("Current Quantoshi Fits"),
+                            html.P([
+                                "Quantoshi currently uses ",
+                                html.Strong("unweighted fits"),
+                                " for all LPPL variants because they match the recent market "
+                                "regime that users are most likely to project from. The displayed "
+                                "damping D values, secondary frequencies, and forward projections "
+                                "should be read with this caveat in mind. The LPPL\u2083 fit captures "
+                                "both regime structures simultaneously and is the least sensitive "
+                                "to this weighting choice.",
+                            ]),
+
+                            html.H6("Related: Regime Shift Detection"),
+                            html.P([
+                                "Sliding-window LPPL fits (e.g., 5-year windows stepped monthly) "
+                                "can detect regime shifts by tracking how W, D, and residual "
+                                "variance evolve over time. Sudden parameter jumps flag structural "
+                                "breaks. Complements existing Bai-Perron / CUSUM analyses "
+                                "(see FAQ) by extending the idea from power-law slope to "
+                                "oscillation parameters.",
+                            ]),
+                        ], title="LPPL Weighting & Regime Shifts", item_id="mi-lppl-weighting"),
+
                         # ── 4. Exponential ──
                         dbc.AccordionItem([
                             html.H6("Formula"),

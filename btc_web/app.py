@@ -82,12 +82,26 @@ def _health():
     from flask import jsonify as _jsonify
     from utils import _price_cache
     from mc_cache import _CACHE
+    import pathlib
     price_age = time.time() - _price_cache["ts"] if _price_cache["price"] else -1
+    # Cache file age (oldest .npz in mc_cache/ or citadel_band_cache/)
+    cache_dirs = [
+        pathlib.Path(__file__).parent / "mc_cache",
+        pathlib.Path(__file__).parent / "citadel_band_cache",
+    ]
+    mtimes = []
+    for d in cache_dirs:
+        if d.exists():
+            mtimes.extend(f.stat().st_mtime for f in d.glob("*.npz"))
+    cache_age_days = (time.time() - min(mtimes)) / 86400 if mtimes else -1
     bp = btcpay.check_health() if flask_request.args.get("btcpay") else None
     result = {
         "status": "ok",
         "model": M is not None,
         "price_age_s": round(price_age),
+        "cache_age_days": round(cache_age_days, 1),
+        "cache_warn_45d": cache_age_days > 45,
+        "cache_stale_90d": cache_age_days > 90,
         "mc_cache": bool(_CACHE),
         "markov": _HAS_MARKOV,
         "btcpay": btcpay._HAS_BTCPAY,

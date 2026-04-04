@@ -39,10 +39,21 @@ check_health() {
         return
     fi
 
-    # 1. Check HTTPS health endpoint
+    # 1. Check HTTPS health endpoint + parse cache age
+    health_json=$(curl -s --max-time "$TIMEOUT" "$URL" 2>/dev/null) || health_json=""
     http_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "$URL" 2>/dev/null) || http_code="000"
     if [[ "$http_code" != "200" ]]; then
         errors+=("Health endpoint returned HTTP $http_code")
+    elif [[ -n "$health_json" ]]; then
+        # Parse cache age from JSON response
+        cache_age=$(echo "$health_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cache_age_days',-1))" 2>/dev/null || echo "-1")
+        stale_90=$(echo "$health_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cache_stale_90d',False))" 2>/dev/null || echo "False")
+        warn_45=$(echo "$health_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cache_warn_45d',False))" 2>/dev/null || echo "False")
+        if [[ "$stale_90" == "True" ]]; then
+            errors+=("Cache STALE (>90 days, age=${cache_age}d) — run: bash tools/rebuild_caches.sh")
+        elif [[ "$warn_45" == "True" ]]; then
+            errors+=("Cache aging (>45 days, age=${cache_age}d) — consider: bash tools/rebuild_caches.sh")
+        fi
     fi
 
     # 2. Check if server is SSH-reachable
@@ -83,10 +94,13 @@ error_msgs=$(echo "$result" | tail -n +2)
 
 if [[ "$n_errors" -eq 0 ]]; then
     if [[ "$MODE" == "--verbose" ]]; then
+        # Parse cache age for display
+        cache_age=$(echo "$health_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cache_age_days',-1))" 2>/dev/null || echo "?")
         echo "Quantoshi Status: ALL OK"
         echo "  Health endpoint: 200"
         echo "  Service: active (running)"
         echo "  Error log: clean"
+        echo "  Cache age: ${cache_age} days (warn at 45, rebuild at 90)"
     fi
     # Remove alert lock if it exists (problem resolved)
     rm -f "$LOCK"

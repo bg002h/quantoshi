@@ -1,0 +1,30 @@
+# quantoshi-cache-rebuild.service — 90-day auto-rebuild of MC + Citadel caches.
+#
+# USER service — installs as a systemd user unit on your dev machine.
+#
+# INSTALL:
+#   mkdir -p ~/.config/systemd/user
+#   cp tools/quantoshi-cache-rebuild.service ~/.config/systemd/user/
+#   cp tools/quantoshi-cache-rebuild.timer ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now quantoshi-cache-rebuild.timer
+#   loginctl enable-linger $USER   # allow timer to run when logged out
+#
+# CHECK STATUS:
+#   systemctl --user list-timers quantoshi-cache-rebuild.timer
+#   systemctl --user status quantoshi-cache-rebuild.service
+#
+# MANUAL RUN:
+#   systemctl --user start quantoshi-cache-rebuild.service
+
+[Unit]
+Description=Quantoshi cache rebuild (MC + Citadel bands)
+
+[Service]
+Type=oneshot
+WorkingDirectory=/scratch/code/bitcoinprojections
+ExecStart=/scratch/code/bitcoinprojections/tools/rebuild_caches.sh
+StandardOutput=append:%h/.local/log/quantoshi-cache-rebuild.log
+StandardError=append:%h/.local/log/quantoshi-cache-rebuild.log
+# Builds can take 6-10 hours total
+TimeoutStartSec=12h

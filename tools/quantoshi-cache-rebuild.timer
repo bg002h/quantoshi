@@ -1,0 +1,19 @@
+# quantoshi-cache-rebuild.timer — Fires every 90 days (or on first boot after).
+#
+# USER timer — installs alongside quantoshi-cache-rebuild.service.
+# See .service file for install instructions.
+
+[Unit]
+Description=90-day cache rebuild timer
+
+[Timer]
+# Every 90 days, persistent across reboots
+OnUnitActiveSec=90d
+# First run ~6 hours after enabling (lets you test)
+OnBootSec=6h
+# Catch up if the dev machine was off during scheduled time
+Persistent=true
+Unit=quantoshi-cache-rebuild.service
+
+[Install]
+WantedBy=timers.target

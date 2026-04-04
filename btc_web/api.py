@@ -146,7 +146,31 @@ pre code {{ background:none; padding:0; }}
 
     @server.route("/E")
     def _regime_shift():
+        # Prefer the new multi-model HTML page; fall back to legacy SVG
+        html_path = os.path.join(os.path.dirname(__file__), "..", "regime_shift_all.html")
         svg_path = os.path.join(os.path.dirname(__file__), "..", "regime_shift.svg")
+        try:
+            with open(html_path) as f:
+                return f.read(), 200, {"Content-Type": "text/html"}
+        except FileNotFoundError:
+            pass
+        try:
+            with open(svg_path) as f:
+                return f.read(), 200, {"Content-Type": "image/svg+xml"}
+        except FileNotFoundError:
+            return "Not generated yet", 404
+
+    @server.route("/regime_shift/<path:filename>")
+    def _regime_shift_asset(filename):
+        # Serve individual SVGs referenced by regime_shift_all.html
+        # Restrict to the expected filenames to avoid path traversal
+        allowed = {
+            "regime_shift_lp1_5yr.svg", "regime_shift_lp2_5yr.svg",
+            "regime_shift_lp3_7yr.svg", "regime_shift_lp3_9yr.svg",
+        }
+        if filename not in allowed:
+            return "Not found", 404
+        svg_path = os.path.join(os.path.dirname(__file__), "..", filename)
         try:
             with open(svg_path) as f:
                 return f.read(), 200, {"Content-Type": "image/svg+xml"}

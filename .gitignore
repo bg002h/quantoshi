@@ -65,3 +65,6 @@ qr_*.png
 quantoshi_logo.xcf
 node_modules/
 btc_web/build/
+btc_web/citadel_band_cache/
+celerybeat-schedule
+anonymize_logs.sh

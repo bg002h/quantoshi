@@ -1,8 +1,9 @@
-"""FFT spectrum analysis of model residuals.
+"""FFT spectrum analysis of model residuals — log-time, window comparison.
 
 Computes FFT of residuals (log10(price) - log10(model_ref)) for 4 models:
   BM floor, BM composite, LPPL, LPPL2
-across 4 sampling/time combinations (daily/weekly x linear/log time).
+across 6 combinations (daily/weekly sampling x rectangular/Hann/Blackman-Harris windows).
+All panels use log-time FFT.
 
 Loads the project's own trusted model_data.pkl (built by tools/build_bm_model.py).
 """
@@ -14,6 +15,7 @@ import sys
 import pickle as _pickle  # noqa: S403 — loading our own trusted model file
 
 import numpy as np
+from scipy.signal import windows as sp_windows
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -93,26 +95,18 @@ def load_data():
     }
 
 
-def compute_fft_linear(t, y, freq_per_year):
-    """FFT on uniform linear-time grid. Returns (freqs [cycles/year], power)."""
-    t0, t1 = float(t[0]), float(t[-1])
-    n = int(np.ceil((t1 - t0) * freq_per_year))
-    if n < 16:
-        return np.array([]), np.array([])
-    t_uni = np.linspace(t0, t1, n)
-    y_uni = np.interp(t_uni, t, y)
-    y_uni = y_uni - np.mean(y_uni)
-    window = np.hanning(n)
-    y_win = y_uni * window
-    fft = np.fft.rfft(y_win)
-    power = np.abs(fft) ** 2
-    dt = (t1 - t0) / (n - 1)
-    freqs = np.fft.rfftfreq(n, d=dt)
-    return freqs, power
+def _make_window(name: str, n: int) -> np.ndarray:
+    if name == "none":
+        return np.ones(n)
+    if name == "hann":
+        return sp_windows.hann(n)
+    if name == "blackmanharris":
+        return sp_windows.blackmanharris(n)
+    raise ValueError(f"unknown window: {name}")
 
 
-def compute_fft_log(t, y, samples_per_unit_lnt):
-    """FFT on uniform ln(t) grid. Returns (omega, power)."""
+def compute_fft_log(t, y, samples_per_unit_lnt, window_name="hann"):
+    """FFT on uniform ln(t) grid with a chosen window. Returns (omega, power)."""
     t0, t1 = float(t[0]), float(t[-1])
     if t0 <= 0:
         t0 = max(t[t > 0][0], 0.01)
@@ -124,7 +118,7 @@ def compute_fft_log(t, y, samples_per_unit_lnt):
     t_uni = np.exp(u_uni)
     y_uni = np.interp(t_uni, t, y)
     y_uni = y_uni - np.mean(y_uni)
-    window = np.hanning(n)
+    window = _make_window(window_name, n)
     y_win = y_uni * window
     fft = np.fft.rfft(y_win)
     power = np.abs(fft) ** 2
@@ -154,8 +148,8 @@ def find_top_peaks(freqs, power, top_n=3, min_freq=None):
     return peaks[:top_n]
 
 
-def plot_panel(ax, freqs, power, color, title, is_log_time, peaks):
-    """Plot a single FFT power spectrum panel."""
+def plot_panel(ax, freqs, power, color, title, peaks):
+    """Plot a single log-time FFT power spectrum panel."""
     if len(freqs) == 0:
         ax.text(0.5, 0.5, "insufficient data", transform=ax.transAxes,
                 ha="center", va="center", color=TEXT, fontsize=8)
@@ -169,14 +163,13 @@ def plot_panel(ax, freqs, power, color, title, is_log_time, peaks):
     ax.semilogy(f, p_plot, color=color, linewidth=1.0, alpha=0.95)
     ax.set_facecolor(AX_BG)
 
-    if is_log_time:
-        for w, label in [(LPPL_W1, "w1=7.38"), (LPPL_W2, "w2=20.9")]:
-            if f[0] <= w <= f[-1]:
-                ax.axvline(w, color="#66ccff", linestyle="--",
-                           linewidth=0.8, alpha=0.55)
-                ax.text(w, p_plot.max() * 0.5, label,
-                        color="#66ccff", fontsize=6.5,
-                        rotation=90, va="top", ha="right", alpha=0.8)
+    for w, label in [(LPPL_W1, "w1=7.38"), (LPPL_W2, "w2=20.9")]:
+        if f[0] <= w <= f[-1]:
+            ax.axvline(w, color="#66ccff", linestyle="--",
+                       linewidth=0.8, alpha=0.55)
+            ax.text(w, p_plot.max() * 0.5, label,
+                    color="#66ccff", fontsize=6.5,
+                    rotation=90, va="top", ha="right", alpha=0.8)
 
     for i, (pf, pp) in enumerate(peaks):
         if f[0] <= pf <= f[-1]:
@@ -202,59 +195,52 @@ def main():
     print(f"  t range: {t[0]:.3f} .. {t[-1]:.3f} years (N={len(t)})")
 
     rows = ["BM floor", "BM composite", "LPPL", "LP2"]
+
+    # 6 columns: 2 sampling rates x 3 windows
     cols = [
-        ("Daily - Linear time",  "daily",  "linear"),
-        ("Daily - Log time",     "daily",  "log"),
-        ("Weekly - Linear time", "weekly", "linear"),
-        ("Weekly - Log time",    "weekly", "log"),
+        ("Daily - None",             "daily",  "none"),
+        ("Daily - Hann",             "daily",  "hann"),
+        ("Daily - Blackman-Harris",  "daily",  "blackmanharris"),
+        ("Weekly - None",            "weekly", "none"),
+        ("Weekly - Hann",            "weekly", "hann"),
+        ("Weekly - Blackman-Harris", "weekly", "blackmanharris"),
     ]
 
-    fig, axes = plt.subplots(4, 4, figsize=(18, 14), facecolor=FIG_BG)
+    fig, axes = plt.subplots(4, 6, figsize=(22, 14), facecolor=FIG_BG)
+
+    t0, t1 = float(t[0]), float(t[-1])
+    lnt_span = np.log(t1) - np.log(t0)
 
     for i, row_name in enumerate(rows):
         y = residuals[row_name]
         color = ROW_COLORS[row_name]
 
-        for j, (col_label, sampling, time_type) in enumerate(cols):
+        for j, (col_label, sampling, window_name) in enumerate(cols):
             ax = axes[i, j]
 
-            if time_type == "linear":
-                fpy = 365.0 if sampling == "daily" else 52.0
-                freqs, power = compute_fft_linear(t, y, fpy)
-                is_log = False
-                peaks = find_top_peaks(freqs, power, top_n=3, min_freq=0.05)
-                xlabel = "frequency (cycles / year)"
-            else:
-                t0, t1 = float(t[0]), float(t[-1])
-                lnt_span = np.log(t1) - np.log(t0)
-                n_target = int((t1 - t0) * (365.0 if sampling == "daily" else 52.0))
-                samples_per_unit = n_target / lnt_span
-                freqs, power = compute_fft_log(t, y, samples_per_unit)
-                is_log = True
-                peaks = find_top_peaks(freqs, power, top_n=3, min_freq=1.0)
-                xlabel = "log-time angular freq  omega"
+            fpy = 365.0 if sampling == "daily" else 52.0
+            n_target = int((t1 - t0) * fpy)
+            samples_per_unit = n_target / lnt_span
+            freqs, power = compute_fft_log(t, y, samples_per_unit, window_name)
+            peaks = find_top_peaks(freqs, power, top_n=3, min_freq=1.0)
 
             title = f"{row_name}  -  {col_label}"
-            plot_panel(ax, freqs, power, color, title, is_log, peaks)
+            plot_panel(ax, freqs, power, color, title, peaks)
 
             if len(freqs) > 1:
-                if time_type == "linear":
-                    ax.set_xlim(0, 10.0)
-                else:
-                    ax.set_xlim(0, 40.0)
+                ax.set_xlim(0, 45.0)
 
             if i == 3:
-                ax.set_xlabel(xlabel, color=TEXT, fontsize=8)
+                ax.set_xlabel("log-time angular freq  omega",
+                              color=TEXT, fontsize=8)
             if j == 0:
                 ax.set_ylabel(f"power ({row_name})", color=TEXT, fontsize=8)
 
-    fig.suptitle("Residual FFT Spectrum  -  log10(price) - log10(model)",
-                 color=TEXT, fontsize=14, y=0.995)
+    fig.suptitle("Residual FFT Spectrum — Log-time · Window Comparison",
+                 color=TEXT, fontsize=15, y=0.995)
     fig.text(0.5, 0.965,
-             "Rows: BM floor / BM composite / LPPL / LPPL2    "
-             "Cols: Daily|Weekly x Linear|Log time    "
-             "Blue dashed = LPPL w1=7.38, w2=20.9    "
-             "Red v = top 3 peaks",
+             "Rows: residual models  ·  Cols: sampling rate x window function  ·  "
+             "Blue dashed = LPPL w1=7.38, w2=20.9",
              ha="center", color="#99aaff", fontsize=9, style="italic")
 
     plt.tight_layout(rect=(0, 0, 1, 0.955))
@@ -263,18 +249,16 @@ def main():
     jpg_path = os.path.join(PROJ_ROOT, "residual_fft.jpg")
     fig.savefig(svg_path, facecolor=FIG_BG, edgecolor="none")
     fig.savefig(jpg_path, facecolor=FIG_BG, edgecolor="none",
-                dpi=140, pil_kwargs={"quality": 92})
+                dpi=200, pil_kwargs={"quality": 92})
     print(f"Wrote: {svg_path}")
     print(f"Wrote: {jpg_path}")
 
-    print("\n--- Top peaks (log-time, daily sampling) ---")
+    print("\n--- Top peaks (log-time, daily sampling, Hann window) ---")
+    n_target = int((t1 - t0) * 365.0)
+    samples_per_unit = n_target / lnt_span
     for row_name in rows:
         y = residuals[row_name]
-        t0, t1 = float(t[0]), float(t[-1])
-        lnt_span = np.log(t1) - np.log(t0)
-        n_target = int((t1 - t0) * 365.0)
-        samples_per_unit = n_target / lnt_span
-        freqs, power = compute_fft_log(t, y, samples_per_unit)
+        freqs, power = compute_fft_log(t, y, samples_per_unit, "hann")
         peaks = find_top_peaks(freqs, power, top_n=5, min_freq=1.0)
         peaks_str = ", ".join(f"w={p[0]:.2f}" for p in peaks)
         print(f"  {row_name:14s}: {peaks_str}")

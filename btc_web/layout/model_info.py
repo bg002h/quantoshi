@@ -227,41 +227,129 @@ The first two terms are a standard power law. The third term adds **log-periodic
 
                             html.H6("Fitted Coefficients"),
                             _coeff_table([
-                                ("A (intercept)", "\u22121.155084"),
-                                ("B (slope)", "5.081303"),
-                                ("C (oscillation amplitude)", "0.734286"),
-                                ("\u03c9 (log-frequency)", "7.563897"),
-                                ("\u03c6 (phase)", "1.371053"),
-                                ("D (damping exponent)", "0.608874"),
-                                ("\u03c3 (residual std)", "0.226960"),
-                                ("R\u00b2", "0.9801"),
+                                ("A (intercept)", "\u22121.154"),
+                                ("B (slope)", "5.080"),
+                                ("C (oscillation amplitude)", "0.734"),
+                                ("\u03c9 (log-frequency)", "7.559"),
+                                ("\u03c6 (phase)", "1.376"),
+                                ("D (damping exponent)", "0.608"),
+                                ("\u03c3 (residual std)", "0.227"),
+                                ("R\u00b2", "0.9780"),
                             ]),
 
                             html.H6("Interpretation"),
                             html.Ul([
                                 html.Li([
-                                    html.Strong("\u03c9 \u2248 8.89:"),
-                                    " The oscillation period in ln(t) space corresponds to ~4-year "
+                                    html.Strong("\u03c9 \u2248 7.56: "),
+                                    "The oscillation period in ln(t) space corresponds to ~4-year "
                                     "cycles, aligning with Bitcoin\u2019s halving schedule.",
                                 ]),
                                 html.Li([
-                                    html.Strong("D \u2248 0.70:"),
-                                    " Oscillation amplitude decays as t\u207b\u2070\u00b7\u2077. "
+                                    html.Strong("D \u2248 0.61: "),
+                                    "Oscillation amplitude decays as t\u207b\u2070\u00b7\u2076. "
                                     "Each successive bubble is smaller relative to the trend \u2014 "
                                     "Bitcoin is getting less volatile over time.",
                                 ]),
                                 html.Li([
-                                    html.Strong("B \u2248 5.70:"),
-                                    " The underlying power-law slope matches QR and PL closely.",
+                                    html.Strong("B \u2248 5.08: "),
+                                    "The underlying power-law slope matches QR and BM closely.",
                                 ]),
                                 html.Li([
-                                    html.Strong("\u03c3 = 0.217:"),
-                                    " Smaller than PL\u2019s 0.302 because the oscillatory term "
+                                    html.Strong("\u03c3 = 0.227: "),
+                                    "Smaller than PL\u2019s residual \u03c3 because the oscillatory term "
                                     "absorbs variance that PL attributes to noise. This means LPPL\u2019s "
                                     "quantile bands are narrower.",
                                 ]),
                             ]),
                         ], title="Log-Periodic Power Law (LPPL)", item_id="mi-lppl"),
+
+                        # ── 3b. LPPL₂ ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = A + B \cdot \log_{10}(t) + C_1 \cdot t^{-D} \cdot \cos(\omega_1 \cdot \ln(t) + \varphi_1) + C_2 \cdot \cos(\omega_2 \cdot \ln(t) + \varphi_2)$$
+
+The first oscillation ($\omega_1$) is **damped** by $t^{-D}$ — bubble cycles that decay over time.
+The second oscillation ($\omega_2$) is **undamped** — a permanent structural feature that persists
+even as bubble amplitude shrinks. $\omega_2$ is **not constrained** to be a harmonic of $\omega_1$.
+                            """, mathjax=True, className="mb-3"),
+
+                            html.H6("Motivation"),
+                            html.P([
+                                "Bitcoin\u2019s price history shows evidence of two distinct oscillation "
+                                "frequencies: the well-known ~4-year halving cycle (captured by LPPL\u2019s "
+                                "single cosine term) and a secondary oscillation that doesn\u2019t fit "
+                                "neatly as a harmonic. An initial attempt with the second frequency "
+                                "locked to 2\u00d7\u03c9\u2081 (Weierstrass-type) showed minimal improvement "
+                                "(R\u00b2 \u0394=+0.0009). Releasing \u03c9\u2082 as a free parameter and "
+                                "moving the second term outside the damping envelope yielded a much "
+                                "larger improvement (R\u00b2 \u0394=+0.0060), confirming the secondary "
+                                "oscillation is real, not a perfect harmonic, and not decaying.",
+                            ]),
+
+                            html.H6("Fitted Coefficients"),
+                            _coeff_table([
+                                ("A (intercept)", "\u22121.131"),
+                                ("B (slope)", "5.039"),
+                                ("C\u2081 (primary amplitude)", "0.706"),
+                                ("\u03c9\u2081 (primary frequency)", "7.378"),
+                                ("\u03c6\u2081 (primary phase)", "1.582"),
+                                ("D (damping, primary only)", "0.566"),
+                                ("C\u2082 (secondary amplitude)", "0.169"),
+                                ("\u03c9\u2082 (secondary frequency)", "20.902"),
+                                ("\u03c6\u2082 (secondary phase)", "\u22121.154"),
+                                ("\u03c3 (residual std)", "0.193"),
+                                ("R\u00b2", "0.9840"),
+                            ]),
+
+                            html.H6("Key Findings"),
+                            html.Ul([
+                                html.Li([
+                                    html.Strong("\u03c9\u2082/\u03c9\u2081 = 2.83: "),
+                                    "The secondary frequency is ~2.83\u00d7 the primary \u2014 close to "
+                                    "but not exactly a 3\u00d7 harmonic. When constrained to exactly "
+                                    "2\u00d7, the fit barely improved, confirming the real frequency "
+                                    "isn\u2019t a simple integer multiple.",
+                                ]),
+                                html.Li([
+                                    html.Strong("C\u2082/C\u2081 = 24%: "),
+                                    "The secondary oscillation has about a quarter of the primary\u2019s "
+                                    "amplitude, but because it\u2019s undamped it becomes increasingly "
+                                    "dominant in future projections as the primary decays.",
+                                ]),
+                                html.Li([
+                                    html.Strong("\u03c3 = 0.193 (vs LPPL 0.227): "),
+                                    "15% tighter residuals. The secondary term absorbs real structure "
+                                    "that single-frequency LPPL treats as noise.",
+                                ]),
+                                html.Li([
+                                    html.Strong("D = 0.57 (vs LPPL 0.61): "),
+                                    "Less damping needed for the primary when the secondary carries "
+                                    "some of the oscillatory load.",
+                                ]),
+                            ]),
+
+                            html.H6("Physical Interpretation"),
+                            html.P([
+                                "The damped primary cycle captures the halving-driven boom/bust pattern "
+                                "that is empirically shrinking with each cycle. The undamped secondary "
+                                "oscillation may reflect a persistent structural feature of Bitcoin\u2019s "
+                                "market microstructure \u2014 perhaps related to mid-cycle rallies, "
+                                "accumulation phases, or a different class of market participants "
+                                "operating on a different timescale. Its persistence implies this "
+                                "oscillation will continue even as the major bubble cycles converge "
+                                "toward the power-law trend.",
+                            ]),
+
+                            html.H6("Refitting"),
+                            html.P(
+                                "All 9 parameters are refitted daily via differential evolution "
+                                "as part of the price update pipeline. The primary parameters "
+                                "(A, B, C\u2081, \u03c9\u2081, \u03c6\u2081, D) are inherited from LPPL "
+                                "as starting bounds; \u03c9\u2082 is free to find any frequency between "
+                                "1 and 30 in log-time."
+                            ),
+                        ], title="LPPL\u2082 (Two-Frequency)", item_id="mi-lp2"),
 
                         # ── 4. Exponential ──
                         dbc.AccordionItem([

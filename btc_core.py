@@ -772,6 +772,59 @@ class LPPL3Model(LPPL2Model):
         return self._A + self._B * np.log10(t_safe) + term1 + term2 + term3
 
 
+class LPPLModelW(LPPLModel):
+    """LPPL with log-time-uniform (1/t) weighting.
+
+    Same formula as LPPLModel, but fitted with residuals weighted by 1/t
+    so each unit of ln(t) contributes equally to the loss. Emphasizes
+    early-history structure over the 2020-2024 bubble era.
+    """
+    name = "LPPL (weighted)"
+    short_name = "lppl_w"
+    legend_name = "LPPL\u1d65\u1d65"
+    _A   = -1.086800
+    _B   =   4.987100
+    _C   =   0.552500
+    _W   =   7.416000
+    _PHI =   1.533100
+    _D   =   0.356800
+
+
+class LPPL2ModelW(LPPL2Model):
+    """LPPL\u2082 with log-time-uniform weighting."""
+    name = "LPPL\u2082 (weighted)"
+    short_name = "lp2_w"
+    legend_name = "LPPL\u2082\u1d65\u1d65"
+    _A   = -1.102500
+    _B   =   4.980300
+    _C   =   0.500900
+    _W   =   6.857500
+    _PHI =   2.196600
+    _D   =   0.301900
+    _C2  =   0.188000
+    _W2  =   9.259900
+    _PHI2 = -0.846900
+
+
+class LPPL3ModelW(LPPL3Model):
+    """LPPL\u2083 with log-time-uniform weighting."""
+    name = "LPPL\u2083 (weighted)"
+    short_name = "lp3_w"
+    legend_name = "LPPL\u2083\u1d65\u1d65"
+    _A   = -1.103800
+    _B   =   4.984500
+    _C   =   0.443200
+    _W   =   6.760600
+    _PHI =   2.284100
+    _D   =   0.245900
+    _C2  =   0.209000
+    _W2  =   9.083400
+    _PHI2 = -0.530300
+    _C3  =   0.132000
+    _W3  =  17.258100
+    _PHI3 =  1.054900
+
+
 class LPPL4Model(LPPL3Model):
     """Four-frequency LPPL: damped primary + three undamped secondary oscillations.
 
@@ -815,6 +868,67 @@ class LPPL4Model(LPPL3Model):
         term3 = self._C3 * np.cos(self._W3 * np.log(t_safe) + self._PHI3)
         term4 = self._C4 * np.cos(self._W4 * np.log(t_safe) + self._PHI4)
         return self._A + self._B * np.log10(t_safe) + term1 + term2 + term3 + term4
+
+
+class LPPL4ModelW(LPPL4Model):
+    """LPPL\u2084 with log-time-uniform weighting."""
+    name = "LPPL\u2084 (weighted)"
+    short_name = "lp4_w"
+    legend_name = "LPPL\u2084\u1d65\u1d65"
+    _A   = -1.101500
+    _B   =   4.976300
+    _C   =   0.491600
+    _W   =   6.861300
+    _PHI =   2.190700
+    _D   =   0.276400
+    _C2  =   0.190000
+    _W2  =   9.313500
+    _PHI2 = -0.889300
+    _C3  =   0.119700
+    _W3  =  20.921200
+    _PHI3 = -1.203000
+    _C4  =   0.108400
+    _W4  =  17.087700
+    _PHI4 =  1.336900
+
+
+class LPPL4ModelN13(LPPL4Model):
+    """LPPL\u2084 with ω=13 intermod band excluded (secondary frequencies constrained to avoid 11.5-14.5).
+
+    Secondaries at ω≈9.9, 17.5, 20.9 (ratios 1.41, 2.48, 2.96). R²=0.9905.
+    """
+    name = "LPPL\u2084 (no \u03c9\u224813)"
+    short_name = "lp4_n13"
+    legend_name = "LPPL\u2084-n13"
+    _A   = -1.096074
+    _B   =   4.966763
+    _C   =   0.557848
+    _W   =   7.053735
+    _PHI =   1.972293
+    _D   =   0.306513
+    _C2  =   0.146182
+    _W2  =  20.900338
+    _PHI2 = -1.214332
+    _C3  =   0.186290
+    _W3  =   9.931483
+    _PHI3 = -1.893553
+    _C4  =   0.093978
+    _W4  =  17.456360
+    _PHI4 =  0.827859
+
+
+class LPPL4ModelWN13(LPPL4ModelN13):
+    """LPPL\u2084 weighted + ω=13 excluded."""
+    name = "LPPL\u2084 (weighted, no \u03c9\u224813)"
+    short_name = "lp4_w_n13"
+    legend_name = "LPPL\u2084\u1d65\u1d65-n13"
+    # Placeholder params — will need a weighted + no-13 fit
+    _A   = -1.101500
+    _B   =   4.976300
+    _C   =   0.491600
+    _W   =   6.861300
+    _PHI =   2.190700
+    _D   =   0.276400
 
 
 class ExponentialModel:

@@ -43,6 +43,9 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     Input("bub-use-lots",      "value"),
     Input("bub-legend-pos",    "value"),
     Input("bub-model-show",    "value"),
+    Input("lppl-n-freqs",      "value"),
+    Input("lppl-weighted",     "value"),
+    Input("lppl-no-13",        "value"),
     Input("effective-lots",    "data"),
     Input("palette-store",     "data"),
     Input("user-model-store",  "data"),
@@ -53,7 +56,8 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
 )
 def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,
-                  n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, model_show, lots_data,
+                  n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, model_show,
+                  lppl_n_freqs, lppl_weighted, lppl_no_13, lots_data,
                   palette_key, user_model_store=None,
                   qs_mode=None, scan_active=None, scan_q_val=None):
     """Bubble + QR overlay chart callback — coerce inputs, build figure."""
@@ -61,6 +65,23 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     bubble_toggles = bubble_toggles or []
     yrange         = yrange or [0, 7]
     xrange         = xrange or [2012, 2030]
+
+    # Translate LPPL config panel selections into model keys
+    model_show = list(model_show or [])
+    _weighted = "weighted" in (lppl_weighted or [])
+    _no_13 = "no13" in (lppl_no_13 or [])
+    for n in (lppl_n_freqs or []):
+        if n == 1:
+            model_show.append("lppl_w" if _weighted else "lppl")
+        elif n == 2:
+            model_show.append("lp2_w" if _weighted else "lp2")
+        elif n == 3 and not _no_13:  # LP3 disabled when excluding ω=13
+            model_show.append("lp3_w" if _weighted else "lp3")
+        elif n == 4:
+            if _no_13:
+                model_show.append("lp4_w_n13" if _weighted else "lp4_n13")
+            else:
+                model_show.append("lp4_w" if _weighted else "lp4")
 
     # Scanner lines
     scanner_lines = []

@@ -91,6 +91,8 @@ def _bubble_controls():
                               for mdl in (
                                   [m for m in _app_ctx.PRICE_MODELS.values()
                                    if m.short_name not in _app_ctx.MODEL_SENTINELS
+                                   and m.short_name not in _app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE
+                                   and m.short_name not in ("lppl", "lp2", "lp3", "lp4")  # managed by LPPL config panel
                                    and m.short_name != "bub" and m.short_name not in ("exp", "s2f")]
                                   + [m for m in _app_ctx.PRICE_MODELS.values()
                                      if m.short_name in ("exp", "s2f")]
@@ -128,6 +130,34 @@ def _bubble_controls():
                 ]),
             ),
         ]),
+        _section_card("LPPL Models",
+            _lbl("Oscillation frequencies (N)"),
+            dcc.Checklist(id="lppl-n-freqs",
+                          options=[
+                              {"label": " LPPL\u2081 (1 freq)", "value": 1},
+                              {"label": " LPPL\u2082 (2 freqs)", "value": 2},
+                              {"label": " LPPL\u2083 (3 freqs)", "value": 3},
+                              {"label": " LPPL\u2084 (4 freqs)", "value": 4},
+                          ],
+                          value=[1],
+                          labelStyle={"display": "block"},
+                          inputStyle=_CB_MARGIN),
+            html.Hr(style={"margin": "6px 0", "borderColor": "#444"}),
+            dcc.Checklist(id="lppl-weighted",
+                          options=[{"label": " Log-time weighted fits",
+                                    "value": "weighted"}],
+                          value=[], inputStyle=_CB_MARGIN,
+                          className="small"),
+            html.Small("Emphasizes early-history structure over recent era",
+                       style=_STYLE_HINT),
+            dcc.Checklist(id="lppl-no-13",
+                          options=[{"label": " Exclude \u03c9\u224813 intermod (disables LPPL\u2083)",
+                                    "value": "no13"}],
+                          value=[], inputStyle=_CB_MARGIN,
+                          className="small"),
+            html.Small("LP\u2084's \u03c9\u224813 may be an intermodulation artifact",
+                       style=_STYLE_HINT),
+        ),
         _q_panel_with_mode("bub-qs", [0.5],
                            hint="If none selected, Q50% is shown at 50% opacity."),
         _section_card("Model Scanner",

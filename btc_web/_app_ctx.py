@@ -27,6 +27,14 @@ BTC_ORANGE = "#f7931a"
 FONT_LEGEND = 10              # legend / small info text
 MODEL_SENTINELS = frozenset({"mc", "bub"})  # reserved keys in model-show checklists
 
+# LPPL family variants managed by dedicated LPPL config panel (bubble tab)
+# Hidden from the standard Display Models checklist on tab 1 only;
+# still available for programmatic access + other tabs.
+LPPL_FAMILY_HIDDEN_FROM_BUBBLE = frozenset({
+    "lppl_w", "lp2_w", "lp3_w", "lp4_w",
+    "lp4_n13", "lp4_w_n13",
+})
+
 # Per-model trace colors — high-contrast, colorblind-safe, one color per model.
 # Used when shade bands are active so traces stand out against any band color.
 # Designed for luminance variation (readable without color vision).

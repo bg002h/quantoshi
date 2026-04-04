@@ -125,6 +125,10 @@ _SNAPSHOT_CONTROLS = [
     ("hm-mc-model-src",   "value"),   # MC model source (Heatmap)
     # ── Bubble overlay models ──
     ("bub-model-show",    "value"),   # PL/S2F overlay toggle (Bubble)
+    # ── LPPL config panel (Bubble tab) ──
+    ("lppl-n-freqs",      "value"),   # [1..4] checkbox multi-select
+    ("lppl-weighted",     "value"),   # ["weighted"] or []
+    ("lppl-no-13",        "value"),   # ["no13"] or []
     # ── Palette ──
     ("palette-store",     "data"),    # colorblind palette key
     # ── Heatmap model selector ──
@@ -333,6 +337,9 @@ _CHECKLIST_OPTIONS = {
     "sc-model-show":      ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"],
     "hm-model-show":      ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"],
     "bub-model-show":     ["pl", "lppl", "exp", "s2f", "ef", "bub", "qr"],
+    "lppl-n-freqs":       [1, 2, 3, 4],
+    "lppl-weighted":      ["weighted"],
+    "lppl-no-13":         ["no13"],
     # MC enable/advanced checklists (1 bit each)
     "dca-mc-enable":    ["yes"],
     "dca-mc-advanced":  ["yes"],

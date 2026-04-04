@@ -124,11 +124,23 @@ def run_model_build() -> None:
 
     res = subprocess.run([sys.executable, str(build_script)], capture_output=True, text=True)
     if res.returncode != 0:
-        print("BUILD FAILED — stderr (last 3 000 chars):")
+        print("BUILD FAILED (BM) — stderr (last 3 000 chars):")
         print(res.stderr[-3000:])
         sys.exit(1)
 
-    print("Model build complete — model_data.pkl updated.")
+    print("BM model build complete — model_data.pkl updated.")
+
+    # EF model: hardcoded floor, but bubble fitting floats with new data
+    print("\nRebuilding model_data_ef.pkl …")
+    ef_script = REPO_ROOT / "tools" / "build_ef_model.py"
+
+    res = subprocess.run([sys.executable, str(ef_script)], capture_output=True, text=True)
+    if res.returncode != 0:
+        print("BUILD FAILED (EF) — stderr (last 3 000 chars):")
+        print(res.stderr[-3000:])
+        print("WARNING: EF build failed but BM is OK. Continuing.")
+    else:
+        print("EF model build complete — model_data_ef.pkl updated.")
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
@@ -225,7 +237,7 @@ def main() -> None:
     print()
     print("Review the new rows above, then deploy when ready:")
     print()
-    print("  git add BitcoinPricesDaily.csv btc_app/model_data.pkl")
+    print("  git add BitcoinPricesDaily.csv model_data.pkl model_data_ef.pkl")
     print("  git commit -m 'Update price data'")
     print("  git push origin master")
     print("  ssh root@89.167.70.45 \\")

@@ -18,6 +18,7 @@ from figures import (build_bubble_figure, build_heatmap_figure,
                      build_dca_figure, build_retire_figure,
                      build_supercharge_figure, build_citadel_figure)
 from figures.heatmap import build_cagr_line_figure
+from figures.residuals import build_residuals_figure
 
 # ── quantize floats to 3 significant figures for cache-friendly keys ───────────
 from _app_ctx import _q3
@@ -114,6 +115,7 @@ _cached_supercharge_fig = _make_cached_builder(build_supercharge_figure, prefix=
 _cached_mc_heatmap_fig  = _make_cached_builder(build_mc_heatmap_figure, prefix="hm_mc")
 _cached_citadel_fig     = _make_cached_builder(build_citadel_figure, prefix="cp")
 _cached_cagr_fig        = _make_cached_builder(build_cagr_line_figure, prefix="cagr")
+_cached_resid_fig       = _make_cached_builder(build_residuals_figure, prefix="resid")
 
 _ALL_CACHES = {
     "bubble": _cached_bubble_fig,
@@ -124,6 +126,7 @@ _ALL_CACHES = {
     "mc_heatmap": _cached_mc_heatmap_fig,
     "citadel": _cached_citadel_fig,
     "cagr": _cached_cagr_fig,
+    "resid": _cached_resid_fig,
 }
 
 def _log_cache_stats():
@@ -201,6 +204,12 @@ def _get_cagr_fig(p: dict):
     p_q = _quantize_params(p)
     p_q['_day'] = str(date.today())
     return _cached_cagr_fig(json.dumps(p_q, sort_keys=True, default=str))
+
+def _get_resid_fig(p: dict):
+    _try_flush_l0()
+    p_q = _quantize_params(p)
+    p_q['_day'] = str(date.today())
+    return _cached_resid_fig(json.dumps(p_q, sort_keys=True, default=str))
 
 
 # ── L0 prewarm helpers ───────────────────────────────────────────────────────

@@ -232,13 +232,13 @@ def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
 )
 def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
                      bub_toggles, n_future, legend_pos, palette_key, user_model_store):
-    from figures.residuals import build_residuals_figure
+    from utils import _get_resid_fig
     toggles = toggles or []
     xrange = xrange or [2010, 2033]
     p = dict(
         xmin=int(xrange[0]), xmax=int(xrange[1]),
-        active_models=model_show or ["bub"],
-        bub_toggles=bub_toggles or [],
+        active_models=sorted(model_show or ["bub"]),
+        bub_toggles=sorted(bub_toggles or []),
         n_future=int(n_future) if n_future is not None else 3,
         palette=palette_key or "default",
         xscale=xscale or "log",
@@ -249,7 +249,7 @@ def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
         legend_pos=legend_pos or "outside",
         user_model=user_model_store,
     )
-    fig = build_residuals_figure(_app_ctx.M, p)
+    fig = _get_resid_fig(p)
     if "chart_zoom" not in toggles:
         fig.update_layout(dragmode=False)
         fig.update_xaxes(fixedrange=True)

@@ -732,6 +732,46 @@ class LPPL2Model(LPPLModel):
         return self._A + self._B * np.log10(t_safe) + term1 + term2
 
 
+class LPPL3Model(LPPL2Model):
+    """Three-frequency LPPL: damped primary + two undamped secondary oscillations.
+
+    Fits: log10(price) = A + B*log10(t) + C1*t^(-D)*cos(W1*ln(t)+φ1)
+                       + C2*cos(W2*ln(t)+φ2) + C3*cos(W3*ln(t)+φ3)
+
+    Initial search started at W3=13.3 (from FFT residual analysis), but
+    the optimizer settled at W3≈10 — the peak at ω≈13 turned out to be
+    an intermodulation product (W2 − W1 ≈ 13.5), not a third oscillation.
+    W3/W1 ≈ √2, W3/W2 ≈ 0.49.
+    """
+    name = "LPPL\u2083"
+    short_name = "lp3"
+    legend_name = "LPPL\u2083"
+    dash_style = "dashdot"
+
+    # All 12 params jointly fitted by tools/fit_lppl3.py
+    _A   = -1.094444
+    _B   =     4.966786
+    _C   =     0.614142
+    _W   =     7.121979
+    _PHI =     1.890904
+    _D   =     0.366223
+    _C2  =     0.178584
+    _W2  =    20.804056
+    _PHI2 = -0.994875
+    _C3  =     0.171166
+    _W3  =    10.080803
+    _PHI3 = -2.163653
+
+    def _lppl_log10(self, t):
+        """Evaluate three-frequency LPPL median in log10 space."""
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        term1 = self._C * t_safe ** (-self._D) * np.cos(self._W * np.log(t_safe) + self._PHI)
+        term2 = self._C2 * np.cos(self._W2 * np.log(t_safe) + self._PHI2)
+        term3 = self._C3 * np.cos(self._W3 * np.log(t_safe) + self._PHI3)
+        return self._A + self._B * np.log10(t_safe) + term1 + term2 + term3
+
+
 class ExponentialModel:
     """Exponential growth model with Gaussian quantile bands.
 

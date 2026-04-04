@@ -46,9 +46,9 @@ address for additional privacy.
   price sits relative to each model.
 - **Sats/$ toggle**: Click the ticker mode button to switch between USD price
   and sats-per-dollar display.
-- **Palette selector**: Choose between Default, Colorblind-RG (red-green safe),
-  and Colorblind-Full (fully colorblind-safe) color schemes. Your choice is
-  saved in `localStorage` and applies to all charts.
+- **Palette selector**: Choose between Default, Deuteranomaly, Colorblind-RG
+  (red-green safe), and Colorblind-Full (fully colorblind-safe) color schemes.
+  Your choice is saved in `localStorage` and applies to all charts.
 
 ---
 
@@ -59,21 +59,36 @@ address for additional privacy.
 The main chart showing Bitcoin's price history overlaid with quantile regression
 channels and bubble model projections.
 
+**Price / Forward CAGR views:** A pill bar at the top lets you switch between
+the **Price** chart (default) and the **Forward CAGR** chart. The Forward CAGR
+chart shows the compound annual growth rate from each historical date looking
+forward 1–30 years, with intra-window excursion bands showing peak and trough
+multiples. A progress bar shows estimated computation time for longer windows.
+Select the forward window from the dropdown (1, 2, 4, 10, 20, or 30 years).
+
+**Recovery time in hover:** For non-monotonic models (like the Bubble Model)
+and historical price data, hovering over a point shows how long until the price
+recovers to that level — e.g., "Recovery: 3.1 yr (Dec 2028)". This tells you
+how long a buyer at that price would wait to break even. Points on rising
+segments show no recovery annotation (no drawdown to recover from).
+
 **Key controls:**
-- **Quantiles**: Check boxes to show/hide individual price channels. Each
-  quantile (e.g., Q10%, Q50%, Q85%) represents a percentile of the historical
-  price distribution.
+- **Projection Quantiles**: In default mode, select symmetric bands (Q1%–Q99%,
+  Q15%–Q85%) and the Q50% median. An advanced mode toggle reveals individual
+  quantile checkboxes with a 3-band limit.
 - **X/Y Scale**: Toggle between Log and Linear for each axis. Log-Log is the
   default and shows the power law as straight lines.
 - **N Future Bubbles**: How many future bubble cycles to extrapolate (1–10).
   More bubbles extend the projection further.
-- **Shade**: Fill the area between adjacent selected quantiles.
+- **Show price data**: Toggle historical BTC price scatter on/off.
+- **Shade**: Fill the area between symmetric quantile pairs (outside-in).
 - **Stack (BTC)**: Enter your BTC holdings to see projected USD value at each
   quantile on the right edge of the chart.
 - **Use Stack Tracker lots**: Pull your BTC amount from the Stack Tracker tab
   instead of entering manually.
 - **Display Models**: Toggle overlay models on the bubble chart to compare
-  against the default bubble model projections.
+  against the default bubble model projections. Each model is shown with a
+  colored swatch matching the current palette.
   - **Power Law** — Simple OLS log-log power law fit.
   - **S2F (Stock-to-Flow)** — Alternative parameterization based on scarcity.
   - **LPPL** — Log-Periodic Power Law, a model that captures oscillatory
@@ -93,8 +108,8 @@ Draw your own power-law line by clicking two points directly on the chart:
 1. Right-click (or long-press on mobile) a data point on the chart to open
    the context menu and set it as **P1**.
 2. Right-click a second point to set **P2**.
-3. Click **Draw** — an orange power-law line is fitted through your two points
-   and added to the chart.
+3. The line auto-draws as soon as both points are set — an orange power-law
+   line is fitted through your two points and added to the chart.
 
 The line persists for the current browser session. It appears as an overlay
 option ("User Model") on all tabs while it exists. Close the browser tab to
@@ -220,7 +235,7 @@ total BTC from all lots becomes the starting stack for that simulation.
 
 Detailed documentation of the price models including formulas, fitted
 coefficients, and methodology. Organized as an accordion — directly linkable
-via URL paths like `/7.3` (opens the 3rd section). Sections include:
+via URL paths like `/7.3` or `/7-3` (opens the 3rd section). Sections include:
 
 - **Quantile Regression / Bubble Model** — power-law channels fitted at each
   percentile, with bubble composite construction.
@@ -240,7 +255,7 @@ via URL paths like `/7.3` (opens the 3rd section). Sections include:
 20 entries covering common questions including quantile regression, power law
 regime analysis (Box-Cox sweep, rolling regression, Bai-Perron breakpoints,
 Chow test, CUSUM), QR vs MCMC differences, privacy, and more. Directly
-linkable via URL paths like `/8.5` (opens the 5th FAQ item).
+linkable via URL paths like `/8.5` or `/8-5` (opens the 5th FAQ item).
 
 ### Tab 9: Citadel Planner
 
@@ -528,9 +543,36 @@ them revert to their own `localStorage` lots.
 Your last 50 generated share links are stored in `localStorage`. Each entry
 records the scope (all tabs / single tab) and which tab was active.
 
+### Deep links
+
+Navigate directly to specific views using URL paths. Both `.` and `-` work
+as separators (some services filter dotted paths as IP addresses):
+
+| URL | What it opens |
+|-----|--------------|
+| `/1` – `/9` | Jump to a specific tab |
+| `/1.2` or `/1-2` | Tab 1 Forward CAGR view |
+| `/1.2.5` or `/1-2-5` | Forward CAGR, 20-year window |
+| `/1.2.5.1` or `/1-2-5-1` | Forward CAGR, 20-year, today's hover activated |
+| `/2.3` or `/2-3` | Heatmap with 3rd model pill selected |
+| `/7.3` or `/7-3` | Model Info, 3rd accordion item open |
+| `/8.5` or `/8-5` | FAQ, 5th item open |
+
 ---
 
-## 8. Stack Tracker Usage
+## 8. Welcome Modal
+
+Each visit (after 6+ hours) shows a rotating Bitcoin quote from notable figures
+— Satoshi, Hal Finney, cypherpunks, and community members. Many quotes link
+to their original source (BitcoinTalk posts, mailing list archives, tweets).
+Click the quote text to visit the source.
+
+Click the logo 6 times to open the Genesis Block easter egg. Navigate quotes
+with the "Next quote" button.
+
+---
+
+## 9. Stack Tracker Usage
 
 ### Adding lots
 
@@ -561,7 +603,7 @@ entry price calculations.
 
 ---
 
-## 9. Glossary
+## 10. Glossary
 
 | Term | Definition |
 |------|-----------|
@@ -573,6 +615,7 @@ entry price calculations.
 | **Durbin-Watson** | A statistic measuring residual autocorrelation; 2.0 = no autocorrelation, near 0 = extreme positive autocorrelation |
 | **Entry percentile** | Where the current price sits on the quantile model (0–100%) |
 | **Fan band** | Shaded region between MC simulation percentiles showing uncertainty |
+| **Forward CAGR** | The compound annual growth rate from a given date looking N years into the future, based on model price projections |
 | **Genesis block** | Bitcoin's first block, mined January 3, 2009 |
 | **Optimal time origin** | July 25, 2009 — the statistically optimal start date for the power law fit. All time calculations reference this date |
 | **Markov chain** | A model where future state depends only on current state, not history |
@@ -581,6 +624,7 @@ entry price calculations.
 | **Power law** | A relationship where one quantity varies as a power of another: y = ax^b |
 | **Quantile** | A cut point dividing a probability distribution (0.10 = 10th percentile) |
 | **Quantile regression** | Fitting a model to a specific percentile rather than the mean |
+| **Recovery time** | How long until a price level is seen again after a drawdown — shown in hover on non-monotonic model traces and historical data |
 | **Regime** | A price bin (Bargain/Cheap/Fair/Pricey/Bubble) used in MC simulation |
 | **Regime filter** | Blocking specific price regimes to model constrained scenarios |
 | **Stack** | Your total Bitcoin holdings (measured in BTC) |

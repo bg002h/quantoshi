@@ -1369,7 +1369,7 @@ body {
     position: absolute;
     width: 0; height: 0;
     pointer-events: none;
-    z-index: 100;
+    z-index: 1;
 }
 .price-ring-dot {
     position: absolute;
@@ -1400,7 +1400,7 @@ body {
     border-radius: 50%;
     pointer-events: none;
     transform: translate(-50%, -50%);
-    z-index: 100;
+    z-index: 1;
 }
 .radar-sweep {
     position: absolute;

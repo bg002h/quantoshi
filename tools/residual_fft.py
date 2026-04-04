@@ -1,11 +1,11 @@
 """FFT spectrum analysis of model residuals — log-time, window comparison.
 
-Computes FFT of residuals (log10(price) - log10(model_ref)) for 4 models:
-  BM floor, BM composite, LPPL, LPPL2
+Computes FFT of residuals (log10(price) - log10(model_ref)) for 5 models:
+  BM floor, BM composite, LPPL, LPPL2, LPPL4
 across 6 combinations (daily/weekly sampling x rectangular/Hann/Blackman-Harris windows).
 All panels use log-time FFT.
 
-Grid layout: 6 rows (sampling × window) × 4 columns (model residuals).
+Grid layout: 6 rows (sampling × window) × 5 columns (model residuals).
 Each column shows all window/sampling combos for one model — easy window comparison.
 
 Loads the project's own trusted model_data.pkl (built by tools/build_bm_model.py).
@@ -42,6 +42,7 @@ ROW_COLORS = {
     "BM composite": "#DAA520",
     "LPPL":         "#FF6D00",
     "LP2":          "#FF9F40",
+    "LP4":          "#FFE0A0",
 }
 
 # Known LPPL frequencies (log-time angular frequencies)
@@ -81,11 +82,14 @@ def load_data():
     quantiles = [0.5]
     lppl = bc.LPPLModel(price_years, price_prices, quantiles)
     lp2 = bc.LPPL2Model(price_years, price_prices, quantiles)
+    lp4 = bc.LPPL4Model(price_years, price_prices, quantiles)
 
     lppl_pred = np.asarray(lppl.price_at(0.5, t), float)
     lp2_pred = np.asarray(lp2.price_at(0.5, t), float)
+    lp4_log = np.asarray(lp4._lppl_log10(t), float)
     resid_lppl = log_p - np.log10(np.maximum(lppl_pred, 1e-10))
     resid_lp2 = log_p - np.log10(np.maximum(lp2_pred, 1e-10))
+    resid_lp4 = log_p - lp4_log
 
     return {
         "t": t,
@@ -94,6 +98,7 @@ def load_data():
             "BM composite": resid_bm_comp,
             "LPPL":         resid_lppl,
             "LP2":          resid_lp2,
+            "LP4":          resid_lp4,
         },
     }
 
@@ -197,8 +202,8 @@ def main():
     residuals = data["residuals"]
     print(f"  t range: {t[0]:.3f} .. {t[-1]:.3f} years (N={len(t)})")
 
-    # 4 columns: one per model residual
-    cols = ["BM floor", "BM composite", "LPPL", "LP2"]
+    # 5 columns: one per model residual
+    cols = ["BM floor", "BM composite", "LPPL", "LP2", "LP4"]
 
     # 6 rows: sampling × window combos (top to bottom)
     rows = [
@@ -210,7 +215,7 @@ def main():
         ("Weekly · Blackman-Harris", "weekly", "blackmanharris"),
     ]
 
-    fig, axes = plt.subplots(6, 4, figsize=(16, 20), facecolor=FIG_BG)
+    fig, axes = plt.subplots(6, 5, figsize=(20, 20), facecolor=FIG_BG)
 
     t0, t1 = float(t[0]), float(t[-1])
     lnt_span = np.log(t1) - np.log(t0)
@@ -247,7 +252,7 @@ def main():
                  color=TEXT, fontsize=15, y=0.998)
     fig.text(0.5, 0.972,
              "Cols: model residuals  ·  Rows: sampling rate × window function  ·  "
-             "Blue dashed = LPPL ω₁=7.38, ω₂=20.9",
+             "Blue dashed = LPPL ω₁=7.38, ω₂=20.9  ·  LP4 captures ω≈7, 9, 13, 21",
              ha="center", color="#99aaff", fontsize=9, style="italic")
 
     plt.tight_layout(rect=(0, 0, 1, 0.965))

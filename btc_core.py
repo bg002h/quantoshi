@@ -918,17 +918,29 @@ class LPPL4ModelN13(LPPL4Model):
 
 
 class LPPL4ModelWN13(LPPL4ModelN13):
-    """LPPL\u2084 weighted + ω=13 excluded."""
+    """LPPL\u2084 weighted + ω=13 excluded.
+
+    Secondaries at ω≈9.3, 17.1, 20.9 (same as LP4 weighted, since
+    LP4 weighted's secondaries already avoid the 11.5-14.5 band).
+    """
     name = "LPPL\u2084 (weighted, no \u03c9\u224813)"
     short_name = "lp4_w_n13"
     legend_name = "LPPL\u2084\u1d65\u1d65-n13"
-    # Placeholder params — will need a weighted + no-13 fit
-    _A   = -1.101500
-    _B   =   4.976300
-    _C   =   0.491600
-    _W   =   6.861300
-    _PHI =   2.190700
-    _D   =   0.276400
+    _A   = -1.101466
+    _B   =   4.976301
+    _C   =   0.491568
+    _W   =   6.861297
+    _PHI =   2.190663
+    _D   =   0.276438
+    _C2  =   0.108395
+    _W2  =  17.087659
+    _PHI2 =  1.336939
+    _C3  =   0.119697
+    _W3  =  20.921188
+    _PHI3 = -1.202956
+    _C4  =   0.189996
+    _W4  =   9.313489
+    _PHI4 = -0.889292
 
 
 class ExponentialModel:

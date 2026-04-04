@@ -217,6 +217,34 @@ then rebuild the AppImage if you want the desktop app to reflect the new data.
 
 ---
 
+## Heavy cache regeneration (MC + Citadel)
+
+Two compute-intensive caches are built **on dev** and shipped to prod:
+
+| Cache | Size | Build time |
+|-------|------|------------|
+| MC cache (Markov simulations) | ~1.2 GB | 2–4 hours |
+| Citadel band cache | ~200 MB | ~4 hours (18 workers) |
+
+Both are too large for git (`.gitignore`-d). Prod loads them at startup
+and saves a snapshot to `/dev/shm` for fast restarts.
+
+```bash
+# Build both on dev, rsync to prod, restart quantoshi:
+bash tools/rebuild_caches.sh
+
+# Options:
+bash tools/rebuild_caches.sh --mc          # MC cache only
+bash tools/rebuild_caches.sh --citadel     # Citadel bands only
+bash tools/rebuild_caches.sh --no-deploy   # build only, skip rsync
+```
+
+**When to regenerate**: after major model changes or significant new price
+history. Small LPPL parameter drift (from the monthly refit on prod) does
+NOT warrant a rebuild — the drift is negligible.
+
+---
+
 ## Multi-user / privacy notes
 
 The web app stores no user data server-side. Stack Tracker lots are kept

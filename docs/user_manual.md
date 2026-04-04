@@ -431,6 +431,22 @@ Supercharger tabs.
 - **Fan tilting up**: Most simulations show growth at that timeframe.
 - **Fan tilting down**: Most simulations show decline (withdrawal exceeds growth).
 
+### Behind the scenes: pre-computed cache
+
+MC simulations are computationally expensive (~200 price-path simulations × 480
+monthly steps × 45,000 parameter combinations). To keep the web app responsive,
+all free-tier scenarios are **pre-computed offline** and loaded into memory at
+server startup.
+
+- **Cache size**: ~1.2 GB on disk, ~834 MB in RAM (via `/dev/shm`)
+- **Build time**: 2–4 hours on a modern developer machine
+- **Regeneration**: Built on dev, shipped to prod via rsync — not rebuilt on
+  every price update (cache drift is negligible for small data additions)
+
+When you see "instant" MC fans appear, that's because your scenario was cached.
+If you pick an entry percentile or start year outside the cached grid, live
+Monte Carlo is run on the server (~1–2 seconds for 200 sims).
+
 ---
 
 ## 5. Stack-celerator Deep Dive

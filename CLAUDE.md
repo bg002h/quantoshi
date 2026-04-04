@@ -108,6 +108,40 @@ ssh root@89.167.70.45 "PYTHONPATH=/opt/quantoshi:/opt/quantoshi/btc_app:/opt/qua
 ```
 Redis flush clears stale cache entries from old model data. New fingerprinted entries are built fresh on first request + Citadel cache regeneration.
 
+### Heavy cache regeneration (MC cache + Citadel bands)
+
+Two compute-intensive caches are **built on dev, shipped to prod via rsync**. They are NOT git-tracked (~1.5 GB total, binary `.npz` files).
+
+| Cache | Size | Build time | Location | Regenerate when |
+|-------|------|------------|----------|-----------------|
+| **MC cache** | ~1.2 GB | 2–4 hours | `btc_web/mc_cache/` | Major model revisions, significant price history accumulated |
+| **Citadel bands** | ~200 MB | ~4 hours (18 workers) | `btc_web/citadel_band_cache/` | Same + citadel engine changes |
+
+**Not regenerated routinely** — small LPPL param drift doesn't warrant a rebuild. Typical cadence: every several months or after major changes.
+
+**Regeneration workflow:**
+```bash
+# Build both caches on dev, then rsync to prod + restart quantoshi:
+bash tools/rebuild_caches.sh
+
+# Options:
+bash tools/rebuild_caches.sh --mc          # MC cache only
+bash tools/rebuild_caches.sh --citadel     # Citadel bands only
+bash tools/rebuild_caches.sh --no-deploy   # build only, skip rsync
+bash tools/rebuild_caches.sh --help        # full docs
+```
+
+**On startup, prod loads MC cache** from `.npz` (~7s) then saves to `/dev/shm/quantoshi_mc.pkl` (~834 MB RAM) for fast restarts (~0.7s subsequent loads). The `/dev/shm` snapshot is invalidated automatically when source `.npz` files change (mtime+size fingerprint).
+
+### Cache invalidation summary
+
+| Change | What invalidates |
+|--------|-----------------|
+| `model_data.pkl` rebuild (daily `update_prices.py`) | All figure caches (L0/L1/L2) — fingerprint based on pkl mtime+size |
+| `btc_core.py` LPPL param refit | **Nothing automatic** — must flush Redis manually; monthly refit service does this |
+| MC/Citadel npz files change | `/dev/shm` snapshot regenerates on next restart |
+| Manual deploy | Explicit `redis-cli FLUSHDB` wipes everything |
+
 ---
 
 ## Notebook Architecture (`SP.ipynb`)

@@ -104,7 +104,17 @@ Future bubbles are extrapolated from the trend in historical bubble parameters (
                                 html.Li([
                                     html.Strong("Onset timing is the most sensitive parameter: "),
                                     "Small shifts in support can change predicted onset by \u00b12 years, "
-                                    "while amplitude and interval are more robust.",
+                                    "while amplitude and interval are more robust. "
+                                    "This is because onset prediction depends on the ",
+                                    html.Em("trend"),
+                                    " in intervals (linear extrapolation), not the mean. "
+                                    "BM and EF have nearly identical mean intervals (~3.2 yr) "
+                                    "but their trends diverge: BM sees intervals lengthening "
+                                    "(+0.37 yr/cycle \u2192 5.7 yr next), while EF sees them "
+                                    "flattening (+0.20 yr/cycle \u2192 3.7 yr next). "
+                                    "A single bubble\u2019s fitted t\u1d63\u1d62\u209b\u2091 shifting by "
+                                    "0.8 years is enough to swing the prediction by ~2 years. "
+                                    "The mean is robust; the trend (and therefore the prediction) is not.",
                                 ]),
                                 html.Li([
                                     html.Strong("The R\u00b2-optimal support is NOT the floor: "),

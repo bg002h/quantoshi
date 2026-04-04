@@ -181,6 +181,19 @@ def run_model_build() -> None:
     else:
         print(res.stdout.strip().split("\n")[-1])
 
+    # LPPL₄ model: refit 4th oscillation parameters
+    print("\nRefitting LPPL\u2084 parameters …")
+    lppl4_script = REPO_ROOT / "tools" / "fit_lppl4.py"
+
+    res = subprocess.run([sys.executable, str(lppl4_script), "--update"],
+                         capture_output=True, text=True)
+    if res.returncode != 0:
+        print("LPPL\u2084 FIT FAILED — stderr (last 3 000 chars):")
+        print(res.stderr[-3000:])
+        print("WARNING: LPPL\u2084 fit failed. Continuing with existing parameters.")
+    else:
+        print(res.stdout.strip().split("\n")[-1])
+
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 

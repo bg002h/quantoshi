@@ -772,6 +772,51 @@ class LPPL3Model(LPPL2Model):
         return self._A + self._B * np.log10(t_safe) + term1 + term2 + term3
 
 
+class LPPL4Model(LPPL3Model):
+    """Four-frequency LPPL: damped primary + three undamped secondary oscillations.
+
+    Fits: log10(price) = A + B*log10(t) + C1*t^(-D)*cos(W1*ln(t)+φ1)
+                       + C2*cos(W2*ln(t)+φ2) + C3*cos(W3*ln(t)+φ3) + C4*cos(W4*ln(t)+φ4)
+
+    CAUTION: The 4th frequency is NOT stable under log-time weighting.
+    Unweighted fits find W2≈13 (close to 2×W1, looks like 2nd harmonic)
+    but weighted fits find ~17 (ratio 2.5, non-harmonic). Use with awareness
+    that one of the 4 frequencies may be a recent-era artifact. See the
+    "LPPL Weighting & Regime Shifts" section for details.
+    """
+    name = "LPPL\u2084"
+    short_name = "lp4"
+    legend_name = "LPPL\u2084"
+    dash_style = "dashdot"
+
+    # All 15 params jointly fitted by tools/fit_lppl4.py (unweighted)
+    _A   = -1.128800
+    _B   =  5.014900
+    _C   =  0.576800
+    _W   =  6.838200
+    _PHI =  2.263800
+    _D   =  0.402800
+    _C2  =  0.134100
+    _W2  = 13.319000
+    _PHI2 = -2.238200
+    _C3  =  0.189400
+    _W3  =  9.337200
+    _PHI3 = -1.138000
+    _C4  =  0.171400
+    _W4  = 20.904300
+    _PHI4 = -1.137200
+
+    def _lppl_log10(self, t):
+        """Evaluate four-frequency LPPL median in log10 space."""
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        term1 = self._C * t_safe ** (-self._D) * np.cos(self._W * np.log(t_safe) + self._PHI)
+        term2 = self._C2 * np.cos(self._W2 * np.log(t_safe) + self._PHI2)
+        term3 = self._C3 * np.cos(self._W3 * np.log(t_safe) + self._PHI3)
+        term4 = self._C4 * np.cos(self._W4 * np.log(t_safe) + self._PHI4)
+        return self._A + self._B * np.log10(t_safe) + term1 + term2 + term3 + term4
+
+
 class ExponentialModel:
     """Exponential growth model with Gaussian quantile bands.
 

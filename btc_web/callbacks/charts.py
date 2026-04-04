@@ -107,6 +107,8 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     ))
     if "chart_zoom" not in toggles:
         fig.update_layout(dragmode=False)
+        fig.update_xaxes(fixedrange=True)
+        fig.update_yaxes(fixedrange=True)
 
     return fig
 

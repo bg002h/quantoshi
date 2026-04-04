@@ -1,0 +1,28 @@
+# quantoshi-lppl-refit.service — Monthly refit of LPPL weighted + no-13 variants.
+#
+# Runs tools/fit_lppl_variants.py --update to re-fit the 6 variants:
+#   LPPL_w, LP2_w, LP3_w, LP4_w, LP4_n13, LP4_w_n13
+# Then restarts quantoshi to load new params.
+#
+# PRODUCTION install:
+#   scp tools/quantoshi-lppl-refit.service root@89.167.70.45:/etc/systemd/system/
+#   scp tools/quantoshi-lppl-refit.timer root@89.167.70.45:/etc/systemd/system/
+#   ssh root@89.167.70.45 "systemctl daemon-reload && systemctl enable --now quantoshi-lppl-refit.timer"
+
+[Unit]
+Description=Quantoshi monthly LPPL weighted variants refit
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/quantoshi
+# Stash local btc_core.py changes, fit, then stash pop to preserve prod-only
+# param updates. Git sync with dev is left to manual deploys.
+ExecStart=/opt/quantoshi/btc_venv/bin/python3 /opt/quantoshi/tools/fit_lppl_variants.py --update
+ExecStartPost=/bin/systemctl restart quantoshi
+StandardOutput=append:/var/log/quantoshi-lppl-refit.log
+StandardError=append:/var/log/quantoshi-lppl-refit.log
+User=root
+Group=root
+# This fit takes ~15-25 minutes
+TimeoutStartSec=1800

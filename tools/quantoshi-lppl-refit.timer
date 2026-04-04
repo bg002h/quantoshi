@@ -1,0 +1,24 @@
+# quantoshi-lppl-refit.timer — Runs quantoshi-lppl-refit.service on the 1st of each month.
+#
+# PRODUCTION install:
+#   scp tools/quantoshi-lppl-refit.timer root@89.167.70.45:/etc/systemd/system/
+#   ssh root@89.167.70.45 "systemctl daemon-reload && systemctl enable --now quantoshi-lppl-refit.timer"
+#
+# Check status:
+#   systemctl status quantoshi-lppl-refit.timer
+#   systemctl list-timers quantoshi-lppl-refit.timer
+#
+# Manual run:
+#   systemctl start quantoshi-lppl-refit.service
+
+[Unit]
+Description=Monthly LPPL weighted variants refit timer
+
+[Timer]
+OnCalendar=monthly
+RandomizedDelaySec=1h
+Persistent=true
+Unit=quantoshi-lppl-refit.service
+
+[Install]
+WantedBy=timers.target

@@ -698,11 +698,11 @@ class LPPLModel:
 class LPPL2Model(LPPLModel):
     """Two-frequency LPPL with independent oscillation frequencies.
 
-    Fits: log10(price) = A + B*log10(t) + t^(-D) * [C1*cos(W1*ln(t)+φ1) + C2*cos(W2*ln(t)+φ2)]
+    Fits: log10(price) = A + B*log10(t) + C1*t^(-D)*cos(W1*ln(t)+φ1) + C2*cos(W2*ln(t)+φ2)
 
-    Two independent log-periodic oscillations sharing a single damping
-    envelope. W1 captures the major ~4-year cycle, W2 finds whatever
-    secondary frequency the data supports (not constrained to 2×W1).
+    Primary oscillation (W1) is damped by t^(-D); secondary oscillation (W2)
+    is undamped — it persists as a permanent structural feature. W2 is
+    independent of W1 (not constrained to 2×W1).
     """
     name = "LPPL\u2082"
     short_name = "lp2"
@@ -710,24 +710,26 @@ class LPPL2Model(LPPLModel):
     dash_style = "dashdot"
 
     # All 9 params jointly fitted by tools/fit_lppl2.py
-    _A   = -1.166187
-    _B   =     5.084712
-    _C   =     0.540782
-    _W   =     7.378407
-    _PHI =     1.611198
-    _D   =     0.402120
-    _C2  =     0.304489
-    _W2  =    20.885862
-    _PHI2 = -1.119023
+    _A   = -1.130935
+    _B   =        5.038830
+    _C   =        0.705722
+    _W   =        7.378189
+    _PHI =        1.582105
+    _D   =        0.566364
+    _C2  =        0.168851
+    _W2  =      20.902005
+    _PHI2 = -1.153589
 
     def _lppl_log10(self, t):
-        """Evaluate two-frequency LPPL median in log10 space."""
+        """Evaluate two-frequency LPPL median in log10 space.
+
+        Primary oscillation is damped; secondary oscillation is undamped.
+        """
         t = np.asarray(t, float)
         t_safe = np.maximum(t, 0.1)
-        envelope = t_safe ** (-self._D)
-        term1 = self._C * np.cos(self._W * np.log(t_safe) + self._PHI)
+        term1 = self._C * t_safe ** (-self._D) * np.cos(self._W * np.log(t_safe) + self._PHI)
         term2 = self._C2 * np.cos(self._W2 * np.log(t_safe) + self._PHI2)
-        return self._A + self._B * np.log10(t_safe) + envelope * (term1 + term2)
+        return self._A + self._B * np.log10(t_safe) + term1 + term2
 
 
 class ExponentialModel:

@@ -23,12 +23,14 @@ from scipy.optimize import differential_evolution
 
 
 def lppl2_log10(t, A, B, C1, W1, PHI1, D, C2, W2, PHI2):
-    """Evaluate two-frequency LPPL model in log10 space."""
+    """Evaluate two-frequency LPPL model in log10 space.
+
+    Primary oscillation is damped; secondary oscillation is undamped.
+    """
     t_safe = np.maximum(t, 0.1)
-    envelope = t_safe ** (-D)
-    term1 = C1 * np.cos(W1 * np.log(t_safe) + PHI1)
+    term1 = C1 * t_safe ** (-D) * np.cos(W1 * np.log(t_safe) + PHI1)
     term2 = C2 * np.cos(W2 * np.log(t_safe) + PHI2)
-    return A + B * np.log10(t_safe) + envelope * (term1 + term2)
+    return A + B * np.log10(t_safe) + term1 + term2
 
 
 def main():

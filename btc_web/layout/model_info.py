@@ -59,6 +59,67 @@ $$\text{composite}(t) = 10^{\,\log_{10}(\text{support}(t)) \;+\; \sum_{i} \text{
 
 Future bubbles are extrapolated from the trend in historical bubble parameters (amplitude decreasing, width increasing).
                             """, mathjax=True),
+
+                            html.H6("Support Line Fitting"),
+                            html.P([
+                                "The support (floor) line is fitted in three steps: ",
+                                "(1) OLS regression on all price data, ",
+                                "(2) filter to the bottom 20% of OLS residuals (the floor points), ",
+                                "(3) quantile regression at Q50% (median) on those floor points. ",
+                                "This yields slope=5.125, intercept=\u22121.559 in log\u2081\u2080 space.",
+                            ]),
+
+                            html.H6("Bubble Timing Extrapolation"),
+                            html.P([
+                                "Future bubble onset times are predicted by extrapolating the ",
+                                html.Strong("linear trend in historical t\u1d63\u1d62\u209b\u2091 intervals"),
+                                ". The BM model finds 5 major historical bubbles with rise-onset intervals of "
+                                "2.1, 4.3, 2.3, and 4.0 years. The trend slope is +0.37 yr/cycle "
+                                "(intervals lengthening), extrapolating to a 5.7-year gap and a next "
+                                "onset around ",
+                                html.Strong("~2029"),
+                                ". Bubble amplitudes are simultaneously shrinking (K declining from "
+                                "1.18 to 0.40), consistent with a maturing asset.",
+                            ]),
+
+                            html.H6("Sensitivity to Floor Choice"),
+                            html.P([
+                                "The support slope and intercept are the upstream parameters that determine "
+                                "everything downstream: bubble amplitudes, intervals, and predicted onset. "
+                                "A ",
+                                html.A("sensitivity sweep", href="/B", style={"color": "#1a6fa8"}),
+                                " across slope (4\u20137) and intercept (\u00b12.5) shows: ",
+                            ]),
+                            html.Ul([
+                                html.Li([
+                                    html.Strong("Broad stability region: "),
+                                    "Below and left of the optimal R\u00b2 ridge, bubble timing and amplitude "
+                                    "change smoothly and gradually. The BM fit sits in this stable zone.",
+                                ]),
+                                html.Li([
+                                    html.Strong("Sharp instability above the ridge: "),
+                                    "When the support line rises above most prices, log-excess goes negative, "
+                                    "peak detection becomes noise-sensitive, and results are chaotic.",
+                                ]),
+                                html.Li([
+                                    html.Strong("Onset timing is the most sensitive parameter: "),
+                                    "Small shifts in support can change predicted onset by \u00b12 years, "
+                                    "while amplitude and interval are more robust.",
+                                ]),
+                                html.Li([
+                                    html.Strong("The R\u00b2-optimal support is NOT the floor: "),
+                                    "Maximum R\u00b2 occurs where the line fits the data mean, not the floor. "
+                                    "Fitting the floor deliberately sacrifices R\u00b2 for a robust, stable baseline.",
+                                ]),
+                            ]),
+                            html.P([
+                                "A separate ",
+                                html.A("parameter sweep", href="/C", style={"color": "#1a6fa8"}),
+                                " tests 49 combinations of the floor percentile (5\u201335%) and "
+                                "quantile regression target (5\u201395%), running the full bubble pipeline "
+                                "at each point. Results are broadly stable across the grid, reinforcing "
+                                "that the model is not over-fitted to one specific parameter choice.",
+                            ]),
                         ], title="Bubble Model", item_id="mi-bub"),
 
                         # ── 1b. Quantile Regression ──
@@ -418,15 +479,50 @@ $$T_{ij} = P(\text{bin}_{t+1} = j \mid \text{bin}_t = i)$$
                                 "R\u00b2 with bubble fitting: 0.9932. ",
                                 "Quantile bands: Gaussian z-shifted from the bubble composite median."
                             ]),
+                            html.H6("Bubble Timing: EF vs BM"),
+                            html.P([
+                                "The steeper EF floor sits higher under recent data, which shifts "
+                                "the fitted t\u1d63\u1d62\u209b\u2091 of the 4th major bubble from "
+                                "~2019.5 (BM) to ~2020.3 (EF). This compresses the last interval "
+                                "from 4.0 to 3.4 years, flattening the interval trend. "
+                                "The extrapolated next onset is ",
+                                html.Strong("~2027"),
+                                " for EF vs ",
+                                html.Strong("~2029"),
+                                " for BM \u2014 a ~2 year difference driven by a 0.8-year shift "
+                                "in a single historical bubble fit.",
+                            ]),
+                            html.P([
+                                "EF interval trend: +0.20 yr/cycle (nearly flat, ~3.7 yr next). ",
+                                "BM interval trend: +0.37 yr/cycle (lengthening, ~5.7 yr next). ",
+                                "This is visible in the ",
+                                html.A("EF sensitivity sweep", href="/BB", style={"color": "#1a6fa8"}),
+                                " compared to the ",
+                                html.A("BM sweep", href="/B", style={"color": "#1a6fa8"}),
+                                ".",
+                            ]),
+
                             html.H6("Convergence Narrative"),
                             html.P(
-                                "The steeper support line means bubble amplitudes decay faster. "
+                                "The steeper support line means bubble amplitudes decay faster "
+                                "(K declining from 1.21 to 0.32 vs BM\u2019s 1.18 to 0.40). "
                                 "Predicted future bubbles converge on the support rapidly \u2014 "
                                 "implying that the classic 4-year halving-driven boom/bust cycle "
                                 "is approaching its end, with Bitcoin transitioning to a more "
-                                "mature, lower-volatility asset. See the FAQ for the full "
-                                "derivation."
+                                "mature, lower-volatility asset."
                             ),
+
+                            html.H6("Sensitivity"),
+                            html.P([
+                                "Both models sit in the ",
+                                html.Strong("stable region"),
+                                " below the R\u00b2 ridge on the sensitivity sweep \u2014 "
+                                "moderate perturbations to slope/intercept produce smooth, "
+                                "predictable changes in bubble parameters. However, onset timing "
+                                "is inherently the most sensitive output: predicting an exact "
+                                "moment in the future is fundamentally uncertain even when other "
+                                "parameters (amplitude, interval trend) are robust.",
+                            ]),
                         ], title="BM Empirical Floor", item_id="mi-ef"),
 
                         # ── User Model (U₁) ──

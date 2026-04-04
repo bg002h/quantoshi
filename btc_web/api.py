@@ -117,6 +117,15 @@ pre code {{ background:none; padding:0; }}
 <article>{html_body}</article>
 </body></html>"""
 
+    @server.route("/B")
+    def _sensitivity_sweep():
+        svg_path = os.path.join(os.path.dirname(__file__), "..", "sensitivity_sweep.svg")
+        try:
+            with open(svg_path) as f:
+                return f.read(), 200, {"Content-Type": "image/svg+xml"}
+        except FileNotFoundError:
+            return "Not generated yet", 404
+
     @server.route("/docs/architecture")
     def _docs_architecture():
         return _render_doc("architecture.md", "Architecture Guide")

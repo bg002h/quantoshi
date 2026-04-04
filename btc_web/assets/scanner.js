@@ -240,6 +240,16 @@
                 plot.on("plotly_relayout", function() {
                     setTimeout(updateMarkers, 150);
                 });
+                plot.on("plotly_hover", function() {
+                    plot.querySelectorAll(".price-ring-marker, .radar-marker").forEach(function(el) {
+                        el.style.opacity = "0";
+                    });
+                });
+                plot.on("plotly_unhover", function() {
+                    plot.querySelectorAll(".price-ring-marker, .radar-marker").forEach(function(el) {
+                        el.style.opacity = "";
+                    });
+                });
                 clearInterval(checkPlot);
                 bindInputListeners();
                 setTimeout(updateMarkers, 2000);

@@ -574,11 +574,10 @@ def _t_to_datestr(t_val, genesis):
     return (genesis + pd.Timedelta(days=float(t_val) * 365.25)).strftime("%b %d, %Y")
 
 
-def _compute_recovery(x_arr, y_arr):
+def _compute_recovery(x_arr, y_arr, genesis=None):
     """For each point, find time until price recovers (first future point >= current).
 
-    Returns a list of recovery strings: "Recovery: X.X yr" or "" if monotonic/last.
-    Uses running-max-from-right to compute in O(n).
+    Returns a list of recovery strings: "Recovery: X.X yr (Mon YYYY)" or "" if monotonic/last.
     """
     import numpy as np
     x = np.asarray(x_arr, dtype=float)
@@ -587,23 +586,22 @@ def _compute_recovery(x_arr, y_arr):
     if n == 0:
         return []
     result = [""] * n
-    # For each i, find smallest j > i where y[j] >= y[i]
-    # Scan forward — for non-monotonic traces this matters at peaks
     for i in range(n - 1):
         if y[i] <= 0:
             continue
-        # Quick check: if next point is >= current, no drawdown
         if y[i + 1] >= y[i]:
             continue
-        # There's a drawdown — scan forward for recovery
         for j in range(i + 1, n):
             if y[j] >= y[i]:
                 dt = float(x[j] - x[i])
                 if dt >= 0.1:
-                    result[i] = f"Recovery: {dt:.1f} yr"
+                    if genesis is not None:
+                        rec_date = (genesis + pd.Timedelta(days=float(x[j]) * 365.25)).strftime("%b %Y")
+                        result[i] = f"Recovery: {dt:.1f} yr ({rec_date})"
+                    else:
+                        result[i] = f"Recovery: {dt:.1f} yr"
                 break
         else:
-            # Never recovers within the trace
             result[i] = "No recovery in range"
     return result
 
@@ -642,7 +640,7 @@ def _add_date_hover(fig, genesis, fmt=None, recovery=False):
         if recovery:
             y = trace.y
             if y is not None and len(y) == len(x):
-                rec = _compute_recovery(x, y)
+                rec = _compute_recovery(x, y, genesis=genesis)
                 trace.customdata = [[d, r] for d, r in zip(dates, rec)]
             else:
                 trace.customdata = [[d, ""] for d in dates]

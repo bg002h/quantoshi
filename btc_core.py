@@ -790,21 +790,21 @@ class LPPL4Model(LPPL3Model):
     dash_style = "dashdot"
 
     # All 15 params jointly fitted by tools/fit_lppl4.py (unweighted)
-    _A   = -1.128800
-    _B   =  5.014900
-    _C   =  0.576800
-    _W   =  6.838200
-    _PHI =  2.263800
-    _D   =  0.402800
-    _C2  =  0.134100
-    _W2  = 13.319000
-    _PHI2 = -2.238200
-    _C3  =  0.189400
-    _W3  =  9.337200
-    _PHI3 = -1.138000
-    _C4  =  0.171400
-    _W4  = 20.904300
-    _PHI4 = -1.137200
+    _A   = -1.128752
+    _B   =     5.014865
+    _C   =     0.576766
+    _W   =     6.838157
+    _PHI =     2.263819
+    _D   =     0.402772
+    _C2  =     0.134095
+    _W2  =   13.318974
+    _PHI2 = -2.238198
+    _C3  =     0.189363
+    _W3  =     9.337197
+    _PHI3 = -1.137993
+    _C4  =     0.171443
+    _W4  =   20.904333
+    _PHI4 = -1.137246
 
     def _lppl_log10(self, t):
         """Evaluate four-frequency LPPL median in log10 space."""

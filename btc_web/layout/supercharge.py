@@ -25,7 +25,7 @@ def _supercharge_controls():
         _tab_hints("supercharge"),
         _shared_settings_card("sc", infl_default=SUPERCHARGE["inflation"], stack_default=SUPERCHARGE["start_stack"]),
         _q_panel_with_mode("sc-qs",
-                           [q for q in [0.001, 0.10] if q in (_app_ctx.DEFAULT_MODEL.fits or {})],
+                           [0.15, 0.85],
                            hint="Lower prices mean earlier depletion."),
         # ── Plan ────────────────────────────────────────────────────────
         _section_card("Plan",
@@ -99,7 +99,7 @@ def _supercharge_controls():
                              value=display_q_default, clearable=False),
             ], id="sc-display-q-collapse", is_open=True),
             _btc_usd_dropdown("sc", btc_label="BTC Remaining", default="usd"),
-            _chart_toggles("sc", ["annotate", "log_y", "minor_grid"]),
+            _chart_toggles("sc", ["annotate", "log_y", "minor_grid", "shade"]),
             *_legend_pos_dropdown("sc", SUPERCHARGE["legend_pos"]),
         ),
     ])

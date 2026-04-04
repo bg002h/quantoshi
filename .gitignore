@@ -46,3 +46,22 @@ btc_web/mc_cache/
 *.log
 .env
 debris/
+
+# Claude/playwright/superpowers temp
+.playwright-mcp/
+.superpowers/
+.claude/
+resume_command
+resid_view*.jpg
+resid_view*.png
+
+# Generated plots (not tracked — build artifacts)
+bm_*.jpg
+bm_*.svg
+bm_*.png
+qr_*.jpg
+qr_*.svg
+qr_*.png
+quantoshi_logo.xcf
+node_modules/
+btc_web/build/

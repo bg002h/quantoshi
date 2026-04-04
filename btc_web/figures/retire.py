@@ -16,13 +16,13 @@ from figures.common import (
     _NON_QUANTIZED_MODEL_COLOR, _OVERLAY_LINE_WIDTH,
     _FONT_ANNOT,
     _HAS_MARKOV,
-    _get_palette, _build_thermal_colors, _fmt_q_label,
+    _get_palette, _get_model_color, _build_thermal_colors, _fmt_q_label,
     _build_time_array, _get_starting_stack,
     _sim_layout, _apply_mc_overlay,
     _stagger_depletion_annots,
     _finalize_chart, _fmt_short, _mc_median_annot,
     _resolve_edge_annotations,
-    build_overlay_traces,
+    build_overlay_traces, _build_symmetric_bands,
 )
 
 
@@ -58,6 +58,8 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
 
     ts_clamped = np.maximum(ts, 0.5)
     adj_wd_arr = wd_amount * ((1 + inflation) ** (ts - t_start))
+    _bm_color = _get_model_color("bub", p)
+    _bm_trace_traces = []
     for q in sel_qs:
         if q not in model.fits:
             continue
@@ -75,12 +77,15 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
         all_y_vals[q] = y_vals
 
-        col = _thermal.get(q, model.colors.get(q, "#888888"))
         if show_bm:
+            # Palette-aware color with opacity scaling (Q50% = 1.0, Q5%/Q95% = 0.5)
+            _dist = abs(q - 0.5) / 0.45
+            _q_opacity = max(0.1, 1.0 - _dist * 0.5)
             lbl = f"{model.legend_name} {_fmt_q_label(q)}" + f"  \u2192  {final_lbl}"
-            traces.append(go.Scatter(
+            _bm_trace_traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines", name=lbl,
-                line=dict(color=col, width=_QR_LINE_WIDTH, shape=_line_shape),
+                line=dict(color=_bm_color, width=_QR_LINE_WIDTH, shape=_line_shape),
+                opacity=_q_opacity,
             ))
 
             # depletion annotation
@@ -95,9 +100,15 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                     ax=28, ay=_ay,
                     text=f"\u2248{depl_yr}",
                     showarrow=True, arrowhead=2, arrowsize=1,
-                    arrowcolor=col,
-                    font=dict(size=_FONT_ANNOT, color=col),
+                    arrowcolor=_bm_color,
+                    font=dict(size=_FONT_ANNOT, color=_bm_color),
                 ))
+
+    # ── Symmetric band shading (before line traces so lines render on top) ────
+    if show_bm and p.get("shade") and len(sel_qs) >= 2:
+        traces.extend(_build_symmetric_bands(
+            sel_qs, all_y_vals, ts, model_color=_bm_color))
+    traces.extend(_bm_trace_traces)
 
     # ── alternative model overlays ────────────────────────────────────────────
     _ret_sim = lambda prices: np.maximum(start_stack - np.cumsum(adj_wd_arr / prices), 0.0)

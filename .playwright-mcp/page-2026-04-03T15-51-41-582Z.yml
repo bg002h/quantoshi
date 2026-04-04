@@ -1,0 +1,960 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - table [ref=e3]:
+      - rowgroup [ref=e4]:
+        - row "Bitcoin Forum" [ref=e5]:
+          - cell "Bitcoin Forum" [ref=e6]
+          - cell [ref=e7]
+    - table [ref=e8]:
+      - rowgroup [ref=e9]:
+        - row "April 03, 2026, 03:51:41 PM *" [ref=e10]:
+          - cell "April 03, 2026, 03:51:41 PM *" [ref=e11]:
+            - text: April 03, 2026, 03:51:41 PM
+            - link "*" [ref=e12] [cursor=pointer]:
+              - /url: "#"
+              - img "*" [ref=e13]
+        - row "Welcome, Guest. Please login or register." [ref=e14]:
+          - cell "Welcome, Guest. Please login or register." [ref=e15]:
+            - table [ref=e16]:
+              - rowgroup [ref=e17]:
+                - row "Welcome, Guest. Please login or register." [ref=e18]:
+                  - cell "Welcome, Guest. Please login or register." [ref=e19]:
+                    - generic [ref=e20]:
+                      - text: Welcome, Guest. Please
+                      - link "login" [ref=e21] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=login
+                      - text: or
+                      - link "register" [ref=e22] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=register
+                      - text: .
+    - table [ref=e23]:
+      - rowgroup [ref=e24]:
+        - 'row "News: Latest Bitcoin Core release: 30.2 [Torrent] Search" [ref=e25]':
+          - 'cell "News: Latest Bitcoin Core release: 30.2 [Torrent]" [ref=e26]':
+            - generic [ref=e27]:
+              - text: "News: Latest Bitcoin Core release:"
+              - link "30.2" [ref=e28] [cursor=pointer]:
+                - /url: https://bitcoincore.org/en/download/
+              - text: "["
+              - link "Torrent" [ref=e29] [cursor=pointer]:
+                - /url: https://bitcointalk.org/bitcoin-30.2.torrent
+              - text: "]"
+          - cell "Search" [ref=e30]:
+            - generic [ref=e31]:
+              - link [ref=e32] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?action=search;advanced
+              - textbox [ref=e33]
+              - button "Search" [ref=e34]
+  - table [ref=e35]:
+    - rowgroup [ref=e36]:
+      - row "Home Help Search Login Register More" [ref=e37]:
+        - cell [ref=e38]
+        - cell "Home" [ref=e39]:
+          - link "Home" [ref=e40] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php
+        - cell "Help" [ref=e41]:
+          - link "Help" [ref=e42] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=help
+        - cell "Search" [ref=e43]:
+          - link "Search" [ref=e44] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=search
+        - cell "Login" [ref=e45]:
+          - link "Login" [ref=e46] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=login
+        - cell "Register" [ref=e47]:
+          - link "Register" [ref=e48] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=register
+        - cell "More" [ref=e49]:
+          - link "More" [ref=e50] [cursor=pointer]:
+            - /url: /more.php
+        - cell [ref=e51]
+  - table [ref=e53]:
+    - rowgroup [ref=e54]:
+      - row [ref=e55]:
+        - cell [ref=e56]:
+          - table [ref=e57]:
+            - rowgroup [ref=e58]:
+              - row "Show Posts" [ref=e59]:
+                - cell "Show Posts" [ref=e60]
+              - 'row "Pages: « 1 2 3 [4] 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 ... 69 »" [ref=e61]':
+                - 'cell "Pages: « 1 2 3 [4] 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 ... 69 »" [ref=e62]':
+                  - text: "Pages:"
+                  - link "«" [ref=e64] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=40
+                  - link "1" [ref=e65] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=0
+                  - link "2" [ref=e66] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=20
+                  - link "3" [ref=e67] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=40
+                  - text: "[4]"
+                  - link "5" [ref=e68] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=80
+                  - link "6" [ref=e69] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=100
+                  - link "7" [ref=e70] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=120
+                  - link "8" [ref=e71] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=140
+                  - link "9" [ref=e72] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=160
+                  - link "10" [ref=e73] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=180
+                  - link "11" [ref=e74] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=200
+                  - link "12" [ref=e75] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=220
+                  - link "13" [ref=e76] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=240
+                  - link "14" [ref=e77] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=260
+                  - link "15" [ref=e78] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=280
+                  - link "16" [ref=e79] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=300
+                  - link "17" [ref=e80] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=320
+                  - link "18" [ref=e81] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=340
+                  - link "19" [ref=e82] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=360
+                  - link "20" [ref=e83] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=380
+                  - link "21" [ref=e84] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=400
+                  - link "22" [ref=e85] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=420
+                  - link "23" [ref=e86] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=440
+                  - link "24" [ref=e87] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=460
+                  - link "25" [ref=e88] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=480
+                  - link "26" [ref=e89] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=500
+                  - link "27" [ref=e90] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=520
+                  - link "28" [ref=e91] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=540
+                  - link "29" [ref=e92] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=560
+                  - link "30" [ref=e93] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=580
+                  - link "31" [ref=e94] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=600
+                  - link "32" [ref=e95] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=620
+                  - link "33" [ref=e96] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=640
+                  - link "34" [ref=e97] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=660
+                  - link "35" [ref=e98] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=680
+                  - link "36" [ref=e99] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=700
+                  - link "37" [ref=e100] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=720
+                  - link "38" [ref=e101] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=740
+                  - link "39" [ref=e102] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=760
+                  - link "40" [ref=e103] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=780
+                  - link "41" [ref=e104] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=800
+                  - link "42" [ref=e105] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=820
+                  - link "43" [ref=e106] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=840
+                  - link "44" [ref=e107] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=860
+                  - link "45" [ref=e108] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=880
+                  - link "46" [ref=e109] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=900
+                  - link "47" [ref=e110] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=920
+                  - link "48" [ref=e111] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=940
+                  - link "49" [ref=e112] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=960
+                  - link "50" [ref=e113] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=980
+                  - link "51" [ref=e114] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1000
+                  - link "52" [ref=e115] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1020
+                  - link "53" [ref=e116] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1040
+                  - link "54" [ref=e117] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1060
+                  - text: ...
+                  - link "69" [ref=e118] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1360
+                  - link "»" [ref=e120] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=80
+          - table [ref=e121]:
+            - rowgroup [ref=e122]:
+              - 'row "61 Bitcoin / Bitcoin Discussion / Re: What is the correct capitalization for bitcoin/Bitcoin? on: January 17, 2015, 01:28:30 AM The Bitcoin software, network, and concept is called \"Bitcoin\" with a capitalized \"B\". Bitcoin currency units are called \"bitcoins\" with a lowercase \"b\" -- this is often abbreviated BTC. Quoted from: https://bitcointalk.org/adrotate.php?adinfo" [ref=e123]':
+                - 'cell "61 Bitcoin / Bitcoin Discussion / Re: What is the correct capitalization for bitcoin/Bitcoin? on: January 17, 2015, 01:28:30 AM The Bitcoin software, network, and concept is called \"Bitcoin\" with a capitalized \"B\". Bitcoin currency units are called \"bitcoins\" with a lowercase \"b\" -- this is often abbreviated BTC. Quoted from: https://bitcointalk.org/adrotate.php?adinfo" [ref=e124]':
+                  - table [ref=e125]:
+                    - rowgroup [ref=e126]:
+                      - 'row "61 Bitcoin / Bitcoin Discussion / Re: What is the correct capitalization for bitcoin/Bitcoin? on: January 17, 2015, 01:28:30 AM" [ref=e127]':
+                        - cell "61" [ref=e128]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: What is the correct capitalization for bitcoin/Bitcoin?" [ref=e129]':
+                          - link "Bitcoin" [ref=e130] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e131] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: What is the correct capitalization for bitcoin/Bitcoin?" [ref=e132] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=927310.msg10181893#msg10181893
+                        - 'cell "on: January 17, 2015, 01:28:30 AM" [ref=e133]'
+                  - table [ref=e134]:
+                    - rowgroup [ref=e135]:
+                      - 'row "The Bitcoin software, network, and concept is called \"Bitcoin\" with a capitalized \"B\". Bitcoin currency units are called \"bitcoins\" with a lowercase \"b\" -- this is often abbreviated BTC. Quoted from: https://bitcointalk.org/adrotate.php?adinfo" [ref=e136]':
+                        - 'cell "The Bitcoin software, network, and concept is called \"Bitcoin\" with a capitalized \"B\". Bitcoin currency units are called \"bitcoins\" with a lowercase \"b\" -- this is often abbreviated BTC. Quoted from: https://bitcointalk.org/adrotate.php?adinfo" [ref=e137]':
+                          - generic [ref=e138]:
+                            - text: The Bitcoin software, network, and concept is called "Bitcoin" with a capitalized "B". Bitcoin currency units are called "bitcoins" with a lowercase "b" -- this is often abbreviated BTC.
+                            - text: "Quoted from:"
+                            - link "https://bitcointalk.org/adrotate.php?adinfo" [ref=e139] [cursor=pointer]:
+                              - /url: https://bitcointalk.org/adrotate.php?adinfo
+                      - row [ref=e140]:
+                        - cell [ref=e141]
+          - table [ref=e142]:
+            - rowgroup [ref=e143]:
+              - 'row "62 Bitcoin / Bitcoin Discussion / Re: The Mt. Gox Willy Bot Effect Today on: January 16, 2015, 05:55:58 PM Market manipulation may be a problem for a long time. There are laws and regulations about the topic, but enforcing them may be quite the tricky issue." [ref=e144]':
+                - 'cell "62 Bitcoin / Bitcoin Discussion / Re: The Mt. Gox Willy Bot Effect Today on: January 16, 2015, 05:55:58 PM Market manipulation may be a problem for a long time. There are laws and regulations about the topic, but enforcing them may be quite the tricky issue." [ref=e145]':
+                  - table [ref=e146]:
+                    - rowgroup [ref=e147]:
+                      - 'row "62 Bitcoin / Bitcoin Discussion / Re: The Mt. Gox Willy Bot Effect Today on: January 16, 2015, 05:55:58 PM" [ref=e148]':
+                        - cell "62" [ref=e149]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: The Mt. Gox Willy Bot Effect Today" [ref=e150]':
+                          - link "Bitcoin" [ref=e151] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e152] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: The Mt. Gox Willy Bot Effect Today" [ref=e153] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=927062.msg10177992#msg10177992
+                        - 'cell "on: January 16, 2015, 05:55:58 PM" [ref=e154]'
+                  - table [ref=e155]:
+                    - rowgroup [ref=e156]:
+                      - row "Market manipulation may be a problem for a long time. There are laws and regulations about the topic, but enforcing them may be quite the tricky issue." [ref=e157]:
+                        - cell "Market manipulation may be a problem for a long time. There are laws and regulations about the topic, but enforcing them may be quite the tricky issue." [ref=e158]:
+                          - generic [ref=e159]: Market manipulation may be a problem for a long time. There are laws and regulations about the topic, but enforcing them may be quite the tricky issue.
+                      - row [ref=e160]:
+                        - cell [ref=e161]
+          - table [ref=e162]:
+            - rowgroup [ref=e163]:
+              - 'row "63 Bitcoin / Bitcoin Discussion / Re: iphone app like blockchain.info??? on: January 16, 2015, 11:29:47 AM Quote from: thirdprize on January 05, 2015, 12:49:51 PM Rewrote it to use BlockTrail instead of BlockChain as their API seems a bit better. Added Blocks. https://www.blocktrail.com/api/docs/curl#api_data Silly question, how do you work out if a transaction was positive or negative? Is it the difference between the inputs and outputs? All transactions are positive. Difference between inputs and outputs is the miners fee (ie, any unused portion of an input by default belongs to the miners; this keeps tx data size smaller)." [ref=e164]':
+                - 'cell "63 Bitcoin / Bitcoin Discussion / Re: iphone app like blockchain.info??? on: January 16, 2015, 11:29:47 AM Quote from: thirdprize on January 05, 2015, 12:49:51 PM Rewrote it to use BlockTrail instead of BlockChain as their API seems a bit better. Added Blocks. https://www.blocktrail.com/api/docs/curl#api_data Silly question, how do you work out if a transaction was positive or negative? Is it the difference between the inputs and outputs? All transactions are positive. Difference between inputs and outputs is the miners fee (ie, any unused portion of an input by default belongs to the miners; this keeps tx data size smaller)." [ref=e165]':
+                  - table [ref=e166]:
+                    - rowgroup [ref=e167]:
+                      - 'row "63 Bitcoin / Bitcoin Discussion / Re: iphone app like blockchain.info??? on: January 16, 2015, 11:29:47 AM" [ref=e168]':
+                        - cell "63" [ref=e169]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: iphone app like blockchain.info???" [ref=e170]':
+                          - link "Bitcoin" [ref=e171] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e172] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: iphone app like blockchain.info???" [ref=e173] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=896270.msg10174202#msg10174202
+                        - 'cell "on: January 16, 2015, 11:29:47 AM" [ref=e174]'
+                  - table [ref=e175]:
+                    - rowgroup [ref=e176]:
+                      - 'row "Quote from: thirdprize on January 05, 2015, 12:49:51 PM Rewrote it to use BlockTrail instead of BlockChain as their API seems a bit better. Added Blocks. https://www.blocktrail.com/api/docs/curl#api_data Silly question, how do you work out if a transaction was positive or negative? Is it the difference between the inputs and outputs? All transactions are positive. Difference between inputs and outputs is the miners fee (ie, any unused portion of an input by default belongs to the miners; this keeps tx data size smaller)." [ref=e177]':
+                        - 'cell "Quote from: thirdprize on January 05, 2015, 12:49:51 PM Rewrote it to use BlockTrail instead of BlockChain as their API seems a bit better. Added Blocks. https://www.blocktrail.com/api/docs/curl#api_data Silly question, how do you work out if a transaction was positive or negative? Is it the difference between the inputs and outputs? All transactions are positive. Difference between inputs and outputs is the miners fee (ie, any unused portion of an input by default belongs to the miners; this keeps tx data size smaller)." [ref=e178]':
+                          - generic [ref=e179]:
+                            - 'link "Quote from: thirdprize on January 05, 2015, 12:49:51 PM" [ref=e181] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=896270.msg10045205#msg10045205
+                            - generic [ref=e182]:
+                              - text: Rewrote it to use BlockTrail instead of BlockChain as their API seems a bit better. Added Blocks.
+                              - link "https://www.blocktrail.com/api/docs/curl#api_data" [ref=e183] [cursor=pointer]:
+                                - /url: https://www.blocktrail.com/api/docs/curl#api_data
+                              - text: Silly question, how do you work out if a transaction was positive or negative? Is it the difference between the inputs and outputs?
+                            - text: All transactions are positive. Difference between inputs and outputs is the miners fee (ie, any unused portion of an input by default belongs to the miners; this keeps tx data size smaller).
+                      - row [ref=e184]:
+                        - cell [ref=e185]
+          - table [ref=e186]:
+            - rowgroup [ref=e187]:
+              - 'row "64 Bitcoin / Bitcoin Discussion / Re: Urgent! Need to raise ~$1,200 USD in 24 hrs for South Pole expedition. on: January 14, 2015, 01:37:59 AM Quote from: hivewallet on November 03, 2013, 03:05:24 PM Love this community so much. Now with the price back down to earth (roughly the same as when this thread started) perhaps our community will bond a bit better." [ref=e188]':
+                - 'cell "64 Bitcoin / Bitcoin Discussion / Re: Urgent! Need to raise ~$1,200 USD in 24 hrs for South Pole expedition. on: January 14, 2015, 01:37:59 AM Quote from: hivewallet on November 03, 2013, 03:05:24 PM Love this community so much. Now with the price back down to earth (roughly the same as when this thread started) perhaps our community will bond a bit better." [ref=e189]':
+                  - table [ref=e190]:
+                    - rowgroup [ref=e191]:
+                      - 'row "64 Bitcoin / Bitcoin Discussion / Re: Urgent! Need to raise ~$1,200 USD in 24 hrs for South Pole expedition. on: January 14, 2015, 01:37:59 AM" [ref=e192]':
+                        - cell "64" [ref=e193]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Urgent! Need to raise ~$1,200 USD in 24 hrs for South Pole expedition." [ref=e194]':
+                          - link "Bitcoin" [ref=e195] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e196] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Urgent! Need to raise ~$1,200 USD in 24 hrs for South Pole expedition." [ref=e197] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=323580.msg10145297#msg10145297
+                        - 'cell "on: January 14, 2015, 01:37:59 AM" [ref=e198]'
+                  - table [ref=e199]:
+                    - rowgroup [ref=e200]:
+                      - 'row "Quote from: hivewallet on November 03, 2013, 03:05:24 PM Love this community so much. Now with the price back down to earth (roughly the same as when this thread started) perhaps our community will bond a bit better." [ref=e201]':
+                        - 'cell "Quote from: hivewallet on November 03, 2013, 03:05:24 PM Love this community so much. Now with the price back down to earth (roughly the same as when this thread started) perhaps our community will bond a bit better." [ref=e202]':
+                          - generic [ref=e203]:
+                            - 'link "Quote from: hivewallet on November 03, 2013, 03:05:24 PM" [ref=e205] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=323580.msg3471313#msg3471313
+                            - generic [ref=e206]: Love this community so much.
+                            - text: Now with the price back down to earth (roughly the same as when this thread started) perhaps our community will bond a bit better.
+                      - row [ref=e207]:
+                        - cell [ref=e208]
+          - table [ref=e209]:
+            - rowgroup [ref=e210]:
+              - 'row "65 Bitcoin / Bitcoin Discussion / Re: Urgent! Need to raise ~$1,200 USD in 24 hrs for South Pole expedition. on: January 14, 2015, 01:34:55 AM It''s fun to look back at this and think \"I was a small part in making it happen...\" All the best to our daring explorer. Hopefully a safe return with no ligament injuries!" [ref=e211]':
+                - 'cell "65 Bitcoin / Bitcoin Discussion / Re: Urgent! Need to raise ~$1,200 USD in 24 hrs for South Pole expedition. on: January 14, 2015, 01:34:55 AM It''s fun to look back at this and think \"I was a small part in making it happen...\" All the best to our daring explorer. Hopefully a safe return with no ligament injuries!" [ref=e212]':
+                  - table [ref=e213]:
+                    - rowgroup [ref=e214]:
+                      - 'row "65 Bitcoin / Bitcoin Discussion / Re: Urgent! Need to raise ~$1,200 USD in 24 hrs for South Pole expedition. on: January 14, 2015, 01:34:55 AM" [ref=e215]':
+                        - cell "65" [ref=e216]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Urgent! Need to raise ~$1,200 USD in 24 hrs for South Pole expedition." [ref=e217]':
+                          - link "Bitcoin" [ref=e218] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e219] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Urgent! Need to raise ~$1,200 USD in 24 hrs for South Pole expedition." [ref=e220] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=323580.msg10145271#msg10145271
+                        - 'cell "on: January 14, 2015, 01:34:55 AM" [ref=e221]'
+                  - table [ref=e222]:
+                    - rowgroup [ref=e223]:
+                      - row "It's fun to look back at this and think \"I was a small part in making it happen...\" All the best to our daring explorer. Hopefully a safe return with no ligament injuries!" [ref=e224]:
+                        - cell "It's fun to look back at this and think \"I was a small part in making it happen...\" All the best to our daring explorer. Hopefully a safe return with no ligament injuries!" [ref=e225]:
+                          - generic [ref=e226]:
+                            - text: It's fun to look back at this and think "I was a small part in making it happen..."
+                            - text: All the best to our daring explorer. Hopefully a safe return with no ligament injuries!
+                      - row [ref=e227]:
+                        - cell [ref=e228]
+          - table [ref=e229]:
+            - rowgroup [ref=e230]:
+              - 'row "66 Economy / Speculation / Re: Bitcoin RIP, the day bitcoin died- 3 January 2009 - 13 January 2015 on: January 13, 2015, 07:11:26 PM No worries. It''s been dead before and it''ll die again." [ref=e231]':
+                - 'cell "66 Economy / Speculation / Re: Bitcoin RIP, the day bitcoin died- 3 January 2009 - 13 January 2015 on: January 13, 2015, 07:11:26 PM No worries. It''s been dead before and it''ll die again." [ref=e232]':
+                  - table [ref=e233]:
+                    - rowgroup [ref=e234]:
+                      - 'row "66 Economy / Speculation / Re: Bitcoin RIP, the day bitcoin died- 3 January 2009 - 13 January 2015 on: January 13, 2015, 07:11:26 PM" [ref=e235]':
+                        - cell "66" [ref=e236]
+                        - 'cell "Economy / Speculation / Re: Bitcoin RIP, the day bitcoin died- 3 January 2009 - 13 January 2015" [ref=e237]':
+                          - link "Economy" [ref=e238] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Speculation" [ref=e239] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=57.0
+                          - text: /
+                          - 'link "Re: Bitcoin RIP, the day bitcoin died- 3 January 2009 - 13 January 2015" [ref=e240] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=923824.msg10141084#msg10141084
+                        - 'cell "on: January 13, 2015, 07:11:26 PM" [ref=e241]'
+                  - table [ref=e242]:
+                    - rowgroup [ref=e243]:
+                      - row "No worries. It's been dead before and it'll die again." [ref=e244]:
+                        - cell "No worries. It's been dead before and it'll die again." [ref=e245]:
+                          - generic [ref=e246]: No worries. It's been dead before and it'll die again.
+                      - row [ref=e247]:
+                        - cell [ref=e248]
+          - table [ref=e249]:
+            - rowgroup [ref=e250]:
+              - 'row "67 Bitcoin / Bitcoin Discussion / Re: Anyone know how to teach students about the blockchain using physical objects? on: January 13, 2015, 01:51:19 PM At a Minneapolis bitcoin meet up, the organizers did a manual implementation of a ledger where people were given a few dollar bills (everyone''s balance known by all), called out their transactions (Bob gives Sally $2), exchanged dollar bills, and everyone recorded the transaction. The organizers then took the dollar bills away and the exercise continued. This doesn''t address the proof of work concept very well, but it shows the value of the ledger." [ref=e251]':
+                - 'cell "67 Bitcoin / Bitcoin Discussion / Re: Anyone know how to teach students about the blockchain using physical objects? on: January 13, 2015, 01:51:19 PM At a Minneapolis bitcoin meet up, the organizers did a manual implementation of a ledger where people were given a few dollar bills (everyone''s balance known by all), called out their transactions (Bob gives Sally $2), exchanged dollar bills, and everyone recorded the transaction. The organizers then took the dollar bills away and the exercise continued. This doesn''t address the proof of work concept very well, but it shows the value of the ledger." [ref=e252]':
+                  - table [ref=e253]:
+                    - rowgroup [ref=e254]:
+                      - 'row "67 Bitcoin / Bitcoin Discussion / Re: Anyone know how to teach students about the blockchain using physical objects? on: January 13, 2015, 01:51:19 PM" [ref=e255]':
+                        - cell "67" [ref=e256]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Anyone know how to teach students about the blockchain using physical objects?" [ref=e257]':
+                          - link "Bitcoin" [ref=e258] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e259] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Anyone know how to teach students about the blockchain using physical objects?" [ref=e260] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=923465.msg10138417#msg10138417
+                        - 'cell "on: January 13, 2015, 01:51:19 PM" [ref=e261]'
+                  - table [ref=e262]:
+                    - rowgroup [ref=e263]:
+                      - row "At a Minneapolis bitcoin meet up, the organizers did a manual implementation of a ledger where people were given a few dollar bills (everyone's balance known by all), called out their transactions (Bob gives Sally $2), exchanged dollar bills, and everyone recorded the transaction. The organizers then took the dollar bills away and the exercise continued. This doesn't address the proof of work concept very well, but it shows the value of the ledger." [ref=e264]:
+                        - cell "At a Minneapolis bitcoin meet up, the organizers did a manual implementation of a ledger where people were given a few dollar bills (everyone's balance known by all), called out their transactions (Bob gives Sally $2), exchanged dollar bills, and everyone recorded the transaction. The organizers then took the dollar bills away and the exercise continued. This doesn't address the proof of work concept very well, but it shows the value of the ledger." [ref=e265]:
+                          - generic [ref=e266]:
+                            - text: At a Minneapolis bitcoin meet up, the organizers did a manual implementation of a ledger where people were given a few dollar bills (everyone's balance known by all), called out their transactions (Bob gives Sally $2), exchanged dollar bills, and everyone recorded the transaction. The organizers then took the dollar bills away and the exercise continued.
+                            - text: This doesn't address the proof of work concept very well, but it shows the value of the ledger.
+                      - row [ref=e267]:
+                        - cell [ref=e268]
+          - table [ref=e269]:
+            - rowgroup [ref=e270]:
+              - row [ref=e271]:
+                - cell [ref=e272]:
+                  - table [ref=e273]:
+                    - rowgroup [ref=e274]:
+                      - 'row "68 Bitcoin / Bitcoin Discussion / Re: Too much hacking on: January 11, 2015, 10:40:31 PM" [ref=e275]':
+                        - cell "68" [ref=e276]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Too much hacking" [ref=e277]':
+                          - link "Bitcoin" [ref=e278] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e279] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Too much hacking" [ref=e280] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=920157.msg10118642#msg10118642
+                        - 'cell "on: January 11, 2015, 10:40:31 PM" [ref=e281]'
+                  - table [ref=e282]:
+                    - rowgroup [ref=e283]:
+                      - row [ref=e284]:
+                        - cell [ref=e285]:
+                          - generic [ref=e286]:
+                            - 'link "Quote from: bigkahuna on January 11, 2015, 12:02:01 AM" [ref=e288] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=920157.msg10108744#msg10108744
+                            - generic [ref=e289]:
+                              - text: Is Bitcoin really this safe with all this hacking going on?
+                              - text: I really need to know before I throw a ton of money towards it.
+                            - text: If you give someone your money and they promise to take care of it for you, then the probability of loss is very high...this is true with conventional currency too though (though the loss is born by other people, not the depositor, in most cases).
+                            - text: "Lesson 1: trust no one with your money."
+                            - text: "Lesson 2: if you must break lesson 1, make sure you only bear a tiny fraction of the burden of loss (ie, be a citizen in a country where the people insure deposits via government program or otherwise)."
+                            - text: "Lesson 3: If you truly want to protect your bitcoins, it can be done but it requires work, knowledge, and skill...although less now than in years past. If you are throwing non-trivial sums into bitcoin, buy a Trezor and learn how to use it and how to back up a wallet seed securely."
+                      - row [ref=e290]:
+                        - cell [ref=e291]
+          - table [ref=e292]:
+            - rowgroup [ref=e293]:
+              - 'row "69 Bitcoin / Bitcoin Discussion / Re: Fork off on: January 11, 2015, 05:13:07 AM This isn''t worth talking much about. It''s a foregone conclusion that the anti-spam measure called Max_block_size that was quickly added to the code without much though in the first place (other than: \"yup, that''ll be plenty big for a while\") was destined to increase. The newbies that disagree just don''t know the history of that kludge." [ref=e294]':
+                - 'cell "69 Bitcoin / Bitcoin Discussion / Re: Fork off on: January 11, 2015, 05:13:07 AM This isn''t worth talking much about. It''s a foregone conclusion that the anti-spam measure called Max_block_size that was quickly added to the code without much though in the first place (other than: \"yup, that''ll be plenty big for a while\") was destined to increase. The newbies that disagree just don''t know the history of that kludge." [ref=e295]':
+                  - table [ref=e296]:
+                    - rowgroup [ref=e297]:
+                      - 'row "69 Bitcoin / Bitcoin Discussion / Re: Fork off on: January 11, 2015, 05:13:07 AM" [ref=e298]':
+                        - cell "69" [ref=e299]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Fork off" [ref=e300]':
+                          - link "Bitcoin" [ref=e301] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e302] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Fork off" [ref=e303] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=919629.msg10110643#msg10110643
+                        - 'cell "on: January 11, 2015, 05:13:07 AM" [ref=e304]'
+                  - table [ref=e305]:
+                    - rowgroup [ref=e306]:
+                      - 'row "This isn''t worth talking much about. It''s a foregone conclusion that the anti-spam measure called Max_block_size that was quickly added to the code without much though in the first place (other than: \"yup, that''ll be plenty big for a while\") was destined to increase. The newbies that disagree just don''t know the history of that kludge." [ref=e307]':
+                        - 'cell "This isn''t worth talking much about. It''s a foregone conclusion that the anti-spam measure called Max_block_size that was quickly added to the code without much though in the first place (other than: \"yup, that''ll be plenty big for a while\") was destined to increase. The newbies that disagree just don''t know the history of that kludge." [ref=e308]':
+                          - generic [ref=e309]:
+                            - text: "This isn't worth talking much about. It's a foregone conclusion that the anti-spam measure called Max_block_size that was quickly added to the code without much though in the first place (other than: \"yup, that'll be plenty big for a while\") was destined to increase."
+                            - text: The newbies that disagree just don't know the history of that kludge.
+                      - row [ref=e310]:
+                        - cell [ref=e311]
+          - table [ref=e312]:
+            - rowgroup [ref=e313]:
+              - row [ref=e314]:
+                - cell [ref=e315]:
+                  - table [ref=e316]:
+                    - rowgroup [ref=e317]:
+                      - 'row "70 Bitcoin / Bitcoin Discussion / Re: The Israeli Bitcoin Association on: January 08, 2015, 01:37:56 AM" [ref=e318]':
+                        - cell "70" [ref=e319]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: The Israeli Bitcoin Association" [ref=e320]':
+                          - link "Bitcoin" [ref=e321] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e322] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: The Israeli Bitcoin Association" [ref=e323] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=917526.msg10075892#msg10075892
+                        - 'cell "on: January 08, 2015, 01:37:56 AM" [ref=e324]'
+                  - table [ref=e325]:
+                    - rowgroup [ref=e326]:
+                      - row [ref=e327]:
+                        - cell [ref=e328]:
+                          - generic [ref=e329]:
+                            - 'link "Quote from: Meni Rosenfeld on January 08, 2015, 01:29:36 AM" [ref=e331] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=917526.msg10075837#msg10075837
+                            - generic [ref=e332]:
+                              - text: Thanks everyone for reminding me why I don't spend much time on this forum anymore.
+                              - 'link "Quote from: slaveforanunnak1 on January 07, 2015, 11:31:48 PM" [ref=e334] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=917526.msg10075020#msg10075020
+                              - generic [ref=e335]:
+                                - 'link "Quote from: Meni Rosenfeld on January 07, 2015, 10:27:06 PM" [ref=e337] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=917526.msg10074513#msg10074513
+                                - generic [ref=e338]:
+                                  - 'link "Quote from: slaveforanunnak1 on January 07, 2015, 10:17:02 PM" [ref=e340] [cursor=pointer]':
+                                    - /url: https://bitcointalk.org/index.php?topic=917526.msg10074418#msg10074418
+                                  - generic [ref=e341]: "\"nonprofit\""
+                                  - text: Nonprofit, yes. It's registered in Israel as an "Amuta" (עמותה רשומה).
+                                - text: Oh well, hey now, if it's registered as derp derp that means they are definitely a "non profit"
+                              - text: Legal registration status does not in itself indicate the core values, I'll give you that.
+                              - text: But if you had any idea who are the people involved, and how the IBA has been handled so far financially and otherwise... You'd feel really embarrassed about your asinine insinuations.
+                            - text: We have the same troll problem on another popular forum that I have the burden of running a small part of. Trolls are not to be taken too seriously. Just ignore and move on.
+                      - row [ref=e342]:
+                        - cell [ref=e343]
+          - table [ref=e344]:
+            - rowgroup [ref=e345]:
+              - row [ref=e346]:
+                - cell [ref=e347]:
+                  - table [ref=e348]:
+                    - rowgroup [ref=e349]:
+                      - 'row "71 Bitcoin / Bitcoin Discussion / Re: The Israeli Bitcoin Association on: January 08, 2015, 01:36:37 AM" [ref=e350]':
+                        - cell "71" [ref=e351]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: The Israeli Bitcoin Association" [ref=e352]':
+                          - link "Bitcoin" [ref=e353] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e354] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: The Israeli Bitcoin Association" [ref=e355] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=917526.msg10075884#msg10075884
+                        - 'cell "on: January 08, 2015, 01:36:37 AM" [ref=e356]'
+                  - table [ref=e357]:
+                    - rowgroup [ref=e358]:
+                      - row [ref=e359]:
+                        - cell [ref=e360]:
+                          - generic [ref=e361]:
+                            - 'link "Quote from: Meni Rosenfeld on January 07, 2015, 10:11:23 PM" [ref=e363] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=917526.msg10074375#msg10074375
+                            - generic [ref=e364]:
+                              - text: The results from the 2014 elections to the IBA board of directors and audit committee are in!
+                              - text: "113 registered members of the IBA have voted, which constitute 78% of a total of 145 eligible members. The number of votes that each candidate received is:"
+                              - text: "Board of directors:"
+                              - text: 94 Meni Rosenfeld**
+                              - text: 74 Eden Shochat**
+                              - text: 71 Ron Gross**
+                              - text: 63 Gitai Zakh**
+                              - text: 52 Eli Bejerano*
+                              - text: 31 Nimrod Lehavi*
+                              - text: 26 Nimrod Gruber*
+                              - text: 26 Libi Koren
+                              - text: 21 Yakir Ratner
+                              - text: 17 Shalom Cohen
+                              - text: 15 Alex Cohen
+                              - text: 15 Amos Meiri
+                              - text: 2 Roey Gorodish
+                              - text: "Audit committee:"
+                              - text: 81 Jonathan Rouach**
+                              - text: 75 Ofer Rotem**
+                              - text: 53 Amichay Peretz Klopshtock*
+                              - text: 31 Lior Tasman*
+                              - text: Candidates marked with ** will now enter their roles for a two-year cadence. Candidates marked with * will enter a cadence of one year. Ties were resolved with a lottery agreed on by the parties involved.
+                              - text: Congratulations to the winners!
+                            - text: Great election turn out! Love the lotto tie breaker (presumably works better in person!)
+                      - row [ref=e365]:
+                        - cell [ref=e366]
+          - table [ref=e367]:
+            - rowgroup [ref=e368]:
+              - 'row "72 Other / Meta / Re: Troll takeover? on: January 06, 2015, 01:59:56 AM Quote from: newIndia on January 05, 2015, 10:30:32 PM Quote from: Remember remember the 5th of November on January 05, 2015, 10:25:42 PM It is paid beartards trying to drive the price down by scaring people. Trust your own judgement. Well, I dont think they are paid to spread FUD. But, I think, they are frustrated due to the recent price fall. These people never had the time to read the whitepaper and thought bitcoin is a get rich quick scheme. So, they bought some coins and as the price is low for a while, they are getting hyper. I used to think no one was getting paid to troll, but while I still think it''s unlikely, I''m not so sure" [ref=e369]':
+                - 'cell "72 Other / Meta / Re: Troll takeover? on: January 06, 2015, 01:59:56 AM Quote from: newIndia on January 05, 2015, 10:30:32 PM Quote from: Remember remember the 5th of November on January 05, 2015, 10:25:42 PM It is paid beartards trying to drive the price down by scaring people. Trust your own judgement. Well, I dont think they are paid to spread FUD. But, I think, they are frustrated due to the recent price fall. These people never had the time to read the whitepaper and thought bitcoin is a get rich quick scheme. So, they bought some coins and as the price is low for a while, they are getting hyper. I used to think no one was getting paid to troll, but while I still think it''s unlikely, I''m not so sure" [ref=e370]':
+                  - table [ref=e371]:
+                    - rowgroup [ref=e372]:
+                      - 'row "72 Other / Meta / Re: Troll takeover? on: January 06, 2015, 01:59:56 AM" [ref=e373]':
+                        - cell "72" [ref=e374]
+                        - 'cell "Other / Meta / Re: Troll takeover?" [ref=e375]':
+                          - link "Other" [ref=e376] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#4
+                          - text: /
+                          - link "Meta" [ref=e377] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=24.0
+                          - text: /
+                          - 'link "Re: Troll takeover?" [ref=e378] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=915386.msg10052981#msg10052981
+                        - 'cell "on: January 06, 2015, 01:59:56 AM" [ref=e379]'
+                  - table [ref=e380]:
+                    - rowgroup [ref=e381]:
+                      - 'row "Quote from: newIndia on January 05, 2015, 10:30:32 PM Quote from: Remember remember the 5th of November on January 05, 2015, 10:25:42 PM It is paid beartards trying to drive the price down by scaring people. Trust your own judgement. Well, I dont think they are paid to spread FUD. But, I think, they are frustrated due to the recent price fall. These people never had the time to read the whitepaper and thought bitcoin is a get rich quick scheme. So, they bought some coins and as the price is low for a while, they are getting hyper. I used to think no one was getting paid to troll, but while I still think it''s unlikely, I''m not so sure" [ref=e382]':
+                        - 'cell "Quote from: newIndia on January 05, 2015, 10:30:32 PM Quote from: Remember remember the 5th of November on January 05, 2015, 10:25:42 PM It is paid beartards trying to drive the price down by scaring people. Trust your own judgement. Well, I dont think they are paid to spread FUD. But, I think, they are frustrated due to the recent price fall. These people never had the time to read the whitepaper and thought bitcoin is a get rich quick scheme. So, they bought some coins and as the price is low for a while, they are getting hyper. I used to think no one was getting paid to troll, but while I still think it''s unlikely, I''m not so sure" [ref=e383]':
+                          - generic [ref=e384]:
+                            - 'link "Quote from: newIndia on January 05, 2015, 10:30:32 PM" [ref=e386] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=915386.msg10051215#msg10051215
+                            - generic [ref=e387]:
+                              - 'link "Quote from: Remember remember the 5th of November on January 05, 2015, 10:25:42 PM" [ref=e389] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=915386.msg10051175#msg10051175
+                              - generic [ref=e390]: It is paid beartards trying to drive the price down by scaring people. Trust your own judgement.
+                              - text: Well, I dont think they are paid to spread FUD. But, I think, they are frustrated due to the recent price fall. These people never had the time to read the whitepaper and thought bitcoin is a get rich quick scheme. So, they bought some coins and as the price is low for a while, they are getting hyper.
+                            - text: I used to think no one was getting paid to troll, but while I still think it's unlikely, I'm not so sure
+                      - row [ref=e391]:
+                        - cell [ref=e392]
+          - table [ref=e393]:
+            - rowgroup [ref=e394]:
+              - 'row "73 Bitcoin / Bitcoin Discussion / Re: Did pools scare Satoshi away? on: January 04, 2015, 04:29:38 AM Satoshi knew pool mining was coming just like he knew gpu mining was coming. Back when I was mining with my laptop, the tiny bitcoin mining world was about to shrink to include only those willing to buy gpu''s. Satoshi saw that as bad because it would mean that it would take longer for a large number of people to obtain bitcoin. There was a gentlemen''s agreement to delay gpu mining. I think coming up with a way to break blocks up so that 250 computers could mine 1/250th of a block while maintaining hash power in the network would help solve the pooling/central hashing issues." [ref=e395]':
+                - 'cell "73 Bitcoin / Bitcoin Discussion / Re: Did pools scare Satoshi away? on: January 04, 2015, 04:29:38 AM Satoshi knew pool mining was coming just like he knew gpu mining was coming. Back when I was mining with my laptop, the tiny bitcoin mining world was about to shrink to include only those willing to buy gpu''s. Satoshi saw that as bad because it would mean that it would take longer for a large number of people to obtain bitcoin. There was a gentlemen''s agreement to delay gpu mining. I think coming up with a way to break blocks up so that 250 computers could mine 1/250th of a block while maintaining hash power in the network would help solve the pooling/central hashing issues." [ref=e396]':
+                  - table [ref=e397]:
+                    - rowgroup [ref=e398]:
+                      - 'row "73 Bitcoin / Bitcoin Discussion / Re: Did pools scare Satoshi away? on: January 04, 2015, 04:29:38 AM" [ref=e399]':
+                        - cell "73" [ref=e400]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Did pools scare Satoshi away?" [ref=e401]':
+                          - link "Bitcoin" [ref=e402] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e403] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Did pools scare Satoshi away?" [ref=e404] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=911394.msg10030497#msg10030497
+                        - 'cell "on: January 04, 2015, 04:29:38 AM" [ref=e405]'
+                  - table [ref=e406]:
+                    - rowgroup [ref=e407]:
+                      - row "Satoshi knew pool mining was coming just like he knew gpu mining was coming. Back when I was mining with my laptop, the tiny bitcoin mining world was about to shrink to include only those willing to buy gpu's. Satoshi saw that as bad because it would mean that it would take longer for a large number of people to obtain bitcoin. There was a gentlemen's agreement to delay gpu mining. I think coming up with a way to break blocks up so that 250 computers could mine 1/250th of a block while maintaining hash power in the network would help solve the pooling/central hashing issues." [ref=e408]:
+                        - cell "Satoshi knew pool mining was coming just like he knew gpu mining was coming. Back when I was mining with my laptop, the tiny bitcoin mining world was about to shrink to include only those willing to buy gpu's. Satoshi saw that as bad because it would mean that it would take longer for a large number of people to obtain bitcoin. There was a gentlemen's agreement to delay gpu mining. I think coming up with a way to break blocks up so that 250 computers could mine 1/250th of a block while maintaining hash power in the network would help solve the pooling/central hashing issues." [ref=e409]:
+                          - generic [ref=e410]:
+                            - text: Satoshi knew pool mining was coming just like he knew gpu mining was coming. Back when I was mining with my laptop, the tiny bitcoin mining world was about to shrink to include only those willing to buy gpu's. Satoshi saw that as bad because it would mean that it would take longer for a large number of people to obtain bitcoin. There was a gentlemen's agreement to delay gpu mining.
+                            - text: I think coming up with a way to break blocks up so that 250 computers could mine 1/250th of a block while maintaining hash power in the network would help solve the pooling/central hashing issues.
+                      - row [ref=e411]:
+                        - cell [ref=e412]
+          - table [ref=e413]:
+            - rowgroup [ref=e414]:
+              - 'row "74 Bitcoin / Bitcoin Discussion / Re: Started getting paid 100% in Bitcoin starting with my last paycheck on: January 03, 2015, 11:15:52 PM Quote from: de3mka on January 03, 2015, 10:38:43 PM Quote from: Elwar on January 03, 2015, 10:04:48 PM Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit. Most likely I can''t. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees. My employer let''s us split up our paychecks by fixed amount, percentage, & remainder." [ref=e415]':
+                - 'cell "74 Bitcoin / Bitcoin Discussion / Re: Started getting paid 100% in Bitcoin starting with my last paycheck on: January 03, 2015, 11:15:52 PM Quote from: de3mka on January 03, 2015, 10:38:43 PM Quote from: Elwar on January 03, 2015, 10:04:48 PM Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit. Most likely I can''t. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees. My employer let''s us split up our paychecks by fixed amount, percentage, & remainder." [ref=e416]':
+                  - table [ref=e417]:
+                    - rowgroup [ref=e418]:
+                      - 'row "74 Bitcoin / Bitcoin Discussion / Re: Started getting paid 100% in Bitcoin starting with my last paycheck on: January 03, 2015, 11:15:52 PM" [ref=e419]':
+                        - cell "74" [ref=e420]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e421]':
+                          - link "Bitcoin" [ref=e422] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e423] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e424] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=913145.msg10028093#msg10028093
+                        - 'cell "on: January 03, 2015, 11:15:52 PM" [ref=e425]'
+                  - table [ref=e426]:
+                    - rowgroup [ref=e427]:
+                      - 'row "Quote from: de3mka on January 03, 2015, 10:38:43 PM Quote from: Elwar on January 03, 2015, 10:04:48 PM Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit. Most likely I can''t. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees. My employer let''s us split up our paychecks by fixed amount, percentage, & remainder." [ref=e428]':
+                        - 'cell "Quote from: de3mka on January 03, 2015, 10:38:43 PM Quote from: Elwar on January 03, 2015, 10:04:48 PM Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit. Most likely I can''t. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees. My employer let''s us split up our paychecks by fixed amount, percentage, & remainder." [ref=e429]':
+                          - generic [ref=e430]:
+                            - 'link "Quote from: de3mka on January 03, 2015, 10:38:43 PM" [ref=e432] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=913145.msg10027691#msg10027691
+                            - generic [ref=e433]:
+                              - 'link "Quote from: Elwar on January 03, 2015, 10:04:48 PM" [ref=e435] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=913145.msg10027312#msg10027312
+                              - generic [ref=e436]: Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit.
+                              - text: Most likely I can't. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees.
+                            - text: My employer let's us split up our paychecks by fixed amount, percentage, & remainder.
+                      - row [ref=e437]:
+                        - cell [ref=e438]
+          - table [ref=e439]:
+            - rowgroup [ref=e440]:
+              - 'row "75 Bitcoin / Bitcoin Discussion / Re: Started getting paid 100% in Bitcoin starting with my last paycheck on: January 03, 2015, 09:35:20 PM Quote from: Elwar on January 03, 2015, 09:01:24 PM Quote from: Kipsy89 on January 03, 2015, 08:36:17 PM Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! Even if Bitcoin drops to $1 I have another paycheck coming in 2 weeks so...no biggie. Like I said, I sell on localbitcoins to get cash so I always have some spending money. I''m definitely gonna use this service soon. Most of my income has a corresponding expense, but that will change soon once I finish training (radiology) this summer." [ref=e441]':
+                - 'cell "75 Bitcoin / Bitcoin Discussion / Re: Started getting paid 100% in Bitcoin starting with my last paycheck on: January 03, 2015, 09:35:20 PM Quote from: Elwar on January 03, 2015, 09:01:24 PM Quote from: Kipsy89 on January 03, 2015, 08:36:17 PM Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! Even if Bitcoin drops to $1 I have another paycheck coming in 2 weeks so...no biggie. Like I said, I sell on localbitcoins to get cash so I always have some spending money. I''m definitely gonna use this service soon. Most of my income has a corresponding expense, but that will change soon once I finish training (radiology) this summer." [ref=e442]':
+                  - table [ref=e443]:
+                    - rowgroup [ref=e444]:
+                      - 'row "75 Bitcoin / Bitcoin Discussion / Re: Started getting paid 100% in Bitcoin starting with my last paycheck on: January 03, 2015, 09:35:20 PM" [ref=e445]':
+                        - cell "75" [ref=e446]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e447]':
+                          - link "Bitcoin" [ref=e448] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e449] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e450] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=913145.msg10027012#msg10027012
+                        - 'cell "on: January 03, 2015, 09:35:20 PM" [ref=e451]'
+                  - table [ref=e452]:
+                    - rowgroup [ref=e453]:
+                      - 'row "Quote from: Elwar on January 03, 2015, 09:01:24 PM Quote from: Kipsy89 on January 03, 2015, 08:36:17 PM Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! Even if Bitcoin drops to $1 I have another paycheck coming in 2 weeks so...no biggie. Like I said, I sell on localbitcoins to get cash so I always have some spending money. I''m definitely gonna use this service soon. Most of my income has a corresponding expense, but that will change soon once I finish training (radiology) this summer." [ref=e454]':
+                        - 'cell "Quote from: Elwar on January 03, 2015, 09:01:24 PM Quote from: Kipsy89 on January 03, 2015, 08:36:17 PM Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! Even if Bitcoin drops to $1 I have another paycheck coming in 2 weeks so...no biggie. Like I said, I sell on localbitcoins to get cash so I always have some spending money. I''m definitely gonna use this service soon. Most of my income has a corresponding expense, but that will change soon once I finish training (radiology) this summer." [ref=e455]':
+                          - generic [ref=e456]:
+                            - 'link "Quote from: Elwar on January 03, 2015, 09:01:24 PM" [ref=e458] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=913145.msg10026623#msg10026623
+                            - generic [ref=e459]:
+                              - 'link "Quote from: Kipsy89 on January 03, 2015, 08:36:17 PM" [ref=e461] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=913145.msg10026351#msg10026351
+                              - generic [ref=e462]: Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point!
+                              - text: Even if Bitcoin drops to $1 I have another paycheck coming in 2 weeks so...no biggie. Like I said, I sell on localbitcoins to get cash so I always have some spending money.
+                            - text: I'm definitely gonna use this service soon. Most of my income has a corresponding expense, but that will change soon once I finish training (radiology) this summer.
+                      - row [ref=e463]:
+                        - cell [ref=e464]
+          - table [ref=e465]:
+            - rowgroup [ref=e466]:
+              - row [ref=e467]:
+                - cell [ref=e468]:
+                  - table [ref=e469]:
+                    - rowgroup [ref=e470]:
+                      - 'row "76 Bitcoin / Bitcoin Discussion / Re: The new wealthy elite world order on: January 01, 2015, 06:55:14 PM" [ref=e471]':
+                        - cell "76" [ref=e472]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: The new wealthy elite world order" [ref=e473]':
+                          - link "Bitcoin" [ref=e474] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e475] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: The new wealthy elite world order" [ref=e476] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=908191.msg10003814#msg10003814
+                        - 'cell "on: January 01, 2015, 06:55:14 PM" [ref=e477]'
+                  - table [ref=e478]:
+                    - rowgroup [ref=e479]:
+                      - row [ref=e480]:
+                        - cell [ref=e481]:
+                          - generic [ref=e482]:
+                            - 'link "Quote from: a fool and his money ... on December 31, 2014, 09:24:36 AM" [ref=e484] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=908191.msg9991531#msg9991531
+                            - generic [ref=e485]:
+                              - 'link "Quote from: pereira4 on December 30, 2014, 05:12:20 PM" [ref=e487] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=908191.msg9985319#msg9985319
+                              - generic [ref=e488]: How can we be the new wealthy elite if bitcoin has the purchasing power of 1USD?
+                              - text: all you need is the cool aid everyone is on around here. Faith can move mountains, you know?
+                              - 'link "Quote from: bg002h on December 31, 2014, 04:00:38 AM" [ref=e490] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=908191.msg9990065#msg9990065
+                              - generic [ref=e491]: Incentives need to stay aligned throughout the growth of the network.
+                              - text: incentives for what? The miners or the investors? What we have gone through was too much incentive for mining and not enough for investing. Bitcoin is not balanced enough and provides no incentive for investors because it heavily favours miners. In fact Bitcoin is just one big wealth redistribution from the investors to the miners. So now you have a lot of miners and no investors.
+                            - text: The incentives of those who perform work to improve the system...the system for a long while incentivized status quo.
+                      - row [ref=e492]:
+                        - cell [ref=e493]
+          - table [ref=e494]:
+            - rowgroup [ref=e495]:
+              - 'row "77 Bitcoin / Bitcoin Discussion / Re: The new wealthy elite world order on: December 31, 2014, 04:00:38 AM There''s a ton of work to be done before Bitcoin can justifiably be highly valuable. When the network can service a significant fraction of the world''s transaction volume, then we can talk in such lofty terms. But sitting on our hands will guarantee Bitcoin goes no where....or goes to the rubbish bin. Incentives need to stay aligned throughout the growth of the network." [ref=e496]':
+                - 'cell "77 Bitcoin / Bitcoin Discussion / Re: The new wealthy elite world order on: December 31, 2014, 04:00:38 AM There''s a ton of work to be done before Bitcoin can justifiably be highly valuable. When the network can service a significant fraction of the world''s transaction volume, then we can talk in such lofty terms. But sitting on our hands will guarantee Bitcoin goes no where....or goes to the rubbish bin. Incentives need to stay aligned throughout the growth of the network." [ref=e497]':
+                  - table [ref=e498]:
+                    - rowgroup [ref=e499]:
+                      - 'row "77 Bitcoin / Bitcoin Discussion / Re: The new wealthy elite world order on: December 31, 2014, 04:00:38 AM" [ref=e500]':
+                        - cell "77" [ref=e501]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: The new wealthy elite world order" [ref=e502]':
+                          - link "Bitcoin" [ref=e503] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e504] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: The new wealthy elite world order" [ref=e505] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=908191.msg9990065#msg9990065
+                        - 'cell "on: December 31, 2014, 04:00:38 AM" [ref=e506]'
+                  - table [ref=e507]:
+                    - rowgroup [ref=e508]:
+                      - row "There's a ton of work to be done before Bitcoin can justifiably be highly valuable. When the network can service a significant fraction of the world's transaction volume, then we can talk in such lofty terms. But sitting on our hands will guarantee Bitcoin goes no where....or goes to the rubbish bin. Incentives need to stay aligned throughout the growth of the network." [ref=e509]:
+                        - cell "There's a ton of work to be done before Bitcoin can justifiably be highly valuable. When the network can service a significant fraction of the world's transaction volume, then we can talk in such lofty terms. But sitting on our hands will guarantee Bitcoin goes no where....or goes to the rubbish bin. Incentives need to stay aligned throughout the growth of the network." [ref=e510]:
+                          - generic [ref=e511]: There's a ton of work to be done before Bitcoin can justifiably be highly valuable. When the network can service a significant fraction of the world's transaction volume, then we can talk in such lofty terms. But sitting on our hands will guarantee Bitcoin goes no where....or goes to the rubbish bin. Incentives need to stay aligned throughout the growth of the network.
+                      - row [ref=e512]:
+                        - cell [ref=e513]
+          - table [ref=e514]:
+            - rowgroup [ref=e515]:
+              - 'row "78 Bitcoin / Armory / Re: Question about Armory on: December 30, 2014, 03:09:24 PM Go to armory and create a new wallet (on offline computer). Then you make a watch only copy for your armory installation running on an online computer. Then send funds from old (non-armory)wallet to armory wallet." [ref=e516]':
+                - 'cell "78 Bitcoin / Armory / Re: Question about Armory on: December 30, 2014, 03:09:24 PM Go to armory and create a new wallet (on offline computer). Then you make a watch only copy for your armory installation running on an online computer. Then send funds from old (non-armory)wallet to armory wallet." [ref=e517]':
+                  - table [ref=e518]:
+                    - rowgroup [ref=e519]:
+                      - 'row "78 Bitcoin / Armory / Re: Question about Armory on: December 30, 2014, 03:09:24 PM" [ref=e520]':
+                        - cell "78" [ref=e521]
+                        - 'cell "Bitcoin / Armory / Re: Question about Armory" [ref=e522]':
+                          - link "Bitcoin" [ref=e523] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Armory" [ref=e524] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=97.0
+                          - text: /
+                          - 'link "Re: Question about Armory" [ref=e525] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=908247.msg9984316#msg9984316
+                        - 'cell "on: December 30, 2014, 03:09:24 PM" [ref=e526]'
+                  - table [ref=e527]:
+                    - rowgroup [ref=e528]:
+                      - row "Go to armory and create a new wallet (on offline computer). Then you make a watch only copy for your armory installation running on an online computer. Then send funds from old (non-armory)wallet to armory wallet." [ref=e529]:
+                        - cell "Go to armory and create a new wallet (on offline computer). Then you make a watch only copy for your armory installation running on an online computer. Then send funds from old (non-armory)wallet to armory wallet." [ref=e530]:
+                          - generic [ref=e531]: Go to armory and create a new wallet (on offline computer). Then you make a watch only copy for your armory installation running on an online computer. Then send funds from old (non-armory)wallet to armory wallet.
+                      - row [ref=e532]:
+                        - cell [ref=e533]
+          - table [ref=e534]:
+            - rowgroup [ref=e535]:
+              - 'row "79 Bitcoin / Bitcoin Discussion / Re: Bitcoin Core 0.10.0rc1 has been released on: December 29, 2014, 06:09:16 AM Quote from: theymos on December 29, 2014, 01:49:15 AM Quote from: bg002h on December 29, 2014, 01:21:55 AM RC1 uses BerkeleyDB? It''s still used for the wallet. It''s not used for anything else. Ahh. Phew!" [ref=e536]':
+                - 'cell "79 Bitcoin / Bitcoin Discussion / Re: Bitcoin Core 0.10.0rc1 has been released on: December 29, 2014, 06:09:16 AM Quote from: theymos on December 29, 2014, 01:49:15 AM Quote from: bg002h on December 29, 2014, 01:21:55 AM RC1 uses BerkeleyDB? It''s still used for the wallet. It''s not used for anything else. Ahh. Phew!" [ref=e537]':
+                  - table [ref=e538]:
+                    - rowgroup [ref=e539]:
+                      - 'row "79 Bitcoin / Bitcoin Discussion / Re: Bitcoin Core 0.10.0rc1 has been released on: December 29, 2014, 06:09:16 AM" [ref=e540]':
+                        - cell "79" [ref=e541]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Bitcoin Core 0.10.0rc1 has been released" [ref=e542]':
+                          - link "Bitcoin" [ref=e543] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e544] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Bitcoin Core 0.10.0rc1 has been released" [ref=e545] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=906820.msg9971545#msg9971545
+                        - 'cell "on: December 29, 2014, 06:09:16 AM" [ref=e546]'
+                  - table [ref=e547]:
+                    - rowgroup [ref=e548]:
+                      - 'row "Quote from: theymos on December 29, 2014, 01:49:15 AM Quote from: bg002h on December 29, 2014, 01:21:55 AM RC1 uses BerkeleyDB? It''s still used for the wallet. It''s not used for anything else. Ahh. Phew!" [ref=e549]':
+                        - 'cell "Quote from: theymos on December 29, 2014, 01:49:15 AM Quote from: bg002h on December 29, 2014, 01:21:55 AM RC1 uses BerkeleyDB? It''s still used for the wallet. It''s not used for anything else. Ahh. Phew!" [ref=e550]':
+                          - generic [ref=e551]:
+                            - 'link "Quote from: theymos on December 29, 2014, 01:49:15 AM" [ref=e553] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=906820.msg9970170#msg9970170
+                            - generic [ref=e554]:
+                              - 'link "Quote from: bg002h on December 29, 2014, 01:21:55 AM" [ref=e556] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=906820.msg9970013#msg9970013
+                              - generic [ref=e557]: RC1 uses BerkeleyDB?
+                              - text: It's still used for the wallet. It's not used for anything else.
+                            - text: Ahh. Phew!
+                      - row [ref=e558]:
+                        - cell [ref=e559]
+          - table [ref=e560]:
+            - rowgroup [ref=e561]:
+              - 'row "80 Bitcoin / Bitcoin Discussion / Re: Bitcoin Core 0.10.0rc1 has been released on: December 29, 2014, 01:21:55 AM RC1 uses BerkeleyDB?" [ref=e562]':
+                - 'cell "80 Bitcoin / Bitcoin Discussion / Re: Bitcoin Core 0.10.0rc1 has been released on: December 29, 2014, 01:21:55 AM RC1 uses BerkeleyDB?" [ref=e563]':
+                  - table [ref=e564]:
+                    - rowgroup [ref=e565]:
+                      - 'row "80 Bitcoin / Bitcoin Discussion / Re: Bitcoin Core 0.10.0rc1 has been released on: December 29, 2014, 01:21:55 AM" [ref=e566]':
+                        - cell "80" [ref=e567]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Bitcoin Core 0.10.0rc1 has been released" [ref=e568]':
+                          - link "Bitcoin" [ref=e569] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e570] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Bitcoin Core 0.10.0rc1 has been released" [ref=e571] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=906820.msg9970013#msg9970013
+                        - 'cell "on: December 29, 2014, 01:21:55 AM" [ref=e572]'
+                  - table [ref=e573]:
+                    - rowgroup [ref=e574]:
+                      - row "RC1 uses BerkeleyDB?" [ref=e575]:
+                        - cell "RC1 uses BerkeleyDB?" [ref=e576]:
+                          - generic [ref=e577]: RC1 uses BerkeleyDB?
+                      - row [ref=e578]:
+                        - cell [ref=e579]
+          - table [ref=e580]:
+            - rowgroup [ref=e581]:
+              - 'row "Pages: « 1 2 3 [4] 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 ... 69 »" [ref=e582]':
+                - 'cell "Pages: « 1 2 3 [4] 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 ... 69 »" [ref=e583]':
+                  - text: "Pages:"
+                  - link "«" [ref=e585] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=40
+                  - link "1" [ref=e586] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=0
+                  - link "2" [ref=e587] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=20
+                  - link "3" [ref=e588] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=40
+                  - text: "[4]"
+                  - link "5" [ref=e589] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=80
+                  - link "6" [ref=e590] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=100
+                  - link "7" [ref=e591] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=120
+                  - link "8" [ref=e592] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=140
+                  - link "9" [ref=e593] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=160
+                  - link "10" [ref=e594] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=180
+                  - link "11" [ref=e595] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=200
+                  - link "12" [ref=e596] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=220
+                  - link "13" [ref=e597] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=240
+                  - link "14" [ref=e598] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=260
+                  - link "15" [ref=e599] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=280
+                  - link "16" [ref=e600] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=300
+                  - link "17" [ref=e601] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=320
+                  - link "18" [ref=e602] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=340
+                  - link "19" [ref=e603] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=360
+                  - link "20" [ref=e604] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=380
+                  - link "21" [ref=e605] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=400
+                  - link "22" [ref=e606] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=420
+                  - link "23" [ref=e607] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=440
+                  - link "24" [ref=e608] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=460
+                  - link "25" [ref=e609] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=480
+                  - link "26" [ref=e610] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=500
+                  - link "27" [ref=e611] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=520
+                  - link "28" [ref=e612] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=540
+                  - link "29" [ref=e613] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=560
+                  - link "30" [ref=e614] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=580
+                  - link "31" [ref=e615] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=600
+                  - link "32" [ref=e616] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=620
+                  - link "33" [ref=e617] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=640
+                  - link "34" [ref=e618] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=660
+                  - link "35" [ref=e619] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=680
+                  - link "36" [ref=e620] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=700
+                  - link "37" [ref=e621] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=720
+                  - link "38" [ref=e622] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=740
+                  - link "39" [ref=e623] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=760
+                  - link "40" [ref=e624] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=780
+                  - link "41" [ref=e625] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=800
+                  - link "42" [ref=e626] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=820
+                  - link "43" [ref=e627] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=840
+                  - link "44" [ref=e628] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=860
+                  - link "45" [ref=e629] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=880
+                  - link "46" [ref=e630] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=900
+                  - link "47" [ref=e631] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=920
+                  - link "48" [ref=e632] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=940
+                  - link "49" [ref=e633] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=960
+                  - link "50" [ref=e634] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=980
+                  - link "51" [ref=e635] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1000
+                  - link "52" [ref=e636] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1020
+                  - link "53" [ref=e637] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1040
+                  - link "54" [ref=e638] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1060
+                  - text: ...
+                  - link "69" [ref=e639] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1360
+                  - link "»" [ref=e641] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=80
+  - table [ref=e643]:
+    - rowgroup [ref=e644]:
+      - row "Powered by MySQL Powered by PHP Powered by SMF 1.1.19 | SMF © 2006-2009, Simple Machines Valid XHTML 1.0! Valid CSS!" [ref=e645]:
+        - cell "Powered by MySQL Powered by PHP" [ref=e646]:
+          - link "Powered by MySQL" [ref=e647] [cursor=pointer]:
+            - /url: http://www.mysql.com/
+            - img "Powered by MySQL" [ref=e648]
+          - link "Powered by PHP" [ref=e649] [cursor=pointer]:
+            - /url: http://www.php.net/
+            - img "Powered by PHP" [ref=e650]
+        - cell "Powered by SMF 1.1.19 | SMF © 2006-2009, Simple Machines" [ref=e651]:
+          - generic [ref=e652]:
+            - link "Powered by SMF 1.1.19" [ref=e653] [cursor=pointer]:
+              - /url: http://www.simplemachines.org/
+            - text: "|"
+            - link "SMF © 2006-2009, Simple Machines" [ref=e654] [cursor=pointer]:
+              - /url: http://www.simplemachines.org/about/copyright.php
+        - cell "Valid XHTML 1.0! Valid CSS!" [ref=e655]:
+          - link "Valid XHTML 1.0!" [ref=e656] [cursor=pointer]:
+            - /url: http://validator.w3.org/check/referer
+            - img "Valid XHTML 1.0!" [ref=e657]
+          - link "Valid CSS!" [ref=e658] [cursor=pointer]:
+            - /url: http://jigsaw.w3.org/css-validator/check/referer
+            - img "Valid CSS!" [ref=e659]

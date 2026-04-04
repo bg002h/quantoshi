@@ -732,6 +732,58 @@ def _hex_alpha(hex_color, alpha):
     return f"rgba({r},{g},{b},{alpha})"
 
 
+def _build_symmetric_bands(sel_qs, y_cache, x_arr, model_color="#000000",
+                            max_bands=2):
+    """Build shaded band traces from symmetric quantile pairs.
+
+    Pairs from outside in: (lowest, highest), (2nd lowest, 2nd highest).
+    Outer band = lighter opacity, inner = darker.
+
+    Parameters
+    ----------
+    sel_qs : sorted list of floats (quantile values)
+    y_cache : dict[q -> y array] (price or any y-axis value)
+    x_arr : x-axis array (shared across all quantiles)
+    model_color : hex color for the fill
+    max_bands : max number of symmetric pairs to shade
+    """
+    if len(sel_qs) < 2:
+        return []
+
+    n = len(sel_qs)
+    pairs = []
+    for i in range(n // 2):
+        lo_q = sel_qs[i]
+        hi_q = sel_qs[n - 1 - i]
+        if lo_q != hi_q and lo_q in y_cache and hi_q in y_cache:
+            pairs.append((lo_q, hi_q))
+    pairs = pairs[:max_bands]
+
+    if not pairs:
+        return []
+
+    opacities = [0.08, 0.15] if len(pairs) >= 2 else [0.10]
+
+    traces = []
+    x = list(x_arr)
+    for i, (lo_q, hi_q) in enumerate(pairs):
+        alpha = opacities[i] if i < len(opacities) else opacities[-1]
+        lo_y = y_cache[lo_q]
+        hi_y = y_cache[hi_q]
+        traces.append(go.Scatter(
+            x=x, y=list(lo_y), mode="lines", line=dict(width=0),
+            showlegend=False, hoverinfo="skip",
+        ))
+        traces.append(go.Scatter(
+            x=x, y=list(hi_y), mode="lines", line=dict(width=0),
+            fill="tonexty",
+            fillcolor=_hex_alpha(model_color, alpha),
+            showlegend=False, hoverinfo="skip",
+        ))
+
+    return traces
+
+
 def _clip_mc_traces(mc_traces, x_max):
     """Clip MC traces to x <= x_max so they don't extend beyond the visible chart.
 

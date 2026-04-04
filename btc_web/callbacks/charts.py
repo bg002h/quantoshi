@@ -699,6 +699,7 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
         log_y        = "log_y"     in toggles,
         annotate     = "annotate"  in toggles,
         discrete     = "discrete"  in toggles,
+        shade        = "shade"     in toggles,
         show_legend  = "show_legend" in toggles,
         legend_pos   = legend_pos or "outside",
         minor_grid   = "minor_grid" in toggles,

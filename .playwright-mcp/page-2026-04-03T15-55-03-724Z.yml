@@ -1,0 +1,1001 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - table [ref=e3]:
+      - rowgroup [ref=e4]:
+        - row "Bitcoin Forum" [ref=e5]:
+          - cell "Bitcoin Forum" [ref=e6]
+          - cell [ref=e7]
+    - table [ref=e8]:
+      - rowgroup [ref=e9]:
+        - row "April 03, 2026, 03:55:03 PM *" [ref=e10]:
+          - cell "April 03, 2026, 03:55:03 PM *" [ref=e11]:
+            - text: April 03, 2026, 03:55:03 PM
+            - link "*" [ref=e12] [cursor=pointer]:
+              - /url: "#"
+              - img "*" [ref=e13]
+        - row "Welcome, Guest. Please login or register." [ref=e14]:
+          - cell "Welcome, Guest. Please login or register." [ref=e15]:
+            - table [ref=e16]:
+              - rowgroup [ref=e17]:
+                - row "Welcome, Guest. Please login or register." [ref=e18]:
+                  - cell "Welcome, Guest. Please login or register." [ref=e19]:
+                    - generic [ref=e20]:
+                      - text: Welcome, Guest. Please
+                      - link "login" [ref=e21] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=login
+                      - text: or
+                      - link "register" [ref=e22] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=register
+                      - text: .
+    - table [ref=e23]:
+      - rowgroup [ref=e24]:
+        - 'row "News: Latest Bitcoin Core release: 30.2 [Torrent] Search" [ref=e25]':
+          - 'cell "News: Latest Bitcoin Core release: 30.2 [Torrent]" [ref=e26]':
+            - generic [ref=e27]:
+              - text: "News: Latest Bitcoin Core release:"
+              - link "30.2" [ref=e28] [cursor=pointer]:
+                - /url: https://bitcoincore.org/en/download/
+              - text: "["
+              - link "Torrent" [ref=e29] [cursor=pointer]:
+                - /url: https://bitcointalk.org/bitcoin-30.2.torrent
+              - text: "]"
+          - cell "Search" [ref=e30]:
+            - generic [ref=e31]:
+              - link [ref=e32] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?action=search;advanced
+              - textbox [ref=e33]
+              - button "Search" [ref=e34]
+  - table [ref=e35]:
+    - rowgroup [ref=e36]:
+      - row "Home Help Search Login Register More" [ref=e37]:
+        - cell [ref=e38]
+        - cell "Home" [ref=e39]:
+          - link "Home" [ref=e40] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php
+        - cell "Help" [ref=e41]:
+          - link "Help" [ref=e42] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=help
+        - cell "Search" [ref=e43]:
+          - link "Search" [ref=e44] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=search
+        - cell "Login" [ref=e45]:
+          - link "Login" [ref=e46] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=login
+        - cell "Register" [ref=e47]:
+          - link "Register" [ref=e48] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=register
+        - cell "More" [ref=e49]:
+          - link "More" [ref=e50] [cursor=pointer]:
+            - /url: /more.php
+        - cell [ref=e51]
+  - table [ref=e53]:
+    - rowgroup [ref=e54]:
+      - row [ref=e55]:
+        - cell [ref=e56]:
+          - table [ref=e57]:
+            - rowgroup [ref=e58]:
+              - row "Show Posts" [ref=e59]:
+                - cell "Show Posts" [ref=e60]
+              - 'row "Pages: « 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 [23] 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 »" [ref=e61]':
+                - 'cell "Pages: « 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 [23] 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 »" [ref=e62]':
+                  - text: "Pages:"
+                  - link "«" [ref=e64] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=420
+                  - link "1" [ref=e65] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=0
+                  - link "2" [ref=e66] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=20
+                  - link "3" [ref=e67] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=40
+                  - link "4" [ref=e68] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=60
+                  - link "5" [ref=e69] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=80
+                  - link "6" [ref=e70] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=100
+                  - link "7" [ref=e71] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=120
+                  - link "8" [ref=e72] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=140
+                  - link "9" [ref=e73] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=160
+                  - link "10" [ref=e74] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=180
+                  - link "11" [ref=e75] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=200
+                  - link "12" [ref=e76] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=220
+                  - link "13" [ref=e77] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=240
+                  - link "14" [ref=e78] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=260
+                  - link "15" [ref=e79] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=280
+                  - link "16" [ref=e80] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=300
+                  - link "17" [ref=e81] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=320
+                  - link "18" [ref=e82] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=340
+                  - link "19" [ref=e83] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=360
+                  - link "20" [ref=e84] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=380
+                  - link "21" [ref=e85] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=400
+                  - link "22" [ref=e86] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=420
+                  - text: "[23]"
+                  - link "24" [ref=e87] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=460
+                  - link "25" [ref=e88] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=480
+                  - link "26" [ref=e89] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=500
+                  - link "27" [ref=e90] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=520
+                  - link "28" [ref=e91] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=540
+                  - link "29" [ref=e92] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=560
+                  - link "30" [ref=e93] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=580
+                  - link "31" [ref=e94] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=600
+                  - link "32" [ref=e95] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=620
+                  - link "33" [ref=e96] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=640
+                  - link "34" [ref=e97] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=660
+                  - link "35" [ref=e98] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=680
+                  - link "36" [ref=e99] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=700
+                  - link "37" [ref=e100] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=720
+                  - link "38" [ref=e101] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=740
+                  - link "39" [ref=e102] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=760
+                  - link "40" [ref=e103] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=780
+                  - link "41" [ref=e104] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=800
+                  - link "42" [ref=e105] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=820
+                  - link "43" [ref=e106] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=840
+                  - link "44" [ref=e107] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=860
+                  - link "45" [ref=e108] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=880
+                  - link "46" [ref=e109] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=900
+                  - link "47" [ref=e110] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=920
+                  - link "48" [ref=e111] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=940
+                  - link "49" [ref=e112] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=960
+                  - link "50" [ref=e113] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=980
+                  - link "51" [ref=e114] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1000
+                  - link "52" [ref=e115] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1020
+                  - link "53" [ref=e116] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1040
+                  - link "54" [ref=e117] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1060
+                  - link "55" [ref=e118] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1080
+                  - link "56" [ref=e119] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1100
+                  - link "57" [ref=e120] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1120
+                  - link "58" [ref=e121] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1140
+                  - link "59" [ref=e122] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1160
+                  - link "60" [ref=e123] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1180
+                  - link "61" [ref=e124] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1200
+                  - link "62" [ref=e125] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1220
+                  - link "63" [ref=e126] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1240
+                  - link "64" [ref=e127] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1260
+                  - link "65" [ref=e128] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1280
+                  - link "66" [ref=e129] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1300
+                  - link "67" [ref=e130] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1320
+                  - link "68" [ref=e131] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1340
+                  - link "69" [ref=e132] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1360
+                  - link "»" [ref=e134] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=460
+          - table [ref=e135]:
+            - rowgroup [ref=e136]:
+              - 'row "441 Bitcoin / Bitcoin Discussion / Re: What a surprise! Bitcoin find on: October 27, 2013, 03:18:18 AM Quote from: dominicwin on October 26, 2013, 06:54:08 PM So I was sort of \"spring cleaning\" through my tech, old MacBooks and what not and I realized I had a bitcoin wallet stored on my last Macbook from 2012 and found 300 bitcoins just hanging out. What a nice surprise! Well done!" [ref=e137]':
+                - 'cell "441 Bitcoin / Bitcoin Discussion / Re: What a surprise! Bitcoin find on: October 27, 2013, 03:18:18 AM Quote from: dominicwin on October 26, 2013, 06:54:08 PM So I was sort of \"spring cleaning\" through my tech, old MacBooks and what not and I realized I had a bitcoin wallet stored on my last Macbook from 2012 and found 300 bitcoins just hanging out. What a nice surprise! Well done!" [ref=e138]':
+                  - table [ref=e139]:
+                    - rowgroup [ref=e140]:
+                      - 'row "441 Bitcoin / Bitcoin Discussion / Re: What a surprise! Bitcoin find on: October 27, 2013, 03:18:18 AM" [ref=e141]':
+                        - cell "441" [ref=e142]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: What a surprise! Bitcoin find" [ref=e143]':
+                          - link "Bitcoin" [ref=e144] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e145] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: What a surprise! Bitcoin find" [ref=e146] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=318878.msg3418760#msg3418760
+                        - 'cell "on: October 27, 2013, 03:18:18 AM" [ref=e147]'
+                  - table [ref=e148]:
+                    - rowgroup [ref=e149]:
+                      - 'row "Quote from: dominicwin on October 26, 2013, 06:54:08 PM So I was sort of \"spring cleaning\" through my tech, old MacBooks and what not and I realized I had a bitcoin wallet stored on my last Macbook from 2012 and found 300 bitcoins just hanging out. What a nice surprise! Well done!" [ref=e150]':
+                        - 'cell "Quote from: dominicwin on October 26, 2013, 06:54:08 PM So I was sort of \"spring cleaning\" through my tech, old MacBooks and what not and I realized I had a bitcoin wallet stored on my last Macbook from 2012 and found 300 bitcoins just hanging out. What a nice surprise! Well done!" [ref=e151]':
+                          - generic [ref=e152]:
+                            - 'link "Quote from: dominicwin on October 26, 2013, 06:54:08 PM" [ref=e154] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=318878.msg3416653#msg3416653
+                            - generic [ref=e155]: So I was sort of "spring cleaning" through my tech, old MacBooks and what not and I realized I had a bitcoin wallet stored on my last Macbook from 2012 and found 300 bitcoins just hanging out. What a nice surprise!
+                            - text: Well done!
+                      - row [ref=e156]:
+                        - cell [ref=e157]
+          - table [ref=e158]:
+            - rowgroup [ref=e159]:
+              - 'row "442 Bitcoin / Bitcoin Discussion / Re: Law Enforcement Attending Bitcoin Meetups Undercover? on: October 27, 2013, 03:17:19 AM Where is phin when ya need him?" [ref=e160]':
+                - 'cell "442 Bitcoin / Bitcoin Discussion / Re: Law Enforcement Attending Bitcoin Meetups Undercover? on: October 27, 2013, 03:17:19 AM Where is phin when ya need him?" [ref=e161]':
+                  - table [ref=e162]:
+                    - rowgroup [ref=e163]:
+                      - 'row "442 Bitcoin / Bitcoin Discussion / Re: Law Enforcement Attending Bitcoin Meetups Undercover? on: October 27, 2013, 03:17:19 AM" [ref=e164]':
+                        - cell "442" [ref=e165]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Law Enforcement Attending Bitcoin Meetups Undercover?" [ref=e166]':
+                          - link "Bitcoin" [ref=e167] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e168] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Law Enforcement Attending Bitcoin Meetups Undercover?" [ref=e169] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=317230.msg3418755#msg3418755
+                        - 'cell "on: October 27, 2013, 03:17:19 AM" [ref=e170]'
+                  - table [ref=e171]:
+                    - rowgroup [ref=e172]:
+                      - row "Where is phin when ya need him?" [ref=e173]:
+                        - cell "Where is phin when ya need him?" [ref=e174]:
+                          - generic [ref=e175]: Where is phin when ya need him?
+                      - row [ref=e176]:
+                        - cell [ref=e177]
+          - table [ref=e178]:
+            - rowgroup [ref=e179]:
+              - 'row "443 Bitcoin / Bitcoin Discussion / Re: The US Govt \"seizing\" their way to control of BTC on: October 19, 2013, 07:07:39 PM The worst thing they could do is hold them in uncertainty...oh, wait, that''s the plan. As has been pointed out elsewhere, it is hard to estimate supply when inaccessible bitcoins look identical to accessible ones. For example, if an address has had 1M bitcoins in it without a transaction spent in 3 years....is the private key lost or just part of a savings plan?" [ref=e180]':
+                - 'cell "443 Bitcoin / Bitcoin Discussion / Re: The US Govt \"seizing\" their way to control of BTC on: October 19, 2013, 07:07:39 PM The worst thing they could do is hold them in uncertainty...oh, wait, that''s the plan. As has been pointed out elsewhere, it is hard to estimate supply when inaccessible bitcoins look identical to accessible ones. For example, if an address has had 1M bitcoins in it without a transaction spent in 3 years....is the private key lost or just part of a savings plan?" [ref=e181]':
+                  - table [ref=e182]:
+                    - rowgroup [ref=e183]:
+                      - 'row "443 Bitcoin / Bitcoin Discussion / Re: The US Govt \"seizing\" their way to control of BTC on: October 19, 2013, 07:07:39 PM" [ref=e184]':
+                        - cell "443" [ref=e185]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: The US Govt \"seizing\" their way to control of BTC" [ref=e186]':
+                          - link "Bitcoin" [ref=e187] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e188] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: The US Govt \"seizing\" their way to control of BTC" [ref=e189] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=312713.msg3369996#msg3369996
+                        - 'cell "on: October 19, 2013, 07:07:39 PM" [ref=e190]'
+                  - table [ref=e191]:
+                    - rowgroup [ref=e192]:
+                      - row "The worst thing they could do is hold them in uncertainty...oh, wait, that's the plan. As has been pointed out elsewhere, it is hard to estimate supply when inaccessible bitcoins look identical to accessible ones. For example, if an address has had 1M bitcoins in it without a transaction spent in 3 years....is the private key lost or just part of a savings plan?" [ref=e193]:
+                        - cell "The worst thing they could do is hold them in uncertainty...oh, wait, that's the plan. As has been pointed out elsewhere, it is hard to estimate supply when inaccessible bitcoins look identical to accessible ones. For example, if an address has had 1M bitcoins in it without a transaction spent in 3 years....is the private key lost or just part of a savings plan?" [ref=e194]:
+                          - generic [ref=e195]:
+                            - text: The worst thing they could do is hold them in uncertainty...oh, wait, that's the plan.
+                            - text: As has been pointed out elsewhere, it is hard to estimate supply when inaccessible bitcoins look identical to accessible ones. For example, if an address has had 1M bitcoins in it without a transaction spent in 3 years....is the private key lost or just part of a savings plan?
+                      - row [ref=e196]:
+                        - cell [ref=e197]
+          - table [ref=e198]:
+            - rowgroup [ref=e199]:
+              - 'row "444 Bitcoin / Project Development / Re: Momentum Proof-of-Work Bounty - 30 BTC on: October 19, 2013, 01:28:22 PM Quote from: prophetx on October 19, 2013, 12:56:06 PM You should change it kor stick to your original offer. Also \"convince me\" is very subjective, sounds like you ant someone to do work for free for you. You must not know Dan. He''s a real programmer (darn good too...really darn good) with a real reputation." [ref=e200]':
+                - 'cell "444 Bitcoin / Project Development / Re: Momentum Proof-of-Work Bounty - 30 BTC on: October 19, 2013, 01:28:22 PM Quote from: prophetx on October 19, 2013, 12:56:06 PM You should change it kor stick to your original offer. Also \"convince me\" is very subjective, sounds like you ant someone to do work for free for you. You must not know Dan. He''s a real programmer (darn good too...really darn good) with a real reputation." [ref=e201]':
+                  - table [ref=e202]:
+                    - rowgroup [ref=e203]:
+                      - 'row "444 Bitcoin / Project Development / Re: Momentum Proof-of-Work Bounty - 30 BTC on: October 19, 2013, 01:28:22 PM" [ref=e204]':
+                        - cell "444" [ref=e205]
+                        - 'cell "Bitcoin / Project Development / Re: Momentum Proof-of-Work Bounty - 30 BTC" [ref=e206]':
+                          - link "Bitcoin" [ref=e207] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Project Development" [ref=e208] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=12.0
+                          - text: /
+                          - 'link "Re: Momentum Proof-of-Work Bounty - 30 BTC" [ref=e209] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=313479.msg3368231#msg3368231
+                        - 'cell "on: October 19, 2013, 01:28:22 PM" [ref=e210]'
+                  - table [ref=e211]:
+                    - rowgroup [ref=e212]:
+                      - 'row "Quote from: prophetx on October 19, 2013, 12:56:06 PM You should change it kor stick to your original offer. Also \"convince me\" is very subjective, sounds like you ant someone to do work for free for you. You must not know Dan. He''s a real programmer (darn good too...really darn good) with a real reputation." [ref=e213]':
+                        - 'cell "Quote from: prophetx on October 19, 2013, 12:56:06 PM You should change it kor stick to your original offer. Also \"convince me\" is very subjective, sounds like you ant someone to do work for free for you. You must not know Dan. He''s a real programmer (darn good too...really darn good) with a real reputation." [ref=e214]':
+                          - generic [ref=e215]:
+                            - 'link "Quote from: prophetx on October 19, 2013, 12:56:06 PM" [ref=e217] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=313479.msg3368083#msg3368083
+                            - generic [ref=e218]: You should change it kor stick to your original offer. Also "convince me" is very subjective, sounds like you ant someone to do work for free for you.
+                            - text: You must not know Dan. He's a real programmer (darn good too...really darn good) with a real reputation.
+                      - row [ref=e219]:
+                        - cell [ref=e220]
+          - table [ref=e221]:
+            - rowgroup [ref=e222]:
+              - 'row "445 Bitcoin / Bitcoin Discussion / Re: This holiday season, give the gift of Bitcoin! on: October 19, 2013, 01:07:20 PM These look cool: https://safepaperwallet.com/" [ref=e223]':
+                - 'cell "445 Bitcoin / Bitcoin Discussion / Re: This holiday season, give the gift of Bitcoin! on: October 19, 2013, 01:07:20 PM These look cool: https://safepaperwallet.com/" [ref=e224]':
+                  - table [ref=e225]:
+                    - rowgroup [ref=e226]:
+                      - 'row "445 Bitcoin / Bitcoin Discussion / Re: This holiday season, give the gift of Bitcoin! on: October 19, 2013, 01:07:20 PM" [ref=e227]':
+                        - cell "445" [ref=e228]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: This holiday season, give the gift of Bitcoin!" [ref=e229]':
+                          - link "Bitcoin" [ref=e230] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e231] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: This holiday season, give the gift of Bitcoin!" [ref=e232] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=313580.msg3368131#msg3368131
+                        - 'cell "on: October 19, 2013, 01:07:20 PM" [ref=e233]'
+                  - table [ref=e234]:
+                    - rowgroup [ref=e235]:
+                      - 'row "These look cool: https://safepaperwallet.com/" [ref=e236]':
+                        - 'cell "These look cool: https://safepaperwallet.com/" [ref=e237]':
+                          - generic [ref=e238]:
+                            - text: "These look cool:"
+                            - link "https://safepaperwallet.com/" [ref=e239] [cursor=pointer]:
+                              - /url: https://safepaperwallet.com/
+                      - row [ref=e240]:
+                        - cell [ref=e241]
+          - table [ref=e242]:
+            - rowgroup [ref=e243]:
+              - 'row "446 Bitcoin / Bitcoin Discussion / Re: Chinese government IS backing Bitcoin?!?! on: October 19, 2013, 01:20:54 AM Quote from: cowandtea on October 18, 2013, 07:23:09 AM Quote from: Johnny Bitcoinseed on October 17, 2013, 08:52:30 AM Bitcoin shows the world that governments are no longer needed when it comes to currency. And that, my friends, is the beauty of Bitcoin. Well, if governments are no longer needed then we need someone to pay policeman''s salary, street cleanup and etc. Who will be doing those job if there is no government? There was a time, in the us at least, when there was private services for things like fire fighting...the fact that governments supply this service at high cost under monopoly conditions and accept payment only in paper does not intrinsically make the government useful or irreplaceable." [ref=e244]':
+                - 'cell "446 Bitcoin / Bitcoin Discussion / Re: Chinese government IS backing Bitcoin?!?! on: October 19, 2013, 01:20:54 AM Quote from: cowandtea on October 18, 2013, 07:23:09 AM Quote from: Johnny Bitcoinseed on October 17, 2013, 08:52:30 AM Bitcoin shows the world that governments are no longer needed when it comes to currency. And that, my friends, is the beauty of Bitcoin. Well, if governments are no longer needed then we need someone to pay policeman''s salary, street cleanup and etc. Who will be doing those job if there is no government? There was a time, in the us at least, when there was private services for things like fire fighting...the fact that governments supply this service at high cost under monopoly conditions and accept payment only in paper does not intrinsically make the government useful or irreplaceable." [ref=e245]':
+                  - table [ref=e246]:
+                    - rowgroup [ref=e247]:
+                      - 'row "446 Bitcoin / Bitcoin Discussion / Re: Chinese government IS backing Bitcoin?!?! on: October 19, 2013, 01:20:54 AM" [ref=e248]':
+                        - cell "446" [ref=e249]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Chinese government IS backing Bitcoin?!?!" [ref=e250]':
+                          - link "Bitcoin" [ref=e251] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e252] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Chinese government IS backing Bitcoin?!?!" [ref=e253] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=310917.msg3365904#msg3365904
+                        - 'cell "on: October 19, 2013, 01:20:54 AM" [ref=e254]'
+                  - table [ref=e255]:
+                    - rowgroup [ref=e256]:
+                      - 'row "Quote from: cowandtea on October 18, 2013, 07:23:09 AM Quote from: Johnny Bitcoinseed on October 17, 2013, 08:52:30 AM Bitcoin shows the world that governments are no longer needed when it comes to currency. And that, my friends, is the beauty of Bitcoin. Well, if governments are no longer needed then we need someone to pay policeman''s salary, street cleanup and etc. Who will be doing those job if there is no government? There was a time, in the us at least, when there was private services for things like fire fighting...the fact that governments supply this service at high cost under monopoly conditions and accept payment only in paper does not intrinsically make the government useful or irreplaceable." [ref=e257]':
+                        - 'cell "Quote from: cowandtea on October 18, 2013, 07:23:09 AM Quote from: Johnny Bitcoinseed on October 17, 2013, 08:52:30 AM Bitcoin shows the world that governments are no longer needed when it comes to currency. And that, my friends, is the beauty of Bitcoin. Well, if governments are no longer needed then we need someone to pay policeman''s salary, street cleanup and etc. Who will be doing those job if there is no government? There was a time, in the us at least, when there was private services for things like fire fighting...the fact that governments supply this service at high cost under monopoly conditions and accept payment only in paper does not intrinsically make the government useful or irreplaceable." [ref=e258]':
+                          - generic [ref=e259]:
+                            - 'link "Quote from: cowandtea on October 18, 2013, 07:23:09 AM" [ref=e261] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=310917.msg3360649#msg3360649
+                            - generic [ref=e262]:
+                              - 'link "Quote from: Johnny Bitcoinseed on October 17, 2013, 08:52:30 AM" [ref=e264] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=310917.msg3354553#msg3354553
+                              - generic [ref=e265]:
+                                - text: Bitcoin shows the world that governments are no longer needed when it comes to currency.
+                                - text: And that, my friends, is the beauty of Bitcoin.
+                              - text: Well, if governments are no longer needed then we need someone to pay policeman's salary, street cleanup and etc. Who will be doing those job if there is no government?
+                            - text: There was a time, in the us at least, when there was private services for things like fire fighting...the fact that governments supply this service at high cost under monopoly conditions and accept payment only in paper does not intrinsically make the government useful or irreplaceable.
+                      - row [ref=e266]:
+                        - cell [ref=e267]
+          - table [ref=e268]:
+            - rowgroup [ref=e269]:
+              - 'row "447 Economy / Service Discussion / Re: Coinbase moves the finish line! on: October 18, 2013, 09:34:43 PM Are you sure it is a requirement to have a credit card? I imagine they intend to add a level III verification tier in the future, but not necessarily requiring credit card for level two." [ref=e270]':
+                - 'cell "447 Economy / Service Discussion / Re: Coinbase moves the finish line! on: October 18, 2013, 09:34:43 PM Are you sure it is a requirement to have a credit card? I imagine they intend to add a level III verification tier in the future, but not necessarily requiring credit card for level two." [ref=e271]':
+                  - table [ref=e272]:
+                    - rowgroup [ref=e273]:
+                      - 'row "447 Economy / Service Discussion / Re: Coinbase moves the finish line! on: October 18, 2013, 09:34:43 PM" [ref=e274]':
+                        - cell "447" [ref=e275]
+                        - 'cell "Economy / Service Discussion / Re: Coinbase moves the finish line!" [ref=e276]':
+                          - link "Economy" [ref=e277] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Service Discussion" [ref=e278] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=85.0
+                          - text: /
+                          - 'link "Re: Coinbase moves the finish line!" [ref=e279] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=311398.msg3364827#msg3364827
+                        - 'cell "on: October 18, 2013, 09:34:43 PM" [ref=e280]'
+                  - table [ref=e281]:
+                    - rowgroup [ref=e282]:
+                      - row "Are you sure it is a requirement to have a credit card? I imagine they intend to add a level III verification tier in the future, but not necessarily requiring credit card for level two." [ref=e283]:
+                        - cell "Are you sure it is a requirement to have a credit card? I imagine they intend to add a level III verification tier in the future, but not necessarily requiring credit card for level two." [ref=e284]:
+                          - generic [ref=e285]: Are you sure it is a requirement to have a credit card? I imagine they intend to add a level III verification tier in the future, but not necessarily requiring credit card for level two.
+                      - row [ref=e286]:
+                        - cell [ref=e287]
+          - table [ref=e288]:
+            - rowgroup [ref=e289]:
+              - row [ref=e290]:
+                - cell [ref=e291]:
+                  - table [ref=e292]:
+                    - rowgroup [ref=e293]:
+                      - 'row "448 Bitcoin / Bitcoin Discussion / Re: I am pretty confident we are the new wealthy elite, gentlemen. on: October 18, 2013, 12:33:15 AM" [ref=e294]':
+                        - cell "448" [ref=e295]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: I am pretty confident we are the new wealthy elite, gentlemen." [ref=e296]':
+                          - link "Bitcoin" [ref=e297] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e298] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: I am pretty confident we are the new wealthy elite, gentlemen." [ref=e299] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=12156.msg3359210#msg3359210
+                        - 'cell "on: October 18, 2013, 12:33:15 AM" [ref=e300]'
+                  - table [ref=e301]:
+                    - rowgroup [ref=e302]:
+                      - row [ref=e303]:
+                        - cell [ref=e304]:
+                          - generic [ref=e305]:
+                            - 'link "Quote from: waqas on October 16, 2013, 11:49:48 PM" [ref=e307] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=12156.msg3352681#msg3352681
+                            - generic [ref=e308]:
+                              - 'link "Quote from: Gordonium on October 16, 2013, 11:22:44 PM" [ref=e310] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=12156.msg3352545#msg3352545
+                              - generic [ref=e311]: How many Bitcoins you will need to hold to be part of this new elite?
+                              - text: Only if we have more than about BTC70k at these prices, dear. so its still long way to go for weathy elite gentlemen
+                              - img "Huh" [ref=e312]
+                            - text: You have to put things in context. Back then, things were changing really fast. I remember these coin things that I made with my laptop and I thought were worthless actually had a non-zero value...it was surprising.
+                            - text: Don't forget, early on, every body (not many) had more coins than they knew what to do with...because there was nothing to do with them...Gavin started giving them away in a recycling faucet...you request 5 BTC play with it...send it back when you're done...it was a trivial amount of bitcoin for the time...
+                            - text: Going from a value of 0 to not 0 was a huge "% increase". It seemed every month the price went up...then every week...then every day...the effect on one's brain of this process was truly remarkable to experience...it was (for me) unbelievable...but I believe it now...Bitcoin is here to stay.
+                      - row [ref=e313]:
+                        - cell [ref=e314]
+          - table [ref=e315]:
+            - rowgroup [ref=e316]:
+              - 'row "449 Bitcoin / Bitcoin Discussion / Re: Idea / Discussion: Address Maintenance Fees (reduce size of blockchain) on: October 18, 2013, 12:23:23 AM Quote from: Elwar on October 17, 2013, 07:04:49 AM Or we could just have all addresses expire after a year. We could rename Bitcoin to freecoin or something like that. Exactly. Well said. http://freico.in/about/ I call it theft coin...or digital pseudo-fiat Smiley" [ref=e317]':
+                - 'cell "449 Bitcoin / Bitcoin Discussion / Re: Idea / Discussion: Address Maintenance Fees (reduce size of blockchain) on: October 18, 2013, 12:23:23 AM Quote from: Elwar on October 17, 2013, 07:04:49 AM Or we could just have all addresses expire after a year. We could rename Bitcoin to freecoin or something like that. Exactly. Well said. http://freico.in/about/ I call it theft coin...or digital pseudo-fiat Smiley" [ref=e318]':
+                  - table [ref=e319]:
+                    - rowgroup [ref=e320]:
+                      - 'row "449 Bitcoin / Bitcoin Discussion / Re: Idea / Discussion: Address Maintenance Fees (reduce size of blockchain) on: October 18, 2013, 12:23:23 AM" [ref=e321]':
+                        - cell "449" [ref=e322]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Idea / Discussion: Address Maintenance Fees (reduce size of blockchain)" [ref=e323]':
+                          - link "Bitcoin" [ref=e324] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e325] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Idea / Discussion: Address Maintenance Fees (reduce size of blockchain)" [ref=e326] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=312742.msg3359157#msg3359157
+                        - 'cell "on: October 18, 2013, 12:23:23 AM" [ref=e327]'
+                  - table [ref=e328]:
+                    - rowgroup [ref=e329]:
+                      - 'row "Quote from: Elwar on October 17, 2013, 07:04:49 AM Or we could just have all addresses expire after a year. We could rename Bitcoin to freecoin or something like that. Exactly. Well said. http://freico.in/about/ I call it theft coin...or digital pseudo-fiat Smiley" [ref=e330]':
+                        - 'cell "Quote from: Elwar on October 17, 2013, 07:04:49 AM Or we could just have all addresses expire after a year. We could rename Bitcoin to freecoin or something like that. Exactly. Well said. http://freico.in/about/ I call it theft coin...or digital pseudo-fiat Smiley" [ref=e331]':
+                          - generic [ref=e332]:
+                            - 'link "Quote from: Elwar on October 17, 2013, 07:04:49 AM" [ref=e334] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=312742.msg3354130#msg3354130
+                            - generic [ref=e335]:
+                              - text: Or we could just have all addresses expire after a year.
+                              - text: We could rename Bitcoin to freecoin or something like that.
+                            - text: Exactly. Well said.
+                            - link "http://freico.in/about/" [ref=e336] [cursor=pointer]:
+                              - /url: http://freico.in/about/
+                            - text: I call it theft coin...or digital pseudo-fiat
+                            - img "Smiley" [ref=e337]
+                      - row [ref=e338]:
+                        - cell [ref=e339]
+          - table [ref=e340]:
+            - rowgroup [ref=e341]:
+              - 'row "450 Other / Politics & Society / Re: Capital control in action, does cyprus ring a bell on: October 17, 2013, 11:12:30 AM Surely this is commonplace, no? I mean, if they get burned with a reversed transaction at some point, they scale back business until risk/benefit ratio changes...is there really no precedent for this with other institutions?" [ref=e342]':
+                - 'cell "450 Other / Politics & Society / Re: Capital control in action, does cyprus ring a bell on: October 17, 2013, 11:12:30 AM Surely this is commonplace, no? I mean, if they get burned with a reversed transaction at some point, they scale back business until risk/benefit ratio changes...is there really no precedent for this with other institutions?" [ref=e343]':
+                  - table [ref=e344]:
+                    - rowgroup [ref=e345]:
+                      - 'row "450 Other / Politics & Society / Re: Capital control in action, does cyprus ring a bell on: October 17, 2013, 11:12:30 AM" [ref=e346]':
+                        - cell "450" [ref=e347]
+                        - 'cell "Other / Politics & Society / Re: Capital control in action, does cyprus ring a bell" [ref=e348]':
+                          - link "Other" [ref=e349] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#4
+                          - text: /
+                          - link "Politics & Society" [ref=e350] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=34.0
+                          - text: /
+                          - 'link "Re: Capital control in action, does cyprus ring a bell" [ref=e351] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=312793.msg3355069#msg3355069
+                        - 'cell "on: October 17, 2013, 11:12:30 AM" [ref=e352]'
+                  - table [ref=e353]:
+                    - rowgroup [ref=e354]:
+                      - row "Surely this is commonplace, no? I mean, if they get burned with a reversed transaction at some point, they scale back business until risk/benefit ratio changes...is there really no precedent for this with other institutions?" [ref=e355]:
+                        - cell "Surely this is commonplace, no? I mean, if they get burned with a reversed transaction at some point, they scale back business until risk/benefit ratio changes...is there really no precedent for this with other institutions?" [ref=e356]:
+                          - generic [ref=e357]: Surely this is commonplace, no? I mean, if they get burned with a reversed transaction at some point, they scale back business until risk/benefit ratio changes...is there really no precedent for this with other institutions?
+                      - row [ref=e358]:
+                        - cell [ref=e359]
+          - table [ref=e360]:
+            - rowgroup [ref=e361]:
+              - 'row "451 Bitcoin / Bitcoin Discussion / Re: Dr. Brian Goss''s A Brief Look at the Digitization of Money 1985-1999 Now Ready on: October 16, 2013, 12:39:56 AM Quote from: pand70 on October 16, 2013, 12:28:41 AM Nice Kubrick reference on the title Wink That was Charles...and one of the reasons I became a student in the first place! That said, his lectures are great. I watched them all on double speed. (for reference http://www.imdb.com/title/tt0057012/)" [ref=e362]':
+                - 'cell "451 Bitcoin / Bitcoin Discussion / Re: Dr. Brian Goss''s A Brief Look at the Digitization of Money 1985-1999 Now Ready on: October 16, 2013, 12:39:56 AM Quote from: pand70 on October 16, 2013, 12:28:41 AM Nice Kubrick reference on the title Wink That was Charles...and one of the reasons I became a student in the first place! That said, his lectures are great. I watched them all on double speed. (for reference http://www.imdb.com/title/tt0057012/)" [ref=e363]':
+                  - table [ref=e364]:
+                    - rowgroup [ref=e365]:
+                      - 'row "451 Bitcoin / Bitcoin Discussion / Re: Dr. Brian Goss''s A Brief Look at the Digitization of Money 1985-1999 Now Ready on: October 16, 2013, 12:39:56 AM" [ref=e366]':
+                        - cell "451" [ref=e367]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Dr. Brian Goss''s A Brief Look at the Digitization of Money 1985-1999 Now Ready" [ref=e368]':
+                          - link "Bitcoin" [ref=e369] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e370] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Dr. Brian Goss''s A Brief Look at the Digitization of Money 1985-1999 Now Ready" [ref=e371] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=246706.msg3345895#msg3345895
+                        - 'cell "on: October 16, 2013, 12:39:56 AM" [ref=e372]'
+                  - table [ref=e373]:
+                    - rowgroup [ref=e374]:
+                      - 'row "Quote from: pand70 on October 16, 2013, 12:28:41 AM Nice Kubrick reference on the title Wink That was Charles...and one of the reasons I became a student in the first place! That said, his lectures are great. I watched them all on double speed. (for reference http://www.imdb.com/title/tt0057012/)" [ref=e375]':
+                        - 'cell "Quote from: pand70 on October 16, 2013, 12:28:41 AM Nice Kubrick reference on the title Wink That was Charles...and one of the reasons I became a student in the first place! That said, his lectures are great. I watched them all on double speed. (for reference http://www.imdb.com/title/tt0057012/)" [ref=e376]':
+                          - generic [ref=e377]:
+                            - 'link "Quote from: pand70 on October 16, 2013, 12:28:41 AM" [ref=e379] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=246706.msg3345863#msg3345863
+                            - generic [ref=e380]:
+                              - text: Nice Kubrick reference on the title
+                              - img "Wink" [ref=e381]
+                            - text: That was Charles...and one of the reasons I became a student in the first place!
+                            - text: That said, his lectures are great. I watched them all on double speed.
+                            - text: (for reference
+                            - link "http://www.imdb.com/title/tt0057012/" [ref=e382] [cursor=pointer]:
+                              - /url: http://www.imdb.com/title/tt0057012/
+                            - text: )
+                      - row [ref=e383]:
+                        - cell [ref=e384]
+          - table [ref=e385]:
+            - rowgroup [ref=e386]:
+              - 'row "452 Bitcoin / Bitcoin Discussion / Re: Dr. Brian Goss''s A Brief Look at the Digitization of Money 1985-1999 Now Ready on: October 16, 2013, 12:23:42 AM Quote from: winnate on October 15, 2013, 04:54:28 AM Awesome I love these in-depth explanations! If there are any other good one''s send me some PM''s! I think this is of general interest (and thus worth a reply rather than a PM): I consider PGP a requisite skill that any serious Bitcoiner should know (although Gliph is 10x easier, it''s new, not open, and could require trust). Thus, I''d watch LECTURE 15 How to Use PGP for Secure Email Communications" [ref=e387]':
+                - 'cell "452 Bitcoin / Bitcoin Discussion / Re: Dr. Brian Goss''s A Brief Look at the Digitization of Money 1985-1999 Now Ready on: October 16, 2013, 12:23:42 AM Quote from: winnate on October 15, 2013, 04:54:28 AM Awesome I love these in-depth explanations! If there are any other good one''s send me some PM''s! I think this is of general interest (and thus worth a reply rather than a PM): I consider PGP a requisite skill that any serious Bitcoiner should know (although Gliph is 10x easier, it''s new, not open, and could require trust). Thus, I''d watch LECTURE 15 How to Use PGP for Secure Email Communications" [ref=e388]':
+                  - table [ref=e389]:
+                    - rowgroup [ref=e390]:
+                      - 'row "452 Bitcoin / Bitcoin Discussion / Re: Dr. Brian Goss''s A Brief Look at the Digitization of Money 1985-1999 Now Ready on: October 16, 2013, 12:23:42 AM" [ref=e391]':
+                        - cell "452" [ref=e392]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Dr. Brian Goss''s A Brief Look at the Digitization of Money 1985-1999 Now Ready" [ref=e393]':
+                          - link "Bitcoin" [ref=e394] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e395] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Dr. Brian Goss''s A Brief Look at the Digitization of Money 1985-1999 Now Ready" [ref=e396] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=246706.msg3345840#msg3345840
+                        - 'cell "on: October 16, 2013, 12:23:42 AM" [ref=e397]'
+                  - table [ref=e398]:
+                    - rowgroup [ref=e399]:
+                      - 'row "Quote from: winnate on October 15, 2013, 04:54:28 AM Awesome I love these in-depth explanations! If there are any other good one''s send me some PM''s! I think this is of general interest (and thus worth a reply rather than a PM): I consider PGP a requisite skill that any serious Bitcoiner should know (although Gliph is 10x easier, it''s new, not open, and could require trust). Thus, I''d watch LECTURE 15 How to Use PGP for Secure Email Communications" [ref=e400]':
+                        - 'cell "Quote from: winnate on October 15, 2013, 04:54:28 AM Awesome I love these in-depth explanations! If there are any other good one''s send me some PM''s! I think this is of general interest (and thus worth a reply rather than a PM): I consider PGP a requisite skill that any serious Bitcoiner should know (although Gliph is 10x easier, it''s new, not open, and could require trust). Thus, I''d watch LECTURE 15 How to Use PGP for Secure Email Communications" [ref=e401]':
+                          - generic [ref=e402]:
+                            - 'link "Quote from: winnate on October 15, 2013, 04:54:28 AM" [ref=e404] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=246706.msg3340159#msg3340159
+                            - generic [ref=e405]: Awesome I love these in-depth explanations! If there are any other good one's send me some PM's!
+                            - text: "I think this is of general interest (and thus worth a reply rather than a PM):"
+                            - text: I consider PGP a requisite skill that any serious Bitcoiner should know (although Gliph is 10x easier, it's new, not open, and could require trust). Thus, I'd watch
+                            - link "LECTURE 15 How to Use PGP for Secure Email Communications" [ref=e406] [cursor=pointer]:
+                              - /url: https://www.udemy.com/bitcoin-or-how-i-learned-to-stop-worrying-and-love-crypto/#lecture/374504
+                      - row [ref=e407]:
+                        - cell [ref=e408]
+          - table [ref=e409]:
+            - rowgroup [ref=e410]:
+              - 'row "453 Bitcoin / Bitcoin Discussion / Re: How did you get your first bitcoin? on: October 15, 2013, 02:56:30 AM Bitcoin Faucet...then I started mining the old fashion way...cpu..." [ref=e411]':
+                - 'cell "453 Bitcoin / Bitcoin Discussion / Re: How did you get your first bitcoin? on: October 15, 2013, 02:56:30 AM Bitcoin Faucet...then I started mining the old fashion way...cpu..." [ref=e412]':
+                  - table [ref=e413]:
+                    - rowgroup [ref=e414]:
+                      - 'row "453 Bitcoin / Bitcoin Discussion / Re: How did you get your first bitcoin? on: October 15, 2013, 02:56:30 AM" [ref=e415]':
+                        - cell "453" [ref=e416]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: How did you get your first bitcoin?" [ref=e417]':
+                          - link "Bitcoin" [ref=e418] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e419] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: How did you get your first bitcoin?" [ref=e420] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=310655.msg3339809#msg3339809
+                        - 'cell "on: October 15, 2013, 02:56:30 AM" [ref=e421]'
+                  - table [ref=e422]:
+                    - rowgroup [ref=e423]:
+                      - row "Bitcoin Faucet...then I started mining the old fashion way...cpu..." [ref=e424]:
+                        - cell "Bitcoin Faucet...then I started mining the old fashion way...cpu..." [ref=e425]:
+                          - generic [ref=e426]: Bitcoin Faucet...then I started mining the old fashion way...cpu...
+                      - row [ref=e427]:
+                        - cell [ref=e428]
+          - table [ref=e429]:
+            - rowgroup [ref=e430]:
+              - 'row "454 Bitcoin / Bitcoin Discussion / Re: Dr. Brian Goss''s A Brief Look at the Digitization of Money 1985-1999 Now Ready on: October 15, 2013, 02:40:34 AM Hello All, I''ve got two new lectures up on udemy with the Bitcoin Education Project (http://btcedproject.org): Quote New Lectures from Dr. Brian Goss: Lecture 17: GLIPH: Encrypted Instant Messaging and Bitcoin Payments Lecture 38: Brian Goss: A Brief Look at the Digitization of Money: 1985-199, Part 2" [ref=e431]':
+                - 'cell "454 Bitcoin / Bitcoin Discussion / Re: Dr. Brian Goss''s A Brief Look at the Digitization of Money 1985-1999 Now Ready on: October 15, 2013, 02:40:34 AM Hello All, I''ve got two new lectures up on udemy with the Bitcoin Education Project (http://btcedproject.org): Quote New Lectures from Dr. Brian Goss: Lecture 17: GLIPH: Encrypted Instant Messaging and Bitcoin Payments Lecture 38: Brian Goss: A Brief Look at the Digitization of Money: 1985-199, Part 2" [ref=e432]':
+                  - table [ref=e433]:
+                    - rowgroup [ref=e434]:
+                      - 'row "454 Bitcoin / Bitcoin Discussion / Re: Dr. Brian Goss''s A Brief Look at the Digitization of Money 1985-1999 Now Ready on: October 15, 2013, 02:40:34 AM" [ref=e435]':
+                        - cell "454" [ref=e436]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Dr. Brian Goss''s A Brief Look at the Digitization of Money 1985-1999 Now Ready" [ref=e437]':
+                          - link "Bitcoin" [ref=e438] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e439] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Dr. Brian Goss''s A Brief Look at the Digitization of Money 1985-1999 Now Ready" [ref=e440] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=246706.msg3339771#msg3339771
+                        - 'cell "on: October 15, 2013, 02:40:34 AM" [ref=e441]'
+                  - table [ref=e442]:
+                    - rowgroup [ref=e443]:
+                      - 'row "Hello All, I''ve got two new lectures up on udemy with the Bitcoin Education Project (http://btcedproject.org): Quote New Lectures from Dr. Brian Goss: Lecture 17: GLIPH: Encrypted Instant Messaging and Bitcoin Payments Lecture 38: Brian Goss: A Brief Look at the Digitization of Money: 1985-199, Part 2" [ref=e444]':
+                        - 'cell "Hello All, I''ve got two new lectures up on udemy with the Bitcoin Education Project (http://btcedproject.org): Quote New Lectures from Dr. Brian Goss: Lecture 17: GLIPH: Encrypted Instant Messaging and Bitcoin Payments Lecture 38: Brian Goss: A Brief Look at the Digitization of Money: 1985-199, Part 2" [ref=e445]':
+                          - generic [ref=e446]:
+                            - text: Hello All,
+                            - text: I've
+                            - link "got two new lectures up on udemy" [ref=e447] [cursor=pointer]:
+                              - /url: https://www.udemy.com/bitcoin-or-how-i-learned-to-stop-worrying-and-love-crypto/
+                            - text: with the Bitcoin Education Project (
+                            - link "http://btcedproject.org" [ref=e448] [cursor=pointer]:
+                              - /url: http://"btcedproject.org"
+                            - text: "):"
+                            - generic [ref=e449]: Quote
+                            - generic [ref=e450]:
+                              - generic [ref=e451]: "New Lectures from Dr. Brian Goss:"
+                              - generic [ref=e452]: "Lecture 17: GLIPH: Encrypted Instant Messaging and Bitcoin Payments"
+                              - generic [ref=e454]: "Lecture 38: Brian Goss: A Brief Look at the Digitization of Money: 1985-199, Part 2"
+                      - row [ref=e455]:
+                        - cell [ref=e456]
+          - table [ref=e457]:
+            - rowgroup [ref=e458]:
+              - 'row "455 Bitcoin / Bitcoin Discussion / Re: Bitcoin is way behind at mobile payments on: October 14, 2013, 03:35:12 AM Quote from: Seth Otterstad on October 14, 2013, 01:16:36 AM Last I checked, Glyph was closed source, so it is not secure and you cannot use it to replace PGP. The interface seems good for sending bitcoins to friends though. Closed != insecure And yes, I rarely use PGP anymore...it was a PITA to begin with." [ref=e459]':
+                - 'cell "455 Bitcoin / Bitcoin Discussion / Re: Bitcoin is way behind at mobile payments on: October 14, 2013, 03:35:12 AM Quote from: Seth Otterstad on October 14, 2013, 01:16:36 AM Last I checked, Glyph was closed source, so it is not secure and you cannot use it to replace PGP. The interface seems good for sending bitcoins to friends though. Closed != insecure And yes, I rarely use PGP anymore...it was a PITA to begin with." [ref=e460]':
+                  - table [ref=e461]:
+                    - rowgroup [ref=e462]:
+                      - 'row "455 Bitcoin / Bitcoin Discussion / Re: Bitcoin is way behind at mobile payments on: October 14, 2013, 03:35:12 AM" [ref=e463]':
+                        - cell "455" [ref=e464]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Bitcoin is way behind at mobile payments" [ref=e465]':
+                          - link "Bitcoin" [ref=e466] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e467] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Bitcoin is way behind at mobile payments" [ref=e468] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=309808.msg3333888#msg3333888
+                        - 'cell "on: October 14, 2013, 03:35:12 AM" [ref=e469]'
+                  - table [ref=e470]:
+                    - rowgroup [ref=e471]:
+                      - 'row "Quote from: Seth Otterstad on October 14, 2013, 01:16:36 AM Last I checked, Glyph was closed source, so it is not secure and you cannot use it to replace PGP. The interface seems good for sending bitcoins to friends though. Closed != insecure And yes, I rarely use PGP anymore...it was a PITA to begin with." [ref=e472]':
+                        - 'cell "Quote from: Seth Otterstad on October 14, 2013, 01:16:36 AM Last I checked, Glyph was closed source, so it is not secure and you cannot use it to replace PGP. The interface seems good for sending bitcoins to friends though. Closed != insecure And yes, I rarely use PGP anymore...it was a PITA to begin with." [ref=e473]':
+                          - generic [ref=e474]:
+                            - 'link "Quote from: Seth Otterstad on October 14, 2013, 01:16:36 AM" [ref=e476] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=309808.msg3333359#msg3333359
+                            - generic [ref=e477]: Last I checked, Glyph was closed source, so it is not secure and you cannot use it to replace PGP. The interface seems good for sending bitcoins to friends though.
+                            - text: Closed != insecure
+                            - text: And yes, I rarely use PGP anymore...it was a PITA to begin with.
+                      - row [ref=e478]:
+                        - cell [ref=e479]
+          - table [ref=e480]:
+            - rowgroup [ref=e481]:
+              - 'row "456 Bitcoin / Bitcoin Discussion / Re: [ANN] Bitcoin blockchain data torrent on: October 14, 2013, 02:47:57 AM Wow that was fast...I''m a new seed (5 Mbit/s up)..." [ref=e482]':
+                - 'cell "456 Bitcoin / Bitcoin Discussion / Re: [ANN] Bitcoin blockchain data torrent on: October 14, 2013, 02:47:57 AM Wow that was fast...I''m a new seed (5 Mbit/s up)..." [ref=e483]':
+                  - table [ref=e484]:
+                    - rowgroup [ref=e485]:
+                      - 'row "456 Bitcoin / Bitcoin Discussion / Re: [ANN] Bitcoin blockchain data torrent on: October 14, 2013, 02:47:57 AM" [ref=e486]':
+                        - cell "456" [ref=e487]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: [ANN] Bitcoin blockchain data torrent" [ref=e488]':
+                          - link "Bitcoin" [ref=e489] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e490] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: [ANN] Bitcoin blockchain data torrent" [ref=e491] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=145386.msg3333720#msg3333720
+                        - 'cell "on: October 14, 2013, 02:47:57 AM" [ref=e492]'
+                  - table [ref=e493]:
+                    - rowgroup [ref=e494]:
+                      - row "Wow that was fast...I'm a new seed (5 Mbit/s up)..." [ref=e495]:
+                        - cell "Wow that was fast...I'm a new seed (5 Mbit/s up)..." [ref=e496]:
+                          - generic [ref=e497]: Wow that was fast...I'm a new seed (5 Mbit/s up)...
+                      - row [ref=e498]:
+                        - cell [ref=e499]
+          - table [ref=e500]:
+            - rowgroup [ref=e501]:
+              - 'row "457 Bitcoin / Bitcoin Discussion / Re: Bitcoin is way behind at mobile payments on: October 13, 2013, 11:12:46 PM Quote from: Hfleer on October 13, 2013, 09:26:51 PM Quote from: bg002h on October 13, 2013, 07:22:41 PM Y''all gotta see Gliph. There''s a web version and an android version in addition to the iOS version pictured below...But Gliph is about way more than sending bitcoins easily...ever send a secure text message? With Gliph you can, and it''s free. It''s basically replaced pgp amongst my important contacts. That looks good. I have mycellium right now only, but don''t use it much. Mycellium? I had to google it (I''m not an android guy...yet...mycellium looks cool)....to me mycellium is something I write a prescription to treat Smiley" [ref=e502]':
+                - 'cell "457 Bitcoin / Bitcoin Discussion / Re: Bitcoin is way behind at mobile payments on: October 13, 2013, 11:12:46 PM Quote from: Hfleer on October 13, 2013, 09:26:51 PM Quote from: bg002h on October 13, 2013, 07:22:41 PM Y''all gotta see Gliph. There''s a web version and an android version in addition to the iOS version pictured below...But Gliph is about way more than sending bitcoins easily...ever send a secure text message? With Gliph you can, and it''s free. It''s basically replaced pgp amongst my important contacts. That looks good. I have mycellium right now only, but don''t use it much. Mycellium? I had to google it (I''m not an android guy...yet...mycellium looks cool)....to me mycellium is something I write a prescription to treat Smiley" [ref=e503]':
+                  - table [ref=e504]:
+                    - rowgroup [ref=e505]:
+                      - 'row "457 Bitcoin / Bitcoin Discussion / Re: Bitcoin is way behind at mobile payments on: October 13, 2013, 11:12:46 PM" [ref=e506]':
+                        - cell "457" [ref=e507]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Bitcoin is way behind at mobile payments" [ref=e508]':
+                          - link "Bitcoin" [ref=e509] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e510] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Bitcoin is way behind at mobile payments" [ref=e511] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=309808.msg3332862#msg3332862
+                        - 'cell "on: October 13, 2013, 11:12:46 PM" [ref=e512]'
+                  - table [ref=e513]:
+                    - rowgroup [ref=e514]:
+                      - 'row "Quote from: Hfleer on October 13, 2013, 09:26:51 PM Quote from: bg002h on October 13, 2013, 07:22:41 PM Y''all gotta see Gliph. There''s a web version and an android version in addition to the iOS version pictured below...But Gliph is about way more than sending bitcoins easily...ever send a secure text message? With Gliph you can, and it''s free. It''s basically replaced pgp amongst my important contacts. That looks good. I have mycellium right now only, but don''t use it much. Mycellium? I had to google it (I''m not an android guy...yet...mycellium looks cool)....to me mycellium is something I write a prescription to treat Smiley" [ref=e515]':
+                        - 'cell "Quote from: Hfleer on October 13, 2013, 09:26:51 PM Quote from: bg002h on October 13, 2013, 07:22:41 PM Y''all gotta see Gliph. There''s a web version and an android version in addition to the iOS version pictured below...But Gliph is about way more than sending bitcoins easily...ever send a secure text message? With Gliph you can, and it''s free. It''s basically replaced pgp amongst my important contacts. That looks good. I have mycellium right now only, but don''t use it much. Mycellium? I had to google it (I''m not an android guy...yet...mycellium looks cool)....to me mycellium is something I write a prescription to treat Smiley" [ref=e516]':
+                          - generic [ref=e517]:
+                            - 'link "Quote from: Hfleer on October 13, 2013, 09:26:51 PM" [ref=e519] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=309808.msg3332342#msg3332342
+                            - generic [ref=e520]:
+                              - 'link "Quote from: bg002h on October 13, 2013, 07:22:41 PM" [ref=e522] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=309808.msg3331758#msg3331758
+                              - generic [ref=e523]:
+                                - text: Y'all gotta see
+                                - link "Gliph" [ref=e524] [cursor=pointer]:
+                                  - /url: https://gli.ph/m
+                                - text: . There's a web version and an android version in addition to the iOS version pictured below...But Gliph is about way more than sending bitcoins easily...ever send a secure text message? With Gliph you can, and it's free. It's basically replaced pgp amongst my important contacts.
+                              - text: That looks good. I have mycellium right now only, but don't use it much.
+                            - text: Mycellium? I had to google it (I'm not an android guy...yet...mycellium looks cool)....to me mycellium is something I write a prescription to treat
+                            - img "Smiley" [ref=e525]
+                      - row [ref=e526]:
+                        - cell [ref=e527]
+          - table [ref=e528]:
+            - rowgroup [ref=e529]:
+              - 'row "458 Bitcoin / Bitcoin Discussion / Re: Bitcoin is way behind at mobile payments on: October 13, 2013, 07:22:41 PM Y''all gotta see Gliph. There''s a web version and an android version in addition to the iOS version pictured below...But Gliph is about way more than sending bitcoins easily...ever send a secure text message? With Gliph you can, and it''s free. It''s basically replaced pgp amongst my important contacts." [ref=e530]':
+                - 'cell "458 Bitcoin / Bitcoin Discussion / Re: Bitcoin is way behind at mobile payments on: October 13, 2013, 07:22:41 PM Y''all gotta see Gliph. There''s a web version and an android version in addition to the iOS version pictured below...But Gliph is about way more than sending bitcoins easily...ever send a secure text message? With Gliph you can, and it''s free. It''s basically replaced pgp amongst my important contacts." [ref=e531]':
+                  - table [ref=e532]:
+                    - rowgroup [ref=e533]:
+                      - 'row "458 Bitcoin / Bitcoin Discussion / Re: Bitcoin is way behind at mobile payments on: October 13, 2013, 07:22:41 PM" [ref=e534]':
+                        - cell "458" [ref=e535]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Bitcoin is way behind at mobile payments" [ref=e536]':
+                          - link "Bitcoin" [ref=e537] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e538] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Bitcoin is way behind at mobile payments" [ref=e539] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=309808.msg3331758#msg3331758
+                        - 'cell "on: October 13, 2013, 07:22:41 PM" [ref=e540]'
+                  - table [ref=e541]:
+                    - rowgroup [ref=e542]:
+                      - row "Y'all gotta see Gliph. There's a web version and an android version in addition to the iOS version pictured below...But Gliph is about way more than sending bitcoins easily...ever send a secure text message? With Gliph you can, and it's free. It's basically replaced pgp amongst my important contacts." [ref=e543]:
+                        - cell "Y'all gotta see Gliph. There's a web version and an android version in addition to the iOS version pictured below...But Gliph is about way more than sending bitcoins easily...ever send a secure text message? With Gliph you can, and it's free. It's basically replaced pgp amongst my important contacts." [ref=e544]:
+                          - generic [ref=e545]:
+                            - text: Y'all gotta see
+                            - link "Gliph" [ref=e546] [cursor=pointer]:
+                              - /url: https://gli.ph/m
+                            - text: . There's a web version and an android version in addition to the iOS version pictured below...But Gliph is about way more than sending bitcoins easily...ever send a secure text message? With Gliph you can, and it's free. It's basically replaced pgp amongst my important contacts.
+                            - link [ref=e547] [cursor=pointer]:
+                              - /url: https://gli.ph/m
+                            - link [ref=e548] [cursor=pointer]:
+                              - /url: https://gli.ph/m
+                      - row [ref=e549]:
+                        - cell [ref=e550]
+          - table [ref=e551]:
+            - rowgroup [ref=e552]:
+              - 'row "459 Bitcoin / Bitcoin Discussion / Re: [ANN] Australian Bitcoin Foundation on: October 11, 2013, 03:25:42 AM Quote from: jubalix on October 10, 2013, 09:35:46 AM Quote from: bg002h on October 10, 2013, 12:42:30 AM Would you be interested in a startup kit from the Bitcoin Foundation? (Not that one exists, but maybe we should package a web site, forum, customizable logos, mail server, etc for use with a virtual server...this way localized foundations could assemble and organize quickly). Yes this sounds like an excellent idea! I''ll float the idea and see if it gains any traction. I''ll ping Elizabeth as I think it''s right up her alley." [ref=e553]':
+                - 'cell "459 Bitcoin / Bitcoin Discussion / Re: [ANN] Australian Bitcoin Foundation on: October 11, 2013, 03:25:42 AM Quote from: jubalix on October 10, 2013, 09:35:46 AM Quote from: bg002h on October 10, 2013, 12:42:30 AM Would you be interested in a startup kit from the Bitcoin Foundation? (Not that one exists, but maybe we should package a web site, forum, customizable logos, mail server, etc for use with a virtual server...this way localized foundations could assemble and organize quickly). Yes this sounds like an excellent idea! I''ll float the idea and see if it gains any traction. I''ll ping Elizabeth as I think it''s right up her alley." [ref=e554]':
+                  - table [ref=e555]:
+                    - rowgroup [ref=e556]:
+                      - 'row "459 Bitcoin / Bitcoin Discussion / Re: [ANN] Australian Bitcoin Foundation on: October 11, 2013, 03:25:42 AM" [ref=e557]':
+                        - cell "459" [ref=e558]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: [ANN] Australian Bitcoin Foundation" [ref=e559]':
+                          - link "Bitcoin" [ref=e560] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e561] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: [ANN] Australian Bitcoin Foundation" [ref=e562] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=303970.msg3317194#msg3317194
+                        - 'cell "on: October 11, 2013, 03:25:42 AM" [ref=e563]'
+                  - table [ref=e564]:
+                    - rowgroup [ref=e565]:
+                      - 'row "Quote from: jubalix on October 10, 2013, 09:35:46 AM Quote from: bg002h on October 10, 2013, 12:42:30 AM Would you be interested in a startup kit from the Bitcoin Foundation? (Not that one exists, but maybe we should package a web site, forum, customizable logos, mail server, etc for use with a virtual server...this way localized foundations could assemble and organize quickly). Yes this sounds like an excellent idea! I''ll float the idea and see if it gains any traction. I''ll ping Elizabeth as I think it''s right up her alley." [ref=e566]':
+                        - 'cell "Quote from: jubalix on October 10, 2013, 09:35:46 AM Quote from: bg002h on October 10, 2013, 12:42:30 AM Would you be interested in a startup kit from the Bitcoin Foundation? (Not that one exists, but maybe we should package a web site, forum, customizable logos, mail server, etc for use with a virtual server...this way localized foundations could assemble and organize quickly). Yes this sounds like an excellent idea! I''ll float the idea and see if it gains any traction. I''ll ping Elizabeth as I think it''s right up her alley." [ref=e567]':
+                          - generic [ref=e568]:
+                            - 'link "Quote from: jubalix on October 10, 2013, 09:35:46 AM" [ref=e570] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=303970.msg3312125#msg3312125
+                            - generic [ref=e571]:
+                              - 'link "Quote from: bg002h on October 10, 2013, 12:42:30 AM" [ref=e573] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=303970.msg3310183#msg3310183
+                              - generic [ref=e574]: Would you be interested in a startup kit from the Bitcoin Foundation? (Not that one exists, but maybe we should package a web site, forum, customizable logos, mail server, etc for use with a virtual server...this way localized foundations could assemble and organize quickly).
+                              - text: Yes this sounds like an excellent idea!
+                            - text: I'll float the idea and see if it gains any traction. I'll ping Elizabeth as I think it's right up her alley.
+                      - row [ref=e575]:
+                        - cell [ref=e576]
+          - table [ref=e577]:
+            - rowgroup [ref=e578]:
+              - 'row "460 Bitcoin / Bitcoin Discussion / Re: [ANN] Australian Bitcoin Foundation on: October 10, 2013, 12:42:30 AM Would you be interested in a startup kit from the Bitcoin Foundation? (Not that one exists, but maybe we should package a web site, forum, customizable logos, mail server, etc for use with a virtual server...this way localized foundations could assemble and organize quickly)." [ref=e579]':
+                - 'cell "460 Bitcoin / Bitcoin Discussion / Re: [ANN] Australian Bitcoin Foundation on: October 10, 2013, 12:42:30 AM Would you be interested in a startup kit from the Bitcoin Foundation? (Not that one exists, but maybe we should package a web site, forum, customizable logos, mail server, etc for use with a virtual server...this way localized foundations could assemble and organize quickly)." [ref=e580]':
+                  - table [ref=e581]:
+                    - rowgroup [ref=e582]:
+                      - 'row "460 Bitcoin / Bitcoin Discussion / Re: [ANN] Australian Bitcoin Foundation on: October 10, 2013, 12:42:30 AM" [ref=e583]':
+                        - cell "460" [ref=e584]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: [ANN] Australian Bitcoin Foundation" [ref=e585]':
+                          - link "Bitcoin" [ref=e586] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e587] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: [ANN] Australian Bitcoin Foundation" [ref=e588] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=303970.msg3310183#msg3310183
+                        - 'cell "on: October 10, 2013, 12:42:30 AM" [ref=e589]'
+                  - table [ref=e590]:
+                    - rowgroup [ref=e591]:
+                      - row "Would you be interested in a startup kit from the Bitcoin Foundation? (Not that one exists, but maybe we should package a web site, forum, customizable logos, mail server, etc for use with a virtual server...this way localized foundations could assemble and organize quickly)." [ref=e592]:
+                        - cell "Would you be interested in a startup kit from the Bitcoin Foundation? (Not that one exists, but maybe we should package a web site, forum, customizable logos, mail server, etc for use with a virtual server...this way localized foundations could assemble and organize quickly)." [ref=e593]:
+                          - generic [ref=e594]: Would you be interested in a startup kit from the Bitcoin Foundation? (Not that one exists, but maybe we should package a web site, forum, customizable logos, mail server, etc for use with a virtual server...this way localized foundations could assemble and organize quickly).
+                      - row [ref=e595]:
+                        - cell [ref=e596]
+          - table [ref=e597]:
+            - rowgroup [ref=e598]:
+              - 'row "Pages: « 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 [23] 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 »" [ref=e599]':
+                - 'cell "Pages: « 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 [23] 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 »" [ref=e600]':
+                  - text: "Pages:"
+                  - link "«" [ref=e602] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=420
+                  - link "1" [ref=e603] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=0
+                  - link "2" [ref=e604] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=20
+                  - link "3" [ref=e605] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=40
+                  - link "4" [ref=e606] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=60
+                  - link "5" [ref=e607] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=80
+                  - link "6" [ref=e608] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=100
+                  - link "7" [ref=e609] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=120
+                  - link "8" [ref=e610] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=140
+                  - link "9" [ref=e611] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=160
+                  - link "10" [ref=e612] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=180
+                  - link "11" [ref=e613] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=200
+                  - link "12" [ref=e614] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=220
+                  - link "13" [ref=e615] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=240
+                  - link "14" [ref=e616] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=260
+                  - link "15" [ref=e617] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=280
+                  - link "16" [ref=e618] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=300
+                  - link "17" [ref=e619] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=320
+                  - link "18" [ref=e620] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=340
+                  - link "19" [ref=e621] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=360
+                  - link "20" [ref=e622] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=380
+                  - link "21" [ref=e623] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=400
+                  - link "22" [ref=e624] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=420
+                  - text: "[23]"
+                  - link "24" [ref=e625] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=460
+                  - link "25" [ref=e626] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=480
+                  - link "26" [ref=e627] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=500
+                  - link "27" [ref=e628] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=520
+                  - link "28" [ref=e629] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=540
+                  - link "29" [ref=e630] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=560
+                  - link "30" [ref=e631] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=580
+                  - link "31" [ref=e632] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=600
+                  - link "32" [ref=e633] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=620
+                  - link "33" [ref=e634] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=640
+                  - link "34" [ref=e635] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=660
+                  - link "35" [ref=e636] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=680
+                  - link "36" [ref=e637] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=700
+                  - link "37" [ref=e638] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=720
+                  - link "38" [ref=e639] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=740
+                  - link "39" [ref=e640] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=760
+                  - link "40" [ref=e641] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=780
+                  - link "41" [ref=e642] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=800
+                  - link "42" [ref=e643] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=820
+                  - link "43" [ref=e644] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=840
+                  - link "44" [ref=e645] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=860
+                  - link "45" [ref=e646] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=880
+                  - link "46" [ref=e647] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=900
+                  - link "47" [ref=e648] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=920
+                  - link "48" [ref=e649] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=940
+                  - link "49" [ref=e650] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=960
+                  - link "50" [ref=e651] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=980
+                  - link "51" [ref=e652] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1000
+                  - link "52" [ref=e653] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1020
+                  - link "53" [ref=e654] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1040
+                  - link "54" [ref=e655] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1060
+                  - link "55" [ref=e656] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1080
+                  - link "56" [ref=e657] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1100
+                  - link "57" [ref=e658] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1120
+                  - link "58" [ref=e659] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1140
+                  - link "59" [ref=e660] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1160
+                  - link "60" [ref=e661] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1180
+                  - link "61" [ref=e662] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1200
+                  - link "62" [ref=e663] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1220
+                  - link "63" [ref=e664] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1240
+                  - link "64" [ref=e665] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1260
+                  - link "65" [ref=e666] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1280
+                  - link "66" [ref=e667] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1300
+                  - link "67" [ref=e668] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1320
+                  - link "68" [ref=e669] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1340
+                  - link "69" [ref=e670] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1360
+                  - link "»" [ref=e672] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=460
+  - table [ref=e674]:
+    - rowgroup [ref=e675]:
+      - row "Powered by MySQL Powered by PHP Powered by SMF 1.1.19 | SMF © 2006-2009, Simple Machines Valid XHTML 1.0! Valid CSS!" [ref=e676]:
+        - cell "Powered by MySQL Powered by PHP" [ref=e677]:
+          - link "Powered by MySQL" [ref=e678] [cursor=pointer]:
+            - /url: http://www.mysql.com/
+            - img "Powered by MySQL" [ref=e679]
+          - link "Powered by PHP" [ref=e680] [cursor=pointer]:
+            - /url: http://www.php.net/
+            - img "Powered by PHP" [ref=e681]
+        - cell "Powered by SMF 1.1.19 | SMF © 2006-2009, Simple Machines" [ref=e682]:
+          - generic [ref=e683]:
+            - link "Powered by SMF 1.1.19" [ref=e684] [cursor=pointer]:
+              - /url: http://www.simplemachines.org/
+            - text: "|"
+            - link "SMF © 2006-2009, Simple Machines" [ref=e685] [cursor=pointer]:
+              - /url: http://www.simplemachines.org/about/copyright.php
+        - cell "Valid XHTML 1.0! Valid CSS!" [ref=e686]:
+          - link "Valid XHTML 1.0!" [ref=e687] [cursor=pointer]:
+            - /url: http://validator.w3.org/check/referer
+            - img "Valid XHTML 1.0!" [ref=e688]
+          - link "Valid CSS!" [ref=e689] [cursor=pointer]:
+            - /url: http://jigsaw.w3.org/css-validator/check/referer
+            - img "Valid CSS!" [ref=e690]

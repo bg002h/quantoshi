@@ -1,0 +1,1612 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - table [ref=e3]:
+      - rowgroup [ref=e4]:
+        - row "Bitcoin Forum" [ref=e5]:
+          - cell "Bitcoin Forum" [ref=e6]
+          - cell [ref=e7]
+    - table [ref=e8]:
+      - rowgroup [ref=e9]:
+        - row "April 03, 2026, 03:52:06 PM *" [ref=e10]:
+          - cell "April 03, 2026, 03:52:06 PM *" [ref=e11]:
+            - text: April 03, 2026, 03:52:06 PM
+            - link "*" [ref=e12] [cursor=pointer]:
+              - /url: "#"
+              - img "*" [ref=e13]
+        - row "Welcome, Guest. Please login or register." [ref=e14]:
+          - cell "Welcome, Guest. Please login or register." [ref=e15]:
+            - table [ref=e16]:
+              - rowgroup [ref=e17]:
+                - row "Welcome, Guest. Please login or register." [ref=e18]:
+                  - cell "Welcome, Guest. Please login or register." [ref=e19]:
+                    - generic [ref=e20]:
+                      - text: Welcome, Guest. Please
+                      - link "login" [ref=e21] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=login
+                      - text: or
+                      - link "register" [ref=e22] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=register
+                      - text: .
+    - table [ref=e23]:
+      - rowgroup [ref=e24]:
+        - 'row "News: Latest Bitcoin Core release: 30.2 [Torrent] Search" [ref=e25]':
+          - 'cell "News: Latest Bitcoin Core release: 30.2 [Torrent]" [ref=e26]':
+            - generic [ref=e27]:
+              - text: "News: Latest Bitcoin Core release:"
+              - link "30.2" [ref=e28] [cursor=pointer]:
+                - /url: https://bitcoincore.org/en/download/
+              - text: "["
+              - link "Torrent" [ref=e29] [cursor=pointer]:
+                - /url: https://bitcointalk.org/bitcoin-30.2.torrent
+              - text: "]"
+          - cell "Search" [ref=e30]:
+            - generic [ref=e31]:
+              - link [ref=e32] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?action=search;advanced
+              - textbox [ref=e33]
+              - button "Search" [ref=e34]
+  - table [ref=e35]:
+    - rowgroup [ref=e36]:
+      - row "Home Help Search Login Register More" [ref=e37]:
+        - cell [ref=e38]
+        - cell [ref=e39]
+        - cell "Home" [ref=e40]:
+          - link "Home" [ref=e41] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php
+        - cell [ref=e42]
+        - cell "Help" [ref=e43]:
+          - link "Help" [ref=e44] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=help
+        - cell "Search" [ref=e45]:
+          - link "Search" [ref=e46] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=search
+        - cell "Login" [ref=e47]:
+          - link "Login" [ref=e48] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=login
+        - cell "Register" [ref=e49]:
+          - link "Register" [ref=e50] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=register
+        - cell "More" [ref=e51]:
+          - link "More" [ref=e52] [cursor=pointer]:
+            - /url: /more.php
+        - cell [ref=e53]
+  - generic [ref=e54]:
+    - generic [ref=e56]:
+      - link "Bitcoin Forum" [ref=e58] [cursor=pointer]:
+        - /url: https://bitcointalk.org/index.php
+      - text: ">"
+      - link "Bitcoin" [ref=e60] [cursor=pointer]:
+        - /url: https://bitcointalk.org/index.php#1
+      - text: ">"
+      - link "Bitcoin Discussion" [ref=e62] [cursor=pointer]:
+        - /url: https://bitcointalk.org/index.php?board=1.0
+      - text: ">"
+      - link "Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e64]:
+        - /url: https://bitcointalk.org/index.php?topic=913145.0
+    - table [ref=e65]:
+      - rowgroup [ref=e66]:
+        - 'row "Pages: [1] 2 3 4 5 6 » All « previous topic next topic » Print" [ref=e67]':
+          - 'cell "Pages: [1] 2 3 4 5 6 » All" [ref=e68]':
+            - text: "Pages: [1]"
+            - link "2" [ref=e69] [cursor=pointer]:
+              - /url: https://bitcointalk.org/index.php?topic=913145.20
+            - link "3" [ref=e70] [cursor=pointer]:
+              - /url: https://bitcointalk.org/index.php?topic=913145.40
+            - link "4" [ref=e71] [cursor=pointer]:
+              - /url: https://bitcointalk.org/index.php?topic=913145.60
+            - link "5" [ref=e72] [cursor=pointer]:
+              - /url: https://bitcointalk.org/index.php?topic=913145.80
+            - link "6" [ref=e73] [cursor=pointer]:
+              - /url: https://bitcointalk.org/index.php?topic=913145.100
+            - link "»" [ref=e75] [cursor=pointer]:
+              - /url: https://bitcointalk.org/index.php?topic=913145.20
+            - link "All" [ref=e76] [cursor=pointer]:
+              - /url: https://bitcointalk.org/index.php?topic=913145.0;all
+          - cell "« previous topic next topic » Print" [ref=e77]:
+            - generic [ref=e78]:
+              - link "« previous topic" [ref=e79] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=913145.0;prev_next=prev#new
+              - link "next topic »" [ref=e80] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=913145.0;prev_next=next#new
+            - table [ref=e81]:
+              - rowgroup [ref=e82]:
+                - row "Print" [ref=e83]:
+                  - cell "Print" [ref=e84]:
+                    - link "Print" [ref=e85] [cursor=pointer]:
+                      - /url: https://bitcointalk.org/index.php?action=printpage;topic=913145.0
+    - table [ref=e86]:
+      - rowgroup [ref=e87]:
+        - 'row "Author Topic: Started getting paid 100% in Bitcoin starting with my last paycheck (Read 7129 times)" [ref=e88]':
+          - cell [ref=e89]
+          - cell "Author" [ref=e90]
+          - 'cell "Topic: Started getting paid 100% in Bitcoin starting with my last paycheck (Read 7129 times)" [ref=e91]'
+    - generic [ref=e92]:
+      - table [ref=e93]:
+        - rowgroup [ref=e94]:
+          - row [ref=e95]:
+            - cell [ref=e96]:
+              - table [ref=e97]:
+                - rowgroup [ref=e98]:
+                  - row [ref=e99]:
+                    - cell [ref=e100]:
+                      - table [ref=e101]:
+                        - rowgroup [ref=e102]:
+                          - 'row "Elwar (OP) Legendary * Activity: 3584 Merit: 2386 Viva Ut Vivas View Profile WWW Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:31:50 PM #1 I work for General Dynamics, a company that is suckling on the US government''s teet. They would never risk their sweet military industrial complex relationship with the government by accepting bitcoins. I use bitwage.co (I do not work for them, just happy that I can get paid in Bitcoin). I set up my direct deposit to the account number they provided me and my last paycheck it was all converted to bitcoins automatically. My bank never saw a penny of my paycheck. That is the first step in dumping my bank forever. For spending money I usually sell on localbitcoins for a profit anyway so I always have some cash on hand. And pretty much anything I want online can be paid in Bitcoin." [ref=e103]':
+                            - 'cell "Elwar (OP) Legendary * Activity: 3584 Merit: 2386 Viva Ut Vivas View Profile WWW" [ref=e104]':
+                              - link "Elwar" [ref=e106] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=554
+                              - text: (OP)
+                              - generic [ref=e107]:
+                                - text: Legendary
+                                - img "*" [ref=e108]
+                                - text: "Activity: 3584"
+                                - text: "Merit: 2386"
+                                - text: Viva Ut Vivas
+                                - link "View Profile" [ref=e110] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=554
+                                  - img "View Profile" [ref=e111]
+                                - link "WWW" [ref=e112] [cursor=pointer]:
+                                  - /url: https://ocean.builders
+                                  - img "WWW" [ref=e113]
+                            - 'cell "Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:31:50 PM #1 I work for General Dynamics, a company that is suckling on the US government''s teet. They would never risk their sweet military industrial complex relationship with the government by accepting bitcoins. I use bitwage.co (I do not work for them, just happy that I can get paid in Bitcoin). I set up my direct deposit to the account number they provided me and my last paycheck it was all converted to bitcoins automatically. My bank never saw a penny of my paycheck. That is the first step in dumping my bank forever. For spending money I usually sell on localbitcoins for a profit anyway so I always have some cash on hand. And pretty much anything I want online can be paid in Bitcoin." [ref=e114]':
+                              - table [ref=e115]:
+                                - rowgroup [ref=e116]:
+                                  - 'row "Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:31:50 PM #1" [ref=e117]':
+                                    - cell [ref=e118]:
+                                      - link [ref=e119] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026300#msg10026300
+                                    - cell "Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:31:50 PM" [ref=e120]:
+                                      - link "Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e122] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026300#msg10026300
+                                      - generic [ref=e123]: January 03, 2015, 08:31:50 PM
+                                    - cell "#1" [ref=e124]:
+                                      - link "#1" [ref=e126] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026300#msg10026300
+                              - separator [ref=e127]
+                              - generic [ref=e128]:
+                                - text: I work for General Dynamics, a company that is suckling on the US government's teet. They would never risk their sweet military industrial complex relationship with the government by accepting bitcoins.
+                                - text: I use bitwage.co (I do not work for them, just happy that I can get paid in Bitcoin).
+                                - text: I set up my direct deposit to the account number they provided me and my last paycheck it was all converted to bitcoins automatically. My bank never saw a penny of my paycheck.
+                                - text: That is the first step in dumping my bank forever.
+                                - text: For spending money I usually sell on localbitcoins for a profit anyway so I always have some cash on hand. And pretty much anything I want online can be paid in Bitcoin.
+                          - 'row "First seastead company actually selling sea homes: Ocean Builders https://ocean.builders Of course we accept bitcoin." [ref=e129]':
+                            - 'cell "First seastead company actually selling sea homes: Ocean Builders https://ocean.builders Of course we accept bitcoin." [ref=e130]':
+                              - table [ref=e131]:
+                                - rowgroup [ref=e132]:
+                                  - row [ref=e133]:
+                                    - cell [ref=e134]
+                                  - row [ref=e135]:
+                                    - cell [ref=e136]
+                                    - cell [ref=e137]
+                              - separator [ref=e138]
+                              - generic [ref=e139]:
+                                - text: "First seastead company actually selling sea homes: Ocean Builders"
+                                - link "https://ocean.builders" [ref=e140] [cursor=pointer]:
+                                  - /url: https://ocean.builders
+                                - text: Of course we accept bitcoin.
+          - 'row "Kipsy89 Sr. Member **** Activity: 280 Merit: 250 Relax! View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:36:17 PM #2 Interesting! Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! It is an interesting ride, but we should never forget about the volatile and experimental nature of this whole endeavour! ▓▓▓ BITMIXER.IO ▓▓▓▓▓▓ High Volume Bitcoin MIXER ▓▓▓" [ref=e141]':
+            - 'cell "Kipsy89 Sr. Member **** Activity: 280 Merit: 250 Relax! View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:36:17 PM #2 Interesting! Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! It is an interesting ride, but we should never forget about the volatile and experimental nature of this whole endeavour! ▓▓▓ BITMIXER.IO ▓▓▓▓▓▓ High Volume Bitcoin MIXER ▓▓▓" [ref=e142]':
+              - table [ref=e143]:
+                - rowgroup [ref=e144]:
+                  - 'row "Kipsy89 Sr. Member **** Activity: 280 Merit: 250 Relax! View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:36:17 PM #2 Interesting! Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! It is an interesting ride, but we should never forget about the volatile and experimental nature of this whole endeavour! ▓▓▓ BITMIXER.IO ▓▓▓▓▓▓ High Volume Bitcoin MIXER ▓▓▓" [ref=e145]':
+                    - 'cell "Kipsy89 Sr. Member **** Activity: 280 Merit: 250 Relax! View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:36:17 PM #2 Interesting! Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! It is an interesting ride, but we should never forget about the volatile and experimental nature of this whole endeavour! ▓▓▓ BITMIXER.IO ▓▓▓▓▓▓ High Volume Bitcoin MIXER ▓▓▓" [ref=e146]':
+                      - table [ref=e147]:
+                        - rowgroup [ref=e148]:
+                          - 'row "Kipsy89 Sr. Member **** Activity: 280 Merit: 250 Relax! View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:36:17 PM #2 Interesting! Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! It is an interesting ride, but we should never forget about the volatile and experimental nature of this whole endeavour!" [ref=e149]':
+                            - 'cell "Kipsy89 Sr. Member **** Activity: 280 Merit: 250 Relax! View Profile" [ref=e150]':
+                              - link "Kipsy89" [ref=e152] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=133157
+                              - generic [ref=e153]:
+                                - text: Sr. Member
+                                - img "*" [ref=e154]
+                                - img "*" [ref=e155]
+                                - img "*" [ref=e156]
+                                - img "*" [ref=e157]
+                                - text: "Activity: 280"
+                                - text: "Merit: 250"
+                                - text: Relax!
+                                - link "View Profile" [ref=e159] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=133157
+                                  - img "View Profile" [ref=e160]
+                            - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:36:17 PM #2 Interesting! Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! It is an interesting ride, but we should never forget about the volatile and experimental nature of this whole endeavour!" [ref=e161]':
+                              - table [ref=e162]:
+                                - rowgroup [ref=e163]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:36:17 PM #2" [ref=e164]':
+                                    - cell [ref=e165]:
+                                      - link [ref=e166] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026351#msg10026351
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:36:17 PM" [ref=e167]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e169] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026351#msg10026351
+                                      - generic [ref=e170]: January 03, 2015, 08:36:17 PM
+                                    - cell "#2" [ref=e171]:
+                                      - link "#2" [ref=e173] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026351#msg10026351
+                              - separator [ref=e174]
+                              - generic [ref=e175]: Interesting! Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! It is an interesting ride, but we should never forget about the volatile and experimental nature of this whole endeavour!
+                          - row "▓▓▓ BITMIXER.IO ▓▓▓▓▓▓ High Volume Bitcoin MIXER ▓▓▓" [ref=e176]:
+                            - cell "▓▓▓ BITMIXER.IO ▓▓▓▓▓▓ High Volume Bitcoin MIXER ▓▓▓" [ref=e177]:
+                              - table [ref=e178]:
+                                - rowgroup [ref=e179]:
+                                  - row [ref=e180]:
+                                    - cell [ref=e181]
+                                  - row [ref=e182]:
+                                    - cell [ref=e183]
+                                    - cell [ref=e184]
+                              - separator [ref=e185]
+                              - link "▓▓▓ BITMIXER.IO ▓▓▓▓▓▓ High Volume Bitcoin MIXER ▓▓▓" [ref=e188] [cursor=pointer]:
+                                - /url: https://bitmixer.io
+                                - generic [ref=e190]: ▓▓▓ BITMIXER.IO ▓▓▓▓▓▓ High Volume Bitcoin MIXER ▓▓▓
+          - 'row "ncsupanda Legendary * Activity: 1625 Merit: 1014 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:38:57 PM #3 Bitwage has always been interesting to me - I am planning a job with them over the summer and I''m curious about your overall experience and if you have any suggestions about the service you received." [ref=e191]':
+            - 'cell "ncsupanda Legendary * Activity: 1625 Merit: 1014 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:38:57 PM #3 Bitwage has always been interesting to me - I am planning a job with them over the summer and I''m curious about your overall experience and if you have any suggestions about the service you received." [ref=e192]':
+              - table [ref=e193]:
+                - rowgroup [ref=e194]:
+                  - 'row "ncsupanda Legendary * Activity: 1625 Merit: 1014 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:38:57 PM #3 Bitwage has always been interesting to me - I am planning a job with them over the summer and I''m curious about your overall experience and if you have any suggestions about the service you received." [ref=e195]':
+                    - 'cell "ncsupanda Legendary * Activity: 1625 Merit: 1014 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:38:57 PM #3 Bitwage has always been interesting to me - I am planning a job with them over the summer and I''m curious about your overall experience and if you have any suggestions about the service you received." [ref=e196]':
+                      - table [ref=e197]:
+                        - rowgroup [ref=e198]:
+                          - 'row "ncsupanda Legendary * Activity: 1625 Merit: 1014 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:38:57 PM #3 Bitwage has always been interesting to me - I am planning a job with them over the summer and I''m curious about your overall experience and if you have any suggestions about the service you received." [ref=e199]':
+                            - 'cell "ncsupanda Legendary * Activity: 1625 Merit: 1014 View Profile" [ref=e200]':
+                              - link "ncsupanda" [ref=e202] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=194052
+                              - generic [ref=e203]:
+                                - text: Legendary
+                                - img "*" [ref=e204]
+                                - text: "Activity: 1625"
+                                - text: "Merit: 1014"
+                                - link "View Profile" [ref=e206] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=194052
+                                  - img "View Profile" [ref=e207]
+                            - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:38:57 PM #3 Bitwage has always been interesting to me - I am planning a job with them over the summer and I''m curious about your overall experience and if you have any suggestions about the service you received." [ref=e208]':
+                              - table [ref=e209]:
+                                - rowgroup [ref=e210]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:38:57 PM #3" [ref=e211]':
+                                    - cell [ref=e212]:
+                                      - link [ref=e213] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026378#msg10026378
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:38:57 PM" [ref=e214]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e216] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026378#msg10026378
+                                      - generic [ref=e217]: January 03, 2015, 08:38:57 PM
+                                    - cell "#3" [ref=e218]:
+                                      - link "#3" [ref=e220] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026378#msg10026378
+                              - separator [ref=e221]
+                              - generic [ref=e222]: Bitwage has always been interesting to me - I am planning a job with them over the summer and I'm curious about your overall experience and if you have any suggestions about the service you received.
+                          - row [ref=e223]:
+                            - cell [ref=e224]:
+                              - table [ref=e225]:
+                                - rowgroup [ref=e226]:
+                                  - row [ref=e227]:
+                                    - cell [ref=e228]
+                                  - row [ref=e229]:
+                                    - cell [ref=e230]
+                                    - cell [ref=e231]
+          - row [ref=e232]:
+            - cell [ref=e233]:
+              - table [ref=e234]:
+                - rowgroup [ref=e235]:
+                  - row [ref=e236]:
+                    - cell [ref=e237]:
+                      - table [ref=e238]:
+                        - rowgroup [ref=e239]:
+                          - row [ref=e240]:
+                            - 'cell "MicroGuy Legendary * Activity: 2534 Merit: 1030 Twitter @realmicroguy View Profile WWW" [ref=e241]':
+                              - link "MicroGuy" [ref=e243] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=93373
+                              - generic [ref=e244]:
+                                - text: Legendary
+                                - img "*" [ref=e245]
+                                - text: "Activity: 2534"
+                                - text: "Merit: 1030"
+                                - text: Twitter @realmicroguy
+                                - link "View Profile" [ref=e247] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=93373
+                                  - img "View Profile" [ref=e248]
+                                - link "WWW" [ref=e249] [cursor=pointer]:
+                                  - /url: https://www.microguy.com
+                                  - img "WWW" [ref=e250]
+                            - cell [ref=e251]:
+                              - table [ref=e252]:
+                                - rowgroup [ref=e253]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:40:39 PM #4" [ref=e254]':
+                                    - cell [ref=e255]:
+                                      - link [ref=e256] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026408#msg10026408
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:40:39 PM" [ref=e257]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e259] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026408#msg10026408
+                                      - generic [ref=e260]: January 03, 2015, 08:40:39 PM
+                                    - cell "#4" [ref=e261]:
+                                      - link "#4" [ref=e263] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026408#msg10026408
+                              - separator [ref=e264]
+                              - generic [ref=e265]:
+                                - 'link "Quote from: Elwar on January 03, 2015, 08:31:50 PM" [ref=e267] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=913145.msg10026300#msg10026300
+                                - generic [ref=e268]:
+                                  - text: I work for General Dynamics, a company that is suckling on the US government's teet. They would never risk their sweet military industrial complex relationship with the government by accepting bitcoins.
+                                  - text: I use bitwage.co (I do not work for them, just happy that I can get paid in Bitcoin).
+                                  - text: I set up my direct deposit to the account number they provided me and my last paycheck it was all converted to bitcoins automatically. My bank never saw a penny of my paycheck.
+                                  - text: That is the first step in dumping my bank forever.
+                                  - text: For spending money I usually sell on localbitcoins for a profit anyway so I always have some cash on hand. And pretty much anything I want online can be paid in Bitcoin.
+                                - text: This is awesome! Thanks for the head's up about bitwage.co!
+                                - img "Cheesy" [ref=e269]
+                          - row [ref=e270]:
+                            - cell [ref=e271]:
+                              - table [ref=e272]:
+                                - rowgroup [ref=e273]:
+                                  - row [ref=e274]:
+                                    - cell [ref=e275]
+                                  - row [ref=e276]:
+                                    - cell [ref=e277]
+                                    - cell [ref=e278]
+          - 'row "canary Full Member *** Activity: 210 Merit: 100 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:43:20 PM #5 ''Dumping a bank forever'' It really sounds cool man, congrats on your first step about taking paycheck with BTC Wink" [ref=e279]':
+            - 'cell "canary Full Member *** Activity: 210 Merit: 100 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:43:20 PM #5 ''Dumping a bank forever'' It really sounds cool man, congrats on your first step about taking paycheck with BTC Wink" [ref=e280]':
+              - table [ref=e281]:
+                - rowgroup [ref=e282]:
+                  - 'row "canary Full Member *** Activity: 210 Merit: 100 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:43:20 PM #5 ''Dumping a bank forever'' It really sounds cool man, congrats on your first step about taking paycheck with BTC Wink" [ref=e283]':
+                    - 'cell "canary Full Member *** Activity: 210 Merit: 100 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:43:20 PM #5 ''Dumping a bank forever'' It really sounds cool man, congrats on your first step about taking paycheck with BTC Wink" [ref=e284]':
+                      - table [ref=e285]:
+                        - rowgroup [ref=e286]:
+                          - 'row "canary Full Member *** Activity: 210 Merit: 100 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:43:20 PM #5 ''Dumping a bank forever'' It really sounds cool man, congrats on your first step about taking paycheck with BTC Wink" [ref=e287]':
+                            - 'cell "canary Full Member *** Activity: 210 Merit: 100 View Profile" [ref=e288]':
+                              - link "canary" [ref=e290] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=370311
+                              - generic [ref=e291]:
+                                - text: Full Member
+                                - img "*" [ref=e292]
+                                - img "*" [ref=e293]
+                                - img "*" [ref=e294]
+                                - text: "Activity: 210"
+                                - text: "Merit: 100"
+                                - link "View Profile" [ref=e295] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=370311
+                                  - img "View Profile" [ref=e296]
+                            - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:43:20 PM #5 ''Dumping a bank forever'' It really sounds cool man, congrats on your first step about taking paycheck with BTC Wink" [ref=e297]':
+                              - table [ref=e298]:
+                                - rowgroup [ref=e299]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:43:20 PM #5" [ref=e300]':
+                                    - cell [ref=e301]:
+                                      - link [ref=e302] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026438#msg10026438
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:43:20 PM" [ref=e303]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e305] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026438#msg10026438
+                                      - generic [ref=e306]: January 03, 2015, 08:43:20 PM
+                                    - cell "#5" [ref=e307]:
+                                      - link "#5" [ref=e309] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026438#msg10026438
+                              - separator [ref=e310]
+                              - generic [ref=e311]:
+                                - text: "'Dumping a bank forever'"
+                                - text: It really sounds cool man, congrats on your first step about taking paycheck with BTC
+                                - img "Wink" [ref=e312]
+                          - row [ref=e313]:
+                            - cell [ref=e314]:
+                              - table [ref=e315]:
+                                - rowgroup [ref=e316]:
+                                  - row [ref=e317]:
+                                    - cell [ref=e318]
+                                  - row [ref=e319]:
+                                    - cell [ref=e320]
+                                    - cell [ref=e321]
+          - row [ref=e322]:
+            - cell [ref=e323]:
+              - table [ref=e324]:
+                - rowgroup [ref=e325]:
+                  - row [ref=e326]:
+                    - cell [ref=e327]:
+                      - table [ref=e328]:
+                        - rowgroup [ref=e329]:
+                          - row [ref=e330]:
+                            - 'cell "Bobsurplus Legendary * Activity: 1008 Merit: 1000 Making money since I was in the womb! @emc2whale View Profile" [ref=e331]':
+                              - link "Bobsurplus" [ref=e333] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=180921
+                              - generic [ref=e334]:
+                                - text: Legendary
+                                - img "*" [ref=e335]
+                                - text: "Activity: 1008"
+                                - text: "Merit: 1000"
+                                - text: Making money since I was in the womb! @emc2whale
+                                - link "View Profile" [ref=e337] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=180921
+                                  - img "View Profile" [ref=e338]
+                            - cell [ref=e339]:
+                              - table [ref=e340]:
+                                - rowgroup [ref=e341]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:47:33 PM #6" [ref=e342]':
+                                    - cell [ref=e343]:
+                                      - link [ref=e344] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026478#msg10026478
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:47:33 PM" [ref=e345]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e347] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026478#msg10026478
+                                      - generic [ref=e348]: January 03, 2015, 08:47:33 PM
+                                    - cell "#6" [ref=e349]:
+                                      - link "#6" [ref=e351] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026478#msg10026478
+                              - separator [ref=e352]
+                              - generic [ref=e353]:
+                                - 'link "Quote from: Elwar on January 03, 2015, 08:31:50 PM" [ref=e355] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=913145.msg10026300#msg10026300
+                                - generic [ref=e356]:
+                                  - text: I work for General Dynamics, a company that is suckling on the US government's teet. They would never risk their sweet military industrial complex relationship with the government by accepting bitcoins.
+                                  - text: I use bitwage.co (I do not work for them, just happy that I can get paid in Bitcoin).
+                                  - text: I set up my direct deposit to the account number they provided me and my last paycheck it was all converted to bitcoins automatically. My bank never saw a penny of my paycheck.
+                                  - text: That is the first step in dumping my bank forever.
+                                  - text: For spending money I usually sell on localbitcoins for a profit anyway so I always have some cash on hand. And pretty much anything I want online can be paid in Bitcoin.
+                                - text: Congrats... It must feel good eh?
+                                - text: If I had a job I'd use this service for sure..
+                                - text: I wonder how many others like you are out there using this service.
+                                - text: This could actually be some real big business if done right!
+                                - text: Anyway... Congrats again!
+                          - row [ref=e357]:
+                            - cell [ref=e358]:
+                              - table [ref=e359]:
+                                - rowgroup [ref=e360]:
+                                  - row [ref=e361]:
+                                    - cell [ref=e362]
+                                  - row [ref=e363]:
+                                    - cell [ref=e364]
+                                    - cell [ref=e365]
+          - 'row "LiteCoinGuy Legendary * Activity: 1148 Merit: 1015 In Satoshi I Trust View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:53:20 PM #7 cool stuff Cool i would start with 10% monthly Wink OVERVIEW: BITCOIN HARDWARE WALLETS https://bitcointalk.org/index.php?topic=899253.0 Litecoin Info: https://litecoin.com/ *** BTC CHARTS: https://forum.bitcoin.com/topic334.html" [ref=e366]':
+            - 'cell "LiteCoinGuy Legendary * Activity: 1148 Merit: 1015 In Satoshi I Trust View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:53:20 PM #7 cool stuff Cool i would start with 10% monthly Wink OVERVIEW: BITCOIN HARDWARE WALLETS https://bitcointalk.org/index.php?topic=899253.0 Litecoin Info: https://litecoin.com/ *** BTC CHARTS: https://forum.bitcoin.com/topic334.html" [ref=e367]':
+              - table [ref=e368]:
+                - rowgroup [ref=e369]:
+                  - 'row "LiteCoinGuy Legendary * Activity: 1148 Merit: 1015 In Satoshi I Trust View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:53:20 PM #7 cool stuff Cool i would start with 10% monthly Wink OVERVIEW: BITCOIN HARDWARE WALLETS https://bitcointalk.org/index.php?topic=899253.0 Litecoin Info: https://litecoin.com/ *** BTC CHARTS: https://forum.bitcoin.com/topic334.html" [ref=e370]':
+                    - 'cell "LiteCoinGuy Legendary * Activity: 1148 Merit: 1015 In Satoshi I Trust View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:53:20 PM #7 cool stuff Cool i would start with 10% monthly Wink OVERVIEW: BITCOIN HARDWARE WALLETS https://bitcointalk.org/index.php?topic=899253.0 Litecoin Info: https://litecoin.com/ *** BTC CHARTS: https://forum.bitcoin.com/topic334.html" [ref=e371]':
+                      - table [ref=e372]:
+                        - rowgroup [ref=e373]:
+                          - 'row "LiteCoinGuy Legendary * Activity: 1148 Merit: 1015 In Satoshi I Trust View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:53:20 PM #7 cool stuff Cool i would start with 10% monthly Wink" [ref=e374]':
+                            - 'cell "LiteCoinGuy Legendary * Activity: 1148 Merit: 1015 In Satoshi I Trust View Profile WWW" [ref=e375]':
+                              - link "LiteCoinGuy" [ref=e377] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=102825
+                              - generic [ref=e378]:
+                                - text: Legendary
+                                - img "*" [ref=e379]
+                                - text: "Activity: 1148"
+                                - text: "Merit: 1015"
+                                - text: In Satoshi I Trust
+                                - link "View Profile" [ref=e381] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=102825
+                                  - img "View Profile" [ref=e382]
+                                - link "WWW" [ref=e383] [cursor=pointer]:
+                                  - /url: https://litecoin.com/
+                                  - img "WWW" [ref=e384]
+                            - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:53:20 PM #7 cool stuff Cool i would start with 10% monthly Wink" [ref=e385]':
+                              - table [ref=e386]:
+                                - rowgroup [ref=e387]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:53:20 PM #7" [ref=e388]':
+                                    - cell [ref=e389]:
+                                      - link [ref=e390] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026528#msg10026528
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:53:20 PM" [ref=e391]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e393] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026528#msg10026528
+                                      - generic [ref=e394]: January 03, 2015, 08:53:20 PM
+                                    - cell "#7" [ref=e395]:
+                                      - link "#7" [ref=e397] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026528#msg10026528
+                              - separator [ref=e398]
+                              - generic [ref=e399]:
+                                - text: cool stuff
+                                - img "Cool" [ref=e400]
+                                - text: i would start with 10% monthly
+                                - img "Wink" [ref=e401]
+                          - 'row "OVERVIEW: BITCOIN HARDWARE WALLETS https://bitcointalk.org/index.php?topic=899253.0 Litecoin Info: https://litecoin.com/ *** BTC CHARTS: https://forum.bitcoin.com/topic334.html" [ref=e402]':
+                            - 'cell "OVERVIEW: BITCOIN HARDWARE WALLETS https://bitcointalk.org/index.php?topic=899253.0 Litecoin Info: https://litecoin.com/ *** BTC CHARTS: https://forum.bitcoin.com/topic334.html" [ref=e403]':
+                              - table [ref=e404]:
+                                - rowgroup [ref=e405]:
+                                  - row [ref=e406]:
+                                    - cell [ref=e407]
+                                  - row [ref=e408]:
+                                    - cell [ref=e409]
+                                    - cell [ref=e410]
+                              - separator [ref=e411]
+                              - generic [ref=e412]:
+                                - text: "OVERVIEW: BITCOIN HARDWARE WALLETS"
+                                - link "https://bitcointalk.org/index.php?topic=899253.0" [ref=e413] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?topic=899253.0
+                                - text: "Litecoin Info:"
+                                - link "https://litecoin.com/" [ref=e414] [cursor=pointer]:
+                                  - /url: https://litecoin.com/
+                                - text: "*** BTC CHARTS:"
+                                - link "https://forum.bitcoin.com/topic334.html" [ref=e415] [cursor=pointer]:
+                                  - /url: https://forum.bitcoin.com/topic334.html
+          - row [ref=e416]:
+            - cell [ref=e417]:
+              - table [ref=e418]:
+                - rowgroup [ref=e419]:
+                  - row [ref=e420]:
+                    - cell [ref=e421]:
+                      - table [ref=e422]:
+                        - rowgroup [ref=e423]:
+                          - 'row "Elwar (OP) Legendary * Activity: 3584 Merit: 2386 Viva Ut Vivas View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:55:39 PM #8 Quote from: ncsupanda on January 03, 2015, 08:38:57 PM Bitwage has always been interesting to me - I am planning a job with them over the summer and I''m curious about your overall experience and if you have any suggestions about the service you received. The service was great. They have an online chat, I brought many complications with me because my phone number is German but I get paid in the US. They require phone verification but I doubt they did any testing with overseas numbers so they had to fix a few things to get my account working. They''re still in Beta so I expected a few bumps but am surprised at how well it works." [ref=e424]':
+                            - 'cell "Elwar (OP) Legendary * Activity: 3584 Merit: 2386 Viva Ut Vivas View Profile WWW" [ref=e425]':
+                              - link "Elwar" [ref=e427] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=554
+                              - text: (OP)
+                              - generic [ref=e428]:
+                                - text: Legendary
+                                - img "*" [ref=e429]
+                                - text: "Activity: 3584"
+                                - text: "Merit: 2386"
+                                - text: Viva Ut Vivas
+                                - link "View Profile" [ref=e431] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=554
+                                  - img "View Profile" [ref=e432]
+                                - link "WWW" [ref=e433] [cursor=pointer]:
+                                  - /url: https://ocean.builders
+                                  - img "WWW" [ref=e434]
+                            - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:55:39 PM #8 Quote from: ncsupanda on January 03, 2015, 08:38:57 PM Bitwage has always been interesting to me - I am planning a job with them over the summer and I''m curious about your overall experience and if you have any suggestions about the service you received. The service was great. They have an online chat, I brought many complications with me because my phone number is German but I get paid in the US. They require phone verification but I doubt they did any testing with overseas numbers so they had to fix a few things to get my account working. They''re still in Beta so I expected a few bumps but am surprised at how well it works." [ref=e435]':
+                              - table [ref=e436]:
+                                - rowgroup [ref=e437]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:55:39 PM #8" [ref=e438]':
+                                    - cell [ref=e439]:
+                                      - link [ref=e440] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026557#msg10026557
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 08:55:39 PM" [ref=e441]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e443] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026557#msg10026557
+                                      - generic [ref=e444]: January 03, 2015, 08:55:39 PM
+                                    - cell "#8" [ref=e445]:
+                                      - link "#8" [ref=e447] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026557#msg10026557
+                              - separator [ref=e448]
+                              - generic [ref=e449]:
+                                - 'link "Quote from: ncsupanda on January 03, 2015, 08:38:57 PM" [ref=e451] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=913145.msg10026378#msg10026378
+                                - generic [ref=e452]: Bitwage has always been interesting to me - I am planning a job with them over the summer and I'm curious about your overall experience and if you have any suggestions about the service you received.
+                                - text: The service was great. They have an online chat, I brought many complications with me because my phone number is German but I get paid in the US. They require phone verification but I doubt they did any testing with overseas numbers so they had to fix a few things to get my account working. They're still in Beta so I expected a few bumps but am surprised at how well it works.
+                          - 'row "First seastead company actually selling sea homes: Ocean Builders https://ocean.builders Of course we accept bitcoin." [ref=e453]':
+                            - 'cell "First seastead company actually selling sea homes: Ocean Builders https://ocean.builders Of course we accept bitcoin." [ref=e454]':
+                              - table [ref=e455]:
+                                - rowgroup [ref=e456]:
+                                  - row [ref=e457]:
+                                    - cell [ref=e458]
+                                  - row [ref=e459]:
+                                    - cell [ref=e460]
+                                    - cell [ref=e461]
+                              - separator [ref=e462]
+                              - generic [ref=e463]:
+                                - text: "First seastead company actually selling sea homes: Ocean Builders"
+                                - link "https://ocean.builders" [ref=e464] [cursor=pointer]:
+                                  - /url: https://ocean.builders
+                                - text: Of course we accept bitcoin.
+          - 'row "Elwar (OP) Legendary * Activity: 3584 Merit: 2386 Viva Ut Vivas View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 09:01:24 PM #9 Quote from: Kipsy89 on January 03, 2015, 08:36:17 PM Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! Even if Bitcoin drops to $1 I have another paycheck coming in 2 weeks so...no biggie. Like I said, I sell on localbitcoins to get cash so I always have some spending money. First seastead company actually selling sea homes: Ocean Builders https://ocean.builders Of course we accept bitcoin." [ref=e465]':
+            - 'cell "Elwar (OP) Legendary * Activity: 3584 Merit: 2386 Viva Ut Vivas View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 09:01:24 PM #9 Quote from: Kipsy89 on January 03, 2015, 08:36:17 PM Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! Even if Bitcoin drops to $1 I have another paycheck coming in 2 weeks so...no biggie. Like I said, I sell on localbitcoins to get cash so I always have some spending money. First seastead company actually selling sea homes: Ocean Builders https://ocean.builders Of course we accept bitcoin." [ref=e466]':
+              - table [ref=e467]:
+                - rowgroup [ref=e468]:
+                  - 'row "Elwar (OP) Legendary * Activity: 3584 Merit: 2386 Viva Ut Vivas View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 09:01:24 PM #9 Quote from: Kipsy89 on January 03, 2015, 08:36:17 PM Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! Even if Bitcoin drops to $1 I have another paycheck coming in 2 weeks so...no biggie. Like I said, I sell on localbitcoins to get cash so I always have some spending money. First seastead company actually selling sea homes: Ocean Builders https://ocean.builders Of course we accept bitcoin." [ref=e469]':
+                    - 'cell "Elwar (OP) Legendary * Activity: 3584 Merit: 2386 Viva Ut Vivas View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 09:01:24 PM #9 Quote from: Kipsy89 on January 03, 2015, 08:36:17 PM Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! Even if Bitcoin drops to $1 I have another paycheck coming in 2 weeks so...no biggie. Like I said, I sell on localbitcoins to get cash so I always have some spending money. First seastead company actually selling sea homes: Ocean Builders https://ocean.builders Of course we accept bitcoin." [ref=e470]':
+                      - table [ref=e471]:
+                        - rowgroup [ref=e472]:
+                          - 'row "Elwar (OP) Legendary * Activity: 3584 Merit: 2386 Viva Ut Vivas View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 09:01:24 PM #9 Quote from: Kipsy89 on January 03, 2015, 08:36:17 PM Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! Even if Bitcoin drops to $1 I have another paycheck coming in 2 weeks so...no biggie. Like I said, I sell on localbitcoins to get cash so I always have some spending money." [ref=e473]':
+                            - 'cell "Elwar (OP) Legendary * Activity: 3584 Merit: 2386 Viva Ut Vivas View Profile WWW" [ref=e474]':
+                              - link "Elwar" [ref=e476] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=554
+                              - text: (OP)
+                              - generic [ref=e477]:
+                                - text: Legendary
+                                - img "*" [ref=e478]
+                                - text: "Activity: 3584"
+                                - text: "Merit: 2386"
+                                - text: Viva Ut Vivas
+                                - link "View Profile" [ref=e480] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=554
+                                  - img "View Profile" [ref=e481]
+                                - link "WWW" [ref=e482] [cursor=pointer]:
+                                  - /url: https://ocean.builders
+                                  - img "WWW" [ref=e483]
+                            - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 09:01:24 PM #9 Quote from: Kipsy89 on January 03, 2015, 08:36:17 PM Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! Even if Bitcoin drops to $1 I have another paycheck coming in 2 weeks so...no biggie. Like I said, I sell on localbitcoins to get cash so I always have some spending money." [ref=e484]':
+                              - table [ref=e485]:
+                                - rowgroup [ref=e486]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 09:01:24 PM #9" [ref=e487]':
+                                    - cell [ref=e488]:
+                                      - link [ref=e489] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026623#msg10026623
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 09:01:24 PM" [ref=e490]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e492] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026623#msg10026623
+                                      - generic [ref=e493]: January 03, 2015, 09:01:24 PM
+                                    - cell "#9" [ref=e494]:
+                                      - link "#9" [ref=e496] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10026623#msg10026623
+                              - separator [ref=e497]
+                              - generic [ref=e498]:
+                                - 'link "Quote from: Kipsy89 on January 03, 2015, 08:36:17 PM" [ref=e500] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=913145.msg10026351#msg10026351
+                                - generic [ref=e501]: Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point!
+                                - text: Even if Bitcoin drops to $1 I have another paycheck coming in 2 weeks so...no biggie. Like I said, I sell on localbitcoins to get cash so I always have some spending money.
+                          - 'row "First seastead company actually selling sea homes: Ocean Builders https://ocean.builders Of course we accept bitcoin." [ref=e502]':
+                            - 'cell "First seastead company actually selling sea homes: Ocean Builders https://ocean.builders Of course we accept bitcoin." [ref=e503]':
+                              - table [ref=e504]:
+                                - rowgroup [ref=e505]:
+                                  - row [ref=e506]:
+                                    - cell [ref=e507]
+                                  - row [ref=e508]:
+                                    - cell [ref=e509]
+                                    - cell [ref=e510]
+                              - separator [ref=e511]
+                              - generic [ref=e512]:
+                                - text: "First seastead company actually selling sea homes: Ocean Builders"
+                                - link "https://ocean.builders" [ref=e513] [cursor=pointer]:
+                                  - /url: https://ocean.builders
+                                - text: Of course we accept bitcoin.
+          - row [ref=e514]:
+            - cell [ref=e515]:
+              - table [ref=e516]:
+                - rowgroup [ref=e517]:
+                  - row [ref=e518]:
+                    - cell [ref=e519]:
+                      - table [ref=e520]:
+                        - rowgroup [ref=e521]:
+                          - 'row "bg002h Donator Legendary * Activity: 1482 Merit: 1060 I outlived my lifetime membership:) View Profile WWW ⇾ Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 09:35:20 PM #10 Quote from: Elwar on January 03, 2015, 09:01:24 PM Quote from: Kipsy89 on January 03, 2015, 08:36:17 PM Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! Even if Bitcoin drops to $1 I have another paycheck coming in 2 weeks so...no biggie. Like I said, I sell on localbitcoins to get cash so I always have some spending money. I''m definitely gonna use this service soon. Most of my income has a corresponding expense, but that will change soon once I finish training (radiology) this summer." [ref=e522]':
+                            - 'cell "bg002h Donator Legendary * Activity: 1482 Merit: 1060 I outlived my lifetime membership:) View Profile WWW" [ref=e523]':
+                              - link "bg002h" [ref=e525] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=413
+                              - generic [ref=e526]:
+                                - text: Donator
+                                - text: Legendary
+                                - img "*" [ref=e527]
+                                - text: "Activity: 1482"
+                                - text: "Merit: 1060"
+                                - text: I outlived my lifetime membership:)
+                                - link "View Profile" [ref=e529] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=413
+                                  - img "View Profile" [ref=e530]
+                                - link "WWW" [ref=e531] [cursor=pointer]:
+                                  - /url: https://pgp.mit.edu/pks/lookup?op=get&search=0x8E0AC7153109B657
+                                  - img "WWW" [ref=e532]
+                            - 'cell "⇾ Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 09:35:20 PM #10 Quote from: Elwar on January 03, 2015, 09:01:24 PM Quote from: Kipsy89 on January 03, 2015, 08:36:17 PM Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point! Even if Bitcoin drops to $1 I have another paycheck coming in 2 weeks so...no biggie. Like I said, I sell on localbitcoins to get cash so I always have some spending money. I''m definitely gonna use this service soon. Most of my income has a corresponding expense, but that will change soon once I finish training (radiology) this summer." [ref=e533]':
+                              - table [ref=e534]:
+                                - rowgroup [ref=e535]:
+                                  - 'row "⇾ Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 09:35:20 PM #10" [ref=e536]':
+                                    - cell [ref=e537]:
+                                      - link [ref=e538] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10027012#msg10027012
+                                    - 'cell "⇾ Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 09:35:20 PM" [ref=e539]':
+                                      - generic [ref=e540]:
+                                        - text: ⇾
+                                        - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e541] [cursor=pointer]':
+                                          - /url: https://bitcointalk.org/index.php?topic=913145.msg10027012#msg10027012
+                                      - generic [ref=e542]: January 03, 2015, 09:35:20 PM
+                                    - cell "#10" [ref=e543]:
+                                      - link "#10" [ref=e545] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10027012#msg10027012
+                              - separator [ref=e546]
+                              - generic [ref=e547]:
+                                - 'link "Quote from: Elwar on January 03, 2015, 09:01:24 PM" [ref=e549] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=913145.msg10026623#msg10026623
+                                - generic [ref=e550]:
+                                  - 'link "Quote from: Kipsy89 on January 03, 2015, 08:36:17 PM" [ref=e552] [cursor=pointer]':
+                                    - /url: https://bitcointalk.org/index.php?topic=913145.msg10026351#msg10026351
+                                  - generic [ref=e553]: Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point!
+                                  - text: Even if Bitcoin drops to $1 I have another paycheck coming in 2 weeks so...no biggie. Like I said, I sell on localbitcoins to get cash so I always have some spending money.
+                                - text: I'm definitely gonna use this service soon. Most of my income has a corresponding expense, but that will change soon once I finish training (radiology) this summer.
+                          - row "Hardforks aren't that hard. It’s getting others to use them that's hard. 1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e554]:
+                            - cell "Hardforks aren't that hard. It’s getting others to use them that's hard. 1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e555]:
+                              - table [ref=e556]:
+                                - rowgroup [ref=e557]:
+                                  - row [ref=e558]:
+                                    - cell [ref=e559]
+                                  - row [ref=e560]:
+                                    - cell [ref=e561]
+                                    - cell [ref=e562]
+                              - separator [ref=e563]
+                              - generic [ref=e564]:
+                                - text: Hardforks aren't that hard. It’s getting others to use them that's hard.
+                                - link "1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e566] [cursor=pointer]:
+                                  - /url: http://blockchain.info/address/1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe
+          - row [ref=e567]:
+            - cell [ref=e568]:
+              - table [ref=e569]:
+                - rowgroup [ref=e570]:
+                  - row [ref=e571]:
+                    - cell [ref=e572]:
+                      - table [ref=e573]:
+                        - rowgroup [ref=e574]:
+                          - row [ref=e575]:
+                            - 'cell "de3mka Member ** Activity: 102 Merit: 13 How do I change an avatar? View Profile" [ref=e576]':
+                              - link "de3mka" [ref=e578] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=40408
+                              - generic [ref=e579]:
+                                - text: Member
+                                - img "*" [ref=e580]
+                                - img "*" [ref=e581]
+                                - text: "Activity: 102"
+                                - text: "Merit: 13"
+                                - text: How do I change an avatar?
+                                - link "View Profile" [ref=e583] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=40408
+                                  - img "View Profile" [ref=e584]
+                            - cell [ref=e585]:
+                              - table [ref=e586]:
+                                - rowgroup [ref=e587]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 09:43:22 PM #11" [ref=e588]':
+                                    - cell [ref=e589]:
+                                      - link [ref=e590] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10027091#msg10027091
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 09:43:22 PM" [ref=e591]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e593] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10027091#msg10027091
+                                      - generic [ref=e594]: January 03, 2015, 09:43:22 PM
+                                    - cell "#11" [ref=e595]:
+                                      - link "#11" [ref=e597] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10027091#msg10027091
+                              - separator [ref=e598]
+                              - generic [ref=e599]:
+                                - 'link "Quote from: Elwar on January 03, 2015, 08:31:50 PM" [ref=e601] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=913145.msg10026300#msg10026300
+                                - generic [ref=e602]:
+                                  - text: I work for General Dynamics, a company that is suckling on the US government's teet. They would never risk their sweet military industrial complex relationship with the government by accepting bitcoins.
+                                  - text: I use bitwage.co (I do not work for them, just happy that I can get paid in Bitcoin).
+                                  - text: I set up my direct deposit to the account number they provided me and my last paycheck it was all converted to bitcoins automatically. My bank never saw a penny of my paycheck.
+                                  - text: That is the first step in dumping my bank forever.
+                                  - text: For spending money I usually sell on localbitcoins for a profit anyway so I always have some cash on hand. And pretty much anything I want online can be paid in Bitcoin.
+                                - text: I think more people should follow your initiative. However I am afraid converting 100% of salary on a monthly basis is still risky. I would like to go with 10-20% though. Is there any way to do so?
+                                - text: Another concern I have are fees for this service and overall financial benefit for both me and an employer.
+                                - text: 1) Converting my wage into BTC so I can make use of BTC infrastructure should bring me benefits over doing the same with fiat. At least it must save me transaction fees which I would have to pay if I buy anything with fiat.
+                                - text: 2) Both my employer and me should have tax release for an amount converted into BTC as this could be treated as company benefit.
+                          - 'row "BTC: 16o89714EG9WGyi39NxifutFYk55QkxqQK" [ref=e603]':
+                            - 'cell "BTC: 16o89714EG9WGyi39NxifutFYk55QkxqQK" [ref=e604]':
+                              - table [ref=e605]:
+                                - rowgroup [ref=e606]:
+                                  - row [ref=e607]:
+                                    - cell [ref=e608]
+                                  - row [ref=e609]:
+                                    - cell [ref=e610]
+                                    - cell [ref=e611]
+                              - separator [ref=e612]
+                              - generic [ref=e613]: "BTC: 16o89714EG9WGyi39NxifutFYk55QkxqQK"
+          - row [ref=e614]:
+            - cell [ref=e615]:
+              - table [ref=e616]:
+                - rowgroup [ref=e617]:
+                  - row [ref=e618]:
+                    - cell [ref=e619]:
+                      - table [ref=e620]:
+                        - rowgroup [ref=e621]:
+                          - row [ref=e622]:
+                            - 'cell "franky1 Legendary * Activity: 4802 Merit: 5227 View Profile" [ref=e623]':
+                              - link "franky1" [ref=e625] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=65837
+                              - generic [ref=e626]:
+                                - text: Legendary
+                                - img "*" [ref=e627]
+                                - text: "Activity: 4802"
+                                - text: "Merit: 5227"
+                                - link "View Profile" [ref=e629] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=65837
+                                  - img "View Profile" [ref=e630]
+                            - cell [ref=e631]:
+                              - table [ref=e632]:
+                                - rowgroup [ref=e633]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 09:53:58 PM #12" [ref=e634]':
+                                    - cell [ref=e635]:
+                                      - link [ref=e636] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10027205#msg10027205
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 09:53:58 PM" [ref=e637]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e639] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10027205#msg10027205
+                                      - generic [ref=e640]: January 03, 2015, 09:53:58 PM
+                                    - cell "#12" [ref=e641]:
+                                      - link "#12" [ref=e643] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10027205#msg10027205
+                              - separator [ref=e644]
+                              - generic [ref=e645]:
+                                - 'link "Quote from: Elwar on January 03, 2015, 09:01:24 PM" [ref=e647] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=913145.msg10026623#msg10026623
+                                - generic [ref=e648]:
+                                  - 'link "Quote from: Kipsy89 on January 03, 2015, 08:36:17 PM" [ref=e650] [cursor=pointer]':
+                                    - /url: https://bitcointalk.org/index.php?topic=913145.msg10026351#msg10026351
+                                  - generic [ref=e651]: Make sure you have at least a nominal amount of regular FIAT money so you are not screwed in case the Bitcoin experiment goes belly-up at any point!
+                                  - text: Even if Bitcoin drops to $1 I have another paycheck coming in 2 weeks so...no biggie. Like I said, I sell on localbitcoins to get cash so I always have some spending money.
+                                - text: you now need to push your local grocery store to accept bitcoin and your landlord. and then you'll be at my level of no FIAT
+                                - img "Cheesy" [ref=e652]
+                                - text: i dont even look at the fiat price anymore, the only time i see price changes is when people write topics on these boards in their emotional panicking state.. lol to me bitcoin is better than fiat no matter what the crappy exchange values show
+                          - row "I DO NOT TRADE OR ACT AS ESCROW ON THIS FORUM EVER. Please do your own research & respect what is written here as both researched opinion & information gleaned from experience. many people replying with insults but no on-topic content substance, automatically are 'facepalmed' and yawned at" [ref=e653]:
+                            - cell "I DO NOT TRADE OR ACT AS ESCROW ON THIS FORUM EVER. Please do your own research & respect what is written here as both researched opinion & information gleaned from experience. many people replying with insults but no on-topic content substance, automatically are 'facepalmed' and yawned at" [ref=e654]:
+                              - table [ref=e655]:
+                                - rowgroup [ref=e656]:
+                                  - row [ref=e657]:
+                                    - cell [ref=e658]
+                                  - row [ref=e659]:
+                                    - cell [ref=e660]
+                                    - cell [ref=e661]
+                              - separator [ref=e662]
+                              - generic [ref=e663]:
+                                - text: I DO NOT TRADE OR ACT AS ESCROW ON THIS FORUM EVER.
+                                - text: Please do your own research & respect what is written here as both researched opinion & information gleaned from experience. many people replying with insults but no on-topic content substance, automatically are 'facepalmed' and yawned at
+          - row [ref=e664]:
+            - cell [ref=e665]:
+              - table [ref=e666]:
+                - rowgroup [ref=e667]:
+                  - row [ref=e668]:
+                    - cell [ref=e669]:
+                      - table [ref=e670]:
+                        - rowgroup [ref=e671]:
+                          - row [ref=e672]:
+                            - 'cell "Elwar (OP) Legendary * Activity: 3584 Merit: 2386 Viva Ut Vivas View Profile WWW" [ref=e673]':
+                              - link "Elwar" [ref=e675] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=554
+                              - text: (OP)
+                              - generic [ref=e676]:
+                                - text: Legendary
+                                - img "*" [ref=e677]
+                                - text: "Activity: 3584"
+                                - text: "Merit: 2386"
+                                - text: Viva Ut Vivas
+                                - link "View Profile" [ref=e679] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=554
+                                  - img "View Profile" [ref=e680]
+                                - link "WWW" [ref=e681] [cursor=pointer]:
+                                  - /url: https://ocean.builders
+                                  - img "WWW" [ref=e682]
+                            - cell [ref=e683]:
+                              - table [ref=e684]:
+                                - rowgroup [ref=e685]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 10:04:48 PM #13" [ref=e686]':
+                                    - cell [ref=e687]:
+                                      - link [ref=e688] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10027312#msg10027312
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 10:04:48 PM" [ref=e689]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e691] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10027312#msg10027312
+                                      - generic [ref=e692]: January 03, 2015, 10:04:48 PM
+                                    - cell "#13" [ref=e693]:
+                                      - link "#13" [ref=e695] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10027312#msg10027312
+                              - separator [ref=e696]
+                              - generic [ref=e697]:
+                                - 'link "Quote from: de3mka on January 03, 2015, 09:43:22 PM" [ref=e699] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=913145.msg10027091#msg10027091
+                                - generic [ref=e700]:
+                                  - text: I think more people should follow your initiative. However I am afraid converting 100% of salary on a monthly basis is still risky. I would like to go with 10-20% though. Is there any way to do so?
+                                  - text: Another concern I have are fees for this service and overall financial benefit for both me and an employer.
+                                  - text: 1) Converting my wage into BTC so I can make use of BTC infrastructure should bring me benefits over doing the same with fiat. At least it must save me transaction fees which I would have to pay if I buy anything with fiat.
+                                  - text: 2) Both my employer and me should have tax release for an amount converted into BTC as this could be treated as company benefit.
+                                - text: Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit.
+                                - text: There are no fees though when I was paid the price was around $316 on Bitstamp and they paid me based on $319 so they may be adding 1% to their base price.
+                                - text: I have no idea about the employer using their service. As an employee my employer has no idea that I am being paid in Bitcoin.
+                          - 'row "First seastead company actually selling sea homes: Ocean Builders https://ocean.builders Of course we accept bitcoin." [ref=e701]':
+                            - 'cell "First seastead company actually selling sea homes: Ocean Builders https://ocean.builders Of course we accept bitcoin." [ref=e702]':
+                              - table [ref=e703]:
+                                - rowgroup [ref=e704]:
+                                  - row [ref=e705]:
+                                    - cell [ref=e706]
+                                  - row [ref=e707]:
+                                    - cell [ref=e708]
+                                    - cell [ref=e709]
+                              - separator [ref=e710]
+                              - generic [ref=e711]:
+                                - text: "First seastead company actually selling sea homes: Ocean Builders"
+                                - link "https://ocean.builders" [ref=e712] [cursor=pointer]:
+                                  - /url: https://ocean.builders
+                                - text: Of course we accept bitcoin.
+          - 'row "de3mka Member ** Activity: 102 Merit: 13 How do I change an avatar? View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 10:38:43 PM #14 Quote from: Elwar on January 03, 2015, 10:04:48 PM Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit. Most likely I can''t. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees. BTC: 16o89714EG9WGyi39NxifutFYk55QkxqQK" [ref=e713]':
+            - 'cell "de3mka Member ** Activity: 102 Merit: 13 How do I change an avatar? View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 10:38:43 PM #14 Quote from: Elwar on January 03, 2015, 10:04:48 PM Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit. Most likely I can''t. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees. BTC: 16o89714EG9WGyi39NxifutFYk55QkxqQK" [ref=e714]':
+              - table [ref=e715]:
+                - rowgroup [ref=e716]:
+                  - 'row "de3mka Member ** Activity: 102 Merit: 13 How do I change an avatar? View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 10:38:43 PM #14 Quote from: Elwar on January 03, 2015, 10:04:48 PM Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit. Most likely I can''t. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees. BTC: 16o89714EG9WGyi39NxifutFYk55QkxqQK" [ref=e717]':
+                    - 'cell "de3mka Member ** Activity: 102 Merit: 13 How do I change an avatar? View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 10:38:43 PM #14 Quote from: Elwar on January 03, 2015, 10:04:48 PM Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit. Most likely I can''t. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees. BTC: 16o89714EG9WGyi39NxifutFYk55QkxqQK" [ref=e718]':
+                      - table [ref=e719]:
+                        - rowgroup [ref=e720]:
+                          - 'row "de3mka Member ** Activity: 102 Merit: 13 How do I change an avatar? View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 10:38:43 PM #14 Quote from: Elwar on January 03, 2015, 10:04:48 PM Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit. Most likely I can''t. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees." [ref=e721]':
+                            - 'cell "de3mka Member ** Activity: 102 Merit: 13 How do I change an avatar? View Profile" [ref=e722]':
+                              - link "de3mka" [ref=e724] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=40408
+                              - generic [ref=e725]:
+                                - text: Member
+                                - img "*" [ref=e726]
+                                - img "*" [ref=e727]
+                                - text: "Activity: 102"
+                                - text: "Merit: 13"
+                                - text: How do I change an avatar?
+                                - link "View Profile" [ref=e729] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=40408
+                                  - img "View Profile" [ref=e730]
+                            - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 10:38:43 PM #14 Quote from: Elwar on January 03, 2015, 10:04:48 PM Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit. Most likely I can''t. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees." [ref=e731]':
+                              - table [ref=e732]:
+                                - rowgroup [ref=e733]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 10:38:43 PM #14" [ref=e734]':
+                                    - cell [ref=e735]:
+                                      - link [ref=e736] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10027691#msg10027691
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 10:38:43 PM" [ref=e737]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e739] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10027691#msg10027691
+                                      - generic [ref=e740]: January 03, 2015, 10:38:43 PM
+                                    - cell "#14" [ref=e741]:
+                                      - link "#14" [ref=e743] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10027691#msg10027691
+                              - separator [ref=e744]
+                              - generic [ref=e745]:
+                                - 'link "Quote from: Elwar on January 03, 2015, 10:04:48 PM" [ref=e747] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=913145.msg10027312#msg10027312
+                                - generic [ref=e748]: Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit.
+                                - text: Most likely I can't. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees.
+                          - 'row "BTC: 16o89714EG9WGyi39NxifutFYk55QkxqQK" [ref=e749]':
+                            - 'cell "BTC: 16o89714EG9WGyi39NxifutFYk55QkxqQK" [ref=e750]':
+                              - table [ref=e751]:
+                                - rowgroup [ref=e752]:
+                                  - row [ref=e753]:
+                                    - cell [ref=e754]
+                                  - row [ref=e755]:
+                                    - cell [ref=e756]
+                                    - cell [ref=e757]
+                              - separator [ref=e758]
+                              - generic [ref=e759]: "BTC: 16o89714EG9WGyi39NxifutFYk55QkxqQK"
+          - 'row "bg002h Donator Legendary * Activity: 1482 Merit: 1060 I outlived my lifetime membership:) View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 11:15:52 PM #15 Quote from: de3mka on January 03, 2015, 10:38:43 PM Quote from: Elwar on January 03, 2015, 10:04:48 PM Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit. Most likely I can''t. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees. My employer let''s us split up our paychecks by fixed amount, percentage, & remainder. Hardforks aren''t that hard. It’s getting others to use them that''s hard. 1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e760]':
+            - 'cell "bg002h Donator Legendary * Activity: 1482 Merit: 1060 I outlived my lifetime membership:) View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 11:15:52 PM #15 Quote from: de3mka on January 03, 2015, 10:38:43 PM Quote from: Elwar on January 03, 2015, 10:04:48 PM Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit. Most likely I can''t. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees. My employer let''s us split up our paychecks by fixed amount, percentage, & remainder. Hardforks aren''t that hard. It’s getting others to use them that''s hard. 1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e761]':
+              - table [ref=e762]:
+                - rowgroup [ref=e763]:
+                  - 'row "bg002h Donator Legendary * Activity: 1482 Merit: 1060 I outlived my lifetime membership:) View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 11:15:52 PM #15 Quote from: de3mka on January 03, 2015, 10:38:43 PM Quote from: Elwar on January 03, 2015, 10:04:48 PM Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit. Most likely I can''t. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees. My employer let''s us split up our paychecks by fixed amount, percentage, & remainder. Hardforks aren''t that hard. It’s getting others to use them that''s hard. 1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e764]':
+                    - 'cell "bg002h Donator Legendary * Activity: 1482 Merit: 1060 I outlived my lifetime membership:) View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 11:15:52 PM #15 Quote from: de3mka on January 03, 2015, 10:38:43 PM Quote from: Elwar on January 03, 2015, 10:04:48 PM Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit. Most likely I can''t. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees. My employer let''s us split up our paychecks by fixed amount, percentage, & remainder. Hardforks aren''t that hard. It’s getting others to use them that''s hard. 1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e765]':
+                      - table [ref=e766]:
+                        - rowgroup [ref=e767]:
+                          - 'row "bg002h Donator Legendary * Activity: 1482 Merit: 1060 I outlived my lifetime membership:) View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 11:15:52 PM #15 Quote from: de3mka on January 03, 2015, 10:38:43 PM Quote from: Elwar on January 03, 2015, 10:04:48 PM Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit. Most likely I can''t. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees. My employer let''s us split up our paychecks by fixed amount, percentage, & remainder." [ref=e768]':
+                            - 'cell "bg002h Donator Legendary * Activity: 1482 Merit: 1060 I outlived my lifetime membership:) View Profile WWW" [ref=e769]':
+                              - link "bg002h" [ref=e771] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=413
+                              - generic [ref=e772]:
+                                - text: Donator
+                                - text: Legendary
+                                - img "*" [ref=e773]
+                                - text: "Activity: 1482"
+                                - text: "Merit: 1060"
+                                - text: I outlived my lifetime membership:)
+                                - link "View Profile" [ref=e775] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=413
+                                  - img "View Profile" [ref=e776]
+                                - link "WWW" [ref=e777] [cursor=pointer]:
+                                  - /url: https://pgp.mit.edu/pks/lookup?op=get&search=0x8E0AC7153109B657
+                                  - img "WWW" [ref=e778]
+                            - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 11:15:52 PM #15 Quote from: de3mka on January 03, 2015, 10:38:43 PM Quote from: Elwar on January 03, 2015, 10:04:48 PM Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit. Most likely I can''t. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees. My employer let''s us split up our paychecks by fixed amount, percentage, & remainder." [ref=e779]':
+                              - table [ref=e780]:
+                                - rowgroup [ref=e781]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 11:15:52 PM #15" [ref=e782]':
+                                    - cell [ref=e783]:
+                                      - link [ref=e784] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10028093#msg10028093
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 03, 2015, 11:15:52 PM" [ref=e785]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e787] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10028093#msg10028093
+                                      - generic [ref=e788]: January 03, 2015, 11:15:52 PM
+                                    - cell "#15" [ref=e789]:
+                                      - link "#15" [ref=e791] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10028093#msg10028093
+                              - separator [ref=e792]
+                              - generic [ref=e793]:
+                                - 'link "Quote from: de3mka on January 03, 2015, 10:38:43 PM" [ref=e795] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=913145.msg10027691#msg10027691
+                                - generic [ref=e796]:
+                                  - 'link "Quote from: Elwar on January 03, 2015, 10:04:48 PM" [ref=e798] [cursor=pointer]':
+                                    - /url: https://bitcointalk.org/index.php?topic=913145.msg10027312#msg10027312
+                                  - generic [ref=e799]: Are you able to split your direct deposits between bank accounts? If so you can split it 10-20%, it goes by your direct deposit.
+                                  - text: Most likely I can't. The only option would be to rewire 20% to bitwage.co from my primary account but this would mean paying international bank transfrer fees.
+                                - text: My employer let's us split up our paychecks by fixed amount, percentage, & remainder.
+                          - row "Hardforks aren't that hard. It’s getting others to use them that's hard. 1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e800]:
+                            - cell "Hardforks aren't that hard. It’s getting others to use them that's hard. 1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e801]:
+                              - table [ref=e802]:
+                                - rowgroup [ref=e803]:
+                                  - row [ref=e804]:
+                                    - cell [ref=e805]
+                                  - row [ref=e806]:
+                                    - cell [ref=e807]
+                                    - cell [ref=e808]
+                              - separator [ref=e809]
+                              - generic [ref=e810]:
+                                - text: Hardforks aren't that hard. It’s getting others to use them that's hard.
+                                - link "1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e812] [cursor=pointer]:
+                                  - /url: http://blockchain.info/address/1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe
+          - 'row "fryarminer Hero Member ***** Activity: 686 Merit: 500 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:05:13 AM #16 Dude!!! That is awesome!!! All in!! Go big or go home!!" [ref=e813]':
+            - 'cell "fryarminer Hero Member ***** Activity: 686 Merit: 500 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:05:13 AM #16 Dude!!! That is awesome!!! All in!! Go big or go home!!" [ref=e814]':
+              - table [ref=e815]:
+                - rowgroup [ref=e816]:
+                  - 'row "fryarminer Hero Member ***** Activity: 686 Merit: 500 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:05:13 AM #16 Dude!!! That is awesome!!! All in!! Go big or go home!!" [ref=e817]':
+                    - 'cell "fryarminer Hero Member ***** Activity: 686 Merit: 500 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:05:13 AM #16 Dude!!! That is awesome!!! All in!! Go big or go home!!" [ref=e818]':
+                      - table [ref=e819]:
+                        - rowgroup [ref=e820]:
+                          - 'row "fryarminer Hero Member ***** Activity: 686 Merit: 500 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:05:13 AM #16 Dude!!! That is awesome!!! All in!! Go big or go home!!" [ref=e821]':
+                            - 'cell "fryarminer Hero Member ***** Activity: 686 Merit: 500 View Profile" [ref=e822]':
+                              - link "fryarminer" [ref=e824] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=210075
+                              - generic [ref=e825]:
+                                - text: Hero Member
+                                - img "*" [ref=e826]
+                                - img "*" [ref=e827]
+                                - img "*" [ref=e828]
+                                - img "*" [ref=e829]
+                                - img "*" [ref=e830]
+                                - text: "Activity: 686"
+                                - text: "Merit: 500"
+                                - link "View Profile" [ref=e831] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=210075
+                                  - img "View Profile" [ref=e832]
+                            - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:05:13 AM #16 Dude!!! That is awesome!!! All in!! Go big or go home!!" [ref=e833]':
+                              - table [ref=e834]:
+                                - rowgroup [ref=e835]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:05:13 AM #16" [ref=e836]':
+                                    - cell [ref=e837]:
+                                      - link [ref=e838] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10029068#msg10029068
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:05:13 AM" [ref=e839]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e841] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10029068#msg10029068
+                                      - generic [ref=e842]: January 04, 2015, 01:05:13 AM
+                                    - cell "#16" [ref=e843]:
+                                      - link "#16" [ref=e845] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10029068#msg10029068
+                              - separator [ref=e846]
+                              - generic [ref=e847]: Dude!!! That is awesome!!! All in!! Go big or go home!!
+                          - row [ref=e848]:
+                            - cell [ref=e849]:
+                              - table [ref=e850]:
+                                - rowgroup [ref=e851]:
+                                  - row [ref=e852]:
+                                    - cell [ref=e853]
+                                  - row [ref=e854]:
+                                    - cell [ref=e855]
+                                    - cell [ref=e856]
+          - 'row "minerpumpkin Hero Member ***** Activity: 686 Merit: 500 A pumpkin mines 27 hours a night View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:10:54 AM #17 Wow, that''s quite some step you took there. Are there a lot of fees associated with that service? I''d prefer it if my employer paid me directly in Bitcoin, of course. Since you are effectively only forwarding your money directly to that service, there still are a lot of banks involved. But I agree that this is the next best thing to the dream of being paid in Bitcoin. I should have gotten into Bitcoin back in 1992..." [ref=e857]':
+            - 'cell "minerpumpkin Hero Member ***** Activity: 686 Merit: 500 A pumpkin mines 27 hours a night View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:10:54 AM #17 Wow, that''s quite some step you took there. Are there a lot of fees associated with that service? I''d prefer it if my employer paid me directly in Bitcoin, of course. Since you are effectively only forwarding your money directly to that service, there still are a lot of banks involved. But I agree that this is the next best thing to the dream of being paid in Bitcoin. I should have gotten into Bitcoin back in 1992..." [ref=e858]':
+              - table [ref=e859]:
+                - rowgroup [ref=e860]:
+                  - 'row "minerpumpkin Hero Member ***** Activity: 686 Merit: 500 A pumpkin mines 27 hours a night View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:10:54 AM #17 Wow, that''s quite some step you took there. Are there a lot of fees associated with that service? I''d prefer it if my employer paid me directly in Bitcoin, of course. Since you are effectively only forwarding your money directly to that service, there still are a lot of banks involved. But I agree that this is the next best thing to the dream of being paid in Bitcoin. I should have gotten into Bitcoin back in 1992..." [ref=e861]':
+                    - 'cell "minerpumpkin Hero Member ***** Activity: 686 Merit: 500 A pumpkin mines 27 hours a night View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:10:54 AM #17 Wow, that''s quite some step you took there. Are there a lot of fees associated with that service? I''d prefer it if my employer paid me directly in Bitcoin, of course. Since you are effectively only forwarding your money directly to that service, there still are a lot of banks involved. But I agree that this is the next best thing to the dream of being paid in Bitcoin. I should have gotten into Bitcoin back in 1992..." [ref=e862]':
+                      - table [ref=e863]:
+                        - rowgroup [ref=e864]:
+                          - 'row "minerpumpkin Hero Member ***** Activity: 686 Merit: 500 A pumpkin mines 27 hours a night View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:10:54 AM #17 Wow, that''s quite some step you took there. Are there a lot of fees associated with that service? I''d prefer it if my employer paid me directly in Bitcoin, of course. Since you are effectively only forwarding your money directly to that service, there still are a lot of banks involved. But I agree that this is the next best thing to the dream of being paid in Bitcoin." [ref=e865]':
+                            - 'cell "minerpumpkin Hero Member ***** Activity: 686 Merit: 500 A pumpkin mines 27 hours a night View Profile" [ref=e866]':
+                              - link "minerpumpkin" [ref=e868] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=125370
+                              - generic [ref=e869]:
+                                - text: Hero Member
+                                - img "*" [ref=e870]
+                                - img "*" [ref=e871]
+                                - img "*" [ref=e872]
+                                - img "*" [ref=e873]
+                                - img "*" [ref=e874]
+                                - text: "Activity: 686"
+                                - text: "Merit: 500"
+                                - text: A pumpkin mines 27 hours a night
+                                - link "View Profile" [ref=e876] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=125370
+                                  - img "View Profile" [ref=e877]
+                            - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:10:54 AM #17 Wow, that''s quite some step you took there. Are there a lot of fees associated with that service? I''d prefer it if my employer paid me directly in Bitcoin, of course. Since you are effectively only forwarding your money directly to that service, there still are a lot of banks involved. But I agree that this is the next best thing to the dream of being paid in Bitcoin." [ref=e878]':
+                              - table [ref=e879]:
+                                - rowgroup [ref=e880]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:10:54 AM #17" [ref=e881]':
+                                    - cell [ref=e882]:
+                                      - link [ref=e883] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10029123#msg10029123
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:10:54 AM" [ref=e884]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e886] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10029123#msg10029123
+                                      - generic [ref=e887]: January 04, 2015, 01:10:54 AM
+                                    - cell "#17" [ref=e888]:
+                                      - link "#17" [ref=e890] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10029123#msg10029123
+                              - separator [ref=e891]
+                              - generic [ref=e892]: Wow, that's quite some step you took there. Are there a lot of fees associated with that service? I'd prefer it if my employer paid me directly in Bitcoin, of course. Since you are effectively only forwarding your money directly to that service, there still are a lot of banks involved. But I agree that this is the next best thing to the dream of being paid in Bitcoin.
+                          - row "I should have gotten into Bitcoin back in 1992..." [ref=e893]:
+                            - cell "I should have gotten into Bitcoin back in 1992..." [ref=e894]:
+                              - table [ref=e895]:
+                                - rowgroup [ref=e896]:
+                                  - row [ref=e897]:
+                                    - cell [ref=e898]
+                                  - row [ref=e899]:
+                                    - cell [ref=e900]
+                                    - cell [ref=e901]
+                              - separator [ref=e902]
+                              - generic [ref=e903]: I should have gotten into Bitcoin back in 1992...
+          - 'row "QuantumQrack Sr. Member **** Activity: 337 Merit: 250 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:56:04 AM #18 I work at Micron Technologies, Inc. and I am doing something similar. I just receive enough shitty fiat (of which the federal reserve counterfeits daily) to pay rent, utilitites, etc. Everything else, starting this new year, is going into bitcoin via bitwage.co. Once you are 100% in control of your money there is no going back to legacy banking. Fuck you bankers." [ref=e904]':
+            - 'cell "QuantumQrack Sr. Member **** Activity: 337 Merit: 250 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:56:04 AM #18 I work at Micron Technologies, Inc. and I am doing something similar. I just receive enough shitty fiat (of which the federal reserve counterfeits daily) to pay rent, utilitites, etc. Everything else, starting this new year, is going into bitcoin via bitwage.co. Once you are 100% in control of your money there is no going back to legacy banking. Fuck you bankers." [ref=e905]':
+              - table [ref=e906]:
+                - rowgroup [ref=e907]:
+                  - 'row "QuantumQrack Sr. Member **** Activity: 337 Merit: 250 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:56:04 AM #18 I work at Micron Technologies, Inc. and I am doing something similar. I just receive enough shitty fiat (of which the federal reserve counterfeits daily) to pay rent, utilitites, etc. Everything else, starting this new year, is going into bitcoin via bitwage.co. Once you are 100% in control of your money there is no going back to legacy banking. Fuck you bankers." [ref=e908]':
+                    - 'cell "QuantumQrack Sr. Member **** Activity: 337 Merit: 250 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:56:04 AM #18 I work at Micron Technologies, Inc. and I am doing something similar. I just receive enough shitty fiat (of which the federal reserve counterfeits daily) to pay rent, utilitites, etc. Everything else, starting this new year, is going into bitcoin via bitwage.co. Once you are 100% in control of your money there is no going back to legacy banking. Fuck you bankers." [ref=e909]':
+                      - table [ref=e910]:
+                        - rowgroup [ref=e911]:
+                          - 'row "QuantumQrack Sr. Member **** Activity: 337 Merit: 250 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:56:04 AM #18 I work at Micron Technologies, Inc. and I am doing something similar. I just receive enough shitty fiat (of which the federal reserve counterfeits daily) to pay rent, utilitites, etc. Everything else, starting this new year, is going into bitcoin via bitwage.co. Once you are 100% in control of your money there is no going back to legacy banking. Fuck you bankers." [ref=e912]':
+                            - 'cell "QuantumQrack Sr. Member **** Activity: 337 Merit: 250 View Profile" [ref=e913]':
+                              - link "QuantumQrack" [ref=e915] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=27902
+                              - generic [ref=e916]:
+                                - text: Sr. Member
+                                - img "*" [ref=e917]
+                                - img "*" [ref=e918]
+                                - img "*" [ref=e919]
+                                - img "*" [ref=e920]
+                                - text: "Activity: 337"
+                                - text: "Merit: 250"
+                                - link "View Profile" [ref=e921] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=27902
+                                  - img "View Profile" [ref=e922]
+                            - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:56:04 AM #18 I work at Micron Technologies, Inc. and I am doing something similar. I just receive enough shitty fiat (of which the federal reserve counterfeits daily) to pay rent, utilitites, etc. Everything else, starting this new year, is going into bitcoin via bitwage.co. Once you are 100% in control of your money there is no going back to legacy banking. Fuck you bankers." [ref=e923]':
+                              - table [ref=e924]:
+                                - rowgroup [ref=e925]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:56:04 AM #18" [ref=e926]':
+                                    - cell [ref=e927]:
+                                      - link [ref=e928] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10029500#msg10029500
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 01:56:04 AM" [ref=e929]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e931] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10029500#msg10029500
+                                      - generic [ref=e932]: January 04, 2015, 01:56:04 AM
+                                    - cell "#18" [ref=e933]:
+                                      - link "#18" [ref=e935] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10029500#msg10029500
+                              - separator [ref=e936]
+                              - generic [ref=e937]: I work at Micron Technologies, Inc. and I am doing something similar. I just receive enough shitty fiat (of which the federal reserve counterfeits daily) to pay rent, utilitites, etc. Everything else, starting this new year, is going into bitcoin via bitwage.co. Once you are 100% in control of your money there is no going back to legacy banking. Fuck you bankers.
+                          - row [ref=e938]:
+                            - cell [ref=e939]:
+                              - table [ref=e940]:
+                                - rowgroup [ref=e941]:
+                                  - row [ref=e942]:
+                                    - cell [ref=e943]
+                                  - row [ref=e944]:
+                                    - cell [ref=e945]
+                                    - cell [ref=e946]
+          - 'row "saddambitcoin Legendary * Activity: 1610 Merit: 1006 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 02:04:49 AM #19 If I ever work for a big corporation I will be doing the same! https://moneroaddress.org" [ref=e947]':
+            - 'cell "saddambitcoin Legendary * Activity: 1610 Merit: 1006 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 02:04:49 AM #19 If I ever work for a big corporation I will be doing the same! https://moneroaddress.org" [ref=e948]':
+              - table [ref=e949]:
+                - rowgroup [ref=e950]:
+                  - 'row "saddambitcoin Legendary * Activity: 1610 Merit: 1006 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 02:04:49 AM #19 If I ever work for a big corporation I will be doing the same! https://moneroaddress.org" [ref=e951]':
+                    - 'cell "saddambitcoin Legendary * Activity: 1610 Merit: 1006 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 02:04:49 AM #19 If I ever work for a big corporation I will be doing the same! https://moneroaddress.org" [ref=e952]':
+                      - table [ref=e953]:
+                        - rowgroup [ref=e954]:
+                          - 'row "saddambitcoin Legendary * Activity: 1610 Merit: 1006 View Profile Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 02:04:49 AM #19 If I ever work for a big corporation I will be doing the same!" [ref=e955]':
+                            - 'cell "saddambitcoin Legendary * Activity: 1610 Merit: 1006 View Profile" [ref=e956]':
+                              - link "saddambitcoin" [ref=e958] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=53193
+                              - generic [ref=e959]:
+                                - text: Legendary
+                                - img "*" [ref=e960]
+                                - text: "Activity: 1610"
+                                - text: "Merit: 1006"
+                                - link "View Profile" [ref=e962] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=53193
+                                  - img "View Profile" [ref=e963]
+                            - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 02:04:49 AM #19 If I ever work for a big corporation I will be doing the same!" [ref=e964]':
+                              - table [ref=e965]:
+                                - rowgroup [ref=e966]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 02:04:49 AM #19" [ref=e967]':
+                                    - cell [ref=e968]:
+                                      - link [ref=e969] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10029552#msg10029552
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 02:04:49 AM" [ref=e970]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e972] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10029552#msg10029552
+                                      - generic [ref=e973]: January 04, 2015, 02:04:49 AM
+                                    - cell "#19" [ref=e974]:
+                                      - link "#19" [ref=e976] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10029552#msg10029552
+                              - separator [ref=e977]
+                              - generic [ref=e978]: If I ever work for a big corporation I will be doing the same!
+                          - row "https://moneroaddress.org" [ref=e979]:
+                            - cell "https://moneroaddress.org" [ref=e980]:
+                              - table [ref=e981]:
+                                - rowgroup [ref=e982]:
+                                  - row [ref=e983]:
+                                    - cell [ref=e984]
+                                  - row [ref=e985]:
+                                    - cell [ref=e986]
+                                    - cell [ref=e987]
+                              - separator [ref=e988]
+                              - link "https://moneroaddress.org" [ref=e990] [cursor=pointer]:
+                                - /url: https://moneroaddress.org
+          - 'row "Q7 Sr. Member **** Activity: 448 Merit: 250 View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 02:59:32 AM #20 Wow. Talk about someone who believes so much in bitcoin. I mean you practically wager everything you earn with the hope bitcoin will one day becomes the standard currency! Good luck then. I''m not that brave as you but still keeping a portion in fiat to lower the risk. Renewable Energy Source Friendship" [ref=e991]':
+            - 'cell "Q7 Sr. Member **** Activity: 448 Merit: 250 View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 02:59:32 AM #20 Wow. Talk about someone who believes so much in bitcoin. I mean you practically wager everything you earn with the hope bitcoin will one day becomes the standard currency! Good luck then. I''m not that brave as you but still keeping a portion in fiat to lower the risk. Renewable Energy Source Friendship" [ref=e992]':
+              - table [ref=e993]:
+                - rowgroup [ref=e994]:
+                  - 'row "Q7 Sr. Member **** Activity: 448 Merit: 250 View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 02:59:32 AM #20 Wow. Talk about someone who believes so much in bitcoin. I mean you practically wager everything you earn with the hope bitcoin will one day becomes the standard currency! Good luck then. I''m not that brave as you but still keeping a portion in fiat to lower the risk. Renewable Energy Source Friendship" [ref=e995]':
+                    - 'cell "Q7 Sr. Member **** Activity: 448 Merit: 250 View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 02:59:32 AM #20 Wow. Talk about someone who believes so much in bitcoin. I mean you practically wager everything you earn with the hope bitcoin will one day becomes the standard currency! Good luck then. I''m not that brave as you but still keeping a portion in fiat to lower the risk. Renewable Energy Source Friendship" [ref=e996]':
+                      - table [ref=e997]:
+                        - rowgroup [ref=e998]:
+                          - 'row "Q7 Sr. Member **** Activity: 448 Merit: 250 View Profile WWW Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 02:59:32 AM #20 Wow. Talk about someone who believes so much in bitcoin. I mean you practically wager everything you earn with the hope bitcoin will one day becomes the standard currency! Good luck then. I''m not that brave as you but still keeping a portion in fiat to lower the risk." [ref=e999]':
+                            - 'cell "Q7 Sr. Member **** Activity: 448 Merit: 250 View Profile WWW" [ref=e1000]':
+                              - link "Q7" [ref=e1002] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=349236
+                              - generic [ref=e1003]:
+                                - text: Sr. Member
+                                - img "*" [ref=e1004]
+                                - img "*" [ref=e1005]
+                                - img "*" [ref=e1006]
+                                - img "*" [ref=e1007]
+                                - text: "Activity: 448"
+                                - text: "Merit: 250"
+                                - link "View Profile" [ref=e1008] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=349236
+                                  - img "View Profile" [ref=e1009]
+                                - link "WWW" [ref=e1010] [cursor=pointer]:
+                                  - /url: http://www.microalgaebiofuel.com/
+                                  - img "WWW" [ref=e1011]
+                            - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 02:59:32 AM #20 Wow. Talk about someone who believes so much in bitcoin. I mean you practically wager everything you earn with the hope bitcoin will one day becomes the standard currency! Good luck then. I''m not that brave as you but still keeping a portion in fiat to lower the risk." [ref=e1012]':
+                              - table [ref=e1013]:
+                                - rowgroup [ref=e1014]:
+                                  - 'row "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 02:59:32 AM #20" [ref=e1015]':
+                                    - cell [ref=e1016]:
+                                      - link [ref=e1017] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10029941#msg10029941
+                                    - 'cell "Re: Started getting paid 100% in Bitcoin starting with my last paycheck January 04, 2015, 02:59:32 AM" [ref=e1018]':
+                                      - 'link "Re: Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e1020] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10029941#msg10029941
+                                      - generic [ref=e1021]: January 04, 2015, 02:59:32 AM
+                                    - cell "#20" [ref=e1022]:
+                                      - link "#20" [ref=e1024] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=913145.msg10029941#msg10029941
+                              - separator [ref=e1025]
+                              - generic [ref=e1026]: Wow. Talk about someone who believes so much in bitcoin. I mean you practically wager everything you earn with the hope bitcoin will one day becomes the standard currency! Good luck then. I'm not that brave as you but still keeping a portion in fiat to lower the risk.
+                          - row "Renewable Energy Source Friendship" [ref=e1027]:
+                            - cell "Renewable Energy Source Friendship" [ref=e1028]:
+                              - table [ref=e1029]:
+                                - rowgroup [ref=e1030]:
+                                  - row [ref=e1031]:
+                                    - cell [ref=e1032]
+                                  - row [ref=e1033]:
+                                    - cell [ref=e1034]
+                                    - cell [ref=e1035]
+                              - separator [ref=e1036]
+                              - generic [ref=e1037]:
+                                - link "Renewable Energy Source" [ref=e1038] [cursor=pointer]:
+                                  - /url: http://www.microalgaebiofuel.com/
+                                - link "Friendship" [ref=e1039] [cursor=pointer]:
+                                  - /url: http://www.vfren.com/
+          - row [ref=e1040]:
+            - cell [ref=e1041]
+      - table [ref=e1042]:
+        - rowgroup [ref=e1043]:
+          - 'row "Pages: [1] 2 3 4 5 6 » All Print" [ref=e1044]':
+            - 'cell "Pages: [1] 2 3 4 5 6 » All" [ref=e1045]':
+              - text: "Pages: [1]"
+              - link "2" [ref=e1046] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=913145.20
+              - link "3" [ref=e1047] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=913145.40
+              - link "4" [ref=e1048] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=913145.60
+              - link "5" [ref=e1049] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=913145.80
+              - link "6" [ref=e1050] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=913145.100
+              - link "»" [ref=e1052] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=913145.20
+              - link "All" [ref=e1053] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=913145.0;all
+            - cell "Print" [ref=e1054]:
+              - table [ref=e1055]:
+                - rowgroup [ref=e1056]:
+                  - row "Print" [ref=e1057]:
+                    - cell "Print" [ref=e1058]:
+                      - link "Print" [ref=e1059] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=printpage;topic=913145.0
+      - table [ref=e1060]:
+        - rowgroup [ref=e1061]:
+          - row "Bitcoin Forum > Bitcoin > Bitcoin Discussion > Started getting paid 100% in Bitcoin starting with my last paycheck « previous topic next topic »" [ref=e1062]:
+            - cell "Bitcoin Forum > Bitcoin > Bitcoin Discussion > Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e1063]:
+              - generic [ref=e1064]:
+                - link "Bitcoin Forum" [ref=e1066] [cursor=pointer]:
+                  - /url: https://bitcointalk.org/index.php
+                - text: ">"
+                - link "Bitcoin" [ref=e1068] [cursor=pointer]:
+                  - /url: https://bitcointalk.org/index.php#1
+                - text: ">"
+                - link "Bitcoin Discussion" [ref=e1070] [cursor=pointer]:
+                  - /url: https://bitcointalk.org/index.php?board=1.0
+                - text: ">"
+                - link "Started getting paid 100% in Bitcoin starting with my last paycheck" [ref=e1072]:
+                  - /url: https://bitcointalk.org/index.php?topic=913145.0
+            - cell "« previous topic next topic »" [ref=e1073]:
+              - link "« previous topic" [ref=e1074] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=913145.0;prev_next=prev#new
+              - link "next topic »" [ref=e1075] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=913145.0;prev_next=next#new
+      - table [ref=e1076]:
+        - rowgroup [ref=e1077]:
+          - row [ref=e1078]:
+            - cell [ref=e1079]
+    - generic [ref=e1082]:
+      - text: "Jump to:"
+      - combobox [ref=e1083]:
+        - option "Please select a destination:"
+        - option "-----------------------------" [disabled]
+        - option "Bitcoin"
+        - option "-----------------------------" [disabled]
+        - option "=> Bitcoin Discussion" [selected]
+        - option "===> Legal"
+        - option "===> Press"
+        - option "===> Meetups"
+        - option "===> Important Announcements"
+        - option "=> Development & Technical Discussion"
+        - option "===> Wallet software"
+        - option "=====> Electrum"
+        - option "=====> Bitcoin Wallet for Android"
+        - option "=====> BitcoinJ"
+        - option "=====> Armory"
+        - option "=====> Mycelium"
+        - option "=====> Hardware wallets"
+        - option "=> Mining"
+        - option "===> Mining support"
+        - option "===> Pools"
+        - option "===> Mining software (miners)"
+        - option "===> Hardware"
+        - option "=====> Group buys"
+        - option "===> Mining speculation"
+        - option "=> Bitcoin Technical Support"
+        - option "=> Project Development"
+        - option "-----------------------------" [disabled]
+        - option "Economy"
+        - option "-----------------------------" [disabled]
+        - option "=> Economics"
+        - option "===> Speculation"
+        - option "=> Marketplace"
+        - option "===> Goods"
+        - option "=====> Computer hardware"
+        - option "=====> Digital goods"
+        - option "=======> Invites & Accounts"
+        - option "=====> Collectibles"
+        - option "===> Services"
+        - option "===> Currency exchange"
+        - option "===> Gambling"
+        - option "=====> Games and rounds"
+        - option "=====> Investor-based games"
+        - option "=====> Gambling discussion"
+        - option "===> Lending"
+        - option "=====> Long-term offers"
+        - option "===> Securities"
+        - option "===> Auctions"
+        - option "===> Service Announcements"
+        - option "=====> Micro Earnings"
+        - option "===> Service Discussion"
+        - option "=====> Web Wallets"
+        - option "=====> Exchanges"
+        - option "=> Trading Discussion"
+        - option "===> Scam Accusations"
+        - option "===> Reputation"
+        - option "-----------------------------" [disabled]
+        - option "Other"
+        - option "-----------------------------" [disabled]
+        - option "=> Meta"
+        - option "===> Bitcoin Wiki"
+        - option "=> Politics & Society"
+        - option "=> Beginners & Help"
+        - option "=> Off-topic"
+        - option "=> Serious discussion"
+        - option "===> Ivory Tower"
+        - option "=> Archival"
+        - option "===> New forum software"
+        - option "===> Корзина"
+        - option "===> CPU/GPU Bitcoin mining hardware"
+        - option "===> Chinese students"
+        - option "===> Obsolete (buying)"
+        - option "===> Obsolete (selling)"
+        - option "===> MultiBit"
+        - option "-----------------------------" [disabled]
+        - option "Alternate cryptocurrencies"
+        - option "-----------------------------" [disabled]
+        - option "=> Altcoin Discussion"
+        - option "=> Announcements (Altcoins)"
+        - option "===> Tokens (Altcoins)"
+        - option "=> Mining (Altcoins)"
+        - option "===> Pools (Altcoins)"
+        - option "=> Marketplace (Altcoins)"
+        - option "===> Service Announcements (Altcoins)"
+        - option "===> Service Discussion (Altcoins)"
+        - option "===> Bounties (Altcoins)"
+        - option "=> Speculation (Altcoins)"
+        - option "-----------------------------" [disabled]
+        - option "Local"
+        - option "-----------------------------" [disabled]
+        - option "=> العربية (Arabic)"
+        - option "===> العملات البديلة (Altcoins)"
+        - option "=====> النقاشات"
+        - option "===> إستفسارات و أسئلة المبتدئين"
+        - option "===> التعدين"
+        - option "===> النقاشات الأخرى"
+        - option "===> منصات التبادل"
+        - option "=> Bahasa Indonesia (Indonesian)"
+        - option "===> Marketplace (Bahasa Indonesia)"
+        - option "===> Mining (Bahasa Indonesia)"
+        - option "===> Altcoins (Bahasa Indonesia)"
+        - option "===> Trading dan Spekulasi"
+        - option "===> Ekonomi, Politik, dan Budaya"
+        - option "===> Topik Lainnya"
+        - option "=> Español (Spanish)"
+        - option "===> Mercado y Economía"
+        - option "=====> Servicios"
+        - option "=====> Trading y especulación"
+        - option "===> Hardware y Minería"
+        - option "===> Esquina Libre"
+        - option "===> Mercadillo"
+        - option "=====> Mexico"
+        - option "=====> Argentina"
+        - option "=====> España"
+        - option "=====> Centroamerica y Caribe"
+        - option "===> Primeros pasos y ayuda"
+        - option "===> Altcoins (criptomonedas alternativas)"
+        - option "=====> Minería de altcoins"
+        - option "=====> Servicios"
+        - option "=====> Tokens (Español)"
+        - option "=> 中文 (Chinese)"
+        - option "===> 跳蚤市场"
+        - option "===> 山寨币"
+        - option "===> 媒体"
+        - option "===> 挖矿"
+        - option "===> 离题万里"
+        - option "=> Hrvatski (Croatian)"
+        - option "===> Trgovina"
+        - option "===> Altcoins (Hrvatski)"
+        - option "=====> Announcements (Hrvatski)"
+        - option "===> Off-topic (Hrvatski)"
+        - option "=> Deutsch (German)"
+        - option "===> Anfänger und Hilfe"
+        - option "===> Mining (Deutsch)"
+        - option "===> Trading und Spekulation"
+        - option "===> Projektentwicklung"
+        - option "===> Off-Topic (Deutsch)"
+        - option "===> Treffen"
+        - option "===> Presse"
+        - option "===> Altcoins (Deutsch)"
+        - option "=====> Announcements (Deutsch)"
+        - option "===> Marktplatz"
+        - option "=====> Auktionen"
+        - option "=====> Suche"
+        - option "=====> Biete"
+        - option "=> Ελληνικά (Greek)"
+        - option "===> Αγορά"
+        - option "===> Mining Discussion (Ελληνικά)"
+        - option "===> Altcoins (Ελληνικά)"
+        - option "=====> Altcoin Announcements (Ελληνικά)"
+        - option "=====> Altcoin Mining (Ελληνικά)"
+        - option "=> עברית (Hebrew)"
+        - option "=> Français"
+        - option "===> Actualité et News"
+        - option "===> Débutants"
+        - option "===> Discussions générales et utilisation du Bitcoin"
+        - option "===> Mining et Hardware"
+        - option "===> Économie et spéculation"
+        - option "===> Place de marché"
+        - option "=====> Échanges"
+        - option "=====> Produits et services"
+        - option "=====> Petites annonces"
+        - option "===> Le Bitcoin et la loi"
+        - option "===> Wiki, documentation et traduction"
+        - option "===> Développement et technique"
+        - option "===> Vos sites et projets"
+        - option "===> Hors-sujet"
+        - option "===> Altcoins (Français)"
+        - option "=====> Annonces"
+        - option "=> India"
+        - option "===> Mining (India)"
+        - option "===> Marketplace (India)"
+        - option "===> Regional Languages (India)"
+        - option "===> Press & News from India"
+        - option "===> Alt Coins (India)"
+        - option "===> Buyer/ Seller Reputations (India)"
+        - option "===> Off-Topic (India)"
+        - option "=> Italiano (Italian)"
+        - option "===> Guide (Italiano)"
+        - option "===> Progetti"
+        - option "===> Discussioni avanzate e sviluppo"
+        - option "===> Trading, analisi e speculazione"
+        - option "===> Mercato"
+        - option "=====> Mercato valute"
+        - option "=====> Beni"
+        - option "=====> Servizi"
+        - option "=====> Esercizi commerciali"
+        - option "=====> Hardware/Mining (Italiano)"
+        - option "=====> Gambling (Italiano)"
+        - option "===> Accuse scam/truffe"
+        - option "===> Mining (Italiano)"
+        - option "===> Alt-Currencies (Italiano)"
+        - option "=====> Annunci"
+        - option "===> Raduni/Meeting (Italiano)"
+        - option "===> Crittografia e decentralizzazione"
+        - option "===> Off-Topic (Italiano)"
+        - option "=> 日本語 (Japanese)"
+        - option "===> アルトコイン"
+        - option "=> Nederlands (Dutch)"
+        - option "===> Markt"
+        - option "===> Gokken/lotterijen"
+        - option "===> Mining (Nederlands)"
+        - option "===> Beurzen"
+        - option "===> Alt Coins (Nederlands)"
+        - option "===> Off-topic (Nederlands)"
+        - option "===> Meetings (Nederlands)"
+        - option "=> Nigeria (Naija)"
+        - option "===> Politics and society (Naija)"
+        - option "===> Off-topic (Naija)"
+        - option "=> 한국어 (Korean)"
+        - option "===> 대체코인 Alt Coins (한국어)"
+        - option "=> Pilipinas"
+        - option "===> Altcoins (Pilipinas)"
+        - option "=====> Altcoin Announcements (Pilipinas)"
+        - option "===> Pamilihan"
+        - option "===> Others (Pilipinas)"
+        - option "=> Polski"
+        - option "===> Tablica ogłoszeń"
+        - option "===> Alternatywne kryptowaluty"
+        - option "=====> Nowe kryptowaluty i tokeny"
+        - option "=====> Tablica ogłoszeń (altcoiny)"
+        - option "=> Português (Portuguese)"
+        - option "===> Primeiros Passos (Iniciantes)"
+        - option "===> Economia & Mercado"
+        - option "===> Mineração em Geral"
+        - option "===> Desenvolvimento & Discussões Técnicas"
+        - option "===> Criptomoedas Alternativas"
+        - option "===> Brasil"
+        - option "===> Portugal"
+        - option "=> Русский (Russian)"
+        - option "===> Новички"
+        - option "===> Cepвиcы"
+        - option "=====> Барахолка"
+        - option "=====> Обменники"
+        - option "===> Идеи"
+        - option "===> Кодеры"
+        - option "===> Майнеры"
+        - option "===> Политика"
+        - option "===> Трейдеры"
+        - option "===> Альтернативные криптовалюты"
+        - option "=====> Токены"
+        - option "=====> Бayнти и aиpдpoпы"
+        - option "===> Хайпы"
+        - option "===> Работа"
+        - option "===> Разное"
+        - option "===> Oбcyждeниe Bitcoin"
+        - option "=====> Новости"
+        - option "=====> Юристы"
+        - option "=> Română (Romanian)"
+        - option "===> Anunturi importante"
+        - option "===> Offtopic"
+        - option "===> Market"
+        - option "=====> Discutii Servicii"
+        - option "===> Minerit"
+        - option "===> Tutoriale"
+        - option "===> Bine ai venit!"
+        - option "===> Presa"
+        - option "===> Altcoins (Monede Alternative)"
+        - option "=====> Anunturi Monede Alternative"
+        - option "=> Skandinavisk"
+        - option "=> Türkçe (Turkish)"
+        - option "===> Bitcoin Haberleri"
+        - option "===> Pazar Alanı"
+        - option "===> Madencilik"
+        - option "===> Ekonomi"
+        - option "===> Servisler"
+        - option "=====> Fonlar"
+        - option "===> Proje Geliştirme"
+        - option "===> Alternatif Kripto-Paralar"
+        - option "=====> Madencilik (Alternatif Kripto-Paralar)"
+        - option "=====> Duyurular (Alternatif Kripto-Paralar)"
+        - option "===> Konu Dışı"
+        - option "===> Yeni Başlayanlar & Yardım"
+        - option "===> Buluşmalar"
+        - option "=> Other languages/locations"
+      - button "go" [ref=e1084]
+  - table [ref=e1086]:
+    - rowgroup [ref=e1087]:
+      - row "Powered by MySQL Powered by PHP Powered by SMF 1.1.19 | SMF © 2006-2009, Simple Machines Valid XHTML 1.0! Valid CSS!" [ref=e1088]:
+        - cell "Powered by MySQL Powered by PHP" [ref=e1089]:
+          - link "Powered by MySQL" [ref=e1090] [cursor=pointer]:
+            - /url: http://www.mysql.com/
+            - img "Powered by MySQL" [ref=e1091]
+          - link "Powered by PHP" [ref=e1092] [cursor=pointer]:
+            - /url: http://www.php.net/
+            - img "Powered by PHP" [ref=e1093]
+        - cell "Powered by SMF 1.1.19 | SMF © 2006-2009, Simple Machines" [ref=e1094]:
+          - generic [ref=e1095]:
+            - link "Powered by SMF 1.1.19" [ref=e1096] [cursor=pointer]:
+              - /url: http://www.simplemachines.org/
+            - text: "|"
+            - link "SMF © 2006-2009, Simple Machines" [ref=e1097] [cursor=pointer]:
+              - /url: http://www.simplemachines.org/about/copyright.php
+        - cell "Valid XHTML 1.0! Valid CSS!" [ref=e1098]:
+          - link "Valid XHTML 1.0!" [ref=e1099] [cursor=pointer]:
+            - /url: http://validator.w3.org/check/referer
+            - img "Valid XHTML 1.0!" [ref=e1100]
+          - link "Valid CSS!" [ref=e1101] [cursor=pointer]:
+            - /url: http://jigsaw.w3.org/css-validator/check/referer
+            - img "Valid CSS!" [ref=e1102]

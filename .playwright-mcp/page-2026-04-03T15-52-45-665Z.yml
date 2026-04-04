@@ -1,0 +1,1212 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - table [ref=e3]:
+      - rowgroup [ref=e4]:
+        - row "Bitcoin Forum" [ref=e5]:
+          - cell "Bitcoin Forum" [ref=e6]
+          - cell [ref=e7]
+    - table [ref=e8]:
+      - rowgroup [ref=e9]:
+        - row "April 03, 2026, 03:52:45 PM *" [ref=e10]:
+          - cell "April 03, 2026, 03:52:45 PM *" [ref=e11]:
+            - text: April 03, 2026, 03:52:45 PM
+            - link "*" [ref=e12] [cursor=pointer]:
+              - /url: "#"
+              - img "*" [ref=e13]
+        - row "Welcome, Guest. Please login or register." [ref=e14]:
+          - cell "Welcome, Guest. Please login or register." [ref=e15]:
+            - table [ref=e16]:
+              - rowgroup [ref=e17]:
+                - row "Welcome, Guest. Please login or register." [ref=e18]:
+                  - cell "Welcome, Guest. Please login or register." [ref=e19]:
+                    - generic [ref=e20]:
+                      - text: Welcome, Guest. Please
+                      - link "login" [ref=e21] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=login
+                      - text: or
+                      - link "register" [ref=e22] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=register
+                      - text: .
+    - table [ref=e23]:
+      - rowgroup [ref=e24]:
+        - 'row "News: Latest Bitcoin Core release: 30.2 [Torrent] Search" [ref=e25]':
+          - 'cell "News: Latest Bitcoin Core release: 30.2 [Torrent]" [ref=e26]':
+            - generic [ref=e27]:
+              - text: "News: Latest Bitcoin Core release:"
+              - link "30.2" [ref=e28] [cursor=pointer]:
+                - /url: https://bitcoincore.org/en/download/
+              - text: "["
+              - link "Torrent" [ref=e29] [cursor=pointer]:
+                - /url: https://bitcointalk.org/bitcoin-30.2.torrent
+              - text: "]"
+          - cell "Search" [ref=e30]:
+            - generic [ref=e31]:
+              - link [ref=e32] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?action=search;advanced
+              - textbox [ref=e33]
+              - button "Search" [ref=e34]
+  - table [ref=e35]:
+    - rowgroup [ref=e36]:
+      - row "Home Help Search Login Register More" [ref=e37]:
+        - cell [ref=e38]
+        - cell [ref=e39]
+        - cell "Home" [ref=e40]:
+          - link "Home" [ref=e41] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php
+        - cell [ref=e42]
+        - cell "Help" [ref=e43]:
+          - link "Help" [ref=e44] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=help
+        - cell "Search" [ref=e45]:
+          - link "Search" [ref=e46] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=search
+        - cell "Login" [ref=e47]:
+          - link "Login" [ref=e48] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=login
+        - cell "Register" [ref=e49]:
+          - link "Register" [ref=e50] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=register
+        - cell "More" [ref=e51]:
+          - link "More" [ref=e52] [cursor=pointer]:
+            - /url: /more.php
+        - cell [ref=e53]
+  - generic [ref=e54]:
+    - generic [ref=e56]:
+      - link "Bitcoin Forum" [ref=e58] [cursor=pointer]:
+        - /url: https://bitcointalk.org/index.php
+      - text: ">"
+      - link "Other" [ref=e60] [cursor=pointer]:
+        - /url: https://bitcointalk.org/index.php#4
+      - text: ">"
+      - link "Beginners & Help" [ref=e62] [cursor=pointer]:
+        - /url: https://bitcointalk.org/index.php?board=39.0
+      - text: ">"
+      - link "Exit strategy" [ref=e64]:
+        - /url: https://bitcointalk.org/index.php?topic=5115973.0
+    - table [ref=e65]:
+      - rowgroup [ref=e66]:
+        - 'row "Pages: « 1 [2] All « previous topic next topic » Print" [ref=e67]':
+          - 'cell "Pages: « 1 [2] All" [ref=e68]':
+            - text: "Pages:"
+            - link "«" [ref=e70] [cursor=pointer]:
+              - /url: https://bitcointalk.org/index.php?topic=5115973.0
+            - link "1" [ref=e71] [cursor=pointer]:
+              - /url: https://bitcointalk.org/index.php?topic=5115973.0
+            - text: "[2]"
+            - link "All" [ref=e72] [cursor=pointer]:
+              - /url: https://bitcointalk.org/index.php?topic=5115973.0;all
+          - cell "« previous topic next topic » Print" [ref=e73]:
+            - generic [ref=e74]:
+              - link "« previous topic" [ref=e75] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=5115973.0;prev_next=prev#new
+              - link "next topic »" [ref=e76] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=5115973.0;prev_next=next#new
+            - table [ref=e77]:
+              - rowgroup [ref=e78]:
+                - row "Print" [ref=e79]:
+                  - cell "Print" [ref=e80]:
+                    - link "Print" [ref=e81] [cursor=pointer]:
+                      - /url: https://bitcointalk.org/index.php?action=printpage;topic=5115973.0
+    - table [ref=e82]:
+      - rowgroup [ref=e83]:
+        - 'row "Author Topic: Exit strategy (Read 473 times)" [ref=e84]':
+          - cell [ref=e85]
+          - cell "Author" [ref=e86]
+          - 'cell "Topic: Exit strategy (Read 473 times)" [ref=e87]'
+    - generic [ref=e88]:
+      - table [ref=e89]:
+        - rowgroup [ref=e90]:
+          - 'row "leowonderful Legendary * Activity: 1624 Merit: 1130 Bitcoin FTW! View Profile Re: Exit strategy March 04, 2019, 11:14:51 PM #21 I have accounts on several exchanges that are all verified and ready to go in case I ever need to sell off any of the coins I hold, and I also never plan on selling all the BTC and alts I hold, though I will and currently do sell off a little bit for personal needs and when prices rise towards an ATH like what happened in 2017. P2P trading''s always an option as well, though you won''t get market price with most methods of payment on a P2P exchange like Paxful or Localbitcoins. I''ve never tried selling crypto for cash in person, though I do know some people that do." [ref=e91]':
+            - 'cell "leowonderful Legendary * Activity: 1624 Merit: 1130 Bitcoin FTW! View Profile Re: Exit strategy March 04, 2019, 11:14:51 PM #21 I have accounts on several exchanges that are all verified and ready to go in case I ever need to sell off any of the coins I hold, and I also never plan on selling all the BTC and alts I hold, though I will and currently do sell off a little bit for personal needs and when prices rise towards an ATH like what happened in 2017. P2P trading''s always an option as well, though you won''t get market price with most methods of payment on a P2P exchange like Paxful or Localbitcoins. I''ve never tried selling crypto for cash in person, though I do know some people that do." [ref=e92]':
+              - table [ref=e93]:
+                - rowgroup [ref=e94]:
+                  - 'row "leowonderful Legendary * Activity: 1624 Merit: 1130 Bitcoin FTW! View Profile Re: Exit strategy March 04, 2019, 11:14:51 PM #21 I have accounts on several exchanges that are all verified and ready to go in case I ever need to sell off any of the coins I hold, and I also never plan on selling all the BTC and alts I hold, though I will and currently do sell off a little bit for personal needs and when prices rise towards an ATH like what happened in 2017. P2P trading''s always an option as well, though you won''t get market price with most methods of payment on a P2P exchange like Paxful or Localbitcoins. I''ve never tried selling crypto for cash in person, though I do know some people that do." [ref=e95]':
+                    - 'cell "leowonderful Legendary * Activity: 1624 Merit: 1130 Bitcoin FTW! View Profile Re: Exit strategy March 04, 2019, 11:14:51 PM #21 I have accounts on several exchanges that are all verified and ready to go in case I ever need to sell off any of the coins I hold, and I also never plan on selling all the BTC and alts I hold, though I will and currently do sell off a little bit for personal needs and when prices rise towards an ATH like what happened in 2017. P2P trading''s always an option as well, though you won''t get market price with most methods of payment on a P2P exchange like Paxful or Localbitcoins. I''ve never tried selling crypto for cash in person, though I do know some people that do." [ref=e96]':
+                      - table [ref=e97]:
+                        - rowgroup [ref=e98]:
+                          - 'row "leowonderful Legendary * Activity: 1624 Merit: 1130 Bitcoin FTW! View Profile Re: Exit strategy March 04, 2019, 11:14:51 PM #21 I have accounts on several exchanges that are all verified and ready to go in case I ever need to sell off any of the coins I hold, and I also never plan on selling all the BTC and alts I hold, though I will and currently do sell off a little bit for personal needs and when prices rise towards an ATH like what happened in 2017. P2P trading''s always an option as well, though you won''t get market price with most methods of payment on a P2P exchange like Paxful or Localbitcoins. I''ve never tried selling crypto for cash in person, though I do know some people that do." [ref=e99]':
+                            - 'cell "leowonderful Legendary * Activity: 1624 Merit: 1130 Bitcoin FTW! View Profile" [ref=e100]':
+                              - link "leowonderful" [ref=e102] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=416731
+                              - generic [ref=e103]:
+                                - text: Legendary
+                                - img "*" [ref=e104]
+                                - text: "Activity: 1624"
+                                - text: "Merit: 1130"
+                                - text: Bitcoin FTW!
+                                - link "View Profile" [ref=e106] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=416731
+                                  - img "View Profile" [ref=e107]
+                            - 'cell "Re: Exit strategy March 04, 2019, 11:14:51 PM #21 I have accounts on several exchanges that are all verified and ready to go in case I ever need to sell off any of the coins I hold, and I also never plan on selling all the BTC and alts I hold, though I will and currently do sell off a little bit for personal needs and when prices rise towards an ATH like what happened in 2017. P2P trading''s always an option as well, though you won''t get market price with most methods of payment on a P2P exchange like Paxful or Localbitcoins. I''ve never tried selling crypto for cash in person, though I do know some people that do." [ref=e108]':
+                              - table [ref=e109]:
+                                - rowgroup [ref=e110]:
+                                  - 'row "Re: Exit strategy March 04, 2019, 11:14:51 PM #21" [ref=e111]':
+                                    - cell [ref=e112]:
+                                      - link [ref=e113] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50023238#msg50023238
+                                    - 'cell "Re: Exit strategy March 04, 2019, 11:14:51 PM" [ref=e114]':
+                                      - 'link "Re: Exit strategy" [ref=e116] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50023238#msg50023238
+                                      - generic [ref=e117]: March 04, 2019, 11:14:51 PM
+                                    - cell "#21" [ref=e118]:
+                                      - link "#21" [ref=e120] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50023238#msg50023238
+                              - separator [ref=e121]
+                              - generic [ref=e122]:
+                                - text: I have accounts on several exchanges that are all verified and ready to go in case I ever need to sell off any of the coins I hold, and I also never plan on selling all the BTC and alts I hold, though I will and currently do sell off a little bit for personal needs and when prices rise towards an ATH like what happened in 2017.
+                                - text: P2P trading's always an option as well, though you won't get market price with most methods of payment on a P2P exchange like Paxful or Localbitcoins. I've never tried selling crypto for cash in person, though I do know some people that do.
+                          - row [ref=e123]:
+                            - cell [ref=e124]:
+                              - table [ref=e125]:
+                                - rowgroup [ref=e126]:
+                                  - row [ref=e127]:
+                                    - cell [ref=e128]
+                                  - row [ref=e129]:
+                                    - cell [ref=e130]
+                                    - cell [ref=e131]
+          - row [ref=e132]:
+            - cell [ref=e133]:
+              - table [ref=e134]:
+                - rowgroup [ref=e135]:
+                  - row [ref=e136]:
+                    - cell [ref=e137]:
+                      - table [ref=e138]:
+                        - rowgroup [ref=e139]:
+                          - 'row "jseverson Hero Member ***** Activity: 1834 Merit: 759 View Profile Re: Exit strategy March 05, 2019, 02:46:56 AM #22 Quote from: Rufiefairy on March 02, 2019, 08:25:23 AM Would they be able to support millions of people withdrawing hundreds of thousands of dollars? Crypto seems fairly liquid but again if it shoots to the moon, how liquid will it really be? I personally wouldn''t worry about it. Everyone has different moons and people tend to be greedy. There''s no way everyone will simultaneously call jackpot and cash out everything; people will always want more. Heck, this scenario is far more likely to happen in the event of a huge crash or a massive FUD wave. You''d also have a lot more of a reason to worry about exchanges being liquid if the assets they''re holding are bleeding." [ref=e140]':
+                            - 'cell "jseverson Hero Member ***** Activity: 1834 Merit: 759 View Profile" [ref=e141]':
+                              - link "jseverson" [ref=e143] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=109482
+                              - generic [ref=e144]:
+                                - text: Hero Member
+                                - img "*" [ref=e145]
+                                - img "*" [ref=e146]
+                                - img "*" [ref=e147]
+                                - img "*" [ref=e148]
+                                - img "*" [ref=e149]
+                                - text: "Activity: 1834"
+                                - text: "Merit: 759"
+                                - link "View Profile" [ref=e150] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=109482
+                                  - img "View Profile" [ref=e151]
+                            - 'cell "Re: Exit strategy March 05, 2019, 02:46:56 AM #22 Quote from: Rufiefairy on March 02, 2019, 08:25:23 AM Would they be able to support millions of people withdrawing hundreds of thousands of dollars? Crypto seems fairly liquid but again if it shoots to the moon, how liquid will it really be? I personally wouldn''t worry about it. Everyone has different moons and people tend to be greedy. There''s no way everyone will simultaneously call jackpot and cash out everything; people will always want more. Heck, this scenario is far more likely to happen in the event of a huge crash or a massive FUD wave. You''d also have a lot more of a reason to worry about exchanges being liquid if the assets they''re holding are bleeding." [ref=e152]':
+                              - table [ref=e153]:
+                                - rowgroup [ref=e154]:
+                                  - 'row "Re: Exit strategy March 05, 2019, 02:46:56 AM #22" [ref=e155]':
+                                    - cell [ref=e156]:
+                                      - link [ref=e157] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50024500#msg50024500
+                                    - 'cell "Re: Exit strategy March 05, 2019, 02:46:56 AM" [ref=e158]':
+                                      - 'link "Re: Exit strategy" [ref=e160] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50024500#msg50024500
+                                      - generic [ref=e161]: March 05, 2019, 02:46:56 AM
+                                    - cell "#22" [ref=e162]:
+                                      - link "#22" [ref=e164] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50024500#msg50024500
+                              - separator [ref=e165]
+                              - generic [ref=e166]:
+                                - 'link "Quote from: Rufiefairy on March 02, 2019, 08:25:23 AM" [ref=e168] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=5115973.msg49984209#msg49984209
+                                - generic [ref=e169]: Would they be able to support millions of people withdrawing hundreds of thousands of dollars? Crypto seems fairly liquid but again if it shoots to the moon, how liquid will it really be?
+                                - text: I personally wouldn't worry about it. Everyone has different moons and people tend to be greedy. There's no way everyone will simultaneously call jackpot and cash out everything; people will always want more.
+                                - text: Heck, this scenario is far more likely to happen in the event of a huge crash or a massive FUD wave. You'd also have a lot more of a reason to worry about exchanges being liquid if the assets they're holding are bleeding.
+                          - 'row "░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀ .ChipMixer.{ MIXING REINVENTED FOR YOUR PRIVACY #.ChipMixer. ░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀" [ref=e170]':
+                            - 'cell "░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀ .ChipMixer.{ MIXING REINVENTED FOR YOUR PRIVACY #.ChipMixer. ░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀" [ref=e171]':
+                              - table [ref=e172]:
+                                - rowgroup [ref=e173]:
+                                  - row [ref=e174]:
+                                    - cell [ref=e175]
+                                  - row [ref=e176]:
+                                    - cell [ref=e177]
+                                    - cell [ref=e178]
+                              - separator [ref=e179]
+                              - table [ref=e182]:
+                                - rowgroup [ref=e183]:
+                                  - 'row "░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀ .ChipMixer.{ MIXING REINVENTED FOR YOUR PRIVACY #.ChipMixer. ░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀" [ref=e184]':
+                                    - cell "░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀" [ref=e185]:
+                                      - link "░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀" [ref=e186] [cursor=pointer]:
+                                        - /url: https://chipmixer.com/
+                                        - generic [ref=e189]:
+                                          - text: ░░░░░▄▄██████▄▄
+                                          - text: ░░▄████▀▀▀▀▀▀████▄
+                                          - text: ░███▀░░░░░░░░░░▀█▀█
+                                          - text: ███░░░▄██████▄▄░░░██
+                                          - text: ░░░░░█████████░░░░██▌
+                                          - text: ░░░░█████████████████
+                                          - text: ░░░░█████████████████
+                                          - text: ░░░░░████████████████
+                                          - text: ███▄░░▀██████▀░░░███
+                                          - text: █▀█▄▄░░░░░░░░░░▄███
+                                          - text: ░░▀████▄▄▄▄▄▄████▀
+                                          - text: ░░░░░▀▀██████▀▀
+                                    - 'cell ".ChipMixer.{ MIXING REINVENTED FOR YOUR PRIVACY #.ChipMixer." [ref=e190]':
+                                      - 'link ".ChipMixer.{ MIXING REINVENTED" [ref=e191] [cursor=pointer]':
+                                        - /url: https://chipmixer.com/
+                                        - generic [ref=e195]:
+                                          - text: .
+                                          - generic [ref=e196]:
+                                            - text: ChipMixer
+                                            - generic [ref=e197]:
+                                              - text: .
+                                              - generic [ref=e199]:
+                                                - text: "{"
+                                                - generic [ref=e200]: MIXING
+                                                - text: REINVENTED
+                                      - 'link "FOR YOUR PRIVACY #.ChipMixer." [ref=e202] [cursor=pointer]':
+                                        - /url: http://chipmixorflykuxu56uxy7gf5o6ggig7xru7dnihc4fm4cxqsc63e6id.onion
+                                        - generic [ref=e207]:
+                                          - generic [ref=e208]: FOR YOUR
+                                          - text: "PRIVACY #"
+                                          - generic [ref=e210]:
+                                            - text: .
+                                            - generic [ref=e211]:
+                                              - text: ChipMixer
+                                              - generic [ref=e212]: .
+                                    - cell "░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀" [ref=e213]:
+                                      - link "░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀" [ref=e214] [cursor=pointer]:
+                                        - /url: http://chipmixorflykuxu56uxy7gf5o6ggig7xru7dnihc4fm4cxqsc63e6id.onion
+                                        - generic [ref=e217]:
+                                          - text: ░░░░░▄▄██████▄▄
+                                          - text: ░░▄████▀▀▀▀▀▀████▄
+                                          - text: ░███▀░░░░░░░░░░▀█▀█
+                                          - text: ███░░░▄██████▄▄░░░██
+                                          - text: ░░░░░█████████░░░░██▌
+                                          - text: ░░░░█████████████████
+                                          - text: ░░░░█████████████████
+                                          - text: ░░░░░████████████████
+                                          - text: ███▄░░▀██████▀░░░███
+                                          - text: █▀█▄▄░░░░░░░░░░▄███
+                                          - text: ░░▀████▄▄▄▄▄▄████▀
+                                          - text: ░░░░░▀▀██████▀▀
+          - row [ref=e218]:
+            - cell [ref=e219]:
+              - table [ref=e220]:
+                - rowgroup [ref=e221]:
+                  - row [ref=e222]:
+                    - cell [ref=e223]:
+                      - table [ref=e224]:
+                        - rowgroup [ref=e225]:
+                          - 'row "Kakmakr Legendary * Activity: 3542 Merit: 1966 Leading Crypto Sports Betting & Casino Platform View Profile Re: Exit strategy March 05, 2019, 12:25:01 PM #23 So, not everyone are going to rush to exchanges to sell at the same time. A lot of people will be tempted to sell, long before the new ATH price will be reached. Wink The bigger exchanges have shown before that they could not handle the excess load in scenarios like this, so they frequently go down in runs like this. <A lot of these crashes are possibly initiated/faked by them in my opinion> Every sell order will have to have a buy order, so if there are not a demand for the coins, it will just sit there until the order is picked up. A lot of people turn to other platforms to sell their bitcoins in congested periods like this, because they learn from their previous mistakes. Cheesy" [ref=e226]':
+                            - 'cell "Kakmakr Legendary * Activity: 3542 Merit: 1966 Leading Crypto Sports Betting & Casino Platform View Profile" [ref=e227]':
+                              - link "Kakmakr" [ref=e229] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=374061
+                              - generic [ref=e230]:
+                                - text: Legendary
+                                - img "*" [ref=e231]
+                                - text: "Activity: 3542"
+                                - text: "Merit: 1966"
+                                - text: Leading Crypto Sports Betting & Casino Platform
+                                - link "View Profile" [ref=e232] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=374061
+                                  - img "View Profile" [ref=e233]
+                            - 'cell "Re: Exit strategy March 05, 2019, 12:25:01 PM #23 So, not everyone are going to rush to exchanges to sell at the same time. A lot of people will be tempted to sell, long before the new ATH price will be reached. Wink The bigger exchanges have shown before that they could not handle the excess load in scenarios like this, so they frequently go down in runs like this. <A lot of these crashes are possibly initiated/faked by them in my opinion> Every sell order will have to have a buy order, so if there are not a demand for the coins, it will just sit there until the order is picked up. A lot of people turn to other platforms to sell their bitcoins in congested periods like this, because they learn from their previous mistakes. Cheesy" [ref=e234]':
+                              - table [ref=e235]:
+                                - rowgroup [ref=e236]:
+                                  - 'row "Re: Exit strategy March 05, 2019, 12:25:01 PM #23" [ref=e237]':
+                                    - cell [ref=e238]:
+                                      - link [ref=e239] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50029364#msg50029364
+                                    - 'cell "Re: Exit strategy March 05, 2019, 12:25:01 PM" [ref=e240]':
+                                      - 'link "Re: Exit strategy" [ref=e242] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50029364#msg50029364
+                                      - generic [ref=e243]: March 05, 2019, 12:25:01 PM
+                                    - cell "#23" [ref=e244]:
+                                      - link "#23" [ref=e246] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50029364#msg50029364
+                              - separator [ref=e247]
+                              - generic [ref=e248]:
+                                - text: So, not everyone are going to rush to exchanges to sell at the same time. A lot of people will be tempted to sell, long before the new ATH price will be reached.
+                                - img "Wink" [ref=e249]
+                                - text: The bigger exchanges have shown before that they could not handle the excess load in scenarios like this, so they frequently go down in runs like this. <A lot of these crashes are possibly initiated/faked by them in my opinion>
+                                - text: Every sell order will have to have a buy order, so if there are not a demand for the coins, it will just sit there until the order is picked up.
+                                - text: A lot of people turn to other platforms to sell their bitcoins in congested periods like this, because they learn from their previous mistakes.
+                                - img "Cheesy" [ref=e250]
+                          - row [ref=e251]:
+                            - cell [ref=e252]:
+                              - table [ref=e253]:
+                                - rowgroup [ref=e254]:
+                                  - row [ref=e255]:
+                                    - cell [ref=e256]
+                                  - row [ref=e257]:
+                                    - cell [ref=e258]
+                                    - cell [ref=e259]
+                              - separator [ref=e260]
+                              - table [ref=e263]:
+                                - rowgroup [ref=e264]:
+                                  - row [ref=e265]:
+                                    - cell "..Stake.com.." [ref=e266]:
+                                      - link "..Stake.com.." [ref=e267] [cursor=pointer]:
+                                        - /url: https://stake.com/?c=911911
+                                        - generic [ref=e271]:
+                                          - text: ..
+                                          - superscript [ref=e273]:
+                                            - generic [ref=e274]: Stake.com
+                                          - text: ..
+                                    - cell [ref=e275]
+                                    - cell [ref=e276]
+                                    - cell "▄████████████████████████████████████▄ ██ ▄▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄ ██ ▄████▄ ██ ▀▀▀▀▀▀▀▀▀▀ ██████████ ▀▀▀▀▀▀▀▀▀▀ ██ ██████ ██ ██████████ ██ ██ ██████████ ██ ▀██▀ ██ ██ ██ ██████ ██ ██ ██ ██ ██ ██ ██████ ██ █████ ███ ██████ ██ ████▄ ██ ██ █████ ███ ████ ████ █████ ███ ████████ ██ ████ ████ ██████████ ████ ████ ████▀ ██ ██████████ ▄▄▄▄▄▄▄▄▄▄ ██████████ ██ ██ ▀▀▀▀▀▀▀▀▀▀ ██ ▀█████████▀ ▄████████████▄ ▀█████████▀ ▄▄▄▄▄▄▄▄▄▄▄▄███ ██ ██ ███▄▄▄▄▄▄▄▄▄▄▄▄ ██████████████████████████████████████████" [ref=e277]:
+                                      - generic [ref=e280]:
+                                        - text: ▄████████████████████████████████████▄
+                                        - generic [ref=e281]: ██ ▄▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄ ██
+                                        - text: ▄████▄
+                                        - generic [ref=e282]: ██ ▀▀▀▀▀▀▀▀▀▀ ██████████ ▀▀▀▀▀▀▀▀▀▀ ██
+                                        - text: ██████
+                                        - generic [ref=e283]: ██ ██████████ ██ ██ ██████████ ██
+                                        - text: ▀██▀
+                                        - generic [ref=e284]: ██ ██ ██ ██████ ██ ██ ██ ██
+                                        - text: ██
+                                        - generic [ref=e285]: ██ ██████ ██ █████ ███ ██████ ██ ██
+                                        - text: ██▄ ██
+                                        - generic [ref=e286]: ██ █████ ███ ████ ████ █████ ███ ██
+                                        - text: ██████
+                                        - generic [ref=e287]: ██ ████ ████ ██████████ ████ ████ ██
+                                        - text: ██▀
+                                        - generic [ref=e288]: ██ ██████████ ▄▄▄▄▄▄▄▄▄▄ ██████████ ██
+                                        - generic [ref=e289]: ██ ▀▀▀▀▀▀▀▀▀▀ ██
+                                        - text: ▀█████████▀ ▄████████████▄ ▀█████████▀
+                                        - text: ▄▄▄▄▄▄▄▄▄▄▄▄███ ██ ██ ███▄▄▄▄▄▄▄▄▄▄▄▄
+                                        - text: ██████████████████████████████████████████
+                                    - cell [ref=e290]
+                                    - cell [ref=e291]
+                                    - cell "Play Smarter" [ref=e292]:
+                                      - link "Play Smarter" [ref=e294] [cursor=pointer]:
+                                        - /url: https://stake.com/?c=911911
+                                        - generic [ref=e297]:
+                                          - text: Play
+                                          - text: Smarter
+                                    - cell [ref=e298]
+                                    - cell [ref=e299]
+                                    - cell "▄▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▄ █ ▄▀▄ █▀▀█▀▄▄ █ █▀█ █ ▐ ▐▌ █ ▄██▄ █ ▌ █ █ ▄██████▄ █ ▌ ▐▌ █ ██████████ █ ▐ █ █ ▐██████████▌ █ ▐ ▐▌ █ ▀▀██████▀▀ █ ▌ █ █ ▄▄▄██▄▄▄ █ ▌▐▌ █ █▐ █ █ █▐▐▌ █ █▐█ ▀▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▀█" [ref=e300]:
+                                      - generic [ref=e303]:
+                                        - text: ▄▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▄
+                                        - text: █ ▄▀▄ █▀▀█▀▄▄
+                                        - text: █ █▀█ █ ▐ ▐▌
+                                        - text: █ ▄██▄ █ ▌ █
+                                        - text: █ ▄██████▄ █ ▌ ▐▌
+                                        - text: █ ██████████ █ ▐ █
+                                        - text: █ ▐██████████▌ █ ▐ ▐▌
+                                        - text: █ ▀▀██████▀▀ █ ▌ █
+                                        - text: █ ▄▄▄██▄▄▄ █ ▌▐▌
+                                        - text: █ █▐ █
+                                        - text: █ █▐▐▌
+                                        - text: █ █▐█
+                                        - text: ▀▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▀█
+                                    - cell [ref=e304]
+                                    - cell [ref=e305]
+                                    - cell "Leading Crypto Sports Betting &&&&& Casino Platform" [ref=e306]:
+                                      - link "Leading Crypto Sports Betting &&&&& Casino Platform" [ref=e308] [cursor=pointer]:
+                                        - /url: https://stake.com/?c=911911
+                                        - generic [ref=e311]:
+                                          - text: Leading Crypto Sports Betting
+                                          - text: "&&&&& Casino Platform"
+                                    - cell [ref=e312]
+                                    - cell [ref=e313]
+                                    - cell "▄▄█████████▄▄ ▄██▀▀▀▀█████▀▀▀▀██▄ ▄█▀ ▐█▌ ▀█▄ ██ ▐█▌ ██ ████▄ ▄█████▄ ▄████ ████████▄███████████▄████████ ███▀ █████████████ ▀███ ██ ███████████ ██ ▀█▄ █████████ ▄█▀ ▀█▄ ▄██▀▀▀▀▀▀▀██▄ ▄▄▄█▀ ▀███████ ███████▀ ▀█████▄ ▄█████▀ ▀▀▀███▄▄▄███▀▀▀" [ref=e314]:
+                                      - generic [ref=e319]:
+                                        - text: ▄▄█████████▄▄
+                                        - text: ▄██▀▀▀▀█████▀▀▀▀██▄
+                                        - text: ▄█▀ ▐█▌ ▀█▄
+                                        - text: ██ ▐█▌ ██
+                                        - text: ████▄ ▄█████▄ ▄████
+                                        - text: ████████▄███████████▄████████
+                                        - text: ███▀ █████████████ ▀███
+                                        - text: ██ ███████████ ██
+                                        - text: ▀█▄ █████████ ▄█▀
+                                        - text: ▀█▄ ▄██▀▀▀▀▀▀▀██▄ ▄▄▄█▀
+                                        - text: ▀███████ ███████▀
+                                        - text: ▀█████▄ ▄█████▀
+                                        - text: ▀▀▀███▄▄▄███▀▀▀
+                                    - cell [ref=e320]
+                                    - cell [ref=e321]
+                                    - cell "..PLAY NOW.." [ref=e322]:
+                                      - link "..PLAY NOW.." [ref=e323] [cursor=pointer]:
+                                        - /url: https://stake.com/?c=911911
+                                        - generic [ref=e327]:
+                                          - text: ..
+                                          - superscript [ref=e329]:
+                                            - generic [ref=e330]: PLAY NOW
+                                          - text: ..
+          - 'row "dothebeats Legendary * Activity: 3878 Merit: 1357 View Profile Re: Exit strategy March 05, 2019, 02:02:04 PM #24 I don''t usually use exchanges in processing bulk orders of cash outs. I have a contact who is willing to go 2-3% above market prices as an exclusive deal for me, and great below the market price whenever I want to purchase in bulk. For exchanges handling a lot of orders and processes a lot of trades, there is only a certain limit wherein their system could function, and it has been proven time and time again that their services can only hold so much up until it crashes (I''m looking at you, Coinbase.)" [ref=e331]':
+            - 'cell "dothebeats Legendary * Activity: 3878 Merit: 1357 View Profile Re: Exit strategy March 05, 2019, 02:02:04 PM #24 I don''t usually use exchanges in processing bulk orders of cash outs. I have a contact who is willing to go 2-3% above market prices as an exclusive deal for me, and great below the market price whenever I want to purchase in bulk. For exchanges handling a lot of orders and processes a lot of trades, there is only a certain limit wherein their system could function, and it has been proven time and time again that their services can only hold so much up until it crashes (I''m looking at you, Coinbase.)" [ref=e332]':
+              - table [ref=e333]:
+                - rowgroup [ref=e334]:
+                  - 'row "dothebeats Legendary * Activity: 3878 Merit: 1357 View Profile Re: Exit strategy March 05, 2019, 02:02:04 PM #24 I don''t usually use exchanges in processing bulk orders of cash outs. I have a contact who is willing to go 2-3% above market prices as an exclusive deal for me, and great below the market price whenever I want to purchase in bulk. For exchanges handling a lot of orders and processes a lot of trades, there is only a certain limit wherein their system could function, and it has been proven time and time again that their services can only hold so much up until it crashes (I''m looking at you, Coinbase.)" [ref=e335]':
+                    - 'cell "dothebeats Legendary * Activity: 3878 Merit: 1357 View Profile Re: Exit strategy March 05, 2019, 02:02:04 PM #24 I don''t usually use exchanges in processing bulk orders of cash outs. I have a contact who is willing to go 2-3% above market prices as an exclusive deal for me, and great below the market price whenever I want to purchase in bulk. For exchanges handling a lot of orders and processes a lot of trades, there is only a certain limit wherein their system could function, and it has been proven time and time again that their services can only hold so much up until it crashes (I''m looking at you, Coinbase.)" [ref=e336]':
+                      - table [ref=e337]:
+                        - rowgroup [ref=e338]:
+                          - 'row "dothebeats Legendary * Activity: 3878 Merit: 1357 View Profile Re: Exit strategy March 05, 2019, 02:02:04 PM #24 I don''t usually use exchanges in processing bulk orders of cash outs. I have a contact who is willing to go 2-3% above market prices as an exclusive deal for me, and great below the market price whenever I want to purchase in bulk. For exchanges handling a lot of orders and processes a lot of trades, there is only a certain limit wherein their system could function, and it has been proven time and time again that their services can only hold so much up until it crashes (I''m looking at you, Coinbase.)" [ref=e339]':
+                            - 'cell "dothebeats Legendary * Activity: 3878 Merit: 1357 View Profile" [ref=e340]':
+                              - link "dothebeats" [ref=e342] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=306338
+                              - generic [ref=e343]:
+                                - text: Legendary
+                                - img "*" [ref=e344]
+                                - text: "Activity: 3878"
+                                - text: "Merit: 1357"
+                                - link "View Profile" [ref=e345] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=306338
+                                  - img "View Profile" [ref=e346]
+                            - 'cell "Re: Exit strategy March 05, 2019, 02:02:04 PM #24 I don''t usually use exchanges in processing bulk orders of cash outs. I have a contact who is willing to go 2-3% above market prices as an exclusive deal for me, and great below the market price whenever I want to purchase in bulk. For exchanges handling a lot of orders and processes a lot of trades, there is only a certain limit wherein their system could function, and it has been proven time and time again that their services can only hold so much up until it crashes (I''m looking at you, Coinbase.)" [ref=e347]':
+                              - table [ref=e348]:
+                                - rowgroup [ref=e349]:
+                                  - 'row "Re: Exit strategy March 05, 2019, 02:02:04 PM #24" [ref=e350]':
+                                    - cell [ref=e351]:
+                                      - link [ref=e352] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50030590#msg50030590
+                                    - 'cell "Re: Exit strategy March 05, 2019, 02:02:04 PM" [ref=e353]':
+                                      - 'link "Re: Exit strategy" [ref=e355] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50030590#msg50030590
+                                      - generic [ref=e356]: March 05, 2019, 02:02:04 PM
+                                    - cell "#24" [ref=e357]:
+                                      - link "#24" [ref=e359] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50030590#msg50030590
+                              - separator [ref=e360]
+                              - generic [ref=e361]: I don't usually use exchanges in processing bulk orders of cash outs. I have a contact who is willing to go 2-3% above market prices as an exclusive deal for me, and great below the market price whenever I want to purchase in bulk. For exchanges handling a lot of orders and processes a lot of trades, there is only a certain limit wherein their system could function, and it has been proven time and time again that their services can only hold so much up until it crashes (I'm looking at you, Coinbase.)
+                          - row [ref=e362]:
+                            - cell [ref=e363]:
+                              - table [ref=e364]:
+                                - rowgroup [ref=e365]:
+                                  - row [ref=e366]:
+                                    - cell [ref=e367]
+                                  - row [ref=e368]:
+                                    - cell [ref=e369]
+                                    - cell [ref=e370]
+          - row [ref=e371]:
+            - cell [ref=e372]:
+              - table [ref=e373]:
+                - rowgroup [ref=e374]:
+                  - row [ref=e375]:
+                    - cell [ref=e376]:
+                      - table [ref=e377]:
+                        - rowgroup [ref=e378]:
+                          - row [ref=e379]:
+                            - 'cell "figmentofmyass Legendary * Activity: 1652 Merit: 1483 View Profile" [ref=e380]':
+                              - link "figmentofmyass" [ref=e382] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=136484
+                              - generic [ref=e383]:
+                                - text: Legendary
+                                - img "*" [ref=e384]
+                                - text: "Activity: 1652"
+                                - text: "Merit: 1483"
+                                - link "View Profile" [ref=e386] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=136484
+                                  - img "View Profile" [ref=e387]
+                            - cell [ref=e388]:
+                              - table [ref=e389]:
+                                - rowgroup [ref=e390]:
+                                  - 'row "Re: Exit strategy March 06, 2019, 10:57:31 PM #25" [ref=e391]':
+                                    - cell [ref=e392]:
+                                      - link [ref=e393] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50051626#msg50051626
+                                    - 'cell "Re: Exit strategy March 06, 2019, 10:57:31 PM" [ref=e394]':
+                                      - 'link "Re: Exit strategy" [ref=e396] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50051626#msg50051626
+                                      - generic [ref=e397]: March 06, 2019, 10:57:31 PM
+                                    - cell "#25" [ref=e398]:
+                                      - link "#25" [ref=e400] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50051626#msg50051626
+                              - separator [ref=e401]
+                              - generic [ref=e402]:
+                                - 'link "Quote from: Kakmakr on March 05, 2019, 12:25:01 PM" [ref=e404] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=5115973.msg50029364#msg50029364
+                                - generic [ref=e405]: The bigger exchanges have shown before that they could not handle the excess load in scenarios like this, so they frequently go down in runs like this. <A lot of these crashes are possibly initiated/faked by them in my opinion>
+                                - text: that usually happens on the way up, not on the way down.
+                                - text: it's during the bubble that exchanges are taking on massive growth over a very short period, so their trading engines can't handle the load. at the top (or after the bubble has already popped) there is less and less new money (new user growth) flowing in. so it crashes.
+                                - text: so i don't think it's manipulation. i've seen too many would-be manipulators get swallowed up by strong buying demand. bubbles pop because there's no demand left to sustain them. and then everyone starts panic selling into thin books, crashing the price.
+                          - 'row "░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀ .ChipMixer.{ MIXING REINVENTED FOR YOUR PRIVACY #.ChipMixer. ░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀" [ref=e406]':
+                            - 'cell "░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀ .ChipMixer.{ MIXING REINVENTED FOR YOUR PRIVACY #.ChipMixer. ░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀" [ref=e407]':
+                              - table [ref=e408]:
+                                - rowgroup [ref=e409]:
+                                  - row [ref=e410]:
+                                    - cell [ref=e411]
+                                  - row [ref=e412]:
+                                    - cell [ref=e413]
+                                    - cell [ref=e414]
+                              - separator [ref=e415]
+                              - table [ref=e418]:
+                                - rowgroup [ref=e419]:
+                                  - 'row "░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀ .ChipMixer.{ MIXING REINVENTED FOR YOUR PRIVACY #.ChipMixer. ░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀" [ref=e420]':
+                                    - cell "░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀" [ref=e421]:
+                                      - link "░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀" [ref=e422] [cursor=pointer]:
+                                        - /url: https://chipmixer.com/
+                                        - generic [ref=e425]:
+                                          - text: ░░░░░▄▄██████▄▄
+                                          - text: ░░▄████▀▀▀▀▀▀████▄
+                                          - text: ░███▀░░░░░░░░░░▀█▀█
+                                          - text: ███░░░▄██████▄▄░░░██
+                                          - text: ░░░░░█████████░░░░██▌
+                                          - text: ░░░░█████████████████
+                                          - text: ░░░░█████████████████
+                                          - text: ░░░░░████████████████
+                                          - text: ███▄░░▀██████▀░░░███
+                                          - text: █▀█▄▄░░░░░░░░░░▄███
+                                          - text: ░░▀████▄▄▄▄▄▄████▀
+                                          - text: ░░░░░▀▀██████▀▀
+                                    - 'cell ".ChipMixer.{ MIXING REINVENTED FOR YOUR PRIVACY #.ChipMixer." [ref=e426]':
+                                      - 'link ".ChipMixer.{ MIXING REINVENTED" [ref=e427] [cursor=pointer]':
+                                        - /url: https://chipmixer.com/
+                                        - generic [ref=e430]:
+                                          - text: .
+                                          - generic [ref=e431]:
+                                            - text: ChipMixer
+                                            - generic [ref=e432]:
+                                              - text: .
+                                              - generic [ref=e434]:
+                                                - text: "{"
+                                                - generic [ref=e435]: MIXING
+                                                - text: REINVENTED
+                                      - 'link "FOR YOUR PRIVACY #.ChipMixer." [ref=e436] [cursor=pointer]':
+                                        - /url: http://ChipMixerwzxtzbw.onion
+                                        - generic [ref=e440]:
+                                          - generic [ref=e441]: FOR YOUR
+                                          - generic [ref=e442]:
+                                            - text: PRIVACY
+                                            - generic [ref=e444]:
+                                              - text: "#"
+                                              - generic [ref=e445]:
+                                                - text: .
+                                                - generic [ref=e446]:
+                                                  - text: ChipMixer
+                                                  - generic [ref=e447]: .
+                                    - cell "░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀" [ref=e448]:
+                                      - link "░░░░░▄▄██████▄▄ ░░▄████▀▀▀▀▀▀████▄ ░███▀░░░░░░░░░░▀█▀█ ███░░░▄██████▄▄░░░██ ░░░░░█████████░░░░██▌ ░░░░█████████████████ ░░░░█████████████████ ░░░░░████████████████ ███▄░░▀██████▀░░░███ █▀█▄▄░░░░░░░░░░▄███ ░░▀████▄▄▄▄▄▄████▀ ░░░░░▀▀██████▀▀" [ref=e449] [cursor=pointer]:
+                                        - /url: http://ChipMixerwzxtzbw.onion
+                                        - generic [ref=e452]:
+                                          - text: ░░░░░▄▄██████▄▄
+                                          - text: ░░▄████▀▀▀▀▀▀████▄
+                                          - text: ░███▀░░░░░░░░░░▀█▀█
+                                          - text: ███░░░▄██████▄▄░░░██
+                                          - text: ░░░░░█████████░░░░██▌
+                                          - text: ░░░░█████████████████
+                                          - text: ░░░░█████████████████
+                                          - text: ░░░░░████████████████
+                                          - text: ███▄░░▀██████▀░░░███
+                                          - text: █▀█▄▄░░░░░░░░░░▄███
+                                          - text: ░░▀████▄▄▄▄▄▄████▀
+                                          - text: ░░░░░▀▀██████▀▀
+          - row [ref=e453]:
+            - cell [ref=e454]:
+              - table [ref=e455]:
+                - rowgroup [ref=e456]:
+                  - row [ref=e457]:
+                    - cell [ref=e458]:
+                      - table [ref=e459]:
+                        - rowgroup [ref=e460]:
+                          - row [ref=e461]:
+                            - 'cell "Rufiefairy (OP) Newbie * Activity: 2 Merit: 0 View Profile" [ref=e462]':
+                              - link "Rufiefairy" [ref=e464] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=2555468
+                              - text: (OP)
+                              - generic [ref=e465]:
+                                - text: Newbie
+                                - img "*" [ref=e466]
+                                - text: "Activity: 2"
+                                - text: "Merit: 0"
+                                - link "View Profile" [ref=e467] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=2555468
+                                  - img "View Profile" [ref=e468]
+                            - cell [ref=e469]:
+                              - table [ref=e470]:
+                                - rowgroup [ref=e471]:
+                                  - 'row "Re: Exit strategy March 07, 2019, 12:04:47 AM #26" [ref=e472]':
+                                    - cell [ref=e473]:
+                                      - link [ref=e474] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50052145#msg50052145
+                                    - 'cell "Re: Exit strategy March 07, 2019, 12:04:47 AM" [ref=e475]':
+                                      - 'link "Re: Exit strategy" [ref=e477] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50052145#msg50052145
+                                      - generic [ref=e478]: March 07, 2019, 12:04:47 AM
+                                    - cell "#26" [ref=e479]:
+                                      - link "#26" [ref=e481] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50052145#msg50052145
+                              - separator [ref=e482]
+                              - generic [ref=e483]:
+                                - text: Well I bought some litecoin last year when it hit 100, having a fairly good idea that once it broke that psychological barrier, it would go up. I woke up 2 weeks later, and it was the day it went up to up to almost 400. By chance I had woken up at the right time, and was able to sell some of mine near the peak, so I could bank some profit. Since then, I have been slowly gathering some more, and I am looking at getting a cold wallet as I don't trust coinbase to hold my money, especially during the next bull run.
+                                - text: I don't intend to cash out all my crypto, but I would consider myself a fool if I didn't sell some for a nice gain during the next bull run. I'm just trying to figure out the best way to do that. Last time, I had no problem with coinbase. But if this next bull run is 30x what the last one was, I agree with you that posted that I should not just rely on one exchange. I'm just trying to develop a good strategy because I have a feeling that this next run will be crazy and unexpected, and you don't want to try and do it on the fly.
+                                - text: As far as a cold wallet, I'm sure there isn't much difference. But does anyone have a preference of nano s or the trezor? Those seem to be the 2 most popular. Or should I preorder the Nano X?
+                          - row [ref=e484]:
+                            - cell [ref=e485]:
+                              - table [ref=e486]:
+                                - rowgroup [ref=e487]:
+                                  - row [ref=e488]:
+                                    - cell [ref=e489]
+                                  - row [ref=e490]:
+                                    - cell [ref=e491]
+                                    - cell [ref=e492]
+          - row [ref=e493]:
+            - cell [ref=e494]:
+              - table [ref=e495]:
+                - rowgroup [ref=e496]:
+                  - row [ref=e497]:
+                    - cell [ref=e498]:
+                      - table [ref=e499]:
+                        - rowgroup [ref=e500]:
+                          - row [ref=e501]:
+                            - 'cell "SScomrades Copper Member Newbie * Activity: 28 Merit: 0 View Profile" [ref=e502]':
+                              - link "SScomrades" [ref=e504] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=2557935
+                              - generic [ref=e505]:
+                                - text: Copper Member
+                                - text: Newbie
+                                - img "*" [ref=e506]
+                                - text: "Activity: 28"
+                                - text: "Merit: 0"
+                                - link "View Profile" [ref=e507] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=2557935
+                                  - img "View Profile" [ref=e508]
+                            - cell [ref=e509]:
+                              - table [ref=e510]:
+                                - rowgroup [ref=e511]:
+                                  - 'row "Re: Exit strategy March 07, 2019, 03:16:34 AM #27" [ref=e512]':
+                                    - cell [ref=e513]:
+                                      - link [ref=e514] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50053299#msg50053299
+                                    - 'cell "Re: Exit strategy March 07, 2019, 03:16:34 AM" [ref=e515]':
+                                      - 'link "Re: Exit strategy" [ref=e517] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50053299#msg50053299
+                                      - generic [ref=e518]: March 07, 2019, 03:16:34 AM
+                                    - cell "#27" [ref=e519]:
+                                      - link "#27" [ref=e521] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50053299#msg50053299
+                              - separator [ref=e522]
+                              - generic [ref=e523]:
+                                - 'link "Quote from: Rufiefairy on March 02, 2019, 08:25:23 AM" [ref=e525] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=5115973.msg49984209#msg49984209
+                                - generic [ref=e526]: I'm fairly new to crypto. Have bought some through coinbase. But looking to transfer to a hard wallet. My question is this. Let's say all of us dreamers and pumpers dreams come true and bitcoin and crypto take off. We all have a number in our head of what we would sell some or most of our crypto if it reached that number. What is your exit strategy? Did most of you buy through coinbase and will just transfer back into there? Would they be able to support millions of people withdrawing hundreds of thousands of dollars? Crypto seems fairly liquid but again if it shoots to the moon, how liquid will it really be?
+                                - text: I think the exit limit is all in your mentality. You have to decide number that you are going to exit and stick to it and mind train yourself that you are satisfied or you will fall in the pits of greed. And until now, everytime the price went up, there were always "not really clever people" or fools(I must say) that invest on the rise. most cases in coins are pumping and when enough people invest looking at the rise, the ones with lots of money withdraw and people will be trapped.
+                          - row "🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 ❗ 🆁.😎.🅲.🅺.🅴.🆃 ❗ 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 🚀🔥 🌟MOST UNIQUE CASINO [ROCKET.RUN] MOST AMBITIOUS CASINO🌟 🔥🚀 🚀🚀🚀🚀🚀🚀🚀🚀🚀⚡!!click!! YOUR CRYPTO TO THE MOON! !!click!!⚡🚀🚀🚀🚀🚀🚀🚀🚀🚀" [ref=e527]:
+                            - cell "🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 ❗ 🆁.😎.🅲.🅺.🅴.🆃 ❗ 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 🚀🔥 🌟MOST UNIQUE CASINO [ROCKET.RUN] MOST AMBITIOUS CASINO🌟 🔥🚀 🚀🚀🚀🚀🚀🚀🚀🚀🚀⚡!!click!! YOUR CRYPTO TO THE MOON! !!click!!⚡🚀🚀🚀🚀🚀🚀🚀🚀🚀" [ref=e528]:
+                              - table [ref=e529]:
+                                - rowgroup [ref=e530]:
+                                  - row [ref=e531]:
+                                    - cell [ref=e532]
+                                  - row [ref=e533]:
+                                    - cell [ref=e534]
+                                    - cell [ref=e535]
+                              - separator [ref=e536]
+                              - link "🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 ❗ 🆁.😎.🅲.🅺.🅴.🆃 ❗ 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 🚀🔥 🌟MOST UNIQUE CASINO [ROCKET.RUN] MOST AMBITIOUS CASINO🌟 🔥🚀 🚀🚀🚀🚀🚀🚀🚀🚀🚀⚡!!click!! YOUR CRYPTO TO THE MOON! !!click!!⚡🚀🚀🚀🚀🚀🚀🚀🚀🚀" [ref=e539] [cursor=pointer]:
+                                - /url: https://rocket.run?source=bitcointalk_signature_1
+                                - text: 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀 ❗ 🆁.😎.🅲.🅺.🅴.🆃 ❗ 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
+                                - text: 🚀🔥 🌟MOST UNIQUE CASINO [ROCKET.RUN] MOST AMBITIOUS CASINO🌟 🔥🚀
+                                - text: 🚀🚀🚀🚀🚀🚀🚀🚀🚀⚡!!click!! YOUR CRYPTO TO THE MOON! !!click!!⚡🚀🚀🚀🚀🚀🚀🚀🚀🚀
+          - row [ref=e540]:
+            - cell [ref=e541]:
+              - table [ref=e542]:
+                - rowgroup [ref=e543]:
+                  - row [ref=e544]:
+                    - cell [ref=e545]:
+                      - table [ref=e546]:
+                        - rowgroup [ref=e547]:
+                          - row [ref=e548]:
+                            - 'cell "Caladonian Hero Member ***** Activity: 1302 Merit: 540 View Profile" [ref=e549]':
+                              - link "Caladonian" [ref=e551] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=704041
+                              - generic [ref=e552]:
+                                - text: Hero Member
+                                - img "*" [ref=e553]
+                                - img "*" [ref=e554]
+                                - img "*" [ref=e555]
+                                - img "*" [ref=e556]
+                                - img "*" [ref=e557]
+                                - text: "Activity: 1302"
+                                - text: "Merit: 540"
+                                - link "View Profile" [ref=e558] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=704041
+                                  - img "View Profile" [ref=e559]
+                            - cell [ref=e560]:
+                              - table [ref=e561]:
+                                - rowgroup [ref=e562]:
+                                  - 'row "Re: Exit strategy March 07, 2019, 03:25:57 AM #28" [ref=e563]':
+                                    - cell [ref=e564]:
+                                      - link [ref=e565] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50053366#msg50053366
+                                    - 'cell "Re: Exit strategy March 07, 2019, 03:25:57 AM" [ref=e566]':
+                                      - 'link "Re: Exit strategy" [ref=e568] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50053366#msg50053366
+                                      - generic [ref=e569]: March 07, 2019, 03:25:57 AM
+                                    - cell "#28" [ref=e570]:
+                                      - link "#28" [ref=e572] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50053366#msg50053366
+                              - separator [ref=e573]
+                              - generic [ref=e574]:
+                                - 'link "Quote from: Rufiefairy on March 02, 2019, 08:25:23 AM" [ref=e576] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=5115973.msg49984209#msg49984209
+                                - generic [ref=e577]: I'm fairly new to crypto. Have bought some through coinbase. But looking to transfer to a hard wallet. My question is this. Let's say all of us dreamers and pumpers dreams come true and bitcoin and crypto take off. We all have a number in our head of what we would sell some or most of our crypto if it reached that number. What is your exit strategy? Did most of you buy through coinbase and will just transfer back into there? Would they be able to support millions of people withdrawing hundreds of thousands of dollars? Crypto seems fairly liquid but again if it shoots to the moon, how liquid will it really be?
+                                - text: I'm sure since we are different people we also do have different perspectives inside this industry, individually speaking, some might sell right away after the wave, some will still holds hoping that market will continue to rise high, most of the greed think that way I guess, while those who knows how to play well will act accordingly, sell partially and observe what tomorrows will bring to his assets before engaging back again.
+                                - text: Exit strategy is very important, you have to choose your exit point and make sure to follow as it was planned correctly.
+                          - row [ref=e578]:
+                            - cell [ref=e579]:
+                              - table [ref=e580]:
+                                - rowgroup [ref=e581]:
+                                  - row [ref=e582]:
+                                    - cell [ref=e583]
+                                  - row [ref=e584]:
+                                    - cell [ref=e585]
+                                    - cell [ref=e586]
+          - row [ref=e587]:
+            - cell [ref=e588]:
+              - table [ref=e589]:
+                - rowgroup [ref=e590]:
+                  - row [ref=e591]:
+                    - cell [ref=e592]:
+                      - table [ref=e593]:
+                        - rowgroup [ref=e594]:
+                          - row [ref=e595]:
+                            - 'cell "traderethereum Hero Member ***** Activity: 3444 Merit: 593 Top-tier crypto casino and sportsbook View Profile WWW" [ref=e596]':
+                              - link "traderethereum" [ref=e598] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=837151
+                              - generic [ref=e599]:
+                                - text: Hero Member
+                                - img "*" [ref=e600]
+                                - img "*" [ref=e601]
+                                - img "*" [ref=e602]
+                                - img "*" [ref=e603]
+                                - img "*" [ref=e604]
+                                - text: "Activity: 3444"
+                                - text: "Merit: 593"
+                                - text: Top-tier crypto casino and sportsbook
+                                - link "View Profile" [ref=e606] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=837151
+                                  - img "View Profile" [ref=e607]
+                                - link "WWW" [ref=e608] [cursor=pointer]:
+                                  - /url: https://www.altcoinstalks.com/index.php?action=profile;u=97381
+                                  - img "WWW" [ref=e609]
+                            - cell [ref=e610]:
+                              - table [ref=e611]:
+                                - rowgroup [ref=e612]:
+                                  - 'row "Re: Exit strategy March 07, 2019, 06:47:04 AM #29" [ref=e613]':
+                                    - cell [ref=e614]:
+                                      - link [ref=e615] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50055024#msg50055024
+                                    - 'cell "Re: Exit strategy March 07, 2019, 06:47:04 AM" [ref=e616]':
+                                      - 'link "Re: Exit strategy" [ref=e618] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50055024#msg50055024
+                                      - generic [ref=e619]: March 07, 2019, 06:47:04 AM
+                                    - cell "#29" [ref=e620]:
+                                      - link "#29" [ref=e622] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50055024#msg50055024
+                              - separator [ref=e623]
+                              - generic [ref=e624]:
+                                - generic [ref=e625]: Quote
+                                - generic [ref=e626]: What is your exit strategy?
+                                - text: I will sell bitcoin when it reaches the highest price and I believe it will go to that price.
+                                - generic [ref=e627]: Quote
+                                - generic [ref=e628]: Did most of you buy through coinbase and will just transfer back into there?
+                                - text: No, I don't buy through Coinbase. Fortunately, I have a friend who always helps me to buy bitcoin and then I can send it to the exchange so I can trade for any pairing.
+                                - generic [ref=e629]: Quote
+                                - generic [ref=e630]: Would they be able to support millions of people withdrawing hundreds of thousands of dollars?
+                                - text: Coinbase will be able to support people for withdrawing? Hm, I think they can but the problem, how good their server to anticipate the increasing of the traffic on their website? Because if millions of people withdrawing all of their money, then the traffic will increase higher and they need a strong server to handle that.
+                                - generic [ref=e631]: Quote
+                                - generic [ref=e632]: Crypto seems fairly liquid but again if it shoots to the moon, how liquid will it really be?
+                                - text: I don't get it your question, so I don't answer it
+                                - img "Grin" [ref=e633]
+                                - text: We could use the other exchange rather than use Coinbase only, and I am sure that we can found a reputable exchange with easy. I have local exchange and sellers that could help me to withdraw bitcoin.
+                          - row [ref=e634]:
+                            - cell [ref=e635]:
+                              - table [ref=e636]:
+                                - rowgroup [ref=e637]:
+                                  - row [ref=e638]:
+                                    - cell [ref=e639]
+                                  - row [ref=e640]:
+                                    - cell [ref=e641]
+                                    - cell [ref=e642]
+          - 'row "r1s2g3 Sr. Member **** Activity: 742 Merit: 396 I am alive but in hibernation. View Profile Re: Exit strategy March 08, 2019, 04:00:43 AM #30 Any exit strategy will not be good stratergy but it does not mean that \"hold\" is good stratergy. Treat Bitcoin the same way as you treat fiat currently. You earn fiat, spend fiat and invest using fiat so do same with Bitcoins. I am alive" [ref=e643]':
+            - 'cell "r1s2g3 Sr. Member **** Activity: 742 Merit: 396 I am alive but in hibernation. View Profile Re: Exit strategy March 08, 2019, 04:00:43 AM #30 Any exit strategy will not be good stratergy but it does not mean that \"hold\" is good stratergy. Treat Bitcoin the same way as you treat fiat currently. You earn fiat, spend fiat and invest using fiat so do same with Bitcoins. I am alive" [ref=e644]':
+              - table [ref=e645]:
+                - rowgroup [ref=e646]:
+                  - 'row "r1s2g3 Sr. Member **** Activity: 742 Merit: 396 I am alive but in hibernation. View Profile Re: Exit strategy March 08, 2019, 04:00:43 AM #30 Any exit strategy will not be good stratergy but it does not mean that \"hold\" is good stratergy. Treat Bitcoin the same way as you treat fiat currently. You earn fiat, spend fiat and invest using fiat so do same with Bitcoins. I am alive" [ref=e647]':
+                    - 'cell "r1s2g3 Sr. Member **** Activity: 742 Merit: 396 I am alive but in hibernation. View Profile Re: Exit strategy March 08, 2019, 04:00:43 AM #30 Any exit strategy will not be good stratergy but it does not mean that \"hold\" is good stratergy. Treat Bitcoin the same way as you treat fiat currently. You earn fiat, spend fiat and invest using fiat so do same with Bitcoins. I am alive" [ref=e648]':
+                      - table [ref=e649]:
+                        - rowgroup [ref=e650]:
+                          - 'row "r1s2g3 Sr. Member **** Activity: 742 Merit: 396 I am alive but in hibernation. View Profile Re: Exit strategy March 08, 2019, 04:00:43 AM #30 Any exit strategy will not be good stratergy but it does not mean that \"hold\" is good stratergy. Treat Bitcoin the same way as you treat fiat currently. You earn fiat, spend fiat and invest using fiat so do same with Bitcoins." [ref=e651]':
+                            - 'cell "r1s2g3 Sr. Member **** Activity: 742 Merit: 396 I am alive but in hibernation. View Profile" [ref=e652]':
+                              - link "r1s2g3" [ref=e654] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=1446224
+                              - generic [ref=e655]:
+                                - text: Sr. Member
+                                - img "*" [ref=e656]
+                                - img "*" [ref=e657]
+                                - img "*" [ref=e658]
+                                - img "*" [ref=e659]
+                                - text: "Activity: 742"
+                                - text: "Merit: 396"
+                                - text: I am alive but in hibernation.
+                                - link "View Profile" [ref=e661] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=1446224
+                                  - img "View Profile" [ref=e662]
+                            - 'cell "Re: Exit strategy March 08, 2019, 04:00:43 AM #30 Any exit strategy will not be good stratergy but it does not mean that \"hold\" is good stratergy. Treat Bitcoin the same way as you treat fiat currently. You earn fiat, spend fiat and invest using fiat so do same with Bitcoins." [ref=e663]':
+                              - table [ref=e664]:
+                                - rowgroup [ref=e665]:
+                                  - 'row "Re: Exit strategy March 08, 2019, 04:00:43 AM #30" [ref=e666]':
+                                    - cell [ref=e667]:
+                                      - link [ref=e668] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50067631#msg50067631
+                                    - 'cell "Re: Exit strategy March 08, 2019, 04:00:43 AM" [ref=e669]':
+                                      - 'link "Re: Exit strategy" [ref=e671] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50067631#msg50067631
+                                      - generic [ref=e672]: March 08, 2019, 04:00:43 AM
+                                    - cell "#30" [ref=e673]:
+                                      - link "#30" [ref=e675] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=5115973.msg50067631#msg50067631
+                              - separator [ref=e676]
+                              - generic [ref=e677]:
+                                - text: Any exit strategy will not be good stratergy but it does not mean that "hold" is good stratergy.
+                                - text: Treat Bitcoin the same way as you treat fiat currently. You earn fiat, spend fiat and invest using fiat so do same with Bitcoins.
+                          - row "I am alive" [ref=e678]:
+                            - cell "I am alive" [ref=e679]:
+                              - table [ref=e680]:
+                                - rowgroup [ref=e681]:
+                                  - row [ref=e682]:
+                                    - cell [ref=e683]
+                                  - row [ref=e684]:
+                                    - cell [ref=e685]
+                                    - cell [ref=e686]
+                              - separator [ref=e687]
+                              - generic [ref=e688]: I am alive
+          - row [ref=e689]:
+            - cell [ref=e690]
+      - table [ref=e691]:
+        - rowgroup [ref=e692]:
+          - 'row "Pages: « 1 [2] All Print" [ref=e693]':
+            - 'cell "Pages: « 1 [2] All" [ref=e694]':
+              - text: "Pages:"
+              - link "«" [ref=e696] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=5115973.0
+              - link "1" [ref=e697] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=5115973.0
+              - text: "[2]"
+              - link "All" [ref=e698] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=5115973.0;all
+            - cell "Print" [ref=e699]:
+              - table [ref=e700]:
+                - rowgroup [ref=e701]:
+                  - row "Print" [ref=e702]:
+                    - cell "Print" [ref=e703]:
+                      - link "Print" [ref=e704] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=printpage;topic=5115973.0
+      - table [ref=e705]:
+        - rowgroup [ref=e706]:
+          - row "Bitcoin Forum > Other > Beginners & Help > Exit strategy « previous topic next topic »" [ref=e707]:
+            - cell "Bitcoin Forum > Other > Beginners & Help > Exit strategy" [ref=e708]:
+              - generic [ref=e709]:
+                - link "Bitcoin Forum" [ref=e711] [cursor=pointer]:
+                  - /url: https://bitcointalk.org/index.php
+                - text: ">"
+                - link "Other" [ref=e713] [cursor=pointer]:
+                  - /url: https://bitcointalk.org/index.php#4
+                - text: ">"
+                - link "Beginners & Help" [ref=e715] [cursor=pointer]:
+                  - /url: https://bitcointalk.org/index.php?board=39.0
+                - text: ">"
+                - link "Exit strategy" [ref=e717]:
+                  - /url: https://bitcointalk.org/index.php?topic=5115973.0
+            - cell "« previous topic next topic »" [ref=e718]:
+              - link "« previous topic" [ref=e719] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=5115973.0;prev_next=prev#new
+              - link "next topic »" [ref=e720] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=5115973.0;prev_next=next#new
+      - table [ref=e721]:
+        - rowgroup [ref=e722]:
+          - row [ref=e723]:
+            - cell [ref=e724]
+    - generic [ref=e727]:
+      - text: "Jump to:"
+      - combobox [ref=e728]:
+        - option "Please select a destination:"
+        - option "-----------------------------" [disabled]
+        - option "Bitcoin"
+        - option "-----------------------------" [disabled]
+        - option "=> Bitcoin Discussion"
+        - option "===> Legal"
+        - option "===> Press"
+        - option "===> Meetups"
+        - option "===> Important Announcements"
+        - option "=> Development & Technical Discussion"
+        - option "===> Wallet software"
+        - option "=====> Electrum"
+        - option "=====> Bitcoin Wallet for Android"
+        - option "=====> BitcoinJ"
+        - option "=====> Armory"
+        - option "=====> Mycelium"
+        - option "=====> Hardware wallets"
+        - option "=> Mining"
+        - option "===> Mining support"
+        - option "===> Pools"
+        - option "===> Mining software (miners)"
+        - option "===> Hardware"
+        - option "=====> Group buys"
+        - option "===> Mining speculation"
+        - option "=> Bitcoin Technical Support"
+        - option "=> Project Development"
+        - option "-----------------------------" [disabled]
+        - option "Economy"
+        - option "-----------------------------" [disabled]
+        - option "=> Economics"
+        - option "===> Speculation"
+        - option "=> Marketplace"
+        - option "===> Goods"
+        - option "=====> Computer hardware"
+        - option "=====> Digital goods"
+        - option "=======> Invites & Accounts"
+        - option "=====> Collectibles"
+        - option "===> Services"
+        - option "===> Currency exchange"
+        - option "===> Gambling"
+        - option "=====> Games and rounds"
+        - option "=====> Investor-based games"
+        - option "=====> Gambling discussion"
+        - option "===> Lending"
+        - option "=====> Long-term offers"
+        - option "===> Securities"
+        - option "===> Auctions"
+        - option "===> Service Announcements"
+        - option "=====> Micro Earnings"
+        - option "===> Service Discussion"
+        - option "=====> Web Wallets"
+        - option "=====> Exchanges"
+        - option "=> Trading Discussion"
+        - option "===> Scam Accusations"
+        - option "===> Reputation"
+        - option "-----------------------------" [disabled]
+        - option "Other"
+        - option "-----------------------------" [disabled]
+        - option "=> Meta"
+        - option "===> Bitcoin Wiki"
+        - option "=> Politics & Society"
+        - option "=> Beginners & Help" [selected]
+        - option "=> Off-topic"
+        - option "=> Serious discussion"
+        - option "===> Ivory Tower"
+        - option "=> Archival"
+        - option "===> New forum software"
+        - option "===> Корзина"
+        - option "===> CPU/GPU Bitcoin mining hardware"
+        - option "===> Chinese students"
+        - option "===> Obsolete (buying)"
+        - option "===> Obsolete (selling)"
+        - option "===> MultiBit"
+        - option "-----------------------------" [disabled]
+        - option "Alternate cryptocurrencies"
+        - option "-----------------------------" [disabled]
+        - option "=> Altcoin Discussion"
+        - option "=> Announcements (Altcoins)"
+        - option "===> Tokens (Altcoins)"
+        - option "=> Mining (Altcoins)"
+        - option "===> Pools (Altcoins)"
+        - option "=> Marketplace (Altcoins)"
+        - option "===> Service Announcements (Altcoins)"
+        - option "===> Service Discussion (Altcoins)"
+        - option "===> Bounties (Altcoins)"
+        - option "=> Speculation (Altcoins)"
+        - option "-----------------------------" [disabled]
+        - option "Local"
+        - option "-----------------------------" [disabled]
+        - option "=> العربية (Arabic)"
+        - option "===> العملات البديلة (Altcoins)"
+        - option "=====> النقاشات"
+        - option "===> إستفسارات و أسئلة المبتدئين"
+        - option "===> التعدين"
+        - option "===> النقاشات الأخرى"
+        - option "===> منصات التبادل"
+        - option "=> Bahasa Indonesia (Indonesian)"
+        - option "===> Marketplace (Bahasa Indonesia)"
+        - option "===> Mining (Bahasa Indonesia)"
+        - option "===> Altcoins (Bahasa Indonesia)"
+        - option "===> Trading dan Spekulasi"
+        - option "===> Ekonomi, Politik, dan Budaya"
+        - option "===> Topik Lainnya"
+        - option "=> Español (Spanish)"
+        - option "===> Mercado y Economía"
+        - option "=====> Servicios"
+        - option "=====> Trading y especulación"
+        - option "===> Hardware y Minería"
+        - option "===> Esquina Libre"
+        - option "===> Mercadillo"
+        - option "=====> Mexico"
+        - option "=====> Argentina"
+        - option "=====> España"
+        - option "=====> Centroamerica y Caribe"
+        - option "===> Primeros pasos y ayuda"
+        - option "===> Altcoins (criptomonedas alternativas)"
+        - option "=====> Minería de altcoins"
+        - option "=====> Servicios"
+        - option "=====> Tokens (Español)"
+        - option "=> 中文 (Chinese)"
+        - option "===> 跳蚤市场"
+        - option "===> 山寨币"
+        - option "===> 媒体"
+        - option "===> 挖矿"
+        - option "===> 离题万里"
+        - option "=> Hrvatski (Croatian)"
+        - option "===> Trgovina"
+        - option "===> Altcoins (Hrvatski)"
+        - option "=====> Announcements (Hrvatski)"
+        - option "===> Off-topic (Hrvatski)"
+        - option "=> Deutsch (German)"
+        - option "===> Anfänger und Hilfe"
+        - option "===> Mining (Deutsch)"
+        - option "===> Trading und Spekulation"
+        - option "===> Projektentwicklung"
+        - option "===> Off-Topic (Deutsch)"
+        - option "===> Treffen"
+        - option "===> Presse"
+        - option "===> Altcoins (Deutsch)"
+        - option "=====> Announcements (Deutsch)"
+        - option "===> Marktplatz"
+        - option "=====> Auktionen"
+        - option "=====> Suche"
+        - option "=====> Biete"
+        - option "=> Ελληνικά (Greek)"
+        - option "===> Αγορά"
+        - option "===> Mining Discussion (Ελληνικά)"
+        - option "===> Altcoins (Ελληνικά)"
+        - option "=====> Altcoin Announcements (Ελληνικά)"
+        - option "=====> Altcoin Mining (Ελληνικά)"
+        - option "=> עברית (Hebrew)"
+        - option "=> Français"
+        - option "===> Actualité et News"
+        - option "===> Débutants"
+        - option "===> Discussions générales et utilisation du Bitcoin"
+        - option "===> Mining et Hardware"
+        - option "===> Économie et spéculation"
+        - option "===> Place de marché"
+        - option "=====> Échanges"
+        - option "=====> Produits et services"
+        - option "=====> Petites annonces"
+        - option "===> Le Bitcoin et la loi"
+        - option "===> Wiki, documentation et traduction"
+        - option "===> Développement et technique"
+        - option "===> Vos sites et projets"
+        - option "===> Hors-sujet"
+        - option "===> Altcoins (Français)"
+        - option "=====> Annonces"
+        - option "=> India"
+        - option "===> Mining (India)"
+        - option "===> Marketplace (India)"
+        - option "===> Regional Languages (India)"
+        - option "===> Press & News from India"
+        - option "===> Alt Coins (India)"
+        - option "===> Buyer/ Seller Reputations (India)"
+        - option "===> Off-Topic (India)"
+        - option "=> Italiano (Italian)"
+        - option "===> Guide (Italiano)"
+        - option "===> Progetti"
+        - option "===> Discussioni avanzate e sviluppo"
+        - option "===> Trading, analisi e speculazione"
+        - option "===> Mercato"
+        - option "=====> Mercato valute"
+        - option "=====> Beni"
+        - option "=====> Servizi"
+        - option "=====> Esercizi commerciali"
+        - option "=====> Hardware/Mining (Italiano)"
+        - option "=====> Gambling (Italiano)"
+        - option "===> Accuse scam/truffe"
+        - option "===> Mining (Italiano)"
+        - option "===> Alt-Currencies (Italiano)"
+        - option "=====> Annunci"
+        - option "===> Raduni/Meeting (Italiano)"
+        - option "===> Crittografia e decentralizzazione"
+        - option "===> Off-Topic (Italiano)"
+        - option "=> 日本語 (Japanese)"
+        - option "===> アルトコイン"
+        - option "=> Nederlands (Dutch)"
+        - option "===> Markt"
+        - option "===> Gokken/lotterijen"
+        - option "===> Mining (Nederlands)"
+        - option "===> Beurzen"
+        - option "===> Alt Coins (Nederlands)"
+        - option "===> Off-topic (Nederlands)"
+        - option "===> Meetings (Nederlands)"
+        - option "=> Nigeria (Naija)"
+        - option "===> Politics and society (Naija)"
+        - option "===> Off-topic (Naija)"
+        - option "=> 한국어 (Korean)"
+        - option "===> 대체코인 Alt Coins (한국어)"
+        - option "=> Pilipinas"
+        - option "===> Altcoins (Pilipinas)"
+        - option "=====> Altcoin Announcements (Pilipinas)"
+        - option "===> Pamilihan"
+        - option "===> Others (Pilipinas)"
+        - option "=> Polski"
+        - option "===> Tablica ogłoszeń"
+        - option "===> Alternatywne kryptowaluty"
+        - option "=====> Nowe kryptowaluty i tokeny"
+        - option "=====> Tablica ogłoszeń (altcoiny)"
+        - option "=> Português (Portuguese)"
+        - option "===> Primeiros Passos (Iniciantes)"
+        - option "===> Economia & Mercado"
+        - option "===> Mineração em Geral"
+        - option "===> Desenvolvimento & Discussões Técnicas"
+        - option "===> Criptomoedas Alternativas"
+        - option "===> Brasil"
+        - option "===> Portugal"
+        - option "=> Русский (Russian)"
+        - option "===> Новички"
+        - option "===> Cepвиcы"
+        - option "=====> Барахолка"
+        - option "=====> Обменники"
+        - option "===> Идеи"
+        - option "===> Кодеры"
+        - option "===> Майнеры"
+        - option "===> Политика"
+        - option "===> Трейдеры"
+        - option "===> Альтернативные криптовалюты"
+        - option "=====> Токены"
+        - option "=====> Бayнти и aиpдpoпы"
+        - option "===> Хайпы"
+        - option "===> Работа"
+        - option "===> Разное"
+        - option "===> Oбcyждeниe Bitcoin"
+        - option "=====> Новости"
+        - option "=====> Юристы"
+        - option "=> Română (Romanian)"
+        - option "===> Anunturi importante"
+        - option "===> Offtopic"
+        - option "===> Market"
+        - option "=====> Discutii Servicii"
+        - option "===> Minerit"
+        - option "===> Tutoriale"
+        - option "===> Bine ai venit!"
+        - option "===> Presa"
+        - option "===> Altcoins (Monede Alternative)"
+        - option "=====> Anunturi Monede Alternative"
+        - option "=> Skandinavisk"
+        - option "=> Türkçe (Turkish)"
+        - option "===> Bitcoin Haberleri"
+        - option "===> Pazar Alanı"
+        - option "===> Madencilik"
+        - option "===> Ekonomi"
+        - option "===> Servisler"
+        - option "=====> Fonlar"
+        - option "===> Proje Geliştirme"
+        - option "===> Alternatif Kripto-Paralar"
+        - option "=====> Madencilik (Alternatif Kripto-Paralar)"
+        - option "=====> Duyurular (Alternatif Kripto-Paralar)"
+        - option "===> Konu Dışı"
+        - option "===> Yeni Başlayanlar & Yardım"
+        - option "===> Buluşmalar"
+        - option "=> Other languages/locations"
+      - button "go" [ref=e729]
+  - table [ref=e731]:
+    - rowgroup [ref=e732]:
+      - row "Powered by MySQL Powered by PHP Powered by SMF 1.1.19 | SMF © 2006-2009, Simple Machines Valid XHTML 1.0! Valid CSS!" [ref=e733]:
+        - cell "Powered by MySQL Powered by PHP" [ref=e734]:
+          - link "Powered by MySQL" [ref=e735] [cursor=pointer]:
+            - /url: http://www.mysql.com/
+            - img "Powered by MySQL" [ref=e736]
+          - link "Powered by PHP" [ref=e737] [cursor=pointer]:
+            - /url: http://www.php.net/
+            - img "Powered by PHP" [ref=e738]
+        - cell "Powered by SMF 1.1.19 | SMF © 2006-2009, Simple Machines" [ref=e739]:
+          - generic [ref=e740]:
+            - link "Powered by SMF 1.1.19" [ref=e741] [cursor=pointer]:
+              - /url: http://www.simplemachines.org/
+            - text: "|"
+            - link "SMF © 2006-2009, Simple Machines" [ref=e742] [cursor=pointer]:
+              - /url: http://www.simplemachines.org/about/copyright.php
+        - cell "Valid XHTML 1.0! Valid CSS!" [ref=e743]:
+          - link "Valid XHTML 1.0!" [ref=e744] [cursor=pointer]:
+            - /url: http://validator.w3.org/check/referer
+            - img "Valid XHTML 1.0!" [ref=e745]
+          - link "Valid CSS!" [ref=e746] [cursor=pointer]:
+            - /url: http://jigsaw.w3.org/css-validator/check/referer
+            - img "Valid CSS!" [ref=e747]

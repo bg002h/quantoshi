@@ -1,0 +1,1138 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - table [ref=e3]:
+      - rowgroup [ref=e4]:
+        - row "Bitcoin Forum" [ref=e5]:
+          - cell "Bitcoin Forum" [ref=e6]
+          - cell [ref=e7]
+    - table [ref=e8]:
+      - rowgroup [ref=e9]:
+        - row "April 03, 2026, 03:53:13 PM *" [ref=e10]:
+          - cell "April 03, 2026, 03:53:13 PM *" [ref=e11]:
+            - text: April 03, 2026, 03:53:13 PM
+            - link "*" [ref=e12] [cursor=pointer]:
+              - /url: "#"
+              - img "*" [ref=e13]
+        - row "Welcome, Guest. Please login or register." [ref=e14]:
+          - cell "Welcome, Guest. Please login or register." [ref=e15]:
+            - table [ref=e16]:
+              - rowgroup [ref=e17]:
+                - row "Welcome, Guest. Please login or register." [ref=e18]:
+                  - cell "Welcome, Guest. Please login or register." [ref=e19]:
+                    - generic [ref=e20]:
+                      - text: Welcome, Guest. Please
+                      - link "login" [ref=e21] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=login
+                      - text: or
+                      - link "register" [ref=e22] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=register
+                      - text: .
+    - table [ref=e23]:
+      - rowgroup [ref=e24]:
+        - 'row "News: Latest Bitcoin Core release: 30.2 [Torrent] Search" [ref=e25]':
+          - 'cell "News: Latest Bitcoin Core release: 30.2 [Torrent]" [ref=e26]':
+            - generic [ref=e27]:
+              - text: "News: Latest Bitcoin Core release:"
+              - link "30.2" [ref=e28] [cursor=pointer]:
+                - /url: https://bitcoincore.org/en/download/
+              - text: "["
+              - link "Torrent" [ref=e29] [cursor=pointer]:
+                - /url: https://bitcointalk.org/bitcoin-30.2.torrent
+              - text: "]"
+          - cell "Search" [ref=e30]:
+            - generic [ref=e31]:
+              - link [ref=e32] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?action=search;advanced
+              - textbox [ref=e33]
+              - button "Search" [ref=e34]
+  - table [ref=e35]:
+    - rowgroup [ref=e36]:
+      - row "Home Help Search Login Register More" [ref=e37]:
+        - cell [ref=e38]
+        - cell "Home" [ref=e39]:
+          - link "Home" [ref=e40] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php
+        - cell "Help" [ref=e41]:
+          - link "Help" [ref=e42] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=help
+        - cell "Search" [ref=e43]:
+          - link "Search" [ref=e44] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=search
+        - cell "Login" [ref=e45]:
+          - link "Login" [ref=e46] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=login
+        - cell "Register" [ref=e47]:
+          - link "Register" [ref=e48] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=register
+        - cell "More" [ref=e49]:
+          - link "More" [ref=e50] [cursor=pointer]:
+            - /url: /more.php
+        - cell [ref=e51]
+  - table [ref=e53]:
+    - rowgroup [ref=e54]:
+      - row [ref=e55]:
+        - cell [ref=e56]:
+          - table [ref=e57]:
+            - rowgroup [ref=e58]:
+              - row "Show Posts" [ref=e59]:
+                - cell "Show Posts" [ref=e60]
+              - 'row "Pages: « 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 [16] 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 ... 69 »" [ref=e61]':
+                - 'cell "Pages: « 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 [16] 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 ... 69 »" [ref=e62]':
+                  - text: "Pages:"
+                  - link "«" [ref=e64] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=280
+                  - link "1" [ref=e65] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=0
+                  - link "2" [ref=e66] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=20
+                  - link "3" [ref=e67] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=40
+                  - link "4" [ref=e68] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=60
+                  - link "5" [ref=e69] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=80
+                  - link "6" [ref=e70] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=100
+                  - link "7" [ref=e71] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=120
+                  - link "8" [ref=e72] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=140
+                  - link "9" [ref=e73] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=160
+                  - link "10" [ref=e74] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=180
+                  - link "11" [ref=e75] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=200
+                  - link "12" [ref=e76] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=220
+                  - link "13" [ref=e77] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=240
+                  - link "14" [ref=e78] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=260
+                  - link "15" [ref=e79] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=280
+                  - text: "[16]"
+                  - link "17" [ref=e80] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=320
+                  - link "18" [ref=e81] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=340
+                  - link "19" [ref=e82] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=360
+                  - link "20" [ref=e83] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=380
+                  - link "21" [ref=e84] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=400
+                  - link "22" [ref=e85] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=420
+                  - link "23" [ref=e86] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=440
+                  - link "24" [ref=e87] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=460
+                  - link "25" [ref=e88] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=480
+                  - link "26" [ref=e89] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=500
+                  - link "27" [ref=e90] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=520
+                  - link "28" [ref=e91] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=540
+                  - link "29" [ref=e92] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=560
+                  - link "30" [ref=e93] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=580
+                  - link "31" [ref=e94] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=600
+                  - link "32" [ref=e95] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=620
+                  - link "33" [ref=e96] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=640
+                  - link "34" [ref=e97] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=660
+                  - link "35" [ref=e98] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=680
+                  - link "36" [ref=e99] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=700
+                  - link "37" [ref=e100] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=720
+                  - link "38" [ref=e101] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=740
+                  - link "39" [ref=e102] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=760
+                  - link "40" [ref=e103] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=780
+                  - link "41" [ref=e104] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=800
+                  - link "42" [ref=e105] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=820
+                  - link "43" [ref=e106] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=840
+                  - link "44" [ref=e107] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=860
+                  - link "45" [ref=e108] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=880
+                  - link "46" [ref=e109] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=900
+                  - link "47" [ref=e110] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=920
+                  - link "48" [ref=e111] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=940
+                  - link "49" [ref=e112] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=960
+                  - link "50" [ref=e113] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=980
+                  - link "51" [ref=e114] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1000
+                  - link "52" [ref=e115] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1020
+                  - link "53" [ref=e116] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1040
+                  - link "54" [ref=e117] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1060
+                  - link "55" [ref=e118] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1080
+                  - link "56" [ref=e119] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1100
+                  - link "57" [ref=e120] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1120
+                  - link "58" [ref=e121] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1140
+                  - link "59" [ref=e122] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1160
+                  - link "60" [ref=e123] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1180
+                  - link "61" [ref=e124] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1200
+                  - link "62" [ref=e125] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1220
+                  - link "63" [ref=e126] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1240
+                  - link "64" [ref=e127] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1260
+                  - link "65" [ref=e128] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1280
+                  - link "66" [ref=e129] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1300
+                  - text: ...
+                  - link "69" [ref=e130] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1360
+                  - link "»" [ref=e132] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=320
+          - table [ref=e133]:
+            - rowgroup [ref=e134]:
+              - 'row "301 Bitcoin / Bitcoin Discussion / Re: [ANN] Local Bitcoin Foundation - Bringing the power of the Blockchain... on: March 04, 2014, 09:44:02 PM I think it''s a great idea Mike. I''m a stretched a little too thin to take an active role, but I''ve made some documents and scalable vector graphics explaining some aspects of bitcoin...You are welcome to have a copy of any of my work." [ref=e135]':
+                - 'cell "301 Bitcoin / Bitcoin Discussion / Re: [ANN] Local Bitcoin Foundation - Bringing the power of the Blockchain... on: March 04, 2014, 09:44:02 PM I think it''s a great idea Mike. I''m a stretched a little too thin to take an active role, but I''ve made some documents and scalable vector graphics explaining some aspects of bitcoin...You are welcome to have a copy of any of my work." [ref=e136]':
+                  - table [ref=e137]:
+                    - rowgroup [ref=e138]:
+                      - 'row "301 Bitcoin / Bitcoin Discussion / Re: [ANN] Local Bitcoin Foundation - Bringing the power of the Blockchain... on: March 04, 2014, 09:44:02 PM" [ref=e139]':
+                        - cell "301" [ref=e140]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: [ANN] Local Bitcoin Foundation - Bringing the power of the Blockchain..." [ref=e141]':
+                          - link "Bitcoin" [ref=e142] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e143] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: [ANN] Local Bitcoin Foundation - Bringing the power of the Blockchain..." [ref=e144] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=498644.msg5513436#msg5513436
+                        - 'cell "on: March 04, 2014, 09:44:02 PM" [ref=e145]'
+                  - table [ref=e146]:
+                    - rowgroup [ref=e147]:
+                      - row "I think it's a great idea Mike. I'm a stretched a little too thin to take an active role, but I've made some documents and scalable vector graphics explaining some aspects of bitcoin...You are welcome to have a copy of any of my work." [ref=e148]:
+                        - cell "I think it's a great idea Mike. I'm a stretched a little too thin to take an active role, but I've made some documents and scalable vector graphics explaining some aspects of bitcoin...You are welcome to have a copy of any of my work." [ref=e149]:
+                          - generic [ref=e150]: I think it's a great idea Mike. I'm a stretched a little too thin to take an active role, but I've made some documents and scalable vector graphics explaining some aspects of bitcoin...You are welcome to have a copy of any of my work.
+                      - row [ref=e151]:
+                        - cell [ref=e152]
+          - table [ref=e153]:
+            - rowgroup [ref=e154]:
+              - 'row "302 Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam. on: March 04, 2014, 09:17:43 PM Quote from: MPOE-PR on March 04, 2014, 09:15:53 PM Quote from: bg002h on March 04, 2014, 09:12:21 PM You have a strange way of linking assumptions together. But if you are seriously interested in getting to know me (I''m not anonymous), give me a call. Yeah dude, you''re so rare and valuable that I''m going to be giving you calls. I rarely get to meet any geeky boys in college otherwise. They must be putting something in your water, seriously now. Aren''t you a guy with a female avatar? That discussion was a long time ago and I think when I first put you on ignore." [ref=e155]':
+                - 'cell "302 Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam. on: March 04, 2014, 09:17:43 PM Quote from: MPOE-PR on March 04, 2014, 09:15:53 PM Quote from: bg002h on March 04, 2014, 09:12:21 PM You have a strange way of linking assumptions together. But if you are seriously interested in getting to know me (I''m not anonymous), give me a call. Yeah dude, you''re so rare and valuable that I''m going to be giving you calls. I rarely get to meet any geeky boys in college otherwise. They must be putting something in your water, seriously now. Aren''t you a guy with a female avatar? That discussion was a long time ago and I think when I first put you on ignore." [ref=e156]':
+                  - table [ref=e157]:
+                    - rowgroup [ref=e158]:
+                      - 'row "302 Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam. on: March 04, 2014, 09:17:43 PM" [ref=e159]':
+                        - cell "302" [ref=e160]
+                        - 'cell "Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam." [ref=e161]':
+                          - link "Economy" [ref=e162] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Scam Accusations" [ref=e163] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=83.0
+                          - text: /
+                          - 'link "Re: Calling out the Bitcoin Foundation Scam." [ref=e164] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=498002.msg5512975#msg5512975
+                        - 'cell "on: March 04, 2014, 09:17:43 PM" [ref=e165]'
+                  - table [ref=e166]:
+                    - rowgroup [ref=e167]:
+                      - 'row "Quote from: MPOE-PR on March 04, 2014, 09:15:53 PM Quote from: bg002h on March 04, 2014, 09:12:21 PM You have a strange way of linking assumptions together. But if you are seriously interested in getting to know me (I''m not anonymous), give me a call. Yeah dude, you''re so rare and valuable that I''m going to be giving you calls. I rarely get to meet any geeky boys in college otherwise. They must be putting something in your water, seriously now. Aren''t you a guy with a female avatar? That discussion was a long time ago and I think when I first put you on ignore." [ref=e168]':
+                        - 'cell "Quote from: MPOE-PR on March 04, 2014, 09:15:53 PM Quote from: bg002h on March 04, 2014, 09:12:21 PM You have a strange way of linking assumptions together. But if you are seriously interested in getting to know me (I''m not anonymous), give me a call. Yeah dude, you''re so rare and valuable that I''m going to be giving you calls. I rarely get to meet any geeky boys in college otherwise. They must be putting something in your water, seriously now. Aren''t you a guy with a female avatar? That discussion was a long time ago and I think when I first put you on ignore." [ref=e169]':
+                          - generic [ref=e170]:
+                            - 'link "Quote from: MPOE-PR on March 04, 2014, 09:15:53 PM" [ref=e172] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=498002.msg5512932#msg5512932
+                            - generic [ref=e173]:
+                              - 'link "Quote from: bg002h on March 04, 2014, 09:12:21 PM" [ref=e175] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=498002.msg5512874#msg5512874
+                              - generic [ref=e176]: You have a strange way of linking assumptions together. But if you are seriously interested in getting to know me (I'm not anonymous), give me a call.
+                              - text: Yeah dude, you're so rare and valuable that I'm going to be giving you calls. I rarely get to meet any geeky boys in college otherwise.
+                              - text: They must be putting something in your water, seriously now.
+                            - text: Aren't you a guy with a female avatar? That discussion was a long time ago and I think when I first put you on ignore.
+                      - row [ref=e177]:
+                        - cell [ref=e178]
+          - table [ref=e179]:
+            - rowgroup [ref=e180]:
+              - row [ref=e181]:
+                - cell [ref=e182]:
+                  - table [ref=e183]:
+                    - rowgroup [ref=e184]:
+                      - 'row "303 Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam. on: March 04, 2014, 09:12:21 PM" [ref=e185]':
+                        - cell "303" [ref=e186]
+                        - 'cell "Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam." [ref=e187]':
+                          - link "Economy" [ref=e188] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Scam Accusations" [ref=e189] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=83.0
+                          - text: /
+                          - 'link "Re: Calling out the Bitcoin Foundation Scam." [ref=e190] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=498002.msg5512874#msg5512874
+                        - 'cell "on: March 04, 2014, 09:12:21 PM" [ref=e191]'
+                  - table [ref=e192]:
+                    - rowgroup [ref=e193]:
+                      - row [ref=e194]:
+                        - cell [ref=e195]:
+                          - generic [ref=e196]:
+                            - 'link "Quote from: MPOE-PR on March 04, 2014, 09:08:21 PM" [ref=e198] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=498002.msg5512802#msg5512802
+                            - generic [ref=e199]:
+                              - 'link "Quote from: justusranvier on March 04, 2014, 07:35:47 PM" [ref=e201] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=498002.msg5511047#msg5511047
+                              - generic [ref=e202]:
+                                - 'link "Quote from: Peter Lambert on March 04, 2014, 07:07:07 PM" [ref=e204] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=498002.msg5510462#msg5510462
+                                - generic [ref=e205]: You want protocol development, go work on it yourself, you selfish bastard. This is an open source project, contribute yourself.
+                                - text: I've have been for nearly a year now, or rather I've been directly supporting someone who is working on it.
+                                - link "https://bitcointalk.org/index.php?topic=93606.msg2325555#msg2325555" [ref=e206] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?topic=93606.msg2325555#msg2325555
+                                - 'link "Quote from: Peter Lambert on March 04, 2014, 07:07:07 PM" [ref=e208] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=498002.msg5510462#msg5510462
+                                - generic [ref=e209]: Why do you think you get to dictate what sort of work the Almighty Bitcoin Foundation does.
+                                - text: Provide a direct quote where I did that or GTFO.
+                                - text: I never demanded that anyone do anything. All I've done is ask for the people defending the foundation by saying "the foundation pays Gavin so he can work on protocol development" provide some evidence to back up their claims.
+                                - text: All I've received in return to these queries is diversions and verbal abuse.
+                              - text: I think he was ironically recounting the "discussion" forum fucktards presented last time, the first time the topic of
+                              - link "bitcoin devs being retarded" [ref=e210] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?topic=152027.0
+                              - text: came up.
+                              - text: You know, the
+                              - link "same forum fucktards" [ref=e211] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?topic=101902.msg1123443#msg1123443
+                              - text: that are the reason why Bitcoin finance makes baby steps. Well...same.
+                              - link "Different bodies, same brain" [ref=e212] [cursor=pointer]:
+                                - /url: http://trilema.com/2013/the-story-of-pointless-and-witless/
+                              - text: .
+                              - 'link "Quote from: bg002h on March 04, 2014, 08:28:10 PM" [ref=e214] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=498002.msg5512099#msg5512099
+                              - generic [ref=e215]:
+                                - text: Lol...you must be new. I wrote an iPhone app called mybitcoin...and I'm in my final year of residency
+                                - img "Smiley" [ref=e216]
+                              - text: It's not as much that "I'm new", shillyboy. It's that you're stupid.
+                              - text: Now re-read my post with your reading comprehension hat on.
+                              - text: "Then perhaps go exchange notes with the legion of other numerous shills that thought it a good idea to herp at me, historically. Hint: it didn't work out for them."
+                              - text: Stay in school.
+                              - 'link "Quote from: bg002h on March 04, 2014, 08:37:23 PM" [ref=e218] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=498002.msg5512272#msg5512272
+                              - generic [ref=e219]: The more we band together (be it here or elsewhere) the stronger we can make Bitcoin
+                              - text: The more your ilk bands together, the shittier anything around you becomes.
+                              - text: Ideally you'll soon find some altcoin or something like all other idiots.
+                            - text: You have a strange way of linking assumptions together. But if you are seriously interested in getting to know me (I'm not anonymous), give me a call.
+                      - row [ref=e220]:
+                        - cell [ref=e221]
+          - table [ref=e222]:
+            - rowgroup [ref=e223]:
+              - 'row "304 Bitcoin / Bitcoin Discussion / Re: Has a Bitcoin hacker/thief ever been caught? on: March 04, 2014, 09:09:27 PM Quote from: RodeoX on March 04, 2014, 06:24:20 PM Quote from: TKeenan on March 04, 2014, 05:44:31 PM Quote from: lorix on March 04, 2014, 05:10:14 PM has a BTC thief ever actually been tracked down and caught before? Hell yeah. Trendon T. Shavers Charlie Shrem Ross Ulbricht Neither Charlie nor Ross was caught for stealing. It was money laundering and drug dealing. As far as Trendon, I can''t find any proof he was convicted of anything. But he may have. SEC vs Trendon Shavers is still pending (AFAIK). The most recent web search that I could find gives a telephone number for those defrauded to call, so I presume it''s still am active case. http://www.securitieslitigators.com/trendon-shavers-and-bitcoin-savings-and-trust-involved-in-first-ever-bitcoin-ponzi/" [ref=e224]':
+                - 'cell "304 Bitcoin / Bitcoin Discussion / Re: Has a Bitcoin hacker/thief ever been caught? on: March 04, 2014, 09:09:27 PM Quote from: RodeoX on March 04, 2014, 06:24:20 PM Quote from: TKeenan on March 04, 2014, 05:44:31 PM Quote from: lorix on March 04, 2014, 05:10:14 PM has a BTC thief ever actually been tracked down and caught before? Hell yeah. Trendon T. Shavers Charlie Shrem Ross Ulbricht Neither Charlie nor Ross was caught for stealing. It was money laundering and drug dealing. As far as Trendon, I can''t find any proof he was convicted of anything. But he may have. SEC vs Trendon Shavers is still pending (AFAIK). The most recent web search that I could find gives a telephone number for those defrauded to call, so I presume it''s still am active case. http://www.securitieslitigators.com/trendon-shavers-and-bitcoin-savings-and-trust-involved-in-first-ever-bitcoin-ponzi/" [ref=e225]':
+                  - table [ref=e226]:
+                    - rowgroup [ref=e227]:
+                      - 'row "304 Bitcoin / Bitcoin Discussion / Re: Has a Bitcoin hacker/thief ever been caught? on: March 04, 2014, 09:09:27 PM" [ref=e228]':
+                        - cell "304" [ref=e229]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Has a Bitcoin hacker/thief ever been caught?" [ref=e230]':
+                          - link "Bitcoin" [ref=e231] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e232] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Has a Bitcoin hacker/thief ever been caught?" [ref=e233] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=500212.msg5512824#msg5512824
+                        - 'cell "on: March 04, 2014, 09:09:27 PM" [ref=e234]'
+                  - table [ref=e235]:
+                    - rowgroup [ref=e236]:
+                      - 'row "Quote from: RodeoX on March 04, 2014, 06:24:20 PM Quote from: TKeenan on March 04, 2014, 05:44:31 PM Quote from: lorix on March 04, 2014, 05:10:14 PM has a BTC thief ever actually been tracked down and caught before? Hell yeah. Trendon T. Shavers Charlie Shrem Ross Ulbricht Neither Charlie nor Ross was caught for stealing. It was money laundering and drug dealing. As far as Trendon, I can''t find any proof he was convicted of anything. But he may have. SEC vs Trendon Shavers is still pending (AFAIK). The most recent web search that I could find gives a telephone number for those defrauded to call, so I presume it''s still am active case. http://www.securitieslitigators.com/trendon-shavers-and-bitcoin-savings-and-trust-involved-in-first-ever-bitcoin-ponzi/" [ref=e237]':
+                        - 'cell "Quote from: RodeoX on March 04, 2014, 06:24:20 PM Quote from: TKeenan on March 04, 2014, 05:44:31 PM Quote from: lorix on March 04, 2014, 05:10:14 PM has a BTC thief ever actually been tracked down and caught before? Hell yeah. Trendon T. Shavers Charlie Shrem Ross Ulbricht Neither Charlie nor Ross was caught for stealing. It was money laundering and drug dealing. As far as Trendon, I can''t find any proof he was convicted of anything. But he may have. SEC vs Trendon Shavers is still pending (AFAIK). The most recent web search that I could find gives a telephone number for those defrauded to call, so I presume it''s still am active case. http://www.securitieslitigators.com/trendon-shavers-and-bitcoin-savings-and-trust-involved-in-first-ever-bitcoin-ponzi/" [ref=e238]':
+                          - generic [ref=e239]:
+                            - 'link "Quote from: RodeoX on March 04, 2014, 06:24:20 PM" [ref=e241] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=500212.msg5509665#msg5509665
+                            - generic [ref=e242]:
+                              - 'link "Quote from: TKeenan on March 04, 2014, 05:44:31 PM" [ref=e244] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=500212.msg5508859#msg5508859
+                              - generic [ref=e245]:
+                                - 'link "Quote from: lorix on March 04, 2014, 05:10:14 PM" [ref=e247] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=500212.msg5508240#msg5508240
+                                - generic [ref=e248]: has a BTC thief ever actually been tracked down and caught before?
+                                - text: Hell yeah.
+                                - text: Trendon T. Shavers
+                                - text: Charlie Shrem
+                                - text: Ross Ulbricht
+                              - text: Neither Charlie nor Ross was caught for stealing. It was money laundering and drug dealing. As far as Trendon, I can't find any proof he was convicted of anything. But he may have.
+                            - text: SEC vs Trendon Shavers is still pending (AFAIK). The most recent web search that I could find gives a telephone number for those defrauded to call, so I presume it's still am active case.
+                            - link "http://www.securitieslitigators.com/trendon-shavers-and-bitcoin-savings-and-trust-involved-in-first-ever-bitcoin-ponzi/" [ref=e249] [cursor=pointer]:
+                              - /url: http://www.securitieslitigators.com/trendon-shavers-and-bitcoin-savings-and-trust-involved-in-first-ever-bitcoin-ponzi/
+                      - row [ref=e250]:
+                        - cell [ref=e251]
+          - table [ref=e252]:
+            - rowgroup [ref=e253]:
+              - 'row "305 Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam. on: March 04, 2014, 09:03:34 PM I think anything anyone can do to help strengthen a group of dedicated Bitcoin users is a good thing. There is nothing to gain by tearing people down (falsely at least!) or inventing reasons to hate stuff. It''s far better if we support new initiatives and defend their right to exist." [ref=e254]':
+                - 'cell "305 Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam. on: March 04, 2014, 09:03:34 PM I think anything anyone can do to help strengthen a group of dedicated Bitcoin users is a good thing. There is nothing to gain by tearing people down (falsely at least!) or inventing reasons to hate stuff. It''s far better if we support new initiatives and defend their right to exist." [ref=e255]':
+                  - table [ref=e256]:
+                    - rowgroup [ref=e257]:
+                      - 'row "305 Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam. on: March 04, 2014, 09:03:34 PM" [ref=e258]':
+                        - cell "305" [ref=e259]
+                        - 'cell "Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam." [ref=e260]':
+                          - link "Economy" [ref=e261] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Scam Accusations" [ref=e262] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=83.0
+                          - text: /
+                          - 'link "Re: Calling out the Bitcoin Foundation Scam." [ref=e263] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=498002.msg5512703#msg5512703
+                        - 'cell "on: March 04, 2014, 09:03:34 PM" [ref=e264]'
+                  - table [ref=e265]:
+                    - rowgroup [ref=e266]:
+                      - row "I think anything anyone can do to help strengthen a group of dedicated Bitcoin users is a good thing. There is nothing to gain by tearing people down (falsely at least!) or inventing reasons to hate stuff. It's far better if we support new initiatives and defend their right to exist." [ref=e267]:
+                        - cell "I think anything anyone can do to help strengthen a group of dedicated Bitcoin users is a good thing. There is nothing to gain by tearing people down (falsely at least!) or inventing reasons to hate stuff. It's far better if we support new initiatives and defend their right to exist." [ref=e268]:
+                          - generic [ref=e269]:
+                            - text: I think anything anyone can do to help strengthen a group of dedicated Bitcoin users is a good thing.
+                            - text: There is nothing to gain by tearing people down (falsely at least!) or inventing reasons to hate stuff. It's far better if we support new initiatives and defend their right to exist.
+                      - row [ref=e270]:
+                        - cell [ref=e271]
+          - table [ref=e272]:
+            - rowgroup [ref=e273]:
+              - 'row "306 Bitcoin / Bitcoin Discussion / Re: To service providers: Be honest. on: March 04, 2014, 08:45:01 PM Quote from: franky1 on March 04, 2014, 07:41:48 PM honest and honourable are two different things honest is mark karpeles saying: \"a thief stole 750k coins\" which infact is the truth.. the other truth is \"mark karpales was this thief\" we need honourable service providers not honest I''m not sure what exactly happened at Gox....I''m not sure anyone is. But I think honest and honorable are necessary but not sufficient. I''d add able to the list. There are a lot of epode who are marginally competent at their jobs...I fear this to be the case in many areas of our nascent ecosystem precisely because of rapid growth." [ref=e274]':
+                - 'cell "306 Bitcoin / Bitcoin Discussion / Re: To service providers: Be honest. on: March 04, 2014, 08:45:01 PM Quote from: franky1 on March 04, 2014, 07:41:48 PM honest and honourable are two different things honest is mark karpeles saying: \"a thief stole 750k coins\" which infact is the truth.. the other truth is \"mark karpales was this thief\" we need honourable service providers not honest I''m not sure what exactly happened at Gox....I''m not sure anyone is. But I think honest and honorable are necessary but not sufficient. I''d add able to the list. There are a lot of epode who are marginally competent at their jobs...I fear this to be the case in many areas of our nascent ecosystem precisely because of rapid growth." [ref=e275]':
+                  - table [ref=e276]:
+                    - rowgroup [ref=e277]:
+                      - 'row "306 Bitcoin / Bitcoin Discussion / Re: To service providers: Be honest. on: March 04, 2014, 08:45:01 PM" [ref=e278]':
+                        - cell "306" [ref=e279]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: To service providers: Be honest." [ref=e280]':
+                          - link "Bitcoin" [ref=e281] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e282] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: To service providers: Be honest." [ref=e283] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=500377.msg5512400#msg5512400
+                        - 'cell "on: March 04, 2014, 08:45:01 PM" [ref=e284]'
+                  - table [ref=e285]:
+                    - rowgroup [ref=e286]:
+                      - 'row "Quote from: franky1 on March 04, 2014, 07:41:48 PM honest and honourable are two different things honest is mark karpeles saying: \"a thief stole 750k coins\" which infact is the truth.. the other truth is \"mark karpales was this thief\" we need honourable service providers not honest I''m not sure what exactly happened at Gox....I''m not sure anyone is. But I think honest and honorable are necessary but not sufficient. I''d add able to the list. There are a lot of epode who are marginally competent at their jobs...I fear this to be the case in many areas of our nascent ecosystem precisely because of rapid growth." [ref=e287]':
+                        - 'cell "Quote from: franky1 on March 04, 2014, 07:41:48 PM honest and honourable are two different things honest is mark karpeles saying: \"a thief stole 750k coins\" which infact is the truth.. the other truth is \"mark karpales was this thief\" we need honourable service providers not honest I''m not sure what exactly happened at Gox....I''m not sure anyone is. But I think honest and honorable are necessary but not sufficient. I''d add able to the list. There are a lot of epode who are marginally competent at their jobs...I fear this to be the case in many areas of our nascent ecosystem precisely because of rapid growth." [ref=e288]':
+                          - generic [ref=e289]:
+                            - 'link "Quote from: franky1 on March 04, 2014, 07:41:48 PM" [ref=e291] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=500377.msg5511179#msg5511179
+                            - generic [ref=e292]:
+                              - text: honest and honourable are two different things
+                              - text: "honest is mark karpeles saying:"
+                              - text: "\"a thief stole 750k coins\""
+                              - text: which infact is the truth.. the other truth is
+                              - text: "\"mark karpales was this thief\""
+                              - text: we need honourable service providers not honest
+                            - text: I'm not sure what exactly happened at Gox....I'm not sure anyone is. But I think honest and honorable are necessary but not sufficient. I'd add able to the list.
+                            - text: There are a lot of epode who are marginally competent at their jobs...I fear this to be the case in many areas of our nascent ecosystem precisely because of rapid growth.
+                      - row [ref=e293]:
+                        - cell [ref=e294]
+          - table [ref=e295]:
+            - rowgroup [ref=e296]:
+              - row [ref=e297]:
+                - cell [ref=e298]:
+                  - table [ref=e299]:
+                    - rowgroup [ref=e300]:
+                      - 'row "307 Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam. on: March 04, 2014, 08:37:23 PM" [ref=e301]':
+                        - cell "307" [ref=e302]
+                        - 'cell "Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam." [ref=e303]':
+                          - link "Economy" [ref=e304] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Scam Accusations" [ref=e305] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=83.0
+                          - text: /
+                          - 'link "Re: Calling out the Bitcoin Foundation Scam." [ref=e306] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=498002.msg5512272#msg5512272
+                        - 'cell "on: March 04, 2014, 08:37:23 PM" [ref=e307]'
+                  - table [ref=e308]:
+                    - rowgroup [ref=e309]:
+                      - row [ref=e310]:
+                        - cell [ref=e311]:
+                          - generic [ref=e312]:
+                            - 'link "Quote from: cosmofly on March 04, 2014, 12:01:37 PM" [ref=e314] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=498002.msg5502980#msg5502980
+                            - generic [ref=e315]:
+                              - text: I think its time for action i had enough, enough is enough. The foundation must be destroyed.
+                              - text: "IF we for example setup a new bitcoin superfund, MP can possibly head this fund which will result in the creation of a new foundation with core values such as :"
+                              - text: "- rapid and ongoing bitcoin software development"
+                              - text: "- Focus on marketing and promotion of bitcoin"
+                              - text: "- Lobbying Governments"
+                              - text: "- Providing educational services for the public & business"
+                              - text: "- Transparency (financial accounts must be audited)"
+                              - text: Would the community support such an idea/ would MP like to head such an initiative? (atleast until we can vote in a learship board ?)
+                              - text: i think it's time for action and would love to come together as a community.
+                            - text: Destroyed? Seems a little harsh
+                            - img "Smiley" [ref=e316]
+                            - text: That said, nobody has a patent on organizing people to pool resources around a common interest. Similarly, the Bitcoin Foundation has no monopoly. My belief is that the more groups pooling resources to help _all_ aspects of the community become stronger is a good thing. To state that the Foundation doesn't represent everyone or every interest is to state the obvious.
+                            - text: The more we band together (be it here or elsewhere) the stronger we can make Bitcoin.
+                      - row [ref=e317]:
+                        - cell [ref=e318]
+          - table [ref=e319]:
+            - rowgroup [ref=e320]:
+              - row [ref=e321]:
+                - cell [ref=e322]:
+                  - table [ref=e323]:
+                    - rowgroup [ref=e324]:
+                      - 'row "308 Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam. on: March 04, 2014, 08:28:10 PM" [ref=e325]':
+                        - cell "308" [ref=e326]
+                        - 'cell "Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam." [ref=e327]':
+                          - link "Economy" [ref=e328] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Scam Accusations" [ref=e329] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=83.0
+                          - text: /
+                          - 'link "Re: Calling out the Bitcoin Foundation Scam." [ref=e330] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=498002.msg5512099#msg5512099
+                        - 'cell "on: March 04, 2014, 08:28:10 PM" [ref=e331]'
+                  - table [ref=e332]:
+                    - rowgroup [ref=e333]:
+                      - row [ref=e334]:
+                        - cell [ref=e335]:
+                          - generic [ref=e336]:
+                            - 'link "Quote from: Bit_Happy on March 04, 2014, 04:36:52 AM" [ref=e338] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=498002.msg5496645#msg5496645
+                            - generic [ref=e339]:
+                              - 'link "Quote from: MPOE-PR on March 04, 2014, 04:10:22 AM" [ref=e341] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=498002.msg5496175#msg5496175
+                              - generic [ref=e342]:
+                                - 'link "Quote from: bg002h on March 04, 2014, 03:29:03 AM" [ref=e344] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=498002.msg5495606#msg5495606
+                                - generic [ref=e345]:
+                                  - 'link "Quote from: S4VV4S on March 03, 2014, 01:43:17 PM" [ref=e347] [cursor=pointer]':
+                                    - /url: https://bitcointalk.org/index.php?topic=498002.msg5482024#msg5482024
+                                  - generic [ref=e348]:
+                                    - text: I must admit.
+                                    - text: I have never heard of this Bitcoin Foundation before this post.
+                                    - text: What is it that they do exactly?
+                                  - text: Have a look. The OP isn't well respected, so take no notice.
+                                  - link "https://bitcoinfoundation.org/forum/index.php?/topic/752-the-good-and-useful-things-the-foundation-has-done-for-us-members-compiled-by-dr-brian-goss/" [ref=e349] [cursor=pointer]:
+                                    - /url: https://bitcoinfoundation.org/forum/index.php?/topic/752-the-good-and-useful-things-the-foundation-has-done-for-us-members-compiled-by-dr-brian-goss/
+                                - text: Nice try, sidestepping the actual issues (such as you know, accounting fraud, tortious misrepresentation and quite possibly false pretenses, quite definitely embezzlement and a myriad other civil and criminal violations) by failful personal attacks (nobody heard of you, I'm easily on any list of respectable voices on this forum, buzz off) and a laundry list of...nonsense.
+                                - link "Conferences don't count" [ref=e350] [cursor=pointer]:
+                                  - /url: http://trilema.com/2013/in-re-noobs-and-conventions/
+                                - text: ", and there's literally nothing else on that list."
+                                - text: Now go tell your puppet masters that a) you failed miserably and b) they'll need much much better damage control. Ideally, they'll need some lawyers. Preferably someone with an actual clue (which excludes Murck, he's the ninny that got them in their present muck).
+                                - text: "Oh, and since two can play that game, \"Dr.\" Brian Goss (a freshly failed medical student in Chicago interviewing for residency training in radiology):"
+                                - link "here's your old page" [ref=e351] [cursor=pointer]:
+                                  - /url: http://api.browsershots.org/png/original/0d/0d32523e519a12cae9d858b22ad3b800.png
+                                - text: ", from back when you were pushing the mywallet scam..."
+                              - text: For the noobs, mywallet was one of the first huge BTC thefts from a "hack"
+                              - text: Wow...
+                            - text: Lol...you must be new. I wrote an iPhone app called mybitcoin...and I'm in my final year of residency
+                            - img "Smiley" [ref=e352]
+                      - row [ref=e353]:
+                        - cell [ref=e354]
+          - table [ref=e355]:
+            - rowgroup [ref=e356]:
+              - 'row "309 Bitcoin / Bitcoin Discussion / Re: CEO of Blockchain.info tweets \"Big News Dropping Tomorrow\" on: March 04, 2014, 03:38:22 AM I bet is has to do with blockchain.com...as does everybody else I see Smiley" [ref=e357]':
+                - 'cell "309 Bitcoin / Bitcoin Discussion / Re: CEO of Blockchain.info tweets \"Big News Dropping Tomorrow\" on: March 04, 2014, 03:38:22 AM I bet is has to do with blockchain.com...as does everybody else I see Smiley" [ref=e358]':
+                  - table [ref=e359]:
+                    - rowgroup [ref=e360]:
+                      - 'row "309 Bitcoin / Bitcoin Discussion / Re: CEO of Blockchain.info tweets \"Big News Dropping Tomorrow\" on: March 04, 2014, 03:38:22 AM" [ref=e361]':
+                        - cell "309" [ref=e362]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: CEO of Blockchain.info tweets \"Big News Dropping Tomorrow\"" [ref=e363]':
+                          - link "Bitcoin" [ref=e364] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e365] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: CEO of Blockchain.info tweets \"Big News Dropping Tomorrow\"" [ref=e366] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=498986.msg5495726#msg5495726
+                        - 'cell "on: March 04, 2014, 03:38:22 AM" [ref=e367]'
+                  - table [ref=e368]:
+                    - rowgroup [ref=e369]:
+                      - row "I bet is has to do with blockchain.com...as does everybody else I see Smiley" [ref=e370]:
+                        - cell "I bet is has to do with blockchain.com...as does everybody else I see Smiley" [ref=e371]:
+                          - generic [ref=e372]:
+                            - text: I bet is has to do with blockchain.com...as does everybody else I see
+                            - img "Smiley" [ref=e373]
+                      - row [ref=e374]:
+                        - cell [ref=e375]
+          - table [ref=e376]:
+            - rowgroup [ref=e377]:
+              - 'row "310 Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam. on: March 04, 2014, 03:29:03 AM Quote from: S4VV4S on March 03, 2014, 01:43:17 PM I must admit. I have never heard of this Bitcoin Foundation before this post. What is it that they do exactly? Have a look. The OP isn''t well respected, so take no notice. https://bitcoinfoundation.org/forum/index.php?/topic/752-the-good-and-useful-things-the-foundation-has-done-for-us-members-compiled-by-dr-brian-goss/" [ref=e378]':
+                - 'cell "310 Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam. on: March 04, 2014, 03:29:03 AM Quote from: S4VV4S on March 03, 2014, 01:43:17 PM I must admit. I have never heard of this Bitcoin Foundation before this post. What is it that they do exactly? Have a look. The OP isn''t well respected, so take no notice. https://bitcoinfoundation.org/forum/index.php?/topic/752-the-good-and-useful-things-the-foundation-has-done-for-us-members-compiled-by-dr-brian-goss/" [ref=e379]':
+                  - table [ref=e380]:
+                    - rowgroup [ref=e381]:
+                      - 'row "310 Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam. on: March 04, 2014, 03:29:03 AM" [ref=e382]':
+                        - cell "310" [ref=e383]
+                        - 'cell "Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam." [ref=e384]':
+                          - link "Economy" [ref=e385] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Scam Accusations" [ref=e386] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=83.0
+                          - text: /
+                          - 'link "Re: Calling out the Bitcoin Foundation Scam." [ref=e387] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=498002.msg5495606#msg5495606
+                        - 'cell "on: March 04, 2014, 03:29:03 AM" [ref=e388]'
+                  - table [ref=e389]:
+                    - rowgroup [ref=e390]:
+                      - 'row "Quote from: S4VV4S on March 03, 2014, 01:43:17 PM I must admit. I have never heard of this Bitcoin Foundation before this post. What is it that they do exactly? Have a look. The OP isn''t well respected, so take no notice. https://bitcoinfoundation.org/forum/index.php?/topic/752-the-good-and-useful-things-the-foundation-has-done-for-us-members-compiled-by-dr-brian-goss/" [ref=e391]':
+                        - 'cell "Quote from: S4VV4S on March 03, 2014, 01:43:17 PM I must admit. I have never heard of this Bitcoin Foundation before this post. What is it that they do exactly? Have a look. The OP isn''t well respected, so take no notice. https://bitcoinfoundation.org/forum/index.php?/topic/752-the-good-and-useful-things-the-foundation-has-done-for-us-members-compiled-by-dr-brian-goss/" [ref=e392]':
+                          - generic [ref=e393]:
+                            - 'link "Quote from: S4VV4S on March 03, 2014, 01:43:17 PM" [ref=e395] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=498002.msg5482024#msg5482024
+                            - generic [ref=e396]:
+                              - text: I must admit.
+                              - text: I have never heard of this Bitcoin Foundation before this post.
+                              - text: What is it that they do exactly?
+                            - text: Have a look. The OP isn't well respected, so take no notice.
+                            - link "https://bitcoinfoundation.org/forum/index.php?/topic/752-the-good-and-useful-things-the-foundation-has-done-for-us-members-compiled-by-dr-brian-goss/" [ref=e397] [cursor=pointer]:
+                              - /url: https://bitcoinfoundation.org/forum/index.php?/topic/752-the-good-and-useful-things-the-foundation-has-done-for-us-members-compiled-by-dr-brian-goss/
+                      - row [ref=e398]:
+                        - cell [ref=e399]
+          - table [ref=e400]:
+            - rowgroup [ref=e401]:
+              - row [ref=e402]:
+                - cell [ref=e403]:
+                  - table [ref=e404]:
+                    - rowgroup [ref=e405]:
+                      - 'row "311 Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam. on: March 04, 2014, 03:27:03 AM" [ref=e406]':
+                        - cell "311" [ref=e407]
+                        - 'cell "Economy / Scam Accusations / Re: Calling out the Bitcoin Foundation Scam." [ref=e408]':
+                          - link "Economy" [ref=e409] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Scam Accusations" [ref=e410] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=83.0
+                          - text: /
+                          - 'link "Re: Calling out the Bitcoin Foundation Scam." [ref=e411] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=498002.msg5495580#msg5495580
+                        - 'cell "on: March 04, 2014, 03:27:03 AM" [ref=e412]'
+                  - table [ref=e413]:
+                    - rowgroup [ref=e414]:
+                      - row [ref=e415]:
+                        - cell [ref=e416]:
+                          - generic [ref=e417]:
+                            - 'link "Quote from: MPOE-PR on March 03, 2014, 08:37:03 AM" [ref=e419] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=498002.msg5478205#msg5478205
+                            - generic [ref=e420]:
+                              - text: The Bitcoin Foundation was a large confidence scam perpetrated on the very naive, rather noobish yet very vain Bitcoin community cca 2012-2014 - and running for about as long as Pirate's ponzi.
+                              - text: It was thought out, constructed and initially run by Peter Vessenes, and then passed along to various accomplices. (Don't imagine that if I don't name you, we don't have the file. We have the file. You will be serving time, in all likelihood.)
+                              - text: "It worked like so:"
+                              - text: 1. Collect donations from the clueless yet vain. Because Bitcoin is full of people who belabour under the delusion that if they speak a lot about Bitcoin, if they paint "Bitcoin" all over the four walls of their dwelling and so on then they're somehow "part of Bitcoin". Charging these idiots a hefty fee for an "official" stamp of approval* is a logical next step, and it collected a massive warchest (even more than the thousands of BTC this forum - also run on MtGox servers - has collected for "software upgrades").
+                              - text: The CEO and Treasurer at the time, one
+                              - link "Peter Vessenes" [ref=e421] [cursor=pointer]:
+                                - /url: http://trilema.com/2013/recapitulatio/
+                              - text: simply pocketed this money. No report was ever published, no report will ever be published. More advanced than the MtGox scam, the Foundation is a "non profit" and it has no creditors, so nobody has standing to take them to court.
+                              - text: 2. Vouch for scams. It is very lucrative to sell protection; that's what most underworld kingpins do for a living. That's what the Bitcoin Foundation did for a living too, once the BTC price went up and the dubious character of the people running it became public knowledge (ie, once MP said so). With dwindling donation income and a never ending hunger for cash**, the Bitcoin Foundation was repurposed as a voucher for whoever could afford to pay. Like BFL. Like MtGox.
+                              - text: The only reason Pirate wasn't vouched for by the Bitcoin Foundation is that
+                              - link "I killed him" [ref=e422] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?topic=50822.msg854918#msg854918
+                              - text: before he had a chance. The only reason the Patrick Harnett scammer didn't end up on their board is because
+                              - link "MP killed him" [ref=e423] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?topic=121915.0
+                              - text: before he had a chance. The only reason Silk Road's guy wasn't vouched for by the Bitcoin Foundation is that he couldn't be bothered (or afford) to pay them. The only reason TradeFortress wasn't similarly has to do with cash. And this list could go on.
+                              - text: "Think things through: it's not so hard to collect five thousand Bitcoin and then from that pay fifty to some clueless, famished nerd or other."
+                              - text: It's not hard to pretend like you're professional while you're lying through your teeth and defrauding everyone in sight.
+                              - text: It's not hard to pretend like you have "public support" when you're only talking to the clueless noobs that joined yesterday, who think Auroracoin actually "has a market cap" and so on. In a population of
+                              - link "19 yo Xavier Uni graduates" [ref=e424] [cursor=pointer]:
+                                - /url: https://sites.google.com/site/surfcapitalmgmt/about-us
+                              - text: ", any lie can pass for truth if large enough and repeated often enough."
+                              - text: What is hard is to stand for something, what is hard is to speak the uncomfortable truths***, what is hard is to keep promises and to refuse to make promises that can't be kept and to tell would-be "powers that be" to pack it and move because Bitcoin is taking over.
+                              - text: But the Bitcoin Foundation isn't in the business of all that. The Bitcoin Foundation was in the business of taking money from they too stupid to keep it, and votes from they too clueless to have any money, and then sell the package to the highest bidder. Whoever it may be. Vessenes & co gotta be bought out after all, it's not like the shit they do has any intrinsic value whatsoever. Acquisition or bust, it's what they learned, it's what they do, it's what they'll teach you, if you'll let them. (And if you do let them you might as well use fiat, seriously now. It's easier, and insured.)
+                              - text: So now they're decamping to the UK in the hopes they may avoid US side prosecution, (a move deeply reminiscent of Vleisides, incidentally). Derp. You're all going to jail, boys and girls. You're all going to jail for being thieves, and liars, and con men. And to quote from
+                              - link "a much older article of MP's" [ref=e425] [cursor=pointer]:
+                                - /url: http://trilema.com/2013/preemptive-strike-to-have-on-hand-for-when-butterfly-labs-gets-hauled-off-to-jail-in-corpore/
+                              - text: "(funny how that guy always wrote today's article months ago, isn't it?):"
+                              - generic [ref=e426]: Quote
+                              - generic [ref=e427]:
+                                - text: There’s just no way this little experiment in mishandling other people’s money can end up anywhere other than in a court, and there’s pretty good odds that it will be through penal rather than civil proceedings - the people involved are too many and too stupid for the state not to intervene.
+                                - text: Once that happens, I am positive and certain that the same people who are now running around calling their betters names will try to turn things into some sort of “mean state infringing on people’s rights”. They have a fine record at trying exactly that.
+                                - text: "The problem is, the lot of them being packed up and hauled to jail would be no such infringement. It is at this point perfectly reasonable and quite unavoidable. Sure, they’ll try and sell this libertarian angle, that’s the curse of being pro-freedom : all the scumbags try to exploit you for their little profit turning “ideas”. It won’t wash. The girl that already beat you in the PR marketplace will beat you again, dear Sonny & co. She has the material right here."
+                              - text: "---"
+                              - text: "* See this excellent quote from"
+                              - link "Chris Ballas" [ref=e428] [cursor=pointer]:
+                                - /url: http://thelastpsychiatrist.com/2014/03/who_can_know_how_much_randi_zu.html
+                              - text: ":"
+                              - generic [ref=e429]: Quote
+                              - generic [ref=e430]:
+                                - text: "And here I have to go back over something. The harder part of the psychology is that the demo doesn't want to become full time traders, either at home all day or on Wall Street-- that part must remain a fantasy-- because then it would be a job and it wouldn't count; it has to be a side gig, then their success wasn't their \"work self\" but their \"real\" self; no one else can claim a sliver of that success-- not the liberals with their \"'entrepreneurs' just pretend they don't benefit from public services!\" or the wives with their \"behind every good man...!\" or the echoes of their father yelling, \"you need to apply to Sperry Rand, now there's a company you can put in forty years with!\" It all happened in their head, no one else can share the credit, it is 100% a consequence of their personal value. Bonus: if they fail, it can be quickly discounted as merely a hobby-- that wasn't, after all, their real self."
+                                - text: "The mistake is in thinking this has anything to do with the money. It's said that most at home traders fail, but this is incorrect: they fail at making money, but they are successful at feeling like a trader. That is the goal; the money is secondary, which is why they fail at making it. The buy/hold/reinvest the dividends strategy of Buffet is totally opposite to what's desired, because the strategy does not involve market timing or status updates, it is on autopilot, and there's no \"i\" in autopilot. Well, there's one, but it doesn't stand out."
+                              - text: "** This is the problem with scum posing as businessmen: the things they make aren't cash generators, they're cash black holes. This is fundamentally why we don't want scum to pass for businessmen: not because we don't like their ugly mugs, but because we don't want to be surrounded by \"businesses\" that only work if someone somewhere keeps printing money. We're not trying to re-build the US pseudo-economy here, quite the contrary."
+                              - text: "*** From"
+                              - link "You Are The 98%" [ref=e431] [cursor=pointer]:
+                                - /url: http://thelastpsychiatrist.com/2011/10/you_are_the_98.html
+                              - text: ":"
+                              - generic [ref=e432]: Quote
+                              - generic [ref=e433]:
+                                - text: There's a difference between what you need and what you want, and the media will always, relentlessly give you what you want. Do you know why you have such poor candidates every single election? Because you want them, you want someone you can easily judge for some sexual indiscretion or because they called latinos chicanos. "Well, that matters to us!" Then you got what you asked for.
+                                - text: The media will have data mined the culture and chosen for you two cans of Campbell's Chicken Soup, and then encouraged a public debate about which can is a better representation of the spirit of the country, the one on the left or the one on the right. "Well, that matters to us!" I know.
+                            - text: Undoing the ignore long enough to skim this post was just not a wise move on my part...
+                      - row [ref=e434]:
+                        - cell [ref=e435]
+          - table [ref=e436]:
+            - rowgroup [ref=e437]:
+              - 'row "312 Bitcoin / Bitcoin Discussion / Re: Would you trust a major Bitcoin entity that works with the DoJ? on: March 03, 2014, 09:19:47 PM Depends what the work entailed..." [ref=e438]':
+                - 'cell "312 Bitcoin / Bitcoin Discussion / Re: Would you trust a major Bitcoin entity that works with the DoJ? on: March 03, 2014, 09:19:47 PM Depends what the work entailed..." [ref=e439]':
+                  - table [ref=e440]:
+                    - rowgroup [ref=e441]:
+                      - 'row "312 Bitcoin / Bitcoin Discussion / Re: Would you trust a major Bitcoin entity that works with the DoJ? on: March 03, 2014, 09:19:47 PM" [ref=e442]':
+                        - cell "312" [ref=e443]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e444]':
+                          - link "Bitcoin" [ref=e445] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e446] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e447] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=497942.msg5490500#msg5490500
+                        - 'cell "on: March 03, 2014, 09:19:47 PM" [ref=e448]'
+                  - table [ref=e449]:
+                    - rowgroup [ref=e450]:
+                      - row "Depends what the work entailed..." [ref=e451]:
+                        - cell "Depends what the work entailed..." [ref=e452]:
+                          - generic [ref=e453]: Depends what the work entailed...
+                      - row [ref=e454]:
+                        - cell [ref=e455]
+          - table [ref=e456]:
+            - rowgroup [ref=e457]:
+              - row [ref=e458]:
+                - cell [ref=e459]:
+                  - table [ref=e460]:
+                    - rowgroup [ref=e461]:
+                      - 'row "313 Bitcoin / Bitcoin Discussion / Re: Open questions to the Bitcoin Foundation on: March 03, 2014, 03:09:12 PM" [ref=e462]':
+                        - cell "313" [ref=e463]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Open questions to the Bitcoin Foundation" [ref=e464]':
+                          - link "Bitcoin" [ref=e465] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e466] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Open questions to the Bitcoin Foundation" [ref=e467] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=492861.msg5483350#msg5483350
+                        - 'cell "on: March 03, 2014, 03:09:12 PM" [ref=e468]'
+                  - table [ref=e469]:
+                    - rowgroup [ref=e470]:
+                      - row [ref=e471]:
+                        - cell [ref=e472]:
+                          - generic [ref=e473]:
+                            - 'link "Quote from: darkmule on March 03, 2014, 07:53:26 AM" [ref=e475] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=492861.msg5477788#msg5477788
+                            - generic [ref=e476]:
+                              - 'link "Quote from: kolev on February 28, 2014, 08:46:45 PM" [ref=e478] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=492861.msg5433723#msg5433723
+                              - generic [ref=e479]: Mt.Gox also owns the Bitcoin trademark.
+                              - text: The only record I've seen is
+                              - link "this in Europe" [ref=e480] [cursor=pointer]:
+                                - /url: http://oami.europa.eu/eSearch/#basic/1+1+1+1/bitcoin
+                              - text: . I've seen no evidence they've actually used the mark in commerce as a mark indicating products unique to Gox. Generally, a trademark must identify the products of the specific entity claiming ownership of it, and that entity must have control over the use of the mark. Gox has effectively abandoned the mark by never attempting enforcement, not that an enforcement attempt would have been likely to succeed.
+                              - text: I suppose it's possible an intellectual property troll will somehow end up with possession of whatever rights they have in the term, but I wouldn't worry about it much unless it actually happens.
+                              - text: The trademark registration does not register actual ownership of a mark, but merely puts the first filer (in most jurisdictions) basically "first in line" with their claim of ownership, such that an accused infringer does not have a defense of lack of notice. Of course, this being a registration in Europe, Gox would have to be able to demonstrate that it actually used this mark in commerce in at least one EU country. And of course laws vary by jurisdiction so the exact impact of their use in commerce, assuming it exists at all, might vary in unpredictable ways.
+                            - text: "Lots of people have tried to trademark Bitcoin. The US law is pretty clear on this: first use defines who gets to TM something...thus, there's no need for (or ability for anyone to obtain) a US trademark. For other countries, it's (AFAIK) basically first horse across the regulatory finish line gets the TM, regardless of who has been using it (doesn't matter who was first, what they were using it for, how long they were using it, etc). Mark used his own funds to defensively trademark it and then (i guess) purposely never enforce it so as to make it essentially free to use (he's a French citizen, i think, so he did this in France). I don't know if that means no one can TM it there or it re-opens the door for someone else to TM it...but he was praised for doing this for the community at the time. If someone came to you and asked you for a few $k USD to TM \"bitcoin\" in your country to pre-empt squatters, would you be willing?"
+                      - row [ref=e481]:
+                        - cell [ref=e482]
+          - table [ref=e483]:
+            - rowgroup [ref=e484]:
+              - row [ref=e485]:
+                - cell [ref=e486]:
+                  - table [ref=e487]:
+                    - rowgroup [ref=e488]:
+                      - 'row "314 Bitcoin / Bitcoin Discussion / Re: Open questions to the Bitcoin Foundation on: March 03, 2014, 03:03:33 PM" [ref=e489]':
+                        - cell "314" [ref=e490]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Open questions to the Bitcoin Foundation" [ref=e491]':
+                          - link "Bitcoin" [ref=e492] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e493] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Open questions to the Bitcoin Foundation" [ref=e494] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=492861.msg5483263#msg5483263
+                        - 'cell "on: March 03, 2014, 03:03:33 PM" [ref=e495]'
+                  - table [ref=e496]:
+                    - rowgroup [ref=e497]:
+                      - row [ref=e498]:
+                        - cell [ref=e499]:
+                          - generic [ref=e500]:
+                            - text: Believe it or not, a newbie's post on a forum is not likely to get noticed by the Bitcoin Foundation. While I'm a member of the foundation, I don't speak for the foundation (just like I'm a donator here but I don't speak for bitcointalk.org).
+                            - text: Anyhow, The domain name issue you speak of is news to me and of doubtful significance. The Foundation didn't pave a way to MtGox; rather, MtGox paved the way to established a Foundation (with the help of a few others).
+                            - text: You assert the Foundation accepted funds while MtGox was on the verge of bankruptcy, what do you mean? If you mean they've been on the verge of bankruptcy for a few years and they paid membership dues, then, uh...duh... If you mean something more relevant, explain yourself. I can only speak for myself, but, no Mark didn't pay me (or AFAIK any of my
+                            - link "my 800 friends" [ref=e501] [cursor=pointer]:
+                              - /url: https://members.bitcoinfoundation.org/current
+                            - text: ) anything.
+                            - text: All this said, I do think those who lost funds will end up having some recourse; the amounts they recover will depend on what exactly happened and where the funds are. AFAIK, the truth about what exactly happened isn't known, not even to MtGox.
+                            - text: "But don't confuse the two organizations: MtGox and the Bitcoin Foundation had one thing in common: Mark was a board member on both. While he essentially ran MtGox, he was just one of 5-7 board members at the Foundation. Mark did not run the Bitcoin Foundation. In fact, of the"
+                            - link "minutes currently available" [ref=e502] [cursor=pointer]:
+                              - /url: https://bitcoinfoundation.org/forum/index.php?/topic/429-board-meeting-minutes/
+                            - text: (which is OOD, IMHO), Mark didn't go to Foundation board meetings and instead sent his second in command to the board meetings (who attended 70% of them).
+                      - row [ref=e503]:
+                        - cell [ref=e504]
+          - table [ref=e505]:
+            - rowgroup [ref=e506]:
+              - 'row "315 Bitcoin / Bitcoin Discussion / Re: Most trustworthy forum members for multi-sig address on: March 02, 2014, 09:49:48 PM OP you might give http://bitgivefoundation.org a look too. I like your multisig idea." [ref=e507]':
+                - 'cell "315 Bitcoin / Bitcoin Discussion / Re: Most trustworthy forum members for multi-sig address on: March 02, 2014, 09:49:48 PM OP you might give http://bitgivefoundation.org a look too. I like your multisig idea." [ref=e508]':
+                  - table [ref=e509]:
+                    - rowgroup [ref=e510]:
+                      - 'row "315 Bitcoin / Bitcoin Discussion / Re: Most trustworthy forum members for multi-sig address on: March 02, 2014, 09:49:48 PM" [ref=e511]':
+                        - cell "315" [ref=e512]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Most trustworthy forum members for multi-sig address" [ref=e513]':
+                          - link "Bitcoin" [ref=e514] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e515] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Most trustworthy forum members for multi-sig address" [ref=e516] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=495549.msg5470537#msg5470537
+                        - 'cell "on: March 02, 2014, 09:49:48 PM" [ref=e517]'
+                  - table [ref=e518]:
+                    - rowgroup [ref=e519]:
+                      - row "OP you might give http://bitgivefoundation.org a look too. I like your multisig idea." [ref=e520]:
+                        - cell "OP you might give http://bitgivefoundation.org a look too. I like your multisig idea." [ref=e521]:
+                          - generic [ref=e522]:
+                            - text: OP you might give
+                            - link "http://bitgivefoundation.org" [ref=e523] [cursor=pointer]:
+                              - /url: http://bitgivefoundation.org
+                            - text: a look too. I like your multisig idea.
+                      - row [ref=e524]:
+                        - cell [ref=e525]
+          - table [ref=e526]:
+            - rowgroup [ref=e527]:
+              - 'row "316 Bitcoin / Bitcoin Discussion / Re: Call for TBF to give a grant to indentify and describe the last goxing mechanism on: March 02, 2014, 01:42:36 AM https://bitcoinfoundation.org/blog/?p=407 Grant deadline is today. I''m sure it''s at least slightly flexible. If you have a well thought out proposal, read the link above and submit a grant...you''ll at the very least be early for consideration in the next round! From above link: \"Submit your proposal by email to grants@bitcoinfoundation.org. Award decisions will be made within 4-6 weeks of submission deadline. If you have questions, please let us know. We look forward to hearing your ideas!\"" [ref=e528]':
+                - 'cell "316 Bitcoin / Bitcoin Discussion / Re: Call for TBF to give a grant to indentify and describe the last goxing mechanism on: March 02, 2014, 01:42:36 AM https://bitcoinfoundation.org/blog/?p=407 Grant deadline is today. I''m sure it''s at least slightly flexible. If you have a well thought out proposal, read the link above and submit a grant...you''ll at the very least be early for consideration in the next round! From above link: \"Submit your proposal by email to grants@bitcoinfoundation.org. Award decisions will be made within 4-6 weeks of submission deadline. If you have questions, please let us know. We look forward to hearing your ideas!\"" [ref=e529]':
+                  - table [ref=e530]:
+                    - rowgroup [ref=e531]:
+                      - 'row "316 Bitcoin / Bitcoin Discussion / Re: Call for TBF to give a grant to indentify and describe the last goxing mechanism on: March 02, 2014, 01:42:36 AM" [ref=e532]':
+                        - cell "316" [ref=e533]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Call for TBF to give a grant to indentify and describe the last goxing mechanism" [ref=e534]':
+                          - link "Bitcoin" [ref=e535] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e536] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Call for TBF to give a grant to indentify and describe the last goxing mechanism" [ref=e537] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=494146.msg5456141#msg5456141
+                        - 'cell "on: March 02, 2014, 01:42:36 AM" [ref=e538]'
+                  - table [ref=e539]:
+                    - rowgroup [ref=e540]:
+                      - 'row "https://bitcoinfoundation.org/blog/?p=407 Grant deadline is today. I''m sure it''s at least slightly flexible. If you have a well thought out proposal, read the link above and submit a grant...you''ll at the very least be early for consideration in the next round! From above link: \"Submit your proposal by email to grants@bitcoinfoundation.org. Award decisions will be made within 4-6 weeks of submission deadline. If you have questions, please let us know. We look forward to hearing your ideas!\"" [ref=e541]':
+                        - 'cell "https://bitcoinfoundation.org/blog/?p=407 Grant deadline is today. I''m sure it''s at least slightly flexible. If you have a well thought out proposal, read the link above and submit a grant...you''ll at the very least be early for consideration in the next round! From above link: \"Submit your proposal by email to grants@bitcoinfoundation.org. Award decisions will be made within 4-6 weeks of submission deadline. If you have questions, please let us know. We look forward to hearing your ideas!\"" [ref=e542]':
+                          - generic [ref=e543]:
+                            - link "https://bitcoinfoundation.org/blog/?p=407" [ref=e544] [cursor=pointer]:
+                              - /url: https://bitcoinfoundation.org/blog/?p=407
+                            - text: Grant deadline is today. I'm sure it's at least slightly flexible. If you have a well thought out proposal, read the link above and submit a grant...you'll at the very least be early for consideration in the next round!
+                            - text: "From above link:"
+                            - text: "\"Submit your proposal by email to"
+                            - link "grants@bitcoinfoundation.org" [ref=e545] [cursor=pointer]:
+                              - /url: mailto:grants@bitcoinfoundation.org
+                            - text: . Award decisions will be made within 4-6 weeks of submission deadline. If you have questions, please let us know. We look forward to hearing your ideas!"
+                      - row [ref=e546]:
+                        - cell [ref=e547]
+          - table [ref=e548]:
+            - rowgroup [ref=e549]:
+              - 'row "317 Bitcoin / Bitcoin Discussion / Re: Bitcoin symbol positioning on: February 27, 2014, 03:26:30 AM There is a post somewhere on this forum (5 btc 0.001 milliBitcoin bounty were key terms in the thread) where a clever person suggested this format: 3฿234 This mean three leading zeros after the decimal place and then the numbers 234...it would look like this; 3฿234=0.000234 (ie, 0.234 m฿) I think this deserves more thought now that a fair amount of time has passed." [ref=e550]':
+                - 'cell "317 Bitcoin / Bitcoin Discussion / Re: Bitcoin symbol positioning on: February 27, 2014, 03:26:30 AM There is a post somewhere on this forum (5 btc 0.001 milliBitcoin bounty were key terms in the thread) where a clever person suggested this format: 3฿234 This mean three leading zeros after the decimal place and then the numbers 234...it would look like this; 3฿234=0.000234 (ie, 0.234 m฿) I think this deserves more thought now that a fair amount of time has passed." [ref=e551]':
+                  - table [ref=e552]:
+                    - rowgroup [ref=e553]:
+                      - 'row "317 Bitcoin / Bitcoin Discussion / Re: Bitcoin symbol positioning on: February 27, 2014, 03:26:30 AM" [ref=e554]':
+                        - cell "317" [ref=e555]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Bitcoin symbol positioning" [ref=e556]':
+                          - link "Bitcoin" [ref=e557] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e558] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Bitcoin symbol positioning" [ref=e559] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=489776.msg5398321#msg5398321
+                        - 'cell "on: February 27, 2014, 03:26:30 AM" [ref=e560]'
+                  - table [ref=e561]:
+                    - rowgroup [ref=e562]:
+                      - 'row "There is a post somewhere on this forum (5 btc 0.001 milliBitcoin bounty were key terms in the thread) where a clever person suggested this format: 3฿234 This mean three leading zeros after the decimal place and then the numbers 234...it would look like this; 3฿234=0.000234 (ie, 0.234 m฿) I think this deserves more thought now that a fair amount of time has passed." [ref=e563]':
+                        - 'cell "There is a post somewhere on this forum (5 btc 0.001 milliBitcoin bounty were key terms in the thread) where a clever person suggested this format: 3฿234 This mean three leading zeros after the decimal place and then the numbers 234...it would look like this; 3฿234=0.000234 (ie, 0.234 m฿) I think this deserves more thought now that a fair amount of time has passed." [ref=e564]':
+                          - generic [ref=e565]:
+                            - text: "There is a post somewhere on this forum (5 btc 0.001 milliBitcoin bounty were key terms in the thread) where a clever person suggested this format:"
+                            - text: 3฿234
+                            - text: This mean three leading zeros after the decimal place and then the numbers 234...it would look like this;
+                            - text: 3฿234=0.000234 (ie, 0.234 m฿)
+                            - text: I think this deserves more thought now that a fair amount of time has passed.
+                      - row [ref=e566]:
+                        - cell [ref=e567]
+          - table [ref=e568]:
+            - rowgroup [ref=e569]:
+              - 'row "318 Bitcoin / Bitcoin Discussion / Re: Bitcoin Core Developers Should Be Paid on: February 23, 2014, 04:34:01 PM Quote from: gweedo on February 23, 2014, 04:22:32 PM Quote from: maaku on February 23, 2014, 11:14:09 AM I wouldn''t call the core dev team centralized in any way. It is extremely centralized, if Gavin gets hit by a bus what is the plan? Last time I asked this there was no plan. Do you want to send FUD, just capture theymos and Gavin then I can use the alert keys to send FUD. Stop feeding the trolls..." [ref=e570]':
+                - 'cell "318 Bitcoin / Bitcoin Discussion / Re: Bitcoin Core Developers Should Be Paid on: February 23, 2014, 04:34:01 PM Quote from: gweedo on February 23, 2014, 04:22:32 PM Quote from: maaku on February 23, 2014, 11:14:09 AM I wouldn''t call the core dev team centralized in any way. It is extremely centralized, if Gavin gets hit by a bus what is the plan? Last time I asked this there was no plan. Do you want to send FUD, just capture theymos and Gavin then I can use the alert keys to send FUD. Stop feeding the trolls..." [ref=e571]':
+                  - table [ref=e572]:
+                    - rowgroup [ref=e573]:
+                      - 'row "318 Bitcoin / Bitcoin Discussion / Re: Bitcoin Core Developers Should Be Paid on: February 23, 2014, 04:34:01 PM" [ref=e574]':
+                        - cell "318" [ref=e575]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Bitcoin Core Developers Should Be Paid" [ref=e576]':
+                          - link "Bitcoin" [ref=e577] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e578] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Bitcoin Core Developers Should Be Paid" [ref=e579] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=480959.msg5319068#msg5319068
+                        - 'cell "on: February 23, 2014, 04:34:01 PM" [ref=e580]'
+                  - table [ref=e581]:
+                    - rowgroup [ref=e582]:
+                      - 'row "Quote from: gweedo on February 23, 2014, 04:22:32 PM Quote from: maaku on February 23, 2014, 11:14:09 AM I wouldn''t call the core dev team centralized in any way. It is extremely centralized, if Gavin gets hit by a bus what is the plan? Last time I asked this there was no plan. Do you want to send FUD, just capture theymos and Gavin then I can use the alert keys to send FUD. Stop feeding the trolls..." [ref=e583]':
+                        - 'cell "Quote from: gweedo on February 23, 2014, 04:22:32 PM Quote from: maaku on February 23, 2014, 11:14:09 AM I wouldn''t call the core dev team centralized in any way. It is extremely centralized, if Gavin gets hit by a bus what is the plan? Last time I asked this there was no plan. Do you want to send FUD, just capture theymos and Gavin then I can use the alert keys to send FUD. Stop feeding the trolls..." [ref=e584]':
+                          - generic [ref=e585]:
+                            - 'link "Quote from: gweedo on February 23, 2014, 04:22:32 PM" [ref=e587] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=480959.msg5318895#msg5318895
+                            - generic [ref=e588]:
+                              - 'link "Quote from: maaku on February 23, 2014, 11:14:09 AM" [ref=e590] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=480959.msg5314824#msg5314824
+                              - generic [ref=e591]: I wouldn't call the core dev team centralized in any way.
+                              - text: It is extremely centralized, if Gavin gets hit by a bus what is the plan? Last time I asked this there was no plan. Do you want to send FUD, just capture theymos and Gavin then I can use the alert keys to send FUD.
+                            - text: Stop feeding the trolls...
+                      - row [ref=e592]:
+                        - cell [ref=e593]
+          - table [ref=e594]:
+            - rowgroup [ref=e595]:
+              - 'row "319 Bitcoin / Bitcoin Discussion / Re: IMF Managing Director Christine Lagarde Answers Bitcoin Question on ABCs Q&A on: February 23, 2014, 03:54:21 AM Quote from: knight22 on February 22, 2014, 04:26:03 PM Yup and the funny thing is that the IMF is planning to get a reserve of bitcoin as the only way they have \"control\" it lol. I posted their report on this tread https://bitcointalk.org/index.php?topic=478011.0 You''re too funny. No, the IMF is not thinking about getting a ฿ reserve. That old paper you reference is for some journal in Chicago...in no way written by anyone with the IMF." [ref=e596]':
+                - 'cell "319 Bitcoin / Bitcoin Discussion / Re: IMF Managing Director Christine Lagarde Answers Bitcoin Question on ABCs Q&A on: February 23, 2014, 03:54:21 AM Quote from: knight22 on February 22, 2014, 04:26:03 PM Yup and the funny thing is that the IMF is planning to get a reserve of bitcoin as the only way they have \"control\" it lol. I posted their report on this tread https://bitcointalk.org/index.php?topic=478011.0 You''re too funny. No, the IMF is not thinking about getting a ฿ reserve. That old paper you reference is for some journal in Chicago...in no way written by anyone with the IMF." [ref=e597]':
+                  - table [ref=e598]:
+                    - rowgroup [ref=e599]:
+                      - 'row "319 Bitcoin / Bitcoin Discussion / Re: IMF Managing Director Christine Lagarde Answers Bitcoin Question on ABCs Q&A on: February 23, 2014, 03:54:21 AM" [ref=e600]':
+                        - cell "319" [ref=e601]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: IMF Managing Director Christine Lagarde Answers Bitcoin Question on ABCs Q&A" [ref=e602]':
+                          - link "Bitcoin" [ref=e603] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e604] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: IMF Managing Director Christine Lagarde Answers Bitcoin Question on ABCs Q&A" [ref=e605] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=481213.msg5310754#msg5310754
+                        - 'cell "on: February 23, 2014, 03:54:21 AM" [ref=e606]'
+                  - table [ref=e607]:
+                    - rowgroup [ref=e608]:
+                      - 'row "Quote from: knight22 on February 22, 2014, 04:26:03 PM Yup and the funny thing is that the IMF is planning to get a reserve of bitcoin as the only way they have \"control\" it lol. I posted their report on this tread https://bitcointalk.org/index.php?topic=478011.0 You''re too funny. No, the IMF is not thinking about getting a ฿ reserve. That old paper you reference is for some journal in Chicago...in no way written by anyone with the IMF." [ref=e609]':
+                        - 'cell "Quote from: knight22 on February 22, 2014, 04:26:03 PM Yup and the funny thing is that the IMF is planning to get a reserve of bitcoin as the only way they have \"control\" it lol. I posted their report on this tread https://bitcointalk.org/index.php?topic=478011.0 You''re too funny. No, the IMF is not thinking about getting a ฿ reserve. That old paper you reference is for some journal in Chicago...in no way written by anyone with the IMF." [ref=e610]':
+                          - generic [ref=e611]:
+                            - 'link "Quote from: knight22 on February 22, 2014, 04:26:03 PM" [ref=e613] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=481213.msg5301751#msg5301751
+                            - generic [ref=e614]:
+                              - text: Yup and the funny thing is that the IMF is planning to get a reserve of bitcoin as the only way they have "control" it lol. I posted their report on this tread
+                              - link "https://bitcointalk.org/index.php?topic=478011.0" [ref=e615] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?topic=478011.0
+                            - text: You're too funny. No, the IMF is not thinking about getting a ฿ reserve. That old paper you reference is for some journal in Chicago...in no way written by anyone with the IMF.
+                      - row [ref=e616]:
+                        - cell [ref=e617]
+          - table [ref=e618]:
+            - rowgroup [ref=e619]:
+              - 'row "320 Bitcoin / Bitcoin Discussion / Re: Today in Bitcoin History! on: February 23, 2014, 03:49:51 AM On the chance that Gox gives all funds back, does that change anything? IMHO, no. I''m particularly unhappy about how Mark decided to blame Bitcoin rather than himself...that''s not what I want on my Bitcoin Foundation board. The next election won''t be kind to him (if he chooses to hang on that long)." [ref=e620]':
+                - 'cell "320 Bitcoin / Bitcoin Discussion / Re: Today in Bitcoin History! on: February 23, 2014, 03:49:51 AM On the chance that Gox gives all funds back, does that change anything? IMHO, no. I''m particularly unhappy about how Mark decided to blame Bitcoin rather than himself...that''s not what I want on my Bitcoin Foundation board. The next election won''t be kind to him (if he chooses to hang on that long)." [ref=e621]':
+                  - table [ref=e622]:
+                    - rowgroup [ref=e623]:
+                      - 'row "320 Bitcoin / Bitcoin Discussion / Re: Today in Bitcoin History! on: February 23, 2014, 03:49:51 AM" [ref=e624]':
+                        - cell "320" [ref=e625]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Today in Bitcoin History!" [ref=e626]':
+                          - link "Bitcoin" [ref=e627] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e628] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Today in Bitcoin History!" [ref=e629] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=482450.msg5310702#msg5310702
+                        - 'cell "on: February 23, 2014, 03:49:51 AM" [ref=e630]'
+                  - table [ref=e631]:
+                    - rowgroup [ref=e632]:
+                      - row "On the chance that Gox gives all funds back, does that change anything? IMHO, no. I'm particularly unhappy about how Mark decided to blame Bitcoin rather than himself...that's not what I want on my Bitcoin Foundation board. The next election won't be kind to him (if he chooses to hang on that long)." [ref=e633]:
+                        - cell "On the chance that Gox gives all funds back, does that change anything? IMHO, no. I'm particularly unhappy about how Mark decided to blame Bitcoin rather than himself...that's not what I want on my Bitcoin Foundation board. The next election won't be kind to him (if he chooses to hang on that long)." [ref=e634]:
+                          - generic [ref=e635]: On the chance that Gox gives all funds back, does that change anything? IMHO, no. I'm particularly unhappy about how Mark decided to blame Bitcoin rather than himself...that's not what I want on my Bitcoin Foundation board. The next election won't be kind to him (if he chooses to hang on that long).
+                      - row [ref=e636]:
+                        - cell [ref=e637]
+          - table [ref=e638]:
+            - rowgroup [ref=e639]:
+              - 'row "Pages: « 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 [16] 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 ... 69 »" [ref=e640]':
+                - 'cell "Pages: « 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 [16] 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 ... 69 »" [ref=e641]':
+                  - text: "Pages:"
+                  - link "«" [ref=e643] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=280
+                  - link "1" [ref=e644] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=0
+                  - link "2" [ref=e645] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=20
+                  - link "3" [ref=e646] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=40
+                  - link "4" [ref=e647] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=60
+                  - link "5" [ref=e648] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=80
+                  - link "6" [ref=e649] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=100
+                  - link "7" [ref=e650] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=120
+                  - link "8" [ref=e651] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=140
+                  - link "9" [ref=e652] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=160
+                  - link "10" [ref=e653] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=180
+                  - link "11" [ref=e654] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=200
+                  - link "12" [ref=e655] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=220
+                  - link "13" [ref=e656] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=240
+                  - link "14" [ref=e657] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=260
+                  - link "15" [ref=e658] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=280
+                  - text: "[16]"
+                  - link "17" [ref=e659] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=320
+                  - link "18" [ref=e660] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=340
+                  - link "19" [ref=e661] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=360
+                  - link "20" [ref=e662] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=380
+                  - link "21" [ref=e663] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=400
+                  - link "22" [ref=e664] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=420
+                  - link "23" [ref=e665] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=440
+                  - link "24" [ref=e666] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=460
+                  - link "25" [ref=e667] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=480
+                  - link "26" [ref=e668] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=500
+                  - link "27" [ref=e669] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=520
+                  - link "28" [ref=e670] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=540
+                  - link "29" [ref=e671] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=560
+                  - link "30" [ref=e672] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=580
+                  - link "31" [ref=e673] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=600
+                  - link "32" [ref=e674] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=620
+                  - link "33" [ref=e675] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=640
+                  - link "34" [ref=e676] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=660
+                  - link "35" [ref=e677] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=680
+                  - link "36" [ref=e678] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=700
+                  - link "37" [ref=e679] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=720
+                  - link "38" [ref=e680] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=740
+                  - link "39" [ref=e681] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=760
+                  - link "40" [ref=e682] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=780
+                  - link "41" [ref=e683] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=800
+                  - link "42" [ref=e684] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=820
+                  - link "43" [ref=e685] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=840
+                  - link "44" [ref=e686] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=860
+                  - link "45" [ref=e687] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=880
+                  - link "46" [ref=e688] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=900
+                  - link "47" [ref=e689] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=920
+                  - link "48" [ref=e690] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=940
+                  - link "49" [ref=e691] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=960
+                  - link "50" [ref=e692] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=980
+                  - link "51" [ref=e693] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1000
+                  - link "52" [ref=e694] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1020
+                  - link "53" [ref=e695] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1040
+                  - link "54" [ref=e696] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1060
+                  - link "55" [ref=e697] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1080
+                  - link "56" [ref=e698] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1100
+                  - link "57" [ref=e699] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1120
+                  - link "58" [ref=e700] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1140
+                  - link "59" [ref=e701] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1160
+                  - link "60" [ref=e702] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1180
+                  - link "61" [ref=e703] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1200
+                  - link "62" [ref=e704] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1220
+                  - link "63" [ref=e705] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1240
+                  - link "64" [ref=e706] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1260
+                  - link "65" [ref=e707] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1280
+                  - link "66" [ref=e708] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1300
+                  - text: ...
+                  - link "69" [ref=e709] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1360
+                  - link "»" [ref=e711] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=320
+  - table [ref=e713]:
+    - rowgroup [ref=e714]:
+      - row "Powered by MySQL Powered by PHP Powered by SMF 1.1.19 | SMF © 2006-2009, Simple Machines Valid XHTML 1.0! Valid CSS!" [ref=e715]:
+        - cell "Powered by MySQL Powered by PHP" [ref=e716]:
+          - link "Powered by MySQL" [ref=e717] [cursor=pointer]:
+            - /url: http://www.mysql.com/
+            - img "Powered by MySQL" [ref=e718]
+          - link "Powered by PHP" [ref=e719] [cursor=pointer]:
+            - /url: http://www.php.net/
+            - img "Powered by PHP" [ref=e720]
+        - cell "Powered by SMF 1.1.19 | SMF © 2006-2009, Simple Machines" [ref=e721]:
+          - generic [ref=e722]:
+            - link "Powered by SMF 1.1.19" [ref=e723] [cursor=pointer]:
+              - /url: http://www.simplemachines.org/
+            - text: "|"
+            - link "SMF © 2006-2009, Simple Machines" [ref=e724] [cursor=pointer]:
+              - /url: http://www.simplemachines.org/about/copyright.php
+        - cell "Valid XHTML 1.0! Valid CSS!" [ref=e725]:
+          - link "Valid XHTML 1.0!" [ref=e726] [cursor=pointer]:
+            - /url: http://validator.w3.org/check/referer
+            - img "Valid XHTML 1.0!" [ref=e727]
+          - link "Valid CSS!" [ref=e728] [cursor=pointer]:
+            - /url: http://jigsaw.w3.org/css-validator/check/referer
+            - img "Valid CSS!" [ref=e729]

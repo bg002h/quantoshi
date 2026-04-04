@@ -73,12 +73,13 @@ DCA = MappingProxyType({
 
 RETIRE = MappingProxyType({
     "start_stack": 1.0, "use_lots": False,
-    "wd_amount": 5000, "freq": "Monthly",
+    "wd_amount": 3000, "freq": "Monthly",
     "inflation": 4.0,
-    "selected_qs": (0.01, 0.10, 0.25),
+    "selected_qs": (0.15, 0.85),
     "start_yr": 2031, "end_yr": 2075,
     "disp_mode": "btc",
     "annotate": True, "log_y": True,
+    "shade": True,
     "show_legend": False, "minor_grid": True,
     "legend_pos": "bottom-right",
     "active_models": (),

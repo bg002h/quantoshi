@@ -1,0 +1,1841 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - table [ref=e3]:
+      - rowgroup [ref=e4]:
+        - row "Bitcoin Forum" [ref=e5]:
+          - cell "Bitcoin Forum" [ref=e6]
+          - cell [ref=e7]
+    - table [ref=e8]:
+      - rowgroup [ref=e9]:
+        - row "April 03, 2026, 03:53:33 PM *" [ref=e10]:
+          - cell "April 03, 2026, 03:53:33 PM *" [ref=e11]:
+            - text: April 03, 2026, 03:53:33 PM
+            - link "*" [ref=e12] [cursor=pointer]:
+              - /url: "#"
+              - img "*" [ref=e13]
+        - row "Welcome, Guest. Please login or register." [ref=e14]:
+          - cell "Welcome, Guest. Please login or register." [ref=e15]:
+            - table [ref=e16]:
+              - rowgroup [ref=e17]:
+                - row "Welcome, Guest. Please login or register." [ref=e18]:
+                  - cell "Welcome, Guest. Please login or register." [ref=e19]:
+                    - generic [ref=e20]:
+                      - text: Welcome, Guest. Please
+                      - link "login" [ref=e21] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=login
+                      - text: or
+                      - link "register" [ref=e22] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=register
+                      - text: .
+    - table [ref=e23]:
+      - rowgroup [ref=e24]:
+        - 'row "News: Latest Bitcoin Core release: 30.2 [Torrent] Search" [ref=e25]':
+          - 'cell "News: Latest Bitcoin Core release: 30.2 [Torrent]" [ref=e26]':
+            - generic [ref=e27]:
+              - text: "News: Latest Bitcoin Core release:"
+              - link "30.2" [ref=e28] [cursor=pointer]:
+                - /url: https://bitcoincore.org/en/download/
+              - text: "["
+              - link "Torrent" [ref=e29] [cursor=pointer]:
+                - /url: https://bitcointalk.org/bitcoin-30.2.torrent
+              - text: "]"
+          - cell "Search" [ref=e30]:
+            - generic [ref=e31]:
+              - link [ref=e32] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?action=search;advanced
+              - textbox [ref=e33]
+              - button "Search" [ref=e34]
+  - table [ref=e35]:
+    - rowgroup [ref=e36]:
+      - row "Home Help Search Login Register More" [ref=e37]:
+        - cell [ref=e38]
+        - cell [ref=e39]
+        - cell "Home" [ref=e40]:
+          - link "Home" [ref=e41] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php
+        - cell [ref=e42]
+        - cell "Help" [ref=e43]:
+          - link "Help" [ref=e44] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=help
+        - cell "Search" [ref=e45]:
+          - link "Search" [ref=e46] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=search
+        - cell "Login" [ref=e47]:
+          - link "Login" [ref=e48] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=login
+        - cell "Register" [ref=e49]:
+          - link "Register" [ref=e50] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=register
+        - cell "More" [ref=e51]:
+          - link "More" [ref=e52] [cursor=pointer]:
+            - /url: /more.php
+        - cell [ref=e53]
+  - generic [ref=e54]:
+    - generic [ref=e56]:
+      - link "Bitcoin Forum" [ref=e58] [cursor=pointer]:
+        - /url: https://bitcointalk.org/index.php
+      - text: ">"
+      - link "Bitcoin" [ref=e60] [cursor=pointer]:
+        - /url: https://bitcointalk.org/index.php#1
+      - text: ">"
+      - link "Bitcoin Discussion" [ref=e62] [cursor=pointer]:
+        - /url: https://bitcointalk.org/index.php?board=1.0
+      - text: ">"
+      - link "Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e64]:
+        - /url: https://bitcointalk.org/index.php?topic=497942.0
+    - table [ref=e65]:
+      - rowgroup [ref=e66]:
+        - row "Poll" [ref=e67]:
+          - cell "Poll" [ref=e68]
+        - 'row "Question: Would you trust a major Bitcoin entity that works with the DoJ? Yes No" [ref=e69]':
+          - cell "Question:" [ref=e70]
+          - cell "Would you trust a major Bitcoin entity that works with the DoJ? Yes No" [ref=e71]:
+            - text: Would you trust a major Bitcoin entity that works with the DoJ?
+            - table [ref=e72]:
+              - rowgroup [ref=e73]:
+                - row "Yes No" [ref=e74]:
+                  - cell "Yes No" [ref=e75]:
+                    - table [ref=e76]:
+                      - rowgroup [ref=e77]:
+                        - row "Yes" [ref=e78]:
+                          - cell "Yes" [ref=e79]
+                        - row "No" [ref=e80]:
+                          - cell "No" [ref=e81]
+                  - cell [ref=e82]
+    - table [ref=e83]:
+      - rowgroup [ref=e84]:
+        - 'row "Pages: « 1 2 [3] 4 » All « previous topic next topic » Print" [ref=e85]':
+          - 'cell "Pages: « 1 2 [3] 4 » All" [ref=e86]':
+            - text: "Pages:"
+            - link "«" [ref=e88] [cursor=pointer]:
+              - /url: https://bitcointalk.org/index.php?topic=497942.20
+            - link "1" [ref=e89] [cursor=pointer]:
+              - /url: https://bitcointalk.org/index.php?topic=497942.0
+            - link "2" [ref=e90] [cursor=pointer]:
+              - /url: https://bitcointalk.org/index.php?topic=497942.20
+            - text: "[3]"
+            - link "4" [ref=e91] [cursor=pointer]:
+              - /url: https://bitcointalk.org/index.php?topic=497942.60
+            - link "»" [ref=e93] [cursor=pointer]:
+              - /url: https://bitcointalk.org/index.php?topic=497942.60
+            - link "All" [ref=e94] [cursor=pointer]:
+              - /url: https://bitcointalk.org/index.php?topic=497942.0;all
+          - cell "« previous topic next topic » Print" [ref=e95]:
+            - generic [ref=e96]:
+              - link "« previous topic" [ref=e97] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=497942.0;prev_next=prev#new
+              - link "next topic »" [ref=e98] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=497942.0;prev_next=next#new
+            - table [ref=e99]:
+              - rowgroup [ref=e100]:
+                - row "Print" [ref=e101]:
+                  - cell "Print" [ref=e102]:
+                    - link "Print" [ref=e103] [cursor=pointer]:
+                      - /url: https://bitcointalk.org/index.php?action=printpage;topic=497942.0
+    - table [ref=e104]:
+      - rowgroup [ref=e105]:
+        - 'row "Author Topic: Would you trust a major Bitcoin entity that works with the DoJ? (Read 3870 times)" [ref=e106]':
+          - cell [ref=e107]
+          - cell "Author" [ref=e108]
+          - 'cell "Topic: Would you trust a major Bitcoin entity that works with the DoJ? (Read 3870 times)" [ref=e109]'
+    - generic [ref=e110]:
+      - table [ref=e111]:
+        - rowgroup [ref=e112]:
+          - row [ref=e113]:
+            - cell [ref=e114]:
+              - table [ref=e115]:
+                - rowgroup [ref=e116]:
+                  - row [ref=e117]:
+                    - cell [ref=e118]:
+                      - table [ref=e119]:
+                        - rowgroup [ref=e120]:
+                          - row [ref=e121]:
+                            - 'cell "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW" [ref=e122]':
+                              - link "Phinnaeus Gage" [ref=e124] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                              - text: (OP)
+                              - generic [ref=e125]:
+                                - text: Legendary
+                                - img "*" [ref=e126]
+                                - text: "Activity: 1918"
+                                - text: "Merit: 1570"
+                                - text: "Bitcoin: An Idea Worth Spending"
+                                - link "View Profile" [ref=e128] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                                  - img "View Profile" [ref=e129]
+                                - link "WWW" [ref=e130] [cursor=pointer]:
+                                  - /url: http://bitcoin100.org
+                                  - img "WWW" [ref=e131]
+                            - cell [ref=e132]:
+                              - table [ref=e133]:
+                                - rowgroup [ref=e134]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 06:42:30 PM #41" [ref=e135]':
+                                    - cell [ref=e136]:
+                                      - link [ref=e137] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5487352#msg5487352
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 06:42:30 PM" [ref=e138]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e140] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5487352#msg5487352
+                                      - generic [ref=e141]: March 03, 2014, 06:42:30 PM
+                                    - cell "#41" [ref=e142]:
+                                      - link "#41" [ref=e144] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5487352#msg5487352
+                              - separator [ref=e145]
+                              - generic [ref=e146]:
+                                - 'link "Quote from: justusranvier on March 03, 2014, 06:28:48 PM" [ref=e148] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=497942.msg5487066#msg5487066
+                                - generic [ref=e149]:
+                                  - 'link "Quote from: Phinnaeus Gage on March 03, 2014, 07:07:48 AM" [ref=e151] [cursor=pointer]':
+                                    - /url: https://bitcointalk.org/index.php?topic=497942.msg5477394#msg5477394
+                                  - generic [ref=e152]:
+                                    - text: If you have ever made a purchase via bitcoins (that's the only payment option available) from the company that I'm going to reveal, then you're already being tracked.
+                                    - text: Pretty ingenious how they accomplished this, if you ask me.
+                                  - text: Alright. so what's that part about? What are they tracking?
+                                - text: They're tracking your dog.
+                                - img "Grin" [ref=e153]
+                                - text: Seriously, it's probably just set up as another data mining entity to extract as much vitals from bitcoiners as possible. I'm not trying to be a conspiracy nut here, but this entity is too obvious, and I, for one, wouldn't trust providing them with any of my vitals if I wanted to remain pseudo-anonymous, of which I'm not.
+                                - text: I don't have the red-ass for them, for they've done nothing to me to warrant this exposé with the exception of how they raised to their current position, coupled with the background of all the entities associated with them prior. In essence, their rise to trying to be the Amazon of the Bitcoin world (their words) doesn't fit.
+                                - text: Also, I don't fear that Bitcon Shop was set up to exact bitcoins in some nefarious way by the principles, with the exception of extracting vitals, at the very worst.
+                                - text: All things being equal, them being the first Bitcoin entity to trade on a major stock exchange should boost the bitcoin exchange rate higher, but it comes with a major expense for those who treasure their's, and other's privacy.
+                          - row [ref=e154]:
+                            - cell [ref=e155]:
+                              - table [ref=e156]:
+                                - rowgroup [ref=e157]:
+                                  - row [ref=e158]:
+                                    - cell [ref=e159]
+                                  - row [ref=e160]:
+                                    - cell [ref=e161]
+                                    - cell [ref=e162]
+          - row [ref=e163]:
+            - cell [ref=e164]:
+              - table [ref=e165]:
+                - rowgroup [ref=e166]:
+                  - row [ref=e167]:
+                    - cell [ref=e168]:
+                      - table [ref=e169]:
+                        - rowgroup [ref=e170]:
+                          - row [ref=e171]:
+                            - 'cell "td services Sr. Member **** Activity: 448 Merit: 250 black swan hunter View Profile" [ref=e172]':
+                              - link "td services" [ref=e174] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=104101
+                              - generic [ref=e175]:
+                                - text: Sr. Member
+                                - img "*" [ref=e176]
+                                - img "*" [ref=e177]
+                                - img "*" [ref=e178]
+                                - img "*" [ref=e179]
+                                - text: "Activity: 448"
+                                - text: "Merit: 250"
+                                - text: black swan hunter
+                                - link "View Profile" [ref=e181] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=104101
+                                  - img "View Profile" [ref=e182]
+                            - cell [ref=e183]:
+                              - table [ref=e184]:
+                                - rowgroup [ref=e185]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 06:54:09 PM #42" [ref=e186]':
+                                    - cell [ref=e187]:
+                                      - link [ref=e188] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5487612#msg5487612
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 06:54:09 PM" [ref=e189]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e191] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5487612#msg5487612
+                                      - generic [ref=e192]: March 03, 2014, 06:54:09 PM
+                                    - cell "#42" [ref=e193]:
+                                      - link "#42" [ref=e195] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5487612#msg5487612
+                              - separator [ref=e196]
+                              - generic [ref=e197]:
+                                - 'link "Quote from: Phinnaeus Gage on March 03, 2014, 05:56:45 PM" [ref=e199] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=497942.msg5486331#msg5486331
+                                - generic [ref=e200]:
+                                  - 'link "Quote from: coiner8 on March 03, 2014, 05:49:26 PM" [ref=e202] [cursor=pointer]':
+                                    - /url: https://bitcointalk.org/index.php?topic=497942.msg5486138#msg5486138
+                                  - generic [ref=e203]:
+                                    - 'link "Quote from: Phinnaeus Gage on March 03, 2014, 05:40:14 PM" [ref=e205] [cursor=pointer]':
+                                      - /url: https://bitcointalk.org/index.php?topic=497942.msg5485981#msg5485981
+                                    - generic [ref=e206]:
+                                      - 'link "Quote from: coiner8 on March 03, 2014, 05:18:29 PM" [ref=e208] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5485601#msg5485601
+                                      - generic [ref=e209]: Still waiting for the slightest shred of proof. If you don't have any proof you'll keep posting stupid "teaser" postings, probably in reply to this message too. Attention whore much?
+                                      - text: Hey, cocksucker! I'm typing it, you SOB. So chill!
+                                      - text: From this post forward, please add to the conversation or either enjoy it, learn from it, or ignore it.
+                                    - text: Exactly, you have zero proof. You're just posting random junk mashed together. /unsubscribed and I suggest everyone do that so as not to reward OP's trolling.
+                                  - text: Your last warning! Post anything not related to this thread, and I will exercise, for the very first time, notifying/reporting your post to get it deleted. Seriously, I have never done such before, of which all the mods here can easily confirm.
+                                  - text: You have made it quite clear that this thread serves no interest to you, thus go play somewhere else. This is a serious issue and I don't have time to play with you.
+                                  - text: That said, you're free to ask me anything, or point out errors, of which I will kindly reply to them, in spite of your sentiment.
+                                - text: Why don't you just come out and present the opinion or information instead of making a stupid game out of it. This reminds me of the news on TV announcing an upcoming story and then delaying it until near the end of the news cast.
+                          - row [ref=e210]:
+                            - cell [ref=e211]:
+                              - table [ref=e212]:
+                                - rowgroup [ref=e213]:
+                                  - row [ref=e214]:
+                                    - cell [ref=e215]
+                                  - row [ref=e216]:
+                                    - cell [ref=e217]
+                                    - cell [ref=e218]
+          - 'row "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 06:56:16 PM #43 Back to Meesha Media Group: http://www.meesha.net/CMS/?custom=socialmedia Remember what I pointed out about Meesha''s Twitter account? Pretty lame, if you ask me, and I know most didn''t. But, this is one of Meesha''s major product/service that they provide. How is that they offer up a service that they themselves haven''t used in the past 5 years?: https://twitter.com/MeeshaMedia Pretty amazing, eh." [ref=e219]':
+            - 'cell "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 06:56:16 PM #43 Back to Meesha Media Group: http://www.meesha.net/CMS/?custom=socialmedia Remember what I pointed out about Meesha''s Twitter account? Pretty lame, if you ask me, and I know most didn''t. But, this is one of Meesha''s major product/service that they provide. How is that they offer up a service that they themselves haven''t used in the past 5 years?: https://twitter.com/MeeshaMedia Pretty amazing, eh." [ref=e220]':
+              - table [ref=e221]:
+                - rowgroup [ref=e222]:
+                  - 'row "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 06:56:16 PM #43 Back to Meesha Media Group: http://www.meesha.net/CMS/?custom=socialmedia Remember what I pointed out about Meesha''s Twitter account? Pretty lame, if you ask me, and I know most didn''t. But, this is one of Meesha''s major product/service that they provide. How is that they offer up a service that they themselves haven''t used in the past 5 years?: https://twitter.com/MeeshaMedia Pretty amazing, eh." [ref=e223]':
+                    - 'cell "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 06:56:16 PM #43 Back to Meesha Media Group: http://www.meesha.net/CMS/?custom=socialmedia Remember what I pointed out about Meesha''s Twitter account? Pretty lame, if you ask me, and I know most didn''t. But, this is one of Meesha''s major product/service that they provide. How is that they offer up a service that they themselves haven''t used in the past 5 years?: https://twitter.com/MeeshaMedia Pretty amazing, eh." [ref=e224]':
+                      - table [ref=e225]:
+                        - rowgroup [ref=e226]:
+                          - 'row "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 06:56:16 PM #43 Back to Meesha Media Group: http://www.meesha.net/CMS/?custom=socialmedia Remember what I pointed out about Meesha''s Twitter account? Pretty lame, if you ask me, and I know most didn''t. But, this is one of Meesha''s major product/service that they provide. How is that they offer up a service that they themselves haven''t used in the past 5 years?: https://twitter.com/MeeshaMedia Pretty amazing, eh." [ref=e227]':
+                            - 'cell "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW" [ref=e228]':
+                              - link "Phinnaeus Gage" [ref=e230] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                              - text: (OP)
+                              - generic [ref=e231]:
+                                - text: Legendary
+                                - img "*" [ref=e232]
+                                - text: "Activity: 1918"
+                                - text: "Merit: 1570"
+                                - text: "Bitcoin: An Idea Worth Spending"
+                                - link "View Profile" [ref=e234] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                                  - img "View Profile" [ref=e235]
+                                - link "WWW" [ref=e236] [cursor=pointer]:
+                                  - /url: http://bitcoin100.org
+                                  - img "WWW" [ref=e237]
+                            - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 06:56:16 PM #43 Back to Meesha Media Group: http://www.meesha.net/CMS/?custom=socialmedia Remember what I pointed out about Meesha''s Twitter account? Pretty lame, if you ask me, and I know most didn''t. But, this is one of Meesha''s major product/service that they provide. How is that they offer up a service that they themselves haven''t used in the past 5 years?: https://twitter.com/MeeshaMedia Pretty amazing, eh." [ref=e238]':
+                              - table [ref=e239]:
+                                - rowgroup [ref=e240]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 06:56:16 PM #43" [ref=e241]':
+                                    - cell [ref=e242]:
+                                      - link [ref=e243] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5487660#msg5487660
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 06:56:16 PM" [ref=e244]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e246] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5487660#msg5487660
+                                      - generic [ref=e247]: March 03, 2014, 06:56:16 PM
+                                    - cell "#43" [ref=e248]:
+                                      - link "#43" [ref=e250] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5487660#msg5487660
+                              - separator [ref=e251]
+                              - generic [ref=e252]:
+                                - text: "Back to Meesha Media Group:"
+                                - link "http://www.meesha.net/CMS/?custom=socialmedia" [ref=e253] [cursor=pointer]:
+                                  - /url: http://www.meesha.net/CMS/?custom=socialmedia
+                                - text: "Remember what I pointed out about Meesha's Twitter account? Pretty lame, if you ask me, and I know most didn't. But, this is one of Meesha's major product/service that they provide. How is that they offer up a service that they themselves haven't used in the past 5 years?:"
+                                - link "https://twitter.com/MeeshaMedia" [ref=e254] [cursor=pointer]:
+                                  - /url: https://twitter.com/MeeshaMedia
+                                - text: Pretty amazing, eh.
+                          - row [ref=e255]:
+                            - cell [ref=e256]:
+                              - table [ref=e257]:
+                                - rowgroup [ref=e258]:
+                                  - row [ref=e259]:
+                                    - cell [ref=e260]
+                                  - row [ref=e261]:
+                                    - cell [ref=e262]
+                                    - cell [ref=e263]
+          - row [ref=e264]:
+            - cell [ref=e265]:
+              - table [ref=e266]:
+                - rowgroup [ref=e267]:
+                  - row [ref=e268]:
+                    - cell [ref=e269]:
+                      - table [ref=e270]:
+                        - rowgroup [ref=e271]:
+                          - row [ref=e272]:
+                            - 'cell "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW" [ref=e273]':
+                              - link "Phinnaeus Gage" [ref=e275] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                              - text: (OP)
+                              - generic [ref=e276]:
+                                - text: Legendary
+                                - img "*" [ref=e277]
+                                - text: "Activity: 1918"
+                                - text: "Merit: 1570"
+                                - text: "Bitcoin: An Idea Worth Spending"
+                                - link "View Profile" [ref=e279] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                                  - img "View Profile" [ref=e280]
+                                - link "WWW" [ref=e281] [cursor=pointer]:
+                                  - /url: http://bitcoin100.org
+                                  - img "WWW" [ref=e282]
+                            - cell [ref=e283]:
+                              - table [ref=e284]:
+                                - rowgroup [ref=e285]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 07:09:47 PM #44" [ref=e286]':
+                                    - cell [ref=e287]:
+                                      - link [ref=e288] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5487907#msg5487907
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 07:09:47 PM" [ref=e289]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e291] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5487907#msg5487907
+                                      - generic [ref=e292]: March 03, 2014, 07:09:47 PM
+                                    - cell "#44" [ref=e293]:
+                                      - link "#44" [ref=e295] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5487907#msg5487907
+                              - separator [ref=e296]
+                              - generic [ref=e297]:
+                                - 'link "Quote from: td services on March 03, 2014, 06:54:09 PM" [ref=e299] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=497942.msg5487612#msg5487612
+                                - generic [ref=e300]:
+                                  - 'link "Quote from: Phinnaeus Gage on March 03, 2014, 05:56:45 PM" [ref=e302] [cursor=pointer]':
+                                    - /url: https://bitcointalk.org/index.php?topic=497942.msg5486331#msg5486331
+                                  - generic [ref=e303]:
+                                    - 'link "Quote from: coiner8 on March 03, 2014, 05:49:26 PM" [ref=e305] [cursor=pointer]':
+                                      - /url: https://bitcointalk.org/index.php?topic=497942.msg5486138#msg5486138
+                                    - generic [ref=e306]:
+                                      - 'link "Quote from: Phinnaeus Gage on March 03, 2014, 05:40:14 PM" [ref=e308] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5485981#msg5485981
+                                      - generic [ref=e309]:
+                                        - 'link "Quote from: coiner8 on March 03, 2014, 05:18:29 PM" [ref=e311] [cursor=pointer]':
+                                          - /url: https://bitcointalk.org/index.php?topic=497942.msg5485601#msg5485601
+                                        - generic [ref=e312]: Still waiting for the slightest shred of proof. If you don't have any proof you'll keep posting stupid "teaser" postings, probably in reply to this message too. Attention whore much?
+                                        - text: Hey, cocksucker! I'm typing it, you SOB. So chill!
+                                        - text: From this post forward, please add to the conversation or either enjoy it, learn from it, or ignore it.
+                                      - text: Exactly, you have zero proof. You're just posting random junk mashed together. /unsubscribed and I suggest everyone do that so as not to reward OP's trolling.
+                                    - text: Your last warning! Post anything not related to this thread, and I will exercise, for the very first time, notifying/reporting your post to get it deleted. Seriously, I have never done such before, of which all the mods here can easily confirm.
+                                    - text: You have made it quite clear that this thread serves no interest to you, thus go play somewhere else. This is a serious issue and I don't have time to play with you.
+                                    - text: That said, you're free to ask me anything, or point out errors, of which I will kindly reply to them, in spite of your sentiment.
+                                  - text: Why don't you just come out and present the opinion or information instead of making a stupid game out of it. This reminds me of the news on TV announcing an upcoming story and then delaying it until near the end of the news cast.
+                                - text: Please accept my apologies for not going fast enough for you.
+                                - text: "Here's the short version: Meesha Media Group, et al. (others to be shown) is controlled by the NSA and created Bitcoin Shop to glean vitals from bitcoiners. This is evident when you view what videos/work they have done in the past, oppose to working with any entity of the general public."
+                                - text: May I take a break now and get a fresh cup of coffee?
+                          - row [ref=e313]:
+                            - cell [ref=e314]:
+                              - table [ref=e315]:
+                                - rowgroup [ref=e316]:
+                                  - row [ref=e317]:
+                                    - cell [ref=e318]
+                                  - row [ref=e319]:
+                                    - cell [ref=e320]
+                                    - cell [ref=e321]
+          - row [ref=e322]:
+            - cell [ref=e323]:
+              - table [ref=e324]:
+                - rowgroup [ref=e325]:
+                  - row [ref=e326]:
+                    - cell [ref=e327]:
+                      - table [ref=e328]:
+                        - rowgroup [ref=e329]:
+                          - row [ref=e330]:
+                            - 'cell "coiner8 Member ** Activity: 65 Merit: 10 View Profile" [ref=e331]':
+                              - link "coiner8" [ref=e333] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=225109
+                              - generic [ref=e334]:
+                                - text: Member
+                                - img "*" [ref=e335]
+                                - img "*" [ref=e336]
+                                - text: "Activity: 65"
+                                - text: "Merit: 10"
+                                - link "View Profile" [ref=e337] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=225109
+                                  - img "View Profile" [ref=e338]
+                            - cell [ref=e339]:
+                              - table [ref=e340]:
+                                - rowgroup [ref=e341]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 07:43:08 PM #45" [ref=e342]':
+                                    - cell [ref=e343]:
+                                      - link [ref=e344] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5488555#msg5488555
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 07:43:08 PM" [ref=e345]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e347] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5488555#msg5488555
+                                      - generic [ref=e348]: March 03, 2014, 07:43:08 PM
+                                    - cell "#45" [ref=e349]:
+                                      - link "#45" [ref=e351] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5488555#msg5488555
+                              - separator [ref=e352]
+                              - generic [ref=e353]:
+                                - 'link "Quote from: td services on March 03, 2014, 06:54:09 PM" [ref=e355] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=497942.msg5487612#msg5487612
+                                - generic [ref=e356]:
+                                  - 'link "Quote from: Phinnaeus Gage on March 03, 2014, 05:56:45 PM" [ref=e358] [cursor=pointer]':
+                                    - /url: https://bitcointalk.org/index.php?topic=497942.msg5486331#msg5486331
+                                  - generic [ref=e359]:
+                                    - 'link "Quote from: coiner8 on March 03, 2014, 05:49:26 PM" [ref=e361] [cursor=pointer]':
+                                      - /url: https://bitcointalk.org/index.php?topic=497942.msg5486138#msg5486138
+                                    - generic [ref=e362]:
+                                      - 'link "Quote from: Phinnaeus Gage on March 03, 2014, 05:40:14 PM" [ref=e364] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5485981#msg5485981
+                                      - generic [ref=e365]:
+                                        - 'link "Quote from: coiner8 on March 03, 2014, 05:18:29 PM" [ref=e367] [cursor=pointer]':
+                                          - /url: https://bitcointalk.org/index.php?topic=497942.msg5485601#msg5485601
+                                        - generic [ref=e368]: Still waiting for the slightest shred of proof. If you don't have any proof you'll keep posting stupid "teaser" postings, probably in reply to this message too. Attention whore much?
+                                        - text: Hey, cocksucker! I'm typing it, you SOB. So chill!
+                                        - text: From this post forward, please add to the conversation or either enjoy it, learn from it, or ignore it.
+                                      - text: Exactly, you have zero proof. You're just posting random junk mashed together. /unsubscribed and I suggest everyone do that so as not to reward OP's trolling.
+                                    - text: Your last warning! Post anything not related to this thread, and I will exercise, for the very first time, notifying/reporting your post to get it deleted. Seriously, I have never done such before, of which all the mods here can easily confirm.
+                                    - text: You have made it quite clear that this thread serves no interest to you, thus go play somewhere else. This is a serious issue and I don't have time to play with you.
+                                    - text: That said, you're free to ask me anything, or point out errors, of which I will kindly reply to them, in spite of your sentiment.
+                                  - text: Why don't you just come out and present the opinion or information instead of making a stupid game out of it. This reminds me of the news on TV announcing an upcoming story and then delaying it until near the end of the news cast.
+                                - text: His parents must not have given him enough attention. Now he constantly treats everyone like they're his mommy and he desperately seeks attention from them. Pretty pathetic troll. Now time to find how I can block a user so I don't waste any more time responding to his stupidity in the future.
+                                - text: "Edit: Ignore link under his name. Thank you Bitcointalk."
+                          - row [ref=e369]:
+                            - cell [ref=e370]:
+                              - table [ref=e371]:
+                                - rowgroup [ref=e372]:
+                                  - row [ref=e373]:
+                                    - cell [ref=e374]
+                                  - row [ref=e375]:
+                                    - cell [ref=e376]
+                                    - cell [ref=e377]
+          - row [ref=e378]:
+            - cell [ref=e379]:
+              - table [ref=e380]:
+                - rowgroup [ref=e381]:
+                  - row [ref=e382]:
+                    - cell [ref=e383]:
+                      - table [ref=e384]:
+                        - rowgroup [ref=e385]:
+                          - row [ref=e386]:
+                            - 'cell "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW" [ref=e387]':
+                              - link "Phinnaeus Gage" [ref=e389] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                              - text: (OP)
+                              - generic [ref=e390]:
+                                - text: Legendary
+                                - img "*" [ref=e391]
+                                - text: "Activity: 1918"
+                                - text: "Merit: 1570"
+                                - text: "Bitcoin: An Idea Worth Spending"
+                                - link "View Profile" [ref=e393] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                                  - img "View Profile" [ref=e394]
+                                - link "WWW" [ref=e395] [cursor=pointer]:
+                                  - /url: http://bitcoin100.org
+                                  - img "WWW" [ref=e396]
+                            - cell [ref=e397]:
+                              - table [ref=e398]:
+                                - rowgroup [ref=e399]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 08:23:07 PM #46" [ref=e400]':
+                                    - cell [ref=e401]:
+                                      - link [ref=e402] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5489349#msg5489349
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 08:23:07 PM" [ref=e403]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e405] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5489349#msg5489349
+                                      - generic [ref=e406]: March 03, 2014, 08:23:07 PM
+                                    - cell "#46" [ref=e407]:
+                                      - link "#46" [ref=e409] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5489349#msg5489349
+                              - separator [ref=e410]
+                              - generic [ref=e411]:
+                                - text: "Apologies for still being on Meesha Media Group, but it's such an amazing company, I feel it perspicacious (learnt that word today--hope I used it correctly) to share more:"
+                                - link "http://www.meesha.net/CMS/?custom=web-development" [ref=e412] [cursor=pointer]:
+                                  - /url: http://www.meesha.net/CMS/?custom=web-development
+                                - generic [ref=e413]: Quote
+                                - generic [ref=e415]:
+                                  - text: Web Design
+                                  - text: "Our concept is simple: we create the absolute best place on the web for your company. Before anything else we do, we learn who you are and how you do it. Our amazing custom design team goes to work sun up or sun down to bring that same allure, personality and success to your online home."
+                                - text: Out of all the entities that I could have chosen from the list generated due to this search
+                                - link "https://www.google.com/search?q=%22sun+up+or+sun+down+to+bring+that+same+allure%22&rlz=1C1CHFX_enUS549US549&oq=%22sun+up+or+sun+down+to+bring+that+same+allure%22&aqs=chrome..69i57j69i59l3.686j0j9&sourceid=chrome&espv=210&es_sm=122&ie=UTF-8" [ref=e416] [cursor=pointer]:
+                                  - /url: https://www.google.com/search?q=%22sun+up+or+sun+down+to+bring+that+same+allure%22&rlz=1C1CHFX_enUS549US549&oq=%22sun+up+or+sun+down+to+bring+that+same+allure%22&aqs=chrome..69i57j69i59l3.686j0j9&sourceid=chrome&espv=210&es_sm=122&ie=UTF-8
+                                - text: ", I randomly (seriously) chose this one:"
+                                - link "http://www.moonrisedesign.com/" [ref=e417] [cursor=pointer]:
+                                  - /url: http://www.moonrisedesign.com/
+                                - generic [ref=e418]: Quote
+                                - generic [ref=e420]:
+                                  - text: We design it
+                                  - text: "Our concept is simple: we create the absolute best place on the web for your company. Before anything else we do, we learn who you are and how you do it. Our amazing custom design team goes to work sun up or sun down to bring that same allure, personality and success to your online home."
+                                - text: "If you're wondering which used the above first, Moon Rise Desgign wins by three years:"
+                                - link "http://web.archive.org/web/20080513100019/http://www.moonrisedesign.com/" [ref=e421] [cursor=pointer]:
+                                  - /url: http://web.archive.org/web/20080513100019/http://www.moonrisedesign.com/
+                                - text: Visiting
+                                - link "http://web.archive.org/web/20080927011329/http://www.moonrisedesign.com/virginia_web_design.htm" [ref=e422] [cursor=pointer]:
+                                  - /url: http://web.archive.org/web/20080927011329/http://www.moonrisedesign.com/virginia_web_design.htm
+                                - text: "I uncovered the following nugget:"
+                                - generic [ref=e423]: Quote
+                                - generic [ref=e425]:
+                                  - text: Virginia prides itself on the quality and excellence of its public education system that is producing highly skilled and educated graduates working for some of the country’s foremost federal organizations also based in the state, including the
+                                  - generic [ref=e427]: Central Intelligence Agency, Department of Defense
+                                  - text: ", as well as the National Science Foundation. To support all these business and government activities, Virginia has the highest concentration of technology professionals and workers among any state."
+                                - text: The above was discovered completely by accident. If that weren't the case, I would state such.
+                                - link "http://webcache.googleusercontent.com/search?q=cache:V9KTyvXQmrUJ:https://www.elance.com/d/d/web-design/490+&cd=3&hl=en&ct=clnk&gl=us" [ref=e428] [cursor=pointer]:
+                                  - /url: http://webcache.googleusercontent.com/search?q=cache:V9KTyvXQmrUJ:https://www.elance.com/d/d/web-design/490+&cd=3&hl=en&ct=clnk&gl=us
+                                - generic [ref=e429]: Quote
+                                - generic [ref=e431]:
+                                  - text: Meesha Media Group, LLC (Meesha-net)
+                                  - text: Your Technology Partner
+                                  - text: Meesha Media Group (MMG) is a dynamic, customer-focused, results-oriented company that provides high-definition (HD) video production services, Web 2.0 development and virtual collaboration solutions. Through proactive discussion and strategic planning, we assess each client%u2019s unique needs, define requirements, and provide the systems and products that will meet those needs while delivering the best return on customer%u2019s investment. FEATURED CLIENTS UNCF Special Programs Corporation %u2022 Institute for International Public Policy (funded U.S. Department of Education) %u2022 CIPA, NAFP, JPFP, GSRP, MUST (programs funded by National Aeronautics and Space Administration) %u2022 The Highlands Group, Inc. %u2022 Center for Assessment, Planning and Accountability %u2022 Project STOP NOW! (funded U.S. Department of Justice) %u2022 STOP HIV (funded by Center for Disease Control) %u2022 The NASA Science and Technology Institute. Check out our past projects at ------------
+                                  - text: "Skills: ColdFusion Developer , Email Specialist , AJAX Developer , Public Relatio"
+                                - link "https://www.elance.com/samples/Meesha-net/gallery/" [ref=e432] [cursor=pointer]:
+                                  - /url: https://www.elance.com/samples/Meesha-net/gallery/
+                                - generic [ref=e433]: Quote
+                                - generic [ref=e435]:
+                                  - text: "Set : All Items (0)"
+                                  - text: by Meesha Media Group, LLC, last login 423 days ago
+                                - text: <equates to Friday, January 4, 2013>
+                                - text: Meesha Media Group can't even decide as to which date to use as to when they became viable.
+                                - link "http://web.archive.org/web/20110128171506/http://www.meesha.net/home/" [ref=e436] [cursor=pointer]:
+                                  - /url: http://web.archive.org/web/20110128171506/http://www.meesha.net/home/
+                                - generic [ref=e437]: Quote
+                                - generic [ref=e439]: ©2004-2011 Meesha Media Group, LLC
+                                - link "https://www.elance.com/s/meesha-net/about/" [ref=e440] [cursor=pointer]:
+                                  - /url: https://www.elance.com/s/meesha-net/about/
+                                - generic [ref=e441]: Quote
+                                - generic [ref=e443]: Year Founded 2006
+                          - row [ref=e444]:
+                            - cell [ref=e445]:
+                              - table [ref=e446]:
+                                - rowgroup [ref=e447]:
+                                  - row [ref=e448]:
+                                    - cell [ref=e449]
+                                  - row [ref=e450]:
+                                    - cell [ref=e451]
+                                    - cell [ref=e452]
+          - row [ref=e453]:
+            - cell [ref=e454]:
+              - table [ref=e455]:
+                - rowgroup [ref=e456]:
+                  - row [ref=e457]:
+                    - cell [ref=e458]:
+                      - table [ref=e459]:
+                        - rowgroup [ref=e460]:
+                          - row [ref=e461]:
+                            - 'cell "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW" [ref=e462]':
+                              - link "Phinnaeus Gage" [ref=e464] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                              - text: (OP)
+                              - generic [ref=e465]:
+                                - text: Legendary
+                                - img "*" [ref=e466]
+                                - text: "Activity: 1918"
+                                - text: "Merit: 1570"
+                                - text: "Bitcoin: An Idea Worth Spending"
+                                - link "View Profile" [ref=e468] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                                  - img "View Profile" [ref=e469]
+                                - link "WWW" [ref=e470] [cursor=pointer]:
+                                  - /url: http://bitcoin100.org
+                                  - img "WWW" [ref=e471]
+                            - cell [ref=e472]:
+                              - table [ref=e473]:
+                                - rowgroup [ref=e474]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 08:34:05 PM #47" [ref=e475]':
+                                    - cell [ref=e476]:
+                                      - link [ref=e477] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5489529#msg5489529
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 08:34:05 PM" [ref=e478]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e480] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5489529#msg5489529
+                                      - generic [ref=e481]: March 03, 2014, 08:34:05 PM
+                                    - cell "#47" [ref=e482]:
+                                      - link "#47" [ref=e484] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5489529#msg5489529
+                              - separator [ref=e485]
+                              - generic [ref=e486]:
+                                - 'link "Quote from: coiner8 on March 03, 2014, 07:43:08 PM" [ref=e488] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=497942.msg5488555#msg5488555
+                                - generic [ref=e489]:
+                                  - 'link "Quote from: td services on March 03, 2014, 06:54:09 PM" [ref=e491] [cursor=pointer]':
+                                    - /url: https://bitcointalk.org/index.php?topic=497942.msg5487612#msg5487612
+                                  - generic [ref=e492]:
+                                    - 'link "Quote from: Phinnaeus Gage on March 03, 2014, 05:56:45 PM" [ref=e494] [cursor=pointer]':
+                                      - /url: https://bitcointalk.org/index.php?topic=497942.msg5486331#msg5486331
+                                    - generic [ref=e495]:
+                                      - 'link "Quote from: coiner8 on March 03, 2014, 05:49:26 PM" [ref=e497] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5486138#msg5486138
+                                      - generic [ref=e498]:
+                                        - 'link "Quote from: Phinnaeus Gage on March 03, 2014, 05:40:14 PM" [ref=e500] [cursor=pointer]':
+                                          - /url: https://bitcointalk.org/index.php?topic=497942.msg5485981#msg5485981
+                                        - generic [ref=e501]:
+                                          - 'link "Quote from: coiner8 on March 03, 2014, 05:18:29 PM" [ref=e503] [cursor=pointer]':
+                                            - /url: https://bitcointalk.org/index.php?topic=497942.msg5485601#msg5485601
+                                          - generic [ref=e504]: Still waiting for the slightest shred of proof. If you don't have any proof you'll keep posting stupid "teaser" postings, probably in reply to this message too. Attention whore much?
+                                          - text: Hey, cocksucker! I'm typing it, you SOB. So chill!
+                                          - text: From this post forward, please add to the conversation or either enjoy it, learn from it, or ignore it.
+                                        - text: Exactly, you have zero proof. You're just posting random junk mashed together. /unsubscribed and I suggest everyone do that so as not to reward OP's trolling.
+                                      - text: Your last warning! Post anything not related to this thread, and I will exercise, for the very first time, notifying/reporting your post to get it deleted. Seriously, I have never done such before, of which all the mods here can easily confirm.
+                                      - text: You have made it quite clear that this thread serves no interest to you, thus go play somewhere else. This is a serious issue and I don't have time to play with you.
+                                      - text: That said, you're free to ask me anything, or point out errors, of which I will kindly reply to them, in spite of your sentiment.
+                                    - text: Why don't you just come out and present the opinion or information instead of making a stupid game out of it. This reminds me of the news on TV announcing an upcoming story and then delaying it until near the end of the news cast.
+                                  - text: His parents must not have given him enough attention. Now he constantly treats everyone like they're his mommy and he desperately seeks attention from them. Pretty pathetic troll. Now time to find how I can block a user so I don't waste any more time responding to his stupidity in the future.
+                                  - text: "Edit: Ignore link under his name. Thank you Bitcointalk."
+                                - text: Not reporting the 4-post-count dick, for he now has me on ignore. If you come back here, then it'll be considered stalking since I don't have a clue as to what your agenda may be, and I will be reporting you to the police. On second thought, I may save that option as the last resort.
+                                - img "Roll Eyes" [ref=e505]
+                          - row [ref=e506]:
+                            - cell [ref=e507]:
+                              - table [ref=e508]:
+                                - rowgroup [ref=e509]:
+                                  - row [ref=e510]:
+                                    - cell [ref=e511]
+                                  - row [ref=e512]:
+                                    - cell [ref=e513]
+                                    - cell [ref=e514]
+          - 'row "QuestionAuthority Legendary * Activity: 2156 Merit: 1398 You lead and I''ll watch you walk away. View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:01:05 PM #48 Bruno, you should read this: http://www.thedeal.com/content/consumer-retail/bitcoin-retailer-raises-19m-in-reverse-merger.php It''s pretty clear that the Handerhan guy had a lot of government contacts from his work with NASA. He probably made those training videos because of his contacts (suckin off the govt teat). They are pretty transparent about their business acquisition and don''t really seem to be hiding anything. They might actually see profit potential in Bitcoin. Then again maybe it''s a conspiracy. lol The merit system isn’t working. Read this thread to see why." [ref=e515]':
+            - 'cell "QuestionAuthority Legendary * Activity: 2156 Merit: 1398 You lead and I''ll watch you walk away. View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:01:05 PM #48 Bruno, you should read this: http://www.thedeal.com/content/consumer-retail/bitcoin-retailer-raises-19m-in-reverse-merger.php It''s pretty clear that the Handerhan guy had a lot of government contacts from his work with NASA. He probably made those training videos because of his contacts (suckin off the govt teat). They are pretty transparent about their business acquisition and don''t really seem to be hiding anything. They might actually see profit potential in Bitcoin. Then again maybe it''s a conspiracy. lol The merit system isn’t working. Read this thread to see why." [ref=e516]':
+              - table [ref=e517]:
+                - rowgroup [ref=e518]:
+                  - 'row "QuestionAuthority Legendary * Activity: 2156 Merit: 1398 You lead and I''ll watch you walk away. View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:01:05 PM #48 Bruno, you should read this: http://www.thedeal.com/content/consumer-retail/bitcoin-retailer-raises-19m-in-reverse-merger.php It''s pretty clear that the Handerhan guy had a lot of government contacts from his work with NASA. He probably made those training videos because of his contacts (suckin off the govt teat). They are pretty transparent about their business acquisition and don''t really seem to be hiding anything. They might actually see profit potential in Bitcoin. Then again maybe it''s a conspiracy. lol The merit system isn’t working. Read this thread to see why." [ref=e519]':
+                    - 'cell "QuestionAuthority Legendary * Activity: 2156 Merit: 1398 You lead and I''ll watch you walk away. View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:01:05 PM #48 Bruno, you should read this: http://www.thedeal.com/content/consumer-retail/bitcoin-retailer-raises-19m-in-reverse-merger.php It''s pretty clear that the Handerhan guy had a lot of government contacts from his work with NASA. He probably made those training videos because of his contacts (suckin off the govt teat). They are pretty transparent about their business acquisition and don''t really seem to be hiding anything. They might actually see profit potential in Bitcoin. Then again maybe it''s a conspiracy. lol The merit system isn’t working. Read this thread to see why." [ref=e520]':
+                      - table [ref=e521]:
+                        - rowgroup [ref=e522]:
+                          - 'row "QuestionAuthority Legendary * Activity: 2156 Merit: 1398 You lead and I''ll watch you walk away. View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:01:05 PM #48 Bruno, you should read this: http://www.thedeal.com/content/consumer-retail/bitcoin-retailer-raises-19m-in-reverse-merger.php It''s pretty clear that the Handerhan guy had a lot of government contacts from his work with NASA. He probably made those training videos because of his contacts (suckin off the govt teat). They are pretty transparent about their business acquisition and don''t really seem to be hiding anything. They might actually see profit potential in Bitcoin. Then again maybe it''s a conspiracy. lol" [ref=e523]':
+                            - 'cell "QuestionAuthority Legendary * Activity: 2156 Merit: 1398 You lead and I''ll watch you walk away. View Profile" [ref=e524]':
+                              - link "QuestionAuthority" [ref=e526] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=72795
+                              - generic [ref=e527]:
+                                - text: Legendary
+                                - img "*" [ref=e528]
+                                - text: "Activity: 2156"
+                                - text: "Merit: 1398"
+                                - text: You lead and I'll watch you walk away.
+                                - link "View Profile" [ref=e530] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=72795
+                                  - img "View Profile" [ref=e531]
+                            - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:01:05 PM #48 Bruno, you should read this: http://www.thedeal.com/content/consumer-retail/bitcoin-retailer-raises-19m-in-reverse-merger.php It''s pretty clear that the Handerhan guy had a lot of government contacts from his work with NASA. He probably made those training videos because of his contacts (suckin off the govt teat). They are pretty transparent about their business acquisition and don''t really seem to be hiding anything. They might actually see profit potential in Bitcoin. Then again maybe it''s a conspiracy. lol" [ref=e532]':
+                              - table [ref=e533]:
+                                - rowgroup [ref=e534]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:01:05 PM #48" [ref=e535]':
+                                    - cell [ref=e536]:
+                                      - link [ref=e537] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5490032#msg5490032
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:01:05 PM" [ref=e538]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e540] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5490032#msg5490032
+                                      - generic [ref=e541]: March 03, 2014, 09:01:05 PM
+                                    - cell "#48" [ref=e542]:
+                                      - link "#48" [ref=e544] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5490032#msg5490032
+                              - separator [ref=e545]
+                              - generic [ref=e546]:
+                                - text: "Bruno, you should read this:"
+                                - link "http://www.thedeal.com/content/consumer-retail/bitcoin-retailer-raises-19m-in-reverse-merger.php" [ref=e547] [cursor=pointer]:
+                                  - /url: http://www.thedeal.com/content/consumer-retail/bitcoin-retailer-raises-19m-in-reverse-merger.php
+                                - text: It's pretty clear that the Handerhan guy had a lot of government contacts from his work with NASA. He probably made those training videos because of his contacts (suckin off the govt teat). They are pretty transparent about their business acquisition and don't really seem to be hiding anything. They might actually see profit potential in Bitcoin. Then again maybe it's a conspiracy. lol
+                          - row "The merit system isn’t working. Read this thread to see why." [ref=e548]:
+                            - cell "The merit system isn’t working. Read this thread to see why." [ref=e549]:
+                              - table [ref=e550]:
+                                - rowgroup [ref=e551]:
+                                  - row [ref=e552]:
+                                    - cell [ref=e553]
+                                  - row [ref=e554]:
+                                    - cell [ref=e555]
+                                    - cell [ref=e556]
+                              - separator [ref=e557]
+                              - table [ref=e559]:
+                                - rowgroup [ref=e560]:
+                                  - row "The merit system isn’t working. Read this thread to see why." [ref=e561]:
+                                    - cell "The merit system isn’t working. Read this thread to see why." [ref=e562]:
+                                      - link "The merit system isn’t working. Read this thread to see why." [ref=e564] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=2827596.msg28975211#msg28975211
+                                        - generic [ref=e565]: The merit system isn’t working. Read this thread to see why.
+          - 'row "bg002h Donator Legendary * Activity: 1482 Merit: 1060 I outlived my lifetime membership:) View Profile WWW ⇾ Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:19:47 PM #49 Depends what the work entailed... Hardforks aren''t that hard. It’s getting others to use them that''s hard. 1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e566]':
+            - 'cell "bg002h Donator Legendary * Activity: 1482 Merit: 1060 I outlived my lifetime membership:) View Profile WWW ⇾ Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:19:47 PM #49 Depends what the work entailed... Hardforks aren''t that hard. It’s getting others to use them that''s hard. 1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e567]':
+              - table [ref=e568]:
+                - rowgroup [ref=e569]:
+                  - 'row "bg002h Donator Legendary * Activity: 1482 Merit: 1060 I outlived my lifetime membership:) View Profile WWW ⇾ Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:19:47 PM #49 Depends what the work entailed... Hardforks aren''t that hard. It’s getting others to use them that''s hard. 1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e570]':
+                    - 'cell "bg002h Donator Legendary * Activity: 1482 Merit: 1060 I outlived my lifetime membership:) View Profile WWW ⇾ Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:19:47 PM #49 Depends what the work entailed... Hardforks aren''t that hard. It’s getting others to use them that''s hard. 1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e571]':
+                      - table [ref=e572]:
+                        - rowgroup [ref=e573]:
+                          - 'row "bg002h Donator Legendary * Activity: 1482 Merit: 1060 I outlived my lifetime membership:) View Profile WWW ⇾ Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:19:47 PM #49 Depends what the work entailed..." [ref=e574]':
+                            - 'cell "bg002h Donator Legendary * Activity: 1482 Merit: 1060 I outlived my lifetime membership:) View Profile WWW" [ref=e575]':
+                              - link "bg002h" [ref=e577] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=413
+                              - generic [ref=e578]:
+                                - text: Donator
+                                - text: Legendary
+                                - img "*" [ref=e579]
+                                - text: "Activity: 1482"
+                                - text: "Merit: 1060"
+                                - text: I outlived my lifetime membership:)
+                                - link "View Profile" [ref=e581] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=413
+                                  - img "View Profile" [ref=e582]
+                                - link "WWW" [ref=e583] [cursor=pointer]:
+                                  - /url: https://pgp.mit.edu/pks/lookup?op=get&search=0x8E0AC7153109B657
+                                  - img "WWW" [ref=e584]
+                            - 'cell "⇾ Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:19:47 PM #49 Depends what the work entailed..." [ref=e585]':
+                              - table [ref=e586]:
+                                - rowgroup [ref=e587]:
+                                  - 'row "⇾ Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:19:47 PM #49" [ref=e588]':
+                                    - cell [ref=e589]:
+                                      - link [ref=e590] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5490500#msg5490500
+                                    - 'cell "⇾ Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:19:47 PM" [ref=e591]':
+                                      - generic [ref=e592]:
+                                        - text: ⇾
+                                        - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e593] [cursor=pointer]':
+                                          - /url: https://bitcointalk.org/index.php?topic=497942.msg5490500#msg5490500
+                                      - generic [ref=e594]: March 03, 2014, 09:19:47 PM
+                                    - cell "#49" [ref=e595]:
+                                      - link "#49" [ref=e597] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5490500#msg5490500
+                              - separator [ref=e598]
+                              - generic [ref=e599]: Depends what the work entailed...
+                          - row "Hardforks aren't that hard. It’s getting others to use them that's hard. 1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e600]:
+                            - cell "Hardforks aren't that hard. It’s getting others to use them that's hard. 1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e601]:
+                              - table [ref=e602]:
+                                - rowgroup [ref=e603]:
+                                  - row [ref=e604]:
+                                    - cell [ref=e605]
+                                  - row [ref=e606]:
+                                    - cell [ref=e607]
+                                    - cell [ref=e608]
+                              - separator [ref=e609]
+                              - generic [ref=e610]:
+                                - text: Hardforks aren't that hard. It’s getting others to use them that's hard.
+                                - link "1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe" [ref=e612] [cursor=pointer]:
+                                  - /url: http://blockchain.info/address/1GCDzqmX2Cf513E8NeThNHxiYEivU1Chhe
+          - row [ref=e613]:
+            - cell [ref=e614]:
+              - table [ref=e615]:
+                - rowgroup [ref=e616]:
+                  - row [ref=e617]:
+                    - cell [ref=e618]:
+                      - table [ref=e619]:
+                        - rowgroup [ref=e620]:
+                          - row [ref=e621]:
+                            - 'cell "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW" [ref=e622]':
+                              - link "Phinnaeus Gage" [ref=e624] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                              - text: (OP)
+                              - generic [ref=e625]:
+                                - text: Legendary
+                                - img "*" [ref=e626]
+                                - text: "Activity: 1918"
+                                - text: "Merit: 1570"
+                                - text: "Bitcoin: An Idea Worth Spending"
+                                - link "View Profile" [ref=e628] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                                  - img "View Profile" [ref=e629]
+                                - link "WWW" [ref=e630] [cursor=pointer]:
+                                  - /url: http://bitcoin100.org
+                                  - img "WWW" [ref=e631]
+                            - cell [ref=e632]:
+                              - table [ref=e633]:
+                                - rowgroup [ref=e634]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:22:09 PM #50" [ref=e635]':
+                                    - cell [ref=e636]:
+                                      - link [ref=e637] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5490547#msg5490547
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:22:09 PM" [ref=e638]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e640] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5490547#msg5490547
+                                      - generic [ref=e641]: March 03, 2014, 09:22:09 PM
+                                    - cell "#50" [ref=e642]:
+                                      - link "#50" [ref=e644] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5490547#msg5490547
+                              - separator [ref=e645]
+                              - generic [ref=e646]:
+                                - text: I have a lot more, but I could easily end my proof here with just this one post, with information I just found minutes ago (actually longer now, for it took me a while to pen this), again by accident.
+                                - text: One of
+                                - link "Bitcoin Shop's principles" [ref=e647] [cursor=pointer]:
+                                  - /url: http://www.linkedin.com/in/michalhanderhan
+                                - text: (funny how he changed the spelling of his first name after using the alternate/proper[English Spelling that is] for many a years prior) and his wife visited...wait for it...the West Wing of the White House as can be seen here (her name redacted,
+                                - link "but can easily be gleaned" [ref=e648] [cursor=pointer]:
+                                  - /url: http://web.archive.org/web/20010518032340/http://meesha.net/
+                                - text: "):"
+                                - link "http://whitehouse-visitors.com/?date=2010-11-13" [ref=e649] [cursor=pointer]:
+                                  - /url: http://whitehouse-visitors.com/?date=2010-11-13
+                                - text: "A person having a very, very similar name acting as their host during the visit to TWW posted the following on Twitter:"
+                                - link "https://twitter.com/harasimowiczm/status/77488129191325696" [ref=e650] [cursor=pointer]:
+                                  - /url: https://twitter.com/harasimowiczm/status/77488129191325696
+                                - generic [ref=e651]: Quote
+                                - generic [ref=e653]:
+                                  - text: Bitcoin, the Peer-to-Peer Currency that Hopes to Change the World
+                                  - link "http://thenextweb.com/industry/2011/06/05/bitcoin-the-peer-to-peer-currency-that-hopes-to-change-the-world/" [ref=e654] [cursor=pointer]:
+                                    - /url: http://thenextweb.com/industry/2011/06/05/bitcoin-the-peer-to-peer-currency-that-hopes-to-change-the-world/
+                                  - text: … via @thenextweb
+                          - row [ref=e655]:
+                            - cell [ref=e656]:
+                              - table [ref=e657]:
+                                - rowgroup [ref=e658]:
+                                  - row [ref=e659]:
+                                    - cell [ref=e660]
+                                  - row [ref=e661]:
+                                    - cell [ref=e662]
+                                    - cell [ref=e663]
+          - row [ref=e664]:
+            - cell [ref=e665]:
+              - table [ref=e666]:
+                - rowgroup [ref=e667]:
+                  - row [ref=e668]:
+                    - cell [ref=e669]:
+                      - table [ref=e670]:
+                        - rowgroup [ref=e671]:
+                          - row [ref=e672]:
+                            - 'cell "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW" [ref=e673]':
+                              - link "Phinnaeus Gage" [ref=e675] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                              - text: (OP)
+                              - generic [ref=e676]:
+                                - text: Legendary
+                                - img "*" [ref=e677]
+                                - text: "Activity: 1918"
+                                - text: "Merit: 1570"
+                                - text: "Bitcoin: An Idea Worth Spending"
+                                - link "View Profile" [ref=e679] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                                  - img "View Profile" [ref=e680]
+                                - link "WWW" [ref=e681] [cursor=pointer]:
+                                  - /url: http://bitcoin100.org
+                                  - img "WWW" [ref=e682]
+                            - cell [ref=e683]:
+                              - table [ref=e684]:
+                                - rowgroup [ref=e685]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:47:29 PM #51" [ref=e686]':
+                                    - cell [ref=e687]:
+                                      - link [ref=e688] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5491031#msg5491031
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 09:47:29 PM" [ref=e689]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e691] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5491031#msg5491031
+                                      - generic [ref=e692]: March 03, 2014, 09:47:29 PM
+                                    - cell "#51" [ref=e693]:
+                                      - link "#51" [ref=e695] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5491031#msg5491031
+                              - separator [ref=e696]
+                              - generic [ref=e697]:
+                                - 'link "Quote from: QuestionAuthority on March 03, 2014, 09:01:05 PM" [ref=e699] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=497942.msg5490032#msg5490032
+                                - generic [ref=e700]:
+                                  - text: "Bruno, you should read this:"
+                                  - link "http://www.thedeal.com/content/consumer-retail/bitcoin-retailer-raises-19m-in-reverse-merger.php" [ref=e701] [cursor=pointer]:
+                                    - /url: http://www.thedeal.com/content/consumer-retail/bitcoin-retailer-raises-19m-in-reverse-merger.php
+                                  - text: It's pretty clear that the Handerhan guy had a lot of government contacts from his work with NASA. He probably made those training videos because of his contacts (suckin off the govt teat). They are pretty transparent about their business acquisition and don't really seem to be hiding anything. They might actually see profit potential in Bitcoin. Then again maybe it's a conspiracy. lol
+                                - text: Read it! What I'm trying to point out is that all those entities that led up to Bitcon Store being on the stock exchange doesn't make sense, including TOUCHIT TECHNOLOGIES, INC, of which the reverse merger stems from.
+                                - text: "Surely, such a viable entity like TouchIt has plenty in the news. Let's see, shall we?:"
+                                - link "http://finance.yahoo.com/q/h?s=TUCND&t=2014-02-05T06:03:14-05:00&id=64219615" [ref=e702] [cursor=pointer]:
+                                  - /url: http://finance.yahoo.com/q/h?s=TUCND&t=2014-02-05T06:03:14-05:00&id=64219615
+                                - text: Their first two news related articles.
+                                - generic [ref=e703]: Quote
+                                - generic [ref=e705]:
+                                  - text: Thursday, May 30, 2013
+                                  - text: TouchIT Technologies, Inc Adds Multi-Touch Gesture Support for Apple Mac in Its New Range of 4 Point Touch Interactive LEDsBusiness Wire (Thu, May 30)
+                                  - text: Tuesday, February 4, 2014
+                                  - text: TOUCHIT TECHNOLOGIES, INC. FinancialsEDGAR Online Financials (Tue, Feb 4)
+                                - text: What investor in their right mind would back such?
+                                - generic [ref=e706]: Quote
+                                - generic [ref=e707]: CEO Charles Allen said the placement is the company's first and will be used to grow the business. He declined to identify the investors, saying that they were a combination of institutional and high-net-worth investors.
+                                - text: GULP! I stand corrected! Investors that opt not to want to identify themselves. Probably some pension fund money or the like. BTW, don't get ahead.
+                          - row [ref=e708]:
+                            - cell [ref=e709]:
+                              - table [ref=e710]:
+                                - rowgroup [ref=e711]:
+                                  - row [ref=e712]:
+                                    - cell [ref=e713]
+                                  - row [ref=e714]:
+                                    - cell [ref=e715]
+                                    - cell [ref=e716]
+          - row [ref=e717]:
+            - cell [ref=e718]:
+              - table [ref=e719]:
+                - rowgroup [ref=e720]:
+                  - row [ref=e721]:
+                    - cell [ref=e722]:
+                      - table [ref=e723]:
+                        - rowgroup [ref=e724]:
+                          - row [ref=e725]:
+                            - 'cell "QuestionAuthority Legendary * Activity: 2156 Merit: 1398 You lead and I''ll watch you walk away. View Profile" [ref=e726]':
+                              - link "QuestionAuthority" [ref=e728] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=72795
+                              - generic [ref=e729]:
+                                - text: Legendary
+                                - img "*" [ref=e730]
+                                - text: "Activity: 2156"
+                                - text: "Merit: 1398"
+                                - text: You lead and I'll watch you walk away.
+                                - link "View Profile" [ref=e732] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=72795
+                                  - img "View Profile" [ref=e733]
+                            - cell [ref=e734]:
+                              - table [ref=e735]:
+                                - rowgroup [ref=e736]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 10:00:57 PM #52" [ref=e737]':
+                                    - cell [ref=e738]:
+                                      - link [ref=e739] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5491317#msg5491317
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 10:00:57 PM" [ref=e740]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e742] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5491317#msg5491317
+                                      - generic [ref=e743]: March 03, 2014, 10:00:57 PM
+                                    - cell "#52" [ref=e744]:
+                                      - link "#52" [ref=e746] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5491317#msg5491317
+                              - separator [ref=e747]
+                              - generic [ref=e748]:
+                                - 'link "Quote from: Phinnaeus Gage on March 03, 2014, 09:47:29 PM" [ref=e750] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=497942.msg5491031#msg5491031
+                                - generic [ref=e751]:
+                                  - 'link "Quote from: QuestionAuthority on March 03, 2014, 09:01:05 PM" [ref=e753] [cursor=pointer]':
+                                    - /url: https://bitcointalk.org/index.php?topic=497942.msg5490032#msg5490032
+                                  - generic [ref=e754]:
+                                    - text: "Bruno, you should read this:"
+                                    - link "http://www.thedeal.com/content/consumer-retail/bitcoin-retailer-raises-19m-in-reverse-merger.php" [ref=e755] [cursor=pointer]:
+                                      - /url: http://www.thedeal.com/content/consumer-retail/bitcoin-retailer-raises-19m-in-reverse-merger.php
+                                    - text: It's pretty clear that the Handerhan guy had a lot of government contacts from his work with NASA. He probably made those training videos because of his contacts (suckin off the govt teat). They are pretty transparent about their business acquisition and don't really seem to be hiding anything. They might actually see profit potential in Bitcoin. Then again maybe it's a conspiracy. lol
+                                  - text: Read it! What I'm trying to point out is that all those entities that led up to Bitcon Store being on the stock exchange doesn't make sense, including TOUCHIT TECHNOLOGIES, INC, of which the reverse merger stems from.
+                                  - text: "Surely, such a viable entity like TouchIt has plenty in the news. Let's see, shall we?:"
+                                  - link "http://finance.yahoo.com/q/h?s=TUCND&t=2014-02-05T06:03:14-05:00&id=64219615" [ref=e756] [cursor=pointer]:
+                                    - /url: http://finance.yahoo.com/q/h?s=TUCND&t=2014-02-05T06:03:14-05:00&id=64219615
+                                  - text: Their first two news related articles.
+                                  - generic [ref=e757]: Quote
+                                  - generic [ref=e759]:
+                                    - text: Thursday, May 30, 2013
+                                    - text: TouchIT Technologies, Inc Adds Multi-Touch Gesture Support for Apple Mac in Its New Range of 4 Point Touch Interactive LEDsBusiness Wire (Thu, May 30)
+                                    - text: Tuesday, February 4, 2014
+                                    - text: TOUCHIT TECHNOLOGIES, INC. FinancialsEDGAR Online Financials (Tue, Feb 4)
+                                  - text: What investor in their right mind would back such?
+                                  - generic [ref=e760]: Quote
+                                  - generic [ref=e761]: CEO Charles Allen said the placement is the company's first and will be used to grow the business. He declined to identify the investors, saying that they were a combination of institutional and high-net-worth investors.
+                                  - text: GULP! I stand corrected! Investors that opt not to want to identify themselves. Probably some pension fund money or the like. BTW, don't get ahead.
+                                - text: Dude, they registered with the SEC. That makes every Bitcoin business operating legally in the US a honeypot. If you don't want to be known by the US authorities then don't use any Bitcoin business based in the USA. Oh, and don't use BitPay either because they also keep those records on merchants. I think you're freaking out a little. My post above shows that they already revealed all of the connections you are pointing out.
+                          - row "The merit system isn’t working. Read this thread to see why." [ref=e762]:
+                            - cell "The merit system isn’t working. Read this thread to see why." [ref=e763]:
+                              - table [ref=e764]:
+                                - rowgroup [ref=e765]:
+                                  - row [ref=e766]:
+                                    - cell [ref=e767]
+                                  - row [ref=e768]:
+                                    - cell [ref=e769]
+                                    - cell [ref=e770]
+                              - separator [ref=e771]
+                              - table [ref=e773]:
+                                - rowgroup [ref=e774]:
+                                  - row "The merit system isn’t working. Read this thread to see why." [ref=e775]:
+                                    - cell "The merit system isn’t working. Read this thread to see why." [ref=e776]:
+                                      - link "The merit system isn’t working. Read this thread to see why." [ref=e778] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=2827596.msg28975211#msg28975211
+                                        - generic [ref=e779]: The merit system isn’t working. Read this thread to see why.
+          - row [ref=e780]:
+            - cell [ref=e781]:
+              - table [ref=e782]:
+                - rowgroup [ref=e783]:
+                  - row [ref=e784]:
+                    - cell [ref=e785]:
+                      - table [ref=e786]:
+                        - rowgroup [ref=e787]:
+                          - row [ref=e788]:
+                            - 'cell "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW" [ref=e789]':
+                              - link "Phinnaeus Gage" [ref=e791] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                              - text: (OP)
+                              - generic [ref=e792]:
+                                - text: Legendary
+                                - img "*" [ref=e793]
+                                - text: "Activity: 1918"
+                                - text: "Merit: 1570"
+                                - text: "Bitcoin: An Idea Worth Spending"
+                                - link "View Profile" [ref=e795] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                                  - img "View Profile" [ref=e796]
+                                - link "WWW" [ref=e797] [cursor=pointer]:
+                                  - /url: http://bitcoin100.org
+                                  - img "WWW" [ref=e798]
+                            - cell [ref=e799]:
+                              - table [ref=e800]:
+                                - rowgroup [ref=e801]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 10:25:07 PM #53" [ref=e802]':
+                                    - cell [ref=e803]:
+                                      - link [ref=e804] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5491754#msg5491754
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 10:25:07 PM" [ref=e805]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e807] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5491754#msg5491754
+                                      - generic [ref=e808]: March 03, 2014, 10:25:07 PM
+                                    - cell "#53" [ref=e809]:
+                                      - link "#53" [ref=e811] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5491754#msg5491754
+                              - separator [ref=e812]
+                              - generic [ref=e813]:
+                                - 'link "Quote from: QuestionAuthority on March 03, 2014, 10:00:57 PM" [ref=e815] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=497942.msg5491317#msg5491317
+                                - generic [ref=e816]:
+                                  - 'link "Quote from: Phinnaeus Gage on March 03, 2014, 09:47:29 PM" [ref=e818] [cursor=pointer]':
+                                    - /url: https://bitcointalk.org/index.php?topic=497942.msg5491031#msg5491031
+                                  - generic [ref=e819]:
+                                    - 'link "Quote from: QuestionAuthority on March 03, 2014, 09:01:05 PM" [ref=e821] [cursor=pointer]':
+                                      - /url: https://bitcointalk.org/index.php?topic=497942.msg5490032#msg5490032
+                                    - generic [ref=e822]:
+                                      - text: "Bruno, you should read this:"
+                                      - link "http://www.thedeal.com/content/consumer-retail/bitcoin-retailer-raises-19m-in-reverse-merger.php" [ref=e823] [cursor=pointer]:
+                                        - /url: http://www.thedeal.com/content/consumer-retail/bitcoin-retailer-raises-19m-in-reverse-merger.php
+                                      - text: It's pretty clear that the Handerhan guy had a lot of government contacts from his work with NASA. He probably made those training videos because of his contacts (suckin off the govt teat). They are pretty transparent about their business acquisition and don't really seem to be hiding anything. They might actually see profit potential in Bitcoin. Then again maybe it's a conspiracy. lol
+                                    - text: Read it! What I'm trying to point out is that all those entities that led up to Bitcon Store being on the stock exchange doesn't make sense, including TOUCHIT TECHNOLOGIES, INC, of which the reverse merger stems from.
+                                    - text: "Surely, such a viable entity like TouchIt has plenty in the news. Let's see, shall we?:"
+                                    - link "http://finance.yahoo.com/q/h?s=TUCND&t=2014-02-05T06:03:14-05:00&id=64219615" [ref=e824] [cursor=pointer]:
+                                      - /url: http://finance.yahoo.com/q/h?s=TUCND&t=2014-02-05T06:03:14-05:00&id=64219615
+                                    - text: Their first two news related articles.
+                                    - generic [ref=e825]: Quote
+                                    - generic [ref=e827]:
+                                      - text: Thursday, May 30, 2013
+                                      - text: TouchIT Technologies, Inc Adds Multi-Touch Gesture Support for Apple Mac in Its New Range of 4 Point Touch Interactive LEDsBusiness Wire (Thu, May 30)
+                                      - text: Tuesday, February 4, 2014
+                                      - text: TOUCHIT TECHNOLOGIES, INC. FinancialsEDGAR Online Financials (Tue, Feb 4)
+                                    - text: What investor in their right mind would back such?
+                                    - generic [ref=e828]: Quote
+                                    - generic [ref=e829]: CEO Charles Allen said the placement is the company's first and will be used to grow the business. He declined to identify the investors, saying that they were a combination of institutional and high-net-worth investors.
+                                    - text: GULP! I stand corrected! Investors that opt not to want to identify themselves. Probably some pension fund money or the like. BTW, don't get ahead.
+                                  - text: Dude, they registered with the SEC. That makes every Bitcoin business operating legally in the US a honeypot. If you don't want to be known by the US authorities then don't use any Bitcoin business based in the USA. Oh, and don't use BitPay either because they also keep those records on merchants. I think you're freaking out a little. My post above shows that they already revealed all of the connections you are pointing out.
+                                - text: <highlighted> And that is wonderful news.
+                                - text: It's the connections that don't make sense, coupled with Michael H. changing his name to Michal H.
+                                - link "https://www.facebook.com/bitcoinshopus/photos/a.167320096792360.1073741828.163751863815850/174245482766488/?type=1&stream_ref=10" [ref=e830] [cursor=pointer]:
+                                  - /url: https://www.facebook.com/bitcoinshopus/photos/a.167320096792360.1073741828.163751863815850/174245482766488/?type=1&stream_ref=10
+                                - generic [ref=e831]: Quote
+                                - generic [ref=e832]: "\"The FBI shut down of Silk Road proves Bitcoins can't be used for illegal transactions without consequences, that's why BitcoinShop.US is here to stay\" says BitcoinShop.US co-founder Michal Handerhan."
+                                - link "http://www.linkedin.com/in/michalhanderhan" [ref=e833] [cursor=pointer]:
+                                  - /url: http://www.linkedin.com/in/michalhanderhan
+                          - row [ref=e834]:
+                            - cell [ref=e835]:
+                              - table [ref=e836]:
+                                - rowgroup [ref=e837]:
+                                  - row [ref=e838]:
+                                    - cell [ref=e839]
+                                  - row [ref=e840]:
+                                    - cell [ref=e841]
+                                    - cell [ref=e842]
+          - 'row "Bit_Happy Legendary * Activity: 2156 Merit: 1044 A Great Time to Start Something! View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 10:26:56 PM #54 Would you trust a major Bitcoin entity that works with the DoJ? Department of BTC Justice founded by Satoshi? Cheesy Homeless Token (HOME) You Can Make Good Honest Money By Helping People In Urgent Need. | +++ Positive Coin +++ Stay Tuned!" [ref=e843]':
+            - 'cell "Bit_Happy Legendary * Activity: 2156 Merit: 1044 A Great Time to Start Something! View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 10:26:56 PM #54 Would you trust a major Bitcoin entity that works with the DoJ? Department of BTC Justice founded by Satoshi? Cheesy Homeless Token (HOME) You Can Make Good Honest Money By Helping People In Urgent Need. | +++ Positive Coin +++ Stay Tuned!" [ref=e844]':
+              - table [ref=e845]:
+                - rowgroup [ref=e846]:
+                  - 'row "Bit_Happy Legendary * Activity: 2156 Merit: 1044 A Great Time to Start Something! View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 10:26:56 PM #54 Would you trust a major Bitcoin entity that works with the DoJ? Department of BTC Justice founded by Satoshi? Cheesy Homeless Token (HOME) You Can Make Good Honest Money By Helping People In Urgent Need. | +++ Positive Coin +++ Stay Tuned!" [ref=e847]':
+                    - 'cell "Bit_Happy Legendary * Activity: 2156 Merit: 1044 A Great Time to Start Something! View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 10:26:56 PM #54 Would you trust a major Bitcoin entity that works with the DoJ? Department of BTC Justice founded by Satoshi? Cheesy Homeless Token (HOME) You Can Make Good Honest Money By Helping People In Urgent Need. | +++ Positive Coin +++ Stay Tuned!" [ref=e848]':
+                      - table [ref=e849]:
+                        - rowgroup [ref=e850]:
+                          - 'row "Bit_Happy Legendary * Activity: 2156 Merit: 1044 A Great Time to Start Something! View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 10:26:56 PM #54 Would you trust a major Bitcoin entity that works with the DoJ? Department of BTC Justice founded by Satoshi? Cheesy" [ref=e851]':
+                            - 'cell "Bit_Happy Legendary * Activity: 2156 Merit: 1044 A Great Time to Start Something! View Profile" [ref=e852]':
+                              - link "Bit_Happy" [ref=e854] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=10197
+                              - generic [ref=e855]:
+                                - text: Legendary
+                                - img "*" [ref=e856]
+                                - text: "Activity: 2156"
+                                - text: "Merit: 1044"
+                                - text: A Great Time to Start Something!
+                                - link "View Profile" [ref=e858] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=10197
+                                  - img "View Profile" [ref=e859]
+                            - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 10:26:56 PM #54 Would you trust a major Bitcoin entity that works with the DoJ? Department of BTC Justice founded by Satoshi? Cheesy" [ref=e860]':
+                              - table [ref=e861]:
+                                - rowgroup [ref=e862]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 10:26:56 PM #54" [ref=e863]':
+                                    - cell [ref=e864]:
+                                      - link [ref=e865] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5491782#msg5491782
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 10:26:56 PM" [ref=e866]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e868] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5491782#msg5491782
+                                      - generic [ref=e869]: March 03, 2014, 10:26:56 PM
+                                    - cell "#54" [ref=e870]:
+                                      - link "#54" [ref=e872] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5491782#msg5491782
+                              - separator [ref=e873]
+                              - generic [ref=e874]:
+                                - text: Would you trust a major Bitcoin entity that works with the DoJ?
+                                - text: Department of BTC Justice founded by Satoshi?
+                                - img "Cheesy" [ref=e875]
+                          - row "Homeless Token (HOME) You Can Make Good Honest Money By Helping People In Urgent Need. | +++ Positive Coin +++ Stay Tuned!" [ref=e876]:
+                            - cell "Homeless Token (HOME) You Can Make Good Honest Money By Helping People In Urgent Need. | +++ Positive Coin +++ Stay Tuned!" [ref=e877]:
+                              - table [ref=e878]:
+                                - rowgroup [ref=e879]:
+                                  - row [ref=e880]:
+                                    - cell [ref=e881]
+                                  - row [ref=e882]:
+                                    - cell [ref=e883]
+                                    - cell [ref=e884]
+                              - separator [ref=e885]
+                              - generic [ref=e886]:
+                                - link "Homeless Token (HOME) You Can Make Good Honest Money By Helping People In Urgent Need." [ref=e887] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?topic=5477404.0
+                                - text: "| +++ Positive Coin +++ Stay Tuned!"
+          - 'row "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 11:55:22 PM #55 Quote from: Bit_Happy on March 03, 2014, 10:26:56 PM Would you trust a major Bitcoin entity that works with the DoJ? Department of BTC Justice founded by Satoshi? Cheesy Don''t get ahead of, for I''m a tad behind due to running to the Post Office. Did you know that since just prior to the Olympics, the USPS no longer tracks international packages. When ask why, the gal said she couldn''t tell me, but she did know the answer. WTF is all that about? May have to Google that later because I have too many tabs open now. EDIT: 7:09 PM CST ~ I''m locking this thread while I reevaluate my position." [ref=e888]':
+            - 'cell "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 11:55:22 PM #55 Quote from: Bit_Happy on March 03, 2014, 10:26:56 PM Would you trust a major Bitcoin entity that works with the DoJ? Department of BTC Justice founded by Satoshi? Cheesy Don''t get ahead of, for I''m a tad behind due to running to the Post Office. Did you know that since just prior to the Olympics, the USPS no longer tracks international packages. When ask why, the gal said she couldn''t tell me, but she did know the answer. WTF is all that about? May have to Google that later because I have too many tabs open now. EDIT: 7:09 PM CST ~ I''m locking this thread while I reevaluate my position." [ref=e889]':
+              - table [ref=e890]:
+                - rowgroup [ref=e891]:
+                  - 'row "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 11:55:22 PM #55 Quote from: Bit_Happy on March 03, 2014, 10:26:56 PM Would you trust a major Bitcoin entity that works with the DoJ? Department of BTC Justice founded by Satoshi? Cheesy Don''t get ahead of, for I''m a tad behind due to running to the Post Office. Did you know that since just prior to the Olympics, the USPS no longer tracks international packages. When ask why, the gal said she couldn''t tell me, but she did know the answer. WTF is all that about? May have to Google that later because I have too many tabs open now. EDIT: 7:09 PM CST ~ I''m locking this thread while I reevaluate my position." [ref=e892]':
+                    - 'cell "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 11:55:22 PM #55 Quote from: Bit_Happy on March 03, 2014, 10:26:56 PM Would you trust a major Bitcoin entity that works with the DoJ? Department of BTC Justice founded by Satoshi? Cheesy Don''t get ahead of, for I''m a tad behind due to running to the Post Office. Did you know that since just prior to the Olympics, the USPS no longer tracks international packages. When ask why, the gal said she couldn''t tell me, but she did know the answer. WTF is all that about? May have to Google that later because I have too many tabs open now. EDIT: 7:09 PM CST ~ I''m locking this thread while I reevaluate my position." [ref=e893]':
+                      - table [ref=e894]:
+                        - rowgroup [ref=e895]:
+                          - 'row "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 11:55:22 PM #55 Quote from: Bit_Happy on March 03, 2014, 10:26:56 PM Would you trust a major Bitcoin entity that works with the DoJ? Department of BTC Justice founded by Satoshi? Cheesy Don''t get ahead of, for I''m a tad behind due to running to the Post Office. Did you know that since just prior to the Olympics, the USPS no longer tracks international packages. When ask why, the gal said she couldn''t tell me, but she did know the answer. WTF is all that about? May have to Google that later because I have too many tabs open now. EDIT: 7:09 PM CST ~ I''m locking this thread while I reevaluate my position." [ref=e896]':
+                            - 'cell "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW" [ref=e897]':
+                              - link "Phinnaeus Gage" [ref=e899] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                              - text: (OP)
+                              - generic [ref=e900]:
+                                - text: Legendary
+                                - img "*" [ref=e901]
+                                - text: "Activity: 1918"
+                                - text: "Merit: 1570"
+                                - text: "Bitcoin: An Idea Worth Spending"
+                                - link "View Profile" [ref=e903] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                                  - img "View Profile" [ref=e904]
+                                - link "WWW" [ref=e905] [cursor=pointer]:
+                                  - /url: http://bitcoin100.org
+                                  - img "WWW" [ref=e906]
+                            - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 11:55:22 PM #55 Quote from: Bit_Happy on March 03, 2014, 10:26:56 PM Would you trust a major Bitcoin entity that works with the DoJ? Department of BTC Justice founded by Satoshi? Cheesy Don''t get ahead of, for I''m a tad behind due to running to the Post Office. Did you know that since just prior to the Olympics, the USPS no longer tracks international packages. When ask why, the gal said she couldn''t tell me, but she did know the answer. WTF is all that about? May have to Google that later because I have too many tabs open now. EDIT: 7:09 PM CST ~ I''m locking this thread while I reevaluate my position." [ref=e907]':
+                              - table [ref=e908]:
+                                - rowgroup [ref=e909]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 11:55:22 PM #55" [ref=e910]':
+                                    - cell [ref=e911]:
+                                      - link [ref=e912] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5493029#msg5493029
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? March 03, 2014, 11:55:22 PM" [ref=e913]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e915] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5493029#msg5493029
+                                      - generic [ref=e916]: March 03, 2014, 11:55:22 PM
+                                    - cell "#55" [ref=e917]:
+                                      - link "#55" [ref=e919] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg5493029#msg5493029
+                              - separator [ref=e920]
+                              - generic [ref=e921]:
+                                - 'link "Quote from: Bit_Happy on March 03, 2014, 10:26:56 PM" [ref=e923] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=497942.msg5491782#msg5491782
+                                - generic [ref=e924]:
+                                  - text: Would you trust a major Bitcoin entity that works with the DoJ?
+                                  - text: Department of BTC Justice founded by Satoshi?
+                                  - img "Cheesy" [ref=e925]
+                                - text: Don't get ahead of, for I'm a tad behind due to running to the Post Office. Did you know that since just prior to the Olympics, the USPS no longer tracks international packages. When ask why, the gal said she couldn't tell me, but she did know the answer. WTF is all that about? May have to Google that later because I have too many tabs open now.
+                                - text: "EDIT: 7:09 PM CST ~ I'm locking this thread while I reevaluate my position."
+                          - row [ref=e926]:
+                            - cell [ref=e927]:
+                              - table [ref=e928]:
+                                - rowgroup [ref=e929]:
+                                  - row [ref=e930]:
+                                    - cell [ref=e931]
+                                  - row [ref=e932]:
+                                    - cell [ref=e933]
+                                    - cell [ref=e934]
+          - row [ref=e935]:
+            - cell [ref=e936]:
+              - table [ref=e937]:
+                - rowgroup [ref=e938]:
+                  - row [ref=e939]:
+                    - cell [ref=e940]:
+                      - table [ref=e941]:
+                        - rowgroup [ref=e942]:
+                          - row [ref=e943]:
+                            - 'cell "Phinnaeus Gage (OP) Legendary * Activity: 1918 Merit: 1570 Bitcoin: An Idea Worth Spending View Profile WWW" [ref=e944]':
+                              - link "Phinnaeus Gage" [ref=e946] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                              - text: (OP)
+                              - generic [ref=e947]:
+                                - text: Legendary
+                                - img "*" [ref=e948]
+                                - text: "Activity: 1918"
+                                - text: "Merit: 1570"
+                                - text: "Bitcoin: An Idea Worth Spending"
+                                - link "View Profile" [ref=e950] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=24792
+                                  - img "View Profile" [ref=e951]
+                                - link "WWW" [ref=e952] [cursor=pointer]:
+                                  - /url: http://bitcoin100.org
+                                  - img "WWW" [ref=e953]
+                            - cell [ref=e954]:
+                              - table [ref=e955]:
+                                - rowgroup [ref=e956]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 03:35:40 AM #56" [ref=e957]':
+                                    - cell [ref=e958]:
+                                      - link [ref=e959] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg7101334#msg7101334
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 03:35:40 AM" [ref=e960]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e962] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg7101334#msg7101334
+                                      - generic [ref=e963]: June 03, 2014, 03:35:40 AM
+                                    - cell "#56" [ref=e964]:
+                                      - link "#56" [ref=e966] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg7101334#msg7101334
+                              - separator [ref=e967]
+                              - generic [ref=e968]:
+                                - text: Bitcoin Shop CEO Appointed to GoCoin Advisory Board
+                                - link "http://cointelegraph.com/news/111624/bitcoin_shop_ceo_appointed_to_gocoin_advisory_board" [ref=e969] [cursor=pointer]:
+                                  - /url: http://cointelegraph.com/news/111624/bitcoin_shop_ceo_appointed_to_gocoin_advisory_board
+                                - generic [ref=e970]: Quote
+                                - generic [ref=e972]:
+                                  - text: Online cryptocurrency marketplace Bitcoin Shop has announced that its head, Charles Allen, has been appointed to the advisory board of payment processor GoCoin.
+                                  - text: "Allen, who will retain his role as CEO of Bitcoin Shop, said he was “thrilled to be joining” the board. In a press release published this week, Allen stated:"
+                                  - text: “The appointment was a natural step in the progression of our relationship [with GoCoin] as Steve [Beauregard, founder and CEO of GoCoin] and I, along with the rest of his team, share many of the same visions for the future of virtual currency.”
+                                  - text: He added that Bitcoin Shop and GoCoin were planning further collaborative opportunities for the future.
+                                  - generic [ref=e975]: Allen worked with GoCoin’s chief operating officer Michal Handerhan in the $1.5 million equity financing of GoCoin in March.
+                                  - text: GoCoin CEO Beauregard, meanwhile, complimented Allen’s business and financial leadership, saying the company welcomed his added guidance to the board.
+                                  - text: Bitcoin Shop, founded in 2014, is an online marketplace similar to Amazon or eBay that accepts the virtual currencies Bitcoin, Litecoin, and Dogecoin as payment for transactions. The site currently offers over 140,000 items in 400 item categories.
+                                  - text: The site is powered with the GoCoin payment processor, which converts altcoin transactions in real time to fiat currency – on the Bitcoin Shop site, US dollars. The conversion rate of altcoins to dollars on the marketplace is updated by GoCoin every 15 minutes, according to the Bitcoin Shop site.
+                                - text: Most recently, we've learnt that Louis J. Freeh, an FBI notable, was part of Sunlot's Mt Gox takeover plans from the get-go
+                                - link "https://bitcointalk.org/index.php?topic=628000.msg7082210#msg7082210" [ref=e976] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?topic=628000.msg7082210#msg7082210
+                                - link "http://en.wikipedia.org/wiki/Louis_Freeh" [ref=e977] [cursor=pointer]:
+                                  - /url: http://en.wikipedia.org/wiki/Louis_Freeh
+                                - text: This thread is relatively short, so please take the time to read it if you haven't already in the past, albeit a re-read may be in order considering that Brock Pierce is now on the board of TBF.
+                                - text: "Further must read:"
+                                - link "http://www.sec.gov/Archives/edgar/data/1436229/000141588914000991/btcs10k_dec312013.htm" [ref=e978] [cursor=pointer]:
+                                  - /url: http://www.sec.gov/Archives/edgar/data/1436229/000141588914000991/btcs10k_dec312013.htm
+                          - row [ref=e979]:
+                            - cell [ref=e980]:
+                              - table [ref=e981]:
+                                - rowgroup [ref=e982]:
+                                  - row [ref=e983]:
+                                    - cell [ref=e984]
+                                  - row [ref=e985]:
+                                    - cell [ref=e986]
+                                    - cell [ref=e987]
+          - 'row "Ron~Popeil Sr. Member **** Activity: 406 Merit: 250 View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 07:10:44 AM #57 I don''t really see it as an issue. A lot of companies contract with the government. ▓▓▓ BITMIXER.IO ▓▓▓▓▓▓ High Volume Bitcoin MIXER ▓▓▓" [ref=e988]':
+            - 'cell "Ron~Popeil Sr. Member **** Activity: 406 Merit: 250 View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 07:10:44 AM #57 I don''t really see it as an issue. A lot of companies contract with the government. ▓▓▓ BITMIXER.IO ▓▓▓▓▓▓ High Volume Bitcoin MIXER ▓▓▓" [ref=e989]':
+              - table [ref=e990]:
+                - rowgroup [ref=e991]:
+                  - 'row "Ron~Popeil Sr. Member **** Activity: 406 Merit: 250 View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 07:10:44 AM #57 I don''t really see it as an issue. A lot of companies contract with the government. ▓▓▓ BITMIXER.IO ▓▓▓▓▓▓ High Volume Bitcoin MIXER ▓▓▓" [ref=e992]':
+                    - 'cell "Ron~Popeil Sr. Member **** Activity: 406 Merit: 250 View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 07:10:44 AM #57 I don''t really see it as an issue. A lot of companies contract with the government. ▓▓▓ BITMIXER.IO ▓▓▓▓▓▓ High Volume Bitcoin MIXER ▓▓▓" [ref=e993]':
+                      - table [ref=e994]:
+                        - rowgroup [ref=e995]:
+                          - 'row "Ron~Popeil Sr. Member **** Activity: 406 Merit: 250 View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 07:10:44 AM #57 I don''t really see it as an issue. A lot of companies contract with the government." [ref=e996]':
+                            - 'cell "Ron~Popeil Sr. Member **** Activity: 406 Merit: 250 View Profile" [ref=e997]':
+                              - link "Ron~Popeil" [ref=e999] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=298838
+                              - generic [ref=e1000]:
+                                - text: Sr. Member
+                                - img "*" [ref=e1001]
+                                - img "*" [ref=e1002]
+                                - img "*" [ref=e1003]
+                                - img "*" [ref=e1004]
+                                - text: "Activity: 406"
+                                - text: "Merit: 250"
+                                - link "View Profile" [ref=e1006] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=298838
+                                  - img "View Profile" [ref=e1007]
+                            - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 07:10:44 AM #57 I don''t really see it as an issue. A lot of companies contract with the government." [ref=e1008]':
+                              - table [ref=e1009]:
+                                - rowgroup [ref=e1010]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 07:10:44 AM #57" [ref=e1011]':
+                                    - cell [ref=e1012]:
+                                      - link [ref=e1013] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg7103433#msg7103433
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 07:10:44 AM" [ref=e1014]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e1016] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg7103433#msg7103433
+                                      - generic [ref=e1017]: June 03, 2014, 07:10:44 AM
+                                    - cell "#57" [ref=e1018]:
+                                      - link "#57" [ref=e1020] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg7103433#msg7103433
+                              - separator [ref=e1021]
+                              - generic [ref=e1022]: I don't really see it as an issue. A lot of companies contract with the government.
+                          - row "▓▓▓ BITMIXER.IO ▓▓▓▓▓▓ High Volume Bitcoin MIXER ▓▓▓" [ref=e1023]:
+                            - cell "▓▓▓ BITMIXER.IO ▓▓▓▓▓▓ High Volume Bitcoin MIXER ▓▓▓" [ref=e1024]:
+                              - table [ref=e1025]:
+                                - rowgroup [ref=e1026]:
+                                  - row [ref=e1027]:
+                                    - cell [ref=e1028]
+                                  - row [ref=e1029]:
+                                    - cell [ref=e1030]
+                                    - cell [ref=e1031]
+                              - separator [ref=e1032]
+                              - link "▓▓▓ BITMIXER.IO ▓▓▓▓▓▓ High Volume Bitcoin MIXER ▓▓▓" [ref=e1035] [cursor=pointer]:
+                                - /url: https://bitmixer.io
+                                - generic [ref=e1037]: ▓▓▓ BITMIXER.IO ▓▓▓▓▓▓ High Volume Bitcoin MIXER ▓▓▓
+          - 'row "jabo38 Legendary * Activity: 1232 Merit: 1001 mining is so 2012-2013 View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 07:24:42 AM #58 To me the beauty of bitcoin is that I don''t have to trust that entity but that I can trust the great Bitcoin network. If I don''t like that entity, I don''t have to use them. Catapult is the most advanced open source blockchain with the most features! Crosschain txs in SDK. MongoDB and API server with every full node. Multilevel multisig supported by fully decentralized API. Send many coins between many people in only one tx in one block with aggregated transactions." [ref=e1038]':
+            - 'cell "jabo38 Legendary * Activity: 1232 Merit: 1001 mining is so 2012-2013 View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 07:24:42 AM #58 To me the beauty of bitcoin is that I don''t have to trust that entity but that I can trust the great Bitcoin network. If I don''t like that entity, I don''t have to use them. Catapult is the most advanced open source blockchain with the most features! Crosschain txs in SDK. MongoDB and API server with every full node. Multilevel multisig supported by fully decentralized API. Send many coins between many people in only one tx in one block with aggregated transactions." [ref=e1039]':
+              - table [ref=e1040]:
+                - rowgroup [ref=e1041]:
+                  - 'row "jabo38 Legendary * Activity: 1232 Merit: 1001 mining is so 2012-2013 View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 07:24:42 AM #58 To me the beauty of bitcoin is that I don''t have to trust that entity but that I can trust the great Bitcoin network. If I don''t like that entity, I don''t have to use them. Catapult is the most advanced open source blockchain with the most features! Crosschain txs in SDK. MongoDB and API server with every full node. Multilevel multisig supported by fully decentralized API. Send many coins between many people in only one tx in one block with aggregated transactions." [ref=e1042]':
+                    - 'cell "jabo38 Legendary * Activity: 1232 Merit: 1001 mining is so 2012-2013 View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 07:24:42 AM #58 To me the beauty of bitcoin is that I don''t have to trust that entity but that I can trust the great Bitcoin network. If I don''t like that entity, I don''t have to use them. Catapult is the most advanced open source blockchain with the most features! Crosschain txs in SDK. MongoDB and API server with every full node. Multilevel multisig supported by fully decentralized API. Send many coins between many people in only one tx in one block with aggregated transactions." [ref=e1043]':
+                      - table [ref=e1044]:
+                        - rowgroup [ref=e1045]:
+                          - 'row "jabo38 Legendary * Activity: 1232 Merit: 1001 mining is so 2012-2013 View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 07:24:42 AM #58 To me the beauty of bitcoin is that I don''t have to trust that entity but that I can trust the great Bitcoin network. If I don''t like that entity, I don''t have to use them." [ref=e1046]':
+                            - 'cell "jabo38 Legendary * Activity: 1232 Merit: 1001 mining is so 2012-2013 View Profile WWW" [ref=e1047]':
+                              - link "jabo38" [ref=e1049] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=239446
+                              - generic [ref=e1050]:
+                                - text: Legendary
+                                - img "*" [ref=e1051]
+                                - text: "Activity: 1232"
+                                - text: "Merit: 1001"
+                                - text: mining is so 2012-2013
+                                - link "View Profile" [ref=e1053] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=239446
+                                  - img "View Profile" [ref=e1054]
+                                - link "WWW" [ref=e1055] [cursor=pointer]:
+                                  - /url: https://www.facebook.com/ourNEM
+                                  - img "WWW" [ref=e1056]
+                            - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 07:24:42 AM #58 To me the beauty of bitcoin is that I don''t have to trust that entity but that I can trust the great Bitcoin network. If I don''t like that entity, I don''t have to use them." [ref=e1057]':
+                              - table [ref=e1058]:
+                                - rowgroup [ref=e1059]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 07:24:42 AM #58" [ref=e1060]':
+                                    - cell [ref=e1061]:
+                                      - link [ref=e1062] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg7103609#msg7103609
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? June 03, 2014, 07:24:42 AM" [ref=e1063]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e1065] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg7103609#msg7103609
+                                      - generic [ref=e1066]: June 03, 2014, 07:24:42 AM
+                                    - cell "#58" [ref=e1067]:
+                                      - link "#58" [ref=e1069] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg7103609#msg7103609
+                              - separator [ref=e1070]
+                              - generic [ref=e1071]:
+                                - text: To me the beauty of bitcoin is that I don't have to trust that entity but that I can trust the great Bitcoin network.
+                                - text: If I don't like that entity, I don't have to use them.
+                          - row "Catapult is the most advanced open source blockchain with the most features! Crosschain txs in SDK. MongoDB and API server with every full node. Multilevel multisig supported by fully decentralized API. Send many coins between many people in only one tx in one block with aggregated transactions." [ref=e1072]:
+                            - cell "Catapult is the most advanced open source blockchain with the most features! Crosschain txs in SDK. MongoDB and API server with every full node. Multilevel multisig supported by fully decentralized API. Send many coins between many people in only one tx in one block with aggregated transactions." [ref=e1073]:
+                              - table [ref=e1074]:
+                                - rowgroup [ref=e1075]:
+                                  - row [ref=e1076]:
+                                    - cell [ref=e1077]
+                                  - row [ref=e1078]:
+                                    - cell [ref=e1079]
+                                    - cell [ref=e1080]
+                              - separator [ref=e1081]
+                              - link "Catapult is the most advanced open source blockchain with the most features! Crosschain txs in SDK. MongoDB and API server with every full node. Multilevel multisig supported by fully decentralized API. Send many coins between many people in only one tx in one block with aggregated transactions." [ref=e1085] [cursor=pointer]:
+                                - /url: https://nemtech.github.io/getting-started/setup-workstation.html
+          - 'row "ShakyhandsBTCer Sr. Member **** Activity: 448 Merit: 250 It''s Money 2.0| It’s gold for nerds | It''s Bitcoin View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? June 13, 2014, 12:51:15 AM #59 Most libertarians would likely not wish to do business with an entity like this, however the DOJ may give this hypothetical exchange some level of legitimacy." [ref=e1086]':
+            - 'cell "ShakyhandsBTCer Sr. Member **** Activity: 448 Merit: 250 It''s Money 2.0| It’s gold for nerds | It''s Bitcoin View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? June 13, 2014, 12:51:15 AM #59 Most libertarians would likely not wish to do business with an entity like this, however the DOJ may give this hypothetical exchange some level of legitimacy." [ref=e1087]':
+              - table [ref=e1088]:
+                - rowgroup [ref=e1089]:
+                  - 'row "ShakyhandsBTCer Sr. Member **** Activity: 448 Merit: 250 It''s Money 2.0| It’s gold for nerds | It''s Bitcoin View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? June 13, 2014, 12:51:15 AM #59 Most libertarians would likely not wish to do business with an entity like this, however the DOJ may give this hypothetical exchange some level of legitimacy." [ref=e1090]':
+                    - 'cell "ShakyhandsBTCer Sr. Member **** Activity: 448 Merit: 250 It''s Money 2.0| It’s gold for nerds | It''s Bitcoin View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? June 13, 2014, 12:51:15 AM #59 Most libertarians would likely not wish to do business with an entity like this, however the DOJ may give this hypothetical exchange some level of legitimacy." [ref=e1091]':
+                      - table [ref=e1092]:
+                        - rowgroup [ref=e1093]:
+                          - 'row "ShakyhandsBTCer Sr. Member **** Activity: 448 Merit: 250 It''s Money 2.0| It’s gold for nerds | It''s Bitcoin View Profile Re: Would you trust a major Bitcoin entity that works with the DoJ? June 13, 2014, 12:51:15 AM #59 Most libertarians would likely not wish to do business with an entity like this, however the DOJ may give this hypothetical exchange some level of legitimacy." [ref=e1094]':
+                            - 'cell "ShakyhandsBTCer Sr. Member **** Activity: 448 Merit: 250 It''s Money 2.0| It’s gold for nerds | It''s Bitcoin View Profile" [ref=e1095]':
+                              - link "ShakyhandsBTCer" [ref=e1097] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=131716
+                              - generic [ref=e1098]:
+                                - text: Sr. Member
+                                - img "*" [ref=e1099]
+                                - img "*" [ref=e1100]
+                                - img "*" [ref=e1101]
+                                - img "*" [ref=e1102]
+                                - text: "Activity: 448"
+                                - text: "Merit: 250"
+                                - text: It's Money 2.0| It’s gold for nerds | It's Bitcoin
+                                - link "View Profile" [ref=e1104] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=131716
+                                  - img "View Profile" [ref=e1105]
+                            - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? June 13, 2014, 12:51:15 AM #59 Most libertarians would likely not wish to do business with an entity like this, however the DOJ may give this hypothetical exchange some level of legitimacy." [ref=e1106]':
+                              - table [ref=e1107]:
+                                - rowgroup [ref=e1108]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? June 13, 2014, 12:51:15 AM #59" [ref=e1109]':
+                                    - cell [ref=e1110]:
+                                      - link [ref=e1111] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg7281717#msg7281717
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? June 13, 2014, 12:51:15 AM" [ref=e1112]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e1114] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg7281717#msg7281717
+                                      - generic [ref=e1115]: June 13, 2014, 12:51:15 AM
+                                    - cell "#59" [ref=e1116]:
+                                      - link "#59" [ref=e1118] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg7281717#msg7281717
+                              - separator [ref=e1119]
+                              - generic [ref=e1120]: Most libertarians would likely not wish to do business with an entity like this, however the DOJ may give this hypothetical exchange some level of legitimacy.
+                          - row [ref=e1121]:
+                            - cell [ref=e1122]:
+                              - table [ref=e1123]:
+                                - rowgroup [ref=e1124]:
+                                  - row [ref=e1125]:
+                                    - cell [ref=e1126]
+                                  - row [ref=e1127]:
+                                    - cell [ref=e1128]
+                                    - cell [ref=e1129]
+          - 'row "Beliathon Hero Member ***** Activity: 784 Merit: 1000 https://youtu.be/PZm8TTLR2NU View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? June 13, 2014, 01:30:16 AM #60 The US government knows what you''re doing with you''re money regardless of what sites you use to spend it. Mmm kay? Soon they will be constantly outed and shamed, preventing them from the continued use of coercion, deception, and violence to get their way. And we will live in a more reasonable, more kind world. The future is coming. If you are a lover of domination and/or violence you should consider suicide now, a world governed by reason may not be for you. Remember Aaron Swartz, a 26 year old computer scientist who died defending the free flow of information." [ref=e1130]':
+            - 'cell "Beliathon Hero Member ***** Activity: 784 Merit: 1000 https://youtu.be/PZm8TTLR2NU View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? June 13, 2014, 01:30:16 AM #60 The US government knows what you''re doing with you''re money regardless of what sites you use to spend it. Mmm kay? Soon they will be constantly outed and shamed, preventing them from the continued use of coercion, deception, and violence to get their way. And we will live in a more reasonable, more kind world. The future is coming. If you are a lover of domination and/or violence you should consider suicide now, a world governed by reason may not be for you. Remember Aaron Swartz, a 26 year old computer scientist who died defending the free flow of information." [ref=e1131]':
+              - table [ref=e1132]:
+                - rowgroup [ref=e1133]:
+                  - 'row "Beliathon Hero Member ***** Activity: 784 Merit: 1000 https://youtu.be/PZm8TTLR2NU View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? June 13, 2014, 01:30:16 AM #60 The US government knows what you''re doing with you''re money regardless of what sites you use to spend it. Mmm kay? Soon they will be constantly outed and shamed, preventing them from the continued use of coercion, deception, and violence to get their way. And we will live in a more reasonable, more kind world. The future is coming. If you are a lover of domination and/or violence you should consider suicide now, a world governed by reason may not be for you. Remember Aaron Swartz, a 26 year old computer scientist who died defending the free flow of information." [ref=e1134]':
+                    - 'cell "Beliathon Hero Member ***** Activity: 784 Merit: 1000 https://youtu.be/PZm8TTLR2NU View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? June 13, 2014, 01:30:16 AM #60 The US government knows what you''re doing with you''re money regardless of what sites you use to spend it. Mmm kay? Soon they will be constantly outed and shamed, preventing them from the continued use of coercion, deception, and violence to get their way. And we will live in a more reasonable, more kind world. The future is coming. If you are a lover of domination and/or violence you should consider suicide now, a world governed by reason may not be for you. Remember Aaron Swartz, a 26 year old computer scientist who died defending the free flow of information." [ref=e1135]':
+                      - table [ref=e1136]:
+                        - rowgroup [ref=e1137]:
+                          - 'row "Beliathon Hero Member ***** Activity: 784 Merit: 1000 https://youtu.be/PZm8TTLR2NU View Profile WWW Re: Would you trust a major Bitcoin entity that works with the DoJ? June 13, 2014, 01:30:16 AM #60 The US government knows what you''re doing with you''re money regardless of what sites you use to spend it. Mmm kay? Soon they will be constantly outed and shamed, preventing them from the continued use of coercion, deception, and violence to get their way. And we will live in a more reasonable, more kind world. The future is coming. If you are a lover of domination and/or violence you should consider suicide now, a world governed by reason may not be for you." [ref=e1138]':
+                            - 'cell "Beliathon Hero Member ***** Activity: 784 Merit: 1000 https://youtu.be/PZm8TTLR2NU View Profile WWW" [ref=e1139]':
+                              - link "Beliathon" [ref=e1141] [cursor=pointer]:
+                                - /url: https://bitcointalk.org/index.php?action=profile;u=182576
+                              - generic [ref=e1142]:
+                                - text: Hero Member
+                                - img "*" [ref=e1143]
+                                - img "*" [ref=e1144]
+                                - img "*" [ref=e1145]
+                                - img "*" [ref=e1146]
+                                - img "*" [ref=e1147]
+                                - text: "Activity: 784"
+                                - text: "Merit: 1000"
+                                - text: https://youtu.be/PZm8TTLR2NU
+                                - link "View Profile" [ref=e1149] [cursor=pointer]:
+                                  - /url: https://bitcointalk.org/index.php?action=profile;u=182576
+                                  - img "View Profile" [ref=e1150]
+                                - link "WWW" [ref=e1151] [cursor=pointer]:
+                                  - /url: https://www.youtube.com/watch?v=3WS9DhSIWR0
+                                  - img "WWW" [ref=e1152]
+                            - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? June 13, 2014, 01:30:16 AM #60 The US government knows what you''re doing with you''re money regardless of what sites you use to spend it. Mmm kay? Soon they will be constantly outed and shamed, preventing them from the continued use of coercion, deception, and violence to get their way. And we will live in a more reasonable, more kind world. The future is coming. If you are a lover of domination and/or violence you should consider suicide now, a world governed by reason may not be for you." [ref=e1153]':
+                              - table [ref=e1154]:
+                                - rowgroup [ref=e1155]:
+                                  - 'row "Re: Would you trust a major Bitcoin entity that works with the DoJ? June 13, 2014, 01:30:16 AM #60" [ref=e1156]':
+                                    - cell [ref=e1157]:
+                                      - link [ref=e1158] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg7282136#msg7282136
+                                    - 'cell "Re: Would you trust a major Bitcoin entity that works with the DoJ? June 13, 2014, 01:30:16 AM" [ref=e1159]':
+                                      - 'link "Re: Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e1161] [cursor=pointer]':
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg7282136#msg7282136
+                                      - generic [ref=e1162]: June 13, 2014, 01:30:16 AM
+                                    - cell "#60" [ref=e1163]:
+                                      - link "#60" [ref=e1165] [cursor=pointer]:
+                                        - /url: https://bitcointalk.org/index.php?topic=497942.msg7282136#msg7282136
+                              - separator [ref=e1166]
+                              - generic [ref=e1167]:
+                                - text: The US government knows what you're doing with you're money regardless of what sites you use to spend it. Mmm kay?
+                                - text: Soon they will be constantly outed and shamed, preventing them from the continued use of coercion, deception, and violence to get their way. And we will live in a more reasonable, more kind world.
+                                - text: The future is coming. If you are a lover of domination and/or violence you should consider suicide now, a world governed by reason may not be for you.
+                          - row "Remember Aaron Swartz, a 26 year old computer scientist who died defending the free flow of information." [ref=e1168]:
+                            - cell "Remember Aaron Swartz, a 26 year old computer scientist who died defending the free flow of information." [ref=e1169]:
+                              - table [ref=e1170]:
+                                - rowgroup [ref=e1171]:
+                                  - row [ref=e1172]:
+                                    - cell [ref=e1173]
+                                  - row [ref=e1174]:
+                                    - cell [ref=e1175]
+                                    - cell [ref=e1176]
+                              - separator [ref=e1177]
+                              - generic [ref=e1178]:
+                                - link "Remember Aaron Swartz" [ref=e1179] [cursor=pointer]:
+                                  - /url: https://en.wikipedia.org/wiki/Aaron_Swartz#JSTOR
+                                - text: ", a 26 year old computer scientist who died defending"
+                                - link "the free flow of information" [ref=e1180] [cursor=pointer]:
+                                  - /url: https://archive.org/stream/GuerillaOpenAccessManifesto/Goamjuly2008_djvu.txt
+                                - text: .
+          - row [ref=e1181]:
+            - cell [ref=e1182]
+      - table [ref=e1183]:
+        - rowgroup [ref=e1184]:
+          - 'row "Pages: « 1 2 [3] 4 » All Print" [ref=e1185]':
+            - 'cell "Pages: « 1 2 [3] 4 » All" [ref=e1186]':
+              - text: "Pages:"
+              - link "«" [ref=e1188] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=497942.20
+              - link "1" [ref=e1189] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=497942.0
+              - link "2" [ref=e1190] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=497942.20
+              - text: "[3]"
+              - link "4" [ref=e1191] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=497942.60
+              - link "»" [ref=e1193] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=497942.60
+              - link "All" [ref=e1194] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=497942.0;all
+            - cell "Print" [ref=e1195]:
+              - table [ref=e1196]:
+                - rowgroup [ref=e1197]:
+                  - row "Print" [ref=e1198]:
+                    - cell "Print" [ref=e1199]:
+                      - link "Print" [ref=e1200] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=printpage;topic=497942.0
+      - table [ref=e1201]:
+        - rowgroup [ref=e1202]:
+          - row "Bitcoin Forum > Bitcoin > Bitcoin Discussion > Would you trust a major Bitcoin entity that works with the DoJ? « previous topic next topic »" [ref=e1203]:
+            - cell "Bitcoin Forum > Bitcoin > Bitcoin Discussion > Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e1204]:
+              - generic [ref=e1205]:
+                - link "Bitcoin Forum" [ref=e1207] [cursor=pointer]:
+                  - /url: https://bitcointalk.org/index.php
+                - text: ">"
+                - link "Bitcoin" [ref=e1209] [cursor=pointer]:
+                  - /url: https://bitcointalk.org/index.php#1
+                - text: ">"
+                - link "Bitcoin Discussion" [ref=e1211] [cursor=pointer]:
+                  - /url: https://bitcointalk.org/index.php?board=1.0
+                - text: ">"
+                - link "Would you trust a major Bitcoin entity that works with the DoJ?" [ref=e1213]:
+                  - /url: https://bitcointalk.org/index.php?topic=497942.0
+            - cell "« previous topic next topic »" [ref=e1214]:
+              - link "« previous topic" [ref=e1215] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=497942.0;prev_next=prev#new
+              - link "next topic »" [ref=e1216] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?topic=497942.0;prev_next=next#new
+      - table [ref=e1217]:
+        - rowgroup [ref=e1218]:
+          - row [ref=e1219]:
+            - cell [ref=e1220]
+    - generic [ref=e1223]:
+      - text: "Jump to:"
+      - combobox [ref=e1224]:
+        - option "Please select a destination:"
+        - option "-----------------------------" [disabled]
+        - option "Bitcoin"
+        - option "-----------------------------" [disabled]
+        - option "=> Bitcoin Discussion" [selected]
+        - option "===> Legal"
+        - option "===> Press"
+        - option "===> Meetups"
+        - option "===> Important Announcements"
+        - option "=> Development & Technical Discussion"
+        - option "===> Wallet software"
+        - option "=====> Electrum"
+        - option "=====> Bitcoin Wallet for Android"
+        - option "=====> BitcoinJ"
+        - option "=====> Armory"
+        - option "=====> Mycelium"
+        - option "=====> Hardware wallets"
+        - option "=> Mining"
+        - option "===> Mining support"
+        - option "===> Pools"
+        - option "===> Mining software (miners)"
+        - option "===> Hardware"
+        - option "=====> Group buys"
+        - option "===> Mining speculation"
+        - option "=> Bitcoin Technical Support"
+        - option "=> Project Development"
+        - option "-----------------------------" [disabled]
+        - option "Economy"
+        - option "-----------------------------" [disabled]
+        - option "=> Economics"
+        - option "===> Speculation"
+        - option "=> Marketplace"
+        - option "===> Goods"
+        - option "=====> Computer hardware"
+        - option "=====> Digital goods"
+        - option "=======> Invites & Accounts"
+        - option "=====> Collectibles"
+        - option "===> Services"
+        - option "===> Currency exchange"
+        - option "===> Gambling"
+        - option "=====> Games and rounds"
+        - option "=====> Investor-based games"
+        - option "=====> Gambling discussion"
+        - option "===> Lending"
+        - option "=====> Long-term offers"
+        - option "===> Securities"
+        - option "===> Auctions"
+        - option "===> Service Announcements"
+        - option "=====> Micro Earnings"
+        - option "===> Service Discussion"
+        - option "=====> Web Wallets"
+        - option "=====> Exchanges"
+        - option "=> Trading Discussion"
+        - option "===> Scam Accusations"
+        - option "===> Reputation"
+        - option "-----------------------------" [disabled]
+        - option "Other"
+        - option "-----------------------------" [disabled]
+        - option "=> Meta"
+        - option "===> Bitcoin Wiki"
+        - option "=> Politics & Society"
+        - option "=> Beginners & Help"
+        - option "=> Off-topic"
+        - option "=> Serious discussion"
+        - option "===> Ivory Tower"
+        - option "=> Archival"
+        - option "===> New forum software"
+        - option "===> Корзина"
+        - option "===> CPU/GPU Bitcoin mining hardware"
+        - option "===> Chinese students"
+        - option "===> Obsolete (buying)"
+        - option "===> Obsolete (selling)"
+        - option "===> MultiBit"
+        - option "-----------------------------" [disabled]
+        - option "Alternate cryptocurrencies"
+        - option "-----------------------------" [disabled]
+        - option "=> Altcoin Discussion"
+        - option "=> Announcements (Altcoins)"
+        - option "===> Tokens (Altcoins)"
+        - option "=> Mining (Altcoins)"
+        - option "===> Pools (Altcoins)"
+        - option "=> Marketplace (Altcoins)"
+        - option "===> Service Announcements (Altcoins)"
+        - option "===> Service Discussion (Altcoins)"
+        - option "===> Bounties (Altcoins)"
+        - option "=> Speculation (Altcoins)"
+        - option "-----------------------------" [disabled]
+        - option "Local"
+        - option "-----------------------------" [disabled]
+        - option "=> العربية (Arabic)"
+        - option "===> العملات البديلة (Altcoins)"
+        - option "=====> النقاشات"
+        - option "===> إستفسارات و أسئلة المبتدئين"
+        - option "===> التعدين"
+        - option "===> النقاشات الأخرى"
+        - option "===> منصات التبادل"
+        - option "=> Bahasa Indonesia (Indonesian)"
+        - option "===> Marketplace (Bahasa Indonesia)"
+        - option "===> Mining (Bahasa Indonesia)"
+        - option "===> Altcoins (Bahasa Indonesia)"
+        - option "===> Trading dan Spekulasi"
+        - option "===> Ekonomi, Politik, dan Budaya"
+        - option "===> Topik Lainnya"
+        - option "=> Español (Spanish)"
+        - option "===> Mercado y Economía"
+        - option "=====> Servicios"
+        - option "=====> Trading y especulación"
+        - option "===> Hardware y Minería"
+        - option "===> Esquina Libre"
+        - option "===> Mercadillo"
+        - option "=====> Mexico"
+        - option "=====> Argentina"
+        - option "=====> España"
+        - option "=====> Centroamerica y Caribe"
+        - option "===> Primeros pasos y ayuda"
+        - option "===> Altcoins (criptomonedas alternativas)"
+        - option "=====> Minería de altcoins"
+        - option "=====> Servicios"
+        - option "=====> Tokens (Español)"
+        - option "=> 中文 (Chinese)"
+        - option "===> 跳蚤市场"
+        - option "===> 山寨币"
+        - option "===> 媒体"
+        - option "===> 挖矿"
+        - option "===> 离题万里"
+        - option "=> Hrvatski (Croatian)"
+        - option "===> Trgovina"
+        - option "===> Altcoins (Hrvatski)"
+        - option "=====> Announcements (Hrvatski)"
+        - option "===> Off-topic (Hrvatski)"
+        - option "=> Deutsch (German)"
+        - option "===> Anfänger und Hilfe"
+        - option "===> Mining (Deutsch)"
+        - option "===> Trading und Spekulation"
+        - option "===> Projektentwicklung"
+        - option "===> Off-Topic (Deutsch)"
+        - option "===> Treffen"
+        - option "===> Presse"
+        - option "===> Altcoins (Deutsch)"
+        - option "=====> Announcements (Deutsch)"
+        - option "===> Marktplatz"
+        - option "=====> Auktionen"
+        - option "=====> Suche"
+        - option "=====> Biete"
+        - option "=> Ελληνικά (Greek)"
+        - option "===> Αγορά"
+        - option "===> Mining Discussion (Ελληνικά)"
+        - option "===> Altcoins (Ελληνικά)"
+        - option "=====> Altcoin Announcements (Ελληνικά)"
+        - option "=====> Altcoin Mining (Ελληνικά)"
+        - option "=> עברית (Hebrew)"
+        - option "=> Français"
+        - option "===> Actualité et News"
+        - option "===> Débutants"
+        - option "===> Discussions générales et utilisation du Bitcoin"
+        - option "===> Mining et Hardware"
+        - option "===> Économie et spéculation"
+        - option "===> Place de marché"
+        - option "=====> Échanges"
+        - option "=====> Produits et services"
+        - option "=====> Petites annonces"
+        - option "===> Le Bitcoin et la loi"
+        - option "===> Wiki, documentation et traduction"
+        - option "===> Développement et technique"
+        - option "===> Vos sites et projets"
+        - option "===> Hors-sujet"
+        - option "===> Altcoins (Français)"
+        - option "=====> Annonces"
+        - option "=> India"
+        - option "===> Mining (India)"
+        - option "===> Marketplace (India)"
+        - option "===> Regional Languages (India)"
+        - option "===> Press & News from India"
+        - option "===> Alt Coins (India)"
+        - option "===> Buyer/ Seller Reputations (India)"
+        - option "===> Off-Topic (India)"
+        - option "=> Italiano (Italian)"
+        - option "===> Guide (Italiano)"
+        - option "===> Progetti"
+        - option "===> Discussioni avanzate e sviluppo"
+        - option "===> Trading, analisi e speculazione"
+        - option "===> Mercato"
+        - option "=====> Mercato valute"
+        - option "=====> Beni"
+        - option "=====> Servizi"
+        - option "=====> Esercizi commerciali"
+        - option "=====> Hardware/Mining (Italiano)"
+        - option "=====> Gambling (Italiano)"
+        - option "===> Accuse scam/truffe"
+        - option "===> Mining (Italiano)"
+        - option "===> Alt-Currencies (Italiano)"
+        - option "=====> Annunci"
+        - option "===> Raduni/Meeting (Italiano)"
+        - option "===> Crittografia e decentralizzazione"
+        - option "===> Off-Topic (Italiano)"
+        - option "=> 日本語 (Japanese)"
+        - option "===> アルトコイン"
+        - option "=> Nederlands (Dutch)"
+        - option "===> Markt"
+        - option "===> Gokken/lotterijen"
+        - option "===> Mining (Nederlands)"
+        - option "===> Beurzen"
+        - option "===> Alt Coins (Nederlands)"
+        - option "===> Off-topic (Nederlands)"
+        - option "===> Meetings (Nederlands)"
+        - option "=> Nigeria (Naija)"
+        - option "===> Politics and society (Naija)"
+        - option "===> Off-topic (Naija)"
+        - option "=> 한국어 (Korean)"
+        - option "===> 대체코인 Alt Coins (한국어)"
+        - option "=> Pilipinas"
+        - option "===> Altcoins (Pilipinas)"
+        - option "=====> Altcoin Announcements (Pilipinas)"
+        - option "===> Pamilihan"
+        - option "===> Others (Pilipinas)"
+        - option "=> Polski"
+        - option "===> Tablica ogłoszeń"
+        - option "===> Alternatywne kryptowaluty"
+        - option "=====> Nowe kryptowaluty i tokeny"
+        - option "=====> Tablica ogłoszeń (altcoiny)"
+        - option "=> Português (Portuguese)"
+        - option "===> Primeiros Passos (Iniciantes)"
+        - option "===> Economia & Mercado"
+        - option "===> Mineração em Geral"
+        - option "===> Desenvolvimento & Discussões Técnicas"
+        - option "===> Criptomoedas Alternativas"
+        - option "===> Brasil"
+        - option "===> Portugal"
+        - option "=> Русский (Russian)"
+        - option "===> Новички"
+        - option "===> Cepвиcы"
+        - option "=====> Барахолка"
+        - option "=====> Обменники"
+        - option "===> Идеи"
+        - option "===> Кодеры"
+        - option "===> Майнеры"
+        - option "===> Политика"
+        - option "===> Трейдеры"
+        - option "===> Альтернативные криптовалюты"
+        - option "=====> Токены"
+        - option "=====> Бayнти и aиpдpoпы"
+        - option "===> Хайпы"
+        - option "===> Работа"
+        - option "===> Разное"
+        - option "===> Oбcyждeниe Bitcoin"
+        - option "=====> Новости"
+        - option "=====> Юристы"
+        - option "=> Română (Romanian)"
+        - option "===> Anunturi importante"
+        - option "===> Offtopic"
+        - option "===> Market"
+        - option "=====> Discutii Servicii"
+        - option "===> Minerit"
+        - option "===> Tutoriale"
+        - option "===> Bine ai venit!"
+        - option "===> Presa"
+        - option "===> Altcoins (Monede Alternative)"
+        - option "=====> Anunturi Monede Alternative"
+        - option "=> Skandinavisk"
+        - option "=> Türkçe (Turkish)"
+        - option "===> Bitcoin Haberleri"
+        - option "===> Pazar Alanı"
+        - option "===> Madencilik"
+        - option "===> Ekonomi"
+        - option "===> Servisler"
+        - option "=====> Fonlar"
+        - option "===> Proje Geliştirme"
+        - option "===> Alternatif Kripto-Paralar"
+        - option "=====> Madencilik (Alternatif Kripto-Paralar)"
+        - option "=====> Duyurular (Alternatif Kripto-Paralar)"
+        - option "===> Konu Dışı"
+        - option "===> Yeni Başlayanlar & Yardım"
+        - option "===> Buluşmalar"
+        - option "=> Other languages/locations"
+      - button "go" [ref=e1225]
+  - table [ref=e1227]:
+    - rowgroup [ref=e1228]:
+      - row "Powered by MySQL Powered by PHP Powered by SMF 1.1.19 | SMF © 2006-2009, Simple Machines Valid XHTML 1.0! Valid CSS!" [ref=e1229]:
+        - cell "Powered by MySQL Powered by PHP" [ref=e1230]:
+          - link "Powered by MySQL" [ref=e1231] [cursor=pointer]:
+            - /url: http://www.mysql.com/
+            - img "Powered by MySQL" [ref=e1232]
+          - link "Powered by PHP" [ref=e1233] [cursor=pointer]:
+            - /url: http://www.php.net/
+            - img "Powered by PHP" [ref=e1234]
+        - cell "Powered by SMF 1.1.19 | SMF © 2006-2009, Simple Machines" [ref=e1235]:
+          - generic [ref=e1236]:
+            - link "Powered by SMF 1.1.19" [ref=e1237] [cursor=pointer]:
+              - /url: http://www.simplemachines.org/
+            - text: "|"
+            - link "SMF © 2006-2009, Simple Machines" [ref=e1238] [cursor=pointer]:
+              - /url: http://www.simplemachines.org/about/copyright.php
+        - cell "Valid XHTML 1.0! Valid CSS!" [ref=e1239]:
+          - link "Valid XHTML 1.0!" [ref=e1240] [cursor=pointer]:
+            - /url: http://validator.w3.org/check/referer
+            - img "Valid XHTML 1.0!" [ref=e1241]
+          - link "Valid CSS!" [ref=e1242] [cursor=pointer]:
+            - /url: http://jigsaw.w3.org/css-validator/check/referer
+            - img "Valid CSS!" [ref=e1243]

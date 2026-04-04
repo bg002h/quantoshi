@@ -59,9 +59,10 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                   show_inflation=False, show_amount=True,
                   show_stack=False, show_mc_entry_q=False,
                   default_entry_q=50, start_yr_label=None,
-                  shared_controls=frozenset()):
+                  shared_controls=frozenset(), mc_enabled_default=False):
     """Monte Carlo simulation controls, reusable across tabs."""
     yr_now = pd.Timestamp.today().year
+    _mc_enable_val = ["yes"] if mc_enabled_default else []
     if not _app_ctx._HAS_MARKOV:
         # Hidden placeholders so callback IDs exist even without markov module
         _ph = []  # placeholder components
@@ -130,7 +131,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
         ]),
         dcc.Checklist(id=f"{prefix}-mc-enable",
                       options=[{"label": " Activate Markov chain stochastic engine", "value": "yes"}],
-                      value=[], inputStyle=_CB_MARGIN),
+                      value=_mc_enable_val, inputStyle=_CB_MARGIN),
         html.Div(id=f"{prefix}-mc-body", style=_STYLE_HIDDEN, children=[
             dcc.Checklist(id=f"{prefix}-mc-advanced",
                           options=[{"label": " Advanced simulator options", "value": "yes"}],

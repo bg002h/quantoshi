@@ -204,10 +204,11 @@ _LEGEND_POS_OPTIONS = [
 ]
 
 def _chart_toggles(prefix, defaults=None):
-    """Reusable chart toggle checklist (Log Y, Annotate, Legend, Minor grid, Zoom)."""
+    """Reusable chart toggle checklist (Log Y, Annotate, Shade, Legend, Minor grid, Zoom)."""
     opts = [{"label": " Log Y", "value": "log_y"},
             {"label": " Annotate final values", "value": "annotate"},
             {"label": " Discrete steps", "value": "discrete"},
+            {"label": " Shade bands", "value": "shade"},
             {"label": " Show legend", "value": "show_legend"},
             {"label": html.Span(" Minor grid", className="minor-grid-opt"),
              "value": "minor_grid"},

@@ -611,12 +611,12 @@ class LPPLModel:
 
     # Best-fit parameters from differential evolution on full BTC history
     # (genesis = 2009-07-25)
-    _A   = -1.154109
-    _B   =     5.079736
-    _C   =     0.734046
-    _W   =     7.559286
-    _PHI =     1.375727
-    _D   =     0.608173
+    _A   = -1.154036
+    _B   =        5.079618
+    _C   =        0.734029
+    _W   =        7.558938
+    _PHI =        1.376080
+    _D   =        0.608121
 
     def __init__(self, price_years, price_prices, quantiles):
         # Compute residual sigma from historical data
@@ -710,15 +710,15 @@ class LPPL2Model(LPPLModel):
     dash_style = "dashdot"
 
     # All 9 params jointly fitted by tools/fit_lppl2.py
-    _A   = -1.130935
-    _B   =        5.038830
-    _C   =        0.705722
-    _W   =        7.378189
-    _PHI =        1.582105
-    _D   =        0.566364
-    _C2  =        0.168851
-    _W2  =      20.902005
-    _PHI2 = -1.153589
+    _A   = -1.130860
+    _B   =           5.038702
+    _C   =           0.705656
+    _W   =           7.377871
+    _PHI =           1.582452
+    _D   =           0.566223
+    _C2  =           0.168847
+    _W2  =        20.902562
+    _PHI2 = -1.154507
 
     def _lppl_log10(self, t):
         """Evaluate two-frequency LPPL median in log10 space.

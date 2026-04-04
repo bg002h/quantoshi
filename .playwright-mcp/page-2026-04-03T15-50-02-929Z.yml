@@ -1,0 +1,913 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - table [ref=e3]:
+      - rowgroup [ref=e4]:
+        - row "Bitcoin Forum" [ref=e5]:
+          - cell "Bitcoin Forum" [ref=e6]
+          - cell [ref=e7]
+    - table [ref=e8]:
+      - rowgroup [ref=e9]:
+        - row "April 03, 2026, 03:50:02 PM *" [ref=e10]:
+          - cell "April 03, 2026, 03:50:02 PM *" [ref=e11]:
+            - text: April 03, 2026, 03:50:02 PM
+            - link "*" [ref=e12] [cursor=pointer]:
+              - /url: "#"
+              - img "*" [ref=e13]
+        - row "Welcome, Guest. Please login or register." [ref=e14]:
+          - cell "Welcome, Guest. Please login or register." [ref=e15]:
+            - table [ref=e16]:
+              - rowgroup [ref=e17]:
+                - row "Welcome, Guest. Please login or register." [ref=e18]:
+                  - cell "Welcome, Guest. Please login or register." [ref=e19]:
+                    - generic [ref=e20]:
+                      - text: Welcome, Guest. Please
+                      - link "login" [ref=e21] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=login
+                      - text: or
+                      - link "register" [ref=e22] [cursor=pointer]:
+                        - /url: https://bitcointalk.org/index.php?action=register
+                      - text: .
+    - table [ref=e23]:
+      - rowgroup [ref=e24]:
+        - 'row "News: Latest Bitcoin Core release: 30.2 [Torrent] Search" [ref=e25]':
+          - 'cell "News: Latest Bitcoin Core release: 30.2 [Torrent]" [ref=e26]':
+            - generic [ref=e27]:
+              - text: "News: Latest Bitcoin Core release:"
+              - link "30.2" [ref=e28] [cursor=pointer]:
+                - /url: https://bitcoincore.org/en/download/
+              - text: "["
+              - link "Torrent" [ref=e29] [cursor=pointer]:
+                - /url: https://bitcointalk.org/bitcoin-30.2.torrent
+              - text: "]"
+          - cell "Search" [ref=e30]:
+            - generic [ref=e31]:
+              - link [ref=e32] [cursor=pointer]:
+                - /url: https://bitcointalk.org/index.php?action=search;advanced
+              - textbox [ref=e33]
+              - button "Search" [ref=e34]
+  - table [ref=e35]:
+    - rowgroup [ref=e36]:
+      - row "Home Help Search Login Register More" [ref=e37]:
+        - cell [ref=e38]
+        - cell "Home" [ref=e39]:
+          - link "Home" [ref=e40] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php
+        - cell "Help" [ref=e41]:
+          - link "Help" [ref=e42] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=help
+        - cell "Search" [ref=e43]:
+          - link "Search" [ref=e44] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=search
+        - cell "Login" [ref=e45]:
+          - link "Login" [ref=e46] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=login
+        - cell "Register" [ref=e47]:
+          - link "Register" [ref=e48] [cursor=pointer]:
+            - /url: https://bitcointalk.org/index.php?action=register
+        - cell "More" [ref=e49]:
+          - link "More" [ref=e50] [cursor=pointer]:
+            - /url: /more.php
+        - cell [ref=e51]
+  - table [ref=e53]:
+    - rowgroup [ref=e54]:
+      - row [ref=e55]:
+        - cell [ref=e56]:
+          - table [ref=e57]:
+            - rowgroup [ref=e58]:
+              - row "Show Posts" [ref=e59]:
+                - cell "Show Posts" [ref=e60]
+              - 'row "Pages: « 1 [2] 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 ... 69 »" [ref=e61]':
+                - 'cell "Pages: « 1 [2] 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 ... 69 »" [ref=e62]':
+                  - text: "Pages:"
+                  - link "«" [ref=e64] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=0
+                  - link "1" [ref=e65] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=0
+                  - text: "[2]"
+                  - link "3" [ref=e66] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=40
+                  - link "4" [ref=e67] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=60
+                  - link "5" [ref=e68] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=80
+                  - link "6" [ref=e69] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=100
+                  - link "7" [ref=e70] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=120
+                  - link "8" [ref=e71] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=140
+                  - link "9" [ref=e72] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=160
+                  - link "10" [ref=e73] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=180
+                  - link "11" [ref=e74] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=200
+                  - link "12" [ref=e75] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=220
+                  - link "13" [ref=e76] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=240
+                  - link "14" [ref=e77] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=260
+                  - link "15" [ref=e78] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=280
+                  - link "16" [ref=e79] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=300
+                  - link "17" [ref=e80] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=320
+                  - link "18" [ref=e81] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=340
+                  - link "19" [ref=e82] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=360
+                  - link "20" [ref=e83] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=380
+                  - link "21" [ref=e84] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=400
+                  - link "22" [ref=e85] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=420
+                  - link "23" [ref=e86] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=440
+                  - link "24" [ref=e87] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=460
+                  - link "25" [ref=e88] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=480
+                  - link "26" [ref=e89] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=500
+                  - link "27" [ref=e90] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=520
+                  - link "28" [ref=e91] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=540
+                  - link "29" [ref=e92] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=560
+                  - link "30" [ref=e93] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=580
+                  - link "31" [ref=e94] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=600
+                  - link "32" [ref=e95] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=620
+                  - link "33" [ref=e96] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=640
+                  - link "34" [ref=e97] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=660
+                  - link "35" [ref=e98] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=680
+                  - link "36" [ref=e99] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=700
+                  - link "37" [ref=e100] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=720
+                  - link "38" [ref=e101] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=740
+                  - link "39" [ref=e102] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=760
+                  - link "40" [ref=e103] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=780
+                  - link "41" [ref=e104] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=800
+                  - link "42" [ref=e105] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=820
+                  - link "43" [ref=e106] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=840
+                  - link "44" [ref=e107] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=860
+                  - link "45" [ref=e108] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=880
+                  - link "46" [ref=e109] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=900
+                  - link "47" [ref=e110] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=920
+                  - link "48" [ref=e111] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=940
+                  - link "49" [ref=e112] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=960
+                  - link "50" [ref=e113] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=980
+                  - link "51" [ref=e114] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1000
+                  - link "52" [ref=e115] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1020
+                  - text: ...
+                  - link "69" [ref=e116] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1360
+                  - link "»" [ref=e118] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=40
+          - table [ref=e119]:
+            - rowgroup [ref=e120]:
+              - 'row "21 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 09:35:32 PM Yup. That is me. I had to break a casascius bearer bar to get back in…hence my long absence. At any rate, I wouldn''t do business with someone I couldn''t verify out of band. Not with this sum." [ref=e121]':
+                - 'cell "21 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 09:35:32 PM Yup. That is me. I had to break a casascius bearer bar to get back in…hence my long absence. At any rate, I wouldn''t do business with someone I couldn''t verify out of band. Not with this sum." [ref=e122]':
+                  - table [ref=e123]:
+                    - rowgroup [ref=e124]:
+                      - 'row "21 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 09:35:32 PM" [ref=e125]':
+                        - cell "21" [ref=e126]
+                        - 'cell "Economy / Collectibles / Re: [WTS] BitBills" [ref=e127]':
+                          - link "Economy" [ref=e128] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Collectibles" [ref=e129] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=217.0
+                          - text: /
+                          - 'link "Re: [WTS] BitBills" [ref=e130] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1814894.msg18091360#msg18091360
+                        - 'cell "on: March 06, 2017, 09:35:32 PM" [ref=e131]'
+                  - table [ref=e132]:
+                    - rowgroup [ref=e133]:
+                      - row "Yup. That is me. I had to break a casascius bearer bar to get back in…hence my long absence. At any rate, I wouldn't do business with someone I couldn't verify out of band. Not with this sum." [ref=e134]:
+                        - cell "Yup. That is me. I had to break a casascius bearer bar to get back in…hence my long absence. At any rate, I wouldn't do business with someone I couldn't verify out of band. Not with this sum." [ref=e135]:
+                          - generic [ref=e136]:
+                            - text: Yup. That is me. I had to break a casascius bearer bar to get back in…hence my long absence.
+                            - text: At any rate, I wouldn't do business with someone I couldn't verify out of band. Not with this sum.
+                      - row [ref=e137]:
+                        - cell [ref=e138]
+          - table [ref=e139]:
+            - rowgroup [ref=e140]:
+              - 'row "22 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 08:19:20 PM Thanks guys. I also see we are still using SMF version 1 from 2009. Ghetto. Oh well, if anyone serious wants images, I can email them. I''ve been off the forum for a few years, I guess I was kinda hoping things would be different. I do all my forum stuff from an iPhone. Many people live in the post computer world." [ref=e141]':
+                - 'cell "22 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 08:19:20 PM Thanks guys. I also see we are still using SMF version 1 from 2009. Ghetto. Oh well, if anyone serious wants images, I can email them. I''ve been off the forum for a few years, I guess I was kinda hoping things would be different. I do all my forum stuff from an iPhone. Many people live in the post computer world." [ref=e142]':
+                  - table [ref=e143]:
+                    - rowgroup [ref=e144]:
+                      - 'row "22 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 08:19:20 PM" [ref=e145]':
+                        - cell "22" [ref=e146]
+                        - 'cell "Economy / Collectibles / Re: [WTS] BitBills" [ref=e147]':
+                          - link "Economy" [ref=e148] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Collectibles" [ref=e149] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=217.0
+                          - text: /
+                          - 'link "Re: [WTS] BitBills" [ref=e150] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1814894.msg18090683#msg18090683
+                        - 'cell "on: March 06, 2017, 08:19:20 PM" [ref=e151]'
+                  - table [ref=e152]:
+                    - rowgroup [ref=e153]:
+                      - row "Thanks guys. I also see we are still using SMF version 1 from 2009. Ghetto. Oh well, if anyone serious wants images, I can email them. I've been off the forum for a few years, I guess I was kinda hoping things would be different. I do all my forum stuff from an iPhone. Many people live in the post computer world." [ref=e154]:
+                        - cell "Thanks guys. I also see we are still using SMF version 1 from 2009. Ghetto. Oh well, if anyone serious wants images, I can email them. I've been off the forum for a few years, I guess I was kinda hoping things would be different. I do all my forum stuff from an iPhone. Many people live in the post computer world." [ref=e155]:
+                          - generic [ref=e156]: Thanks guys. I also see we are still using SMF version 1 from 2009. Ghetto. Oh well, if anyone serious wants images, I can email them. I've been off the forum for a few years, I guess I was kinda hoping things would be different. I do all my forum stuff from an iPhone. Many people live in the post computer world.
+                      - row [ref=e157]:
+                        - cell [ref=e158]
+          - table [ref=e159]:
+            - rowgroup [ref=e160]:
+              - 'row "23 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 08:11:56 PM Scratching my head on how to attach images. I''m not uploading these to another server and linking…that''s so 1998. Any hints how to attach?" [ref=e161]':
+                - 'cell "23 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 08:11:56 PM Scratching my head on how to attach images. I''m not uploading these to another server and linking…that''s so 1998. Any hints how to attach?" [ref=e162]':
+                  - table [ref=e163]:
+                    - rowgroup [ref=e164]:
+                      - 'row "23 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 08:11:56 PM" [ref=e165]':
+                        - cell "23" [ref=e166]
+                        - 'cell "Economy / Collectibles / Re: [WTS] BitBills" [ref=e167]':
+                          - link "Economy" [ref=e168] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Collectibles" [ref=e169] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=217.0
+                          - text: /
+                          - 'link "Re: [WTS] BitBills" [ref=e170] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1814894.msg18090602#msg18090602
+                        - 'cell "on: March 06, 2017, 08:11:56 PM" [ref=e171]'
+                  - table [ref=e172]:
+                    - rowgroup [ref=e173]:
+                      - row "Scratching my head on how to attach images. I'm not uploading these to another server and linking…that's so 1998. Any hints how to attach?" [ref=e174]:
+                        - cell "Scratching my head on how to attach images. I'm not uploading these to another server and linking…that's so 1998. Any hints how to attach?" [ref=e175]:
+                          - generic [ref=e176]: Scratching my head on how to attach images. I'm not uploading these to another server and linking…that's so 1998. Any hints how to attach?
+                      - row [ref=e177]:
+                        - cell [ref=e178]
+          - table [ref=e179]:
+            - rowgroup [ref=e180]:
+              - row [ref=e181]:
+                - cell [ref=e182]:
+                  - table [ref=e183]:
+                    - rowgroup [ref=e184]:
+                      - 'row "24 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 05:11:41 PM" [ref=e185]':
+                        - cell "24" [ref=e186]
+                        - 'cell "Economy / Collectibles / Re: [WTS] BitBills" [ref=e187]':
+                          - link "Economy" [ref=e188] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Collectibles" [ref=e189] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=217.0
+                          - text: /
+                          - 'link "Re: [WTS] BitBills" [ref=e190] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1814894.msg18088799#msg18088799
+                        - 'cell "on: March 06, 2017, 05:11:41 PM" [ref=e191]'
+                  - table [ref=e192]:
+                    - rowgroup [ref=e193]:
+                      - 'row "Quote from: HabBear on March 06, 2017, 05:00:58 PM Quote from: bg002h on March 06, 2017, 04:26:58 PM Quote from: HabBear on March 06, 2017, 05:50:35 AM Interest comes with pics, got any to share? What''s their condition? Are you the only owner? What''s the ask or are you waiting for the best bid? I gotta swing by the bank to get pics. I am the only owner. Once I find a potential buyer we can discuss price. They are in good shape. Thanks for the update! I hadn''t heard of these before your listing here. First physical representation of bitcoin, indeed! Here''s some additional background on BitBills for interested parties: https://en.bitcoin.it/wiki/Bitbills The announcement thread, back before it was bitcoin_talk_.org (via wayback): http://web.archive.org/web/20110515100056/http://bitcointalk.org/index.php?topic=7724.0;all" [ref=e194]':
+                        - 'cell "Quote from: HabBear on March 06, 2017, 05:00:58 PM Quote from: bg002h on March 06, 2017, 04:26:58 PM Quote from: HabBear on March 06, 2017, 05:50:35 AM Interest comes with pics, got any to share? What''s their condition? Are you the only owner? What''s the ask or are you waiting for the best bid? I gotta swing by the bank to get pics. I am the only owner. Once I find a potential buyer we can discuss price. They are in good shape. Thanks for the update! I hadn''t heard of these before your listing here. First physical representation of bitcoin, indeed! Here''s some additional background on BitBills for interested parties: https://en.bitcoin.it/wiki/Bitbills The announcement thread, back before it was bitcoin_talk_.org (via wayback): http://web.archive.org/web/20110515100056/http://bitcointalk.org/index.php?topic=7724.0;all" [ref=e195]':
+                          - generic [ref=e196]:
+                            - 'link "Quote from: HabBear on March 06, 2017, 05:00:58 PM" [ref=e198] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=1814894.msg18088708#msg18088708
+                            - generic [ref=e199]:
+                              - 'link "Quote from: bg002h on March 06, 2017, 04:26:58 PM" [ref=e201] [cursor=pointer]':
+                                - /url: https://bitcointalk.org/index.php?topic=1814894.msg18088398#msg18088398
+                              - generic [ref=e202]:
+                                - 'link "Quote from: HabBear on March 06, 2017, 05:50:35 AM" [ref=e204] [cursor=pointer]':
+                                  - /url: https://bitcointalk.org/index.php?topic=1814894.msg18082393#msg18082393
+                                - generic [ref=e205]:
+                                  - text: Interest comes with pics, got any to share? What's their condition? Are you the only owner?
+                                  - text: What's the ask or are you waiting for the best bid?
+                                - text: I gotta swing by the bank to get pics. I am the only owner. Once I find a potential buyer we can discuss price. They are in good shape.
+                              - text: Thanks for the update!
+                              - text: "I hadn't heard of these before your listing here. First physical representation of bitcoin, indeed! Here's some additional background on BitBills for interested parties:"
+                              - link "https://en.bitcoin.it/wiki/Bitbills" [ref=e207] [cursor=pointer]:
+                                - /url: https://en.bitcoin.it/wiki/Bitbills
+                            - text: "The announcement thread, back before it was bitcoin_talk_.org (via wayback):"
+                            - link "http://web.archive.org/web/20110515100056/http://bitcointalk.org/index.php?topic=7724.0;all" [ref=e208] [cursor=pointer]:
+                              - /url: http://web.archive.org/web/20110515100056/http://bitcointalk.org/index.php?topic=7724.0;all
+                      - row [ref=e209]:
+                        - cell [ref=e210]
+          - table [ref=e211]:
+            - rowgroup [ref=e212]:
+              - 'row "25 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 04:26:58 PM Quote from: HabBear on March 06, 2017, 05:50:35 AM Interest comes with pics, got any to share? What''s their condition? Are you the only owner? What''s the ask or are you waiting for the best bid? I gotta swing by the bank to get pics. I am the only owner. Once I find a potential buyer we can discuss price. They are in good shape." [ref=e213]':
+                - 'cell "25 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 04:26:58 PM Quote from: HabBear on March 06, 2017, 05:50:35 AM Interest comes with pics, got any to share? What''s their condition? Are you the only owner? What''s the ask or are you waiting for the best bid? I gotta swing by the bank to get pics. I am the only owner. Once I find a potential buyer we can discuss price. They are in good shape." [ref=e214]':
+                  - table [ref=e215]:
+                    - rowgroup [ref=e216]:
+                      - 'row "25 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 04:26:58 PM" [ref=e217]':
+                        - cell "25" [ref=e218]
+                        - 'cell "Economy / Collectibles / Re: [WTS] BitBills" [ref=e219]':
+                          - link "Economy" [ref=e220] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Collectibles" [ref=e221] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=217.0
+                          - text: /
+                          - 'link "Re: [WTS] BitBills" [ref=e222] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1814894.msg18088398#msg18088398
+                        - 'cell "on: March 06, 2017, 04:26:58 PM" [ref=e223]'
+                  - table [ref=e224]:
+                    - rowgroup [ref=e225]:
+                      - 'row "Quote from: HabBear on March 06, 2017, 05:50:35 AM Interest comes with pics, got any to share? What''s their condition? Are you the only owner? What''s the ask or are you waiting for the best bid? I gotta swing by the bank to get pics. I am the only owner. Once I find a potential buyer we can discuss price. They are in good shape." [ref=e226]':
+                        - 'cell "Quote from: HabBear on March 06, 2017, 05:50:35 AM Interest comes with pics, got any to share? What''s their condition? Are you the only owner? What''s the ask or are you waiting for the best bid? I gotta swing by the bank to get pics. I am the only owner. Once I find a potential buyer we can discuss price. They are in good shape." [ref=e227]':
+                          - generic [ref=e228]:
+                            - 'link "Quote from: HabBear on March 06, 2017, 05:50:35 AM" [ref=e230] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=1814894.msg18082393#msg18082393
+                            - generic [ref=e231]:
+                              - text: Interest comes with pics, got any to share? What's their condition? Are you the only owner?
+                              - text: What's the ask or are you waiting for the best bid?
+                            - text: I gotta swing by the bank to get pics. I am the only owner. Once I find a potential buyer we can discuss price. They are in good shape.
+                      - row [ref=e232]:
+                        - cell [ref=e233]
+          - table [ref=e234]:
+            - rowgroup [ref=e235]:
+              - 'row "26 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 04:25:27 PM Quote from: Blazed on March 06, 2017, 05:59:48 AM You willing to sell them individually or only as a set? I''m hoping to do it as a set. It would be nice to keep the history together." [ref=e236]':
+                - 'cell "26 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 04:25:27 PM Quote from: Blazed on March 06, 2017, 05:59:48 AM You willing to sell them individually or only as a set? I''m hoping to do it as a set. It would be nice to keep the history together." [ref=e237]':
+                  - table [ref=e238]:
+                    - rowgroup [ref=e239]:
+                      - 'row "26 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 04:25:27 PM" [ref=e240]':
+                        - cell "26" [ref=e241]
+                        - 'cell "Economy / Collectibles / Re: [WTS] BitBills" [ref=e242]':
+                          - link "Economy" [ref=e243] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Collectibles" [ref=e244] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=217.0
+                          - text: /
+                          - 'link "Re: [WTS] BitBills" [ref=e245] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1814894.msg18088379#msg18088379
+                        - 'cell "on: March 06, 2017, 04:25:27 PM" [ref=e246]'
+                  - table [ref=e247]:
+                    - rowgroup [ref=e248]:
+                      - 'row "Quote from: Blazed on March 06, 2017, 05:59:48 AM You willing to sell them individually or only as a set? I''m hoping to do it as a set. It would be nice to keep the history together." [ref=e249]':
+                        - 'cell "Quote from: Blazed on March 06, 2017, 05:59:48 AM You willing to sell them individually or only as a set? I''m hoping to do it as a set. It would be nice to keep the history together." [ref=e250]':
+                          - generic [ref=e251]:
+                            - 'link "Quote from: Blazed on March 06, 2017, 05:59:48 AM" [ref=e253] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=1814894.msg18082453#msg18082453
+                            - generic [ref=e254]: You willing to sell them individually or only as a set?
+                            - text: I'm hoping to do it as a set. It would be nice to keep the history together.
+                      - row [ref=e255]:
+                        - cell [ref=e256]
+          - table [ref=e257]:
+            - rowgroup [ref=e258]:
+              - row [ref=e259]:
+                - cell [ref=e260]:
+                  - table [ref=e261]:
+                    - rowgroup [ref=e262]:
+                      - 'row "27 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 04:24:13 PM" [ref=e263]':
+                        - cell "27" [ref=e264]
+                        - 'cell "Economy / Collectibles / Re: [WTS] BitBills" [ref=e265]':
+                          - link "Economy" [ref=e266] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Collectibles" [ref=e267] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=217.0
+                          - text: /
+                          - 'link "Re: [WTS] BitBills" [ref=e268] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1814894.msg18088366#msg18088366
+                        - 'cell "on: March 06, 2017, 04:24:13 PM" [ref=e269]'
+                  - table [ref=e270]:
+                    - rowgroup [ref=e271]:
+                      - row [ref=e272]:
+                        - cell [ref=e273]:
+                          - generic [ref=e274]:
+                            - 'link "Quote from: Gatorelf on March 06, 2017, 11:12:38 AM" [ref=e276] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=1814894.msg18084942#msg18084942
+                            - generic [ref=e277]:
+                              - text: I'm interested just not that rich lol
+                              - text: wow a complete set, I see you are a legendary member would love to hear the history of bitbills ( who funded etc) if you have some to share and of your purchase. 2011?
+                            - text: I ordered two full sets in May 2011. BitBills was gone by September. I don't know how many they ever sent off, but demand was huge and it took forever for some people to get theirs. I x-rayed a one bitcoin bill just to see if any metal pigment from the private key could be discovered. I posted on it here at the time. I believe I sent that bill to Luke Dashjr (he was new to mining back then and was one of the few, if not the only, mining pool operator being verifiably honest about appropriately sharing block rewards with miners).
+                            - text: BitBills were the idea of a couple guys at MIT. One guy's name was Doug Feigelson. They must've gotten good legal advice early on because they were not around long. I believe they tried to patent this general idea of using a sticker to hide something, but I'm not certain how such an obvious idea could've been patented in the first place.
+                            - text: Anyhow, I defunded the incomplete set in 2012 or 2013. I still have a cut open 5, 10, and 20. I have no idea when the last full set was sold.
+                      - row [ref=e278]:
+                        - cell [ref=e279]
+          - table [ref=e280]:
+            - rowgroup [ref=e281]:
+              - 'row "28 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 05:21:14 AM A full set entails 1, 5, 10, and 20 bitcoin bills. All funded, of course." [ref=e282]':
+                - 'cell "28 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 05:21:14 AM A full set entails 1, 5, 10, and 20 bitcoin bills. All funded, of course." [ref=e283]':
+                  - table [ref=e284]:
+                    - rowgroup [ref=e285]:
+                      - 'row "28 Economy / Collectibles / Re: [WTS] BitBills on: March 06, 2017, 05:21:14 AM" [ref=e286]':
+                        - cell "28" [ref=e287]
+                        - 'cell "Economy / Collectibles / Re: [WTS] BitBills" [ref=e288]':
+                          - link "Economy" [ref=e289] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Collectibles" [ref=e290] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=217.0
+                          - text: /
+                          - 'link "Re: [WTS] BitBills" [ref=e291] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1814894.msg18082221#msg18082221
+                        - 'cell "on: March 06, 2017, 05:21:14 AM" [ref=e292]'
+                  - table [ref=e293]:
+                    - rowgroup [ref=e294]:
+                      - row "A full set entails 1, 5, 10, and 20 bitcoin bills. All funded, of course." [ref=e295]:
+                        - cell "A full set entails 1, 5, 10, and 20 bitcoin bills. All funded, of course." [ref=e296]:
+                          - generic [ref=e297]: A full set entails 1, 5, 10, and 20 bitcoin bills. All funded, of course.
+                      - row [ref=e298]:
+                        - cell [ref=e299]
+          - table [ref=e300]:
+            - rowgroup [ref=e301]:
+              - 'row "29 Economy / Collectibles / Re: Casascius 25 BTC 2011 -- anyone interested? on: March 06, 2017, 12:42:59 AM I have one of these too that I''d be willing to sell. But it''s in much worse shape than this one. I tried selling it on OB, but no takers. The one in this thread looks like a gem. Anyhow, people with more than 25 bitcoins are hard to come by. I may end up defunding mine." [ref=e302]':
+                - 'cell "29 Economy / Collectibles / Re: Casascius 25 BTC 2011 -- anyone interested? on: March 06, 2017, 12:42:59 AM I have one of these too that I''d be willing to sell. But it''s in much worse shape than this one. I tried selling it on OB, but no takers. The one in this thread looks like a gem. Anyhow, people with more than 25 bitcoins are hard to come by. I may end up defunding mine." [ref=e303]':
+                  - table [ref=e304]:
+                    - rowgroup [ref=e305]:
+                      - 'row "29 Economy / Collectibles / Re: Casascius 25 BTC 2011 -- anyone interested? on: March 06, 2017, 12:42:59 AM" [ref=e306]':
+                        - cell "29" [ref=e307]
+                        - 'cell "Economy / Collectibles / Re: Casascius 25 BTC 2011 -- anyone interested?" [ref=e308]':
+                          - link "Economy" [ref=e309] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Collectibles" [ref=e310] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=217.0
+                          - text: /
+                          - 'link "Re: Casascius 25 BTC 2011 -- anyone interested?" [ref=e311] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1811869.msg18080596#msg18080596
+                        - 'cell "on: March 06, 2017, 12:42:59 AM" [ref=e312]'
+                  - table [ref=e313]:
+                    - rowgroup [ref=e314]:
+                      - row "I have one of these too that I'd be willing to sell. But it's in much worse shape than this one. I tried selling it on OB, but no takers. The one in this thread looks like a gem. Anyhow, people with more than 25 bitcoins are hard to come by. I may end up defunding mine." [ref=e315]:
+                        - cell "I have one of these too that I'd be willing to sell. But it's in much worse shape than this one. I tried selling it on OB, but no takers. The one in this thread looks like a gem. Anyhow, people with more than 25 bitcoins are hard to come by. I may end up defunding mine." [ref=e316]:
+                          - generic [ref=e317]: I have one of these too that I'd be willing to sell. But it's in much worse shape than this one. I tried selling it on OB, but no takers. The one in this thread looks like a gem. Anyhow, people with more than 25 bitcoins are hard to come by. I may end up defunding mine.
+                      - row [ref=e318]:
+                        - cell [ref=e319]
+          - table [ref=e320]:
+            - rowgroup [ref=e321]:
+              - 'row "30 Economy / Collectibles / Re: [NOW AVAILABLE] - Autographs for the Encyclopedia of Physical Bitcoins on: March 06, 2017, 12:38:45 AM There were cards before coins. BitBills were the first I had. I also had a 10 bitcoin card I bought early on via bitpay…I forget what it was called. But I''m sure there were more cards than those two examples early on. http://web.archive.org/web/20110712131117/http://bitbills.com/" [ref=e322]':
+                - 'cell "30 Economy / Collectibles / Re: [NOW AVAILABLE] - Autographs for the Encyclopedia of Physical Bitcoins on: March 06, 2017, 12:38:45 AM There were cards before coins. BitBills were the first I had. I also had a 10 bitcoin card I bought early on via bitpay…I forget what it was called. But I''m sure there were more cards than those two examples early on. http://web.archive.org/web/20110712131117/http://bitbills.com/" [ref=e323]':
+                  - table [ref=e324]:
+                    - rowgroup [ref=e325]:
+                      - 'row "30 Economy / Collectibles / Re: [NOW AVAILABLE] - Autographs for the Encyclopedia of Physical Bitcoins on: March 06, 2017, 12:38:45 AM" [ref=e326]':
+                        - cell "30" [ref=e327]
+                        - 'cell "Economy / Collectibles / Re: [NOW AVAILABLE] - Autographs for the Encyclopedia of Physical Bitcoins" [ref=e328]':
+                          - link "Economy" [ref=e329] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Collectibles" [ref=e330] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=217.0
+                          - text: /
+                          - 'link "Re: [NOW AVAILABLE] - Autographs for the Encyclopedia of Physical Bitcoins" [ref=e331] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1717024.msg18080563#msg18080563
+                        - 'cell "on: March 06, 2017, 12:38:45 AM" [ref=e332]'
+                  - table [ref=e333]:
+                    - rowgroup [ref=e334]:
+                      - row "There were cards before coins. BitBills were the first I had. I also had a 10 bitcoin card I bought early on via bitpay…I forget what it was called. But I'm sure there were more cards than those two examples early on. http://web.archive.org/web/20110712131117/http://bitbills.com/" [ref=e335]:
+                        - cell "There were cards before coins. BitBills were the first I had. I also had a 10 bitcoin card I bought early on via bitpay…I forget what it was called. But I'm sure there were more cards than those two examples early on. http://web.archive.org/web/20110712131117/http://bitbills.com/" [ref=e336]:
+                          - generic [ref=e337]:
+                            - text: There were cards before coins. BitBills were the first I had. I also had a 10 bitcoin card I bought early on via bitpay…I forget what it was called. But I'm sure there were more cards than those two examples early on.
+                            - link "http://web.archive.org/web/20110712131117/http://bitbills.com/" [ref=e338] [cursor=pointer]:
+                              - /url: http://web.archive.org/web/20110712131117/http://bitbills.com/
+                      - row [ref=e339]:
+                        - cell [ref=e340]
+          - table [ref=e341]:
+            - rowgroup [ref=e342]:
+              - 'row "31 Economy / Collectibles / [WTS] BitBills [GONE] on: March 05, 2017, 09:07:40 PM Anybody remember BitBills? They predate casascius coins. More here, from Wayback: http://web.archive.org/web/20120518080136/http://bitbills.com/ Anyhow, I have a set to sell to sell if anyone is interested." [ref=e343]':
+                - 'cell "31 Economy / Collectibles / [WTS] BitBills [GONE] on: March 05, 2017, 09:07:40 PM Anybody remember BitBills? They predate casascius coins. More here, from Wayback: http://web.archive.org/web/20120518080136/http://bitbills.com/ Anyhow, I have a set to sell to sell if anyone is interested." [ref=e344]':
+                  - table [ref=e345]:
+                    - rowgroup [ref=e346]:
+                      - 'row "31 Economy / Collectibles / [WTS] BitBills [GONE] on: March 05, 2017, 09:07:40 PM" [ref=e347]':
+                        - cell "31" [ref=e348]
+                        - cell "Economy / Collectibles / [WTS] BitBills [GONE]" [ref=e349]:
+                          - link "Economy" [ref=e350] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Collectibles" [ref=e351] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=217.0
+                          - text: /
+                          - link "[WTS] BitBills [GONE]" [ref=e352] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?topic=1814894.msg18078918#msg18078918
+                        - 'cell "on: March 05, 2017, 09:07:40 PM" [ref=e353]'
+                  - table [ref=e354]:
+                    - rowgroup [ref=e355]:
+                      - 'row "Anybody remember BitBills? They predate casascius coins. More here, from Wayback: http://web.archive.org/web/20120518080136/http://bitbills.com/ Anyhow, I have a set to sell to sell if anyone is interested." [ref=e356]':
+                        - 'cell "Anybody remember BitBills? They predate casascius coins. More here, from Wayback: http://web.archive.org/web/20120518080136/http://bitbills.com/ Anyhow, I have a set to sell to sell if anyone is interested." [ref=e357]':
+                          - generic [ref=e358]:
+                            - text: "Anybody remember BitBills? They predate casascius coins. More here, from Wayback:"
+                            - link "http://web.archive.org/web/20120518080136/http://bitbills.com/" [ref=e359] [cursor=pointer]:
+                              - /url: http://web.archive.org/web/20120518080136/http://bitbills.com/
+                            - text: Anyhow, I have a set to sell to sell if anyone is interested.
+                      - row [ref=e360]:
+                        - cell [ref=e361]
+          - table [ref=e362]:
+            - rowgroup [ref=e363]:
+              - 'row "32 Bitcoin / Bitcoin Discussion / Re: Your biggest bitcoin regrets? on: February 17, 2017, 03:45:16 AM Quote from: Us3rm0d on February 16, 2017, 08:53:47 AM I would say transferring 1200 btc to a soft wallet on and external drive and loosing it back in 2010! Gaaahhh! Shocked I tried for a year to remember my wallet address too Just got back in the end of the year and my mind is freaking blown!! I could have been a millionaire Congrats on your third post! I''m worse off than you! I stopped mining cause it was gonna take a roughly a week to mine the next block of 50 bitcoins…and I never even tried GPU mining. I had decent hardware for early GPU mining too. Dumb." [ref=e364]':
+                - 'cell "32 Bitcoin / Bitcoin Discussion / Re: Your biggest bitcoin regrets? on: February 17, 2017, 03:45:16 AM Quote from: Us3rm0d on February 16, 2017, 08:53:47 AM I would say transferring 1200 btc to a soft wallet on and external drive and loosing it back in 2010! Gaaahhh! Shocked I tried for a year to remember my wallet address too Just got back in the end of the year and my mind is freaking blown!! I could have been a millionaire Congrats on your third post! I''m worse off than you! I stopped mining cause it was gonna take a roughly a week to mine the next block of 50 bitcoins…and I never even tried GPU mining. I had decent hardware for early GPU mining too. Dumb." [ref=e365]':
+                  - table [ref=e366]:
+                    - rowgroup [ref=e367]:
+                      - 'row "32 Bitcoin / Bitcoin Discussion / Re: Your biggest bitcoin regrets? on: February 17, 2017, 03:45:16 AM" [ref=e368]':
+                        - cell "32" [ref=e369]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Your biggest bitcoin regrets?" [ref=e370]':
+                          - link "Bitcoin" [ref=e371] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e372] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Your biggest bitcoin regrets?" [ref=e373] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=305952.msg17878989#msg17878989
+                        - 'cell "on: February 17, 2017, 03:45:16 AM" [ref=e374]'
+                  - table [ref=e375]:
+                    - rowgroup [ref=e376]:
+                      - 'row "Quote from: Us3rm0d on February 16, 2017, 08:53:47 AM I would say transferring 1200 btc to a soft wallet on and external drive and loosing it back in 2010! Gaaahhh! Shocked I tried for a year to remember my wallet address too Just got back in the end of the year and my mind is freaking blown!! I could have been a millionaire Congrats on your third post! I''m worse off than you! I stopped mining cause it was gonna take a roughly a week to mine the next block of 50 bitcoins…and I never even tried GPU mining. I had decent hardware for early GPU mining too. Dumb." [ref=e377]':
+                        - 'cell "Quote from: Us3rm0d on February 16, 2017, 08:53:47 AM I would say transferring 1200 btc to a soft wallet on and external drive and loosing it back in 2010! Gaaahhh! Shocked I tried for a year to remember my wallet address too Just got back in the end of the year and my mind is freaking blown!! I could have been a millionaire Congrats on your third post! I''m worse off than you! I stopped mining cause it was gonna take a roughly a week to mine the next block of 50 bitcoins…and I never even tried GPU mining. I had decent hardware for early GPU mining too. Dumb." [ref=e378]':
+                          - generic [ref=e379]:
+                            - 'link "Quote from: Us3rm0d on February 16, 2017, 08:53:47 AM" [ref=e381] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=305952.msg17869596#msg17869596
+                            - generic [ref=e382]:
+                              - text: I would say transferring 1200 btc to a soft wallet on and external drive and loosing it back in 2010! Gaaahhh!
+                              - img "Shocked" [ref=e383]
+                              - text: I tried for a year to remember my wallet address too
+                              - text: Just got back in the end of the year and my mind is freaking blown!! I could have been a millionaire
+                            - text: Congrats on your third post!
+                            - text: I'm worse off than you! I stopped mining cause it was gonna take a roughly a week to mine the next block of 50 bitcoins…and I never even tried GPU mining. I had decent hardware for early GPU mining too. Dumb.
+                      - row [ref=e384]:
+                        - cell [ref=e385]
+          - table [ref=e386]:
+            - rowgroup [ref=e387]:
+              - 'row "33 Economy / Web Wallets / Re: Blockchain.info may have made me lost 30,000 USD PLEASE help- $10 to solver on: February 12, 2017, 10:45:11 PM That many transactions will cost a small fortune to consolidate. Like about 1 bitcoin in fees. You could save money on that step in a post-segwit world, but tx fees may be higher by then. With fees getting higher and higher, your use of the bitcoin blockchain for small payments is being pushed out. There''s no telling if bitcoin will be useful as a money for stuff like this or not in the future. Maybe we all should consolidate before our outputs are not worth spending (beware the privacy issues here!)." [ref=e388]':
+                - 'cell "33 Economy / Web Wallets / Re: Blockchain.info may have made me lost 30,000 USD PLEASE help- $10 to solver on: February 12, 2017, 10:45:11 PM That many transactions will cost a small fortune to consolidate. Like about 1 bitcoin in fees. You could save money on that step in a post-segwit world, but tx fees may be higher by then. With fees getting higher and higher, your use of the bitcoin blockchain for small payments is being pushed out. There''s no telling if bitcoin will be useful as a money for stuff like this or not in the future. Maybe we all should consolidate before our outputs are not worth spending (beware the privacy issues here!)." [ref=e389]':
+                  - table [ref=e390]:
+                    - rowgroup [ref=e391]:
+                      - 'row "33 Economy / Web Wallets / Re: Blockchain.info may have made me lost 30,000 USD PLEASE help- $10 to solver on: February 12, 2017, 10:45:11 PM" [ref=e392]':
+                        - cell "33" [ref=e393]
+                        - 'cell "Economy / Web Wallets / Re: Blockchain.info may have made me lost 30,000 USD PLEASE help- $10 to solver" [ref=e394]':
+                          - link "Economy" [ref=e395] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#3
+                          - text: /
+                          - link "Web Wallets" [ref=e396] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=222.0
+                          - text: /
+                          - 'link "Re: Blockchain.info may have made me lost 30,000 USD PLEASE help- $10 to solver" [ref=e397] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1787852.msg17830706#msg17830706
+                        - 'cell "on: February 12, 2017, 10:45:11 PM" [ref=e398]'
+                  - table [ref=e399]:
+                    - rowgroup [ref=e400]:
+                      - row "That many transactions will cost a small fortune to consolidate. Like about 1 bitcoin in fees. You could save money on that step in a post-segwit world, but tx fees may be higher by then. With fees getting higher and higher, your use of the bitcoin blockchain for small payments is being pushed out. There's no telling if bitcoin will be useful as a money for stuff like this or not in the future. Maybe we all should consolidate before our outputs are not worth spending (beware the privacy issues here!)." [ref=e401]:
+                        - cell "That many transactions will cost a small fortune to consolidate. Like about 1 bitcoin in fees. You could save money on that step in a post-segwit world, but tx fees may be higher by then. With fees getting higher and higher, your use of the bitcoin blockchain for small payments is being pushed out. There's no telling if bitcoin will be useful as a money for stuff like this or not in the future. Maybe we all should consolidate before our outputs are not worth spending (beware the privacy issues here!)." [ref=e402]:
+                          - generic [ref=e403]:
+                            - text: That many transactions will cost a small fortune to consolidate. Like about 1 bitcoin in fees. You could save money on that step in a post-segwit world, but tx fees may be higher by then.
+                            - text: With fees getting higher and higher, your use of the bitcoin blockchain for small payments is being pushed out. There's no telling if bitcoin will be useful as a money for stuff like this or not in the future.
+                            - text: Maybe we all should consolidate before our outputs are not worth spending (beware the privacy issues here!).
+                      - row [ref=e404]:
+                        - cell [ref=e405]
+          - table [ref=e406]:
+            - rowgroup [ref=e407]:
+              - 'row "34 Bitcoin / Bitcoin Discussion / Re: How did you first hear about bitcoin? on: February 12, 2017, 03:34:52 AM Slashdot. July 2010. http://news.slashdot.org/story/10/07/11/1747245/bitcoin-releases-version-03 Back then, you could CPU mine effectively with a laptop: http://uofr.net/~bcg/a.jpg" [ref=e408]':
+                - 'cell "34 Bitcoin / Bitcoin Discussion / Re: How did you first hear about bitcoin? on: February 12, 2017, 03:34:52 AM Slashdot. July 2010. http://news.slashdot.org/story/10/07/11/1747245/bitcoin-releases-version-03 Back then, you could CPU mine effectively with a laptop: http://uofr.net/~bcg/a.jpg" [ref=e409]':
+                  - table [ref=e410]:
+                    - rowgroup [ref=e411]:
+                      - 'row "34 Bitcoin / Bitcoin Discussion / Re: How did you first hear about bitcoin? on: February 12, 2017, 03:34:52 AM" [ref=e412]':
+                        - cell "34" [ref=e413]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: How did you first hear about bitcoin?" [ref=e414]':
+                          - link "Bitcoin" [ref=e415] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e416] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: How did you first hear about bitcoin?" [ref=e417] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1132607.msg17821035#msg17821035
+                        - 'cell "on: February 12, 2017, 03:34:52 AM" [ref=e418]'
+                  - table [ref=e419]:
+                    - rowgroup [ref=e420]:
+                      - 'row "Slashdot. July 2010. http://news.slashdot.org/story/10/07/11/1747245/bitcoin-releases-version-03 Back then, you could CPU mine effectively with a laptop: http://uofr.net/~bcg/a.jpg" [ref=e421]':
+                        - 'cell "Slashdot. July 2010. http://news.slashdot.org/story/10/07/11/1747245/bitcoin-releases-version-03 Back then, you could CPU mine effectively with a laptop: http://uofr.net/~bcg/a.jpg" [ref=e422]':
+                          - generic [ref=e423]:
+                            - text: Slashdot. July 2010.
+                            - link "http://news.slashdot.org/story/10/07/11/1747245/bitcoin-releases-version-03" [ref=e424] [cursor=pointer]:
+                              - /url: http://news.slashdot.org/story/10/07/11/1747245/bitcoin-releases-version-03
+                            - text: "Back then, you could CPU mine effectively with a laptop:"
+                            - link "http://uofr.net/~bcg/a.jpg" [ref=e425] [cursor=pointer]:
+                              - /url: http://uofr.net/~bcg/a.jpg
+                      - row [ref=e426]:
+                        - cell [ref=e427]
+          - table [ref=e428]:
+            - rowgroup [ref=e429]:
+              - 'row "35 Bitcoin / Bitcoin Discussion / Re: History of Hardforks and Rollbacks in Bitcoin on: February 12, 2017, 01:48:32 AM Quote from: Clopaderian on February 11, 2017, 07:54:30 PM In the early days of the currency, blocks could carry up to 36MB of transaction data apiece. However, in 2010, this was reduced to 1MB. That is, mining using a node before that change would today produce blocks rejected by recent later versions. This is by definition a hard fork, isn''t it? Soft fork=more restrictions. Hard fork = fewer restrictions." [ref=e430]':
+                - 'cell "35 Bitcoin / Bitcoin Discussion / Re: History of Hardforks and Rollbacks in Bitcoin on: February 12, 2017, 01:48:32 AM Quote from: Clopaderian on February 11, 2017, 07:54:30 PM In the early days of the currency, blocks could carry up to 36MB of transaction data apiece. However, in 2010, this was reduced to 1MB. That is, mining using a node before that change would today produce blocks rejected by recent later versions. This is by definition a hard fork, isn''t it? Soft fork=more restrictions. Hard fork = fewer restrictions." [ref=e431]':
+                  - table [ref=e432]:
+                    - rowgroup [ref=e433]:
+                      - 'row "35 Bitcoin / Bitcoin Discussion / Re: History of Hardforks and Rollbacks in Bitcoin on: February 12, 2017, 01:48:32 AM" [ref=e434]':
+                        - cell "35" [ref=e435]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: History of Hardforks and Rollbacks in Bitcoin" [ref=e436]':
+                          - link "Bitcoin" [ref=e437] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e438] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: History of Hardforks and Rollbacks in Bitcoin" [ref=e439] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=702755.msg17820503#msg17820503
+                        - 'cell "on: February 12, 2017, 01:48:32 AM" [ref=e440]'
+                  - table [ref=e441]:
+                    - rowgroup [ref=e442]:
+                      - 'row "Quote from: Clopaderian on February 11, 2017, 07:54:30 PM In the early days of the currency, blocks could carry up to 36MB of transaction data apiece. However, in 2010, this was reduced to 1MB. That is, mining using a node before that change would today produce blocks rejected by recent later versions. This is by definition a hard fork, isn''t it? Soft fork=more restrictions. Hard fork = fewer restrictions." [ref=e443]':
+                        - 'cell "Quote from: Clopaderian on February 11, 2017, 07:54:30 PM In the early days of the currency, blocks could carry up to 36MB of transaction data apiece. However, in 2010, this was reduced to 1MB. That is, mining using a node before that change would today produce blocks rejected by recent later versions. This is by definition a hard fork, isn''t it? Soft fork=more restrictions. Hard fork = fewer restrictions." [ref=e444]':
+                          - generic [ref=e445]:
+                            - 'link "Quote from: Clopaderian on February 11, 2017, 07:54:30 PM" [ref=e447] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=702755.msg17818109#msg17818109
+                            - generic [ref=e448]:
+                              - text: In the early days of the currency, blocks could carry up to 36MB of transaction data apiece. However, in 2010, this was reduced to 1MB.
+                              - text: That is, mining using a node before that change would today produce blocks rejected by recent later versions. This is by definition a hard fork, isn't it?
+                            - text: Soft fork=more restrictions. Hard fork = fewer restrictions.
+                      - row [ref=e449]:
+                        - cell [ref=e450]
+          - table [ref=e451]:
+            - rowgroup [ref=e452]:
+              - 'row "36 Bitcoin / Mining / Re: NastyMining Solar Project on: February 12, 2017, 01:38:28 AM Very cool. I just moved to Arizona, so this may be in my future!" [ref=e453]':
+                - 'cell "36 Bitcoin / Mining / Re: NastyMining Solar Project on: February 12, 2017, 01:38:28 AM Very cool. I just moved to Arizona, so this may be in my future!" [ref=e454]':
+                  - table [ref=e455]:
+                    - rowgroup [ref=e456]:
+                      - 'row "36 Bitcoin / Mining / Re: NastyMining Solar Project on: February 12, 2017, 01:38:28 AM" [ref=e457]':
+                        - cell "36" [ref=e458]
+                        - 'cell "Bitcoin / Mining / Re: NastyMining Solar Project" [ref=e459]':
+                          - link "Bitcoin" [ref=e460] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Mining" [ref=e461] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=14.0
+                          - text: /
+                          - 'link "Re: NastyMining Solar Project" [ref=e462] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1783328.msg17820454#msg17820454
+                        - 'cell "on: February 12, 2017, 01:38:28 AM" [ref=e463]'
+                  - table [ref=e464]:
+                    - rowgroup [ref=e465]:
+                      - row "Very cool. I just moved to Arizona, so this may be in my future!" [ref=e466]:
+                        - cell "Very cool. I just moved to Arizona, so this may be in my future!" [ref=e467]:
+                          - generic [ref=e468]: Very cool. I just moved to Arizona, so this may be in my future!
+                      - row [ref=e469]:
+                        - cell [ref=e470]
+          - table [ref=e471]:
+            - rowgroup [ref=e472]:
+              - row [ref=e473]:
+                - cell [ref=e474]:
+                  - table [ref=e475]:
+                    - rowgroup [ref=e476]:
+                      - 'row "37 Bitcoin / Bitcoin Discussion / Re: In Europe, bank transfers are free and unlimited for all on: February 12, 2017, 12:28:39 AM" [ref=e477]':
+                        - cell "37" [ref=e478]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: In Europe, bank transfers are free and unlimited for all" [ref=e479]':
+                          - link "Bitcoin" [ref=e480] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e481] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: In Europe, bank transfers are free and unlimited for all" [ref=e482] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1785667.msg17820080#msg17820080
+                        - 'cell "on: February 12, 2017, 12:28:39 AM" [ref=e483]'
+                  - table [ref=e484]:
+                    - rowgroup [ref=e485]:
+                      - row [ref=e486]:
+                        - cell [ref=e487]:
+                          - generic [ref=e488]:
+                            - 'link "Quote from: countryfree on February 11, 2017, 12:12:19 AM" [ref=e490] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=1785667.msg17808487#msg17808487
+                            - generic [ref=e491]:
+                              - text: Just a reminder.
+                              - text: From my European bank account, I can make a SEPA transfer to any other European bank account for free. No fee. Nothing to pay. It normally takes one and a half business day so BTC is faster, way faster, but that's not always the case because of the congestion. That used to be exceptional but it's getting the norm. The only way out is a higher fee, which makes BTC less appealing.
+                              - text: Sure, BTC remains the best option for extra-European transfers, and BTC still has the advantage of privacy by being difficult to link to one individual, but all miners and developers shall never forget there's competition out there. Banks, Paypal, Skrill... If BTC wants to be the best, it really needs to be the best.
+                            - text: Money is what money does. I want a SEPA account! Why bother with bitcoin just to get fast and cheap transactions? There's a better alternative for that. Artificially capping size of blocks limits the usefulness of the network. Bitcoin is not worth $100 in its current implementation, imho.
+                      - row [ref=e492]:
+                        - cell [ref=e493]
+          - table [ref=e494]:
+            - rowgroup [ref=e495]:
+              - 'row "38 Bitcoin / Bitcoin Discussion / Re: Bitcoin transaction larger than 1 MB? on: February 10, 2017, 03:55:42 PM Block size limit is one of many limits in the consensus rules. There are limits to the number of signature / hash operations as well as input and outputs. I''m not sure you could make a >1MB transaction that conformed to these ancillary rules, but if you did no one would add it to a block. It might make for a decent attack vector though…to clog up the relay function of the network." [ref=e496]':
+                - 'cell "38 Bitcoin / Bitcoin Discussion / Re: Bitcoin transaction larger than 1 MB? on: February 10, 2017, 03:55:42 PM Block size limit is one of many limits in the consensus rules. There are limits to the number of signature / hash operations as well as input and outputs. I''m not sure you could make a >1MB transaction that conformed to these ancillary rules, but if you did no one would add it to a block. It might make for a decent attack vector though…to clog up the relay function of the network." [ref=e497]':
+                  - table [ref=e498]:
+                    - rowgroup [ref=e499]:
+                      - 'row "38 Bitcoin / Bitcoin Discussion / Re: Bitcoin transaction larger than 1 MB? on: February 10, 2017, 03:55:42 PM" [ref=e500]':
+                        - cell "38" [ref=e501]
+                        - 'cell "Bitcoin / Bitcoin Discussion / Re: Bitcoin transaction larger than 1 MB?" [ref=e502]':
+                          - link "Bitcoin" [ref=e503] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#1
+                          - text: /
+                          - link "Bitcoin Discussion" [ref=e504] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=1.0
+                          - text: /
+                          - 'link "Re: Bitcoin transaction larger than 1 MB?" [ref=e505] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1785165.msg17804349#msg17804349
+                        - 'cell "on: February 10, 2017, 03:55:42 PM" [ref=e506]'
+                  - table [ref=e507]:
+                    - rowgroup [ref=e508]:
+                      - row "Block size limit is one of many limits in the consensus rules. There are limits to the number of signature / hash operations as well as input and outputs. I'm not sure you could make a >1MB transaction that conformed to these ancillary rules, but if you did no one would add it to a block. It might make for a decent attack vector though…to clog up the relay function of the network." [ref=e509]:
+                        - cell "Block size limit is one of many limits in the consensus rules. There are limits to the number of signature / hash operations as well as input and outputs. I'm not sure you could make a >1MB transaction that conformed to these ancillary rules, but if you did no one would add it to a block. It might make for a decent attack vector though…to clog up the relay function of the network." [ref=e510]:
+                          - generic [ref=e511]: Block size limit is one of many limits in the consensus rules. There are limits to the number of signature / hash operations as well as input and outputs. I'm not sure you could make a >1MB transaction that conformed to these ancillary rules, but if you did no one would add it to a block. It might make for a decent attack vector though…to clog up the relay function of the network.
+                      - row [ref=e512]:
+                        - cell [ref=e513]
+          - table [ref=e514]:
+            - rowgroup [ref=e515]:
+              - 'row "39 Other / Meta / Re: Password reset request from a donator on: February 07, 2017, 03:21:29 AM Quote from: Cyrus on February 06, 2017, 03:19:48 AM Welcome back! Thx. I learned I was one of the first 500 or so accounts on the forum. Pretty neat! It''s a bit busier than when I lost access in 2015!" [ref=e516]':
+                - 'cell "39 Other / Meta / Re: Password reset request from a donator on: February 07, 2017, 03:21:29 AM Quote from: Cyrus on February 06, 2017, 03:19:48 AM Welcome back! Thx. I learned I was one of the first 500 or so accounts on the forum. Pretty neat! It''s a bit busier than when I lost access in 2015!" [ref=e517]':
+                  - table [ref=e518]:
+                    - rowgroup [ref=e519]:
+                      - 'row "39 Other / Meta / Re: Password reset request from a donator on: February 07, 2017, 03:21:29 AM" [ref=e520]':
+                        - cell "39" [ref=e521]
+                        - 'cell "Other / Meta / Re: Password reset request from a donator" [ref=e522]':
+                          - link "Other" [ref=e523] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#4
+                          - text: /
+                          - link "Meta" [ref=e524] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=24.0
+                          - text: /
+                          - 'link "Re: Password reset request from a donator" [ref=e525] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1744597.msg17761134#msg17761134
+                        - 'cell "on: February 07, 2017, 03:21:29 AM" [ref=e526]'
+                  - table [ref=e527]:
+                    - rowgroup [ref=e528]:
+                      - 'row "Quote from: Cyrus on February 06, 2017, 03:19:48 AM Welcome back! Thx. I learned I was one of the first 500 or so accounts on the forum. Pretty neat! It''s a bit busier than when I lost access in 2015!" [ref=e529]':
+                        - 'cell "Quote from: Cyrus on February 06, 2017, 03:19:48 AM Welcome back! Thx. I learned I was one of the first 500 or so accounts on the forum. Pretty neat! It''s a bit busier than when I lost access in 2015!" [ref=e530]':
+                          - generic [ref=e531]:
+                            - 'link "Quote from: Cyrus on February 06, 2017, 03:19:48 AM" [ref=e533] [cursor=pointer]':
+                              - /url: https://bitcointalk.org/index.php?topic=1744597.msg17749260#msg17749260
+                            - generic [ref=e534]: Welcome back!
+                            - text: Thx. I learned I was one of the first 500 or so accounts on the forum. Pretty neat! It's a bit busier than when I lost access in 2015!
+                      - row [ref=e535]:
+                        - cell [ref=e536]
+          - table [ref=e537]:
+            - rowgroup [ref=e538]:
+              - 'row "40 Other / Meta / Re: Password reset request from a donator on: February 05, 2017, 11:50:20 PM And I''m back. Glad to see the forum still running. Now I''ve got my password in two password managers so it won''t get overwritten by mistake (iOS safari doesn''t keep priors). Thanks again everyone!" [ref=e539]':
+                - 'cell "40 Other / Meta / Re: Password reset request from a donator on: February 05, 2017, 11:50:20 PM And I''m back. Glad to see the forum still running. Now I''ve got my password in two password managers so it won''t get overwritten by mistake (iOS safari doesn''t keep priors). Thanks again everyone!" [ref=e540]':
+                  - table [ref=e541]:
+                    - rowgroup [ref=e542]:
+                      - 'row "40 Other / Meta / Re: Password reset request from a donator on: February 05, 2017, 11:50:20 PM" [ref=e543]':
+                        - cell "40" [ref=e544]
+                        - 'cell "Other / Meta / Re: Password reset request from a donator" [ref=e545]':
+                          - link "Other" [ref=e546] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php#4
+                          - text: /
+                          - link "Meta" [ref=e547] [cursor=pointer]:
+                            - /url: https://bitcointalk.org/index.php?board=24.0
+                          - text: /
+                          - 'link "Re: Password reset request from a donator" [ref=e548] [cursor=pointer]':
+                            - /url: https://bitcointalk.org/index.php?topic=1744597.msg17748293#msg17748293
+                        - 'cell "on: February 05, 2017, 11:50:20 PM" [ref=e549]'
+                  - table [ref=e550]:
+                    - rowgroup [ref=e551]:
+                      - row "And I'm back. Glad to see the forum still running. Now I've got my password in two password managers so it won't get overwritten by mistake (iOS safari doesn't keep priors). Thanks again everyone!" [ref=e552]:
+                        - cell "And I'm back. Glad to see the forum still running. Now I've got my password in two password managers so it won't get overwritten by mistake (iOS safari doesn't keep priors). Thanks again everyone!" [ref=e553]:
+                          - generic [ref=e554]:
+                            - text: And I'm back. Glad to see the forum still running. Now I've got my password in two password managers so it won't get overwritten by mistake (iOS safari doesn't keep priors).
+                            - text: Thanks again everyone!
+                      - row [ref=e555]:
+                        - cell [ref=e556]
+          - table [ref=e557]:
+            - rowgroup [ref=e558]:
+              - 'row "Pages: « 1 [2] 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 ... 69 »" [ref=e559]':
+                - 'cell "Pages: « 1 [2] 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 ... 69 »" [ref=e560]':
+                  - text: "Pages:"
+                  - link "«" [ref=e562] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=0
+                  - link "1" [ref=e563] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=0
+                  - text: "[2]"
+                  - link "3" [ref=e564] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=40
+                  - link "4" [ref=e565] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=60
+                  - link "5" [ref=e566] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=80
+                  - link "6" [ref=e567] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=100
+                  - link "7" [ref=e568] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=120
+                  - link "8" [ref=e569] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=140
+                  - link "9" [ref=e570] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=160
+                  - link "10" [ref=e571] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=180
+                  - link "11" [ref=e572] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=200
+                  - link "12" [ref=e573] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=220
+                  - link "13" [ref=e574] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=240
+                  - link "14" [ref=e575] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=260
+                  - link "15" [ref=e576] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=280
+                  - link "16" [ref=e577] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=300
+                  - link "17" [ref=e578] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=320
+                  - link "18" [ref=e579] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=340
+                  - link "19" [ref=e580] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=360
+                  - link "20" [ref=e581] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=380
+                  - link "21" [ref=e582] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=400
+                  - link "22" [ref=e583] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=420
+                  - link "23" [ref=e584] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=440
+                  - link "24" [ref=e585] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=460
+                  - link "25" [ref=e586] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=480
+                  - link "26" [ref=e587] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=500
+                  - link "27" [ref=e588] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=520
+                  - link "28" [ref=e589] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=540
+                  - link "29" [ref=e590] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=560
+                  - link "30" [ref=e591] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=580
+                  - link "31" [ref=e592] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=600
+                  - link "32" [ref=e593] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=620
+                  - link "33" [ref=e594] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=640
+                  - link "34" [ref=e595] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=660
+                  - link "35" [ref=e596] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=680
+                  - link "36" [ref=e597] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=700
+                  - link "37" [ref=e598] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=720
+                  - link "38" [ref=e599] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=740
+                  - link "39" [ref=e600] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=760
+                  - link "40" [ref=e601] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=780
+                  - link "41" [ref=e602] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=800
+                  - link "42" [ref=e603] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=820
+                  - link "43" [ref=e604] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=840
+                  - link "44" [ref=e605] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=860
+                  - link "45" [ref=e606] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=880
+                  - link "46" [ref=e607] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=900
+                  - link "47" [ref=e608] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=920
+                  - link "48" [ref=e609] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=940
+                  - link "49" [ref=e610] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=960
+                  - link "50" [ref=e611] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=980
+                  - link "51" [ref=e612] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1000
+                  - link "52" [ref=e613] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1020
+                  - text: ...
+                  - link "69" [ref=e614] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=1360
+                  - link "»" [ref=e616] [cursor=pointer]:
+                    - /url: https://bitcointalk.org/index.php?action=profile;u=413;sa=showPosts;start=40
+  - table [ref=e618]:
+    - rowgroup [ref=e619]:
+      - row "Powered by MySQL Powered by PHP Powered by SMF 1.1.19 | SMF © 2006-2009, Simple Machines Valid XHTML 1.0! Valid CSS!" [ref=e620]:
+        - cell "Powered by MySQL Powered by PHP" [ref=e621]:
+          - link "Powered by MySQL" [ref=e622] [cursor=pointer]:
+            - /url: http://www.mysql.com/
+            - img "Powered by MySQL" [ref=e623]
+          - link "Powered by PHP" [ref=e624] [cursor=pointer]:
+            - /url: http://www.php.net/
+            - img "Powered by PHP" [ref=e625]
+        - cell "Powered by SMF 1.1.19 | SMF © 2006-2009, Simple Machines" [ref=e626]:
+          - generic [ref=e627]:
+            - link "Powered by SMF 1.1.19" [ref=e628] [cursor=pointer]:
+              - /url: http://www.simplemachines.org/
+            - text: "|"
+            - link "SMF © 2006-2009, Simple Machines" [ref=e629] [cursor=pointer]:
+              - /url: http://www.simplemachines.org/about/copyright.php
+        - cell "Valid XHTML 1.0! Valid CSS!" [ref=e630]:
+          - link "Valid XHTML 1.0!" [ref=e631] [cursor=pointer]:
+            - /url: http://validator.w3.org/check/referer
+            - img "Valid XHTML 1.0!" [ref=e632]
+          - link "Valid CSS!" [ref=e633] [cursor=pointer]:
+            - /url: http://jigsaw.w3.org/css-validator/check/referer
+            - img "Valid CSS!" [ref=e634]

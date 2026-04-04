@@ -5,6 +5,9 @@ Computes FFT of residuals (log10(price) - log10(model_ref)) for 4 models:
 across 6 combinations (daily/weekly sampling x rectangular/Hann/Blackman-Harris windows).
 All panels use log-time FFT.
 
+Grid layout: 6 rows (sampling × window) × 4 columns (model residuals).
+Each column shows all window/sampling combos for one model — easy window comparison.
+
 Loads the project's own trusted model_data.pkl (built by tools/build_bm_model.py).
 """
 
@@ -194,56 +197,60 @@ def main():
     residuals = data["residuals"]
     print(f"  t range: {t[0]:.3f} .. {t[-1]:.3f} years (N={len(t)})")
 
-    rows = ["BM floor", "BM composite", "LPPL", "LP2"]
+    # 4 columns: one per model residual
+    cols = ["BM floor", "BM composite", "LPPL", "LP2"]
 
-    # 6 columns: 2 sampling rates x 3 windows
-    cols = [
-        ("Daily - None",             "daily",  "none"),
-        ("Daily - Hann",             "daily",  "hann"),
-        ("Daily - Blackman-Harris",  "daily",  "blackmanharris"),
-        ("Weekly - None",            "weekly", "none"),
-        ("Weekly - Hann",            "weekly", "hann"),
-        ("Weekly - Blackman-Harris", "weekly", "blackmanharris"),
+    # 6 rows: sampling × window combos (top to bottom)
+    rows = [
+        ("Daily · None",             "daily",  "none"),
+        ("Daily · Hann",             "daily",  "hann"),
+        ("Daily · Blackman-Harris",  "daily",  "blackmanharris"),
+        ("Weekly · None",            "weekly", "none"),
+        ("Weekly · Hann",            "weekly", "hann"),
+        ("Weekly · Blackman-Harris", "weekly", "blackmanharris"),
     ]
 
-    fig, axes = plt.subplots(4, 6, figsize=(22, 14), facecolor=FIG_BG)
+    fig, axes = plt.subplots(6, 4, figsize=(16, 20), facecolor=FIG_BG)
 
     t0, t1 = float(t[0]), float(t[-1])
     lnt_span = np.log(t1) - np.log(t0)
 
-    for i, row_name in enumerate(rows):
-        y = residuals[row_name]
-        color = ROW_COLORS[row_name]
+    for i, (row_label, sampling, window_name) in enumerate(rows):
+        fpy = 365.0 if sampling == "daily" else 52.0
+        n_target = int((t1 - t0) * fpy)
+        samples_per_unit = n_target / lnt_span
 
-        for j, (col_label, sampling, window_name) in enumerate(cols):
+        for j, col_name in enumerate(cols):
             ax = axes[i, j]
+            y = residuals[col_name]
+            color = ROW_COLORS[col_name]
 
-            fpy = 365.0 if sampling == "daily" else 52.0
-            n_target = int((t1 - t0) * fpy)
-            samples_per_unit = n_target / lnt_span
             freqs, power = compute_fft_log(t, y, samples_per_unit, window_name)
             peaks = find_top_peaks(freqs, power, top_n=3, min_freq=1.0)
 
-            title = f"{row_name}  -  {col_label}"
-            plot_panel(ax, freqs, power, color, title, peaks)
+            # Panel title: model name only (row label is on the left Y axis)
+            plot_panel(ax, freqs, power, color, col_name, peaks)
 
             if len(freqs) > 1:
                 ax.set_xlim(0, 45.0)
 
-            if i == 3:
+            # Bottom row: x-axis label
+            if i == 5:
                 ax.set_xlabel("log-time angular freq  omega",
                               color=TEXT, fontsize=8)
+
+            # Left column: row label (sampling × window)
             if j == 0:
-                ax.set_ylabel(f"power ({row_name})", color=TEXT, fontsize=8)
+                ax.set_ylabel(row_label, color=TEXT, fontsize=8)
 
     fig.suptitle("Residual FFT Spectrum — Log-time · Window Comparison",
-                 color=TEXT, fontsize=15, y=0.995)
-    fig.text(0.5, 0.965,
-             "Rows: residual models  ·  Cols: sampling rate x window function  ·  "
-             "Blue dashed = LPPL w1=7.38, w2=20.9",
+                 color=TEXT, fontsize=15, y=0.998)
+    fig.text(0.5, 0.972,
+             "Cols: model residuals  ·  Rows: sampling rate × window function  ·  "
+             "Blue dashed = LPPL ω₁=7.38, ω₂=20.9",
              ha="center", color="#99aaff", fontsize=9, style="italic")
 
-    plt.tight_layout(rect=(0, 0, 1, 0.955))
+    plt.tight_layout(rect=(0, 0, 1, 0.965))
 
     svg_path = os.path.join(PROJ_ROOT, "residual_fft.svg")
     jpg_path = os.path.join(PROJ_ROOT, "residual_fft.jpg")
@@ -256,12 +263,12 @@ def main():
     print("\n--- Top peaks (log-time, daily sampling, Hann window) ---")
     n_target = int((t1 - t0) * 365.0)
     samples_per_unit = n_target / lnt_span
-    for row_name in rows:
-        y = residuals[row_name]
+    for col_name in cols:
+        y = residuals[col_name]
         freqs, power = compute_fft_log(t, y, samples_per_unit, "hann")
         peaks = find_top_peaks(freqs, power, top_n=5, min_freq=1.0)
         peaks_str = ", ".join(f"w={p[0]:.2f}" for p in peaks)
-        print(f"  {row_name:14s}: {peaks_str}")
+        print(f"  {col_name:14s}: {peaks_str}")
 
 
 if __name__ == "__main__":

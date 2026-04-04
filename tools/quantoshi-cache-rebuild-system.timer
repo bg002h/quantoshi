@@ -1,0 +1,19 @@
+# quantoshi-cache-rebuild-system.timer — 90-day cache rebuild timer (SYSTEM-level).
+#
+# Pair with quantoshi-cache-rebuild-system.service.
+# See that file for install instructions.
+
+[Unit]
+Description=90-day cache rebuild timer
+
+[Timer]
+# Every 90 days
+OnUnitActiveSec=90d
+# First run ~6 hours after enabling (lets you validate the setup)
+OnBootSec=6h
+# Catch up if the dev machine was off during the scheduled fire time
+Persistent=true
+Unit=quantoshi-cache-rebuild.service
+
+[Install]
+WantedBy=timers.target

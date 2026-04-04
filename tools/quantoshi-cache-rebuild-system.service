@@ -1,0 +1,35 @@
+# quantoshi-cache-rebuild-system.service — 90-day cache rebuild (SYSTEM-level).
+#
+# SYSTEM service — runs as user `bcg` but managed by the system unit
+# manager. No linger required, always fires regardless of login state.
+#
+# INSTALL (as root):
+#   sudo cp tools/quantoshi-cache-rebuild-system.service /etc/systemd/system/quantoshi-cache-rebuild.service
+#   sudo cp tools/quantoshi-cache-rebuild-system.timer /etc/systemd/system/quantoshi-cache-rebuild.timer
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now quantoshi-cache-rebuild.timer
+#
+# CHECK STATUS:
+#   systemctl status quantoshi-cache-rebuild.timer
+#   systemctl list-timers quantoshi-cache-rebuild.timer
+#
+# MANUAL RUN:
+#   sudo systemctl start quantoshi-cache-rebuild.service
+#   journalctl -u quantoshi-cache-rebuild.service -f
+
+[Unit]
+Description=Quantoshi cache rebuild (MC + Citadel bands)
+
+[Service]
+Type=oneshot
+User=bcg
+Group=bcg
+WorkingDirectory=/scratch/code/bitcoinprojections
+ExecStart=/scratch/code/bitcoinprojections/tools/rebuild_caches.sh
+# Environment: need HOME for SSH + any user config the script depends on
+Environment=HOME=/home/bcg
+# Logs land in journald; view with: journalctl -u quantoshi-cache-rebuild -f
+StandardOutput=journal
+StandardError=journal
+# Builds can take 6-10 hours total
+TimeoutStartSec=12h

@@ -144,6 +144,15 @@ pre code {{ background:none; padding:0; }}
         except FileNotFoundError:
             return "Not generated yet", 404
 
+    @server.route("/E")
+    def _regime_shift():
+        svg_path = os.path.join(os.path.dirname(__file__), "..", "regime_shift.svg")
+        try:
+            with open(svg_path) as f:
+                return f.read(), 200, {"Content-Type": "image/svg+xml"}
+        except FileNotFoundError:
+            return "Not generated yet", 404
+
     @server.route("/C")
     def _sensitivity_pq():
         svg_path = os.path.join(os.path.dirname(__file__), "..", "sensitivity_pq.svg")

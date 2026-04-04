@@ -490,7 +490,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     _apply_sans_typography(layout)
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
-    _add_date_hover(fig, m.genesis)
+    _add_date_hover(fig, m.genesis, recovery=True)
     _apply_config_annotation(fig, p, "bub", show_qr=True, show_mc=False)
     wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
     _apply_watermark(fig, pos=wm_pos)

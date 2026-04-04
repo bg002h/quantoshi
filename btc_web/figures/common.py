@@ -574,15 +574,53 @@ def _t_to_datestr(t_val, genesis):
     return (genesis + pd.Timedelta(days=float(t_val) * 365.25)).strftime("%b %d, %Y")
 
 
-def _add_date_hover(fig, genesis, fmt=None):
+def _compute_recovery(x_arr, y_arr):
+    """For each point, find time until price recovers (first future point >= current).
+
+    Returns a list of recovery strings: "Recovery: X.X yr" or "" if monotonic/last.
+    Uses running-max-from-right to compute in O(n).
+    """
+    import numpy as np
+    x = np.asarray(x_arr, dtype=float)
+    y = np.asarray(y_arr, dtype=float)
+    n = len(y)
+    if n == 0:
+        return []
+    result = [""] * n
+    # For each i, find smallest j > i where y[j] >= y[i]
+    # Scan forward — for non-monotonic traces this matters at peaks
+    for i in range(n - 1):
+        if y[i] <= 0:
+            continue
+        # Quick check: if next point is >= current, no drawdown
+        if y[i + 1] >= y[i]:
+            continue
+        # There's a drawdown — scan forward for recovery
+        for j in range(i + 1, n):
+            if y[j] >= y[i]:
+                dt = float(x[j] - x[i])
+                if dt >= 0.1:
+                    result[i] = f"Recovery: {dt:.1f} yr"
+                break
+        else:
+            # Never recovers within the trace
+            result[i] = "No recovery in range"
+    return result
+
+
+def _add_date_hover(fig, genesis, fmt=None, recovery=False):
     """Add calendar-date hover to all traces whose x-axis is t (years since genesis).
 
     Traces with hoverinfo="skip" are left alone.  Traces whose x values fall
     outside the plausible t range (0.5–100) are left alone (e.g. Mode B
     supercharge uses delay-years or quantile fractions as x).
+
+    recovery=True: compute price recovery time and append to hover.
     """
     if fmt is None:
         fmt = _HOVER_FMT_USD
+    _rec_suffix = "<br>%{customdata[1]}" if recovery else ""
+    _fmt_with_rec = fmt.replace("<extra>", _rec_suffix + "<extra>") if recovery else fmt
     for trace in fig.data:
         if getattr(trace, "hoverinfo", None) == "skip":
             continue
@@ -598,12 +636,24 @@ def _add_date_hover(fig, genesis, fmt=None):
         if x_min < 0.3 or x_max > 120:
             continue
         try:
-            dates = [[_t_to_datestr(t, genesis)] for t in x]
+            dates = [_t_to_datestr(t, genesis) for t in x]
         except (TypeError, ValueError):
             continue
-        trace.customdata = dates
-        if not getattr(trace, "hovertemplate", None):
-            trace.hovertemplate = fmt
+        if recovery:
+            y = trace.y
+            if y is not None and len(y) == len(x):
+                rec = _compute_recovery(x, y)
+                trace.customdata = [[d, r] for d, r in zip(dates, rec)]
+            else:
+                trace.customdata = [[d, ""] for d in dates]
+            if not getattr(trace, "hovertemplate", None):
+                trace.hovertemplate = _fmt_with_rec
+            elif getattr(trace, "hovertemplate", None) == fmt:
+                trace.hovertemplate = _fmt_with_rec
+        else:
+            trace.customdata = [[d] for d in dates]
+            if not getattr(trace, "hovertemplate", None):
+                trace.hovertemplate = fmt
 
 
 def _finalize_chart(traces: list, layout: dict, p: dict, tab: str,

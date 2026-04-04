@@ -611,12 +611,12 @@ class LPPLModel:
 
     # Best-fit parameters from differential evolution on full BTC history
     # (genesis = 2009-07-25)
-    _A   = -1.155084
-    _B   =  5.081303
-    _C   =  0.734286
-    _W   =  7.563897
-    _PHI =  1.371053
-    _D   =  0.608874
+    _A   = -1.154109
+    _B   =     5.079736
+    _C   =     0.734046
+    _W   =     7.559286
+    _PHI =     1.375727
+    _D   =     0.608173
 
     def __init__(self, price_years, price_prices, quantiles):
         # Compute residual sigma from historical data

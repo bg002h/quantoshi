@@ -142,6 +142,19 @@ def run_model_build() -> None:
     else:
         print("EF model build complete — model_data_ef.pkl updated.")
 
+    # LPPL model: refit parameters to updated price data
+    print("\nRefitting LPPL parameters …")
+    lppl_script = REPO_ROOT / "tools" / "fit_lppl.py"
+
+    res = subprocess.run([sys.executable, str(lppl_script), "--update"],
+                         capture_output=True, text=True)
+    if res.returncode != 0:
+        print("LPPL FIT FAILED — stderr (last 3 000 chars):")
+        print(res.stderr[-3000:])
+        print("WARNING: LPPL fit failed. Continuing with existing parameters.")
+    else:
+        print(res.stdout.strip().split("\n")[-1])  # "btc_core.py updated."
+
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
@@ -237,7 +250,7 @@ def main() -> None:
     print()
     print("Review the new rows above, then deploy when ready:")
     print()
-    print("  git add BitcoinPricesDaily.csv model_data.pkl model_data_ef.pkl")
+    print("  git add BitcoinPricesDaily.csv model_data.pkl model_data_ef.pkl btc_core.py")
     print("  git commit -m 'Update price data'")
     print("  git push origin master")
     print("  ssh root@89.167.70.45 \\")

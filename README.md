@@ -254,3 +254,13 @@ you back up and restore your lot data manually.
 For a public-facing server, run behind a reverse proxy (nginx/caddy) with
 TLS, or use the Tor onion service which provides end-to-end encryption by
 default.
+
+---
+
+## Further documentation
+
+- [Architecture guide](docs/architecture.md) — system design overview
+- [User manual](docs/user_manual.md) — tab-by-tab feature guide for end users
+- [LPPL model family](docs/lppl_models.md) — 10 LPPL variants, weighting, regime shifts, why LP3 is the honest default
+- [Cache architecture](docs/cache_architecture.md) — figure caches, MC cache, Citadel bands, refit schedules
+- [Analysis pages](docs/analysis_pages.md) — static SVG pages at /A through /E (sensitivity sweeps, FFT, regime detection)

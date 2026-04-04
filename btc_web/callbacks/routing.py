@@ -216,55 +216,8 @@ _app_ctx.app.clientside_callback(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Bubble sub-view deep-linking (/1.2 → Forward CAGR)
-# ══════════════════════════════════════════════════════════════════════════════
-
-@callback(
-    Output("bub-view-mode", "data", allow_duplicate=True),
-    Output("bub-price-wrap", "style", allow_duplicate=True),
-    Output("bub-cagr-wrap", "style", allow_duplicate=True),
-    Output("bub-view-price", "outline", allow_duplicate=True),
-    Output("bub-view-cagr", "outline", allow_duplicate=True),
-    Output("bub-scale-controls", "style", allow_duplicate=True),
-    Output("bub-bubble-panel", "style", allow_duplicate=True),
-    Output("bub-cagr-fwd-wrap", "style", allow_duplicate=True),
-    Output("bub-xrange", "value", allow_duplicate=True),
-    Output("bub-cagr-fwd-yrs", "value", allow_duplicate=True),
-    Output("bub-cagr-hover-today", "data", allow_duplicate=True),
-    Input("url", "pathname"),
-    prevent_initial_call=True,
-)
-def deep_link_cagr(pathname):
-    from dash import no_update
-    pathname = _norm(pathname)
-    if not pathname or not pathname.startswith("/1.2"):
-        return (no_update,) * 11
-    _hide = {"display": "none"}
-    _FWD_OPTIONS = [1, 2, 4, 10, 20, 30]
-    fwd_yrs = no_update
-    hover_today = no_update
-    # Parse /1.2.N.B
-    parts = pathname[1:].split(".")  # ["1", "2"] or ["1","2","N"] or ["1","2","N","B"]
-    if len(parts) >= 3:
-        try:
-            n = int(parts[2])
-            if 1 <= n <= len(_FWD_OPTIONS):
-                fwd_yrs = _FWD_OPTIONS[n - 1]
-        except ValueError:
-            pass
-    if len(parts) >= 4:
-        try:
-            b = int(parts[3])
-            if b == 1:
-                hover_today = True
-        except ValueError:
-            pass
-    return ("cagr", _hide, {}, True, False, _hide, _hide,
-            {"display": "inline"}, [2025, 2050], fwd_yrs, hover_today)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Bubble sub-view deep-linking (/1.3 → Residuals)
+# Bubble sub-view deep-linking (/1.2 → Forward CAGR, /1.3 → Residuals)
+# Single callback to avoid "Duplicate callback outputs" when both fire on URL change.
 # ══════════════════════════════════════════════════════════════════════════════
 
 @callback(
@@ -275,16 +228,55 @@ def deep_link_cagr(pathname):
     Output("bub-view-price", "outline", allow_duplicate=True),
     Output("bub-view-cagr", "outline", allow_duplicate=True),
     Output("bub-view-resid", "outline", allow_duplicate=True),
+    Output("bub-scale-controls", "style", allow_duplicate=True),
+    Output("bub-bubble-panel", "style", allow_duplicate=True),
+    Output("bub-cagr-fwd-wrap", "style", allow_duplicate=True),
+    Output("bub-xrange", "value", allow_duplicate=True),
+    Output("bub-cagr-fwd-yrs", "value", allow_duplicate=True),
+    Output("bub-cagr-hover-today", "data", allow_duplicate=True),
     Input("url", "pathname"),
     prevent_initial_call=True,
 )
-def deep_link_resid(pathname):
+def deep_link_bub_view(pathname):
     from dash import no_update
     pathname = _norm(pathname)
-    if not pathname or not pathname.startswith("/1.3"):
-        return (no_update,) * 7
+    if not pathname:
+        return (no_update,) * 13
     _hide = {"display": "none"}
-    return ("resid", _hide, _hide, {}, True, True, False)
+
+    if pathname.startswith("/1.3"):
+        # Residuals view
+        return ("resid", _hide, _hide, {},
+                True, True, False,
+                {}, {}, _hide,
+                no_update, no_update, no_update)
+
+    if pathname.startswith("/1.2"):
+        # Forward CAGR view, parse /1.2.N.B
+        _FWD_OPTIONS = [1, 2, 4, 10, 20, 30]
+        fwd_yrs = no_update
+        hover_today = no_update
+        parts = pathname[1:].split(".")
+        if len(parts) >= 3:
+            try:
+                n = int(parts[2])
+                if 1 <= n <= len(_FWD_OPTIONS):
+                    fwd_yrs = _FWD_OPTIONS[n - 1]
+            except ValueError:
+                pass
+        if len(parts) >= 4:
+            try:
+                b = int(parts[3])
+                if b == 1:
+                    hover_today = True
+            except ValueError:
+                pass
+        return ("cagr", _hide, {}, _hide,
+                True, False, True,
+                _hide, _hide, {"display": "inline"},
+                [2025, 2050], fwd_yrs, hover_today)
+
+    return (no_update,) * 13
 
 
 # ══════════════════════════════════════════════════════════════════════════════

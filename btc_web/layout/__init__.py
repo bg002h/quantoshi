@@ -292,6 +292,13 @@ def _build_layout(initial_tab="bubble"):
         message="User Model (U\u2081): Right-click the chart to set P1 and P2 points. "
                 "A power law is fitted through both points to generate quantile bands. "
                 "The model is session-only \u2014 it disappears on page refresh."),
+    dcc.ConfirmDialog(id="lp4-warn-dialog",
+        message="LPPL\u2084 is probably NOT that smart. "
+                "The 4th frequency (ω\u224813 or 17, depending on constraints) is likely an "
+                "intermodulation artifact of the 3 robust oscillations, not a real structural "
+                "feature. See Model Info \u2192 LPPL Weighting & Regime Shifts (/7.6) for why. "
+                "Use LPPL\u2083 if you want a physically defensible fit."),
+    dcc.Store(id="lp4-warn-prev", storage_type="memory", data=[3]),
     dcc.Store(id="journey-store",    storage_type="local",  data=None),
     # ── Splash quote modal ────────────────────────────────────────────────
     dbc.Modal([

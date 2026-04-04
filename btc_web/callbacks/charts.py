@@ -907,6 +907,29 @@ def model_warnings(bub_models, dca_models, ret_models, sc_models, dismissed):
     return False, False, False, dash.no_update
 
 
+# LP4 warning — fires EVERY time 4 is added to lppl-n-freqs (no dismissal)
+_app_ctx.app.clientside_callback(
+    """
+    function(current, previous) {
+        var cur = current || [];
+        var prev = previous || [];
+        // Fire only on transition: 4 not in prev but 4 in cur
+        var had4 = prev.indexOf(4) !== -1;
+        var has4 = cur.indexOf(4) !== -1;
+        if (!had4 && has4) {
+            return [true, cur];
+        }
+        return [window.dash_clientside.no_update, cur];
+    }
+    """,
+    Output("lp4-warn-dialog", "displayed"),
+    Output("lp4-warn-prev", "data"),
+    Input("lppl-n-freqs", "value"),
+    State("lp4-warn-prev", "data"),
+    prevent_initial_call=True,
+)
+
+
 # ── Update Display Models swatches when palette changes ──────────────────────
 
 def _build_model_opts(mc, include_u1=False):

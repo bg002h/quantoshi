@@ -454,6 +454,79 @@ even as bubble amplitude shrinks. $\omega_2$ is **not constrained** to be a harm
                                 "(see FAQ) by extending the idea from power-law slope to "
                                 "oscillation parameters.",
                             ]),
+
+                            html.Hr(),
+                            html.H6("Why LPPL\u2083 (ω\u22487, 9, 21) is the most physically honest model"),
+                            html.P([
+                                "Across ALL fitting configurations we tested (weighted/unweighted, "
+                                "with/without \u03c9=13 excluded, LPPL\u2081 through LPPL\u2084), exactly ",
+                                html.Strong("three"),
+                                " oscillation frequencies appear consistently:",
+                            ]),
+                            _coeff_table([
+                                ("\u03c9 \u2248 7",  "Primary halving cycle (damped, W\u2081)"),
+                                ("\u03c9 \u2248 9",  "Genuine non-harmonic secondary (W\u2083 in LPPL\u2083)"),
+                                ("\u03c9 \u2248 21", "Either 3\u00d7W\u2081 harmonic or distinct structural mode (W\u2082)"),
+                            ]),
+                            html.P([
+                                "These three frequencies ARE present in LPPL\u2083's fit regardless of "
+                                "weighting choice. They're not artifacts of recent-data over-weighting. "
+                                "They're not intermodulation products of each other. They represent the ",
+                                html.Strong("genuine log-periodic structure"),
+                                " in Bitcoin's price history.",
+                            ]),
+                            html.P([
+                                "LPPL\u2082 (2 frequencies) has to discard one of these — the weighting "
+                                "choice determines which. LPPL\u2084 (4 frequencies) adds a 4th that is ",
+                                html.Em("not"),
+                                " robust across constraints (see below). LPPL\u2083 is the Goldilocks fit: "
+                                "rich enough to capture all genuine structure, disciplined enough to "
+                                "not chase intermod artifacts.",
+                            ]),
+                            html.P([
+                                html.Strong("Default recommendation: "),
+                                "LPPL\u2083 is now the default in the LPPL Models config panel.",
+                            ]),
+
+                            html.Hr(),
+                            html.H6("\u26A0 Why LPPL\u2084 is probably NOT that smart"),
+                            html.P([
+                                "When you enable LPPL\u2084 in the config panel, a warning fires. "
+                                "Here's why: only ",
+                                html.Strong("three"),
+                                " frequencies are consistently present across ALL fitting constraints "
+                                "(weighted, unweighted, with/without \u03c9=13 excluded):",
+                            ]),
+                            html.Ul([
+                                html.Li("\u03c9 \u2248 7  — primary halving cycle (damped)"),
+                                html.Li("\u03c9 \u2248 9  — genuine non-harmonic secondary"),
+                                html.Li("\u03c9 \u2248 21 — either 3\u00d7W\u2081 harmonic or genuine 3rd frequency"),
+                            ]),
+                            html.P([
+                                "LPPL\u2084's fourth frequency isn't stable. Under different weightings "
+                                "it appears at ~13 or ~17, and each of these can be explained as an ",
+                                html.Strong("intermodulation product"),
+                                " of the 3 stable frequencies:",
+                            ]),
+                            html.Ul([
+                                html.Li("\u03c9\u224813 \u2248 W\u2082 − W\u2081 = 20.9 − 7.4 = 13.5"),
+                                html.Li("\u03c9\u224817 \u2248 W\u2081 + W\u2083 = 7.1 + 9.9 = 17.0"),
+                            ]),
+                            html.P([
+                                "When we exclude the \u03c9=13 band via the \u201cExclude \u03c9\u224813 "
+                                "intermod\u201d toggle, the optimizer just migrates to the \u03c9\u224817 "
+                                "pocket instead \u2014 suggesting LPPL\u2084's 4th frequency is ",
+                                html.Strong("fundamentally an artifact"),
+                                " rather than a real structural oscillation in Bitcoin's price data. ",
+                                "LPPL\u2083 captures the genuine signal; LPPL\u2084 adds cosmetic complexity.",
+                            ]),
+                            html.P([
+                                html.Strong("Bottom line: "),
+                                "Use LPPL\u2083 (or LPPL\u2082) for physically defensible fits. "
+                                "LPPL\u2084 is available in the config panel for comparison but "
+                                "should be read as \u201cdemonstrates overfitting\u201d not "
+                                "\u201creveals 4th oscillation.\u201d",
+                            ]),
                         ], title="LPPL Weighting & Regime Shifts", item_id="mi-lppl-weighting"),
 
                         # ── 4. Exponential ──

@@ -696,36 +696,37 @@ class LPPLModel:
 
 
 class LPPL2Model(LPPLModel):
-    """Second-order LPPL with a harmonic term (Weierstrass-type).
+    """Two-frequency LPPL with independent oscillation frequencies.
 
-    Fits: log10(price) = A + B*log10(t) + t^(-D) * [C1*cos(W*ln(t)+φ1) + C2*cos(2W*ln(t)+φ2)]
+    Fits: log10(price) = A + B*log10(t) + t^(-D) * [C1*cos(W1*ln(t)+φ1) + C2*cos(W2*ln(t)+φ2)]
 
-    The second cosine at 2× the fundamental frequency captures the ~2-year
-    minor bubble cycle superimposed on the ~4-year major cycle.
+    Two independent log-periodic oscillations sharing a single damping
+    envelope. W1 captures the major ~4-year cycle, W2 finds whatever
+    secondary frequency the data supports (not constrained to 2×W1).
     """
     name = "LPPL\u2082"
     short_name = "lp2"
     legend_name = "LPPL\u2082"
     dash_style = "dashdot"
 
-    # All 8 params jointly fitted by tools/fit_lppl2.py
-    # (base params differ slightly from LPPL due to joint optimization)
-    _A   = -1.130491
-    _B   =  5.045097
-    _C   =  0.725819
-    _W   =  7.229593
-    _PHI =  1.755222
-    _D   =  0.621109
-    _C2  =  0.222484
-    _PHI2 = 2.440912
+    # All 9 params jointly fitted by tools/fit_lppl2.py
+    _A   = -1.166187
+    _B   =     5.084712
+    _C   =     0.540782
+    _W   =     7.378407
+    _PHI =     1.611198
+    _D   =     0.402120
+    _C2  =     0.304489
+    _W2  =    20.885862
+    _PHI2 = -1.119023
 
     def _lppl_log10(self, t):
-        """Evaluate 2nd-order LPPL median in log10 space."""
+        """Evaluate two-frequency LPPL median in log10 space."""
         t = np.asarray(t, float)
         t_safe = np.maximum(t, 0.1)
         envelope = t_safe ** (-self._D)
         term1 = self._C * np.cos(self._W * np.log(t_safe) + self._PHI)
-        term2 = self._C2 * np.cos(2 * self._W * np.log(t_safe) + self._PHI2)
+        term2 = self._C2 * np.cos(self._W2 * np.log(t_safe) + self._PHI2)
         return self._A + self._B * np.log10(t_safe) + envelope * (term1 + term2)
 
 

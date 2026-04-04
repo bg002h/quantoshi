@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Fit 2nd-order LPPL (Weierstrass-type) model to Bitcoin price history.
+"""Fit two-frequency LPPL model to Bitcoin price history.
 
-Model: log10(price) = A + B*log10(t) + t^(-D) * [C1*cos(W*ln(t)+φ1) + C2*cos(2W*ln(t)+φ2)]
+Model: log10(price) = A + B*log10(t) + t^(-D) * [C1*cos(W1*ln(t)+φ1) + C2*cos(W2*ln(t)+φ2)]
 
-Inherits A, B, C(=C1), W, PHI(=φ1), D from the 1st-order LPPL fit,
-then fits the two new parameters C2 and PHI2 (+ optionally refines all 8).
+9 parameters: A, B, C1, W1, PHI1, D (shared damping), C2, W2, PHI2.
+W2 is independent of W1 (not constrained to 2×W1).
 
 Usage:
     btc_venv/bin/python3 tools/fit_lppl2.py              # fit and print
@@ -22,12 +22,12 @@ from model_toolkit.data import load_prices
 from scipy.optimize import differential_evolution
 
 
-def lppl2_log10(t, A, B, C1, W, PHI1, D, C2, PHI2):
-    """Evaluate 2nd-order LPPL model in log10 space."""
+def lppl2_log10(t, A, B, C1, W1, PHI1, D, C2, W2, PHI2):
+    """Evaluate two-frequency LPPL model in log10 space."""
     t_safe = np.maximum(t, 0.1)
     envelope = t_safe ** (-D)
-    term1 = C1 * np.cos(W * np.log(t_safe) + PHI1)
-    term2 = C2 * np.cos(2 * W * np.log(t_safe) + PHI2)
+    term1 = C1 * np.cos(W1 * np.log(t_safe) + PHI1)
+    term2 = C2 * np.cos(W2 * np.log(t_safe) + PHI2)
     return A + B * np.log10(t_safe) + envelope * (term1 + term2)
 
 
@@ -44,31 +44,32 @@ def main():
     lp_fit = log_p[mask]
     print(f"  {len(t_fit)} data points (t >= 1.0)")
 
-    # Read current LPPL params from btc_core.py as starting point
+    # Read current LPPL params as starting point
     sys.path.insert(0, ROOT)
     from btc_core import LPPLModel
     A0, B0, C0 = LPPLModel._A, LPPLModel._B, LPPLModel._C
     W0, PHI0, D0 = LPPLModel._W, LPPLModel._PHI, LPPLModel._D
     print(f"  LPPL base: A={A0:.4f} B={B0:.4f} C={C0:.4f} W={W0:.4f} φ={PHI0:.4f} D={D0:.4f}")
 
-    # Bounds: allow all 8 params to float, with base params near LPPL fit
-    margin = 0.3  # allow ±30% drift from LPPL fit for base params
+    # Bounds: base params near LPPL fit, W2 free to find any frequency
+    margin = 0.3
     bounds = [
-        (A0 - margin, A0 + margin),       # A
-        (B0 - margin, B0 + margin),        # B
-        (max(0.01, C0 - margin), C0 + margin),  # C1
-        (max(2.0, W0 - 1.0), W0 + 1.0),   # W
-        (PHI0 - 0.5, PHI0 + 0.5),         # PHI1
-        (max(0.01, D0 - margin), D0 + margin),  # D
-        (0.0, 2.0),                         # C2 (harmonic amplitude)
-        (-np.pi, np.pi),                    # PHI2 (harmonic phase)
+        (A0 - margin, A0 + margin),              # A
+        (B0 - margin, B0 + margin),               # B
+        (max(0.01, C0 - margin), C0 + margin),    # C1
+        (max(2.0, W0 - 1.5), W0 + 1.5),           # W1
+        (-np.pi, np.pi),                           # PHI1
+        (max(0.01, D0 - margin), D0 + margin),    # D
+        (0.0, 2.0),                                # C2
+        (1.0, 30.0),                               # W2 (free — any frequency)
+        (-np.pi, np.pi),                           # PHI2
     ]
 
     def objective(params):
         pred = lppl2_log10(t_fit, *params)
         return np.sum((lp_fit - pred) ** 2)
 
-    print("Running differential evolution (8 params, may take a few minutes)...")
+    print("Running differential evolution (9 params, may take a few minutes)...")
     result = differential_evolution(
         objective, bounds,
         maxiter=3000,
@@ -78,7 +79,7 @@ def main():
         workers=1,
     )
 
-    A, B, C1, W, PHI1, D, C2, PHI2 = result.x
+    A, B, C1, W1, PHI1, D, C2, W2, PHI2 = result.x
     pred = lppl2_log10(t_fit, *result.x)
     ss_res = np.sum((lp_fit - pred) ** 2)
     ss_tot = np.sum((lp_fit - np.mean(lp_fit)) ** 2)
@@ -91,20 +92,24 @@ def main():
             LM._C * np.maximum(t_fit, 0.1)**(-LM._D) * np.cos(LM._W * np.log(np.maximum(t_fit, 0.1)) + LM._PHI)
     r2_lppl1 = 1.0 - np.sum((lp_fit - pred1) ** 2) / ss_tot
 
-    print(f"\nFitted LPPL₂ parameters:")
+    # Frequency ratio
+    freq_ratio = W2 / W1 if W1 > 0 else 0
+
+    print(f"\nFitted LPPL\u2082 parameters (9-param, free W\u2082):")
     print(f"  A    = {A:.6f}")
     print(f"  B    = {B:.6f}")
     print(f"  C1   = {C1:.6f}")
-    print(f"  W    = {W:.6f}")
+    print(f"  W1   = {W1:.6f}")
     print(f"  PHI1 = {PHI1:.6f}")
     print(f"  D    = {D:.6f}")
-    print(f"  C2   = {C2:.6f}  (harmonic amplitude)")
-    print(f"  PHI2 = {PHI2:.6f}  (harmonic phase)")
-    print(f"  R²   = {r2:.6f}  (vs LPPL₁ R²={r2_lppl1:.6f}, Δ={r2 - r2_lppl1:.6f})")
-    print(f"  σ    = {sigma:.6f}")
+    print(f"  C2   = {C2:.6f}  (second oscillation amplitude)")
+    print(f"  W2   = {W2:.6f}  (second frequency, ratio W2/W1 = {freq_ratio:.3f})")
+    print(f"  PHI2 = {PHI2:.6f}")
+    print(f"  R\u00b2   = {r2:.6f}  (vs LPPL\u2081 R\u00b2={r2_lppl1:.6f}, \u0394={r2 - r2_lppl1:.6f})")
+    print(f"  \u03c3    = {sigma:.6f}")
 
     if C2 < 0.01:
-        print("\n  WARNING: C2 is near zero — second harmonic may not be significant.")
+        print("\n  WARNING: C2 is near zero \u2014 second oscillation may not be significant.")
 
     if update:
         print("\nUpdating btc_core.py...")
@@ -117,13 +122,11 @@ def main():
             src = f.read()
 
         import re
-        # Update all 8 LPPL2Model class attributes
         replacements = [
             ("_A", A), ("_B", B), ("_C", C1),
-            ("_W", W), ("_PHI", PHI1), ("_D", D),
-            ("_C2", C2), ("_PHI2", PHI2),
+            ("_W", W1), ("_PHI", PHI1), ("_D", D),
+            ("_C2", C2), ("_W2", W2), ("_PHI2", PHI2),
         ]
-        # Find the LPPL2Model section
         lp2_pos = src.find("class LPPL2Model")
         if lp2_pos == -1:
             print("  WARNING: could not find LPPL2Model class")
@@ -138,10 +141,8 @@ def main():
                 if old_match:
                     old_line = old_match.group(0)
                     new_line = re.sub(pattern, rf"\g<1>{new_val}", old_line)
-                    # Replace only within the LPPL2Model section
                     new_section = section.replace(old_line, new_line, 1)
                     src = src[:lp2_pos] + new_section + src[lp2_end:]
-                    # Re-find boundaries after edit
                     lp2_pos = src.find("class LPPL2Model")
                     next_class = src.find("\nclass ", lp2_pos + 1)
                     lp2_end = next_class if next_class != -1 else len(src)
@@ -154,7 +155,7 @@ def main():
             f.write(src)
         print("btc_core.py updated.")
     else:
-        print("\nRun with --update to write C2/PHI2 to btc_core.py")
+        print("\nRun with --update to write params to btc_core.py")
 
 
 if __name__ == "__main__":

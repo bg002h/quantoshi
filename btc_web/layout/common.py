@@ -308,6 +308,7 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
         dbc.ButtonGroup([
             dbc.Button("Price", id="bub-view-price", color="primary", size="sm"),
             dbc.Button("Forward CAGR", id="bub-view-cagr", outline=True, color="primary", size="sm"),
+            dbc.Button("Residuals", id="bub-view-resid", outline=True, color="primary", size="sm"),
         ], size="sm"),
         html.Span(id="bub-cagr-fwd-wrap", style={"display": "none"}, children=[
             dcc.Dropdown(id="bub-cagr-fwd-yrs",
@@ -381,6 +382,14 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                         ]),
                     ]),
                     dcc.Store(id="bub-cagr-loading", data=False),
+                ]),
+                # Residuals chart (hidden by default)
+                html.Div(id="bub-resid-wrap", style=_STYLE_HIDDEN, children=[
+                    dcc.Graph(id="bub-resid-graph", style=_STYLE_GRAPH_H,
+                              config={"scrollZoom": False,
+                                      "displayModeBar": "hover",
+                                      "toImageButtonOptions": {"format": "png", "scale": 2,
+                                                               "filename": "btc_residuals"}}),
                 ]),
                 ctx_menu,
             ]),

@@ -119,28 +119,48 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     Output("bub-view-mode", "data"),
     Output("bub-price-wrap", "style"),
     Output("bub-cagr-wrap", "style"),
+    Output("bub-resid-wrap", "style"),
     Output("bub-view-price", "outline"),
     Output("bub-view-cagr", "outline"),
+    Output("bub-view-resid", "outline"),
     Output("bub-scale-controls", "style"),
     Output("bub-bubble-panel", "style"),
     Output("bub-cagr-fwd-wrap", "style"),
     Output("bub-xrange", "value", allow_duplicate=True),
     Input("bub-view-price", "n_clicks"),
     Input("bub-view-cagr", "n_clicks"),
+    Input("bub-view-resid", "n_clicks"),
     State("bub-xrange", "value"),
     prevent_initial_call=True,
 )
-def toggle_bub_view(price_clicks, cagr_clicks, cur_xrange):
+def toggle_bub_view(price_clicks, cagr_clicks, resid_clicks, cur_xrange):
     triggered = ctx.triggered_id
     _hide = {"display": "none"}
     _show_inline = {"display": "inline"}
     if triggered == "bub-view-cagr":
-        # Switch to CAGR default range if at Price default
         xr = [2025, 2050] if cur_xrange == [2010, 2033] else dash.no_update
-        return "cagr", _hide, {}, True, False, _hide, _hide, _show_inline, xr
-    # Switch back to Price default range if at CAGR default
+        return ("cagr", _hide, {}, _hide,
+                True, False, True,
+                _hide, _hide, _show_inline, xr)
+    if triggered == "bub-view-resid":
+        # Residuals: keep same x-range as price view, keep bubble panel visible
+        xr = [2010, 2033] if cur_xrange == [2025, 2050] else dash.no_update
+        return ("resid", _hide, _hide, {},
+                True, True, False,
+                {}, {}, _hide, xr)
+    # Price
     xr = [2010, 2033] if cur_xrange == [2025, 2050] else dash.no_update
-    return "price", {}, _hide, False, True, {}, {}, _hide, xr
+    return ("price", {}, _hide, _hide,
+            False, True, True,
+            {}, {}, _hide, xr)
+
+
+# Hide "N future bubbles" slider in residuals view (doesn't apply to past data)
+_app_ctx.app.clientside_callback(
+    "function(mode) { return mode === 'resid' ? {display: 'none'} : {}; }",
+    Output("bub-n-future-wrap", "style"),
+    Input("bub-view-mode", "data"),
+)
 
 
 # ── CAGR chart for tab 1 ────────────────────────────────────────────────────
@@ -192,6 +212,49 @@ def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
         legend_pos=legend_pos or "outside",
     )
     return _get_cagr_fig(p)
+
+
+# ── Residuals chart for tab 1 ───────────────────────────────────────────────
+
+@callback(
+    Output("bub-resid-graph", "figure"),
+    Input("bub-view-mode", "data"),
+    Input("bub-xrange", "value"),
+    Input("bub-toggles", "value"),
+    Input("bub-xscale", "value"),
+    Input("bub-model-show", "value"),
+    Input("bub-bubble-toggles", "value"),
+    Input("bub-n-future", "value"),
+    Input("bub-legend-pos", "value"),
+    Input("palette-store", "data"),
+    State("user-model-store", "data"),
+    prevent_initial_call=True,
+)
+def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
+                     bub_toggles, n_future, legend_pos, palette_key, user_model_store):
+    from figures.residuals import build_residuals_figure
+    toggles = toggles or []
+    xrange = xrange or [2010, 2033]
+    p = dict(
+        xmin=int(xrange[0]), xmax=int(xrange[1]),
+        active_models=model_show or ["bub"],
+        bub_toggles=bub_toggles or [],
+        n_future=int(n_future) if n_future is not None else 3,
+        palette=palette_key or "default",
+        xscale=xscale or "log",
+        show_legend="show_legend" in toggles,
+        show_today="show_today" in toggles,
+        minor_grid="minor_grid" in toggles,
+        chart_zoom="chart_zoom" in toggles,
+        legend_pos=legend_pos or "outside",
+        user_model=user_model_store,
+    )
+    fig = build_residuals_figure(_app_ctx.M, p)
+    if "chart_zoom" not in toggles:
+        fig.update_layout(dragmode=False)
+        fig.update_xaxes(fixedrange=True)
+        fig.update_yaxes(fixedrange=True)
+    return fig
 
 
 @callback(

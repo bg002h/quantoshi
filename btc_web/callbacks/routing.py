@@ -202,6 +202,7 @@ _app_ctx.app.clientside_callback(
         if (p && /^\\/7\\.\\d+$/.test(p)) { return "model_info"; }
         if (p && /^\\/8\\.\\d+$/.test(p)) { return "faq"; }
         if (p && p.indexOf("/1.2") === 0) { return "bubble"; }
+        if (p && p.indexOf("/1.3") === 0) { return "bubble"; }
         if (p && /^\\/2\\.\\d+$/.test(p)) { return "heatmap"; }
         var tab = map[p];
         return tab ? tab : NU;
@@ -260,6 +261,30 @@ def deep_link_cagr(pathname):
             pass
     return ("cagr", _hide, {}, True, False, _hide, _hide,
             {"display": "inline"}, [2025, 2050], fwd_yrs, hover_today)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Bubble sub-view deep-linking (/1.3 → Residuals)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@callback(
+    Output("bub-view-mode", "data", allow_duplicate=True),
+    Output("bub-price-wrap", "style", allow_duplicate=True),
+    Output("bub-cagr-wrap", "style", allow_duplicate=True),
+    Output("bub-resid-wrap", "style", allow_duplicate=True),
+    Output("bub-view-price", "outline", allow_duplicate=True),
+    Output("bub-view-cagr", "outline", allow_duplicate=True),
+    Output("bub-view-resid", "outline", allow_duplicate=True),
+    Input("url", "pathname"),
+    prevent_initial_call=True,
+)
+def deep_link_resid(pathname):
+    from dash import no_update
+    pathname = _norm(pathname)
+    if not pathname or not pathname.startswith("/1.3"):
+        return (no_update,) * 7
+    _hide = {"display": "none"}
+    return ("resid", _hide, _hide, {}, True, True, False)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

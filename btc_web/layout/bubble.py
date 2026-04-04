@@ -8,7 +8,7 @@ import dash_bootstrap_components as dbc
 import _app_ctx
 from tab_defaults import BUBBLE
 from layout.common import (_tab_hints, _section_card, _row, _lbl,
-                            _STYLE_HIDDEN, _q_panel, _q_panel_with_mode,
+                            _STYLE_HIDDEN, _STYLE_HINT, _q_panel, _q_panel_with_mode,
                             _q_options, _ctrl_card, _legend_pos_dropdown,
                             _chart_tab_layout, _CB_MARGIN, _palette_selector)
 

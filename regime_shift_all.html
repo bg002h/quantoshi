@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LPPL Regime Shift Detection — Quantoshi</title>
+<style>
+body { background:#1a1a2e; color:#cccccc; font-family:system-ui,sans-serif;
+       max-width:1300px; margin:0 auto; padding:24px 16px; line-height:1.5; }
+h1 { color:#00d4ff; font-size:22px; }
+h2 { color:#00d4ff; margin-top:0; }
+a { color:#FF9F40; text-decoration:none; }
+a:hover { color:#FFD080; text-decoration:underline; }
+nav { background:#16213e; padding:12px 16px; border-radius:8px;
+       margin-bottom:24px; border:1px solid #555; }
+nav a { display:inline-block; margin-right:16px; font-size:14px; }
+hr { border:none; border-top:1px solid #444; margin:40px 0; }
+section { margin-bottom:32px; }
+img { max-width:100%; height:auto; display:block; border-radius:6px;
+       margin-top:12px; }
+.back-link { display:inline-block; margin-top:24px; color:#888; }
+.muted { color:#888; font-size:12px; }
+</style>
+</head>
+<body>
+<h1>LPPL Regime Shift Detection</h1>
+<p class="muted">
+Rolling-window LPPL fits tracking parameter evolution over time.
+Generated 2026-04-04 16:06 UTC by <code>tools/regime_shift_all.py</code>.
+Regenerate manually — not auto-refreshed.
+</p>
+<nav>
+<strong>Jump to:</strong>
+<a href="#lp1-5yr">LPPL₁ (5yr)</a>
+<a href="#lp2-5yr">LPPL₂ (5yr)</a>
+<a href="#lp3-7yr">LPPL₃ (7yr)</a>
+<a href="#lp3-9yr">LPPL₃ (9yr)</a>
+</nav>
+<section id="lp1-5yr">
+<h2>LPPL₁ (6 params, 5yr windows)</h2>
+<p class="muted">Single damped log-periodic oscillation. W hits upper bound (15) from ~2020 onward — a signature of Bitcoin's cycle stretching.</p>
+<img src="/regime_shift/regime_shift_lp1_5yr.svg" alt="LPPL₁ (6 params, 5yr windows)">
+</section>
+<hr>
+<section id="lp2-5yr">
+<h2>LPPL₂ (9 params, 5yr windows)</h2>
+<p class="muted">Damped primary + undamped secondary. Track how W₂ evolves — flips between ~9 and ~21 depending on which regime dominates the window.</p>
+<img src="/regime_shift/regime_shift_lp2_5yr.svg" alt="LPPL₂ (9 params, 5yr windows)">
+</section>
+<hr>
+<section id="lp3-7yr">
+<h2>LPPL₃ (12 params, 7yr windows)</h2>
+<p class="muted">Three frequencies in a 7-year window. Enough data for primary + secondary ω≈21 cycle identification; tight on ω≈9.</p>
+<img src="/regime_shift/regime_shift_lp3_7yr.svg" alt="LPPL₃ (12 params, 7yr windows)">
+</section>
+<hr>
+<section id="lp3-9yr">
+<h2>LPPL₃ (12 params, 9yr windows)</h2>
+<p class="muted">Same model as above, wider 9-year windows. More stable fits at the cost of slower regime-change response.</p>
+<img src="/regime_shift/regime_shift_lp3_9yr.svg" alt="LPPL₃ (12 params, 9yr windows)">
+</section>
+<hr>
+<a href="/" class="back-link">← Back to Quantoshi</a>
+</body>
+</html>

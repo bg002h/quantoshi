@@ -4188,6 +4188,55 @@ class TestResolveDecompModelKey:
         assert _resolve_decomp_model_key("lppl", None, [], []) is None
 
 
+class TestUpdateDecompOptions:
+    def test_empty_family_hides_body(self):
+        from callbacks.charts import update_decomp_options
+        opts, warning, style = update_decomp_options("", [3], [], [])
+        assert opts == []
+        assert warning == []
+        assert style == {"display": "none"}
+
+    def test_bm_shows_2_components_plus_sum(self):
+        from callbacks.charts import update_decomp_options
+        opts, warning, style = update_decomp_options("bub", [3], [], [])
+        assert style == {"display": "block"}
+        assert warning == []
+        values = [o["value"] for o in opts]
+        assert values == ["support", "bubbles", "__sum__"]
+
+    def test_hybppl_ex_shows_5_components_plus_sum(self):
+        from callbacks.charts import update_decomp_options
+        opts, warning, style = update_decomp_options("hybppl_ex", [3], [], [])
+        assert len(opts) == 6
+        assert opts[-1]["value"] == "__sum__"
+
+    def test_lppl_single_nfreq_shows_components(self):
+        from callbacks.charts import update_decomp_options
+        opts, warning, style = update_decomp_options("lppl", [3], [], [])
+        assert style == {"display": "block"}
+        assert warning == []
+        assert len(opts) == 6
+
+    def test_lppl_zero_nfreq_shows_warning(self):
+        from callbacks.charts import update_decomp_options
+        opts, warning, style = update_decomp_options("lppl", [], [], [])
+        assert opts == []
+        assert style == {"display": "block"}
+        assert warning != []
+
+    def test_lppl_multi_nfreq_shows_warning(self):
+        from callbacks.charts import update_decomp_options
+        opts, warning, style = update_decomp_options("lppl", [1, 2, 3], [], [])
+        assert opts == []
+        assert style == {"display": "block"}
+        assert warning != []
+
+    def test_lppl_weighted_modifier_resolves(self):
+        from callbacks.charts import update_decomp_options
+        opts, _, _ = update_decomp_options("lppl", [3], ["weighted"], [])
+        assert len(opts) == 6
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Section: MC model interface verification
 # ═══════════════════════════════════════════════════════════════════════════════

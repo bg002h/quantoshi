@@ -3,7 +3,7 @@
 import math
 
 import dash
-from dash import Input, Output, State, ctx, callback
+from dash import Input, Output, State, ctx, callback, html
 import pandas as pd
 
 import _app_ctx
@@ -238,6 +238,55 @@ def _resolve_lppl_master(model_show, lppl_n_freqs, lppl_weighted, lppl_no_13):
             else:
                 model_show.append("lp4_w" if _weighted else "lp4")
     return model_show
+
+
+def _decomp_warning_banner(n_checked):
+    """Inline banner shown when LPPL decomposition needs exactly 1 n_freqs."""
+    return html.Div(
+        html.Small(
+            f"Pick exactly one LPPL variant in the LPPL config panel "
+            f"to decompose (currently {n_checked} checked).",
+            style={"color": "#b71c1c"},
+        ),
+        style={"padding": "6px 8px", "backgroundColor": "#fff3f3",
+                "border": "1px solid #f5c6cb", "borderRadius": "4px",
+                "fontSize": "11px", "marginTop": "6px"},
+    )
+
+
+def update_decomp_options(family, n_freqs, weighted, no_13):
+    """Populate Component Decomposition checklist options + warning + visibility.
+
+    Returns (options, warning_children, body_style). NEVER modifies
+    bub-decomp-components.value (see prune_decomp_value_on_model_change).
+    """
+    if not family:
+        return [], [], {"display": "none"}
+    if family == "lppl" and len(n_freqs or []) != 1:
+        return [], _decomp_warning_banner(len(n_freqs or [])), {"display": "block"}
+    key = _resolve_decomp_model_key(family, n_freqs, weighted, no_13)
+    if key is None:
+        return [], _decomp_warning_banner(len(n_freqs or [])), {"display": "block"}
+    model = _app_ctx.PRICE_MODELS.get(key)
+    if model is None:
+        return [], [], {"display": "none"}
+    opts = [{"label": f" {name}", "value": name} for name in model.component_names]
+    opts.append({"label": " \u03a3 Sum of selected", "value": "__sum__"})
+    return opts, [], {"display": "block"}
+
+
+@callback(
+    Output("bub-decomp-components", "options"),
+    Output("bub-decomp-warning",    "children"),
+    Output("bub-decomp-body",       "style"),
+    Input("bub-decomp-model",  "value"),
+    Input("lppl-n-freqs",      "value"),
+    Input("lppl-weighted",     "value"),
+    Input("lppl-no-13",        "value"),
+    prevent_initial_call=False,
+)
+def _update_decomp_options_cb(family, n_freqs, weighted, no_13):
+    return update_decomp_options(family, n_freqs, weighted, no_13)
 
 
 def _resolve_decomp_model_key(family, lppl_n_freqs, lppl_weighted, lppl_no_13):

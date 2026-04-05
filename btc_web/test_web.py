@@ -4259,6 +4259,55 @@ class TestPruneDecompValue:
         assert _prune_decomp_value("bub", opts, None) == []
 
 
+class TestDecompositionTraces:
+    """Verify build_bubble_figure renders decomposition traces when active."""
+
+    def _base_p(self, **overrides):
+        p = dict(
+            selected_qs=[0.5], shade=True, show_ols=False, show_ucl=False,
+            show_data=False, show_today=False, show_legend=False,
+            minor_grid=False, show_comp=False, show_sup=False,
+            xscale="log", yscale="log", xmin=2015, xmax=2030,
+            ymin=1, ymax=100000, n_future=0, pt_size=3, pt_alpha=0.3,
+            stack=0, show_stack=False, use_lots=False,
+            lots=[], legend_pos="outside", comp_color="#FFD700",
+            comp_lw=2.0, sup_color="#888888", sup_lw=1.5,
+            active_models=[], palette="default", scanner_lines=[],
+            user_model=None, qs_mode=[],
+            decomp_model="", decomp_components=[],
+            lppl_n_freqs=[], lppl_weighted=[], lppl_no_13=[],
+        )
+        p.update(overrides)
+        return p
+
+    def test_no_model_no_extra_traces(self):
+        import _app_ctx
+        from figures.bubble import build_bubble_figure
+        fig = build_bubble_figure(_app_ctx.M, self._base_p())
+        decomp_traces = [t for t in fig.data
+                         if getattr(t, 'name', None) and " | " in t.name]
+        assert decomp_traces == []
+
+    def test_decomp_adds_component_traces(self):
+        import _app_ctx
+        from figures.bubble import build_bubble_figure
+        fig = build_bubble_figure(_app_ctx.M, self._base_p(
+            decomp_model="bub", decomp_components=["support", "bubbles"]))
+        trace_names = [t.name for t in fig.data if getattr(t, 'name', None)]
+        bm_decomp = [n for n in trace_names if n.startswith("BM | ")]
+        assert len(bm_decomp) == 2
+
+    def test_decomp_sum_trace_appears(self):
+        import _app_ctx
+        from figures.bubble import build_bubble_figure
+        fig = build_bubble_figure(_app_ctx.M, self._base_p(
+            decomp_model="bub",
+            decomp_components=["support", "bubbles", "__sum__"]))
+        trace_names = [t.name for t in fig.data if getattr(t, 'name', None)]
+        sum_traces = [n for n in trace_names if " | \u03a3 (" in n]
+        assert len(sum_traces) == 1
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Section: MC model interface verification
 # ═══════════════════════════════════════════════════════════════════════════════

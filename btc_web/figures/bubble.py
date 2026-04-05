@@ -444,6 +444,9 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             bgcolor=theme.PLOT_BG_COLOR, bordercolor=theme.SPINE_COLOR, borderwidth=1,
         )]
 
+    # ── component decomposition traces (dotted individual + solid Σ sum) ─────
+    _add_decomposition_traces(traces, t_arr, m, p)
+
     _apply_sans_typography(layout)
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
     _add_date_hover(fig, m.genesis, recovery=True)
@@ -451,3 +454,59 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
     _apply_watermark(fig, pos=wm_pos)
     return fig
+
+
+def _add_decomposition_traces(traces, t_arr, m, p):
+    """Append component decomposition traces + optional Σ sum trace."""
+    import _app_ctx
+    from callbacks.charts import _resolve_decomp_model_key
+
+    family = p.get("decomp_model", "") or ""
+    selected = list(p.get("decomp_components", []) or [])
+    if not family or not selected:
+        return
+
+    key = _resolve_decomp_model_key(
+        family,
+        p.get("lppl_n_freqs", []),
+        p.get("lppl_weighted", []),
+        p.get("lppl_no_13", []),
+    )
+    if key is None:
+        return
+    model = _app_ctx.PRICE_MODELS.get(key)
+    if model is None:
+        return
+
+    palette = p.get("palette", "default")
+    colors = _app_ctx.DECOMP_COLORS.get(
+        palette, _app_ctx.DECOMP_COLORS["default"])
+    sum_color = _app_ctx.DECOMP_SUM_COLOR.get(
+        palette, _app_ctx.DECOMP_SUM_COLOR["default"])
+
+    comps = model.components(t_arr)
+    names = [s for s in selected if s != "__sum__" and s in comps]
+
+    x_list = list(t_arr)
+    for i, name in enumerate(names):
+        log_vals = comps[name]
+        y_usd = list(10.0 ** log_vals)
+        traces.append(go.Scatter(
+            x=x_list, y=y_usd, mode="lines",
+            line=dict(dash="dot", width=1.5,
+                       color=colors[i % len(colors)]),
+            name=f"{model.legend_name} | {name}",
+            hovertemplate="%{y:$,.0f}<extra></extra>",
+        ))
+
+    if "__sum__" in selected and names:
+        sum_log = comps[names[0]].copy()
+        for n in names[1:]:
+            sum_log = sum_log + comps[n]
+        y_sum = list(10.0 ** sum_log)
+        traces.append(go.Scatter(
+            x=x_list, y=y_sum, mode="lines",
+            line=dict(dash="solid", width=3, color=sum_color),
+            name=f"{model.legend_name} | \u03a3 ({len(names)} components)",
+            hovertemplate="%{y:$,.0f}<extra></extra>",
+        ))

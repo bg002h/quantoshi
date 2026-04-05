@@ -365,6 +365,8 @@ def _resolve_decomp_model_key(family, lppl_n_freqs, lppl_weighted, lppl_no_13):
     Input("lppl-n-freqs",      "value"),
     Input("lppl-weighted",     "value"),
     Input("lppl-no-13",        "value"),
+    Input("bub-decomp-model",       "value"),
+    Input("bub-decomp-components",  "value"),
     Input("effective-lots",    "data"),
     Input("palette-store",     "data"),
     Input("user-model-store",  "data"),
@@ -376,7 +378,9 @@ def _resolve_decomp_model_key(family, lppl_n_freqs, lppl_weighted, lppl_no_13):
 def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,
                   n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, model_show,
-                  lppl_n_freqs, lppl_weighted, lppl_no_13, lots_data,
+                  lppl_n_freqs, lppl_weighted, lppl_no_13,
+                  decomp_model, decomp_components,
+                  lots_data,
                   palette_key, user_model_store=None,
                   qs_mode=None, scan_active=None, scan_q_val=None):
     """Bubble + QR overlay chart callback — coerce inputs, build figure."""
@@ -432,6 +436,11 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
         scanner_lines = scanner_lines,
         user_model = user_model_store,
         qs_mode = qs_mode or [],
+        decomp_model       = decomp_model or "",
+        decomp_components  = list(decomp_components or []),
+        lppl_n_freqs       = list(lppl_n_freqs or []),
+        lppl_weighted      = list(lppl_weighted or []),
+        lppl_no_13         = list(lppl_no_13 or []),
     ))
     if "chart_zoom" not in toggles:
         fig.update_layout(dragmode=False)

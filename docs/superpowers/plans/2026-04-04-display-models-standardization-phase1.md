@@ -596,6 +596,23 @@ Run: `grep -n 'LPPL Models\|lppl-n-freqs\|bub-lppl-activate\|bub-lppl-body' btc_
 
 In `btc_web/layout/bubble.py`, delete the entire `_section_card("LPPL Models", ...)` block that currently contains `bub-lppl-activate` + `bub-lppl-body` + the inline `lppl-n-freqs` / `lppl-weighted` / `lppl-no-13` controls.
 
+- [ ] **Step 2b: Delete the orphaned body-collapse clientside callback**
+
+In `btc_web/callbacks/charts.py`, DELETE the clientside callback that outputs to `bub-lppl-body.style` (currently at lines 17-21):
+
+```python
+# body collapse follows the activation checkbox
+_app_ctx.app.clientside_callback(
+    "function(v) { return (v && v.length) ? {} : {display:'none'}; }",
+    Output("bub-lppl-body", "style"),
+    Input("bub-lppl-activate", "value"),
+)
+```
+
+This callback becomes invalid once `bub-lppl-body` is removed from the layout — Dash will crash at layout validation if left in place. The new compact panel has no body to collapse; only activate + summary + Configure button remain.
+
+**KEEP** the other two clientside callbacks (activate → model-show; model-show → activate) since they're still correct for the new compact panel.
+
 - [ ] **Step 3: Insert compact version**
 
 Replace the deleted block with:
@@ -616,20 +633,23 @@ from layout.common import (_tab_hints, _section_card, _row, _lbl,
 - [ ] **Step 4: Verify syntax and restart**
 
 ```bash
-btc_venv/bin/python3 -m py_compile btc_web/layout/bubble.py && echo OK
+btc_venv/bin/python3 -m py_compile btc_web/layout/bubble.py btc_web/callbacks/charts.py && echo OK
 lsof -ti :8050 | xargs -r kill -9 2>/dev/null; sleep 1
 DEV=1 nohup bash run_web.sh > /tmp/quantoshi_dev.log 2>&1 &
 sleep 8
-grep -c "lppl-n-freqs" /tmp/quantoshi_dev.log || echo "no duplicate errors"
+grep -i "traceback\|nonexistent object\|duplicate" /tmp/quantoshi_dev.log || echo clean
 curl -sS http://localhost:8050/_dash-layout | grep -oc "bub-lppl-activate"
 ```
-Expected: No errors. `bub-lppl-activate` appears once.
+Expected: clean. `bub-lppl-activate` appears once. No "nonexistent object" errors (which would indicate the orphaned callback wasn't deleted in Step 2b).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add btc_web/layout/bubble.py
+git add btc_web/layout/bubble.py btc_web/callbacks/charts.py
 git commit -m "refactor(bubble): swap inline LPPL panel for compact + global modal
+
+Removes the body-collapse clientside callback (no body to collapse
+in the new compact panel).
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 ```
@@ -639,6 +659,8 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 ## Task 8: Wrap Bubble-tab BM panel in `bub-bm-body` div
 
 **Files:** `btc_web/layout/bubble.py`
+
+**Context:** The existing `bub-bubble-panel` div wraps the BM `_section_card` and has its OWN style callback (used by view-mode switches: Price/CAGR/Residuals views). This task adds an INNER `bub-bm-body` wrapper — it's a separate concern (checkbox-driven collapse). Both layers coexist: outer `bub-bubble-panel` for view-mode show/hide, inner `bub-bm-body` for "Bubble Model" checkbox gate.
 
 - [ ] **Step 1: Locate the BM `_section_card`**
 
@@ -742,40 +764,8 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 Append to `btc_web/callbacks/charts.py`:
 
 ```python
-# Any per-tab Configure-LPPL button click → open modal
-_app_ctx.app.clientside_callback(
-    """
-    function(bub_n, dca_n, ret_n, sc_n, hm_n, close_n, cur_open) {
-        var ctx = window.dash_clientside.callback_context;
-        if (!ctx.triggered || !ctx.triggered.length) {
-            return window.dash_clientside.no_update;
-        }
-        var src = ctx.triggered[0].prop_id;
-        if (src.indexOf('lppl-modal-close-btn') !== -1) {
-            return false;
-        }
-        if (src.indexOf('lppl-configure-btn') !== -1) {
-            return true;
-        }
-        return window.dash_clientside.no_update;
-    }
-    """,
-    Output("lppl-config-modal", "is_open"),
-    Input("bub-lppl-configure-btn", "n_clicks"),
-    Input("dca-lppl-configure-btn", "n_clicks"),
-    Input("ret-lppl-configure-btn", "n_clicks"),
-    Input("sc-lppl-configure-btn", "n_clicks"),
-    Input("hm-lppl-configure-btn", "n_clicks"),
-    Input("lppl-modal-close-btn", "n_clicks"),
-    State("lppl-config-modal", "is_open"),
-    prevent_initial_call=True,
-)
-```
-
-**Note:** This callback references `hm-lppl-configure-btn` which only exists after Phase 2. For Phase 1, hm-lppl-configure-btn is still emitted (because `_lppl_config_panel("hm")` will be called by Phase 2). For Phase 1, just make sure `hm-lppl-configure-btn` doesn't get wired yet — remove the `Input("hm-lppl-configure-btn", ...)` line and remove `hm_n` from the function args until Phase 2.
-
-Revised Phase 1 version:
-```python
+# Any per-tab Configure-LPPL button click → open modal.
+# (Phase 2 will extend the Input list to include hm-lppl-configure-btn.)
 _app_ctx.app.clientside_callback(
     """
     function(bub_n, dca_n, ret_n, sc_n, close_n, cur_open) {
@@ -1071,7 +1061,17 @@ Expected: 3 tests pass.
 Run: `btc_venv/bin/python3 -m pytest btc_web/test_web.py -q`
 Expected: 833+ pass (3 tests added in Task 2 earlier, some in other tasks).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Restart + verify Dash dependency graph**
+
+```bash
+lsof -ti :8050 | xargs -r kill -9 2>/dev/null; sleep 1
+DEV=1 nohup bash run_web.sh > /tmp/quantoshi_dev.log 2>&1 &
+sleep 8
+grep -i "traceback\|nonexistent" /tmp/quantoshi_dev.log || echo clean
+```
+Expected: clean (no callback-graph errors from new Inputs).
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add btc_web/callbacks/charts.py btc_web/test_web.py
@@ -1099,7 +1099,16 @@ Mirror Task 14's changes for the retire callback: add 3 `Input` lines after `Inp
 Run: `btc_venv/bin/python3 -m pytest btc_web/test_web.py::TestUpdateRetireCallback -v`
 Expected: pass.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Restart + verify Dash dependency graph**
+
+```bash
+lsof -ti :8050 | xargs -r kill -9 2>/dev/null; sleep 1
+DEV=1 nohup bash run_web.sh > /tmp/quantoshi_dev.log 2>&1 &
+sleep 8
+grep -i "traceback\|nonexistent" /tmp/quantoshi_dev.log || echo clean
+```
+
+- [ ] **Step 5: Commit**
 
 ```bash
 git add btc_web/callbacks/charts.py btc_web/test_web.py
@@ -1127,7 +1136,16 @@ Mirror Task 14 + 15 for supercharge: add `Input("lppl-n-freqs", "value"), Input(
 Run: `btc_venv/bin/python3 -m pytest btc_web/test_web.py::TestUpdateSuperchargeCallback -v`
 Expected: 2 tests pass.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Restart + verify Dash dependency graph**
+
+```bash
+lsof -ti :8050 | xargs -r kill -9 2>/dev/null; sleep 1
+DEV=1 nohup bash run_web.sh > /tmp/quantoshi_dev.log 2>&1 &
+sleep 8
+grep -i "traceback\|nonexistent" /tmp/quantoshi_dev.log || echo clean
+```
+
+- [ ] **Step 5: Commit**
 
 ```bash
 git add btc_web/callbacks/charts.py btc_web/test_web.py
@@ -1146,9 +1164,9 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 Run: `grep -n "def update_model_swatches\|_build_model_opts(mc" btc_web/callbacks/charts.py`
 
-- [ ] **Step 2: Change `bubble_mode` → `standardized` naming for consistency, and apply to all 4 tabs**
+- [ ] **Step 2: Pass `bubble_mode=True` for all 4 tabs (keep existing kwarg name)**
 
-Update `_build_model_opts` signature to accept `standardized=True` kwarg (current impl has `bubble_mode=True` — rename for semantic accuracy, or pass both kwargs if you want to preserve backward compat). Then in `update_model_swatches`, return standardized-mode options for all four tabs:
+Keep the existing `bubble_mode` kwarg name on `_build_model_opts` — it already ships in commit 80ac01d and renaming would add churn without functional benefit. Just pass `bubble_mode=True` for all four tab outputs:
 
 ```python
 def update_model_swatches(palette_key):
@@ -1159,7 +1177,7 @@ def update_model_swatches(palette_key):
     return bub_opts, other_opts, other_opts, other_opts
 ```
 
-(Rename `bubble_mode` → `standardized` throughout if you prefer. The existing Bubble tab uses `bubble_mode=True` already from commit 80ac01d, so leave the kwarg name alone for this task.)
+Note: there is now naming asymmetry (`bubble_mode` on `_build_model_opts` vs `standardized` on `_model_show_checklist`). This is acceptable technical debt — consolidation can happen in a follow-up cleanup.
 
 - [ ] **Step 3: Restart + verify palette change doesn't reintroduce LPPL variants**
 

@@ -144,9 +144,34 @@ if "u1" in _app_ctx.PRICE_MODELS:
     _HM_PILL_MODELS.append("u1")
 if _app_ctx._HAS_MARKOV:
     _HM_PILL_MODELS.append("mc")
+
+# Map removed pill IDs (Phase 1 share links may have these in hm-active-model)
+# → surviving pill. Used as a graceful fallback when old snapshot decodes.
+_HM_LEGACY_MODEL_FALLBACK = {
+    "qr": "pl",        # QR was bands-only; PL is the closest match
+    "lp2": "lppl", "lp3": "lppl", "lp4": "lppl",
+    "lppl_w": "lppl", "lp2_w": "lppl", "lp3_w": "lppl", "lp4_w": "lppl",
+    "lp4_n13": "lppl", "lp4_w_n13": "lppl",
+    "exp": "bub",      # display-only demo
+    "s2f": "bub",      # display-only demo
+}
 ```
 
 Leave `_HM_PILL_IDS = [f"hm-pill-{k}" for k in _HM_PILL_MODELS]` unchanged — it regenerates automatically.
+
+- [ ] **Step 2b: Add legacy-value fallback in `_hm_pill_sync`**
+
+Still in `btc_web/callbacks/routing.py`, find the `_hm_pill_sync` callback. It currently reads `hm-active-model` (a string) and sets the `outline` property on each pill button. When the stored value is a legacy key like `"qr"` or `"lp3_w"`, no pill matches → no pill lit up. Insert a normalization step at the top of the callback:
+
+```python
+def _hm_pill_sync(active_model):
+    # Normalize legacy snapshot values to a surviving pill key
+    if active_model not in _HM_PILL_MODELS:
+        active_model = _HM_LEGACY_MODEL_FALLBACK.get(active_model, "bub")
+    # ... rest of existing callback ...
+```
+
+This ensures old share links still render with a valid pill highlighted.
 
 - [ ] **Step 3: Verify `_hm_pill_click` and `_hm_pill_sync` still bind correctly**
 
@@ -531,46 +556,101 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 ---
 
-## Task 8: New unit tests for heatmap translation
+## Task 8: Unit tests for heatmap LPPL master translation
 
 **Files:** `btc_web/test_web.py`
 
-- [ ] **Step 1: Add translation tests**
+- [ ] **Step 1: Extract translation logic into a testable helper**
+
+Since the translation in Task 6 is inline in `update_heatmap`, extract it into a standalone helper in `btc_web/callbacks/charts.py` for direct unit testing:
+
+```python
+def _resolve_hm_lppl_master(hm_model, lppl_n_freqs, lppl_weighted, lppl_no_13):
+    """Translate 'lppl' master to specific flavor key for heatmap (single-select).
+
+    Returns the flavor key the heatmap figure builder should use. For non-lppl
+    models or when lppl flavor cannot be resolved, returns input unchanged.
+    """
+    if hm_model != "lppl":
+        return hm_model
+    _weighted = "weighted" in (lppl_weighted or [])
+    _no_13 = "no13" in (lppl_no_13 or [])
+    _n_list = (lppl_n_freqs or [3])
+    _n = _n_list[0] if _n_list else 3
+    if _n == 1:
+        return "lppl_w" if _weighted else "lppl"
+    if _n == 2:
+        return "lp2_w" if _weighted else "lp2"
+    if _n == 3 and not _no_13:
+        return "lp3_w" if _weighted else "lp3"
+    if _n == 4:
+        if _no_13:
+            return "lp4_w_n13" if _weighted else "lp4_n13"
+        return "lp4_w" if _weighted else "lp4"
+    return "lppl"  # fallback
+```
+
+Then Task 6's inline translation in `update_heatmap` collapses to:
+```python
+hm_model = _resolve_hm_lppl_master(
+    hm_model, lppl_n_freqs, lppl_weighted, lppl_no_13)
+```
+
+- [ ] **Step 2: Add real tests against the helper**
 
 Append to `btc_web/test_web.py`:
 
 ```python
-class TestHeatmapLpplTranslation:
-    """Verify update_heatmap translates LPPL master to specific flavor."""
+class TestResolveHmLpplMaster:
+    """Unit test for heatmap LPPL master translation."""
 
-    def test_master_lppl_translates_to_lp3_default(self):
-        from callbacks.charts import update_heatmap
-        with _patch_ctx("hm-pill-lppl"):
-            # hm_model="lppl" + default n_freqs=[3], unweighted, with_13
-            # should translate internally to lp3
-            # This test is integration-style; we verify the figure is built
-            # without errors when translation is exercised.
-            pass  # Placeholder: actual invocation replicates existing
-                  # TestUpdateHeatmapCallback pattern with hm_model="lppl".
+    def test_non_lppl_passes_through(self):
+        from callbacks.charts import _resolve_hm_lppl_master
+        assert _resolve_hm_lppl_master("bub", [3], [], []) == "bub"
+        assert _resolve_hm_lppl_master("pl", [3], [], []) == "pl"
+        assert _resolve_hm_lppl_master("linppl", [3], [], []) == "linppl"
 
-    def test_master_lppl_not_translated_for_mc_path(self):
-        """When user activates LPPL pill but also enables MC, the MC path
-        uses hm-mc-model-src, not the flavor translation."""
-        pass  # Similar placeholder — exercises MC path with lppl master.
+    def test_lppl_default_n3_unweighted(self):
+        from callbacks.charts import _resolve_hm_lppl_master
+        assert _resolve_hm_lppl_master("lppl", [3], [], []) == "lp3"
+
+    def test_lppl_n3_weighted(self):
+        from callbacks.charts import _resolve_hm_lppl_master
+        assert _resolve_hm_lppl_master("lppl", [3], ["weighted"], []) == "lp3_w"
+
+    def test_lppl_n4_no_13(self):
+        from callbacks.charts import _resolve_hm_lppl_master
+        assert _resolve_hm_lppl_master("lppl", [4], [], ["no13"]) == "lp4_n13"
+
+    def test_lppl_n4_weighted_no_13(self):
+        from callbacks.charts import _resolve_hm_lppl_master
+        assert _resolve_hm_lppl_master("lppl", [4], ["weighted"], ["no13"]) == "lp4_w_n13"
+
+    def test_lppl_picks_first_when_multi_selected(self):
+        from callbacks.charts import _resolve_hm_lppl_master
+        # Heatmap is single-select: takes first entry, ignores rest
+        assert _resolve_hm_lppl_master("lppl", [2, 4], [], []) == "lp2"
+
+    def test_lppl_empty_n_freqs_defaults_to_3(self):
+        from callbacks.charts import _resolve_hm_lppl_master
+        assert _resolve_hm_lppl_master("lppl", [], [], []) == "lp3"
+
+    def test_lppl_n3_with_no_13_falls_through_to_lppl(self):
+        from callbacks.charts import _resolve_hm_lppl_master
+        # n=3 and no_13 both set → LP3 disabled → fallback to "lppl"
+        assert _resolve_hm_lppl_master("lppl", [3], [], ["no13"]) == "lppl"
 ```
 
-(Full test implementations require mirror of TestUpdateHeatmapCallback's `_patch_ctx` + keyword-arg pattern; add specific invocations as follow-up if coverage gap identified.)
+- [ ] **Step 3: Run tests**
 
-- [ ] **Step 2: Run tests (placeholders pass trivially)**
+Run: `btc_venv/bin/python3 -m pytest btc_web/test_web.py::TestResolveHmLpplMaster -v`
+Expected: 8 tests pass.
 
-Run: `btc_venv/bin/python3 -m pytest btc_web/test_web.py::TestHeatmapLpplTranslation -v`
-Expected: 2 tests pass (they're placeholders; fill with real assertions if needed).
-
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add btc_web/test_web.py
-git commit -m "test(heatmap): placeholder translation tests
+git add btc_web/callbacks/charts.py btc_web/test_web.py
+git commit -m "test(heatmap): unit tests for LPPL master flavor translation
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 ```

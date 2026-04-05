@@ -29,7 +29,7 @@ img { max-width:100%; height:auto; display:block; border-radius:6px;
 <h1>LPPL Regime Shift Detection</h1>
 <p class="muted">
 Rolling-window LPPL fits tracking parameter evolution over time.
-Generated 2026-04-04 17:40 UTC by <code>tools/regime_shift_all.py</code>.
+Generated 2026-04-04 18:26 UTC by <code>tools/regime_shift_all.py</code>.
 Regenerate manually — not auto-refreshed.
 </p>
 <nav>
@@ -38,6 +38,8 @@ Regenerate manually — not auto-refreshed.
 <a href="#lp2-5yr">LPPL₂ (5yr)</a>
 <a href="#lp3-7yr">LPPL₃ (7yr)</a>
 <a href="#lp3-9yr">LPPL₃ (9yr)</a>
+<a href="#lp4-7yr">LPPL₄ (7yr)</a>
+<a href="#lp4-9yr">LPPL₄ (9yr)</a>
 </nav>
 <section id="lp1-5yr">
 <h2>LPPL₁ (6 params, 5yr windows)</h2>
@@ -65,6 +67,20 @@ Regenerate manually — not auto-refreshed.
 <div class="formula">log₁₀(price) = A + B·log₁₀(t) + C₁·t⁻ᴰ·cos(ω₁·ln t + φ₁) + C₂·cos(ω₂·ln t + φ₂) + C₃·cos(ω₃·ln t + φ₃)</div>
 <p class="muted">Same model as above, wider 9-year windows. More stable fits at the cost of slower regime-change response.</p>
 <img src="/regime_shift/regime_shift_lp3_9yr.svg" alt="LPPL₃ (12 params, 9yr windows)">
+</section>
+<hr>
+<section id="lp4-7yr">
+<h2>LPPL₄ (15 params, 7yr windows) — likely overfit</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t) + C₁·t⁻ᴰ·cos(ω₁·ln t + φ₁) + C₂·cos(ω₂·ln t + φ₂) + C₃·cos(ω₃·ln t + φ₃) + C₄·cos(ω₄·ln t + φ₄)</div>
+<p class="muted">Four frequencies. LPPL₄'s 4th frequency is likely an intermodulation artifact — watch for erratic jumps window-to-window in any of the W₂/W₃/W₄ panels. R² improvements over LPPL₃ may be cosmetic (overfitting).</p>
+<img src="/regime_shift/regime_shift_lp4_7yr.svg" alt="LPPL₄ (15 params, 7yr windows) — likely overfit">
+</section>
+<hr>
+<section id="lp4-9yr">
+<h2>LPPL₄ (15 params, 9yr windows) — likely overfit</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t) + C₁·t⁻ᴰ·cos(ω₁·ln t + φ₁) + C₂·cos(ω₂·ln t + φ₂) + C₃·cos(ω₃·ln t + φ₃) + C₄·cos(ω₄·ln t + φ₄)</div>
+<p class="muted">Same caveats as LPPL₄ 7yr. Wider windows give more data per fit, reducing (but not eliminating) noise-fitting of the 4th frequency.</p>
+<img src="/regime_shift/regime_shift_lp4_9yr.svg" alt="LPPL₄ (15 params, 9yr windows) — likely overfit">
 </section>
 <hr>
 <a href="/" class="back-link">← Back to Quantoshi</a>

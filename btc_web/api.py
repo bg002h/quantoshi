@@ -177,6 +177,8 @@ pre code {{ background:none; padding:0; }}
             "regime_shift_pl_7yr_clipped.svg", "regime_shift_pl_9yr_clipped.svg",
             "regime_shift_pl_2yr_timing_unbounded.svg",
             "regime_shift_pl_2yr_timing_clipped.svg",
+            "regime_shift_pl_1yr.svg",
+            "regime_shift_pl_1yr_timing_unbounded.svg",
         }
         allowed_csv = {
             "regime_shift_pl_2yr.csv", "regime_shift_pl_5yr.csv",
@@ -193,6 +195,9 @@ pre code {{ background:none; padding:0; }}
             "regime_shift_pl_2yr_timing_clipped.csv",
             "regime_shift_pl_2yr_timing_unbounded_xcorr.csv",
             "regime_shift_pl_2yr_timing_clipped_xcorr.csv",
+            "regime_shift_pl_1yr.csv",
+            "regime_shift_pl_1yr_timing_unbounded.csv",
+            "regime_shift_pl_1yr_timing_unbounded_xcorr.csv",
         }
         if filename in allowed_svg:
             ctype = "image/svg+xml"

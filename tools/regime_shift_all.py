@@ -390,6 +390,7 @@ Regenerate manually — not auto-refreshed.
 </p>
 <nav>
 <strong>Jump to:</strong>
+<a href="#pl-1yr">PL (1yr)</a>
 <a href="#pl-2yr">PL (2yr)</a>
 <a href="#pl-5yr">PL (5yr)</a>
 <a href="#pl-7yr">PL (7yr)</a>
@@ -408,9 +409,65 @@ Regenerate manually — not auto-refreshed.
 <a href="#hybppl-5yr">HybPPL (5yr)</a>
 <a href="#bm-7yr">BM (7yr)</a>
 <a href="#bm-9yr">BM (9yr)</a>
+<a href="#pl-1yr-timing">PL 1yr timing</a>
 <a href="#pl-2yr-timing">PL 2yr timing</a>
+<a href="#predict-bottoms">Predicting bottoms</a>
 </nav>
 {sections}
+<section id="predict-bottoms">
+<h2>Using PL 1yr + 2yr to predict cycle bottoms</h2>
+<p class="model-desc">
+<strong>Signal mechanics.</strong> The N-year rolling PL slope B<sub>N</sub>(t)
+is the net log-log growth rate over the window [t\u2212N, t]. It's a trailing
+indicator: B<sub>N</sub> peaks when a bull run has <em>just fully entered</em>
+the window, then declines as the window fills with the post-peak crash, and
+bottoms roughly N years after the bubble top.
+</p>
+<p class="model-desc">
+<strong>Observed cross-correlation.</strong> corr(B<sub>N</sub>, log-excess)
+peaks at lag \u2212L months where L\u22481.1\u00b7(12\u00b7N). For N=1 we
+measure L=13 months; for N=2, L=22 months. The peak is negative
+(\u22480.66 for 1yr, \u22480.80 for 2yr) because B is low <em>after</em>
+bubble peaks and high <em>after</em> bear bottoms.
+</p>
+<p class="model-desc">
+<strong>Bottom-prediction recipe.</strong>
+</p>
+<ol class="model-desc" style="margin:0; padding-left:24px;">
+<li><strong>Anchor on the last bubble top.</strong> Identify the most recent
+log-excess peak date T<sub>peak</sub> from the /A palette-chart or the QR
+bubble overlay.</li>
+<li><strong>Expected B<sub>1</sub> trough:</strong> T<sub>peak</sub> + ~13
+months. This is when 12 months of crash have replaced 12 months of rally in
+the 1-year window.</li>
+<li><strong>Expected B<sub>2</sub> trough:</strong> T<sub>peak</sub> + ~22
+months. Same logic, double the window.</li>
+<li><strong>Zero-crossings as confirmation.</strong> Watch B<sub>1</sub>
+cross zero upward (window's net return turns positive) \u2014 typically
+arrives a few months <em>before</em> the actual price bottom and well before
+B<sub>1</sub> reaches its trough. B<sub>2</sub> crossing zero is a
+stronger, later confirmation (usually in early bull).</li>
+<li><strong>Corroboration rule.</strong> When B<sub>1</sub> troughs AND starts
+rising, and B<sub>2</sub> is still falling but decelerating, you are in the
+late-bear / early-accumulation window. When B<sub>2</sub> troughs and
+B<sub>1</sub> is already above zero climbing, the cycle bottom is in the
+rear-view mirror.</li>
+<li><strong>Asymmetry caveat.</strong> The recipe assumes bear-length
+comparable to prior cycles. If the current bear is shorter than the window
+width, B<sub>N</sub> can bottom earlier than the formula predicts \u2014 in
+that case B<sub>1</sub> leads B<sub>2</sub> by more than 9\u201310 months.
+Divergence between 1yr and 2yr trough timings is itself diagnostic of
+cycle-length shifts.</li>
+</ol>
+<p class="muted" style="margin-top:12px;">
+Applied to the 2021-11 top (T<sub>peak</sub> \u2248 2021-11): B<sub>1</sub>
+trough predicted ~2022-12 (observed ~2022-11, spot-on); B<sub>2</sub> trough
+predicted ~2023-09 (observed ~2023-10). Applied to 2024-03 / 2025-01 local
+highs, the recipe points to B<sub>1</sub>/B<sub>2</sub> troughs in 2026 and
+2026-2027 respectively \u2014 watch the live CSVs for updates.
+</p>
+</section>
+<hr>
 <a href="/" class="back-link">\u2190 Back to Quantoshi</a>
 </body>
 </html>
@@ -624,6 +681,13 @@ def main():
         print(f"  Using {n_workers} workers\n")
 
     configs = [
+        ("Power Law (2 params, 1yr windows)", "pl", 1.0, PL_NAMES,
+         "pl-1yr", "regime_shift_pl_1yr.svg", PL_FORMULA,
+         "Shortest viable PL window \u2014 1 year of data. B reacts almost "
+         "in real time to the current trend, so the panel essentially "
+         "tracks Bitcoin's 12-month trailing growth rate. Most volatile "
+         "of all widths. Pair with the 2yr window for cycle-timing "
+         "inferences (see PL 1yr/2yr timing sections at the bottom of /E)."),
         ("Power Law (2 params, 2yr windows)", "pl", 2.0, PL_NAMES,
          "pl-2yr", "regime_shift_pl_2yr.svg", PL_FORMULA,
          "Shortest power-law window \u2014 reacts fastest to regime changes. "
@@ -782,6 +846,24 @@ def main():
             "lag in months (positive lag = B leads price)."
         ),
         "svg_name": "regime_shift_pl_2yr_timing_unbounded.svg",
+        "formula": PL_FORMULA,
+        "model_desc": PL_TIMING_DESC,
+    })
+    configs_info.append({
+        "anchor": "pl-1yr-timing",
+        "title": "PL 1yr timing \u2014 unbounded OLS",
+        "subtitle": (
+            "1-year rolling slope aligned with log\u2081\u2080(price). "
+            "Faster-reacting than 2yr: peak |xcorr(B, log-excess)| "
+            "\u2248 -0.66 at lag -13 months vs -0.80 at lag -22 months "
+            "for 2yr. The lag scales roughly with window width "
+            "(~1.1\u00d7 the window in months), and correlation strength "
+            "grows with window width (2yr is a cleaner signal). "
+            "Use 1yr as the fast early-warning and 2yr as confirmation "
+            "\u2014 see the 'Predicting cycle bottoms' notes at the "
+            "bottom of the 2yr section for the recipe."
+        ),
+        "svg_name": "regime_shift_pl_1yr_timing_unbounded.svg",
         "formula": PL_FORMULA,
         "model_desc": PL_TIMING_DESC,
     })

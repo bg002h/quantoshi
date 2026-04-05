@@ -2634,7 +2634,7 @@ class TestUpdateBubbleCallback:
                 n_future=3, ptsize=3, ptalpha=0.6,
                 stack=0, show_stack=[], use_lots=[], legend_pos="outside", model_show=[],
                 lppl_n_freqs=[], lppl_weighted=[], lppl_no_13=[],
-                decomp_model="", decomp_components=[],
+                decomp_model="", decomp_components=[], decomp_mode="individual",
                 lots_data=[],
                 palette_key="default",
             )
@@ -2649,7 +2649,7 @@ class TestUpdateBubbleCallback:
                 n_future=0, ptsize=2, ptalpha=0.3,
                 stack=0, show_stack=[], use_lots=[], legend_pos="outside", model_show=[],
                 lppl_n_freqs=[], lppl_weighted=[], lppl_no_13=[],
-                decomp_model="", decomp_components=[],
+                decomp_model="", decomp_components=[], decomp_mode="individual",
                 lots_data=[],
                 palette_key="default",
             )
@@ -2664,7 +2664,7 @@ class TestUpdateBubbleCallback:
                 n_future=2, ptsize=4, ptalpha=0.5,
                 stack=1.5, show_stack=["yes"], use_lots=[], legend_pos="outside", model_show=[],
                 lppl_n_freqs=[], lppl_weighted=[], lppl_no_13=[],
-                decomp_model="", decomp_components=[],
+                decomp_model="", decomp_components=[], decomp_mode="individual",
                 lots_data=[],
                 palette_key="default",
             )
@@ -3110,7 +3110,7 @@ class TestAutoBubbleYrange:
             result = auto_bubble_yrange(
                 xrange=[2015, 2030], auto_y=["yes"], yscale="log",
                 model_show=[],
-                decomp_model="", decomp_components=[],
+                decomp_model="", decomp_components=[], decomp_mode="individual",
                 lppl_n_freqs=[], lppl_weighted=[], lppl_no_13=[],
                 sel_qs=[0.5],
             )
@@ -4286,7 +4286,7 @@ class TestDecompositionTraces:
             comp_lw=2.0, sup_color="#888888", sup_lw=1.5,
             active_models=[], palette="default", scanner_lines=[],
             user_model=None, qs_mode=[],
-            decomp_model="", decomp_components=[],
+            decomp_model="", decomp_components=[], decomp_mode="individual",
             lppl_n_freqs=[], lppl_weighted=[], lppl_no_13=[],
         )
         p.update(overrides)
@@ -4319,13 +4319,62 @@ class TestDecompositionTraces:
         sum_traces = [n for n in trace_names if " | \u03a3 (" in n]
         assert len(sum_traces) == 1
 
+    def test_reference_mode_adds_on_support(self):
+        """Reference mode renders each component as 10^(support + c)."""
+        import _app_ctx
+        from figures.bubble import build_bubble_figure
+        fig = build_bubble_figure(_app_ctx.M, self._base_p(
+            decomp_model="hybppl_ex",
+            decomp_components=["damped log osc (\u03c9_log)"],
+            decomp_mode="reference"))
+        trace_names = [t.name for t in fig.data if getattr(t, 'name', None)]
+        # Reference mode adds " (on support)" suffix
+        refs = [n for n in trace_names if " (on support)" in n]
+        assert len(refs) == 1
+
+    def test_cumulative_mode_prefix(self):
+        """Cumulative mode renders each trace with +{name} prefix."""
+        import _app_ctx
+        from figures.bubble import build_bubble_figure
+        fig = build_bubble_figure(_app_ctx.M, self._base_p(
+            decomp_model="hybppl_ex",
+            decomp_components=["A_sup", "B_sup\u00b7log\u2081\u2080(t)"],
+            decomp_mode="cumulative"))
+        trace_names = [t.name for t in fig.data if getattr(t, 'name', None)]
+        cum = [n for n in trace_names if " | +" in n]
+        assert len(cum) == 2
+
+    def test_reference_mode_larger_y_than_individual(self):
+        """Reference mode traces lie on support line; individual traces
+        lie near 10^0=$1. So reference y-values >> individual y-values."""
+        import _app_ctx
+        from figures.bubble import build_bubble_figure
+        p_individual = self._base_p(
+            decomp_model="hybppl_ex",
+            decomp_components=["damped log osc (\u03c9_log)"],
+            decomp_mode="individual")
+        p_reference = self._base_p(
+            decomp_model="hybppl_ex",
+            decomp_components=["damped log osc (\u03c9_log)"],
+            decomp_mode="reference")
+        import numpy as np
+        fig_i = build_bubble_figure(_app_ctx.M, p_individual)
+        fig_r = build_bubble_figure(_app_ctx.M, p_reference)
+        ind_trace = [t for t in fig_i.data if getattr(t, 'name', None)
+                     and " | damped" in t.name][0]
+        ref_trace = [t for t in fig_r.data if getattr(t, 'name', None)
+                     and " | damped" in t.name][0]
+        ind_max = np.max(ind_trace.y)
+        ref_max = np.max(ref_trace.y)
+        assert ref_max > ind_max * 100  # reference is on support, so $10k+
+
 
 class TestAutoYWithDecomposition:
     def test_decomp_a_constant_expands_yrange_low(self):
         from callbacks.charts import auto_bubble_yrange
         yr = auto_bubble_yrange(
             [2015, 2025], ["yes"], "log", ["bub"],
-            "lppl", ["A (constant)"], [1], [], [],
+            "lppl", ["A (constant)"], "individual", [1], [], [],
             [0.5],
         )
         assert yr[0] <= -1.0, f"Y-low {yr[0]} should extend to include A constant"
@@ -4334,7 +4383,7 @@ class TestAutoYWithDecomposition:
         from callbacks.charts import auto_bubble_yrange
         yr = auto_bubble_yrange(
             [2020, 2030], ["yes"], "log", ["bub"],
-            "", [], [3], [], [],
+            "", [], "individual", [3], [], [],
             [0.5],
         )
         assert yr[0] >= -1.5 and yr[1] <= 9.0
@@ -5084,7 +5133,7 @@ class TestAutoYWithBubToggle:
         try:
             result = auto_bubble_yrange(
                 [2012, 2030], ["yes"], "log", [],
-                "", [], [], [], [],
+                "", [], "individual", [], [], [],
                 [0.5])
         except Exception:
             pytest.fail("auto_bubble_yrange should not crash when bub is off")

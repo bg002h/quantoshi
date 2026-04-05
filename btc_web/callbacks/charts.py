@@ -368,6 +368,7 @@ def _resolve_decomp_model_key(family, lppl_n_freqs, lppl_weighted, lppl_no_13):
     Input("lppl-no-13",        "value"),
     Input("bub-decomp-model",       "value"),
     Input("bub-decomp-components",  "value"),
+    Input("bub-decomp-mode",        "value"),
     Input("effective-lots",    "data"),
     Input("palette-store",     "data"),
     Input("user-model-store",  "data"),
@@ -380,7 +381,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,
                   n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, model_show,
                   lppl_n_freqs, lppl_weighted, lppl_no_13,
-                  decomp_model, decomp_components,
+                  decomp_model, decomp_components, decomp_mode,
                   lots_data,
                   palette_key, user_model_store=None,
                   qs_mode=None, scan_active=None, scan_q_val=None):
@@ -439,6 +440,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
         qs_mode = qs_mode or [],
         decomp_model       = decomp_model or "",
         decomp_components  = list(decomp_components or []),
+        decomp_mode        = decomp_mode or "individual",
         lppl_n_freqs       = list(lppl_n_freqs or []),
         lppl_weighted      = list(lppl_weighted or []),
         lppl_no_13         = list(lppl_no_13 or []),
@@ -603,6 +605,7 @@ def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
     Input("bub-model-show", "value"),
     Input("bub-decomp-model",       "value"),
     Input("bub-decomp-components",  "value"),
+    Input("bub-decomp-mode",        "value"),
     Input("lppl-n-freqs",           "value"),
     Input("lppl-weighted",          "value"),
     Input("lppl-no-13",             "value"),
@@ -610,7 +613,7 @@ def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
     prevent_initial_call=True,
 )
 def auto_bubble_yrange(xrange, auto_y, yscale, model_show,
-                       decomp_model, decomp_components,
+                       decomp_model, decomp_components, decomp_mode,
                        lppl_n_freqs, lppl_weighted, lppl_no_13,
                        sel_qs):
     """Auto-fit bubble Y range to selected quantiles at current X range."""
@@ -676,15 +679,35 @@ def auto_bubble_yrange(xrange, auto_y, yscale, model_show,
         if comp_model is not None:
             t_decomp = np.linspace(max(t_lo, 0.1), t_hi, 100)
             comps = comp_model.components(t_decomp)
-            names = [s for s in decomp_components
-                     if s != "__sum__" and s in comps]
-            for name in names:
-                log_vals = comps[name]
+            canonical = [n for n in comp_model.component_names
+                         if n in decomp_components]
+            mode = decomp_mode or "individual"
+            # Support line for reference mode
+            support_names = getattr(comp_model, "support_component_names", [])
+            support_log = None
+            if support_names:
+                support_log = comps[support_names[0]].copy()
+                for n in support_names[1:]:
+                    support_log = support_log + comps[n]
+            # Per-trace log values by mode
+            per_trace_logs = []
+            if mode == "cumulative":
+                cum = None
+                for name in canonical:
+                    cum = comps[name].copy() if cum is None else cum + comps[name]
+                    per_trace_logs.append(cum)
+            elif mode == "reference" and support_log is not None:
+                for name in canonical:
+                    per_trace_logs.append(support_log + comps[name])
+            else:
+                for name in canonical:
+                    per_trace_logs.append(comps[name])
+            for log_vals in per_trace_logs:
                 y_lo = min(y_lo, float(math.floor(float(np.min(log_vals)) * 2) / 2))
                 y_hi = max(y_hi, float(math.ceil(float(np.max(log_vals)) * 2) / 2))
-            if "__sum__" in decomp_components and names:
-                sum_log = comps[names[0]].copy()
-                for n in names[1:]:
+            if "__sum__" in decomp_components and canonical:
+                sum_log = comps[canonical[0]].copy()
+                for n in canonical[1:]:
                     sum_log = sum_log + comps[n]
                 y_lo = min(y_lo, float(math.floor(float(np.min(sum_log)) * 2) / 2))
                 y_hi = max(y_hi, float(math.ceil(float(np.max(sum_log)) * 2) / 2))

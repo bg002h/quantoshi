@@ -288,6 +288,7 @@ _SNAPSHOT_CONTROLS = [
     # ── Component Decomposition (bubble tab) ──
     ("bub-decomp-model",      "value"),   # family dropdown
     ("bub-decomp-components", "value"),   # dynamic checklist — plain list
+    ("bub-decomp-mode",       "value"),   # individual | reference | cumulative
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)

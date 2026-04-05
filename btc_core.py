@@ -498,6 +498,7 @@ class _CompositeModel:
         self.quantiles = sorted(self.fits.keys())
 
     component_names = ["support", "bubbles"]
+    support_component_names = ["support"]
 
     def components(self, t):
         """Composite decomposition: support + bubbles (both in log10 space).
@@ -669,6 +670,9 @@ class LPPLModel:
         "B\u00b7log\u2081\u2080(t)",
         "damped osc (\u03c9_log)",
     ]
+    # Components that together define the "support" (trend) line.
+    # Used by reference/cumulative decomposition rendering modes.
+    support_component_names = ["A (constant)", "B\u00b7log\u2081\u2080(t)"]
 
     def components(self, t):
         """Additive terms in log10 space. sum(values) == _lppl_log10(t)."""
@@ -1155,6 +1159,7 @@ class HybPPLExcessModel(LPPLModel):
         "damped log osc (\u03c9_log)",
         "undamped cal osc (\u03c9_cal)",
     ]
+    support_component_names = ["A_sup", "B_sup\u00b7log\u2081\u2080(t)"]
 
     def components(self, t):
         """BM support + constant + damped log-periodic + undamped calendar."""

@@ -152,6 +152,19 @@ def _bubble_controls():
                 value="", clearable=False,
             ),
             html.Div(id="bub-decomp-body", style=_STYLE_HIDDEN, children=[
+                _lbl("Render mode"),
+                dcc.RadioItems(
+                    id="bub-decomp-mode",
+                    options=[
+                        {"label": " Individual", "value": "individual"},
+                        {"label": " Reference", "value": "reference"},
+                        {"label": " Cumulative", "value": "cumulative"},
+                    ],
+                    value="individual", inline=True,
+                    inputStyle=_CB_MARGIN,
+                    className="small",
+                    style={"fontSize": "11px", "marginBottom": "6px"},
+                ),
                 dcc.Checklist(
                     id="bub-decomp-components",
                     options=[], value=[],

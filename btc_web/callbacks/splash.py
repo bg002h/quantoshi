@@ -145,7 +145,10 @@ _app_ctx.app.clientside_callback(
         var now = Date.now();
         var last = ts_store ? parseInt(ts_store) : 0;
         var isDev = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-        if (!isDev && now - last >= SIX_HOURS) {
+        /* Skip splash when loading a share link — let snapshot restore complete
+           uninterrupted. Dismissing the modal during restore causes race conditions. */
+        var hasShareHash = window.location.hash && window.location.hash.indexOf("q3:") !== -1;
+        if (!isDev && !hasShareHash && now - last >= SIX_HOURS) {
             var quotes = """ + _SPLASH_QUOTES_JS + """;
             /* Deterministic pseudo-random shuffle using epoch as seed */
             var seed = Math.floor(now / (6 * 3600 * 1000));

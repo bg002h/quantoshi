@@ -664,7 +664,7 @@ _app_ctx.app.clientside_callback(
     Output("bub-bubble-panel", "style", allow_duplicate=True),
     Output("bub-cagr-fwd-wrap", "style", allow_duplicate=True),
     Input("bub-view-mode", "data"),
-    prevent_initial_call='initial_duplicate',
+    prevent_initial_call=True,
 )
 
 # Hide "N future bubbles" slider in residuals view (doesn't apply to past data)

@@ -140,9 +140,87 @@ pre code {{ background:none; padding:0; }}
         svg_path = os.path.join(os.path.dirname(__file__), "..", "residual_fft.svg")
         try:
             with open(svg_path) as f:
-                return f.read(), 200, {"Content-Type": "image/svg+xml"}
+                svg = f.read()
         except FileNotFoundError:
             return "Not generated yet", 404
+        html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Residual FFT \u2014 Quantoshi</title>
+<style>
+body { background:#1a1a2e; color:#cccccc; font-family:system-ui,sans-serif;
+       max-width:1300px; margin:0 auto; padding:24px 16px; line-height:1.5; }
+h1, h2 { color:#00d4ff; }
+h1 { font-size:22px; }
+h2 { font-size:16px; margin-top:28px; }
+a { color:#FF9F40; text-decoration:none; }
+a:hover { color:#FFD080; text-decoration:underline; }
+.muted { color:#888; font-size:12px; }
+.desc { background:#101a2e; padding:10px 16px; border-radius:6px;
+        border-left:3px solid #00d4ff; margin:8px 0 12px 0;
+        font-size:13px; color:#b8ccd8; line-height:1.55; }
+.desc strong { color:#00d4ff; }
+table { border-collapse:collapse; margin:8px 0 12px 0; font-size:12px; }
+th, td { border:1px solid #444; padding:4px 10px; text-align:right; }
+th { background:#16213e; color:#00d4ff; text-align:center; }
+td:first-child, td:nth-child(2) { font-weight:600; color:#FFD080; }
+.formula { background:#0e1624; padding:10px 14px; border-radius:6px;
+           border-left:3px solid #FF9F40; font-size:13px; margin:8px 0 12px 0;
+           font-family: ui-monospace, monospace; }
+img, svg { max-width:100%; height:auto; display:block; border-radius:6px; }
+.back-link { display:inline-block; margin-top:24px; color:#888; }
+</style>
+</head><body>
+<h1>Residual FFT power spectra</h1>
+<p class="muted">
+FFT of log-space residuals (log\u2081\u2080 price \u2212 model fit) across
+BM floor, BM composite, LPPL\u2081, LPPL\u2082, LPPL\u2084. Sampled on a
+uniform ln(t) grid, which puts angular frequency \u03c9 in log-time
+units. Hann-windowed. Cap at \u03c9=100.
+</p>
+<h2>\u03c9 \u2192 calendar-year cycle conversion</h2>
+<p class="desc">
+\u03c9 is angular frequency in <strong>log-time</strong>, not calendar
+time. The log-period T<sub>ln t</sub>=2\u03c0/\u03c9 is constant; the
+corresponding calendar gap <em>stretches</em> as t grows. Each
+successive cycle is longer than the previous by a fixed ratio
+r = exp(T<sub>ln t</sub>) = exp(2\u03c0/\u03c9).
+</p>
+<div class="formula">
+T<sub>ln t</sub> = 2\u03c0 / \u03c9 &nbsp;\u2192&nbsp;
+ratio r = e<sup>T<sub>ln t</sub></sup>
+</div>
+<table>
+<thead><tr>
+<th>\u03c9</th><th>T<sub>ln t</sub></th><th>ratio r</th>
+<th>gap at t=5yr</th><th>gap at t=10yr</th><th>gap at t=16yr</th><th>gap at t=30yr</th>
+</tr></thead>
+<tbody>
+<tr><td>4.5</td><td>1.396</td><td>4.04\u00d7</td><td>15.2 yr</td><td>30.4 yr</td><td>48.6 yr</td><td>91.2 yr</td></tr>
+<tr><td>6.7</td><td>0.938</td><td>2.55\u00d7</td><td>7.8 yr</td><td>15.6 yr</td><td>25.0 yr</td><td>46.9 yr</td></tr>
+<tr><td>7.3</td><td>0.861</td><td>2.37\u00d7</td><td>6.8 yr</td><td>13.7 yr</td><td>21.9 yr</td><td>41.0 yr</td></tr>
+<tr><td>8.9</td><td>0.706</td><td>2.03\u00d7</td><td>5.1 yr</td><td>10.3 yr</td><td>16.4 yr</td><td>30.7 yr</td></tr>
+<tr><td>13.4</td><td>0.469</td><td>1.60\u00d7</td><td>3.0 yr</td><td>5.98 yr</td><td>9.57 yr</td><td>17.9 yr</td></tr>
+<tr><td>17.9</td><td>0.351</td><td>1.42\u00d7</td><td>2.1 yr</td><td>4.20 yr</td><td>6.72 yr</td><td>12.6 yr</td></tr>
+<tr><td>20.1</td><td>0.313</td><td>1.37\u00d7</td><td>1.8 yr</td><td>3.67 yr</td><td>5.87 yr</td><td>11.0 yr</td></tr>
+<tr><td>26.8</td><td>0.234</td><td>1.26\u00d7</td><td>1.3 yr</td><td>2.64 yr</td><td>4.23 yr</td><td>7.92 yr</td></tr>
+<tr><td>31.3</td><td>0.201</td><td>1.22\u00d7</td><td>1.1 yr</td><td>2.23 yr</td><td>3.57 yr</td><td>6.69 yr</td></tr>
+<tr><td>37.9</td><td>0.166</td><td>1.18\u00d7</td><td>0.9 yr</td><td>1.81 yr</td><td>2.90 yr</td><td>5.43 yr</td></tr>
+<tr><td>44.7</td><td>0.141</td><td>1.15\u00d7</td><td>0.76 yr</td><td>1.51 yr</td><td>2.42 yr</td><td>4.54 yr</td></tr>
+<tr><td>67.0</td><td>0.094</td><td>1.098\u00d7</td><td>0.49 yr</td><td>0.98 yr</td><td>1.57 yr</td><td>2.94 yr</td></tr>
+</tbody>
+</table>
+<p class="muted">
+Calendar-year gap = t\u00b7(r\u22121). At t=10 yr, \u03c9=7.3 \u2192 13.7 yr
+to next peak; at t=30 yr the same \u03c9 predicts 41 yr. Cycles stretch
+with time \u2014 classic log-periodicity.
+</p>
+""" + svg + """
+<a href="/" class="back-link">\u2190 Back to Quantoshi</a>
+</body></html>"""
+        return html, 200, {"Content-Type": "text/html"}
 
     @server.route("/E")
     def _regime_shift():

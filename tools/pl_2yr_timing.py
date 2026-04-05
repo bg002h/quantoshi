@@ -24,6 +24,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -123,10 +124,31 @@ def compute_timing(csv_path, t_all, lp_all, label):
           f"  at lag = {peak_lag_excess:+d} months"
           f"  ({'B leads' if peak_lag_excess > 0 else 'B trails' if peak_lag_excess < 0 else 'synchronous'})")
 
+    # Detect log_excess peaks and troughs.
+    # Monthly spacing -> distance=18 enforces >=1.5yr between extrema.
+    exc = excess.copy()
+    exc[~np.isfinite(exc)] = 0.0
+    prom = 0.30  # prominence in log-units — keeps only major cycle extrema
+    # Distance=30 months enforces halving-cycle-scale spacing (~2.5yr min),
+    # which suppresses mid-cycle blips like the 2019-06 summer rally.
+    peak_idxs, _ = find_peaks(exc, distance=30, prominence=prom)
+    trough_idxs, _ = find_peaks(-exc, distance=30, prominence=prom)
+
+    # Predicted B extrema: shift log_excess extrema forward by |lag| months.
+    # log_excess PEAK  -> B TROUGH (neg corr at neg lag)
+    # log_excess TROUGH -> B PEAK
+    L = abs(peak_lag_excess)
+    shift = pd.DateOffset(months=L)
+    predicted_B_troughs = [df["end_date"].iloc[i] + shift for i in peak_idxs]
+    predicted_B_peaks   = [df["end_date"].iloc[i] + shift for i in trough_idxs]
+
     stats = dict(
         corr_level=corr_level, corr_excess=corr_excess, corr_moment=corr_moment,
         peak_lag_level=peak_lag_level, peak_corr_level=peak_corr_level,
         peak_lag_excess=peak_lag_excess, peak_corr_excess=peak_corr_excess,
+        predicted_B_troughs=predicted_B_troughs,
+        predicted_B_peaks=predicted_B_peaks,
+        lag_months=L,
     )
     return df, lags, xcorr_level, xcorr_excess, stats
 
@@ -182,6 +204,36 @@ def plot_timing(df, lags, xcorr_level, xcorr_excess, stats, label, out_svg):
                     linewidth=0.6, linestyle="--", alpha=0.5)
     ax1.set_xlabel("Window end date", color=LABEL_COLOR, fontsize=10)
 
+    # Overlay predicted B extrema (shifted from log_excess extrema by |lag|)
+    TROUGH_COLOR = "#ff6a4a"  # red — predicted B trough (post-bubble)
+    PEAK_COLOR = "#70e8b0"    # green — predicted B peak (post-bear)
+    date_min, date_max = ax1.get_xlim()
+    for d in stats["predicted_B_troughs"]:
+        d_num = pd.Timestamp(d).to_pydatetime().toordinal() - \
+                pd.Timestamp("1970-01-01").to_pydatetime().toordinal()
+        ax1.axvline(d, color=TROUGH_COLOR, linewidth=1.0,
+                    linestyle="-", alpha=0.55)
+    for d in stats["predicted_B_peaks"]:
+        ax1.axvline(d, color=PEAK_COLOR, linewidth=1.0,
+                    linestyle="-", alpha=0.55)
+
+    # Date labels at bottom for predicted extrema
+    y_bot = ax1.get_ylim()[0]
+    for d in stats["predicted_B_troughs"]:
+        ax1.annotate(
+            f"B\u2193 {pd.Timestamp(d).strftime('%Y-%m')}",
+            xy=(d, y_bot), xytext=(3, 3), textcoords="offset points",
+            rotation=90, color=TROUGH_COLOR, fontsize=7,
+            ha="left", va="bottom",
+        )
+    for d in stats["predicted_B_peaks"]:
+        ax1.annotate(
+            f"B\u2191 {pd.Timestamp(d).strftime('%Y-%m')}",
+            xy=(d, y_bot), xytext=(3, 3), textcoords="offset points",
+            rotation=90, color=PEAK_COLOR, fontsize=7,
+            ha="left", va="bottom",
+        )
+
     # Event labels
     y_top = ax1.get_ylim()[1]
     for date_str, name in REGIME_EVENTS:
@@ -190,12 +242,18 @@ def plot_timing(df, lags, xcorr_level, xcorr_excess, stats, label, out_svg):
                      rotation=90, color=EVENT_COLOR,
                      fontsize=7, ha="left", va="top")
 
-    # Combined legend
+    # Combined legend — add synthetic handles for the prediction markers
+    from matplotlib.lines import Line2D
     h1, l1 = ax1.get_legend_handles_labels()
     h2, l2 = ax1b.get_legend_handles_labels()
-    ax1.legend(h1 + h2, l1 + l2, loc="upper left",
-               fontsize=9, facecolor="#101a2e", edgecolor="#555555",
-               labelcolor=LABEL_COLOR)
+    h_trough = Line2D([0], [0], color=TROUGH_COLOR, linewidth=1.0,
+                      label=f"predicted B\u2193 (log-exc peak + {stats['lag_months']}mo)")
+    h_peak = Line2D([0], [0], color=PEAK_COLOR, linewidth=1.0,
+                    label=f"predicted B\u2191 (log-exc trough + {stats['lag_months']}mo)")
+    ax1.legend(h1 + h2 + [h_trough, h_peak],
+               l1 + l2 + [h_trough.get_label(), h_peak.get_label()],
+               loc="upper left", fontsize=8, facecolor="#101a2e",
+               edgecolor="#555555", labelcolor=LABEL_COLOR)
 
     # Panel 2: cross-correlation vs lag
     ax2 = fig.add_subplot(gs[1])

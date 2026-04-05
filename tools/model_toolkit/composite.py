@@ -20,6 +20,8 @@ class CompositeResult:
     t_grid: np.ndarray
     log_support_grid: np.ndarray
     support_grid: np.ndarray        # USD prices on t_grid
+    support_intercept: float        # A_sup in log_price = A_sup + B_sup*log10(t)
+    support_slope: float            # B_sup
 
 
 def _total_bubble(t, fitted_bubbles, budget, slope_sup):
@@ -128,6 +130,8 @@ def build_composite(support, fitted, price_data, t_grid=None, cap_overlap=True):
         t_grid=t_grid,
         log_support_grid=log_support_grid,
         support_grid=support_grid,
+        support_intercept=float(support.intercept),
+        support_slope=float(support.slope),
     )
 
 

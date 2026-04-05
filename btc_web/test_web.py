@@ -9151,3 +9151,38 @@ class TestModelShowChecklistStandardized:
         elems = _model_show_checklist("dca", standardized=False)
         rendered = str(elems).replace("'", '"')
         assert '"value": "lppl"' in rendered
+
+
+class TestLpplConfigPanel:
+    """Unit test for _lppl_config_panel compact helper."""
+
+    def test_has_activate_and_summary_and_button(self):
+        from layout.common import _lppl_config_panel
+        card = _lppl_config_panel("dca")
+        rendered = str(card)
+        assert "dca-lppl-activate" in rendered
+        assert "dca-lppl-summary" in rendered
+        assert "dca-lppl-configure-btn" in rendered
+
+    def test_no_inline_config_controls(self):
+        """The un-prefixed config IDs live in the global modal, not here."""
+        from layout.common import _lppl_config_panel
+        card = _lppl_config_panel("ret")
+        rendered = str(card).replace("'", '"')
+        assert '"lppl-n-freqs"' not in rendered
+        assert '"lppl-weighted"' not in rendered
+        assert '"lppl-no-13"' not in rendered
+
+
+class TestGlobalLpplModal:
+    """Unit test for _global_lppl_modal root-level modal."""
+
+    def test_has_all_config_controls(self):
+        from layout.common import _global_lppl_modal
+        modal = _global_lppl_modal()
+        rendered = str(modal)
+        assert "lppl-config-modal" in rendered
+        assert "lppl-n-freqs" in rendered
+        assert "lppl-weighted" in rendered
+        assert "lppl-no-13" in rendered
+        assert "lppl-modal-close-btn" in rendered

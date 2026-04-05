@@ -502,6 +502,76 @@ def _model_show_checklist(prefix, standardized=False):
     ]
 
 
+def _lppl_config_panel(prefix):
+    """Compact LPPL sub-panel: activate + summary + modal launcher.
+
+    The actual n_freqs/weighted/no_13 controls live in the global
+    modal (_global_lppl_modal) so they have unique IDs. Each tab's
+    version here links to that one modal.
+    """
+    return _section_card("LPPL Models",
+        dcc.Checklist(id=f"{prefix}-lppl-activate",
+                      options=[{"label": " Activate LPPL overlay",
+                                "value": "yes"}],
+                      value=[], inputStyle=_CB_MARGIN),
+        html.Div([
+            html.Small("Current: ", style={"color": "#888", "fontSize": "11px"}),
+            html.Span(id=f"{prefix}-lppl-summary", children="LPPL\u2083",
+                      style={"color": "#FF6D00", "fontSize": "11px",
+                             "fontWeight": "600"}),
+        ], style={"marginTop": "4px", "marginBottom": "4px"}),
+        dbc.Button("\u2699\ufe0f Configure LPPL",
+                   id=f"{prefix}-lppl-configure-btn",
+                   size="sm", color="secondary", outline=True,
+                   style={"fontSize": "11px", "padding": "2px 8px"}),
+    )
+
+
+def _global_lppl_modal():
+    """Root-level modal holding the n_freqs/weighted/no_13 controls.
+
+    Rendered once in _serve_layout; opened by any tab's
+    {prefix}-lppl-configure-btn click.
+    """
+    return dbc.Modal([
+        dbc.ModalHeader(dbc.ModalTitle("LPPL Model Configuration")),
+        dbc.ModalBody([
+            _lbl("Oscillation frequencies (N)"),
+            dcc.Checklist(id="lppl-n-freqs",
+                          options=[
+                              {"label": " LPPL\u2081 (1 freq)", "value": 1},
+                              {"label": " LPPL\u2082 (2 freqs)", "value": 2},
+                              {"label": " LPPL\u2083 (3 freqs) \u2014 recommended",
+                               "value": 3},
+                              {"label": " LPPL\u2084 (4 freqs) \u2014 \u26A0 likely overfit",
+                               "value": 4},
+                          ],
+                          value=[3],
+                          labelStyle={"display": "block"},
+                          inputStyle=_CB_MARGIN),
+            html.Hr(style={"margin": "6px 0", "borderColor": "#444"}),
+            dcc.Checklist(id="lppl-weighted",
+                          options=[{"label": " Log-time weighted fits",
+                                    "value": "weighted"}],
+                          value=[], inputStyle=_CB_MARGIN,
+                          className="small"),
+            html.Small("Emphasizes early-history structure over recent era",
+                       style=_STYLE_HINT),
+            dcc.Checklist(id="lppl-no-13",
+                          options=[{"label": " Exclude \u03c9\u224813 intermod (disables LPPL\u2083)",
+                                    "value": "no13"}],
+                          value=[], inputStyle=_CB_MARGIN,
+                          className="small"),
+            html.Small("LP\u2084's \u03c9\u224813 may be an intermodulation artifact",
+                       style=_STYLE_HINT),
+        ]),
+        dbc.ModalFooter(
+            dbc.Button("Close", id="lppl-modal-close-btn",
+                       size="sm", color="primary"),
+        ),
+    ], id="lppl-config-modal", is_open=False, centered=True, size="md")
+
+
 def _shared_settings_card(prefix, *, amount_id=None, amount_label="Purchase amount ($)",
                           amount_default=100, infl_default=0, stack_default=0,
                           freq_default="Monthly"):

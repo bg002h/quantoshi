@@ -29,7 +29,7 @@ img { max-width:100%; height:auto; display:block; border-radius:6px;
 <h1>LPPL Regime Shift Detection</h1>
 <p class="muted">
 Rolling-window LPPL fits tracking parameter evolution over time.
-Generated 2026-04-04 19:18 UTC by <code>tools/regime_shift_all.py</code>.
+Generated 2026-04-04 19:31 UTC by <code>tools/regime_shift_all.py</code>.
 Regenerate manually — not auto-refreshed.
 </p>
 <nav>
@@ -38,6 +38,10 @@ Regenerate manually — not auto-refreshed.
 <a href="#pl-5yr">PL (5yr)</a>
 <a href="#pl-7yr">PL (7yr)</a>
 <a href="#pl-9yr">PL (9yr)</a>
+<a href="#pl-2yr-clipped">PL (2yr, clipped)</a>
+<a href="#pl-5yr-clipped">PL (5yr, clipped)</a>
+<a href="#pl-7yr-clipped">PL (7yr, clipped)</a>
+<a href="#pl-9yr-clipped">PL (9yr, clipped)</a>
 <a href="#lp1-5yr">LPPL₁ (5yr)</a>
 <a href="#lp2-5yr">LPPL₂ (5yr)</a>
 <a href="#lp3-7yr">LPPL₃ (7yr)</a>
@@ -131,6 +135,34 @@ Regenerate manually — not auto-refreshed.
 <div class="formula">log₁₀(price) = A + B·log₁₀(t) + C₁·t⁻ᴰ·cos(ω_log·ln t + φ₁) + C₂·cos(ω_cal·t + φ₂)    [log-periodic damped + linear-periodic undamped]</div>
 <p class="muted">Combines log-periodic damped primary + linear-periodic undamped secondary. Full-history R²=0.989 — beats LPPL₂ at same 9-param count. Watch how the relative contribution of W_log vs W_cal evolves over windows.</p>
 <img src="/regime_shift/regime_shift_hybppl_5yr.svg" alt="HybPPL (9 params, 5yr windows)">
+</section>
+<hr>
+<section id="pl-2yr-clipped">
+<h2>Power Law (2 params, 2yr windows) — clipped</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>
+<p class="muted">Original box-bounded DE fit (A∈[-3,1], B∈[3,7]). Red dotted lines mark the rails. Useful for seeing exactly where the optimizer was being clipped by the constraint — compare against the unbounded OLS version above for the same window width. 75% of windows hit a rail.</p>
+<img src="/regime_shift/regime_shift_pl_2yr_clipped.svg" alt="Power Law (2 params, 2yr windows) — clipped">
+</section>
+<hr>
+<section id="pl-5yr-clipped">
+<h2>Power Law (2 params, 5yr windows) — clipped</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>
+<p class="muted">Original box-bounded DE fit (A∈[-3,1], B∈[3,7]). Red dotted lines mark the rails. Useful for seeing exactly where the optimizer was being clipped by the constraint — compare against the unbounded OLS version above for the same window width. 6% hit a rail.</p>
+<img src="/regime_shift/regime_shift_pl_5yr_clipped.svg" alt="Power Law (2 params, 5yr windows) — clipped">
+</section>
+<hr>
+<section id="pl-7yr-clipped">
+<h2>Power Law (2 params, 7yr windows) — clipped</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>
+<p class="muted">Original box-bounded DE fit (A∈[-3,1], B∈[3,7]). Red dotted lines mark the rails. Useful for seeing exactly where the optimizer was being clipped by the constraint — compare against the unbounded OLS version above for the same window width. 3% hit a rail.</p>
+<img src="/regime_shift/regime_shift_pl_7yr_clipped.svg" alt="Power Law (2 params, 7yr windows) — clipped">
+</section>
+<hr>
+<section id="pl-9yr-clipped">
+<h2>Power Law (2 params, 9yr windows) — clipped</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>
+<p class="muted">Original box-bounded DE fit (A∈[-3,1], B∈[3,7]). Red dotted lines mark the rails. Useful for seeing exactly where the optimizer was being clipped by the constraint — compare against the unbounded OLS version above for the same window width. 0% hit a rail.</p>
+<img src="/regime_shift/regime_shift_pl_9yr_clipped.svg" alt="Power Law (2 params, 9yr windows) — clipped">
 </section>
 <hr>
 <section id="bm-7yr">

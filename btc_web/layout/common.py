@@ -153,6 +153,7 @@ _SECTION_ICONS = {
     "User Model (U\u2081)": "\U0001F3AF",    # 🎯
     # Model-config panels
     "Bubble Model": "\U0001F4CA",            # 📊
+    "Component Decomposition": "\U0001F9EC", # 🧬
     "LPPL Models": "\U0001F30A",             # 🌊
     "Monte Carlo Simulation": "\U0001F3B2",  # 🎲
     "Saved Simulation": "\U0001F4BE",        # 💾

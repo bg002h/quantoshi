@@ -142,6 +142,25 @@ def _bubble_controls():
             ),
         ]),
         _lppl_config_panel("bub"),
+        _section_card("Component Decomposition",
+            _lbl("Model"),
+            dcc.Dropdown(
+                id="bub-decomp-model",
+                options=[{"label": "(none)", "value": ""}] +
+                        [{"label": label, "value": key}
+                         for key, label in _app_ctx.DECOMP_FAMILIES.items()],
+                value="", clearable=False,
+            ),
+            html.Div(id="bub-decomp-body", style=_STYLE_HIDDEN, children=[
+                dcc.Checklist(
+                    id="bub-decomp-components",
+                    options=[], value=[],
+                    labelStyle={"display": "block", "fontSize": "11px"},
+                    inputStyle=_CB_MARGIN,
+                ),
+            ]),
+            html.Div(id="bub-decomp-warning", children=[]),
+        ),
         _q_panel_with_mode("bub-qs", [0.5],
                            hint=f"If none selected, Q50% is shown at "
                                 f"{int(_app_ctx.FALLBACK_Q50_OPACITY * 100)}% opacity."),

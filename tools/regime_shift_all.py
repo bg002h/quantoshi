@@ -82,27 +82,45 @@ def lp3_model(t_safe, A, B, C1, W1, PHI1, D, C2, W2, PHI2, C3, W3, PHI3):
             + C3 * np.cos(W3 * np.log(t_safe) + PHI3))
 
 
-# W_max widened from 15 to 25 to test whether saturation at 15 was a bound artifact
+def lp4_model(t_safe, A, B, C1, W1, PHI1, D, C2, W2, PHI2, C3, W3, PHI3, C4, W4, PHI4):
+    return (A + B * np.log10(t_safe)
+            + C1 * t_safe ** (-D) * np.cos(W1 * np.log(t_safe) + PHI1)
+            + C2 * np.cos(W2 * np.log(t_safe) + PHI2)
+            + C3 * np.cos(W3 * np.log(t_safe) + PHI3)
+            + C4 * np.cos(W4 * np.log(t_safe) + PHI4))
+
+
+# W_max widened to 40 to match production fitters
 LP1_BOUNDS = [
     (-3.0, 1.0), (3.0, 7.0), (0.01, 3.0),
-    (2.0, 25.0), (-np.pi, np.pi), (0.01, 2.0),
+    (2.0, 40.0), (-np.pi, np.pi), (0.01, 2.0),
 ]
 LP1_NAMES = ["A", "B", "C", "W", "PHI", "D"]
 
 LP2_BOUNDS = [
     (-3.0, 1.0), (3.0, 7.0), (0.01, 3.0),
-    (2.0, 25.0), (-np.pi, np.pi), (0.01, 2.0),
-    (0.0, 1.5), (3.0, 35.0), (-np.pi, np.pi),
+    (2.0, 40.0), (-np.pi, np.pi), (0.01, 2.0),
+    (0.0, 1.5), (3.0, 40.0), (-np.pi, np.pi),
 ]
 LP2_NAMES = ["A", "B", "C1", "W1", "PHI1", "D", "C2", "W2", "PHI2"]
 
 LP3_BOUNDS = [
     (-3.0, 1.0), (3.0, 7.0), (0.01, 3.0),
-    (2.0, 25.0), (-np.pi, np.pi), (0.01, 2.0),
-    (0.0, 1.5), (3.0, 35.0), (-np.pi, np.pi),
-    (0.0, 1.5), (3.0, 35.0), (-np.pi, np.pi),
+    (2.0, 40.0), (-np.pi, np.pi), (0.01, 2.0),
+    (0.0, 1.5), (3.0, 40.0), (-np.pi, np.pi),
+    (0.0, 1.5), (3.0, 40.0), (-np.pi, np.pi),
 ]
 LP3_NAMES = ["A", "B", "C1", "W1", "PHI1", "D", "C2", "W2", "PHI2", "C3", "W3", "PHI3"]
+
+LP4_BOUNDS = [
+    (-3.0, 1.0), (3.0, 7.0), (0.01, 3.0),
+    (2.0, 40.0), (-np.pi, np.pi), (0.01, 2.0),
+    (0.0, 1.5), (3.0, 40.0), (-np.pi, np.pi),
+    (0.0, 1.5), (3.0, 40.0), (-np.pi, np.pi),
+    (0.0, 1.5), (3.0, 40.0), (-np.pi, np.pi),
+]
+LP4_NAMES = ["A", "B", "C1", "W1", "PHI1", "D",
+             "C2", "W2", "PHI2", "C3", "W3", "PHI3", "C4", "W4", "PHI4"]
 
 
 # ── Fit workers (module-level, picklable) ────────────────────────────────
@@ -120,6 +138,8 @@ def _fit_worker(args):
             bounds, names, fn = LP2_BOUNDS, LP2_NAMES, lp2_model
         elif model_name == "lp3":
             bounds, names, fn = LP3_BOUNDS, LP3_NAMES, lp3_model
+        elif model_name == "lp4":
+            bounds, names, fn = LP4_BOUNDS, LP4_NAMES, lp4_model
         else:
             return _nan_result(model_name, t_end)
 
@@ -164,6 +184,8 @@ def _nan_result(model_name, t_end):
         names = LP2_NAMES
     elif model_name == "lp3":
         names = LP3_NAMES
+    elif model_name == "lp4":
+        names = LP4_NAMES
     else:
         names = []
     row = {"t_end": t_end}
@@ -307,6 +329,8 @@ Regenerate manually — not auto-refreshed.
 <a href="#lp2-5yr">LPPL\u2082 (5yr)</a>
 <a href="#lp3-7yr">LPPL\u2083 (7yr)</a>
 <a href="#lp3-9yr">LPPL\u2083 (9yr)</a>
+<a href="#lp4-7yr">LPPL\u2084 (7yr)</a>
+<a href="#lp4-9yr">LPPL\u2084 (9yr)</a>
 </nav>
 {sections}
 <a href="/" class="back-link">\u2190 Back to Quantoshi</a>
@@ -357,6 +381,13 @@ LP3_FORMULA = (
     "+ C\u2082\u00b7cos(\u03c9\u2082\u00b7ln t + \u03c6\u2082) "
     "+ C\u2083\u00b7cos(\u03c9\u2083\u00b7ln t + \u03c6\u2083)"
 )
+LP4_FORMULA = (
+    "log\u2081\u2080(price) = A + B\u00b7log\u2081\u2080(t) "
+    "+ C\u2081\u00b7t\u207b\u1d30\u00b7cos(\u03c9\u2081\u00b7ln t + \u03c6\u2081) "
+    "+ C\u2082\u00b7cos(\u03c9\u2082\u00b7ln t + \u03c6\u2082) "
+    "+ C\u2083\u00b7cos(\u03c9\u2083\u00b7ln t + \u03c6\u2083) "
+    "+ C\u2084\u00b7cos(\u03c9\u2084\u00b7ln t + \u03c6\u2084)"
+)
 
 
 # ── Main ─────────────────────────────────────────────────────────────────
@@ -383,8 +414,7 @@ def main():
         lp_all = df["log_price"].values
         print(f"  {len(df)} daily rows (years >= 1.0)")
 
-        # Cap at 12 workers to reduce memory pressure (LP3 12-param fits need ~200MB each)
-        n_workers = max(1, min(12, os.cpu_count() - 1))
+        n_workers = max(1, os.cpu_count() - 1)
         print(f"  Using {n_workers} workers\n")
 
     configs = [
@@ -404,6 +434,19 @@ def main():
          "lp3-9yr", "regime_shift_lp3_9yr.svg", LP3_FORMULA,
          "Same model as above, wider 9-year windows. More stable fits at "
          "the cost of slower regime-change response."),
+        ("LPPL\u2084 (15 params, 7yr windows) \u2014 likely overfit",
+         "lp4", 7.0, LP4_NAMES,
+         "lp4-7yr", "regime_shift_lp4_7yr.svg", LP4_FORMULA,
+         "Four frequencies. LPPL\u2084's 4th frequency is likely an "
+         "intermodulation artifact \u2014 watch for erratic jumps "
+         "window-to-window in any of the W\u2082/W\u2083/W\u2084 panels. "
+         "R\u00b2 improvements over LPPL\u2083 may be cosmetic (overfitting)."),
+        ("LPPL\u2084 (15 params, 9yr windows) \u2014 likely overfit",
+         "lp4", 9.0, LP4_NAMES,
+         "lp4-9yr", "regime_shift_lp4_9yr.svg", LP4_FORMULA,
+         "Same caveats as LPPL\u2084 7yr. Wider windows give more data per "
+         "fit, reducing (but not eliminating) noise-fitting of the 4th "
+         "frequency."),
     ]
 
     configs_info = []

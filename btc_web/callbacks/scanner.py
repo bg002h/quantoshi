@@ -77,6 +77,7 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_mo
         ["lppl"], lppl_n_freqs, lppl_weighted, lppl_no_13))
     _models = {k: m for k, m in _models.items()
                if k not in _LPPL_FAMILY_KEYS or k in _active_lppl}
+    _models.pop("exp", None)  # Exponential is excluded from the scanner
 
     # edit_history is a list of the last 2 edited fields, e.g. ["p", "d"]
     if not isinstance(edit_history, list):

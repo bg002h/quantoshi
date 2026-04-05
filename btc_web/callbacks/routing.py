@@ -516,9 +516,8 @@ def _hm_deep_link(pathname):
 # Heatmap model pill bar -- click to select active model
 # ══════════════════════════════════════════════════════════════════════════════
 
-_HM_PILL_IDS = ["hm-pill-bub"] + [f"hm-pill-{k}" for k in _app_ctx.PRICE_MODELS if k != "bub"]
-if _app_ctx._HAS_MARKOV:
-    _HM_PILL_IDS.append("hm-pill-mc")
+# Pill IDs match the Phase 2 standardized _HM_PILL_MODELS list above.
+_HM_PILL_IDS = [f"hm-pill-{k}" for k in _HM_PILL_MODELS]
 
 
 @callback(

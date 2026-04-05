@@ -9188,3 +9188,43 @@ class TestGlobalLpplModal:
         assert "lppl-weighted" in rendered
         assert "lppl-no-13" in rendered
         assert "lppl-modal-close-btn" in rendered
+
+
+class TestResolveHmLpplMaster:
+    """Unit test for heatmap LPPL master translation."""
+
+    def test_non_lppl_passes_through(self):
+        from callbacks.charts import _resolve_hm_lppl_master
+        assert _resolve_hm_lppl_master("bub", [3], [], []) == "bub"
+        assert _resolve_hm_lppl_master("pl", [3], [], []) == "pl"
+        assert _resolve_hm_lppl_master("linppl", [3], [], []) == "linppl"
+
+    def test_lppl_default_n3_unweighted(self):
+        from callbacks.charts import _resolve_hm_lppl_master
+        assert _resolve_hm_lppl_master("lppl", [3], [], []) == "lp3"
+
+    def test_lppl_n3_weighted(self):
+        from callbacks.charts import _resolve_hm_lppl_master
+        assert _resolve_hm_lppl_master("lppl", [3], ["weighted"], []) == "lp3_w"
+
+    def test_lppl_n4_no_13(self):
+        from callbacks.charts import _resolve_hm_lppl_master
+        assert _resolve_hm_lppl_master("lppl", [4], [], ["no13"]) == "lp4_n13"
+
+    def test_lppl_n4_weighted_no_13(self):
+        from callbacks.charts import _resolve_hm_lppl_master
+        assert _resolve_hm_lppl_master("lppl", [4], ["weighted"], ["no13"]) == "lp4_w_n13"
+
+    def test_lppl_picks_first_when_multi_selected(self):
+        from callbacks.charts import _resolve_hm_lppl_master
+        # Heatmap is single-select: takes first entry, ignores rest
+        assert _resolve_hm_lppl_master("lppl", [2, 4], [], []) == "lp2"
+
+    def test_lppl_empty_n_freqs_defaults_to_3(self):
+        from callbacks.charts import _resolve_hm_lppl_master
+        assert _resolve_hm_lppl_master("lppl", [], [], []) == "lp3"
+
+    def test_lppl_n3_with_no_13_falls_through_to_lppl(self):
+        from callbacks.charts import _resolve_hm_lppl_master
+        # n=3 and no_13 both set → LP3 disabled → fallback to "lppl"
+        assert _resolve_hm_lppl_master("lppl", [3], [], ["no13"]) == "lppl"

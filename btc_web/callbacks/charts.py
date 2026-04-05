@@ -62,7 +62,7 @@ _app_ctx.app.clientside_callback(
 # (Phase 2 will extend the Input list to include hm-lppl-configure-btn.)
 _app_ctx.app.clientside_callback(
     """
-    function(bub_n, dca_n, ret_n, sc_n, close_n, cur_open) {
+    function(bub_n, dca_n, ret_n, sc_n, hm_n, close_n, cur_open) {
         var ctx = window.dash_clientside.callback_context;
         if (!ctx.triggered || !ctx.triggered.length) {
             return window.dash_clientside.no_update;
@@ -78,6 +78,7 @@ _app_ctx.app.clientside_callback(
     Input("dca-lppl-configure-btn", "n_clicks"),
     Input("ret-lppl-configure-btn", "n_clicks"),
     Input("sc-lppl-configure-btn", "n_clicks"),
+    Input("hm-lppl-configure-btn", "n_clicks"),
     Input("lppl-modal-close-btn", "n_clicks"),
     State("lppl-config-modal", "is_open"),
     prevent_initial_call=True,
@@ -116,8 +117,44 @@ for _lp in ("dca", "ret", "sc"):
     )
 
 
+# hm-active-model == "lppl"  ->  hm-lppl-activate
+_app_ctx.app.clientside_callback(
+    """
+    function(active_model, cur_activate) {
+        var should_activate = (active_model === 'lppl');
+        var is_activated = (cur_activate || []).length > 0;
+        if (should_activate === is_activated) {
+            return window.dash_clientside.no_update;
+        }
+        return should_activate ? ['yes'] : [];
+    }
+    """,
+    Output("hm-lppl-activate", "value", allow_duplicate=True),
+    Input("hm-active-model", "data"),
+    State("hm-lppl-activate", "value"),
+    prevent_initial_call='initial_duplicate',
+)
+
+# hm-lppl-activate  ->  hm-active-model  (user clicks Activate LPPL)
+_app_ctx.app.clientside_callback(
+    """
+    function(activate, cur_model) {
+        var want_lppl = (activate || []).length > 0;
+        var is_lppl = (cur_model === 'lppl');
+        if (want_lppl === is_lppl) return window.dash_clientside.no_update;
+        if (want_lppl) return 'lppl';
+        return 'bub';  // Turn off: revert to BM
+    }
+    """,
+    Output("hm-active-model", "data", allow_duplicate=True),
+    Input("hm-lppl-activate", "value"),
+    State("hm-active-model", "data"),
+    prevent_initial_call='initial_duplicate',
+)
+
+
 # LPPL config → compact summary text, per tab
-for _sum_prefix in ("bub", "dca", "ret", "sc"):
+for _sum_prefix in ("bub", "dca", "ret", "sc", "hm"):
     _app_ctx.app.clientside_callback(
         """
         function(n_freqs, weighted, no_13) {
@@ -147,6 +184,31 @@ from mc_cache import (MC_BINS, MC_SIMS, MC_FREQ,
 from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
                    _get_supercharge_fig, _get_heatmap_fig, _get_mc_heatmap_fig,
                    _nearest_quantile)
+
+
+def _resolve_hm_lppl_master(hm_model, lppl_n_freqs, lppl_weighted, lppl_no_13):
+    """Translate 'lppl' master to specific flavor key for heatmap (single-select).
+
+    Returns the flavor key the heatmap figure builder should use. For non-lppl
+    models or when lppl flavor cannot be resolved, returns input unchanged.
+    """
+    if hm_model != "lppl":
+        return hm_model
+    _weighted = "weighted" in (lppl_weighted or [])
+    _no_13 = "no13" in (lppl_no_13 or [])
+    _n_list = (lppl_n_freqs or [3])
+    _n = _n_list[0] if _n_list else 3
+    if _n == 1:
+        return "lppl_w" if _weighted else "lppl"
+    if _n == 2:
+        return "lp2_w" if _weighted else "lp2"
+    if _n == 3 and not _no_13:
+        return "lp3_w" if _weighted else "lp3"
+    if _n == 4:
+        if _no_13:
+            return "lp4_w_n13" if _weighted else "lp4_n13"
+        return "lp4_w" if _weighted else "lp4"
+    return "lppl"  # fallback
 
 
 def _resolve_lppl_master(model_show, lppl_n_freqs, lppl_weighted, lppl_no_13):
@@ -568,6 +630,9 @@ def update_yrange_slider_limits(model_show):
     State("mc-pay-token",   "data"),
     State("hm-mc-rendered-key", "data"),
     Input("palette-store",      "data"),
+    State("lppl-n-freqs",       "value"),
+    State("lppl-weighted",      "value"),
+    State("lppl-no-13",         "value"),
     prevent_initial_call=True,
 )
 def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_qs, mode,
@@ -575,11 +640,16 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
                    vfmt, cell_fs, toggles, stack, use_lots, lots_data,
                    mc_enable, mc_amount, mc_infl, mc_bins, mc_regime, mc_sims, mc_years, mc_freq, mc_window,
                    mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
-                   live_price, mc_cached, pay_token, mc_auth, palette_key):
+                   live_price, mc_cached, pay_token, mc_auth, palette_key,
+                   lppl_n_freqs=None, lppl_weighted=None, lppl_no_13=None):
     exit_range = exit_range or [entry_yr or 2025, (entry_yr or 2025) + 10]
     toggles    = toggles or []
     yr_now = pd.Timestamp.today().year
     hm_model = hm_model or "bub"
+    # Translate LPPL master to specific flavor via global config.
+    # Only for the non-MC path; MC uses hm-mc-model-src separately.
+    hm_model = _resolve_hm_lppl_master(
+        hm_model, lppl_n_freqs, lppl_weighted, lppl_no_13)
 
     # Only use live ticker price when entry_yr == current year AND the user
     # hasn't modified the entry percentile away from the ticker value.
@@ -1185,6 +1255,50 @@ def update_model_swatches(palette_key):
     bub_opts = _build_model_opts(mc, include_u1=True, bubble_mode=True)
     other_opts = _build_model_opts(mc, include_u1=False, bubble_mode=True)
     return bub_opts, other_opts, other_opts, other_opts
+
+
+# Heatmap pill swatches — update children (swatch + label) on palette change.
+# Per-pill Output to avoid rebuilding the pill bar container, which would
+# invalidate _hm_pill_click / _hm_pill_sync bindings.
+from callbacks.routing import _HM_PILL_MODELS  # noqa: E402
+
+_HM_PILL_LABELS = {
+    "bub": "BM", "pl": "PL", "lppl": "LPPL",
+    "linppl": "LinPPL", "hybppl": "HybPPL",
+    "ef": "EF", "u1": "U\u2081", "mc": "MC",
+}
+
+
+def _hm_pill_label_html(key, mc):
+    from dash import html
+    return html.Span([
+        html.Span(" ", style={
+            "display": "inline-block", "width": "8px", "height": "8px",
+            "borderRadius": "2px", "verticalAlign": "middle",
+            "marginRight": "4px",
+            "backgroundColor": mc.get(key, "#888"),
+        }),
+        _HM_PILL_LABELS.get(key, key),
+    ])
+
+
+@callback(
+    *[Output(f"hm-pill-{k}", "children") for k in _HM_PILL_MODELS],
+    Input("palette-store", "data"),
+    prevent_initial_call=True,
+)
+def update_heatmap_pill_swatches(palette_key):
+    pal = _app_ctx.PALETTES.get(palette_key or "default",
+                                 _app_ctx.PALETTES["default"])
+    mc = pal.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
+    children = []
+    for k in _HM_PILL_MODELS:
+        if k == "mc":
+            # MC has no swatch (warning color, text only)
+            children.append("MC")
+        else:
+            children.append(_hm_pill_label_html(k, mc))
+    return tuple(children)
 
 
 # ── Quantile mode toggle (default ↔ advanced) — all tabs ─────────────────────

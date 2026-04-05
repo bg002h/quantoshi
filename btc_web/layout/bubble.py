@@ -9,7 +9,7 @@ import _app_ctx
 from tab_defaults import BUBBLE
 from layout.common import (_tab_hints, _section_card, _row, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT, _q_panel, _q_panel_with_mode,
-                            _q_options, _ctrl_card, _legend_pos_dropdown,
+                            _q_options, _legend_pos_dropdown,
                             _chart_tab_layout, _CB_MARGIN, _palette_selector,
                             _lppl_config_panel)
 
@@ -172,8 +172,7 @@ def _bubble_controls():
             dcc.Store(id="scan-active-rows", data=[]),
             html.Div(id="scan-results"),
         ),
-        _ctrl_card(
-            _lbl("Data Point Appearance"),
+        _section_card("Data Point Appearance",
             _row(
                 html.Div([_lbl("Pt size (1\u201320)"),
                           dbc.Input(id="bub-ptsize", type="number",
@@ -183,8 +182,7 @@ def _bubble_controls():
                                     value=BUBBLE["pt_alpha"], min=0.1, max=1.0, step=0.05, size="sm")]),
             ),
         ),
-        _ctrl_card(
-            _lbl("Stack (BTC)"),
+        _section_card("Stack (BTC)",
             dbc.InputGroup([
                 dbc.Input(id="bub-stack", type="number", value=BUBBLE["stack"],
                           min=0, step=0.001, size="sm", debounce=True),

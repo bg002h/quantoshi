@@ -144,23 +144,55 @@ def _ctrl_card(*children):
                     className="mb-2 ctrl-card")
 
 _SECTION_ICONS = {
-    "Axes & Range": "\U0001F4D0",
-    "Display": "\U0001F3A8",
-    "Bubble Model": "\U0001F4CA",
-    "Projection Quantiles": "\U0001F4C9",
-    "Chart Settings": "\u2699\uFE0F",
-    "Plan": "\U0001F5D3\uFE0F",
-    "Your Scenario": "\u2699\uFE0F",
-    "Starting Stack": "\U0001F4E6",
-    "Monte Carlo Simulation": "\U0001F3B2",
-    "Saved Simulation": "\U0001F4BE",
+    # Shared chart-tab sections
+    "Axes & Range": "\U0001F4D0",            # 📐
+    "Display": "\U0001F3A8",                 # 🎨
+    "Projection Quantiles": "\U0001F4C9",    # 📉
+    "Model Scanner": "\U0001F50D",           # 🔍
+    "Data Point Appearance": "\u2728",       # ✨
+    "User Model (U\u2081)": "\U0001F3AF",    # 🎯
+    # Model-config panels
+    "Bubble Model": "\U0001F4CA",            # 📊
+    "LPPL Models": "\U0001F30A",             # 🌊
+    "Monte Carlo Simulation": "\U0001F3B2",  # 🎲
+    "Saved Simulation": "\U0001F4BE",        # 💾
+    # Citadel tab
+    "Chart Settings": "\u2699\uFE0F",        # ⚙️
+    "Plan": "\U0001F5D3\uFE0F",              # 🗓️
+    "Your Scenario": "\u2699\uFE0F",         # ⚙️
+    "Bitcoin Stack": "\u20BF",               # ₿
+    "Stack (BTC)": "\u20BF",                 # ₿
+    "Starting Stack": "\U0001F4E6",          # 📦 (legacy key)
+    "Cash Account": "\U0001F4B5",            # 💵
+    "Reserve Fund \u2014 US Treasuries": "\U0001F3DB\uFE0F",  # 🏛️
+    "Investment Account": "\U0001F4C8",      # 📈
+    "Monthly Spending": "\U0001F4B8",        # 💸
+    "Account Floor Rules": "\U0001F6E1\uFE0F",  # 🛡️
+    "Global Lump Cooldown": "\u23F1\uFE0F",  # ⏱️
+    "Saylor Citadel Fortifier": "\U0001F3F0", # 🏰
+    # Stack tracker
+    "Add Lot": "\u2795",                     # ➕
+    "Export / Import": "\U0001F4C1",         # 📁
 }
 
-def _section_card(title: str, *children):
-    """Control card with a section header title and optional icon."""
+def _section_card(title: str, *children, header_right=None):
+    """Control card with a section header title and optional icon.
+
+    When ``header_right`` is supplied, those widgets render on the right side
+    of the header row (used by LPPL/MC model-config panels to place their
+    activate-toggle + configure/action buttons inline with the title).
+    """
     icon = _SECTION_ICONS.get(title, "")
     prefix = f"{icon} " if icon else ""
-    return _ctrl_card(html.Div(f"{prefix}{title}", className="ctrl-section-header"), *children)
+    title_span = html.Span(f"{prefix}{title}")
+    if header_right:
+        header = html.Div(
+            [title_span, html.Div(header_right, className="model-panel-header-right")],
+            className="ctrl-section-header model-panel-header",
+        )
+    else:
+        header = html.Div(title_span, className="ctrl-section-header")
+    return _ctrl_card(header, *children)
 
 def _row(*cols):
     return dbc.Row([dbc.Col(c) for c in cols], className="g-1 mb-1")
@@ -509,21 +541,28 @@ def _lppl_config_panel(prefix):
     modal (_global_lppl_modal) so they have unique IDs. Each tab's
     version here links to that one modal.
     """
-    return _section_card("LPPL Models",
-        dcc.Checklist(id=f"{prefix}-lppl-activate",
-                      options=[{"label": " Activate LPPL overlay",
-                                "value": "yes"}],
-                      value=[], inputStyle=_CB_MARGIN),
+    activate = dcc.Checklist(
+        id=f"{prefix}-lppl-activate",
+        options=[{"label": " Activate", "value": "yes"}],
+        value=[], inputStyle=_CB_MARGIN,
+        className="model-panel-activate",
+    )
+    configure_btn = dbc.Button(
+        "\u2699\ufe0f",
+        id=f"{prefix}-lppl-configure-btn",
+        size="sm", color="secondary", outline=True,
+        title="Configure LPPL",
+        className="model-panel-configure-btn",
+    )
+    return _section_card(
+        "LPPL Models",
         html.Div([
             html.Small("Current: ", style={"color": "#888", "fontSize": "11px"}),
             html.Span(id=f"{prefix}-lppl-summary", children="LPPL\u2083",
                       style={"color": "#FF6D00", "fontSize": "11px",
                              "fontWeight": "600"}),
         ], style={"marginTop": "4px", "marginBottom": "4px"}),
-        dbc.Button("\u2699\ufe0f Configure LPPL",
-                   id=f"{prefix}-lppl-configure-btn",
-                   size="sm", color="secondary", outline=True,
-                   style={"fontSize": "11px", "padding": "2px 8px"}),
+        header_right=[activate, configure_btn],
     )
 
 

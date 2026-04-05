@@ -118,20 +118,8 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
             "boxShadow": "0 2px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)",
             "textShadow": "0 0 4px rgba(139,0,0,0.6)",
         }),
-        _ctrl_card(
-        html.Span([
-            html.B("Monte Carlo Simulation", style={"fontSize": "12px"}),
-            html.Span([
-                html.Span("\u26a1", style={"fontSize": "15px"}),
-                " Paid feature",
-            ], style={"fontSize": "10px", "color": "#6b5300",
-                      "marginLeft": "6px", "fontWeight": "normal",
-                      "backgroundColor": "rgba(184,134,11,0.12)",
-                      "padding": "1px 6px", "borderRadius": "4px"}),
-        ]),
-        dcc.Checklist(id=f"{prefix}-mc-enable",
-                      options=[{"label": " Activate Markov chain stochastic engine", "value": "yes"}],
-                      value=_mc_enable_val, inputStyle=_CB_MARGIN),
+        _section_card(
+        "Monte Carlo Simulation",
         html.Div(id=f"{prefix}-mc-body", style=_STYLE_HIDDEN, children=[
             dcc.Checklist(id=f"{prefix}-mc-advanced",
                           options=[{"label": " Advanced simulator options", "value": "yes"}],
@@ -265,5 +253,17 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                          style={"fontSize": "10px"}),
             ),
         ]),
+        header_right=[
+            dcc.Checklist(
+                id=f"{prefix}-mc-enable",
+                options=[{"label": " Activate", "value": "yes"}],
+                value=_mc_enable_val, inputStyle=_CB_MARGIN,
+                className="model-panel-activate",
+            ),
+            html.Span([
+                html.Span("\u26a1", style={"fontSize": "13px"}),
+                " Paid",
+            ], className="model-panel-paid-badge"),
+        ],
     ),
     ])

@@ -140,27 +140,10 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     yrange         = yrange or [0, 7]
     xrange         = xrange or [2012, 2030]
 
-    # The "lppl" entry in bub-model-show is a MASTER gate — only when it's
-    # present do we consult the LPPL Models config panel to decide which
-    # flavor(s) to render. Strip the master value before passing to the
-    # chart so it doesn't get rendered as raw LPPL1 by mistake.
-    model_show = list(model_show or [])
-    if "lppl" in model_show:
-        model_show = [v for v in model_show if v != "lppl"]
-        _weighted = "weighted" in (lppl_weighted or [])
-        _no_13 = "no13" in (lppl_no_13 or [])
-        for n in (lppl_n_freqs or []):
-            if n == 1:
-                model_show.append("lppl_w" if _weighted else "lppl")
-            elif n == 2:
-                model_show.append("lp2_w" if _weighted else "lp2")
-            elif n == 3 and not _no_13:  # LP3 disabled when excluding ω=13
-                model_show.append("lp3_w" if _weighted else "lp3")
-            elif n == 4:
-                if _no_13:
-                    model_show.append("lp4_w_n13" if _weighted else "lp4_n13")
-                else:
-                    model_show.append("lp4_w" if _weighted else "lp4")
+    # The "lppl" entry in bub-model-show is a MASTER gate — translate
+    # to specific flavor key(s) via global LPPL config.
+    model_show = _resolve_lppl_master(
+        model_show, lppl_n_freqs, lppl_weighted, lppl_no_13)
 
     # Scanner lines
     scanner_lines = []

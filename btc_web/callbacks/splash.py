@@ -147,7 +147,8 @@ _app_ctx.app.clientside_callback(
         var isDev = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
         /* Skip splash when loading a share link — let snapshot restore complete
            uninterrupted. Dismissing the modal during restore causes race conditions. */
-        var hasShareHash = window.location.hash && window.location.hash.indexOf("q3:") !== -1;
+        var _h = window.location.hash || "";
+        var hasShareHash = _h.indexOf("q3:") !== -1 || _h.indexOf("q2:") !== -1 || _h.indexOf("q1:") !== -1;
         if (!isDev && !hasShareHash && now - last >= SIX_HOURS) {
             var quotes = """ + _SPLASH_QUOTES_JS + """;
             /* Deterministic pseudo-random shuffle using epoch as seed */

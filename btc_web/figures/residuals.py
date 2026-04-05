@@ -18,7 +18,7 @@ from figures.common import (
     _apply_sans_typography, _apply_watermark, _add_date_hover,
     _apply_config_annotation,
     _round_trace_data,
-    _INTERP_POINTS,
+    _INTERP_POINTS, _MC_LEGEND_POS,
 )
 
 
@@ -188,6 +188,15 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     )
     layout["shapes"] = shapes
     layout["showlegend"] = bool(p.get("show_legend", True))
+    leg_pos = p.get("legend_pos", "outside")
+    if leg_pos != "outside" and leg_pos in _MC_LEGEND_POS:
+        pos = _MC_LEGEND_POS[leg_pos]
+        layout.setdefault("legend", {})
+        layout["legend"].update(
+            x=pos["x"], y=pos["y"],
+            xanchor=pos["xanchor"], yanchor=pos["yanchor"],
+            bgcolor="rgba(255,255,255,0.7)",
+        )
     if p.get("xscale") == "log":
         layout["xaxis"].update(
             type="log",

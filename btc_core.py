@@ -1001,14 +1001,14 @@ class HybPPLExcessModel(LPPLModel):
     dash_style = "dashdot"
 
     # Fitted oscillation parameters (will be overwritten by fit_hybppl_excess.py --update)
-    _a0    =    0.349900
-    _C1    =    0.642100
-    _W_log =    7.480800
-    _PHI1  =    1.427200
-    _D     =    0.660700
-    _C2    =    0.231500
-    _W_cal =    1.748900
-    _PHI2  = -2.100200
+    _a0    =       0.349901  
+    _C1    =       0.642140  
+    _W_log =       7.480789  
+    _PHI1  =       1.427192  
+    _D     =       0.660678  
+    _C2    =       0.231467  
+    _W_cal =       1.748929  
+    _PHI2  = -2.100194  
 
     def __init__(self, price_years, price_prices, quantiles,
                  a_sup=None, b_sup=None):

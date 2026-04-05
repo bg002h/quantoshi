@@ -7,6 +7,13 @@ from dash import html, Input, Output, State, callback, no_update, ctx, ALL
 import _app_ctx
 from btc_core import today_t, fmt_price, yr_to_t
 
+# LPPL family keys — filtered by LPPL config panel. Union of visible
+# bases {lppl, lp2, lp3, lp4} with weighted/no-13 variants.
+_LPPL_FAMILY_KEYS = (
+    {"lppl", "lp2", "lp3", "lp4"}
+    | set(_app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
+)
+
 
 def _solve_date(model, q_frac, target_price):
     """Root-find t where model.price_at(q, t) = target_price."""
@@ -43,9 +50,13 @@ def _output_from_history(history):
     State("scan-output-field", "data"),
     Input("btc-price-store", "data"),
     State("user-model-store", "data"),
+    Input("lppl-n-freqs",     "value"),
+    Input("lppl-weighted",    "value"),
+    Input("lppl-no-13",       "value"),
     prevent_initial_call=False,
 )
-def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_model_data):
+def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_model_data,
+                   lppl_n_freqs, lppl_weighted, lppl_no_13):
     """Compute the missing variable across all models."""
     trigger = ctx.triggered_id if ctx.triggered_id else None
     genesis = _app_ctx.M.genesis
@@ -57,6 +68,15 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_mo
         um = UserModel.from_store_dict(user_model_data)
         if um:
             _models["u1"] = um
+
+    # Filter LPPL family variants to match the LPPL config panel selection.
+    # Translate ["lppl"] + config → specific LPPL variant keys via the same
+    # master-gate resolver the chart callbacks use.
+    from callbacks.charts import _resolve_lppl_master
+    _active_lppl = set(_resolve_lppl_master(
+        ["lppl"], lppl_n_freqs, lppl_weighted, lppl_no_13))
+    _models = {k: m for k, m in _models.items()
+               if k not in _LPPL_FAMILY_KEYS or k in _active_lppl}
 
     # edit_history is a list of the last 2 edited fields, e.g. ["p", "d"]
     if not isinstance(edit_history, list):

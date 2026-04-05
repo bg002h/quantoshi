@@ -1176,7 +1176,7 @@ def update_model_swatches(palette_key):
     pal = _app_ctx.PALETTES.get(palette_key or "default", _app_ctx.PALETTES["default"])
     mc = pal.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
     bub_opts = _build_model_opts(mc, include_u1=True, bubble_mode=True)
-    other_opts = _build_model_opts(mc, include_u1=False)
+    other_opts = _build_model_opts(mc, include_u1=False, bubble_mode=True)
     return bub_opts, other_opts, other_opts, other_opts
 
 

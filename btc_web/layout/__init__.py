@@ -562,7 +562,7 @@ def _build_layout(initial_tab="bubble"):
         ),
     ], id="share-modal", is_open=False, size="lg", scrollable=True),
     dbc.Tabs([
-        dbc.Tab(_bubble_tab(),       label="\U0001F4C8 Bubble + QR Overlay", tab_id="bubble"),
+        dbc.Tab(_bubble_tab(),       label="\U0001F4C8 Price & Model Overlays", tab_id="bubble"),
         dbc.Tab(_heatmap_tab(),      label="\U0001F525 CAGR Heatmap",        tab_id="heatmap"),
         dbc.Tab(_dca_tab(),          label="\U0001F4B0 BTC Accumulator",     tab_id="dca"),
         dbc.Tab(_retire_tab(),       label="\U0001F3D6\uFE0F BTC RetireMentator",  tab_id="retire"),

@@ -8944,7 +8944,7 @@ class TestQuantileModeSwitch:
 
 class TestDefaultModeOpacity:
     def test_fallback_q50_has_opacity_in_default_mode(self):
-        """Q50% fallback in default mode should have 50% opacity."""
+        """Q50% fallback in default mode should have 25% opacity."""
         from figures.bubble import build_bubble_figure
         import _app_ctx
         M = _app_ctx.M
@@ -8958,7 +8958,7 @@ class TestDefaultModeOpacity:
         fig = build_bubble_figure(M, p)
         q50_traces = [t for t in fig.data if hasattr(t, 'name') and t.name and 'Q50%' in str(t.name)]
         assert len(q50_traces) > 0
-        assert q50_traces[0].opacity == 0.5
+        assert q50_traces[0].opacity == 0.25
 
     def test_fallback_q50_full_opacity_in_advanced_mode(self):
         """Q50% fallback in advanced mode should have full opacity."""

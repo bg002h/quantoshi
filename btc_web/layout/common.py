@@ -442,36 +442,52 @@ def _freq_warning_modal():
     ], id="freq-warning-modal", is_open=False, centered=True)
 
 
-def _model_show_checklist(prefix):
-    """Display models checklist with palette-aware color swatches."""
+def _model_show_checklist(prefix, standardized=False):
+    """Display models checklist with palette-aware color swatches.
+
+    standardized=True: emits single "LPPL" master (skip individual LPPL
+    family variants), omits Exp + S2F. For tabs 1/3/4/5 (Phase 1) and
+    tab 2 (Phase 2) that share the standardized UX.
+    """
     mc = _app_ctx.PALETTES["default"]["model_colors"]
     _DEPRIORITIZED = {"exp", "s2f"}
+    _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(
+        _app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
 
-    opts = [
-        {"label": html.Span([
+    def _swatch(color, label):
+        return html.Span([
             html.Span(" ", style={
                 "display": "inline-block", "width": "12px", "height": "12px",
-                "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "4px",
-                "backgroundColor": mc.get("bub", "#000"),
+                "borderRadius": "2px", "verticalAlign": "middle",
+                "marginRight": "4px", "backgroundColor": color,
             }),
-            "Bubble Model",
-        ]), "value": "bub"},
-    ]
-    # Main models first, then deprioritized (exp, s2f) last
+            label,
+        ])
+
+    opts = [{"label": _swatch(mc.get("bub", "#000"), "Bubble Model"),
+             "value": "bub"}]
+
+    if standardized:
+        # Inject master LPPL entry right after Bubble Model.
+        opts.append({
+            "label": _swatch(mc.get("lppl", "#FF6D00"), "LPPL"),
+            "value": "lppl",
+        })
+
     all_models = [mdl for mdl in _app_ctx.PRICE_MODELS.values()
-                  if mdl.short_name not in _app_ctx.MODEL_SENTINELS and mdl.short_name != "bub"]
-    ordered = [m for m in all_models if m.short_name not in _DEPRIORITIZED] + \
-              [m for m in all_models if m.short_name in _DEPRIORITIZED]
+                  if mdl.short_name not in _app_ctx.MODEL_SENTINELS
+                  and mdl.short_name != "bub"]
+    if standardized:
+        all_models = [m for m in all_models
+                      if m.short_name not in _LPPL_FAM
+                      and m.short_name not in _DEPRIORITIZED]
+        ordered = all_models
+    else:
+        ordered = [m for m in all_models if m.short_name not in _DEPRIORITIZED] + \
+                  [m for m in all_models if m.short_name in _DEPRIORITIZED]
     for mdl in ordered:
         opts.append({
-            "label": html.Span([
-                html.Span(" ", style={
-                    "display": "inline-block", "width": "12px", "height": "12px",
-                    "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "4px",
-                    "backgroundColor": mc.get(mdl.short_name, "#888"),
-                }),
-                mdl.name,
-            ]),
+            "label": _swatch(mc.get(mdl.short_name, "#888"), mdl.name),
             "value": mdl.short_name,
         })
     return [

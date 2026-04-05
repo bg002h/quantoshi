@@ -9119,3 +9119,35 @@ class TestResolveLpplMaster:
         # Master checked but no flavor selected -> master stripped with no replacement
         result = _resolve_lppl_master(["bub", "lppl"], [], [], [])
         assert result == ["bub"]
+
+
+class TestModelShowChecklistStandardized:
+    """Unit tests for _model_show_checklist standardized=True mode."""
+
+    def test_has_lppl_master(self):
+        from layout.common import _model_show_checklist
+        elems = _model_show_checklist("dca", standardized=True)
+        rendered = str(elems).replace("'", '"')
+        assert '"value": "lppl"' in rendered
+
+    def test_omits_lppl_variants(self):
+        from layout.common import _model_show_checklist
+        elems = _model_show_checklist("dca", standardized=True)
+        rendered = str(elems).replace("'", '"')
+        assert '"value": "lp2"' not in rendered
+        assert '"value": "lp3"' not in rendered
+        assert '"value": "lp4"' not in rendered
+        assert '"value": "lppl_w"' not in rendered
+
+    def test_omits_exp_and_s2f(self):
+        from layout.common import _model_show_checklist
+        elems = _model_show_checklist("dca", standardized=True)
+        rendered = str(elems).replace("'", '"')
+        assert '"value": "exp"' not in rendered
+        assert '"value": "s2f"' not in rendered
+
+    def test_non_standardized_unchanged(self):
+        from layout.common import _model_show_checklist
+        elems = _model_show_checklist("dca", standardized=False)
+        rendered = str(elems).replace("'", '"')
+        assert '"value": "lppl"' in rendered

@@ -194,6 +194,19 @@ def run_model_build() -> None:
     else:
         print(res.stdout.strip().split("\n")[-1])
 
+    # LinPPL model: linear-periodic oscillation (calendar time, not log-time)
+    print("\nRefitting LinPPL parameters …")
+    linppl_script = REPO_ROOT / "tools" / "fit_linppl.py"
+
+    res = subprocess.run([sys.executable, str(linppl_script), "--update"],
+                         capture_output=True, text=True)
+    if res.returncode != 0:
+        print("LinPPL FIT FAILED — stderr (last 3 000 chars):")
+        print(res.stderr[-3000:])
+        print("WARNING: LinPPL fit failed. Continuing with existing parameters.")
+    else:
+        print(res.stdout.strip().split("\n")[-1])
+
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 

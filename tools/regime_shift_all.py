@@ -90,6 +90,16 @@ def lp4_model(t_safe, A, B, C1, W1, PHI1, D, C2, W2, PHI2, C3, W3, PHI3, C4, W4,
             + C4 * np.cos(W4 * np.log(t_safe) + PHI4))
 
 
+def pl_model(t_safe, A, B):
+    """Pure power law (log-log linear): log10(price) = A + B*log10(t)."""
+    return A + B * np.log10(t_safe)
+
+
+def linppl_model(t_safe, A, B, C, W_cal, PHI, D):
+    """LinPPL — oscillation in CALENDAR time, not log-time."""
+    return A + B * np.log10(t_safe) + C * t_safe**(-D) * np.cos(W_cal * t_safe + PHI)
+
+
 # W_max widened to 40 to match production fitters
 LP1_BOUNDS = [
     (-3.0, 1.0), (3.0, 7.0), (0.01, 3.0),
@@ -122,6 +132,16 @@ LP4_BOUNDS = [
 LP4_NAMES = ["A", "B", "C1", "W1", "PHI1", "D",
              "C2", "W2", "PHI2", "C3", "W3", "PHI3", "C4", "W4", "PHI4"]
 
+PL_BOUNDS = [(-3.0, 1.0), (3.0, 7.0)]
+PL_NAMES = ["A", "B"]
+
+# LinPPL: calendar-periodic. W_cal ∈ [0.5, 10] rad/yr → T ∈ [0.63, 12.6] yr
+LINPPL_BOUNDS = [
+    (-3.0, 1.0), (3.0, 7.0), (0.01, 3.0),
+    (0.5, 10.0), (-np.pi, np.pi), (0.01, 2.0),
+]
+LINPPL_NAMES = ["A", "B", "C", "W_cal", "PHI", "D"]
+
 
 # ── Fit workers (module-level, picklable) ────────────────────────────────
 
@@ -140,6 +160,10 @@ def _fit_worker(args):
             bounds, names, fn = LP3_BOUNDS, LP3_NAMES, lp3_model
         elif model_name == "lp4":
             bounds, names, fn = LP4_BOUNDS, LP4_NAMES, lp4_model
+        elif model_name == "pl":
+            bounds, names, fn = PL_BOUNDS, PL_NAMES, pl_model
+        elif model_name == "linppl":
+            bounds, names, fn = LINPPL_BOUNDS, LINPPL_NAMES, linppl_model
         else:
             return _nan_result(model_name, t_end)
 
@@ -186,6 +210,10 @@ def _nan_result(model_name, t_end):
         names = LP3_NAMES
     elif model_name == "lp4":
         names = LP4_NAMES
+    elif model_name == "pl":
+        names = PL_NAMES
+    elif model_name == "linppl":
+        names = LINPPL_NAMES
     else:
         names = []
     row = {"t_end": t_end}
@@ -325,12 +353,14 @@ Regenerate manually — not auto-refreshed.
 </p>
 <nav>
 <strong>Jump to:</strong>
+<a href="#pl-5yr">PL (5yr)</a>
 <a href="#lp1-5yr">LPPL\u2081 (5yr)</a>
 <a href="#lp2-5yr">LPPL\u2082 (5yr)</a>
 <a href="#lp3-7yr">LPPL\u2083 (7yr)</a>
 <a href="#lp3-9yr">LPPL\u2083 (9yr)</a>
 <a href="#lp4-7yr">LPPL\u2084 (7yr)</a>
 <a href="#lp4-9yr">LPPL\u2084 (9yr)</a>
+<a href="#linppl-5yr">LinPPL (5yr)</a>
 </nav>
 {sections}
 <a href="/" class="back-link">\u2190 Back to Quantoshi</a>
@@ -388,6 +418,12 @@ LP4_FORMULA = (
     "+ C\u2083\u00b7cos(\u03c9\u2083\u00b7ln t + \u03c6\u2083) "
     "+ C\u2084\u00b7cos(\u03c9\u2084\u00b7ln t + \u03c6\u2084)"
 )
+PL_FORMULA = "log\u2081\u2080(price) = A + B\u00b7log\u2081\u2080(t)"
+LINPPL_FORMULA = (
+    "log\u2081\u2080(price) = A + B\u00b7log\u2081\u2080(t) "
+    "+ C\u00b7t\u207b\u1d30\u00b7cos(\u03c9_cal\u00b7t + \u03c6)    "
+    "[oscillation in calendar time, not log-time]"
+)
 
 
 # ── Main ─────────────────────────────────────────────────────────────────
@@ -418,6 +454,11 @@ def main():
         print(f"  Using {n_workers} workers\n")
 
     configs = [
+        ("Power Law (2 params, 5yr windows)", "pl", 5.0, PL_NAMES,
+         "pl-5yr", "regime_shift_pl_5yr.svg", PL_FORMULA,
+         "Pure power law log-log OLS (no oscillation). Tracks how the slope B "
+         "evolves over time \u2014 the cleanest regime-change signal for growth "
+         "rate. B climbing = faster-than-power-law growth; B falling = slowing."),
         ("LPPL\u2081 (6 params, 5yr windows)", "lp1", 5.0, LP1_NAMES,
          "lp1-5yr", "regime_shift_lp1_5yr.svg", LP1_FORMULA,
          "Single damped log-periodic oscillation. W hits upper bound (15) "
@@ -447,6 +488,12 @@ def main():
          "Same caveats as LPPL\u2084 7yr. Wider windows give more data per "
          "fit, reducing (but not eliminating) noise-fitting of the 4th "
          "frequency."),
+        ("LinPPL (6 params, 5yr windows)", "linppl", 5.0, LINPPL_NAMES,
+         "linppl-5yr", "regime_shift_linppl_5yr.svg", LINPPL_FORMULA,
+         "Linear-periodic variant: oscillation in CALENDAR time (W_cal\u00b7t) "
+         "rather than log-time. Period T=2\u03c0/W_cal stays constant in years "
+         "\u2014 designed to match Bitcoin's ~4-year halving cycle directly. "
+         "Expect T to track the halving cycle more stably than LPPL\u2081's W."),
     ]
 
     configs_info = []

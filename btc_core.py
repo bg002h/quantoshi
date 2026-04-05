@@ -943,6 +943,40 @@ class LPPL4ModelWN13(LPPL4ModelN13):
     _PHI4 = -0.889292
 
 
+class LinPPLModel(LPPLModel):
+    """Linear-periodic Power Law: oscillation in CALENDAR time, not log-time.
+
+    Fits: log10(price) = A + B*log10(t) + C*t^(-D)*cos(W_cal*t + φ)
+
+    Unlike LPPL (log-periodic with ω·ln(t)), LinPPL uses ω·t so the cycle
+    period is constant in calendar years — matching Bitcoin's ~4-year halving
+    cycle rather than LPPL's ever-lengthening log-time cycles.
+
+    W_cal is the angular frequency in radians per year. A halving cycle of
+    T calendar years corresponds to W_cal = 2π/T. For T=4yr, W_cal ≈ 1.57.
+    """
+    name = "LinPPL"
+    short_name = "linppl"
+    legend_name = "LinPPL"
+    dash_style = "dash"
+
+    # Fitted parameters (W_cal in radians/year; T_years = 2π/W_cal)
+    _A   = -1.213456  
+    _B   =     5.111038  
+    _C   =     0.282297  
+    _W   =     1.765593  # ≈ 2π/4 (4-year halving cycle, will refit)
+    _PHI =  -2.283089  
+    _D   =     0.010000  
+
+    def _lppl_log10(self, t):
+        """Evaluate LinPPL median in log10 space — oscillation in calendar t, not ln(t)."""
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        envelope = self._C * t_safe ** (-self._D)
+        return (self._A + self._B * np.log10(t_safe)
+                + envelope * np.cos(self._W * t_safe + self._PHI))
+
+
 class ExponentialModel:
     """Exponential growth model with Gaussian quantile bands.
 

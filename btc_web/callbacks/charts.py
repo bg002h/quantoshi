@@ -646,6 +646,12 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     toggles    = toggles or []
     yr_now = pd.Timestamp.today().year
     hm_model = hm_model or "bub"
+    # Legacy snapshot values (qr, exp, s2f, individual LPPL flavors) →
+    # surviving pill model. Keeps pill highlight and chart rendering
+    # consistent when decoding old share links.
+    from callbacks.routing import _HM_PILL_MODELS, _HM_LEGACY_MODEL_FALLBACK
+    if hm_model not in _HM_PILL_MODELS and hm_model != "lppl":
+        hm_model = _HM_LEGACY_MODEL_FALLBACK.get(hm_model, hm_model)
     # Translate LPPL master to specific flavor via global config.
     # Only for the non-MC path; MC uses hm-mc-model-src separately.
     hm_model = _resolve_hm_lppl_master(

@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""Fit LinPPL and HybPPL oscillators to EXCESS = log_price - BM support.
+"""Fit LPPL/LPPL2/LinPPL/HybPPL oscillators to EXCESS = log_price - BM support.
 
-Standard LinPPL/HybPPL fits the oscillator jointly with a power-law
-trend (A + B*log10(t)). This version fixes the trend to the known
-BM support line (A_sup + B_sup*log10(t)) and fits only the
-oscillation parameters. Cleaner decomposition: trend is set, cycles
-are free.
+Standard fits find the oscillator jointly with a power-law trend
+(A + B*log10(t)). This version fixes the trend to the known BM support
+line (A_sup + B_sup*log10(t)) and fits only the oscillation parameters.
+Cleaner decomposition: trend is set, cycles are free.
 
 Models:
-  LinPPL_excess:  excess = a0 + C*t^(-D)*cos(ω_cal*t + φ)       [5 params]
+  LPPL_excess:    excess = a0 + C*t^(-D)*cos(ω*ln(t) + φ)        [5 params]
+  LPPL2_excess:   excess = a0 + C1*t^(-D)*cos(ω1*ln(t) + φ1)
+                              + C2*cos(ω2*ln(t) + φ2)            [8 params]
+  LinPPL_excess:  excess = a0 + C*t^(-D)*cos(ω_cal*t + φ)        [5 params]
   HybPPL_excess:  excess = a0 + C1*t^(-D)*cos(ω_log*ln(t) + φ1)
-                              + C2*cos(ω_cal*t + φ2)            [8 params]
+                              + C2*cos(ω_cal*t + φ2)             [8 params]
 
 The a0 constant captures the DC offset (log-excess is consistently
 above zero since the BM support is the floor, not the mean).
@@ -50,6 +52,20 @@ REGIME_EVENTS = [
     ("2022-11-11", "FTX"),
     ("2024-01-10", "ETF"),
 ]
+
+
+def lppl_excess(t, a0, C, W, PHI, D):
+    """log-time single-frequency (classic LPPL oscillator)."""
+    t_safe = np.maximum(t, 0.1)
+    return a0 + C * t_safe ** (-D) * np.cos(W * np.log(t_safe) + PHI)
+
+
+def lppl2_excess(t, a0, C1, W1, PHI1, D, C2, W2, PHI2):
+    """Two log-time frequencies: damped primary + undamped secondary."""
+    t_safe = np.maximum(t, 0.1)
+    damped = C1 * t_safe ** (-D) * np.cos(W1 * np.log(t_safe) + PHI1)
+    undamped = C2 * np.cos(W2 * np.log(t_safe) + PHI2)
+    return a0 + damped + undamped
 
 
 def linppl_excess(t, a0, C, W_cal, PHI, D):
@@ -162,6 +178,74 @@ def main():
     log_support = sup.intercept + sup.slope * log_t
     excess = lp - log_support
     print(f"  BM support: A_sup={sup.intercept:.4f}  B_sup={sup.slope:.4f}")
+
+    # ── LPPL on excess (5 params: a0, C, W, PHI, D) ──────────────────────
+    lppl_bounds = [
+        (-1.0, 2.0),      # a0
+        (0.01, 3.0),      # C
+        (2.0, 40.0),      # W (log-time angular freq)
+        (-np.pi, np.pi),  # PHI
+        (0.01, 2.0),      # D
+    ]
+    params, fit_, resid, r2, sigma = fit_model(
+        "LPPL_excess", lppl_excess, lppl_bounds, t, excess)
+    a0, C, W, PHI, D = params
+    print(f"  a0={a0:.4f}  C={C:.4f}  W={W:.4f}  PHI={PHI:.4f}  D={D:.4f}")
+    print(f"  R\u00b2(on excess) = {r2:.5f}   \u03c3 = {sigma:.5f}")
+    coeffs_text = (
+        f"a0  = {a0:+.4f}\n"
+        f"C   = {C:+.4f}\n"
+        f"W   = {W:+.4f}  (log-time)\n"
+        f"PHI = {PHI:+.4f}\n"
+        f"D   = {D:+.4f}"
+    )
+    plot_model(
+        "LPPL on excess (5 params)", dates, excess, fit_, resid,
+        "fit_lppl_excess.svg", coeffs_text, r2, sigma,
+    )
+    pd.DataFrame({
+        "date": dates, "years": t, "excess": excess,
+        "fit": fit_, "residual": resid,
+    }).to_csv("fit_lppl_excess.csv", index=False, float_format="%.6f")
+    print("  Saved fit_lppl_excess.svg + fit_lppl_excess.csv")
+
+    # ── LPPL2 on excess (8 params) ───────────────────────────────────────
+    lppl2_bounds = [
+        (-1.0, 2.0),      # a0
+        (0.01, 3.0),      # C1
+        (2.0, 40.0),      # W1 (log-time, primary)
+        (-np.pi, np.pi),  # PHI1
+        (0.01, 2.0),      # D
+        (0.0, 2.0),       # C2
+        (2.0, 40.0),      # W2 (log-time, secondary)
+        (-np.pi, np.pi),  # PHI2
+    ]
+    params, fit_, resid, r2, sigma = fit_model(
+        "LPPL2_excess", lppl2_excess, lppl2_bounds, t, excess)
+    a0, C1, W1, PHI1, D, C2, W2, PHI2 = params
+    print(f"  a0={a0:.4f}")
+    print(f"  C1={C1:.4f}  W1={W1:.4f}  PHI1={PHI1:.4f}  D={D:.4f}")
+    print(f"  C2={C2:.4f}  W2={W2:.4f}  PHI2={PHI2:.4f}")
+    print(f"  R\u00b2(on excess) = {r2:.5f}   \u03c3 = {sigma:.5f}")
+    coeffs_text = (
+        f"a0   = {a0:+.4f}\n"
+        f"C1   = {C1:+.4f}\n"
+        f"W1   = {W1:+.4f}  (log-time)\n"
+        f"PHI1 = {PHI1:+.4f}\n"
+        f"D    = {D:+.4f}\n"
+        f"C2   = {C2:+.4f}\n"
+        f"W2   = {W2:+.4f}  (log-time)\n"
+        f"PHI2 = {PHI2:+.4f}"
+    )
+    plot_model(
+        "LPPL\u2082 on excess (8 params)", dates, excess, fit_, resid,
+        "fit_lppl2_excess.svg", coeffs_text, r2, sigma,
+    )
+    pd.DataFrame({
+        "date": dates, "years": t, "excess": excess,
+        "fit": fit_, "residual": resid,
+    }).to_csv("fit_lppl2_excess.csv", index=False, float_format="%.6f")
+    print("  Saved fit_lppl2_excess.svg + fit_lppl2_excess.csv")
 
     # ── LinPPL on excess (5 params: a0, C, W_cal, PHI, D) ────────────────
     linppl_bounds = [

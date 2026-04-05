@@ -230,7 +230,7 @@ with time \u2014 classic log-periodicity.
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>LinPPL/HybPPL on excess \u2014 Quantoshi</title>
+<title>LPPL family on excess \u2014 Quantoshi</title>
 <style>
 body { background:#1a1a2e; color:#cccccc; font-family:system-ui,sans-serif;
        max-width:1300px; margin:0 auto; padding:24px 16px; line-height:1.5; }
@@ -252,7 +252,7 @@ th, td { border:1px solid #444; padding:4px 10px; text-align:right; }
 th { background:#16213e; color:#00d4ff; text-align:center; }
 </style>
 </head><body>
-<h1>LinPPL/HybPPL oscillators fit to BM-excess</h1>
+<h1>LPPL family oscillators fit to BM-excess</h1>
 <p class="muted">
 Instead of fitting log\u2081\u2080(price) with a joint trend+oscillation
 model, we fix the trend to the BM support line
@@ -271,10 +271,43 @@ quality.
 <table>
 <thead><tr><th>Model</th><th>params</th><th>R\u00b2 on excess</th><th>\u03c3</th><th>Notes</th></tr></thead>
 <tbody>
+<tr><td>LPPL on excess</td><td>5</td><td>0.412</td><td>0.227</td><td>W=7.59 (log-time primary)</td></tr>
+<tr><td>LPPL\u2082 on excess</td><td>8</td><td>0.476</td><td>0.214</td><td>W\u2081=20.9, W\u2082=7.24 (both log-time)</td></tr>
 <tr><td>LinPPL on excess</td><td>5</td><td>0.437</td><td>0.222</td><td>W_cal=1.77 \u2192 T=3.56yr (halving)</td></tr>
-<tr><td>HybPPL on excess</td><td>8</td><td>0.699</td><td>0.162</td><td>W_log=7.48 + W_cal=1.75 (T=3.59yr)</td></tr>
+<tr><td>HybPPL on excess</td><td>8</td><td><strong>0.699</strong></td><td><strong>0.162</strong></td><td>W_log=7.48 + W_cal=1.75 (T=3.59yr)</td></tr>
 </tbody>
 </table>
+<p class="muted">
+HybPPL_excess at 8 params dominates LPPL\u2082_excess at 8 params (R\u00b2
+0.699 vs 0.476, \u03c3 0.162 vs 0.214) \u2014 two log-time frequencies
+overlap, but log-time + calendar-time are genuinely independent.
+</p>
+<hr>
+<section>
+<h2>LPPL on excess (5 params)</h2>
+<p class="desc">
+<strong>Classic LPPL oscillator only</strong> \u2014
+excess = a\u2080 + C\u00b7t\u207b\u1d30\u00b7cos(\u03c9\u00b7ln t + \u03c6).
+W converges to 7.59 (close to LPPL\u2081's joint-fit value of 7.56) with
+damping D=0.59. Fit quality comparable to LinPPL_excess at the same
+parameter count.
+</p>
+<img src="/excess_fits/fit_lppl_excess.svg" alt="LPPL on excess">
+</section>
+<hr>
+<section>
+<h2>LPPL\u2082 on excess (8 params)</h2>
+<p class="desc">
+<strong>LPPL\u2082 oscillators only</strong> \u2014 two log-time
+frequencies. The optimizer parks the "damped primary" at W\u2081=20.9
+with D=0.01 (lower bound \u2014 essentially undamped) and the
+"undamped secondary" at W\u2082=7.24. Both hit near the canonical LPPL
+frequencies (7 and 21), but combining them gains only \u223C6% R\u00b2
+over single LPPL\u2081 (0.476 vs 0.412) at a cost of 3 more parameters.
+Two log-time frequencies carry overlapping information.
+</p>
+<img src="/excess_fits/fit_lppl2_excess.svg" alt="LPPL2 on excess">
+</section>
 <hr>
 <section>
 <h2>LinPPL on excess (5 params)</h2>
@@ -308,7 +341,9 @@ halving metronome.
 
     @server.route("/excess_fits/<path:filename>")
     def _excess_fits_asset(filename):
-        allowed = {"fit_linppl_excess.svg", "fit_hybppl_excess.svg",
+        allowed = {"fit_lppl_excess.svg", "fit_lppl2_excess.svg",
+                   "fit_linppl_excess.svg", "fit_hybppl_excess.svg",
+                   "fit_lppl_excess.csv", "fit_lppl2_excess.csv",
                    "fit_linppl_excess.csv", "fit_hybppl_excess.csv"}
         if filename not in allowed:
             return "Not found", 404

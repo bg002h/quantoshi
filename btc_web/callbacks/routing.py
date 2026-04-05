@@ -424,7 +424,27 @@ _app_ctx.app.clientside_callback(
 # Model Info accordion deep-linking (/7.N)
 # ══════════════════════════════════════════════════════════════════════════════
 
-_MODEL_INFO_ITEMS = ["mi-bub", "mi-qr", "mi-pl", "mi-lppl", "mi-exp", "mi-s2f", "mi-mc", "mi-compare"]
+# Must match the actual accordion ORDER in btc_web/layout/model_info.py.
+# Append new items to the end to keep existing /7.N links stable.
+_MODEL_INFO_ITEMS = [
+    "mi-bub",            # 1
+    "mi-qr",             # 2
+    "mi-pl",             # 3
+    "mi-lppl",           # 4
+    "mi-lp2",            # 5
+    "mi-lppl-weighting", # 6
+    "mi-linppl",         # 7
+    "mi-hybppl",         # 8
+    "mi-hybppl-ex",      # 9
+    "mi-exp",            # 10
+    "mi-s2f",            # 11
+    "mi-mc",             # 12
+    "mi-ef",             # 13
+    "mi-u1",             # 14
+    "mi-compare",        # 15
+    "mi-regimes",        # 16
+    "mi-citadel",        # 17
+]
 
 
 @callback(
@@ -444,6 +464,38 @@ def open_model_info_item(pathname):
     except (ValueError, IndexError):
         pass
     return no_update
+
+
+# Scroll the opened accordion item into view after it expands.
+_app_ctx.app.clientside_callback(
+    """
+    function(active_item) {
+        if (!active_item) return window.dash_clientside.no_update;
+        // Wait for the accordion body to expand, then scroll
+        setTimeout(function() {
+            var btn = document.querySelector(
+                '.accordion-button[data-bs-target$="' + active_item + '"]');
+            if (!btn) {
+                // Fallback: find by accordion-item data attribute
+                var items = document.querySelectorAll('.accordion-item');
+                for (var i = 0; i < items.length; i++) {
+                    var b = items[i].querySelector('.accordion-button');
+                    if (b && b.getAttribute('aria-controls') === active_item) {
+                        btn = b; break;
+                    }
+                }
+            }
+            if (btn) {
+                btn.scrollIntoView({behavior: 'smooth', block: 'start'});
+            }
+        }, 250);
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("model-info-accordion", "className"),
+    Input("model-info-accordion", "active_item"),
+    prevent_initial_call=True,
+)
 
 
 @callback(

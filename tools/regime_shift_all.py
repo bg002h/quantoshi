@@ -372,6 +372,8 @@ Regenerate manually — not auto-refreshed.
 <nav>
 <strong>Jump to:</strong>
 <a href="#pl-5yr">PL (5yr)</a>
+<a href="#pl-7yr">PL (7yr)</a>
+<a href="#pl-9yr">PL (9yr)</a>
 <a href="#lp1-5yr">LPPL\u2081 (5yr)</a>
 <a href="#lp2-5yr">LPPL\u2082 (5yr)</a>
 <a href="#lp3-7yr">LPPL\u2083 (7yr)</a>
@@ -491,6 +493,16 @@ def main():
          "Pure power law log-log OLS (no oscillation). Tracks how the slope B "
          "evolves over time \u2014 the cleanest regime-change signal for growth "
          "rate. B climbing = faster-than-power-law growth; B falling = slowing."),
+        ("Power Law (2 params, 7yr windows)", "pl", 7.0, PL_NAMES,
+         "pl-7yr", "regime_shift_pl_7yr.svg", PL_FORMULA,
+         "Same pure power-law fit with a 7-year window. Typically spans two "
+         "halving cycles \u2014 slope/intercept drift more slowly, giving a "
+         "smoother view of secular regime changes."),
+        ("Power Law (2 params, 9yr windows)", "pl", 9.0, PL_NAMES,
+         "pl-9yr", "regime_shift_pl_9yr.svg", PL_FORMULA,
+         "Same pure power-law fit with a 9-year window. Captures 2\u20133 "
+         "bubble cycles per window; B trajectory is the most stable of the "
+         "three widths but slowest to react to new regimes."),
         ("LPPL\u2081 (6 params, 5yr windows)", "lp1", 5.0, LP1_NAMES,
          "lp1-5yr", "regime_shift_lp1_5yr.svg", LP1_FORMULA,
          "Single damped log-periodic oscillation. W hits upper bound (15) "

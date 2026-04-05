@@ -29,12 +29,14 @@ img { max-width:100%; height:auto; display:block; border-radius:6px;
 <h1>LPPL Regime Shift Detection</h1>
 <p class="muted">
 Rolling-window LPPL fits tracking parameter evolution over time.
-Generated 2026-04-04 19:08 UTC by <code>tools/regime_shift_all.py</code>.
+Generated 2026-04-04 19:16 UTC by <code>tools/regime_shift_all.py</code>.
 Regenerate manually — not auto-refreshed.
 </p>
 <nav>
 <strong>Jump to:</strong>
 <a href="#pl-5yr">PL (5yr)</a>
+<a href="#pl-7yr">PL (7yr)</a>
+<a href="#pl-9yr">PL (9yr)</a>
 <a href="#lp1-5yr">LPPL₁ (5yr)</a>
 <a href="#lp2-5yr">LPPL₂ (5yr)</a>
 <a href="#lp3-7yr">LPPL₃ (7yr)</a>
@@ -51,6 +53,20 @@ Regenerate manually — not auto-refreshed.
 <div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>
 <p class="muted">Pure power law log-log OLS (no oscillation). Tracks how the slope B evolves over time — the cleanest regime-change signal for growth rate. B climbing = faster-than-power-law growth; B falling = slowing.</p>
 <img src="/regime_shift/regime_shift_pl_5yr.svg" alt="Power Law (2 params, 5yr windows)">
+</section>
+<hr>
+<section id="pl-7yr">
+<h2>Power Law (2 params, 7yr windows)</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>
+<p class="muted">Same pure power-law fit with a 7-year window. Typically spans two halving cycles — slope/intercept drift more slowly, giving a smoother view of secular regime changes.</p>
+<img src="/regime_shift/regime_shift_pl_7yr.svg" alt="Power Law (2 params, 7yr windows)">
+</section>
+<hr>
+<section id="pl-9yr">
+<h2>Power Law (2 params, 9yr windows)</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>
+<p class="muted">Same pure power-law fit with a 9-year window. Captures 2–3 bubble cycles per window; B trajectory is the most stable of the three widths but slowest to react to new regimes.</p>
+<img src="/regime_shift/regime_shift_pl_9yr.svg" alt="Power Law (2 params, 9yr windows)">
 </section>
 <hr>
 <section id="lp1-5yr">

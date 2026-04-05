@@ -186,17 +186,8 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         ticklabelposition="inside",
         ticklabelshift=-5,
     )
-    # Apply y-range if user set it explicitly (bub-yrange in log10 USD space,
-    # but for residuals the user-set range is typically irrelevant — default
-    # auto-fits residual spread)
-    yr = p.get("yrange")
-    if yr and len(yr) == 2:
-        layout["yaxis"].update(range=[float(yr[0]), float(yr[1])])
-    # Y-scale (log vs linear). Residuals can be negative; log y hides
-    # negative values in Plotly — useful for showing only positive
-    # deviations if user chooses it.
-    if p.get("yscale") == "log":
-        layout["yaxis"]["type"] = "log"
+    # Residuals can be negative, so log Y doesn't apply — always linear.
+    # (bub-yrange is in log10 USD space, doesn't translate to residual space.)
     layout["shapes"] = shapes
     layout["showlegend"] = bool(p.get("show_legend", True))
     leg_pos = p.get("legend_pos", "outside")

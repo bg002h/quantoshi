@@ -698,6 +698,9 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     Input("dca-legend-pos","value"),
     Input("dca-qs",       "value"),
     Input("dca-qs-adv",   "value"),
+    Input("lppl-n-freqs", "value"),
+    Input("lppl-weighted","value"),
+    Input("lppl-no-13",   "value"),
     Input("effective-lots","data"),
     Input("dca-sc-enable",  "value"),
     Input("dca-sc-loan",    "value"),
@@ -731,7 +734,9 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     State("user-model-store",   "data"),
     prevent_initial_call=True,
 )
-def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range, disp, toggles, legend_pos, sel_qs, adv_qs, lots_data,
+def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range, disp, toggles, legend_pos, sel_qs, adv_qs,
+               lppl_n_freqs, lppl_weighted, lppl_no_13,
+               lots_data,
                sc_enable, sc_loan, sc_rate, sc_term, sc_type, sc_repeats,
                sc_entry_mode, sc_custom_price, sc_tax, sc_rollover,
                mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
@@ -752,6 +757,8 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
         stack=stack, amount_default=DCA["amount"], infl_default=float(DCA["inflation"]), start_yr_default=2026,
         mc_model_src=mc_model_src)
     model_show = model_show if model_show is not None else []
+    model_show = _resolve_lppl_master(
+        model_show, lppl_n_freqs, lppl_weighted, lppl_no_13)
     fig, mc_result = _get_dca_fig(dict(
         start_stack    = _cf(stack, DCA["start_stack"]),
         use_lots       = bool(use_lots),
@@ -823,6 +830,9 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     Input("ret-legend-pos","value"),
     Input("ret-qs",       "value"),
     Input("ret-qs-adv",   "value"),
+    Input("lppl-n-freqs", "value"),
+    Input("lppl-weighted","value"),
+    Input("lppl-no-13",   "value"),
     Input("effective-lots","data"),
     Input("ret-mc-enable",  "value"),
     Input("ret-mc-bins",    "value"),
@@ -846,7 +856,9 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     State("user-model-store",   "data"),
     prevent_initial_call=True,
 )
-def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, adv_qs, lots_data,
+def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, adv_qs,
+                  lppl_n_freqs, lppl_weighted, lppl_no_13,
+                  lots_data,
                   mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                   mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                   price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
@@ -864,6 +876,8 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
         stack=stack, amount_default=RETIRE["wd_amount"], infl_default=RETIRE["inflation"], start_yr_default=RETIRE["start_yr"],
         mc_model_src=mc_model_src)
     model_show = model_show if model_show is not None else []
+    model_show = _resolve_lppl_master(
+        model_show, lppl_n_freqs, lppl_weighted, lppl_no_13)
     fig, mc_result = _get_retire_fig(dict(
         start_stack  = _cf(stack, RETIRE["start_stack"]),
         use_lots     = bool(use_lots),
@@ -932,6 +946,9 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     Input("sc-infl",         "value"),
     Input("sc-qs",           "value"),
     Input("sc-qs-adv",       "value"),
+    Input("lppl-n-freqs",    "value"),
+    Input("lppl-weighted",   "value"),
+    Input("lppl-no-13",      "value"),
     Input("sc-mode",         "value"),
     Input("sc-wd",           "value"),
     Input("sc-end-yr",       "value"),
@@ -967,7 +984,9 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
 )
 def update_supercharge(_first_render, stack, use_lots, start_yr,
                        d0, d1, d2, d3, d4,
-                       freq, infl, sel_qs, adv_qs, mode,
+                       freq, infl, sel_qs, adv_qs,
+                       lppl_n_freqs, lppl_weighted, lppl_no_13,
+                       mode,
                        wd, end_yr, target_yr, disp,
                        toggles, legend_pos, chart_layout, display_q, lots_data,
                        mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
@@ -992,6 +1011,8 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
           if isinstance(chart_layout, list) \
           else (int(chart_layout) if chart_layout is not None else 2)
     model_show = model_show if model_show is not None else []
+    model_show = _resolve_lppl_master(
+        model_show, lppl_n_freqs, lppl_weighted, lppl_no_13)
     fig, mc_result = _get_supercharge_fig(dict(
         mode         = mode or "a",
         start_stack  = _cf(stack, SUPERCHARGE["start_stack"]),

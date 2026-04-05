@@ -59,12 +59,21 @@ address for additional privacy.
 The main chart showing Bitcoin's price history overlaid with quantile regression
 channels and bubble model projections.
 
-**Price / Forward CAGR views:** A pill bar at the top lets you switch between
-the **Price** chart (default) and the **Forward CAGR** chart. The Forward CAGR
-chart shows the compound annual growth rate from each historical date looking
-forward 1–30 years, with intra-window excursion bands showing peak and trough
-multiples. A progress bar shows estimated computation time for longer windows.
-Select the forward window from the dropdown (1, 2, 4, 10, 20, or 30 years).
+**Price / Forward CAGR / Residuals views:** A pill bar at the top lets you switch
+between the **Price** chart (default), the **Forward CAGR** chart, and the
+**Residuals** chart. The Forward CAGR chart shows the compound annual growth
+rate from each historical date looking forward 1–30 years, with intra-window
+excursion bands showing peak and trough multiples. A progress bar shows
+estimated computation time for longer windows. Select the forward window from
+the dropdown (1, 2, 4, 10, 20, or 30 years).
+
+The **Residuals** chart shows `log₁₀(price) − log₁₀(model)` at historical data
+points for each active Display Model. A trace at 0 = perfect fit; positive
+values = price above model; negative = price below. The X range slider max is
+automatically capped at the current year + 1 (residuals don't exist for future
+data). Switching off a model clears its residual trace. When Component
+Decomposition is active (see below), the partial-model's residuals also appear
+as a black trace — watch it shift as you toggle components on/off.
 
 **Recovery time in hover:** For non-monotonic models (like the Bubble Model)
 and historical price data, hovering over a point shows how long until the price
@@ -89,13 +98,25 @@ segments show no recovery annotation (no drawdown to recover from).
 - **Display Models**: Toggle overlay models on the bubble chart to compare
   against the default bubble model projections. Each model is shown with a
   colored swatch matching the current palette.
+  - **Bubble Model (BM)** — The default model (with an "Activate" checkbox
+    inside its config card that mirrors this toggle). Projects composite
+    support + bubbles.
   - **Power Law** — Simple OLS log-log power law fit.
   - **S2F (Stock-to-Flow)** — Alternative parameterization based on scarcity.
-  - **LPPL** — Log-Periodic Power Law, a model that captures oscillatory
-    patterns superimposed on the long-run power-law trend.
+  - **Quantile Regression (QR)** — 27 independent quantile fits (no mean line).
+  - **LPPL** (master entry) — Log-Periodic Power Law family. Click **⚙️** in
+    the LPPL Models config card to pick the specific variant (1/2/3/4
+    frequencies, weighted/unweighted, ω≈13 excluded or included). Captures
+    oscillatory patterns on the power-law trend.
+  - **LinPPL** — Linear-Periodic PPL. Uses calendar-time oscillations (ω·t)
+    aligned to the 4-year halving cycle, instead of log-time.
+  - **HybPPL** — Hybrid: log-periodic damped + linear-periodic undamped.
+    Combines LPPL's self-similar decay with LinPPL's fixed halving period.
+  - **HybPPL (excess)** — HybPPL's oscillator fit to BM-excess residuals.
+    Decouples the trend (BM support) from the oscillations.
   - **Exponential** — An exponential growth fit to price history.
-  - **BM Empirical Floor** — An alternate bubble model with a steeper support
-    line anchored to observed bear-market lows. Projects faster bubble
+  - **BM Empirical Floor (EF)** — An alternate bubble model with a steeper
+    support line anchored to observed bear-market lows. Projects faster bubble
     convergence, suggesting the end of the 4-year halving cycle.
   - **User Model (U₁)** — Your own custom power law drawn through two points
     you pick on the chart. See the User Model section below. Available on
@@ -114,6 +135,35 @@ Draw your own power-law line by clicking two points directly on the chart:
 The line persists for the current browser session. It appears as an overlay
 option ("User Model") on all tabs while it exists. Close the browser tab to
 clear it; it is not saved to `localStorage`.
+
+**🧬 Component Decomposition:**
+
+The Component Decomposition card lets you see how a model is built from its
+additive terms. Pick a model family from the dropdown (BM, EF, LPPL family,
+LinPPL, HybPPL, HybPPL (ex)). The card displays:
+
+- The **full formula** in log₁₀ space and price space (e.g. HybPPL (ex):
+  `log₁₀(price) = A_sup + B_sup·log₁₀(t) + a₀ + damped osc + undamped osc`,
+  `price = 10^A_sup · t^B_sup · 10^a₀ · 10^(damped) · 10^(undamped)`)
+- A **checklist** of all additive terms. Each label shows the formula expression,
+  the current fitted coefficient values, and the individual R² for that one
+  term alone against actual price data.
+- An **active-selection formula** updating live as you toggle checkboxes —
+  showing the current partial model's log-space and price-space formulas.
+
+Every checkbox acts as a 0/1 switch on its term. The chart shows ONE trace:
+`log₁₀(price) = sum of checked components`. Check all → full model. Check a
+subset → partial model. The trace legend shows the R² of the partial model
+vs actual price data — watch R² grow as you add more components.
+
+For the LPPL family, the checkboxes update to match whichever LPPL variant
+is currently selected in the LPPL Models config panel. If more than one
+LPPL variant is picked, a reminder appears to pick exactly one for
+decomposition.
+
+**Tip:** Switch to the **Residuals** pill with decomposition active to see
+where in time the partial model diverges from actual price. Bumps in the
+residual curve show eras the current component set doesn't explain.
 
 **Tips:**
 - Select a few quantiles that bracket your scenario (e.g., Q10% pessimistic,

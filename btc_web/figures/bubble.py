@@ -518,9 +518,19 @@ def _add_decomposition_traces(traces, t_arr, m, p):
         ))
 
     if "__sum__" in selected and canonical:
-        sum_log = comps[canonical[0]].copy()
-        for n in canonical[1:]:
-            sum_log = sum_log + comps[n]
+        # Σ Sum is baselined to support (same on-support rule as individual
+        # checkboxes). Add only selected NON-support components on top of
+        # support. If all components selected → full model. If only support
+        # pieces selected → just support baseline.
+        non_support = [n for n in canonical if n not in support_names]
+        if support_log is not None:
+            sum_log = support_log.copy()
+            for n in non_support:
+                sum_log = sum_log + comps[n]
+        else:
+            sum_log = comps[canonical[0]].copy()
+            for n in canonical[1:]:
+                sum_log = sum_log + comps[n]
         y_sum = list(10.0 ** sum_log)
         traces.append(go.Scatter(
             x=x_list, y=y_sum, mode="lines",

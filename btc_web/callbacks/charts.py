@@ -695,9 +695,15 @@ def auto_bubble_yrange(xrange, auto_y, yscale, model_show,
                 y_lo = min(y_lo, float(math.floor(float(np.min(log_vals)) * 2) / 2))
                 y_hi = max(y_hi, float(math.ceil(float(np.max(log_vals)) * 2) / 2))
             if "__sum__" in decomp_components and canonical:
-                sum_log = comps[canonical[0]].copy()
-                for n in canonical[1:]:
-                    sum_log = sum_log + comps[n]
+                non_support = [n for n in canonical if n not in support_names]
+                if support_log is not None:
+                    sum_log = support_log.copy()
+                    for n in non_support:
+                        sum_log = sum_log + comps[n]
+                else:
+                    sum_log = comps[canonical[0]].copy()
+                    for n in canonical[1:]:
+                        sum_log = sum_log + comps[n]
                 y_lo = min(y_lo, float(math.floor(float(np.min(sum_log)) * 2) / 2))
                 y_hi = max(y_hi, float(math.ceil(float(np.max(sum_log)) * 2) / 2))
             y_lo = max(-1.5, min(y_lo, 6.0))

@@ -637,6 +637,36 @@ def toggle_bub_view(price_clicks, cagr_clicks, resid_clicks, cur_xrange):
             {}, {}, _hide, xr)
 
 
+# Sync view-mode wrappers + button outlines when bub-view-mode.data changes
+# (e.g., from snapshot restore — button clicks set it directly in toggle_bub_view,
+# but snapshot sets it via apply_snapshot without clicking buttons).
+_app_ctx.app.clientside_callback(
+    """
+    function(mode) {
+        var _h = {"display": "none"};
+        if (mode === "cagr") {
+            return [_h, {}, _h, true, false, true, _h, _h, {"display":"inline"}];
+        }
+        if (mode === "resid") {
+            return [_h, _h, {}, true, true, false, {}, {}, _h];
+        }
+        /* price (default) */
+        return [{}, _h, _h, false, true, true, {}, {}, _h];
+    }
+    """,
+    Output("bub-price-wrap", "style", allow_duplicate=True),
+    Output("bub-cagr-wrap", "style", allow_duplicate=True),
+    Output("bub-resid-wrap", "style", allow_duplicate=True),
+    Output("bub-view-price", "outline", allow_duplicate=True),
+    Output("bub-view-cagr", "outline", allow_duplicate=True),
+    Output("bub-view-resid", "outline", allow_duplicate=True),
+    Output("bub-scale-controls", "style", allow_duplicate=True),
+    Output("bub-bubble-panel", "style", allow_duplicate=True),
+    Output("bub-cagr-fwd-wrap", "style", allow_duplicate=True),
+    Input("bub-view-mode", "data"),
+    prevent_initial_call='initial_duplicate',
+)
+
 # Hide "N future bubbles" slider in residuals view (doesn't apply to past data)
 _app_ctx.app.clientside_callback(
     "function(mode) { return mode === 'resid' ? {display: 'none'} : {}; }",

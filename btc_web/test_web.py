@@ -4335,6 +4335,34 @@ class TestAutoYWithDecomposition:
         assert yr[1] > yr[0]
 
 
+class TestDecompSnapshot:
+    def test_decomp_fields_in_snapshot_controls(self):
+        from snapshot import _SNAPSHOT_CONTROLS
+        cids = {cid for cid, _ in _SNAPSHOT_CONTROLS}
+        assert "bub-decomp-model" in cids
+        assert "bub-decomp-components" in cids
+
+    def test_decomp_fields_in_bubble_tab_controls(self):
+        from callbacks.routing import _TAB_CONTROLS
+        assert "bub-decomp-model" in _TAB_CONTROLS["bubble"]
+        assert "bub-decomp-components" in _TAB_CONTROLS["bubble"]
+
+    def test_decomp_not_bitmask_encoded(self):
+        from snapshot import _CHECKLIST_OPTIONS
+        assert "bub-decomp-components" not in _CHECKLIST_OPTIONS
+
+    def test_decomp_roundtrip_encode_decode(self):
+        from snapshot import _encode_snapshot, _decode_snapshot, _SNAPSHOT_CONTROLS
+        state = {f"{cid}:{prop}": None for cid, prop in _SNAPSHOT_CONTROLS}
+        state["bub-decomp-model:value"] = "hybppl_ex"
+        state["bub-decomp-components:value"] = ["A_sup", "a\u2080", "__sum__"]
+        encoded = _encode_snapshot(state)
+        decoded = _decode_snapshot(encoded)
+        assert decoded["bub-decomp-model:value"] == "hybppl_ex"
+        assert decoded["bub-decomp-components:value"] == [
+            "A_sup", "a\u2080", "__sum__"]
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Section: MC model interface verification
 # ═══════════════════════════════════════════════════════════════════════════════

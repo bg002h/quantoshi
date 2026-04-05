@@ -285,6 +285,9 @@ _SNAPSHOT_CONTROLS = [
     ("ret-lppl-activate", "value"),
     ("sc-lppl-activate",  "value"),
     ("hm-lppl-activate",  "value"),   # placeholder for Phase 2
+    # ── Component Decomposition (bubble tab) ──
+    ("bub-decomp-model",      "value"),   # family dropdown
+    ("bub-decomp-components", "value"),   # dynamic checklist — plain list
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)

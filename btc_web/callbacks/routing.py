@@ -127,7 +127,7 @@ _TAB_CONTROLS = {
                     "bub-lppl-activate","lppl-n-freqs","lppl-weighted","lppl-no-13",
                     "scan-price","scan-date","scan-q",
                     "bub-decomp-model","bub-decomp-components","bub-decomp-mode",
-                    "bub-decomp-show-formulas"},
+                    "bub-decomp-show-formulas","bub-view-mode"},
     "heatmap":     {"hm-entry-yr","hm-entry-q","hm-exit-range","hm-exit-qs","hm-mode",
                     "hm-b1","hm-b2","hm-c-lo","hm-c-mid1","hm-c-mid2","hm-c-hi",
                     "hm-grad","hm-vfmt","hm-cell-fs","hm-toggles","hm-stack","hm-use-lots",

@@ -290,6 +290,7 @@ _SNAPSHOT_CONTROLS = [
     ("bub-decomp-components", "value"),   # dynamic checklist — plain list
     ("bub-decomp-mode",       "value"),   # individual | reference | cumulative
     ("bub-decomp-show-formulas", "value"), # ["full", "selected"] checklist
+    ("bub-view-mode",        "data"),    # price | cagr | resid pill
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)

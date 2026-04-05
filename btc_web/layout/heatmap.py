@@ -121,6 +121,10 @@ def _heatmap_controls():
         # but no longer user-visible (pill bar replaces it on tab 2)
         dcc.Checklist(id="hm-model-show", value=["qr"],
                       style=_STYLE_HIDDEN),
+        # Hidden placeholder for hm-lppl-activate — reserved for Phase 2
+        # (heatmap LPPL sub-panel). Referenced by snapshot_cb for decode.
+        dcc.Checklist(id="hm-lppl-activate", value=[],
+                      style=_STYLE_HIDDEN),
     ])
 
 

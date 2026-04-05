@@ -371,6 +371,7 @@ Regenerate manually — not auto-refreshed.
 </p>
 <nav>
 <strong>Jump to:</strong>
+<a href="#pl-2yr">PL (2yr)</a>
 <a href="#pl-5yr">PL (5yr)</a>
 <a href="#pl-7yr">PL (7yr)</a>
 <a href="#pl-9yr">PL (9yr)</a>
@@ -488,6 +489,12 @@ def main():
         print(f"  Using {n_workers} workers\n")
 
     configs = [
+        ("Power Law (2 params, 2yr windows)", "pl", 2.0, PL_NAMES,
+         "pl-2yr", "regime_shift_pl_2yr.svg", PL_FORMULA,
+         "Shortest power-law window \u2014 reacts fastest to regime changes. "
+         "B_pl oscillates strongly around bubble peaks and bear bottoms "
+         "(slope over-fits to local cycle phase). Use alongside wider "
+         "windows to separate transient spikes from secular drift."),
         ("Power Law (2 params, 5yr windows)", "pl", 5.0, PL_NAMES,
          "pl-5yr", "regime_shift_pl_5yr.svg", PL_FORMULA,
          "Pure power law log-log OLS (no oscillation). Tracks how the slope B "

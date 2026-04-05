@@ -29,11 +29,12 @@ img { max-width:100%; height:auto; display:block; border-radius:6px;
 <h1>LPPL Regime Shift Detection</h1>
 <p class="muted">
 Rolling-window LPPL fits tracking parameter evolution over time.
-Generated 2026-04-04 19:16 UTC by <code>tools/regime_shift_all.py</code>.
+Generated 2026-04-04 19:18 UTC by <code>tools/regime_shift_all.py</code>.
 Regenerate manually — not auto-refreshed.
 </p>
 <nav>
 <strong>Jump to:</strong>
+<a href="#pl-2yr">PL (2yr)</a>
 <a href="#pl-5yr">PL (5yr)</a>
 <a href="#pl-7yr">PL (7yr)</a>
 <a href="#pl-9yr">PL (9yr)</a>
@@ -48,6 +49,13 @@ Regenerate manually — not auto-refreshed.
 <a href="#bm-7yr">BM (7yr)</a>
 <a href="#bm-9yr">BM (9yr)</a>
 </nav>
+<section id="pl-2yr">
+<h2>Power Law (2 params, 2yr windows)</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>
+<p class="muted">Shortest power-law window — reacts fastest to regime changes. B_pl oscillates strongly around bubble peaks and bear bottoms (slope over-fits to local cycle phase). Use alongside wider windows to separate transient spikes from secular drift.</p>
+<img src="/regime_shift/regime_shift_pl_2yr.svg" alt="Power Law (2 params, 2yr windows)">
+</section>
+<hr>
 <section id="pl-5yr">
 <h2>Power Law (2 params, 5yr windows)</h2>
 <div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>

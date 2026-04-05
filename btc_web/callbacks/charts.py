@@ -65,6 +65,35 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
                    _nearest_quantile)
 
 
+def _resolve_lppl_master(model_show, lppl_n_freqs, lppl_weighted, lppl_no_13):
+    """Translate the 'lppl' master in model_show into specific flavor key(s).
+
+    Strips 'lppl' from the list and appends one flavor key per checked
+    n_freqs entry, applying weighted and no_13 modifiers. When no master
+    is present, returns the list unchanged. When master is present but
+    no flavor is selected, the master is stripped with no replacement.
+    """
+    model_show = list(model_show or [])
+    if "lppl" not in model_show:
+        return model_show
+    model_show = [v for v in model_show if v != "lppl"]
+    _weighted = "weighted" in (lppl_weighted or [])
+    _no_13 = "no13" in (lppl_no_13 or [])
+    for n in (lppl_n_freqs or []):
+        if n == 1:
+            model_show.append("lppl_w" if _weighted else "lppl")
+        elif n == 2:
+            model_show.append("lp2_w" if _weighted else "lp2")
+        elif n == 3 and not _no_13:
+            model_show.append("lp3_w" if _weighted else "lp3")
+        elif n == 4:
+            if _no_13:
+                model_show.append("lp4_w_n13" if _weighted else "lp4_n13")
+            else:
+                model_show.append("lp4_w" if _weighted else "lp4")
+    return model_show
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Callbacks — chart updates
 # ══════════════════════════════════════════════════════════════════════════════

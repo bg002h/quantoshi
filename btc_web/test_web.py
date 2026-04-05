@@ -9072,3 +9072,50 @@ class TestColorCodedModelLabels:
         from layout.bubble import _bubble_controls
         layout_str = repr(_bubble_controls())
         assert "backgroundColor" in layout_str
+
+
+class TestResolveLpplMaster:
+    """Unit test for the LPPL master -> flavor translation helper."""
+
+    def test_no_master_passes_through(self):
+        from callbacks.charts import _resolve_lppl_master
+        result = _resolve_lppl_master(["bub", "pl"], [3], [], [])
+        assert result == ["bub", "pl"]
+
+    def test_master_1_unweighted(self):
+        from callbacks.charts import _resolve_lppl_master
+        result = _resolve_lppl_master(["bub", "lppl"], [1], [], [])
+        assert "lppl" in result and "bub" in result
+        assert "lp2" not in result
+
+    def test_master_3_weighted(self):
+        from callbacks.charts import _resolve_lppl_master
+        result = _resolve_lppl_master(["lppl"], [3], ["weighted"], [])
+        assert result == ["lp3_w"]
+
+    def test_master_3_disabled_by_no_13(self):
+        from callbacks.charts import _resolve_lppl_master
+        # no_13 disables LP3
+        result = _resolve_lppl_master(["lppl"], [3], [], ["no13"])
+        assert result == []
+
+    def test_master_4_no_13(self):
+        from callbacks.charts import _resolve_lppl_master
+        result = _resolve_lppl_master(["lppl"], [4], [], ["no13"])
+        assert result == ["lp4_n13"]
+
+    def test_master_4_weighted_no_13(self):
+        from callbacks.charts import _resolve_lppl_master
+        result = _resolve_lppl_master(["lppl"], [4], ["weighted"], ["no13"])
+        assert result == ["lp4_w_n13"]
+
+    def test_master_all_freqs_unweighted(self):
+        from callbacks.charts import _resolve_lppl_master
+        result = _resolve_lppl_master(["lppl"], [1, 2, 3, 4], [], [])
+        assert set(result) == {"lppl", "lp2", "lp3", "lp4"}
+
+    def test_empty_n_freqs_strips_master(self):
+        from callbacks.charts import _resolve_lppl_master
+        # Master checked but no flavor selected -> master stripped with no replacement
+        result = _resolve_lppl_master(["bub", "lppl"], [], [], [])
+        assert result == ["bub"]

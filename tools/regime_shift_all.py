@@ -185,6 +185,21 @@ def _fit_worker(args):
 
         t_safe = np.maximum(t_win, 0.1)
 
+        # PL is a closed-form OLS problem; don't run differential_evolution
+        # through a box constraint that clips the true slope at bubble/bear
+        # extremes. Use unbounded linear regression on (log10 t, log10 price).
+        if model_name == "pl":
+            log_t = np.log10(t_safe)
+            B_hat, A_hat = np.polyfit(log_t, lp_win, 1)
+            pred = A_hat + B_hat * log_t
+            resid = lp_win - pred
+            ss_res = float(np.sum(resid ** 2))
+            ss_tot = float(np.sum((lp_win - np.mean(lp_win)) ** 2))
+            r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else float("nan")
+            sigma = float(np.std(resid))
+            return {"t_end": t_end, "A": float(A_hat), "B": float(B_hat),
+                    "sigma": sigma, "r2": r2}
+
         def objective(params):
             pred = fn(t_safe, *params)
             val = float(np.sum((lp_win - pred) ** 2))

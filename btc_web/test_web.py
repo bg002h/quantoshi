@@ -4069,6 +4069,22 @@ class TestLPPLComponentDecomposition:
         import _app_ctx
         assert len(_app_ctx.PRICE_MODELS["linppl"].component_names) == 3
 
+    def test_hybppl_invariant(self):
+        import _app_ctx
+        self._assert_invariant(_app_ctx.PRICE_MODELS["hybppl"])
+
+    def test_hybppl_component_count(self):
+        import _app_ctx
+        assert len(_app_ctx.PRICE_MODELS["hybppl"].component_names) == 4
+
+    def test_hybppl_ex_invariant(self):
+        import _app_ctx
+        self._assert_invariant(_app_ctx.PRICE_MODELS["hybppl_ex"])
+
+    def test_hybppl_ex_component_count(self):
+        import _app_ctx
+        assert len(_app_ctx.PRICE_MODELS["hybppl_ex"].component_names) == 5
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Section: MC model interface verification

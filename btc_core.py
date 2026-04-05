@@ -1065,6 +1065,26 @@ class HybPPLModel(LPPLModel):
         undamped = self._C2 * np.cos(self._W2 * t_safe + self._PHI2)
         return self._A + self._B * np.log10(t_safe) + damped + undamped
 
+    component_names = [
+        "A (constant)",
+        "B\u00b7log\u2081\u2080(t)",
+        "damped log osc (\u03c9_log)",
+        "undamped cal osc (\u03c9_cal)",
+    ]
+
+    def components(self, t):
+        """Hybrid: log-periodic damped + linear-periodic undamped."""
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        return {
+            "A (constant)":                        np.full_like(t_safe, self._A),
+            "B\u00b7log\u2081\u2080(t)":            self._B * np.log10(t_safe),
+            "damped log osc (\u03c9_log)":          self._C * t_safe ** (-self._D) * np.cos(
+                self._W * np.log(t_safe) + self._PHI),
+            "undamped cal osc (\u03c9_cal)":        self._C2 * np.cos(
+                self._W2 * t_safe + self._PHI2),
+        }
+
 
 class HybPPLExcessModel(LPPLModel):
     """HybPPL oscillators fit to BM-excess (log_price - BM support).
@@ -1108,6 +1128,28 @@ class HybPPLExcessModel(LPPLModel):
             self._W_log * np.log(t_safe) + self._PHI1)
         undamped = self._C2 * np.cos(self._W_cal * t_safe + self._PHI2)
         return support + self._a0 + damped + undamped
+
+    component_names = [
+        "A_sup",
+        "B_sup\u00b7log\u2081\u2080(t)",
+        "a\u2080",
+        "damped log osc (\u03c9_log)",
+        "undamped cal osc (\u03c9_cal)",
+    ]
+
+    def components(self, t):
+        """BM support + constant + damped log-periodic + undamped calendar."""
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        return {
+            "A_sup":                              np.full_like(t_safe, self._A_sup),
+            "B_sup\u00b7log\u2081\u2080(t)":      self._B_sup * np.log10(t_safe),
+            "a\u2080":                            np.full_like(t_safe, self._a0),
+            "damped log osc (\u03c9_log)":        self._C1 * t_safe ** (-self._D) * np.cos(
+                self._W_log * np.log(t_safe) + self._PHI1),
+            "undamped cal osc (\u03c9_cal)":      self._C2 * np.cos(
+                self._W_cal * t_safe + self._PHI2),
+        }
 
 
 class LinPPLModel(LPPLModel):

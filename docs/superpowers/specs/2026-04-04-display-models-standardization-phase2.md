@@ -80,9 +80,9 @@ Phase 2 explicitly renumbers these routes. Link-breakage accepted per user direc
 
 ### Layer 3 — LPPL sub-config panel on Heatmap
 
-Uses the **same `_lppl_config_panel("hm")` helper** from Phase 1. Panel appears below the pill bar, above the heatmap chart controls.
+Uses the **same `_lppl_config_panel("hm")` helper** from Phase 1 (which emits only an activate checkbox + summary + Configure-LPPL button; the actual n_freqs/weighted/no_13 controls live in the global `lppl-config-modal` created in Phase 1). Panel appears below the pill bar, above the heatmap chart controls.
 
-`hm-lppl-activate` checkbox is the activate control (already reserved in snapshot via Phase 1).
+`hm-lppl-activate` checkbox is the activate control (already reserved in snapshot via Phase 1). Clicking the "⚙️ Configure LPPL" button opens the same global modal users access from any other tab.
 
 ### Layer 4 — Clientside sync callbacks (heatmap-specific)
 
@@ -90,10 +90,10 @@ Two new clientside callbacks specific to the pill+panel interaction:
 
 **1. LPPL pill active ↔ hm-lppl-activate:**
 
-When `hm-active-model` changes to `"lppl"` → `hm-lppl-activate` becomes `["yes"]` and `hm-lppl-body` expands.
-When `hm-active-model` changes away from `"lppl"` → `hm-lppl-activate` becomes `[]` and body collapses.
+When `hm-active-model` changes to `"lppl"` → `hm-lppl-activate` becomes `["yes"]`.
+When `hm-active-model` changes away from `"lppl"` → `hm-lppl-activate` becomes `[]`.
 
-This is a one-way callback from `hm-active-model` (data) to `hm-lppl-activate` (value) + `hm-lppl-body` (style).
+This is a one-way callback from `hm-active-model` (data) to `hm-lppl-activate` (value). The LPPL sub-panel on the heatmap tab has no expandable body (only activate checkbox + summary + Configure button, per the Phase 1 design).
 
 **2. hm-lppl-activate → hm-active-model (reverse sync):**
 

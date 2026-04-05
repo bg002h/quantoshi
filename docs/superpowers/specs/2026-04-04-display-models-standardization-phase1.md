@@ -43,11 +43,19 @@ Note: existing `_build_model_opts` helper lives in `callbacks/charts.py:1000` (u
 
 **`_lppl_config_panel(prefix)`** — new helper.
 
-Emits a `_section_card("LPPL Models", ...)` containing:
-- `{prefix}-lppl-activate` checkbox ("Activate LPPL overlay").
-- `{prefix}-lppl-body` div (collapsible) with n_freqs / weighted / no_13 controls.
+Emits a `_section_card("LPPL Models", ...)` containing only three elements — **not** the actual n_freqs / weighted / no_13 controls:
 
-The config controls inside the body use **un-prefixed global IDs** (`lppl-n-freqs`, `lppl-weighted`, `lppl-no-13`) so state is shared across all tabs — editing on any tab affects every tab's LPPL overlay.
+- `{prefix}-lppl-activate` checkbox ("Activate LPPL overlay").
+- A compact summary line (read-only): `{prefix}-lppl-summary` (e.g., shows "LPPL₃ (weighted)" based on current global state).
+- A "⚙️ Configure LPPL" button: `{prefix}-lppl-configure-btn` which opens the global LPPL config modal.
+
+**Design constraint (new):** Dash requires unique component IDs app-wide. Since all 9 tabs render into the same DOM at page-load, the n_freqs / weighted / no_13 controls can only exist **once** in the layout. They live inside a dedicated global modal (see next section), not inside `_lppl_config_panel`. Per-tab sub-panels are compact summaries + modal launchers.
+
+**`_global_lppl_modal()`** — new helper.
+
+Returns a `dbc.Modal` (id=`lppl-config-modal`) rendered once at app root level, containing the actual `lppl-n-freqs`, `lppl-weighted`, `lppl-no-13` controls (un-prefixed, snapshot-stable). The modal is wired to open when ANY `{prefix}-lppl-configure-btn` is clicked, from ANY tab. State changes inside the modal flow directly into chart callbacks via the existing Input bindings.
+
+The Bubble tab's current LPPL Models panel **uses this same modal** instead of holding its own copies of the config controls. This preserves snapshot compat (un-prefixed IDs stay) while unifying the configuration surface.
 
 ### Layer 2 — Layout updates per tab
 
@@ -59,19 +67,35 @@ The config controls inside the body use **un-prefixed global IDs** (`lppl-n-freq
 - Existing `_build_bub_model_options` already emits the master. Keep the layout but:
   - Wrap the `_section_card("Bubble Model", ...)` body contents in a new `html.Div(id="bub-bm-body")` so it can be collapsed.
   - The existing `bub-bubble-panel` div is a separate wrapper (used for show/hide on view-mode switches); `bub-bm-body` is the collapse-by-checkbox target.
+  - **Remove** the current "LPPL Models" `_section_card` from the Bubble tab layout. Replace with `_lppl_config_panel("bub")` (new compact version: activate checkbox + summary + configure button). The actual n_freqs/weighted/no_13 controls move into the new global modal.
+
+**Tab title change:** `dbc.Tab` for Bubble renames from `"📈 Bubble + QR Overlay"` to `"📈 Price & Model Overlays"` — more accurate now that the tab hosts PL, LPPL, LinPPL, HybPPL, EF, QR, Exp, S2F, U₁ overlays in addition to the bubble composite.
 
 **Heatmap / Citadel:** not touched in Phase 1.
 
+**Root-level additions** (rendered once inside `_serve_layout` at app root, alongside the `dbc.Tabs` container):
+- `_global_lppl_modal()` — dbc.Modal (id=`lppl-config-modal`) containing n_freqs / weighted / no_13 controls with their existing un-prefixed IDs.
+
 ### Layer 3 — Clientside sync callbacks
 
-Per tab in `{dca, ret, sc}` — mirror the existing `bub-lppl-*` pattern in `callbacks/charts.py`:
+Per tab in `{bub, dca, ret, sc}` — mirror the existing `bub-lppl-*` pattern in `callbacks/charts.py`:
 
-1. **Body collapse:** `{prefix}-lppl-activate` value → `{prefix}-lppl-body` style.
-2. **Activate → model-show:** adds/removes "lppl" from `{prefix}-model-show` list. **MUST include `no_update` guard** when the target value already matches (prevents infinite loop with callback #3). `allow_duplicate=True`.
-3. **model-show → activate:** mirrors "lppl" membership back to the checkbox. Idempotent write — Dash will stop the loop when the value doesn't change, but guard anyway for safety.
+1. **Activate → model-show:** adds/removes "lppl" from `{prefix}-model-show` list. **MUST include `no_update` guard** when the target value already matches (prevents infinite loop with callback #2). `allow_duplicate=True`.
+2. **model-show → activate:** mirrors "lppl" membership back to the checkbox. Idempotent write — Dash will stop the loop when the value doesn't change, but guard anyway for safety.
+
+*(No body-collapse callback anymore — the per-tab LPPL sub-panel has no body to collapse, just activate + summary + configure button.)*
 
 Plus one Bubble-specific new callback:
-4. **BM collapse:** "bub" in `bub-model-show` → `bub-bm-body` style. No inverse direction (unchecking Bubble Model collapses the panel; panel doesn't toggle the checkbox).
+3. **BM collapse:** "bub" in `bub-model-show` → `bub-bm-body` style. No inverse direction (unchecking Bubble Model collapses the panel; panel doesn't toggle the checkbox).
+
+**Global modal open/close callback:**
+
+4. **Open modal:** any of `bub-lppl-configure-btn`, `dca-lppl-configure-btn`, `ret-lppl-configure-btn`, `sc-lppl-configure-btn` → `lppl-config-modal.is_open=True`.
+5. **Close modal:** `lppl-modal-close-btn.n_clicks` → `lppl-config-modal.is_open=False`.
+
+**Summary text updater** (per tab):
+
+6. `lppl-n-freqs` + `lppl-weighted` + `lppl-no-13` → `{prefix}-lppl-summary.children` — emits a compact description (e.g., "LPPL₃ (weighted)" / "LPPL₁+₂ · unweighted"). Clientside; fires whenever config changes. One callback registration looped over `{bub, dca, ret, sc}` targets.
 
 All clientside; no server round-trips. Loop-prevention pattern:
 
@@ -224,8 +248,9 @@ Update `_TAB_CONTROLS` in `callbacks/routing.py`: add the 3 existing global IDs 
 ## File list
 
 **Modified:**
-- `btc_web/layout/common.py` — extend `_model_show_checklist`, add `_lppl_config_panel`, consolidate with `_build_model_opts`.
-- `btc_web/layout/bubble.py` — use `_lppl_config_panel` helper, wrap BM panel in `bub-bm-body` div. Refactor `_build_bub_model_options` to delegate to shared helper.
+- `btc_web/layout/common.py` — extend `_model_show_checklist`, add `_lppl_config_panel`, add `_global_lppl_modal`, consolidate with `_build_model_opts`.
+- `btc_web/layout/__init__.py` — render `_global_lppl_modal()` at root level alongside `dbc.Tabs`; rename Bubble `dbc.Tab` label to "📈 Price & Model Overlays".
+- `btc_web/layout/bubble.py` — remove existing "LPPL Models" section_card (n_freqs/weighted/no_13 controls); replace with `_lppl_config_panel("bub")`. Wrap BM panel in `bub-bm-body` div. Refactor `_build_bub_model_options` to delegate to shared helper.
 - `btc_web/layout/sim_tabs.py` — DCA/Retire layout updates (uses `_model_show_checklist` at sim_tabs.py:38).
 - `btc_web/layout/supercharge.py` — SC layout updates (uses `_model_show_checklist` at supercharge.py:91).
 - `btc_web/layout/citadel.py` — remove S2F option from `cp-model-src` (line 245).

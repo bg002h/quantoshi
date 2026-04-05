@@ -11,7 +11,7 @@ from layout.common import (_tab_hints, _section_card, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT,
                             _CB_MARGIN, _Q_HINT_BASE,
                             _q_options, _q_panel_with_mode,
-                            _model_show_checklist,
+                            _model_show_checklist, _lppl_config_panel,
                             _shared_settings_card, _year_range_slider,
                             _btc_usd_dropdown, _chart_toggles,
                             _legend_pos_dropdown, _ctrl_card,
@@ -35,7 +35,7 @@ def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
     yr_now = pd.Timestamp.today().year
     children.append(
         _section_card("Chart Settings",
-            *_model_show_checklist(prefix),
+            *_model_show_checklist(prefix, standardized=True),
             _lbl("Year range"),
             _year_range_slider(prefix, *yr_range),
             _btc_usd_dropdown(prefix, **(btc_usd_kwargs or {})),
@@ -43,6 +43,7 @@ def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
             *_legend_pos_dropdown(prefix, legend_pos_default),
         ),
     )
+    children.append(_lppl_config_panel(prefix))
     return html.Div(children)
 
 

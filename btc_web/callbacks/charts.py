@@ -45,6 +45,97 @@ _app_ctx.app.clientside_callback(
     Input("bub-model-show", "value"),
     prevent_initial_call='initial_duplicate',
 )
+
+# "bub" in bub-model-show → bub-bm-body collapse
+_app_ctx.app.clientside_callback(
+    """
+    function(models) {
+        var has = (models || []).indexOf('bub') !== -1;
+        return has ? {} : {display: 'none'};
+    }
+    """,
+    Output("bub-bm-body", "style"),
+    Input("bub-model-show", "value"),
+)
+
+# Any per-tab Configure-LPPL button click → open modal.
+# (Phase 2 will extend the Input list to include hm-lppl-configure-btn.)
+_app_ctx.app.clientside_callback(
+    """
+    function(bub_n, dca_n, ret_n, sc_n, close_n, cur_open) {
+        var ctx = window.dash_clientside.callback_context;
+        if (!ctx.triggered || !ctx.triggered.length) {
+            return window.dash_clientside.no_update;
+        }
+        var src = ctx.triggered[0].prop_id;
+        if (src.indexOf('lppl-modal-close-btn') !== -1) return false;
+        if (src.indexOf('lppl-configure-btn') !== -1) return true;
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("lppl-config-modal", "is_open"),
+    Input("bub-lppl-configure-btn", "n_clicks"),
+    Input("dca-lppl-configure-btn", "n_clicks"),
+    Input("ret-lppl-configure-btn", "n_clicks"),
+    Input("sc-lppl-configure-btn", "n_clicks"),
+    Input("lppl-modal-close-btn", "n_clicks"),
+    State("lppl-config-modal", "is_open"),
+    prevent_initial_call=True,
+)
+
+# Activate ↔ "lppl" in {prefix}-model-show for DCA, Retire, SC.
+for _lp in ("dca", "ret", "sc"):
+    _app_ctx.app.clientside_callback(
+        """
+        function(act, cur_models) {
+            var want = (act && act.length) > 0;
+            var models = (cur_models || []).slice();
+            var has = models.indexOf('lppl') !== -1;
+            if (want && !has) { models.push('lppl'); return models; }
+            if (!want && has) {
+                return models.filter(function(v) { return v !== 'lppl'; });
+            }
+            return window.dash_clientside.no_update;
+        }
+        """,
+        Output(f"{_lp}-model-show", "value", allow_duplicate=True),
+        Input(f"{_lp}-lppl-activate", "value"),
+        State(f"{_lp}-model-show", "value"),
+        prevent_initial_call='initial_duplicate',
+    )
+    _app_ctx.app.clientside_callback(
+        """
+        function(models) {
+            var has = (models || []).indexOf('lppl') !== -1;
+            return has ? ['yes'] : [];
+        }
+        """,
+        Output(f"{_lp}-lppl-activate", "value", allow_duplicate=True),
+        Input(f"{_lp}-model-show", "value"),
+        prevent_initial_call='initial_duplicate',
+    )
+
+
+# LPPL config → compact summary text, per tab
+for _sum_prefix in ("bub", "dca", "ret", "sc"):
+    _app_ctx.app.clientside_callback(
+        """
+        function(n_freqs, weighted, no_13) {
+            var ns = (n_freqs || []).slice().sort();
+            if (ns.length === 0) return "(no flavor)";
+            var names = {1:'LPPL\u2081', 2:'LPPL\u2082', 3:'LPPL\u2083', 4:'LPPL\u2084'};
+            var parts = ns.map(function(n){ return names[n] || ("LPPL"+n); });
+            var txt = parts.join('+');
+            if ((weighted || []).indexOf('weighted') !== -1) txt += ' (w)';
+            if ((no_13 || []).indexOf('no13') !== -1) txt += ' (no \u03c9\u224813)';
+            return txt;
+        }
+        """,
+        Output(f"{_sum_prefix}-lppl-summary", "children"),
+        Input("lppl-n-freqs", "value"),
+        Input("lppl-weighted", "value"),
+        Input("lppl-no-13", "value"),
+    )
 from btc_core import yr_to_t, today_t, _find_lot_percentile
 from tab_defaults import BUBBLE, HEATMAP, DCA, RETIRE, SUPERCHARGE
 from layout.common import _bands_to_qs

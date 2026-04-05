@@ -11,6 +11,7 @@ from tab_defaults import SUPERCHARGE
 from layout.common import (_tab_hints, _section_card, _lbl,
                             _STYLE_HINT, _q_options, _q_panel_with_mode,
                             _shared_settings_card, _model_show_checklist,
+                            _lppl_config_panel,
                             _btc_usd_dropdown, _chart_toggles,
                             _legend_pos_dropdown, _chart_tab_layout,
                             _CB_MARGIN, _Q_HINT_BASE)
@@ -88,7 +89,7 @@ def _supercharge_controls():
                      shared_controls={"amount", "infl", "freq", "stack"}),
         # ── Chart ───────────────────────────────────────────────────────
         _section_card("Chart Settings",
-            *_model_show_checklist("sc"),
+            *_model_show_checklist("sc", standardized=True),
             dcc.Checklist(id="sc-chart-layout",
                 options=[{"label":" Shade quantile bands","value":"shade"}],
                 value=["shade"],
@@ -102,6 +103,7 @@ def _supercharge_controls():
             _chart_toggles("sc", ["annotate", "log_y", "minor_grid", "shade"]),
             *_legend_pos_dropdown("sc", SUPERCHARGE["legend_pos"]),
         ),
+        _lppl_config_panel("sc"),
     ])
 
 

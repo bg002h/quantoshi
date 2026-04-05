@@ -391,7 +391,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         return f"${v:.2f}"
 
     layout = _base_layout(
-        title="Bitcoin Bubble Model + Quantile Regression Channels",
+        title="Bitcoin Price + Model Overlay",
         xlabel="",
         ylabel="",
     )

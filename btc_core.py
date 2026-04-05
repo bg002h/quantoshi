@@ -943,6 +943,44 @@ class LPPL4ModelWN13(LPPL4ModelN13):
     _PHI4 = -0.889292
 
 
+class HybPPLModel(LPPLModel):
+    """Hybrid Log+Linear PPL: log-periodic damped + linear-periodic undamped.
+
+    Fits: log10(price) = A + B*log10(t) + C1*t^(-D)*cos(ω_log*ln(t)+φ1)
+                       + C2*cos(ω_cal*t+φ2)
+
+    Combines LPPL's log-periodic damped oscillation (captures early-Bitcoin
+    self-similarity) with a linear-periodic undamped term (captures the
+    halving cycle). 9 parameters — same count as LPPL₂.
+
+    _W is the log-time angular frequency (like LPPL).
+    _W2 is the calendar angular frequency in rad/yr (like LinPPL).
+    """
+    name = "HybPPL"
+    short_name = "hybppl"
+    legend_name = "HybPPL"
+    dash_style = "dashdot"
+
+    # Fitted parameters (will be overwritten by fit_hybppl.py --update)
+    _A   = -1.146889  
+    _B   =     5.051505  
+    _C   =     0.689980  
+    _W   =     7.420172  
+    _PHI =     1.453199  
+    _D   =     0.708388  
+    _C2  =     0.233030  
+    _W2  =     1.733066  
+    _PHI2 = -1.922447  
+
+    def _lppl_log10(self, t):
+        """Evaluate hybrid model: log-periodic damped + linear-periodic undamped."""
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        damped = self._C * t_safe ** (-self._D) * np.cos(self._W * np.log(t_safe) + self._PHI)
+        undamped = self._C2 * np.cos(self._W2 * t_safe + self._PHI2)
+        return self._A + self._B * np.log10(t_safe) + damped + undamped
+
+
 class LinPPLModel(LPPLModel):
     """Linear-periodic Power Law: oscillation in CALENDAR time, not log-time.
 

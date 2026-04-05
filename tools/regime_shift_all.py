@@ -100,6 +100,13 @@ def linppl_model(t_safe, A, B, C, W_cal, PHI, D):
     return A + B * np.log10(t_safe) + C * t_safe**(-D) * np.cos(W_cal * t_safe + PHI)
 
 
+def hybppl_model(t_safe, A, B, C1, W_log, PHI1, D, C2, W_cal, PHI2):
+    """HybPPL — log-periodic damped + linear-periodic undamped."""
+    damped = C1 * t_safe**(-D) * np.cos(W_log * np.log(t_safe) + PHI1)
+    undamped = C2 * np.cos(W_cal * t_safe + PHI2)
+    return A + B * np.log10(t_safe) + damped + undamped
+
+
 # W_max widened to 40 to match production fitters
 LP1_BOUNDS = [
     (-3.0, 1.0), (3.0, 7.0), (0.01, 3.0),
@@ -142,6 +149,13 @@ LINPPL_BOUNDS = [
 ]
 LINPPL_NAMES = ["A", "B", "C", "W_cal", "PHI", "D"]
 
+HYBPPL_BOUNDS = [
+    (-3.0, 1.0), (3.0, 7.0), (0.01, 3.0),
+    (2.0, 40.0), (-np.pi, np.pi), (0.01, 2.0),
+    (0.0, 2.0), (0.5, 10.0), (-np.pi, np.pi),
+]
+HYBPPL_NAMES = ["A", "B", "C1", "W_log", "PHI1", "D", "C2", "W_cal", "PHI2"]
+
 
 # ── Fit workers (module-level, picklable) ────────────────────────────────
 
@@ -164,6 +178,8 @@ def _fit_worker(args):
             bounds, names, fn = PL_BOUNDS, PL_NAMES, pl_model
         elif model_name == "linppl":
             bounds, names, fn = LINPPL_BOUNDS, LINPPL_NAMES, linppl_model
+        elif model_name == "hybppl":
+            bounds, names, fn = HYBPPL_BOUNDS, HYBPPL_NAMES, hybppl_model
         else:
             return _nan_result(model_name, t_end)
 
@@ -214,6 +230,8 @@ def _nan_result(model_name, t_end):
         names = PL_NAMES
     elif model_name == "linppl":
         names = LINPPL_NAMES
+    elif model_name == "hybppl":
+        names = HYBPPL_NAMES
     else:
         names = []
     row = {"t_end": t_end}
@@ -361,6 +379,7 @@ Regenerate manually — not auto-refreshed.
 <a href="#lp4-7yr">LPPL\u2084 (7yr)</a>
 <a href="#lp4-9yr">LPPL\u2084 (9yr)</a>
 <a href="#linppl-5yr">LinPPL (5yr)</a>
+<a href="#hybppl-5yr">HybPPL (5yr)</a>
 </nav>
 {sections}
 <a href="/" class="back-link">\u2190 Back to Quantoshi</a>
@@ -423,6 +442,12 @@ LINPPL_FORMULA = (
     "log\u2081\u2080(price) = A + B\u00b7log\u2081\u2080(t) "
     "+ C\u00b7t\u207b\u1d30\u00b7cos(\u03c9_cal\u00b7t + \u03c6)    "
     "[oscillation in calendar time, not log-time]"
+)
+HYBPPL_FORMULA = (
+    "log\u2081\u2080(price) = A + B\u00b7log\u2081\u2080(t) "
+    "+ C\u2081\u00b7t\u207b\u1d30\u00b7cos(\u03c9_log\u00b7ln t + \u03c6\u2081) "
+    "+ C\u2082\u00b7cos(\u03c9_cal\u00b7t + \u03c6\u2082)    "
+    "[log-periodic damped + linear-periodic undamped]"
 )
 
 
@@ -494,6 +519,12 @@ def main():
          "rather than log-time. Period T=2\u03c0/W_cal stays constant in years "
          "\u2014 designed to match Bitcoin's ~4-year halving cycle directly. "
          "Expect T to track the halving cycle more stably than LPPL\u2081's W."),
+        ("HybPPL (9 params, 5yr windows)", "hybppl", 5.0, HYBPPL_NAMES,
+         "hybppl-5yr", "regime_shift_hybppl_5yr.svg", HYBPPL_FORMULA,
+         "Combines log-periodic damped primary + linear-periodic undamped "
+         "secondary. Full-history R\u00b2=0.989 \u2014 beats LPPL\u2082 at same "
+         "9-param count. Watch how the relative contribution of W_log vs W_cal "
+         "evolves over windows."),
     ]
 
     configs_info = []

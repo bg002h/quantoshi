@@ -166,12 +166,14 @@ pre code {{ background:none; padding:0; }}
         # Restrict to expected filenames to avoid path traversal
         allowed_svg = {
             "regime_shift_pl_5yr.svg", "regime_shift_linppl_5yr.svg",
+            "regime_shift_hybppl_5yr.svg",
             "regime_shift_lp1_5yr.svg", "regime_shift_lp2_5yr.svg",
             "regime_shift_lp3_7yr.svg", "regime_shift_lp3_9yr.svg",
             "regime_shift_lp4_7yr.svg", "regime_shift_lp4_9yr.svg",
         }
         allowed_csv = {
             "regime_shift_pl_5yr.csv", "regime_shift_linppl_5yr.csv",
+            "regime_shift_hybppl_5yr.csv",
             "regime_shift_lp1_5yr.csv", "regime_shift_lp2_5yr.csv",
             "regime_shift_lp3_7yr.csv", "regime_shift_lp3_9yr.csv",
             "regime_shift_lp4_7yr.csv", "regime_shift_lp4_9yr.csv",

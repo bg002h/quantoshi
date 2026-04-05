@@ -29,7 +29,7 @@ img { max-width:100%; height:auto; display:block; border-radius:6px;
 <h1>LPPL Regime Shift Detection</h1>
 <p class="muted">
 Rolling-window LPPL fits tracking parameter evolution over time.
-Generated 2026-04-04 18:42 UTC by <code>tools/regime_shift_all.py</code>.
+Generated 2026-04-04 18:57 UTC by <code>tools/regime_shift_all.py</code>.
 Regenerate manually — not auto-refreshed.
 </p>
 <nav>
@@ -42,6 +42,7 @@ Regenerate manually — not auto-refreshed.
 <a href="#lp4-7yr">LPPL₄ (7yr)</a>
 <a href="#lp4-9yr">LPPL₄ (9yr)</a>
 <a href="#linppl-5yr">LinPPL (5yr)</a>
+<a href="#hybppl-5yr">HybPPL (5yr)</a>
 </nav>
 <section id="pl-5yr">
 <h2>Power Law (2 params, 5yr windows)</h2>
@@ -97,6 +98,13 @@ Regenerate manually — not auto-refreshed.
 <div class="formula">log₁₀(price) = A + B·log₁₀(t) + C·t⁻ᴰ·cos(ω_cal·t + φ)    [oscillation in calendar time, not log-time]</div>
 <p class="muted">Linear-periodic variant: oscillation in CALENDAR time (W_cal·t) rather than log-time. Period T=2π/W_cal stays constant in years — designed to match Bitcoin's ~4-year halving cycle directly. Expect T to track the halving cycle more stably than LPPL₁'s W.</p>
 <img src="/regime_shift/regime_shift_linppl_5yr.svg" alt="LinPPL (6 params, 5yr windows)">
+</section>
+<hr>
+<section id="hybppl-5yr">
+<h2>HybPPL (9 params, 5yr windows)</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t) + C₁·t⁻ᴰ·cos(ω_log·ln t + φ₁) + C₂·cos(ω_cal·t + φ₂)    [log-periodic damped + linear-periodic undamped]</div>
+<p class="muted">Combines log-periodic damped primary + linear-periodic undamped secondary. Full-history R²=0.989 — beats LPPL₂ at same 9-param count. Watch how the relative contribution of W_log vs W_cal evolves over windows.</p>
+<img src="/regime_shift/regime_shift_hybppl_5yr.svg" alt="HybPPL (9 params, 5yr windows)">
 </section>
 <hr>
 <a href="/" class="back-link">← Back to Quantoshi</a>

@@ -36,7 +36,7 @@ from flask import request as flask_request
 from btc_core import (load_model_data, BubbleModel, PowerLawModel,
                        LPPLModel, LPPL2Model, LPPL3Model, LPPL4Model,
                        LPPLModelW, LPPL2ModelW, LPPL3ModelW, LPPL4ModelW,
-                       LPPL4ModelN13, LPPL4ModelWN13, LinPPLModel,
+                       LPPL4ModelN13, LPPL4ModelWN13, LinPPLModel, HybPPLModel,
                        ExponentialModel, S2FModel, EmpiricalFloorModel, QuantileRegressionModel)
 from figures import FREQ_PPY
 from mc_overlay import save_trans_cache_to_disk, _get_transition_matrix
@@ -186,6 +186,7 @@ _app_ctx.PRICE_MODELS["lp4_w"] = LPPL4ModelW(M.price_years, M.price_prices, M.QR
 _app_ctx.PRICE_MODELS["lp4_n13"] = LPPL4ModelN13(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["lp4_w_n13"] = LPPL4ModelWN13(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["linppl"] = LinPPLModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+_app_ctx.PRICE_MODELS["hybppl"] = HybPPLModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["exp"] = ExponentialModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["s2f"] = S2FModel(M.price_years, M.price_prices, M.genesis)
 # ── Empirical Floor (conditional — only if pkl exists) ────────────────

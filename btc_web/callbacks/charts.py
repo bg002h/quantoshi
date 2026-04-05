@@ -13,13 +13,6 @@ import _app_ctx
 # checkbox on the LPPL Models config panel and the "lppl" master entry
 # in bub-model-show, plus a collapse toggle on the config-panel body. ──
 
-# body collapse follows the activation checkbox
-_app_ctx.app.clientside_callback(
-    "function(v) { return (v && v.length) ? {} : {display:'none'}; }",
-    Output("bub-lppl-body", "style"),
-    Input("bub-lppl-activate", "value"),
-)
-
 # activate -> model-show: add/remove "lppl" master
 _app_ctx.app.clientside_callback(
     """

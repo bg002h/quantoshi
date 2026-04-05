@@ -375,6 +375,10 @@ img {{ max-width:100%; height:auto; display:block; border-radius:6px;
 .formula {{ background:#0e1624; padding:12px 18px; border-radius:8px;
             border-left:3px solid #FF9F40; margin:12px 0;
             font-size:13px; overflow-x:auto; }}
+.model-desc {{ background:#101a2e; padding:10px 16px; border-radius:6px;
+               border-left:3px solid #00d4ff; margin:8px 0 10px 0;
+               font-size:13px; color:#b8ccd8; line-height:1.55; }}
+.model-desc strong {{ color:#00d4ff; }}
 </style>
 </head>
 <body>
@@ -414,6 +418,7 @@ Regenerate manually — not auto-refreshed.
 SECTION_TEMPLATE = """<section id="{anchor}">
 <h2>{title}</h2>
 <div class="formula">{formula}</div>
+<p class="model-desc">{model_desc}</p>
 <p class="muted">{subtitle}</p>
 <img src="/regime_shift/{svg_name}" alt="{title}">
 </section>
@@ -429,6 +434,7 @@ def build_html(configs_info, timestamp):
             title=info["title"],
             subtitle=info["subtitle"],
             formula=info["formula"],
+            model_desc=info.get("model_desc", ""),
             svg_name=info["svg_name"],
         )
         sections.append(section)
@@ -436,6 +442,115 @@ def build_html(configs_info, timestamp):
         timestamp=timestamp,
         sections="\n".join(sections),
     )
+
+
+# ── Model descriptions (one per model family) ────────────────────────────
+# These describe WHAT the model is. Window-specific notes go in subtitle.
+
+PL_DESC = (
+    "<strong>Power Law (PL)</strong> \u2014 the simplest Bitcoin price model. "
+    "Pure log-log linear fit: price grows as a fixed power of time since "
+    "genesis. Two parameters (intercept A, slope B) and no oscillation. "
+    "Sliding-window fits reveal how the effective growth exponent evolves "
+    "as different eras of Bitcoin history enter and leave the fit window. "
+    "Here we fit by unbounded OLS (closed-form) so the true slope is never "
+    "clipped; a centered intercept A' = mean log-price in the window is "
+    "also plotted \u2014 A' is orthogonal to B, while raw A is a mechanical "
+    "mirror of B (see FAQ on A/B anti-correlation)."
+)
+PL_CLIPPED_DESC = (
+    "<strong>Power Law (clipped)</strong> \u2014 same PL model, but fit via "
+    "differential_evolution with a box constraint (A\u2208[-3,1], "
+    "B\u2208[3,7]). The bounds reflect the typical range of the long-run PL "
+    "over Bitcoin's full history, but in short windows during bubbles/crashes "
+    "the true slope can blow past them. Red dotted lines mark the rails \u2014 "
+    "watch how often the optimizer parks there. Kept alongside the unbounded "
+    "version as a visual demonstration of what constraint-clipping looks like."
+)
+LP1_DESC = (
+    "<strong>LPPL\u2081 (Log-Periodic Power Law, 1 frequency)</strong> \u2014 "
+    "Sornette's classic bubble model: power-law trend plus one "
+    "log-periodic oscillation whose peaks compress in log-time toward a "
+    "finite-time singularity. 6 parameters. The angular frequency "
+    "\u03c9 encodes the bubble's discrete scale invariance; historically "
+    "\u03c9\u22487 was the canonical value, but modern Bitcoin fits prefer "
+    "\u03c9\u224815\u201320 (cycle-stretching). D is the critical exponent."
+)
+LP2_DESC = (
+    "<strong>LPPL\u2082 (2 frequencies)</strong> \u2014 adds a second, "
+    "undamped cosine to LPPL\u2081 (9 parameters). The primary remains a "
+    "damped log-periodic; the secondary is a constant-amplitude modulation. "
+    "Typically captures a faster \u03c9\u2082\u224820 beat on top of the "
+    "\u03c9\u22489 primary. Whether \u03c9\u2082 is a genuine cycle or a "
+    "harmonic/artifact of the primary is model-dependent \u2014 watch its "
+    "stability across windows."
+)
+LP3_DESC = (
+    "<strong>LPPL\u2083 (3 frequencies)</strong> \u2014 three log-periodic "
+    "cosines (12 parameters). With carefully separated frequencies this is "
+    "the <em>honest</em> LPPL extension: enough degrees of freedom to "
+    "represent Bitcoin's observed fast (\u03c9\u22487\u201310), medium "
+    "(\u03c9\u224815\u201320), and slow (\u03c9\u224825\u201335) cycle "
+    "components, but not so many that you start fitting noise. R\u00b2 on "
+    "full history is comparable to LPPL\u2084 with one fewer frequency."
+)
+LP4_DESC = (
+    "<strong>LPPL\u2084 (4 frequencies) \u2014 likely overfit</strong>. "
+    "Four damped log-periodic cosines (15 parameters). The 4th frequency is "
+    "typically an <em>intermodulation artifact</em> of the first three "
+    "(e.g. \u03c9\u2084 \u2248 \u03c9\u2082 \u2212 \u03c9\u2081 or "
+    "\u03c9\u2081 + \u03c9\u2083). When you exclude \u03c9\u224813 "
+    "manually, the optimizer finds the next intermod product instead. "
+    "Included here for completeness \u2014 watch for erratic "
+    "window-to-window jumps in W\u2082/W\u2083/W\u2084 as the signature "
+    "of overfitting."
+)
+LINPPL_DESC = (
+    "<strong>LinPPL (Linear-Periodic Power Law)</strong> \u2014 our variant: "
+    "the oscillation lives in CALENDAR time (cos(\u03c9_cal\u00b7t)) "
+    "rather than log-time (cos(\u03c9\u00b7ln t)). 6 parameters. Period "
+    "T = 2\u03c0/\u03c9_cal stays constant in years, designed to match "
+    "Bitcoin's ~4-year halving cycle directly. Unlike LPPL\u2081, the cycle "
+    "does not compress toward a singularity \u2014 it's a steady calendar "
+    "metronome on top of the power-law baseline. Full-history R\u00b2 is "
+    "close to LPPL\u2081 but with very different interpretation."
+)
+HYBPPL_DESC = (
+    "<strong>HybPPL (Hybrid log+linear PPL)</strong> \u2014 our best-fitting "
+    "9-parameter model: combines a damped log-periodic primary "
+    "(cos(\u03c9_log\u00b7ln t)) with an undamped linear-periodic secondary "
+    "(cos(\u03c9_cal\u00b7t)). Two cleanly separated mechanisms in one "
+    "model: one log-time chirp converging toward a singularity and one "
+    "calendar metronome tracking halvings. Full-history R\u00b2\u22480.989 "
+    "\u2014 ties LPPL\u2083 (12 params) at 9 params, beats LPPL\u2082 "
+    "at the same param count. No intermod artifacts \u2014 the two "
+    "frequencies live on different time axes so they can't alias each "
+    "other."
+)
+BM_DESC = (
+    "<strong>BM (Bubble Model)</strong> \u2014 Quantoshi's production "
+    "model: a two-stage support line fit (OLS on all window data \u2192 "
+    "bottom-20% residual filter \u2192 quantile regression at Q50% on the "
+    "filtered set) combined with bubble-peak characterization at known "
+    "halving-cycle years (2011, 2013, 2017, 2021, 2025). Decouples the "
+    "secular power-law baseline from the transient bubble amplitudes \u2014 "
+    "rolling-window fits track how the baseline slope, residual \u03c3, "
+    "and per-cycle peak K amplitudes evolve together. Falling bubble "
+    "amplitudes + tightening \u03c3 are consistent with diminishing-returns "
+    "cycle dynamics."
+)
+
+MODEL_DESCRIPTIONS = {
+    "pl": PL_DESC,
+    "pl-clipped": PL_CLIPPED_DESC,
+    "lp1": LP1_DESC,
+    "lp2": LP2_DESC,
+    "lp3": LP3_DESC,
+    "lp4": LP4_DESC,
+    "linppl": LINPPL_DESC,
+    "hybppl": HYBPPL_DESC,
+    "bm": BM_DESC,
+}
 
 
 # Model formulae (Unicode) — embedded in each /E section
@@ -586,6 +701,7 @@ def main():
         configs_info.append({
             "anchor": anchor, "title": label, "subtitle": subtitle,
             "svg_name": svg_name, "formula": formula,
+            "model_desc": MODEL_DESCRIPTIONS.get(model_name, ""),
         })
 
     # Clipped PL sections: historical record showing the box-constrained
@@ -610,6 +726,7 @@ def main():
             "subtitle": f"{PL_CLIPPED_NOTE} {pct}.",
             "svg_name": f"regime_shift_pl_{width_svg}_clipped.svg",
             "formula": PL_FORMULA,
+            "model_desc": MODEL_DESCRIPTIONS["pl-clipped"],
         })
 
     # BM sections: generated by tools/regime_shift_bm.py (separate fit pipeline,
@@ -624,6 +741,7 @@ def main():
             "tools/regime_shift_bm.py \u2014 run separately to regenerate."
         ),
         "svg_name": "regime_shift_bm_7yr.svg", "formula": BM_FORMULA,
+        "model_desc": MODEL_DESCRIPTIONS["bm"],
     })
     configs_info.append({
         "anchor": "bm-9yr", "title": "BM (Bubble Model, 9yr windows)",
@@ -633,6 +751,7 @@ def main():
             "at the cost of slower regime-change response."
         ),
         "svg_name": "regime_shift_bm_9yr.svg", "formula": BM_FORMULA,
+        "model_desc": MODEL_DESCRIPTIONS["bm"],
     })
 
     # Build HTML

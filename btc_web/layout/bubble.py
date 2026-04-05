@@ -168,8 +168,9 @@ def _bubble_controls():
                     inputStyle=_CB_MARGIN,
                 ),
                 html.Small(
-                    "Components render on the support line. "
-                    "\u03a3 Sum = support + oscillators = full model.",
+                    "Each checkbox toggles a term on/off. "
+                    "log\u2081\u2080(price) = sum of checked terms. "
+                    "All checked = full model.",
                     style={"color": "#888", "fontSize": "10px",
                             "display": "block", "marginTop": "4px"},
                 ),

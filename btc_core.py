@@ -679,6 +679,9 @@ class LPPLModel:
     formula_log10_latex = (
         r"A + B \log_{10}(t) + C \cdot t^{-D} \cos(\omega \ln t + \varphi)"
     )
+    formula_product_latex = (
+        r"10^A \cdot t^B \cdot 10^{\,C \cdot t^{-D} \cos(\omega \ln t + \varphi)}"
+    )
 
     def components(self, t):
         """Additive terms in log10 space. sum(values) == _lppl_log10(t)."""
@@ -789,6 +792,11 @@ class LPPL2Model(LPPLModel):
         r"A + B \log_{10}(t) + C_1 t^{-D} \cos(\omega_1 \ln t + \varphi_1)"
         r" + C_2 \cos(\omega_2 \ln t + \varphi_2)"
     )
+    formula_product_latex = (
+        r"10^A \cdot t^B"
+        r" \cdot 10^{\,C_1 t^{-D} \cos(\omega_1 \ln t + \varphi_1)}"
+        r" \cdot 10^{\,C_2 \cos(\omega_2 \ln t + \varphi_2)}"
+    )
 
     def components(self, t):
         t = np.asarray(t, float)
@@ -853,6 +861,12 @@ class LPPL3Model(LPPL2Model):
         r"A + B \log_{10}(t) + C_1 t^{-D} \cos(\omega_1 \ln t + \varphi_1)"
         r" + C_2 \cos(\omega_2 \ln t + \varphi_2)"
         r" + C_3 \cos(\omega_3 \ln t + \varphi_3)"
+    )
+    formula_product_latex = (
+        r"10^A \cdot t^B"
+        r" \cdot 10^{\,C_1 t^{-D} \cos(\omega_1 \ln t + \varphi_1)}"
+        r" \cdot 10^{\,C_2 \cos(\omega_2 \ln t + \varphi_2)}"
+        r" \cdot 10^{\,C_3 \cos(\omega_3 \ln t + \varphi_3)}"
     )
 
     def components(self, t):
@@ -980,6 +994,13 @@ class LPPL4Model(LPPL3Model):
         r" + C_2 \cos(\omega_2 \ln t + \varphi_2)"
         r" + C_3 \cos(\omega_3 \ln t + \varphi_3)"
         r" + C_4 \cos(\omega_4 \ln t + \varphi_4)"
+    )
+    formula_product_latex = (
+        r"10^A \cdot t^B"
+        r" \cdot 10^{\,C_1 t^{-D} \cos(\omega_1 \ln t + \varphi_1)}"
+        r" \cdot 10^{\,C_2 \cos(\omega_2 \ln t + \varphi_2)}"
+        r" \cdot 10^{\,C_3 \cos(\omega_3 \ln t + \varphi_3)}"
+        r" \cdot 10^{\,C_4 \cos(\omega_4 \ln t + \varphi_4)}"
     )
 
     def components(self, t):
@@ -1119,6 +1140,11 @@ class HybPPLModel(LPPLModel):
         r"A + B \log_{10}(t) + C_1 t^{-D} \cos(\omega_{\text{log}} \ln t + \varphi_1)"
         r" + C_2 \cos(\omega_{\text{cal}} t + \varphi_2)"
     )
+    formula_product_latex = (
+        r"10^A \cdot t^B"
+        r" \cdot 10^{\,C_1 t^{-D} \cos(\omega_{\text{log}} \ln t + \varphi_1)}"
+        r" \cdot 10^{\,C_2 \cos(\omega_{\text{cal}} t + \varphi_2)}"
+    )
 
     def components(self, t):
         """Hybrid: log-periodic damped + linear-periodic undamped."""
@@ -1189,6 +1215,11 @@ class HybPPLExcessModel(LPPLModel):
         r"A_{\text{sup}} + B_{\text{sup}} \log_{10}(t) + a_0"
         r" + C_1 t^{-D} \cos(\omega_{\text{log}} \ln t + \varphi_1)"
         r" + C_2 \cos(\omega_{\text{cal}} t + \varphi_2)"
+    )
+    formula_product_latex = (
+        r"10^{A_{\text{sup}}} \cdot t^{B_{\text{sup}}} \cdot 10^{a_0}"
+        r" \cdot 10^{\,C_1 t^{-D} \cos(\omega_{\text{log}} \ln t + \varphi_1)}"
+        r" \cdot 10^{\,C_2 \cos(\omega_{\text{cal}} t + \varphi_2)}"
     )
 
     def components(self, t):

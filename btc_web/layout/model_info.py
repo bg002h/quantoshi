@@ -130,6 +130,8 @@ Future bubbles are extrapolated from the trend in historical bubble parameters (
                                 "at each point. Results are broadly stable across the grid, reinforcing "
                                 "that the model is not over-fitted to one specific parameter choice.",
                             ]),
+                            html.H6("Fitted Coefficients"),
+                            _coeff_table(_bm_rows()),
                         ], title="Bubble Model", item_id="mi-bub"),
 
                         # ── 1b. Quantile Regression ──
@@ -227,13 +229,13 @@ The first two terms are a standard power law. The third term adds **log-periodic
 
                             html.H6("Fitted Coefficients"),
                             _coeff_table([
-                                ("A (intercept)", "\u22121.154"),
+                                ("A (intercept, log\u2081\u2080 USD)", "\u22121.154"),
                                 ("B (slope)", "5.080"),
-                                ("C (oscillation amplitude)", "0.734"),
-                                ("\u03c9 (log-frequency)", "7.559"),
-                                ("\u03c6 (phase)", "1.376"),
+                                ("C (osc. amplitude, log\u2081\u2080)", "0.734"),
+                                ("\u03c9 (log-time freq, rad)", "7.559"),
+                                ("\u03c6 (phase, rad)", "1.376"),
                                 ("D (damping exponent)", "0.608"),
-                                ("\u03c3 (residual std)", "0.227"),
+                                ("\u03c3 (residual, log\u2081\u2080)", "0.227"),
                                 ("R\u00b2", "0.9780"),
                             ]),
 
@@ -289,16 +291,16 @@ even as bubble amplitude shrinks. $\omega_2$ is **not constrained** to be a harm
 
                             html.H6("Fitted Coefficients"),
                             _coeff_table([
-                                ("A (intercept)", "\u22121.131"),
+                                ("A (intercept, log\u2081\u2080 USD)", "\u22121.131"),
                                 ("B (slope)", "5.039"),
-                                ("C\u2081 (primary amplitude)", "0.706"),
-                                ("\u03c9\u2081 (primary frequency)", "7.378"),
-                                ("\u03c6\u2081 (primary phase)", "1.582"),
+                                ("C\u2081 (primary amp, log\u2081\u2080)", "0.706"),
+                                ("\u03c9\u2081 (log-time freq, rad)", "7.378"),
+                                ("\u03c6\u2081 (phase, rad)", "1.582"),
                                 ("D (damping, primary only)", "0.566"),
-                                ("C\u2082 (secondary amplitude)", "0.169"),
-                                ("\u03c9\u2082 (secondary frequency)", "20.902"),
-                                ("\u03c6\u2082 (secondary phase)", "\u22121.154"),
-                                ("\u03c3 (residual std)", "0.193"),
+                                ("C\u2082 (secondary amp, log\u2081\u2080)", "0.169"),
+                                ("\u03c9\u2082 (log-time freq, rad)", "20.902"),
+                                ("\u03c6\u2082 (phase, rad)", "\u22121.154"),
+                                ("\u03c3 (residual, log\u2081\u2080)", "0.193"),
                                 ("R\u00b2", "0.9840"),
                             ]),
 
@@ -555,15 +557,15 @@ $T = 2\pi/\omega_{\text{cal}}$ stays constant in calendar years.
 
                             html.H6("Fitted Coefficients (full history)"),
                             _coeff_table([
-                                ("A", "\u22121.213"),
-                                ("B", "5.111"),
-                                ("C", "0.282"),
-                                ("\u03c9_cal", "1.766 rad/yr"),
-                                ("T (= 2\u03c0/\u03c9)", "3.56 years"),
-                                ("\u03c6", "\u22122.283"),
-                                ("D", "0.010 (at lower bound)"),
+                                ("A (intercept, log\u2081\u2080 USD)", "\u22121.213"),
+                                ("B (slope)", "5.111"),
+                                ("C (amp, log\u2081\u2080)", "0.282"),
+                                ("\u03c9_cal (calendar freq)", "1.766 rad/yr"),
+                                ("T (= 2\u03c0/\u03c9)", "3.56 yr"),
+                                ("\u03c6 (phase, rad)", "\u22122.283"),
+                                ("D (damping)", "0.010 (at lower bound)"),
+                                ("\u03c3 (residual, log\u2081\u2080)", "0.222"),
                                 ("R\u00b2", "0.9789"),
-                                ("\u03c3", "0.222"),
                             ]),
 
                             html.H6("Key Findings"),
@@ -729,14 +731,13 @@ $$\log_{10}(\text{price}) = A_{\text{sup}} + B_{\text{sup}}\log_{10}(t)
                                 "support fit and the oscillation fit."
                             ),
 
-                            html.H6("Coefficients"),
+                            html.H6("Fitted Coefficients"),
                             html.P(
-                                "A_sup and B_sup are inherited dynamically from the BM support line "
-                                "(refit daily along with the rest of the BM model). The 8 oscillation "
-                                "parameters (a\u2080, C\u2081, \u03c9_log, \u03c6\u2081, D, C\u2082, "
-                                "\u03c9_cal, \u03c6\u2082) are refit daily via "
-                                "tools/fit_hybppl_excess.py."
+                                "A_sup and B_sup are inherited from the BM support line; the 8 "
+                                "oscillation parameters are refit daily via fit_hybppl_excess.py.",
+                                className="text-muted small",
                             ),
+                            _coeff_table(_hybppl_ex_rows()),
 
                             html.H6("Comparison to HybPPL"),
                             html.P(
@@ -1024,6 +1025,8 @@ $$T_{ij} = P(\text{bin}_{t+1} = j \mid \text{bin}_t = i)$$
                                 "moment in the future is fundamentally uncertain even when other "
                                 "parameters (amplitude, interval trend) are robust.",
                             ]),
+                            html.H6("Fitted Coefficients"),
+                            _coeff_table(_ef_rows()),
                         ], title="BM Empirical Floor", item_id="mi-ef"),
 
                         # ── User Model (U₁) ──
@@ -1205,6 +1208,66 @@ where $\alpha$ (intercept) and $\beta$ (slope) are derived from **two user-selec
             ),
         ], id="mi-lightbox", size="xl", centered=True, is_open=False),
     ], className="p-3")
+
+
+def _hybppl_ex_rows():
+    """Live coefficient table for HybPPL (excess) — pulls from model class."""
+    m = _app_ctx.M
+    mdl = _app_ctx.PRICE_MODELS.get("hybppl_ex")
+    if mdl is None:
+        return [("(model not loaded)", "\u2014")]
+    T_cal = 2 * 3.14159265358979 / mdl._W_cal
+    return [
+        ("A_sup (BM intercept, log\u2081\u2080 USD)",  f"{m.support_intercept:.4f}"),
+        ("B_sup (BM slope)",                           f"{m.support_slope:.4f}"),
+        ("a\u2080 (constant offset, log\u2081\u2080)", f"{mdl._a0:.4f}"),
+        ("C\u2081 (damped amplitude, log\u2081\u2080)", f"{mdl._C1:.4f}"),
+        ("\u03c9_log (log-time freq, rad)",            f"{mdl._W_log:.4f}"),
+        ("\u03c6\u2081 (phase, rad)",                   f"{mdl._PHI1:.4f}"),
+        ("D (damping exponent)",                        f"{mdl._D:.4f}"),
+        ("C\u2082 (undamped amplitude, log\u2081\u2080)", f"{mdl._C2:.4f}"),
+        ("\u03c9_cal (calendar freq, rad/yr)",          f"{mdl._W_cal:.4f}"),
+        ("T_cal (calendar period)",                    f"{T_cal:.2f} yr"),
+        ("\u03c6\u2082 (phase, rad)",                   f"{mdl._PHI2:.4f}"),
+    ]
+
+
+def _bm_rows():
+    """Live coefficient table for Bubble Model — support + band parameters."""
+    m = _app_ctx.M
+    if m is None:
+        return [("(model not loaded)", "\u2014")]
+    return [
+        ("A_sup (support intercept, log\u2081\u2080 USD)", f"{m.support_intercept:.4f}"),
+        ("B_sup (support slope)",                         f"{m.support_slope:.4f}"),
+        ("\u03c3\u2080 up (base vol, upper bands)",
+            f"{getattr(m, 'bm_sigma0_up', 0.085):.4f}"),
+        ("\u03b1 up (vol shrinkage, upper)",
+            f"{getattr(m, 'bm_alpha_up', 0.132):.4f}"),
+        ("\u03c3\u2080 down (base vol, lower bands)",
+            f"{getattr(m, 'bm_sigma0_down', 0.075):.4f}"),
+        ("\u03b1 down (vol shrinkage, lower)",
+            f"{getattr(m, 'bm_alpha_down', 0.218):.4f}"),
+        ("R\u00b2 (composite on full history)",          f"{float(m.bm_r2):.4f}"),
+        ("N future bubbles (max)",                       f"{int(m.n_future_max)}"),
+    ]
+
+
+def _ef_rows():
+    """Live coefficient table for Empirical Floor Model."""
+    ef = _app_ctx.PRICE_MODELS.get("ef")
+    if ef is None:
+        return [("(EF model not loaded \u2014 model_data_ef.pkl missing)", "\u2014")]
+    return [
+        ("Support intercept (log\u2081\u2080 USD)",  f"{ef._intercept:.4f}"),
+        ("Support slope",                             f"{ef._slope:.4f}"),
+        ("\u03c3\u2080 up (base vol, upper)",        f"{ef._sigma0_up:.4f}"),
+        ("\u03b1 up (vol shrinkage, upper)",         f"{ef._alpha_up:.4f}"),
+        ("\u03c3\u2080 down (base vol, lower)",      f"{ef._sigma0_down:.4f}"),
+        ("\u03b1 down (vol shrinkage, lower)",       f"{ef._alpha_down:.4f}"),
+        ("R\u00b2 (composite)",                       f"{float(ef._bm_r2):.4f}"),
+        ("N future bubbles (max)",                   f"{int(ef._n_future_max)}"),
+    ]
 
 
 def _coeff_table(rows):

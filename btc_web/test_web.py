@@ -4208,26 +4208,25 @@ class TestUpdateDecompOptions:
         assert warning == []
         assert style == {"display": "none"}
 
-    def test_bm_shows_2_components_plus_sum(self):
+    def test_bm_shows_2_components(self):
         from callbacks.charts import update_decomp_options
         opts, warning, style = update_decomp_options("bub", [3], [], [])
         assert style == {"display": "block"}
         assert warning == []
         values = [o["value"] for o in opts]
-        assert values == ["support", "bubbles", "__sum__"]
+        assert values == ["support", "bubbles"]
 
-    def test_hybppl_ex_shows_5_components_plus_sum(self):
+    def test_hybppl_ex_shows_5_components(self):
         from callbacks.charts import update_decomp_options
         opts, warning, style = update_decomp_options("hybppl_ex", [3], [], [])
-        assert len(opts) == 6
-        assert opts[-1]["value"] == "__sum__"
+        assert len(opts) == 5
 
     def test_lppl_single_nfreq_shows_components(self):
         from callbacks.charts import update_decomp_options
         opts, warning, style = update_decomp_options("lppl", [3], [], [])
         assert style == {"display": "block"}
         assert warning == []
-        assert len(opts) == 6
+        assert len(opts) == 5  # LPPL3 = 5 components
 
     def test_lppl_zero_nfreq_shows_warning(self):
         from callbacks.charts import update_decomp_options
@@ -4246,7 +4245,7 @@ class TestUpdateDecompOptions:
     def test_lppl_weighted_modifier_resolves(self):
         from callbacks.charts import update_decomp_options
         opts, _, _ = update_decomp_options("lppl", [3], ["weighted"], [])
-        assert len(opts) == 6
+        assert len(opts) == 5
 
 
 class TestPruneDecompValue:
@@ -4300,54 +4299,35 @@ class TestDecompositionTraces:
                          if getattr(t, 'name', None) and " | " in t.name]
         assert decomp_traces == []
 
-    def test_decomp_adds_component_traces(self):
+    def test_single_trace_per_decomposition(self):
+        """Exactly ONE trace appears when components are selected."""
         import _app_ctx
         from figures.bubble import build_bubble_figure
         fig = build_bubble_figure(_app_ctx.M, self._base_p(
             decomp_model="bub", decomp_components=["support", "bubbles"]))
         trace_names = [t.name for t in fig.data if getattr(t, 'name', None)]
         bm_decomp = [n for n in trace_names if n.startswith("BM | ")]
-        assert len(bm_decomp) == 2
+        assert len(bm_decomp) == 1
 
-    def test_decomp_sum_trace_appears(self):
+    def test_all_components_selected_gives_full_model(self):
+        """All components selected → label says 'full model'."""
         import _app_ctx
         from figures.bubble import build_bubble_figure
         fig = build_bubble_figure(_app_ctx.M, self._base_p(
-            decomp_model="bub",
-            decomp_components=["support", "bubbles", "__sum__"]))
+            decomp_model="bub", decomp_components=["support", "bubbles"]))
         trace_names = [t.name for t in fig.data if getattr(t, 'name', None)]
-        sum_traces = [n for n in trace_names if " | \u03a3 (" in n]
-        assert len(sum_traces) == 1
+        full = [n for n in trace_names if "full model" in n]
+        assert len(full) == 1
 
-    def test_nonsupport_component_renders_on_support(self):
-        """Non-support components render as 10^(support + c) — visible on
-        the support line, not at log10=0 ($1)."""
-        import numpy as np
+    def test_partial_selection_shows_fraction(self):
+        """Subset selection label shows fraction (e.g., '1/2 components')."""
         import _app_ctx
         from figures.bubble import build_bubble_figure
         fig = build_bubble_figure(_app_ctx.M, self._base_p(
-            decomp_model="hybppl_ex",
-            decomp_components=["damped log osc (\u03c9_log)"]))
-        trace = [t for t in fig.data if getattr(t, 'name', None)
-                 and " | damped" in t.name][0]
-        assert np.max(trace.y) > 1000  # way above $1 — it's on support
-
-    def test_all_components_render_on_support(self):
-        """All checked components (including support) render as
-        10^(support + c) — strict reference mode for every checkbox."""
-        import numpy as np
-        import _app_ctx
-        from figures.bubble import build_bubble_figure
-        # BM: support is 1 of 2 components. Checking "support" alone
-        # should give 10^(support+support) = 10^(2*support) > raw support.
-        fig = build_bubble_figure(_app_ctx.M, self._base_p(
-            decomp_model="bub",
-            decomp_components=["support"]))
-        trace = [t for t in fig.data if getattr(t, 'name', None)
-                 and " | support" in t.name][0]
-        # Doubled support line — at t=20 (2029) support is ~$40k, so doubled
-        # support is $40k^2/scale. Just assert it's different from normal support.
-        assert np.max(trace.y) > 10000
+            decomp_model="bub", decomp_components=["support"]))
+        trace_names = [t.name for t in fig.data if getattr(t, 'name', None)]
+        partial = [n for n in trace_names if "1/2 components" in n]
+        assert len(partial) == 1
 
 
 class TestAutoYWithDecomposition:

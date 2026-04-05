@@ -305,7 +305,6 @@ def update_decomp_options(family, n_freqs, weighted, no_13):
     if model is None:
         return [], [], {"display": "none"}
     opts = [{"label": f" {name}", "value": name} for name in model.component_names]
-    opts.append({"label": " \u03a3 Sum of selected", "value": "__sum__"})
     return opts, [], {"display": "block"}
 
 
@@ -744,34 +743,15 @@ def auto_bubble_yrange(xrange, auto_y, yscale, model_show,
             t_decomp = np.linspace(max(t_lo, 0.1), t_hi, 100)
             comps = comp_model.components(t_decomp)
             canonical = [n for n in comp_model.component_names
-                         if n in decomp_components]
-            support_names = getattr(comp_model, "support_component_names", [])
-            support_log = None
-            if support_names:
-                support_log = comps[support_names[0]].copy()
-                for n in support_names[1:]:
-                    support_log = support_log + comps[n]
-            for name in canonical:
-                if support_log is not None:
-                    log_vals = support_log + comps[name]
-                else:
-                    log_vals = comps[name]
-                y_lo = min(y_lo, float(math.floor(float(np.min(log_vals)) * 2) / 2))
-                y_hi = max(y_hi, float(math.ceil(float(np.max(log_vals)) * 2) / 2))
-            if "__sum__" in decomp_components and canonical:
-                non_support = [n for n in canonical if n not in support_names]
-                if support_log is not None:
-                    sum_log = support_log.copy()
-                    for n in non_support:
-                        sum_log = sum_log + comps[n]
-                else:
-                    sum_log = comps[canonical[0]].copy()
-                    for n in canonical[1:]:
-                        sum_log = sum_log + comps[n]
+                         if n in decomp_components and n != "__sum__"]
+            if canonical:
+                sum_log = comps[canonical[0]].copy()
+                for n in canonical[1:]:
+                    sum_log = sum_log + comps[n]
                 y_lo = min(y_lo, float(math.floor(float(np.min(sum_log)) * 2) / 2))
                 y_hi = max(y_hi, float(math.ceil(float(np.max(sum_log)) * 2) / 2))
-            y_lo = max(-1.5, min(y_lo, 6.0))
-            y_hi = min(y_cap, max(y_hi, 1.0))
+                y_lo = max(-1.5, min(y_lo, 6.0))
+                y_hi = min(y_cap, max(y_hi, 1.0))
 
     return [round(y_lo, 1), round(y_hi, 1)]
 

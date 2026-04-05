@@ -457,20 +457,19 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
 
 def _add_decomposition_traces(traces, t_arr, m, p):
-    """Append component decomposition traces + optional Σ sum trace.
+    """Append ONE decomposition trace = 10^(sum of checked components).
 
-    Rendering rule:
-    - Non-support components → 10^(support + component)  (modulation ON support)
-    - Support components     → 10^(component)            (the piece itself)
-    - Σ Sum of selected      → 10^(Σ selected)           (= full model when
-                                                            all components
-                                                            checked)
+    Each checkbox is a 0/1 switch:
+      log₁₀(price) = c₁·[on?] + c₂·[on?] + c₃·[on?] + ...
+    All checked → full model. Subset → partial model. None checked → nothing.
     """
     import _app_ctx
     from callbacks.charts import _resolve_decomp_model_key
 
     family = p.get("decomp_model", "") or ""
     selected = list(p.get("decomp_components", []) or [])
+    # Ignore legacy __sum__ pseudo-entry from old snapshots
+    selected = [s for s in selected if s != "__sum__"]
     if not family or not selected:
         return
 
@@ -487,54 +486,27 @@ def _add_decomposition_traces(traces, t_arr, m, p):
         return
 
     palette = p.get("palette", "default")
-    colors = _app_ctx.DECOMP_COLORS.get(
-        palette, _app_ctx.DECOMP_COLORS["default"])
     sum_color = _app_ctx.DECOMP_SUM_COLOR.get(
         palette, _app_ctx.DECOMP_SUM_COLOR["default"])
 
     comps = model.components(t_arr)
     canonical = [n for n in model.component_names if n in selected]
+    if not canonical:
+        return
 
-    support_names = getattr(model, "support_component_names", [])
-    support_log = None
-    if support_names:
-        support_log = comps[support_names[0]].copy()
-        for n in support_names[1:]:
-            support_log = support_log + comps[n]
+    # log₁₀(price) = sum of checked component values
+    log_vals = comps[canonical[0]].copy()
+    for n in canonical[1:]:
+        log_vals = log_vals + comps[n]
 
-    x_list = list(t_arr)
-    for i, name in enumerate(canonical):
-        if support_log is not None:
-            log_vals = support_log + comps[name]  # every component on support
-        else:
-            log_vals = comps[name]
-        y_usd = list(10.0 ** log_vals)
-        traces.append(go.Scatter(
-            x=x_list, y=y_usd, mode="lines",
-            line=dict(dash="dot", width=1.5,
-                       color=colors[i % len(colors)]),
-            name=f"{model.legend_name} | {name}",
-            hovertemplate="%{y:$,.0f}<extra></extra>",
-        ))
+    total = len(model.component_names)
+    n_checked = len(canonical)
+    label = (f"{model.legend_name} | full model" if n_checked == total
+             else f"{model.legend_name} | {n_checked}/{total} components")
 
-    if "__sum__" in selected and canonical:
-        # Σ Sum is baselined to support (same on-support rule as individual
-        # checkboxes). Add only selected NON-support components on top of
-        # support. If all components selected → full model. If only support
-        # pieces selected → just support baseline.
-        non_support = [n for n in canonical if n not in support_names]
-        if support_log is not None:
-            sum_log = support_log.copy()
-            for n in non_support:
-                sum_log = sum_log + comps[n]
-        else:
-            sum_log = comps[canonical[0]].copy()
-            for n in canonical[1:]:
-                sum_log = sum_log + comps[n]
-        y_sum = list(10.0 ** sum_log)
-        traces.append(go.Scatter(
-            x=x_list, y=y_sum, mode="lines",
-            line=dict(dash="solid", width=3, color=sum_color),
-            name=f"{model.legend_name} | \u03a3 ({len(canonical)} components)",
-            hovertemplate="%{y:$,.0f}<extra></extra>",
-        ))
+    traces.append(go.Scatter(
+        x=list(t_arr), y=list(10.0 ** log_vals), mode="lines",
+        line=dict(dash="solid", width=2.5, color=sum_color),
+        name=label,
+        hovertemplate="%{y:$,.0f}<extra></extra>",
+    ))

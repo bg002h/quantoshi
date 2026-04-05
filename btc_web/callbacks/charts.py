@@ -240,6 +240,35 @@ def _resolve_lppl_master(model_show, lppl_n_freqs, lppl_weighted, lppl_no_13):
     return model_show
 
 
+def _resolve_decomp_model_key(family, lppl_n_freqs, lppl_weighted, lppl_no_13):
+    """Translate (family, LPPL config) into a concrete model short_name.
+
+    Returns None if family is empty OR if family is 'lppl' but exactly one
+    n_freqs entry is not selected. Otherwise returns the model's short_name
+    (e.g., 'bub', 'lp3_w', 'hybppl_ex').
+    """
+    if not family:
+        return None
+    if family != "lppl":
+        return family
+    if not lppl_n_freqs or len(lppl_n_freqs) != 1:
+        return None
+    n = lppl_n_freqs[0]
+    weighted = "weighted" in (lppl_weighted or [])
+    no13 = "no13" in (lppl_no_13 or [])
+    if n == 1:
+        return "lppl_w" if weighted else "lppl"
+    if n == 2:
+        return "lp2_w" if weighted else "lp2"
+    if n == 3:
+        return "lp3_w" if weighted else "lp3"
+    if n == 4:
+        if no13:
+            return "lp4_w_n13" if weighted else "lp4_n13"
+        return "lp4_w" if weighted else "lp4"
+    return None
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Callbacks — chart updates
 # ══════════════════════════════════════════════════════════════════════════════

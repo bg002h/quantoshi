@@ -4148,6 +4148,46 @@ class TestDecompRegistry:
         assert set(_app_ctx.DECOMP_SUM_COLOR.keys()) == {"default", "cb-brian", "cb-rg", "cb-full"}
 
 
+class TestResolveDecompModelKey:
+    def test_non_lppl_families_pass_through(self):
+        from callbacks.charts import _resolve_decomp_model_key
+        assert _resolve_decomp_model_key("bub", [3], [], []) == "bub"
+        assert _resolve_decomp_model_key("hybppl_ex", [3], [], []) == "hybppl_ex"
+        assert _resolve_decomp_model_key("linppl", [], [], []) == "linppl"
+        assert _resolve_decomp_model_key("hybppl", [1, 2], [], []) == "hybppl"
+        assert _resolve_decomp_model_key("ef", [3], [], []) == "ef"
+
+    def test_empty_family_returns_none(self):
+        from callbacks.charts import _resolve_decomp_model_key
+        assert _resolve_decomp_model_key("", [3], [], []) is None
+        assert _resolve_decomp_model_key(None, [3], [], []) is None
+
+    def test_lppl_single_nfreq_resolves(self):
+        from callbacks.charts import _resolve_decomp_model_key
+        assert _resolve_decomp_model_key("lppl", [1], [], []) == "lppl"
+        assert _resolve_decomp_model_key("lppl", [2], [], []) == "lp2"
+        assert _resolve_decomp_model_key("lppl", [3], [], []) == "lp3"
+        assert _resolve_decomp_model_key("lppl", [4], [], []) == "lp4"
+
+    def test_lppl_weighted_modifier(self):
+        from callbacks.charts import _resolve_decomp_model_key
+        assert _resolve_decomp_model_key("lppl", [1], ["weighted"], []) == "lppl_w"
+        assert _resolve_decomp_model_key("lppl", [3], ["weighted"], []) == "lp3_w"
+        assert _resolve_decomp_model_key("lppl", [4], ["weighted"], []) == "lp4_w"
+
+    def test_lppl_no13_modifier(self):
+        from callbacks.charts import _resolve_decomp_model_key
+        assert _resolve_decomp_model_key("lppl", [4], [], ["no13"]) == "lp4_n13"
+        assert _resolve_decomp_model_key("lppl", [4], ["weighted"], ["no13"]) == "lp4_w_n13"
+
+    def test_lppl_zero_or_multi_returns_none(self):
+        from callbacks.charts import _resolve_decomp_model_key
+        assert _resolve_decomp_model_key("lppl", [], [], []) is None
+        assert _resolve_decomp_model_key("lppl", [1, 2], [], []) is None
+        assert _resolve_decomp_model_key("lppl", [1, 2, 3, 4], [], []) is None
+        assert _resolve_decomp_model_key("lppl", None, [], []) is None
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Section: MC model interface verification
 # ═══════════════════════════════════════════════════════════════════════════════

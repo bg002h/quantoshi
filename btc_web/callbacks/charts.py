@@ -299,38 +299,8 @@ def _r2_of_log_pred(log_pred, log_actual):
 
 
 def _component_label(model, name):
-    """Build checkbox label: formula + fitted values + individual R²."""
-    details = getattr(model, "component_details", {}).get(name)
-    if not details:
-        return f" {name}"
-    formula_str, params = details
-    # Fitted values
-    val_strs = []
-    for pname, attr in params:
-        v = getattr(model, attr, None)
-        if v is None:
-            continue
-        val_strs.append(f"{pname}={v:.4g}")
-    # R² of this single component vs price data
-    r2_str = ""
-    try:
-        M = _app_ctx.M
-        t = np.asarray(M.price_years, float)
-        mask = t >= 1.0
-        t = t[mask]
-        log_actual = np.log10(np.asarray(M.price_prices, float)[mask])
-        comps = model.components(t)
-        if name in comps:
-            r2 = _r2_of_log_pred(comps[name], log_actual)
-            r2_str = f"R\u00b2={r2:.3f}"
-    except Exception:
-        pass
-    bits = [formula_str]
-    if val_strs:
-        bits.append("; ".join(val_strs))
-    if r2_str:
-        bits.append(r2_str)
-    return " " + " | ".join(bits)
+    """Return the component name as the checkbox label (clean)."""
+    return f" {name}"
 
 
 def update_decomp_options(family, n_freqs, weighted, no_13):
@@ -370,16 +340,19 @@ def _update_decomp_options_cb(family, n_freqs, weighted, no_13):
 
 @callback(
     Output("bub-decomp-active-formula", "children"),
-    Input("bub-decomp-model",       "value"),
-    Input("bub-decomp-components",  "value"),
+    Input("bub-decomp-model",          "value"),
+    Input("bub-decomp-components",     "value"),
+    Input("bub-decomp-show-formulas",  "value"),
     Input("lppl-n-freqs",      "value"),
     Input("lppl-weighted",     "value"),
     Input("lppl-no-13",        "value"),
     prevent_initial_call=False,
 )
-def _update_active_formula_cb(family, selected, n_freqs, weighted, no_13):
-    """Display the formula for the currently-checked subset of components."""
+def _update_active_formula_cb(family, selected, show_toggles, n_freqs, weighted, no_13):
+    """Display the formula for the currently-checked subset — gated on toggle."""
     from dash import html
+    if "selected" not in (show_toggles or []):
+        return []
     key = _resolve_decomp_model_key(family, n_freqs, weighted, no_13)
     if key is None:
         return []
@@ -391,9 +364,11 @@ def _update_active_formula_cb(family, selected, n_freqs, weighted, no_13):
         return []
     selected = list(selected or [])
     canonical = [n for n in model.component_names if n in selected]
+    header = html.Div(html.Strong("Selected:"),
+                      style={"marginBottom": "3px", "color": "#333"})
     if not canonical:
-        return html.Small("(no components selected)",
-                          style={"color": "#888"})
+        return [header, html.Small("(no components selected)",
+                                    style={"color": "#888"})]
     log_parts = []
     product_parts = []
     for name in canonical:
@@ -404,10 +379,11 @@ def _update_active_formula_cb(family, selected, n_freqs, weighted, no_13):
         log_parts.append(formula_str)
         product_parts.append(f"10^({formula_str})")
     if not log_parts:
-        return []
+        return [header]
     log_str = " + ".join(log_parts)
     product_str = " \u00b7 ".join(product_parts)
     return [
+        header,
         html.Div([html.Strong("log\u2081\u2080(price) = "), log_str],
                  style={"marginBottom": "3px"}),
         html.Div([html.Strong("price = "), product_str]),
@@ -416,15 +392,18 @@ def _update_active_formula_cb(family, selected, n_freqs, weighted, no_13):
 
 @callback(
     Output("bub-decomp-formula", "children"),
-    Input("bub-decomp-model",  "value"),
+    Input("bub-decomp-model",          "value"),
+    Input("bub-decomp-show-formulas",  "value"),
     Input("lppl-n-freqs",      "value"),
     Input("lppl-weighted",     "value"),
     Input("lppl-no-13",        "value"),
     prevent_initial_call=False,
 )
-def _update_decomp_formula_cb(family, n_freqs, weighted, no_13):
-    """Show the selected model's formula (log10 and price space)."""
-    from dash import dcc
+def _update_decomp_formula_cb(family, show_toggles, n_freqs, weighted, no_13):
+    """Show the model's full formula — gated on toggle."""
+    from dash import dcc, html
+    if "full" not in (show_toggles or []):
+        return []
     key = _resolve_decomp_model_key(family, n_freqs, weighted, no_13)
     if key is None:
         return []
@@ -437,15 +416,20 @@ def _update_decomp_formula_cb(family, n_freqs, weighted, no_13):
         return []
     price_line = (rf"$$\text{{price}} = {product}$$" if product
                   else rf"$$\text{{price}} = 10^{{\,\log_{{10}}(\text{{price}})}}$$")
-    return dcc.Markdown(
-        rf"""
+    return [
+        html.Div(html.Strong("Full model:"),
+                 style={"marginBottom": "3px", "color": "#333",
+                        "fontSize": "11px"}),
+        dcc.Markdown(
+            rf"""
 $$\log_{{10}}(\text{{price}}) = {latex}$$
 
 {price_line}
 """,
-        mathjax=True, className="small",
-        style={"fontSize": "10px"},
-    )
+            mathjax=True, className="small",
+            style={"fontSize": "10px"},
+        ),
+    ]
 
 
 def _prune_decomp_value(family, options, current):

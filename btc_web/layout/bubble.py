@@ -157,6 +157,16 @@ def _bubble_controls():
                          for key, label in _app_ctx.DECOMP_FAMILIES.items()],
                 value="", clearable=False,
             ),
+            dcc.Checklist(
+                id="bub-decomp-show-formulas",
+                options=[
+                    {"label": " Show full model formula", "value": "full"},
+                    {"label": " Show selected formula", "value": "selected"},
+                ],
+                value=[], inputStyle=_CB_MARGIN,
+                labelStyle={"display": "block", "fontSize": "10px", "color": "#555"},
+                style={"marginTop": "4px", "marginBottom": "4px"},
+            ),
             html.Div(id="bub-decomp-formula",
                      style={"fontSize": "11px", "marginTop": "6px",
                             "marginBottom": "6px", "overflowX": "auto"}),

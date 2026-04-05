@@ -203,6 +203,16 @@ mostly non-periodic.
 <img src="/poly_fourier/fit_fourier4.svg" alt="Fourier 4 harmonics">
 </section>
 <hr>
+<section>
+<h2>Fourier series (5 harmonics, 11 params, T = full history)</h2>
+<p class="desc">
+<strong>Fourier fit, one more harmonic</strong> \u2014 same as above,
+but with k=1..5 (11 params). Gives a little more flexibility to
+capture the monotonic trend as low-order harmonics.
+</p>
+<img src="/poly_fourier/fit_fourier5.svg" alt="Fourier 5 harmonics">
+</section>
+<hr>
 <h1 style="margin-top:32px">De-trended variants: fits on log-excess (price \u2212 BM floor)</h1>
 <p class="muted">
 After subtracting the BM support line (A_sup=-1.559, B_sup=5.125) from
@@ -233,16 +243,30 @@ excess-above-floor.
 </p>
 <img src="/poly_fourier/fit_fourier4_excess.svg" alt="Fourier on excess">
 </section>
+<hr>
+<section>
+<h2>Fourier on excess (5 harmonics, 11 params)</h2>
+<p class="desc">
+<strong>Fourier on excess, one more harmonic</strong> \u2014 k=1..5
+(11 params). The 5th harmonic captures ~15% more variance of the
+excess signal than 4 harmonics do (R\u00b2 jumps from 0.40 to 0.55),
+suggesting a shorter-period cycle that 4 harmonics couldn't represent.
+Compare amplitudes to see which harmonic contributes most.
+</p>
+<img src="/poly_fourier/fit_fourier5_excess.svg" alt="Fourier 5 harmonics on excess">
+</section>
 <a href="/" class="back-link">\u2190 Back to Quantoshi</a>
 </body></html>"""
         return html, 200, {"Content-Type": "text/html"}
 
     @server.route("/poly_fourier/<path:filename>")
     def _poly_fourier_asset(filename):
-        allowed = {"fit_poly8.svg", "fit_fourier4.svg",
-                   "fit_poly8.csv", "fit_fourier4.csv",
+        allowed = {"fit_poly8.svg", "fit_fourier4.svg", "fit_fourier5.svg",
+                   "fit_poly8.csv", "fit_fourier4.csv", "fit_fourier5.csv",
                    "fit_poly8_excess.svg", "fit_fourier4_excess.svg",
-                   "fit_poly8_excess.csv", "fit_fourier4_excess.csv"}
+                   "fit_fourier5_excess.svg",
+                   "fit_poly8_excess.csv", "fit_fourier4_excess.csv",
+                   "fit_fourier5_excess.csv"}
         if filename not in allowed:
             return "Not found", 404
         ctype = "image/svg+xml" if filename.endswith(".svg") else "text/csv"

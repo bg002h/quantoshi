@@ -34,6 +34,7 @@ from model_toolkit.support import fit_support
 GENESIS = pd.Timestamp("2009-07-25")
 POLY_DEGREE = 8             # 9 coefficients (a0..a8)
 FOURIER_HARMONICS = 4       # 1 + 2*4 = 9 params (a0, A1..4, B1..4)
+FOURIER_HARMONICS_XL = 5    # 1 + 2*5 = 11 params — one more harmonic
 
 
 def fit_polynomial(t, lp, degree=POLY_DEGREE):
@@ -198,37 +199,36 @@ def main():
     }).to_csv("fit_poly8.csv", index=False, float_format="%.6f")
     print("  Saved fit_poly8.svg + fit_poly8.csv")
 
-    # ── Fourier ──────────────────────────────────────────────────────────
-    print(f"\nFitting {FOURIER_HARMONICS}-harmonic Fourier "
-          f"(1 + 2\u00d7{FOURIER_HARMONICS} = {1 + 2 * FOURIER_HARMONICS} params)...")
-    a0, As, Bs, ffit, fresid, T, t_min = fit_fourier(t, lp, FOURIER_HARMONICS)
-    f_r2 = 1.0 - float(np.sum(fresid ** 2)) / ss_tot
-    f_sigma = float(np.std(fresid))
-    # Build amplitude/phase representation for the text box (more readable)
-    fourier_lines = [f"a0 = {a0:+.4f}   T = {T:.2f} yr"]
-    for k in range(FOURIER_HARMONICS):
-        A, B = As[k], Bs[k]
-        amp = float(np.hypot(A, B))
-        phi = float(np.arctan2(B, A))  # sin-phase form
-        period_yr = T / (k + 1)
-        fourier_lines.append(
-            f"k={k+1}  A={A:+.4f}  B={B:+.4f}  "
-            f"|amp|={amp:.4f}  T/k={period_yr:.2f}yr")
-    fourier_text = "\n".join(fourier_lines)
-    print(f"  R\u00b2 = {f_r2:.5f}   \u03c3 = {f_sigma:.5f}")
-    print(f"  Fundamental period T = {T:.2f} years")
-    plot_model(
-        f"Fourier ({FOURIER_HARMONICS} harmonics, "
-        f"{1 + 2 * FOURIER_HARMONICS} params, T={T:.2f}yr)",
-        dates, lp, ffit, fresid,
-        "fit_fourier4.svg",
-        fourier_text, f_r2, f_sigma,
-    )
-    pd.DataFrame({
-        "date": dates, "years": t, "log_price": lp, "fit": ffit,
-        "residual": fresid,
-    }).to_csv("fit_fourier4.csv", index=False, float_format="%.6f")
-    print("  Saved fit_fourier4.svg + fit_fourier4.csv")
+    # ── Fourier (multiple harmonic counts) ───────────────────────────────
+    for n_harm in (FOURIER_HARMONICS, FOURIER_HARMONICS_XL):
+        print(f"\nFitting {n_harm}-harmonic Fourier "
+              f"(1 + 2\u00d7{n_harm} = {1 + 2 * n_harm} params)...")
+        a0, As, Bs, ffit, fresid, T, _ = fit_fourier(t, lp, n_harm)
+        f_r2 = 1.0 - float(np.sum(fresid ** 2)) / ss_tot
+        f_sigma = float(np.std(fresid))
+        fourier_lines = [f"a0 = {a0:+.4f}   T = {T:.2f} yr"]
+        for k in range(n_harm):
+            A, B = As[k], Bs[k]
+            amp = float(np.hypot(A, B))
+            period_yr = T / (k + 1)
+            fourier_lines.append(
+                f"k={k+1}  A={A:+.4f}  B={B:+.4f}  "
+                f"|amp|={amp:.4f}  T/k={period_yr:.2f}yr")
+        fourier_text = "\n".join(fourier_lines)
+        print(f"  R\u00b2 = {f_r2:.5f}   \u03c3 = {f_sigma:.5f}")
+        plot_model(
+            f"Fourier ({n_harm} harmonics, "
+            f"{1 + 2 * n_harm} params, T={T:.2f}yr)",
+            dates, lp, ffit, fresid,
+            f"fit_fourier{n_harm}.svg",
+            fourier_text, f_r2, f_sigma,
+        )
+        pd.DataFrame({
+            "date": dates, "years": t, "log_price": lp, "fit": ffit,
+            "residual": fresid,
+        }).to_csv(f"fit_fourier{n_harm}.csv", index=False,
+                   float_format="%.6f")
+        print(f"  Saved fit_fourier{n_harm}.svg + fit_fourier{n_harm}.csv")
 
     # ── Polynomial on excess (log-price minus BM support) ───────────────
     print(f"\nFitting degree-{POLY_DEGREE} polynomial to EXCESS "
@@ -253,35 +253,38 @@ def main():
     }).to_csv("fit_poly8_excess.csv", index=False, float_format="%.6f")
     print("  Saved fit_poly8_excess.svg + fit_poly8_excess.csv")
 
-    # ── Fourier on excess ─────────────────────────────────────────────────
-    print(f"\nFitting {FOURIER_HARMONICS}-harmonic Fourier to EXCESS...")
-    fe_a0, fe_As, fe_Bs, fe_fit, fe_resid, fe_T, _ = fit_fourier(
-        t, excess, FOURIER_HARMONICS)
-    fe_r2 = 1.0 - float(np.sum(fe_resid ** 2)) / ss_tot_exc
-    fe_sigma = float(np.std(fe_resid))
-    fe_lines = [f"A_sup={sup.intercept:+.4f}  B_sup={sup.slope:+.4f}",
-                f"a0 = {fe_a0:+.4f}   T = {fe_T:.2f} yr"]
-    for k in range(FOURIER_HARMONICS):
-        A, B = fe_As[k], fe_Bs[k]
-        amp = float(np.hypot(A, B))
-        period_yr = fe_T / (k + 1)
-        fe_lines.append(
-            f"k={k+1}  A={A:+.4f}  B={B:+.4f}  "
-            f"|amp|={amp:.4f}  T/k={period_yr:.2f}yr")
-    fe_text = "\n".join(fe_lines)
-    print(f"  R\u00b2(on excess) = {fe_r2:.5f}   \u03c3 = {fe_sigma:.5f}")
-    plot_model(
-        f"Fourier on excess ({FOURIER_HARMONICS} harmonics, "
-        f"{1 + 2 * FOURIER_HARMONICS} params, T={fe_T:.2f}yr)",
-        dates, excess, fe_fit, fe_resid,
-        "fit_fourier4_excess.svg",
-        fe_text, fe_r2, fe_sigma,
-    )
-    pd.DataFrame({
-        "date": dates, "years": t, "excess": excess,
-        "fit": fe_fit, "residual": fe_resid,
-    }).to_csv("fit_fourier4_excess.csv", index=False, float_format="%.6f")
-    print("  Saved fit_fourier4_excess.svg + fit_fourier4_excess.csv")
+    # ── Fourier on excess (multiple harmonic counts) ────────────────────
+    for n_harm in (FOURIER_HARMONICS, FOURIER_HARMONICS_XL):
+        print(f"\nFitting {n_harm}-harmonic Fourier to EXCESS...")
+        fe_a0, fe_As, fe_Bs, fe_fit, fe_resid, fe_T, _ = fit_fourier(
+            t, excess, n_harm)
+        fe_r2 = 1.0 - float(np.sum(fe_resid ** 2)) / ss_tot_exc
+        fe_sigma = float(np.std(fe_resid))
+        fe_lines = [f"A_sup={sup.intercept:+.4f}  B_sup={sup.slope:+.4f}",
+                    f"a0 = {fe_a0:+.4f}   T = {fe_T:.2f} yr"]
+        for k in range(n_harm):
+            A, B = fe_As[k], fe_Bs[k]
+            amp = float(np.hypot(A, B))
+            period_yr = fe_T / (k + 1)
+            fe_lines.append(
+                f"k={k+1}  A={A:+.4f}  B={B:+.4f}  "
+                f"|amp|={amp:.4f}  T/k={period_yr:.2f}yr")
+        fe_text = "\n".join(fe_lines)
+        print(f"  R\u00b2(on excess) = {fe_r2:.5f}   \u03c3 = {fe_sigma:.5f}")
+        plot_model(
+            f"Fourier on excess ({n_harm} harmonics, "
+            f"{1 + 2 * n_harm} params, T={fe_T:.2f}yr)",
+            dates, excess, fe_fit, fe_resid,
+            f"fit_fourier{n_harm}_excess.svg",
+            fe_text, fe_r2, fe_sigma,
+        )
+        pd.DataFrame({
+            "date": dates, "years": t, "excess": excess,
+            "fit": fe_fit, "residual": fe_resid,
+        }).to_csv(f"fit_fourier{n_harm}_excess.csv", index=False,
+                   float_format="%.6f")
+        print(f"  Saved fit_fourier{n_harm}_excess.svg + "
+              f"fit_fourier{n_harm}_excess.csv")
 
     print("\nDone.")
 

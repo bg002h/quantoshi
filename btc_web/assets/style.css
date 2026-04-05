@@ -1488,6 +1488,15 @@ body {
     z-index: 1050 !important;
 }
 
+/* Global: all dcc.Dropdown menus render above sibling cards. */
+.Select-menu-outer {
+    z-index: 1050 !important;
+}
+/* And ensure any card body doesn't clip dropdowns that open downward. */
+.ctrl-card .card-body {
+    overflow: visible !important;
+}
+
 /* Scanner row highlight: applied inline by scanner.js using per-model colors */
 
 /* ── User Model FAB (floating action button on bubble chart) ─────────────── */

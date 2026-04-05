@@ -144,6 +144,82 @@ pre code {{ background:none; padding:0; }}
         except FileNotFoundError:
             return "Not generated yet", 404
 
+    @server.route("/F")
+    def _poly_fourier():
+        html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Polynomial + Fourier fits \u2014 Quantoshi</title>
+<style>
+body { background:#1a1a2e; color:#cccccc; font-family:system-ui,sans-serif;
+       max-width:1300px; margin:0 auto; padding:24px 16px; line-height:1.5; }
+h1 { color:#00d4ff; font-size:22px; }
+h2 { color:#00d4ff; margin-top:24px; }
+a { color:#FF9F40; text-decoration:none; }
+a:hover { color:#FFD080; text-decoration:underline; }
+img { max-width:100%; height:auto; display:block; border-radius:6px;
+       margin-top:12px; }
+.muted { color:#888; font-size:12px; }
+.desc { background:#101a2e; padding:10px 16px; border-radius:6px;
+        border-left:3px solid #00d4ff; margin:8px 0 10px 0;
+        font-size:13px; color:#b8ccd8; line-height:1.55; }
+.desc strong { color:#00d4ff; }
+hr { border:none; border-top:1px solid #444; margin:32px 0; }
+.back-link { display:inline-block; margin-top:24px; color:#888; }
+</style>
+</head><body>
+<h1>Polynomial + Fourier fits (full-history baselines)</h1>
+<p class="muted">
+Static full-history fits to log\u2081\u2080(price) vs t (years since genesis),
+for t \u2265 1 year. Both are capped at ~9 free parameters for fair comparison
+against LPPL\u2081/LinPPL (6 params) and HybPPL (9 params).
+Regenerate via <code>tools/fit_poly_fourier.py</code>.
+</p>
+<section>
+<h2>Polynomial (degree 8, 9 coefficients)</h2>
+<p class="desc">
+<strong>Polynomial fit</strong> \u2014 a\u2080 + a\u2081\u00b7t + a\u2082\u00b7t\u00b2 + \u2026 + a\u2088\u00b7t\u2078.
+Closed-form OLS. No physical basis; just a flexible smooth curve.
+Use as a "what does a plain polynomial of the same complexity look like?"
+baseline. Notorious for wild extrapolation beyond the fitted range
+(Runge phenomenon at the tails).
+</p>
+<img src="/poly_fourier/fit_poly8.svg" alt="Polynomial degree 8">
+</section>
+<hr>
+<section>
+<h2>Fourier series (4 harmonics, 9 params, T = full history)</h2>
+<p class="desc">
+<strong>Fourier fit</strong> \u2014 a\u2080 + \u03a3\u2096 [A\u2096\u00b7cos(2\u03c0\u00b7k\u00b7u) + B\u2096\u00b7sin(2\u03c0\u00b7k\u00b7u)]
+for k=1..4, where u = (t\u2212t\u2080)/T and T is the full history
+duration. Pure harmonic decomposition over one period. Closed-form OLS.
+No trend term by design \u2014 any monotonic rise must be represented as
+the low-order harmonics, which are poorly suited to it. Included to
+show what "pure periodic decomposition" looks like when the data is
+mostly non-periodic.
+</p>
+<img src="/poly_fourier/fit_fourier4.svg" alt="Fourier 4 harmonics">
+</section>
+<a href="/" class="back-link">\u2190 Back to Quantoshi</a>
+</body></html>"""
+        return html, 200, {"Content-Type": "text/html"}
+
+    @server.route("/poly_fourier/<path:filename>")
+    def _poly_fourier_asset(filename):
+        allowed = {"fit_poly8.svg", "fit_fourier4.svg",
+                   "fit_poly8.csv", "fit_fourier4.csv"}
+        if filename not in allowed:
+            return "Not found", 404
+        ctype = "image/svg+xml" if filename.endswith(".svg") else "text/csv"
+        asset_path = os.path.join(os.path.dirname(__file__), "..", filename)
+        try:
+            with open(asset_path) as f:
+                return f.read(), 200, {"Content-Type": ctype}
+        except FileNotFoundError:
+            return "Not generated yet", 404
+
     @server.route("/E")
     def _regime_shift():
         # Prefer the new multi-model HTML page; fall back to legacy SVG

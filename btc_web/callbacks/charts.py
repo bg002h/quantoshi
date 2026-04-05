@@ -725,11 +725,19 @@ def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
     Input("bub-n-future", "value"),
     Input("bub-legend-pos", "value"),
     Input("palette-store", "data"),
+    Input("bub-decomp-model",       "value"),
+    Input("bub-decomp-components",  "value"),
+    Input("lppl-n-freqs",           "value"),
+    Input("lppl-weighted",          "value"),
+    Input("lppl-no-13",             "value"),
     State("user-model-store", "data"),
     prevent_initial_call=True,
 )
 def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
-                     bub_toggles, n_future, legend_pos, palette_key, user_model_store):
+                     bub_toggles, n_future, legend_pos, palette_key,
+                     decomp_model, decomp_components,
+                     lppl_n_freqs, lppl_weighted, lppl_no_13,
+                     user_model_store):
     from utils import _get_resid_fig
     toggles = toggles or []
     xrange = xrange or [2010, 2033]
@@ -746,6 +754,11 @@ def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
         chart_zoom="chart_zoom" in toggles,
         legend_pos=legend_pos or "outside",
         user_model=user_model_store,
+        decomp_model=decomp_model or "",
+        decomp_components=list(decomp_components or []),
+        lppl_n_freqs=list(lppl_n_freqs or []),
+        lppl_weighted=list(lppl_weighted or []),
+        lppl_no_13=list(lppl_no_13 or []),
     )
     fig = _get_resid_fig(p)
     if "chart_zoom" not in toggles:

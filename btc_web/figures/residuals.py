@@ -114,6 +114,39 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             opacity=1.0,
         ))
 
+    # ── Component Decomposition partial-model residual ───────────────────────
+    decomp_family = p.get("decomp_model", "") or ""
+    decomp_selected = list(p.get("decomp_components", []) or [])
+    if decomp_family and decomp_selected:
+        from callbacks.charts import _resolve_decomp_model_key
+        dkey = _resolve_decomp_model_key(
+            decomp_family,
+            p.get("lppl_n_freqs", []),
+            p.get("lppl_weighted", []),
+            p.get("lppl_no_13", []),
+        )
+        dmodel = _app_ctx.PRICE_MODELS.get(dkey) if dkey else None
+        if dmodel is not None:
+            canonical = [n for n in dmodel.component_names
+                         if n in decomp_selected]
+            if canonical:
+                dcomps = dmodel.components(t_data)
+                partial_log = dcomps[canonical[0]].copy()
+                for n in canonical[1:]:
+                    partial_log = partial_log + dcomps[n]
+                resid = log_p_data - partial_log
+                total = len(dmodel.component_names)
+                n_checked = len(canonical)
+                label = (f"{dmodel.legend_name} decomp ({n_checked}/{total})"
+                         if n_checked < total
+                         else f"{dmodel.legend_name} decomp (full)")
+                traces.append(go.Scatter(
+                    x=list(t_data), y=_round_trace_data(resid),
+                    mode="lines", name=label,
+                    line=dict(color="#000000", width=2, dash="solid"),
+                    opacity=1.0,
+                ))
+
     # ── Today line + zero line ────────────────────────────────────────────────
     shapes = []
     today_color = palette.get("today_line", _TODAY_LINE_COLOR)

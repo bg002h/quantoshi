@@ -52,14 +52,16 @@ class HybPPLExcessModel(LPPLModel):
     dash_style = "dashdot"
 
     # Fitted oscillation parameters (written by fit_hybppl_excess.py --update)
-    _a0   =  0.349900
-    _C1   =  0.642100
-    _W    =  7.480800   # log-time angular freq (named _W for LPPLModel compat)
-    _PHI  =  1.427200
-    _D    =  0.660700
-    _C2   =  0.231500
-    _W_cal= 1.748900    # calendar angular freq (rad/yr)
-    _PHI2 = -2.100200
+    # All attribute names are suffix-unique so the regex-based updater
+    # cannot substring-alias (e.g., _W matches _W_cal). 8 params total.
+    _a0    =  0.349900
+    _C1    =  0.642100
+    _W_log =  7.480800   # log-time angular freq
+    _PHI1  =  1.427200
+    _D     =  0.660700
+    _C2    =  0.231500
+    _W_cal =  1.748900   # calendar angular freq (rad/yr)
+    _PHI2  = -2.100200
 
     def __init__(self, price_years, price_prices, quantiles,
                  a_sup=None, b_sup=None):
@@ -75,22 +77,37 @@ class HybPPLExcessModel(LPPLModel):
         log_t = np.log10(t_safe)
         support = self._A_sup + self._B_sup * log_t
         damped = self._C1 * t_safe ** (-self._D) * np.cos(
-            self._W * np.log(t_safe) + self._PHI)
+            self._W_log * np.log(t_safe) + self._PHI1)
         undamped = self._C2 * np.cos(self._W_cal * t_safe + self._PHI2)
         return support + self._a0 + damped + undamped
 ```
 
 **Notes on the base-class interface:** `LPPLModel.__init__` calls `self._lppl_log10(t)` to compute the baseline curve, then derives `sigma` from residuals against `log_price`. Because we override `_lppl_log10`, that works transparently — the baseline curve IS `support + a0 + damped + undamped` and residuals are `log_price - baseline`.
 
-### Layer 2 — BM support wiring (`ModelData` / `app.py`)
+### Layer 2 — BM support wiring (MANDATORY plumbing — 4 files)
 
-`ModelData` already carries the BM support line shape (`support_bm`). We need to expose the **intercept + slope** as attributes.
+**Current state (verified via grep):** `ModelData` has `support_bm` (the grid curve) but NOT `support_intercept`/`support_slope`. `tools/model_toolkit/export.py:45-46` only exports `ef_support_slope`/`ef_support_intercept` (EF model). Adding BM support intercept/slope is a mandatory multi-file change, not just a risk.
 
-Check whether `ModelData` already has these. If not, add:
-- `ModelData.support_intercept` = A_sup
-- `ModelData.support_slope` = B_sup
+**Required changes:**
 
-These come from `model_data.pkl`'s `bm_support_slope` / `bm_support_intercept` keys (or equivalent — check `tools/model_toolkit/export.py`).
+1. **`tools/model_toolkit/composite.py`** — `BMComposite` dataclass must expose `support_intercept` and `support_slope` (the `support.intercept` and `support.slope` used to build `log_support_grid`). Add as dataclass fields if not already present; populate in `build_composite()`.
+
+2. **`tools/model_toolkit/export.py`** — export two new keys to `model_data.pkl`:
+   ```python
+   "bm_support_intercept": composite.support_intercept,
+   "bm_support_slope": composite.support_slope,
+   ```
+
+3. **`btc_core.py` `ModelData.__init__`** — read the new keys into attributes:
+   ```python
+   self.support_intercept = float(d["bm_support_intercept"])
+   self.support_slope = float(d["bm_support_slope"])
+   ```
+   For backward compat (in case an old pkl is loaded), use `d.get(...)` with fallback to compute from `fit_support` if missing.
+
+4. **Rebuild `model_data.pkl`** via `btc_venv/bin/python3 tools/build_bm_model.py` so the new keys exist in the deployed pkl.
+
+5. **Consistency check at HybPPLExcessModel startup:** compare the fitter's A_sup/B_sup (embedded in written-out constants) against `ModelData`'s values; log warning if mismatch > 1e-6. Captures drift between fitter run and app load.
 
 **In `app.py`** where models are instantiated:
 ```python
@@ -159,15 +176,16 @@ Adding `hybppl_ex` as a new Display Models value auto-appears in the model-show 
 - Encoding path: `_list_to_mask` only encodes values IN opts list, silently drops unknown.
 - Decoding path: `_mask_to_list` only decodes bits FOR opts list values.
 
-So old snapshots never had hybppl_ex encoded and won't after the change. Simple append to the bitmask list:
+So old snapshots never had hybppl_ex encoded and won't after the change. Append at END:
 
 ```python
-"bub-model-show": ["pl", "lppl", "exp", "s2f", "ef", "bub", "qr", "hybppl_ex"],
+# bub-model-show (current, verified snapshot.py):
+#   ["pl", "lppl", "exp", "s2f", "ef", "bub", "qr"]  → append "hybppl_ex"
+# dca/ret/sc/hm-model-show (different order, includes "mc"):
+#   ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"]  → append "hybppl_ex"
 ```
 
-(Adding it at the END preserves all existing bit positions.)
-
-Same for `dca-model-show`, `ret-model-show`, `sc-model-show`, `hm-model-show`.
+All 5 lists end with different terminal values but the same append-at-end rule preserves existing bit positions. Note the pre-existing ordering inconsistency between `bub-model-show` and the others (linppl/hybppl are missing from all bitmask arrays — pre-existing pattern, not fixed here).
 
 ## Testing
 
@@ -195,18 +213,23 @@ Same for `dca-model-show`, `ret-model-show`, `sc-model-show`, `hm-model-show`.
 **Created:**
 - `tools/fit_hybppl_excess.py` — dedicated fitter with `--update` flag.
 
-**Modified:**
-- `btc_core.py` — new `HybPPLExcessModel` class (after `HybPPLModel`).
+**Modified (11 files):**
+- `btc_core.py` — new `HybPPLExcessModel` class (after `HybPPLModel`); extend `ModelData.__init__` with `support_intercept`/`support_slope` attributes.
+- `tools/model_toolkit/composite.py` — expose `support_intercept`/`support_slope` on `BMComposite`.
+- `tools/model_toolkit/export.py` — export `bm_support_intercept`/`bm_support_slope` to pkl.
 - `app.py` — add PRICE_MODELS registration (after hybppl entry), pass `a_sup`/`b_sup` from ModelData.
-- `btc_core.py` (ModelData) — add `support_intercept`/`support_slope` attributes if not present.
-- `tools/model_toolkit/export.py` — ensure `bm_support_intercept`/`bm_support_slope` exported if not already (**verify**).
 - `update_prices.py` — append HybPPL_excess refit step.
-- `_app_ctx.py` — add `"hybppl_ex": "#9B8AFF"` to `MODEL_TRACE_COLORS` + palettes.
+- `btc_web/_app_ctx.py` — add `"hybppl_ex": "#9B8AFF"` to `MODEL_TRACE_COLORS` only (CB palette variants deferred to follow-up).
 - `btc_web/figures/common.py` — add `"hybppl_ex": "HybPPL (ex)"` to `_MODEL_LABELS`.
 - `btc_web/layout/model_info.py` — new accordion item `mi-hybppl-ex`.
 - `btc_web/snapshot.py` — append `"hybppl_ex"` to `_CHECKLIST_OPTIONS["*-model-show"]` lists (all 5).
 - `btc_web/test_web.py` — new unit tests.
-- `CLAUDE.md` — document the new model.
+- `model_data.pkl` — regenerate via `tools/build_bm_model.py`.
+
+**Deferred to follow-up:**
+- 3 colorblind palette variants for hybppl_ex.
+- CLAUDE.md documentation update.
+- Playwright E2E.
 
 **No deletions.**
 

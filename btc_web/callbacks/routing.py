@@ -112,8 +112,8 @@ _app_ctx.app.clientside_callback(
 
 _PATH_TO_TAB = {
     "/1": "bubble", "/2": "heatmap", "/3": "dca",
-    "/4": "retire",  "/5": "supercharge", "/6": "stack",
-    "/7": "model_info", "/8": "faq", "/9": "citadel",
+    "/4": "retire",  "/5": "supercharge", "/6": "citadel",
+    "/7": "stack", "/8": "model_info", "/9": "faq",
 }
 _TAB_TO_PATH = {v: k for k, v in _PATH_TO_TAB.items()}
 
@@ -421,11 +421,11 @@ _app_ctx.app.clientside_callback(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Model Info accordion deep-linking (/7.N)
+# Model Info accordion deep-linking (/8.N)
 # ══════════════════════════════════════════════════════════════════════════════
 
 # Must match the actual accordion ORDER in btc_web/layout/model_info.py.
-# Append new items to the end to keep existing /7.N links stable.
+# Append new items to the end to keep existing /8.N links stable.
 _MODEL_INFO_ITEMS = [
     "mi-bub",            # 1
     "mi-qr",             # 2
@@ -453,9 +453,9 @@ _MODEL_INFO_ITEMS = [
     prevent_initial_call=False,
 )
 def open_model_info_item(pathname):
-    """Open a specific Model Info accordion item when pathname is /7.N (1-indexed)."""
+    """Open a specific Model Info accordion item when pathname is /8.N (1-indexed)."""
     pathname = _norm(pathname)
-    if not pathname or not pathname.startswith("/7."):
+    if not pathname or not pathname.startswith("/8."):
         return no_update
     try:
         n = int(pathname[3:])
@@ -515,7 +515,7 @@ def open_model_info_lightbox(n_clicks_list):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# FAQ accordion deep-linking (/8.N)
+# FAQ accordion deep-linking (/9.N)
 # ══════════════════════════════════════════════════════════════════════════════
 
 @callback(
@@ -524,9 +524,9 @@ def open_model_info_lightbox(n_clicks_list):
     prevent_initial_call=False,
 )
 def open_faq_item(pathname):
-    """Open a specific FAQ accordion item when pathname is /8.N (1-indexed)."""
+    """Open a specific FAQ accordion item when pathname is /9.N (1-indexed)."""
     pathname = _norm(pathname)
-    if not pathname or not pathname.startswith("/8."):
+    if not pathname or not pathname.startswith("/9."):
         return no_update
     try:
         n = int(pathname[3:])

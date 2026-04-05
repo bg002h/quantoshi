@@ -567,10 +567,10 @@ def _build_layout(initial_tab="bubble"):
         dbc.Tab(_dca_tab(),          label="\U0001F4B0 BTC Accumulator",     tab_id="dca"),
         dbc.Tab(_retire_tab(),       label="\U0001F3D6\uFE0F BTC RetireMentator",  tab_id="retire"),
         dbc.Tab(_supercharge_tab(),  label="\u26A1 HODL Supercharger",   tab_id="supercharge"),
+        dbc.Tab(_citadel_tab(),      label="\U0001F3F0 Citadel Planner", tab_id="citadel"),
         dbc.Tab(_stack_tracker_tab(),label="\U0001F5DD\uFE0F Stack Tracker",       tab_id="stack"),
         dbc.Tab(_model_info_tab(),   label="\U0001F4D0 Model Info",      tab_id="model_info"),
         dbc.Tab(_faq_tab(),          label="\u2753 FAQ",                 tab_id="faq"),
-        dbc.Tab(_citadel_tab(),      label="\U0001F3F0 Citadel Planner", tab_id="citadel"),
     ], id="main-tabs", active_tab=initial_tab),
     _global_lppl_modal(),
     # ── Footer: block height + halving countdown + doc links ──────────────

@@ -21,7 +21,7 @@ Also remove Exp and S2F pills (display-only models, Bubble tab only per policy).
 
 ### Layer 1 — Pill bar refactor (`layout/heatmap.py`)
 
-Current `_hm_pill_bar()` iterates `_app_ctx.PRICE_MODELS` emitting a pill per model (skipping `bub` and `mc`, adding MC separately). Result: ~15 pills including all LPPL flavors + Exp + S2F.
+Current `_hm_pill_bar()` iterates `_app_ctx.PRICE_MODELS` emitting a pill per model (skipping `bub` and `mc`, adding MC separately). Result: ~17 pills including QR, all LPPL flavors, LinPPL, HybPPL, Exp, S2F, EF.
 
 New `_hm_pill_bar()`:
 - Pill 1: **BM** (Bubble Model) — unchanged.
@@ -33,7 +33,7 @@ New `_hm_pill_bar()`:
 - Pill 7: **U₁** (User Model) — added if `u1` is in `PRICE_MODELS`.
 - Pill 8: **MC** (conditional, if `_HAS_MARKOV`) — unchanged.
 
-**Removed from pill bar:** lp2, lp3, lp4, lppl_w, lp2_w, lp3_w, lp4_w, lp4_n13, lp4_w_n13, exp, s2f.
+**Removed from pill bar:** qr, lp2, lp3, lp4, lppl_w, lp2_w, lp3_w, lp4_w, lp4_n13, lp4_w_n13, exp, s2f. (QR removal is a design decision — see next layer.)
 
 Pill IDs follow the existing `hm-pill-{key}` pattern. Pill positions are renumbered; see Layer 2 for the `_HM_PILL_IDS` / `_HM_PILL_MODELS` update.
 
@@ -48,17 +48,35 @@ _HM_PILL_IDS = [f"hm-pill-{k}" for k in _HM_PILL_MODELS]
 
 `_hm_pill_click` and `_hm_pill_sync` adapt to the new list length automatically (they iterate `_HM_PILL_IDS`).
 
-Deep-link `/2.N` behavior changes:
-- `/2.1` → BM (unchanged)
-- `/2.2` → PL (unchanged)
-- `/2.3` → LPPL master (was S2F — changed)
-- `/2.4` → LinPPL (was LPPL — changed)
-- `/2.5` → HybPPL
-- `/2.6` → EF
-- `/2.7` → U₁
-- `/2.8` → MC
+Deep-link `/2.N` behavior changes.
 
-Old `/2.N` URLs resolve to different models. This is **accepted per user directive**.
+**Current order** (verified against `_app_ctx.PRICE_MODELS` insertion order in `app.py:173–195`):
+
+| /2.N | Current | New |
+|---|---|---|
+| /2.1 | bub | bub |
+| /2.2 | qr | pl |
+| /2.3 | pl | **lppl** (master) |
+| /2.4 | lppl | linppl |
+| /2.5 | lp2 | hybppl |
+| /2.6 | lp3 | ef |
+| /2.7 | lp4 | u1 |
+| /2.8 | lppl_w | mc |
+| /2.9 | lp2_w | — |
+| /2.10 | lp3_w | — |
+| /2.11 | lp4_w | — |
+| /2.12 | lp4_n13 | — |
+| /2.13 | lp4_w_n13 | — |
+| /2.14 | linppl | — |
+| /2.15 | hybppl | — |
+| /2.16 | exp | — |
+| /2.17 | s2f | — |
+| /2.18 | ef | — |
+| /2.19 | mc | — |
+
+Notably `qr` currently occupies index 2; it's **dropped from the new pill bar** because QR is a bands-only model (not a separate heatmap). Users who want QR heatmap should continue using BM. Alternative: keep `qr` in the pill bar. **Decision point for spec review.**
+
+Phase 2 explicitly renumbers these routes. Link-breakage accepted per user directive.
 
 ### Layer 3 — LPPL sub-config panel on Heatmap
 
@@ -129,12 +147,27 @@ If in future users want MC to respond to flavor selection, that's a Phase 3+ dis
 
 ### Layer 7 — Palette callback update
 
-`update_model_swatches` in `callbacks/charts.py` currently only rebuilds `bub-model-show` / `dca-model-show` / `ret-model-show` / `sc-model-show` options. Phase 2 adds:
+`update_model_swatches` in `callbacks/charts.py` currently only rebuilds `bub-model-show` / `dca-model-show` / `ret-model-show` / `sc-model-show` options. Phase 2 needs the heatmap pill-bar swatches to update on palette change.
 
-- Rebuild heatmap pill-bar styling on palette change (swatches in pill labels).
-- Mechanism: either a new small callback `Output("hm-pill-bar-container", "children")` that rebuilds the pill bar, or pass palette-derived swatch colors via CSS vars.
+**Constraint:** The pills have stable Dash IDs (`hm-pill-{key}`) that are Outputs/Inputs of `_hm_pill_click` and `_hm_pill_sync` callbacks. **Rebuilding the pill bar container (`Output("hm-pill-bar", "children")`) would invalidate those callback bindings** — in-flight pill clicks would fire into orphaned components and raise component-not-found errors.
 
-Simpler path: a dedicated `update_heatmap_pill_swatches` callback that re-renders the pill bar HTML. Added in Phase 2.
+**Chosen mechanism:** per-pill `Output("hm-pill-{key}", "children")` callback that emits new `html.Span` children with updated swatch colors. Pill button shell stays mounted; only the inner span children change. One callback with N Outputs (one per pill ID), same as `update_model_swatches`.
+
+Pseudocode:
+
+```python
+@callback(
+    [Output(f"hm-pill-{k}", "children") for k in _HM_PILL_MODELS],
+    Input("palette-store", "data"),
+    prevent_initial_call=True,
+)
+def update_heatmap_pill_swatches(palette_key):
+    pal = _app_ctx.PALETTES.get(palette_key, _app_ctx.PALETTES["default"])
+    mc = pal.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
+    return [_pill_label(k, mc) for k in _HM_PILL_MODELS]
+```
+
+Where `_pill_label(key, mc)` returns the `html.Span([swatch_span, label])` structure.
 
 ### Layer 8 — Snapshot (`snapshot.py`)
 
@@ -183,10 +216,10 @@ No snapshot-format changes. `hm-lppl-activate` was already appended to `_SNAPSHO
 ## File list
 
 **Modified:**
-- `btc_web/layout/heatmap.py` — rewrite `_hm_pill_bar()`, add `_lppl_config_panel("hm")` integration.
-- `btc_web/callbacks/routing.py` — update `_HM_PILL_MODELS`, `_HM_PILL_IDS`.
-- `btc_web/callbacks/charts.py` — update `update_heatmap` translation, update `_hm_pill_sync` to handle new pill set, new clientside sync callbacks, add heatmap pill swatch update callback.
-- `btc_web/test_web.py` — add heatmap-specific tests.
+- `btc_web/layout/heatmap.py` — rewrite `_hm_pill_bar()`, add `_lppl_config_panel("hm")` integration below pill bar.
+- `btc_web/callbacks/routing.py` — update `_HM_PILL_MODELS`, `_HM_PILL_IDS` (list shrinks), update the comment.
+- `btc_web/callbacks/charts.py` — update `update_heatmap` (3 new State inputs, translation logic for `hm_model == "lppl"`), update `_hm_pill_sync` to handle new pill set, new clientside sync callbacks, add per-pill `update_heatmap_pill_swatches` callback.
+- `btc_web/test_web.py` — **update** existing `TestUpdateHeatmapCallback` (add 3 new kwargs to `update_heatmap` calls); add heatmap-pill-specific new tests.
 
 **No new files.**
 
@@ -197,8 +230,10 @@ No snapshot-format changes. `hm-lppl-activate` was already appended to `_SNAPSHO
 | Old `/2.N` links land on wrong model | User explicitly accepted this. Documented in release notes. |
 | Clientside callback race condition (pill ↔ activate checkbox) | `no_update` guards tested in unit tests. |
 | MC path accidentally receives flavor key | Translation isolated to non-MC path; covered by unit test. |
-| Palette-change doesn't re-style pill bar | New `update_heatmap_pill_swatches` callback. |
+| Palette-change doesn't re-style pill bar | New per-pill `update_heatmap_pill_swatches` callback (pill shells stay mounted). |
 | User expects flavor choice to affect MC heatmap | Documented limitation; MC cache scope. Potential Phase 3 work. |
+| `lppl-n-freqs` is global + checklist (multi-select) but heatmap is single-select | Translation picks the first checked entry (`n = (lppl_n_freqs or [3])[0]`). If a user had 1+3 both checked from the Bubble tab, the heatmap silently uses LP1. **Mitigation:** document this in the help text of the LPPL Models panel, OR add a Heatmap-only visual hint "(heatmap uses: LPPL₃)" that mirrors the chosen flavor. Nice-to-have, not blocking. |
+| QR removal from pill bar | User-confirm before Phase 2 lands. If user wants QR kept, revert that one pill. |
 
 ## Success criteria
 

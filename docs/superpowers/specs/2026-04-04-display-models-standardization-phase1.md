@@ -39,6 +39,8 @@ When `standardized=True`:
 
 Identical to the existing `_build_bub_model_options` in `layout/bubble.py`, generalized for reuse.
 
+Note: existing `_build_model_opts` helper lives in `callbacks/charts.py:1000` (used for palette-update rebuilds); existing `_build_bub_model_options` lives in `layout/bubble.py:16` (used for initial Bubble-tab render). Both emit the same "standardized" option set today for `bubble_mode=True`. Phase 1 will consolidate by making `_model_show_checklist(prefix, standardized=True)` in `common.py` delegate to (or share code with) `_build_model_opts`. One source of truth.
+
 **`_lppl_config_panel(prefix)`** — new helper.
 
 Emits a `_section_card("LPPL Models", ...)` containing:
@@ -65,13 +67,25 @@ The config controls inside the body use **un-prefixed global IDs** (`lppl-n-freq
 Per tab in `{dca, ret, sc}` — mirror the existing `bub-lppl-*` pattern in `callbacks/charts.py`:
 
 1. **Body collapse:** `{prefix}-lppl-activate` value → `{prefix}-lppl-body` style.
-2. **Activate → model-show:** adds/removes "lppl" from `{prefix}-model-show` list (bi-directional; `allow_duplicate=True`).
-3. **model-show → activate:** mirrors "lppl" membership back to the checkbox.
+2. **Activate → model-show:** adds/removes "lppl" from `{prefix}-model-show` list. **MUST include `no_update` guard** when the target value already matches (prevents infinite loop with callback #3). `allow_duplicate=True`.
+3. **model-show → activate:** mirrors "lppl" membership back to the checkbox. Idempotent write — Dash will stop the loop when the value doesn't change, but guard anyway for safety.
 
 Plus one Bubble-specific new callback:
-4. **BM collapse:** "bub" in `bub-model-show` → `bub-bm-body` style.
+4. **BM collapse:** "bub" in `bub-model-show` → `bub-bm-body` style. No inverse direction (unchecking Bubble Model collapses the panel; panel doesn't toggle the checkbox).
 
-All clientside; no server round-trips.
+All clientside; no server round-trips. Loop-prevention pattern:
+
+```js
+// callback #2 — activate → model-show
+function(act, cur_models) {
+    var want = (act && act.length) > 0;
+    var models = (cur_models || []).slice();
+    var has = models.indexOf('lppl') !== -1;
+    if (want && !has) { models.push('lppl'); return models; }
+    if (!want && has) { return models.filter(function(v){return v !== 'lppl';}); }
+    return window.dash_clientside.no_update;  // no-op if already aligned
+}
+```
 
 ### Layer 4 — Chart callback translation
 
@@ -102,33 +116,55 @@ Currently emits `bubble_mode=True` options only for `bub-model-show`. Update: em
 
 Heatmap pill-bar rebuild on palette change is **not** part of Phase 1.
 
-### Layer 6 — Cache key alignment
+### Layer 6 — Cache key alignment (no changes required)
 
-Adding `lppl-n-freqs` / `lppl-weighted` / `lppl-no-13` as Inputs to DCA / Retire / SC chart callbacks means the figure-params dict picks up new keys. To keep prewarm L1 cache keys aligned with runtime (per CLAUDE.md cache-key-alignment gotcha):
+Verified: `lppl-n-freqs` / `lppl-weighted` / `lppl-no-13` are used for **translation at the callback layer** (producing a specific flavor key that goes into `active_models`). They do **not** enter the figure-params dict. The cache key is computed from the post-translation params dict (`active_models` contains the final flavor key, e.g. `"lp3_w"`), so different LPPL config selections produce different cache keys via the translated list — no new fields needed in `tab_defaults.py` or the `_quantize_params` exempt set.
 
-- `tab_defaults.py`: `DCA`, `RETIRE`, `SUPERCHARGE` defaults get new fields `lppl_n_freqs=(3,)`, `lppl_weighted=False`, `lppl_no_13=False`. These are inert (when "lppl" isn't in model_show, they're not consulted) but they must be in the params dict for cache-key consistency.
-- `_quantize_params` in `utils.py`: new keys added to the exempt list so they're preserved exactly (quantization would break the bitmask logic).
+(The same pattern already works correctly on the Bubble tab in its shipped form.)
 
 ### Layer 7 — `_MODEL_LABELS` audit
 
-`figures/common.py` has a `_MODEL_LABELS` dict used for legend text. Phase 1 ensures every LPPL flavor key (`lp2`, `lp3`, `lp4`, `lppl_w`, `lp2_w`, `lp3_w`, `lp4_w`, `lp4_n13`, `lp4_w_n13`) has a legend label. Missing entries would cause legend gaps when users activate LPPL on DCA/Retire/SC. (Bubble tab likely already has these labeled correctly — this is a verification step.)
+`figures/common.py:378` currently defines labels for `{bub, qr, pl, lppl, exp, s2f, ef, u1}`. Missing flavor keys fall through to `_MODEL_LABELS.get(m, m)` → the raw short_name (cosmetic degradation, no crash).
+
+Phase 1 adds labels for each LPPL flavor:
+
+```python
+"lp2":        "LPPL₂",
+"lp3":        "LPPL₃",
+"lp4":        "LPPL₄",
+"lppl_w":     "LPPL (w)",
+"lp2_w":      "LPPL₂ (w)",
+"lp3_w":      "LPPL₃ (w)",
+"lp4_w":      "LPPL₄ (w)",
+"lp4_n13":    "LPPL₄ (no ω≈13)",
+"lp4_w_n13":  "LPPL₄ (w, no ω≈13)",
+"linppl":     "LinPPL",   # verify — may already exist
+"hybppl":     "HybPPL",   # verify — may already exist
+```
 
 ### Layer 8 — Citadel S2F removal
 
-`layout/citadel.py` — delete `{"label": "S2F", "value": "s2f"}` from the `cp-model-src` dropdown options.
+Verified: grep finds zero `"s2f"` references in `btc_web/engines/citadel.py` or `callbacks/citadel_cb.py`. Citadel's `price_model` field (citadel_cb.py:~383) passes through to `_resolve_model` which handles arbitrary keys gracefully.
 
-`callbacks/citadel_cb.py` and `engines/citadel.py` — grep for hardcoded `"s2f"` branches and make them graceful (either no-op, or fall back to `"bub"` if an old snapshot link still contains `s2f`).
+Only changes needed:
+- `layout/citadel.py:245` — delete `{"label": "S2F", "value": "s2f"}` from `cp-model-src` options.
+- `tab_defaults.py` — if `CITADEL["price_model"]` is `"s2f"`, switch to `"bub"`.
 
-`tab_defaults.py` — if `CITADEL` defaults reference `"s2f"` anywhere, switch to `"bub"`.
+No engine or callback changes needed. Snapshot decoding of an old citadel snapshot with `cp-model-src="s2f"` will still route through `_resolve_model("s2f")` — the model exists in `PRICE_MODELS`, just isn't user-selectable. Safe.
 
 ### Layer 9 — Snapshot (`snapshot.py`)
 
-Append 4 new activate checkboxes to `_SNAPSHOT_CONTROLS`:
+**Already in place (from Bubble-tab work, don't duplicate):**
+- `("lppl-n-freqs", "value")`, `("lppl-weighted", "value")`, `("lppl-no-13", "value")` already in `_SNAPSHOT_CONTROLS` as global un-prefixed entries.
+- `"lppl-n-freqs": [1,2,3,4]`, `"lppl-weighted": ["weighted"]`, `"lppl-no-13": ["no13"]` already in `_CHECKLIST_OPTIONS`.
+- `("bub-lppl-activate", "value")` already added in commit 80ac01d.
+
+**Phase 1 additions** — append 4 new activate checkboxes (one reserved now for Phase 2):
 ```python
 ("dca-lppl-activate", "value"),
 ("ret-lppl-activate", "value"),
 ("sc-lppl-activate", "value"),
-("hm-lppl-activate", "value"),  # allocated now for Phase 2
+("hm-lppl-activate", "value"),  # reserved, wired in Phase 2
 ```
 
 Add to `_CHECKLIST_OPTIONS`:
@@ -139,7 +175,7 @@ Add to `_CHECKLIST_OPTIONS`:
 "hm-lppl-activate": ["yes"],
 ```
 
-Update `_TAB_CONTROLS` in `callbacks/routing.py` — bubble set already includes `lppl-n-freqs`/`weighted`/`no_13`. Add the same 3 IDs plus each tab's `*-lppl-activate` to dca / retire / supercharge sets.
+Update `_TAB_CONTROLS` in `callbacks/routing.py`: add the 3 existing global IDs (`lppl-n-freqs`, `lppl-weighted`, `lppl-no-13`) plus the new `{prefix}-lppl-activate` to the dca / retire / supercharge / heatmap sets.
 
 **`*-model-show` arrays in `_CHECKLIST_OPTIONS` are not modified.** Exp/S2F/individual-LPPL bits stay in the bitmask encoding even though they're no longer rendered in the UI. Old snapshot links continue to decode correctly.
 
@@ -188,20 +224,22 @@ Update `_TAB_CONTROLS` in `callbacks/routing.py` — bubble set already includes
 ## File list
 
 **Modified:**
-- `btc_web/layout/common.py` — extend `_model_show_checklist`, add `_lppl_config_panel`.
-- `btc_web/layout/bubble.py` — use `_lppl_config_panel` helper, wrap BM panel in `bub-bm-body` div.
-- `btc_web/layout/sim_tabs.py` (if applicable) — DCA/Retire/SC layout updates.
-- `btc_web/layout/supercharge.py` — layout updates.
-- `btc_web/layout/citadel.py` — remove S2F option.
-- `btc_web/callbacks/charts.py` — add `_resolve_lppl_master` helper, update 3 callbacks, update `update_model_swatches`, add 4 new clientside callbacks.
+- `btc_web/layout/common.py` — extend `_model_show_checklist`, add `_lppl_config_panel`, consolidate with `_build_model_opts`.
+- `btc_web/layout/bubble.py` — use `_lppl_config_panel` helper, wrap BM panel in `bub-bm-body` div. Refactor `_build_bub_model_options` to delegate to shared helper.
+- `btc_web/layout/sim_tabs.py` — DCA/Retire layout updates (uses `_model_show_checklist` at sim_tabs.py:38).
+- `btc_web/layout/supercharge.py` — SC layout updates (uses `_model_show_checklist` at supercharge.py:91).
+- `btc_web/layout/citadel.py` — remove S2F option from `cp-model-src` (line 245).
+- `btc_web/callbacks/charts.py` — add `_resolve_lppl_master` helper, update 3 callbacks (new Inputs + translation), update `update_model_swatches` to pass `standardized=True` for dca/ret/sc, add clientside callbacks (3 per tab × 3 tabs + 1 BM collapse).
 - `btc_web/callbacks/routing.py` — extend `_TAB_CONTROLS` sets.
-- `btc_web/callbacks/citadel_cb.py` — handle missing S2F gracefully.
-- `btc_web/engines/citadel.py` — remove S2F branches.
-- `btc_web/snapshot.py` — extend `_SNAPSHOT_CONTROLS` + `_CHECKLIST_OPTIONS`.
-- `btc_web/tab_defaults.py` — add lppl config fields to DCA/RETIRE/SUPERCHARGE defaults; switch CITADEL default from s2f if applicable.
-- `btc_web/utils.py` — update `_quantize_params` exempt list.
-- `btc_web/figures/common.py` — fill `_MODEL_LABELS` gaps for LPPL flavors.
-- `btc_web/test_web.py` — add unit tests.
+- `btc_web/snapshot.py` — append new `*-lppl-activate` entries to `_SNAPSHOT_CONTROLS` + `_CHECKLIST_OPTIONS`.
+- `btc_web/tab_defaults.py` — switch `CITADEL["price_model"]` from `"s2f"` to `"bub"` if currently `"s2f"`.
+- `btc_web/figures/common.py` — fill `_MODEL_LABELS` gaps for LPPL flavor keys.
+- `btc_web/test_web.py` — **update** existing `TestUpdateDcaCallback`, `TestUpdateRetireCallback`, `TestUpdateSuperchargeCallback` (add 3 new kwargs to each `update_*` call — signatures grew by 3 Inputs); **add** new unit tests for helpers + translation.
+
+**Not modified (contrary to earlier draft):**
+- `btc_web/engines/citadel.py` — zero s2f references.
+- `btc_web/callbacks/citadel_cb.py` — zero s2f references.
+- `btc_web/utils.py` — `_quantize_params` exempt list fine as-is (lppl config doesn't enter params dict).
 
 **No new files created.**
 

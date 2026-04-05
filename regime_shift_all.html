@@ -33,7 +33,7 @@ img { max-width:100%; height:auto; display:block; border-radius:6px;
 <h1>LPPL Regime Shift Detection</h1>
 <p class="muted">
 Rolling-window LPPL fits tracking parameter evolution over time.
-Generated 2026-04-04 19:38 UTC by <code>tools/regime_shift_all.py</code>.
+Generated 2026-04-04 19:42 UTC by <code>tools/regime_shift_all.py</code>.
 Regenerate manually — not auto-refreshed.
 </p>
 <nav>
@@ -56,6 +56,7 @@ Regenerate manually — not auto-refreshed.
 <a href="#hybppl-5yr">HybPPL (5yr)</a>
 <a href="#bm-7yr">BM (7yr)</a>
 <a href="#bm-9yr">BM (9yr)</a>
+<a href="#pl-2yr-timing">PL 2yr timing</a>
 </nav>
 <section id="pl-2yr">
 <h2>Power Law (2 params, 2yr windows)</h2>
@@ -199,6 +200,22 @@ Regenerate manually — not auto-refreshed.
 <p class="model-desc"><strong>BM (Bubble Model)</strong> — Quantoshi's production model: a two-stage support line fit (OLS on all window data → bottom-20% residual filter → quantile regression at Q50% on the filtered set) combined with bubble-peak characterization at known halving-cycle years (2011, 2013, 2017, 2021, 2025). Decouples the secular power-law baseline from the transient bubble amplitudes — rolling-window fits track how the baseline slope, residual σ, and per-cycle peak K amplitudes evolve together. Falling bubble amplitudes + tightening σ are consistent with diminishing-returns cycle dynamics.</p>
 <p class="muted">Same pipeline as BM 7yr with 9-year windows — usually captures 2–3 bubble peaks per window, giving more stable support slopes at the cost of slower regime-change response.</p>
 <img src="/regime_shift/regime_shift_bm_9yr.svg" alt="BM (Bubble Model, 9yr windows)">
+</section>
+<hr>
+<section id="pl-2yr-timing">
+<h2>PL 2yr timing — unbounded OLS</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>
+<p class="model-desc"><strong>PL 2yr timing analysis</strong> — aligns the 2yr rolling slope B(t) with log₁₀(price) at the same window end, then computes Pearson correlations (zero-lag) and lagged cross-correlation over ±24 months. The B trace is a trailing 2-year growth rate; its peaks lag price rallies until the bubble fully enters the window, and subsequent crashes drag B down for another ~2 years. Key measurements to compare: peak |xcorr(B, log-excess)| and the lag at which it occurs. B vs 6-month forward momentum is the most direct timing read — strongly-negative means a high 2yr slope predicts near-term drawdown.</p>
+<p class="muted">Twin-axis B + log₁₀(price) over time, plus lagged cross-correlation out to ±24 months. Unbounded OLS fit so B reflects the true window slope (range ~−8 to +15). Header stats: zero-lag correlations of B vs level, log-excess (detrended), and 6m forward momentum; peak cross-correlation lag in months (positive lag = B leads price).</p>
+<img src="/regime_shift/regime_shift_pl_2yr_timing_unbounded.svg" alt="PL 2yr timing — unbounded OLS">
+</section>
+<hr>
+<section id="pl-2yr-timing-clipped">
+<h2>PL 2yr timing — clipped DE</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>
+<p class="model-desc"><strong>PL 2yr timing analysis</strong> — aligns the 2yr rolling slope B(t) with log₁₀(price) at the same window end, then computes Pearson correlations (zero-lag) and lagged cross-correlation over ±24 months. The B trace is a trailing 2-year growth rate; its peaks lag price rallies until the bubble fully enters the window, and subsequent crashes drag B down for another ~2 years. Key measurements to compare: peak |xcorr(B, log-excess)| and the lag at which it occurs. B vs 6-month forward momentum is the most direct timing read — strongly-negative means a high 2yr slope predicts near-term drawdown.</p>
+<p class="muted">Same analysis but with B constrained to [3, 7] by the differential_evolution box. Because the optimizer parks at the rails for long stretches, the cycle-timing structure in raw level is destroyed (peak xcorr collapses to ~synchronous). Detrended log-excess still recovers the ~−22 month lag because clipping acts symmetrically around the long-run trend.</p>
+<img src="/regime_shift/regime_shift_pl_2yr_timing_clipped.svg" alt="PL 2yr timing — clipped DE">
 </section>
 <hr>
 <a href="/" class="back-link">← Back to Quantoshi</a>

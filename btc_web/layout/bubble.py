@@ -160,6 +160,7 @@ def _bubble_controls():
                 ),
             ]),
             html.Div(id="bub-decomp-warning", children=[]),
+            no_hover=True,
         ),
         _q_panel_with_mode("bub-qs", [0.5],
                            hint=f"If none selected, Q50% is shown at "

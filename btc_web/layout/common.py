@@ -176,12 +176,17 @@ _SECTION_ICONS = {
     "Export / Import": "\U0001F4C1",         # 📁
 }
 
-def _section_card(title: str, *children, header_right=None):
+def _section_card(title: str, *children, header_right=None, no_hover=False):
     """Control card with a section header title and optional icon.
 
     When ``header_right`` is supplied, those widgets render on the right side
     of the header row (used by LPPL/MC model-config panels to place their
     activate-toggle + configure/action buttons inline with the title).
+
+    When ``no_hover=True``, the card uses ``ctrl-card-nohover`` class which
+    disables the :hover transform. Required for cards containing
+    dcc.Dropdown — the transform creates a stacking context that clips the
+    dropdown menu (and intercepts clicks) on iOS Safari.
     """
     icon = _SECTION_ICONS.get(title, "")
     prefix = f"{icon} " if icon else ""
@@ -193,7 +198,11 @@ def _section_card(title: str, *children, header_right=None):
         )
     else:
         header = html.Div(title_span, className="ctrl-section-header")
-    return _ctrl_card(header, *children)
+    extra_class = " no-hover-transform" if no_hover else ""
+    return dbc.Card(
+        dbc.CardBody([header, *children], className="p-2"),
+        className=f"mb-2 ctrl-card{extra_class}",
+    )
 
 def _row(*cols):
     return dbc.Row([dbc.Col(c) for c in cols], className="g-1 mb-1")

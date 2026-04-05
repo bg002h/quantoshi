@@ -1496,6 +1496,12 @@ body {
 .ctrl-card .card-body {
     overflow: visible !important;
 }
+/* Cards containing dropdowns must NOT have hover transform — it creates a
+ * CSS stacking context that clips the dropdown menu on iOS Safari (and
+ * intercepts clicks on dropdown options on some browsers). */
+.ctrl-card.no-hover-transform:hover {
+    transform: none !important;
+}
 
 /* Scanner row highlight: applied inline by scanner.js using per-model colors */
 

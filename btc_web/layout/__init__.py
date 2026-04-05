@@ -17,6 +17,7 @@ from figures import _LOGO_B64_ALL
 from snapshot import _SNAPSHOT_CONTROLS
 
 # ── Re-exports (consumed by callbacks.py, app.py, etc.) ─────────────────────
+from layout.common import _global_lppl_modal
 from layout.common import (_STYLE_HIDDEN, _STYLE_HINT, _STYLE_GRAPH_H,
                             _STYLE_COLOR_H, _CB_MARGIN, _freq_warning_modal)
 from layout.mc_controls import (_bold_opts, _regime_options,
@@ -571,6 +572,7 @@ def _build_layout(initial_tab="bubble"):
         dbc.Tab(_faq_tab(),          label="\u2753 FAQ",                 tab_id="faq"),
         dbc.Tab(_citadel_tab(),      label="\U0001F3F0 Citadel Planner", tab_id="citadel"),
     ], id="main-tabs", active_tab=initial_tab),
+    _global_lppl_modal(),
     # ── Footer: block height + halving countdown + doc links ──────────────
     html.Div([
         html.Span(id="footer-block-height",

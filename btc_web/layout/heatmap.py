@@ -129,35 +129,44 @@ def _heatmap_controls():
 
 
 def _hm_pill_bar():
-    """Build model-selector pill bar matching tab 1's Price/CAGR style."""
+    """Model-selector pill bar — standardized set (BM, PL, LPPL master,
+    LinPPL, HybPPL, EF, U1, MC). LPPL family variants collapse into the
+    single LPPL master pill; the actual flavor is chosen via the global
+    LPPL config modal."""
     mc = _app_ctx.PALETTES["default"]["model_colors"]
 
+    def _pill_label(key, display_name):
+        return html.Span([
+            html.Span(" ", style={
+                "display": "inline-block", "width": "8px", "height": "8px",
+                "borderRadius": "2px", "verticalAlign": "middle",
+                "marginRight": "4px",
+                "backgroundColor": mc.get(key, "#888"),
+            }),
+            display_name,
+        ])
+
     buttons = [
-        dbc.Button(
-            html.Span([
-                html.Span(" ", style={
-                    "display": "inline-block", "width": "8px", "height": "8px",
-                    "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "4px",
-                    "backgroundColor": mc.get("bub", "#000"),
-                }),
-                "BM",
-            ]),
-            id="hm-pill-bub", color="primary", size="sm"),
+        dbc.Button(_pill_label("bub", "BM"),
+                   id="hm-pill-bub", color="primary", size="sm"),
+        dbc.Button(_pill_label("pl", "PL"),
+                   id="hm-pill-pl", outline=True, color="primary", size="sm"),
+        dbc.Button(_pill_label("lppl", "LPPL"),
+                   id="hm-pill-lppl", outline=True, color="primary", size="sm"),
+        dbc.Button(_pill_label("linppl", "LinPPL"),
+                   id="hm-pill-linppl", outline=True, color="primary", size="sm"),
+        dbc.Button(_pill_label("hybppl", "HybPPL"),
+                   id="hm-pill-hybppl", outline=True, color="primary", size="sm"),
     ]
-    for key, mdl in _app_ctx.PRICE_MODELS.items():
-        if key in ("bub", "mc"):
-            continue
+    if "ef" in _app_ctx.PRICE_MODELS:
         buttons.append(
-            dbc.Button(
-                html.Span([
-                    html.Span(" ", style={
-                        "display": "inline-block", "width": "8px", "height": "8px",
-                        "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "4px",
-                        "backgroundColor": mc.get(key, "#888"),
-                    }),
-                    mdl.legend_name if hasattr(mdl, 'legend_name') else key,
-                ]),
-                id=f"hm-pill-{key}", outline=True, color="primary", size="sm"),
+            dbc.Button(_pill_label("ef", "EF"),
+                       id="hm-pill-ef", outline=True, color="primary", size="sm"),
+        )
+    if "u1" in _app_ctx.PRICE_MODELS:
+        buttons.append(
+            dbc.Button(_pill_label("u1", "U\u2081"),
+                       id="hm-pill-u1", outline=True, color="primary", size="sm"),
         )
     if _app_ctx._HAS_MARKOV:
         buttons.append(

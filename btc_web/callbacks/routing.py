@@ -471,12 +471,28 @@ _app_ctx.app.clientside_callback(
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Heatmap deep-linking (/2.N → select Nth pill, 1-indexed)
-# Must match pill bar order in layout/heatmap.py: BM, then all models except bub/mc, then MC
-_HM_PILL_MODELS = ["bub"] + [k for k in _app_ctx.PRICE_MODELS if k not in ("bub", "mc")]
+# Standardized pill set (Phase 2). Tab 2 deep-link routes /2.N are renumbered;
+# old URLs will land on different models — accepted per design decision.
+# /2.1=bub, /2.2=pl, /2.3=lppl (master), /2.4=linppl, /2.5=hybppl,
+# /2.6=ef (if loaded), /2.7=u1 (if loaded), /2.N+1=mc (if HAS_MARKOV)
+_HM_PILL_MODELS = ["bub", "pl", "lppl", "linppl", "hybppl"]
+if "ef" in _app_ctx.PRICE_MODELS:
+    _HM_PILL_MODELS.append("ef")
+if "u1" in _app_ctx.PRICE_MODELS:
+    _HM_PILL_MODELS.append("u1")
 if _app_ctx._HAS_MARKOV:
     _HM_PILL_MODELS.append("mc")
-# Log the mapping for CLAUDE.md reference
-# /2.1=bub, /2.2=qr, /2.3=pl, /2.4=lppl, /2.5=exp, /2.6=ef (if loaded), /2.7=s2f, /2.N+1=mc
+
+# Map removed pill IDs (Phase 1 share links may have these in hm-active-model)
+# → surviving pill. Used as a graceful fallback when old snapshot decodes.
+_HM_LEGACY_MODEL_FALLBACK = {
+    "qr": "pl",        # QR was bands-only; PL is the closest match
+    "lp2": "lppl", "lp3": "lppl", "lp4": "lppl",
+    "lppl_w": "lppl", "lp2_w": "lppl", "lp3_w": "lppl", "lp4_w": "lppl",
+    "lp4_n13": "lppl", "lp4_w_n13": "lppl",
+    "exp": "bub",      # display-only demo
+    "s2f": "bub",      # display-only demo
+}
 
 
 @callback(
@@ -528,5 +544,8 @@ def _hm_pill_click(*args):
 )
 def _hm_pill_sync(model_key):
     model_key = model_key or "bub"
+    # Legacy snapshot values (qr, lp2, exp, etc) → surviving pill
+    if model_key not in _HM_PILL_MODELS:
+        model_key = _HM_LEGACY_MODEL_FALLBACK.get(model_key, "bub")
     active_id = f"hm-pill-{model_key}"
     return tuple(pid != active_id for pid in _HM_PILL_IDS)

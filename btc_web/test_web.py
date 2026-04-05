@@ -4061,6 +4061,14 @@ class TestLPPLComponentDecomposition:
         assert len(_app_ctx.PRICE_MODELS["lp3"].component_names) == 5
         assert len(_app_ctx.PRICE_MODELS["lp4"].component_names) == 6
 
+    def test_linppl_invariant(self):
+        import _app_ctx
+        self._assert_invariant(_app_ctx.PRICE_MODELS["linppl"])
+
+    def test_linppl_component_count(self):
+        import _app_ctx
+        assert len(_app_ctx.PRICE_MODELS["linppl"].component_names) == 3
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Section: MC model interface verification

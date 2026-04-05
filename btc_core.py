@@ -1143,6 +1143,23 @@ class LinPPLModel(LPPLModel):
         return (self._A + self._B * np.log10(t_safe)
                 + envelope * np.cos(self._W * t_safe + self._PHI))
 
+    component_names = [
+        "A (constant)",
+        "B\u00b7log\u2081\u2080(t)",
+        "damped osc (\u03c9_cal\u00b7t)",
+    ]
+
+    def components(self, t):
+        """Calendar-time oscillation (cos(W_cal * t + phi)), not log-time."""
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        return {
+            "A (constant)":                    np.full_like(t_safe, self._A),
+            "B\u00b7log\u2081\u2080(t)":        self._B * np.log10(t_safe),
+            "damped osc (\u03c9_cal\u00b7t)":   self._C * t_safe ** (-self._D) * np.cos(
+                self._W * t_safe + self._PHI),
+        }
+
 
 class ExponentialModel:
     """Exponential growth model with Gaussian quantile bands.

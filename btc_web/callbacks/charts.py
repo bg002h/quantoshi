@@ -59,6 +59,39 @@ _app_ctx.app.clientside_callback(
     Input("bub-model-show", "value"),
 )
 
+# bub-bm-activate → bub-model-show: add/remove "bub" master
+_app_ctx.app.clientside_callback(
+    """
+    function(act, cur_models) {
+        var want = (act && act.length) > 0;
+        var models = (cur_models || []).slice();
+        var has = models.indexOf('bub') !== -1;
+        if (want && !has) { models.push('bub'); return models; }
+        if (!want && has) {
+            return models.filter(function(v) { return v !== 'bub'; });
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("bub-model-show", "value", allow_duplicate=True),
+    Input("bub-bm-activate", "value"),
+    State("bub-model-show", "value"),
+    prevent_initial_call='initial_duplicate',
+)
+
+# bub-model-show → bub-bm-activate: mirror "bub" membership
+_app_ctx.app.clientside_callback(
+    """
+    function(models) {
+        var has = (models || []).indexOf('bub') !== -1;
+        return has ? ['yes'] : [];
+    }
+    """,
+    Output("bub-bm-activate", "value", allow_duplicate=True),
+    Input("bub-model-show", "value"),
+    prevent_initial_call='initial_duplicate',
+)
+
 # Any per-tab Configure-LPPL button click → open modal.
 # (Phase 2 will extend the Input list to include hm-lppl-configure-btn.)
 _app_ctx.app.clientside_callback(
@@ -288,6 +321,37 @@ def update_decomp_options(family, n_freqs, weighted, no_13):
 )
 def _update_decomp_options_cb(family, n_freqs, weighted, no_13):
     return update_decomp_options(family, n_freqs, weighted, no_13)
+
+
+@callback(
+    Output("bub-decomp-formula", "children"),
+    Input("bub-decomp-model",  "value"),
+    Input("lppl-n-freqs",      "value"),
+    Input("lppl-weighted",     "value"),
+    Input("lppl-no-13",        "value"),
+    prevent_initial_call=False,
+)
+def _update_decomp_formula_cb(family, n_freqs, weighted, no_13):
+    """Show the selected model's formula (log10 and price space)."""
+    from dash import dcc
+    key = _resolve_decomp_model_key(family, n_freqs, weighted, no_13)
+    if key is None:
+        return []
+    model = _app_ctx.PRICE_MODELS.get(key)
+    if model is None:
+        return []
+    latex = getattr(model, "formula_log10_latex", None)
+    if not latex:
+        return []
+    return dcc.Markdown(
+        rf"""
+$$\log_{{10}}(\text{{price}}) = {latex}$$
+
+$$\text{{price}} = 10^{{\,\log_{{10}}(\text{{price}})}}$$
+""",
+        mathjax=True, className="small",
+        style={"fontSize": "10px"},
+    )
 
 
 def _prune_decomp_value(family, options, current):

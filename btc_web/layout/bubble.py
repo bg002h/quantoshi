@@ -139,6 +139,12 @@ def _bubble_controls():
                                    tooltip={"always_visible":True}),
                     ]),
                 ]),
+                header_right=[dcc.Checklist(
+                    id="bub-bm-activate",
+                    options=[{"label": " Activate", "value": "yes"}],
+                    value=["yes"], inputStyle=_CB_MARGIN,
+                    className="model-panel-activate",
+                )],
             ),
         ]),
         _lppl_config_panel("bub"),
@@ -151,6 +157,9 @@ def _bubble_controls():
                          for key, label in _app_ctx.DECOMP_FAMILIES.items()],
                 value="", clearable=False,
             ),
+            html.Div(id="bub-decomp-formula",
+                     style={"fontSize": "11px", "marginTop": "6px",
+                            "marginBottom": "6px", "overflowX": "auto"}),
             html.Div(id="bub-decomp-body", style=_STYLE_HIDDEN, children=[
                 dcc.Checklist(
                     id="bub-decomp-components",

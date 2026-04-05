@@ -3970,6 +3970,49 @@ class TestPriceModelRegistry:
             assert isinstance(mdl, PriceModel)
 
 
+class TestHybPPLExcessModel:
+    """HybPPL (excess) — BM support + 8 oscillation params on log-excess."""
+
+    def test_instantiates_with_support_params(self):
+        from btc_core import HybPPLExcessModel
+        import _app_ctx
+        M = _app_ctx.M
+        mdl = HybPPLExcessModel(
+            M.price_years, M.price_prices, M.QR_QUANTILES,
+            a_sup=-1.5, b_sup=5.1,
+        )
+        assert mdl.short_name == "hybppl_ex"
+        assert mdl._A_sup == -1.5
+        assert mdl._B_sup == 5.1
+
+    def test_lppl_log10_returns_finite(self):
+        from btc_core import HybPPLExcessModel
+        import _app_ctx
+        import numpy as np
+        M = _app_ctx.M
+        mdl = HybPPLExcessModel(
+            M.price_years, M.price_prices, M.QR_QUANTILES,
+            a_sup=M.support_intercept, b_sup=M.support_slope,
+        )
+        for t in (1.0, 5.0, 10.0, 16.0):
+            v = mdl._lppl_log10(np.array([t]))
+            assert np.isfinite(v).all()
+        # Baseline at t=10 should give log10(price) in plausible range (~3-5)
+        v10 = mdl._lppl_log10(np.array([10.0]))
+        assert 2.0 < v10[0] < 6.0
+
+    def test_included_in_price_models(self):
+        import _app_ctx
+        assert "hybppl_ex" in _app_ctx.PRICE_MODELS
+
+    def test_support_matches_model_data(self):
+        import _app_ctx
+        mdl = _app_ctx.PRICE_MODELS["hybppl_ex"]
+        M = _app_ctx.M
+        assert abs(mdl._A_sup - M.support_intercept) < 1e-6
+        assert abs(mdl._B_sup - M.support_slope) < 1e-6
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Section: MC model interface verification
 # ═══════════════════════════════════════════════════════════════════════════════

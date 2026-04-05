@@ -13,6 +13,52 @@ from layout.common import (_tab_hints, _section_card, _row, _lbl,
                             _chart_tab_layout, _CB_MARGIN, _palette_selector)
 
 
+def _build_bub_model_options(mc):
+    """Build bub-model-show options with a single master 'LPPL' entry
+    (individual LPPL family variants managed by the LPPL Models config
+    panel below the checklist)."""
+    def _swatch(color, label):
+        return html.Span([
+            html.Span(" ", style={
+                "display": "inline-block", "width": "12px", "height": "12px",
+                "borderRadius": "2px", "verticalAlign": "middle",
+                "marginRight": "4px", "backgroundColor": color,
+            }),
+            label,
+        ])
+
+    opts = [{"label": _swatch(mc.get("bub", "#000"), "Bubble Model"), "value": "bub"}]
+
+    # Master LPPL entry — the LPPL Models config panel picks which flavor
+    # (n_freqs/weighted/no_13); only plotted when this master is checked.
+    opts.append({
+        "label": _swatch(mc.get("lppl", "#FF6D00"), "LPPL"),
+        "value": "lppl",
+    })
+
+    # Non-LPPL-family models, in standard order, deprioritizing exp/s2f
+    _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(_app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
+    _DEPRIORITIZED = {"exp", "s2f"}
+    primary = [m for m in _app_ctx.PRICE_MODELS.values()
+               if m.short_name not in _app_ctx.MODEL_SENTINELS
+               and m.short_name != "bub"
+               and m.short_name not in _LPPL_FAM
+               and m.short_name not in _DEPRIORITIZED]
+    deprior = [m for m in _app_ctx.PRICE_MODELS.values()
+               if m.short_name in _DEPRIORITIZED]
+    for mdl in primary + deprior:
+        opts.append({
+            "label": _swatch(mc.get(mdl.short_name, "#888"), mdl.name),
+            "value": mdl.short_name,
+        })
+
+    opts.append({
+        "label": _swatch(mc.get("u1", "#333"), "U\u2081 (User)"),
+        "value": "u1",
+    })
+    return opts
+
+
 def _bubble_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
@@ -68,46 +114,8 @@ def _bubble_controls():
             *_legend_pos_dropdown("bub", BUBBLE["legend_pos"]),
             _lbl("Display models"),
             dcc.Checklist(id="bub-model-show",
-                          options=[
-                              {"label": html.Span([
-                                  html.Span(" ", style={
-                                      "display": "inline-block", "width": "12px",
-                                      "height": "12px", "borderRadius": "2px",
-                                      "backgroundColor": _app_ctx.PALETTES["default"]["model_colors"].get("bub", "#000"),
-                                      "verticalAlign": "middle", "marginRight": "4px",
-                                  }),
-                                  "Bubble Model",
-                              ]), "value": "bub"},
-                          ] + [
-                              {"label": html.Span([
-                                  html.Span(" ", style={
-                                      "display": "inline-block", "width": "12px",
-                                      "height": "12px", "borderRadius": "2px",
-                                      "backgroundColor": _app_ctx.PALETTES["default"]["model_colors"].get(mdl.short_name, "#888"),
-                                      "verticalAlign": "middle", "marginRight": "4px",
-                                  }),
-                                  mdl.name,
-                              ]), "value": mdl.short_name}
-                              for mdl in (
-                                  [m for m in _app_ctx.PRICE_MODELS.values()
-                                   if m.short_name not in _app_ctx.MODEL_SENTINELS
-                                   and m.short_name not in _app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE
-                                   and m.short_name not in ("lppl", "lp2", "lp3", "lp4")  # managed by LPPL config panel
-                                   and m.short_name != "bub" and m.short_name not in ("exp", "s2f")]
-                                  + [m for m in _app_ctx.PRICE_MODELS.values()
-                                     if m.short_name in ("exp", "s2f")]
-                              )
-                          ] + [
-                              {"label": html.Span([
-                                  html.Span(" ", style={
-                                      "display": "inline-block", "width": "12px",
-                                      "height": "12px", "borderRadius": "2px",
-                                      "backgroundColor": _app_ctx.PALETTES["default"]["model_colors"].get("u1", "#333"),
-                                      "verticalAlign": "middle", "marginRight": "4px",
-                                  }),
-                                  "U\u2081 (User)",
-                              ]), "value": "u1"},
-                          ],
+                          options=_build_bub_model_options(
+                              _app_ctx.PALETTES["default"]["model_colors"]),
                           value=["bub"], inline=True,
                           inputStyle=_CB_MARGIN,
                           labelStyle={"marginRight": "12px", "fontSize": "11px"},
@@ -131,34 +139,40 @@ def _bubble_controls():
             ),
         ]),
         _section_card("LPPL Models",
-            _lbl("Oscillation frequencies (N)"),
-            dcc.Checklist(id="lppl-n-freqs",
-                          options=[
-                              {"label": " LPPL\u2081 (1 freq)", "value": 1},
-                              {"label": " LPPL\u2082 (2 freqs)", "value": 2},
-                              {"label": " LPPL\u2083 (3 freqs) \u2014 recommended",
-                               "value": 3},
-                              {"label": " LPPL\u2084 (4 freqs) \u2014 \u26A0 likely overfit",
-                               "value": 4},
-                          ],
-                          value=[3],
-                          labelStyle={"display": "block"},
-                          inputStyle=_CB_MARGIN),
-            html.Hr(style={"margin": "6px 0", "borderColor": "#444"}),
-            dcc.Checklist(id="lppl-weighted",
-                          options=[{"label": " Log-time weighted fits",
-                                    "value": "weighted"}],
-                          value=[], inputStyle=_CB_MARGIN,
-                          className="small"),
-            html.Small("Emphasizes early-history structure over recent era",
-                       style=_STYLE_HINT),
-            dcc.Checklist(id="lppl-no-13",
-                          options=[{"label": " Exclude \u03c9\u224813 intermod (disables LPPL\u2083)",
-                                    "value": "no13"}],
-                          value=[], inputStyle=_CB_MARGIN,
-                          className="small"),
-            html.Small("LP\u2084's \u03c9\u224813 may be an intermodulation artifact",
-                       style=_STYLE_HINT),
+            dcc.Checklist(id="bub-lppl-activate",
+                          options=[{"label": " Activate LPPL overlay",
+                                    "value": "yes"}],
+                          value=[], inputStyle=_CB_MARGIN),
+            html.Div(id="bub-lppl-body", style=_STYLE_HIDDEN, children=[
+                _lbl("Oscillation frequencies (N)"),
+                dcc.Checklist(id="lppl-n-freqs",
+                              options=[
+                                  {"label": " LPPL\u2081 (1 freq)", "value": 1},
+                                  {"label": " LPPL\u2082 (2 freqs)", "value": 2},
+                                  {"label": " LPPL\u2083 (3 freqs) \u2014 recommended",
+                                   "value": 3},
+                                  {"label": " LPPL\u2084 (4 freqs) \u2014 \u26A0 likely overfit",
+                                   "value": 4},
+                              ],
+                              value=[3],
+                              labelStyle={"display": "block"},
+                              inputStyle=_CB_MARGIN),
+                html.Hr(style={"margin": "6px 0", "borderColor": "#444"}),
+                dcc.Checklist(id="lppl-weighted",
+                              options=[{"label": " Log-time weighted fits",
+                                        "value": "weighted"}],
+                              value=[], inputStyle=_CB_MARGIN,
+                              className="small"),
+                html.Small("Emphasizes early-history structure over recent era",
+                           style=_STYLE_HINT),
+                dcc.Checklist(id="lppl-no-13",
+                              options=[{"label": " Exclude \u03c9\u224813 intermod (disables LPPL\u2083)",
+                                        "value": "no13"}],
+                              value=[], inputStyle=_CB_MARGIN,
+                              className="small"),
+                html.Small("LP\u2084's \u03c9\u224813 may be an intermodulation artifact",
+                           style=_STYLE_HINT),
+            ]),
         ),
         _q_panel_with_mode("bub-qs", [0.5],
                            hint="If none selected, Q50% is shown at 50% opacity."),

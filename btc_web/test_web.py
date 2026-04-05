@@ -2632,7 +2632,8 @@ class TestUpdateBubbleCallback:
                 bubble_toggles=[], xscale="log", yscale="log",
                 xrange=[2012, 2030], yrange=[0, 7],
                 n_future=3, ptsize=3, ptalpha=0.6,
-                stack=0, show_stack=[], use_lots=[], legend_pos="outside", model_show=[], lots_data=[],
+                stack=0, show_stack=[], use_lots=[], legend_pos="outside", model_show=[],
+                lppl_n_freqs=[], lppl_weighted=[], lppl_no_13=[], lots_data=[],
                 palette_key="default",
             )
         assert isinstance(fig, go.Figure)
@@ -2644,7 +2645,8 @@ class TestUpdateBubbleCallback:
                 xscale="linear", yscale="log",
                 xrange=[2015, 2028], yrange=[1, 6],
                 n_future=0, ptsize=2, ptalpha=0.3,
-                stack=0, show_stack=[], use_lots=[], legend_pos="outside", model_show=[], lots_data=[],
+                stack=0, show_stack=[], use_lots=[], legend_pos="outside", model_show=[],
+                lppl_n_freqs=[], lppl_weighted=[], lppl_no_13=[], lots_data=[],
                 palette_key="default",
             )
         assert isinstance(fig, go.Figure)
@@ -2656,7 +2658,8 @@ class TestUpdateBubbleCallback:
                 bubble_toggles=["show_comp"], xscale="log", yscale="log",
                 xrange=[2012, 2035], yrange=[0, 7],
                 n_future=2, ptsize=4, ptalpha=0.5,
-                stack=1.5, show_stack=["yes"], use_lots=[], legend_pos="outside", model_show=[], lots_data=[],
+                stack=1.5, show_stack=["yes"], use_lots=[], legend_pos="outside", model_show=[],
+                lppl_n_freqs=[], lppl_weighted=[], lppl_no_13=[], lots_data=[],
                 palette_key="default",
             )
         assert isinstance(fig, go.Figure)

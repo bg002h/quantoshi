@@ -86,6 +86,7 @@ _TAB_CONTROLS = {
                     "bub-toggles","bub-bubble-toggles","bub-n-future","bub-ptsize",
                     "bub-ptalpha","bub-stack","bub-show-stack","bub-use-lots","bub-auto-y",
                     "bub-legend-pos","bub-model-show",
+                    "bub-lppl-activate","lppl-n-freqs","lppl-weighted","lppl-no-13",
                     "scan-price","scan-date","scan-q"},
     "heatmap":     {"hm-entry-yr","hm-entry-q","hm-exit-range","hm-exit-qs","hm-mode",
                     "hm-b1","hm-b2","hm-c-lo","hm-c-mid1","hm-c-mid2","hm-c-hi",

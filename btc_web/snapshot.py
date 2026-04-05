@@ -126,6 +126,7 @@ _SNAPSHOT_CONTROLS = [
     # ── Bubble overlay models ──
     ("bub-model-show",    "value"),   # PL/S2F overlay toggle (Bubble)
     # ── LPPL config panel (Bubble tab) ──
+    ("bub-lppl-activate", "value"),   # master activate toggle ["yes"] or []
     ("lppl-n-freqs",      "value"),   # [1..4] checkbox multi-select
     ("lppl-weighted",     "value"),   # ["weighted"] or []
     ("lppl-no-13",        "value"),   # ["no13"] or []
@@ -337,6 +338,7 @@ _CHECKLIST_OPTIONS = {
     "sc-model-show":      ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"],
     "hm-model-show":      ["qr", "mc", "pl", "lppl", "exp", "s2f", "ef"],
     "bub-model-show":     ["pl", "lppl", "exp", "s2f", "ef", "bub", "qr"],
+    "bub-lppl-activate":  ["yes"],
     "lppl-n-freqs":       [1, 2, 3, 4],
     "lppl-weighted":      ["weighted"],
     "lppl-no-13":         ["no13"],

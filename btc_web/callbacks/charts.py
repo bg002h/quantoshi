@@ -7,6 +7,51 @@ from dash import Input, Output, State, ctx, callback
 import pandas as pd
 
 import _app_ctx
+
+
+# ── LPPL master gate: bi-directional sync between the "Activate LPPL"
+# checkbox on the LPPL Models config panel and the "lppl" master entry
+# in bub-model-show, plus a collapse toggle on the config-panel body. ──
+
+# body collapse follows the activation checkbox
+_app_ctx.app.clientside_callback(
+    "function(v) { return (v && v.length) ? {} : {display:'none'}; }",
+    Output("bub-lppl-body", "style"),
+    Input("bub-lppl-activate", "value"),
+)
+
+# activate -> model-show: add/remove "lppl" master
+_app_ctx.app.clientside_callback(
+    """
+    function(act, cur_models) {
+        var want = (act && act.length) > 0;
+        var models = (cur_models || []).slice();
+        var has = models.indexOf('lppl') !== -1;
+        if (want && !has) { models.push('lppl'); return models; }
+        if (!want && has) {
+            return models.filter(function(v) { return v !== 'lppl'; });
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("bub-model-show", "value", allow_duplicate=True),
+    Input("bub-lppl-activate", "value"),
+    State("bub-model-show", "value"),
+    prevent_initial_call='initial_duplicate',
+)
+
+# model-show -> activate: mirror "lppl" membership
+_app_ctx.app.clientside_callback(
+    """
+    function(models) {
+        var has = (models || []).indexOf('lppl') !== -1;
+        return has ? ['yes'] : [];
+    }
+    """,
+    Output("bub-lppl-activate", "value", allow_duplicate=True),
+    Input("bub-model-show", "value"),
+    prevent_initial_call='initial_duplicate',
+)
 from btc_core import yr_to_t, today_t, _find_lot_percentile
 from tab_defaults import BUBBLE, HEATMAP, DCA, RETIRE, SUPERCHARGE
 from layout.common import _bands_to_qs
@@ -66,22 +111,27 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     yrange         = yrange or [0, 7]
     xrange         = xrange or [2012, 2030]
 
-    # Translate LPPL config panel selections into model keys
+    # The "lppl" entry in bub-model-show is a MASTER gate — only when it's
+    # present do we consult the LPPL Models config panel to decide which
+    # flavor(s) to render. Strip the master value before passing to the
+    # chart so it doesn't get rendered as raw LPPL1 by mistake.
     model_show = list(model_show or [])
-    _weighted = "weighted" in (lppl_weighted or [])
-    _no_13 = "no13" in (lppl_no_13 or [])
-    for n in (lppl_n_freqs or []):
-        if n == 1:
-            model_show.append("lppl_w" if _weighted else "lppl")
-        elif n == 2:
-            model_show.append("lp2_w" if _weighted else "lp2")
-        elif n == 3 and not _no_13:  # LP3 disabled when excluding ω=13
-            model_show.append("lp3_w" if _weighted else "lp3")
-        elif n == 4:
-            if _no_13:
-                model_show.append("lp4_w_n13" if _weighted else "lp4_n13")
-            else:
-                model_show.append("lp4_w" if _weighted else "lp4")
+    if "lppl" in model_show:
+        model_show = [v for v in model_show if v != "lppl"]
+        _weighted = "weighted" in (lppl_weighted or [])
+        _no_13 = "no13" in (lppl_no_13 or [])
+        for n in (lppl_n_freqs or []):
+            if n == 1:
+                model_show.append("lppl_w" if _weighted else "lppl")
+            elif n == 2:
+                model_show.append("lp2_w" if _weighted else "lp2")
+            elif n == 3 and not _no_13:  # LP3 disabled when excluding ω=13
+                model_show.append("lp3_w" if _weighted else "lp3")
+            elif n == 4:
+                if _no_13:
+                    model_show.append("lp4_w_n13" if _weighted else "lp4_n13")
+                else:
+                    model_show.append("lp4_w" if _weighted else "lp4")
 
     # Scanner lines
     scanner_lines = []
@@ -932,46 +982,51 @@ _app_ctx.app.clientside_callback(
 
 # ── Update Display Models swatches when palette changes ──────────────────────
 
-def _build_model_opts(mc, include_u1=False):
-    """Build model checklist options with palette-colored swatches."""
+def _build_model_opts(mc, include_u1=False, bubble_mode=False):
+    """Build model checklist options with palette-colored swatches.
+
+    bubble_mode=True: emits a single master 'LPPL' entry in place of the
+    individual LPPL family variants (lppl, lp2, lp3, lp4, lppl_w, lp2_w,
+    lp3_w, lp4_w, lp4_n13, lp4_w_n13). The master gates the LPPL Models
+    config panel on tab 1.
+    """
     from dash import html
     _DEPRIORITIZED = {"exp", "s2f"}
-    opts = [
-        {"label": html.Span([
+    _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(_app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
+
+    def _swatch(color, label):
+        return html.Span([
             html.Span(" ", style={
                 "display": "inline-block", "width": "12px", "height": "12px",
-                "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "4px",
-                "backgroundColor": mc.get("bub", "#000"),
+                "borderRadius": "2px", "verticalAlign": "middle",
+                "marginRight": "4px", "backgroundColor": color,
             }),
-            "Bubble Model",
-        ]), "value": "bub"},
-    ]
+            label,
+        ])
+
+    opts = [{"label": _swatch(mc.get("bub", "#000"), "Bubble Model"), "value": "bub"}]
+
+    if bubble_mode:
+        # Inject master LPPL entry right after Bubble Model.
+        opts.append({
+            "label": _swatch(mc.get("lppl", "#FF6D00"), "LPPL"),
+            "value": "lppl",
+        })
+
     all_models = [mdl for mdl in _app_ctx.PRICE_MODELS.values()
                   if mdl.short_name not in _app_ctx.MODEL_SENTINELS and mdl.short_name != "bub"]
+    if bubble_mode:
+        all_models = [m for m in all_models if m.short_name not in _LPPL_FAM]
     ordered = [m for m in all_models if m.short_name not in _DEPRIORITIZED] + \
               [m for m in all_models if m.short_name in _DEPRIORITIZED]
     for mdl in ordered:
         opts.append({
-            "label": html.Span([
-                html.Span(" ", style={
-                    "display": "inline-block", "width": "12px", "height": "12px",
-                    "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "4px",
-                    "backgroundColor": mc.get(mdl.short_name, "#888"),
-                }),
-                mdl.name,
-            ]),
+            "label": _swatch(mc.get(mdl.short_name, "#888"), mdl.name),
             "value": mdl.short_name,
         })
     if include_u1:
         opts.append({
-            "label": html.Span([
-                html.Span(" ", style={
-                    "display": "inline-block", "width": "12px", "height": "12px",
-                    "borderRadius": "2px", "verticalAlign": "middle", "marginRight": "4px",
-                    "backgroundColor": mc.get("u1", "#333333"),
-                }),
-                "U\u2081 (User)",
-            ]),
+            "label": _swatch(mc.get("u1", "#333333"), "U\u2081 (User)"),
             "value": "u1",
         })
     return opts
@@ -988,7 +1043,7 @@ def _build_model_opts(mc, include_u1=False):
 def update_model_swatches(palette_key):
     pal = _app_ctx.PALETTES.get(palette_key or "default", _app_ctx.PALETTES["default"])
     mc = pal.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
-    bub_opts = _build_model_opts(mc, include_u1=True)
+    bub_opts = _build_model_opts(mc, include_u1=True, bubble_mode=True)
     other_opts = _build_model_opts(mc, include_u1=False)
     return bub_opts, other_opts, other_opts, other_opts
 

@@ -160,6 +160,11 @@ def _bubble_controls():
             html.Div(id="bub-decomp-formula",
                      style={"fontSize": "11px", "marginTop": "6px",
                             "marginBottom": "6px", "overflowX": "auto"}),
+            html.Div(id="bub-decomp-active-formula",
+                     style={"fontSize": "10px", "marginTop": "4px",
+                            "marginBottom": "6px", "padding": "6px",
+                            "background": "#f8f9fa", "borderRadius": "4px",
+                            "wordBreak": "break-word", "fontFamily": "monospace"}),
             html.Div(id="bub-decomp-body", style=_STYLE_HIDDEN, children=[
                 dcc.Checklist(
                     id="bub-decomp-components",

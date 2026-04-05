@@ -369,6 +369,52 @@ def _update_decomp_options_cb(family, n_freqs, weighted, no_13):
 
 
 @callback(
+    Output("bub-decomp-active-formula", "children"),
+    Input("bub-decomp-model",       "value"),
+    Input("bub-decomp-components",  "value"),
+    Input("lppl-n-freqs",      "value"),
+    Input("lppl-weighted",     "value"),
+    Input("lppl-no-13",        "value"),
+    prevent_initial_call=False,
+)
+def _update_active_formula_cb(family, selected, n_freqs, weighted, no_13):
+    """Display the formula for the currently-checked subset of components."""
+    from dash import html
+    key = _resolve_decomp_model_key(family, n_freqs, weighted, no_13)
+    if key is None:
+        return []
+    model = _app_ctx.PRICE_MODELS.get(key)
+    if model is None:
+        return []
+    details = getattr(model, "component_details", {})
+    if not details:
+        return []
+    selected = list(selected or [])
+    canonical = [n for n in model.component_names if n in selected]
+    if not canonical:
+        return html.Small("(no components selected)",
+                          style={"color": "#888"})
+    log_parts = []
+    product_parts = []
+    for name in canonical:
+        d = details.get(name)
+        if not d:
+            continue
+        formula_str = d[0]
+        log_parts.append(formula_str)
+        product_parts.append(f"10^({formula_str})")
+    if not log_parts:
+        return []
+    log_str = " + ".join(log_parts)
+    product_str = " \u00b7 ".join(product_parts)
+    return [
+        html.Div([html.Strong("log\u2081\u2080(price) = "), log_str],
+                 style={"marginBottom": "3px"}),
+        html.Div([html.Strong("price = "), product_str]),
+    ]
+
+
+@callback(
     Output("bub-decomp-formula", "children"),
     Input("bub-decomp-model",  "value"),
     Input("lppl-n-freqs",      "value"),

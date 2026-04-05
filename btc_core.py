@@ -983,6 +983,50 @@ class HybPPLModel(LPPLModel):
         return self._A + self._B * np.log10(t_safe) + damped + undamped
 
 
+class HybPPLExcessModel(LPPLModel):
+    """HybPPL oscillators fit to BM-excess (log_price - BM support).
+
+    Fits: log10(price) = A_sup + B_sup*log10(t)
+                       + a0
+                       + C1*t^(-D)*cos(W_log*ln(t) + PHI1)
+                       + C2*cos(W_cal*t + PHI2)
+
+    A_sup and B_sup are pulled from ModelData at instantiation (dynamic
+    trend tracking). The 8 oscillation params are refit daily via
+    tools/fit_hybppl_excess.py --update.
+    """
+    name = "HybPPL (excess)"
+    short_name = "hybppl_ex"
+    legend_name = "HybPPL (ex)"
+    dash_style = "dashdot"
+
+    # Fitted oscillation parameters (will be overwritten by fit_hybppl_excess.py --update)
+    _a0    =    0.349900
+    _C1    =    0.642100
+    _W_log =    7.480800
+    _PHI1  =    1.427200
+    _D     =    0.660700
+    _C2    =    0.231500
+    _W_cal =    1.748900
+    _PHI2  = -2.100200
+
+    def __init__(self, price_years, price_prices, quantiles,
+                 a_sup=None, b_sup=None):
+        self._A_sup = float(a_sup) if a_sup is not None else 0.0
+        self._B_sup = float(b_sup) if b_sup is not None else 0.0
+        super().__init__(price_years, price_prices, quantiles)
+
+    def _lppl_log10(self, t):
+        """BM support + constant + damped log-periodic + undamped calendar."""
+        t_arr = np.asarray(t, float)
+        t_safe = np.maximum(t_arr, 0.1)
+        support = self._A_sup + self._B_sup * np.log10(t_safe)
+        damped = self._C1 * t_safe ** (-self._D) * np.cos(
+            self._W_log * np.log(t_safe) + self._PHI1)
+        undamped = self._C2 * np.cos(self._W_cal * t_safe + self._PHI2)
+        return support + self._a0 + damped + undamped
+
+
 class LinPPLModel(LPPLModel):
     """Linear-periodic Power Law: oscillation in CALENDAR time, not log-time.
 

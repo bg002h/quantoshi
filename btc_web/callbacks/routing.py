@@ -68,6 +68,44 @@ _app_ctx.app.clientside_callback(
 )
 
 
+# After snapshot restore, force the active tab's chart to re-render.
+# Mobile Safari/WebKit browsers sometimes swallow the Input-change events
+# fired by apply_snapshot (~100 simultaneous allow_duplicate outputs),
+# leaving the pre-injected figure stale. Incrementing first-render on
+# the active tab guarantees the chart callback fires with the restored
+# control values.
+_app_ctx.app.clientside_callback(
+    """
+    function(state, tab, bub, hm, dca, ret, sc, cp) {
+        var NU = window.dash_clientside.no_update;
+        var out = [NU, NU, NU, NU, NU, NU];
+        if (!state) return out;
+        var map = {bubble:0, heatmap:1, dca:2, retire:3, supercharge:4, citadel:5};
+        var idx = map[tab];
+        if (idx === undefined) return out;
+        var cur = [bub, hm, dca, ret, sc, cp][idx] || 0;
+        out[idx] = cur + 1;
+        return out;
+    }
+    """,
+    Output("bubble-first-render", "data", allow_duplicate=True),
+    Output("heatmap-first-render", "data", allow_duplicate=True),
+    Output("dca-first-render", "data", allow_duplicate=True),
+    Output("retire-first-render", "data", allow_duplicate=True),
+    Output("supercharge-first-render", "data", allow_duplicate=True),
+    Output("citadel-first-render", "data", allow_duplicate=True),
+    Input("snapshot-state-store", "data"),
+    State("main-tabs", "active_tab"),
+    State("bubble-first-render", "data"),
+    State("heatmap-first-render", "data"),
+    State("dca-first-render", "data"),
+    State("retire-first-render", "data"),
+    State("supercharge-first-render", "data"),
+    State("citadel-first-render", "data"),
+    prevent_initial_call=True,
+)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Path ↔ tab mappings and per-tab control IDs (used by snapshot)
 # ══════════════════════════════════════════════════════════════════════════════

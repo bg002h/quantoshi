@@ -502,6 +502,10 @@ class _CompositeModel:
     formula_log10_latex = (
         r"\log_{10}(\text{support}(t)) + \sum_i \text{bubble}_i(t)"
     )
+    component_details = {
+        "support": ("log\u2081\u2080(support(t))", []),
+        "bubbles": ("\u03a3 bubble_i(t)", []),
+    }
 
     def components(self, t):
         """Composite decomposition: support + bubbles (both in log10 space).
@@ -682,6 +686,14 @@ class LPPLModel:
     formula_product_latex = (
         r"10^A \cdot t^B \cdot 10^{\,C \cdot t^{-D} \cos(\omega \ln t + \varphi)}"
     )
+    # (plain-text formula, [(param_name, attr_name), ...])
+    component_details = {
+        "A (constant)":           ("A",                         [("A", "_A")]),
+        "B\u00b7log\u2081\u2080(t)": ("B\u00b7log\u2081\u2080(t)", [("B", "_B")]),
+        "damped osc (\u03c9_log)": ("C\u00b7t^(-D)\u00b7cos(\u03c9\u00b7ln(t)+\u03c6)",
+                                    [("C", "_C"), ("D", "_D"),
+                                     ("\u03c9", "_W"), ("\u03c6", "_PHI")]),
+    }
 
     def components(self, t):
         """Additive terms in log10 space. sum(values) == _lppl_log10(t)."""
@@ -797,6 +809,16 @@ class LPPL2Model(LPPLModel):
         r" \cdot 10^{\,C_1 t^{-D} \cos(\omega_1 \ln t + \varphi_1)}"
         r" \cdot 10^{\,C_2 \cos(\omega_2 \ln t + \varphi_2)}"
     )
+    component_details = {
+        "A (constant)":           ("A",                         [("A", "_A")]),
+        "B\u00b7log\u2081\u2080(t)": ("B\u00b7log\u2081\u2080(t)", [("B", "_B")]),
+        "damped osc (\u03c9\u2081)": ("C\u2081\u00b7t^(-D)\u00b7cos(\u03c9\u2081\u00b7ln(t)+\u03c6\u2081)",
+                                      [("C\u2081", "_C"), ("D", "_D"),
+                                       ("\u03c9\u2081", "_W"), ("\u03c6\u2081", "_PHI")]),
+        "undamped osc (\u03c9\u2082)": ("C\u2082\u00b7cos(\u03c9\u2082\u00b7ln(t)+\u03c6\u2082)",
+                                        [("C\u2082", "_C2"), ("\u03c9\u2082", "_W2"),
+                                         ("\u03c6\u2082", "_PHI2")]),
+    }
 
     def components(self, t):
         t = np.asarray(t, float)
@@ -868,6 +890,19 @@ class LPPL3Model(LPPL2Model):
         r" \cdot 10^{\,C_2 \cos(\omega_2 \ln t + \varphi_2)}"
         r" \cdot 10^{\,C_3 \cos(\omega_3 \ln t + \varphi_3)}"
     )
+    component_details = {
+        "A (constant)":           ("A",                         [("A", "_A")]),
+        "B\u00b7log\u2081\u2080(t)": ("B\u00b7log\u2081\u2080(t)", [("B", "_B")]),
+        "damped osc (\u03c9\u2081)": ("C\u2081\u00b7t^(-D)\u00b7cos(\u03c9\u2081\u00b7ln(t)+\u03c6\u2081)",
+                                      [("C\u2081", "_C"), ("D", "_D"),
+                                       ("\u03c9\u2081", "_W"), ("\u03c6\u2081", "_PHI")]),
+        "undamped osc (\u03c9\u2082)": ("C\u2082\u00b7cos(\u03c9\u2082\u00b7ln(t)+\u03c6\u2082)",
+                                        [("C\u2082", "_C2"), ("\u03c9\u2082", "_W2"),
+                                         ("\u03c6\u2082", "_PHI2")]),
+        "undamped osc (\u03c9\u2083)": ("C\u2083\u00b7cos(\u03c9\u2083\u00b7ln(t)+\u03c6\u2083)",
+                                        [("C\u2083", "_C3"), ("\u03c9\u2083", "_W3"),
+                                         ("\u03c6\u2083", "_PHI3")]),
+    }
 
     def components(self, t):
         t = np.asarray(t, float)
@@ -1002,6 +1037,22 @@ class LPPL4Model(LPPL3Model):
         r" \cdot 10^{\,C_3 \cos(\omega_3 \ln t + \varphi_3)}"
         r" \cdot 10^{\,C_4 \cos(\omega_4 \ln t + \varphi_4)}"
     )
+    component_details = {
+        "A (constant)":           ("A",                         [("A", "_A")]),
+        "B\u00b7log\u2081\u2080(t)": ("B\u00b7log\u2081\u2080(t)", [("B", "_B")]),
+        "damped osc (\u03c9\u2081)": ("C\u2081\u00b7t^(-D)\u00b7cos(\u03c9\u2081\u00b7ln(t)+\u03c6\u2081)",
+                                      [("C\u2081", "_C"), ("D", "_D"),
+                                       ("\u03c9\u2081", "_W"), ("\u03c6\u2081", "_PHI")]),
+        "undamped osc (\u03c9\u2082)": ("C\u2082\u00b7cos(\u03c9\u2082\u00b7ln(t)+\u03c6\u2082)",
+                                        [("C\u2082", "_C2"), ("\u03c9\u2082", "_W2"),
+                                         ("\u03c6\u2082", "_PHI2")]),
+        "undamped osc (\u03c9\u2083)": ("C\u2083\u00b7cos(\u03c9\u2083\u00b7ln(t)+\u03c6\u2083)",
+                                        [("C\u2083", "_C3"), ("\u03c9\u2083", "_W3"),
+                                         ("\u03c6\u2083", "_PHI3")]),
+        "undamped osc (\u03c9\u2084)": ("C\u2084\u00b7cos(\u03c9\u2084\u00b7ln(t)+\u03c6\u2084)",
+                                        [("C\u2084", "_C4"), ("\u03c9\u2084", "_W4"),
+                                         ("\u03c6\u2084", "_PHI4")]),
+    }
 
     def components(self, t):
         t = np.asarray(t, float)
@@ -1145,6 +1196,18 @@ class HybPPLModel(LPPLModel):
         r" \cdot 10^{\,C_1 t^{-D} \cos(\omega_{\text{log}} \ln t + \varphi_1)}"
         r" \cdot 10^{\,C_2 \cos(\omega_{\text{cal}} t + \varphi_2)}"
     )
+    component_details = {
+        "A (constant)":           ("A",                         [("A", "_A")]),
+        "B\u00b7log\u2081\u2080(t)": ("B\u00b7log\u2081\u2080(t)", [("B", "_B")]),
+        "damped log osc (\u03c9_log)": (
+            "C\u2081\u00b7t^(-D)\u00b7cos(\u03c9_log\u00b7ln(t)+\u03c6\u2081)",
+            [("C\u2081", "_C"), ("D", "_D"),
+             ("\u03c9_log", "_W"), ("\u03c6\u2081", "_PHI")]),
+        "undamped cal osc (\u03c9_cal)": (
+            "C\u2082\u00b7cos(\u03c9_cal\u00b7t+\u03c6\u2082)",
+            [("C\u2082", "_C2"), ("\u03c9_cal", "_W2"),
+             ("\u03c6\u2082", "_PHI2")]),
+    }
 
     def components(self, t):
         """Hybrid: log-periodic damped + linear-periodic undamped."""
@@ -1221,6 +1284,22 @@ class HybPPLExcessModel(LPPLModel):
         r" \cdot 10^{\,C_1 t^{-D} \cos(\omega_{\text{log}} \ln t + \varphi_1)}"
         r" \cdot 10^{\,C_2 \cos(\omega_{\text{cal}} t + \varphi_2)}"
     )
+    component_details = {
+        "A_sup":                    ("A_sup",
+                                      [("A_sup", "_A_sup")]),
+        "B_sup\u00b7log\u2081\u2080(t)": ("B_sup\u00b7log\u2081\u2080(t)",
+                                           [("B_sup", "_B_sup")]),
+        "a\u2080":                  ("a\u2080",
+                                      [("a\u2080", "_a0")]),
+        "damped log osc (\u03c9_log)": (
+            "C\u2081\u00b7t^(-D)\u00b7cos(\u03c9_log\u00b7ln(t)+\u03c6\u2081)",
+            [("C\u2081", "_C1"), ("D", "_D"),
+             ("\u03c9_log", "_W_log"), ("\u03c6\u2081", "_PHI1")]),
+        "undamped cal osc (\u03c9_cal)": (
+            "C\u2082\u00b7cos(\u03c9_cal\u00b7t+\u03c6\u2082)",
+            [("C\u2082", "_C2"), ("\u03c9_cal", "_W_cal"),
+             ("\u03c6\u2082", "_PHI2")]),
+    }
 
     def components(self, t):
         """BM support + constant + damped log-periodic + undamped calendar."""
@@ -1278,6 +1357,14 @@ class LinPPLModel(LPPLModel):
     formula_log10_latex = (
         r"A + B \log_{10}(t) + C \cdot t^{-D} \cos(\omega_{\text{cal}} \cdot t + \varphi)"
     )
+    component_details = {
+        "A (constant)":           ("A",                         [("A", "_A")]),
+        "B\u00b7log\u2081\u2080(t)": ("B\u00b7log\u2081\u2080(t)", [("B", "_B")]),
+        "damped osc (\u03c9_cal\u00b7t)": (
+            "C\u00b7t^(-D)\u00b7cos(\u03c9_cal\u00b7t+\u03c6)",
+            [("C", "_C"), ("D", "_D"),
+             ("\u03c9_cal", "_W"), ("\u03c6", "_PHI")]),
+    }
 
     def components(self, t):
         """Calendar-time oscillation (cos(W_cal * t + phi)), not log-time."""

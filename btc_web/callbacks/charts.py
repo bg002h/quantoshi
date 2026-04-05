@@ -288,6 +288,51 @@ def _decomp_warning_banner(n_checked):
     )
 
 
+def _r2_of_log_pred(log_pred, log_actual):
+    """Compute R² of a log10 prediction array vs actual log10 prices."""
+    residuals = log_actual - log_pred
+    ss_res = float(np.sum(residuals ** 2))
+    ss_tot = float(np.sum((log_actual - np.mean(log_actual)) ** 2))
+    if ss_tot <= 0:
+        return 0.0
+    return 1.0 - ss_res / ss_tot
+
+
+def _component_label(model, name):
+    """Build checkbox label: formula + fitted values + individual R²."""
+    details = getattr(model, "component_details", {}).get(name)
+    if not details:
+        return f" {name}"
+    formula_str, params = details
+    # Fitted values
+    val_strs = []
+    for pname, attr in params:
+        v = getattr(model, attr, None)
+        if v is None:
+            continue
+        val_strs.append(f"{pname}={v:.4g}")
+    # R² of this single component vs price data
+    r2_str = ""
+    try:
+        M = _app_ctx.M
+        t = np.asarray(M.price_years, float)
+        mask = t >= 1.0
+        t = t[mask]
+        log_actual = np.log10(np.asarray(M.price_prices, float)[mask])
+        comps = model.components(t)
+        if name in comps:
+            r2 = _r2_of_log_pred(comps[name], log_actual)
+            r2_str = f"R\u00b2={r2:.3f}"
+    except Exception:
+        pass
+    bits = [formula_str]
+    if val_strs:
+        bits.append("; ".join(val_strs))
+    if r2_str:
+        bits.append(r2_str)
+    return " " + " | ".join(bits)
+
+
 def update_decomp_options(family, n_freqs, weighted, no_13):
     """Populate Component Decomposition checklist options + warning + visibility.
 
@@ -304,7 +349,8 @@ def update_decomp_options(family, n_freqs, weighted, no_13):
     model = _app_ctx.PRICE_MODELS.get(key)
     if model is None:
         return [], [], {"display": "none"}
-    opts = [{"label": f" {name}", "value": name} for name in model.component_names]
+    opts = [{"label": _component_label(model, name), "value": name}
+            for name in model.component_names]
     return opts, [], {"display": "block"}
 
 

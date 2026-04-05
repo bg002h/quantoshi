@@ -501,12 +501,32 @@ def _add_decomposition_traces(traces, t_arr, m, p):
 
     total = len(model.component_names)
     n_checked = len(canonical)
-    label = (f"{model.legend_name} | full model" if n_checked == total
-             else f"{model.legend_name} | {n_checked}/{total} components")
+    base_label = (f"{model.legend_name} | full model" if n_checked == total
+                  else f"{model.legend_name} | {n_checked}/{total} components")
+
+    # R² vs actual price data at historical points
+    r2_str = ""
+    try:
+        t_price = np.asarray(m.price_years, float)
+        mask = t_price >= 1.0
+        t_price = t_price[mask]
+        log_actual = np.log10(np.asarray(m.price_prices, float)[mask])
+        comps_at_price = model.components(t_price)
+        partial_log = comps_at_price[canonical[0]].copy()
+        for n in canonical[1:]:
+            partial_log = partial_log + comps_at_price[n]
+        residuals = log_actual - partial_log
+        ss_res = float(np.sum(residuals ** 2))
+        ss_tot = float(np.sum((log_actual - np.mean(log_actual)) ** 2))
+        if ss_tot > 0:
+            r2 = 1.0 - ss_res / ss_tot
+            r2_str = f"  R\u00b2={r2:.4f}"
+    except Exception:
+        pass
 
     traces.append(go.Scatter(
         x=list(t_arr), y=list(10.0 ** log_vals), mode="lines",
         line=dict(dash="solid", width=2.5, color=sum_color),
-        name=label,
+        name=base_label + r2_str,
         hovertemplate="%{y:$,.0f}<extra></extra>",
     ))

@@ -4,7 +4,7 @@
 
 **Goal:** Promote HybPPL-on-excess into a first-class Quantoshi model (`hybppl_ex`, "HybPPL (excess)") — daily-refit, pulls BM support dynamically, registered in PRICE_MODELS.
 
-**Architecture:** New `HybPPLExcessModel` class in `btc_core.py` inheriting from `LPPLModel`. Reads `A_sup`/`B_sup` from `ModelData` at instantiation; stores 8 oscillation params as class constants written by `tools/fit_hybppl_excess.py --update`. BM support intercept/slope flows from `BMComposite` → `tools/model_toolkit/export.py` → `model_data.pkl` → `ModelData`.
+**Architecture:** New `HybPPLExcessModel` class in `btc_core.py` inheriting from `LPPLModel`. Reads `A_sup`/`B_sup` from `ModelData` at instantiation; stores 8 oscillation params as class constants written by `tools/fit_hybppl_excess.py --update`. BM support intercept/slope flows from `CompositeResult` → `tools/model_toolkit/export.py` → `model_data.pkl` → `ModelData`.
 
 **Spec:** `docs/superpowers/specs/2026-04-05-hybppl-ex-model.md`
 
@@ -19,11 +19,11 @@ grep -n "support_intercept\|support_slope" btc_core.py tools/model_toolkit/expor
 
 ---
 
-## Task 1: Expose BM support on `BMComposite` + export to pkl
+## Task 1: Expose BM support on `CompositeResult` + export to pkl
 
 **Files:** `tools/model_toolkit/composite.py`, `tools/model_toolkit/export.py`
 
-- [ ] **Step 1:** Add `support_intercept`/`support_slope` fields to `BMComposite` dataclass. Populate in `build_composite()` from `support.intercept` and `slope_sup`.
+- [ ] **Step 1:** Add `support_intercept`/`support_slope` fields to `CompositeResult` dataclass. Populate in `build_composite()` from `support.intercept` and `support.slope`.
 
 - [ ] **Step 2:** In `tools/model_toolkit/export.py`, export two new keys to pkl:
 ```python
@@ -123,9 +123,9 @@ Expected: `R^2 ≈ 0.699, sigma ≈ 0.162`.
 btc_venv/bin/python3 tools/fit_hybppl_excess.py --update 2>&1 | tail -15
 ```
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Commit** (NOT the .bak file — it's a runtime backup, not a deliverable)
 ```bash
-git add tools/fit_hybppl_excess.py btc_core.py btc_core.py.bak
+git add tools/fit_hybppl_excess.py btc_core.py
 git commit -m "feat(fit): tools/fit_hybppl_excess.py with --update
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
@@ -133,7 +133,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 ---
 
-## Task 5: Register in `PRICE_MODELS` (`app.py`)
+## Task 5: Register in `PRICE_MODELS` (`btc_web/app.py`)
 
 - [ ] **Step 1:** Import `HybPPLExcessModel` near existing `HybPPLModel` import.
 
@@ -156,7 +156,7 @@ lsof -ti :8050 | xargs -r kill -9 2>/dev/null
 
 - [ ] **Step 4: Commit**
 ```bash
-git add app.py
+git add btc_web/app.py
 git commit -m "feat: register hybppl_ex in PRICE_MODELS
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"

@@ -4123,6 +4123,31 @@ class TestCompositeComponentDecomposition:
         assert ef.component_names == ["support", "bubbles"]
 
 
+class TestDecompRegistry:
+    def test_families_keys(self):
+        import _app_ctx
+        expected = {"bub", "ef", "lppl", "linppl", "hybppl", "hybppl_ex"}
+        assert set(_app_ctx.DECOMP_FAMILIES.keys()) == expected
+
+    def test_families_labels(self):
+        import _app_ctx
+        assert _app_ctx.DECOMP_FAMILIES["bub"] == "BM"
+        assert _app_ctx.DECOMP_FAMILIES["lppl"] == "LPPL (family)"
+        assert _app_ctx.DECOMP_FAMILIES["hybppl_ex"] == "HybPPL (ex)"
+
+    def test_palette_has_all_four_schemes(self):
+        import _app_ctx
+        assert set(_app_ctx.DECOMP_COLORS.keys()) == {"default", "cb-brian", "cb-rg", "cb-full"}
+        for key, colors in _app_ctx.DECOMP_COLORS.items():
+            assert len(colors) == 7, f"{key} palette has {len(colors)} colors, expected 7"
+            for c in colors:
+                assert c.startswith("#") and len(c) == 7
+
+    def test_sum_color_has_all_four_schemes(self):
+        import _app_ctx
+        assert set(_app_ctx.DECOMP_SUM_COLOR.keys()) == {"default", "cb-brian", "cb-rg", "cb-full"}
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Section: MC model interface verification
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -42,6 +42,37 @@ LPPL_FAMILY_HIDDEN_FROM_BUBBLE = frozenset({
 # Per-model trace colors — high-contrast, colorblind-safe, one color per model.
 # Used when shade bands are active so traces stand out against any band color.
 # Designed for luminance variation (readable without color vision).
+# Component decomposition — family dropdown options and trace palette.
+# The "lppl" family is resolved at render time via the LPPL config panel.
+DECOMP_FAMILIES = {
+    "bub":       "BM",
+    "ef":        "EF",
+    "lppl":      "LPPL (family)",
+    "linppl":    "LinPPL",
+    "hybppl":    "HybPPL",
+    "hybppl_ex": "HybPPL (ex)",
+}
+
+# 7-color decomposition palette per color scheme (cycles if model has >7 comps)
+DECOMP_COLORS = {
+    "default":  ["#E64A19", "#1976D2", "#388E3C", "#7B1FA2",
+                 "#F57C00", "#00796B", "#5D4037"],
+    "cb-brian": ["#D81B60", "#1E88E5", "#004D40", "#F4511E",
+                 "#6A1B9A", "#00695C", "#3E2723"],
+    "cb-rg":    ["#E69F00", "#56B4E9", "#009E73", "#F0E442",
+                 "#0072B2", "#D55E00", "#CC79A7"],
+    "cb-full":  ["#000000", "#505050", "#808080", "#A0A0A0",
+                 "#C0C0C0", "#6A6A6A", "#303030"],
+}
+
+# Dedicated sum-trace color per palette (distinct from individual components)
+DECOMP_SUM_COLOR = {
+    "default":  "#000000",
+    "cb-brian": "#000000",
+    "cb-rg":    "#000000",
+    "cb-full":  "#F5793A",
+}
+
 MODEL_TRACE_COLORS = {
     "bub": "#DAA520",   # goldenrod — matches bubble composite
     "qr":  "#B0BEC5",   # blue-grey — muted

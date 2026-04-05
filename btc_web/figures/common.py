@@ -375,8 +375,16 @@ def _build_qr_config_text(p: dict, tab: str) -> str:
 
     # Show active models and quantiles as separate labeled lists
     active = p.get("active_models", [])
-    _MODEL_LABELS = {"bub": "BM", "qr": "QR", "pl": "PL", "lppl": "LPPL",
-                     "exp": "Exp", "s2f": "S2F", "ef": "EF", "u1": "U\u2081"}
+    _MODEL_LABELS = {
+        "bub": "BM", "qr": "QR", "pl": "PL", "lppl": "LPPL",
+        "lp2": "LPPL\u2082", "lp3": "LPPL\u2083", "lp4": "LPPL\u2084",
+        "lppl_w": "LPPL (w)", "lp2_w": "LPPL\u2082 (w)",
+        "lp3_w": "LPPL\u2083 (w)", "lp4_w": "LPPL\u2084 (w)",
+        "lp4_n13": "LPPL\u2084 (no \u03c9\u224813)",
+        "lp4_w_n13": "LPPL\u2084 (w, no \u03c9\u224813)",
+        "linppl": "LinPPL", "hybppl": "HybPPL",
+        "exp": "Exp", "s2f": "S2F", "ef": "EF", "u1": "U\u2081",
+    }
     if active:
         model_str = ", ".join(_MODEL_LABELS.get(m, m) for m in active)
         parts = [f"Model: {model_str}", f"Quantiles: {qs_str}"]

@@ -4,6 +4,7 @@ import math
 
 import dash
 from dash import Input, Output, State, ctx, callback, html
+import numpy as np
 import pandas as pd
 
 import _app_ctx
@@ -600,10 +601,18 @@ def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
     Input("bub-auto-y",  "value"),
     Input("bub-yscale",  "value"),
     Input("bub-model-show", "value"),
+    Input("bub-decomp-model",       "value"),
+    Input("bub-decomp-components",  "value"),
+    Input("lppl-n-freqs",           "value"),
+    Input("lppl-weighted",          "value"),
+    Input("lppl-no-13",             "value"),
     State("bub-qs",      "value"),
     prevent_initial_call=True,
 )
-def auto_bubble_yrange(xrange, auto_y, yscale, model_show, sel_qs):
+def auto_bubble_yrange(xrange, auto_y, yscale, model_show,
+                       decomp_model, decomp_components,
+                       lppl_n_freqs, lppl_weighted, lppl_no_13,
+                       sel_qs):
     """Auto-fit bubble Y range to selected quantiles at current X range."""
     if not auto_y or not xrange:
         raise dash.exceptions.PreventUpdate
@@ -658,6 +667,30 @@ def auto_bubble_yrange(xrange, auto_y, yscale, model_show, sel_qs):
         y_lo = -2.0
         y_hi = math.ceil(math.log10(max(p_hi * 1.1, 1e-10)) * 2) / 2
         y_hi = min(y_cap, max(y_hi, 1.0))
+
+    # Extend Y-range to cover active decomposition components
+    decomp_key = _resolve_decomp_model_key(
+        decomp_model or "", lppl_n_freqs, lppl_weighted, lppl_no_13)
+    if decomp_key and decomp_components:
+        comp_model = _app_ctx.PRICE_MODELS.get(decomp_key)
+        if comp_model is not None:
+            t_decomp = np.linspace(max(t_lo, 0.1), t_hi, 100)
+            comps = comp_model.components(t_decomp)
+            names = [s for s in decomp_components
+                     if s != "__sum__" and s in comps]
+            for name in names:
+                log_vals = comps[name]
+                y_lo = min(y_lo, float(math.floor(float(np.min(log_vals)) * 2) / 2))
+                y_hi = max(y_hi, float(math.ceil(float(np.max(log_vals)) * 2) / 2))
+            if "__sum__" in decomp_components and names:
+                sum_log = comps[names[0]].copy()
+                for n in names[1:]:
+                    sum_log = sum_log + comps[n]
+                y_lo = min(y_lo, float(math.floor(float(np.min(sum_log)) * 2) / 2))
+                y_hi = max(y_hi, float(math.ceil(float(np.max(sum_log)) * 2) / 2))
+            y_lo = max(-1.5, min(y_lo, 6.0))
+            y_hi = min(y_cap, max(y_hi, 1.0))
+
     return [round(y_lo, 1), round(y_hi, 1)]
 
 

@@ -3092,7 +3092,10 @@ class TestAutoBubbleYrange:
             with pytest.raises(Exception):
                 auto_bubble_yrange(
                     xrange=[2015, 2030], auto_y=[], yscale="log",
-                    model_show=[], sel_qs=[0.5],
+                    model_show=[],
+                    decomp_model="", decomp_components=[],
+                    lppl_n_freqs=[], lppl_weighted=[], lppl_no_13=[],
+                    sel_qs=[0.5],
                 )
 
     def test_returns_yrange(self):
@@ -3100,7 +3103,10 @@ class TestAutoBubbleYrange:
         with _patch_ctx("bub-xrange"):
             result = auto_bubble_yrange(
                 xrange=[2015, 2030], auto_y=["yes"], yscale="log",
-                model_show=[], sel_qs=[0.5],
+                model_show=[],
+                decomp_model="", decomp_components=[],
+                lppl_n_freqs=[], lppl_weighted=[], lppl_no_13=[],
+                sel_qs=[0.5],
             )
         assert isinstance(result, list)
         assert len(result) == 2
@@ -4308,6 +4314,27 @@ class TestDecompositionTraces:
         assert len(sum_traces) == 1
 
 
+class TestAutoYWithDecomposition:
+    def test_decomp_a_constant_expands_yrange_low(self):
+        from callbacks.charts import auto_bubble_yrange
+        yr = auto_bubble_yrange(
+            [2015, 2025], ["yes"], "log", ["bub"],
+            "lppl", ["A (constant)"], [1], [], [],
+            [0.5],
+        )
+        assert yr[0] <= -1.0, f"Y-low {yr[0]} should extend to include A constant"
+
+    def test_no_decomp_normal_yrange(self):
+        from callbacks.charts import auto_bubble_yrange
+        yr = auto_bubble_yrange(
+            [2020, 2030], ["yes"], "log", ["bub"],
+            "", [], [3], [], [],
+            [0.5],
+        )
+        assert yr[0] >= -1.5 and yr[1] <= 9.0
+        assert yr[1] > yr[0]
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Section: MC model interface verification
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -5021,7 +5048,10 @@ class TestAutoYWithBubToggle:
         """When BM is unchecked, auto-Y should not crash."""
         from callbacks.charts import auto_bubble_yrange
         try:
-            result = auto_bubble_yrange([2012, 2030], ["yes"], "log", [], [0.5])
+            result = auto_bubble_yrange(
+                [2012, 2030], ["yes"], "log", [],
+                "", [], [], [], [],
+                [0.5])
         except Exception:
             pytest.fail("auto_bubble_yrange should not crash when bub is off")
         assert isinstance(result, list)

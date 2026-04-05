@@ -529,6 +529,187 @@ even as bubble amplitude shrinks. $\omega_2$ is **not constrained** to be a harm
                             ]),
                         ], title="LPPL Weighting & Regime Shifts", item_id="mi-lppl-weighting"),
 
+                        # ── 3d. LinPPL ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = A + B\log_{10}(t) + C \cdot t^{-D}\cos(\omega_{\text{cal}} \cdot t + \varphi)$$
+
+The oscillation is in **calendar time** ($\omega_{\text{cal}} \cdot t$), not log-time. The period
+$T = 2\pi/\omega_{\text{cal}}$ stays constant in calendar years.
+                            """, mathjax=True, className="mb-3"),
+
+                            html.H6("Motivation"),
+                            html.P([
+                                "LPPL assumes log-periodicity \u2014 successive cycles scale by "
+                                "a constant ratio in ln(t). But Bitcoin's halving cycle is "
+                                "approximately constant at 4 calendar years, which is ",
+                                html.Strong("linear-periodic"),
+                                ", not log-periodic. LinPPL replaces LPPL's ",
+                                html.Code("cos(\u03c9\u00b7ln t)"),
+                                " with ",
+                                html.Code("cos(\u03c9_cal\u00b7t)"),
+                                " \u2014 a direct calendar-time oscillation matching the "
+                                "halving rhythm.",
+                            ]),
+
+                            html.H6("Fitted Coefficients (full history)"),
+                            _coeff_table([
+                                ("A", "\u22121.213"),
+                                ("B", "5.111"),
+                                ("C", "0.282"),
+                                ("\u03c9_cal", "1.766 rad/yr"),
+                                ("T (= 2\u03c0/\u03c9)", "3.56 years"),
+                                ("\u03c6", "\u22122.283"),
+                                ("D", "0.010 (at lower bound)"),
+                                ("R\u00b2", "0.9789"),
+                                ("\u03c3", "0.222"),
+                            ]),
+
+                            html.H6("Key Findings"),
+                            html.Ul([
+                                html.Li([
+                                    html.Strong("T = 3.56 years: "),
+                                    "close to Bitcoin's ~4-year halving cycle, "
+                                    "confirming the calendar-periodic hypothesis.",
+                                ]),
+                                html.Li([
+                                    html.Strong("D hits the lower bound (0.01): "),
+                                    "the fit wants NO damping on the calendar cycle. "
+                                    "Bitcoin's halving-driven oscillations don't shrink "
+                                    "over time (in log-price terms).",
+                                ]),
+                                html.Li([
+                                    html.Strong("R\u00b2 barely beats LPPL (+0.0009): "),
+                                    "globally, LinPPL is nearly equivalent to LPPL. The "
+                                    "calendar-time vs log-time choice doesn't resolve "
+                                    "the fit quality question in isolation.",
+                                ]),
+                                html.Li([
+                                    html.Strong("Rolling-window T stays at 3-4.5 yr: "),
+                                    "across all 5-year rolling windows, T anchors to the "
+                                    "halving cycle more stably than LPPL\u2081's W does "
+                                    "(see /E for the evolution).",
+                                ]),
+                            ]),
+
+                            html.H6("Limits"),
+                            html.P([
+                                "LinPPL doesn't capture Bitcoin's early-era (2010-2015) ",
+                                html.Em("self-similarity"),
+                                " \u2014 the pattern that motivated LPPL in the first place. "
+                                "The next model, HybPPL, combines both oscillation types.",
+                            ]),
+                        ], title="LinPPL (Linear-Periodic PPL)", item_id="mi-linppl"),
+
+                        # ── 3e. HybPPL ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = A + B\log_{10}(t) + C_1 t^{-D} \cos(\omega_{\text{log}} \ln t + \varphi_1) + C_2 \cos(\omega_{\text{cal}} t + \varphi_2)$$
+
+Two oscillation terms:
+- **Log-periodic damped** ($\omega_{\text{log}} \cdot \ln t$) — inherits LPPL's framing, captures early-era self-similarity
+- **Linear-periodic undamped** ($\omega_{\text{cal}} \cdot t$) — captures the halving cycle in calendar time
+                            """, mathjax=True, className="mb-3"),
+
+                            html.H6("Motivation"),
+                            html.P([
+                                "Neither LPPL nor LinPPL fits Bitcoin cleanly \u2014 LPPL's "
+                                "log-periodicity misrepresents the halving cycle's calendar-time "
+                                "consistency, while LinPPL ignores the early-era self-similar "
+                                "scaling. HybPPL combines both: one term for each type of "
+                                "oscillation.",
+                            ]),
+
+                            html.H6("Fitted Coefficients (full history)"),
+                            _coeff_table([
+                                ("A", "\u22121.147"),
+                                ("B", "5.052"),
+                                ("C\u2081 (log-periodic amplitude)", "0.690"),
+                                ("\u03c9_log", "7.420"),
+                                ("\u03c6\u2081", "1.453"),
+                                ("D (damping on log term)", "0.708"),
+                                ("C\u2082 (linear-periodic amplitude)", "0.233"),
+                                ("\u03c9_cal", "1.733 rad/yr"),
+                                ("T (= 2\u03c0/\u03c9_cal)", "3.63 years"),
+                                ("\u03c6\u2082", "\u22121.922"),
+                                ("R\u00b2", "0.9889"),
+                                ("\u03c3", "0.161"),
+                                ("C\u2082/C\u2081 ratio", "0.34"),
+                            ]),
+
+                            html.H6("Why HybPPL is the current best-fit"),
+                            html.Ul([
+                                html.Li([
+                                    html.Strong("R\u00b2 = 0.9889 beats LPPL\u2082 (0.9840) "
+                                                "at the same 9-param count"),
+                                    " \u2014 \u0394 R\u00b2 = +0.005, 2\u00d7 the gain "
+                                    "LPPL\u2082 had over LPPL.",
+                                ]),
+                                html.Li([
+                                    html.Strong("Ties LPPL\u2083's R\u00b2 (0.9889) with 3 "
+                                                "fewer parameters"),
+                                    " \u2014 decomposing Bitcoin's structure into one log-periodic "
+                                    "+ one calendar-periodic term is more efficient than three "
+                                    "log-periodic terms.",
+                                ]),
+                                html.Li([
+                                    html.Strong("Both oscillations are meaningful: "),
+                                    "C\u2081 \u2248 0.69 (log), C\u2082 \u2248 0.23 (calendar). "
+                                    "The calendar cycle contributes ~1/3 the amplitude of the "
+                                    "log-periodic cycle \u2014 not dominant, not negligible.",
+                                ]),
+                                html.Li([
+                                    html.Strong("Rolling-window T_cal is rock stable: "),
+                                    "3.0-3.9 yr across all windows, vs LPPL\u2082's W\u2081 which "
+                                    "swings from 15 to 40. Confirms the halving cycle as a "
+                                    "persistent feature independent of fitting window.",
+                                ]),
+                            ]),
+
+                            html.H6("Interpretation"),
+                            html.P([
+                                "Bitcoin's price dynamics appear to have ",
+                                html.Strong("two distinct oscillation mechanisms"),
+                                ":",
+                            ]),
+                            html.Ol([
+                                html.Li([
+                                    html.Strong("Log-periodic market structure cycle"),
+                                    " \u2014 self-similar scaling in early Bitcoin "
+                                    "(2010-2015), possibly driven by adoption dynamics or "
+                                    "market-maturing effects. This term is damped "
+                                    "(D=0.71) \u2014 it shrinks over time."
+                                ]),
+                                html.Li([
+                                    html.Strong("Linear-periodic halving cycle"),
+                                    " \u2014 locked to Bitcoin's 4-year block reward schedule. "
+                                    "This term is undamped \u2014 halving cycles don't "
+                                    "diminish as the asset matures.",
+                                ]),
+                            ]),
+                            html.P([
+                                "The damped log-periodic component is fading, but the "
+                                "linear-periodic halving cycle persists. HybPPL captures "
+                                "this distinction cleanly, which is why it outperforms "
+                                "LPPL variants at equal parameter counts.",
+                            ]),
+
+                            html.H6("Caveats"),
+                            html.Ul([
+                                html.Li("Fit per-window, HybPPL is roughly tied with LPPL\u2082 "
+                                        "(54% of 129 windows). Its advantage comes from the "
+                                        "full-history fit."),
+                                html.Li("Like all LPPL-family models, parameters drift daily "
+                                        "with new price data. Refitted in update_prices.py."),
+                                html.Li("The log-periodic damping D=0.71 is strong \u2014 by "
+                                        "2035 (t\u224826), C\u2081\u00b7t\u207b\u1d30 will be "
+                                        "~0.08 (vs C\u2082=0.23). The calendar cycle will "
+                                        "dominate forward projections."),
+                            ]),
+                        ], title="HybPPL (Hybrid Log+Linear PPL)", item_id="mi-hybppl"),
+
                         # ── 4. Exponential ──
                         dbc.AccordionItem([
                             html.H6("Formula"),

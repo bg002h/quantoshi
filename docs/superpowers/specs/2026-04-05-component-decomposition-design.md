@@ -42,7 +42,11 @@ Each eligible model gains two attributes:
 - **Class attribute** `component_names: list[str]` — human-readable names, same order as `components(t)` returns.
 - **Instance method** `components(t: ndarray) -> dict[str, ndarray]` — returns each additive term's log₁₀ contribution at points `t`, keyed by name.
 
-**Invariant (verified in tests):** `sum(components(t).values()) == _lppl_log10(t)` (or equivalent for BM/EF) to within `1e-10`.
+**Invariants (verified per-model in tests):**
+- LPPL family + LinPPL + HybPPL + HybPPL(ex): `sum(components(t).values()) == _lppl_log10(t)` to within `1e-10`.
+- BM / EF (composite models): `sum(components(t).values()) == _composite_log10(t)` to within `1e-10`.
+
+**Every decomposable subclass MUST override `components()` and `component_names`.** A base-class `NotImplementedError` fallback raises if a subclass with extra `_W2`/`_W3`/`_W4` etc. parameters inherits the parent's 3-term decomposition by accident. `TestComponentDecomposition.test_components_sum_to_median` iterates over all 14 registered decomposable models and verifies the invariant — a silent inheritance bug would be caught.
 
 **Example for `LPPLModel`:**
 
@@ -79,20 +83,23 @@ def components(self, t):
     }
 ```
 
-**BM / EF composite models** — components read from pkl grid:
+**BM / EF composite models** — these are loaded from pkl grids, not analytical formulas. Composite = support + bubble contributions (in log space). The decomposition splits the composite into two pieces:
 
 ```python
 component_names = ["support", "bubbles"]
 
 def components(self, t):
-    # Interpolate pkl grid to requested t
-    log_support = self._log_support_at(t)
-    log_total   = np.log10(self._price_at_median(t))  # median of composite
+    # Interpolate pkl grid (years_plot_bm, support_plot_bm for BM;
+    # years_plot, support_plot for EF) onto requested t.
+    log_support = self._log_support_at(t)            # direct grid interp
+    log_composite = self._composite_log10(t)          # pre-existing method
     return {
         "support": log_support,
-        "bubbles": log_total - log_support,  # composite minus support in log space
+        "bubbles": log_composite - log_support,       # additive residual in log space
     }
 ```
+
+**Implementation note — `BubbleModel` does NOT currently store the support grid.** Only `EmpiricalFloorModel` has `self._support_plot`. Add `self._log_support = np.log10(np.maximum(md.support_bm, 1e-10))` and `self._t_support = md.years_bm` (new, if not present) into `BubbleModel.__init__`, sourced from the existing `ModelData` attrs (`support_bm`, `years_bm`). Then `_log_support_at(t)` is a `np.interp` on those arrays. No new pkl keys required — they already ship.
 
 ### Decomposable-models registry (`btc_web/_app_ctx.py`)
 
@@ -113,6 +120,14 @@ DECOMP_COLORS = {
     "cb-brian": [...],   # colorblind-safe deuteranomaly palette
     "cb-rg":    [...],
     "cb-full":  [...],
+}
+# Dedicated color for the Σ Sum trace (distinct from any individual
+# component color to avoid overlap confusion when a subset is selected)
+DECOMP_SUM_COLOR = {
+    "default":  "#000000",    # black
+    "cb-brian": "#000000",
+    "cb-rg":    "#000000",
+    "cb-full":  "#000000",
 }
 ```
 
@@ -140,46 +155,57 @@ Icon: 🧬 in `_SECTION_ICONS`.
 
 ### Callbacks (`btc_web/callbacks/charts.py`)
 
-**Populate component checklist** (server-side, fires on model dropdown + LPPL config change):
+**Populate component checklist options** — two separate callbacks to avoid a race with `apply_snapshot` (see snapshot-race note below).
+
+Callback A — OPTIONS only (never touches `.value`):
 
 ```python
 @callback(
     Output("bub-decomp-components", "options"),
-    Output("bub-decomp-components", "value"),
     Output("bub-decomp-warning",    "children"),
     Output("bub-decomp-body",       "style"),
     Input("bub-decomp-model",  "value"),
     Input("lppl-n-freqs",      "value"),
     Input("lppl-weighted",     "value"),
     Input("lppl-no-13",        "value"),
-    State("bub-decomp-components", "value"),
     prevent_initial_call=False,
 )
-def update_decomp_options(family, n_freqs, weighted, no_13, current_checked):
+def update_decomp_options(family, n_freqs, weighted, no_13):
     if not family:
-        return [], [], [], {"display": "none"}
-
+        return [], [], {"display": "none"}
     if family == "lppl":
-        n_checked = len(n_freqs or [])
-        if n_checked != 1:
-            warning = _decomp_warning_banner(n_checked)
-            return [], [], warning, {"display": "block"}
-        # Resolve to specific variant
+        if len(n_freqs or []) != 1:
+            return [], _decomp_warning_banner(len(n_freqs or [])), {"display": "block"}
         resolved_key = _resolve_lppl_variant(n_freqs, weighted, no_13)
         model = _app_ctx.PRICE_MODELS[resolved_key]
     else:
         model = _app_ctx.PRICE_MODELS[family]
-
-    names = model.component_names
-    opts = [{"label": f" {name}", "value": name} for name in names]
-    opts.append({"label": " Σ Sum of selected",
-                 "value": "__sum__"})
-
-    # Preserve user's checked state where names still exist
-    valid = {o["value"] for o in opts}
-    kept = [v for v in (current_checked or []) if v in valid]
-    return opts, kept, [], {"display": "block"}
+    opts = [{"label": f" {name}", "value": name} for name in model.component_names]
+    opts.append({"label": " Σ Sum of selected", "value": "__sum__"})
+    return opts, [], {"display": "block"}
 ```
+
+Callback B — VALUE pruning (fires only when USER changes model dropdown, never on snapshot):
+
+```python
+@callback(
+    Output("bub-decomp-components", "value", allow_duplicate=True),
+    Input("bub-decomp-model",       "value"),
+    State("bub-decomp-components", "options"),
+    State("bub-decomp-components", "value"),
+    prevent_initial_call=True,
+)
+def prune_decomp_value_on_model_change(family, opts, current):
+    # ctx guard — only fire when bub-decomp-model was the trigger
+    if ctx.triggered_id != "bub-decomp-model":
+        raise dash.exceptions.PreventUpdate
+    if not family:
+        return []
+    valid = {o["value"] for o in (opts or [])}
+    return [v for v in (current or []) if v in valid]
+```
+
+**Snapshot-race note:** `apply_snapshot` restores `bub-decomp-model` and `bub-decomp-components` simultaneously via its `allow_duplicate=True` outputs. Callback A (options-only) fires when `bub-decomp-model` changes and does NOT touch `.value`, so it cannot clobber the snapshot-restored component selection. Callback B only prunes on user-driven model changes (via `ctx.triggered_id`), not snapshot restores. This mirrors the pattern already used for LPPL config restoration.
 
 **Extend bubble chart callback** (`update_bubble` in `charts.py:247-`): add 3 new Inputs (`bub-decomp-model`, `bub-decomp-components`) + the LPPL resolution State. Pass `decomp_model` + `decomp_components` in the params dict to `build_bubble_figure(m, p)`.
 
@@ -204,22 +230,24 @@ def _add_decomposition_traces(fig, t_grid, model, selected, palette_key):
         sum_log = sum(comps[n] for n in names)
         fig.add_scatter(x=..., y=10 ** sum_log, mode="lines",
                         line={"dash": "solid", "width": 3,
-                               "color": colors[len(names) % len(colors)]},
+                               "color": DECOMP_SUM_COLOR[palette_key]},
                         name=f"{model.legend_name} | Σ ({len(names)} components)")
 ```
 
 ### Snapshot / share link (`btc_web/snapshot.py`)
 
-Append two entries to `_SNAPSHOT_CONTROLS`:
+Append two entries to `_SNAPSHOT_CONTROLS` (appended to END — backward compat):
 
 ```python
 ("bub-decomp-model",      "value"),
 ("bub-decomp-components", "value"),
 ```
 
-Add to `_TAB_CONTROLS["bubble"]` set. Checklist is bitmask-encoded via `_CHECKLIST_OPTIONS` — but the option list is dynamic per model, so we cannot use bitmask here. Store the list of string values as-is (plain JSON); no bitmask.
+Add `"bub-decomp-model"` and `"bub-decomp-components"` to `_TAB_CONTROLS["bubble"]` set in `callbacks/routing.py`. LPPL-family decomposition requires `lppl-n-freqs` / `lppl-weighted` / `lppl-no-13` — all three are ALREADY in `_TAB_CONTROLS["bubble"]`, so no additional entries needed.
 
-Snapshot scheme stays at `q3:` (backward-compatible addition).
+**Bitmask encoding:** `bub-decomp-components` is NOT added to `_CHECKLIST_OPTIONS` because its option set is dynamic per model. Store as plain list[str] (JSON-native). Decoder already handles both `list` and `int` (bitmask) variants via `isinstance(val, int)` check in `_apply_snapshot_value`.
+
+Snapshot scheme stays at `q3:` (backward-compatible addition — older links without these trailing entries decode to `None` → defaults).
 
 ### Trace styling details
 
@@ -232,7 +260,14 @@ Snapshot scheme stays at `q3:` (backward-compatible addition).
 
 When decomposition is active, `auto_bubble_yrange` callback MUST include component y-values when computing the fit range. Otherwise a constant like `A = -1.15` (horizontal line at $0.07) would force the Y-range to include `10^(-1.15)` which may be far below the model bands.
 
-Modification: `auto_bubble_yrange` takes new States for `bub-decomp-model` and `bub-decomp-components`, and extends the computed `p_lo`/`p_hi` with component min/max values over `[t_lo, t_hi]` when decomposition is active.
+**Implementation:** `auto_bubble_yrange` gains two new **Inputs** (not States — otherwise the callback doesn't refire when decomposition changes):
+
+- `Input("bub-decomp-model", "value")`
+- `Input("bub-decomp-components", "value")`
+
+When decomposition is active AND Auto-Y is on, extend the computed `p_lo`/`p_hi` with component min/max values over `[t_lo, t_hi]` before log10+floor/ceil rounding.
+
+Edge case: the constant `A = -1.15` is always far below bands. The auto-fit will expand the low end to cover it, making the chart less readable. This is the expected behavior — if the user enables `A (constant)` they want to see it.
 
 ## Testing
 

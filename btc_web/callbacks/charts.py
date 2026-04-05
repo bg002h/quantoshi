@@ -743,7 +743,7 @@ def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
     xrange = xrange or [2010, 2033]
     p = dict(
         xmin=int(xrange[0]), xmax=int(xrange[1]),
-        active_models=sorted(model_show or ["bub"]),
+        active_models=sorted(model_show or []),
         bub_toggles=sorted(bub_toggles or []),
         n_future=int(n_future) if n_future is not None else 3,
         palette=palette_key or "default",

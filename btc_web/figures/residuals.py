@@ -46,7 +46,7 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     log_p_data = np.log10(np.maximum(m.price_prices[mask], 1e-10))
 
     traces = []
-    active_models = p.get("active_models", ["bub"])
+    active_models = p.get("active_models", [])
     bub_toggles = p.get("bub_toggles", [])
     show_comp = "show_comp" in bub_toggles
     show_sup = "show_sup" in bub_toggles

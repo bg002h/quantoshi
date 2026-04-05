@@ -710,6 +710,50 @@ Two oscillation terms:
                             ]),
                         ], title="HybPPL (Hybrid Log+Linear PPL)", item_id="mi-hybppl"),
 
+                        # ── 3f. HybPPL (excess) ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = A_{\text{sup}} + B_{\text{sup}}\log_{10}(t)
+  + a_0 + C_1\,t^{-D}\cos\!\big(\omega_{\log}\ln t + \phi_1\big)
+  + C_2\cos\!\big(\omega_{\text{cal}}\,t + \phi_2\big)$$
+                            """, mathjax=True, className="mb-3"),
+
+                            html.H6("Motivation"),
+                            html.P(
+                                "HybPPL (excess) decouples the trend from the oscillation. Instead of "
+                                "co-fitting a power-law support with the log- and calendar-periodic terms "
+                                "(as HybPPL does), this variant fixes the support to the BM power-law "
+                                "(A_sup, B_sup) and fits only the 8 oscillation parameters against the "
+                                "BM-excess residual. This eliminates cross-contamination between the "
+                                "support fit and the oscillation fit."
+                            ),
+
+                            html.H6("Coefficients"),
+                            html.P(
+                                "A_sup and B_sup are inherited dynamically from the BM support line "
+                                "(refit daily along with the rest of the BM model). The 8 oscillation "
+                                "parameters (a\u2080, C\u2081, \u03c9_log, \u03c6\u2081, D, C\u2082, "
+                                "\u03c9_cal, \u03c6\u2082) are refit daily via "
+                                "tools/fit_hybppl_excess.py."
+                            ),
+
+                            html.H6("Comparison to HybPPL"),
+                            html.P(
+                                "HybPPL and HybPPL (excess) share the same functional form for the "
+                                "oscillation terms. They differ in the fitting procedure: HybPPL co-fits "
+                                "all parameters (including the power-law trend), while HybPPL (excess) "
+                                "fixes the trend to the BM support line first, then fits oscillations on "
+                                "the residual. See the /F experimental page for side-by-side diagnostics."
+                            ),
+
+                            html.P(
+                                "Refitted daily via tools/fit_hybppl_excess.py along with the rest of "
+                                "the model pipeline in update_prices.py.",
+                                className="text-muted small",
+                            ),
+                        ], title="HybPPL (excess)", item_id="mi-hybppl-ex"),
+
                         # ── 4. Exponential ──
                         dbc.AccordionItem([
                             html.H6("Formula"),

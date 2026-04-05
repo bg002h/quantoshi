@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>LPPL Regime Shift Detection — Quantoshi</title>
+<title>Regime Shift Detection — Quantoshi</title>
 <style>
 body { background:#1a1a2e; color:#cccccc; font-family:system-ui,sans-serif;
        max-width:1300px; margin:0 auto; padding:24px 16px; line-height:1.5; }
@@ -30,10 +30,11 @@ img { max-width:100%; height:auto; display:block; border-radius:6px;
 </style>
 </head>
 <body>
-<h1>LPPL Regime Shift Detection</h1>
+<h1>Regime Shift Detection</h1>
 <p class="muted">
-Rolling-window LPPL fits tracking parameter evolution over time.
-Generated 2026-04-04 20:10 UTC by <code>tools/regime_shift_all.py</code>.
+Rolling-window fits across the PL, LPPL, LinPPL, HybPPL, and BM model
+families, tracking how each model's parameters evolve over time.
+Generated 2026-04-04 20:16 UTC by <code>tools/regime_shift_all.py</code>.
 Regenerate manually — not auto-refreshed.
 </p>
 <nav>
@@ -75,7 +76,7 @@ Regenerate manually — not auto-refreshed.
 <h2>Power Law (2 params, 1yr windows)</h2>
 <div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>
 <p class="model-desc"><strong>Power Law (PL)</strong> — the simplest Bitcoin price model. Pure log-log linear fit: price grows as a fixed power of time since genesis. Two parameters (intercept A, slope B) and no oscillation. Sliding-window fits reveal how the effective growth exponent evolves as different eras of Bitcoin history enter and leave the fit window. Here we fit by unbounded OLS (closed-form) so the true slope is never clipped; a centered intercept A' = mean log-price in the window is also plotted — A' is orthogonal to B, while raw A is a mechanical mirror of B (see FAQ on A/B anti-correlation).</p>
-<p class="muted">Shortest viable PL window — 1 year of data. B reacts almost in real time to the current trend, so the panel essentially tracks Bitcoin's 12-month trailing growth rate. Most volatile of all widths. Pair with the 2yr window for cycle-timing inferences (see PL 1yr/2yr timing sections at the bottom of /E).</p>
+<p class="muted">One year of data. B tracks Bitcoin's 12-month trailing growth rate — fast but less noisy than 6mo, with enough averaging that individual B moves are informative. Pair with the 2yr window for cycle-timing inferences (see PL 6mo/1yr/2yr timing sections at the bottom of /E).</p>
 <img src="/regime_shift/regime_shift_pl_1yr.svg" alt="Power Law (2 params, 1yr windows)">
 </section>
 <hr>
@@ -83,7 +84,7 @@ Regenerate manually — not auto-refreshed.
 <h2>Power Law (2 params, 2yr windows)</h2>
 <div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>
 <p class="model-desc"><strong>Power Law (PL)</strong> — the simplest Bitcoin price model. Pure log-log linear fit: price grows as a fixed power of time since genesis. Two parameters (intercept A, slope B) and no oscillation. Sliding-window fits reveal how the effective growth exponent evolves as different eras of Bitcoin history enter and leave the fit window. Here we fit by unbounded OLS (closed-form) so the true slope is never clipped; a centered intercept A' = mean log-price in the window is also plotted — A' is orthogonal to B, while raw A is a mechanical mirror of B (see FAQ on A/B anti-correlation).</p>
-<p class="muted">Shortest power-law window — reacts fastest to regime changes. B_pl oscillates strongly around bubble peaks and bear bottoms (slope over-fits to local cycle phase). Use alongside wider windows to separate transient spikes from secular drift.</p>
+<p class="muted">Two years of data — the best-balanced PL timing window. B oscillates strongly around bubble peaks and bear bottoms (slope over-fits to local cycle phase) but averages enough data to give the cleanest signal in the timing analysis (highest cross-correlation with log-excess). Use alongside 1yr for confirmation and 5/7/9yr for secular drift.</p>
 <img src="/regime_shift/regime_shift_pl_2yr.svg" alt="Power Law (2 params, 2yr windows)">
 </section>
 <hr>
@@ -114,7 +115,7 @@ Regenerate manually — not auto-refreshed.
 <section id="lp1-5yr">
 <h2>LPPL₁ (6 params, 5yr windows)</h2>
 <div class="formula">log₁₀(price) = A + B·log₁₀(t) + C·t⁻ᴰ·cos(ω·ln t + φ)</div>
-<p class="model-desc"><strong>LPPL₁ (Log-Periodic Power Law, 1 frequency)</strong> — Sornette's classic bubble model: power-law trend plus one log-periodic oscillation whose peaks compress in log-time toward a finite-time singularity. 6 parameters. The angular frequency ω encodes the bubble's discrete scale invariance; historically ω≈7 was the canonical value, but modern Bitcoin fits prefer ω≈15–20 (cycle-stretching). D is the critical exponent.</p>
+<p class="model-desc"><strong>LPPL₁ (Log-Periodic Power Law, 1 frequency)</strong> — Quantoshi's damped variant of Sornette's classic bubble model: power-law trend plus one log-periodic oscillation whose peaks compress in log-time while amplitude decays as t⁻ᴰ. No finite-time singularity (unlike classic LPPL). 6 parameters. The angular frequency ω encodes the bubble's discrete scale invariance; historically ω≈7 was the canonical value, but modern Bitcoin fits prefer ω≈15–20 (cycle-stretching). D is the critical exponent.</p>
 <p class="muted">Single damped log-periodic oscillation. W hits upper bound (15) from ~2020 onward — a signature of Bitcoin's cycle stretching.</p>
 <img src="/regime_shift/regime_shift_lp1_5yr.svg" alt="LPPL₁ (6 params, 5yr windows)">
 </section>
@@ -170,7 +171,7 @@ Regenerate manually — not auto-refreshed.
 <section id="hybppl-5yr">
 <h2>HybPPL (9 params, 5yr windows)</h2>
 <div class="formula">log₁₀(price) = A + B·log₁₀(t) + C₁·t⁻ᴰ·cos(ω_log·ln t + φ₁) + C₂·cos(ω_cal·t + φ₂)    [log-periodic damped + linear-periodic undamped]</div>
-<p class="model-desc"><strong>HybPPL (Hybrid log+linear PPL)</strong> — our best-fitting 9-parameter model: combines a damped log-periodic primary (cos(ω_log·ln t)) with an undamped linear-periodic secondary (cos(ω_cal·t)). Two cleanly separated mechanisms in one model: one log-time chirp converging toward a singularity and one calendar metronome tracking halvings. Full-history R²≈0.989 — ties LPPL₃ (12 params) at 9 params, beats LPPL₂ at the same param count. No intermod artifacts — the two frequencies live on different time axes so they can't alias each other.</p>
+<p class="model-desc"><strong>HybPPL (Hybrid log+linear PPL)</strong> — our best-fitting 9-parameter model: combines a damped log-periodic primary (cos(ω_log·ln t)) with an undamped linear-periodic secondary (cos(ω_cal·t)). Two cleanly separated mechanisms in one model: a log-time-compressing damped chirp (fading over time) plus a calendar metronome tracking halvings (persistent). Full-history R²≈0.989 — ties LPPL₃ (12 params) at 9 params, beats LPPL₂ at the same param count. The two oscillators live on different time axes (log-time vs calendar time), so unlike multi-frequency LPPL they do not drift into stable intermodulation beats against each other.</p>
 <p class="muted">Combines log-periodic damped primary + linear-periodic undamped secondary. Full-history R²=0.989 — beats LPPL₂ at same 9-param count. Watch how the relative contribution of W_log vs W_cal evolves over windows.</p>
 <img src="/regime_shift/regime_shift_hybppl_5yr.svg" alt="HybPPL (9 params, 5yr windows)">
 </section>
@@ -223,14 +224,6 @@ Regenerate manually — not auto-refreshed.
 <img src="/regime_shift/regime_shift_bm_9yr.svg" alt="BM (Bubble Model, 9yr windows)">
 </section>
 <hr>
-<section id="pl-2yr-timing">
-<h2>PL 2yr timing — unbounded OLS</h2>
-<div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>
-<p class="model-desc"><strong>PL timing analysis</strong> — aligns the rolling slope B(t) with log₁₀(price) at the same window end, then computes Pearson correlations (zero-lag) and lagged cross-correlation over ±24 months. B is a trailing window-width growth rate; its peaks lag price rallies until the bubble fully enters the window, and subsequent crashes drag B down until the crash fills the window. Key measurements to compare: peak |xcorr(B, log-excess)| and the lag at which it occurs. B vs 6-month forward momentum is the most direct timing read — strongly-negative means an elevated slope NOW predicts near-term drawdown.</p>
-<p class="muted">Twin-axis B + log₁₀(price) over time, plus lagged cross-correlation out to ±24 months. Unbounded OLS fit so B reflects the true window slope (range ~−8 to +15). Header stats: zero-lag correlations of B vs level, log-excess (detrended), and 6m forward momentum; peak cross-correlation lag in months (positive lag = B leads price).</p>
-<img src="/regime_shift/regime_shift_pl_2yr_timing_unbounded.svg" alt="PL 2yr timing — unbounded OLS">
-</section>
-<hr>
 <section id="pl-6mo-timing">
 <h2>PL 6mo timing — unbounded OLS</h2>
 <div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>
@@ -243,18 +236,27 @@ Regenerate manually — not auto-refreshed.
 <h2>PL 1yr timing — unbounded OLS</h2>
 <div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>
 <p class="model-desc"><strong>PL timing analysis</strong> — aligns the rolling slope B(t) with log₁₀(price) at the same window end, then computes Pearson correlations (zero-lag) and lagged cross-correlation over ±24 months. B is a trailing window-width growth rate; its peaks lag price rallies until the bubble fully enters the window, and subsequent crashes drag B down until the crash fills the window. Key measurements to compare: peak |xcorr(B, log-excess)| and the lag at which it occurs. B vs 6-month forward momentum is the most direct timing read — strongly-negative means an elevated slope NOW predicts near-term drawdown.</p>
-<p class="muted">1-year rolling slope aligned with log₁₀(price). Faster-reacting than 2yr: peak |xcorr(B, log-excess)| ≈ -0.66 at lag -13 months vs -0.80 at lag -22 months for 2yr. The lag scales roughly with window width (~1.1× the window in months), and correlation strength grows with window width (2yr is a cleaner signal). Use 1yr as the fast early-warning and 2yr as confirmation — see the 'Predicting cycle bottoms' notes at the bottom of the 2yr section for the recipe.</p>
+<p class="muted">1-year rolling slope aligned with log₁₀(price). Peak |xcorr(B, log-excess)| ≈ -0.66 at lag −13 months — near-identical lag to the 6mo window (because the crash-fill bound caps the lag at ~12 months) but noticeably tighter correlation thanks to extra averaging. Use 1yr as the practical timing workhorse: longer lead than 2yr (by ~9 months), cleaner signal than 6mo.</p>
 <img src="/regime_shift/regime_shift_pl_1yr_timing_unbounded.svg" alt="PL 1yr timing — unbounded OLS">
 </section>
 <hr>
+<section id="pl-2yr-timing">
+<h2>PL 2yr timing — unbounded OLS</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t)</div>
+<p class="model-desc"><strong>PL timing analysis</strong> — aligns the rolling slope B(t) with log₁₀(price) at the same window end, then computes Pearson correlations (zero-lag) and lagged cross-correlation over ±24 months. B is a trailing window-width growth rate; its peaks lag price rallies until the bubble fully enters the window, and subsequent crashes drag B down until the crash fills the window. Key measurements to compare: peak |xcorr(B, log-excess)| and the lag at which it occurs. B vs 6-month forward momentum is the most direct timing read — strongly-negative means an elevated slope NOW predicts near-term drawdown.</p>
+<p class="muted">2-year rolling slope aligned with log₁₀(price). Highest peak |xcorr(B, log-excess)| of the three widths (≈0.80) at lag −22 months — here the window is wider than the crash, so the lag scales with window width rather than being capped. Strongest structural confirmation signal, at the cost of a 22-month lag between a bubble top and the expected B trough. Header stats: zero-lag correlations of B vs level, log-excess (detrended), and 6m forward momentum; peak cross-correlation lag in months (positive lag = B leads price).</p>
+<img src="/regime_shift/regime_shift_pl_2yr_timing_unbounded.svg" alt="PL 2yr timing — unbounded OLS">
+</section>
+<hr>
 <section id="predict-bottoms">
-<h2>Using PL 1yr + 2yr to predict cycle bottoms</h2>
+<h2>Using PL 6mo / 1yr / 2yr to predict cycle bottoms</h2>
 <p class="model-desc">
 <strong>Signal mechanics.</strong> The N-year rolling PL slope B<sub>N</sub>(t)
 is the net log-log growth rate over the window [t−N, t]. It's a trailing
 indicator: B<sub>N</sub> peaks when a bull run has <em>just fully entered</em>
 the window, then declines as the window fills with the post-peak crash, and
-bottoms roughly N years after the bubble top.
+bottoms some months after the bubble top depending on the window width
+vs. the crash length.
 </p>
 <p class="model-desc">
 <strong>Observed cross-correlation.</strong> corr(B<sub>N</sub>, log-excess)
@@ -291,29 +293,40 @@ crash data by month 12).</li>
 <li><strong>Expected B<sub>2yr</sub> trough:</strong> T<sub>peak</sub> +
 ~22 months. The wider window captures the full rally + crash + post-crash
 chop before bottoming.</li>
-<li><strong>Zero-crossings as confirmation.</strong> Watch B<sub>1</sub>
+<li><strong>Zero-crossings as confirmation.</strong> Watch B<sub>1yr</sub>
 cross zero upward (window's net return turns positive) — typically
-arrives a few months <em>before</em> the actual price bottom and well before
-B<sub>1</sub> reaches its trough. B<sub>2</sub> crossing zero is a
-stronger, later confirmation (usually in early bull).</li>
-<li><strong>Corroboration rule.</strong> When B<sub>1</sub> troughs AND starts
-rising, and B<sub>2</sub> is still falling but decelerating, you are in the
-late-bear / early-accumulation window. When B<sub>2</sub> troughs and
-B<sub>1</sub> is already above zero climbing, the cycle bottom is in the
-rear-view mirror.</li>
-<li><strong>Asymmetry caveat.</strong> The recipe assumes bear-length
-comparable to prior cycles. If the current bear is shorter than the window
-width, B<sub>N</sub> can bottom earlier than the formula predicts — in
-that case B<sub>1</sub> leads B<sub>2</sub> by more than 9–10 months.
-Divergence between 1yr and 2yr trough timings is itself diagnostic of
-cycle-length shifts.</li>
+arrives a few months <em>before</em> B<sub>1yr</sub> reaches its trough
+and often coincides with the actual price bottom. B<sub>2yr</sub> crossing
+zero is a stronger, later confirmation, usually already in early bull.</li>
+<li><strong>Corroboration rule.</strong> When B<sub>1yr</sub> troughs AND
+starts rising, and B<sub>2yr</sub> is still falling but decelerating, you
+are in the late-bear / early-accumulation window. When B<sub>2yr</sub>
+troughs and B<sub>1yr</sub> is already above zero climbing, the cycle
+bottom is in the rear-view mirror.</li>
+<li><strong>Asymmetry caveat.</strong> The recipe's average-lag formula is
+noisy per-cycle. Individual cycles can differ by several months, and the
+lag depends on the actual crash length — shorter crashes pull the
+trough earlier. Divergence between 1yr and 2yr trough timings is itself
+diagnostic of cycle-length shifts.</li>
 </ol>
 <p class="muted" style="margin-top:12px;">
-Applied to the 2021-11 top (T<sub>peak</sub> ≈ 2021-11): B<sub>1</sub>
-trough predicted ~2022-12 (observed ~2022-11, spot-on); B<sub>2</sub> trough
-predicted ~2023-09 (observed ~2023-10). Applied to 2024-03 / 2025-01 local
-highs, the recipe points to B<sub>1</sub>/B<sub>2</sub> troughs in 2026 and
-2026-2027 respectively — watch the live CSVs for updates.
+<strong>Anchoring on T<sub>peak</sub>.</strong> The algorithm uses the
+peak of <em>log-excess</em> (log-price minus long-run PL), not the
+nominal price peak. For the 2021 cycle the log-excess peak is 2021-03
+($58k rally top, where price led trend by the most), not the 2021-11
+nominal top — because the long-run PL was rising fast enough by
+November that the relative-to-trend excess had already declined from
+its March high. The timing charts annotate predictions from the
+log-excess peaks automatically.
+</p>
+<p class="muted" style="margin-top:8px;">
+<strong>Backtest (2021 cycle, T<sub>peak</sub> = 2021-03 log-excess).</strong>
+B<sub>1yr</sub> predicted 2022-04, observed 2022-10 (+6mo from formula);
+B<sub>2yr</sub> predicted 2023-01, observed 2023-02 (+1mo from formula).
+The 2yr prediction is much more accurate per-cycle because its lag is
+set by the genuine 22mo window-fill physics, while the 1yr lag is capped
+at the crash-duration (~12mo) and depends more strongly on the actual
+crash shape.
 </p>
 </section>
 <hr>

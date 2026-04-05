@@ -660,6 +660,27 @@ _app_ctx.app.clientside_callback(
     Input("bub-view-mode", "data"),
 )
 
+# Residuals view: cap X range slider max at (current year + 1). Price/CAGR
+# views restore the full 2080 range for forward projection visibility.
+_app_ctx.app.clientside_callback(
+    """
+    function(mode, cur_range) {
+        var resid_max = (new Date()).getFullYear() + 1;
+        var new_max = (mode === 'resid') ? resid_max : 2080;
+        // Cap current value if it exceeds the new max
+        var r = (cur_range || [2010, 2033]).slice();
+        if (r[1] > new_max) r[1] = new_max;
+        if (r[0] > new_max) r[0] = new_max - 1;
+        return [new_max, r];
+    }
+    """,
+    Output("bub-xrange", "max"),
+    Output("bub-xrange", "value", allow_duplicate=True),
+    Input("bub-view-mode", "data"),
+    State("bub-xrange", "value"),
+    prevent_initial_call='initial_duplicate',
+)
+
 
 # ── CAGR chart for tab 1 ────────────────────────────────────────────────────
 

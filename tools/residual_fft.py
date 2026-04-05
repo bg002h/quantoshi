@@ -43,6 +43,8 @@ ROW_COLORS = {
     "LPPL":         "#FF6D00",
     "LP2":          "#FF9F40",
     "LP4":          "#FFE0A0",
+    "LinPPL":       "#00B8A0",
+    "HybPPL":       "#7B68EE",
 }
 
 # Known LPPL frequencies (log-time angular frequencies)
@@ -83,13 +85,19 @@ def load_data():
     lppl = bc.LPPLModel(price_years, price_prices, quantiles)
     lp2 = bc.LPPL2Model(price_years, price_prices, quantiles)
     lp4 = bc.LPPL4Model(price_years, price_prices, quantiles)
+    linppl = bc.LinPPLModel(price_years, price_prices, quantiles)
+    hybppl = bc.HybPPLModel(price_years, price_prices, quantiles)
 
     lppl_pred = np.asarray(lppl.price_at(0.5, t), float)
     lp2_pred = np.asarray(lp2.price_at(0.5, t), float)
     lp4_log = np.asarray(lp4._lppl_log10(t), float)
+    lin_log = np.asarray(linppl._lppl_log10(t), float)
+    hyb_log = np.asarray(hybppl._lppl_log10(t), float)
     resid_lppl = log_p - np.log10(np.maximum(lppl_pred, 1e-10))
     resid_lp2 = log_p - np.log10(np.maximum(lp2_pred, 1e-10))
     resid_lp4 = log_p - lp4_log
+    resid_linppl = log_p - lin_log
+    resid_hybppl = log_p - hyb_log
 
     return {
         "t": t,
@@ -99,6 +107,8 @@ def load_data():
             "LPPL":         resid_lppl,
             "LP2":          resid_lp2,
             "LP4":          resid_lp4,
+            "LinPPL":       resid_linppl,
+            "HybPPL":       resid_hybppl,
         },
     }
 
@@ -203,7 +213,7 @@ def main():
     print(f"  t range: {t[0]:.3f} .. {t[-1]:.3f} years (N={len(t)})")
 
     # 5 columns: one per model residual
-    cols = ["BM floor", "BM composite", "LPPL", "LP2", "LP4"]
+    cols = ["BM floor", "BM composite", "LPPL", "LP2", "LP4", "LinPPL", "HybPPL"]
 
     # 6 rows: sampling × window combos (top to bottom)
     rows = [
@@ -215,7 +225,7 @@ def main():
         ("Weekly · Blackman-Harris", "weekly", "blackmanharris"),
     ]
 
-    fig, axes = plt.subplots(6, 5, figsize=(20, 20), facecolor=FIG_BG)
+    fig, axes = plt.subplots(6, 7, figsize=(26, 20), facecolor=FIG_BG)
 
     t0, t1 = float(t[0]), float(t[-1])
     lnt_span = np.log(t1) - np.log(t0)

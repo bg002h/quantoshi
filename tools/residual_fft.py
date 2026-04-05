@@ -237,7 +237,7 @@ def main():
             plot_panel(ax, freqs, power, color, col_name, peaks)
 
             if len(freqs) > 1:
-                ax.set_xlim(0, 45.0)
+                ax.set_xlim(0, 100.0)
 
             # Bottom row: x-axis label
             if i == 5:

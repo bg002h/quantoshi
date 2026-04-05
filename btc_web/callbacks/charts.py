@@ -601,6 +601,7 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     Input("dca-toggles",  "value"),
     Input("dca-legend-pos","value"),
     Input("dca-qs",       "value"),
+    Input("dca-qs-adv",   "value"),
     Input("effective-lots","data"),
     Input("dca-sc-enable",  "value"),
     Input("dca-sc-loan",    "value"),
@@ -630,19 +631,23 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     State("dca-mc-unblocked", "data"),
     State("dca-mc-rendered-key", "data"),
     Input("palette-store",      "data"),
+    State("dca-qs-mode",        "value"),
     State("user-model-store",   "data"),
     prevent_initial_call=True,
 )
-def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range, disp, toggles, legend_pos, sel_qs, lots_data,
+def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range, disp, toggles, legend_pos, sel_qs, adv_qs, lots_data,
                sc_enable, sc_loan, sc_rate, sc_term, sc_type, sc_repeats,
                sc_entry_mode, sc_custom_price, sc_tax, sc_rollover,
                mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
-               user_model_store=None):
+               qs_mode=None, user_model_store=None):
     toggles    = toggles or []
     yr_range   = yr_range or [2024, 2034]
     live_price = _cf(price_data, 0)
+    _advanced  = "advanced" in (qs_mode or [])
+    _effective_qs = (adv_qs or []) if _advanced else (
+        _bands_to_qs(sel_qs) if sel_qs and isinstance(sel_qs[0], str) else (sel_qs or []))
     mc_ok, is_free, mc_p, blocked = _mc_setup(
         "dca", mc_enable, mc_years, mc_start_yr, mc_entry_q,
         mc_bins, mc_sims, freq, mc_window, amount, dca_infl,
@@ -667,7 +672,7 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
         show_legend    = "show_legend" in toggles,
         legend_pos     = legend_pos or "outside",
         minor_grid     = "minor_grid" in toggles,
-        selected_qs    = _bands_to_qs(sel_qs) if sel_qs and isinstance(sel_qs[0], str) else (sel_qs or []),
+        selected_qs    = _effective_qs,
         lots           = lots_data or [],
         sc_enabled     = bool(sc_enable),
         sc_loan_amount = _cf(sc_loan, 0),
@@ -721,6 +726,7 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     Input("ret-toggles",  "value"),
     Input("ret-legend-pos","value"),
     Input("ret-qs",       "value"),
+    Input("ret-qs-adv",   "value"),
     Input("effective-lots","data"),
     Input("ret-mc-enable",  "value"),
     Input("ret-mc-bins",    "value"),
@@ -740,16 +746,20 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     State("ret-mc-unblocked", "data"),
     State("ret-mc-rendered-key", "data"),
     Input("palette-store",      "data"),
+    State("ret-qs-mode",        "value"),
     State("user-model-store",   "data"),
     prevent_initial_call=True,
 )
-def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, lots_data,
+def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, adv_qs, lots_data,
                   mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                   mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                   price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
-                  user_model_store=None):
+                  qs_mode=None, user_model_store=None):
     toggles  = toggles or []
     yr_range = yr_range or [RETIRE["start_yr"], RETIRE["end_yr"]]
+    _advanced = "advanced" in (qs_mode or [])
+    _effective_qs = (adv_qs or []) if _advanced else (
+        _bands_to_qs(sel_qs) if sel_qs and isinstance(sel_qs[0], str) else (sel_qs or []))
     mc_ok, is_free, mc_p, blocked = _mc_setup(
         "ret", mc_enable, mc_years, mc_start_yr, mc_entry_q,
         mc_bins, mc_sims, freq, mc_window, wd, infl,
@@ -774,7 +784,7 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
         show_legend  = "show_legend" in toggles,
         legend_pos   = legend_pos or "outside",
         minor_grid   = "minor_grid" in toggles,
-        selected_qs  = _bands_to_qs(sel_qs) if sel_qs and isinstance(sel_qs[0], str) else (sel_qs or []),
+        selected_qs  = _effective_qs,
         lots         = lots_data or [],
         show_qr      = "bub" in model_show,
         show_mc      = "mc" in model_show,
@@ -825,6 +835,7 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     Input("sc-freq",         "value"),
     Input("sc-infl",         "value"),
     Input("sc-qs",           "value"),
+    Input("sc-qs-adv",       "value"),
     Input("sc-mode",         "value"),
     Input("sc-wd",           "value"),
     Input("sc-end-yr",       "value"),
@@ -853,22 +864,26 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     State("sc-mc-unblocked", "data"),
     State("sc-mc-rendered-key", "data"),
     Input("palette-store",     "data"),
+    State("sc-qs-mode",        "value"),
     State("viewport-width",    "data"),
     State("user-model-store",  "data"),
     prevent_initial_call=True,
 )
 def update_supercharge(_first_render, stack, use_lots, start_yr,
                        d0, d1, d2, d3, d4,
-                       freq, infl, sel_qs, mode,
+                       freq, infl, sel_qs, adv_qs, mode,
                        wd, end_yr, target_yr, disp,
                        toggles, legend_pos, chart_layout, display_q, lots_data,
                        mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                        mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                        price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
-                       viewport_width, user_model_store=None):
+                       qs_mode=None, viewport_width=None, user_model_store=None):
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
     toggles = toggles or []
     yr_now  = pd.Timestamp.today().year
+    _advanced = "advanced" in (qs_mode or [])
+    _effective_qs = (adv_qs or []) if _advanced else (
+        _bands_to_qs(sel_qs) if sel_qs and isinstance(sel_qs[0], str) else (sel_qs or []))
     mc_ok, is_free, mc_p, blocked = _mc_setup(
         "sc", mc_enable, mc_years, mc_start_yr, mc_entry_q,
         mc_bins, mc_sims, freq, mc_window, wd, infl,
@@ -888,7 +903,7 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
         delays       = delays if delays else [0, 1, 2, 4, 8],
         freq         = freq or "Monthly",
         inflation    = _cf(infl, SUPERCHARGE["inflation"]),
-        selected_qs  = _bands_to_qs(sel_qs) if sel_qs and isinstance(sel_qs[0], str) else (sel_qs or []),
+        selected_qs  = _effective_qs,
         chart_layout = _cl,
         display_q    = _cf(display_q, _nearest_quantile(SUPERCHARGE["display_q"], _app_ctx._ALL_QS)),
         wd_amount    = _ci(wd, SUPERCHARGE["wd_amount"], lo=0, hi=_app_ctx.MAX_USD),

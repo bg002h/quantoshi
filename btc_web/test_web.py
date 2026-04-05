@@ -4086,6 +4086,43 @@ class TestLPPLComponentDecomposition:
         assert len(_app_ctx.PRICE_MODELS["hybppl_ex"].component_names) == 5
 
 
+class TestCompositeComponentDecomposition:
+    """BM / EF: sum(components(t)) == _composite_log10(t) to 1e-10."""
+
+    T_TEST = np.array([1.0, 5.0, 10.0, 16.0, 30.0, 50.0])
+
+    def _assert_composite_invariant(self, model):
+        comps = model.components(self.T_TEST)
+        assert set(comps.keys()) == set(model.component_names)
+        total = sum(comps.values())
+        expected = model._composite_log10(self.T_TEST)
+        np.testing.assert_allclose(
+            total, expected, rtol=0, atol=1e-10,
+            err_msg=f"{type(model).__name__}: sum(components) != _composite_log10")
+
+    def test_bm_invariant(self):
+        import _app_ctx
+        self._assert_composite_invariant(_app_ctx.PRICE_MODELS["bub"])
+
+    def test_bm_component_count(self):
+        import _app_ctx
+        assert _app_ctx.PRICE_MODELS["bub"].component_names == ["support", "bubbles"]
+
+    def test_ef_invariant(self):
+        import _app_ctx
+        ef = _app_ctx.PRICE_MODELS.get("ef")
+        if ef is None:
+            pytest.skip("EF model not loaded (model_data_ef.pkl absent)")
+        self._assert_composite_invariant(ef)
+
+    def test_ef_component_count(self):
+        import _app_ctx
+        ef = _app_ctx.PRICE_MODELS.get("ef")
+        if ef is None:
+            pytest.skip("EF model not loaded")
+        assert ef.component_names == ["support", "bubbles"]
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Section: MC model interface verification
 # ═══════════════════════════════════════════════════════════════════════════════

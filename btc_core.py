@@ -497,6 +497,21 @@ class _CompositeModel:
             self.fits[q] = {"z": float(norm.ppf(q))}
         self.quantiles = sorted(self.fits.keys())
 
+    component_names = ["support", "bubbles"]
+
+    def components(self, t):
+        """Composite decomposition: support + bubbles (both in log10 space).
+
+        sum(components(t)) == self._composite_log10(t).
+        """
+        t = np.asarray(t, float)
+        log_support = np.interp(t, self._t_grid, self._log_support)
+        log_composite = self._composite_log10(t)
+        return {
+            "support": log_support,
+            "bubbles": log_composite - log_support,
+        }
+
     @property
     def comp_by_n(self):
         return self._comp_by_n
@@ -530,6 +545,10 @@ class BubbleModel(_CompositeModel):
         self._t_grid = np.asarray(md.years_plot_bm, float)
         comp = md.comp_by_n[-1]
         self._log_comp = np.log10(np.maximum(np.asarray(comp, float), 1e-10))
+
+        # Support line (log10 USD) for component decomposition
+        self._log_support = np.log10(np.maximum(
+            np.asarray(md.support_bm, float), 1e-10))
 
         # Shrinking σ parameters (from pkl, fitted by tools/fit_sigma.py)
         self._init_bands(
@@ -1306,6 +1325,9 @@ class EmpiricalFloorModel(_CompositeModel):
 
         comp = self._comp_by_n[-1]
         self._log_comp = np.log10(np.maximum(np.asarray(comp, float), 1e-10))
+
+        # Support line (log10 USD) for component decomposition
+        self._log_support = np.log10(np.maximum(self._support_plot, 1e-10))
 
         # Shrinking σ parameters
         quantiles = d.get("QR_QUANTILES", [

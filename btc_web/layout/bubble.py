@@ -143,7 +143,8 @@ def _bubble_controls():
         ]),
         _lppl_config_panel("bub"),
         _q_panel_with_mode("bub-qs", [0.5],
-                           hint="If none selected, Q50% is shown at 25% opacity."),
+                           hint=f"If none selected, Q50% is shown at "
+                                f"{int(_app_ctx.FALLBACK_Q50_OPACITY * 100)}% opacity."),
         _section_card("Model Scanner",
             _row(
                 html.Div([

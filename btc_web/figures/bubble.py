@@ -127,7 +127,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             _dist = abs(q - 0.5) / 0.45  # 0 at Q50%, 1.0 at Q5%/Q95%
             _q_opacity = max(0.1, 1.0 - _dist * 0.5)  # floor at 0.1
             if _fallback_q50 and _default_mode:
-                _q_opacity = 0.25
+                _q_opacity = _app_ctx.FALLBACK_Q50_OPACITY
             traces.append(go.Scatter(
                 x=list(t_arr), y=list(prices),
                 mode="lines", name=lbl,

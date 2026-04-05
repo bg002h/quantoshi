@@ -25,6 +25,10 @@ FREQ_STEP_DAYS = {"Daily": 1, "Weekly": 7, "Monthly": 30, "Quarterly": 91, "Annu
 ANNOT_STAGGER_Y = [-20, -33, -46, -59, -72]  # annotation y-offsets for staggering (~1 font-height apart)
 BTC_ORANGE = "#f7931a"
 FONT_LEGEND = 10              # legend / small info text
+# Fallback opacity for the ghost Q50% trace shown when no quantile bands
+# are selected in the Projection Quantiles panel. Referenced by figures/
+# bubble.py (rendering) and layout/bubble.py (help-text hint).
+FALLBACK_Q50_OPACITY = 0.25
 MODEL_SENTINELS = frozenset({"mc", "bub"})  # reserved keys in model-show checklists
 
 # LPPL family variants managed by dedicated LPPL config panel (bubble tab)

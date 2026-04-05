@@ -215,6 +215,8 @@ class ModelData:
         self.genesis       = pd.Timestamp(d.get("GENESIS_DATE", "2009-07-25"))
         self.years_plot_bm = np.array(d["years_plot_bm"])
         self.support_bm    = np.array(d["support_plot_bm"])
+        self.support_intercept = float(d.get("bm_support_intercept", -1.5594))
+        self.support_slope     = float(d.get("bm_support_slope", 5.1248))
         self.comp_by_n     = [np.array(c) for c in d["bm_comp_by_n"]]
         self.bm_r2         = d["bm_r2_comp"]
         self.n_future_max  = d["bm_n_future_max"]

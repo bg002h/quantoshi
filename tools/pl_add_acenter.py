@@ -34,6 +34,7 @@ REGIME_EVENTS = [
 ]
 
 CONFIGS = [
+    ("PL 6mo windows", 0.5, "regime_shift_pl_6mo"),
     ("PL 1yr windows", 1.0, "regime_shift_pl_1yr"),
     ("PL 2yr windows", 2.0, "regime_shift_pl_2yr"),
     ("PL 5yr windows", 5.0, "regime_shift_pl_5yr"),

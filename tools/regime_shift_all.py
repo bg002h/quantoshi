@@ -390,6 +390,7 @@ Regenerate manually — not auto-refreshed.
 </p>
 <nav>
 <strong>Jump to:</strong>
+<a href="#pl-6mo">PL (6mo)</a>
 <a href="#pl-1yr">PL (1yr)</a>
 <a href="#pl-2yr">PL (2yr)</a>
 <a href="#pl-5yr">PL (5yr)</a>
@@ -409,6 +410,7 @@ Regenerate manually — not auto-refreshed.
 <a href="#hybppl-5yr">HybPPL (5yr)</a>
 <a href="#bm-7yr">BM (7yr)</a>
 <a href="#bm-9yr">BM (9yr)</a>
+<a href="#pl-6mo-timing">PL 6mo timing</a>
 <a href="#pl-1yr-timing">PL 1yr timing</a>
 <a href="#pl-2yr-timing">PL 2yr timing</a>
 <a href="#predict-bottoms">Predicting bottoms</a>
@@ -425,10 +427,22 @@ bottoms roughly N years after the bubble top.
 </p>
 <p class="model-desc">
 <strong>Observed cross-correlation.</strong> corr(B<sub>N</sub>, log-excess)
-peaks at lag \u2212L months where L\u22481.1\u00b7(12\u00b7N). For N=1 we
-measure L=13 months; for N=2, L=22 months. The peak is negative
-(\u22480.66 for 1yr, \u22480.80 for 2yr) because B is low <em>after</em>
-bubble peaks and high <em>after</em> bear bottoms.
+peaks at lag \u2212L months, where L grows with window width but not
+linearly. Measured across three widths:
+</p>
+<ul class="model-desc" style="margin:0; padding-left:24px;">
+<li>6mo window: L = 12 months, peak |corr| = 0.49</li>
+<li>1yr window: L = 13 months, peak |corr| = 0.66</li>
+<li>2yr window: L = 22 months, peak |corr| = 0.80</li>
+</ul>
+<p class="model-desc">
+The peak is negative at each width because B is low <em>after</em> bubble
+peaks and high <em>after</em> bear bottoms. For windows shorter than the
+typical 12-month crash duration the lag bottoms out near ~12 months (the
+crash fills the window before the window width does). For windows wider
+than the crash, the lag grows roughly with window width. Correlation
+strength grows monotonically with window width because the signal
+averages more noise out.
 </p>
 <p class="model-desc">
 <strong>Bottom-prediction recipe.</strong>
@@ -437,11 +451,15 @@ bubble peaks and high <em>after</em> bear bottoms.
 <li><strong>Anchor on the last bubble top.</strong> Identify the most recent
 log-excess peak date T<sub>peak</sub> from the /A palette-chart or the QR
 bubble overlay.</li>
-<li><strong>Expected B<sub>1</sub> trough:</strong> T<sub>peak</sub> + ~13
-months. This is when 12 months of crash have replaced 12 months of rally in
-the 1-year window.</li>
-<li><strong>Expected B<sub>2</sub> trough:</strong> T<sub>peak</sub> + ~22
-months. Same logic, double the window.</li>
+<li><strong>Expected B<sub>6mo</sub> trough:</strong> T<sub>peak</sub> +
+~12 months (fast alert — the half-year window is fully saturated with
+crash data by month 12).</li>
+<li><strong>Expected B<sub>1yr</sub> trough:</strong> T<sub>peak</sub> +
+~13 months. 12 months of crash have replaced 12 months of rally in the
+1-year window.</li>
+<li><strong>Expected B<sub>2yr</sub> trough:</strong> T<sub>peak</sub> +
+~22 months. The wider window captures the full rally + crash + post-crash
+chop before bottoming.</li>
 <li><strong>Zero-crossings as confirmation.</strong> Watch B<sub>1</sub>
 cross zero upward (window's net return turns positive) \u2014 typically
 arrives a few months <em>before</em> the actual price bottom and well before
@@ -681,6 +699,14 @@ def main():
         print(f"  Using {n_workers} workers\n")
 
     configs = [
+        ("Power Law (2 params, 6mo windows)", "pl", 0.5, PL_NAMES,
+         "pl-6mo", "regime_shift_pl_6mo.svg", PL_FORMULA,
+         "Fastest-reacting PL window \u2014 6 months of data. B is "
+         "essentially a noisy 6-month trailing growth rate; raw panel "
+         "looks jittery but leads 1yr and 2yr signals by half a window. "
+         "Useful for very-early warning of regime shifts. See the "
+         "corresponding timing section at the bottom of /E for the "
+         "lead/lag structure."),
         ("Power Law (2 params, 1yr windows)", "pl", 1.0, PL_NAMES,
          "pl-1yr", "regime_shift_pl_1yr.svg", PL_FORMULA,
          "Shortest viable PL window \u2014 1 year of data. B reacts almost "
@@ -850,6 +876,25 @@ def main():
         "model_desc": PL_TIMING_DESC,
     })
     configs_info.append({
+        "anchor": "pl-6mo-timing",
+        "title": "PL 6mo timing \u2014 unbounded OLS",
+        "subtitle": (
+            "6-month rolling slope aligned with log\u2081\u2080(price). "
+            "Fastest early-warning signal. Observed peak |xcorr(B, "
+            "log-excess)| \u2248 -0.485 at lag \u221212 months \u2014 "
+            "the lag bottoms out at ~12 months because it's set by the "
+            "typical 12-month crash duration rather than the window "
+            "width (for very short windows the crash takes longer to "
+            "fill the window than the window itself). Correlation is "
+            "noticeably weaker (0.49 vs 0.66/0.80 for 1yr/2yr) because "
+            "the 6-month slope is much noisier. Useful for confirming "
+            "momentum shifts in real time, not for precise timing."
+        ),
+        "svg_name": "regime_shift_pl_6mo_timing_unbounded.svg",
+        "formula": PL_FORMULA,
+        "model_desc": PL_TIMING_DESC,
+    })
+    configs_info.append({
         "anchor": "pl-1yr-timing",
         "title": "PL 1yr timing \u2014 unbounded OLS",
         "subtitle": (
@@ -867,22 +912,6 @@ def main():
         "formula": PL_FORMULA,
         "model_desc": PL_TIMING_DESC,
     })
-    configs_info.append({
-        "anchor": "pl-2yr-timing-clipped",
-        "title": "PL 2yr timing \u2014 clipped DE",
-        "subtitle": (
-            "Same analysis but with B constrained to [3, 7] by the "
-            "differential_evolution box. Because the optimizer parks at "
-            "the rails for long stretches, the cycle-timing structure in "
-            "raw level is destroyed (peak xcorr collapses to ~synchronous). "
-            "Detrended log-excess still recovers the ~\u221222 month lag "
-            "because clipping acts symmetrically around the long-run trend."
-        ),
-        "svg_name": "regime_shift_pl_2yr_timing_clipped.svg",
-        "formula": PL_FORMULA,
-        "model_desc": PL_TIMING_DESC,
-    })
-
     # Build HTML
     timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M UTC")
     html = build_html(configs_info, timestamp)

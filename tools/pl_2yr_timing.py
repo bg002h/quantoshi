@@ -294,15 +294,15 @@ def main():
     print(f"  {len(df_price)} daily rows\n")
 
     variants = [
+        ("PL 6mo unbounded", "regime_shift_pl_6mo.csv",
+         "regime_shift_pl_6mo_timing_unbounded.svg",
+         "regime_shift_pl_6mo_timing_unbounded.csv"),
         ("PL 1yr unbounded", "regime_shift_pl_1yr.csv",
          "regime_shift_pl_1yr_timing_unbounded.svg",
          "regime_shift_pl_1yr_timing_unbounded.csv"),
         ("PL 2yr unbounded OLS",  "regime_shift_pl_2yr.csv",
          "regime_shift_pl_2yr_timing_unbounded.svg",
          "regime_shift_pl_2yr_timing_unbounded.csv"),
-        ("PL 2yr clipped DE",     "regime_shift_pl_2yr_clipped.csv",
-         "regime_shift_pl_2yr_timing_clipped.svg",
-         "regime_shift_pl_2yr_timing_clipped.csv"),
     ]
 
     for label, csv_in, svg_out, csv_out in variants:

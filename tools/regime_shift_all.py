@@ -82,22 +82,23 @@ def lp3_model(t_safe, A, B, C1, W1, PHI1, D, C2, W2, PHI2, C3, W3, PHI3):
             + C3 * np.cos(W3 * np.log(t_safe) + PHI3))
 
 
+# W_max widened from 15 to 25 to test whether saturation at 15 was a bound artifact
 LP1_BOUNDS = [
     (-3.0, 1.0), (3.0, 7.0), (0.01, 3.0),
-    (2.0, 15.0), (-np.pi, np.pi), (0.01, 2.0),
+    (2.0, 25.0), (-np.pi, np.pi), (0.01, 2.0),
 ]
 LP1_NAMES = ["A", "B", "C", "W", "PHI", "D"]
 
 LP2_BOUNDS = [
     (-3.0, 1.0), (3.0, 7.0), (0.01, 3.0),
-    (2.0, 15.0), (-np.pi, np.pi), (0.01, 2.0),
+    (2.0, 25.0), (-np.pi, np.pi), (0.01, 2.0),
     (0.0, 1.5), (3.0, 35.0), (-np.pi, np.pi),
 ]
 LP2_NAMES = ["A", "B", "C1", "W1", "PHI1", "D", "C2", "W2", "PHI2"]
 
 LP3_BOUNDS = [
     (-3.0, 1.0), (3.0, 7.0), (0.01, 3.0),
-    (2.0, 15.0), (-np.pi, np.pi), (0.01, 2.0),
+    (2.0, 25.0), (-np.pi, np.pi), (0.01, 2.0),
     (0.0, 1.5), (3.0, 35.0), (-np.pi, np.pi),
     (0.0, 1.5), (3.0, 35.0), (-np.pi, np.pi),
 ]
@@ -107,26 +108,30 @@ LP3_NAMES = ["A", "B", "C1", "W1", "PHI1", "D", "C2", "W2", "PHI2", "C3", "W3", 
 # ── Fit workers (module-level, picklable) ────────────────────────────────
 
 def _fit_worker(args):
-    """Fit one window. Returns dict of param values + sigma + r2."""
+    """Fit one window. Returns dict of param values + sigma + r2.
+    Catches BaseException to avoid killing the ProcessPoolExecutor worker."""
     model_name, t_end, t_win, lp_win = args
-    if len(t_win) < 100:
-        return _nan_result(model_name, t_end)
-    if model_name == "lp1":
-        bounds, names, fn = LP1_BOUNDS, LP1_NAMES, lp1_model
-    elif model_name == "lp2":
-        bounds, names, fn = LP2_BOUNDS, LP2_NAMES, lp2_model
-    elif model_name == "lp3":
-        bounds, names, fn = LP3_BOUNDS, LP3_NAMES, lp3_model
-    else:
-        return _nan_result(model_name, t_end)
-
-    t_safe = np.maximum(t_win, 0.1)
-
-    def objective(params):
-        pred = fn(t_safe, *params)
-        return float(np.sum((lp_win - pred) ** 2))
-
     try:
+        if len(t_win) < 100:
+            return _nan_result(model_name, t_end)
+        if model_name == "lp1":
+            bounds, names, fn = LP1_BOUNDS, LP1_NAMES, lp1_model
+        elif model_name == "lp2":
+            bounds, names, fn = LP2_BOUNDS, LP2_NAMES, lp2_model
+        elif model_name == "lp3":
+            bounds, names, fn = LP3_BOUNDS, LP3_NAMES, lp3_model
+        else:
+            return _nan_result(model_name, t_end)
+
+        t_safe = np.maximum(t_win, 0.1)
+
+        def objective(params):
+            pred = fn(t_safe, *params)
+            val = float(np.sum((lp_win - pred) ** 2))
+            if not np.isfinite(val):
+                return 1e20
+            return val
+
         result = differential_evolution(
             objective, bounds,
             maxiter=1500, seed=42, tol=1e-10,
@@ -144,7 +149,11 @@ def _fit_worker(args):
         row["sigma"] = sigma
         row["r2"] = r2
         return row
-    except Exception:
+    except BaseException as e:
+        # Catch absolutely everything (including SystemExit, KeyboardInterrupt)
+        # so the worker doesn't die and bring down the whole pool
+        print(f"[fit_worker] {model_name} t_end={t_end:.3f} failed: {type(e).__name__}: {e}",
+              flush=True)
         return _nan_result(model_name, t_end)
 
 
@@ -167,8 +176,11 @@ def _nan_result(model_name, t_end):
 
 # ── Config driver ────────────────────────────────────────────────────────
 
-def run_config(label, model_name, width_yrs, t_all, lp_all, param_names, n_workers):
-    """Run rolling-window fits for one (model, width) config. Returns DataFrame."""
+def run_config(label, model_name, width_yrs, t_all, lp_all, param_names, n_workers,
+               csv_path=None):
+    """Run rolling-window fits for one (model, width) config. Returns DataFrame.
+    If csv_path given, also saves fit results to CSV.
+    """
     t_min = float(t_all.min())
     t_max = float(t_all.max())
     first_end = t_min + width_yrs
@@ -190,6 +202,12 @@ def run_config(label, model_name, width_yrs, t_all, lp_all, param_names, n_worke
 
     df = pd.DataFrame(results)
     df["end_date"] = [GENESIS + pd.Timedelta(days=t * 365.25) for t in df["t_end"]]
+
+    if csv_path:
+        # Save all fit results for analysis
+        cols = ["end_date", "t_end"] + param_names + ["sigma", "r2"]
+        df[cols].to_csv(csv_path, index=False, float_format="%.6f")
+        print(f"    Saved {csv_path}")
     return df
 
 
@@ -271,6 +289,9 @@ img {{ max-width:100%; height:auto; display:block; border-radius:6px;
        margin-top:12px; }}
 .back-link {{ display:inline-block; margin-top:24px; color:#888; }}
 .muted {{ color:#888; font-size:12px; }}
+.formula {{ background:#0e1624; padding:12px 18px; border-radius:8px;
+            border-left:3px solid #FF9F40; margin:12px 0;
+            font-size:13px; overflow-x:auto; }}
 </style>
 </head>
 <body>
@@ -295,6 +316,7 @@ Regenerate manually — not auto-refreshed.
 
 SECTION_TEMPLATE = """<section id="{anchor}">
 <h2>{title}</h2>
+<div class="formula">{formula}</div>
 <p class="muted">{subtitle}</p>
 <img src="/regime_shift/{svg_name}" alt="{title}">
 </section>
@@ -309,6 +331,7 @@ def build_html(configs_info, timestamp):
             anchor=info["anchor"],
             title=info["title"],
             subtitle=info["subtitle"],
+            formula=info["formula"],
             svg_name=info["svg_name"],
         )
         sections.append(section)
@@ -318,51 +341,86 @@ def build_html(configs_info, timestamp):
     )
 
 
+# Model formulae (Unicode) — embedded in each /E section
+LP1_FORMULA = (
+    "log\u2081\u2080(price) = A + B\u00b7log\u2081\u2080(t) "
+    "+ C\u00b7t\u207b\u1d30\u00b7cos(\u03c9\u00b7ln t + \u03c6)"
+)
+LP2_FORMULA = (
+    "log\u2081\u2080(price) = A + B\u00b7log\u2081\u2080(t) "
+    "+ C\u2081\u00b7t\u207b\u1d30\u00b7cos(\u03c9\u2081\u00b7ln t + \u03c6\u2081) "
+    "+ C\u2082\u00b7cos(\u03c9\u2082\u00b7ln t + \u03c6\u2082)"
+)
+LP3_FORMULA = (
+    "log\u2081\u2080(price) = A + B\u00b7log\u2081\u2080(t) "
+    "+ C\u2081\u00b7t\u207b\u1d30\u00b7cos(\u03c9\u2081\u00b7ln t + \u03c6\u2081) "
+    "+ C\u2082\u00b7cos(\u03c9\u2082\u00b7ln t + \u03c6\u2082) "
+    "+ C\u2083\u00b7cos(\u03c9\u2083\u00b7ln t + \u03c6\u2083)"
+)
+
+
 # ── Main ─────────────────────────────────────────────────────────────────
 
 def main():
+    html_only = "--html-only" in sys.argv
+    # Skip configs whose output SVG already exists (for resuming failed runs)
+    skip_existing = "--skip-existing" in sys.argv
+
     print("=" * 60)
     print("Rolling-window LPPL regime shift detection — ALL models")
+    if html_only:
+        print("(HTML-only mode: skipping fits, regenerating HTML only)")
+    elif skip_existing:
+        print("(Skip-existing mode: configs with existing SVG are skipped)")
     print("=" * 60)
-    print("Loading Bitcoin prices...")
-    pd_ = load_prices("BitcoinPricesDaily.csv")
-    df = pd_.df_full[["date", "years", "log_price"]].copy()
-    df = df[df["years"] >= 1.0].reset_index(drop=True)
-    t_all = df["years"].values
-    lp_all = df["log_price"].values
-    print(f"  {len(df)} daily rows (years >= 1.0)")
 
-    n_workers = max(1, os.cpu_count() - 1)
-    print(f"  Using {n_workers} workers\n")
+    if not html_only:
+        print("Loading Bitcoin prices...")
+        pd_ = load_prices("BitcoinPricesDaily.csv")
+        df = pd_.df_full[["date", "years", "log_price"]].copy()
+        df = df[df["years"] >= 1.0].reset_index(drop=True)
+        t_all = df["years"].values
+        lp_all = df["log_price"].values
+        print(f"  {len(df)} daily rows (years >= 1.0)")
+
+        # Cap at 12 workers to reduce memory pressure (LP3 12-param fits need ~200MB each)
+        n_workers = max(1, min(12, os.cpu_count() - 1))
+        print(f"  Using {n_workers} workers\n")
 
     configs = [
         ("LPPL\u2081 (6 params, 5yr windows)", "lp1", 5.0, LP1_NAMES,
-         "lp1-5yr", "regime_shift_lp1_5yr.svg",
+         "lp1-5yr", "regime_shift_lp1_5yr.svg", LP1_FORMULA,
          "Single damped log-periodic oscillation. W hits upper bound (15) "
          "from ~2020 onward \u2014 a signature of Bitcoin's cycle stretching."),
         ("LPPL\u2082 (9 params, 5yr windows)", "lp2", 5.0, LP2_NAMES,
-         "lp2-5yr", "regime_shift_lp2_5yr.svg",
+         "lp2-5yr", "regime_shift_lp2_5yr.svg", LP2_FORMULA,
          "Damped primary + undamped secondary. Track how W\u2082 evolves \u2014 "
          "flips between ~9 and ~21 depending on which regime dominates the window."),
         ("LPPL\u2083 (12 params, 7yr windows)", "lp3", 7.0, LP3_NAMES,
-         "lp3-7yr", "regime_shift_lp3_7yr.svg",
+         "lp3-7yr", "regime_shift_lp3_7yr.svg", LP3_FORMULA,
          "Three frequencies in a 7-year window. Enough data for primary + "
          "secondary \u03c9\u224821 cycle identification; tight on \u03c9\u22489."),
         ("LPPL\u2083 (12 params, 9yr windows)", "lp3", 9.0, LP3_NAMES,
-         "lp3-9yr", "regime_shift_lp3_9yr.svg",
+         "lp3-9yr", "regime_shift_lp3_9yr.svg", LP3_FORMULA,
          "Same model as above, wider 9-year windows. More stable fits at "
          "the cost of slower regime-change response."),
     ]
 
     configs_info = []
-    for label, model_name, width, names, anchor, svg_name, subtitle in configs:
-        svg_df = run_config(label, model_name, width, t_all, lp_all, names, n_workers)
-        plot_config(svg_df, names, label, width, svg_name)
+    for label, model_name, width, names, anchor, svg_name, formula, subtitle in configs:
+        if not html_only:
+            if skip_existing and os.path.exists(svg_name):
+                print(f"  Skipping {label} (SVG exists)")
+            else:
+                csv_path = svg_name.replace(".svg", ".csv")
+                svg_df = run_config(label, model_name, width, t_all, lp_all,
+                                    names, n_workers, csv_path=csv_path)
+                plot_config(svg_df, names, label, width, svg_name)
+                print(f"  Saved {svg_name}")
         configs_info.append({
             "anchor": anchor, "title": label, "subtitle": subtitle,
-            "svg_name": svg_name,
+            "svg_name": svg_name, "formula": formula,
         })
-        print(f"  Saved {svg_name}")
 
     # Build HTML
     timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M UTC")

@@ -20,13 +20,16 @@ img { max-width:100%; height:auto; display:block; border-radius:6px;
        margin-top:12px; }
 .back-link { display:inline-block; margin-top:24px; color:#888; }
 .muted { color:#888; font-size:12px; }
+.formula { background:#0e1624; padding:12px 18px; border-radius:8px;
+            border-left:3px solid #FF9F40; margin:12px 0;
+            font-size:13px; overflow-x:auto; }
 </style>
 </head>
 <body>
 <h1>LPPL Regime Shift Detection</h1>
 <p class="muted">
 Rolling-window LPPL fits tracking parameter evolution over time.
-Generated 2026-04-04 16:06 UTC by <code>tools/regime_shift_all.py</code>.
+Generated 2026-04-04 17:26 UTC by <code>tools/regime_shift_all.py</code>.
 Regenerate manually — not auto-refreshed.
 </p>
 <nav>
@@ -38,24 +41,28 @@ Regenerate manually — not auto-refreshed.
 </nav>
 <section id="lp1-5yr">
 <h2>LPPL₁ (6 params, 5yr windows)</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t) + C·t⁻ᴰ·cos(ω·ln t + φ)</div>
 <p class="muted">Single damped log-periodic oscillation. W hits upper bound (15) from ~2020 onward — a signature of Bitcoin's cycle stretching.</p>
 <img src="/regime_shift/regime_shift_lp1_5yr.svg" alt="LPPL₁ (6 params, 5yr windows)">
 </section>
 <hr>
 <section id="lp2-5yr">
 <h2>LPPL₂ (9 params, 5yr windows)</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t) + C₁·t⁻ᴰ·cos(ω₁·ln t + φ₁) + C₂·cos(ω₂·ln t + φ₂)</div>
 <p class="muted">Damped primary + undamped secondary. Track how W₂ evolves — flips between ~9 and ~21 depending on which regime dominates the window.</p>
 <img src="/regime_shift/regime_shift_lp2_5yr.svg" alt="LPPL₂ (9 params, 5yr windows)">
 </section>
 <hr>
 <section id="lp3-7yr">
 <h2>LPPL₃ (12 params, 7yr windows)</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t) + C₁·t⁻ᴰ·cos(ω₁·ln t + φ₁) + C₂·cos(ω₂·ln t + φ₂) + C₃·cos(ω₃·ln t + φ₃)</div>
 <p class="muted">Three frequencies in a 7-year window. Enough data for primary + secondary ω≈21 cycle identification; tight on ω≈9.</p>
 <img src="/regime_shift/regime_shift_lp3_7yr.svg" alt="LPPL₃ (12 params, 7yr windows)">
 </section>
 <hr>
 <section id="lp3-9yr">
 <h2>LPPL₃ (12 params, 9yr windows)</h2>
+<div class="formula">log₁₀(price) = A + B·log₁₀(t) + C₁·t⁻ᴰ·cos(ω₁·ln t + φ₁) + C₂·cos(ω₂·ln t + φ₂) + C₃·cos(ω₃·ln t + φ₃)</div>
 <p class="muted">Same model as above, wider 9-year windows. More stable fits at the cost of slower regime-change response.</p>
 <img src="/regime_shift/regime_shift_lp3_9yr.svg" alt="LPPL₃ (12 params, 9yr windows)">
 </section>

@@ -162,18 +162,26 @@ pre code {{ background:none; padding:0; }}
 
     @server.route("/regime_shift/<path:filename>")
     def _regime_shift_asset(filename):
-        # Serve individual SVGs referenced by regime_shift_all.html
-        # Restrict to the expected filenames to avoid path traversal
-        allowed = {
+        # Serve individual SVGs + CSVs referenced by regime_shift_all.html
+        # Restrict to expected filenames to avoid path traversal
+        allowed_svg = {
             "regime_shift_lp1_5yr.svg", "regime_shift_lp2_5yr.svg",
             "regime_shift_lp3_7yr.svg", "regime_shift_lp3_9yr.svg",
         }
-        if filename not in allowed:
+        allowed_csv = {
+            "regime_shift_lp1_5yr.csv", "regime_shift_lp2_5yr.csv",
+            "regime_shift_lp3_7yr.csv", "regime_shift_lp3_9yr.csv",
+        }
+        if filename in allowed_svg:
+            ctype = "image/svg+xml"
+        elif filename in allowed_csv:
+            ctype = "text/csv"
+        else:
             return "Not found", 404
-        svg_path = os.path.join(os.path.dirname(__file__), "..", filename)
+        asset_path = os.path.join(os.path.dirname(__file__), "..", filename)
         try:
-            with open(svg_path) as f:
-                return f.read(), 200, {"Content-Type": "image/svg+xml"}
+            with open(asset_path) as f:
+                return f.read(), 200, {"Content-Type": ctype}
         except FileNotFoundError:
             return "Not generated yet", 404
 

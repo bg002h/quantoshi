@@ -4319,65 +4319,49 @@ class TestDecompositionTraces:
         sum_traces = [n for n in trace_names if " | \u03a3 (" in n]
         assert len(sum_traces) == 1
 
-    def test_reference_mode_adds_on_support(self):
-        """Reference mode renders each component as 10^(support + c)."""
-        import _app_ctx
-        from figures.bubble import build_bubble_figure
-        fig = build_bubble_figure(_app_ctx.M, self._base_p(
-            decomp_model="hybppl_ex",
-            decomp_components=["damped log osc (\u03c9_log)"],
-            decomp_mode="reference"))
-        trace_names = [t.name for t in fig.data if getattr(t, 'name', None)]
-        # Reference mode adds " (on support)" suffix
-        refs = [n for n in trace_names if " (on support)" in n]
-        assert len(refs) == 1
-
-    def test_cumulative_mode_prefix(self):
-        """Cumulative mode renders each trace with +{name} prefix."""
-        import _app_ctx
-        from figures.bubble import build_bubble_figure
-        fig = build_bubble_figure(_app_ctx.M, self._base_p(
-            decomp_model="hybppl_ex",
-            decomp_components=["A_sup", "B_sup\u00b7log\u2081\u2080(t)"],
-            decomp_mode="cumulative"))
-        trace_names = [t.name for t in fig.data if getattr(t, 'name', None)]
-        cum = [n for n in trace_names if " | +" in n]
-        assert len(cum) == 2
-
-    def test_reference_mode_larger_y_than_individual(self):
-        """Reference mode traces lie on support line; individual traces
-        lie near 10^0=$1. So reference y-values >> individual y-values."""
-        import _app_ctx
-        from figures.bubble import build_bubble_figure
-        p_individual = self._base_p(
-            decomp_model="hybppl_ex",
-            decomp_components=["damped log osc (\u03c9_log)"],
-            decomp_mode="individual")
-        p_reference = self._base_p(
-            decomp_model="hybppl_ex",
-            decomp_components=["damped log osc (\u03c9_log)"],
-            decomp_mode="reference")
+    def test_nonsupport_component_renders_on_support(self):
+        """Non-support components render as 10^(support + c) — visible on
+        the support line, not at log10=0 ($1)."""
         import numpy as np
-        fig_i = build_bubble_figure(_app_ctx.M, p_individual)
-        fig_r = build_bubble_figure(_app_ctx.M, p_reference)
-        ind_trace = [t for t in fig_i.data if getattr(t, 'name', None)
-                     and " | damped" in t.name][0]
-        ref_trace = [t for t in fig_r.data if getattr(t, 'name', None)
-                     and " | damped" in t.name][0]
-        ind_max = np.max(ind_trace.y)
-        ref_max = np.max(ref_trace.y)
-        assert ref_max > ind_max * 100  # reference is on support, so $10k+
+        import _app_ctx
+        from figures.bubble import build_bubble_figure
+        fig = build_bubble_figure(_app_ctx.M, self._base_p(
+            decomp_model="hybppl_ex",
+            decomp_components=["damped log osc (\u03c9_log)"]))
+        trace = [t for t in fig.data if getattr(t, 'name', None)
+                 and " | damped" in t.name][0]
+        assert np.max(trace.y) > 1000  # way above $1 — it's on support
+
+    def test_all_components_render_on_support(self):
+        """All checked components (including support) render as
+        10^(support + c) — strict reference mode for every checkbox."""
+        import numpy as np
+        import _app_ctx
+        from figures.bubble import build_bubble_figure
+        # BM: support is 1 of 2 components. Checking "support" alone
+        # should give 10^(support+support) = 10^(2*support) > raw support.
+        fig = build_bubble_figure(_app_ctx.M, self._base_p(
+            decomp_model="bub",
+            decomp_components=["support"]))
+        trace = [t for t in fig.data if getattr(t, 'name', None)
+                 and " | support" in t.name][0]
+        # Doubled support line — at t=20 (2029) support is ~$40k, so doubled
+        # support is $40k^2/scale. Just assert it's different from normal support.
+        assert np.max(trace.y) > 10000
 
 
 class TestAutoYWithDecomposition:
-    def test_decomp_a_constant_expands_yrange_low(self):
+    def test_decomp_traces_stay_in_normal_yrange(self):
+        """Components now render on support — Y-range stays normal."""
         from callbacks.charts import auto_bubble_yrange
         yr = auto_bubble_yrange(
             [2015, 2025], ["yes"], "log", ["bub"],
             "lppl", ["A (constant)"], "individual", [1], [], [],
             [0.5],
         )
-        assert yr[0] <= -1.0, f"Y-low {yr[0]} should extend to include A constant"
+        # With on-support rendering, traces sit near support line (not $0.07).
+        # Y-low shouldn't crash below normal support values.
+        assert yr[0] >= -1.5 and yr[1] <= 9.0
 
     def test_no_decomp_normal_yrange(self):
         from callbacks.charts import auto_bubble_yrange

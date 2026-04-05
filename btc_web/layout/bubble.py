@@ -152,25 +152,21 @@ def _bubble_controls():
                 value="", clearable=False,
             ),
             html.Div(id="bub-decomp-body", style=_STYLE_HIDDEN, children=[
-                _lbl("Render mode"),
-                dcc.RadioItems(
-                    id="bub-decomp-mode",
-                    options=[
-                        {"label": " Individual", "value": "individual"},
-                        {"label": " Reference", "value": "reference"},
-                        {"label": " Cumulative", "value": "cumulative"},
-                    ],
-                    value="individual", inline=True,
-                    inputStyle=_CB_MARGIN,
-                    className="small",
-                    style={"fontSize": "11px", "marginBottom": "6px"},
-                ),
                 dcc.Checklist(
                     id="bub-decomp-components",
                     options=[], value=[],
                     labelStyle={"display": "block", "fontSize": "11px"},
                     inputStyle=_CB_MARGIN,
                 ),
+                html.Small(
+                    "Components render on the support line. "
+                    "\u03a3 Sum = support + oscillators = full model.",
+                    style={"color": "#888", "fontSize": "10px",
+                            "display": "block", "marginTop": "4px"},
+                ),
+                # Hidden placeholder — preserves bub-decomp-mode snapshot slot.
+                dcc.RadioItems(id="bub-decomp-mode", value="individual",
+                                style=_STYLE_HIDDEN),
             ]),
             html.Div(id="bub-decomp-warning", children=[]),
             no_hover=True,

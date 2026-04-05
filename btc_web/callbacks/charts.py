@@ -681,28 +681,17 @@ def auto_bubble_yrange(xrange, auto_y, yscale, model_show,
             comps = comp_model.components(t_decomp)
             canonical = [n for n in comp_model.component_names
                          if n in decomp_components]
-            mode = decomp_mode or "individual"
-            # Support line for reference mode
             support_names = getattr(comp_model, "support_component_names", [])
             support_log = None
             if support_names:
                 support_log = comps[support_names[0]].copy()
                 for n in support_names[1:]:
                     support_log = support_log + comps[n]
-            # Per-trace log values by mode
-            per_trace_logs = []
-            if mode == "cumulative":
-                cum = None
-                for name in canonical:
-                    cum = comps[name].copy() if cum is None else cum + comps[name]
-                    per_trace_logs.append(cum)
-            elif mode == "reference" and support_log is not None:
-                for name in canonical:
-                    per_trace_logs.append(support_log + comps[name])
-            else:
-                for name in canonical:
-                    per_trace_logs.append(comps[name])
-            for log_vals in per_trace_logs:
+            for name in canonical:
+                if support_log is not None:
+                    log_vals = support_log + comps[name]
+                else:
+                    log_vals = comps[name]
                 y_lo = min(y_lo, float(math.floor(float(np.min(log_vals)) * 2) / 2))
                 y_hi = max(y_hi, float(math.ceil(float(np.max(log_vals)) * 2) / 2))
             if "__sum__" in decomp_components and canonical:

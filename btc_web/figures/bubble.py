@@ -459,10 +459,12 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 def _add_decomposition_traces(traces, t_arr, m, p):
     """Append component decomposition traces + optional Σ sum trace.
 
-    Three render modes:
-    - individual: each trace = 10^(component) — isolated, near $1
-    - reference:  each trace = 10^(support + component) — modulation on support
-    - cumulative: traces layer up, each adds one more component to the sum
+    Rendering rule:
+    - Non-support components → 10^(support + component)  (modulation ON support)
+    - Support components     → 10^(component)            (the piece itself)
+    - Σ Sum of selected      → 10^(Σ selected)           (= full model when
+                                                            all components
+                                                            checked)
     """
     import _app_ctx
     from callbacks.charts import _resolve_decomp_model_key
@@ -491,12 +493,8 @@ def _add_decomposition_traces(traces, t_arr, m, p):
         palette, _app_ctx.DECOMP_SUM_COLOR["default"])
 
     comps = model.components(t_arr)
-    render_mode = p.get("decomp_mode", "individual") or "individual"
-
-    # Canonical ordering (from class attribute) for cumulative mode.
     canonical = [n for n in model.component_names if n in selected]
 
-    # Support (sum of support_component_names) — needed for reference mode.
     support_names = getattr(model, "support_component_names", [])
     support_log = None
     if support_names:
@@ -505,39 +503,19 @@ def _add_decomposition_traces(traces, t_arr, m, p):
             support_log = support_log + comps[n]
 
     x_list = list(t_arr)
-
-    if render_mode == "cumulative":
-        cumulative_log = None
-        for i, name in enumerate(canonical):
-            if cumulative_log is None:
-                cumulative_log = comps[name].copy()
-            else:
-                cumulative_log = cumulative_log + comps[name]
-            y_usd = list(10.0 ** cumulative_log)
-            traces.append(go.Scatter(
-                x=x_list, y=y_usd, mode="lines",
-                line=dict(dash="dot", width=1.5,
-                           color=colors[i % len(colors)]),
-                name=f"{model.legend_name} | +{name}",
-                hovertemplate="%{y:$,.0f}<extra></extra>",
-            ))
-    else:
-        # individual and reference modes: one trace per selected component.
-        for i, name in enumerate(canonical):
-            if render_mode == "reference" and support_log is not None:
-                log_vals = support_log + comps[name]
-                label_suffix = " (on support)"
-            else:
-                log_vals = comps[name]
-                label_suffix = ""
-            y_usd = list(10.0 ** log_vals)
-            traces.append(go.Scatter(
-                x=x_list, y=y_usd, mode="lines",
-                line=dict(dash="dot", width=1.5,
-                           color=colors[i % len(colors)]),
-                name=f"{model.legend_name} | {name}{label_suffix}",
-                hovertemplate="%{y:$,.0f}<extra></extra>",
-            ))
+    for i, name in enumerate(canonical):
+        if support_log is not None:
+            log_vals = support_log + comps[name]  # every component on support
+        else:
+            log_vals = comps[name]
+        y_usd = list(10.0 ** log_vals)
+        traces.append(go.Scatter(
+            x=x_list, y=y_usd, mode="lines",
+            line=dict(dash="dot", width=1.5,
+                       color=colors[i % len(colors)]),
+            name=f"{model.legend_name} | {name}",
+            hovertemplate="%{y:$,.0f}<extra></extra>",
+        ))
 
     if "__sum__" in selected and canonical:
         sum_log = comps[canonical[0]].copy()

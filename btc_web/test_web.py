@@ -4013,6 +4013,55 @@ class TestHybPPLExcessModel:
         assert abs(mdl._B_sup - M.support_slope) < 1e-6
 
 
+class TestLPPLComponentDecomposition:
+    """LPPL family: sum(components(t)) == _lppl_log10(t) to 1e-10."""
+
+    T_TEST = np.array([1.0, 5.0, 10.0, 16.0, 30.0, 50.0])
+
+    def _assert_invariant(self, model):
+        comps = model.components(self.T_TEST)
+        assert set(comps.keys()) == set(model.component_names), (
+            f"{type(model).__name__}: components() keys != component_names")
+        total = sum(comps.values())
+        expected = model._lppl_log10(self.T_TEST)
+        np.testing.assert_allclose(
+            total, expected, rtol=0, atol=1e-10,
+            err_msg=f"{type(model).__name__}: sum(components) != _lppl_log10")
+
+    def test_lppl_invariant(self):
+        import _app_ctx
+        self._assert_invariant(_app_ctx.PRICE_MODELS["lppl"])
+
+    def test_lppl2_invariant(self):
+        import _app_ctx
+        self._assert_invariant(_app_ctx.PRICE_MODELS["lp2"])
+
+    def test_lppl3_invariant(self):
+        import _app_ctx
+        self._assert_invariant(_app_ctx.PRICE_MODELS["lp3"])
+
+    def test_lppl4_invariant(self):
+        import _app_ctx
+        self._assert_invariant(_app_ctx.PRICE_MODELS["lp4"])
+
+    def test_lppl_weighted_variants_inherit(self):
+        import _app_ctx
+        for key in ("lppl_w", "lp2_w", "lp3_w", "lp4_w"):
+            self._assert_invariant(_app_ctx.PRICE_MODELS[key])
+
+    def test_lppl4_n13_variants_inherit(self):
+        import _app_ctx
+        for key in ("lp4_n13", "lp4_w_n13"):
+            self._assert_invariant(_app_ctx.PRICE_MODELS[key])
+
+    def test_lppl_component_count(self):
+        import _app_ctx
+        assert len(_app_ctx.PRICE_MODELS["lppl"].component_names) == 3
+        assert len(_app_ctx.PRICE_MODELS["lp2"].component_names) == 4
+        assert len(_app_ctx.PRICE_MODELS["lp3"].component_names) == 5
+        assert len(_app_ctx.PRICE_MODELS["lp4"].component_names) == 6
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Section: MC model interface verification
 # ═══════════════════════════════════════════════════════════════════════════════

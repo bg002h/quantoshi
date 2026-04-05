@@ -613,12 +613,12 @@ class LPPLModel:
 
     # Best-fit parameters from differential evolution on full BTC history
     # (genesis = 2009-07-25)
-    _A   = -1.154036
-    _B   =        5.079618
-    _C   =        0.734029
-    _W   =        7.558938
-    _PHI =        1.376080
-    _D   =        0.608121
+    _A   = -1.153965
+    _B   =           5.079504
+    _C   =           0.734010
+    _W   =           7.558602
+    _PHI =           1.376420
+    _D   =           0.608070
 
     def __init__(self, price_years, price_prices, quantiles):
         # Compute residual sigma from historical data
@@ -644,6 +644,23 @@ class LPPLModel:
         envelope = self._C * t_safe ** (-self._D)
         return self._A + self._B * np.log10(t_safe) + envelope * np.cos(
             self._W * np.log(t_safe) + self._PHI)
+
+    component_names = [
+        "A (constant)",
+        "B\u00b7log\u2081\u2080(t)",
+        "damped osc (\u03c9_log)",
+    ]
+
+    def components(self, t):
+        """Additive terms in log10 space. sum(values) == _lppl_log10(t)."""
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        return {
+            "A (constant)":            np.full_like(t_safe, self._A),
+            "B\u00b7log\u2081\u2080(t)": self._B * np.log10(t_safe),
+            "damped osc (\u03c9_log)":  self._C * t_safe ** (-self._D) * np.cos(
+                self._W * np.log(t_safe) + self._PHI),
+        }
 
     def price_at(self, q, t):
         """Price at quantile q, time t (years since genesis)."""
@@ -712,15 +729,15 @@ class LPPL2Model(LPPLModel):
     dash_style = "dashdot"
 
     # All 9 params jointly fitted by tools/fit_lppl2.py
-    _A   = -1.130860
-    _B   =           5.038702
-    _C   =           0.705656
-    _W   =           7.377871
-    _PHI =           1.582452
-    _D   =           0.566223
-    _C2  =           0.168847
-    _W2  =        20.902562
-    _PHI2 = -1.154507
+    _A   = -1.130788
+    _B   =              5.038579
+    _C   =              0.705592
+    _W   =              7.377563
+    _PHI =              1.582787
+    _D   =              0.566087
+    _C2  =              0.168844
+    _W2  =          20.903103
+    _PHI2 = -1.155400
 
     def _lppl_log10(self, t):
         """Evaluate two-frequency LPPL median in log10 space.
@@ -732,6 +749,25 @@ class LPPL2Model(LPPLModel):
         term1 = self._C * t_safe ** (-self._D) * np.cos(self._W * np.log(t_safe) + self._PHI)
         term2 = self._C2 * np.cos(self._W2 * np.log(t_safe) + self._PHI2)
         return self._A + self._B * np.log10(t_safe) + term1 + term2
+
+    component_names = [
+        "A (constant)",
+        "B\u00b7log\u2081\u2080(t)",
+        "damped osc (\u03c9\u2081)",
+        "undamped osc (\u03c9\u2082)",
+    ]
+
+    def components(self, t):
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        return {
+            "A (constant)":                np.full_like(t_safe, self._A),
+            "B\u00b7log\u2081\u2080(t)":    self._B * np.log10(t_safe),
+            "damped osc (\u03c9\u2081)":    self._C * t_safe ** (-self._D) * np.cos(
+                self._W * np.log(t_safe) + self._PHI),
+            "undamped osc (\u03c9\u2082)":  self._C2 * np.cos(
+                self._W2 * np.log(t_safe) + self._PHI2),
+        }
 
 
 class LPPL3Model(LPPL2Model):
@@ -751,18 +787,18 @@ class LPPL3Model(LPPL2Model):
     dash_style = "dashdot"
 
     # All 12 params jointly fitted by tools/fit_lppl3.py
-    _A   = -1.094444
-    _B   =     4.966786
-    _C   =     0.614142
-    _W   =     7.121979
-    _PHI =     1.890904
-    _D   =     0.366223
-    _C2  =     0.178584
-    _W2  =    20.804056
-    _PHI2 = -0.994875
-    _C3  =     0.171166
-    _W3  =    10.080803
-    _PHI3 = -2.163653
+    _A   = -1.094406
+    _B   =        4.966719
+    _C   =        0.614085
+    _W   =        7.122128
+    _PHI =        1.890711
+    _D   =        0.366087
+    _C2  =        0.171176
+    _W2  =      10.081433
+    _PHI2 = -2.164585
+    _C3  =        0.178590
+    _W3  =      20.804444
+    _PHI3 = -0.995478
 
     def _lppl_log10(self, t):
         """Evaluate three-frequency LPPL median in log10 space."""
@@ -772,6 +808,28 @@ class LPPL3Model(LPPL2Model):
         term2 = self._C2 * np.cos(self._W2 * np.log(t_safe) + self._PHI2)
         term3 = self._C3 * np.cos(self._W3 * np.log(t_safe) + self._PHI3)
         return self._A + self._B * np.log10(t_safe) + term1 + term2 + term3
+
+    component_names = [
+        "A (constant)",
+        "B\u00b7log\u2081\u2080(t)",
+        "damped osc (\u03c9\u2081)",
+        "undamped osc (\u03c9\u2082)",
+        "undamped osc (\u03c9\u2083)",
+    ]
+
+    def components(self, t):
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        return {
+            "A (constant)":                np.full_like(t_safe, self._A),
+            "B\u00b7log\u2081\u2080(t)":    self._B * np.log10(t_safe),
+            "damped osc (\u03c9\u2081)":    self._C * t_safe ** (-self._D) * np.cos(
+                self._W * np.log(t_safe) + self._PHI),
+            "undamped osc (\u03c9\u2082)":  self._C2 * np.cos(
+                self._W2 * np.log(t_safe) + self._PHI2),
+            "undamped osc (\u03c9\u2083)":  self._C3 * np.cos(
+                self._W3 * np.log(t_safe) + self._PHI3),
+        }
 
 
 class LPPLModelW(LPPLModel):
@@ -845,21 +903,21 @@ class LPPL4Model(LPPL3Model):
     dash_style = "dashdot"
 
     # All 15 params jointly fitted by tools/fit_lppl4.py (unweighted)
-    _A   = -1.128752
-    _B   =     5.014865
-    _C   =     0.576766
-    _W   =     6.838157
-    _PHI =     2.263819
-    _D   =     0.402772
-    _C2  =     0.134095
-    _W2  =   13.318974
-    _PHI2 = -2.238198
-    _C3  =     0.189363
-    _W3  =     9.337197
-    _PHI3 = -1.137993
-    _C4  =     0.171443
-    _W4  =   20.904333
-    _PHI4 = -1.137246
+    _A   = -1.128637
+    _B   =        5.014683
+    _C   =        0.576847
+    _W   =        6.839028
+    _PHI =        2.262803
+    _D   =        0.402598
+    _C2  =        0.189223
+    _W2  =      9.338593
+    _PHI2 = -1.140056
+    _C3  =        0.134062
+    _W3  =       13.318485
+    _PHI3 = -2.237722
+    _C4  =        0.171483
+    _W4  =     20.904759
+    _PHI4 = -1.137861
 
     def _lppl_log10(self, t):
         """Evaluate four-frequency LPPL median in log10 space."""
@@ -870,6 +928,31 @@ class LPPL4Model(LPPL3Model):
         term3 = self._C3 * np.cos(self._W3 * np.log(t_safe) + self._PHI3)
         term4 = self._C4 * np.cos(self._W4 * np.log(t_safe) + self._PHI4)
         return self._A + self._B * np.log10(t_safe) + term1 + term2 + term3 + term4
+
+    component_names = [
+        "A (constant)",
+        "B\u00b7log\u2081\u2080(t)",
+        "damped osc (\u03c9\u2081)",
+        "undamped osc (\u03c9\u2082)",
+        "undamped osc (\u03c9\u2083)",
+        "undamped osc (\u03c9\u2084)",
+    ]
+
+    def components(self, t):
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        return {
+            "A (constant)":                np.full_like(t_safe, self._A),
+            "B\u00b7log\u2081\u2080(t)":    self._B * np.log10(t_safe),
+            "damped osc (\u03c9\u2081)":    self._C * t_safe ** (-self._D) * np.cos(
+                self._W * np.log(t_safe) + self._PHI),
+            "undamped osc (\u03c9\u2082)":  self._C2 * np.cos(
+                self._W2 * np.log(t_safe) + self._PHI2),
+            "undamped osc (\u03c9\u2083)":  self._C3 * np.cos(
+                self._W3 * np.log(t_safe) + self._PHI3),
+            "undamped osc (\u03c9\u2084)":  self._C4 * np.cos(
+                self._W4 * np.log(t_safe) + self._PHI4),
+        }
 
 
 class LPPL4ModelW(LPPL4Model):
@@ -964,15 +1047,15 @@ class HybPPLModel(LPPLModel):
     dash_style = "dashdot"
 
     # Fitted parameters (will be overwritten by fit_hybppl.py --update)
-    _A   = -1.146889  
-    _B   =     5.051505  
-    _C   =     0.689980  
-    _W   =     7.420172  
-    _PHI =     1.453199  
-    _D   =     0.708388  
-    _C2  =     0.233030  
-    _W2  =     1.733066  
-    _PHI2 = -1.922447  
+    _A   = -1.146885  
+    _B   =        5.051488  
+    _C   =        0.689933  
+    _W   =        7.420135  
+    _PHI =        1.453241  
+    _D   =        0.708316  
+    _C2  =        0.233035  
+    _W2  =        1.733095  
+    _PHI2 = -1.922641  
 
     def _lppl_log10(self, t):
         """Evaluate hybrid model: log-periodic damped + linear-periodic undamped."""
@@ -1001,14 +1084,14 @@ class HybPPLExcessModel(LPPLModel):
     dash_style = "dashdot"
 
     # Fitted oscillation parameters (will be overwritten by fit_hybppl_excess.py --update)
-    _a0    =       0.349901  
-    _C1    =       0.642140  
-    _W_log =       7.480789  
-    _PHI1  =       1.427192  
-    _D     =       0.660678  
-    _C2    =       0.231467  
-    _W_cal =       1.748929  
-    _PHI2  = -2.100194  
+    _a0    =          0.349890  
+    _C1    =          0.642075  
+    _W_log =          7.480742  
+    _PHI1  =          1.427254  
+    _D     =          0.660584  
+    _C2    =          0.231473  
+    _W_cal =          1.748966  
+    _PHI2  = -2.100458  
 
     def __init__(self, price_years, price_prices, quantiles,
                  a_sup=None, b_sup=None):
@@ -1045,12 +1128,12 @@ class LinPPLModel(LPPLModel):
     dash_style = "dash"
 
     # Fitted parameters (W_cal in radians/year; T_years = 2π/W_cal)
-    _A   = -1.213456  
-    _B   =     5.111038  
-    _C   =     0.282297  
-    _W   =     1.765593  # ≈ 2π/4 (4-year halving cycle, will refit)
-    _PHI =  -2.283089  
-    _D   =     0.010000  
+    _A   = -1.213443  
+    _B   =        5.111004  
+    _C   =        0.282312  
+    _W   =        1.765644  # ≈ 2π/4 (4-year halving cycle, will refit)
+    _PHI =  -2.283417  
+    _D   =        0.010000  
 
     def _lppl_log10(self, t):
         """Evaluate LinPPL median in log10 space — oscillation in calendar t, not ln(t)."""

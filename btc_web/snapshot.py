@@ -127,10 +127,6 @@ _SNAPSHOT_CONTROLS = [
     ("bub-model-show",    "value"),   # PL/S2F overlay toggle (Bubble)
     # ── LPPL config panel (Bubble tab) ──
     ("bub-lppl-activate", "value"),   # master activate toggle ["yes"] or []
-    ("dca-lppl-activate", "value"),
-    ("ret-lppl-activate", "value"),
-    ("sc-lppl-activate",  "value"),
-    ("hm-lppl-activate",  "value"),   # reserved for Phase 2
     ("lppl-n-freqs",      "value"),   # [1..4] checkbox multi-select
     ("lppl-weighted",     "value"),   # ["weighted"] or []
     ("lppl-no-13",        "value"),   # ["no13"] or []
@@ -283,6 +279,12 @@ _SNAPSHOT_CONTROLS = [
     ("cp-scenario-rules",     "data"),
     ("cp-scenario-start-yr",  "value"),
     ("cp-scenario-active",    "data"),
+    # ── Phase 1 append-only additions (per-tab LPPL activate checkboxes) ──
+    # Append-only to preserve bit-index ordering of earlier positions.
+    ("dca-lppl-activate", "value"),
+    ("ret-lppl-activate", "value"),
+    ("sc-lppl-activate",  "value"),
+    ("hm-lppl-activate",  "value"),   # placeholder for Phase 2
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)

@@ -1149,8 +1149,15 @@ def _build_model_opts(mc, include_u1=False, bubble_mode=False):
                   if mdl.short_name not in _app_ctx.MODEL_SENTINELS and mdl.short_name != "bub"]
     if bubble_mode:
         all_models = [m for m in all_models if m.short_name not in _LPPL_FAM]
-    ordered = [m for m in all_models if m.short_name not in _DEPRIORITIZED] + \
-              [m for m in all_models if m.short_name in _DEPRIORITIZED]
+    # Bubble tab (include_u1=True) keeps exp/s2f as display-only demonstrators;
+    # DCA/Retire/SC (include_u1=False) drop them — standardized set matches
+    # the initial layout from _model_show_checklist(standardized=True).
+    if bubble_mode and not include_u1:
+        all_models = [m for m in all_models if m.short_name not in _DEPRIORITIZED]
+        ordered = all_models
+    else:
+        ordered = [m for m in all_models if m.short_name not in _DEPRIORITIZED] + \
+                  [m for m in all_models if m.short_name in _DEPRIORITIZED]
     for mdl in ordered:
         opts.append({
             "label": _swatch(mc.get(mdl.short_name, "#888"), mdl.name),

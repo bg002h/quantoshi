@@ -4237,6 +4237,28 @@ class TestUpdateDecompOptions:
         assert len(opts) == 6
 
 
+class TestPruneDecompValue:
+    def test_empty_family_clears_value(self):
+        from callbacks.charts import _prune_decomp_value
+        assert _prune_decomp_value("", [{"value": "a"}], ["a"]) == []
+
+    def test_prune_preserves_valid_values(self):
+        from callbacks.charts import _prune_decomp_value
+        opts = [{"value": "a"}, {"value": "b"}, {"value": "__sum__"}]
+        assert _prune_decomp_value("bub", opts, ["a", "__sum__"]) == ["a", "__sum__"]
+
+    def test_prune_drops_invalid_values(self):
+        from callbacks.charts import _prune_decomp_value
+        opts = [{"value": "support"}, {"value": "bubbles"}, {"value": "__sum__"}]
+        assert _prune_decomp_value("bub", opts, ["damped osc", "support"]) == ["support"]
+
+    def test_prune_empty_current(self):
+        from callbacks.charts import _prune_decomp_value
+        opts = [{"value": "a"}]
+        assert _prune_decomp_value("bub", opts, []) == []
+        assert _prune_decomp_value("bub", opts, None) == []
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Section: MC model interface verification
 # ═══════════════════════════════════════════════════════════════════════════════

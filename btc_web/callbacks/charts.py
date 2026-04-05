@@ -289,6 +289,27 @@ def _update_decomp_options_cb(family, n_freqs, weighted, no_13):
     return update_decomp_options(family, n_freqs, weighted, no_13)
 
 
+def _prune_decomp_value(family, options, current):
+    """Keep only currently-valid values from the checklist."""
+    if not family:
+        return []
+    valid = {o["value"] for o in (options or [])}
+    return [v for v in (current or []) if v in valid]
+
+
+@callback(
+    Output("bub-decomp-components", "value", allow_duplicate=True),
+    Input("bub-decomp-model",       "value"),
+    State("bub-decomp-components", "options"),
+    State("bub-decomp-components", "value"),
+    prevent_initial_call=True,
+)
+def _prune_decomp_value_cb(family, opts, current):
+    if ctx.triggered_id != "bub-decomp-model":
+        raise dash.exceptions.PreventUpdate
+    return _prune_decomp_value(family, opts, current)
+
+
 def _resolve_decomp_model_key(family, lppl_n_freqs, lppl_weighted, lppl_no_13):
     """Translate (family, LPPL config) into a concrete model short_name.
 

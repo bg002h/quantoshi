@@ -1465,6 +1465,66 @@ def auto_bubble_yrange(xrange, auto_y, yscale, model_show,
 
 The test (Step 1) uses positional args matching this new signature order.
 
+- [ ] **Step 3b: Update 2 existing tests that call the old signature**
+
+In `btc_web/test_web.py`, 3 existing call sites of `auto_bubble_yrange` need the 5 new params added. Find them with:
+```bash
+grep -n "auto_bubble_yrange(" btc_web/test_web.py
+```
+
+Apply these 3 edits:
+
+**Edit 1** — around line 3093 (`test_no_auto_prevents_update`):
+OLD:
+```python
+                auto_bubble_yrange(
+                    xrange=[2015, 2030], auto_y=[], yscale="log",
+                    model_show=[], sel_qs=[0.5],
+                )
+```
+NEW:
+```python
+                auto_bubble_yrange(
+                    xrange=[2015, 2030], auto_y=[], yscale="log",
+                    model_show=[],
+                    decomp_model="", decomp_components=[],
+                    lppl_n_freqs=[], lppl_weighted=[], lppl_no_13=[],
+                    sel_qs=[0.5],
+                )
+```
+
+**Edit 2** — around line 3101 (`test_returns_yrange`):
+OLD:
+```python
+            result = auto_bubble_yrange(
+                xrange=[2015, 2030], auto_y=["yes"], yscale="log",
+                model_show=[], sel_qs=[0.5],
+            )
+```
+NEW:
+```python
+            result = auto_bubble_yrange(
+                xrange=[2015, 2030], auto_y=["yes"], yscale="log",
+                model_show=[],
+                decomp_model="", decomp_components=[],
+                lppl_n_freqs=[], lppl_weighted=[], lppl_no_13=[],
+                sel_qs=[0.5],
+            )
+```
+
+**Edit 3** — around line 4729 (`test_auto_y_no_bub_uses_fallback`):
+OLD:
+```python
+            result = auto_bubble_yrange([2012, 2030], ["yes"], "log", [], [0.5])
+```
+NEW:
+```python
+            result = auto_bubble_yrange(
+                [2012, 2030], ["yes"], "log", [],
+                "", [], [], [], [],
+                [0.5])
+```
+
 Inside the function, right before the final `return [round(y_lo, 1), round(y_hi, 1)]`, add decomposition extension:
 
 ```python

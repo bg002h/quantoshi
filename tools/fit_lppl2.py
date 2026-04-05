@@ -59,11 +59,11 @@ def main():
         (A0 - margin, A0 + margin),              # A
         (B0 - margin, B0 + margin),               # B
         (max(0.01, C0 - margin), C0 + margin),    # C1
-        (max(2.0, W0 - 1.5), W0 + 1.5),           # W1
+        (2.0, 40.0),                               # W1 (widened)
         (-np.pi, np.pi),                           # PHI1
         (max(0.01, D0 - margin), D0 + margin),    # D
         (0.0, 2.0),                                # C2
-        (1.0, 30.0),                               # W2 (free — any frequency)
+        (1.0, 40.0),                               # W2 (widened, free frequency)
         (-np.pi, np.pi),                           # PHI2
     ]
 

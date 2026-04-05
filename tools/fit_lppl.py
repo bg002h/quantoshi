@@ -54,7 +54,7 @@ def main():
         (-3.0, 1.0),    # A
         (3.0, 7.0),     # B
         (0.01, 3.0),    # C
-        (2.0, 15.0),    # W
+        (2.0, 40.0),    # W (widened to capture post-2020 cycle frequencies)
         (-np.pi, np.pi),# PHI
         (0.01, 2.0),    # D
     ]

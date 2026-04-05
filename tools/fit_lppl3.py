@@ -60,14 +60,14 @@ def main():
         (A0 - margin, A0 + margin),              # A
         (B0 - margin, B0 + margin),               # B
         (max(0.01, C0 - margin), C0 + margin),    # C1
-        (W0 - 1.0, W0 + 1.0),                     # W1
+        (2.0, 40.0),                               # W1 (widened)
         (-np.pi, np.pi),                           # PHI1
         (max(0.01, D0 - margin), D0 + margin),    # D
         (max(0.0, C20 - 0.2), C20 + 0.2),         # C2
-        (W20 - 2.0, W20 + 2.0),                   # W2
+        (3.0, 40.0),                               # W2 (widened)
         (-np.pi, np.pi),                           # PHI2
         (0.0, 1.0),                                # C3
-        (3.0, 25.0),                               # W3 (widened — was hitting 10.0 bound)
+        (3.0, 40.0),                               # W3 (widened)
         (-np.pi, np.pi),                           # PHI3
     ]
 

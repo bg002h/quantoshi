@@ -340,13 +340,16 @@ def _update_decomp_formula_cb(family, n_freqs, weighted, no_13):
     if model is None:
         return []
     latex = getattr(model, "formula_log10_latex", None)
+    product = getattr(model, "formula_product_latex", None)
     if not latex:
         return []
+    price_line = (rf"$$\text{{price}} = {product}$$" if product
+                  else rf"$$\text{{price}} = 10^{{\,\log_{{10}}(\text{{price}})}}$$")
     return dcc.Markdown(
         rf"""
 $$\log_{{10}}(\text{{price}}) = {latex}$$
 
-$$\text{{price}} = 10^{{\,\log_{{10}}(\text{{price}})}}$$
+{price_line}
 """,
         mathjax=True, className="small",
         style={"fontSize": "10px"},

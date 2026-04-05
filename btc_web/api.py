@@ -202,6 +202,37 @@ mostly non-periodic.
 </p>
 <img src="/poly_fourier/fit_fourier4.svg" alt="Fourier 4 harmonics">
 </section>
+<hr>
+<h1 style="margin-top:32px">De-trended variants: fits on log-excess (price \u2212 BM floor)</h1>
+<p class="muted">
+After subtracting the BM support line (A_sup=-1.559, B_sup=5.125) from
+log\u2081\u2080(price), the residual signal is bubble-cycle structure
+on top of an approximately-zero baseline. The same polynomial and
+Fourier fits now have a fair shot at the periodic component.
+</p>
+<section>
+<h2>Polynomial on excess (degree 8, 9 coefficients)</h2>
+<p class="desc">
+<strong>Polynomial on excess</strong> \u2014 same fit but applied to
+log_excess = log_price \u2212 A_sup \u2212 B_sup\u00b7log\u2081\u2080(t).
+Polynomial struggles here because bubble cycles are periodic, not
+monomial. Good for seeing what a "polynomial of the residual" looks
+like structurally.
+</p>
+<img src="/poly_fourier/fit_poly8_excess.svg" alt="Polynomial on excess">
+</section>
+<hr>
+<section>
+<h2>Fourier on excess (4 harmonics, 9 params)</h2>
+<p class="desc">
+<strong>Fourier on excess</strong> \u2014 the decomposition this
+analysis was really designed for. Fitting harmonics of the full-span
+period to the de-trended bubble signal. Compare the amplitudes per
+harmonic to identify the dominant periodic components of Bitcoin's
+excess-above-floor.
+</p>
+<img src="/poly_fourier/fit_fourier4_excess.svg" alt="Fourier on excess">
+</section>
 <a href="/" class="back-link">\u2190 Back to Quantoshi</a>
 </body></html>"""
         return html, 200, {"Content-Type": "text/html"}
@@ -209,7 +240,9 @@ mostly non-periodic.
     @server.route("/poly_fourier/<path:filename>")
     def _poly_fourier_asset(filename):
         allowed = {"fit_poly8.svg", "fit_fourier4.svg",
-                   "fit_poly8.csv", "fit_fourier4.csv"}
+                   "fit_poly8.csv", "fit_fourier4.csv",
+                   "fit_poly8_excess.svg", "fit_fourier4_excess.svg",
+                   "fit_poly8_excess.csv", "fit_fourier4_excess.csv"}
         if filename not in allowed:
             return "Not found", 404
         ctype = "image/svg+xml" if filename.endswith(".svg") else "text/csv"

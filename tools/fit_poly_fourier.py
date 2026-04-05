@@ -28,6 +28,7 @@ sys.path.insert(0, ROOT)
 os.chdir(ROOT)
 
 from model_toolkit.data import load_prices
+from model_toolkit.support import fit_support
 
 
 GENESIS = pd.Timestamp("2009-07-25")
@@ -164,7 +165,16 @@ def main():
     dates = pd.to_datetime(df["date"].values)
     print(f"  {len(df)} daily rows (t \u2265 1 yr)")
 
+    # BM support line (floor): A_sup + B_sup * log10(t)
+    sup = fit_support(pd_)
+    print(f"  BM support: A_sup={sup.intercept:.4f}  B_sup={sup.slope:.4f}")
+    log_t = np.log10(np.maximum(t, 0.1))
+    log_support = sup.intercept + sup.slope * log_t
+    excess = lp - log_support  # residual above floor (log-space)
     ss_tot = float(np.sum((lp - np.mean(lp)) ** 2))
+    # ss_tot for excess — used for R² on the residual fit, measures how
+    # well the fit captures the excess variance itself (not the raw lp).
+    ss_tot_exc = float(np.sum((excess - np.mean(excess)) ** 2))
 
     # ── Polynomial ───────────────────────────────────────────────────────
     print(f"\nFitting degree-{POLY_DEGREE} polynomial ({POLY_DEGREE + 1} params)...")
@@ -219,6 +229,59 @@ def main():
         "residual": fresid,
     }).to_csv("fit_fourier4.csv", index=False, float_format="%.6f")
     print("  Saved fit_fourier4.svg + fit_fourier4.csv")
+
+    # ── Polynomial on excess (log-price minus BM support) ───────────────
+    print(f"\nFitting degree-{POLY_DEGREE} polynomial to EXCESS "
+          f"(log-price - BM support)...")
+    pe_coeffs, pe_fit, pe_resid = fit_polynomial(t, excess, POLY_DEGREE)
+    pe_r2 = 1.0 - float(np.sum(pe_resid ** 2)) / ss_tot_exc
+    pe_sigma = float(np.std(pe_resid))
+    pe_rev = pe_coeffs[::-1]
+    pe_text = (f"A_sup={sup.intercept:+.4f}  B_sup={sup.slope:+.4f}\n"
+               + "\n".join(f"a{i} = {pe_rev[i]:+.4e}"
+                           for i in range(len(pe_rev))))
+    print(f"  R\u00b2(on excess) = {pe_r2:.5f}   \u03c3 = {pe_sigma:.5f}")
+    plot_model(
+        f"Polynomial on excess (deg {POLY_DEGREE}, {POLY_DEGREE + 1} params)",
+        dates, excess, pe_fit, pe_resid,
+        "fit_poly8_excess.svg",
+        pe_text, pe_r2, pe_sigma,
+    )
+    pd.DataFrame({
+        "date": dates, "years": t, "excess": excess,
+        "fit": pe_fit, "residual": pe_resid,
+    }).to_csv("fit_poly8_excess.csv", index=False, float_format="%.6f")
+    print("  Saved fit_poly8_excess.svg + fit_poly8_excess.csv")
+
+    # ── Fourier on excess ─────────────────────────────────────────────────
+    print(f"\nFitting {FOURIER_HARMONICS}-harmonic Fourier to EXCESS...")
+    fe_a0, fe_As, fe_Bs, fe_fit, fe_resid, fe_T, _ = fit_fourier(
+        t, excess, FOURIER_HARMONICS)
+    fe_r2 = 1.0 - float(np.sum(fe_resid ** 2)) / ss_tot_exc
+    fe_sigma = float(np.std(fe_resid))
+    fe_lines = [f"A_sup={sup.intercept:+.4f}  B_sup={sup.slope:+.4f}",
+                f"a0 = {fe_a0:+.4f}   T = {fe_T:.2f} yr"]
+    for k in range(FOURIER_HARMONICS):
+        A, B = fe_As[k], fe_Bs[k]
+        amp = float(np.hypot(A, B))
+        period_yr = fe_T / (k + 1)
+        fe_lines.append(
+            f"k={k+1}  A={A:+.4f}  B={B:+.4f}  "
+            f"|amp|={amp:.4f}  T/k={period_yr:.2f}yr")
+    fe_text = "\n".join(fe_lines)
+    print(f"  R\u00b2(on excess) = {fe_r2:.5f}   \u03c3 = {fe_sigma:.5f}")
+    plot_model(
+        f"Fourier on excess ({FOURIER_HARMONICS} harmonics, "
+        f"{1 + 2 * FOURIER_HARMONICS} params, T={fe_T:.2f}yr)",
+        dates, excess, fe_fit, fe_resid,
+        "fit_fourier4_excess.svg",
+        fe_text, fe_r2, fe_sigma,
+    )
+    pd.DataFrame({
+        "date": dates, "years": t, "excess": excess,
+        "fit": fe_fit, "residual": fe_resid,
+    }).to_csv("fit_fourier4_excess.csv", index=False, float_format="%.6f")
+    print("  Saved fit_fourier4_excess.svg + fit_fourier4_excess.csv")
 
     print("\nDone.")
 

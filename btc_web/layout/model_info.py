@@ -800,6 +800,12 @@ $$\text{price}(t) = 10^{A_{\text{sup}}} \cdot t^{B_{\text{sup}}} \cdot 10^{a_0}
                                 "significantly above zero in future refits, it would signal that the "
                                 "halving cycle is beginning to fade.",
                             ]),
+                            html.P(
+                                "In other words: try as you might, you can\u2019t take your eyes "
+                                "off the Double D\u2019s \u2014 because D\u2082 just won\u2019t budge.",
+                                style={"fontStyle": "italic", "color": "#888",
+                                       "fontSize": "12px"},
+                            ),
 
                             html.P(
                                 "Refitted daily via tools/fit_hybppl_excess_dd.py along with the rest of "

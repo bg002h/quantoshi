@@ -496,7 +496,12 @@ _app_ctx.app.clientside_callback(
                 }
             }
             if (target) {
-                target.scrollIntoView({behavior: 'smooth', block: 'start'});
+                /* scrollIntoView block:'start' often lands behind the
+                   sticky navbar on mobile. Use window.scrollTo with an
+                   offset instead. */
+                var rect = target.getBoundingClientRect();
+                var offset = window.pageYOffset + rect.top - 60;
+                window.scrollTo({top: Math.max(0, offset), behavior: 'smooth'});
             } else if (attempts > 0) {
                 setTimeout(function() { tryScroll(attempts - 1); }, 300);
             }

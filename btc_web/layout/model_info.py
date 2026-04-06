@@ -800,6 +800,37 @@ $$\text{price}(t) = 10^{A_{\text{sup}}} \cdot t^{B_{\text{sup}}} \cdot 10^{a_0}
                                 "significantly above zero in future refits, it would signal that the "
                                 "halving cycle is beginning to fade.",
                             ]),
+
+                            html.H6("What the two D\u2019s tell us"),
+                            html.P(
+                                "Early Bitcoin\u2019s price didn\u2019t follow a clean power law \u2014 "
+                                "it oscillated wildly around the trend as the market discovered what "
+                                "Bitcoin was worth. The damped log-periodic term (D\u2081 \u2248 0.66) "
+                                "absorbs those early deviations. By t \u2248 25 (~2035), the damped "
+                                "amplitude shrinks to C\u2081\u00b725\u207b\u2070\u00b7\u2076\u2076 "
+                                "\u2248 0.07 in log\u2081\u2080 \u2014 a \u00b117% modulation, down "
+                                "from \u00b1400% in the early years. The log-periodic oscillation is "
+                                "essentially gone."
+                            ),
+                            html.P(
+                                "What remains is the calendar cycle (D\u2082 \u2248 0, undamped): a "
+                                "fixed-period ~3.6-year oscillation tied to the halving schedule. This "
+                                "one doesn\u2019t decay because it has a physical cause (supply shock "
+                                "every ~4 years) rather than being a transient artifact of price "
+                                "discovery in a nascent market."
+                            ),
+                            html.P([
+                                html.Strong("Nuance: "),
+                                "the exponent B itself is not unstable early on \u2014 B is constant "
+                                "in the model. Rather, the ",
+                                html.Em("residuals around B"),
+                                " were large and oscillatory in the early era. The damped term "
+                                "explains why they were large (self-similar bubble dynamics in a new "
+                                "asset class) and why they shrink (market maturation). The DD model\u2019s "
+                                "D\u2082 \u2248 0 result is the quantitative confirmation that the halving "
+                                "cycle is a different beast \u2014 structural, not transient.",
+                            ]),
+
                             html.P(
                                 "Stop staring at the Double D\u2019s \u2014 there\u2019s nothing to see. "
                                 "D\u2082 is basically zero.",

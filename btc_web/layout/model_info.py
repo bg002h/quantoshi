@@ -801,8 +801,8 @@ $$\text{price}(t) = 10^{A_{\text{sup}}} \cdot t^{B_{\text{sup}}} \cdot 10^{a_0}
                                 "halving cycle is beginning to fade.",
                             ]),
                             html.P(
-                                "In other words: try as you might, you can\u2019t take your eyes "
-                                "off the Double D\u2019s \u2014 because D\u2082 just won\u2019t budge.",
+                                "Stop staring at the Double D\u2019s \u2014 there\u2019s nothing to see. "
+                                "D\u2082 is basically zero.",
                                 style={"fontStyle": "italic", "color": "#888",
                                        "fontSize": "12px"},
                             ),

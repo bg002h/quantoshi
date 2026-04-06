@@ -478,10 +478,9 @@ _app_ctx.app.clientside_callback(
         /* Retry scroll with increasing delays — on initial page load
            the accordion may take longer to render than on tab switch. */
         function tryScroll(attempts) {
-            /* dbc.Accordion items render the item_id into the button's
-               textContent-adjacent collapsible div. Search by iterating
-               accordion buttons and checking aria-controls or the
-               collapsible sibling's id. */
+            /* Find the open accordion button by checking all buttons in
+               the model-info-accordion for a non-collapsed state or
+               matching aria-controls / sibling id. */
             var btns = document.querySelectorAll(
                 '#model-info-accordion .accordion-button');
             var target = null;
@@ -495,18 +494,25 @@ _app_ctx.app.clientside_callback(
                     target = btns[i]; break;
                 }
             }
-            if (target) {
-                /* scrollIntoView block:'start' often lands behind the
-                   sticky navbar on mobile. Use window.scrollTo with an
-                   offset instead. */
+            /* Fallback: find the non-collapsed button */
+            if (!target) {
+                for (var j = 0; j < btns.length; j++) {
+                    if (!btns[j].classList.contains('collapsed')) {
+                        target = btns[j]; break;
+                    }
+                }
+            }
+            if (target && target.getBoundingClientRect().height > 0) {
                 var rect = target.getBoundingClientRect();
                 var offset = window.pageYOffset + rect.top - 60;
                 window.scrollTo({top: Math.max(0, offset), behavior: 'smooth'});
             } else if (attempts > 0) {
-                setTimeout(function() { tryScroll(attempts - 1); }, 300);
+                setTimeout(function() { tryScroll(attempts - 1); }, 500);
             }
         }
-        setTimeout(function() { tryScroll(3); }, 400);
+        /* Long initial delay: on fresh page load the tab content
+           may not be laid out yet, especially on mobile. */
+        setTimeout(function() { tryScroll(5); }, 1000);
         return window.dash_clientside.no_update;
     }
     """,

@@ -816,12 +816,13 @@ def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
     Input("lppl-weighted",          "value"),
     Input("lppl-no-13",             "value"),
     State("bub-qs",      "value"),
+    State("bub-yrange",  "value"),
     prevent_initial_call=True,
 )
 def auto_bubble_yrange(xrange, auto_y, yscale, model_show,
                        decomp_model, decomp_components, decomp_mode,
                        lppl_n_freqs, lppl_weighted, lppl_no_13,
-                       sel_qs):
+                       sel_qs, current_yrange=None):
     """Auto-fit bubble Y range to selected quantiles at current X range."""
     if not auto_y or not xrange:
         raise dash.exceptions.PreventUpdate
@@ -896,7 +897,14 @@ def auto_bubble_yrange(xrange, auto_y, yscale, model_show,
                 y_lo = max(-1.5, min(y_lo, 6.0))
                 y_hi = min(y_cap, max(y_hi, 1.0))
 
-    return [round(y_lo, 1), round(y_hi, 1)]
+    new_range = [round(y_lo, 1), round(y_hi, 1)]
+    # Skip output if unchanged — avoids re-triggering update_bubble
+    # (critical on mobile where the double-fire chain causes dropped updates)
+    if (current_yrange and len(current_yrange) == 2
+            and round(current_yrange[0], 1) == new_range[0]
+            and round(current_yrange[1], 1) == new_range[1]):
+        raise dash.exceptions.PreventUpdate
+    return new_range
 
 
 _app_ctx.app.clientside_callback(

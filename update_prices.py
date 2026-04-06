@@ -233,6 +233,18 @@ def run_model_build() -> None:
     else:
         print(res.stdout.strip().split("\n")[-1])
 
+    # HybPPL (excess DD): both oscillators damped
+    print("\nRefitting HybPPL (excess DD) parameters \u2026")
+    hybppl_ex_dd_script = REPO_ROOT / "tools" / "fit_hybppl_excess_dd.py"
+    res = subprocess.run([sys.executable, str(hybppl_ex_dd_script), "--update"],
+                         capture_output=True, text=True)
+    if res.returncode != 0:
+        print("HybPPL (excess DD) FIT FAILED \u2014 stderr (last 3 000 chars):")
+        print(res.stderr[-3000:])
+        print("WARNING: HybPPL (excess DD) fit failed. Continuing with existing parameters.")
+    else:
+        print(res.stdout.strip().split("\n")[-1])
+
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 

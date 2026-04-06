@@ -755,6 +755,59 @@ $$\log_{10}(\text{price}) = A_{\text{sup}} + B_{\text{sup}}\log_{10}(t)
                             ),
                         ], title="HybPPL (excess)", item_id="mi-hybppl-ex"),
 
+                        # ── 3g. HybPPL (excess DD) ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = A_{\text{sup}} + B_{\text{sup}}\log_{10}(t)
+  + a_0 + C_1\,t^{-D_1}\cos\!\big(\omega_{\log}\ln t + \phi_1\big)
+  + C_2\,t^{-D_2}\cos\!\big(\omega_{\text{cal}}\,t + \phi_2\big)$$
+
+Solved for price:
+
+$$\text{price}(t) = 10^{A_{\text{sup}}} \cdot t^{B_{\text{sup}}} \cdot 10^{a_0}
+  \cdot 10^{\,C_1 t^{-D_1} \cos(\omega_{\log} \ln t + \varphi_1)}
+  \cdot 10^{\,C_2 t^{-D_2} \cos(\omega_{\text{cal}} t + \varphi_2)}$$
+                            """, mathjax=True, className="mb-3"),
+
+                            html.H6("Motivation"),
+                            html.P(
+                                "HybPPL (excess DD) is the double-damped variant of HybPPL (excess). "
+                                "It adds a separate damping exponent D\u2082 to the calendar-periodic "
+                                "(halving cycle) oscillator. This tests whether the ~4-year halving "
+                                "cycle is a permanent feature of Bitcoin\u2019s price dynamics or whether "
+                                "it too is decaying over time as Bitcoin matures. If D\u2082 converges "
+                                "near zero, the data does not support calendar damping \u2014 the halving "
+                                "cycle appears permanent."
+                            ),
+
+                            html.H6("Fitted Coefficients"),
+                            html.P(
+                                "A_sup and B_sup are inherited from the BM support line; the 9 "
+                                "oscillation parameters (including D\u2081, D\u2082) are refit daily "
+                                "via fit_hybppl_excess_dd.py.",
+                                className="text-muted small",
+                            ),
+                            _coeff_table(_hybppl_ex_dd_rows()),
+
+                            html.H6("Interpretation"),
+                            html.P([
+                                "D\u2082 \u2248 0.001 suggests the calendar oscillator is effectively "
+                                "undamped \u2014 the halving cycle appears permanent. The extra parameter "
+                                "does not meaningfully improve the fit, confirming that HybPPL (excess) "
+                                "with its undamped calendar term is the more parsimonious choice. This "
+                                "model exists primarily as a diagnostic: if D\u2082 ever drifts "
+                                "significantly above zero in future refits, it would signal that the "
+                                "halving cycle is beginning to fade.",
+                            ]),
+
+                            html.P(
+                                "Refitted daily via tools/fit_hybppl_excess_dd.py along with the rest of "
+                                "the model pipeline in update_prices.py.",
+                                className="text-muted small",
+                            ),
+                        ], title="HybPPL (excess DD \u2014 Double Damped)", item_id="mi-hybppl-ex-dd"),
+
                         # ── 4. Exponential ──
                         dbc.AccordionItem([
                             html.H6("Formula"),
@@ -1229,6 +1282,29 @@ def _hybppl_ex_rows():
         ("\u03c9_cal (calendar freq, rad/yr)",          f"{mdl._W_cal:.4f}"),
         ("T_cal (calendar period)",                    f"{T_cal:.2f} yr"),
         ("\u03c6\u2082 (phase, rad)",                   f"{mdl._PHI2:.4f}"),
+    ]
+
+
+def _hybppl_ex_dd_rows():
+    """Live coefficient table for HybPPL (excess DD) — pulls from model class."""
+    m = _app_ctx.M
+    mdl = _app_ctx.PRICE_MODELS.get("hybppl_ex_dd")
+    if mdl is None:
+        return [("(model not loaded)", "\u2014")]
+    T_cal = 2 * 3.14159265358979 / mdl._W_cal
+    return [
+        ("A_sup (BM intercept, log\u2081\u2080 USD)",  f"{m.support_intercept:.4f}"),
+        ("B_sup (BM slope)",                           f"{m.support_slope:.4f}"),
+        ("a\u2080 (constant offset, log\u2081\u2080)", f"{mdl._a0:.4f}"),
+        ("C\u2081 (damped amplitude, log\u2081\u2080)", f"{mdl._C1:.4f}"),
+        ("\u03c9_log (log-time freq, rad)",            f"{mdl._W_log:.4f}"),
+        ("\u03c6\u2081 (phase, rad)",                   f"{mdl._PHI1:.4f}"),
+        ("D\u2081 (log damping exponent)",              f"{mdl._D1:.4f}"),
+        ("C\u2082 (cal amplitude, log\u2081\u2080)",   f"{mdl._C2:.4f}"),
+        ("\u03c9_cal (calendar freq, rad/yr)",          f"{mdl._W_cal:.4f}"),
+        ("T_cal (calendar period)",                    f"{T_cal:.2f} yr"),
+        ("\u03c6\u2082 (phase, rad)",                   f"{mdl._PHI2:.4f}"),
+        ("D\u2082 (cal damping exponent)",              f"{mdl._D2:.6f}"),
     ]
 
 

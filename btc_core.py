@@ -1316,6 +1316,100 @@ class HybPPLExcessModel(LPPLModel):
         }
 
 
+class HybPPLExcessDDModel(LPPLModel):
+    """HybPPL (excess) with BOTH oscillators damped (Double-D).
+
+    Fits: log10(price) = A_sup + B_sup*log10(t) + a0
+                       + C1*t^(-D1)*cos(W_log*ln(t) + PHI1)
+                       + C2*t^(-D2)*cos(W_cal*t + PHI2)
+
+    Compared to HybPPLExcessModel which has the calendar term undamped,
+    this variant allows the halving-cycle oscillation to decay over time
+    too. If D2 converges near 0, the data does not support calendar
+    damping — the halving cycle is a permanent feature.
+    """
+    name = "HybPPL (ex DD)"
+    short_name = "hybppl_ex_dd"
+    legend_name = "HybPPL (ex DD)"
+    dash_style = "dashdot"
+
+    _a0    =   0.349887
+    _C1    =   0.642282
+    _W_log =   7.480830
+    _PHI1  =   1.427128
+    _D1    =   0.660894
+    _C2    =   0.231918
+    _W_cal =   1.748961
+    _PHI2  =  -2.100413
+    _D2    =   0.001000
+
+    def __init__(self, price_years, price_prices, quantiles,
+                 a_sup=None, b_sup=None):
+        self._A_sup = float(a_sup) if a_sup is not None else 0.0
+        self._B_sup = float(b_sup) if b_sup is not None else 0.0
+        super().__init__(price_years, price_prices, quantiles)
+
+    def _lppl_log10(self, t):
+        """BM support + constant + damped log-periodic + damped calendar."""
+        t_arr = np.asarray(t, float)
+        t_safe = np.maximum(t_arr, 0.1)
+        support = self._A_sup + self._B_sup * np.log10(t_safe)
+        damped_log = self._C1 * t_safe ** (-self._D1) * np.cos(
+            self._W_log * np.log(t_safe) + self._PHI1)
+        damped_cal = self._C2 * t_safe ** (-self._D2) * np.cos(
+            self._W_cal * t_safe + self._PHI2)
+        return support + self._a0 + damped_log + damped_cal
+
+    component_names = [
+        "A_sup",
+        "B_sup\u00b7log\u2081\u2080(t)",
+        "a\u2080",
+        "damped log osc (\u03c9_log)",
+        "damped cal osc (\u03c9_cal)",
+    ]
+    support_component_names = ["A_sup", "B_sup\u00b7log\u2081\u2080(t)"]
+    formula_log10_latex = (
+        r"A_{\text{sup}} + B_{\text{sup}} \log_{10}(t) + a_0"
+        r" + C_1 t^{-D_1} \cos(\omega_{\text{log}} \ln t + \varphi_1)"
+        r" + C_2 t^{-D_2} \cos(\omega_{\text{cal}} t + \varphi_2)"
+    )
+    formula_product_latex = (
+        r"10^{A_{\text{sup}}} \cdot t^{B_{\text{sup}}} \cdot 10^{a_0}"
+        r" \cdot 10^{\,C_1 t^{-D_1} \cos(\omega_{\text{log}} \ln t + \varphi_1)}"
+        r" \cdot 10^{\,C_2 t^{-D_2} \cos(\omega_{\text{cal}} t + \varphi_2)}"
+    )
+    component_details = {
+        "A_sup":                    ("A_sup",
+                                      [("A_sup", "_A_sup")]),
+        "B_sup\u00b7log\u2081\u2080(t)": ("B_sup\u00b7log\u2081\u2080(t)",
+                                           [("B_sup", "_B_sup")]),
+        "a\u2080":                  ("a\u2080",
+                                      [("a\u2080", "_a0")]),
+        "damped log osc (\u03c9_log)": (
+            "C\u2081\u00b7t^(-D\u2081)\u00b7cos(\u03c9_log\u00b7ln(t)+\u03c6\u2081)",
+            [("C\u2081", "_C1"), ("D\u2081", "_D1"),
+             ("\u03c9_log", "_W_log"), ("\u03c6\u2081", "_PHI1")]),
+        "damped cal osc (\u03c9_cal)": (
+            "C\u2082\u00b7t^(-D\u2082)\u00b7cos(\u03c9_cal\u00b7t+\u03c6\u2082)",
+            [("C\u2082", "_C2"), ("D\u2082", "_D2"),
+             ("\u03c9_cal", "_W_cal"), ("\u03c6\u2082", "_PHI2")]),
+    }
+
+    def components(self, t):
+        """BM support + constant + damped log-periodic + damped calendar."""
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        return {
+            "A_sup":                              np.full_like(t_safe, self._A_sup),
+            "B_sup\u00b7log\u2081\u2080(t)":      self._B_sup * np.log10(t_safe),
+            "a\u2080":                            np.full_like(t_safe, self._a0),
+            "damped log osc (\u03c9_log)":        self._C1 * t_safe ** (-self._D1) * np.cos(
+                self._W_log * np.log(t_safe) + self._PHI1),
+            "damped cal osc (\u03c9_cal)":        self._C2 * t_safe ** (-self._D2) * np.cos(
+                self._W_cal * t_safe + self._PHI2),
+        }
+
+
 class LinPPLModel(LPPLModel):
     """Linear-periodic Power Law: oscillation in CALENDAR time, not log-time.
 

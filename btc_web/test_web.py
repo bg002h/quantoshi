@@ -4024,6 +4024,10 @@ class TestHybPPLExcessModel:
         assert abs(mdl._A_sup - M.support_intercept) < 1e-6
         assert abs(mdl._B_sup - M.support_slope) < 1e-6
 
+    def test_dd_included_in_price_models(self):
+        import _app_ctx
+        assert "hybppl_ex_dd" in _app_ctx.PRICE_MODELS
+
 
 class TestLPPLComponentDecomposition:
     """LPPL family: sum(components(t)) == _lppl_log10(t) to 1e-10."""
@@ -4097,6 +4101,14 @@ class TestLPPLComponentDecomposition:
         import _app_ctx
         assert len(_app_ctx.PRICE_MODELS["hybppl_ex"].component_names) == 5
 
+    def test_hybppl_ex_dd_invariant(self):
+        import _app_ctx
+        self._assert_invariant(_app_ctx.PRICE_MODELS["hybppl_ex_dd"])
+
+    def test_hybppl_ex_dd_component_count(self):
+        import _app_ctx
+        assert len(_app_ctx.PRICE_MODELS["hybppl_ex_dd"].component_names) == 5
+
 
 class TestCompositeComponentDecomposition:
     """BM / EF: sum(components(t)) == _composite_log10(t) to 1e-10."""
@@ -4138,7 +4150,7 @@ class TestCompositeComponentDecomposition:
 class TestDecompRegistry:
     def test_families_keys(self):
         import _app_ctx
-        expected = {"bub", "ef", "lppl", "linppl", "hybppl", "hybppl_ex"}
+        expected = {"bub", "ef", "lppl", "linppl", "hybppl", "hybppl_ex", "hybppl_ex_dd"}
         assert set(_app_ctx.DECOMP_FAMILIES.keys()) == expected
 
     def test_families_labels(self):

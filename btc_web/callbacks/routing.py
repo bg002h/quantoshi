@@ -114,6 +114,7 @@ _PATH_TO_TAB = {
     "/1": "bubble", "/2": "heatmap", "/3": "dca",
     "/4": "retire",  "/5": "supercharge", "/6": "citadel",
     "/7": "stack", "/8": "model_info", "/9": "faq",
+    "/faq": "faq",
 }
 _TAB_TO_PATH = {v: k for k, v in _PATH_TO_TAB.items()}
 
@@ -223,8 +224,9 @@ _app_ctx.app.clientside_callback(
     function(pathname, splashOpen) {
         var NU = window.dash_clientside.no_update;
         var map = {"/1":"bubble","/2":"heatmap","/3":"dca",
-                   "/4":"retire","/5":"supercharge","/6":"stack",
-                   "/7":"model_info","/8":"faq","/9":"citadel"};
+                   "/4":"retire","/5":"supercharge","/6":"citadel",
+                   "/7":"stack","/8":"model_info","/9":"faq",
+                   "/faq":"faq"};
         /* Normalize: treat '-' as '.' so /1-2-5-1 == /1.2.5.1 */
         if (pathname && pathname.indexOf('-') !== -1) {
             pathname = pathname.replace(/-/g, '.');
@@ -244,8 +246,9 @@ _app_ctx.app.clientside_callback(
             }, 1200);
         }
         window._pendingTabPath = null;
-        if (p && /^\\/7\\.\\d+$/.test(p)) { return "model_info"; }
-        if (p && /^\\/8\\.\\d+$/.test(p)) { return "faq"; }
+        if (p && /^\\/8\\.\\d+$/.test(p)) { return "model_info"; }
+        if (p && /^\\/9\\.\\d+$/.test(p)) { return "faq"; }
+        if (p && p.indexOf("/faq.") === 0) { return "faq"; }
         if (p && p.indexOf("/1.2") === 0) { return "bubble"; }
         if (p && p.indexOf("/1.3") === 0) { return "bubble"; }
         if (p && /^\\/2\\.\\d+$/.test(p)) { return "heatmap"; }
@@ -525,12 +528,19 @@ def open_model_info_lightbox(n_clicks_list):
     prevent_initial_call=False,
 )
 def open_faq_item(pathname):
-    """Open a specific FAQ accordion item when pathname is /9.N (1-indexed)."""
+    """Open a specific FAQ accordion item: /9.N or /faq.N (1-indexed)."""
     pathname = _norm(pathname)
-    if not pathname or not pathname.startswith("/9."):
+    if not pathname:
+        return no_update
+    n_str = None
+    if pathname.startswith("/9."):
+        n_str = pathname[3:]
+    elif pathname.startswith("/faq."):
+        n_str = pathname[5:]
+    if n_str is None:
         return no_update
     try:
-        n = int(pathname[3:])
+        n = int(n_str)
         if 1 <= n <= len(_FAQ):
             return f"faq-{n - 1}"
     except (ValueError, IndexError):

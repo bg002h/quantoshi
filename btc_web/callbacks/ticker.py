@@ -10,7 +10,7 @@ from utils import _fetch_btc_price
 # ── Model display order and colors ──────────────────────────────────────────
 # Cycle order: QR → BM → PL → LPPL → LinPPL → HybPPL → HybPPL DD → Exp → EF
 # (skip S2F — non-quantized)
-_MODEL_CYCLE = ["qr", "bub", "pl", "lppl", "linppl", "hybppl", "hybppl_dd", "exp", "ef"]
+_MODEL_CYCLE = ["qr", "bub", "pl", "lppl", "linppl", "hybppl", "hybppl_dd", "ef"]
 _MODEL_COLORS = {
     "qr":         "#5dade2",   # sky blue
     "bub":        "#f39c12",   # amber/gold

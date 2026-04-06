@@ -221,6 +221,41 @@ _thermal = _build_thermal_colors(M.QR_QUANTILES)
 _app_ctx.DEFAULT_MODEL.colors.update(_thermal)
 M.qr_colors.update(_thermal)  # propagate to layout.py quantile panel dots
 
+# ── Pre-compute auto-Y envelope grids for clientside auto_bubble_yrange ──────
+# For each model: log10(price) at Q_min and Q_max on a 100-point t-grid.
+# Stored in _app_ctx.AUTO_Y_GRID, injected into a dcc.Store at layout time.
+_auto_y_t = np.linspace(0.5, 72.0, 100)
+_auto_y_grid = {"t": [round(float(v), 4) for v in _auto_y_t],
+                "genesis_epoch_days": int((M.genesis - __import__('pandas').Timestamp("1970-01-01")).days),
+                "models": {}}
+for _key, _mdl in _app_ctx.PRICE_MODELS.items():
+    if not _mdl.quantized:
+        # Non-quantized (S2F): store median only
+        try:
+            _p50 = np.log10(np.maximum(
+                np.asarray(_mdl.price_at(0.5, _auto_y_t), float), 1e-10))
+            _auto_y_grid["models"][_key] = {
+                "lo": [round(float(v), 4) for v in _p50],
+                "hi": [round(float(v), 4) for v in _p50],
+            }
+        except Exception:
+            pass
+        continue
+    _qs = sorted(_mdl.fits.keys())
+    _q_lo, _q_hi = _qs[0], _qs[-1]
+    try:
+        _lo = np.log10(np.maximum(
+            np.asarray(_mdl.price_at(_q_lo, _auto_y_t), float), 1e-10))
+        _hi = np.log10(np.maximum(
+            np.asarray(_mdl.price_at(_q_hi, _auto_y_t), float), 1e-10))
+        _auto_y_grid["models"][_key] = {
+            "lo": [round(float(v), 4) for v in _lo],
+            "hi": [round(float(v), 4) for v in _hi],
+        }
+    except Exception:
+        pass
+_app_ctx.AUTO_Y_GRID = _auto_y_grid
+
 import btcpay
 _app_ctx._HAS_BTCPAY = btcpay._HAS_BTCPAY
 

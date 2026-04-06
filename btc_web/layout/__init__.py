@@ -155,6 +155,8 @@ def _build_layout(initial_tab="bubble"):
     dcc.Store(id="lots-store", storage_type="local", data=[]),
     dcc.Store(id="lots-export-dummy"),
     dcc.Store(id="wm-b64-store", storage_type="memory", data=_LOGO_B64_ALL),
+    dcc.Store(id="auto-y-grid", storage_type="memory",
+              data=_app_ctx.AUTO_Y_GRID),
     # Per-tab render triggers — start at 1 (figures already injected at layout time).
     # Clientside trigger only fires for cur=0 (unvisited), so no callback fires
     # until the user changes a control. Double-click tab forces reload.

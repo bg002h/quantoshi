@@ -155,7 +155,6 @@ try:
                            update_retire, update_supercharge,
                            manage_lots, preview_percentile,
                            update_effective_lots, restore_from_url, apply_snapshot,
-                           auto_bubble_yrange,
                            update_sc_info,
                            _TAB_CONTROLS, _TAB_TO_PATH)
     import _app_ctx
@@ -3092,31 +3091,32 @@ class TestNoDuplicateCallbackOutputs:
 
 
 @pytest.mark.skipif(_q3 is None, reason="app.py import failed")
-class TestAutoBubbleYrange:
-    def test_no_auto_prevents_update(self):
-        with _patch_ctx("bub-xrange"):
-            with pytest.raises(Exception):
-                auto_bubble_yrange(
-                    xrange=[2015, 2030], auto_y=[], yscale="log",
-                    model_show=[],
-                    decomp_model="", decomp_components=[],
-                    lppl_n_freqs=[], lppl_weighted=[], lppl_no_13=[],
-                    sel_qs=[0.5],
-                )
+class TestAutoYGrid:
+    """Auto-Y is now clientside — test the pre-computed grid data."""
 
-    def test_returns_yrange(self):
-        import math as _m
-        with _patch_ctx("bub-xrange"):
-            result = auto_bubble_yrange(
-                xrange=[2015, 2030], auto_y=["yes"], yscale="log",
-                model_show=[],
-                decomp_model="", decomp_components=[], decomp_mode="individual",
-                lppl_n_freqs=[], lppl_weighted=[], lppl_no_13=[],
-                sel_qs=[0.5],
-            )
-        assert isinstance(result, list)
-        assert len(result) == 2
-        assert result[0] < result[1]
+    def test_grid_has_all_models(self):
+        import _app_ctx
+        grid = _app_ctx.AUTO_Y_GRID
+        assert "t" in grid
+        assert "models" in grid
+        for key in ("bub", "pl", "lppl"):
+            assert key in grid["models"], f"{key} missing from auto-y grid"
+
+    def test_grid_envelope_shape(self):
+        import _app_ctx
+        grid = _app_ctx.AUTO_Y_GRID
+        t_len = len(grid["t"])
+        for key, env in grid["models"].items():
+            assert len(env["lo"]) == t_len, f"{key} lo length mismatch"
+            assert len(env["hi"]) == t_len, f"{key} hi length mismatch"
+
+    def test_grid_hi_ge_lo(self):
+        import _app_ctx
+        grid = _app_ctx.AUTO_Y_GRID
+        for key, env in grid["models"].items():
+            for i in range(len(env["lo"])):
+                assert env["hi"][i] >= env["lo"][i] - 0.01, (
+                    f"{key} hi < lo at index {i}")
 
 
 @pytest.mark.skipif(_q3 is None, reason="app.py import failed")
@@ -4343,27 +4343,10 @@ class TestDecompositionTraces:
 
 
 class TestAutoYWithDecomposition:
-    def test_decomp_traces_stay_in_normal_yrange(self):
-        """Components now render on support — Y-range stays normal."""
-        from callbacks.charts import auto_bubble_yrange
-        yr = auto_bubble_yrange(
-            [2015, 2025], ["yes"], "log", ["bub"],
-            "lppl", ["A (constant)"], "individual", [1], [], [],
-            [0.5],
-        )
-        # With on-support rendering, traces sit near support line (not $0.07).
-        # Y-low shouldn't crash below normal support values.
-        assert yr[0] >= -1.5 and yr[1] <= 9.0
-
-    def test_no_decomp_normal_yrange(self):
-        from callbacks.charts import auto_bubble_yrange
-        yr = auto_bubble_yrange(
-            [2020, 2030], ["yes"], "log", ["bub"],
-            "", [], "individual", [3], [], [],
-            [0.5],
-        )
-        assert yr[0] >= -1.5 and yr[1] <= 9.0
-        assert yr[1] > yr[0]
+    """Auto-Y is now clientside. Decomp auto-Y is handled by the grid
+    envelope — no server-side function to test. Grid coverage checked
+    by TestAutoYGrid above."""
+    pass
 
 
 class TestDecompSnapshot:
@@ -5101,20 +5084,8 @@ class TestEFCompositeOverlay:
 
 
 class TestAutoYWithBubToggle:
-    """Auto-Y-range respects bub toggle."""
-
-    def test_auto_y_no_bub_uses_fallback(self):
-        """When BM is unchecked, auto-Y should not crash."""
-        from callbacks.charts import auto_bubble_yrange
-        try:
-            result = auto_bubble_yrange(
-                [2012, 2030], ["yes"], "log", [],
-                "", [], "individual", [], [], [],
-                [0.5])
-        except Exception:
-            pytest.fail("auto_bubble_yrange should not crash when bub is off")
-        assert isinstance(result, list)
-        assert len(result) == 2
+    """Auto-Y is now clientside. Grid has BM fallback — tested above."""
+    pass
 
 
 class TestModelR2:

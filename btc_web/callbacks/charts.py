@@ -803,108 +803,98 @@ def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
     return fig
 
 
-@callback(
+# auto_bubble_yrange — clientside for zero round-trip on mobile.
+# Pre-computed envelope grids (AUTO_Y_GRID) are stored in a dcc.Store
+# at layout time. The JS interpolates the grid at the current xrange.
+_app_ctx.app.clientside_callback(
+    """
+    function(xrange, auto_y, yscale, model_show, grid, cur_yr) {
+        var NU = window.dash_clientside.no_update;
+        if (!auto_y || !auto_y.length || !xrange || !grid) return NU;
+
+        var xmin = xrange[0], xmax = xrange[1];
+        /* Convert calendar year to t (years since genesis) */
+        var GENESIS_EPOCH_DAYS = grid.genesis_epoch_days;
+        var GENESIS_MS = GENESIS_EPOCH_DAYS * 86400000;
+        var MS_PER_YR = 365.25 * 86400000;
+        var t_lo = Math.max(((new Date(xmin, 0, 1)).getTime() - GENESIS_MS) / MS_PER_YR, 0.1);
+        var t_hi = ((new Date(xmax, 0, 1)).getTime() - GENESIS_MS) / MS_PER_YR;
+
+        var t_grid = grid.t;
+        var models = grid.models;
+        var active = model_show || [];
+
+        /* Linear interpolation helper */
+        function interp(arr, t) {
+            if (t <= t_grid[0]) return arr[0];
+            if (t >= t_grid[t_grid.length - 1]) return arr[arr.length - 1];
+            for (var i = 0; i < t_grid.length - 1; i++) {
+                if (t_grid[i] <= t && t <= t_grid[i + 1]) {
+                    var f = (t - t_grid[i]) / (t_grid[i + 1] - t_grid[i]);
+                    return arr[i] + f * (arr[i + 1] - arr[i]);
+                }
+            }
+            return arr[arr.length - 1];
+        }
+
+        /* Find base model */
+        var base_key = (active.indexOf('bub') !== -1) ? 'bub' : null;
+        if (!base_key) {
+            for (var k = 0; k < active.length; k++) {
+                if (models[active[k]]) { base_key = active[k]; break; }
+            }
+        }
+        if (!base_key) base_key = 'bub';
+        var base = models[base_key];
+        if (!base) return NU;
+
+        var y_lo_p = interp(base.lo, t_lo);
+        var y_hi_p = interp(base.hi, t_hi);
+
+        /* Extend with secondary models */
+        for (var m = 0; m < active.length; m++) {
+            var mk = active[m];
+            var md = models[mk];
+            if (!md || mk === base_key) continue;
+            y_lo_p = Math.min(y_lo_p, interp(md.lo, t_lo));
+            y_hi_p = Math.max(y_hi_p, interp(md.hi, t_hi));
+        }
+
+        /* Cap and round */
+        var extreme = (active.indexOf('s2f') !== -1 || active.indexOf('exp') !== -1);
+        var y_cap = extreme ? 20.0 : 9.0;
+        var y_lo, y_hi;
+        if ((yscale || 'log') === 'log') {
+            y_lo = Math.floor(y_lo_p * 2) / 2;
+            y_hi = Math.ceil(y_hi_p * 2) / 2;
+            y_lo = Math.max(-1.5, Math.min(y_lo, 6.0));
+            y_hi = Math.min(y_cap, Math.max(y_hi, 1.0));
+        } else {
+            y_lo = -2.0;
+            y_hi = Math.ceil(y_hi_p * 2) / 2;
+            y_hi = Math.min(y_cap, Math.max(y_hi, 1.0));
+        }
+        var new_lo = Math.round(y_lo * 10) / 10;
+        var new_hi = Math.round(y_hi * 10) / 10;
+
+        /* Skip if unchanged */
+        if (cur_yr && cur_yr.length === 2
+            && Math.round(cur_yr[0] * 10) / 10 === new_lo
+            && Math.round(cur_yr[1] * 10) / 10 === new_hi) {
+            return NU;
+        }
+        return [new_lo, new_hi];
+    }
+    """,
     Output("bub-yrange", "value", allow_duplicate=True),
     Input("bub-xrange",  "value"),
     Input("bub-auto-y",  "value"),
     Input("bub-yscale",  "value"),
     Input("bub-model-show", "value"),
-    Input("bub-decomp-model",       "value"),
-    Input("bub-decomp-components",  "value"),
-    Input("bub-decomp-mode",        "value"),
-    Input("lppl-n-freqs",           "value"),
-    Input("lppl-weighted",          "value"),
-    Input("lppl-no-13",             "value"),
-    State("bub-qs",      "value"),
+    State("auto-y-grid", "data"),
     State("bub-yrange",  "value"),
     prevent_initial_call=True,
 )
-def auto_bubble_yrange(xrange, auto_y, yscale, model_show,
-                       decomp_model, decomp_components, decomp_mode,
-                       lppl_n_freqs, lppl_weighted, lppl_no_13,
-                       sel_qs, current_yrange=None):
-    """Auto-fit bubble Y range to selected quantiles at current X range."""
-    if not auto_y or not xrange:
-        raise dash.exceptions.PreventUpdate
-    xmin, xmax = int(xrange[0]), int(xrange[1])
-    t_lo = max(yr_to_t(xmin, _app_ctx.M.genesis), 0.1)
-    t_hi = yr_to_t(xmax, _app_ctx.M.genesis)
-
-    # Base Y range from BM (if active) or first active quantized model
-    if "bub" in (model_show or []):
-        base_mdl = _app_ctx.DEFAULT_MODEL
-    else:
-        base_mdl = None
-        for key in (model_show or []):
-            mdl = _app_ctx.PRICE_MODELS.get(key)
-            if mdl and mdl.quantized:
-                base_mdl = mdl
-                break
-        if base_mdl is None:
-            base_mdl = _app_ctx.DEFAULT_MODEL  # safe fallback
-
-    # sel_qs may be band names ("inner","outer","median") or float quantiles
-    raw_qs = sel_qs or []
-    if raw_qs and isinstance(raw_qs[0], str):
-        raw_qs = _bands_to_qs(raw_qs)
-    qs = sorted([float(q) for q in raw_qs if float(q) in base_mdl.fits])
-    if not qs:
-        qs = sorted(base_mdl.fits.keys())
-    p_lo = float(base_mdl.price_at(qs[0], t_lo))
-    p_hi = float(base_mdl.price_at(qs[-1], t_hi))
-    # Include secondary models (PL, S2F) in Y range if active
-    for key in (model_show or []):
-        mdl = _app_ctx.PRICE_MODELS.get(key)
-        if mdl is None or mdl is _app_ctx.DEFAULT_MODEL:
-            continue
-        if mdl.quantized:
-            mdl_qs = [q for q in qs if q in mdl.fits]
-            if mdl_qs:
-                p_lo = min(p_lo, float(mdl.price_at(mdl_qs[0], t_lo)))
-                p_hi = max(p_hi, float(mdl.price_at(mdl_qs[-1], t_hi)))
-        else:
-            p_mid = float(mdl.price_at(0.5, t_hi))
-            p_hi = max(p_hi, p_mid)
-    # Cap Y at $100M unless extreme models (S2F, Exponential) are active
-    _extreme = {"s2f", "exp"}
-    y_cap = 20.0 if _extreme.intersection(model_show or []) else 9.0
-    if (yscale or "log") == "log":
-        y_lo = math.floor(math.log10(max(p_lo, 1e-10)) * 2) / 2
-        y_hi = math.ceil( math.log10(max(p_hi, 1e-10)) * 2) / 2
-        y_lo = max(-1.5, min(y_lo, 6.0))
-        y_hi = min(y_cap, max(y_hi, 1.0))
-    else:  # linear — floor near zero, ceiling at highest quantile + 10% headroom
-        y_lo = -2.0
-        y_hi = math.ceil(math.log10(max(p_hi * 1.1, 1e-10)) * 2) / 2
-        y_hi = min(y_cap, max(y_hi, 1.0))
-
-    # Extend Y-range to cover active decomposition components
-    decomp_key = _resolve_decomp_model_key(
-        decomp_model or "", lppl_n_freqs, lppl_weighted, lppl_no_13)
-    if decomp_key and decomp_components:
-        comp_model = _app_ctx.PRICE_MODELS.get(decomp_key)
-        if comp_model is not None:
-            t_decomp = np.linspace(max(t_lo, 0.1), t_hi, 100)
-            comps = comp_model.components(t_decomp)
-            canonical = [n for n in comp_model.component_names
-                         if n in decomp_components and n != "__sum__"]
-            if canonical:
-                sum_log = comps[canonical[0]].copy()
-                for n in canonical[1:]:
-                    sum_log = sum_log + comps[n]
-                y_lo = min(y_lo, float(math.floor(float(np.min(sum_log)) * 2) / 2))
-                y_hi = max(y_hi, float(math.ceil(float(np.max(sum_log)) * 2) / 2))
-                y_lo = max(-1.5, min(y_lo, 6.0))
-                y_hi = min(y_cap, max(y_hi, 1.0))
-
-    new_range = [round(y_lo, 1), round(y_hi, 1)]
-    # Skip output if unchanged — avoids re-triggering update_bubble
-    # (critical on mobile where the double-fire chain causes dropped updates)
-    if (current_yrange and len(current_yrange) == 2
-            and round(current_yrange[0], 1) == new_range[0]
-            and round(current_yrange[1], 1) == new_range[1]):
-        raise dash.exceptions.PreventUpdate
-    return new_range
 
 
 _app_ctx.app.clientside_callback(

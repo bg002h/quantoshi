@@ -475,24 +475,33 @@ _app_ctx.app.clientside_callback(
     """
     function(active_item) {
         if (!active_item) return window.dash_clientside.no_update;
-        // Wait for the accordion body to expand, then scroll
-        setTimeout(function() {
-            var btn = document.querySelector(
-                '.accordion-button[data-bs-target$="' + active_item + '"]');
-            if (!btn) {
-                // Fallback: find by accordion-item data attribute
-                var items = document.querySelectorAll('.accordion-item');
-                for (var i = 0; i < items.length; i++) {
-                    var b = items[i].querySelector('.accordion-button');
-                    if (b && b.getAttribute('aria-controls') === active_item) {
-                        btn = b; break;
-                    }
+        /* Retry scroll with increasing delays — on initial page load
+           the accordion may take longer to render than on tab switch. */
+        function tryScroll(attempts) {
+            /* dbc.Accordion items render the item_id into the button's
+               textContent-adjacent collapsible div. Search by iterating
+               accordion buttons and checking aria-controls or the
+               collapsible sibling's id. */
+            var btns = document.querySelectorAll(
+                '#model-info-accordion .accordion-button');
+            var target = null;
+            for (var i = 0; i < btns.length; i++) {
+                var ctrl = btns[i].getAttribute('aria-controls') || '';
+                var sib = btns[i].parentElement &&
+                          btns[i].parentElement.nextElementSibling;
+                var sibId = sib ? (sib.id || '') : '';
+                if (ctrl === active_item || ctrl.indexOf(active_item) !== -1 ||
+                    sibId === active_item || sibId.indexOf(active_item) !== -1) {
+                    target = btns[i]; break;
                 }
             }
-            if (btn) {
-                btn.scrollIntoView({behavior: 'smooth', block: 'start'});
+            if (target) {
+                target.scrollIntoView({behavior: 'smooth', block: 'start'});
+            } else if (attempts > 0) {
+                setTimeout(function() { tryScroll(attempts - 1); }, 300);
             }
-        }, 250);
+        }
+        setTimeout(function() { tryScroll(3); }, 400);
         return window.dash_clientside.no_update;
     }
     """,

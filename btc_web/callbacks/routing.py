@@ -438,16 +438,15 @@ _MODEL_INFO_ITEMS = [
     "mi-lppl-weighting", # 6
     "mi-linppl",         # 7
     "mi-hybppl",         # 8
-    "mi-hybppl-ex",      # 9
-    "mi-hybppl-ex-dd",   # 10
-    "mi-exp",            # 11
-    "mi-s2f",            # 12
-    "mi-mc",             # 13
-    "mi-ef",             # 14
-    "mi-u1",             # 15
-    "mi-compare",        # 16
-    "mi-regimes",        # 17
-    "mi-citadel",        # 18
+    "mi-hybppl-dd",      # 9
+    "mi-exp",            # 10
+    "mi-s2f",            # 11
+    "mi-mc",             # 12
+    "mi-ef",             # 13
+    "mi-u1",             # 14
+    "mi-compare",        # 15
+    "mi-regimes",        # 16
+    "mi-citadel",        # 17
 ]
 
 

@@ -220,28 +220,15 @@ def run_model_build() -> None:
     else:
         print(res.stdout.strip().split("\n")[-1])
 
-    # HybPPL (excess): fit 8 oscillation params to BM-excess residual
-    print("\nRefitting HybPPL (excess) parameters …")
-    hybppl_ex_script = REPO_ROOT / "tools" / "fit_hybppl_excess.py"
-
-    res = subprocess.run([sys.executable, str(hybppl_ex_script), "--update"],
+    # HybPPL (DD): both oscillators damped, non-excess
+    print("\nRefitting HybPPL (DD) parameters \u2026")
+    hybppl_dd_script = REPO_ROOT / "tools" / "fit_hybppl_dd.py"
+    res = subprocess.run([sys.executable, str(hybppl_dd_script), "--update"],
                          capture_output=True, text=True)
     if res.returncode != 0:
-        print("HybPPL (excess) FIT FAILED — stderr (last 3 000 chars):")
+        print("HybPPL (DD) FIT FAILED \u2014 stderr (last 3 000 chars):")
         print(res.stderr[-3000:])
-        print("WARNING: HybPPL (excess) fit failed. Continuing with existing parameters.")
-    else:
-        print(res.stdout.strip().split("\n")[-1])
-
-    # HybPPL (excess DD): both oscillators damped
-    print("\nRefitting HybPPL (excess DD) parameters \u2026")
-    hybppl_ex_dd_script = REPO_ROOT / "tools" / "fit_hybppl_excess_dd.py"
-    res = subprocess.run([sys.executable, str(hybppl_ex_dd_script), "--update"],
-                         capture_output=True, text=True)
-    if res.returncode != 0:
-        print("HybPPL (excess DD) FIT FAILED \u2014 stderr (last 3 000 chars):")
-        print(res.stderr[-3000:])
-        print("WARNING: HybPPL (excess DD) fit failed. Continuing with existing parameters.")
+        print("WARNING: HybPPL (DD) fit failed. Continuing with existing parameters.")
     else:
         print(res.stdout.strip().split("\n")[-1])
 

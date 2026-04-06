@@ -458,7 +458,7 @@ def _resolve_decomp_model_key(family, lppl_n_freqs, lppl_weighted, lppl_no_13):
 
     Returns None if family is empty OR if family is 'lppl' but exactly one
     n_freqs entry is not selected. Otherwise returns the model's short_name
-    (e.g., 'bub', 'lp3_w', 'hybppl_ex').
+    (e.g., 'bub', 'lp3_w', 'hybppl_dd').
     """
     if not family:
         return None

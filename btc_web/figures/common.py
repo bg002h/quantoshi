@@ -382,7 +382,7 @@ def _build_qr_config_text(p: dict, tab: str) -> str:
         "lp3_w": "LPPL\u2083 (w)", "lp4_w": "LPPL\u2084 (w)",
         "lp4_n13": "LPPL\u2084 (no \u03c9\u224813)",
         "lp4_w_n13": "LPPL\u2084 (w, no \u03c9\u224813)",
-        "linppl": "LinPPL", "hybppl": "HybPPL", "hybppl_ex": "HybPPL (ex)", "hybppl_ex_dd": "HybPPL (ex DD)",
+        "linppl": "LinPPL", "hybppl": "HybPPL", "hybppl_dd": "HybPPL (DD)",
         "exp": "Exp", "s2f": "S2F", "ef": "EF", "u1": "U\u2081",
     }
     if active:

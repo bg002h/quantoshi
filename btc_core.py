@@ -640,12 +640,12 @@ class LPPLModel:
 
     # Best-fit parameters from differential evolution on full BTC history
     # (genesis = 2009-07-25)
-    _A   = -1.153965
-    _B   =           5.079504
-    _C   =           0.734010
-    _W   =           7.558602
-    _PHI =           1.376420
-    _D   =           0.608070
+    _A   = -1.153891
+    _B   =              5.079385
+    _C   =              0.733993
+    _W   =              7.558249
+    _PHI =              1.376778
+    _D   =              0.608018
 
     def __init__(self, price_years, price_prices, quantiles):
         # Compute residual sigma from historical data
@@ -773,15 +773,15 @@ class LPPL2Model(LPPLModel):
     dash_style = "dashdot"
 
     # All 9 params jointly fitted by tools/fit_lppl2.py
-    _A   = -1.130788
-    _B   =              5.038579
-    _C   =              0.705592
-    _W   =              7.377563
-    _PHI =              1.582787
-    _D   =              0.566087
-    _C2  =              0.168844
-    _W2  =          20.903103
-    _PHI2 = -1.155400
+    _A   = -1.130713
+    _B   =                 5.038451
+    _C   =                 0.705526
+    _W   =                 7.377244
+    _PHI =                 1.583134
+    _D   =                 0.565947
+    _C2  =                 0.168840
+    _W2  =            20.903661
+    _PHI2 = -1.156322
 
     def _lppl_log10(self, t):
         """Evaluate two-frequency LPPL median in log10 space.
@@ -850,18 +850,18 @@ class LPPL3Model(LPPL2Model):
     dash_style = "dashdot"
 
     # All 12 params jointly fitted by tools/fit_lppl3.py
-    _A   = -1.094406
-    _B   =        4.966719
-    _C   =        0.614085
-    _W   =        7.122128
-    _PHI =        1.890711
-    _D   =        0.366087
-    _C2  =        0.171176
-    _W2  =      10.081433
-    _PHI2 = -2.164585
-    _C3  =        0.178590
-    _W3  =      20.804444
-    _PHI3 = -0.995478
+    _A   = -1.094365
+    _B   =           4.966650
+    _C   =           0.614027
+    _W   =           7.122285
+    _PHI =           1.890509
+    _D   =           0.365947
+    _C2  =           0.178596
+    _W2  =        20.804850
+    _PHI2 = -0.996111
+    _C3  =           0.171186
+    _W3  =        10.082092
+    _PHI3 = -2.165562
 
     def _lppl_log10(self, t):
         """Evaluate three-frequency LPPL median in log10 space."""
@@ -990,21 +990,21 @@ class LPPL4Model(LPPL3Model):
     dash_style = "dashdot"
 
     # All 15 params jointly fitted by tools/fit_lppl4.py (unweighted)
-    _A   = -1.128637
-    _B   =        5.014683
-    _C   =        0.576847
-    _W   =        6.839028
-    _PHI =        2.262803
-    _D   =        0.402598
-    _C2  =        0.189223
-    _W2  =      9.338593
-    _PHI2 = -1.140056
-    _C3  =        0.134062
-    _W3  =       13.318485
-    _PHI3 = -2.237722
-    _C4  =        0.171483
-    _W4  =     20.904759
-    _PHI4 = -1.137861
+    _A   = -1.128520
+    _B   =           5.014497
+    _C   =           0.576931
+    _W   =           6.839924
+    _PHI =           2.261757
+    _D   =           0.402420
+    _C2  =           0.189079
+    _W2  =         9.340033
+    _PHI2 = -1.142184
+    _C3  =           0.134028
+    _W3  =         13.317984
+    _PHI3 = -2.237238
+    _C4  =           0.171523
+    _W4  =       20.905196
+    _PHI4 = -1.138493
 
     def _lppl_log10(self, t):
         """Evaluate four-frequency LPPL median in log10 space."""
@@ -1163,15 +1163,15 @@ class HybPPLModel(LPPLModel):
     dash_style = "dashdot"
 
     # Fitted parameters (will be overwritten by fit_hybppl.py --update)
-    _A   = -1.146885  
-    _B   =        5.051488  
-    _C   =        0.689933  
-    _W   =        7.420135  
-    _PHI =        1.453241  
-    _D   =        0.708316  
-    _C2  =        0.233035  
-    _W2  =        1.733095  
-    _PHI2 = -1.922641  
+    _A   = -1.146879  
+    _B   =           5.051470  
+    _C   =           0.689882  
+    _W   =           7.420093  
+    _PHI =           1.453288  
+    _D   =           0.708237  
+    _C2  =           0.233040  
+    _W2  =           1.733127  
+    _PHI2 = -1.922852  
 
     def _lppl_log10(self, t):
         """Evaluate hybrid model: log-periodic damped + linear-periodic undamped."""
@@ -1223,168 +1223,64 @@ class HybPPLModel(LPPLModel):
         }
 
 
-class HybPPLExcessModel(LPPLModel):
-    """HybPPL oscillators fit to BM-excess (log_price - BM support).
+class HybPPLDDModel(LPPLModel):
+    """HybPPL (DD — Double Damped): both oscillators damped, non-excess.
 
-    Fits: log10(price) = A_sup + B_sup*log10(t)
-                       + a0
-                       + C1*t^(-D)*cos(W_log*ln(t) + PHI1)
-                       + C2*cos(W_cal*t + PHI2)
-
-    A_sup and B_sup are pulled from ModelData at instantiation (dynamic
-    trend tracking). The 8 oscillation params are refit daily via
-    tools/fit_hybppl_excess.py --update.
-    """
-    name = "HybPPL (excess)"
-    short_name = "hybppl_ex"
-    legend_name = "HybPPL (ex)"
-    dash_style = "dashdot"
-
-    # Fitted oscillation parameters (will be overwritten by fit_hybppl_excess.py --update)
-    _a0    =          0.349890  
-    _C1    =          0.642075  
-    _W_log =          7.480742  
-    _PHI1  =          1.427254  
-    _D     =          0.660584  
-    _C2    =          0.231473  
-    _W_cal =          1.748966  
-    _PHI2  = -2.100458  
-
-    def __init__(self, price_years, price_prices, quantiles,
-                 a_sup=None, b_sup=None):
-        self._A_sup = float(a_sup) if a_sup is not None else 0.0
-        self._B_sup = float(b_sup) if b_sup is not None else 0.0
-        super().__init__(price_years, price_prices, quantiles)
-
-    def _lppl_log10(self, t):
-        """BM support + constant + damped log-periodic + undamped calendar."""
-        t_arr = np.asarray(t, float)
-        t_safe = np.maximum(t_arr, 0.1)
-        support = self._A_sup + self._B_sup * np.log10(t_safe)
-        damped = self._C1 * t_safe ** (-self._D) * np.cos(
-            self._W_log * np.log(t_safe) + self._PHI1)
-        undamped = self._C2 * np.cos(self._W_cal * t_safe + self._PHI2)
-        return support + self._a0 + damped + undamped
-
-    component_names = [
-        "A_sup",
-        "B_sup\u00b7log\u2081\u2080(t)",
-        "a\u2080",
-        "damped log osc (\u03c9_log)",
-        "undamped cal osc (\u03c9_cal)",
-    ]
-    support_component_names = ["A_sup", "B_sup\u00b7log\u2081\u2080(t)"]
-    formula_log10_latex = (
-        r"A_{\text{sup}} + B_{\text{sup}} \log_{10}(t) + a_0"
-        r" + C_1 t^{-D} \cos(\omega_{\text{log}} \ln t + \varphi_1)"
-        r" + C_2 \cos(\omega_{\text{cal}} t + \varphi_2)"
-    )
-    formula_product_latex = (
-        r"10^{A_{\text{sup}}} \cdot t^{B_{\text{sup}}} \cdot 10^{a_0}"
-        r" \cdot 10^{\,C_1 t^{-D} \cos(\omega_{\text{log}} \ln t + \varphi_1)}"
-        r" \cdot 10^{\,C_2 \cos(\omega_{\text{cal}} t + \varphi_2)}"
-    )
-    component_details = {
-        "A_sup":                    ("A_sup",
-                                      [("A_sup", "_A_sup")]),
-        "B_sup\u00b7log\u2081\u2080(t)": ("B_sup\u00b7log\u2081\u2080(t)",
-                                           [("B_sup", "_B_sup")]),
-        "a\u2080":                  ("a\u2080",
-                                      [("a\u2080", "_a0")]),
-        "damped log osc (\u03c9_log)": (
-            "C\u2081\u00b7t^(-D)\u00b7cos(\u03c9_log\u00b7ln(t)+\u03c6\u2081)",
-            [("C\u2081", "_C1"), ("D", "_D"),
-             ("\u03c9_log", "_W_log"), ("\u03c6\u2081", "_PHI1")]),
-        "undamped cal osc (\u03c9_cal)": (
-            "C\u2082\u00b7cos(\u03c9_cal\u00b7t+\u03c6\u2082)",
-            [("C\u2082", "_C2"), ("\u03c9_cal", "_W_cal"),
-             ("\u03c6\u2082", "_PHI2")]),
-    }
-
-    def components(self, t):
-        """BM support + constant + damped log-periodic + undamped calendar."""
-        t = np.asarray(t, float)
-        t_safe = np.maximum(t, 0.1)
-        return {
-            "A_sup":                              np.full_like(t_safe, self._A_sup),
-            "B_sup\u00b7log\u2081\u2080(t)":      self._B_sup * np.log10(t_safe),
-            "a\u2080":                            np.full_like(t_safe, self._a0),
-            "damped log osc (\u03c9_log)":        self._C1 * t_safe ** (-self._D) * np.cos(
-                self._W_log * np.log(t_safe) + self._PHI1),
-            "undamped cal osc (\u03c9_cal)":      self._C2 * np.cos(
-                self._W_cal * t_safe + self._PHI2),
-        }
-
-
-class HybPPLExcessDDModel(LPPLModel):
-    """HybPPL (excess) with BOTH oscillators damped (Double-D).
-
-    Fits: log10(price) = A_sup + B_sup*log10(t) + a0
+    Fits: log10(price) = A + B*log10(t)
                        + C1*t^(-D1)*cos(W_log*ln(t) + PHI1)
                        + C2*t^(-D2)*cos(W_cal*t + PHI2)
 
-    Compared to HybPPLExcessModel which has the calendar term undamped,
-    this variant allows the halving-cycle oscillation to decay over time
-    too. If D2 converges near 0, the data does not support calendar
-    damping — the halving cycle is a permanent feature.
+    Like HybPPL but with an independent damping exponent on each oscillator.
+    Tests whether the halving cycle is permanent (D2 near 0) or decaying.
+    10 parameters — one more than HybPPL's 9.
     """
-    name = "HybPPL (ex DD)"
-    short_name = "hybppl_ex_dd"
-    legend_name = "HybPPL (ex DD)"
+    name = "HybPPL (DD)"
+    short_name = "hybppl_dd"
+    legend_name = "HybPPL (DD)"
     dash_style = "dashdot"
 
-    _a0    =   0.349887
-    _C1    =   0.642282
-    _W_log =   7.480830
-    _PHI1  =   1.427128
-    _D1    =   0.660894
-    _C2    =   0.231918
-    _W_cal =   1.748961
-    _PHI2  =  -2.100413
-    _D2    =   0.001000
-
-    def __init__(self, price_years, price_prices, quantiles,
-                 a_sup=None, b_sup=None):
-        self._A_sup = float(a_sup) if a_sup is not None else 0.0
-        self._B_sup = float(b_sup) if b_sup is not None else 0.0
-        super().__init__(price_years, price_prices, quantiles)
+    # Fitted parameters (will be overwritten by fit_hybppl_dd.py --update)
+    _A     = -1.146949
+    _B     =  5.051551
+    _C1    =  0.690097
+    _W_log =  7.420191
+    _PHI1  =  1.453145
+    _D1    =  0.708542
+    _C2    =  0.233486
+    _W_cal =  1.733120
+    _PHI2  = -1.922796
+    _D2    =  0.001000
 
     def _lppl_log10(self, t):
-        """BM support + constant + damped log-periodic + damped calendar."""
-        t_arr = np.asarray(t, float)
-        t_safe = np.maximum(t_arr, 0.1)
-        support = self._A_sup + self._B_sup * np.log10(t_safe)
+        """Evaluate double-damped hybrid model."""
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
         damped_log = self._C1 * t_safe ** (-self._D1) * np.cos(
             self._W_log * np.log(t_safe) + self._PHI1)
         damped_cal = self._C2 * t_safe ** (-self._D2) * np.cos(
             self._W_cal * t_safe + self._PHI2)
-        return support + self._a0 + damped_log + damped_cal
+        return self._A + self._B * np.log10(t_safe) + damped_log + damped_cal
 
     component_names = [
-        "A_sup",
-        "B_sup\u00b7log\u2081\u2080(t)",
-        "a\u2080",
+        "A (constant)",
+        "B\u00b7log\u2081\u2080(t)",
         "damped log osc (\u03c9_log)",
         "damped cal osc (\u03c9_cal)",
     ]
-    support_component_names = ["A_sup", "B_sup\u00b7log\u2081\u2080(t)"]
+    support_component_names = []
     formula_log10_latex = (
-        r"A_{\text{sup}} + B_{\text{sup}} \log_{10}(t) + a_0"
+        r"A + B \log_{10}(t)"
         r" + C_1 t^{-D_1} \cos(\omega_{\text{log}} \ln t + \varphi_1)"
         r" + C_2 t^{-D_2} \cos(\omega_{\text{cal}} t + \varphi_2)"
     )
     formula_product_latex = (
-        r"10^{A_{\text{sup}}} \cdot t^{B_{\text{sup}}} \cdot 10^{a_0}"
+        r"10^A \cdot t^B"
         r" \cdot 10^{\,C_1 t^{-D_1} \cos(\omega_{\text{log}} \ln t + \varphi_1)}"
         r" \cdot 10^{\,C_2 t^{-D_2} \cos(\omega_{\text{cal}} t + \varphi_2)}"
     )
     component_details = {
-        "A_sup":                    ("A_sup",
-                                      [("A_sup", "_A_sup")]),
-        "B_sup\u00b7log\u2081\u2080(t)": ("B_sup\u00b7log\u2081\u2080(t)",
-                                           [("B_sup", "_B_sup")]),
-        "a\u2080":                  ("a\u2080",
-                                      [("a\u2080", "_a0")]),
+        "A (constant)":           ("A",                         [("A", "_A")]),
+        "B\u00b7log\u2081\u2080(t)": ("B\u00b7log\u2081\u2080(t)", [("B", "_B")]),
         "damped log osc (\u03c9_log)": (
             "C\u2081\u00b7t^(-D\u2081)\u00b7cos(\u03c9_log\u00b7ln(t)+\u03c6\u2081)",
             [("C\u2081", "_C1"), ("D\u2081", "_D1"),
@@ -1396,16 +1292,15 @@ class HybPPLExcessDDModel(LPPLModel):
     }
 
     def components(self, t):
-        """BM support + constant + damped log-periodic + damped calendar."""
+        """Double-damped hybrid: both oscillators have independent damping."""
         t = np.asarray(t, float)
         t_safe = np.maximum(t, 0.1)
         return {
-            "A_sup":                              np.full_like(t_safe, self._A_sup),
-            "B_sup\u00b7log\u2081\u2080(t)":      self._B_sup * np.log10(t_safe),
-            "a\u2080":                            np.full_like(t_safe, self._a0),
-            "damped log osc (\u03c9_log)":        self._C1 * t_safe ** (-self._D1) * np.cos(
+            "A (constant)":                        np.full_like(t_safe, self._A),
+            "B\u00b7log\u2081\u2080(t)":            self._B * np.log10(t_safe),
+            "damped log osc (\u03c9_log)":          self._C1 * t_safe ** (-self._D1) * np.cos(
                 self._W_log * np.log(t_safe) + self._PHI1),
-            "damped cal osc (\u03c9_cal)":        self._C2 * t_safe ** (-self._D2) * np.cos(
+            "damped cal osc (\u03c9_cal)":          self._C2 * t_safe ** (-self._D2) * np.cos(
                 self._W_cal * t_safe + self._PHI2),
         }
 
@@ -1428,12 +1323,12 @@ class LinPPLModel(LPPLModel):
     dash_style = "dash"
 
     # Fitted parameters (W_cal in radians/year; T_years = 2π/W_cal)
-    _A   = -1.213443  
-    _B   =        5.111004  
-    _C   =        0.282312  
-    _W   =        1.765644  # ≈ 2π/4 (4-year halving cycle, will refit)
-    _PHI =  -2.283417  
-    _D   =        0.010000  
+    _A   = -1.213430  
+    _B   =           5.110969  
+    _C   =           0.282329  
+    _W   =           1.765697  # ≈ 2π/4 (4-year halving cycle, will refit)
+    _PHI =  -2.283760  
+    _D   =           0.010000  
 
     def _lppl_log10(self, t):
         """Evaluate LinPPL median in log10 space — oscillation in calendar t, not ln(t)."""

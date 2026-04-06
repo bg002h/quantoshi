@@ -3982,51 +3982,31 @@ class TestPriceModelRegistry:
             assert isinstance(mdl, PriceModel)
 
 
-class TestHybPPLExcessModel:
-    """HybPPL (excess) — BM support + 8 oscillation params on log-excess."""
+class TestHybPPLDDModel:
+    """HybPPL (DD) — double-damped, non-excess."""
 
-    def test_instantiates_with_support_params(self):
-        from btc_core import HybPPLExcessModel
+    def test_instantiates(self):
+        from btc_core import HybPPLDDModel
         import _app_ctx
         M = _app_ctx.M
-        mdl = HybPPLExcessModel(
-            M.price_years, M.price_prices, M.QR_QUANTILES,
-            a_sup=-1.5, b_sup=5.1,
-        )
-        assert mdl.short_name == "hybppl_ex"
-        assert mdl._A_sup == -1.5
-        assert mdl._B_sup == 5.1
+        mdl = HybPPLDDModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+        assert mdl.short_name == "hybppl_dd"
 
     def test_lppl_log10_returns_finite(self):
-        from btc_core import HybPPLExcessModel
+        from btc_core import HybPPLDDModel
         import _app_ctx
         import numpy as np
         M = _app_ctx.M
-        mdl = HybPPLExcessModel(
-            M.price_years, M.price_prices, M.QR_QUANTILES,
-            a_sup=M.support_intercept, b_sup=M.support_slope,
-        )
+        mdl = HybPPLDDModel(M.price_years, M.price_prices, M.QR_QUANTILES)
         for t in (1.0, 5.0, 10.0, 16.0):
             v = mdl._lppl_log10(np.array([t]))
             assert np.isfinite(v).all()
-        # Baseline at t=10 should give log10(price) in plausible range (~3-5)
         v10 = mdl._lppl_log10(np.array([10.0]))
         assert 2.0 < v10[0] < 6.0
 
-    def test_included_in_price_models(self):
-        import _app_ctx
-        assert "hybppl_ex" in _app_ctx.PRICE_MODELS
-
-    def test_support_matches_model_data(self):
-        import _app_ctx
-        mdl = _app_ctx.PRICE_MODELS["hybppl_ex"]
-        M = _app_ctx.M
-        assert abs(mdl._A_sup - M.support_intercept) < 1e-6
-        assert abs(mdl._B_sup - M.support_slope) < 1e-6
-
     def test_dd_included_in_price_models(self):
         import _app_ctx
-        assert "hybppl_ex_dd" in _app_ctx.PRICE_MODELS
+        assert "hybppl_dd" in _app_ctx.PRICE_MODELS
 
 
 class TestLPPLComponentDecomposition:
@@ -4093,21 +4073,13 @@ class TestLPPLComponentDecomposition:
         import _app_ctx
         assert len(_app_ctx.PRICE_MODELS["hybppl"].component_names) == 4
 
-    def test_hybppl_ex_invariant(self):
+    def test_hybppl_dd_invariant(self):
         import _app_ctx
-        self._assert_invariant(_app_ctx.PRICE_MODELS["hybppl_ex"])
+        self._assert_invariant(_app_ctx.PRICE_MODELS["hybppl_dd"])
 
-    def test_hybppl_ex_component_count(self):
+    def test_hybppl_dd_component_count(self):
         import _app_ctx
-        assert len(_app_ctx.PRICE_MODELS["hybppl_ex"].component_names) == 5
-
-    def test_hybppl_ex_dd_invariant(self):
-        import _app_ctx
-        self._assert_invariant(_app_ctx.PRICE_MODELS["hybppl_ex_dd"])
-
-    def test_hybppl_ex_dd_component_count(self):
-        import _app_ctx
-        assert len(_app_ctx.PRICE_MODELS["hybppl_ex_dd"].component_names) == 5
+        assert len(_app_ctx.PRICE_MODELS["hybppl_dd"].component_names) == 4
 
 
 class TestCompositeComponentDecomposition:
@@ -4150,14 +4122,14 @@ class TestCompositeComponentDecomposition:
 class TestDecompRegistry:
     def test_families_keys(self):
         import _app_ctx
-        expected = {"bub", "ef", "lppl", "linppl", "hybppl", "hybppl_ex", "hybppl_ex_dd"}
+        expected = {"bub", "ef", "lppl", "linppl", "hybppl", "hybppl_dd"}
         assert set(_app_ctx.DECOMP_FAMILIES.keys()) == expected
 
     def test_families_labels(self):
         import _app_ctx
         assert _app_ctx.DECOMP_FAMILIES["bub"] == "BM"
         assert _app_ctx.DECOMP_FAMILIES["lppl"] == "LPPL (family)"
-        assert _app_ctx.DECOMP_FAMILIES["hybppl_ex"] == "HybPPL (ex)"
+        assert _app_ctx.DECOMP_FAMILIES["hybppl_dd"] == "HybPPL (DD)"
 
     def test_palette_has_all_four_schemes(self):
         import _app_ctx
@@ -4176,7 +4148,7 @@ class TestResolveDecompModelKey:
     def test_non_lppl_families_pass_through(self):
         from callbacks.charts import _resolve_decomp_model_key
         assert _resolve_decomp_model_key("bub", [3], [], []) == "bub"
-        assert _resolve_decomp_model_key("hybppl_ex", [3], [], []) == "hybppl_ex"
+        assert _resolve_decomp_model_key("hybppl_dd", [3], [], []) == "hybppl_dd"
         assert _resolve_decomp_model_key("linppl", [], [], []) == "linppl"
         assert _resolve_decomp_model_key("hybppl", [1, 2], [], []) == "hybppl"
         assert _resolve_decomp_model_key("ef", [3], [], []) == "ef"
@@ -4228,10 +4200,10 @@ class TestUpdateDecompOptions:
         values = [o["value"] for o in opts]
         assert values == ["support", "bubbles"]
 
-    def test_hybppl_ex_shows_5_components(self):
+    def test_hybppl_dd_shows_4_components(self):
         from callbacks.charts import update_decomp_options
-        opts, warning, style = update_decomp_options("hybppl_ex", [3], [], [])
-        assert len(opts) == 5
+        opts, warning, style = update_decomp_options("hybppl_dd", [3], [], [])
+        assert len(opts) == 4
 
     def test_lppl_single_nfreq_shows_components(self):
         from callbacks.charts import update_decomp_options
@@ -4368,13 +4340,13 @@ class TestDecompSnapshot:
     def test_decomp_roundtrip_encode_decode(self):
         from snapshot import _encode_snapshot, _decode_snapshot, _SNAPSHOT_CONTROLS
         state = {f"{cid}:{prop}": None for cid, prop in _SNAPSHOT_CONTROLS}
-        state["bub-decomp-model:value"] = "hybppl_ex"
-        state["bub-decomp-components:value"] = ["A_sup", "a\u2080", "__sum__"]
+        state["bub-decomp-model:value"] = "hybppl_dd"
+        state["bub-decomp-components:value"] = ["A (constant)", "B\u00b7log\u2081\u2080(t)", "__sum__"]
         encoded = _encode_snapshot(state)
         decoded = _decode_snapshot(encoded)
-        assert decoded["bub-decomp-model:value"] == "hybppl_ex"
+        assert decoded["bub-decomp-model:value"] == "hybppl_dd"
         assert decoded["bub-decomp-components:value"] == [
-            "A_sup", "a\u2080", "__sum__"]
+            "A (constant)", "B\u00b7log\u2081\u2080(t)", "__sum__"]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

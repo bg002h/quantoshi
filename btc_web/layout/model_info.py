@@ -712,69 +712,27 @@ Two oscillation terms:
                             ]),
                         ], title="HybPPL (Hybrid Log+Linear PPL)", item_id="mi-hybppl"),
 
-                        # ── 3f. HybPPL (excess) ──
+                        # ── 3f. HybPPL (DD — Double Damped) ──
                         dbc.AccordionItem([
                             html.H6("Formula"),
                             dcc.Markdown(r"""
-$$\log_{10}(\text{price}) = A_{\text{sup}} + B_{\text{sup}}\log_{10}(t)
-  + a_0 + C_1\,t^{-D}\cos\!\big(\omega_{\log}\ln t + \phi_1\big)
-  + C_2\cos\!\big(\omega_{\text{cal}}\,t + \phi_2\big)$$
-                            """, mathjax=True, className="mb-3"),
-
-                            html.H6("Motivation"),
-                            html.P(
-                                "HybPPL (excess) decouples the trend from the oscillation. Instead of "
-                                "co-fitting a power-law support with the log- and calendar-periodic terms "
-                                "(as HybPPL does), this variant fixes the support to the BM power-law "
-                                "(A_sup, B_sup) and fits only the 8 oscillation parameters against the "
-                                "BM-excess residual. This eliminates cross-contamination between the "
-                                "support fit and the oscillation fit."
-                            ),
-
-                            html.H6("Fitted Coefficients"),
-                            html.P(
-                                "A_sup and B_sup are inherited from the BM support line; the 8 "
-                                "oscillation parameters are refit daily via fit_hybppl_excess.py.",
-                                className="text-muted small",
-                            ),
-                            _coeff_table(_hybppl_ex_rows()),
-
-                            html.H6("Comparison to HybPPL"),
-                            html.P(
-                                "HybPPL and HybPPL (excess) share the same functional form for the "
-                                "oscillation terms. They differ in the fitting procedure: HybPPL co-fits "
-                                "all parameters (including the power-law trend), while HybPPL (excess) "
-                                "fixes the trend to the BM support line first, then fits oscillations on "
-                                "the residual. See the /F experimental page for side-by-side diagnostics."
-                            ),
-
-                            html.P(
-                                "Refitted daily via tools/fit_hybppl_excess.py along with the rest of "
-                                "the model pipeline in update_prices.py.",
-                                className="text-muted small",
-                            ),
-                        ], title="HybPPL (excess)", item_id="mi-hybppl-ex"),
-
-                        # ── 3g. HybPPL (excess DD) ──
-                        dbc.AccordionItem([
-                            html.H6("Formula"),
-                            dcc.Markdown(r"""
-$$\log_{10}(\text{price}) = A_{\text{sup}} + B_{\text{sup}}\log_{10}(t)
-  + a_0 + C_1\,t^{-D_1}\cos\!\big(\omega_{\log}\ln t + \phi_1\big)
+$$\log_{10}(\text{price}) = A + B\log_{10}(t)
+  + C_1\,t^{-D_1}\cos\!\big(\omega_{\log}\ln t + \phi_1\big)
   + C_2\,t^{-D_2}\cos\!\big(\omega_{\text{cal}}\,t + \phi_2\big)$$
 
 Solved for price:
 
-$$\text{price}(t) = 10^{A_{\text{sup}}} \cdot t^{B_{\text{sup}}} \cdot 10^{a_0}
+$$\text{price}(t) = 10^{A} \cdot t^{B}
   \cdot 10^{\,C_1 t^{-D_1} \cos(\omega_{\log} \ln t + \varphi_1)}
   \cdot 10^{\,C_2 t^{-D_2} \cos(\omega_{\text{cal}} t + \varphi_2)}$$
                             """, mathjax=True, className="mb-3"),
 
                             html.H6("Motivation"),
                             html.P(
-                                "HybPPL (excess DD) is the double-damped variant of HybPPL (excess). "
-                                "It adds a separate damping exponent D\u2082 to the calendar-periodic "
-                                "(halving cycle) oscillator. This tests whether the ~4-year halving "
+                                "HybPPL (DD) is the double-damped variant of HybPPL. Like HybPPL it "
+                                "co-fits the power-law trend (A, B) alongside both oscillators, but "
+                                "gives the calendar-periodic (halving cycle) oscillator its own damping "
+                                "exponent D\u2082. This tests whether the ~4-year halving "
                                 "cycle is a permanent feature of Bitcoin\u2019s price dynamics or whether "
                                 "it too is decaying over time as Bitcoin matures. If D\u2082 converges "
                                 "near zero, the data does not support calendar damping \u2014 the halving "
@@ -783,18 +741,17 @@ $$\text{price}(t) = 10^{A_{\text{sup}}} \cdot t^{B_{\text{sup}}} \cdot 10^{a_0}
 
                             html.H6("Fitted Coefficients"),
                             html.P(
-                                "A_sup and B_sup are inherited from the BM support line; the 9 "
-                                "oscillation parameters (including D\u2081, D\u2082) are refit daily "
-                                "via fit_hybppl_excess_dd.py.",
+                                "All 10 parameters are co-fit via differential evolution "
+                                "and refit daily via fit_hybppl_dd.py.",
                                 className="text-muted small",
                             ),
-                            _coeff_table(_hybppl_ex_dd_rows()),
+                            _coeff_table(_hybppl_dd_rows()),
 
                             html.H6("Interpretation"),
                             html.P([
                                 "D\u2082 \u2248 0.001 suggests the calendar oscillator is effectively "
                                 "undamped \u2014 the halving cycle appears permanent. The extra parameter "
-                                "does not meaningfully improve the fit, confirming that HybPPL (excess) "
+                                "does not meaningfully improve the fit, confirming that HybPPL "
                                 "with its undamped calendar term is the more parsimonious choice. This "
                                 "model exists primarily as a diagnostic: if D\u2082 ever drifts "
                                 "significantly above zero in future refits, it would signal that the "
@@ -805,9 +762,9 @@ $$\text{price}(t) = 10^{A_{\text{sup}}} \cdot t^{B_{\text{sup}}} \cdot 10^{a_0}
                             html.P(
                                 "Early Bitcoin\u2019s price didn\u2019t follow a clean power law \u2014 "
                                 "it oscillated wildly around the trend as the market discovered what "
-                                "Bitcoin was worth. The damped log-periodic term (D\u2081 \u2248 0.66) "
+                                "Bitcoin was worth. The damped log-periodic term (D\u2081 \u2248 0.71) "
                                 "absorbs those early deviations. By t \u2248 25 (~2035), the damped "
-                                "amplitude shrinks to C\u2081\u00b725\u207b\u2070\u00b7\u2076\u2076 "
+                                "amplitude shrinks to C\u2081\u00b725\u207b\u2070\u00b7\u2077\u2071 "
                                 "\u2248 0.07 in log\u2081\u2080 \u2014 a \u00b117% modulation, down "
                                 "from \u00b1400% in the early years. The log-periodic oscillation is "
                                 "essentially gone."
@@ -839,11 +796,11 @@ $$\text{price}(t) = 10^{A_{\text{sup}}} \cdot t^{B_{\text{sup}}} \cdot 10^{a_0}
                             ),
 
                             html.P(
-                                "Refitted daily via tools/fit_hybppl_excess_dd.py along with the rest of "
+                                "Refitted daily via tools/fit_hybppl_dd.py along with the rest of "
                                 "the model pipeline in update_prices.py.",
                                 className="text-muted small",
                             ),
-                        ], title="HybPPL (excess DD \u2014 Double Damped)", item_id="mi-hybppl-ex-dd"),
+                        ], title="HybPPL (DD \u2014 Double Damped)", item_id="mi-hybppl-dd"),
 
                         # ── 4. Exponential ──
                         dbc.AccordionItem([
@@ -1300,48 +1257,24 @@ where $\alpha$ (intercept) and $\beta$ (slope) are derived from **two user-selec
     ], className="p-3")
 
 
-def _hybppl_ex_rows():
-    """Live coefficient table for HybPPL (excess) — pulls from model class."""
-    m = _app_ctx.M
-    mdl = _app_ctx.PRICE_MODELS.get("hybppl_ex")
+def _hybppl_dd_rows():
+    """Live coefficient table for HybPPL (DD) — pulls from model class."""
+    mdl = _app_ctx.PRICE_MODELS.get("hybppl_dd")
     if mdl is None:
         return [("(model not loaded)", "\u2014")]
     T_cal = 2 * 3.14159265358979 / mdl._W_cal
     return [
-        ("A_sup (BM intercept, log\u2081\u2080 USD)",  f"{m.support_intercept:.4f}"),
-        ("B_sup (BM slope)",                           f"{m.support_slope:.4f}"),
-        ("a\u2080 (constant offset, log\u2081\u2080)", f"{mdl._a0:.4f}"),
+        ("A (intercept, log\u2081\u2080 USD)",          f"{mdl._A:.4f}"),
+        ("B (slope)",                                   f"{mdl._B:.4f}"),
         ("C\u2081 (damped amplitude, log\u2081\u2080)", f"{mdl._C1:.4f}"),
-        ("\u03c9_log (log-time freq, rad)",            f"{mdl._W_log:.4f}"),
-        ("\u03c6\u2081 (phase, rad)",                   f"{mdl._PHI1:.4f}"),
-        ("D (damping exponent)",                        f"{mdl._D:.4f}"),
-        ("C\u2082 (undamped amplitude, log\u2081\u2080)", f"{mdl._C2:.4f}"),
-        ("\u03c9_cal (calendar freq, rad/yr)",          f"{mdl._W_cal:.4f}"),
-        ("T_cal (calendar period)",                    f"{T_cal:.2f} yr"),
-        ("\u03c6\u2082 (phase, rad)",                   f"{mdl._PHI2:.4f}"),
-    ]
-
-
-def _hybppl_ex_dd_rows():
-    """Live coefficient table for HybPPL (excess DD) — pulls from model class."""
-    m = _app_ctx.M
-    mdl = _app_ctx.PRICE_MODELS.get("hybppl_ex_dd")
-    if mdl is None:
-        return [("(model not loaded)", "\u2014")]
-    T_cal = 2 * 3.14159265358979 / mdl._W_cal
-    return [
-        ("A_sup (BM intercept, log\u2081\u2080 USD)",  f"{m.support_intercept:.4f}"),
-        ("B_sup (BM slope)",                           f"{m.support_slope:.4f}"),
-        ("a\u2080 (constant offset, log\u2081\u2080)", f"{mdl._a0:.4f}"),
-        ("C\u2081 (damped amplitude, log\u2081\u2080)", f"{mdl._C1:.4f}"),
-        ("\u03c9_log (log-time freq, rad)",            f"{mdl._W_log:.4f}"),
-        ("\u03c6\u2081 (phase, rad)",                   f"{mdl._PHI1:.4f}"),
-        ("D\u2081 (log damping exponent)",              f"{mdl._D1:.4f}"),
-        ("C\u2082 (cal amplitude, log\u2081\u2080)",   f"{mdl._C2:.4f}"),
-        ("\u03c9_cal (calendar freq, rad/yr)",          f"{mdl._W_cal:.4f}"),
-        ("T_cal (calendar period)",                    f"{T_cal:.2f} yr"),
-        ("\u03c6\u2082 (phase, rad)",                   f"{mdl._PHI2:.4f}"),
-        ("D\u2082 (cal damping exponent)",              f"{mdl._D2:.6f}"),
+        ("\u03c9_log (log-time freq, rad)",             f"{mdl._W_log:.4f}"),
+        ("\u03c6\u2081 (phase, rad)",                    f"{mdl._PHI1:.4f}"),
+        ("D\u2081 (log damping exponent)",               f"{mdl._D1:.4f}"),
+        ("C\u2082 (cal amplitude, log\u2081\u2080)",    f"{mdl._C2:.4f}"),
+        ("\u03c9_cal (calendar freq, rad/yr)",           f"{mdl._W_cal:.4f}"),
+        ("T_cal (calendar period)",                     f"{T_cal:.2f} yr"),
+        ("\u03c6\u2082 (phase, rad)",                    f"{mdl._PHI2:.4f}"),
+        ("D\u2082 (cal damping exponent)",               f"{mdl._D2:.6f}"),
     ]
 
 

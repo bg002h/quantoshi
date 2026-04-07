@@ -38,6 +38,7 @@ from btc_core import (load_model_data, BubbleModel, PowerLawModel,
                        LPPLModelW, LPPL2ModelW, LPPL3ModelW, LPPL4ModelW,
                        LPPL4ModelN13, LPPL4ModelWN13, LinPPLModel, HybPPLModel,
                        HybPPLDDModel,
+                       Hyb2LModel, Hyb2CModel, Hyb2BModel,
                        ExponentialModel, LogisticModel, BrokenPowerLawModel,
                        S2FModel, EmpiricalFloorModel, QuantileRegressionModel)
 from figures import FREQ_PPY
@@ -190,6 +191,9 @@ _app_ctx.PRICE_MODELS["lp4_w_n13"] = LPPL4ModelWN13(M.price_years, M.price_price
 _app_ctx.PRICE_MODELS["linppl"] = LinPPLModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["hybppl"] = HybPPLModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["hybppl_dd"] = HybPPLDDModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+_app_ctx.PRICE_MODELS["hyb2l"] = Hyb2LModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+_app_ctx.PRICE_MODELS["hyb2c"] = Hyb2CModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+_app_ctx.PRICE_MODELS["hyb2b"] = Hyb2BModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["exp"] = ExponentialModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["gomp"] = LogisticModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["bpl"] = BrokenPowerLawModel(M.price_years, M.price_prices, M.QR_QUANTILES)

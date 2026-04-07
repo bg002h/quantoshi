@@ -1287,6 +1287,204 @@ class HybPPLDDModel(LPPLModel):
         }
 
 
+class Hyb2LModel(LPPLModel):
+    """HybPPL + 2nd log-periodic oscillation.
+
+    Fits: log10(price) = A + B*log10(t)
+                       + C1*t^(-D1)*cos(W1*ln(t)+PHI1)
+                       + C2*cos(Wc*t+PHI2)
+                       + C3*t^(-D2)*cos(W2*ln(t)+PHI3)
+
+    Adds a second damped log-periodic harmonic to the baseline HybPPL.
+    13 parameters.
+    """
+    name = "HybPPL +2L"
+    short_name = "hyb2l"
+    legend_name = "Hyb2L"
+    dash_style = "dashdot"
+    quantized = True
+
+    # Fitted parameters (will be overwritten by fit_hyb2l.py --update)
+    _A    = -1.113052
+    _B    =  5.013922
+    _C1   =  0.765452
+    _W1   =  7.471817
+    _PHI1 =  1.297977
+    _D1   =  0.773462
+    _C2   =  0.257514
+    _Wc   =  1.720226
+    _PHI2 = -1.736945
+    _C3   =  0.392752
+    _W2   = 15.993349
+    _PHI3 =  1.889603
+    _D2   =  0.932804
+
+    def _lppl_log10(self, t):
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        osc1 = self._C1 * t_safe ** (-self._D1) * np.cos(self._W1 * np.log(t_safe) + self._PHI1)
+        cal  = self._C2 * np.cos(self._Wc * t_safe + self._PHI2)
+        osc2 = self._C3 * t_safe ** (-self._D2) * np.cos(self._W2 * np.log(t_safe) + self._PHI3)
+        return self._A + self._B * np.log10(t_safe) + osc1 + cal + osc2
+
+    component_names = [
+        "A (constant)",
+        "B\u00b7log\u2081\u2080(t)",
+        "damped log osc 1 (\u03c9\u2081)",
+        "undamped cal osc (\u03c9_cal)",
+        "damped log osc 2 (\u03c9\u2082)",
+    ]
+
+    def components(self, t):
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        return {
+            "A (constant)":                np.full_like(t_safe, self._A),
+            "B\u00b7log\u2081\u2080(t)":    self._B * np.log10(t_safe),
+            "damped log osc 1 (\u03c9\u2081)": self._C1 * t_safe ** (-self._D1) * np.cos(
+                self._W1 * np.log(t_safe) + self._PHI1),
+            "undamped cal osc (\u03c9_cal)": self._C2 * np.cos(
+                self._Wc * t_safe + self._PHI2),
+            "damped log osc 2 (\u03c9\u2082)": self._C3 * t_safe ** (-self._D2) * np.cos(
+                self._W2 * np.log(t_safe) + self._PHI3),
+        }
+
+
+class Hyb2CModel(LPPLModel):
+    """HybPPL + 2nd calendar-periodic oscillation.
+
+    Fits: log10(price) = A + B*log10(t)
+                       + C1*t^(-D)*cos(W1*ln(t)+PHI1)
+                       + C2*cos(Wc1*t+PHI2)
+                       + C3*cos(Wc2*t+PHI3)
+
+    Adds a second undamped calendar-periodic term. The 2nd frequency
+    (~1.88yr) is roughly half the halving cycle — may capture
+    sub-halving market structure.
+    12 parameters.
+    """
+    name = "HybPPL +2C"
+    short_name = "hyb2c"
+    legend_name = "Hyb2C"
+    dash_style = "dashdot"
+    quantized = True
+
+    # Fitted parameters (will be overwritten by fit_hyb2c.py --update)
+    _A    = -1.135472
+    _B    =  5.037822
+    _C1   =  0.738890
+    _W1   =  7.356010
+    _PHI1 =  1.659096
+    _D    =  0.730226
+    _C2   =  0.235259
+    _Wc1  =  1.750674
+    _PHI2 = -2.086894
+    _C3   =  0.114588
+    _Wc2  =  3.280720
+    _PHI3 = -2.452578
+
+    def _lppl_log10(self, t):
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        osc  = self._C1 * t_safe ** (-self._D) * np.cos(self._W1 * np.log(t_safe) + self._PHI1)
+        cal1 = self._C2 * np.cos(self._Wc1 * t_safe + self._PHI2)
+        cal2 = self._C3 * np.cos(self._Wc2 * t_safe + self._PHI3)
+        return self._A + self._B * np.log10(t_safe) + osc + cal1 + cal2
+
+    component_names = [
+        "A (constant)",
+        "B\u00b7log\u2081\u2080(t)",
+        "damped log osc (\u03c9_log)",
+        "undamped cal osc 1 (\u03c9_c\u2081)",
+        "undamped cal osc 2 (\u03c9_c\u2082)",
+    ]
+
+    def components(self, t):
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        return {
+            "A (constant)":                    np.full_like(t_safe, self._A),
+            "B\u00b7log\u2081\u2080(t)":        self._B * np.log10(t_safe),
+            "damped log osc (\u03c9_log)":      self._C1 * t_safe ** (-self._D) * np.cos(
+                self._W1 * np.log(t_safe) + self._PHI1),
+            "undamped cal osc 1 (\u03c9_c\u2081)": self._C2 * np.cos(
+                self._Wc1 * t_safe + self._PHI2),
+            "undamped cal osc 2 (\u03c9_c\u2082)": self._C3 * np.cos(
+                self._Wc2 * t_safe + self._PHI3),
+        }
+
+
+class Hyb2BModel(LPPLModel):
+    """HybPPL + 2nd log-periodic + 2nd calendar-periodic.
+
+    Fits: log10(price) = A + B*log10(t)
+                       + C1*t^(-D1)*cos(W1*ln(t)+PHI1)
+                       + C2*cos(Wc1*t+PHI2)
+                       + C3*t^(-D2)*cos(W2*ln(t)+PHI3)
+                       + C4*cos(Wc2*t+PHI4)
+
+    Full second-frequency model: both log-periodic and calendar-periodic
+    get a second harmonic. 16 parameters — highest R² in the family.
+    """
+    name = "HybPPL +2B"
+    short_name = "hyb2b"
+    legend_name = "Hyb2B"
+    dash_style = "dashdot"
+    quantized = True
+
+    # Fitted parameters (will be overwritten by fit_hyb2b.py --update)
+    _A    = -1.114174
+    _B    =  5.017407
+    _C1   =  0.891031
+    _W1   =  7.483928
+    _PHI1 =  1.389299
+    _D1   =  0.832946
+    _C2   =  0.242036
+    _Wc1  =  1.739827
+    _PHI2 = -1.918657
+    _C3   =  0.422419
+    _W2   = 16.238167
+    _PHI3 =  1.885355
+    _D2   =  1.165713
+    _C4   =  0.105488
+    _Wc2  =  3.340840
+    _PHI4 =  3.134978
+
+    def _lppl_log10(self, t):
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        osc1 = self._C1 * t_safe ** (-self._D1) * np.cos(self._W1 * np.log(t_safe) + self._PHI1)
+        cal1 = self._C2 * np.cos(self._Wc1 * t_safe + self._PHI2)
+        osc2 = self._C3 * t_safe ** (-self._D2) * np.cos(self._W2 * np.log(t_safe) + self._PHI3)
+        cal2 = self._C4 * np.cos(self._Wc2 * t_safe + self._PHI4)
+        return self._A + self._B * np.log10(t_safe) + osc1 + cal1 + osc2 + cal2
+
+    component_names = [
+        "A (constant)",
+        "B\u00b7log\u2081\u2080(t)",
+        "damped log osc 1 (\u03c9_l\u2081)",
+        "undamped cal osc 1 (\u03c9_c\u2081)",
+        "damped log osc 2 (\u03c9_l\u2082)",
+        "undamped cal osc 2 (\u03c9_c\u2082)",
+    ]
+
+    def components(self, t):
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        return {
+            "A (constant)":                        np.full_like(t_safe, self._A),
+            "B\u00b7log\u2081\u2080(t)":            self._B * np.log10(t_safe),
+            "damped log osc 1 (\u03c9_l\u2081)":   self._C1 * t_safe ** (-self._D1) * np.cos(
+                self._W1 * np.log(t_safe) + self._PHI1),
+            "undamped cal osc 1 (\u03c9_c\u2081)": self._C2 * np.cos(
+                self._Wc1 * t_safe + self._PHI2),
+            "damped log osc 2 (\u03c9_l\u2082)":   self._C3 * t_safe ** (-self._D2) * np.cos(
+                self._W2 * np.log(t_safe) + self._PHI3),
+            "undamped cal osc 2 (\u03c9_c\u2082)": self._C4 * np.cos(
+                self._Wc2 * t_safe + self._PHI4),
+        }
+
+
 class LinPPLModel(LPPLModel):
     """Linear-periodic Power Law: oscillation in CALENDAR time, not log-time.
 

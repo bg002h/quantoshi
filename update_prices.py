@@ -232,6 +232,42 @@ def run_model_build() -> None:
     else:
         print(res.stdout.strip().split("\n")[-1])
 
+    # HybPPL +2nd Log: refit 2nd log-periodic harmonic
+    print("\nRefitting HybPPL +2L parameters \u2026")
+    hyb2l_script = REPO_ROOT / "tools" / "fit_hyb2l.py"
+    res = subprocess.run([sys.executable, str(hyb2l_script), "--update"],
+                         capture_output=True, text=True)
+    if res.returncode != 0:
+        print("Hyb2L FIT FAILED \u2014 stderr (last 3 000 chars):")
+        print(res.stderr[-3000:])
+        print("WARNING: Hyb2L fit failed. Continuing with existing parameters.")
+    else:
+        print(res.stdout.strip().split("\n")[-1])
+
+    # HybPPL +2nd Cal: refit 2nd calendar-periodic term
+    print("\nRefitting HybPPL +2C parameters \u2026")
+    hyb2c_script = REPO_ROOT / "tools" / "fit_hyb2c.py"
+    res = subprocess.run([sys.executable, str(hyb2c_script), "--update"],
+                         capture_output=True, text=True)
+    if res.returncode != 0:
+        print("Hyb2C FIT FAILED \u2014 stderr (last 3 000 chars):")
+        print(res.stderr[-3000:])
+        print("WARNING: Hyb2C fit failed. Continuing with existing parameters.")
+    else:
+        print(res.stdout.strip().split("\n")[-1])
+
+    # HybPPL +Both: refit both 2nd harmonics
+    print("\nRefitting HybPPL +2B parameters \u2026")
+    hyb2b_script = REPO_ROOT / "tools" / "fit_hyb2b.py"
+    res = subprocess.run([sys.executable, str(hyb2b_script), "--update"],
+                         capture_output=True, text=True)
+    if res.returncode != 0:
+        print("Hyb2B FIT FAILED \u2014 stderr (last 3 000 chars):")
+        print(res.stderr[-3000:])
+        print("WARNING: Hyb2B fit failed. Continuing with existing parameters.")
+    else:
+        print(res.stdout.strip().split("\n")[-1])
+
     # Logistic Growth (Gompertz): refit saturation curve
     print("\nRefitting Logistic parameters \u2026")
     log_script = REPO_ROOT / "tools" / "fit_logistic.py"

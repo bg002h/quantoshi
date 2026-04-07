@@ -802,6 +802,60 @@ $$\text{price}(t) = 10^{A} \cdot t^{B}
                             ),
                         ], title="HybPPL (DD \u2014 Double Damped)", item_id="mi-hybppl-dd"),
 
+                        # ── 3f. HybPPL +2nd Log ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = A + B \log_{10}(t)
++ C_1 t^{-D_1} \cos(\omega_1 \ln t + \varphi_1)
++ C_2 \cos(\omega_c t + \varphi_2)
++ C_3 t^{-D_2} \cos(\omega_2 \ln t + \varphi_3)$$
+                            """, mathjax=True, className="mb-3"),
+                            html.H6("Description"),
+                            html.P("Adds a second damped log-periodic harmonic to HybPPL. "
+                                   "The second frequency (\u03c9\u2082 \u2248 16) is roughly "
+                                   "double the primary (\u03c9\u2081 \u2248 7.5). 13 parameters."),
+                            html.H6("Fitted Coefficients"),
+                            _hyb2l_coeff_table(),
+                        ], title="HybPPL +2L (2nd Log-Periodic)", item_id="mi-hyb2l"),
+
+                        # ── 3g. HybPPL +2nd Cal ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = A + B \log_{10}(t)
++ C_1 t^{-D} \cos(\omega_1 \ln t + \varphi_1)
++ C_2 \cos(\omega_{c1} t + \varphi_2)
++ C_3 \cos(\omega_{c2} t + \varphi_3)$$
+                            """, mathjax=True, className="mb-3"),
+                            html.H6("Description"),
+                            html.P("Adds a second undamped calendar-periodic term to HybPPL. "
+                                   "The second frequency (T \u2248 1.9yr) is roughly half the "
+                                   "halving cycle \u2014 may capture sub-halving market structure. "
+                                   "Best R\u00b2 improvement per added parameter. 12 parameters."),
+                            html.H6("Fitted Coefficients"),
+                            _hyb2c_coeff_table(),
+                        ], title="HybPPL +2C (2nd Calendar)", item_id="mi-hyb2c"),
+
+                        # ── 3h. HybPPL +Both ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = A + B \log_{10}(t)
++ C_1 t^{-D_1} \cos(\omega_{l1} \ln t + \varphi_1)
++ C_2 \cos(\omega_{c1} t + \varphi_2)
++ C_3 t^{-D_2} \cos(\omega_{l2} \ln t + \varphi_3)
++ C_4 \cos(\omega_{c2} t + \varphi_4)$$
+                            """, mathjax=True, className="mb-3"),
+                            html.H6("Description"),
+                            html.P("Full second-frequency model: both log-periodic and "
+                                   "calendar-periodic get a second harmonic. Highest R\u00b2 "
+                                   "in the family (0.993). BIC still improves despite 16 "
+                                   "parameters \u2014 both frequencies are statistically justified."),
+                            html.H6("Fitted Coefficients"),
+                            _hyb2b_coeff_table(),
+                        ], title="HybPPL +2B (Both 2nd Harmonics)", item_id="mi-hyb2b"),
+
                         # ── 4. Exponential ──
                         dbc.AccordionItem([
                             html.H6("Formula"),
@@ -1396,6 +1450,67 @@ def _ef_rows():
         ("R\u00b2 (composite)",                       f"{float(ef._bm_r2):.4f}"),
         ("N future bubbles (max)",                   f"{int(ef._n_future_max)}"),
     ]
+
+
+def _hyb2l_coeff_table():
+    """Live coefficient table for HybPPL +2nd Log."""
+    m = _app_ctx.PRICE_MODELS.get("hyb2l")
+    if m is None:
+        return _coeff_table([("(Hyb2L model not loaded)", "\u2014")])
+    return _coeff_table([
+        ("A (intercept)", f"{m._A:.6f}"),
+        ("B (slope)", f"{m._B:.6f}"),
+        ("C\u2081 (log osc 1 amp)", f"{m._C1:.6f}"),
+        ("\u03c9\u2081 (log freq 1)", f"{m._W1:.4f}"),
+        ("D\u2081 (damping 1)", f"{m._D1:.6f}"),
+        ("C\u2082 (cal osc amp)", f"{m._C2:.6f}"),
+        ("\u03c9_c (cal freq)", f"{m._Wc:.4f}  (T={2*3.14159/m._Wc:.2f}yr)"),
+        ("C\u2083 (log osc 2 amp)", f"{m._C3:.6f}"),
+        ("\u03c9\u2082 (log freq 2)", f"{m._W2:.4f}"),
+        ("D\u2082 (damping 2)", f"{m._D2:.6f}"),
+        ("\u03c3 (residual std)", f"{m._sigma:.6f}"),
+    ])
+
+
+def _hyb2c_coeff_table():
+    """Live coefficient table for HybPPL +2nd Cal."""
+    m = _app_ctx.PRICE_MODELS.get("hyb2c")
+    if m is None:
+        return _coeff_table([("(Hyb2C model not loaded)", "\u2014")])
+    return _coeff_table([
+        ("A (intercept)", f"{m._A:.6f}"),
+        ("B (slope)", f"{m._B:.6f}"),
+        ("C\u2081 (log osc amp)", f"{m._C1:.6f}"),
+        ("\u03c9\u2081 (log freq)", f"{m._W1:.4f}"),
+        ("D (damping)", f"{m._D:.6f}"),
+        ("C\u2082 (cal osc 1 amp)", f"{m._C2:.6f}"),
+        ("\u03c9_c\u2081 (cal freq 1)", f"{m._Wc1:.4f}  (T={2*3.14159/m._Wc1:.2f}yr)"),
+        ("C\u2083 (cal osc 2 amp)", f"{m._C3:.6f}"),
+        ("\u03c9_c\u2082 (cal freq 2)", f"{m._Wc2:.4f}  (T={2*3.14159/m._Wc2:.2f}yr)"),
+        ("\u03c3 (residual std)", f"{m._sigma:.6f}"),
+    ])
+
+
+def _hyb2b_coeff_table():
+    """Live coefficient table for HybPPL +Both."""
+    m = _app_ctx.PRICE_MODELS.get("hyb2b")
+    if m is None:
+        return _coeff_table([("(Hyb2B model not loaded)", "\u2014")])
+    return _coeff_table([
+        ("A (intercept)", f"{m._A:.6f}"),
+        ("B (slope)", f"{m._B:.6f}"),
+        ("C\u2081 (log osc 1 amp)", f"{m._C1:.6f}"),
+        ("\u03c9_l\u2081 (log freq 1)", f"{m._W1:.4f}"),
+        ("D\u2081 (damping 1)", f"{m._D1:.6f}"),
+        ("C\u2082 (cal osc 1 amp)", f"{m._C2:.6f}"),
+        ("\u03c9_c\u2081 (cal freq 1)", f"{m._Wc1:.4f}  (T={2*3.14159/m._Wc1:.2f}yr)"),
+        ("C\u2083 (log osc 2 amp)", f"{m._C3:.6f}"),
+        ("\u03c9_l\u2082 (log freq 2)", f"{m._W2:.4f}"),
+        ("D\u2082 (damping 2)", f"{m._D2:.6f}"),
+        ("C\u2084 (cal osc 2 amp)", f"{m._C4:.6f}"),
+        ("\u03c9_c\u2082 (cal freq 2)", f"{m._Wc2:.4f}  (T={2*3.14159/m._Wc2:.2f}yr)"),
+        ("\u03c3 (residual std)", f"{m._sigma:.6f}"),
+    ])
 
 
 def _logistic_coeff_table():

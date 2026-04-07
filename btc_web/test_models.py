@@ -2,7 +2,8 @@
 import plotly.graph_objects as go
 from btc_core import (PriceModel, _FitsBasedModel, BubbleModel, PowerLawModel,
                       S2FModel, QuantileRegressionModel,
-                      LogisticModel, BrokenPowerLawModel)
+                      LogisticModel, BrokenPowerLawModel,
+                      Hyb2LModel, Hyb2CModel, Hyb2BModel)
 from conftest import (
     M,
     Path,
@@ -389,7 +390,8 @@ class TestCompositeComponentDecomposition:
 class TestDecompRegistry:
     def test_families_keys(self):
         import _app_ctx
-        expected = {"bub", "ef", "lppl", "linppl", "hybppl", "hybppl_dd"}
+        expected = {"bub", "ef", "lppl", "linppl", "hybppl", "hybppl_dd",
+                    "hyb2l", "hyb2c", "hyb2b"}
         assert set(_app_ctx.DECOMP_FAMILIES.keys()) == expected
 
     def test_families_labels(self):
@@ -1806,3 +1808,55 @@ class TestBrokenPowerLawModel:
 
     def test_registered(self):
         assert "bpl" in _app_ctx.PRICE_MODELS
+
+
+class _Hyb2Base:
+    """Shared tests for HybPPL 2nd-frequency variants."""
+    _cls = None
+    _key = None
+
+    def setup_method(self):
+        self.m = self._cls(M.price_years, M.price_prices, M.QR_QUANTILES)
+
+    def test_short_name(self):
+        assert self.m.short_name == self._key
+
+    def test_quantized(self):
+        assert self.m.quantized is True
+
+    def test_fits_keys(self):
+        assert set(self.m.fits.keys()) == set(M.QR_QUANTILES)
+
+    def test_price_at_positive(self):
+        q = self.m.quantiles[len(self.m.quantiles) // 2]
+        assert float(self.m.price_at(q, 10.0)) > 0
+
+    def test_quantile_ordering(self):
+        prices = [float(self.m.price_at(q, 10.0)) for q in self.m.quantiles]
+        assert prices == sorted(prices)
+
+    def test_components(self):
+        import numpy as np
+        c = self.m.components(np.array([5.0, 10.0]))
+        assert len(c) >= 4
+
+    def test_registered(self):
+        assert self._key in _app_ctx.PRICE_MODELS
+
+    def test_decomp_family(self):
+        assert self._key in _app_ctx.DECOMP_FAMILIES
+
+
+class TestHyb2LModel(_Hyb2Base):
+    _cls = Hyb2LModel
+    _key = "hyb2l"
+
+
+class TestHyb2CModel(_Hyb2Base):
+    _cls = Hyb2CModel
+    _key = "hyb2c"
+
+
+class TestHyb2BModel(_Hyb2Base):
+    _cls = Hyb2BModel
+    _key = "hyb2b"

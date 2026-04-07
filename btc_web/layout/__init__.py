@@ -69,10 +69,12 @@ _app_ctx.app.index_string = """<!DOCTYPE html>
     </body>
 </html>"""
 
+# Canonical copy in callbacks/routing.py — keep in sync
 _PATH_TO_TAB = {
-    "/1": "bubble", "/2": "heatmap", "/3": "dca", "/4": "retire",
-    "/5": "supercharge", "/6": "stack", "/7": "model_info", "/8": "faq",
-    "/9": "citadel",
+    "/1": "bubble", "/2": "heatmap", "/3": "dca",
+    "/4": "retire", "/5": "supercharge", "/6": "citadel",
+    "/7": "stack", "/8": "model_info", "/9": "faq",
+    "/faq": "faq",
 }
 
 _TAB_TO_GRAPH = {

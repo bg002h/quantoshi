@@ -87,6 +87,8 @@ MODEL_TRACE_COLORS = {
     "exp": "#CE93D8",   # muted lavender — low-priority model
     "ef":  "#E8C860",   # lighter goldenrod — BM family variant
     "s2f": "#FFD700",   # gold — warm, high luminance
+    "gomp": "#4682B4",   # steel blue — logistic saturation
+    "bpl": "#CD853F",   # peru/tan — broken power law
 }
 
 # ── Color palettes (default + colorblind-safe alternatives) ──────────────
@@ -96,6 +98,7 @@ PALETTES = {
             "bub": "#FFD700", "qr": "#0055FF", "pl": "#00BB00",
             "lppl": "#EE0000", "lp2": "#FF6666", "lp3": "#FFAAAA", "lp4": "#FFCCCC", "linppl": "#00D4AA", "hybppl": "#9370DB", "hybppl_dd": "#B39DDB", "ef": "#FFE066", "exp": "#9933FF", "s2f": "#FF7700",
             "u1": "#333333",
+            "gomp": "#4682B4", "bpl": "#CD853F",
         },
         "thermal_stops": [
             (0.001, "#0d47a1"), (0.01, "#1565c0"), (0.015, "#1976d2"),
@@ -116,6 +119,7 @@ PALETTES = {
             "bub": "#FFD54F", "qr": "#556B2F", "pl": "#C635F5",
             "lppl": "#AD1457", "lp2": "#D81B60", "lp3": "#F06292", "lp4": "#F8BBD0", "linppl": "#006064", "hybppl": "#4527A0", "hybppl_dd": "#8E24AA", "ef": "#FFE082", "exp": "#E0E0E0", "s2f": "#777777",
             "u1": "#333333",
+            "gomp": "#3B6FA0", "bpl": "#B87333",
         },
         "thermal_stops": [
             (0.001, "#0d47a1"), (0.01, "#1565c0"), (0.015, "#1976d2"),
@@ -135,6 +139,7 @@ PALETTES = {
         "model_colors": {
             "bub": "#F5793A", "qr": "#A8A8A8", "pl": "#0F2080",
             "lppl": "#85C0F9", "lp2": "#B0D8FF", "lp3": "#D4E9FF", "lp4": "#EAF4FF", "linppl": "#FFB000", "hybppl": "#D4A017", "hybppl_dd": "#ECC060", "ef": "#F5A060", "exp": "#BBBBBB", "s2f": "#F5C242",
+            "gomp": "#4169E1", "bpl": "#CC7722",
             "u1": "#333333",
         },
         "thermal_stops": [
@@ -156,6 +161,7 @@ PALETTES = {
             "bub": "#F0C040", "qr": "#606060", "pl": "#B0E0E6",
             "lppl": "#1A1A1A", "lp2": "#444444", "lp3": "#707070", "lp4": "#A0A0A0", "linppl": "#2A2A2A", "hybppl": "#505050", "hybppl_dd": "#989898", "ef": "#F0D870", "exp": "#909090", "s2f": "#FFE066",
             "u1": "#333333",
+            "gomp": "#5B7FAA", "bpl": "#AA8844",
         },
         "thermal_stops": [
             (0.001, "#1a1a2e"), (0.01, "#3d1f56"), (0.015, "#6B3074"),
@@ -179,15 +185,8 @@ PALETTE_LABELS = {
     "cb-full": "Colorblind (Full)",
 }
 
-# ── Dollar / loan defaults (shared across layout, callbacks, app prewarm) ────
+# ── Dollar / loan defaults ───────────────────────────────────────────────────
 MAX_USD = 4_294_967_295        # uint32 max — clamp for dollar amount inputs
-SC_DEFAULT_RATE = 13.0         # Stack-celerator default annual interest rate (%)
-SC_DEFAULT_PRICE = 80_000      # Stack-celerator default custom entry price ($)
-SC_DEFAULT_TAX = 33            # capital gains tax rate (%)
-SC_DEFAULT_TERM = 12           # loan term (months)
-SC_DEFAULT_START_YR = 2033     # Supercharger default withdrawal start year
-SC_DEFAULT_WD = 5000           # Supercharger default withdrawal ($/period)
-SC_DEFAULT_END_YR = 2075       # Supercharger default end year
 LOT_DEFAULT_PRICE = 69_420     # Stack Tracker default lot price ($)
 
 # ── Unfairly Cheap Line — unique two-point power law floor ───────────────────

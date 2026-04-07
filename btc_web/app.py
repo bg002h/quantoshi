@@ -38,7 +38,8 @@ from btc_core import (load_model_data, BubbleModel, PowerLawModel,
                        LPPLModelW, LPPL2ModelW, LPPL3ModelW, LPPL4ModelW,
                        LPPL4ModelN13, LPPL4ModelWN13, LinPPLModel, HybPPLModel,
                        HybPPLDDModel,
-                       ExponentialModel, S2FModel, EmpiricalFloorModel, QuantileRegressionModel)
+                       ExponentialModel, LogisticModel, BrokenPowerLawModel,
+                       S2FModel, EmpiricalFloorModel, QuantileRegressionModel)
 from figures import FREQ_PPY
 from mc_overlay import save_trans_cache_to_disk, _get_transition_matrix
 import atexit
@@ -190,6 +191,8 @@ _app_ctx.PRICE_MODELS["linppl"] = LinPPLModel(M.price_years, M.price_prices, M.Q
 _app_ctx.PRICE_MODELS["hybppl"] = HybPPLModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["hybppl_dd"] = HybPPLDDModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["exp"] = ExponentialModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+_app_ctx.PRICE_MODELS["gomp"] = LogisticModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+_app_ctx.PRICE_MODELS["bpl"] = BrokenPowerLawModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["s2f"] = S2FModel(M.price_years, M.price_prices, M.genesis)
 # ── Empirical Floor (conditional — only if pkl exists) ────────────────
 _ef_pkl = Path(__file__).parent.parent / "model_data_ef.pkl"

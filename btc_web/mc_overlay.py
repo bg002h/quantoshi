@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import os
 from pathlib import Path
 import numpy as np
 import plotly.graph_objects as go
@@ -42,10 +43,11 @@ try:
                           get_cached_paths, get_cached_overlay,
                           snap_to_bin, is_cached_year,
                           FAN_PCTS as _MC_CACHE_FAN_PCTS)
-    # Load full MC cache in master process (before gunicorn fork) so all
-    # workers share it via copy-on-write.  Adds ~0.7s to startup (shm hit)
-    # or ~7s (cold npz parse), but eliminates per-worker 800 MB duplication.
-    _load_full_cache()
+    # In production (gunicorn --preload), eagerly load the full MC cache so
+    # all workers share it via copy-on-write.  In DEV mode, skip this — the
+    # cache lazy-loads on first MC request via _ensure_full_cache().
+    if not os.environ.get("DEV"):
+        _load_full_cache()
     _HAS_MC_CACHE = True
 except ImportError:
     _HAS_MC_CACHE = False

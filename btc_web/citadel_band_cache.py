@@ -15,7 +15,6 @@ Fast restart via /dev/shm (same pattern as mc_cache.py):
 """
 from __future__ import annotations
 
-import pickle  # noqa: S403 - trusted local data (same pattern as mc_cache.py)
 import time
 import numpy as np
 from pathlib import Path
@@ -124,49 +123,23 @@ def lookup_entry(model: str, entry_q: int, regime: str, wealth: str,
 
 # ── Shared memory persistence ────────────────────────────────────────────────
 
+from shm_helpers import npz_fingerprint, try_load_shm, save_shm
+
 def _npz_fingerprint(cache_dir: Path | None = None) -> tuple[float, int]:
     """Return (max_mtime, total_size) of source npz files."""
-    cdir = cache_dir or BAND_CACHE_DIR
-    if not cdir.exists():
-        return (0.0, 0)
-    max_mt, total_sz = 0.0, 0
-    for f in cdir.glob("bands_*.npz"):
-        st = f.stat()
-        max_mt = max(max_mt, st.st_mtime)
-        total_sz += st.st_size
-    return (max_mt, total_sz)
-
+    return npz_fingerprint(cache_dir or BAND_CACHE_DIR, "bands_*.npz")
 
 def _try_load_shm() -> bool:
-    """Try loading from /dev/shm cache. Returns True on success."""
-    if not SHM_BAND_CACHE_PATH.exists():
-        return False
-    try:
-        with open(SHM_BAND_CACHE_PATH, "rb") as f:
-            saved = pickle.load(f)  # noqa: S301 - trusted local file
-        fp_saved = saved.pop("_fingerprint", None)
-        fp_now = _npz_fingerprint()
-        if fp_saved != fp_now:
-            print("[CITADEL-BANDS] /dev/shm fingerprint mismatch, reloading from npz")
-            return False
-        _BAND_CACHE.update(saved)
-        return True
-    except Exception as exc:
-        print(f"[CITADEL-BANDS] /dev/shm load failed: {exc}")
-        return False
-
+    return try_load_shm(
+        SHM_BAND_CACHE_PATH, _BAND_CACHE, BAND_CACHE_DIR,
+        "bands_*.npz", label="CITADEL-BANDS",
+    )
 
 def _save_shm() -> None:
-    """Persist cache to /dev/shm for fast restart."""
-    try:
-        blob = dict(_BAND_CACHE)
-        blob["_fingerprint"] = _npz_fingerprint()
-        with open(SHM_BAND_CACHE_PATH, "wb") as f:
-            pickle.dump(blob, f, protocol=pickle.HIGHEST_PROTOCOL)
-        sz_mb = SHM_BAND_CACHE_PATH.stat().st_size / 1e6
-        print(f"[CITADEL-BANDS] Saved /dev/shm cache ({sz_mb:.0f} MB)")
-    except Exception as exc:
-        print(f"[CITADEL-BANDS] /dev/shm save failed: {exc}")
+    save_shm(
+        SHM_BAND_CACHE_PATH, _BAND_CACHE, BAND_CACHE_DIR,
+        "bands_*.npz", label="CITADEL-BANDS",
+    )
 
 
 def load_band_caches(cache_dir: Path | None = None) -> None:

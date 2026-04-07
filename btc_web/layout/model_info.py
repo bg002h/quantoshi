@@ -859,6 +859,88 @@ where $t$ = years since optimal time origin (2009-07-25, linear, not log-transfo
                             ]),
                         ], title="Exponential (included for comparison)", item_id="mi-exp"),
 
+                        # ── 4b. Logistic Growth (Gompertz) ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = K \cdot \exp\!\big(-\exp(-r \cdot (t - t_0))\big) + z_q \cdot \sigma$$
+
+This is the **Gompertz** form of logistic growth. $K$ is the carrying capacity
+(log$_{10}$ of the maximum price Bitcoin can reach), $r$ controls the growth rate,
+and $t_0$ is the inflection point where growth rate is maximized.
+                            """, mathjax=True, className="mb-3"),
+                            html.H6("Method"),
+                            html.P(
+                                "Fitted via scipy.optimize.curve_fit on historical log\u2081\u2080(price) "
+                                "for t \u2265 1 year. Quantile bands use Gaussian shift (z\u00b7\u03c3) like PL."
+                            ),
+                            html.H6("Motivation"),
+                            html.P(
+                                "All other Quantoshi models (PL, LPPL, etc.) are unbounded \u2014 "
+                                "they predict infinite price given enough time. The logistic model "
+                                "asks: what if Bitcoin adoption saturates? It provides an upper "
+                                "bound that no power law model can."
+                            ),
+                            html.H6("Fitted Coefficients"),
+                            _logistic_coeff_table(),
+                            html.H6("Caveats"),
+                            html.Ul([
+                                html.Li(
+                                    "The carrying capacity K is poorly constrained by current data \u2014 "
+                                    "Bitcoin may still be in early growth phase where logistic and "
+                                    "power law are indistinguishable."
+                                ),
+                                html.Li(
+                                    "The model assumes a single S-curve. Real adoption may follow "
+                                    "multiple S-curves (e.g., retail \u2192 institutional \u2192 sovereign)."
+                                ),
+                                html.Li(
+                                    "R\u00b2 is lower than power law (~0.93 vs ~0.96) because the "
+                                    "Gompertz curve cannot capture the early explosive growth as well."
+                                ),
+                            ]),
+                        ], title="Logistic Growth (Gompertz)", item_id="mi-gomp"),
+
+                        # ── 4c. Broken Power Law ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+For $t < t_{\text{break}}$:
+$$\log_{10}(\text{price}) = a_1 + b_1 \cdot \log_{10}(t) + z_q \cdot \sigma$$
+
+For $t \geq t_{\text{break}}$:
+$$\log_{10}(\text{price}) = a_2 + b_2 \cdot \log_{10}(t) + z_q \cdot \sigma$$
+
+with continuity constraint: $a_2 = a_1 + (b_1 - b_2) \cdot \log_{10}(t_{\text{break}})$.
+                            """, mathjax=True, className="mb-3"),
+                            html.H6("Method"),
+                            html.P(
+                                "Fitted via differential evolution (4 free parameters: a\u2081, b\u2081, "
+                                "t_break, b\u2082; a\u2082 derived from continuity). Quantile bands use "
+                                "Gaussian shift like PL."
+                            ),
+                            html.H6("Motivation"),
+                            html.P(
+                                "Tests whether Bitcoin's growth rate has structurally changed. "
+                                "If b\u2082 < b\u2081, growth has slowed (consistent with maturation). "
+                                "If b\u2082 \u2248 b\u2081, a single power law suffices."
+                            ),
+                            html.H6("Fitted Coefficients"),
+                            _bpl_coeff_table(),
+                            html.H6("Interpretation"),
+                            html.Ul([
+                                html.Li(
+                                    "The breakpoint date indicates when the structural shift occurred. "
+                                    "A mid-2010s breakpoint may reflect the transition from early-adopter "
+                                    "to retail phases."
+                                ),
+                                html.Li(
+                                    "If the two slopes are nearly equal, the single power law is sufficient "
+                                    "and the break adds no value."
+                                ),
+                            ]),
+                        ], title="Broken Power Law", item_id="mi-bpl"),
+
                         # ── 5. Stock-to-Flow ──
                         dbc.AccordionItem([
                             html.H6("Formula"),
@@ -1314,6 +1396,38 @@ def _ef_rows():
         ("R\u00b2 (composite)",                       f"{float(ef._bm_r2):.4f}"),
         ("N future bubbles (max)",                   f"{int(ef._n_future_max)}"),
     ]
+
+
+def _logistic_coeff_table():
+    """Live coefficient table for Logistic Growth Model."""
+    m = _app_ctx.PRICE_MODELS.get("gomp")
+    if m is None:
+        return _coeff_table([("(Logistic model not loaded)", "\u2014")])
+    max_price = 10.0 ** m._K
+    return _coeff_table([
+        ("K (carrying capacity, log\u2081\u2080 USD)", f"{m._K:.4f}  (${max_price:,.0f})"),
+        ("r (growth rate)", f"{m._r:.6f}"),
+        ("t\u2080 (inflection, years since genesis)", f"{m._t0:.4f}"),
+        ("\u03c3 (residual std)", f"{m._sigma:.4f}"),
+    ])
+
+
+def _bpl_coeff_table():
+    """Live coefficient table for Broken Power Law Model."""
+    import pandas as pd
+    m = _app_ctx.PRICE_MODELS.get("bpl")
+    if m is None:
+        return _coeff_table([("(BPL model not loaded)", "\u2014")])
+    genesis = pd.Timestamp("2009-07-25")
+    break_date = genesis + pd.Timedelta(days=m._t_break * 365.25)
+    return _coeff_table([
+        ("a\u2081 (early intercept)", f"{m._a1:.6f}"),
+        ("b\u2081 (early slope)", f"{m._b1:.6f}"),
+        ("t_break (breakpoint)", f"{m._t_break:.4f}  ({break_date.strftime('%Y-%m')})"),
+        ("b\u2082 (late slope)", f"{m._b2:.6f}"),
+        ("a\u2082 (late intercept, derived)", f"{m._a2:.6f}"),
+        ("\u03c3 (residual std)", f"{m._sigma:.4f}"),
+    ])
 
 
 def _coeff_table(rows):

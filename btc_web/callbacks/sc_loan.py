@@ -6,6 +6,7 @@ from dash import html, Input, Output, State, callback
 
 import _app_ctx
 from btc_core import fmt_price
+from tab_defaults import DCA
 from callbacks.coerce import _ci, _cf
 from figures import FREQ_PPY
 
@@ -120,7 +121,7 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
         ep = live
         ep_lbl = f"Live ticker ({fmt_price(live)})" if live > 0 else "Live ticker"
     elif entry_mode == "custom":
-        ep = _cf(custom_price, _app_ctx.SC_DEFAULT_PRICE)
+        ep = _cf(custom_price, DCA["sc_custom_price"])
         ep_lbl = f"Custom ({fmt_price(ep)})"
     else:
         ep = 0.0

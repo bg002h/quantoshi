@@ -232,6 +232,30 @@ def run_model_build() -> None:
     else:
         print(res.stdout.strip().split("\n")[-1])
 
+    # Logistic Growth (Gompertz): refit saturation curve
+    print("\nRefitting Logistic parameters \u2026")
+    log_script = REPO_ROOT / "tools" / "fit_logistic.py"
+    res = subprocess.run([sys.executable, str(log_script), "--update"],
+                         capture_output=True, text=True)
+    if res.returncode != 0:
+        print("Logistic FIT FAILED \u2014 stderr (last 3 000 chars):")
+        print(res.stderr[-3000:])
+        print("WARNING: Logistic fit failed. Continuing with existing parameters.")
+    else:
+        print(res.stdout.strip().split("\n")[-1])
+
+    # Broken Power Law: refit breakpoint + slopes
+    print("\nRefitting Broken Power Law parameters \u2026")
+    bpl_script = REPO_ROOT / "tools" / "fit_bpl.py"
+    res = subprocess.run([sys.executable, str(bpl_script), "--update"],
+                         capture_output=True, text=True)
+    if res.returncode != 0:
+        print("BPL FIT FAILED \u2014 stderr (last 3 000 chars):")
+        print(res.stderr[-3000:])
+        print("WARNING: BPL fit failed. Continuing with existing parameters.")
+    else:
+        print(res.stdout.strip().split("\n")[-1])
+
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 

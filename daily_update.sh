@@ -29,13 +29,13 @@ if ! python3 update_prices.py; then
 fi
 
 # Check if there are changes to commit
-if git diff --quiet BitcoinPricesDaily.csv btc_app/model_data.pkl 2>/dev/null; then
+if git diff --quiet BitcoinPricesDaily.csv model_data.pkl btc_core.py 2>/dev/null; then
     echo "No new data — nothing to commit."
     exit 0
 fi
 
 # Commit and push
-git add BitcoinPricesDaily.csv btc_app/model_data.pkl
+git add BitcoinPricesDaily.csv model_data.pkl btc_core.py
 git commit -m "Daily price update $(date '+%Y-%m-%d')"
 if ! git push origin master; then
     notify_failure "git push failed"

@@ -20,7 +20,6 @@ Fast restart via /dev/shm:
     to /dev/shm/quantoshi_mc.pkl (~834 MB). Subsequent restarts load from there
     (~0.7s, 10x faster). The pickle is invalidated when any source npz changes.
 """
-import pickle
 import time
 import numpy as np
 from pathlib import Path
@@ -269,52 +268,13 @@ def _ensure_full_cache():
     load_caches()
 
 
-def _npz_fingerprint():
-    """Return a fingerprint (max mtime + total size) of source npz files."""
-    if not CACHE_DIR.exists():
-        return 0, 0
-    max_mt, total_sz = 0, 0
-    for mdl in _CACHED_MODEL_KEYS:
-        for yr in CACHED_START_YRS:
-            for kind in ("paths", "overlays"):
-                f = CACHE_DIR / f"{kind}_{mdl}_{yr}.npz"
-                if f.exists():
-                    st = f.stat()
-                    max_mt = max(max_mt, st.st_mtime)
-                    total_sz += st.st_size
-    return max_mt, total_sz
-
+from shm_helpers import npz_fingerprint, try_load_shm, save_shm
 
 def _try_load_shm():
-    """Try loading cache from /dev/shm pickle. Returns True on success."""
-    if not SHM_CACHE_PATH.exists():
-        return False
-    try:
-        with open(SHM_CACHE_PATH, "rb") as f:
-            saved = pickle.load(f)
-        fp_saved = saved.pop("_fingerprint", None)
-        fp_now = _npz_fingerprint()
-        if fp_saved != fp_now:
-            print(f"[MC-CACHE] /dev/shm fingerprint mismatch, reloading from npz")
-            return False
-        _CACHE.update(saved)
-        return True
-    except Exception as exc:
-        print(f"[MC-CACHE] /dev/shm load failed: {exc}")
-        return False
-
+    return try_load_shm(SHM_CACHE_PATH, _CACHE, CACHE_DIR, label="MC-CACHE")
 
 def _save_shm():
-    """Persist cache dict to /dev/shm for fast restart."""
-    try:
-        blob = dict(_CACHE)
-        blob["_fingerprint"] = _npz_fingerprint()
-        with open(SHM_CACHE_PATH, "wb") as f:
-            pickle.dump(blob, f, protocol=pickle.HIGHEST_PROTOCOL)
-        sz_mb = SHM_CACHE_PATH.stat().st_size / 1e6
-        print(f"[MC-CACHE] Saved /dev/shm pickle ({sz_mb:.0f} MB)")
-    except Exception as exc:
-        print(f"[MC-CACHE] /dev/shm save failed: {exc}")
+    save_shm(SHM_CACHE_PATH, _CACHE, CACHE_DIR, label="MC-CACHE")
 
 
 def load_caches():

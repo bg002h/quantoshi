@@ -7,55 +7,43 @@ Note: btc_projections.py currently defines these inline for historical reasons.
 The web app imports from here directly.
 """
 
-import ast, json, pickle, sys
+import ast, pickle, sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy.stats import linregress, norm
-from statsmodels.regression.quantile_regression import QuantReg
+
+# Lazy imports — scipy and statsmodels add ~2-3s to import time.
+# They're needed for model evaluation (norm.ppf) and fitting (linregress,
+# QuantReg), but not for unpickling model_data.pkl at startup.
+_norm = None
+_linregress = None
+_QuantReg = None
+
+def _lazy_norm():
+    global _norm
+    if _norm is None:
+        from scipy.stats import norm as _n
+        _norm = _n
+    return _norm
+
+def _lazy_linregress():
+    global _linregress
+    if _linregress is None:
+        from scipy.stats import linregress as _lr
+        _linregress = _lr
+    return _linregress
+
+def _lazy_QuantReg():
+    global _QuantReg
+    if _QuantReg is None:
+        from statsmodels.regression.quantile_regression import QuantReg as _QR
+        _QuantReg = _QR
+    return _QuantReg
 
 # ── constants ─────────────────────────────────────────────────────────────────
 
-_SETTINGS_PATH = Path.home() / ".config" / "btc-projections" / "ui_settings.json"
-_LOTS_PATH     = Path.home() / ".config" / "btc-projections" / "lots.json"
-
 _DEFAULT_QS = [0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
-
-# ── settings persistence ──────────────────────────────────────────────────────
-
-def _load_ui_settings():
-    if _SETTINGS_PATH.exists():
-        try:
-            with open(_SETTINGS_PATH) as f:
-                return json.load(f)
-        except Exception:
-            return {}
-    return {}
-
-
-def _save_ui_settings(d):
-    _SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(_SETTINGS_PATH, "w") as f:
-        json.dump(d, f, indent=2)
-
-
-def load_lots():
-    """Load lots from ~/.config/btc-projections/lots.json."""
-    if _LOTS_PATH.exists():
-        try:
-            with open(_LOTS_PATH) as f:
-                return json.load(f)
-        except Exception:
-            return []
-    return []
-
-
-def save_lots(lots):
-    """Persist lots to ~/.config/btc-projections/lots.json."""
-    _LOTS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(_LOTS_PATH, "w") as f:
-        json.dump(lots, f, indent=2)
 
 
 # ── linestyle helpers (shared with desktop) ───────────────────────────────────
@@ -111,12 +99,6 @@ def fmt_price(p):
     return f"${p:.2f}"
 
 
-def _fmt_btc(v):
-    """Format a BTC quantity for axis labels."""
-    if v >= 1000: return f"{v:.0f} BTC"
-    if v >= 1:    return f"{v:.2f} BTC"
-    if v >= 0.01: return f"{v:.4f} BTC"
-    return f"{v:.6f} BTC"
 
 
 # ── lot helpers ───────────────────────────────────────────────────────────────
@@ -175,10 +157,10 @@ def fit_qr_from_csv(csv_path, quantiles, genesis="2009-07-25", fit_min="2010-01-
     mask = df["date"] >= pd.Timestamp(fit_min)
     dfit = df[mask].copy()
     X    = np.column_stack([np.ones(len(dfit)), dfit["log_years"].values])
-    ols_slope, ols_int, *_ = linregress(dfit["log_years"].values, dfit["log_price"].values)
+    ols_slope, ols_int, *_ = _lazy_linregress()(dfit["log_years"].values, dfit["log_price"].values)
     qr = {}
     for q in quantiles:
-        res = QuantReg(dfit["log_price"].values, X).fit(q=q, max_iter=2000)
+        res = _lazy_QuantReg()(dfit["log_price"].values, X).fit(q=q, max_iter=2000)
         qr[q] = {"intercept": float(res.params[0]), "slope": float(res.params[1]), "r2": 0.0}
     return df, qr, float(ols_int), float(ols_slope)
 
@@ -449,7 +431,7 @@ class _CompositeModel:
         """Price at quantile q, time t (years since genesis)."""
         t_arr = np.asarray(t, float)
         log_median = self._composite_log10(t_arr)
-        z = norm.ppf(q)
+        z = _lazy_norm().ppf(q)
         sigma = self._sigma_at(t_arr, q)
         return 10.0 ** (log_median + z * sigma)
 
@@ -494,7 +476,7 @@ class _CompositeModel:
         self._alpha_down = alpha_down
         self.fits = {}
         for q in quantiles:
-            self.fits[q] = {"z": float(norm.ppf(q))}
+            self.fits[q] = {"z": float(_lazy_norm().ppf(q))}
         self.quantiles = sorted(self.fits.keys())
 
     component_names = ["support", "bubbles"]
@@ -601,7 +583,7 @@ class PowerLawModel(_FitsBasedModel):
         # Build fits: each quantile is the OLS line shifted by z_q * sigma
         self.fits = {}
         for q in quantiles:
-            z = norm.ppf(q)
+            z = _lazy_norm().ppf(q)
             self.fits[q] = {
                 "intercept": ols_intercept + z * sigma,
                 "slope": ols_slope,
@@ -659,7 +641,7 @@ class LPPLModel:
         self.fits = {}
         self._sigma = sigma
         for q in quantiles:
-            z = norm.ppf(q)
+            z = _lazy_norm().ppf(q)
             self.fits[q] = {"z_shift": z * sigma}
         self.quantiles = sorted(self.fits.keys())
         self._build_colors()
@@ -1382,11 +1364,10 @@ class ExponentialModel:
     quantized = True
 
     def __init__(self, price_years, price_prices, quantiles):
-        from scipy.stats import linregress as _lr
         mask = price_years >= 1.0
         t = price_years[mask]
         lp = np.log10(price_prices[mask])
-        slope, intercept, r, _, _ = _lr(t, lp)
+        slope, intercept, r, _, _ = _lazy_linregress()(t, lp)
         self._intercept = intercept
         self._slope = slope
         residuals = lp - (intercept + slope * t)
@@ -1394,7 +1375,7 @@ class ExponentialModel:
 
         self.fits = {}
         for q in quantiles:
-            z = norm.ppf(q)
+            z = _lazy_norm().ppf(q)
             self.fits[q] = {"z_shift": z * self._sigma}
         self.quantiles = sorted(self.fits.keys())
         self._build_colors()
@@ -1445,6 +1426,187 @@ class ExponentialModel:
             r = int(200 + 55 * frac)     # 200 → 255
             g = int(60 + 80 * frac)      # 60 → 140
             b = int(80 + 60 * frac)      # 80 → 140
+            self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
+
+
+class LogisticModel:
+    """Logistic/Gompertz growth model with Gaussian quantile bands.
+
+    Gompertz: log10(price) = K * exp(-exp(-r * (t - t0)))
+    where K = carrying capacity (log10 of max price), r = growth rate,
+    t0 = inflection point.
+
+    Provides an upper saturation bound that power law models lack.
+    """
+    name = "Logistic Growth"
+    short_name = "gomp"
+    legend_name = "Gomp"
+    dash_style = "dot"
+    quantized = True
+
+    # Fitted parameters (will be overwritten by fit_logistic.py --update)
+    _K  =       4.888411  
+    _r  =       0.302386  
+    _t0 =       4.373758  
+
+    def __init__(self, price_years, price_prices, quantiles):
+        mask = price_years >= 1.0
+        t = price_years[mask]
+        lp = np.log10(price_prices[mask])
+        predicted = self._model_log10(t)
+        self._sigma = float(np.std(lp - predicted))
+        self.fits = {}
+        for q in quantiles:
+            z = _lazy_norm().ppf(q)
+            self.fits[q] = {"z_shift": z * self._sigma}
+        self.quantiles = sorted(self.fits.keys())
+        self._build_colors()
+
+    def _model_log10(self, t):
+        t = np.asarray(t, float)
+        return self._K * np.exp(-np.exp(-self._r * (t - self._t0)))
+
+    def price_at(self, q, t):
+        t_arr = np.asarray(t, float)
+        log_median = self._model_log10(t_arr)
+        shift = self.fits[q]["z_shift"]
+        return 10.0 ** (log_median + shift)
+
+    def interp_price(self, q, t):
+        if q in self.fits:
+            return float(self.price_at(q, t))
+        sorted_qs = self.quantiles
+        lo = max((qq for qq in sorted_qs if qq <= q), default=sorted_qs[0])
+        hi = min((qq for qq in sorted_qs if qq >= q), default=sorted_qs[-1])
+        if lo == hi:
+            return float(self.price_at(lo, t))
+        frac = (q - lo) / (hi - lo)
+        p_lo = np.log10(float(self.price_at(lo, t)))
+        p_hi = np.log10(float(self.price_at(hi, t)))
+        return 10.0 ** (p_lo + frac * (p_hi - p_lo))
+
+    def find_percentile(self, t, price):
+        sorted_qs = self.quantiles
+        if not sorted_qs:
+            return 0.5
+        t_safe = max(float(t), 0.5)
+        log_p = np.log10(max(float(price), 1e-10))
+        log_ps = [np.log10(max(float(self.price_at(q, t_safe)), 1e-10))
+                  for q in sorted_qs]
+        if log_p <= log_ps[0]:
+            return sorted_qs[0]
+        if log_p >= log_ps[-1]:
+            return sorted_qs[-1]
+        for i in range(len(sorted_qs) - 1):
+            if log_ps[i] <= log_p <= log_ps[i + 1]:
+                frac = (log_p - log_ps[i]) / (log_ps[i + 1] - log_ps[i] + 1e-30)
+                return sorted_qs[i] + frac * (sorted_qs[i + 1] - sorted_qs[i])
+        return sorted_qs[-1]
+
+    def _build_colors(self):
+        """Steel blue palette — saturation model."""
+        self.colors = {}
+        n = len(self.quantiles)
+        for i, q in enumerate(self.quantiles):
+            frac = i / max(n - 1, 1)
+            r = int(50 + 60 * frac)
+            g = int(90 + 70 * frac)
+            b = int(150 + 50 * frac)
+            self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
+
+
+class BrokenPowerLawModel:
+    """Broken (two-segment) power law with Gaussian quantile bands.
+
+    For t < t_break: log10(price) = a1 + b1 * log10(t)
+    For t >= t_break: log10(price) = a2 + b2 * log10(t)
+    Continuity constraint: a2 = a1 + (b1 - b2) * log10(t_break)
+    """
+    name = "Broken Power Law"
+    short_name = "bpl"
+    legend_name = "BPL"
+    dash_style = "longdash"
+    quantized = True
+
+    # Fitted parameters (will be overwritten by fit_bpl.py --update)
+    _a1      = -1.092132  
+    _b1      =       4.920029  
+    _t_break =       6.694045  
+    _b2      =       5.319400  
+
+    def __init__(self, price_years, price_prices, quantiles):
+        mask = price_years >= 1.0
+        t = price_years[mask]
+        lp = np.log10(price_prices[mask])
+        predicted = self._model_log10(t)
+        self._sigma = float(np.std(lp - predicted))
+        self.fits = {}
+        for q in quantiles:
+            z = _lazy_norm().ppf(q)
+            self.fits[q] = {"z_shift": z * self._sigma}
+        self.quantiles = sorted(self.fits.keys())
+        self._build_colors()
+
+    @property
+    def _a2(self):
+        return self._a1 + (self._b1 - self._b2) * np.log10(self._t_break)
+
+    def _model_log10(self, t):
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        lt = np.log10(t_safe)
+        return np.where(
+            t_safe < self._t_break,
+            self._a1 + self._b1 * lt,
+            self._a2 + self._b2 * lt,
+        )
+
+    def price_at(self, q, t):
+        t_arr = np.asarray(t, float)
+        log_median = self._model_log10(t_arr)
+        shift = self.fits[q]["z_shift"]
+        return 10.0 ** (log_median + shift)
+
+    def interp_price(self, q, t):
+        if q in self.fits:
+            return float(self.price_at(q, t))
+        sorted_qs = self.quantiles
+        lo = max((qq for qq in sorted_qs if qq <= q), default=sorted_qs[0])
+        hi = min((qq for qq in sorted_qs if qq >= q), default=sorted_qs[-1])
+        if lo == hi:
+            return float(self.price_at(lo, t))
+        frac = (q - lo) / (hi - lo)
+        p_lo = np.log10(float(self.price_at(lo, t)))
+        p_hi = np.log10(float(self.price_at(hi, t)))
+        return 10.0 ** (p_lo + frac * (p_hi - p_lo))
+
+    def find_percentile(self, t, price):
+        sorted_qs = self.quantiles
+        if not sorted_qs:
+            return 0.5
+        t_safe = max(float(t), 0.5)
+        log_p = np.log10(max(float(price), 1e-10))
+        log_ps = [np.log10(max(float(self.price_at(q, t_safe)), 1e-10))
+                  for q in sorted_qs]
+        if log_p <= log_ps[0]:
+            return sorted_qs[0]
+        if log_p >= log_ps[-1]:
+            return sorted_qs[-1]
+        for i in range(len(sorted_qs) - 1):
+            if log_ps[i] <= log_p <= log_ps[i + 1]:
+                frac = (log_p - log_ps[i]) / (log_ps[i + 1] - log_ps[i] + 1e-30)
+                return sorted_qs[i] + frac * (sorted_qs[i + 1] - sorted_qs[i])
+        return sorted_qs[-1]
+
+    def _build_colors(self):
+        """Amber/tan palette — regime-shift model."""
+        self.colors = {}
+        n = len(self.quantiles)
+        for i, q in enumerate(self.quantiles):
+            frac = i / max(n - 1, 1)
+            r = int(160 + 60 * frac)
+            g = int(110 + 50 * frac)
+            b = int(40 + 40 * frac)
             self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
 
 
@@ -1531,7 +1693,7 @@ class S2FModel:
         log_s2f = np.log10(s2f_vals[valid])
         log_p = np.log10(prices[valid])
 
-        slope, intercept, *_ = linregress(log_s2f, log_p)
+        slope, intercept, *_ = _lazy_linregress()(log_s2f, log_p)
         self._s2f_intercept = intercept
         self._s2f_slope = slope
 

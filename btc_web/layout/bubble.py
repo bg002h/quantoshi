@@ -39,7 +39,7 @@ def _build_bub_model_options(mc):
 
     # Non-LPPL-family models, in standard order, deprioritizing exp/s2f
     _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(_app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
-    _DEPRIORITIZED = {"exp", "s2f"}
+    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl"}
     primary = [m for m in _app_ctx.PRICE_MODELS.values()
                if m.short_name not in _app_ctx.MODEL_SENTINELS
                and m.short_name != "bub"

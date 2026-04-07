@@ -31,7 +31,7 @@ BUBBLE = MappingProxyType({
     "active_models": ("bub",),
     "palette": "default",
     "scanner_lines": (),
-    "qs_mode": [],
+    "qs_mode": (),
 })
 
 HEATMAP = MappingProxyType({
@@ -68,7 +68,7 @@ DCA = MappingProxyType({
     "sc_entry_mode": "live", "sc_custom_price": 80000.0,
     "sc_tax_rate": 0.33,
     "show_qr": True, "show_mc": False,
-    "qs_mode": [],
+    "qs_mode": (),
 })
 
 RETIRE = MappingProxyType({
@@ -85,7 +85,7 @@ RETIRE = MappingProxyType({
     "active_models": (),
     "palette": "default",
     "show_qr": True, "show_mc": False,
-    "qs_mode": [],
+    "qs_mode": (),
 })
 
 SUPERCHARGE = MappingProxyType({
@@ -106,7 +106,7 @@ SUPERCHARGE = MappingProxyType({
     "active_models": (),
     "palette": "default",
     "show_qr": True, "show_mc": False,
-    "qs_mode": [],
+    "qs_mode": (),
 })
 
 STACK = MappingProxyType({

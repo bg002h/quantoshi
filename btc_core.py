@@ -1334,6 +1334,33 @@ class Hyb2LModel(LPPLModel):
         "undamped cal osc (\u03c9_cal)",
         "damped log osc 2 (\u03c9\u2082)",
     ]
+    formula_log10_latex = (
+        r"A + B \log_{10}(t)"
+        r" + C_1 t^{-D_1} \cos(\omega_1 \ln t + \varphi_1)"
+        r" + C_2 \cos(\omega_c t + \varphi_2)"
+        r" + C_3 t^{-D_2} \cos(\omega_2 \ln t + \varphi_3)"
+    )
+    formula_product_latex = (
+        r"10^A \cdot t^B"
+        r" \cdot 10^{\,C_1 t^{-D_1} \cos(\omega_1 \ln t + \varphi_1)}"
+        r" \cdot 10^{\,C_2 \cos(\omega_c t + \varphi_2)}"
+        r" \cdot 10^{\,C_3 t^{-D_2} \cos(\omega_2 \ln t + \varphi_3)}"
+    )
+    component_details = {
+        "A (constant)":           ("A", [("A", "_A")]),
+        "B\u00b7log\u2081\u2080(t)": ("B\u00b7log\u2081\u2080(t)", [("B", "_B")]),
+        "damped log osc 1 (\u03c9\u2081)": (
+            "C\u2081\u00b7t^(-D\u2081)\u00b7cos(\u03c9\u2081\u00b7ln(t)+\u03c6\u2081)",
+            [("C\u2081", "_C1"), ("D\u2081", "_D1"),
+             ("\u03c9\u2081", "_W1"), ("\u03c6\u2081", "_PHI1")]),
+        "undamped cal osc (\u03c9_cal)": (
+            "C\u2082\u00b7cos(\u03c9_c\u00b7t+\u03c6\u2082)",
+            [("C\u2082", "_C2"), ("\u03c9_c", "_Wc"), ("\u03c6\u2082", "_PHI2")]),
+        "damped log osc 2 (\u03c9\u2082)": (
+            "C\u2083\u00b7t^(-D\u2082)\u00b7cos(\u03c9\u2082\u00b7ln(t)+\u03c6\u2083)",
+            [("C\u2083", "_C3"), ("D\u2082", "_D2"),
+             ("\u03c9\u2082", "_W2"), ("\u03c6\u2083", "_PHI3")]),
+    }
 
     def components(self, t):
         t = np.asarray(t, float)
@@ -1398,6 +1425,32 @@ class Hyb2CModel(LPPLModel):
         "undamped cal osc 1 (\u03c9_c\u2081)",
         "undamped cal osc 2 (\u03c9_c\u2082)",
     ]
+    formula_log10_latex = (
+        r"A + B \log_{10}(t)"
+        r" + C_1 t^{-D} \cos(\omega_1 \ln t + \varphi_1)"
+        r" + C_2 \cos(\omega_{c1} t + \varphi_2)"
+        r" + C_3 \cos(\omega_{c2} t + \varphi_3)"
+    )
+    formula_product_latex = (
+        r"10^A \cdot t^B"
+        r" \cdot 10^{\,C_1 t^{-D} \cos(\omega_1 \ln t + \varphi_1)}"
+        r" \cdot 10^{\,C_2 \cos(\omega_{c1} t + \varphi_2)}"
+        r" \cdot 10^{\,C_3 \cos(\omega_{c2} t + \varphi_3)}"
+    )
+    component_details = {
+        "A (constant)":           ("A", [("A", "_A")]),
+        "B\u00b7log\u2081\u2080(t)": ("B\u00b7log\u2081\u2080(t)", [("B", "_B")]),
+        "damped log osc (\u03c9_log)": (
+            "C\u2081\u00b7t^(-D)\u00b7cos(\u03c9\u2081\u00b7ln(t)+\u03c6\u2081)",
+            [("C\u2081", "_C1"), ("D", "_D"),
+             ("\u03c9\u2081", "_W1"), ("\u03c6\u2081", "_PHI1")]),
+        "undamped cal osc 1 (\u03c9_c\u2081)": (
+            "C\u2082\u00b7cos(\u03c9_c\u2081\u00b7t+\u03c6\u2082)",
+            [("C\u2082", "_C2"), ("\u03c9_c\u2081", "_Wc1"), ("\u03c6\u2082", "_PHI2")]),
+        "undamped cal osc 2 (\u03c9_c\u2082)": (
+            "C\u2083\u00b7cos(\u03c9_c\u2082\u00b7t+\u03c6\u2083)",
+            [("C\u2083", "_C3"), ("\u03c9_c\u2082", "_Wc2"), ("\u03c6\u2083", "_PHI3")]),
+    }
 
     def components(self, t):
         t = np.asarray(t, float)
@@ -1467,6 +1520,38 @@ class Hyb2BModel(LPPLModel):
         "damped log osc 2 (\u03c9_l\u2082)",
         "undamped cal osc 2 (\u03c9_c\u2082)",
     ]
+    formula_log10_latex = (
+        r"A + B \log_{10}(t)"
+        r" + C_1 t^{-D_1} \cos(\omega_{l1} \ln t + \varphi_1)"
+        r" + C_2 \cos(\omega_{c1} t + \varphi_2)"
+        r" + C_3 t^{-D_2} \cos(\omega_{l2} \ln t + \varphi_3)"
+        r" + C_4 \cos(\omega_{c2} t + \varphi_4)"
+    )
+    formula_product_latex = (
+        r"10^A \cdot t^B"
+        r" \cdot 10^{\,C_1 t^{-D_1} \cos(\omega_{l1} \ln t + \varphi_1)}"
+        r" \cdot 10^{\,C_2 \cos(\omega_{c1} t + \varphi_2)}"
+        r" \cdot 10^{\,C_3 t^{-D_2} \cos(\omega_{l2} \ln t + \varphi_3)}"
+        r" \cdot 10^{\,C_4 \cos(\omega_{c2} t + \varphi_4)}"
+    )
+    component_details = {
+        "A (constant)":           ("A", [("A", "_A")]),
+        "B\u00b7log\u2081\u2080(t)": ("B\u00b7log\u2081\u2080(t)", [("B", "_B")]),
+        "damped log osc 1 (\u03c9_l\u2081)": (
+            "C\u2081\u00b7t^(-D\u2081)\u00b7cos(\u03c9_l\u2081\u00b7ln(t)+\u03c6\u2081)",
+            [("C\u2081", "_C1"), ("D\u2081", "_D1"),
+             ("\u03c9_l\u2081", "_W1"), ("\u03c6\u2081", "_PHI1")]),
+        "undamped cal osc 1 (\u03c9_c\u2081)": (
+            "C\u2082\u00b7cos(\u03c9_c\u2081\u00b7t+\u03c6\u2082)",
+            [("C\u2082", "_C2"), ("\u03c9_c\u2081", "_Wc1"), ("\u03c6\u2082", "_PHI2")]),
+        "damped log osc 2 (\u03c9_l\u2082)": (
+            "C\u2083\u00b7t^(-D\u2082)\u00b7cos(\u03c9_l\u2082\u00b7ln(t)+\u03c6\u2083)",
+            [("C\u2083", "_C3"), ("D\u2082", "_D2"),
+             ("\u03c9_l\u2082", "_W2"), ("\u03c6\u2083", "_PHI3")]),
+        "undamped cal osc 2 (\u03c9_c\u2082)": (
+            "C\u2084\u00b7cos(\u03c9_c\u2082\u00b7t+\u03c6\u2084)",
+            [("C\u2084", "_C4"), ("\u03c9_c\u2082", "_Wc2"), ("\u03c6\u2084", "_PHI4")]),
+    }
 
     def components(self, t):
         t = np.asarray(t, float)

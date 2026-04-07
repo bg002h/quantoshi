@@ -815,6 +815,12 @@ $$\log_{10}(\text{price}) = A + B \log_{10}(t)
                             html.P("Adds a second damped log-periodic harmonic to HybPPL. "
                                    "The second frequency (\u03c9\u2082 \u2248 16) is roughly "
                                    "double the primary (\u03c9\u2081 \u2248 7.5). 13 parameters."),
+                            html.H6("Damping"),
+                            html.Ul([
+                                html.Li("Log osc 1: damped (D\u2081 \u2248 0.77) \u2014 fading"),
+                                html.Li("Cal osc: undamped \u2014 persists indefinitely"),
+                                html.Li("Log osc 2: damped (D\u2082 \u2248 0.93) \u2014 fading faster than osc 1"),
+                            ]),
                             html.H6("Fitted Coefficients"),
                             _hyb2l_coeff_table(),
                         ], title="HybPPL +2L (2nd Log-Periodic)", item_id="mi-hyb2l"),
@@ -833,6 +839,12 @@ $$\log_{10}(\text{price}) = A + B \log_{10}(t)
                                    "The second frequency (T \u2248 1.9yr) is roughly half the "
                                    "halving cycle \u2014 may capture sub-halving market structure. "
                                    "Best R\u00b2 improvement per added parameter. 12 parameters."),
+                            html.H6("Damping"),
+                            html.Ul([
+                                html.Li("Log osc: damped (D \u2248 0.73) \u2014 fading"),
+                                html.Li("Cal osc 1 (T\u22483.6yr): undamped \u2014 persists (halving cycle)"),
+                                html.Li("Cal osc 2 (T\u22481.9yr): undamped \u2014 persists (sub-halving)"),
+                            ]),
                             html.H6("Fitted Coefficients"),
                             _hyb2c_coeff_table(),
                         ], title="HybPPL +2C (2nd Calendar)", item_id="mi-hyb2c"),
@@ -852,6 +864,13 @@ $$\log_{10}(\text{price}) = A + B \log_{10}(t)
                                    "calendar-periodic get a second harmonic. Highest R\u00b2 "
                                    "in the family (0.993). BIC still improves despite 16 "
                                    "parameters \u2014 both frequencies are statistically justified."),
+                            html.H6("Damping"),
+                            html.Ul([
+                                html.Li("Log osc 1: damped (D\u2081 \u2248 0.83) \u2014 fading"),
+                                html.Li("Cal osc 1 (T\u22483.6yr): undamped \u2014 persists (halving cycle)"),
+                                html.Li("Log osc 2: damped (D\u2082 \u2248 1.17) \u2014 fading fast (higher harmonic)"),
+                                html.Li("Cal osc 2 (T\u22481.9yr): undamped \u2014 persists (sub-halving)"),
+                            ]),
                             html.H6("Fitted Coefficients"),
                             _hyb2b_coeff_table(),
                         ], title="HybPPL +2B (Both 2nd Harmonics)", item_id="mi-hyb2b"),

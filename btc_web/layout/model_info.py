@@ -815,11 +815,25 @@ $$\log_{10}(\text{price}) = A + B \log_{10}(t)
                             html.P("Adds a second damped log-periodic harmonic to HybPPL. "
                                    "The second frequency (\u03c9\u2082 \u2248 16) is roughly "
                                    "double the primary (\u03c9\u2081 \u2248 7.5). 13 parameters."),
-                            html.H6("Damping"),
-                            html.Ul([
-                                html.Li("Log osc 1: damped (D\u2081 \u2248 0.77) \u2014 fading"),
-                                html.Li("Cal osc: undamped \u2014 persists indefinitely"),
-                                html.Li("Log osc 2: damped (D\u2082 \u2248 0.93) \u2014 fading faster than osc 1"),
+                            html.H6("Damping Behavior"),
+                            html.P([
+                                html.Strong("Log osc 1"), " (D\u2081 \u2248 0.77): ",
+                                "Currently producing \u00b10.09 log\u2081\u2080 swings (\u00b123% price). "
+                                "By 2035 this drops to \u00b10.06 (\u00b115%) \u2014 losing ~31% of its "
+                                "amplitude per decade. Still visible but fading.",
+                            ]),
+                            html.P([
+                                html.Strong("Cal osc"), " (undamped): ",
+                                "Fixed \u00b10.26 log\u2081\u2080 swing (\u00b180% price) on a 3.6-year cycle. "
+                                "This is the halving cycle \u2014 it persists indefinitely and will "
+                                "dominate forward projections as the log-periodic terms decay.",
+                            ]),
+                            html.P([
+                                html.Strong("Log osc 2"), " (D\u2082 \u2248 0.93): ",
+                                "Currently only \u00b10.03 log\u2081\u2080 (\u00b17% price) and fading 36% "
+                                "by 2035. This higher harmonic is already near-negligible \u2014 "
+                                "it captures fine structure in early Bitcoin but contributes little "
+                                "to forward projections.",
                             ]),
                             html.H6("Fitted Coefficients"),
                             _hyb2l_coeff_table(),
@@ -839,11 +853,24 @@ $$\log_{10}(\text{price}) = A + B \log_{10}(t)
                                    "The second frequency (T \u2248 1.9yr) is roughly half the "
                                    "halving cycle \u2014 may capture sub-halving market structure. "
                                    "Best R\u00b2 improvement per added parameter. 12 parameters."),
-                            html.H6("Damping"),
-                            html.Ul([
-                                html.Li("Log osc: damped (D \u2248 0.73) \u2014 fading"),
-                                html.Li("Cal osc 1 (T\u22483.6yr): undamped \u2014 persists (halving cycle)"),
-                                html.Li("Cal osc 2 (T\u22481.9yr): undamped \u2014 persists (sub-halving)"),
+                            html.H6("Damping Behavior"),
+                            html.P([
+                                html.Strong("Log osc"), " (D \u2248 0.73): ",
+                                "Currently \u00b10.10 log\u2081\u2080 (\u00b126% price). "
+                                "By 2035 this drops to \u00b10.07 (\u00b117%) \u2014 losing ~30% per decade. "
+                                "The slowest-decaying log-periodic term in the family.",
+                            ]),
+                            html.P([
+                                html.Strong("Cal osc 1"), " (T \u2248 3.6yr, undamped): ",
+                                "Fixed \u00b10.24 log\u2081\u2080 (\u00b170% price). The halving cycle \u2014 "
+                                "persists indefinitely.",
+                            ]),
+                            html.P([
+                                html.Strong("Cal osc 2"), " (T \u2248 1.9yr, undamped): ",
+                                "Fixed \u00b10.11 log\u2081\u2080 (\u00b130% price). A sub-halving rhythm "
+                                "at roughly half the halving period. Also persists indefinitely. "
+                                "Together with cal osc 1, these two undamped terms fully determine "
+                                "the model\u2019s long-term oscillatory behavior.",
                             ]),
                             html.H6("Fitted Coefficients"),
                             _hyb2c_coeff_table(),
@@ -864,12 +891,27 @@ $$\log_{10}(\text{price}) = A + B \log_{10}(t)
                                    "calendar-periodic get a second harmonic. Highest R\u00b2 "
                                    "in the family (0.993). BIC still improves despite 16 "
                                    "parameters \u2014 both frequencies are statistically justified."),
-                            html.H6("Damping"),
-                            html.Ul([
-                                html.Li("Log osc 1: damped (D\u2081 \u2248 0.83) \u2014 fading"),
-                                html.Li("Cal osc 1 (T\u22483.6yr): undamped \u2014 persists (halving cycle)"),
-                                html.Li("Log osc 2: damped (D\u2082 \u2248 1.17) \u2014 fading fast (higher harmonic)"),
-                                html.Li("Cal osc 2 (T\u22481.9yr): undamped \u2014 persists (sub-halving)"),
+                            html.H6("Damping Behavior"),
+                            html.P([
+                                html.Strong("Log osc 1"), " (D\u2081 \u2248 0.83): ",
+                                "Currently \u00b10.09 log\u2081\u2080 (\u00b123% price). "
+                                "By 2035 drops to \u00b10.06 (\u00b115%) \u2014 losing ~33% per decade.",
+                            ]),
+                            html.P([
+                                html.Strong("Cal osc 1"), " (T \u2248 3.6yr, undamped): ",
+                                "Fixed \u00b10.24 log\u2081\u2080 (\u00b170% price). The halving cycle.",
+                            ]),
+                            html.P([
+                                html.Strong("Log osc 2"), " (D\u2082 \u2248 1.17): ",
+                                "Currently only \u00b10.017 log\u2081\u2080 (\u00b14% price) and fading 43% "
+                                "by 2035. The fastest-decaying term in the model \u2014 essentially "
+                                "extinct by the 2040s. Captures early-era fractal structure only.",
+                            ]),
+                            html.P([
+                                html.Strong("Cal osc 2"), " (T \u2248 1.9yr, undamped): ",
+                                "Fixed \u00b10.11 log\u2081\u2080 (\u00b126% price). Sub-halving rhythm. "
+                                "Together with the halving cycle, these two undamped terms "
+                                "dominate all forward projections beyond ~2035.",
                             ]),
                             html.H6("Fitted Coefficients"),
                             _hyb2b_coeff_table(),

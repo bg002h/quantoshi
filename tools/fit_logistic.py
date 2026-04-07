@@ -47,28 +47,18 @@ def main():
 
     ss_tot = np.sum((lp_fit - np.mean(lp_fit)) ** 2)
 
-    # Try both Gompertz and Logistic, pick the better fit
+    # Fit Gompertz only — the model class always evaluates Gompertz
     bounds_lo = [4.0, 0.01, 1.0]
     bounds_hi = [12.0, 2.0, 20.0]
     p0 = [7.0, 0.15, 8.0]
 
-    results = {}
-    for name, func in [("Gompertz", gompertz_log10), ("Logistic", logistic_log10)]:
-        try:
-            popt, _ = curve_fit(func, t_fit, lp_fit, p0=p0,
-                                bounds=(bounds_lo, bounds_hi), maxfev=10000)
-            pred = func(t_fit, *popt)
-            r2 = 1.0 - np.sum((lp_fit - pred) ** 2) / ss_tot
-            sigma = float(np.std(lp_fit - pred))
-            results[name] = {"popt": popt, "r2": r2, "sigma": sigma, "func": func}
-            print(f"  {name}: R² = {r2:.6f}, σ = {sigma:.6f}")
-        except Exception as exc:
-            print(f"  {name}: FAILED ({exc})")
-
-    if not results:
-        # Fallback: use DE on Gompertz
-        print("  curve_fit failed, trying differential_evolution on Gompertz...")
-        bounds = [(5.0, 10.0), (0.01, 1.0), (1.0, 20.0)]
+    try:
+        popt, _ = curve_fit(gompertz_log10, t_fit, lp_fit, p0=p0,
+                            bounds=(bounds_lo, bounds_hi), maxfev=10000)
+    except Exception:
+        # Fallback: use DE
+        print("  curve_fit failed, trying differential_evolution...")
+        bounds = [(4.0, 12.0), (0.01, 2.0), (1.0, 20.0)]
 
         def objective(params):
             return np.sum((lp_fit - gompertz_log10(t_fit, *params)) ** 2)
@@ -76,31 +66,19 @@ def main():
         res = differential_evolution(objective, bounds, maxiter=3000, seed=42,
                                      tol=1e-12, polish=True)
         popt = res.x
-        pred = gompertz_log10(t_fit, *popt)
-        r2 = 1.0 - np.sum((lp_fit - pred) ** 2) / ss_tot
-        sigma = float(np.std(lp_fit - pred))
-        results["Gompertz"] = {"popt": popt, "r2": r2, "sigma": sigma,
-                               "func": gompertz_log10}
 
-    # Pick best
-    best_name = max(results, key=lambda k: results[k]["r2"])
-    best = results[best_name]
-    K, r, t0 = best["popt"]
-    r2 = best["r2"]
-    sigma = best["sigma"]
-
+    K, r, t0 = popt
+    pred = gompertz_log10(t_fit, *popt)
+    r2 = 1.0 - np.sum((lp_fit - pred) ** 2) / ss_tot
+    sigma = float(np.std(lp_fit - pred))
     max_price = 10.0 ** K
 
-    print(f"\nBest fit: {best_name}")
+    print(f"\nFitted Gompertz parameters:")
     print(f"  K     = {K:.6f}  (log10 max price = ${max_price:,.0f})")
     print(f"  r     = {r:.6f}  (growth rate)")
     print(f"  t0    = {t0:.6f}  (inflection, years since genesis)")
     print(f"  R²    = {r2:.6f}")
     print(f"  σ     = {sigma:.6f}")
-
-    if best_name == "Logistic":
-        print("  NOTE: Logistic fit was better than Gompertz.")
-        print("        Model class uses Gompertz formula — consider switching if persistent.")
 
     if update:
         print("\nUpdating btc_core.py...")

@@ -1570,6 +1570,116 @@ class Hyb2BModel(LPPLModel):
         }
 
 
+class Hyb4DModel(LPPLModel):
+    """HybPPL 4D — all 4 oscillatory components damped.
+
+    Fits: log10(price) = A + B*log10(t)
+                       + C1*t^(-D1)*cos(W1*ln(t)+PHI1)
+                       + C2*t^(-Dc1)*cos(Wc1*t+PHI2)
+                       + C3*t^(-D2)*cos(W2*ln(t)+PHI3)
+                       + C4*t^(-Dc2)*cos(Wc2*t+PHI4)
+
+    All four oscillators carry damping exponents. 18 parameters.
+    Compared to Hyb2B (16 params, R²=0.993), adding 2 extra D params
+    yields WORSE fit (R²=0.992, BIC=-22624 vs -23203). The calendar
+    terms resist damping — Dc2≈0.076 is near zero, meaning the 2nd
+    calendar oscillator WANTS to be undamped.
+    """
+    name = "HybPPL 4D"
+    short_name = "hyb4d"
+    legend_name = "Hyb4D"
+    dash_style = "dashdot"
+    quantized = True
+
+    # Fitted parameters (will be overwritten by fit_hyb4d.py --update)
+    _A    = -1.199128
+    _B    =  5.089778
+    _C1   =  0.620830
+    _W1   =  7.377568
+    _PHI1 =  1.261169
+    _D1   =  0.590221
+    _C2   =  0.586943
+    _Wc1  =  1.116857
+    _PHI2 =  3.141119
+    _Dc1  =  1.062266
+    _C3   =  0.315244
+    _W2   = 15.789862
+    _PHI3 =  1.992452
+    _D2   =  0.753157
+    _C4   =  0.344880
+    _Wc2  =  1.708182
+    _PHI4 = -1.638672
+    _Dc2  =  0.075647
+
+    def _lppl_log10(self, t):
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        osc1 = self._C1 * t_safe ** (-self._D1) * np.cos(self._W1 * np.log(t_safe) + self._PHI1)
+        cal1 = self._C2 * t_safe ** (-self._Dc1) * np.cos(self._Wc1 * t_safe + self._PHI2)
+        osc2 = self._C3 * t_safe ** (-self._D2) * np.cos(self._W2 * np.log(t_safe) + self._PHI3)
+        cal2 = self._C4 * t_safe ** (-self._Dc2) * np.cos(self._Wc2 * t_safe + self._PHI4)
+        return self._A + self._B * np.log10(t_safe) + osc1 + cal1 + osc2 + cal2
+
+    component_names = [
+        "A (constant)",
+        "B\u00b7log\u2081\u2080(t)",
+        "damped log osc 1 (\u03c9_l\u2081)",
+        "damped cal osc 1 (\u03c9_c\u2081)",
+        "damped log osc 2 (\u03c9_l\u2082)",
+        "damped cal osc 2 (\u03c9_c\u2082)",
+    ]
+    formula_log10_latex = (
+        r"A + B \log_{10}(t)"
+        r" + C_1 t^{-D_1} \cos(\omega_{l1} \ln t + \varphi_1)"
+        r" + C_2 t^{-D_{c1}} \cos(\omega_{c1} t + \varphi_2)"
+        r" + C_3 t^{-D_2} \cos(\omega_{l2} \ln t + \varphi_3)"
+        r" + C_4 t^{-D_{c2}} \cos(\omega_{c2} t + \varphi_4)"
+    )
+    formula_product_latex = (
+        r"10^A \cdot t^B"
+        r" \cdot 10^{\,C_1 t^{-D_1} \cos(\omega_{l1} \ln t + \varphi_1)}"
+        r" \cdot 10^{\,C_2 t^{-D_{c1}} \cos(\omega_{c1} t + \varphi_2)}"
+        r" \cdot 10^{\,C_3 t^{-D_2} \cos(\omega_{l2} \ln t + \varphi_3)}"
+        r" \cdot 10^{\,C_4 t^{-D_{c2}} \cos(\omega_{c2} t + \varphi_4)}"
+    )
+    component_details = {
+        "A (constant)":           ("A", [("A", "_A")]),
+        "B\u00b7log\u2081\u2080(t)": ("B\u00b7log\u2081\u2080(t)", [("B", "_B")]),
+        "damped log osc 1 (\u03c9_l\u2081)": (
+            "C\u2081\u00b7t^(-D\u2081)\u00b7cos(\u03c9_l\u2081\u00b7ln(t)+\u03c6\u2081)",
+            [("C\u2081", "_C1"), ("D\u2081", "_D1"),
+             ("\u03c9_l\u2081", "_W1"), ("\u03c6\u2081", "_PHI1")]),
+        "damped cal osc 1 (\u03c9_c\u2081)": (
+            "C\u2082\u00b7t^(-D_c\u2081)\u00b7cos(\u03c9_c\u2081\u00b7t+\u03c6\u2082)",
+            [("C\u2082", "_C2"), ("D_c\u2081", "_Dc1"),
+             ("\u03c9_c\u2081", "_Wc1"), ("\u03c6\u2082", "_PHI2")]),
+        "damped log osc 2 (\u03c9_l\u2082)": (
+            "C\u2083\u00b7t^(-D\u2082)\u00b7cos(\u03c9_l\u2082\u00b7ln(t)+\u03c6\u2083)",
+            [("C\u2083", "_C3"), ("D\u2082", "_D2"),
+             ("\u03c9_l\u2082", "_W2"), ("\u03c6\u2083", "_PHI3")]),
+        "damped cal osc 2 (\u03c9_c\u2082)": (
+            "C\u2084\u00b7t^(-D_c\u2082)\u00b7cos(\u03c9_c\u2082\u00b7t+\u03c6\u2084)",
+            [("C\u2084", "_C4"), ("D_c\u2082", "_Dc2"),
+             ("\u03c9_c\u2082", "_Wc2"), ("\u03c6\u2084", "_PHI4")]),
+    }
+
+    def components(self, t):
+        t = np.asarray(t, float)
+        t_safe = np.maximum(t, 0.1)
+        return {
+            "A (constant)":                        np.full_like(t_safe, self._A),
+            "B\u00b7log\u2081\u2080(t)":            self._B * np.log10(t_safe),
+            "damped log osc 1 (\u03c9_l\u2081)":   self._C1 * t_safe ** (-self._D1) * np.cos(
+                self._W1 * np.log(t_safe) + self._PHI1),
+            "damped cal osc 1 (\u03c9_c\u2081)":   self._C2 * t_safe ** (-self._Dc1) * np.cos(
+                self._Wc1 * t_safe + self._PHI2),
+            "damped log osc 2 (\u03c9_l\u2082)":   self._C3 * t_safe ** (-self._D2) * np.cos(
+                self._W2 * np.log(t_safe) + self._PHI3),
+            "damped cal osc 2 (\u03c9_c\u2082)":   self._C4 * t_safe ** (-self._Dc2) * np.cos(
+                self._Wc2 * t_safe + self._PHI4),
+        }
+
+
 class LinPPLModel(LPPLModel):
     """Linear-periodic Power Law: oscillation in CALENDAR time, not log-time.
 

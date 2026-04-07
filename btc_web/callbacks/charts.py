@@ -1543,7 +1543,7 @@ def _build_model_opts(mc, include_u1=False, bubble_mode=False):
     config panel on tab 1.
     """
     from dash import html
-    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl", "hyb2l", "hyb2c", "hyb2b"}
+    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl", "hyb2l", "hyb2c", "hyb2b", "hyb4d"}
     _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(_app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
 
     def _swatch(color, label):
@@ -1615,7 +1615,7 @@ from callbacks.routing import _HM_PILL_MODELS  # noqa: E402
 _HM_PILL_LABELS = {
     "bub": "BM", "pl": "PL", "lppl": "LPPL",
     "linppl": "LinPPL", "hybppl": "HybPPL",
-    "hyb2l": "H2L", "hyb2c": "H2C", "hyb2b": "H2B",
+    "hyb2l": "H2L", "hyb2c": "H2C", "hyb2b": "H2B", "hyb4d": "H4D",
     "gomp": "Gomp", "bpl": "BPL",
     "ef": "EF", "u1": "U\u2081", "mc": "MC",
 }

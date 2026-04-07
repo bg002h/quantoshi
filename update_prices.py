@@ -268,6 +268,18 @@ def run_model_build() -> None:
     else:
         print(res.stdout.strip().split("\n")[-1])
 
+    # HybPPL 4D: refit all-damped variant
+    print("\nRefitting HybPPL 4D parameters \u2026")
+    hyb4d_script = REPO_ROOT / "tools" / "fit_hyb4d.py"
+    res = subprocess.run([sys.executable, str(hyb4d_script), "--update"],
+                         capture_output=True, text=True)
+    if res.returncode != 0:
+        print("Hyb4D FIT FAILED \u2014 stderr (last 3 000 chars):")
+        print(res.stderr[-3000:])
+        print("WARNING: Hyb4D fit failed. Continuing with existing parameters.")
+    else:
+        print(res.stdout.strip().split("\n")[-1])
+
     # Logistic Growth (Gompertz): refit saturation curve
     print("\nRefitting Logistic parameters \u2026")
     log_script = REPO_ROOT / "tools" / "fit_logistic.py"

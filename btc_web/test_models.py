@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 from btc_core import (PriceModel, _FitsBasedModel, BubbleModel, PowerLawModel,
                       S2FModel, QuantileRegressionModel,
                       LogisticModel, BrokenPowerLawModel,
-                      Hyb2LModel, Hyb2CModel, Hyb2BModel)
+                      Hyb2LModel, Hyb2CModel, Hyb2BModel, Hyb4DModel)
 from conftest import (
     M,
     Path,
@@ -391,7 +391,7 @@ class TestDecompRegistry:
     def test_families_keys(self):
         import _app_ctx
         expected = {"bub", "ef", "lppl", "linppl", "hybppl", "hybppl_dd",
-                    "hyb2l", "hyb2c", "hyb2b"}
+                    "hyb2l", "hyb2c", "hyb2b", "hyb4d"}
         assert set(_app_ctx.DECOMP_FAMILIES.keys()) == expected
 
     def test_families_labels(self):
@@ -1860,3 +1860,8 @@ class TestHyb2CModel(_Hyb2Base):
 class TestHyb2BModel(_Hyb2Base):
     _cls = Hyb2BModel
     _key = "hyb2b"
+
+
+class TestHyb4DModel(_Hyb2Base):
+    _cls = Hyb4DModel
+    _key = "hyb4d"

@@ -54,6 +54,7 @@ DECOMP_FAMILIES = {
     "hyb2l":        "HybPPL +2L",
     "hyb2c":        "HybPPL +2C",
     "hyb2b":        "HybPPL +2B",
+    "hyb4d":        "HybPPL 4D",
 }
 
 # 7-color decomposition palette per color scheme (cycles if model has >7 comps)
@@ -93,6 +94,7 @@ MODEL_TRACE_COLORS = {
     "hyb2l": "#6A5ACD",  # slate blue — HybPPL +2nd log
     "hyb2c": "#20B2AA",  # light sea green — HybPPL +2nd cal
     "hyb2b": "#DB7093",  # pale violet red — HybPPL +both
+    "hyb4d": "#8B6914",  # dark goldenrod — HybPPL 4D
     "gomp": "#4682B4",   # steel blue — logistic saturation
     "bpl": "#CD853F",   # peru/tan — broken power law
 }
@@ -105,6 +107,7 @@ PALETTES = {
             "lppl": "#EE0000", "lp2": "#FF6666", "lp3": "#FFAAAA", "lp4": "#FFCCCC", "linppl": "#00D4AA", "hybppl": "#9370DB", "hybppl_dd": "#B39DDB", "ef": "#FFE066", "exp": "#9933FF", "s2f": "#FF7700",
             "u1": "#333333",
             "hyb2l": "#6A5ACD", "hyb2c": "#20B2AA", "hyb2b": "#DB7093",
+            "hyb4d": "#8B6914",
             "gomp": "#4682B4", "bpl": "#CD853F",
         },
         "thermal_stops": [
@@ -127,6 +130,7 @@ PALETTES = {
             "lppl": "#AD1457", "lp2": "#D81B60", "lp3": "#F06292", "lp4": "#F8BBD0", "linppl": "#006064", "hybppl": "#4527A0", "hybppl_dd": "#8E24AA", "ef": "#FFE082", "exp": "#E0E0E0", "s2f": "#777777",
             "u1": "#333333",
             "hyb2l": "#5B4AB0", "hyb2c": "#1A9A8F", "hyb2b": "#C4607A",
+            "hyb4d": "#7A5B10",
             "gomp": "#3B6FA0", "bpl": "#B87333",
         },
         "thermal_stops": [
@@ -148,6 +152,7 @@ PALETTES = {
             "bub": "#F5793A", "qr": "#A8A8A8", "pl": "#0F2080",
             "lppl": "#85C0F9", "lp2": "#B0D8FF", "lp3": "#D4E9FF", "lp4": "#EAF4FF", "linppl": "#FFB000", "hybppl": "#D4A017", "hybppl_dd": "#ECC060", "ef": "#F5A060", "exp": "#BBBBBB", "s2f": "#F5C242",
             "hyb2l": "#7B68EE", "hyb2c": "#2E8B57", "hyb2b": "#CC6699",
+            "hyb4d": "#8B7500",
             "gomp": "#4169E1", "bpl": "#CC7722",
             "u1": "#333333",
         },
@@ -171,6 +176,7 @@ PALETTES = {
             "lppl": "#1A1A1A", "lp2": "#444444", "lp3": "#707070", "lp4": "#A0A0A0", "linppl": "#2A2A2A", "hybppl": "#505050", "hybppl_dd": "#989898", "ef": "#F0D870", "exp": "#909090", "s2f": "#FFE066",
             "u1": "#333333",
             "hyb2l": "#6060A0", "hyb2c": "#4A8A7A", "hyb2b": "#A06080",
+            "hyb4d": "#7A7A50",
             "gomp": "#5B7FAA", "bpl": "#AA8844",
         },
         "thermal_stops": [

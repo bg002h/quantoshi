@@ -917,6 +917,85 @@ $$\log_{10}(\text{price}) = A + B \log_{10}(t)
                             _hyb2b_coeff_table(),
                         ], title="HybPPL +2B (Both 2nd Harmonics)", item_id="mi-hyb2b"),
 
+                        # ── 3i. HybPPL 4D (all damped) ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = A + B \log_{10}(t)
++ C_1 t^{-D_1} \cos(\omega_{l1} \ln t + \varphi_1)
++ C_2 t^{-D_{c1}} \cos(\omega_{c1} t + \varphi_2)
++ C_3 t^{-D_2} \cos(\omega_{l2} \ln t + \varphi_3)
++ C_4 t^{-D_{c2}} \cos(\omega_{c2} t + \varphi_4)$$
+                            """, mathjax=True, className="mb-3"),
+                            html.H6("Description"),
+                            html.P(
+                                "The \u201call damped\u201d variant of HybPPL +2B: every oscillatory "
+                                "component carries its own damping exponent t^(-D). "
+                                "18 parameters (2 more than Hyb2B). This model tests whether "
+                                "the calendar-periodic terms should also decay over time."
+                            ),
+                            html.H6("Why This Model Is Informative But Not Good", className="text-danger"),
+                            html.Ul([
+                                html.Li([
+                                    html.Strong("R\u00b2 = 0.992 vs Hyb2B\u2019s 0.993"), " \u2014 adding 2 extra D "
+                                    "parameters made the fit ", html.Em("worse"), ", not better."
+                                ]),
+                                html.Li([
+                                    html.Strong("BIC = \u221222,624 vs Hyb2B\u2019s \u221223,203"), " \u2014 BIC penalizes "
+                                    "the extra complexity, and the penalty far exceeds any SSE improvement."
+                                ]),
+                                html.Li([
+                                    html.Strong("D"), html.Sub("c2"), html.Strong(" \u2248 0.076 (near zero)"),
+                                    " \u2014 the 2nd calendar term ", html.Em("wants"), " to be undamped. "
+                                    "The optimizer can\u2019t push D", html.Sub("c2"), " to zero because "
+                                    "the parameterization forces D > 0, so it gets as close as possible."
+                                ]),
+                                html.Li([
+                                    html.Strong("D"), html.Sub("c1"), html.Strong(" \u2248 1.06 distorted the halving cycle"),
+                                    " \u2014 to accommodate damping on the primary calendar term, "
+                                    "the optimizer shifted \u03c9", html.Sub("c1"),
+                                    " from 1.74 rad/yr (T \u2248 3.6 yr) to 1.12 rad/yr (T \u2248 5.6 yr). "
+                                    "This is no longer the halving cycle \u2014 it\u2019s a distorted artifact."
+                                ]),
+                            ]),
+                            html.P([
+                                html.Strong("Conclusion: "),
+                                "Calendar-periodic terms should remain undamped. The Bitcoin halving "
+                                "cycle is a fundamental protocol feature that does not decay. Forcing "
+                                "damping on calendar terms degrades both fit quality and physical "
+                                "interpretability. Hyb2B (undamped calendar terms) remains the "
+                                "superior specification."
+                            ]),
+                            html.H6("Damping Behavior"),
+                            html.P([
+                                html.Strong("Log osc 1"), " (D\u2081 \u2248 0.59): ",
+                                "Currently \u00b10.08 log\u2081\u2080 (\u00b120% price). "
+                                "The slowest-decaying log-periodic term \u2014 loses ~25% per decade. "
+                                "Still contributes meaningfully through the 2040s.",
+                            ]),
+                            html.P([
+                                html.Strong("Cal osc 1"), " (D", html.Sub("c1"), " \u2248 1.06, T \u2248 5.6 yr): ",
+                                "Currently \u00b10.03 log\u2081\u2080 (\u00b17% price) and decaying rapidly. "
+                                "Compare Hyb2B\u2019s undamped cal osc 1: fixed \u00b10.24 log\u2081\u2080 (\u00b170% price) "
+                                "at T \u2248 3.6 yr. The damping killed both the amplitude and the period.",
+                            ]),
+                            html.P([
+                                html.Strong("Log osc 2"), " (D\u2082 \u2248 0.75): ",
+                                "Currently \u00b10.03 log\u2081\u2080 (\u00b17% price). "
+                                "Fading ~30% per decade. Near-negligible by the 2030s.",
+                            ]),
+                            html.P([
+                                html.Strong("Cal osc 2"), " (D", html.Sub("c2"), " \u2248 0.076, T \u2248 3.7 yr): ",
+                                "Currently \u00b10.30 log\u2081\u2080 (\u00b1100% price) \u2014 barely damped. "
+                                "This is effectively the \u201creal\u201d halving cycle that the optimizer "
+                                "moved here from cal osc 1 to avoid the heavy D", html.Sub("c1"),
+                                " damping. The near-zero exponent confirms calendar terms should "
+                                "not be damped.",
+                            ]),
+                            html.H6("Fitted Coefficients"),
+                            _hyb4d_coeff_table(),
+                        ], title="HybPPL 4D (All Damped)", item_id="mi-hyb4d"),
+
                         # ── 4. Exponential ──
                         dbc.AccordionItem([
                             html.H6("Formula"),
@@ -1570,6 +1649,30 @@ def _hyb2b_coeff_table():
         ("D\u2082 (damping 2)", f"{m._D2:.6f}"),
         ("C\u2084 (cal osc 2 amp)", f"{m._C4:.6f}"),
         ("\u03c9_c\u2082 (cal freq 2)", f"{m._Wc2:.4f}  (T={2*3.14159/m._Wc2:.2f}yr)"),
+        ("\u03c3 (residual std)", f"{m._sigma:.6f}"),
+    ])
+
+
+def _hyb4d_coeff_table():
+    """Live coefficient table for HybPPL 4D (all damped)."""
+    m = _app_ctx.PRICE_MODELS.get("hyb4d")
+    if m is None:
+        return _coeff_table([("(Hyb4D model not loaded)", "\u2014")])
+    return _coeff_table([
+        ("A (intercept)", f"{m._A:.6f}"),
+        ("B (slope)", f"{m._B:.6f}"),
+        ("C\u2081 (log osc 1 amp)", f"{m._C1:.6f}"),
+        ("\u03c9_l\u2081 (log freq 1)", f"{m._W1:.4f}"),
+        ("D\u2081 (log damping 1)", f"{m._D1:.6f}"),
+        ("C\u2082 (cal osc 1 amp)", f"{m._C2:.6f}"),
+        ("\u03c9_c\u2081 (cal freq 1)", f"{m._Wc1:.4f}  (T={2*3.14159/m._Wc1:.2f}yr)"),
+        ("D_c\u2081 (cal damping 1)", f"{m._Dc1:.6f}"),
+        ("C\u2083 (log osc 2 amp)", f"{m._C3:.6f}"),
+        ("\u03c9_l\u2082 (log freq 2)", f"{m._W2:.4f}"),
+        ("D\u2082 (log damping 2)", f"{m._D2:.6f}"),
+        ("C\u2084 (cal osc 2 amp)", f"{m._C4:.6f}"),
+        ("\u03c9_c\u2082 (cal freq 2)", f"{m._Wc2:.4f}  (T={2*3.14159/m._Wc2:.2f}yr)"),
+        ("D_c\u2082 (cal damping 2)", f"{m._Dc2:.6f}"),
         ("\u03c3 (residual std)", f"{m._sigma:.6f}"),
     ])
 

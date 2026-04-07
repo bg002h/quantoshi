@@ -622,12 +622,12 @@ class LPPLModel:
 
     # Best-fit parameters from differential evolution on full BTC history
     # (genesis = 2009-07-25)
-    _A   = -1.153891
-    _B   =              5.079385
-    _C   =              0.733993
-    _W   =              7.558249
-    _PHI =              1.376778
-    _D   =              0.608018
+    _A   = -1.153820
+    _B   =                 5.079271
+    _C   =                 0.733975
+    _W   =                 7.557911
+    _PHI =                 1.377121
+    _D   =                 0.607967
 
     def __init__(self, price_years, price_prices, quantiles):
         # Compute residual sigma from historical data
@@ -755,15 +755,15 @@ class LPPL2Model(LPPLModel):
     dash_style = "dashdot"
 
     # All 9 params jointly fitted by tools/fit_lppl2.py
-    _A   = -1.130713
-    _B   =                 5.038451
-    _C   =                 0.705526
-    _W   =                 7.377244
-    _PHI =                 1.583134
-    _D   =                 0.565947
-    _C2  =                 0.168840
-    _W2  =            20.903661
-    _PHI2 = -1.156322
+    _A   = -1.130641
+    _B   =                    5.038329
+    _C   =                    0.705462
+    _W   =                    7.376939
+    _PHI =                    1.583467
+    _D   =                    0.565812
+    _C2  =                    0.168837
+    _W2  =              20.904197
+    _PHI2 = -1.157206
 
     def _lppl_log10(self, t):
         """Evaluate two-frequency LPPL median in log10 space.
@@ -832,18 +832,18 @@ class LPPL3Model(LPPL2Model):
     dash_style = "dashdot"
 
     # All 12 params jointly fitted by tools/fit_lppl3.py
-    _A   = -1.094365
-    _B   =           4.966650
-    _C   =           0.614027
-    _W   =           7.122285
-    _PHI =           1.890509
-    _D   =           0.365947
-    _C2  =           0.178596
-    _W2  =        20.804850
-    _PHI2 = -0.996111
-    _C3  =           0.171186
-    _W3  =        10.082092
-    _PHI3 = -2.165562
+    _A   = -1.094328
+    _B   =              4.966584
+    _C   =              0.613970
+    _W   =              7.122430
+    _PHI =              1.890322
+    _D   =              0.365812
+    _C2  =              0.178602
+    _W2  =          20.805231
+    _PHI2 = -0.996704
+    _C3  =              0.171197
+    _W3  =          10.082707
+    _PHI3 = -2.166471
 
     def _lppl_log10(self, t):
         """Evaluate three-frequency LPPL median in log10 space."""
@@ -972,21 +972,21 @@ class LPPL4Model(LPPL3Model):
     dash_style = "dashdot"
 
     # All 15 params jointly fitted by tools/fit_lppl4.py (unweighted)
-    _A   = -1.128520
-    _B   =           5.014497
-    _C   =           0.576931
-    _W   =           6.839924
-    _PHI =           2.261757
-    _D   =           0.402420
-    _C2  =           0.189079
-    _W2  =         9.340033
-    _PHI2 = -1.142184
-    _C3  =           0.134028
-    _W3  =         13.317984
-    _PHI3 = -2.237238
-    _C4  =           0.171523
-    _W4  =       20.905196
-    _PHI4 = -1.138493
+    _A   = -1.095846
+    _B   =              4.966397
+    _C   =              0.558025
+    _W   =              7.054913
+    _PHI =              1.970809
+    _D   =              0.306325
+    _C2  =              0.186238
+    _W2  =            9.935195
+    _PHI2 = -1.899325
+    _C3  =              0.093770
+    _W3  =           17.456090
+    _PHI3 =    0.828504
+    _C4  =              0.146298
+    _W4  =         20.903064
+    _PHI4 = -1.218506
 
     def _lppl_log10(self, t):
         """Evaluate four-frequency LPPL median in log10 space."""
@@ -1145,15 +1145,15 @@ class HybPPLModel(LPPLModel):
     dash_style = "dashdot"
 
     # Fitted parameters (will be overwritten by fit_hybppl.py --update)
-    _A   = -1.146879  
-    _B   =           5.051470  
-    _C   =           0.689882  
-    _W   =           7.420093  
-    _PHI =           1.453288  
-    _D   =           0.708237  
-    _C2  =           0.233040  
-    _W2  =           1.733127  
-    _PHI2 = -1.922852  
+    _A   = -1.146875  
+    _B   =              5.051454  
+    _C   =              0.689837  
+    _W   =              7.420058  
+    _PHI =              1.453329  
+    _D   =              0.708169  
+    _C2  =              0.233044  
+    _W2  =              1.733155  
+    _PHI2 = -1.923039  
 
     def _lppl_log10(self, t):
         """Evaluate hybrid model: log-periodic damped + linear-periodic undamped."""
@@ -1222,16 +1222,16 @@ class HybPPLDDModel(LPPLModel):
     dash_style = "dashdot"
 
     # Fitted parameters (will be overwritten by fit_hybppl_dd.py --update)
-    _A     = -1.146949
-    _B     =  5.051551
-    _C1    =  0.690097
-    _W_log =  7.420191
-    _PHI1  =  1.453145
-    _D1    =  0.708542
-    _C2    =  0.233486
-    _W_cal =  1.733120
-    _PHI2  = -1.922796
-    _D2    =  0.001000
+    _A     = -1.146944  
+    _B     =     5.051534  
+    _C1    =     0.690052  
+    _W_log =     7.420154  
+    _PHI1  =     1.453186  
+    _D1    =     0.708473  
+    _C2    =     0.233490  
+    _W_cal =     1.733148  
+    _PHI2  = -1.922982  
+    _D2    =     0.001000  
 
     def _lppl_log10(self, t):
         """Evaluate double-damped hybrid model."""
@@ -1305,12 +1305,12 @@ class LinPPLModel(LPPLModel):
     dash_style = "dash"
 
     # Fitted parameters (W_cal in radians/year; T_years = 2π/W_cal)
-    _A   = -1.213430  
-    _B   =           5.110969  
-    _C   =           0.282329  
-    _W   =           1.765697  # ≈ 2π/4 (4-year halving cycle, will refit)
-    _PHI =  -2.283760  
-    _D   =           0.010000  
+    _A   = -1.213417  
+    _B   =              5.110937  
+    _C   =              0.282344  
+    _W   =              1.765746  # ≈ 2π/4 (4-year halving cycle, will refit)
+    _PHI =  -2.284078  
+    _D   =              0.010000  
 
     def _lppl_log10(self, t):
         """Evaluate LinPPL median in log10 space — oscillation in calendar t, not ln(t)."""
@@ -1445,9 +1445,9 @@ class LogisticModel:
     quantized = True
 
     # Fitted parameters (will be overwritten by fit_logistic.py --update)
-    _K  =       4.888411  
-    _r  =       0.302386  
-    _t0 =       4.373758  
+    _K  =          4.888473  
+    _r  =          0.302377  
+    _t0 =          4.373813  
 
     def __init__(self, price_years, price_prices, quantiles):
         mask = price_years >= 1.0
@@ -1529,10 +1529,10 @@ class BrokenPowerLawModel:
     quantized = True
 
     # Fitted parameters (will be overwritten by fit_bpl.py --update)
-    _a1      = -1.092132  
-    _b1      =       4.920029  
-    _t_break =       6.694045  
-    _b2      =       5.319400  
+    _a1      = -1.092189  
+    _b1      =          4.920182  
+    _t_break =          6.694045  
+    _b2      =          5.318725  
 
     def __init__(self, price_years, price_prices, quantiles):
         mask = price_years >= 1.0

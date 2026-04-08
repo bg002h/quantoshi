@@ -7,6 +7,27 @@ import dash_bootstrap_components as dbc
 
 import _app_ctx
 
+
+# ── Model Info deep-link helper ────────────────────────────────────────────
+
+_INFO_ICON = "\U0001F4D0"  # 📐 same as Model Info tab
+
+def _model_info_link(short_name):
+    """Return (href, exists) for the Model Info deep-link for a model.
+
+    Looks up 'mi-{short_name}' in _MODEL_INFO_ITEMS to find the 1-indexed
+    position. Returns ("/8.N", True) if found, ("", False) if not.
+    Tolerant of reordering — computed at layout time from the live list.
+    """
+    # Lazy import to avoid circular dependency
+    from callbacks.routing import _MODEL_INFO_ITEMS
+    mi_key = f"mi-{short_name}"
+    try:
+        idx = _MODEL_INFO_ITEMS.index(mi_key) + 1
+        return f"/8.{idx}", True
+    except ValueError:
+        return "", False
+
 # ── Reusable style constants ────────────────────────────────────────────────
 _STYLE_HIDDEN     = {"display": "none"}
 _STYLE_HINT       = {"color": "#888", "display": "block", "marginBottom": "4px"}
@@ -497,15 +518,28 @@ def _model_show_checklist(prefix, standardized=False):
     _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(
         _app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
 
-    def _swatch(color, label):
-        return html.Span([
+    _INFO_STYLE = {
+        "cursor": "pointer", "fontSize": "11px", "marginLeft": "4px",
+        "opacity": "0.6", "textDecoration": "none", "color": "#1a6fa8",
+    }
+
+    def _swatch(color, label, model_key=None):
+        children = [
             html.Span(" ", style={
                 "display": "inline-block", "width": "12px", "height": "12px",
                 "borderRadius": "2px", "verticalAlign": "middle",
                 "marginRight": "4px", "backgroundColor": color,
             }),
             label,
-        ])
+        ]
+        if model_key:
+            href, exists = _model_info_link(model_key)
+            if exists:
+                children.append(html.A(
+                    _INFO_ICON, href=href,
+                    style=_INFO_STYLE, title="Model Info",
+                ))
+        return html.Span(children)
 
     opts = [{"label": _swatch(mc.get("bub", "#000"), "Bubble Model"),
              "value": "bub"}]
@@ -539,7 +573,8 @@ def _model_show_checklist(prefix, standardized=False):
         ordered = promoted + mid + dep
     for mdl in ordered:
         opts.append({
-            "label": _swatch(mc.get(mdl.short_name, "#888"), mdl.name),
+            "label": _swatch(mc.get(mdl.short_name, "#888"), mdl.name,
+                              model_key=mdl.short_name),
             "value": mdl.short_name,
         })
     return [

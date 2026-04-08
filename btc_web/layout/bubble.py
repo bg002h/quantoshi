@@ -18,29 +18,41 @@ def _build_bub_model_options(mc):
     """Build bub-model-show options with a single master 'LPPL' entry
     (individual LPPL family variants managed by the LPPL Models config
     panel below the checklist)."""
-    def _swatch(color, label):
-        return html.Span([
+    _GEAR = "\u2699\uFE0F"
+    _GEAR_STYLE = {
+        "cursor": "pointer", "fontSize": "11px", "marginLeft": "4px",
+        "opacity": "0.6", "textDecoration": "none",
+    }
+
+    def _swatch(color, label, gear_btn_id=None):
+        children = [
             html.Span(" ", style={
                 "display": "inline-block", "width": "12px", "height": "12px",
                 "borderRadius": "2px", "verticalAlign": "middle",
                 "marginRight": "4px", "backgroundColor": color,
             }),
             label,
-        ])
+        ]
+        if gear_btn_id:
+            children.append(html.Span(
+                _GEAR, id=gear_btn_id, n_clicks=0,
+                style=_GEAR_STYLE, title="Configure",
+            ))
+        return html.Span(children)
 
-    opts = [{"label": _swatch(mc.get("bub", "#000"), "Bubble Model"), "value": "bub"}]
+    opts = [{"label": _swatch(mc.get("bub", "#000"), "Bubble Model",
+                               gear_btn_id="bub-bm-gear"),
+             "value": "bub"}]
 
-    # Master LPPL entry — the LPPL Models config panel picks which flavor
-    # (n_freqs/weighted/no_13); only plotted when this master is checked.
     opts.append({
-        "label": _swatch(mc.get("lppl", "#FF6D00"), "LPPL (family)"),
+        "label": _swatch(mc.get("lppl", "#FF6D00"), "LPPL",
+                          gear_btn_id="bub-lppl-gear"),
         "value": "lppl",
     })
 
-    # Master HybPPL entry — the HybPPL config panel picks which flavor;
-    # only plotted when this master is checked.
     opts.append({
-        "label": _swatch(mc.get("hybppl", "#4A90D9"), "Hybrid PPL (family)"),
+        "label": _swatch(mc.get("hybppl", "#4A90D9"), "Hybrid PPL",
+                          gear_btn_id="bub-hybppl-gear"),
         "value": "hybppl",
     })
 

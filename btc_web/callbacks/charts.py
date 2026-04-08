@@ -47,6 +47,21 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call='initial_duplicate',
 )
 
+# BM gear icon → scroll to BM config body
+_app_ctx.app.clientside_callback(
+    """
+    function(n) {
+        if (!n) return window.dash_clientside.no_update;
+        var el = document.getElementById('bub-bm-body');
+        if (el) el.scrollIntoView({behavior: 'smooth', block: 'center'});
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("bub-bm-body", "id"),  # dummy output (id never changes)
+    Input("bub-bm-gear", "n_clicks"),
+    prevent_initial_call=True,
+)
+
 # "bub" in bub-model-show → bub-bm-body collapse
 _app_ctx.app.clientside_callback(
     """
@@ -96,14 +111,15 @@ _app_ctx.app.clientside_callback(
 # (Phase 2 will extend the Input list to include hm-lppl-configure-btn.)
 _app_ctx.app.clientside_callback(
     """
-    function(bub_n, dca_n, ret_n, sc_n, hm_n, close_n, cur_open) {
+    function(bub_n, dca_n, ret_n, sc_n, hm_n, gear_n, close_n, cur_open) {
         var ctx = window.dash_clientside.callback_context;
         if (!ctx.triggered || !ctx.triggered.length) {
             return window.dash_clientside.no_update;
         }
         var src = ctx.triggered[0].prop_id;
         if (src.indexOf('lppl-modal-close-btn') !== -1) return false;
-        if (src.indexOf('lppl-configure-btn') !== -1) return true;
+        if (src.indexOf('lppl-configure-btn') !== -1 ||
+            src.indexOf('lppl-gear') !== -1) return true;
         return window.dash_clientside.no_update;
     }
     """,
@@ -113,6 +129,7 @@ _app_ctx.app.clientside_callback(
     Input("ret-lppl-configure-btn", "n_clicks"),
     Input("sc-lppl-configure-btn", "n_clicks"),
     Input("hm-lppl-configure-btn", "n_clicks"),
+    Input("bub-lppl-gear", "n_clicks"),
     Input("lppl-modal-close-btn", "n_clicks"),
     State("lppl-config-modal", "is_open"),
     prevent_initial_call=True,
@@ -321,7 +338,8 @@ _app_ctx.app.clientside_callback(
         }
         var src = ctx.triggered[0].prop_id;
         if (src.indexOf('hybppl-modal-close-btn') !== -1) return false;
-        if (src.indexOf('hybppl-configure-btn') !== -1) return true;
+        if (src.indexOf('hybppl-configure-btn') !== -1 ||
+            src.indexOf('hybppl-gear') !== -1) return true;
         return window.dash_clientside.no_update;
     }
     """,
@@ -331,6 +349,7 @@ _app_ctx.app.clientside_callback(
     Input("ret-hybppl-configure-btn", "n_clicks"),
     Input("sc-hybppl-configure-btn", "n_clicks"),
     Input("hm-hybppl-configure-btn", "n_clicks"),
+    Input("bub-hybppl-gear", "n_clicks"),
     Input("hybppl-modal-close-btn", "n_clicks"),
     State("hybppl-config-modal", "is_open"),
     prevent_initial_call=True,

@@ -528,5 +528,4 @@ def _add_decomposition_traces(traces, t_arr, m, p):
         x=list(t_arr), y=list(10.0 ** log_vals), mode="lines",
         line=dict(dash="solid", width=2.5, color=sum_color),
         name=base_label + r2_str,
-        hovertemplate="%{y:$.3g}<extra></extra>",
     ))

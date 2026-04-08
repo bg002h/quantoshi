@@ -1309,108 +1309,137 @@ where:
 
                             html.H6("Method"),
                             html.P([
-                                html.Strong("Greedy forward BIC minimisation. "),
-                                "Starting from the pool of all individual oscillatory terms "
-                                "in the LPPL and HybPPL model families, the algorithm "
-                                "iteratively selects the single component that maximally "
-                                "reduces the Bayesian Information Criterion (BIC) when added "
-                                "to the current model. The search terminates when no remaining "
-                                "component improves BIC. The result is a sparse 7-parameter "
-                                "model (intercept + slope + 5 weighted oscillatory terms) that "
-                                "achieves R\u00b2=0.9928 with BIC=\u221223,319."
+                                html.Strong("Greedy forward BIC minimisation "),
+                                "over the pool of all individual oscillatory components "
+                                "from the LPPL and HybPPL model families. At each step, the "
+                                "single component that maximally reduces BIC is added. "
+                                "Terminates when no remaining component improves BIC."
                             ]),
 
-                            html.H6("Coefficients"),
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = \alpha + \beta \cdot \log_{10}(t) + \sum_{i=1}^{5} w_i \cdot f_i(t) + z_q \cdot \sigma$$
+
+where each $f_i(t)$ is one of three functional forms:
+
+| Form | Type |
+|------|------|
+| $C \cdot t^{-D} \cdot \cos(\omega \cdot \ln t + \varphi)$ | damped log-periodic |
+| $C \cdot \cos(\omega \cdot t + \varphi)$ | undamped calendar |
+| $C \cdot t^{-D} \cdot \cos(\omega \cdot t + \varphi)$ | damped calendar |
+                            """, mathjax=True, className="mb-3"),
+
+                            html.H6("Symbolic component definitions"),
+                            _coeff_table([
+                                ("f\u2081(t)", "C\u2081 \u00b7 t^(\u2212D\u2081) \u00b7 cos(\u03c9\u2081 \u00b7 t + \u03c6\u2081)      [damped calendar]"),
+                                ("f\u2082(t)", "C\u2082 \u00b7 t^(\u2212D\u2082) \u00b7 cos(\u03c9\u2082 \u00b7 ln(t) + \u03c6\u2082)   [damped log-periodic]"),
+                                ("f\u2083(t)", "C\u2083 \u00b7 cos(\u03c9\u2083 \u00b7 t + \u03c6\u2083)                              [undamped calendar]"),
+                                ("f\u2084(t)", "C\u2084 \u00b7 t^(\u2212D\u2084) \u00b7 cos(\u03c9\u2084 \u00b7 ln(t) + \u03c6\u2084)   [damped log-periodic]"),
+                                ("f\u2085(t)", "C\u2085 \u00b7 t^(\u2212D\u2085) \u00b7 cos(\u03c9\u2085 \u00b7 t + \u03c6\u2085)      [damped calendar]"),
+                            ]),
+
+                            html.H6("Numerical coefficients"),
+                            html.P("Trend:"),
                             _coeff_table([
                                 ("\u03b1 (intercept)", "\u22121.211238"),
                                 ("\u03b2 (slope)", "5.119765"),
                                 ("\u03c3 (residual std)", "0.129877"),
                             ]),
-
-                            html.H6("Component weights"),
+                            html.P("Oscillatory terms (source model in brackets):"),
                             html.Table([
                                 html.Thead(html.Tr([
-                                    html.Th("Term", style={"paddingRight": "12px"}),
-                                    html.Th("Source", style={"paddingRight": "12px"}),
-                                    html.Th("Type", style={"paddingRight": "12px"}),
-                                    html.Th("T (period)", style={"paddingRight": "12px"}),
-                                    html.Th("Damping D", style={"paddingRight": "12px"}),
-                                    html.Th("Weight w\u1d62", style={"paddingRight": "12px"}),
+                                    html.Th("", style={"paddingRight": "10px"}), html.Th("w\u1d62", style={"paddingRight": "10px"}),
+                                    html.Th("C", style={"paddingRight": "10px"}), html.Th("D", style={"paddingRight": "10px"}),
+                                    html.Th("\u03c9", style={"paddingRight": "10px"}), html.Th("\u03c6", style={"paddingRight": "10px"}),
+                                    html.Th("Period", style={"paddingRight": "10px"}), html.Th("Description"),
                                 ])),
                                 html.Tbody([
-                                    html.Tr([html.Td("f\u2081"), html.Td("LinPPL"), html.Td("calendar"),
-                                             html.Td("\u22483.6 yr"), html.Td("0.010 (undamped)"),
-                                             html.Td(html.Code("0.921198"))]),
-                                    html.Tr([html.Td("f\u2082"), html.Td("LPPL"), html.Td("log-periodic"),
-                                             html.Td("\u2014"), html.Td("0.608"),
-                                             html.Td(html.Code("0.839768"))]),
-                                    html.Tr([html.Td("f\u2083"), html.Td("Hyb2C"), html.Td("calendar"),
-                                             html.Td("\u22481.9 yr"), html.Td("0 (undamped)"),
-                                             html.Td(html.Code("0.868695"))]),
-                                    html.Tr([html.Td("f\u2084"), html.Td("Hyb2B"), html.Td("log-periodic"),
-                                             html.Td("\u2014"), html.Td("1.166 (fast)"),
-                                             html.Td(html.Code("0.783073"))]),
-                                    html.Tr([html.Td("f\u2085"), html.Td("Hyb4D"), html.Td("calendar"),
-                                             html.Td("\u22485.6 yr"), html.Td("1.062 (heavy)"),
-                                             html.Td(html.Code("0.546787"))]),
+                                    html.Tr([html.Td("f\u2081"), html.Td(html.Code("0.921")),
+                                             html.Td("0.2823"), html.Td("0.010"),
+                                             html.Td("1.766"), html.Td("\u22122.284"),
+                                             html.Td("3.56 yr"), html.Td("halving cycle [LinPPL]")]),
+                                    html.Tr([html.Td("f\u2082"), html.Td(html.Code("0.840")),
+                                             html.Td("0.7340"), html.Td("0.608"),
+                                             html.Td("7.558"), html.Td("+1.377"),
+                                             html.Td("\u2014"), html.Td("primary log-periodic [LPPL]")]),
+                                    html.Tr([html.Td("f\u2083"), html.Td(html.Code("0.869")),
+                                             html.Td("0.1146"), html.Td("\u2014"),
+                                             html.Td("3.281"), html.Td("\u22122.453"),
+                                             html.Td("1.92 yr"), html.Td("sub-halving [Hyb2C]")]),
+                                    html.Tr([html.Td("f\u2084"), html.Td(html.Code("0.783")),
+                                             html.Td("0.4224"), html.Td("1.166"),
+                                             html.Td("16.238"), html.Td("+1.885"),
+                                             html.Td("\u2014"), html.Td("2nd log harmonic [Hyb2B]")]),
+                                    html.Tr([html.Td("f\u2085"), html.Td(html.Code("0.547")),
+                                             html.Td("0.5869"), html.Td("1.062"),
+                                             html.Td("1.117"), html.Td("+3.141"),
+                                             html.Td("5.63 yr"), html.Td("long calendar [Hyb4D]")]),
                                 ]),
-                            ], style={"marginBottom": "12px", "fontSize": "13px"}),
+                            ], style={"marginBottom": "12px", "fontSize": "12px"}),
 
                             html.H6("Selection order"),
                             html.Table([
                                 html.Thead(html.Tr([
-                                    html.Th("Step", style={"paddingRight": "12px"}),
-                                    html.Th("Component added", style={"paddingRight": "12px"}),
-                                    html.Th("R\u00b2", style={"paddingRight": "12px"}),
-                                    html.Th("BIC", style={"paddingRight": "12px"}),
+                                    html.Th("Step", style={"paddingRight": "10px"}), html.Th("Component added", style={"paddingRight": "10px"}),
+                                    html.Th("R\u00b2", style={"paddingRight": "10px"}), html.Th("BIC", style={"paddingRight": "10px"}),
+                                    html.Th("Params"),
                                 ])),
                                 html.Tbody([
-                                    html.Tr([html.Td("0"), html.Td("intercept + slope (baseline)"),
-                                             html.Td("0.9510"), html.Td("\u221218,416")]),
-                                    html.Tr([html.Td("1"), html.Td("f\u2081 halving cycle"),
-                                             html.Td("0.9812"), html.Td("\u221220,760")]),
-                                    html.Tr([html.Td("2"), html.Td("f\u2082 log-periodic"),
-                                             html.Td("0.9886"), html.Td("\u221222,080")]),
-                                    html.Tr([html.Td("3"), html.Td("f\u2083 sub-halving"),
-                                             html.Td("0.9909"), html.Td("\u221222,620")]),
-                                    html.Tr([html.Td("4"), html.Td("f\u2084 2nd log harmonic"),
-                                             html.Td("0.9921"), html.Td("\u221222,990")]),
-                                    html.Tr([html.Td("5"), html.Td("f\u2085 long calendar"),
-                                             html.Td("0.9928"), html.Td("\u221223,319")]),
+                                    html.Tr([html.Td("0"), html.Td("\u03b1 + \u03b2\u00b7log\u2081\u2080(t)"),
+                                             html.Td("0.9627"), html.Td("\u221213,941"), html.Td("2")]),
+                                    html.Tr([html.Td("1"), html.Td("+ f\u2081 halving cycle"),
+                                             html.Td("0.9789"), html.Td("\u221217,212"), html.Td("3")]),
+                                    html.Tr([html.Td("2"), html.Td("+ f\u2082 log-periodic"),
+                                             html.Td("0.9887"), html.Td("\u221220,748"), html.Td("4")]),
+                                    html.Tr([html.Td("3"), html.Td("+ f\u2083 sub-halving"),
+                                             html.Td("0.9909"), html.Td("\u221221,993"), html.Td("5")]),
+                                    html.Tr([html.Td("4"), html.Td("+ f\u2084 2nd log harmonic"),
+                                             html.Td("0.9922"), html.Td("\u221222,882"), html.Td("6")]),
+                                    html.Tr([html.Td("5"), html.Td("+ f\u2085 long calendar"),
+                                             html.Td("0.9928"), html.Td("\u221223,319"), html.Td("7")]),
                                 ]),
                             ], style={"marginBottom": "12px", "fontSize": "13px"}),
 
-                            html.H6("Comparison"),
+                            html.H6("Comparison to existing models"),
                             _coeff_table([
-                                ("Greedy 7p", "R\u00b2=0.9928, \u03c3=0.130, BIC=\u221223,319"),
-                                ("PCA 7p", "R\u00b2=0.993, \u03c3\u22480.13, BIC\u2248\u221223,200"),
-                                ("Hyb2B 16p", "R\u00b2=0.993, \u03c3\u22480.13, BIC\u2248\u221222,800"),
-                            ]),
-                            html.P([
-                                "Greedy Select matches PCA in accuracy with the same parameter count (7), "
-                                "but uses interpretable named components rather than abstract principal "
-                                "components. It slightly outperforms the 16-parameter Hyb2B on BIC because "
-                                "the penalty for extra parameters outweighs the marginal R\u00b2 gain."
+                                ("Greedy (7p)", "R\u00b2=0.9928  \u03c3=0.130  BIC=\u221223,319"),
+                                ("PCA (7p)", "R\u00b2=0.9933  \u03c3=0.125  BIC=\u221223,776"),
+                                ("Hyb2B (16p)", "R\u00b2=0.9927  \u03c3=0.130  BIC=\u221223,203"),
                             ]),
 
-                            html.H6("Component descriptions"),
-                            html.Ul([
-                                html.Li([html.Strong("f\u2081 halving cycle: "),
-                                         "T\u22483.6yr, barely damped (D=0.01). "
-                                         "Bitcoin\u2019s ~4-year halving cycle in calendar time."]),
-                                html.Li([html.Strong("f\u2082 log-periodic: "),
-                                         "Primary LPPL frequency (\u03c9\u22487.6), "
-                                         "moderately damped (D=0.61). "
-                                         "Accelerating oscillation characteristic of speculative bubbles."]),
-                                html.Li([html.Strong("f\u2083 sub-halving: "),
-                                         "T\u22481.9yr, undamped (D=0). "
-                                         "Persistent sub-halving rhythm that EMD and DMD also detect."]),
-                                html.Li([html.Strong("f\u2084 2nd log harmonic: "),
-                                         "\u03c9\u224816.2, fast decay (D=1.17). "
-                                         "Higher-frequency log-periodic structure, important historically."]),
-                                html.Li([html.Strong("f\u2085 long calendar: "),
-                                         "T\u22485.6yr, heavily damped (D=1.06). "
-                                         "Slow calendar oscillation, contributes early but decays quickly."]),
+                            html.Hr(),
+                            html.H6("Structural comparison: Greedy vs Hyb2B"),
+                            html.P([
+                                "Greedy is most similar to Hyb2B (correlation 0.9994, RMSE 0.052). "
+                                "The two models share 4 of 5 oscillatory components:"
+                            ]),
+                            html.Table([
+                                html.Thead(html.Tr([
+                                    html.Th("Component", style={"paddingRight": "10px"}),
+                                    html.Th("Greedy", style={"paddingRight": "10px"}),
+                                    html.Th("Hyb2B", style={"paddingRight": "10px"}),
+                                ])),
+                                html.Tbody([
+                                    html.Tr([html.Td("Primary log-periodic (\u03c9\u22487.5)"),
+                                             html.Td("\u2713 damped"), html.Td("\u2713 damped")]),
+                                    html.Tr([html.Td("Halving calendar (T\u22483.6yr)"),
+                                             html.Td("\u2713 undamped"), html.Td("\u2713 undamped")]),
+                                    html.Tr([html.Td("Sub-halving (T\u22481.9yr)"),
+                                             html.Td("\u2713 undamped"), html.Td("\u2713 undamped")]),
+                                    html.Tr([html.Td("2nd log harmonic (\u03c9\u224816)"),
+                                             html.Td("\u2713 damped"), html.Td("\u2713 damped")]),
+                                    html.Tr([html.Td(html.Strong("Long calendar (T\u22485.6yr)")),
+                                             html.Td(html.Strong("\u2713 damped")),
+                                             html.Td(html.Em("\u2717 absent"))]),
+                                ]),
+                            ], style={"marginBottom": "12px", "fontSize": "13px"}),
+                            html.P([
+                                html.Strong("Conclusion: "),
+                                "Greedy confirms that Hyb2B\u2019s architecture (2 damped log-periodic "
+                                "+ 2 undamped calendar) is very close to optimal. The only improvement "
+                                "greedy found was adding a single heavily damped T\u22485.6yr calendar "
+                                "cycle from Hyb4D \u2014 a term that is already nearly extinct and "
+                                "contributes mainly to early-era structure."
                             ]),
                         ], title="Greedy Select", item_id="mi-grdy"),
 

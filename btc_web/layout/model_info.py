@@ -1228,12 +1228,17 @@ computed via SVD of the centered component matrix.
                                 "with ", html.Em("no assumed frequencies"), ". It works by iteratively "
                                 "finding local extrema and peeling off oscillations from fastest to slowest."
                             ]),
-                            html.P("EMD found 8 IMFs:"),
+                            html.P([
+                                "EMD found 8 IMFs. Period estimates use two methods: ",
+                                html.Strong("zero-crossing"), " (counting oscillation cycles \u2014 crude) and ",
+                                html.Strong("FFT"), " (Fourier transform peak frequency \u2014 more precise, "
+                                "gives the dominant average period):"
+                            ]),
                             _coeff_table([
                                 ("IMF 8 (trend)", "R\u00b2=0.925 alone \u2014 the power law backbone"),
-                                ("IMF 7 (~4.5yr, FFT: 3.9yr)", "+R\u00b2\u21920.961 \u2014 the halving cycle"),
-                                ("IMF 6 (~3.5yr, FFT: 2.0yr)", "+R\u00b2\u21920.992 \u2014 sub-halving rhythm"),
-                                ("IMF 5 (~0.6yr)", "+R\u00b2\u21920.997 \u2014 sub-annual oscillation"),
+                                ("IMF 7 (T\u22483.9yr by FFT)", "+R\u00b2\u21920.961 \u2014 the halving cycle"),
+                                ("IMF 6 (T\u22482.0yr by FFT)", "+R\u00b2\u21920.992 \u2014 sub-halving rhythm"),
+                                ("IMF 5 (T\u22480.8yr by FFT)", "+R\u00b2\u21920.997 \u2014 sub-annual oscillation"),
                                 ("IMFs 1\u20134 (<3 months)", "noise \u2014 negligible contribution"),
                             ]),
                             html.P([

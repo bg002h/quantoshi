@@ -43,6 +43,7 @@ LPPL_FAMILY_HIDDEN_FROM_BUBBLE = frozenset({
 # managed by the HybPPL family config panel instead.
 HYBPPL_FAMILY_HIDDEN = frozenset({
     "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d",
+    "linppl",
 })
 
 # Per-model trace colors — high-contrast, colorblind-safe, one color per model.

@@ -516,9 +516,12 @@ def _model_show_checklist(prefix, standardized=False):
             "value": "lppl",
         })
 
+    _HYBPPL_FAM = _app_ctx.HYBPPL_FAMILY_HIDDEN
     all_models = [mdl for mdl in _app_ctx.PRICE_MODELS.values()
                   if mdl.short_name not in _app_ctx.MODEL_SENTINELS
-                  and mdl.short_name != "bub"]
+                  and mdl.short_name != "bub"
+                  and mdl.short_name not in _HYBPPL_FAM
+                  and not mdl.short_name.startswith("cfg_")]
     if standardized:
         all_models = [m for m in all_models
                       if m.short_name not in _LPPL_FAM

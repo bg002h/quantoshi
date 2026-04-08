@@ -42,14 +42,16 @@ def _build_bub_model_options(mc):
         if gear_btn_id:
             children.append(html.Span(
                 _GEAR, id=gear_btn_id, n_clicks=0,
-                style=_GEAR_STYLE, title="Configure",
+                style=_GEAR_STYLE,
+                title=f"Open {label} configuration panel",
             ))
         elif model_key:
             href, exists = _model_info_link(model_key)
             if exists:
                 children.append(html.A(
                     _INFO_ICON, href=href,
-                    style=_INFO_STYLE, title="Model Info",
+                    style=_INFO_STYLE,
+                    title=f"View {label} details on Model Info tab",
                 ))
         return html.Span(children)
 

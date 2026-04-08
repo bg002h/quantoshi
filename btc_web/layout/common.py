@@ -537,7 +537,8 @@ def _model_show_checklist(prefix, standardized=False):
             if exists:
                 children.append(html.A(
                     _INFO_ICON, href=href,
-                    style=_INFO_STYLE, title="Model Info",
+                    style=_INFO_STYLE,
+                    title=f"View {label} details on Model Info tab",
                 ))
         return html.Span(children)
 

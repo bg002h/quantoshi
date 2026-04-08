@@ -439,8 +439,9 @@ _MODEL_INFO_ITEMS = [
     "mi-linppl",         # 7
     "mi-hybppl",         # 8
     "mi-hybppl-dd",      # 9
-    "mi-exp",            # 10
-    "mi-s2f",            # 11
+    "mi-pca",            # 10
+    "mi-exp",            # 11
+    "mi-s2f",            # 12
     "mi-mc",             # 12
     "mi-ef",             # 13
     "mi-u1",             # 14
@@ -597,7 +598,7 @@ _app_ctx.app.clientside_callback(
 # old URLs will land on different models — accepted per design decision.
 # /2.1=bub, /2.2=pl, /2.3=lppl (master), /2.4=linppl, /2.5=hybppl,
 # /2.6=ef (if loaded), /2.7=u1 (if loaded), /2.N+1=mc (if HAS_MARKOV)
-_HM_PILL_MODELS = ["bub", "pl", "lppl", "linppl", "hybppl", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "gomp", "bpl"]
+_HM_PILL_MODELS = ["bub", "pl", "lppl", "linppl", "hybppl", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "gomp", "bpl"]
 if "ef" in _app_ctx.PRICE_MODELS:
     _HM_PILL_MODELS.append("ef")
 if "u1" in _app_ctx.PRICE_MODELS:

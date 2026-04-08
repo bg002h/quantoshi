@@ -3,7 +3,8 @@ import plotly.graph_objects as go
 from btc_core import (PriceModel, _FitsBasedModel, BubbleModel, PowerLawModel,
                       S2FModel, QuantileRegressionModel,
                       LogisticModel, BrokenPowerLawModel,
-                      Hyb2LModel, Hyb2CModel, Hyb2BModel, Hyb4DModel)
+                      Hyb2LModel, Hyb2CModel, Hyb2BModel, Hyb4DModel,
+                      PCAModel)
 from conftest import (
     M,
     Path,
@@ -1865,3 +1866,40 @@ class TestHyb2BModel(_Hyb2Base):
 class TestHyb4DModel(_Hyb2Base):
     _cls = Hyb4DModel
     _key = "hyb4d"
+
+
+class TestPCAModel:
+    def setup_method(self):
+        self.m = _app_ctx.PRICE_MODELS.get("pca")
+
+    def test_registered(self):
+        assert self.m is not None
+
+    def test_short_name(self):
+        assert self.m.short_name == "pca"
+
+    def test_quantized(self):
+        assert self.m.quantized is True
+
+    def test_fits_keys(self):
+        assert set(self.m.fits.keys()) == set(M.QR_QUANTILES)
+
+    def test_price_at_positive(self):
+        import numpy as np
+        q = self.m.quantiles[len(self.m.quantiles) // 2]
+        p = self.m.price_at(q, 10.0)
+        assert float(np.asarray(p).flat[0]) > 0
+
+    def test_quantile_ordering(self):
+        import numpy as np
+        prices = [float(np.asarray(self.m.price_at(q, 10.0)).flat[0]) for q in self.m.quantiles]
+        assert prices == sorted(prices)
+
+    def test_basis_info_populated(self):
+        assert len(self.m._basis_info) >= 20
+
+    def test_weights_match_basis(self):
+        assert len(self.m._weights) == len(self.m._basis_info)
+
+    def test_sigma_reasonable(self):
+        assert 0.05 < self.m._sigma < 0.5

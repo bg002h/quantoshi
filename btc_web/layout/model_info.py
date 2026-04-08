@@ -996,6 +996,66 @@ $$\log_{10}(\text{price}) = A + B \log_{10}(t)
                             _hyb4d_coeff_table(),
                         ], title="HybPPL 4D (All Damped)", item_id="mi-hyb4d"),
 
+                        # ── 3j. PCA Model ──
+                        dbc.AccordionItem([
+                            html.H6("Method"),
+                            html.P([
+                                "Takes the ~30 component time series from all HybPPL-family models "
+                                "(HybPPL, HybPPL DD, Hyb2L, Hyb2C, Hyb2B, Hyb4D), runs PCA via SVD "
+                                "to find orthogonal directions of maximum variance, then OLS-regresses "
+                                "log\u2081\u2080(price) on the top ", html.Em("k"), " principal components."
+                            ]),
+                            html.P([
+                                "At prediction time, evaluates all 30 source basis functions at ", html.Em("t"),
+                                ", applies a pre-computed 30-dimensional weight vector (collapsed PCA + OLS). "
+                                "No matrix operations needed \u2014 equivalent to a weighted sum of known functions."
+                            ]),
+
+                            html.H6("PCA Variance Decomposition"),
+                            html.P("30 components from 6 models collapse into a few orthogonal directions:"),
+                            _coeff_table([
+                                ("PC1 (97.2%)", "Power law trend (B\u00b7log\u2081\u2080(t))"),
+                                ("PC2 (1.5%)", "Calendar-periodic oscillation (halving cycle)"),
+                                ("PC3 (1.0%)", "Primary damped log-periodic oscillation"),
+                                ("PC4 (0.1%)", "Second log-periodic harmonic"),
+                                ("PC5 (0.08%)", "Residual oscillatory structure"),
+                                ("PC6 (0.04%)", "Fine structure"),
+                            ]),
+
+                            html.H6("R\u00b2 by Number of PCs"),
+                            html.P("Each PC adds an effective parameter (plus 1 intercept):"),
+                            _coeff_table([
+                                ("k=1 (2 params)", "R\u00b2=0.963  \u03c3=0.295  BIC=\u221213,973  \u2248 Power Law"),
+                                ("k=2 (3 params)", "R\u00b2=0.987  \u03c3=0.171  BIC=\u221220,179  beats LPPL (9p)"),
+                                ("k=4 (5 params)", "R\u00b2=0.992  \u03c3=0.136  BIC=\u221222,781  \u2248 Hyb2B (16p)"),
+                                ("k=6 (7 params)", "R\u00b2=0.993  \u03c3=0.125  BIC=\u221223,776  beats Hyb2B"),
+                                ("k=8 (9 params)", "R\u00b2=0.993  \u03c3=0.124  BIC=\u221223,852  diminishing returns"),
+                            ]),
+
+                            html.H6("Why This Works"),
+                            html.P(
+                                "The 30 components from 6 models are highly correlated \u2014 every model "
+                                "has nearly the same A, B, and similar oscillatory terms. PCA collapses "
+                                "this redundancy into ~6 orthogonal directions. The result: R\u00b2=0.993 "
+                                "with 7 total parameters, beating Hyb2B (16 params) on BIC (\u221223,776 vs "
+                                "\u221223,203). The extra parameters in individual models are spent on "
+                                "correlated structure that PCA captures more efficiently."
+                            ),
+
+                            html.H6("Fitted Coefficients"),
+                            _pca_coeff_table(),
+
+                            html.H6("Caveats"),
+                            html.Ul([
+                                html.Li("PCA directions change when source models refit \u2014 the weight "
+                                        "vector is recomputed at startup, not stored as fixed constants."),
+                                html.Li("Depends on all 6 source models being loaded. If any is missing, "
+                                        "the basis is reduced and fit quality may change."),
+                                html.Li("Not as interpretable as individual models \u2014 each PC is a "
+                                        "linear combination of all 30 source components."),
+                            ]),
+                        ], title="PCA (HybPPL Basis)", item_id="mi-pca"),
+
                         # ── 4. Exponential ──
                         dbc.AccordionItem([
                             html.H6("Formula"),
@@ -1651,6 +1711,23 @@ def _hyb2b_coeff_table():
         ("\u03c9_c\u2082 (cal freq 2)", f"{m._Wc2:.4f}  (T={2*3.14159/m._Wc2:.2f}yr)"),
         ("\u03c3 (residual std)", f"{m._sigma:.6f}"),
     ])
+
+
+def _pca_coeff_table():
+    """Live coefficient table for PCA Model."""
+    m = _app_ctx.PRICE_MODELS.get("pca")
+    if m is None:
+        return _coeff_table([("(PCA model not loaded)", "\u2014")])
+    rows = [
+        ("k (PCs used)", str(m._N_PCS)),
+        ("Basis components", str(len(m._basis_info))),
+        ("Source models", ", ".join(sorted(m._source_models.keys()))),
+        ("\u03c3 (residual std)", f"{m._sigma:.6f}"),
+    ]
+    if hasattr(m, '_explained') and len(m._explained) > 0:
+        for i, ev in enumerate(m._explained):
+            rows.append((f"PC{i+1} explained var", f"{ev:.4%}"))
+    return _coeff_table(rows)
 
 
 def _hyb4d_coeff_table():

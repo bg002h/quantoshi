@@ -1015,25 +1015,33 @@ $$\log_{10}(\text{price}) = A + B \log_{10}(t)
                             html.P("30 additive component functions from 6 HybPPL-family models:"),
                             _pca_basis_listing(),
 
-                            html.H6("PCA Variance Decomposition"),
-                            html.P("30 components from 6 models collapse into a few orthogonal directions:"),
-                            _coeff_table([
-                                ("PC1 (97.2%)", "Power law trend (B\u00b7log\u2081\u2080(t))"),
-                                ("PC2 (1.5%)", "Calendar-periodic oscillation (halving cycle)"),
-                                ("PC3 (1.0%)", "Primary damped log-periodic oscillation"),
-                                ("PC4 (0.1%)", "Second log-periodic harmonic"),
-                                ("PC5 (0.08%)", "Residual oscillatory structure"),
-                                ("PC6 (0.04%)", "Fine structure"),
-                            ]),
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = \beta_0 + \sum_{i=1}^{k} \beta_i \cdot \text{PC}_i(t) + z_q \cdot \sigma$$
 
-                            html.H6("R\u00b2 by Number of PCs"),
-                            html.P("Each PC adds an effective parameter (plus 1 intercept):"),
+where each $\text{PC}_i(t)$ is a linear combination of the 30 source basis functions,
+computed via SVD of the centered component matrix.
+                            """, mathjax=True, className="mb-3"),
+
+                            html.H6("Registered Model (k=6)"),
+                            _pca_formula_table(),
+
+                            html.H6("PCA Variance Decomposition"),
+                            html.P("30 components from 6 models collapse into orthogonal directions:"),
+                            _pca_variance_table(),
+
+                            html.H6("Model Comparison by Number of PCs"),
+                            html.P([
+                                "Adding more PCs improves fit but adds parameters. ",
+                                html.Strong("k=6 (7 params) is the registered model"),
+                                " \u2014 best BIC in the family:"
+                            ]),
                             _coeff_table([
-                                ("k=1 (2 params)", "R\u00b2=0.963  \u03c3=0.295  BIC=\u221213,973  \u2248 Power Law"),
-                                ("k=2 (3 params)", "R\u00b2=0.987  \u03c3=0.171  BIC=\u221220,179  beats LPPL (9p)"),
-                                ("k=4 (5 params)", "R\u00b2=0.992  \u03c3=0.136  BIC=\u221222,781  \u2248 Hyb2B (16p)"),
-                                ("k=6 (7 params)", "R\u00b2=0.993  \u03c3=0.125  BIC=\u221223,776  beats Hyb2B"),
-                                ("k=8 (9 params)", "R\u00b2=0.993  \u03c3=0.124  BIC=\u221223,852  diminishing returns"),
+                                ("k=1 (2p)", "R\u00b2=0.963  \u03c3=0.295  BIC=\u221213,974  \u2248 Power Law (3p)"),
+                                ("k=2 (3p)", "R\u00b2=0.987  \u03c3=0.171  BIC=\u221220,179  beats LPPL (9p) with 3 params"),
+                                ("k=4 (5p)", "R\u00b2=0.992  \u03c3=0.136  BIC=\u221222,781  \u2248 Hyb2B (16p) with 5 params"),
+                                ("k=6 (7p) \u2190", "R\u00b2=0.993  \u03c3=0.125  BIC=\u221223,776  \u2605 registered model"),
+                                ("k=8 (9p)", "R\u00b2=0.993  \u03c3=0.124  BIC=\u221223,852  diminishing returns"),
                             ]),
 
                             html.H6("Why This Works"),
@@ -1731,6 +1739,43 @@ def _pca_coeff_table():
     if hasattr(m, '_explained') and len(m._explained) > 0:
         for i, ev in enumerate(m._explained):
             rows.append((f"PC{i+1} explained var", f"{ev:.4%}"))
+    return _coeff_table(rows)
+
+
+def _pca_formula_table():
+    """Live formula with numerical coefficients for registered PCA model."""
+    m = _app_ctx.PRICE_MODELS.get("pca")
+    if m is None:
+        return _coeff_table([("(PCA model not loaded)", "\u2014")])
+    rows = [
+        ("\u03b2\u2080 (intercept)", f"{m._intercept:.6f}"),
+    ]
+    labels = m._PC_LABELS
+    for i in range(min(m._N_PCS, len(m._beta) - 1)):
+        lbl = labels[i] if i < len(labels) else f"PC{i+1}"
+        rows.append((
+            f"\u03b2{i+1} \u00d7 {lbl}",
+            f"{m._beta[i+1]:+.6f}  (var explained: {m._explained[i]:.4%})",
+        ))
+    rows.append(("\u03c3 (residual std)", f"{m._sigma:.6f}"))
+    return _coeff_table(rows)
+
+
+def _pca_variance_table():
+    """Explained variance per PC with cumulative."""
+    m = _app_ctx.PRICE_MODELS.get("pca")
+    if m is None:
+        return _coeff_table([("(PCA model not loaded)", "\u2014")])
+    labels = m._PC_LABELS
+    cumvar = 0.0
+    rows = []
+    for i, ev in enumerate(m._explained):
+        cumvar += ev
+        lbl = labels[i] if i < len(labels) else f"PC{i+1}"
+        rows.append((
+            f"PC{i+1}: {lbl}",
+            f"{ev:.4%}  (cumulative: {cumvar:.4%})",
+        ))
     return _coeff_table(rows)
 
 

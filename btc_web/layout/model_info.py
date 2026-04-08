@@ -710,7 +710,7 @@ Two oscillation terms:
                                         "~0.08 (vs C\u2082=0.23). The calendar cycle will "
                                         "dominate forward projections."),
                             ]),
-                        ], title="HybPPL (Hybrid Log+Linear PPL)", item_id="mi-hybppl"),
+                        ], title="Log-Periodic + Halving Cycle", item_id="mi-hybppl"),
 
                         # ── 3f. HybPPL (DD — Double Damped) ──
                         dbc.AccordionItem([
@@ -800,7 +800,7 @@ $$\text{price}(t) = 10^{A} \cdot t^{B}
                                 "the model pipeline in update_prices.py.",
                                 className="text-muted small",
                             ),
-                        ], title="HybPPL (DD \u2014 Double Damped)", item_id="mi-hybppl-dd"),
+                        ], title="Log-Periodic + Halving Cycle (both decaying)", item_id="mi-hybppl-dd"),
 
                         # ── 3f. HybPPL +2nd Log ──
                         dbc.AccordionItem([
@@ -837,7 +837,7 @@ $$\log_{10}(\text{price}) = A + B \log_{10}(t)
                             ]),
                             html.H6("Fitted Coefficients"),
                             _hyb2l_coeff_table(),
-                        ], title="HybPPL +2L (2nd Log-Periodic)", item_id="mi-hyb2l"),
+                        ], title="Log-Periodic + Halving + 2nd Log Harmonic", item_id="mi-hyb2l"),
 
                         # ── 3g. HybPPL +2nd Cal ──
                         dbc.AccordionItem([
@@ -874,7 +874,7 @@ $$\log_{10}(\text{price}) = A + B \log_{10}(t)
                             ]),
                             html.H6("Fitted Coefficients"),
                             _hyb2c_coeff_table(),
-                        ], title="HybPPL +2C (2nd Calendar)", item_id="mi-hyb2c"),
+                        ], title="Log-Periodic + Halving + Sub-Halving", item_id="mi-hyb2c"),
 
                         # ── 3h. HybPPL +Both ──
                         dbc.AccordionItem([
@@ -915,7 +915,7 @@ $$\log_{10}(\text{price}) = A + B \log_{10}(t)
                             ]),
                             html.H6("Fitted Coefficients"),
                             _hyb2b_coeff_table(),
-                        ], title="HybPPL +2B (Both 2nd Harmonics)", item_id="mi-hyb2b"),
+                        ], title="Full Hybrid (2 log + 2 calendar)", item_id="mi-hyb2b"),
 
                         # ── 3i. HybPPL 4D (all damped) ──
                         dbc.AccordionItem([
@@ -994,7 +994,7 @@ $$\log_{10}(\text{price}) = A + B \log_{10}(t)
                             ]),
                             html.H6("Fitted Coefficients"),
                             _hyb4d_coeff_table(),
-                        ], title="HybPPL 4D (All Damped)", item_id="mi-hyb4d"),
+                        ], title="Full Hybrid (all decaying)", item_id="mi-hyb4d"),
 
                         # ── 3j. PCA Model ──
                         dbc.AccordionItem([

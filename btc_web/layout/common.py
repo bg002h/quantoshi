@@ -176,6 +176,7 @@ _SECTION_ICONS = {
     "Bubble Model": "\U0001F4CA",            # 📊
     "Component Decomposition": "\U0001F9EC", # 🧬
     "LPPL Models": "\U0001F30A",             # 🌊
+    "Hybrid PPL Models": "\U0001F39B\uFE0F",  # 🎛️
     "Monte Carlo Simulation": "\U0001F3B2",  # 🎲
     "Saved Simulation": "\U0001F4BE",        # 💾
     # Citadel tab

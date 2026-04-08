@@ -1057,6 +1057,15 @@ computed via SVD of the centered component matrix.
                             html.H6("Fitted Coefficients"),
                             _pca_coeff_table(),
 
+                            html.H6("Full Expanded Formula (for replication)"),
+                            html.P([
+                                "The model collapses to: ",
+                                html.Code("log\u2081\u2080(price) = \u03b1 + \u03b2\u00b7log\u2081\u2080(t) + \u03a3 w\u2c7c\u00b7f\u2c7c(t)"),
+                                ", a weighted sum of known oscillatory functions. "
+                                "Each f\u2c7c is a component from a source model with fixed parameters."
+                            ]),
+                            _pca_expanded_formula(),
+
                             html.H6("Caveats"),
                             html.Ul([
                                 html.Li("PCA directions change when source models refit \u2014 the weight "
@@ -1777,6 +1786,108 @@ def _pca_variance_table():
             f"{ev:.4%}  (cumulative: {cumvar:.4%})",
         ))
     return _coeff_table(rows)
+
+
+def _pca_expanded_formula():
+    """Full expanded formula with all numerical coefficients for replication."""
+    import numpy as _np
+    m = _app_ctx.PRICE_MODELS.get("pca")
+    if m is None or not m._basis_info:
+        return html.P("(PCA model not loaded)", className="text-muted")
+
+    # Compute effective constant and slope
+    const_total = m._intercept
+    slope_total = 0.0
+    osc_rows = []
+
+    for i, ((key, cname), w) in enumerate(zip(m._basis_info, m._weights)):
+        mdl = m._source_models.get(key)
+        if mdl is None:
+            continue
+        cl = cname.lower()
+
+        if "constant" in cl or cname.startswith("A "):
+            const_total += w * getattr(mdl, "_A", 0)
+        elif "log" in cl and "t" in cl and "osc" not in cl and "cos" not in cl:
+            slope_total += w * getattr(mdl, "_B", 0)
+        else:
+            # Oscillatory term — extract params
+            if "log osc 2" in cl or "\u03c9\u2082" in cname or "\u03c9_l\u2082" in cname:
+                C = getattr(mdl, "_C3", getattr(mdl, "_C", 0))
+                D = getattr(mdl, "_D2", getattr(mdl, "_D", 0))
+                W = getattr(mdl, "_W2", getattr(mdl, "_W", 0))
+                PHI = getattr(mdl, "_PHI3", getattr(mdl, "_PHI", 0))
+                kind = "log"
+            elif "log osc" in cl or "\u03c9_log" in cname or "\u03c9\u2081" in cname:
+                C = getattr(mdl, "_C1", getattr(mdl, "_C", 0))
+                D = getattr(mdl, "_D1", getattr(mdl, "_D", 0))
+                W = getattr(mdl, "_W1", getattr(mdl, "_W", 0))
+                PHI = getattr(mdl, "_PHI1", getattr(mdl, "_PHI", 0))
+                kind = "log"
+            elif "cal osc 2" in cl or "\u03c9_c\u2082" in cname:
+                C = getattr(mdl, "_C4", getattr(mdl, "_C3", 0))
+                W = getattr(mdl, "_Wc2", 0)
+                PHI = getattr(mdl, "_PHI4", getattr(mdl, "_PHI3", 0))
+                Dc = getattr(mdl, "_Dc2", None)
+                D = Dc if Dc is not None and Dc > 0.01 else 0
+                kind = "cal"
+            elif "cal osc" in cl or "\u03c9_cal" in cname or "\u03c9_c\u2081" in cname:
+                C = getattr(mdl, "_C2", 0)
+                W = getattr(mdl, "_Wc1", getattr(mdl, "_Wc", getattr(mdl, "_W2", 0)))
+                PHI = getattr(mdl, "_PHI2", 0)
+                Dc = getattr(mdl, "_Dc1", None)
+                D = Dc if Dc is not None and Dc > 0.01 else 0
+                kind = "cal"
+            else:
+                continue
+
+            eff_amp = abs(w * C)
+            if eff_amp < 0.001:
+                continue
+
+            if kind == "log":
+                formula = f"{C:.4f}\u00b7t^(\u2212{D:.4f})\u00b7cos({W:.4f}\u00b7ln(t){PHI:+.4f})"
+            elif D > 0:
+                T = 2 * _np.pi / W if W > 0 else 0
+                formula = f"{C:.4f}\u00b7t^(\u2212{D:.4f})\u00b7cos({W:.4f}\u00b7t{PHI:+.4f})  [T={T:.1f}yr]"
+            else:
+                T = 2 * _np.pi / W if W > 0 else 0
+                formula = f"{C:.4f}\u00b7cos({W:.4f}\u00b7t{PHI:+.4f})  [T={T:.1f}yr]"
+
+            osc_rows.append((f"w={w:+.6f}", formula, f"{eff_amp:.4f}"))
+
+    rows = [
+        ("\u03b1 (constant)", f"{const_total:.6f}", ""),
+        ("\u03b2\u00b7log\u2081\u2080(t)", f"\u03b2 = {slope_total:.6f}", ""),
+    ]
+    header = html.Thead(html.Tr([
+        html.Th("Term", style={"paddingRight": "12px"}),
+        html.Th("Formula / Value", style={"paddingRight": "12px"}),
+        html.Th("Eff. amp"),
+    ]))
+    body_rows = []
+    for label, val, amp in rows:
+        body_rows.append(html.Tr([
+            html.Td(html.Strong(label)),
+            html.Td(html.Code(val)),
+            html.Td(amp),
+        ]))
+    body_rows.append(html.Tr([
+        html.Td(html.Strong(f"Oscillatory terms ({len(osc_rows)})"),
+                colSpan=3,
+                style={"paddingTop": "8px", "borderTop": "1px solid #ddd"}),
+    ]))
+    for w_str, formula, amp in osc_rows:
+        body_rows.append(html.Tr([
+            html.Td(html.Code(w_str), style={"fontSize": "11px"}),
+            html.Td(html.Code(formula), style={"fontSize": "11px"}),
+            html.Td(html.Code(amp), style={"fontSize": "11px"}),
+        ]))
+
+    return html.Table(
+        [header, html.Tbody(body_rows)],
+        style={"fontSize": "12px", "marginBottom": "12px"},
+    )
 
 
 def _pca_basis_listing():

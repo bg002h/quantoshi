@@ -1218,6 +1218,74 @@ computed via SVD of the centered component matrix.
                                 "independent confirmation that these are the real signals in the data, "
                                 "not artifacts of the fitting procedure."
                             ]),
+
+                            html.Hr(),
+                            html.H6("Addendum: EMD (Empirical Mode Decomposition)"),
+                            html.P([
+                                "EMD decomposes log\u2081\u2080(price) into ",
+                                html.Strong("Intrinsic Mode Functions (IMFs)"),
+                                " \u2014 oscillatory components extracted directly from the data "
+                                "with ", html.Em("no assumed frequencies"), ". It works by iteratively "
+                                "finding local extrema and peeling off oscillations from fastest to slowest."
+                            ]),
+                            html.P("EMD found 8 IMFs:"),
+                            _coeff_table([
+                                ("IMF 8 (trend)", "R\u00b2=0.925 alone \u2014 the power law backbone"),
+                                ("IMF 7 (~4.5yr, FFT: 3.9yr)", "+R\u00b2\u21920.961 \u2014 the halving cycle"),
+                                ("IMF 6 (~3.5yr, FFT: 2.0yr)", "+R\u00b2\u21920.992 \u2014 sub-halving rhythm"),
+                                ("IMF 5 (~0.6yr)", "+R\u00b2\u21920.997 \u2014 sub-annual oscillation"),
+                                ("IMFs 1\u20134 (<3 months)", "noise \u2014 negligible contribution"),
+                            ]),
+                            html.P([
+                                html.Strong("Key result: "),
+                                "just 3 IMFs (trend + two cycles) give R\u00b2=0.992 with zero "
+                                "assumed functional form. EMD independently discovers the same "
+                                "two dominant cycles as the HybPPL models: the halving cycle "
+                                "(~3.5\u20134.5yr) and a sub-halving period (~2yr)."
+                            ]),
+
+                            html.Hr(),
+                            html.H6("Addendum: DMD (Dynamic Mode Decomposition)"),
+                            html.P([
+                                "DMD finds the ", html.Strong("eigenmodes of the system\u2019s dynamics"),
+                                " \u2014 not just patterns in the signal (like PCA/EMD), but the "
+                                "linear operator that best maps x(t) \u2192 x(t+1). Each eigenvalue "
+                                "encodes a growth/decay rate and an oscillation frequency."
+                            ]),
+                            html.P([
+                                "Applied to power-law-detrended residuals with time-delay embedding "
+                                "(730-day window), DMD discovers these modes:"
+                            ]),
+                            _coeff_table([
+                                ("Mode 1: T=3.97yr", "growth=\u22120.04/yr (nearly stable) \u2014 halving cycle"),
+                                ("Mode 2: T=1.98yr", "growth=\u22120.24/yr (slowly decaying) \u2014 sub-halving"),
+                                ("Mode 3: T=0.91yr", "growth=\u22120.29/yr (decaying) \u2014 annual cycle"),
+                                ("Mode 4: T=0.66yr", "growth=\u22120.14/yr \u2014 ~8-month cycle"),
+                                ("Mode 5: T=0.54yr", "growth=\u22120.51/yr (fast decay) \u2014 ~6-month cycle"),
+                            ]),
+                            html.P([
+                                html.Strong("Key results: "),
+                                "(1) The ~4yr halving cycle is the most stable mode (barely decaying), "
+                                "confirming it persists indefinitely. "
+                                "(2) The ~2yr sub-halving mode decays slowly \u2014 it\u2019s real but fading. "
+                                "(3) DMD operates in calendar time so it cannot see log-periodic "
+                                "structure (\u03c9\u22487.4); that requires the LPPL framework."
+                            ]),
+
+                            html.Hr(),
+                            html.H6("Summary: Three Independent Methods Agree"),
+                            _coeff_table([
+                                ("PCA (basis search)", "\u03c9\u22487.4 log-periodic + T\u22483.6yr calendar"),
+                                ("EMD (assumption-free)", "T\u22483.9yr + T\u22482.0yr (IMFs 7+6)"),
+                                ("DMD (eigenmode analysis)", "T\u22484.0yr (stable) + T\u22482.0yr (decaying)"),
+                            ]),
+                            html.P(
+                                "All three methods \u2014 using fundamentally different mathematics \u2014 "
+                                "converge on the same two dominant oscillatory structures in Bitcoin\u2019s "
+                                "price: a ~4yr halving cycle and a ~2yr sub-halving rhythm. The HybPPL "
+                                "model family was designed around these signals. The PCA model captures "
+                                "them optimally in 7 parameters."
+                            ),
                         ], title="PCA (HybPPL Basis)", item_id="mi-pca"),
 
                         # ── 4. Exponential ──

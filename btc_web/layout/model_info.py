@@ -1441,6 +1441,107 @@ where each $f_i(t)$ is one of three functional forms:
                                 "cycle from Hyb4D \u2014 a term that is already nearly extinct and "
                                 "contributes mainly to early-era structure."
                             ]),
+
+                            html.Hr(),
+                            html.H6("Beyond sinusoidal: evolving bubble shapes"),
+                            html.P(
+                                "The greedy and HybPPL models use cosine waves for the calendar "
+                                "oscillation. But Bitcoin bubbles aren\u2019t smooth sinusoids \u2014 "
+                                "early bubbles have sharp blow-off tops (more like triangles) while "
+                                "later bubbles develop extended plateaus (more like flat-topped waves). "
+                                "We tested whether a shape-evolving periodic function fits better."
+                            ),
+                            html.H6("Evolving shape model"),
+                            html.P([
+                                "Replace ", html.Code("cos(\u03c9t+\u03c6)"), " with ",
+                                html.Code("tanh(k(t)\u00b7sin(\u03c9t+\u03c6))"),
+                                ", where ", html.Code("k(t) = k\u2080 + k\u2081\u00b7t"),
+                                " controls the peak shape:"
+                            ]),
+                            html.Ul([
+                                html.Li("k small \u2192 sinusoidal peaks (sharp, early Bitcoin)"),
+                                html.Li("k large \u2192 flat-topped plateaus (mature Bitcoin)"),
+                            ]),
+                            html.P("Fitted result (11 params, +2 over HybPPL):"),
+                            _coeff_table([
+                                ("k(2011) = 0.37", "nearly sinusoidal \u2014 sharp bubble peaks"),
+                                ("k(2025) = 2.28", "noticeably flat-topped \u2014 extended plateaus"),
+                                ("k(2034) = 3.51", "near square wave (projected)"),
+                                ("R\u00b2 = 0.9893", "\u03c3 = 0.158, BIC = \u221221,028"),
+                            ]),
+
+                            html.H6("What stays the same across all models"),
+                            html.Ul([
+                                html.Li([
+                                    html.Strong("Log-periodic: "),
+                                    "\u03c9\u22487.4, D\u22480.65\u20130.83 \u2014 identical whether you use "
+                                    "cosine, triangle, or flat-top. This signal is rock solid and doesn\u2019t "
+                                    "need shape evolution. Its natural t^(\u2212D) damping already handles "
+                                    "the peak sharpening as amplitude decays."
+                                ]),
+                                html.Li([
+                                    html.Strong("Calendar period: "),
+                                    "T\u22483.6yr \u2014 the halving cycle is present in every model."
+                                ]),
+                                html.Li([
+                                    html.Strong("Power law slope: "),
+                                    "B\u22485.0\u20135.1 \u2014 consistent everywhere."
+                                ]),
+                            ]),
+
+                            html.H6("The key insight: two types of oscillation"),
+                            html.P([
+                                html.Strong("Log-periodic oscillation "),
+                                "(\u03c9\u22487.4 in ln(t)) is driven by ",
+                                html.Em("fractal self-similarity"),
+                                " \u2014 scale-invariant, no shape change needed. "
+                                "The damping exponent D naturally sharpens peaks as amplitude decays."
+                            ]),
+                            html.P([
+                                html.Strong("Calendar oscillation "),
+                                "(T\u22483.6yr) is driven by ",
+                                html.Em("human behavior"),
+                                " \u2014 the halving cycle, FOMO dynamics, and market participation. "
+                                "This is where shape evolution matters: as Bitcoin\u2019s participant base "
+                                "grows, bubble peaks flatten from sharp blow-off tops to extended "
+                                "distribution plateaus. The tanh(k(t)\u00b7sin) formulation captures this "
+                                "with a single linearly-evolving parameter."
+                            ]),
+
+                            html.H6("Non-sinusoidal basis search"),
+                            html.P(
+                                "We also tested triangle, flat-top, and trapezoid waves as alternatives "
+                                "to cosine in the greedy component selection:"
+                            ),
+                            _coeff_table([
+                                ("Sinusoidal only (16p)", "R\u00b2=0.9943  BIC=\u221224,579"),
+                                ("Triangle (17p)", "R\u00b2=0.9953  BIC=\u221225,714"),
+                                ("Flat-top (17p)", "R\u00b2=0.9954  BIC=\u221225,751"),
+                                ("Mixed shapes (27p)", "R\u00b2=0.9970  BIC=\u221228,213"),
+                            ]),
+                            html.P([
+                                "Non-sinusoidal waves beat cosine by ~1,000 BIC. The mixed-shape "
+                                "dictionary (all 5 wave types \u00d7 both time bases) achieves R\u00b2=0.997. "
+                                "Flat-top waves dominate (10 of 25 selected terms), followed by triangle (6). "
+                                "See ", html.A("/G", href="/G"), " for plots."
+                            ]),
+
+                            html.H6("Bubble shape evolution across cycles"),
+                            html.P(
+                                "Asymmetric trapezoid fits to individual bubbles (excess above BM support) "
+                                "show two statistically significant trends:"
+                            ),
+                            _coeff_table([
+                                ("Duration widening (p=0.012)", "0.87yr (2011) \u2192 5.39yr (2024)"),
+                                ("Amplitude shrinking (p=0.016)", "1.38 \u2192 0.47 log\u2081\u2080 (each cycle ~20% smaller)"),
+                            ]),
+                            html.P(
+                                "Early bubbles (2011\u20132017) are tall narrow triangles with no plateau. "
+                                "Later bubbles (2021\u20132024) are shorter, wider, and developing plateau "
+                                "structure. As the participant base grows, speculative excess distributes "
+                                "over longer periods with reduced peak amplitude \u2014 consistent with "
+                                "market maturation."
+                            ),
                         ], title="Greedy Select", item_id="mi-grdy"),
 
                         # ── 4. Exponential ──

@@ -430,24 +430,30 @@ _app_ctx.app.clientside_callback(
 # Must match the actual accordion ORDER in btc_web/layout/model_info.py.
 # Append new items to the end to keep existing /8.N links stable.
 _MODEL_INFO_ITEMS = [
-    "mi-bub",            # 1
-    "mi-qr",             # 2
-    "mi-pl",             # 3
-    "mi-lppl",           # 4
-    "mi-lp2",            # 5
-    "mi-lppl-weighting", # 6
-    "mi-linppl",         # 7
-    "mi-hybppl",         # 8
-    "mi-hybppl-dd",      # 9
-    "mi-pca",            # 10
-    "mi-exp",            # 11
-    "mi-s2f",            # 12
-    "mi-mc",             # 12
-    "mi-ef",             # 13
-    "mi-u1",             # 14
-    "mi-compare",        # 15
-    "mi-regimes",        # 16
-    "mi-citadel",        # 17
+    "mi-bub",            # 1  Bubble Model
+    "mi-qr",             # 2  Quantile Regression
+    "mi-pl",             # 3  Power Law (OLS)
+    "mi-lppl",           # 4  LPPL
+    "mi-lp2",            # 5  LPPL₂
+    "mi-lppl-weighting", # 6  LPPL Weighting & Regime Shifts
+    "mi-linppl",         # 7  LinPPL
+    "mi-hybppl",         # 8  HybPPL
+    "mi-hybppl-dd",      # 9  HybPPL (DD)
+    "mi-hyb2l",          # 10 HybPPL +2L
+    "mi-hyb2c",          # 11 HybPPL +2C
+    "mi-hyb2b",          # 12 HybPPL +2B
+    "mi-hyb4d",          # 13 HybPPL 4D
+    "mi-pca",            # 14 PCA
+    "mi-exp",            # 15 Exponential
+    "mi-gomp",           # 16 Gompertz
+    "mi-bpl",            # 17 Broken Power Law
+    "mi-s2f",            # 18 S2F
+    "mi-mc",             # 19 Monte Carlo
+    "mi-ef",             # 20 Empirical Floor
+    "mi-u1",             # 21 User Model
+    "mi-compare",        # 22 Model Comparison
+    "mi-regimes",        # 23 Historical Regimes
+    "mi-citadel",        # 24 Citadel Planner
 ]
 
 

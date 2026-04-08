@@ -1863,19 +1863,19 @@ class PCAModel:
     def component_details(self):
         return {
             "intercept": (
-                f"constant = {self._intercept:.4f}",
+                "\u03b1 (constant)",
                 [("const", "_intercept")],
             ),
             "power law trend": (
-                "weighted sum of B\u00b7log\u2081\u2080(t) from all source models",
+                "\u03a3 w\u2c7c\u00b7B\u2c7c\u00b7log\u2081\u2080(t)",
                 [],
             ),
             "log-periodic osc": (
-                "weighted sum of all damped log-periodic oscillations",
+                "\u03a3 w\u2c7c\u00b7C\u2c7c\u00b7t^(\u2212D)\u00b7cos(\u03c9\u00b7ln(t)+\u03c6)",
                 [],
             ),
             "calendar-periodic": (
-                "weighted sum of all calendar-periodic oscillations (damped + undamped)",
+                "\u03a3 w\u2c7c\u00b7C\u2c7c\u00b7cos(\u03c9\u00b7t+\u03c6)",
                 [],
             ),
         }
@@ -2068,40 +2068,35 @@ class GreedyModel:
     def component_details(self):
         return {
             "\u03b1 (intercept)": (
-                f"\u03b1 = {self._alpha:.6f}",
+                "\u03b1",
                 [("\u03b1", "_alpha")],
             ),
             "\u03b2\u00b7log\u2081\u2080(t)": (
-                f"\u03b2\u00b7log\u2081\u2080(t), \u03b2 = {self._beta:.6f}",
+                "\u03b2\u00b7log\u2081\u2080(t)",
                 [("\u03b2", "_beta")],
             ),
             "f\u2081 halving cycle": (
-                f"w\u2081={self._w1:.6f} \u00d7 C\u00b7t^(-D)\u00b7cos(\u03c9\u00b7t+\u03c6), "
-                f"C={self._C1}, D={self._D1}, \u03c9={self._W1}, \u03c6={self._PHI1}",
+                "w\u2081\u00b7C\u2081\u00b7t^(\u2212D\u2081)\u00b7cos(\u03c9\u2081\u00b7t+\u03c6\u2081)",
                 [("w\u2081", "_w1"), ("C\u2081", "_C1"), ("D\u2081", "_D1"),
                  ("\u03c9\u2081", "_W1"), ("\u03c6\u2081", "_PHI1")],
             ),
             "f\u2082 log-periodic": (
-                f"w\u2082={self._w2:.6f} \u00d7 C\u00b7t^(-D)\u00b7cos(\u03c9\u00b7ln(t)+\u03c6), "
-                f"C={self._C2}, D={self._D2}, \u03c9={self._W2}, \u03c6={self._PHI2}",
+                "w\u2082\u00b7C\u2082\u00b7t^(\u2212D\u2082)\u00b7cos(\u03c9\u2082\u00b7ln(t)+\u03c6\u2082)",
                 [("w\u2082", "_w2"), ("C\u2082", "_C2"), ("D\u2082", "_D2"),
                  ("\u03c9\u2082", "_W2"), ("\u03c6\u2082", "_PHI2")],
             ),
             "f\u2083 sub-halving": (
-                f"w\u2083={self._w3:.6f} \u00d7 C\u00b7cos(\u03c9\u00b7t+\u03c6), "
-                f"C={self._C3}, \u03c9={self._W3}, \u03c6={self._PHI3}",
+                "w\u2083\u00b7C\u2083\u00b7cos(\u03c9\u2083\u00b7t+\u03c6\u2083)",
                 [("w\u2083", "_w3"), ("C\u2083", "_C3"),
                  ("\u03c9\u2083", "_W3"), ("\u03c6\u2083", "_PHI3")],
             ),
             "f\u2084 2nd log harmonic": (
-                f"w\u2084={self._w4:.6f} \u00d7 C\u00b7t^(-D)\u00b7cos(\u03c9\u00b7ln(t)+\u03c6), "
-                f"C={self._C4}, D={self._D4}, \u03c9={self._W4}, \u03c6={self._PHI4}",
+                "w\u2084\u00b7C\u2084\u00b7t^(\u2212D\u2084)\u00b7cos(\u03c9\u2084\u00b7ln(t)+\u03c6\u2084)",
                 [("w\u2084", "_w4"), ("C\u2084", "_C4"), ("D\u2084", "_D4"),
                  ("\u03c9\u2084", "_W4"), ("\u03c6\u2084", "_PHI4")],
             ),
             "f\u2085 long calendar": (
-                f"w\u2085={self._w5:.6f} \u00d7 C\u00b7t^(-D)\u00b7cos(\u03c9\u00b7t+\u03c6), "
-                f"C={self._C5}, D={self._D5}, \u03c9={self._W5}, \u03c6={self._PHI5}",
+                "w\u2085\u00b7C\u2085\u00b7t^(\u2212D\u2085)\u00b7cos(\u03c9\u2085\u00b7t+\u03c6\u2085)",
                 [("w\u2085", "_w5"), ("C\u2085", "_C5"), ("D\u2085", "_D5"),
                  ("\u03c9\u2085", "_W5"), ("\u03c6\u2085", "_PHI5")],
             ),

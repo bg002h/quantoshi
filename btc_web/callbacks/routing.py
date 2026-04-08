@@ -485,7 +485,8 @@ _MODEL_INFO_ITEMS = [
     "mi-hyb4d",          # 13 HybPPL 4D
     "mi-pca",            # 14 PCA
     "mi-grdy",           # 15 Greedy Select
-    "mi-exp",            # 16 Exponential
+    "mi-eppl",           # 16 Entropy PPL
+    "mi-exp",            # 17 Exponential
     "mi-gomp",           # 16 Gompertz
     "mi-bpl",            # 17 Broken Power Law
     "mi-s2f",            # 18 S2F
@@ -645,7 +646,7 @@ _app_ctx.app.clientside_callback(
 # old URLs will land on different models — accepted per design decision.
 # /2.1=bub, /2.2=pl, /2.3=lppl (master), /2.4=linppl, /2.5=hybppl,
 # /2.6=ef (if loaded), /2.7=u1 (if loaded), /2.N+1=mc (if HAS_MARKOV)
-_HM_PILL_MODELS = ["bub", "pl", "lppl", "linppl", "hybppl", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "gomp", "bpl"]
+_HM_PILL_MODELS = ["bub", "pl", "lppl", "linppl", "hybppl", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "gomp", "bpl"]
 if "ef" in _app_ctx.PRICE_MODELS:
     _HM_PILL_MODELS.append("ef")
 if "u1" in _app_ctx.PRICE_MODELS:

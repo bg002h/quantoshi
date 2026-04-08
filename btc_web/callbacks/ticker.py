@@ -10,7 +10,7 @@ from utils import _fetch_btc_price
 # ── Model display order and colors ──────────────────────────────────────────
 # Cycle order: QR → BM → PL → LPPL → LinPPL → HybPPL → HybPPL DD → Exp → EF
 # (skip S2F — non-quantized)
-_MODEL_CYCLE = ["qr", "bub", "pl", "lppl", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "gomp", "bpl", "ef"]
+_MODEL_CYCLE = ["qr", "bub", "pl", "lppl", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "gomp", "bpl", "ef"]
 _MODEL_COLORS = {
     "qr":         "#5dade2",   # sky blue
     "bub":        "#f39c12",   # amber/gold
@@ -26,6 +26,7 @@ _MODEL_COLORS = {
     "hyb4d":      "#8B6914",   # dark goldenrod — HybPPL 4D
     "pca":        "#4B0082",   # indigo — PCA
     "grdy":       "#228B22",   # forest green — Greedy
+    "eppl":       "#D4760A",   # warm amber — Entropy PPL
     "gomp":       "#4682B4",   # steel blue — Gompertz
     "bpl":        "#CD853F",   # peru/tan — broken PL
     "ef":         "#1abc9c",   # teal

@@ -2277,6 +2277,212 @@ class ExponentialModel:
             self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
 
 
+class EntropyPPLModel:
+    """Entropy PPL — HybPPL variant with Shannon entropy envelope damping.
+
+    Replaces the t^(-D) power-law damping of HybPPL with a normalized
+    Shannon entropy envelope E(w*t) = max(-w*t*ln(w*t), 0) / (1/e).
+
+    The entropy envelope peaks when adoption uncertainty is maximal
+    (w*t = 1/e) and decays to zero when adoption is "resolved" (w*t = 1).
+
+    Formula (2+2 version, 16 params):
+        log10(price) = A + B*log10(t)
+            + C1*E(w1*t)*cos(W1*ln(t)+P1)     # entropy-damped log-periodic 1
+            + C3*E(w2*t)*cos(W2*ln(t)+P3)     # entropy-damped log-periodic 2
+            + C2*cos(Wc1*t+P2)                 # undamped halving cycle
+            + C4*cos(Wc2*t+P4)                 # undamped sub-halving
+
+    R²=0.993320, σ=0.125028
+    """
+    name = "Entropy PPL"
+    short_name = "eppl"
+    legend_name = "EPPL"
+    dash_style = "dashdot"
+    quantized = True
+
+    # ── Fitted parameters (EPPL 2+2) ────────────────────────────────────
+    _A    = -1.167364
+    _B    =  5.079560
+    _C1   =  0.250431    # log osc 1 amplitude
+    _W1   = 16.823756    # log osc 1 frequency
+    _P1   =  1.460422    # log osc 1 phase
+    _w1   =  0.251550    # log osc 1 entropy rate
+    _C3   =  0.556269    # log osc 2 amplitude
+    _W2   =  7.803554    # log osc 2 frequency
+    _P3   =  1.373041    # log osc 2 phase
+    _w2   =  0.107049    # log osc 2 entropy rate
+    _C2   =  0.202747    # cal osc 1 amplitude
+    _Wc1  =  1.881312    # cal osc 1 frequency (T=3.34yr)
+    _P2   =  2.520900    # cal osc 1 phase
+    _C4   =  0.113542    # cal osc 2 amplitude
+    _Wc2  =  3.355482    # cal osc 2 frequency (T=1.87yr)
+    _P4   =  3.033230    # cal osc 2 phase
+    _sigma = 0.125028
+
+    def __init__(self, price_years, price_prices, quantiles):
+        self.fits = {}
+        for q in quantiles:
+            z = _lazy_norm().ppf(q)
+            self.fits[q] = {"z_shift": z * self._sigma}
+        self.quantiles = sorted(self.fits.keys())
+        self._build_colors()
+
+    @staticmethod
+    def entropy_env(t, w):
+        """Normalized Shannon entropy envelope: E(x) = max(-x*ln(x), 0) / (1/e)."""
+        x = w * t
+        raw = -x * np.log(np.maximum(x, 1e-30))
+        return np.maximum(raw, 0.0) / (1.0 / np.e)
+
+    def _model_log10(self, t):
+        """Evaluate the 2+2 entropy PPL formula."""
+        t_arr = np.asarray(t, float)
+        scalar = t_arr.ndim == 0
+        if scalar:
+            t_arr = t_arr.reshape(1)
+        t_safe = np.maximum(t_arr, 0.1)
+
+        result = self._A + self._B * np.log10(t_safe)
+        # Entropy-damped log-periodic term 1
+        result += self._C1 * self.entropy_env(t_safe, self._w1) * np.cos(
+            self._W1 * np.log(t_safe) + self._P1)
+        # Entropy-damped log-periodic term 2
+        result += self._C3 * self.entropy_env(t_safe, self._w2) * np.cos(
+            self._W2 * np.log(t_safe) + self._P3)
+        # Undamped halving cycle
+        result += self._C2 * np.cos(self._Wc1 * t_safe + self._P2)
+        # Undamped sub-halving
+        result += self._C4 * np.cos(self._Wc2 * t_safe + self._P4)
+
+        return float(result[0]) if scalar else result
+
+    def price_at(self, q, t):
+        t_arr = np.asarray(t, float)
+        log_median = self._model_log10(t_arr)
+        shift = self.fits[q]["z_shift"]
+        return 10.0 ** (log_median + shift)
+
+    def interp_price(self, q, t):
+        if q in self.fits:
+            return float(self.price_at(q, t))
+        sorted_qs = self.quantiles
+        lo = max((qq for qq in sorted_qs if qq <= q), default=sorted_qs[0])
+        hi = min((qq for qq in sorted_qs if qq >= q), default=sorted_qs[-1])
+        if lo == hi:
+            return float(self.price_at(lo, t))
+        frac = (q - lo) / (hi - lo)
+        p_lo = np.log10(float(self.price_at(lo, t)))
+        p_hi = np.log10(float(self.price_at(hi, t)))
+        return 10.0 ** (p_lo + frac * (p_hi - p_lo))
+
+    def find_percentile(self, t, price):
+        sorted_qs = self.quantiles
+        if not sorted_qs:
+            return 0.5
+        t_safe = max(float(t), 0.5)
+        log_p = np.log10(max(float(price), 1e-10))
+        log_ps = [np.log10(max(float(self.price_at(q, t_safe)), 1e-10))
+                  for q in sorted_qs]
+        if log_p <= log_ps[0]:
+            return sorted_qs[0]
+        if log_p >= log_ps[-1]:
+            return sorted_qs[-1]
+        for i in range(len(sorted_qs) - 1):
+            if log_ps[i] <= log_p <= log_ps[i + 1]:
+                frac = (log_p - log_ps[i]) / (log_ps[i + 1] - log_ps[i] + 1e-30)
+                return sorted_qs[i] + frac * (sorted_qs[i + 1] - sorted_qs[i])
+        return sorted_qs[-1]
+
+    # ── Decomposition ────────────────────────────────────────────────────
+
+    component_names = [
+        "A (constant)",
+        "B\u00b7log\u2081\u2080(t)",
+        "entropy log osc 1 (\u03c9\u2081)",
+        "entropy log osc 2 (\u03c9\u2082)",
+        "undamped cal osc 1 (\u03c9_c\u2081)",
+        "undamped cal osc 2 (\u03c9_c\u2082)",
+    ]
+
+    formula_log10_latex = (
+        r"A + B \log_{10}(t)"
+        r" + C_1 \cdot E(w_1 t) \cos(\omega_1 \ln t + \varphi_1)"
+        r" + C_3 \cdot E(w_2 t) \cos(\omega_2 \ln t + \varphi_3)"
+        r" + C_2 \cos(\omega_{c1} t + \varphi_2)"
+        r" + C_4 \cos(\omega_{c2} t + \varphi_4)"
+    )
+    formula_product_latex = None  # too complex for product form
+
+    @property
+    def component_details(self):
+        return {
+            "A (constant)": (
+                "A",
+                [("A", "_A")],
+            ),
+            "B\u00b7log\u2081\u2080(t)": (
+                "B\u00b7log\u2081\u2080(t)",
+                [("B", "_B")],
+            ),
+            "entropy log osc 1 (\u03c9\u2081)": (
+                "C\u2081\u00b7E(w\u2081\u00b7t)\u00b7cos(\u03c9\u2081\u00b7ln(t)+\u03c6\u2081)",
+                [("C\u2081", "_C1"), ("\u03c9\u2081", "_W1"),
+                 ("\u03c6\u2081", "_P1"), ("w\u2081", "_w1")],
+            ),
+            "entropy log osc 2 (\u03c9\u2082)": (
+                "C\u2083\u00b7E(w\u2082\u00b7t)\u00b7cos(\u03c9\u2082\u00b7ln(t)+\u03c6\u2083)",
+                [("C\u2083", "_C3"), ("\u03c9\u2082", "_W2"),
+                 ("\u03c6\u2083", "_P3"), ("w\u2082", "_w2")],
+            ),
+            "undamped cal osc 1 (\u03c9_c\u2081)": (
+                "C\u2082\u00b7cos(\u03c9_c\u2081\u00b7t+\u03c6\u2082)",
+                [("C\u2082", "_C2"), ("\u03c9_c\u2081", "_Wc1"),
+                 ("\u03c6\u2082", "_P2")],
+            ),
+            "undamped cal osc 2 (\u03c9_c\u2082)": (
+                "C\u2084\u00b7cos(\u03c9_c\u2082\u00b7t+\u03c6\u2084)",
+                [("C\u2084", "_C4"), ("\u03c9_c\u2082", "_Wc2"),
+                 ("\u03c6\u2084", "_P4")],
+            ),
+        }
+
+    def components(self, t):
+        """Decompose into constant + trend + 4 oscillatory terms."""
+        t_arr = np.asarray(t, float)
+        scalar = t_arr.ndim == 0
+        if scalar:
+            t_arr = t_arr.reshape(1)
+        t_safe = np.maximum(t_arr, 0.1)
+
+        result = {
+            "A (constant)":                    np.full_like(t_safe, self._A),
+            "B\u00b7log\u2081\u2080(t)":        self._B * np.log10(t_safe),
+            "entropy log osc 1 (\u03c9\u2081)": self._C1 * self.entropy_env(t_safe, self._w1) * np.cos(
+                self._W1 * np.log(t_safe) + self._P1),
+            "entropy log osc 2 (\u03c9\u2082)": self._C3 * self.entropy_env(t_safe, self._w2) * np.cos(
+                self._W2 * np.log(t_safe) + self._P3),
+            "undamped cal osc 1 (\u03c9_c\u2081)": self._C2 * np.cos(
+                self._Wc1 * t_safe + self._P2),
+            "undamped cal osc 2 (\u03c9_c\u2082)": self._C4 * np.cos(
+                self._Wc2 * t_safe + self._P4),
+        }
+        if scalar:
+            result = {k: float(v[0]) for k, v in result.items()}
+        return result
+
+    def _build_colors(self):
+        """Warm amber/orange palette — entropy PPL model."""
+        self.colors = {}
+        n = len(self.quantiles)
+        for i, q in enumerate(self.quantiles):
+            frac = i / max(n - 1, 1)
+            r = int(180 + 40 * frac)     # 180 → 220
+            g = int(120 + 50 * frac)     # 120 → 170
+            b = int(30 + 40 * frac)      # 30 → 70
+            self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
+
+
 # ── HybPPL config params (auto-generated) ──
 _HYBPPL_CONFIG_PARAMS = {
     "cfg_0_0": {"n_log": 0, "n_cal": 0, "log_damps": [], "cal_damps": [], "params": {"A": -1.173875, "B": 5.081360}, "r2": 0.962650, "sigma": 0.295634},

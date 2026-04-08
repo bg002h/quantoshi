@@ -1544,6 +1544,81 @@ where each $f_i(t)$ is one of three functional forms:
                             ),
                         ], title="Greedy Select", item_id="mi-grdy"),
 
+                        # ── Entropy PPL ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = A + B \log_{10}(t) + C_1 \cdot E(w_1 t) \cos(\omega_1 \ln t + \varphi_1) + C_3 \cdot E(w_2 t) \cos(\omega_2 \ln t + \varphi_3) + C_2 \cos(\omega_{c1} t + \varphi_2) + C_4 \cos(\omega_{c2} t + \varphi_4)$$
+
+where $E(x) = \max(-x \ln x,\; 0)\, / \,(1/e)$ is the **normalized Shannon entropy envelope**.
+                            """, mathjax=True, className="mb-3"),
+
+                            html.H6("Shannon Entropy Interpretation"),
+                            html.P(
+                                "The entropy envelope E(w\u00b7t) replaces the traditional "
+                                "power-law damping t^(\u2212D) used in HybPPL. It measures "
+                                "adoption uncertainty at each point in time:"
+                            ),
+                            html.Ul([
+                                html.Li([
+                                    html.Strong("Peak at w\u00b7t = 1/e: "),
+                                    "Maximum uncertainty \u2014 the market is maximally "
+                                    "uncertain about adoption outcome. The oscillation "
+                                    "amplitude is largest here."
+                                ]),
+                                html.Li([
+                                    html.Strong("Zero at w\u00b7t = 1: "),
+                                    "Adoption is \u201cresolved\u201d \u2014 the speculative "
+                                    "oscillation dies out completely."
+                                ]),
+                                html.Li([
+                                    html.Strong("Fitted w\u2082 = 0.107: "),
+                                    "Peak \u2248 2013, zero \u2248 2019 \u2014 the speculative "
+                                    "era of the primary log-periodic frequency ended."
+                                ]),
+                                html.Li([
+                                    html.Strong("Fitted w\u2081 = 0.252: "),
+                                    "Peak \u2248 2011, zero \u2248 2013 \u2014 the higher harmonic "
+                                    "was even shorter-lived."
+                                ]),
+                            ]),
+
+                            html.H6("Motivation"),
+                            html.P(
+                                "HybPPL uses power-law damping t^(\u2212D), which decays "
+                                "monotonically but never reaches zero. The entropy envelope "
+                                "provides a physically motivated alternative: oscillations "
+                                "are born, peak, and die as the market resolves adoption "
+                                "uncertainty. This gives the model a natural cutoff where "
+                                "log-periodic oscillations cease entirely, rather than "
+                                "persisting as ever-smaller ripples."
+                            ),
+
+                            html.H6("Fitted Coefficients"),
+                            _eppl_coeff_table(),
+
+                            html.H6("Model Comparison"),
+                            _coeff_table([
+                                ("EPPL 2+2 (16p)", "R\u00b2=0.9933  BIC=\u221223,681"),
+                                ("Hyb2B (16p)", "R\u00b2=0.9927  BIC=\u221223,203"),
+                                ("PCA (7p)", "R\u00b2=0.9928  BIC=\u221223,776"),
+                            ]),
+
+                            html.H6("Caveats"),
+                            html.Ul([
+                                html.Li(
+                                    "The entropy envelope introduces the w parameter which "
+                                    "controls when oscillations peak and die. This is a strong "
+                                    "assumption about adoption timing."
+                                ),
+                                html.Li(
+                                    "Once w\u00b7t > 1, the log-periodic terms are permanently "
+                                    "zero. Long-horizon projections rely entirely on the power "
+                                    "law trend and the undamped halving-cycle oscillations."
+                                ),
+                            ]),
+                        ], title="Entropy PPL", item_id="mi-eppl"),
+
                         # ── 4. Exponential ──
                         dbc.AccordionItem([
                             html.H6("Formula"),
@@ -2403,6 +2478,33 @@ def _hyb4d_coeff_table():
         ("\u03c9_c\u2082 (cal freq 2)", f"{m._Wc2:.4f}  (T={2*3.14159/m._Wc2:.2f}yr)"),
         ("D_c\u2082 (cal damping 2)", f"{m._Dc2:.6f}"),
         ("\u03c3 (residual std)", f"{m._sigma:.6f}"),
+    ])
+
+
+def _eppl_coeff_table():
+    """Live coefficient table for Entropy PPL model."""
+    m = _app_ctx.PRICE_MODELS.get("eppl")
+    if m is None:
+        return _coeff_table([("(Entropy PPL model not loaded)", "\u2014")])
+    return _coeff_table([
+        ("A (intercept)", f"{m._A:.6f}"),
+        ("B (slope)", f"{m._B:.6f}"),
+        ("C\u2081 (log osc 1 amplitude)", f"{m._C1:.6f}"),
+        ("\u03c9\u2081 (log osc 1 freq)", f"{m._W1:.6f}"),
+        ("\u03c6\u2081 (log osc 1 phase)", f"{m._P1:.6f}"),
+        ("w\u2081 (log osc 1 entropy rate)", f"{m._w1:.6f}"),
+        ("C\u2083 (log osc 2 amplitude)", f"{m._C3:.6f}"),
+        ("\u03c9\u2082 (log osc 2 freq)", f"{m._W2:.6f}"),
+        ("\u03c6\u2083 (log osc 2 phase)", f"{m._P3:.6f}"),
+        ("w\u2082 (log osc 2 entropy rate)", f"{m._w2:.6f}"),
+        ("C\u2082 (cal osc 1 amplitude)", f"{m._C2:.6f}"),
+        ("\u03c9_c\u2081 (cal osc 1 freq)", f"{m._Wc1:.6f}"),
+        ("\u03c6\u2082 (cal osc 1 phase)", f"{m._P2:.6f}"),
+        ("C\u2084 (cal osc 2 amplitude)", f"{m._C4:.6f}"),
+        ("\u03c9_c\u2082 (cal osc 2 freq)", f"{m._Wc2:.6f}"),
+        ("\u03c6\u2084 (cal osc 2 phase)", f"{m._P4:.6f}"),
+        ("\u03c3 (residual std)", f"{m._sigma:.6f}"),
+        ("R\u00b2", "0.993320"),
     ])
 
 

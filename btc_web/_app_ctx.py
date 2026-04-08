@@ -63,6 +63,7 @@ DECOMP_FAMILIES = {
     "hyb2b":        "HybPPL +2B",
     "pca":          "PCA",
     "grdy":         "Greedy Select",
+    "eppl":         "Entropy PPL",
     "hyb4d":        "HybPPL 4D",
     "hybppl_cfg_a": "HybPPL (A)",
     "hybppl_cfg_b": "HybPPL (B)",
@@ -108,6 +109,7 @@ MODEL_TRACE_COLORS = {
     "hyb4d": "#8B6914",  # dark goldenrod — HybPPL 4D
     "pca":  "#4B0082",   # indigo — PCA model
     "grdy": "#228B22",   # forest green — greedy select
+    "eppl": "#D4760A",   # warm amber — entropy PPL
     "gomp": "#4682B4",   # steel blue — logistic saturation
     "bpl": "#CD853F",   # peru/tan — broken power law
 }
@@ -122,6 +124,7 @@ PALETTES = {
             "hyb2l": "#6A5ACD", "hyb2c": "#20B2AA", "hyb2b": "#DB7093",
             "hyb4d": "#8B6914", "pca": "#4B0082",
             "grdy": "#228B22",
+            "eppl": "#D4760A",
             "gomp": "#4682B4", "bpl": "#CD853F",
         },
         "thermal_stops": [
@@ -146,6 +149,7 @@ PALETTES = {
             "hyb2l": "#5B4AB0", "hyb2c": "#1A9A8F", "hyb2b": "#C4607A",
             "hyb4d": "#7A5B10", "pca": "#3A006F",
             "grdy": "#1B7A1B",
+            "eppl": "#B86800",
             "gomp": "#3B6FA0", "bpl": "#B87333",
         },
         "thermal_stops": [
@@ -169,6 +173,7 @@ PALETTES = {
             "hyb2l": "#7B68EE", "hyb2c": "#2E8B57", "hyb2b": "#CC6699",
             "hyb4d": "#8B7500", "pca": "#551A8B",
             "grdy": "#2E8B57",
+            "eppl": "#CC8800",
             "gomp": "#4169E1", "bpl": "#CC7722",
             "u1": "#333333",
         },
@@ -194,6 +199,7 @@ PALETTES = {
             "hyb2l": "#6060A0", "hyb2c": "#4A8A7A", "hyb2b": "#A06080",
             "hyb4d": "#7A7A50", "pca": "#4A4A70",
             "grdy": "#4A7A4A",
+            "eppl": "#8A7030",
             "gomp": "#5B7FAA", "bpl": "#AA8844",
         },
         "thermal_stops": [

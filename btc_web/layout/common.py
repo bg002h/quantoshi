@@ -515,7 +515,7 @@ def _model_show_checklist(prefix, standardized=False):
     """
     mc = _app_ctx.PALETTES["default"]["model_colors"]
     _PROMOTED = ("pca", "grdy")
-    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl", "hyb2l", "hyb2c", "hyb2b", "hyb4d"}
+    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "eppl"}
     _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(
         _app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
 

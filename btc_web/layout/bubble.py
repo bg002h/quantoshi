@@ -76,7 +76,7 @@ def _build_bub_model_options(mc):
     _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(_app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
     _HYBPPL_FAM = _app_ctx.HYBPPL_FAMILY_HIDDEN
     _PROMOTED = ("pca", "grdy")
-    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl"}
+    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl", "eppl"}
     _HIDDEN = _LPPL_FAM | _HYBPPL_FAM | {"bub"} | _app_ctx.MODEL_SENTINELS
     _all = [m for m in _app_ctx.PRICE_MODELS.values()
             if m.short_name not in _HIDDEN

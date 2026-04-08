@@ -492,7 +492,7 @@ def _model_show_checklist(prefix, standardized=False):
     tab 2 (Phase 2) that share the standardized UX.
     """
     mc = _app_ctx.PALETTES["default"]["model_colors"]
-    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca"}
+    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy"}
     _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(
         _app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
 

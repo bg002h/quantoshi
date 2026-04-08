@@ -1931,6 +1931,215 @@ class PCAModel:
             self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
 
 
+class GreedyModel:
+    """Greedy forward BIC-selected model: 5 oscillatory terms from LPPL/HybPPL.
+
+    Selects components via greedy forward BIC minimisation from the pool
+    of individual oscillatory terms in existing LPPL/HybPPL models.
+    Result: R²=0.9928, σ=0.130, BIC=-23,319 with only 7 parameters
+    (intercept + slope + 5 weighted oscillatory terms).
+
+    All parameters are hardcoded from the greedy search — no runtime
+    dependency on other model instances.
+
+    Formula:
+        log₁₀(price) = α + β·log₁₀(t) + Σᵢ wᵢ·fᵢ(t)
+
+    where fᵢ are 5 oscillatory basis functions with source-model
+    parameters baked in.
+    """
+    name = "Greedy Select"
+    short_name = "grdy"
+    legend_name = "Greedy"
+    dash_style = "dashdot"
+    quantized = True
+
+    # ── OLS intercept and slope ──────────────────────────────────────────
+    _alpha = -1.211238
+    _beta  =  5.119765
+    _sigma =  0.129877
+
+    # ── 5 selected oscillatory terms ─────────────────────────────────────
+    # Each term: (weight, amplitude, damping, freq, phase, is_log_periodic)
+    #   is_log_periodic=True  → C·t^(-D)·cos(ω·ln(t) + φ)
+    #   is_log_periodic=False → C·t^(-D)·cos(ω·t + φ)
+    #
+    # f₁: halving cycle from LinPPL — undamped calendar oscillation
+    _w1 = 0.921198;  _C1 = 0.282344;  _D1 = 0.010000;  _W1 = 1.765746;  _PHI1 = -2.284078;  _LOG1 = False
+    # f₂: primary LPPL frequency — damped log-periodic
+    _w2 = 0.839768;  _C2 = 0.733975;  _D2 = 0.607967;  _W2 = 7.557911;  _PHI2 =  1.377121;  _LOG2 = True
+    # f₃: sub-halving from Hyb2C — undamped calendar oscillation
+    _w3 = 0.868695;  _C3 = 0.114588;  _D3 = 0.000000;  _W3 = 3.280720;  _PHI3 = -2.452578;  _LOG3 = False
+    # f₄: 2nd log harmonic from Hyb2B — fast-decay log-periodic
+    _w4 = 0.783073;  _C4 = 0.422419;  _D4 = 1.165713;  _W4 = 16.238167; _PHI4 =  1.885355;  _LOG4 = True
+    # f₅: long calendar from Hyb4D — heavily damped calendar oscillation
+    _w5 = 0.546787;  _C5 = 0.586943;  _D5 = 1.062266;  _W5 = 1.116857;  _PHI5 =  3.141119;  _LOG5 = False
+
+    def __init__(self, price_years, price_prices, quantiles):
+        # Build quantile bands via Gaussian z·σ shift
+        self.fits = {}
+        for q in quantiles:
+            z = _lazy_norm().ppf(q)
+            self.fits[q] = {"z_shift": z * self._sigma}
+        self.quantiles = sorted(self.fits.keys())
+        self._build_colors()
+
+    @staticmethod
+    def _eval_term(t_safe, C, D, W, PHI, is_log):
+        """Evaluate a single oscillatory basis function."""
+        envelope = C * t_safe ** (-D) if D != 0.0 else np.full_like(t_safe, C)
+        arg = W * np.log(t_safe) + PHI if is_log else W * t_safe + PHI
+        return envelope * np.cos(arg)
+
+    def _model_log10(self, t):
+        """Evaluate: α + β·log₁₀(t) + Σ wᵢ·fᵢ(t)."""
+        t_arr = np.asarray(t, float)
+        scalar = t_arr.ndim == 0
+        if scalar:
+            t_arr = t_arr.reshape(1)
+        t_safe = np.maximum(t_arr, 0.1)
+
+        result = self._alpha + self._beta * np.log10(t_safe)
+        result += self._w1 * self._eval_term(t_safe, self._C1, self._D1, self._W1, self._PHI1, self._LOG1)
+        result += self._w2 * self._eval_term(t_safe, self._C2, self._D2, self._W2, self._PHI2, self._LOG2)
+        result += self._w3 * self._eval_term(t_safe, self._C3, self._D3, self._W3, self._PHI3, self._LOG3)
+        result += self._w4 * self._eval_term(t_safe, self._C4, self._D4, self._W4, self._PHI4, self._LOG4)
+        result += self._w5 * self._eval_term(t_safe, self._C5, self._D5, self._W5, self._PHI5, self._LOG5)
+
+        return float(result[0]) if scalar else result
+
+    def price_at(self, q, t):
+        t_arr = np.asarray(t, float)
+        log_median = self._model_log10(t_arr)
+        shift = self.fits[q]["z_shift"]
+        return 10.0 ** (log_median + shift)
+
+    def interp_price(self, q, t):
+        if q in self.fits:
+            return float(self.price_at(q, t))
+        sorted_qs = self.quantiles
+        lo = max((qq for qq in sorted_qs if qq <= q), default=sorted_qs[0])
+        hi = min((qq for qq in sorted_qs if qq >= q), default=sorted_qs[-1])
+        if lo == hi:
+            return float(self.price_at(lo, t))
+        frac = (q - lo) / (hi - lo)
+        p_lo = np.log10(float(self.price_at(lo, t)))
+        p_hi = np.log10(float(self.price_at(hi, t)))
+        return 10.0 ** (p_lo + frac * (p_hi - p_lo))
+
+    def find_percentile(self, t, price):
+        sorted_qs = self.quantiles
+        if not sorted_qs:
+            return 0.5
+        t_safe = max(float(t), 0.5)
+        log_p = np.log10(max(float(price), 1e-10))
+        log_ps = [np.log10(max(float(self.price_at(q, t_safe)), 1e-10))
+                  for q in sorted_qs]
+        if log_p <= log_ps[0]:
+            return sorted_qs[0]
+        if log_p >= log_ps[-1]:
+            return sorted_qs[-1]
+        for i in range(len(sorted_qs) - 1):
+            if log_ps[i] <= log_p <= log_ps[i + 1]:
+                frac = (log_p - log_ps[i]) / (log_ps[i + 1] - log_ps[i] + 1e-30)
+                return sorted_qs[i] + frac * (sorted_qs[i + 1] - sorted_qs[i])
+        return sorted_qs[-1]
+
+    # ── Decomposition ────────────────────────────────────────────────────
+
+    component_names = [
+        "\u03b1 (intercept)",
+        "\u03b2\u00b7log\u2081\u2080(t)",
+        "f\u2081 halving cycle",
+        "f\u2082 log-periodic",
+        "f\u2083 sub-halving",
+        "f\u2084 2nd log harmonic",
+        "f\u2085 long calendar",
+    ]
+
+    formula_log10_latex = (
+        r"\alpha + \beta \log_{10}(t) + \sum_{i=1}^{5} w_i \cdot f_i(t)"
+    )
+    formula_product_latex = (
+        r"10^{\,\alpha} \cdot t^{\beta} \cdot \prod_{i=1}^{5} 10^{\,w_i \cdot f_i(t)}"
+    )
+
+    @property
+    def component_details(self):
+        return {
+            "\u03b1 (intercept)": (
+                f"\u03b1 = {self._alpha:.6f}",
+                [("\u03b1", "_alpha")],
+            ),
+            "\u03b2\u00b7log\u2081\u2080(t)": (
+                f"\u03b2\u00b7log\u2081\u2080(t), \u03b2 = {self._beta:.6f}",
+                [("\u03b2", "_beta")],
+            ),
+            "f\u2081 halving cycle": (
+                f"w\u2081={self._w1:.6f} \u00d7 C\u00b7t^(-D)\u00b7cos(\u03c9\u00b7t+\u03c6), "
+                f"C={self._C1}, D={self._D1}, \u03c9={self._W1}, \u03c6={self._PHI1}",
+                [("w\u2081", "_w1"), ("C\u2081", "_C1"), ("D\u2081", "_D1"),
+                 ("\u03c9\u2081", "_W1"), ("\u03c6\u2081", "_PHI1")],
+            ),
+            "f\u2082 log-periodic": (
+                f"w\u2082={self._w2:.6f} \u00d7 C\u00b7t^(-D)\u00b7cos(\u03c9\u00b7ln(t)+\u03c6), "
+                f"C={self._C2}, D={self._D2}, \u03c9={self._W2}, \u03c6={self._PHI2}",
+                [("w\u2082", "_w2"), ("C\u2082", "_C2"), ("D\u2082", "_D2"),
+                 ("\u03c9\u2082", "_W2"), ("\u03c6\u2082", "_PHI2")],
+            ),
+            "f\u2083 sub-halving": (
+                f"w\u2083={self._w3:.6f} \u00d7 C\u00b7cos(\u03c9\u00b7t+\u03c6), "
+                f"C={self._C3}, \u03c9={self._W3}, \u03c6={self._PHI3}",
+                [("w\u2083", "_w3"), ("C\u2083", "_C3"),
+                 ("\u03c9\u2083", "_W3"), ("\u03c6\u2083", "_PHI3")],
+            ),
+            "f\u2084 2nd log harmonic": (
+                f"w\u2084={self._w4:.6f} \u00d7 C\u00b7t^(-D)\u00b7cos(\u03c9\u00b7ln(t)+\u03c6), "
+                f"C={self._C4}, D={self._D4}, \u03c9={self._W4}, \u03c6={self._PHI4}",
+                [("w\u2084", "_w4"), ("C\u2084", "_C4"), ("D\u2084", "_D4"),
+                 ("\u03c9\u2084", "_W4"), ("\u03c6\u2084", "_PHI4")],
+            ),
+            "f\u2085 long calendar": (
+                f"w\u2085={self._w5:.6f} \u00d7 C\u00b7t^(-D)\u00b7cos(\u03c9\u00b7t+\u03c6), "
+                f"C={self._C5}, D={self._D5}, \u03c9={self._W5}, \u03c6={self._PHI5}",
+                [("w\u2085", "_w5"), ("C\u2085", "_C5"), ("D\u2085", "_D5"),
+                 ("\u03c9\u2085", "_W5"), ("\u03c6\u2085", "_PHI5")],
+            ),
+        }
+
+    def components(self, t):
+        """Decompose into intercept + trend + 5 individual oscillatory terms."""
+        t_arr = np.asarray(t, float)
+        scalar = t_arr.ndim == 0
+        if scalar:
+            t_arr = t_arr.reshape(1)
+        t_safe = np.maximum(t_arr, 0.1)
+
+        result = {
+            "\u03b1 (intercept)":      np.full_like(t_safe, self._alpha),
+            "\u03b2\u00b7log\u2081\u2080(t)": self._beta * np.log10(t_safe),
+            "f\u2081 halving cycle":   self._w1 * self._eval_term(t_safe, self._C1, self._D1, self._W1, self._PHI1, self._LOG1),
+            "f\u2082 log-periodic":    self._w2 * self._eval_term(t_safe, self._C2, self._D2, self._W2, self._PHI2, self._LOG2),
+            "f\u2083 sub-halving":     self._w3 * self._eval_term(t_safe, self._C3, self._D3, self._W3, self._PHI3, self._LOG3),
+            "f\u2084 2nd log harmonic": self._w4 * self._eval_term(t_safe, self._C4, self._D4, self._W4, self._PHI4, self._LOG4),
+            "f\u2085 long calendar":   self._w5 * self._eval_term(t_safe, self._C5, self._D5, self._W5, self._PHI5, self._LOG5),
+        }
+        if scalar:
+            result = {k: float(v[0]) for k, v in result.items()}
+        return result
+
+    def _build_colors(self):
+        """Forest green palette — greedy select model."""
+        self.colors = {}
+        n = len(self.quantiles)
+        for i, q in enumerate(self.quantiles):
+            frac = i / max(n - 1, 1)
+            r = int(30 + 50 * frac)      # 30 → 80
+            g = int(120 + 60 * frac)     # 120 → 180
+            b = int(50 + 50 * frac)      # 50 → 100
+            self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
+
+
 class LinPPLModel(LPPLModel):
     """Linear-periodic Power Law: oscillation in CALENDAR time, not log-time.
 

@@ -4,7 +4,7 @@ from btc_core import (PriceModel, _FitsBasedModel, BubbleModel, PowerLawModel,
                       S2FModel, QuantileRegressionModel,
                       LogisticModel, BrokenPowerLawModel,
                       Hyb2LModel, Hyb2CModel, Hyb2BModel, Hyb4DModel,
-                      PCAModel)
+                      PCAModel, GreedyModel)
 from conftest import (
     M,
     Path,
@@ -392,7 +392,7 @@ class TestDecompRegistry:
     def test_families_keys(self):
         import _app_ctx
         expected = {"bub", "ef", "lppl", "linppl", "hybppl", "hybppl_dd",
-                    "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca"}
+                    "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy"}
         assert set(_app_ctx.DECOMP_FAMILIES.keys()) == expected
 
     def test_families_labels(self):
@@ -1903,3 +1903,47 @@ class TestPCAModel:
 
     def test_sigma_reasonable(self):
         assert 0.05 < self.m._sigma < 0.5
+
+
+class TestGreedyModel:
+    def setup_method(self):
+        self.m = _app_ctx.PRICE_MODELS.get("grdy")
+
+    def test_registered(self):
+        assert self.m is not None
+
+    def test_short_name(self):
+        assert self.m.short_name == "grdy"
+
+    def test_quantized(self):
+        assert self.m.quantized is True
+
+    def test_fits_keys(self):
+        assert set(self.m.fits.keys()) == set(M.QR_QUANTILES)
+
+    def test_price_at_positive(self):
+        import numpy as np
+        q = self.m.quantiles[len(self.m.quantiles) // 2]
+        p = self.m.price_at(q, 10.0)
+        assert float(np.asarray(p).flat[0]) > 0
+
+    def test_quantile_ordering(self):
+        import numpy as np
+        prices = [float(np.asarray(self.m.price_at(q, 10.0)).flat[0]) for q in self.m.quantiles]
+        assert prices == sorted(prices)
+
+    def test_components_count(self):
+        comps = self.m.components(10.0)
+        assert len(comps) == 7  # intercept + trend + 5 oscillatory
+
+    def test_component_names(self):
+        assert len(self.m.component_names) == 7
+
+    def test_decomp_family(self):
+        assert "grdy" in _app_ctx.DECOMP_FAMILIES
+
+    def test_sigma_reasonable(self):
+        assert 0.05 < self.m._sigma < 0.5
+
+    def test_colors_populated(self):
+        assert len(self.m.colors) == len(self.m.quantiles)

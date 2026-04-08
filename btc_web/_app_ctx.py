@@ -55,6 +55,7 @@ DECOMP_FAMILIES = {
     "hyb2c":        "HybPPL +2C",
     "hyb2b":        "HybPPL +2B",
     "pca":          "PCA",
+    "grdy":         "Greedy Select",
     "hyb4d":        "HybPPL 4D",
 }
 
@@ -97,6 +98,7 @@ MODEL_TRACE_COLORS = {
     "hyb2b": "#DB7093",  # pale violet red — HybPPL +both
     "hyb4d": "#8B6914",  # dark goldenrod — HybPPL 4D
     "pca":  "#4B0082",   # indigo — PCA model
+    "grdy": "#228B22",   # forest green — greedy select
     "gomp": "#4682B4",   # steel blue — logistic saturation
     "bpl": "#CD853F",   # peru/tan — broken power law
 }
@@ -110,6 +112,7 @@ PALETTES = {
             "u1": "#333333",
             "hyb2l": "#6A5ACD", "hyb2c": "#20B2AA", "hyb2b": "#DB7093",
             "hyb4d": "#8B6914", "pca": "#4B0082",
+            "grdy": "#228B22",
             "gomp": "#4682B4", "bpl": "#CD853F",
         },
         "thermal_stops": [
@@ -133,6 +136,7 @@ PALETTES = {
             "u1": "#333333",
             "hyb2l": "#5B4AB0", "hyb2c": "#1A9A8F", "hyb2b": "#C4607A",
             "hyb4d": "#7A5B10", "pca": "#3A006F",
+            "grdy": "#1B7A1B",
             "gomp": "#3B6FA0", "bpl": "#B87333",
         },
         "thermal_stops": [
@@ -155,6 +159,7 @@ PALETTES = {
             "lppl": "#85C0F9", "lp2": "#B0D8FF", "lp3": "#D4E9FF", "lp4": "#EAF4FF", "linppl": "#FFB000", "hybppl": "#D4A017", "hybppl_dd": "#ECC060", "ef": "#F5A060", "exp": "#BBBBBB", "s2f": "#F5C242",
             "hyb2l": "#7B68EE", "hyb2c": "#2E8B57", "hyb2b": "#CC6699",
             "hyb4d": "#8B7500", "pca": "#551A8B",
+            "grdy": "#2E8B57",
             "gomp": "#4169E1", "bpl": "#CC7722",
             "u1": "#333333",
         },
@@ -179,6 +184,7 @@ PALETTES = {
             "u1": "#333333",
             "hyb2l": "#6060A0", "hyb2c": "#4A8A7A", "hyb2b": "#A06080",
             "hyb4d": "#7A7A50", "pca": "#4A4A70",
+            "grdy": "#4A7A4A",
             "gomp": "#5B7FAA", "bpl": "#AA8844",
         },
         "thermal_stops": [

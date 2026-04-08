@@ -39,6 +39,7 @@ from btc_core import (load_model_data, BubbleModel, PowerLawModel,
                        LPPL4ModelN13, LPPL4ModelWN13, LinPPLModel, HybPPLModel,
                        HybPPLDDModel,
                        Hyb2LModel, Hyb2CModel, Hyb2BModel, Hyb4DModel, PCAModel,
+                       GreedyModel,
                        ExponentialModel, LogisticModel, BrokenPowerLawModel,
                        S2FModel, EmpiricalFloorModel, QuantileRegressionModel)
 from figures import FREQ_PPY
@@ -198,6 +199,7 @@ _app_ctx.PRICE_MODELS["hyb4d"] = Hyb4DModel(M.price_years, M.price_prices, M.QR_
 _app_ctx.PRICE_MODELS["pca"] = PCAModel(
     M.price_years, M.price_prices, M.QR_QUANTILES,
     source_models=_app_ctx.PRICE_MODELS)  # must come after HybPPL family
+_app_ctx.PRICE_MODELS["grdy"] = GreedyModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["exp"] = ExponentialModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["gomp"] = LogisticModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["bpl"] = BrokenPowerLawModel(M.price_years, M.price_prices, M.QR_QUANTILES)

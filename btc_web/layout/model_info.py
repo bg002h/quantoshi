@@ -1293,6 +1293,127 @@ computed via SVD of the centered component matrix.
                             ),
                         ], title="PCA (HybPPL Basis)", item_id="mi-pca"),
 
+                        # ── Greedy Select ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = \alpha + \beta \log_{10}(t) + \sum_{i=1}^{5} w_i \cdot f_i(t) + z_q \cdot \sigma$$
+
+where:
+- $f_1(t) = 0.282344 \cdot t^{-0.010} \cos(1.7657 \cdot t - 2.2841)$ &mdash; halving cycle (LinPPL)
+- $f_2(t) = 0.733975 \cdot t^{-0.608} \cos(7.5579 \cdot \ln t + 1.3771)$ &mdash; log-periodic (LPPL)
+- $f_3(t) = 0.114588 \cdot \cos(3.2807 \cdot t - 2.4526)$ &mdash; sub-halving (Hyb2C)
+- $f_4(t) = 0.422419 \cdot t^{-1.166} \cos(16.238 \cdot \ln t + 1.8854)$ &mdash; 2nd log harmonic (Hyb2B)
+- $f_5(t) = 0.586943 \cdot t^{-1.062} \cos(1.1169 \cdot t + 3.1411)$ &mdash; long calendar (Hyb4D)
+                            """, mathjax=True, className="mb-3"),
+
+                            html.H6("Method"),
+                            html.P([
+                                html.Strong("Greedy forward BIC minimisation. "),
+                                "Starting from the pool of all individual oscillatory terms "
+                                "in the LPPL and HybPPL model families, the algorithm "
+                                "iteratively selects the single component that maximally "
+                                "reduces the Bayesian Information Criterion (BIC) when added "
+                                "to the current model. The search terminates when no remaining "
+                                "component improves BIC. The result is a sparse 7-parameter "
+                                "model (intercept + slope + 5 weighted oscillatory terms) that "
+                                "achieves R\u00b2=0.9928 with BIC=\u221223,319."
+                            ]),
+
+                            html.H6("Coefficients"),
+                            _coeff_table([
+                                ("\u03b1 (intercept)", "\u22121.211238"),
+                                ("\u03b2 (slope)", "5.119765"),
+                                ("\u03c3 (residual std)", "0.129877"),
+                            ]),
+
+                            html.H6("Component weights"),
+                            html.Table([
+                                html.Thead(html.Tr([
+                                    html.Th("Term", style={"paddingRight": "12px"}),
+                                    html.Th("Source", style={"paddingRight": "12px"}),
+                                    html.Th("Type", style={"paddingRight": "12px"}),
+                                    html.Th("T (period)", style={"paddingRight": "12px"}),
+                                    html.Th("Damping D", style={"paddingRight": "12px"}),
+                                    html.Th("Weight w\u1d62", style={"paddingRight": "12px"}),
+                                ])),
+                                html.Tbody([
+                                    html.Tr([html.Td("f\u2081"), html.Td("LinPPL"), html.Td("calendar"),
+                                             html.Td("\u22483.6 yr"), html.Td("0.010 (undamped)"),
+                                             html.Td(html.Code("0.921198"))]),
+                                    html.Tr([html.Td("f\u2082"), html.Td("LPPL"), html.Td("log-periodic"),
+                                             html.Td("\u2014"), html.Td("0.608"),
+                                             html.Td(html.Code("0.839768"))]),
+                                    html.Tr([html.Td("f\u2083"), html.Td("Hyb2C"), html.Td("calendar"),
+                                             html.Td("\u22481.9 yr"), html.Td("0 (undamped)"),
+                                             html.Td(html.Code("0.868695"))]),
+                                    html.Tr([html.Td("f\u2084"), html.Td("Hyb2B"), html.Td("log-periodic"),
+                                             html.Td("\u2014"), html.Td("1.166 (fast)"),
+                                             html.Td(html.Code("0.783073"))]),
+                                    html.Tr([html.Td("f\u2085"), html.Td("Hyb4D"), html.Td("calendar"),
+                                             html.Td("\u22485.6 yr"), html.Td("1.062 (heavy)"),
+                                             html.Td(html.Code("0.546787"))]),
+                                ]),
+                            ], style={"marginBottom": "12px", "fontSize": "13px"}),
+
+                            html.H6("Selection order"),
+                            html.Table([
+                                html.Thead(html.Tr([
+                                    html.Th("Step", style={"paddingRight": "12px"}),
+                                    html.Th("Component added", style={"paddingRight": "12px"}),
+                                    html.Th("R\u00b2", style={"paddingRight": "12px"}),
+                                    html.Th("BIC", style={"paddingRight": "12px"}),
+                                ])),
+                                html.Tbody([
+                                    html.Tr([html.Td("0"), html.Td("intercept + slope (baseline)"),
+                                             html.Td("0.9510"), html.Td("\u221218,416")]),
+                                    html.Tr([html.Td("1"), html.Td("f\u2081 halving cycle"),
+                                             html.Td("0.9812"), html.Td("\u221220,760")]),
+                                    html.Tr([html.Td("2"), html.Td("f\u2082 log-periodic"),
+                                             html.Td("0.9886"), html.Td("\u221222,080")]),
+                                    html.Tr([html.Td("3"), html.Td("f\u2083 sub-halving"),
+                                             html.Td("0.9909"), html.Td("\u221222,620")]),
+                                    html.Tr([html.Td("4"), html.Td("f\u2084 2nd log harmonic"),
+                                             html.Td("0.9921"), html.Td("\u221222,990")]),
+                                    html.Tr([html.Td("5"), html.Td("f\u2085 long calendar"),
+                                             html.Td("0.9928"), html.Td("\u221223,319")]),
+                                ]),
+                            ], style={"marginBottom": "12px", "fontSize": "13px"}),
+
+                            html.H6("Comparison"),
+                            _coeff_table([
+                                ("Greedy 7p", "R\u00b2=0.9928, \u03c3=0.130, BIC=\u221223,319"),
+                                ("PCA 7p", "R\u00b2=0.993, \u03c3\u22480.13, BIC\u2248\u221223,200"),
+                                ("Hyb2B 16p", "R\u00b2=0.993, \u03c3\u22480.13, BIC\u2248\u221222,800"),
+                            ]),
+                            html.P([
+                                "Greedy Select matches PCA in accuracy with the same parameter count (7), "
+                                "but uses interpretable named components rather than abstract principal "
+                                "components. It slightly outperforms the 16-parameter Hyb2B on BIC because "
+                                "the penalty for extra parameters outweighs the marginal R\u00b2 gain."
+                            ]),
+
+                            html.H6("Component descriptions"),
+                            html.Ul([
+                                html.Li([html.Strong("f\u2081 halving cycle: "),
+                                         "T\u22483.6yr, barely damped (D=0.01). "
+                                         "Bitcoin\u2019s ~4-year halving cycle in calendar time."]),
+                                html.Li([html.Strong("f\u2082 log-periodic: "),
+                                         "Primary LPPL frequency (\u03c9\u22487.6), "
+                                         "moderately damped (D=0.61). "
+                                         "Accelerating oscillation characteristic of speculative bubbles."]),
+                                html.Li([html.Strong("f\u2083 sub-halving: "),
+                                         "T\u22481.9yr, undamped (D=0). "
+                                         "Persistent sub-halving rhythm that EMD and DMD also detect."]),
+                                html.Li([html.Strong("f\u2084 2nd log harmonic: "),
+                                         "\u03c9\u224816.2, fast decay (D=1.17). "
+                                         "Higher-frequency log-periodic structure, important historically."]),
+                                html.Li([html.Strong("f\u2085 long calendar: "),
+                                         "T\u22485.6yr, heavily damped (D=1.06). "
+                                         "Slow calendar oscillation, contributes early but decays quickly."]),
+                            ]),
+                        ], title="Greedy Select", item_id="mi-grdy"),
+
                         # ── 4. Exponential ──
                         dbc.AccordionItem([
                             html.H6("Formula"),

@@ -1847,10 +1847,36 @@ class PCAModel:
         "PC6 (fine structure)",
     ]
 
+    formula_log10_latex = (
+        r"\beta_0 + \sum_{i=1}^{6} \beta_i \cdot \mathrm{PC}_i(t)"
+    )
+    formula_product_latex = (
+        r"10^{\,\beta_0} \cdot \prod_{i=1}^{6} 10^{\,\beta_i \cdot \mathrm{PC}_i(t)}"
+    )
+
     @property
     def component_names(self):
         k = min(self._N_PCS, len(self._PC_LABELS))
         return ["intercept"] + self._PC_LABELS[:k]
+
+    @property
+    def component_details(self):
+        """Build component_details dynamically from fitted beta values."""
+        details = {
+            "intercept": (
+                f"\u03b2\u2080 = {self._intercept:.4f}",
+                [("\u03b2\u2080", "_intercept")],
+            ),
+        }
+        k = min(self._N_PCS, len(self._PC_LABELS), len(self._beta) - 1)
+        for i in range(k):
+            label = self._PC_LABELS[i]
+            beta_val = self._beta[i + 1]
+            details[label] = (
+                f"\u03b2{i+1}\u00b7PC{i+1}(t)  [\u03b2{i+1}={beta_val:+.4f}]",
+                [(f"\u03b2{i+1}", f"_beta[{i+1}]")],
+            )
+        return details
 
     def components(self, t):
         """Decompose into intercept + individual PC contributions."""

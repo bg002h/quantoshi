@@ -30,7 +30,9 @@ def _build_bub_model_options(mc):
         "opacity": "0.6", "textDecoration": "none", "color": "#1a6fa8",
     }
 
-    def _swatch(color, label, gear_btn_id=None, model_key=None):
+    _KNOBS = "\U0001F39B\uFE0F"  # 🎛️
+
+    def _swatch(color, label, gear_btn_id=None, gear_icon=None, model_key=None):
         children = [
             html.Span(" ", style={
                 "display": "inline-block", "width": "12px", "height": "12px",
@@ -41,7 +43,7 @@ def _build_bub_model_options(mc):
         ]
         if gear_btn_id:
             children.append(html.Span(
-                _GEAR, id=gear_btn_id, n_clicks=0,
+                gear_icon or _GEAR, id=gear_btn_id, n_clicks=0,
                 style=_GEAR_STYLE,
                 title=f"Open {label} configuration panel",
             ))
@@ -67,7 +69,7 @@ def _build_bub_model_options(mc):
 
     opts.append({
         "label": _swatch(mc.get("hybppl", "#4A90D9"), "Hybrid PPL",
-                          gear_btn_id="bub-hybppl-gear"),
+                          gear_btn_id="bub-hybppl-gear", gear_icon=_KNOBS),
         "value": "hybppl",
     })
 

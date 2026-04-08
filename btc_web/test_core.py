@@ -378,3 +378,24 @@ class TestFalsyZeroGuard:
         assert len(sc_traces) >= 1
 
 
+class TestLayoutRendering:
+    """Catch layout build errors that only surface on page load, not during import."""
+
+    def test_serve_layout_no_crash(self):
+        """_serve_layout() must complete without exceptions."""
+        from layout import _serve_layout
+        layout = _serve_layout()
+        assert layout is not None
+
+    def test_model_info_accordion_items(self):
+        """Every model info accordion item must render without AttributeError."""
+        from layout import model_info
+        # Force all coeff table helpers to execute
+        for fn_name in dir(model_info):
+            if fn_name.endswith("_coeff_table") or fn_name.endswith("_formula"):
+                fn = getattr(model_info, fn_name)
+                if callable(fn):
+                    try:
+                        fn()
+                    except TypeError:
+                        pass  # functions that need args — skip

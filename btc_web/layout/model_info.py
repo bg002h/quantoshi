@@ -1759,7 +1759,8 @@ def _pca_formula_table():
     rows = [
         ("\u03b2\u2080 (intercept)", f"{m._intercept:.6f}"),
     ]
-    labels = m._PC_LABELS
+    labels = ["power law trend", "halving cycle", "log-periodic",
+              "2nd log harmonic", "residual osc", "fine structure"]
     for i in range(min(m._N_PCS, len(m._beta) - 1)):
         lbl = labels[i] if i < len(labels) else f"PC{i+1}"
         rows.append((
@@ -1775,7 +1776,8 @@ def _pca_variance_table():
     m = _app_ctx.PRICE_MODELS.get("pca")
     if m is None:
         return _coeff_table([("(PCA model not loaded)", "\u2014")])
-    labels = m._PC_LABELS
+    labels = ["power law trend", "halving cycle", "log-periodic",
+              "2nd log harmonic", "residual osc", "fine structure"]
     cumvar = 0.0
     rows = []
     for i, ev in enumerate(m._explained):

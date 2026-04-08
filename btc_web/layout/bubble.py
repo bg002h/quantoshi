@@ -60,6 +60,12 @@ def _build_bub_model_options(mc):
              "value": "bub"}]
 
     opts.append({
+        "label": _swatch(mc.get("eppl", "#D4760A"), "Entropy PPL",
+                          model_key="eppl"),
+        "value": "eppl",
+    })
+
+    opts.append({
         "label": _swatch(mc.get("lppl", "#FF6D00"), "LPPL",
                           gear_btn_id="bub-lppl-gear"),
         "value": "lppl",
@@ -76,8 +82,8 @@ def _build_bub_model_options(mc):
     _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(_app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
     _HYBPPL_FAM = _app_ctx.HYBPPL_FAMILY_HIDDEN
     _PROMOTED = ("pca", "grdy")
-    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl", "eppl"}
-    _HIDDEN = _LPPL_FAM | _HYBPPL_FAM | {"bub"} | _app_ctx.MODEL_SENTINELS
+    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl"}
+    _HIDDEN = _LPPL_FAM | _HYBPPL_FAM | {"bub", "eppl"} | _app_ctx.MODEL_SENTINELS
     _all = [m for m in _app_ctx.PRICE_MODELS.values()
             if m.short_name not in _HIDDEN
             and not m.short_name.startswith("cfg_")]

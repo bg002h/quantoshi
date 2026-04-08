@@ -1011,6 +1011,78 @@ $$\log_{10}(\text{price}) = A + B \log_{10}(t)
                                 "No matrix operations needed \u2014 equivalent to a weighted sum of known functions."
                             ]),
 
+                            html.H6("What are Principal Components (PCs)?"),
+                            html.P(
+                                "The 30 component curves from 6 models are highly correlated \u2014 every model "
+                                "has a power law trend, every model has something like a halving cycle. "
+                                "PCA asks: what are the independent patterns hiding in these 30 curves?"
+                            ),
+                            html.Ul([
+                                html.Li([
+                                    html.Strong("PC1"), " = the pattern that explains the most variation. "
+                                    "It turns out to be the power law trend (B\u00b7log\u2081\u2080(t)), because "
+                                    "that's the biggest signal \u2014 all 6 models agree on it. Explains 97.2% of the variation."
+                                ]),
+                                html.Li([
+                                    html.Strong("PC2"), " = the next most important pattern, ",
+                                    html.Em("orthogonal"), " to PC1 (independent of it). "
+                                    "It's the halving cycle \u2014 the ~3.6yr calendar oscillation. 1.5%."
+                                ]),
+                                html.Li([
+                                    html.Strong("PC3"), " = the log-periodic oscillation. 1.0%."
+                                ]),
+                                html.Li([
+                                    html.Strong("PC4\u20136"), " = higher harmonics and fine structure. <0.3% combined."
+                                ]),
+                            ]),
+                            html.P(
+                                "Each PC is a specific weighted combination of the 30 source curves. "
+                                "It's not a single model's component \u2014 it's the \"consensus direction\" "
+                                "across all models for that pattern."
+                            ),
+
+                            html.H6("What does k mean?"),
+                            html.P([
+                                html.Em("k"), " = how many PCs we use in the model. More PCs capture finer "
+                                "patterns but add parameters:"
+                            ]),
+                            html.Ul([
+                                html.Li([html.Strong("k=1"), " = only the power law trend. Basically a power law. R\u00b2=0.963."]),
+                                html.Li([html.Strong("k=2"), " = trend + halving cycle. R\u00b2=0.987."]),
+                                html.Li([html.Strong("k=6"), " = all 6 PCs. R\u00b2=0.993. ", html.Strong("This is our registered model.")]),
+                            ]),
+                            html.P(
+                                "6 numbers (the 6 PC weights) capture the same information that individual "
+                                "models need 9\u201316 parameters to express, because PCA eliminates the "
+                                "redundancy between models."
+                            ),
+
+                            html.H6("What is SVD?"),
+                            html.P([
+                                "SVD (Singular Value Decomposition) is the math behind PCA. Any matrix "
+                                "can be factored into three pieces: ", html.Strong("X = U \u00d7 S \u00d7 V\u1d40"),
+                            ]),
+                            html.Ul([
+                                html.Li([html.Strong("X"), " = data matrix (5,727 days \u00d7 30 component curves)"]),
+                                html.Li([html.Strong("U"), " = how much of each pattern is present at each time point"]),
+                                html.Li([html.Strong("S"), " = importance scores \u2014 how strong each pattern is (ranked largest to smallest)"]),
+                                html.Li([html.Strong("V\u1d40"), " = what each pattern is made of \u2014 the recipe for combining the 30 curves into each PC"]),
+                            ]),
+                            html.P(
+                                "S tells you the rank order. S\u2081 is huge (the power law), S\u2082 is much smaller "
+                                "(halving cycle), S\u2083 even smaller... by S\u2087 you're in the noise. "
+                                "That's why k=6 is enough. SVD finds the few percent of signal that's ",
+                            ),
+                            html.P(
+                                html.Em("not"),
+                                style={"display": "inline"},
+                            ),
+                            html.P(
+                                " redundant \u2014 the genuine independent patterns \u2014 and throws away the rest. "
+                                "The result is a model that's both simpler (fewer params) and more robust "
+                                "(averaged across 6 models' estimates of each pattern)."
+                            ),
+
                             html.H6("Basis Set"),
                             html.P("30 additive component functions from 6 HybPPL-family models:"),
                             _pca_basis_listing(),

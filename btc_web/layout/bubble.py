@@ -56,20 +56,24 @@ def _build_bub_model_options(mc):
         "value": "hybppl",
     })
 
-    # Non-LPPL/HybPPL-family models, in standard order, deprioritizing exp/s2f
+    # Non-LPPL/HybPPL-family models, ordered:
+    #   promoted (PCA, Greedy) → mid (PL, QR, EF, etc.) → deprioritized (Exp, S2F, Gomp, BPL)
     _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(_app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
     _HYBPPL_FAM = _app_ctx.HYBPPL_FAMILY_HIDDEN
-    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl", "pca", "grdy"}
-    primary = [m for m in _app_ctx.PRICE_MODELS.values()
-               if m.short_name not in _app_ctx.MODEL_SENTINELS
-               and m.short_name != "bub"
-               and m.short_name not in _LPPL_FAM
-               and m.short_name not in _HYBPPL_FAM
-               and not m.short_name.startswith("cfg_")
+    _PROMOTED = ("pca", "grdy")
+    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl"}
+    _HIDDEN = _LPPL_FAM | _HYBPPL_FAM | {"bub"} | _app_ctx.MODEL_SENTINELS
+    _all = [m for m in _app_ctx.PRICE_MODELS.values()
+            if m.short_name not in _HIDDEN
+            and not m.short_name.startswith("cfg_")]
+    promoted = [m for m in _all if m.short_name in _PROMOTED]
+    # Sort promoted in the order defined
+    promoted.sort(key=lambda m: _PROMOTED.index(m.short_name) if m.short_name in _PROMOTED else 99)
+    primary = [m for m in _all
+               if m.short_name not in _PROMOTED
                and m.short_name not in _DEPRIORITIZED]
-    deprior = [m for m in _app_ctx.PRICE_MODELS.values()
-               if m.short_name in _DEPRIORITIZED]
-    for mdl in primary + deprior:
+    deprior = [m for m in _all if m.short_name in _DEPRIORITIZED]
+    for mdl in promoted + primary + deprior:
         opts.append({
             "label": _swatch(mc.get(mdl.short_name, "#888"), mdl.name),
             "value": mdl.short_name,

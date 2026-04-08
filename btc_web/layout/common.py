@@ -492,7 +492,8 @@ def _model_show_checklist(prefix, standardized=False):
     tab 2 (Phase 2) that share the standardized UX.
     """
     mc = _app_ctx.PALETTES["default"]["model_colors"]
-    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy"}
+    _PROMOTED = ("pca", "grdy")
+    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl", "hyb2l", "hyb2c", "hyb2b", "hyb4d"}
     _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(
         _app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
 
@@ -526,10 +527,16 @@ def _model_show_checklist(prefix, standardized=False):
         all_models = [m for m in all_models
                       if m.short_name not in _LPPL_FAM
                       and m.short_name not in _DEPRIORITIZED]
-        ordered = all_models
+        promoted = sorted([m for m in all_models if m.short_name in _PROMOTED],
+                          key=lambda m: _PROMOTED.index(m.short_name) if m.short_name in _PROMOTED else 99)
+        rest = [m for m in all_models if m.short_name not in _PROMOTED]
+        ordered = promoted + rest
     else:
-        ordered = [m for m in all_models if m.short_name not in _DEPRIORITIZED] + \
-                  [m for m in all_models if m.short_name in _DEPRIORITIZED]
+        promoted = sorted([m for m in all_models if m.short_name in _PROMOTED],
+                          key=lambda m: _PROMOTED.index(m.short_name) if m.short_name in _PROMOTED else 99)
+        mid = [m for m in all_models if m.short_name not in _PROMOTED and m.short_name not in _DEPRIORITIZED]
+        dep = [m for m in all_models if m.short_name in _DEPRIORITIZED]
+        ordered = promoted + mid + dep
     for mdl in ordered:
         opts.append({
             "label": _swatch(mc.get(mdl.short_name, "#888"), mdl.name),

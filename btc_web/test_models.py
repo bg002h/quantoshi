@@ -4,7 +4,8 @@ from btc_core import (PriceModel, _FitsBasedModel, BubbleModel, PowerLawModel,
                       S2FModel, QuantileRegressionModel,
                       LogisticModel, BrokenPowerLawModel,
                       Hyb2LModel, Hyb2CModel, Hyb2BModel, Hyb4DModel,
-                      PCAModel, GreedyModel)
+                      PCAModel, GreedyModel,
+                      HybPPLConfigModel, _HYBPPL_CONFIG_PARAMS)
 from conftest import (
     M,
     Path,
@@ -1947,3 +1948,172 @@ class TestGreedyModel:
 
     def test_colors_populated(self):
         assert len(self.m.colors) == len(self.m.quantiles)
+
+
+# ===========================================================================
+# HybPPL Config Model + Config Panel
+# ===========================================================================
+
+
+class TestHybPPLConfigModel:
+    """Unit tests for HybPPLConfigModel (pre-fitted generic HybPPL)."""
+
+    def setup_method(self):
+        self.m = HybPPLConfigModel("cfg_1d_1u", M.price_years, M.price_prices,
+                                   M.QR_QUANTILES)
+
+    def test_short_name(self):
+        assert self.m.short_name == "cfg_1d_1u"
+
+    def test_quantized(self):
+        assert self.m.quantized is True
+
+    def test_fits_has_quantile_keys(self):
+        assert set(self.m.fits.keys()) == set(M.QR_QUANTILES)
+
+    def test_price_at_positive(self):
+        q = self.m.quantiles[len(self.m.quantiles) // 2]
+        assert float(self.m.price_at(q, 10.0)) > 0
+
+    def test_quantile_ordering(self):
+        t = 10.0
+        prices = [float(self.m.price_at(q, t)) for q in self.m.quantiles]
+        assert prices == sorted(prices)
+
+    def test_interp_price(self):
+        q = self.m.quantiles[0]
+        assert self.m.interp_price(q, 10.0) > 0
+
+    def test_find_percentile(self):
+        p = self.m.find_percentile(10.0, 10000)
+        assert 0.0 < p < 1.0
+
+    def test_colors_populated_hybppl_cfg(self):
+        assert len(self.m.colors) == len(self.m.quantiles)
+
+    def test_r2_stored(self):
+        assert 0.9 < self.m.r2 < 1.0
+
+    def test_legend_name(self):
+        assert self.m.legend_name == "1D_1U"
+
+    def test_unknown_config_raises(self):
+        with pytest.raises(ValueError, match="Unknown HybPPL config"):
+            HybPPLConfigModel("cfg_bogus", M.price_years, M.price_prices,
+                              M.QR_QUANTILES)
+
+
+class TestHybPPLConfigParamsComplete:
+    """Verify all 36 configs exist and are registered as models."""
+
+    def test_36_configs_exist(self):
+        assert len(_HYBPPL_CONFIG_PARAMS) == 36
+
+    def test_all_registered_in_price_models(self):
+        for key in _HYBPPL_CONFIG_PARAMS:
+            assert key in _app_ctx.PRICE_MODELS, f"{key} not registered"
+
+    def test_cfg_0_0_is_pure_power_law(self):
+        m = _app_ctx.PRICE_MODELS["cfg_0_0"]
+        assert m._n_log == 0 and m._n_cal == 0
+
+    def test_cfg_2dd_2dd_has_all_damped(self):
+        m = _app_ctx.PRICE_MODELS["cfg_2dd_2dd"]
+        assert m._n_log == 2 and m._n_cal == 2
+        assert m._log_damps == ["d", "d"]
+        assert m._cal_damps == ["d", "d"]
+
+
+class TestResolveHybPPLMaster:
+    """Unit test for HybPPL master resolution."""
+
+    def test_no_hybppl_passes_through(self):
+        from callbacks.charts import _resolve_hybppl_master
+        result = _resolve_hybppl_master(
+            ["bub", "pl"], 1, 1, "d", "d", "u", "u", [], 0, 0, "d", "d", "u", "u")
+        assert result == ["bub", "pl"]
+
+    def test_hybppl_resolves_model_a(self):
+        from callbacks.charts import _resolve_hybppl_master
+        result = _resolve_hybppl_master(
+            ["bub", "hybppl"], 1, 1, "d", "d", "u", "u", [], 0, 0, "d", "d", "u", "u")
+        assert "cfg_1d_1u" in result
+        assert "hybppl" not in result
+
+    def test_hybppl_resolves_model_b_when_enabled(self):
+        from callbacks.charts import _resolve_hybppl_master
+        result = _resolve_hybppl_master(
+            ["hybppl"], 1, 1, "d", "d", "u", "u",
+            ["yes"], 0, 0, "d", "d", "u", "u")
+        assert "cfg_1d_1u" in result
+        assert "cfg_0_0" in result
+
+    def test_hybppl_model_b_not_added_when_same_as_a(self):
+        from callbacks.charts import _resolve_hybppl_master
+        result = _resolve_hybppl_master(
+            ["hybppl"], 1, 1, "d", "d", "u", "u",
+            ["yes"], 1, 1, "d", "d", "u", "u")
+        assert result.count("cfg_1d_1u") == 1
+
+    def test_hybppl_strips_named_variants(self):
+        from callbacks.charts import _resolve_hybppl_master
+        result = _resolve_hybppl_master(
+            ["hybppl", "hybppl_dd", "hyb2l"], 1, 1, "d", "d", "u", "u",
+            [], 0, 0, "d", "d", "u", "u")
+        assert "hybppl_dd" not in result
+        assert "hyb2l" not in result
+        assert "cfg_1d_1u" in result
+
+
+class TestResolveHmHybPPLMaster:
+    """Unit test for heatmap HybPPL master translation."""
+
+    def test_non_hybppl_passes_through(self):
+        from callbacks.charts import _resolve_hm_hybppl_master
+        assert _resolve_hm_hybppl_master("bub", 1, 1, "d", "d", "u", "u") == "bub"
+
+    def test_hybppl_resolves_to_config(self):
+        from callbacks.charts import _resolve_hm_hybppl_master
+        assert _resolve_hm_hybppl_master("hybppl", 1, 1, "d", "d", "u", "u") == "cfg_1d_1u"
+
+
+class TestBuildHybPPLConfigKey:
+    """Unit test for config key builder."""
+
+    def test_0_0(self):
+        from callbacks.charts import _build_hybppl_config_key
+        assert _build_hybppl_config_key(0, 0, "d", "d", "u", "u") == "cfg_0_0"
+
+    def test_1d_1u(self):
+        from callbacks.charts import _build_hybppl_config_key
+        assert _build_hybppl_config_key(1, 1, "d", "d", "u", "u") == "cfg_1d_1u"
+
+    def test_2dd_2uu(self):
+        from callbacks.charts import _build_hybppl_config_key
+        assert _build_hybppl_config_key(2, 2, "d", "d", "u", "u") == "cfg_2dd_2uu"
+
+
+class TestGlobalHybPPLModal:
+    """Unit test for _global_hybppl_modal root-level modal."""
+
+    def test_has_all_config_controls(self):
+        from layout.common import _global_hybppl_modal
+        modal = _global_hybppl_modal()
+        rendered = str(modal)
+        assert "hybppl-config-modal" in rendered
+        assert "hybppl-cfg-a-nlog" in rendered
+        assert "hybppl-cfg-b-nlog" in rendered
+        assert "hybppl-cfg-b-enabled" in rendered
+        assert "hybppl-modal-close-btn" in rendered
+
+
+class TestHybPPLConfigPanel:
+    """Unit test for per-tab _hybppl_config_panel."""
+
+    def test_has_activate_and_summary(self):
+        from layout.common import _hybppl_config_panel
+        panel = _hybppl_config_panel("bub")
+        rendered = str(panel)
+        assert "bub-hybppl-activate" in rendered
+        assert "bub-hybppl-summary" in rendered
+        assert "bub-hybppl-configure-btn" in rendered

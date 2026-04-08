@@ -2277,6 +2277,174 @@ class ExponentialModel:
             self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
 
 
+# ── HybPPL config params (auto-generated) ──
+_HYBPPL_CONFIG_PARAMS = {
+    "cfg_0_0": {"n_log": 0, "n_cal": 0, "log_damps": [], "cal_damps": [], "params": {"A": -1.173875, "B": 5.081360}, "r2": 0.962650, "sigma": 0.295634},
+    "cfg_0_1d": {"n_log": 0, "n_cal": 1, "log_damps": [], "cal_damps": ['d'], "params": {"A": -1.211645, "B": 5.108969, "C_cal": 0.276881, "W_cal": 1.765340, "PHI_cal": -2.280041, "D_cal": 0.000000}, "r2": 0.978937, "sigma": 0.222008},
+    "cfg_0_1u": {"n_log": 0, "n_cal": 1, "log_damps": [], "cal_damps": ['u'], "params": {"A": -1.211646, "B": 5.108970, "C_cal": 0.276881, "W_cal": 1.765341, "PHI_cal": -2.280043}, "r2": 0.978937, "sigma": 0.222008},
+    "cfg_0_2dd": {"n_log": 0, "n_cal": 2, "log_damps": [], "cal_damps": ['d', 'd'], "params": {"A": -1.047754, "B": 4.943547, "C_cal1": 1.352713, "W_cal1": 3.066049, "PHI_cal1": -0.612299, "D_cal1": 1.531193, "C_cal2": 0.746118, "W_cal2": 1.716575, "PHI_cal2": -1.783384, "D_cal2": 0.442203}, "r2": 0.986731, "sigma": 0.176210},
+    "cfg_0_2du": {"n_log": 0, "n_cal": 2, "log_damps": [], "cal_damps": ['d', 'u'], "params": {"A": -1.087910, "B": 4.978008, "C_cal1": 0.738656, "W_cal1": 3.058029, "PHI_cal1": -0.383182, "D_cal1": 1.035207, "C_cal2": 0.299985, "W_cal2": 1.729902, "PHI_cal2": -1.901978}, "r2": 0.985651, "sigma": 0.183242},
+    "cfg_0_2uu": {"n_log": 0, "n_cal": 2, "log_damps": [], "cal_damps": ['u', 'u'], "params": {"A": -1.328861, "B": 5.243841, "C_cal1": 0.292755, "W_cal1": 1.781646, "PHI_cal1": -2.416708, "C_cal2": 0.152796, "W_cal2": 0.813027, "PHI_cal2": -2.741282}, "r2": 0.983187, "sigma": 0.198349},
+    "cfg_1d_0": {"n_log": 1, "n_cal": 0, "log_damps": ['d'], "cal_damps": [], "params": {"A": -1.153820, "B": 5.079271, "C_log": 0.733974, "W_log": 7.557911, "PHI_log": 1.377121, "D_log": 0.607966}, "r2": 0.978055, "sigma": 0.226611},
+    "cfg_1d_1d": {"n_log": 1, "n_cal": 1, "log_damps": ['d'], "cal_damps": ['d'], "params": {"A": -1.146875, "B": 5.051453, "C_log": 0.689836, "W_log": 7.420057, "PHI_log": 1.453329, "D_log": 0.708168, "C_cal": 0.233044, "W_cal": 1.733155, "PHI_cal": -1.923037, "D_cal": 0.000000}, "r2": 0.988870, "sigma": 0.161384},
+    "cfg_1d_1u": {"n_log": 1, "n_cal": 1, "log_damps": ['d'], "cal_damps": ['u'], "params": {"A": -1.146875, "B": 5.051454, "C_log": 0.689837, "W_log": 7.420057, "PHI_log": 1.453329, "D_log": 0.708168, "C_cal": 0.233044, "W_cal": 1.733155, "PHI_cal": -1.923038}, "r2": 0.988870, "sigma": 0.161384},
+    "cfg_1d_2dd": {"n_log": 1, "n_cal": 2, "log_damps": ['d'], "cal_damps": ['d', 'd'], "params": {"A": -1.119963, "B": 5.023515, "C_log": 0.894153, "W_log": 7.537078, "PHI_log": 1.247825, "D_log": 0.859867, "C_cal1": 0.575944, "W_cal1": 10.000000, "PHI_cal1": -0.600808, "D_cal1": 1.461041, "C_cal2": 0.234815, "W_cal2": 1.724073, "PHI_cal2": -1.813160, "D_cal2": 0.000000}, "r2": 0.990862, "sigma": 0.146232},
+    "cfg_1d_2du": {"n_log": 1, "n_cal": 2, "log_damps": ['d'], "cal_damps": ['d', 'u'], "params": {"A": -1.135472, "B": 5.037822, "C_log": 0.738890, "W_log": 7.356010, "PHI_log": 1.659095, "D_log": 0.730226, "C_cal1": 0.235259, "W_cal1": 1.750674, "PHI_cal1": -2.086894, "D_cal1": 0.000000, "C_cal2": 0.114588, "W_cal2": 3.280720, "PHI_cal2": -2.452578}, "r2": 0.991324, "sigma": 0.142482},
+    "cfg_1d_2uu": {"n_log": 1, "n_cal": 2, "log_damps": ['d'], "cal_damps": ['u', 'u'], "params": {"A": -1.135472, "B": 5.037822, "C_log": 0.738890, "W_log": 7.356010, "PHI_log": 1.659096, "D_log": 0.730225, "C_cal1": 0.235259, "W_cal1": 1.750674, "PHI_cal1": -2.086893, "C_cal2": 0.114588, "W_cal2": 3.280720, "PHI_cal2": -2.452577}, "r2": 0.991324, "sigma": 0.142482},
+    "cfg_1u_0": {"n_log": 1, "n_cal": 0, "log_damps": ['u'], "cal_damps": [], "params": {"A": -1.232639, "B": 5.183069, "C_log": 0.230735, "W_log": 7.722702, "PHI_log": 1.187301}, "r2": 0.973977, "sigma": 0.246768},
+    "cfg_1u_1d": {"n_log": 1, "n_cal": 1, "log_damps": ['u'], "cal_damps": ['d'], "params": {"A": -1.234864, "B": 5.154251, "C_log": 0.184756, "W_log": 7.369940, "PHI_log": 1.623339, "C_cal": 0.245734, "W_cal": 1.760620, "PHI_cal": -2.246105, "D_cal": 0.000000}, "r2": 0.986223, "sigma": 0.179550},
+    "cfg_1u_1u": {"n_log": 1, "n_cal": 1, "log_damps": ['u'], "cal_damps": ['u'], "params": {"A": -1.234864, "B": 5.154251, "C_log": 0.184756, "W_log": 7.369940, "PHI_log": 1.623339, "C_cal": 0.245734, "W_cal": 1.760620, "PHI_cal": -2.246106}, "r2": 0.986223, "sigma": 0.179550},
+    "cfg_1u_2dd": {"n_log": 1, "n_cal": 2, "log_damps": ['u'], "cal_damps": ['d', 'd'], "params": {"A": -1.006185, "B": 4.865911, "C_log": 0.161247, "W_log": 5.310100, "PHI_log": -0.347192, "C_cal1": 1.772314, "W_cal1": 3.074611, "PHI_cal1": -0.657795, "D_cal1": 1.706594, "C_cal2": 0.848744, "W_cal2": 1.734324, "PHI_cal2": -2.025364, "D_cal2": 0.492016}, "r2": 0.990270, "sigma": 0.150893},
+    "cfg_1u_2du": {"n_log": 1, "n_cal": 2, "log_damps": ['u'], "cal_damps": ['d', 'u'], "params": {"A": -1.094170, "B": 4.981448, "C_log": 0.161787, "W_log": 6.664948, "PHI_log": 2.924047, "C_cal1": 0.615604, "W_cal1": 3.121978, "PHI_cal1": -0.910641, "D_cal1": 0.898565, "C_cal2": 0.276107, "W_cal2": 1.740379, "PHI_cal2": -2.038337}, "r2": 0.990144, "sigma": 0.151865},
+    "cfg_1u_2uu": {"n_log": 1, "n_cal": 2, "log_damps": ['u'], "cal_damps": ['u', 'u'], "params": {"A": -1.195363, "B": 5.101264, "C_log": 0.178158, "W_log": 7.144729, "PHI_log": 2.014367, "C_cal1": 0.256183, "W_cal1": 1.760251, "PHI_cal1": -2.212877, "C_cal2": 0.121646, "W_cal2": 3.167757, "PHI_cal2": -1.213413}, "r2": 0.989168, "sigma": 0.159207},
+    "cfg_2dd_0": {"n_log": 2, "n_cal": 0, "log_damps": ['d', 'd'], "cal_damps": [], "params": {"A": -1.130959, "B": 5.038805, "C_log1": 0.705568, "W_log1": 7.377517, "PHI_log1": 1.583198, "D_log1": 0.566186, "C_log2": 0.171854, "W_log2": 20.903808, "PHI_log2": -1.156632, "D_log2": 0.010000}, "r2": 0.983997, "sigma": 0.193516},
+    "cfg_2dd_1d": {"n_log": 2, "n_cal": 1, "log_damps": ['d', 'd'], "cal_damps": ['d'], "params": {"A": -1.113052, "B": 5.013922, "C_log1": 0.765452, "W_log1": 7.471817, "PHI_log1": 1.297976, "D_log1": 0.773463, "C_log2": 0.392752, "W_log2": 15.993349, "PHI_log2": 1.889603, "D_log2": 0.932804, "C_cal": 0.257514, "W_cal": 1.720226, "PHI_cal": -1.736945, "D_cal": 0.000000}, "r2": 0.990843, "sigma": 0.146384},
+    "cfg_2dd_1u": {"n_log": 2, "n_cal": 1, "log_damps": ['d', 'd'], "cal_damps": ['u'], "params": {"A": -1.113052, "B": 5.013922, "C_log1": 0.392751, "W_log1": 15.993349, "PHI_log1": 1.889602, "D_log1": 0.932802, "C_log2": 0.765451, "W_log2": 7.471817, "PHI_log2": 1.297977, "D_log2": 0.773462, "C_cal": 0.257514, "W_cal": 1.720226, "PHI_cal": -1.736945}, "r2": 0.990843, "sigma": 0.146384},
+    "cfg_2dd_2dd": {"n_log": 2, "n_cal": 2, "log_damps": ['d', 'd'], "cal_damps": ['d', 'd'], "params": {"A": -1.113752, "B": 5.018172, "C_log1": 0.090187, "W_log1": 36.963949, "PHI_log1": 2.332185, "D_log1": 0.010000, "C_log2": 0.872584, "W_log2": 7.574685, "PHI_log2": 1.172171, "D_log2": 0.860020, "C_cal1": 0.245779, "W_cal1": 1.720867, "PHI_cal1": -1.794831, "D_cal1": 0.000000, "C_cal2": 0.538482, "W_cal2": 10.310219, "PHI_cal2": -1.305199, "D_cal2": 1.360139}, "r2": 0.992770, "sigma": 0.130072},
+    "cfg_2dd_2du": {"n_log": 2, "n_cal": 2, "log_damps": ['d', 'd'], "cal_damps": ['d', 'u'], "params": {"A": -1.088318, "B": 4.986522, "C_log1": 0.879333, "W_log1": 7.206259, "PHI_log1": 1.974339, "D_log1": 0.804974, "C_log2": 0.366188, "W_log2": 13.038626, "PHI_log2": -2.676943, "D_log2": 0.983059, "C_cal1": 0.394977, "W_cal1": 3.259796, "PHI_cal1": -2.213342, "D_cal1": 0.532655, "C_cal2": 0.230152, "W_cal2": 1.743372, "PHI_cal2": -1.994561}, "r2": 0.992768, "sigma": 0.130093},
+    "cfg_2dd_2uu": {"n_log": 2, "n_cal": 2, "log_damps": ['d', 'd'], "cal_damps": ['u', 'u'], "params": {"A": -1.114174, "B": 5.017407, "C_log1": 0.891032, "W_log1": 7.483928, "PHI_log1": 1.389298, "D_log1": 0.832947, "C_log2": 0.422419, "W_log2": 16.238168, "PHI_log2": 1.885353, "D_log2": 1.165713, "C_cal1": 0.242036, "W_cal1": 1.739827, "PHI_cal1": -1.918656, "C_cal2": 0.105488, "W_cal2": 3.340840, "PHI_cal2": 3.134976}, "r2": 0.992744, "sigma": 0.130305},
+    "cfg_2du_0": {"n_log": 2, "n_cal": 0, "log_damps": ['d', 'u'], "cal_damps": [], "params": {"A": -1.130641, "B": 5.038329, "C_log1": 0.705462, "W_log1": 7.376939, "PHI_log1": 1.583467, "D_log1": 0.565812, "C_log2": 0.168837, "W_log2": 20.904199, "PHI_log2": -1.157210}, "r2": 0.984022, "sigma": 0.193364},
+    "cfg_2du_1d": {"n_log": 2, "n_cal": 1, "log_damps": ['d', 'u'], "cal_damps": ['d'], "params": {"A": -1.163916, "B": 5.073560, "C_log1": 0.670547, "W_log1": 7.443535, "PHI_log1": 1.448851, "D_log1": 0.682897, "C_log2": 0.088414, "W_log2": 20.195363, "PHI_log2": -0.269939, "C_cal": 0.210935, "W_cal": 1.773495, "PHI_cal": -2.132973, "D_cal": 0.000000}, "r2": 0.989885, "sigma": 0.153848},
+    "cfg_2du_1u": {"n_log": 2, "n_cal": 1, "log_damps": ['d', 'u'], "cal_damps": ['u'], "params": {"A": -1.144272, "B": 5.049050, "C_log1": 0.701091, "W_log1": 7.420752, "PHI_log1": 1.440933, "D_log1": 0.729824, "C_log2": 0.096745, "W_log2": 37.086656, "PHI_log2": 2.047683, "C_cal": 0.242614, "W_cal": 1.729290, "PHI_cal": -1.897870}, "r2": 0.990826, "sigma": 0.146514},
+    "cfg_2du_2dd": {"n_log": 2, "n_cal": 2, "log_damps": ['d', 'u'], "cal_damps": ['d', 'd'], "params": {"A": -1.192589, "B": 5.080377, "C_log1": 0.585018, "W_log1": 7.242775, "PHI_log1": 1.464854, "D_log1": 0.549788, "C_log2": 0.098792, "W_log2": 37.128293, "PHI_log2": 1.998761, "C_cal1": 0.364974, "W_cal1": 1.077836, "PHI_cal1": -3.124365, "D_cal1": 0.690705, "C_cal2": 0.271926, "W_cal2": 1.712807, "PHI_cal2": -1.726335, "D_cal2": 0.000000}, "r2": 0.992295, "sigma": 0.134276},
+    "cfg_2du_2du": {"n_log": 2, "n_cal": 2, "log_damps": ['d', 'u'], "cal_damps": ['d', 'u'], "params": {"A": -1.138230, "B": 5.015692, "C_log1": 0.251273, "W_log1": 8.651516, "PHI_log1": 1.092978, "D_log1": 0.130090, "C_log2": 0.292981, "W_log2": 6.957905, "PHI_log2": 2.159159, "C_cal1": 0.320649, "W_cal1": 3.264976, "PHI_cal1": -2.369649, "D_cal1": 0.442434, "C_cal2": 0.233646, "W_cal2": 1.811678, "PHI_cal2": -2.922371}, "r2": 0.992315, "sigma": 0.134099},
+    "cfg_2du_2uu": {"n_log": 2, "n_cal": 2, "log_damps": ['d', 'u'], "cal_damps": ['u', 'u'], "params": {"A": -1.135646, "B": 5.040344, "C_log1": 0.778133, "W_log1": 7.385649, "PHI_log1": 1.573670, "D_log1": 0.769954, "C_log2": 0.070961, "W_log2": 36.898377, "PHI_log2": 2.249526, "C_cal1": 0.237345, "W_cal1": 1.735501, "PHI_cal1": -1.970635, "C_cal2": 0.088877, "W_cal2": 3.339989, "PHI_cal2": -2.812188}, "r2": 0.992105, "sigma": 0.135923},
+    "cfg_2uu_0": {"n_log": 2, "n_cal": 0, "log_damps": ['u', 'u'], "cal_damps": [], "params": {"A": -1.114110, "B": 4.989677, "C_log1": 0.292255, "W_log1": 6.750135, "PHI_log1": 2.263445, "C_log2": 0.232793, "W_log2": 8.884470, "PHI_log2": -0.115770}, "r2": 0.982124, "sigma": 0.204525},
+    "cfg_2uu_1d": {"n_log": 2, "n_cal": 1, "log_damps": ['u', 'u'], "cal_damps": ['d'], "params": {"A": -1.649681, "B": 5.791759, "C_log1": 0.214124, "W_log1": 7.529246, "PHI_log1": 1.453833, "C_log2": 0.296423, "W_log2": 2.000000, "PHI_log2": -1.599010, "C_cal": 0.334831, "W_cal": 1.772901, "PHI_cal": -2.321013, "D_cal": 0.141312}, "r2": 0.988897, "sigma": 0.161190},
+    "cfg_2uu_1u": {"n_log": 2, "n_cal": 1, "log_damps": ['u', 'u'], "cal_damps": ['u'], "params": {"A": -1.184615, "B": 5.073845, "C_log1": 0.159895, "W_log1": 8.868180, "PHI_log1": 0.496797, "C_log2": 0.257814, "W_log2": 7.160547, "PHI_log2": 1.707803, "C_cal": 0.211553, "W_cal": 1.789004, "PHI_cal": -2.646637}, "r2": 0.989313, "sigma": 0.158137},
+    "cfg_2uu_2dd": {"n_log": 2, "n_cal": 2, "log_damps": ['u', 'u'], "cal_damps": ['d', 'd'], "params": {"A": -1.126108, "B": 5.022372, "C_log1": 0.144599, "W_log1": 6.637244, "PHI_log1": 3.009907, "C_log2": 0.098846, "W_log2": 19.941469, "PHI_log2": -0.463206, "C_cal1": 0.291305, "W_cal1": 1.772604, "PHI_cal1": -2.166151, "D_cal1": 0.000000, "C_cal2": 0.583542, "W_cal2": 3.139937, "PHI_cal2": -0.865760, "D_cal2": 0.776542}, "r2": 0.991229, "sigma": 0.143265},
+    "cfg_2uu_2du": {"n_log": 2, "n_cal": 2, "log_damps": ['u', 'u'], "cal_damps": ['d', 'u'], "params": {"A": -1.167439, "B": 5.049097, "C_log1": 0.293113, "W_log1": 7.098274, "PHI_log1": 1.932680, "C_log2": 0.185429, "W_log2": 8.847566, "PHI_log2": 0.756730, "C_cal1": 0.225036, "W_cal1": 1.814325, "PHI_cal1": -2.936559, "D_cal1": 0.000000, "C_cal2": 0.125748, "W_cal2": 3.283480, "PHI_cal2": -2.544719}, "r2": 0.992145, "sigma": 0.135576},
+    "cfg_2uu_2uu": {"n_log": 2, "n_cal": 2, "log_damps": ['u', 'u'], "cal_damps": ['u', 'u'], "params": {"A": -1.167439, "B": 5.049097, "C_log1": 0.293113, "W_log1": 7.098275, "PHI_log1": 1.932678, "C_log2": 0.185429, "W_log2": 8.847567, "PHI_log2": 0.756729, "C_cal1": 0.125748, "W_cal1": 3.283480, "PHI_cal1": -2.544720, "C_cal2": 0.225036, "W_cal2": 1.814325, "PHI_cal2": -2.936560}, "r2": 0.992145, "sigma": 0.135576},
+}
+
+
+class HybPPLConfigModel:
+    """Generic HybPPL config model -- loads pre-fitted params for any config.
+
+    Config key format: cfg_{log_spec}_{cal_spec}
+    where spec = "0" or "{count}{damps}" e.g. "2du" = 2 freqs, first damped,
+    second undamped.
+
+    Model: log10(price) = A + B*log10(t) + sum(log_osc_i) + sum(cal_osc_i)
+    where:
+      damped log:   C * t^(-D) * cos(W * ln(t) + PHI)
+      undamped log: C * cos(W * ln(t) + PHI)
+      damped cal:   C * t^(-D) * cos(W * t + PHI)
+      undamped cal: C * cos(W * t + PHI)
+    """
+    quantized = True
+
+    def __init__(self, config_key, price_years, price_prices, quantiles):
+        cfg = _HYBPPL_CONFIG_PARAMS.get(config_key)
+        if cfg is None:
+            raise ValueError(f"Unknown HybPPL config: {config_key}")
+        self._config_key = config_key
+        self._cfg = cfg
+        self._params = cfg["params"]
+        self._sigma = cfg["sigma"]
+        self._n_log = cfg["n_log"]
+        self._n_cal = cfg["n_cal"]
+        self._log_damps = cfg["log_damps"]
+        self._cal_damps = cfg["cal_damps"]
+        self.r2 = cfg["r2"]
+
+        # Readable names
+        self.name = config_key
+        self.short_name = config_key
+        spec = config_key.replace("cfg_", "")
+        self.legend_name = spec.upper()
+        self.dash_style = "solid"
+
+        # Build fits dict for quantile bands (Gaussian shift)
+        self.fits = {}
+        for q in quantiles:
+            z = _lazy_norm().ppf(q)
+            self.fits[q] = {"z_shift": z * self._sigma}
+        self.quantiles = sorted(self.fits.keys())
+        self._build_colors()
+
+    def _model_log10(self, t):
+        """Evaluate the model at time t using stored params."""
+        t = np.asarray(t, float)
+        ts = np.maximum(t, 0.1)
+        p = self._params
+        result = p["A"] + p["B"] * np.log10(ts)
+
+        # Log-periodic terms
+        for i in range(self._n_log):
+            suffix = str(i + 1) if self._n_log > 1 else ""
+            C = p[f"C_log{suffix}"]
+            W = p[f"W_log{suffix}"]
+            PHI = p[f"PHI_log{suffix}"]
+            if self._log_damps[i] == "d":
+                D = p[f"D_log{suffix}"]
+                result = result + C * ts**(-D) * np.cos(W * np.log(ts) + PHI)
+            else:
+                result = result + C * np.cos(W * np.log(ts) + PHI)
+
+        # Calendar terms
+        for i in range(self._n_cal):
+            suffix = str(i + 1) if self._n_cal > 1 else ""
+            C = p[f"C_cal{suffix}"]
+            W = p[f"W_cal{suffix}"]
+            PHI = p[f"PHI_cal{suffix}"]
+            if self._cal_damps[i] == "d":
+                D = p[f"D_cal{suffix}"]
+                result = result + C * ts**(-D) * np.cos(W * ts + PHI)
+            else:
+                result = result + C * np.cos(W * ts + PHI)
+
+        return result
+
+    def price_at(self, q, t):
+        t_arr = np.asarray(t, float)
+        log_median = self._model_log10(t_arr)
+        shift = self.fits[q]["z_shift"]
+        return 10.0 ** (log_median + shift)
+
+    def interp_price(self, q, t):
+        if q in self.fits:
+            return float(self.price_at(q, t))
+        sorted_qs = self.quantiles
+        lo = max((qq for qq in sorted_qs if qq <= q), default=sorted_qs[0])
+        hi = min((qq for qq in sorted_qs if qq >= q), default=sorted_qs[-1])
+        if lo == hi:
+            return float(self.price_at(lo, t))
+        frac = (q - lo) / (hi - lo)
+        p_lo = np.log10(float(self.price_at(lo, t)))
+        p_hi = np.log10(float(self.price_at(hi, t)))
+        return 10.0 ** (p_lo + frac * (p_hi - p_lo))
+
+    def find_percentile(self, t, price):
+        sorted_qs = self.quantiles
+        if not sorted_qs:
+            return 0.5
+        t_safe = max(float(t), 0.5)
+        log_p = np.log10(max(float(price), 1e-10))
+        log_ps = [np.log10(max(float(self.price_at(q, t_safe)), 1e-10))
+                  for q in sorted_qs]
+        if log_p <= log_ps[0]:
+            return sorted_qs[0]
+        if log_p >= log_ps[-1]:
+            return sorted_qs[-1]
+        for i in range(len(sorted_qs) - 1):
+            if log_ps[i] <= log_p <= log_ps[i + 1]:
+                frac = (log_p - log_ps[i]) / (log_ps[i + 1] - log_ps[i] + 1e-30)
+                return sorted_qs[i] + frac * (sorted_qs[i + 1] - sorted_qs[i])
+        return sorted_qs[-1]
+
+    def _build_colors(self):
+        """Neutral gray-blue palette -- distinct from other model families."""
+        self.colors = {}
+        n = len(self.quantiles)
+        for i, q in enumerate(self.quantiles):
+            frac = i / max(n - 1, 1)
+            r = int(70 + 80 * frac)      # 70 -> 150
+            g = int(100 + 60 * frac)     # 100 -> 160
+            b = int(140 + 50 * frac)     # 140 -> 190
+            self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
+
+
 class LogisticModel:
     """Logistic/Gompertz growth model with Gaussian quantile bands.
 

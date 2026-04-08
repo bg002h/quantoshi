@@ -207,6 +207,234 @@ for _sum_prefix in ("bub", "dca", "ret", "sc", "hm"):
         Input("lppl-weighted", "value"),
         Input("lppl-no-13", "value"),
     )
+
+
+# ── HybPPL master gate: same pattern as LPPL ──────────────────────────────
+
+# bub: activate -> model-show: add/remove "hybppl" master
+_app_ctx.app.clientside_callback(
+    """
+    function(act, cur_models) {
+        var want = (act && act.length) > 0;
+        var models = (cur_models || []).slice();
+        var has = models.indexOf('hybppl') !== -1;
+        if (want && !has) { models.push('hybppl'); return models; }
+        if (!want && has) {
+            return models.filter(function(v) { return v !== 'hybppl'; });
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("bub-model-show", "value", allow_duplicate=True),
+    Input("bub-hybppl-activate", "value"),
+    State("bub-model-show", "value"),
+    prevent_initial_call='initial_duplicate',
+)
+
+# bub: model-show -> activate: mirror "hybppl" membership
+_app_ctx.app.clientside_callback(
+    """
+    function(models) {
+        var has = (models || []).indexOf('hybppl') !== -1;
+        return has ? ['yes'] : [];
+    }
+    """,
+    Output("bub-hybppl-activate", "value", allow_duplicate=True),
+    Input("bub-model-show", "value"),
+    prevent_initial_call='initial_duplicate',
+)
+
+# Activate <-> model-show for DCA, Retire, SC
+for _hp in ("dca", "ret", "sc"):
+    _app_ctx.app.clientside_callback(
+        """
+        function(act, cur_models) {
+            var want = (act && act.length) > 0;
+            var models = (cur_models || []).slice();
+            var has = models.indexOf('hybppl') !== -1;
+            if (want && !has) { models.push('hybppl'); return models; }
+            if (!want && has) {
+                return models.filter(function(v) { return v !== 'hybppl'; });
+            }
+            return window.dash_clientside.no_update;
+        }
+        """,
+        Output(f"{_hp}-model-show", "value", allow_duplicate=True),
+        Input(f"{_hp}-hybppl-activate", "value"),
+        State(f"{_hp}-model-show", "value"),
+        prevent_initial_call='initial_duplicate',
+    )
+    _app_ctx.app.clientside_callback(
+        """
+        function(models) {
+            var has = (models || []).indexOf('hybppl') !== -1;
+            return has ? ['yes'] : [];
+        }
+        """,
+        Output(f"{_hp}-hybppl-activate", "value", allow_duplicate=True),
+        Input(f"{_hp}-model-show", "value"),
+        prevent_initial_call='initial_duplicate',
+    )
+
+# hm-active-model == "hybppl"  ->  hm-hybppl-activate
+_app_ctx.app.clientside_callback(
+    """
+    function(active_model, cur_activate) {
+        var should_activate = (active_model === 'hybppl');
+        var is_activated = (cur_activate || []).length > 0;
+        if (should_activate === is_activated) {
+            return window.dash_clientside.no_update;
+        }
+        return should_activate ? ['yes'] : [];
+    }
+    """,
+    Output("hm-hybppl-activate", "value", allow_duplicate=True),
+    Input("hm-active-model", "data"),
+    State("hm-hybppl-activate", "value"),
+    prevent_initial_call='initial_duplicate',
+)
+
+# hm-hybppl-activate -> hm-active-model
+_app_ctx.app.clientside_callback(
+    """
+    function(activate, cur_model) {
+        var want = (activate || []).length > 0;
+        var is_hyb = (cur_model === 'hybppl');
+        if (want === is_hyb) return window.dash_clientside.no_update;
+        if (want) return 'hybppl';
+        return 'bub';
+    }
+    """,
+    Output("hm-active-model", "data", allow_duplicate=True),
+    Input("hm-hybppl-activate", "value"),
+    State("hm-active-model", "data"),
+    prevent_initial_call='initial_duplicate',
+)
+
+# Any per-tab Configure-HybPPL button click -> open modal
+_app_ctx.app.clientside_callback(
+    """
+    function(bub_n, dca_n, ret_n, sc_n, hm_n, close_n, cur_open) {
+        var ctx = window.dash_clientside.callback_context;
+        if (!ctx.triggered || !ctx.triggered.length) {
+            return window.dash_clientside.no_update;
+        }
+        var src = ctx.triggered[0].prop_id;
+        if (src.indexOf('hybppl-modal-close-btn') !== -1) return false;
+        if (src.indexOf('hybppl-configure-btn') !== -1) return true;
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("hybppl-config-modal", "is_open"),
+    Input("bub-hybppl-configure-btn", "n_clicks"),
+    Input("dca-hybppl-configure-btn", "n_clicks"),
+    Input("ret-hybppl-configure-btn", "n_clicks"),
+    Input("sc-hybppl-configure-btn", "n_clicks"),
+    Input("hm-hybppl-configure-btn", "n_clicks"),
+    Input("hybppl-modal-close-btn", "n_clicks"),
+    State("hybppl-config-modal", "is_open"),
+    prevent_initial_call=True,
+)
+
+# Damping visibility toggles (Model A + Model B)
+for _hs in ("a", "b"):
+    _app_ctx.app.clientside_callback(
+        """
+        function(nlog) {
+            return (nlog >= 1) ? {} : {display: 'none'};
+        }
+        """,
+        Output(f"hybppl-cfg-{_hs}-log1d-wrap", "style"),
+        Input(f"hybppl-cfg-{_hs}-nlog", "value"),
+    )
+    _app_ctx.app.clientside_callback(
+        """
+        function(nlog) {
+            return (nlog >= 2) ? {} : {display: 'none'};
+        }
+        """,
+        Output(f"hybppl-cfg-{_hs}-log2d-wrap", "style"),
+        Input(f"hybppl-cfg-{_hs}-nlog", "value"),
+    )
+    _app_ctx.app.clientside_callback(
+        """
+        function(ncal) {
+            return (ncal >= 1) ? {} : {display: 'none'};
+        }
+        """,
+        Output(f"hybppl-cfg-{_hs}-cal1d-wrap", "style"),
+        Input(f"hybppl-cfg-{_hs}-ncal", "value"),
+    )
+    _app_ctx.app.clientside_callback(
+        """
+        function(ncal) {
+            return (ncal >= 2) ? {} : {display: 'none'};
+        }
+        """,
+        Output(f"hybppl-cfg-{_hs}-cal2d-wrap", "style"),
+        Input(f"hybppl-cfg-{_hs}-ncal", "value"),
+    )
+
+# Status text for each model slot (A and B)
+for _hs in ("a", "b"):
+    _app_ctx.app.clientside_callback(
+        """
+        function(nlog, ncal, log1d, log2d, cal1d, cal2d) {
+            function spec(n, d1, d2) {
+                if (n === 0) return "0";
+                if (n === 1) return "1" + (d1 || "d");
+                return "2" + (d1 || "d") + (d2 || "d");
+            }
+            var key = "cfg_" + spec(nlog, log1d, log2d) + "_" + spec(ncal, cal1d, cal2d);
+            return key;
+        }
+        """,
+        Output(f"hybppl-cfg-{_hs}-status", "children"),
+        Input(f"hybppl-cfg-{_hs}-nlog", "value"),
+        Input(f"hybppl-cfg-{_hs}-ncal", "value"),
+        Input(f"hybppl-cfg-{_hs}-log1d", "value"),
+        Input(f"hybppl-cfg-{_hs}-log2d", "value"),
+        Input(f"hybppl-cfg-{_hs}-cal1d", "value"),
+        Input(f"hybppl-cfg-{_hs}-cal2d", "value"),
+    )
+
+# Per-tab summary text
+for _hsum_prefix in ("bub", "dca", "ret", "sc", "hm"):
+    _app_ctx.app.clientside_callback(
+        """
+        function(nlog_a, ncal_a, log1d_a, log2d_a, cal1d_a, cal2d_a,
+                 b_enabled, nlog_b, ncal_b, log1d_b, log2d_b, cal1d_b, cal2d_b) {
+            function spec(n, d1, d2) {
+                if (n === 0) return "0";
+                if (n === 1) return "1" + (d1 || "d");
+                return "2" + (d1 || "d") + (d2 || "d");
+            }
+            var a_spec = spec(nlog_a, log1d_a, log2d_a) + "+" + spec(ncal_a, cal1d_a, cal2d_a);
+            var txt = a_spec;
+            if (b_enabled && b_enabled.length > 0) {
+                var b_spec = spec(nlog_b, log1d_b, log2d_b) + "+" + spec(ncal_b, cal1d_b, cal2d_b);
+                txt += " / " + b_spec;
+            }
+            return txt;
+        }
+        """,
+        Output(f"{_hsum_prefix}-hybppl-summary", "children"),
+        Input("hybppl-cfg-a-nlog", "value"),
+        Input("hybppl-cfg-a-ncal", "value"),
+        Input("hybppl-cfg-a-log1d", "value"),
+        Input("hybppl-cfg-a-log2d", "value"),
+        Input("hybppl-cfg-a-cal1d", "value"),
+        Input("hybppl-cfg-a-cal2d", "value"),
+        Input("hybppl-cfg-b-enabled", "value"),
+        Input("hybppl-cfg-b-nlog", "value"),
+        Input("hybppl-cfg-b-ncal", "value"),
+        Input("hybppl-cfg-b-log1d", "value"),
+        Input("hybppl-cfg-b-log2d", "value"),
+        Input("hybppl-cfg-b-cal1d", "value"),
+        Input("hybppl-cfg-b-cal2d", "value"),
+    )
+
+
 from btc_core import yr_to_t, today_t, _find_lot_percentile
 from tab_defaults import BUBBLE, HEATMAP, DCA, RETIRE, SUPERCHARGE
 from layout.common import _bands_to_qs
@@ -272,6 +500,68 @@ def _resolve_lppl_master(model_show, lppl_n_freqs, lppl_weighted, lppl_no_13):
             else:
                 model_show.append("lp4_w" if _weighted else "lp4")
     return model_show
+
+
+def _build_hybppl_config_key(nlog, ncal, log1d, log2d, cal1d, cal2d):
+    """Build a cfg_* key from the modal's radio-item values."""
+    def _spec(n, d1, d2):
+        if n == 0:
+            return "0"
+        if n == 1:
+            return f"1{d1 or 'd'}"
+        return f"2{d1 or 'd'}{d2 or 'd'}"
+    return f"cfg_{_spec(nlog, log1d, log2d)}_{_spec(ncal, cal1d, cal2d)}"
+
+
+def _resolve_hybppl_master(model_show,
+                            cfg_a_nlog, cfg_a_ncal,
+                            cfg_a_log1d, cfg_a_log2d,
+                            cfg_a_cal1d, cfg_a_cal2d,
+                            cfg_b_enabled,
+                            cfg_b_nlog, cfg_b_ncal,
+                            cfg_b_log1d, cfg_b_log2d,
+                            cfg_b_cal1d, cfg_b_cal2d):
+    """Translate the 'hybppl' master in model_show into concrete cfg_* key(s).
+
+    Strips 'hybppl' (and named variants) from the list and appends 1-2
+    resolved cfg_* keys based on the modal config. When no master is
+    present, returns the list unchanged.
+    """
+    model_show = list(model_show or [])
+    _HYBPPL_NAMES = {"hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d"}
+    if "hybppl" not in model_show:
+        return model_show
+    model_show = [v for v in model_show if v not in _HYBPPL_NAMES]
+    # Model A
+    key_a = _build_hybppl_config_key(
+        cfg_a_nlog or 1, cfg_a_ncal or 1,
+        cfg_a_log1d, cfg_a_log2d, cfg_a_cal1d, cfg_a_cal2d)
+    if key_a in _app_ctx.PRICE_MODELS:
+        model_show.append(key_a)
+    # Model B (if enabled)
+    if cfg_b_enabled and "yes" in (cfg_b_enabled or []):
+        key_b = _build_hybppl_config_key(
+            cfg_b_nlog or 0, cfg_b_ncal or 0,
+            cfg_b_log1d, cfg_b_log2d, cfg_b_cal1d, cfg_b_cal2d)
+        if key_b in _app_ctx.PRICE_MODELS and key_b != key_a:
+            model_show.append(key_b)
+    return model_show
+
+
+def _resolve_hm_hybppl_master(hm_model,
+                               cfg_a_nlog, cfg_a_ncal,
+                               cfg_a_log1d, cfg_a_log2d,
+                               cfg_a_cal1d, cfg_a_cal2d):
+    """Translate 'hybppl' master to specific cfg_* key for heatmap (single-select).
+
+    Returns the resolved model key. For non-hybppl models, returns unchanged.
+    """
+    if hm_model != "hybppl":
+        return hm_model
+    key = _build_hybppl_config_key(
+        cfg_a_nlog or 1, cfg_a_ncal or 1,
+        cfg_a_log1d, cfg_a_log2d, cfg_a_cal1d, cfg_a_cal2d)
+    return key if key in _app_ctx.PRICE_MODELS else hm_model
 
 
 def _decomp_warning_banner(n_checked):
@@ -508,6 +798,19 @@ def _resolve_decomp_model_key(family, lppl_n_freqs, lppl_weighted, lppl_no_13):
     Input("lppl-n-freqs",      "value"),
     Input("lppl-weighted",     "value"),
     Input("lppl-no-13",        "value"),
+    Input("hybppl-cfg-a-nlog", "value"),
+    Input("hybppl-cfg-a-ncal", "value"),
+    Input("hybppl-cfg-a-log1d","value"),
+    Input("hybppl-cfg-a-log2d","value"),
+    Input("hybppl-cfg-a-cal1d","value"),
+    Input("hybppl-cfg-a-cal2d","value"),
+    Input("hybppl-cfg-b-enabled","value"),
+    Input("hybppl-cfg-b-nlog", "value"),
+    Input("hybppl-cfg-b-ncal", "value"),
+    Input("hybppl-cfg-b-log1d","value"),
+    Input("hybppl-cfg-b-log2d","value"),
+    Input("hybppl-cfg-b-cal1d","value"),
+    Input("hybppl-cfg-b-cal2d","value"),
     Input("bub-decomp-model",       "value"),
     Input("bub-decomp-components",  "value"),
     Input("bub-decomp-mode",        "value"),
@@ -523,6 +826,10 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,
                   n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, model_show,
                   lppl_n_freqs, lppl_weighted, lppl_no_13,
+                  hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d,
+                  hyb_a_cal1d, hyb_a_cal2d,
+                  hyb_b_enabled, hyb_b_nlog, hyb_b_ncal, hyb_b_log1d, hyb_b_log2d,
+                  hyb_b_cal1d, hyb_b_cal2d,
                   decomp_model, decomp_components, decomp_mode,
                   lots_data,
                   palette_key, user_model_store=None,
@@ -537,6 +844,12 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     # to specific flavor key(s) via global LPPL config.
     model_show = _resolve_lppl_master(
         model_show, lppl_n_freqs, lppl_weighted, lppl_no_13)
+    # The "hybppl" master gate — translate to concrete cfg_* key(s).
+    model_show = _resolve_hybppl_master(
+        model_show,
+        hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d, hyb_a_cal1d, hyb_a_cal2d,
+        hyb_b_enabled, hyb_b_nlog, hyb_b_ncal, hyb_b_log1d, hyb_b_log2d,
+        hyb_b_cal1d, hyb_b_cal2d)
 
     # Scanner lines
     scanner_lines = []
@@ -977,6 +1290,12 @@ def update_yrange_slider_limits(model_show):
     State("lppl-n-freqs",       "value"),
     State("lppl-weighted",      "value"),
     State("lppl-no-13",         "value"),
+    State("hybppl-cfg-a-nlog",  "value"),
+    State("hybppl-cfg-a-ncal",  "value"),
+    State("hybppl-cfg-a-log1d", "value"),
+    State("hybppl-cfg-a-log2d", "value"),
+    State("hybppl-cfg-a-cal1d", "value"),
+    State("hybppl-cfg-a-cal2d", "value"),
     prevent_initial_call=True,
 )
 def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_qs, mode,
@@ -985,21 +1304,29 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
                    mc_enable, mc_amount, mc_infl, mc_bins, mc_regime, mc_sims, mc_years, mc_freq, mc_window,
                    mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                    live_price, mc_cached, pay_token, mc_auth, palette_key,
-                   lppl_n_freqs=None, lppl_weighted=None, lppl_no_13=None):
+                   lppl_n_freqs=None, lppl_weighted=None, lppl_no_13=None,
+                   hyb_a_nlog=None, hyb_a_ncal=None,
+                   hyb_a_log1d=None, hyb_a_log2d=None,
+                   hyb_a_cal1d=None, hyb_a_cal2d=None):
     exit_range = exit_range or [entry_yr or 2025, (entry_yr or 2025) + 10]
     toggles    = toggles or []
     yr_now = pd.Timestamp.today().year
     hm_model = hm_model or "bub"
-    # Legacy snapshot values (qr, exp, s2f, individual LPPL flavors) →
+    # Legacy snapshot values (qr, exp, s2f, individual LPPL flavors) ->
     # surviving pill model. Keeps pill highlight and chart rendering
     # consistent when decoding old share links.
     from callbacks.routing import _HM_PILL_MODELS, _HM_LEGACY_MODEL_FALLBACK
-    if hm_model not in _HM_PILL_MODELS and hm_model != "lppl":
+    if hm_model not in _HM_PILL_MODELS and hm_model != "lppl" and hm_model != "hybppl":
         hm_model = _HM_LEGACY_MODEL_FALLBACK.get(hm_model, hm_model)
     # Translate LPPL master to specific flavor via global config.
     # Only for the non-MC path; MC uses hm-mc-model-src separately.
     hm_model = _resolve_hm_lppl_master(
         hm_model, lppl_n_freqs, lppl_weighted, lppl_no_13)
+    # Translate HybPPL master to specific cfg_* key.
+    hm_model = _resolve_hm_hybppl_master(
+        hm_model,
+        hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d,
+        hyb_a_cal1d, hyb_a_cal2d)
 
     # Only use live ticker price when entry_yr == current year AND the user
     # hasn't modified the entry percentile away from the ticker value.
@@ -1121,6 +1448,19 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     Input("lppl-n-freqs", "value"),
     Input("lppl-weighted","value"),
     Input("lppl-no-13",   "value"),
+    Input("hybppl-cfg-a-nlog", "value"),
+    Input("hybppl-cfg-a-ncal", "value"),
+    Input("hybppl-cfg-a-log1d","value"),
+    Input("hybppl-cfg-a-log2d","value"),
+    Input("hybppl-cfg-a-cal1d","value"),
+    Input("hybppl-cfg-a-cal2d","value"),
+    Input("hybppl-cfg-b-enabled","value"),
+    Input("hybppl-cfg-b-nlog", "value"),
+    Input("hybppl-cfg-b-ncal", "value"),
+    Input("hybppl-cfg-b-log1d","value"),
+    Input("hybppl-cfg-b-log2d","value"),
+    Input("hybppl-cfg-b-cal1d","value"),
+    Input("hybppl-cfg-b-cal2d","value"),
     Input("effective-lots","data"),
     Input("dca-sc-enable",  "value"),
     Input("dca-sc-loan",    "value"),
@@ -1156,6 +1496,10 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
 )
 def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range, disp, toggles, legend_pos, sel_qs, adv_qs,
                lppl_n_freqs, lppl_weighted, lppl_no_13,
+               hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d,
+               hyb_a_cal1d, hyb_a_cal2d,
+               hyb_b_enabled, hyb_b_nlog, hyb_b_ncal, hyb_b_log1d, hyb_b_log2d,
+               hyb_b_cal1d, hyb_b_cal2d,
                lots_data,
                sc_enable, sc_loan, sc_rate, sc_term, sc_type, sc_repeats,
                sc_entry_mode, sc_custom_price, sc_tax, sc_rollover,
@@ -1179,6 +1523,11 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     model_show = model_show if model_show is not None else []
     model_show = _resolve_lppl_master(
         model_show, lppl_n_freqs, lppl_weighted, lppl_no_13)
+    model_show = _resolve_hybppl_master(
+        model_show,
+        hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d, hyb_a_cal1d, hyb_a_cal2d,
+        hyb_b_enabled, hyb_b_nlog, hyb_b_ncal, hyb_b_log1d, hyb_b_log2d,
+        hyb_b_cal1d, hyb_b_cal2d)
     fig, mc_result = _get_dca_fig(dict(
         start_stack    = _cf(stack, DCA["start_stack"]),
         use_lots       = bool(use_lots),
@@ -1253,6 +1602,19 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     Input("lppl-n-freqs", "value"),
     Input("lppl-weighted","value"),
     Input("lppl-no-13",   "value"),
+    Input("hybppl-cfg-a-nlog", "value"),
+    Input("hybppl-cfg-a-ncal", "value"),
+    Input("hybppl-cfg-a-log1d","value"),
+    Input("hybppl-cfg-a-log2d","value"),
+    Input("hybppl-cfg-a-cal1d","value"),
+    Input("hybppl-cfg-a-cal2d","value"),
+    Input("hybppl-cfg-b-enabled","value"),
+    Input("hybppl-cfg-b-nlog", "value"),
+    Input("hybppl-cfg-b-ncal", "value"),
+    Input("hybppl-cfg-b-log1d","value"),
+    Input("hybppl-cfg-b-log2d","value"),
+    Input("hybppl-cfg-b-cal1d","value"),
+    Input("hybppl-cfg-b-cal2d","value"),
     Input("effective-lots","data"),
     Input("ret-mc-enable",  "value"),
     Input("ret-mc-bins",    "value"),
@@ -1278,6 +1640,10 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
 )
 def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, adv_qs,
                   lppl_n_freqs, lppl_weighted, lppl_no_13,
+                  hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d,
+                  hyb_a_cal1d, hyb_a_cal2d,
+                  hyb_b_enabled, hyb_b_nlog, hyb_b_ncal, hyb_b_log1d, hyb_b_log2d,
+                  hyb_b_cal1d, hyb_b_cal2d,
                   lots_data,
                   mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                   mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
@@ -1298,6 +1664,11 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     model_show = model_show if model_show is not None else []
     model_show = _resolve_lppl_master(
         model_show, lppl_n_freqs, lppl_weighted, lppl_no_13)
+    model_show = _resolve_hybppl_master(
+        model_show,
+        hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d, hyb_a_cal1d, hyb_a_cal2d,
+        hyb_b_enabled, hyb_b_nlog, hyb_b_ncal, hyb_b_log1d, hyb_b_log2d,
+        hyb_b_cal1d, hyb_b_cal2d)
     fig, mc_result = _get_retire_fig(dict(
         start_stack  = _cf(stack, RETIRE["start_stack"]),
         use_lots     = bool(use_lots),
@@ -1369,6 +1740,19 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     Input("lppl-n-freqs",    "value"),
     Input("lppl-weighted",   "value"),
     Input("lppl-no-13",      "value"),
+    Input("hybppl-cfg-a-nlog", "value"),
+    Input("hybppl-cfg-a-ncal", "value"),
+    Input("hybppl-cfg-a-log1d","value"),
+    Input("hybppl-cfg-a-log2d","value"),
+    Input("hybppl-cfg-a-cal1d","value"),
+    Input("hybppl-cfg-a-cal2d","value"),
+    Input("hybppl-cfg-b-enabled","value"),
+    Input("hybppl-cfg-b-nlog", "value"),
+    Input("hybppl-cfg-b-ncal", "value"),
+    Input("hybppl-cfg-b-log1d","value"),
+    Input("hybppl-cfg-b-log2d","value"),
+    Input("hybppl-cfg-b-cal1d","value"),
+    Input("hybppl-cfg-b-cal2d","value"),
     Input("sc-mode",         "value"),
     Input("sc-wd",           "value"),
     Input("sc-end-yr",       "value"),
@@ -1406,6 +1790,10 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
                        d0, d1, d2, d3, d4,
                        freq, infl, sel_qs, adv_qs,
                        lppl_n_freqs, lppl_weighted, lppl_no_13,
+                       hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d,
+                       hyb_a_cal1d, hyb_a_cal2d,
+                       hyb_b_enabled, hyb_b_nlog, hyb_b_ncal, hyb_b_log1d, hyb_b_log2d,
+                       hyb_b_cal1d, hyb_b_cal2d,
                        mode,
                        wd, end_yr, target_yr, disp,
                        toggles, legend_pos, chart_layout, display_q, lots_data,
@@ -1433,6 +1821,11 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
     model_show = model_show if model_show is not None else []
     model_show = _resolve_lppl_master(
         model_show, lppl_n_freqs, lppl_weighted, lppl_no_13)
+    model_show = _resolve_hybppl_master(
+        model_show,
+        hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d, hyb_a_cal1d, hyb_a_cal2d,
+        hyb_b_enabled, hyb_b_nlog, hyb_b_ncal, hyb_b_log1d, hyb_b_log2d,
+        hyb_b_cal1d, hyb_b_cal2d)
     fig, mc_result = _get_supercharge_fig(dict(
         mode         = mode or "a",
         start_stack  = _cf(stack, SUPERCHARGE["start_stack"]),

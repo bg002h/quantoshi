@@ -291,6 +291,25 @@ _SNAPSHOT_CONTROLS = [
     ("bub-decomp-mode",       "value"),   # individual | reference | cumulative
     ("bub-decomp-show-formulas", "value"), # ["full", "selected"] checklist
     ("bub-view-mode",        "data"),    # price | cagr | resid pill
+    # ── HybPPL config panel (all tabs) ──
+    ("bub-hybppl-activate",  "value"),
+    ("hybppl-cfg-a-nlog",    "value"),
+    ("hybppl-cfg-a-ncal",    "value"),
+    ("hybppl-cfg-a-log1d",   "value"),
+    ("hybppl-cfg-a-log2d",   "value"),
+    ("hybppl-cfg-a-cal1d",   "value"),
+    ("hybppl-cfg-a-cal2d",   "value"),
+    ("hybppl-cfg-b-enabled", "value"),
+    ("hybppl-cfg-b-nlog",    "value"),
+    ("hybppl-cfg-b-ncal",    "value"),
+    ("hybppl-cfg-b-log1d",   "value"),
+    ("hybppl-cfg-b-log2d",   "value"),
+    ("hybppl-cfg-b-cal1d",   "value"),
+    ("hybppl-cfg-b-cal2d",   "value"),
+    ("dca-hybppl-activate",  "value"),
+    ("ret-hybppl-activate",  "value"),
+    ("sc-hybppl-activate",   "value"),
+    ("hm-hybppl-activate",   "value"),
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)
@@ -358,6 +377,12 @@ _CHECKLIST_OPTIONS = {
     "lppl-n-freqs":       [1, 2, 3, 4],
     "lppl-weighted":      ["weighted"],
     "lppl-no-13":         ["no13"],
+    "bub-hybppl-activate":  ["yes"],
+    "dca-hybppl-activate":  ["yes"],
+    "ret-hybppl-activate":  ["yes"],
+    "sc-hybppl-activate":   ["yes"],
+    "hm-hybppl-activate":   ["yes"],
+    "hybppl-cfg-b-enabled": ["yes"],
     # MC enable/advanced checklists (1 bit each)
     "dca-mc-enable":    ["yes"],
     "dca-mc-advanced":  ["yes"],

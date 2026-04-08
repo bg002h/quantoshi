@@ -39,6 +39,12 @@ LPPL_FAMILY_HIDDEN_FROM_BUBBLE = frozenset({
     "lp4_n13", "lp4_w_n13",
 })
 
+# HybPPL named variants hidden from bubble Display Models —
+# managed by the HybPPL family config panel instead.
+HYBPPL_FAMILY_HIDDEN = frozenset({
+    "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d",
+})
+
 # Per-model trace colors — high-contrast, colorblind-safe, one color per model.
 # Used when shade bands are active so traces stand out against any band color.
 # Designed for luminance variation (readable without color vision).

@@ -11,7 +11,7 @@ from layout.common import (_tab_hints, _section_card, _row, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT, _q_panel, _q_panel_with_mode,
                             _q_options, _legend_pos_dropdown,
                             _chart_tab_layout, _CB_MARGIN, _palette_selector,
-                            _lppl_config_panel)
+                            _lppl_config_panel, _hybppl_config_panel)
 
 
 def _build_bub_model_options(mc):
@@ -37,13 +37,23 @@ def _build_bub_model_options(mc):
         "value": "lppl",
     })
 
-    # Non-LPPL-family models, in standard order, deprioritizing exp/s2f
+    # Master HybPPL entry — the HybPPL config panel picks which flavor;
+    # only plotted when this master is checked.
+    opts.append({
+        "label": _swatch(mc.get("hybppl", "#4A90D9"), "Hybrid PPL (family)"),
+        "value": "hybppl",
+    })
+
+    # Non-LPPL/HybPPL-family models, in standard order, deprioritizing exp/s2f
     _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(_app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
-    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy"}
+    _HYBPPL_FAM = _app_ctx.HYBPPL_FAMILY_HIDDEN
+    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl", "pca", "grdy"}
     primary = [m for m in _app_ctx.PRICE_MODELS.values()
                if m.short_name not in _app_ctx.MODEL_SENTINELS
                and m.short_name != "bub"
                and m.short_name not in _LPPL_FAM
+               and m.short_name not in _HYBPPL_FAM
+               and not m.short_name.startswith("cfg_")
                and m.short_name not in _DEPRIORITIZED]
     deprior = [m for m in _app_ctx.PRICE_MODELS.values()
                if m.short_name in _DEPRIORITIZED]
@@ -148,6 +158,7 @@ def _bubble_controls():
             ),
         ]),
         _lppl_config_panel("bub"),
+        _hybppl_config_panel("bub"),
         _section_card("Component Decomposition",
             _lbl("Model"),
             dcc.Dropdown(

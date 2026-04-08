@@ -10,7 +10,7 @@ from layout.common import (_tab_hints, _section_card, _lbl, _row, _export_row,
                             _STYLE_HIDDEN, _STYLE_HINT, _STYLE_GRAPH_H,
                             _STYLE_COLOR_H, _BTC_ORANGE,
                             _CB_MARGIN, _Q_HINT_BASE,
-                            _q_options, _lppl_config_panel)
+                            _q_options, _lppl_config_panel, _hybppl_config_panel)
 from layout.mc_controls import _mc_controls
 from tab_defaults import HEATMAP
 
@@ -122,6 +122,7 @@ def _heatmap_controls():
         dcc.Checklist(id="hm-model-show", value=["qr"],
                       style=_STYLE_HIDDEN),
         _lppl_config_panel("hm"),
+        _hybppl_config_panel("hm"),
     ])
 
 

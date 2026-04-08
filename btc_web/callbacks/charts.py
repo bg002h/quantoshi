@@ -405,10 +405,24 @@ for _hs in ("a", "b"):
                 return "2" + (d1 || "d") + (d2 || "d");
             }
             var key = "cfg_" + spec(nlog, log1d, log2d) + "_" + spec(ncal, cal1d, cal2d);
-            return key;
+            var info_links = {
+                "cfg_1d_0":    "/8.4",
+                "cfg_0_1u":    "/8.7",
+                "cfg_1d_1u":   "/8.8",
+                "cfg_1d_1d":   "/8.9",
+                "cfg_2dd_1u":  "/8.10",
+                "cfg_1d_2uu":  "/8.11",
+                "cfg_2dd_2uu": "/8.12",
+                "cfg_2dd_2dd": "/8.13",
+            };
+            var href = info_links[key] || "";
+            var link_style = href ? {fontSize:"11px", marginLeft:"6px", color:"#1a6fa8"} : {display:"none"};
+            return [key, href, link_style];
         }
         """,
         Output(f"hybppl-cfg-{_hs}-status", "children"),
+        Output(f"hybppl-cfg-{_hs}-info-link", "href"),
+        Output(f"hybppl-cfg-{_hs}-info-link", "style"),
         Input(f"hybppl-cfg-{_hs}-nlog", "value"),
         Input(f"hybppl-cfg-{_hs}-ncal", "value"),
         Input(f"hybppl-cfg-{_hs}-log1d", "value"),

@@ -727,8 +727,14 @@ def _hybppl_model_slot(slot):
                 value="u", inline=True, inputStyle=_CB_MARGIN,
             ),
         ], style=_STYLE_HIDDEN),
-        html.Div(id=f"hybppl-cfg-{s}-status",
-                 style={"marginTop": "6px", "fontSize": "11px", "color": "#888"}),
+        html.Div([
+            html.Span(id=f"hybppl-cfg-{s}-status",
+                      style={"fontSize": "11px", "color": "#888"}),
+            html.A(id=f"hybppl-cfg-{s}-info-link", href="#",
+                   style={"fontSize": "11px", "marginLeft": "6px",
+                          "color": "#1a6fa8", "display": "none"},
+                   children="\u2139\uFE0F Model Info"),
+        ], style={"marginTop": "6px"}),
     ])
     return html.Div(children, style={"flex": "1", "minWidth": "200px"})
 

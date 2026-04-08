@@ -1011,6 +1011,10 @@ $$\log_{10}(\text{price}) = A + B \log_{10}(t)
                                 "No matrix operations needed \u2014 equivalent to a weighted sum of known functions."
                             ]),
 
+                            html.H6("Basis Set"),
+                            html.P("30 additive component functions from 6 HybPPL-family models:"),
+                            _pca_basis_listing(),
+
                             html.H6("PCA Variance Decomposition"),
                             html.P("30 components from 6 models collapse into a few orthogonal directions:"),
                             _coeff_table([
@@ -1728,6 +1732,29 @@ def _pca_coeff_table():
         for i, ev in enumerate(m._explained):
             rows.append((f"PC{i+1} explained var", f"{ev:.4%}"))
     return _coeff_table(rows)
+
+
+def _pca_basis_listing():
+    """Live listing of all basis components used by the PCA model."""
+    m = _app_ctx.PRICE_MODELS.get("pca")
+    if m is None or not m._basis_info:
+        return html.P("(PCA model not loaded)", className="text-muted")
+    # Group by source model
+    by_model = {}
+    for key, cname in m._basis_info:
+        by_model.setdefault(key, []).append(cname)
+    items = []
+    for key in m._SOURCE_KEYS:
+        if key not in by_model:
+            continue
+        mdl = m._source_models.get(key)
+        label = mdl.name if mdl else key
+        comps = by_model[key]
+        items.append(html.Li([
+            html.Strong(f"{label}"), f" ({len(comps)} components): ",
+            ", ".join(comps),
+        ]))
+    return html.Ul(items, style={"fontSize": "12px"})
 
 
 def _hyb4d_coeff_table():

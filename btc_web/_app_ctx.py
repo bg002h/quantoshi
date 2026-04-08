@@ -54,6 +54,7 @@ DECOMP_FAMILIES = {
     "hyb2l":        "HybPPL +2L",
     "hyb2c":        "HybPPL +2C",
     "hyb2b":        "HybPPL +2B",
+    "pca":          "PCA",
     "hyb4d":        "HybPPL 4D",
 }
 

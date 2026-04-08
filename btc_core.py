@@ -1837,6 +1837,43 @@ class PCAModel:
                 return sorted_qs[i] + frac * (sorted_qs[i + 1] - sorted_qs[i])
         return sorted_qs[-1]
 
+    # PC interpretation labels (fixed names for decomposition panel)
+    _PC_LABELS = [
+        "PC1 (power law trend)",
+        "PC2 (halving cycle)",
+        "PC3 (log-periodic)",
+        "PC4 (2nd log harmonic)",
+        "PC5 (residual osc)",
+        "PC6 (fine structure)",
+    ]
+
+    @property
+    def component_names(self):
+        k = min(self._N_PCS, len(self._PC_LABELS))
+        return ["intercept"] + self._PC_LABELS[:k]
+
+    def components(self, t):
+        """Decompose into intercept + individual PC contributions."""
+        t_arr = np.asarray(t, float)
+        scalar = t_arr.ndim == 0
+        if scalar:
+            t_arr = t_arr.reshape(1)
+        X = self._eval_basis(t_arr)
+        if X.ndim == 1 or len(self._weights) == 0:
+            result = {"intercept": np.full_like(t_arr, self._intercept)}
+        else:
+            Xc = X - self._X_mean
+            scores = Xc @ self._V_k  # (n, k)
+            result = {"intercept": np.full_like(t_arr, self._intercept)}
+            k = min(self._N_PCS, len(self._PC_LABELS), scores.shape[1])
+            for i in range(k):
+                label = self._PC_LABELS[i]
+                result[label] = self._beta[i + 1] * scores[:, i]
+        if scalar:
+            result = {k: float(v[0]) if hasattr(v, '__len__') else float(v)
+                      for k, v in result.items()}
+        return result
+
     def _build_colors(self):
         """Indigo palette — PCA model."""
         self.colors = {}

@@ -393,7 +393,8 @@ class TestDecompRegistry:
     def test_families_keys(self):
         import _app_ctx
         expected = {"bub", "ef", "lppl", "linppl", "hybppl", "hybppl_dd",
-                    "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy"}
+                    "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy",
+                    "hybppl_cfg_a", "hybppl_cfg_b"}
         assert set(_app_ctx.DECOMP_FAMILIES.keys()) == expected
 
     def test_families_labels(self):

@@ -512,7 +512,7 @@ def _model_show_checklist(prefix, standardized=False):
     if standardized:
         # Inject master LPPL entry right after Bubble Model.
         opts.append({
-            "label": _swatch(mc.get("lppl", "#FF6D00"), "LPPL"),
+            "label": _swatch(mc.get("lppl", "#FF6D00"), "LPPL (family)"),
             "value": "lppl",
         })
 

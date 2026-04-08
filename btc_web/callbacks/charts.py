@@ -593,7 +593,7 @@ def _component_label(model, name):
     return f" {name}"
 
 
-def update_decomp_options(family, n_freqs, weighted, no_13):
+def update_decomp_options(family, n_freqs, weighted, no_13, hybppl_cfg=None):
     """Populate Component Decomposition checklist options + warning + visibility.
 
     Returns (options, warning_children, body_style). NEVER modifies
@@ -603,7 +603,8 @@ def update_decomp_options(family, n_freqs, weighted, no_13):
         return [], [], {"display": "none"}
     if family == "lppl" and len(n_freqs or []) != 1:
         return [], _decomp_warning_banner(len(n_freqs or [])), {"display": "block"}
-    key = _resolve_decomp_model_key(family, n_freqs, weighted, no_13)
+    key = _resolve_decomp_model_key(family, n_freqs, weighted, no_13,
+                                     hybppl_cfg=hybppl_cfg)
     if key is None:
         return [], _decomp_warning_banner(len(n_freqs or [])), {"display": "block"}
     model = _app_ctx.PRICE_MODELS.get(key)
@@ -622,10 +623,32 @@ def update_decomp_options(family, n_freqs, weighted, no_13):
     Input("lppl-n-freqs",      "value"),
     Input("lppl-weighted",     "value"),
     Input("lppl-no-13",        "value"),
+    State("hybppl-cfg-a-nlog", "value"),
+    State("hybppl-cfg-a-ncal", "value"),
+    State("hybppl-cfg-a-log1d", "value"),
+    State("hybppl-cfg-a-log2d", "value"),
+    State("hybppl-cfg-a-cal1d", "value"),
+    State("hybppl-cfg-a-cal2d", "value"),
+    State("hybppl-cfg-b-nlog", "value"),
+    State("hybppl-cfg-b-ncal", "value"),
+    State("hybppl-cfg-b-log1d", "value"),
+    State("hybppl-cfg-b-log2d", "value"),
+    State("hybppl-cfg-b-cal1d", "value"),
+    State("hybppl-cfg-b-cal2d", "value"),
     prevent_initial_call=False,
 )
-def _update_decomp_options_cb(family, n_freqs, weighted, no_13):
-    return update_decomp_options(family, n_freqs, weighted, no_13)
+def _update_decomp_options_cb(family, n_freqs, weighted, no_13,
+                               a_nlog, a_ncal, a_log1d, a_log2d, a_cal1d, a_cal2d,
+                               b_nlog, b_ncal, b_log1d, b_log2d, b_cal1d, b_cal2d):
+    hybppl_cfg = {
+        "a_nlog": a_nlog, "a_ncal": a_ncal,
+        "a_log1d": a_log1d, "a_log2d": a_log2d,
+        "a_cal1d": a_cal1d, "a_cal2d": a_cal2d,
+        "b_nlog": b_nlog, "b_ncal": b_ncal,
+        "b_log1d": b_log1d, "b_log2d": b_log2d,
+        "b_cal1d": b_cal1d, "b_cal2d": b_cal2d,
+    }
+    return update_decomp_options(family, n_freqs, weighted, no_13, hybppl_cfg=hybppl_cfg)
 
 
 @callback(
@@ -636,14 +659,31 @@ def _update_decomp_options_cb(family, n_freqs, weighted, no_13):
     Input("lppl-n-freqs",      "value"),
     Input("lppl-weighted",     "value"),
     Input("lppl-no-13",        "value"),
+    State("hybppl-cfg-a-nlog", "value"), State("hybppl-cfg-a-ncal", "value"),
+    State("hybppl-cfg-a-log1d", "value"), State("hybppl-cfg-a-log2d", "value"),
+    State("hybppl-cfg-a-cal1d", "value"), State("hybppl-cfg-a-cal2d", "value"),
+    State("hybppl-cfg-b-nlog", "value"), State("hybppl-cfg-b-ncal", "value"),
+    State("hybppl-cfg-b-log1d", "value"), State("hybppl-cfg-b-log2d", "value"),
+    State("hybppl-cfg-b-cal1d", "value"), State("hybppl-cfg-b-cal2d", "value"),
     prevent_initial_call=False,
 )
-def _update_active_formula_cb(family, selected, show_toggles, n_freqs, weighted, no_13):
+def _update_active_formula_cb(family, selected, show_toggles, n_freqs, weighted, no_13,
+                               a_nlog, a_ncal, a_log1d, a_log2d, a_cal1d, a_cal2d,
+                               b_nlog, b_ncal, b_log1d, b_log2d, b_cal1d, b_cal2d):
     """Display the formula for the currently-checked subset — gated on toggle."""
     from dash import html
     if "selected" not in (show_toggles or []):
         return []
-    key = _resolve_decomp_model_key(family, n_freqs, weighted, no_13)
+    hybppl_cfg = {
+        "a_nlog": a_nlog, "a_ncal": a_ncal,
+        "a_log1d": a_log1d, "a_log2d": a_log2d,
+        "a_cal1d": a_cal1d, "a_cal2d": a_cal2d,
+        "b_nlog": b_nlog, "b_ncal": b_ncal,
+        "b_log1d": b_log1d, "b_log2d": b_log2d,
+        "b_cal1d": b_cal1d, "b_cal2d": b_cal2d,
+    }
+    key = _resolve_decomp_model_key(family, n_freqs, weighted, no_13,
+                                     hybppl_cfg=hybppl_cfg)
     if key is None:
         return []
     model = _app_ctx.PRICE_MODELS.get(key)
@@ -687,14 +727,31 @@ def _update_active_formula_cb(family, selected, show_toggles, n_freqs, weighted,
     Input("lppl-n-freqs",      "value"),
     Input("lppl-weighted",     "value"),
     Input("lppl-no-13",        "value"),
+    State("hybppl-cfg-a-nlog", "value"), State("hybppl-cfg-a-ncal", "value"),
+    State("hybppl-cfg-a-log1d", "value"), State("hybppl-cfg-a-log2d", "value"),
+    State("hybppl-cfg-a-cal1d", "value"), State("hybppl-cfg-a-cal2d", "value"),
+    State("hybppl-cfg-b-nlog", "value"), State("hybppl-cfg-b-ncal", "value"),
+    State("hybppl-cfg-b-log1d", "value"), State("hybppl-cfg-b-log2d", "value"),
+    State("hybppl-cfg-b-cal1d", "value"), State("hybppl-cfg-b-cal2d", "value"),
     prevent_initial_call=False,
 )
-def _update_decomp_formula_cb(family, show_toggles, n_freqs, weighted, no_13):
+def _update_decomp_formula_cb(family, show_toggles, n_freqs, weighted, no_13,
+                               a_nlog, a_ncal, a_log1d, a_log2d, a_cal1d, a_cal2d,
+                               b_nlog, b_ncal, b_log1d, b_log2d, b_cal1d, b_cal2d):
     """Show the model's full formula — gated on toggle."""
     from dash import dcc, html
     if "full" not in (show_toggles or []):
         return []
-    key = _resolve_decomp_model_key(family, n_freqs, weighted, no_13)
+    hybppl_cfg = {
+        "a_nlog": a_nlog, "a_ncal": a_ncal,
+        "a_log1d": a_log1d, "a_log2d": a_log2d,
+        "a_cal1d": a_cal1d, "a_cal2d": a_cal2d,
+        "b_nlog": b_nlog, "b_ncal": b_ncal,
+        "b_log1d": b_log1d, "b_log2d": b_log2d,
+        "b_cal1d": b_cal1d, "b_cal2d": b_cal2d,
+    }
+    key = _resolve_decomp_model_key(family, n_freqs, weighted, no_13,
+                                     hybppl_cfg=hybppl_cfg)
     if key is None:
         return []
     model = _app_ctx.PRICE_MODELS.get(key)
@@ -743,7 +800,8 @@ def _prune_decomp_value_cb(family, opts, current):
     return _prune_decomp_value(family, opts, current)
 
 
-def _resolve_decomp_model_key(family, lppl_n_freqs, lppl_weighted, lppl_no_13):
+def _resolve_decomp_model_key(family, lppl_n_freqs, lppl_weighted, lppl_no_13,
+                               hybppl_cfg=None):
     """Translate (family, LPPL config) into a concrete model short_name.
 
     Returns None if family is empty OR if family is 'lppl' but exactly one
@@ -752,6 +810,17 @@ def _resolve_decomp_model_key(family, lppl_n_freqs, lppl_weighted, lppl_no_13):
     """
     if not family:
         return None
+    # HybPPL config A/B → resolve to cfg_* key
+    if family in ("hybppl_cfg_a", "hybppl_cfg_b") and hybppl_cfg:
+        slot = "a" if family.endswith("_a") else "b"
+        nlog = hybppl_cfg.get(f"{slot}_nlog", 1)
+        ncal = hybppl_cfg.get(f"{slot}_ncal", 1)
+        log1d = hybppl_cfg.get(f"{slot}_log1d", "d")
+        log2d = hybppl_cfg.get(f"{slot}_log2d", "d")
+        cal1d = hybppl_cfg.get(f"{slot}_cal1d", "u")
+        cal2d = hybppl_cfg.get(f"{slot}_cal2d", "u")
+        key = _build_hybppl_config_key(nlog, ncal, log1d, log2d, cal1d, cal2d)
+        return key if key in _app_ctx.PRICE_MODELS else None
     if family != "lppl":
         return family
     if not lppl_n_freqs or len(lppl_n_freqs) != 1:

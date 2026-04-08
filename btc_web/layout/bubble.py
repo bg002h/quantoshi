@@ -33,7 +33,7 @@ def _build_bub_model_options(mc):
     # Master LPPL entry — the LPPL Models config panel picks which flavor
     # (n_freqs/weighted/no_13); only plotted when this master is checked.
     opts.append({
-        "label": _swatch(mc.get("lppl", "#FF6D00"), "LPPL"),
+        "label": _swatch(mc.get("lppl", "#FF6D00"), "LPPL (family)"),
         "value": "lppl",
     })
 

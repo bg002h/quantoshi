@@ -63,6 +63,8 @@ DECOMP_FAMILIES = {
     "pca":          "PCA",
     "grdy":         "Greedy Select",
     "hyb4d":        "HybPPL 4D",
+    "hybppl_cfg_a": "HybPPL (A)",
+    "hybppl_cfg_b": "HybPPL (B)",
 }
 
 # 7-color decomposition palette per color scheme (cycles if model has >7 comps)

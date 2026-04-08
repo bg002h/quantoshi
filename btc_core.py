@@ -2433,15 +2433,108 @@ class HybPPLConfigModel:
                 return sorted_qs[i] + frac * (sorted_qs[i + 1] - sorted_qs[i])
         return sorted_qs[-1]
 
+    @property
+    def component_names(self):
+        names = ["A (constant)", "B\u00b7log\u2081\u2080(t)"]
+        for i in range(self._n_log):
+            d = self._log_damps[i]
+            names.append(f"log osc {i+1} ({'damped' if d == 'd' else 'undamped'})")
+        for i in range(self._n_cal):
+            d = self._cal_damps[i]
+            names.append(f"cal osc {i+1} ({'damped' if d == 'd' else 'undamped'})")
+        return names
+
+    @property
+    def formula_log10_latex(self):
+        parts = [r"A + B \log_{10}(t)"]
+        for i in range(self._n_log):
+            d = self._log_damps[i]
+            idx = i + 1
+            if d == "d":
+                parts.append(rf"C_{{l{idx}}} t^{{-D_{{l{idx}}}}} \cos(\omega_{{l{idx}}} \ln t + \varphi_{{l{idx}}})")
+            else:
+                parts.append(rf"C_{{l{idx}}} \cos(\omega_{{l{idx}}} \ln t + \varphi_{{l{idx}}})")
+        for i in range(self._n_cal):
+            d = self._cal_damps[i]
+            idx = i + 1
+            if d == "d":
+                parts.append(rf"C_{{c{idx}}} t^{{-D_{{c{idx}}}}} \cos(\omega_{{c{idx}}} t + \varphi_{{c{idx}}})")
+            else:
+                parts.append(rf"C_{{c{idx}}} \cos(\omega_{{c{idx}}} t + \varphi_{{c{idx}}})")
+        return " + ".join(parts)
+
+    @property
+    def formula_product_latex(self):
+        return None  # too complex for product form
+
+    @property
+    def component_details(self):
+        det = {
+            "A (constant)": ("A", [("A", "A")]),
+            "B\u00b7log\u2081\u2080(t)": ("B\u00b7log\u2081\u2080(t)", [("B", "B")]),
+        }
+        for i in range(self._n_log):
+            d = self._log_damps[i]
+            name = f"log osc {i+1} ({'damped' if d == 'd' else 'undamped'})"
+            if d == "d":
+                det[name] = (
+                    f"C\u00b7t^(\u2212D)\u00b7cos(\u03c9\u00b7ln(t)+\u03c6)",
+                    [],
+                )
+            else:
+                det[name] = ("C\u00b7cos(\u03c9\u00b7ln(t)+\u03c6)", [])
+        for i in range(self._n_cal):
+            d = self._cal_damps[i]
+            name = f"cal osc {i+1} ({'damped' if d == 'd' else 'undamped'})"
+            if d == "d":
+                det[name] = (
+                    f"C\u00b7t^(\u2212D)\u00b7cos(\u03c9\u00b7t+\u03c6)",
+                    [],
+                )
+            else:
+                det[name] = ("C\u00b7cos(\u03c9\u00b7t+\u03c6)", [])
+        return det
+
+    def components(self, t):
+        """Decompose into individual additive terms."""
+        t = np.asarray(t, float)
+        ts = np.maximum(t, 0.1)
+        p = self._params
+        result = {
+            "A (constant)": np.full_like(ts, p["A"]),
+            "B\u00b7log\u2081\u2080(t)": p["B"] * np.log10(ts),
+        }
+        for i in range(self._n_log):
+            suffix = str(i + 1) if self._n_log > 1 else ""
+            d = self._log_damps[i]
+            C = p[f"C_log{suffix}"]; W = p[f"W_log{suffix}"]; PHI = p[f"PHI_log{suffix}"]
+            name = f"log osc {i+1} ({'damped' if d == 'd' else 'undamped'})"
+            if d == "d":
+                D = p[f"D_log{suffix}"]
+                result[name] = C * ts**(-D) * np.cos(W * np.log(ts) + PHI)
+            else:
+                result[name] = C * np.cos(W * np.log(ts) + PHI)
+        for i in range(self._n_cal):
+            suffix = str(i + 1) if self._n_cal > 1 else ""
+            d = self._cal_damps[i]
+            C = p[f"C_cal{suffix}"]; W = p[f"W_cal{suffix}"]; PHI = p[f"PHI_cal{suffix}"]
+            name = f"cal osc {i+1} ({'damped' if d == 'd' else 'undamped'})"
+            if d == "d":
+                D = p[f"D_cal{suffix}"]
+                result[name] = C * ts**(-D) * np.cos(W * ts + PHI)
+            else:
+                result[name] = C * np.cos(W * ts + PHI)
+        return result
+
     def _build_colors(self):
         """Neutral gray-blue palette -- distinct from other model families."""
         self.colors = {}
         n = len(self.quantiles)
         for i, q in enumerate(self.quantiles):
             frac = i / max(n - 1, 1)
-            r = int(70 + 80 * frac)      # 70 -> 150
-            g = int(100 + 60 * frac)     # 100 -> 160
-            b = int(140 + 50 * frac)     # 140 -> 190
+            r = int(70 + 80 * frac)
+            g = int(100 + 60 * frac)
+            b = int(140 + 50 * frac)
             self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
 
 

@@ -1837,67 +1837,86 @@ class PCAModel:
                 return sorted_qs[i] + frac * (sorted_qs[i + 1] - sorted_qs[i])
         return sorted_qs[-1]
 
-    # PC interpretation labels (fixed names for decomposition panel)
-    _PC_LABELS = [
-        "PC1 (power law trend)",
-        "PC2 (halving cycle)",
-        "PC3 (log-periodic)",
-        "PC4 (2nd log harmonic)",
-        "PC5 (residual osc)",
-        "PC6 (fine structure)",
+    # Decomposition: group the 30 weighted basis functions by physical role
+    _COMP_GROUPS = [
+        ("intercept",         "intercept",     None),
+        ("power law trend",   "B\u00b7log\u2081\u2080(t)", "B"),
+        ("log-periodic osc",  "log osc",       "log"),
+        ("calendar-periodic", "cal osc",       "cal"),
+    ]
+
+    component_names = [
+        "intercept",
+        "power law trend",
+        "log-periodic osc",
+        "calendar-periodic",
     ]
 
     formula_log10_latex = (
-        r"\beta_0 + \sum_{i=1}^{6} \beta_i \cdot \mathrm{PC}_i(t)"
+        r"\text{intercept} + \sum_{j} w_j \cdot f_j(t)"
     )
     formula_product_latex = (
-        r"10^{\,\beta_0} \cdot \prod_{i=1}^{6} 10^{\,\beta_i \cdot \mathrm{PC}_i(t)}"
+        r"10^{\,\text{intercept}} \cdot \prod_{j} 10^{\,w_j \cdot f_j(t)}"
     )
-
-    @property
-    def component_names(self):
-        k = min(self._N_PCS, len(self._PC_LABELS))
-        return ["intercept"] + self._PC_LABELS[:k]
 
     @property
     def component_details(self):
-        """Build component_details dynamically from fitted beta values."""
-        details = {
+        return {
             "intercept": (
-                f"\u03b2\u2080 = {self._intercept:.4f}",
-                [("\u03b2\u2080", "_intercept")],
+                f"constant = {self._intercept:.4f}",
+                [("const", "_intercept")],
+            ),
+            "power law trend": (
+                "weighted sum of B\u00b7log\u2081\u2080(t) from all source models",
+                [],
+            ),
+            "log-periodic osc": (
+                "weighted sum of all damped log-periodic oscillations",
+                [],
+            ),
+            "calendar-periodic": (
+                "weighted sum of all calendar-periodic oscillations (damped + undamped)",
+                [],
             ),
         }
-        k = min(self._N_PCS, len(self._PC_LABELS), len(self._beta) - 1)
-        for i in range(k):
-            label = self._PC_LABELS[i]
-            beta_val = self._beta[i + 1]
-            details[label] = (
-                f"\u03b2{i+1}\u00b7PC{i+1}(t)  [\u03b2{i+1}={beta_val:+.4f}]",
-                [(f"\u03b2{i+1}", f"_beta[{i+1}]")],
-            )
-        return details
 
     def components(self, t):
-        """Decompose into intercept + individual PC contributions."""
+        """Decompose into intercept + grouped basis function contributions."""
         t_arr = np.asarray(t, float)
         scalar = t_arr.ndim == 0
         if scalar:
             t_arr = t_arr.reshape(1)
         X = self._eval_basis(t_arr)
-        if X.ndim == 1 or len(self._weights) == 0:
-            result = {"intercept": np.full_like(t_arr, self._intercept)}
-        else:
-            Xc = X - self._X_mean
-            scores = Xc @ self._V_k  # (n, k)
-            result = {"intercept": np.full_like(t_arr, self._intercept)}
-            k = min(self._N_PCS, len(self._PC_LABELS), scores.shape[1])
-            for i in range(k):
-                label = self._PC_LABELS[i]
-                result[label] = self._beta[i + 1] * scores[:, i]
+        n = len(t_arr)
+        intercept = np.full(n, self._intercept)
+        trend = np.zeros(n)
+        log_osc = np.zeros(n)
+        cal_osc = np.zeros(n)
+
+        if X.ndim > 1 and len(self._weights) > 0:
+            for i, ((key, cname), w) in enumerate(zip(self._basis_info, self._weights)):
+                contrib = w * X[:, i]
+                cl = cname.lower()
+                if "log" in cl and ("osc" in cl or "cos" in cl):
+                    log_osc += contrib
+                elif "cal" in cl and ("osc" in cl or "cos" in cl):
+                    cal_osc += contrib
+                elif "log" in cl and "t" in cl:
+                    # B·log₁₀(t) — power law trend
+                    trend += contrib
+                elif "constant" in cl or cname.startswith("A "):
+                    intercept += contrib
+                else:
+                    trend += contrib  # fallback: lump into trend
+
+        result = {
+            "intercept": intercept,
+            "power law trend": trend,
+            "log-periodic osc": log_osc,
+            "calendar-periodic": cal_osc,
+        }
         if scalar:
-            result = {k: float(v[0]) if hasattr(v, '__len__') else float(v)
-                      for k, v in result.items()}
+            result = {k: float(v[0]) for k, v in result.items()}
         return result
 
     def _build_colors(self):

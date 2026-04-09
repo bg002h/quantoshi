@@ -69,7 +69,52 @@ _FAQ = [
                 ]),
             ], style={"fontSize": "13px", "marginBottom": "12px", "borderCollapse": "collapse"}),
             html.Br(),
-            html.Strong("Why does it matter?"),
+            html.Strong("Why does it matter? A practical example."),
+            " It is currently 2026 and Bitcoin trades at ~$70,000. Ten years ago, "
+            "in 2016, the price was ~$700 \u2014 exactly 100\u00d7 less. You might think "
+            "two points a decade apart are enough to pin down the power law slope. "
+            "They are not.",
+            html.Br(), html.Br(),
+            "In log\u2081\u2080 space, 100\u00d7 is always a ",
+            html.Strong("rise"),
+            " of 2.0 units (because 10\u00b2 = 100). But the ",
+            html.Strong("run"),
+            " \u2014 the horizontal distance those 10 years span \u2014 depends entirely "
+            "on where t = 0 is:",
+            html.Br(), html.Br(),
+            html.Table([
+                html.Thead(html.Tr([
+                    html.Th("Genesis date", style={"paddingRight": "12px"}),
+                    html.Th("t in 2016", style={"paddingRight": "12px"}),
+                    html.Th("t in 2026", style={"paddingRight": "12px"}),
+                    html.Th("Run (\u0394log\u2081\u2080t)", style={"paddingRight": "12px"}),
+                    html.Th("Slope (rise/run)"),
+                ])),
+                html.Tbody([
+                    html.Tr([html.Td("2015"), html.Td("1 yr"), html.Td("11 yr"),
+                             html.Td("1.04"), html.Td(html.Strong("1.9"))]),
+                    html.Tr([html.Td("2009.6 (optimal)"), html.Td("6.4 yr"), html.Td("16.4 yr"),
+                             html.Td("0.41"), html.Td(html.Strong("4.9"))]),
+                    html.Tr([html.Td("2000"), html.Td("16 yr"), html.Td("26 yr"),
+                             html.Td("0.21"), html.Td(html.Strong("9.5"))]),
+                ]),
+            ], style={"fontSize": "13px", "marginBottom": "12px", "borderCollapse": "collapse"}),
+            html.Br(),
+            "The same 100\u00d7 price increase over the same 10 years implies "
+            "\u03b2 = 1.9, 4.9, or 9.5 depending on Day Zero. This is because "
+            "logarithms compress large numbers: the interval t = 1\u219211 yr spans "
+            "1.04 log-units, but t = 16\u219226 yr spans only 0.21 log-units \u2014 "
+            "five times narrower. A narrower run with the same rise means a steeper slope.",
+            html.Br(),
+            html.Img(src="/assets/genesis_slope_example.png",
+                     style={"width": "100%", "maxWidth": "900px", "borderRadius": "8px",
+                            "marginTop": "8px", "marginBottom": "8px"}),
+            html.Br(),
+            "This is why Quantoshi invests heavily in determining the optimal "
+            "genesis date \u2014 a shift of even a few months changes the implied slope "
+            "and all downstream projections.",
+            html.Br(), html.Br(),
+            html.Strong("How the optimal date is determined."),
             " The same quantile regression lines, evaluated from two different "
             "time origins, produce visibly different fits \u2014 especially at the "
             "earliest price points where the time offset is a larger fraction of t:",

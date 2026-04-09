@@ -137,7 +137,7 @@ def _serve_layout():
             _inject_initial_figure(layout, gid, go.Figure().update_layout(
                 template="none", paper_bgcolor="white", plot_bgcolor="white",
                 xaxis=dict(visible=False), yaxis=dict(visible=False),
-                margin=dict(l=0, r=0, t=0, b=0), height=1,
+                margin=dict(l=0, r=0, t=0, b=0), height=10,
             ))
             continue
         fig = _get_initial_figure(tab)

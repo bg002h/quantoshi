@@ -176,8 +176,8 @@ def _error_figure(title):
 
 # ── shared theme helpers ──────────────────────────────────────────────────────
 
-_LOG_MINOR = dict(showgrid=True, gridcolor="rgba(128,128,128,0.15)",
-                  griddash="dot", gridwidth=0.5, dtick="D1")
+_LOG_MINOR = dict(showgrid=True, gridcolor="rgba(128,128,128,0.20)",
+                  griddash="dot", gridwidth=0.8, dtick="D1")
 
 
 def _apply_log_y(layout, p):
@@ -279,7 +279,7 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
         font=dict(family=_SANS_FONT, color=theme.TEXT_COLOR, size=_FONT_BODY),
         xaxis=dict(
             title=dict(text=xlabel, font=dict(family=_SANS_FONT, color=theme.TEXT_COLOR)),
-            gridcolor=theme.GRID_MAJOR_COLOR, gridwidth=0.6,
+            gridcolor=theme.GRID_MAJOR_COLOR, gridwidth=1.0,
             linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
             zerolinecolor=theme.GRID_MAJOR_COLOR,
             ticks="",
@@ -289,7 +289,7 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
         ),
         yaxis=dict(
             title=dict(text=ylabel, font=dict(family=_SANS_FONT, color=theme.TEXT_COLOR)),
-            gridcolor=theme.GRID_MAJOR_COLOR, gridwidth=0.6,
+            gridcolor=theme.GRID_MAJOR_COLOR, gridwidth=1.0,
             linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
             zerolinecolor=theme.GRID_MAJOR_COLOR,
             automargin=False,

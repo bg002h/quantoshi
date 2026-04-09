@@ -160,11 +160,12 @@ _MATHJAX_HEAD = """<script>MathJax={tex:{inlineMath:[['$','$'],['\\\\(','\\\\)']
 <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>"""
 
 _SCROLL_SCRIPT = """<script>
-document.addEventListener('DOMContentLoaded',function(){{
+window.addEventListener('load',function(){{
     var el=document.getElementById('{item_id}');
-    if(el){{el.scrollIntoView({{behavior:'smooth',block:'start'}});
-    var btn=el.querySelector('.accordion-button');
-    if(btn&&btn.classList.contains('collapsed'))btn.click();}}
+    if(!el)return;
+    var col=el.querySelector('.accordion-collapse');
+    if(col){{var bs=new bootstrap.Collapse(col,{{toggle:false}});bs.show();}}
+    setTimeout(function(){{el.scrollIntoView({{behavior:'smooth',block:'start'}})}},200);
 }});
 </script>"""
 

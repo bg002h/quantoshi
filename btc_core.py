@@ -1939,14 +1939,15 @@ class GreedyModel:
     Result: R²=0.9928, σ=0.130, BIC=-23,319 with only 7 parameters
     (intercept + slope + 5 weighted oscillatory terms).
 
-    All parameters are hardcoded from the greedy search — no runtime
-    dependency on other model instances.
+    v2: uses entropy-damped E(w·t) and EPPL model components.
+    All parameters are hardcoded — no runtime dependency on other models.
 
     Formula:
         log₁₀(price) = α + β·log₁₀(t) + Σᵢ wᵢ·fᵢ(t)
 
-    where fᵢ are 5 oscillatory basis functions with source-model
-    parameters baked in.
+    where fᵢ are 5 oscillatory basis functions selected by greedy
+    BIC minimization from a dictionary of entropy-damped, power-law-
+    damped, undamped, and EPPL model components.
     """
     name = "Greedy Select"
     short_name = "grdy"
@@ -1955,25 +1956,21 @@ class GreedyModel:
     quantized = True
 
     # ── OLS intercept and slope ──────────────────────────────────────────
-    _alpha = -1.211238
-    _beta  =  5.119765
-    _sigma =  0.129877
+    _alpha = -1.166405
+    _beta  =  5.078858
+    _sigma =  0.123652
 
-    # ── 5 selected oscillatory terms ─────────────────────────────────────
-    # Each term: (weight, amplitude, damping, freq, phase, is_log_periodic)
-    #   is_log_periodic=True  → C·t^(-D)·cos(ω·ln(t) + φ)
-    #   is_log_periodic=False → C·t^(-D)·cos(ω·t + φ)
-    #
-    # f₁: halving cycle from LinPPL — undamped calendar oscillation
-    _w1 = 0.921198;  _C1 = 0.282344;  _D1 = 0.010000;  _W1 = 1.765746;  _PHI1 = -2.284078;  _LOG1 = False
-    # f₂: primary LPPL frequency — damped log-periodic
-    _w2 = 0.839768;  _C2 = 0.733975;  _D2 = 0.607967;  _W2 = 7.557911;  _PHI2 =  1.377121;  _LOG2 = True
-    # f₃: sub-halving from Hyb2C — undamped calendar oscillation
-    _w3 = 0.868695;  _C3 = 0.114588;  _D3 = 0.000000;  _W3 = 3.280720;  _PHI3 = -2.452578;  _LOG3 = False
-    # f₄: 2nd log harmonic from Hyb2B — fast-decay log-periodic
-    _w4 = 0.783073;  _C4 = 0.422419;  _D4 = 1.165713;  _W4 = 16.238167; _PHI4 =  1.885355;  _LOG4 = True
-    # f₅: long calendar from Hyb4D — heavily damped calendar oscillation
-    _w5 = 0.546787;  _C5 = 0.586943;  _D5 = 1.062266;  _W5 = 1.116857;  _PHI5 =  3.141119;  _LOG5 = False
+    # ── 5 selected oscillatory terms (v2: entropy-damped) ────────────────
+    # f₁: E(0.10)·sin(7.5·ln(t)) — entropy-damped log-periodic
+    _w1 = 0.015686;  _we1 = 0.10;  _W1 = 7.5
+    # f₂: undamped halving cycle (from EPPL: C2·cos(Wc1·t+P2))
+    _w2 = 0.997744;  _C2 = 0.202747;  _Wc2 = 1.881312;  _P2 = 2.520900
+    # f₃: E(0.05)·cos(2π/1.88·t) — entropy-damped sub-halving
+    _w3 = -0.139415;  _we3 = 0.05;  _Wc3 = 3.340840  # 2π/1.88
+    # f₄: EPPL entropy log osc 1 (C1·E(w1·t)·cos(W1·ln(t)+P1))
+    _w4 = 0.981907;  _C4 = 0.250431;  _W4 = 16.823756;  _P4 = 1.460422;  _we4 = 0.251550
+    # f₅: EPPL entropy log osc 2 (C3·E(w2·t)·cos(W2·ln(t)+P3))
+    _w5 = 1.007897;  _C5 = 0.556269;  _W5 = 7.803554;  _P5 = 1.373041;  _we5 = 0.107049
 
     def __init__(self, price_years, price_prices, quantiles):
         # Build quantile bands via Gaussian z·σ shift
@@ -1985,11 +1982,11 @@ class GreedyModel:
         self._build_colors()
 
     @staticmethod
-    def _eval_term(t_safe, C, D, W, PHI, is_log):
-        """Evaluate a single oscillatory basis function."""
-        envelope = C * t_safe ** (-D) if D != 0.0 else np.full_like(t_safe, C)
-        arg = W * np.log(t_safe) + PHI if is_log else W * t_safe + PHI
-        return envelope * np.cos(arg)
+    def _entropy_env(t, w):
+        """Shannon entropy envelope: max(-x·ln(x), 0)/(1/e) where x=w·t."""
+        x = w * t
+        raw = -x * np.log(np.maximum(x, 1e-30))
+        return np.maximum(raw, 0) * np.e
 
     def _model_log10(self, t):
         """Evaluate: α + β·log₁₀(t) + Σ wᵢ·fᵢ(t)."""
@@ -1997,14 +1994,20 @@ class GreedyModel:
         scalar = t_arr.ndim == 0
         if scalar:
             t_arr = t_arr.reshape(1)
-        t_safe = np.maximum(t_arr, 0.1)
+        ts = np.maximum(t_arr, 0.1)
+        ln_t = np.log(ts)
 
-        result = self._alpha + self._beta * np.log10(t_safe)
-        result += self._w1 * self._eval_term(t_safe, self._C1, self._D1, self._W1, self._PHI1, self._LOG1)
-        result += self._w2 * self._eval_term(t_safe, self._C2, self._D2, self._W2, self._PHI2, self._LOG2)
-        result += self._w3 * self._eval_term(t_safe, self._C3, self._D3, self._W3, self._PHI3, self._LOG3)
-        result += self._w4 * self._eval_term(t_safe, self._C4, self._D4, self._W4, self._PHI4, self._LOG4)
-        result += self._w5 * self._eval_term(t_safe, self._C5, self._D5, self._W5, self._PHI5, self._LOG5)
+        result = self._alpha + self._beta * np.log10(ts)
+        # f₁: entropy-damped sin(7.5·ln(t))
+        result += self._w1 * self._entropy_env(ts, self._we1) * np.sin(self._W1 * ln_t)
+        # f₂: undamped halving cycle
+        result += self._w2 * self._C2 * np.cos(self._Wc2 * ts + self._P2)
+        # f₃: entropy-damped cos(sub-halving)
+        result += self._w3 * self._entropy_env(ts, self._we3) * np.cos(self._Wc3 * ts)
+        # f₄: EPPL entropy log osc 1
+        result += self._w4 * self._C4 * self._entropy_env(ts, self._we4) * np.cos(self._W4 * ln_t + self._P4)
+        # f₅: EPPL entropy log osc 2
+        result += self._w5 * self._C5 * self._entropy_env(ts, self._we5) * np.cos(self._W5 * ln_t + self._P5)
 
         return float(result[0]) if scalar else result
 
@@ -2050,11 +2053,11 @@ class GreedyModel:
     component_names = [
         "\u03b1 (intercept)",
         "\u03b2\u00b7log\u2081\u2080(t)",
-        "f\u2081 halving cycle",
-        "f\u2082 log-periodic",
-        "f\u2083 sub-halving",
-        "f\u2084 2nd log harmonic",
-        "f\u2085 long calendar",
+        "f\u2081 entropy log-periodic",
+        "f\u2082 halving cycle",
+        "f\u2083 entropy sub-halving",
+        "f\u2084 entropy log osc 1",
+        "f\u2085 entropy log osc 2",
     ]
 
     formula_log10_latex = (
@@ -2075,30 +2078,28 @@ class GreedyModel:
                 "\u03b2\u00b7log\u2081\u2080(t)",
                 [("\u03b2", "_beta")],
             ),
-            "f\u2081 halving cycle": (
-                "w\u2081\u00b7C\u2081\u00b7t^(\u2212D\u2081)\u00b7cos(\u03c9\u2081\u00b7t+\u03c6\u2081)",
-                [("w\u2081", "_w1"), ("C\u2081", "_C1"), ("D\u2081", "_D1"),
-                 ("\u03c9\u2081", "_W1"), ("\u03c6\u2081", "_PHI1")],
+            "f\u2081 entropy log-periodic": (
+                "w\u2081\u00b7E(w_e\u2081\u00b7t)\u00b7sin(\u03c9\u2081\u00b7ln(t))",
+                [("w\u2081", "_w1"), ("w_e\u2081", "_we1"), ("\u03c9\u2081", "_W1")],
             ),
-            "f\u2082 log-periodic": (
-                "w\u2082\u00b7C\u2082\u00b7t^(\u2212D\u2082)\u00b7cos(\u03c9\u2082\u00b7ln(t)+\u03c6\u2082)",
-                [("w\u2082", "_w2"), ("C\u2082", "_C2"), ("D\u2082", "_D2"),
-                 ("\u03c9\u2082", "_W2"), ("\u03c6\u2082", "_PHI2")],
+            "f\u2082 halving cycle": (
+                "w\u2082\u00b7C\u2082\u00b7cos(\u03c9_c\u00b7t+\u03c6\u2082)",
+                [("w\u2082", "_w2"), ("C\u2082", "_C2"),
+                 ("\u03c9_c", "_Wc2"), ("\u03c6\u2082", "_P2")],
             ),
-            "f\u2083 sub-halving": (
-                "w\u2083\u00b7C\u2083\u00b7cos(\u03c9\u2083\u00b7t+\u03c6\u2083)",
-                [("w\u2083", "_w3"), ("C\u2083", "_C3"),
-                 ("\u03c9\u2083", "_W3"), ("\u03c6\u2083", "_PHI3")],
+            "f\u2083 entropy sub-halving": (
+                "w\u2083\u00b7E(w_e\u2083\u00b7t)\u00b7cos(\u03c9_c\u2083\u00b7t)",
+                [("w\u2083", "_w3"), ("w_e\u2083", "_we3"), ("\u03c9_c\u2083", "_Wc3")],
             ),
-            "f\u2084 2nd log harmonic": (
-                "w\u2084\u00b7C\u2084\u00b7t^(\u2212D\u2084)\u00b7cos(\u03c9\u2084\u00b7ln(t)+\u03c6\u2084)",
-                [("w\u2084", "_w4"), ("C\u2084", "_C4"), ("D\u2084", "_D4"),
-                 ("\u03c9\u2084", "_W4"), ("\u03c6\u2084", "_PHI4")],
+            "f\u2084 entropy log osc 1": (
+                "w\u2084\u00b7C\u2084\u00b7E(w_e\u2084\u00b7t)\u00b7cos(\u03c9\u2084\u00b7ln(t)+\u03c6\u2084)",
+                [("w\u2084", "_w4"), ("C\u2084", "_C4"),
+                 ("w_e\u2084", "_we4"), ("\u03c9\u2084", "_W4"), ("\u03c6\u2084", "_P4")],
             ),
-            "f\u2085 long calendar": (
-                "w\u2085\u00b7C\u2085\u00b7t^(\u2212D\u2085)\u00b7cos(\u03c9\u2085\u00b7t+\u03c6\u2085)",
-                [("w\u2085", "_w5"), ("C\u2085", "_C5"), ("D\u2085", "_D5"),
-                 ("\u03c9\u2085", "_W5"), ("\u03c6\u2085", "_PHI5")],
+            "f\u2085 entropy log osc 2": (
+                "w\u2085\u00b7C\u2085\u00b7E(w_e\u2085\u00b7t)\u00b7cos(\u03c9\u2085\u00b7ln(t)+\u03c6\u2085)",
+                [("w\u2085", "_w5"), ("C\u2085", "_C5"),
+                 ("w_e\u2085", "_we5"), ("\u03c9\u2085", "_W5"), ("\u03c6\u2085", "_P5")],
             ),
         }
 
@@ -2108,16 +2109,17 @@ class GreedyModel:
         scalar = t_arr.ndim == 0
         if scalar:
             t_arr = t_arr.reshape(1)
-        t_safe = np.maximum(t_arr, 0.1)
+        ts = np.maximum(t_arr, 0.1)
+        ln_t = np.log(ts)
 
         result = {
-            "\u03b1 (intercept)":      np.full_like(t_safe, self._alpha),
-            "\u03b2\u00b7log\u2081\u2080(t)": self._beta * np.log10(t_safe),
-            "f\u2081 halving cycle":   self._w1 * self._eval_term(t_safe, self._C1, self._D1, self._W1, self._PHI1, self._LOG1),
-            "f\u2082 log-periodic":    self._w2 * self._eval_term(t_safe, self._C2, self._D2, self._W2, self._PHI2, self._LOG2),
-            "f\u2083 sub-halving":     self._w3 * self._eval_term(t_safe, self._C3, self._D3, self._W3, self._PHI3, self._LOG3),
-            "f\u2084 2nd log harmonic": self._w4 * self._eval_term(t_safe, self._C4, self._D4, self._W4, self._PHI4, self._LOG4),
-            "f\u2085 long calendar":   self._w5 * self._eval_term(t_safe, self._C5, self._D5, self._W5, self._PHI5, self._LOG5),
+            "\u03b1 (intercept)":      np.full_like(ts, self._alpha),
+            "\u03b2\u00b7log\u2081\u2080(t)": self._beta * np.log10(ts),
+            "f\u2081 entropy log-periodic": self._w1 * self._entropy_env(ts, self._we1) * np.sin(self._W1 * ln_t),
+            "f\u2082 halving cycle":   self._w2 * self._C2 * np.cos(self._Wc2 * ts + self._P2),
+            "f\u2083 entropy sub-halving": self._w3 * self._entropy_env(ts, self._we3) * np.cos(self._Wc3 * ts),
+            "f\u2084 entropy log osc 1": self._w4 * self._C4 * self._entropy_env(ts, self._we4) * np.cos(self._W4 * ln_t + self._P4),
+            "f\u2085 entropy log osc 2": self._w5 * self._C5 * self._entropy_env(ts, self._we5) * np.cos(self._W5 * ln_t + self._P5),
         }
         if scalar:
             result = {k: float(v[0]) for k, v in result.items()}

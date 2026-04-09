@@ -143,7 +143,7 @@ def _retire_controls():
                        show_inflation=True, show_stack=True, default_entry_q=10,
                        start_yr_label="Retirement start year",
                        shared_controls={"amount", "infl", "freq", "stack"},
-                       mc_enabled_default=False),
+                       mc_enabled_default=True),
         yr_range=(2024, 2080, 2031, 2075),
         chart_toggle_defaults=["annotate", "log_y", "minor_grid", "shade"],
         btc_usd_kwargs={"btc_label": "BTC Remaining"},

@@ -584,7 +584,9 @@ def _build_layout(initial_tab="bubble"):
         dbc.Tab(html.Div(id="model-info-lazy", children=[
             html.P("Loading...", className="text-muted p-4")
         ]), label="\U0001F4D0 Model Info", tab_id="model_info"),
-        dbc.Tab(_faq_tab(),          label="\u2753 FAQ",                 tab_id="faq"),
+        dbc.Tab(html.Div(id="faq-lazy", children=[
+            html.P("Loading...", className="text-muted p-4")
+        ]), label="\u2753 FAQ", tab_id="faq"),
     ], id="main-tabs", active_tab=initial_tab),
     _global_lppl_modal(),
     _global_hybppl_modal(),

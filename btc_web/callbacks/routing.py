@@ -659,12 +659,26 @@ def open_model_info_lightbox(n_clicks_list):
 # ══════════════════════════════════════════════════════════════════════════════
 
 @callback(
-    Output("faq-accordion", "active_item"),
-    Input("url", "pathname"),
-    prevent_initial_call=False,
+    Output("faq-lazy", "children"),
+    Input("main-tabs", "active_tab"),
+    prevent_initial_call=True,
 )
-def open_faq_item(pathname):
-    """Open a specific FAQ accordion item: /9.N or /faq.N (1-indexed)."""
+def _lazy_load_faq(tab):
+    """Populate FAQ content on first visit (saves ~77KB from layout JSON)."""
+    if tab != "faq":
+        return no_update
+    from layout.faq import _faq_tab
+    return _faq_tab().children  # unwrap the outer Div
+
+
+@callback(
+    Output("faq-accordion", "active_item"),
+    Input("faq-lazy", "children"),
+    State("url", "pathname"),
+    prevent_initial_call=True,
+)
+def open_faq_item(children, pathname):
+    """Open a specific FAQ accordion item after lazy load: /9.N (1-indexed)."""
     pathname = _norm(pathname)
     if not pathname:
         return no_update

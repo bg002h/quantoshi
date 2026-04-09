@@ -149,7 +149,10 @@ _app_ctx.app.clientside_callback(
            uninterrupted. Dismissing the modal during restore causes race conditions. */
         var _h = window.location.hash || "";
         var hasShareHash = _h.indexOf("q3:") !== -1 || _h.indexOf("q2:") !== -1 || _h.indexOf("q1:") !== -1;
-        if (!isDev && !hasShareHash && now - last >= SIX_HOURS) {
+        /* Skip splash on deep links — user navigated to a specific tab/item */
+        var _p = window.location.pathname.replace(/\/+$/, "") || "/";
+        var isDeepLink = _p !== "/" && _p !== "/1";
+        if (!isDev && !hasShareHash && !isDeepLink && now - last >= SIX_HOURS) {
             var quotes = """ + _SPLASH_QUOTES_JS + """;
             /* Deterministic pseudo-random shuffle using epoch as seed */
             var seed = Math.floor(now / (6 * 3600 * 1000));

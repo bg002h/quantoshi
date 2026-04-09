@@ -1,13 +1,8 @@
-/* Responsive chart scaling — thicken everything on desktop.
- *
- * Uses MutationObserver to detect when Plotly renders SVG, then
- * calls Plotly.restyle + Plotly.relayout to scale up visual weight.
- */
+/* Responsive chart scaling — thicken everything on desktop. */
 (function() {
     'use strict';
     var DESKTOP_MIN = 768;
-    document.title = 'RESPONSIVE JS LOADED w=' + window.innerWidth;
-    if (window.innerWidth <= DESKTOP_MIN) return;  /* mobile — skip entirely */
+    if (window.innerWidth <= DESKTOP_MIN) return;
 
     var LINE_SCALE    = 3.0;
     var MARKER_SCALE  = 2.0;
@@ -24,15 +19,15 @@
     function getPlotlyDiv(wrapperId) {
         var wrapper = document.getElementById(wrapperId);
         if (!wrapper) return null;
-        /* dcc.Graph wraps Plotly in a child .js-plotly-plot div */
         return wrapper.querySelector('.js-plotly-plot') || wrapper;
     }
 
     function scaleChart(gd) {
-        if (!gd || !gd.data) return;
-        if (gd._responsiveScaled) return;
-        var lay = gd.layout || gd._fullLayout || {};
-        document.title = 'SC: data=' + gd.data.length + ' lay=' + !!gd.layout + ' _fL=' + !!gd._fullLayout + ' keys=' + Object.keys(lay).slice(0,5);
+        if (!gd || !gd.data) return false;
+        if (gd._responsiveScaled) return true;
+
+        /* Use _fullLayout for relayout — it has the computed axis properties */
+        var lay = gd._fullLayout || gd.layout || {};
 
         /* ── Traces ──────────────────────────────────────────────── */
         var lineIdx = [], lineW = [];
@@ -58,7 +53,7 @@
             if (lineIdx.length) Plotly.restyle(gd, {'line.width': lineW}, lineIdx);
             if (mkIdx.length)   Plotly.restyle(gd, {'marker.size': mkSz}, mkIdx);
             if (opIdx.length)   Plotly.restyle(gd, {'marker.opacity': opVals}, opIdx);
-        } catch(e) { document.title = 'RESTYLE ERR: ' + e.message; return; }
+        } catch(e) { return false; }
 
         /* ── Layout (grid, axes, fonts) ──────────────────────────── */
         var upd = {};
@@ -68,6 +63,8 @@
             var ax = lay[k] || {};
             if (ax.gridwidth != null)
                 upd[k + '.gridwidth'] = ax.gridwidth * GRID_SCALE;
+            if (ax._gridWidthInit || ax.gridwidth != null)
+                upd[k + '.gridwidth'] = (ax.gridwidth || 1) * GRID_SCALE;
             upd[k + '.linewidth'] = (ax.linewidth || 1) * AXIS_SCALE;
             if (ax.tickfont && ax.tickfont.size)
                 upd[k + '.tickfont.size'] = Math.round(ax.tickfont.size * FONT_SCALE);
@@ -89,57 +86,37 @@
         }
 
         try {
-            if (Object.keys(upd).length) {
-                document.title = 'RELAYOUT keys=' + Object.keys(upd).join(',');
-                Plotly.relayout(gd, upd);
-            } else {
-                document.title = 'RELAYOUT: no updates (no axes found)';
-            }
-        } catch(e) { document.title = 'RELAYOUT ERR: ' + e.message; return; }
+            if (Object.keys(upd).length) Plotly.relayout(gd, upd);
+        } catch(e) { /* relayout failed — traces still scaled */ }
 
         gd._responsiveScaled = true;
-        document.title = 'SCALED ' + gd.id + ' lines×' + LINE_SCALE;
+        /* DEBUG — remove after confirming */
+        document.title = 'SCALED ' + gd.id + ' t=' + lineIdx.length + ' lay=' + Object.keys(upd).length;
+        return true;
     }
 
-    /* Poll for graphs — simpler and more reliable than event hooks */
-    function checkAll() {
+    /* Poll until at least one chart is scaled, then slow down */
+    var scaled = {};
+    var interval = setInterval(function() {
         GRAPH_IDS.forEach(function(id) {
+            if (scaled[id]) return;
             var gd = getPlotlyDiv(id);
-            if (gd && gd.data && gd.data.length > 0 && !gd._responsiveScaled) {
-                scaleChart(gd);
+            if (gd && gd.data && gd.data.length > 0) {
+                if (scaleChart(gd)) scaled[id] = true;
             }
         });
-    }
-
-    /* Check periodically for the first 60 seconds */
-    var interval = setInterval(function() {
-        var gd = getPlotlyDiv('bubble-graph');
-        var hasData = gd ? !!(gd.data && gd.data.length) : false;
-        var nTraces = gd && gd.data ? gd.data.length : 0;
-        var status = gd ? ('plotly=' + hasData + ' traces=' + nTraces) : 'no-plotly-div';
-        document.title = 'POLL: ' + status;
-        checkAll();
-    }, 1000);
+    }, 500);
     setTimeout(function() { clearInterval(interval); }, 60000);
 
-    /* Also check on any DOM mutation (catches lazy-loaded tabs + callback re-renders) */
+    /* MutationObserver for lazy-loaded tabs */
     var observer = new MutationObserver(function() {
         GRAPH_IDS.forEach(function(id) {
+            if (scaled[id]) return;
             var gd = getPlotlyDiv(id);
-            if (gd && gd.data && gd.data.length > 0 && !gd._responsiveScaled) {
-                scaleChart(gd);
+            if (gd && gd.data && gd.data.length > 0) {
+                if (scaleChart(gd)) scaled[id] = true;
             }
         });
     });
     observer.observe(document.body, {childList: true, subtree: true});
-
-    /* Reset flag when Dash re-renders a figure (plotly_react fires after newPlot) */
-    setInterval(function() {
-        GRAPH_IDS.forEach(function(id) {
-            var gd = document.getElementById(id);
-            if (gd && gd._responsiveScaled && gd._fullLayout && gd._fullLayout._replotting) {
-                gd._responsiveScaled = false;
-            }
-        });
-    }, 1000);
 })();

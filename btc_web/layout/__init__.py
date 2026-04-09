@@ -128,13 +128,15 @@ def _serve_layout():
     initial_tab = _PATH_TO_TAB.get(clean, "bubble")
     layout = _build_layout(initial_tab)
 
-    # Inject pre-computed figures for ALL chart tabs (L1 cache hit, ~0ms each).
-    # This prevents the flash/resize when switching to a new tab.
+    # Inject pre-computed figure ONLY for the target tab to reduce layout JSON size.
+    # All 6 figures were ~1.5MB of the 2.2MB layout; injecting one cuts it to ~600KB.
+    # Non-target tabs get their figures via first-render callback on first visit.
     from layout.common import _inject_initial_figure
-    for tab, gid in _TAB_TO_GRAPH.items():
-        fig = _get_initial_figure(tab)
+    target_gid = _TAB_TO_GRAPH.get(initial_tab)
+    if target_gid:
+        fig = _get_initial_figure(initial_tab)
         if fig:
-            _inject_initial_figure(layout, gid, fig)
+            _inject_initial_figure(layout, target_gid, fig)
 
     return layout
 
@@ -159,10 +161,10 @@ def _build_layout(initial_tab="bubble"):
     dcc.Store(id="wm-b64-store", storage_type="memory", data=_LOGO_B64_ALL),
     dcc.Store(id="auto-y-grid", storage_type="memory",
               data=_app_ctx.AUTO_Y_GRID),
-    # Per-tab render triggers — start at 1 (figures already injected at layout time).
-    # Clientside trigger only fires for cur=0 (unvisited), so no callback fires
-    # until the user changes a control. Double-click tab forces reload.
-    *[dcc.Store(id=f"{tab}-first-render", storage_type="memory", data=1)
+    # Per-tab render triggers — 1 for the target tab (figure pre-injected),
+    # 0 for others (callback fires on first visit to fetch their figure).
+    *[dcc.Store(id=f"{tab}-first-render", storage_type="memory",
+                data=1 if tab == initial_tab else 0)
       for tab in ("bubble", "heatmap", "dca", "retire", "supercharge", "citadel")],
     # MC per-tab stores (results, unblocked cache, loaded trigger, download dummy)
     *[dcc.Store(id=f"{pfx}-mc-results", storage_type="memory", data=None)

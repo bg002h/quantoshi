@@ -1,18 +1,21 @@
-/* Remove deeplink-pending class after Dash hydrates — allows tab panes to render normally.
-   The CSS rule body.deeplink-pending hides non-active panes to prevent the flash of tab 1. */
+/* Remove deeplink-pending class after Dash hydrates the correct tab.
+   The inline <style> + <script> in index_string hide #main-tabs until
+   this observer detects React has rendered the active tab pane. */
 (function() {
+    var html = document.documentElement;
+    if (!html.classList.contains('deeplink-pending')) return;
+
     var observer = new MutationObserver(function() {
         if (document.querySelector('#main-tabs .tab-pane.active')) {
-            document.body.classList.remove('deeplink-pending');
+            html.classList.remove('deeplink-pending');
             observer.disconnect();
         }
     });
-    if (document.body.classList.contains('deeplink-pending')) {
-        observer.observe(document.body, {childList: true, subtree: true});
-        /* Safety fallback — remove after 2s regardless */
-        setTimeout(function() {
-            document.body.classList.remove('deeplink-pending');
-            observer.disconnect();
-        }, 2000);
-    }
+    observer.observe(document.body, {childList: true, subtree: true});
+
+    /* Safety fallback */
+    setTimeout(function() {
+        html.classList.remove('deeplink-pending');
+        observer.disconnect();
+    }, 3000);
 })();

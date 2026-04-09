@@ -280,14 +280,8 @@ body {
 }
 
 /* ── Deep-link flash suppression ─────────────────────────────────────────── */
-/* Hide tabs container until Dash hydrates the correct active tab.
-   Prevents the 1-2s flash of tab 1 when deep-linking to /faq, /8, etc.
-   Inline script in index_string adds the class; tab_deeplink.js removes it. */
-body.deeplink-pending #main-tabs {
-    visibility: hidden;
-    height: 0;
-    overflow: hidden;
-}
+/* Critical rule is inlined in index_string <style id="deeplink-guard">.
+   tab_deeplink.js removes .deeplink-pending from <html> after hydration. */
 
 /* ── #11: Loading skeleton shimmer ────────────────────────────────────────── */
 .chart-loading-skeleton {

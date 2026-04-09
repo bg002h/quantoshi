@@ -339,7 +339,7 @@ _app_ctx.app.clientside_callback(
     Output("main-tabs", "active_tab", allow_duplicate=True),
     Input("url", "pathname"),
     Input("splash-modal", "is_open"),
-    prevent_initial_call="initial_duplicate",
+    prevent_initial_call=True,
 )
 
 

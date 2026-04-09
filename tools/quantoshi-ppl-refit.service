@@ -1,0 +1,35 @@
+# quantoshi-ppl-refit.service — Monthly refit of ALL periodic power law models.
+#
+# Runs tools/refit_all_ppl.py --update to re-fit:
+#   LPPL (1-4 freq + weighted + no-13 variants)
+#   LinPPL, HybPPL, HybPPL DD, Hyb2L, Hyb2C, Hyb2B, Hyb4D
+#   HybPPL config models (36 configs)
+#   EPPL config models (36 configs)
+#   Logistic (Gompertz), Broken Power Law
+# Then flushes Redis and restarts quantoshi.
+#
+# Replaces the old quantoshi-lppl-refit.service.
+#
+# PRODUCTION install:
+#   scp tools/quantoshi-ppl-refit.service root@89.167.70.45:/etc/systemd/system/
+#   scp tools/quantoshi-ppl-refit.timer root@89.167.70.45:/etc/systemd/system/
+#   ssh root@89.167.70.45 "systemctl daemon-reload && systemctl enable --now quantoshi-ppl-refit.timer"
+#   ssh root@89.167.70.45 "systemctl disable quantoshi-lppl-refit.timer"  # remove old
+
+[Unit]
+Description=Quantoshi monthly PPL model refit (all periodic power law models)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/quantoshi
+ExecStart=/opt/quantoshi/btc_venv/bin/python3 /opt/quantoshi/tools/refit_all_ppl.py
+# Flush Redis cache and restart after refit
+ExecStartPost=/usr/bin/redis-cli FLUSHDB
+ExecStartPost=/bin/systemctl restart quantoshi
+StandardOutput=append:/var/log/quantoshi-ppl-refit.log
+StandardError=append:/var/log/quantoshi-ppl-refit.log
+User=root
+Group=root
+# Full refit takes ~60-90 minutes
+TimeoutStartSec=7200

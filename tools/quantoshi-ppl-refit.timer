@@ -1,0 +1,26 @@
+# quantoshi-ppl-refit.timer — Runs quantoshi-ppl-refit.service on the 1st of each month.
+#
+# Replaces the old quantoshi-lppl-refit.timer.
+#
+# PRODUCTION install:
+#   scp tools/quantoshi-ppl-refit.timer root@89.167.70.45:/etc/systemd/system/
+#   ssh root@89.167.70.45 "systemctl daemon-reload && systemctl enable --now quantoshi-ppl-refit.timer"
+#
+# Check status:
+#   systemctl status quantoshi-ppl-refit.timer
+#   systemctl list-timers quantoshi-ppl-refit.timer
+#
+# Manual run:
+#   systemctl start quantoshi-ppl-refit.service
+
+[Unit]
+Description=Monthly PPL model refit timer
+
+[Timer]
+OnCalendar=monthly
+RandomizedDelaySec=1h
+Persistent=true
+Unit=quantoshi-ppl-refit.service
+
+[Install]
+WantedBy=timers.target

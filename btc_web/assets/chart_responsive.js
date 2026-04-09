@@ -101,7 +101,11 @@
     /* Check periodically for the first 60 seconds */
     var interval = setInterval(function() {
         var gd = document.getElementById('bubble-graph');
-        var status = gd ? ('el=yes data=' + !!(gd.data) + ' len=' + (gd.data ? gd.data.length : 0)) : 'el=no';
+        var hasPlot = gd ? !!(gd.querySelector && gd.querySelector('.plot-container')) : false;
+        var hasFD = gd ? !!(gd._fullData) : false;
+        var hasData = gd ? !!(gd.data && gd.data.length) : false;
+        var nSvgPaths = gd ? (gd.querySelectorAll('.scatterlayer path') || []).length : 0;
+        var status = gd ? ('plot=' + hasPlot + ' _fD=' + hasFD + ' data=' + hasData + ' paths=' + nSvgPaths) : 'el=no';
         document.title = 'POLL: ' + status;
         checkAll();
     }, 1000);

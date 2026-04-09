@@ -30,9 +30,9 @@
 
     function scaleChart(gd) {
         if (!gd || !gd.data) return;
-        var lay = gd.layout || gd._fullLayout || {};
-        document.title = 'scaleChart: data=' + gd.data.length + ' layout=' + !!gd.layout + ' _fL=' + !!gd._fullLayout;
         if (gd._responsiveScaled) return;
+        var lay = gd.layout || gd._fullLayout || {};
+        document.title = 'SC: data=' + gd.data.length + ' lay=' + !!gd.layout + ' _fL=' + !!gd._fullLayout + ' keys=' + Object.keys(lay).slice(0,5);
 
         /* ── Traces ──────────────────────────────────────────────── */
         var lineIdx = [], lineW = [];

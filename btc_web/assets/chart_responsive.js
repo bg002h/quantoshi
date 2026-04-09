@@ -21,6 +21,13 @@
         'retire-graph', 'supercharge-graph', 'citadel-graph'
     ];
 
+    function getPlotlyDiv(wrapperId) {
+        var wrapper = document.getElementById(wrapperId);
+        if (!wrapper) return null;
+        /* dcc.Graph wraps Plotly in a child .js-plotly-plot div */
+        return wrapper.querySelector('.js-plotly-plot') || wrapper;
+    }
+
     function scaleChart(gd) {
         if (!gd || !gd.data || !gd.layout) return;
         if (gd._responsiveScaled) return;
@@ -91,7 +98,7 @@
     /* Poll for graphs — simpler and more reliable than event hooks */
     function checkAll() {
         GRAPH_IDS.forEach(function(id) {
-            var gd = document.getElementById(id);
+            var gd = getPlotlyDiv(id);
             if (gd && gd.data && gd.data.length > 0 && !gd._responsiveScaled) {
                 scaleChart(gd);
             }
@@ -100,12 +107,10 @@
 
     /* Check periodically for the first 60 seconds */
     var interval = setInterval(function() {
-        var gd = document.getElementById('bubble-graph');
-        var hasPlot = gd ? !!(gd.querySelector && gd.querySelector('.plot-container')) : false;
-        var hasFD = gd ? !!(gd._fullData) : false;
+        var gd = getPlotlyDiv('bubble-graph');
         var hasData = gd ? !!(gd.data && gd.data.length) : false;
-        var nSvgPaths = gd ? (gd.querySelectorAll('.scatterlayer path') || []).length : 0;
-        var status = gd ? ('plot=' + hasPlot + ' _fD=' + hasFD + ' data=' + hasData + ' paths=' + nSvgPaths) : 'el=no';
+        var nTraces = gd && gd.data ? gd.data.length : 0;
+        var status = gd ? ('plotly=' + hasData + ' traces=' + nTraces) : 'no-plotly-div';
         document.title = 'POLL: ' + status;
         checkAll();
     }, 1000);
@@ -114,7 +119,7 @@
     /* Also check on any DOM mutation (catches lazy-loaded tabs + callback re-renders) */
     var observer = new MutationObserver(function() {
         GRAPH_IDS.forEach(function(id) {
-            var gd = document.getElementById(id);
+            var gd = getPlotlyDiv(id);
             if (gd && gd.data && gd.data.length > 0 && !gd._responsiveScaled) {
                 scaleChart(gd);
             }

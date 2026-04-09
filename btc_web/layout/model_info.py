@@ -1554,44 +1554,71 @@ where $E(x) = \max(-x \ln x,\; 0)\, / \,(1/e)$ is the **normalized Shannon entro
                             """, mathjax=True, className="mb-3"),
 
                             html.H6("Shannon Entropy Interpretation"),
-                            html.P(
-                                "The entropy envelope E(w\u00b7t) replaces the traditional "
-                                "power-law damping t^(\u2212D) used in HybPPL. It measures "
-                                "adoption uncertainty at each point in time:"
-                            ),
+                            html.P([
+                                "The function ", html.Code("-x\u00b7ln(x)"),
+                                " is the core of Shannon\u2019s information entropy. If you think of ",
+                                html.Code("w\u00b7t"), " as the ",
+                                html.Em("fraction of Bitcoin\u2019s adoption lifecycle completed"),
+                                ", then E(w\u00b7t) measures the ",
+                                html.Strong("information uncertainty"),
+                                " about whether adoption is complete."
+                            ]),
                             html.Ul([
                                 html.Li([
-                                    html.Strong("Peak at w\u00b7t = 1/e: "),
-                                    "Maximum uncertainty \u2014 the market is maximally "
-                                    "uncertain about adoption outcome. The oscillation "
-                                    "amplitude is largest here."
+                                    html.Strong("Peak at w\u00b7t = 1/e \u2248 37%: "),
+                                    "The moment of maximum uncertainty about whether Bitcoin "
+                                    "will succeed or fail. Before that, it\u2019s \u201cprobably too "
+                                    "early to tell.\u201d After that, the outcome is increasingly determined."
                                 ]),
                                 html.Li([
-                                    html.Strong("Zero at w\u00b7t = 1: "),
-                                    "Adoption is \u201cresolved\u201d \u2014 the speculative "
-                                    "oscillation dies out completely."
-                                ]),
-                                html.Li([
-                                    html.Strong("Fitted w\u2082 = 0.107: "),
-                                    "Peak \u2248 2013, zero \u2248 2019 \u2014 the speculative "
-                                    "era of the primary log-periodic frequency ended."
-                                ]),
-                                html.Li([
-                                    html.Strong("Fitted w\u2081 = 0.252: "),
-                                    "Peak \u2248 2011, zero \u2248 2013 \u2014 the higher harmonic "
-                                    "was even shorter-lived."
+                                    html.Strong("Zero at w\u00b7t = 1 (100%): "),
+                                    "Adoption is \u201cresolved\u201d \u2014 the speculative question is "
+                                    "answered. There\u2019s nothing left to speculate about."
                                 ]),
                             ]),
+                            html.P([
+                                "The oscillations multiplied by this envelope mean: ",
+                                html.Strong("speculative cycles are strongest when uncertainty "
+                                            "about Bitcoin\u2019s future is highest."),
+                                " As adoption becomes more certain (w\u00b7t \u2192 1, envelope \u2192 0), "
+                                "the oscillations die out."
+                            ]),
 
-                            html.H6("Motivation"),
+                            html.H6("What the fitted parameters say"),
+                            html.P("With the primary log-periodic\u2019s fitted w = 0.107:"),
+                            _coeff_table([
+                                ("w\u00b7t = 0.37 at t=3.5yr (2013)",
+                                 "Exactly 1/e \u2014 maximum entropy, peak speculation"),
+                                ("w\u00b7t = 1.0 at t=9.5yr (2019)",
+                                 "\u201cAdoption resolved\u201d \u2014 oscillations extinct"),
+                                ("w\u00b7t = 1.68 at t=16yr (now)",
+                                 "Well past the zero crossing"),
+                            ]),
+                            html.P([
+                                html.Strong("This is saying: "),
+                                "Bitcoin\u2019s speculative uncertainty was resolved by ~2019. "
+                                "After that, price dynamics are driven by the halving cycle "
+                                "(calendar-periodic), not by speculative bubble behavior "
+                                "(log-periodic). The log-periodic signal was an artifact of "
+                                "the \u201cwill it survive?\u201d era."
+                            ]),
+                            html.P([
+                                "Whether this is deep or coincidental depends on whether you "
+                                "believe the binary adoption framing. But the mathematical form "
+                                "is ", html.Em("literally"), " the entropy function, and the "
+                                "fitted parameters put maximum entropy right at the peak of "
+                                "early Bitcoin speculation."
+                            ]),
+
+                            html.H6("Why entropy damping beats power-law damping"),
                             html.P(
-                                "HybPPL uses power-law damping t^(\u2212D), which decays "
-                                "monotonically but never reaches zero. The entropy envelope "
+                                "HybPPL uses t^(\u2212D), which decays monotonically from "
+                                "infinity but never reaches zero. The entropy envelope "
                                 "provides a physically motivated alternative: oscillations "
-                                "are born, peak, and die as the market resolves adoption "
-                                "uncertainty. This gives the model a natural cutoff where "
-                                "log-periodic oscillations cease entirely, rather than "
-                                "persisting as ever-smaller ripples."
+                                "are born, peak, and die. This gives the model a natural "
+                                "cutoff where log-periodic oscillations cease entirely, "
+                                "rather than persisting as ever-smaller ripples. "
+                                "At 9 params: EPPL BIC=\u221221,065 vs HybPPL BIC=\u221220,814."
                             ),
 
                             html.H6("Fitted Coefficients"),

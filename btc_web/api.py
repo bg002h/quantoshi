@@ -231,15 +231,6 @@ with time \u2014 classic log-periodicity.
         except FileNotFoundError:
             return "Not generated yet", 404
 
-    @server.route("/I")
-    def _rectangles():
-        svg_path = os.path.join(os.path.dirname(__file__), "..", "power_law_rectangles.svg")
-        try:
-            with open(svg_path) as f:
-                return f.read(), 200, {"Content-Type": "image/svg+xml"}
-        except FileNotFoundError:
-            return "Not generated yet — run tools/multivariate_onchain.py", 404
-
     @server.route("/G")
     def _wave_basis():
         svg_path = os.path.join(os.path.dirname(__file__), "..", "wave_basis_comparison.svg")

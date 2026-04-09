@@ -170,23 +170,11 @@ _EXPORT_TABS = [
 for _tab_id, _graph_id in _EXPORT_TABS:
     _app_ctx.app.clientside_callback(
         f"""
-        function(n_clicks, fmt, fname, scale, figure, wmStore) {{
+        function(n_clicks, fmt, fname, scale, figure) {{
             if (!n_clicks) return window.dash_clientside.no_update;
             if (!figure)   return window.dash_clientside.no_update;
             var s = scale || 2;
             var fig = JSON.parse(JSON.stringify(figure));
-            if (wmStore && fig.layout && fig.layout.images) {{
-                var wmB64 = wmStore[String(s)];
-                if (wmB64) {{
-                    for (var i = 0; i < fig.layout.images.length; i++) {{
-                        if (fig.layout.images[i].source &&
-                            fig.layout.images[i].source.indexOf('data:image/png;base64,') === 0) {{
-                            fig.layout.images[i].source = wmB64;
-                            break;
-                        }}
-                    }}
-                }}
-            }}
             if ((fmt || 'png') === 'html') {{
                 var fn = (fname || '{_tab_id}') + '.html';
                 var html = '<!DOCTYPE html>\\n<html><head>'
@@ -228,7 +216,6 @@ for _tab_id, _graph_id in _EXPORT_TABS:
         State(f"{_tab_id}-fname",      "value"),
         State(f"{_tab_id}-scale",      "value"),
         State(f"{_tab_id}-graph",      "figure"),
-        State("wm-b64-store",          "data"),
         prevent_initial_call=True,
     )
 

@@ -541,12 +541,38 @@ _MODEL_INFO_ITEMS = [
 
 
 @callback(
-    Output("model-info-accordion", "active_item"),
-    Input("url", "pathname"),
-    prevent_initial_call=False,
+    Output("auto-y-grid", "data"),
+    Input("main-tabs", "active_tab"),
+    prevent_initial_call=True,
 )
-def open_model_info_item(pathname):
-    """Open a specific Model Info accordion item when pathname is /8.N (1-indexed)."""
+def _lazy_load_auto_y_grid(tab):
+    """Populate auto-Y grid on first bubble visit (saves ~162KB from layout JSON)."""
+    if tab != "bubble":
+        return no_update
+    return _app_ctx.AUTO_Y_GRID
+
+
+@callback(
+    Output("model-info-lazy", "children"),
+    Input("main-tabs", "active_tab"),
+    prevent_initial_call=True,
+)
+def _lazy_load_model_info(tab):
+    """Populate Model Info content on first visit (saves ~400KB from layout JSON)."""
+    if tab != "model_info":
+        return no_update
+    from layout.model_info import _model_info_tab
+    return _model_info_tab().children  # unwrap the outer Div
+
+
+@callback(
+    Output("model-info-accordion", "active_item"),
+    Input("model-info-lazy", "children"),
+    State("url", "pathname"),
+    prevent_initial_call=True,
+)
+def open_model_info_item(children, pathname):
+    """Open a specific Model Info accordion item after lazy load, if deep-linked."""
     pathname = _norm(pathname)
     if not pathname or not pathname.startswith("/8."):
         return no_update

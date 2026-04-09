@@ -13,7 +13,7 @@ from dash import dcc, html
 import dash_bootstrap_components as dbc
 
 import _app_ctx
-from figures import _LOGO_B64_ALL
+# _LOGO_B64_ALL removed from layout — loaded on demand by export callback
 from snapshot import _SNAPSHOT_CONTROLS
 
 # ── Re-exports (consumed by callbacks.py, app.py, etc.) ─────────────────────
@@ -164,9 +164,9 @@ def _build_layout(initial_tab="bubble"):
     dcc.Store(id="splash-ts-store", storage_type="local", data=None),
     dcc.Store(id="lots-store", storage_type="local", data=[]),
     dcc.Store(id="lots-export-dummy"),
-    dcc.Store(id="wm-b64-store", storage_type="memory", data=_LOGO_B64_ALL),
+    dcc.Store(id="wm-b64-store", storage_type="memory", data=None),  # no longer embedded in layout
     dcc.Store(id="auto-y-grid", storage_type="memory",
-              data=_app_ctx.AUTO_Y_GRID),
+              data=_app_ctx.AUTO_Y_GRID if initial_tab == "bubble" else None),
     # Per-tab render triggers — 1 for the target tab (figure pre-injected),
     # 0 for others (callback fires on first visit to fetch their figure).
     *[dcc.Store(id=f"{tab}-first-render", storage_type="memory",
@@ -581,7 +581,9 @@ def _build_layout(initial_tab="bubble"):
         dbc.Tab(_supercharge_tab(),  label="\u26A1 HODL Supercharger",   tab_id="supercharge"),
         dbc.Tab(_citadel_tab(),      label="\U0001F3F0 Citadel Planner", tab_id="citadel"),
         dbc.Tab(_stack_tracker_tab(),label="\U0001F5DD\uFE0F Stack Tracker",       tab_id="stack"),
-        dbc.Tab(_model_info_tab(),   label="\U0001F4D0 Model Info",      tab_id="model_info"),
+        dbc.Tab(html.Div(id="model-info-lazy", children=[
+            html.P("Loading...", className="text-muted p-4")
+        ]), label="\U0001F4D0 Model Info", tab_id="model_info"),
         dbc.Tab(_faq_tab(),          label="\u2753 FAQ",                 tab_id="faq"),
     ], id="main-tabs", active_tab=initial_tab),
     _global_lppl_modal(),

@@ -156,17 +156,19 @@ def _cache_headers(response):
     else:
         _connect = ("'self' https://mempool.space wss://mempool.space"
                     " https://blockstream.info")
-    response.headers['Content-Security-Policy'] = "; ".join([
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline'",
-        "style-src 'self' 'unsafe-inline'",
-        f"frame-src {_frame_src}",
-        "frame-ancestors 'none'",
-        "base-uri 'self'",
-        "img-src 'self' data: blob:",
-        f"connect-src {_connect}",
-        "font-src 'self'",
-    ])
+    # Static pages set their own CSP (allows MathJax CDN) — don't overwrite
+    if 'Content-Security-Policy' not in response.headers:
+        response.headers['Content-Security-Policy'] = "; ".join([
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline'",
+            "style-src 'self' 'unsafe-inline'",
+            f"frame-src {_frame_src}",
+            "frame-ancestors 'none'",
+            "base-uri 'self'",
+            "img-src 'self' data: blob:",
+            f"connect-src {_connect}",
+            "font-src 'self'",
+        ])
     return response
 
 # ── populate shared context ──────────────────────────────────────────────────

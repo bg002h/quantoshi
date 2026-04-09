@@ -58,15 +58,16 @@ _app_ctx.app.index_string = """<!DOCTYPE html>
         <title>{%title%}</title>
         <link rel="icon" type="image/png" href="/assets/quantoshi_favicon.png">
         {%css%}
-        <style id="deeplink-guard">
-        .deeplink-pending #main-tabs{visibility:hidden;height:0;overflow:hidden}
-        </style>
-        <script>
-        (function(){var p=location.pathname.replace(/\/+$/,"")||"/";
-        if(p!=="/"&&p!=="/1")document.documentElement.classList.add("deeplink-pending");})();
-        </script>
     </head>
     <body>
+        <script>
+        (function(){var p=location.pathname.replace(/\/+$/,"")||"/";
+        if(p!=="/"&&p!=="/1"){
+            var d=document.createElement("div");d.id="deeplink-cover";
+            d.style.cssText="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;z-index:99999";
+            document.body.appendChild(d);
+        }})();
+        </script>
         {%app_entry%}
         <footer>
             {%config%}

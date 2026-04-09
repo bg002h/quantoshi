@@ -280,8 +280,8 @@ body {
 }
 
 /* ── Deep-link flash suppression ─────────────────────────────────────────── */
-/* Critical rule is inlined in index_string <style id="deeplink-guard">.
-   tab_deeplink.js removes .deeplink-pending from <html> after hydration. */
+/* Inline script in index_string creates #deeplink-cover (white overlay).
+   tab_deeplink.js removes it after Dash hydrates the correct tab. */
 
 /* ── #11: Loading skeleton shimmer ────────────────────────────────────────── */
 .chart-loading-skeleton {

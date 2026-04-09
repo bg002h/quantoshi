@@ -1,21 +1,26 @@
-/* Remove deeplink-pending class after Dash hydrates the correct tab.
-   The inline <style> + <script> in index_string hide #main-tabs until
-   this observer detects React has rendered the active tab pane. */
+/* Remove the white cover overlay after Dash hydrates the correct tab.
+   The inline <script> in index_string creates #deeplink-cover as a
+   full-screen white div that hides the tab-1 flash during hydration. */
 (function() {
-    var html = document.documentElement;
-    if (!html.classList.contains('deeplink-pending')) return;
+    function removeCover() {
+        var c = document.getElementById('deeplink-cover');
+        if (c) c.remove();
+    }
+
+    var cover = document.getElementById('deeplink-cover');
+    if (!cover) return;
 
     var observer = new MutationObserver(function() {
-        if (document.querySelector('#main-tabs .tab-pane.active')) {
-            html.classList.remove('deeplink-pending');
+        if (document.querySelector('#main-tabs .tab-pane.active.show')) {
+            removeCover();
             observer.disconnect();
         }
     });
-    observer.observe(document.body, {childList: true, subtree: true});
+    observer.observe(document.body, {childList: true, subtree: true, attributes: true});
 
     /* Safety fallback */
     setTimeout(function() {
-        html.classList.remove('deeplink-pending');
+        removeCover();
         observer.disconnect();
-    }, 3000);
+    }, 4000);
 })();

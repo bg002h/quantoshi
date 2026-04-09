@@ -7,6 +7,7 @@
  */
 (function() {
     var DESKTOP_MIN = 768;
+    console.log('[chart_responsive] loaded, innerWidth=' + window.innerWidth);
 
     /* ── Scale factors ─────────────────────────────────────────────── */
     var LINE_SCALE    = 3.0;   /* trace line widths */
@@ -111,6 +112,7 @@
         }
 
         gd.setAttribute('data-responsive-scaled', '1');
+        console.log('[chart_responsive] scaled ' + gd.id + ': lines×' + LINE_SCALE + ' grid×' + GRID_SCALE + ' fonts×' + FONT_SCALE);
     }
 
     /* ── Hooking ───────────────────────────────────────────────────── */

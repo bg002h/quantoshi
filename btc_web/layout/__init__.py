@@ -58,6 +58,8 @@ _app_ctx.app.index_string = """<!DOCTYPE html>
         <title>{%title%}</title>
         <link rel="icon" type="image/png" href="/assets/quantoshi_favicon.png">
         {%css%}
+        <style id="dl-guard">html.dl .tab-content>.tab-pane:first-child{display:none!important}</style>
+        <script>(function(){var p=location.pathname.replace(/\/+$/,"")||"/";if(p!=="/"&&p!=="/1")document.documentElement.classList.add("dl")})()</script>
     </head>
     <body>
         {%app_entry%}
@@ -65,6 +67,7 @@ _app_ctx.app.index_string = """<!DOCTYPE html>
             {%config%}
             {%scripts%}
             {%renderer%}
+            <script>setTimeout(function(){document.documentElement.classList.remove("dl")},3000)</script>
         </footer>
     </body>
 </html>"""
@@ -144,28 +147,7 @@ def _serve_layout():
         if fig:
             _inject_initial_figure(layout, gid, fig)
 
-    # For deep links, hide the bubble tab pane so Bootstrap doesn't flash it.
-    # Walk layout tree to find the bubble dbc.Tab and set its style.
-    if initial_tab != "bubble":
-        _hide_bubble_pane(layout)
-
     return layout
-
-
-def _hide_bubble_pane(component):
-    """Recursively find the bubble tab pane and hide it."""
-    if hasattr(component, 'tab_id') and component.tab_id == "bubble":
-        component.tab_style = {"display": "none"}
-        component.style = {"display": "none"}
-        return True
-    children = getattr(component, 'children', None)
-    if isinstance(children, list):
-        for child in children:
-            if _hide_bubble_pane(child):
-                return True
-    elif children is not None:
-        return _hide_bubble_pane(children)
-    return False
 
 _app_ctx.app.layout = _serve_layout
 

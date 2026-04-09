@@ -306,7 +306,7 @@ _app_ctx.app.clientside_callback(
         var map = {"/1":"bubble","/2":"heatmap","/3":"dca",
                    "/4":"retire","/5":"supercharge","/6":"citadel",
                    "/7":"stack","/8":"model_info","/9":"faq",
-                   "/faq":"faq"};
+                   "/faq":"faq","/mi":"model_info"};
         /* Normalize: treat '-' as '.' so /1-2-5-1 == /1.2.5.1 */
         if (pathname && pathname.indexOf('-') !== -1) {
             pathname = pathname.replace(/-/g, '.');
@@ -329,6 +329,7 @@ _app_ctx.app.clientside_callback(
         if (p && /^\\/8\\.\\d+$/.test(p)) { return "model_info"; }
         if (p && /^\\/9\\.\\d+$/.test(p)) { return "faq"; }
         if (p && p.indexOf("/faq.") === 0) { return "faq"; }
+        if (p && p.indexOf("/mi.") === 0) { return "model_info"; }
         if (p && p.indexOf("/1.2") === 0) { return "bubble"; }
         if (p && p.indexOf("/1.3") === 0) { return "bubble"; }
         if (p && /^\\/2\\.\\d+$/.test(p)) { return "heatmap"; }

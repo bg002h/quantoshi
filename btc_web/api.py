@@ -81,6 +81,10 @@ def _client_ip() -> str:
 def register_routes(server) -> None:
     """Register MC payment API routes on the Flask server."""
 
+    # Static deep-link pages (must be registered before Dash catch-all)
+    from static_pages import register_static_routes
+    register_static_routes(server)
+
     # ── Documentation routes ─────────────────────────────────────────────
     _DOC_DIR = os.path.join(os.path.dirname(__file__), "..", "docs")
 

@@ -394,6 +394,10 @@ if _os.environ.get("DEV") != "1":
 else:
     logging.getLogger(__name__).info("DEV mode — skipping prewarm (first request per tab will be slower)")
 
+# Render static deep-link pages (after models are loaded)
+from static_pages import render_static_pages
+render_static_pages()
+
 # Pre-warm default transition matrix
 if _HAS_MARKOV:
     _get_transition_matrix(M, 5, 30, [2010, date.today().year])

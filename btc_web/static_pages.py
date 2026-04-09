@@ -206,3 +206,53 @@ def render_static_pages():
     global _STATIC_FAQ_HTML, _STATIC_MI_HTML
     _STATIC_FAQ_HTML = render_static_faq()
     _STATIC_MI_HTML = render_static_model_info()
+
+
+def register_static_routes(server):
+    """Register /faq, /faq.N, /mi, /mi.N Flask routes."""
+
+    @server.route("/faq")
+    def _static_faq():
+        if _STATIC_FAQ_HTML is None:
+            return "Static pages not yet rendered", 503
+        return _STATIC_FAQ_HTML, 200, {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, max-age=86400",
+        }
+
+    @server.route("/faq.<int:item>")
+    def _static_faq_item(item):
+        if _STATIC_FAQ_HTML is None:
+            return "Static pages not yet rendered", 503
+        item_id = f"faq-{item - 1}"  # URL is 1-indexed, internal is 0-indexed
+        scroll = _SCROLL_SCRIPT.format(item_id=item_id)
+        page = _STATIC_FAQ_HTML.replace("</body>", scroll + "</body>")
+        return page, 200, {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, max-age=86400",
+        }
+
+    @server.route("/mi")
+    def _static_mi():
+        if _STATIC_MI_HTML is None:
+            return "Static pages not yet rendered", 503
+        return _STATIC_MI_HTML, 200, {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, max-age=86400",
+        }
+
+    @server.route("/mi.<int:item>")
+    def _static_mi_item(item):
+        if _STATIC_MI_HTML is None:
+            return "Static pages not yet rendered", 503
+        from layout.model_info import _MODEL_INFO_ITEM_IDS
+        if 1 <= item <= len(_MODEL_INFO_ITEM_IDS):
+            item_id = _MODEL_INFO_ITEM_IDS[item - 1]
+        else:
+            item_id = f"item-{item}"
+        scroll = _SCROLL_SCRIPT.format(item_id=item_id)
+        page = _STATIC_MI_HTML.replace("</body>", scroll + "</body>")
+        return page, 200, {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "public, max-age=86400",
+        }

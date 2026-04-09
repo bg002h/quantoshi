@@ -6,6 +6,7 @@
 (function() {
     'use strict';
     var DESKTOP_MIN = 768;
+    document.title = 'RESPONSIVE JS LOADED w=' + window.innerWidth;
     if (window.innerWidth <= DESKTOP_MIN) return;  /* mobile — skip entirely */
 
     var LINE_SCALE    = 3.0;

@@ -5,7 +5,8 @@ from btc_core import (PriceModel, _FitsBasedModel, BubbleModel, PowerLawModel,
                       LogisticModel, BrokenPowerLawModel,
                       Hyb2LModel, Hyb2CModel, Hyb2BModel, Hyb4DModel,
                       PCAModel, GreedyModel, EntropyPPLModel,
-                      HybPPLConfigModel, _HYBPPL_CONFIG_PARAMS)
+                      HybPPLConfigModel, _HYBPPL_CONFIG_PARAMS,
+                      EPPLConfigModel, _EPPL_CONFIG_PARAMS)
 from conftest import (
     M,
     Path,
@@ -394,7 +395,8 @@ class TestDecompRegistry:
         import _app_ctx
         expected = {"bub", "ef", "lppl", "linppl", "hybppl", "hybppl_dd",
                     "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy",
-                    "eppl", "hybppl_cfg_a", "hybppl_cfg_b"}
+                    "eppl", "hybppl_cfg_a", "hybppl_cfg_b",
+                    "eppl_cfg_a", "eppl_cfg_b"}
         assert set(_app_ctx.DECOMP_FAMILIES.keys()) == expected
 
     def test_families_labels(self):
@@ -2179,3 +2181,182 @@ class TestEntropyPPLModel:
         import numpy as np
         val = EntropyPPLModel.entropy_env(np.array([1.0]), 1.0)
         assert abs(float(val[0])) < 1e-6
+
+
+# ===========================================================================
+# EPPL Config Model (36 pre-fitted variants)
+# ===========================================================================
+
+
+class TestEPPLConfigModel:
+    """Unit tests for EPPLConfigModel (pre-fitted generic EPPL)."""
+
+    def setup_method(self):
+        self.m = EPPLConfigModel("ecfg_1d_1u", M.price_years, M.price_prices,
+                                  M.QR_QUANTILES)
+
+    def test_short_name(self):
+        assert self.m.short_name == "ecfg_1d_1u"
+
+    def test_quantized(self):
+        assert self.m.quantized is True
+
+    def test_fits_has_quantile_keys(self):
+        assert set(self.m.fits.keys()) == set(M.QR_QUANTILES)
+
+    def test_price_at_positive(self):
+        q = self.m.quantiles[len(self.m.quantiles) // 2]
+        assert float(self.m.price_at(q, 10.0)) > 0
+
+    def test_quantile_ordering(self):
+        t = 10.0
+        prices = [float(self.m.price_at(q, t)) for q in self.m.quantiles]
+        assert prices == sorted(prices)
+
+    def test_interp_price(self):
+        q = self.m.quantiles[0]
+        assert self.m.interp_price(q, 10.0) > 0
+
+    def test_find_percentile(self):
+        p = self.m.find_percentile(10.0, 10000)
+        assert 0.0 < p < 1.0
+
+    def test_colors_populated_eppl_cfg(self):
+        assert len(self.m.colors) == len(self.m.quantiles)
+
+    def test_r2_stored(self):
+        assert 0.9 < self.m.r2 < 1.0
+
+    def test_legend_name(self):
+        assert self.m.legend_name == "1D_1U"
+
+    def test_unknown_config_raises(self):
+        with pytest.raises(ValueError, match="Unknown EPPL config"):
+            EPPLConfigModel("ecfg_bogus", M.price_years, M.price_prices,
+                            M.QR_QUANTILES)
+
+    def test_component_names(self):
+        names = self.m.component_names
+        assert names[0] == "A (constant)"
+        assert "entropy damped" in names[2] or "undamped" in names[2]
+
+    def test_components(self):
+        comps = self.m.components(10.0)
+        assert "A (constant)" in comps
+        assert len(comps) == len(self.m.component_names)
+
+    def test_formula_log10_latex(self):
+        latex = self.m.formula_log10_latex
+        assert r"\log_{10}" in latex
+        assert "E(" in latex  # entropy envelope
+
+    def test_component_details(self):
+        det = self.m.component_details
+        assert "A (constant)" in det
+
+
+class TestEPPLConfigParamsComplete:
+    """Verify all 36 configs exist and are registered as models."""
+
+    def test_36_configs_exist(self):
+        assert len(_EPPL_CONFIG_PARAMS) == 36
+
+    def test_all_registered_in_price_models(self):
+        for key in _EPPL_CONFIG_PARAMS:
+            assert key in _app_ctx.PRICE_MODELS, f"{key} not registered"
+
+    def test_ecfg_0_0_is_pure_power_law(self):
+        m = _app_ctx.PRICE_MODELS["ecfg_0_0"]
+        assert m._n_log == 0 and m._n_cal == 0
+
+    def test_ecfg_2dd_2dd_has_all_damped(self):
+        m = _app_ctx.PRICE_MODELS["ecfg_2dd_2dd"]
+        assert m._n_log == 2 and m._n_cal == 2
+        assert m._log_damps == ["d", "d"]
+        assert m._cal_damps == ["d", "d"]
+
+
+class TestResolveEPPLMaster:
+    """Unit test for EPPL master resolution."""
+
+    def test_no_eppl_passes_through(self):
+        from callbacks.charts import _resolve_eppl_master
+        result = _resolve_eppl_master(
+            ["bub", "pl"], 1, 1, "d", "d", "u", "u", [], 0, 0, "d", "d", "u", "u")
+        assert result == ["bub", "pl"]
+
+    def test_eppl_resolves_model_a(self):
+        from callbacks.charts import _resolve_eppl_master
+        result = _resolve_eppl_master(
+            ["bub", "eppl"], 1, 1, "d", "d", "u", "u", [], 0, 0, "d", "d", "u", "u")
+        assert "ecfg_1d_1u" in result
+        assert "eppl" not in result
+
+    def test_eppl_resolves_model_b_when_enabled(self):
+        from callbacks.charts import _resolve_eppl_master
+        result = _resolve_eppl_master(
+            ["eppl"], 1, 1, "d", "d", "u", "u",
+            ["yes"], 0, 0, "d", "d", "u", "u")
+        assert "ecfg_1d_1u" in result
+        assert "ecfg_0_0" in result
+
+    def test_eppl_model_b_not_added_when_same_as_a(self):
+        from callbacks.charts import _resolve_eppl_master
+        result = _resolve_eppl_master(
+            ["eppl"], 1, 1, "d", "d", "u", "u",
+            ["yes"], 1, 1, "d", "d", "u", "u")
+        assert result.count("ecfg_1d_1u") == 1
+
+
+class TestResolveHmEPPLMaster:
+    """Unit test for heatmap EPPL master translation."""
+
+    def test_non_eppl_passes_through(self):
+        from callbacks.charts import _resolve_hm_eppl_master
+        assert _resolve_hm_eppl_master("bub", 1, 1, "d", "d", "u", "u") == "bub"
+
+    def test_eppl_resolves_to_config(self):
+        from callbacks.charts import _resolve_hm_eppl_master
+        assert _resolve_hm_eppl_master("eppl", 1, 1, "d", "d", "u", "u") == "ecfg_1d_1u"
+
+
+class TestBuildEPPLConfigKey:
+    """Unit test for EPPL config key builder."""
+
+    def test_0_0(self):
+        from callbacks.charts import _build_eppl_config_key
+        assert _build_eppl_config_key(0, 0, "d", "d", "u", "u") == "ecfg_0_0"
+
+    def test_1d_1u(self):
+        from callbacks.charts import _build_eppl_config_key
+        assert _build_eppl_config_key(1, 1, "d", "d", "u", "u") == "ecfg_1d_1u"
+
+    def test_2dd_2uu(self):
+        from callbacks.charts import _build_eppl_config_key
+        assert _build_eppl_config_key(2, 2, "d", "d", "u", "u") == "ecfg_2dd_2uu"
+
+
+class TestGlobalEPPLModal:
+    """Unit test for _global_eppl_modal root-level modal."""
+
+    def test_has_all_config_controls(self):
+        from layout.common import _global_eppl_modal
+        modal = _global_eppl_modal()
+        rendered = str(modal)
+        assert "eppl-config-modal" in rendered
+        assert "eppl-cfg-a-nlog" in rendered
+        assert "eppl-cfg-b-nlog" in rendered
+        assert "eppl-cfg-b-enabled" in rendered
+        assert "eppl-modal-close-btn" in rendered
+
+
+class TestEPPLConfigPanel:
+    """Unit test for per-tab _eppl_config_panel."""
+
+    def test_has_activate_and_summary(self):
+        from layout.common import _eppl_config_panel
+        panel = _eppl_config_panel("bub")
+        rendered = str(panel)
+        assert "bub-eppl-activate" in rendered
+        assert "bub-eppl-summary" in rendered
+        assert "bub-eppl-configure-btn" in rendered

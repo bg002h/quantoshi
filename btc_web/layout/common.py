@@ -558,7 +558,8 @@ def _model_show_checklist(prefix, standardized=False):
                   if mdl.short_name not in _app_ctx.MODEL_SENTINELS
                   and mdl.short_name != "bub"
                   and mdl.short_name not in _HYBPPL_FAM
-                  and not mdl.short_name.startswith("cfg_")]
+                  and not mdl.short_name.startswith("cfg_")
+                  and not mdl.short_name.startswith("ecfg_")]
     if standardized:
         all_models = [m for m in all_models
                       if m.short_name not in _LPPL_FAM
@@ -811,6 +812,151 @@ def _global_hybppl_modal():
                        size="sm", color="primary"),
         ),
     ], id="hybppl-config-modal", is_open=False, centered=True, size="lg")
+
+
+def _eppl_config_panel(prefix):
+    """Compact EPPL sub-panel: activate + summary + modal launcher.
+
+    The actual frequency/damping controls live in the global modal
+    (_global_eppl_modal) so they have unique IDs.  Each tab's
+    version here links to that one modal.
+    """
+    activate = dcc.Checklist(
+        id=f"{prefix}-eppl-activate",
+        options=[{"label": " Activate", "value": "yes"}],
+        value=[], inputStyle=_CB_MARGIN,
+        className="model-panel-activate",
+    )
+    configure_btn = dbc.Button(
+        "\u2699\ufe0f",
+        id=f"{prefix}-eppl-configure-btn",
+        size="sm", color="secondary", outline=True,
+        title="Configure Entropy PPL",
+        className="model-panel-configure-btn",
+    )
+    return _section_card(
+        "Entropy PPL Models",
+        html.Div([
+            html.Small("Current: ", style={"color": "#888", "fontSize": "11px"}),
+            html.Span(id=f"{prefix}-eppl-summary", children="1d+1u",
+                      style={"color": "#148C8C", "fontSize": "11px",
+                             "fontWeight": "600"}),
+        ], style={"marginTop": "4px", "marginBottom": "4px"}),
+        header_right=[activate, configure_btn],
+    )
+
+
+def _eppl_model_slot(slot):
+    """One model-slot (A or B) inside the EPPL config modal."""
+    s = slot  # "a" or "b"
+    children = []
+
+    if s == "b":
+        children.append(dcc.Checklist(
+            id="eppl-cfg-b-enabled",
+            options=[{"label": " Enable Model B (comparison)", "value": "yes"}],
+            value=[], inputStyle=_CB_MARGIN,
+        ))
+        children.append(html.Hr(style={"margin": "6px 0", "borderColor": "#444"}))
+
+    children.extend([
+        _lbl("Log-periodic frequencies"),
+        dcc.RadioItems(
+            id=f"eppl-cfg-{s}-nlog",
+            options=[{"label": " 0", "value": 0},
+                     {"label": " 1", "value": 1},
+                     {"label": " 2", "value": 2}],
+            value=1 if s == "a" else 0,
+            inline=True,
+            inputStyle=_CB_MARGIN,
+        ),
+        _lbl("Calendar frequencies"),
+        dcc.RadioItems(
+            id=f"eppl-cfg-{s}-ncal",
+            options=[{"label": " 0", "value": 0},
+                     {"label": " 1", "value": 1},
+                     {"label": " 2", "value": 2}],
+            value=1 if s == "a" else 0,
+            inline=True,
+            inputStyle=_CB_MARGIN,
+        ),
+        # Damping controls (visibility toggled by callback)
+        html.Div(id=f"eppl-cfg-{s}-log1d-wrap", children=[
+            _lbl("Log freq 1 damping"),
+            dcc.RadioItems(
+                id=f"eppl-cfg-{s}-log1d",
+                options=[{"label": " entropy damped", "value": "d"},
+                         {"label": " undamped", "value": "u"}],
+                value="d", inline=True, inputStyle=_CB_MARGIN,
+            ),
+        ], style=_STYLE_HIDDEN if (s == "b") else {}),
+        html.Div(id=f"eppl-cfg-{s}-log2d-wrap", children=[
+            _lbl("Log freq 2 damping"),
+            dcc.RadioItems(
+                id=f"eppl-cfg-{s}-log2d",
+                options=[{"label": " entropy damped", "value": "d"},
+                         {"label": " undamped", "value": "u"}],
+                value="d", inline=True, inputStyle=_CB_MARGIN,
+            ),
+        ], style=_STYLE_HIDDEN),
+        html.Div(id=f"eppl-cfg-{s}-cal1d-wrap", children=[
+            _lbl("Cal freq 1 damping"),
+            dcc.RadioItems(
+                id=f"eppl-cfg-{s}-cal1d",
+                options=[{"label": " entropy damped", "value": "d"},
+                         {"label": " undamped", "value": "u"}],
+                value="u", inline=True, inputStyle=_CB_MARGIN,
+            ),
+        ], style=_STYLE_HIDDEN if (s == "b") else {}),
+        html.Div(id=f"eppl-cfg-{s}-cal2d-wrap", children=[
+            _lbl("Cal freq 2 damping"),
+            dcc.RadioItems(
+                id=f"eppl-cfg-{s}-cal2d",
+                options=[{"label": " entropy damped", "value": "d"},
+                         {"label": " undamped", "value": "u"}],
+                value="u", inline=True, inputStyle=_CB_MARGIN,
+            ),
+        ], style=_STYLE_HIDDEN),
+        html.Div([
+            html.Span(id=f"eppl-cfg-{s}-status",
+                      style={"fontSize": "11px", "color": "#888"}),
+            html.A(id=f"eppl-cfg-{s}-info-link", href="#",
+                   style={"fontSize": "11px", "marginLeft": "6px",
+                          "color": "#1a6fa8", "display": "none"},
+                   children="\u2139\uFE0F Model Info"),
+        ], style={"marginTop": "6px"}),
+    ])
+    return html.Div(children, style={"flex": "1", "minWidth": "200px"})
+
+
+def _global_eppl_modal():
+    """Root-level modal holding EPPL frequency/damping controls.
+
+    Rendered once in _serve_layout; opened by any tab's
+    {prefix}-eppl-configure-btn click.
+    """
+    return dbc.Modal([
+        dbc.ModalHeader(dbc.ModalTitle("Entropy PPL Configuration")),
+        dbc.ModalBody([
+            html.Div([
+                html.Div([
+                    html.H6("Model A", style={"fontWeight": "600", "marginBottom": "8px"}),
+                    _eppl_model_slot("a"),
+                ], style={"flex": "1", "minWidth": "220px", "paddingRight": "12px"}),
+                html.Div(style={"width": "1px", "backgroundColor": "#444",
+                                "margin": "0 8px"}),
+                html.Div([
+                    html.H6("Model B", style={"fontWeight": "600", "marginBottom": "8px",
+                                               "color": "#888"}),
+                    _eppl_model_slot("b"),
+                ], style={"flex": "1", "minWidth": "220px", "paddingLeft": "12px"}),
+            ], style={"display": "flex", "flexWrap": "wrap", "gap": "8px"}),
+        ]),
+        dbc.ModalFooter(
+            dbc.Button("Close", id="eppl-modal-close-btn",
+                       size="sm", color="primary"),
+        ),
+    ], id="eppl-config-modal", is_open=False, centered=True, size="lg")
 
 
 def _shared_settings_card(prefix, *, amount_id=None, amount_label="Purchase amount ($)",

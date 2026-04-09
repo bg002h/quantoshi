@@ -310,6 +310,25 @@ _SNAPSHOT_CONTROLS = [
     ("ret-hybppl-activate",  "value"),
     ("sc-hybppl-activate",   "value"),
     ("hm-hybppl-activate",   "value"),
+    # ── EPPL config panel (all tabs) ──
+    ("bub-eppl-activate",    "value"),
+    ("eppl-cfg-a-nlog",      "value"),
+    ("eppl-cfg-a-ncal",      "value"),
+    ("eppl-cfg-a-log1d",     "value"),
+    ("eppl-cfg-a-log2d",     "value"),
+    ("eppl-cfg-a-cal1d",     "value"),
+    ("eppl-cfg-a-cal2d",     "value"),
+    ("eppl-cfg-b-enabled",   "value"),
+    ("eppl-cfg-b-nlog",      "value"),
+    ("eppl-cfg-b-ncal",      "value"),
+    ("eppl-cfg-b-log1d",     "value"),
+    ("eppl-cfg-b-log2d",     "value"),
+    ("eppl-cfg-b-cal1d",     "value"),
+    ("eppl-cfg-b-cal2d",     "value"),
+    ("dca-eppl-activate",    "value"),
+    ("ret-eppl-activate",    "value"),
+    ("sc-eppl-activate",     "value"),
+    ("hm-eppl-activate",     "value"),
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)
@@ -383,6 +402,12 @@ _CHECKLIST_OPTIONS = {
     "sc-hybppl-activate":   ["yes"],
     "hm-hybppl-activate":   ["yes"],
     "hybppl-cfg-b-enabled": ["yes"],
+    "bub-eppl-activate":    ["yes"],
+    "dca-eppl-activate":    ["yes"],
+    "ret-eppl-activate":    ["yes"],
+    "sc-eppl-activate":     ["yes"],
+    "hm-eppl-activate":     ["yes"],
+    "eppl-cfg-b-enabled":   ["yes"],
     # MC enable/advanced checklists (1 bit each)
     "dca-mc-enable":    ["yes"],
     "dca-mc-advanced":  ["yes"],

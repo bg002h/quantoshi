@@ -42,7 +42,8 @@ from btc_core import (load_model_data, BubbleModel, PowerLawModel,
                        GreedyModel, EntropyPPLModel,
                        ExponentialModel, LogisticModel, BrokenPowerLawModel,
                        S2FModel, EmpiricalFloorModel, QuantileRegressionModel,
-                       HybPPLConfigModel, _HYBPPL_CONFIG_PARAMS)
+                       HybPPLConfigModel, _HYBPPL_CONFIG_PARAMS,
+                       EPPLConfigModel, _EPPL_CONFIG_PARAMS)
 from figures import FREQ_PPY
 from mc_overlay import save_trans_cache_to_disk, _get_transition_matrix
 import atexit
@@ -201,6 +202,10 @@ _app_ctx.PRICE_MODELS["hyb4d"] = Hyb4DModel(M.price_years, M.price_prices, M.QR_
 for _cfg_key in _HYBPPL_CONFIG_PARAMS:
     _app_ctx.PRICE_MODELS[_cfg_key] = HybPPLConfigModel(
         _cfg_key, M.price_years, M.price_prices, M.QR_QUANTILES)
+# ── EPPL config family (36 pre-fitted variants) ──────────────────────────
+for _ecfg_key in _EPPL_CONFIG_PARAMS:
+    _app_ctx.PRICE_MODELS[_ecfg_key] = EPPLConfigModel(
+        _ecfg_key, M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["pca"] = PCAModel(
     M.price_years, M.price_prices, M.QR_QUANTILES,
     source_models=_app_ctx.PRICE_MODELS)  # must come after HybPPL family

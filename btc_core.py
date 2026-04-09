@@ -2277,6 +2277,47 @@ class ExponentialModel:
             self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
 
 
+# ── EPPL config params (auto-generated) ──
+_EPPL_CONFIG_PARAMS = {
+    "ecfg_0_0": {"n_log": 0, "n_cal": 0, "log_damps": [], "cal_damps": [], "params": {"A": -1.173784, "B": 5.081215}, "r2": 0.962654, "sigma": 0.295620},
+    "ecfg_0_1d": {"n_log": 0, "n_cal": 1, "log_damps": [], "cal_damps": ['d'], "params": {"A": -1.185489, "B": 5.092057, "C_cal": 0.376542, "W_cal": 1.739438, "PHI_cal": -2.060581, "w_cal": 0.056790}, "r2": 0.981127, "sigma": 0.210151},
+    "ecfg_0_1u": {"n_log": 0, "n_cal": 1, "log_damps": [], "cal_damps": ['u'], "params": {"A": -1.211635, "B": 5.108941, "C_cal": 0.276894, "W_cal": 1.765383, "PHI_cal": -2.280318}, "r2": 0.978941, "sigma": 0.221991},
+    "ecfg_0_2dd": {"n_log": 0, "n_cal": 2, "log_damps": [], "cal_damps": ['d', 'd'], "params": {"A": -1.096556, "B": 5.001078, "C_cal1": 0.614571, "W_cal1": 4.147145, "PHI_cal1": -2.025236, "w_cal1": 0.333507, "C_cal2": 0.399038, "W_cal2": 1.711301, "PHI_cal2": -1.800361, "w_cal2": 0.058408}, "r2": 0.986551, "sigma": 0.177400},
+    "ecfg_0_2du": {"n_log": 0, "n_cal": 2, "log_damps": [], "cal_damps": ['d', 'u'], "params": {"A": -1.289916, "B": 5.212834, "C_cal1": 0.387360, "W_cal1": 1.753223, "PHI_cal1": -2.186095, "w_cal1": 0.058384, "C_cal2": 0.137250, "W_cal2": 0.834382, "PHI_cal2": -2.702990}, "r2": 0.984474, "sigma": 0.190610},
+    "ecfg_0_2uu": {"n_log": 0, "n_cal": 2, "log_damps": [], "cal_damps": ['u', 'u'], "params": {"A": -1.183331, "B": 5.075917, "C_cal1": 0.133621, "W_cal1": 3.119343, "PHI_cal1": -0.727837, "C_cal2": 0.285132, "W_cal2": 1.763443, "PHI_cal2": -2.221823}, "r2": 0.982750, "sigma": 0.200914},
+    "ecfg_1d_0": {"n_log": 1, "n_cal": 0, "log_damps": ['d'], "cal_damps": [], "params": {"A": -1.140066, "B": 5.060594, "C_log": 0.542874, "W_log": 7.680129, "PHI_log": 1.224824, "w_log": 0.101156}, "r2": 0.983419, "sigma": 0.196980},
+    "ecfg_1d_1d": {"n_log": 1, "n_cal": 1, "log_damps": ['d'], "cal_damps": ['d'], "params": {"A": -1.157398, "B": 5.069443, "C_log": 0.472459, "W_log": 7.769475, "PHI_log": 1.320545, "w_log": 0.106177, "C_cal": 0.219876, "W_cal": 1.843120, "PHI_cal": 2.974032, "w_cal": 0.036873}, "r2": 0.989615, "sigma": 0.155888},
+    "ecfg_1d_1u": {"n_log": 1, "n_cal": 1, "log_damps": ['d'], "cal_damps": ['u'], "params": {"A": -1.189358, "B": 5.101294, "C_log": 0.478427, "W_log": 7.794515, "PHI_log": 1.320053, "w_log": 0.105442, "C_cal": 0.193897, "W_cal": 1.857282, "PHI_cal": 2.802240}, "r2": 0.989340, "sigma": 0.157939},
+    "ecfg_1d_2dd": {"n_log": 1, "n_cal": 2, "log_damps": ['d'], "cal_damps": ['d', 'd'], "params": {"A": -1.152768, "B": 5.064707, "C_log": 0.484537, "W_log": 7.809597, "PHI_log": 1.264030, "w_log": 0.106425, "C_cal1": 0.219245, "W_cal1": 1.846572, "PHI_cal1": 2.924649, "w_cal1": 0.036499, "C_cal2": 0.236297, "W_cal2": 10.292570, "PHI_cal2": -1.198334, "w_cal2": 0.177048}, "r2": 0.991712, "sigma": 0.139260},
+    "ecfg_1d_2du": {"n_log": 1, "n_cal": 2, "log_damps": ['d'], "cal_damps": ['d', 'u'], "params": {"A": -1.189530, "B": 5.101966, "C_log": 0.491673, "W_log": 7.787010, "PHI_log": 1.337354, "w_log": 0.105686, "C_cal1": 0.223446, "W_cal1": 10.000000, "PHI_cal1": -0.385570, "w_cal1": 0.173351, "C_cal2": 0.193789, "W_cal2": 1.862757, "PHI_cal2": 2.731482}, "r2": 0.991245, "sigma": 0.143135},
+    "ecfg_1d_2uu": {"n_log": 1, "n_cal": 2, "log_damps": ['d'], "cal_damps": ['u', 'u'], "params": {"A": -1.176691, "B": 5.088978, "C_log": 0.546098, "W_log": 7.726491, "PHI_log": 1.488667, "w_log": 0.106829, "C_cal1": 0.205753, "W_cal1": 1.883481, "PHI_cal1": 2.507911, "C_cal2": 0.116652, "W_cal2": 3.344440, "PHI_cal2": -3.125422}, "r2": 0.991906, "sigma": 0.137621},
+    "ecfg_1u_0": {"n_log": 1, "n_cal": 0, "log_damps": ['u'], "cal_damps": [], "params": {"A": -1.232539, "B": 5.182900, "C_log": 0.230726, "W_log": 7.721562, "PHI_log": 1.188723}, "r2": 0.973981, "sigma": 0.246753},
+    "ecfg_1u_1d": {"n_log": 1, "n_cal": 1, "log_damps": ['u'], "cal_damps": ['d'], "params": {"A": -1.180404, "B": 5.090632, "C_log": 0.182428, "W_log": 7.252503, "PHI_log": 1.714152, "C_cal": 0.293675, "W_cal": 1.737834, "PHI_cal": -1.997991, "w_cal": 0.041179}, "r2": 0.986943, "sigma": 0.174798},
+    "ecfg_1u_1u": {"n_log": 1, "n_cal": 1, "log_damps": ['u'], "cal_damps": ['u'], "params": {"A": -1.234885, "B": 5.154289, "C_log": 0.184747, "W_log": 7.370084, "PHI_log": 1.623173, "C_cal": 0.245727, "W_cal": 1.760606, "PHI_cal": -2.246028}, "r2": 0.986226, "sigma": 0.179535},
+    "ecfg_1u_2dd": {"n_log": 1, "n_cal": 2, "log_damps": ['u'], "cal_damps": ['d', 'd'], "params": {"A": -1.168494, "B": 5.071364, "C_log": 0.150704, "W_log": 7.043406, "PHI_log": 2.148976, "C_cal1": 0.300974, "W_cal1": 1.737710, "PHI_cal1": -2.003796, "w_cal1": 0.043205, "C_cal2": 0.212469, "W_cal2": 2.854918, "PHI_cal2": 0.062348, "w_cal2": 0.100288}, "r2": 0.989822, "sigma": 0.154328},
+    "ecfg_1u_2du": {"n_log": 1, "n_cal": 2, "log_damps": ['u'], "cal_damps": ['d', 'u'], "params": {"A": -1.089246, "B": 4.968562, "C_log": 0.161827, "W_log": 6.419797, "PHI_log": -2.864354, "C_cal1": 0.805182, "W_cal1": 4.250424, "PHI_cal1": -2.519881, "w_cal1": 0.379993, "C_cal2": 0.286664, "W_cal2": 1.742011, "PHI_cal2": -2.076675}, "r2": 0.989673, "sigma": 0.155450},
+    "ecfg_1u_2uu": {"n_log": 1, "n_cal": 2, "log_damps": ['u'], "cal_damps": ['u', 'u'], "params": {"A": -1.195381, "B": 5.101300, "C_log": 0.178136, "W_log": 7.144865, "PHI_log": 2.014151, "C_cal1": 0.256178, "W_cal1": 1.760221, "PHI_cal1": -2.212661, "C_cal2": 0.121642, "W_cal2": 3.167675, "PHI_cal2": -1.212915}, "r2": 0.989170, "sigma": 0.159195},
+    "ecfg_2dd_0": {"n_log": 2, "n_cal": 0, "log_damps": ['d', 'd'], "cal_damps": [], "params": {"A": -1.127776, "B": 5.048206, "C_log1": 0.553513, "W_log1": 7.728906, "PHI_log1": 1.158299, "w_log1": 0.101405, "C_log2": 0.277842, "W_log2": 16.516411, "PHI_log2": 1.634666, "w_log2": 0.249992}, "r2": 0.985204, "sigma": 0.186074},
+    "ecfg_2dd_1d": {"n_log": 2, "n_cal": 1, "log_damps": ['d', 'd'], "cal_damps": ['d'], "params": {"A": -1.143612, "B": 5.055210, "C_log1": 0.484316, "W_log1": 7.829766, "PHI_log1": 1.229580, "w_log1": 0.106270, "C_log2": 0.266809, "W_log2": 16.646059, "PHI_log2": 1.554957, "w_log2": 0.250686, "C_cal": 0.216854, "W_cal": 1.840976, "PHI_cal": 2.989631, "w_cal": 0.035055}, "r2": 0.991243, "sigma": 0.143154},
+    "ecfg_2dd_1u": {"n_log": 2, "n_cal": 1, "log_damps": ['d', 'd'], "cal_damps": ['u'], "params": {"A": -1.191233, "B": 5.102466, "C_log1": 0.473390, "W_log1": 7.807929, "PHI_log1": 1.312068, "w_log1": 0.104927, "C_log2": 0.109168, "W_log2": 37.276563, "PHI_log2": 1.716159, "w_log2": 0.044386, "C_cal": 0.201474, "W_cal": 1.850313, "PHI_cal": 2.844831}, "r2": 0.991176, "sigma": 0.143701},
+    "ecfg_2dd_2dd": {"n_log": 2, "n_cal": 2, "log_damps": ['d', 'd'], "cal_damps": ['d', 'd'], "params": {"A": -0.628613, "B": 4.607373, "C_log1": 3.912672, "W_log1": 3.008530, "PHI_log1": 1.981470, "w_log1": 0.500000, "C_log2": 0.831928, "W_log2": 5.804256, "PHI_log2": -1.324804, "w_log2": 0.105199, "C_cal1": 1.516885, "W_cal1": 1.513709, "PHI_cal1": -2.167326, "w_cal1": 0.176575, "C_cal2": 0.205880, "W_cal2": 10.232352, "PHI_cal2": -0.970630, "w_cal2": 0.166852}, "r2": 0.987254, "sigma": 0.172702},
+    "ecfg_2dd_2du": {"n_log": 2, "n_cal": 2, "log_damps": ['d', 'd'], "cal_damps": ['d', 'u'], "params": {"A": -1.189596, "B": 5.102710, "C_log1": 0.487108, "W_log1": 7.786044, "PHI_log1": 1.328379, "w_log1": 0.104547, "C_log2": 0.124018, "W_log2": 30.429686, "PHI_log2": -1.408445, "w_log2": 0.065882, "C_cal1": 0.233721, "W_cal1": 10.000000, "PHI_cal1": -0.591390, "w_cal1": 0.172940, "C_cal2": 0.191346, "W_cal2": 1.868342, "PHI_cal2": 2.722372}, "r2": 0.992844, "sigma": 0.129400},
+    "ecfg_2dd_2uu": {"n_log": 2, "n_cal": 2, "log_damps": ['d', 'd'], "cal_damps": ['u', 'u'], "params": {"A": -1.167364, "B": 5.079560, "C_log1": 0.250431, "W_log1": 16.823754, "PHI_log1": 1.460423, "w_log1": 0.251550, "C_log2": 0.556269, "W_log2": 7.803554, "PHI_log2": 1.373041, "w_log2": 0.107049, "C_cal1": 0.202747, "W_cal1": 1.881312, "PHI_cal1": 2.520901, "C_cal2": 0.113542, "W_cal2": 3.355482, "PHI_cal2": 3.033229}, "r2": 0.993320, "sigma": 0.125028},
+    "ecfg_2du_0": {"n_log": 2, "n_cal": 0, "log_damps": ['d', 'u'], "cal_damps": [], "params": {"A": -1.124220, "B": 5.029270, "C_log1": 0.521293, "W_log1": 7.684369, "PHI_log1": 1.227815, "w_log1": 0.095766, "C_log2": 0.151372, "W_log2": 20.773683, "PHI_log2": -0.896309}, "r2": 0.988298, "sigma": 0.165479},
+    "ecfg_2du_1d": {"n_log": 2, "n_cal": 1, "log_damps": ['d', 'u'], "cal_damps": ['d'], "params": {"A": -1.159884, "B": 5.064082, "C_log1": 0.618147, "W_log1": 8.736504, "PHI_log1": -0.566654, "w_log1": 0.104475, "C_log2": 0.163302, "W_log2": 20.724695, "PHI_log2": -0.867348, "C_cal": 0.723176, "W_cal": 4.397533, "PHI_cal": -1.275783, "w_cal": 0.267779}, "r2": 0.991035, "sigma": 0.144844},
+    "ecfg_2du_1u": {"n_log": 2, "n_cal": 1, "log_damps": ['d', 'u'], "cal_damps": ['u'], "params": {"A": -1.184380, "B": 5.101305, "C_log1": 0.479821, "W_log1": 7.731005, "PHI_log1": 1.344117, "w_log1": 0.105839, "C_log2": 0.109760, "W_log2": 20.299527, "PHI_log2": -0.436882, "C_cal": 0.157679, "W_cal": 1.902087, "PHI_cal": 2.682141}, "r2": 0.990968, "sigma": 0.145379},
+    "ecfg_2du_2dd": {"n_log": 2, "n_cal": 2, "log_damps": ['d', 'u'], "cal_damps": ['d', 'd'], "params": {"A": -1.158361, "B": 5.068582, "C_log1": 0.403762, "W_log1": 7.901512, "PHI_log1": 1.339118, "w_log1": 0.106518, "C_log2": 0.088706, "W_log2": 7.595651, "PHI_log2": 0.660092, "C_cal1": 0.235665, "W_cal1": 1.820294, "PHI_cal1": -3.068852, "w_cal1": 0.033592, "C_cal2": 0.239068, "W_cal2": 10.308671, "PHI_cal2": -1.251776, "w_cal2": 0.177478}, "r2": 0.992519, "sigma": 0.132307},
+    "ecfg_2du_2du": {"n_log": 2, "n_cal": 2, "log_damps": ['d', 'u'], "cal_damps": ['d', 'u'], "params": {"A": -1.131272, "B": 5.012643, "C_log1": 0.270433, "W_log1": 7.953887, "PHI_log1": 0.262641, "w_log1": 0.069334, "C_log2": 0.112180, "W_log2": 16.454993, "PHI_log2": 1.452554, "C_cal1": 0.651536, "W_cal1": 2.993211, "PHI_cal1": 0.385461, "w_cal1": 0.330616, "C_cal2": 0.290289, "W_cal2": 1.677997, "PHI_cal2": -1.076457}, "r2": 0.991493, "sigma": 0.141092},
+    "ecfg_2du_2uu": {"n_log": 2, "n_cal": 2, "log_damps": ['d', 'u'], "cal_damps": ['u', 'u'], "params": {"A": -1.183241, "B": 5.102046, "C_log1": 0.507664, "W_log1": 7.620463, "PHI_log1": 1.622911, "w_log1": 0.106671, "C_log2": 0.092300, "W_log2": 20.256307, "PHI_log2": -0.722984, "C_cal1": 0.193756, "W_cal1": 1.907184, "PHI_cal1": 2.575084, "C_cal2": 0.106908, "W_cal2": 3.323490, "PHI_cal2": -2.693162}, "r2": 0.992866, "sigma": 0.129202},
+    "ecfg_2uu_0": {"n_log": 2, "n_cal": 0, "log_damps": ['u', 'u'], "cal_damps": [], "params": {"A": -1.176813, "B": 5.085663, "C_log1": 0.180520, "W_log1": 20.892431, "PHI_log1": -1.111269, "C_log2": 0.241183, "W_log2": 7.180144, "PHI_log2": 1.870043}, "r2": 0.980460, "sigma": 0.213831},
+    "ecfg_2uu_1d": {"n_log": 2, "n_cal": 1, "log_damps": ['u', 'u'], "cal_damps": ['d'], "params": {"A": -1.124459, "B": 5.004040, "C_log1": 0.265000, "W_log1": 7.067953, "PHI_log1": 1.781609, "C_log2": 0.159753, "W_log2": 8.815924, "PHI_log2": 0.461503, "C_cal": 0.247165, "W_cal": 1.763631, "PHI_cal": -2.340795, "w_cal": 0.029502}, "r2": 0.990087, "sigma": 0.152303},
+    "ecfg_2uu_1u": {"n_log": 2, "n_cal": 1, "log_damps": ['u', 'u'], "cal_damps": ['u'], "params": {"A": -1.184602, "B": 5.073838, "C_log1": 0.159905, "W_log1": 8.867766, "PHI_log1": 0.497450, "C_log2": 0.257808, "W_log2": 7.160579, "PHI_log2": 1.707531, "C_cal": 0.211546, "W_cal": 1.788972, "PHI_cal": -2.646276}, "r2": 0.989315, "sigma": 0.158123},
+    "ecfg_2uu_2dd": {"n_log": 2, "n_cal": 2, "log_damps": ['u', 'u'], "cal_damps": ['d', 'd'], "params": {"A": -1.274573, "B": 5.177999, "C_log1": 0.132538, "W_log1": 21.168160, "PHI_log1": -1.467086, "C_log2": 0.130871, "W_log2": 17.071574, "PHI_log2": 1.327892, "C_cal1": 0.569327, "W_cal1": 2.146082, "PHI_cal1": 2.441430, "w_cal1": 0.130633, "C_cal2": 0.284337, "W_cal2": 1.131472, "PHI_cal2": 1.920439, "w_cal2": 0.085599}, "r2": 0.990184, "sigma": 0.151560},
+    "ecfg_2uu_2du": {"n_log": 2, "n_cal": 2, "log_damps": ['u', 'u'], "cal_damps": ['d', 'u'], "params": {"A": -1.087292, "B": 4.964856, "C_log1": 0.161126, "W_log1": 6.347032, "PHI_log1": -2.708822, "C_log2": 0.100394, "W_log2": 37.186575, "PHI_log2": 1.932340, "C_cal1": 0.824688, "W_cal1": 4.212409, "PHI_cal1": -2.462779, "w_cal1": 0.375861, "C_cal2": 0.298069, "W_cal2": 1.742661, "PHI_cal2": -2.090698}, "r2": 0.991786, "sigma": 0.138637},
+    "ecfg_2uu_2uu": {"n_log": 2, "n_cal": 2, "log_damps": ['u', 'u'], "cal_damps": ['u', 'u'], "params": {"A": -1.167409, "B": 5.049106, "C_log1": 0.293024, "W_log1": 7.098379, "PHI_log1": 1.931776, "C_log2": 0.185402, "W_log2": 8.846058, "PHI_log2": 0.759028, "C_cal1": 0.224986, "W_cal1": 1.814174, "PHI_cal1": -2.934866, "C_cal2": 0.125693, "W_cal2": 3.283288, "PHI_cal2": -2.543245}, "r2": 0.992145, "sigma": 0.135577},
+}
+
+
 class EntropyPPLModel:
     """Entropy PPL — HybPPL variant with Shannon entropy envelope damping.
 
@@ -2480,6 +2521,234 @@ class EntropyPPLModel:
             r = int(180 + 40 * frac)     # 180 → 220
             g = int(120 + 50 * frac)     # 120 → 170
             b = int(30 + 40 * frac)      # 30 → 70
+            self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
+
+
+class EPPLConfigModel:
+    """Generic EPPL config model -- loads pre-fitted params for any config.
+
+    Config key format: ecfg_{log_spec}_{cal_spec}
+    where spec = "0" or "{count}{damps}" e.g. "2du" = 2 freqs, first damped,
+    second undamped.
+
+    Model: log10(price) = A + B*log10(t) + sum(log_osc_i) + sum(cal_osc_i)
+    where:
+      entropy-damped log: C * E(w*t) * cos(W * ln(t) + PHI)
+      undamped log:       C * cos(W * ln(t) + PHI)
+      entropy-damped cal: C * E(w*t) * cos(W * t + PHI)
+      undamped cal:       C * cos(W * t + PHI)
+    with E(x) = max(-x*ln(x), 0) / (1/e)   (normalized Shannon entropy envelope)
+    """
+    quantized = True
+
+    @staticmethod
+    def entropy_env(t, w):
+        """Normalized Shannon entropy envelope: E(x) = max(-x*ln(x), 0) / (1/e)."""
+        x = w * t
+        raw = -x * np.log(np.maximum(x, 1e-30))
+        return np.maximum(raw, 0.0) / (1.0 / np.e)
+
+    def __init__(self, config_key, price_years, price_prices, quantiles):
+        cfg = _EPPL_CONFIG_PARAMS.get(config_key)
+        if cfg is None:
+            raise ValueError(f"Unknown EPPL config: {config_key}")
+        self._config_key = config_key
+        self._cfg = cfg
+        self._params = cfg["params"]
+        self._sigma = cfg["sigma"]
+        self._n_log = cfg["n_log"]
+        self._n_cal = cfg["n_cal"]
+        self._log_damps = cfg["log_damps"]
+        self._cal_damps = cfg["cal_damps"]
+        self.r2 = cfg["r2"]
+
+        # Readable names
+        self.name = config_key
+        self.short_name = config_key
+        spec = config_key.replace("ecfg_", "")
+        self.legend_name = spec.upper()
+        self.dash_style = "solid"
+
+        # Build fits dict for quantile bands (Gaussian shift)
+        self.fits = {}
+        for q in quantiles:
+            z = _lazy_norm().ppf(q)
+            self.fits[q] = {"z_shift": z * self._sigma}
+        self.quantiles = sorted(self.fits.keys())
+        self._build_colors()
+
+    def _model_log10(self, t):
+        """Evaluate the model at time t using stored params."""
+        t = np.asarray(t, float)
+        ts = np.maximum(t, 0.1)
+        p = self._params
+        result = p["A"] + p["B"] * np.log10(ts)
+
+        # Log-periodic terms
+        for i in range(self._n_log):
+            suffix = str(i + 1) if self._n_log > 1 else ""
+            C = p[f"C_log{suffix}"]
+            W = p[f"W_log{suffix}"]
+            PHI = p[f"PHI_log{suffix}"]
+            if self._log_damps[i] == "d":
+                w = p[f"w_log{suffix}"]
+                result = result + C * self.entropy_env(ts, w) * np.cos(W * np.log(ts) + PHI)
+            else:
+                result = result + C * np.cos(W * np.log(ts) + PHI)
+
+        # Calendar terms
+        for i in range(self._n_cal):
+            suffix = str(i + 1) if self._n_cal > 1 else ""
+            C = p[f"C_cal{suffix}"]
+            W = p[f"W_cal{suffix}"]
+            PHI = p[f"PHI_cal{suffix}"]
+            if self._cal_damps[i] == "d":
+                w = p[f"w_cal{suffix}"]
+                result = result + C * self.entropy_env(ts, w) * np.cos(W * ts + PHI)
+            else:
+                result = result + C * np.cos(W * ts + PHI)
+
+        return result
+
+    def price_at(self, q, t):
+        t_arr = np.asarray(t, float)
+        log_median = self._model_log10(t_arr)
+        shift = self.fits[q]["z_shift"]
+        return 10.0 ** (log_median + shift)
+
+    def interp_price(self, q, t):
+        if q in self.fits:
+            return float(self.price_at(q, t))
+        sorted_qs = self.quantiles
+        lo = max((qq for qq in sorted_qs if qq <= q), default=sorted_qs[0])
+        hi = min((qq for qq in sorted_qs if qq >= q), default=sorted_qs[-1])
+        if lo == hi:
+            return float(self.price_at(lo, t))
+        frac = (q - lo) / (hi - lo)
+        p_lo = np.log10(float(self.price_at(lo, t)))
+        p_hi = np.log10(float(self.price_at(hi, t)))
+        return 10.0 ** (p_lo + frac * (p_hi - p_lo))
+
+    def find_percentile(self, t, price):
+        sorted_qs = self.quantiles
+        if not sorted_qs:
+            return 0.5
+        t_safe = max(float(t), 0.5)
+        log_p = np.log10(max(float(price), 1e-10))
+        log_ps = [np.log10(max(float(self.price_at(q, t_safe)), 1e-10))
+                  for q in sorted_qs]
+        if log_p <= log_ps[0]:
+            return sorted_qs[0]
+        if log_p >= log_ps[-1]:
+            return sorted_qs[-1]
+        for i in range(len(sorted_qs) - 1):
+            if log_ps[i] <= log_p <= log_ps[i + 1]:
+                frac = (log_p - log_ps[i]) / (log_ps[i + 1] - log_ps[i] + 1e-30)
+                return sorted_qs[i] + frac * (sorted_qs[i + 1] - sorted_qs[i])
+        return sorted_qs[-1]
+
+    @property
+    def component_names(self):
+        names = ["A (constant)", "B\u00b7log\u2081\u2080(t)"]
+        for i in range(self._n_log):
+            d = self._log_damps[i]
+            names.append(f"log osc {i+1} ({'entropy damped' if d == 'd' else 'undamped'})")
+        for i in range(self._n_cal):
+            d = self._cal_damps[i]
+            names.append(f"cal osc {i+1} ({'entropy damped' if d == 'd' else 'undamped'})")
+        return names
+
+    @property
+    def formula_log10_latex(self):
+        parts = [r"A + B \log_{10}(t)"]
+        for i in range(self._n_log):
+            d = self._log_damps[i]
+            idx = i + 1
+            if d == "d":
+                parts.append(rf"C_{{l{idx}}} E(w_{{l{idx}}} t) \cos(\omega_{{l{idx}}} \ln t + \varphi_{{l{idx}}})")
+            else:
+                parts.append(rf"C_{{l{idx}}} \cos(\omega_{{l{idx}}} \ln t + \varphi_{{l{idx}}})")
+        for i in range(self._n_cal):
+            d = self._cal_damps[i]
+            idx = i + 1
+            if d == "d":
+                parts.append(rf"C_{{c{idx}}} E(w_{{c{idx}}} t) \cos(\omega_{{c{idx}}} t + \varphi_{{c{idx}}})")
+            else:
+                parts.append(rf"C_{{c{idx}}} \cos(\omega_{{c{idx}}} t + \varphi_{{c{idx}}})")
+        return " + ".join(parts)
+
+    @property
+    def formula_product_latex(self):
+        return None  # too complex for product form
+
+    @property
+    def component_details(self):
+        det = {
+            "A (constant)": ("A", [("A", "A")]),
+            "B\u00b7log\u2081\u2080(t)": ("B\u00b7log\u2081\u2080(t)", [("B", "B")]),
+        }
+        for i in range(self._n_log):
+            d = self._log_damps[i]
+            name = f"log osc {i+1} ({'entropy damped' if d == 'd' else 'undamped'})"
+            if d == "d":
+                det[name] = (
+                    f"C\u00b7E(w\u00b7t)\u00b7cos(\u03c9\u00b7ln(t)+\u03c6)",
+                    [],
+                )
+            else:
+                det[name] = ("C\u00b7cos(\u03c9\u00b7ln(t)+\u03c6)", [])
+        for i in range(self._n_cal):
+            d = self._cal_damps[i]
+            name = f"cal osc {i+1} ({'entropy damped' if d == 'd' else 'undamped'})"
+            if d == "d":
+                det[name] = (
+                    f"C\u00b7E(w\u00b7t)\u00b7cos(\u03c9\u00b7t+\u03c6)",
+                    [],
+                )
+            else:
+                det[name] = ("C\u00b7cos(\u03c9\u00b7t+\u03c6)", [])
+        return det
+
+    def components(self, t):
+        """Decompose into individual additive terms."""
+        t = np.asarray(t, float)
+        ts = np.maximum(t, 0.1)
+        p = self._params
+        result = {
+            "A (constant)": np.full_like(ts, p["A"]),
+            "B\u00b7log\u2081\u2080(t)": p["B"] * np.log10(ts),
+        }
+        for i in range(self._n_log):
+            suffix = str(i + 1) if self._n_log > 1 else ""
+            d = self._log_damps[i]
+            C = p[f"C_log{suffix}"]; W = p[f"W_log{suffix}"]; PHI = p[f"PHI_log{suffix}"]
+            name = f"log osc {i+1} ({'entropy damped' if d == 'd' else 'undamped'})"
+            if d == "d":
+                w = p[f"w_log{suffix}"]
+                result[name] = C * self.entropy_env(ts, w) * np.cos(W * np.log(ts) + PHI)
+            else:
+                result[name] = C * np.cos(W * np.log(ts) + PHI)
+        for i in range(self._n_cal):
+            suffix = str(i + 1) if self._n_cal > 1 else ""
+            d = self._cal_damps[i]
+            C = p[f"C_cal{suffix}"]; W = p[f"W_cal{suffix}"]; PHI = p[f"PHI_cal{suffix}"]
+            name = f"cal osc {i+1} ({'entropy damped' if d == 'd' else 'undamped'})"
+            if d == "d":
+                w = p[f"w_cal{suffix}"]
+                result[name] = C * self.entropy_env(ts, w) * np.cos(W * ts + PHI)
+            else:
+                result[name] = C * np.cos(W * ts + PHI)
+        return result
+
+    def _build_colors(self):
+        """Teal-cyan palette -- distinct from HybPPL's gray-blue."""
+        self.colors = {}
+        n = len(self.quantiles)
+        for i, q in enumerate(self.quantiles):
+            frac = i / max(n - 1, 1)
+            r = int(20 + 60 * frac)      # 20 -> 80
+            g = int(140 + 50 * frac)     # 140 -> 190
+            b = int(140 + 40 * frac)     # 140 -> 180
             self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
 
 

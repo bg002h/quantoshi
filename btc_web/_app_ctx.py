@@ -67,6 +67,8 @@ DECOMP_FAMILIES = {
     "hyb4d":        "HybPPL 4D",
     "hybppl_cfg_a": "HybPPL (A)",
     "hybppl_cfg_b": "HybPPL (B)",
+    "eppl_cfg_a":   "Entropy PPL (A)",
+    "eppl_cfg_b":   "Entropy PPL (B)",
 }
 
 # 7-color decomposition palette per color scheme (cycles if model has >7 comps)

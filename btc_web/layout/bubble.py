@@ -12,7 +12,8 @@ from layout.common import (_model_info_link, _INFO_ICON,
                             _STYLE_HIDDEN, _STYLE_HINT, _q_panel, _q_panel_with_mode,
                             _q_options, _legend_pos_dropdown,
                             _chart_tab_layout, _CB_MARGIN, _palette_selector,
-                            _lppl_config_panel, _hybppl_config_panel)
+                            _lppl_config_panel, _hybppl_config_panel,
+                            _eppl_config_panel)
 
 
 def _build_bub_model_options(mc):
@@ -61,7 +62,7 @@ def _build_bub_model_options(mc):
 
     opts.append({
         "label": _swatch(mc.get("eppl", "#D4760A"), "Entropy PPL",
-                          model_key="eppl"),
+                          gear_btn_id="bub-eppl-gear"),
         "value": "eppl",
     })
 
@@ -86,7 +87,8 @@ def _build_bub_model_options(mc):
     _HIDDEN = _LPPL_FAM | _HYBPPL_FAM | {"bub", "eppl"} | _app_ctx.MODEL_SENTINELS
     _all = [m for m in _app_ctx.PRICE_MODELS.values()
             if m.short_name not in _HIDDEN
-            and not m.short_name.startswith("cfg_")]
+            and not m.short_name.startswith("cfg_")
+            and not m.short_name.startswith("ecfg_")]
     promoted = [m for m in _all if m.short_name in _PROMOTED]
     # Sort promoted in the order defined
     promoted.sort(key=lambda m: _PROMOTED.index(m.short_name) if m.short_name in _PROMOTED else 99)
@@ -198,6 +200,7 @@ def _bubble_controls():
         ]),
         _lppl_config_panel("bub"),
         _hybppl_config_panel("bub"),
+        _eppl_config_panel("bub"),
         _section_card("Component Decomposition",
             _lbl("Model"),
             dcc.Dropdown(

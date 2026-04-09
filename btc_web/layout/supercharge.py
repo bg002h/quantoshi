@@ -11,7 +11,7 @@ from tab_defaults import SUPERCHARGE
 from layout.common import (_tab_hints, _section_card, _lbl,
                             _STYLE_HINT, _q_options, _q_panel_with_mode,
                             _shared_settings_card, _model_show_checklist,
-                            _lppl_config_panel, _hybppl_config_panel,
+                            _lppl_config_panel, _hybppl_config_panel, _eppl_config_panel,
                             _btc_usd_dropdown, _chart_toggles,
                             _legend_pos_dropdown, _chart_tab_layout,
                             _CB_MARGIN, _Q_HINT_BASE)
@@ -105,6 +105,7 @@ def _supercharge_controls():
         ),
         _lppl_config_panel("sc"),
         _hybppl_config_panel("sc"),
+        _eppl_config_panel("sc"),
     ])
 
 

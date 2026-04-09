@@ -160,12 +160,9 @@ _MATHJAX_HEAD = """<script>MathJax={tex:{inlineMath:[['$','$'],['\\\\(','\\\\)']
 <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>"""
 
 _SCROLL_SCRIPT = """<script>
-window.addEventListener('load',function(){{
+document.addEventListener('DOMContentLoaded',function(){{
     var el=document.getElementById('{item_id}');
-    if(!el)return;
-    var col=el.querySelector('.accordion-collapse');
-    if(col){{var bs=new bootstrap.Collapse(col,{{toggle:false}});bs.show();}}
-    setTimeout(function(){{el.scrollIntoView({{behavior:'smooth',block:'start'}})}},200);
+    if(el)el.scrollIntoView({{block:'start'}});
 }});
 </script>"""
 
@@ -209,6 +206,36 @@ def render_static_pages():
     _STATIC_MI_HTML = render_static_model_info()
 
 
+def _open_accordion_item(html_str, item_id):
+    """Patch the HTML to open a specific accordion item + scroll to it.
+
+    Modifies the server-rendered HTML directly:
+    1. Add 'show' class to the target collapse div
+    2. Remove 'collapsed' from the button, set aria-expanded=true
+    3. Append a scroll script
+    """
+    collapse_id = f"collapse-{item_id}"
+    heading_id = f"heading-{item_id}"
+    # Open the collapse div
+    html_str = html_str.replace(
+        f'id="{collapse_id}" class="accordion-collapse collapse"',
+        f'id="{collapse_id}" class="accordion-collapse collapse show"',
+    )
+    # Fix button: remove 'collapsed' class and set aria-expanded=true
+    html_str = html_str.replace(
+        f'id="{heading_id}"><button class="accordion-button collapsed" '
+        f'type="button" data-bs-toggle="collapse" '
+        f'data-bs-target="#{collapse_id}" aria-expanded="false"',
+        f'id="{heading_id}"><button class="accordion-button" '
+        f'type="button" data-bs-toggle="collapse" '
+        f'data-bs-target="#{collapse_id}" aria-expanded="true"',
+    )
+    # Append scroll script
+    scroll = _SCROLL_SCRIPT.format(item_id=item_id)
+    html_str = html_str.replace("</body>", scroll + "</body>")
+    return html_str
+
+
 def register_static_routes(server):
     """Register /faq, /faq.N, /mi, /mi.N Flask routes."""
 
@@ -226,8 +253,7 @@ def register_static_routes(server):
         if _STATIC_FAQ_HTML is None:
             return "Static pages not yet rendered", 503
         item_id = f"faq-{item - 1}"  # URL is 1-indexed, internal is 0-indexed
-        scroll = _SCROLL_SCRIPT.format(item_id=item_id)
-        page = _STATIC_FAQ_HTML.replace("</body>", scroll + "</body>")
+        page = _open_accordion_item(_STATIC_FAQ_HTML, item_id)
         return page, 200, {
             "Content-Type": "text/html; charset=utf-8",
             "Cache-Control": "public, max-age=86400",
@@ -251,8 +277,7 @@ def register_static_routes(server):
             item_id = _MODEL_INFO_ITEM_IDS[item - 1]
         else:
             item_id = f"item-{item}"
-        scroll = _SCROLL_SCRIPT.format(item_id=item_id)
-        page = _STATIC_MI_HTML.replace("</body>", scroll + "</body>")
+        page = _open_accordion_item(_STATIC_MI_HTML, item_id)
         return page, 200, {
             "Content-Type": "text/html; charset=utf-8",
             "Cache-Control": "public, max-age=86400",

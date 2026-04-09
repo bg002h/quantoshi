@@ -555,18 +555,32 @@ def _lazy_load_auto_y_grid(tab, current):
 
 @callback(
     Output("citadel-lazy", "children"),
-    Output("citadel-first-render", "data", allow_duplicate=True),
     Input("main-tabs", "active_tab"),
+    prevent_initial_call=True,
+)
+def _lazy_load_citadel(tab):
+    """Populate Citadel Planner on first visit (saves ~25-30KB from layout JSON)."""
+    if tab != "citadel":
+        return no_update
+    from layout.citadel import _citadel_tab
+    return _citadel_tab()
+
+
+# After citadel lazy-load injects DOM, trigger the chart callback.
+# Uses a separate Input (citadel-lazy.children) to avoid hash collision
+# with the clientside tab-switch callback that also outputs citadel-first-render.
+_app_ctx.app.clientside_callback(
+    """
+    function(children, cur) {
+        if (!children || children === 'Loading...') return window.dash_clientside.no_update;
+        return (cur || 0) + 1;
+    }
+    """,
+    Output("citadel-first-render", "data", allow_duplicate=True),
+    Input("citadel-lazy", "children"),
     State("citadel-first-render", "data"),
     prevent_initial_call=True,
 )
-def _lazy_load_citadel(tab, cur_render):
-    """Populate Citadel Planner on first visit (saves ~25-30KB from layout JSON)."""
-    if tab != "citadel":
-        return no_update, no_update
-    from layout.citadel import _citadel_tab
-    # Increment first-render AFTER injecting DOM so the chart callback fires
-    return _citadel_tab(), (cur_render or 0) + 1
 
 
 @callback(

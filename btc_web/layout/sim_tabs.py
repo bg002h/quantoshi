@@ -22,27 +22,27 @@ from layout.mc_controls import _mc_controls
 def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
                               shared_kwargs, mc_kwargs, yr_range,
                               chart_toggle_defaults, btc_usd_kwargs=None,
-                              extra_sections=None, legend_pos_default="bottom-right",
-                              chart_settings_first=False):
+                              extra_sections=None, legend_pos_default="bottom-right"):
     """Shared builder for DCA (tab 3) and Retire (tab 4) controls."""
-    chart_card = _section_card("Chart Settings",
-        *_model_show_checklist(prefix, standardized=True),
-        _lbl("Year range"),
-        _year_range_slider(prefix, *yr_range),
-        _btc_usd_dropdown(prefix, **(btc_usd_kwargs or {})),
-        _chart_toggles(prefix, chart_toggle_defaults),
-        *_legend_pos_dropdown(prefix, legend_pos_default),
-    )
-    children = [_tab_hints(tab_key)]
-    if chart_settings_first:
-        children.append(chart_card)
-    children.append(_shared_settings_card(prefix, **shared_kwargs))
-    children.append(_q_panel_with_mode(f"{prefix}-qs", q_defaults, hint=q_hint))
+    children = [
+        _tab_hints(tab_key),
+        _shared_settings_card(prefix, **shared_kwargs),
+        _q_panel_with_mode(f"{prefix}-qs", q_defaults, hint=q_hint),
+    ]
     if extra_sections:
         children.extend(extra_sections)
     children.append(_mc_controls(prefix, **mc_kwargs))
-    if not chart_settings_first:
-        children.append(chart_card)
+    yr_now = pd.Timestamp.today().year
+    children.append(
+        _section_card("Chart Settings",
+            *_model_show_checklist(prefix, standardized=True),
+            _lbl("Year range"),
+            _year_range_slider(prefix, *yr_range),
+            _btc_usd_dropdown(prefix, **(btc_usd_kwargs or {})),
+            _chart_toggles(prefix, chart_toggle_defaults),
+            *_legend_pos_dropdown(prefix, legend_pos_default),
+        ),
+    )
     children.append(_lppl_config_panel(prefix))
     children.append(_hybppl_config_panel(prefix))
     children.append(_eppl_config_panel(prefix))
@@ -148,7 +148,6 @@ def _retire_controls():
         chart_toggle_defaults=["annotate", "log_y", "minor_grid", "shade"],
         btc_usd_kwargs={"btc_label": "BTC Remaining"},
         legend_pos_default=RETIRE["legend_pos"],
-        chart_settings_first=True,
     )
 
 

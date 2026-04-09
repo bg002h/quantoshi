@@ -6,7 +6,7 @@ only carries model data.
 """
 
 # -- Chart colors ---------------------------------------------------------------
-PLOT_BG_COLOR    = "#CCCBC6"
+PLOT_BG_COLOR    = "#AAA9A4"
 TEXT_COLOR       = "#222222"
 TITLE_COLOR      = "#1A3060"
 SPINE_COLOR      = "#888888"

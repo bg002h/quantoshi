@@ -271,6 +271,75 @@ _FAQ = [
         ]),
     },
     {
+        "q": "What do additional robustness tests reveal about the power law?",
+        "a": html.Span([
+            "We conducted nine additional investigations to stress-test the power law "
+            "and its oscillatory structure:",
+            html.Br(), html.Br(),
+            html.Strong("1. Time-varying frequency: "),
+            "We tested whether the log-periodic frequency \u03c9\u22487.4 drifts over time "
+            "by fitting \u03c9(t) = \u03c9\u2080 + \u03c9\u2081\u00b7ln(t). Result: \u03c9\u2081 = \u22120.056 \u2248 0. "
+            "The frequency is constant \u2014 not drifting. This validates the fixed-\u03c9 assumption "
+            "used in all LPPL/HybPPL models.",
+            html.Br(), html.Br(),
+            html.Strong("2. Heteroscedastic volatility: "),
+            "Residual analysis shows \u03c3(t) = 0.077\u00b7t^(\u22120.19) \u2014 volatility shrinks "
+            "over time. Windowed \u03c3: 0.150 (2010\u201313) \u2192 0.109 (2013\u201317) \u2192 0.139 "
+            "(2017\u201321) \u2192 0.092 (2021\u201326). The early era is 1.5\u00d7 more volatile than now. "
+            "Current models use constant \u03c3 for quantile bands \u2014 time-dependent bands "
+            "would be more accurate.",
+            html.Br(), html.Br(),
+            html.Strong("3. Cross-validation: "),
+            "Training on data before a cutoff date and testing on data after reveals "
+            "that all models overfit (train R\u00b2\u22480.99, test R\u00b2\u22480.64). However, "
+            "the Entropy PPL (EPPL 1d+1u) generalizes most consistently across 5 different "
+            "cutoff dates \u2014 the entropy envelope\u2019s zero-crossing prevents dead oscillations "
+            "from propagating forward. HybPPL collapses at the 2021 cutoff (test R\u00b2=0.19) "
+            "while EPPL holds at 0.64.",
+            html.Br(), html.Br(),
+            html.Strong("4. Symbolic regression: "),
+            "PySR (genetic programming) was given raw data with no assumptions and "
+            "independently discovered log\u2081\u2080(price) = 2.174\u00b7ln(t) \u2212 1.097 = "
+            "5.01\u00b7log\u2081\u2080(t) \u2212 1.10 \u2014 the power law with \u03b2\u22485.0, "
+            "from scratch. Higher-complexity equations found cosine terms but with "
+            "minimal improvement, confirming oscillations are secondary to the trend. "
+            "The genesis date is an input assumption, not something the algorithm discovers.",
+            html.Br(), html.Br(),
+            html.Strong("5. Wavelet scalogram: "),
+            "Continuous wavelet transform of detrended log\u2081\u2080(price) shows the "
+            "halving cycle (T\u22483.6yr) as the overwhelmingly dominant signal across "
+            "all scales and all time periods. Early-era power is 2\u00d7 the late era, "
+            "confirming oscillations are fading. The log-periodic signal is invisible "
+            "in wavelets because it\u2019s a chirp in calendar time \u2014 at t=2yr it looks "
+            "like T\u22481.7yr, at t=16yr it looks like T\u224813.6yr.",
+            html.Br(), html.Br(),
+            html.Strong("6. Asymmetric oscillations: "),
+            "Fitting separate damping exponents for rising vs falling phases reveals "
+            "that falls damp 3.5\u00d7 faster than rises (D_rise=0.56, D_fall=2.0). "
+            "FOMO builds slowly; panic resolves quickly. BIC improves by 120 over "
+            "symmetric damping.",
+            html.Br(), html.Br(),
+            html.Strong("7. Quantile-specific oscillations: "),
+            "Quantile regression with oscillatory terms shows the log-periodic amplitude "
+            "scales with quantile: Q5% (floor) has C=0.07, Q50% has C=0.15, Q95% (peaks) "
+            "has C=0.27. Upper quantiles oscillate 4\u00d7 larger than the floor. The power "
+            "law slope also varies: \u03b2=5.41 at Q5% vs \u03b2=4.87 at Q95% \u2014 the floor "
+            "grows steeper than the peaks, confirming volatility compression over time.",
+            html.Br(), html.Br(),
+            html.Strong("8. Fourier extrapolation: "),
+            "Top 20 FFT modes of the detrended signal project: $724K (2027), $85K (2028), "
+            "$294K (2029), $677K (2030), $157K (2031). These are unreliable because Fourier "
+            "extrapolation has no damping \u2014 it projects historical amplitudes unchanged. "
+            "Useful for showing cyclical structure, not for price targets.",
+            html.Br(), html.Br(),
+            html.Strong("9. Multi-scale decomposition: "),
+            "Fitting the power law at daily, weekly, monthly, quarterly, and yearly "
+            "resolution gives \u03b2 = 5.08, 5.09, 5.12, 5.18, 5.34 with R\u00b2 > 0.96 "
+            "at every scale. The power law is self-similar. The slight \u03b2 increase at "
+            "coarser scales reflects aggregation removing downside volatility.",
+        ]),
+    },
+    {
         "q": "What is the BM Empirical Floor model?",
         "a": html.Span([
             "The BM Empirical Floor is an alternate bubble model with a steeper "

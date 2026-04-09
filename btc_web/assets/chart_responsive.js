@@ -88,7 +88,12 @@
         }
 
         try {
-            if (Object.keys(upd).length) Plotly.relayout(gd, upd);
+            if (Object.keys(upd).length) {
+                document.title = 'RELAYOUT keys=' + Object.keys(upd).join(',');
+                Plotly.relayout(gd, upd);
+            } else {
+                document.title = 'RELAYOUT: no updates (no axes found)';
+            }
         } catch(e) { document.title = 'RELAYOUT ERR: ' + e.message; return; }
 
         gd._responsiveScaled = true;

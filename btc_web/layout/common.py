@@ -506,7 +506,7 @@ def _freq_warning_modal():
     ], id="freq-warning-modal", is_open=False, centered=True)
 
 
-def _model_show_checklist(prefix, standardized=False):
+def _model_show_checklist(prefix, standardized=False, include_mc=False):
     """Display models checklist with palette-aware color swatches.
 
     standardized=True: emits single "LPPL" master (skip individual LPPL
@@ -580,11 +580,13 @@ def _model_show_checklist(prefix, standardized=False):
                               model_key=mdl.short_name),
             "value": mdl.short_name,
         })
+    if include_mc and _app_ctx._HAS_MARKOV:
+        opts.append({"label": " MC Simulation", "value": "mc"})
     return [
         _lbl("Display models"),
         dcc.Checklist(id=f"{prefix}-model-show",
                       options=opts,
-                      value=["bub"],
+                      value=["bub"] + (["mc"] if include_mc and _app_ctx._HAS_MARKOV else []),
                       inline=True,
                       inputStyle=_CB_MARGIN,
                       labelStyle={"marginRight": "12px", "fontSize": "11px"},

@@ -22,7 +22,8 @@ from layout.mc_controls import _mc_controls
 def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
                               shared_kwargs, mc_kwargs, yr_range,
                               chart_toggle_defaults, btc_usd_kwargs=None,
-                              extra_sections=None, legend_pos_default="bottom-right"):
+                              extra_sections=None, legend_pos_default="bottom-right",
+                              include_mc=False):
     """Shared builder for DCA (tab 3) and Retire (tab 4) controls."""
     children = [
         _tab_hints(tab_key),
@@ -35,7 +36,7 @@ def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
     yr_now = pd.Timestamp.today().year
     children.append(
         _section_card("Chart Settings",
-            *_model_show_checklist(prefix, standardized=True),
+            *_model_show_checklist(prefix, standardized=True, include_mc=include_mc),
             _lbl("Year range"),
             _year_range_slider(prefix, *yr_range),
             _btc_usd_dropdown(prefix, **(btc_usd_kwargs or {})),
@@ -148,6 +149,7 @@ def _retire_controls():
         chart_toggle_defaults=["annotate", "log_y", "minor_grid", "shade"],
         btc_usd_kwargs={"btc_label": "BTC Remaining"},
         legend_pos_default=RETIRE["legend_pos"],
+        include_mc=True,
     )
 
 

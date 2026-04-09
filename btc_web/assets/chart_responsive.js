@@ -45,9 +45,11 @@
             }
         });
 
-        if (lineIdx.length) Plotly.restyle(gd, {'line.width': lineW}, lineIdx);
-        if (mkIdx.length)   Plotly.restyle(gd, {'marker.size': mkSz}, mkIdx);
-        if (opIdx.length)   Plotly.restyle(gd, {'marker.opacity': opVals}, opIdx);
+        try {
+            if (lineIdx.length) Plotly.restyle(gd, {'line.width': lineW}, lineIdx);
+            if (mkIdx.length)   Plotly.restyle(gd, {'marker.size': mkSz}, mkIdx);
+            if (opIdx.length)   Plotly.restyle(gd, {'marker.opacity': opVals}, opIdx);
+        } catch(e) { document.title = 'RESTYLE ERR: ' + e.message; return; }
 
         /* ── Layout (grid, axes, fonts) ──────────────────────────── */
         var lay = gd.layout;
@@ -78,9 +80,12 @@
             });
         }
 
-        if (Object.keys(upd).length) Plotly.relayout(gd, upd);
+        try {
+            if (Object.keys(upd).length) Plotly.relayout(gd, upd);
+        } catch(e) { document.title = 'RELAYOUT ERR: ' + e.message; return; }
 
         gd._responsiveScaled = true;
+        document.title = 'SCALED ' + gd.id + ' lines×' + LINE_SCALE;
     }
 
     /* Poll for graphs — simpler and more reliable than event hooks */

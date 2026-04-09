@@ -222,6 +222,15 @@ with time \u2014 classic log-periodicity.
 </body></html>"""
         return html, 200, {"Content-Type": "text/html"}
 
+    @server.route("/H")
+    def _genesis_sweep():
+        svg_path = os.path.join(os.path.dirname(__file__), "..", "genesis_sweep.svg")
+        try:
+            with open(svg_path) as f:
+                return f.read(), 200, {"Content-Type": "image/svg+xml"}
+        except FileNotFoundError:
+            return "Not generated yet", 404
+
     @server.route("/G")
     def _wave_basis():
         svg_path = os.path.join(os.path.dirname(__file__), "..", "wave_basis_comparison.svg")

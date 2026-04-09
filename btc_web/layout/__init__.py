@@ -124,6 +124,12 @@ def _serve_layout():
     """
     import flask
     path = flask.request.path if flask.has_request_context() else "/"
+    # /_dash-layout is a separate XHR — use Referer to determine target tab
+    if path == "/_dash-layout":
+        referer = flask.request.headers.get("Referer", "")
+        # Extract path from referer URL (e.g., "https://quantoshi.xyz/3" → "/3")
+        from urllib.parse import urlparse
+        path = urlparse(referer).path or "/"
     clean = path.rstrip("/").split(".")[0] or "/"
     initial_tab = _PATH_TO_TAB.get(clean, "bubble")
     layout = _build_layout(initial_tab)

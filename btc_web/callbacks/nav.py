@@ -158,6 +158,23 @@ def toggle_share_modal(n1, n1m, n2, is_open):
 # Uses Plotly.downloadImage() which renders in the browser.
 # ══════════════════════════════════════════════════════════════════════════════
 
+# Lazy-load hi-res watermark base64 on first export click
+_EXPORT_TAB_IDS = ["bubble", "heatmap", "dca", "retire", "supercharge", "citadel"]
+
+@callback(
+    Output("wm-b64-store", "data"),
+    [Input(f"{t}-export-btn", "n_clicks") for t in _EXPORT_TAB_IDS],
+    State("wm-b64-store", "data"),
+    prevent_initial_call=True,
+)
+def _lazy_load_watermarks(*args):
+    current = args[-1]
+    if current is not None:
+        return no_update
+    from figures.common import _LOGO_B64_ALL
+    return _LOGO_B64_ALL or no_update
+
+
 _EXPORT_TABS = [
     ("bubble",  "bubble-graph"),
     ("heatmap", "heatmap-graph"),
@@ -170,11 +187,24 @@ _EXPORT_TABS = [
 for _tab_id, _graph_id in _EXPORT_TABS:
     _app_ctx.app.clientside_callback(
         f"""
-        function(n_clicks, fmt, fname, scale, figure) {{
+        function(n_clicks, fmt, fname, scale, figure, wmStore) {{
             if (!n_clicks) return window.dash_clientside.no_update;
             if (!figure)   return window.dash_clientside.no_update;
             var s = scale || 2;
             var fig = JSON.parse(JSON.stringify(figure));
+            /* Swap watermark for hi-res version if available */
+            if (wmStore && fig.layout && fig.layout.images) {{
+                var wmB64 = wmStore[String(s)];
+                if (wmB64) {{
+                    for (var i = 0; i < fig.layout.images.length; i++) {{
+                        if (fig.layout.images[i].source &&
+                            fig.layout.images[i].source.indexOf('data:image/png;base64,') === 0) {{
+                            fig.layout.images[i].source = wmB64;
+                            break;
+                        }}
+                    }}
+                }}
+            }}
             if ((fmt || 'png') === 'html') {{
                 var fn = (fname || '{_tab_id}') + '.html';
                 var html = '<!DOCTYPE html>\\n<html><head>'
@@ -216,6 +246,7 @@ for _tab_id, _graph_id in _EXPORT_TABS:
         State(f"{_tab_id}-fname",      "value"),
         State(f"{_tab_id}-scale",      "value"),
         State(f"{_tab_id}-graph",      "figure"),
+        State("wm-b64-store",          "data"),
         prevent_initial_call=True,
     )
 

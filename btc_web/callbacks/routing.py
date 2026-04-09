@@ -543,11 +543,12 @@ _MODEL_INFO_ITEMS = [
 @callback(
     Output("auto-y-grid", "data"),
     Input("main-tabs", "active_tab"),
+    State("auto-y-grid", "data"),
     prevent_initial_call=True,
 )
-def _lazy_load_auto_y_grid(tab):
+def _lazy_load_auto_y_grid(tab, current):
     """Populate auto-Y grid on first bubble visit (saves ~162KB from layout JSON)."""
-    if tab != "bubble":
+    if tab != "bubble" or current is not None:
         return no_update
     return _app_ctx.AUTO_Y_GRID
 

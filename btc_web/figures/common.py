@@ -176,7 +176,7 @@ def _error_figure(title):
 
 # ── shared theme helpers ──────────────────────────────────────────────────────
 
-_LOG_MINOR = dict(showgrid=True, gridcolor="rgba(128,128,128,0.20)",
+_LOG_MINOR = dict(showgrid=True, gridcolor="rgba(100,100,100,0.35)",
                   griddash="dot", gridwidth=0.8, dtick="D1")
 
 

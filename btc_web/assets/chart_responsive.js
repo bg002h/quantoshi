@@ -26,14 +26,14 @@
         return wrapper.querySelector('.js-plotly-plot') || wrapper;
     }
 
-    /* Debounce to avoid scaling during rapid callback chains */
-    var _timers = {};
+    /* Track when WE are restyling to ignore our own plotly_react events */
+    var _scaling = false;
+
     function scheduleScale(gd, id) {
-        if (_timers[id]) clearTimeout(_timers[id]);
-        _timers[id] = setTimeout(function() {
-            gd._responsiveScaled = false;
-            scaleChart(gd);
-        }, 100);
+        if (_scaling) return;  /* ignore events from our own restyle/relayout */
+        gd._responsiveScaled = false;
+        /* Small delay lets Dash finish its update before we restyle */
+        setTimeout(function() { scaleChart(gd); }, 150);
     }
 
     function scaleChart(gd) {
@@ -63,10 +63,11 @@
         });
 
         try {
+            _scaling = true;
             if (lineIdx.length) Plotly.restyle(gd, {'line.width': lineW}, lineIdx);
             if (mkIdx.length)   Plotly.restyle(gd, {'marker.size': mkSz}, mkIdx);
             if (opIdx.length)   Plotly.restyle(gd, {'marker.opacity': opVals}, opIdx);
-        } catch(e) { return false; }
+        } catch(e) { _scaling = false; return false; }
 
         /* ── Layout (grid, axes, fonts) ──────────────────────────── */
         var upd = {};
@@ -98,6 +99,7 @@
         try {
             if (Object.keys(upd).length) Plotly.relayout(gd, upd);
         } catch(e) { /* relayout failed */ }
+        _scaling = false;
 
         gd._responsiveScaled = true;
         return true;

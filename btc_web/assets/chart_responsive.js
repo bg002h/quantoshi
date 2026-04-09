@@ -1,40 +1,30 @@
 /* Responsive chart scaling — thicken everything on desktop.
  *
- * Plotly figures are built server-side with fixed pixel values tuned for
- * mobile. On desktop (>768px), lines, markers, grids, and fonts look too
- * thin/small. This script hooks into plotly_afterplot and calls
- * Plotly.restyle() + Plotly.relayout() to scale up visual weight.
+ * Uses MutationObserver to detect when Plotly renders SVG, then
+ * calls Plotly.restyle + Plotly.relayout to scale up visual weight.
  */
 (function() {
+    'use strict';
     var DESKTOP_MIN = 768;
-    console.log('[chart_responsive] loaded, innerWidth=' + window.innerWidth);
+    if (window.innerWidth <= DESKTOP_MIN) return;  /* mobile — skip entirely */
 
-    /* ── Scale factors ─────────────────────────────────────────────── */
-    var LINE_SCALE    = 3.0;   /* trace line widths */
-    var MARKER_SCALE  = 2.0;   /* marker diameters */
-    var OPACITY_SCALE = 2.0;   /* marker opacity (capped at 1.0) */
-    var GRID_SCALE    = 3.0;   /* grid line widths */
-    var FONT_SCALE    = 1.8;   /* axis tick labels, title, legend */
-    var AXIS_SCALE    = 2.0;   /* axis line widths */
+    var LINE_SCALE    = 3.0;
+    var MARKER_SCALE  = 2.0;
+    var OPACITY_SCALE = 2.0;
+    var GRID_SCALE    = 3.0;
+    var FONT_SCALE    = 1.8;
+    var AXIS_SCALE    = 2.0;
 
     var GRAPH_IDS = [
         'bubble-graph', 'heatmap-graph', 'dca-graph',
         'retire-graph', 'supercharge-graph', 'citadel-graph'
     ];
 
-    function scaleFont(obj, key) {
-        /* Return scaled font size if present, else undefined */
-        if (obj && obj[key] && obj[key].size) {
-            return Math.round(obj[key].size * FONT_SCALE);
-        }
-        return undefined;
-    }
+    function scaleChart(gd) {
+        if (!gd || !gd.data || !gd.layout) return;
+        if (gd._responsiveScaled) return;
 
-    function applyDesktopScaling(gd) {
-        if (!gd || !gd.data || window.innerWidth <= DESKTOP_MIN) return;
-        if (gd.getAttribute('data-responsive-scaled')) return;
-
-        /* ── Trace scaling (restyle) ───────────────────────────────── */
+        /* ── Traces ──────────────────────────────────────────────── */
         var lineIdx = [], lineW = [];
         var mkIdx = [], mkSz = [];
         var opIdx = [], opVals = [];
@@ -58,98 +48,72 @@
         if (mkIdx.length)   Plotly.restyle(gd, {'marker.size': mkSz}, mkIdx);
         if (opIdx.length)   Plotly.restyle(gd, {'marker.opacity': opVals}, opIdx);
 
-        /* ── Layout scaling (relayout) ─────────────────────────────── */
-        var layout = gd.layout || {};
-        var updates = {};
+        /* ── Layout (grid, axes, fonts) ──────────────────────────── */
+        var lay = gd.layout;
+        var upd = {};
 
-        /* Grid + axis lines for xaxis, yaxis, and any secondary axes */
-        var axisKeys = Object.keys(layout).filter(function(k) {
-            return /^[xy]axis\d*$/.test(k);
-        });
-        axisKeys.forEach(function(ak) {
-            var ax = layout[ak] || {};
-            if (ax.gridwidth != null) {
-                updates[ak + '.gridwidth'] = ax.gridwidth * GRID_SCALE;
-            }
-            if (ax.linewidth != null) {
-                updates[ak + '.linewidth'] = ax.linewidth * AXIS_SCALE;
-            } else {
-                updates[ak + '.linewidth'] = 1.5;  /* default is ~1, bump to 1.5 */
-            }
-            if (ax.tickfont && ax.tickfont.size) {
-                updates[ak + '.tickfont.size'] = Math.round(ax.tickfont.size * FONT_SCALE);
-            }
-            if (ax.title && ax.title.font && ax.title.font.size) {
-                updates[ak + '.title.font.size'] = Math.round(ax.title.font.size * FONT_SCALE);
-            }
-            /* Minor grid */
-            if (ax.minor && ax.minor.gridwidth != null) {
-                updates[ak + '.minor.gridwidth'] = ax.minor.gridwidth * GRID_SCALE;
-            }
+        Object.keys(lay).forEach(function(k) {
+            if (!/^[xy]axis\d*$/.test(k)) return;
+            var ax = lay[k] || {};
+            if (ax.gridwidth != null)
+                upd[k + '.gridwidth'] = ax.gridwidth * GRID_SCALE;
+            upd[k + '.linewidth'] = (ax.linewidth || 1) * AXIS_SCALE;
+            if (ax.tickfont && ax.tickfont.size)
+                upd[k + '.tickfont.size'] = Math.round(ax.tickfont.size * FONT_SCALE);
+            if (ax.title && ax.title.font && ax.title.font.size)
+                upd[k + '.title.font.size'] = Math.round(ax.title.font.size * FONT_SCALE);
+            if (ax.minor && ax.minor.gridwidth != null)
+                upd[k + '.minor.gridwidth'] = ax.minor.gridwidth * GRID_SCALE;
         });
 
-        /* Title font */
-        if (layout.title && layout.title.font && layout.title.font.size) {
-            updates['title.font.size'] = Math.round(layout.title.font.size * FONT_SCALE);
-        }
-
-        /* Legend font */
-        if (layout.legend && layout.legend.font && layout.legend.font.size) {
-            updates['legend.font.size'] = Math.round(layout.legend.font.size * FONT_SCALE);
-        }
-
-        /* Annotation fonts */
-        if (layout.annotations && layout.annotations.length) {
-            layout.annotations.forEach(function(ann, i) {
-                if (ann.font && ann.font.size) {
-                    updates['annotations[' + i + '].font.size'] = Math.round(ann.font.size * FONT_SCALE);
-                }
+        if (lay.title && lay.title.font && lay.title.font.size)
+            upd['title.font.size'] = Math.round(lay.title.font.size * FONT_SCALE);
+        if (lay.legend && lay.legend.font && lay.legend.font.size)
+            upd['legend.font.size'] = Math.round(lay.legend.font.size * FONT_SCALE);
+        if (lay.annotations) {
+            lay.annotations.forEach(function(ann, i) {
+                if (ann.font && ann.font.size)
+                    upd['annotations[' + i + '].font.size'] = Math.round(ann.font.size * FONT_SCALE);
             });
         }
 
-        if (Object.keys(updates).length) {
-            Plotly.relayout(gd, updates);
-        }
+        if (Object.keys(upd).length) Plotly.relayout(gd, upd);
 
-        gd.setAttribute('data-responsive-scaled', '1');
-        console.log('[chart_responsive] scaled ' + gd.id + ': lines×' + LINE_SCALE + ' grid×' + GRID_SCALE + ' fonts×' + FONT_SCALE);
+        gd._responsiveScaled = true;
     }
 
-    /* ── Hooking ───────────────────────────────────────────────────── */
-
-    function hookGraph(id) {
-        var gd = document.getElementById(id);
-        if (!gd) return;
-        gd._hasResponsiveHook = true;
-        gd.on('plotly_afterplot', function() {
-            applyDesktopScaling(gd);
+    /* Poll for graphs — simpler and more reliable than event hooks */
+    function checkAll() {
+        GRAPH_IDS.forEach(function(id) {
+            var gd = document.getElementById(id);
+            if (gd && gd.data && gd.data.length > 0 && !gd._responsiveScaled) {
+                scaleChart(gd);
+            }
         });
-        gd.on('plotly_react', function() {
-            gd.removeAttribute('data-responsive-scaled');
-        });
-        if (gd.data && gd.data.length > 0) {
-            applyDesktopScaling(gd);
-        }
     }
 
-    function hookAll() {
-        GRAPH_IDS.forEach(hookGraph);
-    }
+    /* Check periodically for the first 30 seconds */
+    var interval = setInterval(checkAll, 500);
+    setTimeout(function() { clearInterval(interval); }, 30000);
 
-    if (document.readyState === 'complete') {
-        hookAll();
-    } else {
-        window.addEventListener('load', hookAll);
-    }
-
-    /* Watch for lazy-loaded tabs injecting new graph elements */
+    /* Also check on any DOM mutation (catches lazy-loaded tabs + callback re-renders) */
     var observer = new MutationObserver(function() {
         GRAPH_IDS.forEach(function(id) {
             var gd = document.getElementById(id);
-            if (gd && !gd._hasResponsiveHook) {
-                hookGraph(id);
+            if (gd && gd.data && gd.data.length > 0 && !gd._responsiveScaled) {
+                scaleChart(gd);
             }
         });
     });
     observer.observe(document.body, {childList: true, subtree: true});
+
+    /* Reset flag when Dash re-renders a figure (plotly_react fires after newPlot) */
+    setInterval(function() {
+        GRAPH_IDS.forEach(function(id) {
+            var gd = document.getElementById(id);
+            if (gd && gd._responsiveScaled && gd._fullLayout && gd._fullLayout._replotting) {
+                gd._responsiveScaled = false;
+            }
+        });
+    }, 1000);
 })();

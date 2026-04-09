@@ -156,7 +156,7 @@ _PAGE_TEMPLATE = """<!DOCTYPE html>
 </body>
 </html>"""
 
-_MATHJAX_HEAD = """<script>MathJax={tex:{inlineMath:[['$','$'],['\\\\(','\\\\)']]}};</script>
+_MATHJAX_HEAD = """<script>MathJax={tex:{inlineMath:[['$','$'],['\\\\(','\\\\)']],displayMath:[['$$','$$'],['\\\\[','\\\\]']]}};</script>
 <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>"""
 
 _SCROLL_SCRIPT = """<script>
@@ -236,6 +236,27 @@ def _open_accordion_item(html_str, item_id):
     return html_str
 
 
+_STATIC_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "font-src 'self' https://cdn.jsdelivr.net; "
+    "img-src 'self' data: blob:; "
+    "frame-ancestors 'none'; "
+    "base-uri 'self'"
+)
+
+def _static_headers(extra=None):
+    h = {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "public, max-age=86400",
+        "Content-Security-Policy": _STATIC_CSP,
+    }
+    if extra:
+        h.update(extra)
+    return h
+
+
 def register_static_routes(server):
     """Register /faq, /faq.N, /mi, /mi.N Flask routes."""
 
@@ -243,10 +264,7 @@ def register_static_routes(server):
     def _static_faq():
         if _STATIC_FAQ_HTML is None:
             return "Static pages not yet rendered", 503
-        return _STATIC_FAQ_HTML, 200, {
-            "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "public, max-age=86400",
-        }
+        return _STATIC_FAQ_HTML, 200, _static_headers()
 
     @server.route("/faq.<int:item>")
     def _static_faq_item(item):
@@ -254,19 +272,13 @@ def register_static_routes(server):
             return "Static pages not yet rendered", 503
         item_id = f"faq-{item - 1}"  # URL is 1-indexed, internal is 0-indexed
         page = _open_accordion_item(_STATIC_FAQ_HTML, item_id)
-        return page, 200, {
-            "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "public, max-age=86400",
-        }
+        return page, 200, _static_headers()
 
     @server.route("/mi")
     def _static_mi():
         if _STATIC_MI_HTML is None:
             return "Static pages not yet rendered", 503
-        return _STATIC_MI_HTML, 200, {
-            "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "public, max-age=86400",
-        }
+        return _STATIC_MI_HTML, 200, _static_headers()
 
     @server.route("/mi.<int:item>")
     def _static_mi_item(item):
@@ -278,7 +290,4 @@ def register_static_routes(server):
         else:
             item_id = f"item-{item}"
         page = _open_accordion_item(_STATIC_MI_HTML, item_id)
-        return page, 200, {
-            "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "public, max-age=86400",
-        }
+        return page, 200, _static_headers()

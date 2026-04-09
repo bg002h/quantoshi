@@ -90,8 +90,6 @@
         } catch(e) { /* relayout failed — traces still scaled */ }
 
         gd._responsiveScaled = true;
-        /* DEBUG — remove after confirming */
-        document.title = 'SCALED ' + gd.id + ' t=' + lineIdx.length + ' lay=' + Object.keys(upd).length;
         return true;
     }
 

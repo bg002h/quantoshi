@@ -129,19 +129,43 @@ def _serve_layout():
     layout = _build_layout(initial_tab)
 
     # Inject pre-computed figures for chart tabs (L1 cache hit, ~0ms each).
-    # For deep links to non-chart tabs (FAQ, Model Info, Stack), skip bubble
-    # figure injection — it causes a visible flash of tab 1 during hydration.
     from layout.common import _inject_initial_figure
-    _NON_CHART_TABS = {"faq", "model_info", "stack"}
-    skip_bubble = initial_tab in _NON_CHART_TABS or initial_tab != "bubble"
     for tab, gid in _TAB_TO_GRAPH.items():
-        if skip_bubble and tab == "bubble":
+        if tab == "bubble" and initial_tab != "bubble":
+            # Inject a blank figure so the graph doesn't show a spinner
+            import plotly.graph_objects as go
+            _inject_initial_figure(layout, gid, go.Figure().update_layout(
+                template="none", paper_bgcolor="white", plot_bgcolor="white",
+                xaxis=dict(visible=False), yaxis=dict(visible=False),
+                margin=dict(l=0, r=0, t=0, b=0), height=1,
+            ))
             continue
         fig = _get_initial_figure(tab)
         if fig:
             _inject_initial_figure(layout, gid, fig)
 
+    # For deep links, hide the bubble tab pane so Bootstrap doesn't flash it.
+    # Walk layout tree to find the bubble dbc.Tab and set its style.
+    if initial_tab != "bubble":
+        _hide_bubble_pane(layout)
+
     return layout
+
+
+def _hide_bubble_pane(component):
+    """Recursively find the bubble tab pane and hide it."""
+    if hasattr(component, 'tab_id') and component.tab_id == "bubble":
+        component.tab_style = {"display": "none"}
+        component.style = {"display": "none"}
+        return True
+    children = getattr(component, 'children', None)
+    if isinstance(children, list):
+        for child in children:
+            if _hide_bubble_pane(child):
+                return True
+    elif children is not None:
+        return _hide_bubble_pane(children)
+    return False
 
 _app_ctx.app.layout = _serve_layout
 

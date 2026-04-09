@@ -122,7 +122,25 @@ Quantoshi Research, April 2026
 - Model Info tab (/8) — full formulas and coefficients
 - Open source: github.com/bg002h/quantoshi
 
-### Slide 18: Summary — Three Sentences
-1. Bitcoin has exactly two oscillatory structures — confirmed independently by PCA, EMD, and DMD.
+### Slide 18: Multivariate Analysis
+- Proxy inputs (linear t, log²t, √t, lagged price): all ΔR² < 0.001
+- Power law is purely temporal — no transformation of time adds information
+- Lagged price: β=-0.20 (weak negative momentum, mean reversion)
+- Limitation: proxies not independent; on-chain data (hash rate, addresses) needed for true test
+
+### Slide 19: Phase-Space Reconstruction
+- Takens embedding, delay τ=256 days (0.70yr)
+- FNN drops to 4.2% at dimension 3 — attractor resolves
+- Correlation dimension D₂ ≈ 2.0 — a ~2D attractor
+- Topologically confirms two oscillatory modes (same as PCA/EMD/DMD)
+
+### Slide 20: Neural Networks vs Parametric Models
+- MLP 10 nodes (91p): train R²=0.993, test R²=-20.3
+- MLP 100-50-20 (6,891p): train R²=0.999, test R²=-3.1
+- EPPL (16p): train R²=0.993, test R²=0.64
+- 16 domain-informed parameters vastly outperform 6,891 unconstrained parameters
+
+### Slide 21: Summary — Three Sentences
+1. Bitcoin has exactly two oscillatory structures — confirmed independently by PCA, EMD, DMD, and phase-space reconstruction.
 2. The speculative signal is extinct, captured by Shannon entropy damping.
 3. Future price: power law trend + flattening halving cycle = market maturation.

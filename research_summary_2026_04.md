@@ -83,6 +83,15 @@ Top 20 modes project $724K (2027), $85K (2028), $677K (2030). Not reliable — n
 ### 9. Multi-Scale Decomposition
 **Power law is self-similar**: β≈5.08 at daily, 5.09 weekly, 5.12 monthly, 5.18 quarterly, 5.34 yearly. R²>0.96 at every resolution.
 
+### 10. Multivariate Analysis (with On-Chain Data)
+Tested whether on-chain network metrics improve the power law using daily hash rate, active addresses, transaction count, UTXO set size, and difficulty from blockchain.com. **All 5 metrics combined add only ΔR²=+0.006** (0.963→0.969). Hash rate is the strongest individual predictor (+0.0017), followed by difficulty (+0.0014). **Metcalfe's law is close**: price ∝ addresses^1.91 (expect γ=2.0 for Metcalfe), but addresses alone (R²=0.845) explain far less than time (R²=0.963). When controlling for time, addresses add only +0.0006. The fundamental problem is **collinearity**: hash rate, addresses, and difficulty all grow as approximate power laws of time, making it impossible to distinguish "price follows time" from "price follows adoption which grows with time." The power law is predominantly temporal.
+
+### 11. Phase-Space Reconstruction
+Takens embedding of detrended log₁₀(price) with optimal delay **τ=256 days** (0.70yr). False nearest neighbors drop to 4.2% at **embedding dimension 3** — the attractor resolves. **Correlation dimension ≈ 2.0** (embedding dim 4-5). Bitcoin's detrended dynamics live on a ~2-dimensional attractor, consistent with two dominant oscillatory modes (log-periodic + halving cycle).
+
+### 12. Neural Network Comparison (MLP Proxy for Neural ODE)
+All MLPs catastrophically overfit. MLP 10 nodes: train R²=0.993, **test R²=-20.3**. MLP 100-50-20: train R²=0.999, **test R²=-3.1**. With 91–6,891 parameters, neural networks achieve higher training R² but wildly negative test R² — far worse than EPPL's 16 params (test R²≈0.64). Parametric models with domain-informed structure vastly outperform unconstrained function approximators.
+
 ---
 
 ## Key Conclusions

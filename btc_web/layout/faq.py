@@ -273,7 +273,7 @@ _FAQ = [
     {
         "q": "What do additional robustness tests reveal about the power law?",
         "a": html.Span([
-            "We conducted nine additional investigations to stress-test the power law "
+            "We conducted twelve additional investigations to stress-test the power law "
             "and its oscillatory structure:",
             html.Br(), html.Br(),
             html.Strong("1. Time-varying frequency: "),
@@ -337,6 +337,39 @@ _FAQ = [
             "resolution gives \u03b2 = 5.08, 5.09, 5.12, 5.18, 5.34 with R\u00b2 > 0.96 "
             "at every scale. The power law is self-similar. The slight \u03b2 increase at "
             "coarser scales reflects aggregation removing downside volatility.",
+            html.Br(), html.Br(),
+            html.Strong("10. Multivariate analysis: "),
+            "We tested whether on-chain network metrics improve the power law, "
+            "using daily hash rate, active addresses, transaction count, UTXO set "
+            "size, and difficulty from blockchain.com. Result: even with real "
+            "network data, all 5 metrics combined add only \u0394R\u00b2 = +0.006 "
+            "(0.963 \u2192 0.969). Hash rate is the strongest individual predictor "
+            "(+0.0017), followed by difficulty (+0.0014). Metcalfe\u2019s law is "
+            "close: price \u221d addresses\u00b9\u00b7\u2079\u00b9 (expect 2.0), but "
+            "addresses alone (R\u00b2=0.845) explain far less than time (R\u00b2=0.963). "
+            "When controlling for time, addresses add only +0.0006. The fundamental "
+            "problem is collinearity: hash rate, addresses, and difficulty all grow "
+            "as approximate power laws of time, making it impossible to distinguish "
+            "\u2018price follows time\u2019 from \u2018price follows adoption which "
+            "grows with time.\u2019 The power law is predominantly temporal.",
+            html.Br(), html.Br(),
+            html.Strong("11. Phase-space reconstruction: "),
+            "Takens embedding of the detrended log-price with optimal delay "
+            "\u03c4 = 256 days (0.70 yr). False nearest neighbors drop to 4.2% at "
+            "embedding dimension 3, meaning the attractor resolves in 3D. "
+            "Correlation dimension \u2248 2.0 (computed at embedding dimensions 4\u20135). "
+            "Bitcoin\u2019s detrended price dynamics live on a roughly 2-dimensional "
+            "attractor \u2014 consistent with two dominant oscillatory modes "
+            "(log-periodic + halving cycle) found by PCA, EMD, and DMD.",
+            html.Br(), html.Br(),
+            html.Strong("12. Neural network comparison: "),
+            "MLPs of varying depth (10 to 100-50-20 nodes) were trained on the "
+            "same data. All catastrophically overfit: train R\u00b2 = 0.993\u20130.999, "
+            "test R\u00b2 = \u221220.3 to \u22123.1. With 91\u20136,891 parameters, neural "
+            "networks achieve higher training R\u00b2 but wildly negative test R\u00b2 \u2014 "
+            "far worse than EPPL\u2019s 16 parameters (test R\u00b2 \u2248 0.64). "
+            "Parametric models with domain-informed structure are vastly more "
+            "efficient than unconstrained function approximators on this dataset.",
         ]),
     },
     {

@@ -60,14 +60,6 @@ _app_ctx.app.index_string = """<!DOCTYPE html>
         {%css%}
     </head>
     <body>
-        <script>
-        (function(){var p=location.pathname.replace(/\/+$/,"")||"/";
-        if(p!=="/"&&p!=="/1"){
-            var d=document.createElement("div");d.id="deeplink-cover";
-            d.style.cssText="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;z-index:99999";
-            document.body.appendChild(d);
-        }})();
-        </script>
         {%app_entry%}
         <footer>
             {%config%}
@@ -136,10 +128,15 @@ def _serve_layout():
     initial_tab = _PATH_TO_TAB.get(clean, "bubble")
     layout = _build_layout(initial_tab)
 
-    # Inject pre-computed figures for ALL chart tabs (L1 cache hit, ~0ms each).
-    # This prevents the flash/resize when switching to a new tab.
+    # Inject pre-computed figures for chart tabs (L1 cache hit, ~0ms each).
+    # For deep links to non-chart tabs (FAQ, Model Info, Stack), skip bubble
+    # figure injection — it causes a visible flash of tab 1 during hydration.
     from layout.common import _inject_initial_figure
+    _NON_CHART_TABS = {"faq", "model_info", "stack"}
+    skip_bubble = initial_tab in _NON_CHART_TABS or initial_tab != "bubble"
     for tab, gid in _TAB_TO_GRAPH.items():
+        if skip_bubble and tab == "bubble":
+            continue
         fig = _get_initial_figure(tab)
         if fig:
             _inject_initial_figure(layout, gid, fig)

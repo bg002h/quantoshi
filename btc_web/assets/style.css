@@ -280,8 +280,8 @@ body {
 }
 
 /* ── Deep-link flash suppression ─────────────────────────────────────────── */
-/* Inline script in index_string creates #deeplink-cover (white overlay).
-   tab_deeplink.js removes it after Dash hydrates the correct tab. */
+/* Handled server-side: _serve_layout skips bubble figure injection for
+   deep links, so there's no pre-rendered chart to flash during hydration. */
 
 /* ── #11: Loading skeleton shimmer ────────────────────────────────────────── */
 .chart-loading-skeleton {

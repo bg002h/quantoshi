@@ -9,12 +9,12 @@
     var DESKTOP_MIN = 768;
 
     /* ── Scale factors ─────────────────────────────────────────────── */
-    var LINE_SCALE    = 2.0;   /* trace line widths */
-    var MARKER_SCALE  = 1.5;   /* marker diameters */
-    var OPACITY_SCALE = 1.5;   /* marker opacity (capped at 1.0) */
-    var GRID_SCALE    = 2.0;   /* grid line widths */
-    var FONT_SCALE    = 1.4;   /* axis tick labels, title, legend */
-    var AXIS_SCALE    = 1.5;   /* axis line widths */
+    var LINE_SCALE    = 3.0;   /* trace line widths */
+    var MARKER_SCALE  = 2.0;   /* marker diameters */
+    var OPACITY_SCALE = 2.0;   /* marker opacity (capped at 1.0) */
+    var GRID_SCALE    = 3.0;   /* grid line widths */
+    var FONT_SCALE    = 1.8;   /* axis tick labels, title, legend */
+    var AXIS_SCALE    = 2.0;   /* axis line widths */
 
     var GRAPH_IDS = [
         'bubble-graph', 'heatmap-graph', 'dca-graph',

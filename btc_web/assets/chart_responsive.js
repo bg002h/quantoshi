@@ -29,7 +29,9 @@
     }
 
     function scaleChart(gd) {
-        if (!gd || !gd.data || !gd.layout) return;
+        if (!gd || !gd.data) return;
+        var lay = gd.layout || gd._fullLayout || {};
+        document.title = 'scaleChart: data=' + gd.data.length + ' layout=' + !!gd.layout + ' _fL=' + !!gd._fullLayout;
         if (gd._responsiveScaled) return;
 
         /* ── Traces ──────────────────────────────────────────────── */
@@ -59,7 +61,6 @@
         } catch(e) { document.title = 'RESTYLE ERR: ' + e.message; return; }
 
         /* ── Layout (grid, axes, fonts) ──────────────────────────── */
-        var lay = gd.layout;
         var upd = {};
 
         Object.keys(lay).forEach(function(k) {

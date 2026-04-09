@@ -279,6 +279,16 @@ body {
     cursor: pointer;
 }
 
+/* ── Deep-link flash suppression ─────────────────────────────────────────── */
+/* Hide non-active tab panes during initial render to prevent the brief
+   flash of tab 1 content when deep-linking to /faq, /8.N, etc.
+   Dash sets .active on the correct pane server-side; this hides the rest
+   until React hydrates and applies display:none properly.
+   The tab_deeplink.js asset removes this class after hydration. */
+body.deeplink-pending #main-tabs .tab-pane:not(.active) {
+    display: none !important;
+}
+
 /* ── #11: Loading skeleton shimmer ────────────────────────────────────────── */
 .chart-loading-skeleton {
     background: linear-gradient(90deg, #e8e6e1 25%, #f4f3f0 50%, #e8e6e1 75%);

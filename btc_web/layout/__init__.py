@@ -60,6 +60,10 @@ _app_ctx.app.index_string = """<!DOCTYPE html>
         {%css%}
     </head>
     <body>
+        <script>
+        (function(){var p=location.pathname.replace(/\/+$/,"")||"/";
+        if(p!=="/"&&p!=="/1")document.body.classList.add("deeplink-pending");})();
+        </script>
         {%app_entry%}
         <footer>
             {%config%}

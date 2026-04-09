@@ -1295,30 +1295,28 @@ computed via SVD of the centered component matrix.
 
                         # ── Greedy Select ──
                         dbc.AccordionItem([
-                            html.H6("Formula"),
-                            dcc.Markdown(r"""
-$$\log_{10}(\text{price}) = \alpha + \beta \log_{10}(t) + \sum_{i=1}^{5} w_i \cdot f_i(t) + z_q \cdot \sigma$$
-
-where:
-- $f_1(t) = 0.282344 \cdot t^{-0.010} \cos(1.7657 \cdot t - 2.2841)$ &mdash; halving cycle (LinPPL)
-- $f_2(t) = 0.733975 \cdot t^{-0.608} \cos(7.5579 \cdot \ln t + 1.3771)$ &mdash; log-periodic (LPPL)
-- $f_3(t) = 0.114588 \cdot \cos(3.2807 \cdot t - 2.4526)$ &mdash; sub-halving (Hyb2C)
-- $f_4(t) = 0.422419 \cdot t^{-1.166} \cos(16.238 \cdot \ln t + 1.8854)$ &mdash; 2nd log harmonic (Hyb2B)
-- $f_5(t) = 0.586943 \cdot t^{-1.062} \cos(1.1169 \cdot t + 3.1411)$ &mdash; long calendar (Hyb4D)
-                            """, mathjax=True, className="mb-3"),
-
                             html.H6("Method"),
                             html.P([
-                                html.Strong("Greedy forward BIC minimisation "),
-                                "over the pool of all individual oscillatory components "
-                                "from the LPPL and HybPPL model families. At each step, the "
-                                "single component that maximally reduces BIC is added. "
-                                "Terminates when no remaining component improves BIC."
+                                html.Strong("Greedy forward BIC minimisation (v2) "),
+                                "over a 467-function dictionary including entropy-damped, "
+                                "power-law-damped, undamped, and EPPL model components. "
+                                "At each step, the single component that maximally reduces "
+                                "BIC is added. Entropy-damped terms dominated the selection "
+                                "(16 of 24 terms at full depth). Zero power-law-damped terms "
+                                "were selected when entropy alternatives were available."
                             ]),
 
                             html.H6("Formula"),
                             dcc.Markdown(r"""
 $$\log_{10}(\text{price}) = \alpha + \beta \cdot \log_{10}(t) + \sum_{i=1}^{5} w_i \cdot f_i(t) + z_q \cdot \sigma$$
+
+where $E(x) = \max(-x \ln x, 0) / (1/e)$ is the Shannon entropy envelope:
+
+- $f_1(t) = E(0.10 \cdot t) \cdot \sin(7.5 \cdot \ln t)$ &mdash; entropy-damped log-periodic
+- $f_2(t) = 0.2027 \cdot \cos(1.881 \cdot t + 2.521)$ &mdash; undamped halving cycle (T&asymp;3.34yr)
+- $f_3(t) = E(0.05 \cdot t) \cdot \cos(3.341 \cdot t)$ &mdash; entropy-damped sub-halving
+- $f_4(t) = 0.2504 \cdot E(0.252 \cdot t) \cdot \cos(16.82 \cdot \ln t + 1.460)$ &mdash; entropy log osc 1
+- $f_5(t) = 0.5563 \cdot E(0.107 \cdot t) \cdot \cos(7.804 \cdot \ln t + 1.373)$ &mdash; entropy log osc 2
 
 where each $f_i(t)$ is one of three functional forms:
 
@@ -1400,46 +1398,31 @@ where each $f_i(t)$ is one of three functional forms:
                                 ]),
                             ], style={"marginBottom": "12px", "fontSize": "13px"}),
 
-                            html.H6("Comparison to existing models"),
+                            html.H6("Comparison"),
                             _coeff_table([
-                                ("Greedy (7p)", "R\u00b2=0.9928  \u03c3=0.130  BIC=\u221223,319"),
+                                ("Greedy v2 (7p)", "R\u00b2=0.9935  \u03c3=0.124  BIC=\u221223,886  \u2605 best BIC at 7p"),
                                 ("PCA (7p)", "R\u00b2=0.9933  \u03c3=0.125  BIC=\u221223,776"),
-                                ("Hyb2B (16p)", "R\u00b2=0.9927  \u03c3=0.130  BIC=\u221223,203"),
+                                ("EPPL 2+2 (16p)", "R\u00b2=0.9933  \u03c3=0.125  BIC=\u221223,681"),
+                                ("Old Greedy v1 (7p)", "R\u00b2=0.9928  \u03c3=0.130  BIC=\u221223,319  (power-law damped)"),
                             ]),
 
                             html.Hr(),
-                            html.H6("Structural comparison: Greedy vs Hyb2B"),
+                            html.H6("Why entropy damping won"),
                             html.P([
-                                "Greedy is most similar to Hyb2B (correlation 0.9994, RMSE 0.052). "
-                                "The two models share 4 of 5 oscillatory components:"
+                                "When given a choice among 467 candidate functions \u2014 "
+                                "entropy-damped, power-law-damped, undamped, and pre-fitted model "
+                                "components \u2014 the greedy algorithm selected 16 entropy-damped terms, "
+                                "4 model components, 4 undamped terms, and ",
+                                html.Strong("zero"),
+                                " power-law-damped terms. Entropy damping is the preferred envelope "
+                                "when alternatives are available."
                             ]),
-                            html.Table([
-                                html.Thead(html.Tr([
-                                    html.Th("Component", style={"paddingRight": "10px"}),
-                                    html.Th("Greedy", style={"paddingRight": "10px"}),
-                                    html.Th("Hyb2B", style={"paddingRight": "10px"}),
-                                ])),
-                                html.Tbody([
-                                    html.Tr([html.Td("Primary log-periodic (\u03c9\u22487.5)"),
-                                             html.Td("\u2713 damped"), html.Td("\u2713 damped")]),
-                                    html.Tr([html.Td("Halving calendar (T\u22483.6yr)"),
-                                             html.Td("\u2713 undamped"), html.Td("\u2713 undamped")]),
-                                    html.Tr([html.Td("Sub-halving (T\u22481.9yr)"),
-                                             html.Td("\u2713 undamped"), html.Td("\u2713 undamped")]),
-                                    html.Tr([html.Td("2nd log harmonic (\u03c9\u224816)"),
-                                             html.Td("\u2713 damped"), html.Td("\u2713 damped")]),
-                                    html.Tr([html.Td(html.Strong("Long calendar (T\u22485.6yr)")),
-                                             html.Td(html.Strong("\u2713 damped")),
-                                             html.Td(html.Em("\u2717 absent"))]),
-                                ]),
-                            ], style={"marginBottom": "12px", "fontSize": "13px"}),
                             html.P([
-                                html.Strong("Conclusion: "),
-                                "Greedy confirms that Hyb2B\u2019s architecture (2 damped log-periodic "
-                                "+ 2 undamped calendar) is very close to optimal. The only improvement "
-                                "greedy found was adding a single heavily damped T\u22485.6yr calendar "
-                                "cycle from Hyb4D \u2014 a term that is already nearly extinct and "
-                                "contributes mainly to early-era structure."
+                                "The v1 greedy used t^(\u2212D) power-law components from HybPPL models. "
+                                "The v2 greedy uses E(w\u00b7t) entropy envelopes, gaining +567 BIC at "
+                                "the same 7 parameters. The entropy envelope\u2019s natural zero-crossing "
+                                "(oscillations die completely) fits Bitcoin\u2019s transition from speculative "
+                                "to mature asset better than power-law\u2019s infinite tail."
                             ]),
 
                             html.Hr(),

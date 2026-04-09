@@ -78,9 +78,12 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_mo
     _models = {k: m for k, m in _models.items()
                if k not in _LPPL_FAMILY_KEYS or k in _active_lppl}
     _models.pop("exp", None)  # Exponential is excluded from the scanner
-    # Exclude HybPPL/EPPL config variants — keep only the default named models
+    # Exclude HybPPL/EPPL config variants + HybPPL family variants.
+    # Keep only the base hybppl and eppl entries (default configurations).
+    _HYBPPL_FAMILY_EXTRAS = {"hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "linppl"}
     _models = {k: m for k, m in _models.items()
-               if not k.startswith("cfg_") and not k.startswith("ecfg_")}
+               if not k.startswith("cfg_") and not k.startswith("ecfg_")
+               and k not in _HYBPPL_FAMILY_EXTRAS}
 
     # edit_history is a list of the last 2 edited fields, e.g. ["p", "d"]
     if not isinstance(edit_history, list):

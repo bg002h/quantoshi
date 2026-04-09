@@ -85,6 +85,15 @@ def register_routes(server) -> None:
     from static_pages import register_static_routes
     register_static_routes(server)
 
+    # ── Deferred JS assets (easter eggs — not loaded by Dash) ─────────────
+    _DEFERRED_DIR = os.path.join(os.path.dirname(__file__), "assets", ".deferred")
+
+    @server.route("/assets/.deferred/<path:filename>")
+    def _serve_deferred_js(filename):
+        from flask import send_from_directory
+        return send_from_directory(_DEFERRED_DIR, filename,
+                                  max_age=604800)  # 7-day cache like Dash assets
+
     # ── Documentation routes ─────────────────────────────────────────────
     _DOC_DIR = os.path.join(os.path.dirname(__file__), "..", "docs")
 

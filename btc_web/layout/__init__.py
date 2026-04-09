@@ -65,6 +65,18 @@ _app_ctx.app.index_string = """<!DOCTYPE html>
             {%config%}
             {%scripts%}
             {%renderer%}
+            <script>
+            window.addEventListener('load',function(){
+                setTimeout(function(){
+                    ['knighting','blockdrop','wizard'].forEach(function(f){
+                        var s=document.createElement('script');
+                        s.src='/assets/.deferred/'+f+'.js';
+                        s.defer=true;
+                        document.body.appendChild(s);
+                    });
+                },3000);
+            });
+            </script>
         </footer>
     </body>
 </html>"""
@@ -579,7 +591,9 @@ def _build_layout(initial_tab="bubble"):
         dbc.Tab(_dca_tab(),          label="\U0001F4B0 BTC Accumulator",     tab_id="dca"),
         dbc.Tab(_retire_tab(),       label="\U0001F3D6\uFE0F BTC RetireMentator",  tab_id="retire"),
         dbc.Tab(_supercharge_tab(),  label="\u26A1 HODL Supercharger",   tab_id="supercharge"),
-        dbc.Tab(_citadel_tab(),      label="\U0001F3F0 Citadel Planner", tab_id="citadel"),
+        dbc.Tab(html.Div(id="citadel-lazy", children=[
+            html.P("Loading...", className="text-muted p-4")
+        ]), label="\U0001F3F0 Citadel Planner", tab_id="citadel"),
         dbc.Tab(_stack_tracker_tab(),label="\U0001F5DD\uFE0F Stack Tracker",       tab_id="stack"),
         dbc.Tab(html.Div(id="model-info-lazy", children=[
             html.P("Loading...", className="text-muted p-4")

@@ -554,6 +554,22 @@ def _lazy_load_auto_y_grid(tab, current):
 
 
 @callback(
+    Output("citadel-lazy", "children"),
+    Output("citadel-first-render", "data", allow_duplicate=True),
+    Input("main-tabs", "active_tab"),
+    State("citadel-first-render", "data"),
+    prevent_initial_call=True,
+)
+def _lazy_load_citadel(tab, cur_render):
+    """Populate Citadel Planner on first visit (saves ~25-30KB from layout JSON)."""
+    if tab != "citadel":
+        return no_update, no_update
+    from layout.citadel import _citadel_tab
+    # Increment first-render AFTER injecting DOM so the chart callback fires
+    return _citadel_tab(), (cur_render or 0) + 1
+
+
+@callback(
     Output("model-info-lazy", "children"),
     Input("main-tabs", "active_tab"),
     prevent_initial_call=True,

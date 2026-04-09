@@ -101,3 +101,30 @@ def test_modal_skipped():
     from static_pages import _dash_to_html
     result = _dash_to_html(dbc.Modal("hidden content", is_open=False))
     assert result == ""
+
+
+def test_render_static_faq_returns_html():
+    from static_pages import render_static_faq
+    html_str = render_static_faq()
+    assert "<!DOCTYPE html>" in html_str
+    assert "Frequently Asked Questions" in html_str
+    assert "quantoshi_logo_nav.png" in html_str
+    assert "bootstrap_flatly.min.css" in html_str
+    assert "faq_lightbox.js" in html_str
+    assert "accordion" in html_str
+    assert "mathjax" not in html_str.lower()
+
+
+def test_faq_has_all_items():
+    from static_pages import render_static_faq
+    from layout.faq import _FAQ
+    html_str = render_static_faq()
+    for entry in _FAQ:
+        assert entry["q"][:30] in html_str, f"Missing FAQ: {entry['q'][:40]}"
+
+
+def test_faq_item_ids():
+    from static_pages import render_static_faq
+    html_str = render_static_faq()
+    assert 'id="faq-0"' in html_str
+    assert 'id="faq-1"' in html_str

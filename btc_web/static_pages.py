@@ -124,3 +124,85 @@ def _render_accordion_item(component, index, parent_id="accordion"):
         f'aria-labelledby="{_esc(heading_id)}" data-bs-parent="#{_esc(str(parent_id))}">'
         f'<div class="accordion-body">{body}</div></div></div>'
     )
+
+# ── Page template ──────────────────────────────────────────────────────
+
+_PAGE_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quantoshi — {title}</title>
+    <link rel="icon" type="image/png" href="/assets/quantoshi_favicon.png">
+    <link rel="stylesheet" href="/assets/bootstrap_flatly.min.css">
+    <link rel="stylesheet" href="/assets/style.css">
+    {head_extra}
+</head>
+<body>
+    <nav class="navbar navbar-dark" style="background:#2c3e50;padding:6px 16px">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="/" style="font-family:'Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif">
+                <img src="/assets/quantoshi_logo_nav.png" height="40" class="me-2"> Quantoshi
+            </a>
+            <a href="/{app_tab}" class="btn btn-outline-light btn-sm">Open full app &rarr;</a>
+        </div>
+    </nav>
+    <div class="container mt-3">
+        {content}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/assets/faq_lightbox.js"></script>
+    {foot_extra}
+</body>
+</html>"""
+
+_MATHJAX_HEAD = """<script>MathJax={tex:{inlineMath:[['$','$'],['\\\\(','\\\\)']]}};</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>"""
+
+_SCROLL_SCRIPT = """<script>
+document.addEventListener('DOMContentLoaded',function(){{
+    var el=document.getElementById('{item_id}');
+    if(el){{el.scrollIntoView({{behavior:'smooth',block:'start'}});
+    var btn=el.querySelector('.accordion-button');
+    if(btn&&btn.classList.contains('collapsed'))btn.click();}}
+}});
+</script>"""
+
+# Cached rendered HTML (populated by render_static_pages())
+_STATIC_FAQ_HTML = None
+_STATIC_MI_HTML = None
+
+
+def render_static_faq():
+    """Render the FAQ accordion to a complete static HTML page."""
+    from layout.faq import _faq_tab
+    content_component = _faq_tab()
+    content_html = _dash_to_html(content_component)
+    return _PAGE_TEMPLATE.format(
+        title="FAQ",
+        head_extra="",
+        app_tab="9",
+        content=content_html,
+        foot_extra="",
+    )
+
+
+def render_static_model_info():
+    """Render the Model Info accordion to a complete static HTML page."""
+    from layout.model_info import _model_info_tab
+    content_component = _model_info_tab()
+    content_html = _dash_to_html(content_component)
+    return _PAGE_TEMPLATE.format(
+        title="Model Info",
+        head_extra=_MATHJAX_HEAD,
+        app_tab="8",
+        content=content_html,
+        foot_extra="",
+    )
+
+
+def render_static_pages():
+    """Render and cache both static pages. Call after models are loaded."""
+    global _STATIC_FAQ_HTML, _STATIC_MI_HTML
+    _STATIC_FAQ_HTML = render_static_faq()
+    _STATIC_MI_HTML = render_static_model_info()

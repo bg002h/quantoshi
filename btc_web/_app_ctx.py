@@ -120,7 +120,7 @@ MODEL_TRACE_COLORS = {
 PALETTES = {
     "default": {
         "model_colors": {
-            "bub": "#FFD700", "qr": "#0055FF", "pl": "#00BB00",
+            "bub": "#C8960C", "qr": "#0055FF", "pl": "#00BB00",
             "lppl": "#EE0000", "lp2": "#FF6666", "lp3": "#FFAAAA", "lp4": "#FFCCCC", "linppl": "#00D4AA", "hybppl": "#9370DB", "hybppl_dd": "#B39DDB", "ef": "#FFE066", "exp": "#9933FF", "s2f": "#FF7700",
             "u1": "#333333",
             "hyb2l": "#6A5ACD", "hyb2c": "#20B2AA", "hyb2b": "#DB7093",
@@ -145,7 +145,7 @@ PALETTES = {
     },
     "cb-brian": {
         "model_colors": {
-            "bub": "#FFD54F", "qr": "#556B2F", "pl": "#C635F5",
+            "bub": "#BF8C0A", "qr": "#556B2F", "pl": "#C635F5",
             "lppl": "#AD1457", "lp2": "#D81B60", "lp3": "#F06292", "lp4": "#F8BBD0", "linppl": "#006064", "hybppl": "#4527A0", "hybppl_dd": "#8E24AA", "ef": "#FFE082", "exp": "#E0E0E0", "s2f": "#777777",
             "u1": "#333333",
             "hyb2l": "#5B4AB0", "hyb2c": "#1A9A8F", "hyb2b": "#C4607A",
@@ -195,7 +195,7 @@ PALETTES = {
     },
     "cb-full": {
         "model_colors": {
-            "bub": "#F0C040", "qr": "#606060", "pl": "#B0E0E6",
+            "bub": "#B8920C", "qr": "#606060", "pl": "#B0E0E6",
             "lppl": "#1A1A1A", "lp2": "#444444", "lp3": "#707070", "lp4": "#A0A0A0", "linppl": "#2A2A2A", "hybppl": "#505050", "hybppl_dd": "#989898", "ef": "#F0D870", "exp": "#909090", "s2f": "#FFE066",
             "u1": "#333333",
             "hyb2l": "#6060A0", "hyb2c": "#4A8A7A", "hyb2b": "#A06080",

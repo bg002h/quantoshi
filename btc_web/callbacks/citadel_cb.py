@@ -294,7 +294,8 @@ def update_citadel(
         _dp["active_models"] = ["bub"]
         fig, _ = _get_citadel_fig(_dp)
         return (fig, dash.no_update, dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update, dash.no_update, dash.no_update)
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update)
 
     toggles = toggles or []
     yr_range = yr_range or [2031, 2075]

@@ -1,6 +1,6 @@
 """Navbar drawers, palette sync, image export, share modal, price pulse."""
 
-from dash import Input, Output, State, callback
+from dash import Input, Output, State, callback, no_update
 
 import _app_ctx
 

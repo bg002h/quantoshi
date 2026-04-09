@@ -70,7 +70,7 @@ app = dash.Dash(
     background_callback_manager=_bg_manager,
     meta_tags=[
         {"name": "color-scheme", "content": "only light"},
-        {"name": "referrer", "content": "no-referrer"},
+        {"name": "referrer", "content": "same-origin"},
     ],
 )
 app.title = "Quantoshi"
@@ -129,7 +129,7 @@ def _cache_headers(response):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
 
     # ── Security headers ─────────────────────────────────────────────────
-    response.headers['Referrer-Policy'] = 'no-referrer'
+    response.headers['Referrer-Policy'] = 'same-origin'
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['Permissions-Policy'] = (

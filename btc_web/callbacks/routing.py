@@ -114,7 +114,7 @@ _PATH_TO_TAB = {
     "/1": "bubble", "/2": "heatmap", "/3": "dca",
     "/4": "retire",  "/5": "supercharge", "/6": "citadel",
     "/7": "stack", "/8": "model_info", "/9": "faq",
-    "/faq": "faq",
+    "/faq": "faq", "/mi": "model_info",
 }
 _TAB_TO_PATH = {v: k for k, v in _PATH_TO_TAB.items()}
 

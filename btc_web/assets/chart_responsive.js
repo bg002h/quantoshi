@@ -98,9 +98,14 @@
         });
     }
 
-    /* Check periodically for the first 30 seconds */
-    var interval = setInterval(checkAll, 500);
-    setTimeout(function() { clearInterval(interval); }, 30000);
+    /* Check periodically for the first 60 seconds */
+    var interval = setInterval(function() {
+        var gd = document.getElementById('bubble-graph');
+        var status = gd ? ('el=yes data=' + !!(gd.data) + ' len=' + (gd.data ? gd.data.length : 0)) : 'el=no';
+        document.title = 'POLL: ' + status;
+        checkAll();
+    }, 1000);
+    setTimeout(function() { clearInterval(interval); }, 60000);
 
     /* Also check on any DOM mutation (catches lazy-loaded tabs + callback re-renders) */
     var observer = new MutationObserver(function() {

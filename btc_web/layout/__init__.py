@@ -58,8 +58,6 @@ _app_ctx.app.index_string = """<!DOCTYPE html>
         <title>{%title%}</title>
         <link rel="icon" type="image/png" href="/assets/quantoshi_favicon.png">
         {%css%}
-        <style id="dl-guard">html.dl .tab-content>.tab-pane:first-child{display:none!important}</style>
-        <script>(function(){var p=location.pathname.replace(/\/+$/,"")||"/";if(p!=="/"&&p!=="/1")document.documentElement.classList.add("dl")})()</script>
     </head>
     <body>
         {%app_entry%}
@@ -67,7 +65,6 @@ _app_ctx.app.index_string = """<!DOCTYPE html>
             {%config%}
             {%scripts%}
             {%renderer%}
-            <script>setTimeout(function(){document.documentElement.classList.remove("dl")},3000)</script>
         </footer>
     </body>
 </html>"""
@@ -131,18 +128,10 @@ def _serve_layout():
     initial_tab = _PATH_TO_TAB.get(clean, "bubble")
     layout = _build_layout(initial_tab)
 
-    # Inject pre-computed figures for chart tabs (L1 cache hit, ~0ms each).
+    # Inject pre-computed figures for ALL chart tabs (L1 cache hit, ~0ms each).
+    # This prevents the flash/resize when switching to a new tab.
     from layout.common import _inject_initial_figure
     for tab, gid in _TAB_TO_GRAPH.items():
-        if tab == "bubble" and initial_tab != "bubble":
-            # Inject a blank figure so the graph doesn't show a spinner
-            import plotly.graph_objects as go
-            _inject_initial_figure(layout, gid, go.Figure().update_layout(
-                template="none", paper_bgcolor="white", plot_bgcolor="white",
-                xaxis=dict(visible=False), yaxis=dict(visible=False),
-                margin=dict(l=0, r=0, t=0, b=0), height=10,
-            ))
-            continue
         fig = _get_initial_figure(tab)
         if fig:
             _inject_initial_figure(layout, gid, fig)

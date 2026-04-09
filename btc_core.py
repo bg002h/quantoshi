@@ -2339,7 +2339,7 @@ class EntropyPPLModel:
     name = "Entropy PPL"
     short_name = "eppl"
     legend_name = "EPPL"
-    dash_style = "dashdot"
+    dash_style = "dot"
     quantized = True
 
     # ── Fitted parameters (EPPL 2+2) ────────────────────────────────────
@@ -2567,7 +2567,7 @@ class EPPLConfigModel:
         self.short_name = config_key
         spec = config_key.replace("ecfg_", "")
         self.legend_name = spec.upper()
-        self.dash_style = "solid"
+        self.dash_style = "dot"
 
         # Build fits dict for quantile bands (Gaussian shift)
         self.fits = {}

@@ -375,6 +375,19 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None,
     _col_cls = "controls-col overflow-auto"
     if start_collapsed:
         _col_cls += " drawer-collapsed"
+    # Static placeholder preview image — hidden by chart_responsive.js when
+    # the interactive Plotly chart has rendered. Shows users the rough
+    # chart shape immediately instead of a blank loading area.
+    preview_name = graph_id.replace("-graph", "")
+    preview_img = html.Img(
+        src=f"/assets/{preview_name}_preview.png",
+        id=f"{preview_name}-preview-img",
+        className="chart-preview-overlay",
+        style={"position": "absolute", "top": 0, "left": 0,
+               "width": "100%", "height": "100%",
+               "objectFit": "contain", "zIndex": 5,
+               "pointerEvents": "none"},
+    )
     return dbc.Row([
         dbc.Col([
             controls_fn(),
@@ -383,6 +396,7 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None,
         dbc.Col([
             html.Div(id=f"{mc_prefix or graph_id}-chart-wrap",
                      style={"position": "relative"}, children=[
+                preview_img,
                 dcc.Loading(
                     dcc.Graph(id=graph_id, style=_STYLE_GRAPH_H,
                               config={"scrollZoom": False,

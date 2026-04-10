@@ -145,13 +145,15 @@
         _lastApplied[id] = {fp: settingsFingerprint(s), traceWidth: traceWidth};
     }
 
-    /* Hide the static bubble preview once Plotly has rendered */
-    function hideBubblePreview() {
-        var bg = gd('bubble-graph');
-        if (!bg || !bg.data || bg.data.length === 0) return false;
-        var img = document.getElementById('bubble-preview-img');
-        if (img) img.style.display = 'none';
-        return true;
+    /* Hide static preview images once Plotly has rendered each chart */
+    function hidePreviews() {
+        IDS.forEach(function(gid) {
+            var g = gd(gid);
+            if (!g || !g.data || g.data.length === 0) return;
+            var name = gid.replace('-graph', '');
+            var img = document.getElementById(name + '-preview-img');
+            if (img) img.style.display = 'none';
+        });
     }
 
     setInterval(function() {
@@ -161,6 +163,6 @@
             var g = gd(id);
             if (needsApply(g, id, fp)) applySettings(g, id, s);
         });
-        hideBubblePreview();
+        hidePreviews();
     }, 500);
 })();

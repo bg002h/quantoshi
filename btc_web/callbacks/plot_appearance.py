@@ -1,12 +1,9 @@
 """Plot Appearance controls — trace thickness, grid width/color, BM color.
 
 Rendered on every chart tab (bubble, DCA, retire, supercharger, citadel).
-Each tab has its own input IDs prefixed by the tab's key. All tabs
-read from and write to the same global 'plot-appearance' localStorage
-store, so changes propagate across tabs.
-
-The chart_responsive.js asset reads the store directly and applies
-values via Plotly.restyle/Plotly.relayout on every chart.
+All tabs share a single 'plot-appearance' localStorage store, so changes
+propagate across tabs. The chart_responsive.js asset reads the store
+and applies values via Plotly.restyle/Plotly.relayout.
 """
 import json as _json
 from dash import Input, Output
@@ -20,6 +17,8 @@ _DEFAULTS = {
     "grid_minor_width": 0.8,
     "grid_minor_color": "#B0B0B0",
     "bm_color": "#C8960C",
+    "pt_size": 10,
+    "pt_alpha": 0.5,
 }
 _DEFAULTS_JSON = _json.dumps(_DEFAULTS)
 
@@ -34,6 +33,10 @@ for _prefix in _PREFIXES:
             if (tw == null && gmw == null && gmc == null && gnw == null && gnc == null && bmc == null) {
                 return window.dash_clientside.no_update;
             }
+            /* Preserve existing pt_size/pt_alpha (managed by the bubble tab) */
+            var cur = null;
+            try { cur = JSON.parse(localStorage.getItem("plot-appearance")); } catch(e) {}
+            cur = cur || {};
             return {
                 trace_width: tw,
                 grid_major_width: gmw,
@@ -41,6 +44,8 @@ for _prefix in _PREFIXES:
                 grid_minor_width: gnw,
                 grid_minor_color: gnc,
                 bm_color: bmc,
+                pt_size: cur.pt_size || 10,
+                pt_alpha: cur.pt_alpha || 0.5,
             };
         }
         """,
@@ -75,17 +80,43 @@ for _prefix in _PREFIXES:
         prevent_initial_call="initial_duplicate",
     )
 
-    # ── Reset button → write defaults directly to the store ──────────────
-    # Writing to the store triggers the restore callback above, which
-    # updates all 5 tabs' controls to the defaults.
-    _app_ctx.app.clientside_callback(
-        f"""
-        function(n) {{
-            if (!n) return window.dash_clientside.no_update;
-            return {_DEFAULTS_JSON};
+
+# ══════════════════════════════════════════════════════════════════════
+# Reset button: single global callback that writes defaults to the store.
+# The existing restore callbacks sync all tabs' controls.
+# For the bubble tab we also reset pt_size and pt_alpha.
+# ══════════════════════════════════════════════════════════════════════
+_app_ctx.app.clientside_callback(
+    f"""
+    function(bub, dca, ret, sc, cp) {{
+        var trig = (window.dash_clientside.callback_context || {{}}).triggered;
+        if (!trig || !trig.length || trig[0].value == null) {{
+            return window.dash_clientside.no_update;
         }}
-        """,
-        Output("plot-appearance", "data", allow_duplicate=True),
-        Input(f"{_prefix}-plot-appearance-reset", "n_clicks"),
-        prevent_initial_call=True,
-    )
+        return {_DEFAULTS_JSON};
+    }}
+    """,
+    Output("plot-appearance", "data", allow_duplicate=True),
+    Input("bub-plot-appearance-reset", "n_clicks"),
+    Input("dca-plot-appearance-reset", "n_clicks"),
+    Input("ret-plot-appearance-reset", "n_clicks"),
+    Input("sc-plot-appearance-reset", "n_clicks"),
+    Input("cp-plot-appearance-reset", "n_clicks"),
+    prevent_initial_call=True,
+)
+
+# Bubble-tab pt_size/pt_alpha reset (these live in the card but aren't
+# controlled by the shared plot-appearance store)
+_app_ctx.app.clientside_callback(
+    """
+    function(n) {
+        if (!n) return [window.dash_clientside.no_update,
+                         window.dash_clientside.no_update];
+        return [10, 0.5];
+    }
+    """,
+    Output("bub-ptsize", "value", allow_duplicate=True),
+    Output("bub-ptalpha", "value", allow_duplicate=True),
+    Input("bub-plot-appearance-reset", "n_clicks"),
+    prevent_initial_call=True,
+)

@@ -453,6 +453,17 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                 html.Div(id="bub-price-wrap", children=[
                     html.Div(id=f"{graph_id}-chart-wrap",
                              style={"position": "relative"}, children=[
+                        # Static preview PNG — visible during Plotly load,
+                        # hidden by chart_responsive.js once figure is rendered
+                        html.Img(src="/assets/bubble_preview.png",
+                                 id="bubble-preview-img",
+                                 className="chart-preview-overlay",
+                                 style={"position": "absolute",
+                                        "top": 0, "left": 0,
+                                        "width": "100%", "height": "100%",
+                                        "objectFit": "contain",
+                                        "zIndex": 5,
+                                        "pointerEvents": "none"}),
                         dcc.Loading(
                             dcc.Graph(id=graph_id, style=_STYLE_GRAPH_H,
                                       config={"scrollZoom": False,

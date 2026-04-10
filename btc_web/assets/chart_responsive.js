@@ -134,6 +134,15 @@
         _lastApplied[id] = {fp: settingsFingerprint(s), traceWidth: traceWidth};
     }
 
+    /* Hide the static bubble preview once Plotly has rendered */
+    function hideBubblePreview() {
+        var bg = gd('bubble-graph');
+        if (!bg || !bg.data || bg.data.length === 0) return false;
+        var img = document.getElementById('bubble-preview-img');
+        if (img) img.style.display = 'none';
+        return true;
+    }
+
     setInterval(function() {
         var s = getUserSettings();
         var fp = settingsFingerprint(s);
@@ -141,5 +150,6 @@
             var g = gd(id);
             if (needsApply(g, id, fp)) applySettings(g, id, s);
         });
+        hideBubblePreview();
     }, 500);
 })();

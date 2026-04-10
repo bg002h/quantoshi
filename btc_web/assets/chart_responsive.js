@@ -111,9 +111,11 @@
                 if (a.title && a.title.font && a.title.font.size)
                     u[k+'.title.font.size'] = Math.round(a.title.font.size * DESKTOP.font);
             }
-            /* Minor grid */
-            u[k+'.minor.gridwidth'] = gridMinor;
-            u[k+'.minor.gridcolor'] = s.grid_minor_color;
+            /* Minor grid — only style if the user enabled it (minor config present) */
+            if (a.minor && a.minor.showgrid) {
+                u[k+'.minor.gridwidth'] = gridMinor;
+                u[k+'.minor.gridcolor'] = s.grid_minor_color;
+            }
         });
 
         if (IS_DESKTOP) {

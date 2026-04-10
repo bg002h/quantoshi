@@ -89,11 +89,12 @@ for _prefix in _PREFIXES:
 _app_ctx.app.clientside_callback(
     f"""
     function(bub, dca, ret, sc, cp) {{
-        /* Any button click fires this — prevent_initial_call=True blocks
-           the initial null→null call, so if we get here some click happened. */
+        console.log('[reset] fired', {{bub:bub, dca:dca, ret:ret, sc:sc, cp:cp}});
         if (!bub && !dca && !ret && !sc && !cp) {{
+            console.log('[reset] no clicks, skipping');
             return window.dash_clientside.no_update;
         }}
+        console.log('[reset] writing defaults to store');
         return {_DEFAULTS_JSON};
     }}
     """,

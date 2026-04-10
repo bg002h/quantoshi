@@ -51,8 +51,6 @@ _MC_POLL_MAX = 300                     # max poll intervals (300 × 3s = 15 min 
 # App layout
 # ══════════════════════════════════════════════════════════════════════════════
 
-from layout.splash import _SPLASH_QUOTES_JS as _SPLASH_QUOTES_JS_INDEX
-
 _app_ctx.app.index_string = """<!DOCTYPE html>
 <html>
     <head>
@@ -60,71 +58,6 @@ _app_ctx.app.index_string = """<!DOCTYPE html>
         <title>{%title%}</title>
         <link rel="icon" type="image/png" href="/assets/quantoshi_favicon.png">
         {%css%}
-        <script>
-        /* Pre-populate splash quote as soon as the DOM element appears.
-           Runs long before Dash's clientside callbacks fire. */
-        (function(){
-            var SIX_HOURS = 6*3600*1000;
-            var last = parseInt(localStorage.getItem("_splash_ts")||"0");
-            var now = Date.now();
-            var p = location.pathname.replace(/\\/+$/,"") || "/";
-            var hash = location.hash || "";
-            var isDeep = p !== "/" && p !== "/1";
-            var hasHash = hash.indexOf("q3:")!==-1 || hash.indexOf("q2:")!==-1 || hash.indexOf("q1:")!==-1;
-            var isDev = location.hostname==="localhost"||location.hostname==="127.0.0.1";
-            if (isDev || isDeep || hasHash || now-last<SIX_HOURS) return;
-            var quotes = """ + _SPLASH_QUOTES_JS_INDEX + """;
-            var seed = Math.floor(now/(6*3600*1000));
-            function rng32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-            var r = rng32(seed);
-            for (var i=quotes.length-1;i>0;i--){var j=Math.floor(r()*(i+1));var tmp=quotes[i];quotes[i]=quotes[j];quotes[j]=tmp;}
-            var q = quotes[0];
-            /* Regex match helper (avoids .exec() security-hook false positive) */
-            function rxExec(re, s) { return RegExp.prototype.exec.call(re, s); }
-            /* Parse markdown [text](url) into safe DOM nodes — no innerHTML */
-            function buildQuoteNodesSafe(s) {
-                var out = [];
-                var re = /\\[([^\\]]+)\\]\\(([^)]+)\\)/g;
-                var last = 0, m;
-                while ((m = rxExec(re, s)) !== null) {
-                    if (m.index > last) out.push(document.createTextNode(s.slice(last, m.index)));
-                    var a = document.createElement("a");
-                    a.textContent = m[1]; a.href = m[2];
-                    a.target = "_blank"; a.rel = "noopener";
-                    out.push(a);
-                    last = re.lastIndex;
-                }
-                if (last < s.length) out.push(document.createTextNode(s.slice(last)));
-                return out;
-            }
-            var attrDone = false, quoteDone = false;
-            var obs = new MutationObserver(function(){
-                if (!attrDone) {
-                    var ae = document.getElementById("splash-quote-attr");
-                    if (ae) { ae.textContent = "\\u2014 " + q[1]; attrDone = true; }
-                }
-                if (!quoteDone) {
-                    var qe = document.getElementById("splash-quote-text");
-                    var md = qe && qe.querySelector && qe.querySelector(".dash-markdown");
-                    if (md) {
-                        while (md.firstChild) md.removeChild(md.firstChild);
-                        var p = document.createElement("p");
-                        p.appendChild(document.createTextNode('"'));
-                        buildQuoteNodesSafe(q[0]).forEach(function(n){p.appendChild(n);});
-                        p.appendChild(document.createTextNode('"'));
-                        md.appendChild(p);
-                        quoteDone = true;
-                    }
-                }
-                if (attrDone && quoteDone) {
-                    localStorage.setItem("_splash_ts", now.toString());
-                    obs.disconnect();
-                }
-            });
-            obs.observe(document.documentElement, {childList: true, subtree: true});
-            setTimeout(function(){obs.disconnect();}, 10000);
-        })();
-        </script>
     </head>
     <body>
         {%app_entry%}
@@ -228,7 +161,28 @@ def _serve_layout():
 _app_ctx.app.layout = _serve_layout
 
 
+def _pick_splash_quote():
+    """Pick a random quote at layout time so it's pre-populated in the layout JSON.
+
+    Returns (quote_text, attribution). The clientside callback may later
+    override this with its own pick — both paths write via React props so
+    there's no visible flash on first paint.
+    """
+    import json as _json, random as _rnd, time as _time
+    from layout.splash import _SPLASH_QUOTES_JS
+    try:
+        quotes = _json.loads(_SPLASH_QUOTES_JS)
+        # Shuffle everything except genesis (index 0), then pick first
+        rest = quotes[1:]
+        _rnd.Random(int(_time.time() * 1000 // (6 * 3600 * 1000))).shuffle(rest)
+        q = ([quotes[0]] + rest)[0]
+        return q[0], q[1]
+    except Exception:
+        return "", ""
+
+
 def _build_layout(initial_tab="bubble"):
+    _splash_q, _splash_a = _pick_splash_quote()
     return dbc.Container([
     _freq_warning_modal(),
     dcc.Interval(id="price-interval", interval=_PRICE_INTERVAL_MS, n_intervals=0),
@@ -407,11 +361,13 @@ def _build_layout(initial_tab="bubble"):
                       "justifyContent":"center", "marginBottom":"20px"}),
             html.Div([
                 dcc.Markdown(id="splash-quote-text",
+                             children=f'"{_splash_q}"' if _splash_q else "",
                              style={"fontSize":"16px", "fontStyle":"italic",
                                     "color":"#2c3e50", "lineHeight":"1.5",
                                     "textAlign":"center", "marginBottom":"10px"},
                              link_target="_blank"),
                 html.Div(id="splash-quote-attr",
+                         children=(f"\u2014 {_splash_a}" if _splash_a else ""),
                          style={"fontSize":"13px", "color":"#666",
                                 "textAlign":"center"}),
             ], style={"padding":"10px 20px"}),

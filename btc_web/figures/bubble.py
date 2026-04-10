@@ -101,11 +101,11 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             x_sc  = x_sc[idx]
             y_sc  = y_sc[idx]
             d_sc  = [d_sc[i] for i in idx]
-        # Single amber color for all data points (saves ~15KB of per-point color list)
+        # Dark slate gray — distinct from BM gold so data points read clearly
         traces.append(go.Scatter(
             x=list(x_sc), y=list(y_sc),
             mode="markers", name="Price data",
-            marker=dict(color="#f7931a",
+            marker=dict(color="#2C3E50",
                         size=max(2, int(p.get("pt_size", BUBBLE["pt_size"]))),
                         opacity=float(p.get("pt_alpha", BUBBLE["pt_alpha"]))),
             hovertemplate=_HOVER_FMT_USD,

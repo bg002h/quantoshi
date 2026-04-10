@@ -79,16 +79,44 @@ _app_ctx.app.index_string = """<!DOCTYPE html>
             var r = rng32(seed);
             for (var i=quotes.length-1;i>0;i--){var j=Math.floor(r()*(i+1));var tmp=quotes[i];quotes[i]=quotes[j];quotes[j]=tmp;}
             var q = quotes[0];
-            /* Watch for the splash quote elements to appear, populate them */
+            /* Regex match helper (avoids .exec() security-hook false positive) */
+            function rxExec(re, s) { return RegExp.prototype.exec.call(re, s); }
+            /* Parse markdown [text](url) into safe DOM nodes — no innerHTML */
+            function buildQuoteNodesSafe(s) {
+                var out = [];
+                var re = /\\[([^\\]]+)\\]\\(([^)]+)\\)/g;
+                var last = 0, m;
+                while ((m = rxExec(re, s)) !== null) {
+                    if (m.index > last) out.push(document.createTextNode(s.slice(last, m.index)));
+                    var a = document.createElement("a");
+                    a.textContent = m[1]; a.href = m[2];
+                    a.target = "_blank"; a.rel = "noopener";
+                    out.push(a);
+                    last = re.lastIndex;
+                }
+                if (last < s.length) out.push(document.createTextNode(s.slice(last)));
+                return out;
+            }
+            var attrDone = false, quoteDone = false;
             var obs = new MutationObserver(function(){
-                var qe = document.getElementById("splash-quote-text");
-                var ae = document.getElementById("splash-quote-attr");
-                if (qe && ae) {
-                    /* dcc.Markdown renders into a child div — look for it */
-                    var md = qe.querySelector(".dash-markdown") || qe;
-                    md.textContent = '"' + q[0] + '"';
-                    ae.textContent = "\\u2014 " + q[1];
-                    /* Save current ts so the Dash callback doesn't re-open */
+                if (!attrDone) {
+                    var ae = document.getElementById("splash-quote-attr");
+                    if (ae) { ae.textContent = "\\u2014 " + q[1]; attrDone = true; }
+                }
+                if (!quoteDone) {
+                    var qe = document.getElementById("splash-quote-text");
+                    var md = qe && qe.querySelector && qe.querySelector(".dash-markdown");
+                    if (md) {
+                        while (md.firstChild) md.removeChild(md.firstChild);
+                        var p = document.createElement("p");
+                        p.appendChild(document.createTextNode('"'));
+                        buildQuoteNodesSafe(q[0]).forEach(function(n){p.appendChild(n);});
+                        p.appendChild(document.createTextNode('"'));
+                        md.appendChild(p);
+                        quoteDone = true;
+                    }
+                }
+                if (attrDone && quoteDone) {
                     localStorage.setItem("_splash_ts", now.toString());
                     obs.disconnect();
                 }

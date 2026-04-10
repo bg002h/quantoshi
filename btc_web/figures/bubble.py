@@ -101,14 +101,12 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             x_sc  = x_sc[idx]
             y_sc  = y_sc[idx]
             d_sc  = [d_sc[i] for i in idx]
-        # Temporal gradient: old data muted gray -> recent data warm amber
-        n_sc = len(x_sc)
-        scatter_colors = [_lerp_hex("#4a5568", "#f7931a", i / max(n_sc - 1, 1))
-                          for i in range(n_sc)]
+        # Single amber color for all data points (saves ~15KB of per-point color list)
         traces.append(go.Scatter(
             x=list(x_sc), y=list(y_sc),
             mode="markers", name="Price data",
-            marker=dict(color=scatter_colors, size=max(2, int(p.get("pt_size", BUBBLE["pt_size"]))),
+            marker=dict(color="#f7931a",
+                        size=max(2, int(p.get("pt_size", BUBBLE["pt_size"]))),
                         opacity=float(p.get("pt_alpha", BUBBLE["pt_alpha"]))),
             hovertemplate=_HOVER_FMT_USD,
         ))
@@ -299,13 +297,25 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             opacity=0.8,
         ))
 
+    # Downsample BM curves to ~400 points (plenty for screen)
+    def _downsample_bm(mask_arr, y_arr, target=400):
+        x = m.years_plot_bm[mask_arr]
+        y = y_arr
+        n = len(x)
+        if n > target:
+            # Use linspace for evenly-spaced sampling — more reliable than stride division
+            idx = np.linspace(0, n - 1, target, dtype=int)
+            return x[idx], y[idx]
+        return x, y
+
     # ── bubble support ────────────────────────────────────────────────────────
     _bm_color = _get_model_color("bub", p)
     if bub_active and p.get("show_sup"):
         mask = (m.years_plot_bm >= t_lo) & (m.years_plot_bm <= t_hi)
         sup_y = m.support_bm[mask] * (stack if stack > 0 else 1)
+        x_sup, sup_y = _downsample_bm(mask, sup_y)
         traces.append(go.Scatter(
-            x=list(m.years_plot_bm[mask]), y=list(sup_y),
+            x=list(x_sup), y=list(sup_y),
             mode="lines", name="Bubble support",
             line=dict(color=_bm_color,
                       dash="dash", width=float(p.get("sup_lw", BUBBLE["sup_lw"]))),
@@ -318,8 +328,9 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         n = min(n, len(m.comp_by_n) - 1)
         mask = (m.years_plot_bm >= t_lo) & (m.years_plot_bm <= t_hi)
         comp_y = m.comp_by_n[n][mask] * (stack if stack > 0 else 1)
+        x_comp, comp_y = _downsample_bm(mask, comp_y)
         traces.append(go.Scatter(
-            x=list(m.years_plot_bm[mask]), y=list(comp_y),
+            x=list(x_comp), y=list(comp_y),
             mode="lines",
             name=f"Bubble composite (N={n})  R\u00b2={m.bm_r2:.4f}",
             line=dict(color=_bm_color,

@@ -89,8 +89,9 @@ for _prefix in _PREFIXES:
 _app_ctx.app.clientside_callback(
     f"""
     function(bub, dca, ret, sc, cp) {{
-        var trig = (window.dash_clientside.callback_context || {{}}).triggered;
-        if (!trig || !trig.length || trig[0].value == null) {{
+        /* Any button click fires this — prevent_initial_call=True blocks
+           the initial null→null call, so if we get here some click happened. */
+        if (!bub && !dca && !ret && !sc && !cp) {{
             return window.dash_clientside.no_update;
         }}
         return {_DEFAULTS_JSON};
@@ -105,18 +106,24 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call=True,
 )
 
-# Bubble-tab pt_size/pt_alpha reset (these live in the card but aren't
-# in the shared store since they're bubble-only)
+# Bubble-tab pt_size/pt_alpha reset (bubble-only controls, but fire on
+# ANY tab's reset button so the user gets a consistent experience)
 _app_ctx.app.clientside_callback(
     """
-    function(n) {
-        if (!n) return [window.dash_clientside.no_update,
-                         window.dash_clientside.no_update];
+    function(bub, dca, ret, sc, cp) {
+        if (!bub && !dca && !ret && !sc && !cp) {
+            return [window.dash_clientside.no_update,
+                    window.dash_clientside.no_update];
+        }
         return [10, 0.5];
     }
     """,
     Output("bub-ptsize", "value", allow_duplicate=True),
     Output("bub-ptalpha", "value", allow_duplicate=True),
     Input("bub-plot-appearance-reset", "n_clicks"),
+    Input("dca-plot-appearance-reset", "n_clicks"),
+    Input("ret-plot-appearance-reset", "n_clicks"),
+    Input("sc-plot-appearance-reset", "n_clicks"),
+    Input("cp-plot-appearance-reset", "n_clicks"),
     prevent_initial_call=True,
 )

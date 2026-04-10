@@ -1,4 +1,4 @@
-"""Plot Appearance controls — trace thickness, grid width/color, BM color.
+"""Plot Appearance controls — trace thickness, grid width/color, data point color.
 
 Rendered on every chart tab (bubble, DCA, retire, supercharger, citadel).
 All tabs share a single 'plot-appearance' localStorage store, so changes
@@ -16,7 +16,7 @@ _DEFAULTS = {
     "grid_major_color": "#888888",
     "grid_minor_width": 0.8,
     "grid_minor_color": "#B0B0B0",
-    "bm_color": "#C8960C",
+    "pt_color": "#2C3E50",
     "pt_size": 10,
     "pt_alpha": 0.5,
 }
@@ -29,11 +29,11 @@ for _prefix in _PREFIXES:
     # ── Persist control values → localStorage store ──────────────────────
     _app_ctx.app.clientside_callback(
         """
-        function(tw, gmw, gmc, gnw, gnc, bmc) {
-            if (tw == null && gmw == null && gmc == null && gnw == null && gnc == null && bmc == null) {
+        function(tw, gmw, gmc, gnw, gnc, ptc) {
+            if (tw == null && gmw == null && gmc == null && gnw == null && gnc == null && ptc == null) {
                 return window.dash_clientside.no_update;
             }
-            /* Preserve existing pt_size/pt_alpha (managed by the bubble tab) */
+            /* Preserve existing pt_size/pt_alpha */
             var cur = null;
             try { cur = JSON.parse(localStorage.getItem("plot-appearance")); } catch(e) {}
             cur = cur || {};
@@ -43,7 +43,7 @@ for _prefix in _PREFIXES:
                 grid_major_color: gmc,
                 grid_minor_width: gnw,
                 grid_minor_color: gnc,
-                bm_color: bmc,
+                pt_color: ptc,
                 pt_size: cur.pt_size || 10,
                 pt_alpha: cur.pt_alpha || 0.5,
             };
@@ -55,7 +55,7 @@ for _prefix in _PREFIXES:
         Input(f"{_prefix}-plot-grid-major-color", "value"),
         Input(f"{_prefix}-plot-grid-minor-width", "value"),
         Input(f"{_prefix}-plot-grid-minor-color", "value"),
-        Input(f"{_prefix}-plot-bm-color", "value"),
+        Input(f"{_prefix}-plot-pt-color", "value"),
         prevent_initial_call=True,
     )
 
@@ -67,7 +67,7 @@ for _prefix in _PREFIXES:
             if (!data) return [NU, NU, NU, NU, NU, NU];
             return [data.trace_width, data.grid_major_width, data.grid_major_color,
                     data.grid_minor_width, data.grid_minor_color,
-                    data.bm_color || "#C8960C"];
+                    data.pt_color || "#2C3E50"];
         }
         """,
         Output(f"{_prefix}-plot-trace-width", "value"),
@@ -75,16 +75,16 @@ for _prefix in _PREFIXES:
         Output(f"{_prefix}-plot-grid-major-color", "value"),
         Output(f"{_prefix}-plot-grid-minor-width", "value"),
         Output(f"{_prefix}-plot-grid-minor-color", "value"),
-        Output(f"{_prefix}-plot-bm-color", "value"),
+        Output(f"{_prefix}-plot-pt-color", "value"),
         Input("plot-appearance", "data"),
         prevent_initial_call="initial_duplicate",
     )
 
 
 # ══════════════════════════════════════════════════════════════════════
-# Reset button: single global callback that writes defaults to the store.
-# The existing restore callbacks sync all tabs' controls.
-# For the bubble tab we also reset pt_size and pt_alpha.
+# Reset button: single global callback triggered by any of the 5 reset
+# buttons, writes _DEFAULTS to the store. The restore callbacks sync
+# each tab's 6 shared controls.
 # ══════════════════════════════════════════════════════════════════════
 _app_ctx.app.clientside_callback(
     f"""
@@ -106,7 +106,7 @@ _app_ctx.app.clientside_callback(
 )
 
 # Bubble-tab pt_size/pt_alpha reset (these live in the card but aren't
-# controlled by the shared plot-appearance store)
+# in the shared store since they're bubble-only)
 _app_ctx.app.clientside_callback(
     """
     function(n) {

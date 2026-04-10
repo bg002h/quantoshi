@@ -376,9 +376,14 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None,
     _col_cls = "controls-col overflow-auto"
     if start_collapsed:
         _col_cls += " drawer-collapsed"
-    # Static placeholder preview image — hidden by chart_responsive.js when
-    # the interactive Plotly chart has rendered. Shows users the rough
-    # chart shape immediately instead of a blank loading area.
+    # Static placeholder preview image — shows while Plotly hydrates, then
+    # is hidden by chart_responsive.js once the interactive chart has data.
+    # IMPORTANT: z-index is 0 (BELOW the Plotly chart) so that even if the
+    # hide logic ever fails, the rendered chart paints over the preview and
+    # the user is never stuck staring at the static PNG. The hide is still
+    # wired up (display:none) for screen readers + to stop the PNG from
+    # consuming paint cycles, but the visual correctness does not depend
+    # on it firing.
     preview_name = graph_id.replace("-graph", "")
     preview_img = html.Img(
         src=f"/assets/{preview_name}_preview.png",
@@ -386,7 +391,7 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None,
         className="chart-preview-overlay",
         style={"position": "absolute", "top": 0, "left": 0,
                "width": "100%", "height": "100%",
-               "objectFit": "contain", "zIndex": 5,
+               "objectFit": "contain", "zIndex": 0,
                "pointerEvents": "none"},
     )
     return dbc.Row([
@@ -476,7 +481,9 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                     html.Div(id=f"{graph_id}-chart-wrap",
                              style={"position": "relative"}, children=[
                         # Static preview PNG — visible during Plotly load,
-                        # hidden by chart_responsive.js once figure is rendered
+                        # hidden by chart_responsive.js once figure is rendered.
+                        # z-index 0 so Plotly naturally paints over it even if
+                        # the hide callback never fires (see _chart_tab_layout).
                         html.Img(src="/assets/bubble_preview.png",
                                  id="bubble-preview-img",
                                  className="chart-preview-overlay",
@@ -484,7 +491,7 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                                         "top": 0, "left": 0,
                                         "width": "100%", "height": "100%",
                                         "objectFit": "contain",
-                                        "zIndex": 5,
+                                        "zIndex": 0,
                                         "pointerEvents": "none"}),
                         dcc.Loading(
                             dcc.Graph(id=graph_id, style=_STYLE_GRAPH_H,

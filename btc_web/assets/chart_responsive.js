@@ -1,18 +1,16 @@
-/* Chart appearance — applies user-customized trace/grid settings to all charts.
+/* Chart appearance — applies user-customized trace/grid settings.
  *
- * Reads from the "plot-appearance" dcc.Store (localStorage key
- * "_dash_persistence" under the hood). Applies via Plotly.restyle
- * (traces) and Plotly.relayout (grids/axes/fonts).
+ * Reads from the "plot-appearance" localStorage entry (written by
+ * Dash dcc.Store(storage_type="local")). Applies via Plotly.restyle
+ * (traces) and Plotly.relayout (grids/axes).
  *
- * Desktop gets additional scaling on top of user settings (×2 for
- * marker size/opacity, ×1.5 font sizes, etc.) since mobile defaults
- * are tuned for small screens.
+ * Critical: uses ABSOLUTE values to avoid the "grows unboundedly on
+ * every poll" bug that came from multiplying current values.
  */
 (function() {
     'use strict';
     var IS_DESKTOP = window.innerWidth > 768;
 
-    /* Default values — match btc_web/callbacks/plot_appearance.py _DEFAULTS */
     var DEFAULTS = {
         trace_width: 2.5,
         grid_major_width: 1.0,
@@ -22,17 +20,19 @@
         pt_color: "#2C3E50",
     };
 
-    /* Desktop multipliers applied on top of user values */
+    /* Desktop multipliers applied to USER-SUPPLIED absolute values only
+       (never to current Plotly state — that caused unbounded growth). */
     var DESKTOP = {
-        marker: 2.0, opacity: 2.0, font: 1.8, axis: 2.0,
-        trace_mult: 1.5, grid_mult: 1.5,  /* additional boost over user value */
+        trace_mult: 1.5,
+        grid_mult: 1.5,
     };
 
     var IDS = ['bubble-graph','heatmap-graph','dca-graph',
                'retire-graph','supercharge-graph','citadel-graph'];
 
-    /* Track what we last applied per chart to detect Dash-driven re-renders */
-    var _lastApplied = {};
+    /* Cache of last applied values per chart — to detect figure replacement
+       and avoid redundant restyle/relayout calls. */
+    var _applied = {};
 
     function gd(id) {
         var w = document.getElementById(id);
@@ -40,31 +40,29 @@
         return w.querySelector('.js-plotly-plot') || w;
     }
 
-    /* Read user settings from localStorage (dcc.Store persistence key) */
-    function getUserSettings() {
+    function getSettings() {
         try {
-            /* dcc.Store with storage_type="local" stores under
-               "_dash_persistence" keyed by component id */
             var raw = localStorage.getItem("plot-appearance");
             if (raw) return JSON.parse(raw);
         } catch(e) {}
         return DEFAULTS;
     }
 
-    function settingsFingerprint(s) {
+    function fingerprint(s) {
         return [s.trace_width, s.grid_major_width, s.grid_major_color,
                 s.grid_minor_width, s.grid_minor_color, s.pt_color].join("|");
     }
 
     function needsApply(g, id, fp) {
         if (!g || !g.data || g.data.length === 0) return false;
-        var last = _lastApplied[id];
+        var last = _applied[id];
         if (!last) return true;
-        if (last.fp !== fp) return true;  /* user changed settings */
-        /* Check if Dash reset the trace widths */
+        if (last.fp !== fp) return true;
+        /* If Dash replaced the figure, line widths will be back to server-side
+           values and won't match our target. Re-apply. */
         for (var i = 0; i < g.data.length; i++) {
             if (g.data[i].line && g.data[i].line.width != null) {
-                if (Math.abs(g.data[i].line.width - last.traceWidth) > 0.1) return true;
+                if (Math.abs(g.data[i].line.width - last.targetTraceWidth) > 0.1) return true;
                 return false;
             }
         }
@@ -72,28 +70,19 @@
     }
 
     function applySettings(g, id, s) {
-        var traceWidth = s.trace_width * (IS_DESKTOP ? DESKTOP.trace_mult : 1.0);
-        var gridMajor  = s.grid_major_width * (IS_DESKTOP ? DESKTOP.grid_mult : 1.0);
-        var gridMinor  = s.grid_minor_width * (IS_DESKTOP ? DESKTOP.grid_mult : 1.0);
+        /* Target absolute values — computed once, used everywhere */
+        var targetTraceWidth = s.trace_width * (IS_DESKTOP ? DESKTOP.trace_mult : 1.0);
+        var targetGridMajor  = s.grid_major_width * (IS_DESKTOP ? DESKTOP.grid_mult : 1.0);
+        var targetGridMinor  = s.grid_minor_width * (IS_DESKTOP ? DESKTOP.grid_mult : 1.0);
 
-        /* ── Traces: line width + marker styling + data-point color ────── */
-        var li=[], lw=[], mi=[], ms=[], oi=[], ov=[];
-        var ptIdx=[], ptColors=[];
-        g.data.forEach(function(t,i) {
+        /* ── Trace restyling ──────────────────────────────────────────── */
+        var li=[], lw=[], ptIdx=[], ptColors=[];
+        g.data.forEach(function(t, i) {
             if (t.line && t.line.width != null) {
                 li.push(i);
-                lw.push(traceWidth);
+                lw.push(targetTraceWidth);
             }
-            if (IS_DESKTOP && t.marker && typeof t.marker.size === 'number') {
-                mi.push(i);
-                ms.push(t.marker.size * DESKTOP.marker);
-            }
-            if (IS_DESKTOP && t.marker && typeof t.marker.opacity === 'number') {
-                oi.push(i);
-                ov.push(Math.min(1, t.marker.opacity * DESKTOP.opacity));
-            }
-            /* Data point scatter — identified as mode="markers" scatter traces
-               named "Price data". User's pt_color overrides the default. */
+            /* Price data scatter — recolor to user's pt_color */
             if (t.mode === "markers" && t.name === "Price data") {
                 ptIdx.push(i);
                 ptColors.push(s.pt_color);
@@ -101,69 +90,46 @@
         });
         try {
             if (li.length) Plotly.restyle(g, {'line.width': lw}, li);
-            if (mi.length) Plotly.restyle(g, {'marker.size': ms}, mi);
-            if (oi.length) Plotly.restyle(g, {'marker.opacity': ov}, oi);
             if (ptIdx.length) Plotly.restyle(g, {'marker.color': ptColors}, ptIdx);
         } catch(e) { return; }
 
-        /* ── Layout: grids, colors, fonts, axes ──────────────────────── */
-        /* Use the ORIGINAL user-supplied layout (g.layout) not _fullLayout
-           to check minor grid state — _fullLayout contains Plotly defaults
-           that make it look enabled when it isn't. */
-        var fullLay = g._fullLayout || g.layout || {};
-        var userLay = g.layout || {}, u = {};
-        Object.keys(fullLay).forEach(function(k) {
+        /* ── Layout relayout: grids, axis colors/widths ────────────────── */
+        var layout = g.layout || {};
+        var u = {};
+        Object.keys(layout).forEach(function(k) {
             if (!/^[xy]axis\d*$/.test(k)) return;
-            var a = fullLay[k] || {};
-            var userAx = userLay[k] || {};
-            u[k+'.gridwidth'] = gridMajor;
-            u[k+'.gridcolor'] = s.grid_major_color;
-            if (IS_DESKTOP) {
-                u[k+'.linewidth'] = (a.linewidth||1) * DESKTOP.axis;
-                if (a.tickfont && a.tickfont.size)
-                    u[k+'.tickfont.size'] = Math.round(a.tickfont.size * DESKTOP.font);
-                if (a.title && a.title.font && a.title.font.size)
-                    u[k+'.title.font.size'] = Math.round(a.title.font.size * DESKTOP.font);
-            }
-            /* Minor grid — only style if the USER explicitly enabled it.
-               userAx.minor is only set by figure builders when minor_grid
-               checkbox is checked. */
+            var userAx = layout[k] || {};
+            u[k + '.gridwidth'] = targetGridMajor;
+            u[k + '.gridcolor'] = s.grid_major_color;
+            /* Minor grid — only style if user explicitly enabled it */
             if (userAx.minor && userAx.minor.showgrid) {
-                u[k+'.minor.gridwidth'] = gridMinor;
-                u[k+'.minor.gridcolor'] = s.grid_minor_color;
+                u[k + '.minor.gridwidth'] = targetGridMinor;
+                u[k + '.minor.gridcolor'] = s.grid_minor_color;
             }
         });
+        try {
+            if (Object.keys(u).length) Plotly.relayout(g, u);
+        } catch(e) {}
 
-        if (IS_DESKTOP) {
-            if (lay.title && lay.title.font && lay.title.font.size)
-                u['title.font.size'] = Math.round(lay.title.font.size * DESKTOP.font);
-            if (lay.legend && lay.legend.font && lay.legend.font.size)
-                u['legend.font.size'] = Math.round(lay.legend.font.size * DESKTOP.font);
-            if (lay.annotations) lay.annotations.forEach(function(a,i) {
-                if (a.font && a.font.size)
-                    u['annotations['+i+'].font.size'] = Math.round(a.font.size * DESKTOP.font);
-            });
-        }
-
-        try { if (Object.keys(u).length) Plotly.relayout(g, u); } catch(e) {}
-
-        _lastApplied[id] = {fp: settingsFingerprint(s), traceWidth: traceWidth};
+        _applied[id] = {fp: fingerprint(s), targetTraceWidth: targetTraceWidth};
     }
 
-    /* Hide static preview images once Plotly has rendered each chart */
+    /* Hide static preview images once Plotly has rendered the chart */
     function hidePreviews() {
         IDS.forEach(function(gid) {
             var g = gd(gid);
             if (!g || !g.data || g.data.length === 0) return;
             var name = gid.replace('-graph', '');
             var img = document.getElementById(name + '-preview-img');
-            if (img) img.style.display = 'none';
+            if (img && img.style.display !== 'none') {
+                img.style.display = 'none';
+            }
         });
     }
 
     setInterval(function() {
-        var s = getUserSettings();
-        var fp = settingsFingerprint(s);
+        var s = getSettings();
+        var fp = fingerprint(s);
         IDS.forEach(function(id) {
             var g = gd(id);
             if (needsApply(g, id, fp)) applySettings(g, id, s);

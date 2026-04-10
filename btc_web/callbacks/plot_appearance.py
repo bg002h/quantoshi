@@ -8,6 +8,7 @@ store, so changes propagate across tabs.
 The chart_responsive.js asset reads the store directly and applies
 values via Plotly.restyle/Plotly.relayout on every chart.
 """
+import json as _json
 from dash import Input, Output
 import _app_ctx
 
@@ -20,6 +21,7 @@ _DEFAULTS = {
     "grid_minor_color": "#B0B0B0",
     "bm_color": "#C8960C",
 }
+_DEFAULTS_JSON = _json.dumps(_DEFAULTS)
 
 _PREFIXES = ("bub", "dca", "ret", "sc", "cp")
 
@@ -52,7 +54,7 @@ for _prefix in _PREFIXES:
         prevent_initial_call=True,
     )
 
-    # ── Restore control values from store on page load ────────────────────
+    # ── Restore control values from store on page load / cross-tab sync ──
     _app_ctx.app.clientside_callback(
         """
         function(data) {
@@ -73,23 +75,17 @@ for _prefix in _PREFIXES:
         prevent_initial_call="initial_duplicate",
     )
 
-    # ── Reset button → controls back to defaults ──────────────────────────
+    # ── Reset button → write defaults directly to the store ──────────────
+    # Writing to the store triggers the restore callback above, which
+    # updates all 5 tabs' controls to the defaults.
     _app_ctx.app.clientside_callback(
         f"""
         function(n) {{
-            var NU = window.dash_clientside.no_update;
-            if (!n) return [NU, NU, NU, NU, NU, NU];
-            return [{_DEFAULTS['trace_width']}, {_DEFAULTS['grid_major_width']},
-                    "{_DEFAULTS['grid_major_color']}", {_DEFAULTS['grid_minor_width']},
-                    "{_DEFAULTS['grid_minor_color']}", "{_DEFAULTS['bm_color']}"];
+            if (!n) return window.dash_clientside.no_update;
+            return {_DEFAULTS_JSON};
         }}
         """,
-        Output(f"{_prefix}-plot-trace-width", "value", allow_duplicate=True),
-        Output(f"{_prefix}-plot-grid-major-width", "value", allow_duplicate=True),
-        Output(f"{_prefix}-plot-grid-major-color", "value", allow_duplicate=True),
-        Output(f"{_prefix}-plot-grid-minor-width", "value", allow_duplicate=True),
-        Output(f"{_prefix}-plot-grid-minor-color", "value", allow_duplicate=True),
-        Output(f"{_prefix}-plot-bm-color", "value", allow_duplicate=True),
+        Output("plot-appearance", "data", allow_duplicate=True),
         Input(f"{_prefix}-plot-appearance-reset", "n_clicks"),
         prevent_initial_call=True,
     )

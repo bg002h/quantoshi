@@ -51,6 +51,8 @@ _MC_POLL_MAX = 300                     # max poll intervals (300 × 3s = 15 min 
 # App layout
 # ══════════════════════════════════════════════════════════════════════════════
 
+from layout.splash import _SPLASH_QUOTES_JS as _SPLASH_QUOTES_JS_INDEX
+
 _app_ctx.app.index_string = """<!DOCTYPE html>
 <html>
     <head>
@@ -58,6 +60,43 @@ _app_ctx.app.index_string = """<!DOCTYPE html>
         <title>{%title%}</title>
         <link rel="icon" type="image/png" href="/assets/quantoshi_favicon.png">
         {%css%}
+        <script>
+        /* Pre-populate splash quote as soon as the DOM element appears.
+           Runs long before Dash's clientside callbacks fire. */
+        (function(){
+            var SIX_HOURS = 6*3600*1000;
+            var last = parseInt(localStorage.getItem("_splash_ts")||"0");
+            var now = Date.now();
+            var p = location.pathname.replace(/\\/+$/,"") || "/";
+            var hash = location.hash || "";
+            var isDeep = p !== "/" && p !== "/1";
+            var hasHash = hash.indexOf("q3:")!==-1 || hash.indexOf("q2:")!==-1 || hash.indexOf("q1:")!==-1;
+            var isDev = location.hostname==="localhost"||location.hostname==="127.0.0.1";
+            if (isDev || isDeep || hasHash || now-last<SIX_HOURS) return;
+            var quotes = """ + _SPLASH_QUOTES_JS_INDEX + """;
+            var seed = Math.floor(now/(6*3600*1000));
+            function rng32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+            var r = rng32(seed);
+            for (var i=quotes.length-1;i>0;i--){var j=Math.floor(r()*(i+1));var tmp=quotes[i];quotes[i]=quotes[j];quotes[j]=tmp;}
+            var q = quotes[0];
+            /* Watch for the splash quote elements to appear, populate them */
+            var obs = new MutationObserver(function(){
+                var qe = document.getElementById("splash-quote-text");
+                var ae = document.getElementById("splash-quote-attr");
+                if (qe && ae) {
+                    /* dcc.Markdown renders into a child div — look for it */
+                    var md = qe.querySelector(".dash-markdown") || qe;
+                    md.textContent = '"' + q[0] + '"';
+                    ae.textContent = "\\u2014 " + q[1];
+                    /* Save current ts so the Dash callback doesn't re-open */
+                    localStorage.setItem("_splash_ts", now.toString());
+                    obs.disconnect();
+                }
+            });
+            obs.observe(document.documentElement, {childList: true, subtree: true});
+            setTimeout(function(){obs.disconnect();}, 10000);
+        })();
+        </script>
     </head>
     <body>
         {%app_entry%}

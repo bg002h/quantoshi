@@ -110,11 +110,8 @@ class _ShrinkingBandsMixin:
         self.quantiles = sorted(self.fits.keys())
 
     def _sigma_at(self, t, q):
-        """σ(t) = σ₀ · t^(-α), asymmetric for up/down."""
-        t = np.maximum(np.asarray(t, float), 0.5)
-        if q >= 0.5:
-            return self._sigma0_up * t ** (-self._alpha_up)
-        return self._sigma0_down * t ** (-self._alpha_down)
+        """Constant σ for quantile bands (shrinking σ reverted — too narrow at late times)."""
+        return self._sigma
 
     def price_at(self, q, t):
         t_arr = np.asarray(t, float)

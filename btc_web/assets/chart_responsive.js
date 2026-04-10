@@ -109,10 +109,15 @@
         } catch(e) { return; }
 
         /* ── Layout: grids, colors, fonts, axes ──────────────────────── */
-        var lay = g._fullLayout || g.layout || {}, u = {};
-        Object.keys(lay).forEach(function(k) {
+        /* Use the ORIGINAL user-supplied layout (g.layout) not _fullLayout
+           to check minor grid state — _fullLayout contains Plotly defaults
+           that make it look enabled when it isn't. */
+        var fullLay = g._fullLayout || g.layout || {};
+        var userLay = g.layout || {}, u = {};
+        Object.keys(fullLay).forEach(function(k) {
             if (!/^[xy]axis\d*$/.test(k)) return;
-            var a = lay[k] || {};
+            var a = fullLay[k] || {};
+            var userAx = userLay[k] || {};
             u[k+'.gridwidth'] = gridMajor;
             u[k+'.gridcolor'] = s.grid_major_color;
             if (IS_DESKTOP) {
@@ -122,8 +127,10 @@
                 if (a.title && a.title.font && a.title.font.size)
                     u[k+'.title.font.size'] = Math.round(a.title.font.size * DESKTOP.font);
             }
-            /* Minor grid — only style if the user enabled it (minor config present) */
-            if (a.minor && a.minor.showgrid) {
+            /* Minor grid — only style if the USER explicitly enabled it.
+               userAx.minor is only set by figure builders when minor_grid
+               checkbox is checked. */
+            if (userAx.minor && userAx.minor.showgrid) {
                 u[k+'.minor.gridwidth'] = gridMinor;
                 u[k+'.minor.gridcolor'] = s.grid_minor_color;
             }

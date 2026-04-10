@@ -279,7 +279,7 @@ def _sim_panel():
                      default_entry_q=10,
                      shared_controls={"amount", "infl", "freq", "stack"}),
         _section_card("Chart Settings",
-            _chart_toggles("cp", ["annotate", "log_y", "show_legend", "minor_grid"]),
+            _chart_toggles("cp", ["annotate", "log_y", "show_legend"]),
             *_legend_pos_dropdown("cp", CITADEL["legend_pos"]),
             html.Div([
                 dbc.Button("Show All", id="cp-legend-all", size="sm",

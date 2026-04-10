@@ -100,7 +100,7 @@ def _supercharge_controls():
                              value=display_q_default, clearable=False),
             ], id="sc-display-q-collapse", is_open=True),
             _btc_usd_dropdown("sc", btc_label="BTC Remaining", default="usd"),
-            _chart_toggles("sc", ["annotate", "log_y", "minor_grid", "shade"]),
+            _chart_toggles("sc", ["annotate", "log_y", "shade"]),
             *_legend_pos_dropdown("sc", SUPERCHARGE["legend_pos"]),
         ),
         _lppl_config_panel("sc"),

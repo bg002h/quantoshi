@@ -148,7 +148,7 @@ def _retire_controls():
                        shared_controls={"amount", "infl", "freq", "stack"},
                        mc_enabled_default=True),
         yr_range=(2024, 2080, 2031, 2075),
-        chart_toggle_defaults=["annotate", "log_y", "minor_grid", "shade"],
+        chart_toggle_defaults=["annotate", "log_y", "shade"],
         btc_usd_kwargs={"btc_label": "BTC Remaining"},
         legend_pos_default=RETIRE["legend_pos"],
         include_mc=True,

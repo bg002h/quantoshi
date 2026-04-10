@@ -23,6 +23,7 @@ from figures.common import (
     _post_mc_overlay,
     _mc_dca_overlay,
     build_overlay_traces,
+    _build_symmetric_bands,
 
     FREQ_PPY,
 )
@@ -178,6 +179,8 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     all_btc_vals = {}  # q -> BTC balance array
     all_usd_vals = {}  # q -> USD value array (for annotations + title)
     all_prices   = {}  # q -> price array — reused by SC loop to avoid redundant qr_price calls
+    _bm_line_traces = []  # collected first so bands can render beneath them
+    _y_for_bands = {}     # q -> y array in current disp_mode (for shading)
     ts_clamped = np.maximum(ts, 0.5)
     adj_amount_arr = amount * ((1 + inflation) ** (ts - t_start))
     for q in sel_qs:
@@ -198,12 +201,20 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                 final_usd = fmt_price(float(all_usd_vals[q][-1]))
                 final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
 
+            _y_for_bands[q] = y_vals
             lbl = f"{model.legend_name} {_fmt_q_label(q)}" + f"  \u2192  {final_lbl}"
             col = _thermal.get(q, model.colors.get(q, "#888888"))
-            traces.append(go.Scatter(
+            _bm_line_traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines", name=lbl,
                 line=dict(color=col, width=_QR_LINE_WIDTH, shape=_line_shape),
             ))
+
+    # ── Symmetric band shading (added before line traces so lines render on top) ──
+    if show_bm and p.get("shade") and len(_y_for_bands) >= 2:
+        _bm_color = model.colors.get(0.50, "#2C3E50")
+        traces.extend(_build_symmetric_bands(
+            sorted(_y_for_bands.keys()), _y_for_bands, ts, model_color=_bm_color))
+    traces.extend(_bm_line_traces)
 
     # ── alternative model overlays ────────────────────────────────────────────
     _dca_sim = lambda prices_q: start_stack + np.cumsum(adj_amount_arr / prices_q)

@@ -432,8 +432,8 @@ _CHECKLIST_OPTIONS = {
     "cp-mc-enable":     ["yes"],
     "cp-mc-advanced":   ["yes"],
     "cp-mc-regime":     [0, 1, 2, 3, 4],
-    # Citadel Tax checklists
-    "cp-tax-toggle":    [True],
+    # NOTE: cp-tax-toggle is a dbc.Switch (bool), NOT a checklist.
+    # It's encoded/decoded directly as a JSON bool — do not add it here.
 }
 
 

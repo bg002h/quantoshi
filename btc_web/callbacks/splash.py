@@ -6,6 +6,31 @@ import _app_ctx
 from layout.splash import _SPLASH_QUOTES_JS
 
 
+# JS helper: parse markdown [text](url) → array of React descriptors
+# (strings and html.A components). Returned as children of html.P so
+# that Dash's React renderer displays clickable links for quotes that
+# contain markdown syntax. Must be inlined in each clientside callback.
+_PARSE_MD_JS = r"""
+function parseMd(s) {
+    var out = [];
+    var re = /\[([^\]]+)\]\(([^)]+)\)/g;
+    var last = 0, m;
+    while ((m = RegExp.prototype.exec.call(re, s)) !== null) {
+        if (m.index > last) out.push(s.slice(last, m.index));
+        out.push({
+            namespace: "dash_html_components",
+            type: "A",
+            props: {children: m[1], href: m[2], target: "_blank", rel: "noopener"}
+        });
+        last = re.lastIndex;
+    }
+    if (last < s.length) out.push(s.slice(last));
+    return out;
+}
+function quoteChildren(text) { return ['"'].concat(parseMd(text)).concat(['"']); }
+"""
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Journey tracker: update milestones in localStorage on every page load
 # ══════════════════════════════════════════════════════════════════════════════
@@ -141,6 +166,7 @@ _JOURNEY_BODY = """
 _app_ctx.app.clientside_callback(
     """
     function(ts_store) {
+        """ + _PARSE_MD_JS + """
         var SIX_HOURS = 6 * 3600 * 1000;
         var now = Date.now();
         var last = ts_store ? parseInt(ts_store) : 0;
@@ -174,7 +200,7 @@ _app_ctx.app.clientside_callback(
             /* Hide onion knight button during regular splash */
             var _kw2 = document.getElementById("onion-knight-wrap");
             if (_kw2) _kw2.style.display = "none";
-            return [true, now.toString(), '"' + q[0] + '"', "\\u2014 " + q[1],
+            return [true, now.toString(), quoteChildren(q[0]), "\\u2014 " + q[1],
                     {"display":"none"}, jText, jStyle];
         }
         return [false, window.dash_clientside.no_update,
@@ -273,11 +299,12 @@ _app_ctx.app.clientside_callback(
 _app_ctx.app.clientside_callback(
     """
     function(n) {
+        """ + _PARSE_MD_JS + """
         if (!n) return [window.dash_clientside.no_update, window.dash_clientside.no_update];
         var quotes = """ + _SPLASH_QUOTES_JS + """;
         window._splashIdx = ((window._splashIdx || 0) + 1) % quotes.length;
         var q = quotes[window._splashIdx];
-        return ['"' + q[0] + '"', "\\u2014 " + q[1]];
+        return [quoteChildren(q[0]), "\\u2014 " + q[1]];
     }
     """,
     Output("splash-quote-text", "children", allow_duplicate=True),

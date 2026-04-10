@@ -164,21 +164,31 @@ _app_ctx.app.layout = _serve_layout
 def _pick_splash_quote():
     """Pick a random quote at layout time so it's pre-populated in the layout JSON.
 
-    Returns (quote_text, attribution). The clientside callback may later
-    override this with its own pick — both paths write via React props so
-    there's no visible flash on first paint.
+    Returns (children_list, attribution). The children_list is a list of
+    Dash components (strings and html.A for markdown links) ready to pass
+    to html.P — avoids dcc.Markdown which loads from an async JS chunk.
     """
-    import json as _json, random as _rnd, time as _time
+    import json as _json, random as _rnd, time as _time, re as _re
     from layout.splash import _SPLASH_QUOTES_JS
     try:
         quotes = _json.loads(_SPLASH_QUOTES_JS)
-        # Shuffle everything except genesis (index 0), then pick first
-        rest = quotes[1:]
-        _rnd.Random(int(_time.time() * 1000 // (6 * 3600 * 1000))).shuffle(rest)
-        q = ([quotes[0]] + rest)[0]
-        return q[0], q[1]
+        # Genesis (index 0) is always first; the callback may replace it later
+        q_text, q_attr = quotes[0]
     except Exception:
-        return "", ""
+        return [""], ""
+
+    # Parse markdown [text](url) links into html.A components
+    parts = []
+    last = 0
+    for m in _re.finditer(r"\[([^\]]+)\]\(([^)]+)\)", q_text):
+        if m.start() > last:
+            parts.append(q_text[last:m.start()])
+        parts.append(html.A(m.group(1), href=m.group(2),
+                            target="_blank", rel="noopener"))
+        last = m.end()
+    if last < len(q_text):
+        parts.append(q_text[last:])
+    return ['"'] + parts + ['"'], q_attr
 
 
 def _build_layout(initial_tab="bubble"):
@@ -360,12 +370,11 @@ def _build_layout(initial_tab="bubble"):
             ], style={"display":"flex", "alignItems":"center",
                       "justifyContent":"center", "marginBottom":"20px"}),
             html.Div([
-                dcc.Markdown(id="splash-quote-text",
-                             children=f'"{_splash_q}"' if _splash_q else "",
-                             style={"fontSize":"16px", "fontStyle":"italic",
-                                    "color":"#2c3e50", "lineHeight":"1.5",
-                                    "textAlign":"center", "marginBottom":"10px"},
-                             link_target="_blank"),
+                html.P(id="splash-quote-text",
+                       children=_splash_q,
+                       style={"fontSize":"16px", "fontStyle":"italic",
+                              "color":"#2c3e50", "lineHeight":"1.5",
+                              "textAlign":"center", "marginBottom":"10px"}),
                 html.Div(id="splash-quote-attr",
                          children=(f"\u2014 {_splash_a}" if _splash_a else ""),
                          style={"fontSize":"13px", "color":"#666",

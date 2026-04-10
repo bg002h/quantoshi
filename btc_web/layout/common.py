@@ -267,11 +267,18 @@ def _plot_appearance_controls(prefix: str):
                       dbc.Input(id=f"{prefix}-plot-grid-minor-color", type="color",
                                 value="#B0B0B0", size="sm",
                                 style={"height": "30px", "padding": "2px"})]),
+            html.Div([_lbl("Bubble Model color"),
+                      dbc.Input(id=f"{prefix}-plot-bm-color", type="color",
+                                value="#C8960C", size="sm",
+                                style={"height": "30px", "padding": "2px"})]),
+        ),
+        _row(
             html.Div([dbc.Button("Reset to defaults",
                                   id=f"{prefix}-plot-appearance-reset",
                                   size="sm", color="link",
                                   className="p-0 mt-3",
                                   style={"fontSize": "11px"})]),
+            html.Div(),
         ),
     ]
     # Only the bubble tab owns the store (shared across all tabs via localStorage)

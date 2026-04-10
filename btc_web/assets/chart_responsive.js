@@ -19,6 +19,7 @@
         grid_major_color: "#888888",
         grid_minor_width: 0.8,
         grid_minor_color: "#B0B0B0",
+        bm_color: "#C8960C",
     };
 
     /* Desktop multipliers applied on top of user values */
@@ -52,7 +53,7 @@
 
     function settingsFingerprint(s) {
         return [s.trace_width, s.grid_major_width, s.grid_major_color,
-                s.grid_minor_width, s.grid_minor_color].join("|");
+                s.grid_minor_width, s.grid_minor_color, s.bm_color].join("|");
     }
 
     function needsApply(g, id, fp) {
@@ -75,8 +76,9 @@
         var gridMajor  = s.grid_major_width * (IS_DESKTOP ? DESKTOP.grid_mult : 1.0);
         var gridMinor  = s.grid_minor_width * (IS_DESKTOP ? DESKTOP.grid_mult : 1.0);
 
-        /* ── Traces: set absolute line width ───────────────────────── */
+        /* ── Traces: set absolute line width + BM color ──────────────── */
         var li=[], lw=[], mi=[], ms=[], oi=[], ov=[];
+        var bmIdx=[], bmColors=[];
         g.data.forEach(function(t,i) {
             if (t.line && t.line.width != null) {
                 li.push(i);
@@ -90,11 +92,20 @@
                 oi.push(i);
                 ov.push(Math.min(1, t.marker.opacity * DESKTOP.opacity));
             }
+            /* Recolor BM traces to user's chosen color. BM trace names
+               start with "BM" (quantile bands) or "Bubble" (support/composite). */
+            var name = t.name || "";
+            if ((name.indexOf("BM") === 0 || name.indexOf("Bubble") === 0)
+                && t.line && t.line.color) {
+                bmIdx.push(i);
+                bmColors.push(s.bm_color);
+            }
         });
         try {
             if (li.length) Plotly.restyle(g, {'line.width': lw}, li);
             if (mi.length) Plotly.restyle(g, {'marker.size': ms}, mi);
             if (oi.length) Plotly.restyle(g, {'marker.opacity': ov}, oi);
+            if (bmIdx.length) Plotly.restyle(g, {'line.color': bmColors}, bmIdx);
         } catch(e) { return; }
 
         /* ── Layout: grids, colors, fonts, axes ──────────────────────── */

@@ -10,7 +10,7 @@ from layout.common import (
     _section_card, _lbl, _ctrl_card, _q_options,
     _chart_toggles, _btc_usd_dropdown, _legend_pos_dropdown,
     _STYLE_HIDDEN, _STYLE_HINT, _export_row, _chart_tab_layout,
-    _CB_MARGIN, _INFL_LABEL,
+    _CB_MARGIN, _INFL_LABEL, _plot_appearance_controls,
 )
 from layout.mc_controls import _mc_controls
 from layout.citadel_tax import tax_toggle_widget, tax_config_modal, tax_summary_panel
@@ -408,6 +408,7 @@ def _citadel_controls():
             dbc.Tab(_rules_panel(), label="Rules", tab_id="cp-rules"),
             dbc.Tab(_sim_panel(), label="Simulation", tab_id="cp-sim"),
         ], id="cp-inner-tabs", active_tab="cp-assets"),
+        _section_card("Plot Appearance", *_plot_appearance_controls("cp")),
         tax_config_modal(),
     ])
 

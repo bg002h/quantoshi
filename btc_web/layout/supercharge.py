@@ -14,7 +14,7 @@ from layout.common import (_tab_hints, _section_card, _lbl,
                             _lppl_config_panel, _hybppl_config_panel, _eppl_config_panel,
                             _btc_usd_dropdown, _chart_toggles,
                             _legend_pos_dropdown, _chart_tab_layout,
-                            _CB_MARGIN, _Q_HINT_BASE)
+                            _CB_MARGIN, _Q_HINT_BASE, _plot_appearance_controls)
 from layout.mc_controls import _mc_controls
 
 
@@ -106,6 +106,7 @@ def _supercharge_controls():
         _lppl_config_panel("sc"),
         _hybppl_config_panel("sc"),
         _eppl_config_panel("sc"),
+        _section_card("Plot Appearance", *_plot_appearance_controls("sc")),
     ])
 
 

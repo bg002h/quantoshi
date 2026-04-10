@@ -15,7 +15,7 @@ from layout.common import (_tab_hints, _section_card, _lbl,
                             _shared_settings_card, _year_range_slider,
                             _btc_usd_dropdown, _chart_toggles,
                             _legend_pos_dropdown, _ctrl_card,
-                            _chart_tab_layout)
+                            _chart_tab_layout, _plot_appearance_controls)
 from layout.mc_controls import _mc_controls
 
 
@@ -47,6 +47,8 @@ def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
     children.append(_lppl_config_panel(prefix))
     children.append(_hybppl_config_panel(prefix))
     children.append(_eppl_config_panel(prefix))
+    children.append(_section_card("Plot Appearance",
+                                  *_plot_appearance_controls(prefix)))
     return html.Div(children)
 
 

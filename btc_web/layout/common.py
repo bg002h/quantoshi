@@ -232,6 +232,53 @@ def _row(*cols):
 def _lbl(text: str):
     return html.Label(text, className="form-label mb-0 small")
 
+
+def _plot_appearance_controls(prefix: str):
+    """Trace width + grid width/color controls for a chart tab.
+
+    Each tab gets its own copy of these controls (IDs prefixed). All copies
+    read from and write to the same global 'plot-appearance' localStorage
+    store, so changes propagate across tabs.
+
+    Returns a list of components to be spread into a _section_card.
+    The store and the reset button are only rendered for the 'bub' prefix
+    to avoid duplicate IDs — bubble tab is the canonical location.
+    """
+    parts = [
+        _row(
+            html.Div([_lbl("Trace thickness (0.5\u20138)"),
+                      dbc.Input(id=f"{prefix}-plot-trace-width", type="number",
+                                value=2.5, min=0.5, max=8, step=0.5, size="sm")]),
+            html.Div([_lbl("Major grid width (0\u20134)"),
+                      dbc.Input(id=f"{prefix}-plot-grid-major-width", type="number",
+                                value=1.0, min=0, max=4, step=0.25, size="sm")]),
+        ),
+        _row(
+            html.Div([_lbl("Major grid color"),
+                      dbc.Input(id=f"{prefix}-plot-grid-major-color", type="color",
+                                value="#888888", size="sm",
+                                style={"height": "30px", "padding": "2px"})]),
+            html.Div([_lbl("Minor grid width (0\u20133)"),
+                      dbc.Input(id=f"{prefix}-plot-grid-minor-width", type="number",
+                                value=0.8, min=0, max=3, step=0.25, size="sm")]),
+        ),
+        _row(
+            html.Div([_lbl("Minor grid color"),
+                      dbc.Input(id=f"{prefix}-plot-grid-minor-color", type="color",
+                                value="#B0B0B0", size="sm",
+                                style={"height": "30px", "padding": "2px"})]),
+            html.Div([dbc.Button("Reset to defaults",
+                                  id=f"{prefix}-plot-appearance-reset",
+                                  size="sm", color="link",
+                                  className="p-0 mt-3",
+                                  style={"fontSize": "11px"})]),
+        ),
+    ]
+    # Only the bubble tab owns the store (shared across all tabs via localStorage)
+    if prefix == "bub":
+        parts.append(dcc.Store(id="plot-appearance", storage_type="local", data=None))
+    return parts
+
 def _export_row(tab_id: str):
     """Export row — download triggered client-side via Plotly.downloadImage()."""
     return html.Div([

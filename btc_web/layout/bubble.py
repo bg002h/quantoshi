@@ -13,7 +13,7 @@ from layout.common import (_model_info_link, _INFO_ICON,
                             _q_options, _legend_pos_dropdown,
                             _chart_tab_layout, _CB_MARGIN, _palette_selector,
                             _lppl_config_panel, _hybppl_config_panel,
-                            _eppl_config_panel)
+                            _eppl_config_panel, _plot_appearance_controls)
 
 
 def _build_bub_model_options(mc):
@@ -279,15 +279,16 @@ def _bubble_controls():
             dcc.Store(id="scan-active-rows", data=[]),
             html.Div(id="scan-results"),
         ),
-        _section_card("Data Point Appearance",
+        _section_card("Plot Appearance",
             _row(
                 html.Div([_lbl("Pt size (1\u201320)"),
                           dbc.Input(id="bub-ptsize", type="number",
                                     value=BUBBLE["pt_size"], min=1, max=20, size="sm")]),
-                html.Div([_lbl("Alpha (0.1\u20131)"),
+                html.Div([_lbl("Pt alpha (0.1\u20131)"),
                           dbc.Input(id="bub-ptalpha", type="number",
                                     value=BUBBLE["pt_alpha"], min=0.1, max=1.0, step=0.05, size="sm")]),
             ),
+            *_plot_appearance_controls("bub"),
         ),
         _section_card("Stack (BTC)",
             dbc.InputGroup([

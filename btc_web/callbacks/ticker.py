@@ -8,28 +8,25 @@ from utils import _fetch_btc_price
 
 
 # ── Model display order and colors ──────────────────────────────────────────
-# Cycle order: QR → BM → PL → LPPL → LinPPL → HybPPL → HybPPL DD → Exp → EF
-# (skip S2F — non-quantized)
-_MODEL_CYCLE = ["qr", "bub", "pl", "lppl", "hybppl", "pca", "grdy", "eppl", "ef"]
+# Use default config-panel-resolved keys so ticker matches chart display.
+# LPPL default: lp3 (3 freqs). HybPPL default: cfg_1d_1u. EPPL default: ecfg_1d_1u.
+_MODEL_CYCLE = ["qr", "bub", "pl", "lp3", "cfg_1d_1u", "ecfg_1d_1u", "pca", "grdy", "ef"]
 _MODEL_COLORS = {
     "qr":         "#5dade2",   # sky blue
     "bub":        "#f39c12",   # amber/gold
     "pl":         "#2ecc71",   # green
-    "lppl":       "#e74c3c",   # red
-    "linppl":     "#00B8A0",   # teal — LinPPL
-    "hybppl":     "#7B68EE",   # medium slate blue — HybPPL
-    "hybppl_dd":  "#B39DDB",   # lavender — HybPPL DD
-    "exp":        "#9b59b6",   # purple
-    "hyb2l":      "#6A5ACD",   # slate blue — HybPPL +2L
-    "hyb2c":      "#20B2AA",   # light sea green — HybPPL +2C
-    "hyb2b":      "#DB7093",   # pale violet red — HybPPL +2B
-    "hyb4d":      "#8B6914",   # dark goldenrod — HybPPL 4D
+    "lp3":        "#e74c3c",   # red — LPPL₃ (default config)
+    "cfg_1d_1u":  "#7B68EE",   # medium slate blue — HybPPL (default config)
+    "ecfg_1d_1u": "#D4760A",   # warm amber — EPPL (default config)
     "pca":        "#4B0082",   # indigo — PCA
     "grdy":       "#228B22",   # forest green — Greedy
-    "eppl":       "#D4760A",   # warm amber — Entropy PPL
-    "gomp":       "#4682B4",   # steel blue — Gompertz
-    "bpl":        "#CD853F",   # peru/tan — broken PL
     "ef":         "#1abc9c",   # teal
+}
+# Label overrides for config keys (otherwise shows the raw key)
+_MODEL_LABELS = {
+    "lp3":        "LPPL\u2083",
+    "cfg_1d_1u":  "HybPPL",
+    "ecfg_1d_1u": "EPPL",
 }
 
 
@@ -104,7 +101,7 @@ def update_price_ticker(_, mode, user_model_data):
         if mdl is None:
             continue
         p = pcts.get(key)
-        label = mdl.legend_name if hasattr(mdl, 'legend_name') else key.upper()
+        label = _MODEL_LABELS.get(key, mdl.legend_name if hasattr(mdl, 'legend_name') else key.upper())
         color = _MODEL_COLORS.get(key, "#ffffff")
         if p is not None:
             model_data.append({"key": key, "label": label, "pct": p, "color": color})

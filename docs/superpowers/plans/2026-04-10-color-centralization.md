@@ -91,6 +91,25 @@ Spec: docs/superpowers/specs/2026-04-10-color-centralization-design.md
 
 # ── Brand identity ────────────────────────────────────────────────
 BTC_ORANGE          = "#f7931a"   # Bitcoin canonical orange
+QUANTOSHI_TITLE     = "#1A3060"   # navbar wordmark / chart titles (alias of TITLE_COLOR)
+QUANTOSHI_NAVY      = "#0a1929"   # navbar background
+
+# ── Status / semantic ──────────────────────────────────────────────
+ERROR_RED           = "#ff5252"
+WARNING_AMBER       = "#ffa726"
+SUCCESS_GREEN       = "#4caf50"
+INFO_BLUE           = "#1976d2"
+
+# ── UI surfaces ───────────────────────────────────────────────────
+MODAL_BG            = "#FFFFFF"
+DRAWER_BG           = "#F5F5F5"
+SECTION_CARD_BG     = "#FAFAFA"
+FOCUS_RING          = "#1a6fa8"
+LINK                = "#1a6fa8"
+
+# ── Static SVG generation (api.py shareable badges) ───────────────
+SVG_BADGE_BG        = "#1a3060"
+SVG_BADGE_TEXT      = "#ffffff"
 
 # ── Chart theme (palette-invariant — also re-exported from theme.py) ──
 # These KEEP THEIR ORIGINAL NAMES for zero-breakage on existing importers.
@@ -443,7 +462,10 @@ def _flatten_palette_for_css(palette: dict, prefix: str = "qs") -> list[tuple[st
     """Flatten one palette dict into a list of (--qs-...-key, hex) entries.
 
     Returns CSS variable name and value pairs for everything except
-    `thermal_stops` (a sequence — JS-only) and other non-flat structures.
+    `thermal_stops` (a list of (float, str) tuples — exposed only as
+    JS arrays, NOT as individual CSS vars, since the float quantile
+    values aren't meaningful selector keys). The isinstance(v, str)
+    check inside the list branch silently skips tuples by design.
     """
     out: list[tuple[str, str]] = []
     for key, val in palette.items():
@@ -561,6 +583,8 @@ def _generate_js() -> str:
     for pkey, pdict in colors.PALETTES.items():
         lines.append(f'        "{pkey}": {_js_repr(pdict)},')
     lines.append("    };")
+    # Spec-required dedicated namespace for ticker colors
+    lines.append(f"    window.QS_TICKER_COLORS = {_js_repr(colors.TICKER_MODEL_COLORS)};")
     lines.append("})();")
     return "\n".join(lines) + "\n"
 
@@ -687,6 +711,12 @@ EOF
 **Files:**
 - Modify: `btc_web/app.py`
 
+- [ ] **Step 0: Create `tools/__init__.py`** so `from tools.generate_color_artifacts import ...` works as a package import.
+
+```bash
+test -f tools/__init__.py || (touch tools/__init__.py && echo CREATED)
+```
+
 - [ ] **Step 1: Read the current `app.py` to find a good insertion point**
 
 ```bash
@@ -744,7 +774,7 @@ Expected: `SERVER_UP` and `NO_DRIFT_AFTER_STARTUP`. The startup hook regenerated
 - [ ] **Step 5: Commit**
 
 ```bash
-git add btc_web/app.py
+git add btc_web/app.py tools/__init__.py
 git commit -m "$(cat <<'EOF'
 feat(colors): DEV-mode generator hook in app.py startup
 
@@ -1132,12 +1162,36 @@ Three files, three commits. Same pattern.
 **Files:**
 - Modify: `btc_web/api.py`
 
-39 hex literals embedded in SVG template strings. SVG markup format: `fill="#abcdef"` and `stroke="#abcdef"`. Migration approach:
+**30 hex literals** (verified count) embedded in SVG template strings. `api.py` already uses Python f-strings with doubled braces (`{{ }}`) for embedded CSS — the implementer must preserve this escaping. Migration approach:
 
 - [ ] **Step 1**: Inventory `grep -n '#[0-9a-fA-F]\{6\}' btc_web/api.py`
 - [ ] **Step 2**: Add new SVG-specific constants to `colors.py` if any aren't already named (`SVG_BADGE_BG`, `SVG_BADGE_TEXT`, etc.). Regenerate artifacts. Commit colors.py + artifacts.
 - [ ] **Step 3**: Add `from colors import ...` at top of api.py
-- [ ] **Step 4**: Convert each SVG template literal to an f-string (or .format()) with the imported constant. Example: `'<rect fill="#1a3060" .../>'` → `f'<rect fill="{SVG_BADGE_BG}" .../>'`
+- [ ] **Step 4**: Convert each SVG template literal to an f-string (or .format()) with the imported constant.
+
+**Concrete example for an existing f-string with doubled braces** (api.py already does this for inline CSS):
+
+Before:
+```python
+return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="80">
+  <style>.lbl {{ font: 12px sans-serif; fill: #ffffff; }}</style>
+  <rect width="100%" height="100%" fill="#1a3060"/>
+  <text x="10" y="50" class="lbl">Bitcoin: {price}</text>
+</svg>'''
+```
+
+After:
+```python
+return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="80">
+  <style>.lbl {{ font: 12px sans-serif; fill: {SVG_BADGE_TEXT}; }}</style>
+  <rect width="100%" height="100%" fill="{SVG_BADGE_BG}"/>
+  <text x="10" y="50" class="lbl">Bitcoin: {price}</text>
+</svg>'''
+```
+
+**Critical**: only the `#abc123` literals get replaced with `{CONSTANT_NAME}`. The pre-existing `{{ }}` doubled braces around `font: ...` stay as-is — they are escaped CSS rules inside an f-string and must remain literal `{` `}` for the rendered SVG.
+
+For non-f-string templates that don't have `{{ }}` issues, simply convert to f-string and substitute. For `<text fill="#ffffff">` → `<text fill="{SVG_BADGE_TEXT}">`.
 - [ ] **Step 5**: `py_compile`, run any api tests
 - [ ] **Step 6**: Verify `grep -c = 0`
 - [ ] **Step 7**: Commit
@@ -1253,7 +1307,13 @@ _app_ctx.app.clientside_callback(
 )
 ```
 
-(Output is `palette-store.data` itself with `allow_duplicate=True` and the function returns `no_update` — this is a side-effect-only callback. If a more idiomatic Dash pattern works, use that instead.)
+**Why the no-update self-loop pattern**: Dash clientside callbacks must declare an Output. The side effect we want (setting `document.documentElement.dataset.palette`) doesn't have a natural Dash component to write to. Three options:
+
+1. **Self-loop with `no_update`** (chosen): Output is `palette-store.data` itself with `allow_duplicate=True`, function always returns `no_update`. Side effect runs in the function body. Pro: zero new components, minimal diff. Con: looks odd to readers.
+2. **Hidden sink div**: add an `html.Div(id="palette-dom-sink")` to the layout, output to its `data-dummy` attribute. Cleaner intent, but adds a layout element.
+3. **Dash pattern-matching outputs to a `dcc.Store`**: similar to option 2 with more boilerplate.
+
+Option 1 is the chosen pattern. The plan uses this approach because it's the smallest diff. Cross-reference: spec §Component 4 "Stage 2 reactive clientside callback".
 
 - [ ] **Step 4: Verify**
 
@@ -1328,7 +1388,15 @@ EOF
 **Files:**
 - Modify: `btc_web/assets/style.css`
 
-This is the largest single commit in the plan: 68 hex literal replacements + mandatory visual regression.
+This is the largest single commit in the plan: **48 hex literal replacements** (verified count) + mandatory visual regression.
+
+**Preflight: ImageMagick required for visual regression diffing.**
+
+```bash
+command -v compare >/dev/null && command -v identify >/dev/null && command -v bc >/dev/null \
+    && echo "PREFLIGHT_OK" \
+    || { echo "Install with: sudo pacman -S imagemagick bc  (or apt: sudo apt install imagemagick bc)"; exit 1; }
+```
 
 - [ ] **Step 1: Take baseline screenshots of all 9 tabs in all 4 palettes**
 
@@ -1364,7 +1432,7 @@ Expected: `36`.
 grep -n '#[0-9a-fA-F]\{6\}' btc_web/assets/style.css
 ```
 
-Expected: 68 lines.
+Expected: 48 lines.
 
 - [ ] **Step 3: Add any missing constants to `colors.py`**
 
@@ -1569,7 +1637,7 @@ _TEST_FILE_PATTERN = re.compile(r"^test_.*\.py$")
 
 _HEX_PATTERN = re.compile(r"#[0-9a-fA-F]{6}")
 _HEX_SHORT_PATTERN = re.compile(r"(?<![0-9a-fA-F])#[0-9a-fA-F]{3}(?![0-9a-fA-F])")
-_RGBA_LITERAL = re.compile(r'\brgba?\([^)]*\)')
+_RGBA_PATTERN = re.compile(r'\brgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+(?:\s*,\s*[\d.]+)?\s*\)')
 
 
 def _walk_btc_web():
@@ -1658,16 +1726,13 @@ def _find_hex_literals_outside_string_constants(path: Path) -> list[tuple[int, s
                         hits.append((node.lineno, m.group()))
         return hits
     elif path.suffix == ".js":
-        cleaned = _strip_js_strings_and_comments(src)
-        # In JS, after stripping strings, hex literals can only be in
-        # something like a property name or backtick template — uncommon.
+        # Strip only comments, not strings — hex literals legitimately
+        # live inside JS string defaults (e.g. plot_appearance.js
+        # DEFAULTS dict). The lint should catch them.
+        cleaned = re.sub(r'/\*.*?\*/', '', src, flags=re.DOTALL)
+        cleaned = re.sub(r'//[^\n]*', '', cleaned)
         hits = []
         for i, line in enumerate(cleaned.splitlines(), 1):
-            for m in _HEX_PATTERN.finditer(line):
-                hits.append((i, m.group()))
-        # ALSO scan ORIGINAL source for hex inside string literals
-        # because plot_appearance.js etc. use string defaults.
-        for i, line in enumerate(src.splitlines(), 1):
             for m in _HEX_PATTERN.finditer(line):
                 hits.append((i, m.group()))
         return hits
@@ -1681,6 +1746,33 @@ def _find_hex_literals_outside_string_constants(path: Path) -> list[tuple[int, s
     return []
 
 
+def _find_rgba_literals_in_python(path: Path) -> list[tuple[int, str]]:
+    """Find rgba()/rgb() string literals in Python files via AST.
+
+    The lint requires literal rgba(...) strings to be moved into colors.py
+    OR converted to use _hex_alpha(constant, alpha) which produces the
+    rgba() at runtime as a function return value, not as a source literal.
+
+    AST inspection: walk every Constant(value=str) node and reject if its
+    value matches the rgba/rgb pattern. This catches literal string forms
+    only — function returns from _hex_alpha() are fine because they
+    aren't string constants in the source.
+    """
+    if path.suffix != ".py":
+        return []
+    src = path.read_text()
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return []
+    hits = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            for m in _RGBA_PATTERN.finditer(node.value):
+                hits.append((node.lineno, m.group()))
+    return hits
+
+
 def test_no_hex_literals_outside_colors_module():
     """No hex literal should appear outside colors.py + generated files."""
     leaks = []
@@ -1692,6 +1784,24 @@ def test_no_hex_literals_outside_colors_module():
         "Hex literals found outside the centralized colors module:\n"
         + "\n".join(leaks)
         + "\n\nMove these to btc_web/colors.py and import."
+    )
+
+
+def test_no_rgba_literals_in_python():
+    """No literal rgba(...) string in Python code. Use _hex_alpha(constant)
+    or define a baked-alpha named constant in colors.py."""
+    leaks = []
+    for path in _walk_btc_web():
+        if path.suffix != ".py":
+            continue
+        hits = _find_rgba_literals_in_python(path)
+        for lineno, lit in hits:
+            leaks.append(f"{path.relative_to(_REPO_ROOT)}:{lineno} {lit}")
+    assert not leaks, (
+        "Literal rgba()/rgb() strings found in Python source:\n"
+        + "\n".join(leaks)
+        + "\n\nReplace with _hex_alpha(named_constant, alpha) or add a "
+        "baked-alpha named constant to btc_web/colors.py."
     )
 
 
@@ -1872,11 +1982,11 @@ Task 24 is verification only — no code changes unless the reviewer finds issue
 | Phase | Tasks | Approx commits | Risk |
 |---|---|---|---|
 | 1 — Foundation | 1, 2, 3 | 3 | Low — parallel registry, no behavior change |
-| 2 — Python migration | 4–18 | 15 | Medium — touches many files; covered by regression tests |
-| 3 — CSS migration | 19, 20 | 2 (+ visual regression gate) | Medium — large diff in style.css |
+| 2 — Python migration | 4–18 | ~20 | Medium — touches many files; covered by regression tests |
+| 3 — CSS migration | 19, 20 | 2–3 (incl. colors.py sub-commit) + visual regression gate | Medium — large diff in style.css |
 | 4 — JS migration | 21, 22 | 2 | Low — small diffs in 2 files |
 | 5 — Drift prevention | 23 | 1 | Low — pure test |
 | Final review | 24 | 0 | — |
-| **Total** | **24 tasks** | **~25 commits** | — |
+| **Total** | **24 tasks** | **~30 commits** | — |
 
-Spec count was ~35 commits — actual is closer to 25 because some Phase 2 batched migrations land as one commit per file rather than one per literal.
+Tasks 13, 15, and 16 each migrate multiple files (heatmap+residuals; layout/bubble + layout/model_info + layout/__init__; charts + mc_controls + snapshot_cb), with one commit per file inside the task. This brings the total commit count to ~30 even though there are only 24 numbered tasks.

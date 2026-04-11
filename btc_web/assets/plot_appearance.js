@@ -27,13 +27,14 @@
         try { window.__paCleanup(); } catch(e) {}
     }
 
+    var QS = window.QS_COLORS;
     var DEFAULTS = {
         trace_width: 2.5,
         grid_major_width: 1.0,
-        grid_major_color: "#888888",
+        grid_major_color: QS.grid_major_color,
         grid_minor_width: 0.8,
-        grid_minor_color: "#b0b0b0",
-        pt_color: "#2c3e50"
+        grid_minor_color: QS.grid_minor_color,
+        pt_color: QS.scatter_point
     };
 
     var PREFIXES = ['bub', 'dca', 'ret', 'sc', 'cp'];

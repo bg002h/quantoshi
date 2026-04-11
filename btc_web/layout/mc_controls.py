@@ -12,9 +12,11 @@ from mc_overlay import bin_regime_labels
 
 from layout.common import (_section_card, _ctrl_card, _row, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT, _CB_MARGIN)
+from colors import (BLACK, SILVER, NEAR_BLACK, MUTED_TEXT,
+                    MODAL_DIVIDER_DARK, DIM_TEXT)
 
 _QUANT_FONT = {"fontFamily": '"Palatino Linotype", Palatino, "Book Antiqua", serif',
-               "color": "#000", "letterSpacing": "1px"}
+               "color": BLACK, "letterSpacing": "1px"}
 _MC_CACHED_START_YRS = set(CACHED_START_YRS)
 _MC_CACHED_ENTRY_QS = {int(v * 100) for v in ENTRY_PCT_BINS}   # {10,20,...,90}
 _MC_CACHED_YEARS    = set(MC_YEARS_OPTIONS)                      # {10,20,30,40}
@@ -109,10 +111,10 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
             html.Span("NEW", style={"position": "relative", "top": "-2px"}),
         ], className="mc-new-badge", style={
             "position": "absolute", "top": "4px", "right": "-2px",
-            "fontWeight": "900", "color": "#c0c0c0",
+            "fontWeight": "900", "color": SILVER,
             "fontFamily": "'Impact', 'Arial Black', sans-serif",
             "textTransform": "uppercase",
-            "backgroundColor": "#1a1a1a",
+            "backgroundColor": NEAR_BLACK,
             "borderRadius": "5px", "transform": "rotate(18deg)",
             "zIndex": "1", "lineHeight": "1.2",
             "boxShadow": "0 2px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)",
@@ -124,7 +126,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
             dcc.Checklist(id=f"{prefix}-mc-advanced",
                           options=[{"label": " Advanced simulator options", "value": "yes"}],
                           value=[], inputStyle=_CB_MARGIN,
-                          style={"fontSize": "11px", "color": "#666", "marginBottom": "6px"}),
+                          style={"fontSize": "11px", "color": MUTED_TEXT, "marginBottom": "6px"}),
             html.Div(dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now),
                      style=_STYLE_HIDDEN),
             _lbl((start_yr_label or "MC start year") + " (bold = cached)"),
@@ -184,7 +186,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                     value=list(range(5)),
                     inputStyle=_CB_MARGIN,
                     labelStyle={"display": "block", "fontSize": "11px",
-                                "lineHeight": "1.6", "color": "#444"},
+                                "lineHeight": "1.6", "color": MODAL_DIVIDER_DARK},
                     style={"marginBottom": "6px"},
                 ),
                 _lbl("Simulations"),
@@ -209,7 +211,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                                 marks={y: str(y) for y in range(2010, yr_now + 1, 5)}),
             ]),
             html.Div(id=f"{prefix}-mc-cost",
-                     style={"fontSize": "11px", "color": "#555", "marginTop": "6px",
+                     style={"fontSize": "11px", "color": DIM_TEXT, "marginTop": "6px",
                             "lineHeight": "1.4"}),
             dcc.Store(id=f"{prefix}-mc-price-val", storage_type="memory", data=0),
             # ── Run Simulation button (payment-gated when BTCPay active) ──
@@ -220,7 +222,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                 style={"fontWeight": "600"},
             ),
             html.Div(id=f"{prefix}-mc-run-status",
-                     style={"fontSize": "10px", "color": "#555", "marginTop": "4px",
+                     style={"fontSize": "10px", "color": DIM_TEXT, "marginTop": "4px",
                             "textAlign": "center"}),
             dcc.Store(id=f"{prefix}-mc-rendered-key", storage_type="memory"),
             html.Div(id=f"{prefix}-mc-match",
@@ -234,7 +236,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
             html.Hr(className="my-2"),
             _section_card("Saved Simulation",
                 html.Div(id=f"{prefix}-mc-status",
-                         style={"fontSize": "10px", "color": "#555", "marginBottom": "4px"}),
+                         style={"fontSize": "10px", "color": DIM_TEXT, "marginBottom": "4px"}),
                 dbc.Row([
                     dbc.Col(
                         dbc.Button("\u2b07 Save", id=f"{prefix}-mc-dl-btn",

@@ -13,6 +13,8 @@ from layout.common import (_tab_hints, _section_card, _lbl, _row, _export_row,
                             _q_options, _lppl_config_panel, _hybppl_config_panel, _eppl_config_panel)
 from layout.mc_controls import _mc_controls
 from tab_defaults import HEATMAP
+from colors import (NEAR_BLACK, DIM_TEXT, SPINE_COLOR_FALLBACK,
+                    PROGRESS_TRACK, FALLBACK_MODEL_GRAY)
 
 
 def _heatmap_controls():
@@ -82,13 +84,13 @@ def _heatmap_controls():
                 value="mono", clearable=False),
             _row(
                 html.Div([_lbl("Lo"), dbc.Input(id="hm-c-lo", type="color",
-                           value="#1a1a1a", style=_STYLE_COLOR_H)]),
+                           value=NEAR_BLACK, style=_STYLE_COLOR_H)]),
                 html.Div([_lbl("Mid1"), dbc.Input(id="hm-c-mid1", type="color",
-                           value="#555555", style=_STYLE_COLOR_H)]),
+                           value=DIM_TEXT, style=_STYLE_COLOR_H)]),
                 html.Div([_lbl("Mid2"), dbc.Input(id="hm-c-mid2", type="color",
-                           value="#999999", style=_STYLE_COLOR_H)]),
+                           value=SPINE_COLOR_FALLBACK, style=_STYLE_COLOR_H)]),
                 html.Div([_lbl("Hi"), dbc.Input(id="hm-c-hi", type="color",
-                           value="#e0e0e0", style=_STYLE_COLOR_H)]),
+                           value=PROGRESS_TRACK, style=_STYLE_COLOR_H)]),
             ),
             _lbl("Gradient steps"),
             dbc.Input(id="hm-grad", type="number", value=HEATMAP["n_disc"],
@@ -140,7 +142,7 @@ def _hm_pill_bar():
                 "display": "inline-block", "width": "8px", "height": "8px",
                 "borderRadius": "2px", "verticalAlign": "middle",
                 "marginRight": "4px",
-                "backgroundColor": mc.get(key, "#888"),
+                "backgroundColor": mc.get(key, FALLBACK_MODEL_GRAY),
             }),
             display_name,
         ])

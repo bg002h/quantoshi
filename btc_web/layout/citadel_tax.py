@@ -5,6 +5,8 @@ import dash_bootstrap_components as dbc
 
 from layout.common import _CB_MARGIN
 from engines.tax_data import STATE_TAX_RATES
+from colors import (DIM_TEXT, BOOTSTRAP_LIGHT_BG, BOOTSTRAP_BORDER,
+                    FALLBACK_MODEL_GRAY)
 
 # ── State dropdown options (sorted by name) ─────────────────────────────────
 
@@ -35,7 +37,7 @@ _STATE_OPTIONS = sorted(
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
-_HINT = {"color": "#888", "display": "block", "marginBottom": "4px"}
+_HINT = {"color": FALLBACK_MODEL_GRAY, "display": "block", "marginBottom": "4px"}
 
 def _lbl(text: str):
     return html.Label(text, className="form-label mb-0 small")
@@ -137,7 +139,7 @@ def _bracket_reference_section():
 def tax_toggle_widget():
     """Compact section for the Simulation sub-tab — title + toggle + config button + stores."""
     _TITLE_STYLE = {"fontWeight": "bold", "fontSize": "12px",
-                    "color": "#555", "marginBottom": "4px",
+                    "color": DIM_TEXT, "marginBottom": "4px",
                     "textTransform": "uppercase", "letterSpacing": "0.03em"}
     return html.Div([
         html.Div("Taxation", style=_TITLE_STYLE),
@@ -152,8 +154,8 @@ def tax_toggle_widget():
         dcc.Store(id="cp-tax-config", storage_type="memory", data={}),
         dcc.Store(id="cp-tax-annual-data", data=[]),
     ], style={"marginBottom": "12px", "padding": "8px",
-              "background": "#f8f9fa", "borderRadius": "8px",
-              "border": "1px solid #dee2e6"})
+              "background": BOOTSTRAP_LIGHT_BG, "borderRadius": "8px",
+              "border": f"1px solid {BOOTSTRAP_BORDER}"})
 
 
 def tax_config_modal():

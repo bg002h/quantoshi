@@ -6,6 +6,8 @@ import dash_bootstrap_components as dbc
 
 import _app_ctx
 from tab_defaults import CITADEL
+from colors import (DIM_TEXT, BOOTSTRAP_LIGHT_BG, BOOTSTRAP_BORDER,
+                    FALLBACK_MODEL_GRAY, MODAL_BG)
 from layout.common import (
     _section_card, _lbl, _ctrl_card, _q_options,
     _chart_toggles, _btc_usd_dropdown, _legend_pos_dropdown,
@@ -216,12 +218,12 @@ def _dd_section(title, *children):
     clips dropdown menus on iOS due to transform creating a stacking context."""
     return html.Div([
         html.Div(title, style={"fontWeight": "bold", "fontSize": "12px",
-                                "color": "#555", "marginBottom": "4px",
+                                "color": DIM_TEXT, "marginBottom": "4px",
                                 "textTransform": "uppercase", "letterSpacing": "0.03em"}),
         *children,
     ], style={"marginBottom": "12px", "padding": "8px",
-              "background": "#f8f9fa", "borderRadius": "8px",
-              "border": "1px solid #dee2e6"})
+              "background": BOOTSTRAP_LIGHT_BG, "borderRadius": "8px",
+              "border": f"1px solid {BOOTSTRAP_BORDER}"})
 
 
 def _sim_panel():
@@ -305,7 +307,7 @@ def _citadel_controls():
                    style={"fontSize": "14px", "letterSpacing": "0.03em"}),
         html.Small("\u25b6 runs a single deterministic projection (free). "
                    "\u26a1 runs Monte Carlo with multiple stochastic paths.",
-                   style={"color": "#888", "display": "block", "marginBottom": "8px",
+                   style={"color": FALLBACK_MODEL_GRAY, "display": "block", "marginBottom": "8px",
                           "fontSize": "11px"}),
         dbc.Row([
             dbc.Col(
@@ -332,7 +334,7 @@ def _citadel_controls():
         html.Div(id="cp-load-overlay", children=[
             html.Div(id="cp-load-overlay-text",
                      children="\u23f3 Loading scenario...",
-                     style={"background": "#fff", "borderRadius": "8px",
+                     style={"background": MODAL_BG, "borderRadius": "8px",
                             "padding": "18px 32px", "fontSize": "15px",
                             "boxShadow": "0 2px 16px rgba(0,0,0,0.18)"}),
         ], style={"display": "none", "position": "fixed", "top": 0, "left": 0,
@@ -393,7 +395,7 @@ def _citadel_controls():
                     style={"width": "100px", "fontSize": "13px"}),
             ], className="d-flex align-items-center mb-1"),
             html.Small("800 simulations per scenario",
-                       style={"color": "#888", "fontSize": "10px",
+                       style={"color": FALLBACK_MODEL_GRAY, "fontSize": "10px",
                               "display": "block", "marginTop": "4px"}),
         ),
         # Scenario stores

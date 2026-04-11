@@ -4,6 +4,7 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 from layout.common import _STYLE_ADDR_CELL, _STYLE_ADDR_CODE
+from colors import CODE_BG
 
 _FAQ = [
     {
@@ -771,7 +772,7 @@ _FAQ = [
                 "$status $body_bytes_sent \"$http_referer\" \"$http_user_agent\"",
                 style={"fontSize": "11px", "display": "block",
                        "margin": "6px 0", "padding": "4px 8px",
-                       "background": "#f5f5f5", "borderRadius": "4px",
+                       "background": CODE_BG, "borderRadius": "4px",
                        "wordBreak": "break-all"},
             ),
             "Logs are deleted every 27 days. "

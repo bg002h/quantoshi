@@ -8,6 +8,8 @@ import dash_bootstrap_components as dbc
 import _app_ctx
 from layout.common import _tab_hints, _ctrl_card, _section_card, _lbl
 from tab_defaults import STACK
+from colors import (MODAL_BG, TEXT_COLOR, BOOTSTRAP_BORDER, BOOTSTRAP_LIGHT_BG,
+                    BOOTSTRAP_TABLE_SELECT_BG, BOOTSTRAP_TABLE_SELECT_BORDER)
 
 
 def _stack_tracker_tab():
@@ -31,14 +33,14 @@ def _stack_tracker_tab():
                     row_selectable="multi",
                     selected_rows=[],
                     style_table={"overflowX":"auto"},
-                    style_cell={"backgroundColor":"#fff","color":"#222",
-                                "border":"1px solid #dee2e6","padding":"4px 8px",
+                    style_cell={"backgroundColor":MODAL_BG,"color":TEXT_COLOR,
+                                "border":f"1px solid {BOOTSTRAP_BORDER}","padding":"4px 8px",
                                 "fontSize":"13px"},
-                    style_header={"backgroundColor":"#f8f9fa","color":"#222",
+                    style_header={"backgroundColor":BOOTSTRAP_LIGHT_BG,"color":TEXT_COLOR,
                                   "fontWeight":"bold"},
                     style_data_conditional=[
-                        {"if":{"state":"selected"},"backgroundColor":"#cce5ff",
-                         "border":"1px solid #99caff"},
+                        {"if":{"state":"selected"},"backgroundColor":BOOTSTRAP_TABLE_SELECT_BG,
+                         "border":f"1px solid {BOOTSTRAP_TABLE_SELECT_BORDER}"},
                     ],
                     page_size=20,
                 ),

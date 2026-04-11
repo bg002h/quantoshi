@@ -120,7 +120,8 @@ TABLE_BORDER_DARK   = "#555555"   # dark table header border (shares DIM_TEXT va
 EPPL_SUMMARY_COLOR  = "#148C8C"   # EPPL current-model summary text (dark teal)
 
 # ── Bubble chart specific ─────────────────────────────────────────
-USER_MODEL_TRACE    = "#e67e22"   # user-drawn power-law line (pumpkin orange)
+USER_MODEL_TRACE         = "#e67e22"   # user-drawn power-law line (pumpkin orange)
+USER_MODEL_TICKER_ORANGE = "#e67e22"   # user model ticker entry color (same hue, distinct semantic)
 UCL_LINE_COLOR      = "#ff6b6b"   # Unfairly Cheap Line
 OLS_LINE_COLOR      = "#888888"   # OLS fit line (same value as FALLBACK_MODEL_GRAY)
 SCAN_LINE_FALLBACK  = "#ffd93d"   # quantile scan line fallback (bright yellow)
@@ -357,6 +358,9 @@ HM_PRESET_PALETTES = {
 # dict, or list value gets emitted. Use this set to suppress.
 # ── rgba-sourced named constants (used by _hex_alpha callers) ────────
 # These are palette-invariant and cover the common rgba() patterns in the UI.
+HEATMAP_GRADIENT_DEEP_PURPLE = "#1b0a2e"   # heatmap fallback colorscale dark stop (deep purple)
+HEATMAP_GRADIENT_GOLD        = "#ffd700"   # heatmap fallback colorscale bright stop (gold)
+
 LOG_MINOR_GRID_GRAY  = "#646464"   # rgba(100,100,100,*) — chart config annotation text, log-minor grid
 WATERMARK_TEXT_COLOR = "#B4B4B4"   # rgba(180,180,180,*) — chart watermark URL text
 TAX_DRAG_RED         = "#DC3232"   # rgba(220,50,50,*)  — cumulative taxes paid fill (citadel)

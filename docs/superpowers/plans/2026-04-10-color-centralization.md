@@ -40,10 +40,10 @@
 | `btc_web/callbacks/mc_controls.py` | **Modify** | Replace 8 hex literals |
 | `btc_web/callbacks/snapshot_cb.py` | **Modify** | Replace 6 hex literals |
 | `btc_web/callbacks/nav.py` | **Modify** | Add new clientside callback for `data-palette` attribute |
-| `btc_web/api.py` | **Modify** | Replace 39 SVG hex literals via f-string interpolation |
+| `btc_web/api.py` | **Modify** | Replace 30 SVG hex literals via f-string interpolation |
 | `btc_web/mc_overlay.py` | **Modify** | Replace 6 Citadel overlay hex literals |
 | `btc_web/app.py` | **Modify** | Add DEV-only generator startup hook + modify `index_string` |
-| `btc_web/assets/style.css` | **Modify** | Replace 68 hex literals with `var(--qs-*)` |
+| `btc_web/assets/style.css` | **Modify** | Replace 48 hex literals with `var(--qs-*)` |
 | `btc_web/assets/chart_responsive.js` | **Modify** | Read defaults from `window.QS_COLORS` (3 literals) |
 | `btc_web/assets/plot_appearance.js` | **Modify** | Read defaults from `window.QS_COLORS` (3 literals) |
 
@@ -354,16 +354,20 @@ OK
 
 - [ ] **Step 3: Verify byte-for-byte parity with `_app_ctx.py:PALETTES`**
 
+`colors.PALETTES` adds two NEW keys per palette (`decomp_colors` and `decomp_sum_color`) that don't yet exist in `_app_ctx.PALETTES`. So a top-level `==` would always fail. Compare key-by-key instead, excluding the new decomp keys, then verify the decomp values via the existing `DECOMP_COLORS` / `DECOMP_SUM_COLOR` top-level dicts in `_app_ctx.py`:
+
 ```bash
 cd /scratch/code/bitcoinprojections/btc_web && PYTHONPATH=".:../:../archive/btc_app" ../btc_venv/bin/python3 -c "
 import colors, _app_ctx
-assert colors.PALETTES == _app_ctx.PALETTES, 'PALETTES drift!'
-assert colors.MODEL_TRACE_COLORS == _app_ctx.MODEL_TRACE_COLORS, 'MODEL_TRACE_COLORS drift!'
-assert colors.BTC_ORANGE == _app_ctx.BTC_ORANGE, 'BTC_ORANGE drift!'
-# DECOMP_COLORS and DECOMP_SUM_COLOR are now per-palette in colors.py
+_NEW_KEYS = {'decomp_colors', 'decomp_sum_color'}
 for pkey in ['default', 'cb-brian', 'cb-rg', 'cb-full']:
+    cp = {k: v for k, v in colors.PALETTES[pkey].items() if k not in _NEW_KEYS}
+    ap = _app_ctx.PALETTES[pkey]
+    assert cp == ap, f'palette[{pkey}] mismatch on existing keys'
     assert colors.PALETTES[pkey]['decomp_colors'] == _app_ctx.DECOMP_COLORS[pkey], f'decomp_colors[{pkey}] drift'
     assert colors.PALETTES[pkey]['decomp_sum_color'] == _app_ctx.DECOMP_SUM_COLOR[pkey], f'decomp_sum_color[{pkey}] drift'
+assert colors.MODEL_TRACE_COLORS == _app_ctx.MODEL_TRACE_COLORS, 'MODEL_TRACE_COLORS drift!'
+assert colors.BTC_ORANGE == _app_ctx.BTC_ORANGE, 'BTC_ORANGE drift!'
 print('PARITY OK')
 "
 ```
@@ -727,8 +731,21 @@ Identify where the app object is created. The generator hook should run BEFORE t
 
 - [ ] **Step 2: Add the DEV-mode generator hook near the top of `app.py`**
 
-Add this block after the imports section (right after `import os` if it exists, otherwise add `import os` first):
+First, find the precise insertion point. The hook must run AFTER `import os` but BEFORE the Dash app object is created. Use this command to find a stable anchor:
 
+```bash
+grep -n "^app = dash\|^app = Dash\|app = _dash" btc_web/app.py | head -3
+```
+
+Identify the line that creates the Dash app (e.g. `app = dash.Dash(...)`). The hook goes immediately ABOVE that line.
+
+Use the Edit tool with `old_string` set to the line creating the Dash app object (verbatim), and `new_string` set to the hook block followed by the same line. Example:
+
+If `app.py` has:
+```python
+app = dash.Dash(__name__, ...)
+```
+Then `old_string` = `app = dash.Dash(__name__, ...)` and `new_string` =
 ```python
 # ── Color artifact regeneration (DEV mode only) ────────────────────────
 # In dev mode, regenerate _colors_generated.css/js from colors.py on
@@ -746,9 +763,11 @@ if os.environ.get("DEV"):
     except Exception as _e:
         # Non-fatal — never block startup. Manual generator run is the fallback.
         print(f"[colors] DEV-mode color artifact regen skipped: {_e}")
+
+app = dash.Dash(__name__, ...)
 ```
 
-Use the Edit tool with the exact preceding line of the existing `app.py` as `old_string` and the preceding line + the block above as `new_string`.
+If `app.py` doesn't already `import os` at the top, add `import os` to the imports block via a separate Edit.
 
 - [ ] **Step 3: Verify app.py compiles**
 
@@ -1496,7 +1515,7 @@ Expected: `FAILED: 0`. If any image is >1%, visually inspect the diff and confir
 ```bash
 git add btc_web/assets/style.css
 git commit -m "$(cat <<'EOF'
-refactor(colors): style.css uses var(--qs-*) for all 68 literals
+refactor(colors): style.css uses var(--qs-*) for all 48 literals
 
 Phase 3, Task 20. Replaces every hex literal in style.css with a CSS
 custom property reference from _colors_generated.css. Palette
@@ -1635,8 +1654,12 @@ _ALLOWLIST_DIRS = {
 # Test fixtures with hardcoded color assertions are allowlisted as a class
 _TEST_FILE_PATTERN = re.compile(r"^test_.*\.py$")
 
-_HEX_PATTERN = re.compile(r"#[0-9a-fA-F]{6}")
-_HEX_SHORT_PATTERN = re.compile(r"(?<![0-9a-fA-F])#[0-9a-fA-F]{3}(?![0-9a-fA-F])")
+# Catches both #abcdef (6-digit) and #abc (3-digit) forms.
+# Negative lookbehind/lookahead ensures we don't match a 6-digit form
+# as the leading 3 chars of a longer string.
+_HEX_PATTERN = re.compile(
+    r"(?<![0-9a-fA-F#])#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})(?![0-9a-fA-F])"
+)
 _RGBA_PATTERN = re.compile(r'\brgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+(?:\s*,\s*[\d.]+)?\s*\)')
 
 
@@ -1657,37 +1680,21 @@ def _walk_btc_web():
         yield path
 
 
-def _strip_python_strings_and_comments(src: str) -> str:
-    """Remove all string literals and comments from Python source via tokenize."""
-    import tokenize
-    import io
-    out = []
-    try:
-        tokens = tokenize.generate_tokens(io.StringIO(src).readline)
-        for tok in tokens:
-            ttype = tok.type
-            if ttype in (tokenize.STRING, tokenize.COMMENT):
-                continue
-            out.append(tok.string)
-    except tokenize.TokenizeError:
-        return src
-    return " ".join(out)
-
-
-def _strip_js_strings_and_comments(src: str) -> str:
-    """Remove JS string literals and // and /* */ comments."""
-    # Remove /* ... */ comments
-    src = re.sub(r'/\*.*?\*/', '', src, flags=re.DOTALL)
-    # Remove // ... line comments
-    src = re.sub(r'//[^\n]*', '', src)
-    # Remove "..." and '...' strings (naive but good enough)
-    src = re.sub(r'"(?:[^"\\]|\\.)*"', '""', src)
-    src = re.sub(r"'(?:[^'\\]|\\.)*'", "''", src)
-    return src
-
-
 def _strip_css_comments(src: str) -> str:
+    """Remove /* ... */ comment blocks from CSS source."""
     return re.sub(r'/\*.*?\*/', '', src, flags=re.DOTALL)
+
+
+def _strip_js_comments(src: str) -> str:
+    """Remove /* ... */ and // ... comments from JS source.
+
+    Strings are NOT stripped — hex literals legitimately live inside JS
+    string defaults (e.g. plot_appearance.js DEFAULTS dict) and the lint
+    must catch them.
+    """
+    src = re.sub(r'/\*.*?\*/', '', src, flags=re.DOTALL)
+    src = re.sub(r'//[^\n]*', '', src)
+    return src
 
 
 def _find_hex_literals_outside_string_constants(path: Path) -> list[tuple[int, str]]:
@@ -1726,11 +1733,7 @@ def _find_hex_literals_outside_string_constants(path: Path) -> list[tuple[int, s
                         hits.append((node.lineno, m.group()))
         return hits
     elif path.suffix == ".js":
-        # Strip only comments, not strings — hex literals legitimately
-        # live inside JS string defaults (e.g. plot_appearance.js
-        # DEFAULTS dict). The lint should catch them.
-        cleaned = re.sub(r'/\*.*?\*/', '', src, flags=re.DOTALL)
-        cleaned = re.sub(r'//[^\n]*', '', cleaned)
+        cleaned = _strip_js_comments(src)
         hits = []
         for i, line in enumerate(cleaned.splitlines(), 1):
             for m in _HEX_PATTERN.finditer(line):

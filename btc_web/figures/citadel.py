@@ -21,10 +21,16 @@ from figures.common import (
     _build_time_array, _get_starting_stack,
     _sim_layout, _finalize_chart, _error_figure,
     _stagger_depletion_annots,
+    _hex_alpha,
+)
+from colors import (
+    BLACK, BTC_ORANGE,
+    CITADEL_SPENDING, CITADEL_BULLISH_QR, CITADEL_BEARISH_QR,
+    CITADEL_OVERLAY_COLORS,
 )
 
 
-def _build_band_traces(bands, time_axis, series_key="total", color="#000000",
+def _build_band_traces(bands, time_axis, series_key="total", color=BLACK,
                        name_prefix="MC spread"):
     """Build shaded band traces from percentile band data.
 
@@ -32,12 +38,6 @@ def _build_band_traces(bands, time_axis, series_key="total", color="#000000",
     """
     if not bands or not time_axis:
         return []
-
-    def _hex_alpha(hex_color, alpha):
-        r = int(hex_color[1:3], 16)
-        g = int(hex_color[3:5], 16)
-        b = int(hex_color[5:7], 16)
-        return f"rgba({r},{g},{b},{alpha})"
 
     # Keys may be string (from JSON store) or int
     def _get(pct):
@@ -129,12 +129,12 @@ class _ModelAdapter:
 
 # ── Trace colors ──────────────────────────────────────────────────────────────
 
-_C_TOTAL      = "#000000"       # black — total portfolio
-_C_BTC        = "#F7931A"       # bitcoin orange — BTC holdings USD
-_C_CASH       = "#C0C0C0"       # silver — cash
-_C_RESERVES   = "#4A90D9"       # blue — reserves total
-_C_INVEST     = "#27AE60"       # green — investments total
-_C_SPEND      = "#E74C3C"       # red — monthly spending
+_C_TOTAL      = CITADEL_OVERLAY_COLORS["total"]       # black — total portfolio
+_C_BTC        = CITADEL_OVERLAY_COLORS["btc_usd"]    # bitcoin orange — BTC holdings USD
+_C_CASH       = CITADEL_OVERLAY_COLORS["cash"]       # silver — cash
+_C_RESERVES   = CITADEL_OVERLAY_COLORS["reserves_total"]   # blue — reserves total
+_C_INVEST     = CITADEL_OVERLAY_COLORS["investments_total"] # green — investments total
+_C_SPEND      = CITADEL_SPENDING                      # red — monthly spending
 
 
 def _build_sim_config(p: dict) -> SimConfig:
@@ -390,14 +390,14 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
             traces.append(go.Scatter(
                 x=list(ts), y=list(td_y), mode="lines",
                 name=f"Tax-Deferred  \u2192  {fmt_price(float(td_y[-1]))}",
-                line=dict(color="#8B4513", width=_QR_LINE_WIDTH, dash="dashdot"),
+                line=dict(color=CITADEL_BULLISH_QR, width=_QR_LINE_WIDTH, dash="dashdot"),
             ))
         if p.get("tax_enabled") and result.tf_total is not None:
             tf_y = np.median(result.tf_total, axis=0)
             traces.append(go.Scatter(
                 x=list(ts), y=list(tf_y), mode="lines",
                 name=f"Tax-Free (Roth)  \u2192  {fmt_price(float(tf_y[-1]))}",
-                line=dict(color="#228B22", width=_QR_LINE_WIDTH, dash="dashdot"),
+                line=dict(color=CITADEL_BEARISH_QR, width=_QR_LINE_WIDTH, dash="dashdot"),
             ))
 
     elif disp_mode == "btc":
@@ -444,7 +444,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
     scenario_bands = p.get("scenario_bands")
     if scenario_bands:
         _band_series = "btc_stack" if disp_mode == "btc" else "total"
-        _band_color = "#F7931A" if disp_mode == "btc" else "#000000"
+        _band_color = BTC_ORANGE if disp_mode == "btc" else BLACK
         band_traces = _build_band_traces(
             scenario_bands, ts.tolist(),
             series_key=_band_series, color=_band_color)
@@ -536,8 +536,8 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
                     ax=0, ay=-40,
                     text=f"Tax drag: \u2212{fmt_price(drag)} ({drag_pct:.1f}%)",
                     showarrow=True, arrowhead=2, arrowsize=1,
-                    arrowcolor="#E74C3C",
-                    font=dict(size=_FONT_ANNOT, color="#E74C3C"),
+                    arrowcolor=CITADEL_SPENDING,
+                    font=dict(size=_FONT_ANNOT, color=CITADEL_SPENDING),
                 ))
 
         # Append tax info to chart title

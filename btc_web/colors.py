@@ -87,6 +87,20 @@ BOOTSTRAP_LIGHT_BG  = "#f8f9fa"   # Bootstrap default light-surface background
 LIGHTBOX_BG         = "#1a1a2e"   # modal lightbox dark background (model-info images)
 SPLASH_BRAND_DARK   = "#2c3e50"   # navbar color= prop + splash modal brand text
 
+# ── Static analysis pages (dark-theme pages served from api.py) ───────
+# Used by /D (Residual FFT), /F (LPPL excess fits), /docs/* pages.
+STATIC_PAGE_BG      = "#1a1a2e"   # page background (same as LIGHTBOX_BG, semantic alias)
+STATIC_PAGE_TEXT    = "#cccccc"   # main body text on dark pages
+STATIC_PAGE_ACCENT  = "#00d4ff"   # headings, links, table headers, border accents
+STATIC_PAGE_SUBHEAD = "#8ecae6"   # secondary headings (h4-h6 in docs pages)
+STATIC_PAGE_LINK    = "#FF9F40"   # anchor links on dark pages (warm orange)
+STATIC_PAGE_LINK_HOVER = "#FFD080"  # hover state for anchor links
+STATIC_PAGE_CODE_BG = "#16213e"   # code block / table header background
+STATIC_PAGE_TH_BG   = "#2a3a5e"   # table header background in docs pages
+STATIC_PAGE_DESC_BG = "#101a2e"   # .desc box background (info callouts)
+STATIC_PAGE_DESC_TEXT = "#b8ccd8" # .desc box body text
+STATIC_PAGE_FORMULA_BG = "#0e1624"  # .formula block background
+
 # ── Error / validation surfaces ───────────────────────────────────────
 DECOMP_ERROR_RED    = "#b71c1c"   # decomp warning / validation error text
 ERROR_BG            = "#fff3f3"   # light-red error banner background

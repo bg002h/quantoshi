@@ -8,7 +8,7 @@ from colors import (
     LINK, FALLBACK_MODEL_GRAY,
     LIGHTBOX_BG, TABLE_HEADER_BG,
     TABLE_BORDER_LIGHT, TABLE_BORDER_MID, TABLE_BORDER_DARK,
-    DIM_TEXT,
+    DIM_TEXT, USER_MODEL_TRACE, _hex_alpha,
 )
 
 
@@ -2737,7 +2737,7 @@ def _regime_data_tables():
             for j in range(n_bins):
                 p = trans[i, j]
                 # Color-code: darker for higher probability
-                bg = f"rgba(230,126,34,{min(p * 1.5, 0.4):.2f})" if p > 0.1 else "transparent"
+                bg = _hex_alpha(USER_MODEL_TRACE, round(min(p * 1.5, 0.4), 2)) if p > 0.1 else "transparent"
                 cells.append(html.Td(f"{p:.0%}", style={**_cell, "backgroundColor": bg}))
             t_rows.append(html.Tr(cells))
 

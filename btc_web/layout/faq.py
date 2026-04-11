@@ -4,7 +4,7 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 from layout.common import _STYLE_ADDR_CELL, _STYLE_ADDR_CODE
-from colors import CODE_BG
+from colors import CODE_BG, DANGER_HIGHLIGHT, _hex_alpha
 
 _FAQ = [
     {
@@ -826,7 +826,7 @@ _FAQ = [
                              html.Td(html.Strong("$1,131")), html.Td(html.Strong("$198")),
                              html.Td(html.Strong("\u221283%")), html.Td(html.Strong("410")),
                              html.Td(html.Strong("1,181"))],
-                            style={"background": "rgba(255, 100, 100, 0.1)"}),
+                            style={"background": _hex_alpha(DANGER_HIGHLIGHT, 0.1)}),
                     html.Tr([html.Td("2017\u20132018"), html.Td("$19,389"), html.Td("$3,212"),
                              html.Td("\u221283%"), html.Td("363"), html.Td("1,095")]),
                     html.Tr([html.Td("2021\u20132022"), html.Td("$66,847"), html.Td("$16,238"),

@@ -7,7 +7,7 @@ import dash_bootstrap_components as dbc
 import _app_ctx
 from tab_defaults import CITADEL
 from colors import (DIM_TEXT, BOOTSTRAP_LIGHT_BG, BOOTSTRAP_BORDER,
-                    FALLBACK_MODEL_GRAY, MODAL_BG)
+                    FALLBACK_MODEL_GRAY, MODAL_BG, BLACK, _hex_alpha)
 from layout.common import (
     _section_card, _lbl, _ctrl_card, _q_options,
     _chart_toggles, _btc_usd_dropdown, _legend_pos_dropdown,
@@ -336,10 +336,10 @@ def _citadel_controls():
                      children="\u23f3 Loading scenario...",
                      style={"background": MODAL_BG, "borderRadius": "8px",
                             "padding": "18px 32px", "fontSize": "15px",
-                            "boxShadow": "0 2px 16px rgba(0,0,0,0.18)"}),
+                            "boxShadow": f"0 2px 16px {_hex_alpha(BLACK, 0.18)}"}),
         ], style={"display": "none", "position": "fixed", "top": 0, "left": 0,
                   "width": "100vw", "height": "100vh", "zIndex": 1060,
-                  "background": "rgba(0,0,0,0.35)",
+                  "background": _hex_alpha(BLACK, 0.35),
                   "display": "none",
                   "justifyContent": "center", "alignItems": "center"}),
         # ── Quick Scenarios ──────────────────────────────────────────────

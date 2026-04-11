@@ -13,7 +13,7 @@ from mc_overlay import bin_regime_labels
 from layout.common import (_section_card, _ctrl_card, _row, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT, _CB_MARGIN)
 from colors import (BLACK, SILVER, NEAR_BLACK, MUTED_TEXT,
-                    MODAL_DIVIDER_DARK, DIM_TEXT)
+                    MODAL_DIVIDER_DARK, DIM_TEXT, WHITE, BADGE_GLOW_RED, _hex_alpha)
 
 _QUANT_FONT = {"fontFamily": '"Palatino Linotype", Palatino, "Book Antiqua", serif',
                "color": BLACK, "letterSpacing": "1px"}
@@ -117,8 +117,8 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
             "backgroundColor": NEAR_BLACK,
             "borderRadius": "5px", "transform": "rotate(18deg)",
             "zIndex": "1", "lineHeight": "1.2",
-            "boxShadow": "0 2px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)",
-            "textShadow": "0 0 4px rgba(139,0,0,0.6)",
+            "boxShadow": f"0 2px 6px {_hex_alpha(BLACK, 0.5)}, inset 0 1px 0 {_hex_alpha(WHITE, 0.1)}",
+            "textShadow": f"0 0 4px {_hex_alpha(BADGE_GLOW_RED, 0.6)}",
         }),
         _section_card(
         "Monte Carlo Simulation",

@@ -44,6 +44,7 @@ from layout.common import _export_row, _BTC_ORANGE
 from colors import (
     WHITE, FALLBACK_MODEL_GRAY,
     CODE_BG, DIM_TEXT, MUTED_TEXT, SPLASH_BRAND_DARK, KNIGHT_GOLD,
+    BLACK, _hex_alpha,
 )
 
 # ── Constants used in layout assembly ────────────────────────────────────────
@@ -440,7 +441,7 @@ def _build_layout(initial_tab="bubble"):
                         html.Div([
                             html.Span(id="price-ticker",
                                       style={"fontSize":"23px", "fontWeight":"600",
-                                             "color":"rgba(255,255,255,0.9)",
+                                             "color":_hex_alpha(WHITE, 0.9),
                                              "whiteSpace":"nowrap",
                                              "fontFamily":"'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace",
                                              "fontVariantNumeric":"tabular-nums"}),
@@ -454,7 +455,7 @@ def _build_layout(initial_tab="bubble"):
                                       style={"display":"inline-block", "verticalAlign":"middle"}),
                             html.Span(id="ticker-mode-toggle",
                                       n_clicks=0,
-                                      style={"fontSize":"13px", "color":"rgba(255,255,255,0.45)",
+                                      style={"fontSize":"13px", "color":_hex_alpha(WHITE, 0.45),
                                              "cursor":"pointer", "marginLeft":"8px",
                                              "verticalAlign":"middle", "userSelect":"none"}),
                         ], style={"display":"flex", "alignItems":"center",
@@ -465,7 +466,7 @@ def _build_layout(initial_tab="bubble"):
                         html.Div([
                             html.Div([
                                 html.Span("Stay dark, Anon \u25b6 ",
-                                          style={"fontSize":"9px", "color":"rgba(255,255,255,0.4)",
+                                          style={"fontSize":"9px", "color":_hex_alpha(WHITE, 0.4),
                                                  "whiteSpace":"nowrap"}),
                                 html.A(
                                     "\U0001f9c5 Tor onion",
@@ -473,7 +474,7 @@ def _build_layout(initial_tab="bubble"):
                                     target="_blank",
                                     rel="noopener noreferrer",
                                     className="text-decoration-none",
-                                    style={"fontSize":"15px", "color":"rgba(255,255,255,0.75)"},
+                                    style={"fontSize":"15px", "color":_hex_alpha(WHITE, 0.75)},
                                 ),
                             ], style={"display":"flex", "alignItems":"center",
                                       "justifyContent":"flex-end"}),
@@ -488,7 +489,7 @@ def _build_layout(initial_tab="bubble"):
                                            "display": "inline-block", "marginRight": "8px"},
                                 ),
                                 html.Span("Cooler than you think \u25b6 ",
-                                          style={"fontSize":"9px", "color":"rgba(255,255,255,0.4)",
+                                          style={"fontSize":"9px", "color":_hex_alpha(WHITE, 0.4),
                                                  "whiteSpace":"nowrap"}),
                                 dbc.Button("\U0001f4f8 Share", id="share-btn", size="sm",
                                            className="btn-share-accent"),
@@ -498,7 +499,7 @@ def _build_layout(initial_tab="bubble"):
                         ], id="desktop-nav-drawer", className="desktop-nav-drawer"),
                         html.Div("\u22ef", id="desktop-nav-toggle",
                                  className="desktop-nav-toggle desktop-nav-toggle-hidden",
-                                 style={"color":"rgba(255,255,255,0.5)",
+                                 style={"color":_hex_alpha(WHITE, 0.5),
                                         "fontSize":"18px", "cursor":"pointer",
                                         "letterSpacing":"2px", "padding":"4px 8px"}),
                     ], style={"display":"flex", "alignItems":"center",
@@ -522,13 +523,13 @@ def _build_layout(initial_tab="bubble"):
                     ], style={"display":"flex", "alignItems":"center"}),
                     html.Div("\u22ef", id="mobile-nav-toggle",
                              className="mobile-nav-toggle mobile-nav-toggle-hidden",
-                             style={"color":"rgba(255,255,255,0.5)",
+                             style={"color":_hex_alpha(WHITE, 0.5),
                                     "fontSize":"18px", "cursor":"pointer",
                                     "lineHeight":"1", "letterSpacing":"2px",
                                     "padding":"4px 8px"}),
                     html.Span(id="price-ticker-mobile",
                              style={"fontSize":"20px", "fontWeight":"700",
-                                    "color":"rgba(255,255,255,0.95)",
+                                    "color":_hex_alpha(WHITE, 0.95),
                                     "whiteSpace":"nowrap",
                                     "fontFamily":"'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace",
                                     "fontVariantNumeric":"tabular-nums"}),
@@ -542,7 +543,7 @@ def _build_layout(initial_tab="bubble"):
                           "justifyContent":"space-between", "width":"100%"}),
                 # Row 2: collapsible drawer — full content, auto-hides after 3s
                 html.Div([
-                    html.Hr(style={"borderColor":"rgba(255,255,255,0.12)",
+                    html.Hr(style={"borderColor":_hex_alpha(WHITE, 0.12),
                                    "margin":"3px 0"}),
                     html.Div([
                         html.A([
@@ -550,7 +551,7 @@ def _build_layout(initial_tab="bubble"):
                                                     "lineHeight":"1"}),
                             html.Span(" \u25c2 Stay dark, Anon",
                                       style={"fontSize":"11px",
-                                             "color":"rgba(255,255,255,0.5)",
+                                             "color":_hex_alpha(WHITE, 0.5),
                                              "marginLeft":"5px"}),
                         ], href="http://u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion",
                            target="_blank", rel="noopener noreferrer",
@@ -656,6 +657,6 @@ def _build_layout(initial_tab="bubble"):
         ], className="footer-docs"),
     ], className="site-footer",
        style={"textAlign": "center", "fontSize": "11px",
-              "color": "rgba(0,0,0,0.35)", "padding": "10px 0 14px",
+              "color": _hex_alpha(BLACK, 0.35), "padding": "10px 0 14px",
               "fontFamily": "monospace", "letterSpacing": "0.5px"}),
 ], fluid=True, className="px-2 py-1")

@@ -13,8 +13,11 @@
  *  3. No Dash callback ever writes to {prefix}-plot-* values; React has no
  *     reason to re-render them, so JS-set DOM values are stable.
  *  4. Idempotent across hot-reload via window.__paCleanup.
- *  5. cloneNode(true) + replaceChild is used to drop stale listeners
- *     atomically — do not track listener references manually.
+ *  5. For inputs, cloneNode(true) + replaceChild drops stale listeners
+ *     atomically. NEVER clone reset buttons — Dash's kept pt_size/pt_alpha
+ *     reset callback needs n_clicks to fire on the SAME DOM node that
+ *     React mounted, and cloning detaches the React fiber. Buttons use a
+ *     per-element listener property instead.
  */
 (function() {
     'use strict';
@@ -134,14 +137,31 @@
         };
     }
 
-    function wireElement(el, listener, eventName) {
+    function wireInput(el, listener, eventName) {
         if (!el.parentNode) return el;  // detached; skip
-        /* Drop any stale listeners atomically via cloneNode, then bind. */
+        /* Drop any stale listeners atomically via cloneNode, then bind.
+           Safe for inputs because nothing in Dash listens for events on
+           these elements (no callback has them as Input). */
         var clone = el.cloneNode(true);
         el.parentNode.replaceChild(clone, el);
         clone.addEventListener(eventName, listener);
         _wired.add(clone);
         return clone;
+    }
+
+    function wireButton(el, listener) {
+        /* CRITICAL: do NOT clone reset buttons. Dash's kept pt_size/pt_alpha
+           reset callback uses n_clicks as Input, which means React must
+           remain bound to the ORIGINAL DOM node. cloneNode would create a
+           new node with no React fiber, and clicks on it would not reach
+           Dash's synthetic event system. Instead, track the listener on
+           the element itself so we can remove the previous one on rewire. */
+        if (el.__paBtnListener) {
+            el.removeEventListener('click', el.__paBtnListener);
+        }
+        el.__paBtnListener = listener;
+        el.addEventListener('click', listener);
+        return el;
     }
 
     function rewireNewControls() {
@@ -154,12 +174,12 @@
                    inputs, listen on 'change' to avoid writing on every
                    picker pixel-drag (Chrome fires 'input' continuously). */
                 var eventName = (f[2] === 'number') ? 'input' : 'change';
-                wireElement(el, makeInputHandler(f), eventName);
+                wireInput(el, makeInputHandler(f), eventName);
                 didWire = true;
             });
             var btn = document.getElementById(btnId(prefix));
-            if (btn && !_wired.has(btn)) {
-                wireElement(btn, makeResetHandler(), 'click');
+            if (btn && !btn.__paBtnListener) {
+                wireButton(btn, makeResetHandler());
                 didWire = true;
             }
         });
@@ -186,5 +206,15 @@
         }
         _wired = new Set();
         _lastFp = null;
+        /* Reset buttons are wired without cloning, so listeners stay on the
+           original DOM node across hot-reloads. Remove them here so the
+           fresh IIFE can re-attach without double-firing. */
+        PREFIXES.forEach(function(prefix) {
+            var btn = document.getElementById(btnId(prefix));
+            if (btn && btn.__paBtnListener) {
+                try { btn.removeEventListener('click', btn.__paBtnListener); } catch(e) {}
+                delete btn.__paBtnListener;
+            }
+        });
     };
 })();

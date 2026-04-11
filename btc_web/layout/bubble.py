@@ -81,7 +81,7 @@ def _bubble_controls():
         # Real Bubble Model controls now live in the global bm-config-modal.
         html.Div(id="bub-bubble-panel", style=_STYLE_HIDDEN),
         html.Div(id="bub-n-future-wrap", style=_STYLE_HIDDEN),
-        _section_card("Component Decomposition",
+        _section_card("Model Component Decomposition",
             _lbl("Model"),
             dcc.Dropdown(
                 id="bub-decomp-model",

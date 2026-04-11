@@ -943,6 +943,13 @@ def _resolve_decomp_model_key(family, lppl_n_freqs, lppl_weighted, lppl_no_13,
     """
     if not family:
         return None
+    # "hybppl" master (from Display Models consolidation) → resolve via
+    # slot A of the HybPPL modal, matching the Display Models master → variant
+    # routing behavior. Same for "eppl".
+    if family == "hybppl" and hybppl_cfg:
+        family = "hybppl_cfg_a"
+    elif family == "eppl" and eppl_cfg:
+        family = "eppl_cfg_a"
     # HybPPL config A/B -> resolve to cfg_* key
     if family in ("hybppl_cfg_a", "hybppl_cfg_b") and hybppl_cfg:
         slot = "a" if family.endswith("_a") else "b"

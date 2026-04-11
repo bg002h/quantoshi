@@ -55,25 +55,24 @@ HYBPPL_FAMILY_HIDDEN = frozenset({
 # Used when shade bands are active so traces stand out against any band color.
 # Designed for luminance variation (readable without color vision).
 # Component decomposition — family dropdown options and trace palette.
-# The "lppl" family is resolved at render time via the LPPL config panel.
+# Mirror the master entries in the Display Models config panel
+# (see layout/display_models.py::build_display_models_options).
+# Order matches that panel: BM → Entropy PPL → Hybrid PPL → LPPL,
+# then promoted (PCA, Greedy) and Empirical Floor.
+# Each master respects its modal config:
+#   - "lppl" resolves via the LPPL modal (n_freqs / weighted / no_13)
+#   - "hybppl" resolves via hybppl_cfg slot A (the primary slot)
+#   - "eppl" resolves via eppl_cfg slot A
+#   - "bub" is the single bubble-model class (no variant)
+# See _resolve_decomp_model_key() in callbacks/charts.py.
 DECOMP_FAMILIES = {
-    "bub":       "BM",
-    "ef":        "EF",
-    "lppl":      "LPPL (family)",
-    "linppl":    "LinPPL",
-    "hybppl":    "HybPPL",
-    "hybppl_dd":    "HybPPL (DD)",
-    "hyb2l":        "HybPPL +2L",
-    "hyb2c":        "HybPPL +2C",
-    "hyb2b":        "HybPPL +2B",
-    "pca":          "PCA",
-    "grdy":         "Greedy Select",
-    "eppl":         "Entropy PPL",
-    "hyb4d":        "HybPPL 4D",
-    "hybppl_cfg_a": "HybPPL (A)",
-    "hybppl_cfg_b": "HybPPL (B)",
-    "eppl_cfg_a":   "Entropy PPL (A)",
-    "eppl_cfg_b":   "Entropy PPL (B)",
+    "bub":    "Bubble Model",
+    "eppl":   "\U0001FAE0 Entropy PPL",
+    "hybppl": "Hybrid PPL",
+    "lppl":   "LPPL",
+    "pca":    "PCA",
+    "grdy":   "Greedy Select",
+    "ef":     "Empirical Floor",
 }
 
 # DECOMP_COLORS — derived view from per-palette decomp_colors keys

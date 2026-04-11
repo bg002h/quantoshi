@@ -11,7 +11,7 @@ from utils import _fetch_btc_price
 # Use default config-panel-resolved keys so ticker matches chart display.
 # LPPL default: lp3 (3 freqs). HybPPL default: cfg_1d_1u. EPPL default: ecfg_1d_1u.
 _MODEL_CYCLE = ["qr", "bub", "pl", "lp3", "cfg_1d_1u", "ecfg_1d_1u", "pca", "grdy", "ef"]
-from colors import TICKER_MODEL_COLORS as _MODEL_COLORS
+from colors import TICKER_MODEL_COLORS as _MODEL_COLORS, WHITE, USER_MODEL_TICKER_ORANGE
 # Label overrides for config keys (otherwise shows the raw key)
 _MODEL_LABELS = {
     "lp3":        "LPPL\u2083",
@@ -92,7 +92,7 @@ def update_price_ticker(_, mode, user_model_data):
             continue
         p = pcts.get(key)
         label = _MODEL_LABELS.get(key, mdl.legend_name if hasattr(mdl, 'legend_name') else key.upper())
-        color = _MODEL_COLORS.get(key, "#ffffff")
+        color = _MODEL_COLORS.get(key, WHITE)
         if p is not None:
             model_data.append({"key": key, "label": label, "pct": p, "color": color})
 
@@ -105,12 +105,12 @@ def update_price_ticker(_, mode, user_model_data):
                 um_pct_int = round(um_pct * 100) if um_pct is not None else None
                 if um_pct_int is not None:
                     model_data.append({"key": "u1", "label": "U\u2081",
-                                       "pct": um_pct_int, "color": "#e67e22"})
+                                       "pct": um_pct_int, "color": USER_MODEL_TICKER_ORANGE})
         except Exception:
             pass
 
     # Default display: QR (index 0)
-    default = model_data[0] if model_data else {"label": "QR", "pct": 0, "color": "#5dade2"}
+    default = model_data[0] if model_data else {"label": "QR", "pct": 0, "color": _MODEL_COLORS["qr"]}
     pct_text = f"{default['label']}{default['pct']}%"
     pct_color = default["color"]
     pct_style_d = {"color": pct_color}

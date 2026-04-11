@@ -11,6 +11,10 @@ import theme
 from tab_defaults import HEATMAP
 from btc_core import ModelData, yr_to_t, fmt_price, leo_weighted_entry
 from mc_overlay import _mc_heatmap_overlay
+from colors import (
+    WHITE, DARK_TEXT, BTC_ORANGE,
+    FALLBACK_MODEL_GRAY, TODAY_LINE_COLOR,
+)
 
 from figures.common import (
     _FONT_SUBTITLE, _FONT_TITLE_LG, _FONT_BODY_LG, _FONT_TICK_LG,
@@ -132,9 +136,9 @@ def _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax, cell_fs, colorsca
                 # Cell text color: contrast against background
                 _bg = None
                 if _lum < 0.45:
-                    txt_col = "#ffffff"     # white on dark cells
+                    txt_col = WHITE          # white on dark cells
                 else:
-                    txt_col = "#111111"     # dark on light cells
+                    txt_col = DARK_TEXT      # dark on light cells
                 ann = dict(
                     x=ci, y=ri,
                     text=tx.replace("\n", "<br>"),
@@ -300,7 +304,7 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         fig.add_shape(type="rect",
             x0=entry_ci - 0.5, x1=entry_ci + 0.5,
             y0=-0.5, y1=n_rows - 0.5,
-            line=dict(color="#f7931a", width=2),
+            line=dict(color=BTC_ORANGE, width=2),
             fillcolor="rgba(247,147,26,0.06)",
             xref="x", yref="y",
         )
@@ -549,7 +553,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         x=[years[0], years[-1]],
         y=[0, 0],
         mode="lines",
-        line=dict(color="#888", width=0.5, dash="dot"),
+        line=dict(color=FALLBACK_MODEL_GRAY, width=0.5, dash="dot"),
         showlegend=False, hoverinfo="skip",
     ))
 
@@ -559,7 +563,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     today_shapes = []
     if years[0] <= yr_now <= years[-1]:
         palette = _get_palette(p)
-        today_color = palette.get("today_line", "#FF6600")
+        today_color = palette.get("today_line", TODAY_LINE_COLOR)
         today_shapes.append(dict(
             type="line", xref="x", yref="paper",
             x0=yr_now, x1=yr_now, y0=0, y1=1,
@@ -587,7 +591,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 traces.append(go.Scatter(
                     x=[yr_now], y=[y_val], mode="markers",
                     marker=dict(size=7, color=tr_color,
-                                line=dict(color="#fff", width=1.5)),
+                                line=dict(color=WHITE, width=1.5)),
                     showlegend=False,
                     hovertemplate=f"Today: {y_val:.1f}%{cagr_mult_str}{peak_str}{trough_str}<extra></extra>",
                 ))

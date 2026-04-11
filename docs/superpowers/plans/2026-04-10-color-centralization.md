@@ -1163,6 +1163,14 @@ Same pattern. ~12 literals remain (delay annotation defaults, dotted guide lines
 
 Same pattern. ~12 literals (asset overlay defaults, hardcoded text colors). Use `CITADEL_OVERLAY_COLORS` for the asset overlays.
 
+**Additional sub-step**: `figures/citadel.py:36-40` defines a LOCAL nested `_hex_alpha` function inside `build_citadel_bands_traces`. After Task 22 Step 0 relocates the canonical `_hex_alpha` to `colors.py`, this nested duplicate becomes dead code. Remove the local `def _hex_alpha(...)` block in this task and replace its uses with the imported `from colors import _hex_alpha`. Single source of truth — the whole point of the centralization.
+
+```bash
+grep -n "def _hex_alpha\|_hex_alpha(" btc_web/figures/citadel.py
+```
+
+Verify the nested definition is gone after the migration; remaining `_hex_alpha(` calls should resolve to the imported one.
+
 ### Task 13: Migrate `btc_web/figures/heatmap.py` and `btc_web/figures/residuals.py`
 
 Same pattern. Heatmap colorscale fields use the per-palette `hm_c_*` keys (already in palettes). Residuals uses model colors. Two commits — one per file.
@@ -1740,13 +1748,19 @@ Expected: `FAILED: 0`. If any image is >1%, visually inspect the diff and confir
 ```bash
 git add btc_web/assets/style.css
 git commit -m "$(cat <<'EOF'
-refactor(colors): style.css uses var(--qs-*) for all 48 literals
+refactor(colors): style.css uses var(--qs-*) for all hex + rgba literals
 
-Phase 3, Task 24. Replaces every hex literal in style.css with a CSS
-custom property reference from _colors_generated.css. Palette
-switching works automatically via :root[data-palette="..."] selectors
-(set by the pre-paint script + clientside callback from the previous
-commit).
+Phase 3, Task 24. Replaces every hex literal (48) AND every rgba()
+literal (99 occurrences across 56 unique values) in style.css with
+CSS custom property references from _colors_generated.css.
+
+Total: 147 literal replacements. The 56 unique rgba values were
+added to colors.py as baked-alpha named constants (SHADOW_DARK_30,
+OVERLAY_LIGHT_4, BTC_ORANGE_30, etc.) in a preceding sub-commit.
+
+Palette switching works automatically via :root[data-palette="..."]
+selectors (set by the pre-paint script + clientside callback from
+the previous commit).
 
 Visual regression: 36 baselines (9 tabs × 4 palettes) compared
 before/after. All within 1% pixel tolerance.
@@ -2161,7 +2175,7 @@ def test_constant_export_coverage():
 btc_venv/bin/python3 -m pytest btc_web/test_colors_central.py -v --timeout=60 2>&1 | tail -30
 ```
 
-Expected: All 6 tests pass (`test_no_hex_literals_outside_colors_module`, `test_no_rgba_literals_in_python`, `test_no_rgba_literals_in_css`, `test_generator_check_mode_passes`, `test_palette_key_parity`, `test_constant_export_coverage`). If any fail, surface the leaks (printed in the assertion message), fix them in the appropriate file (move literal to colors.py + import or var), regenerate artifacts if needed, re-run.
+Expected: All 7 tests pass (`test_no_hex_literals_outside_colors_module`, `test_no_rgba_literals_in_python`, `test_no_rgba_literals_in_css`, `test_generator_check_mode_passes`, `test_palette_key_parity`, `test_css_var_consistency`, `test_constant_export_coverage`). If any fail, surface the leaks (printed in the assertion message), fix them in the appropriate file (move literal to colors.py + import or var), regenerate artifacts if needed, re-run.
 
 - [ ] **Step 3: Run the FULL pytest suite to confirm no regressions**
 
@@ -2178,24 +2192,34 @@ git add btc_web/test_colors_central.py
 git commit -m "$(cat <<'EOF'
 test(colors): lint enforces single source of truth invariant
 
-Phase 5, Task 27. New pytest test file with 6 checks:
+Phase 5, Task 27. New pytest test file with 7 checks:
 
 1. test_no_hex_literals_outside_colors_module — walks btc_web/
    recursively, scans every .py/.css/.js for hex literals,
    excluding the allowlist (colors.py, generated artifacts,
-   tests, .deferred easter-egg JS).
+   tests, .deferred easter-egg JS, vendor *.min.css/.js).
 
-2. test_generator_check_mode_passes — runs the generator's
+2. test_no_rgba_literals_in_python — AST-walks every .py file
+   and rejects literal rgba()/rgb() string Constant nodes.
+   Function returns from _hex_alpha() are correctly skipped.
+
+3. test_no_rgba_literals_in_css — walks every .css file and
+   rejects literal rgba()/rgb() values. After Task 24, style.css
+   should only contain var(--qs-*) references, never literal
+   rgba.
+
+4. test_generator_check_mode_passes — runs the generator's
    --check mode and asserts on-disk artifacts match the
    generator's current output.
 
-3. test_palette_key_parity — asserts all 4 palettes have
-   identical key sets.
+5. test_palette_key_parity — asserts all 4 palettes have
+   identical TOP-LEVEL key sets AND identical inner
+   model_colors key sets.
 
-4. test_css_var_consistency — parses _colors_generated.css and
+6. test_css_var_consistency — parses _colors_generated.css and
    asserts every var(--qs-*) referenced in style.css is defined.
 
-5. test_constant_export_coverage — walks colors.py AST and
+7. test_constant_export_coverage — walks colors.py AST and
    asserts every uppercase string/dict/list constant is either
    accessible via the colors module OR in __skip_export__.
 

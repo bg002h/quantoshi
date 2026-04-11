@@ -1163,13 +1163,23 @@ Same pattern. ~12 literals remain (delay annotation defaults, dotted guide lines
 
 Same pattern. ~12 literals (asset overlay defaults, hardcoded text colors). Use `CITADEL_OVERLAY_COLORS` for the asset overlays.
 
-**Additional sub-step**: `figures/citadel.py:36-40` defines a LOCAL nested `_hex_alpha` function inside `build_citadel_bands_traces`. After Task 22 Step 0 relocates the canonical `_hex_alpha` to `colors.py`, this nested duplicate becomes dead code. Remove the local `def _hex_alpha(...)` block in this task and replace its uses with the imported `from colors import _hex_alpha`. Single source of truth — the whole point of the centralization.
+**Additional sub-step**: `figures/citadel.py` defines a LOCAL nested `_hex_alpha` function inside `_build_band_traces` (around line 36). Even though Task 22 Step 0 will later relocate the canonical function to `colors.py`, this nested duplicate is dead-weight that violates the single-source-of-truth goal.
+
+**Ordering note**: Task 12 runs BEFORE Task 22. At Task 12 execution time, `_hex_alpha` lives in `figures/common.py:759` only — `colors.py` does not yet contain it. To make the import work both before and after Task 22 Step 0 (which converts `figures/common.py`'s definition into a re-export), import from `figures/common` rather than from `colors`:
+
+```python
+from figures.common import _hex_alpha
+```
+
+This resolves to the same function body in both states: pre-Task-22 it's the original definition; post-Task-22 it's the re-export that points at `colors._hex_alpha`. Either way, `figures/citadel.py` keeps working.
+
+Delete the local `def _hex_alpha(...)` block (currently the `def` and the 4 body lines). Verify nothing else in the file depends on the nested definition:
 
 ```bash
 grep -n "def _hex_alpha\|_hex_alpha(" btc_web/figures/citadel.py
 ```
 
-Verify the nested definition is gone after the migration; remaining `_hex_alpha(` calls should resolve to the imported one.
+After the edit, the only remaining `_hex_alpha(` references should be call sites that resolve to the imported function.
 
 ### Task 13: Migrate `btc_web/figures/heatmap.py` and `btc_web/figures/residuals.py`
 
@@ -1448,7 +1458,7 @@ Note: `_hex_alpha` is a function (not a hex literal), so the lint test does NOT 
   ```
 - [ ] **Step 5**: After each file, commit: `git commit -m "refactor(colors): <file> uses _hex_alpha and named constants"`
 
-15 commits in this task (plus the single colors.py sub-commit at the start).
+15 file-migration commits in this task, PLUS two preceding sub-commits: (a) the `_hex_alpha` relocation from Steps 0a-0c (`colors.py` + `figures/common.py` re-export), and (b) the rgba-constants addition to `colors.py` for any literals that become baked-alpha named constants rather than `_hex_alpha(constant, alpha)` calls.
 
 **Note**: this sweep is the most labor-intensive in the entire plan. The implementer subagent should be told to take its time and not rush — every rgba replacement is an opportunity for a typo'd alpha value or a wrong base color.
 

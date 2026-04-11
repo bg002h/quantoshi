@@ -15,7 +15,7 @@ from figures.common import (
     _NON_QUANTIZED_MODEL_COLOR, _OVERLAY_LINE_WIDTH,
     _FONT_ANNOT,
     _HAS_MARKOV,
-    _get_palette, _get_model_color, _build_thermal_colors, _fmt_q_label, _error_figure,
+    _get_palette, _get_model_color, _fmt_q_label, _error_figure,
     _build_freq_config, _build_time_array, _get_starting_stack,
     _sim_layout, _apply_mc_overlay,
     _finalize_chart, _fmt_short, _find_mc_median_trace,
@@ -29,16 +29,14 @@ from figures.common import (
 )
 
 
-def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, thermal=None, line_shape="linear"):
+def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, line_shape="linear"):
     """Run Stack-celerator overlay simulation for DCA tab.
 
     Returns (sc_traces, all_sc_usd_vals, all_sc_btc_vals).
 
-    Note: ``thermal`` kwarg is accepted for backward compatibility but
-    ignored. SC traces now use the BM model color with opacity varying
-    by distance from Q50%, matching the BM lines themselves and every
-    other overlay model. SC is still visually differentiated by its
-    dashed line style.
+    SC traces render in the BM model color with opacity varying by
+    distance from Q50% — matching the BM lines themselves and every
+    other overlay model. Visually differentiated by their dashed style.
     """
     model = _app_ctx.DEFAULT_MODEL
     from _app_ctx import _compute_sc_loan
@@ -170,7 +168,6 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     palette = _get_palette(p)
     _line_shape = "hv" if p.get("discrete") else "linear"
     sel_qs_raw = sorted([float(q) for q in (p.get("selected_qs") or [])])
-    _thermal = _build_thermal_colors(sel_qs_raw, palette)
     ta = _build_time_array(p, m, 2024, 2035)
     if ta[1] is None:
         return ta[0], None
@@ -265,7 +262,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     all_sc_btc_vals = {}
     if p.get("sc_enabled") and sel_qs:
         sc_traces, all_sc_usd_vals, all_sc_btc_vals = _dca_sc_overlay(
-            m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, thermal=_thermal, line_shape=_line_shape)
+            m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, line_shape=_line_shape)
         traces.extend(sc_traces)
 
     # ── SC factor (ratio of median SC to median DCA at end date) ─────────────
@@ -304,7 +301,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
         for q in sel_qs:
             if q not in all_usd_vals:
                 continue
-            col = _thermal.get(q, model.colors.get(q, "#888888"))
+            col = _bm_color  # matches the trace line for a unified look
             y_arr = all_btc_vals[q] if disp_mode == "btc" else all_usd_vals[q]
             _btc_f = float(all_btc_vals[q][-1])
             _usd_f = float(all_usd_vals[q][-1])
@@ -314,7 +311,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                 short_label=_fmt_short(_btc_f, _usd_f),
                 color=col, y_last=float(y_arr[-1])))
         for q in all_sc_usd_vals:
-            col = _thermal.get(q, model.colors.get(q, "#888888"))
+            col = _bm_color  # SC annotations match SC trace line
             sc_y = all_sc_btc_vals[q] if disp_mode == "btc" else all_sc_usd_vals[q]
             _btc_f = float(all_sc_btc_vals[q][-1])
             _usd_f = float(all_sc_usd_vals[q][-1])

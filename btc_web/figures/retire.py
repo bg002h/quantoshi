@@ -16,7 +16,7 @@ from figures.common import (
     _NON_QUANTIZED_MODEL_COLOR, _OVERLAY_LINE_WIDTH,
     _FONT_ANNOT,
     _HAS_MARKOV,
-    _get_palette, _get_model_color, _build_thermal_colors, _fmt_q_label,
+    _get_palette, _get_model_color, _fmt_q_label,
     _build_time_array, _get_starting_stack,
     _sim_layout, _apply_mc_overlay,
     _stagger_depletion_annots,
@@ -36,7 +36,6 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     palette = _get_palette(p)
     _line_shape = "hv" if p.get("discrete") else "linear"
     sel_qs_raw = sorted([float(q) for q in (p.get("selected_qs") or [])])
-    _thermal = _build_thermal_colors(sel_qs_raw, palette)
     ta = _build_time_array(p, m, 2025, 2045)
     if ta[1] is None:
         return ta[0], None
@@ -145,7 +144,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             btc_final = float(all_btc_vals[q][-1])
             if btc_final <= 0:
                 continue
-            col = _thermal.get(q, model.colors.get(q, "#888888"))
+            col = _bm_color  # matches the trace line for a unified look
             usd_final = btc_final * float(all_prices[q][-1])
             qpfx = f"Q{q*100:g}%"
             if disp_mode == "usd":

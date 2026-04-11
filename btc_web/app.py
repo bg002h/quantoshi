@@ -172,8 +172,16 @@ def _cache_headers(response):
                     " ws://jxnpv6ef3yo2kqpeu6u3nmv343k7vpyn7katlfdoc3n7hgvz7l5woqid.onion"
                     " http://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion")
     else:
+        # https://dash-version.plotly.com: Plotly.js 6.x fires a background
+        # version-check on every page load. Without this whitelist, Chrome
+        # logs a CSPViolation + a cascading JS error on every visit. Purely
+        # cosmetic — the block would be fine — but the errors crowd out
+        # real errors in DevTools. Onion CSP does NOT get this exception:
+        # clearnet version-check is a fingerprinting surface we'd rather not
+        # expose to Tor users.
         _connect = ("'self' https://mempool.space wss://mempool.space"
-                    " https://blockstream.info")
+                    " https://blockstream.info"
+                    " https://dash-version.plotly.com:8080")
     # Static pages set their own CSP (allows MathJax CDN) — don't overwrite
     if 'Content-Security-Policy' not in response.headers:
         response.headers['Content-Security-Policy'] = "; ".join([

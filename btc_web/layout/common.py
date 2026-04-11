@@ -6,6 +6,16 @@ from dash import dcc, html
 import dash_bootstrap_components as dbc
 
 import _app_ctx
+from colors import (
+    LINK, USER_MODEL_TRACE, FALLBACK_MODEL_GRAY,
+    BLACK, MODEL_TRACE_COLORS, CITADEL_OVERLAY_COLORS,
+    MODAL_DIVIDER_DARK, PROGRESS_TRACK,
+    EPPL_SUMMARY_COLOR, DIM_TEXT, MUTED_TEXT,
+    DECOMP_ERROR_RED, ERROR_BG, ERROR_BORDER,
+    MC_FREE_GREEN, MC_LIVE_AMBER, KNIGHT_GOLD,
+    LIGHTBOX_BG, TABLE_HEADER_BG, TABLE_BORDER_LIGHT,
+    TABLE_BORDER_MID, TABLE_BORDER_DARK, CODE_BG, BOOTSTRAP_LIGHT_BG,
+)
 
 
 # ── Model Info deep-link helper ────────────────────────────────────────────
@@ -30,7 +40,7 @@ def _model_info_link(short_name):
 
 # ── Reusable style constants ────────────────────────────────────────────────
 _STYLE_HIDDEN     = {"display": "none"}
-_STYLE_HINT       = {"color": "#888", "display": "block", "marginBottom": "4px"}
+_STYLE_HINT       = {"color": FALLBACK_MODEL_GRAY, "display": "block", "marginBottom": "4px"}
 _STYLE_GRAPH_H    = {"height": "78vh"}
 _STYLE_COLOR_H    = {"height": "28px"}
 _STYLE_ADDR_CELL  = {"paddingRight": "12px", "whiteSpace": "nowrap", "verticalAlign": "top"}
@@ -44,7 +54,7 @@ def _q_options() -> list[dict]:
     for q in _app_ctx._ALL_QS:
         pct = q * 100
         lbl_text = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
-        col = _app_ctx.M.qr_colors.get(q, "#888888")
+        col = _app_ctx.M.qr_colors.get(q, FALLBACK_MODEL_GRAY)
         lbl = html.Span([
             html.Span("\u25CF ", style={"color": col, "fontSize": "10px"}),
             lbl_text,
@@ -433,7 +443,7 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                "padding": "6px 10px", "boxShadow": "0 2px 12px rgba(0,0,0,0.5)"},
         children=[
             html.Span(id="um-ctx-label",
-                      style={"color": "#e67e22", "fontSize": "13px",
+                      style={"color": USER_MODEL_TRACE, "fontSize": "13px",
                              "fontWeight": "600", "marginRight": "8px"}),
             dbc.Button("P1", id="um-ctx-p1", color="warning", size="sm",
                        outline=True, className="me-1",
@@ -521,10 +531,10 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                                 "width": "260px", "textAlign": "center",
                             }, children=[
                                 html.Div("Computing Forward CAGR\u2026",
-                                         style={"color": "#888", "fontSize": "13px", "marginBottom": "6px"}),
+                                         style={"color": FALLBACK_MODEL_GRAY, "fontSize": "13px", "marginBottom": "6px"}),
                                 html.Div(style={
                                     "height": "6px", "borderRadius": "3px",
-                                    "background": "#e0e0e0", "overflow": "hidden",
+                                    "background": PROGRESS_TRACK, "overflow": "hidden",
                                 }, children=[
                                     html.Div(id="bub-cagr-progress-bar", style={
                                         "height": "100%", "width": "0%",
@@ -610,7 +620,7 @@ def _model_show_checklist(prefix, standardized=False, include_mc=False):
 
     _INFO_STYLE = {
         "cursor": "pointer", "fontSize": "11px", "marginLeft": "4px",
-        "opacity": "0.6", "textDecoration": "none", "color": "#1a6fa8",
+        "opacity": "0.6", "textDecoration": "none", "color": LINK,
     }
 
     def _swatch(color, label, model_key=None):
@@ -632,13 +642,13 @@ def _model_show_checklist(prefix, standardized=False, include_mc=False):
                 ))
         return html.Span(children)
 
-    opts = [{"label": _swatch(mc.get("bub", "#000"), "Bubble Model"),
+    opts = [{"label": _swatch(mc.get("bub", BLACK), "Bubble Model"),
              "value": "bub"}]
 
     if standardized:
         # Inject master LPPL entry right after Bubble Model.
         opts.append({
-            "label": _swatch(mc.get("lppl", "#FF6D00"), "LPPL (family)"),
+            "label": _swatch(mc.get("lppl", MODEL_TRACE_COLORS["lppl"]), "LPPL (family)"),
             "value": "lppl",
         })
 
@@ -665,7 +675,7 @@ def _model_show_checklist(prefix, standardized=False, include_mc=False):
         ordered = promoted + mid + dep
     for mdl in ordered:
         opts.append({
-            "label": _swatch(mc.get(mdl.short_name, "#888"), mdl.name,
+            "label": _swatch(mc.get(mdl.short_name, FALLBACK_MODEL_GRAY), mdl.name,
                               model_key=mdl.short_name),
             "value": mdl.short_name,
         })
@@ -706,9 +716,9 @@ def _lppl_config_panel(prefix):
     return _section_card(
         "LPPL Models",
         html.Div([
-            html.Small("Current: ", style={"color": "#888", "fontSize": "11px"}),
+            html.Small("Current: ", style={"color": FALLBACK_MODEL_GRAY, "fontSize": "11px"}),
             html.Span(id=f"{prefix}-lppl-summary", children="LPPL\u2083",
-                      style={"color": "#FF6D00", "fontSize": "11px",
+                      style={"color": MODEL_TRACE_COLORS["lppl"], "fontSize": "11px",
                              "fontWeight": "600"}),
         ], style={"marginTop": "4px", "marginBottom": "4px"}),
         header_right=[activate, configure_btn],
@@ -737,7 +747,7 @@ def _global_lppl_modal():
                           value=[3],
                           labelStyle={"display": "block"},
                           inputStyle=_CB_MARGIN),
-            html.Hr(style={"margin": "6px 0", "borderColor": "#444"}),
+            html.Hr(style={"margin": "6px 0", "borderColor": MODAL_DIVIDER_DARK}),
             dcc.Checklist(id="lppl-weighted",
                           options=[{"label": " Log-time weighted fits",
                                     "value": "weighted"}],
@@ -783,9 +793,9 @@ def _hybppl_config_panel(prefix):
     return _section_card(
         "Hybrid PPL Models",
         html.Div([
-            html.Small("Current: ", style={"color": "#888", "fontSize": "11px"}),
+            html.Small("Current: ", style={"color": FALLBACK_MODEL_GRAY, "fontSize": "11px"}),
             html.Span(id=f"{prefix}-hybppl-summary", children="1d+1u",
-                      style={"color": "#4A90D9", "fontSize": "11px",
+                      style={"color": CITADEL_OVERLAY_COLORS["reserves_total"], "fontSize": "11px",
                              "fontWeight": "600"}),
         ], style={"marginTop": "4px", "marginBottom": "4px"}),
         header_right=[activate, configure_btn],
@@ -803,7 +813,7 @@ def _hybppl_model_slot(slot):
             options=[{"label": " Enable Model B (comparison)", "value": "yes"}],
             value=[], inputStyle=_CB_MARGIN,
         ))
-        children.append(html.Hr(style={"margin": "6px 0", "borderColor": "#444"}))
+        children.append(html.Hr(style={"margin": "6px 0", "borderColor": MODAL_DIVIDER_DARK}))
 
     children.extend([
         _lbl("Log-periodic frequencies"),
@@ -865,10 +875,10 @@ def _hybppl_model_slot(slot):
         ], style=_STYLE_HIDDEN),
         html.Div([
             html.Span(id=f"hybppl-cfg-{s}-status",
-                      style={"fontSize": "11px", "color": "#888"}),
+                      style={"fontSize": "11px", "color": FALLBACK_MODEL_GRAY}),
             html.A(id=f"hybppl-cfg-{s}-info-link", href="#",
                    style={"fontSize": "11px", "marginLeft": "6px",
-                          "color": "#1a6fa8", "display": "none"},
+                          "color": LINK, "display": "none"},
                    children="\u2139\uFE0F Model Info"),
         ], style={"marginTop": "6px"}),
     ])
@@ -889,11 +899,11 @@ def _global_hybppl_modal():
                     html.H6("Model A", style={"fontWeight": "600", "marginBottom": "8px"}),
                     _hybppl_model_slot("a"),
                 ], style={"flex": "1", "minWidth": "220px", "paddingRight": "12px"}),
-                html.Div(style={"width": "1px", "backgroundColor": "#444",
+                html.Div(style={"width": "1px", "backgroundColor": MODAL_DIVIDER_DARK,
                                 "margin": "0 8px"}),
                 html.Div([
                     html.H6("Model B", style={"fontWeight": "600", "marginBottom": "8px",
-                                               "color": "#888"}),
+                                               "color": FALLBACK_MODEL_GRAY}),
                     _hybppl_model_slot("b"),
                 ], style={"flex": "1", "minWidth": "220px", "paddingLeft": "12px"}),
             ], style={"display": "flex", "flexWrap": "wrap", "gap": "8px"}),
@@ -928,9 +938,9 @@ def _eppl_config_panel(prefix):
     return _section_card(
         "Entropy PPL Models",
         html.Div([
-            html.Small("Current: ", style={"color": "#888", "fontSize": "11px"}),
+            html.Small("Current: ", style={"color": FALLBACK_MODEL_GRAY, "fontSize": "11px"}),
             html.Span(id=f"{prefix}-eppl-summary", children="1d+1u",
-                      style={"color": "#148C8C", "fontSize": "11px",
+                      style={"color": EPPL_SUMMARY_COLOR, "fontSize": "11px",
                              "fontWeight": "600"}),
         ], style={"marginTop": "4px", "marginBottom": "4px"}),
         header_right=[activate, configure_btn],
@@ -948,7 +958,7 @@ def _eppl_model_slot(slot):
             options=[{"label": " Enable Model B (comparison)", "value": "yes"}],
             value=[], inputStyle=_CB_MARGIN,
         ))
-        children.append(html.Hr(style={"margin": "6px 0", "borderColor": "#444"}))
+        children.append(html.Hr(style={"margin": "6px 0", "borderColor": MODAL_DIVIDER_DARK}))
 
     children.extend([
         _lbl("Log-periodic frequencies"),
@@ -1010,10 +1020,10 @@ def _eppl_model_slot(slot):
         ], style=_STYLE_HIDDEN),
         html.Div([
             html.Span(id=f"eppl-cfg-{s}-status",
-                      style={"fontSize": "11px", "color": "#888"}),
+                      style={"fontSize": "11px", "color": FALLBACK_MODEL_GRAY}),
             html.A(id=f"eppl-cfg-{s}-info-link", href="#",
                    style={"fontSize": "11px", "marginLeft": "6px",
-                          "color": "#1a6fa8", "display": "none"},
+                          "color": LINK, "display": "none"},
                    children="\u2139\uFE0F Model Info"),
         ], style={"marginTop": "6px"}),
     ])
@@ -1034,11 +1044,11 @@ def _global_eppl_modal():
                     html.H6("Model A", style={"fontWeight": "600", "marginBottom": "8px"}),
                     _eppl_model_slot("a"),
                 ], style={"flex": "1", "minWidth": "220px", "paddingRight": "12px"}),
-                html.Div(style={"width": "1px", "backgroundColor": "#444",
+                html.Div(style={"width": "1px", "backgroundColor": MODAL_DIVIDER_DARK,
                                 "margin": "0 8px"}),
                 html.Div([
                     html.H6("Model B", style={"fontWeight": "600", "marginBottom": "8px",
-                                               "color": "#888"}),
+                                               "color": FALLBACK_MODEL_GRAY}),
                     _eppl_model_slot("b"),
                 ], style={"flex": "1", "minWidth": "220px", "paddingLeft": "12px"}),
             ], style={"display": "flex", "flexWrap": "wrap", "gap": "8px"}),
@@ -1147,8 +1157,8 @@ def _tab_hints(tab_id):
     return html.Details([
         html.Summary("How to use this tab",
                      style={"cursor": "pointer", "fontSize": "13px",
-                            "color": "#666", "marginBottom": "6px"}),
-        html.Ul([html.Li(h, style={"fontSize": "12px", "color": "#555"})
+                            "color": MUTED_TEXT, "marginBottom": "6px"}),
+        html.Ul([html.Li(h, style={"fontSize": "12px", "color": DIM_TEXT})
                  for h in hints],
                 style={"marginBottom": "8px", "paddingLeft": "20px"}),
     ], style={"marginBottom": "10px"})

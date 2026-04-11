@@ -17,6 +17,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 import _app_ctx
+from colors import CITADEL_OVERLAY_COLORS as _CITADEL_MC_COLORS, BTC_ORANGE
 
 logger = logging.getLogger(__name__)
 from btc_core import ModelData, yr_to_t, fmt_price
@@ -837,15 +838,6 @@ def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
 # Citadel Planner overlay
 # ══════════════════════════════════════════════════════════════════════════════
 
-_CITADEL_MC_COLORS = {
-    "total":             "#000000",   # black
-    "btc_usd":           "#F7931A",   # orange
-    "cash":              "#C0C0C0",   # silver
-    "reserves_total":    "#4A90D9",   # blue
-    "investments_total": "#27AE60",   # green
-}
-
-
 def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
     """Build Monte Carlo fan band traces for Citadel Planner.
 
@@ -954,7 +946,7 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
 
     # In BTC mode, only show BTC holdings (in BTC, not USD)
     if disp_mode == "btc":
-        _mc_assets = {"btc": _CITADEL_MC_COLORS.get("btc_usd", "#f7931a")}
+        _mc_assets = {"btc": _CITADEL_MC_COLORS.get("btc_usd", BTC_ORANGE)}
     else:
         _mc_assets = _CITADEL_MC_COLORS
 

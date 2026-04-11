@@ -91,6 +91,39 @@ LIGHTBOX_BG         = "#1a1a2e"   # modal lightbox dark background (model-info i
 SPLASH_BRAND_DARK   = "#2c3e50"   # navbar color= prop + splash modal brand text
 NEAR_BLACK          = "#1a1a1a"   # very dark near-black (MC badge bg, heatmap darkest stop)
 
+# ── App background / body palette ─────────────────────────────────────
+BODY_BG             = "#f4f3f0"   # app body background (warm off-white)
+BODY_TEXT           = "#212529"   # Bootstrap default body text color
+SIDEBAR_GRADIENT_EDGE = "#e8e6e1"  # controls-col gradient edge (warm gray)
+SIDEBAR_BG          = "#ebeef1"   # export-row-polished background (cool light gray)
+SPLASH_MODAL_GRADIENT_END = "#f8f6f0"  # splash modal gradient end (warm white)
+CTRL_CARD_HOVER_BORDER = "#c8ccd0"  # ctrl-card hover border color
+BORDER_MUTED        = "#ccc"      # muted border (shorthand #ccc)
+
+# ── Navbar colors ──────────────────────────────────────────────────────
+NAV_DARK            = "#2c3e50"   # navbar primary background (alias of SPLASH_BRAND_DARK)
+NAV_DARKER          = "#1a252f"   # navbar darkest gradient stop
+NAV_LIGHTER         = "#34495e"   # navbar lightest gradient stop
+LINK_HOVER          = "#154e78"   # link hover color (darker than LINK)
+
+# ── Typography / UI text ──────────────────────────────────────────────
+BODY_TEXT_SECONDARY = "#555"      # secondary UI text (shorthand, same as DIM_TEXT)
+
+# ── Stone/parchment palette (blockdrop + knighting ceremony UI) ───────
+STONE_LIGHT         = "#7a6a4f"   # blockdrop stone surface light
+STONE_MID_1         = "#665535"   # blockdrop stone mid tone 1
+STONE_MID_2         = "#55472a"   # blockdrop stone mid tone 2
+STONE_MID_3         = "#483c22"   # blockdrop stone mid tone 3
+STONE_DARK          = "#3a3018"   # blockdrop stone dark
+STONE_DARKEST       = "#2e2510"   # blockdrop stone darkest shadow
+PARCHMENT_TEXT      = "#3a2210"   # collapsed drawer CONFIG text (dark brown on parchment)
+MC_GOLD_BORDER      = "#d4820a"   # MC premium chart gold border
+MC_GOLD_ACCENT      = "#b8600a"   # MC premium chart gradient start (darker gold)
+MC_GOLD_MID         = "#e8960e"   # MC premium chart gradient mid (bright gold)
+ACCENT_BREATH_MID   = "#fbb034"   # accentBreath keyframe mid color (lighter orange)
+PIN_LABEL_COLOR     = "#8b6336"   # drawer pin label text (medium brown)
+DARK_AMBER_TEXT     = "#6b5300"   # model-panel paid badge text (very dark amber)
+
 # ── Static analysis pages (dark-theme pages served from api.py) ───────
 # Used by /D (Residual FFT), /F (LPPL excess fits), /docs/* pages.
 STATIC_PAGE_BG      = "#1a1a2e"   # page background (same as LIGHTBOX_BG, semantic alias)
@@ -369,6 +402,92 @@ DANGER_HIGHLIGHT     = "#FF6464"   # rgba(255,100,100,*)— table row danger hig
 MC_AMBER             = "#DC7800"   # rgba(220,120,0,*)  — MC overlay amber bands / median line
 MC_GHOST_GRAY        = "#969696"   # rgba(150,150,150,*)— MC ghost/reference fan bands
 BADGE_GLOW_RED       = "#8B0000"   # rgba(139,0,0,*)    — "NEW" badge text-shadow glow (dark red)
+
+# ════════════════════════════════════════════════════════════════════
+# SECTION 3b — Baked-alpha rgba constants for style.css migration
+# ════════════════════════════════════════════════════════════════════
+# These named constants represent specific rgba() literals found in
+# style.css. They are defined here as strings (not computed) so they
+# are usable directly in both Python and as CSS custom property values.
+# Naming convention: <BASE>_<ALPHA_PERCENT> where alpha is scaled 0-100.
+
+# Black overlays (rgba(0,0,0,*))
+BLACK_A0            = "rgba(0,0,0,0)"      # fully transparent (knighting overlay start)
+BLACK_A6            = "rgba(0,0,0,0.06)"   # blockdrop grain texture
+BLACK_A8            = "rgba(0,0,0,0.08)"   # box shadow / controls-col shadow
+BLACK_A10           = "rgba(0,0,0,0.1)"    # pitting radial-gradient
+BLACK_A12           = "rgba(0,0,0,0.12)"   # pitting + mineral vein overlay
+BLACK_A15           = "rgba(0,0,0,0.15)"   # blockdrop cube highlight edge
+BLACK_A20           = "rgba(0,0,0,0.2)"    # blockdrop shadow / fragment shadow
+BLACK_A25           = "rgba(0,0,0,0.25)"   # blockdrop crack overlay
+BLACK_A30           = "rgba(0,0,0,0.3)"    # splash modal shadow / copy toast shadow
+BLACK_A35           = "rgba(0,0,0,0.35)"   # blockdrop crack-4 / pin label drop-shadow
+BLACK_A40           = "rgba(0,0,0,0.4)"    # blockdrop-label text-shadow / mini-block shadow
+BLACK_A50           = "rgba(0,0,0,0.5)"    # knight-text shadow
+BLACK_A60           = "rgba(0,0,0,0.6)"    # knight overlay dim target / pricePulse shadow
+BLACK_A70           = "rgba(0,0,0,0.7)"    # blockdrop-cube box-shadow / faq-overlay bg
+
+# White overlays (rgba(255,255,255,*))
+WHITE_A3            = "rgba(255,255,255,0.03)"   # navbar dot texture
+WHITE_A4            = "rgba(255,255,255,0.04)"   # blockdrop surface grain
+WHITE_A8            = "rgba(255,255,255,0.08)"   # blockdrop highlight gradient
+WHITE_A15           = "rgba(255,255,255,0.15)"   # nav-link hover bg
+WHITE_A40           = "rgba(255,255,255,0.4)"    # export-row btn border
+WHITE_A60           = "rgba(255,255,255,0.6)"    # user-model-fab active border
+WHITE_A75           = "rgba(255,255,255,0.75)"   # nav-link color (inactive)
+WHITE_A90           = "rgba(255,255,255,0.9)"    # price flash end color
+
+# BTC orange overlays (rgba(247,147,26,*) — #f7931a)
+BTC_ORANGE_A12      = "rgba(247,147,26,0.12)"   # blockdrop-tx background
+BTC_ORANGE_A30      = "rgba(247,147,26,0.3)"    # blockdrop-tx border / blockdrop-label glow
+BTC_ORANGE_A40      = "rgba(247,147,26,0.4)"    # pricePulse keyframe / knight flash end
+BTC_ORANGE_A50      = "rgba(247,147,26,0.5)"    # logo-glow hover filter
+BTC_ORANGE_A60      = "rgba(247,147,26,0.6)"    # knight-staff drop-shadow / wizard sprite
+BTC_ORANGE_A80      = "rgba(247,147,26,0.8)"    # pricePulse start
+BTC_ORANGE_A90      = "rgba(247,147,26,0.9)"    # wizard toast background
+
+# User-model orange overlays (rgba(230,126,34,*) — #e67e22)
+USER_ORANGE_A50     = "rgba(230,126,34,0.5)"    # draw-mode-active box-shadow
+USER_ORANGE_A60     = "rgba(230,126,34,0.6)"    # fab-pulse shadow peak
+USER_ORANGE_A90     = "rgba(230,126,34,0.9)"    # user-model-fab hover background
+
+# Accent / cyan overlays (rgba(0,212,255,*) — #00d4ff)
+CYAN_A8             = "rgba(0,212,255,0.08)"    # scan-output background
+CYAN_A10            = "rgba(0,212,255,0.1)"     # scan-results row hover
+CYAN_A60            = "rgba(0,212,255,0.6)"     # price-ring-dot box-shadow
+CYAN_A70            = "rgba(0,212,255,0.7)"     # price-ring-pulse border
+
+# Green overlays (rgba(0,200,80,*) / rgba(26,143,60,*))
+FLASH_GREEN_A90     = "rgba(0,200,80,0.9)"      # priceFlashGreen text-shadow strong
+FLASH_GREEN_A40     = "rgba(0,200,80,0.4)"      # priceFlashGreen text-shadow fade
+INPUT_ACCEPT_A60    = "rgba(26,143,60,0.6)"     # input-accepted keyframe border glow
+
+# Red overlays (rgba(255,60,60,*))
+FLASH_RED_A90       = "rgba(255,60,60,0.9)"     # priceFlashRed text-shadow strong
+FLASH_RED_A40       = "rgba(255,60,60,0.4)"     # priceFlashRed text-shadow fade
+
+# Gold overlays (rgba(255,215,0,*) — #ffd700)
+GOLD_A50            = "rgba(255,215,0,0.5)"     # knight-text text-shadow
+
+# Warm cream / parchment overlays
+STONE_CREAM_A80     = "rgba(255,220,160,0.8)"   # blockdrop-sublabel / mini-sublabel color
+MINERAL_WARM_A25    = "rgba(180,160,120,0.25)"  # blockdrop mineral vein light
+MINERAL_WARM_A10    = "rgba(200,180,140,0.1)"   # blockdrop mineral vein faint
+STONE_WARM_A15      = "rgba(120,100,70,0.15)"   # blockdrop mineral circle
+
+# Parchment gold overlays (rgba(212,168,85,*))
+PARCHMENT_GOLD_A50  = "rgba(212,168,85,0.5)"    # collapsed drawer text-shadow
+
+# MC premium gold overlay (rgba(212,130,10,*))
+MC_GOLD_A35         = "rgba(212,130,10,0.35)"   # mc-premium-chart box-shadow glow
+
+# Paid badge overlay (rgba(184,134,11,*))
+PAID_BADGE_A12      = "rgba(184,134,11,0.12)"   # model-panel-paid-badge background
+
+# Ambient toast (rgba(44,62,80,*) — dark navbar blue)
+AMBIENT_TOAST_A92   = "rgba(44,62,80,0.92)"     # ambient toast background
+# MC chart gray overlay (rgba(64,64,64,*))
+MC_OVERLAY_A65      = "rgba(64,64,64,0.65)"     # mc-chart-overlay gray
 
 __skip_export__ = frozenset({
     # Complex structured values — not useful as individual CSS variables.

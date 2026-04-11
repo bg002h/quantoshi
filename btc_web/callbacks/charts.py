@@ -204,6 +204,36 @@ _app_ctx.app.clientside_callback(
 )
 
 
+# Info-triangle click → close whichever modal was open (user navigates
+# away to the Model Info tab via the href on the anchor, so keeping the
+# modal up would obscure the destination). Each link writes is_open=false
+# to its own modal; the href handles the actual navigation.
+_app_ctx.app.clientside_callback(
+    """function(n) { return n ? false : window.dash_clientside.no_update; }""",
+    Output("bm-config-modal", "is_open", allow_duplicate=True),
+    Input("bm-info-link", "n_clicks"),
+    prevent_initial_call=True,
+)
+_app_ctx.app.clientside_callback(
+    """function(n) { return n ? false : window.dash_clientside.no_update; }""",
+    Output("lppl-config-modal", "is_open", allow_duplicate=True),
+    Input("lppl-info-link", "n_clicks"),
+    prevent_initial_call=True,
+)
+_app_ctx.app.clientside_callback(
+    """function(n) { return n ? false : window.dash_clientside.no_update; }""",
+    Output("hybppl-config-modal", "is_open", allow_duplicate=True),
+    Input("hybppl-info-link", "n_clicks"),
+    prevent_initial_call=True,
+)
+_app_ctx.app.clientside_callback(
+    """function(n) { return n ? false : window.dash_clientside.no_update; }""",
+    Output("eppl-config-modal", "is_open", allow_duplicate=True),
+    Input("eppl-info-link", "n_clicks"),
+    prevent_initial_call=True,
+)
+
+
 # BM modal: open via any tab's gear icon, close via close button.
 _app_ctx.app.clientside_callback(
     """

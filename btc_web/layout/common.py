@@ -22,6 +22,38 @@ from colors import (
 # ── Model Info deep-link helper ────────────────────────────────────────────
 
 _INFO_ICON = "\U0001F4D0"  # 📐 same as Model Info tab
+_INFO_TRIANGLE = "\u25B2"  # ▲ matches navbar "▲ Cooler than you think" motif
+
+
+def _modal_header_with_info_link(title: str, model_short_name: str, link_id: str):
+    """ModalHeader containing the title plus a ▲ link to the Model Info tab.
+
+    Clicking the triangle navigates to /8.N for that model AND closes the
+    modal via a clientside callback in charts.py (see _close_config_modal_on_info).
+    If the model has no Model Info entry, the triangle is omitted.
+    """
+    href, exists = _model_info_link(model_short_name)
+    children = [dbc.ModalTitle(title)]
+    if exists:
+        children.append(html.A(
+            _INFO_TRIANGLE,
+            id=link_id,
+            href=href,
+            n_clicks=0,
+            style={
+                "marginLeft": "8px",
+                "fontSize": "14px",
+                "textDecoration": "none",
+                "color": LINK,
+                "cursor": "pointer",
+            },
+            title=f"View {title} on Model Info tab",
+        ))
+    return dbc.ModalHeader(html.Div(
+        children,
+        style={"display": "flex", "alignItems": "center", "gap": "4px"},
+    ))
+
 
 def _model_info_link(short_name):
     """Return (href, exists) for the Model Info deep-link for a model.
@@ -624,7 +656,7 @@ def _global_lppl_modal():
     {prefix}-lppl-configure-btn click.
     """
     return dbc.Modal([
-        dbc.ModalHeader(dbc.ModalTitle("LPPL Model Configuration")),
+        _modal_header_with_info_link("LPPL Model Configuration", "lppl", "lppl-info-link"),
         dbc.ModalBody([
             _lbl("Oscillation frequencies (N)"),
             dcc.Checklist(id="lppl-n-freqs",
@@ -752,7 +784,7 @@ def _global_hybppl_modal():
     {prefix}-hybppl-configure-btn click.
     """
     return dbc.Modal([
-        dbc.ModalHeader(dbc.ModalTitle("Hybrid PPL Configuration")),
+        _modal_header_with_info_link("Hybrid PPL Configuration", "hybppl", "hybppl-info-link"),
         dbc.ModalBody([
             html.Div([
                 html.Div([
@@ -865,7 +897,7 @@ def _global_eppl_modal():
     {prefix}-eppl-configure-btn click.
     """
     return dbc.Modal([
-        dbc.ModalHeader(dbc.ModalTitle("\U0001FAE0 Entropy PPL Configuration")),
+        _modal_header_with_info_link("\U0001FAE0 Entropy PPL Configuration", "eppl", "eppl-info-link"),
         dbc.ModalBody([
             html.Div([
                 html.Div([
@@ -895,7 +927,7 @@ def _global_bm_modal():
     """
     from tab_defaults import BUBBLE
     return dbc.Modal([
-        dbc.ModalHeader(dbc.ModalTitle("Bubble Model Configuration")),
+        _modal_header_with_info_link("Bubble Model Configuration", "bub", "bm-info-link"),
         dbc.ModalBody([
             _lbl("Overlays"),
             dcc.Checklist(

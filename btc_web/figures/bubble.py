@@ -21,7 +21,7 @@ from figures.common import (
     _FONT_LEGEND, _FONT_TITLE, _FONT_SUBTITLE,
     _SANS_FONT, _FONT_TITLE_LG, _FONT_BODY_LG, _FONT_TICK_LG, _FONT_LEGEND_LG,
     _LOG_MINOR, _MC_LEGEND_POS,
-    _get_palette, _get_model_color, _build_thermal_colors, _fmt_q_label,
+    _get_palette, _get_model_color, _fmt_q_label,
     _base_layout, _year_ticks, _price_tickvals,
     _apply_sans_typography, _apply_config_annotation, _apply_watermark, _add_date_hover,
     _HOVER_FMT_USD,
@@ -65,7 +65,6 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     # ── shading between adjacent quantiles ───────────────────────────────────
     sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])])
-    _thermal = _build_thermal_colors(sel_qs, palette)
 
     bub_active = "bub" in p.get("active_models", ["bub"])
     # If no quantiles selected but models are active, fall back to Q50%
@@ -73,7 +72,6 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     _default_mode = "advanced" not in (p.get("qs_mode") or [])
     if _fallback_q50:
         sel_qs = [0.5]
-        _thermal = _build_thermal_colors(sel_qs, palette)
 
     if bub_active:
         # Pre-compute prices for all selected quantiles

@@ -17,7 +17,7 @@ from engines.citadel import SimConfig, simulate, PriceModel
 from figures.common import (
     _QR_LINE_WIDTH, _ANNOT_STAGGER_Y,
     _FONT_ANNOT,
-    _get_palette, _build_thermal_colors, _fmt_q_label,
+    _get_palette, _fmt_q_label,
     _build_time_array, _get_starting_stack,
     _sim_layout, _finalize_chart, _error_figure,
     _stagger_depletion_annots,

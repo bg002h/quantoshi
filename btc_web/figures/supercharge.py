@@ -17,7 +17,7 @@ from figures.common import (
     _QR_LINE_WIDTH, _ANNOT_STAGGER_Y, _BISECT_ITERS,
     _FONT_ANNOT,
     _HAS_MARKOV,
-    _get_palette, _build_thermal_colors, _fmt_q_label, _fmt_q_range, _error_figure,
+    _get_palette, _get_model_color, _fmt_q_label, _fmt_q_range, _error_figure,
     _build_freq_config, _get_starting_stack,
     _sim_layout, _apply_mc_overlay,
     _stagger_depletion_annots,
@@ -52,7 +52,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
     delay_colors = palette["delay_colors"]
     annot_colors = palette["annot_colors"]
     sel_qs_raw = sorted([float(q) for q in (p.get("selected_qs") or [])])
-    _thermal = _build_thermal_colors(sel_qs_raw, palette)
+    _bm_color = _get_model_color("bub", p)
 
     mode         = p.get("mode", SUPERCHARGE["mode"])
     freq_str, ppy, dt = _build_freq_config(p)
@@ -198,19 +198,23 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     if key not in results:
                         continue
                     ts_d, y_vals, depl_t, t_start_d, *_ = results[key]
-                    col = _thermal.get(q, model.colors.get(q, "#888888"))
+                    # Single model color, opacity by distance from Q50%.
+                    # Quantile differentiation via opacity, delay via dash style.
+                    _dist = abs(q - 0.5) / 0.45
+                    _q_opacity = max(0.1, 1.0 - _dist * 0.5)
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
                         name=_legend_name,
                         legendgroup=grp_model,
                         showlegend=_first_legend,
-                        line=dict(color=col, width=_QR_LINE_WIDTH,
+                        line=dict(color=_bm_color, width=_QR_LINE_WIDTH,
                                   dash=_DASH_STYLES[di % len(_DASH_STYLES)], shape=_line_shape),
+                        opacity=_q_opacity,
                     ))
                     _first_legend = False
                     if depl_t is not None:
                         deplete_annots.append(_depl_annot(depl_t, t_start_d, d,
-                            arrow_col=col, text_col=_tcol_annot,
+                            arrow_col=_bm_color, text_col=_tcol_annot,
                             legendgroup=grp_model,
                             model_prefix=model.legend_name,
                             stagger=len(deplete_annots)))
@@ -456,7 +460,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         di = delays.index(d) if d in delays else 0
                         col = delay_colors[di % len(delay_colors)]
                     else:
-                        col = _thermal.get(q, model.colors.get(q, "#888888"))
+                        col = _bm_color  # uniform per-model, matches the line
                     lbl = (fmt_price(y_final) if disp_mode == "usd"
                            else f"{y_final:.4f} \u20bf")
                     _sc_btc = float(btc_vals_r[-1])
@@ -495,7 +499,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
     model = _resolve_sc_model(p)
     palette = _get_palette(p)
     delay_colors = palette["delay_colors"]
-    _thermal = _build_thermal_colors(sel_qs, palette)
+    _bm_color = _get_model_color("bub", p)
     target_yr = int(p.get("target_yr", SUPERCHARGE["target_yr"]))
 
     def _max_wd_for(d, q):
@@ -555,15 +559,17 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
         q_range = _fmt_q_range(sel_qs)
         grp = f"{model.short_name}-b1"
         for qi, q in enumerate(sel_qs):
-            col   = _thermal.get(q, model.colors.get(q, "#888888"))
+            _dist = abs(q - 0.5) / 0.45
+            _q_opacity = max(0.1, 1.0 - _dist * 0.5)
             y_q   = [max_wd.get((d, q), 0) for d in delays]
             traces.append(go.Scatter(
                 x=delays, y=y_q, mode="lines+markers",
                 name=f"{model.legend_name} {q_range}",
                 legendgroup=grp,
                 showlegend=(qi == 0),
-                line=dict(color=col, width=2),
-                marker=dict(color=col, size=7),
+                line=dict(color=_bm_color, width=2),
+                marker=dict(color=_bm_color, size=7),
+                opacity=_q_opacity,
             ))
 
     else:

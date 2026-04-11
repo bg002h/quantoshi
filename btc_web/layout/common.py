@@ -247,31 +247,33 @@ def _plot_appearance_controls(prefix: str):
 
     Returns a list of components to be spread into a _section_card.
     """
+    # Grouped by concept: row 1 = data/trace (thickness + pt color),
+    # row 2 = major grid pair (width + color), row 3 = minor grid pair.
     parts = [
         _row(
             html.Div([_lbl("Trace thickness (0.5\u20138)"),
                       dbc.Input(id=f"{prefix}-plot-trace-width", type="number",
                                 value=None, min=0.5, max=8, step=0.5, size="sm")]),
+            html.Div([_lbl("Data point color"),
+                      dbc.Input(id=f"{prefix}-plot-pt-color", type="color",
+                                value=None, size="sm",
+                                style={"height": "30px", "padding": "2px"})]),
+        ),
+        _row(
             html.Div([_lbl("Major grid width (0\u20134)"),
                       dbc.Input(id=f"{prefix}-plot-grid-major-width", type="number",
                                 value=None, min=0, max=4, step=0.25, size="sm")]),
-        ),
-        _row(
             html.Div([_lbl("Major grid color"),
                       dbc.Input(id=f"{prefix}-plot-grid-major-color", type="color",
                                 value=None, size="sm",
                                 style={"height": "30px", "padding": "2px"})]),
+        ),
+        _row(
             html.Div([_lbl("Minor grid width (0\u20133)"),
                       dbc.Input(id=f"{prefix}-plot-grid-minor-width", type="number",
                                 value=None, min=0, max=3, step=0.25, size="sm")]),
-        ),
-        _row(
             html.Div([_lbl("Minor grid color"),
                       dbc.Input(id=f"{prefix}-plot-grid-minor-color", type="color",
-                                value=None, size="sm",
-                                style={"height": "30px", "padding": "2px"})]),
-            html.Div([_lbl("Data point color"),
-                      dbc.Input(id=f"{prefix}-plot-pt-color", type="color",
                                 value=None, size="sm",
                                 style={"height": "30px", "padding": "2px"})]),
         ),

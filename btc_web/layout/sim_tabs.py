@@ -29,6 +29,13 @@ def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
         _tab_hints(tab_key),
         _shared_settings_card(prefix, **shared_kwargs),
         _q_panel_with_mode(f"{prefix}-qs", q_defaults, hint=q_hint),
+        # Display Models is its own section — mirrors the prominence of
+        # bubble tab's "Display" card. Legend position lives with the
+        # models it governs.
+        _section_card("Display Models",
+            *_model_show_checklist(prefix, standardized=True, include_mc=include_mc),
+            *_legend_pos_dropdown(prefix, legend_pos_default),
+        ),
     ]
     if extra_sections:
         children.extend(extra_sections)
@@ -36,12 +43,10 @@ def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
     yr_now = pd.Timestamp.today().year
     children.append(
         _section_card("Chart Settings",
-            *_model_show_checklist(prefix, standardized=True, include_mc=include_mc),
             _lbl("Year range"),
             _year_range_slider(prefix, *yr_range),
             _btc_usd_dropdown(prefix, **(btc_usd_kwargs or {})),
             _chart_toggles(prefix, chart_toggle_defaults),
-            *_legend_pos_dropdown(prefix, legend_pos_default),
         ),
     )
     children.append(_lppl_config_panel(prefix))

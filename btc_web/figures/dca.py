@@ -33,9 +33,16 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, t
     """Run Stack-celerator overlay simulation for DCA tab.
 
     Returns (sc_traces, all_sc_usd_vals, all_sc_btc_vals).
+
+    Note: ``thermal`` kwarg is accepted for backward compatibility but
+    ignored. SC traces now use the BM model color with opacity varying
+    by distance from Q50%, matching the BM lines themselves and every
+    other overlay model. SC is still visually differentiated by its
+    dashed line style.
     """
     model = _app_ctx.DEFAULT_MODEL
     from _app_ctx import _compute_sc_loan
+    _bm_color = _get_model_color("bub", p)
 
     principal    = float(p.get("sc_loan_amount", DCA["sc_loan_amount"]))
     sc_rate      = float(p.get("sc_rate", DCA["sc_rate"]))
@@ -142,10 +149,12 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, t
             final_sc  = f"{float(sc_vals[-1]):.4f} BTC  ({final_usd})"
 
         lbl_sc = f"{model.legend_name} SC {_fmt_q_label(q)}" + f"  \u2192  {final_sc}"
-        col = thermal.get(q, model.colors.get(q, "#888888")) if thermal else model.colors.get(q, "#888888")
+        _dist = abs(q - 0.5) / 0.45
+        _q_opacity = max(0.1, 1.0 - _dist * 0.5)
         sc_traces.append(go.Scatter(
             x=list(ts), y=list(y_sc), mode="lines", name=lbl_sc,
-            line=dict(color=col, width=_QR_LINE_WIDTH, dash="dash", shape=line_shape),
+            line=dict(color=_bm_color, width=_QR_LINE_WIDTH, dash="dash", shape=line_shape),
+            opacity=_q_opacity,
         ))
 
     return sc_traces, all_sc_usd_vals, all_sc_btc_vals
@@ -183,6 +192,13 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     _y_for_bands = {}     # q -> y array in current disp_mode (for shading)
     ts_clamped = np.maximum(ts, 0.5)
     adj_amount_arr = amount * ((1 + inflation) ** (ts - t_start))
+    # BM lines on DCA use a single model color (like every other overlay
+    # model), varying only opacity with distance from Q50%. The old
+    # thermal-per-quantile mapping read as a rainbow on stack-domain
+    # charts because Q10% (best outcome for accumulation) ended up cyan
+    # at the top of the chart and Q99% (worst) ended up red at the
+    # bottom — visually inverted from how bubble tab reads.
+    _bm_color = _get_model_color("bub", p)
     for q in sel_qs:
         if q not in model.fits:
             continue
@@ -203,10 +219,12 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
 
             _y_for_bands[q] = y_vals
             lbl = f"{model.legend_name} {_fmt_q_label(q)}" + f"  \u2192  {final_lbl}"
-            col = _thermal.get(q, model.colors.get(q, "#888888"))
+            _dist = abs(q - 0.5) / 0.45
+            _q_opacity = max(0.1, 1.0 - _dist * 0.5)
             _bm_line_traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines", name=lbl,
-                line=dict(color=col, width=_QR_LINE_WIDTH, shape=_line_shape),
+                line=dict(color=_bm_color, width=_QR_LINE_WIDTH, shape=_line_shape),
+                opacity=_q_opacity,
             ))
 
     # ── Symmetric band shading (added before line traces so lines render on top) ──

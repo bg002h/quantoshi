@@ -2493,6 +2493,7 @@ def _build_model_opts(mc, include_u1=False, bubble_mode=False):
     from dash import html
     _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl"}
     _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(_app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
+    _HYBPPL_FAM = set(_app_ctx.HYBPPL_FAMILY_HIDDEN)
 
     def _swatch(color, label):
         return html.Span([
@@ -2514,7 +2515,11 @@ def _build_model_opts(mc, include_u1=False, bubble_mode=False):
         })
 
     all_models = [mdl for mdl in _app_ctx.PRICE_MODELS.values()
-                  if mdl.short_name not in _app_ctx.MODEL_SENTINELS and mdl.short_name != "bub"]
+                  if mdl.short_name not in _app_ctx.MODEL_SENTINELS
+                  and mdl.short_name != "bub"
+                  and mdl.short_name not in _HYBPPL_FAM
+                  and not mdl.short_name.startswith("cfg_")
+                  and not mdl.short_name.startswith("ecfg_")]
     if bubble_mode:
         all_models = [m for m in all_models if m.short_name not in _LPPL_FAM]
     # Bubble tab (include_u1=True) keeps exp/s2f as display-only demonstrators;
@@ -2550,7 +2555,12 @@ def _build_model_opts(mc, include_u1=False, bubble_mode=False):
 def update_model_swatches(palette_key):
     pal = _app_ctx.PALETTES.get(palette_key or "default", _app_ctx.PALETTES["default"])
     mc = pal.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
-    bub_opts = _build_model_opts(mc, include_u1=True, bubble_mode=True)
+    # Dispatch bubble tab to _build_bub_model_options so gear icons (bub-bm-gear,
+    # bub-eppl-gear, bub-lppl-gear, bub-hybppl-gear) and the EPPL/HybPPL master
+    # entries survive palette changes. Lazy import avoids circular layout/callback
+    # dependency.
+    from layout.bubble import _build_bub_model_options
+    bub_opts = _build_bub_model_options(mc)
     other_opts = _build_model_opts(mc, include_u1=False, bubble_mode=True)
     return bub_opts, other_opts, other_opts, other_opts
 

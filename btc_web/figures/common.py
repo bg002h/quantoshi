@@ -1122,6 +1122,7 @@ def build_overlay_traces(
         Traces for every resolved overlay model × quantile.
     """
     traces: list[go.Scatter] = []
+    shade_on = bool(p.get("shade"))
     for model_key in p.get("active_models", []):
         mdl = _resolve_model(model_key, p)
         if not mdl:
@@ -1129,6 +1130,12 @@ def build_overlay_traces(
 
         _mdl_color = _get_model_color(model_key, p)
         if mdl.quantized:
+            # Collect the per-quantile line traces for this model into a
+            # local list so shade bands can be emitted BEFORE them (bands
+            # need to render beneath the lines). y_cache is keyed by
+            # quantile so we can hand it directly to _build_symmetric_bands.
+            _model_lines: list[go.Scatter] = []
+            _y_cache: dict[float, np.ndarray] = {}
             for q in sel_qs:
                 if q not in mdl.fits:
                     continue
@@ -1138,13 +1145,20 @@ def build_overlay_traces(
                     y_vals = vals * prices_q
                     final_lbl = fmt_price(float(y_vals[-1]))
                 else:
+                    # BTC mode: show only the final BTC amount. The
+                    # terminal USD value (vals[-1] * prices_q[-1]) is
+                    # mathematically constant across scalar-quantized
+                    # bands — showing it per-quantile would duplicate
+                    # the same number on every line. BM has
+                    # non-scalar quantile spread so it still shows USD
+                    # in its own builder.
                     y_vals = vals
-                    final_usd = fmt_price(float(vals[-1] * prices_q[-1]))
-                    final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
+                    final_lbl = f"{float(vals[-1]):.4f} BTC"
+                _y_cache[q] = y_vals
                 # Opacity: Q50% = 1.0, Q5%/Q95% = 0.5, extrapolated
                 _dist = abs(q - 0.5) / 0.45
                 _q_opacity = max(0.1, 1.0 - _dist * 0.5)
-                traces.append(go.Scatter(
+                _model_lines.append(go.Scatter(
                     x=list(ts), y=list(y_vals), mode="lines",
                     name=f"{mdl.legend_name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
                     line=dict(color=_mdl_color, width=_OVERLAY_LINE_WIDTH,
@@ -1153,6 +1167,14 @@ def build_overlay_traces(
                     legendgroup=mdl.short_name,
                     legendgrouptitle_text=mdl.legend_name,
                 ))
+            # Symmetric band shading per-model — same treatment as the
+            # primary BM model on these tabs, so every quantized overlay
+            # with shade enabled gets its own translucent band fan.
+            if shade_on and len(_y_cache) >= 2:
+                traces.extend(_build_symmetric_bands(
+                    sorted(_y_cache.keys()), _y_cache, ts,
+                    model_color=_mdl_color))
+            traces.extend(_model_lines)
         else:
             # Non-quantized: single trajectory at Q50%
             prices_q = mdl.price_at(0.5, ts_clamped)

@@ -123,7 +123,9 @@ class TestPlotAppearancePanel:
         should exist and show the current non-default values."""
         _switch_tab(page, "/6")
         page.wait_for_selector("#cp-plot-trace-width", state="attached", timeout=15000)
-        time.sleep(0.8)  # one poll tick after lazy mount
+        # Lazy-mount + JS poll tick (500ms) + applyStateToDOM. 1.5s
+        # gives enough headroom under pytest's slower scheduling.
+        time.sleep(1.5)
         assert _value(page, "cp-plot-trace-width") == "5"
         assert _value(page, "cp-plot-grid-major-width") == "2"
 

@@ -12,6 +12,7 @@ import theme
 from btc_core import ModelData, yr_to_t, fmt_price
 from tab_defaults import SUPERCHARGE
 from mc_overlay import _mc_supercharge_overlay
+from colors import FALLBACK_MODEL_GRAY, BLACK, LIGHT_GRAY
 
 from figures.common import (
     _QR_LINE_WIDTH, _ANNOT_STAGGER_Y, _BISECT_ITERS,
@@ -140,7 +141,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
 
         q_range = _fmt_q_range(sel_qs)
         grp_model = f"sc-{model.short_name}"
-        _tcol_annot = _app_ctx.MODEL_TRACE_COLORS.get(model.short_name, "#000000")
+        _tcol_annot = _app_ctx.MODEL_TRACE_COLORS.get(model.short_name, BLACK)
         _first_legend = True  # only first trace gets showlegend=True
 
         # Representative terminal value for legend label
@@ -221,7 +222,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
 
         else:
             # Layout 2: shaded band + individual traces per delay
-            _tcol = _app_ctx.MODEL_TRACE_COLORS.get(model.short_name, "#000000")
+            _tcol = _app_ctx.MODEL_TRACE_COLORS.get(model.short_name, BLACK)
             for di, d in enumerate(delays):
                 t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
                 ts_d = np.arange(t_start_d, t_end + dt * 0.5, dt)
@@ -279,7 +280,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 continue
             _ov_q_range = _fmt_q_range(_sc_overlay_qs) if mdl.quantized else ""
             _ov_grp = f"sc-{mdl.short_name}"
-            _ov_tcol = _app_ctx.MODEL_TRACE_COLORS.get(mdl.short_name, "#CCCCCC")
+            _ov_tcol = _app_ctx.MODEL_TRACE_COLORS.get(mdl.short_name, LIGHT_GRAY)
             _ov_first = True
             _ov_lbl = f"{mdl.legend_name} {_ov_q_range}" if _ov_q_range else mdl.legend_name
 
@@ -360,7 +361,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 # Individual lines for overlay model
                 _ov_depl_seen = set()  # track (delay) to emit one arrow per delay
                 for (d, q), (ts_d, y_vals, depl_t_ov, t_start_d_ov, *_) in ov_results.items():
-                    col = mdl.colors.get(q, "#888888") if mdl.quantized else palette["non_quantized_model"]
+                    col = mdl.colors.get(q, FALLBACK_MODEL_GRAY) if mdl.quantized else palette["non_quantized_model"]
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
                         name=_ov_lbl,
@@ -482,7 +483,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
             layout["annotations"] = [dict(
                 text="No models selected \u2014 check Display Models",
                 xref="paper", yref="paper", x=0.5, y=0.5,
-                showarrow=False, font=dict(size=16, color="#888"),
+                showarrow=False, font=dict(size=16, color=FALLBACK_MODEL_GRAY),
             )]
 
         return _finalize_chart(traces, layout, p, "sc", mc_result, mc_premium=False)
@@ -539,7 +540,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
         y_line = [max_wd.get((d, q_show), 0) for d in delays]
         traces.append(go.Scatter(
             x=delays, y=y_line, mode="lines",
-            line=dict(color="#888888", width=1, dash="dot"),
+            line=dict(color=FALLBACK_MODEL_GRAY, width=1, dash="dot"),
             showlegend=False, hoverinfo="skip",
         ))
         for di, d in enumerate(delays):
@@ -600,7 +601,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
         layout["annotations"] = [dict(
             text="No models selected \u2014 check Display Models",
             xref="paper", yref="paper", x=0.5, y=0.5,
-            showarrow=False, font=dict(size=16, color="#888"),
+            showarrow=False, font=dict(size=16, color=FALLBACK_MODEL_GRAY),
         )]
 
     return _finalize_chart(traces, layout, p, "sc", mc_premium=False)

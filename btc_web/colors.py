@@ -55,6 +55,33 @@ GRID_MINOR_COLOR    = "#B0B0B0"
 FALLBACK_MODEL_GRAY = "#888888"
 SCATTER_POINT       = "#2C3E50"
 
+# ── Additional palette-invariant chart constants ───────────────────
+BLACK               = "#000000"   # default band/line color
+WHITE               = "#ffffff"   # text on dark cells
+DARK_TEXT           = "#111111"   # text on light cells
+CLUSTER_MERGE_GRAY  = "#AAAAAA"   # merged overlapping edge annotations
+LIGHT_GRAY          = "#CCCCCC"   # overlay fallback / faint lines
+SPINE_COLOR_FALLBACK = "#999999"  # lighter border fallback (≈ #999)
+TODAY_LINE_COLOR    = "#FF6600"   # today vertical line default (matches palette today_line)
+NON_QUANTIZED_MODEL_COLOR = "#8B4513"  # saddlebrown — single-trajectory models
+
+# ── MC premium figure styling ──────────────────────────────────────
+MC_TITLE_COLOR      = "#996515"   # dark burnished gold — readable on light bg
+MC_LEGEND_BORDER    = "#c9a227"   # legend border gold
+
+# ── Bubble chart specific ─────────────────────────────────────────
+USER_MODEL_TRACE    = "#e67e22"   # user-drawn power-law line (pumpkin orange)
+UCL_LINE_COLOR      = "#ff6b6b"   # Unfairly Cheap Line
+OLS_LINE_COLOR      = "#888888"   # OLS fit line (same value as FALLBACK_MODEL_GRAY)
+SCAN_LINE_FALLBACK  = "#ffd93d"   # quantile scan line fallback (bright yellow)
+LOT_MARKER_COLOR    = "#FFD700"   # stack lot dot (gold)
+LOT_MARKER_OUTLINE  = "#333333"   # lot marker border
+
+# ── Citadel chart specific ────────────────────────────────────────
+CITADEL_SPENDING    = "#E74C3C"   # monthly spending line / depletion arrow (red)
+CITADEL_BULLISH_QR  = "#8B4513"   # saddlebrown — bullish QR overlay line
+CITADEL_BEARISH_QR  = "#228B22"   # forest green — bearish QR overlay line
+
 # ── Palette-invariant model trace fallback dict ────────────────────
 # IMPORTANT: this dict is INTENTIONALLY DISTINCT from
 # PALETTES["default"]["model_colors"] below. It is used by

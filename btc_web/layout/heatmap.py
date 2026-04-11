@@ -24,8 +24,7 @@ from colors import (NEAR_BLACK, DIM_TEXT, SPINE_COLOR_FALLBACK,
 # binding set stay in sync. Any divergence causes Dash to raise
 # ReferenceError on pill click and silently abort the callback.
 _HM_PILL_MODELS_BASE = [
-    "bub", "pl", "lppl", "linppl", "hybppl",
-    "hyb2l", "hyb2c", "hyb2b", "hyb4d",
+    "bub", "pl", "lppl", "hybppl",
     "pca", "grdy", "eppl", "gomp", "bpl",
 ]
 

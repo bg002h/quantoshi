@@ -766,6 +766,7 @@ _HM_LEGACY_MODEL_FALLBACK = {
     "lp2": "lppl", "lp3": "lppl", "lp4": "lppl",
     "lppl_w": "lppl", "lp2_w": "lppl", "lp3_w": "lppl", "lp4_w": "lppl",
     "lp4_n13": "lppl", "lp4_w_n13": "lppl",
+    "linppl": "lppl",  # removed from heatmap pills 2026-04-11 — fall back to LPPL
     "hybppl_dd": "hybppl", "hyb2l": "hybppl", "hyb2c": "hybppl",
     "hyb2b": "hybppl", "hyb4d": "hybppl",
     "exp": "bub",      # display-only demo

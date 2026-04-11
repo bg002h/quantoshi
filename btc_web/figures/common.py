@@ -763,17 +763,12 @@ def _hex_alpha(hex_color, alpha):
     return f"rgba({r},{g},{b},{alpha})"
 
 
-_BAND_ALPHA = 0.12  # uniform alpha for every symmetric quantile band
-
-
 def _build_symmetric_bands(sel_qs, y_cache, x_arr, model_color="#000000",
                             max_bands=2):
     """Build shaded band traces from symmetric quantile pairs.
 
     Pairs from outside in: (lowest, highest), (2nd lowest, 2nd highest).
-    All bands use a single uniform alpha (_BAND_ALPHA) so they read as
-    symmetric fills around the median instead of a graduated inner/outer
-    intensity.
+    Outer band = lighter opacity, inner = darker.
 
     Parameters
     ----------
@@ -798,10 +793,12 @@ def _build_symmetric_bands(sel_qs, y_cache, x_arr, model_color="#000000",
     if not pairs:
         return []
 
+    opacities = [0.08, 0.15] if len(pairs) >= 2 else [0.10]
+
     traces = []
     x = list(x_arr)
-    band_fill = _hex_alpha(model_color, _BAND_ALPHA)
-    for lo_q, hi_q in pairs:
+    for i, (lo_q, hi_q) in enumerate(pairs):
+        alpha = opacities[i] if i < len(opacities) else opacities[-1]
         lo_y = y_cache[lo_q]
         hi_y = y_cache[hi_q]
         traces.append(go.Scatter(
@@ -811,7 +808,7 @@ def _build_symmetric_bands(sel_qs, y_cache, x_arr, model_color="#000000",
         traces.append(go.Scatter(
             x=x, y=list(hi_y), mode="lines", line=dict(width=0),
             fill="tonexty",
-            fillcolor=band_fill,
+            fillcolor=_hex_alpha(model_color, alpha),
             showlegend=False, hoverinfo="skip",
         ))
 

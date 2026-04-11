@@ -45,7 +45,9 @@ def build_display_models_options(
     _LPPL_FAM   = {"lppl", "lp2", "lp3", "lp4"} | set(_app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
     _HYBPPL_FAM = set(_app_ctx.HYBPPL_FAMILY_HIDDEN)
     _PROMOTED   = ("pca", "grdy")
-    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl"}
+    # Deprioritized models appear at the bottom in this explicit order.
+    # S2F before Exponential per user preference (2026-04-11).
+    _DEPRIORITIZED = ("s2f", "exp", "gomp", "bpl")
 
     def _swatch_span(color):
         return html.Span(" ", style={
@@ -97,9 +99,14 @@ def build_display_models_options(
 
     opts = []
 
+    # Canonical top-of-list order: BM, PL, QR, Entropy PPL, Hybrid PPL, LPPL.
+    # BM first because it's the default flagship model. PL + QR next as the
+    # two simplest baselines. Then the three oscillatory family masters in
+    # increasing model complexity: EPPL (entropy-damped) → HybPPL (hybrid
+    # periodic) → LPPL (full log-periodic power law).
+    _ = include_bm_master  # kept as a no-op kwarg for backward compatibility.
+
     # 1. Bubble Model — gear on ALL tabs (opens global bm-config-modal).
-    # `include_bm_master` kept as a no-op kwarg for backward compatibility.
-    _ = include_bm_master
     opts.append({
         "label": html.Span([
             _swatch_span(mc.get("bub", BLACK)),
@@ -109,7 +116,22 @@ def build_display_models_options(
         "value": "bub",
     })
 
-    # 2. Entropy PPL master
+    # 2-3. PL and QR as plain entries. Pulled from PRICE_MODELS for display
+    # name; skipped below in the primary-block emission via _HIDDEN.
+    for key in ("pl", "qr"):
+        mdl = _app_ctx.PRICE_MODELS.get(key)
+        if mdl is None:
+            continue
+        opts.append({
+            "label": _plain_label(
+                mc.get(key, FALLBACK_MODEL_GRAY),
+                mdl.name,
+                model_key=key,
+            ),
+            "value": key,
+        })
+
+    # 4. Entropy PPL master
     opts.append({
         "label": _master_label(
             mc.get("eppl", MODEL_TRACE_COLORS["eppl"]),
@@ -122,20 +144,7 @@ def build_display_models_options(
         "value": "eppl",
     })
 
-    # 3. LPPL master
-    opts.append({
-        "label": _master_label(
-            mc.get("lppl", MODEL_TRACE_COLORS["lppl"]),
-            "LPPL",
-            gear_id=f"{prefix}-lppl-gear",
-            summary_id=f"{prefix}-lppl-summary-inline",
-            summary_default=summaries.get("lppl", "LPPL\u2083"),
-            gear_title="Configure LPPL",
-        ),
-        "value": "lppl",
-    })
-
-    # 4. Hybrid PPL master
+    # 5. Hybrid PPL master
     opts.append({
         "label": _master_label(
             mc.get("hybppl", CITADEL_OVERLAY_COLORS["reserves_total"]),
@@ -148,10 +157,23 @@ def build_display_models_options(
         "value": "hybppl",
     })
 
-    # 5-7. Non-master model entries
+    # 6. LPPL master
+    opts.append({
+        "label": _master_label(
+            mc.get("lppl", MODEL_TRACE_COLORS["lppl"]),
+            "LPPL",
+            gear_id=f"{prefix}-lppl-gear",
+            summary_id=f"{prefix}-lppl-summary-inline",
+            summary_default=summaries.get("lppl", "LPPL\u2083"),
+            gear_title="Configure LPPL",
+        ),
+        "value": "lppl",
+    })
+
+    # 7-9. Remaining non-master model entries (pl, qr excluded — already emitted above)
     _HIDDEN = (
         set(_app_ctx.MODEL_SENTINELS)
-        | {"bub", "eppl"}
+        | {"bub", "eppl", "pl", "qr"}
         | _LPPL_FAM
         | _HYBPPL_FAM
     )
@@ -167,6 +189,7 @@ def build_display_models_options(
                 if m.short_name not in _PROMOTED
                 and m.short_name not in _DEPRIORITIZED]
     deprior  = [m for m in all_models if m.short_name in _DEPRIORITIZED]
+    deprior.sort(key=lambda m: _DEPRIORITIZED.index(m.short_name))
 
     for mdl in promoted + primary + deprior:
         opts.append({

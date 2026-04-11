@@ -888,6 +888,44 @@ def _global_eppl_modal():
     ], id="eppl-config-modal", is_open=False, centered=True, size="lg")
 
 
+def _global_bm_modal():
+    """Root-level modal holding Bubble Model settings (composite/support + N future).
+
+    Rendered once in _serve_layout; opened by any tab's {prefix}-bm-gear click.
+    """
+    from tab_defaults import BUBBLE
+    return dbc.Modal([
+        dbc.ModalHeader(dbc.ModalTitle("Bubble Model Configuration")),
+        dbc.ModalBody([
+            _lbl("Overlays"),
+            dcc.Checklist(
+                id="bub-bubble-toggles",
+                options=[
+                    {"label": " Composite", "value": "show_comp"},
+                    {"label": " Support",   "value": "show_sup"},
+                ],
+                value=["show_comp", "show_sup"],
+                labelStyle={"display": "block"},
+                inputStyle=_CB_MARGIN,
+            ),
+            html.Hr(style={"margin": "6px 0", "borderColor": MODAL_DIVIDER_DARK}),
+            _lbl("N future bubbles"),
+            dcc.Slider(
+                id="bub-n-future",
+                min=0,
+                max=_app_ctx.M.n_future_max,
+                value=BUBBLE["n_future"],
+                step=1, marks=None,
+                tooltip={"always_visible": True},
+            ),
+        ]),
+        dbc.ModalFooter(
+            dbc.Button("Close", id="bm-modal-close-btn",
+                       size="sm", color="primary"),
+        ),
+    ], id="bm-config-modal", is_open=False, centered=True, size="md")
+
+
 def _shared_settings_card(prefix, *, amount_id=None, amount_label="Purchase amount ($)",
                           amount_default=100, infl_default=0, stack_default=0,
                           freq_default="Monthly"):

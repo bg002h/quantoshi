@@ -76,31 +76,11 @@ def _bubble_controls():
         display_models_panel("bub", include_bm_master=True,
                               default_value=["bub"],
                               legend_pos_default=BUBBLE["legend_pos"]),
-        html.Div(id="bub-bubble-panel", children=[
-            _section_card("Bubble Model",
-                html.Div(id="bub-bm-body", children=[
-                    _lbl("Bubble"),
-                    dcc.Checklist(id="bub-bubble-toggles",
-                                  options=[{"label":" Composite","value":"show_comp"},
-                                           {"label":" Support","value":"show_sup"}],
-                                  value=["show_comp","show_sup"],
-                                  labelStyle={"display":"block"},
-                                  inputStyle=_CB_MARGIN),
-                    html.Div(id="bub-n-future-wrap", children=[
-                        _lbl("N future bubbles"),
-                        dcc.Slider(id="bub-n-future", min=0, max=_app_ctx.M.n_future_max,
-                                   value=BUBBLE["n_future"], step=1, marks=None,
-                                   tooltip={"always_visible":True}),
-                    ]),
-                ]),
-                header_right=[dcc.Checklist(
-                    id="bub-bm-activate",
-                    options=[{"label": " Activate", "value": "yes"}],
-                    value=["yes"], inputStyle=_CB_MARGIN,
-                    className="model-panel-activate",
-                )],
-            ),
-        ]),
+        # Hidden placeholders — bub-bubble-panel and bub-n-future-wrap are
+        # referenced as style outputs by the bub-view-mode toggle callbacks.
+        # Real Bubble Model controls now live in the global bm-config-modal.
+        html.Div(id="bub-bubble-panel", style=_STYLE_HIDDEN),
+        html.Div(id="bub-n-future-wrap", style=_STYLE_HIDDEN),
         _section_card("Component Decomposition",
             _lbl("Model"),
             dcc.Dropdown(

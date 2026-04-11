@@ -204,64 +204,26 @@ _app_ctx.app.clientside_callback(
 )
 
 
-# BM gear icon → scroll to BM config body
+# BM modal: open via any tab's gear icon, close via close button.
 _app_ctx.app.clientside_callback(
     """
-    function(n) {
-        if (!n) return window.dash_clientside.no_update;
-        var el = document.getElementById('bub-bm-body');
-        if (el) el.scrollIntoView({behavior: 'smooth', block: 'center'});
+    function(bub_n, dca_n, ret_n, sc_n, close_n, cur_open) {
+        var ctx = window.dash_clientside.callback_context;
+        if (!ctx.triggered || !ctx.triggered.length) return window.dash_clientside.no_update;
+        var src = ctx.triggered[0].prop_id;
+        if (src.indexOf('modal-close-btn') !== -1) return false;
+        if (src.indexOf('-bm-gear') !== -1) return true;
         return window.dash_clientside.no_update;
     }
     """,
-    Output("bub-bm-body", "id"),  # dummy output (id never changes)
+    Output("bm-config-modal", "is_open", allow_duplicate=True),
     Input("bub-bm-gear", "n_clicks"),
+    Input("dca-bm-gear", "n_clicks"),
+    Input("ret-bm-gear", "n_clicks"),
+    Input("sc-bm-gear",  "n_clicks"),
+    Input("bm-modal-close-btn", "n_clicks"),
+    State("bm-config-modal", "is_open"),
     prevent_initial_call=True,
-)
-
-# "bub" in bub-model-show → bub-bm-body collapse
-_app_ctx.app.clientside_callback(
-    """
-    function(models) {
-        var has = (models || []).indexOf('bub') !== -1;
-        return has ? {} : {display: 'none'};
-    }
-    """,
-    Output("bub-bm-body", "style"),
-    Input("bub-model-show", "value"),
-)
-
-# bub-bm-activate → bub-model-show: add/remove "bub" master
-_app_ctx.app.clientside_callback(
-    """
-    function(act, cur_models) {
-        var want = (act && act.length) > 0;
-        var models = (cur_models || []).slice();
-        var has = models.indexOf('bub') !== -1;
-        if (want && !has) { models.push('bub'); return models; }
-        if (!want && has) {
-            return models.filter(function(v) { return v !== 'bub'; });
-        }
-        return window.dash_clientside.no_update;
-    }
-    """,
-    Output("bub-model-show", "value", allow_duplicate=True),
-    Input("bub-bm-activate", "value"),
-    State("bub-model-show", "value"),
-    prevent_initial_call='initial_duplicate',
-)
-
-# bub-model-show → bub-bm-activate: mirror "bub" membership
-_app_ctx.app.clientside_callback(
-    """
-    function(models) {
-        var has = (models || []).indexOf('bub') !== -1;
-        return has ? ['yes'] : [];
-    }
-    """,
-    Output("bub-bm-activate", "value", allow_duplicate=True),
-    Input("bub-model-show", "value"),
-    prevent_initial_call='initial_duplicate',
 )
 
 # LPPL modal: open via gear icon, close via close button.

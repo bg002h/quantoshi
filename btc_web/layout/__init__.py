@@ -17,7 +17,8 @@ import _app_ctx
 from snapshot import _SNAPSHOT_CONTROLS
 
 # ── Re-exports (consumed by callbacks.py, app.py, etc.) ─────────────────────
-from layout.common import _global_lppl_modal, _global_hybppl_modal, _global_eppl_modal
+from layout.common import (_global_lppl_modal, _global_hybppl_modal,
+                             _global_eppl_modal, _global_bm_modal)
 from layout.common import (_STYLE_HIDDEN, _STYLE_HINT, _STYLE_GRAPH_H,
                             _STYLE_COLOR_H, _CB_MARGIN, _freq_warning_modal)
 from layout.mc_controls import (_bold_opts, _regime_options,
@@ -685,6 +686,7 @@ def _build_layout(initial_tab="bubble"):
     _global_lppl_modal(),
     _global_hybppl_modal(),
     _global_eppl_modal(),
+    _global_bm_modal(),
     # ── Footer: block height + halving countdown + doc links ──────────────
     html.Div([
         html.Span(id="footer-block-height",

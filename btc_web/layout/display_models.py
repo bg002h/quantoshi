@@ -97,21 +97,17 @@ def build_display_models_options(
 
     opts = []
 
-    # 1. Bubble Model
-    if include_bm_master:
-        opts.append({
-            "label": html.Span([
-                _swatch_span(mc.get("bub", BLACK)),
-                "Bubble Model",
-                _gear_span(f"{prefix}-bm-gear", "Open Bubble Model settings"),
-            ]),
-            "value": "bub",
-        })
-    else:
-        opts.append({
-            "label": _plain_label(mc.get("bub", BLACK), "Bubble Model"),
-            "value": "bub",
-        })
+    # 1. Bubble Model — gear on ALL tabs (opens global bm-config-modal).
+    # `include_bm_master` kept as a no-op kwarg for backward compatibility.
+    _ = include_bm_master
+    opts.append({
+        "label": html.Span([
+            _swatch_span(mc.get("bub", BLACK)),
+            "Bubble Model",
+            _gear_span(f"{prefix}-bm-gear", "Open Bubble Model settings"),
+        ]),
+        "value": "bub",
+    })
 
     # 2. Entropy PPL master
     opts.append({

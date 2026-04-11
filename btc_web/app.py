@@ -15,6 +15,7 @@ Privacy model:
 """
 
 import logging
+import os
 import sys
 import time
 from pathlib import Path
@@ -61,6 +62,23 @@ try:
     _bg_manager = DiskcacheManager(_bg_cache, expire=600)
 except ImportError:
     _bg_manager = None
+
+# ── Color artifact regeneration (DEV mode only) ──────────────────────────────
+# In dev mode, regenerate _colors_generated.css/js from colors.py on
+# every startup so edits to colors.py propagate without manual steps.
+# In production (gunicorn), the checked-in artifacts are used as-is to
+# avoid race conditions between workers writing the same files.
+if os.environ.get("DEV"):
+    try:
+        import sys as _sys
+        from pathlib import Path as _Path
+        _proj_root = _Path(__file__).resolve().parent.parent
+        _sys.path.insert(0, str(_proj_root))
+        from tools.generate_color_artifacts import write_artifacts as _write_color_artifacts
+        _write_color_artifacts()
+    except Exception as _e:
+        # Non-fatal — never block startup. Manual generator run is the fallback.
+        print(f"[colors] DEV-mode color artifact regen skipped: {_e}")
 
 # ── create Dash app ───────────────────────────────────────────────────────────
 app = dash.Dash(

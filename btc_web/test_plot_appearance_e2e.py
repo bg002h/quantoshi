@@ -128,9 +128,35 @@ class TestPlotAppearancePanel:
         assert _value(page, "cp-plot-grid-major-width") == "2"
 
     def test_06_reset_on_citadel_resets_all_tabs(self, page):
-        _click(page, "cp-plot-appearance-reset")
-        time.sleep(0.8)
-        # All 5 tabs' panels should show defaults.
+        # Navigate to /1 and type pt_size/pt_alpha via real keyboard so
+        # Dash's React state for bub-ptsize/bub-ptalpha actually updates.
+        _switch_tab(page, "/1")
+        page.wait_for_selector("#bub-ptsize", state="attached")
+        time.sleep(0.5)
+        page.focus("#bub-ptsize")
+        page.evaluate('document.getElementById("bub-ptsize").select()')
+        page.keyboard.type("17")
+        page.keyboard.press("Tab")
+        page.focus("#bub-ptalpha")
+        page.evaluate('document.getElementById("bub-ptalpha").select()')
+        page.keyboard.type("0.9")
+        page.keyboard.press("Tab")
+        time.sleep(0.5)
+        assert _value(page, "bub-ptsize") == "17"
+        assert _value(page, "bub-ptalpha") == "0.9"
+
+        # Navigate to Citadel and wait for the cp reset button to mount
+        # in the lazy-loaded citadel subtree.
+        _switch_tab(page, "/6")
+        page.wait_for_selector("#cp-plot-appearance-reset", state="attached")
+        page.evaluate('document.querySelectorAll(".drawer-collapsed").forEach(el => el.classList.remove("drawer-collapsed"));')
+        time.sleep(0.4)
+        # page.dispatch_event bypasses visibility/actionability checks and
+        # dispatches a real native event that Dash recognizes (unlike
+        # document.getElementById(...).click() which Dash ignores).
+        page.dispatch_event("#cp-plot-appearance-reset", "click")
+        time.sleep(1.5)  # allow Dash round-trip for bub-ptsize/bub-ptalpha
+        # All 5 tabs' 6 JS-managed fields should show defaults.
         for prefix in ("bub", "dca", "ret", "sc", "cp"):
             assert _value(page, f"{prefix}-plot-trace-width") == "2.5", prefix
             assert _value(page, f"{prefix}-plot-grid-major-width") == "1", prefix
@@ -138,6 +164,12 @@ class TestPlotAppearancePanel:
             assert _value(page, f"{prefix}-plot-grid-major-color").lower() == "#888888"
             assert _value(page, f"{prefix}-plot-grid-minor-color").lower() == "#b0b0b0"
             assert _value(page, f"{prefix}-plot-pt-color").lower() == "#2c3e50"
+
+        # The kept Dash callback must have fired too — pt_size and pt_alpha
+        # are server-rendered bubble controls, not JS-managed. This catches
+        # the cloneNode-broke-React-fiber regression.
+        assert _value(page, "bub-ptsize") == "10", "Dash reset callback did not fire for pt_size"
+        assert _value(page, "bub-ptalpha") == "0.5", "Dash reset callback did not fire for pt_alpha"
 
     def test_07_localstorage_reset_to_defaults(self, page):
         import json as _json
@@ -151,10 +183,16 @@ class TestPlotAppearancePanel:
 
     def test_08_change_persists_across_reload(self, page):
         _dispatch_input(page, "bub-plot-trace-width", "4")
-        time.sleep(0.4)
+        # Verify localStorage actually updated before reloading.
+        import json as _json
+        raw = _get_localstorage(page, "plot-appearance")
+        assert raw is not None, "localStorage was not written by _dispatch_input"
+        assert _json.loads(raw)["trace_width"] == 4
         page.reload(wait_until="networkidle")
         page.wait_for_selector("#bub-plot-trace-width", state="attached", timeout=15000)
-        time.sleep(1.0)
+        # JS IIFE bootstraps synchronously, then setInterval 500ms polls.
+        # Allow a generous window for React hydration + first apply.
+        time.sleep(2.0)
         assert _value(page, "bub-plot-trace-width") == "4"
 
     def test_09_cleared_number_input_falls_back_to_default(self, page):

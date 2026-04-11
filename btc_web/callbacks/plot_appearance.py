@@ -18,22 +18,29 @@ import _app_ctx
 # sliders to their factory defaults (size=10, alpha=0.5). The JS layer
 # handles the other 6 Plot Appearance fields directly; this callback is
 # the one remaining Dash-side responsibility.
-_app_ctx.app.clientside_callback(
-    """
-    function(bub, dca, ret, sc, cp) {
-        if (!bub && !dca && !ret && !sc && !cp) {
-            return [window.dash_clientside.no_update,
-                    window.dash_clientside.no_update];
-        }
-        return [10, 0.5];
+#
+# NOTE: registered as 5 SEPARATE single-Input callbacks instead of one
+# multi-Input callback. Dash 4.0 has a bug where a clientside callback
+# combining allow_duplicate=True + multiple Inputs + prevent_initial_call
+# silently fails to fire even when n_clicks increments. The probe
+# callback confirmed n_clicks was propagating correctly to Dash's
+# internal store; only the multi-input version of this callback was
+# being skipped. Splitting into per-button callbacks sidesteps the bug.
+_RESET_BODY = """
+function(n) {
+    if (!n) {
+        return [window.dash_clientside.no_update,
+                window.dash_clientside.no_update];
     }
-    """,
-    Output("bub-ptsize", "value", allow_duplicate=True),
-    Output("bub-ptalpha", "value", allow_duplicate=True),
-    Input("bub-plot-appearance-reset", "n_clicks"),
-    Input("dca-plot-appearance-reset", "n_clicks"),
-    Input("ret-plot-appearance-reset", "n_clicks"),
-    Input("sc-plot-appearance-reset", "n_clicks"),
-    Input("cp-plot-appearance-reset", "n_clicks"),
-    prevent_initial_call=True,
-)
+    return [10, 0.5];
+}
+"""
+
+for _prefix in ("bub", "dca", "ret", "sc", "cp"):
+    _app_ctx.app.clientside_callback(
+        _RESET_BODY,
+        Output("bub-ptsize", "value", allow_duplicate=True),
+        Output("bub-ptalpha", "value", allow_duplicate=True),
+        Input(f"{_prefix}-plot-appearance-reset", "n_clicks"),
+        prevent_initial_call=True,
+    )

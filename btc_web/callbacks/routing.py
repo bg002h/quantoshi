@@ -753,13 +753,11 @@ _app_ctx.app.clientside_callback(
 # old URLs will land on different models — accepted per design decision.
 # /2.1=bub, /2.2=pl, /2.3=lppl (master), /2.4=linppl, /2.5=hybppl,
 # /2.6=ef (if loaded), /2.7=u1 (if loaded), /2.N+1=mc (if HAS_MARKOV)
-_HM_PILL_MODELS = ["bub", "pl", "lppl", "linppl", "hybppl", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "gomp", "bpl"]
-if "ef" in _app_ctx.PRICE_MODELS:
-    _HM_PILL_MODELS.append("ef")
-if "u1" in _app_ctx.PRICE_MODELS:
-    _HM_PILL_MODELS.append("u1")
-if _app_ctx._HAS_MARKOV:
-    _HM_PILL_MODELS.append("mc")
+# Source of truth lives in layout/heatmap.py so the rendered pill ids and
+# the callback Input/Output set stay in sync. Divergence causes Dash to
+# abort _hm_pill_click with a nonexistent-object ReferenceError on click.
+from layout.heatmap import _hm_pill_models as _hm_pill_models_fn  # noqa: E402
+_HM_PILL_MODELS = _hm_pill_models_fn()
 
 # Map removed pill IDs (Phase 1 share links may have these in hm-active-model)
 # → surviving pill. Used as a graceful fallback when old snapshot decodes.

@@ -17,6 +17,43 @@ from colors import (NEAR_BLACK, DIM_TEXT, SPINE_COLOR_FALLBACK,
                     PROGRESS_TRACK, FALLBACK_MODEL_GRAY)
 
 
+# ── Heatmap pill set ───────────────────────────────────────────────────────
+# Source of truth for the heatmap model-selector pill bar. Both this layout
+# module and callbacks/routing.py (for _hm_pill_click / _hm_pill_sync Inputs
+# and Outputs) import from here so the rendered pill ids and the callback
+# binding set stay in sync. Any divergence causes Dash to raise
+# ReferenceError on pill click and silently abort the callback.
+_HM_PILL_MODELS_BASE = [
+    "bub", "pl", "lppl", "linppl", "hybppl",
+    "hyb2l", "hyb2c", "hyb2b", "hyb4d",
+    "pca", "grdy", "eppl", "gomp", "bpl",
+]
+
+# Short display labels rendered inside each pill button.
+_HM_PILL_LABELS = {
+    "bub": "BM", "pl": "PL", "lppl": "LPPL",
+    "linppl": "LinPPL", "hybppl": "HybPPL",
+    "hyb2l": "H2L", "hyb2c": "H2C", "hyb2b": "H2B", "hyb4d": "H4D",
+    "pca": "PCA", "grdy": "Grdy", "eppl": "EPPL",
+    "gomp": "Gomp", "bpl": "BPL",
+    "ef": "EF", "u1": "U\u2081", "mc": "MC",
+}
+
+
+def _hm_pill_models():
+    """Return the full ordered pill-model list including conditional entries
+    (ef / u1 / mc). Mirrors the logic in callbacks/routing.py — any change
+    here must be matched there (or routing.py can import this helper)."""
+    keys = list(_HM_PILL_MODELS_BASE)
+    if "ef" in _app_ctx.PRICE_MODELS:
+        keys.append("ef")
+    if "u1" in _app_ctx.PRICE_MODELS:
+        keys.append("u1")
+    if _app_ctx._HAS_MARKOV:
+        keys.append("mc")
+    return keys
+
+
 def _heatmap_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
@@ -144,33 +181,26 @@ def _hm_pill_bar():
             display_name,
         ])
 
-    buttons = [
-        dbc.Button(_pill_label("bub", "BM"),
-                   id="hm-pill-bub", color="primary", size="sm"),
-        dbc.Button(_pill_label("pl", "PL"),
-                   id="hm-pill-pl", outline=True, color="primary", size="sm"),
-        dbc.Button(_pill_label("lppl", "LPPL"),
-                   id="hm-pill-lppl", outline=True, color="primary", size="sm"),
-        dbc.Button(_pill_label("linppl", "LinPPL"),
-                   id="hm-pill-linppl", outline=True, color="primary", size="sm"),
-        dbc.Button(_pill_label("hybppl", "HybPPL"),
-                   id="hm-pill-hybppl", outline=True, color="primary", size="sm"),
-    ]
-    if "ef" in _app_ctx.PRICE_MODELS:
-        buttons.append(
-            dbc.Button(_pill_label("ef", "EF"),
-                       id="hm-pill-ef", outline=True, color="primary", size="sm"),
-        )
-    if "u1" in _app_ctx.PRICE_MODELS:
-        buttons.append(
-            dbc.Button(_pill_label("u1", "U\u2081"),
-                       id="hm-pill-u1", outline=True, color="primary", size="sm"),
-        )
-    if _app_ctx._HAS_MARKOV:
-        buttons.append(
-            dbc.Button("MC", id="hm-pill-mc", outline=True,
-                       color="warning", size="sm"),
-        )
+    # Iterate the full pill-model list (base + conditional ef/u1/mc) so the
+    # rendered buttons exactly match the callback Input/Output set declared
+    # in callbacks/routing.py. Any model listed but missing here triggers a
+    # Dash "nonexistent object" ReferenceError and aborts pill clicks
+    # entirely — see git history around 2026-04-11 for the regression.
+    buttons = []
+    for i, key in enumerate(_hm_pill_models()):
+        label_text = _HM_PILL_LABELS.get(key, key)
+        if key == "mc":
+            buttons.append(
+                dbc.Button(label_text, id=f"hm-pill-{key}",
+                           outline=True, color="warning", size="sm"),
+            )
+        else:
+            buttons.append(
+                dbc.Button(_pill_label(key, label_text),
+                           id=f"hm-pill-{key}",
+                           color="primary", size="sm",
+                           outline=(i != 0)),
+            )
 
     pill_bar = html.Div([
         dbc.ButtonGroup(buttons, size="sm"),

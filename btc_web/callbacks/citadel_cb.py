@@ -6,6 +6,8 @@ import dash
 from dash import Input, Output, State, ctx, callback, html, dcc
 
 import _app_ctx
+from colors import (CLUSTER_MERGE_GRAY, USER_MODEL_TRACE, FALLBACK_MODEL_GRAY,
+                    KNIGHT_GOLD, CITADEL_SUCCESS_GREEN, CITADEL_SPENDING)
 
 logger = logging.getLogger(__name__)
 from callbacks.coerce import _ci, _cf
@@ -71,10 +73,10 @@ _app_ctx.app.clientside_callback(
 )
 def show_asset_model_info(model):
     _style_visible = {"display": "block", "marginTop": "6px", "fontSize": "11px",
-                      "color": "#aaa", "lineHeight": "1.4"}
+                      "color": CLUSTER_MERGE_GRAY, "lineHeight": "1.4"}
     if model == "markov":
         return html.Div([
-            html.Span("Historical Regimes", style={"fontWeight": "600", "color": "#e67e22"}),
+            html.Span("Historical Regimes", style={"fontWeight": "600", "color": USER_MODEL_TRACE}),
             html.Span(" \u2014 ignores your input rates. Each asset class transitions "
                       "between bull/bear/neutral regimes based on historical data:"),
             html.Ul([
@@ -83,7 +85,7 @@ def show_asset_model_info(model):
                 html.Li("Treasuries: yield-to-total-return (short/med/long duration)"),
             ], style={"marginTop": "4px", "marginBottom": "0", "paddingLeft": "18px"}),
             html.Small("Regime transitions are independent of BTC price paths.",
-                       style={"color": "#888", "fontStyle": "italic"}),
+                       style={"color": FALLBACK_MODEL_GRAY, "fontStyle": "italic"}),
         ]), _style_visible
     return "", {"display": "none"}
 
@@ -445,7 +447,7 @@ def update_citadel(
         task_id = mc_result.get("_celery_task_id")
         store_val = {"_celery_task_id": task_id, "_pending": True}
         status = html.Span("MC simulation computing in background...",
-                           style={"color": "#b8860b", "fontSize": "12px"})
+                           style={"color": KNIGHT_GOLD, "fontSize": "12px"})
         return (fig, store_val, status, dash.no_update,
                 dash.no_update, dash.no_update, dash.no_update, dash.no_update,
                 dash.no_update)
@@ -498,11 +500,11 @@ def _check_celery_task(n_intervals, mc_cached):
             sim_result = result.get(timeout=5)
             return sim_result, html.Span(
                 "\u2705 MC simulation complete — click Run to render fan bands",
-                style={"color": "#27ae60", "fontSize": "12px"})
+                style={"color": CITADEL_SUCCESS_GREEN, "fontSize": "12px"})
         elif result.failed():
             return {"_failed": True}, html.Span(
                 "\u274c MC simulation failed",
-                style={"color": "#e74c3c", "fontSize": "12px"})
+                style={"color": CITADEL_SPENDING, "fontSize": "12px"})
     except Exception:
         pass
     raise dash.exceptions.PreventUpdate

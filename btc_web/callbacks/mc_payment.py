@@ -8,6 +8,7 @@ from dash import html, Input, Output, State, ctx, callback, no_update
 
 import _app_ctx
 import btcpay
+from colors import MC_FREE_GREEN, ERROR_RED_DARK
 from callbacks.coerce import _ci, _cf
 from mc_cache import (MC_DEFAULT_YEARS, MC_DEFAULT_START_YR, MC_DEFAULT_ENTRY_Q)
 
@@ -113,7 +114,7 @@ def _mc_payment_initiate(*args):
     # Free tier check (bins/sims/freq not available here; uses defaults)
     if btcpay.is_free_tier(mc_model_src, mc_years, start_yr, entry_q):
         tab_statuses = list(no_tab_status)
-        tab_statuses[tab_idx] = html.Span("Free tier", style={"color": "#1a8f3c"})
+        tab_statuses[tab_idx] = html.Span("Free tier", style={"color": MC_FREE_GREEN})
         return _ret(False, dash.no_update, dash.no_update,
                     dash.no_update, True, 0, cur_trigger + 1,
                     *tab_statuses)
@@ -124,7 +125,7 @@ def _mc_payment_initiate(*args):
     except Exception:
         tab_statuses = list(no_tab_status)
         tab_statuses[tab_idx] = html.Span(
-            "Payment service unavailable", style={"color": "#c00"})
+            "Payment service unavailable", style={"color": ERROR_RED_DARK})
         return _ret(False, dash.no_update, "",
                     "", True, 0, dash.no_update, *tab_statuses)
 

@@ -6,6 +6,7 @@ from dash import html, Input, Output, State, callback, no_update, ctx, ALL
 
 import _app_ctx
 from btc_core import today_t, fmt_price, yr_to_t
+from colors import UCL_LINE_COLOR
 
 # LPPL family keys — filtered by LPPL config panel. Union of visible
 # bases {lppl, lp2, lp3, lp4} with weighted/no-13 variants.
@@ -133,7 +134,7 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_mo
         # Unfairly Cheap Line
         ucl_price = 10 ** (_app_ctx.UCL_INTERCEPT + _app_ctx.UCL_SLOPE * np.log10(t))
         ucl_ratio = price / ucl_price
-        ucl_style = {"fontSize": "11px", "color": "#ff6b6b"}
+        ucl_style = {"fontSize": "11px", "color": UCL_LINE_COLOR}
         rows.append(html.Tr([
             html.Td("Unfairly Cheap Line", style=ucl_style),
             html.Td(f"{ucl_ratio:.2f}x above", style={**ucl_style, "fontWeight": "bold"}),

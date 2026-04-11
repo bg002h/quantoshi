@@ -3,6 +3,7 @@
 from dash import Input, Output, State, callback, no_update
 
 import _app_ctx
+from colors import LIGHTBOX_BG
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -211,7 +212,7 @@ for _tab_id, _graph_id in _EXPORT_TABS:
                     + '<meta charset="utf-8">'
                     + '<title>' + fn + ' — Quantoshi</title>'
                     + '<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"><\\/script>'
-                    + '<style>body{{margin:0;background:#1a1a2e}}'
+                    + '<style>body{{margin:0;background:{LIGHTBOX_BG}}}'
                     + '#chart{{width:100vw;height:100vh}}</style>'
                     + '</head><body>'
                     + '<div id="chart"></div><script>'

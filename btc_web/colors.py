@@ -66,9 +66,40 @@ THERMAL_NEUTRAL     = "#bdbdbd"   # thermal scale midpoint (Q50)
 TODAY_LINE_COLOR    = "#FF6600"   # today vertical line default (matches palette today_line)
 NON_QUANTIZED_MODEL_COLOR = "#8B4513"  # saddlebrown — single-trajectory models
 
+# ── UI text hierarchy ────────────────────────────────────────────────
+DIM_TEXT            = "#555555"   # secondary / hint text (layout sidebar, MC panels)
+MUTED_TEXT          = "#666666"   # very muted text (tab hints, attributions)
+
+# ── MC tier indicators ────────────────────────────────────────────────
+MC_FREE_GREEN       = "#1a8f3c"   # free-tier label / cost indicator
+MC_LIVE_AMBER       = "#c57600"   # live-tier label / stale-overlay warning
+
 # ── MC premium figure styling ──────────────────────────────────────
 MC_TITLE_COLOR      = "#996515"   # dark burnished gold — readable on light bg
 MC_LEGEND_BORDER    = "#c9a227"   # legend border gold
+KNIGHT_GOLD         = "#b8860b"   # dark goldenrod — knighthood UI / high-cost warning
+
+# ── Surfaces / layout structure ──────────────────────────────────────
+MODAL_DIVIDER_DARK  = "#444444"   # HR / 1px divider inside dark modals & config panels
+PROGRESS_TRACK      = "#e0e0e0"   # progress-bar track background (e.g. CAGR loading bar)
+CODE_BG             = "#f5f5f5"   # code block / monospace address background
+BOOTSTRAP_LIGHT_BG  = "#f8f9fa"   # Bootstrap default light-surface background
+LIGHTBOX_BG         = "#1a1a2e"   # modal lightbox dark background (model-info images)
+SPLASH_BRAND_DARK   = "#2c3e50"   # navbar color= prop + splash modal brand text
+
+# ── Error / validation surfaces ───────────────────────────────────────
+DECOMP_ERROR_RED    = "#b71c1c"   # decomp warning / validation error text
+ERROR_BG            = "#fff3f3"   # light-red error banner background
+ERROR_BORDER        = "#f5c6cb"   # error banner border (Bootstrap danger-light)
+
+# ── Table chrome ─────────────────────────────────────────────────────
+TABLE_HEADER_BG     = "#f5f5f0"   # regime table header background (warm white)
+TABLE_BORDER_LIGHT  = "#dddddd"   # light table / hr border (#ddd)
+TABLE_BORDER_MID    = "#333333"   # medium table border (shares LOT_MARKER_OUTLINE value)
+TABLE_BORDER_DARK   = "#555555"   # dark table header border (shares DIM_TEXT value)
+
+# ── Model-panel summaries ──────────────────────────────────────────────
+EPPL_SUMMARY_COLOR  = "#148C8C"   # EPPL current-model summary text (dark teal)
 
 # ── Bubble chart specific ─────────────────────────────────────────
 USER_MODEL_TRACE    = "#e67e22"   # user-drawn power-law line (pumpkin orange)

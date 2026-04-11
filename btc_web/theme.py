@@ -1,13 +1,21 @@
-"""Quantoshi chart theme -- visual constants for figure builders.
+"""Quantoshi chart theme — re-exports from colors.py for backward compat.
 
-These were previously bundled in model_data.pkl and accessed via the
-model object (m.PLOT_BG_COLOR, etc.).  Now they live here so the pkl
-only carries model data.
+This module preserves the original constant names so existing importers
+(`from theme import PLOT_BG_COLOR`) keep working without modification.
+The actual values live in btc_web/colors.py.
 """
+from colors import (
+    PLOT_BG_COLOR,
+    TEXT_COLOR,
+    TITLE_COLOR,
+    SPINE_COLOR,
+    GRID_MAJOR_COLOR,
+)
 
-# -- Chart colors ---------------------------------------------------------------
-PLOT_BG_COLOR    = "#FFFFFF"
-TEXT_COLOR       = "#222222"
-TITLE_COLOR      = "#1A3060"
-SPINE_COLOR      = "#888888"
-GRID_MAJOR_COLOR = "#888888"
+__all__ = [
+    "PLOT_BG_COLOR",
+    "TEXT_COLOR",
+    "TITLE_COLOR",
+    "SPINE_COLOR",
+    "GRID_MAJOR_COLOR",
+]

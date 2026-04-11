@@ -13,7 +13,7 @@
  *  3. No Dash callback ever writes to {prefix}-plot-* values; React has no
  *     reason to re-render them, so JS-set DOM values are stable.
  *  4. Idempotent across hot-reload via window.__paCleanup.
- *  5. cloneNode(true) + replaceWith is used to drop stale listeners
+ *  5. cloneNode(true) + replaceChild is used to drop stale listeners
  *     atomically — do not track listener references manually.
  */
 (function() {
@@ -29,8 +29,8 @@
         grid_major_width: 1.0,
         grid_major_color: "#888888",
         grid_minor_width: 0.8,
-        grid_minor_color: "#B0B0B0",
-        pt_color: "#2C3E50"
+        grid_minor_color: "#b0b0b0",
+        pt_color: "#2c3e50"
     };
 
     var PREFIXES = ['bub', 'dca', 'ret', 'sc', 'cp'];
@@ -47,6 +47,12 @@
 
     var _wired = new Set();  // element identities already wired
     var _interval = null;
+    var _lastFp = null;
+
+    function fingerprint(s) {
+        return [s.trace_width, s.grid_major_width, s.grid_major_color,
+                s.grid_minor_width, s.grid_minor_color, s.pt_color].join('|');
+    }
 
     function ctrlId(prefix, kebab) { return prefix + '-plot-' + kebab; }
     function btnId(prefix)         { return prefix + '-plot-appearance-reset'; }
@@ -77,6 +83,9 @@
     }
 
     function applyStateToDOM(s) {
+        var fp = fingerprint(s);
+        if (fp === _lastFp) return;
+        _lastFp = fp;
         PREFIXES.forEach(function(prefix) {
             FIELDS.forEach(function(f) {
                 var el = document.getElementById(ctrlId(prefix, f[0]));
@@ -126,6 +135,7 @@
     }
 
     function wireElement(el, listener, eventName) {
+        if (!el.parentNode) return el;  // detached; skip
         /* Drop any stale listeners atomically via cloneNode, then bind. */
         var clone = el.cloneNode(true);
         el.parentNode.replaceChild(clone, el);
@@ -135,6 +145,7 @@
     }
 
     function rewireNewControls() {
+        var didWire = false;
         PREFIXES.forEach(function(prefix) {
             FIELDS.forEach(function(f) {
                 var el = document.getElementById(ctrlId(prefix, f[0]));
@@ -144,12 +155,15 @@
                    picker pixel-drag (Chrome fires 'input' continuously). */
                 var eventName = (f[2] === 'number') ? 'input' : 'change';
                 wireElement(el, makeInputHandler(f), eventName);
+                didWire = true;
             });
             var btn = document.getElementById(btnId(prefix));
             if (btn && !_wired.has(btn)) {
                 wireElement(btn, makeResetHandler(), 'click');
+                didWire = true;
             }
         });
+        if (didWire) _lastFp = null;
     }
 
     function tick() {
@@ -171,5 +185,6 @@
             _interval = null;
         }
         _wired = new Set();
+        _lastFp = null;
     };
 })();

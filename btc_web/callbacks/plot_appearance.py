@@ -27,16 +27,33 @@ _PREFIXES = ("bub", "dca", "ret", "sc", "cp")
 
 for _prefix in _PREFIXES:
     # ── Persist control values → localStorage store ──────────────────────
+    #
+    # CRITICAL: the persist callback MUST return no_update when the store
+    # already matches the control values. Without this guard, writes cycle
+    # endlessly through persist → restore → persist → ... because each
+    # tab's restore callback feeds its 6 controls, and a control write here
+    # triggers the persist callback again. The equality check breaks the
+    # cycle at the first iteration where the store and controls agree.
     _app_ctx.app.clientside_callback(
         """
         function(tw, gmw, gmc, gnw, gnc, ptc) {
             if (tw == null && gmw == null && gmc == null && gnw == null && gnc == null && ptc == null) {
                 return window.dash_clientside.no_update;
             }
-            /* Preserve existing pt_size/pt_alpha */
             var cur = null;
             try { cur = JSON.parse(localStorage.getItem("plot-appearance")); } catch(e) {}
             cur = cur || {};
+            /* Break the persist↔restore cycle: if the store already matches
+               every field we'd write, don't write. Use == (not ===) so
+               numeric strings from color inputs compare correctly. */
+            if (cur.trace_width == tw
+                && cur.grid_major_width == gmw
+                && cur.grid_major_color == gmc
+                && cur.grid_minor_width == gnw
+                && cur.grid_minor_color == gnc
+                && cur.pt_color == ptc) {
+                return window.dash_clientside.no_update;
+            }
             return {
                 trace_width: tw,
                 grid_major_width: gmw,

@@ -515,9 +515,12 @@ class TestTaxSnapshot:
         assert "cp-td-btc" in ids
         assert "cp-tf-btc" in ids
 
-    def test_tax_checklist_options(self):
+    def test_tax_toggle_not_in_checklist_options(self):
+        # cp-tax-toggle is a dbc.Switch (bool), not a checklist. It must
+        # NOT appear in _CHECKLIST_OPTIONS — doing so made _list_to_mask
+        # crash on set(True). See snapshot.py note at _CHECKLIST_OPTIONS.
         from snapshot import _CHECKLIST_OPTIONS
-        assert "cp-tax-toggle" in _CHECKLIST_OPTIONS
+        assert "cp-tax-toggle" not in _CHECKLIST_OPTIONS
 
 
 

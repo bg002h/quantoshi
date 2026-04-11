@@ -15,7 +15,7 @@ from figures.common import (
     _NON_QUANTIZED_MODEL_COLOR, _OVERLAY_LINE_WIDTH,
     _FONT_ANNOT,
     _HAS_MARKOV,
-    _get_palette, _build_thermal_colors, _fmt_q_label, _error_figure,
+    _get_palette, _get_model_color, _build_thermal_colors, _fmt_q_label, _error_figure,
     _build_freq_config, _build_time_array, _get_starting_stack,
     _sim_layout, _apply_mc_overlay,
     _finalize_chart, _fmt_short, _find_mc_median_trace,
@@ -211,7 +211,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
 
     # ── Symmetric band shading (added before line traces so lines render on top) ──
     if show_bm and p.get("shade") and len(_y_for_bands) >= 2:
-        _bm_color = model.colors.get(0.50, "#2C3E50")
+        _bm_color = _get_model_color("bub", p)
         traces.extend(_build_symmetric_bands(
             sorted(_y_for_bands.keys()), _y_for_bands, ts, model_color=_bm_color))
     traces.extend(_bm_line_traces)

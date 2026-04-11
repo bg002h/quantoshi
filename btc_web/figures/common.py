@@ -103,22 +103,30 @@ def _get_palette(p):
 def _get_model_color(model_key, p=None):
     """Return the palette-aware color for a model key.
 
-    Family fallbacks: the ``eppl`` / ``hybppl`` checkboxes in the UI are
-    master gates that get resolved to concrete ``ecfg_*`` / ``cfg_*``
-    config variant keys (e.g. ``ecfg_1d_1u``) before they reach the
-    figure builder. Those variant keys are NOT individually registered
-    in the palette's ``model_colors`` dict, so a direct lookup falls
-    back to ``#888888`` gray — which is why every Entropy PPL trace was
-    rendering gray instead of the registered EPPL amber. Resolve the
-    family prefix and inherit the master's color.
+    Family fallbacks: the ``lppl`` / ``hybppl`` / ``eppl`` checkboxes in
+    the UI are master gates that get resolved to concrete variant keys
+    (e.g. ``lp3_w``, ``cfg_1d_1u``, ``ecfg_1d_1u``, ``hybppl_cfg_a``)
+    before they reach the figure builder. Many of those variant keys
+    are NOT individually registered in the palette's ``model_colors``
+    dict, so a direct lookup falls back to ``#888888`` gray — which is
+    why Entropy PPL / Hybrid PPL / weighted-LPPL traces were all
+    rendering gray instead of their family colors. Resolve the family
+    prefix and inherit the master's color.
+
+    Directly-registered variant keys (``lp2``, ``lp3``, ``lp4``,
+    ``hybppl_dd``, ``hyb2l``, ``hyb2c``, ``hyb2b``, ``hyb4d``) keep
+    their own distinct colors — the ``model_key not in mc`` guard
+    prevents the fallback from overriding them.
     """
     palette = _get_palette(p) if p else _app_ctx.PALETTES["default"]
     mc = palette.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
     if model_key and model_key not in mc:
         if model_key.startswith("ecfg_"):
             return mc.get("eppl", "#888888")
-        if model_key.startswith("cfg_"):
+        if model_key.startswith("cfg_") or model_key.startswith("hyb"):
             return mc.get("hybppl", "#888888")
+        if model_key.startswith("lp"):
+            return mc.get("lppl", "#888888")
     return mc.get(model_key, "#888888")
 
 
@@ -755,12 +763,17 @@ def _hex_alpha(hex_color, alpha):
     return f"rgba({r},{g},{b},{alpha})"
 
 
+_BAND_ALPHA = 0.12  # uniform alpha for every symmetric quantile band
+
+
 def _build_symmetric_bands(sel_qs, y_cache, x_arr, model_color="#000000",
                             max_bands=2):
     """Build shaded band traces from symmetric quantile pairs.
 
     Pairs from outside in: (lowest, highest), (2nd lowest, 2nd highest).
-    Outer band = lighter opacity, inner = darker.
+    All bands use a single uniform alpha (_BAND_ALPHA) so they read as
+    symmetric fills around the median instead of a graduated inner/outer
+    intensity.
 
     Parameters
     ----------
@@ -785,12 +798,10 @@ def _build_symmetric_bands(sel_qs, y_cache, x_arr, model_color="#000000",
     if not pairs:
         return []
 
-    opacities = [0.08, 0.15] if len(pairs) >= 2 else [0.10]
-
     traces = []
     x = list(x_arr)
-    for i, (lo_q, hi_q) in enumerate(pairs):
-        alpha = opacities[i] if i < len(opacities) else opacities[-1]
+    band_fill = _hex_alpha(model_color, _BAND_ALPHA)
+    for lo_q, hi_q in pairs:
         lo_y = y_cache[lo_q]
         hi_y = y_cache[hi_q]
         traces.append(go.Scatter(
@@ -800,7 +811,7 @@ def _build_symmetric_bands(sel_qs, y_cache, x_arr, model_color="#000000",
         traces.append(go.Scatter(
             x=x, y=list(hi_y), mode="lines", line=dict(width=0),
             fill="tonexty",
-            fillcolor=_hex_alpha(model_color, alpha),
+            fillcolor=band_fill,
             showlegend=False, hoverinfo="skip",
         ))
 

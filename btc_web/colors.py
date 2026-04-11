@@ -355,7 +355,29 @@ HM_PRESET_PALETTES = {
 # Names that should NOT be emitted to generated CSS/JS artifacts.
 # Default behavior: every module-level UPPER_CASE name with a string,
 # dict, or list value gets emitted. Use this set to suppress.
+# ── rgba-sourced named constants (used by _hex_alpha callers) ────────
+# These are palette-invariant and cover the common rgba() patterns in the UI.
+LOG_MINOR_GRID_GRAY  = "#646464"   # rgba(100,100,100,*) — chart config annotation text, log-minor grid
+WATERMARK_TEXT_COLOR = "#B4B4B4"   # rgba(180,180,180,*) — chart watermark URL text
+TAX_DRAG_RED         = "#DC3232"   # rgba(220,50,50,*)  — cumulative taxes paid fill (citadel)
+CTX_MENU_BG          = "#1E1E28"   # rgba(30,30,40,*)   — context menu / tooltip dark background
+DANGER_HIGHLIGHT     = "#FF6464"   # rgba(255,100,100,*)— table row danger highlight (FAQ)
+MC_AMBER             = "#DC7800"   # rgba(220,120,0,*)  — MC overlay amber bands / median line
+MC_GHOST_GRAY        = "#969696"   # rgba(150,150,150,*)— MC ghost/reference fan bands
+BADGE_GLOW_RED       = "#8B0000"   # rgba(139,0,0,*)    — "NEW" badge text-shadow glow (dark red)
+
 __skip_export__ = frozenset({
     # Complex structured values — not useful as individual CSS variables.
     "HM_PRESET_PALETTES",
 })
+
+
+# ════════════════════════════════════════════════════════════════════
+# SECTION 4 — Utility functions
+# ════════════════════════════════════════════════════════════════════
+
+def _hex_alpha(hex_color: str, alpha: float) -> str:
+    """Convert a #rrggbb hex color to an rgba(...) string with the given alpha."""
+    h = hex_color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"rgba({r},{g},{b},{alpha})"

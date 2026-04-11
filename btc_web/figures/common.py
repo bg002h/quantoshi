@@ -767,11 +767,7 @@ def _dense_colorscale(color_fn, n=_COLORSCALE_STEPS):
     return cs
 
 
-def _hex_alpha(hex_color, alpha):
-    """Convert hex color + alpha float to an rgba() CSS string."""
-    h = hex_color.lstrip("#")
-    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
-    return f"rgba({r},{g},{b},{alpha})"
+from colors import _hex_alpha  # noqa: F401 — re-exported for backward compat
 
 
 def _build_symmetric_bands(sel_qs, y_cache, x_arr, model_color=BLACK,

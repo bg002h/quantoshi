@@ -1625,58 +1625,12 @@ class TestResolveLpplMaster:
 
 
 
-class TestModelShowChecklistStandardized:
-    """Unit tests for _model_show_checklist standardized=True mode."""
-
-    def test_has_lppl_master(self):
-        from layout.common import _model_show_checklist
-        elems = _model_show_checklist("dca", standardized=True)
-        rendered = str(elems).replace("'", '"')
-        assert '"value": "lppl"' in rendered
-
-    def test_omits_lppl_variants(self):
-        from layout.common import _model_show_checklist
-        elems = _model_show_checklist("dca", standardized=True)
-        rendered = str(elems).replace("'", '"')
-        assert '"value": "lp2"' not in rendered
-        assert '"value": "lp3"' not in rendered
-        assert '"value": "lp4"' not in rendered
-        assert '"value": "lppl_w"' not in rendered
-
-    def test_omits_exp_and_s2f(self):
-        from layout.common import _model_show_checklist
-        elems = _model_show_checklist("dca", standardized=True)
-        rendered = str(elems).replace("'", '"')
-        assert '"value": "exp"' not in rendered
-        assert '"value": "s2f"' not in rendered
-
-    def test_non_standardized_unchanged(self):
-        from layout.common import _model_show_checklist
-        elems = _model_show_checklist("dca", standardized=False)
-        rendered = str(elems).replace("'", '"')
-        assert '"value": "lppl"' in rendered
-
-
-
-class TestLpplConfigPanel:
-    """Unit test for _lppl_config_panel compact helper."""
-
-    def test_has_activate_and_summary_and_button(self):
-        from layout.common import _lppl_config_panel
-        card = _lppl_config_panel("dca")
-        rendered = str(card)
-        assert "dca-lppl-activate" in rendered
-        assert "dca-lppl-summary" in rendered
-        assert "dca-lppl-configure-btn" in rendered
-
-    def test_no_inline_config_controls(self):
-        """The un-prefixed config IDs live in the global modal, not here."""
-        from layout.common import _lppl_config_panel
-        card = _lppl_config_panel("ret")
-        rendered = str(card).replace("'", '"')
-        assert '"lppl-n-freqs"' not in rendered
-        assert '"lppl-weighted"' not in rendered
-        assert '"lppl-no-13"' not in rendered
+# TestModelShowChecklistStandardized, TestLpplConfigPanel — removed in Task 6
+# of the Display Models Consolidation refactor. The helpers they exercised
+# (_model_show_checklist, _lppl_config_panel) were deleted in Task 5; their
+# functionality is now covered by build_display_models_options + the new
+# test_palette_roundtrip.py coverage (test_inline_summary_spans_exist,
+# test_no_mini_card_ids_anywhere, test_defunct_placeholders_unconditional).
 
 
 
@@ -2110,16 +2064,9 @@ class TestGlobalHybPPLModal:
         assert "hybppl-modal-close-btn" in rendered
 
 
-class TestHybPPLConfigPanel:
-    """Unit test for per-tab _hybppl_config_panel."""
-
-    def test_has_activate_and_summary(self):
-        from layout.common import _hybppl_config_panel
-        panel = _hybppl_config_panel("bub")
-        rendered = str(panel)
-        assert "bub-hybppl-activate" in rendered
-        assert "bub-hybppl-summary" in rendered
-        assert "bub-hybppl-configure-btn" in rendered
+# TestHybPPLConfigPanel — removed in Task 6 (see note above). Helper
+# _hybppl_config_panel was deleted in Task 5; functionality now covered by
+# build_display_models_options + test_palette_roundtrip.py.
 
 
 # ===========================================================================
@@ -2350,13 +2297,6 @@ class TestGlobalEPPLModal:
         assert "eppl-modal-close-btn" in rendered
 
 
-class TestEPPLConfigPanel:
-    """Unit test for per-tab _eppl_config_panel."""
-
-    def test_has_activate_and_summary(self):
-        from layout.common import _eppl_config_panel
-        panel = _eppl_config_panel("bub")
-        rendered = str(panel)
-        assert "bub-eppl-activate" in rendered
-        assert "bub-eppl-summary" in rendered
-        assert "bub-eppl-configure-btn" in rendered
+# TestEPPLConfigPanel — removed in Task 6 (see note above). Helper
+# _eppl_config_panel was deleted in Task 5; functionality now covered by
+# build_display_models_options + test_palette_roundtrip.py.

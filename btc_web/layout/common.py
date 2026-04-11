@@ -234,15 +234,18 @@ def _lbl(text: str):
 
 
 def _plot_appearance_controls(prefix: str):
-    """Trace width + grid width/color controls for a chart tab.
+    """Trace width + grid width/color + data point color controls for a chart tab.
 
-    Each tab gets its own copy of these controls (IDs prefixed). All copies
-    read from and write to the same global 'plot-appearance' localStorage
-    store, so changes propagate across tabs.
+    Each tab gets its own copy of these 6 inputs + a reset button, all with
+    prefixed IDs. The JS layer in btc_web/assets/plot_appearance.js owns the
+    control plane entirely — it wires up input event listeners, reset button
+    clicks, and keeps localStorage["plot-appearance"] in sync across all 5
+    tabs. chart_responsive.js reads that same localStorage entry to apply
+    trace width / grid / marker color to Plotly figures.
+
+    See docs/superpowers/specs/2026-04-10-plot-appearance-control-plane-design.md.
 
     Returns a list of components to be spread into a _section_card.
-    The store and the reset button are only rendered for the 'bub' prefix
-    to avoid duplicate IDs — bubble tab is the canonical location.
     """
     parts = [
         _row(

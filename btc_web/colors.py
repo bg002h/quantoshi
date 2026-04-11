@@ -137,6 +137,9 @@ STATIC_PAGE_TH_BG   = "#2a3a5e"   # table header background in docs pages
 STATIC_PAGE_DESC_BG = "#101a2e"   # .desc box background (info callouts)
 STATIC_PAGE_DESC_TEXT = "#b8ccd8" # .desc box body text
 STATIC_PAGE_FORMULA_BG = "#0e1624"  # .formula block background
+STATIC_PAGE_BODY_TEXT   = "#dddddd"  # body text on dark static pages (#ddd)
+STATIC_PAGE_BORDER      = "#444444"  # table/hr borders on dark static pages (#444)
+STATIC_PAGE_MUTED       = "#888888"  # muted/dim text on dark static pages (#888)
 
 # ── Error / validation surfaces ───────────────────────────────────────
 DECOMP_ERROR_RED    = "#b71c1c"   # decomp warning / validation error text

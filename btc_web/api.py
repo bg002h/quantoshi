@@ -24,6 +24,7 @@ from colors import (
     STATIC_PAGE_LINK, STATIC_PAGE_LINK_HOVER, STATIC_PAGE_CODE_BG,
     STATIC_PAGE_TH_BG, STATIC_PAGE_DESC_BG, STATIC_PAGE_DESC_TEXT,
     STATIC_PAGE_FORMULA_BG,
+    STATIC_PAGE_BODY_TEXT, STATIC_PAGE_BORDER, STATIC_PAGE_MUTED,
 )
 
 _INVOICE_ID_RE = re.compile(r'^[a-zA-Z0-9_-]{1,64}$')
@@ -117,18 +118,18 @@ def register_routes(server) -> None:
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title} — Quantoshi</title>
 <style>
-body {{ background:{STATIC_PAGE_BG}; color:#ddd; font-family:system-ui,sans-serif;
+body {{ background:{STATIC_PAGE_BG}; color:{STATIC_PAGE_BODY_TEXT}; font-family:system-ui,sans-serif;
        max-width:900px; margin:0 auto; padding:24px 16px; line-height:1.6; }}
 a {{ color:{STATIC_PAGE_ACCENT}; }}
 h1,h2,h3 {{ color:{STATIC_PAGE_ACCENT}; }}
 h4,h5,h6 {{ color:{STATIC_PAGE_SUBHEAD}; }}
 table {{ border-collapse:collapse; width:100%; margin:16px 0; }}
-th,td {{ border:1px solid #444; padding:6px 10px; text-align:left; }}
+th,td {{ border:1px solid {STATIC_PAGE_BORDER}; padding:6px 10px; text-align:left; }}
 th {{ background:{STATIC_PAGE_TH_BG}; color:{STATIC_PAGE_ACCENT}; }}
 code {{ background:{STATIC_PAGE_CODE_BG}; padding:2px 6px; border-radius:3px; font-size:0.9em; }}
 pre {{ background:{STATIC_PAGE_CODE_BG}; padding:12px; border-radius:6px; overflow-x:auto; }}
 pre code {{ background:none; padding:0; }}
-.back {{ display:inline-block; margin-bottom:16px; color:#888; text-decoration:none; }}
+.back {{ display:inline-block; margin-bottom:16px; color:{STATIC_PAGE_MUTED}; text-decoration:none; }}
 .back:hover {{ color:{STATIC_PAGE_ACCENT}; }}
 </style>
 </head><body>
@@ -176,20 +177,20 @@ h1 {{ font-size:22px; }}
 h2 {{ font-size:16px; margin-top:28px; }}
 a {{ color:{STATIC_PAGE_LINK}; text-decoration:none; }}
 a:hover {{ color:{STATIC_PAGE_LINK_HOVER}; text-decoration:underline; }}
-.muted {{ color:#888; font-size:12px; }}
+.muted {{ color:{STATIC_PAGE_MUTED}; font-size:12px; }}
 .desc {{ background:{STATIC_PAGE_DESC_BG}; padding:10px 16px; border-radius:6px;
         border-left:3px solid {STATIC_PAGE_ACCENT}; margin:8px 0 12px 0;
         font-size:13px; color:{STATIC_PAGE_DESC_TEXT}; line-height:1.55; }}
 .desc strong {{ color:{STATIC_PAGE_ACCENT}; }}
 table {{ border-collapse:collapse; margin:8px 0 12px 0; font-size:12px; }}
-th, td {{ border:1px solid #444; padding:4px 10px; text-align:right; }}
+th, td {{ border:1px solid {STATIC_PAGE_BORDER}; padding:4px 10px; text-align:right; }}
 th {{ background:{STATIC_PAGE_CODE_BG}; color:{STATIC_PAGE_ACCENT}; text-align:center; }}
 td:first-child, td:nth-child(2) {{ font-weight:600; color:{STATIC_PAGE_LINK_HOVER}; }}
 .formula {{ background:{STATIC_PAGE_FORMULA_BG}; padding:10px 14px; border-radius:6px;
            border-left:3px solid {STATIC_PAGE_LINK}; font-size:13px; margin:8px 0 12px 0;
            font-family: ui-monospace, monospace; }}
 img, svg {{ max-width:100%; height:auto; display:block; border-radius:6px; }}
-.back-link {{ display:inline-block; margin-top:24px; color:#888; }}
+.back-link {{ display:inline-block; margin-top:24px; color:{STATIC_PAGE_MUTED}; }}
 </style>
 </head><body>
 <h1>Residual FFT power spectra</h1>
@@ -277,15 +278,15 @@ a {{ color:{STATIC_PAGE_LINK}; text-decoration:none; }}
 a:hover {{ color:{STATIC_PAGE_LINK_HOVER}; text-decoration:underline; }}
 img {{ max-width:100%; height:auto; display:block; border-radius:6px;
        margin-top:12px; }}
-.muted {{ color:#888; font-size:12px; }}
+.muted {{ color:{STATIC_PAGE_MUTED}; font-size:12px; }}
 .desc {{ background:{STATIC_PAGE_DESC_BG}; padding:10px 16px; border-radius:6px;
         border-left:3px solid {STATIC_PAGE_ACCENT}; margin:8px 0 10px 0;
         font-size:13px; color:{STATIC_PAGE_DESC_TEXT}; line-height:1.55; }}
 .desc strong {{ color:{STATIC_PAGE_ACCENT}; }}
-hr {{ border:none; border-top:1px solid #444; margin:32px 0; }}
-.back-link {{ display:inline-block; margin-top:24px; color:#888; }}
+hr {{ border:none; border-top:1px solid {STATIC_PAGE_BORDER}; margin:32px 0; }}
+.back-link {{ display:inline-block; margin-top:24px; color:{STATIC_PAGE_MUTED}; }}
 table {{ border-collapse:collapse; margin:8px 0 12px 0; font-size:12px; }}
-th, td {{ border:1px solid #444; padding:4px 10px; text-align:right; }}
+th, td {{ border:1px solid {STATIC_PAGE_BORDER}; padding:4px 10px; text-align:right; }}
 th {{ background:{STATIC_PAGE_CODE_BG}; color:{STATIC_PAGE_ACCENT}; text-align:center; }}
 </style>
 </head><body>

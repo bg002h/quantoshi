@@ -17,6 +17,7 @@ from layout.common import (_tab_hints, _section_card, _lbl,
                             _legend_pos_dropdown, _ctrl_card,
                             _chart_tab_layout, _plot_appearance_controls)
 from layout.mc_controls import _mc_controls
+from colors import DIM_TEXT
 
 
 def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
@@ -110,7 +111,7 @@ def _stackcelerator_controls():
                       value=int(DCA["sc_tax_rate"] * 100), min=0, max=99, step=0.5, size="sm",
                       debounce=True),
             html.Div(id="dca-sc-info",
-                     style={"fontSize":"11px","color":"#555","marginTop":"4px"}),
+                     style={"fontSize":"11px","color":DIM_TEXT,"marginTop":"4px"}),
         ]),
     )
 

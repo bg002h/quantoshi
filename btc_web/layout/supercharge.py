@@ -16,6 +16,7 @@ from layout.common import (_tab_hints, _section_card, _lbl,
                             _legend_pos_dropdown, _chart_tab_layout,
                             _CB_MARGIN, _Q_HINT_BASE, _plot_appearance_controls)
 from layout.mc_controls import _mc_controls
+from colors import STATIC_PAGE_MUTED
 
 
 def _supercharge_controls():
@@ -38,7 +39,7 @@ def _supercharge_controls():
             dbc.Collapse(
                 html.Div(
                     "\u2248YYYY annotations mark the year each scenario\u2019s BTC stack reaches zero \u2014 savings exhausted.",
-                    style={"fontSize":"10px","color":"#888","marginTop":"6px",
+                    style={"fontSize":"10px","color":STATIC_PAGE_MUTED,"marginTop":"6px",
                            "lineHeight":"1.4"},
                 ),
                 id="sc-depl-note-collapse", is_open=True,

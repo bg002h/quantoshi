@@ -101,9 +101,24 @@ def _get_palette(p):
 
 
 def _get_model_color(model_key, p=None):
-    """Return the palette-aware color for a model key."""
+    """Return the palette-aware color for a model key.
+
+    Family fallbacks: the ``eppl`` / ``hybppl`` checkboxes in the UI are
+    master gates that get resolved to concrete ``ecfg_*`` / ``cfg_*``
+    config variant keys (e.g. ``ecfg_1d_1u``) before they reach the
+    figure builder. Those variant keys are NOT individually registered
+    in the palette's ``model_colors`` dict, so a direct lookup falls
+    back to ``#888888`` gray — which is why every Entropy PPL trace was
+    rendering gray instead of the registered EPPL amber. Resolve the
+    family prefix and inherit the master's color.
+    """
     palette = _get_palette(p) if p else _app_ctx.PALETTES["default"]
     mc = palette.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
+    if model_key and model_key not in mc:
+        if model_key.startswith("ecfg_"):
+            return mc.get("eppl", "#888888")
+        if model_key.startswith("cfg_"):
+            return mc.get("hybppl", "#888888")
     return mc.get(model_key, "#888888")
 
 

@@ -13,6 +13,17 @@ from typing import Any
 import _app_ctx
 import theme
 from btc_core import yr_to_t, fmt_price, leo_weighted_entry
+from colors import (
+    FALLBACK_MODEL_GRAY, BTC_ORANGE as _COLORS_BTC_ORANGE,
+    TODAY_LINE_COLOR as _COLORS_TODAY_LINE,
+    NON_QUANTIZED_MODEL_COLOR as _COLORS_NON_Q,
+    MC_TITLE_COLOR as _COLORS_MC_TITLE,
+    MC_LEGEND_BORDER as _COLORS_MC_BORDER,
+    SPINE_COLOR_FALLBACK,
+    CLUSTER_MERGE_GRAY,
+    BLACK,
+    THERMAL_NEUTRAL,
+)
 _HAS_MARKOV = _app_ctx._HAS_MARKOV
 
 # MC overlay logic lives in mc_overlay.py
@@ -37,7 +48,7 @@ def _round_trace_data(arr):
 _ANNOT_STAGGER_Y = _app_ctx.ANNOT_STAGGER_Y
 
 _BTC_ORANGE       = _app_ctx.BTC_ORANGE
-_TODAY_LINE_COLOR  = "#FF6600"
+_TODAY_LINE_COLOR  = _COLORS_TODAY_LINE
 _TODAY_LINE_WIDTH  = 2.0
 _TODAY_LINE_OPACITY = 0.85
 _TODAY_GLOW_WIDTH  = 6
@@ -53,7 +64,7 @@ _FONT_WATERMARK   = 9
 _FONT_ANNOT       = 11       # depletion / edge annotation text
 
 _SHADE_ALPHA      = 0.08     # fill opacity between adjacent quantile lines
-_NON_QUANTIZED_MODEL_COLOR = "#8B4513"  # saddlebrown — single-trajectory models
+_NON_QUANTIZED_MODEL_COLOR = _COLORS_NON_Q  # saddlebrown — single-trajectory models
 _OVERLAY_LINE_WIDTH = _QR_LINE_WIDTH * 0.8  # alt-model overlay lines
 _WM_OPACITY       = 0.55     # watermark logo opacity
 _WM_SIZE_X        = 0.09     # watermark logo width (fraction of paper)
@@ -122,12 +133,12 @@ def _get_model_color(model_key, p=None):
     mc = palette.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
     if model_key and model_key not in mc:
         if model_key.startswith("ecfg_"):
-            return mc.get("eppl", "#888888")
+            return mc.get("eppl", FALLBACK_MODEL_GRAY)
         if model_key.startswith("cfg_") or model_key.startswith("hyb"):
-            return mc.get("hybppl", "#888888")
+            return mc.get("hybppl", FALLBACK_MODEL_GRAY)
         if model_key.startswith("lp"):
-            return mc.get("lppl", "#888888")
-    return mc.get(model_key, "#888888")
+            return mc.get("lppl", FALLBACK_MODEL_GRAY)
+    return mc.get(model_key, FALLBACK_MODEL_GRAY)
 
 
 def _thermal_color(q: float, palette=None) -> str:
@@ -143,7 +154,7 @@ def _thermal_color(q: float, palette=None) -> str:
         if q0 <= q <= q1:
             f = (q - q0) / (q1 - q0) if q1 > q0 else 0
             return _lerp_hex(c0, c1, f)
-    return "#bdbdbd"
+    return THERMAL_NEUTRAL
 
 
 def _build_thermal_colors(quantiles: list, palette=None) -> dict:
@@ -376,8 +387,8 @@ for _scale, _wm_path in _WM_FILES.items():
 # ── MC premium figure styling ────────────────────────────────────────────────
 
 _MC_FONT_FAMILY = "Palatino Linotype, Palatino, Georgia, serif"
-_MC_TITLE_COLOR = "#996515"          # dark burnished gold — readable on light bg
-_MC_LEGEND_BORDER = "#c9a227"        # legend border gold
+_MC_TITLE_COLOR = _COLORS_MC_TITLE          # dark burnished gold — readable on light bg
+_MC_LEGEND_BORDER = _COLORS_MC_BORDER      # legend border gold
 
 
 _MC_LEGEND_POS = {
@@ -564,7 +575,7 @@ def _apply_mc_premium(fig: go.Figure, legend_pos: str = "top-left", hide_xlabel:
     fig.add_shape(
         type="line", xref="paper", yref="paper",
         x0=0, x1=1, y0=1, y1=1,
-        line=dict(color=fig.layout.yaxis.linecolor or "#999", width=1),
+        line=dict(color=fig.layout.yaxis.linecolor or SPINE_COLOR_FALLBACK, width=1),
     )
 
 
@@ -763,7 +774,7 @@ def _hex_alpha(hex_color, alpha):
     return f"rgba({r},{g},{b},{alpha})"
 
 
-def _build_symmetric_bands(sel_qs, y_cache, x_arr, model_color="#000000",
+def _build_symmetric_bands(sel_qs, y_cache, x_arr, model_color=BLACK,
                             max_bands=2):
     """Build shaded band traces from symmetric quantile pairs.
 
@@ -892,7 +903,7 @@ def _mc_median_annot(mc_traces, disp_mode, m, ts_end, t_start, t_end,
         x_arr=mx, y_arr=my,
         label=f"MC {mc_lbl}",
         short_label=_fmt_short(_mc_btc, _mc_usd),
-        color="#F7931A", y_last=mc_y_final)
+        color=_COLORS_BTC_ORANGE, y_last=mc_y_final)
 
 
 def _fmt_short(btc, usd):
@@ -1066,7 +1077,7 @@ def _resolve_edge_annotations(pending, log_y):
             merged_label = " \u00b7 ".join(parts)
             # Use first item's color (or neutral gray for mixed)
             colors = {item["color"] for item in cluster}
-            merged_color = cluster[0]["color"] if len(colors) == 1 else "#AAAAAA"
+            merged_color = cluster[0]["color"] if len(colors) == 1 else CLUSTER_MERGE_GRAY
             traces.append(_edge_text_trace(
                 anchor["x_arr"], anchor["y_arr"], merged_label,
                 merged_color, log_y=log_y, textpos_override="top left"))

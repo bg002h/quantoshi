@@ -62,6 +62,7 @@ DARK_TEXT           = "#111111"   # text on light cells
 CLUSTER_MERGE_GRAY  = "#AAAAAA"   # merged overlapping edge annotations
 LIGHT_GRAY          = "#CCCCCC"   # overlay fallback / faint lines
 SPINE_COLOR_FALLBACK = "#999999"  # lighter border fallback (≈ #999)
+THERMAL_NEUTRAL     = "#bdbdbd"   # thermal scale midpoint (Q50)
 TODAY_LINE_COLOR    = "#FF6600"   # today vertical line default (matches palette today_line)
 NON_QUANTIZED_MODEL_COLOR = "#8B4513"  # saddlebrown — single-trajectory models
 

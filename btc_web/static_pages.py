@@ -5,6 +5,7 @@ No React, no Dash renderer, no Plotly.js — single HTTP round-trip.
 """
 import re
 from html import escape as _esc
+from colors import SPLASH_BRAND_DARK
 
 _CAMEL_RE = re.compile(r"([a-z])([A-Z])")
 
@@ -139,7 +140,7 @@ _PAGE_TEMPLATE = """<!DOCTYPE html>
     {head_extra}
 </head>
 <body>
-    <nav class="navbar navbar-dark" style="background:#2c3e50;padding:6px 16px">
+    <nav class="navbar navbar-dark" style="background:{nav_bg};padding:6px 16px">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="/" style="font-family:'Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif">
                 <img src="/assets/quantoshi_logo_nav.png" height="40" class="me-2"> Quantoshi
@@ -182,6 +183,7 @@ def render_static_faq():
         app_tab="9",
         content=content_html,
         foot_extra="",
+        nav_bg=SPLASH_BRAND_DARK,
     )
 
 
@@ -196,6 +198,7 @@ def render_static_model_info():
         app_tab="8",
         content=content_html,
         foot_extra="",
+        nav_bg=SPLASH_BRAND_DARK,
     )
 
 

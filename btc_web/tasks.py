@@ -13,6 +13,7 @@ import urllib.request
 import numpy as np
 
 from celery_app import celery_app
+from colors import SPARKLINE_UP_2, CITADEL_SPENDING as _SPARKLINE_DOWN_2
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +151,7 @@ def fetch_sparkline() -> str | None:
         w, h = 60, 16
         pts = " ".join(f"{i*w/len(prices):.1f},{h - (p-mn)/rng*h:.1f}"
                        for i, p in enumerate(prices))
-        color = "#2ecc71" if prices[-1] >= prices[0] else "#e74c3c"
+        color = SPARKLINE_UP_2 if prices[-1] >= prices[0] else _SPARKLINE_DOWN_2
         svg = (f'<svg width="{w}" height="{h}" xmlns="http://www.w3.org/2000/svg">'
                f'<polyline points="{pts}" fill="none" stroke="{color}" '
                f'stroke-width="1.5"/></svg>')

@@ -12,6 +12,8 @@ Constraints:
 """
 
 from types import MappingProxyType
+from colors import (LOT_MARKER_COLOR, FALLBACK_MODEL_GRAY, NEAR_BLACK,
+                    DIM_TEXT, SPINE_COLOR_FALLBACK, PROGRESS_TRACK)
 
 BUBBLE = MappingProxyType({
     "selected_qs": (0.5,),
@@ -26,8 +28,8 @@ BUBBLE = MappingProxyType({
     "pt_size": 10, "pt_alpha": 0.5,
     "stack": 0, "show_stack": False, "use_lots": False,
     "legend_pos": "top-left",
-    "comp_color": "#FFD700", "comp_lw": 2.0,
-    "sup_color": "#888888", "sup_lw": 1.5,
+    "comp_color": LOT_MARKER_COLOR, "comp_lw": 2.0,
+    "sup_color": FALLBACK_MODEL_GRAY, "sup_lw": 1.5,
     "active_models": ("bub",),
     "palette": "default",
     "scanner_lines": (),
@@ -39,8 +41,8 @@ HEATMAP = MappingProxyType({
     "color_mode": 0,
     "b1": 0, "b2": 5,
     "hm_palette": "mono",
-    "c_lo": "#1a1a1a", "c_mid1": "#555555",
-    "c_mid2": "#999999", "c_hi": "#e0e0e0",
+    "c_lo": NEAR_BLACK, "c_mid1": DIM_TEXT,
+    "c_mid2": SPINE_COLOR_FALLBACK, "c_hi": PROGRESS_TRACK,
     "n_disc": 32,
     "vfmt": "cagr_mult",
     "cell_font_size": 9,

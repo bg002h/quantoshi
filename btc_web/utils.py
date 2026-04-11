@@ -11,6 +11,7 @@ from datetime import date
 logger = logging.getLogger(__name__)
 
 import _app_ctx
+from colors import SPARKLINE_UP, UCL_LINE_COLOR as _SPARKLINE_DOWN
 
 from btc_core import today_t, _find_lot_percentile
 from figures import (build_bubble_figure, build_heatmap_figure,
@@ -328,7 +329,7 @@ def _fetch_sparkline_svg(width=60, height=18):
         points.append(f"{x},{y}")
 
     # Color: green if up over 24h, red if down
-    color = "#4cff88" if closes[-1] >= closes[0] else "#ff6b6b"
+    color = SPARKLINE_UP if closes[-1] >= closes[0] else _SPARKLINE_DOWN
     polyline = " ".join(points)
     svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}"'
            f' viewBox="0 0 {width} {height}">'

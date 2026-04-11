@@ -11,17 +11,7 @@ from utils import _fetch_btc_price
 # Use default config-panel-resolved keys so ticker matches chart display.
 # LPPL default: lp3 (3 freqs). HybPPL default: cfg_1d_1u. EPPL default: ecfg_1d_1u.
 _MODEL_CYCLE = ["qr", "bub", "pl", "lp3", "cfg_1d_1u", "ecfg_1d_1u", "pca", "grdy", "ef"]
-_MODEL_COLORS = {
-    "qr":         "#5dade2",   # sky blue
-    "bub":        "#f39c12",   # amber/gold
-    "pl":         "#2ecc71",   # green
-    "lp3":        "#e74c3c",   # red — LPPL₃ (default config)
-    "cfg_1d_1u":  "#7B68EE",   # medium slate blue — HybPPL (default config)
-    "ecfg_1d_1u": "#D4760A",   # warm amber — EPPL (default config)
-    "pca":        "#4B0082",   # indigo — PCA
-    "grdy":       "#228B22",   # forest green — Greedy
-    "ef":         "#1abc9c",   # teal
-}
+from colors import TICKER_MODEL_COLORS as _MODEL_COLORS
 # Label overrides for config keys (otherwise shows the raw key)
 _MODEL_LABELS = {
     "lp3":        "LPPL\u2083",

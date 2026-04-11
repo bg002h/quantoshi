@@ -15,7 +15,7 @@ from tab_defaults import BUBBLE
 from colors import (
     SCATTER_POINT, USER_MODEL_TRACE, UCL_LINE_COLOR,
     FALLBACK_MODEL_GRAY, LOT_MARKER_COLOR, LOT_MARKER_OUTLINE,
-    SCAN_LINE_FALLBACK,
+    SCAN_LINE_FALLBACK, _hex_alpha, PLOT_BG_COLOR,
 )
 
 from figures.common import (
@@ -445,7 +445,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         layout["legend"].update(
             x=pos["x"], y=pos["y"],
             xanchor=pos["xanchor"], yanchor=pos["yanchor"],
-            bgcolor="rgba(255,255,255,0.7)",
+            bgcolor=_hex_alpha(PLOT_BG_COLOR, 0.7),
         )
     layout["shapes"] = shapes
 

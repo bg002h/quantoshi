@@ -9,7 +9,7 @@ from typing import Any
 
 import _app_ctx
 from btc_core import yr_to_t, today_t, ModelData, UserModel
-from colors import BLACK, FALLBACK_MODEL_GRAY
+from colors import BLACK, FALLBACK_MODEL_GRAY, _hex_alpha, PLOT_BG_COLOR
 
 from figures.common import (
     _OVERLAY_LINE_WIDTH, _QR_LINE_WIDTH,
@@ -198,7 +198,7 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         layout["legend"].update(
             x=pos["x"], y=pos["y"],
             xanchor=pos["xanchor"], yanchor=pos["yanchor"],
-            bgcolor="rgba(255,255,255,0.7)",
+            bgcolor=_hex_alpha(PLOT_BG_COLOR, 0.7),
         )
     if p.get("xscale") == "log":
         layout["xaxis"].update(

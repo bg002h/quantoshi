@@ -14,6 +14,7 @@ from mc_overlay import _mc_heatmap_overlay
 from colors import (
     WHITE, DARK_TEXT, BTC_ORANGE,
     FALLBACK_MODEL_GRAY, TODAY_LINE_COLOR,
+    _hex_alpha, PLOT_BG_COLOR,
 )
 
 from figures.common import (
@@ -305,7 +306,7 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             x0=entry_ci - 0.5, x1=entry_ci + 0.5,
             y0=-0.5, y1=n_rows - 0.5,
             line=dict(color=BTC_ORANGE, width=2),
-            fillcolor="rgba(247,147,26,0.06)",
+            fillcolor=_hex_alpha(BTC_ORANGE, 0.06),
             xref="x", yref="y",
         )
 
@@ -647,7 +648,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         from figures.common import _MC_LEGEND_POS
         lp = _MC_LEGEND_POS.get(legend_pos, {})
         layout["legend"] = dict(**lp, font=dict(size=10),
-                                bgcolor="rgba(255,255,255,0.85)")
+                                bgcolor=_hex_alpha(PLOT_BG_COLOR, 0.85))
     else:
         layout["legend"] = dict(
             orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,

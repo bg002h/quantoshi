@@ -23,6 +23,9 @@ from colors import (
     CLUSTER_MERGE_GRAY,
     BLACK,
     THERMAL_NEUTRAL,
+    PLOT_BG_COLOR as _COLORS_PLOT_BG,
+    LOG_MINOR_GRID_GRAY,
+    WATERMARK_TEXT_COLOR,
 )
 _HAS_MARKOV = _app_ctx._HAS_MARKOV
 
@@ -210,7 +213,7 @@ def _error_figure(title):
 
 # ── shared theme helpers ──────────────────────────────────────────────────────
 
-_LOG_MINOR = dict(showgrid=True, gridcolor="rgba(100,100,100,0.35)",
+_LOG_MINOR = dict(showgrid=True, gridcolor=_hex_alpha(LOG_MINOR_GRID_GRAY, 0.35),
                   griddash="dot", gridwidth=0.8, dtick="D1")
 
 
@@ -332,7 +335,7 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
             ticklabeloverflow="allow",
         ),
         legend=dict(
-            bgcolor="rgba(255,255,255,0.85)", bordercolor=theme.GRID_MAJOR_COLOR,
+            bgcolor=_hex_alpha(_COLORS_PLOT_BG, 0.85), bordercolor=theme.GRID_MAJOR_COLOR,
             borderwidth=1, font=dict(family=_SANS_FONT, size=_FONT_LEGEND),
         ),
         margin=dict(l=5, r=20, t=50, b=30, autoexpand=False),
@@ -522,7 +525,7 @@ def _apply_config_annotation(fig: go.Figure, p: dict, tab: str,
     fig.layout.xaxis.title.font.update(
         family="'Courier New', Courier, monospace",
         size=9,
-        color="rgba(100,100,100,0.8)",
+        color=_hex_alpha(LOG_MINOR_GRID_GRAY, 0.8),
     )
 
 
@@ -570,7 +573,7 @@ def _apply_mc_premium(fig: go.Figure, legend_pos: str = "top-left", hide_xlabel:
         fig.layout.legend.y = pos["y"]
         fig.layout.legend.xanchor = pos["xanchor"]
         fig.layout.legend.yanchor = pos["yanchor"]
-        fig.layout.legend.bgcolor = "rgba(255,255,255,0.7)"
+        fig.layout.legend.bgcolor = _hex_alpha(_COLORS_PLOT_BG, 0.7)
     # Top border line to close the plot area
     fig.add_shape(
         type="line", xref="paper", yref="paper",
@@ -606,7 +609,7 @@ def _apply_watermark(fig: go.Figure, pos: str = "bottom-right") -> None:
         x=txt_x, y=0.015,
         xanchor=txt_xa, yanchor="bottom",
         showarrow=False,
-        font=dict(size=_FONT_WATERMARK, color="rgba(180,180,180,0.65)"),
+        font=dict(size=_FONT_WATERMARK, color=_hex_alpha(WATERMARK_TEXT_COLOR, 0.65)),
     ))
     return fig
 
@@ -714,7 +717,7 @@ def _finalize_chart(traces: list, layout: dict, p: dict, tab: str,
         layout["legend"].update(
             x=pos["x"], y=pos["y"],
             xanchor=pos["xanchor"], yanchor=pos["yanchor"],
-            bgcolor="rgba(255,255,255,0.7)",
+            bgcolor=_hex_alpha(_COLORS_PLOT_BG, 0.7),
         )
     _apply_sans_typography(layout)
     fig = go.Figure(data=traces, layout=go.Layout(**layout))

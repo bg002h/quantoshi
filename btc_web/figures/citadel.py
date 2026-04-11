@@ -21,12 +21,11 @@ from figures.common import (
     _build_time_array, _get_starting_stack,
     _sim_layout, _finalize_chart, _error_figure,
     _stagger_depletion_annots,
-    _hex_alpha,
 )
 from colors import (
     BLACK, BTC_ORANGE,
     CITADEL_SPENDING, CITADEL_BULLISH_QR, CITADEL_BEARISH_QR,
-    CITADEL_OVERLAY_COLORS,
+    CITADEL_OVERLAY_COLORS, _hex_alpha, LOG_MINOR_GRID_GRAY, TAX_DRAG_RED,
 )
 
 
@@ -510,7 +509,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
             traces.append(go.Scatter(
                 x=list(ts), y=list(notax_total), mode="lines",
                 name=f"Total Portfolio (no tax){_qtag}",
-                line=dict(dash="dash", color="rgba(100,100,100,0.5)"),
+                line=dict(dash="dash", color=_hex_alpha(LOG_MINOR_GRID_GRAY, 0.5)),
                 showlegend=True,
             ))
 
@@ -520,7 +519,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
                 traces.append(go.Scatter(
                     x=list(ts), y=list(notax_btc), mode="lines",
                     name=f"BTC Holdings (no tax){_qtag}",
-                    line=dict(dash="dash", color="rgba(247,147,26,0.5)"),
+                    line=dict(dash="dash", color=_hex_alpha(BTC_ORANGE, 0.5)),
                     showlegend=True,
                 ))
 
@@ -552,7 +551,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
                 x=list(ts), y=list(taxes_paid[0]),
                 name=f"Cumulative Taxes Paid  \u2192  {fmt_price(float(taxes_paid[0, -1]))}",
                 fill="tozeroy",
-                line=dict(color="rgba(220,50,50,0.6)"),
+                line=dict(color=_hex_alpha(TAX_DRAG_RED, 0.6)),
             ))
 
         # Store annual tax data in extra dict

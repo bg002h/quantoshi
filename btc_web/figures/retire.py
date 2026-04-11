@@ -80,7 +80,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             # Palette-aware color with opacity scaling (Q50% = 1.0, Q5%/Q95% = 0.5)
             _dist = abs(q - 0.5) / 0.45
             _q_opacity = max(0.1, 1.0 - _dist * 0.5)
-            lbl = f"{model.legend_name} {_fmt_q_label(q)}" + f"  \u2192  {final_lbl}"
+            lbl = f"{model.legend_name} {_fmt_q_label(q, '')}" + f"  \u2192  {final_lbl}"
             _bm_trace_traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines", name=lbl,
                 line=dict(color=_bm_color, width=_QR_LINE_WIDTH, shape=_line_shape),

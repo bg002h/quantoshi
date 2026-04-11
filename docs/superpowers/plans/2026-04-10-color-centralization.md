@@ -1383,7 +1383,45 @@ grep -n '#[0-9a-fA-F]\{6\}' btc_web/utils.py btc_web/tasks.py btc_web/static_pag
 - `btc_web/callbacks/citadel_save_cb.py`
 - `btc_web/callbacks/user_model.py`
 
-Each contains literal `rgba(...)` or `rgb(...)` strings that the lint test (`test_no_rgba_literals_in_python` in Task 27) will reject. Migration approach for each literal:
+Each contains literal `rgba(...)` or `rgb(...)` strings that the lint test (`test_no_rgba_literals_in_python` in Task 27) will reject.
+
+**Pre-migration step: relocate `_hex_alpha` to `colors.py`**.
+
+`_hex_alpha(hex_color, alpha)` currently lives in `figures/common.py:759`. After this task, **layout** files will need to call it, which would create an architectural smell (layouts importing from figures internals) and risks a circular import. Move it to `colors.py` first:
+
+- [ ] **Step 0a**: Add the function to `colors.py`:
+
+```python
+def _hex_alpha(hex_color: str, alpha: float) -> str:
+    """Convert a #rrggbb hex color to an rgba(...) string with the given alpha.
+
+    Lives in colors.py so both Python figures AND Python layouts can call it
+    without crossing the figures/layouts architectural boundary. Re-exported
+    from figures/common.py for backward compatibility with existing callers.
+    """
+    h = hex_color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"rgba({r},{g},{b},{alpha})"
+```
+
+- [ ] **Step 0b**: In `figures/common.py`, replace the existing `_hex_alpha` definition with a re-export:
+
+```python
+from colors import _hex_alpha  # noqa: F401 — re-exported for backward compat
+```
+
+Verify `figures/common.py` compiles and tests still pass.
+
+- [ ] **Step 0c**: Commit the relocation as a sub-commit at the START of this task:
+
+```bash
+git add btc_web/colors.py btc_web/figures/common.py
+git commit -m "refactor(colors): move _hex_alpha into colors.py (re-export from figures/common.py)"
+```
+
+Note: `_hex_alpha` is a function (not a hex literal), so the lint test does NOT need to be updated. The function returns rgba strings at runtime, which AST inspection correctly skips because they're function returns, not source-literal Constant nodes.
+
+**Migration approach for each literal**:
 
 **Two replacement strategies:**
 
@@ -1520,7 +1558,7 @@ git add btc_web/app.py btc_web/callbacks/nav.py
 git commit -m "$(cat <<'EOF'
 feat(colors): data-palette attribute on <html> for CSS palette switching
 
-Phase 3, Task 19. Two changes:
+Phase 3, Task 23. Two changes:
 
 1. Inline pre-paint script in app.py's index_string sets
    document.documentElement.dataset.palette synchronously from
@@ -1546,7 +1584,9 @@ EOF
 **Files:**
 - Modify: `btc_web/assets/style.css`
 
-This is the largest single commit in the plan: **48 hex literal replacements** (verified count) + mandatory visual regression.
+This is the largest single commit in the plan: **48 hex literal replacements + 99 rgba() literal replacements** (verified counts) + mandatory visual regression.
+
+The 99 rgba literals contain 56 unique values, mostly black/white shadows with varying alpha (`rgba(0,0,0,0.3)` × 15 occurrences, etc.) plus a few brand-color overlays. Strategy: define **baked-alpha CSS variables** in `colors.py` (e.g. `SHADOW_DARK_30 = "rgba(0,0,0,0.30)"`) that the generator emits as `--qs-shadow-dark-30`, then replace each `rgba(...)` in style.css with `var(--qs-shadow-dark-30)`. The 56 unique rgba values become 56 new named constants. The plan accepts the scope expansion because the user's stated goal is "every color anywhere in the app".
 
 **Preflight: ImageMagick required for visual regression diffing.**
 
@@ -1584,27 +1624,73 @@ ls /tmp/color_baselines/ | wc -l
 
 Expected: `36`.
 
-- [ ] **Step 2: Inventory style.css literals**
+- [ ] **Step 2: Inventory style.css literals (hex AND rgba)**
 
 ```bash
-grep -n '#[0-9a-fA-F]\{6\}' btc_web/assets/style.css
+echo "--- hex literals ---"
+grep -nE '#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}\b' btc_web/assets/style.css | wc -l
+echo "--- rgba literals ---"
+grep -oE 'rgba?\([^)]*\)' btc_web/assets/style.css | wc -l
+echo "--- unique rgba values ---"
+grep -oE 'rgba?\([^)]*\)' btc_web/assets/style.css | sort -u
 ```
 
-Expected: 48 lines.
+Expected: 48 hex lines, 99 rgba occurrences, 56 unique rgba values.
 
 - [ ] **Step 3: Add any missing constants to `colors.py`**
 
-For each literal in style.css that doesn't already have a named constant in `colors.py`, ADD it (e.g. `BORDER_LIGHT`, `BORDER_DARK`, `HOVER_BG`, etc.). Regenerate artifacts. Commit colors.py + artifacts as a separate sub-commit.
+Two passes:
+
+**Pass A — hex literals**: for each hex literal in style.css that doesn't already have a named constant, ADD it (e.g. `BORDER_LIGHT`, `BORDER_DARK`, `HOVER_BG`).
+
+**Pass B — rgba literals**: for each of the 56 UNIQUE rgba values, define a named constant. Naming convention: describe the *intent*, not the value. Examples:
+```python
+# Shadow / overlay alphas (palette-invariant)
+SHADOW_DARK_10  = "rgba(0,0,0,0.1)"
+SHADOW_DARK_20  = "rgba(0,0,0,0.2)"
+SHADOW_DARK_25  = "rgba(0,0,0,0.25)"
+SHADOW_DARK_30  = "rgba(0,0,0,0.3)"   # most common — 15 uses
+SHADOW_DARK_50  = "rgba(0,0,0,0.5)"
+OVERLAY_LIGHT_4 = "rgba(255,255,255,0.04)"
+OVERLAY_LIGHT_90 = "rgba(255,255,255,0.9)"
+BTC_ORANGE_30  = "rgba(247,147,26,0.3)"   # brand color with alpha
+# … etc., one constant per unique rgba value
+```
+
+**Critical**: rgba constants in `colors.py` are STRING literals containing `rgba(...)`. The lint test allows colors.py to contain rgba string literals (it's the source of truth). Importers reference them via `from colors import SHADOW_DARK_30`.
+
+The generator script (Task 2) emits these as CSS custom properties:
+```css
+:root {
+    --qs-shadow-dark-10: rgba(0,0,0,0.1);
+    --qs-shadow-dark-30: rgba(0,0,0,0.3);
+    /* … */
+}
+```
+
+Then style.css uses `box-shadow: 0 0 4px var(--qs-shadow-dark-30);` instead of literal rgba.
+
+Regenerate artifacts and commit colors.py + artifacts as a separate sub-commit:
 
 ```bash
 btc_venv/bin/python3 tools/generate_color_artifacts.py
 git add btc_web/colors.py btc_web/assets/_colors_generated.css btc_web/assets/_colors_generated.js
-git commit -m "feat(colors): add UI surface constants for style.css migration"
+git commit -m "feat(colors): add UI surface + shadow/overlay rgba constants for style.css migration"
 ```
 
 - [ ] **Step 4: Replace each literal in style.css with `var(--qs-*)`**
 
-For each line in the inventory, replace `#abc123` with `var(--qs-name-of-constant)`. Use `_colors_generated.css` as the reference for available variable names.
+For each hex literal AND each rgba literal in the inventory, replace it with the matching `var(--qs-...)` reference. Use `_colors_generated.css` as the reference for available variable names. Total: 48 hex + 99 rgba = 147 replacements.
+
+Proceed in two passes for reviewability:
+- Pass A: replace all 48 hex literals
+- Pass B: replace all 99 rgba literals
+
+After each pass, save the file and visually scan style.css for any remaining `#` or `rgba(` outside of `var(--...)` references:
+```bash
+grep -nE '#[0-9a-fA-F]{3,6}|rgba?\(' btc_web/assets/style.css
+```
+Expected after both passes: zero matches (except inside `var(...)` calls if any).
 
 - [ ] **Step 5: Restart dev server and visual smoke test**
 
@@ -1656,7 +1742,7 @@ git add btc_web/assets/style.css
 git commit -m "$(cat <<'EOF'
 refactor(colors): style.css uses var(--qs-*) for all 48 literals
 
-Phase 3, Task 20. Replaces every hex literal in style.css with a CSS
+Phase 3, Task 24. Replaces every hex literal in style.css with a CSS
 custom property reference from _colors_generated.css. Palette
 switching works automatically via :root[data-palette="..."] selectors
 (set by the pre-paint script + clientside callback from the previous
@@ -1959,6 +2045,25 @@ def test_no_rgba_literals_in_python():
     )
 
 
+def test_no_rgba_literals_in_css():
+    """No literal rgba(...) in .css files. Use var(--qs-*) which references
+    a baked-alpha named constant in colors.py."""
+    leaks = []
+    for path in _walk_btc_web():
+        if path.suffix != ".css":
+            continue
+        cleaned = _strip_css_comments(path.read_text())
+        for i, line in enumerate(cleaned.splitlines(), 1):
+            for m in _RGBA_PATTERN.finditer(line):
+                leaks.append(f"{path.relative_to(_REPO_ROOT)}:{i} {m.group()}")
+    assert not leaks, (
+        "Literal rgba()/rgb() values found in CSS:\n"
+        + "\n".join(leaks)
+        + "\n\nMove to btc_web/colors.py as a named constant and reference "
+        "via var(--qs-...) from the generated _colors_generated.css."
+    )
+
+
 def test_generator_check_mode_passes():
     """Running tools/generate_color_artifacts.py --check should exit 0."""
     import subprocess
@@ -2056,7 +2161,7 @@ def test_constant_export_coverage():
 btc_venv/bin/python3 -m pytest btc_web/test_colors_central.py -v --timeout=60 2>&1 | tail -30
 ```
 
-Expected: All 5 tests pass. If any fail, surface the leaks (printed in the assertion message), fix them in the appropriate file (move literal to colors.py + import), regenerate artifacts if needed, re-run.
+Expected: All 6 tests pass (`test_no_hex_literals_outside_colors_module`, `test_no_rgba_literals_in_python`, `test_no_rgba_literals_in_css`, `test_generator_check_mode_passes`, `test_palette_key_parity`, `test_constant_export_coverage`). If any fail, surface the leaks (printed in the assertion message), fix them in the appropriate file (move literal to colors.py + import or var), regenerate artifacts if needed, re-run.
 
 - [ ] **Step 3: Run the FULL pytest suite to confirm no regressions**
 
@@ -2073,7 +2178,7 @@ git add btc_web/test_colors_central.py
 git commit -m "$(cat <<'EOF'
 test(colors): lint enforces single source of truth invariant
 
-Phase 5, Task 23. New pytest test file with 5 checks:
+Phase 5, Task 27. New pytest test file with 6 checks:
 
 1. test_no_hex_literals_outside_colors_module — walks btc_web/
    recursively, scans every .py/.css/.js for hex literals,
@@ -2133,7 +2238,7 @@ sleep 8
 curl -fsS http://localhost:8050/ -o /dev/null && echo SERVER_UP
 ```
 
-Open Chrome to `http://localhost:8050/1` through `/9`, switch palette via navbar. Verify no visual regressions vs baseline screenshots from Task 20.
+Open Chrome to `http://localhost:8050/1` through `/9`, switch palette via navbar. Verify no visual regressions vs baseline screenshots from Task 24.
 
 - [ ] **Step 4: Dispatch the full implementation reviewer**
 

@@ -4,6 +4,12 @@ from dash import html, dcc
 import dash_bootstrap_components as dbc
 
 import _app_ctx
+from colors import (
+    LINK, FALLBACK_MODEL_GRAY,
+    LIGHTBOX_BG, TABLE_HEADER_BG,
+    TABLE_BORDER_LIGHT, TABLE_BORDER_MID, TABLE_BORDER_DARK,
+    DIM_TEXT,
+)
 
 
 def _clickable_img(src, max_width="700px"):
@@ -87,7 +93,7 @@ Future bubbles are extrapolated from the trend in historical bubble parameters (
                                 "The support slope and intercept are the upstream parameters that determine "
                                 "everything downstream: bubble amplitudes, intervals, and predicted onset. "
                                 "A ",
-                                html.A("sensitivity sweep", href="/B", style={"color": "#1a6fa8"}),
+                                html.A("sensitivity sweep", href="/B", style={"color": LINK}),
                                 " across slope (4\u20137) and intercept (\u00b12.5) shows: ",
                             ]),
                             html.Ul([
@@ -124,7 +130,7 @@ Future bubbles are extrapolated from the trend in historical bubble parameters (
                             ]),
                             html.P([
                                 "A separate ",
-                                html.A("parameter sweep", href="/C", style={"color": "#1a6fa8"}),
+                                html.A("parameter sweep", href="/C", style={"color": LINK}),
                                 " tests 49 combinations of the floor percentile (5\u201335%) and "
                                 "quantile regression target (5\u201395%), running the full bubble pipeline "
                                 "at each point. Results are broadly stable across the grid, reinforcing "
@@ -791,7 +797,7 @@ $$\text{price}(t) = 10^{A} \cdot t^{B}
                             html.P(
                                 "Stop staring at the Double D\u2019s \u2014 there\u2019s nothing to see. "
                                 "D\u2082 is basically zero.",
-                                style={"fontStyle": "italic", "color": "#888",
+                                style={"fontStyle": "italic", "color": FALLBACK_MODEL_GRAY,
                                        "fontSize": "12px"},
                             ),
 
@@ -1954,9 +1960,9 @@ $$T_{ij} = P(\text{bin}_{t+1} = j \mid \text{bin}_t = i)$$
                                 "EF interval trend: +0.20 yr/cycle (nearly flat, ~3.7 yr next). ",
                                 "BM interval trend: +0.37 yr/cycle (lengthening, ~5.7 yr next). ",
                                 "This is visible in the ",
-                                html.A("EF sensitivity sweep", href="/BB", style={"color": "#1a6fa8"}),
+                                html.A("EF sensitivity sweep", href="/BB", style={"color": LINK}),
                                 " compared to the ",
-                                html.A("BM sweep", href="/B", style={"color": "#1a6fa8"}),
+                                html.A("BM sweep", href="/B", style={"color": LINK}),
                                 ".",
                             ]),
 
@@ -2160,7 +2166,7 @@ where $\alpha$ (intercept) and $\beta$ (slope) are derived from **two user-selec
         dbc.Modal([
             dbc.ModalBody(
                 html.Img(id="mi-lightbox-img", style={"width": "100%"}),
-                style={"padding": "0", "backgroundColor": "#1a1a2e"},
+                style={"padding": "0", "backgroundColor": LIGHTBOX_BG},
             ),
         ], id="mi-lightbox", size="xl", centered=True, is_open=False),
     ], className="p-3")
@@ -2429,7 +2435,7 @@ def _pca_expanded_formula():
     body_rows.append(html.Tr([
         html.Td(html.Strong(f"Oscillatory terms ({len(osc_rows)})"),
                 colSpan=3,
-                style={"paddingTop": "8px", "borderTop": "1px solid #ddd"}),
+                style={"paddingTop": "8px", "borderTop": f"1px solid {TABLE_BORDER_LIGHT}"}),
     ]))
     for w_str, formula, amp in osc_rows:
         body_rows.append(html.Tr([
@@ -2595,10 +2601,10 @@ def _qr_table():
 def _comparison_table():
     """Model comparison summary table."""
     hdr_style = {"paddingRight": "12px", "paddingBottom": "6px",
-                 "borderBottom": "1px solid #555", "fontSize": "12px"}
+                 "borderBottom": f"1px solid {TABLE_BORDER_DARK}", "fontSize": "12px"}
     cell_style = {"paddingRight": "12px", "paddingBottom": "4px",
                   "paddingTop": "4px", "fontSize": "12px",
-                  "borderBottom": "1px solid #333"}
+                  "borderBottom": f"1px solid {TABLE_BORDER_MID}"}
     return html.Table([
         html.Thead(html.Tr([
             html.Th("", style=hdr_style),
@@ -2668,9 +2674,9 @@ def _regime_data_tables():
         return html.P(f"Data not available: {e}", className="text-muted")
 
     sections = []
-    _cell = {"fontSize": "11px", "padding": "2px 6px", "border": "1px solid #ddd",
-             "textAlign": "right"}
-    _hdr = {**_cell, "fontWeight": "bold", "backgroundColor": "#f5f5f0", "textAlign": "center"}
+    _cell = {"fontSize": "11px", "padding": "2px 6px",
+             "border": f"1px solid {TABLE_BORDER_LIGHT}", "textAlign": "right"}
+    _hdr = {**_cell, "fontWeight": "bold", "backgroundColor": TABLE_HEADER_BG, "textAlign": "center"}
 
     for key in ("equity", "bond", "tres_short", "tres_med", "tres_long"):
         m = matrices.get(key)
@@ -2737,7 +2743,7 @@ def _regime_data_tables():
 
         sections.append(html.Details([
             html.Summary("Transition matrix", style={"fontSize": "12px", "cursor": "pointer",
-                                                      "color": "#888", "marginBottom": "4px"}),
+                                                      "color": FALLBACK_MODEL_GRAY, "marginBottom": "4px"}),
             html.Table([
                 html.Thead(html.Tr(t_header)),
                 html.Tbody(t_rows),

@@ -63,6 +63,20 @@ _app_ctx.app.index_string = """<!DOCTYPE html>
         <title>{%title%}</title>
         <link rel="icon" type="image/png" href="/assets/quantoshi_favicon.png">
         {%css%}
+        <script>
+  (function() {
+    try {
+      var raw = localStorage.getItem("palette-store");
+      if (raw) {
+        var key;
+        try { key = JSON.parse(raw); } catch(e) { key = raw; }
+        if (typeof key === "string") {
+          document.documentElement.dataset.palette = key;
+        }
+      }
+    } catch(e) {}
+  })();
+</script>
     </head>
     <body>
         {%app_entry%}

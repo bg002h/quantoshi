@@ -289,6 +289,23 @@ _app_ctx.app.clientside_callback(
 )
 
 
+# ── data-palette attribute on <html>: keeps CSS selector :root[data-palette]
+#    in sync with palette-store after post-load palette switches ──────────────
+_app_ctx.app.clientside_callback(
+    """
+    function(palette_data) {
+        if (palette_data && typeof palette_data === "string") {
+            document.documentElement.dataset.palette = palette_data;
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("palette-store", "data", allow_duplicate=True),
+    Input("palette-store", "data"),
+    prevent_initial_call=True,
+)
+
+
 # ── Heatmap colors: update 4 color inputs when palette changes ───────────────
 @callback(
     Output("hm-c-lo",   "value", allow_duplicate=True),

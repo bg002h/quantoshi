@@ -9,6 +9,7 @@ from typing import Any
 
 import _app_ctx
 from btc_core import yr_to_t, today_t, ModelData, UserModel
+from colors import BLACK, FALLBACK_MODEL_GRAY
 
 from figures.common import (
     _OVERLAY_LINE_WIDTH, _QR_LINE_WIDTH,
@@ -143,7 +144,7 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 traces.append(go.Scatter(
                     x=list(t_data), y=_round_trace_data(resid),
                     mode="lines", name=label,
-                    line=dict(color="#000000", width=2, dash="solid"),
+                    line=dict(color=BLACK, width=2, dash="solid"),
                     opacity=1.0,
                 ))
 
@@ -154,7 +155,7 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     shapes.append(dict(
         type="line", xref="x", yref="y",
         x0=t_lo, x1=t_hi, y0=0, y1=0,
-        line=dict(color="#888", width=1.5, dash="dot"),
+        line=dict(color=FALLBACK_MODEL_GRAY, width=1.5, dash="dot"),
         opacity=0.6,
     ))
     if p.get("show_today"):
@@ -210,7 +211,7 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         layout["annotations"] = [dict(
             text="No models selected \u2014 check Display Models",
             xref="paper", yref="paper", x=0.5, y=0.5,
-            showarrow=False, font=dict(size=16, color="#888"),
+            showarrow=False, font=dict(size=16, color=FALLBACK_MODEL_GRAY),
         )]
 
     _apply_sans_typography(layout)

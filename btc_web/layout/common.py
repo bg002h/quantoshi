@@ -50,6 +50,17 @@ _CB_MARGIN        = {"marginRight": "4px"}
 _INFL_LABEL       = "Inflation rate (0\u2013100% / yr)"
 _Q_HINT_BASE      = "Lower quantiles = more conservative price paths."
 
+# ── Styles for Display Models in-checklist-label controls ───────────
+# Moved from layout/bubble.py during display-models consolidation so
+# that display_models.py and heatmap.py can share them.
+_GEAR_STYLE = {
+    "cursor": "pointer", "fontSize": "11px", "marginLeft": "4px",
+    "opacity": "0.6", "textDecoration": "none",
+}
+_MUTED_STYLE = {
+    "color": "#9a9a9a", "fontSize": "11px", "fontStyle": "italic",
+}
+
 def _q_options() -> list[dict]:
     opts = []
     for q in _app_ctx._ALL_QS:
@@ -937,7 +948,7 @@ def _eppl_config_panel(prefix):
         className="model-panel-configure-btn",
     )
     return _section_card(
-        "Entropy PPL Models",
+        "\U0001FAE0 Entropy PPL Models",
         html.Div([
             html.Small("Current: ", style={"color": FALLBACK_MODEL_GRAY, "fontSize": "11px"}),
             html.Span(id=f"{prefix}-eppl-summary", children="1d+1u",
@@ -1038,7 +1049,7 @@ def _global_eppl_modal():
     {prefix}-eppl-configure-btn click.
     """
     return dbc.Modal([
-        dbc.ModalHeader(dbc.ModalTitle("Entropy PPL Configuration")),
+        dbc.ModalHeader(dbc.ModalTitle("\U0001FAE0 Entropy PPL Configuration")),
         dbc.ModalBody([
             html.Div([
                 html.Div([

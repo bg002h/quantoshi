@@ -214,6 +214,16 @@ def _build_layout(initial_tab="bubble"):
     _splash_q, _splash_a = _pick_splash_quote()
     return dbc.Container([
     _freq_warning_modal(),
+    # ── Display Models family summary Store ────────────────────────────
+    # Single source of truth for LPPL/HybPPL/EPPL summary strings.
+    # Written by compute_family_summaries callback (added in Task 2); read
+    # by update_model_swatches + inline Store-reader clientside callbacks +
+    # heatmap status row.
+    dcc.Store(
+        id="display-model-summaries",
+        storage_type="memory",
+        data={"lppl": "LPPL\u2083", "hybppl": "1d+1u", "eppl": "1d+1u"},
+    ),
     dcc.Interval(id="price-interval", interval=_PRICE_INTERVAL_MS, n_intervals=0),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="model-percentiles-store", storage_type="memory", data=None),

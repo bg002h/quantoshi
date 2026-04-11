@@ -248,28 +248,28 @@ def _plot_appearance_controls(prefix: str):
         _row(
             html.Div([_lbl("Trace thickness (0.5\u20138)"),
                       dbc.Input(id=f"{prefix}-plot-trace-width", type="number",
-                                value=2.5, min=0.5, max=8, step=0.5, size="sm")]),
+                                value=None, min=0.5, max=8, step=0.5, size="sm")]),
             html.Div([_lbl("Major grid width (0\u20134)"),
                       dbc.Input(id=f"{prefix}-plot-grid-major-width", type="number",
-                                value=1.0, min=0, max=4, step=0.25, size="sm")]),
+                                value=None, min=0, max=4, step=0.25, size="sm")]),
         ),
         _row(
             html.Div([_lbl("Major grid color"),
                       dbc.Input(id=f"{prefix}-plot-grid-major-color", type="color",
-                                value="#888888", size="sm",
+                                value=None, size="sm",
                                 style={"height": "30px", "padding": "2px"})]),
             html.Div([_lbl("Minor grid width (0\u20133)"),
                       dbc.Input(id=f"{prefix}-plot-grid-minor-width", type="number",
-                                value=0.8, min=0, max=3, step=0.25, size="sm")]),
+                                value=None, min=0, max=3, step=0.25, size="sm")]),
         ),
         _row(
             html.Div([_lbl("Minor grid color"),
                       dbc.Input(id=f"{prefix}-plot-grid-minor-color", type="color",
-                                value="#B0B0B0", size="sm",
+                                value=None, size="sm",
                                 style={"height": "30px", "padding": "2px"})]),
             html.Div([_lbl("Data point color"),
                       dbc.Input(id=f"{prefix}-plot-pt-color", type="color",
-                                value="#2C3E50", size="sm",
+                                value=None, size="sm",
                                 style={"height": "30px", "padding": "2px"})]),
         ),
         html.Div(
@@ -282,9 +282,6 @@ def _plot_appearance_controls(prefix: str):
             style={"marginTop": "8px"},
         ),
     ]
-    # Only the bubble tab owns the store (shared across all tabs via localStorage)
-    if prefix == "bub":
-        parts.append(dcc.Store(id="plot-appearance", storage_type="local", data=None))
     return parts
 
 def _export_row(tab_id: str):

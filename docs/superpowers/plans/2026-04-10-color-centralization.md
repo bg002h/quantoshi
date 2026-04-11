@@ -39,9 +39,25 @@
 | `btc_web/callbacks/charts.py` | **Modify** | Replace 8 hex literals |
 | `btc_web/callbacks/mc_controls.py` | **Modify** | Replace 8 hex literals |
 | `btc_web/callbacks/snapshot_cb.py` | **Modify** | Replace 6 hex literals |
-| `btc_web/callbacks/nav.py` | **Modify** | Add new clientside callback for `data-palette` attribute |
+| `btc_web/callbacks/citadel_cb.py` | **Modify** | Replace 4 hex literals (Task 19 sweep) |
+| `btc_web/callbacks/citadel_save_cb.py` | **Modify** | Replace rgba literals (Task 22 sweep) |
+| `btc_web/callbacks/user_model.py` | **Modify** | Replace rgba literals (Task 22 sweep) |
+| `btc_web/callbacks/mc_payment.py` | **Modify** | Replace 1 hex literal (Task 19 sweep) |
+| `btc_web/callbacks/scanner.py` | **Modify** | Replace 1 hex literal (Task 19 sweep) |
+| `btc_web/callbacks/nav.py` | **Modify** | Replace 1 hex literal + add new clientside callback for `data-palette` attribute |
+| `btc_web/layout/citadel.py` | **Modify** | Replace 2 hex literals (Task 20 sweep) |
+| `btc_web/layout/citadel_tax.py` | **Modify** | Replace 2 hex literals (Task 20 sweep) |
+| `btc_web/layout/faq.py` | **Modify** | Replace 1 hex literal (Task 20 sweep) |
+| `btc_web/layout/heatmap.py` | **Modify** | Replace 4 hex literals (Task 20 sweep) |
+| `btc_web/layout/mc_controls.py` | **Modify** | Replace 2 hex literals (Task 20 sweep) |
+| `btc_web/layout/stack.py` | **Modify** | Replace 4 hex literals (Task 20 sweep) |
 | `btc_web/api.py` | **Modify** | Replace 30 SVG hex literals via f-string interpolation |
 | `btc_web/mc_overlay.py` | **Modify** | Replace 6 Citadel overlay hex literals |
+| `btc_web/utils.py` | **Modify** | Replace 1 hex literal (Task 21 sweep) |
+| `btc_web/tasks.py` | **Modify** | Replace 1 hex literal (Task 21 sweep) |
+| `btc_web/static_pages.py` | **Modify** | Replace 1 hex literal (Task 21 sweep) |
+| `btc_web/tab_defaults.py` | **Modify** | Replace 4 hex literals (Task 21 sweep) |
+| (15 Python files with rgba/rgb literals) | **Modify** | Migrate to `_hex_alpha(constant, alpha)` or named constants in colors.py (Task 22 sweep) |
 | `btc_web/app.py` | **Modify** | Add DEV-only generator startup hook + modify `index_string` |
 | `btc_web/assets/style.css` | **Modify** | Replace 48 hex literals with `var(--qs-*)` |
 | `btc_web/assets/chart_responsive.js` | **Modify** | Read defaults from `window.QS_COLORS` (3 literals) |
@@ -830,50 +846,49 @@ sed -n '26p;75p;87p;94p;120p;221p' btc_web/_app_ctx.py
 
 Verify lines 26 (`BTC_ORANGE`), 75-84 (`DECOMP_COLORS`), 87-92 (`DECOMP_SUM_COLOR`), 94-117 (`MODEL_TRACE_COLORS`), 120-221 (`PALETTES`).
 
-- [ ] **Step 2: Replace `BTC_ORANGE` definition with re-export**
+- [ ] **Step 2: Add a single top-of-file import block from `colors`**
 
-Find the line `BTC_ORANGE = "#f7931a"` (around line 26) and replace it with:
+At the top of `_app_ctx.py` (in the existing imports section, near `import math`), add:
 
 ```python
-from colors import BTC_ORANGE  # re-exported for backward compat
+from colors import (
+    BTC_ORANGE,
+    MODEL_TRACE_COLORS,
+    PALETTES,
+)
 ```
 
-- [ ] **Step 3: Replace `DECOMP_COLORS` definition with derived view**
+This is the canonical top-of-file import — no mid-file imports. The four downstream replacements (steps 3-6) just delete the inline definitions; the names are already bound from this import.
+
+- [ ] **Step 3: Delete the `BTC_ORANGE` inline definition**
+
+Find the line `BTC_ORANGE = "#f7931a"` (around line 26) and delete it. The name is now provided by the top-of-file import.
+
+- [ ] **Step 4: Replace `DECOMP_COLORS` definition with derived view**
 
 Find lines 75-84 (the `DECOMP_COLORS = { ... }` block) and replace with:
 
 ```python
 # DECOMP_COLORS — derived view from per-palette decomp_colors keys
-from colors import PALETTES as _PALETTES_FOR_DECOMP
-DECOMP_COLORS = {pkey: _PALETTES_FOR_DECOMP[pkey]["decomp_colors"]
-                 for pkey in _PALETTES_FOR_DECOMP}
+DECOMP_COLORS = {pkey: PALETTES[pkey]["decomp_colors"] for pkey in PALETTES}
 ```
 
-- [ ] **Step 4: Replace `DECOMP_SUM_COLOR` definition with derived view**
+- [ ] **Step 5: Replace `DECOMP_SUM_COLOR` definition with derived view**
 
 Find lines 87-92 (the `DECOMP_SUM_COLOR = { ... }` block) and replace with:
 
 ```python
 # DECOMP_SUM_COLOR — derived view from per-palette decomp_sum_color keys
-DECOMP_SUM_COLOR = {pkey: _PALETTES_FOR_DECOMP[pkey]["decomp_sum_color"]
-                    for pkey in _PALETTES_FOR_DECOMP}
+DECOMP_SUM_COLOR = {pkey: PALETTES[pkey]["decomp_sum_color"] for pkey in PALETTES}
 ```
 
-- [ ] **Step 5: Replace `MODEL_TRACE_COLORS` definition with re-export**
+- [ ] **Step 6: Delete the `MODEL_TRACE_COLORS` inline definition**
 
-Find lines 94-117 (the `MODEL_TRACE_COLORS = { ... }` block) and replace with:
+Find lines 94-117 (the `MODEL_TRACE_COLORS = { ... }` block) and delete it. The name is now provided by the top-of-file import.
 
-```python
-from colors import MODEL_TRACE_COLORS  # re-exported for backward compat
-```
+- [ ] **Step 6b: Delete the inline `PALETTES = { ... }` block**
 
-- [ ] **Step 6: Replace `PALETTES` definition with re-export**
-
-Find lines 120-221 (the entire `PALETTES = { ... }` block) and replace with:
-
-```python
-from colors import PALETTES  # re-exported for backward compat
-```
+Find lines 120-221 (the entire `PALETTES = { ... }` block) and delete it. The name is now provided by the top-of-file import.
 
 - [ ] **Step 7: Verify the file compiles and parity holds**
 
@@ -1269,9 +1284,133 @@ git commit -m "refactor(colors): mc_overlay.py imports CITADEL_OVERLAY_COLORS fr
 
 ---
 
+### Task 19: Sweep remaining callback files
+
+**Files:**
+- Modify: `btc_web/callbacks/citadel_cb.py` (4 hex literals)
+- Modify: `btc_web/callbacks/mc_payment.py` (1 hex literal)
+- Modify: `btc_web/callbacks/scanner.py` (1 hex literal)
+- Modify: `btc_web/callbacks/nav.py` (1 hex literal — separate from the data-palette callback added in Task 23)
+
+These four files were missed by Tasks 16. They each have a small number of hex literals (mostly status colors, fallback grays, or one-off UI tints).
+
+For each file in the list, perform the standard migration sequence:
+
+- [ ] **Step 1**: `grep -n '#[0-9a-fA-F]\{6\}' btc_web/callbacks/<file>.py` to inventory
+- [ ] **Step 2**: For any literal not yet in `colors.py`, add it as a named constant (e.g. `STATUS_OK_GREEN`, `MUTED_TEXT`, etc.). Regenerate artifacts via `btc_venv/bin/python3 tools/generate_color_artifacts.py`. Commit `colors.py` + the regenerated `_colors_generated.css`/`.js` first.
+- [ ] **Step 3**: Add `from colors import <CONSTANTS>` at the top of the callback file
+- [ ] **Step 4**: Replace each literal with its imported constant (one Edit call per literal)
+- [ ] **Step 5**: `cd btc_web && ../btc_venv/bin/python3 -m py_compile callbacks/<file>.py && echo OK`
+- [ ] **Step 6**: `grep -c '#[0-9a-fA-F]\{6\}' btc_web/callbacks/<file>.py` should print `0`
+- [ ] **Step 7**: Run targeted tests if any reference this file: `btc_venv/bin/python3 -m pytest btc_web/test_callbacks.py -q`
+- [ ] **Step 8**: Commit each file separately:
+  ```bash
+  git add btc_web/callbacks/<file>.py
+  git commit -m "refactor(colors): callbacks/<file>.py imports from colors"
+  ```
+
+Repeat for all 4 files. 4 commits total (plus optional sub-commit for adding new constants to colors.py if needed).
+
+---
+
+### Task 20: Sweep remaining layout files
+
+**Files:**
+- Modify: `btc_web/layout/citadel.py` (2 hex literals)
+- Modify: `btc_web/layout/citadel_tax.py` (2 hex literals)
+- Modify: `btc_web/layout/faq.py` (1 hex literal)
+- Modify: `btc_web/layout/heatmap.py` (4 hex literals)
+- Modify: `btc_web/layout/mc_controls.py` (2 hex literals)
+- Modify: `btc_web/layout/stack.py` (4 hex literals)
+
+Same standard migration sequence as Task 19, applied to each layout file. Most literals are style-dict values (border colors, focus rings, badge backgrounds). Add new constants to `colors.py` as needed (one consolidated colors.py + artifacts sub-commit at the START of this task is fine — figure out the full set of new constants needed by grepping all 6 files first).
+
+- [ ] **Step 1**: Inventory across all 6 files at once
+
+```bash
+for f in citadel.py citadel_tax.py faq.py heatmap.py mc_controls.py stack.py; do
+    echo "--- $f ---"
+    grep -n '#[0-9a-fA-F]\{6\}' btc_web/layout/$f
+done
+```
+
+- [ ] **Step 2**: Decide on named constants for any literals not yet in colors.py. Add them in one batch, regenerate, and commit colors.py + artifacts.
+
+```bash
+btc_venv/bin/python3 tools/generate_color_artifacts.py
+git add btc_web/colors.py btc_web/assets/_colors_generated.css btc_web/assets/_colors_generated.js
+git commit -m "feat(colors): add layout-sweep constants for Task 20"
+```
+
+- [ ] **Steps 3–8**: For each of the 6 files, add imports, replace literals, py_compile, verify zero hex, commit individually. 6 commits total.
+
+---
+
+### Task 21: Sweep remaining root-level Python files
+
+**Files:**
+- Modify: `btc_web/utils.py` (1 hex literal)
+- Modify: `btc_web/tasks.py` (1 hex literal)
+- Modify: `btc_web/static_pages.py` (1 hex literal)
+- Modify: `btc_web/tab_defaults.py` (4 hex literals — likely default UI/chart colors)
+
+Same standard migration sequence as Task 19, one file per commit. 4 commits.
+
+`tab_defaults.py` is special: its 4 literals are likely default values for plot appearance controls (`pt_color`, `grid_major_color`, etc.). Verify these match the constants in `colors.py` (e.g. `SCATTER_POINT`, `GRID_MAJOR_COLOR`) and import them rather than re-declaring.
+
+```bash
+grep -n '#[0-9a-fA-F]\{6\}' btc_web/utils.py btc_web/tasks.py btc_web/static_pages.py btc_web/tab_defaults.py
+```
+
+---
+
+### Task 22: rgba/rgb string literal sweep
+
+**Files (15 with rgba/rgb literals):**
+- `btc_web/figures/bubble.py`
+- `btc_web/figures/citadel.py`
+- `btc_web/figures/common.py`
+- `btc_web/figures/heatmap.py`
+- `btc_web/figures/residuals.py`
+- `btc_web/layout/bubble.py`
+- `btc_web/layout/citadel.py`
+- `btc_web/layout/common.py`
+- `btc_web/layout/faq.py`
+- `btc_web/layout/__init__.py`
+- `btc_web/layout/mc_controls.py`
+- `btc_web/layout/model_info.py`
+- `btc_web/mc_overlay.py`
+- `btc_web/callbacks/citadel_save_cb.py`
+- `btc_web/callbacks/user_model.py`
+
+Each contains literal `rgba(...)` or `rgb(...)` strings that the lint test (`test_no_rgba_literals_in_python` in Task 27) will reject. Migration approach for each literal:
+
+**Two replacement strategies:**
+
+1. **`_hex_alpha(constant, alpha)`** — use this when the rgba is conceptually "named hex constant + alpha overlay". Example: `"rgba(100,100,100,0.35)"` → import `FALLBACK_MODEL_GRAY` from colors + use `_hex_alpha(FALLBACK_MODEL_GRAY, 0.35)`. The `_hex_alpha` helper already exists in `figures/common.py:759`. Function calls return runtime strings — the lint AST walker correctly skips them.
+
+2. **Baked-alpha named constant in `colors.py`** — use this when the rgba string is reused multiple times or has a clear semantic name. Example: add `LOG_MINOR_GRID_FILL = "rgba(100,100,100,0.35)"` to colors.py as a string constant. The lint test allows colors.py itself to contain rgba string literals (it's the source of truth). Importers do `from colors import LOG_MINOR_GRID_FILL`.
+
+**Per-file procedure:**
+
+- [ ] **Step 1**: `grep -n 'rgba\?(' btc_web/figures/common.py` (etc.) to inventory
+- [ ] **Step 2**: For each rgba literal, decide strategy 1 or 2. Strategy 1 if the alpha is a one-off; strategy 2 if the literal is reused or has a clear name.
+- [ ] **Step 3**: For strategy 2, add the constants to `colors.py`. Regenerate artifacts. Commit colors.py + artifacts as a single sub-commit at the START of this task (handles all rgba constants for all 15 files in one go).
+- [ ] **Step 4**: For each file, add imports + replace literals via Edit. Verify with:
+  ```bash
+  cd btc_web && ../btc_venv/bin/python3 -m py_compile <file> && echo OK
+  ```
+- [ ] **Step 5**: After each file, commit: `git commit -m "refactor(colors): <file> uses _hex_alpha and named constants"`
+
+15 commits in this task (plus the single colors.py sub-commit at the start).
+
+**Note**: this sweep is the most labor-intensive in the entire plan. The implementer subagent should be told to take its time and not rush — every rgba replacement is an opportunity for a typo'd alpha value or a wrong base color.
+
+---
+
 ## Phase 3 — CSS migration
 
-### Task 19: Add `data-palette` to `<html>` via inline script + clientside callback
+### Task 23: Add `data-palette` to `<html>` via inline script + clientside callback
 
 **Files:**
 - Modify: `btc_web/app.py` (or `btc_web/layout/__init__.py`, wherever `index_string` is set)
@@ -1402,7 +1541,7 @@ EOF
 
 ---
 
-### Task 20: Migrate `btc_web/assets/style.css` (MANDATORY visual regression)
+### Task 24: Migrate `btc_web/assets/style.css` (MANDATORY visual regression)
 
 **Files:**
 - Modify: `btc_web/assets/style.css`
@@ -1533,7 +1672,7 @@ EOF
 
 ## Phase 4 — JS migration
 
-### Task 21: Migrate `btc_web/assets/chart_responsive.js`
+### Task 25: Migrate `btc_web/assets/chart_responsive.js`
 
 **Files:**
 - Modify: `btc_web/assets/chart_responsive.js`
@@ -1594,15 +1733,15 @@ git add btc_web/assets/chart_responsive.js
 git commit -m "refactor(colors): chart_responsive.js reads defaults from window.QS_COLORS"
 ```
 
-### Task 22: Migrate `btc_web/assets/plot_appearance.js`
+### Task 26: Migrate `btc_web/assets/plot_appearance.js`
 
-Same pattern as Task 21. 3 literals in DEFAULTS object. Replace with `window.QS_COLORS` reads. Verify, commit.
+Same pattern as Task 25. 3 literals in DEFAULTS object. Replace with `window.QS_COLORS` reads. Verify, commit.
 
 ---
 
 ## Phase 5 — Drift prevention
 
-### Task 23: Create the lint test
+### Task 27: Create the lint test
 
 **Files:**
 - Create: `btc_web/test_colors_central.py`
@@ -1642,6 +1781,7 @@ _ALLOWLIST = {
     _BTC_WEB / "colors.py",
     _BTC_WEB / "assets" / "_colors_generated.css",
     _BTC_WEB / "assets" / "_colors_generated.js",
+    _BTC_WEB / "assets" / "bootstrap_flatly.min.css",  # vendor bundle (~331 hex literals)
     _TOOLS / "generate_color_artifacts.py",
     _BTC_WEB / "test_colors_central.py",
 }
@@ -1650,6 +1790,15 @@ _ALLOWLIST_DIRS = {
     _BTC_WEB / "assets" / ".deferred",
     _BTC_WEB / "__pycache__",
 }
+
+# Vendor file patterns — any file matching is allowlisted regardless of path.
+# Catches future minified vendor bundles dropped into assets/.
+_VENDOR_PATTERNS = (
+    re.compile(r"\.min\.css$"),
+    re.compile(r"\.min\.js$"),
+    re.compile(r"\.bundle\.css$"),
+    re.compile(r"\.bundle\.js$"),
+)
 
 # Test fixtures with hardcoded color assertions are allowlisted as a class
 _TEST_FILE_PATTERN = re.compile(r"^test_.*\.py$")
@@ -1676,6 +1825,8 @@ def _walk_btc_web():
         if any(parent in _ALLOWLIST_DIRS for parent in path.parents):
             continue
         if _TEST_FILE_PATTERN.match(path.name):
+            continue
+        if any(pat.search(path.name) for pat in _VENDOR_PATTERNS):
             continue
         yield path
 
@@ -1821,20 +1972,38 @@ def test_generator_check_mode_passes():
 
 
 def test_palette_key_parity():
-    """Every palette must have an identical key set."""
+    """Every palette must have an identical TOP-LEVEL key set AND
+    identical inner model_colors key set."""
     import sys
     sys.path.insert(0, str(_BTC_WEB))
     import colors
+
+    # Top-level parity
     key_sets = {pkey: set(pdict.keys()) for pkey, pdict in colors.PALETTES.items()}
     all_keys = set.union(*key_sets.values())
-    divergences = {}
+    top_divergences = {}
     for pkey, keys in key_sets.items():
         missing = all_keys - keys
         if missing:
-            divergences[pkey] = sorted(missing)
-    assert not divergences, (
-        "Palette key divergences (each palette must have all keys):\n"
-        + "\n".join(f"  {pkey}: missing {keys}" for pkey, keys in divergences.items())
+            top_divergences[pkey] = sorted(missing)
+    assert not top_divergences, (
+        "Palette top-level key divergences:\n"
+        + "\n".join(f"  {pkey}: missing {keys}" for pkey, keys in top_divergences.items())
+    )
+
+    # Inner model_colors parity — every palette must have the same set
+    # of model keys. Catches drift like "lp4 added to default but not cb-rg".
+    mc_sets = {pkey: set(pdict["model_colors"].keys())
+               for pkey, pdict in colors.PALETTES.items()}
+    all_models = set.union(*mc_sets.values())
+    mc_divergences = {}
+    for pkey, keys in mc_sets.items():
+        missing = all_models - keys
+        if missing:
+            mc_divergences[pkey] = sorted(missing)
+    assert not mc_divergences, (
+        "Palette model_colors key divergences:\n"
+        + "\n".join(f"  {pkey}: missing {keys}" for pkey, keys in mc_divergences.items())
     )
 
 
@@ -1933,7 +2102,7 @@ EOF
 
 ---
 
-### Task 24: Final end-to-end review
+### Task 28: Final end-to-end review
 
 **Files:** none modified.
 
@@ -1968,7 +2137,7 @@ Open Chrome to `http://localhost:8050/1` through `/9`, switch palette via navbar
 
 - [ ] **Step 4: Dispatch the full implementation reviewer**
 
-Ask the orchestrator to dispatch the `feature-dev:code-reviewer` agent (or `general-purpose` agent with reviewer brief) with all the commits from Tasks 1–23 and the spec path. Reviewer verifies the entire migration matches the spec and flags any regressions or gaps.
+Ask the orchestrator to dispatch the `feature-dev:code-reviewer` agent (or `general-purpose` agent with reviewer brief) with all the commits from Tasks 1–27 and the spec path. Reviewer verifies the entire migration matches the spec and flags any regressions or gaps.
 
 - [ ] **Step 5: Address review findings**
 
@@ -1976,7 +2145,7 @@ Fix any issues the reviewer flags. Re-run the test suite. If clean, the migratio
 
 - [ ] **Step 6: No commit needed for this task**
 
-Task 24 is verification only — no code changes unless the reviewer finds issues.
+Task 28 is verification only — no code changes unless the reviewer finds issues.
 
 ---
 
@@ -1985,11 +2154,12 @@ Task 24 is verification only — no code changes unless the reviewer finds issue
 | Phase | Tasks | Approx commits | Risk |
 |---|---|---|---|
 | 1 — Foundation | 1, 2, 3 | 3 | Low — parallel registry, no behavior change |
-| 2 — Python migration | 4–18 | ~20 | Medium — touches many files; covered by regression tests |
-| 3 — CSS migration | 19, 20 | 2–3 (incl. colors.py sub-commit) + visual regression gate | Medium — large diff in style.css |
-| 4 — JS migration | 21, 22 | 2 | Low — small diffs in 2 files |
-| 5 — Drift prevention | 23 | 1 | Low — pure test |
-| Final review | 24 | 0 | — |
-| **Total** | **24 tasks** | **~30 commits** | — |
+| 2 — Python migration (named files) | 4–18 | ~20 | Medium — touches many files; covered by regression tests |
+| 2 — Python sweeps (missed files + rgba) | 19, 20, 21, 22 | ~30 (4+6+4+15+colors-sub-commits) | Medium — large surface; covered by lint test |
+| 3 — CSS migration | 23, 24 | 2–3 (incl. colors.py sub-commit) + visual regression gate | Medium — large diff in style.css |
+| 4 — JS migration | 25, 26 | 2 | Low — small diffs in 2 files |
+| 5 — Drift prevention | 27 | 1 | Low — pure test |
+| Final review | 28 | 0 | — |
+| **Total** | **28 tasks** | **~60 commits** | — |
 
-Tasks 13, 15, and 16 each migrate multiple files (heatmap+residuals; layout/bubble + layout/model_info + layout/__init__; charts + mc_controls + snapshot_cb), with one commit per file inside the task. This brings the total commit count to ~30 even though there are only 24 numbered tasks.
+The plan is intentionally divided into many small commits (~60) so each subagent can complete a single file in one session and the orchestrator can review between commits. The four sweep tasks (19-22) catch every Python file with hex or rgba literals that wasn't named in Tasks 7-18. This ensures the lint test in Task 27 passes on first run.

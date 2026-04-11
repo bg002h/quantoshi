@@ -74,6 +74,7 @@ def _bubble_controls():
                           inputStyle=_CB_MARGIN),
         ),
         display_models_panel("bub", include_bm_master=True,
+                              default_value=["bub"],
                               legend_pos_default=BUBBLE["legend_pos"]),
         html.Div(id="bub-bubble-panel", children=[
             _section_card("Bubble Model",

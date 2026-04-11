@@ -69,6 +69,7 @@ NON_QUANTIZED_MODEL_COLOR = "#8B4513"  # saddlebrown — single-trajectory model
 # ── UI text hierarchy ────────────────────────────────────────────────
 DIM_TEXT            = "#555555"   # secondary / hint text (layout sidebar, MC panels)
 MUTED_TEXT          = "#666666"   # very muted text (tab hints, attributions)
+MUTED_SUMMARY_TEXT  = "#9a9a9a"   # inline italic summaries next to Display Models entries
 
 # ── MC tier indicators ────────────────────────────────────────────────
 MC_FREE_GREEN       = "#1a8f3c"   # free-tier label / cost indicator

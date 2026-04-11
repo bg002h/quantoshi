@@ -212,9 +212,15 @@ def display_models_panel(
     include_bm_master: bool = False,
     include_mc: bool = False,
     include_u1: bool = True,
+    default_value: list[str] | None = None,
     legend_pos_default: str = "bottom-right",
 ):
-    """Return the Display Models section_card for one checklist-style tab."""
+    """Return the Display Models section_card for one checklist-style tab.
+
+    `default_value` — initial checklist selection. If None, falls back to
+    `["bub"] + (["mc"] if include_mc and _HAS_MARKOV else [])` matching the
+    pre-refactor behavior of `_model_show_checklist`.
+    """
     mc = _app_ctx.PALETTES["default"]["model_colors"]
     options = build_display_models_options(
         mc, prefix,
@@ -222,12 +228,16 @@ def display_models_panel(
         include_mc=include_mc,
         include_u1=include_u1,
     )
+    if default_value is None:
+        default_value = ["bub"] + (
+            ["mc"] if include_mc and _app_ctx._HAS_MARKOV else []
+        )
     return _section_card(
         "Display Models",
         dcc.Checklist(
             id=f"{prefix}-model-show",
             options=options,
-            value=[],
+            value=list(default_value),
             labelStyle={"display": "block"},
             inputStyle={"marginRight": "4px"},
         ),

@@ -10,7 +10,7 @@ from colors import (
     LINK, USER_MODEL_TRACE, FALLBACK_MODEL_GRAY,
     BLACK, MODEL_TRACE_COLORS, CITADEL_OVERLAY_COLORS,
     MODAL_DIVIDER_DARK, PROGRESS_TRACK,
-    EPPL_SUMMARY_COLOR, DIM_TEXT, MUTED_TEXT,
+    EPPL_SUMMARY_COLOR, DIM_TEXT, MUTED_TEXT, MUTED_SUMMARY_TEXT,
     DECOMP_ERROR_RED, ERROR_BG, ERROR_BORDER,
     MC_FREE_GREEN, MC_LIVE_AMBER, KNIGHT_GOLD,
     LIGHTBOX_BG, TABLE_HEADER_BG, TABLE_BORDER_LIGHT,
@@ -58,7 +58,7 @@ _GEAR_STYLE = {
     "opacity": "0.6", "textDecoration": "none",
 }
 _MUTED_STYLE = {
-    "color": "#9a9a9a", "fontSize": "11px", "fontStyle": "italic",
+    "color": MUTED_SUMMARY_TEXT, "fontSize": "11px", "fontStyle": "italic",
 }
 
 def _q_options() -> list[dict]:

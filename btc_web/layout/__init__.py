@@ -224,6 +224,25 @@ def _build_layout(initial_tab="bubble"):
         storage_type="memory",
         data={"lppl": "LPPL\u2083", "hybppl": "1d+1u", "eppl": "1d+1u"},
     ),
+    # ── Display Models consolidation placeholder block (always emitted) ──
+    # These 15 hidden dcc.Checklist components satisfy callback registration
+    # for _SNAPSHOT_CONTROLS tuples that are defunct after the display-models
+    # refactor but MUST remain in _SNAPSHOT_CONTROLS to preserve positional
+    # bit-index stability for old q3: share links.
+    # See spec: 2026-04-11-display-models-consolidation-design.md, Task 0 finding 3.
+    html.Div(
+        id="_defunct-snapshot-placeholders",
+        style={"display": "none"},
+        children=[
+            dcc.Checklist(
+                id=f"{prefix}-{family}-activate",
+                options=[{"label": "", "value": "yes"}],
+                value=[],
+            )
+            for prefix in ("bub", "dca", "ret", "sc", "hm")
+            for family in ("lppl", "hybppl", "eppl")
+        ],
+    ),
     dcc.Interval(id="price-interval", interval=_PRICE_INTERVAL_MS, n_intervals=0),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="model-percentiles-store", storage_type="memory", data=None),

@@ -10,11 +10,11 @@ from utils import _nearest_quantile
 from tab_defaults import SUPERCHARGE
 from layout.common import (_tab_hints, _section_card, _lbl,
                             _STYLE_HINT, _q_options, _q_panel_with_mode,
-                            _shared_settings_card, _model_show_checklist,
-                            _lppl_config_panel, _hybppl_config_panel, _eppl_config_panel,
+                            _shared_settings_card,
                             _btc_usd_dropdown, _chart_toggles,
-                            _legend_pos_dropdown, _chart_tab_layout,
+                            _chart_tab_layout,
                             _CB_MARGIN, _Q_HINT_BASE, _plot_appearance_controls)
+from layout.display_models import display_models_panel
 from layout.mc_controls import _mc_controls
 from colors import STATIC_PAGE_MUTED
 
@@ -88,9 +88,9 @@ def _supercharge_controls():
                      show_stack=True, default_entry_q=10,
                      start_yr_label="Withdrawal start year",
                      shared_controls={"amount", "infl", "freq", "stack"}),
+        display_models_panel("sc", legend_pos_default=SUPERCHARGE["legend_pos"]),
         # ── Chart ───────────────────────────────────────────────────────
         _section_card("Chart Settings",
-            *_model_show_checklist("sc", standardized=True),
             dcc.Checklist(id="sc-chart-layout",
                 options=[{"label":" Shade quantile bands","value":"shade"}],
                 value=["shade"],
@@ -102,11 +102,7 @@ def _supercharge_controls():
             ], id="sc-display-q-collapse", is_open=True),
             _btc_usd_dropdown("sc", btc_label="BTC Remaining", default="usd"),
             _chart_toggles("sc", ["annotate", "log_y", "shade"]),
-            *_legend_pos_dropdown("sc", SUPERCHARGE["legend_pos"]),
         ),
-        _lppl_config_panel("sc"),
-        _hybppl_config_panel("sc"),
-        _eppl_config_panel("sc"),
         _section_card("Plot Appearance", *_plot_appearance_controls("sc")),
     ])
 

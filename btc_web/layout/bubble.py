@@ -8,113 +8,16 @@ import dash_bootstrap_components as dbc
 import _app_ctx
 from tab_defaults import BUBBLE
 from colors import (
-    LINK, USER_MODEL_TRACE, FALLBACK_MODEL_GRAY,
-    BLACK, MODEL_TRACE_COLORS, CITADEL_OVERLAY_COLORS,
-    DIM_TEXT, BOOTSTRAP_LIGHT_BG, LOT_MARKER_OUTLINE,
+    USER_MODEL_TRACE, FALLBACK_MODEL_GRAY,
+    DIM_TEXT, BOOTSTRAP_LIGHT_BG,
     _hex_alpha,
 )
-from layout.common import (_model_info_link, _INFO_ICON,
-                           _tab_hints, _section_card, _row, _lbl,
+from layout.common import (_tab_hints, _section_card, _row, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT, _q_panel, _q_panel_with_mode,
                             _q_options, _legend_pos_dropdown,
                             _chart_tab_layout, _CB_MARGIN, _palette_selector,
-                            _lppl_config_panel, _hybppl_config_panel,
-                            _eppl_config_panel, _plot_appearance_controls)
-
-
-def _build_bub_model_options(mc):
-    """Build bub-model-show options with a single master 'LPPL' entry
-    (individual LPPL family variants managed by the LPPL Models config
-    panel below the checklist)."""
-    _GEAR = "\u2699\uFE0F"
-    _GEAR_STYLE = {
-        "cursor": "pointer", "fontSize": "11px", "marginLeft": "4px",
-        "opacity": "0.6", "textDecoration": "none",
-    }
-
-    _INFO_STYLE = {
-        "cursor": "pointer", "fontSize": "11px", "marginLeft": "4px",
-        "opacity": "0.6", "textDecoration": "none", "color": LINK,
-    }
-
-    def _swatch(color, label, gear_btn_id=None, model_key=None):
-        children = [
-            html.Span(" ", style={
-                "display": "inline-block", "width": "12px", "height": "12px",
-                "borderRadius": "2px", "verticalAlign": "middle",
-                "marginRight": "4px", "backgroundColor": color,
-            }),
-            label,
-        ]
-        if gear_btn_id:
-            children.append(html.Span(
-                _GEAR, id=gear_btn_id, n_clicks=0,
-                style=_GEAR_STYLE,
-                title=f"Open {label} configuration panel",
-            ))
-        elif model_key:
-            href, exists = _model_info_link(model_key)
-            if exists:
-                children.append(html.A(
-                    _INFO_ICON, href=href,
-                    style=_INFO_STYLE,
-                    title=f"View {label} details on Model Info tab",
-                ))
-        return html.Span(children)
-
-    opts = [{"label": _swatch(mc.get("bub", BLACK), "Bubble Model",
-                               gear_btn_id="bub-bm-gear"),
-             "value": "bub"}]
-
-    opts.append({
-        "label": _swatch(mc.get("eppl", MODEL_TRACE_COLORS["eppl"]), "Entropy PPL",
-                          gear_btn_id="bub-eppl-gear"),
-        "value": "eppl",
-    })
-
-    opts.append({
-        "label": _swatch(mc.get("lppl", MODEL_TRACE_COLORS["lppl"]), "LPPL",
-                          gear_btn_id="bub-lppl-gear"),
-        "value": "lppl",
-    })
-
-    opts.append({
-        "label": _swatch(mc.get("hybppl", CITADEL_OVERLAY_COLORS["reserves_total"]), "Hybrid PPL",
-                          gear_btn_id="bub-hybppl-gear"),
-        "value": "hybppl",
-    })
-
-    # Non-LPPL/HybPPL-family models, ordered:
-    #   promoted (PCA, Greedy) → mid (PL, QR, EF, etc.) → deprioritized (Exp, S2F, Gomp, BPL)
-    _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(_app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
-    _HYBPPL_FAM = _app_ctx.HYBPPL_FAMILY_HIDDEN
-    _PROMOTED = ("pca", "grdy")
-    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl"}
-    _HIDDEN = _LPPL_FAM | _HYBPPL_FAM | {"bub", "eppl"} | _app_ctx.MODEL_SENTINELS
-    _all = [m for m in _app_ctx.PRICE_MODELS.values()
-            if m.short_name not in _HIDDEN
-            and not m.short_name.startswith("cfg_")
-            and not m.short_name.startswith("ecfg_")]
-    promoted = [m for m in _all if m.short_name in _PROMOTED]
-    # Sort promoted in the order defined
-    promoted.sort(key=lambda m: _PROMOTED.index(m.short_name) if m.short_name in _PROMOTED else 99)
-    primary = [m for m in _all
-               if m.short_name not in _PROMOTED
-               and m.short_name not in _DEPRIORITIZED]
-    deprior = [m for m in _all if m.short_name in _DEPRIORITIZED]
-    for mdl in promoted + primary + deprior:
-        opts.append({
-            "label": _swatch(mc.get(mdl.short_name, FALLBACK_MODEL_GRAY), mdl.name,
-                              model_key=mdl.short_name),
-            "value": mdl.short_name,
-        })
-
-    opts.append({
-        "label": _swatch(mc.get("u1", LOT_MARKER_OUTLINE), "U\u2081 (User)",
-                          model_key="u1"),
-        "value": "u1",
-    })
-    return opts
+                            _plot_appearance_controls)
+from layout.display_models import display_models_panel
 
 
 def _bubble_controls():
@@ -169,16 +72,9 @@ def _bubble_controls():
                           value=["shade","show_data","show_today"],
                           labelStyle={"display":"block"},
                           inputStyle=_CB_MARGIN),
-            *_legend_pos_dropdown("bub", BUBBLE["legend_pos"]),
-            _lbl("Display models"),
-            dcc.Checklist(id="bub-model-show",
-                          options=_build_bub_model_options(
-                              _app_ctx.PALETTES["default"]["model_colors"]),
-                          value=["bub"], inline=True,
-                          inputStyle=_CB_MARGIN,
-                          labelStyle={"marginRight": "12px", "fontSize": "11px"},
-                          style={"marginBottom": "8px"}),
         ),
+        display_models_panel("bub", include_bm_master=True,
+                              legend_pos_default=BUBBLE["legend_pos"]),
         html.Div(id="bub-bubble-panel", children=[
             _section_card("Bubble Model",
                 html.Div(id="bub-bm-body", children=[
@@ -204,9 +100,6 @@ def _bubble_controls():
                 )],
             ),
         ]),
-        _lppl_config_panel("bub"),
-        _hybppl_config_panel("bub"),
-        _eppl_config_panel("bub"),
         _section_card("Component Decomposition",
             _lbl("Model"),
             dcc.Dropdown(

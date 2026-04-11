@@ -11,11 +11,11 @@ from layout.common import (_tab_hints, _section_card, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT,
                             _CB_MARGIN, _Q_HINT_BASE,
                             _q_options, _q_panel_with_mode,
-                            _model_show_checklist, _lppl_config_panel, _hybppl_config_panel, _eppl_config_panel,
                             _shared_settings_card, _year_range_slider,
                             _btc_usd_dropdown, _chart_toggles,
                             _legend_pos_dropdown, _ctrl_card,
                             _chart_tab_layout, _plot_appearance_controls)
+from layout.display_models import display_models_panel
 from layout.mc_controls import _mc_controls
 from colors import DIM_TEXT
 
@@ -33,10 +33,8 @@ def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
         # Display Models is its own section — mirrors the prominence of
         # bubble tab's "Display" card. Legend position lives with the
         # models it governs.
-        _section_card("Display Models",
-            *_model_show_checklist(prefix, standardized=True, include_mc=include_mc),
-            *_legend_pos_dropdown(prefix, legend_pos_default),
-        ),
+        display_models_panel(prefix, include_mc=include_mc,
+                             legend_pos_default=legend_pos_default),
     ]
     if extra_sections:
         children.extend(extra_sections)
@@ -50,9 +48,6 @@ def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
             _chart_toggles(prefix, chart_toggle_defaults),
         ),
     )
-    children.append(_lppl_config_panel(prefix))
-    children.append(_hybppl_config_panel(prefix))
-    children.append(_eppl_config_panel(prefix))
     children.append(_section_card("Plot Appearance",
                                   *_plot_appearance_controls(prefix)))
     return html.Div(children)

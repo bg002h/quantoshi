@@ -126,6 +126,12 @@ _SNAPSHOT_CONTROLS = [
     # ── Bubble overlay models ──
     ("bub-model-show",    "value"),   # PL/S2F overlay toggle (Bubble)
     # ── LPPL config panel (Bubble tab) ──
+    # ── Defunct after display-models consolidation (2026-04-11) ──
+    # The *-lppl-activate / *-hybppl-activate / *-eppl-activate tuples below
+    # are retained for q3: link positional bit-index stability. The decoder
+    # at line ~515 is positional; deleting these would silently corrupt all
+    # pre-refactor share links. The components are rendered as hidden
+    # placeholders by _serve_layout.
     ("bub-lppl-activate", "value"),   # master activate toggle ["yes"] or []
     ("lppl-n-freqs",      "value"),   # [1..4] checkbox multi-select
     ("lppl-weighted",     "value"),   # ["weighted"] or []
@@ -281,6 +287,12 @@ _SNAPSHOT_CONTROLS = [
     ("cp-scenario-active",    "data"),
     # ── Phase 1 append-only additions (per-tab LPPL activate checkboxes) ──
     # Append-only to preserve bit-index ordering of earlier positions.
+    # ── Defunct after display-models consolidation (2026-04-11) ──
+    # The *-lppl-activate / *-hybppl-activate / *-eppl-activate tuples below
+    # are retained for q3: link positional bit-index stability. The decoder
+    # at line ~515 is positional; deleting these would silently corrupt all
+    # pre-refactor share links. The components are rendered as hidden
+    # placeholders by _serve_layout.
     ("dca-lppl-activate", "value"),
     ("ret-lppl-activate", "value"),
     ("sc-lppl-activate",  "value"),
@@ -388,6 +400,8 @@ _CHECKLIST_OPTIONS = {
     "sc-model-show":      ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl"],
     "hm-model-show":      ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl"],
     "bub-model-show":     ["pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "bub", "qr", "gomp", "bpl"],
+    # Defunct after display-models consolidation (2026-04-11) — retained
+    # for q3: link positional stability. See _SNAPSHOT_CONTROLS comment above.
     "bub-lppl-activate":  ["yes"],
     "dca-lppl-activate":  ["yes"],
     "ret-lppl-activate":  ["yes"],

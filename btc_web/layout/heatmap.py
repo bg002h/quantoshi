@@ -9,8 +9,8 @@ import _app_ctx
 from layout.common import (_tab_hints, _section_card, _lbl, _row, _export_row,
                             _STYLE_HIDDEN, _STYLE_HINT, _STYLE_GRAPH_H,
                             _STYLE_COLOR_H, _BTC_ORANGE,
-                            _CB_MARGIN, _Q_HINT_BASE,
-                            _q_options, _lppl_config_panel, _hybppl_config_panel, _eppl_config_panel)
+                            _CB_MARGIN, _Q_HINT_BASE, _GEAR_STYLE, _MUTED_STYLE,
+                            _q_options)
 from layout.mc_controls import _mc_controls
 from tab_defaults import HEATMAP
 from colors import (NEAR_BLACK, DIM_TEXT, SPINE_COLOR_FALLBACK,
@@ -123,9 +123,6 @@ def _heatmap_controls():
         # but no longer user-visible (pill bar replaces it on tab 2)
         dcc.Checklist(id="hm-model-show", value=["qr"],
                       style=_STYLE_HIDDEN),
-        _lppl_config_panel("hm"),
-        _hybppl_config_panel("hm"),
-        _eppl_config_panel("hm"),
     ])
 
 
@@ -175,9 +172,33 @@ def _hm_pill_bar():
                        color="warning", size="sm"),
         )
 
-    return html.Div([
+    pill_bar = html.Div([
         dbc.ButtonGroup(buttons, size="sm"),
     ], className="mb-1 text-center")
+
+    status_row = html.Div(
+        id="hm-active-family-row",
+        style={"display": "none",           # hidden until gated clientside
+               "alignItems": "center",
+               "gap": "4px",
+               "marginTop": "6px",
+               "fontSize": "11px"},
+        children=[
+            html.Span("Active: ", style={"color": FALLBACK_MODEL_GRAY}),
+            html.Span(id="hm-active-family-label",
+                      style={"fontWeight": "600"}),
+            html.Span(" \u00b7 (", style=_MUTED_STYLE),
+            html.Span(id="hm-active-family-summary-inline",
+                      children="", style=_MUTED_STYLE),
+            html.Span(") ", style=_MUTED_STYLE),
+            html.Span("\u2699\uFE0F",
+                      id="hm-active-family-gear", n_clicks=0,
+                      style=_GEAR_STYLE,
+                      title="Configure active model"),
+        ],
+    )
+
+    return html.Div([pill_bar, status_row])
 
 
 def _heatmap_tab():

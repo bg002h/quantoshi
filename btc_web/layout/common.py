@@ -617,126 +617,6 @@ def _freq_warning_modal():
     ], id="freq-warning-modal", is_open=False, centered=True)
 
 
-def _model_show_checklist(prefix, standardized=False, include_mc=False):
-    """Display models checklist with palette-aware color swatches.
-
-    standardized=True: emits single "LPPL" master (skip individual LPPL
-    family variants), omits Exp + S2F. For tabs 1/3/4/5 (Phase 1) and
-    tab 2 (Phase 2) that share the standardized UX.
-    """
-    mc = _app_ctx.PALETTES["default"]["model_colors"]
-    _PROMOTED = ("eppl", "pca", "grdy")
-    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl", "hyb2l", "hyb2c", "hyb2b", "hyb4d"}
-    _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(
-        _app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
-
-    _INFO_STYLE = {
-        "cursor": "pointer", "fontSize": "11px", "marginLeft": "4px",
-        "opacity": "0.6", "textDecoration": "none", "color": LINK,
-    }
-
-    def _swatch(color, label, model_key=None):
-        children = [
-            html.Span(" ", style={
-                "display": "inline-block", "width": "12px", "height": "12px",
-                "borderRadius": "2px", "verticalAlign": "middle",
-                "marginRight": "4px", "backgroundColor": color,
-            }),
-            label,
-        ]
-        if model_key:
-            href, exists = _model_info_link(model_key)
-            if exists:
-                children.append(html.A(
-                    _INFO_ICON, href=href,
-                    style=_INFO_STYLE,
-                    title=f"View {label} details on Model Info tab",
-                ))
-        return html.Span(children)
-
-    opts = [{"label": _swatch(mc.get("bub", BLACK), "Bubble Model"),
-             "value": "bub"}]
-
-    if standardized:
-        # Inject master LPPL entry right after Bubble Model.
-        opts.append({
-            "label": _swatch(mc.get("lppl", MODEL_TRACE_COLORS["lppl"]), "LPPL (family)"),
-            "value": "lppl",
-        })
-
-    _HYBPPL_FAM = _app_ctx.HYBPPL_FAMILY_HIDDEN
-    all_models = [mdl for mdl in _app_ctx.PRICE_MODELS.values()
-                  if mdl.short_name not in _app_ctx.MODEL_SENTINELS
-                  and mdl.short_name != "bub"
-                  and mdl.short_name not in _HYBPPL_FAM
-                  and not mdl.short_name.startswith("cfg_")
-                  and not mdl.short_name.startswith("ecfg_")]
-    if standardized:
-        all_models = [m for m in all_models
-                      if m.short_name not in _LPPL_FAM
-                      and m.short_name not in _DEPRIORITIZED]
-        promoted = sorted([m for m in all_models if m.short_name in _PROMOTED],
-                          key=lambda m: _PROMOTED.index(m.short_name) if m.short_name in _PROMOTED else 99)
-        rest = [m for m in all_models if m.short_name not in _PROMOTED]
-        ordered = promoted + rest
-    else:
-        promoted = sorted([m for m in all_models if m.short_name in _PROMOTED],
-                          key=lambda m: _PROMOTED.index(m.short_name) if m.short_name in _PROMOTED else 99)
-        mid = [m for m in all_models if m.short_name not in _PROMOTED and m.short_name not in _DEPRIORITIZED]
-        dep = [m for m in all_models if m.short_name in _DEPRIORITIZED]
-        ordered = promoted + mid + dep
-    for mdl in ordered:
-        opts.append({
-            "label": _swatch(mc.get(mdl.short_name, FALLBACK_MODEL_GRAY), mdl.name,
-                              model_key=mdl.short_name),
-            "value": mdl.short_name,
-        })
-    if include_mc and _app_ctx._HAS_MARKOV:
-        opts.append({"label": " MC Simulation", "value": "mc"})
-    return [
-        _lbl("Display models"),
-        dcc.Checklist(id=f"{prefix}-model-show",
-                      options=opts,
-                      value=["bub"] + (["mc"] if include_mc and _app_ctx._HAS_MARKOV else []),
-                      inline=True,
-                      inputStyle=_CB_MARGIN,
-                      labelStyle={"marginRight": "12px", "fontSize": "11px"},
-                      style={"marginBottom": "8px"}),
-    ]
-
-
-def _lppl_config_panel(prefix):
-    """Compact LPPL sub-panel: activate + summary + modal launcher.
-
-    The actual n_freqs/weighted/no_13 controls live in the global
-    modal (_global_lppl_modal) so they have unique IDs. Each tab's
-    version here links to that one modal.
-    """
-    activate = dcc.Checklist(
-        id=f"{prefix}-lppl-activate",
-        options=[{"label": " Activate", "value": "yes"}],
-        value=[], inputStyle=_CB_MARGIN,
-        className="model-panel-activate",
-    )
-    configure_btn = dbc.Button(
-        "\u2699\ufe0f",
-        id=f"{prefix}-lppl-configure-btn",
-        size="sm", color="secondary", outline=True,
-        title="Configure LPPL",
-        className="model-panel-configure-btn",
-    )
-    return _section_card(
-        "LPPL Models",
-        html.Div([
-            html.Small("Current: ", style={"color": FALLBACK_MODEL_GRAY, "fontSize": "11px"}),
-            html.Span(id=f"{prefix}-lppl-summary", children="LPPL\u2083",
-                      style={"color": MODEL_TRACE_COLORS["lppl"], "fontSize": "11px",
-                             "fontWeight": "600"}),
-        ], style={"marginTop": "4px", "marginBottom": "4px"}),
-        header_right=[activate, configure_btn],
-    )
-
-
 def _global_lppl_modal():
     """Root-level modal holding the n_freqs/weighted/no_13 controls.
 
@@ -780,38 +660,6 @@ def _global_lppl_modal():
                        size="sm", color="primary"),
         ),
     ], id="lppl-config-modal", is_open=False, centered=True, size="md")
-
-
-def _hybppl_config_panel(prefix):
-    """Compact HybPPL sub-panel: activate + summary + modal launcher.
-
-    The actual frequency/damping controls live in the global modal
-    (_global_hybppl_modal) so they have unique IDs.  Each tab's
-    version here links to that one modal.
-    """
-    activate = dcc.Checklist(
-        id=f"{prefix}-hybppl-activate",
-        options=[{"label": " Activate", "value": "yes"}],
-        value=[], inputStyle=_CB_MARGIN,
-        className="model-panel-activate",
-    )
-    configure_btn = dbc.Button(
-        "\u2699\ufe0f",
-        id=f"{prefix}-hybppl-configure-btn",
-        size="sm", color="secondary", outline=True,
-        title="Configure HybPPL",
-        className="model-panel-configure-btn",
-    )
-    return _section_card(
-        "Hybrid PPL Models",
-        html.Div([
-            html.Small("Current: ", style={"color": FALLBACK_MODEL_GRAY, "fontSize": "11px"}),
-            html.Span(id=f"{prefix}-hybppl-summary", children="1d+1u",
-                      style={"color": CITADEL_OVERLAY_COLORS["reserves_total"], "fontSize": "11px",
-                             "fontWeight": "600"}),
-        ], style={"marginTop": "4px", "marginBottom": "4px"}),
-        header_right=[activate, configure_btn],
-    )
 
 
 def _hybppl_model_slot(slot):
@@ -925,38 +773,6 @@ def _global_hybppl_modal():
                        size="sm", color="primary"),
         ),
     ], id="hybppl-config-modal", is_open=False, centered=True, size="lg")
-
-
-def _eppl_config_panel(prefix):
-    """Compact EPPL sub-panel: activate + summary + modal launcher.
-
-    The actual frequency/damping controls live in the global modal
-    (_global_eppl_modal) so they have unique IDs.  Each tab's
-    version here links to that one modal.
-    """
-    activate = dcc.Checklist(
-        id=f"{prefix}-eppl-activate",
-        options=[{"label": " Activate", "value": "yes"}],
-        value=[], inputStyle=_CB_MARGIN,
-        className="model-panel-activate",
-    )
-    configure_btn = dbc.Button(
-        "\u2699\ufe0f",
-        id=f"{prefix}-eppl-configure-btn",
-        size="sm", color="secondary", outline=True,
-        title="Configure Entropy PPL",
-        className="model-panel-configure-btn",
-    )
-    return _section_card(
-        "\U0001FAE0 Entropy PPL Models",
-        html.Div([
-            html.Small("Current: ", style={"color": FALLBACK_MODEL_GRAY, "fontSize": "11px"}),
-            html.Span(id=f"{prefix}-eppl-summary", children="1d+1u",
-                      style={"color": EPPL_SUMMARY_COLOR, "fontSize": "11px",
-                             "fontWeight": "600"}),
-        ], style={"marginTop": "4px", "marginBottom": "4px"}),
-        header_right=[activate, configure_btn],
-    )
 
 
 def _eppl_model_slot(slot):

@@ -15,42 +15,194 @@ from colors import (
 )
 
 
-# ── LPPL master gate: bi-directional sync between the "Activate LPPL"
-# checkbox on the LPPL Models config panel and the "lppl" master entry
-# in bub-model-show, plus a collapse toggle on the config-panel body. ──
+# ══════════════════════════════════════════════════════════════════════════════
+# Display Models family summaries — single source of truth
+# ══════════════════════════════════════════════════════════════════════════════
+# Python ports of the existing per-tab clientside summary JS. Writes to the
+# `display-model-summaries` Store; Store-reader clientside callbacks fan out
+# to every `{prefix}-{fam}-summary-inline` span mounted by display_models_panel.
 
-# activate -> model-show: add/remove "lppl" master
+
+def _format_lppl_summary(n_freqs, weighted, no_13):
+    ns = sorted(n_freqs or [])
+    if not ns:
+        return "(no flavor)"
+    names = {1: "LPPL\u2081", 2: "LPPL\u2082", 3: "LPPL\u2083", 4: "LPPL\u2084"}
+    txt = "+".join(names.get(n, f"LPPL{n}") for n in ns)
+    if weighted and "weighted" in weighted:
+        txt += " (w)"
+    if no_13 and "no13" in no_13:
+        txt += " (no \u03c9\u224813)"
+    return txt
+
+
+def _format_hybppl_summary(nlog_a, ncal_a, log1d_a, log2d_a, cal1d_a, cal2d_a,
+                            b_enabled, nlog_b, ncal_b, log1d_b, log2d_b,
+                            cal1d_b, cal2d_b):
+    def spec(n, d1, d2):
+        if n == 0:
+            return "0"
+        if n == 1:
+            return "1" + (d1 or "d")
+        return "2" + (d1 or "d") + (d2 or "d")
+    a_spec = spec(nlog_a, log1d_a, log2d_a) + "+" + spec(ncal_a, cal1d_a, cal2d_a)
+    txt = a_spec
+    if b_enabled and len(b_enabled) > 0:
+        b_spec = spec(nlog_b, log1d_b, log2d_b) + "+" + spec(ncal_b, cal1d_b, cal2d_b)
+        txt += " / " + b_spec
+    return txt
+
+
+def _format_eppl_summary(nlog_a, ncal_a, log1d_a, log2d_a, cal1d_a, cal2d_a,
+                          b_enabled, nlog_b, ncal_b, log1d_b, log2d_b,
+                          cal1d_b, cal2d_b):
+    # Same shape as hybppl summary.
+    return _format_hybppl_summary(
+        nlog_a, ncal_a, log1d_a, log2d_a, cal1d_a, cal2d_a,
+        b_enabled, nlog_b, ncal_b, log1d_b, log2d_b, cal1d_b, cal2d_b,
+    )
+
+
+@callback(
+    Output("display-model-summaries", "data"),
+    # LPPL (3)
+    Input("lppl-n-freqs", "value"),
+    Input("lppl-weighted", "value"),
+    Input("lppl-no-13",   "value"),
+    # HybPPL (13)
+    Input("hybppl-cfg-a-nlog",    "value"),
+    Input("hybppl-cfg-a-ncal",    "value"),
+    Input("hybppl-cfg-a-log1d",   "value"),
+    Input("hybppl-cfg-a-log2d",   "value"),
+    Input("hybppl-cfg-a-cal1d",   "value"),
+    Input("hybppl-cfg-a-cal2d",   "value"),
+    Input("hybppl-cfg-b-enabled", "value"),
+    Input("hybppl-cfg-b-nlog",    "value"),
+    Input("hybppl-cfg-b-ncal",    "value"),
+    Input("hybppl-cfg-b-log1d",   "value"),
+    Input("hybppl-cfg-b-log2d",   "value"),
+    Input("hybppl-cfg-b-cal1d",   "value"),
+    Input("hybppl-cfg-b-cal2d",   "value"),
+    # EPPL (13)
+    Input("eppl-cfg-a-nlog",    "value"),
+    Input("eppl-cfg-a-ncal",    "value"),
+    Input("eppl-cfg-a-log1d",   "value"),
+    Input("eppl-cfg-a-log2d",   "value"),
+    Input("eppl-cfg-a-cal1d",   "value"),
+    Input("eppl-cfg-a-cal2d",   "value"),
+    Input("eppl-cfg-b-enabled", "value"),
+    Input("eppl-cfg-b-nlog",    "value"),
+    Input("eppl-cfg-b-ncal",    "value"),
+    Input("eppl-cfg-b-log1d",   "value"),
+    Input("eppl-cfg-b-log2d",   "value"),
+    Input("eppl-cfg-b-cal1d",   "value"),
+    Input("eppl-cfg-b-cal2d",   "value"),
+)
+def compute_family_summaries(*args):
+    lppl_args   = args[0:3]
+    hybppl_args = args[3:16]
+    eppl_args   = args[16:29]
+    return {
+        "lppl":   _format_lppl_summary(*lppl_args),
+        "hybppl": _format_hybppl_summary(*hybppl_args),
+        "eppl":   _format_eppl_summary(*eppl_args),
+    }
+
+
+# ── Store-reader clientside callbacks ──
+# Read per-family summary strings from display-model-summaries Store and
+# broadcast to the {prefix}-{family}-summary-inline spans on all 4 tabs.
 _app_ctx.app.clientside_callback(
-    """
-    function(act, cur_models) {
-        var want = (act && act.length) > 0;
-        var models = (cur_models || []).slice();
-        var has = models.indexOf('lppl') !== -1;
-        if (want && !has) { models.push('lppl'); return models; }
-        if (!want && has) {
-            return models.filter(function(v) { return v !== 'lppl'; });
+    '''
+    function(data) {
+        if (!data) return ['', '', '', ''];
+        var s = data.lppl || '';
+        return [s, s, s, s];
+    }
+    ''',
+    Output("bub-lppl-summary-inline", "children"),
+    Output("dca-lppl-summary-inline", "children"),
+    Output("ret-lppl-summary-inline", "children"),
+    Output("sc-lppl-summary-inline",  "children"),
+    Input("display-model-summaries", "data"),
+)
+
+_app_ctx.app.clientside_callback(
+    '''
+    function(data) {
+        if (!data) return ['', '', '', ''];
+        var s = data.hybppl || '';
+        return [s, s, s, s];
+    }
+    ''',
+    Output("bub-hybppl-summary-inline", "children"),
+    Output("dca-hybppl-summary-inline", "children"),
+    Output("ret-hybppl-summary-inline", "children"),
+    Output("sc-hybppl-summary-inline",  "children"),
+    Input("display-model-summaries", "data"),
+)
+
+_app_ctx.app.clientside_callback(
+    '''
+    function(data) {
+        if (!data) return ['', '', '', ''];
+        var s = data.eppl || '';
+        return [s, s, s, s];
+    }
+    ''',
+    Output("bub-eppl-summary-inline", "children"),
+    Output("dca-eppl-summary-inline", "children"),
+    Output("ret-eppl-summary-inline", "children"),
+    Output("sc-eppl-summary-inline",  "children"),
+    Input("display-model-summaries", "data"),
+)
+
+# ── Heatmap status row: visibility + label (driven by hm-active-model) ──
+_app_ctx.app.clientside_callback(
+    r"""
+    function(active) {
+        var CONFIGURABLE = {"lppl": "LPPL", "hybppl": "HybPPL", "eppl": "\u{1FAE0} Entropy PPL"};
+        if (!active || !(active in CONFIGURABLE)) {
+            return [{display: "none"}, ""];
         }
-        return window.dash_clientside.no_update;
+        return [{display: "inline-flex", alignItems: "center",
+                 gap: "4px", marginTop: "6px", fontSize: "11px"}, CONFIGURABLE[active]];
     }
     """,
-    Output("bub-model-show", "value", allow_duplicate=True),
-    Input("bub-lppl-activate", "value"),
-    State("bub-model-show", "value"),
-    prevent_initial_call='initial_duplicate',
+    Output("hm-active-family-row", "style"),
+    Output("hm-active-family-label", "children"),
+    Input("hm-active-model", "data"),
 )
 
-# model-show -> activate: mirror "lppl" membership
+# ── Heatmap status row: summary text (from display-model-summaries + hm-active-model) ──
 _app_ctx.app.clientside_callback(
     """
-    function(models) {
-        var has = (models || []).indexOf('lppl') !== -1;
-        return has ? ['yes'] : [];
+    function(data, active) {
+        if (!data || !active) return "";
+        return data[active] || "";
     }
     """,
-    Output("bub-lppl-activate", "value", allow_duplicate=True),
-    Input("bub-model-show", "value"),
-    prevent_initial_call='initial_duplicate',
+    Output("hm-active-family-summary-inline", "children"),
+    Input("display-model-summaries", "data"),
+    Input("hm-active-model", "data"),
 )
+
+# ── Heatmap gear → routes clicks to the correct modal ──
+_app_ctx.app.clientside_callback(
+    """
+    function(n, active) {
+        if (!n || !active) return [false, false, false];
+        return [active === "lppl", active === "hybppl", active === "eppl"];
+    }
+    """,
+    Output("lppl-config-modal",   "is_open", allow_duplicate=True),
+    Output("hybppl-config-modal", "is_open", allow_duplicate=True),
+    Output("eppl-config-modal",   "is_open", allow_duplicate=True),
+    Input("hm-active-family-gear", "n_clicks"),
+    State("hm-active-model", "data"),
+    prevent_initial_call=True,
+)
+
 
 # BM gear icon → scroll to BM config body
 _app_ctx.app.clientside_callback(
@@ -112,249 +264,46 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call='initial_duplicate',
 )
 
-# Any per-tab Configure-LPPL button click → open modal.
-# (Phase 2 will extend the Input list to include hm-lppl-configure-btn.)
+# LPPL modal: open via gear icon, close via close button.
 _app_ctx.app.clientside_callback(
     """
-    function(bub_n, dca_n, ret_n, sc_n, hm_n, gear_n, close_n, cur_open) {
+    function(bub_n, dca_n, ret_n, sc_n, close_n, cur_open) {
         var ctx = window.dash_clientside.callback_context;
-        if (!ctx.triggered || !ctx.triggered.length) {
-            return window.dash_clientside.no_update;
-        }
+        if (!ctx.triggered || !ctx.triggered.length) return window.dash_clientside.no_update;
         var src = ctx.triggered[0].prop_id;
-        if (src.indexOf('lppl-modal-close-btn') !== -1) return false;
-        if (src.indexOf('lppl-configure-btn') !== -1 ||
-            src.indexOf('lppl-gear') !== -1) return true;
+        if (src.indexOf('modal-close-btn') !== -1) return false;
+        if (src.indexOf('-gear') !== -1) return true;
         return window.dash_clientside.no_update;
     }
     """,
-    Output("lppl-config-modal", "is_open"),
-    Input("bub-lppl-configure-btn", "n_clicks"),
-    Input("dca-lppl-configure-btn", "n_clicks"),
-    Input("ret-lppl-configure-btn", "n_clicks"),
-    Input("sc-lppl-configure-btn", "n_clicks"),
-    Input("hm-lppl-configure-btn", "n_clicks"),
+    Output("lppl-config-modal", "is_open", allow_duplicate=True),
     Input("bub-lppl-gear", "n_clicks"),
+    Input("dca-lppl-gear", "n_clicks"),
+    Input("ret-lppl-gear", "n_clicks"),
+    Input("sc-lppl-gear",  "n_clicks"),
     Input("lppl-modal-close-btn", "n_clicks"),
     State("lppl-config-modal", "is_open"),
     prevent_initial_call=True,
 )
 
-# Activate ↔ "lppl" in {prefix}-model-show for DCA, Retire, SC.
-for _lp in ("dca", "ret", "sc"):
-    _app_ctx.app.clientside_callback(
-        """
-        function(act, cur_models) {
-            var want = (act && act.length) > 0;
-            var models = (cur_models || []).slice();
-            var has = models.indexOf('lppl') !== -1;
-            if (want && !has) { models.push('lppl'); return models; }
-            if (!want && has) {
-                return models.filter(function(v) { return v !== 'lppl'; });
-            }
-            return window.dash_clientside.no_update;
-        }
-        """,
-        Output(f"{_lp}-model-show", "value", allow_duplicate=True),
-        Input(f"{_lp}-lppl-activate", "value"),
-        State(f"{_lp}-model-show", "value"),
-        prevent_initial_call='initial_duplicate',
-    )
-    _app_ctx.app.clientside_callback(
-        """
-        function(models) {
-            var has = (models || []).indexOf('lppl') !== -1;
-            return has ? ['yes'] : [];
-        }
-        """,
-        Output(f"{_lp}-lppl-activate", "value", allow_duplicate=True),
-        Input(f"{_lp}-model-show", "value"),
-        prevent_initial_call='initial_duplicate',
-    )
 
-
-# hm-active-model == "lppl"  ->  hm-lppl-activate
+# ── HybPPL modal: open via gear icon, close via close button ─────────────
 _app_ctx.app.clientside_callback(
     """
-    function(active_model, cur_activate) {
-        var should_activate = (active_model === 'lppl');
-        var is_activated = (cur_activate || []).length > 0;
-        if (should_activate === is_activated) {
-            return window.dash_clientside.no_update;
-        }
-        return should_activate ? ['yes'] : [];
-    }
-    """,
-    Output("hm-lppl-activate", "value", allow_duplicate=True),
-    Input("hm-active-model", "data"),
-    State("hm-lppl-activate", "value"),
-    prevent_initial_call='initial_duplicate',
-)
-
-# hm-lppl-activate  ->  hm-active-model  (user clicks Activate LPPL)
-_app_ctx.app.clientside_callback(
-    """
-    function(activate, cur_model) {
-        var want_lppl = (activate || []).length > 0;
-        var is_lppl = (cur_model === 'lppl');
-        if (want_lppl === is_lppl) return window.dash_clientside.no_update;
-        if (want_lppl) return 'lppl';
-        return 'bub';  // Turn off: revert to BM
-    }
-    """,
-    Output("hm-active-model", "data", allow_duplicate=True),
-    Input("hm-lppl-activate", "value"),
-    State("hm-active-model", "data"),
-    prevent_initial_call='initial_duplicate',
-)
-
-
-# LPPL config → compact summary text, per tab
-for _sum_prefix in ("bub", "dca", "ret", "sc", "hm"):
-    _app_ctx.app.clientside_callback(
-        """
-        function(n_freqs, weighted, no_13) {
-            var ns = (n_freqs || []).slice().sort();
-            if (ns.length === 0) return "(no flavor)";
-            var names = {1:'LPPL\u2081', 2:'LPPL\u2082', 3:'LPPL\u2083', 4:'LPPL\u2084'};
-            var parts = ns.map(function(n){ return names[n] || ("LPPL"+n); });
-            var txt = parts.join('+');
-            if ((weighted || []).indexOf('weighted') !== -1) txt += ' (w)';
-            if ((no_13 || []).indexOf('no13') !== -1) txt += ' (no \u03c9\u224813)';
-            return txt;
-        }
-        """,
-        Output(f"{_sum_prefix}-lppl-summary", "children"),
-        Input("lppl-n-freqs", "value"),
-        Input("lppl-weighted", "value"),
-        Input("lppl-no-13", "value"),
-    )
-
-
-# ── HybPPL master gate: same pattern as LPPL ──────────────────────────────
-
-# bub: activate -> model-show: add/remove "hybppl" master
-_app_ctx.app.clientside_callback(
-    """
-    function(act, cur_models) {
-        var want = (act && act.length) > 0;
-        var models = (cur_models || []).slice();
-        var has = models.indexOf('hybppl') !== -1;
-        if (want && !has) { models.push('hybppl'); return models; }
-        if (!want && has) {
-            return models.filter(function(v) { return v !== 'hybppl'; });
-        }
-        return window.dash_clientside.no_update;
-    }
-    """,
-    Output("bub-model-show", "value", allow_duplicate=True),
-    Input("bub-hybppl-activate", "value"),
-    State("bub-model-show", "value"),
-    prevent_initial_call='initial_duplicate',
-)
-
-# bub: model-show -> activate: mirror "hybppl" membership
-_app_ctx.app.clientside_callback(
-    """
-    function(models) {
-        var has = (models || []).indexOf('hybppl') !== -1;
-        return has ? ['yes'] : [];
-    }
-    """,
-    Output("bub-hybppl-activate", "value", allow_duplicate=True),
-    Input("bub-model-show", "value"),
-    prevent_initial_call='initial_duplicate',
-)
-
-# Activate <-> model-show for DCA, Retire, SC
-for _hp in ("dca", "ret", "sc"):
-    _app_ctx.app.clientside_callback(
-        """
-        function(act, cur_models) {
-            var want = (act && act.length) > 0;
-            var models = (cur_models || []).slice();
-            var has = models.indexOf('hybppl') !== -1;
-            if (want && !has) { models.push('hybppl'); return models; }
-            if (!want && has) {
-                return models.filter(function(v) { return v !== 'hybppl'; });
-            }
-            return window.dash_clientside.no_update;
-        }
-        """,
-        Output(f"{_hp}-model-show", "value", allow_duplicate=True),
-        Input(f"{_hp}-hybppl-activate", "value"),
-        State(f"{_hp}-model-show", "value"),
-        prevent_initial_call='initial_duplicate',
-    )
-    _app_ctx.app.clientside_callback(
-        """
-        function(models) {
-            var has = (models || []).indexOf('hybppl') !== -1;
-            return has ? ['yes'] : [];
-        }
-        """,
-        Output(f"{_hp}-hybppl-activate", "value", allow_duplicate=True),
-        Input(f"{_hp}-model-show", "value"),
-        prevent_initial_call='initial_duplicate',
-    )
-
-# hm-active-model == "hybppl"  ->  hm-hybppl-activate
-_app_ctx.app.clientside_callback(
-    """
-    function(active_model, cur_activate) {
-        var should_activate = (active_model === 'hybppl');
-        var is_activated = (cur_activate || []).length > 0;
-        if (should_activate === is_activated) {
-            return window.dash_clientside.no_update;
-        }
-        return should_activate ? ['yes'] : [];
-    }
-    """,
-    Output("hm-hybppl-activate", "value", allow_duplicate=True),
-    Input("hm-active-model", "data"),
-    State("hm-hybppl-activate", "value"),
-    prevent_initial_call='initial_duplicate',
-)
-
-# hm-hybppl-activate -> hm-active-model
-_app_ctx.app.clientside_callback(
-    """
-    function(activate, cur_model) {
-        var want = (activate || []).length > 0;
-        var is_hyb = (cur_model === 'hybppl');
-        if (want === is_hyb) return window.dash_clientside.no_update;
-        if (want) return 'hybppl';
-        return 'bub';
-    }
-    """,
-    Output("hm-active-model", "data", allow_duplicate=True),
-    Input("hm-hybppl-activate", "value"),
-    State("hm-active-model", "data"),
-    prevent_initial_call='initial_duplicate',
-)
-
-# Any per-tab Configure-HybPPL button click -> open modal
-_app_ctx.app.clientside_callback(
-    """
-    function(bub_n, dca_n, ret_n, sc_n, hm_n, close_n, cur_open) {
+    function(bub_n, dca_n, ret_n, sc_n, close_n, cur_open) {
         var ctx = window.dash_clientside.callback_context;
-        if (!ctx.triggered || !ctx.triggered.length) {
-            return window.dash_clientside.no_update;
-        }
+        if (!ctx.triggered || !ctx.triggered.length) return window.dash_clientside.no_update;
         var src = ctx.triggered[0].prop_id;
-        if (src.indexOf('hybppl-modal-close-btn') !== -1) return false;
-        if (src.indexOf('hybppl-configure-btn') !== -1 ||
-            src.indexOf('hybppl-gear') !== -1) return true;
+        if (src.indexOf('modal-close-btn') !== -1) return false;
+        if (src.indexOf('-gear') !== -1) return true;
         return window.dash_clientside.no_update;
     }
     """,
-    Output("hybppl-config-modal", "is_open"),
-    Input("bub-hybppl-configure-btn", "n_clicks"),
-    Input("dca-hybppl-configure-btn", "n_clicks"),
-    Input("ret-hybppl-configure-btn", "n_clicks"),
-    Input("sc-hybppl-configure-btn", "n_clicks"),
-    Input("hm-hybppl-configure-btn", "n_clicks"),
+    Output("hybppl-config-modal", "is_open", allow_duplicate=True),
     Input("bub-hybppl-gear", "n_clicks"),
+    Input("dca-hybppl-gear", "n_clicks"),
+    Input("ret-hybppl-gear", "n_clicks"),
+    Input("sc-hybppl-gear",  "n_clicks"),
     Input("hybppl-modal-close-btn", "n_clicks"),
     State("hybppl-config-modal", "is_open"),
     prevent_initial_call=True,
@@ -436,169 +385,27 @@ for _hs in ("a", "b"):
         Input(f"hybppl-cfg-{_hs}-cal2d", "value"),
     )
 
-# Per-tab summary text
-for _hsum_prefix in ("bub", "dca", "ret", "sc", "hm"):
-    _app_ctx.app.clientside_callback(
-        """
-        function(nlog_a, ncal_a, log1d_a, log2d_a, cal1d_a, cal2d_a,
-                 b_enabled, nlog_b, ncal_b, log1d_b, log2d_b, cal1d_b, cal2d_b) {
-            function spec(n, d1, d2) {
-                if (n === 0) return "0";
-                if (n === 1) return "1" + (d1 || "d");
-                return "2" + (d1 || "d") + (d2 || "d");
-            }
-            var a_spec = spec(nlog_a, log1d_a, log2d_a) + "+" + spec(ncal_a, cal1d_a, cal2d_a);
-            var txt = a_spec;
-            if (b_enabled && b_enabled.length > 0) {
-                var b_spec = spec(nlog_b, log1d_b, log2d_b) + "+" + spec(ncal_b, cal1d_b, cal2d_b);
-                txt += " / " + b_spec;
-            }
-            return txt;
-        }
-        """,
-        Output(f"{_hsum_prefix}-hybppl-summary", "children"),
-        Input("hybppl-cfg-a-nlog", "value"),
-        Input("hybppl-cfg-a-ncal", "value"),
-        Input("hybppl-cfg-a-log1d", "value"),
-        Input("hybppl-cfg-a-log2d", "value"),
-        Input("hybppl-cfg-a-cal1d", "value"),
-        Input("hybppl-cfg-a-cal2d", "value"),
-        Input("hybppl-cfg-b-enabled", "value"),
-        Input("hybppl-cfg-b-nlog", "value"),
-        Input("hybppl-cfg-b-ncal", "value"),
-        Input("hybppl-cfg-b-log1d", "value"),
-        Input("hybppl-cfg-b-log2d", "value"),
-        Input("hybppl-cfg-b-cal1d", "value"),
-        Input("hybppl-cfg-b-cal2d", "value"),
-    )
-
-
 # ══════════════════════════════════════════════════════════════════════════════
-# EPPL master gate: same pattern as HybPPL
+# EPPL config modal
 # ══════════════════════════════════════════════════════════════════════════════
 
-# bub: activate -> model-show: add/remove "eppl" master
+# EPPL modal: open via gear icon, close via close button.
 _app_ctx.app.clientside_callback(
     """
-    function(act, cur_models) {
-        var want = (act && act.length) > 0;
-        var models = (cur_models || []).slice();
-        var has = models.indexOf('eppl') !== -1;
-        if (want && !has) { models.push('eppl'); return models; }
-        if (!want && has) {
-            return models.filter(function(v) { return v !== 'eppl'; });
-        }
-        return window.dash_clientside.no_update;
-    }
-    """,
-    Output("bub-model-show", "value", allow_duplicate=True),
-    Input("bub-eppl-activate", "value"),
-    State("bub-model-show", "value"),
-    prevent_initial_call='initial_duplicate',
-)
-
-# bub: model-show -> activate: mirror "eppl" membership
-_app_ctx.app.clientside_callback(
-    """
-    function(models) {
-        var has = (models || []).indexOf('eppl') !== -1;
-        return has ? ['yes'] : [];
-    }
-    """,
-    Output("bub-eppl-activate", "value", allow_duplicate=True),
-    Input("bub-model-show", "value"),
-    prevent_initial_call='initial_duplicate',
-)
-
-# Activate <-> model-show for DCA, Retire, SC
-for _ep in ("dca", "ret", "sc"):
-    _app_ctx.app.clientside_callback(
-        """
-        function(act, cur_models) {
-            var want = (act && act.length) > 0;
-            var models = (cur_models || []).slice();
-            var has = models.indexOf('eppl') !== -1;
-            if (want && !has) { models.push('eppl'); return models; }
-            if (!want && has) {
-                return models.filter(function(v) { return v !== 'eppl'; });
-            }
-            return window.dash_clientside.no_update;
-        }
-        """,
-        Output(f"{_ep}-model-show", "value", allow_duplicate=True),
-        Input(f"{_ep}-eppl-activate", "value"),
-        State(f"{_ep}-model-show", "value"),
-        prevent_initial_call='initial_duplicate',
-    )
-    _app_ctx.app.clientside_callback(
-        """
-        function(models) {
-            var has = (models || []).indexOf('eppl') !== -1;
-            return has ? ['yes'] : [];
-        }
-        """,
-        Output(f"{_ep}-eppl-activate", "value", allow_duplicate=True),
-        Input(f"{_ep}-model-show", "value"),
-        prevent_initial_call='initial_duplicate',
-    )
-
-# hm-active-model == "eppl" -> hm-eppl-activate
-_app_ctx.app.clientside_callback(
-    """
-    function(active_model, cur_activate) {
-        var should_activate = (active_model === 'eppl');
-        var is_activated = (cur_activate || []).length > 0;
-        if (should_activate === is_activated) {
-            return window.dash_clientside.no_update;
-        }
-        return should_activate ? ['yes'] : [];
-    }
-    """,
-    Output("hm-eppl-activate", "value", allow_duplicate=True),
-    Input("hm-active-model", "data"),
-    State("hm-eppl-activate", "value"),
-    prevent_initial_call='initial_duplicate',
-)
-
-# hm-eppl-activate -> hm-active-model
-_app_ctx.app.clientside_callback(
-    """
-    function(activate, cur_model) {
-        var want = (activate || []).length > 0;
-        var is_eppl = (cur_model === 'eppl');
-        if (want === is_eppl) return window.dash_clientside.no_update;
-        if (want) return 'eppl';
-        return 'bub';
-    }
-    """,
-    Output("hm-active-model", "data", allow_duplicate=True),
-    Input("hm-eppl-activate", "value"),
-    State("hm-active-model", "data"),
-    prevent_initial_call='initial_duplicate',
-)
-
-# Any per-tab Configure-EPPL button click -> open modal
-_app_ctx.app.clientside_callback(
-    """
-    function(bub_n, dca_n, ret_n, sc_n, hm_n, close_n, cur_open) {
+    function(bub_n, dca_n, ret_n, sc_n, close_n, cur_open) {
         var ctx = window.dash_clientside.callback_context;
-        if (!ctx.triggered || !ctx.triggered.length) {
-            return window.dash_clientside.no_update;
-        }
+        if (!ctx.triggered || !ctx.triggered.length) return window.dash_clientside.no_update;
         var src = ctx.triggered[0].prop_id;
-        if (src.indexOf('eppl-modal-close-btn') !== -1) return false;
-        if (src.indexOf('eppl-configure-btn') !== -1 ||
-            src.indexOf('eppl-gear') !== -1) return true;
+        if (src.indexOf('modal-close-btn') !== -1) return false;
+        if (src.indexOf('-gear') !== -1) return true;
         return window.dash_clientside.no_update;
     }
     """,
-    Output("eppl-config-modal", "is_open"),
-    Input("bub-eppl-configure-btn", "n_clicks"),
-    Input("dca-eppl-configure-btn", "n_clicks"),
-    Input("ret-eppl-configure-btn", "n_clicks"),
-    Input("sc-eppl-configure-btn", "n_clicks"),
-    Input("hm-eppl-configure-btn", "n_clicks"),
+    Output("eppl-config-modal", "is_open", allow_duplicate=True),
     Input("bub-eppl-gear", "n_clicks"),
+    Input("dca-eppl-gear", "n_clicks"),
+    Input("ret-eppl-gear", "n_clicks"),
+    Input("sc-eppl-gear",  "n_clicks"),
     Input("eppl-modal-close-btn", "n_clicks"),
     State("eppl-config-modal", "is_open"),
     prevent_initial_call=True,
@@ -669,43 +476,6 @@ for _es in ("a", "b"):
         Input(f"eppl-cfg-{_es}-cal1d", "value"),
         Input(f"eppl-cfg-{_es}-cal2d", "value"),
     )
-
-# Per-tab EPPL summary text
-for _esum_prefix in ("bub", "dca", "ret", "sc", "hm"):
-    _app_ctx.app.clientside_callback(
-        """
-        function(nlog_a, ncal_a, log1d_a, log2d_a, cal1d_a, cal2d_a,
-                 b_enabled, nlog_b, ncal_b, log1d_b, log2d_b, cal1d_b, cal2d_b) {
-            function spec(n, d1, d2) {
-                if (n === 0) return "0";
-                if (n === 1) return "1" + (d1 || "d");
-                return "2" + (d1 || "d") + (d2 || "d");
-            }
-            var a_spec = spec(nlog_a, log1d_a, log2d_a) + "+" + spec(ncal_a, cal1d_a, cal2d_a);
-            var txt = a_spec;
-            if (b_enabled && b_enabled.length > 0) {
-                var b_spec = spec(nlog_b, log1d_b, log2d_b) + "+" + spec(ncal_b, cal1d_b, cal2d_b);
-                txt += " / " + b_spec;
-            }
-            return txt;
-        }
-        """,
-        Output(f"{_esum_prefix}-eppl-summary", "children"),
-        Input("eppl-cfg-a-nlog", "value"),
-        Input("eppl-cfg-a-ncal", "value"),
-        Input("eppl-cfg-a-log1d", "value"),
-        Input("eppl-cfg-a-log2d", "value"),
-        Input("eppl-cfg-a-cal1d", "value"),
-        Input("eppl-cfg-a-cal2d", "value"),
-        Input("eppl-cfg-b-enabled", "value"),
-        Input("eppl-cfg-b-nlog", "value"),
-        Input("eppl-cfg-b-ncal", "value"),
-        Input("eppl-cfg-b-log1d", "value"),
-        Input("eppl-cfg-b-log2d", "value"),
-        Input("eppl-cfg-b-cal1d", "value"),
-        Input("eppl-cfg-b-cal2d", "value"),
-    )
-
 
 from btc_core import yr_to_t, today_t, _find_lot_percentile
 from tab_defaults import BUBBLE, HEATMAP, DCA, RETIRE, SUPERCHARGE
@@ -2482,87 +2252,26 @@ _app_ctx.app.clientside_callback(
 
 # ── Update Display Models swatches when palette changes ──────────────────────
 
-def _build_model_opts(mc, include_u1=False, bubble_mode=False):
-    """Build model checklist options with palette-colored swatches.
-
-    bubble_mode=True: emits a single master 'LPPL' entry in place of the
-    individual LPPL family variants (lppl, lp2, lp3, lp4, lppl_w, lp2_w,
-    lp3_w, lp4_w, lp4_n13, lp4_w_n13). The master gates the LPPL Models
-    config panel on tab 1.
-    """
-    from dash import html
-    _DEPRIORITIZED = {"exp", "s2f", "gomp", "bpl", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl"}
-    _LPPL_FAM = {"lppl", "lp2", "lp3", "lp4"} | set(_app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
-    _HYBPPL_FAM = set(_app_ctx.HYBPPL_FAMILY_HIDDEN)
-
-    def _swatch(color, label):
-        return html.Span([
-            html.Span(" ", style={
-                "display": "inline-block", "width": "12px", "height": "12px",
-                "borderRadius": "2px", "verticalAlign": "middle",
-                "marginRight": "4px", "backgroundColor": color,
-            }),
-            label,
-        ])
-
-    opts = [{"label": _swatch(mc.get("bub", BLACK), "Bubble Model"), "value": "bub"}]
-
-    if bubble_mode:
-        # Inject master LPPL entry right after Bubble Model.
-        opts.append({
-            "label": _swatch(mc.get("lppl", MODEL_TRACE_COLORS["lppl"]), "LPPL"),
-            "value": "lppl",
-        })
-
-    all_models = [mdl for mdl in _app_ctx.PRICE_MODELS.values()
-                  if mdl.short_name not in _app_ctx.MODEL_SENTINELS
-                  and mdl.short_name != "bub"
-                  and mdl.short_name not in _HYBPPL_FAM
-                  and not mdl.short_name.startswith("cfg_")
-                  and not mdl.short_name.startswith("ecfg_")]
-    if bubble_mode:
-        all_models = [m for m in all_models if m.short_name not in _LPPL_FAM]
-    # Bubble tab (include_u1=True) keeps exp/s2f as display-only demonstrators;
-    # DCA/Retire/SC (include_u1=False) drop them — standardized set matches
-    # the initial layout from _model_show_checklist(standardized=True).
-    if bubble_mode and not include_u1:
-        all_models = [m for m in all_models if m.short_name not in _DEPRIORITIZED]
-        ordered = all_models
-    else:
-        ordered = [m for m in all_models if m.short_name not in _DEPRIORITIZED] + \
-                  [m for m in all_models if m.short_name in _DEPRIORITIZED]
-    for mdl in ordered:
-        opts.append({
-            "label": _swatch(mc.get(mdl.short_name, FALLBACK_MODEL_GRAY), mdl.name),
-            "value": mdl.short_name,
-        })
-    if include_u1:
-        opts.append({
-            "label": _swatch(mc.get("u1", LOT_MARKER_OUTLINE), "U\u2081 (User)"),
-            "value": "u1",
-        })
-    return opts
-
-
 @callback(
     Output("bub-model-show", "options"),
     Output("dca-model-show", "options", allow_duplicate=True),
     Output("ret-model-show", "options", allow_duplicate=True),
     Output("sc-model-show", "options", allow_duplicate=True),
     Input("palette-store", "data"),
+    State("display-model-summaries", "data"),
     prevent_initial_call=True,
 )
-def update_model_swatches(palette_key):
-    pal = _app_ctx.PALETTES.get(palette_key or "default", _app_ctx.PALETTES["default"])
+def update_model_swatches(palette_key, summaries):
+    from layout.display_models import build_display_models_options
+    pal = _app_ctx.PALETTES.get(palette_key or "default",
+                                 _app_ctx.PALETTES["default"])
     mc = pal.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
-    # Dispatch bubble tab to _build_bub_model_options so gear icons (bub-bm-gear,
-    # bub-eppl-gear, bub-lppl-gear, bub-hybppl-gear) and the EPPL/HybPPL master
-    # entries survive palette changes. Lazy import avoids circular layout/callback
-    # dependency.
-    from layout.bubble import _build_bub_model_options
-    bub_opts = _build_bub_model_options(mc)
-    other_opts = _build_model_opts(mc, include_u1=False, bubble_mode=True)
-    return bub_opts, other_opts, other_opts, other_opts
+    return (
+        build_display_models_options(mc, "bub", include_bm_master=True, summaries=summaries),
+        build_display_models_options(mc, "dca", summaries=summaries),
+        build_display_models_options(mc, "ret", include_mc=True, summaries=summaries),
+        build_display_models_options(mc, "sc",  summaries=summaries),
+    )
 
 
 # Heatmap pill swatches — update children (swatch + label) on palette change.

@@ -15,6 +15,7 @@ from colors import (
     WHITE, DARK_TEXT, BTC_ORANGE,
     FALLBACK_MODEL_GRAY, TODAY_LINE_COLOR,
     _hex_alpha, PLOT_BG_COLOR,
+    HEATMAP_GRADIENT_DEEP_PURPLE, HEATMAP_GRADIENT_GOLD,
 )
 
 from figures.common import (
@@ -89,8 +90,14 @@ def _heatmap_colorscale(m, p, mc):
 def _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax, cell_fs, colorscale=None, palette=None):
     """Build cell text annotation dicts for a CAGR heatmap."""
     if not colorscale:
-        # Fallback: use simple threshold-based approach
-        colorscale = [[0.0, "rgb(27,10,46)"], [1.0, "rgb(255,215,0)"]]
+        # Fallback: use simple threshold-based approach.
+        # Convert hex constants to rgb() strings — the cell-annotation
+        # sampler at line ~136 parses colorscale entries as "rgb(r,g,b)".
+        def _hex_to_rgb_str(h):
+            h = h.lstrip("#")
+            return f"rgb({int(h[0:2],16)},{int(h[2:4],16)},{int(h[4:6],16)})"
+        colorscale = [[0.0, _hex_to_rgb_str(HEATMAP_GRADIENT_DEEP_PURPLE)],
+                      [1.0, _hex_to_rgb_str(HEATMAP_GRADIENT_GOLD)]]
     annots = []
     for ri in range(mc.shape[0]):
         for ci in range(mc.shape[1]):

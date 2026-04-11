@@ -4,6 +4,10 @@ import dash
 from dash import html, Input, Output, State, callback
 
 import _app_ctx
+from colors import (
+    FALLBACK_MODEL_GRAY, DIM_TEXT, KNIGHT_GOLD,
+    MC_FREE_GREEN, MC_LIVE_AMBER,
+)
 from callbacks.coerce import _ci, _cf
 from figures import FREQ_PPY
 from layout import (_bold_opts, _MC_CACHED_START_YRS, _MC_CACHED_YEARS,
@@ -158,7 +162,7 @@ function(mc_enable, mc_years, mc_start_yr, mc_entry_q, mc_model_src, rendered_ke
     if (!mc_enable || !mc_enable.length) return ["", hide, hide, noPremium, hide, hide];
     if (!rendered_key) return [
         "\u26a0 Chart does not include MC overlay",
-        Object.assign({{}}, base, {{color: "#c57600"}}),
+        Object.assign({{}}, base, {{color: "{live_clr}"}}),
         {{}},
         noPremium,
         hide,
@@ -174,7 +178,7 @@ function(mc_enable, mc_years, mc_start_yr, mc_entry_q, mc_model_src, rendered_ke
     if (match) {{
         return [
             "\u2713 Chart reflects current MC settings",
-            Object.assign({{}}, base, {{color: "#1a8f3c"}}),
+            Object.assign({{}}, base, {{color: "{free_clr}"}}),
             hide,
             premium,
             {{}},
@@ -183,7 +187,7 @@ function(mc_enable, mc_years, mc_start_yr, mc_entry_q, mc_model_src, rendered_ke
     }}
     return [
         "\u26a0 MC settings changed \u2014 chart is stale",
-        Object.assign({{}}, base, {{color: "#c57600"}}),
+        Object.assign({{}}, base, {{color: "{live_clr}"}}),
         {{}},
         noPremium,
         hide,
@@ -198,7 +202,10 @@ for _mc_m in ("dca", "ret", "hm", "sc", "cp"):
     _base_cls = ""
     _sep = " " if _base_cls else ""
     _app_ctx.app.clientside_callback(
-        _MC_MATCH_JS_TPL.format(base_cls=_base_cls, sep=_sep),
+        _MC_MATCH_JS_TPL.format(
+            base_cls=_base_cls, sep=_sep,
+            free_clr=MC_FREE_GREEN, live_clr=MC_LIVE_AMBER,
+        ),
         Output(f"{_mc_m}-mc-match", "children"),
         Output(f"{_mc_m}-mc-match", "style"),
         Output(f"{_mc_m}-mc-overlay", "style"),
@@ -364,7 +371,7 @@ def _calc_mc_cost(mc_years, start_yr, entry_q=50, mc_sims=200, mc_freq="Monthly"
         price = 0
         is_cached = True
         tier_label = "Cached"
-        tier_color = "#1a8f3c"
+        tier_color = MC_FREE_GREEN
         tier_note = "Pre-computed \u2022 instant"
     else:
         # Scale factor relative to baseline (200 sims, Monthly, 5×5 matrix)
@@ -372,7 +379,7 @@ def _calc_mc_cost(mc_years, start_yr, entry_q=50, mc_sims=200, mc_freq="Monthly"
                  * (mc_bins ** 2 / _MC_BASE_BINS ** 2))
         base_price = _MC_PRICE_LIVE.get(mc_years, 2000)
         tier_label = "Live"
-        tier_color = "#c57600"
+        tier_color = MC_LIVE_AMBER
         time_scale = scale * (mc_years / 10)
         lo, hi = max(1, round(1 * time_scale)), max(1, round(3 * time_scale))
         tier_note = (f"Computed on demand \u2022 ~{lo}\u2013{hi}s" if lo < hi
@@ -394,20 +401,20 @@ def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=200, mc_freq="Month
     if is_free:
         return ([
             html.Div([
-                html.Span("Free tier", style={"fontWeight": "bold", "color": "#1a8f3c"}),
-                html.Span(f" \u2022 {mc_years_c} yr simulation", style={"color": "#555"}),
+                html.Span("Free tier", style={"fontWeight": "bold", "color": MC_FREE_GREEN}),
+                html.Span(f" \u2022 {mc_years_c} yr simulation", style={"color": DIM_TEXT}),
             ]),
-            html.Div(tier_note, style={"color": "#888", "fontSize": "10px"}),
+            html.Div(tier_note, style={"color": FALLBACK_MODEL_GRAY, "fontSize": "10px"}),
             html.Div(html.B("Cost: Free \u2713"),
-                     style={"marginTop": "2px", "color": "#1a8f3c"}),
+                     style={"marginTop": "2px", "color": MC_FREE_GREEN}),
         ], 0)
 
     children = [
         html.Div([
             html.Span(f"{tier_label}", style={"fontWeight": "bold", "color": tier_color}),
-            html.Span(f" \u2022 {mc_years_c} yr simulation", style={"color": "#555"}),
+            html.Span(f" \u2022 {mc_years_c} yr simulation", style={"color": DIM_TEXT}),
         ]),
-        html.Div(tier_note, style={"color": "#888", "fontSize": "10px"}),
+        html.Div(tier_note, style={"color": FALLBACK_MODEL_GRAY, "fontSize": "10px"}),
         html.Div([
             html.B(f"Cost: {price:,} sats"),
             html.Span("  \u26a1", style={"fontSize": "13px"}) if price <= 400 else "",
@@ -418,7 +425,7 @@ def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=200, mc_freq="Month
         children.append(html.Div(
             "\u26a0 Most users are unlikely to benefit from simulations "
             "this expensive. Consider using cached (bold) settings.",
-            style={"fontSize": "10px", "color": "#b8860b", "marginTop": "4px",
+            style={"fontSize": "10px", "color": KNIGHT_GOLD, "marginTop": "4px",
                    "fontStyle": "italic", "lineHeight": "1.3"}))
 
     return children, price

@@ -12,6 +12,11 @@ import _app_ctx
 import theme
 from btc_core import yr_to_t, today_t, fmt_price, UserModel
 from tab_defaults import BUBBLE
+from colors import (
+    SCATTER_POINT, USER_MODEL_TRACE, UCL_LINE_COLOR,
+    FALLBACK_MODEL_GRAY, LOT_MARKER_COLOR, LOT_MARKER_OUTLINE,
+    SCAN_LINE_FALLBACK,
+)
 
 from figures.common import (
     _INTERP_POINTS, _MAX_SCATTER_PTS, _QR_LINE_WIDTH, _SHADE_ALPHA,
@@ -103,7 +108,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         traces.append(go.Scatter(
             x=list(x_sc), y=list(y_sc),
             mode="markers", name="Price data",
-            marker=dict(color="#2C3E50",
+            marker=dict(color=SCATTER_POINT,
                         size=max(2, int(p.get("pt_size", BUBBLE["pt_size"]))),
                         opacity=float(p.get("pt_alpha", BUBBLE["pt_alpha"]))),
             hovertemplate=_HOVER_FMT_USD,
@@ -144,7 +149,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         traces.append(go.Scatter(
             x=list(t_arr), y=list(um_prices),
             mode="lines", name=um_lbl,
-            line=dict(color="#e67e22", width=3.0, dash="solid"),
+            line=dict(color=USER_MODEL_TRACE, width=3.0, dash="solid"),
             legendgroup="u1", legendgrouptitle_text=f"U\u2081  m={um_slope:.3f}",
         ))
         # Also draw standard quantile bands from the UserModel overlay loop below
@@ -262,7 +267,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         if stack > 0:
             scan_prices = scan_prices * stack
         nearest_q = min(mdl.quantiles, key=lambda qq: abs(qq - q)) if mdl.quantiles else q
-        col = mdl.colors.get(nearest_q, "#ffd93d")
+        col = mdl.colors.get(nearest_q, SCAN_LINE_FALLBACK)
         traces.append(go.Scatter(
             x=list(t_arr), y=list(scan_prices),
             mode="lines",
@@ -279,7 +284,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         traces.append(go.Scatter(
             x=list(t_arr), y=list(p_ucl),
             mode="lines", name="Unfairly Cheap Line",
-            line=dict(color="#ff6b6b", dash="dot", width=1.8),
+            line=dict(color=UCL_LINE_COLOR, dash="dot", width=1.8),
             opacity=0.9,
         ))
 
@@ -291,7 +296,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         traces.append(go.Scatter(
             x=list(t_arr), y=list(p_ols),
             mode="lines", name=f"OLS  R\u00b2={m.ols_r2:.4f}" if hasattr(m, 'ols_r2') and m.ols_r2 else "OLS",
-            line=dict(color="#888888", dash="dash", width=1.3),
+            line=dict(color=FALLBACK_MODEL_GRAY, dash="dash", width=1.3),
             opacity=0.8,
         ))
 
@@ -354,8 +359,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         if lt_vals:
             traces.append(go.Scatter(
                 x=lt_vals, y=lp_vals, mode="markers", name="Lots",
-                marker=dict(color="#FFD700", size=10,
-                            line=dict(color="#333333", width=0.7)),
+                marker=dict(color=LOT_MARKER_COLOR, size=10,
+                            line=dict(color=LOT_MARKER_OUTLINE, width=0.7)),
                 text=lhover,
                 hovertemplate="%{text}<extra></extra>",
             ))

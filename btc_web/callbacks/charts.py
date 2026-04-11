@@ -8,6 +8,11 @@ import numpy as np
 import pandas as pd
 
 import _app_ctx
+from colors import (
+    LINK, FALLBACK_MODEL_GRAY, BLACK,
+    MODEL_TRACE_COLORS, LOT_MARKER_COLOR, LOT_MARKER_OUTLINE,
+    DECOMP_ERROR_RED, ERROR_BG, ERROR_BORDER,
+)
 
 
 # ── LPPL master gate: bi-directional sync between the "Activate LPPL"
@@ -416,10 +421,10 @@ for _hs in ("a", "b"):
                 "cfg_2dd_2dd": "/8.13",
             };
             var href = info_links[key] || "";
-            var link_style = href ? {fontSize:"11px", marginLeft:"6px", color:"#1a6fa8"} : {display:"none"};
+            var link_style = href ? {fontSize:"11px", marginLeft:"6px", color:"{lnk}"} : {display:"none"};
             return [key, href, link_style];
         }
-        """,
+        """.replace("{lnk}", LINK),
         Output(f"hybppl-cfg-{_hs}-status", "children"),
         Output(f"hybppl-cfg-{_hs}-info-link", "href"),
         Output(f"hybppl-cfg-{_hs}-info-link", "style"),
@@ -898,10 +903,10 @@ def _decomp_warning_banner(n_checked):
         html.Small(
             f"Pick exactly one LPPL variant in the LPPL config panel "
             f"to decompose (currently {n_checked} checked).",
-            style={"color": "#b71c1c"},
+            style={"color": DECOMP_ERROR_RED},
         ),
-        style={"padding": "6px 8px", "backgroundColor": "#fff3f3",
-                "border": "1px solid #f5c6cb", "borderRadius": "4px",
+        style={"padding": "6px 8px", "backgroundColor": ERROR_BG,
+                "border": f"1px solid {ERROR_BORDER}", "borderRadius": "4px",
                 "fontSize": "11px", "marginTop": "6px"},
     )
 
@@ -1061,10 +1066,10 @@ def _update_active_formula_cb(family, selected, show_toggles, n_freqs, weighted,
     selected = list(selected or [])
     canonical = [n for n in model.component_names if n in selected]
     header = html.Div(html.Strong("Selected:"),
-                      style={"marginBottom": "3px", "color": "#333"})
+                      style={"marginBottom": "3px", "color": LOT_MARKER_OUTLINE})
     if not canonical:
         return [header, html.Small("(no components selected)",
-                                    style={"color": "#888"})]
+                                    style={"color": FALLBACK_MODEL_GRAY})]
     log_parts = []
     product_parts = []
     for name in canonical:
@@ -1131,7 +1136,7 @@ def _update_decomp_formula_cb(family, show_toggles, n_freqs, weighted, no_13,
                   else rf"$$\text{{price}} = 10^{{\,\log_{{10}}(\text{{price}})}}$$")
     return [
         html.Div(html.Strong("Full model:"),
-                 style={"marginBottom": "3px", "color": "#333",
+                 style={"marginBottom": "3px", "color": LOT_MARKER_OUTLINE,
                         "fontSize": "11px"}),
         dcc.Markdown(
             rf"""
@@ -1355,8 +1360,8 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
         use_lots    = bool(use_lots),
         lots        = lots_data or [],
         legend_pos  = legend_pos or "outside",
-        comp_color  = "#FFD700", comp_lw = 2.0,
-        sup_color   = "#888888", sup_lw  = 1.5,
+        comp_color  = LOT_MARKER_COLOR, comp_lw = 2.0,
+        sup_color   = FALLBACK_MODEL_GRAY, sup_lw  = 1.5,
         active_models = model_show or [],
         palette = palette_key or "default",
         scanner_lines = scanner_lines,
@@ -2499,12 +2504,12 @@ def _build_model_opts(mc, include_u1=False, bubble_mode=False):
             label,
         ])
 
-    opts = [{"label": _swatch(mc.get("bub", "#000"), "Bubble Model"), "value": "bub"}]
+    opts = [{"label": _swatch(mc.get("bub", BLACK), "Bubble Model"), "value": "bub"}]
 
     if bubble_mode:
         # Inject master LPPL entry right after Bubble Model.
         opts.append({
-            "label": _swatch(mc.get("lppl", "#FF6D00"), "LPPL"),
+            "label": _swatch(mc.get("lppl", MODEL_TRACE_COLORS["lppl"]), "LPPL"),
             "value": "lppl",
         })
 
@@ -2523,12 +2528,12 @@ def _build_model_opts(mc, include_u1=False, bubble_mode=False):
                   [m for m in all_models if m.short_name in _DEPRIORITIZED]
     for mdl in ordered:
         opts.append({
-            "label": _swatch(mc.get(mdl.short_name, "#888"), mdl.name),
+            "label": _swatch(mc.get(mdl.short_name, FALLBACK_MODEL_GRAY), mdl.name),
             "value": mdl.short_name,
         })
     if include_u1:
         opts.append({
-            "label": _swatch(mc.get("u1", "#333333"), "U\u2081 (User)"),
+            "label": _swatch(mc.get("u1", LOT_MARKER_OUTLINE), "U\u2081 (User)"),
             "value": "u1",
         })
     return opts
@@ -2572,7 +2577,7 @@ def _hm_pill_label_html(key, mc):
             "display": "inline-block", "width": "8px", "height": "8px",
             "borderRadius": "2px", "verticalAlign": "middle",
             "marginRight": "4px",
-            "backgroundColor": mc.get(key, "#888"),
+            "backgroundColor": mc.get(key, FALLBACK_MODEL_GRAY),
         }),
         _HM_PILL_LABELS.get(key, key),
     ])

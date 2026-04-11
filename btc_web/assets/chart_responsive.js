@@ -34,13 +34,14 @@
 
     var IS_DESKTOP = window.innerWidth > 768;
 
+    var QS = window.QS_COLORS;
     var DEFAULTS = {
         trace_width: 2.5,
         grid_major_width: 1.0,
-        grid_major_color: "#888888",
+        grid_major_color: QS.grid_major_color,
         grid_minor_width: 0.8,
-        grid_minor_color: "#B0B0B0",
-        pt_color: "#2C3E50",
+        grid_minor_color: QS.grid_minor_color,
+        pt_color: QS.scatter_point,
     };
 
     /* Desktop multipliers applied ONLY to user-supplied absolute settings,

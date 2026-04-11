@@ -308,6 +308,18 @@ PALETTES = {
 }
 PALETTE_KEYS = tuple(PALETTES.keys())
 
+# ── Heatmap preset colormap schemes (c_lo, c_mid1, c_mid2, c_hi) ─────────────
+# Used by the heatmap palette preset selector in snapshot_cb.py.
+# Each tuple: (loss-color, neutral-mid1, mid2, gain-color).
+HM_PRESET_PALETTES = {
+    "finance": ("#b71c1c", "#ffffff", "#ffffff", "#1b5e20"),
+    "forge":   ("#1b0a2e", "#2c2c3a", "#1b4332", "#ffd700"),
+    "thermal": ("#0d47a1", "#80deea", "#e65100", "#c62828"),
+    "bitcoin": ("#1a1a2e", "#2c3e50", "#f7931a", "#ffd700"),
+    "ocean":   ("#0a1628", "#0d47a1", "#00838f", "#b2ebf2"),
+    "mono":    ("#1a1a1a", "#555555", "#999999", "#e0e0e0"),
+}
+
 # ════════════════════════════════════════════════════════════════════
 # SECTION 3 — Generation metadata
 # ════════════════════════════════════════════════════════════════════
@@ -316,5 +328,6 @@ PALETTE_KEYS = tuple(PALETTES.keys())
 # Default behavior: every module-level UPPER_CASE name with a string,
 # dict, or list value gets emitted. Use this set to suppress.
 __skip_export__ = frozenset({
-    # Currently empty — every constant above is exposed to CSS/JS.
+    # Complex structured values — not useful as individual CSS variables.
+    "HM_PRESET_PALETTES",
 })

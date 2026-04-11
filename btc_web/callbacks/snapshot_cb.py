@@ -10,6 +10,7 @@ import pandas as pd
 from flask import request as flask_request
 
 import _app_ctx
+from colors import FALLBACK_MODEL_GRAY, HM_PRESET_PALETTES
 from snapshot import (_SNAPSHOT_CONTROLS, _CHECKLIST_OPTIONS,
                       _SNAP_PREFIX, _SNAP_PREFIX_V1, _SNAP_PREFIX_V2,
                       _encode_snapshot, _decode_snapshot, _decode_snapshot_v1,
@@ -324,14 +325,7 @@ _app_ctx.app.clientside_callback(
 )
 
 # ── Heatmap color palette presets ─────────────────────────────────────────────
-_HM_PALETTES = {
-    "finance": ("#b71c1c", "#ffffff", "#ffffff", "#1b5e20"),
-    "forge":   ("#1b0a2e", "#2c2c3a", "#1b4332", "#ffd700"),
-    "thermal": ("#0d47a1", "#80deea", "#e65100", "#c62828"),
-    "bitcoin": ("#1a1a2e", "#2c3e50", "#f7931a", "#ffd700"),
-    "ocean":   ("#0a1628", "#0d47a1", "#00838f", "#b2ebf2"),
-    "mono":    ("#1a1a1a", "#555555", "#999999", "#e0e0e0"),
-}
+_HM_PALETTES = HM_PRESET_PALETTES
 
 @callback(
     Output("hm-c-lo",   "value", allow_duplicate=True),
@@ -374,7 +368,7 @@ def generate_share_qr(url):
         b64 = base64.b64encode(buf.getvalue()).decode()
         return (f"data:image/svg+xml;base64,{b64}",
                 {"display": "block", "margin": "10px auto", "maxWidth": "160px"},
-                {"display": "block", "fontSize": "10px", "color": "#888",
+                {"display": "block", "fontSize": "10px", "color": FALLBACK_MODEL_GRAY,
                  "textAlign": "center", "marginBottom": "8px"})
     except Exception:
         return "", _hidden, _hidden

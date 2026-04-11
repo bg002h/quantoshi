@@ -7,6 +7,11 @@ import dash_bootstrap_components as dbc
 
 import _app_ctx
 from tab_defaults import BUBBLE
+from colors import (
+    LINK, USER_MODEL_TRACE, FALLBACK_MODEL_GRAY,
+    BLACK, MODEL_TRACE_COLORS, CITADEL_OVERLAY_COLORS,
+    DIM_TEXT, BOOTSTRAP_LIGHT_BG, LOT_MARKER_OUTLINE,
+)
 from layout.common import (_model_info_link, _INFO_ICON,
                            _tab_hints, _section_card, _row, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT, _q_panel, _q_panel_with_mode,
@@ -28,7 +33,7 @@ def _build_bub_model_options(mc):
 
     _INFO_STYLE = {
         "cursor": "pointer", "fontSize": "11px", "marginLeft": "4px",
-        "opacity": "0.6", "textDecoration": "none", "color": "#1a6fa8",
+        "opacity": "0.6", "textDecoration": "none", "color": LINK,
     }
 
     def _swatch(color, label, gear_btn_id=None, model_key=None):
@@ -56,24 +61,24 @@ def _build_bub_model_options(mc):
                 ))
         return html.Span(children)
 
-    opts = [{"label": _swatch(mc.get("bub", "#000"), "Bubble Model",
+    opts = [{"label": _swatch(mc.get("bub", BLACK), "Bubble Model",
                                gear_btn_id="bub-bm-gear"),
              "value": "bub"}]
 
     opts.append({
-        "label": _swatch(mc.get("eppl", "#D4760A"), "Entropy PPL",
+        "label": _swatch(mc.get("eppl", MODEL_TRACE_COLORS["eppl"]), "Entropy PPL",
                           gear_btn_id="bub-eppl-gear"),
         "value": "eppl",
     })
 
     opts.append({
-        "label": _swatch(mc.get("lppl", "#FF6D00"), "LPPL",
+        "label": _swatch(mc.get("lppl", MODEL_TRACE_COLORS["lppl"]), "LPPL",
                           gear_btn_id="bub-lppl-gear"),
         "value": "lppl",
     })
 
     opts.append({
-        "label": _swatch(mc.get("hybppl", "#4A90D9"), "Hybrid PPL",
+        "label": _swatch(mc.get("hybppl", CITADEL_OVERLAY_COLORS["reserves_total"]), "Hybrid PPL",
                           gear_btn_id="bub-hybppl-gear"),
         "value": "hybppl",
     })
@@ -98,13 +103,13 @@ def _build_bub_model_options(mc):
     deprior = [m for m in _all if m.short_name in _DEPRIORITIZED]
     for mdl in promoted + primary + deprior:
         opts.append({
-            "label": _swatch(mc.get(mdl.short_name, "#888"), mdl.name,
+            "label": _swatch(mc.get(mdl.short_name, FALLBACK_MODEL_GRAY), mdl.name,
                               model_key=mdl.short_name),
             "value": mdl.short_name,
         })
 
     opts.append({
-        "label": _swatch(mc.get("u1", "#333"), "U\u2081 (User)",
+        "label": _swatch(mc.get("u1", LOT_MARKER_OUTLINE), "U\u2081 (User)",
                           model_key="u1"),
         "value": "u1",
     })
@@ -217,7 +222,7 @@ def _bubble_controls():
                     {"label": " Show selected formula", "value": "selected"},
                 ],
                 value=[], inputStyle=_CB_MARGIN,
-                labelStyle={"display": "block", "fontSize": "10px", "color": "#555"},
+                labelStyle={"display": "block", "fontSize": "10px", "color": DIM_TEXT},
                 style={"marginTop": "4px", "marginBottom": "4px"},
             ),
             html.Div(id="bub-decomp-formula",
@@ -226,7 +231,7 @@ def _bubble_controls():
             html.Div(id="bub-decomp-active-formula",
                      style={"fontSize": "10px", "marginTop": "4px",
                             "marginBottom": "6px", "padding": "6px",
-                            "background": "#f8f9fa", "borderRadius": "4px",
+                            "background": BOOTSTRAP_LIGHT_BG, "borderRadius": "4px",
                             "wordBreak": "break-word", "fontFamily": "monospace"}),
             html.Div(id="bub-decomp-body", style=_STYLE_HIDDEN, children=[
                 dcc.Checklist(
@@ -239,7 +244,7 @@ def _bubble_controls():
                     "Each checkbox toggles a term on/off. "
                     "log\u2081\u2080(price) = sum of checked terms. "
                     "All checked = full model.",
-                    style={"color": "#888", "fontSize": "10px",
+                    style={"color": FALLBACK_MODEL_GRAY, "fontSize": "10px",
                             "display": "block", "marginTop": "4px"},
                 ),
                 # Hidden placeholder — preserves bub-decomp-mode snapshot slot.
@@ -307,13 +312,13 @@ def _bubble_controls():
             _section_card("User Model (U\u2081)",
                 html.Small("Click a data point on the chart, then tap P1 or P2. "
                            "Model auto-draws when both are set.",
-                           style={"color":"#888", "fontSize":"11px"}),
+                           style={"color":FALLBACK_MODEL_GRAY, "fontSize":"11px"}),
                 html.Div([
                     html.Label("Point 1", style={"fontWeight":"600", "fontSize":"12px", "marginTop":"6px"}),
                     html.Div([
                         _lbl("Year"), html.Span(id="um-p1-year-display",
                             style={"display":"inline-block", "width":"80px", "fontSize":"12px",
-                                   "fontWeight":"600", "color":"#e67e22",
+                                   "fontWeight":"600", "color":USER_MODEL_TRACE,
                                    "backgroundColor":"rgba(230,126,34,0.1)",
                                    "border":"1px solid rgba(230,126,34,0.3)",
                                    "borderRadius":"4px", "padding":"2px 6px",
@@ -322,7 +327,7 @@ def _bubble_controls():
                         html.Span(" ", style={"width":"6px", "display":"inline-block"}),
                         _lbl("$"), html.Span(id="um-p1-price-display",
                             style={"display":"inline-block", "width":"100px", "fontSize":"12px",
-                                   "fontWeight":"600", "color":"#e67e22",
+                                   "fontWeight":"600", "color":USER_MODEL_TRACE,
                                    "backgroundColor":"rgba(230,126,34,0.1)",
                                    "border":"1px solid rgba(230,126,34,0.3)",
                                    "borderRadius":"4px", "padding":"2px 6px",
@@ -333,7 +338,7 @@ def _bubble_controls():
                     html.Div([
                         _lbl("Year"), html.Span(id="um-p2-year-display",
                             style={"display":"inline-block", "width":"80px", "fontSize":"12px",
-                                   "fontWeight":"600", "color":"#e67e22",
+                                   "fontWeight":"600", "color":USER_MODEL_TRACE,
                                    "backgroundColor":"rgba(230,126,34,0.1)",
                                    "border":"1px solid rgba(230,126,34,0.3)",
                                    "borderRadius":"4px", "padding":"2px 6px",
@@ -342,7 +347,7 @@ def _bubble_controls():
                         html.Span(" ", style={"width":"6px", "display":"inline-block"}),
                         _lbl("$"), html.Span(id="um-p2-price-display",
                             style={"display":"inline-block", "width":"100px", "fontSize":"12px",
-                                   "fontWeight":"600", "color":"#e67e22",
+                                   "fontWeight":"600", "color":USER_MODEL_TRACE,
                                    "backgroundColor":"rgba(230,126,34,0.1)",
                                    "border":"1px solid rgba(230,126,34,0.3)",
                                    "borderRadius":"4px", "padding":"2px 6px",

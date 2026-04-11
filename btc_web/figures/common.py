@@ -26,6 +26,7 @@ from colors import (
     PLOT_BG_COLOR as _COLORS_PLOT_BG,
     LOG_MINOR_GRID_GRAY,
     WATERMARK_TEXT_COLOR,
+    _hex_alpha,
 )
 _HAS_MARKOV = _app_ctx._HAS_MARKOV
 

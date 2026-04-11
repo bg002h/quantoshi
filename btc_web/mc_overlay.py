@@ -17,7 +17,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 import _app_ctx
-from colors import CITADEL_OVERLAY_COLORS as _CITADEL_MC_COLORS, BTC_ORANGE
+from colors import CITADEL_OVERLAY_COLORS as _CITADEL_MC_COLORS, BTC_ORANGE, _hex_alpha, MC_AMBER, MC_GHOST_GRAY
 
 logger = logging.getLogger(__name__)
 from btc_core import ModelData, yr_to_t, fmt_price
@@ -433,14 +433,14 @@ def _build_mc_result(tab, path_key, overlay_key, mc_ts, price_paths,
 # ══════════════════════════════════════════════════════════════════════════════
 
 _MC_BANDS = [
-    (0.01, 0.95, "rgba(220,120,0,0.06)", "MC 1\u201395%"),
-    (0.05, 0.95, "rgba(220,120,0,0.10)", "MC 5\u201395%"),
-    (0.25, 0.75, "rgba(220,120,0,0.18)", "MC 25\u201375%"),
+    (0.01, 0.95, _hex_alpha(MC_AMBER, 0.06), "MC 1\u201395%"),
+    (0.05, 0.95, _hex_alpha(MC_AMBER, 0.10), "MC 5\u201395%"),
+    (0.25, 0.75, _hex_alpha(MC_AMBER, 0.18), "MC 25\u201375%"),
 ]
 _GHOST_BANDS = [
-    (0.01, 0.95, "rgba(150,150,150,0.04)", "MC ref 1\u201395%"),
-    (0.05, 0.95, "rgba(150,150,150,0.08)", "MC ref 5\u201395%"),
-    (0.25, 0.75, "rgba(150,150,150,0.14)", "MC ref 25\u201375%"),
+    (0.01, 0.95, _hex_alpha(MC_GHOST_GRAY, 0.04), "MC ref 1\u201395%"),
+    (0.05, 0.95, _hex_alpha(MC_GHOST_GRAY, 0.08), "MC ref 5\u201395%"),
+    (0.25, 0.75, _hex_alpha(MC_GHOST_GRAY, 0.14), "MC ref 25\u201375%"),
 ]
 
 
@@ -481,12 +481,12 @@ def _mc_build_traces(mc_ts, fan, extra_label="", show_median=True,
     if show_median and 0.50 in fan:
         if suppress_legend:
             med_label = "MC ref median"
-            med_color, med_width, med_dash = "rgba(150,150,150,0.4)", 1.2, "dash"
+            med_color, med_width, med_dash = _hex_alpha(MC_GHOST_GRAY, 0.4), 1.2, "dash"
         else:
             med_label = "MC median" + extra_label
             if show_final_values and 0.50 in lf and len(lf[0.50]) > 0:
                 med_label += f"  \u2192  {fmt_price(float(lf[0.50][-1]))}"
-            med_color, med_width, med_dash = "rgba(220,120,0,0.9)", 1.5, "dot"
+            med_color, med_width, med_dash = _hex_alpha(MC_AMBER, 0.9), 1.5, "dot"
         traces.append(go.Scatter(
             x=list(mc_ts), y=list(fan[0.50]),
             mode="lines", name=med_label,

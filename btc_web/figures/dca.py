@@ -9,6 +9,7 @@ from typing import Any
 import _app_ctx
 from btc_core import ModelData, yr_to_t, fmt_price
 from tab_defaults import DCA
+from colors import FALLBACK_MODEL_GRAY
 
 from figures.common import (
     _QR_LINE_WIDTH, _BTC_ORANGE,
@@ -339,7 +340,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
         layout["annotations"] = [dict(
             text="No models selected \u2014 check Display Models",
             xref="paper", yref="paper", x=0.5, y=0.5,
-            showarrow=False, font=dict(size=16, color="#888"),
+            showarrow=False, font=dict(size=16, color=FALLBACK_MODEL_GRAY),
         )]
 
     return _finalize_chart(traces, layout, p, "dca", mc_result)

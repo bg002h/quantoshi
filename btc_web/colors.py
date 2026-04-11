@@ -84,8 +84,12 @@ MODAL_DIVIDER_DARK  = "#444444"   # HR / 1px divider inside dark modals & config
 PROGRESS_TRACK      = "#e0e0e0"   # progress-bar track background (e.g. CAGR loading bar)
 CODE_BG             = "#f5f5f5"   # code block / monospace address background
 BOOTSTRAP_LIGHT_BG  = "#f8f9fa"   # Bootstrap default light-surface background
+BOOTSTRAP_BORDER    = "#dee2e6"   # Bootstrap default border/separator (table cells, cards)
+BOOTSTRAP_TABLE_SELECT_BG     = "#cce5ff"   # Bootstrap table row selected background
+BOOTSTRAP_TABLE_SELECT_BORDER = "#99caff"   # Bootstrap table row selected border
 LIGHTBOX_BG         = "#1a1a2e"   # modal lightbox dark background (model-info images)
 SPLASH_BRAND_DARK   = "#2c3e50"   # navbar color= prop + splash modal brand text
+NEAR_BLACK          = "#1a1a1a"   # very dark near-black (MC badge bg, heatmap darkest stop)
 
 # ── Static analysis pages (dark-theme pages served from api.py) ───────
 # Used by /D (Residual FFT), /F (LPPL excess fits), /docs/* pages.
@@ -124,9 +128,19 @@ LOT_MARKER_COLOR    = "#FFD700"   # stack lot dot (gold)
 LOT_MARKER_OUTLINE  = "#333333"   # lot marker border
 
 # ── Citadel chart specific ────────────────────────────────────────
-CITADEL_SPENDING    = "#E74C3C"   # monthly spending line / depletion arrow (red)
-CITADEL_BULLISH_QR  = "#8B4513"   # saddlebrown — bullish QR overlay line
-CITADEL_BEARISH_QR  = "#228B22"   # forest green — bearish QR overlay line
+CITADEL_SPENDING      = "#E74C3C"   # monthly spending line / depletion arrow (red)
+CITADEL_BULLISH_QR    = "#8B4513"   # saddlebrown — bullish QR overlay line
+CITADEL_BEARISH_QR    = "#228B22"   # forest green — bearish QR overlay line
+CITADEL_SUCCESS_GREEN = "#27ae60"   # positive / success value in citadel panels
+
+# ── Sparkline colors ──────────────────────────────────────────────
+SPARKLINE_UP   = "#4cff88"   # navbar 24h sparkline up-trend (utils.py)
+SPARKLINE_UP_2 = "#2ecc71"   # Celery task sparkline up-trend (tasks.py — emerald)
+# Note: SPARKLINE_DOWN reuses UCL_LINE_COLOR = "#ff6b6b"
+
+# ── Status colors (supplemental) ─────────────────────────────────
+SILVER          = "#c0c0c0"   # silver — MC "NEW" badge text; same as CITADEL_OVERLAY_COLORS["cash"]
+ERROR_RED_DARK  = "#cc0000"   # darker error red for payment failure (#c00 shorthand)
 
 # ── Palette-invariant model trace fallback dict ────────────────────
 # IMPORTANT: this dict is INTENTIONALLY DISTINCT from

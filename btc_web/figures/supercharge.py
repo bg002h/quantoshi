@@ -138,7 +138,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 name=legendgroup,
             )
 
-        show_bm = "bub" in (p.get("active_models") or ["bub"])
+        show_bm = "bub" in (p.get("active_models") or [])
 
         q_range = _fmt_q_range(sel_qs)
         grp_model = f"sc-{model.short_name}"
@@ -359,7 +359,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 # Individual lines for overlay model
                 _ov_depl_seen = set()  # track (delay) to emit one arrow per delay
                 for (d, q), (ts_d, y_vals, depl_t_ov, t_start_d_ov, *_) in ov_results.items():
-                    col = mdl.colors.get(q, FALLBACK_MODEL_GRAY) if mdl.quantized else palette["non_quantized_model"]
+                    col = _get_model_color(model_key, p) if mdl.quantized else palette["non_quantized_model"]
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
                         name=_ov_lbl,
@@ -529,7 +529,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
 
     max_wd = {(d, q): _max_wd_for(d, q) for d in delays for q in sel_qs}
     traces = []
-    show_bm = "bub" in (p.get("active_models") or ["bub"])
+    show_bm = "bub" in (p.get("active_models") or [])
 
     if not show_bm:
         pass  # skip all BM traces

@@ -49,7 +49,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     inflation = float(p.get("inflation", RETIRE["inflation"])) / 100.0
     disp_mode = p.get("disp_mode", "btc")
     sel_qs    = sorted([float(q) for q in (p.get("selected_qs") or [])])
-    show_bm   = "bub" in (p.get("active_models") or ["bub"])
+    show_bm   = "bub" in (p.get("active_models") or [])
 
     traces   = []
     deplete_annots = []

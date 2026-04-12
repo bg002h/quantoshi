@@ -263,8 +263,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             float(mdl.price_at(q, t)) for t in t_arr]))
         if stack > 0:
             scan_prices = scan_prices * stack
-        nearest_q = min(mdl.quantiles, key=lambda qq: abs(qq - q)) if mdl.quantiles else q
-        col = mdl.colors.get(nearest_q, SCAN_LINE_FALLBACK)
+        col = _get_model_color(model_key, p)
         traces.append(go.Scatter(
             x=list(t_arr), y=list(scan_prices),
             mode="lines",

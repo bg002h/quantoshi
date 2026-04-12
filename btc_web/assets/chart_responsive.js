@@ -35,11 +35,12 @@
     var IS_DESKTOP = window.innerWidth > 768;
 
     var QS = window.QS_COLORS;
+    var A  = window.QS_APPEARANCE || {};
     var DEFAULTS = {
-        trace_width: 2.5,
-        grid_major_width: 1.0,
+        trace_width: A.trace_width || 2.5,
+        grid_major_width: A.grid_major_width || 1.0,
         grid_major_color: QS.grid_major_color,
-        grid_minor_width: 0.8,
+        grid_minor_width: A.grid_minor_width || 0.8,
         grid_minor_color: QS.grid_minor_color,
         pt_color: QS.scatter_point,
     };
@@ -47,8 +48,8 @@
     /* Desktop multipliers applied ONLY to user-supplied absolute settings,
        NEVER to current Plotly state. */
     var DESKTOP = {
-        trace_mult: 1.5,
-        grid_mult: 1.5,
+        trace_mult: A.desktop_trace_mult || 1.5,
+        grid_mult: A.desktop_grid_mult || 1.5,
     };
 
     var IDS = ['bubble-graph','heatmap-graph','dca-graph',

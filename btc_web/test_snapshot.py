@@ -155,10 +155,10 @@ class TestSnapshotRoundtrip:
     def test_hm_palette_roundtrip(self):
         """Heatmap palette name survives encode -> decode."""
         state = {f"{cid}:{prop}": None for cid, prop in _SNAPSHOT_CONTROLS}
-        state["hm-palette:value"] = "ocean"
+        state["hm-palette:value"] = "bwo"
         encoded = _encode_snapshot(state)
         decoded = _decode_snapshot(encoded)
-        assert decoded["hm-palette:value"] == "ocean"
+        assert decoded["hm-palette:value"] == "bwo"
 
     def test_old_link_pads_mc_to_none(self):
         """Old links with 100 entries decode correctly — MC defaults to None."""

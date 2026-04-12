@@ -10,7 +10,7 @@ import pandas as pd
 from flask import request as flask_request
 
 import _app_ctx
-from colors import FALLBACK_MODEL_GRAY, HM_PRESET_PALETTES
+from colors import FALLBACK_MODEL_GRAY, HM_PRESET_PALETTES, PALETTE_DEFAULT_HM_PRESET
 from snapshot import (_SNAPSHOT_CONTROLS, _CHECKLIST_OPTIONS,
                       _SNAP_PREFIX, _SNAP_PREFIX_V1, _SNAP_PREFIX_V2,
                       _encode_snapshot, _decode_snapshot, _decode_snapshot_v1,
@@ -325,10 +325,9 @@ _app_ctx.app.clientside_callback(
 )
 
 # ── Heatmap color palette presets ─────────────────────────────────────────────
-# HM_PRESET_PALETTES is nested per site-wide palette (default / cb-brian /
-# cb-rg / cb-full). When either the heatmap's own preset dropdown (`hm-palette`)
-# OR the site-wide palette (`palette-store`) changes, repaint the 4 color
-# inputs from the appropriate nested entry.
+# HM_PRESET_PALETTES is a flat 4-preset dict: rwg / rbg / bwo / mono.
+# Presets are site-palette-invariant. The site-wide palette determines which
+# preset is auto-selected as the default (see _auto_select_hm_preset below).
 _HM_PALETTES = HM_PRESET_PALETTES
 
 @callback(
@@ -337,17 +336,24 @@ _HM_PALETTES = HM_PRESET_PALETTES
     Output("hm-c-mid2", "value", allow_duplicate=True),
     Output("hm-c-hi",   "value", allow_duplicate=True),
     Input("hm-palette", "value"),
+    prevent_initial_call=True,
+)
+def apply_hm_palette(preset_name):
+    if not preset_name or preset_name not in _HM_PALETTES:
+        return no_update, no_update, no_update, no_update
+    return _HM_PALETTES[preset_name]
+
+
+# When the site-wide palette changes, auto-switch the heatmap preset
+# dropdown to the palette's recommended default (red/green for the
+# default palette; blue/orange for all colorblind palettes).
+@callback(
+    Output("hm-palette", "value", allow_duplicate=True),
     Input("palette-store", "data"),
     prevent_initial_call=True,
 )
-def apply_hm_palette(preset_name, palette_key):
-    if preset_name == "custom" or preset_name is None:
-        return no_update, no_update, no_update, no_update
-    nested = _HM_PALETTES.get(palette_key or "default",
-                               _HM_PALETTES["default"])
-    if preset_name not in nested:
-        return no_update, no_update, no_update, no_update
-    return nested[preset_name]
+def _auto_select_hm_preset(palette_key):
+    return PALETTE_DEFAULT_HM_PRESET.get(palette_key or "default", "rwg")
 
 
 # ── Share modal: QR code for generated link ──────────────────────────────────

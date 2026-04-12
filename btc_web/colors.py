@@ -392,45 +392,28 @@ PALETTES = {
 PALETTE_KEYS = tuple(PALETTES.keys())
 
 # ── Heatmap preset colormap schemes (c_lo, c_mid1, c_mid2, c_hi) ─────────────
-# Nested per site-wide palette so each preset "mood" renders CVD-appropriately.
-# Used by the heatmap palette preset selector in callbacks/snapshot_cb.py,
-# which reads the palette-store State to pick the right nested dict.
+# Flat 4-preset dict. Each preset is site-palette-invariant; the site-wide
+# palette determines which preset is auto-selected as the default (see
+# PALETTE_DEFAULT_HM_PRESET below).
 HM_PRESET_PALETTES = {
-    "default": {
-        "finance": ("#b71c1c", "#ffffff", "#ffffff", "#1b5e20"),
-        "forge":   ("#1b0a2e", "#2c2c3a", "#1b4332", "#ffd700"),
-        "thermal": ("#0d47a1", "#80deea", "#e65100", "#c62828"),
-        "bitcoin": ("#1a1a2e", "#2c3e50", "#f7931a", "#ffd700"),
-        "ocean":   ("#0a1628", "#0d47a1", "#00838f", "#b2ebf2"),
-        "mono":    ("#1a1a1a", "#555555", "#999999", "#e0e0e0"),
-    },
-    # CB-Brian (deuteranomaly): blue/orange axis, no R/G dependence.
-    "cb-brian": {
-        "finance": ("#304FC8", "#e0e0e0", "#f0f0f0", "#FE6100"),
-        "forge":   ("#3A006F", "#2c2c3a", "#8A7030", "#FFB000"),
-        "thermal": ("#304FC8", "#b0d4f0", "#FFB000", "#FE6100"),
-        "bitcoin": ("#1a1a2e", "#2c3e50", "#FE6100", "#FFB000"),
-        "ocean":   ("#0a1628", "#304FC8", "#64B5F6", "#b2ebf2"),
-        "mono":    ("#1a1a1a", "#555555", "#999999", "#e0e0e0"),
-    },
-    # CB-RG (red-green deficient): Paul Tol / Okabe-Ito style.
-    "cb-rg": {
-        "finance": ("#0072B2", "#ffffff", "#f7f7f7", "#E69F00"),
-        "forge":   ("#332288", "#2c2c3a", "#AACCBB", "#E69F00"),
-        "thermal": ("#0072B2", "#88CCEE", "#E69F00", "#D55E00"),
-        "bitcoin": ("#1a1a2e", "#2c3e50", "#E69F00", "#F0E442"),
-        "ocean":   ("#0a1628", "#0072B2", "#88CCEE", "#DDEEFF"),
-        "mono":    ("#1a1a1a", "#555555", "#999999", "#e0e0e0"),
-    },
-    # CB-Full: deep monochromatic with luminance-only distinction.
-    "cb-full": {
-        "finance": ("#2c2c3a", "#999999", "#cccccc", "#f0d870"),
-        "forge":   ("#1b0a2e", "#2c2c3a", "#6a6a6a", "#d0c088"),
-        "thermal": ("#1a1a2e", "#555555", "#999999", "#d0d0d0"),
-        "bitcoin": ("#1a1a2e", "#2c2c3a", "#8a7030", "#f0d870"),
-        "ocean":   ("#0a1628", "#2c3e50", "#6a6a6a", "#b0c0c8"),
-        "mono":    ("#1a1a1a", "#555555", "#999999", "#e0e0e0"),
-    },
+    # Red → White → Green (classic finance, light neutral)
+    "rwg":  ("#b71c1c", "#ffffff", "#ffffff", "#1b5e20"),
+    # Red → Black → Green (classic finance, dark neutral)
+    "rbg":  ("#d32f2f", "#2c2c2c", "#2c2c2c", "#2e7d32"),
+    # Blue → White → Orange (CVD-safe — deuteranomaly/protanopia/tritanopia)
+    "bwo":  ("#0d47a1", "#ffffff", "#ffffff", "#e65100"),
+    # Monochrome grayscale
+    "mono": ("#1a1a1a", "#555555", "#999999", "#e0e0e0"),
+}
+
+# Default heatmap preset per site-wide palette. Defaults palette gets the
+# classic red-green; CB palettes default to blue-orange which stays
+# distinguishable on all deuteranomaly / protanopia / tritanopia profiles.
+PALETTE_DEFAULT_HM_PRESET = {
+    "default":  "rwg",
+    "cb-brian": "bwo",
+    "cb-rg":    "bwo",
+    "cb-full":  "bwo",
 }
 
 # ════════════════════════════════════════════════════════════════════

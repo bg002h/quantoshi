@@ -40,7 +40,7 @@ HEATMAP = MappingProxyType({
     "exit_qs": (),
     "color_mode": 0,
     "b1": 0, "b2": 5,
-    "hm_palette": "mono",
+    "hm_palette": "rwg",
     "c_lo": NEAR_BLACK, "c_mid1": DIM_TEXT,
     "c_mid2": SPINE_COLOR_FALLBACK, "c_hi": PROGRESS_TRACK,
     "n_disc": 32,

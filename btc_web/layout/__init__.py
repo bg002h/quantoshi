@@ -329,7 +329,7 @@ def _build_layout(initial_tab="bubble"):
                                      "display": "block", "padding": "8px",
                                      "backgroundColor": CODE_BG,
                                      "borderRadius": "4px",
-                                     "fontFamily": "monospace",
+                                     "fontFamily": FONT_MONO_CODE,
                                      "userSelect": "all", "lineHeight": "1.4",
                                      "maxHeight": "80px", "overflow": "auto"}),
                     dbc.Button("Copy", id="mc-pay-copy-btn", size="sm",
@@ -709,5 +709,5 @@ def _build_layout(initial_tab="bubble"):
     ], className="site-footer",
        style={"textAlign": "center", "fontSize": UI_FONT_MD,
               "color": _hex_alpha(BLACK, 0.35), "padding": "10px 0 14px",
-              "fontFamily": "monospace", "letterSpacing": "0.5px"}),
+              "fontFamily": FONT_MONO_CODE, "letterSpacing": "0.5px"}),
 ], fluid=True, className="px-2 py-1")

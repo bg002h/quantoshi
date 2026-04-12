@@ -12,7 +12,7 @@ from tab_defaults import HEATMAP
 from btc_core import ModelData, yr_to_t, fmt_price, leo_weighted_entry
 from mc_overlay import _mc_heatmap_overlay
 from colors import (
-    WHITE, DARK_TEXT, BTC_ORANGE,
+    BLACK, WHITE, DARK_TEXT, BTC_ORANGE,
     FALLBACK_MODEL_GRAY, TODAY_LINE_COLOR,
     _hex_alpha, PLOT_BG_COLOR,
     HEATMAP_GRADIENT_DEEP_PURPLE, HEATMAP_GRADIENT_GOLD,
@@ -30,7 +30,7 @@ from figures.common import (
 
 
 def _add_heatmap_grid(fig, n_cols: int, n_rows: int,
-                       color: str = "#000000", width: float = 1.0):
+                       color: str = BLACK, width: float = 1.0):
     """Overlay thin black grid lines at every cell boundary.
 
     Used on top of `zsmooth='best'` heatmaps so the interpolated surface

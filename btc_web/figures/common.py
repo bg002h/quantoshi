@@ -34,6 +34,7 @@ from colors import (
     CHART_FONT_TITLE_LG, CHART_FONT_BODY_LG, CHART_FONT_TICK_LG,
     CHART_FONT_LEGEND_LG, CHART_FONT_ANNOT_LG, CHART_FONT_WATERMARK_LG,
     TRACE_WIDTH, TRACE_WIDTH_OVERLAY, TRACE_WIDTH_TODAY,
+    GRID_MAJOR_WIDTH, GRID_MINOR_WIDTH, LEGEND_BG_OPACITY,
     TODAY_GLOW_WIDTH as _CGW, TODAY_LINE_OPACITY as _CTLO,
     TODAY_GLOW_OPACITY as _CTGO,
     SHADE_ALPHA as _CSA,
@@ -236,7 +237,7 @@ def _error_figure(title):
 # ── shared theme helpers ──────────────────────────────────────────────────────
 
 _LOG_MINOR = dict(showgrid=True, gridcolor=_hex_alpha(LOG_MINOR_GRID_GRAY, 0.35),
-                  griddash="dot", gridwidth=0.8, dtick="D1")
+                  griddash="dot", gridwidth=GRID_MINOR_WIDTH, dtick="D1")
 
 
 def _apply_log_y(layout, p):
@@ -338,7 +339,7 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
         font=dict(family=_SANS_FONT, color=theme.TEXT_COLOR, size=_FONT_BODY),
         xaxis=dict(
             title=dict(text=xlabel, font=dict(family=_SANS_FONT, color=theme.TEXT_COLOR)),
-            gridcolor=theme.GRID_MAJOR_COLOR, gridwidth=1.0,
+            gridcolor=theme.GRID_MAJOR_COLOR, gridwidth=GRID_MAJOR_WIDTH,
             linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
             zerolinecolor=theme.GRID_MAJOR_COLOR,
             ticks="",
@@ -348,7 +349,7 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
         ),
         yaxis=dict(
             title=dict(text=ylabel, font=dict(family=_SANS_FONT, color=theme.TEXT_COLOR)),
-            gridcolor=theme.GRID_MAJOR_COLOR, gridwidth=1.0,
+            gridcolor=theme.GRID_MAJOR_COLOR, gridwidth=GRID_MAJOR_WIDTH,
             linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
             zerolinecolor=theme.GRID_MAJOR_COLOR,
             automargin=False,
@@ -357,7 +358,7 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
             ticklabeloverflow="allow",
         ),
         legend=dict(
-            bgcolor=_hex_alpha(_COLORS_PLOT_BG, 0.85), bordercolor=theme.GRID_MAJOR_COLOR,
+            bgcolor=_hex_alpha(_COLORS_PLOT_BG, LEGEND_BG_OPACITY), bordercolor=theme.GRID_MAJOR_COLOR,
             borderwidth=1, font=dict(family=_SANS_FONT, size=_FONT_LEGEND),
         ),
         margin=dict(**CHART_MARGIN),

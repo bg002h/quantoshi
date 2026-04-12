@@ -16,7 +16,8 @@ from colors import (LOT_MARKER_COLOR, FALLBACK_MODEL_GRAY, NEAR_BLACK,
                     DIM_TEXT, SPINE_COLOR_FALLBACK, PROGRESS_TRACK,
                     PT_SIZE_DEFAULT, PT_ALPHA_DEFAULT,
                     TRACE_WIDTH_COMPOSITE, TRACE_WIDTH_SUPPORT,
-                    CHART_FONT_WATERMARK)
+                    CHART_FONT_WATERMARK,
+                    HM_DEFAULT_RED, HM_DEFAULT_GREEN, WHITE)
 
 BUBBLE = MappingProxyType({
     "selected_qs": (0.5,),
@@ -47,8 +48,8 @@ HEATMAP = MappingProxyType({
     # Initial CAGR heatmap colors match the default "rwg" preset
     # (red → white → white → green) so the rendered heatmap is consistent
     # with the dropdown value at first page load.
-    "c_lo": "#d32f2f", "c_mid1": "#ffffff",
-    "c_mid2": "#ffffff", "c_hi": "#2e7d32",
+    "c_lo": HM_DEFAULT_RED, "c_mid1": WHITE,
+    "c_mid2": WHITE, "c_hi": HM_DEFAULT_GREEN,
     "n_disc": 32,
     "vfmt": "cagr_mult",
     "cell_font_size": CHART_FONT_WATERMARK,

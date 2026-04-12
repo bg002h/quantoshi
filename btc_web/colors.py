@@ -63,6 +63,8 @@ CLUSTER_MERGE_GRAY  = "#AAAAAA"   # merged overlapping edge annotations
 LIGHT_GRAY          = "#CCCCCC"   # overlay fallback / faint lines
 SPINE_COLOR_FALLBACK = "#999999"  # lighter border fallback (≈ #999)
 THERMAL_NEUTRAL     = "#bdbdbd"   # thermal scale midpoint (Q50)
+HM_DEFAULT_RED      = "#d32f2f"   # CAGR heatmap loss (rwg/rbg presets)
+HM_DEFAULT_GREEN    = "#2e7d32"   # CAGR heatmap gain (rwg/rbg presets)
 TODAY_LINE_COLOR    = "#FF6600"   # today vertical line default (matches palette today_line)
 NON_QUANTIZED_MODEL_COLOR = "#8B4513"  # saddlebrown — single-trajectory models
 
@@ -409,9 +411,9 @@ PALETTE_KEYS = tuple(PALETTES.keys())
 # PALETTE_DEFAULT_HM_PRESET below).
 HM_PRESET_PALETTES = {
     # Red → White → Green (classic finance, light neutral)
-    "rwg":  ("#d32f2f", "#ffffff", "#ffffff", "#2e7d32"),
+    "rwg":  (HM_DEFAULT_RED, WHITE, WHITE, HM_DEFAULT_GREEN),
     # Red → Black → Green (classic finance, dark neutral; same max hues as rwg)
-    "rbg":  ("#d32f2f", "#2c2c2c", "#2c2c2c", "#2e7d32"),
+    "rbg":  (HM_DEFAULT_RED, "#2c2c2c", "#2c2c2c", HM_DEFAULT_GREEN),
     # Blue → White → Orange (CVD-safe — deuteranomaly/protanopia/tritanopia)
     "bwo":  ("#0d47a1", "#ffffff", "#ffffff", "#e65100"),
     # Monochrome grayscale

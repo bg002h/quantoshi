@@ -249,7 +249,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     title_line = f"Bitcoin DCA \u2014 {fmt_price(amount)}/{freq_short}"
     title_line += f"  \u00b7  {fmt_price(total_spent)} invested over {n_periods} periods"
     _qr_med_final = None
-    if all_usd_vals:
+    if show_bm and all_usd_vals:
         _qr_med_final = float(np.median([v[-1] for v in all_usd_vals.values()]))
         roi = _qr_med_final / total_spent if total_spent > 0 else 0
         title_line += f"<br>QR median {fmt_price(_qr_med_final)}  \u00b7  {roi:.1f}\u00d7"
@@ -260,7 +260,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     # ── Stack-celerator overlay ─────────────────────────────────────────────
     all_sc_usd_vals = {}
     all_sc_btc_vals = {}
-    if p.get("sc_enabled") and sel_qs:
+    if show_bm and p.get("sc_enabled") and sel_qs:
         sc_traces, all_sc_usd_vals, all_sc_btc_vals = _dca_sc_overlay(
             m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, line_shape=_line_shape)
         traces.extend(sc_traces)
@@ -297,7 +297,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
 
     # ── Right-edge annotations (text traces for alignment stability) ─────────
     _pending_annots = []
-    if p.get("annotate") and all_usd_vals:
+    if p.get("annotate") and show_bm and all_usd_vals:
         for q in sel_qs:
             if q not in all_usd_vals:
                 continue

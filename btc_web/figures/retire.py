@@ -137,7 +137,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     # ── Right-edge annotations (text traces for alignment stability) ─────────
     _is_log = bool(p.get("log_y"))
     _pending_annots = []
-    if p.get("annotate") and all_y_vals:
+    if p.get("annotate") and show_bm and all_y_vals:
         for q in sel_qs:
             if q not in all_y_vals:
                 continue

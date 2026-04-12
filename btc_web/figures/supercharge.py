@@ -423,7 +423,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
         # misalignment on declining traces.
         _sc_log = bool(p.get("log_y"))
         if p.get("annotate") and not p.get("is_mobile"):
-            if chart_layout == 2:
+            if show_bm and chart_layout == 2:
                 # Band endpoint labels: one per delay, upper-bound value
                 for di, d in enumerate(delays):
                     band = [(q, results[(d, q)]) for q in sel_qs
@@ -447,7 +447,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         x_arr=ts_d_r, y_arr=y_arr,
                         label=lbl, short_label=_fmt_short(_sc_btc, _sc_usd),
                         color=col, y_last=float(y_arr[-1])))
-            else:
+            elif show_bm:
                 for (d, q), res in results.items():
                     ts_d_r, y_vals_r, depl_t_r, _, btc_vals_r, prices_r = res
                     if depl_t_r is not None:

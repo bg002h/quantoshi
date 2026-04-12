@@ -46,14 +46,14 @@ SVG_BADGE_TEXT      = "#ffffff"
 
 # ── Chart theme (palette-invariant — also re-exported from theme.py) ──
 # These KEEP THEIR ORIGINAL NAMES for zero-breakage on existing importers.
-PLOT_BG_COLOR       = "#FFFFFF"
+PLOT_BG_COLOR       = "#F8F5EE"   # cream paper — editorial feel, not "default Plotly"
 TEXT_COLOR          = "#222222"
 TITLE_COLOR         = "#1A3060"
-SPINE_COLOR         = "#888888"
-GRID_MAJOR_COLOR    = "#888888"
-GRID_MINOR_COLOR    = "#B0B0B0"
+SPINE_COLOR         = "#C0BDB4"   # warm-tuned to match cream bg
+GRID_MAJOR_COLOR    = "#E0DDD4"   # warm gray, recedes behind data (was #888888)
+GRID_MINOR_COLOR    = "#EFEDE5"   # barely visible, log-scale reference (was #B0B0B0)
 FALLBACK_MODEL_GRAY = "#888888"
-SCATTER_POINT       = "#1A1A1A"   # near-black; palette-invariant raw-data points
+SCATTER_POINT       = "#1F2937"   # deep slate-navy ink; "newspaper ink on cream paper"
 
 # ── Additional palette-invariant chart constants ───────────────────
 BLACK               = "#000000"   # default band/line color
@@ -244,16 +244,28 @@ CITADEL_OVERLAY_COLORS = {
 
 DEFAULT = {
     "model_colors": {
-        "bub": "#C8960C", "qr": "#0055FF", "pl": "#00BB00",
-        "lppl": "#EE0000", "lp2": "#FF6666", "lp3": "#FFAAAA", "lp4": "#FFCCCC",
-        "linppl": "#00D4AA", "hybppl": "#9370DB", "hybppl_dd": "#B39DDB",
-        "ef": "#FFE066", "exp": "#9933FF", "s2f": "#FF7700",
-        "u1": "#333333",
-        "hyb2l": "#6A5ACD", "hyb2c": "#20B2AA", "hyb2b": "#DB7093",
-        "hyb4d": "#8B6914", "pca": "#4B0082",
-        "grdy": "#228B22",
-        "eppl": "#D4760A",
-        "gomp": "#4682B4", "bpl": "#CD853F",
+        # ── Flagship 6 — editorial warm/cool dichotomy ──────────────────
+        "bub":    "#C8960C",  # amber gold (the flagship)
+        "pl":     "#1E3A5F",  # deep slate navy
+        "qr":     "#8B1E3F",  # burgundy / bordeaux
+        "eppl":   "#2C6B5F",  # forest teal
+        "hybppl": "#B8621B",  # burnt sienna
+        "lppl":   "#4B2C5E",  # aubergine / deep plum
+        # ── LPPL family variants inherit master ─────────────────────────
+        "lp2": "#4B2C5E", "lp3": "#4B2C5E", "lp4": "#4B2C5E",
+        # ── HybPPL family variants inherit master ───────────────────────
+        "linppl": "#B8621B", "hybppl_dd": "#B8621B",
+        "hyb2l": "#B8621B", "hyb2c": "#B8621B",
+        "hyb2b": "#B8621B", "hyb4d": "#B8621B",
+        # ── Secondary models (muted, stay out of the way) ──────────────
+        "pca":  "#3E2D54",  # darker aubergine
+        "grdy": "#1C4052",  # darker slate
+        "ef":   "#6B5B95",  # muted violet
+        "exp":  "#8A8A8A",  # neutral gray (display-only demo)
+        "s2f":  "#9B7E46",  # antique brass
+        "gomp": "#2D5F4E",  # pine
+        "bpl":  "#7F4F2A",  # walnut
+        "u1":   "#1F2937",  # matches scatter ink — user's own hand
     },
     "thermal_stops": [
         (0.001, "#0d47a1"), (0.01, "#1565c0"), (0.015, "#1976d2"),

@@ -25,7 +25,7 @@ BUBBLE = MappingProxyType({
     "show_ols": False, "show_ucl": False,
     "show_comp": True, "show_sup": True,
     "n_future": 3,
-    "pt_size": 10, "pt_alpha": 0.3,
+    "pt_size": 4, "pt_alpha": 0.3,
     "stack": 0, "show_stack": False, "use_lots": False,
     "legend_pos": "top-left",
     "comp_color": LOT_MARKER_COLOR, "comp_lw": 2.0,

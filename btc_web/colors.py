@@ -53,7 +53,7 @@ SPINE_COLOR         = "#888888"
 GRID_MAJOR_COLOR    = "#888888"
 GRID_MINOR_COLOR    = "#B0B0B0"
 FALLBACK_MODEL_GRAY = "#888888"
-SCATTER_POINT       = "#2C3E50"
+SCATTER_POINT       = "#1A1A1A"   # near-black; palette-invariant raw-data points
 
 # ── Additional palette-invariant chart constants ───────────────────
 BLACK               = "#000000"   # default band/line color

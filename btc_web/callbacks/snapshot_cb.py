@@ -347,13 +347,22 @@ def apply_hm_palette(preset_name):
 # When the site-wide palette changes, auto-switch the heatmap preset
 # dropdown to the palette's recommended default (red/green for the
 # default palette; blue/orange for all colorblind palettes).
-@callback(
+#
+# NB: this is a CLIENTSIDE callback to avoid a known Dash dcc.Dropdown
+# stale-label bug where a Python-callback-driven value change doesn't
+# re-render the visible label. The clientside version touches the React
+# state directly and the label refreshes correctly.
+_app_ctx.app.clientside_callback(
+    """
+    function(palette_key) {
+        var map = {"default": "rwg", "cb-brian": "bwo", "cb-rg": "bwo", "cb-full": "bwo"};
+        return map[palette_key || "default"] || "rwg";
+    }
+    """,
     Output("hm-palette", "value", allow_duplicate=True),
     Input("palette-store", "data"),
     prevent_initial_call=True,
 )
-def _auto_select_hm_preset(palette_key):
-    return PALETTE_DEFAULT_HM_PRESET.get(palette_key or "default", "rwg")
 
 
 # ── Share modal: QR code for generated link ──────────────────────────────────

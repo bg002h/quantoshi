@@ -262,9 +262,9 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         z=mc, x=[str(y) for y in eyrs], y=ylabels,
         colorscale=colorscale, zmin=zmin, zmax=zmax,
         showscale=bool(p.get("show_colorbar", True)),
-        # Bilinear interpolation between cell centers — edges blend toward
-        # the adjacent cell's color instead of showing hard rectangle borders.
-        zsmooth="best",
+        # Thin 1-px gap between cells — plot background color shows through
+        # as a grid line (white on the default FLATLY theme).
+        xgap=1, ygap=1,
         colorbar=dict(
             title=dict(text="CAGR %", font=dict(color=theme.TEXT_COLOR)),
             tickfont=dict(color=theme.TEXT_COLOR),
@@ -377,8 +377,8 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
         z=mc, x=[str(y) for y in eyrs], y=mc_labels,
         colorscale=colorscale, zmin=zmin, zmax=zmax,
         showscale=bool(p.get("show_colorbar", True)),
-        # Bilinear interpolation between cell centers (same as main heatmap).
-        zsmooth="best",
+        # Thin 1-px gap between cells (same as main heatmap).
+        xgap=1, ygap=1,
         colorbar=dict(
             title=dict(text="CAGR %", font=dict(color=theme.TEXT_COLOR)),
             tickfont=dict(color=theme.TEXT_COLOR),

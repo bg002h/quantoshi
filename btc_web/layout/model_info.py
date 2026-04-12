@@ -9,6 +9,7 @@ from colors import (
     LIGHTBOX_BG, TABLE_HEADER_BG,
     TABLE_BORDER_LIGHT, TABLE_BORDER_MID, TABLE_BORDER_DARK,
     DIM_TEXT, USER_MODEL_TRACE, _hex_alpha,
+    UI_FONT_SM, UI_FONT_MD, UI_FONT_BASE, UI_FONT_LG,
 )
 
 
@@ -798,7 +799,7 @@ $$\text{price}(t) = 10^{A} \cdot t^{B}
                                 "Stop staring at the Double D\u2019s \u2014 there\u2019s nothing to see. "
                                 "D\u2082 is basically zero.",
                                 style={"fontStyle": "italic", "color": FALLBACK_MODEL_GRAY,
-                                       "fontSize": "12px"},
+                                       "fontSize": UI_FONT_BASE},
                             ),
 
                             html.P(
@@ -1379,7 +1380,7 @@ where each $f_i(t)$ is one of three functional forms:
                                              html.Td("1.117"), html.Td("+3.141"),
                                              html.Td("5.63 yr"), html.Td("long calendar [Hyb4D]")]),
                                 ]),
-                            ], style={"marginBottom": "12px", "fontSize": "12px"}),
+                            ], style={"marginBottom": "12px", "fontSize": UI_FONT_BASE}),
 
                             html.H6("Selection order"),
                             html.Table([
@@ -1402,7 +1403,7 @@ where each $f_i(t)$ is one of three functional forms:
                                     html.Tr([html.Td("5"), html.Td("+ f\u2085 long calendar"),
                                              html.Td("0.9928"), html.Td("\u221223,319"), html.Td("7")]),
                                 ]),
-                            ], style={"marginBottom": "12px", "fontSize": "13px"}),
+                            ], style={"marginBottom": "12px", "fontSize": UI_FONT_LG}),
 
                             html.H6("Comparison"),
                             _coeff_table([
@@ -2439,14 +2440,14 @@ def _pca_expanded_formula():
     ]))
     for w_str, formula, amp in osc_rows:
         body_rows.append(html.Tr([
-            html.Td(html.Code(w_str), style={"fontSize": "11px"}),
-            html.Td(html.Code(formula), style={"fontSize": "11px"}),
-            html.Td(html.Code(amp), style={"fontSize": "11px"}),
+            html.Td(html.Code(w_str), style={"fontSize": UI_FONT_MD}),
+            html.Td(html.Code(formula), style={"fontSize": UI_FONT_MD}),
+            html.Td(html.Code(amp), style={"fontSize": UI_FONT_MD}),
         ]))
 
     return html.Table(
         [header, html.Tbody(body_rows)],
-        style={"fontSize": "12px", "marginBottom": "12px"},
+        style={"fontSize": UI_FONT_BASE, "marginBottom": "12px"},
     )
 
 
@@ -2470,7 +2471,7 @@ def _pca_basis_listing():
             html.Strong(f"{label}"), f" ({len(comps)} components): ",
             ", ".join(comps),
         ]))
-    return html.Ul(items, style={"fontSize": "12px"})
+    return html.Ul(items, style={"fontSize": UI_FONT_BASE})
 
 
 def _hyb4d_coeff_table():
@@ -2568,7 +2569,7 @@ def _coeff_table(rows):
                          style={"paddingBottom": "4px"}),
             ]) for label, value in rows
         ])
-    ], style={"marginBottom": "12px", "fontSize": "13px"})
+    ], style={"marginBottom": "12px", "fontSize": UI_FONT_LG})
 
 
 def _qr_table():
@@ -2595,15 +2596,15 @@ def _qr_table():
             html.Th("\u03b2 (slope)"),
         ])),
         html.Tbody(rows),
-    ], style={"marginBottom": "12px", "fontSize": "13px"})
+    ], style={"marginBottom": "12px", "fontSize": UI_FONT_LG})
 
 
 def _comparison_table():
     """Model comparison summary table."""
     hdr_style = {"paddingRight": "12px", "paddingBottom": "6px",
-                 "borderBottom": f"1px solid {TABLE_BORDER_DARK}", "fontSize": "12px"}
+                 "borderBottom": f"1px solid {TABLE_BORDER_DARK}", "fontSize": UI_FONT_BASE}
     cell_style = {"paddingRight": "12px", "paddingBottom": "4px",
-                  "paddingTop": "4px", "fontSize": "12px",
+                  "paddingTop": "4px", "fontSize": UI_FONT_BASE,
                   "borderBottom": f"1px solid {TABLE_BORDER_MID}"}
     return html.Table([
         html.Thead(html.Tr([
@@ -2674,7 +2675,7 @@ def _regime_data_tables():
         return html.P(f"Data not available: {e}", className="text-muted")
 
     sections = []
-    _cell = {"fontSize": "11px", "padding": "2px 6px",
+    _cell = {"fontSize": UI_FONT_MD, "padding": "2px 6px",
              "border": f"1px solid {TABLE_BORDER_LIGHT}", "textAlign": "right"}
     _hdr = {**_cell, "fontWeight": "bold", "backgroundColor": TABLE_HEADER_BG, "textAlign": "center"}
 
@@ -2713,7 +2714,7 @@ def _regime_data_tables():
         ]
         bin_edges_row = [html.Td("Return range", style={**_cell, "fontWeight": "bold"})] + [
             html.Td(f"{m['bin_edges'][i]*100:+.1f} to {m['bin_edges'][i+1]*100:+.1f}%",
-                     style={**_cell, "fontSize": "10px"})
+                     style={**_cell, "fontSize": UI_FONT_SM})
             for i in range(n_bins)
         ]
 
@@ -2742,7 +2743,7 @@ def _regime_data_tables():
             t_rows.append(html.Tr(cells))
 
         sections.append(html.Details([
-            html.Summary("Transition matrix", style={"fontSize": "12px", "cursor": "pointer",
+            html.Summary("Transition matrix", style={"fontSize": UI_FONT_BASE, "cursor": "pointer",
                                                       "color": FALLBACK_MODEL_GRAY, "marginBottom": "4px"}),
             html.Table([
                 html.Thead(html.Tr(t_header)),

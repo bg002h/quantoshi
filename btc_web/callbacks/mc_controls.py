@@ -7,6 +7,7 @@ import _app_ctx
 from colors import (
     FALLBACK_MODEL_GRAY, DIM_TEXT, KNIGHT_GOLD,
     MC_FREE_GREEN, MC_LIVE_AMBER,
+    UI_FONT_SM, UI_FONT_LG,
 )
 from callbacks.coerce import _ci, _cf
 from figures import FREQ_PPY
@@ -404,7 +405,7 @@ def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=200, mc_freq="Month
                 html.Span("Free tier", style={"fontWeight": "bold", "color": MC_FREE_GREEN}),
                 html.Span(f" \u2022 {mc_years_c} yr simulation", style={"color": DIM_TEXT}),
             ]),
-            html.Div(tier_note, style={"color": FALLBACK_MODEL_GRAY, "fontSize": "10px"}),
+            html.Div(tier_note, style={"color": FALLBACK_MODEL_GRAY, "fontSize": UI_FONT_SM}),
             html.Div(html.B("Cost: Free \u2713"),
                      style={"marginTop": "2px", "color": MC_FREE_GREEN}),
         ], 0)
@@ -414,10 +415,10 @@ def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=200, mc_freq="Month
             html.Span(f"{tier_label}", style={"fontWeight": "bold", "color": tier_color}),
             html.Span(f" \u2022 {mc_years_c} yr simulation", style={"color": DIM_TEXT}),
         ]),
-        html.Div(tier_note, style={"color": FALLBACK_MODEL_GRAY, "fontSize": "10px"}),
+        html.Div(tier_note, style={"color": FALLBACK_MODEL_GRAY, "fontSize": UI_FONT_SM}),
         html.Div([
             html.B(f"Cost: {price:,} sats"),
-            html.Span("  \u26a1", style={"fontSize": "13px"}) if price <= 400 else "",
+            html.Span("  \u26a1", style={"fontSize": UI_FONT_LG}) if price <= 400 else "",
         ], style={"marginTop": "2px"}),
     ]
 
@@ -425,7 +426,7 @@ def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=200, mc_freq="Month
         children.append(html.Div(
             "\u26a0 Most users are unlikely to benefit from simulations "
             "this expensive. Consider using cached (bold) settings.",
-            style={"fontSize": "10px", "color": KNIGHT_GOLD, "marginTop": "4px",
+            style={"fontSize": UI_FONT_SM, "color": KNIGHT_GOLD, "marginTop": "4px",
                    "fontStyle": "italic", "lineHeight": "1.3"}))
 
     return children, price

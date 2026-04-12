@@ -10,7 +10,8 @@ import pandas as pd
 from flask import request as flask_request
 
 import _app_ctx
-from colors import FALLBACK_MODEL_GRAY, HM_PRESET_PALETTES, PALETTE_DEFAULT_HM_PRESET
+from colors import (FALLBACK_MODEL_GRAY, HM_PRESET_PALETTES, PALETTE_DEFAULT_HM_PRESET,
+                    UI_FONT_SM, UI_FONT_MD)
 from snapshot import (_SNAPSHOT_CONTROLS, _CHECKLIST_OPTIONS,
                       _SNAP_PREFIX, _SNAP_PREFIX_V1, _SNAP_PREFIX_V2,
                       _encode_snapshot, _decode_snapshot, _decode_snapshot_v1,
@@ -191,7 +192,7 @@ def render_link_history(history):
             ], className="mb-1"),
             dbc.InputGroup([
                 dbc.Input(value=entry.get("url", ""), readonly=True, size="sm",
-                          style={"fontFamily":"monospace","fontSize":"11px"}),
+                          style={"fontFamily":"monospace","fontSize": UI_FONT_MD}),
             ], size="sm"),
             html.Div(
                 html.A("\u21a9 Restore this configuration",
@@ -392,7 +393,7 @@ def generate_share_qr(url):
         b64 = base64.b64encode(buf.getvalue()).decode()
         return (f"data:image/svg+xml;base64,{b64}",
                 {"display": "block", "margin": "10px auto", "maxWidth": "160px"},
-                {"display": "block", "fontSize": "10px", "color": FALLBACK_MODEL_GRAY,
+                {"display": "block", "fontSize": UI_FONT_SM, "color": FALLBACK_MODEL_GRAY,
                  "textAlign": "center", "marginBottom": "8px"})
     except Exception:
         return "", _hidden, _hidden

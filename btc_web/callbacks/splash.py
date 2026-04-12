@@ -3,7 +3,7 @@
 from dash import Input, Output, State
 
 import _app_ctx
-from colors import STATIC_PAGE_MUTED
+from colors import STATIC_PAGE_MUTED, UI_FONT_BASE
 from layout.splash import _SPLASH_QUOTES_JS
 
 
@@ -153,7 +153,7 @@ _JOURNEY_BODY = """
             } catch(e) {}
             if (parts.length > 0) {
                 jText = parts.join("  \\u00b7  ");
-                jStyle = {"display":"block", "textAlign":"center", "fontSize":"12px",
+                jStyle = {"display":"block", "textAlign":"center", "fontSize": UI_FONT_BASE,
                           "color":"__JOURNEY_MUTED__", "marginTop":"16px", "lineHeight":"1.7"};
             }
         }

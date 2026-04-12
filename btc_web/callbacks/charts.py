@@ -13,6 +13,7 @@ from colors import (
     MODEL_TRACE_COLORS, LOT_MARKER_COLOR, LOT_MARKER_OUTLINE,
     DECOMP_ERROR_RED, ERROR_BG, ERROR_BORDER,
     TRACE_WIDTH_COMPOSITE, TRACE_WIDTH_SUPPORT,
+    UI_FONT_SM, UI_FONT_MD,
 )
 
 
@@ -670,7 +671,7 @@ def _decomp_warning_banner(n_checked):
         ),
         style={"padding": "6px 8px", "backgroundColor": ERROR_BG,
                 "border": f"1px solid {ERROR_BORDER}", "borderRadius": "4px",
-                "fontSize": "11px", "marginTop": "6px"},
+                "fontSize": UI_FONT_MD, "marginTop": "6px"},
     )
 
 
@@ -900,7 +901,7 @@ def _update_decomp_formula_cb(family, show_toggles, n_freqs, weighted, no_13,
     return [
         html.Div(html.Strong("Full model:"),
                  style={"marginBottom": "3px", "color": LOT_MARKER_OUTLINE,
-                        "fontSize": "11px"}),
+                        "fontSize": UI_FONT_MD}),
         dcc.Markdown(
             rf"""
 $$\log_{{10}}(\text{{price}}) = {latex}$$
@@ -908,7 +909,7 @@ $$\log_{{10}}(\text{{price}}) = {latex}$$
 {price_line}
 """,
             mathjax=True, className="small",
-            style={"fontSize": "10px"},
+            style={"fontSize": UI_FONT_SM},
         ),
     ]
 

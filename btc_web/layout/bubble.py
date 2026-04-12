@@ -11,6 +11,7 @@ from colors import (
     USER_MODEL_TRACE, FALLBACK_MODEL_GRAY,
     DIM_TEXT, BOOTSTRAP_LIGHT_BG,
     _hex_alpha,
+    UI_FONT_XS, UI_FONT_SM, UI_FONT_MD, UI_FONT_BASE,
 )
 from layout.common import (_tab_hints, _section_card, _row, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT, _q_panel, _q_panel_with_mode,
@@ -97,14 +98,14 @@ def _bubble_controls():
                     {"label": " Show selected formula", "value": "selected"},
                 ],
                 value=[], inputStyle=_CB_MARGIN,
-                labelStyle={"display": "block", "fontSize": "10px", "color": DIM_TEXT},
+                labelStyle={"display": "block", "fontSize": UI_FONT_SM, "color": DIM_TEXT},
                 style={"marginTop": "4px", "marginBottom": "4px"},
             ),
             html.Div(id="bub-decomp-formula",
-                     style={"fontSize": "11px", "marginTop": "6px",
+                     style={"fontSize": UI_FONT_MD, "marginTop": "6px",
                             "marginBottom": "6px", "overflowX": "auto"}),
             html.Div(id="bub-decomp-active-formula",
-                     style={"fontSize": "10px", "marginTop": "4px",
+                     style={"fontSize": UI_FONT_SM, "marginTop": "4px",
                             "marginBottom": "6px", "padding": "6px",
                             "background": BOOTSTRAP_LIGHT_BG, "borderRadius": "4px",
                             "wordBreak": "break-word", "fontFamily": "monospace"}),
@@ -112,14 +113,14 @@ def _bubble_controls():
                 dcc.Checklist(
                     id="bub-decomp-components",
                     options=[], value=[],
-                    labelStyle={"display": "block", "fontSize": "11px"},
+                    labelStyle={"display": "block", "fontSize": UI_FONT_MD},
                     inputStyle=_CB_MARGIN,
                 ),
                 html.Small(
                     "Each checkbox toggles a term on/off. "
                     "log\u2081\u2080(price) = sum of checked terms. "
                     "All checked = full model.",
-                    style={"color": FALLBACK_MODEL_GRAY, "fontSize": "10px",
+                    style={"color": FALLBACK_MODEL_GRAY, "fontSize": UI_FONT_SM,
                             "display": "block", "marginTop": "4px"},
                 ),
                 # Hidden placeholder — preserves bub-decomp-mode snapshot slot.
@@ -139,7 +140,7 @@ def _bubble_controls():
                     dbc.Input(id="scan-price", type="number",
                               placeholder="live", size="sm", debounce=True),
                     html.Small("\u20bf live", id="scan-price-hint",
-                               className="text-muted", style={"fontSize": "9px"}),
+                               className="text-muted", style={"fontSize": UI_FONT_XS}),
                 ]),
                 html.Div([
                     _lbl("Date"),
@@ -187,12 +188,12 @@ def _bubble_controls():
             _section_card("User Model (U\u2081)",
                 html.Small("Click a data point on the chart, then tap P1 or P2. "
                            "Model auto-draws when both are set.",
-                           style={"color":FALLBACK_MODEL_GRAY, "fontSize":"11px"}),
+                           style={"color":FALLBACK_MODEL_GRAY, "fontSize": UI_FONT_MD}),
                 html.Div([
-                    html.Label("Point 1", style={"fontWeight":"600", "fontSize":"12px", "marginTop":"6px"}),
+                    html.Label("Point 1", style={"fontWeight":"600", "fontSize": UI_FONT_BASE, "marginTop":"6px"}),
                     html.Div([
                         _lbl("Year"), html.Span(id="um-p1-year-display",
-                            style={"display":"inline-block", "width":"80px", "fontSize":"12px",
+                            style={"display":"inline-block", "width":"80px", "fontSize": UI_FONT_BASE,
                                    "fontWeight":"600", "color":USER_MODEL_TRACE,
                                    "backgroundColor":_hex_alpha(USER_MODEL_TRACE, 0.1),
                                    "border":f"1px solid {_hex_alpha(USER_MODEL_TRACE, 0.3)}",
@@ -201,7 +202,7 @@ def _bubble_controls():
                             children="\u2014"),
                         html.Span(" ", style={"width":"6px", "display":"inline-block"}),
                         _lbl("$"), html.Span(id="um-p1-price-display",
-                            style={"display":"inline-block", "width":"100px", "fontSize":"12px",
+                            style={"display":"inline-block", "width":"100px", "fontSize": UI_FONT_BASE,
                                    "fontWeight":"600", "color":USER_MODEL_TRACE,
                                    "backgroundColor":_hex_alpha(USER_MODEL_TRACE, 0.1),
                                    "border":f"1px solid {_hex_alpha(USER_MODEL_TRACE, 0.3)}",
@@ -209,10 +210,10 @@ def _bubble_controls():
                                    "minHeight":"24px", "verticalAlign":"middle"},
                             children="\u2014"),
                     ], style={"display":"flex", "alignItems":"center", "gap":"4px", "flexWrap":"wrap"}),
-                    html.Label("Point 2", style={"fontWeight":"600", "fontSize":"12px", "marginTop":"6px"}),
+                    html.Label("Point 2", style={"fontWeight":"600", "fontSize": UI_FONT_BASE, "marginTop":"6px"}),
                     html.Div([
                         _lbl("Year"), html.Span(id="um-p2-year-display",
-                            style={"display":"inline-block", "width":"80px", "fontSize":"12px",
+                            style={"display":"inline-block", "width":"80px", "fontSize": UI_FONT_BASE,
                                    "fontWeight":"600", "color":USER_MODEL_TRACE,
                                    "backgroundColor":_hex_alpha(USER_MODEL_TRACE, 0.1),
                                    "border":f"1px solid {_hex_alpha(USER_MODEL_TRACE, 0.3)}",
@@ -221,7 +222,7 @@ def _bubble_controls():
                             children="\u2014"),
                         html.Span(" ", style={"width":"6px", "display":"inline-block"}),
                         _lbl("$"), html.Span(id="um-p2-price-display",
-                            style={"display":"inline-block", "width":"100px", "fontSize":"12px",
+                            style={"display":"inline-block", "width":"100px", "fontSize": UI_FONT_BASE,
                                    "fontWeight":"600", "color":USER_MODEL_TRACE,
                                    "backgroundColor":_hex_alpha(USER_MODEL_TRACE, 0.1),
                                    "border":f"1px solid {_hex_alpha(USER_MODEL_TRACE, 0.3)}",

@@ -7,7 +7,8 @@ import dash_bootstrap_components as dbc
 import _app_ctx
 from tab_defaults import CITADEL
 from colors import (DIM_TEXT, BOOTSTRAP_LIGHT_BG, BOOTSTRAP_BORDER,
-                    FALLBACK_MODEL_GRAY, MODAL_BG, BLACK, _hex_alpha)
+                    FALLBACK_MODEL_GRAY, MODAL_BG, BLACK, _hex_alpha,
+                    UI_FONT_SM, UI_FONT_MD, UI_FONT_BASE, UI_FONT_LG, UI_FONT_XL)
 from layout.common import (
     _section_card, _lbl, _ctrl_card, _q_options,
     _chart_toggles, _btc_usd_dropdown, _legend_pos_dropdown,
@@ -218,7 +219,7 @@ def _dd_section(title, *children):
     """Section wrapper for controls with dropdowns — avoids dbc.Card which
     clips dropdown menus on iOS due to transform creating a stacking context."""
     return html.Div([
-        html.Div(title, style={"fontWeight": "bold", "fontSize": "12px",
+        html.Div(title, style={"fontWeight": "bold", "fontSize": UI_FONT_BASE,
                                 "color": DIM_TEXT, "marginBottom": "4px",
                                 "textTransform": "uppercase", "letterSpacing": "0.03em"}),
         *children,
@@ -287,10 +288,10 @@ def _sim_panel():
             html.Div([
                 dbc.Button("Show All", id="cp-legend-all", size="sm",
                            color="secondary", outline=True, className="me-1",
-                           style={"fontSize": "11px", "padding": "1px 8px"}),
+                           style={"fontSize": UI_FONT_MD, "padding": "1px 8px"}),
                 dbc.Button("Hide All", id="cp-legend-none", size="sm",
                            color="secondary", outline=True,
-                           style={"fontSize": "11px", "padding": "1px 8px"}),
+                           style={"fontSize": UI_FONT_MD, "padding": "1px 8px"}),
             ], style={"marginTop": "4px"}),
         ),
         _palette_selector("cp"),
@@ -306,11 +307,11 @@ def _citadel_controls():
         # Run button + instructions
         dbc.Button("\u25b6  Run Simulation", id="cp-run-btn",
                    color="warning", className="w-100 mb-2 fw-bold",
-                   style={"fontSize": "14px", "letterSpacing": "0.03em"}),
+                   style={"fontSize": UI_FONT_XL, "letterSpacing": "0.03em"}),
         html.Small("\u25b6 runs a single deterministic projection (free). "
                    "\u26a1 runs Monte Carlo with multiple stochastic paths.",
                    style={"color": FALLBACK_MODEL_GRAY, "display": "block", "marginBottom": "8px",
-                          "fontSize": "11px"}),
+                          "fontSize": UI_FONT_MD}),
         dbc.Row([
             dbc.Col(
                 dbc.Button("\u2193 Save Scenario", id="cp-save-btn",
@@ -394,10 +395,10 @@ def _citadel_controls():
                         for y in range(2025, 2041)
                     ],
                     value=2035, clearable=False,
-                    style={"width": "100px", "fontSize": "13px"}),
+                    style={"width": "100px", "fontSize": UI_FONT_LG}),
             ], className="d-flex align-items-center mb-1"),
             html.Small("800 simulations per scenario",
-                       style={"color": FALLBACK_MODEL_GRAY, "fontSize": "10px",
+                       style={"color": FALLBACK_MODEL_GRAY, "fontSize": UI_FONT_SM,
                               "display": "block", "marginTop": "4px"}),
         ),
         # Scenario stores

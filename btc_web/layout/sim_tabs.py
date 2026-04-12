@@ -18,7 +18,7 @@ from layout.common import (_tab_hints, _section_card, _lbl,
                             _palette_selector)
 from layout.display_models import display_models_panel
 from layout.mc_controls import _mc_controls
-from colors import DIM_TEXT
+from colors import DIM_TEXT, UI_FONT_BASE, UI_FONT_MD
 
 
 def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
@@ -57,7 +57,7 @@ def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
 
 def _stackcelerator_controls():
     return _ctrl_card(
-        html.B("Stack-celerator", style={"fontSize":"12px"}),
+        html.B("Stack-celerator", style={"fontSize": UI_FONT_BASE}),
         dcc.Checklist(id="dca-sc-enable",
                       options=[{"label":" Activate Saylor Mode","value":"yes"}],
                       value=[], inputStyle=_CB_MARGIN),
@@ -108,7 +108,7 @@ def _stackcelerator_controls():
                       value=int(DCA["sc_tax_rate"] * 100), min=0, max=99, step=0.5, size="sm",
                       debounce=True),
             html.Div(id="dca-sc-info",
-                     style={"fontSize":"11px","color":DIM_TEXT,"marginTop":"4px"}),
+                     style={"fontSize": UI_FONT_MD,"color":DIM_TEXT,"marginTop":"4px"}),
         ]),
     )
 

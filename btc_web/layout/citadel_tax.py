@@ -6,7 +6,8 @@ import dash_bootstrap_components as dbc
 from layout.common import _CB_MARGIN
 from engines.tax_data import STATE_TAX_RATES
 from colors import (DIM_TEXT, BOOTSTRAP_LIGHT_BG, BOOTSTRAP_BORDER,
-                    FALLBACK_MODEL_GRAY)
+                    FALLBACK_MODEL_GRAY,
+                    UI_FONT_MD, UI_FONT_BASE, UI_FONT_LG)
 
 # ── State dropdown options (sorted by name) ─────────────────────────────────
 
@@ -59,7 +60,7 @@ def _account_asset_grid(prefix: str):
                   value=_d("cash"), size="sm"),
         html.Hr(style={"margin": "6px 0"}),
         html.Small("Reserves", className="fw-bold d-block mb-1",
-                   style={"fontSize": "11px"}),
+                   style={"fontSize": UI_FONT_MD}),
         dbc.Row([
             dbc.Col([html.Small("Short"),
                      dbc.Input(id=f"{prefix}-res-short", type="number",
@@ -72,7 +73,7 @@ def _account_asset_grid(prefix: str):
                                min=0, step=1000, value=_d("res_long"), size="sm")], width=4),
         ], className="g-1 mb-1"),
         html.Small("Investments", className="fw-bold d-block mb-1",
-                   style={"fontSize": "11px"}),
+                   style={"fontSize": UI_FONT_MD}),
         dbc.Row([
             dbc.Col([html.Small("Equities"),
                      dbc.Input(id=f"{prefix}-inv-eq", type="number",
@@ -96,12 +97,12 @@ def _bracket_table(title: str, brackets: list[tuple[float, float]]) -> html.Div:
         else:
             bracket_str = f"${prev:,.0f} - ${upper:,.0f}"
         rows.append(html.Tr([
-            html.Td(bracket_str, style={"paddingRight": "16px", "fontSize": "12px"}),
-            html.Td(f"{rate * 100:.1f}%", style={"fontSize": "12px", "textAlign": "right"}),
+            html.Td(bracket_str, style={"paddingRight": "16px", "fontSize": UI_FONT_BASE}),
+            html.Td(f"{rate * 100:.1f}%", style={"fontSize": UI_FONT_BASE, "textAlign": "right"}),
         ]))
         prev = upper
     return html.Div([
-        html.Strong(title, style={"fontSize": "12px", "display": "block",
+        html.Strong(title, style={"fontSize": UI_FONT_BASE, "display": "block",
                                    "marginBottom": "4px"}),
         html.Table([html.Tbody(rows)],
                    style={"marginBottom": "12px"}),
@@ -138,7 +139,7 @@ def _bracket_reference_section():
 
 def tax_toggle_widget():
     """Compact section for the Simulation sub-tab — title + toggle + config button + stores."""
-    _TITLE_STYLE = {"fontWeight": "bold", "fontSize": "12px",
+    _TITLE_STYLE = {"fontWeight": "bold", "fontSize": UI_FONT_BASE,
                     "color": DIM_TEXT, "marginBottom": "4px",
                     "textTransform": "uppercase", "letterSpacing": "0.03em"}
     return html.Div([
@@ -235,7 +236,7 @@ def tax_config_modal():
                     # Taxable (read-only info)
                     dbc.Col(dbc.Card(dbc.CardBody([
                         html.Strong("Taxable Account",
-                                    style={"fontSize": "13px", "display": "block",
+                                    style={"fontSize": UI_FONT_LG, "display": "block",
                                            "marginBottom": "6px"}),
                         html.Small("Uses existing Citadel asset configuration "
                                    "from the Assets sub-tab.",
@@ -250,7 +251,7 @@ def tax_config_modal():
                     # Tax-Deferred (Traditional IRA/401k)
                     dbc.Col(dbc.Card(dbc.CardBody([
                         html.Strong("Tax-Deferred (Trad IRA / 401k)",
-                                    style={"fontSize": "13px", "display": "block",
+                                    style={"fontSize": UI_FONT_LG, "display": "block",
                                            "marginBottom": "6px"}),
                         html.Small("Withdrawals taxed as ordinary income. "
                                    "Subject to RMDs at age 73+.",
@@ -261,7 +262,7 @@ def tax_config_modal():
                     # Tax-Free (Roth IRA/401k)
                     dbc.Col(dbc.Card(dbc.CardBody([
                         html.Strong("Tax-Free (Roth IRA / 401k)",
-                                    style={"fontSize": "13px", "display": "block",
+                                    style={"fontSize": UI_FONT_LG, "display": "block",
                                            "marginBottom": "6px"}),
                         html.Small("Qualified withdrawals are tax-free. "
                                    "No RMDs required.",
@@ -287,9 +288,9 @@ def tax_summary_panel():
     return dbc.Collapse(
         dbc.Card(dbc.CardBody([
             html.H6("Tax Summary", className="mb-2",
-                     style={"fontSize": "13px"}),
+                     style={"fontSize": UI_FONT_LG}),
             dbc.Table(id="cp-tax-summary-table", bordered=True, size="sm",
-                      style={"fontSize": "12px"}),
+                      style={"fontSize": UI_FONT_BASE}),
         ], className="p-2"), className="mb-2"),
         id="cp-tax-summary", is_open=False,
     )

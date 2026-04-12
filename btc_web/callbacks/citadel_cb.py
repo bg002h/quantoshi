@@ -7,7 +7,8 @@ from dash import Input, Output, State, ctx, callback, html, dcc
 
 import _app_ctx
 from colors import (CLUSTER_MERGE_GRAY, USER_MODEL_TRACE, FALLBACK_MODEL_GRAY,
-                    KNIGHT_GOLD, CITADEL_SUCCESS_GREEN, CITADEL_SPENDING)
+                    KNIGHT_GOLD, CITADEL_SUCCESS_GREEN, CITADEL_SPENDING,
+                    UI_FONT_MD, UI_FONT_BASE)
 
 logger = logging.getLogger(__name__)
 from callbacks.coerce import _ci, _cf
@@ -72,7 +73,7 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call=True,
 )
 def show_asset_model_info(model):
-    _style_visible = {"display": "block", "marginTop": "6px", "fontSize": "11px",
+    _style_visible = {"display": "block", "marginTop": "6px", "fontSize": UI_FONT_MD,
                       "color": CLUSTER_MERGE_GRAY, "lineHeight": "1.4"}
     if model == "markov":
         return html.Div([
@@ -447,7 +448,7 @@ def update_citadel(
         task_id = mc_result.get("_celery_task_id")
         store_val = {"_celery_task_id": task_id, "_pending": True}
         status = html.Span("MC simulation computing in background...",
-                           style={"color": KNIGHT_GOLD, "fontSize": "12px"})
+                           style={"color": KNIGHT_GOLD, "fontSize": UI_FONT_BASE})
         return (fig, store_val, status, dash.no_update,
                 dash.no_update, dash.no_update, dash.no_update, dash.no_update,
                 dash.no_update)
@@ -500,11 +501,11 @@ def _check_celery_task(n_intervals, mc_cached):
             sim_result = result.get(timeout=5)
             return sim_result, html.Span(
                 "\u2705 MC simulation complete — click Run to render fan bands",
-                style={"color": CITADEL_SUCCESS_GREEN, "fontSize": "12px"})
+                style={"color": CITADEL_SUCCESS_GREEN, "fontSize": UI_FONT_BASE})
         elif result.failed():
             return {"_failed": True}, html.Span(
                 "\u274c MC simulation failed",
-                style={"color": CITADEL_SPENDING, "fontSize": "12px"})
+                style={"color": CITADEL_SPENDING, "fontSize": UI_FONT_BASE})
     except Exception:
         pass
     raise dash.exceptions.PreventUpdate

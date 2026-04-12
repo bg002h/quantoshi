@@ -6,7 +6,7 @@ from dash import html, Input, Output, State, callback, no_update, ctx, ALL
 
 import _app_ctx
 from btc_core import today_t, fmt_price, yr_to_t
-from colors import UCL_LINE_COLOR
+from colors import UCL_LINE_COLOR, UI_FONT_XS, UI_FONT_MD
 
 # LPPL family keys — filtered by LPPL config panel. Union of visible
 # bases {lppl, lp2, lp3, lp4} with weighted/no-13 variants.
@@ -143,7 +143,7 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_mo
     else:
         price = float(price_val)
 
-    hint_style = {"fontSize": "9px"} if (use_live and output_field != "p") else {"fontSize": "9px", "display": "none"}
+    hint_style = {"fontSize": UI_FONT_XS} if (use_live and output_field != "p") else {"fontSize": UI_FONT_XS, "display": "none"}
 
     if (date_val is None or date_val == "") and output_field != "d":
         date_val = pd.Timestamp.today().strftime("%Y-%m-%d")
@@ -161,7 +161,7 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_mo
         # Unfairly Cheap Line
         ucl_price = 10 ** (_app_ctx.UCL_INTERCEPT + _app_ctx.UCL_SLOPE * np.log10(t))
         ucl_ratio = price / ucl_price
-        ucl_style = {"fontSize": "11px", "color": UCL_LINE_COLOR}
+        ucl_style = {"fontSize": UI_FONT_MD, "color": UCL_LINE_COLOR}
         rows.append(html.Tr([
             html.Td("Unfairly Cheap Line", style=ucl_style),
             html.Td(f"{ucl_ratio:.2f}x above", style={**ucl_style, "fontWeight": "bold"}),
@@ -172,8 +172,8 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_mo
                 continue  # skip S2F etc — quantiles don't apply
             pct = mdl.find_percentile(t, price)
             rows.append(html.Tr([
-                html.Td(mdl.name, style={"fontSize": "11px"}),
-                html.Td(f"Q{pct*100:.1f}%", style={"fontSize": "11px",
+                html.Td(mdl.name, style={"fontSize": UI_FONT_MD}),
+                html.Td(f"Q{pct*100:.1f}%", style={"fontSize": UI_FONT_MD,
                          "fontWeight": "bold"}),
             ], id={"type": "scan-row", "model": key},
                style={"cursor": "pointer"},
@@ -194,8 +194,8 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_mo
             if p is not None:
                 row_data["data-price"] = f"{p:.2f}"
             rows.append(html.Tr([
-                html.Td(mdl.name, style={"fontSize": "11px"}),
-                html.Td(price_str, style={"fontSize": "11px",
+                html.Td(mdl.name, style={"fontSize": UI_FONT_MD}),
+                html.Td(price_str, style={"fontSize": UI_FONT_MD,
                          "fontWeight": "bold"}),
             ], id={"type": "scan-row", "model": key},
                style={"cursor": "pointer"}, **row_data))
@@ -213,8 +213,8 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_mo
                 except Exception:
                     pass
             rows.append(html.Tr([
-                html.Td(mdl.name, style={"fontSize": "11px"}),
-                html.Td(date_str, style={"fontSize": "11px",
+                html.Td(mdl.name, style={"fontSize": UI_FONT_MD}),
+                html.Td(date_str, style={"fontSize": UI_FONT_MD,
                          "fontWeight": "bold"}),
             ], id={"type": "scan-row", "model": key},
                style={"cursor": "pointer"}, **row_data))
@@ -222,9 +222,9 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_mo
     header_map = {"q": "Quantile", "p": "Price", "d": "Date"}
     table = html.Table([
         html.Thead(html.Tr([
-            html.Th("Model", style={"fontSize": "11px", "paddingRight": "12px"}),
+            html.Th("Model", style={"fontSize": UI_FONT_MD, "paddingRight": "12px"}),
             html.Th(header_map.get(output_field, ""),
-                     style={"fontSize": "11px"}),
+                     style={"fontSize": UI_FONT_MD}),
         ])),
         html.Tbody(rows),
     ], style={"width": "100%", "borderCollapse": "collapse",

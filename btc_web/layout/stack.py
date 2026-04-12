@@ -9,7 +9,8 @@ import _app_ctx
 from layout.common import _tab_hints, _ctrl_card, _section_card, _lbl
 from tab_defaults import STACK
 from colors import (MODAL_BG, TEXT_COLOR, BOOTSTRAP_BORDER, BOOTSTRAP_LIGHT_BG,
-                    BOOTSTRAP_TABLE_SELECT_BG, BOOTSTRAP_TABLE_SELECT_BORDER)
+                    BOOTSTRAP_TABLE_SELECT_BG, BOOTSTRAP_TABLE_SELECT_BORDER,
+                    UI_FONT_LG)
 
 
 def _stack_tracker_tab():
@@ -35,7 +36,7 @@ def _stack_tracker_tab():
                     style_table={"overflowX":"auto"},
                     style_cell={"backgroundColor":MODAL_BG,"color":TEXT_COLOR,
                                 "border":f"1px solid {BOOTSTRAP_BORDER}","padding":"4px 8px",
-                                "fontSize":"13px"},
+                                "fontSize": UI_FONT_LG},
                     style_header={"backgroundColor":BOOTSTRAP_LIGHT_BG,"color":TEXT_COLOR,
                                   "fontWeight":"bold"},
                     style_data_conditional=[

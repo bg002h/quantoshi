@@ -16,6 +16,7 @@ from colors import (
     LIGHTBOX_BG, TABLE_HEADER_BG, TABLE_BORDER_LIGHT,
     TABLE_BORDER_MID, TABLE_BORDER_DARK, CODE_BG, BOOTSTRAP_LIGHT_BG,
     CTX_MENU_BG, _hex_alpha,
+    UI_FONT_SM, UI_FONT_MD, UI_FONT_BASE, UI_FONT_LG, UI_FONT_XL,
 )
 
 
@@ -42,7 +43,7 @@ def _modal_header_with_info_link(title: str, model_short_name: str, link_id: str
             n_clicks=0,
             style={
                 "marginLeft": "8px",
-                "fontSize": "14px",
+                "fontSize": UI_FONT_XL,
                 "textDecoration": "none",
                 "color": LINK,
                 "cursor": "pointer",
@@ -77,7 +78,7 @@ _STYLE_HINT       = {"color": FALLBACK_MODEL_GRAY, "display": "block", "marginBo
 _STYLE_GRAPH_H    = {"height": "78vh"}
 _STYLE_COLOR_H    = {"height": "28px"}
 _STYLE_ADDR_CELL  = {"paddingRight": "12px", "whiteSpace": "nowrap", "verticalAlign": "top"}
-_STYLE_ADDR_CODE  = {"wordBreak": "break-all", "fontSize": "11px"}
+_STYLE_ADDR_CODE  = {"wordBreak": "break-all", "fontSize": UI_FONT_MD}
 _CB_MARGIN        = {"marginRight": "4px"}
 _INFL_LABEL       = "Inflation rate (0\u2013100% / yr)"
 _Q_HINT_BASE      = "Lower quantiles = more conservative price paths."
@@ -86,11 +87,11 @@ _Q_HINT_BASE      = "Lower quantiles = more conservative price paths."
 # Moved from layout/bubble.py during display-models consolidation so
 # that display_models.py and heatmap.py can share them.
 _GEAR_STYLE = {
-    "cursor": "pointer", "fontSize": "11px", "marginLeft": "4px",
+    "cursor": "pointer", "fontSize": UI_FONT_MD, "marginLeft": "4px",
     "opacity": "0.6", "textDecoration": "none",
 }
 _MUTED_STYLE = {
-    "color": MUTED_SUMMARY_TEXT, "fontSize": "11px", "fontStyle": "italic",
+    "color": MUTED_SUMMARY_TEXT, "fontSize": UI_FONT_MD, "fontStyle": "italic",
 }
 
 def _q_options() -> list[dict]:
@@ -100,7 +101,7 @@ def _q_options() -> list[dict]:
         lbl_text = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
         col = _app_ctx.M.qr_colors.get(q, FALLBACK_MODEL_GRAY)
         lbl = html.Span([
-            html.Span("\u25CF ", style={"color": col, "fontSize": "10px"}),
+            html.Span("\u25CF ", style={"color": col, "fontSize": UI_FONT_SM}),
             lbl_text,
         ])
         opts.append({"label": lbl, "value": q})
@@ -340,7 +341,7 @@ def _plot_appearance_controls(prefix: str):
                        size="sm", color="secondary",
                        outline=True,
                        className="mt-2",
-                       style={"fontSize": "11px", "width": "100%"}),
+                       style={"fontSize": UI_FONT_MD, "width": "100%"}),
             style={"marginTop": "8px"},
         ),
     ]
@@ -369,7 +370,7 @@ def _export_row(tab_id: str):
         ], className="g-1 align-items-center"),
         html.Div("\u2193 Scroll down to configure",
                  className="d-md-none text-center text-muted py-1",
-                 style={"fontSize":"11px", "letterSpacing":"0.02em"}),
+                 style={"fontSize": UI_FONT_MD, "letterSpacing":"0.02em"}),
     ], className="export-row-polished")
 
 
@@ -490,14 +491,14 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                "padding": "6px 10px", "boxShadow": f"0 2px 12px {_hex_alpha(BLACK, 0.5)}"},
         children=[
             html.Span(id="um-ctx-label",
-                      style={"color": USER_MODEL_TRACE, "fontSize": "13px",
+                      style={"color": USER_MODEL_TRACE, "fontSize": UI_FONT_LG,
                              "fontWeight": "600", "marginRight": "8px"}),
             dbc.Button("P1", id="um-ctx-p1", color="warning", size="sm",
                        outline=True, className="me-1",
-                       style={"fontSize": "12px", "padding": "1px 8px"}),
+                       style={"fontSize": UI_FONT_BASE, "padding": "1px 8px"}),
             dbc.Button("P2", id="um-ctx-p2", color="warning", size="sm",
                        outline=True,
-                       style={"fontSize": "12px", "padding": "1px 8px"}),
+                       style={"fontSize": UI_FONT_BASE, "padding": "1px 8px"}),
         ],
     )
 
@@ -519,7 +520,7 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                     {"label": "30yr", "value": 30},
                 ],
                 value=1, clearable=False,
-                style={"width": "75px", "fontSize": "12px",
+                style={"width": "75px", "fontSize": UI_FONT_BASE,
                        "display": "inline-block", "marginLeft": "8px"}),
         ]),
         dcc.Store(id="bub-view-mode", data="price"),
@@ -578,7 +579,7 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                                 "width": "260px", "textAlign": "center",
                             }, children=[
                                 html.Div("Computing Forward CAGR\u2026",
-                                         style={"color": FALLBACK_MODEL_GRAY, "fontSize": "13px", "marginBottom": "6px"}),
+                                         style={"color": FALLBACK_MODEL_GRAY, "fontSize": UI_FONT_LG, "marginBottom": "6px"}),
                                 html.Div(style={
                                     "height": "6px", "borderRadius": "3px",
                                     "background": PROGRESS_TRACK, "overflow": "hidden",
@@ -770,9 +771,9 @@ def _hybppl_model_slot(slot):
         ], style=_STYLE_HIDDEN),
         html.Div([
             html.Span(id=f"hybppl-cfg-{s}-status",
-                      style={"fontSize": "11px", "color": FALLBACK_MODEL_GRAY}),
+                      style={"fontSize": UI_FONT_MD, "color": FALLBACK_MODEL_GRAY}),
             html.A(id=f"hybppl-cfg-{s}-info-link", href="#",
-                   style={"fontSize": "11px", "marginLeft": "6px",
+                   style={"fontSize": UI_FONT_MD, "marginLeft": "6px",
                           "color": LINK, "display": "none"},
                    children="\u2139\uFE0F Model Info"),
         ], style={"marginTop": "6px"}),
@@ -883,9 +884,9 @@ def _eppl_model_slot(slot):
         ], style=_STYLE_HIDDEN),
         html.Div([
             html.Span(id=f"eppl-cfg-{s}-status",
-                      style={"fontSize": "11px", "color": FALLBACK_MODEL_GRAY}),
+                      style={"fontSize": UI_FONT_MD, "color": FALLBACK_MODEL_GRAY}),
             html.A(id=f"eppl-cfg-{s}-info-link", href="#",
-                   style={"fontSize": "11px", "marginLeft": "6px",
+                   style={"fontSize": UI_FONT_MD, "marginLeft": "6px",
                           "color": LINK, "display": "none"},
                    children="\u2139\uFE0F Model Info"),
         ], style={"marginTop": "6px"}),
@@ -996,7 +997,7 @@ def _shared_settings_card(prefix, *, amount_id=None, amount_label="Purchase amou
                     id=f"{prefix}-freq-unlock",
                     options=[{"label": " Unlock", "value": "yes"}],
                     value=[], inputStyle=_CB_MARGIN,
-                    style={"fontSize": "11px", "paddingTop": "6px"},
+                    style={"fontSize": UI_FONT_MD, "paddingTop": "6px"},
                 ),
                 width=4,
             ),
@@ -1057,9 +1058,9 @@ def _tab_hints(tab_id):
         return html.Div()
     return html.Details([
         html.Summary("How to use this tab",
-                     style={"cursor": "pointer", "fontSize": "13px",
+                     style={"cursor": "pointer", "fontSize": UI_FONT_LG,
                             "color": MUTED_TEXT, "marginBottom": "6px"}),
-        html.Ul([html.Li(h, style={"fontSize": "12px", "color": DIM_TEXT})
+        html.Ul([html.Li(h, style={"fontSize": UI_FONT_BASE, "color": DIM_TEXT})
                  for h in hints],
                 style={"marginBottom": "8px", "paddingLeft": "20px"}),
     ], style={"marginBottom": "10px"})

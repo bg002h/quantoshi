@@ -13,9 +13,10 @@ from mc_overlay import bin_regime_labels
 from layout.common import (_section_card, _ctrl_card, _row, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT, _CB_MARGIN)
 from colors import (BLACK, SILVER, NEAR_BLACK, MUTED_TEXT,
-                    MODAL_DIVIDER_DARK, DIM_TEXT, WHITE, BADGE_GLOW_RED, _hex_alpha)
+                    MODAL_DIVIDER_DARK, DIM_TEXT, WHITE, BADGE_GLOW_RED, _hex_alpha,
+                    FONT_BRAND, UI_FONT_SM, UI_FONT_MD, UI_FONT_LG, UI_FONT_XL, UI_FONT_XXL)
 
-_QUANT_FONT = {"fontFamily": '"Palatino Linotype", Palatino, "Book Antiqua", serif',
+_QUANT_FONT = {"fontFamily": FONT_BRAND,
                "color": BLACK, "letterSpacing": "1px"}
 _MC_CACHED_START_YRS = set(CACHED_START_YRS)
 _MC_CACHED_ENTRY_QS = {int(v * 100) for v in ENTRY_PCT_BINS}   # {10,20,...,90}
@@ -27,7 +28,7 @@ _MC_CACHED_INFL     = set(INFL_OPTIONS)
 def _bold_opts(values, fmt, cached_set):
     """Build dropdown options, bolding+enlarging values in the pre-computed cache."""
     return [
-        {"label": html.Span(fmt(v), style={"fontWeight": "bold", "fontSize": "16px"})
+        {"label": html.Span(fmt(v), style={"fontWeight": "bold", "fontSize": UI_FONT_XXL})
                   if v in cached_set else fmt(v),
          "value": v}
         for v in values
@@ -107,7 +108,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
     yr_now = pd.Timestamp.today().year
     return html.Div(style={"position": "relative"}, children=[
         html.Span([
-            html.Span("\u2694", style={"fontSize": "16px", "marginRight": "3px"}),
+            html.Span("\u2694", style={"fontSize": UI_FONT_XXL, "marginRight": "3px"}),
             html.Span("NEW", style={"position": "relative", "top": "-2px"}),
         ], className="mc-new-badge", style={
             "position": "absolute", "top": "4px", "right": "-2px",
@@ -126,7 +127,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
             dcc.Checklist(id=f"{prefix}-mc-advanced",
                           options=[{"label": " Advanced simulator options", "value": "yes"}],
                           value=[], inputStyle=_CB_MARGIN,
-                          style={"fontSize": "11px", "color": MUTED_TEXT, "marginBottom": "6px"}),
+                          style={"fontSize": UI_FONT_MD, "color": MUTED_TEXT, "marginBottom": "6px"}),
             html.Div(dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now),
                      style=_STYLE_HIDDEN),
             _lbl((start_yr_label or "MC start year") + " (bold = cached)"),
@@ -185,7 +186,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                     options=_MC_REGIME_OPTIONS_5,
                     value=list(range(5)),
                     inputStyle=_CB_MARGIN,
-                    labelStyle={"display": "block", "fontSize": "11px",
+                    labelStyle={"display": "block", "fontSize": UI_FONT_MD,
                                 "lineHeight": "1.6", "color": MODAL_DIVIDER_DARK},
                     style={"marginBottom": "6px"},
                 ),
@@ -211,22 +212,22 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                                 marks={y: str(y) for y in range(2010, yr_now + 1, 5)}),
             ]),
             html.Div(id=f"{prefix}-mc-cost",
-                     style={"fontSize": "11px", "color": DIM_TEXT, "marginTop": "6px",
+                     style={"fontSize": UI_FONT_MD, "color": DIM_TEXT, "marginTop": "6px",
                             "lineHeight": "1.4"}),
             dcc.Store(id=f"{prefix}-mc-price-val", storage_type="memory", data=0),
             # ── Run Simulation button (payment-gated when BTCPay active) ──
             dbc.Button(
-                [html.Span("\u26a1 ", style={"fontSize": "14px"}), "Run MC Simulation"],
+                [html.Span("\u26a1 ", style={"fontSize": UI_FONT_XL}), "Run MC Simulation"],
                 id=f"{prefix}-mc-run-btn", size="sm", color="warning",
                 className="w-100 mt-2",
                 style={"fontWeight": "600"},
             ),
             html.Div(id=f"{prefix}-mc-run-status",
-                     style={"fontSize": "10px", "color": DIM_TEXT, "marginTop": "4px",
+                     style={"fontSize": UI_FONT_SM, "color": DIM_TEXT, "marginTop": "4px",
                             "textAlign": "center"}),
             dcc.Store(id=f"{prefix}-mc-rendered-key", storage_type="memory"),
             html.Div(id=f"{prefix}-mc-match",
-                     style={"fontSize": "10px", "marginTop": "4px",
+                     style={"fontSize": UI_FONT_SM, "marginTop": "4px",
                             "textAlign": "center"}),
             dbc.Button("\u21a9 Restore last settings",
                        id=f"{prefix}-mc-restore-btn",
@@ -236,7 +237,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
             html.Hr(className="my-2"),
             _section_card("Saved Simulation",
                 html.Div(id=f"{prefix}-mc-status",
-                         style={"fontSize": "10px", "color": DIM_TEXT, "marginBottom": "4px"}),
+                         style={"fontSize": UI_FONT_SM, "color": DIM_TEXT, "marginBottom": "4px"}),
                 dbc.Row([
                     dbc.Col(
                         dbc.Button("\u2b07 Save", id=f"{prefix}-mc-dl-btn",
@@ -252,7 +253,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                         width=6),
                 ], className="g-1"),
                 html.Div(id=f"{prefix}-mc-upload-status", className="mt-1",
-                         style={"fontSize": "10px"}),
+                         style={"fontSize": UI_FONT_SM}),
             ),
         ]),
         header_right=[
@@ -263,7 +264,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                 className="model-panel-activate",
             ),
             html.Span([
-                html.Span("\u26a1", style={"fontSize": "13px"}),
+                html.Span("\u26a1", style={"fontSize": UI_FONT_LG}),
                 " Paid",
             ], className="model-panel-paid-badge"),
         ],

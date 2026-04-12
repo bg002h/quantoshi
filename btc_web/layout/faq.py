@@ -4,7 +4,7 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 from layout.common import _STYLE_ADDR_CELL, _STYLE_ADDR_CODE
-from colors import CODE_BG, DANGER_HIGHLIGHT, _hex_alpha
+from colors import CODE_BG, DANGER_HIGHLIGHT, _hex_alpha, UI_FONT_MD, UI_FONT_LG
 
 _FAQ = [
     {
@@ -68,7 +68,7 @@ _FAQ = [
                     html.Tr([html.Td("Apr 2, 2010"), html.Td("Power law: 1 BTC = $0.01"), html.Td("4.23"), html.Td("0.9521")]),
                     html.Tr([html.Td("Aug 24, 2010"), html.Td("Power law: 1 BTC = $0.10"), html.Td("3.85"), html.Td("0.9324")]),
                 ]),
-            ], style={"fontSize": "13px", "marginBottom": "12px", "borderCollapse": "collapse"}),
+            ], style={"fontSize": UI_FONT_LG, "marginBottom": "12px", "borderCollapse": "collapse"}),
             html.Br(),
             html.Strong("Why does it matter? A practical example."),
             " It is currently 2026 and Bitcoin trades at ~$70,000. Ten years ago, "
@@ -99,7 +99,7 @@ _FAQ = [
                     html.Tr([html.Td("2000"), html.Td("16 yr"), html.Td("26 yr"),
                              html.Td("0.21"), html.Td(html.Strong("9.5"))]),
                 ]),
-            ], style={"fontSize": "13px", "marginBottom": "12px", "borderCollapse": "collapse"}),
+            ], style={"fontSize": UI_FONT_LG, "marginBottom": "12px", "borderCollapse": "collapse"}),
             html.Br(),
             "The same 100\u00d7 price increase over the same 10 years implies "
             "\u03b2 = 1.9, 4.9, or 9.5 depending on Day Zero. This is because "
@@ -224,7 +224,7 @@ _FAQ = [
                     html.Tr([html.Td("Bin P5"), html.Td("5.03"), html.Td("Jun 1, 2009"), html.Td("0.978")]),
                     html.Tr([html.Td("Bin min (floor)"), html.Td("5.02"), html.Td("Jun 25, 2009"), html.Td("0.984")]),
                 ]),
-            ], style={"fontSize": "13px", "marginBottom": "12px", "borderCollapse": "collapse"}),
+            ], style={"fontSize": UI_FONT_LG, "marginBottom": "12px", "borderCollapse": "collapse"}),
             "The optimal genesis shifts from June 2009 (floor) to November 2009 (peaks) "
             "\u2014 about 5 months apart. The floor \u201cstarts\u201d earlier because it is "
             "anchored by the very first prices; the peaks start later because the first "
@@ -770,7 +770,7 @@ _FAQ = [
             html.Code(
                 "0.0.0.0 - $remote_user [$time_local] \"$request\" "
                 "$status $body_bytes_sent \"$http_referer\" \"$http_user_agent\"",
-                style={"fontSize": "11px", "display": "block",
+                style={"fontSize": UI_FONT_MD, "display": "block",
                        "margin": "6px 0", "padding": "4px 8px",
                        "background": CODE_BG, "borderRadius": "4px",
                        "wordBreak": "break-all"},
@@ -832,7 +832,7 @@ _FAQ = [
                     html.Tr([html.Td("2021\u20132022"), html.Td("$66,847"), html.Td("$16,238"),
                              html.Td("\u221276%"), html.Td("376"), html.Td("848")]),
                 ]),
-            ], style={"fontSize": "13px", "marginBottom": "12px", "borderCollapse": "collapse"}),
+            ], style={"fontSize": UI_FONT_LG, "marginBottom": "12px", "borderCollapse": "collapse"}),
             html.Br(),
             "What made it ",
             html.Em("feel"),

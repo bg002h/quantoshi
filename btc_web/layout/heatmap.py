@@ -14,7 +14,7 @@ from layout.common import (_tab_hints, _section_card, _lbl, _row, _export_row,
 from layout.mc_controls import _mc_controls
 from tab_defaults import HEATMAP
 from colors import (NEAR_BLACK, DIM_TEXT, SPINE_COLOR_FALLBACK,
-                    PROGRESS_TRACK, FALLBACK_MODEL_GRAY)
+                    PROGRESS_TRACK, FALLBACK_MODEL_GRAY, UI_FONT_MD)
 
 
 # ── Heatmap pill set ───────────────────────────────────────────────────────
@@ -209,7 +209,7 @@ def _hm_pill_bar():
                "alignItems": "center",
                "gap": "4px",
                "marginTop": "6px",
-               "fontSize": "11px"},
+               "fontSize": UI_FONT_MD},
         children=[
             html.Span("Active: ", style={"color": FALLBACK_MODEL_GRAY}),
             html.Span(id="hm-active-family-label",

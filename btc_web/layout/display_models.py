@@ -18,6 +18,7 @@ import _app_ctx
 from colors import (
     BLACK, FALLBACK_MODEL_GRAY, LOT_MARKER_OUTLINE,
     MODEL_TRACE_COLORS, CITADEL_OVERLAY_COLORS, LINK,
+    UI_FONT_MD,
 )
 from layout.common import (
     _GEAR_STYLE, _MUTED_STYLE,
@@ -75,7 +76,7 @@ def build_display_models_options(
             return None
         return html.A(
             _INFO_ICON, href=href,
-            style={"cursor": "pointer", "fontSize": "11px",
+            style={"cursor": "pointer", "fontSize": UI_FONT_MD,
                    "marginLeft": "4px", "opacity": "0.6",
                    "textDecoration": "none", "color": LINK},
             title=f"View {label} details on Model Info tab",

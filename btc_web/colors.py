@@ -397,8 +397,8 @@ PALETTE_KEYS = tuple(PALETTES.keys())
 # PALETTE_DEFAULT_HM_PRESET below).
 HM_PRESET_PALETTES = {
     # Red → White → Green (classic finance, light neutral)
-    "rwg":  ("#b71c1c", "#ffffff", "#ffffff", "#1b5e20"),
-    # Red → Black → Green (classic finance, dark neutral)
+    "rwg":  ("#d32f2f", "#ffffff", "#ffffff", "#2e7d32"),
+    # Red → Black → Green (classic finance, dark neutral; same max hues as rwg)
     "rbg":  ("#d32f2f", "#2c2c2c", "#2c2c2c", "#2e7d32"),
     # Blue → White → Orange (CVD-safe — deuteranomaly/protanopia/tritanopia)
     "bwo":  ("#0d47a1", "#ffffff", "#ffffff", "#e65100"),

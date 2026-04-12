@@ -44,8 +44,8 @@ HEATMAP = MappingProxyType({
     # Initial CAGR heatmap colors match the default "rwg" preset
     # (red → white → white → green) so the rendered heatmap is consistent
     # with the dropdown value at first page load.
-    "c_lo": "#b71c1c", "c_mid1": "#ffffff",
-    "c_mid2": "#ffffff", "c_hi": "#1b5e20",
+    "c_lo": "#d32f2f", "c_mid1": "#ffffff",
+    "c_mid2": "#ffffff", "c_hi": "#2e7d32",
     "n_disc": 32,
     "vfmt": "cagr_mult",
     "cell_font_size": 9,

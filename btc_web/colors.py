@@ -275,19 +275,33 @@ DEFAULT = {
 
 CB_BRIAN = {
     "model_colors": {
-        # 6 hand-picked flagship trace colors for deuteranomaly (2026-04-11).
-        # Chosen for reliable separation on the CB-Brian profile; see
-        # docs/superpowers/specs for brainstorm history.
-        "bub": "#D8BD65", "qr": "#304FC8", "pl": "#7E67B1",
-        "lppl": "#FFB000", "lp2": "#D81B60", "lp3": "#F06292", "lp4": "#F8BBD0",
-        "linppl": "#006064", "hybppl": "#FE6100", "hybppl_dd": "#8E24AA",
-        "ef": "#FFE082", "exp": "#E0E0E0", "s2f": "#777777",
-        "u1": "#333333",
-        "hyb2l": "#5B4AB0", "hyb2c": "#1A9A8F", "hyb2b": "#C4607A",
-        "hyb4d": "#7A5B10", "pca": "#3A006F",
-        "grdy": "#1B7A1B",
-        "eppl": "#BD3737",
-        "gomp": "#3B6FA0", "bpl": "#B87333",
+        # ── Flagship 6 (hand-picked for deuteranomaly, 2026-04-11) ──
+        # User-chosen for reliable separation on the CB-Brian profile.
+        "bub":    "#D8BD65",  # muted gold
+        "qr":     "#304FC8",  # deep blue
+        "pl":     "#7E67B1",  # muted violet
+        "eppl":   "#BD3737",  # brick red
+        "hybppl": "#FE6100",  # saturated orange
+        "lppl":   "#FFB000",  # amber
+        # ── LPPL family variants inherit the LPPL master color ──
+        "lp2":    "#FFB000", "lp3": "#FFB000", "lp4": "#FFB000",
+        # ── HybPPL family variants inherit the HybPPL master color ──
+        # (hyb2l/c/b/4d and linppl are hidden from Display Models; hybppl_dd
+        # is a DD-adjusted variant under the same master.)
+        "hybppl_dd": "#FE6100",
+        "linppl":    "#FE6100",
+        "hyb2l":     "#FE6100", "hyb2c": "#FE6100",
+        "hyb2b":     "#FE6100", "hyb4d": "#FE6100",
+        # ── Remaining Display Models entries cycle the 6 flagship colors ──
+        # Order: BM → QR → PL → EPPL → HybPPL → LPPL, then restart.
+        "pca":  "#D8BD65",  # [BM]
+        "grdy": "#304FC8",  # [QR]
+        "ef":   "#7E67B1",  # [PL]
+        "exp":  "#BD3737",  # [EPPL]
+        "s2f":  "#FE6100",  # [HybPPL]
+        "gomp": "#FFB000",  # [LPPL]
+        "bpl":  "#D8BD65",  # [BM] — cycle restart
+        "u1":   "#304FC8",  # [QR]
     },
     "thermal_stops": [
         (0.001, "#0d47a1"), (0.01, "#1565c0"), (0.015, "#1976d2"),

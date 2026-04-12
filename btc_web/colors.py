@@ -247,18 +247,18 @@ CITADEL_OVERLAY_COLORS = {
 DEFAULT = {
     "model_colors": {
         # ── Flagship 6 — editorial warm/cool dichotomy ──────────────────
-        "bub":    "#D4890A",  # amber gold (the flagship) — +saturation
-        "pl":     "#1B3352",  # deep slate navy — +saturation
-        "qr":     "#9B2244",  # burgundy / bordeaux — +saturation
-        "eppl":   "#1F6B5C",  # forest teal — +saturation
-        "hybppl": "#C4571A",  # burnt sienna — +saturation
-        "lppl":   "#5E3076",  # aubergine / deep plum — +saturation
+        "bub":    "#C48209",  # amber gold — darkened for 3:1 AA on ivory
+        "pl":     "#1B3352",  # deep slate navy
+        "qr":     "#9B2244",  # burgundy-crimson
+        "eppl":   "#1F6B5C",  # forest teal
+        "hybppl": "#A8431C",  # rust-orange — darker+redder to separate from BM amber
+        "lppl":   "#7B3D9E",  # medium purple — lightened to separate from PL navy
         # ── LPPL family variants inherit master ─────────────────────────
-        "lp2": "#5E3076", "lp3": "#5E3076", "lp4": "#5E3076",
+        "lp2": "#7B3D9E", "lp3": "#7B3D9E", "lp4": "#7B3D9E",
         # ── HybPPL family variants inherit master ───────────────────────
-        "linppl": "#C4571A", "hybppl_dd": "#C4571A",
-        "hyb2l": "#C4571A", "hyb2c": "#C4571A",
-        "hyb2b": "#C4571A", "hyb4d": "#C4571A",
+        "linppl": "#A8431C", "hybppl_dd": "#A8431C",
+        "hyb2l": "#A8431C", "hyb2c": "#A8431C",
+        "hyb2b": "#A8431C", "hyb4d": "#A8431C",
         # ── Secondary models (muted, stay out of the way) ──────────────
         "pca":  "#4A2660",  # darker aubergine
         "grdy": "#163D4C",  # darker slate

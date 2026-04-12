@@ -280,13 +280,21 @@ _TAB_PALETTE_KEYS = ("bub", "hm", "dca", "ret", "sc", "cp")
 
 _app_ctx.app.clientside_callback(
     """
-    function() {
+    function(bub, hm, dca, ret, sc, cp) {
         var ctx = window.dash_clientside.callback_context;
         if (!ctx.triggered || !ctx.triggered.length) {
             return window.dash_clientside.no_update;
         }
-        var v = ctx.triggered[0].value;
-        return v || window.dash_clientside.no_update;
+        // Use prop_id to find which selector triggered, then read its value
+        // from the function arguments (ctx.triggered[0].value may not exist
+        // in Dash 4.0 clientside).
+        var ids = ["palette-select-bub", "palette-select-hm", "palette-select-dca",
+                   "palette-select-ret", "palette-select-sc", "palette-select-cp"];
+        var vals = [bub, hm, dca, ret, sc, cp];
+        var pid = (ctx.triggered[0].prop_id || "").split(".")[0];
+        var idx = ids.indexOf(pid);
+        if (idx >= 0 && vals[idx]) return vals[idx];
+        return window.dash_clientside.no_update;
     }
     """,
     Output("palette-store", "data", allow_duplicate=True),

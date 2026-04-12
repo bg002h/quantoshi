@@ -523,14 +523,17 @@ def _build_layout(initial_tab="bubble"):
                             ], style={"display":"flex", "alignItems":"center",
                                       "justifyContent":"flex-end"}),
                             html.Div([
+                                # Navbar palette selector hidden — per-tab selectors at
+                                # the bottom of each chart tab's controls are the primary
+                                # palette switcher. This component stays in the DOM (hidden)
+                                # because nav.py sync callbacks reference its id.
                                 dbc.Select(
                                     id="palette-select",
                                     options=[{"label": v, "value": k}
                                              for k, v in _app_ctx.PALETTE_LABELS.items()],
                                     value="default",
                                     size="sm",
-                                    style={"width": "155px", "fontSize": "0.78rem",
-                                           "display": "inline-block", "marginRight": "8px"},
+                                    style={"display": "none"},
                                 ),
                                 html.Span("Cooler than you think \u25b6 ",
                                           style={"fontSize":"9px", "color":_hex_alpha(WHITE, 0.4),

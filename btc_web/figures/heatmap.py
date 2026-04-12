@@ -291,7 +291,10 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         title=dict(text=title_text,
                    font=dict(color=theme.TITLE_COLOR, size=_FONT_SUBTITLE)),
         paper_bgcolor=theme.PLOT_BG_COLOR,
-        plot_bgcolor=theme.PLOT_BG_COLOR,
+        # Plot background is black so the 1-px xgap/ygap between heatmap
+        # cells shows as thin black grid lines. The heatmap cells fill
+        # the plot area so the black background is only visible in the gaps.
+        plot_bgcolor="#000000",
         font=dict(color=theme.TEXT_COLOR),
         xaxis=dict(title="Exit Year", gridcolor=theme.GRID_MAJOR_COLOR,
                    linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
@@ -396,7 +399,9 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
         title=dict(text=f"Monte Carlo CAGR \u2014 {entry_lbl}",
                    font=dict(color=theme.TITLE_COLOR, size=_FONT_SUBTITLE)),
         paper_bgcolor=theme.PLOT_BG_COLOR,
-        plot_bgcolor=theme.PLOT_BG_COLOR,
+        # Black plot background so xgap/ygap between cells renders as
+        # thin black grid lines (matches the main CAGR heatmap).
+        plot_bgcolor="#000000",
         font=dict(color=theme.TEXT_COLOR),
         xaxis=dict(title="Exit Year", gridcolor=theme.GRID_MAJOR_COLOR,
                    linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,

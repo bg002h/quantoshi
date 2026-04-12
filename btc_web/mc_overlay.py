@@ -435,15 +435,15 @@ def _build_mc_result(tab, path_key, overlay_key, mc_ts, price_paths,
 # Trace builders
 # ══════════════════════════════════════════════════════════════════════════════
 
+# MC band opacity pattern: matches _build_symmetric_bands (0.08 outer, 0.15 inner)
+# so MC visually integrates with other model overlays instead of looking alien.
 _MC_BANDS = [
-    (0.01, 0.95, _hex_alpha(MC_AMBER, 0.06), "MC 1\u201395%"),
-    (0.05, 0.95, _hex_alpha(MC_AMBER, 0.10), "MC 5\u201395%"),
-    (0.25, 0.75, _hex_alpha(MC_AMBER, 0.18), "MC 25\u201375%"),
+    (0.05, 0.95, _hex_alpha(MC_AMBER, 0.08), "MC 5\u201395%"),
+    (0.25, 0.75, _hex_alpha(MC_AMBER, 0.15), "MC 25\u201375%"),
 ]
 _GHOST_BANDS = [
-    (0.01, 0.95, _hex_alpha(MC_GHOST_GRAY, 0.04), "MC ref 1\u201395%"),
-    (0.05, 0.95, _hex_alpha(MC_GHOST_GRAY, 0.08), "MC ref 5\u201395%"),
-    (0.25, 0.75, _hex_alpha(MC_GHOST_GRAY, 0.14), "MC ref 25\u201375%"),
+    (0.05, 0.95, _hex_alpha(MC_GHOST_GRAY, 0.06), "MC ref 5\u201395%"),
+    (0.25, 0.75, _hex_alpha(MC_GHOST_GRAY, 0.12), "MC ref 25\u201375%"),
 ]
 
 
@@ -984,7 +984,7 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
 
         lg = f"mc_{asset_key}"
 
-        # 5-95% band (alpha 0.06)
+        # 5-95% band (outer, 0.08 alpha — matches _build_symmetric_bands)
         traces.append(go.Scatter(
             x=list(ts_plot), y=list(p95), mode="lines",
             line=dict(width=0), showlegend=False, hoverinfo="skip",
@@ -993,12 +993,12 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
         traces.append(go.Scatter(
             x=list(ts_plot), y=list(p5), mode="lines",
             line=dict(width=0), fill="tonexty",
-            fillcolor=f"rgba({_hex_to_rgb(color)},0.06)",
+            fillcolor=f"rgba({_hex_to_rgb(color)},0.08)",
             name=f"MC {nice_name} 5\u201395%", showlegend=False, hoverinfo="skip",
             legendgroup=lg,
         ))
 
-        # 25-75% band (alpha 0.12)
+        # 25-75% band (inner, 0.15 alpha — matches _build_symmetric_bands)
         traces.append(go.Scatter(
             x=list(ts_plot), y=list(p75), mode="lines",
             line=dict(width=0), showlegend=False, hoverinfo="skip",
@@ -1007,7 +1007,7 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
         traces.append(go.Scatter(
             x=list(ts_plot), y=list(p25), mode="lines",
             line=dict(width=0), fill="tonexty",
-            fillcolor=f"rgba({_hex_to_rgb(color)},0.12)",
+            fillcolor=f"rgba({_hex_to_rgb(color)},0.15)",
             name=f"MC {nice_name} 25\u201375%", showlegend=False, hoverinfo="skip",
             legendgroup=lg,
         ))

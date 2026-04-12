@@ -1399,6 +1399,15 @@ body {
 .js-plotly-plot .modebar { opacity: 0; transition: opacity 0.2s ease; }
 .js-plotly-plot:hover .modebar { opacity: 1; }
 
+/* ── Plotly hover tooltip: shift up-and-right so the cursor/finger doesn't
+      overlap the label. +16px x / -18px y offset applied on top of whatever
+      transform Plotly's hover engine chose. Works for both SVG hover groups
+      (.hoverlayer g) and the text node directly. */
+.js-plotly-plot g.hoverlayer g.hovertext,
+.js-plotly-plot g.hoverlayer .hovertext {
+    transform: translate(16px, -18px);
+}
+
 /* ── Stack Tracker: lot badge on tab ──────────────────────────────────────── */
 .tab-lot-badge {
     display: inline-block;

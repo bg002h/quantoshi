@@ -278,8 +278,8 @@ CB_BRIAN = {
         # ── Flagship 6 (hand-picked for deuteranomaly, 2026-04-11) ──
         # User-chosen for reliable separation on the CB-Brian profile.
         "bub":    "#D8BD65",  # muted gold
-        "qr":     "#304FC8",  # deep blue
-        "pl":     "#7E67B1",  # muted violet
+        "qr":     "#64B5F6",  # light blue
+        "pl":     "#1E88E5",  # bright blue
         "eppl":   "#BD3737",  # brick red
         "hybppl": "#FE6100",  # saturated orange
         "lppl":   "#FFB000",  # amber
@@ -295,13 +295,13 @@ CB_BRIAN = {
         # ── Remaining Display Models entries cycle the 6 flagship colors ──
         # Order: BM → QR → PL → EPPL → HybPPL → LPPL, then restart.
         "pca":  "#D8BD65",  # [BM]
-        "grdy": "#304FC8",  # [QR]
-        "ef":   "#7E67B1",  # [PL]
+        "grdy": "#64B5F6",  # [QR]
+        "ef":   "#1E88E5",  # [PL]
         "exp":  "#BD3737",  # [EPPL]
         "s2f":  "#FE6100",  # [HybPPL]
         "gomp": "#FFB000",  # [LPPL]
         "bpl":  "#D8BD65",  # [BM] — cycle restart
-        "u1":   "#304FC8",  # [QR]
+        "u1":   "#64B5F6",  # [QR]
     },
     "thermal_stops": [
         (0.001, "#0d47a1"), (0.01, "#1565c0"), (0.015, "#1976d2"),

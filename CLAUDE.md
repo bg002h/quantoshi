@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 1. **`SP.ipynb`** — Jupyter notebook with bubble model + quantile regression analysis, chart generation, and PowerPoint export.
 2. **`btc_web/`** — Plotly Dash web app. Live at [quantoshi.xyz](https://quantoshi.xyz) and `u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion`.
-3. **`archive/btc_app/btc_projections.py`** — Standalone PyQt5 GUI app (5 interactive tabs) distributed as a Linux AppImage. **On back burner** — moved to `archive/` during simplification.
+3. **`archive/btc_app/btc_projections.py`** — Standalone PyQt5 GUI app (5 interactive tabs) distributed as a Linux AppImage. **Being spun off** as its own project.
 
 The notebook generates `archive/btc_app/model_data.pkl`, which both the web app and the standalone app load at runtime.
 
@@ -18,7 +18,6 @@ The notebook generates `archive/btc_app/model_data.pkl`, which both the web app 
 
 ## Workflow
 
-**Never auto-deploy.** After making changes, stop at committing locally. Do NOT push to GitHub or SSH-deploy to the production server unless explicitly asked. The user will say "deploy to production" when ready to ship.
 
 **Local test environment:** `DEV=1 bash run_web.sh` (hot-reload, single user) or `bash run_web.sh` (gunicorn). The local btc-web systemd service has been stopped; start the app manually when needed.
 
@@ -181,46 +180,9 @@ Write scripts to `/tmp/` and run with `python3 /tmp/script.py`.
 
 ---
 
-## Standalone App Architecture (`archive/btc_app/btc_projections.py`) — ON BACK BURNER
+## Standalone App (`archive/btc_app/btc_projections.py`) — SPINNING OFF
 
-~3900 lines, structured as a set of tab classes managed by `MainWindow`.
-
-### Tab classes
-| Class | Tab | Key controls |
-|-------|-----|-------------|
-| `BubbleTab` | 1 | Bubble + QR overlay; axes scaling, quantile rows, bubble extrapolation |
-| `HeatmapTab` | 2 | CAGR heatmap; entry/exit year/quantile, color modes, cell text modes |
-| `DCATab` | 3 | Dollar-cost averaging simulation |
-| `RetireTab` | 4 | Retirement withdrawal simulation |
-| `StackTrackerTab` | 5 | Bitcoin lot tracking; emits `lots_changed` → updates all stack spinboxes |
-
-### Key shared components
-- **`FontPicker(QWidget)`** — family edit + size spinbox + "…" QFontDialog button. Emits `font_changed(str)` and `size_changed(int)`. Has `set_family()`/`set_size()` (no signal emit).
-- **`ColorButton(QWidget)`** — color swatch that opens QColorDialog. Emits `color_changed(str)`.
-- **`ModelData`** — dataclass loaded from `model_data.pkl`; carries all precomputed QR fits, bubble composites, and config constants.
-
-### Cross-tab synchronization (MainWindow)
-- **Font family** sync: `_font_role_map` (dict: role → list of FontPickers across tabs) + `_on_font_changed()`. Roles: `title`, `axis_t`, `ticks`, `legend`.
-- **Font size** sync: `_syncing_font_sizes` guard + `_on_font_size_changed()`.
-- **Minor ticks** sync: `_syncing_minor_ticks` guard + `_on_minor_ticks_changed()`.
-- **"All tabs" font button**: Each tab emits `all_fonts_applied(str, int)` → `_apply_font_to_all_tabs()`.
-- **Quantile state** sync: `q_state_changed(list)` → `_on_q_state_changed()` (shares QR row state across Bubble/DCA/Retire).
-
-### Settings persistence
-- Saved/loaded as JSON at `~/.config/btc-projections/ui_settings.json`.
-- Each tab implements `_collect_settings() → dict` and `_apply_settings(dict)`.
-- Font size keys use `_sz` suffix (e.g. `font_title_sz`), defaulting to match original hardcoded values: title=11, axis=10, ticks=10, ticks_minor=6, legend=7.
-
-### Modifying btc_projections.py
-Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key rules:
-- Each OLD pattern must appear **exactly once** (verify with `src.count(old)`), or use `replace_all=True` only when all occurrences should change identically.
-- Patches must be ordered so later patterns match the already-transformed source.
-- `DCATab` and `RetireTab` often share identical patterns and can use `replace_all=True`.
-- `BubbleTab` uses separate `addWidget()` lines in its font all-row; `DCATab`/`RetireTab` use semicolon style.
-- Font family variables are extracted **before** `self.fig.clear()` in DCA/Retire redraw (opposite of Bubble).
-
-### Heatmap cell text modes
-`mm` array = `exit_price / entry_price`. Modes: `cagr`, `price`, `both`, `stack` (CAGR + portfolio), `port_only`, `mult_only` (×), `cagr_mult`, `mult_port`, `none`.
+~3900-line PyQt5 GUI app (5 tabs: Bubble, Heatmap, DCA, Retire, Stack Tracker). Being spun off as its own project. Loads `model_data.pkl` at runtime. See code comments and `archive/btc_app/` for details.
 
 ---
 
@@ -241,14 +203,14 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 | `cache.py` | L0 pinned + L2 Redis-backed figure cache (fingerprint invalidation) |
 | `celery_app.py` | Celery application factory |
 | `tasks.py` | Celery background tasks |
-| `engines/` | `adapter.py` (Celery-or-in-process fallback), `citadel.py` (Citadel simulation engine), `tax.py` (annual tax computation), `tax_lots.py` (BTC lot tracking), `tax_data.py` (static bracket/rate data) |
+| `engines/` | 15 modules: `adapter.py` (Celery-or-in-process fallback), `citadel.py` (facade) + 9 split modules (`citadel_sim`, `citadel_step`, `citadel_waterfall`, `citadel_transactions`, `citadel_bands`, `citadel_floors`, `citadel_rebalancing`, `citadel_tax_integration`, `citadel_types`), `tax.py`, `tax_lots.py`, `tax_data.py` |
 | `data/` | `asset_matrices.py`, `fetch_historical.py`, historical CSV data files |
 | `load_shm_cache.py` | Shared memory cache loading |
-| `test_web.py` | Comprehensive test suite (~650+ tests) |
+| `test_web.py` | Comprehensive test suite (~900+ tests) |
 | `test_tax_e2e.py` | Playwright E2E smoke tests for tax UI (15 tests, requires dev server + Firefox) |
-| `layout/` | Layout package — tab controls, navbar, main assembly (14 modules incl. `citadel`, `citadel_tax`, `model_info`) |
-| `callbacks/` | Callbacks package — all Dash callbacks (18 modules incl. `routing`, `splash`, `user_model`, `citadel_cb`, `citadel_tax_cb`, `scanner`) |
-| `figures/` | Figures package — chart builders + shared helpers (8 modules incl. `citadel`) |
+| `layout/` | Layout package — 13 modules: tab controls (`bubble`, `heatmap`, `sim_tabs`, `supercharge`, `citadel`, `citadel_tax`, `stack`), `common`, `splash`, `faq`, `model_info`, `mc_controls`, `__init__` (navbar + main assembly) |
+| `callbacks/` | Callbacks package — 20 modules: `routing`, `charts`, `nav`, `splash`, `ticker`, `snapshot_cb`, `user_model`, `citadel_cb`, `citadel_save_cb`, `citadel_scenarios`, `citadel_tax_cb`, `scanner`, `lots`, `coerce`, `sc_loan`, `mc_controls`, `mc_helpers`, `mc_payment`, `mc_upload`, `__init__` |
+| `figures/` | Figures package — 9 modules: `common` (shared helpers), `bubble`, `heatmap`, `dca`, `retire`, `supercharge`, `citadel`, `residuals`, `__init__` |
 | `assets/style.css` | Light theme (FLATLY) overrides + mobile layout |
 | `assets/quantoshi_logo.png` | Master logo (575×360, 250KB — not directly served) |
 | `assets/quantoshi_favicon.png` | Favicon (48×48, 3KB) |
@@ -261,15 +223,15 @@ Use string-replacement patch scripts (same `/tmp/` approach as notebook). Key ru
 
 | Tab | ID | Key controls |
 |-----|----|-------------|
-| Bubble + QR Overlay | `bubble` | Quantiles, axes scale/range, bubble composite, N future bubbles |
-| CAGR Heatmap | `heatmap` | Entry/exit year+quantile, color modes (Segmented/DataScaled/Diverging), multi-model pill bar carousel |
-| BTC Accumulator | `dca` | DCA amount/frequency, year range, display mode, Stack-celerator |
-| BTC RetireMentator | `retire` | Withdrawal amount, inflation rate, year range |
-| HODL Supercharger | `supercharge` | Mode A (fixed spending → depletion date) or Mode B (fixed depletion → max spending); 5 delay offsets, 2 chart layouts |
-| Stack Tracker | `stack` | Lot management (add/delete/import/export JSON) |
-| Model Info | `model_info` | Accordion with per-model details. Deep-link: `/7.N` opens item N |
-| FAQ | `faq` | Static accordion — `_FAQ` list in `layout/faq.py`. Deep-link: `/8.N` opens item N. Answers: plain strings or Dash components. Link color: `#1a6fa8` via `.accordion a` in style.css. |
-| Citadel Planner | `citadel` | Sub-tabs: Assets / Spending / Rules / Simulation. "▶ Run Simulation" button. Trigger enable checkboxes, Historical Regimes asset growth mode, Show All/Hide All legend toggles |
+| 1. Price & Model Overlays | `bubble` | Quantiles, axes scale/range, bubble composite, N future bubbles |
+| 2. CAGR Heatmap | `heatmap` | Entry/exit year+quantile, color modes (Segmented/DataScaled/Diverging), multi-model pill bar carousel |
+| 3. BTC Accumulator | `dca` | DCA amount/frequency, year range, display mode, Stack-celerator |
+| 4. BTC RetireMentator | `retire` | Withdrawal amount, inflation rate, year range |
+| 5. HODL Supercharger | `supercharge` | Mode A (fixed spending → depletion date) or Mode B (fixed depletion → max spending); 5 delay offsets, 2 chart layouts |
+| 6. Citadel Planner | `citadel` | Sub-tabs: Assets / Spending / Rules / Simulation. "▶ Run Simulation" button. Trigger enable checkboxes, Historical Regimes asset growth mode, Show All/Hide All legend toggles |
+| 7. Stack Tracker | `stack` | Lot management (add/delete/import/export JSON) |
+| 8. Model Info | `model_info` | Accordion with per-model details. Deep-link: `/8.N` opens item N |
+| 9. FAQ | `faq` | Static accordion — `_FAQ` list in `layout/faq.py`. Deep-link: `/9.N` or `/faq.N` opens item N. Answers: plain strings or Dash components. Link color: `#1a6fa8` via `.accordion a` in style.css. |
 
 ### Tab defaults
 All defaults are canonical in `btc_web/tab_defaults.py` (`MappingProxyType` frozen dicts) — do not hardcode elsewhere. `_prewarm_caches()` must stay in sync.
@@ -304,14 +266,14 @@ All defaults are canonical in `btc_web/tab_defaults.py` (`MappingProxyType` froz
 
 ### URL tab routing
 - Visiting `/1`–`/9` navigates directly to a tab (clientside callback on `url.pathname`).
-- Map: `/1`=bubble, `/2`=heatmap, `/3`=dca, `/4`=retire, `/5`=supercharge, `/6`=stack, `/7`=model_info, `/8`=faq, `/9`=citadel.
-- `/7.N` opens Model Info accordion item N; `/8.N` opens FAQ item N (both 1-indexed in URL, 0-indexed internally).
+- Map: `/1`=bubble, `/2`=heatmap, `/3`=dca, `/4`=retire, `/5`=supercharge, `/6`=citadel, `/7`=stack, `/8`=model_info, `/9`=faq.
+- `/8.N` opens Model Info accordion item N; `/9.N` (or `/faq.N`) opens FAQ item N (both 1-indexed in URL, 0-indexed internally).
 - Routing logic lives in `callbacks/routing.py` (split from old `nav.py`). Uses `allow_duplicate=True` + `prevent_initial_call='initial_duplicate'`. **Never use `prevent_initial_call=False` with `allow_duplicate=True`** — Dash raises an error that crashes gunicorn (exit code 3).
 
 ### Live price ticker
 - `dcc.Interval(id="price-interval", interval=20*60*1000)` fires every 20 min (5 × 4 min intervals).
 - `update_price_ticker` callback fetches Binance (`api.binance.com/api/v3/ticker/price?symbol=BTCUSDT`), CoinGecko fallback. Outputs to `price-ticker` div (navbar), `btc-price-store` (memory Store), and `hm-entry-q` (keeps heatmap entry quantile in sync with ticker on every refresh).
-- Ticker displays: `₿ $X` · `QY.Y%` (current quantile percentile) + 24h sparkline SVG (from CoinGecko). Mode toggle switches between USD and sats/$ display. Multi-model percentile cycling on tap: QR → BM → PL → LPPL → Exp → EF → U₁ (skips S2F — non-quantized). Each model's percentile is color-coded.
+- Ticker displays: `₿ $X` · `QY.Y%` (current quantile percentile) + 24h sparkline SVG (from CoinGecko). Mode toggle switches between USD and sats/$ display. Multi-model percentile cycling on tap: QR → BM → PL → LPPL → LinPPL → HybPPL → HybPPL DD → EF (skips S2F — non-quantized). Each model's percentile is color-coded.
 - `_startup_heatmap_defaults()` fetches price at module load → sets heatmap entry percentile default.
 - `_interp_qr_price(q, t, qr_fits)` in `figures/common.py` — log-space interpolation between adjacent QR fits for arbitrary quantile (e.g. Q7.5%).
 - Heatmap uses `live_price` from `btc-price-store` as entry price when `entry_yr == current_year`; falls back to model interpolation for historical entry years.
@@ -330,17 +292,21 @@ Split into a package with one module per chart type + shared helpers:
 | `figures/retire.py` | `build_retire_figure(m, p)` — Retirement withdrawal simulation |
 | `figures/supercharge.py` | `build_supercharge_figure(m, p)` — HODL Supercharger |
 | `figures/citadel.py` | `build_citadel_figure(m, p)` — Citadel Planner |
+| `figures/residuals.py` | Residual analysis charts |
 
 ### Price models & Display Models
 
-Seven+ price models registered at startup in `_app_ctx.PRICE_MODELS`:
+20+ price models registered at startup in `_app_ctx.PRICE_MODELS`:
 - **Bubble Model** (`"bub"`) — default, loaded from `model_data.pkl`
 - **Quantile Regression** (`"qr"`) — standalone QR model
 - **Power Law** (`"pl"`) — OLS fit to log-log data
-- **LPPL** (`"lppl"`) — Log-Periodic Power Law
+- **LPPL family** — 10 variants: `"lppl"` (1-freq), `"lp2"`–`"lp4"` (2–4 freq), weighted variants (`"lppl_w"`, `"lp2_w"`, `"lp3_w"`, `"lp4_w"`), no-1/3 variants (`"lp4_n13"`, `"lp4_w_n13"`)
+- **LinPPL** (`"linppl"`) — linear + LPPL hybrid
+- **HybPPL** (`"hybppl"`) — power law + LPPL hybrid
+- **HybPPL DD** (`"hybppl_dd"`) — HybPPL with drawdown adjustment
 - **Exponential** (`"exp"`) — exponential fit
-- **Empirical Floor** (`"ef"`) — conditional on `model_data_ef.pkl` existing
 - **S2F (Stock-to-Flow)** (`"s2f"`) — alternative parameterization
+- **Empirical Floor** (`"ef"`) — conditional on `model_data_ef.pkl` existing
 - **U₁ (User Model)** (`"u1"`) — session-only, click-to-draw power law from two user-defined points (see below)
 
 Per-tab model display:
@@ -371,12 +337,12 @@ Multi-model heatmap switching via pill buttons (added in `a94a987`):
 - `callbacks/user_model.py`: draw/delete callbacks + injection of `u1` option into all `{prefix}-model-show` checklists.
 - When drawn, `u1` is auto-selected in `bub-model-show`.
 
-### Citadel Planner (tab 9)
+### Citadel Planner (tab 6)
 - Multi-asset retirement simulation with BTC + cash + bonds + equities + real estate.
 - Four sub-tabs: **Assets** (BTC stack, cash, reserves, investments), **Spending** (monthly amount, inflation, growth), **Rules** (rebalancing triggers, floor rules, Saylor Fortifier), **Simulation** (quantiles, asset growth mode, MC controls, chart toggles).
 - Asset growth modes: "Fixed rates" or "Historical Regimes" (Markov-based).
 - **"▶ Run Simulation"** button triggers computation (via Celery if available, in-process fallback via `engines/adapter.py`).
-- Engine: `engines/citadel.py`. Figure builder: `figures/citadel.py`. Layout: `layout/citadel.py`. Callbacks: `callbacks/citadel_cb.py`.
+- Engine: `engines/citadel.py` (facade) + 9 split modules. Figure builder: `figures/citadel.py`. Layout: `layout/citadel.py`. Callbacks: `callbacks/citadel_cb.py`, `callbacks/citadel_save_cb.py`, `callbacks/citadel_scenarios.py`.
 - Historical data in `data/`: equity, bond, treasury CSV files + `asset_matrices.py` for correlation/return matrices.
 
 ### Citadel Tax System
@@ -387,7 +353,7 @@ Opt-in US federal + state tax simulation layer. Master toggle `cp-tax-toggle` in
 - `engines/tax_data.py` — Static data: federal brackets (TCJA + sunset), LTCG brackets, state rates (51 entries), RMD factors, standard deductions, NIIT constants.
 - `engines/tax_lots.py` — `TaxLot` dataclass, `sell_lots()` (FIFO/LIFO), `seed_lots()` from Stack Tracker. Per-lot ST/LT classification (365-day threshold).
 - `engines/tax.py` — `TaxYearAccumulator`, `compute_annual_tax()` (full pipeline: loss netting → AGI → standard deduction → ordinary brackets → LTCG stacking → NIIT → state tax), `_inflate_brackets()`.
-- `engines/citadel.py` — Tax fields on `SimConfig`/`CitadelState`, `_tax_aware_waterfall()` (growth-aware 8-tier ordering), `_year_boundary_tax()`, `_compute_rmd()`.
+- `engines/citadel_tax_integration.py` — Tax fields on `SimConfig`/`CitadelState`, `_year_boundary_tax()`, `_compute_rmd()`. `engines/citadel_waterfall.py` — `_tax_aware_waterfall()` (growth-aware 8-tier ordering).
 - `layout/citadel_tax.py` — Full-screen modal (`cp-tax-modal`), master toggle, state dropdown, tax summary panel.
 - `callbacks/citadel_tax_cb.py` — Modal open/close, state auto-fill, save config, summary table builder.
 
@@ -424,11 +390,37 @@ Roth BTC is always absolute last (tax-free compounding on highest-growth asset).
 
 **Tests:** 92 tax-specific tests (unit + integration + E2E). `test_tax_e2e.py` requires Playwright + Firefox + running dev server.
 
-### Colorblind palette system
+### Centralized appearance system (`colors.py`)
 
-Three-tier palette (Default / CB-RG / CB-Full) stored in `_app_ctx.PALETTES`. Navbar dropdown writes to `dcc.Store("palette-store", storage_type="local")`. Each chart callback passes `palette` key in the `p` params dict. Figure builders call `_get_palette(p)` to resolve colors. Palette choice is included in snapshot/share links via `_SNAPSHOT_CONTROLS`.
+**`btc_web/colors.py` is the single source of truth for ALL visual appearance** — hex colors, font stacks, font sizes, trace widths, point sizes, opacities, margins. Enforced by `test_colors_central.py::test_no_hex_literals_outside_colors_module`. File has 5 sections:
 
-**Watermark**: `_LOGO_B64` (base64-encoded logo loaded at module startup) and `_apply_watermark(fig)` add the Quantoshi logo (bottom-right, 55% opacity, `sizex=0.07 sizey=0.12`) plus `"quantoshi.xyz"` text annotation to all exported figures. Called in all 6 chart builders before return.
+| Section | Contents |
+|---|---|
+| 1 | Palette-invariant hex colors (PLOT_BG_COLOR, TEXT_COLOR, grids, accents, ~80 constants) |
+| 2 | Per-palette dicts (DEFAULT, CB_BRIAN, CB_RG, CB_FULL) with model_colors, thermal_stops, heatmap defaults |
+| 3 | PALETTES registry, HM_PRESET_PALETTES, PALETTE_DEFAULT_HM_PRESET |
+| 4 | Generation metadata (__skip_export__, __appearance_export__) |
+| 5 | **Appearance constants** — fonts (5 stacks), chart font sizes (12), UI font sizes (8 CSS strings), trace widths (10), point/marker sizes (6), opacities (~35), quantile opacity params (3), chart margins (2 dicts), watermark sizing (2) |
+
+**Generated artifacts** (`tools/generate_color_artifacts.py`):
+- `_colors_generated.css` — CSS custom properties `var(--qs-*)`
+- `_colors_generated.js` — `window.QS_COLORS` + `window.QS_PALETTES` + `window.QS_APPEARANCE`
+- Run after ANY change: `btc_venv/bin/python3 tools/generate_color_artifacts.py`
+- Export control: `__skip_export__` excludes FONT_*/UI_FONT_*/CHART_MARGIN from CSS; `__appearance_export__` defines the JS `QS_APPEARANCE` subset
+
+**Typography:** DM Serif Display (brand/chart titles via Google Fonts) + Inter (UI/body). CSS font stacks hand-maintained in `style.css :root` (`--font-ui`, `--font-brand`, `--font-mono`); `colors.py` is authoritative for Python + JS.
+
+**4 site-wide palettes:** Default, CB-Brian (deuteranomaly), CB-RG, CB-Full. Per-tab `palette-select-{tab_key}` selectors at bottom of each chart tab's controls. Forward callbacks use `State("palette-store", "data")` guard to prevent circular callback storm (critical — without guard, 7 forward + 7 reverse callbacks create ~60 simultaneous requests → nginx 429).
+
+**Default palette flagship 6** (deltaE-optimized warm/cool dichotomy): BM=#C48209, PL=#1B3352, QR=#9B2244, EPPL=#1F6B5C, HybPPL=#A8431C, LPPL=#7B3D9E. Family variants inherit master color.
+
+**CB-Brian palette** (deuteranomaly): BM=#D8BD65, QR=#64B5F6, PL=#2204FD, EPPL=#BD3737, HybPPL=#FE6100, LPPL=#FFB000. Non-flagship models cycle the 6 in order. **CB palettes are forbidden to change without explicit user approval.**
+
+**Heatmap CAGR presets:** 4 options (rwg/rbg/bwo/mono). Default auto-selects: `default`→rwg, CB palettes→bwo. `apply_hm_palette` callback + `_auto_select_hm_preset` clientside callback.
+
+**Watermark**: Logo at `WM_OPACITY` (35%), `WM_SIZE_X/Y` (0.07/0.10) + text at `WATERMARK_TEXT_ALPHA` (0.65). All 6 chart builders call `_apply_watermark(fig)`.
+
+**Backward compat:** `figures/common.py` has ~25 underscore aliases (`_QR_LINE_WIDTH = TRACE_WIDTH`) for files importing old private names. Temporary — callers should migrate to `from colors import ...` directly.
 
 Heatmap colorscale: all three modes use `_dense_colorscale()` — 256-point `rgb()` colorscale for browser compatibility. Diverging mode centers at 0% CAGR. The "Gradient steps" UI control is cosmetic (no longer affects rendering).
 
@@ -438,7 +430,7 @@ Heatmap chart title format: `Entry: {year}  {price}  ·  Q{percentile}%` — pri
 
 **Per-tab render triggers**: Each chart tab has a `dcc.Store("{tab}-first-render")` initialized to 0. A single clientside callback watches `main-tabs.active_tab` and increments the matching tab's store. Chart callbacks use `Input("{tab}-first-render", "data")` instead of `Input("main-tabs", "active_tab")`, with `prevent_initial_call=True` — they ONLY fire when their trigger increments. Result: switching tabs fires exactly 1 chart callback (the active tab), not all 6.
 
-**URL-based initial tab**: The layout is a function (`_serve_layout`) that reads `flask.request.path` to determine the initial `active_tab`. Visiting `/9` builds the layout with `active_tab="citadel"` — the bubble callback never fires. No wasted computation for tabs the user didn't request.
+**URL-based initial tab**: The layout is a function (`_serve_layout`) that reads `flask.request.path` to determine the initial `active_tab`. Visiting `/6` builds the layout with `active_tab="citadel"` — the bubble callback never fires. No wasted computation for tabs the user didn't request.
 
 **Pre-injected figures / zero-callback tab switching**: `_serve_layout` pre-builds ALL tab figures from the L1 LRU cache (which prewarm populated) and injects them directly into the initial HTML. All `{tab}-first-render` stores start at `1`, not `0`. Switching tabs requires zero server round-trips — figures are already present in the DOM. Callbacks only fire when the user changes a control.
 

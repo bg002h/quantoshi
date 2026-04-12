@@ -498,7 +498,7 @@ body {
     left: 50%;
     transform: translate(-50%, -50%);
     color: var(--qs-heatmap-gradient-gold);
-    font-family: "Palatino Linotype", Palatino, "Book Antiqua", serif;
+    font-family: var(--font-brand);
     font-size: 28px;
     font-weight: bold;
     text-align: center;
@@ -650,14 +650,14 @@ body {
     color: var(--qs-btc-orange);
     font-size: 18px;
     font-weight: 700;
-    font-family: monospace;
+    font-family: var(--font-mono);
     text-shadow: 0 1px 4px var(--qs-black-a60), 0 0 12px var(--qs-btc-orange-a30);
     z-index: 1;
 }
 .blockdrop-sublabel {
     color: var(--qs-stone-cream-a80);
     font-size: 11px;
-    font-family: monospace;
+    font-family: var(--font-mono);
     margin-top: 3px;
     text-shadow: 0 1px 3px var(--qs-black-a50);
     z-index: 1;
@@ -763,7 +763,7 @@ body {
 .blockdrop-tx {
     position: fixed;
     font-size: 9px;
-    font-family: monospace;
+    font-family: var(--font-mono);
     font-weight: 700;
     color: var(--btc-orange);
     background: var(--qs-btc-orange-a12);
@@ -826,14 +826,14 @@ body {
     color: var(--qs-btc-orange);
     font-size: 8px;
     font-weight: 700;
-    font-family: monospace;
+    font-family: var(--font-mono);
     text-shadow: 0 1px 2px var(--qs-black-a60);
     line-height: 1;
 }
 .blockdrop-mini-sub {
     color: var(--qs-stone-cream-a80);
     font-size: 6px;
-    font-family: monospace;
+    font-family: var(--font-mono);
     margin-top: 1px;
     text-shadow: 0 1px 1px var(--qs-black-a50);
     line-height: 1;
@@ -889,7 +889,7 @@ body {
     color: var(--qs-white);
     font-size: 14px;
     font-weight: 700;
-    font-family: monospace;
+    font-family: var(--font-mono);
     padding: 6px 18px;
     border-radius: 20px;
     white-space: nowrap;
@@ -970,7 +970,7 @@ body {
         transform: translate(-50%, -50%);
         font-size: 16px;
         font-weight: 700;
-        font-family: "Palatino Linotype", Palatino, "Book Antiqua", serif;
+        font-family: var(--font-brand);
         color: var(--qs-parchment-text);
         text-align: center;
         white-space: pre;
@@ -1036,7 +1036,7 @@ body {
     .drawer-pin .pin-label {
         display: block;
         font-size: 7px;
-        font-family: "Palatino Linotype", Palatino, serif;
+        font-family: var(--font-brand);
         font-style: italic;
         color: var(--qs-pin-label-color);
         margin-top: 3px;
@@ -1214,7 +1214,7 @@ body {
     padding: 10px 22px;
     border-radius: 20px;
     font-size: 13px;
-    font-family: "Palatino Linotype", Palatino, serif;
+    font-family: var(--font-brand);
     letter-spacing: 0.3px;
     z-index: 9999;
     pointer-events: none;

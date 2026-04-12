@@ -15,6 +15,30 @@ _LPPL_FAMILY_KEYS = (
     | set(_app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
 )
 
+# Canonical model ordering — mirrors the Display Models config panel:
+# BM → PL → QR → Entropy PPL → Hybrid PPL → LPPL → PCA → Greedy → EF →
+# deprioritized (S2F, Gompertz, BPL, Exponential-excluded) → U₁ → MC.
+# LPPL family variants (lp2/lp3/lp4/…) all collapse to the LPPL slot.
+_SCANNER_ORDER = (
+    "bub", "pl", "qr", "eppl", "hybppl", "lppl",
+    "pca", "grdy", "ef", "s2f", "gomp", "bpl", "u1", "mc",
+)
+
+
+def _scanner_sort_key(model_key: str) -> tuple[int, str]:
+    """Sort key for Display Models-ordered scanner rows.
+
+    LPPL family variants (lp2, lp3, lp4, lppl_w, lp4_n13, etc.) all map
+    to the LPPL slot so the single active variant appears where "LPPL"
+    lives in the Display Models panel.
+    """
+    if model_key in _LPPL_FAMILY_KEYS:
+        return (_SCANNER_ORDER.index("lppl"), model_key)
+    try:
+        return (_SCANNER_ORDER.index(model_key), model_key)
+    except ValueError:
+        return (len(_SCANNER_ORDER), model_key)  # unknown keys sink to bottom
+
 
 def _solve_date(model, q_frac, target_price):
     """Root-find t where model.price_at(q, t) = target_price."""
@@ -85,6 +109,9 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_mo
     _models = {k: m for k, m in _models.items()
                if not k.startswith("cfg_") and not k.startswith("ecfg_")
                and k not in _HYBPPL_FAMILY_EXTRAS}
+
+    # Sort models by Display Models panel order (defined in _SCANNER_ORDER above)
+    _models = dict(sorted(_models.items(), key=lambda kv: _scanner_sort_key(kv[0])))
 
     # edit_history is a list of the last 2 edited fields, e.g. ["p", "d"]
     if not isinstance(edit_history, list):

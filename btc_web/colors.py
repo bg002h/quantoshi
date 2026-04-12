@@ -279,7 +279,7 @@ CB_BRIAN = {
         # User-chosen for reliable separation on the CB-Brian profile.
         "bub":    "#D8BD65",  # muted gold
         "qr":     "#64B5F6",  # light blue
-        "pl":     "#1E88E5",  # bright blue
+        "pl":     "#2204FD",  # electric blue
         "eppl":   "#BD3737",  # brick red
         "hybppl": "#FE6100",  # saturated orange
         "lppl":   "#FFB000",  # amber
@@ -296,7 +296,7 @@ CB_BRIAN = {
         # Order: BM → QR → PL → EPPL → HybPPL → LPPL, then restart.
         "pca":  "#D8BD65",  # [BM]
         "grdy": "#64B5F6",  # [QR]
-        "ef":   "#1E88E5",  # [PL]
+        "ef":   "#2204FD",  # [PL]
         "exp":  "#BD3737",  # [EPPL]
         "s2f":  "#FE6100",  # [HybPPL]
         "gomp": "#FFB000",  # [LPPL]

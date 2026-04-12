@@ -7,16 +7,48 @@
 (function() {
     "use strict";
 
-    var COLOR_MAP = {
-        "qr":  "247, 147, 26",
-        "bub": "0, 212, 255",
-        "pl":  "100, 130, 200",
-        "lppl":"60, 200, 160",
-        "exp": "255, 100, 100",
-        "s2f": "180, 120, 200",
-        "ef":  "210, 160, 40",
-    };
+    // Default fallback radar color (cyan) when palette lookup fails.
     var DEFAULT_COLOR = "0, 212, 255";
+
+    /**
+     * Convert a hex color like "#ff0044" to an "r, g, b" triple string
+     * suitable for CSS rgba() / --radar-color-rgb variable.
+     * Returns null if the input isn't a valid 6-digit hex.
+     */
+    function hexToRgb(hex) {
+        if (!hex || typeof hex !== "string") return null;
+        var m = hex.replace("#", "").match(/^[0-9a-fA-F]{6}$/);
+        if (!m) return null;
+        var n = parseInt(m[0], 16);
+        return ((n >> 16) & 255) + ", " + ((n >> 8) & 255) + ", " + (n & 255);
+    }
+
+    /**
+     * Look up a model's color in the current site-wide palette and return
+     * it as an "r, g, b" string. Handles family variants (LPPL/HybPPL/EPPL
+     * config flavors) by falling back to their master's color. Reads the
+     * active palette from document.documentElement.dataset.palette which
+     * is kept in sync with palette-store by nav.py's clientside callback.
+     */
+    function modelColorRgb(modelKey) {
+        if (!modelKey) return DEFAULT_COLOR;
+        var palKey = document.documentElement.dataset.palette || "default";
+        var palettes = window.QS_PALETTES || {};
+        var pal = palettes[palKey] || palettes["default"] || null;
+        if (!pal || !pal.model_colors) return DEFAULT_COLOR;
+        var mc = pal.model_colors;
+        var hex = mc[modelKey];
+        // LPPL family variants → lppl master
+        if (!hex && /^lp\d/.test(modelKey)) hex = mc["lppl"];
+        // HybPPL family extras + linppl → hybppl master
+        if (!hex && (modelKey === "linppl" || /^hyb/.test(modelKey))) hex = mc["hybppl"];
+        // HybPPL config slots (cfg_*) → hybppl master
+        if (!hex && modelKey.indexOf("cfg_") === 0) hex = mc["hybppl"];
+        // EPPL config slots (ecfg_*) → eppl master
+        if (!hex && modelKey.indexOf("ecfg_") === 0) hex = mc["eppl"];
+        if (!hex) return DEFAULT_COLOR;
+        return hexToRgb(hex) || DEFAULT_COLOR;
+    }
 
     // Track which model keys have active radar beacons
     var _activeModels = {};
@@ -151,8 +183,7 @@
 
             var rPos = toPixel(ctx, rt, rp);
             if (rPos) {
-                var color = COLOR_MAP[model] || DEFAULT_COLOR;
-                placeRadar(ctx.plot, rPos.x, rPos.y, color);
+                placeRadar(ctx.plot, rPos.x, rPos.y, modelColorRgb(model));
             }
         });
     }
@@ -160,7 +191,7 @@
     // ── Row click handling (event delegation) ────────────────────────────────
 
     function _rowHighlight(row, model, on) {
-        var rgb = COLOR_MAP[model] || DEFAULT_COLOR;
+        var rgb = modelColorRgb(model);
         if (on) {
             row.style.background = "rgba(" + rgb + ", 0.18)";
             row.style.outline = "1px solid rgba(" + rgb + ", 0.4)";

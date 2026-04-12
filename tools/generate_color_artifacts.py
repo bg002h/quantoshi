@@ -212,6 +212,18 @@ def _generate_js() -> str:
     lines.append("    };")
     # Spec-required dedicated namespace for ticker colors
     lines.append(f"    window.QS_TICKER_COLORS = {_js_repr(colors.TICKER_MODEL_COLORS)};")
+    # Appearance constants (fonts, sizes, widths, opacities)
+    appearance_names = sorted(getattr(colors, "__appearance_export__", frozenset()))
+    if appearance_names:
+        lines.append("    window.QS_APPEARANCE = {")
+        for aname in appearance_names:
+            val = getattr(colors, aname)
+            key = aname.lower()
+            if isinstance(val, str):
+                lines.append(f'        {key}: "{val}",')
+            elif isinstance(val, (int, float)):
+                lines.append(f"        {key}: {val},")
+        lines.append("    };")
     lines.append("})();")
     return "\n".join(lines) + "\n"
 

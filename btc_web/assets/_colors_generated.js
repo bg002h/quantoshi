@@ -187,4 +187,17 @@
         "cb-full": {"model_colors": {"bub": "#B8920C", "qr": "#606060", "pl": "#B0E0E6", "lppl": "#1A1A1A", "lp2": "#444444", "lp3": "#707070", "lp4": "#A0A0A0", "linppl": "#2A2A2A", "hybppl": "#505050", "hybppl_dd": "#989898", "ef": "#F0D870", "exp": "#909090", "s2f": "#FFE066", "u1": "#333333", "hyb2l": "#6060A0", "hyb2c": "#4A8A7A", "hyb2b": "#A06080", "hyb4d": "#7A7A50", "pca": "#4A4A70", "grdy": "#4A7A4A", "eppl": "#8A7030", "gomp": "#5B7FAA", "bpl": "#AA8844"}, "thermal_stops": [[0.001, "#1a1a2e"], [0.01, "#3d1f56"], [0.015, "#6B3074"], [0.05, "#995588"], [0.1, "#BB7799"], [0.25, "#CCAAAA"], [0.5, "#BBBBBB"], [0.75, "#88BBAA"], [0.9, "#558899"], [0.95, "#336677"], [0.99, "#224466"], [0.999, "#112244"]], "non_quantized_model": "#DDCC77", "delay_colors": ["#882255", "#CC6677", "#DDCC77", "#117733", "#332288"], "annot_colors": ["#661144", "#AA4455", "#BBAA55", "#0D5C28", "#221166"], "today_line": "#CC79A7", "hm_c_lo": "#882255", "hm_c_mid1": "#F7F7F7", "hm_c_mid2": "#44AA99", "hm_c_hi": "#004488", "hm_loss_text": "#CC6677", "hm_exceptional_text": "#DDCC77", "decomp_colors": ["#000000", "#505050", "#808080", "#A0A0A0", "#C0C0C0", "#6A6A6A", "#303030"], "decomp_sum_color": "#F5793A"},
     };
     window.QS_TICKER_COLORS = {"qr": "#5dade2", "bub": "#f39c12", "pl": "#2ecc71", "lp3": "#e74c3c", "cfg_1d_1u": "#7B68EE", "ecfg_1d_1u": "#D4760A", "pca": "#4B0082", "grdy": "#228B22", "ef": "#1abc9c"};
+    window.QS_APPEARANCE = {
+        desktop_grid_mult: 1.5,
+        desktop_trace_mult: 1.5,
+        font_brand: "Palatino Linotype, Palatino, Book Antiqua, serif",
+        font_mono: "'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace",
+        font_sans: "Avenir Next, Avenir, Segoe UI, system-ui, -apple-system, sans-serif",
+        grid_major_width: 1.0,
+        grid_minor_width: 0.8,
+        pt_alpha_default: 0.3,
+        pt_size_default: 4,
+        trace_width: 2.5,
+        trace_width_overlay: 2.0,
+    };
 })();

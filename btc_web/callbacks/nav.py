@@ -256,11 +256,19 @@ for _tab_id, _graph_id in _EXPORT_TABS:
 # Palette selector <-> palette-store sync
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Select writes to store (clientside -- no server round-trip)
+# Select writes to store (clientside -- no server round-trip).
+# Guard: skip write when the value already matches the store to prevent
+# circular re-firing (selector→store→reverse-sync→selector→store→…).
 _app_ctx.app.clientside_callback(
-    "function(val) { return val || 'default'; }",
+    """
+    function(val, cur) {
+        var v = val || 'default';
+        return v === cur ? window.dash_clientside.no_update : v;
+    }
+    """,
     Output("palette-store", "data", allow_duplicate=True),
     Input("palette-select", "value"),
+    State("palette-store", "data"),
     prevent_initial_call=True,
 )
 
@@ -277,14 +285,23 @@ _app_ctx.app.clientside_callback(
 # Forward: selector change writes palette-store. One callback per tab to
 # avoid the Dash 4 bug where a single multi-Input callback errors out if
 # ANY Input id is missing from the initial layout (e.g. lazy-loaded Citadel
-# tab's palette-select-cp). Each callback is simple: val → store.
+# tab's palette-select-cp).
+# Guard: only write when the value actually differs from the current store
+# to prevent circular callback storms (forward→store→reverse→forward→…)
+# that generate 60+ server-side callback requests and trigger nginx 429s.
 _TAB_PALETTE_KEYS = ("bub", "hm", "dca", "ret", "sc", "cp")
 
 for _k in _TAB_PALETTE_KEYS:
     _app_ctx.app.clientside_callback(
-        "function(val) { return val || 'default'; }",
+        """
+        function(val, cur) {
+            var v = val || 'default';
+            return v === cur ? window.dash_clientside.no_update : v;
+        }
+        """,
         Output("palette-store", "data", allow_duplicate=True),
         Input(f"palette-select-{_k}", "value"),
+        State("palette-store", "data"),
         prevent_initial_call=True,
     )
 

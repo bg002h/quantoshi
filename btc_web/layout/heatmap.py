@@ -10,7 +10,7 @@ from layout.common import (_tab_hints, _section_card, _lbl, _row, _export_row,
                             _STYLE_HIDDEN, _STYLE_HINT, _STYLE_GRAPH_H,
                             _STYLE_COLOR_H, _BTC_ORANGE,
                             _CB_MARGIN, _Q_HINT_BASE, _GEAR_STYLE, _MUTED_STYLE,
-                            _q_options)
+                            _q_options, _palette_selector)
 from layout.mc_controls import _mc_controls
 from tab_defaults import HEATMAP
 from colors import (NEAR_BLACK, DIM_TEXT, SPINE_COLOR_FALLBACK,
@@ -159,6 +159,7 @@ def _heatmap_controls():
         # but no longer user-visible (pill bar replaces it on tab 2)
         dcc.Checklist(id="hm-model-show", value=["qr"],
                       style=_STYLE_HIDDEN),
+        _palette_selector("hm"),
     ])
 
 

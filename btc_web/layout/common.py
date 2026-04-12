@@ -188,17 +188,20 @@ def _q_panel(checklist_id: str, default_value: list, hint: str | None = None):
     return _section_card("Projection Quantiles", *children)
 
 
-def _palette_selector():
-    """Palette selector widget for bottom of tab control panels.
+def _palette_selector(tab_key: str = "tab"):
+    """Palette selector widget for a tab's control panel.
 
     Syncs with palette-store via clientside callbacks in nav.py.
-    Uses palette-select-tab ID (distinct from navbar's palette-select).
+    ID pattern: palette-select-{tab_key} (distinct from navbar's palette-select).
+    Every chart tab that renders this helper must pass a unique `tab_key`
+    (e.g. "bub", "hm", "dca", "ret", "sc", "cp") so multiple selectors
+    can coexist in the pre-rendered layout.
     """
     return _ctrl_card(
         html.Div([
             html.Small("\U0001f3a8 Color palette", className="text-muted me-2"),
             dbc.Select(
-                id="palette-select-tab",
+                id=f"palette-select-{tab_key}",
                 options=[{"label": v, "value": k}
                          for k, v in _app_ctx.PALETTE_LABELS.items()],
                 value="default",

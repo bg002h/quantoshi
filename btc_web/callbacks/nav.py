@@ -272,18 +272,33 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call=True,
 )
 
-# Tab palette selector → store
+# Per-tab palette selectors → store. Each chart tab renders its own
+# `palette-select-{tab_key}` dbc.Select via layout.common._palette_selector.
+# Forward: any selector change writes palette-store (use callback_context to
+# pick the triggering selector's value).
+_TAB_PALETTE_KEYS = ("bub", "hm", "dca", "ret", "sc", "cp")
+
 _app_ctx.app.clientside_callback(
-    "function(val) { return val; }",
+    """
+    function() {
+        var ctx = window.dash_clientside.callback_context;
+        if (!ctx.triggered || !ctx.triggered.length) {
+            return window.dash_clientside.no_update;
+        }
+        var v = ctx.triggered[0].value;
+        return v || window.dash_clientside.no_update;
+    }
+    """,
     Output("palette-store", "data", allow_duplicate=True),
-    Input("palette-select-tab", "value"),
+    *[Input(f"palette-select-{k}", "value") for k in _TAB_PALETTE_KEYS],
     prevent_initial_call=True,
 )
 
-# Store → tab palette selector (sync)
+# Reverse: store change → all per-tab selectors (keep them in sync).
 _app_ctx.app.clientside_callback(
-    "function(data) { return data || 'default'; }",
-    Output("palette-select-tab", "value"),
+    "function(data) { var v = data || 'default'; return [" +
+    ", ".join(["v"] * len(_TAB_PALETTE_KEYS)) + "]; }",
+    *[Output(f"palette-select-{k}", "value") for k in _TAB_PALETTE_KEYS],
     Input("palette-store", "data"),
     prevent_initial_call=True,
 )
@@ -306,15 +321,10 @@ _app_ctx.app.clientside_callback(
 )
 
 
-# ── Heatmap colors: update 4 color inputs when palette changes ───────────────
-@callback(
-    Output("hm-c-lo",   "value", allow_duplicate=True),
-    Output("hm-c-mid1", "value", allow_duplicate=True),
-    Output("hm-c-mid2", "value", allow_duplicate=True),
-    Output("hm-c-hi",   "value", allow_duplicate=True),
-    Input("palette-store", "data"),
-    prevent_initial_call=True,
-)
-def _update_hm_colors_on_palette(pal_key):
-    pal = _app_ctx.PALETTES.get(pal_key or "default", _app_ctx.PALETTES["default"])
-    return pal["hm_c_lo"], pal["hm_c_mid1"], pal["hm_c_mid2"], pal["hm_c_hi"]
+# Note: heatmap color inputs (hm-c-lo/mid1/mid2/hi) are now driven solely
+# by callbacks/snapshot_cb.py::apply_hm_palette, which reads both the
+# heatmap's own preset dropdown AND the site-wide palette-store. This
+# replaces the former _update_hm_colors_on_palette callback here which
+# wrote palette-level hm_c_* defaults — those defaults (still present on
+# each palette) are now only consulted as fallbacks when no preset is
+# active (i.e. user-picked "custom").

@@ -13,6 +13,7 @@ from layout.common import (
     _chart_toggles, _btc_usd_dropdown, _legend_pos_dropdown,
     _STYLE_HIDDEN, _STYLE_HINT, _export_row, _chart_tab_layout,
     _CB_MARGIN, _INFL_LABEL, _plot_appearance_controls,
+    _palette_selector,
 )
 from layout.mc_controls import _mc_controls
 from layout.citadel_tax import tax_toggle_widget, tax_config_modal, tax_summary_panel
@@ -292,6 +293,7 @@ def _sim_panel():
                            style={"fontSize": "11px", "padding": "1px 8px"}),
             ], style={"marginTop": "4px"}),
         ),
+        _palette_selector("cp"),
     ])
 
 

@@ -14,7 +14,8 @@ from layout.common import (_tab_hints, _section_card, _lbl,
                             _shared_settings_card, _year_range_slider,
                             _btc_usd_dropdown, _chart_toggles,
                             _legend_pos_dropdown, _ctrl_card,
-                            _chart_tab_layout, _plot_appearance_controls)
+                            _chart_tab_layout, _plot_appearance_controls,
+                            _palette_selector)
 from layout.display_models import display_models_panel
 from layout.mc_controls import _mc_controls
 from colors import DIM_TEXT
@@ -50,6 +51,7 @@ def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
     )
     children.append(_section_card("Plot Appearance",
                                   *_plot_appearance_controls(prefix)))
+    children.append(_palette_selector(prefix))
     return html.Div(children)
 
 

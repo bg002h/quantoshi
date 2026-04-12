@@ -8,7 +8,7 @@ import dash_bootstrap_components as dbc
 import _app_ctx
 from utils import _nearest_quantile
 from tab_defaults import SUPERCHARGE
-from layout.common import (_tab_hints, _section_card, _lbl,
+from layout.common import (_tab_hints, _section_card, _lbl, _palette_selector,
                             _STYLE_HINT, _q_options, _q_panel_with_mode,
                             _shared_settings_card,
                             _btc_usd_dropdown, _chart_toggles,
@@ -104,6 +104,7 @@ def _supercharge_controls():
             _chart_toggles("sc", ["annotate", "log_y", "shade"]),
         ),
         _section_card("Plot Appearance", *_plot_appearance_controls("sc")),
+        _palette_selector("sc"),
     ])
 
 

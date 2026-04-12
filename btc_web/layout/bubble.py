@@ -240,7 +240,7 @@ def _bubble_controls():
                            outline=True, style={"marginTop":"8px"}),
             ),
         ]),
-        _palette_selector(),
+        _palette_selector("bub"),
     ])
 
 

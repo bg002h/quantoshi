@@ -325,6 +325,10 @@ _app_ctx.app.clientside_callback(
 )
 
 # ── Heatmap color palette presets ─────────────────────────────────────────────
+# HM_PRESET_PALETTES is nested per site-wide palette (default / cb-brian /
+# cb-rg / cb-full). When either the heatmap's own preset dropdown (`hm-palette`)
+# OR the site-wide palette (`palette-store`) changes, repaint the 4 color
+# inputs from the appropriate nested entry.
 _HM_PALETTES = HM_PRESET_PALETTES
 
 @callback(
@@ -333,12 +337,17 @@ _HM_PALETTES = HM_PRESET_PALETTES
     Output("hm-c-mid2", "value", allow_duplicate=True),
     Output("hm-c-hi",   "value", allow_duplicate=True),
     Input("hm-palette", "value"),
+    Input("palette-store", "data"),
     prevent_initial_call=True,
 )
-def apply_hm_palette(palette):
-    if palette == "custom" or palette not in _HM_PALETTES:
+def apply_hm_palette(preset_name, palette_key):
+    if preset_name == "custom" or preset_name is None:
         return no_update, no_update, no_update, no_update
-    return _HM_PALETTES[palette]
+    nested = _HM_PALETTES.get(palette_key or "default",
+                               _HM_PALETTES["default"])
+    if preset_name not in nested:
+        return no_update, no_update, no_update, no_update
+    return nested[preset_name]
 
 
 # ── Share modal: QR code for generated link ──────────────────────────────────

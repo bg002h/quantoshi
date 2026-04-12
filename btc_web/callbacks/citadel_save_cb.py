@@ -11,7 +11,7 @@ from dash import callback, Input, Output, State, no_update
 import _app_ctx
 from snapshot import _SNAPSHOT_CONTROLS
 from callbacks.routing import _TAB_CONTROLS
-from colors import BLACK, _hex_alpha
+from colors import BLACK, _hex_alpha, OVERLAY_DIM_ALPHA
 
 log = logging.getLogger(__name__)
 
@@ -209,7 +209,7 @@ _app_ctx.app.clientside_callback(
                          window.dash_clientside.no_update];
         return [{{display: "flex", position: "fixed", top: 0, left: 0,
                  width: "100vw", height: "100vh", zIndex: 1060,
-                 background: "{_hex_alpha(BLACK, 0.35)}",
+                 background: "{_hex_alpha(BLACK, OVERLAY_DIM_ALPHA)}",
                  justifyContent: "center", alignItems: "center"}},
                 "\\u23f3 Loading scenario..."];
     }}

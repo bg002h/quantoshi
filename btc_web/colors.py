@@ -631,6 +631,59 @@ WM_SIZE_X               = 0.07      # watermark logo width  (fraction of paper)
 WM_SIZE_Y               = 0.10      # watermark logo height (fraction of paper)
 LEGEND_BG_OPACITY       = 0.92
 
+# ── Chart trace opacities ──
+SUPPORT_LINE_OPACITY  = 0.6    # support/composite line opacity
+UCL_LINE_OPACITY      = 0.9    # Unfairly Cheap Line trace
+OLS_LINE_OPACITY      = 0.8    # OLS regression line
+RESIDUAL_LINE_OPACITY = 0.8    # residual overlay line
+
+# ── MC overlay opacities ──
+MC_BAND_OUTER_ALPHA   = 0.08   # MC 5-95% fan band fill
+MC_BAND_INNER_ALPHA   = 0.15   # MC 25-75% fan band fill
+MC_GHOST_OUTER_ALPHA  = 0.06   # MC ghost ref 5-95% band
+MC_GHOST_INNER_ALPHA  = 0.12   # MC ghost ref 25-75% band
+MC_GHOST_MEDIAN_ALPHA = 0.4    # MC ghost median line
+MC_MEDIAN_ALPHA       = 0.9    # MC active median line
+MC_LEGEND_BG_ALPHA    = 0.7    # MC legend repositioned bg
+
+# ── Supercharge / Citadel band fills ──
+SC_ENVELOPE_ALPHA         = 0.3   # supercharge model envelope fill
+SC_OVERLAY_ENVELOPE_ALPHA = 0.12  # supercharge overlay envelope fill
+CITADEL_BAND_OUTER_ALPHA  = 0.15  # citadel P5-P95 MC band
+CITADEL_BAND_INNER_ALPHA  = 0.30  # citadel P25-P75 MC band
+CITADEL_GHOST_LINE_ALPHA  = 0.5   # citadel no-tax ghost line
+
+# ── Chart UI elements ──
+LOG_MINOR_GRID_ALPHA  = 0.35   # log-scale minor grid line alpha
+ANNOT_TEXT_ALPHA       = 0.8    # config annotation text
+WATERMARK_TEXT_ALPHA   = 0.65   # watermark "quantoshi.xyz" text
+TAX_LINE_ALPHA         = 0.6    # cumulative taxes paid line/fill
+HM_ENTRY_HIGHLIGHT_ALPHA = 0.06 # heatmap entry-year column highlight
+
+# ── Navbar / UI chrome ──
+TICKER_TEXT_ALPHA      = 0.9    # price ticker text on dark navbar
+NAV_DIM_ALPHA          = 0.45   # ticker mode toggle label
+NAV_TAGLINE_ALPHA      = 0.4    # "Cooler than you think" tagline
+NAV_TOGGLE_ALPHA       = 0.5    # nav toggle dots + onion link
+NAV_HR_ALPHA           = 0.12   # mobile nav drawer divider
+MOBILE_TICKER_ALPHA    = 0.95   # mobile price ticker text
+FOOTER_TEXT_ALPHA      = 0.35   # site footer text
+
+# ── UI component opacities ──
+CTX_MENU_BG_ALPHA      = 0.95   # context menu / user-model menu bg
+CTX_MENU_SHADOW_ALPHA  = 0.5    # context menu box-shadow
+OVERLAY_DIM_ALPHA      = 0.35   # modal overlay dim background
+UM_INPUT_BG_ALPHA      = 0.1    # user model input field background
+UM_INPUT_BORDER_ALPHA  = 0.3    # user model input field border
+BADGE_INSET_ALPHA      = 0.1    # badge inset highlight
+BADGE_GLOW_ALPHA       = 0.6    # badge text-shadow glow
+FAQ_DANGER_BG_ALPHA    = 0.1    # FAQ crash row highlight
+OVERLAY_CARD_SHADOW_ALPHA = 0.18  # citadel load overlay card shadow
+
+# ── Scanner ──
+SCANNER_ROW_HIGHLIGHT_ALPHA = 0.18  # row click highlight bg
+SCANNER_ROW_OUTLINE_ALPHA   = 0.4   # row click outline
+
 # ── Quantile opacity formula parameters (function in figures/common.py) ──
 Q_OPACITY_FLOOR         = 0.1
 Q_OPACITY_RANGE         = 0.45

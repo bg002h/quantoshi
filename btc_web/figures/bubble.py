@@ -16,6 +16,8 @@ from colors import (
     SCATTER_POINT, USER_MODEL_TRACE, UCL_LINE_COLOR,
     FALLBACK_MODEL_GRAY, LOT_MARKER_COLOR, LOT_MARKER_OUTLINE,
     SCAN_LINE_FALLBACK, _hex_alpha, PLOT_BG_COLOR,
+    SUPPORT_LINE_OPACITY, UCL_LINE_OPACITY, OLS_LINE_OPACITY,
+    MC_LEGEND_BG_ALPHA,
 )
 
 from figures.common import (
@@ -237,7 +239,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     x=list(mdl_t[mdl_mask]), y=list(sup_y),
                     mode="lines", name=f"{mdl.legend_name} support",
                     line=dict(color=_mdl_color, dash="dash", width=1.5),
-                    opacity=0.6,
+                    opacity=SUPPORT_LINE_OPACITY,
                     legendgroup=mdl.short_name,
                 ))
 
@@ -281,7 +283,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             x=list(t_arr), y=list(p_ucl),
             mode="lines", name="Unfairly Cheap Line",
             line=dict(color=UCL_LINE_COLOR, dash="dot", width=1.8),
-            opacity=0.9,
+            opacity=UCL_LINE_OPACITY,
         ))
 
     # ── OLS line ──────────────────────────────────────────────────────────────
@@ -293,7 +295,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             x=list(t_arr), y=list(p_ols),
             mode="lines", name=f"OLS  R\u00b2={m.ols_r2:.4f}" if hasattr(m, 'ols_r2') and m.ols_r2 else "OLS",
             line=dict(color=FALLBACK_MODEL_GRAY, dash="dash", width=1.3),
-            opacity=0.8,
+            opacity=OLS_LINE_OPACITY,
         ))
 
     # Downsample BM curves to ~400 points (plenty for screen)
@@ -318,7 +320,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             mode="lines", name="Bubble support",
             line=dict(color=_bm_color,
                       dash="dash", width=float(p.get("sup_lw", BUBBLE["sup_lw"]))),
-            opacity=0.6,
+            opacity=SUPPORT_LINE_OPACITY,
         ))
 
     # ── bubble composite ──────────────────────────────────────────────────────
@@ -441,7 +443,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         layout["legend"].update(
             x=pos["x"], y=pos["y"],
             xanchor=pos["xanchor"], yanchor=pos["yanchor"],
-            bgcolor=_hex_alpha(PLOT_BG_COLOR, 0.7),
+            bgcolor=_hex_alpha(PLOT_BG_COLOR, MC_LEGEND_BG_ALPHA),
         )
     layout["shapes"] = shapes
 

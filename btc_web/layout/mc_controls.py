@@ -14,7 +14,8 @@ from layout.common import (_section_card, _ctrl_card, _row, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT, _CB_MARGIN)
 from colors import (BLACK, SILVER, NEAR_BLACK, MUTED_TEXT,
                     MODAL_DIVIDER_DARK, DIM_TEXT, WHITE, BADGE_GLOW_RED, _hex_alpha,
-                    FONT_BRAND, UI_FONT_SM, UI_FONT_MD, UI_FONT_LG, UI_FONT_XL, UI_FONT_XXL)
+                    FONT_BRAND, UI_FONT_SM, UI_FONT_MD, UI_FONT_LG, UI_FONT_XL, UI_FONT_XXL,
+                    CTX_MENU_SHADOW_ALPHA, BADGE_INSET_ALPHA, BADGE_GLOW_ALPHA)
 
 _QUANT_FONT = {"fontFamily": FONT_BRAND,
                "color": BLACK, "letterSpacing": "1px"}
@@ -118,8 +119,8 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
             "backgroundColor": NEAR_BLACK,
             "borderRadius": "5px", "transform": "rotate(18deg)",
             "zIndex": "1", "lineHeight": "1.2",
-            "boxShadow": f"0 2px 6px {_hex_alpha(BLACK, 0.5)}, inset 0 1px 0 {_hex_alpha(WHITE, 0.1)}",
-            "textShadow": f"0 0 4px {_hex_alpha(BADGE_GLOW_RED, 0.6)}",
+            "boxShadow": f"0 2px 6px {_hex_alpha(BLACK, CTX_MENU_SHADOW_ALPHA)}, inset 0 1px 0 {_hex_alpha(WHITE, BADGE_INSET_ALPHA)}",
+            "textShadow": f"0 0 4px {_hex_alpha(BADGE_GLOW_RED, BADGE_GLOW_ALPHA)}",
         }),
         _section_card(
         "Monte Carlo Simulation",

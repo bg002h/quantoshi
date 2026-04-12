@@ -16,6 +16,7 @@ from colors import (
     FALLBACK_MODEL_GRAY, TODAY_LINE_COLOR,
     _hex_alpha, PLOT_BG_COLOR,
     HEATMAP_GRADIENT_DEEP_PURPLE, HEATMAP_GRADIENT_GOLD,
+    HM_ENTRY_HIGHLIGHT_ALPHA, LEGEND_BG_OPACITY,
 )
 
 from figures.common import (
@@ -359,7 +360,7 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             x0=entry_ci - 0.5, x1=entry_ci + 0.5,
             y0=-0.5, y1=n_rows - 0.5,
             line=dict(color=BTC_ORANGE, width=2),
-            fillcolor=_hex_alpha(BTC_ORANGE, 0.06),
+            fillcolor=_hex_alpha(BTC_ORANGE, HM_ENTRY_HIGHLIGHT_ALPHA),
             xref="x", yref="y",
         )
 
@@ -704,7 +705,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         from figures.common import _MC_LEGEND_POS
         lp = _MC_LEGEND_POS.get(legend_pos, {})
         layout["legend"] = dict(**lp, font=dict(size=10),
-                                bgcolor=_hex_alpha(PLOT_BG_COLOR, 0.85))
+                                bgcolor=_hex_alpha(PLOT_BG_COLOR, LEGEND_BG_OPACITY))
     else:
         layout["legend"] = dict(
             orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,

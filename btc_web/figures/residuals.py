@@ -9,7 +9,8 @@ from typing import Any
 
 import _app_ctx
 from btc_core import yr_to_t, today_t, ModelData, UserModel
-from colors import BLACK, FALLBACK_MODEL_GRAY, _hex_alpha, PLOT_BG_COLOR
+from colors import (BLACK, FALLBACK_MODEL_GRAY, _hex_alpha, PLOT_BG_COLOR,
+                    RESIDUAL_LINE_OPACITY, SUPPORT_LINE_OPACITY, MC_LEGEND_BG_ALPHA)
 
 from figures.common import (
     _OVERLAY_LINE_WIDTH, _QR_LINE_WIDTH,
@@ -64,7 +65,7 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 x=list(t_data), y=_round_trace_data(resid),
                 mode="lines", name="BM support residual",
                 line=dict(color=bm_color, width=_OVERLAY_LINE_WIDTH, dash="dash"),
-                opacity=0.8,
+                opacity=RESIDUAL_LINE_OPACITY,
             ))
         # Composite residual
         if show_comp and hasattr(m, "comp_by_n") and hasattr(m, "years_plot_bm"):
@@ -156,7 +157,7 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         type="line", xref="x", yref="y",
         x0=t_lo, x1=t_hi, y0=0, y1=0,
         line=dict(color=FALLBACK_MODEL_GRAY, width=1.5, dash="dot"),
-        opacity=0.6,
+        opacity=SUPPORT_LINE_OPACITY,
     ))
     if p.get("show_today"):
         td = today_t(m.genesis)
@@ -198,7 +199,7 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         layout["legend"].update(
             x=pos["x"], y=pos["y"],
             xanchor=pos["xanchor"], yanchor=pos["yanchor"],
-            bgcolor=_hex_alpha(PLOT_BG_COLOR, 0.7),
+            bgcolor=_hex_alpha(PLOT_BG_COLOR, MC_LEGEND_BG_ALPHA),
         )
     if p.get("xscale") == "log":
         layout["xaxis"].update(

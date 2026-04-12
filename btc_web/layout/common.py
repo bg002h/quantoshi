@@ -15,7 +15,7 @@ from colors import (
     MC_FREE_GREEN, MC_LIVE_AMBER, KNIGHT_GOLD,
     LIGHTBOX_BG, TABLE_HEADER_BG, TABLE_BORDER_LIGHT,
     TABLE_BORDER_MID, TABLE_BORDER_DARK, CODE_BG, BOOTSTRAP_LIGHT_BG,
-    CTX_MENU_BG, _hex_alpha,
+    CTX_MENU_BG, _hex_alpha, CTX_MENU_BG_ALPHA, CTX_MENU_SHADOW_ALPHA,
     UI_FONT_SM, UI_FONT_MD, UI_FONT_BASE, UI_FONT_LG, UI_FONT_XL,
     Q_OPACITY_FLOOR, Q_OPACITY_RANGE, Q_OPACITY_DECAY,
 )
@@ -461,8 +461,8 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
         id="um-ctx-menu",
         style={"display": "none", "position": "absolute", "bottom": "14px",
                "left": "14px", "zIndex": 20,
-               "backgroundColor": _hex_alpha(CTX_MENU_BG, 0.95), "borderRadius": "8px",
-               "padding": "6px 10px", "boxShadow": f"0 2px 12px {_hex_alpha(BLACK, 0.5)}"},
+               "backgroundColor": _hex_alpha(CTX_MENU_BG, CTX_MENU_BG_ALPHA), "borderRadius": "8px",
+               "padding": "6px 10px", "boxShadow": f"0 2px 12px {_hex_alpha(BLACK, CTX_MENU_SHADOW_ALPHA)}"},
         children=[
             html.Span(id="um-ctx-label",
                       style={"color": USER_MODEL_TRACE, "fontSize": UI_FONT_LG,

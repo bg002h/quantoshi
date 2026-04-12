@@ -20,6 +20,9 @@ import _app_ctx
 from colors import (
     CITADEL_OVERLAY_COLORS as _CITADEL_MC_COLORS, BTC_ORANGE, _hex_alpha,
     MC_AMBER, MC_GHOST_GRAY, CHART_FONT_LEGEND,
+    MC_BAND_OUTER_ALPHA, MC_BAND_INNER_ALPHA,
+    MC_GHOST_OUTER_ALPHA, MC_GHOST_INNER_ALPHA,
+    MC_GHOST_MEDIAN_ALPHA, MC_MEDIAN_ALPHA,
 )
 
 logger = logging.getLogger(__name__)
@@ -438,12 +441,12 @@ def _build_mc_result(tab, path_key, overlay_key, mc_ts, price_paths,
 # MC band opacity pattern: matches _build_symmetric_bands (0.08 outer, 0.15 inner)
 # so MC visually integrates with other model overlays instead of looking alien.
 _MC_BANDS = [
-    (0.05, 0.95, _hex_alpha(MC_AMBER, 0.08), "MC 5\u201395%"),
-    (0.25, 0.75, _hex_alpha(MC_AMBER, 0.15), "MC 25\u201375%"),
+    (0.05, 0.95, _hex_alpha(MC_AMBER, MC_BAND_OUTER_ALPHA), "MC 5\u201395%"),
+    (0.25, 0.75, _hex_alpha(MC_AMBER, MC_BAND_INNER_ALPHA), "MC 25\u201375%"),
 ]
 _GHOST_BANDS = [
-    (0.05, 0.95, _hex_alpha(MC_GHOST_GRAY, 0.06), "MC ref 5\u201395%"),
-    (0.25, 0.75, _hex_alpha(MC_GHOST_GRAY, 0.12), "MC ref 25\u201375%"),
+    (0.05, 0.95, _hex_alpha(MC_GHOST_GRAY, MC_GHOST_OUTER_ALPHA), "MC ref 5\u201395%"),
+    (0.25, 0.75, _hex_alpha(MC_GHOST_GRAY, MC_GHOST_INNER_ALPHA), "MC ref 25\u201375%"),
 ]
 
 
@@ -484,12 +487,12 @@ def _mc_build_traces(mc_ts, fan, extra_label="", show_median=True,
     if show_median and 0.50 in fan:
         if suppress_legend:
             med_label = "MC ref median"
-            med_color, med_width, med_dash = _hex_alpha(MC_GHOST_GRAY, 0.4), 1.2, "dash"
+            med_color, med_width, med_dash = _hex_alpha(MC_GHOST_GRAY, MC_GHOST_MEDIAN_ALPHA), 1.2, "dash"
         else:
             med_label = "MC median" + extra_label
             if show_final_values and 0.50 in lf and len(lf[0.50]) > 0:
                 med_label += f"  \u2192  {fmt_price(float(lf[0.50][-1]))}"
-            med_color, med_width, med_dash = _hex_alpha(MC_AMBER, 0.9), 1.5, "dot"
+            med_color, med_width, med_dash = _hex_alpha(MC_AMBER, MC_MEDIAN_ALPHA), 1.5, "dot"
         traces.append(go.Scatter(
             x=list(mc_ts), y=list(fan[0.50]),
             mode="lines", name=med_label,
@@ -993,7 +996,7 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
         traces.append(go.Scatter(
             x=list(ts_plot), y=list(p5), mode="lines",
             line=dict(width=0), fill="tonexty",
-            fillcolor=f"rgba({_hex_to_rgb(color)},0.08)",
+            fillcolor=f"rgba({_hex_to_rgb(color)},{MC_BAND_OUTER_ALPHA})",
             name=f"MC {nice_name} 5\u201395%", showlegend=False, hoverinfo="skip",
             legendgroup=lg,
         ))
@@ -1007,7 +1010,7 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
         traces.append(go.Scatter(
             x=list(ts_plot), y=list(p25), mode="lines",
             line=dict(width=0), fill="tonexty",
-            fillcolor=f"rgba({_hex_to_rgb(color)},0.15)",
+            fillcolor=f"rgba({_hex_to_rgb(color)},{MC_BAND_INNER_ALPHA})",
             name=f"MC {nice_name} 25\u201375%", showlegend=False, hoverinfo="skip",
             legendgroup=lg,
         ))

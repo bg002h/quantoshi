@@ -26,6 +26,8 @@ from colors import (
     BLACK, BTC_ORANGE,
     CITADEL_SPENDING, CITADEL_BULLISH_QR, CITADEL_BEARISH_QR,
     CITADEL_OVERLAY_COLORS, _hex_alpha, LOG_MINOR_GRID_GRAY, TAX_DRAG_RED,
+    CITADEL_BAND_OUTER_ALPHA, CITADEL_BAND_INNER_ALPHA,
+    CITADEL_GHOST_LINE_ALPHA, TAX_LINE_ALPHA,
 )
 
 
@@ -60,7 +62,7 @@ def _build_band_traces(bands, time_axis, series_key="total", color=BLACK,
     ))
     traces.append(go.Scatter(
         x=x, y=list(p95), mode="lines", line=dict(width=0),
-        fill="tonexty", fillcolor=_hex_alpha(color, 0.15),
+        fill="tonexty", fillcolor=_hex_alpha(color, CITADEL_BAND_OUTER_ALPHA),
         name=f"{name_prefix} (P5\u2013P95)",
         legendgroup="mc-bands",
     ))
@@ -71,7 +73,7 @@ def _build_band_traces(bands, time_axis, series_key="total", color=BLACK,
     ))
     traces.append(go.Scatter(
         x=x, y=list(p75), mode="lines", line=dict(width=0),
-        fill="tonexty", fillcolor=_hex_alpha(color, 0.30),
+        fill="tonexty", fillcolor=_hex_alpha(color, CITADEL_BAND_INNER_ALPHA),
         name=f"{name_prefix} (P25\u2013P75)",
         legendgroup="mc-bands",
     ))
@@ -509,7 +511,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
             traces.append(go.Scatter(
                 x=list(ts), y=list(notax_total), mode="lines",
                 name=f"Total Portfolio (no tax){_qtag}",
-                line=dict(dash="dash", color=_hex_alpha(LOG_MINOR_GRID_GRAY, 0.5)),
+                line=dict(dash="dash", color=_hex_alpha(LOG_MINOR_GRID_GRAY, CITADEL_GHOST_LINE_ALPHA)),
                 showlegend=True,
             ))
 
@@ -519,7 +521,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
                 traces.append(go.Scatter(
                     x=list(ts), y=list(notax_btc), mode="lines",
                     name=f"BTC Holdings (no tax){_qtag}",
-                    line=dict(dash="dash", color=_hex_alpha(BTC_ORANGE, 0.5)),
+                    line=dict(dash="dash", color=_hex_alpha(BTC_ORANGE, CITADEL_GHOST_LINE_ALPHA)),
                     showlegend=True,
                 ))
 
@@ -551,7 +553,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
                 x=list(ts), y=list(taxes_paid[0]),
                 name=f"Cumulative Taxes Paid  \u2192  {fmt_price(float(taxes_paid[0, -1]))}",
                 fill="tozeroy",
-                line=dict(color=_hex_alpha(TAX_DRAG_RED, 0.6)),
+                line=dict(color=_hex_alpha(TAX_DRAG_RED, TAX_LINE_ALPHA)),
             ))
 
         # Store annual tax data in extra dict

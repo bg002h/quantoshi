@@ -12,7 +12,8 @@ import theme
 from btc_core import ModelData, yr_to_t, fmt_price
 from tab_defaults import SUPERCHARGE
 from mc_overlay import _mc_supercharge_overlay
-from colors import FALLBACK_MODEL_GRAY, BLACK, LIGHT_GRAY
+from colors import (FALLBACK_MODEL_GRAY, BLACK, LIGHT_GRAY,
+                    SC_ENVELOPE_ALPHA, SC_OVERLAY_ENVELOPE_ALPHA)
 
 from figures.common import (
     _QR_LINE_WIDTH, _ANNOT_STAGGER_Y, _BISECT_ITERS,
@@ -241,7 +242,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 ))
                 traces.append(go.Scatter(
                     x=list(ts_d), y=list(y_min), mode="lines",
-                    fill="tonexty", fillcolor=_hex_alpha(col, 0.3),
+                    fill="tonexty", fillcolor=_hex_alpha(col, SC_ENVELOPE_ALPHA),
                     line=dict(color=col, width=0, shape=_line_shape),
                     legendgroup=grp_model,
                     showlegend=False,
@@ -327,7 +328,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     ))
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_min), mode="lines",
-                        fill="tonexty", fillcolor=_hex_alpha(col, 0.12),
+                        fill="tonexty", fillcolor=_hex_alpha(col, SC_OVERLAY_ENVELOPE_ALPHA),
                         line=dict(color=col, width=0, shape=_line_shape),
                         legendgroup=_ov_grp,
                         showlegend=False, hoverinfo="skip",

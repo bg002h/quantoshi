@@ -21,12 +21,14 @@ from colors import (
     MC_LEGEND_BORDER as _COLORS_MC_BORDER,
     SPINE_COLOR_FALLBACK,
     CLUSTER_MERGE_GRAY,
-    BLACK,
+    BLACK, BLACK_A0,
     THERMAL_NEUTRAL,
     PLOT_BG_COLOR as _COLORS_PLOT_BG,
     LOG_MINOR_GRID_GRAY,
     WATERMARK_TEXT_COLOR,
     _hex_alpha,
+    LOG_MINOR_GRID_ALPHA, ANNOT_TEXT_ALPHA,
+    WATERMARK_TEXT_ALPHA, MC_LEGEND_BG_ALPHA,
     # ── Section 5: appearance constants (Phase 3 consolidation) ──
     FONT_SANS, FONT_BRAND,
     CHART_FONT_TITLE, CHART_FONT_SUBTITLE, CHART_FONT_BODY,
@@ -237,7 +239,7 @@ def _error_figure(title):
 
 # ── shared theme helpers ──────────────────────────────────────────────────────
 
-_LOG_MINOR = dict(showgrid=True, gridcolor=_hex_alpha(LOG_MINOR_GRID_GRAY, 0.35),
+_LOG_MINOR = dict(showgrid=True, gridcolor=_hex_alpha(LOG_MINOR_GRID_GRAY, LOG_MINOR_GRID_ALPHA),
                   griddash="dot", gridwidth=GRID_MINOR_WIDTH, dtick="D1")
 
 
@@ -364,7 +366,7 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
         ),
         legend=dict(
             bgcolor=_hex_alpha(_COLORS_PLOT_BG, LEGEND_BG_OPACITY),
-            bordercolor="rgba(0,0,0,0)",
+            bordercolor=BLACK_A0,
             borderwidth=0, font=dict(family=_SANS_FONT, size=_FONT_LEGEND),
         ),
         margin=dict(**CHART_MARGIN),
@@ -554,7 +556,7 @@ def _apply_config_annotation(fig: go.Figure, p: dict, tab: str,
     fig.layout.xaxis.title.font.update(
         family="'Courier New', Courier, monospace",
         size=9,
-        color=_hex_alpha(LOG_MINOR_GRID_GRAY, 0.8),
+        color=_hex_alpha(LOG_MINOR_GRID_GRAY, ANNOT_TEXT_ALPHA),
     )
 
 
@@ -602,7 +604,7 @@ def _apply_mc_premium(fig: go.Figure, legend_pos: str = "top-left", hide_xlabel:
         fig.layout.legend.y = pos["y"]
         fig.layout.legend.xanchor = pos["xanchor"]
         fig.layout.legend.yanchor = pos["yanchor"]
-        fig.layout.legend.bgcolor = _hex_alpha(_COLORS_PLOT_BG, 0.7)
+        fig.layout.legend.bgcolor = _hex_alpha(_COLORS_PLOT_BG, MC_LEGEND_BG_ALPHA)
     # Top border line to close the plot area
     fig.add_shape(
         type="line", xref="paper", yref="paper",
@@ -638,7 +640,7 @@ def _apply_watermark(fig: go.Figure, pos: str = "bottom-right") -> None:
         x=txt_x, y=0.015,
         xanchor=txt_xa, yanchor="bottom",
         showarrow=False,
-        font=dict(size=_FONT_WATERMARK, color=_hex_alpha(WATERMARK_TEXT_COLOR, 0.65)),
+        font=dict(size=_FONT_WATERMARK, color=_hex_alpha(WATERMARK_TEXT_COLOR, WATERMARK_TEXT_ALPHA)),
     ))
     return fig
 
@@ -746,7 +748,7 @@ def _finalize_chart(traces: list, layout: dict, p: dict, tab: str,
         layout["legend"].update(
             x=pos["x"], y=pos["y"],
             xanchor=pos["xanchor"], yanchor=pos["yanchor"],
-            bgcolor=_hex_alpha(_COLORS_PLOT_BG, 0.7),
+            bgcolor=_hex_alpha(_COLORS_PLOT_BG, MC_LEGEND_BG_ALPHA),
         )
     _apply_sans_typography(layout)
     fig = go.Figure(data=traces, layout=go.Layout(**layout))

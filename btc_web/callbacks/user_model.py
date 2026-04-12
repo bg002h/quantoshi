@@ -5,15 +5,15 @@ from btc_core import fmt_price
 
 import _app_ctx
 from btc_core import UserModel
-from colors import CTX_MENU_BG, BLACK, _hex_alpha
+from colors import CTX_MENU_BG, BLACK, _hex_alpha, CTX_MENU_BG_ALPHA, CTX_MENU_SHADOW_ALPHA
 
 _GENESIS_YR = 2009.56  # 2009-07-25
 _HIDDEN = {"display": "none"}
 _CTX_VISIBLE = {
     "display": "flex", "alignItems": "center",
     "position": "absolute", "bottom": "14px", "left": "14px", "zIndex": 20,
-    "backgroundColor": _hex_alpha(CTX_MENU_BG, 0.95), "borderRadius": "8px",
-    "padding": "6px 10px", "boxShadow": f"0 2px 12px {_hex_alpha(BLACK, 0.5)}",
+    "backgroundColor": _hex_alpha(CTX_MENU_BG, CTX_MENU_BG_ALPHA), "borderRadius": "8px",
+    "padding": "6px 10px", "boxShadow": f"0 2px 12px {_hex_alpha(BLACK, CTX_MENU_SHADOW_ALPHA)}",
 }
 
 

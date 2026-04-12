@@ -8,7 +8,8 @@ import _app_ctx
 from tab_defaults import CITADEL
 from colors import (DIM_TEXT, BOOTSTRAP_LIGHT_BG, BOOTSTRAP_BORDER,
                     FALLBACK_MODEL_GRAY, MODAL_BG, BLACK, _hex_alpha,
-                    UI_FONT_SM, UI_FONT_MD, UI_FONT_BASE, UI_FONT_LG, UI_FONT_XL)
+                    UI_FONT_SM, UI_FONT_MD, UI_FONT_BASE, UI_FONT_LG, UI_FONT_XL,
+                    OVERLAY_CARD_SHADOW_ALPHA, OVERLAY_DIM_ALPHA)
 from layout.common import (
     _section_card, _lbl, _ctrl_card, _q_options,
     _chart_toggles, _btc_usd_dropdown, _legend_pos_dropdown,
@@ -339,10 +340,10 @@ def _citadel_controls():
                      children="\u23f3 Loading scenario...",
                      style={"background": MODAL_BG, "borderRadius": "8px",
                             "padding": "18px 32px", "fontSize": "15px",
-                            "boxShadow": f"0 2px 16px {_hex_alpha(BLACK, 0.18)}"}),
+                            "boxShadow": f"0 2px 16px {_hex_alpha(BLACK, OVERLAY_CARD_SHADOW_ALPHA)}"}),
         ], style={"display": "none", "position": "fixed", "top": 0, "left": 0,
                   "width": "100vw", "height": "100vh", "zIndex": 1060,
-                  "background": _hex_alpha(BLACK, 0.35),
+                  "background": _hex_alpha(BLACK, OVERLAY_DIM_ALPHA),
                   "display": "none",
                   "justifyContent": "center", "alignItems": "center"}),
         # ── Quick Scenarios ──────────────────────────────────────────────

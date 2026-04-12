@@ -49,6 +49,9 @@ from colors import (
     FONT_BRAND, FONT_MONO,
     UI_FONT_XS, UI_FONT_SM, UI_FONT_MD, UI_FONT_BASE,
     UI_FONT_LG, UI_FONT_XL, UI_FONT_XXL, UI_FONT_HEADING,
+    TICKER_TEXT_ALPHA, NAV_DIM_ALPHA, NAV_TAGLINE_ALPHA,
+    NAV_TOGGLE_ALPHA, NAV_HR_ALPHA, MOBILE_TICKER_ALPHA,
+    FOOTER_TEXT_ALPHA,
 )
 
 # ── Constants used in layout assembly ────────────────────────────────────────
@@ -491,7 +494,7 @@ def _build_layout(initial_tab="bubble"):
                         html.Div([
                             html.Span(id="price-ticker",
                                       style={"fontSize":"23px", "fontWeight":"600",
-                                             "color":_hex_alpha(WHITE, 0.9),
+                                             "color":_hex_alpha(WHITE, TICKER_TEXT_ALPHA),
                                              "whiteSpace":"nowrap",
                                              "fontFamily": FONT_MONO,
                                              "fontVariantNumeric":"tabular-nums"}),
@@ -505,7 +508,7 @@ def _build_layout(initial_tab="bubble"):
                                       style={"display":"inline-block", "verticalAlign":"middle"}),
                             html.Span(id="ticker-mode-toggle",
                                       n_clicks=0,
-                                      style={"fontSize": UI_FONT_LG, "color":_hex_alpha(WHITE, 0.45),
+                                      style={"fontSize": UI_FONT_LG, "color":_hex_alpha(WHITE, NAV_DIM_ALPHA),
                                              "cursor":"pointer", "marginLeft":"8px",
                                              "verticalAlign":"middle", "userSelect":"none"}),
                         ], style={"display":"flex", "alignItems":"center",
@@ -516,7 +519,7 @@ def _build_layout(initial_tab="bubble"):
                         html.Div([
                             html.Div([
                                 html.Span("Stay dark, Anon \u25b6 ",
-                                          style={"fontSize": UI_FONT_XS, "color":_hex_alpha(WHITE, 0.4),
+                                          style={"fontSize": UI_FONT_XS, "color":_hex_alpha(WHITE, NAV_TAGLINE_ALPHA),
                                                  "whiteSpace":"nowrap"}),
                                 html.A(
                                     "\U0001f9c5 Tor onion",
@@ -542,7 +545,7 @@ def _build_layout(initial_tab="bubble"):
                                     style={"display": "none"},
                                 ),
                                 html.Span("Cooler than you think \u25b6 ",
-                                          style={"fontSize": UI_FONT_XS, "color":_hex_alpha(WHITE, 0.4),
+                                          style={"fontSize": UI_FONT_XS, "color":_hex_alpha(WHITE, NAV_TAGLINE_ALPHA),
                                                  "whiteSpace":"nowrap"}),
                                 dbc.Button("\U0001f4f8 Share", id="share-btn", size="sm",
                                            className="btn-share-accent"),
@@ -552,7 +555,7 @@ def _build_layout(initial_tab="bubble"):
                         ], id="desktop-nav-drawer", className="desktop-nav-drawer"),
                         html.Div("\u22ef", id="desktop-nav-toggle",
                                  className="desktop-nav-toggle desktop-nav-toggle-hidden",
-                                 style={"color":_hex_alpha(WHITE, 0.5),
+                                 style={"color":_hex_alpha(WHITE, NAV_TOGGLE_ALPHA),
                                         "fontSize": UI_FONT_HEADING, "cursor":"pointer",
                                         "letterSpacing":"2px", "padding":"4px 8px"}),
                     ], style={"display":"flex", "alignItems":"center",
@@ -576,13 +579,13 @@ def _build_layout(initial_tab="bubble"):
                     ], style={"display":"flex", "alignItems":"center"}),
                     html.Div("\u22ef", id="mobile-nav-toggle",
                              className="mobile-nav-toggle mobile-nav-toggle-hidden",
-                             style={"color":_hex_alpha(WHITE, 0.5),
+                             style={"color":_hex_alpha(WHITE, NAV_TOGGLE_ALPHA),
                                     "fontSize": UI_FONT_HEADING, "cursor":"pointer",
                                     "lineHeight":"1", "letterSpacing":"2px",
                                     "padding":"4px 8px"}),
                     html.Span(id="price-ticker-mobile",
                              style={"fontSize":"20px", "fontWeight":"700",
-                                    "color":_hex_alpha(WHITE, 0.95),
+                                    "color":_hex_alpha(WHITE, MOBILE_TICKER_ALPHA),
                                     "whiteSpace":"nowrap",
                                     "fontFamily": FONT_MONO,
                                     "fontVariantNumeric":"tabular-nums"}),
@@ -596,7 +599,7 @@ def _build_layout(initial_tab="bubble"):
                           "justifyContent":"space-between", "width":"100%"}),
                 # Row 2: collapsible drawer — full content, auto-hides after 3s
                 html.Div([
-                    html.Hr(style={"borderColor":_hex_alpha(WHITE, 0.12),
+                    html.Hr(style={"borderColor":_hex_alpha(WHITE, NAV_HR_ALPHA),
                                    "margin":"3px 0"}),
                     html.Div([
                         html.A([
@@ -604,7 +607,7 @@ def _build_layout(initial_tab="bubble"):
                                                     "lineHeight":"1"}),
                             html.Span(" \u25c2 Stay dark, Anon",
                                       style={"fontSize": UI_FONT_MD,
-                                             "color":_hex_alpha(WHITE, 0.5),
+                                             "color":_hex_alpha(WHITE, NAV_TOGGLE_ALPHA),
                                              "marginLeft":"5px"}),
                         ], href="http://u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion",
                            target="_blank", rel="noopener noreferrer",
@@ -711,6 +714,6 @@ def _build_layout(initial_tab="bubble"):
         ], className="footer-docs"),
     ], className="site-footer",
        style={"textAlign": "center", "fontSize": UI_FONT_MD,
-              "color": _hex_alpha(BLACK, 0.35), "padding": "10px 0 14px",
+              "color": _hex_alpha(BLACK, FOOTER_TEXT_ALPHA), "padding": "10px 0 14px",
               "fontFamily": FONT_MONO, "letterSpacing": "0.5px"}),
 ], fluid=True, className="px-2 py-1")

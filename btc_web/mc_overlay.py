@@ -17,7 +17,10 @@ import numpy as np
 import plotly.graph_objects as go
 
 import _app_ctx
-from colors import CITADEL_OVERLAY_COLORS as _CITADEL_MC_COLORS, BTC_ORANGE, _hex_alpha, MC_AMBER, MC_GHOST_GRAY
+from colors import (
+    CITADEL_OVERLAY_COLORS as _CITADEL_MC_COLORS, BTC_ORANGE, _hex_alpha,
+    MC_AMBER, MC_GHOST_GRAY, CHART_FONT_LEGEND,
+)
 
 logger = logging.getLogger(__name__)
 from btc_core import ModelData, yr_to_t, fmt_price
@@ -542,7 +545,7 @@ def _mc_depletion_annots(mc_ts, fan, mc_start_yr, mc_years, existing_count=0):
                 text=f"\u2248{depl_yr}",
                 showarrow=True, arrowhead=2, arrowsize=1,
                 arrowcolor=mc_col,
-                font=dict(size=_app_ctx.FONT_LEGEND, color=mc_col),
+                font=dict(size=CHART_FONT_LEGEND, color=mc_col),
             ))
     return annots
 

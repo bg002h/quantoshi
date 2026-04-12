@@ -27,6 +27,18 @@ from colors import (
     LOG_MINOR_GRID_GRAY,
     WATERMARK_TEXT_COLOR,
     _hex_alpha,
+    # ── Section 5: appearance constants (Phase 3 consolidation) ──
+    FONT_SANS,
+    CHART_FONT_TITLE, CHART_FONT_SUBTITLE, CHART_FONT_BODY,
+    CHART_FONT_LEGEND, CHART_FONT_WATERMARK, CHART_FONT_ANNOT,
+    CHART_FONT_TITLE_LG, CHART_FONT_BODY_LG, CHART_FONT_TICK_LG,
+    CHART_FONT_LEGEND_LG, CHART_FONT_ANNOT_LG, CHART_FONT_WATERMARK_LG,
+    TRACE_WIDTH, TRACE_WIDTH_OVERLAY, TRACE_WIDTH_TODAY,
+    TODAY_GLOW_WIDTH as _CGW, TODAY_LINE_OPACITY as _CTLO,
+    TODAY_GLOW_OPACITY as _CTGO,
+    SHADE_ALPHA as _CSA,
+    WM_OPACITY as _CWO, WM_SIZE_X as _CWSX, WM_SIZE_Y as _CWSY,
+    CHART_MARGIN,
 )
 _HAS_MARKOV = _app_ctx._HAS_MARKOV
 
@@ -53,26 +65,38 @@ _ANNOT_STAGGER_Y = _app_ctx.ANNOT_STAGGER_Y
 
 _BTC_ORANGE       = _app_ctx.BTC_ORANGE
 _TODAY_LINE_COLOR  = _COLORS_TODAY_LINE
-_TODAY_LINE_WIDTH  = 2.0
-_TODAY_LINE_OPACITY = 0.85
-_TODAY_GLOW_WIDTH  = 6
-_TODAY_GLOW_OPACITY = 0.12
-_QR_LINE_WIDTH    = 2.5
+
+# ── Backward-compat aliases (callers import these underscore names) ──────
+# TODO: Phase 4+ — migrate callers to import directly from colors.py, then delete aliases
+_SANS_FONT          = FONT_SANS
+_FONT_TITLE         = CHART_FONT_TITLE
+_FONT_SUBTITLE      = CHART_FONT_SUBTITLE
+_FONT_BODY          = CHART_FONT_BODY
+_FONT_LEGEND        = CHART_FONT_LEGEND
+_FONT_WATERMARK     = CHART_FONT_WATERMARK
+_FONT_ANNOT         = CHART_FONT_ANNOT
+_FONT_TITLE_LG      = CHART_FONT_TITLE_LG
+_FONT_BODY_LG       = CHART_FONT_BODY_LG
+_FONT_TICK_LG       = CHART_FONT_TICK_LG
+_FONT_LEGEND_LG     = CHART_FONT_LEGEND_LG
+_FONT_ANNOT_LG      = CHART_FONT_ANNOT_LG
+_FONT_WATERMARK_LG  = CHART_FONT_WATERMARK_LG
+_QR_LINE_WIDTH      = TRACE_WIDTH
+_OVERLAY_LINE_WIDTH = TRACE_WIDTH_OVERLAY
+_TODAY_LINE_WIDTH   = TRACE_WIDTH_TODAY
+_TODAY_GLOW_WIDTH   = _CGW
+_TODAY_LINE_OPACITY = _CTLO
+_TODAY_GLOW_OPACITY = _CTGO
+_SHADE_ALPHA        = _CSA
+_WM_OPACITY         = _CWO
+_WM_SIZE_X          = _CWSX
+_WM_SIZE_Y          = _CWSY
+
+_NON_QUANTIZED_MODEL_COLOR = _COLORS_NON_Q  # saddlebrown — single-trajectory models
+
+# ── Algorithmic constants (not appearance — stay local) ──────────────────
 _INTERP_POINTS    = 400      # sample points for QR interpolation curves (400 > max screen px)
 _MAX_SCATTER_PTS  = 800      # max data points before downsampling (plenty for screen)
-_FONT_TITLE       = 14
-_FONT_SUBTITLE    = 13
-_FONT_BODY        = 11
-_FONT_LEGEND      = _app_ctx.FONT_LEGEND
-_FONT_WATERMARK   = 9
-_FONT_ANNOT       = 11       # depletion / edge annotation text
-
-_SHADE_ALPHA      = 0.08     # fill opacity between adjacent quantile lines
-_NON_QUANTIZED_MODEL_COLOR = _COLORS_NON_Q  # saddlebrown — single-trajectory models
-_OVERLAY_LINE_WIDTH = _QR_LINE_WIDTH * 0.8  # alt-model overlay lines
-_WM_OPACITY       = 0.55     # watermark logo opacity
-_WM_SIZE_X        = 0.09     # watermark logo width (fraction of paper)
-_WM_SIZE_Y        = 0.12     # watermark logo height (fraction of paper)
 _COLORSCALE_STEPS = 256      # dense colorscale points (avoids browser interpolation bugs)
 _BISECT_ITERS     = 60       # binary search iterations for Mode B max-withdrawal
 _HM_TEXT_THRESHOLD = 0.55    # cell brightness threshold: white text below, dark above
@@ -83,15 +107,6 @@ _HM_TEXT_THRESHOLD = 0.55    # cell brightness threshold: white text below, dark
 # Depletion/terminal annotations and heatmap hovers are separate.
 _HOVER_FMT_USD = "<b>%{fullData.name}</b><br>%{customdata[0]}<br>$%{y:,.0f}<extra></extra>"
 _HOVER_FMT_BTC = "<b>%{fullData.name}</b><br>%{customdata[0]}<br>%{y:,.4f} BTC<extra></extra>"
-
-# ── Enhanced font stack (sans-serif base, serif for premium/MC) ──────────
-_SANS_FONT = "Avenir Next, Avenir, Segoe UI, system-ui, -apple-system, sans-serif"
-_FONT_TITLE_LG    = 17
-_FONT_BODY_LG     = 13
-_FONT_TICK_LG     = 12
-_FONT_LEGEND_LG   = 11
-_FONT_ANNOT_LG    = 12
-_FONT_WATERMARK_LG = 10
 
 
 def _apply_sans_typography(layout: dict) -> None:
@@ -339,7 +354,7 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
             bgcolor=_hex_alpha(_COLORS_PLOT_BG, 0.85), bordercolor=theme.GRID_MAJOR_COLOR,
             borderwidth=1, font=dict(family=_SANS_FONT, size=_FONT_LEGEND),
         ),
-        margin=dict(l=5, r=20, t=50, b=30, autoexpand=False),
+        margin=dict(**CHART_MARGIN),
         **kwargs,
     )
 

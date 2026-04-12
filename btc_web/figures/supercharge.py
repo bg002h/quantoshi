@@ -70,7 +70,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
     # Quantiles
     sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])
                      if float(q) in model.fits])
-    mc_enabled = _HAS_MARKOV and p.get("mc_enabled")
+    mc_enabled = _HAS_MARKOV and p.get("mc_enabled") and p.get("show_mc", True)
     if not sel_qs and not mc_enabled:
         return go.Figure(layout=dict(
             title="Select at least one quantile",
@@ -406,7 +406,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
         # ── Monte Carlo fan overlay ───────────────────────────────────────────
         mc_traces_list = []
         mc_result = None
-        if _HAS_MARKOV and p.get("mc_enabled"):
+        if _HAS_MARKOV and p.get("mc_enabled") and p.get("show_mc", True):
             t_start_base = max(yr_to_t(syr, m.genesis), 1.0)
             _sc_x_end = layout["xaxis"]["range"][1]
             mc_traces_list, mc_result = _apply_mc_overlay(

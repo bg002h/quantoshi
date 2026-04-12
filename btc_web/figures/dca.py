@@ -284,7 +284,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     mc_result = None
     mc_fan_usd = {}
     mc_traces = []
-    if _HAS_MARKOV and p.get("mc_enabled"):
+    if _HAS_MARKOV and p.get("mc_enabled") and p.get("show_mc", True):
         mc_traces, mc_result, mc_fan_usd = _mc_dca_overlay(m, p, ts, t_start, dt, start_stack, disp_mode)
         mc_traces = _post_mc_overlay(mc_traces, p, _x_end, disp_mode)
         traces.extend(mc_traces)

@@ -126,7 +126,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     # ── Monte Carlo fan overlay ─────────────────────────────────────────────
     mc_traces_list = []
     mc_result = None
-    if _HAS_MARKOV and p.get("mc_enabled"):
+    if _HAS_MARKOV and p.get("mc_enabled") and p.get("show_mc", True):
         mc_traces_list, mc_result = _apply_mc_overlay(
             m, p, _mc_retire_overlay,
             (m, p, ts, t_start, t_end, dt, start_stack, disp_mode, len(deplete_annots)),

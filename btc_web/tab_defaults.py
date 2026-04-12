@@ -13,7 +13,10 @@ Constraints:
 
 from types import MappingProxyType
 from colors import (LOT_MARKER_COLOR, FALLBACK_MODEL_GRAY, NEAR_BLACK,
-                    DIM_TEXT, SPINE_COLOR_FALLBACK, PROGRESS_TRACK)
+                    DIM_TEXT, SPINE_COLOR_FALLBACK, PROGRESS_TRACK,
+                    PT_SIZE_DEFAULT, PT_ALPHA_DEFAULT,
+                    TRACE_WIDTH_COMPOSITE, TRACE_WIDTH_SUPPORT,
+                    CHART_FONT_WATERMARK)
 
 BUBBLE = MappingProxyType({
     "selected_qs": (0.5,),
@@ -25,11 +28,11 @@ BUBBLE = MappingProxyType({
     "show_ols": False, "show_ucl": False,
     "show_comp": True, "show_sup": True,
     "n_future": 3,
-    "pt_size": 4, "pt_alpha": 0.3,
+    "pt_size": PT_SIZE_DEFAULT, "pt_alpha": PT_ALPHA_DEFAULT,
     "stack": 0, "show_stack": False, "use_lots": False,
     "legend_pos": "top-left",
-    "comp_color": LOT_MARKER_COLOR, "comp_lw": 2.0,
-    "sup_color": FALLBACK_MODEL_GRAY, "sup_lw": 1.5,
+    "comp_color": LOT_MARKER_COLOR, "comp_lw": TRACE_WIDTH_COMPOSITE,
+    "sup_color": FALLBACK_MODEL_GRAY, "sup_lw": TRACE_WIDTH_SUPPORT,
     "active_models": ("bub",),
     "palette": "default",
     "scanner_lines": (),
@@ -48,7 +51,7 @@ HEATMAP = MappingProxyType({
     "c_mid2": "#ffffff", "c_hi": "#2e7d32",
     "n_disc": 32,
     "vfmt": "cagr_mult",
-    "cell_font_size": 9,
+    "cell_font_size": CHART_FONT_WATERMARK,
     "show_colorbar": True,
     "stack": 0, "use_lots": False,
     "hm_model": "bub",

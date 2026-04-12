@@ -12,6 +12,7 @@ from colors import (
     LINK, FALLBACK_MODEL_GRAY, BLACK,
     MODEL_TRACE_COLORS, LOT_MARKER_COLOR, LOT_MARKER_OUTLINE,
     DECOMP_ERROR_RED, ERROR_BG, ERROR_BORDER,
+    TRACE_WIDTH_COMPOSITE, TRACE_WIDTH_SUPPORT,
 )
 
 
@@ -1129,8 +1130,8 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
         use_lots    = bool(use_lots),
         lots        = lots_data or [],
         legend_pos  = legend_pos or "outside",
-        comp_color  = LOT_MARKER_COLOR, comp_lw = 2.0,
-        sup_color   = FALLBACK_MODEL_GRAY, sup_lw  = 1.5,
+        comp_color  = LOT_MARKER_COLOR, comp_lw = TRACE_WIDTH_COMPOSITE,
+        sup_color   = FALLBACK_MODEL_GRAY, sup_lw  = TRACE_WIDTH_SUPPORT,
         active_models = model_show or [],
         palette = palette_key or "default",
         scanner_lines = scanner_lines,

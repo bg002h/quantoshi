@@ -274,42 +274,29 @@ _app_ctx.app.clientside_callback(
 
 # Per-tab palette selectors → store. Each chart tab renders its own
 # `palette-select-{tab_key}` dbc.Select via layout.common._palette_selector.
-# Forward: any selector change writes palette-store (use callback_context to
-# pick the triggering selector's value).
+# Forward: selector change writes palette-store. One callback per tab to
+# avoid the Dash 4 bug where a single multi-Input callback errors out if
+# ANY Input id is missing from the initial layout (e.g. lazy-loaded Citadel
+# tab's palette-select-cp). Each callback is simple: val → store.
 _TAB_PALETTE_KEYS = ("bub", "hm", "dca", "ret", "sc", "cp")
 
-_app_ctx.app.clientside_callback(
-    """
-    function(bub, hm, dca, ret, sc, cp) {
-        var ctx = window.dash_clientside.callback_context;
-        if (!ctx.triggered || !ctx.triggered.length) {
-            return window.dash_clientside.no_update;
-        }
-        // Use prop_id to find which selector triggered, then read its value
-        // from the function arguments (ctx.triggered[0].value may not exist
-        // in Dash 4.0 clientside).
-        var ids = ["palette-select-bub", "palette-select-hm", "palette-select-dca",
-                   "palette-select-ret", "palette-select-sc", "palette-select-cp"];
-        var vals = [bub, hm, dca, ret, sc, cp];
-        var pid = (ctx.triggered[0].prop_id || "").split(".")[0];
-        var idx = ids.indexOf(pid);
-        if (idx >= 0 && vals[idx]) return vals[idx];
-        return window.dash_clientside.no_update;
-    }
-    """,
-    Output("palette-store", "data", allow_duplicate=True),
-    *[Input(f"palette-select-{k}", "value") for k in _TAB_PALETTE_KEYS],
-    prevent_initial_call=True,
-)
+for _k in _TAB_PALETTE_KEYS:
+    _app_ctx.app.clientside_callback(
+        "function(val) { return val || 'default'; }",
+        Output("palette-store", "data", allow_duplicate=True),
+        Input(f"palette-select-{_k}", "value"),
+        prevent_initial_call=True,
+    )
 
-# Reverse: store change → all per-tab selectors (keep them in sync).
-_app_ctx.app.clientside_callback(
-    "function(data) { var v = data || 'default'; return [" +
-    ", ".join(["v"] * len(_TAB_PALETTE_KEYS)) + "]; }",
-    *[Output(f"palette-select-{k}", "value") for k in _TAB_PALETTE_KEYS],
-    Input("palette-store", "data"),
-    prevent_initial_call=True,
-)
+# Reverse: store change → each per-tab selector (keep them in sync).
+# One callback per tab so lazy-loaded tabs don't block others.
+for _k in _TAB_PALETTE_KEYS:
+    _app_ctx.app.clientside_callback(
+        "function(data) { return data || 'default'; }",
+        Output(f"palette-select-{_k}", "value", allow_duplicate=True),
+        Input("palette-store", "data"),
+        prevent_initial_call=True,
+    )
 
 
 # ── data-palette attribute on <html>: keeps CSS selector :root[data-palette]

@@ -260,11 +260,11 @@ _ols_pred = 10 ** (M.ols_intercept + M.ols_slope * np.log10(
     np.maximum(M.price_years[M.price_years >= 1.0], 0.1)))
 M.ols_r2 = _compute_log_r2(M.price_prices[M.price_years >= 1.0], _ols_pred)
 
-# ── Apply thermal color palette to quantile traces ────────────────────────
-from figures import _build_thermal_colors
-_thermal = _build_thermal_colors(M.QR_QUANTILES)
-_app_ctx.DEFAULT_MODEL.colors.update(_thermal)
-M.qr_colors.update(_thermal)  # propagate to layout.py quantile panel dots
+# ── Thermal color pipeline removed (2026-04-12). Quantile traces and bands
+# now use model-specific colors (via _get_model_color + quantile_opacity).
+# The quantile panel sidebar dots use DIM_TEXT with opacity-fading.
+# The _thermal_color / _build_thermal_colors machinery in figures/common.py
+# is retained as dead code in case the heatmap or other future features need it.
 
 # ── Pre-compute auto-Y envelope grids for clientside auto_bubble_yrange ──────
 # For each model: log10(price) at Q_min and Q_max on a 100-point t-grid.

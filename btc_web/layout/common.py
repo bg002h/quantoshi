@@ -17,6 +17,7 @@ from colors import (
     TABLE_BORDER_MID, TABLE_BORDER_DARK, CODE_BG, BOOTSTRAP_LIGHT_BG,
     CTX_MENU_BG, _hex_alpha,
     UI_FONT_SM, UI_FONT_MD, UI_FONT_BASE, UI_FONT_LG, UI_FONT_XL,
+    Q_OPACITY_FLOOR, Q_OPACITY_RANGE, Q_OPACITY_DECAY,
 )
 
 
@@ -99,7 +100,12 @@ def _q_options() -> list[dict]:
     for q in _app_ctx._ALL_QS:
         pct = q * 100
         lbl_text = f"Q{pct:.4g}%" if pct >= 1 else f"Q{pct:.3g}%"
-        col = _app_ctx.M.qr_colors.get(q, FALLBACK_MODEL_GRAY)
+        # Opacity fades with distance from median — lighter for extreme quantiles.
+        # Uses the same Q_OPACITY_* parameters as the chart quantile_opacity()
+        # formula, but inlined here to avoid circular import from figures/.
+        alpha = max(Q_OPACITY_FLOOR,
+                    1.0 - abs(q - 0.5) / Q_OPACITY_RANGE * Q_OPACITY_DECAY)
+        col = _hex_alpha(DIM_TEXT, alpha)
         lbl = html.Span([
             html.Span("\u25CF ", style={"color": col, "fontSize": UI_FONT_SM}),
             lbl_text,

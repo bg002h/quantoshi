@@ -275,15 +275,18 @@ DEFAULT = {
 
 CB_BRIAN = {
     "model_colors": {
-        "bub": "#BF8C0A", "qr": "#556B2F", "pl": "#C635F5",
-        "lppl": "#AD1457", "lp2": "#D81B60", "lp3": "#F06292", "lp4": "#F8BBD0",
-        "linppl": "#006064", "hybppl": "#4527A0", "hybppl_dd": "#8E24AA",
+        # 6 hand-picked flagship trace colors for deuteranomaly (2026-04-11).
+        # Chosen for reliable separation on the CB-Brian profile; see
+        # docs/superpowers/specs for brainstorm history.
+        "bub": "#D8BD65", "qr": "#304FC8", "pl": "#7E67B1",
+        "lppl": "#FFB000", "lp2": "#D81B60", "lp3": "#F06292", "lp4": "#F8BBD0",
+        "linppl": "#006064", "hybppl": "#FE6100", "hybppl_dd": "#8E24AA",
         "ef": "#FFE082", "exp": "#E0E0E0", "s2f": "#777777",
         "u1": "#333333",
         "hyb2l": "#5B4AB0", "hyb2c": "#1A9A8F", "hyb2b": "#C4607A",
         "hyb4d": "#7A5B10", "pca": "#3A006F",
         "grdy": "#1B7A1B",
-        "eppl": "#B86800",
+        "eppl": "#BD3737",
         "gomp": "#3B6FA0", "bpl": "#B87333",
     },
     "thermal_stops": [

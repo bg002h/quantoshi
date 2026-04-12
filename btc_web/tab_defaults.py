@@ -188,7 +188,7 @@ def heatmap_defaults() -> dict:
     d["entry_yr"] = yr_now
     d["entry_q"] = 50.0
     d["exit_yr_lo"] = yr_now
-    d["exit_yr_hi"] = yr_now + 15
+    d["exit_yr_hi"] = yr_now + 10
     # Use _app_ctx._DEF_QS so the prewarm cache matches the live layout
     # default in heatmap.py's hm-exit-qs checklist. HEATMAP["exit_qs"] is
     # legacy empty () and would bake a "No data" error into the L1 cache.

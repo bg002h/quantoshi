@@ -90,7 +90,7 @@ def _heatmap_controls():
         _section_card("Chart Settings",
             _lbl("Exit year range"),
             dcc.RangeSlider(id="hm-exit-range", min=2010, max=2060,
-                            value=[yr_now, yr_now + 15], step=1,
+                            value=[yr_now, yr_now + 10], step=1,
                             marks={y: f"'{y % 100:02d}" for y in range(2010, 2061, 5)},
                             tooltip={"always_visible":False}),
             _lbl("Color mode"),

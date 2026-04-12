@@ -28,6 +28,40 @@ from figures.common import (
 )
 
 
+def _add_heatmap_grid(fig, n_cols: int, n_rows: int,
+                       color: str = "#000000", width: float = 1.0):
+    """Overlay thin black grid lines at every cell boundary.
+
+    Used on top of `zsmooth='best'` heatmaps so the interpolated surface
+    keeps its visual cell structure. Plotly's categorical axes place cell
+    centers at integer positions 0..N-1; cell boundaries are at -0.5,
+    0.5, 1.5, ..., N-0.5 (so N+1 vertical and M+1 horizontal lines).
+    Uses layer='above' so lines render over the heatmap trace.
+    """
+    if n_cols <= 0 or n_rows <= 0:
+        return
+    x_min, x_max = -0.5, n_cols - 0.5
+    y_min, y_max = -0.5, n_rows - 0.5
+    shapes = list(fig.layout.shapes or [])
+    # Vertical lines at every column boundary
+    for i in range(n_cols + 1):
+        xp = i - 0.5
+        shapes.append(dict(
+            type="line", x0=xp, x1=xp, y0=y_min, y1=y_max,
+            line=dict(color=color, width=width),
+            xref="x", yref="y", layer="above",
+        ))
+    # Horizontal lines at every row boundary
+    for j in range(n_rows + 1):
+        yp = j - 0.5
+        shapes.append(dict(
+            type="line", x0=x_min, x1=x_max, y0=yp, y1=yp,
+            line=dict(color=color, width=width),
+            xref="x", yref="y", layer="above",
+        ))
+    fig.update_layout(shapes=shapes)
+
+
 def _seg_colorscale(mc, b1, b2, c_lo, c_mid1, c_mid2, c_hi):
     """Build a dense 256-point colorscale from the segmented colour config.
 
@@ -262,9 +296,11 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         z=mc, x=[str(y) for y in eyrs], y=ylabels,
         colorscale=colorscale, zmin=zmin, zmax=zmax,
         showscale=bool(p.get("show_colorbar", True)),
-        # Thin 1-px gap between cells — plot background color shows through
-        # as a grid line (white on the default FLATLY theme).
-        xgap=1, ygap=1,
+        # Bilinear interpolation between cell centers — the heatmap becomes
+        # a continuous surface that blends across cell boundaries. A grid
+        # overlay (add_shape calls below the layout block) draws crisp
+        # black lines at the original cell boundaries on top of the blend.
+        zsmooth="best",
         colorbar=dict(
             title=dict(text="CAGR %", font=dict(color=theme.TEXT_COLOR)),
             tickfont=dict(color=theme.TEXT_COLOR),
@@ -291,10 +327,7 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         title=dict(text=title_text,
                    font=dict(color=theme.TITLE_COLOR, size=_FONT_SUBTITLE)),
         paper_bgcolor=theme.PLOT_BG_COLOR,
-        # Plot background is black so the 1-px xgap/ygap between heatmap
-        # cells shows as thin black grid lines. The heatmap cells fill
-        # the plot area so the black background is only visible in the gaps.
-        plot_bgcolor="#000000",
+        plot_bgcolor=theme.PLOT_BG_COLOR,
         font=dict(color=theme.TEXT_COLOR),
         xaxis=dict(title="Exit Year", gridcolor=theme.GRID_MAJOR_COLOR,
                    linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
@@ -311,6 +344,12 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     fig.layout.yaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
     # Cell font family/size/weight set in _heatmap_cell_annots; no override here.
     # Global font.weight="bold" ensures iOS Safari renders bold on first paint
+
+    # ── Cell-boundary grid overlay (thin black lines on top of the zsmooth
+    #    interpolated surface). Plotly categorical axes place cell centers
+    #    at integer positions 0..N-1 with boundaries at N-0.5. Layer="above"
+    #    ensures lines render over the heatmap trace. ──
+    _add_heatmap_grid(fig, n_cols=len(eyrs), n_rows=n_rows)
 
     # ── Entry year column highlight (orange border around the entry column) ──
     if str(eyr) in [str(y) for y in eyrs]:
@@ -380,8 +419,9 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
         z=mc, x=[str(y) for y in eyrs], y=mc_labels,
         colorscale=colorscale, zmin=zmin, zmax=zmax,
         showscale=bool(p.get("show_colorbar", True)),
-        # Thin 1-px gap between cells (same as main heatmap).
-        xgap=1, ygap=1,
+        # Bilinear interpolation (same as main heatmap). Grid overlay drawn
+        # via add_shape calls below.
+        zsmooth="best",
         colorbar=dict(
             title=dict(text="CAGR %", font=dict(color=theme.TEXT_COLOR)),
             tickfont=dict(color=theme.TEXT_COLOR),
@@ -399,9 +439,7 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
         title=dict(text=f"Monte Carlo CAGR \u2014 {entry_lbl}",
                    font=dict(color=theme.TITLE_COLOR, size=_FONT_SUBTITLE)),
         paper_bgcolor=theme.PLOT_BG_COLOR,
-        # Black plot background so xgap/ygap between cells renders as
-        # thin black grid lines (matches the main CAGR heatmap).
-        plot_bgcolor="#000000",
+        plot_bgcolor=theme.PLOT_BG_COLOR,
         font=dict(color=theme.TEXT_COLOR),
         xaxis=dict(title="Exit Year", gridcolor=theme.GRID_MAJOR_COLOR,
                    linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
@@ -417,6 +455,7 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
     fig.layout.xaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
     fig.layout.yaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
     # Cell font family/size/weight set in _heatmap_cell_annots; no override here.
+    _add_heatmap_grid(fig, n_cols=len(eyrs), n_rows=len(mc_labels))
     if p.get("mc_enabled"):
         _apply_mc_premium(fig, legend_pos=None)
         _apply_mc_xlabel(fig, p, "hm")

@@ -710,18 +710,38 @@ is always last (tax-free compounding on highest-growth asset).
 
 ## 13. Layout Patterns
 
-### Style constants
+### Style constants — centralized in `colors.py`
 
-Module-level constants in `layout/` for repeated inline styles:
+**All visual appearance constants live in `btc_web/colors.py` Section 5** — fonts, font sizes, trace widths, point sizes, opacities, margins. Nothing else defines visual constants (enforced by `test_colors_central.py`).
+
+| Category | Constants | Count | Notes |
+|----------|-----------|-------|-------|
+| Font stacks | `FONT_BRAND`, `FONT_SANS`, `FONT_MONO`, `FONT_CONDENSED` | 4 | DM Serif Display + Inter via Google Fonts |
+| Chart font sizes | `CHART_FONT_TITLE` through `CHART_FONT_WATERMARK_LG` | 12 | Int values for Plotly (base + desktop tiers) |
+| UI font sizes | `UI_FONT_XS` through `UI_FONT_HEADING` | 8 | CSS px strings for layout inline styles |
+| Trace widths | `TRACE_WIDTH` through `DESKTOP_GRID_MULT` | 10 | Includes desktop multipliers |
+| Point/marker sizes | `PT_SIZE_DEFAULT` through `MARKER_SIZE_HIGHLIGHT` | 6 | |
+| Opacities | `SHADE_ALPHA` through `SCANNER_ROW_OUTLINE_ALPHA` | ~35 | Every `_hex_alpha()` and `opacity=` uses a named constant |
+| Quantile opacity | `Q_OPACITY_FLOOR`, `Q_OPACITY_RANGE`, `Q_OPACITY_DECAY` | 3 | Formula in `figures/common.py::quantile_opacity()` |
+| Chart margins | `CHART_MARGIN`, `CHART_MARGIN_HM` | 2 | Dicts |
+| Watermark | `WM_OPACITY`, `WM_SIZE_X`, `WM_SIZE_Y` | 3 | |
+
+**Generated artifacts** (`tools/generate_color_artifacts.py`):
+- `_colors_generated.css` — CSS custom properties `var(--qs-*)`
+- `_colors_generated.js` — `window.QS_COLORS` + `window.QS_PALETTES` + `window.QS_APPEARANCE`
+- Export control: `__skip_export__` excludes non-color values from CSS; `__appearance_export__` defines JS `QS_APPEARANCE` subset
+
+Layout modules import directly: `from colors import UI_FONT_MD, FONT_BRAND, SUPPORT_LINE_OPACITY, ...`
+
+Module-level style dicts in `layout/common.py`:
 
 | Constant | Value | Used for |
 |----------|-------|----------|
 | `_STYLE_HIDDEN` | `{"display": "none"}` | Hidden containers, placeholder controls |
-| `_STYLE_HINT` | `{"color": "#888", ...}` | Hint/instruction text below controls |
+| `_STYLE_HINT` | `{"color": DIM_TEXT, ...}` | Hint/instruction text below controls |
 | `_STYLE_GRAPH_H` | `{"height": "78vh"}` | Chart graph containers |
-| `_STYLE_COLOR_H` | `{"height": "28px"}` | Color picker inputs |
-| `_STYLE_ADDR_CELL` | `{...nowrap, verticalAlign}` | FAQ address table cells |
-| `_STYLE_ADDR_CODE` | `{...break-all, 11px}` | FAQ address code blocks |
+| `_GEAR_STYLE` | `{cursor, fontSize, opacity}` | In-checklist gear icons for model config modals |
+| `_MUTED_STYLE` | `{color: MUTED_SUMMARY_TEXT, italic}` | Inline summary spans in Display Models |
 
 ### Shared helpers
 
@@ -753,6 +773,66 @@ below."
 On `max-width: 767px`, columns stack vertically (controls below chart). The
 `dcc.Graph` height is overridden in CSS (`55vw !important`). A "↓ Scroll down
 to configure" hint appears via `_export_row()` (hidden on ≥768px).
+
+---
+
+## 13b. Appearance & Brand System
+
+### Typography
+
+Google Fonts loaded via `<link>` in `index_string <head>`:
+- **DM Serif Display** — brand name "Quantoshi" + chart titles (left-aligned)
+- **Inter** — all UI text, axis labels, legend, form controls
+
+Font stacks defined in `colors.py`:
+- `FONT_BRAND` = `"'DM Serif Display', Georgia, serif"`
+- `FONT_SANS` = `"Inter, 'Segoe UI', system-ui, -apple-system, sans-serif"`
+- `FONT_MONO` = `"'JetBrains Mono', 'Fira Code', ..."`
+
+CSS custom properties (`style.css :root`): `--font-ui`, `--font-brand`, `--font-mono`. These are hand-maintained in CSS and must match `colors.py` if changed.
+
+### 4 site-wide palettes
+
+| Key | Name | Audience |
+|-----|------|----------|
+| `default` | Default | Full color vision |
+| `cb-brian` | Deuteranomaly | Red-green deficient (Brian's profile) |
+| `cb-rg` | Colorblind R-G | Classic CB-safe (Okabe-Ito style) |
+| `cb-full` | Colorblind Full | Near-monochromatic, luminance-only |
+
+Palette selector appears at the bottom of every chart tab's controls (`_palette_selector(tab_key)`). Per-tab `dbc.Select(id=f"palette-select-{tab_key}")` syncs bidirectionally with `palette-store` via clientside callbacks in `nav.py`. Forward callbacks include a `State("palette-store", "data")` guard to prevent circular callback storms.
+
+### Default palette design
+
+Chart background: `#FAF9F6` (ivory). Grid: warm-tuned `#E2E0DB`/`#F0EEED`. Scatter data: `#1A1A2E` deep ink, size 5, alpha 0.3.
+
+Flagship 6 model trace colors (deltaE-optimized warm/cool dichotomy):
+
+| Model | Color | Hex | Family |
+|-------|-------|-----|--------|
+| BM | Amber | `#C48209` | Warm |
+| PL | Navy | `#1B3352` | Cool |
+| QR | Burgundy | `#9B2244` | Warm |
+| EPPL | Teal | `#1F6B5C` | Cool |
+| HybPPL | Rust | `#A8431C` | Warm |
+| LPPL | Purple | `#7B3D9E` | Cool |
+
+Family variants inherit their master color. Non-flagship models use a muted secondary palette.
+
+### Heatmap CAGR presets
+
+4 presets: `rwg` (Red->White->Green), `rbg` (Red->Black->Green), `bwo` (Blue->White->Orange), `mono` (Grayscale). Default palette auto-selects: `default`->rwg, CB palettes->bwo. Auto-select fires on palette switch via clientside callback.
+
+### Display Models config panel
+
+Shared component `layout/display_models.py::display_models_panel(prefix, ...)` used by tabs 1/3/4/5. 4 model families have gear icons opening global config modals: BM (Bubble Model settings), LPPL (n_freqs/weighted/no13), HybPPL (slot A/B frequency/damping), EPPL (slot A/B). Heatmap (tab 2) has a pill bar + status row instead. 15 defunct `*-activate` placeholder checklists kept in `_serve_layout` for snapshot positional stability.
+
+### Quantile rendering
+
+Quantile traces use model-centric coloring (NOT thermal gradient — thermal pipeline removed 2026-04-12):
+- Trace lines: model color at `quantile_opacity(q)` — full at median, fading at extremes
+- Band fills: model color at `SHADE_ALPHA` (0.08 outer) / 0.15 (inner) via `_build_symmetric_bands`
+- Quantile panel dots: `DIM_TEXT` at `quantile_opacity(q)` alpha
 
 ---
 
@@ -953,19 +1033,28 @@ class ModelData:
 | `MAX_USD` | `4,294,967,295` | uint32 clamp for dollar inputs |
 | `SC_DEFAULT_RATE` | `13.0` | Stack-celerator default interest rate (%) |
 | `SC_DEFAULT_PRICE` | `80,000` | Stack-celerator default entry price ($) |
-| `BTC_ORANGE` | `#f7931a` | Bitcoin brand color |
 
-### `figures/` rendering constants
+Note: `BTC_ORANGE` moved to `colors.py`. `FONT_LEGEND` removed (now `CHART_FONT_LEGEND` in `colors.py`).
+
+### `colors.py` Section 5 — Appearance constants (single source of truth)
+
+All rendering constants now live in `btc_web/colors.py` Section 5. The old `figures/common.py` private constants (`_QR_LINE_WIDTH`, `_SHADE_ALPHA`, etc.) are backward-compat aliases that import from `colors.py`.
 
 | Constant | Value | Purpose |
 |----------|-------|---------|
-| `_QR_LINE_WIDTH` | `1.8` | Quantile trace line width |
-| `_SHADE_ALPHA` | `0.08` | Fill opacity between quantile bands |
-| `_WM_OPACITY` | `0.55` | Watermark opacity |
-| `_OVERLAP_LOG` | `0.12` | Annotation overlap threshold (log-decades) |
-| `_OVERLAP_FRAC` | `0.06` | Annotation overlap threshold (linear fraction) |
-| `_CONSOLIDATE_THRESHOLD` | `4` | Annotations per cluster before merging |
-| `_BISECT_ITERS` | `60` | Binary search iterations (SC Mode B) |
+| `TRACE_WIDTH` | `2.5` | Primary quantile trace line width |
+| `TRACE_WIDTH_OVERLAY` | `2.0` | Alt-model overlay line width |
+| `TRACE_WIDTH_COMPOSITE` | `2.0` | Bubble composite trace |
+| `TRACE_WIDTH_SUPPORT` | `1.5` | Bubble support trace |
+| `SHADE_ALPHA` | `0.08` | Outer quantile band fill alpha |
+| `WM_OPACITY` | `0.35` | Watermark opacity |
+| `LEGEND_BG_OPACITY` | `0.92` | Chart legend background alpha |
+| `PT_SIZE_DEFAULT` | `5` | Scatter data point size |
+| `PT_ALPHA_DEFAULT` | `0.3` | Scatter data point alpha |
+| `CHART_FONT_TITLE` | `15` | Chart title font size (mobile) |
+| `CHART_FONT_TITLE_LG` | `19` | Chart title font size (desktop) |
+
+See `colors.py` for the full list (~150 constants across 5 sections).
 
 ### `mc_cache.py` free tier
 

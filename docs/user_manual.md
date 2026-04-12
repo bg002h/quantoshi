@@ -46,9 +46,45 @@ address for additional privacy.
   price sits relative to each model.
 - **Sats/$ toggle**: Click the ticker mode button to switch between USD price
   and sats-per-dollar display.
-- **Palette selector**: Choose between Default, Deuteranomaly, Colorblind-RG
-  (red-green safe), and Colorblind-Full (fully colorblind-safe) color schemes.
-  Your choice is saved in `localStorage` and applies to all charts.
+- **Color palette**: Choose between Default, Deuteranomaly, Colorblind (R-G),
+  and Colorblind (Full) color schemes using the palette selector at the bottom
+  of each chart tab's control panel. Your choice is saved in `localStorage` and
+  applies to all charts, model trace colors, heatmap presets, and Display Models
+  swatches simultaneously.
+
+---
+
+## 1b. Visual Appearance
+
+### Color palette
+
+Quantoshi has 4 site-wide color palettes:
+
+- **Default** — full-color editorial palette with warm/cool model traces on ivory background
+- **Deuteranomaly** — hand-tuned for red-green color deficiency (Brian's profile)
+- **Colorblind (R-G)** — classic red/green-safe palette (Okabe-Ito inspired)
+- **Colorblind (Full)** — near-monochromatic, luminance-only discrimination
+
+Switch palettes using the selector at the bottom of any chart tab's control panel. Your choice persists across sessions. Switching palettes automatically:
+- Updates all model trace colors and Display Models swatches
+- Switches the heatmap CAGR preset (red/green for Default, blue/orange for CB palettes)
+- Updates chart grid and scatter point styling
+
+### Chart reading guide
+
+- **Model traces**: Solid colored lines at varying opacity. Median (Q50%) is full opacity; extreme quantiles fade. Each model has a unique color in the palette.
+- **Quantile bands**: Semi-transparent shaded regions between quantile pairs (inner/outer). Color matches the owning model.
+- **Scatter data points**: Small semi-transparent dots showing historical BTC daily closes. Dense clusters appear darker due to overlapping transparency.
+- **Grid lines**: Faint warm-gray lines for reference. Log-scale charts have denser minor gridlines.
+- **Watermark**: Small "quantoshi.xyz" logo + text in the chart's lower-right corner.
+
+### Display Models
+
+The "Display Models" section in each tab's controls lets you toggle which price models appear on the chart. Models with a gear icon have configurable options (click the gear to open the configuration modal). The triangle in each modal header links to the model's entry on the Model Info tab.
+
+### Plot Appearance
+
+The "Plot Appearance" panel at the bottom of tab 1's controls lets you customize trace width, grid colors, grid line widths, and data point color. Changes are stored in localStorage and apply across all chart tabs. Click "Reset" to restore defaults.
 
 ---
 

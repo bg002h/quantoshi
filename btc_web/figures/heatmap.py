@@ -25,6 +25,7 @@ from figures.common import (
     _lerp_hex, _dense_colorscale, _hex_alpha,
     _apply_config_annotation, _apply_watermark,
     _apply_mc_premium, _apply_mc_xlabel,
+    quantile_opacity,
 )
 
 
@@ -559,8 +560,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 peak_dates.append(f"{yr + s_max * fwd_n / _total_steps:.1f}")
                 trough_dates.append(f"{yr + s_min * fwd_n / _total_steps:.1f}")
 
-            _dist = abs(q - 0.5) / 0.45
-            _q_opacity = max(0.1, 1.0 - _dist * 0.5)
+            _q_opacity = quantile_opacity(q)
             q_pct = q * 100
             q_lbl = f"Q{q_pct:.4g}%" if q_pct >= 1 else f"Q{q_pct:.3g}%"
             lbl = f"{model.legend_name} {q_lbl}" if len(qs_to_plot) > 1 else model.legend_name

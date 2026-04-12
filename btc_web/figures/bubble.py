@@ -32,6 +32,7 @@ from figures.common import (
     _HOVER_FMT_USD,
     _lerp_hex, _hex_alpha, _build_symmetric_bands,
     _round_trace_data,
+    quantile_opacity,
 )
 
 
@@ -124,9 +125,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             lbl = _fmt_q_label(q) + _r2_suffix(model, q)
             if stack > 0:
                 lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
-            # Opacity: Q50% = 1.0, Q5%/Q95% = 0.5, extrapolated beyond
-            _dist = abs(q - 0.5) / 0.45  # 0 at Q50%, 1.0 at Q5%/Q95%
-            _q_opacity = max(0.1, 1.0 - _dist * 0.5)  # floor at 0.1
+            _q_opacity = quantile_opacity(q)
             if _fallback_q50 and _default_mode:
                 _q_opacity = _app_ctx.FALLBACK_Q50_OPACITY
             traces.append(go.Scatter(
@@ -186,9 +185,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 lbl = f"{mdl.legend_name} {_fmt_q_label(q, '')}" + _r2_suffix(mdl, q)
                 if stack > 0:
                     lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
-                # Opacity: Q50% = 1.0, Q5%/Q95% = 0.5, extrapolated
-                _dist = abs(q - 0.5) / 0.45
-                _q_opacity = max(0.1, 1.0 - _dist * 0.5)
+                _q_opacity = quantile_opacity(q)
                 _lw = 3.0 if (model_key == "u1" and hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005) else _OVERLAY_LINE_WIDTH
                 traces.append(go.Scatter(
                     x=list(t_arr), y=list(prices),

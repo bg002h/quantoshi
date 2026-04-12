@@ -24,6 +24,7 @@ from figures.common import (
     _finalize_chart, _fmt_short, _mc_median_annot,
     _resolve_edge_annotations,
     build_overlay_traces, _build_symmetric_bands,
+    quantile_opacity,
 )
 
 
@@ -78,9 +79,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
         all_y_vals[q] = y_vals
 
         if show_bm:
-            # Palette-aware color with opacity scaling (Q50% = 1.0, Q5%/Q95% = 0.5)
-            _dist = abs(q - 0.5) / 0.45
-            _q_opacity = max(0.1, 1.0 - _dist * 0.5)
+            _q_opacity = quantile_opacity(q)
             lbl = f"{model.legend_name} {_fmt_q_label(q, '')}" + f"  \u2192  {final_lbl}"
             _bm_trace_traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines", name=lbl,

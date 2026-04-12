@@ -39,6 +39,7 @@ from colors import (
     SHADE_ALPHA as _CSA,
     WM_OPACITY as _CWO, WM_SIZE_X as _CWSX, WM_SIZE_Y as _CWSY,
     CHART_MARGIN,
+    Q_OPACITY_FLOOR, Q_OPACITY_RANGE, Q_OPACITY_DECAY,
 )
 _HAS_MARKOV = _app_ctx._HAS_MARKOV
 
@@ -57,6 +58,11 @@ _q3_trace = _app_ctx._q3
 def _round_trace_data(arr):
     """Round array to 3 sig figs for bandwidth savings. Passes through 0/None/NaN."""
     return [_q3_trace(v) if v and v == v else v for v in arr]
+
+
+def quantile_opacity(q: float) -> float:
+    """Quantile-dependent line opacity: 1.0 at Q50, fading toward floor at extremes."""
+    return max(Q_OPACITY_FLOOR, 1.0 - abs(q - 0.5) / Q_OPACITY_RANGE * Q_OPACITY_DECAY)
 
 
 # ── shared constants ─────────────────────────────────────────────────────────
@@ -1204,9 +1210,7 @@ def build_overlay_traces(
                     y_vals = vals
                     final_lbl = f"{float(vals[-1]):.4f} BTC"
                 _y_cache[q] = y_vals
-                # Opacity: Q50% = 1.0, Q5%/Q95% = 0.5, extrapolated
-                _dist = abs(q - 0.5) / 0.45
-                _q_opacity = max(0.1, 1.0 - _dist * 0.5)
+                _q_opacity = quantile_opacity(q)
                 _model_lines.append(go.Scatter(
                     x=list(ts), y=list(y_vals), mode="lines",
                     name=f"{mdl.legend_name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",

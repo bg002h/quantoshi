@@ -27,6 +27,7 @@ from figures.common import (
     _build_symmetric_bands,
 
     FREQ_PPY,
+    quantile_opacity,
 )
 
 
@@ -148,8 +149,7 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, l
             final_sc  = f"{float(sc_vals[-1]):.4f} BTC  ({final_usd})"
 
         lbl_sc = f"{model.legend_name} SC {_fmt_q_label(q, '')}" + f"  \u2192  {final_sc}"
-        _dist = abs(q - 0.5) / 0.45
-        _q_opacity = max(0.1, 1.0 - _dist * 0.5)
+        _q_opacity = quantile_opacity(q)
         sc_traces.append(go.Scatter(
             x=list(ts), y=list(y_sc), mode="lines", name=lbl_sc,
             line=dict(color=_bm_color, width=_QR_LINE_WIDTH, dash="dash", shape=line_shape),
@@ -217,8 +217,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
 
             _y_for_bands[q] = y_vals
             lbl = f"{model.legend_name} {_fmt_q_label(q, '')}" + f"  \u2192  {final_lbl}"
-            _dist = abs(q - 0.5) / 0.45
-            _q_opacity = max(0.1, 1.0 - _dist * 0.5)
+            _q_opacity = quantile_opacity(q)
             _bm_line_traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines", name=lbl,
                 line=dict(color=_bm_color, width=_QR_LINE_WIDTH, shape=_line_shape),

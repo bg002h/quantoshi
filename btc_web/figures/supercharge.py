@@ -27,6 +27,7 @@ from figures.common import (
     _resolve_edge_annotations,
     _hex_alpha,
     _resolve_model,
+    quantile_opacity,
 )
 
 _DASH_STYLES  = ['solid', 'dash', 'dot', 'dashdot', 'longdash']
@@ -199,10 +200,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     if key not in results:
                         continue
                     ts_d, y_vals, depl_t, t_start_d, *_ = results[key]
-                    # Single model color, opacity by distance from Q50%.
-                    # Quantile differentiation via opacity, delay via dash style.
-                    _dist = abs(q - 0.5) / 0.45
-                    _q_opacity = max(0.1, 1.0 - _dist * 0.5)
+                    _q_opacity = quantile_opacity(q)
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
                         name=_legend_name,
@@ -560,8 +558,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
         q_range = _fmt_q_range(sel_qs)
         grp = f"{model.short_name}-b1"
         for qi, q in enumerate(sel_qs):
-            _dist = abs(q - 0.5) / 0.45
-            _q_opacity = max(0.1, 1.0 - _dist * 0.5)
+            _q_opacity = quantile_opacity(q)
             y_q   = [max_wd.get((d, q), 0) for d in delays]
             traces.append(go.Scatter(
                 x=delays, y=y_q, mode="lines+markers",

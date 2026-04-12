@@ -10,9 +10,9 @@
     --nav-darker: var(--qs-nav-darker);
     --nav-lighter: var(--qs-nav-lighter);
     /* UI typography — distinctive system fonts */
-    --font-ui: "Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, sans-serif;
+    --font-ui: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
     --font-mono: "SF Mono", "Cascadia Code", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
-    --font-brand: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --font-brand: 'DM Serif Display', Georgia, serif;
 }
 
 /* Light theme base */
@@ -26,13 +26,11 @@ body {
 /* ── #1: Navbar gradient with subtle dot texture ─────────────────────────── */
 .navbar {
     background:
-        radial-gradient(circle, var(--qs-white-a3) 1px, transparent 1px),
         linear-gradient(135deg, var(--nav-darker) 0%, var(--nav-dark) 50%, var(--nav-lighter) 100%) !important;
-    background-size: 8px 8px, 100% 100%;
     overflow: visible !important;
     z-index: 1040;
     position: relative;
-    border-radius: 10px;
+    border-radius: 4px;
 }
 
 /* Tab bar */
@@ -40,7 +38,7 @@ body {
     background-color: var(--nav-dark) !important;
     border-bottom: none !important;
     padding: 4px 8px 0;
-    border-radius: 10px;
+    border-radius: 4px;
     margin-top: 4px;
 }
 .nav-tabs .nav-link {
@@ -80,12 +78,10 @@ body {
     background: var(--qs-bootstrap-light-bg) !important;
     transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease,
                 border-left-color 0.2s ease, border-left-width 0.2s ease;
-    border-radius: 8px !important;
+    border-radius: 4px !important;
 }
 .ctrl-card:hover {
-    box-shadow: 0 2px 8px var(--qs-black-a10);
     border-color: var(--qs-ctrl-card-hover-border) !important;
-    transform: translateY(-1px);
 }
 /* Active state indicator — orange left border when a control is checked */
 .ctrl-card:has(input[type="checkbox"]:checked),
@@ -164,14 +160,15 @@ body {
 /* ── #8: Better typography hierarchy — section headers ────────────────────── */
 .form-label { font-size: 11px; color: var(--qs-body-text-secondary); margin-bottom: 2px !important; font-family: var(--font-ui); }
 .ctrl-section-header {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--qs-lot-marker-outline);
-    margin-bottom: 4px;
-    padding-bottom: 2px;
-    border-bottom: 1px solid var(--qs-progress-track);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #555;
+    border-bottom: 1px solid var(--qs-grid-major-color, #E2E0DB);
+    padding-bottom: 4px;
+    margin-bottom: 6px;
     font-family: var(--font-ui);
-    letter-spacing: 0.02em;
 }
 /* Model-panel header: icon/title on the left, activate/action widgets on the right */
 .model-panel-header {
@@ -209,7 +206,7 @@ body {
 .export-row-polished {
     background: var(--qs-sidebar-bg);
     border: 1px solid var(--qs-bootstrap-border);
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 6px 10px;
     margin-top: 4px;
 }
@@ -230,7 +227,7 @@ body {
 .form-check-label { font-size: 12px; }
 
 /* Graph container — no excess padding, rounded corners */
-.js-plotly-plot { width: 100%; border-radius: 8px; overflow: hidden; }
+.js-plotly-plot { width: 100%; border-radius: 4px; overflow: hidden; }
 
 /* ── #10: Controls column — visible drawer frame ─────────────────────────── */
 .controls-col {
@@ -268,7 +265,7 @@ body {
     width: auto; height: auto;
     z-index: 10001;
     cursor: zoom-out;
-    border-radius: 8px;
+    border-radius: 4px;
     box-shadow: 0 0 40px var(--qs-black-a50);
 }
 .faq-overlay {
@@ -768,7 +765,7 @@ body {
     color: var(--btc-orange);
     background: var(--qs-btc-orange-a12);
     padding: 2px 6px;
-    border-radius: 8px;
+    border-radius: 4px;
     border: 1px solid var(--qs-btc-orange-a30);
     margin-left: -12px;
     margin-top: -8px;
@@ -1566,7 +1563,7 @@ body {
 /* ── Draw mode: chart border glow ────────────────────────────────────────── */
 .draw-mode-active {
     box-shadow: inset 0 0 0 2px var(--qs-user-orange-a50) !important;
-    border-radius: 8px;
+    border-radius: 4px;
 }
 
 /* ── Draw confirm/model menus: mobile responsive ─────────────────────────── */

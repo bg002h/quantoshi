@@ -24,7 +24,7 @@ Spec: docs/superpowers/specs/2026-04-10-color-centralization-design.md
 
 # ── Brand identity ────────────────────────────────────────────────
 BTC_ORANGE          = "#f7931a"   # Bitcoin canonical orange
-QUANTOSHI_TITLE     = "#1A3060"   # navbar wordmark / chart titles (alias of TITLE_COLOR)
+QUANTOSHI_TITLE     = "#162D50"   # navbar wordmark / chart titles (alias of TITLE_COLOR)
 QUANTOSHI_NAVY      = "#0a1929"   # navbar background
 
 # ── Status / semantic ──────────────────────────────────────────────
@@ -37,8 +37,8 @@ INFO_BLUE           = "#1976d2"
 MODAL_BG            = "#FFFFFF"
 DRAWER_BG           = "#F5F5F5"
 SECTION_CARD_BG     = "#FAFAFA"
-FOCUS_RING          = "#1a6fa8"
-LINK                = "#1a6fa8"
+FOCUS_RING          = "#2563AA"
+LINK                = "#2563AA"
 
 # ── Static SVG generation (api.py shareable badges) ───────────────
 SVG_BADGE_BG        = "#1a3060"
@@ -46,14 +46,14 @@ SVG_BADGE_TEXT      = "#ffffff"
 
 # ── Chart theme (palette-invariant — also re-exported from theme.py) ──
 # These KEEP THEIR ORIGINAL NAMES for zero-breakage on existing importers.
-PLOT_BG_COLOR       = "#F8F5EE"   # cream paper — editorial feel, not "default Plotly"
-TEXT_COLOR          = "#222222"
-TITLE_COLOR         = "#1A3060"
-SPINE_COLOR         = "#C0BDB4"   # warm-tuned to match cream bg
-GRID_MAJOR_COLOR    = "#E0DDD4"   # warm gray, recedes behind data (was #888888)
-GRID_MINOR_COLOR    = "#EFEDE5"   # barely visible, log-scale reference (was #B0B0B0)
+PLOT_BG_COLOR       = "#FAF9F6"   # cooler ivory — editorial feel, not "default Plotly"
+TEXT_COLOR          = "#1E1E1E"
+TITLE_COLOR         = "#162D50"
+SPINE_COLOR         = "#BCB9B0"   # warm-tuned to match ivory bg
+GRID_MAJOR_COLOR    = "#E2E0DB"   # warm gray, recedes behind data (was #888888)
+GRID_MINOR_COLOR    = "#F0EEED"   # barely visible, log-scale reference (was #B0B0B0)
 FALLBACK_MODEL_GRAY = "#888888"
-SCATTER_POINT       = "#1F2937"   # deep slate-navy ink; "newspaper ink on cream paper"
+SCATTER_POINT       = "#1A1A2E"   # deep slate-navy ink; "newspaper ink on ivory paper"
 
 # ── Additional palette-invariant chart constants ───────────────────
 BLACK               = "#000000"   # default band/line color
@@ -65,7 +65,7 @@ SPINE_COLOR_FALLBACK = "#999999"  # lighter border fallback (≈ #999)
 THERMAL_NEUTRAL     = "#bdbdbd"   # thermal scale midpoint (Q50)
 HM_DEFAULT_RED      = "#d32f2f"   # CAGR heatmap loss (rwg/rbg presets)
 HM_DEFAULT_GREEN    = "#2e7d32"   # CAGR heatmap gain (rwg/rbg presets)
-TODAY_LINE_COLOR    = "#FF6600"   # today vertical line default (matches palette today_line)
+TODAY_LINE_COLOR    = "#F7931A"   # today vertical line default — unified with BTC orange
 NON_QUANTIZED_MODEL_COLOR = "#8B4513"  # saddlebrown — single-trajectory models
 
 # ── UI text hierarchy ────────────────────────────────────────────────
@@ -247,27 +247,27 @@ CITADEL_OVERLAY_COLORS = {
 DEFAULT = {
     "model_colors": {
         # ── Flagship 6 — editorial warm/cool dichotomy ──────────────────
-        "bub":    "#C8960C",  # amber gold (the flagship)
-        "pl":     "#1E3A5F",  # deep slate navy
-        "qr":     "#8B1E3F",  # burgundy / bordeaux
-        "eppl":   "#2C6B5F",  # forest teal
-        "hybppl": "#B8621B",  # burnt sienna
-        "lppl":   "#4B2C5E",  # aubergine / deep plum
+        "bub":    "#D4890A",  # amber gold (the flagship) — +saturation
+        "pl":     "#1B3352",  # deep slate navy — +saturation
+        "qr":     "#9B2244",  # burgundy / bordeaux — +saturation
+        "eppl":   "#1F6B5C",  # forest teal — +saturation
+        "hybppl": "#C4571A",  # burnt sienna — +saturation
+        "lppl":   "#5E3076",  # aubergine / deep plum — +saturation
         # ── LPPL family variants inherit master ─────────────────────────
-        "lp2": "#4B2C5E", "lp3": "#4B2C5E", "lp4": "#4B2C5E",
+        "lp2": "#5E3076", "lp3": "#5E3076", "lp4": "#5E3076",
         # ── HybPPL family variants inherit master ───────────────────────
-        "linppl": "#B8621B", "hybppl_dd": "#B8621B",
-        "hyb2l": "#B8621B", "hyb2c": "#B8621B",
-        "hyb2b": "#B8621B", "hyb4d": "#B8621B",
+        "linppl": "#C4571A", "hybppl_dd": "#C4571A",
+        "hyb2l": "#C4571A", "hyb2c": "#C4571A",
+        "hyb2b": "#C4571A", "hyb4d": "#C4571A",
         # ── Secondary models (muted, stay out of the way) ──────────────
-        "pca":  "#3E2D54",  # darker aubergine
-        "grdy": "#1C4052",  # darker slate
+        "pca":  "#4A2660",  # darker aubergine
+        "grdy": "#163D4C",  # darker slate
         "ef":   "#6B5B95",  # muted violet
         "exp":  "#8A8A8A",  # neutral gray (display-only demo)
         "s2f":  "#9B7E46",  # antique brass
         "gomp": "#2D5F4E",  # pine
         "bpl":  "#7F4F2A",  # walnut
-        "u1":   "#1F2937",  # matches scatter ink — user's own hand
+        "u1":   "#1A1A2E",  # matches scatter ink — user's own hand
     },
     "thermal_stops": [
         (0.001, "#0d47a1"), (0.01, "#1565c0"), (0.015, "#1976d2"),
@@ -278,7 +278,7 @@ DEFAULT = {
     "non_quantized_model": "#8B4513",
     "delay_colors": ["#00c853", "#fdd835", "#ff9100", "#ff5252", "#b71c1c"],
     "annot_colors": ["#00a844", "#d4b12e", "#e07d00", "#d44040", "#8f1616"],
-    "today_line": "#FF6600",
+    "today_line": "#F7931A",
     "hm_c_lo": "#2166AC", "hm_c_mid1": "#F7F7F7",
     "hm_c_mid2": "#FF8C00", "hm_c_hi": "#CC1100",
     "hm_loss_text": "#ff8a80", "hm_exceptional_text": "#ffd700",
@@ -541,7 +541,7 @@ __skip_export__ = frozenset({
     # Complex structured values — not useful as individual CSS variables.
     "HM_PRESET_PALETTES",
     # Font stacks — exported via __appearance_export__, not as CSS vars.
-    "FONT_SANS", "FONT_BRAND", "FONT_MONO", "FONT_MONO_CODE", "FONT_CONDENSED",
+    "FONT_SANS", "FONT_BRAND", "FONT_MONO", "FONT_CONDENSED",
     # UI font size strings — not color values, don't belong in QS_COLORS/CSS vars.
     "UI_FONT_XS", "UI_FONT_SM", "UI_FONT_MD", "UI_FONT_BASE",
     "UI_FONT_LG", "UI_FONT_XL", "UI_FONT_XXL", "UI_FONT_HEADING",
@@ -570,23 +570,22 @@ def _hex_alpha(hex_color: str, alpha: float) -> str:
 
 # ── Font stacks ──────────────────────────────────────────────────────
 # Python/JS authoritative; CSS uses --font-brand etc. in style.css.
-FONT_SANS      = "Avenir Next, Avenir, Segoe UI, system-ui, -apple-system, sans-serif"
-FONT_BRAND     = "Palatino Linotype, Palatino, Book Antiqua, serif"
+FONT_SANS      = "Inter, 'Segoe UI', system-ui, -apple-system, sans-serif"
+FONT_BRAND     = "'DM Serif Display', Georgia, serif"
 FONT_MONO      = "'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace"
-FONT_MONO_CODE = "'Courier New', Courier, monospace"
-FONT_CONDENSED = "Arial Narrow, sans-serif-condensed, sans-serif"
+FONT_CONDENSED = "Inter, 'Arial Narrow', sans-serif"
 
 # ── Chart font sizes (base / mobile) — int values for Plotly layout.font.size ──
-CHART_FONT_TITLE      = 14
+CHART_FONT_TITLE      = 15
 CHART_FONT_SUBTITLE   = 13
-CHART_FONT_BODY       = 11
+CHART_FONT_BODY       = 12
 CHART_FONT_LEGEND     = 10
 CHART_FONT_WATERMARK  = 9
 CHART_FONT_ANNOT      = 11
 
 # ── Chart font sizes (desktop / LG) — applied via _apply_sans_typography ──
-CHART_FONT_TITLE_LG      = 17
-CHART_FONT_BODY_LG       = 13
+CHART_FONT_TITLE_LG      = 19
+CHART_FONT_BODY_LG       = 14
 CHART_FONT_TICK_LG       = 12
 CHART_FONT_LEGEND_LG     = 11
 CHART_FONT_ANNOT_LG      = 12
@@ -616,7 +615,7 @@ DESKTOP_TRACE_MULT      = 1.5       # JS chart_responsive.js multiplier
 DESKTOP_GRID_MULT       = 1.5       # JS chart_responsive.js multiplier
 
 # ── Point / marker sizes ────────────────────────────────────────────
-PT_SIZE_DEFAULT         = 4         # default scatter point size
+PT_SIZE_DEFAULT         = 5         # default scatter point size
 PT_ALPHA_DEFAULT        = 0.3       # default scatter point alpha
 MARKER_SIZE_SM          = 6
 MARKER_SIZE_MD          = 7
@@ -627,10 +626,10 @@ MARKER_SIZE_HIGHLIGHT   = 12
 SHADE_ALPHA             = 0.08      # fill between adjacent quantile lines
 TODAY_LINE_OPACITY      = 0.85
 TODAY_GLOW_OPACITY      = 0.12
-WM_OPACITY              = 0.55      # watermark logo opacity
-WM_SIZE_X               = 0.09      # watermark logo width  (fraction of paper)
-WM_SIZE_Y               = 0.12      # watermark logo height (fraction of paper)
-LEGEND_BG_OPACITY       = 0.85
+WM_OPACITY              = 0.35      # watermark logo opacity
+WM_SIZE_X               = 0.07      # watermark logo width  (fraction of paper)
+WM_SIZE_Y               = 0.10      # watermark logo height (fraction of paper)
+LEGEND_BG_OPACITY       = 0.92
 
 # ── Quantile opacity formula parameters (function in figures/common.py) ──
 Q_OPACITY_FLOOR         = 0.1
@@ -638,7 +637,7 @@ Q_OPACITY_RANGE         = 0.45
 Q_OPACITY_DECAY         = 0.5
 
 # ── Chart margins ────────────────────────────────────────────────────
-CHART_MARGIN    = dict(l=5, r=20, t=50, b=30, autoexpand=False)
+CHART_MARGIN    = dict(l=10, r=25, t=55, b=35, autoexpand=False)
 CHART_MARGIN_HM = dict(l=40, r=8, t=40, b=32)
 
 # ── Appearance export set ────────────────────────────────────────────

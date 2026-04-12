@@ -10,7 +10,7 @@ from tab_defaults import BUBBLE
 from colors import (
     USER_MODEL_TRACE, FALLBACK_MODEL_GRAY,
     DIM_TEXT, BOOTSTRAP_LIGHT_BG,
-    _hex_alpha, FONT_MONO_CODE,
+    _hex_alpha, FONT_MONO,
     UI_FONT_XS, UI_FONT_SM, UI_FONT_MD, UI_FONT_BASE,
 )
 from layout.common import (_tab_hints, _section_card, _row, _lbl,
@@ -108,7 +108,7 @@ def _bubble_controls():
                      style={"fontSize": UI_FONT_SM, "marginTop": "4px",
                             "marginBottom": "6px", "padding": "6px",
                             "background": BOOTSTRAP_LIGHT_BG, "borderRadius": "4px",
-                            "wordBreak": "break-word", "fontFamily": FONT_MONO_CODE}),
+                            "wordBreak": "break-word", "fontFamily": FONT_MONO}),
             html.Div(id="bub-decomp-body", style=_STYLE_HIDDEN, children=[
                 dcc.Checklist(
                     id="bub-decomp-components",

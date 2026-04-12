@@ -222,39 +222,7 @@ def _ctrl_card(*children):
     return dbc.Card(dbc.CardBody(list(children), className="p-2"),
                     className="mb-2 ctrl-card")
 
-_SECTION_ICONS = {
-    # Shared chart-tab sections
-    "Axes & Range": "\U0001F4D0",            # 📐
-    "Display": "\U0001F3A8",                 # 🎨
-    "Projection Quantiles": "\U0001F4C9",    # 📉
-    "Model Scanner": "\U0001F50D",           # 🔍
-    "Data Point Appearance": "\u2728",       # ✨
-    "User Model (U\u2081)": "\U0001F3AF",    # 🎯
-    # Model-config panels
-    "Bubble Model": "\U0001F4CA",            # 📊
-    "Model Component Decomposition": "\U0001F9EC", # 🧬
-    "LPPL Models": "\U0001F30A",             # 🌊
-    "Hybrid PPL Models": "\U0001F39B\uFE0F",  # 🎛️
-    "Monte Carlo Simulation": "\U0001F3B2",  # 🎲
-    "Saved Simulation": "\U0001F4BE",        # 💾
-    # Citadel tab
-    "Chart Settings": "\u2699\uFE0F",        # ⚙️
-    "Plan": "\U0001F5D3\uFE0F",              # 🗓️
-    "Your Scenario": "\u2699\uFE0F",         # ⚙️
-    "Bitcoin Stack": "\u20BF",               # ₿
-    "Stack (BTC)": "\u20BF",                 # ₿
-    "Starting Stack": "\U0001F4E6",          # 📦 (legacy key)
-    "Cash Account": "\U0001F4B5",            # 💵
-    "Reserve Fund \u2014 US Treasuries": "\U0001F3DB\uFE0F",  # 🏛️
-    "Investment Account": "\U0001F4C8",      # 📈
-    "Monthly Spending": "\U0001F4B8",        # 💸
-    "Account Floor Rules": "\U0001F6E1\uFE0F",  # 🛡️
-    "Global Lump Cooldown": "\u23F1\uFE0F",  # ⏱️
-    "Saylor Citadel Fortifier": "\U0001F3F0", # 🏰
-    # Stack tracker
-    "Add Lot": "\u2795",                     # ➕
-    "Export / Import": "\U0001F4C1",         # 📁
-}
+_SECTION_ICONS = {}  # Emptied in brand overhaul — no emoji prefixes on section headers
 
 def _section_card(title: str, *children, header_right=None, no_hover=False):
     """Control card with a section header title and optional icon.

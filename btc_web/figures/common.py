@@ -28,7 +28,7 @@ from colors import (
     WATERMARK_TEXT_COLOR,
     _hex_alpha,
     # ── Section 5: appearance constants (Phase 3 consolidation) ──
-    FONT_SANS,
+    FONT_SANS, FONT_BRAND,
     CHART_FONT_TITLE, CHART_FONT_SUBTITLE, CHART_FONT_BODY,
     CHART_FONT_LEGEND, CHART_FONT_WATERMARK, CHART_FONT_ANNOT,
     CHART_FONT_TITLE_LG, CHART_FONT_BODY_LG, CHART_FONT_TICK_LG,
@@ -76,6 +76,7 @@ _TODAY_LINE_COLOR  = _COLORS_TODAY_LINE
 # ── Backward-compat aliases (callers import these underscore names) ──────
 # TODO: Phase 4+ — migrate callers to import directly from colors.py, then delete aliases
 _SANS_FONT          = FONT_SANS
+_BRAND_FONT         = FONT_BRAND
 _FONT_TITLE         = CHART_FONT_TITLE
 _FONT_SUBTITLE      = CHART_FONT_SUBTITLE
 _FONT_BODY          = CHART_FONT_BODY
@@ -333,7 +334,11 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
     so all charts have a cohesive look.
     """
     return dict(
-        title=dict(text=title, font=dict(family=_SANS_FONT, color=theme.TITLE_COLOR, size=_FONT_TITLE)),
+        title=dict(
+            text=title,
+            font=dict(family=_BRAND_FONT, color=theme.TITLE_COLOR, size=_FONT_TITLE),
+            x=0.02, xanchor="left",
+        ),
         paper_bgcolor=theme.PLOT_BG_COLOR,
         plot_bgcolor=theme.PLOT_BG_COLOR,
         font=dict(family=_SANS_FONT, color=theme.TEXT_COLOR, size=_FONT_BODY),
@@ -358,8 +363,9 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
             ticklabeloverflow="allow",
         ),
         legend=dict(
-            bgcolor=_hex_alpha(_COLORS_PLOT_BG, LEGEND_BG_OPACITY), bordercolor=theme.GRID_MAJOR_COLOR,
-            borderwidth=1, font=dict(family=_SANS_FONT, size=_FONT_LEGEND),
+            bgcolor=_hex_alpha(_COLORS_PLOT_BG, LEGEND_BG_OPACITY),
+            bordercolor="rgba(0,0,0,0)",
+            borderwidth=0, font=dict(family=_SANS_FONT, size=_FONT_LEGEND),
         ),
         margin=dict(**CHART_MARGIN),
         **kwargs,

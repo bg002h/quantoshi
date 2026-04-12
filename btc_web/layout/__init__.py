@@ -46,7 +46,7 @@ from colors import (
     WHITE, FALLBACK_MODEL_GRAY,
     CODE_BG, DIM_TEXT, MUTED_TEXT, SPLASH_BRAND_DARK, KNIGHT_GOLD,
     BLACK, _hex_alpha,
-    FONT_BRAND, FONT_MONO, FONT_MONO_CODE,
+    FONT_BRAND, FONT_MONO,
     UI_FONT_XS, UI_FONT_SM, UI_FONT_MD, UI_FONT_BASE,
     UI_FONT_LG, UI_FONT_XL, UI_FONT_XXL, UI_FONT_HEADING,
 )
@@ -66,6 +66,9 @@ _app_ctx.app.index_string = """<!DOCTYPE html>
         {%metas%}
         <title>{%title%}</title>
         <link rel="icon" type="image/png" href="/assets/quantoshi_favicon.png">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
         {%css%}
         <script>
   (function() {
@@ -329,7 +332,7 @@ def _build_layout(initial_tab="bubble"):
                                      "display": "block", "padding": "8px",
                                      "backgroundColor": CODE_BG,
                                      "borderRadius": "4px",
-                                     "fontFamily": FONT_MONO_CODE,
+                                     "fontFamily": FONT_MONO,
                                      "userSelect": "all", "lineHeight": "1.4",
                                      "maxHeight": "80px", "overflow": "auto"}),
                     dbc.Button("Copy", id="mc-pay-copy-btn", size="sm",
@@ -363,7 +366,7 @@ def _build_layout(initial_tab="bubble"):
                    style={**_QUANT_FONT, "fontSize": "15px", "lineHeight": "1.6",
                           "textAlign": "center"}),
             html.P(id="mc-quant-cost-info",
-                   style={"fontFamily": FONT_MONO_CODE,
+                   style={"fontFamily": FONT_MONO,
                           "fontSize": UI_FONT_XL, "color": DIM_TEXT, "textAlign": "center",
                           "letterSpacing": "1px"}),
             html.P("Are you sure you want to continue?",
@@ -673,21 +676,21 @@ def _build_layout(initial_tab="bubble"):
         ),
     ], id="share-modal", is_open=False, size="lg", scrollable=True),
     dbc.Tabs([
-        dbc.Tab(_bubble_tab(),       label="\U0001F4C8 Price & Model Overlays", tab_id="bubble"),
-        dbc.Tab(_heatmap_tab(),      label="\U0001F525 CAGR Heatmap",        tab_id="heatmap"),
-        dbc.Tab(_dca_tab(),          label="\U0001F4B0 BTC Accumulator",     tab_id="dca"),
-        dbc.Tab(_retire_tab(),       label="\U0001F3D6\uFE0F BTC RetireMentator",  tab_id="retire"),
-        dbc.Tab(_supercharge_tab(),  label="\u26A1 HODL Supercharger",   tab_id="supercharge"),
+        dbc.Tab(_bubble_tab(),       label="Price Models", tab_id="bubble"),
+        dbc.Tab(_heatmap_tab(),      label="Heatmap",        tab_id="heatmap"),
+        dbc.Tab(_dca_tab(),          label="Accumulator",     tab_id="dca"),
+        dbc.Tab(_retire_tab(),       label="RetireMentator",  tab_id="retire"),
+        dbc.Tab(_supercharge_tab(),  label="Supercharger",   tab_id="supercharge"),
         dbc.Tab(html.Div(id="citadel-lazy", children=[
             html.P("Loading...", className="text-muted p-4")
-        ]), label="\U0001F3F0 Citadel Planner", tab_id="citadel"),
-        dbc.Tab(_stack_tracker_tab(),label="\U0001F5DD\uFE0F Stack Tracker",       tab_id="stack"),
+        ]), label="Citadel", tab_id="citadel"),
+        dbc.Tab(_stack_tracker_tab(),label="Stack",       tab_id="stack"),
         dbc.Tab(html.Div(id="model-info-lazy", children=[
             html.P("Loading...", className="text-muted p-4")
-        ]), label="\U0001F4D0 Model Info", tab_id="model_info"),
+        ]), label="Model Info", tab_id="model_info"),
         dbc.Tab(html.Div(id="faq-lazy", children=[
             html.P("Loading...", className="text-muted p-4")
-        ]), label="\u2753 FAQ", tab_id="faq"),
+        ]), label="FAQ", tab_id="faq"),
     ], id="main-tabs", active_tab=initial_tab),
     _global_lppl_modal(),
     _global_hybppl_modal(),
@@ -709,5 +712,5 @@ def _build_layout(initial_tab="bubble"):
     ], className="site-footer",
        style={"textAlign": "center", "fontSize": UI_FONT_MD,
               "color": _hex_alpha(BLACK, 0.35), "padding": "10px 0 14px",
-              "fontFamily": FONT_MONO_CODE, "letterSpacing": "0.5px"}),
+              "fontFamily": FONT_MONO, "letterSpacing": "0.5px"}),
 ], fluid=True, className="px-2 py-1")

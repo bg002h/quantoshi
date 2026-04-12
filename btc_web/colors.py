@@ -538,6 +538,13 @@ MC_OVERLAY_A65      = "rgba(64,64,64,0.65)"     # mc-chart-overlay gray
 __skip_export__ = frozenset({
     # Complex structured values — not useful as individual CSS variables.
     "HM_PRESET_PALETTES",
+    # Font stacks — exported via __appearance_export__, not as CSS vars.
+    "FONT_SANS", "FONT_BRAND", "FONT_MONO", "FONT_MONO_CODE", "FONT_CONDENSED",
+    # UI font size strings — not color values, don't belong in QS_COLORS/CSS vars.
+    "UI_FONT_XS", "UI_FONT_SM", "UI_FONT_MD", "UI_FONT_BASE",
+    "UI_FONT_LG", "UI_FONT_XL", "UI_FONT_XXL", "UI_FONT_HEADING",
+    # Chart margins — dict values, not useful as CSS vars.
+    "CHART_MARGIN", "CHART_MARGIN_HM",
 })
 
 
@@ -550,3 +557,96 @@ def _hex_alpha(hex_color: str, alpha: float) -> str:
     h = hex_color.lstrip("#")
     r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
     return f"rgba({r},{g},{b},{alpha})"
+
+
+# ════════════════════════════════════════════════════════════════════
+# SECTION 5 — Appearance constants (fonts, sizes, widths, opacities)
+# ════════════════════════════════════════════════════════════════════
+# Single source of truth for all non-color visual appearance.  Python
+# and JS (via __appearance_export__ → window.QS_APPEARANCE) read from
+# here.  CSS font stacks remain hand-maintained in style.css :root.
+
+# ── Font stacks ──────────────────────────────────────────────────────
+# Python/JS authoritative; CSS uses --font-brand etc. in style.css.
+FONT_SANS      = "Avenir Next, Avenir, Segoe UI, system-ui, -apple-system, sans-serif"
+FONT_BRAND     = "Palatino Linotype, Palatino, Book Antiqua, serif"
+FONT_MONO      = "'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace"
+FONT_MONO_CODE = "'Courier New', Courier, monospace"
+FONT_CONDENSED = "Arial Narrow, sans-serif-condensed, sans-serif"
+
+# ── Chart font sizes (base / mobile) — int values for Plotly layout.font.size ──
+CHART_FONT_TITLE      = 14
+CHART_FONT_SUBTITLE   = 13
+CHART_FONT_BODY       = 11
+CHART_FONT_LEGEND     = 10
+CHART_FONT_WATERMARK  = 9
+CHART_FONT_ANNOT      = 11
+
+# ── Chart font sizes (desktop / LG) — applied via _apply_sans_typography ──
+CHART_FONT_TITLE_LG      = 17
+CHART_FONT_BODY_LG       = 13
+CHART_FONT_TICK_LG       = 12
+CHART_FONT_LEGEND_LG     = 11
+CHART_FONT_ANNOT_LG      = 12
+CHART_FONT_WATERMARK_LG  = 10
+
+# ── UI font sizes (CSS strings for layout/*.py inline styles) ────────
+# NOTE: these are CSS px strings, NOT Plotly int sizes.
+UI_FONT_XS      = "9px"
+UI_FONT_SM      = "10px"
+UI_FONT_MD      = "11px"
+UI_FONT_BASE    = "12px"
+UI_FONT_LG      = "13px"
+UI_FONT_XL      = "14px"
+UI_FONT_XXL     = "16px"
+UI_FONT_HEADING = "18px"
+
+# ── Trace / line widths ──────────────────────────────────────────────
+TRACE_WIDTH             = 2.5       # QR quantile lines
+TRACE_WIDTH_OVERLAY     = 2.0       # alt-model overlay lines (TRACE_WIDTH * 0.8)
+TRACE_WIDTH_COMPOSITE   = 2.0       # bubble composite line
+TRACE_WIDTH_SUPPORT     = 1.5       # bubble support line
+TRACE_WIDTH_TODAY       = 2.0       # vertical "today" line
+TODAY_GLOW_WIDTH        = 6         # glow halo around today line
+GRID_MAJOR_WIDTH        = 1.0
+GRID_MINOR_WIDTH        = 0.8
+DESKTOP_TRACE_MULT      = 1.5       # JS chart_responsive.js multiplier
+DESKTOP_GRID_MULT       = 1.5       # JS chart_responsive.js multiplier
+
+# ── Point / marker sizes ────────────────────────────────────────────
+PT_SIZE_DEFAULT         = 4         # default scatter point size
+PT_ALPHA_DEFAULT        = 0.3       # default scatter point alpha
+MARKER_SIZE_SM          = 6
+MARKER_SIZE_MD          = 7
+MARKER_SIZE_LOT         = 10
+MARKER_SIZE_HIGHLIGHT   = 12
+
+# ── Opacities ────────────────────────────────────────────────────────
+SHADE_ALPHA             = 0.08      # fill between adjacent quantile lines
+TODAY_LINE_OPACITY      = 0.85
+TODAY_GLOW_OPACITY      = 0.12
+WM_OPACITY              = 0.55      # watermark logo opacity
+WM_SIZE_X               = 0.09      # watermark logo width  (fraction of paper)
+WM_SIZE_Y               = 0.12      # watermark logo height (fraction of paper)
+LEGEND_BG_OPACITY       = 0.85
+
+# ── Quantile opacity formula parameters (function in figures/common.py) ──
+Q_OPACITY_FLOOR         = 0.1
+Q_OPACITY_RANGE         = 0.45
+Q_OPACITY_DECAY         = 0.5
+
+# ── Chart margins ────────────────────────────────────────────────────
+CHART_MARGIN    = dict(l=5, r=20, t=50, b=30, autoexpand=False)
+CHART_MARGIN_HM = dict(l=40, r=8, t=40, b=32)
+
+# ── Appearance export set ────────────────────────────────────────────
+# Names exported to window.QS_APPEARANCE in _colors_generated.js.
+# The generator reads this set independently from _gather_top_level_constants
+# (which only handles str/dict/list for QS_COLORS).  Numeric (int/float) and
+# font string constants listed here go to QS_APPEARANCE only.
+__appearance_export__ = frozenset({
+    "TRACE_WIDTH", "TRACE_WIDTH_OVERLAY", "GRID_MAJOR_WIDTH", "GRID_MINOR_WIDTH",
+    "DESKTOP_TRACE_MULT", "DESKTOP_GRID_MULT",
+    "PT_SIZE_DEFAULT", "PT_ALPHA_DEFAULT",
+    "FONT_SANS", "FONT_BRAND", "FONT_MONO",
+})

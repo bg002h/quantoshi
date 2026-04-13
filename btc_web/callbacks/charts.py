@@ -18,55 +18,65 @@ from colors import (
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Display Models family summaries — single source of truth
+# Display Models family summaries — single clientside multi-output callback.
+# Computes LPPL/HybPPL/EPPL summary strings in JS and writes them directly to
+# all 12 `{prefix}-{fam}-summary-inline` spans + the `display-model-summaries`
+# Store (still read by heatmap status row + an apply_snapshot State).
 # ══════════════════════════════════════════════════════════════════════════════
-# Python ports of the existing per-tab clientside summary JS. Writes to the
-# `display-model-summaries` Store; Store-reader clientside callbacks fan out
-# to every `{prefix}-{fam}-summary-inline` span mounted by display_models_panel.
-
-
-def _format_lppl_summary(n_freqs, weighted, no_13):
-    ns = sorted(n_freqs or [])
-    if not ns:
-        return "(no flavor)"
-    names = {1: "LPPL\u2081", 2: "LPPL\u2082", 3: "LPPL\u2083", 4: "LPPL\u2084"}
-    txt = "+".join(names.get(n, f"LPPL{n}") for n in ns)
-    if weighted and "weighted" in weighted:
-        txt += " (w)"
-    if no_13 and "no13" in no_13:
-        txt += " (no \u03c9\u224813)"
-    return txt
-
-
-def _format_hybppl_summary(nlog_a, ncal_a, log1d_a, log2d_a, cal1d_a, cal2d_a,
-                            b_enabled, nlog_b, ncal_b, log1d_b, log2d_b,
-                            cal1d_b, cal2d_b):
-    def spec(n, d1, d2):
-        if n == 0:
-            return "0"
-        if n == 1:
-            return "1" + (d1 or "d")
-        return "2" + (d1 or "d") + (d2 or "d")
-    a_spec = spec(nlog_a, log1d_a, log2d_a) + "+" + spec(ncal_a, cal1d_a, cal2d_a)
-    txt = a_spec
-    if b_enabled and len(b_enabled) > 0:
-        b_spec = spec(nlog_b, log1d_b, log2d_b) + "+" + spec(ncal_b, cal1d_b, cal2d_b)
-        txt += " / " + b_spec
-    return txt
-
-
-def _format_eppl_summary(nlog_a, ncal_a, log1d_a, log2d_a, cal1d_a, cal2d_a,
-                          b_enabled, nlog_b, ncal_b, log1d_b, log2d_b,
-                          cal1d_b, cal2d_b):
-    # Same shape as hybppl summary.
-    return _format_hybppl_summary(
-        nlog_a, ncal_a, log1d_a, log2d_a, cal1d_a, cal2d_a,
-        b_enabled, nlog_b, ncal_b, log1d_b, log2d_b, cal1d_b, cal2d_b,
-    )
-
-
-@callback(
-    Output("display-model-summaries", "data"),
+_app_ctx.app.clientside_callback(
+    '''
+    function(nFreqs, weighted, no13,
+             aNlog, aNcal, aLog1d, aLog2d, aCal1d, aCal2d,
+             bEn, bNlog, bNcal, bLog1d, bLog2d, bCal1d, bCal2d,
+             eaNlog, eaNcal, eaLog1d, eaLog2d, eaCal1d, eaCal2d,
+             ebEn, ebNlog, ebNcal, ebLog1d, ebLog2d, ebCal1d, ebCal2d) {
+        var lppl;
+        var ns = (nFreqs || []).slice().sort();
+        if (!ns.length) {
+            lppl = "(no flavor)";
+        } else {
+            var names = {1: "LPPL\u2081", 2: "LPPL\u2082", 3: "LPPL\u2083", 4: "LPPL\u2084"};
+            lppl = ns.map(function(n){ return names[n] || ("LPPL" + n); }).join("+");
+            if (weighted && weighted.indexOf("weighted") !== -1) lppl += " (w)";
+            if (no13 && no13.indexOf("no13") !== -1) lppl += " (no \u03c9\u224813)";
+        }
+        function spec(n, d1, d2) {
+            if (n === 0) return "0";
+            if (n === 1) return "1" + (d1 || "d");
+            return "2" + (d1 || "d") + (d2 || "d");
+        }
+        function fam(nlogA, ncalA, l1A, l2A, c1A, c2A, bE, nlogB, ncalB, l1B, l2B, c1B, c2B) {
+            var t = spec(nlogA, l1A, l2A) + "+" + spec(ncalA, c1A, c2A);
+            if (bE && bE.length > 0) {
+                t += " / " + spec(nlogB, l1B, l2B) + "+" + spec(ncalB, c1B, c2B);
+            }
+            return t;
+        }
+        var hyb = fam(aNlog, aNcal, aLog1d, aLog2d, aCal1d, aCal2d,
+                      bEn, bNlog, bNcal, bLog1d, bLog2d, bCal1d, bCal2d);
+        var epp = fam(eaNlog, eaNcal, eaLog1d, eaLog2d, eaCal1d, eaCal2d,
+                      ebEn, ebNlog, ebNcal, ebLog1d, ebLog2d, ebCal1d, ebCal2d);
+        return [
+            lppl, lppl, lppl, lppl,
+            hyb, hyb, hyb, hyb,
+            epp, epp, epp, epp,
+            {lppl: lppl, hybppl: hyb, eppl: epp}
+        ];
+    }
+    ''',
+    Output("bub-lppl-summary-inline",   "children"),
+    Output("dca-lppl-summary-inline",   "children"),
+    Output("ret-lppl-summary-inline",   "children"),
+    Output("sc-lppl-summary-inline",    "children"),
+    Output("bub-hybppl-summary-inline", "children"),
+    Output("dca-hybppl-summary-inline", "children"),
+    Output("ret-hybppl-summary-inline", "children"),
+    Output("sc-hybppl-summary-inline",  "children"),
+    Output("bub-eppl-summary-inline",   "children"),
+    Output("dca-eppl-summary-inline",   "children"),
+    Output("ret-eppl-summary-inline",   "children"),
+    Output("sc-eppl-summary-inline",    "children"),
+    Output("display-model-summaries",   "data"),
     # LPPL (3)
     Input("lppl-n-freqs", "value"),
     Input("lppl-weighted", "value"),
@@ -99,64 +109,6 @@ def _format_eppl_summary(nlog_a, ncal_a, log1d_a, log2d_a, cal1d_a, cal2d_a,
     Input("eppl-cfg-b-log2d",   "value"),
     Input("eppl-cfg-b-cal1d",   "value"),
     Input("eppl-cfg-b-cal2d",   "value"),
-)
-def compute_family_summaries(*args):
-    lppl_args   = args[0:3]
-    hybppl_args = args[3:16]
-    eppl_args   = args[16:29]
-    return {
-        "lppl":   _format_lppl_summary(*lppl_args),
-        "hybppl": _format_hybppl_summary(*hybppl_args),
-        "eppl":   _format_eppl_summary(*eppl_args),
-    }
-
-
-# ── Store-reader clientside callbacks ──
-# Read per-family summary strings from display-model-summaries Store and
-# broadcast to the {prefix}-{family}-summary-inline spans on all 4 tabs.
-_app_ctx.app.clientside_callback(
-    '''
-    function(data) {
-        if (!data) return ['', '', '', ''];
-        var s = data.lppl || '';
-        return [s, s, s, s];
-    }
-    ''',
-    Output("bub-lppl-summary-inline", "children"),
-    Output("dca-lppl-summary-inline", "children"),
-    Output("ret-lppl-summary-inline", "children"),
-    Output("sc-lppl-summary-inline",  "children"),
-    Input("display-model-summaries", "data"),
-)
-
-_app_ctx.app.clientside_callback(
-    '''
-    function(data) {
-        if (!data) return ['', '', '', ''];
-        var s = data.hybppl || '';
-        return [s, s, s, s];
-    }
-    ''',
-    Output("bub-hybppl-summary-inline", "children"),
-    Output("dca-hybppl-summary-inline", "children"),
-    Output("ret-hybppl-summary-inline", "children"),
-    Output("sc-hybppl-summary-inline",  "children"),
-    Input("display-model-summaries", "data"),
-)
-
-_app_ctx.app.clientside_callback(
-    '''
-    function(data) {
-        if (!data) return ['', '', '', ''];
-        var s = data.eppl || '';
-        return [s, s, s, s];
-    }
-    ''',
-    Output("bub-eppl-summary-inline", "children"),
-    Output("dca-eppl-summary-inline", "children"),
-    Output("ret-eppl-summary-inline", "children"),
-    Output("sc-eppl-summary-inline",  "children"),
-    Input("display-model-summaries", "data"),
 )
 
 # ── Heatmap status row: visibility + label (driven by hm-active-model) ──

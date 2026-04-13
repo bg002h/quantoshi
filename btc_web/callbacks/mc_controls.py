@@ -1,5 +1,7 @@
 """MC UI control callbacks — toggles, regime options, year sync, cost display."""
 
+import json
+
 import dash
 from dash import html, Input, Output, State, callback
 
@@ -61,27 +63,62 @@ for _mc_auto in ("dca", "ret", "sc"):
         prevent_initial_call='initial_duplicate',
     )
 
+# ── Pre-computed options (embedded as JS constants for clientside callbacks) ──
+# _MC_ENTRY_Q_OPTIONS / _ADV contain html.Span labels → serialize via
+# to_plotly_json(). _regime_options(n) returns plain-string labels for n in
+# 2..10 (bins slider range).
+def _opts_to_jsonable(opts):
+    out = []
+    for o in opts:
+        label = o["label"]
+        if hasattr(label, "to_plotly_json"):
+            label = label.to_plotly_json()
+        out.append({"label": label, "value": o["value"]})
+    return out
+
+_MC_ENTRY_Q_OPTIONS_JSON = json.dumps(_opts_to_jsonable(_MC_ENTRY_Q_OPTIONS))
+_MC_ENTRY_Q_OPTIONS_ADV_JSON = json.dumps(_opts_to_jsonable(_MC_ENTRY_Q_OPTIONS_ADV))
+_REGIME_OPTIONS_JSON = json.dumps(
+    {str(n): _opts_to_jsonable(_regime_options(n)) for n in range(2, 11)}
+)
+
+_MC_ADV_JS = """
+function(val) {
+    var OPTS = %s;
+    var OPTS_ADV = %s;
+    var active = !!(val && val.length);
+    return [active ? {} : {display:'none'}, active ? OPTS_ADV : OPTS];
+}
+""" % (_MC_ENTRY_Q_OPTIONS_JSON, _MC_ENTRY_Q_OPTIONS_ADV_JSON)
+
 for _mc_adv in ("dca", "ret", "hm", "sc", "cp"):
-    @callback(
+    _app_ctx.app.clientside_callback(
+        _MC_ADV_JS,
         Output(f"{_mc_adv}-mc-adv-body", "style"),
         Output(f"{_mc_adv}-mc-entry-q", "options"),
         Input(f"{_mc_adv}-mc-advanced", "value"),
     )
-    def _toggle_mc_adv(val):
-        style = {} if val else {"display": "none"}
-        opts = _MC_ENTRY_Q_OPTIONS_ADV if val else _MC_ENTRY_Q_OPTIONS
-        return style, opts
+
+_REGIME_JS = """
+function(n_bins) {
+    var TABLE = %s;
+    var n = parseInt(n_bins);
+    if (isNaN(n) || n < 2 || n > 10) n = 5;
+    var opts = TABLE[String(n)] || TABLE["5"];
+    var values = [];
+    for (var i = 0; i < n; i++) values.push(i);
+    return [opts, values];
+}
+""" % _REGIME_OPTIONS_JSON
 
 for _mc_reg in ("dca", "ret", "hm", "sc", "cp"):
-    @callback(
+    _app_ctx.app.clientside_callback(
+        _REGIME_JS,
         Output(f"{_mc_reg}-mc-regime", "options"),
         Output(f"{_mc_reg}-mc-regime", "value"),
         Input(f"{_mc_reg}-mc-bins", "value"),
         prevent_initial_call=True,
     )
-    def _update_regime_opts(n_bins):
-        n = _ci(n_bins, 5)
-        return _regime_options(n), list(range(n))
 
 # ── Frequency unlock toggle + modal ──────────────────────────────────────────
 for _fp in ("dca", "ret", "sc"):

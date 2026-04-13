@@ -78,12 +78,18 @@ def _output_from_history(history):
     Input("lppl-n-freqs",     "value"),
     Input("lppl-weighted",    "value"),
     Input("lppl-no-13",       "value"),
+    State("main-tabs", "active_tab"),
     prevent_initial_call=False,
 )
 def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_model_data,
-                   lppl_n_freqs, lppl_weighted, lppl_no_13):
+                   lppl_n_freqs, lppl_weighted, lppl_no_13, active_tab):
     """Compute the missing variable across all models."""
     trigger = ctx.triggered_id if ctx.triggered_id else None
+    # Skip the expensive initial fire for users landing on a non-bubble tab —
+    # the scanner only exists on tab 1. Subsequent fires (triggered by user
+    # interaction) always run regardless of active_tab.
+    if trigger is None and active_tab != "bubble":
+        return no_update, no_update, no_update
     genesis = _app_ctx.M.genesis
 
     # Merge registered models + user model (if defined)

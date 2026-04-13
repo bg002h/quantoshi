@@ -94,47 +94,7 @@ def set_p2(n, pt):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 3. Draw button → construct UserModel
-# ══════════════════════════════════════════════════════════════════════════════
-
-@callback(
-    Output("user-model-store", "data", allow_duplicate=True),
-    Output("bub-model-show", "value", allow_duplicate=True),
-    Input("um-draw-btn", "n_clicks"),
-    State("um-p1-year", "data"),
-    State("um-p1-price", "data"),
-    State("um-p2-year", "data"),
-    State("um-p2-price", "data"),
-    State("bub-model-show", "value"),
-    prevent_initial_call=True,
-)
-def draw_user_model(n_clicks, p1y, p1p, p2y, p2p, cur_model_show):
-    if not all([p1y, p1p, p2y, p2p]):
-        return no_update, no_update
-
-    M = _app_ctx.M
-    # Direct conversion: year = _GENESIS_YR + t, so t = year - _GENESIS_YR
-    # This is the exact reverse of how the context menu computes the year
-    t1 = float(p1y) - _GENESIS_YR
-    t2 = float(p2y) - _GENESIS_YR
-
-    model = UserModel.from_points(
-        t1=t1, p1=float(p1p),
-        t2=t2, p2=float(p2p),
-        price_years=M.price_years,
-        price_prices=M.price_prices,
-        quantiles=list(M.QR_QUANTILES),
-    )
-    store_data = model.to_store_dict()
-
-    ms = list(cur_model_show or [])
-    if "u1" not in ms:
-        ms.append("u1")
-    return store_data, ms
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# 4. Delete button → clear model + inputs
+# 3. Delete button → clear model + inputs
 # ══════════════════════════════════════════════════════════════════════════════
 
 @callback(
@@ -155,7 +115,7 @@ def delete_user_model(n_clicks):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 5. Dynamic Display Models checklist injection
+# 4. Dynamic Display Models checklist injection
 # ══════════════════════════════════════════════════════════════════════════════
 
 _MODEL_SHOW_PREFIXES = ["bub", "dca", "ret", "sc"]

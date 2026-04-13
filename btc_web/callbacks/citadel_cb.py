@@ -1,5 +1,6 @@
 """Citadel Planner chart callback — 7-output MC sandwich pattern."""
 
+import json
 import logging
 
 import dash
@@ -65,30 +66,48 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call=True,
 )
 
-# ── Dollar Asset Returns model info ──────────────────────────────────────────
-@callback(
+# ── Dollar Asset Returns model info (clientside) ─────────────────────────────
+def _to_dash_json(obj):
+    """Recursively convert a Dash component tree to a plain dict for clientside."""
+    if hasattr(obj, "to_plotly_json"):
+        d = obj.to_plotly_json()
+        if isinstance(d, dict) and "props" in d:
+            d["props"] = {k: _to_dash_json(v) for k, v in d["props"].items()}
+        return d
+    if isinstance(obj, list):
+        return [_to_dash_json(x) for x in obj]
+    if isinstance(obj, dict):
+        return {k: _to_dash_json(v) for k, v in obj.items()}
+    return obj
+
+
+_ASSET_MODEL_INFO_CHILDREN = _to_dash_json(html.Div([
+    html.Span("Historical Regimes", style={"fontWeight": "600", "color": USER_MODEL_TRACE}),
+    html.Span(" \u2014 ignores your input rates. Each asset class transitions "
+              "between bull/bear/neutral regimes based on historical data:"),
+    html.Ul([
+        html.Li("Equities: S&P 500 monthly returns"),
+        html.Li("Bonds: AGG Bond ETF monthly returns"),
+        html.Li("Treasuries: yield-to-total-return (short/med/long duration)"),
+    ], style={"marginTop": "4px", "marginBottom": "0", "paddingLeft": "18px"}),
+    html.Small("Regime transitions are independent of BTC price paths.",
+               style={"color": FALLBACK_MODEL_GRAY, "fontStyle": "italic"}),
+]))
+_ASSET_MODEL_INFO_STYLE = {"display": "block", "marginTop": "6px", "fontSize": UI_FONT_MD,
+                           "color": CLUSTER_MERGE_GRAY, "lineHeight": "1.4"}
+
+_app_ctx.app.clientside_callback(
+    "function(v) {"
+    "  var C = " + json.dumps(_ASSET_MODEL_INFO_CHILDREN) + ";"
+    "  var S = " + json.dumps(_ASSET_MODEL_INFO_STYLE) + ";"
+    "  if (v === 'markov') return [C, S];"
+    "  return ['', {display: 'none'}];"
+    "}",
     Output("cp-asset-model-info", "children"),
     Output("cp-asset-model-info", "style"),
     Input("cp-asset-model", "value"),
     prevent_initial_call=True,
 )
-def show_asset_model_info(model):
-    _style_visible = {"display": "block", "marginTop": "6px", "fontSize": UI_FONT_MD,
-                      "color": CLUSTER_MERGE_GRAY, "lineHeight": "1.4"}
-    if model == "markov":
-        return html.Div([
-            html.Span("Historical Regimes", style={"fontWeight": "600", "color": USER_MODEL_TRACE}),
-            html.Span(" \u2014 ignores your input rates. Each asset class transitions "
-                      "between bull/bear/neutral regimes based on historical data:"),
-            html.Ul([
-                html.Li("Equities: S&P 500 monthly returns"),
-                html.Li("Bonds: AGG Bond ETF monthly returns"),
-                html.Li("Treasuries: yield-to-total-return (short/med/long duration)"),
-            ], style={"marginTop": "4px", "marginBottom": "0", "paddingLeft": "18px"}),
-            html.Small("Regime transitions are independent of BTC price paths.",
-                       style={"color": FALLBACK_MODEL_GRAY, "fontStyle": "italic"}),
-        ]), _style_visible
-    return "", {"display": "none"}
 
 
 @callback(

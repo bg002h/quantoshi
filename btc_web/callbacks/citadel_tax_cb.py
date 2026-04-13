@@ -1,8 +1,11 @@
 """Tax configuration modal callbacks for the Citadel Planner."""
 
-from dash import Input, Output, State, callback, ctx, html, no_update
+import json
+
+from dash import Input, Output, State, callback, ctx, no_update
 
 import _app_ctx
+from engines.tax_data import STATE_TAX_RATES
 
 # ── Toggle config button visibility (clientside) ─────────────────────────────
 _app_ctx.app.clientside_callback(
@@ -20,27 +23,27 @@ _app_ctx.app.clientside_callback(
 )
 
 
-# ── Open modal ────────────────────────────────────────────────────────────────
-@callback(
+# ── Open modal (clientside) ───────────────────────────────────────────────────
+_app_ctx.app.clientside_callback(
+    "function(n) { return true; }",
     Output("cp-tax-modal", "is_open", allow_duplicate=True),
     Input("cp-tax-config-btn", "n_clicks"),
     prevent_initial_call=True,
 )
-def _open_tax_modal(n):
-    return True
 
 
-# ── State dropdown auto-fill rate ─────────────────────────────────────────────
-@callback(
+# ── State dropdown auto-fill rate (clientside) ────────────────────────────────
+_app_ctx.app.clientside_callback(
+    "function(code) {"
+    "  var rates = " + json.dumps(STATE_TAX_RATES) + ";"
+    "  if (!code) { return window.dash_clientside.no_update; }"
+    "  var r = rates[code];"
+    "  return (r === undefined) ? 0.0 : r;"
+    "}",
     Output("cp-tax-state-rate", "value"),
     Input("cp-tax-state", "value"),
     prevent_initial_call=True,
 )
-def _update_state_rate(state_code):
-    from engines.tax_data import STATE_TAX_RATES
-    if not state_code:
-        return no_update
-    return STATE_TAX_RATES.get(state_code, 0.0)
 
 
 # ── Save config + close modal ─────────────────────────────────────────────────
@@ -113,44 +116,63 @@ def _save_or_cancel(save_clicks, cancel_clicks, filing, state, state_rate, birth
     return config, False
 
 
-# ── Tax summary table builder ────────────────────────────────────────────────
-@callback(
+# ── Tax summary table builder (clientside) ───────────────────────────────────
+_app_ctx.app.clientside_callback(
+    """
+    function(annual_data) {
+        if (!annual_data || (Array.isArray(annual_data) && annual_data.length === 0)) {
+            return [false, []];
+        }
+        // Flatten list-of-lists (one per sim) → flat list of year dicts
+        if (Array.isArray(annual_data[0])) {
+            annual_data = annual_data[0];
+        }
+        function H(tag, children, props) {
+            var p = props || {};
+            p.children = children;
+            return {namespace: "dash_html_components", type: tag, props: p};
+        }
+        function fmtUSD(n) {
+            var v = (n == null) ? 0 : n;
+            var sign = v < 0 ? "-" : "";
+            v = Math.abs(Math.round(v));
+            var s = v.toString();
+            // Insert thousands separators
+            s = s.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ",");
+            return "$" + sign + s;
+        }
+        var header = H("Thead", [H("Tr", [
+            H("Th", "Year"), H("Th", "Ordinary"), H("Th", "ST Gains"),
+            H("Th", "LT Gains"), H("Th", "Federal"), H("Th", "NIIT"),
+            H("Th", "State"), H("Th", "Total"), H("Th", "Eff. Rate")
+        ])]);
+        var rows = [];
+        for (var i = 0; i < annual_data.length; i++) {
+            var yr = annual_data[i];
+            var fed = (yr.federal_ordinary || 0) + (yr.federal_ltcg || 0);
+            var eff = yr.effective_rate;
+            var effStr = (typeof eff === "number") ? (eff * 100).toFixed(1) + "%" : "0.0%";
+            rows.push(H("Tr", [
+                H("Td", String(yr.year == null ? "" : yr.year)),
+                H("Td", fmtUSD(yr.ordinary_income)),
+                H("Td", fmtUSD(yr.st_gains)),
+                H("Td", fmtUSD(yr.lt_gains)),
+                H("Td", fmtUSD(fed)),
+                H("Td", fmtUSD(yr.niit)),
+                H("Td", fmtUSD(yr.state)),
+                H("Td", fmtUSD(yr.total)),
+                H("Td", effStr),
+            ]));
+        }
+        var body = H("Tbody", rows);
+        return [true, [header, body]];
+    }
+    """,
     Output("cp-tax-summary", "is_open"),
     Output("cp-tax-summary-table", "children"),
     Input("cp-tax-annual-data", "data"),
     prevent_initial_call=True,
 )
-def _build_tax_summary(annual_data):
-    if not annual_data:
-        return False, []
-
-    # Flatten list-of-lists (one per sim) to flat list of year dicts
-    if annual_data and isinstance(annual_data[0], list):
-        annual_data = annual_data[0]
-
-    header = html.Thead(html.Tr([
-        html.Th("Year"), html.Th("Ordinary"), html.Th("ST Gains"),
-        html.Th("LT Gains"), html.Th("Federal"), html.Th("NIIT"),
-        html.Th("State"), html.Th("Total"), html.Th("Eff. Rate"),
-    ]))
-
-    rows = []
-    for yr in annual_data:
-        fed = yr.get("federal_ordinary", 0) + yr.get("federal_ltcg", 0)
-        eff = yr.get("effective_rate", 0)
-        rows.append(html.Tr([
-            html.Td(yr.get("year", "")),
-            html.Td(f"${yr.get('ordinary_income', 0):,.0f}"),
-            html.Td(f"${yr.get('st_gains', 0):,.0f}"),
-            html.Td(f"${yr.get('lt_gains', 0):,.0f}"),
-            html.Td(f"${fed:,.0f}"),
-            html.Td(f"${yr.get('niit', 0):,.0f}"),
-            html.Td(f"${yr.get('state', 0):,.0f}"),
-            html.Td(f"${yr.get('total', 0):,.0f}"),
-            html.Td(f"{eff * 100:.1f}%" if isinstance(eff, (int, float)) else "0.0%"),
-        ]))
-
-    return True, [header, html.Tbody(rows)]
 
 
 # ── Helper for testing ────────────────────────────────────────────────────────

@@ -141,20 +141,27 @@ def _add_snapshot_entry(history, existing, encoded, full_url,
     return True
 
 
-@callback(
+def update_effective_lots(local_lots, snapshot_lots):
+    """Plain helper kept for tests + __init__ re-export. The live callback is
+    a clientside port (below)."""
+    return snapshot_lots if snapshot_lots is not None else (local_lots or [])
+
+
+_app_ctx.app.clientside_callback(
+    """
+    function(local_lots, snapshot_lots) {
+        return (snapshot_lots != null) ? snapshot_lots : (local_lots || []);
+    }
+    """,
     Output("effective-lots", "data"),
     Input("lots-store",    "data"),
     Input("snapshot-lots", "data"),
 )
-def update_effective_lots(local_lots, snapshot_lots):
-    return snapshot_lots if snapshot_lots is not None else (local_lots or [])
 
 
-@callback(
-    Output("snapshot-lots-banner", "children"),
-    Input("snapshot-lots", "data"),
-)
 def update_snapshot_banner(snapshot_lots):
+    """Plain helper kept for tests + __init__ re-export. The live callback is
+    a clientside port (below)."""
     if not snapshot_lots:
         return []
     n = len(snapshot_lots)
@@ -163,6 +170,48 @@ def update_snapshot_banner(snapshot_lots):
         dbc.Button("Restore my lots", id="restore-lots-btn",
                    color="link", size="sm", className="p-0 ms-1 align-baseline"),
     ], color="info", className="py-1 px-3 mb-2 d-flex align-items-center")
+
+
+# Build the snapshot banner clientside. The Alert + Button component tree is
+# static apart from the lot count, so we emit Dash component descriptors
+# (namespace/type/props) directly. The Restore button keeps its id so the
+# server-side restore_my_lots callback continues to fire on click.
+_app_ctx.app.clientside_callback(
+    """
+    function(snapshot_lots) {
+        if (!snapshot_lots || !snapshot_lots.length) return [];
+        var n = snapshot_lots.length;
+        return [{
+            namespace: 'dash_bootstrap_components',
+            type: 'Alert',
+            props: {
+                color: 'info',
+                className: 'py-1 px-3 mb-2 d-flex align-items-center',
+                children: [
+                    {
+                        namespace: 'dash_html_components',
+                        type: 'Span',
+                        props: {children: 'Showing ' + n + ' lot(s) from a shared link.  '}
+                    },
+                    {
+                        namespace: 'dash_bootstrap_components',
+                        type: 'Button',
+                        props: {
+                            id: 'restore-lots-btn',
+                            children: 'Restore my lots',
+                            color: 'link',
+                            size: 'sm',
+                            className: 'p-0 ms-1 align-baseline'
+                        }
+                    }
+                ]
+            }
+        }];
+    }
+    """,
+    Output("snapshot-lots-banner", "children"),
+    Input("snapshot-lots", "data"),
+)
 
 
 @callback(

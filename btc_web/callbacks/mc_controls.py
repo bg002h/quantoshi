@@ -18,7 +18,9 @@ from layout import (_bold_opts, _MC_CACHED_START_YRS, _MC_CACHED_YEARS,
                     _MC_ENTRY_Q_OPTIONS, _MC_ENTRY_Q_OPTIONS_ADV,
                     _regime_options)
 from mc_cache import (MC_YEARS_OPTIONS, MC_BINS, MC_SIMS, MC_FREQ,
-                      MC_DEFAULT_YEARS, MC_DEFAULT_START_YR, MC_DEFAULT_ENTRY_Q)
+                      MC_DEFAULT_YEARS, MC_DEFAULT_START_YR, MC_DEFAULT_ENTRY_Q,
+                      MC_FREE_SIMS, CACHED_START_YRS, ENTRY_PCT_BINS,
+                      _CACHED_MODEL_KEYS)
 import btcpay
 
 
@@ -146,29 +148,22 @@ def _close_freq_modal(n):
 # ══════════════════════════════════════════════════════════════════════════════
 # MC ↔ Year Range sync — auto-extend year range to include MC horizon
 # ══════════════════════════════════════════════════════════════════════════════
-
-for _pfx in ("dca", "ret"):
-    @callback(
-        Output(f"{_pfx}-yr-range", "value", allow_duplicate=True),
-        Output(f"{_pfx}-yr-range", "max", allow_duplicate=True),
-        Input(f"{_pfx}-mc-start-yr", "value"),
-        Input(f"{_pfx}-mc-years", "value"),
-        Input(f"{_pfx}-mc-enable", "value"),
-        State(f"{_pfx}-yr-range", "value"),
-        prevent_initial_call='initial_duplicate',
-    )
-    def _mc_yr_sync(mc_start_yr, mc_years, mc_enable, yr_range):
-        """Extend RangeSlider to include MC horizon."""
-        if not mc_enable:
-            return dash.no_update, dash.no_update
-        mc_end = _ci(mc_start_yr, 2031) + _ci(mc_years, 10)
-        yr_range = yr_range or [2024, 2034]
-        if yr_range[1] >= mc_end:
-            return dash.no_update, dash.no_update
-        return [yr_range[0], mc_end], mc_end
-
-# SC uses separate start/end sliders — sync end-yr slider
-@callback(
+# DCA/Ret RangeSlider extension is handled by the clientside _MC_EXTEND_YR_JS
+# callback registered further below. SC uses a separate single-end slider:
+_MC_SC_YR_SYNC_JS = """
+function(mc_start_yr, mc_years, mc_enable, end_yr) {
+    var noUpdate = window.dash_clientside.no_update;
+    if (!mc_enable || !mc_enable.length) return [noUpdate, noUpdate];
+    var syr = parseInt(mc_start_yr); if (isNaN(syr)) syr = 2031;
+    var yrs = parseInt(mc_years);    if (isNaN(yrs)) yrs = 10;
+    var mc_end = syr + yrs;
+    var ey = parseInt(end_yr); if (isNaN(ey)) ey = 2075;
+    if (ey >= mc_end) return [noUpdate, noUpdate];
+    return [mc_end, Math.max(mc_end, 2100)];
+}
+"""
+_app_ctx.app.clientside_callback(
+    _MC_SC_YR_SYNC_JS,
     Output("sc-end-yr", "value", allow_duplicate=True),
     Output("sc-end-yr", "max", allow_duplicate=True),
     Input("sc-mc-start-yr", "value"),
@@ -177,15 +172,6 @@ for _pfx in ("dca", "ret"):
     State("sc-end-yr", "value"),
     prevent_initial_call='initial_duplicate',
 )
-def _mc_sc_yr_sync(mc_start_yr, mc_years, mc_enable, end_yr):
-    """Extend SC end-year slider to include MC horizon."""
-    if not mc_enable:
-        return dash.no_update, dash.no_update
-    mc_end = _ci(mc_start_yr, 2031) + _ci(mc_years, 10)
-    end_yr = _ci(end_yr, 2075)
-    if end_yr >= mc_end:
-        return dash.no_update, dash.no_update
-    return mc_end, max(mc_end, 2100)
 
 
 # MC match indicator — show whether chart reflects current MC settings
@@ -383,95 +369,157 @@ for _mc_pfx in ("dca", "ret", "sc", "cp"):
 
 _MC_BASE_SIMS = 800  # pricing baseline — costs scale linearly from this
 _MC_BASE_PPY  = 12   # pricing baseline — Monthly
-
 _MC_BASE_BINS = 5    # cache uses 5×5 transition matrix
 
-def _calc_mc_cost(mc_years, start_yr, entry_q=50, mc_sims=200, mc_freq="Monthly",
-                  mc_bins=5, tab="dca", model_key="bub"):
-    """Calculate MC simulation cost and tier info.
+# ── MC cost display — clientside ──────────────────────────────────────────────
+# Pure arithmetic + static-dict lookups: serialize all inputs at import time
+# and reproduce _calc_mc_cost / _mc_cost_display logic in JS to eliminate the
+# 5-tab × 9-Input chatty server callback that fired on every slider nudge.
+_MC_COST_CONSTS_JSON = json.dumps({
+    "FREQ_PPY":         dict(FREQ_PPY),
+    "PRICE_LIVE":       {str(k): v for k, v in _MC_PRICE_LIVE.items()},
+    "BASE_SIMS":        _MC_BASE_SIMS,
+    "BASE_PPY":         _MC_BASE_PPY,
+    "BASE_BINS":        _MC_BASE_BINS,
+    # btcpay.is_free_tier inputs
+    "MC_BINS":          MC_BINS,
+    "MC_FREE_SIMS":     MC_FREE_SIMS,
+    "MC_FREQ":          MC_FREQ,
+    "MC_DEFAULT_ENTRY_Q": MC_DEFAULT_ENTRY_Q,
+    "CACHED_MODEL_KEYS": sorted(_CACHED_MODEL_KEYS),
+    "CACHED_START_YRS": list(CACHED_START_YRS),
+    "MC_YEARS_OPTIONS": list(MC_YEARS_OPTIONS),
+    "ENTRY_PCT_BINS":   list(ENTRY_PCT_BINS),
+    # styling constants (mirror Python output)
+    "MC_FREE_GREEN":    MC_FREE_GREEN,
+    "MC_LIVE_AMBER":    MC_LIVE_AMBER,
+    "DIM_TEXT":         DIM_TEXT,
+    "FALLBACK_MODEL_GRAY": FALLBACK_MODEL_GRAY,
+    "KNIGHT_GOLD":      KNIGHT_GOLD,
+    "UI_FONT_SM":       UI_FONT_SM,
+    "UI_FONT_LG":       UI_FONT_LG,
+})
 
-    Returns (price_sats: int, is_free: bool, is_cached: bool,
-             tier_label: str, tier_color: str, tier_note: str,
-             mc_years_c: int) where *mc_years_c* is the coerced value.
-    """
-    mc_years = _ci(mc_years, 40)
-    start_yr = _ci(start_yr, 2028)
-    entry_q  = round(_cf(entry_q, 50), 1)
-    mc_sims  = _ci(mc_sims, _MC_BASE_SIMS)
-    mc_bins  = _ci(mc_bins, _MC_BASE_BINS)
-    mc_ppy   = FREQ_PPY.get(mc_freq or "Monthly", _MC_BASE_PPY)
+_MC_COST_JS_TPL = """
+function(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window,
+         mc_start_yr, mc_entry_q, mc_model_src) {
+    var C = %s;
+    var TAB = "%s";
 
-    is_free = btcpay.is_free_tier(model_key, mc_years, start_yr, entry_q,
-                                  mc_bins=mc_bins, mc_sims=mc_sims,
-                                  mc_freq=mc_freq)
+    function span(text, style) {
+        return {namespace: "dash_html_components", type: "Span",
+                props: {children: text, style: style || {}}};
+    }
+    function div(children, style) {
+        return {namespace: "dash_html_components", type: "Div",
+                props: {children: children, style: style || {}}};
+    }
+    function bold(text) {
+        return {namespace: "dash_html_components", type: "B",
+                props: {children: text}};
+    }
+    function fmtInt(n) {
+        return n.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ",");
+    }
+    function ci(v, dflt) {
+        if (v === null || v === undefined || v === "") return dflt;
+        var n = parseInt(v); return isNaN(n) ? dflt : n;
+    }
+    function cf(v, dflt) {
+        if (v === null || v === undefined || v === "") return dflt;
+        var n = parseFloat(v); return isNaN(n) ? dflt : n;
+    }
 
-    if is_free:
-        price = 0
-        is_cached = True
-        tier_label = "Cached"
-        tier_color = MC_FREE_GREEN
-        tier_note = "Pre-computed \u2022 instant"
-    else:
-        # Scale factor relative to baseline (200 sims, Monthly, 5×5 matrix)
-        scale = ((mc_sims / _MC_BASE_SIMS) * (mc_ppy / _MC_BASE_PPY)
-                 * (mc_bins ** 2 / _MC_BASE_BINS ** 2))
-        base_price = _MC_PRICE_LIVE.get(mc_years, 2000)
-        tier_label = "Live"
-        tier_color = MC_LIVE_AMBER
-        time_scale = scale * (mc_years / 10)
-        lo, hi = max(1, round(1 * time_scale)), max(1, round(3 * time_scale))
-        tier_note = (f"Computed on demand \u2022 ~{lo}\u2013{hi}s" if lo < hi
-                     else f"Computed on demand \u2022 ~{lo}s")
-        price = int(base_price * scale)
-        if tab == "hm":
-            price = int(price * 0.5)
-        is_cached = False
+    var mc_years_c = ci(mc_years, 40);
+    var start_yr_c = ci(mc_start_yr, 2028);
+    var entry_q_c  = Math.round(cf(mc_entry_q, 50) * 10) / 10;
+    var sims_c     = ci(mc_sims, C.BASE_SIMS);
+    var bins_c     = ci(mc_bins, C.BASE_BINS);
+    var freq_c     = mc_freq || "Monthly";
+    var ppy        = C.FREQ_PPY[freq_c] != null ? C.FREQ_PPY[freq_c] : C.BASE_PPY;
+    var model_key  = mc_model_src || "bub";
 
-    return price, is_free, is_cached, tier_label, tier_color, tier_note, mc_years
+    // ── btcpay.is_free_tier port ──────────────────────────────────────────
+    var is_free = false;
+    if (bins_c === C.MC_BINS && sims_c <= C.MC_FREE_SIMS && freq_c === C.MC_FREQ) {
+        // is_cached(model_key, start_yr, entry_q, mc_years)
+        if (C.CACHED_MODEL_KEYS.indexOf(model_key) !== -1 &&
+            C.CACHED_START_YRS.indexOf(start_yr_c) !== -1 &&
+            C.MC_YEARS_OPTIONS.indexOf(mc_years_c) !== -1) {
+            // is_cache_aligned_q
+            var raw = (entry_q_c || C.MC_DEFAULT_ENTRY_Q) / 100.0;
+            var best = C.ENTRY_PCT_BINS[0];
+            var bestD = Math.abs(raw - best);
+            for (var i = 1; i < C.ENTRY_PCT_BINS.length; i++) {
+                var d = Math.abs(raw - C.ENTRY_PCT_BINS[i]);
+                if (d < bestD) { best = C.ENTRY_PCT_BINS[i]; bestD = d; }
+            }
+            if (Math.abs(raw - best) < 0.005) is_free = true;
+        }
+    }
 
-
-def _mc_cost_display(mc_years, start_yr, entry_q=50, mc_sims=200, mc_freq="Monthly",
-                     mc_bins=5, tab="dca", model_key="bub"):
-    """Return cost display elements showing cached vs live pricing."""
-    price, is_free, is_cached, tier_label, tier_color, tier_note, mc_years_c = \
-        _calc_mc_cost(mc_years, start_yr, entry_q, mc_sims, mc_freq, mc_bins, tab, model_key=model_key)
-
-    if is_free:
-        return ([
-            html.Div([
-                html.Span("Free tier", style={"fontWeight": "bold", "color": MC_FREE_GREEN}),
-                html.Span(f" \u2022 {mc_years_c} yr simulation", style={"color": DIM_TEXT}),
+    if (is_free) {
+        var children = [
+            div([
+                span("Free tier", {fontWeight: "bold", color: C.MC_FREE_GREEN}),
+                span(" \u2022 " + mc_years_c + " yr simulation", {color: C.DIM_TEXT}),
             ]),
-            html.Div(tier_note, style={"color": FALLBACK_MODEL_GRAY, "fontSize": UI_FONT_SM}),
-            html.Div(html.B("Cost: Free \u2713"),
-                     style={"marginTop": "2px", "color": MC_FREE_GREEN}),
-        ], 0)
+            div("Pre-computed \u2022 instant",
+                {color: C.FALLBACK_MODEL_GRAY, fontSize: C.UI_FONT_SM}),
+            div(bold("Cost: Free \u2713"),
+                {marginTop: "2px", color: C.MC_FREE_GREEN}),
+        ];
+        return [children, 0];
+    }
 
-    children = [
-        html.Div([
-            html.Span(f"{tier_label}", style={"fontWeight": "bold", "color": tier_color}),
-            html.Span(f" \u2022 {mc_years_c} yr simulation", style={"color": DIM_TEXT}),
+    // ── Live tier pricing ────────────────────────────────────────────────
+    var scale = (sims_c / C.BASE_SIMS) * (ppy / C.BASE_PPY) *
+                ((bins_c * bins_c) / (C.BASE_BINS * C.BASE_BINS));
+    var base_price = C.PRICE_LIVE[String(mc_years_c)];
+    if (base_price == null) base_price = 2000;
+    var tier_label = "Live";
+    var tier_color = C.MC_LIVE_AMBER;
+    var time_scale = scale * (mc_years_c / 10);
+    var lo = Math.max(1, Math.round(1 * time_scale));
+    var hi = Math.max(1, Math.round(3 * time_scale));
+    var tier_note = (lo < hi)
+        ? "Computed on demand \u2022 ~" + lo + "\u2013" + hi + "s"
+        : "Computed on demand \u2022 ~" + lo + "s";
+    var price = Math.trunc(base_price * scale);
+    if (TAB === "hm") price = Math.trunc(price * 0.5);
+
+    var costRowChildren = [bold("Cost: " + fmtInt(price) + " sats")];
+    if (price <= 400) {
+        costRowChildren.push(span("  \u26a1", {fontSize: C.UI_FONT_LG}));
+    } else {
+        costRowChildren.push("");
+    }
+
+    var children2 = [
+        div([
+            span(tier_label, {fontWeight: "bold", color: tier_color}),
+            span(" \u2022 " + mc_years_c + " yr simulation", {color: C.DIM_TEXT}),
         ]),
-        html.Div(tier_note, style={"color": FALLBACK_MODEL_GRAY, "fontSize": UI_FONT_SM}),
-        html.Div([
-            html.B(f"Cost: {price:,} sats"),
-            html.Span("  \u26a1", style={"fontSize": UI_FONT_LG}) if price <= 400 else "",
-        ], style={"marginTop": "2px"}),
-    ]
+        div(tier_note, {color: C.FALLBACK_MODEL_GRAY, fontSize: C.UI_FONT_SM}),
+        div(costRowChildren, {marginTop: "2px"}),
+    ];
 
-    if price > 10_000:
-        children.append(html.Div(
-            "\u26a0 Most users are unlikely to benefit from simulations "
+    if (price > 10000) {
+        children2.push(div(
+            "\u26a0 Most users are unlikely to benefit from simulations " +
             "this expensive. Consider using cached (bold) settings.",
-            style={"fontSize": UI_FONT_SM, "color": KNIGHT_GOLD, "marginTop": "4px",
-                   "fontStyle": "italic", "lineHeight": "1.3"}))
+            {fontSize: C.UI_FONT_SM, color: C.KNIGHT_GOLD, marginTop: "4px",
+             fontStyle: "italic", lineHeight: "1.3"}));
+    }
 
-    return children, price
-
+    return [children2, price];
+}
+"""
 
 for _cost_pfx in ("hm", "dca", "ret", "sc", "cp"):
     _freq_id = f"{_cost_pfx}-mc-freq" if _cost_pfx == "hm" else f"{_cost_pfx}-freq"
-    @callback(
+    _app_ctx.app.clientside_callback(
+        _MC_COST_JS_TPL % (_MC_COST_CONSTS_JSON, _cost_pfx),
         Output(f"{_cost_pfx}-mc-cost", "children"),
         Output(f"{_cost_pfx}-mc-price-val", "data"),
         Input(f"{_cost_pfx}-mc-enable",   "value"),
@@ -485,10 +533,3 @@ for _cost_pfx in ("hm", "dca", "ret", "sc", "cp"):
         Input(f"{_cost_pfx}-mc-model-src", "value"),
         prevent_initial_call=True,
     )
-    def _update_mc_cost(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window,
-                        mc_start_yr, mc_entry_q, mc_model_src, _tab=_cost_pfx):
-        children, price = _mc_cost_display(mc_years, mc_start_yr, entry_q=mc_entry_q,
-                                           mc_sims=mc_sims, mc_freq=mc_freq,
-                                           mc_bins=mc_bins, tab=_tab,
-                                           model_key=mc_model_src or "bub")
-        return children, price

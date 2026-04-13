@@ -127,16 +127,68 @@ def manage_lots(add_n, del_n, clear_n, import_contents,
     return lots, table_data, [], _lots_summary(lots), import_status
 
 
-@callback(
+def sync_table_on_load(lots_data):
+    """Plain helper kept for tests + __init__ re-export. The live callback is
+    a clientside port (below) that mirrors this logic in JS."""
+    lots = lots_data or []
+    return _format_lots_for_table(lots), _lots_summary(lots)
+
+
+# Clientside port of sync_table_on_load. Mirrors:
+#   - btc_core.fmt_price (USD with $/comma/suffix formatting)
+#   - coerce._format_lots_for_table (adds total_paid + formatted pct_q)
+#   - lots._lots_summary (count / total BTC / avg cost / total paid / avg pct)
+# Keep this in sync with the Python helpers if they ever change.
+_app_ctx.app.clientside_callback(
+    """
+    function(lots_data) {
+        var lots = lots_data || [];
+        function fmtPrice(p) {
+            if (p == null || isNaN(p)) return '$0';
+            function withCommas(s) {
+                return s.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',');
+            }
+            if (p >= 1e18) return '$' + withCommas((p / 1e18).toFixed(1)) + 'Qi';
+            if (p >= 1e15) return '$' + withCommas((p / 1e15).toFixed(1)) + 'Q';
+            if (p >= 1e12) return '$' + withCommas((p / 1e12).toFixed(1)) + 'T';
+            if (p >= 1e9)  return '$' + withCommas((p / 1e9).toFixed(1))  + 'B';
+            if (p >= 1)    return '$' + withCommas(Math.round(p).toString());
+            return '$' + p.toFixed(2);
+        }
+        var table = lots.map(function(l) {
+            var row = {};
+            for (var k in l) { if (Object.prototype.hasOwnProperty.call(l, k)) row[k] = l[k]; }
+            row.total_paid = fmtPrice(l.btc * l.price);
+            row.pct_q = 'Q' + (l.pct_q * 100).toFixed(2) + '%';
+            return row;
+        });
+        var summary;
+        if (!lots.length) {
+            summary = 'No lots.';
+        } else {
+            var totalBtc = 0, totalPaid = 0, weightedPct = 0;
+            for (var i = 0; i < lots.length; i++) {
+                totalBtc    += lots[i].btc;
+                totalPaid   += lots[i].btc * lots[i].price;
+                weightedPct += lots[i].pct_q * lots[i].btc;
+            }
+            var avgPrice = totalBtc ? totalPaid / totalBtc : 0;
+            var avgPct   = totalBtc ? weightedPct / totalBtc : 0;
+            // %.8g — trim trailing zeros after up to 8 significant digits
+            var btcStr = parseFloat(totalBtc.toPrecision(8)).toString();
+            summary = lots.length + ' lot(s)  |  ' + btcStr + ' BTC  |  '
+                    + 'Avg ' + fmtPrice(avgPrice) + '/BTC  |  '
+                    + 'Total paid ' + fmtPrice(totalPaid) + '  |  '
+                    + 'Avg Q' + (avgPct * 100).toFixed(2) + '%';
+        }
+        return [table, summary];
+    }
+    """,
     Output("lots-table",   "data",    allow_duplicate=True),
     Output("lots-summary", "children", allow_duplicate=True),
     Input("lots-store",    "data"),
     prevent_initial_call=True,
 )
-def sync_table_on_load(lots_data):
-    lots = lots_data or []
-    table_data = _format_lots_for_table(lots)
-    return table_data, _lots_summary(lots)
 
 
 def _lots_summary(lots):

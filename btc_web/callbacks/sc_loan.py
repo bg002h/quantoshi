@@ -58,14 +58,26 @@ _app_ctx.app.clientside_callback(
 )
 
 
-@callback(Output("dca-sc-custom-price-row","style"), Input("dca-sc-entry-mode","value"))
-def _toggle_custom_price_row(mode):
-    return {} if mode == "custom" else {"display": "none"}
+_app_ctx.app.clientside_callback(
+    """
+    function(mode) {
+        return (mode === 'custom') ? {} : {display: 'none'};
+    }
+    """,
+    Output("dca-sc-custom-price-row", "style"),
+    Input("dca-sc-entry-mode", "value"),
+)
 
 
-@callback(Output("dca-sc-rollover-row","style"), Input("dca-sc-type","value"))
-def _toggle_rollover_row(loan_type):
-    return {} if (loan_type or "interest_only") == "interest_only" else {"display": "none"}
+_app_ctx.app.clientside_callback(
+    """
+    function(loan_type) {
+        return ((loan_type || 'interest_only') === 'interest_only') ? {} : {display: 'none'};
+    }
+    """,
+    Output("dca-sc-rollover-row", "style"),
+    Input("dca-sc-type", "value"),
+)
 
 
 @callback(

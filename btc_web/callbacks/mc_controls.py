@@ -372,38 +372,21 @@ _MC_BASE_PPY  = 12   # pricing baseline — Monthly
 _MC_BASE_BINS = 5    # cache uses 5×5 transition matrix
 
 # ── MC cost display — clientside ──────────────────────────────────────────────
-# Pure arithmetic + static-dict lookups: serialize all inputs at import time
-# and reproduce _calc_mc_cost / _mc_cost_display logic in JS to eliminate the
-# 5-tab × 9-Input chatty server callback that fired on every slider nudge.
-_MC_COST_CONSTS_JSON = json.dumps({
-    "FREQ_PPY":         dict(FREQ_PPY),
-    "PRICE_LIVE":       {str(k): v for k, v in _MC_PRICE_LIVE.items()},
-    "BASE_SIMS":        _MC_BASE_SIMS,
-    "BASE_PPY":         _MC_BASE_PPY,
-    "BASE_BINS":        _MC_BASE_BINS,
-    # btcpay.is_free_tier inputs
-    "MC_BINS":          MC_BINS,
-    "MC_FREE_SIMS":     MC_FREE_SIMS,
-    "MC_FREQ":          MC_FREQ,
-    "MC_DEFAULT_ENTRY_Q": MC_DEFAULT_ENTRY_Q,
-    "CACHED_MODEL_KEYS": sorted(_CACHED_MODEL_KEYS),
-    "CACHED_START_YRS": list(CACHED_START_YRS),
-    "MC_YEARS_OPTIONS": list(MC_YEARS_OPTIONS),
-    "ENTRY_PCT_BINS":   list(ENTRY_PCT_BINS),
-    # styling constants (mirror Python output)
-    "MC_FREE_GREEN":    MC_FREE_GREEN,
-    "MC_LIVE_AMBER":    MC_LIVE_AMBER,
-    "DIM_TEXT":         DIM_TEXT,
-    "FALLBACK_MODEL_GRAY": FALLBACK_MODEL_GRAY,
-    "KNIGHT_GOLD":      KNIGHT_GOLD,
-    "UI_FONT_SM":       UI_FONT_SM,
-    "UI_FONT_LG":       UI_FONT_LG,
-})
-
+# Pure arithmetic + static-dict lookups: pre-computed constants live in the
+# static asset btc_web/assets/_mc_cost_consts.js (loaded once per page as
+# `window.QS_MC_COST_CONSTS`), and the JS template below reproduces
+# _calc_mc_cost + _mc_cost_display to eliminate the 5-tab × 9-Input chatty
+# server callback that used to fire on every slider nudge.
+#
+# Regenerate btc_web/assets/_mc_cost_consts.js whenever any of these sources
+# drift: FREQ_PPY (_app_ctx), _MC_PRICE_LIVE (layout/mc_controls.py),
+# MC_BINS/MC_FREE_SIMS/MC_FREQ/MC_DEFAULT_ENTRY_Q/_CACHED_MODEL_KEYS/
+# CACHED_START_YRS/MC_YEARS_OPTIONS/ENTRY_PCT_BINS (mc_cache), or the
+# styling constants imported from colors.py below.
 _MC_COST_JS_TPL = """
 function(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window,
          mc_start_yr, mc_entry_q, mc_model_src) {
-    var C = %s;
+    var C = window.QS_MC_COST_CONSTS;
     var TAB = "%s";
 
     function span(text, style) {
@@ -519,7 +502,7 @@ function(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window,
 for _cost_pfx in ("hm", "dca", "ret", "sc", "cp"):
     _freq_id = f"{_cost_pfx}-mc-freq" if _cost_pfx == "hm" else f"{_cost_pfx}-freq"
     _app_ctx.app.clientside_callback(
-        _MC_COST_JS_TPL % (_MC_COST_CONSTS_JSON, _cost_pfx),
+        _MC_COST_JS_TPL % (_cost_pfx,),
         Output(f"{_cost_pfx}-mc-cost", "children"),
         Output(f"{_cost_pfx}-mc-price-val", "data"),
         Input(f"{_cost_pfx}-mc-enable",   "value"),

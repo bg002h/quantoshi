@@ -91,9 +91,12 @@ def _resolve_t0(scale, cal_preset, cal_custom, blk_preset, blk_custom):
     return BLK_PRESET_BY_KEY[blk_preset][0], None
 
 
-def _build_figure(results: dict, scale: str, t0_label: str) -> go.Figure:
-    """Build the Custom Time Axis figure. Log-log axes for calendar mode;
-    linear-blockheight x-axis for block mode."""
+def _build_figure(results: dict, scale: str, t0_label: str,
+                   xscale: str = "log", yscale: str = "log",
+                   xrange=None, yrange=None, auto_y=True) -> go.Figure:
+    """Build the Custom Time Axis figure. Honors the Tab 1 Axes & Range
+    panel (bub-xscale / bub-yscale / bub-xrange / bub-yrange / bub-auto-y).
+    In block mode, bub-xrange is ignored (year-valued; doesn't map)."""
     fig = go.Figure()
     x_series = cf._DATES if scale == "calendar" else cf._BLOCKS
     if x_series is None:
@@ -144,12 +147,30 @@ def _build_figure(results: dict, scale: str, t0_label: str) -> go.Figure:
                 name=f"{r.name} (n={label_n})",
             ))
 
+    yaxis_cfg = dict(type=yscale, title="USD")
+    if not auto_y and yrange is not None and len(yrange) == 2:
+        # bub-yrange is in log10 price units — apply directly when log,
+        # or convert to linear price range when linear.
+        if yscale == "log":
+            yaxis_cfg["range"] = list(yrange)  # log axes take log-space range
+        else:
+            yaxis_cfg["range"] = [10 ** yrange[0], 10 ** yrange[1]]
+
+    xaxis_cfg = dict(
+        type=xscale if scale == "calendar" else "linear",
+        title=("Date" if scale == "calendar"
+                else f"Blockheight (since block {t0_label})"),
+    )
+    # bub-xrange is year integers — only meaningful in calendar mode
+    if (scale == "calendar" and xrange is not None and len(xrange) == 2):
+        xaxis_cfg["range"] = [
+            pd.Timestamp(year=int(xrange[0]), month=1, day=1).isoformat(),
+            pd.Timestamp(year=int(xrange[1]), month=12, day=31).isoformat(),
+        ]
+
     fig.update_layout(
-        yaxis=dict(type="log", title="USD"),
-        xaxis=dict(
-            title=("Years since " + t0_label if scale == "calendar"
-                    else f"Blockheight since block {t0_label}"),
-        ),
+        yaxis=yaxis_cfg,
+        xaxis=xaxis_cfg,
         title=f"Custom Time Axis — t\u2080 = {t0_label}",
         template="plotly_white",
         margin=dict(l=60, r=30, t=60, b=60),
@@ -173,11 +194,19 @@ def _build_figure(results: dict, scale: str, t0_label: str) -> go.Figure:
     Input("cta-t0-blk-custom", "value"),
     Input("cta-weighting", "value"),
     Input("cta-models", "value"),
+    # Tab 1 Axes & Range — re-fit when the user tweaks them via Input
+    Input("bub-xscale", "value"),
+    Input("bub-yscale", "value"),
+    Input("bub-xrange", "value"),
+    Input("bub-yrange", "value"),
+    Input("bub-auto-y", "value"),
     State("bub-redraw-tick", "data"),
     prevent_initial_call=True,
 )
 def custom_time_callback(active, scale, cal_preset, cal_custom,
-                          blk_preset, blk_custom, weighting, models, tick):
+                          blk_preset, blk_custom, weighting, models,
+                          bub_xscale, bub_yscale, bub_xrange, bub_yrange,
+                          bub_auto_y, tick):
     """Route Custom Time Axis state changes to the bubble figure.
 
     On activate: computes a fresh custom figure.
@@ -234,8 +263,16 @@ def custom_time_callback(active, scale, cal_preset, cal_custom,
                           elapsed_ms,
                           {"scale": scale, "t0": t0, "weighting": weighting})
 
-        # 6. Build figure + status
-        fig = _build_figure(results, scale, str(t0))
+        # 6. Build figure + status (honor Tab 1 Axes & Range panel)
+        auto_y = bool(bub_auto_y and "yes" in bub_auto_y)
+        fig = _build_figure(
+            results, scale, str(t0),
+            xscale=bub_xscale or "log",
+            yscale=bub_yscale or "log",
+            xrange=bub_xrange,
+            yrange=bub_yrange,
+            auto_y=auto_y,
+        )
         sample_counts = [r.n_samples for r in results.values() if r is not None]
         total_n = max(sample_counts, default=0)
         skipped = sum(1 for r in results.values() if r is None)

@@ -17,15 +17,17 @@ CAL_PRESETS: tuple[tuple[str, date, str], ...] = (
     ("nls",        date(2009, 10,  5), "New Liberty Standard (2009-10-05)"),
     ("pizza",      date(2010,  5, 22), "Bitcoin Pizza Day (2010-05-22)"),
     ("mtgox",      date(2010,  7, 17), "Mt. Gox launch (2010-07-17)"),
+    ("parity",     date(2011,  2,  9), "Dollar parity (2011-02-09)"),
 )
 
 # (key, blockheight, display label)
 BLK_PRESETS: tuple[tuple[str, int, str], ...] = (
-    ("block_0",     0,     "Block 0 (genesis)"),
-    ("block_3300",  3300,  "Block 3300 (≈ 2009-07-25)"),
-    ("block_32000", 32000, "Block 32000 (≈ first dollar trade)"),
-    ("block_67700", 67700, "Block 67700 (≈ Pizza Day)"),
-    ("block_70000", 70000, "Block 70000 (≈ Mt. Gox)"),
+    ("block_0",      0,      "Block 0 (genesis)"),
+    ("block_3300",   3300,   "Block 3300 (≈ 2009-07-25)"),
+    ("block_32000",  32000,  "Block 32000 (≈ first dollar trade)"),
+    ("block_67700",  67700,  "Block 67700 (≈ Pizza Day)"),
+    ("block_70000",  70000,  "Block 70000 (≈ Mt. Gox)"),
+    ("block_107165", 107165, "Block 107165 (≈ dollar parity)"),
 )
 
 CAL_PRESET_BY_KEY = {k: (d, lbl) for k, d, lbl in CAL_PRESETS}

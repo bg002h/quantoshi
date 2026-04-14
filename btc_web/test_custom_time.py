@@ -266,8 +266,8 @@ def test_cal_presets_all_before_2016():
 
 
 def test_preset_counts_frozen():
-    assert len(CAL_PRESETS) == 6
-    assert len(BLK_PRESETS) == 5
+    assert len(CAL_PRESETS) == 7
+    assert len(BLK_PRESETS) == 6
 
 
 def test_presets_are_tuples_not_lists():

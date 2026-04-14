@@ -112,7 +112,8 @@ def custom_time_panel():
                     clearable=False,
                 ),
                 html.Small(
-                    "Applies to PL, QR, BM-floor. Exponential ignores.",
+                    "Applies to PL and QR. BM-floor and Exponential ignore "
+                    "(wire-through deferred).",
                     style=_MUTED_STYLE,
                 ),
             ]),

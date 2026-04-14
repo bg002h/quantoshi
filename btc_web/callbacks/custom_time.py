@@ -106,13 +106,32 @@ def _build_figure(results: dict, scale: str, t0_label: str,
     if cf._DATES is None or cf._PRICES is None:
         return fig
 
+    # Hover templates match the standard bubble tab format (see
+    # figures/common.py:_HOVER_FMT_USD). customdata[0] = date string in
+    # calendar mode, or (blockheight, date_str) in block mode.
+    if scale == "calendar":
+        _hover_scatter = (
+            "<b>%{fullData.name}</b><br>%{customdata[0]}<br>"
+            "$%{y:,.0f}<extra></extra>")
+        _hover_line = _hover_scatter  # fit lines also show date + USD
+    else:
+        _hover_scatter = (
+            "<b>%{fullData.name}</b><br>block %{x:,.0f}<br>"
+            "%{customdata[0]}<br>$%{y:,.0f}<extra></extra>")
+        _hover_line = (
+            "<b>%{fullData.name}</b><br>block %{x:,.0f}<br>"
+            "$%{y:,.0f}<extra></extra>")
+
     # x values for the price scatter: years since t₀ OR raw block offset
     if scale == "calendar":
         t0_ts = pd.Timestamp(t0_label)
         x_scatter_all = (
             (cf._DATES - t0_ts).days.values.astype(float) / 365.25)
+        date_strs_all = cf._DATES.strftime("%Y-%m-%d").values
     else:
+        t0_ts = None
         x_scatter_all = (cf._BLOCKS - int(t0_label)).astype(float)
+        date_strs_all = cf._DATES.strftime("%Y-%m-%d").values
 
     # On log-x, points with x <= 0 vanish; mask them so the legend count
     # matches what the user actually sees, and drop them from the scatter
@@ -123,6 +142,7 @@ def _build_figure(results: dict, scale: str, t0_label: str,
         vis_mask = np.ones_like(x_scatter_all, dtype=bool)
     x_scatter = x_scatter_all[vis_mask]
     p_scatter = cf._PRICES[vis_mask]
+    d_scatter = date_strs_all[vis_mask]
     hidden_n = int((~vis_mask).sum())
 
     scatter_label = f"Price (n={len(p_scatter):,})"
@@ -132,6 +152,8 @@ def _build_figure(results: dict, scale: str, t0_label: str,
         x=x_scatter, y=p_scatter, mode="markers",
         marker=dict(size=3, color=DIM_TEXT, opacity=0.5),
         name=scatter_label,
+        customdata=[[d] for d in d_scatter],
+        hovertemplate=_hover_scatter,
     ))
 
     colors = {
@@ -140,6 +162,14 @@ def _build_figure(results: dict, scale: str, t0_label: str,
         "BM floor": MODEL_TRACE_COLORS.get("bub", FALLBACK_MODEL_GRAY),
         "Exp":      MODEL_TRACE_COLORS.get("exp", FALLBACK_MODEL_GRAY),
     }
+
+    # Pre-compute per-t_plot date strings for calendar mode so each fit
+    # trace's hover tooltip shows the date corresponding to that x position.
+    def _dates_for_t(t_plot_arr):
+        if scale == "calendar":
+            ts = t0_ts + pd.to_timedelta(t_plot_arr * 365.25, unit="D")
+            return [[d.strftime("%Y-%m-%d")] for d in ts]
+        return None  # block mode uses %{x} from the trace x values
 
     for r in results.values():
         if r is None:
@@ -158,6 +188,7 @@ def _build_figure(results: dict, scale: str, t0_label: str,
         name_suffix = ""
         if r.name == "Exp":
             name_suffix = " \u00b7 slope is t\u2080-invariant"
+        trace_customdata = _dates_for_t(r.t_plot)
         if isinstance(r.y_plot, dict):
             # QR: per-quantile slopes live in r.params["slopes"][q]
             slopes = r.params.get("slopes", {}) if r.params else {}
@@ -170,6 +201,8 @@ def _build_figure(results: dict, scale: str, t0_label: str,
                     line=dict(color=color, width=TRACE_WIDTH),
                     name=f"{r.name} Q{int(q*100)}% (n={label_n}{slope_str})",
                     legendgroup=r.name,
+                    customdata=trace_customdata,
+                    hovertemplate=_hover_line,
                 ))
         else:
             slope = r.params.get("slope") if r.params else None
@@ -179,6 +212,8 @@ def _build_figure(results: dict, scale: str, t0_label: str,
                 x=r.t_plot, y=10 ** r.y_plot, mode="lines",
                 line=dict(color=color, width=TRACE_WIDTH),
                 name=f"{r.name} (n={label_n}{slope_str}{r2_str}){name_suffix}",
+                customdata=trace_customdata,
+                hovertemplate=_hover_line,
             ))
 
     yaxis_cfg = dict(type=yscale, title="USD")
@@ -194,23 +229,31 @@ def _build_figure(results: dict, scale: str, t0_label: str,
                     else f"Blocks since t\u2080 = {t0_label}")
     xaxis_cfg = dict(title=xaxis_title)
 
-    # bub-xrange is in calendar-year integers. Convert to years-since-t₀
-    # for calendar mode; ignore for block mode. Skip the override entirely
-    # when the resulting lower bound is ≤ 0 (e.g. default xrange=[2010,2080]
-    # with t0=2010-05-22 produces x_lo=-0.39, which on log-x would clamp to
-    # 1e-6 and produce a garbage axis covering 6 decades of empty space).
+    # Always honor bub-xrange (calendar-year integers) in calendar mode.
+    # Linear mode: apply [x_lo, x_hi] directly, even if x_lo < 0.
+    # Log mode: if x_lo ≤ 0 (e.g. t₀ is after the slider's lower year),
+    # clamp to the smallest visible data point so the axis still covers
+    # the user's intended range instead of decaying into an empty decade.
     xaxis_cfg["type"] = xscale if scale == "calendar" else "linear"
     if scale == "calendar" and xrange is not None and len(xrange) == 2:
         t0_ts = pd.Timestamp(t0_label)
         t0_decimal_year = t0_ts.year + (t0_ts.dayofyear - 1) / 365.25
         x_lo = float(xrange[0]) - t0_decimal_year
         x_hi = float(xrange[1]) - t0_decimal_year
-        if x_lo > 0 and x_hi > x_lo:
+        if x_hi > 0 and x_hi > x_lo:
             if xscale == "log":
-                xaxis_cfg["range"] = [math.log10(x_lo), math.log10(x_hi)]
+                # Floor the lower bound to the smallest positive data x
+                # (or a 1-day fallback if no visible data).
+                if len(x_scatter) > 0:
+                    data_min = float(x_scatter.min())
+                else:
+                    data_min = 1.0 / 365.25
+                effective_lo = max(x_lo, data_min)
+                if effective_lo < x_hi:
+                    xaxis_cfg["range"] = [
+                        math.log10(effective_lo), math.log10(x_hi)]
             else:
                 xaxis_cfg["range"] = [x_lo, x_hi]
-        # else: drop the override, let Plotly auto-range
 
     fig.update_layout(
         yaxis=yaxis_cfg,

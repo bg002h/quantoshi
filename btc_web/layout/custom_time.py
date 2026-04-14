@@ -131,7 +131,7 @@ def custom_time_panel():
                         {"label": " BM floor", "value": "bm_floor"},
                         {"label": " Exponential", "value": "exp"},
                     ],
-                    value=["pl", "qr", "bm_floor", "exp"],
+                    value=["pl", "qr", "bm_floor"],
                     labelStyle={"display": "block"},
                     inputStyle=_CB_MARGIN,
                 ),

@@ -20,6 +20,7 @@ from colors import (
     DIM_TEXT, MODEL_TRACE_COLORS, TRACE_WIDTH, FALLBACK_MODEL_GRAY,
 )
 from engines import custom_fit as cf
+from layout.common import _bands_to_qs
 from _custom_time_presets import CAL_PRESET_BY_KEY, BLK_PRESET_BY_KEY
 
 _LOG = logging.getLogger("custom_time")
@@ -145,9 +146,9 @@ def _build_figure(results: dict, scale: str, t0_label: str,
             continue
         color = colors.get(r.name, FALLBACK_MODEL_GRAY)
         label_n = f"{r.n_samples:,}"
-        # R² shown when finite; skipped for QR (always NaN, one fit per quantile)
-        # and BM-floor (NaN by design — the support line sits below the mean
-        # so R² vs full-data mean is misleading).
+        # R² shown when finite; BM-floor is NaN by design (support line sits
+        # below mean so vs-mean R² is misleading), QR is NaN because each
+        # quantile is a separate fit with no single-quantity R².
         r2_str = ""
         if r.r2 is not None and np.isfinite(r.r2):
             r2_str = f", R\u00b2={r.r2:.3f}"
@@ -156,20 +157,28 @@ def _build_figure(results: dict, scale: str, t0_label: str,
         # move when they drag t₀.
         name_suffix = ""
         if r.name == "Exp":
-            name_suffix = " · slope is t\u2080-invariant"
+            name_suffix = " \u00b7 slope is t\u2080-invariant"
         if isinstance(r.y_plot, dict):
+            # QR: per-quantile slopes live in r.params["slopes"][q]
+            slopes = r.params.get("slopes", {}) if r.params else {}
             for q, y in r.y_plot.items():
+                slope_q = slopes.get(q)
+                slope_str = (f", b={slope_q:.3f}" if slope_q is not None
+                              and np.isfinite(slope_q) else "")
                 fig.add_trace(go.Scatter(
                     x=r.t_plot, y=10 ** y, mode="lines",
                     line=dict(color=color, width=TRACE_WIDTH),
-                    name=f"{r.name} Q{int(q*100)}% (n={label_n})",
+                    name=f"{r.name} Q{int(q*100)}% (n={label_n}{slope_str})",
                     legendgroup=r.name,
                 ))
         else:
+            slope = r.params.get("slope") if r.params else None
+            slope_str = (f", b={slope:.3f}" if slope is not None
+                          and np.isfinite(slope) else "")
             fig.add_trace(go.Scatter(
                 x=r.t_plot, y=10 ** r.y_plot, mode="lines",
                 line=dict(color=color, width=TRACE_WIDTH),
-                name=f"{r.name} (n={label_n}{r2_str}){name_suffix}",
+                name=f"{r.name} (n={label_n}{slope_str}{r2_str}){name_suffix}",
             ))
 
     yaxis_cfg = dict(type=yscale, title="USD")
@@ -239,13 +248,18 @@ def _build_figure(results: dict, scale: str, t0_label: str,
     # Tab 1 Display — read "show_legend" so the custom figure honors the
     # same checkbox as the standard bubble chart.
     Input("bub-toggles", "value"),
+    # Tab 1 Projection Quantiles — QR fit uses the user's selection.
+    Input("bub-qs", "value"),
+    Input("bub-qs-mode", "value"),
+    Input("bub-qs-adv", "value"),
     State("bub-redraw-tick", "data"),
     prevent_initial_call=True,
 )
 def custom_time_callback(active, scale, cal_preset, cal_custom,
                           blk_preset, blk_custom, weighting, models,
                           bub_xscale, bub_yscale, bub_xrange, bub_yrange,
-                          bub_auto_y, bub_toggles, tick):
+                          bub_auto_y, bub_toggles,
+                          bub_qs, bub_qs_mode, bub_qs_adv, tick):
     """Route Custom Time Axis state changes to the bubble figure.
 
     On activate: computes a fresh custom figure.
@@ -286,11 +300,25 @@ def custom_time_callback(active, scale, cal_preset, cal_custom,
         fi = cf.build_fit_input(scale=scale, t0=t0, weighting=weighting)
 
         # 5. Run each selected model
+        # Resolve the user's Projection Quantiles selection for QR:
+        # default mode → bub-qs band names → float pairs via _bands_to_qs;
+        # advanced mode → bub-qs-adv is already a list of floats.
+        if bub_qs_mode and "advanced" in bub_qs_mode:
+            qr_quantiles = tuple(sorted(bub_qs_adv or [])) or None
+        else:
+            bands = _bands_to_qs(bub_qs or [])
+            qr_quantiles = tuple(bands) if bands else None
+
         results = {}
         if "pl" in models:
             results["pl"] = cf.fit_pl(fi)
         if "qr" in models:
-            results["qr"] = cf.fit_qr(fi)
+            if qr_quantiles:
+                results["qr"] = cf.fit_qr(fi, quantiles=qr_quantiles)
+            else:
+                # User deselected every quantile — skip QR rather than fit
+                # the default 9-quantile set against a list they've cleared.
+                results["qr"] = None
         if "bm_floor" in models:
             results["bm_floor"] = cf.fit_bm_floor(fi)
         if "exp" in models:

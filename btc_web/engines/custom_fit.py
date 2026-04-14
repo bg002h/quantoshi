@@ -270,8 +270,13 @@ def fit_exp(fi: FitInput) -> Optional[FitResult]:
     )
 
 
-def fit_qr(fi: FitInput) -> Optional[FitResult]:
+def fit_qr(fi: FitInput,
+            quantiles: Optional[tuple] = None) -> Optional[FitResult]:
     """Quantile Regression — statsmodels QuantReg per-quantile.
+
+    `quantiles`: explicit list of floats in (0, 1). When None, the default is
+    `_QR_FULL` for n≥30 or `_QR_REDUCED` for 10≤n<30. When the caller passes
+    their own list (e.g. from the Projection Quantiles panel), we respect it.
 
     Weighting is applied via multinomial resampling because statsmodels.QuantReg
     does not accept sample weights. Approximate but unbiased in expectation.
@@ -284,7 +289,13 @@ def fit_qr(fi: FitInput) -> Optional[FitResult]:
     n = len(t)
     if n < 10:
         return None
-    quantiles = _QR_FULL if n >= 30 else _QR_REDUCED
+    auto_reduced = False
+    if quantiles is None:
+        if n >= 30:
+            quantiles = _QR_FULL
+        else:
+            quantiles = _QR_REDUCED
+            auto_reduced = True
 
     log_t = np.log10(t)
     log_p = np.log10(price)
@@ -332,7 +343,7 @@ def fit_qr(fi: FitInput) -> Optional[FitResult]:
     note_parts = [
         resample_note,
         "weighting degraded (n<30)" if degraded else None,
-        "reduced quantiles (n<30)" if n < 30 else None,
+        "reduced quantiles (n<30)" if auto_reduced else None,
     ]
     note = " | ".join(p for p in note_parts if p) or None
 

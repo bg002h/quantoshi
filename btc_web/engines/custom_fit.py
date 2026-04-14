@@ -110,6 +110,15 @@ def _load_block_array_once() -> None:
         "custom_fit: loaded %d block rows, cap=%s", len(df), _BLOCK_CAP)
 
 
+# Eager-load at module import so _BLOCK_CAP is available when layout/custom_time.py
+# reads it, and so /health reports block_map_loaded:true from the first request.
+try:
+    _load_price_arrays_once()
+    _load_block_array_once()
+except Exception as _exc:  # noqa: BLE001
+    _LOG.error("custom_fit eager load failed: %s", _exc)
+
+
 def build_fit_input(scale: str, t0, weighting: str) -> FitInput:
     """Build a FitInput for the given scale + t0 + weighting.
 

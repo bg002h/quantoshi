@@ -119,6 +119,12 @@ def _health():
             mtimes.extend(f.stat().st_mtime for f in d.glob("*.npz"))
     cache_age_days = (time.time() - min(mtimes)) / 86400 if mtimes else -1
     bp = btcpay.check_health() if flask_request.args.get("btcpay") else None
+    # Custom Time Axis block map load state (section 5 case E detection)
+    try:
+        from engines.custom_fit import _BLOCK_MAP_LOADED
+        block_map_loaded = bool(_BLOCK_MAP_LOADED)
+    except Exception:
+        block_map_loaded = False
     result = {
         "status": "ok",
         "model": M is not None,
@@ -129,6 +135,7 @@ def _health():
         "mc_cache": bool(_CACHE),
         "markov": _HAS_MARKOV,
         "btcpay": btcpay._HAS_BTCPAY,
+        "block_map_loaded": block_map_loaded,
     }
     if bp is not None:
         result["btcpay_health"] = bp

@@ -146,11 +146,44 @@ def custom_time_panel():
             children="Press Activate to fit.",
         ),
 
+        # $1M projection table link
+        dbc.Button(
+            "\U0001F4CA $1M Projection Table",
+            id="cta-open-proj-modal",
+            color="link",
+            size="sm",
+            style={"padding": "4px 0", "marginTop": "4px",
+                    "fontSize": UI_FONT_SM},
+        ),
+
         # Store for router handoff to update_bubble
         dcc.Store(id="bub-redraw-tick", data=0),
     ])
 
-    return _section_card(
+    modal = dbc.Modal(
+        id="cta-proj-modal",
+        size="xl",
+        scrollable=True,
+        is_open=False,
+        children=[
+            dbc.ModalHeader(dbc.ModalTitle(
+                "Projected $1M Month + Fit Exponent (all t\u2080 × all weightings)"
+            )),
+            dbc.ModalBody(
+                dcc.Loading(
+                    id="cta-proj-loading",
+                    type="default",
+                    children=html.Div(id="cta-proj-modal-body"),
+                ),
+            ),
+            dbc.ModalFooter(
+                dbc.Button("Close", id="cta-proj-modal-close",
+                            className="ms-auto", n_clicks=0),
+            ),
+        ],
+    )
+
+    panel = _section_card(
         "Custom Time Axis",
         dcc.Checklist(
             id="cta-active",
@@ -162,3 +195,4 @@ def custom_time_panel():
         body,
         no_hover=True,
     )
+    return html.Div([panel, modal])

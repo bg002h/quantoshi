@@ -15,16 +15,6 @@ import numpy as np
 import pandas as pd
 import scipy.stats
 
-# Ensure the repo root is on sys.path so `tools.model_toolkit.support` imports
-# work when btc_web is launched from its own subdirectory (gunicorn does this).
-# Idempotent; runs once at module import under --preload.
-import sys as _sys  # noqa: E402
-_REPO_ROOT_STR = str(Path(__file__).resolve().parent.parent.parent)
-if _REPO_ROOT_STR not in _sys.path:
-    _sys.path.insert(0, _REPO_ROOT_STR)
-
-from tools.model_toolkit.support import fit_support  # noqa: E402
-
 _LOG = logging.getLogger("custom_fit")
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -358,45 +348,106 @@ def fit_qr(fi: FitInput,
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# BM-floor via fit_support() shim
+# BM-floor — feature-local implementation (weight-aware)
 # ──────────────────────────────────────────────────────────────────────────
+# This replaces the earlier shim into tools/model_toolkit/support.py::
+# fit_support(). We implement the same algorithm here directly so the
+# user's weighting choice propagates all the way through:
+#
+#   1. OLS (optionally weighted) on log_t / log_p → residuals
+#   2. Bottom 20th percentile filter (weighted percentile when weights
+#      are non-uniform) → pick "support" subset
+#   3. QuantReg q=0.50 on the support subset (weighted via multinomial
+#      resampling, same approach as fit_qr)
+#
+# The unweighted path is numerically equivalent to `fit_support`, so
+# pre-existing projections don't shift for weighting=none.
 
-class _PriceDataShim:
-    """Duck-types the attributes `tools/model_toolkit/support.py::fit_support`
-    reads from a real PriceData. In block mode the column is 'log_years' but
-    holds log10(block_offset) — misleading name preserved to match upstream."""
-
-    def __init__(self, t_positive: np.ndarray, price_positive: np.ndarray):
-        # Filter points with t < 1/365.25 day (log-safe threshold)
-        mask = (t_positive > (1.0 / 365.25)) & (price_positive > 0)
-        t = t_positive[mask]
-        p = price_positive[mask]
-        self.log_years = np.log10(t)
-        self.log_prices = np.log10(p)
-        self.df_full = pd.DataFrame({
-            "log_years": self.log_years,
-            "log_price": self.log_prices,
-        })
+def _weighted_percentile(values: np.ndarray, weights: np.ndarray,
+                          pct: float) -> float:
+    """Return the `pct`-th percentile (0-100) of `values` under `weights`.
+    Implemented via sorted cumulative-weight interpolation."""
+    if len(values) == 0:
+        return float("nan")
+    order = np.argsort(values)
+    v_sorted = values[order]
+    w_sorted = weights[order]
+    cum = np.cumsum(w_sorted)
+    target = (pct / 100.0) * cum[-1]
+    return float(np.interp(target, cum, v_sorted))
 
 
 def fit_bm_floor(fi: FitInput) -> Optional[FitResult]:
-    """BM-floor via tools/model_toolkit/support.py::fit_support on a shim.
+    """BM-floor: bottom-20th-percentile support line via OLS→filter→QR.
 
-    Does NOT reuse BubbleModel (which adds bubble composites + extrapolation).
-    Uses only the support-line fitting math. `fit_support` is imported at
-    module top (see sys.path setup above).
+    Feature-local implementation. The earlier version delegated to
+    tools/model_toolkit/support.py::fit_support via a shim, which didn't
+    accept sample weights. Rewritten here so the user's weighting choice
+    actually drives the fit end-to-end.
     """
+    import statsmodels.api as sm
     t0 = time.perf_counter()
-    mask = fi.t > 0
+    mask = fi.t > (1.0 / 365.25)  # log-safe: drop t ≤ 1 day
     t = fi.t[mask]
     price = fi.price[mask]
     n = len(t)
     if n < 50:
         return None
 
-    shim = _PriceDataShim(t, price)
+    log_t = np.log10(t)
+    log_p = np.log10(price)
+
     try:
-        fit = fit_support(shim, percentile=0.20)
+        weights, degraded = _compute_weights(t, fi.weighting)
+
+        # Step 1: (weighted) OLS for residuals
+        if fi.weighting == "none":
+            ols = scipy.stats.linregress(log_t, log_p)
+            slope_ols = float(ols.slope)
+            intercept_ols = float(ols.intercept)
+        else:
+            slope_ols, intercept_ols = np.polyfit(
+                log_t, log_p, 1, w=np.sqrt(weights))
+            slope_ols = float(slope_ols)
+            intercept_ols = float(intercept_ols)
+        residuals = log_p - (intercept_ols + slope_ols * log_t)
+
+        # Step 2: bottom-20th-percentile filter (weighted percentile)
+        if fi.weighting == "none":
+            cutoff = float(np.percentile(residuals, 20))
+        else:
+            cutoff = _weighted_percentile(residuals, weights, 20)
+        support_mask = residuals <= cutoff
+        n_support = int(support_mask.sum())
+        if n_support < 5:
+            return FitResult(
+                name="BM floor", params={},
+                t_plot=np.array([]), y_plot=np.array([]),
+                n_samples=n, r2=float("nan"),
+                elapsed_ms=(time.perf_counter() - t0) * 1000,
+                note="support subset too small",
+            )
+
+        log_t_sup = log_t[support_mask]
+        log_p_sup = log_p[support_mask]
+        w_sup = weights[support_mask]
+
+        # Step 3: QuantReg q=0.50 on the support subset
+        if fi.weighting == "none":
+            X = sm.add_constant(log_t_sup)
+            res = sm.QuantReg(log_p_sup, X).fit(q=0.50, max_iter=10000)
+        else:
+            # Weighted via multinomial resampling (5×n draws, seeded for
+            # determinism — matches fit_qr's weighting strategy).
+            rng = np.random.default_rng(0)
+            probs = w_sup / w_sup.sum()
+            idx = rng.choice(n_support, size=5 * n_support,
+                              replace=True, p=probs)
+            X = sm.add_constant(log_t_sup[idx])
+            res = sm.QuantReg(log_p_sup[idx], X).fit(q=0.50, max_iter=10000)
+
+        intercept = float(res.params[0])
+        slope = float(res.params[1])
     except Exception as exc:
         return FitResult(
             name="BM floor", params={},
@@ -406,12 +457,9 @@ def fit_bm_floor(fi: FitInput) -> Optional[FitResult]:
             note=f"Fit failed: {type(exc).__name__}",
         )
 
-    slope = float(fit.slope)
-    intercept = float(fit.intercept)
-    # R² is not meaningful for a support line: fit_support fits a bottom-
-    # percentile QR line that intentionally sits BELOW the data mean, so the
-    # "R² vs full-data mean" formula can go deeply negative and mislead.
-    # Report NaN; the UI should show "—" instead of a number.
+    # R² is not meaningful for a support line: it sits BELOW the data
+    # mean by construction, so 1 − ss_res/ss_tot goes deeply negative.
+    # Report NaN; UI shows "—" instead of a misleading number.
     r2 = float("nan")
 
     t_plot = np.logspace(
@@ -419,10 +467,17 @@ def fit_bm_floor(fi: FitInput) -> Optional[FitResult]:
         np.log10(t.max() * 1.1), _T_PLOT_POINTS,
     )
     y_plot = slope * np.log10(t_plot) + intercept
+    note_parts = [
+        "weighting degraded (n<30)" if degraded else None,
+        ("QR on support: weighted via resampling (approximate)"
+          if fi.weighting != "none" else None),
+    ]
+    note = " | ".join(p for p in note_parts if p) or None
     return FitResult(
         name="BM floor",
         params={"slope": slope, "intercept": intercept},
         t_plot=t_plot, y_plot=y_plot,
         n_samples=n, r2=r2,
         elapsed_ms=(time.perf_counter() - t0) * 1000,
+        note=note,
     )

@@ -197,6 +197,39 @@ def test_fit_bm_floor_skips_when_n_lt_50():
     assert cf.fit_bm_floor(fi) is None
 
 
+def test_fit_bm_floor_weighting_changes_params():
+    """Regression for the feature-local rewrite: weighting must actually
+    propagate through the OLS residual step, percentile filter, and QR
+    fit. Previously fit_bm_floor delegated to tools/model_toolkit/support
+    which ignored sample weights entirely."""
+    t = np.linspace(0.5, 15.0, 500)
+    rng = np.random.default_rng(0)
+    log_p = 5.5 * np.log10(t) + 0.5 + rng.uniform(-0.1, 0.6, 500)
+    p = 10 ** log_p
+
+    r_none = cf.fit_bm_floor(cf.FitInput(t=t, price=p, weighting="none"))
+    r_inv_t = cf.fit_bm_floor(cf.FitInput(t=t, price=p, weighting="inv_t"))
+    r_inv_sqrt_t = cf.fit_bm_floor(
+        cf.FitInput(t=t, price=p, weighting="inv_sqrt_t"))
+    r_log_density = cf.fit_bm_floor(
+        cf.FitInput(t=t, price=p, weighting="log_density"))
+
+    # All four return finite params (no crashes, no NaN slope)
+    for r in (r_none, r_inv_t, r_inv_sqrt_t, r_log_density):
+        assert r is not None
+        assert math.isfinite(r.params["slope"])
+        assert math.isfinite(r.params["intercept"])
+
+    # Weighted fits must differ from unweighted (not character-for-character
+    # identical — that would mean the weighting path is broken).
+    assert r_none.params["slope"] != r_inv_t.params["slope"], (
+        "1/t weighting produced identical BM-floor slope to unweighted — "
+        "weighting path is broken")
+    assert r_none.params["slope"] != r_log_density.params["slope"], (
+        "log_density weighting produced identical BM-floor slope to "
+        "unweighted — weighting path is broken")
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # build_fit_input / cached arrays
 # ──────────────────────────────────────────────────────────────────────────

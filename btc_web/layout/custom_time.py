@@ -112,8 +112,8 @@ def custom_time_panel():
                     clearable=False,
                 ),
                 html.Small(
-                    "Applies to PL and QR. BM-floor and Exponential ignore "
-                    "(wire-through deferred).",
+                    "Applies to PL, QR, and BM-floor. Exponential ignores "
+                    "(linear-t fit; weighting has no effect).",
                     style=_MUTED_STYLE,
                 ),
             ]),

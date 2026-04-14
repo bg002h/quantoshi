@@ -37,14 +37,21 @@ if ! python3 tools/build_block_map.py --append; then
     notify_failure "build_block_map.py --append failed (block mode may decay)"
 fi
 
+# Rebuild the Custom Time Axis $1M projection table (skipped automatically
+# if the existing btc_web/_projection_table.json is <28 days old, so this
+# refreshes roughly monthly, not daily).
+if ! python3 tools/build_projection_table.py; then
+    notify_failure "build_projection_table.py failed (modal will show stale data)"
+fi
+
 # Check if there are changes to commit
-if git diff --quiet BitcoinPricesDaily.csv model_data.pkl btc_core.py BitcoinBlocksDaily.csv 2>/dev/null; then
+if git diff --quiet BitcoinPricesDaily.csv model_data.pkl btc_core.py BitcoinBlocksDaily.csv btc_web/_projection_table.json 2>/dev/null; then
     echo "No new data — nothing to commit."
     exit 0
 fi
 
 # Commit and push
-git add BitcoinPricesDaily.csv model_data.pkl btc_core.py BitcoinBlocksDaily.csv
+git add BitcoinPricesDaily.csv model_data.pkl btc_core.py BitcoinBlocksDaily.csv btc_web/_projection_table.json
 git commit -m "Daily price update $(date '+%Y-%m-%d')"
 if ! git push origin master; then
     notify_failure "git push failed"

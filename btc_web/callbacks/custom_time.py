@@ -501,115 +501,80 @@ def custom_time_callback(active, scale, cal_preset, cal_custom,
 # $1M Projection Table Modal
 # ══════════════════════════════════════════════════════════════════════════
 
-_TARGET_LOG_P = 6.0   # log10($1_000_000)
-_MAX_YEARS_OUT = 991  # cap display at ~year 3000
-
-_TABLE_WEIGHTINGS = [
-    ("Unweighted",      "none"),
-    ("1/t",             "inv_t"),
-    ("1/\u221at",       "inv_sqrt_t"),
-    ("log-t density",   "log_density"),
-]
-_TABLE_MODELS = [
-    ("PL",       lambda fi: cf.fit_pl(fi)),
-    ("QR Q50",   lambda fi: cf.fit_qr(fi, quantiles=(0.5,))),
-    ("BM floor", lambda fi: cf.fit_bm_floor(fi)),
-    ("Exp",      lambda fi: cf.fit_exp(fi)),
-]
+# Live-fit helpers removed 2026-04-14: the projection table is now a
+# static JSON produced by tools/build_projection_table.py (rebuilt monthly
+# via daily_update.sh). The modal reads _projection_table.json instead of
+# running 96 fits per click.
 
 
-def _extract_slope_and_target_date(r, t0_ts):
-    """Return (slope_str, target_month_str) for a single FitResult.
-    Solves log10(price)=6 against the stored slope/intercept."""
-    if r is None or not r.params:
-        return ("\u2014", "\u2014")
-    if r.name == "Exp":
-        slope = r.params.get("slope")
-        intercept = r.params.get("intercept")
-        if slope is None:
-            return ("\u2014", "\u2014")
-        b_str = f"{slope:.3f}"
-        if slope <= 0:
-            return (b_str, "\u2014")
-        t_hit = (_TARGET_LOG_P - intercept) / slope
-    elif r.name == "QR":
-        slopes = r.params.get("slopes", {})
-        intercepts = r.params.get("intercepts", {})
-        if 0.5 in slopes:
-            q = 0.5
-        elif slopes:
-            q = min(slopes.keys(), key=lambda x: abs(x - 0.5))
-        else:
-            return ("\u2014", "\u2014")
-        slope = slopes[q]
-        intercept = intercepts[q]
-        b_str = f"{slope:.3f}"
-        if slope is None or slope <= 0:
-            return (b_str, "\u2014")
-        t_hit = 10 ** ((_TARGET_LOG_P - intercept) / slope)
-    else:
-        slope = r.params.get("slope")
-        intercept = r.params.get("intercept")
-        if slope is None:
-            return ("\u2014", "\u2014")
-        b_str = f"{slope:.3f}"
-        if slope <= 0:
-            return (b_str, "\u2014")
-        t_hit = 10 ** ((_TARGET_LOG_P - intercept) / slope)
+from pathlib import Path as _Path
+_PROJECTION_JSON_PATH = (
+    _Path(_app_ctx.__file__).resolve().parent / "_projection_table.json"
+)
 
-    if t_hit > _MAX_YEARS_OUT:
-        target_year = int(t0_ts.year + t_hit)
-        return (b_str, f">{min(target_year, 9999)}")
+
+def _load_projection_blob():
+    """Load the pre-computed projection table from _projection_table.json.
+    Returns None if the file is missing or unreadable — the UI will fall
+    back to a 'not available' message."""
+    import json
     try:
-        dt = t0_ts + pd.to_timedelta(t_hit * 365.25, unit="D")
-    except Exception:
-        return (b_str, ">9999")
-    if dt.year < 2010:
-        return (b_str, "<2010")
-    return (b_str, dt.strftime("%Y-%m"))
+        return json.loads(_PROJECTION_JSON_PATH.read_text())
+    except Exception as exc:
+        _LOG.warning("projection table JSON missing/unreadable: %s", exc)
+        return None
+
+
+def _fmt_b(b_val):
+    if b_val is None:
+        return "\u2014"
+    if not np.isfinite(b_val):
+        return "\u2014"
+    return f"{b_val:.3f}"
 
 
 def _build_projection_table():
-    """Build a list of dbc.Tables (one per weighting) showing projected
-    $1M-hit month + fit exponent for every (t₀ preset × model) combo."""
-    from _custom_time_presets import CAL_PRESETS
+    """Render the pre-computed projection table as Dash components. Reads
+    from btc_web/_projection_table.json (rebuilt monthly by
+    tools/build_projection_table.py via daily_update.sh). Falls back to
+    a 'data unavailable' message if the JSON is missing."""
+    blob = _load_projection_blob()
+    if blob is None:
+        return html.Div([
+            html.P(
+                "\u26a0 Projection table data not available "
+                "(btc_web/_projection_table.json missing or unreadable). "
+                "Run `python3 tools/build_projection_table.py --force` on "
+                "dev and deploy to regenerate.",
+                style={"color": DIM_TEXT, "fontSize": UI_FONT_SM},
+            ),
+        ])
+
+    generated_at = blob.get("generated_at", "unknown")
+    target_usd = blob.get("target_price_usd", 1_000_000)
+    models = blob.get("models", [])
 
     tables = []
-    for wlbl, wkey in _TABLE_WEIGHTINGS:
-        # Header row: preset / (model, b/date) * N
+    for weighting in blob.get("weightings", []):
+        wlbl = weighting.get("label", "?")
         header = [html.Th("t\u2080 preset")]
-        for mname, _ in _TABLE_MODELS:
-            header.append(html.Th(f"{mname} — b"))
-            header.append(html.Th(f"{mname} — $1M"))
+        for mname in models:
+            header.append(html.Th(f"{mname} \u2014 b"))
+            header.append(html.Th(f"{mname} \u2014 ${target_usd // 1_000_000}M"))
 
-        # Data rows
         body_rows = []
-        for _key, d, lbl in CAL_PRESETS:
-            t0_iso = d.isoformat()
-            t0_ts = pd.Timestamp(t0_iso)
-            try:
-                fi = cf.build_fit_input(
-                    scale="calendar", t0=t0_iso, weighting=wkey)
-            except Exception as exc:
-                err_cells = [html.Td(lbl)] + [
-                    html.Td(f"err: {type(exc).__name__}", colSpan=2)
-                    for _ in _TABLE_MODELS
-                ]
-                body_rows.append(html.Tr(err_cells))
-                continue
-
+        for row in weighting.get("rows", []):
+            lbl = row.get("preset_label", "?")
             cells = [html.Td(lbl)]
-            for mname, fn in _TABLE_MODELS:
-                try:
-                    r = fn(fi)
-                    b_str, date_str = _extract_slope_and_target_date(r, t0_ts)
-                except Exception as exc:
-                    b_str = f"err: {type(exc).__name__}"
-                    date_str = "\u2014"
-                cells.append(html.Td(b_str, style={"fontFamily": "monospace",
-                                                     "fontSize": "0.85em"}))
-                cells.append(html.Td(date_str, style={"fontFamily": "monospace",
-                                                        "fontSize": "0.85em"}))
+            row_cells = row.get("cells", {})
+            for mname in models:
+                cell = row_cells.get(mname, {"b": None, "date": "\u2014"})
+                b_str = _fmt_b(cell.get("b"))
+                date_str = cell.get("date", "\u2014")
+                cells.append(html.Td(b_str, style={
+                    "fontFamily": "monospace", "fontSize": "0.85em"}))
+                cells.append(html.Td(date_str, style={
+                    "fontFamily": "monospace", "fontSize": "0.85em"}))
             body_rows.append(html.Tr(cells))
 
         table = dbc.Table(
@@ -623,27 +588,37 @@ def _build_projection_table():
             table,
         ]))
 
-    intro = html.Div([
+    # Generated-at header (top of body)
+    gen_display = generated_at.replace("T", " ").split("+")[0]
+    header_div = html.Div([
+        html.P([
+            html.B("Table generated: "),
+            html.Code(gen_display, style={"fontSize": UI_FONT_SM}),
+            html.Span(" UTC", style={"fontSize": UI_FONT_SM, "color": DIM_TEXT}),
+            html.Span(" \u00b7 refreshed monthly via daily_update.sh",
+                       style={"fontSize": UI_FONT_SM, "color": DIM_TEXT,
+                              "marginLeft": "8px"}),
+        ], style={"marginBottom": "4px"}),
         html.P([
             "Each cell shows the fit's log-log ",
             html.B("exponent (b)"), " and the projected calendar ",
-            html.B("month Bitcoin price crosses $1,000,000 USD"),
-            " by solving log\u2081\u2080(price) = 6 against the stored ",
-            "slope and intercept. BM floor is the 20-percentile support ",
-            "line; QR uses the median (Q50%) line; Exp is linear-t so it ",
-            "is ", html.Em("both"), " t\u2080- and weighting-invariant by design.",
+            html.B(f"month Bitcoin price crosses ${target_usd:,} USD"),
+            " by solving log\u2081\u2080(price) against the stored slope/"
+            "intercept. BM floor uses the 20-percentile support line; QR "
+            "uses the median (Q50%) line; Exp is linear-t so it is ",
+            html.Em("both"), " t\u2080- and weighting-invariant by design.",
         ], style={"fontSize": UI_FONT_SM, "color": DIM_TEXT}),
         html.P([
             html.Small([
                 "Legend: ",
-                html.Code("YYYY-MM"), " projected month · ",
-                html.Code(">YYYY"), " projection past year · ",
-                html.Code("<2010"), " fit already above $1M pre-2010 · ",
+                html.Code("YYYY-MM"), " projected month \u00b7 ",
+                html.Code(">YYYY"), " projection past year \u00b7 ",
+                html.Code("<2010"), " fit already above target pre-2010 \u00b7 ",
                 html.Code("\u2014"), " degenerate/failed fit.",
             ]),
         ], style={"color": DIM_TEXT}),
     ])
-    return [intro] + tables
+    return [header_div] + tables
 
 
 @callback(

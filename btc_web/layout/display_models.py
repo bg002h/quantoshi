@@ -60,7 +60,7 @@ def build_display_models_options(
     def _gear_span(gear_id, title):
         return html.Span(
             "\u2699\uFE0F", id=gear_id, n_clicks=0,
-            style=_GEAR_STYLE, title=title,
+            style=_GEAR_STYLE, title=title, className="qs-gear",
         )
 
     def _inline_summary(span_id, default):

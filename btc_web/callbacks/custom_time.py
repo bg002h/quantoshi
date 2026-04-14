@@ -94,15 +94,25 @@ def _resolve_t0(scale, cal_preset, cal_custom, blk_preset, blk_custom):
 def _build_figure(results: dict, scale: str, t0_label: str,
                    xscale: str = "log", yscale: str = "log",
                    xrange=None, yrange=None, auto_y=True) -> go.Figure:
-    """Build the Custom Time Axis figure. Honors the Tab 1 Axes & Range
-    panel (bub-xscale / bub-yscale / bub-xrange / bub-yrange / bub-auto-y).
-    In block mode, bub-xrange is ignored (year-valued; doesn't map)."""
+    """Build the Custom Time Axis figure. Uses the numeric `t` (years since
+    t₀ or block offset) as the x-axis so log scaling works correctly.
+    Honors the Tab 1 Axes & Range panel.
+    """
     fig = go.Figure()
-    x_series = cf._DATES if scale == "calendar" else cf._BLOCKS
-    if x_series is None:
+    if cf._DATES is None or cf._PRICES is None:
         return fig
+
+    # x values for the price scatter: years since t₀ OR raw block offset
+    if scale == "calendar":
+        t0_ts = pd.Timestamp(t0_label)
+        x_scatter = ((cf._DATES - t0_ts).days.values.astype(float) / 365.25)
+        t0_int = None
+    else:
+        t0_int = int(t0_label)
+        x_scatter = (cf._BLOCKS - t0_int).astype(float)
+
     fig.add_trace(go.Scatter(
-        x=x_series, y=cf._PRICES, mode="markers",
+        x=x_scatter, y=cf._PRICES, mode="markers",
         marker=dict(size=3, color=DIM_TEXT, opacity=0.5),
         name=f"Price (n={len(cf._PRICES):,})",
     ))
@@ -114,39 +124,27 @@ def _build_figure(results: dict, scale: str, t0_label: str,
         "Exp":      MODEL_TRACE_COLORS.get("exp", FALLBACK_MODEL_GRAY),
     }
 
-    # Convert t_plot (in fit-space units — years or block offsets) back to
-    # the x-axis space (calendar dates or absolute blockheights) so the trace
-    # aligns with the price scatter.
-    t0_ts = pd.Timestamp(t0_label) if scale == "calendar" else None
-    t0_int = int(t0_label) if scale == "block" else None
-
-    def _t_plot_to_x(t_plot):
-        if scale == "calendar":
-            return t0_ts + pd.to_timedelta(t_plot * 365.25, unit="D")
-        return t0_int + t_plot
-
     for r in results.values():
         if r is None:
             continue
         color = colors.get(r.name, FALLBACK_MODEL_GRAY)
         label_n = f"{r.n_samples:,}"
         if isinstance(r.y_plot, dict):
-            x_plot = _t_plot_to_x(r.t_plot)
             for q, y in r.y_plot.items():
                 fig.add_trace(go.Scatter(
-                    x=x_plot, y=10 ** y, mode="lines",
+                    x=r.t_plot, y=10 ** y, mode="lines",
                     line=dict(color=color, width=TRACE_WIDTH),
                     name=f"{r.name} Q{int(q*100)}% (n={label_n})",
                     legendgroup=r.name,
                 ))
         else:
-            x_plot = _t_plot_to_x(r.t_plot)
             fig.add_trace(go.Scatter(
-                x=x_plot, y=10 ** r.y_plot, mode="lines",
+                x=r.t_plot, y=10 ** r.y_plot, mode="lines",
                 line=dict(color=color, width=TRACE_WIDTH),
                 name=f"{r.name} (n={label_n})",
             ))
 
+    import math
     yaxis_cfg = dict(type=yscale, title="USD")
     if not auto_y and yrange is not None and len(yrange) == 2:
         # bub-yrange is in log10 price units — apply directly when log,
@@ -156,22 +154,35 @@ def _build_figure(results: dict, scale: str, t0_label: str,
         else:
             yaxis_cfg["range"] = [10 ** yrange[0], 10 ** yrange[1]]
 
-    xaxis_cfg = dict(
-        type=xscale if scale == "calendar" else "linear",
-        title=("Date" if scale == "calendar"
-                else f"Blockheight (since block {t0_label})"),
-    )
-    # bub-xrange is year integers — only meaningful in calendar mode
-    if (scale == "calendar" and xrange is not None and len(xrange) == 2):
-        xaxis_cfg["range"] = [
-            pd.Timestamp(year=int(xrange[0]), month=1, day=1).isoformat(),
-            pd.Timestamp(year=int(xrange[1]), month=12, day=31).isoformat(),
-        ]
+    xaxis_title = (f"Years since t\u2080 = {t0_label}" if scale == "calendar"
+                    else f"Blocks since t\u2080 = {t0_label}")
+    xaxis_cfg = dict(title=xaxis_title)
+
+    # bub-xrange is in calendar-year integers. Convert to years-since-t₀
+    # for calendar mode; ignore for block mode.
+    if scale == "calendar" and xrange is not None and len(xrange) == 2:
+        t0_ts = pd.Timestamp(t0_label)
+        t0_decimal_year = t0_ts.year + (t0_ts.dayofyear - 1) / 365.25
+        x_lo = float(xrange[0]) - t0_decimal_year
+        x_hi = float(xrange[1]) - t0_decimal_year
+        if xscale == "log":
+            # Log-axis range is in log10 space and inputs must be positive
+            xaxis_cfg["type"] = "log"
+            xaxis_cfg["range"] = [
+                math.log10(max(x_lo, 1e-6)),
+                math.log10(max(x_hi, 1e-6)),
+            ]
+        else:
+            xaxis_cfg["type"] = "linear"
+            xaxis_cfg["range"] = [x_lo, x_hi]
+    else:
+        # Auto-range: still honor log/linear from bub-xscale
+        xaxis_cfg["type"] = xscale
 
     fig.update_layout(
         yaxis=yaxis_cfg,
         xaxis=xaxis_cfg,
-        title=f"Custom Time Axis — t\u2080 = {t0_label}",
+        title=f"Custom Time Axis \u2014 t\u2080 = {t0_label}",
         template="plotly_white",
         margin=dict(l=60, r=30, t=60, b=60),
     )

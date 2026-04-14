@@ -280,9 +280,40 @@ def _build_figure(results: dict, scale: str, t0_label: str,
         else:
             yaxis_cfg["range"] = [10 ** yrange[0], 10 ** yrange[1]]
 
-    xaxis_title = (f"Years since t\u2080 = {t0_label}" if scale == "calendar"
+    xaxis_title = ("Year" if scale == "calendar"
                     else f"Blocks since t\u2080 = {t0_label}")
     xaxis_cfg = dict(title=xaxis_title)
+
+    # Calendar-year tick labels: the underlying x values are numeric
+    # years-since-t₀ so log-log works, but we relabel the ticks to show
+    # calendar years (2010, 2020, 2030, ...) matching the standard bubble
+    # chart's convention (figures/bubble.py:410-414).
+    if scale == "calendar":
+        t0_ts_tk = pd.Timestamp(t0_label)
+        t0_dy_tk = t0_ts_tk.year + (t0_ts_tk.dayofyear - 1) / 365.25
+        # Determine the calendar year range to tick over
+        if xrange is not None and len(xrange) == 2:
+            tick_yr_lo = int(xrange[0])
+            tick_yr_hi = int(xrange[1])
+        else:
+            tick_yr_lo = int(t0_dy_tk) + 1
+            tick_yr_hi = int(pd.Timestamp.today().year) + 5
+        span = max(tick_yr_hi - tick_yr_lo, 1)
+        step = 1 if span <= 10 else (2 if span <= 20 else
+                                      (5 if span <= 60 else 10))
+        first = ((tick_yr_lo + step - 1) // step) * step
+        tick_years = list(range(first, tick_yr_hi + 1, step))
+        tick_vals = [float(y) - t0_dy_tk for y in tick_years]
+        tick_labels = [str(y) for y in tick_years]
+        # Log-x can't display non-positive ticks; drop them
+        if xscale == "log":
+            positive = [(v, lbl) for v, lbl in zip(tick_vals, tick_labels)
+                         if v > 0]
+            tick_vals = [p[0] for p in positive]
+            tick_labels = [p[1] for p in positive]
+        if tick_vals:
+            xaxis_cfg["tickvals"] = tick_vals
+            xaxis_cfg["ticktext"] = tick_labels
 
     # Always honor bub-xrange (calendar-year integers) in calendar mode.
     # Linear mode: apply [x_lo, x_hi] directly, even if x_lo < 0.

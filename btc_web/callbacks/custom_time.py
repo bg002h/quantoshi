@@ -95,10 +95,11 @@ def _resolve_t0(scale, cal_preset, cal_custom, blk_preset, blk_custom):
 
 def _build_figure(results: dict, scale: str, t0_label: str,
                    xscale: str = "log", yscale: str = "log",
-                   xrange=None, yrange=None, auto_y=True) -> go.Figure:
+                   xrange=None, yrange=None, auto_y=True,
+                   show_legend: bool = True) -> go.Figure:
     """Build the Custom Time Axis figure. Uses the numeric `t` (years since
     t₀ or block offset) as the x-axis so log scaling works correctly.
-    Honors the Tab 1 Axes & Range panel.
+    Honors the Tab 1 Axes & Range panel + Display "Show legend" checkbox.
     """
     fig = go.Figure()
     if cf._DATES is None or cf._PRICES is None:
@@ -144,6 +145,12 @@ def _build_figure(results: dict, scale: str, t0_label: str,
             continue
         color = colors.get(r.name, FALLBACK_MODEL_GRAY)
         label_n = f"{r.n_samples:,}"
+        # R² shown when finite; skipped for QR (always NaN, one fit per quantile)
+        # and BM-floor (NaN by design — the support line sits below the mean
+        # so R² vs full-data mean is misleading).
+        r2_str = ""
+        if r.r2 is not None and np.isfinite(r.r2):
+            r2_str = f", R\u00b2={r.r2:.3f}"
         # Exp slope is translation-invariant (log(p) = a + b·t → shifting t
         # by Δ only changes a). Annotate so users don't expect the slope to
         # move when they drag t₀.
@@ -162,7 +169,7 @@ def _build_figure(results: dict, scale: str, t0_label: str,
             fig.add_trace(go.Scatter(
                 x=r.t_plot, y=10 ** r.y_plot, mode="lines",
                 line=dict(color=color, width=TRACE_WIDTH),
-                name=f"{r.name} (n={label_n}){name_suffix}",
+                name=f"{r.name} (n={label_n}{r2_str}){name_suffix}",
             ))
 
     yaxis_cfg = dict(type=yscale, title="USD")
@@ -202,6 +209,7 @@ def _build_figure(results: dict, scale: str, t0_label: str,
         title=f"Custom Time Axis \u2014 t\u2080 = {t0_label}",
         template="plotly_white",
         margin=dict(l=60, r=30, t=60, b=60),
+        showlegend=show_legend,
     )
     return fig
 
@@ -228,13 +236,16 @@ def _build_figure(results: dict, scale: str, t0_label: str,
     Input("bub-xrange", "value"),
     Input("bub-yrange", "value"),
     Input("bub-auto-y", "value"),
+    # Tab 1 Display — read "show_legend" so the custom figure honors the
+    # same checkbox as the standard bubble chart.
+    Input("bub-toggles", "value"),
     State("bub-redraw-tick", "data"),
     prevent_initial_call=True,
 )
 def custom_time_callback(active, scale, cal_preset, cal_custom,
                           blk_preset, blk_custom, weighting, models,
                           bub_xscale, bub_yscale, bub_xrange, bub_yrange,
-                          bub_auto_y, tick):
+                          bub_auto_y, bub_toggles, tick):
     """Route Custom Time Axis state changes to the bubble figure.
 
     On activate: computes a fresh custom figure.
@@ -293,6 +304,7 @@ def custom_time_callback(active, scale, cal_preset, cal_custom,
 
         # 6. Build figure + status (honor Tab 1 Axes & Range panel)
         auto_y = bool(bub_auto_y and "yes" in bub_auto_y)
+        show_legend = bool(bub_toggles and "show_legend" in bub_toggles)
         fig = _build_figure(
             results, scale, str(t0),
             xscale=bub_xscale or "log",
@@ -300,6 +312,7 @@ def custom_time_callback(active, scale, cal_preset, cal_custom,
             xrange=bub_xrange,
             yrange=bub_yrange,
             auto_y=auto_y,
+            show_legend=show_legend,
         )
         sample_counts = [r.n_samples for r in results.values() if r is not None]
         total_n = max(sample_counts, default=0)

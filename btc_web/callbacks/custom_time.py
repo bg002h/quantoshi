@@ -25,6 +25,42 @@ from _custom_time_presets import CAL_PRESET_BY_KEY, BLK_PRESET_BY_KEY
 
 _LOG = logging.getLogger("custom_time")
 _CAP_DATE = date(2016, 1, 1)
+_T_PLOT_POINTS = 400
+
+
+def _eval_fit_on_range(r, t_min: float, t_max: float):
+    """Re-evaluate a FitResult's curves on an extended t range using stored
+    slope/intercept params. Used to extrapolate fit lines out to whatever
+    the bub-xrange upper bound requests, not just 1.1 × data.max().
+
+    Returns (t_plot, y_plot) with the same shape as the FitResult
+    (np.ndarray for PL/BM-floor/Exp, dict{q: np.ndarray} for QR).
+    """
+    if r.name == "Exp":
+        t_plot = np.linspace(t_min, t_max, _T_PLOT_POINTS)
+    else:
+        # Log-log models need strictly positive t
+        lo = max(t_min, 1e-6)
+        hi = max(t_max, lo * 2)
+        t_plot = np.logspace(np.log10(lo), np.log10(hi), _T_PLOT_POINTS)
+
+    if isinstance(r.y_plot, dict):
+        slopes = r.params.get("slopes", {})
+        intercepts = r.params.get("intercepts", {})
+        log_t = np.log10(t_plot)
+        y_plot = {q: slopes[q] * log_t + intercepts[q] for q in r.y_plot}
+        return t_plot, y_plot
+
+    slope = r.params.get("slope")
+    intercept = r.params.get("intercept")
+    if slope is None or intercept is None:
+        # fit_support failure or similar — return the stored arrays unchanged
+        return r.t_plot, r.y_plot
+    if r.name == "Exp":
+        y_plot = slope * t_plot + intercept
+    else:
+        y_plot = slope * np.log10(t_plot) + intercept
+    return t_plot, y_plot
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -156,6 +192,22 @@ def _build_figure(results: dict, scale: str, t0_label: str,
         hovertemplate=_hover_scatter,
     ))
 
+    # Determine the t_max the fit lines should extend to. We want the lines
+    # to cover both the existing data AND the user's bub-xrange upper bound
+    # (in years-since-t₀ for calendar mode, or raw block offset for block
+    # mode). This lets the user drag the slider out to e.g. 2080 and see
+    # the fit extrapolate there.
+    t_min_data = float(x_scatter.min()) if len(x_scatter) else 1.0 / 365.25
+    t_max_data = float(x_scatter_all.max()) if len(x_scatter_all) else 1.0
+    t_max_ext = t_max_data * 1.1  # default: 10% past data
+    if scale == "calendar" and xrange is not None and len(xrange) == 2:
+        t0_ts_ext = pd.Timestamp(t0_label)
+        t0_dy = t0_ts_ext.year + (t0_ts_ext.dayofyear - 1) / 365.25
+        xrange_hi = float(xrange[1]) - t0_dy
+        if xrange_hi > t_max_ext:
+            t_max_ext = xrange_hi
+    # Block mode: bub-xrange is in years and doesn't apply. Use data max.
+
     colors = {
         "PL":       MODEL_TRACE_COLORS.get("pl", FALLBACK_MODEL_GRAY),
         "QR":       MODEL_TRACE_COLORS.get("qr", FALLBACK_MODEL_GRAY),
@@ -188,16 +240,19 @@ def _build_figure(results: dict, scale: str, t0_label: str,
         name_suffix = ""
         if r.name == "Exp":
             name_suffix = " \u00b7 slope is t\u2080-invariant"
-        trace_customdata = _dates_for_t(r.t_plot)
-        if isinstance(r.y_plot, dict):
+        # Re-evaluate the fit on the extended t range so the curves extend
+        # out to whatever bub-xrange requests (e.g. 2080).
+        t_plot_ext, y_plot_ext = _eval_fit_on_range(r, t_min_data, t_max_ext)
+        trace_customdata = _dates_for_t(t_plot_ext)
+        if isinstance(y_plot_ext, dict):
             # QR: per-quantile slopes live in r.params["slopes"][q]
             slopes = r.params.get("slopes", {}) if r.params else {}
-            for q, y in r.y_plot.items():
+            for q, y in y_plot_ext.items():
                 slope_q = slopes.get(q)
                 slope_str = (f", b={slope_q:.3f}" if slope_q is not None
                               and np.isfinite(slope_q) else "")
                 fig.add_trace(go.Scatter(
-                    x=r.t_plot, y=10 ** y, mode="lines",
+                    x=t_plot_ext, y=10 ** y, mode="lines",
                     line=dict(color=color, width=TRACE_WIDTH),
                     name=f"{r.name} Q{int(q*100)}% (n={label_n}{slope_str})",
                     legendgroup=r.name,
@@ -209,7 +264,7 @@ def _build_figure(results: dict, scale: str, t0_label: str,
             slope_str = (f", b={slope:.3f}" if slope is not None
                           and np.isfinite(slope) else "")
             fig.add_trace(go.Scatter(
-                x=r.t_plot, y=10 ** r.y_plot, mode="lines",
+                x=t_plot_ext, y=10 ** y_plot_ext, mode="lines",
                 line=dict(color=color, width=TRACE_WIDTH),
                 name=f"{r.name} (n={label_n}{slope_str}{r2_str}){name_suffix}",
                 customdata=trace_customdata,

@@ -144,6 +144,12 @@ def _build_figure(results: dict, scale: str, t0_label: str,
             continue
         color = colors.get(r.name, FALLBACK_MODEL_GRAY)
         label_n = f"{r.n_samples:,}"
+        # Exp slope is translation-invariant (log(p) = a + b·t → shifting t
+        # by Δ only changes a). Annotate so users don't expect the slope to
+        # move when they drag t₀.
+        name_suffix = ""
+        if r.name == "Exp":
+            name_suffix = " · slope is t\u2080-invariant"
         if isinstance(r.y_plot, dict):
             for q, y in r.y_plot.items():
                 fig.add_trace(go.Scatter(
@@ -156,7 +162,7 @@ def _build_figure(results: dict, scale: str, t0_label: str,
             fig.add_trace(go.Scatter(
                 x=r.t_plot, y=10 ** r.y_plot, mode="lines",
                 line=dict(color=color, width=TRACE_WIDTH),
-                name=f"{r.name} (n={label_n})",
+                name=f"{r.name} (n={label_n}){name_suffix}",
             ))
 
     yaxis_cfg = dict(type=yscale, title="USD")

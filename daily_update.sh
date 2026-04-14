@@ -28,14 +28,23 @@ if ! python3 update_prices.py; then
     exit 1
 fi
 
+# Append new rows to BitcoinBlocksDaily.csv so block-mode axis stays in
+# sync on prod (prod has no bitcoind and reads the committed CSV as a
+# static file). --append is a no-op if no new price rows were added.
+if ! python3 tools/build_block_map.py --append; then
+    # Don't fail the whole run — block mode will fall back to "unavailable"
+    # via /health graceful degradation, and a manual rerun later will fix it.
+    notify_failure "build_block_map.py --append failed (block mode may decay)"
+fi
+
 # Check if there are changes to commit
-if git diff --quiet BitcoinPricesDaily.csv model_data.pkl btc_core.py 2>/dev/null; then
+if git diff --quiet BitcoinPricesDaily.csv model_data.pkl btc_core.py BitcoinBlocksDaily.csv 2>/dev/null; then
     echo "No new data — nothing to commit."
     exit 0
 fi
 
 # Commit and push
-git add BitcoinPricesDaily.csv model_data.pkl btc_core.py
+git add BitcoinPricesDaily.csv model_data.pkl btc_core.py BitcoinBlocksDaily.csv
 git commit -m "Daily price update $(date '+%Y-%m-%d')"
 if ! git push origin master; then
     notify_failure "git push failed"

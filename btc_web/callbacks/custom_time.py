@@ -310,6 +310,12 @@ def custom_time_callback(active, scale, cal_preset, cal_custom,
         ]
         if skipped:
             status_parts.append(f"{skipped} model(s) skipped (see legend).")
+        # Surface any FitResult.note diagnostics so the user sees why
+        # weighting was degraded, why QR fell back to 3 quantiles, etc.
+        notes = [f"{r.name}: {r.note}" for r in results.values()
+                  if r is not None and r.note]
+        if notes:
+            status_parts.append("\u00b7 " + " \u00b7 ".join(notes))
         return fig, " ".join(status_parts), no_update
 
     except Exception as exc:

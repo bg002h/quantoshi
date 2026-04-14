@@ -79,6 +79,9 @@ def _load_price_arrays_once() -> None:
     # DatetimeIndex (not Series) so (_DATES - t0).days returns a TimedeltaIndex
     _DATES = pd.DatetimeIndex(pd.to_datetime(df["Date"], format="%m/%d/%y"))
     _PRICES = df["Price"].to_numpy(dtype=np.float64)
+    # Defense-in-depth: cached arrays are read across every fit request, so
+    # make them immutable to catch accidental in-place mutation.
+    _PRICES.setflags(write=False)
     _LOG.info("custom_fit: loaded %d price rows", len(_PRICES))
 
 
@@ -115,6 +118,7 @@ def _load_block_array_once() -> None:
             "data corruption, refusing to load."
         )
     _BLOCKS = df["blockheight"].to_numpy(dtype=np.int64)
+    _BLOCKS.setflags(write=False)  # read-only; prevents accidental mutation
     # Compute _BLOCK_CAP from the last row on or before 2015-12-31
     cap_mask = df["date"] <= pd.Timestamp("2015-12-31")
     if cap_mask.any():

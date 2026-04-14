@@ -97,12 +97,17 @@ def test_fit_pl_returns_none_when_insufficient_samples():
 
 
 def test_fit_pl_drops_t_le_zero():
+    """Regression: PL must drop exactly the t ≤ 0 rows (not one fewer, not
+    one more). A broken mask that kept a single negative-t row would still
+    yield a valid fit but fail this equality check."""
     t = np.linspace(-5.0, 10.0, 100)  # half negative
     p = np.where(t > 0, 10 ** (3.0 * np.log10(np.abs(t) + 0.01)), 1.0)
     fi = cf.FitInput(t=t, price=p, weighting="none")
     r = cf.fit_pl(fi)
     assert r is not None
-    assert r.n_samples < 100
+    expected_n = int((t > 0).sum())
+    assert r.n_samples == expected_n, (
+        f"fit_pl kept {r.n_samples} samples but mask says {expected_n}")
 
 
 def test_fit_pl_weighted_differs_from_unweighted():
@@ -252,16 +257,27 @@ def test_preset_lookup_dicts_populated():
 
 def test_duplicate_t_values_fit_ok():
     """Block mode produces duplicate-t rows for days with no new blocks;
-    all fits must handle it cleanly."""
+    all fits must handle them cleanly — AND must not silently dedup them.
+    Asserting n_samples == len(t) catches a hypothetical future refactor
+    that `pd.DataFrame.drop_duplicates('t')` or similar."""
     t = np.array([1.0] * 20 + list(np.linspace(2.0, 20.0, 60)))
     rng = np.random.default_rng(0)
     p = 10 ** (5.0 * np.log10(t) + rng.normal(0, 0.05, len(t)))
     fi = cf.FitInput(t=t, price=p, weighting="none")
+    n_expected = len(t)  # all t > 0 so no mask drops
+
     r_pl = cf.fit_pl(fi)
     assert r_pl is not None and math.isfinite(r_pl.r2)
+    assert r_pl.n_samples == n_expected, "fit_pl silently deduped"
+
     r_exp = cf.fit_exp(fi)
     assert r_exp is not None and math.isfinite(r_exp.r2)
+    assert r_exp.n_samples == n_expected, "fit_exp silently deduped"
+
     r_qr = cf.fit_qr(fi)
     assert r_qr is not None
+    assert r_qr.n_samples == n_expected, "fit_qr silently deduped"
+
     r_bm = cf.fit_bm_floor(fi)
     assert r_bm is not None
+    assert r_bm.n_samples == n_expected, "fit_bm_floor silently deduped"

@@ -15,6 +15,16 @@ import numpy as np
 import pandas as pd
 import scipy.stats
 
+# Ensure the repo root is on sys.path so `tools.model_toolkit.support` imports
+# work when btc_web is launched from its own subdirectory (gunicorn does this).
+# Idempotent; runs once at module import under --preload.
+import sys as _sys  # noqa: E402
+_REPO_ROOT_STR = str(Path(__file__).resolve().parent.parent.parent)
+if _REPO_ROOT_STR not in _sys.path:
+    _sys.path.insert(0, _REPO_ROOT_STR)
+
+from tools.model_toolkit.support import fit_support  # noqa: E402
+
 _LOG = logging.getLogger("custom_fit")
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -75,9 +85,13 @@ def _load_price_arrays_once() -> None:
 def _load_block_array_once() -> None:
     """Load block heights from BitcoinBlocksDaily.csv and compute the 2016 cap.
 
-    Graceful degradation: if the file is missing, set `_BLOCKS = None` and log
-    an error — block mode will be disabled at request time. If the file exists
-    but is misaligned with the price CSV, HARD-FAIL (data corruption).
+    Raises RuntimeError on alignment failure (misaligned = data corruption or
+    stale block CSV). The module-level wrapper at the bottom of this file
+    catches Exception and leaves `_BLOCKS = None`, so in practice this
+    downgrades alignment errors to "block mode unavailable, calendar works".
+    That is the safer prod default: a daily price-update row ahead of the
+    block CSV shouldn't crash the whole app. Ops: if /health reports
+    block_map_loaded=false, rerun `tools/build_block_map.py --append`.
     """
     global _BLOCKS, _BLOCK_CAP, _BLOCK_MAP_LOADED
     if _DATES is None:
@@ -354,14 +368,9 @@ def fit_bm_floor(fi: FitInput) -> Optional[FitResult]:
     """BM-floor via tools/model_toolkit/support.py::fit_support on a shim.
 
     Does NOT reuse BubbleModel (which adds bubble composites + extrapolation).
-    Uses only the support-line fitting math.
+    Uses only the support-line fitting math. `fit_support` is imported at
+    module top (see sys.path setup above).
     """
-    import sys
-    _toolkit_parent = str(_REPO_ROOT)
-    if _toolkit_parent not in sys.path:
-        sys.path.insert(0, _toolkit_parent)
-    from tools.model_toolkit.support import fit_support  # type: ignore
-
     t0 = time.perf_counter()
     mask = fi.t > 0
     t = fi.t[mask]
@@ -384,15 +393,11 @@ def fit_bm_floor(fi: FitInput) -> Optional[FitResult]:
 
     slope = float(fit.slope)
     intercept = float(fit.intercept)
-    # Compute R² manually on the support (log_p - log_support on fit points)
-    resid = fit.log_excess
-    log_p = shim.log_prices
-    if len(log_p) > 1:
-        ss_res = float((resid ** 2).sum())
-        ss_tot = float(((log_p - log_p.mean()) ** 2).sum())
-        r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else float("nan")
-    else:
-        r2 = float("nan")
+    # R² is not meaningful for a support line: fit_support fits a bottom-
+    # percentile QR line that intentionally sits BELOW the data mean, so the
+    # "R² vs full-data mean" formula can go deeply negative and mislead.
+    # Report NaN; the UI should show "—" instead of a number.
+    r2 = float("nan")
 
     t_plot = np.logspace(
         np.log10(max(t.min(), 1e-6)),

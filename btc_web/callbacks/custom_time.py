@@ -5,9 +5,11 @@ See docs/superpowers/specs/2026-04-13-custom-time-axis-design.md §5.
 from __future__ import annotations
 
 import logging
+import math
 import time
 from datetime import date
 
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from dash import Input, Output, State, callback, no_update
@@ -105,16 +107,29 @@ def _build_figure(results: dict, scale: str, t0_label: str,
     # x values for the price scatter: years since t₀ OR raw block offset
     if scale == "calendar":
         t0_ts = pd.Timestamp(t0_label)
-        x_scatter = ((cf._DATES - t0_ts).days.values.astype(float) / 365.25)
-        t0_int = None
+        x_scatter_all = (
+            (cf._DATES - t0_ts).days.values.astype(float) / 365.25)
     else:
-        t0_int = int(t0_label)
-        x_scatter = (cf._BLOCKS - t0_int).astype(float)
+        x_scatter_all = (cf._BLOCKS - int(t0_label)).astype(float)
 
+    # On log-x, points with x <= 0 vanish; mask them so the legend count
+    # matches what the user actually sees, and drop them from the scatter
+    # so Plotly doesn't log-warn.
+    if xscale == "log":
+        vis_mask = x_scatter_all > 0
+    else:
+        vis_mask = np.ones_like(x_scatter_all, dtype=bool)
+    x_scatter = x_scatter_all[vis_mask]
+    p_scatter = cf._PRICES[vis_mask]
+    hidden_n = int((~vis_mask).sum())
+
+    scatter_label = f"Price (n={len(p_scatter):,})"
+    if hidden_n:
+        scatter_label += f" [−{hidden_n:,} before t\u2080]"
     fig.add_trace(go.Scatter(
-        x=x_scatter, y=cf._PRICES, mode="markers",
+        x=x_scatter, y=p_scatter, mode="markers",
         marker=dict(size=3, color=DIM_TEXT, opacity=0.5),
-        name=f"Price (n={len(cf._PRICES):,})",
+        name=scatter_label,
     ))
 
     colors = {
@@ -144,7 +159,6 @@ def _build_figure(results: dict, scale: str, t0_label: str,
                 name=f"{r.name} (n={label_n})",
             ))
 
-    import math
     yaxis_cfg = dict(type=yscale, title="USD")
     if not auto_y and yrange is not None and len(yrange) == 2:
         # bub-yrange is in log10 price units — apply directly when log,
@@ -159,25 +173,22 @@ def _build_figure(results: dict, scale: str, t0_label: str,
     xaxis_cfg = dict(title=xaxis_title)
 
     # bub-xrange is in calendar-year integers. Convert to years-since-t₀
-    # for calendar mode; ignore for block mode.
+    # for calendar mode; ignore for block mode. Skip the override entirely
+    # when the resulting lower bound is ≤ 0 (e.g. default xrange=[2010,2080]
+    # with t0=2010-05-22 produces x_lo=-0.39, which on log-x would clamp to
+    # 1e-6 and produce a garbage axis covering 6 decades of empty space).
+    xaxis_cfg["type"] = xscale if scale == "calendar" else "linear"
     if scale == "calendar" and xrange is not None and len(xrange) == 2:
         t0_ts = pd.Timestamp(t0_label)
         t0_decimal_year = t0_ts.year + (t0_ts.dayofyear - 1) / 365.25
         x_lo = float(xrange[0]) - t0_decimal_year
         x_hi = float(xrange[1]) - t0_decimal_year
-        if xscale == "log":
-            # Log-axis range is in log10 space and inputs must be positive
-            xaxis_cfg["type"] = "log"
-            xaxis_cfg["range"] = [
-                math.log10(max(x_lo, 1e-6)),
-                math.log10(max(x_hi, 1e-6)),
-            ]
-        else:
-            xaxis_cfg["type"] = "linear"
-            xaxis_cfg["range"] = [x_lo, x_hi]
-    else:
-        # Auto-range: still honor log/linear from bub-xscale
-        xaxis_cfg["type"] = xscale
+        if x_lo > 0 and x_hi > x_lo:
+            if xscale == "log":
+                xaxis_cfg["range"] = [math.log10(x_lo), math.log10(x_hi)]
+            else:
+                xaxis_cfg["range"] = [x_lo, x_hi]
+        # else: drop the override, let Plotly auto-range
 
     fig.update_layout(
         yaxis=yaxis_cfg,

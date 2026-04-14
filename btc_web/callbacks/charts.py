@@ -1004,6 +1004,10 @@ def _resolve_decomp_model_key(family, lppl_n_freqs, lppl_weighted, lppl_no_13,
     Input("effective-lots",    "data"),
     Input("palette-store",     "data"),
     Input("user-model-store",  "data"),
+    # Custom Time Axis router: tick bump re-fires this callback; cta_active
+    # State guards against clobbering the custom figure when active.
+    Input("bub-redraw-tick",   "data"),
+    State("cta-active",        "value"),
     State("bub-qs-mode",       "value"),
     State("scan-active-rows",  "data"),
     State("scan-q",            "value"),
@@ -1024,8 +1028,14 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   decomp_model, decomp_components, decomp_mode,
                   lots_data,
                   palette_key, user_model_store=None,
+                  _redraw_tick=None, cta_active=None,
                   qs_mode=None, scan_active=None, scan_q_val=None):
     """Bubble + QR overlay chart callback -- coerce inputs, build figure."""
+    # Custom Time Axis router: if cta-active is on, the Custom Time Axis
+    # callback owns bubble-graph.figure. Refuse to overwrite.
+    if cta_active and "yes" in cta_active:
+        from dash.exceptions import PreventUpdate
+        raise PreventUpdate
     toggles        = toggles or []
     bubble_toggles = bubble_toggles or []
     yrange         = yrange or [0, 7]

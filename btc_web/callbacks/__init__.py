@@ -35,3 +35,4 @@ import callbacks.user_model  # noqa: F401
 import callbacks.citadel_save_cb  # noqa: F401
 import callbacks.citadel_scenarios  # noqa: F401
 import callbacks.plot_appearance  # noqa: F401
+import callbacks.custom_time  # noqa: F401

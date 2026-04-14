@@ -20,6 +20,7 @@ from layout.common import (_tab_hints, _section_card, _row, _lbl,
                             _chart_tab_layout, _CB_MARGIN, _palette_selector,
                             _plot_appearance_controls)
 from layout.display_models import display_models_panel
+from layout.custom_time import custom_time_panel
 
 
 def _bubble_controls():
@@ -78,6 +79,7 @@ def _bubble_controls():
         display_models_panel("bub", include_bm_master=True,
                               default_value=["bub"],
                               legend_pos_default=BUBBLE["legend_pos"]),
+        custom_time_panel(),
         # Hidden placeholders — bub-bubble-panel and bub-n-future-wrap are
         # referenced as style outputs by the bub-view-mode toggle callbacks.
         # Real Bubble Model controls now live in the global bm-config-modal.

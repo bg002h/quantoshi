@@ -143,7 +143,12 @@ _TAB_CONTROLS = {
                     "scan-price","scan-date","scan-q",
                     "bub-decomp-model","bub-decomp-components","bub-decomp-mode",
                     "bub-decomp-show-formulas","bub-view-mode",
-                    "bub-lppl-activate","bub-hybppl-activate","bub-eppl-activate"},
+                    "bub-lppl-activate","bub-hybppl-activate","bub-eppl-activate",
+                    # Custom Time Axis (Tab 1 only, added 2026-04-13)
+                    "cta-active","cta-scale",
+                    "cta-t0-cal","cta-t0-cal-custom",
+                    "cta-t0-blk","cta-t0-blk-custom",
+                    "cta-weighting","cta-models"},
     "heatmap":     {"hm-entry-yr","hm-entry-q","hm-exit-range","hm-exit-qs","hm-mode",
                     "hm-b1","hm-b2","hm-c-lo","hm-c-mid1","hm-c-mid2","hm-c-hi",
                     "hm-grad","hm-vfmt","hm-cell-fs","hm-toggles","hm-stack","hm-use-lots",

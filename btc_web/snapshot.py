@@ -341,6 +341,16 @@ _SNAPSHOT_CONTROLS = [
     ("ret-eppl-activate",    "value"),
     ("sc-eppl-activate",     "value"),
     ("hm-eppl-activate",     "value"),
+    # ── Custom Time Axis (Tab 1 only, appended 2026-04-13) ──
+    # APPEND-ONLY: positional ordering must stay stable for q3: link compat.
+    ("cta-active",         "value"),
+    ("cta-scale",          "value"),
+    ("cta-t0-cal",         "value"),
+    ("cta-t0-cal-custom",  "date"),
+    ("cta-t0-blk",         "value"),
+    ("cta-t0-blk-custom",  "value"),
+    ("cta-weighting",      "value"),
+    ("cta-models",         "value"),
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)
@@ -448,6 +458,12 @@ _CHECKLIST_OPTIONS = {
     "cp-mc-regime":     [0, 1, 2, 3, 4],
     # NOTE: cp-tax-toggle is a dbc.Switch (bool), NOT a checklist.
     # It's encoded/decoded directly as a JSON bool — do not add it here.
+    # ── Custom Time Axis (Tab 1, appended 2026-04-13) ──
+    # cta-active: single-option checklist used as a toggle (1 bit).
+    "cta-active":       ["yes"],
+    # cta-models: order is LOAD-BEARING for bitmask encoding.
+    # FREEZE THIS LIST. Reordering or removing entries breaks old share links.
+    "cta-models":       ["pl", "qr", "bm_floor", "exp"],
 }
 
 

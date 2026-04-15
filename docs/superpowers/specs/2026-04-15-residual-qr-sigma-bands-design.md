@@ -250,34 +250,116 @@ Reads `sigma_mode = p.get("sigma_mode", "constant")` and passes as kwarg into ev
 ### `callbacks/scanner.py::update_scanner`
 Gains `State("bub-sigma-mode", "value")` and threads it into every `model.find_percentile(t, price, sigma_mode=sigma_mode)` call.
 
-### `btc_core.py::_ShrinkingBandsMixin`
+### `btc_core.py` — THREE parallel price_at sites, not one
+
+The codebase has three separate `price_at` implementations that together cover
+the 15 in-scope parametric models:
+
+1. **`_ShrinkingBandsMixin`** (line ~116) — covers HybPPL family, EPPL, LinPPL,
+   Exp, PCA, Greedy, Logistic (gomp), BrokenPowerLaw (bpl), EntropyPPL,
+   EPPLConfigModel, HybPPLConfigModel. Already has `_model_log10` defined on
+   each subclass (lines 750, 1854, 2023, 2223, 2341, 2507, 2733, 2903, 2954).
+2. **`_FitsBasedModel`** (line ~460) — covers `PowerLawModel`. No `_model_log10`
+   exists — must be added.
+3. **`_CompositeModel`** (line ~541) — covers `BubbleModel`. No `_model_log10`
+   exists — must be added.
+
+All three classes need the `sigma_mode` kwarg threaded through `price_at`,
+`interp_price`, and `find_percentile`. The common dispatch logic is extracted
+into a new module-level helper `_resqr_price_at(model, q, t_arr, log_median)`
+that each class's `price_at` calls after computing its own median:
+
 ```python
+# New module-level helper in btc_core.py
+def _resqr_price_at(model, q, t_arr, log_median):
+    """Shared resqr path. Returns prices array, or None if resqr unavailable
+    (caller falls through to constant-σ path)."""
+    if getattr(model, '_resqr', None) is None:
+        return None
+    sorted_qs, coef_matrix = model._resqr
+    offsets = eval_resqr_offsets(t_arr, sorted_qs, coef_matrix)  # (n_t, n_q)
+    # Linear interpolation across q (matches existing interp_price pattern)
+    q_idx_f = np.interp(q, sorted_qs, np.arange(len(sorted_qs)))
+    q_idx_lo = int(np.floor(q_idx_f))
+    q_idx_hi = min(q_idx_lo + 1, len(sorted_qs) - 1)
+    frac = q_idx_f - q_idx_lo
+    offset = (1 - frac) * offsets[:, q_idx_lo] + frac * offsets[:, q_idx_hi]
+    return 10.0 ** (log_median + offset)
+
+
+# _ShrinkingBandsMixin.price_at (patched)
 def price_at(self, q, t, sigma_mode="constant"):
     t_arr = np.asarray(t, float)
     log_median = self._model_log10(t_arr)
-    if sigma_mode == "resqr" and getattr(self, '_resqr', None) is not None:
-        sorted_qs, coef_matrix = self._resqr
-        offsets = eval_resqr_offsets(t_arr, sorted_qs, coef_matrix)  # (n_t, n_q)
-        # Linear interpolation across q (matches existing interp_price pattern)
-        q_idx_f = np.interp(q, sorted_qs, np.arange(len(sorted_qs)))
-        q_idx_lo = int(np.floor(q_idx_f))
-        q_idx_hi = min(q_idx_lo + 1, len(sorted_qs) - 1)
-        frac = q_idx_f - q_idx_lo
-        offset = (1 - frac) * offsets[:, q_idx_lo] + frac * offsets[:, q_idx_hi]
-        return 10.0 ** (log_median + offset)
+    if sigma_mode == "resqr":
+        result = _resqr_price_at(self, q, t_arr, log_median)
+        if result is not None:
+            return result
     # Constant-σ fallback (existing behavior)
     z = self.fits[q]["z"]
     sigma = self._sigma_at(t_arr, q)
     return 10.0 ** (log_median + z * sigma)
 
 def interp_price(self, q, t, sigma_mode="constant"):
-    return float(self.price_at(q, t, sigma_mode=sigma_mode))
+    # For non-canonical q, interpolate between bracketing canonical q's using
+    # the same sigma_mode so results are consistent.
+    return float(self.price_at(q, t, sigma_mode=sigma_mode))  # naive path for canonical q
+    # (existing bracket-and-interpolate logic preserved for non-canonical q,
+    # just threads sigma_mode into every nested price_at call)
 
 def find_percentile(self, t, price, sigma_mode="constant"):
-    # Existing interpolation logic unchanged; all internal price_at calls
-    # now pass sigma_mode through.
+    # Existing logic unchanged; every internal self.price_at call now passes
+    # sigma_mode=sigma_mode.
+    ...
+
+
+# _FitsBasedModel.price_at (patched — PowerLawModel uses this)
+def _model_log10(self, t):
+    """NEW: log10 median line for fits-based models. Uses Q50 fit if present,
+    otherwise falls back to the first quantile's fit (matches existing
+    _FitsBasedModel.price_at semantics for the median case)."""
+    f = self.fits.get(0.5) or self.fits[sorted(self.fits)[0]]
+    return f["intercept"] + f["slope"] * np.log10(np.maximum(np.asarray(t, float), 1e-6))
+
+def price_at(self, q, t, sigma_mode="constant"):
+    t_arr = np.asarray(t, float)
+    if sigma_mode == "resqr":
+        log_median = self._model_log10(t_arr)
+        result = _resqr_price_at(self, q, t_arr, log_median)
+        if result is not None:
+            return result
+    # Constant-σ fallback: existing _FitsBasedModel.price_at logic unchanged
+    f = self.fits[q]
+    return 10.0 ** (f["intercept"] + f["slope"] * np.log10(np.maximum(t_arr, 1e-6)))
+
+
+# _CompositeModel.price_at (patched — BubbleModel uses this)
+def _model_log10(self, t):
+    """NEW: log10 median for composite models. For BubbleModel this is the
+    support line (bm_support_slope * log10(t) + bm_support_intercept), not
+    the bubble composite itself — residual analysis is done against the
+    underlying power-law trend, not the cycle-augmented composite."""
+    return (self.md.bm_support_slope * np.log10(np.maximum(np.asarray(t, float), 1e-6))
+            + self.md.bm_support_intercept)
+
+def price_at(self, q, t, sigma_mode="constant"):
+    t_arr = np.asarray(t, float)
+    if sigma_mode == "resqr":
+        log_median = self._model_log10(t_arr)
+        result = _resqr_price_at(self, q, t_arr, log_median)
+        if result is not None:
+            return result
+    # Constant-σ fallback: existing _CompositeModel.price_at logic unchanged
+    # (composite path using comp_by_n etc.)
     ...
 ```
+
+**Key property:** the `_model_log10` shim on `_CompositeModel` intentionally
+returns the BM SUPPORT LINE (power-law floor), not the full bubble composite.
+Residual-QR bands are built around the support-line median, not the cycle-
+augmented composite. This matches how `fit_support` is used elsewhere and
+keeps residual semantics clean — the resqr bands capture the spread of
+actual price around the trend line, not the bubble-adjusted expectation.
 
 ### `tab_defaults.py::BUBBLE`
 Gains `"sigma_mode": "constant"` so prewarm cache key aligns with runtime key. (Existing cache-key-alignment invariant from CLAUDE.md.)
@@ -502,18 +584,135 @@ def fit_and_validate(
 
 ## Build orchestration — `tools/build_bm_model.py` additions
 
-Build script imports `btc_core` directly and instantiates each in-scope model class from raw fit arrays (Option C: no pkl round-trip). `_model_log10` methods are pure and use only instance state set at `__init__` — confirmed for the 14 in-scope models.
+Build script does NOT instantiate model classes. Instead, it uses a per-model
+**closure dispatch**: for each in-scope model, a small Python function computes
+that model's log10-median at each t from coefficients already available in
+the in-memory build state (QR fits, OLS fit, model-specific hardcoded
+constants, etc.). This avoids the chicken-and-egg problem of btc_core model
+classes reading from the pkl we're about to write.
 
 ```python
-# After all existing model fits complete, before writing pkl
+# tools/build_bm_model.py additions, after existing fits complete
+
 from tools.model_toolkit.resqr_bands import (
     fit_and_validate, DEFAULT_KNOTS, DEFAULT_QUANTILES,
 )
 
 RESQR_MODELS = frozenset({
-    'bub', 'pl', 'hybppl', 'hyb2l', 'hyb2c', 'hyb2b', 'hyb4d',
+    'bub', 'pl', 'hybppl', 'hybppl_dd', 'hyb2l', 'hyb2c', 'hyb2b', 'hyb4d',
     'eppl', 'linppl', 'exp', 'pca', 'grdy', 'gomp', 'bpl',
-})
+})  # 15 models
+
+
+def _median_dispatch(model_key, m, t):
+    """Return log10(median(t)) for the given model_key using ONLY data already
+    in the in-memory build dict `m`. No model class instantiation; no pkl read.
+    Each branch matches the hardcoded constants in btc_core.py's corresponding
+    class's `_model_log10` method.
+    """
+    t = np.asarray(t, dtype=np.float64)
+    log_t = np.log10(np.maximum(t, 1e-6))
+
+    if model_key == 'bub':
+        # BM resqr bands are built around the support line, not the composite.
+        return m['bm_support_slope'] * log_t + m['bm_support_intercept']
+
+    if model_key == 'pl':
+        # PowerLawModel median uses OLS slope/intercept
+        return m['ols_intercept'] + m['ols_slope'] * log_t
+
+    if model_key == 'exp':
+        # ExponentialModel: log10 p = a + b·t (linear t)
+        return _exp_const('_A') + _exp_const('_B') * t
+
+    # LPPL-family descendants (excluded from resqr, but these branches must
+    # exist because HybPPL/LinPPL/EPPL inherit from LPPLModel and share the
+    # power-law trend term. Each HybPPL/EPPL variant adds its own oscillator(s).
+
+    if model_key in ('hybppl', 'hybppl_dd', 'hyb2l', 'hyb2c', 'hyb2b', 'hyb4d'):
+        # HybPPL variants share PL trend + family-specific cycles.
+        # Import btc_core just for the hardcoded constants (not instantiation).
+        import btc_core as _bc
+        cls_map = {
+            'hybppl':    _bc.HybPPLModel,
+            'hybppl_dd': _bc.HybPPLDDModel,
+            'hyb2l':     _bc.Hyb2LModel,
+            'hyb2c':     _bc.Hyb2CModel,
+            'hyb2b':     _bc.Hyb2BModel,
+            'hyb4d':     _bc.Hyb4DModel,
+        }
+        cls = cls_map[model_key]
+        t_safe = np.maximum(t, 0.1)
+        # PL trend term (common to all HybPPL variants)
+        pred = cls._A + cls._B * np.log10(t_safe)
+        # Each variant's median-line formula matches its _model_log10 method.
+        # These are branches because each class overrides _model_log10 with
+        # its own additive oscillator expansion. Match them branch-by-branch:
+        if model_key == 'hybppl':
+            pred += cls._C * t_safe ** (-cls._D) * np.cos(cls._W * np.log(t_safe) + cls._PHI)
+            pred += cls._C2 * np.cos(cls._W2 * t_safe + cls._PHI2)
+        elif model_key == 'hybppl_dd':
+            pred += cls._C1 * t_safe ** (-cls._D1) * np.cos(cls._W_log * np.log(t_safe) + cls._PHI1)
+            pred += cls._C2 * t_safe ** (-cls._D2) * np.cos(cls._W_cal * t_safe + cls._PHI2)
+        # (hyb2l/hyb2c/hyb2b/hyb4d follow the same pattern; transcribe exactly
+        # from each class's _model_log10 method in btc_core.py)
+        # ...
+        return pred
+
+    if model_key == 'linppl':
+        # LinPPL = LPPL trend + linear term. See btc_core.LinPPLModel._model_log10.
+        import btc_core as _bc
+        cls = _bc.LinPPLModel
+        t_safe = np.maximum(t, 0.1)
+        pred = cls._A + cls._B * np.log10(t_safe)
+        pred += cls._C * t_safe ** (-cls._D) * np.cos(cls._W * np.log(t_safe) + cls._PHI)
+        pred += cls._LINEAR_SLOPE * t_safe
+        return pred
+
+    if model_key == 'eppl':
+        import btc_core as _bc
+        cls = _bc.EntropyPPLModel
+        t_safe = np.maximum(t, 0.1)
+        pred = cls._A + cls._B * np.log10(t_safe)
+        def _entropy(w, tt):
+            x = w * tt
+            raw = -x * np.log(np.maximum(x, 1e-30))
+            return np.maximum(raw, 0.0) / (1.0 / np.e)
+        pred += cls._C1 * _entropy(cls._w1, t_safe) * np.cos(cls._W1 * np.log(t_safe) + cls._P1)
+        pred += cls._C3 * _entropy(cls._w2, t_safe) * np.cos(cls._W2 * np.log(t_safe) + cls._P3)
+        pred += cls._C2 * np.cos(cls._Wc1 * t_safe + cls._P2)
+        pred += cls._C4 * np.cos(cls._Wc2 * t_safe + cls._P4)
+        return pred
+
+    if model_key == 'pca':
+        import btc_core as _bc
+        cls = _bc.PCAModel
+        # Transcribe cls._model_log10 exactly
+        ...
+
+    if model_key == 'grdy':
+        import btc_core as _bc
+        cls = _bc.GreedyModel
+        ...
+
+    if model_key == 'gomp':
+        import btc_core as _bc
+        cls = _bc.LogisticModel
+        t_safe = np.maximum(t, 0.1)
+        return cls._K * np.exp(-np.exp(-cls._r * (t_safe - cls._t0)))
+
+    if model_key == 'bpl':
+        import btc_core as _bc
+        cls = _bc.BrokenPowerLawModel
+        t_safe = np.maximum(t, 0.1)
+        lt = np.log10(t_safe)
+        a2 = cls._a1 + (cls._b1 - cls._b2) * np.log10(cls._t_break)
+        return np.where(t_safe < cls._t_break,
+                        cls._a1 + cls._b1 * lt,
+                        a2 + cls._b2 * lt)
+
+    raise KeyError(f"no median dispatch for model_key={model_key}")
+
 
 resqr_coefs = {}
 diagnostics = {}
@@ -521,8 +720,7 @@ failures = []
 
 for model_key in RESQR_MODELS:
     try:
-        model = _instantiate_model(model_key, t_all, log_p_all, ...)
-        log_median = model._model_log10(t_all)
+        log_median = _median_dispatch(model_key, m, t_all)
         residuals = log_p_all - log_median
         result = fit_and_validate(t_all, residuals, model_key)
         resqr_coefs[model_key] = (result["sorted_qs"], result["coef_matrix"])
@@ -538,7 +736,9 @@ for model_key in RESQR_MODELS:
     except RuntimeError as exc:
         _LOG.error("resqr Policy B failure on %s: %s", model_key, exc)
         failures.append((model_key, "B", str(exc)))
-        if model_key == "bub" or len([f for f in failures if f[1] == "B"]) > len(RESQR_MODELS) // 2:
+        # Global abort conditions — count Policy A+B together against threshold
+        n_failed = len(failures)
+        if model_key == "bub" or n_failed > len(RESQR_MODELS) // 2:
             raise RuntimeError(
                 f"resqr global abort: {model_key} failed with Policy B "
                 f"({'BubbleModel flagship' if model_key == 'bub' else '>50% failure rate'})"
@@ -560,6 +760,16 @@ with open(DIAGNOSTICS_PATH, 'w') as f:
         "failures": failures,
     }, f, indent=2)
 ```
+
+**`_median_dispatch` is the load-bearing helper.** The branches for `hybppl`,
+`hyb2l`, `hyb2c`, `hyb2b`, `hyb4d`, `pca`, `grdy` shown above are sketches —
+the plan step that implements this must transcribe each class's `_model_log10`
+verbatim from btc_core.py as a regression-proof copy-paste (with a unit test
+per branch asserting the two formulas produce identical outputs on a
+canonical t vector). This matters because if btc_core changes a model's
+oscillator term and `_median_dispatch` isn't updated, resqr residuals would
+be stale and the OOS coverage assertion would catch it — but the test gives
+a fast feedback loop before the coverage check fires.
 
 ## Error handling
 

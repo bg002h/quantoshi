@@ -4,6 +4,13 @@
 # Deploy chain: git pull → redis-cli FLUSHDB → restart → regen Citadel cache.
 set -eo pipefail
 
+# Manual lockfile escape — touch /tmp/quantoshi-update.disable to skip the
+# next scheduled run (e.g. while debugging an in-flight build issue).
+if [[ -f /tmp/quantoshi-update.disable ]]; then
+    echo "$(date '+%Y-%m-%d %H:%M:%S') — daily update disabled via /tmp/quantoshi-update.disable — exiting"
+    exit 0
+fi
+
 cd /scratch/code/bitcoinprojections
 LOG="/tmp/quantoshi-daily-update.log"
 exec >> "$LOG" 2>&1

@@ -148,7 +148,9 @@ _TAB_CONTROLS = {
                     "cta-active","cta-scale",
                     "cta-t0-cal","cta-t0-cal-custom",
                     "cta-t0-blk","cta-t0-blk-custom",
-                    "cta-weighting","cta-models"},
+                    "cta-weighting","cta-models",
+                    # Residual QR sigma bands (Tab 1 only, added 2026-04-15)
+                    "bub-sigma-mode"},
     "heatmap":     {"hm-entry-yr","hm-entry-q","hm-exit-range","hm-exit-qs","hm-mode",
                     "hm-b1","hm-b2","hm-c-lo","hm-c-mid1","hm-c-mid2","hm-c-hi",
                     "hm-grad","hm-vfmt","hm-cell-fs","hm-toggles","hm-stack","hm-use-lots",

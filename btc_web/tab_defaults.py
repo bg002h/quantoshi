@@ -38,6 +38,7 @@ BUBBLE = MappingProxyType({
     "palette": "default",
     "scanner_lines": (),
     "qs_mode": (),
+    "sigma_mode": "constant",
 })
 
 HEATMAP = MappingProxyType({

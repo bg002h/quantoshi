@@ -351,6 +351,8 @@ _SNAPSHOT_CONTROLS = [
     ("cta-t0-blk-custom",  "value"),
     ("cta-weighting",      "value"),
     ("cta-models",         "value"),
+    # ── Residual QR sigma bands (Tab 1 only, appended 2026-04-15) ──
+    ("bub-sigma-mode",     "value"),   # "constant" | "resqr"
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)

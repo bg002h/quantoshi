@@ -68,6 +68,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     t_arr = _round_trace_data(t_arr)
 
     stack = float(p.get("stack", 0)) if p.get("show_stack") else 0.0
+    sigma_mode = p.get("sigma_mode", "constant") or "constant"
 
     traces = []
 
@@ -86,7 +87,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         _price_cache = {}
         for q in sel_qs:
             if q in model.fits:
-                _price_cache[q] = _round_trace_data(model.price_at(q, t_arr) * (stack if stack > 0 else 1))
+                _price_cache[q] = _round_trace_data(model.price_at(q, t_arr, sigma_mode=sigma_mode) * (stack if stack > 0 else 1))
 
         if p.get("shade") and len(sel_qs) >= 2:
             _model_color = _get_model_color("bub", p)
@@ -183,7 +184,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             for q in overlay_qs:
                 if q not in mdl.fits:
                     continue
-                prices = _round_trace_data(mdl.price_at(q, t_arr) * (stack if stack > 0 else 1))
+                prices = _round_trace_data(mdl.price_at(q, t_arr, sigma_mode=sigma_mode) * (stack if stack > 0 else 1))
                 lbl = f"{mdl.legend_name} {_fmt_q_label(q, '')}" + _r2_suffix(mdl, q)
                 if stack > 0:
                     lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
@@ -206,14 +207,14 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 for q in overlay_qs:
                     if q in mdl.fits:
                         _overlay_prices[q] = _round_trace_data(
-                            mdl.price_at(q, t_arr) * (stack if stack > 0 else 1))
+                            mdl.price_at(q, t_arr, sigma_mode=sigma_mode) * (stack if stack > 0 else 1))
                 _overlay_color = _get_model_color(model_key, p)
                 traces.extend(_build_symmetric_bands(
                     sorted(_overlay_prices.keys()), _overlay_prices, t_arr,
                     model_color=_overlay_color))
         else:
             # Non-quantized model: single trajectory
-            prices = mdl.price_at(0.5, t_arr)
+            prices = mdl.price_at(0.5, t_arr, sigma_mode=sigma_mode)
             if stack > 0:
                 prices = prices * stack
             lbl = mdl.legend_name + _r2_suffix(mdl, 0.5)
@@ -262,7 +263,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             continue
         q = sl["q"]
         scan_prices = _round_trace_data(np.array([
-            float(mdl.price_at(q, t)) for t in t_arr]))
+            float(mdl.price_at(q, t, sigma_mode=sigma_mode)) for t in t_arr]))
         if stack > 0:
             scan_prices = scan_prices * stack
         col = _get_model_color(model_key, p)

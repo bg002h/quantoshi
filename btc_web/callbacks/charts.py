@@ -1011,6 +1011,7 @@ def _resolve_decomp_model_key(family, lppl_n_freqs, lppl_weighted, lppl_no_13,
     State("bub-qs-mode",       "value"),
     State("scan-active-rows",  "data"),
     State("scan-q",            "value"),
+    State("bub-sigma-mode",    "value"),
     prevent_initial_call=True,
 )
 def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
@@ -1029,7 +1030,8 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   lots_data,
                   palette_key, user_model_store=None,
                   _redraw_tick=None, cta_active=None,
-                  qs_mode=None, scan_active=None, scan_q_val=None):
+                  qs_mode=None, scan_active=None, scan_q_val=None,
+                  sigma_mode=None):
     """Bubble + QR overlay chart callback -- coerce inputs, build figure."""
     # Custom Time Axis router: if cta-active is on, the Custom Time Axis
     # callback owns bubble-graph.figure. Refuse to overwrite.
@@ -1106,6 +1108,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
         lppl_n_freqs       = list(lppl_n_freqs or []),
         lppl_weighted      = list(lppl_weighted or []),
         lppl_no_13         = list(lppl_no_13 or []),
+        sigma_mode         = sigma_mode or "constant",
     ))
     if "chart_zoom" not in toggles:
         fig.update_layout(dragmode=False)

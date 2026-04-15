@@ -40,12 +40,12 @@ def _scanner_sort_key(model_key: str) -> tuple[int, str]:
         return (len(_SCANNER_ORDER), model_key)  # unknown keys sink to bottom
 
 
-def _solve_date(model, q_frac, target_price):
+def _solve_date(model, q_frac, target_price, sigma_mode="constant"):
     """Root-find t where model.price_at(q, t) = target_price."""
     from scipy.optimize import brentq
     log_target = np.log10(max(target_price, 1e-10))
     def f(t):
-        return np.log10(max(float(model.price_at(q_frac, t)), 1e-10)) - log_target
+        return np.log10(max(float(model.price_at(q_frac, t, sigma_mode=sigma_mode)), 1e-10)) - log_target
     try:
         t = brentq(f, 0.5, 72.0)
         genesis = _app_ctx.M.genesis
@@ -79,10 +79,12 @@ def _output_from_history(history):
     Input("lppl-weighted",    "value"),
     Input("lppl-no-13",       "value"),
     State("main-tabs", "active_tab"),
+    Input("bub-sigma-mode",   "value"),
     prevent_initial_call=False,
 )
 def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_model_data,
-                   lppl_n_freqs, lppl_weighted, lppl_no_13, active_tab):
+                   lppl_n_freqs, lppl_weighted, lppl_no_13, active_tab,
+                   sigma_mode):
     """Compute the missing variable across all models."""
     trigger = ctx.triggered_id if ctx.triggered_id else None
     # Skip the expensive initial fire for users landing on a non-bubble tab —
@@ -162,6 +164,7 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_mo
     q_frac = float(q_val) / 100.0 if q_val is not None and q_val != "" else None
 
     rows = []
+    sigma_mode = sigma_mode or "constant"
 
     if output_field == "q" and price is not None and t is not None:
         # Unfairly Cheap Line
@@ -176,7 +179,7 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_mo
         for key, mdl in _models.items():
             if not mdl.quantized:
                 continue  # skip S2F etc — quantiles don't apply
-            pct = mdl.find_percentile(t, price)
+            pct = mdl.find_percentile(t, price, sigma_mode=sigma_mode)
             rows.append(html.Tr([
                 html.Td(mdl.name, style={"fontSize": UI_FONT_MD}),
                 html.Td(f"Q{pct*100:.1f}%", style={"fontSize": UI_FONT_MD,
@@ -191,7 +194,7 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_mo
             if not mdl.quantized:
                 continue
             try:
-                p = float(mdl.price_at(q_frac, t))
+                p = float(mdl.price_at(q_frac, t, sigma_mode=sigma_mode))
                 price_str = fmt_price(p)
             except Exception:
                 p = None
@@ -210,7 +213,7 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_mo
         for key, mdl in _models.items():
             if not mdl.quantized:
                 continue
-            date_str = _solve_date(mdl, q_frac, price)
+            date_str = _solve_date(mdl, q_frac, price, sigma_mode=sigma_mode)
             row_data = {"data-price": f"{price:.2f}", "data-model": key}
             if date_str != "\u2014":
                 try:
@@ -298,4 +301,15 @@ _app_ctx.app.clientside_callback(
     Input("scan-active-rows", "data"),
     State("bub-xrange", "value"),
     prevent_initial_call=True,
+)
+
+
+# ── Scanner header label tracks σ mode (clientside, no round-trip) ─────────
+_app_ctx.app.clientside_callback(
+    """function(mode) {
+        var label = (mode === "resqr") ? "Residual quantile" : "Constant \u03c3";
+        return "Model Scanner \u00b7 " + label;
+    }""",
+    Output("bub-scanner-header", "children"),
+    Input("bub-sigma-mode", "value"),
 )

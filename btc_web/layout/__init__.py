@@ -97,7 +97,7 @@ _app_ctx.app.index_string = """<!DOCTYPE html>
             <script>
             window.addEventListener('load',function(){
                 setTimeout(function(){
-                    ['knighting','blockdrop','wizard'].forEach(function(f){
+                    ['knighting','wizard'].forEach(function(f){
                         var s=document.createElement('script');
                         s.src='/assets/.deferred/'+f+'.js';
                         s.defer=true;

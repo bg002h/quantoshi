@@ -114,29 +114,35 @@ def test_fits_based_resqr_zero_offset_matches_q50(pl_model):
 
 # ── _CompositeModel (Bubble) ────────────────────────────────────────────────
 
-def test_composite_model_log10_uses_support_line(bubble_model):
+def test_composite_model_log10_matches_composite_curve(bubble_model):
+    """_model_log10 for BubbleModel must return the full composite curve —
+    i.e. support + bubble cycles — so resqr residuals parallel the visible
+    median line rather than the straight support line."""
     t = 10.0
-    expected = (bubble_model._bm_support_slope * np.log10(t)
-                + bubble_model._bm_support_intercept)
-    assert np.isclose(bubble_model._model_log10(t), expected)
+    assert np.isclose(bubble_model._model_log10(t),
+                       bubble_model._composite_log10(t))
 
 
 def test_composite_fallback_when_no_resqr(bubble_model):
-    assert not hasattr(bubble_model, "_resqr")
-    p_constant = bubble_model.price_at(0.5, 10.0)
-    p_resqr = bubble_model.price_at(0.5, 10.0, sigma_mode="resqr")
+    # Fresh BubbleModel instance — can't rely on module-scope fixture state
+    # after test_composite_resqr_matches_composite mutates ._resqr.
+    import btc_core as bc
+    fresh = bc.BubbleModel(bubble_model.__dict__.get("_md", None) or
+                            bc.load_model_data(str(_ROOT / "model_data.pkl")))
+    assert not hasattr(fresh, "_resqr")
+    p_constant = fresh.price_at(0.5, 10.0)
+    p_resqr = fresh.price_at(0.5, 10.0, sigma_mode="resqr")
     assert np.isclose(p_constant, p_resqr)
 
 
-def test_composite_resqr_uses_support_not_composite(bubble_model):
+def test_composite_resqr_matches_composite(bubble_model):
+    """With zero offsets, resqr output should match the composite curve
+    (since _model_log10 now returns composite_log10)."""
     bubble_model._resqr = _fake_resqr_bundle()  # zero offsets
     try:
         p = bubble_model.price_at(0.5, 10.0, sigma_mode="resqr")
-        # Should match the SUPPORT line, NOT the composite curve.
-        support_pred = 10.0 ** bubble_model._model_log10(10.0)
         composite_pred = 10.0 ** bubble_model._composite_log10(10.0)
-        assert np.isclose(p, support_pred)
-        assert not np.isclose(p, composite_pred)
+        assert np.isclose(p, composite_pred)
     finally:
         del bubble_model._resqr
 

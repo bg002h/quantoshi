@@ -86,15 +86,11 @@ def test_raw_crossing_frac_below_warning_threshold(diagnostics):
 
 
 def test_pkl_has_resqr_keys():
-    # Loaded via raw ModelData — poke directly at the pkl for the extra keys.
     m = bc.load_model_data(str(_PKL))
-    # ModelData doesn't surface resqr_* by default; poke at the pkl dict via
-    # its loader.
-    # Instead, instantiate BubbleModel and confirm we can wire the bundle.
-    bub = bc.BubbleModel(m)
-    assert hasattr(bub, "_bm_support_slope")
-    assert hasattr(bub, "_bm_support_intercept")
-    assert bub._bm_support_slope > 0  # sanity
+    assert m.resqr_coefs, "resqr_coefs should be populated after a rebuild"
+    assert "bub" in m.resqr_coefs
+    assert tuple(m.resqr_knots) == (3.0, 6.0, 9.0, 12.0)
+    assert m.resqr_build_ts is not None
 
 
 def test_diagnostics_n_samples_matches_price_history(diagnostics, md):

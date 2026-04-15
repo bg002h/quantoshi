@@ -605,14 +605,10 @@ class _CompositeModel:
             return self._sigma0_down * t ** (-self._alpha_down)
 
     def _model_log10(self, t):
-        """Median log10 curve for resqr mode — the BM support line
-        (bm_support_slope * log10(t) + bm_support_intercept). BubbleModel
-        stashes these as ``_bm_support_slope`` / ``_bm_support_intercept``
-        during ``__init__``; if absent, fall back to the composite curve."""
-        if hasattr(self, "_bm_support_slope") and hasattr(self, "_bm_support_intercept"):
-            return (self._bm_support_slope *
-                    np.log10(np.maximum(np.asarray(t, float), 1e-6))
-                    + self._bm_support_intercept)
+        """Median log10 curve for resqr mode — the full composite (support +
+        bubble cycles). Fitting resqr residuals against this shaped curve
+        means the bands track the composite's bubble peaks rather than the
+        straight support line, so they parallel the visible median."""
         return self._composite_log10(t)
 
     def price_at(self, q, t, sigma_mode="constant"):
@@ -733,11 +729,6 @@ class BubbleModel(_CompositeModel):
         self._log_support = np.log10(np.maximum(
             np.asarray(md.support_bm, float), 1e-10))
 
-        # Analytical support line coefficients — used as the resqr log-median.
-        # ModelData stores these as support_slope / support_intercept (sourced
-        # from pkl keys bm_support_slope / bm_support_intercept).
-        self._bm_support_slope = float(getattr(md, "support_slope", 0.0))
-        self._bm_support_intercept = float(getattr(md, "support_intercept", 0.0))
 
         # Shrinking σ parameters (from pkl, fitted by tools/fit_sigma.py)
         self._init_bands(

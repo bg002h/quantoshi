@@ -71,9 +71,9 @@ def _synthetic_residuals(n=2000, seed=0):
 def test_fit_returns_correct_shapes():
     t, r = _synthetic_residuals()
     sorted_qs, coef_matrix, coverage, raw_cross = rb.fit_residual_qr_pwl(t, r)
-    assert sorted_qs.shape == (8,)
-    assert coef_matrix.shape == (8, 6)
-    assert coverage.shape == (8,)
+    assert sorted_qs.shape == (9,)
+    assert coef_matrix.shape == (9, 6)
+    assert coverage.shape == (9,)
     assert 0.0 <= raw_cross <= 1.0
 
 
@@ -113,7 +113,7 @@ def test_eval_shape():
     t, r = _synthetic_residuals()
     sorted_qs, coef, _, _ = rb.fit_residual_qr_pwl(t, r)
     offsets = rb.eval_resqr_offsets(np.array([2.0, 8.0, 14.0]), sorted_qs, coef)
-    assert offsets.shape == (3, 8)
+    assert offsets.shape == (3, 9)
 
 
 def test_eval_monotone_across_q_at_each_t():
@@ -127,6 +127,16 @@ def test_eval_monotone_across_q_at_each_t():
         assert np.all(np.diff(row) >= 0), (
             f"non-monotone across q at t_idx={i}: {row}"
         )
+
+
+def test_eval_q50_pinned_to_zero():
+    """After Q50-centering, the Q50 column must be identically zero so
+    the resqr median coincides with the model's own curve."""
+    t, r = _synthetic_residuals()
+    sorted_qs, coef, _, _ = rb.fit_residual_qr_pwl(t, r)
+    offsets = rb.eval_resqr_offsets(np.linspace(1.0, 15.0, 25), sorted_qs, coef)
+    q50_col = int(np.where(sorted_qs == 0.5)[0][0])
+    assert np.allclose(offsets[:, q50_col], 0.0, atol=1e-12)
 
 
 def test_eval_clips_at_last_knot():
@@ -165,8 +175,8 @@ def test_fit_and_validate_succeeds_on_clean_data():
     t, r = _synthetic_residuals(n=5000)
     result = rb.fit_and_validate(t, r, model_key="synthetic")
     assert "sorted_qs" in result
-    assert result["sorted_qs"].shape == (8,)
-    assert result["coef_matrix"].shape == (8, 6)
+    assert result["sorted_qs"].shape == (9,)
+    assert result["coef_matrix"].shape == (9, 6)
     assert result["n_samples"] == 5000
 
 

@@ -173,10 +173,12 @@ def test_resqr_q_interpolation_between_stored_quantiles():
     class Dummy:
         pass
     d = Dummy()
-    d._resqr = _fake_resqr_bundle(lambda q: 10.0 * q)  # offset = 10*q
-    # q=0.075 is between stored 0.05 and 0.10, interp should give ~0.75
+    # Offsets symmetric around Q50 so Q50-centering is a no-op on this case.
+    # q=0.075 is between stored 0.05 and 0.10; expected interp = 2*(0.075-0.5)
+    # = -0.85.
+    d._resqr = _fake_resqr_bundle(lambda q: 2.0 * (q - 0.5))
     out = bc._resqr_price_at(d, 0.075, np.asarray(5.0), np.asarray(0.0))
-    assert np.isclose(np.log10(out), 0.75, atol=0.05)
+    assert np.isclose(np.log10(out), -0.85, atol=0.05)
 
 
 def test_resqr_flatline_past_last_knot():

@@ -75,8 +75,10 @@ def test_lppl_family_excluded(diagnostics):
 
 
 def test_interior_oos_coverage_within_tolerance(diagnostics):
-    qs_arr = np.array([0.01, 0.05, 0.10, 0.25, 0.75, 0.90, 0.95, 0.99])
-    interior = {0.05, 0.25, 0.75, 0.95}
+    # Must stay aligned with resqr_bands.DEFAULT_QUANTILES (9 entries incl 0.5).
+    from tools.model_toolkit.resqr_bands import DEFAULT_QUANTILES, INTERIOR_QS
+    qs_arr = np.array(sorted(DEFAULT_QUANTILES))
+    interior = set(INTERIOR_QS)
     for key, entry in diagnostics["per_model"].items():
         if entry.get("status") != "ok":
             continue

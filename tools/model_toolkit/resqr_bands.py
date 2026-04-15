@@ -18,7 +18,10 @@ _LOG = logging.getLogger("resqr_bands")
 
 # Frozen by the bake-off — do not change without re-running validation.
 DEFAULT_KNOTS = (3.0, 6.0, 9.0, 12.0)
-DEFAULT_QUANTILES = (0.01, 0.05, 0.10, 0.25, 0.75, 0.90, 0.95, 0.99)
+# 0.5 is fit explicitly so eval can pin the resqr median to the model's own
+# curve — without it, interpolating Q50 between Q25/Q75 yields a spurious
+# non-zero offset that visibly shifts the median line when toggling σ mode.
+DEFAULT_QUANTILES = (0.01, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99)
 
 MIN_SAMPLES = 500
 OOS_TOLERANCE = 0.05  # ±5pp on interior quantiles
@@ -122,6 +125,12 @@ def eval_resqr_offsets(t, sorted_qs, coef_matrix, knots=DEFAULT_KNOTS):
     past the last knot — no extrapolation drift, no crossings in the
     extrapolation region by construction.
 
+    Offsets are centered on the fitted Q50 column at each t so the
+    returned median (q=0.5 column) is identically zero. This pins the
+    resqr median to the model's own curve and keeps the other quantiles
+    as spreads around it — toggling σ mode in the UI changes band widths
+    without shifting the median line. ``sorted_qs`` must include 0.5.
+
     The monotone sort across q is kept as a belt-and-suspenders correction
     for numerical wiggle in the interior (build-time raw crossing diagnostic
     fires at >5% crossings and logs a warning).
@@ -130,6 +139,12 @@ def eval_resqr_offsets(t, sorted_qs, coef_matrix, knots=DEFAULT_KNOTS):
     t_clipped = np.minimum(t_arr, float(knots[-1]))
     X = _basis(t_clipped, knots)
     offsets = X @ coef_matrix.T      # (n_t, n_q)
+    # Center on Q50 so the resqr median coincides with the model curve.
+    sorted_qs_arr = np.asarray(sorted_qs, dtype=np.float64)
+    q50_hits = np.where(sorted_qs_arr == 0.5)[0]
+    if q50_hits.size:
+        q50_col = int(q50_hits[0])
+        offsets = offsets - offsets[:, q50_col:q50_col + 1]
     offsets = np.sort(offsets, axis=1)
     return offsets
 

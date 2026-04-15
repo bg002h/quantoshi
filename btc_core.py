@@ -88,6 +88,48 @@ def _fit_shrinking_sigma(t, residuals):
     return s0u, au, s0d, ad
 
 
+def _resqr_price_at(model, q, t_arr, log_median):
+    """Evaluate price from stored resqr coefs given a precomputed log10 median.
+
+    Returns a scalar when ``t_arr`` is scalar, else an ndarray shaped like
+    ``t_arr``. Returns ``None`` when the model carries no ``_resqr`` bundle —
+    callers then fall back to the constant-σ path.
+    """
+    rq = getattr(model, "_resqr", None)
+    if rq is None:
+        return None
+    try:
+        from tools.model_toolkit.resqr_bands import eval_resqr_offsets
+    except Exception:
+        return None
+    t_arr_np = np.asarray(t_arr, dtype=np.float64)
+    is_scalar = t_arr_np.ndim == 0
+    t_1d = np.atleast_1d(t_arr_np)
+    knots = tuple(rq.get("knots", (3.0, 6.0, 9.0, 12.0)))
+    offsets = eval_resqr_offsets(t_1d, rq["sorted_qs"], rq["coef_matrix"],
+                                  knots=knots)
+    qs = np.asarray(rq["sorted_qs"], dtype=np.float64)
+    q_f = float(q)
+    hits = np.where(qs == q_f)[0]
+    if hits.size:
+        off = offsets[:, int(hits[0])]
+    elif q_f <= qs[0]:
+        off = offsets[:, 0]
+    elif q_f >= qs[-1]:
+        off = offsets[:, -1]
+    else:
+        lo = int(np.searchsorted(qs, q_f, side="right") - 1)
+        hi = lo + 1
+        frac = (q_f - qs[lo]) / (qs[hi] - qs[lo])
+        off = offsets[:, lo] + frac * (offsets[:, hi] - offsets[:, lo])
+    log_median_1d = np.asarray(log_median, dtype=np.float64).reshape(-1)
+    log_p = log_median_1d + off
+    price = 10.0 ** log_p
+    if is_scalar:
+        return float(price[0])
+    return price.reshape(t_arr_np.shape)
+
+
 class _ShrinkingBandsMixin:
     """Mixin providing time-dependent σ bands for models with a _model_log10 method.
 
@@ -113,33 +155,37 @@ class _ShrinkingBandsMixin:
         """Constant σ for quantile bands (shrinking σ reverted — too narrow at late times)."""
         return self._sigma
 
-    def price_at(self, q, t):
+    def price_at(self, q, t, sigma_mode="constant"):
         t_arr = np.asarray(t, float)
         log_median = self._model_log10(t_arr)
+        if sigma_mode == "resqr":
+            out = _resqr_price_at(self, q, t_arr, log_median)
+            if out is not None:
+                return out
         z = self.fits[q]["z"]
         sigma = self._sigma_at(t_arr, q)
         return 10.0 ** (log_median + z * sigma)
 
-    def interp_price(self, q, t):
+    def interp_price(self, q, t, sigma_mode="constant"):
         if q in self.fits:
-            return float(self.price_at(q, t))
+            return float(self.price_at(q, t, sigma_mode=sigma_mode))
         sorted_qs = self.quantiles
         lo = max((qq for qq in sorted_qs if qq <= q), default=sorted_qs[0])
         hi = min((qq for qq in sorted_qs if qq >= q), default=sorted_qs[-1])
         if lo == hi:
-            return float(self.price_at(lo, t))
+            return float(self.price_at(lo, t, sigma_mode=sigma_mode))
         frac = (q - lo) / (hi - lo)
-        p_lo = np.log10(float(self.price_at(lo, t)))
-        p_hi = np.log10(float(self.price_at(hi, t)))
+        p_lo = np.log10(float(self.price_at(lo, t, sigma_mode=sigma_mode)))
+        p_hi = np.log10(float(self.price_at(hi, t, sigma_mode=sigma_mode)))
         return 10.0 ** (p_lo + frac * (p_hi - p_lo))
 
-    def find_percentile(self, t, price):
+    def find_percentile(self, t, price, sigma_mode="constant"):
         sorted_qs = self.quantiles
         if not sorted_qs:
             return 0.5
         t_safe = max(float(t), 0.5)
         log_p = np.log10(max(float(price), 1e-10))
-        log_ps = [np.log10(max(float(self.price_at(q, t_safe)), 1e-10))
+        log_ps = [np.log10(max(float(self.price_at(q, t_safe, sigma_mode=sigma_mode)), 1e-10))
                   for q in sorted_qs]
         if log_p <= log_ps[0]:
             return sorted_qs[0]
@@ -445,9 +491,9 @@ class PriceModel(Protocol):
     fits: dict | None      # {q: {"intercept","slope"}} or None
     dash_style: str        # Plotly dash pattern ("solid", "dot", "longdash")
 
-    def price_at(self, q, t): ...
-    def interp_price(self, q, t): ...
-    def find_percentile(self, t, price): ...
+    def price_at(self, q, t, sigma_mode="constant"): ...
+    def interp_price(self, q, t, sigma_mode="constant"): ...
+    def find_percentile(self, t, price, sigma_mode="constant"): ...
 
 
 class _FitsBasedModel:
@@ -457,33 +503,46 @@ class _FitsBasedModel:
     """
     quantized = True
 
-    def price_at(self, q, t):
+    def _model_log10(self, t):
+        """Median log10 curve for resqr sigma mode — use the Q50 fit (nearest if absent)."""
+        qs = sorted(self.fits.keys())
+        q_med = 0.5 if 0.5 in self.fits else min(qs, key=lambda qq: abs(qq - 0.5))
+        f = self.fits[q_med]
+        return f["intercept"] + f["slope"] * np.log10(np.maximum(np.asarray(t, float), 1e-6))
+
+    def price_at(self, q, t, sigma_mode="constant"):
         """Price at quantile q, time t (years since genesis)."""
+        if sigma_mode == "resqr":
+            t_arr = np.asarray(t, float)
+            log_median = self._model_log10(t_arr)
+            out = _resqr_price_at(self, q, t_arr, log_median)
+            if out is not None:
+                return out
         f = self.fits[q]
         return 10.0 ** (f["intercept"] + f["slope"] * np.log10(np.asarray(t, float)))
 
-    def interp_price(self, q, t):
+    def interp_price(self, q, t, sigma_mode="constant"):
         """Log-space interpolated price for arbitrary quantile (e.g. Q7.5%)."""
         if q in self.fits:
-            return float(self.price_at(q, t))
+            return float(self.price_at(q, t, sigma_mode=sigma_mode))
         sorted_qs = self.quantiles
         lo = max((qq for qq in sorted_qs if qq <= q), default=sorted_qs[0])
         hi = min((qq for qq in sorted_qs if qq >= q), default=sorted_qs[-1])
         if lo == hi:
-            return float(self.price_at(lo, t))
+            return float(self.price_at(lo, t, sigma_mode=sigma_mode))
         frac = (q - lo) / (hi - lo)
-        p_lo = np.log10(float(self.price_at(lo, t)))
-        p_hi = np.log10(float(self.price_at(hi, t)))
+        p_lo = np.log10(float(self.price_at(lo, t, sigma_mode=sigma_mode)))
+        p_hi = np.log10(float(self.price_at(hi, t, sigma_mode=sigma_mode)))
         return 10.0 ** (p_lo + frac * (p_hi - p_lo))
 
-    def find_percentile(self, t, price):
+    def find_percentile(self, t, price, sigma_mode="constant"):
         """Interpolate the QR percentile (0–1) for a given time and price."""
         sorted_qs = self.quantiles
         if not sorted_qs:
             return 0.5
         t_safe = max(float(t), 0.5)
         log_p = np.log10(max(float(price), 1e-10))
-        log_ps = [np.log10(max(float(self.price_at(q, t_safe)), 1e-10))
+        log_ps = [np.log10(max(float(self.price_at(q, t_safe, sigma_mode=sigma_mode)), 1e-10))
                   for q in sorted_qs]
         if log_p <= log_ps[0]:
             return sorted_qs[0]
@@ -538,36 +597,52 @@ class _CompositeModel:
         else:
             return self._sigma0_down * t ** (-self._alpha_down)
 
-    def price_at(self, q, t):
+    def _model_log10(self, t):
+        """Median log10 curve for resqr mode — the BM support line
+        (bm_support_slope * log10(t) + bm_support_intercept). BubbleModel
+        stashes these as ``_bm_support_slope`` / ``_bm_support_intercept``
+        during ``__init__``; if absent, fall back to the composite curve."""
+        if hasattr(self, "_bm_support_slope") and hasattr(self, "_bm_support_intercept"):
+            return (self._bm_support_slope *
+                    np.log10(np.maximum(np.asarray(t, float), 1e-6))
+                    + self._bm_support_intercept)
+        return self._composite_log10(t)
+
+    def price_at(self, q, t, sigma_mode="constant"):
         """Price at quantile q, time t (years since genesis)."""
         t_arr = np.asarray(t, float)
+        if sigma_mode == "resqr":
+            log_median_resqr = self._model_log10(t_arr)
+            out = _resqr_price_at(self, q, t_arr, log_median_resqr)
+            if out is not None:
+                return out
         log_median = self._composite_log10(t_arr)
         z = _lazy_norm().ppf(q)
         sigma = self._sigma_at(t_arr, q)
         return 10.0 ** (log_median + z * sigma)
 
-    def interp_price(self, q, t):
+    def interp_price(self, q, t, sigma_mode="constant"):
         """Log-space interpolated price for arbitrary quantile."""
         if q in self.fits:
-            return float(self.price_at(q, t))
+            return float(self.price_at(q, t, sigma_mode=sigma_mode))
         sorted_qs = self.quantiles
         lo = max((qq for qq in sorted_qs if qq <= q), default=sorted_qs[0])
         hi = min((qq for qq in sorted_qs if qq >= q), default=sorted_qs[-1])
         if lo == hi:
-            return float(self.price_at(lo, t))
+            return float(self.price_at(lo, t, sigma_mode=sigma_mode))
         frac = (q - lo) / (hi - lo)
-        p_lo = np.log10(float(self.price_at(lo, t)))
-        p_hi = np.log10(float(self.price_at(hi, t)))
+        p_lo = np.log10(float(self.price_at(lo, t, sigma_mode=sigma_mode)))
+        p_hi = np.log10(float(self.price_at(hi, t, sigma_mode=sigma_mode)))
         return 10.0 ** (p_lo + frac * (p_hi - p_lo))
 
-    def find_percentile(self, t, price):
+    def find_percentile(self, t, price, sigma_mode="constant"):
         """Reverse lookup: time + price → quantile."""
         sorted_qs = self.quantiles
         if not sorted_qs:
             return 0.5
         t_safe = max(float(t), 0.5)
         log_p = np.log10(max(float(price), 1e-10))
-        log_ps = [np.log10(max(float(self.price_at(q, t_safe)), 1e-10))
+        log_ps = [np.log10(max(float(self.price_at(q, t_safe, sigma_mode=sigma_mode)), 1e-10))
                   for q in sorted_qs]
         if log_p <= log_ps[0]:
             return sorted_qs[0]
@@ -650,6 +725,12 @@ class BubbleModel(_CompositeModel):
         # Support line (log10 USD) for component decomposition
         self._log_support = np.log10(np.maximum(
             np.asarray(md.support_bm, float), 1e-10))
+
+        # Analytical support line coefficients — used as the resqr log-median.
+        # ModelData stores these as support_slope / support_intercept (sourced
+        # from pkl keys bm_support_slope / bm_support_intercept).
+        self._bm_support_slope = float(getattr(md, "support_slope", 0.0))
+        self._bm_support_intercept = float(getattr(md, "support_intercept", 0.0))
 
         # Shrinking σ parameters (from pkl, fitted by tools/fit_sigma.py)
         self._init_bands(
@@ -3082,7 +3163,7 @@ class S2FModel:
             return 1e10  # effectively infinite S2F after all BTC mined
         return stock / annual_flow
 
-    def price_at(self, q, t):
+    def price_at(self, q, t, sigma_mode="constant"):
         """S2F model price (ignores quantile — single trajectory)."""
         t_arr = np.asarray(t, float)
         scalar = t_arr.ndim == 0
@@ -3092,10 +3173,10 @@ class S2FModel:
         result = 10.0 ** log_p
         return float(result[0]) if scalar else result.reshape(t_arr.shape)
 
-    def interp_price(self, q, t):
+    def interp_price(self, q, t, sigma_mode="constant"):
         return float(self.price_at(q, t))
 
-    def find_percentile(self, t, price):
+    def find_percentile(self, t, price, sigma_mode="constant"):
         return 0.5  # meaningless for non-quantized model
 
 

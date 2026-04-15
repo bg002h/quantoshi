@@ -68,6 +68,15 @@ def apply_snapshot(state):
         return [no_update] * n_outs
     results = [state.get(f"{cid}:{prop}", no_update)
                for cid, prop in _SNAPSHOT_CONTROLS]
+    # Legacy-link coercion: if this deployment has no resqr bundles, drop
+    # "resqr" sigma_mode back to "constant" so the radio + chart stay in sync.
+    import _app_ctx
+    if not getattr(_app_ctx, "_HAS_RESQR", False):
+        for i, (cid, prop) in enumerate(_SNAPSHOT_CONTROLS):
+            if cid == "bub-sigma-mode" and prop == "value":
+                if results[i] == "resqr":
+                    results[i] = "constant"
+                break
     results.append(state.get("_lots", None))  # snapshot-lots
     return results
 

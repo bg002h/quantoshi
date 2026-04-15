@@ -103,19 +103,22 @@ _app_ctx.app.clientside_callback(
 
 # Clientside: when Custom Time Axis is active in calendar mode AND the chosen
 # t₀ is before 2010, drop the bub-xrange slider's min so the user can pan
-# back to t₀ year. When inactive (or later t₀), revert to the default min of
-# 2010. Also updates the tick marks so the slider has labels in the extended
-# range. Runs clientside so dragging the slider afterward doesn't bounce back
-# to 2010.
+# back to t₀ year AND push the left handle's value to the new min so the
+# server callback (which reads bub-xrange.value as Input, not .min) actually
+# re-fires. When deactivating with a left handle currently below 2010, snap
+# it back to 2010 so the standard bubble view doesn't break. Runs clientside
+# so no server round-trip on state transitions.
 _app_ctx.app.clientside_callback(
     """
-    function(active, scale, cal_preset, cal_custom) {
+    function(active, scale, cal_preset, cal_custom, current_value) {
         var DEFAULT_MIN = 2010;
         var MAX_YR = 2080;
         var PRESET_YEARS = {
             whitepaper: 2008, genesis: 2009, optimal: 2009,
             nls: 2009, pizza: 2010, mtgox: 2010, parity: 2011
         };
+        var NU = window.dash_clientside.no_update;
+
         var effective_min = DEFAULT_MIN;
         var is_active = active && active.indexOf && active.indexOf("yes") !== -1;
         if (is_active && scale === "calendar") {
@@ -130,6 +133,7 @@ _app_ctx.app.clientside_callback(
                 effective_min = t0_year;
             }
         }
+
         // Build marks every 10 years from floor(effective_min/10)*10 to MAX_YR
         var start = Math.floor(effective_min / 10) * 10;
         var marks = {};
@@ -140,15 +144,41 @@ _app_ctx.app.clientside_callback(
                 marks[String(y)] = "'" + suffix;
             }
         }
-        return [effective_min, marks];
+
+        // Push value[0] to match the new effective min when activating, and
+        // snap it back to DEFAULT_MIN when deactivating a previously-extended
+        // slider. Leave value untouched otherwise so user's manual adjustments
+        // stick.
+        var new_value = NU;
+        if (current_value && current_value.length === 2) {
+            var lo = current_value[0];
+            var hi = current_value[1];
+            if (effective_min < DEFAULT_MIN) {
+                // Activating with pre-2010 t₀ — pull left handle to new min
+                // unless user already dragged it below the new effective_min
+                // (in which case respect their choice).
+                if (lo > effective_min) {
+                    new_value = [effective_min, hi];
+                }
+            } else {
+                // Deactivating OR activating with a post-2010 t₀ — if the
+                // slider's left handle is currently below 2010, snap it up.
+                if (lo < DEFAULT_MIN) {
+                    new_value = [DEFAULT_MIN, Math.max(hi, DEFAULT_MIN)];
+                }
+            }
+        }
+        return [effective_min, marks, new_value];
     }
     """,
     Output("bub-xrange", "min"),
     Output("bub-xrange", "marks"),
+    Output("bub-xrange", "value", allow_duplicate=True),
     Input("cta-active", "value"),
     Input("cta-scale", "value"),
     Input("cta-t0-cal", "value"),
     Input("cta-t0-cal-custom", "date"),
+    State("bub-xrange", "value"),
     prevent_initial_call=True,
 )
 

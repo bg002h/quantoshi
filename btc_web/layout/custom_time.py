@@ -70,7 +70,7 @@ def custom_time_panel():
                 _lbl("Custom date"),
                 dcc.DatePickerSingle(
                     id="cta-t0-cal-custom",
-                    min_date_allowed="2008-10-31",
+                    min_date_allowed="2000-01-01",
                     max_date_allowed="2015-12-31",
                     display_format="YYYY-MM-DD",
                     initial_visible_month=pd.Timestamp("2015-12-01"),

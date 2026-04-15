@@ -328,15 +328,18 @@ _FAQ = [
             "The frequency is constant \u2014 not drifting. This validates the fixed-\u03c9 assumption "
             "used in all LPPL/HybPPL models.",
             html.Br(), html.Br(),
-            html.Strong("2. Heteroscedastic volatility (now implemented): "),
-            "Residual analysis shows \u03c3(t) = \u03c3\u2080\u00b7t^(\u2212\u03b1) \u2014 volatility shrinks "
-            "over time. Windowed \u03c3: 0.150 (2010\u201313) \u2192 0.109 (2013\u201317) \u2192 0.139 "
-            "(2017\u201321) \u2192 0.092 (2021\u201326). All models now use ",
-            html.Strong("shrinking, asymmetric \u03c3 bands"),
-            ": \u03c3_up(t) and \u03c3_down(t) are fitted separately, so quantile bands are "
-            "wider in the early era (high volatility) and narrower in the current era "
-            "(low volatility). Typical \u03b1 \u2248 0.35\u20130.50 across models, meaning bands "
-            "shrink 2\u20133\u00d7 from t=2yr to t=16yr.",
+            html.Strong("2. Heteroscedastic volatility (optional, Tab 1 only): "),
+            "A σ mode toggle on Tab 1 lets you switch between the default "
+            "constant-σ Gaussian bands and ",
+            html.Strong("Residual quantile bands"),
+            " — per-quantile piecewise-linear fits to each model's log-space "
+            "residuals (hinges at t = 3, 6, 9, 12 years). Coefficients are "
+            "fit offline during the nightly build via 80/20 holdout; a query-"
+            "time clip at the last knot produces a constant-log plateau past "
+            "t = 12yr. The LPPL family is excluded — its 3.92-year halving-"
+            "cycle residual periodicity isn't captured by the piecewise-linear "
+            "basis. Out-of-sample coverage stays within ±5 pp of nominal at "
+            "interior quantiles. Other tabs still use the constant-σ fallback.",
             html.Br(), html.Br(),
             html.Strong("3. Cross-validation: "),
             "Training on data before a cutoff date and testing on data after reveals "

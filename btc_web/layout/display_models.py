@@ -226,6 +226,48 @@ def build_display_models_options(
     return opts
 
 
+def _sigma_mode_section():
+    """Bubble-tab-only σ mode radio (constant vs residual QR bands)."""
+    has_resqr = bool(getattr(_app_ctx, "_HAS_RESQR", False))
+    radio_options = [
+        {"label": " Constant σ (legacy)", "value": "constant"},
+        {"label": " Residual quantile bands", "value": "resqr",
+         "disabled": not has_resqr},
+    ]
+    disclaimer_applicability = html.Div(
+        "Applies to Tab 1 (Price & Model Overlays) only — other tabs "
+        "use the legacy constant-σ bands regardless of this setting.",
+        style={"fontSize": UI_FONT_MD, "color": FALLBACK_MODEL_GRAY,
+                "marginTop": "6px"},
+    )
+    disclaimer_lppl = html.Div(
+        "LPPL family is excluded from residual quantile bands (the "
+        "3.92-year halving-cycle residual periodicity is not well "
+        "captured by the piecewise-linear basis).",
+        style={"fontSize": UI_FONT_MD, "color": FALLBACK_MODEL_GRAY,
+                "marginTop": "4px"},
+    )
+    children = [
+        dcc.RadioItems(
+            id="bub-sigma-mode",
+            options=radio_options,
+            value="constant",
+            labelStyle={"display": "block"},
+            inputStyle={"marginRight": "4px"},
+        ),
+        disclaimer_applicability,
+        disclaimer_lppl,
+    ]
+    if not has_resqr:
+        children.append(html.Div(
+            "(Residual quantile bands unavailable on this deployment — "
+            "run tools/build_bm_model.py to generate them.)",
+            style={"fontSize": UI_FONT_MD, "color": FALLBACK_MODEL_GRAY,
+                    "marginTop": "4px", "fontStyle": "italic"},
+        ))
+    return _section_card("σ mode", *children)
+
+
 def display_models_panel(
     prefix: str,
     *,
@@ -252,7 +294,7 @@ def display_models_panel(
         default_value = ["bub"] + (
             ["mc"] if include_mc and _app_ctx._HAS_MARKOV else []
         )
-    return _section_card(
+    display_card = _section_card(
         "Display Models",
         dcc.Checklist(
             id=f"{prefix}-model-show",
@@ -263,3 +305,6 @@ def display_models_panel(
         ),
         *_legend_pos_dropdown(prefix, legend_pos_default),
     )
+    if prefix == "bub":
+        return html.Div([display_card, _sigma_mode_section()])
+    return display_card

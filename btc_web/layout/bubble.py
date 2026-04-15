@@ -136,7 +136,9 @@ def _bubble_controls():
         _q_panel_with_mode("bub-qs", [0.5],
                            hint=f"If none selected, Q50% is shown at "
                                 f"{int(_app_ctx.FALLBACK_Q50_OPACITY * 100)}% opacity."),
-        _section_card("Model Scanner",
+        _section_card(
+            html.Span(id="bub-scanner-header",
+                      children="Model Scanner \u00b7 Constant \u03c3"),
             _row(
                 html.Div([
                     _lbl("Price ($)"),

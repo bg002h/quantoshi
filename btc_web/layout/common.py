@@ -242,9 +242,14 @@ def _section_card(title: str, *children, header_right=None, no_hover=False):
     dcc.Dropdown — the transform creates a stacking context that clips the
     dropdown menu (and intercepts clicks) on iOS Safari.
     """
-    icon = _SECTION_ICONS.get(title, "")
-    prefix = f"{icon} " if icon else ""
-    title_span = html.Span(f"{prefix}{title}")
+    if isinstance(title, str):
+        icon = _SECTION_ICONS.get(title, "")
+        prefix = f"{icon} " if icon else ""
+        title_span = html.Span(f"{prefix}{title}")
+    else:
+        # Caller passed a pre-built component (e.g. html.Span with an id so
+        # clientside callbacks can update the header text).
+        title_span = title
     if header_right:
         header = html.Div(
             [title_span, html.Div(header_right, className="model-panel-header-right")],

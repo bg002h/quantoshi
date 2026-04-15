@@ -245,21 +245,31 @@ def _build_figure(results: dict, scale: str, t0_label: str,
         hovertemplate=_hover_scatter,
     ))
 
-    # Determine the t_max the fit lines should extend to. We want the lines
-    # to cover both the existing data AND the user's bub-xrange upper bound
-    # (in years-since-t₀ for calendar mode, or raw block offset for block
-    # mode). This lets the user drag the slider out to e.g. 2080 and see
-    # the fit extrapolate there.
+    # Determine the t range the fit lines should cover. We want the lines
+    # to extrapolate BACKWARD to cover whatever bub-xrange[0] points at
+    # (e.g. user drags slider to 2005 when t₀ is earlier) AND forward to
+    # bub-xrange[1] (e.g. 2080).
     t_min_data = float(x_scatter.min()) if len(x_scatter) else 1.0 / 365.25
     t_max_data = float(x_scatter_all.max()) if len(x_scatter_all) else 1.0
-    t_max_ext = t_max_data * 1.1  # default: 10% past data
+    t_max_ext = t_max_data * 1.1
+    t_min_ext = t_min_data
     if scale == "calendar" and xrange is not None and len(xrange) == 2:
         t0_ts_ext = pd.Timestamp(t0_label)
         t0_dy = t0_ts_ext.year + (t0_ts_ext.dayofyear - 1) / 365.25
+        xrange_lo = float(xrange[0]) - t0_dy
         xrange_hi = float(xrange[1]) - t0_dy
         if xrange_hi > t_max_ext:
             t_max_ext = xrange_hi
-    # Block mode: bub-xrange is in years and doesn't apply. Use data max.
+        # Backward extrapolation: extend t_min_ext to whichever is lower,
+        # xrange_lo or t_min_data. Negative xrange_lo (user panned left of
+        # t₀) is accepted here; _eval_fit_on_range clamps log-log models to
+        # a tiny positive floor internally, while Exp (linear-t) can accept
+        # any real t. The log-x axis clamp below still snaps the AXIS
+        # lower bound to a positive value, so negative-t regions of the
+        # fit line simply get clipped off-canvas in log-x mode.
+        if xrange_lo < t_min_data:
+            t_min_ext = xrange_lo
+    # Block mode: bub-xrange is in years and doesn't apply.
 
     colors = {
         "PL":       MODEL_TRACE_COLORS.get("pl", FALLBACK_MODEL_GRAY),
@@ -295,7 +305,7 @@ def _build_figure(results: dict, scale: str, t0_label: str,
             name_suffix = " \u00b7 slope is t\u2080-invariant"
         # Re-evaluate the fit on the extended t range so the curves extend
         # out to whatever bub-xrange requests (e.g. 2080).
-        t_plot_ext, y_plot_ext = _eval_fit_on_range(r, t_min_data, t_max_ext)
+        t_plot_ext, y_plot_ext = _eval_fit_on_range(r, t_min_ext, t_max_ext)
         trace_customdata = _dates_for_t(t_plot_ext)
         if isinstance(y_plot_ext, dict):
             # QR: per-quantile slopes live in r.params["slopes"][q]
@@ -381,13 +391,17 @@ def _build_figure(results: dict, scale: str, t0_label: str,
         x_hi = float(xrange[1]) - t0_decimal_year
         if x_hi > 0 and x_hi > x_lo:
             if xscale == "log":
-                # Floor the lower bound to the smallest positive data x
-                # (or a 1-day fallback if no visible data).
-                if len(x_scatter) > 0:
-                    data_min = float(x_scatter.min())
+                # Respect x_lo when positive (user may be panning BACKWARD
+                # past the first data point — the fit line extrapolates
+                # there via t_min_ext). Only floor when x_lo ≤ 0, since
+                # log-x can't cross zero; fall back to the smallest visible
+                # data point or a 1-day minimum.
+                if x_lo > 0:
+                    effective_lo = x_lo
                 else:
-                    data_min = 1.0 / 365.25
-                effective_lo = max(x_lo, data_min)
+                    effective_lo = (
+                        float(x_scatter.min()) if len(x_scatter) > 0
+                        else 1.0 / 365.25)
                 if effective_lo < x_hi:
                     xaxis_cfg["range"] = [
                         math.log10(effective_lo), math.log10(x_hi)]

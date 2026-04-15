@@ -24,8 +24,9 @@ _PKL = _ROOT / "model_data.pkl"
 _DIAG = _ROOT / "model_data_resqr_diagnostics.json"
 
 
-# Expected in-scope models from the build script. LPPL family excluded.
-EXPECTED_RESQR_MODELS = {
+# Expected flagship in-scope models (15). LPPL family excluded.
+# HybPPL + EPPL config variants (72) are also fit and asserted separately.
+EXPECTED_FLAGSHIP_MODELS = {
     "bub", "pl", "hybppl", "hybppl_dd",
     "hyb2l", "hyb2c", "hyb2b", "hyb4d",
     "eppl", "linppl", "exp", "pca",
@@ -52,9 +53,20 @@ def test_diagnostics_not_aborted(diagnostics):
     assert diagnostics["aborted"] is False, diagnostics.get("reason")
 
 
-def test_all_15_models_fit_ok(diagnostics):
+def test_all_flagship_models_fit_ok(diagnostics):
     ok = {k for k, v in diagnostics["per_model"].items() if v["status"] == "ok"}
-    assert ok == EXPECTED_RESQR_MODELS
+    missing = EXPECTED_FLAGSHIP_MODELS - ok
+    assert not missing, f"flagship models missing: {missing}"
+
+
+def test_config_variants_fit_ok(diagnostics):
+    """All 36 HybPPL cfg_* + 36 Entropy PPL ecfg_* variants must fit so the
+    chart builder's master-gate resolver can find resqr bundles for them."""
+    ok = {k for k, v in diagnostics["per_model"].items() if v["status"] == "ok"}
+    cfg_ok = {k for k in ok if k.startswith("cfg_")}
+    ecfg_ok = {k for k in ok if k.startswith("ecfg_")}
+    assert len(cfg_ok) == 36, f"expected 36 HybPPL cfg_* fits, got {len(cfg_ok)}"
+    assert len(ecfg_ok) == 36, f"expected 36 EPPL ecfg_* fits, got {len(ecfg_ok)}"
 
 
 def test_lppl_family_excluded(diagnostics):

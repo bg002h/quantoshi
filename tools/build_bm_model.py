@@ -24,9 +24,13 @@ from model_toolkit.composite import build_composite, build_comp_by_n
 from model_toolkit.bands import fit_qr_channels, fit_asymmetric_sigma, BM_QUANTILES
 from model_toolkit.export import build_bm_pkl_dict, write_pkl
 
-# 15 in-scope models for residual QR sigma bands. LPPL family excluded
-# (3.92yr halving cycle residual periodicity that PWL can't capture).
-RESQR_MODELS = (
+# 15 flagship in-scope models for residual QR sigma bands. LPPL family
+# excluded (3.92yr halving cycle residual periodicity that PWL can't
+# capture). HybPPL + Entropy PPL config variants (72) are appended at
+# runtime inside _fit_all_resqr — they inherit the HybPPL/EPPL parent
+# gating but the chart builder swaps in concrete cfg_* keys via
+# _resolve_{hybppl,eppl}_master, so each variant needs its own fit.
+RESQR_FLAGSHIP_MODELS = (
     "bub", "pl", "hybppl", "hybppl_dd",
     "hyb2l", "hyb2c", "hyb2b", "hyb4d",
     "eppl", "linppl", "exp", "pca",
@@ -36,7 +40,11 @@ RESQR_MODELS = (
 
 def _build_model_instances(md_obj, price_years, price_prices, quantiles):
     """Instantiate every in-scope model from pkl data. Order matters: PCA
-    consumes the already-built HybPPL family as source_models."""
+    consumes the already-built HybPPL family as source_models. HybPPL +
+    Entropy PPL config variants (36 each) are appended at the end so
+    their resqr bundles can be bound when the master-gate resolver
+    swaps `"hybppl"`/`"eppl"` for a concrete `cfg_*`/`ecfg_*` key at
+    chart build time."""
     import btc_core as bc  # lazy — avoid cycle with module-level imports
 
     instances = {}
@@ -61,6 +69,14 @@ def _build_model_instances(md_obj, price_years, price_prices, quantiles):
     instances["grdy"] = bc.GreedyModel(price_years, price_prices, quantiles)
     instances["gomp"] = bc.LogisticModel(price_years, price_prices, quantiles)
     instances["bpl"] = bc.BrokenPowerLawModel(price_years, price_prices, quantiles)
+    # HybPPL config variants (36)
+    for cfg_key in bc._HYBPPL_CONFIG_PARAMS:
+        instances[cfg_key] = bc.HybPPLConfigModel(
+            cfg_key, price_years, price_prices, quantiles)
+    # Entropy PPL config variants (36)
+    for ecfg_key in bc._EPPL_CONFIG_PARAMS:
+        instances[ecfg_key] = bc.EPPLConfigModel(
+            ecfg_key, price_years, price_prices, quantiles)
     return instances
 
 
@@ -85,7 +101,16 @@ def _fit_all_resqr(pkl_path):
     log_price = np.log10(np.maximum(price_prices, 1e-10))
     quantiles = sorted(md_obj.qr_fits.keys())
 
-    print(f"Building {len(RESQR_MODELS)} model instances...")
+    # Full fit scope = 15 flagships + 36 HybPPL cfg_* + 36 EPPL ecfg_*.
+    model_keys = (
+        list(RESQR_FLAGSHIP_MODELS)
+        + list(bc._HYBPPL_CONFIG_PARAMS.keys())
+        + list(bc._EPPL_CONFIG_PARAMS.keys())
+    )
+    print(f"Building {len(model_keys)} model instances "
+          f"({len(RESQR_FLAGSHIP_MODELS)} flagships + "
+          f"{len(bc._HYBPPL_CONFIG_PARAMS)} cfg_* + "
+          f"{len(bc._EPPL_CONFIG_PARAMS)} ecfg_*)...")
     instances = _build_model_instances(
         md_obj, price_years, price_prices, quantiles,
     )
@@ -96,7 +121,7 @@ def _fit_all_resqr(pkl_path):
     aborted = False
     abort_reason = None
 
-    for key in RESQR_MODELS:
+    for key in model_keys:
         model = instances[key]
         try:
             log_median = np.asarray(model._model_log10(price_years), dtype=np.float64)
@@ -150,10 +175,10 @@ def _fit_all_resqr(pkl_path):
             "oos_coverage": [float(x) for x in result["oos_coverage"]],
         }
 
-    skip_rate = len(skipped) / len(RESQR_MODELS)
+    skip_rate = len(skipped) / len(model_keys)
     if not aborted and skip_rate > 0.5:
         aborted = True
-        abort_reason = f"{len(skipped)}/{len(RESQR_MODELS)} models skipped (>50%)"
+        abort_reason = f"{len(skipped)}/{len(model_keys)} models skipped (>50%)"
 
     if aborted:
         print()
@@ -166,7 +191,7 @@ def _fit_all_resqr(pkl_path):
         }
 
     print()
-    print(f"[DONE] {len(resqr_coefs)}/{len(RESQR_MODELS)} models fit; "
+    print(f"[DONE] {len(resqr_coefs)}/{len(model_keys)} models fit; "
           f"{len(skipped)} skipped: {skipped}")
     return resqr_coefs, {
         "aborted": False,

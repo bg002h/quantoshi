@@ -226,8 +226,12 @@ def build_display_models_options(
     return opts
 
 
-def _sigma_mode_section():
-    """Bubble-tab-only σ mode radio (constant vs residual QR bands)."""
+def sigma_mode_section():
+    """Bubble-tab-only σ mode radio (constant vs residual QR bands).
+
+    Rendered directly from layout/bubble.py so it can sit below the
+    Projection Quantiles card rather than alongside Display Models.
+    """
     has_resqr = bool(getattr(_app_ctx, "_HAS_RESQR", False))
     radio_options = [
         {"label": " Constant σ (legacy)", "value": "constant"},
@@ -294,7 +298,7 @@ def display_models_panel(
         default_value = ["bub"] + (
             ["mc"] if include_mc and _app_ctx._HAS_MARKOV else []
         )
-    display_card = _section_card(
+    return _section_card(
         "Display Models",
         dcc.Checklist(
             id=f"{prefix}-model-show",
@@ -305,6 +309,3 @@ def display_models_panel(
         ),
         *_legend_pos_dropdown(prefix, legend_pos_default),
     )
-    if prefix == "bub":
-        return html.Div([display_card, _sigma_mode_section()])
-    return display_card

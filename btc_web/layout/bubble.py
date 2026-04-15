@@ -19,7 +19,7 @@ from layout.common import (_tab_hints, _section_card, _row, _lbl,
                             _q_options, _legend_pos_dropdown,
                             _chart_tab_layout, _CB_MARGIN, _palette_selector,
                             _plot_appearance_controls)
-from layout.display_models import display_models_panel
+from layout.display_models import display_models_panel, sigma_mode_section
 from layout.custom_time import custom_time_panel
 
 
@@ -82,6 +82,7 @@ def _bubble_controls():
         _q_panel_with_mode("bub-qs", [0.5],
                            hint=f"If none selected, Q50% is shown at "
                                 f"{int(_app_ctx.FALLBACK_Q50_OPACITY * 100)}% opacity."),
+        sigma_mode_section(),
         custom_time_panel(),
         # Hidden placeholders — bub-bubble-panel and bub-n-future-wrap are
         # referenced as style outputs by the bub-view-mode toggle callbacks.

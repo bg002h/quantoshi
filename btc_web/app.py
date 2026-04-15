@@ -125,6 +125,12 @@ def _health():
         block_map_loaded = bool(_BLOCK_MAP_LOADED)
     except Exception:
         block_map_loaded = False
+    # model_data.pkl age (daily build canary)
+    _pkl_path = pathlib.Path(__file__).parent.parent / "model_data.pkl"
+    if _pkl_path.exists():
+        model_build_age_hours = round((time.time() - _pkl_path.stat().st_mtime) / 3600, 1)
+    else:
+        model_build_age_hours = -1
     result = {
         "status": "ok",
         "model": M is not None,
@@ -136,6 +142,13 @@ def _health():
         "markov": _HAS_MARKOV,
         "btcpay": btcpay._HAS_BTCPAY,
         "block_map_loaded": block_map_loaded,
+        "model_build_age_hours": model_build_age_hours,
+        "model_build_stale_72h": model_build_age_hours > 72,
+        "resqr_bands": {
+            "available": _HAS_RESQR,
+            "model_count": len(getattr(M, "resqr_coefs", {}) or {}),
+            "build_ts": getattr(M, "resqr_build_ts", None),
+        },
     }
     if bp is not None:
         result["btcpay_health"] = bp
@@ -255,6 +268,23 @@ _ef_pkl = Path(__file__).parent.parent / "model_data_ef.pkl"
 if _ef_pkl.exists():
     _app_ctx.PRICE_MODELS["ef"] = EmpiricalFloorModel(str(_ef_pkl))
 _app_ctx.DEFAULT_MODEL = _app_ctx.PRICE_MODELS["bub"]
+
+# ── bind resqr coefficient bundles onto their models (Task 4) ─────────────
+# Models without a bundle silently fall back to constant σ at runtime.
+_resqr_bound = 0
+for _rq_key, _rq_bundle in (M.resqr_coefs or {}).items():
+    _rq_model = _app_ctx.PRICE_MODELS.get(_rq_key)
+    if _rq_model is None:
+        continue
+    _rq_model._resqr = {
+        "sorted_qs": _rq_bundle["sorted_qs"],
+        "coef_matrix": _rq_bundle["coef_matrix"],
+        "knots": tuple(_rq_bundle.get("knots", M.resqr_knots or (3.0, 6.0, 9.0, 12.0))),
+    }
+    _resqr_bound += 1
+_HAS_RESQR = _resqr_bound > 0
+_app_ctx._HAS_RESQR = _HAS_RESQR
+print(f"[resqr] bound {_resqr_bound} model bundles  _HAS_RESQR={_HAS_RESQR}")
 
 # ── compute per-quantile R² for all models ───────────────────────────────
 import numpy as np

@@ -365,6 +365,13 @@ class ModelData:
         self.qr_colors     = {float(k): v for k, v in d["qr_colors"].items()} if "qr_colors" in d else {}
         raw_ls = d.get("QR_LINESTYLES", {})
         self.qr_linestyles = {float(k): _parse_ls(v) for k, v in raw_ls.items()}
+        # Residual QR sigma bands (optional — present only after build_bm_model
+        # runs the resqr fit phase).
+        self.resqr_coefs = d.get("resqr_coefs", {})
+        self.resqr_models = list(d.get("resqr_models", []))
+        self.resqr_knots = tuple(d.get("resqr_knots", ()))
+        self.resqr_quantiles = list(d.get("resqr_quantiles", []))
+        self.resqr_build_ts = d.get("resqr_build_ts", None)
         # Visual config — .get() fallbacks so lean pkls (missing visual keys) don't crash
         _VIS_STR = {
             "PLOT_BG_COLOR": "#FFFFFF", "TEXT_COLOR": "#222222",

@@ -101,6 +101,57 @@ _app_ctx.app.clientside_callback(
     Input("cta-t0-blk", "value"),
 )
 
+# Clientside: when Custom Time Axis is active in calendar mode AND the chosen
+# t₀ is before 2010, drop the bub-xrange slider's min so the user can pan
+# back to t₀ year. When inactive (or later t₀), revert to the default min of
+# 2010. Also updates the tick marks so the slider has labels in the extended
+# range. Runs clientside so dragging the slider afterward doesn't bounce back
+# to 2010.
+_app_ctx.app.clientside_callback(
+    """
+    function(active, scale, cal_preset, cal_custom) {
+        var DEFAULT_MIN = 2010;
+        var MAX_YR = 2080;
+        var PRESET_YEARS = {
+            whitepaper: 2008, genesis: 2009, optimal: 2009,
+            nls: 2009, pizza: 2010, mtgox: 2010, parity: 2011
+        };
+        var effective_min = DEFAULT_MIN;
+        var is_active = active && active.indexOf && active.indexOf("yes") !== -1;
+        if (is_active && scale === "calendar") {
+            var t0_year = null;
+            if (cal_preset === "custom" && cal_custom) {
+                var yr = parseInt(String(cal_custom).slice(0, 4), 10);
+                if (!isNaN(yr)) t0_year = yr;
+            } else if (PRESET_YEARS[cal_preset] !== undefined) {
+                t0_year = PRESET_YEARS[cal_preset];
+            }
+            if (t0_year !== null && t0_year < DEFAULT_MIN) {
+                effective_min = t0_year;
+            }
+        }
+        // Build marks every 10 years from floor(effective_min/10)*10 to MAX_YR
+        var start = Math.floor(effective_min / 10) * 10;
+        var marks = {};
+        for (var y = start; y <= MAX_YR; y += 10) {
+            if (y >= effective_min) {
+                var suffix = String(y % 100);
+                if (suffix.length < 2) suffix = "0" + suffix;
+                marks[String(y)] = "'" + suffix;
+            }
+        }
+        return [effective_min, marks];
+    }
+    """,
+    Output("bub-xrange", "min"),
+    Output("bub-xrange", "marks"),
+    Input("cta-active", "value"),
+    Input("cta-scale", "value"),
+    Input("cta-t0-cal", "value"),
+    Input("cta-t0-cal-custom", "date"),
+    prevent_initial_call=True,
+)
+
 
 # ──────────────────────────────────────────────────────────────────────────
 # Helpers

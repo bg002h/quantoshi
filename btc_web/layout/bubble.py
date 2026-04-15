@@ -79,6 +79,9 @@ def _bubble_controls():
         display_models_panel("bub", include_bm_master=True,
                               default_value=["bub"],
                               legend_pos_default=BUBBLE["legend_pos"]),
+        _q_panel_with_mode("bub-qs", [0.5],
+                           hint=f"If none selected, Q50% is shown at "
+                                f"{int(_app_ctx.FALLBACK_Q50_OPACITY * 100)}% opacity."),
         custom_time_panel(),
         # Hidden placeholders — bub-bubble-panel and bub-n-future-wrap are
         # referenced as style outputs by the bub-view-mode toggle callbacks.
@@ -133,9 +136,6 @@ def _bubble_controls():
             html.Div(id="bub-decomp-warning", children=[]),
             no_hover=True,
         ),
-        _q_panel_with_mode("bub-qs", [0.5],
-                           hint=f"If none selected, Q50% is shown at "
-                                f"{int(_app_ctx.FALLBACK_Q50_OPACITY * 100)}% opacity."),
         _section_card(
             html.Span(id="bub-scanner-header",
                       children="Model Scanner \u00b7 Constant \u03c3"),

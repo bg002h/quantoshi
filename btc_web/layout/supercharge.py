@@ -26,9 +26,6 @@ def _supercharge_controls():
     return html.Div([
         _tab_hints("supercharge"),
         _shared_settings_card("sc", infl_default=SUPERCHARGE["inflation"], stack_default=SUPERCHARGE["start_stack"]),
-        _q_panel_with_mode("sc-qs",
-                           [0.15, 0.85],
-                           hint="Lower prices mean earlier depletion."),
         # ── Plan ────────────────────────────────────────────────────────
         _section_card("Plan",
             dcc.RadioItems(id="sc-mode",
@@ -89,6 +86,9 @@ def _supercharge_controls():
                      start_yr_label="Withdrawal start year",
                      shared_controls={"amount", "infl", "freq", "stack"}),
         display_models_panel("sc", legend_pos_default=SUPERCHARGE["legend_pos"]),
+        _q_panel_with_mode("sc-qs",
+                           [0.15, 0.85],
+                           hint="Lower prices mean earlier depletion."),
         # ── Chart ───────────────────────────────────────────────────────
         _section_card("Chart Settings",
             dcc.Checklist(id="sc-chart-layout",

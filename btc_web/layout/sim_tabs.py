@@ -30,12 +30,12 @@ def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
     children = [
         _tab_hints(tab_key),
         _shared_settings_card(prefix, **shared_kwargs),
-        _q_panel_with_mode(f"{prefix}-qs", q_defaults, hint=q_hint),
         # Display Models is its own section — mirrors the prominence of
         # bubble tab's "Display" card. Legend position lives with the
         # models it governs.
         display_models_panel(prefix, include_mc=include_mc,
                              legend_pos_default=legend_pos_default),
+        _q_panel_with_mode(f"{prefix}-qs", q_defaults, hint=q_hint),
     ]
     if extra_sections:
         children.extend(extra_sections)

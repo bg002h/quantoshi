@@ -51,7 +51,7 @@ Q_SHADE_L_TARGET    = 0.92   # HSL lightness ceiling extremes approach
 ```
 
 Worked example for BM amber `#C48209`:
-- Base HSL: H=38, S=0.88, L=0.40
+- Base HSL: H~39, S~0.91, L~0.40
 - Q50: L=0.40 → `#C48209` (unchanged)
 - Q25/Q75: d=0.5, factor=0.5^0.8=0.574, L=0.40 + (0.92-0.40)×0.574×0.70 = 0.61 → medium amber tint
 - Q10/Q90: d=0.8, factor=0.8^0.8=0.837, L=0.40 + 0.52×0.837×0.70 = 0.70 → light amber
@@ -91,15 +91,21 @@ line=dict(color=quantile_shade(model_color, q), ...)
 | `figures/dca.py` | `build_dca_figure` | (uses `build_overlay_traces`) |
 | `figures/retire.py` | `build_retire_figure` | (uses `build_overlay_traces`) |
 | `figures/supercharge.py` | `build_supercharge_figure` | (uses `build_overlay_traces`) |
-| `figures/citadel.py` | `build_citadel_figure` | Quantile lines (grep `quantile_opacity`) |
+| `figures/heatmap.py` | `build_heatmap_figure` | Forward-projection quantile traces (~L564, uses `quantile_opacity`) |
 
-### 3.5 What does NOT change
+Note: `figures/citadel.py` does NOT use `quantile_opacity` — its quantile lines are drawn via `build_overlay_traces` in `figures/common.py`.
+
+### 3.5 New dependencies in `colors.py`
+
+- `import colorsys` (stdlib — not currently imported).
+- New helper `_hex_to_rgb(hex_str) -> tuple[int,int,int]` (not currently in the file; `_hex_alpha` does similar inline parsing but returns an rgba string, not a tuple).
+
+### 3.6 What does NOT change
 
 - `quantile_opacity()` — retained for the quantile-panel sidebar dots (layout/common.py `_q_options`). Not used for chart traces after this change.
 - `_get_model_color()` — still returns the base color per model per palette. `quantile_shade` wraps it for per-quantile variants.
 - Snapshot, routing, tab_defaults — no new controls.
 - CB-Brian / CB-RG / CB-Full palettes — `quantile_shade` works on any base hex. Palette-specific colors are automatically tinted. No per-palette tuning needed.
-- Heatmap — does not draw quantile traces (uses a heatmap grid). Unchanged.
 
 ## 4. Testing
 
@@ -129,7 +135,7 @@ Start dev server, toggle each model on Tab 1, confirm:
 - No new UI controls (no radio, no dropdown).
 - `BAND_FILL_MODE` defaults to `"alpha"` (visual parity with current band fills; only line colors change). User tests, then we flip to `"pastel"` if preferred.
 - Generated color artifacts (`_colors_generated.css/js`) — `Q_SHADE_*` constants are NOT exported to CSS/JS (chart-side only, Python computes). Add to `__skip_export__` if auto-export picks them up.
-- Deploy: code change only, no pkl rebuild, no Redis flush needed (figure cache keys don't change — same params, just different visual output from the builder).
+- Deploy: code change only, no pkl rebuild. Standard deploy procedure (`redis-cli FLUSHDB`) clears stale cached figures that would still show the old opacity-faded colors.
 
 ## 6. Non-goals
 

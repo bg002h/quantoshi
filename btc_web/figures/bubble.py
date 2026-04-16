@@ -182,16 +182,19 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 overlay_qs = [q for q in overlay_qs
                               if not (hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005)]
             _ovl_color = _get_model_color(model_key, p)
+            _ovl_lines = []
+            _ovl_band_prices = {}
             for q in overlay_qs:
                 if q not in mdl.fits:
                     continue
                 prices = _round_trace_data(mdl.price_at(q, t_arr, sigma_mode=sigma_mode) * (stack if stack > 0 else 1))
+                _ovl_band_prices[q] = prices
                 lbl = f"{mdl.legend_name} {_fmt_q_label(q, '')}" + _r2_suffix(mdl, q)
                 if stack > 0:
                     lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
                 _shade = quantile_shade(_ovl_color, q)
                 _lw = 3.0 if (model_key == "u1" and hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005) else _OVERLAY_LINE_WIDTH
-                traces.append(go.Scatter(
+                _ovl_lines.append(go.Scatter(
                     x=list(t_arr), y=list(prices),
                     mode="lines", name=lbl,
                     line=dict(color=_shade, width=_lw, dash=mdl.dash_style),
@@ -201,17 +204,12 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                         if model_key == "u1" else mdl.legend_name
                     ),
                 ))
-            # Symmetric band shading for overlay model
-            if p.get("shade") and len(overlay_qs) >= 2:
-                _overlay_prices = {}
-                for q in overlay_qs:
-                    if q in mdl.fits:
-                        _overlay_prices[q] = _round_trace_data(
-                            mdl.price_at(q, t_arr, sigma_mode=sigma_mode) * (stack if stack > 0 else 1))
-                _overlay_color = _get_model_color(model_key, p)
+            # Band fills FIRST so lines render on top (matching BM pattern).
+            if p.get("shade") and len(_ovl_band_prices) >= 2:
                 traces.extend(_build_symmetric_bands(
-                    sorted(_overlay_prices.keys()), _overlay_prices, t_arr,
-                    model_color=_overlay_color))
+                    sorted(_ovl_band_prices.keys()), _ovl_band_prices, t_arr,
+                    model_color=_ovl_color))
+            traces.extend(_ovl_lines)
         else:
             # Non-quantized model: single trajectory
             prices = mdl.price_at(0.5, t_arr, sigma_mode=sigma_mode)

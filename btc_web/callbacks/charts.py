@@ -1011,7 +1011,7 @@ def _resolve_decomp_model_key(family, lppl_n_freqs, lppl_weighted, lppl_no_13,
     State("bub-qs-mode",       "value"),
     State("scan-active-rows",  "data"),
     State("scan-q",            "value"),
-    Input("bub-sigma-mode",    "value"),
+    State("bub-sigma-mode",    "value"),
     prevent_initial_call=True,
 )
 def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,

@@ -79,7 +79,7 @@ def _output_from_history(history):
     Input("lppl-weighted",    "value"),
     Input("lppl-no-13",       "value"),
     State("main-tabs", "active_tab"),
-    Input("bub-sigma-mode",   "value"),
+    State("bub-sigma-mode",   "value"),
     prevent_initial_call=False,
 )
 def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_model_data,
@@ -312,4 +312,17 @@ _app_ctx.app.clientside_callback(
     }""",
     Output("bub-scanner-header", "children"),
     Input("bub-sigma-mode", "value"),
+)
+
+# ── σ mode change bumps bubble-first-render to re-trigger chart callback ───
+# bub-sigma-mode is a State (not Input) on update_bubble to avoid changing
+# the callback signature and causing stale /_dash-dependencies errors on
+# mobile browsers. This clientside callback converts the radio change into
+# a first-render bump, which IS an existing Input.
+_app_ctx.app.clientside_callback(
+    """function(mode, cur) { return (cur || 0) + 1; }""",
+    Output("bubble-first-render", "data", allow_duplicate=True),
+    Input("bub-sigma-mode", "value"),
+    State("bubble-first-render", "data"),
+    prevent_initial_call=True,
 )

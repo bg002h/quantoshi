@@ -601,7 +601,7 @@ def config_b_shade(base_hex: str, is_b: bool) -> str:
     # Lighten B: raise lightness by ~30%
     r, g, b = _hex_to_rgb(base_hex)
     h, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
-    l_new = min(l + (1.0 - l) * 0.45, 0.85)
+    l_new = min(l + (1.0 - l) * 0.22, 0.85)
     r2, g2, b2 = colorsys.hls_to_rgb(h, l_new, s)
     return f"#{int(r2*255+.5):02x}{int(g2*255+.5):02x}{int(b2*255+.5):02x}"
 

@@ -35,7 +35,7 @@ from figures.common import (
     _lerp_hex, _hex_alpha, _build_symmetric_bands,
     _round_trace_data,
 )
-from colors import quantile_shade
+from colors import quantile_shade, config_b_shade
 from figures.common import quantile_opacity
 
 
@@ -187,7 +187,12 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 # Skip own_quantile — already drawn as direct line above
                 overlay_qs = [q for q in overlay_qs
                               if not (hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005)]
-            _ovl_color = _get_model_color(model_key, p)
+            _ovl_color_raw = _get_model_color(model_key, p)
+            _b_keys = set(p.get("config_b_keys") or [])
+            _is_b = model_key in _b_keys
+            _has_b_sibling = bool(_b_keys)
+            _ovl_color = (config_b_shade(_ovl_color_raw, _is_b)
+                          if _has_b_sibling else _ovl_color_raw)
             _ovl_lines = []
             _ovl_band_prices = {}
             for q in overlay_qs:

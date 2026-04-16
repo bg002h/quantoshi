@@ -589,6 +589,23 @@ def quantile_shade(base_hex: str, q: float) -> str:
     return f"#{int(r2*255+.5):02x}{int(g2*255+.5):02x}{int(b2*255+.5):02x}"
 
 
+def config_b_shade(base_hex: str, is_b: bool) -> str:
+    """Return a lighter (config B) or darker (config A when B active) variant."""
+    if not is_b:
+        # Darken A: reduce lightness by 15%
+        r, g, b = _hex_to_rgb(base_hex)
+        h, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+        l_new = max(l * 0.70, 0.05)
+        r2, g2, b2 = colorsys.hls_to_rgb(h, l_new, s)
+        return f"#{int(r2*255+.5):02x}{int(g2*255+.5):02x}{int(b2*255+.5):02x}"
+    # Lighten B: raise lightness by ~30%
+    r, g, b = _hex_to_rgb(base_hex)
+    h, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+    l_new = min(l + (1.0 - l) * 0.45, 0.85)
+    r2, g2, b2 = colorsys.hls_to_rgb(h, l_new, s)
+    return f"#{int(r2*255+.5):02x}{int(g2*255+.5):02x}{int(b2*255+.5):02x}"
+
+
 # ════════════════════════════════════════════════════════════════════
 # SECTION 5 — Appearance constants (fonts, sizes, widths, opacities)
 # ════════════════════════════════════════════════════════════════════

@@ -1062,6 +1062,21 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
         ep_b_enabled, ep_b_nlog, ep_b_ncal, ep_b_log1d, ep_b_log2d,
         ep_b_cal1d, ep_b_cal2d)
 
+    # Collect config-B keys so the figure builder can shade them lighter
+    _config_b_keys = set()
+    if hyb_b_enabled and "yes" in (hyb_b_enabled or []):
+        _hb = _build_hybppl_config_key(
+            hyb_b_nlog or 0, hyb_b_ncal or 0,
+            hyb_b_log1d, hyb_b_log2d, hyb_b_cal1d, hyb_b_cal2d)
+        if _hb in model_show:
+            _config_b_keys.add(_hb)
+    if ep_b_enabled and "yes" in (ep_b_enabled or []):
+        _eb = _build_eppl_config_key(
+            ep_b_nlog or 0, ep_b_ncal or 0,
+            ep_b_log1d, ep_b_log2d, ep_b_cal1d, ep_b_cal2d)
+        if _eb in model_show:
+            _config_b_keys.add(_eb)
+
     # Scanner lines
     scanner_lines = []
     if scan_active and scan_q_val is not None:
@@ -1111,6 +1126,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
         lppl_weighted      = list(lppl_weighted or []),
         lppl_no_13         = list(lppl_no_13 or []),
         sigma_mode         = sigma_mode or "constant",
+        config_b_keys      = sorted(_config_b_keys),
     ))
     if "chart_zoom" not in toggles:
         fig.update_layout(dragmode=False)

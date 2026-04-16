@@ -195,14 +195,6 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
                 _shade = quantile_shade(_ovl_color, q)
                 _lw = 3.0 if (model_key == "u1" and hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005) else _OVERLAY_LINE_WIDTH
-                if p.get("shade") and mdl.dash_style and mdl.dash_style != "solid":
-                    _ovl_lines.append(go.Scatter(
-                        x=list(t_arr), y=list(prices),
-                        mode="lines",
-                        line=dict(color=PLOT_BG_COLOR, width=_lw + 0.5),
-                        showlegend=False, hoverinfo="skip",
-                        legendgroup=mdl.short_name,
-                    ))
                 _ovl_lines.append(go.Scatter(
                     x=list(t_arr), y=list(prices),
                     mode="lines", name=lbl,

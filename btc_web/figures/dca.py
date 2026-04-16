@@ -27,8 +27,8 @@ from figures.common import (
     _build_symmetric_bands,
 
     FREQ_PPY,
-    quantile_opacity,
 )
+from colors import quantile_shade
 
 
 def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, line_shape="linear"):
@@ -149,11 +149,10 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, l
             final_sc  = f"{float(sc_vals[-1]):.4f} BTC  ({final_usd})"
 
         lbl_sc = f"{model.legend_name} SC {_fmt_q_label(q, '')}" + f"  \u2192  {final_sc}"
-        _q_opacity = quantile_opacity(q)
+        _shade = quantile_shade(_bm_color, q)
         sc_traces.append(go.Scatter(
             x=list(ts), y=list(y_sc), mode="lines", name=lbl_sc,
-            line=dict(color=_bm_color, width=_QR_LINE_WIDTH, dash="dash", shape=line_shape),
-            opacity=_q_opacity,
+            line=dict(color=_shade, width=_QR_LINE_WIDTH, dash="dash", shape=line_shape),
         ))
 
     return sc_traces, all_sc_usd_vals, all_sc_btc_vals
@@ -217,11 +216,10 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
 
             _y_for_bands[q] = y_vals
             lbl = f"{model.legend_name} {_fmt_q_label(q, '')}" + f"  \u2192  {final_lbl}"
-            _q_opacity = quantile_opacity(q)
+            _shade = quantile_shade(_bm_color, q)
             _bm_line_traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines", name=lbl,
-                line=dict(color=_bm_color, width=_QR_LINE_WIDTH, shape=_line_shape),
-                opacity=_q_opacity,
+                line=dict(color=_shade, width=_QR_LINE_WIDTH, shape=_line_shape),
             ))
 
     # ── Symmetric band shading (added before line traces so lines render on top) ──

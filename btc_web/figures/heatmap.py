@@ -26,8 +26,8 @@ from figures.common import (
     _lerp_hex, _dense_colorscale, _hex_alpha,
     _apply_config_annotation, _apply_watermark,
     _apply_mc_premium, _apply_mc_xlabel,
-    quantile_opacity,
 )
+from colors import quantile_shade
 
 
 def _add_heatmap_grid(fig, n_cols: int, n_rows: int,
@@ -561,7 +561,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 peak_dates.append(f"{yr + s_max * fwd_n / _total_steps:.1f}")
                 trough_dates.append(f"{yr + s_min * fwd_n / _total_steps:.1f}")
 
-            _q_opacity = quantile_opacity(q)
+            _shade = quantile_shade(color, q)
             q_pct = q * 100
             q_lbl = f"Q{q_pct:.4g}%" if q_pct >= 1 else f"Q{q_pct:.3g}%"
             lbl = f"{model.legend_name} {q_lbl}" if len(qs_to_plot) > 1 else model.legend_name
@@ -575,7 +575,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             traces.append(go.Scatter(
                 x=years, y=cagr_max, mode="lines",
                 line=dict(width=0), fill="tonexty",
-                fillcolor=_hex_alpha(color, 0.2 * _q_opacity),
+                fillcolor=_hex_alpha(_shade, 0.2),
                 name=f"{lbl} excursion",
                 legendgroup=model_key,
                 showlegend=False, hoverinfo="skip",
@@ -592,8 +592,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 y=cagrs,
                 mode="lines",
                 name=lbl,
-                line=dict(color=color, width=2),
-                opacity=_q_opacity,
+                line=dict(color=_shade, width=2),
                 legendgroup=model_key,
                 customdata=list(zip(cagr_max, cagr_min, peak_dates, trough_dates,
                                     cagr_mult, peak_mult, trough_mult)),

@@ -43,6 +43,7 @@ from colors import (
     WM_OPACITY as _CWO, WM_SIZE_X as _CWSX, WM_SIZE_Y as _CWSY,
     CHART_MARGIN,
     Q_OPACITY_FLOOR, Q_OPACITY_RANGE, Q_OPACITY_DECAY,
+    quantile_shade, BAND_FILL_MODE, BAND_PASTEL_ALPHA,
 )
 _HAS_MARKOV = _app_ctx._HAS_MARKOV
 
@@ -805,7 +806,7 @@ from colors import _hex_alpha  # noqa: F401 — re-exported for backward compat
 
 
 def _build_symmetric_bands(sel_qs, y_cache, x_arr, model_color=BLACK,
-                            max_bands=2):
+                            max_bands=2, fill_mode=None):
     """Build shaded band traces from symmetric quantile pairs.
 
     Pairs from outside in: (lowest, highest), (2nd lowest, 2nd highest).
@@ -834,6 +835,9 @@ def _build_symmetric_bands(sel_qs, y_cache, x_arr, model_color=BLACK,
     if not pairs:
         return []
 
+    if fill_mode is None:
+        fill_mode = BAND_FILL_MODE
+
     opacities = [0.08, 0.15] if len(pairs) >= 2 else [0.10]
 
     traces = []
@@ -849,7 +853,10 @@ def _build_symmetric_bands(sel_qs, y_cache, x_arr, model_color=BLACK,
         traces.append(go.Scatter(
             x=x, y=list(hi_y), mode="lines", line=dict(width=0),
             fill="tonexty",
-            fillcolor=_hex_alpha(model_color, alpha),
+            fillcolor=(_hex_alpha(quantile_shade(model_color, (lo_q + hi_q) / 2),
+                                   BAND_PASTEL_ALPHA)
+                       if fill_mode == "pastel"
+                       else _hex_alpha(model_color, alpha)),
             showlegend=False, hoverinfo="skip",
         ))
 
@@ -1219,13 +1226,12 @@ def build_overlay_traces(
                     y_vals = vals
                     final_lbl = f"{float(vals[-1]):.4f} BTC"
                 _y_cache[q] = y_vals
-                _q_opacity = quantile_opacity(q)
+                _shade = quantile_shade(_mdl_color, q)
                 _model_lines.append(go.Scatter(
                     x=list(ts), y=list(y_vals), mode="lines",
                     name=f"{mdl.legend_name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
-                    line=dict(color=_mdl_color, width=_OVERLAY_LINE_WIDTH,
+                    line=dict(color=_shade, width=_OVERLAY_LINE_WIDTH,
                               dash=mdl.dash_style, shape=line_shape),
-                    opacity=_q_opacity,
                     legendgroup=mdl.short_name,
                     legendgrouptitle_text=mdl.legend_name,
                 ))

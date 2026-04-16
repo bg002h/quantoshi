@@ -28,8 +28,8 @@ from figures.common import (
     _resolve_edge_annotations,
     _hex_alpha,
     _resolve_model,
-    quantile_opacity,
 )
+from colors import quantile_shade
 
 _DASH_STYLES  = ['solid', 'dash', 'dot', 'dashdot', 'longdash']
 
@@ -201,15 +201,14 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     if key not in results:
                         continue
                     ts_d, y_vals, depl_t, t_start_d, *_ = results[key]
-                    _q_opacity = quantile_opacity(q)
+                    _shade = quantile_shade(_bm_color, q)
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
                         name=_legend_name,
                         legendgroup=grp_model,
                         showlegend=_first_legend,
-                        line=dict(color=_bm_color, width=_QR_LINE_WIDTH,
+                        line=dict(color=_shade, width=_QR_LINE_WIDTH,
                                   dash=_DASH_STYLES[di % len(_DASH_STYLES)], shape=_line_shape),
-                        opacity=_q_opacity,
                     ))
                     _first_legend = False
                     if depl_t is not None:
@@ -559,16 +558,15 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
         q_range = _fmt_q_range(sel_qs)
         grp = f"{model.short_name}-b1"
         for qi, q in enumerate(sel_qs):
-            _q_opacity = quantile_opacity(q)
+            _shade = quantile_shade(_bm_color, q)
             y_q   = [max_wd.get((d, q), 0) for d in delays]
             traces.append(go.Scatter(
                 x=delays, y=y_q, mode="lines+markers",
                 name=f"{model.legend_name} {q_range}",
                 legendgroup=grp,
                 showlegend=(qi == 0),
-                line=dict(color=_bm_color, width=2),
-                marker=dict(color=_bm_color, size=7),
-                opacity=_q_opacity,
+                line=dict(color=_shade, width=2),
+                marker=dict(color=_shade, size=7),
             ))
 
     else:

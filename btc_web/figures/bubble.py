@@ -34,8 +34,8 @@ from figures.common import (
     _HOVER_FMT_USD,
     _lerp_hex, _hex_alpha, _build_symmetric_bands,
     _round_trace_data,
-    quantile_opacity,
 )
+from colors import quantile_shade
 
 
 def _r2_suffix(mdl, q):
@@ -128,14 +128,15 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             lbl = _fmt_q_label(q) + _r2_suffix(model, q)
             if stack > 0:
                 lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
-            _q_opacity = quantile_opacity(q)
+            _shade = quantile_shade(_bub_color, q)
+            _trace_opacity = 1.0
             if _fallback_q50 and _default_mode:
-                _q_opacity = _app_ctx.FALLBACK_Q50_OPACITY
+                _trace_opacity = _app_ctx.FALLBACK_Q50_OPACITY
             traces.append(go.Scatter(
                 x=list(t_arr), y=list(prices),
                 mode="lines", name=lbl,
-                line=dict(color=_bub_color, width=_QR_LINE_WIDTH),
-                opacity=_q_opacity,
+                line=dict(color=_shade, width=_QR_LINE_WIDTH),
+                opacity=_trace_opacity,
             ))
 
     # ── U1 user model: direct line through two points ───────────────────────
@@ -188,13 +189,12 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 lbl = f"{mdl.legend_name} {_fmt_q_label(q, '')}" + _r2_suffix(mdl, q)
                 if stack > 0:
                     lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
-                _q_opacity = quantile_opacity(q)
+                _shade = quantile_shade(_ovl_color, q)
                 _lw = 3.0 if (model_key == "u1" and hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005) else _OVERLAY_LINE_WIDTH
                 traces.append(go.Scatter(
                     x=list(t_arr), y=list(prices),
                     mode="lines", name=lbl,
-                    line=dict(color=_ovl_color, width=_lw, dash=mdl.dash_style),
-                    opacity=_q_opacity,
+                    line=dict(color=_shade, width=_lw, dash=mdl.dash_style),
                     legendgroup=mdl.short_name,
                     legendgrouptitle_text=(
                         f"{mdl.legend_name}  m={mdl.fits[mdl.quantiles[0]]['slope']:.3f}"
@@ -267,11 +267,12 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         if stack > 0:
             scan_prices = scan_prices * stack
         col = _get_model_color(model_key, p)
+        _scan_shade = quantile_shade(col, q)
         traces.append(go.Scatter(
             x=list(t_arr), y=list(scan_prices),
             mode="lines",
             name=f"{mdl.legend_name} Q{q*100:.1f}%",
-            line=dict(color=col, width=2, dash=mdl.dash_style),
+            line=dict(color=_scan_shade, width=2, dash=mdl.dash_style),
             legendgroup=f"scan-{mdl.short_name}",
         ))
 

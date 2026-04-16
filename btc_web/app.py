@@ -163,6 +163,9 @@ def _cache_headers(response):
             'Pragma':        'no-cache',
             'Expires':       '0',
         })
+        # ETag based on callback-graph hash — helps revalidation on iOS Safari
+        if path == '/_dash-dependencies':
+            response.headers['ETag'] = f'"{_DEPLOY_FP}"'
     elif path.startswith('/_dash-component-suites/'):
         response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
 
@@ -356,6 +359,14 @@ _app_ctx._HM_ENTRY_Q_DEFAULT = _startup_heatmap_defaults()
 import snapshot   # noqa: F401 — defines _CHECKLIST_OPTIONS using _app_ctx
 import layout     # noqa: F401 — sets app.layout
 import callbacks  # noqa: F401 — registers all callbacks
+
+# ── Deploy fingerprint (callback-graph hash for cache busting) ────────────────
+# Compute a short hash of the callback list at startup. Used as ETag on
+# /_dash-dependencies so stale cached responses are invalidated, even on
+# iOS Safari which sometimes ignores Cache-Control: no-store.
+import hashlib as _hl_deploy
+_DEPLOY_FP = _hl_deploy.md5(repr(app._callback_list).encode()).hexdigest()[:12]
+del _hl_deploy
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Pre-warm LRU caches on worker startup

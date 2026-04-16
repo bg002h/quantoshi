@@ -77,8 +77,12 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])])
 
     bub_active = "bub" in p.get("active_models", ["bub"])
-    # If no quantiles selected but models are active, fall back to Q50%
-    _fallback_q50 = not sel_qs and p.get("active_models")
+    # If no quantiles selected and non-BM overlay models are active, fall
+    # back to Q50%. BM is excluded: composite/support already provide a
+    # median reference, and a ghost Q50 line is visually indistinguishable
+    # from the composite — hiding composite would appear to do nothing.
+    _non_bub_active = [k for k in p.get("active_models", []) if k != "bub"]
+    _fallback_q50 = not sel_qs and _non_bub_active
     _default_mode = "advanced" not in (p.get("qs_mode") or [])
     if _fallback_q50:
         sel_qs = [0.5]

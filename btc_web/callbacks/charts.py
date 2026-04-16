@@ -497,7 +497,8 @@ def _build_hybppl_config_key(nlog, ncal, log1d, log2d, cal1d, cal2d):
             return "0"
         if n == 1:
             return f"1{d1 or 'd'}"
-        return f"2{d1 or 'd'}{d2 or 'd'}"
+        dirs = sorted([d1 or 'd', d2 or 'd'])
+        return f"2{dirs[0]}{dirs[1]}"
     return f"cfg_{_spec(nlog, log1d, log2d)}_{_spec(ncal, cal1d, cal2d)}"
 
 
@@ -559,7 +560,8 @@ def _build_eppl_config_key(nlog, ncal, log1d, log2d, cal1d, cal2d):
             return "0"
         if n == 1:
             return f"1{d1 or 'd'}"
-        return f"2{d1 or 'd'}{d2 or 'd'}"
+        dirs = sorted([d1 or 'd', d2 or 'd'])
+        return f"2{dirs[0]}{dirs[1]}"
     return f"ecfg_{_spec(nlog, log1d, log2d)}_{_spec(ncal, cal1d, cal2d)}"
 
 

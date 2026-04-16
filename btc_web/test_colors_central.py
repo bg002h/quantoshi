@@ -318,3 +318,68 @@ def test_constant_export_coverage():
         if not hasattr(colors, name):
             missing.append(name)
     assert not missing, f"Constants not accessible from colors module: {missing}"
+
+
+# ── quantile_shade tests ─────────────────────────────────────────────────
+
+def test_quantile_shade_median_returns_base():
+    from colors import quantile_shade
+    assert quantile_shade("#C48209", 0.5) == "#c48209"
+
+
+def test_quantile_shade_symmetric():
+    from colors import quantile_shade
+    assert quantile_shade("#C48209", 0.1) == quantile_shade("#C48209", 0.9)
+    assert quantile_shade("#1B3352", 0.25) == quantile_shade("#1B3352", 0.75)
+
+
+def test_quantile_shade_monotone_lightening():
+    import colorsys
+    from colors import quantile_shade
+    base = "#C48209"
+    qs = [0.5, 0.25, 0.10, 0.01]
+    lightnesses = []
+    for q in qs:
+        h_str = quantile_shade(base, q)
+        r, g, b = int(h_str[1:3], 16), int(h_str[3:5], 16), int(h_str[5:7], 16)
+        _, l, _ = colorsys.rgb_to_hls(r/255, g/255, b/255)
+        lightnesses.append(l)
+    for i in range(len(lightnesses) - 1):
+        assert lightnesses[i] < lightnesses[i+1], (
+            f"L should increase away from Q50: {list(zip(qs, lightnesses))}"
+        )
+
+
+def test_quantile_shade_returns_valid_hex():
+    from colors import quantile_shade
+    result = quantile_shade("#FF0000", 0.01)
+    assert result.startswith("#")
+    assert len(result) == 7
+    int(result[1:], 16)  # should not raise
+
+
+def test_quantile_shade_does_not_exceed_cap():
+    import colorsys
+    from colors import quantile_shade
+    result = quantile_shade("#000000", 0.001)
+    r, g, b = int(result[1:3], 16), int(result[3:5], 16), int(result[5:7], 16)
+    _, l, _ = colorsys.rgb_to_hls(r/255, g/255, b/255)
+    assert l <= 0.97 + 1e-6
+
+
+def test_quantile_shade_all_palettes():
+    import colorsys
+    from colors import quantile_shade, PALETTES
+    for pal_name, pal in PALETTES.items():
+        mc = pal.get("model_colors", {})
+        for key in ("bub", "pl", "qr", "eppl", "hybppl", "lppl"):
+            color = mc.get(key)
+            if not color:
+                continue
+            base_hex = quantile_shade(color, 0.5)
+            ext_hex = quantile_shade(color, 0.01)
+            rb, gb, bb = int(base_hex[1:3],16), int(base_hex[3:5],16), int(base_hex[5:7],16)
+            re, ge, be = int(ext_hex[1:3],16), int(ext_hex[3:5],16), int(ext_hex[5:7],16)
+            _, lb, _ = colorsys.rgb_to_hls(rb/255, gb/255, bb/255)
+            _, le, _ = colorsys.rgb_to_hls(re/255, ge/255, be/255)
+            assert le > lb, f"{pal_name}/{key}: Q01 should be lighter than Q50"

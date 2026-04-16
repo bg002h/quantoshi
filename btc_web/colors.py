@@ -18,6 +18,8 @@ Workflow when adding/changing a color:
 Spec: docs/superpowers/specs/2026-04-10-color-centralization-design.md
 """
 
+import colorsys
+
 # ════════════════════════════════════════════════════════════════════
 # SECTION 1 — Palette-invariant constants
 # ════════════════════════════════════════════════════════════════════
@@ -547,6 +549,9 @@ __skip_export__ = frozenset({
     "UI_FONT_LG", "UI_FONT_XL", "UI_FONT_XXL", "UI_FONT_HEADING",
     # Chart margins — dict values, not useful as CSS vars.
     "CHART_MARGIN", "CHART_MARGIN_HM",
+    # Quantile shade constants — chart-side only, not CSS/JS vars.
+    "Q_SHADE_STRENGTH", "Q_SHADE_EXPONENT", "Q_SHADE_L_TARGET",
+    "BAND_FILL_MODE", "BAND_PASTEL_ALPHA",
 })
 
 
@@ -554,11 +559,34 @@ __skip_export__ = frozenset({
 # SECTION 4 — Utility functions
 # ════════════════════════════════════════════════════════════════════
 
+def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
+    """Convert #rrggbb hex to (r, g, b) integer tuple."""
+    h = hex_color.lstrip("#")
+    return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+
+
 def _hex_alpha(hex_color: str, alpha: float) -> str:
     """Convert a #rrggbb hex color to an rgba(...) string with the given alpha."""
-    h = hex_color.lstrip("#")
-    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    r, g, b = _hex_to_rgb(hex_color)
     return f"rgba({r},{g},{b},{alpha})"
+
+
+def quantile_shade(base_hex: str, q: float) -> str:
+    """Return a lightened variant of base_hex based on distance from Q50.
+
+    Q50 returns the base color unchanged. Extremes (Q01/Q99) approach
+    Q_SHADE_L_TARGET. The curve is concave (exponent < 1) so inner
+    quantiles (Q25/Q75) get a noticeable but modest shift while
+    extremes get the dramatic change.
+    """
+    r, g, b = _hex_to_rgb(base_hex)
+    h, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+    d = abs(q - 0.5) / 0.5
+    factor = d ** Q_SHADE_EXPONENT
+    l_new = l + (Q_SHADE_L_TARGET - l) * factor * Q_SHADE_STRENGTH
+    l_new = min(l_new, 0.97)
+    r2, g2, b2 = colorsys.hls_to_rgb(h, l_new, s)
+    return f"#{int(r2*255+.5):02x}{int(g2*255+.5):02x}{int(b2*255+.5):02x}"
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -688,6 +716,13 @@ SCANNER_ROW_OUTLINE_ALPHA   = 0.4   # row click outline
 Q_OPACITY_FLOOR         = 0.1
 Q_OPACITY_RANGE         = 0.45
 Q_OPACITY_DECAY         = 0.5
+
+# ── Quantile shade formula parameters (quantile_shade in Section 4) ──
+Q_SHADE_STRENGTH    = 0.70
+Q_SHADE_EXPONENT    = 0.80
+Q_SHADE_L_TARGET    = 0.92
+BAND_FILL_MODE      = "alpha"   # "alpha" = current translucent; "pastel" = opaque tinted
+BAND_PASTEL_ALPHA   = 0.35
 
 # ── Chart margins ────────────────────────────────────────────────────
 CHART_MARGIN    = dict(l=10, r=25, t=55, b=35, autoexpand=False)

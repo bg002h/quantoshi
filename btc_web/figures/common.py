@@ -1226,13 +1226,15 @@ def build_overlay_traces(
                     y_vals = vals
                     final_lbl = f"{float(vals[-1]):.4f} BTC"
                 _y_cache[q] = y_vals
+                if shade_on and abs(q - 0.5) > 0.001:
+                    continue
                 _shade = quantile_shade(_mdl_color, q)
                 _model_lines.append(go.Scatter(
                     x=list(ts), y=list(y_vals), mode="lines",
                     name=f"{mdl.legend_name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
                     line=dict(color=_shade, width=_OVERLAY_LINE_WIDTH,
                               dash=mdl.dash_style, shape=line_shape),
-                    opacity=1.0 if shade_on else quantile_opacity(q),
+                    opacity=quantile_opacity(q),
                     legendgroup=mdl.short_name,
                     legendgrouptitle_text=mdl.legend_name,
                 ))

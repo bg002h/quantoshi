@@ -120,17 +120,19 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         ))
 
     if bub_active:
-        # ── quantile lines (thermal palette + neon glow) ─────────────────────
         _bub_color = _get_model_color("bub", p)
+        _shade_on = p.get("shade")
         for q in sel_qs:
             if q not in _price_cache:
+                continue
+            if _shade_on and abs(q - 0.5) > 0.001:
                 continue
             prices = _price_cache[q]
             lbl = _fmt_q_label(q) + _r2_suffix(model, q)
             if stack > 0:
                 lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
             _shade = quantile_shade(_bub_color, q)
-            _trace_opacity = 1.0 if p.get("shade") else quantile_opacity(q)
+            _trace_opacity = quantile_opacity(q)
             if _fallback_q50 and _default_mode:
                 _trace_opacity = _app_ctx.FALLBACK_Q50_OPACITY
             traces.append(go.Scatter(
@@ -185,11 +187,14 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             _ovl_color = _get_model_color(model_key, p)
             _ovl_lines = []
             _ovl_band_prices = {}
+            _shade_on = p.get("shade")
             for q in overlay_qs:
                 if q not in mdl.fits:
                     continue
                 prices = _round_trace_data(mdl.price_at(q, t_arr, sigma_mode=sigma_mode) * (stack if stack > 0 else 1))
                 _ovl_band_prices[q] = prices
+                if _shade_on and abs(q - 0.5) > 0.001:
+                    continue
                 lbl = f"{mdl.legend_name} {_fmt_q_label(q, '')}" + _r2_suffix(mdl, q)
                 if stack > 0:
                     lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
@@ -199,7 +204,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     x=list(t_arr), y=list(prices),
                     mode="lines", name=lbl,
                     line=dict(color=_shade, width=_lw, dash=mdl.dash_style),
-                    opacity=1.0 if p.get("shade") else quantile_opacity(q),
+                    opacity=quantile_opacity(q),
                     legendgroup=mdl.short_name,
                     legendgrouptitle_text=(
                         f"{mdl.legend_name}  m={mdl.fits[mdl.quantiles[0]]['slope']:.3f}"
@@ -207,7 +212,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     ),
                 ))
             # Band fills FIRST so lines render on top (matching BM pattern).
-            if p.get("shade") and len(_ovl_band_prices) >= 2:
+            if _shade_on and len(_ovl_band_prices) >= 2:
                 traces.extend(_build_symmetric_bands(
                     sorted(_ovl_band_prices.keys()), _ovl_band_prices, t_arr,
                     model_color=_ovl_color))

@@ -80,13 +80,14 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
         all_y_vals[q] = y_vals
 
         if show_bm:
-            _shade = quantile_shade(_bm_color, q)
-            lbl = f"{model.legend_name} {_fmt_q_label(q, '')}" + f"  \u2192  {final_lbl}"
-            _bm_trace_traces.append(go.Scatter(
-                x=list(ts), y=list(y_vals), mode="lines", name=lbl,
-                opacity=1.0 if p.get("shade") else quantile_opacity(q),
-                line=dict(color=_shade, width=_QR_LINE_WIDTH, shape=_line_shape),
-            ))
+            if not (p.get("shade") and abs(q - 0.5) > 0.001):
+                _shade = quantile_shade(_bm_color, q)
+                lbl = f"{model.legend_name} {_fmt_q_label(q, '')}" + f"  \u2192  {final_lbl}"
+                _bm_trace_traces.append(go.Scatter(
+                    x=list(ts), y=list(y_vals), mode="lines", name=lbl,
+                    opacity=quantile_opacity(q),
+                    line=dict(color=_shade, width=_QR_LINE_WIDTH, shape=_line_shape),
+                ))
 
             # depletion annotation
             depl_i = next((i for i, v in enumerate(vals) if v <= 0), None)

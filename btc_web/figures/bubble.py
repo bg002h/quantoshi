@@ -126,6 +126,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     if bub_active:
         _bub_color = _get_model_color("bub", p)
         for q in sel_qs:
+            if abs(q - 0.5) < 0.001:
+                continue
             if q not in _price_cache:
                 continue
             prices = _price_cache[q]

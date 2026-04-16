@@ -718,7 +718,7 @@ Q_OPACITY_RANGE         = 0.45
 Q_OPACITY_DECAY         = 0.5
 
 # ── Quantile shade formula parameters (quantile_shade in Section 4) ──
-Q_SHADE_STRENGTH    = 0.70
+Q_SHADE_STRENGTH    = 0.35
 Q_SHADE_EXPONENT    = 0.80
 Q_SHADE_L_TARGET    = 0.92
 BAND_FILL_MODE      = "alpha"   # "alpha" = current translucent; "pastel" = opaque tinted

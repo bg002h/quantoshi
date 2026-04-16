@@ -1227,7 +1227,7 @@ def build_overlay_traces(
                     final_lbl = f"{float(vals[-1]):.4f} BTC"
                 _y_cache[q] = y_vals
                 _shade = quantile_shade(_mdl_color, q)
-                if mdl.dash_style and mdl.dash_style != "solid":
+                if shade_on and mdl.dash_style and mdl.dash_style != "solid":
                     _model_lines.append(go.Scatter(
                         x=list(ts), y=list(y_vals), mode="lines",
                         line=dict(color=_COLORS_PLOT_BG, width=_OVERLAY_LINE_WIDTH + 0.5,

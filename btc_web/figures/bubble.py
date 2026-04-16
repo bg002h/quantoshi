@@ -36,6 +36,7 @@ from figures.common import (
     _round_trace_data,
 )
 from colors import quantile_shade
+from figures.common import quantile_opacity
 
 
 def _r2_suffix(mdl, q):
@@ -129,7 +130,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             if stack > 0:
                 lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
             _shade = quantile_shade(_bub_color, q)
-            _trace_opacity = 1.0
+            _trace_opacity = quantile_opacity(q)
             if _fallback_q50 and _default_mode:
                 _trace_opacity = _app_ctx.FALLBACK_Q50_OPACITY
             traces.append(go.Scatter(
@@ -206,6 +207,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     x=list(t_arr), y=list(prices),
                     mode="lines", name=lbl,
                     line=dict(color=_shade, width=_lw, dash=mdl.dash_style),
+                    opacity=quantile_opacity(q),
                     legendgroup=mdl.short_name,
                     legendgrouptitle_text=(
                         f"{mdl.legend_name}  m={mdl.fits[mdl.quantiles[0]]['slope']:.3f}"

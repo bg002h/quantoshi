@@ -26,6 +26,7 @@ from figures.common import (
     _lerp_hex, _dense_colorscale, _hex_alpha,
     _apply_config_annotation, _apply_watermark,
     _apply_mc_premium, _apply_mc_xlabel,
+    quantile_opacity,
 )
 from colors import quantile_shade
 
@@ -592,6 +593,7 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 y=cagrs,
                 mode="lines",
                 name=lbl,
+                opacity=quantile_opacity(q),
                 line=dict(color=_shade, width=2),
                 legendgroup=model_key,
                 customdata=list(zip(cagr_max, cagr_min, peak_dates, trough_dates,

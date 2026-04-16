@@ -24,21 +24,20 @@ from colors import (
 # ── Model Info deep-link helper ────────────────────────────────────────────
 
 _INFO_ICON = "\U0001F4D0"  # 📐 same as Model Info tab
-_INFO_TRIANGLE = "\u25B2"  # ▲ matches navbar "▲ Cooler than you think" motif
 
 
 def _modal_header_with_info_link(title: str, model_short_name: str, link_id: str):
-    """ModalHeader containing the title plus a ▲ link to the Model Info tab.
+    """ModalHeader containing the title plus a 📐 link to the Model Info tab.
 
-    Clicking the triangle navigates to /8.N for that model AND closes the
+    Clicking the icon navigates to /8.N for that model AND closes the
     modal via a clientside callback in charts.py (see _close_config_modal_on_info).
-    If the model has no Model Info entry, the triangle is omitted.
+    If the model has no Model Info entry, the icon is omitted.
     """
     href, exists = _model_info_link(model_short_name)
     children = [dbc.ModalTitle(title)]
     if exists:
         children.append(html.A(
-            _INFO_TRIANGLE,
+            _INFO_ICON,
             id=link_id,
             href=href,
             n_clicks=0,
@@ -754,7 +753,7 @@ def _hybppl_model_slot(slot):
             html.A(id=f"hybppl-cfg-{s}-info-link", href="#",
                    style={"fontSize": UI_FONT_MD, "marginLeft": "6px",
                           "color": LINK, "display": "none"},
-                   children="\u2139\uFE0F Model Info"),
+                   children=_INFO_ICON),
         ], style={"marginTop": "6px"}),
     ])
     return html.Div(children, style={"flex": "1", "minWidth": "200px"})
@@ -867,7 +866,7 @@ def _eppl_model_slot(slot):
             html.A(id=f"eppl-cfg-{s}-info-link", href="#",
                    style={"fontSize": UI_FONT_MD, "marginLeft": "6px",
                           "color": LINK, "display": "none"},
-                   children="\u2139\uFE0F Model Info"),
+                   children=_INFO_ICON),
         ], style={"marginTop": "6px"}),
     ])
     return html.Div(children, style={"flex": "1", "minWidth": "200px"})

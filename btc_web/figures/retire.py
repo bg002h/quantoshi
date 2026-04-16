@@ -84,7 +84,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             lbl = f"{model.legend_name} {_fmt_q_label(q, '')}" + f"  \u2192  {final_lbl}"
             _bm_trace_traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines", name=lbl,
-                opacity=quantile_opacity(q),
+                opacity=1.0 if p.get("shade") else quantile_opacity(q),
                 line=dict(color=_shade, width=_QR_LINE_WIDTH, shape=_line_shape),
             ))
 

@@ -1232,7 +1232,7 @@ def build_overlay_traces(
                     name=f"{mdl.legend_name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
                     line=dict(color=_shade, width=_OVERLAY_LINE_WIDTH,
                               dash=mdl.dash_style, shape=line_shape),
-                    opacity=quantile_opacity(q),
+                    opacity=1.0 if shade_on else quantile_opacity(q),
                     legendgroup=mdl.short_name,
                     legendgrouptitle_text=mdl.legend_name,
                 ))

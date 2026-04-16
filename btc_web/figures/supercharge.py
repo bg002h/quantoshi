@@ -208,7 +208,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         name=_legend_name,
                         legendgroup=grp_model,
                         showlegend=_first_legend,
-                        opacity=quantile_opacity(q),
+                        opacity=1.0 if p.get("shade") else quantile_opacity(q),
                         line=dict(color=_shade, width=_QR_LINE_WIDTH,
                                   dash=_DASH_STYLES[di % len(_DASH_STYLES)], shape=_line_shape),
                     ))
@@ -567,7 +567,7 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
                 name=f"{model.legend_name} {q_range}",
                 legendgroup=grp,
                 showlegend=(qi == 0),
-                opacity=quantile_opacity(q),
+                opacity=1.0 if p.get("shade") else quantile_opacity(q),
                 line=dict(color=_shade, width=2),
                 marker=dict(color=_shade, size=7),
             ))

@@ -149,8 +149,6 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, l
             final_usd = fmt_price(float(all_sc_usd_vals[q][-1]))
             final_sc  = f"{float(sc_vals[-1]):.4f} BTC  ({final_usd})"
 
-        if p.get("shade") and abs(q - 0.5) > 0.001:
-            continue
         lbl_sc = f"{model.legend_name} SC {_fmt_q_label(q, '')}" + f"  \u2192  {final_sc}"
         _shade = quantile_shade(_bm_color, q)
         sc_traces.append(go.Scatter(
@@ -219,8 +217,6 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
                 final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
 
             _y_for_bands[q] = y_vals
-            if p.get("shade") and abs(q - 0.5) > 0.001:
-                continue
             lbl = f"{model.legend_name} {_fmt_q_label(q, '')}" + f"  \u2192  {final_lbl}"
             _shade = quantile_shade(_bm_color, q)
             _bm_line_traces.append(go.Scatter(

@@ -202,9 +202,6 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     if key not in results:
                         continue
                     ts_d, y_vals, depl_t, t_start_d, *_ = results[key]
-                    if p.get("shade") and abs(q - 0.5) > 0.001:
-                        _first_legend = False
-                        continue
                     _shade = quantile_shade(_bm_color, q)
                     traces.append(go.Scatter(
                         x=list(ts_d), y=list(y_vals), mode="lines",
@@ -563,8 +560,6 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
         q_range = _fmt_q_range(sel_qs)
         grp = f"{model.short_name}-b1"
         for qi, q in enumerate(sel_qs):
-            if p.get("shade") and abs(q - 0.5) > 0.001:
-                continue
             _shade = quantile_shade(_bm_color, q)
             y_q   = [max_wd.get((d, q), 0) for d in delays]
             traces.append(go.Scatter(

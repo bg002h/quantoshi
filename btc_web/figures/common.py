@@ -846,12 +846,15 @@ def _build_symmetric_bands(sel_qs, y_cache, x_arr, model_color=BLACK,
         alpha = opacities[i] if i < len(opacities) else opacities[-1]
         lo_y = y_cache[lo_q]
         hi_y = y_cache[hi_q]
+        _invis = "rgba(0,0,0,0)"
         traces.append(go.Scatter(
-            x=x, y=list(lo_y), mode="lines", line=dict(width=0),
+            x=x, y=list(lo_y), mode="lines",
+            line=dict(width=0, color=_invis),
             showlegend=False, hoverinfo="skip",
         ))
         traces.append(go.Scatter(
-            x=x, y=list(hi_y), mode="lines", line=dict(width=0),
+            x=x, y=list(hi_y), mode="lines",
+            line=dict(width=0, color=_invis),
             fill="tonexty",
             fillcolor=(_hex_alpha(quantile_shade(model_color, (lo_q + hi_q) / 2),
                                    BAND_PASTEL_ALPHA)
@@ -1226,8 +1229,6 @@ def build_overlay_traces(
                     y_vals = vals
                     final_lbl = f"{float(vals[-1]):.4f} BTC"
                 _y_cache[q] = y_vals
-                if shade_on and abs(q - 0.5) > 0.001:
-                    continue
                 _shade = quantile_shade(_mdl_color, q)
                 _model_lines.append(go.Scatter(
                     x=list(ts), y=list(y_vals), mode="lines",

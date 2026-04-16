@@ -121,11 +121,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     if bub_active:
         _bub_color = _get_model_color("bub", p)
-        _shade_on = p.get("shade")
         for q in sel_qs:
             if q not in _price_cache:
-                continue
-            if _shade_on and abs(q - 0.5) > 0.001:
                 continue
             prices = _price_cache[q]
             lbl = _fmt_q_label(q) + _r2_suffix(model, q)
@@ -187,14 +184,11 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             _ovl_color = _get_model_color(model_key, p)
             _ovl_lines = []
             _ovl_band_prices = {}
-            _shade_on = p.get("shade")
             for q in overlay_qs:
                 if q not in mdl.fits:
                     continue
                 prices = _round_trace_data(mdl.price_at(q, t_arr, sigma_mode=sigma_mode) * (stack if stack > 0 else 1))
                 _ovl_band_prices[q] = prices
-                if _shade_on and abs(q - 0.5) > 0.001:
-                    continue
                 lbl = f"{mdl.legend_name} {_fmt_q_label(q, '')}" + _r2_suffix(mdl, q)
                 if stack > 0:
                     lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
@@ -212,7 +206,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     ),
                 ))
             # Band fills FIRST so lines render on top (matching BM pattern).
-            if _shade_on and len(_ovl_band_prices) >= 2:
+            if p.get("shade") and len(_ovl_band_prices) >= 2:
                 traces.extend(_build_symmetric_bands(
                     sorted(_ovl_band_prices.keys()), _ovl_band_prices, t_arr,
                     model_color=_ovl_color))

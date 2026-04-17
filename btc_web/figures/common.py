@@ -506,7 +506,7 @@ def _build_qr_config_text(p: dict, tab: str) -> str:
 
     Format: QR: Q10%/Q50%/Q85% · $100/mo · 2026–2036 · 1.0 BTC · Log Y
     """
-    sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])])
+    sel_qs = _parse_quantiles(p)
     qs_str = "/".join(_fmt_q_label(q, "") for q in sel_qs) if sel_qs else "Q50%"
 
     # Show active models and quantiles as separate labeled lists

@@ -10,7 +10,6 @@ import _app_ctx
 from btc_core import ModelData, yr_to_t, fmt_price
 from mc_overlay import _mc_retire_overlay
 from tab_defaults import RETIRE
-from colors import FALLBACK_MODEL_GRAY
 
 from figures.common import (
     _QR_LINE_WIDTH, _ANNOT_STAGGER_Y,
@@ -24,7 +23,7 @@ from figures.common import (
     _finalize_chart, _fmt_short, _mc_median_annot,
     _resolve_edge_annotations,
     build_overlay_traces, _build_symmetric_bands,
-    quantile_opacity,
+    quantile_opacity, _parse_quantiles, _empty_state_annotation,
 )
 from colors import quantile_shade
 
@@ -38,7 +37,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     model = _app_ctx.DEFAULT_MODEL
     palette = _get_palette(p)
     _line_shape = "hv" if p.get("discrete") else "linear"
-    sel_qs_raw = sorted([float(q) for q in (p.get("selected_qs") or [])])
+    sel_qs_raw = _parse_quantiles(p)
     ta = _build_time_array(p, m, 2025, 2045)
     if ta[1] is None:
         return ta[0], None
@@ -49,7 +48,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     wd_amount = float(p.get("wd_amount", RETIRE["wd_amount"]))
     inflation = float(p.get("inflation", RETIRE["inflation"])) / 100.0
     disp_mode = p.get("disp_mode", "btc")
-    sel_qs    = sorted([float(q) for q in (p.get("selected_qs") or [])])
+    sel_qs    = _parse_quantiles(p)
     show_bm   = "bub" in (p.get("active_models") or [])
 
     traces   = []
@@ -167,10 +166,6 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
 
     # Handle empty plot (all models unchecked)
     if not traces:
-        layout["annotations"] = [dict(
-            text="No models selected \u2014 check Display Models",
-            xref="paper", yref="paper", x=0.5, y=0.5,
-            showarrow=False, font=dict(size=16, color=FALLBACK_MODEL_GRAY),
-        )]
+        _empty_state_annotation(layout)
 
     return _finalize_chart(traces, layout, p, "ret", mc_result)

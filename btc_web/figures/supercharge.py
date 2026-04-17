@@ -28,7 +28,7 @@ from figures.common import (
     _resolve_edge_annotations,
     _hex_alpha,
     _resolve_model,
-    quantile_opacity,
+    quantile_opacity, _parse_quantiles, _empty_state_annotation,
 )
 from colors import quantile_shade
 
@@ -55,7 +55,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
     palette = _get_palette(p)
     delay_colors = palette["delay_colors"]
     annot_colors = palette["annot_colors"]
-    sel_qs_raw = sorted([float(q) for q in (p.get("selected_qs") or [])])
+    sel_qs_raw = _parse_quantiles(p)
     _bm_color = _get_model_color("bub", p)
 
     mode         = p.get("mode", SUPERCHARGE["mode"])
@@ -480,11 +480,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
 
         # Handle empty plot (all models unchecked)
         if not traces:
-            layout["annotations"] = [dict(
-                text="No models selected \u2014 check Display Models",
-                xref="paper", yref="paper", x=0.5, y=0.5,
-                showarrow=False, font=dict(size=16, color=FALLBACK_MODEL_GRAY),
-            )]
+            _empty_state_annotation(layout)
 
         return _finalize_chart(traces, layout, p, "sc", mc_result, mc_premium=False)
 
@@ -597,10 +593,6 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
 
     # Handle empty plot (all models unchecked)
     if not traces:
-        layout["annotations"] = [dict(
-            text="No models selected \u2014 check Display Models",
-            xref="paper", yref="paper", x=0.5, y=0.5,
-            showarrow=False, font=dict(size=16, color=FALLBACK_MODEL_GRAY),
-        )]
+        _empty_state_annotation(layout)
 
     return _finalize_chart(traces, layout, p, "sc", mc_premium=False)

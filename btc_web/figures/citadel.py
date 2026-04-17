@@ -21,6 +21,7 @@ from figures.common import (
     _build_time_array, _get_starting_stack,
     _sim_layout, _finalize_chart, _error_figure,
     _stagger_depletion_annots,
+    _parse_quantiles,
 )
 from colors import (
     BLACK, BTC_ORANGE,
@@ -142,7 +143,7 @@ def _build_sim_config(p: dict) -> SimConfig:
     """Convert callback params dict → SimConfig dataclass."""
 
     # Quantiles
-    sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [0.01, 0.10, 0.25])])
+    sel_qs = _parse_quantiles(p) or [0.01, 0.10, 0.25]
 
     # Reserve bins
     reserve_bins = [

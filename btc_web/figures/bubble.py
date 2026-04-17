@@ -23,8 +23,7 @@ from colors import (
 from figures.common import (
     _INTERP_POINTS, _MAX_SCATTER_PTS, _QR_LINE_WIDTH, _SHADE_ALPHA,
     _OVERLAY_LINE_WIDTH,
-    _TODAY_LINE_COLOR, _TODAY_LINE_WIDTH, _TODAY_LINE_OPACITY,
-    _TODAY_GLOW_WIDTH, _TODAY_GLOW_OPACITY,
+    _TODAY_LINE_COLOR,
     _FONT_LEGEND, _FONT_TITLE, _FONT_SUBTITLE,
     _SANS_FONT, _FONT_TITLE_LG, _FONT_BODY_LG, _FONT_TICK_LG, _FONT_LEGEND_LG,
     _LOG_MINOR, _MC_LEGEND_POS,
@@ -36,7 +35,8 @@ from figures.common import (
     _round_trace_data,
 )
 from colors import quantile_shade, config_b_shade
-from figures.common import quantile_opacity
+from figures.common import (quantile_opacity, _parse_quantiles,
+                             _today_line_shapes)
 
 
 def _r2_suffix(mdl, q):
@@ -74,7 +74,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     traces = []
 
     # ── shading between adjacent quantiles ───────────────────────────────────
-    sel_qs = sorted([float(q) for q in (p.get("selected_qs") or [])])
+    sel_qs = _parse_quantiles(p)
 
     bub_active = "bub" in p.get("active_models", ["bub"])
     # If no quantiles selected and non-BM overlay models are active, fall
@@ -381,17 +381,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         td = today_t(m.genesis)
         today_color = palette.get("today_line", _TODAY_LINE_COLOR)
         if t_lo <= td <= t_hi:
-            # Glow shadow behind the today line
-            shapes.append(dict(
-                type="line", x0=td, x1=td, y0=y_lo, y1=y_hi,
-                line=dict(color=today_color, width=_TODAY_GLOW_WIDTH),
-                opacity=_TODAY_GLOW_OPACITY, yref="y",
-            ))
-            shapes.append(dict(
-                type="line", x0=td, x1=td, y0=y_lo, y1=y_hi,
-                line=dict(color=today_color, dash="dash", width=_TODAY_LINE_WIDTH),
-                opacity=_TODAY_LINE_OPACITY, yref="y",
-            ))
+            shapes.extend(_today_line_shapes(td, y_lo, y_hi, today_color,
+                                             glow=True, yref="y"))
 
     # ── x-axis ticks (calendar years) ─────────────────────────────────────────
     tick_ts, tick_lbls = _year_ticks(p["xmin"], p["xmax"], m.genesis,

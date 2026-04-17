@@ -9,7 +9,6 @@ from typing import Any
 import _app_ctx
 from btc_core import ModelData, yr_to_t, fmt_price
 from tab_defaults import DCA
-from colors import FALLBACK_MODEL_GRAY
 
 from figures.common import (
     _QR_LINE_WIDTH, _BTC_ORANGE,
@@ -29,7 +28,8 @@ from figures.common import (
     FREQ_PPY,
 )
 from colors import quantile_shade
-from figures.common import quantile_opacity
+from figures.common import (quantile_opacity, _parse_quantiles,
+                             _empty_state_annotation)
 
 
 def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, line_shape="linear"):
@@ -169,7 +169,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     model = _app_ctx.DEFAULT_MODEL
     palette = _get_palette(p)
     _line_shape = "hv" if p.get("discrete") else "linear"
-    sel_qs_raw = sorted([float(q) for q in (p.get("selected_qs") or [])])
+    sel_qs_raw = _parse_quantiles(p)
     ta = _build_time_array(p, m, 2024, 2035)
     if ta[1] is None:
         return ta[0], None
@@ -180,7 +180,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
     amount    = float(p.get("amount", DCA["amount"]))
     inflation = float(p.get("inflation", DCA["inflation"])) / 100.0
     disp_mode = p.get("disp_mode", "btc")
-    sel_qs    = sorted([float(q) for q in (p.get("selected_qs") or [])])
+    sel_qs    = _parse_quantiles(p)
     show_bm   = "bub" in (p.get("active_models") or [])
 
     traces = []
@@ -337,10 +337,6 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
 
     # Handle empty plot (all models unchecked)
     if not traces:
-        layout["annotations"] = [dict(
-            text="No models selected \u2014 check Display Models",
-            xref="paper", yref="paper", x=0.5, y=0.5,
-            showarrow=False, font=dict(size=16, color=FALLBACK_MODEL_GRAY),
-        )]
+        _empty_state_annotation(layout)
 
     return _finalize_chart(traces, layout, p, "dca", mc_result)

@@ -14,11 +14,11 @@ from colors import (BLACK, FALLBACK_MODEL_GRAY, _hex_alpha, PLOT_BG_COLOR,
 
 from figures.common import (
     _OVERLAY_LINE_WIDTH, _QR_LINE_WIDTH,
-    _TODAY_LINE_COLOR, _TODAY_LINE_WIDTH, _TODAY_LINE_OPACITY,
+    _TODAY_LINE_COLOR,
     _get_palette, _get_model_color,
     _base_layout, _year_ticks,
-    _apply_sans_typography, _apply_watermark, _add_date_hover,
-    _apply_config_annotation,
+    _apply_sans_typography,
+    _apply_final_steps, _today_line_shapes, _empty_state_annotation,
     _round_trace_data,
     _INTERP_POINTS, _MC_LEGEND_POS,
 )
@@ -162,12 +162,8 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     if p.get("show_today"):
         td = today_t(m.genesis)
         if t_lo <= td <= t_hi:
-            shapes.append(dict(
-                type="line", xref="x", yref="paper",
-                x0=td, x1=td, y0=0, y1=1,
-                line=dict(color=today_color, dash="dash", width=_TODAY_LINE_WIDTH),
-                opacity=_TODAY_LINE_OPACITY,
-            ))
+            shapes.extend(_today_line_shapes(td, 0, 1, today_color,
+                                             glow=False, yref="paper"))
 
     # ── Axis ticks ────────────────────────────────────────────────────────────
     tick_ts, tick_lbls = _year_ticks(p["xmin"], p["xmax"], m.genesis,
@@ -209,15 +205,13 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     # Empty state
     if not traces:
-        layout["annotations"] = [dict(
-            text="No models selected \u2014 check Display Models",
-            xref="paper", yref="paper", x=0.5, y=0.5,
-            showarrow=False, font=dict(size=16, color=FALLBACK_MODEL_GRAY),
-        )]
+        _empty_state_annotation(layout)
 
     _apply_sans_typography(layout)
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
-    _add_date_hover(fig, m.genesis, fmt="<b>%{fullData.name}</b><br>%{customdata[0]}<br>Δlog₁₀ = %{y:.3f}<extra></extra>")
-    _apply_config_annotation(fig, p, "bub", show_qr=False, show_mc=False)
-    _apply_watermark(fig, pos="bottom-right")
+    _apply_final_steps(
+        fig, p, "bub",
+        hover_fmt="<b>%{fullData.name}</b><br>%{customdata[0]}<br>Δlog₁₀ = %{y:.3f}<extra></extra>",
+        show_qr=False, show_mc=False, wm_pos="bottom-right",
+    )
     return fig

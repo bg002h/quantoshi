@@ -438,18 +438,20 @@ def _mc_fan_from_lists(d):
 def _mc_paths_to_lists(paths):
     """Serialize price_paths ndarray for client caching.
 
-    Returns a dict {"b64": base64-str, "shape": [nsims, nsteps]} -- binary
-    float32 bytes, base64-encoded. ~45% smaller on the wire than the legacy
-    list-of-lists (and ~3x faster to (de)serialize).
+    Returns a dict {"b64": base64-str, "shape": [nsims, nsteps]} — binary
+    float64 bytes, base64-encoded. Matches the precision used by
+    engines.adapter.encode so round-trips through either path (client
+    cache or Celery serialisation) preserve bit-identical paths.
 
     Legacy list-of-lists form is still accepted by `_mc_paths_from_lists`
     for clients holding the old cached result shape.
     """
     import base64 as _b64
-    arr = np.ascontiguousarray(np.asarray(paths, dtype=np.float32))
+    arr = np.ascontiguousarray(np.asarray(paths, dtype=np.float64))
     return {
         "b64": _b64.b64encode(arr.tobytes()).decode("ascii"),
         "shape": list(arr.shape),
+        "dtype": "float64",
     }
 
 
@@ -457,17 +459,21 @@ def _mc_paths_from_lists(data):
     """Restore price_paths ndarray from client cache.
 
     Accepts either the new base64+shape dict form or the legacy list-of-lists.
+    Reads the dtype tag to support older client caches that encoded as
+    float32; defaults to float64 for new payloads.
     """
     if isinstance(data, dict) and "b64" in data:
         import base64 as _b64
         raw = _b64.b64decode(data["b64"])
         shape = tuple(data.get("shape") or ())
-        arr = np.frombuffer(raw, dtype=np.float32)
+        dtype = np.dtype(data.get("dtype", "float32"))
+        arr = np.frombuffer(raw, dtype=dtype)
         if shape:
             arr = arr.reshape(shape)
-        # frombuffer returns a read-only view; caller mutates in some paths
-        return np.ascontiguousarray(arr)
-    return np.array(data, dtype=np.float32)
+        # frombuffer returns a read-only view; caller mutates in some paths.
+        # Also upcast any legacy float32 payload to float64 for consistency.
+        return np.ascontiguousarray(arr, dtype=np.float64)
+    return np.array(data, dtype=np.float64)
 
 
 def _build_mc_result(tab, path_key, overlay_key, mc_ts, price_paths,
@@ -975,12 +981,19 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
 
     # Map citadel time points onto MC time indices
     mc_indices = np.interp(citadel_ts, mc_ts, np.arange(len(mc_ts)))
-    # Interpolate price paths
+    # Interpolate in LOG-PRICE space (geometric interpolation). BTC price
+    # paths can span many orders of magnitude; linear interpolation between
+    # e.g. $50k and $500k would give $275k at the midpoint whereas the true
+    # geometric mean is ~$158k. Log-space interpolation preserves the
+    # compounding character of the underlying process. Guard against
+    # non-positive prices (shouldn't happen for BTC but be safe).
     n_mc_sims = price_paths.shape[0]
     resampled = np.zeros((n_mc_sims, n_periods_needed))
+    mc_x = np.arange(price_paths.shape[1])
     for s in range(n_mc_sims):
-        resampled[s] = np.interp(mc_indices, np.arange(price_paths.shape[1]),
-                                 price_paths[s])
+        path = price_paths[s]
+        safe = np.maximum(path, 1e-12)
+        resampled[s] = np.exp(np.interp(mc_indices, mc_x, np.log(safe)))
 
     # Adjust citadel config to match available MC range
     import copy

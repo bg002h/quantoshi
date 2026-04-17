@@ -2475,6 +2475,74 @@ class TestTaxAccountingHelpers:
 class TestDynamicWaterfall:
     """Tests for the dynamic cost-ranked spending waterfall."""
 
+    def test_waterfall_uses_regime_rates_when_markov_active(self):
+        """When asset_return_model == "markov" and the state holds a regime
+        index, the waterfall's source growth_rate should come from the
+        regime's conditional mean — NOT the user-entered Fixed Rates value.
+
+        Regression guard for the 2026-04-17 critique: the entire point of
+        MCMC mode is to use historical-regime returns for scoring; prior
+        behaviour silently used Fixed Rates so all the Markov machinery
+        was ignored by the waterfall.
+        """
+        from engines.citadel import CitadelState, SimConfig, _build_source_list
+        import numpy as np
+        # Regime 0: bearish (mean -2%/mo), regime 1: bullish (mean +2%/mo).
+        equity_matrix = {
+            "trans": np.array([[0.7, 0.3], [0.3, 0.7]]),
+            "bin_means": np.array([-0.02, 0.02]),   # monthly
+            "bin_vols":  np.array([0.03, 0.03]),
+        }
+        cfg_bear = SimConfig(
+            tax_enabled=False, cash_rate=4.0,
+            monthly_spend=1_000, start_yr=2035, end_yr=2075,
+            freq="Monthly",
+            reserve_bins=[],
+            invest_bins=[{"label": "Eq", "initial": 100_000,
+                           "return_rate": 10.0, "volatility": 0}],
+            asset_return_model="markov",
+            asset_matrices={"equity": equity_matrix},
+        )
+        cfg_bull = SimConfig(**{**cfg_bear.__dict__})
+        # Fixed-rate baseline for comparison.
+        cfg_fixed = SimConfig(**{**cfg_bear.__dict__,
+                                  "asset_return_model": "lognormal"})
+
+        state_bear = CitadelState(
+            cash=0, reserves=[], investments=[100_000],
+            invest_cost_basis=[100_000],
+            sim_date="2035-06-15", equity_regime=0,
+        )
+        state_bull = CitadelState(
+            cash=0, reserves=[], investments=[100_000],
+            invest_cost_basis=[100_000],
+            sim_date="2035-06-15", equity_regime=1,
+        )
+        state_fixed = CitadelState(
+            cash=0, reserves=[], investments=[100_000],
+            invest_cost_basis=[100_000],
+            sim_date="2035-06-15",
+        )
+
+        bear_sources = _build_source_list(state_bear, cfg_bear)
+        bull_sources = _build_source_list(state_bull, cfg_bull)
+        fixed_sources = _build_source_list(state_fixed, cfg_fixed)
+
+        bear_eq = next(s for s in bear_sources if s.key == "invest_0")
+        bull_eq = next(s for s in bull_sources if s.key == "invest_0")
+        fixed_eq = next(s for s in fixed_sources if s.key == "invest_0")
+
+        # Annualised bear regime: (1 - 0.02)^12 - 1 ≈ -0.216
+        # Annualised bull regime: (1 + 0.02)^12 - 1 ≈ +0.268
+        # Fixed-rate baseline:  0.10 (10%)
+        assert bear_eq.growth_rate == pytest.approx(-0.2155, abs=0.01)
+        assert bull_eq.growth_rate == pytest.approx(0.2682, abs=0.01)
+        assert fixed_eq.growth_rate == pytest.approx(0.10, abs=0.001)
+        # Sanity: the three sources DIFFER — if they tie, the waterfall
+        # is ignoring the Markov regime again (the old bug).
+        assert bear_eq.growth_rate != fixed_eq.growth_rate
+        assert bull_eq.growth_rate != fixed_eq.growth_rate
+
     def test_build_source_list_taxable_only(self):
         """Non-tax mode produces only taxable sources."""
         from engines.citadel import (CitadelState, SimConfig,
@@ -2572,7 +2640,10 @@ class TestDynamicWaterfall:
         assert btc_src.gain_fraction == pytest.approx(0.625)
 
     def test_score_taxable_cash_zero_tax(self):
-        """Taxable cash has zero tax cost, only opportunity cost."""
+        """Taxable cash has zero tax cost. In the PV-discount formulation,
+        when the asset's growth rate equals the discount rate (here both are
+        config.cash_rate), opp cost is 0 regardless of horizon — there is
+        no opportunity cost for holding cash vs. the cash baseline."""
         from engines.citadel import (CitadelState, SimConfig,
                                       _build_source_list, _score_sources)
         state = CitadelState(
@@ -2593,8 +2664,8 @@ class TestDynamicWaterfall:
         sources = _build_source_list(state, cfg, model=None)
         _score_sources(sources, state, cfg, model=None)
         cash = [s for s in sources if s.key == "cash"][0]
-        # Tax cost = 0, opportunity = (1.04)^15 - 1 ≈ 0.80
-        assert cash.cost == pytest.approx((1.04 ** 15) - 1, rel=0.01)
+        # growth (4%) == discount (4%) → pv_opp = 0 exactly. tax_cost = 0.
+        assert cash.cost == pytest.approx(0.0, abs=1e-9)
 
     def test_score_td_ordinary_rate(self):
         """TD source tax cost = marginal ordinary rate + state rate."""
@@ -2661,12 +2732,39 @@ class TestDynamicWaterfall:
         assert eq.cost > 0.094  # tax component alone
 
     def test_score_btc_high_early_low_late(self):
-        """BTC opportunity cost is higher in 2035 than 2065."""
+        """BTC opportunity cost is higher in 2035 than 2065 when the model
+        predicts BTC growth above the cash-rate baseline in both years but
+        with decelerating growth over time.
+
+        Uses a richer mock (exponential decay of annual growth) so both
+        early and late BTC growth are above the 4% cash rate used as the
+        PV discount — the regime where opp cost magnitude scales with
+        horizon × (growth - discount).
+        """
         from engines.citadel import (CitadelState, SimConfig,
                                       _build_source_list, _score_sources,
                                       _WithdrawalSource)
         from engines.tax_lots import TaxLot
         from btc_core import yr_to_t
+
+        class _DecelerationModel:
+            """BTC price model with two-regime growth: ~30%/yr early
+            (t<=30) tapering to ~5%/yr late. Both above the 4% cash
+            discount, but early CAGR (over 40y, yr=2035) significantly
+            exceeds late CAGR (over 10y, yr=2065), producing the
+            monotonically-decreasing opp cost the test targets."""
+            def __init__(self):
+                import pandas as pd
+                self.fits = {0.25: {"slope": 5.0, "intercept": 2.0}}
+                self.genesis = pd.Timestamp("2009-07-25")
+            def price_at(self, q, t):
+                if t <= 0:
+                    return 50_000.0
+                early_t = min(t, 30)
+                late_t = max(t - 30, 0)
+                return 50_000.0 * (1.30 ** early_t) * (1.05 ** late_t)
+            def quantile_at(self, price, t):
+                return 0.5
 
         def _btc_cost_at_year(yr):
             t = yr_to_t(yr)
@@ -2687,14 +2785,18 @@ class TestDynamicWaterfall:
                                 {"label": "Eq", "initial": 0, "return_rate": 10.0, "volatility": 0},
                                 {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
                             ])
-            sources = _build_source_list(state, cfg, model=_test_model())
-            _score_sources(sources, state, cfg, model=_test_model())
+            model = _DecelerationModel()
+            sources = _build_source_list(state, cfg, model=model)
+            _score_sources(sources, state, cfg, model=model)
             btc = [s for s in sources if s.key == "btc"][0]
             return btc.cost
 
         cost_2035 = _btc_cost_at_year(2035)
         cost_2065 = _btc_cost_at_year(2065)
-        assert cost_2035 > cost_2065, "BTC cost should decrease as growth slows"
+        assert cost_2035 > cost_2065, (
+            f"BTC cost should decrease as growth slows: 2035={cost_2035:.3f}, "
+            f"2065={cost_2065:.3f}"
+        )
 
     def test_rank_by_cost_ascending(self):
         """Sources ranked purely by cost — cheapest first, regardless of wrapper."""
@@ -3418,7 +3520,12 @@ class TestDynamicWaterfall:
         assert td2.horizon == int(RMD_FACTORS[85])
 
     def test_td_cheaper_near_rmd_age(self):
-        """TD becomes cheaper to withdraw as RMD age approaches."""
+        """TD becomes cheaper to withdraw as RMD age approaches.
+
+        Uses td_investments (10%/yr growth) rather than td_cash (4%/yr) so
+        the growth rate differs from the PV discount (cash_rate=4%). With
+        growth > discount, shorter horizon → smaller pv_opp → cheaper cost.
+        """
         from engines.citadel import (CitadelState, SimConfig,
                                       _build_source_list, _score_sources)
         from engines.tax import TaxYearAccumulator
@@ -3426,8 +3533,8 @@ class TestDynamicWaterfall:
         def _td_cost_at_age(age):
             yr = 1985 + age
             state = CitadelState(
-                cash=50_000, td_cash=100_000,
-                td_reserves=[0, 0, 0], td_investments=[0, 0],
+                cash=50_000, td_cash=0,
+                td_reserves=[0, 0, 0], td_investments=[100_000, 0],
                 sim_date=f"{yr}-06-15",
                 tax_year_accum=TaxYearAccumulator(),
             )
@@ -3444,14 +3551,17 @@ class TestDynamicWaterfall:
                             ])
             sources = _build_source_list(state, cfg, model=None)
             _score_sources(sources, state, cfg, model=None)
-            td = [s for s in sources if s.key == "td_cash"][0]
+            td = [s for s in sources if s.key == "td_invest_0"][0]
             return td.cost
 
         cost_50 = _td_cost_at_age(50)
         cost_65 = _td_cost_at_age(65)
         cost_73 = _td_cost_at_age(73)
         # TD gets cheaper as RMD approaches (shorter horizon = less forgone compounding)
-        assert cost_50 > cost_65 > cost_73
+        assert cost_50 > cost_65 > cost_73, (
+            f"Expected cost_50({cost_50:.3f}) > cost_65({cost_65:.3f}) > "
+            f"cost_73({cost_73:.3f})"
+        )
 
     def test_td_free_below_standard_deduction(self):
         """TD draws are free (0% marginal rate) when below standard deduction."""

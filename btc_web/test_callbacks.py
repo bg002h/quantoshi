@@ -458,9 +458,11 @@ class TestMcPathsSerialization:
         np.testing.assert_allclose(restored, paths, atol=1e-6)
 
     def test_dtype(self):
+        """Round-trips produce float64 now — matches engines.adapter and
+        avoids precision loss in log-space interpolation of BTC paths."""
         paths = np.array([[1.0, 2.0]], dtype=np.float64)
         restored = _mc_paths_from_lists(_mc_paths_to_lists(paths))
-        assert restored.dtype == np.float32
+        assert restored.dtype == np.float64
 
 
 

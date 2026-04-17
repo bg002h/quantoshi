@@ -54,13 +54,65 @@ def _inflate_tax_context(config: "SimConfig", sim_year: int) -> TaxContext:
                       sim_year, infl)
 
 
+_REGIME_ATTR_MAP = {
+    "res_short": "res_short_regime",
+    "res_med":   "res_med_regime",
+    "res_long":  "res_long_regime",
+    "equity":    "equity_regime",
+    "bond":      "bond_regime",
+}
+
+
+def _expected_annual_rate(config: "SimConfig", state: "CitadelState",
+                          asset_key: str, fallback_pct: float) -> float:
+    """Return the expected ANNUAL rate for a source, regime-aware.
+
+    When ``config.asset_return_model == "markov"`` and the simulation
+    state carries a regime index for ``asset_key``, return the current
+    regime's conditional mean return annualised to per-year. Otherwise
+    fall back to the user-entered Fixed Rates value (``fallback_pct`` is
+    the PERCENTAGE value — e.g. 10.0 for 10%/yr).
+
+    Fixes the Citadel-MC scoring inconsistency: previously the waterfall
+    always used fixed rates even when the simulation was running
+    regime-conditional Markov returns, so opportunity-cost scoring
+    ignored the whole point of the "Historical Regimes" mode.
+    """
+    fallback = fallback_pct / 100.0
+    if (config.asset_return_model != "markov"
+            or config.asset_matrices is None
+            or asset_key not in (config.asset_matrices or {})):
+        return fallback
+    rattr = _REGIME_ATTR_MAP.get(asset_key)
+    if rattr is None:
+        return fallback
+    regime = getattr(state, rattr, 0)
+    am = config.asset_matrices[asset_key]
+    bin_means = am.get("bin_means")
+    if bin_means is None or regime >= len(bin_means):
+        return fallback
+    ppy = FREQ_PPY.get(config.freq, 12)
+    per_period = float(bin_means[regime])
+    # Compound per-period return to annual. Per-period returns from the
+    # asset_matrices are already at the sim's frequency (monthly by default).
+    try:
+        return (1.0 + per_period) ** ppy - 1.0
+    except (OverflowError, ValueError):
+        return fallback
+
+
 def _build_source_list(state: "CitadelState", config: "SimConfig",
                        model: "PriceModel | None" = None) -> list[_WithdrawalSource]:
     """Enumerate all available withdrawal sources from current state."""
     sources = []
     ppy = FREQ_PPY.get(config.freq, 12)
 
-    # Compute BTC opportunity cost horizon and growth.
+    # Common horizon (C4): remaining sim years. Replaces hardcoded 15y/10y
+    # per-source horizons that distorted ranking.
+    _cur_year = config.start_yr + int(state.period / ppy)
+    _sim_horizon = max(config.end_yr - _cur_year, 1)
+
+    # Compute BTC opportunity cost growth rate.
     #
     # Design intent (2026-04-17): BTC-preservation is NOT an unconditional
     # invariant — it's an emergent property of comparing the model's
@@ -70,35 +122,35 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
     # last. Conversely, if the model predicts weak BTC growth, the user
     # is better off selling BTC first and preserving higher-yielding assets.
     #
-    # To make that comparison apples-to-apples we must use an ANNUAL rate:
-    # _score_sources compounds via `(1 + rate) ** horizon`, and horizon is
-    # in years. Prior code took the 10-year total return (_p_fwd/_p_now - 1)
-    # and fed it as the annual rate, compounding it 10×. That produced
-    # pathological opportunity costs that forced BTC to the waterfall tail
-    # by overflow rather than by intent — and never surfaced when the model
-    # predicted weak BTC growth (the real case where BTC should be drawn).
+    # The forward window for estimating BTC's annualised growth matches the
+    # sim horizon so the comparison is apples-to-apples with other sources
+    # scored over the same future window.
     _btc_growth = config.invest_bins[0]["return_rate"] / 100 if config.invest_bins else 0.10
     if model is not None and state.btc_price > 0:
         try:
             _q = config.selected_qs[len(config.selected_qs) // 2] if config.selected_qs else 0.25
             _p_now = float(model.price_at(_q, max(state.t, 0.5)))
-            _p_fwd = float(model.price_at(_q, max(state.t + 10, 0.5)))
+            _p_fwd = float(model.price_at(_q, max(state.t + _sim_horizon, 0.5)))
             if _p_now > 0 and _p_fwd > 0:
-                _btc_growth = (_p_fwd / _p_now) ** (1.0 / 10.0) - 1.0
+                _btc_growth = (_p_fwd / _p_now) ** (1.0 / _sim_horizon) - 1.0
         except Exception:
             pass
 
-    # Treasury horizon: remaining lifetime
+    # Treasury horizon: remaining lifetime (age-clamped) if birth_year given;
+    # otherwise fall back to sim horizon. Treasury bins remain "near the end
+    # of life" assets — the clamp ensures we don't compound past age 90.
     if config.birth_year:
-        _age = config.start_yr + int(state.period / ppy) - config.birth_year
+        _age = _cur_year - config.birth_year
+        _tres_horizon = max(min(90 - _age, _sim_horizon), 1)
     else:
         _age = 0
-    _tres_horizon = max(min(90 - _age, 40), 1)
+        _tres_horizon = _sim_horizon
 
-    # TD horizon: RMD factor reduces effective compounding horizon
-    # Before RMD age: ramps down as forced distributions approach
-    # At/after RMD age: IRS actuarial factor IS the expected remaining years
-    _td_horizon = 15  # default when no birth_year
+    # TD horizon: RMD factor reduces effective compounding horizon.
+    # Before RMD age: ramps down as forced distributions approach (capped
+    # at 15y to reflect tax-law uncertainty beyond that).
+    # At/after RMD age: IRS actuarial factor IS the expected remaining years.
+    _td_horizon = min(_sim_horizon, 15)  # default when no birth_year
     if config.birth_year:
         from .tax_data import RMD_FACTORS
         from .citadel_tax_integration import _rmd_start_age
@@ -106,7 +158,7 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
         if _age >= _rmd_start:
             _td_horizon = max(int(RMD_FACTORS.get(_age, 1.0)), 1)
         else:
-            _td_horizon = min(15, max(_rmd_start - _age, 1))
+            _td_horizon = min(15, _sim_horizon, max(_rmd_start - _age, 1))
 
     # BTC aggregate gain fraction
     _btc_gain_frac = 0.0
@@ -121,27 +173,38 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
         sources.append(_WithdrawalSource(
             key="cash", wrapper="taxable", asset_type="cash", index=0,
             available=state.cash, growth_rate=config.cash_rate / 100,
-            horizon=15, gain_fraction=0.0, is_roth=False,
+            horizon=_sim_horizon, gain_fraction=0.0, is_roth=False,
             is_bracket_sensitive=False, bracket_type="none",
         ))
+    # Reserve bins map positionally to res_short / res_med / res_long asset keys
+    # in asset_matrices when the Markov model is active.
+    _reserve_keys = ["res_short", "res_med", "res_long"]
     for i, rb in enumerate(config.reserve_bins):
         bal = state.reserves[i] if i < len(state.reserves) else 0
         if bal > 0.01:
+            asset_key = _reserve_keys[i] if i < len(_reserve_keys) else ""
+            rate = _expected_annual_rate(config, state, asset_key, rb["rate"])
             sources.append(_WithdrawalSource(
                 key=f"reserve_{i}", wrapper="taxable", asset_type="reserve", index=i,
-                available=bal, growth_rate=rb["rate"] / 100,
+                available=bal, growth_rate=rate,
                 horizon=_tres_horizon, gain_fraction=0.0, is_roth=False,
                 is_bracket_sensitive=False, bracket_type="none",
             ))
+    # Invest bins: index 0 = equity, index 1 = bond (by position — the same
+    # convention citadel_step.py uses when it advances Markov regimes).
+    _invest_keys = ["equity", "bond"]
     for i, ib in enumerate(config.invest_bins):
         bal = state.investments[i] if i < len(state.investments) else 0
         if bal > 0.01:
             basis = state.invest_cost_basis[i] if i < len(state.invest_cost_basis) else bal
             gf = max(1.0 - basis / bal, 0.0) if bal > 0 else 0.0
+            asset_key = _invest_keys[i] if i < len(_invest_keys) else ""
+            fallback_pct = ib.get("return_rate", ib.get("rate", 5.0))
+            rate = _expected_annual_rate(config, state, asset_key, fallback_pct)
             sources.append(_WithdrawalSource(
                 key=f"invest_{i}", wrapper="taxable", asset_type="invest", index=i,
-                available=bal, growth_rate=ib.get("return_rate", ib.get("rate", 5.0)) / 100,
-                horizon=15, gain_fraction=gf, is_roth=False,
+                available=bal, growth_rate=rate,
+                horizon=_sim_horizon, gain_fraction=gf, is_roth=False,
                 is_bracket_sensitive=True, bracket_type="ltcg",
             ))
     if state.btc_stack * max(state.btc_price, 0) > 0.01:
@@ -149,7 +212,7 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
             key="btc", wrapper="taxable", asset_type="btc", index=0,
             available=state.btc_stack * state.btc_price,
             growth_rate=_btc_growth if isinstance(_btc_growth, float) else 0.10,
-            horizon=10, gain_fraction=_btc_gain_frac, is_roth=False,
+            horizon=_sim_horizon, gain_fraction=_btc_gain_frac, is_roth=False,
             is_bracket_sensitive=True, bracket_type="ltcg",
         ))
 
@@ -165,18 +228,23 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
         for i, rb in enumerate(config.reserve_bins):
             bal = state.td_reserves[i] if i < len(state.td_reserves) else 0
             if bal > 0.01:
+                asset_key = _reserve_keys[i] if i < len(_reserve_keys) else ""
+                rate = _expected_annual_rate(config, state, asset_key, rb["rate"])
                 sources.append(_WithdrawalSource(
                     key=f"td_reserve_{i}", wrapper="td", asset_type="reserve", index=i,
-                    available=bal, growth_rate=rb["rate"] / 100,
+                    available=bal, growth_rate=rate,
                     horizon=_td_horizon, gain_fraction=0.0, is_roth=False,
                     is_bracket_sensitive=True, bracket_type="ordinary",
                 ))
         for i, ib in enumerate(config.invest_bins):
             bal = state.td_investments[i] if i < len(state.td_investments) else 0
             if bal > 0.01:
+                asset_key = _invest_keys[i] if i < len(_invest_keys) else ""
+                fallback_pct = ib.get("return_rate", ib.get("rate", 5.0))
+                rate = _expected_annual_rate(config, state, asset_key, fallback_pct)
                 sources.append(_WithdrawalSource(
                     key=f"td_invest_{i}", wrapper="td", asset_type="invest", index=i,
-                    available=bal, growth_rate=ib.get("return_rate", ib.get("rate", 5.0)) / 100,
+                    available=bal, growth_rate=rate,
                     horizon=_td_horizon, gain_fraction=0.0, is_roth=False,
                     is_bracket_sensitive=True, bracket_type="ordinary",
                 ))
@@ -185,7 +253,7 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
                 key="td_btc", wrapper="td", asset_type="btc", index=0,
                 available=state.td_btc_stack * state.btc_price,
                 growth_rate=_btc_growth if isinstance(_btc_growth, float) else 0.10,
-                horizon=min(_td_horizon, 10), gain_fraction=0.0, is_roth=False,
+                horizon=_td_horizon, gain_fraction=0.0, is_roth=False,
                 is_bracket_sensitive=True, bracket_type="ordinary",
             ))
 
@@ -196,16 +264,27 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
             sources.append(_WithdrawalSource(
                 key="tf_cash_res", wrapper="tf", asset_type="cash", index=0,
                 available=tf_cash_res, growth_rate=config.cash_rate / 100,
-                horizon=15, gain_fraction=0.0, is_roth=True,
+                horizon=_sim_horizon, gain_fraction=0.0, is_roth=True,
                 is_bracket_sensitive=False, bracket_type="none",
             ))
         tf_inv = sum(state.tf_investments)
         if tf_inv > 0.01:
-            avg_rate = sum(ib.get("return_rate", 5.0) for ib in config.invest_bins) / max(len(config.invest_bins), 1)
+            # Average across invest bins; each bin's rate is regime-aware when
+            # asset_return_model == "markov".
+            if config.invest_bins:
+                rates = []
+                for i, ib in enumerate(config.invest_bins):
+                    asset_key = _invest_keys[i] if i < len(_invest_keys) else ""
+                    fallback_pct = ib.get("return_rate", 5.0)
+                    rates.append(_expected_annual_rate(
+                        config, state, asset_key, fallback_pct))
+                avg_rate = sum(rates) / len(rates)
+            else:
+                avg_rate = 0.05
             sources.append(_WithdrawalSource(
                 key="tf_invest", wrapper="tf", asset_type="invest", index=0,
-                available=tf_inv, growth_rate=avg_rate / 100,
-                horizon=15, gain_fraction=0.0, is_roth=True,
+                available=tf_inv, growth_rate=avg_rate,
+                horizon=_sim_horizon, gain_fraction=0.0, is_roth=True,
                 is_bracket_sensitive=False, bracket_type="none",
             ))
         if state.tf_btc_stack * max(state.btc_price, 0) > 0.01:
@@ -213,7 +292,7 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
                 key="tf_btc", wrapper="tf", asset_type="btc", index=0,
                 available=state.tf_btc_stack * state.btc_price,
                 growth_rate=_btc_growth if isinstance(_btc_growth, float) else 0.10,
-                horizon=10, gain_fraction=0.0, is_roth=True,
+                horizon=_sim_horizon, gain_fraction=0.0, is_roth=True,
                 is_bracket_sensitive=False, bracket_type="none",
             ))
 
@@ -269,30 +348,62 @@ def _score_sources(sources: list[_WithdrawalSource], state: CitadelState,
     # NIIT applies?
     _niit = NIIT_RATE if _magi > _niit_threshold else 0.0
 
+    # Common discount rate (C1): PV-discount future opportunity cost at the
+    # user's cash rate — our risk-free "do-nothing" alternative. Without
+    # discounting, a long-horizon compounded total return (e.g. 1.10^30 - 1
+    # ≈ 16.4) completely swamps one-time tax costs (e.g. 0.19) regardless of
+    # growth magnitude, so the ranking degenerates to "whatever grows
+    # fastest, skip." PV-discounting ties the opp cost to the nominal-$
+    # today, so sources with growth rates at or below cash rate contribute
+    # ~0 opp cost and tax starts to matter again.
+    _discount = max(config.cash_rate / 100, 0.001)
+
     for s in sources:
-        # Tax cost per dollar
+        # Tax cost per dollar drawn
         if s.wrapper == "tf":
             tax_cost = 0.0  # Roth — no tax
         elif s.wrapper == "td":
+            # Ordinary income tax (federal + state) on full withdrawal,
+            # paid at year-end from taxable wrappers.
             tax_cost = _marginal_ord + state_rate
         elif s.asset_type in ("invest", "btc"):
+            # LTCG on gain portion only (approximation: uses current
+            # gain_fraction as proxy for future gain-fraction at sale).
             tax_cost = (_marginal_ltcg + _niit + state_rate) * s.gain_fraction
         else:
-            tax_cost = 0.0  # taxable cash/reserves — principal
+            tax_cost = 0.0  # taxable cash/reserves — principal only
 
-        # Opportunity cost
+        # PV-discounted opportunity cost per $1 drawn (C1 + C3).
+        #
+        # Rationale: "If I *don't* draw this $1 today, what is its PV of
+        # future spending (in today's dollars)?" For growth > discount,
+        # pv_opp is positive (cost of drawing now). For growth < discount,
+        # pv_opp is negative, which correctly flags the source as beneficial
+        # to draw *first* — the asset is decaying vs the risk-free baseline.
+        # We do NOT clamp at 0: below-discount sources need to rank cheaper
+        # than zero-cost sources (cash at discount rate), so the waterfall
+        # drains them preferentially.
+        horizon = s.horizon
+        discount_factor = (1 + _discount) ** horizon
         if s.wrapper == "td":
-            # TD grows gross, taxed on withdrawal → reduce by (1 - marginal_rate)
-            opp = ((1 + s.growth_rate) ** s.horizon - 1) * (1 - _marginal_ord)
+            # TD: gross growth at rate r, but eventually withdrawn and taxed
+            # at the (future) marginal ordinary rate. Net future spending
+            # per $1 left-untouched = (1-t_future)(1+r)^h, approximated with
+            # current marginal rates.
+            combined_rate = _marginal_ord + state_rate
+            after_tax_future = (1 - combined_rate) * (1 + s.growth_rate) ** horizon
+            pv_opp = after_tax_future / discount_factor - (1 - combined_rate)
         elif s.wrapper == "taxable" and s.asset_type == "reserve":
-            # Taxable treasury: after-tax interest compounding
-            # Treasury interest is state-exempt (US law) — only federal tax on coupons
+            # Taxable treasury: interest taxed annually at ordinary rate,
+            # state-exempt. Effective compounding = r(1-t_ord).
             after_tax_rate = s.growth_rate * (1 - _marginal_ord)
-            opp = (1 + max(after_tax_rate, 0)) ** s.horizon - 1
+            pv_opp = (1 + after_tax_rate) ** horizon / discount_factor - 1
         else:
-            opp = (1 + s.growth_rate) ** s.horizon - 1
+            # Cash, taxable investments, BTC, and Roth all compound at
+            # gross r with tax-on-sale captured separately in tax_cost.
+            pv_opp = (1 + s.growth_rate) ** horizon / discount_factor - 1
 
-        s.cost = tax_cost + max(opp, 0.0)
+        s.cost = tax_cost + pv_opp
 
 
 def _rank_sources(sources: list[_WithdrawalSource]) -> list[_WithdrawalSource]:
@@ -352,25 +463,31 @@ def _max_draw_before_boundary(state: CitadelState, config: SimConfig,
             distances.append(niit_thresh - magi)
 
     elif source.bracket_type == "ltcg":
-        # LTCG brackets stacked on ordinary taxable income
-        ord_taxable = max(ordinary_ytd - std_ded, 0)
-        stacked = ord_taxable + ltcg_ytd
-        ltcg_brackets = tc.ltcg_brackets
-        for upper, _rate in ltcg_brackets:
-            if stacked < upper - 0.01:  # skip brackets within float rounding
-                gain_distance = upper - stacked  # distance in gain-space
-                # Convert to sale-space: if gain_fraction=0.5, need to sell $2 to generate $1 gain
-                gf = max(source.gain_fraction, 0.01)  # avoid div-by-zero
-                distances.append(gain_distance / gf)
-                break
+        # LTCG brackets stacked on ordinary taxable income.
+        #
+        # C5 fix: when gain_fraction is genuinely ~0 (no unrealised gain),
+        # selling this asset does NOT increase LTCG — the bracket boundary
+        # is effectively infinite. Previously the code clamped gain_fraction
+        # to 0.01, inventing a fake bracket distance that over-capped draws
+        # against zero-gain assets. Now we only append a distance when
+        # gain_fraction actually contributes to taxable gain.
+        if source.gain_fraction > 1e-6:
+            ord_taxable = max(ordinary_ytd - std_ded, 0)
+            stacked = ord_taxable + ltcg_ytd
+            ltcg_brackets = tc.ltcg_brackets
+            for upper, _rate in ltcg_brackets:
+                if stacked < upper - 0.01:  # skip brackets within float rounding
+                    gain_distance = upper - stacked  # distance in gain-space
+                    # Convert to sale-space: if gain_fraction=0.5, need to sell $2 to generate $1 gain
+                    distances.append(gain_distance / source.gain_fraction)
+                    break
 
-        # NIIT threshold (MAGI-based). For LTCG sources, the MAGI increase per
-        # dollar sold = gain_fraction (only the gain portion increases MAGI)
-        niit_thresh = NIIT_THRESHOLD[config.filing_status]
-        if magi < niit_thresh:
-            magi_distance = niit_thresh - magi
-            gf = max(source.gain_fraction, 0.01)
-            distances.append(magi_distance / gf)
+            # NIIT threshold (MAGI-based). For LTCG sources, MAGI increase per
+            # dollar sold = gain_fraction (only the gain portion increases MAGI)
+            niit_thresh = NIIT_THRESHOLD[config.filing_status]
+            if magi < niit_thresh:
+                magi_distance = niit_thresh - magi
+                distances.append(magi_distance / source.gain_fraction)
 
     if not distances:
         return float("inf")  # in top bracket, no boundary ahead

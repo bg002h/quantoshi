@@ -42,7 +42,7 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, l
     other overlay model. Visually differentiated by their dashed style.
     """
     model = _app_ctx.DEFAULT_MODEL
-    from _app_ctx import _compute_sc_loan
+    from engines.sc_math import compute_sc_loan as _compute_sc_loan
     _bm_color = _get_model_color("bub", p)
 
     principal    = float(p.get("sc_loan_amount", DCA["sc_loan_amount"]))

@@ -100,7 +100,7 @@ def update_sc_info(amount, freq, enabled, sc_loan, rate, term, loan_type, repeat
                    entry_mode, custom_price, tax, rollover, price_data):
     if not enabled:
         return ""
-    from _app_ctx import _compute_sc_loan
+    from engines.sc_math import compute_sc_loan as _compute_sc_loan
 
     ppy          = FREQ_PPY.get(freq or "Monthly", 12)
     amount       = _ci(amount, 100, lo=0, hi=_app_ctx.MAX_USD)

@@ -27,7 +27,11 @@ def _supercharge_controls():
     return html.Div([
         _tab_hints("supercharge"),
         _shared_settings_card("sc", infl_default=SUPERCHARGE["inflation"], stack_default=SUPERCHARGE["start_stack"]),
-        # ── Plan ────────────────────────────────────────────────────────
+        # ── Plan — strategy (mode + delays; mode-conditional withdrawal +
+        # horizon). sc-start-yr (base retirement year) moved to Axes &
+        # Range below since it's mode-agnostic and maps naturally onto the
+        # chart's x-axis start. End/target years stay here because they
+        # are mode-conditional.
         _section_card("Plan",
             dcc.RadioItems(id="sc-mode",
                 options=[{"label":" A \u2014 Fixed spending (depletion date)","value":"a"},
@@ -43,11 +47,6 @@ def _supercharge_controls():
                 id="sc-depl-note-collapse", is_open=True,
             ),
             html.Hr(className="my-2"),
-            _lbl("Base retirement year"),
-            dcc.Slider(id="sc-start-yr", min=yr_now, max=2075,
-                       value=SUPERCHARGE["start_yr"], step=1,
-                       marks={y: f"'{y % 100:02d}" for y in range(yr_now, 2076, 5)},
-                       tooltip={"always_visible":False}),
             _lbl("Delay offsets (years)"),
             dbc.Row([
                 dbc.Col(dbc.Input(id="sc-d0", type="number", value=SUPERCHARGE["delays"][0],
@@ -90,8 +89,15 @@ def _supercharge_controls():
         _q_panel_with_mode("sc-qs",
                            [0.15, 0.85],
                            hint="Lower prices mean earlier depletion."),
-        # ── Axes & Range (display mode only — year range is in Plan) ───
+        # ── Axes & Range — sc-start-yr (base retirement year = chart
+        # x-axis start) + disp_mode. End/target years remain in Plan
+        # because they're mode-conditional.
         _section_card("Axes & Range",
+            _lbl("Base retirement year"),
+            dcc.Slider(id="sc-start-yr", min=yr_now, max=2075,
+                       value=SUPERCHARGE["start_yr"], step=1,
+                       marks={y: f"'{y % 100:02d}" for y in range(yr_now, 2076, 5)},
+                       tooltip={"always_visible":False}),
             _btc_usd_dropdown("sc", btc_label="BTC Remaining", default="usd"),
         ),
         # ── Display (toggles + shade layout + collapsed display-q) ──────

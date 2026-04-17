@@ -270,34 +270,42 @@ def _sim_panel():
                                    0.85, 0.90, 0.95, 0.99, 0.999]],
                 value=CITADEL["selected_qs"][0], clearable=False),
         ),
-        # Unified "Display" card — holds display mode, chart toggles, legend
-        # position, and the asset-class legend show/hide bulk buttons.
-        # Citadel has no Display Models checklist (traces are per asset
-        # class, not per model), so the bulk-visibility buttons go here.
-        _dd_section("Display",
-            _lbl("Display mode"),
-            dcc.Dropdown(id="cp-disp",
-                options=[{"label": "USD (total portfolio)", "value": "usd_total"},
-                         {"label": "USD (per asset class)", "value": "usd_per_asset"},
-                         {"label": "BTC Holdings", "value": "btc"}],
-                value=CITADEL["disp_mode"], clearable=False),
-            _chart_toggles("cp", ["annotate", "log_y", "show_legend"]),
-            *_legend_pos_dropdown("cp", CITADEL["legend_pos"]),
-            html.Div([
-                dbc.Button("Show All", id="cp-legend-all", size="sm",
-                           color="secondary", outline=True, className="me-1",
-                           style={"fontSize": UI_FONT_MD, "padding": "1px 8px"}),
-                dbc.Button("Hide All", id="cp-legend-none", size="sm",
-                           color="secondary", outline=True,
-                           style={"fontSize": UI_FONT_MD, "padding": "1px 8px"}),
-            ], style={"marginTop": "4px"}),
-        ),
+        # Display card + palette selector are NOT included here. They are
+        # plot-changing controls and have been pulled OUT of the sub-tab
+        # into the shared region below the dbc.Tabs in _citadel_controls(),
+        # so the user can adjust them regardless of which sub-tab is open.
         _mc_controls("cp", amount_label="Monthly spending ($)",
                      amount_default=5000, show_inflation=True, show_stack=True,
                      default_entry_q=10,
                      shared_controls={"amount", "infl", "freq", "stack"}),
-        _palette_selector("cp"),
     ])
+
+
+def _citadel_display_controls():
+    """Plot-changing controls that live BELOW the Assets/Spending/Rules/
+    Simulation sub-tabs so they're always accessible (not hidden inside
+    one sub-tab). Display Models has no analogue on Citadel — traces
+    are per asset class, not per model; the Show All / Hide All bulk-
+    visibility buttons here play that role instead.
+    """
+    return _dd_section("Display",
+        _lbl("Display mode"),
+        dcc.Dropdown(id="cp-disp",
+            options=[{"label": "USD (total portfolio)", "value": "usd_total"},
+                     {"label": "USD (per asset class)", "value": "usd_per_asset"},
+                     {"label": "BTC Holdings", "value": "btc"}],
+            value=CITADEL["disp_mode"], clearable=False),
+        _chart_toggles("cp", ["annotate", "log_y", "show_legend"]),
+        *_legend_pos_dropdown("cp", CITADEL["legend_pos"]),
+        html.Div([
+            dbc.Button("Show All", id="cp-legend-all", size="sm",
+                       color="secondary", outline=True, className="me-1",
+                       style={"fontSize": UI_FONT_MD, "padding": "1px 8px"}),
+            dbc.Button("Hide All", id="cp-legend-none", size="sm",
+                       color="secondary", outline=True,
+                       style={"fontSize": UI_FONT_MD, "padding": "1px 8px"}),
+        ], style={"marginTop": "4px"}),
+    )
 
 
 def _citadel_controls():
@@ -415,7 +423,11 @@ def _citadel_controls():
             dbc.Tab(_rules_panel(), label="Rules", tab_id="cp-rules"),
             dbc.Tab(_sim_panel(), label="Simulation", tab_id="cp-sim"),
         ], id="cp-inner-tabs", active_tab="cp-assets"),
+        # ── Plot-changing controls, BELOW the sub-tabs so they stay visible
+        # and usable regardless of which scenario-config sub-tab is open.
+        _citadel_display_controls(),
         _section_card("Plot Appearance", *_plot_appearance_controls("cp")),
+        _palette_selector("cp"),
         tax_config_modal(),
     ])
 

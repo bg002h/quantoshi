@@ -142,7 +142,8 @@ _app_ctx.app.clientside_callback(
 # Share modal
 # ══════════════════════════════════════════════════════════════════════════════
 
-@callback(
+_app_ctx.app.clientside_callback(
+    "function(n1, n1m, n2, is_open) { return !is_open; }",
     Output("share-modal", "is_open"),
     Input("share-btn",          "n_clicks"),
     Input("share-btn-mobile",   "n_clicks"),
@@ -150,8 +151,6 @@ _app_ctx.app.clientside_callback(
     State("share-modal",        "is_open"),
     prevent_initial_call=True,
 )
-def toggle_share_modal(n1, n1m, n2, is_open):
-    return not is_open
 
 
 # ══════════════════════════════════════════════════════════════════════════════

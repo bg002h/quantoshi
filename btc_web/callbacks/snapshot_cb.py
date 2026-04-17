@@ -184,7 +184,7 @@ def update_snapshot_banner(snapshot_lots):
 # Build the snapshot banner clientside. The Alert + Button component tree is
 # static apart from the lot count, so we emit Dash component descriptors
 # (namespace/type/props) directly. The Restore button keeps its id so the
-# server-side restore_my_lots callback continues to fire on click.
+# clientside restore_my_lots callback continues to fire on click.
 _app_ctx.app.clientside_callback(
     """
     function(snapshot_lots) {
@@ -223,13 +223,12 @@ _app_ctx.app.clientside_callback(
 )
 
 
-@callback(
+_app_ctx.app.clientside_callback(
+    "function(n) { return null; }",
     Output("snapshot-lots", "data", allow_duplicate=True),
     Input("restore-lots-btn", "n_clicks"),
     prevent_initial_call=True,
 )
-def restore_my_lots(_):
-    return None
 
 
 @callback(
@@ -265,13 +264,12 @@ def render_link_history(history):
                          style={"maxHeight":"300px","overflowY":"auto"})
 
 
-@callback(
+_app_ctx.app.clientside_callback(
+    "function(n) { return []; }",
     Output("link-history", "data", allow_duplicate=True),
     Input("clear-history-btn", "n_clicks"),
     prevent_initial_call=True,
 )
-def clear_history(_):
-    return []
 
 
 # ── Ticker mode toggle (USD ↔ sats/$) ────────────────────────────────────────

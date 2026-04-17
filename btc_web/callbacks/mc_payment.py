@@ -146,24 +146,21 @@ def _mc_payment_initiate(*args):
 
 # ── Quant warning modal — proceed / cancel ────────────────────────────────────
 
-@callback(
+_app_ctx.app.clientside_callback(
+    "function(n, t) { return [false, (t || 0) + 1]; }",
     Output("mc-quant-modal", "is_open", allow_duplicate=True),
     Output("mc-pay-trigger", "data", allow_duplicate=True),
     Input("mc-quant-proceed", "n_clicks"),
     State("mc-pay-trigger", "data"),
     prevent_initial_call=True,
 )
-def _quant_proceed(n, cur_trigger):
-    """User confirmed expensive simulation — increment trigger to run it."""
-    return False, (cur_trigger or 0) + 1
 
-@callback(
+_app_ctx.app.clientside_callback(
+    "function(n) { return false; }",
     Output("mc-quant-modal", "is_open", allow_duplicate=True),
     Input("mc-quant-cancel", "n_clicks"),
     prevent_initial_call=True,
 )
-def _quant_cancel(n):
-    return False
 
 
 # ── Clientside polling: check invoice status every 3s ─────────────────────────
@@ -229,15 +226,14 @@ _app_ctx.app.clientside_callback(
 
 
 # ── Cancel payment modal ─────────────────────────────────────────────────────
-@callback(
+_app_ctx.app.clientside_callback(
+    "function(n) { return [false, true, '']; }",
     Output("mc-pay-modal", "is_open",  allow_duplicate=True),
     Output("mc-pay-poll",  "disabled", allow_duplicate=True),
     Output("mc-pay-status","children", allow_duplicate=True),
     Input("mc-pay-cancel", "n_clicks"),
     prevent_initial_call=True,
 )
-def _mc_payment_cancel(n):
-    return False, True, ""
 
 
 # ── Clientside: detect onion vs clearnet and set up payment display ──────────

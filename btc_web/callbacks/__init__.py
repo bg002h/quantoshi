@@ -20,12 +20,12 @@ from callbacks.charts import (update_bubble, update_heatmap, update_dca,
 from callbacks.snapshot_cb import (restore_from_url, apply_snapshot,
                                    update_effective_lots,
                                    manage_snapshot, update_snapshot_banner,
-                                   restore_my_lots, render_link_history,
-                                   clear_history, apply_hm_palette,
+                                   render_link_history,
+                                   apply_hm_palette,
                                    generate_share_qr)
 from callbacks.routing import (_TAB_CONTROLS, _TAB_TO_PATH, _PATH_TO_TAB,
                                open_faq_item)
-from callbacks.nav import toggle_share_modal
+import callbacks.nav  # noqa: F401 — clientside callbacks registered at import
 from callbacks.sc_loan import update_sc_info
 from callbacks.ticker import update_price_ticker
 import callbacks.citadel_cb  # noqa: F401

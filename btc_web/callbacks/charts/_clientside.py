@@ -423,3 +423,39 @@ for _es in ("a", "b"):
         Input(f"eppl-cfg-{_es}-cal1d", "value"),
         Input(f"eppl-cfg-{_es}-cal2d", "value"),
     )
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Modal-close commit triggers (option B of the Input→State refactor).
+#
+# Each chart callback (bubble/DCA/retire/SC) demotes the 13 hybppl-cfg-* and
+# 13 eppl-cfg-* radios to State and wakes up on these two counters instead.
+# Incrementing only when is_open transitions True→False means "modal close
+# commits" -- the user can flip radios freely in the gear modal without
+# firing the chart, then the close event batches all changes into a single
+# re-render. prevent_initial_call=True skips the initial False-on-load so
+# the counter stays at 0 until an actual close happens.
+# ══════════════════════════════════════════════════════════════════════════════
+_app_ctx.app.clientside_callback(
+    """
+    function(is_open, cur) {
+        if (is_open === false) return (cur || 0) + 1;
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("hybppl-commit-trigger", "data"),
+    Input("hybppl-config-modal", "is_open"),
+    State("hybppl-commit-trigger", "data"),
+    prevent_initial_call=True,
+)
+_app_ctx.app.clientside_callback(
+    """
+    function(is_open, cur) {
+        if (is_open === false) return (cur || 0) + 1;
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("eppl-commit-trigger", "data"),
+    Input("eppl-config-modal", "is_open"),
+    State("eppl-commit-trigger", "data"),
+    prevent_initial_call=True,
+)

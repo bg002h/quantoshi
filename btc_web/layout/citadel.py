@@ -1,7 +1,7 @@
 """Citadel Planner (Tab 9) — layout with tabbed sub-panels."""
 
 import pandas as pd
-from dash import dcc, html
+from dash import dcc, html, Input, Output
 import dash_bootstrap_components as dbc
 
 import _app_ctx
@@ -418,6 +418,70 @@ def _citadel_controls():
     ])
 
 
+def _cp_warning_modal():
+    """WIP warning shown every time the user lands on /6.
+
+    The tab has known correctness bugs; this modal flags them up-front so
+    users don't rely on output for real decisions. No localStorage -- a
+    clientside callback re-opens the modal on every url.pathname change
+    into /6 or /6.*, so reloads and inter-tab navigation both re-surface
+    it. Dismissal only lasts for the current view of the tab.
+    """
+    return dbc.Modal(
+        id="cp-warning-modal",
+        is_open=False,  # flipped on by the pathname callback when on /6
+        centered=True,
+        backdrop="static",  # must click the button; no click-outside dismiss
+        keyboard=False,
+        children=[
+            dbc.ModalHeader(
+                dbc.ModalTitle("\u26a0 Citadel Planner \u2014 work in progress"),
+                close_button=False,
+            ),
+            dbc.ModalBody([
+                html.P([
+                    html.Strong("Claude hasn't ironed out all the bugs on this tab yet."),
+                ]),
+                html.P(
+                    "Known issues include: stale Quick-Scenario bands co-rendering with edited "
+                    "live inputs (mostly fixed), the Tax config modal silently dismissing without "
+                    "saving on mobile, and occasional implausible end-state totals at deep "
+                    "quantiles. The engine math is being stress-tested."
+                ),
+                html.P([
+                    "Treat any output here as ", html.Em("illustrative only"),
+                    ". Don't rely on it for financial decisions.",
+                ]),
+            ]),
+            dbc.ModalFooter(
+                dbc.Button(
+                    "I understand \u2014 let me proceed anyway",
+                    id="cp-warning-dismiss",
+                    color="warning",
+                    className="ms-auto",
+                ),
+            ),
+        ],
+    )
+
+
+# Clientside: open the warning on every arrival at /6; close on dismiss click.
+# No Store, no localStorage -- dismissal lives only in component state, which
+# resets on full page reload.
+_app_ctx.app.clientside_callback(
+    """function(pathname, n_clicks) {
+        var tid = dash_clientside.callback_context.triggered_id;
+        if (tid === 'cp-warning-dismiss') return false;
+        if (!pathname) return false;
+        return pathname === '/6' || pathname.indexOf('/6.') === 0
+               || pathname === '/6/' ;
+    }""",
+    Output("cp-warning-modal", "is_open"),
+    Input("url", "pathname"),
+    Input("cp-warning-dismiss", "n_clicks"),
+)
+
+
 def _citadel_tab():
     """Tab 9 layout: controls (left) + graph (right) + export row.
 
@@ -444,4 +508,7 @@ def _citadel_tab():
     # Insert tax summary panel below the chart (inside the graph column)
     graph_col = layout.children[1]
     graph_col.children.append(tax_summary_panel())
+    # Append the WIP warning modal (renders when is_open=True via the
+    # pathname callback above)
+    graph_col.children.append(_cp_warning_modal())
     return layout

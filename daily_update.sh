@@ -68,9 +68,15 @@ if ! git push origin master; then
     exit 1
 fi
 
-# Deploy to production: pull, flush stale Redis cache, restart, regen Citadel cache
+# Deploy to production: pull, restart, regen Citadel cache.
+# NOTE: redis-cli FLUSHDB is intentionally OMITTED here. The daily update
+# rebuilds model_data.pkl, which bumps the L0/L1/L2 cache-key fingerprint
+# (md5 of model_fp + defaults_hash) — so every cached figure keyed against
+# the old pkl automatically misses and is recomputed lazily. Flushing Redis
+# wasted ~4s of restart time for zero functional benefit. See
+# scripts/quantoshi-restart-full for the FLUSHDB path (monthly LPPL refits).
 echo "$(date '+%Y-%m-%d %H:%M:%S') — Deploying to production..."
-if ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && redis-cli FLUSHDB && systemctl restart quantoshi" 2>&1; then
+if ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && systemctl restart quantoshi" 2>&1; then
     echo "Production restarted. Regenerating Citadel cache..."
     ssh root@89.167.70.45 "cd /opt/quantoshi && \
         PYTHONPATH='/opt/quantoshi:/opt/quantoshi/btc_web' \

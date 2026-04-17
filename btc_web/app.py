@@ -468,6 +468,13 @@ def _prewarm_caches():
                     len(keyed), _time.time() - t0)
 
 import os as _os
+
+# ── Prewarm split: critical vs. background ──────────────────────────────
+# `_prewarm_caches` stays on the critical path because it populates the
+# per-worker `_pinned` dict that `_serve_layout` reads to pre-inject
+# figures into the initial HTML (the zero-callback tab-switch feature).
+# If Redis L0 has entries from a prior run, this is ~0.5s; only the
+# post-FLUSHDB case takes the full ~4s.
 if _os.environ.get("DEV") != "1":
     _prewarm_caches()
     from utils import _log_cache_stats
@@ -475,13 +482,29 @@ if _os.environ.get("DEV") != "1":
 else:
     logging.getLogger(__name__).info("DEV mode — skipping prewarm (first request per tab will be slower)")
 
-# Render static deep-link pages (after models are loaded)
-from static_pages import render_static_pages
-render_static_pages()
+# Non-critical background warm: static analysis pages + default transition
+# matrix. Neither blocks a user's first tab render; the static pages are
+# served from their own Flask route once rendered to disk, and the default
+# transition matrix is only consumed by the MC overlay (per-worker cache,
+# lazy-built). We kick them off on a daemon thread so the gunicorn master
+# finishes module-level work and forks workers sooner.
+def _background_warm_noncritical() -> None:
+    try:
+        from static_pages import render_static_pages
+        render_static_pages()
+        if _HAS_MARKOV:
+            _get_transition_matrix(M, 5, 30, [2010, date.today().year])
+        logging.getLogger(__name__).info("Background warm (static pages + MC matrix) done")
+    except Exception as e:
+        logging.getLogger(__name__).warning("Background warm failed: %s", e)
 
-# Pre-warm default transition matrix
-if _HAS_MARKOV:
-    _get_transition_matrix(M, 5, 30, [2010, date.today().year])
+if _os.environ.get("DEV") != "1":
+    import threading as _threading
+    _threading.Thread(target=_background_warm_noncritical,
+                      daemon=True, name="qs-bg-warm").start()
+else:
+    # DEV: single-process, no harm in running inline.
+    _background_warm_noncritical()
 
 # ── Background MC figure prewarm (runs in each worker's first request) ───────
 def _prewarm_mc_caches():

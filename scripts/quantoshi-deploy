@@ -1,0 +1,21 @@
+#!/bin/bash
+# Routine deploy: git pull + restart quantoshi. Redis is NOT flushed — model
+# changes bump the fingerprint (md5(model_fp + defaults_hash)), so cached
+# figures auto-invalidate on fingerprint drift. Restart time ~4-6s.
+#
+# Use `quantoshi-restart-full` for the cache-flush path (monthly LPPL refits,
+# manual param edits, or anything that changes code but not model_data.pkl's
+# bytes — without a flush, stale LPPL figures linger until LRU eviction).
+#
+#   bash scripts/quantoshi-deploy         # routine deploy (no flush)
+#   bash scripts/quantoshi-deploy --flush # force FLUSHDB (same as restart-full)
+set -e
+FLUSH=""
+if [[ "${1:-}" == "--flush" ]]; then
+    FLUSH="redis-cli FLUSHDB && "
+    echo "Deploying WITH Redis FLUSHDB..."
+else
+    echo "Deploying (no flush — fingerprint handles invalidation)..."
+fi
+ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && ${FLUSH}systemctl restart quantoshi"
+echo "Done."

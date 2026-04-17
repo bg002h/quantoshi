@@ -10,7 +10,8 @@ from layout.common import (_tab_hints, _section_card, _lbl, _row, _export_row,
                             _STYLE_HIDDEN, _STYLE_HINT, _STYLE_GRAPH_H,
                             _STYLE_COLOR_H, _BTC_ORANGE,
                             _CB_MARGIN, _Q_HINT_BASE, _GEAR_STYLE, _MUTED_STYLE,
-                            _q_options, _palette_selector, _use_lots_checklist)
+                            _q_options, _palette_selector, _use_lots_checklist,
+                            _plot_appearance_controls)
 from layout.mc_controls import _mc_controls
 from tab_defaults import HEATMAP
 from colors import (NEAR_BLACK, DIM_TEXT, SPINE_COLOR_FALLBACK,
@@ -57,7 +58,47 @@ def _heatmap_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
         _tab_hints("heatmap"),
-        # ── Projection Quantiles ──────────────────────────────────────
+        # 1. Axes & Range — exit year range is the heatmap's X axis.
+        _section_card("Axes & Range",
+            _lbl("Exit year range"),
+            dcc.RangeSlider(id="hm-exit-range", min=2010, max=2060,
+                            value=[yr_now, yr_now + 10], step=1,
+                            marks={y: f"'{y % 100:02d}" for y in range(2010, 2061, 5)},
+                            tooltip={"always_visible":False}),
+        ),
+        # 2. Display — toggles + cell-text formatting (how each cell renders).
+        _section_card("Display",
+            dcc.Checklist(id="hm-toggles",
+                          options=[{"label":" Show colorbar","value":"colorbar"},
+                                   {"label":" Enable chart zoom","value":"chart_zoom"}],
+                          value=["colorbar"], labelStyle={"display":"block"},
+                          inputStyle=_CB_MARGIN),
+            _lbl("Cell text"),
+            dcc.Dropdown(id="hm-vfmt",
+                options=[
+                    {"label":"CAGR %",            "value":"cagr"},
+                    {"label":"Exit Price",          "value":"price"},
+                    {"label":"CAGR % + Price",      "value":"both"},
+                    {"label":"CAGR % + Portfolio",  "value":"stack"},
+                    {"label":"Portfolio Value",     "value":"port_only"},
+                    {"label":"Multiple (\u00d7)",        "value":"mult_only"},
+                    {"label":"CAGR % + Multiple",   "value":"cagr_mult"},
+                    {"label":"Multiple + Portfolio","value":"mult_port"},
+                    {"label":"None",                "value":"none"},
+                ],
+                value=HEATMAP["vfmt"], clearable=False),
+            _lbl("Cell font size"),
+            dbc.Input(id="hm-cell-fs", type="number", value=HEATMAP["cell_font_size"],
+                      min=5, max=20, step=1, size="sm"),
+        ),
+        # 3. Display Models — the pill bar is rendered inside the chart area
+        #    (_hm_pill_bar below), not here. The hidden hm-model-show exists
+        #    for snapshot roundtrip; no user-facing card on this tab.
+        dcc.Checklist(id="hm-model-show", value=["qr"],
+                      style=_STYLE_HIDDEN),
+        # 4. Projection Quantiles — now holds ONLY the quantile checklist
+        #    and its hints. Entry-year/percentile/stack/lots moved to their
+        #    own "Entry Conditions" card below.
         _section_card("Projection Quantiles",
             html.Small(_Q_HINT_BASE,
                 style=_STYLE_HINT),
@@ -66,7 +107,9 @@ def _heatmap_controls():
             dcc.Checklist(id="hm-exit-qs", options=_q_options(),
                           value=_app_ctx._DEF_QS, className="q-panel-grid",
                           inputStyle=_CB_MARGIN),
-            html.Hr(className="my-1"),
+        ),
+        # 4b. Entry Conditions — previously mixed into "Projection Quantiles".
+        _section_card("Entry Conditions",
             _lbl("Entry year"),
             dcc.Slider(id="hm-entry-yr", min=2010, max=2039,
                        value=yr_now, step=1, marks=None,
@@ -84,13 +127,15 @@ def _heatmap_controls():
         _mc_controls("hm", show_amount=True, show_inflation=True,
                      show_stack=True, show_mc_entry_q=True, default_entry_q=10,
                      shared_controls={"stack"}),
-        # ── Chart ───────────────────────────────────────────────────────
-        _section_card("Chart Settings",
-            _lbl("Exit year range"),
-            dcc.RangeSlider(id="hm-exit-range", min=2010, max=2060,
-                            value=[yr_now, yr_now + 10], step=1,
-                            marks={y: f"'{y % 100:02d}" for y in range(2010, 2061, 5)},
-                            tooltip={"always_visible":False}),
+        # 5. Plot Appearance — shared per-tab appearance controls. New on
+        #    heatmap (chart_responsive.js already applies settings to the
+        #    heatmap figure; previously no UI on this tab to tune them).
+        _section_card("Plot Appearance", *_plot_appearance_controls("hm")),
+        # Tab-specific — Heatmap Colorscale. Heatmap has its own appearance
+        # concept (Lo/Mid1/Mid2/Hi + breakpoints + discretisation) that the
+        # other tabs lack. Kept as a dedicated card below Plot Appearance
+        # so the shared panel above can stay uniform across tabs.
+        _section_card("Heatmap Colorscale",
             _lbl("Color mode"),
             dcc.RadioItems(id="hm-mode",
                            options=[{"label":" Segmented","value":0},
@@ -126,34 +171,7 @@ def _heatmap_controls():
             _lbl("Gradient steps"),
             dbc.Input(id="hm-grad", type="number", value=HEATMAP["n_disc"],
                       min=2, max=64, step=1, size="sm"),
-            html.Div("Cell Text", className="ctrl-section-header mt-2"),
-            _lbl("Cell text"),
-            dcc.Dropdown(id="hm-vfmt",
-                options=[
-                    {"label":"CAGR %",            "value":"cagr"},
-                    {"label":"Exit Price",          "value":"price"},
-                    {"label":"CAGR % + Price",      "value":"both"},
-                    {"label":"CAGR % + Portfolio",  "value":"stack"},
-                    {"label":"Portfolio Value",     "value":"port_only"},
-                    {"label":"Multiple (\u00d7)",        "value":"mult_only"},
-                    {"label":"CAGR % + Multiple",   "value":"cagr_mult"},
-                    {"label":"Multiple + Portfolio","value":"mult_port"},
-                    {"label":"None",                "value":"none"},
-                ],
-                value=HEATMAP["vfmt"], clearable=False),
-            _lbl("Cell font size"),
-            dbc.Input(id="hm-cell-fs", type="number", value=HEATMAP["cell_font_size"],
-                      min=5, max=20, step=1, size="sm"),
-            dcc.Checklist(id="hm-toggles",
-                          options=[{"label":" Show colorbar","value":"colorbar"},
-                                   {"label":" Enable chart zoom","value":"chart_zoom"}],
-                          value=["colorbar"], labelStyle={"display":"block"},
-                          inputStyle=_CB_MARGIN),
         ),
-        # Hidden placeholder — hm-model-show is referenced by callbacks/snapshot
-        # but no longer user-visible (pill bar replaces it on tab 2)
-        dcc.Checklist(id="hm-model-show", value=["qr"],
-                      style=_STYLE_HIDDEN),
         _palette_selector("hm"),
     ])
 

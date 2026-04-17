@@ -38,7 +38,7 @@
         pt_color: QS.scatter_point
     };
 
-    var PREFIXES = ['bub', 'dca', 'ret', 'sc', 'cp'];
+    var PREFIXES = ['bub', 'dca', 'ret', 'sc', 'cp', 'hm'];
 
     /* [id-kebab-suffix, state-key, type] */
     var FIELDS = [

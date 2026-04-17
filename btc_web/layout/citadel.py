@@ -270,6 +270,10 @@ def _sim_panel():
                                    0.85, 0.90, 0.95, 0.99, 0.999]],
                 value=CITADEL["selected_qs"][0], clearable=False),
         ),
+        # Unified "Display" card — holds display mode, chart toggles, legend
+        # position, and the asset-class legend show/hide bulk buttons.
+        # Citadel has no Display Models checklist (traces are per asset
+        # class, not per model), so the bulk-visibility buttons go here.
         _dd_section("Display",
             _lbl("Display mode"),
             dcc.Dropdown(id="cp-disp",
@@ -277,12 +281,6 @@ def _sim_panel():
                          {"label": "USD (per asset class)", "value": "usd_per_asset"},
                          {"label": "BTC Holdings", "value": "btc"}],
                 value=CITADEL["disp_mode"], clearable=False),
-        ),
-        _mc_controls("cp", amount_label="Monthly spending ($)",
-                     amount_default=5000, show_inflation=True, show_stack=True,
-                     default_entry_q=10,
-                     shared_controls={"amount", "infl", "freq", "stack"}),
-        _section_card("Chart Settings",
             _chart_toggles("cp", ["annotate", "log_y", "show_legend"]),
             *_legend_pos_dropdown("cp", CITADEL["legend_pos"]),
             html.Div([
@@ -294,6 +292,10 @@ def _sim_panel():
                            style={"fontSize": UI_FONT_MD, "padding": "1px 8px"}),
             ], style={"marginTop": "4px"}),
         ),
+        _mc_controls("cp", amount_label="Monthly spending ($)",
+                     amount_default=5000, show_inflation=True, show_stack=True,
+                     default_entry_q=10,
+                     shared_controls={"amount", "infl", "freq", "stack"}),
         _palette_selector("cp"),
     ])
 

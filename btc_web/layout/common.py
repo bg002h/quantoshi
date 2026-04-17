@@ -384,6 +384,50 @@ def _chart_toggles(prefix, defaults=None):
                          inputStyle=_CB_MARGIN)
 
 
+def _display_card(prefix, toggle_defaults=None, extra_children=None):
+    """Shared "Display" section — toggle checklist ``{prefix}-toggles`` plus
+    optional tab-specific children rendered BELOW the toggle list.
+
+    Every chart tab gets one of these so users find on/off switches in the
+    same place. Tabs with specialised toggles (e.g. bubble's
+    show_data/show_ols/show_ucl/show_today) should use ``_display_card_custom``
+    instead, which accepts a pre-built Checklist directly.
+    """
+    children = [_chart_toggles(prefix, toggle_defaults)]
+    if extra_children:
+        children.extend(extra_children)
+    return _section_card("Display", *children)
+
+
+def _display_card_custom(prefix, checklist, extra_children=None):
+    """Like ``_display_card`` but uses a caller-supplied Checklist (for tabs
+    whose toggle set diverges from the shared 7-option list — notably bubble
+    with its show_data/show_ols/show_ucl/show_today appearance flags).
+    """
+    children = [checklist]
+    if extra_children:
+        children.extend(extra_children)
+    return _section_card("Display", *children)
+
+
+def _axes_range_card_sim(prefix, yr_min, yr_max, default_start, default_end,
+                          *, show_disp=True, disp_kwargs=None, extra_children=None):
+    """Shared "Axes & Range" card for DCA / Retire / Supercharge / Citadel.
+
+    Holds the Year range RangeSlider and (optionally) the BTC/USD display-
+    mode dropdown. Log-Y lives in the ``Display`` card via `_chart_toggles`.
+    """
+    children = [
+        _lbl("Year range"),
+        _year_range_slider(prefix, yr_min, yr_max, default_start, default_end),
+    ]
+    if show_disp:
+        children.append(_btc_usd_dropdown(prefix, **(disp_kwargs or {})))
+    if extra_children:
+        children.extend(extra_children)
+    return _section_card("Axes & Range", *children)
+
+
 def _btc_usd_dropdown(prefix, btc_label="BTC Balance", default="btc"):
     """Reusable BTC/USD display mode dropdown."""
     return dcc.Dropdown(id=f"{prefix}-disp",

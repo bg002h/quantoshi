@@ -15,7 +15,8 @@ from layout.common import (_tab_hints, _section_card, _lbl,
                             _btc_usd_dropdown, _chart_toggles,
                             _legend_pos_dropdown, _ctrl_card,
                             _chart_tab_layout, _plot_appearance_controls,
-                            _palette_selector)
+                            _palette_selector,
+                            _axes_range_card_sim, _display_card)
 from layout.display_models import display_models_panel
 from layout.mc_controls import _mc_controls
 from colors import DIM_TEXT, UI_FONT_BASE, UI_FONT_MD
@@ -26,29 +27,36 @@ def _accum_withdraw_controls(prefix, tab_key, q_hint, q_defaults,
                               chart_toggle_defaults, btc_usd_kwargs=None,
                               extra_sections=None, legend_pos_default="bottom-right",
                               include_mc=False):
-    """Shared builder for DCA (tab 3) and Retire (tab 4) controls."""
+    """Shared builder for DCA (tab 3) and Retire (tab 4) controls.
+
+    Unified panel order per the 2026-04-17 IA harmonisation:
+      1. Axes & Range    — year range + BTC/USD disp_mode.
+      2. Display         — chart toggles (log_y, annotate, shade, etc.).
+      3. Display Models  — model checklist + legend position.
+      4. Projection Quantiles — q checklist + basic/advanced mode.
+      5. Plot Appearance — trace width, grid, pt color, reset.
+
+    Tab-specific sections (Stack-celerator on DCA, MC controls) stay in
+    their own cards below the 5 standard panels.
+    """
     children = [
         _tab_hints(tab_key),
         _shared_settings_card(prefix, **shared_kwargs),
-        # Display Models is its own section — mirrors the prominence of
-        # bubble tab's "Display" card. Legend position lives with the
-        # models it governs.
+        # 1. Axes & Range (year range + BTC/USD dropdown)
+        _axes_range_card_sim(prefix, *yr_range,
+                              disp_kwargs=btc_usd_kwargs),
+        # 2. Display (toggles)
+        _display_card(prefix, toggle_defaults=chart_toggle_defaults),
+        # 3. Display Models (model show + legend position)
         display_models_panel(prefix, include_mc=include_mc,
                              legend_pos_default=legend_pos_default),
+        # 4. Projection Quantiles
         _q_panel_with_mode(f"{prefix}-qs", q_defaults, hint=q_hint),
     ]
     if extra_sections:
         children.extend(extra_sections)
     children.append(_mc_controls(prefix, **mc_kwargs))
-    yr_now = pd.Timestamp.today().year
-    children.append(
-        _section_card("Chart Settings",
-            _lbl("Year range"),
-            _year_range_slider(prefix, *yr_range),
-            _btc_usd_dropdown(prefix, **(btc_usd_kwargs or {})),
-            _chart_toggles(prefix, chart_toggle_defaults),
-        ),
-    )
+    # 5. Plot Appearance (trace width, grid, pt color)
     children.append(_section_card("Plot Appearance",
                                   *_plot_appearance_controls(prefix)))
     children.append(_palette_selector(prefix))

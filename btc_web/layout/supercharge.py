@@ -13,7 +13,8 @@ from layout.common import (_tab_hints, _section_card, _lbl, _palette_selector,
                             _shared_settings_card,
                             _btc_usd_dropdown, _chart_toggles,
                             _chart_tab_layout,
-                            _CB_MARGIN, _Q_HINT_BASE, _plot_appearance_controls)
+                            _CB_MARGIN, _Q_HINT_BASE, _plot_appearance_controls,
+                            _display_card_custom)
 from layout.display_models import display_models_panel
 from layout.mc_controls import _mc_controls
 from colors import STATIC_PAGE_MUTED, UI_FONT_SM
@@ -89,19 +90,25 @@ def _supercharge_controls():
         _q_panel_with_mode("sc-qs",
                            [0.15, 0.85],
                            hint="Lower prices mean earlier depletion."),
-        # ── Chart ───────────────────────────────────────────────────────
-        _section_card("Chart Settings",
-            dcc.Checklist(id="sc-chart-layout",
-                options=[{"label":" Shade quantile bands","value":"shade"}],
-                value=["shade"],
-                inputStyle=_CB_MARGIN),
-            dbc.Collapse([
-                _lbl("Display quantile"),
-                dcc.Dropdown(id="sc-display-q", options=display_q_opts,
-                             value=display_q_default, clearable=False),
-            ], id="sc-display-q-collapse", is_open=True),
+        # ── Axes & Range (display mode only — year range is in Plan) ───
+        _section_card("Axes & Range",
             _btc_usd_dropdown("sc", btc_label="BTC Remaining", default="usd"),
+        ),
+        # ── Display (toggles + shade layout + collapsed display-q) ──────
+        _display_card_custom(
+            "sc",
             _chart_toggles("sc", ["annotate", "log_y", "shade"]),
+            extra_children=[
+                dcc.Checklist(id="sc-chart-layout",
+                    options=[{"label":" Shade quantile bands","value":"shade"}],
+                    value=["shade"],
+                    inputStyle=_CB_MARGIN),
+                dbc.Collapse([
+                    _lbl("Display quantile"),
+                    dcc.Dropdown(id="sc-display-q", options=display_q_opts,
+                                 value=display_q_default, clearable=False),
+                ], id="sc-display-q-collapse", is_open=True),
+            ],
         ),
         _section_card("Plot Appearance", *_plot_appearance_controls("sc")),
         _palette_selector("sc"),

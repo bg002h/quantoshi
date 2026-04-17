@@ -2261,6 +2261,73 @@ class TestTaxAccountingHelpers:
         _pay_tax_amount(state, cfg, amount=50_000, sim_year=2035)
         assert state.tax_year_accum.lt_capital_gains > 0
 
+    def test_pay_tax_investment_gross_up_math(self):
+        """Selling investments to pay tax: enough must be sold so that after
+        the tax on the SALE itself, the net proceeds cover the tax bill.
+
+        With $200k investments, $100k basis, TX (no state tax), agi below NIIT
+        threshold, ltcg_rate = 0.15. gain_fraction = 0.5 → effective_rate on
+        sale proceeds = 0.15 * 0.5 = 0.075. To net $50k after tax:
+          gross = 50k / (1 - 0.075) ≈ $54,054
+        Tax on sale: $54,054 * 0.5 * 0.15 ≈ $4,054. Net: $50k. Check.
+        """
+        from engines.citadel import CitadelState, SimConfig, _pay_tax_amount
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            cash=0, reserves=[0, 0, 0],
+            investments=[200_000, 0],
+            invest_cost_basis=[100_000, 0],
+            td_cash=0, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            tax_year_accum=TaxYearAccumulator(),
+            sim_date="2035-06-15",
+        )
+        cfg = SimConfig(tax_enabled=True, state_code="TX")
+        tax_bill = 50_000
+        _pay_tax_amount(state, cfg, amount=tax_bill, sim_year=2035,
+                         tax_result={"agi": 50_000})
+        # Investments drawn ≈ gross = 54,054 (tolerance for rounding)
+        inv_drawn = 200_000 - state.investments[0]
+        assert 53_000 <= inv_drawn <= 56_000, (
+            f"Gross-up should draw ~$54k to net $50k, got ${inv_drawn:.0f}")
+        # Realized gain ≈ gross * 0.5 (basis_frac=0.5)
+        gain = state.tax_year_accum.lt_capital_gains
+        assert gain == pytest.approx(inv_drawn * 0.5, rel=0.01)
+
+    def test_pay_tax_niit_threshold_flips_gross_up(self):
+        """Gross-up rate bumps by 3.8% when agi exceeds NIIT threshold,
+        so for the same tax bill more investments must be sold."""
+        from engines.citadel import CitadelState, SimConfig, _pay_tax_amount
+        from engines.tax import TaxYearAccumulator
+        # Same starting state twice; only the agi in tax_result differs.
+        def _fresh_state():
+            return CitadelState(
+                cash=0, reserves=[0, 0, 0],
+                investments=[500_000, 0],
+                invest_cost_basis=[0, 0],  # gain_fraction = 1.0 → max sensitivity
+                td_cash=0, td_reserves=[0, 0, 0], td_investments=[0, 0],
+                tax_year_accum=TaxYearAccumulator(),
+                sim_date="2035-06-15",
+            )
+        cfg = SimConfig(tax_enabled=True, state_code="TX", filing_status="single")
+        tax_bill = 100_000
+
+        from engines.tax_data import NIIT_THRESHOLD
+        thresh = NIIT_THRESHOLD["single"]
+        state_below = _fresh_state()
+        state_above = _fresh_state()
+        _pay_tax_amount(state_below, cfg, amount=tax_bill, sim_year=2035,
+                         tax_result={"agi": thresh - 1})
+        _pay_tax_amount(state_above, cfg, amount=tax_bill, sim_year=2035,
+                         tax_result={"agi": thresh + 1})
+
+        drawn_below = 500_000 - state_below.investments[0]
+        drawn_above = 500_000 - state_above.investments[0]
+        # NIIT adds 3.8% to ltcg_rate (15% → 18.8%) → gross-up denominator
+        # shrinks, so MORE investments must be sold to cover the same bill.
+        assert drawn_above > drawn_below, (
+            f"NIIT should force larger draw: below={drawn_below:.0f} "
+            f"vs above={drawn_above:.0f}")
+
     def test_merged_waterfall_tax_off_same_behavior(self):
         """Merged waterfall with tax_enabled=False works correctly."""
         from engines.citadel import SimConfig, simulate
@@ -2704,9 +2771,32 @@ class TestDynamicWaterfall:
         assert state.tf_reserves[0] == pytest.approx(5_000)  # then reserves
         assert state.tax_year_accum.roth_withdrawals == pytest.approx(35_000)
 
-    def test_full_waterfall_btc_protected_early(self):
-        """Cash and reserves (no-tax principal) should be drawn before BTC."""
+    def test_waterfall_preserves_btc_when_model_predicts_high_growth(self):
+        """BTC is preserved when the model predicts a rate of return that
+        exceeds the other assets' rates.
+
+        Design (2026-04-17): BTC-preservation is NOT unconditional — the
+        waterfall's opportunity-cost scoring uses the model's predicted
+        BTC rate of return, annualized. With a strong growth model
+        (~15%/yr), BTC's opportunity cost exceeds cash (4%), reserves
+        (5%) and equity (10%), so BTC ranks last in the waterfall.
+        """
         from engines.citadel import SimConfig, _initial_state, step
+
+        class _StrongBtcModel:
+            """Predicts BTC at ~15%/yr — higher than every other asset."""
+            def __init__(self):
+                import pandas as pd
+                self.fits = {0.25: {"slope": 5.0, "intercept": 2.0}}
+                self.genesis = pd.Timestamp("2009-07-25")
+
+            def price_at(self, q, t):
+                # 50k at t=0, growing 15%/yr → 10× over 10 yr
+                return 50_000.0 * (1.15 ** t)
+
+            def quantile_at(self, price, t):
+                return 0.50
+
         import numpy as np
         cfg = SimConfig(
             start_stack=1.0, start_yr=2035, end_yr=2037,
@@ -2724,19 +2814,70 @@ class TestDynamicWaterfall:
                 {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
             ],
         )
-        model = _test_model()
+        model = _StrongBtcModel()
         rng = np.random.default_rng(42)
         state = _initial_state(cfg, model=model)
         initial_btc = state.btc_stack
-        # $24k annual spend × 2 = $48k. Non-BTC assets = $220k+ (ample coverage).
-        # Cash+reserves (zero-tax sources) should be drawn first.
         for _ in range(2):
             state = step(state, cfg, model.price_at(0.25, state.t + 1), rng, model=model)
-        # BTC should be fully preserved — non-BTC assets more than cover spending
-        assert state.btc_stack >= initial_btc * 0.95, \
-            f"BTC should be mostly preserved in early retirement, got {state.btc_stack:.3f}"
-        # Cash should be depleted or significantly reduced (drawn first as cheapest)
-        assert state.cash < 50_000, "Cash should have been drawn from"
+        assert state.btc_stack >= initial_btc * 0.95, (
+            f"Strong-BTC model: BTC should be preserved when its expected "
+            f"return exceeds every non-BTC asset, got {state.btc_stack:.3f}"
+        )
+        # And a non-BTC source should show usage.
+        assert state.cash < 50_000 or any(r < rb["initial"]
+                                          for r, rb in zip(state.reserves, cfg.reserve_bins)
+                                          if rb["initial"] > 0), (
+            "Non-BTC sources should have been drawn from"
+        )
+
+    def test_waterfall_sells_btc_first_when_model_predicts_weak_growth(self):
+        """BTC is drawn FIRST when the model's predicted rate of return is
+        below the other assets — i.e., the user is better off keeping the
+        higher-yielding assets and consuming BTC. This is the positive
+        complement to the "strong-growth" preservation test."""
+        from engines.citadel import SimConfig, _initial_state, step
+
+        class _WeakBtcModel:
+            """Predicts BTC at ~0.8%/yr — below cash, reserves, and equity."""
+            def __init__(self):
+                import pandas as pd
+                self.fits = {0.25: {"slope": 5.0, "intercept": 2.0}}
+                self.genesis = pd.Timestamp("2009-07-25")
+
+            def price_at(self, q, t):
+                # 50k at t=0, growing 0.8%/yr → ~8% over 10 yr
+                return 50_000.0 * (1.008 ** t)
+
+            def quantile_at(self, price, t):
+                return 0.50
+
+        import numpy as np
+        cfg = SimConfig(
+            start_stack=1.0, start_yr=2035, end_yr=2037,
+            freq="Annually", monthly_spend=2_000,
+            cash_initial=50_000, cash_rate=4.0,
+            selected_qs=[0.25], tax_enabled=True, state_code="TX",
+            reserve_bins=[
+                {"label": "S", "initial": 20_000, "rate": 5.0, "volatility": 0},
+                {"label": "M", "initial": 0, "rate": 4.5, "volatility": 0},
+                {"label": "L", "initial": 0, "rate": 4.0, "volatility": 0},
+            ],
+            invest_bins=[
+                {"label": "Eq", "initial": 50_000, "return_rate": 10.0, "volatility": 0},
+                {"label": "Bd", "initial": 0, "return_rate": 5.0, "volatility": 0},
+            ],
+        )
+        model = _WeakBtcModel()
+        rng = np.random.default_rng(42)
+        state = _initial_state(cfg, model=model)
+        initial_btc = state.btc_stack
+        for _ in range(2):
+            state = step(state, cfg, model.price_at(0.25, state.t + 1), rng, model=model)
+        assert state.btc_stack < initial_btc * 0.99, (
+            f"Weak-BTC model: BTC should be drawn before higher-yielding "
+            f"assets, but stayed at {state.btc_stack:.3f} (initial {initial_btc:.3f})"
+        )
 
     def test_full_waterfall_roth_last(self):
         """Roth is never touched while other sources remain."""

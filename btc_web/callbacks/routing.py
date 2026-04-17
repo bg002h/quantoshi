@@ -670,20 +670,33 @@ _app_ctx.app.clientside_callback(
 )
 
 
-@callback(
+# Clientside: open lightbox modal when a Model Info image is clicked.
+# Moved from server — the callback read ctx.triggered_id and returned two
+# Output values with zero other server state, so the round-trip was pure
+# plumbing. Now runs entirely in the browser.
+_app_ctx.app.clientside_callback(
+    """
+    function(n_clicks_list) {
+        var NU = window.dash_clientside.no_update;
+        if (!n_clicks_list || !n_clicks_list.some(function(n){ return n; }))
+            return [false, ""];
+        var ctx = window.dash_clientside.callback_context;
+        if (!ctx.triggered || !ctx.triggered.length) return [false, ""];
+        var prop_id = ctx.triggered[0].prop_id;
+        var brace_open = prop_id.indexOf('{');
+        var brace_close = prop_id.lastIndexOf('}');
+        if (brace_open < 0 || brace_close < 0) return [false, ""];
+        try {
+            var id_obj = JSON.parse(prop_id.slice(brace_open, brace_close + 1));
+            return [true, id_obj.src || ""];
+        } catch (e) { return [false, ""]; }
+    }
+    """,
     Output("mi-lightbox", "is_open"),
     Output("mi-lightbox-img", "src"),
     Input({"type": "mi-img", "src": ALL}, "n_clicks"),
     prevent_initial_call=True,
 )
-def open_model_info_lightbox(n_clicks_list):
-    """Open lightbox modal when a Model Info image is clicked."""
-    if not any(n_clicks_list):
-        return False, ""
-    triggered = ctx.triggered_id
-    if triggered and isinstance(triggered, dict):
-        return True, triggered["src"]
-    return False, ""
 
 
 # ══════════════════════════════════════════════════════════════════════════════

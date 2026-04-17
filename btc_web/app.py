@@ -21,7 +21,7 @@ import time
 from pathlib import Path
 import _app_ctx
 
-# ── make project root importable (btc_core.py lives there) ───────────────────
+# ── make project root importable (btc_core/ package lives there) ─────────────
 _HERE    = Path(__file__).parent
 _ROOT    = _HERE.parent
 for _p in (_ROOT,):

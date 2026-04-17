@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-# btc_core.py lives at project root, added to sys.path by app.py
+# btc_core/ package lives at project root, added to sys.path by app.py
 from typing import Any
 import _app_ctx
 import theme

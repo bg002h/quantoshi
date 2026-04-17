@@ -244,17 +244,29 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         mc = np.zeros((len(xqs), len(eyrs)))
         mp = np.zeros((len(xqs), len(eyrs)))
         mm = np.zeros((len(xqs), len(eyrs)))
-        for ci, ey in enumerate(eyrs):
-            et = yr_to_t(ey, m.genesis)
-            nyr = et - entry_t if p.get("use_lots") and lots else float(ey - eyr)
-            for ri, xq in enumerate(xqs):
-                xpp = float(model.price_at(xq, et))
-                mp[ri, ci] = xpp
-                mm[ri, ci] = xpp / ep if ep > 0 else 0.0
-                if nyr <= 0:
-                    mc[ri, ci] = (xpp / ep - 1.0) * 100.0
-                else:
-                    mc[ri, ci] = ((xpp / ep) ** (1.0 / nyr) - 1.0) * 100.0
+        # Vectorize over the exit-year axis: one price_at(q, t_array) call
+        # per quantile instead of a scalar call per (quantile, year) cell.
+        et_arr = np.array([yr_to_t(ey, m.genesis) for ey in eyrs])
+        if p.get("use_lots") and lots:
+            nyr_arr = et_arr - entry_t
+        else:
+            nyr_arr = np.array([float(ey - eyr) for ey in eyrs])
+        for ri, xq in enumerate(xqs):
+            xpp_row = np.asarray(model.price_at(xq, et_arr), dtype=float)
+            mp[ri, :] = xpp_row
+            mm[ri, :] = np.where(ep > 0, xpp_row / ep, 0.0)
+            # CAGR: (xpp/ep)^(1/nyr) - 1 for nyr>0; (xpp/ep - 1) for nyr<=0
+            ratio = np.where(ep > 0, xpp_row / ep, 0.0)
+            # np.where eagerly evaluates both branches — guard the power
+            # branch by clamping the exponent so ratio**huge doesn't
+            # overflow on entries that will be masked out anyway.
+            safe_exp = np.where(nyr_arr > 0, 1.0 / np.maximum(nyr_arr, 1e-9), 1.0)
+            cagr_pow = np.where(ratio > 0, ratio ** safe_exp, 0.0)
+            mc[ri, :] = np.where(
+                nyr_arr <= 0,
+                (ratio - 1.0) * 100.0,
+                (cagr_pow - 1.0) * 100.0,
+            )
 
         ylabels = [_fmt_q_label(q) for q in xqs]
         y_title = "Exit Quantile"
@@ -268,16 +280,23 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         mc = np.zeros((1, len(eyrs)))
         mp = np.zeros((1, len(eyrs)))
         mm = np.zeros((1, len(eyrs)))
-        for ci, ey in enumerate(eyrs):
-            et = yr_to_t(ey, m.genesis)
-            nyr = et - entry_t if p.get("use_lots") and lots else float(ey - eyr)
-            xpp = float(model.price_at(0.5, et))
-            mp[0, ci] = xpp
-            mm[0, ci] = xpp / ep if ep > 0 else 0.0
-            if nyr <= 0:
-                mc[0, ci] = (xpp / ep - 1.0) * 100.0
-            else:
-                mc[0, ci] = ((xpp / ep) ** (1.0 / nyr) - 1.0) * 100.0
+        # Vectorize across the exit-year axis for non-quantized models.
+        et_arr = np.array([yr_to_t(ey, m.genesis) for ey in eyrs])
+        if p.get("use_lots") and lots:
+            nyr_arr = et_arr - entry_t
+        else:
+            nyr_arr = np.array([float(ey - eyr) for ey in eyrs])
+        xpp_row = np.asarray(model.price_at(0.5, et_arr), dtype=float)
+        mp[0, :] = xpp_row
+        mm[0, :] = np.where(ep > 0, xpp_row / ep, 0.0)
+        ratio = np.where(ep > 0, xpp_row / ep, 0.0)
+        safe_exp = np.where(nyr_arr > 0, 1.0 / np.maximum(nyr_arr, 1e-9), 1.0)
+        cagr_pow = np.where(ratio > 0, ratio ** safe_exp, 0.0)
+        mc[0, :] = np.where(
+            nyr_arr <= 0,
+            (ratio - 1.0) * 100.0,
+            (cagr_pow - 1.0) * 100.0,
+        )
 
         ylabels = [model.name]
         y_title = "Model"
@@ -539,24 +558,28 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     cagrs.append((p1 / p0 - 1.0) * 100.0)
                 else:
                     cagrs.append(((p1 / p0) ** (1.0 / fwd_n) - 1.0) * 100.0)
-                # Intra-window min/max excursion with dates
+                # Intra-window min/max excursion with dates. Vectorized:
+                # build the time array once and call price_at with the full
+                # vector for non-quantized models (one model call instead of
+                # _total_steps scalar calls). Quantized models still loop
+                # because interp_price is scalar-only.
                 _total_steps = _intra_steps * fwd_n
-                px_max = p0
-                px_min = p0
-                s_max = 0
-                s_min = 0
-                for s in range(1, _total_steps + 1):
-                    ts = yr_to_t(yr + s * fwd_n / _total_steps, m.genesis)
-                    if is_q:
-                        ps = model.interp_price(q, max(ts, 0.5))
-                    else:
-                        ps = float(model.price_at(0.5, max(ts, 0.5)))
-                    if ps > px_max:
-                        px_max = ps
-                        s_max = s
-                    if ps < px_min:
-                        px_min = ps
-                        s_min = s
+                _offsets = np.arange(_total_steps + 1) * (fwd_n / _total_steps)
+                ts_arr = np.array([yr_to_t(yr + o, m.genesis) for o in _offsets])
+                ts_safe = np.maximum(ts_arr, 0.5)
+                if is_q:
+                    ps_arr = np.array(
+                        [model.interp_price(q, float(ts)) for ts in ts_safe],
+                        dtype=float,
+                    )
+                else:
+                    ps_arr = np.asarray(
+                        model.price_at(0.5, ts_safe), dtype=float,
+                    )
+                s_max = int(np.argmax(ps_arr))
+                s_min = int(np.argmin(ps_arr))
+                px_max = float(ps_arr[s_max])
+                px_min = float(ps_arr[s_min])
                 cagr_max.append((px_max / p0 - 1.0) * 100.0)
                 cagr_min.append((px_min / p0 - 1.0) * 100.0)
                 peak_dates.append(f"{yr + s_max * fwd_n / _total_steps:.1f}")

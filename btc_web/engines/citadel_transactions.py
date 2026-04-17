@@ -64,6 +64,27 @@ def _sell_investments_tracked(state: CitadelState, config: SimConfig,
 
     Returns (amount_drawn, gain). Gain is positive for profit, negative for loss.
     Accumulator update only when state.tax_year_accum is not None.
+
+    **Tax classification simplification**: all investment gains are recorded
+    as LONG-TERM (lt_capital_gains / lt_capital_losses) regardless of
+    holding period. This is intentional:
+
+      * User-seeded investments (Assets sub-tab) represent pre-retirement
+        holdings by design — taxable investments the user already owns at
+        year 0. These are assumed to be held >1 year (the typical case).
+      * Investments ADDED during the sim via rebalancing operations are
+        also classified as LT even if sold within 365 days. To correctly
+        model §1222(3) short-term gains for rebalance-then-sell sequences,
+        `state.investments` would need parallel per-lot date tracking
+        analogous to `state.tax_lots` for BTC. That's a significant
+        architecture change and is deliberately deferred — in the common
+        scenario (steady-state retirement withdrawals) rebalance-then-sell
+        within a year is rare.
+
+    If you're modeling high-turnover rebalancing strategies and care about
+    the ST/LT boundary, interpret the tax output with this simplification
+    in mind — the model under-estimates tax liability for investment sales
+    occurring within 365 days of a rebalance.
     """
     current = state.investments[bin_index]
     if current <= 0 or amount <= 0:
@@ -75,6 +96,7 @@ def _sell_investments_tracked(state: CitadelState, config: SimConfig,
     state.investments[bin_index] -= draw
     gain = draw - basis_sold
     if state.tax_year_accum is not None:
+        # See docstring: LT-only classification is intentional.
         if gain >= 0:
             state.tax_year_accum.lt_capital_gains += gain
         else:

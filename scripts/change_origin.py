@@ -5,7 +5,11 @@ Usage:
     python3 scripts/change_origin.py 2009-08-15          # change to new date
     python3 scripts/change_origin.py 2009-08-15 --dry-run # preview changes
 
-Patches ~20 locations across SP.ipynb, btc_core.py, web app layout,
+Note: `btc_core/_helpers.py` holds the genesis date literal post-26af8d8
+(the `btc_core.py` → `btc_core/` package split). The patch targets the
+submodule file directly.
+
+Patches ~20 locations across SP.ipynb, btc_core helpers, web app layout,
 documentation, and chart labels. After running, you must manually:
   1. Execute SP.ipynb to regenerate model_data.pkl
   2. Rebuild MC cache
@@ -175,18 +179,19 @@ def main():
             json.dump(nb, f, indent=1)
     print(f"  SP.ipynb: {changes} replacements")
 
-    # ── btc_core.py ──────────────────────────────────────────────────────
+    # ── btc_core/_helpers.py ────────────────────────────────────────────
+    # (post-26af8d8 split: yr_to_t/today_t live in the helpers submodule)
 
-    btc_core = root / "btc_core.py"
+    btc_core = root / "btc_core" / "_helpers.py"
     src = btc_core.read_text()
     count = src.count(old_str)
     if count == 0:
-        print(f"  ERROR: btc_core.py: no occurrences of {old_str}")
+        print(f"  ERROR: btc_core/_helpers.py: no occurrences of {old_str}")
         sys.exit(1)
     src = src.replace(old_str, new_str)
     if not dry:
         btc_core.write_text(src)
-    print(f"  btc_core.py: {count} replacements")
+    print(f"  btc_core/_helpers.py: {count} replacements")
     changes += count
 
     # ── model_info.py ────────────────────────────────────────────────────
@@ -328,7 +333,7 @@ Now run these manual steps:
 4. Run tests:
    PYTHONPATH=".:btc_web" btc_venv/bin/python3 -m pytest btc_web/test_web.py -q --tb=short
 
-5. LPPL constants in btc_core.py may need refitting if origin changed significantly.
+5. LPPL constants in btc_core/_lppl.py may need refitting if origin changed significantly.
    Current constants were fit with genesis=2009-07-25.
 
 6. Rebuild MC cache on desktop (10 min), scp to server.

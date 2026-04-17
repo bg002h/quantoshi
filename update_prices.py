@@ -242,7 +242,7 @@ def main() -> None:
     print()
     print("Review the new rows above, then deploy when ready:")
     print()
-    print("  git add BitcoinPricesDaily.csv model_data.pkl model_data_ef.pkl btc_core.py")
+    print("  git add BitcoinPricesDaily.csv model_data.pkl model_data_ef.pkl btc_core/")
     print("  git commit -m 'Update price data'")
     print("  git push origin master")
     print("  ssh root@89.167.70.45 \\")

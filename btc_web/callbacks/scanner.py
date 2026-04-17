@@ -243,27 +243,37 @@ def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_mo
     return (edit_history, table, hint_style)
 
 
-@callback(
+# Clientside: toggle a model's scanner line on/off when its row is clicked.
+# Moved from server to clientside (no state needed beyond the trigger id
+# and the existing active list) so a click doesn't round-trip to gunicorn.
+_app_ctx.app.clientside_callback(
+    """
+    function(n_clicks_list, active) {
+        var NU = window.dash_clientside.no_update;
+        var ctx = window.dash_clientside.callback_context;
+        if (!ctx.triggered || !ctx.triggered.length) return NU;
+        var trig = ctx.triggered[0];
+        if (!trig.value) return NU;  // component creation / no real click
+        var prop_id = trig.prop_id;
+        // prop_id looks like '{"model":"lppl","type":"scan-row"}.n_clicks'
+        var open_brace = prop_id.indexOf('{');
+        var close_brace = prop_id.lastIndexOf('}');
+        if (open_brace < 0 || close_brace < 0) return NU;
+        var id_str = prop_id.slice(open_brace, close_brace + 1);
+        var model_key;
+        try { model_key = JSON.parse(id_str).model; } catch (e) { return NU; }
+        active = (active || []).slice();
+        var idx = active.indexOf(model_key);
+        if (idx >= 0) active.splice(idx, 1);
+        else active.push(model_key);
+        return active;
+    }
+    """,
     Output("scan-active-rows", "data"),
     Input({"type": "scan-row", "model": ALL}, "n_clicks"),
     State("scan-active-rows", "data"),
     prevent_initial_call=True,
 )
-def toggle_scanner_row(n_clicks_list, active):
-    """Toggle a model's scanner line on/off when its row is clicked."""
-    if not ctx.triggered_id:
-        return no_update
-    # Guard: ignore fires from component creation (n_clicks=None/0)
-    triggered = ctx.triggered
-    if not triggered or not triggered[0].get("value"):
-        return no_update
-    model_key = ctx.triggered_id["model"]
-    active = active or []
-    if model_key in active:
-        active.remove(model_key)
-    else:
-        active.append(model_key)
-    return active
 
 
 # ── Auto-extend bubble x-range when radar beacon falls outside ───────────────

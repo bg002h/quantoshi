@@ -52,13 +52,16 @@ if ! python3 tools/build_projection_table.py; then
 fi
 
 # Check if there are changes to commit
-if git diff --quiet BitcoinPricesDaily.csv model_data.pkl btc_core.py BitcoinBlocksDaily.csv btc_web/_projection_table.json 2>/dev/null; then
+# btc_core.py was split into btc_core/ package on 2026-04-16 (commit 26af8d8)
+# — reference the directory form so git diff/add don't error on a missing path
+# and halt the daily deploy under `set -eo pipefail`.
+if git diff --quiet BitcoinPricesDaily.csv model_data.pkl btc_core/ BitcoinBlocksDaily.csv btc_web/_projection_table.json 2>/dev/null; then
     echo "No new data — nothing to commit."
     exit 0
 fi
 
 # Commit and push
-git add BitcoinPricesDaily.csv model_data.pkl btc_core.py BitcoinBlocksDaily.csv btc_web/_projection_table.json
+git add BitcoinPricesDaily.csv model_data.pkl btc_core/ BitcoinBlocksDaily.csv btc_web/_projection_table.json
 git commit -m "Daily price update $(date '+%Y-%m-%d')"
 if ! git push origin master; then
     notify_failure "git push failed"

@@ -567,7 +567,10 @@ class Hyb4DModel(LPPLModel):
         }
 
 
-
+# ── EPPL config params (auto-generated) ──
+# DO NOT MOVE: tools/fit_all_eppl_configs.py regex-matches this marker line
+# exactly so monthly refits replace the dict in-place rather than prepending
+# a duplicate.
 _EPPL_CONFIG_PARAMS = {
     "ecfg_0_0": {"n_log": 0, "n_cal": 0, "log_damps": [], "cal_damps": [], "params": {"A": -1.173784, "B": 5.081215}, "r2": 0.962654, "sigma": 0.295620},
     "ecfg_0_1d": {"n_log": 0, "n_cal": 1, "log_damps": [], "cal_damps": ['d'], "params": {"A": -1.185489, "B": 5.092057, "C_cal": 0.376542, "W_cal": 1.739438, "PHI_cal": -2.060581, "w_cal": 0.056790}, "r2": 0.981127, "sigma": 0.210151},

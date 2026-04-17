@@ -286,22 +286,33 @@ def main():
         print(f"\nUpdating {core_path.relative_to(ROOT)} ...")
         src = core_path.read_text()
 
+        # Target the existing 4-line block inside the class body so each
+        # refit REPLACES the fitted params in place. The prior pattern
+        # targeted `_sigma = X` (a backward-compat scalar) and appended 4
+        # new lines, which produced duplicate _sigma0_up/_alpha_*/_sigma0_down
+        # definitions on every run (last-write-wins → old values silently
+        # kept winning, new fitted params dropped).
         pattern = re.compile(
-            rf"(class {class_name}.*?_sigma\s*=\s*)(\d+\.\d+)",
-            re.DOTALL
+            rf"(class {class_name}[\s\S]*?)"
+            rf"(    _sigma0_up\s*=\s*[\d.]+\s*\n"
+            rf"\s*_alpha_up\s*=\s*[\d.]+\s*\n"
+            rf"\s*_sigma0_down\s*=\s*[\d.]+\s*\n"
+            rf"\s*_alpha_down\s*=\s*[\d.]+)"
         )
         match = pattern.search(src)
         if match:
-            old_line = f"_sigma = {match.group(2)}"
-            new_lines = (
-                f"_sigma0_up = {s0u:.6f}\n"
-                f"    _alpha_up = {au:.6f}\n"
+            replacement = (
+                f"    _sigma0_up   = {s0u:.6f}\n"
+                f"    _alpha_up    = {au:.6f}\n"
                 f"    _sigma0_down = {s0d:.6f}\n"
-                f"    _alpha_down = {ad:.6f}"
+                f"    _alpha_down  = {ad:.6f}"
             )
-            src = src.replace(f"    {old_line}", f"    {new_lines}", 1)
+            src = src[:match.start(2)] + replacement + src[match.end(2):]
             core_path.write_text(src)
             print(f"  Updated {class_name}")
+        else:
+            print(f"  WARNING: could not find 4-line sigma block for "
+                  f"{class_name} in {core_path}; no replacement made.")
 
     print("Done.")
 

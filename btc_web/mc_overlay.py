@@ -617,12 +617,24 @@ def _check_client_cache(p, path_key):
 
     Returns (cached_dict, True) on path_key hit, (None, False) on miss.
     Caller checks overlay_key for full vs partial match.
+
+    Also rejects caches whose path count is below the current ``mc_sims``
+    request — otherwise raising the sim count would silently narrow the
+    band by averaging over the smaller cached array. (Citadel has this
+    check inline; DCA/Retire/SC/HM shared it here post-audit.)
     """
     cached = p.get("mc_cached")
-    if (cached and cached.get("path_key") == path_key
+    if not (cached and cached.get("path_key") == path_key
             and "price_paths" in cached):
-        return cached, True
-    return None, False
+        return None, False
+    shape = cached["price_paths"].get("shape") if isinstance(
+        cached["price_paths"], dict) else None
+    if shape and len(shape) >= 1:
+        cached_sims = int(shape[0])
+        requested_sims = int(p.get("mc_sims") or 0)
+        if requested_sims and cached_sims < requested_sims:
+            return None, False
+    return cached, True
 
 
 def _run_full_simulation(m, p, n_bins, step_days, mc_window, mc_ts,

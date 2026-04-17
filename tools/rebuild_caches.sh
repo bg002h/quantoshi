@@ -64,7 +64,8 @@ from btc_core import BubbleModel, PowerLawModel, LPPLModel, ExponentialModel, S2
 models = {
     'bub': BubbleModel(M),
     'qr':  QuantileRegressionModel(M),
-    'pl':  PowerLawModel(M.price_years, M.price_prices, M.QR_QUANTILES, M.genesis),
+    'pl':  PowerLawModel(M.ols_intercept, M.ols_slope, M.price_years,
+                        M.price_prices, M.genesis, M.QR_QUANTILES),
     'lppl': LPPLModel(M.price_years, M.price_prices, M.QR_QUANTILES),
     'exp': ExponentialModel(M.price_years, M.price_prices, M.QR_QUANTILES),
 }

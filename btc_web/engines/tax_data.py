@@ -11,13 +11,15 @@ from __future__ import annotations
 # ---------------------------------------------------------------------------
 
 FEDERAL_BRACKETS_TCJA: dict[str, list[tuple[float, float]]] = {
+    # 2025 tax-year thresholds per IRS Rev. Proc. 2024-40 (authoritative).
+    # Each tuple is (upper_of_bracket, marginal_rate). Last bracket uses inf.
     "single": [
         (11_925, 0.10),
         (48_475, 0.12),
         (103_350, 0.22),
         (197_300, 0.24),
-        (252_525, 0.32),
-        (591_975, 0.35),
+        (250_525, 0.32),
+        (626_350, 0.35),
         (float("inf"), 0.37),
     ],
     "mfj": [
@@ -25,8 +27,8 @@ FEDERAL_BRACKETS_TCJA: dict[str, list[tuple[float, float]]] = {
         (96_950, 0.12),
         (206_700, 0.22),
         (394_600, 0.24),
-        (505_050, 0.32),
-        (731_200, 0.35),
+        (501_050, 0.32),
+        (751_600, 0.35),
         (float("inf"), 0.37),
     ],
 }

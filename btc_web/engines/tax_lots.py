@@ -90,7 +90,10 @@ def sell_lots(lots: list[TaxLot], btc_to_sell: float, sale_price: float,
 
         lot_dt = _parse_date(lot.date)
         holding_days = (sale_dt - lot_dt).days
-        is_long_term = holding_days >= 365
+        # IRS Pub 544: LT requires holding period to EXCEED one year. The
+        # holding period begins the day AFTER acquisition, so a sale on
+        # the anniversary date is exactly 365 days and remains short-term.
+        is_long_term = holding_days > 365
 
         if lot.btc <= btc_remaining:
             # Consume entire lot

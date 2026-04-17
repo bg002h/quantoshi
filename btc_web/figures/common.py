@@ -120,7 +120,7 @@ def _quantile_trace(ts, y_vals, q: float, color: str, label: str,
     """Build a quantile-colored Scatter trace with standard shade + opacity."""
     _shade = quantile_shade(color, q)
     return go.Scatter(
-        x=list(ts), y=list(y_vals), mode="lines", name=label,
+        x=ts, y=y_vals, mode="lines", name=label,
         line=dict(color=_shade, width=width or TRACE_WIDTH, shape=shape),
         opacity=quantile_opacity(q),
         **kw,
@@ -928,12 +928,12 @@ def _build_symmetric_bands(sel_qs, y_cache, x_arr, model_color=BLACK,
         hi_y = y_cache[hi_q]
         _invis = BLACK_A0
         traces.append(go.Scatter(
-            x=x, y=list(lo_y), mode="lines",
+            x=x, y=lo_y, mode="lines",
             line=dict(width=0, color=_invis),
             showlegend=False, hoverinfo="skip",
         ))
         traces.append(go.Scatter(
-            x=x, y=list(hi_y), mode="lines",
+            x=x, y=hi_y, mode="lines",
             line=dict(width=0, color=_invis),
             fill="tonexty",
             fillcolor=(_hex_alpha(quantile_shade(model_color, (lo_q + hi_q) / 2),
@@ -1311,7 +1311,7 @@ def build_overlay_traces(
                 _y_cache[q] = y_vals
                 _shade = quantile_shade(_mdl_color, q)
                 _model_lines.append(go.Scatter(
-                    x=list(ts), y=list(y_vals), mode="lines",
+                    x=ts, y=y_vals, mode="lines",
                     name=f"{mdl.legend_name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
                     line=dict(color=_shade, width=TRACE_WIDTH_OVERLAY,
                               dash=mdl.dash_style, shape=line_shape),
@@ -1339,7 +1339,7 @@ def build_overlay_traces(
                 final_usd = fmt_price(float(vals[-1]) * float(prices_q[-1]))
                 final_lbl = f"{float(vals[-1]):.4f} BTC  ({final_usd})"
             traces.append(go.Scatter(
-                x=list(ts), y=list(y_vals), mode="lines",
+                x=ts, y=y_vals, mode="lines",
                 name=f"{mdl.legend_name}  \u2192  {final_lbl}",
                 line=dict(color=_mdl_color,
                           width=TRACE_WIDTH_OVERLAY, dash=mdl.dash_style,

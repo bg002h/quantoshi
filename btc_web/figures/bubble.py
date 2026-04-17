@@ -115,7 +115,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             d_sc  = [d_sc[i] for i in idx]
         # Dark slate gray — distinct from BM gold so data points read clearly
         traces.append(go.Scatter(
-            x=list(x_sc), y=list(y_sc),
+            x=list(x_sc), y=y_sc,
             mode="markers", name="Price data",
             marker=dict(color=SCATTER_POINT,
                         size=max(2, int(p.get("pt_size", BUBBLE["pt_size"]))),
@@ -139,7 +139,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             if _fallback_q50 and _default_mode:
                 _trace_opacity = _app_ctx.FALLBACK_Q50_OPACITY
             traces.append(go.Scatter(
-                x=list(t_arr), y=list(prices),
+                x=t_arr, y=prices,
                 mode="lines", name=lbl,
                 line=dict(color=_shade, width=TRACE_WIDTH),
                 opacity=_trace_opacity,
@@ -156,7 +156,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             um_prices = _round_trace_data(np.asarray(um_prices) * stack)
         um_lbl = f"U\u2081  m={um_slope:.3f}  Q{um_oq*100:.2f}%"
         traces.append(go.Scatter(
-            x=list(t_arr), y=list(um_prices),
+            x=t_arr, y=um_prices,
             mode="lines", name=um_lbl,
             line=dict(color=USER_MODEL_TRACE, width=3.0, dash="solid"),
             legendgroup="u1", legendgrouptitle_text=f"U\u2081  m={um_slope:.3f}",
@@ -206,7 +206,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 _shade = quantile_shade(_ovl_color, q)
                 _lw = 3.0 if (model_key == "u1" and hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005) else TRACE_WIDTH_OVERLAY
                 _ovl_lines.append(go.Scatter(
-                    x=list(t_arr), y=list(prices),
+                    x=t_arr, y=prices,
                     mode="lines", name=lbl,
                     line=dict(color=_shade, width=_lw, dash=mdl.dash_style),
                     opacity=quantile_opacity(q),
@@ -232,7 +232,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 lbl += f"  \u2192  {fmt_price(float(np.asarray(prices)[-1]))}"
             prices = _round_trace_data(np.asarray(prices))
             traces.append(go.Scatter(
-                x=list(t_arr), y=list(prices),
+                x=t_arr, y=prices,
                 mode="lines", name=lbl,
                 line=dict(color=_get_model_color(model_key, p), width=TRACE_WIDTH_OVERLAY, dash=mdl.dash_style),
                 legendgroup=mdl.short_name,
@@ -247,7 +247,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             if p.get("show_sup") and hasattr(mdl, "support_plot"):
                 sup_y = np.asarray(mdl.support_plot)[mdl_mask] * (stack if stack > 0 else 1)
                 traces.append(go.Scatter(
-                    x=list(mdl_t[mdl_mask]), y=list(sup_y),
+                    x=list(mdl_t[mdl_mask]), y=sup_y,
                     mode="lines", name=f"{mdl.legend_name} support",
                     line=dict(color=_mdl_color, dash="dash", width=1.5),
                     opacity=SUPPORT_LINE_OPACITY,
@@ -259,7 +259,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 n = min(n, len(mdl.comp_by_n) - 1)
                 comp_y = np.asarray(mdl.comp_by_n[n])[mdl_mask] * (stack if stack > 0 else 1)
                 traces.append(go.Scatter(
-                    x=list(mdl_t[mdl_mask]), y=list(comp_y),
+                    x=list(mdl_t[mdl_mask]), y=comp_y,
                     mode="lines",
                     name=f"{mdl.legend_name} composite (N={n})  R\u00b2={mdl.bm_r2:.4f}",
                     line=dict(color=_mdl_color, width=2.0),
@@ -279,7 +279,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         col = _get_model_color(model_key, p)
         _scan_shade = quantile_shade(col, q)
         traces.append(go.Scatter(
-            x=list(t_arr), y=list(scan_prices),
+            x=t_arr, y=scan_prices,
             mode="lines",
             name=f"{mdl.legend_name} Q{q*100:.1f}%",
             line=dict(color=_scan_shade, width=2, dash=mdl.dash_style),
@@ -292,7 +292,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         if stack > 0:
             p_ucl = p_ucl * stack
         traces.append(go.Scatter(
-            x=list(t_arr), y=list(p_ucl),
+            x=t_arr, y=p_ucl,
             mode="lines", name="Unfairly Cheap Line",
             line=dict(color=UCL_LINE_COLOR, dash="dot", width=1.8),
             opacity=UCL_LINE_OPACITY,
@@ -304,7 +304,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         if stack > 0:
             p_ols = p_ols * stack
         traces.append(go.Scatter(
-            x=list(t_arr), y=list(p_ols),
+            x=t_arr, y=p_ols,
             mode="lines", name=f"OLS  R\u00b2={m.ols_r2:.4f}" if hasattr(m, 'ols_r2') and m.ols_r2 else "OLS",
             line=dict(color=FALLBACK_MODEL_GRAY, dash="dash", width=1.3),
             opacity=OLS_LINE_OPACITY,
@@ -328,7 +328,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         sup_y = m.support_bm[mask] * (stack if stack > 0 else 1)
         x_sup, sup_y = _downsample_bm(mask, sup_y)
         traces.append(go.Scatter(
-            x=list(x_sup), y=list(sup_y),
+            x=x_sup, y=sup_y,
             mode="lines", name="Bubble support",
             line=dict(color=_bm_color,
                       dash="dash", width=float(p.get("sup_lw", BUBBLE["sup_lw"]))),
@@ -343,7 +343,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         comp_y = m.comp_by_n[n][mask] * (stack if stack > 0 else 1)
         x_comp, comp_y = _downsample_bm(mask, comp_y)
         traces.append(go.Scatter(
-            x=list(x_comp), y=list(comp_y),
+            x=x_comp, y=comp_y,
             mode="lines",
             name=f"Bubble composite (N={n})  R\u00b2={m.bm_r2:.4f}",
             line=dict(color=_bm_color,
@@ -540,7 +540,7 @@ def _add_decomposition_traces(traces, t_arr, m, p):
         pass
 
     traces.append(go.Scatter(
-        x=list(t_arr), y=list(10.0 ** log_vals), mode="lines",
+        x=t_arr, y=10.0 ** log_vals, mode="lines",
         line=dict(dash="solid", width=2.5, color=sum_color),
         name=base_label + r2_str,
     ))

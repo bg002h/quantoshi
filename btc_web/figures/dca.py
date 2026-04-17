@@ -152,7 +152,7 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, l
         lbl_sc = f"{model.legend_name} SC {_fmt_q_label(q, '')}" + f"  \u2192  {final_sc}"
         _shade = quantile_shade(_bm_color, q)
         sc_traces.append(go.Scatter(
-            x=list(ts), y=list(y_sc), mode="lines", name=lbl_sc,
+            x=ts, y=y_sc, mode="lines", name=lbl_sc,
             line=dict(color=_shade, width=TRACE_WIDTH, dash="dash", shape=line_shape),
             opacity=quantile_opacity(q),
         ))
@@ -220,7 +220,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
             lbl = f"{model.legend_name} {_fmt_q_label(q, '')}" + f"  \u2192  {final_lbl}"
             _shade = quantile_shade(_bm_color, q)
             _bm_line_traces.append(go.Scatter(
-                x=list(ts), y=list(y_vals), mode="lines", name=lbl,
+                x=ts, y=y_vals, mode="lines", name=lbl,
                 line=dict(color=_shade, width=TRACE_WIDTH, shape=_line_shape),
                 opacity=quantile_opacity(q),
             ))

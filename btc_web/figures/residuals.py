@@ -62,7 +62,7 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 np.interp(t_data, m.years_plot_bm, m.support_bm), 1e-10))
             resid = log_p_data - sup_log
             traces.append(go.Scatter(
-                x=list(t_data), y=_round_trace_data(resid),
+                x=t_data, y=_round_trace_data(resid),
                 mode="lines", name="BM support residual",
                 line=dict(color=bm_color, width=TRACE_WIDTH_OVERLAY, dash="dash"),
                 opacity=RESIDUAL_LINE_OPACITY,
@@ -75,7 +75,7 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 np.interp(t_data, m.years_plot_bm, comp_vals), 1e-10))
             resid = log_p_data - comp_log
             traces.append(go.Scatter(
-                x=list(t_data), y=_round_trace_data(resid),
+                x=t_data, y=_round_trace_data(resid),
                 mode="lines", name="BM composite residual",
                 line=dict(color=bm_color, width=TRACE_WIDTH_OVERLAY),
                 opacity=1.0,
@@ -109,7 +109,7 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         resid = log_p_data - pred_log
         color = _get_model_color(model_key, p)
         traces.append(go.Scatter(
-            x=list(t_data), y=_round_trace_data(resid),
+            x=t_data, y=_round_trace_data(resid),
             mode="lines", name=f"{mdl.legend_name} median residual",
             line=dict(color=color, width=TRACE_WIDTH_OVERLAY,
                       dash=getattr(mdl, "dash_style", "solid")),
@@ -143,7 +143,7 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                          if n_checked < total
                          else f"{dmodel.legend_name} decomp (full)")
                 traces.append(go.Scatter(
-                    x=list(t_data), y=_round_trace_data(resid),
+                    x=t_data, y=_round_trace_data(resid),
                     mode="lines", name=label,
                     line=dict(color=BLACK, width=2, dash="solid"),
                     opacity=1.0,

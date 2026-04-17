@@ -180,7 +180,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     final_usd = fmt_price(float(_vals[-1]) * float(_prices[-1]))
                     final = f"{float(y_vals[-1]):.4f} BTC  ({final_usd})"
                 traces.append(go.Scatter(
-                    x=list(ts_d), y=list(y_vals), mode="lines",
+                    x=ts_d, y=y_vals, mode="lines",
                     name=_legend_name,
                     legendgroup=grp_model,
                     showlegend=_first_legend,
@@ -204,7 +204,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     ts_d, y_vals, depl_t, t_start_d, *_ = results[key]
                     _shade = quantile_shade(_bm_color, q)
                     traces.append(go.Scatter(
-                        x=list(ts_d), y=list(y_vals), mode="lines",
+                        x=ts_d, y=y_vals, mode="lines",
                         name=_legend_name,
                         legendgroup=grp_model,
                         showlegend=_first_legend,
@@ -237,12 +237,12 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 col    = delay_colors[di % len(delay_colors)]
                 # Shade band (never in legend)
                 traces.append(go.Scatter(
-                    x=list(ts_d), y=list(y_max), mode="lines",
+                    x=ts_d, y=y_max, mode="lines",
                     line=dict(color=col, width=0, shape=_line_shape), showlegend=False, hoverinfo="skip",
                     legendgroup=grp_model,
                 ))
                 traces.append(go.Scatter(
-                    x=list(ts_d), y=list(y_min), mode="lines",
+                    x=ts_d, y=y_min, mode="lines",
                     fill="tonexty", fillcolor=_hex_alpha(col, SC_ENVELOPE_ALPHA),
                     line=dict(color=col, width=0, shape=_line_shape),
                     legendgroup=grp_model,
@@ -256,7 +256,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         continue
                     ts_d_q, y_vals_q, depl_t, t_start_d, *_ = results[key]
                     traces.append(go.Scatter(
-                        x=list(ts_d_q), y=list(y_vals_q), mode="lines",
+                        x=ts_d_q, y=y_vals_q, mode="lines",
                         name=_legend_name,
                         line=dict(color=_tcol, width=TRACE_WIDTH, dash=model.dash_style, shape=_line_shape),
                         legendgroup=grp_model, showlegend=_first_legend,
@@ -323,12 +323,12 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     col = delay_colors[di % len(delay_colors)]
                     # Shade band (never in legend)
                     traces.append(go.Scatter(
-                        x=list(ts_d), y=list(y_max), mode="lines",
+                        x=ts_d, y=y_max, mode="lines",
                         line=dict(color=col, width=0, shape=_line_shape), showlegend=False, hoverinfo="skip",
                         legendgroup=_ov_grp,
                     ))
                     traces.append(go.Scatter(
-                        x=list(ts_d), y=list(y_min), mode="lines",
+                        x=ts_d, y=y_min, mode="lines",
                         fill="tonexty", fillcolor=_hex_alpha(col, SC_OVERLAY_ENVELOPE_ALPHA),
                         line=dict(color=col, width=0, shape=_line_shape),
                         legendgroup=_ov_grp,
@@ -340,7 +340,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                             continue
                         ts_d_q, y_vals_q, *_ = ov_results[(d, q)]
                         traces.append(go.Scatter(
-                            x=list(ts_d_q), y=list(y_vals_q), mode="lines",
+                            x=ts_d_q, y=y_vals_q, mode="lines",
                             name=_ov_lbl,
                             line=dict(color=_ov_tcol, width=1, dash=mdl.dash_style, shape=_line_shape),
                             legendgroup=_ov_grp, showlegend=_ov_first,
@@ -363,7 +363,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 for (d, q), (ts_d, y_vals, depl_t_ov, t_start_d_ov, *_) in ov_results.items():
                     col = _get_model_color(model_key, p) if mdl.quantized else palette["non_quantized_model"]
                     traces.append(go.Scatter(
-                        x=list(ts_d), y=list(y_vals), mode="lines",
+                        x=ts_d, y=y_vals, mode="lines",
                         name=_ov_lbl,
                         line=dict(color=col, width=1.2, dash=mdl.dash_style, shape=_line_shape),
                         legendgroup=_ov_grp,

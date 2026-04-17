@@ -693,6 +693,32 @@ is always last (tax-free compounding on highest-growth asset).
 `engines/tax_data.py` (static data), `layout/citadel_tax.py` (full-screen modal),
 `callbacks/citadel_tax_cb.py` (modal callbacks + summary table builder).
 
+### MC engine performance
+
+Two optimizations that drop first-render cost significantly on MC
+Citadel runs; remember these when editing the inner loop.
+
+**In-place state mutation in `citadel_step.step()`** (`engines/citadel_step.py`).
+The step function previously ran `deepcopy(state)` at the top of every
+period — ~95% of `step()`'s cost for 40-year Monthly × 1000-sim runs
+(~480k copies, each growing as `tax_lots` accumulated). The copy was
+defensive; `simulate()` snapshots scalars via `_snapshot_state()` and
+never reads the prior state again, so it's safe to mutate the passed-in
+state in place and return the same object. The snapshot helper
+explicitly `list()`-copies `reserves` / `investments`; `rebal_event`
+is reassigned to fresh dicts each trigger (`citadel_rebalancing.py`).
+**Do not** reintroduce a deepcopy here without a real correctness bug
+— it masks a 3–10× slowdown.
+
+**Pre-built quantile grid in `_ModelAdapter.prebuild_grid()`**
+(`figures/citadel.py`). The adapter serves `quantile_at(price, t)` via
+a `(n_quantiles, n_t)` price grid. Before the sim loop runs we
+vectorize-evaluate the model once across the sim's full monthly time
+axis, populating the internal per-t cache in one shot. This moves
+~14 400 price evaluations (30 quantiles × 480 periods for a 40-yr
+Monthly sim) out of the 1000-sim critical path. MC Citadel first-render
+is ~200–800 ms faster with no behavioural change.
+
 ---
 
 ## 12. Live Price Ticker

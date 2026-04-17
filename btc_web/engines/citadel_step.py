@@ -118,8 +118,20 @@ def _scf_check_repay(state: CitadelState, config: SimConfig,
 def step(state: CitadelState, config: SimConfig,
          btc_price_new: float, rng: np.random.Generator,
          model: "PriceModel | None" = None) -> CitadelState:
-    """Advance simulation by one period. Returns new state (does not mutate input)."""
-    new = deepcopy(state)
+    """Advance simulation by one period. Mutates `state` in place and returns it.
+
+    Previously this function ran `deepcopy(state)` to guarantee callers that
+    the old state remained untouched. That copy was 95% of `step()`'s cost for
+    long-running Citadel MC sims (~480k copies for a 40yr Monthly x 1000-sim
+    run, each copy growing as tax_lots accumulated).
+
+    `simulate()` takes a scalar-only snapshot via `_snapshot_state` after each
+    step and never reads the prior state again, so in-place mutation is safe.
+    The snapshot explicitly `list()`-copies mutable members (reserves,
+    investments) it captures, and `rebal_event` is reassigned to fresh dicts
+    rather than mutated. We keep returning `state` for call-site ergonomics.
+    """
+    new = state  # alias for readability of the existing mutation code below
     new.period += 1
     ppy = FREQ_PPY[config.freq]
     dt = 1.0 / ppy

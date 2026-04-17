@@ -40,8 +40,11 @@ def get_cached(prefix: str, params_json: str) -> dict | None:
 
     Storage format: figure JSON is the primary key's raw value (no outer
     json.dumps wrapping). If the result was a (fig, mc_result) tuple, a
-    sibling `{key}:mc` holds the mc_result. This avoids the 2x escape
-    overhead of embedding a JSON string inside another JSON object.
+    sibling ``{key}:mc`` holds the JSON-encoded mc_result — a literal
+    "null" string when the tuple's mc_result was None, so the reader
+    can distinguish "tuple with None mc" from "non-tuple single fig".
+    This avoids the 2x escape overhead of embedding a JSON string inside
+    another JSON object.
     """
     if not _HAS_REDIS:
         return None
@@ -54,9 +57,11 @@ def get_cached(prefix: str, params_json: str) -> dict | None:
             fig_raw = fig_raw.decode()
         mc_raw = _REDIS.get(key + ":mc")
         if mc_raw is None:
+            # No sibling key → this entry was written as a single figure.
             return {"figure": fig_raw, "mc_result": None, "is_tuple": False}
         if isinstance(mc_raw, bytes):
             mc_raw = mc_raw.decode()
+        # Sibling exists → was stored as tuple. mc_raw may decode to None.
         return {"figure": fig_raw, "mc_result": json.loads(mc_raw),
                 "is_tuple": True}
     except Exception:
@@ -67,10 +72,13 @@ def set_cached(prefix: str, params_json: str, data: dict) -> None:
     """Store a figure in Redis. No TTL — persists until model changes
     (fingerprint in key) or Redis LRU eviction. Non-fatal on error.
 
-    See get_cached for the two-key storage layout. The previous
-    single-key json.dumps({"figure": fig.to_json(), ...}) wrapping
-    escaped every quote in the figure JSON and roughly doubled the
-    payload and parse time.
+    See get_cached for the two-key storage layout. When the result was
+    a tuple (builder returned ``(fig, mc)``), the ``{key}:mc`` sibling
+    is ALWAYS written — even if mc is None — so the reader can tell
+    the difference between "tuple with None mc" (DCA/Retire/SC with
+    MC-disabled) and "non-tuple single fig" (Bubble / Heatmap). Absent
+    that sibling on None-valued tuples, callers that destructure as
+    ``fig, mc = _get_*_fig(...)`` blow up with ValueError on cache hit.
     """
     if not _HAS_REDIS:
         return
@@ -81,8 +89,10 @@ def set_cached(prefix: str, params_json: str, data: dict) -> None:
         key = _cache_key(prefix, params_json)
         pipe = _REDIS.pipeline()
         pipe.set(key, fig_str)
-        if data.get("is_tuple") and data.get("mc_result") is not None:
-            pipe.set(key + ":mc", json.dumps(data["mc_result"], default=str))
+        if data.get("is_tuple"):
+            # ALWAYS write the sibling for tuple results, including None.
+            pipe.set(key + ":mc", json.dumps(data.get("mc_result"),
+                                              default=str))
         pipe.execute()
     except Exception as e:
         logger.debug("Redis set failed: %s", e)

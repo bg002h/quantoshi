@@ -12,9 +12,9 @@ from mc_overlay import _mc_retire_overlay
 from tab_defaults import RETIRE
 
 from figures.common import (
-    _QR_LINE_WIDTH, _ANNOT_STAGGER_Y,
-    _NON_QUANTIZED_MODEL_COLOR, _OVERLAY_LINE_WIDTH,
-    _FONT_ANNOT,
+    TRACE_WIDTH, _ANNOT_STAGGER_Y,
+    _NON_QUANTIZED_MODEL_COLOR, TRACE_WIDTH_OVERLAY,
+    CHART_FONT_ANNOT,
     _HAS_MARKOV,
     _get_palette, _get_model_color, _fmt_q_label,
     _build_time_array, _get_starting_stack,
@@ -84,7 +84,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             _bm_trace_traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines", name=lbl,
                 opacity=quantile_opacity(q),
-                line=dict(color=_shade, width=_QR_LINE_WIDTH, shape=_line_shape),
+                line=dict(color=_shade, width=TRACE_WIDTH, shape=_line_shape),
             ))
 
             # depletion annotation
@@ -100,7 +100,7 @@ def build_retire_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                     text=f"\u2248{depl_yr}",
                     showarrow=True, arrowhead=2, arrowsize=1,
                     arrowcolor=_bm_color,
-                    font=dict(size=_FONT_ANNOT, color=_bm_color),
+                    font=dict(size=CHART_FONT_ANNOT, color=_bm_color),
                 ))
 
     # ── Symmetric band shading (before line traces so lines render on top) ────

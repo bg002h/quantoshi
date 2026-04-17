@@ -21,11 +21,11 @@ from colors import (
 )
 
 from figures.common import (
-    _INTERP_POINTS, _MAX_SCATTER_PTS, _QR_LINE_WIDTH, _SHADE_ALPHA,
-    _OVERLAY_LINE_WIDTH,
+    _INTERP_POINTS, _MAX_SCATTER_PTS, TRACE_WIDTH, SHADE_ALPHA,
+    TRACE_WIDTH_OVERLAY,
     _TODAY_LINE_COLOR,
-    _FONT_LEGEND, _FONT_TITLE, _FONT_SUBTITLE,
-    _SANS_FONT, _FONT_TITLE_LG, _FONT_BODY_LG, _FONT_TICK_LG, _FONT_LEGEND_LG,
+    CHART_FONT_LEGEND, CHART_FONT_TITLE, CHART_FONT_SUBTITLE,
+    FONT_SANS, CHART_FONT_TITLE_LG, CHART_FONT_BODY_LG, CHART_FONT_TICK_LG, CHART_FONT_LEGEND_LG,
     _LOG_MINOR, _MC_LEGEND_POS,
     _get_palette, _get_model_color, _fmt_q_label,
     _base_layout, _year_ticks, _price_tickvals,
@@ -141,7 +141,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             traces.append(go.Scatter(
                 x=list(t_arr), y=list(prices),
                 mode="lines", name=lbl,
-                line=dict(color=_shade, width=_QR_LINE_WIDTH),
+                line=dict(color=_shade, width=TRACE_WIDTH),
                 opacity=_trace_opacity,
             ))
 
@@ -204,7 +204,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                 if stack > 0:
                     lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
                 _shade = quantile_shade(_ovl_color, q)
-                _lw = 3.0 if (model_key == "u1" and hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005) else _OVERLAY_LINE_WIDTH
+                _lw = 3.0 if (model_key == "u1" and hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005) else TRACE_WIDTH_OVERLAY
                 _ovl_lines.append(go.Scatter(
                     x=list(t_arr), y=list(prices),
                     mode="lines", name=lbl,
@@ -234,7 +234,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             traces.append(go.Scatter(
                 x=list(t_arr), y=list(prices),
                 mode="lines", name=lbl,
-                line=dict(color=_get_model_color(model_key, p), width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style),
+                line=dict(color=_get_model_color(model_key, p), width=TRACE_WIDTH_OVERLAY, dash=mdl.dash_style),
                 legendgroup=mdl.short_name,
             ))
 
@@ -455,7 +455,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             text=f"Stack: {p['stack']:.6g} BTC",
             xref="paper", yref="paper", x=0.99, y=0.01,
             xanchor="right", yanchor="bottom",
-            showarrow=False, font=dict(size=_FONT_LEGEND, color=theme.TEXT_COLOR),
+            showarrow=False, font=dict(size=CHART_FONT_LEGEND, color=theme.TEXT_COLOR),
             bgcolor=theme.PLOT_BG_COLOR, bordercolor=theme.SPINE_COLOR, borderwidth=1,
         )]
 

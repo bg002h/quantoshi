@@ -15,8 +15,8 @@ from tab_defaults import CITADEL
 from engines.citadel import SimConfig, simulate, PriceModel
 
 from figures.common import (
-    _QR_LINE_WIDTH, _ANNOT_STAGGER_Y,
-    _FONT_ANNOT,
+    TRACE_WIDTH, _ANNOT_STAGGER_Y,
+    CHART_FONT_ANNOT,
     _get_palette, _fmt_q_label,
     _build_time_array, _get_starting_stack,
     _sim_layout, _finalize_chart, _error_figure,
@@ -348,7 +348,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
         traces.append(go.Scatter(
             x=list(ts), y=list(total_y), mode="lines",
             name=f"Total Portfolio{_qtag}  \u2192  {fmt_price(float(total_y[-1]))}",
-            line=dict(color=_C_TOTAL, width=_QR_LINE_WIDTH + 0.5),
+            line=dict(color=_C_TOTAL, width=TRACE_WIDTH + 0.5),
         ))
 
     if disp_mode == "usd_per_asset":
@@ -356,34 +356,34 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
         traces.append(go.Scatter(
             x=list(ts), y=list(btc_usd), mode="lines",
             name=f"BTC Holdings{_qtag}  \u2192  {fmt_price(float(btc_usd[-1]))}",
-            line=dict(color=_C_BTC, width=_QR_LINE_WIDTH),
+            line=dict(color=_C_BTC, width=TRACE_WIDTH),
         ))
 
         cash_y = med["cash"]
         traces.append(go.Scatter(
             x=list(ts), y=list(cash_y), mode="lines",
             name=f"Cash{_qtag}  \u2192  {fmt_price(float(cash_y[-1]))}",
-            line=dict(color=_C_CASH, width=_QR_LINE_WIDTH, dash="dash"),
+            line=dict(color=_C_CASH, width=TRACE_WIDTH, dash="dash"),
         ))
 
         res_y = med["reserves_total"]
         traces.append(go.Scatter(
             x=list(ts), y=list(res_y), mode="lines",
             name=f"Reserves{_qtag}  \u2192  {fmt_price(float(res_y[-1]))}",
-            line=dict(color=_C_RESERVES, width=_QR_LINE_WIDTH),
+            line=dict(color=_C_RESERVES, width=TRACE_WIDTH),
         ))
 
         inv_y = med["investments_total"]
         traces.append(go.Scatter(
             x=list(ts), y=list(inv_y), mode="lines",
             name=f"Investments{_qtag}  \u2192  {fmt_price(float(inv_y[-1]))}",
-            line=dict(color=_C_INVEST, width=_QR_LINE_WIDTH),
+            line=dict(color=_C_INVEST, width=TRACE_WIDTH),
         ))
 
         traces.append(go.Scatter(
             x=list(ts), y=list(period_spend), mode="lines",
             name=f"Spending/period  \u2192  {fmt_price(float(period_spend[-1]))}",
-            line=dict(color=_C_SPEND, width=_QR_LINE_WIDTH * 0.7, dash="dot"),
+            line=dict(color=_C_SPEND, width=TRACE_WIDTH * 0.7, dash="dot"),
         ))
 
         # TD/TF wrapper traces (only when tax is on)
@@ -392,14 +392,14 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
             traces.append(go.Scatter(
                 x=list(ts), y=list(td_y), mode="lines",
                 name=f"Tax-Deferred  \u2192  {fmt_price(float(td_y[-1]))}",
-                line=dict(color=CITADEL_BULLISH_QR, width=_QR_LINE_WIDTH, dash="dashdot"),
+                line=dict(color=CITADEL_BULLISH_QR, width=TRACE_WIDTH, dash="dashdot"),
             ))
         if p.get("tax_enabled") and result.tf_total is not None:
             tf_y = np.median(result.tf_total, axis=0)
             traces.append(go.Scatter(
                 x=list(ts), y=list(tf_y), mode="lines",
                 name=f"Tax-Free (Roth)  \u2192  {fmt_price(float(tf_y[-1]))}",
-                line=dict(color=CITADEL_BEARISH_QR, width=_QR_LINE_WIDTH, dash="dashdot"),
+                line=dict(color=CITADEL_BEARISH_QR, width=TRACE_WIDTH, dash="dashdot"),
             ))
 
     elif disp_mode == "btc":
@@ -407,7 +407,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
         traces.append(go.Scatter(
             x=list(ts), y=list(btc_stack), mode="lines",
             name=f"BTC Stack{_qtag}  \u2192  {float(btc_stack[-1]):.4f} BTC",
-            line=dict(color=_C_BTC, width=_QR_LINE_WIDTH),
+            line=dict(color=_C_BTC, width=TRACE_WIDTH),
         ))
 
     elif disp_mode == "usd_total":
@@ -430,7 +430,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
             text=f"\u2248{depl_yr}",
             showarrow=True, arrowhead=2, arrowsize=1,
             arrowcolor=_C_SPEND,
-            font=dict(size=_FONT_ANNOT, color=_C_SPEND),
+            font=dict(size=CHART_FONT_ANNOT, color=_C_SPEND),
         ))
 
     # Build layout
@@ -539,7 +539,7 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
                     text=f"Tax drag: \u2212{fmt_price(drag)} ({drag_pct:.1f}%)",
                     showarrow=True, arrowhead=2, arrowsize=1,
                     arrowcolor=CITADEL_SPENDING,
-                    font=dict(size=_FONT_ANNOT, color=CITADEL_SPENDING),
+                    font=dict(size=CHART_FONT_ANNOT, color=CITADEL_SPENDING),
                 ))
 
         # Append tax info to chart title

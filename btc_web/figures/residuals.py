@@ -13,7 +13,7 @@ from colors import (BLACK, FALLBACK_MODEL_GRAY, _hex_alpha, PLOT_BG_COLOR,
                     RESIDUAL_LINE_OPACITY, SUPPORT_LINE_OPACITY, MC_LEGEND_BG_ALPHA)
 
 from figures.common import (
-    _OVERLAY_LINE_WIDTH, _QR_LINE_WIDTH,
+    TRACE_WIDTH_OVERLAY, TRACE_WIDTH,
     _TODAY_LINE_COLOR,
     _get_palette, _get_model_color,
     _base_layout, _year_ticks,
@@ -64,7 +64,7 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             traces.append(go.Scatter(
                 x=list(t_data), y=_round_trace_data(resid),
                 mode="lines", name="BM support residual",
-                line=dict(color=bm_color, width=_OVERLAY_LINE_WIDTH, dash="dash"),
+                line=dict(color=bm_color, width=TRACE_WIDTH_OVERLAY, dash="dash"),
                 opacity=RESIDUAL_LINE_OPACITY,
             ))
         # Composite residual
@@ -77,7 +77,7 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             traces.append(go.Scatter(
                 x=list(t_data), y=_round_trace_data(resid),
                 mode="lines", name="BM composite residual",
-                line=dict(color=bm_color, width=_OVERLAY_LINE_WIDTH),
+                line=dict(color=bm_color, width=TRACE_WIDTH_OVERLAY),
                 opacity=1.0,
             ))
 
@@ -111,7 +111,7 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         traces.append(go.Scatter(
             x=list(t_data), y=_round_trace_data(resid),
             mode="lines", name=f"{mdl.legend_name} median residual",
-            line=dict(color=color, width=_OVERLAY_LINE_WIDTH,
+            line=dict(color=color, width=TRACE_WIDTH_OVERLAY,
                       dash=getattr(mdl, "dash_style", "solid")),
             opacity=1.0,
         ))

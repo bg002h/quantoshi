@@ -20,8 +20,8 @@ from colors import (
 )
 
 from figures.common import (
-    _FONT_SUBTITLE, _FONT_TITLE_LG, _FONT_BODY_LG, _FONT_TICK_LG,
-    _SANS_FONT,
+    CHART_FONT_SUBTITLE, CHART_FONT_TITLE_LG, CHART_FONT_BODY_LG, CHART_FONT_TICK_LG,
+    FONT_SANS,
     _get_palette, _error_figure, _fmt_q_label,
     _lerp_hex, _dense_colorscale, _hex_alpha,
     _apply_config_annotation, _apply_watermark,
@@ -189,7 +189,7 @@ def _heatmap_cell_annots(mc, mp, mm, vfmt, hm_stk, zmin, zmax, cell_fs, colorsca
                     text=tx.replace("\n", "<br>"),
                     showarrow=False,
                     font=dict(size=cell_fs, color=txt_col,
-                              family=_SANS_FONT, weight="bold"),
+                              family=FONT_SANS, weight="bold"),
                     xref="x", yref="y",
                 )
                 if _bg:
@@ -328,7 +328,7 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
 
     fig.update_layout(
         title=dict(text=title_text,
-                   font=dict(color=theme.TITLE_COLOR, size=_FONT_SUBTITLE)),
+                   font=dict(color=theme.TITLE_COLOR, size=CHART_FONT_SUBTITLE)),
         paper_bgcolor=theme.PLOT_BG_COLOR,
         plot_bgcolor=theme.PLOT_BG_COLOR,
         font=dict(color=theme.TEXT_COLOR),
@@ -341,10 +341,10 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         annotations=annots,
         margin=dict(l=40, r=8, t=40, b=32),
     )
-    fig.layout.title.font.update(family=_SANS_FONT, size=_FONT_TITLE_LG)
-    fig.layout.font.update(family=_SANS_FONT, size=_FONT_TICK_LG, weight="bold")
-    fig.layout.xaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
-    fig.layout.yaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
+    fig.layout.title.font.update(family=FONT_SANS, size=CHART_FONT_TITLE_LG)
+    fig.layout.font.update(family=FONT_SANS, size=CHART_FONT_TICK_LG, weight="bold")
+    fig.layout.xaxis.title.font.update(family=FONT_SANS, size=CHART_FONT_BODY_LG)
+    fig.layout.yaxis.title.font.update(family=FONT_SANS, size=CHART_FONT_BODY_LG)
     # Cell font family/size/weight set in _heatmap_cell_annots; no override here.
     # Global font.weight="bold" ensures iOS Safari renders bold on first paint
 
@@ -440,7 +440,7 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
 
     fig.update_layout(
         title=dict(text=f"Monte Carlo CAGR \u2014 {entry_lbl}",
-                   font=dict(color=theme.TITLE_COLOR, size=_FONT_SUBTITLE)),
+                   font=dict(color=theme.TITLE_COLOR, size=CHART_FONT_SUBTITLE)),
         paper_bgcolor=theme.PLOT_BG_COLOR,
         plot_bgcolor=theme.PLOT_BG_COLOR,
         font=dict(color=theme.TEXT_COLOR),
@@ -453,10 +453,10 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
         annotations=annots,
         margin=dict(l=40, r=8, t=40, b=32),
     )
-    fig.layout.title.font.update(family=_SANS_FONT, size=_FONT_TITLE_LG)
-    fig.layout.font.update(family=_SANS_FONT, size=_FONT_TICK_LG)
-    fig.layout.xaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
-    fig.layout.yaxis.title.font.update(family=_SANS_FONT, size=_FONT_BODY_LG)
+    fig.layout.title.font.update(family=FONT_SANS, size=CHART_FONT_TITLE_LG)
+    fig.layout.font.update(family=FONT_SANS, size=CHART_FONT_TICK_LG)
+    fig.layout.xaxis.title.font.update(family=FONT_SANS, size=CHART_FONT_BODY_LG)
+    fig.layout.yaxis.title.font.update(family=FONT_SANS, size=CHART_FONT_BODY_LG)
     # Cell font family/size/weight set in _heatmap_cell_annots; no override here.
     _add_heatmap_grid(fig, n_cols=len(eyrs), n_rows=len(mc_labels))
     if p.get("mc_enabled"):

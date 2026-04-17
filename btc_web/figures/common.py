@@ -37,10 +37,8 @@ from colors import (
     CHART_FONT_LEGEND_LG, CHART_FONT_ANNOT_LG, CHART_FONT_WATERMARK_LG,
     TRACE_WIDTH, TRACE_WIDTH_OVERLAY, TRACE_WIDTH_TODAY,
     GRID_MAJOR_WIDTH, GRID_MINOR_WIDTH, LEGEND_BG_OPACITY,
-    TODAY_GLOW_WIDTH as _CGW, TODAY_LINE_OPACITY as _CTLO,
-    TODAY_GLOW_OPACITY as _CTGO,
-    SHADE_ALPHA as _CSA,
-    WM_OPACITY as _CWO, WM_SIZE_X as _CWSX, WM_SIZE_Y as _CWSY,
+    TODAY_GLOW_WIDTH, TODAY_LINE_OPACITY, TODAY_GLOW_OPACITY,
+    SHADE_ALPHA, WM_OPACITY, WM_SIZE_X, WM_SIZE_Y,
     CHART_MARGIN,
     Q_OPACITY_FLOOR, Q_OPACITY_RANGE, Q_OPACITY_DECAY,
     quantile_shade, BAND_FILL_MODE, BAND_PASTEL_ALPHA,
@@ -125,13 +123,13 @@ def _today_line_shapes(t_today: float, y_lo, y_hi, color: str,
     if glow:
         shapes.append(dict(
             type="line", x0=t_today, x1=t_today, y0=y_lo, y1=y_hi,
-            line=dict(color=color, width=_TODAY_GLOW_WIDTH),
-            opacity=_TODAY_GLOW_OPACITY, yref=yref,
+            line=dict(color=color, width=TODAY_GLOW_WIDTH),
+            opacity=TODAY_GLOW_OPACITY, yref=yref,
         ))
     shapes.append(dict(
         type="line", x0=t_today, x1=t_today, y0=y_lo, y1=y_hi,
-        line=dict(color=color, dash="dash", width=_TODAY_LINE_WIDTH),
-        opacity=_TODAY_LINE_OPACITY, yref=yref,
+        line=dict(color=color, dash="dash", width=TRACE_WIDTH_TODAY),
+        opacity=TODAY_LINE_OPACITY, yref=yref,
     ))
     return shapes
 
@@ -143,32 +141,11 @@ _ANNOT_STAGGER_Y = _app_ctx.ANNOT_STAGGER_Y
 _BTC_ORANGE       = _app_ctx.BTC_ORANGE
 _TODAY_LINE_COLOR  = _COLORS_TODAY_LINE
 
-# ── Backward-compat aliases (callers import these underscore names) ──────
-# TODO: Phase 4+ — migrate callers to import directly from colors.py, then delete aliases
-_SANS_FONT          = FONT_SANS
-_BRAND_FONT         = FONT_BRAND
-_FONT_TITLE         = CHART_FONT_TITLE
-_FONT_SUBTITLE      = CHART_FONT_SUBTITLE
-_FONT_BODY          = CHART_FONT_BODY
-_FONT_LEGEND        = CHART_FONT_LEGEND
-_FONT_WATERMARK     = CHART_FONT_WATERMARK
-_FONT_ANNOT         = CHART_FONT_ANNOT
-_FONT_TITLE_LG      = CHART_FONT_TITLE_LG
-_FONT_BODY_LG       = CHART_FONT_BODY_LG
-_FONT_TICK_LG       = CHART_FONT_TICK_LG
-_FONT_LEGEND_LG     = CHART_FONT_LEGEND_LG
-_FONT_ANNOT_LG      = CHART_FONT_ANNOT_LG
-_FONT_WATERMARK_LG  = CHART_FONT_WATERMARK_LG
-_QR_LINE_WIDTH      = TRACE_WIDTH
-_OVERLAY_LINE_WIDTH = TRACE_WIDTH_OVERLAY
-_TODAY_LINE_WIDTH   = TRACE_WIDTH_TODAY
-_TODAY_GLOW_WIDTH   = _CGW
-_TODAY_LINE_OPACITY = _CTLO
-_TODAY_GLOW_OPACITY = _CTGO
-_SHADE_ALPHA        = _CSA
-_WM_OPACITY         = _CWO
-_WM_SIZE_X          = _CWSX
-_WM_SIZE_Y          = _CWSY
+# Appearance constants (FONT_*, CHART_FONT_*, TRACE_WIDTH*, TODAY_*,
+# SHADE_ALPHA, WM_*) are imported directly from colors.py at the top of
+# this module and re-exposed to figure modules by their canonical names.
+# The underscore-prefix aliases that formerly lived here were removed
+# 2026-04-16 — all figure modules now import the canonical names.
 
 _NON_QUANTIZED_MODEL_COLOR = _COLORS_NON_Q  # saddlebrown — single-trajectory models
 
@@ -189,13 +166,13 @@ _HOVER_FMT_BTC = "<b>%{fullData.name}</b><br>%{customdata[0]}<br>%{y:,.4f} BTC<e
 
 def _apply_sans_typography(layout: dict) -> None:
     """Upgrade layout fonts to enhanced sans-serif stack with larger sizes."""
-    layout["title"]["font"].update(family=_SANS_FONT, size=_FONT_TITLE_LG)
-    layout["font"].update(family=_SANS_FONT, size=_FONT_TICK_LG)
-    layout["xaxis"]["title"]["font"].update(family=_SANS_FONT, size=_FONT_BODY_LG)
-    layout["yaxis"]["title"]["font"].update(family=_SANS_FONT, size=_FONT_BODY_LG)
-    layout["legend"]["font"] = dict(family=_SANS_FONT, size=_FONT_LEGEND_LG)
+    layout["title"]["font"].update(family=FONT_SANS, size=CHART_FONT_TITLE_LG)
+    layout["font"].update(family=FONT_SANS, size=CHART_FONT_TICK_LG)
+    layout["xaxis"]["title"]["font"].update(family=FONT_SANS, size=CHART_FONT_BODY_LG)
+    layout["yaxis"]["title"]["font"].update(family=FONT_SANS, size=CHART_FONT_BODY_LG)
+    layout["legend"]["font"] = dict(family=FONT_SANS, size=CHART_FONT_LEGEND_LG)
     for ann in layout.get("annotations", []):
-        ann.setdefault("font", {}).update(family=_SANS_FONT, size=_FONT_ANNOT_LG)
+        ann.setdefault("font", {}).update(family=FONT_SANS, size=CHART_FONT_ANNOT_LG)
 
 # ── Bitcoin Thermal palette — quantile → temperature color ────────────────────
 # Low percentiles (value zone) = cool blue, median = silver, high = hot orange/red
@@ -406,14 +383,14 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
     return dict(
         title=dict(
             text=title,
-            font=dict(family=_BRAND_FONT, color=theme.TITLE_COLOR, size=_FONT_TITLE),
+            font=dict(family=FONT_BRAND, color=theme.TITLE_COLOR, size=CHART_FONT_TITLE),
             x=0.02, xanchor="left",
         ),
         paper_bgcolor=theme.PLOT_BG_COLOR,
         plot_bgcolor=theme.PLOT_BG_COLOR,
-        font=dict(family=_SANS_FONT, color=theme.TEXT_COLOR, size=_FONT_BODY),
+        font=dict(family=FONT_SANS, color=theme.TEXT_COLOR, size=CHART_FONT_BODY),
         xaxis=dict(
-            title=dict(text=xlabel, font=dict(family=_SANS_FONT, color=theme.TEXT_COLOR)),
+            title=dict(text=xlabel, font=dict(family=FONT_SANS, color=theme.TEXT_COLOR)),
             gridcolor=theme.GRID_MAJOR_COLOR, gridwidth=GRID_MAJOR_WIDTH,
             linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
             zerolinecolor=theme.GRID_MAJOR_COLOR,
@@ -423,7 +400,7 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
             ticklabelshift=0,
         ),
         yaxis=dict(
-            title=dict(text=ylabel, font=dict(family=_SANS_FONT, color=theme.TEXT_COLOR)),
+            title=dict(text=ylabel, font=dict(family=FONT_SANS, color=theme.TEXT_COLOR)),
             gridcolor=theme.GRID_MAJOR_COLOR, gridwidth=GRID_MAJOR_WIDTH,
             linecolor=theme.SPINE_COLOR, tickcolor=theme.TEXT_COLOR,
             zerolinecolor=theme.GRID_MAJOR_COLOR,
@@ -435,7 +412,7 @@ def _base_layout(title, xlabel, ylabel, **kwargs):
         legend=dict(
             bgcolor=_hex_alpha(_COLORS_PLOT_BG, LEGEND_BG_OPACITY),
             bordercolor=BLACK_A0,
-            borderwidth=0, font=dict(family=_SANS_FONT, size=_FONT_LEGEND),
+            borderwidth=0, font=dict(family=FONT_SANS, size=CHART_FONT_LEGEND),
         ),
         margin=dict(**CHART_MARGIN),
         **kwargs,
@@ -644,27 +621,27 @@ def _apply_mc_premium(fig: go.Figure, legend_pos: str = "top-left", hide_xlabel:
     """
     # Title: serif, gold, bold, centered, +4px
     fig.layout.title.font.family = _MC_FONT_FAMILY
-    fig.layout.title.font.size = _FONT_TITLE + 4
+    fig.layout.title.font.size = CHART_FONT_TITLE + 4
     fig.layout.title.font.color = _MC_TITLE_COLOR
     fig.layout.title.font.weight = "bold"
     fig.layout.title.x = 0.5
     fig.layout.title.xanchor = "center"
     # Global font (tick labels): serif, bold, +3px
     fig.layout.font.family = _MC_FONT_FAMILY
-    fig.layout.font.size = _FONT_BODY + 3
+    fig.layout.font.size = CHART_FONT_BODY + 3
     fig.layout.font.weight = "bold"
     # Axis titles: serif, bold, +4px
     if hide_xlabel:
         fig.layout.xaxis.title.text = ""
     fig.layout.xaxis.title.font.family = _MC_FONT_FAMILY
-    fig.layout.xaxis.title.font.size = _FONT_BODY + 4
+    fig.layout.xaxis.title.font.size = CHART_FONT_BODY + 4
     fig.layout.xaxis.title.font.weight = "bold"
     fig.layout.yaxis.title.font.family = _MC_FONT_FAMILY
-    fig.layout.yaxis.title.font.size = _FONT_BODY + 4
+    fig.layout.yaxis.title.font.size = CHART_FONT_BODY + 4
     fig.layout.yaxis.title.font.weight = "bold"
     # Legend — bold but not enlarged
     fig.layout.legend.font.weight = "bold"
-    fig.layout.legend.font.size = _FONT_LEGEND
+    fig.layout.legend.font.size = CHART_FONT_LEGEND
     fig.layout.legend.bordercolor = _MC_LEGEND_BORDER
     if legend_pos and legend_pos in _MC_LEGEND_POS:
         pos = _MC_LEGEND_POS[legend_pos]
@@ -697,9 +674,9 @@ def _apply_watermark(fig: go.Figure, pos: str = "bottom-right") -> None:
             source=_LOGO_B64,
             xref="paper", yref="paper",
             x=img_x, y=0.0,
-            sizex=_WM_SIZE_X, sizey=_WM_SIZE_Y,
+            sizex=WM_SIZE_X, sizey=WM_SIZE_Y,
             xanchor=img_xa, yanchor="bottom",
-            opacity=_WM_OPACITY,
+            opacity=WM_OPACITY,
             layer="above",
         ))
     fig.add_annotation(dict(
@@ -708,7 +685,7 @@ def _apply_watermark(fig: go.Figure, pos: str = "bottom-right") -> None:
         x=txt_x, y=0.015,
         xanchor=txt_xa, yanchor="bottom",
         showarrow=False,
-        font=dict(size=_FONT_WATERMARK, color=_hex_alpha(WATERMARK_TEXT_COLOR, WATERMARK_TEXT_ALPHA)),
+        font=dict(size=CHART_FONT_WATERMARK, color=_hex_alpha(WATERMARK_TEXT_COLOR, WATERMARK_TEXT_ALPHA)),
     ))
     return fig
 
@@ -1081,7 +1058,7 @@ def _edge_text_trace(x_arr, y_arr, label, color, *, log_y=False,
         marker=dict(size=7, color=color, symbol="circle"),
         text=[f"{label}  "],
         textposition=textpos,
-        textfont=dict(size=_FONT_ANNOT, color=color),
+        textfont=dict(size=CHART_FONT_ANNOT, color=color),
         showlegend=False, hoverinfo="skip",
         cliponaxis=False,
     )
@@ -1315,7 +1292,7 @@ def build_overlay_traces(
                 _model_lines.append(go.Scatter(
                     x=list(ts), y=list(y_vals), mode="lines",
                     name=f"{mdl.legend_name} {_fmt_q_label(q, '')}  \u2192  {final_lbl}",
-                    line=dict(color=_shade, width=_OVERLAY_LINE_WIDTH,
+                    line=dict(color=_shade, width=TRACE_WIDTH_OVERLAY,
                               dash=mdl.dash_style, shape=line_shape),
                     opacity=quantile_opacity(q),
                     legendgroup=mdl.short_name,
@@ -1344,7 +1321,7 @@ def build_overlay_traces(
                 x=list(ts), y=list(y_vals), mode="lines",
                 name=f"{mdl.legend_name}  \u2192  {final_lbl}",
                 line=dict(color=_mdl_color,
-                          width=_OVERLAY_LINE_WIDTH, dash=mdl.dash_style,
+                          width=TRACE_WIDTH_OVERLAY, dash=mdl.dash_style,
                           shape=line_shape),
                 legendgroup=mdl.short_name,
             ))

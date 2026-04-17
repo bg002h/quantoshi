@@ -11,9 +11,9 @@ from btc_core import ModelData, yr_to_t, fmt_price
 from tab_defaults import DCA
 
 from figures.common import (
-    _QR_LINE_WIDTH, _BTC_ORANGE,
-    _NON_QUANTIZED_MODEL_COLOR, _OVERLAY_LINE_WIDTH,
-    _FONT_ANNOT,
+    TRACE_WIDTH, _BTC_ORANGE,
+    _NON_QUANTIZED_MODEL_COLOR, TRACE_WIDTH_OVERLAY,
+    CHART_FONT_ANNOT,
     _HAS_MARKOV,
     _get_palette, _get_model_color, _fmt_q_label, _error_figure,
     _build_freq_config, _build_time_array, _get_starting_stack,
@@ -153,7 +153,7 @@ def _dca_sc_overlay(m, p, ts, sel_qs, start_stack, all_prices, disp_mode, ppy, l
         _shade = quantile_shade(_bm_color, q)
         sc_traces.append(go.Scatter(
             x=list(ts), y=list(y_sc), mode="lines", name=lbl_sc,
-            line=dict(color=_shade, width=_QR_LINE_WIDTH, dash="dash", shape=line_shape),
+            line=dict(color=_shade, width=TRACE_WIDTH, dash="dash", shape=line_shape),
             opacity=quantile_opacity(q),
         ))
 
@@ -221,7 +221,7 @@ def build_dca_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict |
             _shade = quantile_shade(_bm_color, q)
             _bm_line_traces.append(go.Scatter(
                 x=list(ts), y=list(y_vals), mode="lines", name=lbl,
-                line=dict(color=_shade, width=_QR_LINE_WIDTH, shape=_line_shape),
+                line=dict(color=_shade, width=TRACE_WIDTH, shape=_line_shape),
                 opacity=quantile_opacity(q),
             ))
 

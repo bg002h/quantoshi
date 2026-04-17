@@ -16,8 +16,8 @@ from colors import (FALLBACK_MODEL_GRAY, BLACK, LIGHT_GRAY,
                     SC_ENVELOPE_ALPHA, SC_OVERLAY_ENVELOPE_ALPHA)
 
 from figures.common import (
-    _QR_LINE_WIDTH, _ANNOT_STAGGER_Y, _BISECT_ITERS,
-    _FONT_ANNOT,
+    TRACE_WIDTH, _ANNOT_STAGGER_Y, _BISECT_ITERS,
+    CHART_FONT_ANNOT,
     _HAS_MARKOV,
     _get_palette, _get_model_color, _fmt_q_label, _fmt_q_range, _error_figure,
     _build_freq_config, _get_starting_stack,
@@ -136,7 +136,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                 text=f"{prefix}\u2248{depl_yr}",
                 showarrow=True, arrowhead=2, arrowsize=1,
                 arrowcolor=arrow_col,
-                font=dict(size=_FONT_ANNOT, color=text_col),
+                font=dict(size=CHART_FONT_ANNOT, color=text_col),
                 name=legendgroup,
             )
 
@@ -209,7 +209,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                         legendgroup=grp_model,
                         showlegend=_first_legend,
                         opacity=quantile_opacity(q),
-                        line=dict(color=_shade, width=_QR_LINE_WIDTH,
+                        line=dict(color=_shade, width=TRACE_WIDTH,
                                   dash=_DASH_STYLES[di % len(_DASH_STYLES)], shape=_line_shape),
                     ))
                     _first_legend = False
@@ -258,7 +258,7 @@ def build_supercharge_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure
                     traces.append(go.Scatter(
                         x=list(ts_d_q), y=list(y_vals_q), mode="lines",
                         name=_legend_name,
-                        line=dict(color=_tcol, width=_QR_LINE_WIDTH, dash=model.dash_style, shape=_line_shape),
+                        line=dict(color=_tcol, width=TRACE_WIDTH, dash=model.dash_style, shape=_line_shape),
                         legendgroup=grp_model, showlegend=_first_legend,
                     ))
                     _first_legend = False

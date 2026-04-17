@@ -1,6 +1,8 @@
 """Citadel Planner — cost-ranked dynamic spending waterfall."""
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from .citadel_types import (
     _WithdrawalSource, CitadelState, SimConfig, PriceModel, FREQ_PPY,
 )
@@ -9,7 +11,47 @@ from .citadel_transactions import _sell_btc_tracked, _sell_investments_tracked
 __all__ = [
     "_build_source_list", "_score_sources", "_rank_sources",
     "_max_draw_before_boundary", "_execute_draw", "_spending_waterfall",
+    "TaxContext", "_inflate_tax_context",
 ]
+
+
+@dataclass(frozen=True)
+class TaxContext:
+    """Pre-inflated federal + state tax brackets for a single simulation year."""
+    ord_brackets: list
+    std_ded: float
+    ltcg_brackets: list
+    niit_threshold: float
+    sim_year: int
+    infl: float
+
+
+def _inflate_tax_context(config: "SimConfig", sim_year: int) -> TaxContext:
+    """Build a TaxContext with federal brackets inflated to `sim_year`.
+
+    Centralizes the inflation math that was previously duplicated in
+    _score_sources, _max_draw_before_boundary, and _pay_tax_amount.
+    """
+    from .tax import _inflate_brackets
+    from .tax_data import (
+        FEDERAL_BRACKETS_TCJA, FEDERAL_BRACKETS_SUNSET,
+        LTCG_BRACKETS, NIIT_THRESHOLD,
+        STANDARD_DEDUCTION_TCJA, STANDARD_DEDUCTION_SUNSET,
+    )
+    yrs = max(sim_year - 2025, 0)
+    infl = config.inflation / 100
+
+    if config.tcja_sunset:
+        ord_brackets = _inflate_brackets(FEDERAL_BRACKETS_SUNSET[config.filing_status], yrs, infl)
+        std_ded = STANDARD_DEDUCTION_SUNSET[config.filing_status] * (1 + infl) ** yrs
+    else:
+        ord_brackets = _inflate_brackets(FEDERAL_BRACKETS_TCJA[config.filing_status], yrs, infl)
+        std_ded = STANDARD_DEDUCTION_TCJA[config.filing_status] * (1 + infl) ** yrs
+
+    ltcg_brackets = _inflate_brackets(LTCG_BRACKETS[config.filing_status], yrs, infl)
+    niit_threshold = NIIT_THRESHOLD[config.filing_status]  # NOT inflation-indexed
+    return TaxContext(ord_brackets, std_ded, ltcg_brackets, niit_threshold,
+                      sim_year, infl)
 
 
 def _build_source_list(state: "CitadelState", config: "SimConfig",
@@ -165,16 +207,12 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
 def _score_sources(sources: list[_WithdrawalSource], state: CitadelState,
                    config: SimConfig, model: "PriceModel | None" = None) -> None:
     """Compute cost-per-dollar for each source. Mutates source.cost in place."""
-    from .tax import _inflate_brackets
-    from .tax_data import (FEDERAL_BRACKETS_TCJA, FEDERAL_BRACKETS_SUNSET,
-                           LTCG_BRACKETS, NIIT_RATE, NIIT_THRESHOLD,
-                           STANDARD_DEDUCTION_TCJA, STANDARD_DEDUCTION_SUNSET)
+    from .tax_data import NIIT_RATE
     from .citadel_tax_integration import _get_state_rate
 
     state_rate = _get_state_rate(config) / 100  # as fraction
 
     # Current bracket position from accumulator
-    _years_from_base = 0
     _ordinary_ytd = 0.0
     _ltcg_ytd = 0.0
     _magi = 0.0
@@ -187,18 +225,11 @@ def _score_sources(sources: list[_WithdrawalSource], state: CitadelState,
 
     ppy = FREQ_PPY.get(config.freq, 12)
     sim_year = config.start_yr + int(state.period / ppy)
-    _years_from_base = max(sim_year - 2025, 0)
-    infl = config.inflation / 100
-
-    # Inflate brackets
-    if config.tcja_sunset:
-        _ord_brackets = _inflate_brackets(FEDERAL_BRACKETS_SUNSET[config.filing_status], _years_from_base, infl)
-        _std_ded = STANDARD_DEDUCTION_SUNSET[config.filing_status] * (1 + infl) ** _years_from_base
-    else:
-        _ord_brackets = _inflate_brackets(FEDERAL_BRACKETS_TCJA[config.filing_status], _years_from_base, infl)
-        _std_ded = STANDARD_DEDUCTION_TCJA[config.filing_status] * (1 + infl) ** _years_from_base
-    _ltcg_brackets = _inflate_brackets(LTCG_BRACKETS[config.filing_status], _years_from_base, infl)
-    _niit_threshold = NIIT_THRESHOLD[config.filing_status]  # NOT inflation-indexed
+    tc = _inflate_tax_context(config, sim_year)
+    _ord_brackets = tc.ord_brackets
+    _std_ded = tc.std_ded
+    _ltcg_brackets = tc.ltcg_brackets
+    _niit_threshold = tc.niit_threshold
 
     # Marginal ordinary rate at current YTD position
     _ord_taxable = max(_ordinary_ytd - _std_ded, 0)
@@ -263,22 +294,13 @@ def _max_draw_before_boundary(state: CitadelState, config: SimConfig,
     if not source.is_bracket_sensitive:
         return float("inf")
 
-    from .tax import _inflate_brackets
-    from .tax_data import (FEDERAL_BRACKETS_TCJA, FEDERAL_BRACKETS_SUNSET,
-                           LTCG_BRACKETS, NIIT_THRESHOLD,
-                           STANDARD_DEDUCTION_TCJA, STANDARD_DEDUCTION_SUNSET)
+    from .tax_data import NIIT_THRESHOLD
 
     ppy = FREQ_PPY.get(config.freq, 12)
     sim_year = config.start_yr + int(state.period / ppy)
-    yrs = max(sim_year - 2025, 0)
-    infl = config.inflation / 100
-
-    if config.tcja_sunset:
-        ord_brackets = _inflate_brackets(FEDERAL_BRACKETS_SUNSET[config.filing_status], yrs, infl)
-        std_ded = STANDARD_DEDUCTION_SUNSET[config.filing_status] * (1 + infl) ** yrs
-    else:
-        ord_brackets = _inflate_brackets(FEDERAL_BRACKETS_TCJA[config.filing_status], yrs, infl)
-        std_ded = STANDARD_DEDUCTION_TCJA[config.filing_status] * (1 + infl) ** yrs
+    tc = _inflate_tax_context(config, sim_year)
+    ord_brackets = tc.ord_brackets
+    std_ded = tc.std_ded
 
     # Current positions from accumulator
     ordinary_ytd = 0.0
@@ -317,7 +339,7 @@ def _max_draw_before_boundary(state: CitadelState, config: SimConfig,
         # LTCG brackets stacked on ordinary taxable income
         ord_taxable = max(ordinary_ytd - std_ded, 0)
         stacked = ord_taxable + ltcg_ytd
-        ltcg_brackets = _inflate_brackets(LTCG_BRACKETS[config.filing_status], yrs, infl)
+        ltcg_brackets = tc.ltcg_brackets
         for upper, _rate in ltcg_brackets:
             if stacked < upper - 0.01:  # skip brackets within float rounding
                 gain_distance = upper - stacked  # distance in gain-space

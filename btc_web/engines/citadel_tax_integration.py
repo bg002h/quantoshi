@@ -134,14 +134,10 @@ def _pay_tax_amount(state: CitadelState, config: SimConfig,
 
     # 4. TD withdrawal — gross-up for ordinary income at actual marginal rate
     if tax_remaining > 0:
-        from .tax import apply_progressive_brackets, _inflate_brackets
-        from .tax_data import FEDERAL_BRACKETS_TCJA, FEDERAL_BRACKETS_SUNSET
+        from .tax import apply_progressive_brackets
+        from .citadel_waterfall import _inflate_tax_context
         _agi = tax_result.get("agi", 0) if tax_result else 0
-        _yrs = max(sim_year - 2025, 0)
-        if config.tcja_sunset:
-            _brk = _inflate_brackets(FEDERAL_BRACKETS_SUNSET[config.filing_status], _yrs, config.inflation / 100)
-        else:
-            _brk = _inflate_brackets(FEDERAL_BRACKETS_TCJA[config.filing_status], _yrs, config.inflation / 100)
+        _brk = _inflate_tax_context(config, sim_year).ord_brackets
         # Marginal rate = rate on the next dollar above current AGI
         _tax_at_agi = apply_progressive_brackets(_agi, _brk)
         _tax_at_agi_plus = apply_progressive_brackets(_agi + 1, _brk)

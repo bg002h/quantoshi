@@ -4157,3 +4157,116 @@ class TestScenarioStaleIndicator:
         assert "cp-scenario-stale" in repr(layout)
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# Section: Citadel preset-scenario property tests (backlog #39)
+#
+# Sweeps WEALTH_LEVELS × MACRO_REGIMES × RULE_SETS × tax∈{False, True} through
+# simulate() and asserts invariants that catch the class of bugs that produce
+# implausible multi-billion-dollar end-state totals from a $500k preset.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def _preset_config(wealth, regime, rules, tax_enabled, start_yr=2035, end_yr=2055):
+    """Build a deterministic SimConfig for one preset combination.
+
+    Deepcopied from build_config so tweaks (tax_enabled, n_sims, end_yr)
+    don't mutate the preset.
+    """
+    import copy
+    from citadel_presets import build_config
+    cfg = build_config(wealth, regime, rules, start_yr, "single")
+    cfg = copy.deepcopy(cfg)
+    cfg.tax_enabled = tax_enabled
+    cfg.n_sims = 1  # deterministic
+    cfg.end_yr = end_yr
+    # Deterministic: swap Markov model for lognormal so we don't need a real
+    # transition matrix file. Volatility → 0 via deterministic path.
+    cfg.asset_return_model = "lognormal"
+    cfg.asset_matrices = None
+    return cfg
+
+
+# Upper-bound envelopes per wealth level over a 20-year horizon against the
+# deterministic mock model (price grows linearly, ~$60k in 2035 → ~$85k in
+# 2055). Conservatively loose — if a bug inflates total by 10-100x, this will
+# catch it; any number under 1/10 of these bounds is considered plausible.
+_WEALTH_UPPER_BOUND = {
+    "starter": 50_000_000,    # $500k base, up to $50M over 20yr
+    "full": 500_000_000,      # $2.5M base
+    "bitcoin": 5_000_000_000, # $2.5M + 12.5 BTC
+}
+
+
+class TestCitadelPresetGrid:
+    """3 wealth × 3 regime × 3 rule × 2 tax = 54 combinations."""
+
+    @pytest.mark.parametrize("wealth", ["starter", "full", "bitcoin"])
+    @pytest.mark.parametrize("regime", ["bear", "neutral", "bull"])
+    @pytest.mark.parametrize("rules", ["no_rebal", "cautious", "aggressive"])
+    @pytest.mark.parametrize("tax_enabled", [False, True])
+    def test_preset_runs_without_crash_or_nan(self, wealth, regime, rules, tax_enabled):
+        from engines.citadel import simulate
+        cfg = _preset_config(wealth, regime, rules, tax_enabled)
+        result = simulate(cfg, _test_model())
+        total = np.asarray(result.median["total"], dtype=float)
+
+        label = f"{wealth}/{regime}/{rules}/tax={tax_enabled}"
+        assert np.all(np.isfinite(total)), f"{label}: NaN/Inf in total"
+        assert np.all(total >= -1.0), f"{label}: negative total (min={total.min():.2e})"
+
+    @pytest.mark.parametrize("wealth", ["starter", "full", "bitcoin"])
+    @pytest.mark.parametrize("regime", ["bear", "neutral", "bull"])
+    @pytest.mark.parametrize("rules", ["no_rebal", "cautious", "aggressive"])
+    def test_preset_total_within_sane_bound(self, wealth, regime, rules):
+        from engines.citadel import simulate
+        cfg = _preset_config(wealth, regime, rules, tax_enabled=False)
+        result = simulate(cfg, _test_model())
+        total = np.asarray(result.median["total"], dtype=float)
+
+        upper = _WEALTH_UPPER_BOUND[wealth]
+        assert total.max() < upper, (
+            f"{wealth}/{regime}/{rules}: total peaks at ${total.max():,.0f} "
+            f"which exceeds the ${upper:,.0f} upper bound"
+        )
+
+    @pytest.mark.parametrize("wealth", ["starter", "full", "bitcoin"])
+    def test_taxes_paid_end_state_nonneg(self, wealth):
+        """Cumulative taxes paid can dip within a year (Q4 true-up may return
+        money if quarterly estimates overpaid), so a strict monotone
+        assertion would fail. The loose invariant: the end-of-sim total is
+        non-negative (net tax paid, not net refund)."""
+        from engines.citadel import simulate
+        cfg = _preset_config(wealth, "neutral", "no_rebal", tax_enabled=True)
+        result = simulate(cfg, _test_model())
+        tp = getattr(result, "taxes_paid", None)
+        if tp is None or len(tp) == 0:
+            pytest.skip("no taxes_paid array available")
+        final = float(np.asarray(tp[0], dtype=float)[-1])
+        assert final >= -1e-3, f"{wealth}: end-of-sim taxes_paid=${final:,.2f} < 0"
+
+    @pytest.mark.parametrize("wealth", ["starter", "full", "bitcoin"])
+    def test_tax_on_not_much_higher_than_tax_off(self, wealth):
+        """Tax should drag wealth down, not up. Some wiggle is allowed
+        (Roth-BTC compounding protection) but the tax-on endpoint should
+        never exceed the tax-off endpoint by more than 10% — otherwise the
+        figure's 'Tax drag' annotation silently flips to negative."""
+        from engines.citadel import simulate
+        import copy
+        cfg_on = _preset_config(wealth, "neutral", "no_rebal", tax_enabled=True)
+        cfg_off = copy.deepcopy(cfg_on)
+        cfg_off.tax_enabled = False
+
+        r_on = simulate(cfg_on, _test_model())
+        r_off = simulate(cfg_off, _test_model())
+        final_on = float(r_on.median["total"][-1])
+        final_off = float(r_off.median["total"][-1])
+
+        if final_off <= 0:
+            pytest.skip("tax-off endpoint non-positive; ratio undefined")
+        ratio = final_on / final_off
+        assert ratio <= 1.10, (
+            f"{wealth}: tax-on total ${final_on:,.0f} exceeds tax-off "
+            f"${final_off:,.0f} by >10% (ratio {ratio:.2f})"
+        )
+
+

@@ -666,14 +666,20 @@ def _check_client_cache(p, path_key):
 
 def _run_full_simulation(m, p, n_bins, step_days, mc_window, mc_ts,
                          n_sims, mc_t_start, mc_dt, snap_grid=0):
-    """Run full MC simulation: build transition matrix + generate price paths."""
+    """Run full MC simulation: build transition matrix + generate price paths.
+
+    Honors ``p["mc_seed"]`` if present so repeat MC runs with the same
+    config + seed produce identical paths. Prior to 2026-04-17 the
+    monte_carlo_prices call created an unseeded Generator, so results
+    were non-reproducible regardless of UI-level seed controls.
+    """
     blocked = p.get("mc_blocked_bins", [])
     model = _resolve_model(p)
     trans, bin_edges, n_bins, start_pctile = _prepare_sim(
         m, p, n_bins, step_days, mc_window, blocked, snap_grid=snap_grid, model=model)
     price_paths, _ = monte_carlo_prices(
         trans, bin_edges, start_pctile, len(mc_ts), n_sims,
-        model, mc_t_start, mc_dt,
+        model, mc_t_start, mc_dt, rng=p.get("mc_seed"),
     )
     return price_paths
 

@@ -140,7 +140,7 @@ def build_transition_matrix(prices, years, model, n_bins=5,
 # ── Monte Carlo simulation ───────────────────────────────────────────────────
 
 def monte_carlo_prices(trans_matrix, bin_edges, start_pctile, n_steps,
-                       n_sims, model, start_t, dt):
+                       n_sims, model, start_t, dt, rng=None):
     """Generate Monte Carlo price paths using the Markov transition matrix.
 
     Parameters
@@ -153,6 +153,10 @@ def monte_carlo_prices(trans_matrix, bin_edges, start_pctile, n_steps,
     model : PriceModel — model with interp_price(q, t) method
     start_t : float — starting time (years since genesis)
     dt : float — time step in years (e.g., 1/12 for monthly)
+    rng : numpy.random.Generator or seedable int, optional. Defaults to a
+        fresh unseeded Generator for backward compatibility. Pass a seeded
+        Generator (e.g. ``np.random.default_rng(42)``) or a seed int for
+        reproducible paths across runs.
 
     Returns
     -------
@@ -160,7 +164,9 @@ def monte_carlo_prices(trans_matrix, bin_edges, start_pctile, n_steps,
     pctile_paths : ndarray (n_sims, n_steps) — simulated percentile paths
     """
     n_bins = len(bin_edges) - 1
-    rng = np.random.default_rng()
+    # Accept a Generator, a seed int, or None (default) for reproducibility.
+    if rng is None or isinstance(rng, (int, np.integer)):
+        rng = np.random.default_rng(rng)
 
     # Precompute cumulative probabilities for efficient sampling
     cum_probs = np.cumsum(trans_matrix, axis=1)

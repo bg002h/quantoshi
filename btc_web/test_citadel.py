@@ -2319,15 +2319,17 @@ class TestTaxAccountingHelpers:
         _pay_tax_amount(state, cfg, amount=50_000, sim_year=2035)
         assert state.tax_year_accum.lt_capital_gains > 0
 
-    def test_pay_tax_investment_gross_up_math(self):
-        """Selling investments to pay tax: enough must be sold so that after
-        the tax on the SALE itself, the net proceeds cover the tax bill.
+    def test_pay_tax_investment_sells_exactly_the_bill(self):
+        """Selling investments to pay tax: after the 2026-04-17 rewrite,
+        the code sells EXACTLY the bill amount from investments (no
+        gross-up). The realised gain is recorded in tax_year_accum and
+        flows into next year's compute_annual_tax naturally.
 
-        With $200k investments, $100k basis, TX (no state tax), agi below NIIT
-        threshold, ltcg_rate = 0.15. gain_fraction = 0.5 → effective_rate on
-        sale proceeds = 0.15 * 0.5 = 0.075. To net $50k after tax:
-          gross = 50k / (1 - 0.075) ≈ $54,054
-        Tax on sale: $54,054 * 0.5 * 0.15 ≈ $4,054. Net: $50k. Check.
+        Reasoning: the old gross-up was buggy three ways (silently lost
+        money, double-counted tax_on_sale, hard-coded 15%). The annual
+        pipeline already owns all the rate math — it's cleaner to let
+        the sale's tax hit at year-end via the accumulator than to
+        re-derive a fragile approximation inside _pay_tax_amount.
         """
         from engines.citadel import CitadelState, SimConfig, _pay_tax_amount
         from engines.tax import TaxYearAccumulator
@@ -2341,50 +2343,69 @@ class TestTaxAccountingHelpers:
         )
         cfg = SimConfig(tax_enabled=True, state_code="TX")
         tax_bill = 50_000
-        _pay_tax_amount(state, cfg, amount=tax_bill, sim_year=2035,
-                         tax_result={"agi": 50_000})
-        # Investments drawn ≈ gross = 54,054 (tolerance for rounding)
+        paid, unpaid = _pay_tax_amount(state, cfg, amount=tax_bill,
+                                         sim_year=2035,
+                                         tax_result={"agi": 50_000})
         inv_drawn = 200_000 - state.investments[0]
-        assert 53_000 <= inv_drawn <= 56_000, (
-            f"Gross-up should draw ~$54k to net $50k, got ${inv_drawn:.0f}")
-        # Realized gain ≈ gross * 0.5 (basis_frac=0.5)
+        assert inv_drawn == pytest.approx(tax_bill, abs=1.0), (
+            f"No gross-up: draw equals bill, got ${inv_drawn:.0f}")
+        # Gain is 50% of proceeds (gain_fraction=0.5).
         gain = state.tax_year_accum.lt_capital_gains
         assert gain == pytest.approx(inv_drawn * 0.5, rel=0.01)
+        assert paid == pytest.approx(tax_bill, abs=1.0)
+        assert unpaid == 0.0
 
-    def test_pay_tax_niit_threshold_flips_gross_up(self):
-        """Gross-up rate bumps by 3.8% when agi exceeds NIIT threshold,
-        so for the same tax bill more investments must be sold."""
+    def test_pay_tax_returns_unpaid_when_portfolio_exhausted(self):
+        """When no source can cover the bill, _pay_tax_amount returns
+        (paid, unpaid) and the caller can surface the shortfall —
+        unlike the pre-2026-04-17 version which silently dropped the
+        unpaid portion while the outer callers credited the full bill
+        to total_taxes_paid."""
         from engines.citadel import CitadelState, SimConfig, _pay_tax_amount
         from engines.tax import TaxYearAccumulator
-        # Same starting state twice; only the agi in tax_result differs.
-        def _fresh_state():
-            return CitadelState(
-                cash=0, reserves=[0, 0, 0],
-                investments=[500_000, 0],
-                invest_cost_basis=[0, 0],  # gain_fraction = 1.0 → max sensitivity
-                td_cash=0, td_reserves=[0, 0, 0], td_investments=[0, 0],
-                tax_year_accum=TaxYearAccumulator(),
-                sim_date="2035-06-15",
-            )
-        cfg = SimConfig(tax_enabled=True, state_code="TX", filing_status="single")
-        tax_bill = 100_000
+        state = CitadelState(
+            cash=100, reserves=[0, 0, 0],
+            investments=[0, 0], invest_cost_basis=[0, 0],
+            td_cash=0, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            btc_stack=0.0, btc_price=50_000,
+            tax_year_accum=TaxYearAccumulator(),
+            sim_date="2035-06-15",
+        )
+        cfg = SimConfig(tax_enabled=True, state_code="TX")
+        paid, unpaid = _pay_tax_amount(state, cfg, amount=50_000,
+                                        sim_year=2035,
+                                        tax_result={"agi": 0})
+        assert paid == pytest.approx(100.0)
+        assert unpaid == pytest.approx(49_900.0)
 
-        from engines.tax_data import NIIT_THRESHOLD
-        thresh = NIIT_THRESHOLD["single"]
-        state_below = _fresh_state()
-        state_above = _fresh_state()
-        _pay_tax_amount(state_below, cfg, amount=tax_bill, sim_year=2035,
-                         tax_result={"agi": thresh - 1})
-        _pay_tax_amount(state_above, cfg, amount=tax_bill, sim_year=2035,
-                         tax_result={"agi": thresh + 1})
-
-        drawn_below = 500_000 - state_below.investments[0]
-        drawn_above = 500_000 - state_above.investments[0]
-        # NIIT adds 3.8% to ltcg_rate (15% → 18.8%) → gross-up denominator
-        # shrinks, so MORE investments must be sold to cover the same bill.
-        assert drawn_above > drawn_below, (
-            f"NIIT should force larger draw: below={drawn_below:.0f} "
-            f"vs above={drawn_above:.0f}")
+    def test_pay_tax_falls_back_to_btc(self):
+        """With only BTC + no other sources, _pay_tax_amount sells BTC
+        and records the realised gain in tax_year_accum. Prior to the
+        2026-04-17 rewrite, _pay_tax_amount did NOT sell BTC — tax bills
+        went unpaid even when the user had BTC to spare."""
+        from engines.citadel import CitadelState, SimConfig, _pay_tax_amount
+        from engines.tax_lots import TaxLot
+        from engines.tax import TaxYearAccumulator
+        state = CitadelState(
+            cash=0, reserves=[0, 0, 0],
+            investments=[0, 0], invest_cost_basis=[0, 0],
+            td_cash=0, td_reserves=[0, 0, 0], td_investments=[0, 0],
+            btc_stack=5.0, btc_price=50_000,  # $250k of BTC
+            tax_year_accum=TaxYearAccumulator(),
+            sim_date="2036-06-15",
+            tax_lots=[TaxLot(date="2020-01-01", btc=5.0,
+                              cost_basis=10_000,
+                              source="initial")],  # held >1yr, basis $10k each
+        )
+        cfg = SimConfig(tax_enabled=True, state_code="TX")
+        paid, unpaid = _pay_tax_amount(state, cfg, amount=50_000,
+                                        sim_year=2036,
+                                        tax_result={"agi": 0})
+        assert paid == pytest.approx(50_000.0)
+        assert unpaid == 0.0
+        # Sold 1 BTC ($50k / $50k price). Gain = $50k proceeds - $10k basis.
+        assert state.btc_stack == pytest.approx(4.0, rel=0.01)
+        assert state.tax_year_accum.lt_capital_gains == pytest.approx(40_000.0, rel=0.01)
 
     def test_merged_waterfall_tax_off_same_behavior(self):
         """Merged waterfall with tax_enabled=False works correctly."""

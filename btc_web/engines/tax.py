@@ -297,7 +297,11 @@ def compute_annual_tax(
     federal_ltcg = total_ltcg - base_ltcg
 
     # --- 7. NIIT ---
+    # Per Reg §1.1411-4(f)(4), capital losses taken as an ordinary-income
+    # deduction under §1211(b) (up to $3,000/year) REDUCE net investment
+    # income. Subtract cap.loss_deduction from the raw NII and floor at 0.
     nii = max(cap.net_st, 0) + max(cap.net_lt, 0) + total_interest
+    nii = max(nii - cap.loss_deduction, 0.0)
     niit = NIIT_RATE * min(nii, max(magi - niit_threshold, 0)) if magi > niit_threshold else 0.0
 
     # --- 8. State tax (flat rate on AGI minus treasury interest) ---

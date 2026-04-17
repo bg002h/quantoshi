@@ -120,9 +120,14 @@ def generate_cache(start_yr, m, model, progress_cb=None):
             mc_ts = np.arange(t_start, mc_t_end + MC_DT * 0.5, MC_DT)
             n_steps = len(mc_ts)
 
+            # Deterministic seed for the prebuilt cache so every rebuild
+            # of mc_cache/ produces the same paths for a given (model_key,
+            # mc_years, pct_bin) triple — avoids gratuitous cache
+            # invalidation when rebuild_caches.sh reruns.
+            _cache_seed = abs(hash((model_key, mc_years, float(pct_bin)))) % (2**32)
             price_paths, _ = monte_carlo_prices(
                 trans, bin_edges, pct_bin, n_steps, MC_SIMS,
-                model, t_start, MC_DT,
+                model, t_start, MC_DT, rng=_cache_seed,
             )
             key = _path_key_str(pct_bin, mc_years)
             paths_dict[key] = price_paths.astype(np.float32)

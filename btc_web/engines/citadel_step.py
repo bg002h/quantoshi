@@ -343,7 +343,14 @@ def step(state: CitadelState, config: SimConfig,
 
     # 8. Tax: quarterly estimated payments + year-end true-up
     if config.tax_enabled:
-        sim_year = config.start_yr + int(years_elapsed)
+        # sim_year == the calendar year THIS PERIOD falls in.
+        # period 1..ppy → start_yr (year 0);
+        # period ppy+1..2*ppy → start_yr+1 (year 1); etc.
+        # Prior code used `start_yr + int(years_elapsed)` which gave
+        # start_yr+1 at period=ppy (the last period of the first year),
+        # so year-end tax computation ran with brackets inflated +1 year —
+        # every year's income was taxed against the NEXT year's brackets.
+        sim_year = config.start_yr + int((new.period - 1) // ppy) if new.period > 0 else config.start_yr
         is_year_end = new.period > 0 and new.period % ppy == 0
 
         # Quarterly estimated payments (Q1-Q3) — only for freq >= Quarterly

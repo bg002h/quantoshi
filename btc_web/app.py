@@ -303,11 +303,30 @@ print(f"[resqr] bound {_resqr_bound} model bundles  _HAS_RESQR={_HAS_RESQR}")
 _boot_mark("model registration + resqr bind done")
 
 # ── compute per-quantile R² for all models ───────────────────────────────
+# Used only by the Model Info accordion (/8.N). Costs ~2.3s at boot because
+# there are ~80 registered models (incl. 72 config-family variants) × ~7
+# quantiles × ~3700 price observations each. Move to a daemon thread so
+# the module finishes sooner; the first /8 visitor might see missing R²
+# values during the first ~2-3s post-restart, but the numbers are a
+# diagnostic aid, not critical.
 import numpy as np
 from btc_core import compute_model_r2, _compute_log_r2
-for _mdl in _app_ctx.PRICE_MODELS.values():
-    compute_model_r2(_mdl, M.price_years, M.price_prices)
-_boot_mark("compute_model_r2 loop done")
+def _background_r2_compute() -> None:
+    try:
+        for _mdl in _app_ctx.PRICE_MODELS.values():
+            compute_model_r2(_mdl, M.price_years, M.price_prices)
+    except Exception as e:
+        logging.getLogger(__name__).warning("background R² compute failed: %s", e)
+# Tests inspect r2_per_quantile synchronously at import time; DEV runs as
+# single-process where async complexity isn't worth it. Background only
+# in the gunicorn prod path.
+if os.environ.get("DEV") != "1" and os.environ.get("TESTING") != "1":
+    import threading as _threading
+    _threading.Thread(target=_background_r2_compute,
+                      daemon=True, name="qs-bg-r2").start()
+else:
+    _background_r2_compute()
+_boot_mark("R² compute backgrounded")
 
 # OLS R²
 _ols_pred = 10 ** (M.ols_intercept + M.ols_slope * np.log10(

@@ -58,7 +58,28 @@ from mc_overlay import (
 _q3_trace = _app_ctx._q3
 
 def _round_trace_data(arr):
-    """Round array to 3 sig figs for bandwidth savings. Passes through 0/None/NaN."""
+    """Round array to 3 sig figs for bandwidth savings. Passes through 0/None/NaN.
+
+    Vectorised when ``arr`` is a numpy array or anything convertible to one
+    without losing a mixed-dtype sentinel; falls back to an element-wise
+    Python loop for lists containing ``None`` values (which don't round-trip
+    through numpy cleanly).
+    """
+    if isinstance(arr, np.ndarray):
+        a = arr.astype(np.float64, copy=False)
+        sign = np.sign(a)
+        absv = np.abs(a)
+        # mask of values safe to scale (non-zero, finite)
+        safe = np.isfinite(absv) & (absv > 0)
+        out = a.astype(np.float64, copy=True)
+        if safe.any():
+            exp = np.floor(np.log10(absv, where=safe, out=np.zeros_like(absv)))
+            factor = 10.0 ** (exp - 2)
+            rounded = np.where(safe, np.round(a / factor) * factor, a)
+            out = rounded
+        # Preserve NaN / +-inf untouched (np.round already does).
+        return out.tolist()
+    # Slow path: list may contain None sentinels.
     return [_q3_trace(v) if v and v == v else v for v in arr]
 
 

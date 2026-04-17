@@ -100,7 +100,9 @@ class _ModelAdapter:
             self._model = _app_ctx.PRICE_MODELS.get(model_key, _app_ctx.DEFAULT_MODEL)
         self.fits = self._model.fits if hasattr(self._model, "fits") else {}
         self.genesis = m.genesis
-        self._price_grid_cache = {}  # t_key -> (q_grid, prices)
+        self._price_grid_cache = {}  # t_key -> prices (monthly granularity)
+        self._full_grid_t = None     # full prebuilt grid time axis
+        self._full_grid = None       # (n_quantiles, n_t) prices grid
         self._quantized = getattr(self._model, 'quantized', True)
         # Build the quantile grid from model's actual fits keys
         if self.fits:
@@ -111,6 +113,38 @@ class _ModelAdapter:
 
     def price_at(self, q: float, t: float) -> float:
         return float(self._model.price_at(q, max(t, 0.5)))
+
+    def prebuild_grid(self, t_array) -> None:
+        """Vectorised precompute of the full price-by-quantile grid over a
+        monthly-resolution time axis that spans the sim horizon.
+
+        After this runs, `quantile_at()` serves from the prebuilt grid in
+        O(log n) per call instead of computing a per-t grid on first touch
+        across 1000 MC sims.  For a 40-year Monthly sim at ~30 quantiles
+        that's ~480 * 30 = 14 400 price evaluations done once (vectorised)
+        instead of on the first sim's critical path.
+        """
+        ts = np.asarray(t_array, dtype=float)
+        # Round to monthly granularity matching _get_price_grid's t_key
+        ts_key = np.round(ts * 12) / 12
+        ts_uniq = np.unique(ts_key)
+        grid = np.empty((len(self._q_grid), len(ts_uniq)), dtype=np.float64)
+        for qi, q in enumerate(self._q_grid):
+            # Most model.price_at() support vectorised t — fall back to loop
+            try:
+                row = np.asarray(self._model.price_at(float(q), np.maximum(ts_uniq, 0.5)))
+                if row.shape == ts_uniq.shape:
+                    grid[qi] = row.astype(np.float64, copy=False)
+                    continue
+            except Exception:
+                pass
+            for ti, t in enumerate(ts_uniq):
+                grid[qi, ti] = self.price_at(float(q), float(t))
+        self._full_grid_t = ts_uniq
+        self._full_grid = grid
+        # Also populate the per-t cache so _get_price_grid hits.
+        for ti, tk in enumerate(ts_uniq):
+            self._price_grid_cache[float(tk)] = grid[:, ti]
 
     def _get_price_grid(self, t: float):
         """Get or build price grid for time t using model's quantile keys."""
@@ -311,6 +345,20 @@ def build_citadel_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, di
 
     model_key = p.get("price_model", "bub")
     model = _ModelAdapter(m, model_key=model_key, user_model=p.get("user_model"))
+
+    # Pre-build the quantile-inversion price grid over the sim's time axis
+    # so `quantile_at()` serves from a numpy interp lookup in the MC inner
+    # loop instead of a per-t build on first touch across 1000 sims.
+    try:
+        from engines.citadel import FREQ_PPY as _FP
+        _ppy = _FP.get(config.freq, 12)
+        _nper = int((config.end_yr - config.start_yr) * _ppy)
+        if _nper > 0:
+            _t0_grid = yr_to_t(config.start_yr, m.genesis)
+            _t_grid = _t0_grid + np.arange(_nper + 1) / _ppy
+            model.prebuild_grid(_t_grid)
+    except Exception:
+        pass  # prebuild is an optimisation; fall through to per-t lazy build
 
     # Deterministic always runs with n_sims=1; MC overlay runs separately
     import time as _time

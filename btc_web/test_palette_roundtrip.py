@@ -245,11 +245,13 @@ def test_defunct_placeholders_unconditional():
 def test_modal_open_callbacks_use_gear_inputs():
     """Static source check: modal-open callbacks no longer reference -configure-btn ids."""
     import pathlib
-    src = pathlib.Path("btc_web/callbacks/charts.py").read_text()
+    charts_dir = pathlib.Path("btc_web/callbacks/charts")
+    # charts used to be a single file; it's now a package — read every .py in it.
+    src = "\n".join(p.read_text() for p in sorted(charts_dir.glob("*.py")))
     for prefix in ("bub", "dca", "ret", "sc", "hm"):
         for family in ("lppl", "hybppl", "eppl"):
             assert f"{prefix}-{family}-configure-btn" not in src, \
-                f"stale {prefix}-{family}-configure-btn reference in charts.py"
+                f"stale {prefix}-{family}-configure-btn reference in charts/"
 
 
 def test_palette_summary_not_stale():

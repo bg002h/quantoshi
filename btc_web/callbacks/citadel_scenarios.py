@@ -115,6 +115,26 @@ def auto_fill_controls(active_key, wealth, regime, rules, start_yr):
 
 # ── Stale indicator ──────────────────────────────────────────────────────────
 
+def is_scenario_stale(stack, spend, cash_init, infl, cash_floor,
+                      active_key, wealth, regime, rules, start_yr) -> bool:
+    """Return True when any of the 5 watched controls differs from the preset.
+
+    Public helper so the chart callback can suppress cached scenario bands
+    when the user has modified inputs away from the preset. Same logic
+    used by detect_stale (which drives the visible badge).
+    """
+    if not active_key or not wealth:
+        return False
+    from citadel_presets import preset_control_values
+    vals = preset_control_values(wealth, regime, rules, int(start_yr or 2035))
+    for cid, cur in [("cp-stack", stack), ("cp-spend", spend),
+                      ("cp-cash-init", cash_init), ("cp-infl", infl),
+                      ("cp-cash-floor", cash_floor)]:
+        if cur is not None and float(cur) != vals[cid]:
+            return True
+    return False
+
+
 @callback(
     Output("cp-scenario-stale", "style"),
     Input("cp-stack", "value"),
@@ -132,15 +152,6 @@ def auto_fill_controls(active_key, wealth, regime, rules, start_yr):
 def detect_stale(stack, spend, cash_init, infl, cash_floor,
                  active_key, wealth, regime, rules, start_yr):
     """Show stale indicator when controls differ from loaded preset."""
-    if not active_key or not wealth:
-        return {"display": "none"}
-    from citadel_presets import preset_control_values
-    vals = preset_control_values(wealth, regime, rules, int(start_yr or 2035))
-    is_stale = False
-    for cid, cur in [("cp-stack", stack), ("cp-spend", spend),
-                      ("cp-cash-init", cash_init), ("cp-infl", infl),
-                      ("cp-cash-floor", cash_floor)]:
-        if cur is not None and float(cur) != vals[cid]:
-            is_stale = True
-            break
-    return {} if is_stale else {"display": "none"}
+    stale = is_scenario_stale(stack, spend, cash_init, infl, cash_floor,
+                              active_key, wealth, regime, rules, start_yr)
+    return {} if stale else {"display": "none"}

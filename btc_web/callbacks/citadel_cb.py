@@ -216,6 +216,11 @@ _app_ctx.app.clientside_callback(
     State("user-model-store",    "data"),
     # Quick Scenarios
     State("cp-scenario-bands",   "data"),
+    State("cp-scenario-active",  "data"),
+    State("cp-scenario-wealth",  "data"),
+    State("cp-scenario-regime",  "data"),
+    State("cp-scenario-rules",   "data"),
+    State("cp-scenario-start-yr","value"),
     # ── Tax ──
     State("cp-tax-toggle",       "value"),
     State("cp-tax-config",       "data"),
@@ -271,6 +276,8 @@ def update_citadel(
     palette_key, user_model_store,
     # Quick Scenarios
     scenario_bands_data,
+    scenario_active, scenario_wealth, scenario_regime, scenario_rules,
+    scenario_start_yr,
     # Tax
     tax_toggle, tax_config,
     # MC states
@@ -419,6 +426,18 @@ def update_citadel(
         scenario_bands  = scenario_bands_data,
         **mc_p,
     )
+
+    # Suppress cached scenario bands when user has modified inputs away from
+    # the preset: otherwise the pre-computed starter/bull/etc. bands render
+    # at one scale while the live sim reflects edited inputs at another,
+    # exploding the y-axis. (backlog #38)
+    if scenario_bands_data:
+        from callbacks.citadel_scenarios import is_scenario_stale
+        if is_scenario_stale(stack, spend, cash_init, infl, cash_floor,
+                              scenario_active, scenario_wealth,
+                              scenario_regime, scenario_rules,
+                              scenario_start_yr):
+            p["scenario_bands"] = None
 
     # Tax configuration — use saved modal config, fall back to CITADEL defaults
     if tax_toggle:

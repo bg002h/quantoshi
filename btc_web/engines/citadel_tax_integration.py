@@ -242,11 +242,13 @@ def _year_boundary_tax(state: CitadelState, config: SimConfig,
     q4_payment = tax_owed_full - state.quarterly_tax_paid_ytd
     if q4_payment > 0:
         _pay_tax_amount(state, config, q4_payment, sim_year, tax_result=tax_result)
-
-    # total_taxes_paid: quarterly payments already added their amounts,
-    # so only add the Q4 true-up portion (may be negative for overpayment credit)
-    state.total_taxes_paid += max(q4_payment, 0)
-    if q4_payment < 0:
+        state.total_taxes_paid += q4_payment
+    elif q4_payment < 0:
+        # Overpayment credit. Credit the refund to cash AND decrement the
+        # running total so the accumulator stays consistent with actual
+        # cash outflow. Without the cash credit, earlier code decremented
+        # total_taxes_paid for a refund that never materialized in state.cash.
+        state.cash += -q4_payment
         state.total_taxes_paid += q4_payment  # negative → reduces total
 
     state.loss_carryforward = tax_result["loss_carryforward"]

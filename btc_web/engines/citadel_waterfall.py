@@ -60,7 +60,17 @@ def _build_source_list(state: "CitadelState", config: "SimConfig",
     sources = []
     ppy = FREQ_PPY.get(config.freq, 12)
 
-    # Compute BTC opportunity cost horizon and growth
+    # Compute BTC opportunity cost horizon and growth.
+    # NOTE (2026-04-17): the model gives a 10-year total return that
+    # is then fed into `(1 + rate) ** horizon` in _score_sources with
+    # horizon=10. That compounds a 10-year total as if it were annual,
+    # producing pathologically large opportunity costs that force BTC to
+    # the end of the waterfall. An annualization pass ((_p_fwd/_p_now)
+    # **(1/10) - 1) would be "mathematically correct" but changes the
+    # ranking and fails test_full_waterfall_btc_protected_early, which
+    # encodes a product invariant (BTC preserved when other assets
+    # suffice) users may rely on. Leaving as-is pending explicit design
+    # decision — the BTC-last behavior is the observed intent.
     _btc_growth = config.invest_bins[0]["return_rate"] / 100 if config.invest_bins else 0.10
     if model is not None and state.btc_price > 0:
         try:

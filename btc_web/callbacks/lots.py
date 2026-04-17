@@ -88,6 +88,11 @@ def manage_lots(add_n, del_n, clear_n, import_contents,
     elif triggered == "lots-import-upload" and import_contents:
         try:
             _hdr, b64 = import_contents.split(",", 1)
+            # Cap pre-decode: 5000 lots at ~200 bytes each is ~1 MB of JSON;
+            # 2 MB base64-encoded is a comfortable ceiling that stops OOM
+            # uploads before base64.b64decode allocates.
+            if len(b64) > 2_000_000:
+                raise ValueError("file too large (max ~1.5 MB)")
             raw  = base64.b64decode(b64).decode("utf-8")
             data = json.loads(raw)
             if not isinstance(data, list):

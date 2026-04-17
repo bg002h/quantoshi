@@ -407,10 +407,10 @@ _CHECKLIST_OPTIONS = {
     "sc-toggles":         ["annotate", "log_y", "shade", "show_legend", "minor_grid", "chart_zoom", "discrete"],
     "sc-chart-layout":    ["shade"],
     "bub-auto-y":         ["yes"],
-    "dca-model-show":     ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl"],
-    "ret-model-show":     ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl"],
-    "sc-model-show":      ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl"],
-    "hm-model-show":      ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl"],
+    "dca-model-show":     ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl", "u1"],
+    "ret-model-show":     ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl", "u1"],
+    "sc-model-show":      ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl", "u1"],
+    "hm-model-show":      ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl", "u1"],
     "bub-model-show":     ["pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "bub", "qr", "gomp", "bpl"],
     # Defunct after display-models consolidation (2026-04-11) — retained
     # for q3: link positional stability. See _SNAPSHOT_CONTROLS comment above.

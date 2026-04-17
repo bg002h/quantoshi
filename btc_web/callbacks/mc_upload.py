@@ -118,6 +118,11 @@ def _parse_mc_upload(contents, expected_tab=None):
     if not contents:
         return None, None
     _, b64 = contents.split(",", 1)
+    # Cap pre-decode: MC JSON files are ~100KB even for 10k-sim runs; 4 MB
+    # is 40x headroom and stops pathological uploads from OOMing the worker
+    # before json.loads gets to reject them.
+    if len(b64) > 4_000_000:
+        return None, "File too large (max ~3 MB)."
     raw = base64.b64decode(b64)
     data = json.loads(raw)
     # Reject files with metadata from a different app

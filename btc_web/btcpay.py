@@ -228,11 +228,13 @@ def check_invoice(invoice_id: str) -> dict:
     """Check status of a BTCPay invoice.
 
     Returns:
-        {status, paid}
+        {status, paid, metadata_tab, metadata_mc_years}
 
     BTCPay statuses: New, Processing, Settled, Expired, Invalid.
     We consider 'Settled' and 'Processing' as paid (Processing = seen but
     not fully confirmed; MediumSpeed policy means 1-conf for on-chain).
+    Metadata (tab, mc_years) is returned so callers can bind token minting
+    to the invoice's original intent rather than trusting client query args.
     """
     s = _session()
     resp = s.get(_api_url(f"/invoices/{invoice_id}"), timeout=15)
@@ -240,7 +242,13 @@ def check_invoice(invoice_id: str) -> dict:
     data = resp.json()
     status = data.get("status", "New")
     paid = status in ("Settled", "Processing")
-    return {"status": status, "paid": paid}
+    meta = data.get("metadata") or {}
+    return {
+        "status": status,
+        "paid": paid,
+        "metadata_tab": meta.get("tab"),
+        "metadata_mc_years": meta.get("mc_years"),
+    }
 
 
 def get_payment_methods(invoice_id: str) -> list[dict]:

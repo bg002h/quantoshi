@@ -276,7 +276,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             float(mdl.price_at(q, t, sigma_mode=sigma_mode)) for t in t_arr]))
         if stack > 0:
             scan_prices = scan_prices * stack
-        col = _get_model_color(model_key, p)
+        col = _get_model_color(sl["model"], p)
         _scan_shade = quantile_shade(col, q)
         traces.append(go.Scatter(
             x=t_arr, y=scan_prices,

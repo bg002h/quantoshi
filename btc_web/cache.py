@@ -36,24 +36,54 @@ def _cache_key(prefix: str, params_json: str) -> str:
 
 
 def get_cached(prefix: str, params_json: str) -> dict | None:
-    """Get a cached figure from Redis. Returns None on miss or error."""
+    """Get a cached figure from Redis. Returns None on miss or error.
+
+    Storage format: figure JSON is the primary key's raw value (no outer
+    json.dumps wrapping). If the result was a (fig, mc_result) tuple, a
+    sibling `{key}:mc` holds the mc_result. This avoids the 2x escape
+    overhead of embedding a JSON string inside another JSON object.
+    """
     if not _HAS_REDIS:
         return None
     try:
-        data = _REDIS.get(_cache_key(prefix, params_json))
-        return json.loads(data) if data else None
+        key = _cache_key(prefix, params_json)
+        fig_raw = _REDIS.get(key)
+        if fig_raw is None:
+            return None
+        if isinstance(fig_raw, bytes):
+            fig_raw = fig_raw.decode()
+        mc_raw = _REDIS.get(key + ":mc")
+        if mc_raw is None:
+            return {"figure": fig_raw, "mc_result": None, "is_tuple": False}
+        if isinstance(mc_raw, bytes):
+            mc_raw = mc_raw.decode()
+        return {"figure": fig_raw, "mc_result": json.loads(mc_raw),
+                "is_tuple": True}
     except Exception:
         return None
 
 
 def set_cached(prefix: str, params_json: str, data: dict) -> None:
     """Store a figure in Redis. No TTL — persists until model changes
-    (fingerprint in key) or Redis LRU eviction. Non-fatal on error."""
+    (fingerprint in key) or Redis LRU eviction. Non-fatal on error.
+
+    See get_cached for the two-key storage layout. The previous
+    single-key json.dumps({"figure": fig.to_json(), ...}) wrapping
+    escaped every quote in the figure JSON and roughly doubled the
+    payload and parse time.
+    """
     if not _HAS_REDIS:
         return
     try:
-        _REDIS.set(_cache_key(prefix, params_json),
-                   json.dumps(data, default=str))
+        fig_str = data.get("figure")
+        if not fig_str:
+            return
+        key = _cache_key(prefix, params_json)
+        pipe = _REDIS.pipeline()
+        pipe.set(key, fig_str)
+        if data.get("is_tuple") and data.get("mc_result") is not None:
+            pipe.set(key + ":mc", json.dumps(data["mc_result"], default=str))
+        pipe.execute()
     except Exception as e:
         logger.debug("Redis set failed: %s", e)
 

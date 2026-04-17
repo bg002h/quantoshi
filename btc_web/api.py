@@ -587,8 +587,11 @@ halving metronome.
         if not _INVOICE_ID_RE.match(invoice_id):
             return jsonify({"error": "Invalid invoice ID"}), 400
 
-        tab      = request.args.get("tab", "dca")
-        mc_years = int(request.args.get("mc_years", 10))
+        try:
+            mc_years = int(request.args.get("mc_years", 10))
+        except (TypeError, ValueError):
+            return jsonify({"error": "Invalid mc_years"}), 400
+        tab = request.args.get("tab", "dca")
 
         try:
             result = btcpay.check_invoice(invoice_id)
@@ -596,10 +599,27 @@ halving metronome.
             log.error("BTCPay check_invoice failed: %s", e)
             return jsonify({"error": "Payment service unavailable"}), 503
 
-        # If paid, generate a payment token and mark rate-limit entry
+        # Token is minted ONLY against the tab+mc_years stored on the
+        # invoice itself — never the client-supplied query args. Otherwise
+        # a paid 500-sat dca/10yr invoice could be swapped for a 2000-sat
+        # hm/40yr token on the next poll.
         if result["paid"]:
-            token = btcpay.generate_payment_token(invoice_id, tab, mc_years)
+            meta_tab = result.get("metadata_tab") or tab
+            try:
+                meta_years = int(result.get("metadata_mc_years") or mc_years)
+            except (TypeError, ValueError):
+                meta_years = mc_years
+            if (meta_tab != tab) or (meta_years != mc_years):
+                log.warning(
+                    "MC invoice mismatch: client sent tab=%s years=%s; "
+                    "invoice metadata has tab=%s years=%s — binding token "
+                    "to invoice metadata.",
+                    tab, mc_years, meta_tab, meta_years,
+                )
+            token = btcpay.generate_payment_token(invoice_id, meta_tab, meta_years)
             result["payment_token"] = token
+            result["tab"] = meta_tab
+            result["mc_years"] = meta_years
             ip = _client_ip()
             _mark_paid(ip, invoice_id)
 

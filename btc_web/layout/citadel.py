@@ -15,7 +15,7 @@ from layout.common import (
     _chart_toggles, _btc_usd_dropdown, _legend_pos_dropdown,
     _STYLE_HIDDEN, _STYLE_HINT, _export_row, _chart_tab_layout,
     _CB_MARGIN, _INFL_LABEL, _plot_appearance_controls,
-    _palette_selector,
+    _palette_selector, _use_lots_checklist,
 )
 from layout.mc_controls import _mc_controls
 from layout.citadel_tax import tax_toggle_widget, tax_config_modal, tax_summary_panel
@@ -28,8 +28,7 @@ def _assets_panel():
         _section_card("Bitcoin Stack",
             _lbl("Starting BTC"),
             dbc.Input(id="cp-stack", type="number", value=CITADEL["start_stack"], min=0, step=0.01),
-            dcc.Checklist(id="cp-use-lots", options=[{"label": " Use Stack Tracker lots", "value": "yes"}],
-                          value=[], inputStyle=_CB_MARGIN),
+            _use_lots_checklist("cp"),
         ),
         _section_card("Cash Account",
             _lbl("Initial balance ($)"),

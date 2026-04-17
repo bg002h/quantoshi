@@ -269,6 +269,15 @@ def _lbl(text: str):
     return html.Label(text, className="form-label mb-0 small")
 
 
+def _use_lots_checklist(prefix: str):
+    """Standard 'Use Stack Tracker lots' checklist used by bubble/heatmap/citadel."""
+    return dcc.Checklist(
+        id=f"{prefix}-use-lots",
+        options=[{"label": " Use Stack Tracker lots", "value": "yes"}],
+        value=[], inputStyle=_CB_MARGIN,
+    )
+
+
 def _plot_appearance_controls(prefix: str):
     """Trace width + grid width/color + data point color controls for a chart tab.
 
@@ -846,9 +855,7 @@ def _shared_settings_card(prefix, *, amount_id=None, amount_label="Purchase amou
         _lbl("Starting BTC"),
         dbc.Input(id=f"{prefix}-stack", type="number", value=stack_default,
                   min=0, step=0.001, size="sm", debounce=True),
-        dcc.Checklist(id=f"{prefix}-use-lots",
-                      options=[{"label": " Use Stack Tracker lots", "value": "yes"}],
-                      value=[], inputStyle=_CB_MARGIN),
+        _use_lots_checklist(prefix),
     ]
     if amount_id:
         children.extend([

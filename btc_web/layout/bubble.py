@@ -18,7 +18,7 @@ from layout.common import (_tab_hints, _section_card, _row, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT, _q_panel, _q_panel_with_mode,
                             _q_options, _legend_pos_dropdown,
                             _chart_tab_layout, _CB_MARGIN, _palette_selector,
-                            _plot_appearance_controls)
+                            _plot_appearance_controls, _use_lots_checklist)
 from layout.display_models import display_models_panel, sigma_mode_section
 from layout.custom_time import custom_time_panel
 
@@ -186,9 +186,7 @@ def _bubble_controls():
                     options=[{"label":" Show","value":"yes"}],
                     value=[], inputStyle=_CB_MARGIN)),
             ], size="sm"),
-            dcc.Checklist(id="bub-use-lots",
-                          options=[{"label":" Use Stack Tracker lots","value":"yes"}],
-                          value=[], inputStyle=_CB_MARGIN),
+            _use_lots_checklist("bub"),
         ),
         html.Div(id="um-panel-wrap", style=_STYLE_HIDDEN, children=[
             _section_card("User Model (U\u2081)",

@@ -3,10 +3,9 @@
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 
-from layout.common import _CB_MARGIN
+from layout.common import _CB_MARGIN, _lbl, _STYLE_HINT
 from engines.tax_data import STATE_TAX_RATES
 from colors import (DIM_TEXT, BOOTSTRAP_LIGHT_BG, BOOTSTRAP_BORDER,
-                    FALLBACK_MODEL_GRAY,
                     UI_FONT_MD, UI_FONT_BASE, UI_FONT_LG)
 
 # ── State dropdown options (sorted by name) ─────────────────────────────────
@@ -37,12 +36,6 @@ _STATE_OPTIONS = sorted(
 )
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
-
-_HINT = {"color": FALLBACK_MODEL_GRAY, "display": "block", "marginBottom": "4px"}
-
-def _lbl(text: str):
-    return html.Label(text, className="form-label mb-0 small")
-
 
 def _account_asset_grid(prefix: str):
     """Shared asset inputs for tax-deferred / tax-free account cards."""
@@ -240,12 +233,12 @@ def tax_config_modal():
                                            "marginBottom": "6px"}),
                         html.Small("Uses existing Citadel asset configuration "
                                    "from the Assets sub-tab.",
-                                   style=_HINT),
+                                   style=_STYLE_HINT),
                         html.Small("BTC & investment sales: capital gains tax "
                                    "(ST or LT based on holding period). "
                                    "Cash/reserve withdrawals: no tax event. "
                                    "Interest earned: ordinary income.",
-                                   style=_HINT),
+                                   style=_STYLE_HINT),
                     ], className="p-2"), color="light"), md=4),
 
                     # Tax-Deferred (Traditional IRA/401k)
@@ -255,7 +248,7 @@ def tax_config_modal():
                                            "marginBottom": "6px"}),
                         html.Small("Withdrawals taxed as ordinary income. "
                                    "Subject to RMDs at age 73+.",
-                                   style=_HINT),
+                                   style=_STYLE_HINT),
                         _account_asset_grid("cp-td"),
                     ], className="p-2")), md=4),
 
@@ -266,7 +259,7 @@ def tax_config_modal():
                                            "marginBottom": "6px"}),
                         html.Small("Qualified withdrawals are tax-free. "
                                    "No RMDs required.",
-                                   style=_HINT),
+                                   style=_STYLE_HINT),
                         _account_asset_grid("cp-tf"),
                     ], className="p-2")), md=4),
                 ]),

@@ -10,7 +10,7 @@ from layout.common import (_tab_hints, _section_card, _lbl, _row, _export_row,
                             _STYLE_HIDDEN, _STYLE_HINT, _STYLE_GRAPH_H,
                             _STYLE_COLOR_H, _BTC_ORANGE,
                             _CB_MARGIN, _Q_HINT_BASE, _GEAR_STYLE, _MUTED_STYLE,
-                            _q_options, _palette_selector)
+                            _q_options, _palette_selector, _use_lots_checklist)
 from layout.mc_controls import _mc_controls
 from tab_defaults import HEATMAP
 from colors import (NEAR_BLACK, DIM_TEXT, SPINE_COLOR_FALLBACK,
@@ -79,9 +79,7 @@ def _heatmap_controls():
             _lbl("Starting BTC (for portfolio display)"),
             dbc.Input(id="hm-stack", type="number", value=HEATMAP["stack"],
                       min=0, step=0.001, size="sm", debounce=True),
-            dcc.Checklist(id="hm-use-lots",
-                          options=[{"label": " Use Stack Tracker lots", "value": "yes"}],
-                          value=[], inputStyle=_CB_MARGIN),
+            _use_lots_checklist("hm"),
         ),
         _mc_controls("hm", show_amount=True, show_inflation=True,
                      show_stack=True, show_mc_entry_q=True, default_entry_q=10,

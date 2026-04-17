@@ -14,7 +14,7 @@ where:
 
 Usage:
     btc_venv/bin/python3 tools/fit_all_hybppl_configs.py
-    btc_venv/bin/python3 tools/fit_all_hybppl_configs.py --update  # write to btc_core.py
+    btc_venv/bin/python3 tools/fit_all_hybppl_configs.py --update  # write to btc_core/
 """
 import os
 import sys
@@ -199,7 +199,7 @@ def main():
 
     if update:
         print("\nUpdating btc_core.py with _HYBPPL_CONFIG_PARAMS...")
-        core_path = os.path.join(ROOT, "btc_core.py")
+        core_path = os.path.join(ROOT, "btc_core", "_hybppl_eppl.py")
         with open(core_path) as f:
             src = f.read()
 
@@ -233,7 +233,7 @@ def main():
 
         with open(core_path, "w") as f:
             f.write(src)
-        print("btc_core.py updated.")
+        print("btc_core/ updated.")
 
 
 if __name__ == "__main__":

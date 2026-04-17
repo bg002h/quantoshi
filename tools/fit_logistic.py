@@ -8,7 +8,7 @@ t0 = inflection point (years since genesis).
 
 Usage:
     btc_venv/bin/python3 tools/fit_logistic.py              # fit and print
-    btc_venv/bin/python3 tools/fit_logistic.py --update      # fit and update btc_core.py
+    btc_venv/bin/python3 tools/fit_logistic.py --update      # fit and update the btc_core/ package
 """
 import os
 import sys
@@ -81,8 +81,8 @@ def main():
     print(f"  σ     = {sigma:.6f}")
 
     if update:
-        print("\nUpdating btc_core.py...")
-        core_path = os.path.join(ROOT, "btc_core.py")
+        print("\nUpdating btc_core/ ...")
+        core_path = os.path.join(ROOT, "btc_core", "_simple.py")
 
         with open(core_path) as f:
             src = f.read()
@@ -116,9 +116,9 @@ def main():
 
         with open(core_path, "w") as f:
             f.write(src)
-        print("btc_core.py updated.")
+        print("btc_core/ updated.")
     else:
-        print("\nRun with --update to write to btc_core.py")
+        print("\nRun with --update to write to btc_core/")
 
 
 if __name__ == "__main__":

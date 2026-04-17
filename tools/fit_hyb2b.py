@@ -10,7 +10,7 @@ term. 16 parameters.
 
 Usage:
     btc_venv/bin/python3 tools/fit_hyb2b.py              # fit and print
-    btc_venv/bin/python3 tools/fit_hyb2b.py --update      # fit and update btc_core.py
+    btc_venv/bin/python3 tools/fit_hyb2b.py --update      # fit and update the btc_core/ package
 """
 import os
 import sys
@@ -113,8 +113,8 @@ def main():
     print(f"  \u03c3    = {sigma:.6f}")
 
     if update:
-        print("\nUpdating btc_core.py...")
-        core_path = os.path.join(ROOT, "btc_core.py")
+        print("\nUpdating btc_core/ ...")
+        core_path = os.path.join(ROOT, "btc_core", "_hybppl_eppl.py")
         import shutil
         shutil.copy2(core_path, core_path + ".bak")
         print(f"  Backup saved to btc_core.py.bak")
@@ -157,9 +157,9 @@ def main():
 
         with open(core_path, "w") as f:
             f.write(src)
-        print("btc_core.py updated.")
+        print("btc_core/ updated.")
     else:
-        print("\nRun with --update to write to btc_core.py")
+        print("\nRun with --update to write to btc_core/")
 
 
 if __name__ == "__main__":

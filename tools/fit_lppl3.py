@@ -118,8 +118,8 @@ def main():
         print("\n  WARNING: C3 near zero \u2014 3rd oscillation may not be significant.")
 
     if update:
-        print("\nUpdating btc_core.py...")
-        core_path = os.path.join(ROOT, "btc_core.py")
+        print("\nUpdating btc_core/ ...")
+        core_path = os.path.join(ROOT, "btc_core", "_lppl.py")
         import shutil
         shutil.copy2(core_path, core_path + ".bak")
         print(f"  Backup saved to btc_core.py.bak")
@@ -160,7 +160,7 @@ def main():
 
         with open(core_path, "w") as f:
             f.write(src)
-        print("btc_core.py updated.")
+        print("btc_core/ updated.")
     else:
         print("\nRun with --update to write params to btc_core.py")
 

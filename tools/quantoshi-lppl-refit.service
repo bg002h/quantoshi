@@ -16,7 +16,7 @@ After=network-online.target
 [Service]
 Type=oneshot
 WorkingDirectory=/opt/quantoshi
-# Stash local btc_core.py changes, fit, then stash pop to preserve prod-only
+# Stash local btc_core/ changes, fit, then stash pop to preserve prod-only
 # param updates. Git sync with dev is left to manual deploys.
 ExecStart=/opt/quantoshi/btc_venv/bin/python3 /opt/quantoshi/tools/fit_lppl_variants.py --update
 # Flush Redis cache: LPPL param changes don't bump the model fingerprint

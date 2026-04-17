@@ -12,7 +12,7 @@ The 10 params are written to btc_core.py::HybPPLDDModel.
 
 Usage:
     btc_venv/bin/python3 tools/fit_hybppl_dd.py             # fit + print
-    btc_venv/bin/python3 tools/fit_hybppl_dd.py --update    # write to btc_core.py
+    btc_venv/bin/python3 tools/fit_hybppl_dd.py --update    # write to btc_core/
 """
 import os
 import sys
@@ -95,7 +95,7 @@ def main():
 
     if update:
         print("\nUpdating btc_core.py::HybPPLDDModel...")
-        core_path = os.path.join(ROOT, "btc_core.py")
+        core_path = os.path.join(ROOT, "btc_core", "_hybppl_eppl.py")
         import shutil
         shutil.copy2(core_path, core_path + ".bak")
 
@@ -135,9 +135,9 @@ def main():
 
         with open(core_path, "w") as f:
             f.write(src)
-        print("btc_core.py updated.")
+        print("btc_core/ updated.")
     else:
-        print("\nRun with --update to write to btc_core.py")
+        print("\nRun with --update to write to btc_core/")
 
 
 if __name__ == "__main__":

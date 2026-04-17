@@ -8,7 +8,7 @@ optionally updates btc_core.py with the fitted parameters.
 
 Usage:
     btc_venv/bin/python3 tools/fit_lppl.py              # fit and print
-    btc_venv/bin/python3 tools/fit_lppl.py --update      # fit and update btc_core.py
+    btc_venv/bin/python3 tools/fit_lppl.py --update      # fit and update the btc_core/ package
 """
 import os
 import sys
@@ -92,8 +92,8 @@ def main():
     print(f"  σ   = {sigma:.6f}")
 
     if update:
-        print("\nUpdating btc_core.py...")
-        core_path = os.path.join(ROOT, "btc_core.py")
+        print("\nUpdating btc_core/ ...")
+        core_path = os.path.join(ROOT, "btc_core", "_lppl.py")
         # Backup before modifying
         backup_path = core_path + ".bak"
         import shutil
@@ -121,7 +121,7 @@ def main():
 
         with open(core_path, "w") as f:
             f.write(src)
-        print("btc_core.py updated.")
+        print("btc_core/ updated.")
     else:
         print("\nRun with --update to write these to btc_core.py")
 

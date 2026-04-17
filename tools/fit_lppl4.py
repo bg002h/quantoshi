@@ -116,8 +116,8 @@ def main():
     print(f"  Ratios vs W1: {secondaries[0]/W1:.3f}, {secondaries[1]/W1:.3f}, {secondaries[2]/W1:.3f}")
 
     if update:
-        print("\nUpdating btc_core.py...")
-        core_path = os.path.join(ROOT, "btc_core.py")
+        print("\nUpdating btc_core/ ...")
+        core_path = os.path.join(ROOT, "btc_core", "_lppl.py")
         import shutil
         shutil.copy2(core_path, core_path + ".bak")
         print(f"  Backup saved to btc_core.py.bak")
@@ -159,7 +159,7 @@ def main():
 
         with open(core_path, "w") as f:
             f.write(src)
-        print("btc_core.py updated.")
+        print("btc_core/ updated.")
     else:
         print("\nRun with --update to write params to btc_core.py")
 

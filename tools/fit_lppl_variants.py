@@ -14,7 +14,7 @@ Excludes secondary frequencies from [11.5, 14.5] when --no-13 variants.
 
 Usage:
     btc_venv/bin/python3 tools/fit_lppl_variants.py             # fit + print
-    btc_venv/bin/python3 tools/fit_lppl_variants.py --update    # fit + write to btc_core.py
+    btc_venv/bin/python3 tools/fit_lppl_variants.py --update    # fit + write to btc_core/
 """
 import os
 import sys
@@ -208,16 +208,16 @@ def main():
         results.append((class_name, names, values, r2, sigma, label))
 
     if update:
-        core_path = os.path.join(ROOT, "btc_core.py")
+        core_path = os.path.join(ROOT, "btc_core", "_lppl.py")
         shutil.copy2(core_path, core_path + ".bak")
         print(f"\nBackup: {core_path}.bak")
-        print("Updating btc_core.py...")
+        print("Updating btc_core/ ...")
         for class_name, names, values, r2, sigma, label in results:
             print(f"  {class_name} ({label}): R²={r2:.4f}")
             update_class(class_name, names, values, core_path)
         print("Done.")
     else:
-        print("\nRun with --update to write to btc_core.py")
+        print("\nRun with --update to write to btc_core/")
         print("\nSummary:")
         for class_name, names, values, r2, sigma, label in results:
             print(f"  {label:<12} R²={r2:.6f} σ={sigma:.6f}")

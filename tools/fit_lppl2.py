@@ -8,7 +8,7 @@ W2 is independent of W1 (not constrained to 2×W1).
 
 Usage:
     btc_venv/bin/python3 tools/fit_lppl2.py              # fit and print
-    btc_venv/bin/python3 tools/fit_lppl2.py --update      # fit and update btc_core.py
+    btc_venv/bin/python3 tools/fit_lppl2.py --update      # fit and update the btc_core/ package
 """
 import os
 import sys
@@ -114,8 +114,8 @@ def main():
         print("\n  WARNING: C2 is near zero \u2014 second oscillation may not be significant.")
 
     if update:
-        print("\nUpdating btc_core.py...")
-        core_path = os.path.join(ROOT, "btc_core.py")
+        print("\nUpdating btc_core/ ...")
+        core_path = os.path.join(ROOT, "btc_core", "_lppl.py")
         import shutil
         shutil.copy2(core_path, core_path + ".bak")
         print(f"  Backup saved to btc_core.py.bak")
@@ -155,7 +155,7 @@ def main():
 
         with open(core_path, "w") as f:
             f.write(src)
-        print("btc_core.py updated.")
+        print("btc_core/ updated.")
     else:
         print("\nRun with --update to write params to btc_core.py")
 

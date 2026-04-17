@@ -6,7 +6,7 @@ Optionally updates btc_core.py with fitted parameters.
 
 Usage:
     btc_venv/bin/python3 tools/fit_shrinking_sigma.py           # dry run
-    btc_venv/bin/python3 tools/fit_shrinking_sigma.py --update   # write to btc_core.py
+    btc_venv/bin/python3 tools/fit_shrinking_sigma.py --update   # write to btc_core/
 """
 
 import sys, re, pathlib
@@ -269,24 +269,23 @@ def main():
         print("\nDry run. Pass --update to write parameters to btc_core.py")
         return
 
-    # ── Update btc_core.py ─────────────────────────────────────────────
-    print("\n\nUpdating btc_core.py ...")
-    core_path = ROOT / "btc_core.py"
-    src = core_path.read_text()
-
-    # For models with hard-coded _sigma, add _sigma0 and _alpha_sigma
+    # ── Update btc_core/ submodules ────────────────────────────────────
+    # After the btc_core.py → btc_core/ package split, each class lives in
+    # a specific submodule; find-and-replace reads/writes each file separately.
     hard_coded = {
-        "grdy": ("GreedyModel", "_sigma =  0."),
-        "eppl": ("EntropyPPLModel", "_sigma = 0."),
+        "grdy": ("GreedyModel",      ROOT / "btc_core" / "_basis.py"),
+        "eppl": ("EntropyPPLModel",  ROOT / "btc_core" / "_hybppl_eppl.py"),
     }
 
-    for model_key, (class_name, sigma_pattern) in hard_coded.items():
+    for model_key, (class_name, core_path) in hard_coded.items():
         if model_key not in results:
             continue
         _, fit = results[model_key]
         s0, a, s0u, au, s0d, ad = fit
 
-        # Find and replace _sigma line, add _sigma0/_alpha_sigma
+        print(f"\nUpdating {core_path.relative_to(ROOT)} ...")
+        src = core_path.read_text()
+
         pattern = re.compile(
             rf"(class {class_name}.*?_sigma\s*=\s*)(\d+\.\d+)",
             re.DOTALL
@@ -301,9 +300,9 @@ def main():
                 f"    _alpha_down = {ad:.6f}"
             )
             src = src.replace(f"    {old_line}", f"    {new_lines}", 1)
+            core_path.write_text(src)
             print(f"  Updated {class_name}")
 
-    core_path.write_text(src)
     print("Done.")
 
 

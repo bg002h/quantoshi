@@ -199,7 +199,7 @@ def main():
 
     if update:
         print("\nUpdating btc_core.py with _EPPL_CONFIG_PARAMS...")
-        core_path = os.path.join(ROOT, "btc_core.py")
+        core_path = os.path.join(ROOT, "btc_core", "_hybppl_eppl.py")
         with open(core_path) as f:
             src = f.read()
 
@@ -228,7 +228,7 @@ def main():
 
         with open(core_path, "w") as f:
             f.write(src)
-        print("btc_core.py updated.")
+        print("btc_core/ updated.")
 
 
 if __name__ == "__main__":

@@ -225,6 +225,11 @@ class CitadelState:
     # Tax state (only used when config.tax_enabled)
     tax_lots: list = field(default_factory=list)         # list[TaxLot]
     tax_year_accum: object | None = None                 # TaxYearAccumulator
+    # §1212(b) character-preserved carryforwards. `loss_carryforward` stays
+    # as the sum (read-only for legacy callers); writes should target the
+    # two fields directly.
+    st_carryforward: float = 0.0
+    lt_carryforward: float = 0.0
     loss_carryforward: float = 0.0
     total_taxes_paid: float = 0.0
     annual_tax_history: list = field(default_factory=list)  # list[dict]

@@ -236,6 +236,64 @@ class TestTaxComputation:
         assert result.loss_deduction == 3_000
         assert result.new_carryforward == 0
 
+    # ── §1212(b) character-preserved carryforward ──────────────────────────
+
+    def test_1212b_st_loss_carries_as_st(self):
+        """A $10k ST-only loss: $3k deduction (from ST first), $7k ST carry."""
+        from engines.tax import net_capital_gains
+        result = net_capital_gains(st_gains=0, st_losses=10_000,
+                                   lt_gains=0, lt_losses=0)
+        assert result.loss_deduction == 3_000
+        assert result.new_st_carryforward == 7_000
+        assert result.new_lt_carryforward == 0
+
+    def test_1212b_lt_loss_carries_as_lt(self):
+        """A $10k LT-only loss: $3k deduction (all LT, since no ST), $7k LT carry."""
+        from engines.tax import net_capital_gains
+        result = net_capital_gains(st_gains=0, st_losses=0,
+                                   lt_gains=0, lt_losses=10_000)
+        assert result.loss_deduction == 3_000
+        assert result.new_st_carryforward == 0
+        assert result.new_lt_carryforward == 7_000
+
+    def test_1212b_mixed_loss_deduction_from_st_first(self):
+        """$2k ST + $5k LT losses: $2k ST absorbed, $1k LT completes the $3k
+        deduction, $4k LT carry. No ST carry."""
+        from engines.tax import net_capital_gains
+        result = net_capital_gains(st_gains=0, st_losses=2_000,
+                                   lt_gains=0, lt_losses=5_000)
+        assert result.loss_deduction == 3_000
+        assert result.new_st_carryforward == 0
+        assert result.new_lt_carryforward == 4_000
+
+    def test_1212b_st_carryforward_nets_against_st_gains(self):
+        """A $10k ST carryforward nets against ST gains first, NOT LT."""
+        from engines.tax import net_capital_gains
+        # $8k ST gains this year; $10k ST carry from last year. After netting:
+        # net_st = 8,000 - 10,000 = -2,000. No LT activity → $2k ST loss,
+        # takes $2k deduction, $0 carry.
+        result = net_capital_gains(st_gains=8_000, st_losses=0,
+                                   lt_gains=0, lt_losses=0,
+                                   st_carryforward=10_000)
+        assert result.net_st == 0
+        assert result.loss_deduction == 2_000
+        assert result.new_st_carryforward == 0
+        assert result.new_lt_carryforward == 0
+
+    def test_1212b_legacy_carryforward_routed_to_lt(self):
+        """Backward compatibility: the old single `carryforward` scalar (no
+        ST/LT split provided) is treated as LT, matching the pre-§1212(b)
+        behavior. Guards old simulations whose state was seeded before the
+        split."""
+        from engines.tax import net_capital_gains
+        result = net_capital_gains(st_gains=0, st_losses=0,
+                                   lt_gains=0, lt_losses=0,
+                                   carryforward=5_000)
+        assert result.loss_deduction == 3_000
+        # The $5k legacy carry flowed into LT (not ST).
+        assert result.new_lt_carryforward == 2_000
+        assert result.new_st_carryforward == 0
+
     def test_niit_below_threshold(self):
         from engines.tax import compute_niit
         assert compute_niit(magi=150_000, nii=50_000, filing_status="single") == 0.0

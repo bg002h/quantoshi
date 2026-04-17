@@ -187,7 +187,10 @@ def _quarterly_estimated_payment(state: CitadelState, config: SimConfig,
     ann.lt_capital_gains *= scale
     ann.lt_capital_losses *= scale
     ann.roth_withdrawals *= scale
-    ann.loss_carryforward = state.loss_carryforward  # not scaled
+    # Character-preserved carryforwards (§1212(b)); not scaled by quarter.
+    ann.st_carryforward = state.st_carryforward
+    ann.lt_carryforward = state.lt_carryforward
+    ann.loss_carryforward = state.loss_carryforward  # legacy sum, for estimator only
 
     state_rate = _get_state_rate(config)
     projected = compute_annual_tax(
@@ -223,7 +226,9 @@ def _year_boundary_tax(state: CitadelState, config: SimConfig,
 
     # Interest income is now accumulated per-period in step(), not here.
 
-    # Set loss carryforward
+    # Set loss carryforwards (ST + LT, §1212(b) character-preserved)
+    state.tax_year_accum.st_carryforward = state.st_carryforward
+    state.tax_year_accum.lt_carryforward = state.lt_carryforward
     state.tax_year_accum.loss_carryforward = state.loss_carryforward
 
     state_rate = _get_state_rate(config)
@@ -251,7 +256,12 @@ def _year_boundary_tax(state: CitadelState, config: SimConfig,
         state.cash += -q4_payment
         state.total_taxes_paid += q4_payment  # negative → reduces total
 
-    state.loss_carryforward = tax_result["loss_carryforward"]
+    # Preserve character of the carryforward across years (§1212(b)).
+    state.st_carryforward = tax_result.get("st_carryforward", 0.0)
+    state.lt_carryforward = tax_result.get(
+        "lt_carryforward", tax_result["loss_carryforward"]
+    )
+    state.loss_carryforward = state.st_carryforward + state.lt_carryforward
     state.annual_tax_history.append(tax_result)
 
     # Reset accumulator for next year

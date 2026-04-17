@@ -54,6 +54,21 @@ check_health() {
         elif [[ "$warn_45" == "True" ]]; then
             errors+=("Cache aging (>45 days, age=${cache_age}d) — consider: bash tools/rebuild_caches.sh")
         fi
+        # 1b. Custom Time Axis block-mode health (block_map_loaded).
+        #     The block mode needs build_block_map.py --append to have been
+        #     run on dev; if False, the Custom Time Axis feature degrades
+        #     to "unavailable" per /health graceful degradation.
+        bml=$(echo "$health_json" | python3 -c "
+import json, sys
+try:
+    d = json.loads(sys.stdin.read())
+    print('true' if d.get('block_map_loaded') else 'false')
+except Exception:
+    print('unknown')
+" 2>/dev/null)
+        if [[ "$bml" == "false" ]]; then
+            errors+=("Custom Time Axis block mode unavailable (block_map_loaded=false — rerun build_block_map.py --append on dev)")
+        fi
     fi
 
     # 2. Check if server is SSH-reachable

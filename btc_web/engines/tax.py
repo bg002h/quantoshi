@@ -84,11 +84,17 @@ def compute_ltcg_tax(
 
 @dataclass
 class CapitalGainResult:
-    """Result of IRS capital-gain netting."""
+    """Result of IRS capital-gain netting (§1(h) + §1211(b) + §1212(b))."""
     net_st: float = 0.0
     net_lt: float = 0.0
-    loss_deduction: float = 0.0      # up to $3,000 against ordinary income
-    new_carryforward: float = 0.0    # excess loss carried to next year
+    loss_deduction: float = 0.0            # up to $3,000 against ordinary income
+    new_st_carryforward: float = 0.0       # ST-character loss → next year
+    new_lt_carryforward: float = 0.0       # LT-character loss → next year
+
+    @property
+    def new_carryforward(self) -> float:
+        """Sum of ST + LT carryforwards (kept for backward compatibility)."""
+        return self.new_st_carryforward + self.new_lt_carryforward
 
 
 def net_capital_gains(
@@ -96,51 +102,70 @@ def net_capital_gains(
     st_losses: float,
     lt_gains: float,
     lt_losses: float,
-    carryforward: float,
+    st_carryforward: float = 0.0,
+    lt_carryforward: float = 0.0,
+    carryforward: float | None = None,   # deprecated single-scalar form
 ) -> CapitalGainResult:
-    """IRS Section 1(h) netting of short-term and long-term capital gains.
+    """IRS §1(h) + §1211(b) + §1212(b) netting of capital gains/losses.
 
-    *carryforward* is prior-year loss carryforward (applied as LT loss,
-    v1 simplification).
+    Character is preserved across years per §1212(b): a prior-year ST loss
+    carries forward as ST next year and nets against ST gains first. The
+    $3,000 annual deduction under §1211(b) is applied from ST losses FIRST
+    per §1212(b)(2)(A); only the LT remainder (if any) counts as LT carry.
+
+    The scalar ``carryforward`` argument is deprecated and treated as LT
+    (matching the prior simplified behaviour) when the ST/LT split values
+    are both zero.
     """
-    net_st = st_gains - st_losses
-    net_lt = lt_gains - lt_losses - carryforward
+    # Backward compat: old callers passed a single `carryforward` scalar
+    # (treated as LT). Route it into lt_carryforward if no split given.
+    if carryforward is not None and st_carryforward == 0.0 and lt_carryforward == 0.0:
+        lt_carryforward = carryforward
 
-    # Cross-category offset: if one is negative and the other positive
+    net_st = st_gains - st_losses - st_carryforward
+    net_lt = lt_gains - lt_losses - lt_carryforward
+
+    # Cross-category offset: net loss in one category reduces net gain in
+    # the other. The offset portion loses its character (it's gone), so it
+    # never carries forward — only the un-offset remainder does.
     if net_st < 0 and net_lt > 0:
-        combined = net_st + net_lt
-        if combined >= 0:
-            net_lt = combined
-            net_st = 0.0
-        else:
-            net_lt = 0.0
-            net_st = combined
+        offset = min(-net_st, net_lt)
+        net_st += offset
+        net_lt -= offset
     elif net_lt < 0 and net_st > 0:
-        combined = net_st + net_lt
-        if combined >= 0:
-            net_st = combined
-            net_lt = 0.0
-        else:
-            net_st = 0.0
-            net_lt = combined
+        offset = min(-net_lt, net_st)
+        net_lt += offset
+        net_st -= offset
 
-    # Remaining net loss
-    total_net = net_st + net_lt
-    if total_net < 0:
-        loss_deduction = min(-total_net, 3_000.0)
-        new_carry = -total_net - loss_deduction
-        # Zero out the gain fields (all loss has been accounted for)
+    # At this point, net_st and/or net_lt may still be negative (character-
+    # specific net losses remaining after cross-category offset).
+    st_loss_remaining = -net_st if net_st < 0 else 0.0
+    lt_loss_remaining = -net_lt if net_lt < 0 else 0.0
+    total_loss = st_loss_remaining + lt_loss_remaining
+
+    if total_loss > 0:
+        # §1211(b): up to $3,000 deduction against ordinary income.
+        # §1212(b)(2)(A): the deduction is drawn from ST loss first.
+        loss_deduction = min(total_loss, 3_000.0)
+        st_ded = min(st_loss_remaining, loss_deduction)
+        lt_ded = loss_deduction - st_ded
+        # Character-preserved carryforwards.
+        new_st_carry = st_loss_remaining - st_ded
+        new_lt_carry = lt_loss_remaining - lt_ded
+        # Zero out the gain fields (all loss has been accounted for).
         net_st = 0.0
         net_lt = 0.0
     else:
         loss_deduction = 0.0
-        new_carry = 0.0
+        new_st_carry = 0.0
+        new_lt_carry = 0.0
 
     return CapitalGainResult(
         net_st=net_st,
         net_lt=net_lt,
         loss_deduction=loss_deduction,
-        new_carryforward=new_carry,
+        new_st_carryforward=new_st_carry,
+        new_lt_carryforward=new_lt_carry,
     )
 
 
@@ -174,6 +199,12 @@ class TaxYearAccumulator:
     st_capital_losses: float = 0.0
     lt_capital_gains: float = 0.0
     lt_capital_losses: float = 0.0
+    # §1212(b) character-preserved carryforwards. `loss_carryforward` is
+    # retained as a write-through sum so existing callers that read/write
+    # the single scalar see the combined value; per-character reads/writes
+    # should use st_carryforward / lt_carryforward directly.
+    st_carryforward: float = 0.0
+    lt_carryforward: float = 0.0
     loss_carryforward: float = 0.0
     roth_withdrawals: float = 0.0
     rmd_required: float = 0.0
@@ -214,13 +245,23 @@ def compute_annual_tax(
     std_ded = std_ded_base * (1 + inflation_rate) ** years_from_base
     niit_threshold = NIIT_THRESHOLD[filing_status]  # NOT inflation-indexed per IRS
 
-    # --- 1. Capital loss netting ---
+    # --- 1. Capital loss netting (§1(h) + §1211(b) + §1212(b)) ---
+    # Prefer the character-split ST/LT carryforward fields. Fall back to
+    # the legacy scalar `loss_carryforward` (treated as LT) so older
+    # simulations whose state was seeded before the split still work.
+    if accum.st_carryforward or accum.lt_carryforward:
+        _st_cf = accum.st_carryforward
+        _lt_cf = accum.lt_carryforward
+    else:
+        _st_cf = 0.0
+        _lt_cf = accum.loss_carryforward
     cap = net_capital_gains(
         st_gains=accum.st_capital_gains,
         st_losses=accum.st_capital_losses,
         lt_gains=accum.lt_capital_gains,
         lt_losses=accum.lt_capital_losses,
-        carryforward=accum.loss_carryforward,
+        st_carryforward=_st_cf,
+        lt_carryforward=_lt_cf,
     )
 
     # --- 2. AGI ---
@@ -282,5 +323,7 @@ def compute_annual_tax(
         "total": total,
         "effective_rate": effective_rate,
         "loss_carryforward": cap.new_carryforward,
+        "st_carryforward": cap.new_st_carryforward,
+        "lt_carryforward": cap.new_lt_carryforward,
         "net_cap_loss_deduction": cap.loss_deduction,
     }

@@ -1,0 +1,14 @@
+#!/bin/bash
+# Full production restart: git pull, flush Redis, restart all services.
+#
+# Runs as root (required for systemctl without deploy-user sudoers rules
+# and for `redis-cli FLUSHDB`). Restarts the whole stack — quantoshi,
+# quantoshi-celery, quantoshi-celery-beat — so a deploy that changes the
+# Celery tasks picks them up.
+#
+# For lightweight deploy-user-only restarts (no Redis flush, only the
+# quantoshi gunicorn service), see `scripts/quantoshi-restart`.
+set -e
+echo "Restarting Quantoshi (full) on production server..."
+ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && redis-cli FLUSHDB && systemctl restart quantoshi quantoshi-celery quantoshi-celery-beat"
+echo "Done. Quantoshi + Celery restarted, Redis flushed."

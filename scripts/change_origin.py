@@ -5,16 +5,22 @@ Usage:
     python3 scripts/change_origin.py 2009-08-15          # change to new date
     python3 scripts/change_origin.py 2009-08-15 --dry-run # preview changes
 
-Note: `btc_core/_helpers.py` holds the genesis date literal post-26af8d8
-(the `btc_core.py` → `btc_core/` package split). The patch targets the
-submodule file directly.
+Source of truth: `btc_core/_helpers.py` holds the genesis date literal
+(post-26af8d8 `btc_core.py` → `btc_core/` package split). The script
+auto-detects the current origin from that file and patches every
+occurrence across the repo.
 
-Patches ~20 locations across SP.ipynb, btc_core helpers, web app layout,
-documentation, and chart labels. After running, you must manually:
-  1. Execute SP.ipynb to regenerate model_data.pkl
-  2. Rebuild MC cache
-  3. Run tests
-  4. Deploy
+SP.ipynb was retired to `debris/` in 2026-03-30 when the model build was
+moved to `tools/build_bm_model.py` + `tools/model_toolkit/`. The notebook
+is no longer source of truth and is NOT patched by this script — if you
+want to keep a legacy reference copy in sync, do it by hand.
+
+After running, you must manually:
+  1. Execute `btc_venv/bin/python3 tools/build_bm_model.py` to regenerate
+     model_data.pkl (and optionally `tools/build_ef_model.py` for EF).
+  2. Rebuild MC cache via `bash tools/rebuild_caches.sh`.
+  3. Run tests (`btc_venv/bin/python3 -m pytest btc_web/`).
+  4. Deploy.
 
 See: memory reference 'change_genesis_procedure' or CLAUDE.md for full procedure.
 """
@@ -64,17 +70,17 @@ def main():
     new_endash = f"{new.year}\u2013{new.month:02d}\u2013{new.day:02d}"  # "2009–07–25"
     dry = args.dry_run
 
-    # Auto-detect old date from SP.ipynb
+    # Auto-detect old date from btc_core/_helpers.py (source of truth
+    # post-26af8d8 package split; SP.ipynb was retired to debris/).
     root = Path(__file__).resolve().parent.parent
-    nb_path = root / "SP.ipynb"
-
-    with open(nb_path) as f:
-        nb = json.load(f)
-
-    src0 = "".join(nb["cells"][0]["source"])
-    m = re.search(r"genesis\s*=\s*pd\.to_datetime\('(\d{4}-\d{2}-\d{2})'\)", src0)
+    helpers_path = root / "btc_core" / "_helpers.py"
+    helpers_src = helpers_path.read_text()
+    m = re.search(
+        r"genesis\s*=\s*pd\.Timestamp\(\"(\d{4}-\d{2}-\d{2})\"\)",
+        helpers_src,
+    )
     if not m:
-        print("ERROR: Could not find genesis date in SP.ipynb Cell 0")
+        print("ERROR: Could not find genesis date in btc_core/_helpers.py")
         sys.exit(1)
 
     old = datetime.strptime(m.group(1), "%Y-%m-%d")
@@ -95,90 +101,6 @@ def main():
 
     changes = 0
 
-    # ── SP.ipynb ─────────────────────────────────────────────────────────
-
-    # Cell 0: genesis variable
-    src0 = replace_checked(src0,
-        f"genesis     = pd.to_datetime('{old_str}')",
-        f"genesis     = pd.to_datetime('{new_str}')",
-        1, "Cell 0 genesis variable")
-    changes += 1
-
-    # Cell 0: comment (may say "economic genesis" or "optimal time origin")
-    comment_old = f"(economic genesis {old_str})"
-    comment_new = f"(optimal time origin {new_str})"
-    if comment_old not in src0:
-        comment_old = f"(optimal time origin {old_str})"
-    src0 = replace_checked(src0, comment_old, comment_new, 1, "Cell 0 comment")
-    changes += 1
-
-    # Cell 0: xlabels (5 instances)
-    src0 = replace_checked(src0,
-        f"Years since economic genesis ({old_mon_yr})",
-        f"Years since economic genesis ({new_mon_yr})",
-        5, "Cell 0 xlabels")
-    changes += 5
-
-    # Cell 1: GENESIS_DATE
-    src1 = "".join(nb["cells"][1]["source"])
-    src1 = replace_checked(src1,
-        f"GENESIS_DATE = pd.Timestamp('{old_str}')",
-        f"GENESIS_DATE = pd.Timestamp('{new_str}')",
-        1, "Cell 1 GENESIS_DATE")
-    changes += 1
-
-    # Cell 1: FIT_MIN_DATE — must be after genesis + ~6 months for t >= 0.5
-    import re as _re
-    fit_min_match = _re.search(r"FIT_MIN_DATE\s*=\s*'(\d{4}-\d{2}-\d{2})'", src1)
-    if fit_min_match:
-        old_fit_min = datetime.strptime(fit_min_match.group(1), "%Y-%m-%d")
-        # Ensure FIT_MIN_DATE is at least genesis + 6 months
-        min_fit_date = new + timedelta(days=183)  # ~6 months
-        if min_fit_date > old_fit_min:
-            new_fit_min_str = min_fit_date.strftime("%Y-%m-%d")
-            src1 = src1.replace(
-                f"FIT_MIN_DATE = '{fit_min_match.group(1)}'",
-                f"FIT_MIN_DATE = '{new_fit_min_str}'")
-            print(f"  WARNING: FIT_MIN_DATE moved from {fit_min_match.group(1)} to {new_fit_min_str} (must be after genesis + 6mo)")
-            changes += 1
-
-    # Cell 1: xlabels with month abbreviation (2 instances)
-    src1 = replace_checked(src1,
-        f"Years since economic genesis ({old_mon_yr})",
-        f"Years since economic genesis ({new_mon_yr})",
-        2, "Cell 1 xlabels (month)")
-    changes += 2
-
-    # Cell 1: xlabels with en-dash date (3 instances)
-    src1 = replace_checked(src1,
-        f"Years since economic genesis ({old_endash})",
-        f"Years since economic genesis ({new_endash})",
-        3, "Cell 1 xlabels (en-dash)")
-    changes += 3
-
-    # Cell 3: GENESIS_DATE in export dict
-    src3 = "".join(nb["cells"][3]["source"])
-    src3 = replace_checked(src3,
-        f"'GENESIS_DATE':    '{old_str}'",
-        f"'GENESIS_DATE':    '{new_str}'",
-        1, "Cell 3 GENESIS_DATE")
-    changes += 1
-
-    # Cell 3: comment
-    src3 = replace_checked(src3,
-        f"GENESIS_DATE {old_str}",
-        f"GENESIS_DATE {new_str}",
-        1, "Cell 3 comment")
-    changes += 1
-
-    if not dry:
-        nb["cells"][0]["source"] = src0
-        nb["cells"][1]["source"] = src1
-        nb["cells"][3]["source"] = src3
-        with open(nb_path, "w") as f:
-            json.dump(nb, f, indent=1)
-    print(f"  SP.ipynb: {changes} replacements")
-
     # ── btc_core/_helpers.py ────────────────────────────────────────────
     # (post-26af8d8 split: yr_to_t/today_t live in the helpers submodule)
 
@@ -194,15 +116,17 @@ def main():
     print(f"  btc_core/_helpers.py: {count} replacements")
     changes += count
 
-    # ── model_info.py ────────────────────────────────────────────────────
+    # ── layout/model_info/_items.py ──────────────────────────────────────
+    # (post-refactor: model_info.py was split into a package on 2026-04-16.
+    #  The genesis-date string literals now live in _items.py.)
 
-    mi = root / "btc_web" / "layout" / "model_info.py"
+    mi = root / "btc_web" / "layout" / "model_info" / "_items.py"
     src = mi.read_text()
     count = src.count(old_str)
     src = src.replace(old_str, new_str)
     if not dry:
         mi.write_text(src)
-    print(f"  model_info.py: {count} replacements")
+    print(f"  layout/model_info/_items.py: {count} replacements")
     changes += count
 
     # ── faq.py ───────────────────────────────────────────────────────────
@@ -261,17 +185,23 @@ def main():
     changes += count
 
     # ── bubble.py xlabel ─────────────────────────────────────────────────
+    # (The explicit "Years since genesis (YYYY-MM-DD)" xlabel was removed
+    # from the bubble figure when chart labels were harmonised. Keep the
+    # patch as best-effort — if the target string isn't present, skip
+    # silently rather than aborting the whole script.)
 
     bub = root / "btc_web" / "figures" / "bubble.py"
-    src = bub.read_text()
-    src = replace_checked(src,
-        f"Years since genesis ({old_str})",
-        f"Years since genesis ({new_str})",
-        1, "bubble.py xlabel")
-    if not dry:
-        bub.write_text(src)
-    print(f"  bubble.py: 1 replacement")
-    changes += 1
+    if bub.exists():
+        src = bub.read_text()
+        needle = f"Years since genesis ({old_str})"
+        if needle in src:
+            src = src.replace(needle, f"Years since genesis ({new_str})", 1)
+            if not dry:
+                bub.write_text(src)
+            print("  bubble.py: 1 replacement")
+            changes += 1
+        else:
+            print("  bubble.py: no xlabel literal — skipped (harmonised away)")
 
     # ── architecture.md ──────────────────────────────────────────────────
 

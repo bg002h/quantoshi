@@ -328,15 +328,42 @@ def _mc_overlay_key(p, tab, start_stack):
 # Pre-computed cache helpers
 # ══════════════════════════════════════════════════════════════════════════════
 
+def _matches_prebuilt_cache_params(p) -> bool:
+    """The pre-computed cache was built with fixed mc_bins=MC_BINS and
+    mc_window = [MC_WINDOW_START, today]. If the user has overridden
+    either, the cache's paths were NOT generated under their parameters —
+    return False so we fall through to live simulation instead of silently
+    serving wrong-parameter bands.
+    """
+    from mc_cache import MC_BINS as _CACHE_BINS, MC_WINDOW_START as _CACHE_WIN_START
+    # mc_bins: absent or equal to the build-time default.
+    user_bins = p.get("mc_bins")
+    if user_bins is not None and int(user_bins) != int(_CACHE_BINS):
+        return False
+    # mc_window: None/absent is fine (caller uses the default). A list that
+    # differs from the prebuilt start year invalidates the cache lookup.
+    win = p.get("mc_window")
+    if win and isinstance(win, (list, tuple)) and len(win) >= 1:
+        try:
+            if int(win[0]) != int(_CACHE_WIN_START):
+                return False
+        except (TypeError, ValueError):
+            return False
+    return True
+
+
 def try_precomputed_paths(p, mc_years):
     """Look up pre-computed price paths using uniform mc_start_yr/mc_entry_q.
 
     Returns (n_sims, n_steps) ndarray or None.
     Only returns cached data when entry_q is cache-aligned (within 0.5% of a
-    10% bin).  Non-aligned values fall through to live simulation.
-    Subsamples to mc_sims if fewer than cache size (e.g. free tier 100 sims).
+    10% bin) AND the user hasn't overridden mc_bins/mc_window (since the
+    cache was built with fixed defaults). Subsamples to mc_sims if fewer
+    than cache size (e.g. free tier 100 sims).
     """
     if not _HAS_MC_CACHE:
+        return None
+    if not _matches_prebuilt_cache_params(p):
         return None
     syr = int(p.get("mc_start_yr", MC_DEFAULT_START_YR))
     raw_pctile = float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)) / 100.0
@@ -351,11 +378,11 @@ def try_precomputed_paths(p, mc_years):
 def try_precomputed_overlay(p, mc_years, wd_amount, inflation, mc_stack):
     """Look up pre-computed withdraw overlay fans.
 
-    Returns (fan_btc, fan_usd) dicts or (None, None).
-    Only returns cached data when entry_q is cache-aligned (within 0.5% of a
-    10% bin).  Non-aligned values fall through to live simulation.
+    Same bins/window guards as :func:`try_precomputed_paths`.
     """
     if not _HAS_MC_CACHE:
+        return None, None
+    if not _matches_prebuilt_cache_params(p):
         return None, None
     syr = int(p.get("mc_start_yr", MC_DEFAULT_START_YR))
     raw_pctile = float(p.get("mc_entry_q", MC_DEFAULT_ENTRY_Q)) / 100.0

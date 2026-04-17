@@ -97,13 +97,21 @@ def fetch_treasury_yields(start: str = "1990-01-01") -> pd.DataFrame:
 def treasury_yields_to_returns(yields_df: pd.DataFrame) -> pd.DataFrame:
     """Convert Treasury yields to approximate monthly total returns.
 
-    Uses duration approximation:
-        monthly_return ≈ yield/12 - duration × Δyield
+    Uses a duration + convexity approximation:
+        monthly_return ≈ yield/12 − duration × Δyield + ½ × convexity × Δyield²
 
-    Durations (approximate):
-        3mo T-Bill: ~0.25 yr (minimal price sensitivity)
+    The convexity term matters for long-duration bonds during sharp
+    rate moves (2022 cycle: +100bp/month on the 30yr T-Bond produced
+    ≈ +2% of convexity-driven return that the duration-only linear
+    approximation missed, systematically overstating realized vol).
+
+    Durations (standard market estimates):
+        3mo T-Bill: ~0.25 yr
         5yr T-Note: ~4.5 yr
         30yr T-Bond: ~20 yr
+
+    Convexity is approximated as duration × (duration + 1) — the
+    coupon-bond rule of thumb. Units: years².
     """
     durations = {"yield_3mo": 0.25, "yield_5yr": 4.5, "yield_30yr": 20.0}
     returns = pd.DataFrame(index=yields_df.index[1:])
@@ -111,51 +119,134 @@ def treasury_yields_to_returns(yields_df: pd.DataFrame) -> pd.DataFrame:
     for col, duration in durations.items():
         if col not in yields_df.columns:
             continue
+        convexity = duration * (duration + 1.0)
         y = yields_df[col]
         # Income component: yield / 12
         income = y.iloc[:-1].values / 12.0
-        # Price component: -duration × change in yield
+        # Price component: -duration × Δy + ½ × convexity × Δy²
         dy = y.diff().iloc[1:].values
-        ret = income + (-duration * dy)
+        ret = income + (-duration * dy) + 0.5 * convexity * dy * dy
         ret_col = col.replace("yield_", "return_")
         returns[ret_col] = ret
 
     return returns.dropna()
 
 
-def save_all(dry_run: bool = False):
-    """Fetch all data and save to CSV files."""
+def _merge_with_committed(fresh_df: pd.DataFrame, path: Path,
+                           mode: str, index_name: str = "date") -> pd.DataFrame:
+    """Merge freshly fetched data with the committed CSV at *path*.
+
+    Yahoo/FRED occasionally REVISE historical values for already-settled
+    months (splits, dividend adjustments, index reconstitutions). The
+    committed CSV is the reference-archive; we never overwrite historical
+    values that diverge from what's already there.
+
+    Modes:
+      - "append": keep every committed row; only append months strictly
+        newer than the latest committed index entry. This preserves
+        historical integrity across refreshes.
+      - "replace": write the fresh dataframe as-is (legacy behaviour;
+        used only when explicitly requested via --replace).
+      - "verify": compare fresh vs committed for overlapping months and
+        warn on any mismatch; return the committed dataframe unchanged.
+
+    Returns the dataframe to write. Caller still decides whether to write.
+    """
+    if not path.exists() or mode == "replace":
+        return fresh_df
+
+    committed = pd.read_csv(path, index_col=0, parse_dates=True)
+    committed.index.name = index_name
+
+    if mode == "verify":
+        overlap = fresh_df.index.intersection(committed.index)
+        drift = []
+        for idx in overlap:
+            for col in fresh_df.columns:
+                if col not in committed.columns:
+                    continue
+                fv = fresh_df.at[idx, col]
+                cv = committed.at[idx, col]
+                if pd.notna(fv) and pd.notna(cv):
+                    if abs(float(fv) - float(cv)) > 1e-6 * max(abs(float(cv)), 1.0):
+                        drift.append((idx, col, cv, fv))
+        if drift:
+            print(f"  WARNING: {len(drift)} historical revisions in {path.name}:")
+            for idx, col, cv, fv in drift[:5]:
+                print(f"    {idx.date()} {col}: committed={cv:.6g} fresh={fv:.6g}")
+            if len(drift) > 5:
+                print(f"    ... and {len(drift) - 5} more")
+        return committed
+
+    # "append" mode (default): only add strictly-newer rows.
+    last_idx = committed.index.max()
+    new_rows = fresh_df[fresh_df.index > last_idx]
+    if len(new_rows) == 0:
+        print(f"  {path.name}: no new rows (latest committed {last_idx.date()})")
+        return committed
+    print(f"  {path.name}: appending {len(new_rows)} new rows "
+          f"({new_rows.index.min().date()} to {new_rows.index.max().date()})")
+    return pd.concat([committed, new_rows])
+
+
+def save_all(dry_run: bool = False, mode: str = "append") -> None:
+    """Fetch all data and save to CSV files.
+
+    Mode controls what happens to the committed CSVs:
+      - "append": default. Keep every committed row; append only months
+        strictly newer than the latest committed index. Historical
+        revisions from Yahoo/FRED are ignored (the reference-archive is
+        treated as immutable).
+      - "verify": DRY-run style — compare fresh vs committed, warn on
+        any historical mismatch, and write NOTHING.
+      - "replace": legacy destructive behaviour. Overwrites all CSVs with
+        whatever the data sources return today. Use only for a fresh
+        bootstrap or when you genuinely want to adopt a revision sweep.
+    """
+    print(f"save_all mode={mode} dry_run={dry_run}")
     print("Fetching S&P 500 equity returns...")
     eq = fetch_equity_returns()
     print(f"  {len(eq)} monthly returns ({eq.index.min()} to {eq.index.max()})")
-    if not dry_run:
-        eq.to_csv(_DATA_DIR / "equity_returns.csv")
-        print(f"  Saved to {_DATA_DIR / 'equity_returns.csv'}")
+    eq_path = _DATA_DIR / "equity_returns.csv"
+    eq_to_save = _merge_with_committed(eq, eq_path, mode)
+    if not dry_run and mode != "verify":
+        eq_to_save.to_csv(eq_path)
+        print(f"  Saved to {eq_path}")
 
     print("Fetching US Aggregate Bond returns (AGG)...")
     bd = fetch_bond_returns()
     print(f"  {len(bd)} monthly returns ({bd.index.min()} to {bd.index.max()})")
-    if not dry_run:
-        bd.to_csv(_DATA_DIR / "bond_returns.csv")
-        print(f"  Saved to {_DATA_DIR / 'bond_returns.csv'}")
+    bd_path = _DATA_DIR / "bond_returns.csv"
+    bd_to_save = _merge_with_committed(bd, bd_path, mode)
+    if not dry_run and mode != "verify":
+        bd_to_save.to_csv(bd_path)
+        print(f"  Saved to {bd_path}")
 
     print("Fetching Treasury yields...")
     yld = fetch_treasury_yields()
     print(f"  {len(yld)} monthly observations ({yld.index.min()} to {yld.index.max()})")
-    if not dry_run:
-        yld.to_csv(_DATA_DIR / "treasury_yields.csv")
-        print(f"  Saved to {_DATA_DIR / 'treasury_yields.csv'}")
+    yld_path = _DATA_DIR / "treasury_yields.csv"
+    yld_to_save = _merge_with_committed(yld, yld_path, mode)
+    if not dry_run and mode != "verify":
+        yld_to_save.to_csv(yld_path)
+        print(f"  Saved to {yld_path}")
 
     print("Computing Treasury total returns from yields...")
-    tret = treasury_yields_to_returns(yld)
+    tret = treasury_yields_to_returns(yld_to_save)
     print(f"  {len(tret)} monthly returns")
     for col in tret.columns:
         ann = tret[col].mean() * 12 * 100
         vol = tret[col].std() * np.sqrt(12) * 100
         print(f"    {col}: ann. return={ann:.1f}%, ann. vol={vol:.1f}%")
-    if not dry_run:
-        tret.to_csv(_DATA_DIR / "treasury_returns.csv")
-        print(f"  Saved to {_DATA_DIR / 'treasury_returns.csv'}")
+    tret_path = _DATA_DIR / "treasury_returns.csv"
+    # Treasury returns are DERIVED from yields; regenerate on every run
+    # but still append-only vs the committed file so pre-existing rows
+    # don't get their computed values (possibly from older convexity
+    # approximation) silently rewritten.
+    tret_to_save = _merge_with_committed(tret, tret_path, mode)
+    if not dry_run and mode != "verify":
+        tret_to_save.to_csv(tret_path)
+        print(f"  Saved to {tret_path}")
 
     # Summary statistics
     print("\n=== Summary ===")
@@ -171,5 +262,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fetch historical asset data")
     parser.add_argument("--dry-run", action="store_true",
                         help="Preview data without saving")
+    parser.add_argument(
+        "--mode", choices=["append", "verify", "replace"], default="append",
+        help=("append (default): only add rows newer than the committed "
+              "CSV; verify: warn on historical-value drift and write "
+              "nothing; replace: legacy destructive overwrite."),
+    )
     args = parser.parse_args()
-    save_all(dry_run=args.dry_run)
+    save_all(dry_run=args.dry_run, mode=args.mode)

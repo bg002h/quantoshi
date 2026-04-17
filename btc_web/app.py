@@ -21,6 +21,15 @@ import time
 from pathlib import Path
 import _app_ctx
 
+_BOOT_T0 = time.monotonic()
+def _boot_mark(label: str) -> None:
+    """Boot-time phase marker. Writes to stderr so systemd/gunicorn capture it.
+    Set QS_BOOT_TRACE=1 to enable (defaults off — noisy on every restart)."""
+    if os.environ.get("QS_BOOT_TRACE") == "1":
+        print(f"[boot +{time.monotonic() - _BOOT_T0:5.2f}s] {label}",
+              file=sys.stderr, flush=True)
+_boot_mark("enter app.py")
+
 # ── make project root importable (btc_core/ package lives there) ─────────────
 _HERE    = Path(__file__).parent
 _ROOT    = _HERE.parent
@@ -50,9 +59,11 @@ from mc_overlay import save_trans_cache_to_disk, _get_transition_matrix
 import atexit
 atexit.register(save_trans_cache_to_disk)
 _HAS_MARKOV = _app_ctx._HAS_MARKOV
+_boot_mark("imports + MC load done")
 
 # ── load model (once at startup) ──────────────────────────────────────────────
 M = load_model_data()
+_boot_mark("load_model_data done")
 
 # ── Background callback manager (diskcache) ─────────────────────────────────
 try:
@@ -223,6 +234,7 @@ def _cache_headers(response):
 # ── populate shared context ──────────────────────────────────────────────────
 import _app_ctx
 _app_ctx.M = M
+_boot_mark("_app_ctx.M set (post init_models)")
 _app_ctx.app = app
 _app_ctx.server = server
 
@@ -476,7 +488,9 @@ import os as _os
 # If Redis L0 has entries from a prior run, this is ~0.5s; only the
 # post-FLUSHDB case takes the full ~4s.
 if _os.environ.get("DEV") != "1":
+    _boot_mark("_prewarm_caches start")
     _prewarm_caches()
+    _boot_mark("_prewarm_caches end")
     from utils import _log_cache_stats
     _log_cache_stats()
 else:
@@ -567,6 +581,8 @@ def _trigger_mc_prewarm():
         import threading
         threading.Thread(target=_prewarm_mc_caches, daemon=True,
                          name="mc-prewarm").start()
+
+_boot_mark("module load complete (gunicorn will now fork workers)")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Entry point

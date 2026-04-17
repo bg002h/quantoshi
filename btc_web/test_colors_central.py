@@ -35,10 +35,11 @@ _ALLOWLIST = {
     _BTC_WEB / "assets" / "bootstrap_flatly.min.css",  # vendor bundle (~331 hex literals)
     _TOOLS / "generate_color_artifacts.py",
     _BTC_WEB / "test_colors_central.py",
-    # model_info.py contains one user-visible documentation string that spells out
-    # a hex value for users: html.Span("orange (#e67e22), 3px for the drawn line").
+    # model_info/_items.py contains one user-visible documentation string that
+    # spells out a hex value for users:
+    # html.Span("orange (#e67e22), 3px for the drawn line").
     # This is genuinely unmigrable — removing the hex would change user-facing text.
-    _BTC_WEB / "layout" / "model_info.py",
+    _BTC_WEB / "layout" / "model_info" / "_items.py",
 }
 
 _ALLOWLIST_DIRS = {

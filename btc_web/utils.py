@@ -187,6 +187,10 @@ def _get_heatmap_fig(p: dict):
     _try_flush_l0()
     for k in [k for k in p if k.startswith("mc_")]:
         p.pop(k)
+    # live_price is a per-minute ticker value; dropping it from the cache
+    # key trades display precision (entry-price title can lag by up to an
+    # hour) for near-100% cache hit rate on first-visit across users.
+    p.pop("live_price", None)
     p_q = _quantize_params(p)
     return _cached_heatmap_fig(json.dumps(p_q, sort_keys=True, default=str))
 

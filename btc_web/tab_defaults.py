@@ -22,8 +22,11 @@ from colors import (LOT_MARKER_COLOR, FALLBACK_MODEL_GRAY, NEAR_BLACK,
 BUBBLE = MappingProxyType({
     "selected_qs": (0.5,),
     "xscale": "log", "yscale": "log",
-    "auto_y": ("yes",),
-    "ymin": 0.03, "ymax": 10**6.05,
+    # ymin/ymax must match the bub-yrange slider default [-1.5, 6.05] so the
+    # prewarm cache key matches the first-render callback key. auto_y is a UI
+    # toggle only; it influences yrange via a clientside callback but never
+    # appears in the runtime params dict, so it is NOT a cache key.
+    "ymin": 10 ** -1.5, "ymax": 10 ** 6.05,
     "shade": True, "show_data": True, "show_today": True,
     "show_legend": False, "minor_grid": False,
     "show_ols": False, "show_ucl": False,
@@ -39,12 +42,25 @@ BUBBLE = MappingProxyType({
     "scanner_lines": (),
     "qs_mode": (),
     "sigma_mode": "constant",
+    # Derived-from-State keys that the bubble callback always puts into its
+    # params dict — must be present in defaults so the prewarm key aligns.
+    "decomp_model": "",
+    "decomp_mode": "individual",
+    "decomp_components": (),
+    "lppl_n_freqs": (),
+    "lppl_weighted": (),
+    "lppl_no_13": (),
+    "config_b_keys": (),
 })
 
 HEATMAP = MappingProxyType({
     "exit_qs": (),
     "color_mode": 0,
     "b1": 0, "b2": 5,
+    # hm_palette is a UI-only control — seeds the dropdown but the heatmap
+    # callback never puts it in its runtime params dict. heatmap_defaults()
+    # pops it before the prewarm cache key is built so the key matches the
+    # runtime key.
     "hm_palette": "rwg",
     # Initial CAGR heatmap colors match the default "rwg" preset
     # (red → white → white → green) so the rendered heatmap is consistent
@@ -59,6 +75,9 @@ HEATMAP = MappingProxyType({
     "hm_model": "bub",
     "active_models": (),
     "palette": "default",
+    # live_price is stripped from the cache key in utils._get_heatmap_fig
+    # (per-minute ticker value; up to ~1h staleness acceptable), so it
+    # intentionally does NOT appear here.
 })
 
 DCA = MappingProxyType({
@@ -79,6 +98,10 @@ DCA = MappingProxyType({
     "sc_entry_mode": "live", "sc_custom_price": 80000.0,
     "sc_tax_rate": 0.33,
     "show_qr": True, "show_mc": False,
+    # qs_mode is a UI control (sel-qs vs adv-qs selector) consumed by
+    # routing logic in the callback — never placed into the figure builder's
+    # params dict. dca_defaults() pops it before the prewarm cache key is
+    # built so the key matches the runtime key.
     "qs_mode": (),
 })
 
@@ -96,6 +119,7 @@ RETIRE = MappingProxyType({
     "active_models": (),
     "palette": "default",
     "show_qr": True, "show_mc": False,
+    # qs_mode — see DCA note. retire_defaults() pops it.
     "qs_mode": (),
 })
 
@@ -105,19 +129,25 @@ SUPERCHARGE = MappingProxyType({
     "delays": (0.0, 0.0, 0.0, 0.0, 2.0),
     "freq": "Monthly", "inflation": 4.0,
     "selected_qs": (0.15, 0.85),
+    # chart_layout=2 encodes "shade bands on" (the shade checkbox is the
+    # UI-level toggle; chart_layout is what the figure builder consumes).
     "chart_layout": 2,
     "display_q": 0.05,
     "wd_amount": 5000, "end_yr": 2075,
     "disp_mode": "usd",
     "annotate": True, "log_y": True,
-    "shade": True, "discrete": False,
+    "discrete": False,
     "show_legend": False, "minor_grid": False,
     "legend_pos": "top-left",
     "target_yr": 2060,
     "active_models": (),
     "palette": "default",
     "show_qr": True, "show_mc": False,
+    # qs_mode — see DCA note. supercharge_defaults() pops it.
     "qs_mode": (),
+    # is_mobile is a per-client viewport-derived flag in the runtime params
+    # dict; kept here so defaults baseline matches a desktop viewer.
+    "is_mobile": False,
 })
 
 STACK = MappingProxyType({
@@ -171,15 +201,18 @@ CITADEL = MappingProxyType({
 
 
 def bubble_defaults() -> dict:
-    import pandas as pd
-    yr_now = pd.Timestamp.today().year
     d = dict(BUBBLE)
     d["xmin"] = 2010
     d["xmax"] = 2033
     d["selected_qs"] = list(BUBBLE["selected_qs"])
     d["active_models"] = list(BUBBLE["active_models"])
     d["scanner_lines"] = list(BUBBLE["scanner_lines"])
-    d["auto_y"] = list(BUBBLE["auto_y"])
+    d["decomp_components"] = list(BUBBLE["decomp_components"])
+    d["lppl_n_freqs"] = list(BUBBLE["lppl_n_freqs"])
+    d["lppl_weighted"] = list(BUBBLE["lppl_weighted"])
+    d["lppl_no_13"] = list(BUBBLE["lppl_no_13"])
+    d["config_b_keys"] = list(BUBBLE["config_b_keys"])
+    d["qs_mode"] = list(BUBBLE["qs_mode"])
     d["lots"] = []
     d["user_model"] = None
     return d
@@ -200,6 +233,9 @@ def heatmap_defaults() -> dict:
     d["exit_qs"] = list(_app_ctx._DEF_QS)
     d["active_models"] = list(HEATMAP["active_models"])
     d["lots"] = []
+    # hm_palette is a layout-only key that the heatmap callback never puts
+    # in its runtime params dict; strip it so the prewarm key aligns.
+    d.pop("hm_palette", None)
     return d
 
 
@@ -214,6 +250,9 @@ def dca_defaults() -> dict:
     d["lots"] = []
     d["user_model"] = None
     d["sc_live_price"] = None
+    # qs_mode is a UI-only selector — the DCA callback routes it to choose
+    # between sel_qs and adv_qs but never passes it to the figure builder.
+    d.pop("qs_mode", None)
     return d
 
 
@@ -223,6 +262,7 @@ def retire_defaults() -> dict:
     d["active_models"] = list(RETIRE["active_models"])
     d["lots"] = []
     d["user_model"] = None
+    d.pop("qs_mode", None)
     return d
 
 
@@ -233,6 +273,7 @@ def supercharge_defaults() -> dict:
     d["active_models"] = list(SUPERCHARGE["active_models"])
     d["lots"] = []
     d["user_model"] = None
+    d.pop("qs_mode", None)
     return d
 
 

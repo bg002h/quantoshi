@@ -676,23 +676,38 @@ def _global_lppl_modal():
     ], id="lppl-config-modal", is_open=False, centered=True, size="md")
 
 
-def _hybppl_model_slot(slot):
-    """One model-slot (A or B) inside the HybPPL config modal."""
-    s = slot  # "a" or "b"
+def _two_freq_model_slot(family, slot, damping_label):
+    """One model-slot (A or B) inside a two-frequency PPL family config modal.
+
+    family: ID prefix ("hybppl" or "eppl").
+    slot: "a" or "b".
+    damping_label: displayed-label text for the damped option (differs between
+        HybPPL "damped" and EPPL "entropy damped"); value remains "d".
+    """
+    s = slot
     children = []
 
     if s == "b":
         children.append(dcc.Checklist(
-            id="hybppl-cfg-b-enabled",
+            id=f"{family}-cfg-b-enabled",
             options=[{"label": " Enable Model B (comparison)", "value": "yes"}],
             value=[], inputStyle=_CB_MARGIN,
         ))
         children.append(html.Hr(style={"margin": "6px 0", "borderColor": MODAL_DIVIDER_DARK}))
 
+    def _damping_radio(freq_key, default_value):
+        """Build damping RadioItems for one log/cal frequency."""
+        return dcc.RadioItems(
+            id=f"{family}-cfg-{s}-{freq_key}",
+            options=[{"label": f" {damping_label}", "value": "d"},
+                     {"label": " undamped", "value": "u"}],
+            value=default_value, inline=True, inputStyle=_CB_MARGIN,
+        )
+
     children.extend([
         _lbl("Log-periodic frequencies"),
         dcc.RadioItems(
-            id=f"hybppl-cfg-{s}-nlog",
+            id=f"{family}-cfg-{s}-nlog",
             options=[{"label": " 0", "value": 0},
                      {"label": " 1", "value": 1},
                      {"label": " 2", "value": 2}],
@@ -702,7 +717,7 @@ def _hybppl_model_slot(slot):
         ),
         _lbl("Calendar frequencies"),
         dcc.RadioItems(
-            id=f"hybppl-cfg-{s}-ncal",
+            id=f"{family}-cfg-{s}-ncal",
             options=[{"label": " 0", "value": 0},
                      {"label": " 1", "value": 1},
                      {"label": " 2", "value": 2}],
@@ -711,46 +726,26 @@ def _hybppl_model_slot(slot):
             inputStyle=_CB_MARGIN,
         ),
         # Damping controls (visibility toggled by callback)
-        html.Div(id=f"hybppl-cfg-{s}-log1d-wrap", children=[
+        html.Div(id=f"{family}-cfg-{s}-log1d-wrap", children=[
             _lbl("Log freq 1 damping"),
-            dcc.RadioItems(
-                id=f"hybppl-cfg-{s}-log1d",
-                options=[{"label": " damped", "value": "d"},
-                         {"label": " undamped", "value": "u"}],
-                value="d", inline=True, inputStyle=_CB_MARGIN,
-            ),
+            _damping_radio("log1d", "d"),
         ], style=_STYLE_HIDDEN if (s == "b") else {}),
-        html.Div(id=f"hybppl-cfg-{s}-log2d-wrap", children=[
+        html.Div(id=f"{family}-cfg-{s}-log2d-wrap", children=[
             _lbl("Log freq 2 damping"),
-            dcc.RadioItems(
-                id=f"hybppl-cfg-{s}-log2d",
-                options=[{"label": " damped", "value": "d"},
-                         {"label": " undamped", "value": "u"}],
-                value="d", inline=True, inputStyle=_CB_MARGIN,
-            ),
+            _damping_radio("log2d", "d"),
         ], style=_STYLE_HIDDEN),
-        html.Div(id=f"hybppl-cfg-{s}-cal1d-wrap", children=[
+        html.Div(id=f"{family}-cfg-{s}-cal1d-wrap", children=[
             _lbl("Cal freq 1 damping"),
-            dcc.RadioItems(
-                id=f"hybppl-cfg-{s}-cal1d",
-                options=[{"label": " damped", "value": "d"},
-                         {"label": " undamped", "value": "u"}],
-                value="u", inline=True, inputStyle=_CB_MARGIN,
-            ),
+            _damping_radio("cal1d", "u"),
         ], style=_STYLE_HIDDEN if (s == "b") else {}),
-        html.Div(id=f"hybppl-cfg-{s}-cal2d-wrap", children=[
+        html.Div(id=f"{family}-cfg-{s}-cal2d-wrap", children=[
             _lbl("Cal freq 2 damping"),
-            dcc.RadioItems(
-                id=f"hybppl-cfg-{s}-cal2d",
-                options=[{"label": " damped", "value": "d"},
-                         {"label": " undamped", "value": "u"}],
-                value="u", inline=True, inputStyle=_CB_MARGIN,
-            ),
+            _damping_radio("cal2d", "u"),
         ], style=_STYLE_HIDDEN),
         html.Div([
-            html.Span(id=f"hybppl-cfg-{s}-status",
+            html.Span(id=f"{family}-cfg-{s}-status",
                       style={"fontSize": UI_FONT_MD, "color": FALLBACK_MODEL_GRAY}),
-            html.A(id=f"hybppl-cfg-{s}-info-link", href="#",
+            html.A(id=f"{family}-cfg-{s}-info-link", href="#",
                    style={"fontSize": UI_FONT_MD, "marginLeft": "6px",
                           "color": LINK, "display": "none"},
                    children=_INFO_ICON),
@@ -759,147 +754,50 @@ def _hybppl_model_slot(slot):
     return html.Div(children, style={"flex": "1", "minWidth": "200px"})
 
 
-def _global_hybppl_modal():
-    """Root-level modal holding HybPPL frequency/damping controls.
-
-    Rendered once in _serve_layout; opened by any tab's
-    {prefix}-hybppl-configure-btn click.
-    """
-    return dbc.Modal([
-        _modal_header_with_info_link("Hybrid PPL Configuration", "hybppl", "hybppl-info-link"),
-        dbc.ModalBody([
-            html.Div([
-                html.Div([
-                    html.H6("Model A", style={"fontWeight": "600", "marginBottom": "8px"}),
-                    _hybppl_model_slot("a"),
-                ], style={"flex": "1", "minWidth": "220px", "paddingRight": "12px"}),
-                html.Div(style={"width": "1px", "backgroundColor": MODAL_DIVIDER_DARK,
-                                "margin": "0 8px"}),
-                html.Div([
-                    html.H6("Model B", style={"fontWeight": "600", "marginBottom": "8px",
-                                               "color": FALLBACK_MODEL_GRAY}),
-                    _hybppl_model_slot("b"),
-                ], style={"flex": "1", "minWidth": "220px", "paddingLeft": "12px"}),
-            ], style={"display": "flex", "flexWrap": "wrap", "gap": "8px"}),
-        ]),
-        dbc.ModalFooter(
-            dbc.Button("Close", id="hybppl-modal-close-btn",
-                       size="sm", color="primary"),
-        ),
-    ], id="hybppl-config-modal", is_open=False, centered=True, size="lg")
+def _hybppl_model_slot(slot):
+    return _two_freq_model_slot("hybppl", slot, damping_label="damped")
 
 
 def _eppl_model_slot(slot):
-    """One model-slot (A or B) inside the EPPL config modal."""
-    s = slot  # "a" or "b"
-    children = []
-
-    if s == "b":
-        children.append(dcc.Checklist(
-            id="eppl-cfg-b-enabled",
-            options=[{"label": " Enable Model B (comparison)", "value": "yes"}],
-            value=[], inputStyle=_CB_MARGIN,
-        ))
-        children.append(html.Hr(style={"margin": "6px 0", "borderColor": MODAL_DIVIDER_DARK}))
-
-    children.extend([
-        _lbl("Log-periodic frequencies"),
-        dcc.RadioItems(
-            id=f"eppl-cfg-{s}-nlog",
-            options=[{"label": " 0", "value": 0},
-                     {"label": " 1", "value": 1},
-                     {"label": " 2", "value": 2}],
-            value=1 if s == "a" else 0,
-            inline=True,
-            inputStyle=_CB_MARGIN,
-        ),
-        _lbl("Calendar frequencies"),
-        dcc.RadioItems(
-            id=f"eppl-cfg-{s}-ncal",
-            options=[{"label": " 0", "value": 0},
-                     {"label": " 1", "value": 1},
-                     {"label": " 2", "value": 2}],
-            value=1 if s == "a" else 0,
-            inline=True,
-            inputStyle=_CB_MARGIN,
-        ),
-        # Damping controls (visibility toggled by callback)
-        html.Div(id=f"eppl-cfg-{s}-log1d-wrap", children=[
-            _lbl("Log freq 1 damping"),
-            dcc.RadioItems(
-                id=f"eppl-cfg-{s}-log1d",
-                options=[{"label": " entropy damped", "value": "d"},
-                         {"label": " undamped", "value": "u"}],
-                value="d", inline=True, inputStyle=_CB_MARGIN,
-            ),
-        ], style=_STYLE_HIDDEN if (s == "b") else {}),
-        html.Div(id=f"eppl-cfg-{s}-log2d-wrap", children=[
-            _lbl("Log freq 2 damping"),
-            dcc.RadioItems(
-                id=f"eppl-cfg-{s}-log2d",
-                options=[{"label": " entropy damped", "value": "d"},
-                         {"label": " undamped", "value": "u"}],
-                value="d", inline=True, inputStyle=_CB_MARGIN,
-            ),
-        ], style=_STYLE_HIDDEN),
-        html.Div(id=f"eppl-cfg-{s}-cal1d-wrap", children=[
-            _lbl("Cal freq 1 damping"),
-            dcc.RadioItems(
-                id=f"eppl-cfg-{s}-cal1d",
-                options=[{"label": " entropy damped", "value": "d"},
-                         {"label": " undamped", "value": "u"}],
-                value="u", inline=True, inputStyle=_CB_MARGIN,
-            ),
-        ], style=_STYLE_HIDDEN if (s == "b") else {}),
-        html.Div(id=f"eppl-cfg-{s}-cal2d-wrap", children=[
-            _lbl("Cal freq 2 damping"),
-            dcc.RadioItems(
-                id=f"eppl-cfg-{s}-cal2d",
-                options=[{"label": " entropy damped", "value": "d"},
-                         {"label": " undamped", "value": "u"}],
-                value="u", inline=True, inputStyle=_CB_MARGIN,
-            ),
-        ], style=_STYLE_HIDDEN),
-        html.Div([
-            html.Span(id=f"eppl-cfg-{s}-status",
-                      style={"fontSize": UI_FONT_MD, "color": FALLBACK_MODEL_GRAY}),
-            html.A(id=f"eppl-cfg-{s}-info-link", href="#",
-                   style={"fontSize": UI_FONT_MD, "marginLeft": "6px",
-                          "color": LINK, "display": "none"},
-                   children=_INFO_ICON),
-        ], style={"marginTop": "6px"}),
-    ])
-    return html.Div(children, style={"flex": "1", "minWidth": "200px"})
+    return _two_freq_model_slot("eppl", slot, damping_label="entropy damped")
 
 
-def _global_eppl_modal():
-    """Root-level modal holding EPPL frequency/damping controls.
+def _global_two_freq_modal(family, title):
+    """Root-level modal holding frequency/damping controls for a two-frequency PPL family.
 
     Rendered once in _serve_layout; opened by any tab's
-    {prefix}-eppl-configure-btn click.
+    {prefix}-{family}-configure-btn click.
     """
     return dbc.Modal([
-        _modal_header_with_info_link("\U0001FAE0 Entropy PPL Configuration", "eppl", "eppl-info-link"),
+        _modal_header_with_info_link(title, family, f"{family}-info-link"),
         dbc.ModalBody([
             html.Div([
                 html.Div([
                     html.H6("Model A", style={"fontWeight": "600", "marginBottom": "8px"}),
-                    _eppl_model_slot("a"),
+                    _two_freq_model_slot(family, "a", "damped" if family == "hybppl" else "entropy damped"),
                 ], style={"flex": "1", "minWidth": "220px", "paddingRight": "12px"}),
                 html.Div(style={"width": "1px", "backgroundColor": MODAL_DIVIDER_DARK,
                                 "margin": "0 8px"}),
                 html.Div([
                     html.H6("Model B", style={"fontWeight": "600", "marginBottom": "8px",
                                                "color": FALLBACK_MODEL_GRAY}),
-                    _eppl_model_slot("b"),
+                    _two_freq_model_slot(family, "b", "damped" if family == "hybppl" else "entropy damped"),
                 ], style={"flex": "1", "minWidth": "220px", "paddingLeft": "12px"}),
             ], style={"display": "flex", "flexWrap": "wrap", "gap": "8px"}),
         ]),
         dbc.ModalFooter(
-            dbc.Button("Close", id="eppl-modal-close-btn",
+            dbc.Button("Close", id=f"{family}-modal-close-btn",
                        size="sm", color="primary"),
         ),
-    ], id="eppl-config-modal", is_open=False, centered=True, size="lg")
+    ], id=f"{family}-config-modal", is_open=False, centered=True, size="lg")
+
+
+def _global_hybppl_modal():
+    return _global_two_freq_modal("hybppl", "Hybrid PPL Configuration")
+
+
+def _global_eppl_modal():
+    return _global_two_freq_modal("eppl", "\U0001FAE0 Entropy PPL Configuration")
 
 
 def _global_bm_modal():

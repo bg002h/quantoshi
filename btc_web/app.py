@@ -300,12 +300,14 @@ for _rq_key, _rq_bundle in (M.resqr_coefs or {}).items():
 _HAS_RESQR = _resqr_bound > 0
 _app_ctx._HAS_RESQR = _HAS_RESQR
 print(f"[resqr] bound {_resqr_bound} model bundles  _HAS_RESQR={_HAS_RESQR}")
+_boot_mark("model registration + resqr bind done")
 
 # ── compute per-quantile R² for all models ───────────────────────────────
 import numpy as np
 from btc_core import compute_model_r2, _compute_log_r2
 for _mdl in _app_ctx.PRICE_MODELS.values():
     compute_model_r2(_mdl, M.price_years, M.price_prices)
+_boot_mark("compute_model_r2 loop done")
 
 # OLS R²
 _ols_pred = 10 ** (M.ols_intercept + M.ols_slope * np.log10(
@@ -352,6 +354,7 @@ for _key, _mdl in _app_ctx.PRICE_MODELS.items():
     except Exception:
         pass
 _app_ctx.AUTO_Y_GRID = _auto_y_grid
+_boot_mark("auto_y grid built")
 
 import btcpay
 _app_ctx._HAS_BTCPAY = btcpay._HAS_BTCPAY

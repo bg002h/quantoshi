@@ -365,7 +365,26 @@ _app_ctx._DEF_QS = [q for q in [0.001, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
 from utils import _startup_heatmap_defaults, _nearest_quantile, _get_bubble_fig, \
     _get_dca_fig, _get_retire_fig, _get_supercharge_fig, _get_heatmap_fig, \
     _get_citadel_fig
-_app_ctx._HM_ENTRY_Q_DEFAULT = _startup_heatmap_defaults()
+# Heatmap entry-percentile default depends on a live BTC price fetch
+# (Binance → CoinGecko fallbacks, 5s timeout each). That fetch historically
+# cost ~3-4s of boot time. Start with the safe fallback (50%) and background
+# the fetch so the module completes sooner. The update_price_ticker callback
+# refreshes _HM_ENTRY_Q_DEFAULT every 20 min at runtime regardless, so the
+# brief "stale default" window affects only the first ~5-10s after restart.
+_app_ctx._HM_ENTRY_Q_DEFAULT = 50.0
+def _background_startup_ticker_fetch() -> None:
+    try:
+        _app_ctx._HM_ENTRY_Q_DEFAULT = _startup_heatmap_defaults()
+    except Exception as e:
+        logging.getLogger(__name__).warning("startup price fetch failed: %s", e)
+if os.environ.get("DEV") != "1":
+    import threading as _threading
+    _threading.Thread(target=_background_startup_ticker_fetch,
+                      daemon=True, name="qs-bg-ticker").start()
+else:
+    # DEV: run inline (single process, no async complexity worth)
+    _background_startup_ticker_fetch()
+_boot_mark("backgrounded startup ticker fetch")
 
 # ── import layout (sets app.layout) and callbacks (registers @callbacks) ─────
 import snapshot   # noqa: F401 — defines _CHECKLIST_OPTIONS using _app_ctx

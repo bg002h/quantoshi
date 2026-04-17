@@ -39,6 +39,23 @@ def _parse_date(s: str) -> date:
     return date.fromisoformat(s)
 
 
+def _make_lot_gain(btc_used: float, lot: TaxLot, sale_price: float,
+                   holding_days: int, is_long_term: bool) -> LotGain:
+    """Construct a LotGain from a lot sale (whole or partial)."""
+    proceeds = btc_used * sale_price
+    cost = btc_used * lot.cost_basis
+    return LotGain(
+        btc=btc_used,
+        cost_basis=lot.cost_basis,
+        sale_price=sale_price,
+        proceeds=proceeds,
+        cost=cost,
+        gain=proceeds - cost,
+        is_long_term=is_long_term,
+        holding_days=holding_days,
+    )
+
+
 def sell_lots(lots: list[TaxLot], btc_to_sell: float, sale_price: float,
               sale_date: str, method: str = "fifo") -> SaleResult:
     """Sell BTC from lots using FIFO or LIFO cost basis method.
@@ -80,35 +97,15 @@ def sell_lots(lots: list[TaxLot], btc_to_sell: float, sale_price: float,
             btc_used = lot.btc
             btc_remaining -= btc_used
             btc_sold += btc_used
-            proceeds = btc_used * sale_price
-            cost = btc_used * lot.cost_basis
-            gains.append(LotGain(
-                btc=btc_used,
-                cost_basis=lot.cost_basis,
-                sale_price=sale_price,
-                proceeds=proceeds,
-                cost=cost,
-                gain=proceeds - cost,
-                is_long_term=is_long_term,
-                holding_days=holding_days,
-            ))
+            gains.append(_make_lot_gain(btc_used, lot, sale_price,
+                                        holding_days, is_long_term))
         else:
             # Partial lot consumption
             btc_used = btc_remaining
             btc_sold += btc_used
             btc_remaining = 0.0
-            proceeds = btc_used * sale_price
-            cost = btc_used * lot.cost_basis
-            gains.append(LotGain(
-                btc=btc_used,
-                cost_basis=lot.cost_basis,
-                sale_price=sale_price,
-                proceeds=proceeds,
-                cost=cost,
-                gain=proceeds - cost,
-                is_long_term=is_long_term,
-                holding_days=holding_days,
-            ))
+            gains.append(_make_lot_gain(btc_used, lot, sale_price,
+                                        holding_days, is_long_term))
             # Remainder stays in inventory
             remaining_lots.append(TaxLot(
                 date=lot.date,

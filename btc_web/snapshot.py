@@ -524,6 +524,41 @@ def _encode_snapshot(state_dict, tab_filter=None):
     return base64.urlsafe_b64encode(gzip.compress(j.encode())).decode()
 
 
+# ── Gzip-bomb guardrails ─────────────────────────────────────────────────────
+# Attack: a 100KB URL hash decompressing to GBs of nulls OOMs a gunicorn
+# worker. We cap both the input (base64 text) and the decompressed output
+# to bounded sizes well above any legitimate snapshot (which runs ~2-4KB
+# compressed, ~15KB decompressed for a full-scope share).
+_SNAP_MAX_ENCODED = 32 * 1024       # 32 KB of base64 ≈ 24 KB raw gzip
+_SNAP_MAX_DECOMPRESSED = 512 * 1024  # 512 KB JSON is plenty; normal <20 KB
+
+
+def _safe_decompress(encoded):
+    """Bounded gzip+base64 decode. Returns bytes or None on size-violation.
+
+    Never raises on malformed input -- returns None for any failure path so
+    the callers' `except Exception: return None` stays a belt-and-suspenders.
+    """
+    if not encoded or len(encoded) > _SNAP_MAX_ENCODED:
+        return None
+    try:
+        raw = base64.urlsafe_b64decode(encoded)
+    except Exception:
+        return None
+    # Stream-decode with a bounded read instead of gzip.decompress() which
+    # will happily expand arbitrarily. Use GzipFile + .read(limit+1) and
+    # reject if we hit the limit -- prevents any expansion ratio attack.
+    import io as _io
+    try:
+        with gzip.GzipFile(fileobj=_io.BytesIO(raw)) as gf:
+            out = gf.read(_SNAP_MAX_DECOMPRESSED + 1)
+    except Exception:
+        return None
+    if len(out) > _SNAP_MAX_DECOMPRESSED:
+        return None
+    return out
+
+
 def _decode_snapshot(encoded):
     """Decode v2 (positional array) snapshot.
 
@@ -531,7 +566,10 @@ def _decode_snapshot(encoded):
     (old links) — both are handled transparently.
     """
     try:
-        payload = json.loads(gzip.decompress(base64.urlsafe_b64decode(encoded)))
+        raw = _safe_decompress(encoded)
+        if raw is None:
+            return None
+        payload = json.loads(raw)
         values, lots = payload
         # Forward/backward compat: pad or truncate to match current control count
         n_expected = len(_SNAPSHOT_CONTROLS)
@@ -560,6 +598,9 @@ def _decode_snapshot(encoded):
 def _decode_snapshot_v1(encoded):
     """Decode legacy v1 (dict-based) snapshot."""
     try:
-        return json.loads(gzip.decompress(base64.urlsafe_b64decode(encoded)))
+        raw = _safe_decompress(encoded)
+        if raw is None:
+            return None
+        return json.loads(raw)
     except Exception:
         return None

@@ -1677,8 +1677,9 @@ class TestAPIInvoiceValidation:
 
     def test_valid_invoice_id_regex(self):
         from api import _INVOICE_ID_RE
+        # BTCPay IDs are ~22 chars; regex requires >=16 to reject junk
         assert _INVOICE_ID_RE.match("X31XGHwugKcCpeF38GtGxM")
-        assert _INVOICE_ID_RE.match("abc-123_DEF")
+        assert _INVOICE_ID_RE.match("abc-123_DEF_016chars")
 
     def test_invalid_invoice_id_regex(self):
         from api import _INVOICE_ID_RE
@@ -1686,10 +1687,14 @@ class TestAPIInvoiceValidation:
         assert not _INVOICE_ID_RE.match("../../../etc/passwd")
         assert not _INVOICE_ID_RE.match("id with spaces")
         assert not _INVOICE_ID_RE.match("a" * 65)  # too long
+        assert not _INVOICE_ID_RE.match("short")  # <16 chars rejected
 
-    def test_valid_short_id(self):
+    def test_short_id_rejected(self):
+        """Regex requires >=16 chars -- rejects obvious guesses."""
         from api import _INVOICE_ID_RE
-        assert _INVOICE_ID_RE.match("a")
+        assert not _INVOICE_ID_RE.match("a")
+        assert not _INVOICE_ID_RE.match("1")
+        assert not _INVOICE_ID_RE.match("a" * 15)
 
     def test_special_chars_rejected(self):
         from api import _INVOICE_ID_RE

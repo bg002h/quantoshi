@@ -27,7 +27,7 @@ from colors import (
     STATIC_PAGE_BODY_TEXT, STATIC_PAGE_BORDER, STATIC_PAGE_MUTED,
 )
 
-_INVOICE_ID_RE = re.compile(r'^[a-zA-Z0-9_-]{1,64}$')
+_INVOICE_ID_RE = re.compile(r'^[a-zA-Z0-9_-]{16,64}$')  # BTCPay IDs ~22 chars
 
 log = logging.getLogger(__name__)
 
@@ -80,9 +80,23 @@ def _mark_paid(ip: str, invoice_id: str) -> None:
 
 # ── Route registration ───────────────────────────────────────────────────────
 
+_LOCAL_PROXY_ADDRS = {"127.0.0.1", "::1"}
+
+
 def _client_ip() -> str:
-    """Real client IP — trusts nginx X-Real-IP, falls back to remote_addr."""
-    return request.headers.get("X-Real-IP", request.remote_addr) or "unknown"
+    """Real client IP for rate-limit bookkeeping only (never stored, never
+    used for auth/payment binding).
+
+    Only trusts X-Real-IP when the request's immediate peer is localhost
+    (i.e. behind nginx); otherwise a direct gunicorn hit could spoof any IP
+    via the header and cycle through the rate-limit dict. See
+    memory/feedback_no_user_binding_payments.md: IP is tolerated here for
+    local rate-limits but never extended into token contents.
+    """
+    peer = request.remote_addr or "unknown"
+    if peer in _LOCAL_PROXY_ADDRS:
+        return request.headers.get("X-Real-IP", peer) or peer
+    return peer
 
 
 def register_routes(server) -> None:

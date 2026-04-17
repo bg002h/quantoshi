@@ -87,11 +87,61 @@ def generate_payment_token(invoice_id: str, tab: str, mc_years: int) -> str:
     return _hmac_sign(msg)
 
 
+# ── One-time-use spent-invoice set ───────────────────────────────────────────
+# Replay protection without binding to IP, session, or any user-identifying
+# data (hard policy, see memory/feedback_no_user_binding_payments.md).  First
+# successful verify() marks the invoice spent in Redis; subsequent attempts
+# return False regardless of who calls them.  30-day TTL auto-clears stale
+# entries once the daily-rotating HMAC has expired anyway.
+_SPENT_TTL_SEC = 30 * 24 * 3600
+
+
+def _spent_key(invoice_id: str) -> str:
+    return f"mc:spent:{invoice_id}"
+
+
+def _is_spent(invoice_id: str) -> bool:
+    """Return True if this invoice has already been used to mint a token."""
+    try:
+        import _app_ctx
+        if not _app_ctx._HAS_REDIS or _app_ctx._REDIS is None:
+            return False  # no Redis → skip replay check (dev / degraded mode)
+        return _app_ctx._REDIS.exists(_spent_key(invoice_id)) == 1
+    except Exception:
+        return False
+
+
+def _mark_spent(invoice_id: str) -> bool:
+    """Atomically mark invoice as spent. Returns True on first-use, False on replay.
+
+    SET NX + EX makes this race-free across the 5 gunicorn workers and any
+    Celery tasks.
+    """
+    try:
+        import _app_ctx
+        if not _app_ctx._HAS_REDIS or _app_ctx._REDIS is None:
+            return True  # no Redis → accept (dev / degraded mode)
+        # SETNX-style: only sets if key absent.  Returns True first time, False
+        # on every replay thereafter.
+        ok = _app_ctx._REDIS.set(_spent_key(invoice_id), "1",
+                                  ex=_SPENT_TTL_SEC, nx=True)
+        return bool(ok)
+    except Exception:
+        return True  # Redis error → fail-open; don't lock a paying user out
+
+
 def verify_payment_token(token: str, invoice_id: str, tab: str, mc_years: int) -> bool:
-    """Verify that a payment token is valid for the given params."""
+    """Verify that a payment token is valid for the given params.
+
+    First call for a given invoice_id returns True (and marks it spent);
+    subsequent calls return False even with the same valid token.
+    """
     msg = f"{invoice_id}:{tab}:{mc_years}:{date.today().isoformat()}"
     expected = _hmac_sign(msg)
-    return hmac.compare_digest(token, expected)
+    if not hmac.compare_digest(token, expected):
+        return False
+    # HMAC checks out -- now require one-time use via Redis NX.
+    return _mark_spent(invoice_id)
 
 
 # ── BTCPay Health Check ───────────────────────────────────────────────────

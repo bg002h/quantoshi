@@ -151,14 +151,20 @@ _PAGE_TEMPLATE = """<!DOCTYPE html>
     <div class="container mt-3">
         {content}
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/assets/bootstrap.bundle.min.js"></script>
     <script src="/assets/faq_lightbox.js"></script>
     {foot_extra}
 </body>
 </html>"""
 
-_MATHJAX_HEAD = """<script>MathJax={tex:{inlineMath:[['$','$'],['\\\\(','\\\\)']],displayMath:[['$$','$$'],['\\\\[','\\\\]']]}};</script>
+# MathJax has no acceptable same-origin replacement (the es5 bundle loads a
+# dozen more scripts by itself). Only include it on clearnet; strip from onion
+# so Tor users don't leak an IP/fingerprint to jsdelivr.  Onion visitors miss
+# rendered LaTeX on /mi but the text content is still readable -- acceptable
+# tradeoff per no-user-data-ever policy.
+_MATHJAX_HEAD_CLEARNET = """<script>MathJax={tex:{inlineMath:[['$','$'],['\\\\(','\\\\)']],displayMath:[['$$','$$'],['\\\\[','\\\\]']]}};</script>
 <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>"""
+_MATHJAX_HEAD_ONION = ""  # strip remote script on onion
 
 _SCROLL_SCRIPT = """<script>
 document.addEventListener('DOMContentLoaded',function(){{
@@ -187,14 +193,17 @@ def render_static_faq():
     )
 
 
-def render_static_model_info():
-    """Render the Model Info accordion to a complete static HTML page."""
+def render_static_model_info(mathjax_head: str = ""):
+    """Render the Model Info accordion to a complete static HTML page.
+
+    mathjax_head: pass _MATHJAX_HEAD_CLEARNET for clearnet, "" for onion.
+    """
     from layout.model_info import _model_info_tab
     content_component = _model_info_tab()
     content_html = _dash_to_html(content_component)
     return _PAGE_TEMPLATE.format(
         title="Model Info",
-        head_extra=_MATHJAX_HEAD,
+        head_extra=mathjax_head,
         app_tab="8",
         content=content_html,
         foot_extra="",
@@ -202,11 +211,17 @@ def render_static_model_info():
     )
 
 
+# Two rendered copies per page: one with MathJax for clearnet, one without
+# for onion. Picked at request time by Host header.
+_STATIC_MI_HTML_ONION = None  # no MathJax
+
+
 def render_static_pages():
     """Render and cache both static pages. Call after models are loaded."""
-    global _STATIC_FAQ_HTML, _STATIC_MI_HTML
+    global _STATIC_FAQ_HTML, _STATIC_MI_HTML, _STATIC_MI_HTML_ONION
     _STATIC_FAQ_HTML = render_static_faq()
-    _STATIC_MI_HTML = render_static_model_info()
+    _STATIC_MI_HTML = render_static_model_info(_MATHJAX_HEAD_CLEARNET)
+    _STATIC_MI_HTML_ONION = render_static_model_info(_MATHJAX_HEAD_ONION)
 
 
 def _open_accordion_item(html_str, item_id):
@@ -239,22 +254,45 @@ def _open_accordion_item(html_str, item_id):
     return html_str
 
 
-_STATIC_CSP = (
+# Clearnet CSP: allow jsdelivr for MathJax only (clearnet /mi). Bootstrap is
+# now self-hosted so we don't allow script/style from the CDN anymore.
+_STATIC_CSP_CLEARNET = (
     "default-src 'self'; "
     "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-    "font-src 'self' https://cdn.jsdelivr.net; "
+    "style-src 'self' 'unsafe-inline'; "
+    "font-src 'self'; "
     "connect-src 'self' https://cdn.jsdelivr.net; "
     "img-src 'self' data: blob:; "
     "frame-ancestors 'none'; "
     "base-uri 'self'"
 )
+# Onion CSP: strict 'self'. No CDN, no remote connections, no fingerprint
+# leak. MathJax has been stripped from the onion HTML above.
+_STATIC_CSP_ONION = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "font-src 'self'; "
+    "connect-src 'self'; "
+    "img-src 'self' data: blob:; "
+    "frame-ancestors 'none'; "
+    "base-uri 'self'"
+)
+
+
+def _is_onion_request():
+    """True when the current Flask request arrived via the .onion hostname."""
+    from flask import request
+    host = (request.host or "").lower()
+    return host.endswith(".onion")
+
 
 def _static_headers(extra=None):
     h = {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "public, max-age=86400",
-        "Content-Security-Policy": _STATIC_CSP,
+        "Content-Security-Policy": _STATIC_CSP_ONION if _is_onion_request()
+                                    else _STATIC_CSP_CLEARNET,
     }
     if extra:
         h.update(extra)
@@ -280,18 +318,20 @@ def register_static_routes(server):
 
     @server.route("/mi")
     def _static_mi():
-        if _STATIC_MI_HTML is None:
+        html_cache = _STATIC_MI_HTML_ONION if _is_onion_request() else _STATIC_MI_HTML
+        if html_cache is None:
             return "Static pages not yet rendered", 503
-        return _STATIC_MI_HTML, 200, _static_headers()
+        return html_cache, 200, _static_headers()
 
     @server.route("/mi.<int:item>")
     def _static_mi_item(item):
-        if _STATIC_MI_HTML is None:
+        html_cache = _STATIC_MI_HTML_ONION if _is_onion_request() else _STATIC_MI_HTML
+        if html_cache is None:
             return "Static pages not yet rendered", 503
         from layout.model_info import _MODEL_INFO_ITEM_IDS
         if 1 <= item <= len(_MODEL_INFO_ITEM_IDS):
             item_id = _MODEL_INFO_ITEM_IDS[item - 1]
         else:
             item_id = f"item-{item}"
-        page = _open_accordion_item(_STATIC_MI_HTML, item_id)
+        page = _open_accordion_item(html_cache, item_id)
         return page, 200, _static_headers()

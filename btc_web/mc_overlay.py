@@ -950,11 +950,20 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
     ts_plot = result.time_axis
     disp_mode = p.get("disp_mode", "usd_per_asset")
 
+    # The "total" aggregate follows the active price model's palette color,
+    # matching the tab 1 convention where quantile bands/trace use the driving
+    # model's color. Per-asset traces (btc / cash / reserves / investments)
+    # keep their distinct colors so the asset breakdown stays readable.
+    from figures.common import _get_model_color
+    _model_color = _get_model_color(p.get("mc_model_src") or p.get("model_src", "bub"), p)
+    _CITADEL_MC_COLORS_ACTIVE = dict(_CITADEL_MC_COLORS)
+    _CITADEL_MC_COLORS_ACTIVE["total"] = _model_color
+
     # In BTC mode, only show BTC holdings (in BTC, not USD)
     if disp_mode == "btc":
-        _mc_assets = {"btc": _CITADEL_MC_COLORS.get("btc_usd", BTC_ORANGE)}
+        _mc_assets = {"btc": _CITADEL_MC_COLORS_ACTIVE.get("btc_usd", BTC_ORANGE)}
     else:
-        _mc_assets = _CITADEL_MC_COLORS
+        _mc_assets = _CITADEL_MC_COLORS_ACTIVE
 
     for asset_key, color in _mc_assets.items():
         # Extract per-sim arrays for this asset

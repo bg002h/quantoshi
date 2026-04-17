@@ -710,6 +710,17 @@ is reassigned to fresh dicts each trigger (`citadel_rebalancing.py`).
 **Do not** reintroduce a deepcopy here without a real correctness bug
 — it masks a 3–10× slowdown.
 
+**Binary `price_paths` wire format** (`mc_overlay.py::_mc_paths_to_lists`).
+The MC result dict carries the raw `price_paths` (n_sims × n_steps
+float32 matrix) back to the client store for re-use when only overlay
+params change. Legacy encoding was a JSON list-of-lists (~4.8 MB for a
+1000 × 480 sim). Current encoding is `{"b64": base64(float32.tobytes()),
+"shape": [n_sims, n_steps]}` — ~45% smaller on the wire and ~3× faster
+to (de)serialize. `_mc_paths_from_lists` accepts both forms (legacy
+clients holding the old cached shape still decode). When adding new
+tab overlays, use the same helpers; do not store raw numpy arrays
+directly in dcc.Store.
+
 **Pre-built quantile grid in `_ModelAdapter.prebuild_grid()`**
 (`figures/citadel.py`). The adapter serves `quantile_at(price, t)` via
 a `(n_quantiles, n_t)` price grid. Before the sim loop runs we

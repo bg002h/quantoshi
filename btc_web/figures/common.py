@@ -69,6 +69,73 @@ def quantile_opacity(q: float) -> float:
     return max(Q_OPACITY_FLOOR, 1.0 - abs(q - 0.5) / Q_OPACITY_RANGE * Q_OPACITY_DECAY)
 
 
+def _parse_quantiles(p: dict, key: str = "selected_qs") -> list[float]:
+    """Parse and sort quantile list from params dict.
+
+    Basic form only -- callers needing model.fits filtering, reverse sort,
+    or custom defaults apply post-processing themselves.
+    """
+    return sorted(float(q) for q in (p.get(key) or []))
+
+
+def _format_final_value(vals, prices, disp_mode: str, show_usd_parens: bool = True):
+    """Format final simulation value for legend label.
+
+    Returns (y_vals, final_label). show_usd_parens=False used by overlay
+    traces where USD would duplicate.
+    """
+    if disp_mode == "usd":
+        y_vals = vals * prices
+        return y_vals, fmt_price(float(y_vals[-1]))
+    y_vals = vals
+    btc_final = float(vals[-1])
+    if show_usd_parens:
+        usd_final = fmt_price(float(btc_final * float(prices[-1])))
+        return y_vals, f"{btc_final:.4f} BTC  ({usd_final})"
+    return y_vals, f"{btc_final:.4f} BTC"
+
+
+def _quantile_trace(ts, y_vals, q: float, color: str, label: str,
+                    width: float | None = None, shape: str = "linear",
+                    **kw) -> go.Scatter:
+    """Build a quantile-colored Scatter trace with standard shade + opacity."""
+    _shade = quantile_shade(color, q)
+    return go.Scatter(
+        x=list(ts), y=list(y_vals), mode="lines", name=label,
+        line=dict(color=_shade, width=width or TRACE_WIDTH, shape=shape),
+        opacity=quantile_opacity(q),
+        **kw,
+    )
+
+
+def _empty_state_annotation(layout: dict) -> None:
+    """Set the 'No models selected' fallback annotation on layout."""
+    layout["annotations"] = [dict(
+        text="No models selected \u2014 check Display Models",
+        xref="paper", yref="paper", x=0.5, y=0.5,
+        showarrow=False,
+        font=dict(size=16, color=FALLBACK_MODEL_GRAY),
+    )]
+
+
+def _today_line_shapes(t_today: float, y_lo, y_hi, color: str,
+                       glow: bool = True, yref: str = "y") -> list[dict]:
+    """Build today-line shape(s). bubble uses glow+yref='y'; residuals uses no glow+yref='paper'."""
+    shapes = []
+    if glow:
+        shapes.append(dict(
+            type="line", x0=t_today, x1=t_today, y0=y_lo, y1=y_hi,
+            line=dict(color=color, width=_TODAY_GLOW_WIDTH),
+            opacity=_TODAY_GLOW_OPACITY, yref=yref,
+        ))
+    shapes.append(dict(
+        type="line", x0=t_today, x1=t_today, y0=y_lo, y1=y_hi,
+        line=dict(color=color, dash="dash", width=_TODAY_LINE_WIDTH),
+        opacity=_TODAY_LINE_OPACITY, yref=yref,
+    ))
+    return shapes
+
+
 # ── shared constants ─────────────────────────────────────────────────────────
 
 _ANNOT_STAGGER_Y = _app_ctx.ANNOT_STAGGER_Y
@@ -731,6 +798,22 @@ def _add_date_hover(fig, genesis, fmt=None, recovery=False):
                 trace.hovertemplate = fmt
 
 
+def _apply_final_steps(fig: go.Figure, p: dict, tab: str,
+                       recovery: bool = False, hover_fmt: str | None = None,
+                       show_qr: bool = True, show_mc: bool = False,
+                       wm_pos: str = "bottom-right") -> None:
+    """Lower-level finalization: date hover, config annotation, watermark.
+
+    Caller must already have applied typography (on the layout dict) and
+    constructed the go.Figure. Used by bubble/residuals which finalize
+    without the legend+MC premium steps _finalize_chart handles.
+    """
+    fmt = hover_fmt or (_HOVER_FMT_BTC if p.get("disp_mode") == "btc" else _HOVER_FMT_USD)
+    _add_date_hover(fig, _app_ctx.M.genesis, fmt=fmt, recovery=recovery)
+    _apply_config_annotation(fig, p, tab, show_qr=show_qr, show_mc=show_mc)
+    _apply_watermark(fig, pos=wm_pos)
+
+
 def _finalize_chart(traces: list, layout: dict, p: dict, tab: str,
                     mc_result: dict | None = None, mc_premium: bool = True
                     ) -> tuple[go.Figure, dict | None]:
@@ -753,16 +836,15 @@ def _finalize_chart(traces: list, layout: dict, p: dict, tab: str,
         )
     _apply_sans_typography(layout)
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
-    disp_mode = p.get("disp_mode", "usd")
-    _add_date_hover(fig, _app_ctx.M.genesis,
-                    fmt=_HOVER_FMT_BTC if disp_mode == "btc" else _HOVER_FMT_USD)
-    show_qr = p.get("show_qr", True)
-    show_mc = p.get("show_mc", bool(p.get("mc_enabled")))
     if mc_premium and p.get("mc_enabled"):
         _apply_mc_premium(fig, legend_pos=None, hide_xlabel=True)
-    _apply_config_annotation(fig, p, tab, show_qr=show_qr, show_mc=show_mc)
     wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
-    _apply_watermark(fig, pos=wm_pos)
+    _apply_final_steps(
+        fig, p, tab,
+        show_qr=p.get("show_qr", True),
+        show_mc=p.get("show_mc", bool(p.get("mc_enabled"))),
+        wm_pos=wm_pos,
+    )
     return fig, mc_result
 
 

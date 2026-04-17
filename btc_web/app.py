@@ -398,6 +398,11 @@ def _prewarm_caches():
     sc = supercharge_defaults()
     sc["selected_qs"] = [q for q in [0.001, 0.10] if q in _app_ctx.DEFAULT_MODEL.fits]
     _entries.append(("sc", sc))
+    # Mobile variant: SC callback injects is_mobile from viewport-width;
+    # prewarming both so mobile users also hit L1 on first visit.
+    sc_mobile = dict(sc)
+    sc_mobile["is_mobile"] = True
+    _entries.append(("sc", sc_mobile))
 
     cp = citadel_defaults()
     cp["selected_qs"] = [0.01, 0.10, 0.25]

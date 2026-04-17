@@ -155,7 +155,24 @@ def tax_toggle_widget():
 def tax_config_modal():
     """Full-screen modal with all tax configuration controls."""
     return dbc.Modal([
-        dbc.ModalHeader(dbc.ModalTitle("Tax Configuration"), close_button=True),
+        dbc.ModalHeader(
+            [
+                dbc.ModalTitle("Tax Configuration"),
+                # Custom header-close: saves on click (primary affordance on
+                # mobile where the footer buttons may be below the fold).
+                # Matches Bootstrap's btn-close visually but wires to the
+                # existing _save_or_cancel callback via cp-tax-header-save.
+                html.Button(
+                    "\u00d7",  # × glyph
+                    id="cp-tax-header-save",
+                    type="button",
+                    className="btn-close-save",
+                    title="Save and close",
+                    **{"aria-label": "Save and close"},
+                ),
+            ],
+            close_button=False,
+        ),
         dbc.ModalBody([
 
             # ── Section A: Filing & Rates ────────────────────────────────

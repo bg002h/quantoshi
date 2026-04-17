@@ -112,6 +112,51 @@ body {
     color: var(--qs-white) !important;
 }
 
+/* ── Citadel tax-config modal ───────────────────────────────────────────────
+   Save/Cancel live in the footer, but on mobile the long form body can push
+   the footer off the visible viewport (compounded by iOS Safari's URL bar).
+   Two fixes:
+   1. `btn-close-save` in the header always gives users a reachable confirm
+      affordance on any screen size. Styled like Bootstrap's `.btn-close` glyph
+      but primary-colored to signal "save, not dismiss".
+   2. On mobile, pin the footer to the bottom of the modal so the primary
+      Save + Cancel always remain tappable regardless of body scroll depth. */
+#cp-tax-modal .btn-close-save {
+    background: transparent;
+    border: 0;
+    padding: 0.25rem 0.5rem;
+    font-size: 1.75rem;
+    line-height: 1;
+    font-weight: 400;
+    color: var(--qs-btc-orange, #f7931a);
+    cursor: pointer;
+    margin-left: auto;
+}
+#cp-tax-modal .btn-close-save:hover,
+#cp-tax-modal .btn-close-save:focus {
+    color: var(--qs-btc-orange, #f7931a);
+    opacity: 0.75;
+    outline: 2px solid var(--qs-btc-orange-a40);
+    outline-offset: 2px;
+}
+#cp-tax-modal .modal-footer {
+    /* Ensure footer sits above long content; fullscreen flex should handle
+       this, but older Safari stacks .modal-body above on overflow. */
+    position: relative;
+    z-index: 5;
+    background: var(--bs-body-bg, #fff);
+}
+@media (max-width: 767px) {
+    #cp-tax-modal .modal-footer {
+        position: sticky;
+        bottom: 0;
+        box-shadow: 0 -4px 8px var(--qs-black-a8);
+    }
+    #cp-tax-modal .modal-body {
+        padding-bottom: 72px; /* breathing room so last form field isn't under the sticky footer */
+    }
+}
+
 /* ── Splash quote modal ───────────────────────────────────────────────────── */
 .splash-modal .modal-content {
     border-radius: 16px;

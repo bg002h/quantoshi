@@ -47,10 +47,16 @@ _app_ctx.app.clientside_callback(
 
 
 # ── Save config + close modal ─────────────────────────────────────────────────
+# The header × ("cp-tax-header-save") shares the save path with the footer
+# Save button — mobile users often can't reach the footer buttons when the
+# modal body overflows the viewport, so the always-visible header × is the
+# primary confirm affordance.  Escape still closes the modal (via dbc
+# default) without firing any callback, which matches Cancel semantics.
 @callback(
     Output("cp-tax-config", "data"),
     Output("cp-tax-modal", "is_open"),
     Input("cp-tax-save", "n_clicks"),
+    Input("cp-tax-header-save", "n_clicks"),
     Input("cp-tax-cancel", "n_clicks"),
     State("cp-tax-filing", "value"),
     State("cp-tax-state", "value"),
@@ -76,7 +82,8 @@ _app_ctx.app.clientside_callback(
     State("cp-tf-inv-bd", "value"),
     prevent_initial_call=True,
 )
-def _save_or_cancel(save_clicks, cancel_clicks, filing, state, state_rate, birth_year,
+def _save_or_cancel(save_clicks, header_save_clicks, cancel_clicks,
+                    filing, state, state_rate, birth_year,
                     other_income, other_income_growth, tcja, basis_method,
                     td_btc, td_cash, td_rs, td_rm, td_rl, td_eq, td_bd,
                     tf_btc, tf_cash, tf_rs, tf_rm, tf_rl, tf_eq, tf_bd):

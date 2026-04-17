@@ -186,3 +186,59 @@ _app_ctx.app.clientside_callback(
 def _state_to_rate(state_code: str) -> float:
     from engines.tax_data import STATE_TAX_RATES
     return STATE_TAX_RATES.get(state_code, 0.0)
+
+
+def _build_tax_summary(annual_data):
+    """Python mirror of the clientside tax-summary-table builder above.
+
+    Used only by tests -- production path is the JS clientside callback
+    registered with `cp-tax-annual-data` as its Input. Signature matches
+    the JS return shape so tests can assert on both behaviors identically.
+
+    Returns: (is_open: bool, children: list).
+    - Empty or None input  -> (False, [])
+    - Non-empty            -> (True, [header_thead, body_tbody]) (2 children)
+
+    Accepts either a flat list of year dicts, or a list-of-lists where the
+    first element is the list of year dicts (matching the engine's MC output
+    shape).
+    """
+    from dash import html
+
+    if not annual_data:
+        return False, []
+
+    # Flatten list-of-lists: MC sims may wrap annual data in an outer list.
+    if isinstance(annual_data, list) and annual_data and isinstance(annual_data[0], list):
+        annual_data = annual_data[0]
+
+    if not annual_data:
+        return False, []
+
+    def _fmt_usd(n):
+        v = n if n is not None else 0
+        return f"${v:,.0f}" if v >= 0 else f"-${abs(v):,.0f}"
+
+    header = html.Thead(html.Tr([
+        html.Th("Year"), html.Th("Ordinary"), html.Th("ST Gains"),
+        html.Th("LT Gains"), html.Th("Federal"), html.Th("NIIT"),
+        html.Th("State"), html.Th("Total"), html.Th("Eff. Rate"),
+    ]))
+    rows = []
+    for yr in annual_data:
+        fed = (yr.get("federal_ordinary") or 0) + (yr.get("federal_ltcg") or 0)
+        eff = yr.get("effective_rate")
+        eff_str = f"{eff * 100:.1f}%" if isinstance(eff, (int, float)) else "0.0%"
+        rows.append(html.Tr([
+            html.Td(str(yr.get("year", ""))),
+            html.Td(_fmt_usd(yr.get("ordinary_income"))),
+            html.Td(_fmt_usd(yr.get("st_gains"))),
+            html.Td(_fmt_usd(yr.get("lt_gains"))),
+            html.Td(_fmt_usd(fed)),
+            html.Td(_fmt_usd(yr.get("niit"))),
+            html.Td(_fmt_usd(yr.get("state"))),
+            html.Td(_fmt_usd(yr.get("total"))),
+            html.Td(eff_str),
+        ]))
+    body = html.Tbody(rows)
+    return True, [header, body]

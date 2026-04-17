@@ -102,13 +102,21 @@ def test_heatmap_defaults_produce_valid_figure():
     assert len(fig.data) > 0
 
 
+# DCA/Retire/Supercharge/Citadel tab_defaults intentionally have
+# active_models=() — the tab loads with no model selected and the
+# user toggles "bub" (or another) via the Display Models checklist.
+# These tests verify that the default config + bub produces a non-empty
+# figure (which is what happens in practice: the layout pre-selects bub).
+
+
 def test_dca_defaults_produce_valid_figure():
     from tab_defaults import dca_defaults
     from btc_web.app import app  # noqa: F401
     import _app_ctx
     from figures.dca import build_dca_figure
-    # build_dca_figure returns tuple[go.Figure, dict | None]
-    fig_result = build_dca_figure(_app_ctx.M, dca_defaults())
+    d = dca_defaults()
+    d["active_models"] = ["bub"]
+    fig_result = build_dca_figure(_app_ctx.M, d)
     fig = fig_result[0] if isinstance(fig_result, tuple) else fig_result
     assert len(fig.data) > 0
 
@@ -118,8 +126,9 @@ def test_retire_defaults_produce_valid_figure():
     from btc_web.app import app  # noqa: F401
     import _app_ctx
     from figures.retire import build_retire_figure
-    # build_retire_figure returns tuple[go.Figure, dict | None]
-    fig_result = build_retire_figure(_app_ctx.M, retire_defaults())
+    d = retire_defaults()
+    d["active_models"] = ["bub"]
+    fig_result = build_retire_figure(_app_ctx.M, d)
     fig = fig_result[0] if isinstance(fig_result, tuple) else fig_result
     assert len(fig.data) > 0
 
@@ -131,7 +140,7 @@ def test_supercharge_defaults_produce_valid_figure():
     from figures.supercharge import build_supercharge_figure
     d = supercharge_defaults()
     d["selected_qs"] = [q for q in [0.001, 0.10] if q in _app_ctx.DEFAULT_MODEL.fits]
-    # build_supercharge_figure returns tuple[go.Figure, dict | None]
+    d["active_models"] = ["bub"]
     fig_result = build_supercharge_figure(_app_ctx.M, d)
     fig = fig_result[0] if isinstance(fig_result, tuple) else fig_result
     assert len(fig.data) > 0

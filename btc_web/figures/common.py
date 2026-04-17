@@ -928,7 +928,7 @@ def _build_symmetric_bands(sel_qs, y_cache, x_arr, model_color=BLACK,
         alpha = opacities[i] if i < len(opacities) else opacities[-1]
         lo_y = y_cache[lo_q]
         hi_y = y_cache[hi_q]
-        _invis = "rgba(0,0,0,0)"
+        _invis = BLACK_A0
         traces.append(go.Scatter(
             x=x, y=list(lo_y), mode="lines",
             line=dict(width=0, color=_invis),

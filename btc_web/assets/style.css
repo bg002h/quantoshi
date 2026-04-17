@@ -128,13 +128,13 @@ body {
     font-size: 1.75rem;
     line-height: 1;
     font-weight: 400;
-    color: var(--qs-btc-orange, #f7931a);
+    color: var(--qs-btc-orange);
     cursor: pointer;
     margin-left: auto;
 }
 #cp-tax-modal .btn-close-save:hover,
 #cp-tax-modal .btn-close-save:focus {
-    color: var(--qs-btc-orange, #f7931a);
+    color: var(--qs-btc-orange);
     opacity: 0.75;
     outline: 2px solid var(--qs-btc-orange-a40);
     outline-offset: 2px;
@@ -144,7 +144,7 @@ body {
        this, but older Safari stacks .modal-body above on overflow. */
     position: relative;
     z-index: 5;
-    background: var(--bs-body-bg, #fff);
+    background: var(--bs-body-bg);
 }
 @media (max-width: 767px) {
     #cp-tax-modal .modal-footer {
@@ -209,8 +209,8 @@ body {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #555;
-    border-bottom: 1px solid var(--qs-grid-major-color, #E2E0DB);
+    color: var(--qs-body-text-secondary);
+    border-bottom: 1px solid var(--qs-grid-major-color);
     padding-bottom: 4px;
     margin-bottom: 6px;
     font-family: var(--font-ui);

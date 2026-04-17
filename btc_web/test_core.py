@@ -355,6 +355,7 @@ class TestFalsyZeroGuard:
             "freq": "Monthly",
             "disp_mode": "btc",
             "selected_qs": [0.5] if 0.5 in M.qr_fits else [],
+            "active_models": ["bub"],
             "log_y": True,
             "show_today": False,
             "show_legend": True,

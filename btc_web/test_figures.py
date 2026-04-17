@@ -295,6 +295,7 @@ class TestBuildDcaFigure:
             "freq": "Monthly",
             "disp_mode": "btc",
             "selected_qs": [0.5] if 0.5 in M.qr_fits else [],
+            "active_models": ["bub"],
             "log_y": True,
             "annotate": True,
             "show_today": False,
@@ -749,6 +750,7 @@ class TestDCAMath:
             "start_yr": 2030, "end_yr": 2031,
             "start_stack": 0.0, "amount": 1000, "freq": "Monthly",
             "disp_mode": "btc", "selected_qs": [_Q50],
+            "active_models": ["bub"],
             "log_y": False, "show_today": False,            "show_legend": True, "lots": [], "use_lots": False,
             "sc_enabled": False,
         }
@@ -836,6 +838,7 @@ class TestSCLoanCap:
             "start_yr": 2030, "end_yr": 2031,
             "start_stack": 0.0, "amount": 100, "freq": "Monthly",
             "disp_mode": "btc", "selected_qs": [_Q50],
+            "active_models": ["bub"],
             "log_y": False, "show_today": False,            "show_legend": True, "lots": [], "use_lots": False,
             "sc_enabled": True,
             "sc_loan_amount": 999_999_999, "sc_rate": 12.0,
@@ -855,6 +858,7 @@ class TestSCLoanCap:
             "start_yr": 2030, "end_yr": 2031,
             "start_stack": 0.0, "amount": 1000, "freq": "Monthly",
             "disp_mode": "btc", "selected_qs": [_Q50],
+            "active_models": ["bub"],
             "log_y": False, "show_today": False,            "show_legend": True, "lots": [], "use_lots": False,
             "sc_enabled": True,
             "sc_loan_amount": 5000, "sc_rate": 0.0,
@@ -878,6 +882,7 @@ class TestSCTaxOnGain:
             "start_yr": 2030, "end_yr": 2031,
             "start_stack": 0.0, "amount": 100, "freq": "Monthly",
             "disp_mode": "btc", "selected_qs": [_Q50],
+            "active_models": ["bub"],
             "log_y": False, "show_today": False, "show_legend": True,
             "lots": [], "use_lots": False,
             "sc_enabled": True,
@@ -928,8 +933,8 @@ class TestRetireMath:
             "start_yr": 2030, "end_yr": 2035,
             "start_stack": 1.0, "wd_amount": 50000, "freq": "Annually",
             "inflation": 0, "disp_mode": "btc",
-            "selected_qs": [_Q50], "log_y": False,
-            "show_legend": True, "annotate": False,
+            "selected_qs": [_Q50], "active_models": ["bub"],
+            "log_y": False, "show_legend": True, "annotate": False,
             "lots": [], "use_lots": False,
         }
         p.update(overrides)
@@ -1060,8 +1065,8 @@ class TestAnnotationAlignment:
             pytest.skip("need Q1%")
         p = dict(start_yr=2031, end_yr=2075, start_stack=0.01,
                  wd_amount=500_000, freq="Monthly", inflation=0,
-                 disp_mode="btc", selected_qs=qs, log_y=True,
-                 annotate=True,
+                 disp_mode="btc", selected_qs=qs, active_models=["bub"],
+                 log_y=True, annotate=True,
                  show_legend=True, minor_grid=False, lots=[], use_lots=False)
         fig, _ = build_retire_figure(M, p)
         depl = [a for a in (fig.layout.annotations or []) if "≈" in (a.text or "")]

@@ -28,6 +28,10 @@ _ALLOWLIST = {
     _BTC_WEB / "colors.py",
     _BTC_WEB / "assets" / "_colors_generated.css",
     _BTC_WEB / "assets" / "_colors_generated.js",
+    # Static JSON blob of constants consumed by MC-cost clientside callbacks;
+    # re-generated from Python sources (colors.py, mc_cache, btcpay). Hex
+    # values are authoritative copies of the named constants, not new leaks.
+    _BTC_WEB / "assets" / "_mc_cost_consts.js",
     _BTC_WEB / "assets" / "bootstrap_flatly.min.css",  # vendor bundle (~331 hex literals)
     _TOOLS / "generate_color_artifacts.py",
     _BTC_WEB / "test_colors_central.py",

@@ -768,14 +768,14 @@ class TestGhostBuildTraces:
         ts = np.linspace(10, 20, 50)
         fan = {p: np.random.rand(50) * 100 for p in (0.01, 0.05, 0.25, 0.50, 0.75, 0.95)}
         traces = self._ghost(ts, fan)
-        # 3 bands × 2 traces each + 1 median = 7
-        assert len(traces) == 7
+        # _GHOST_BANDS is 2 bands (5-95%, 25-75%) × 2 traces each + 1 median = 5
+        assert len(traces) == 5
 
     def test_no_median_when_disabled(self):
         ts = np.linspace(10, 20, 50)
         fan = {p: np.random.rand(50) * 100 for p in (0.01, 0.05, 0.25, 0.50, 0.75, 0.95)}
         traces = self._ghost(ts, fan, show_median=False)
-        assert len(traces) == 6  # 3 bands × 2, no median
+        assert len(traces) == 4  # 2 bands × 2, no median
 
     def test_empty_fan_returns_empty(self):
         ts = np.linspace(10, 20, 50)
@@ -815,7 +815,8 @@ class TestGhostTracesFromParams:
         from mc_overlay import ghost_traces_from_params
         p = {"mc_ghost_fan": self._make_ghost_data(), "mc_blocked_bins": (4,)}
         traces = ghost_traces_from_params(p, 20.0, "btc")
-        assert len(traces) == 7
+        # 2 ghost bands × 2 traces each + 1 median = 5
+        assert len(traces) == 5
 
     def test_returns_empty_when_no_blocked(self):
         from mc_overlay import ghost_traces_from_params

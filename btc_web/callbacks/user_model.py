@@ -1,7 +1,6 @@
 """User-defined model: input fields + click-to-set context menu."""
 
-from dash import Input, Output, State, callback, no_update, ctx
-from btc_core import fmt_price
+from dash import Input, Output, State, callback, no_update
 
 import _app_ctx
 from btc_core import UserModel
@@ -49,17 +48,23 @@ def on_data_click(click_data, model_show):
 # 2. "P1" / "P2" buttons → fill inputs + hide menu
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _fmt_price_display(p):
-    """Format price for display — adaptive decimals."""
-    if p >= 100:
-        return f"{p:,.2f}"
-    elif p >= 1:
-        return f"{p:.4f}"
-    else:
-        return f"{p:.6f}"
+_SET_POINT_JS = """function(n, pt) {
+    if (!pt) return [window.dash_clientside.no_update,
+                     window.dash_clientside.no_update,
+                     window.dash_clientside.no_update,
+                     window.dash_clientside.no_update,
+                     window.dash_clientside.no_update];
+    var yr = pt.year;
+    var pr = Math.round(pt.price * 1e6) / 1e6;
+    var fmt;
+    if (pr >= 100) fmt = pr.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    else if (pr >= 1) fmt = pr.toFixed(4);
+    else fmt = pr.toFixed(6);
+    return [yr, pr, String(yr), fmt, {display: 'none'}];
+}"""
 
-
-@callback(
+_app_ctx.app.clientside_callback(
+    _SET_POINT_JS,
     Output("um-p1-year", "data", allow_duplicate=True),
     Output("um-p1-price", "data", allow_duplicate=True),
     Output("um-p1-year-display", "children"),
@@ -69,14 +74,9 @@ def _fmt_price_display(p):
     State("um-clicked-point", "data"),
     prevent_initial_call=True,
 )
-def set_p1(n, pt):
-    if not pt:
-        return no_update, no_update, no_update, no_update, no_update
-    yr, pr = pt["year"], round(pt["price"], 6)
-    return yr, pr, str(yr), _fmt_price_display(pr), _HIDDEN
 
-
-@callback(
+_app_ctx.app.clientside_callback(
+    _SET_POINT_JS,
     Output("um-p2-year", "data", allow_duplicate=True),
     Output("um-p2-price", "data", allow_duplicate=True),
     Output("um-p2-year-display", "children"),
@@ -86,18 +86,17 @@ def set_p1(n, pt):
     State("um-clicked-point", "data"),
     prevent_initial_call=True,
 )
-def set_p2(n, pt):
-    if not pt:
-        return no_update, no_update, no_update, no_update, no_update
-    yr, pr = pt["year"], round(pt["price"], 6)
-    return yr, pr, str(yr), _fmt_price_display(pr), _HIDDEN
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 3. Delete button → clear model + inputs
 # ══════════════════════════════════════════════════════════════════════════════
 
-@callback(
+_app_ctx.app.clientside_callback(
+    """function(n) {
+        return [null, null, null, null, null,
+                '\\u2014', '\\u2014', '\\u2014', '\\u2014'];
+    }""",
     Output("user-model-store", "data", allow_duplicate=True),
     Output("um-p1-year", "data", allow_duplicate=True),
     Output("um-p1-price", "data", allow_duplicate=True),
@@ -110,8 +109,6 @@ def set_p2(n, pt):
     Input("um-delete-btn", "n_clicks"),
     prevent_initial_call=True,
 )
-def delete_user_model(n_clicks):
-    return None, None, None, None, None, "\u2014", "\u2014", "\u2014", "\u2014"
 
 
 # ══════════════════════════════════════════════════════════════════════════════

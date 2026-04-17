@@ -781,56 +781,66 @@ _HM_LEGACY_MODEL_FALLBACK = {
 }
 
 
-@callback(
-    Output("hm-active-model", "data", allow_duplicate=True),
-    Input("url", "pathname"),
-    prevent_initial_call=True,
-)
-def _hm_deep_link(pathname):
-    pathname = _norm(pathname)
-    if not pathname or not pathname.startswith("/2."):
-        return no_update
-    try:
-        n = int(pathname[3:])
-        if 1 <= n <= len(_HM_PILL_MODELS):
-            return _HM_PILL_MODELS[n - 1]
-    except (ValueError, IndexError):
-        pass
-    return no_update
-
-
 # Heatmap model pill bar -- click to select active model
 # ══════════════════════════════════════════════════════════════════════════════
 
 # Pill IDs match the Phase 2 standardized _HM_PILL_MODELS list above.
 _HM_PILL_IDS = [f"hm-pill-{k}" for k in _HM_PILL_MODELS]
 
+import json as _json
+_pill_models_json = _json.dumps(_HM_PILL_MODELS)
+_pill_ids_json = _json.dumps(_HM_PILL_IDS)
+_legacy_json = _json.dumps(_HM_LEGACY_MODEL_FALLBACK)
 
-@callback(
+# _hm_deep_link
+_app_ctx.app.clientside_callback(
+    f"""function(pathname) {{
+        var nu = window.dash_clientside.no_update;
+        var models = {_pill_models_json};
+        if (!pathname) return nu;
+        pathname = pathname.replace(/\\/+$/, '') || '/';
+        if (!pathname.startsWith('/2.')) return nu;
+        try {{
+            var n = parseInt(pathname.substring(3));
+            if (n >= 1 && n <= models.length) return models[n - 1];
+        }} catch(e) {{}}
+        return nu;
+    }}""",
     Output("hm-active-model", "data", allow_duplicate=True),
-    *[Output(pid, "outline") for pid in _HM_PILL_IDS],
+    Input("url", "pathname"),
+    prevent_initial_call=True,
+)
+
+# _hm_pill_click
+_app_ctx.app.clientside_callback(
+    f"""function() {{
+        var pill_ids = {_pill_ids_json};
+        var tid = dash_clientside.callback_context.triggered_id;
+        if (!tid) throw window.dash_clientside.PreventUpdate;
+        var model_key = tid.replace('hm-pill-', '');
+        var outlines = pill_ids.map(function(pid) {{ return pid !== tid; }});
+        return [model_key].concat(outlines);
+    }}""",
+    Output("hm-active-model", "data", allow_duplicate=True),
+    *[Output(pid, "outline", allow_duplicate=True) for pid in _HM_PILL_IDS],
     *[Input(pid, "n_clicks") for pid in _HM_PILL_IDS],
     prevent_initial_call=True,
 )
-def _hm_pill_click(*args):
-    trigger = ctx.triggered_id
-    if not trigger:
-        raise dash.exceptions.PreventUpdate
-    model_key = trigger.replace("hm-pill-", "")
-    outlines = [pid != trigger for pid in _HM_PILL_IDS]
-    return (model_key, *outlines)
 
-
-# Sync pill styles on snapshot restore / page load (hm-active-model store update)
-@callback(
+# _hm_pill_sync
+_app_ctx.app.clientside_callback(
+    f"""function(model_key) {{
+        var pill_ids = {_pill_ids_json};
+        var legacy = {_legacy_json};
+        model_key = model_key || 'bub';
+        var models = {_pill_models_json};
+        if (models.indexOf(model_key) === -1) {{
+            model_key = legacy[model_key] || 'bub';
+        }}
+        var active_id = 'hm-pill-' + model_key;
+        return pill_ids.map(function(pid) {{ return pid !== active_id; }});
+    }}""",
     *[Output(pid, "outline", allow_duplicate=True) for pid in _HM_PILL_IDS],
     Input("hm-active-model", "data"),
     prevent_initial_call=True,
 )
-def _hm_pill_sync(model_key):
-    model_key = model_key or "bub"
-    # Legacy snapshot values (qr, lp2, exp, etc) → surviving pill
-    if model_key not in _HM_PILL_MODELS:
-        model_key = _HM_LEGACY_MODEL_FALLBACK.get(model_key, "bub")
-    active_id = f"hm-pill-{model_key}"
-    return tuple(pid != active_id for pid in _HM_PILL_IDS)

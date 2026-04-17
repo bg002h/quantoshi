@@ -124,7 +124,13 @@ for _mc_reg in ("dca", "ret", "hm", "sc", "cp"):
 
 # ── Frequency unlock toggle + modal ──────────────────────────────────────────
 for _fp in ("dca", "ret", "sc"):
-    @callback(
+    _app_ctx.app.clientside_callback(
+        """function(unlock, cur_freq) {
+            if (unlock && unlock.length) {
+                return [false, cur_freq, true];
+            }
+            return [true, 'Monthly', false];
+        }""",
         Output(f"{_fp}-freq", "disabled"),
         Output(f"{_fp}-freq", "value", allow_duplicate=True),
         Output("freq-warning-modal", "is_open", allow_duplicate=True),
@@ -132,18 +138,13 @@ for _fp in ("dca", "ret", "sc"):
         State(f"{_fp}-freq", "value"),
         prevent_initial_call=True,
     )
-    def _toggle_freq_unlock(unlock, cur_freq, _pfx=_fp):
-        if unlock:
-            return False, cur_freq, True   # enable dropdown, keep value, show modal
-        return True, "Monthly", False      # disable, reset to Monthly, hide modal
 
-@callback(
+_app_ctx.app.clientside_callback(
+    "function(n) { return false; }",
     Output("freq-warning-modal", "is_open", allow_duplicate=True),
     Input("freq-warning-ok", "n_clicks"),
     prevent_initial_call=True,
 )
-def _close_freq_modal(n):
-    return False
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MC ↔ Year Range sync — auto-extend year range to include MC horizon
@@ -245,30 +246,50 @@ for _mc_m in ("dca", "ret", "hm", "sc", "cp"):
     )
 
 # MC restore button — revert controls to last cached simulation settings
+_RESTORE_MC_JS = f"""function(n_clicks, mc_cached) {{
+    var nu = window.dash_clientside.no_update;
+    if (!mc_cached || !mc_cached.path_key) return [nu, nu, nu, nu, nu, nu];
+    var pk = mc_cached.path_key;
+    return [
+        pk.mc_years    !== undefined ? pk.mc_years    : {MC_DEFAULT_YEARS},
+        pk.mc_start_yr !== undefined ? pk.mc_start_yr : {MC_DEFAULT_START_YR},
+        pk.mc_entry_q  !== undefined ? pk.mc_entry_q  : {MC_DEFAULT_ENTRY_Q},
+        pk.mc_bins     !== undefined ? pk.mc_bins     : {MC_BINS},
+        pk.mc_sims     !== undefined ? pk.mc_sims     : {MC_SIMS},
+        pk.mc_window   !== undefined ? pk.mc_window   : null
+    ];
+}}"""
+
 for _rpfx in ("hm", "dca", "ret", "sc", "cp"):
-    @callback(
-        Output(f"{_rpfx}-mc-years",    "value", allow_duplicate=True),
+    _app_ctx.app.clientside_callback(
+        _RESTORE_MC_JS,
+        Output(f"{_rpfx}-mc-years", "value", allow_duplicate=True),
         Output(f"{_rpfx}-mc-start-yr", "value", allow_duplicate=True),
-        Output(f"{_rpfx}-mc-entry-q",  "value", allow_duplicate=True),
-        Output(f"{_rpfx}-mc-bins",     "value", allow_duplicate=True),
-        Output(f"{_rpfx}-mc-sims",     "value", allow_duplicate=True),
-        Output(f"{_rpfx}-mc-window",   "value", allow_duplicate=True),
+        Output(f"{_rpfx}-mc-entry-q", "value", allow_duplicate=True),
+        Output(f"{_rpfx}-mc-bins", "value", allow_duplicate=True),
+        Output(f"{_rpfx}-mc-sims", "value", allow_duplicate=True),
+        Output(f"{_rpfx}-mc-window", "value", allow_duplicate=True),
         Input(f"{_rpfx}-mc-restore-btn", "n_clicks"),
-        State(f"{_rpfx}-mc-results",     "data"),
+        State(f"{_rpfx}-mc-results", "data"),
         prevent_initial_call=True,
     )
-    def _restore_mc(n_clicks, mc_cached):
-        if not mc_cached or not mc_cached.get("path_key"):
-            return [dash.no_update] * 6
-        pk = mc_cached["path_key"]
-        return (
-            pk.get("mc_years", MC_DEFAULT_YEARS),
-            pk.get("mc_start_yr", MC_DEFAULT_START_YR),
-            pk.get("mc_entry_q", MC_DEFAULT_ENTRY_Q),
-            pk.get("mc_bins", MC_BINS),
-            pk.get("mc_sims", MC_SIMS),
-            pk.get("mc_window"),
-        )
+
+
+def _restore_mc(n_clicks, mc_cached):
+    """Plain helper kept for tests + __init__ re-export. The live callback is
+    a clientside port (above)."""
+    if not mc_cached or not mc_cached.get("path_key"):
+        return [dash.no_update] * 6
+    pk = mc_cached["path_key"]
+    return (
+        pk.get("mc_years", MC_DEFAULT_YEARS),
+        pk.get("mc_start_yr", MC_DEFAULT_START_YR),
+        pk.get("mc_entry_q", MC_DEFAULT_ENTRY_Q),
+        pk.get("mc_bins", MC_BINS),
+        pk.get("mc_sims", MC_SIMS),
+        pk.get("mc_window"),
+    )
+
 
 # MC horizon → auto-extend year range slider (DCA + Retire)
 _MC_EXTEND_YR_JS = """

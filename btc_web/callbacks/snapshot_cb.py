@@ -385,20 +385,34 @@ _app_ctx.app.clientside_callback(
 # HM_PRESET_PALETTES is a flat 4-preset dict: rwg / rbg / bwo / mono.
 # Presets are site-palette-invariant. The site-wide palette determines which
 # preset is auto-selected as the default (see _auto_select_hm_preset below).
-_HM_PALETTES = HM_PRESET_PALETTES
+import json as _json
+_HM_PALETTES_JS = _json.dumps({k: list(v) for k, v in HM_PRESET_PALETTES.items()})
 
-@callback(
-    Output("hm-c-lo",   "value", allow_duplicate=True),
+_app_ctx.app.clientside_callback(
+    f"""function(preset_name) {{
+        var palettes = {_HM_PALETTES_JS};
+        if (!preset_name || !palettes[preset_name]) {{
+            return [window.dash_clientside.no_update,
+                    window.dash_clientside.no_update,
+                    window.dash_clientside.no_update,
+                    window.dash_clientside.no_update];
+        }}
+        return palettes[preset_name];
+    }}""",
+    Output("hm-c-lo", "value", allow_duplicate=True),
     Output("hm-c-mid1", "value", allow_duplicate=True),
     Output("hm-c-mid2", "value", allow_duplicate=True),
-    Output("hm-c-hi",   "value", allow_duplicate=True),
+    Output("hm-c-hi", "value", allow_duplicate=True),
     Input("hm-palette", "value"),
     prevent_initial_call=True,
 )
+
+
 def apply_hm_palette(preset_name):
-    if not preset_name or preset_name not in _HM_PALETTES:
+    """Plain helper kept for tests + __init__ re-export."""
+    if not preset_name or preset_name not in HM_PRESET_PALETTES:
         return no_update, no_update, no_update, no_update
-    return _HM_PALETTES[preset_name]
+    return HM_PRESET_PALETTES[preset_name]
 
 
 # When the site-wide palette changes, auto-switch the heatmap preset

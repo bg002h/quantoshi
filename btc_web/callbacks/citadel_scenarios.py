@@ -1,8 +1,11 @@
 """Citadel Quick Scenarios — pill button callbacks and band loading."""
 from __future__ import annotations
 
-from dash import callback, no_update, Input, Output, State, ctx
+import json as _json
 
+from dash import callback, no_update, Input, Output, State
+
+import _app_ctx
 from citadel_presets import WEALTH_LEVELS, MACRO_REGIMES, RULE_SETS, BTC_ENTRY_QS
 
 
@@ -17,19 +20,23 @@ def _snap_entry_q(q_float: float) -> int:
 # ── Pill button click → update store + toggle outline ────────────────────────
 
 def _register_pill_cb(group_name, keys):
-    """Register a callback that updates a store and toggles pill outlines."""
+    """Register a clientside callback that updates a store and toggles pill outlines."""
     outputs = [Output(f"cp-scenario-{group_name}", "data")]
     outputs += [Output(f"cp-pill-{k}", "outline") for k in keys]
     inputs = [Input(f"cp-pill-{k}", "n_clicks") for k in keys]
-
-    @callback(outputs, inputs, prevent_initial_call=True)
-    def _on_pill_click(*n_clicks_args):
-        triggered = ctx.triggered_id
-        if not triggered:
-            return [no_update] * (1 + len(keys))
-        selected = triggered.replace("cp-pill-", "")
-        outlines = [k != selected for k in keys]
-        return [selected] + outlines
+    keys_json = _json.dumps(keys)
+    _app_ctx.app.clientside_callback(
+        f"""function() {{
+            var keys = {keys_json};
+            var tid = dash_clientside.callback_context.triggered_id;
+            if (!tid) return Array(1 + keys.length).fill(window.dash_clientside.no_update);
+            var selected = tid.replace('cp-pill-', '');
+            var outlines = keys.map(function(k) {{ return k !== selected; }});
+            return [selected].concat(outlines);
+        }}""",
+        *outputs, *inputs,
+        prevent_initial_call=True,
+    )
 
 
 _register_pill_cb("wealth", list(WEALTH_LEVELS.keys()))

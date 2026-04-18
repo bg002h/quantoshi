@@ -48,7 +48,7 @@ def build_display_models_options(
     _PROMOTED   = ("pca", "grdy")
     # Deprioritized models appear at the bottom in this explicit order.
     # S2F before Exponential per user preference (2026-04-11).
-    _DEPRIORITIZED = ("s2f", "exp", "gomp", "bpl")
+    _DEPRIORITIZED = ("s2f", "exp", "gomp", "bpl", "plo", "sexp", "logi")
 
     def _swatch_span(color):
         return html.Span(" ", style={

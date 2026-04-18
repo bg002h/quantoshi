@@ -397,6 +397,46 @@ def _gompertz_coeff_table():
     ])
 
 
+def _plo_coeff_table():
+    """Live coefficient table for Offset Power Law."""
+    m = _app_ctx.PRICE_MODELS.get("plo")
+    if m is None:
+        return _coeff_table([("(Offset Power Law not loaded)", "\u2014")])
+    return _coeff_table([
+        ("A (log\u2081\u2080 intercept)", f"{m._A:.6f}"),
+        ("m (slope)", f"{m._m:.6f}"),
+        ("c (time-origin offset, yr)", f"{m._c:.6f}"),
+        ("\u03c3 (residual std)", f"{m._sigma:.4f}"),
+    ])
+
+
+def _sexp_coeff_table():
+    """Live coefficient table for Stretched Exponential."""
+    m = _app_ctx.PRICE_MODELS.get("sexp")
+    if m is None:
+        return _coeff_table([("(Stretched Exponential not loaded)", "\u2014")])
+    return _coeff_table([
+        ("A (log\u2081\u2080 intercept at t=0)", f"{m._A:.6f}"),
+        ("B (scale)", f"{m._B:.6f}"),
+        ("\u03b2 (stretching exponent)", f"{m._beta:.6f}"),
+        ("\u03c3 (residual std)", f"{m._sigma:.4f}"),
+    ])
+
+
+def _logi_coeff_table():
+    """Live coefficient table for Logistic (true S-curve)."""
+    m = _app_ctx.PRICE_MODELS.get("logi")
+    if m is None:
+        return _coeff_table([("(Logistic model not loaded)", "\u2014")])
+    max_price = 10.0 ** m._K
+    return _coeff_table([
+        ("K (saturation, log\u2081\u2080 USD)", f"{m._K:.4f}  (${max_price:,.0f})"),
+        ("r (growth rate)", f"{m._r:.6f}"),
+        ("t\u2080 (inflection, years since genesis)", f"{m._t0:.4f}"),
+        ("\u03c3 (residual std)", f"{m._sigma:.4f}"),
+    ])
+
+
 def _bpl_coeff_table():
     """Live coefficient table for Broken Power Law Model."""
     import pandas as pd

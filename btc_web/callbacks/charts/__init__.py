@@ -1409,7 +1409,8 @@ _HM_PILL_LABELS = {
     "linppl": "LinPPL", "hybppl": "HybPPL",
     "hyb2l": "H2L", "hyb2c": "H2C", "hyb2b": "H2B", "hyb4d": "H4D",
     "pca": "PCA", "grdy": "Grdy", "eppl": "EPPL",
-    "gomp": "Gomp", "bpl": "BPL",
+    "gomp": "Gomp", "bpl": "BPL", "plo": "PL+c", "sexp": "SExp",
+    "logi": "Logi",
     "ef": "EF", "u1": "U\u2081", "mc": "MC",
 }
 

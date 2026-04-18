@@ -38,7 +38,9 @@ from btc_core._base import (
 
 # ── concrete models ───────────────────────────────────────────────────────────
 from btc_core._simple import (
-    BubbleModel, PowerLawModel, ExponentialModel, GompertzModel,
+    BubbleModel, PowerLawModel, OffsetPowerLawModel,
+    ExponentialModel, StretchedExponentialModel,
+    GompertzModel, LogisticSCurveModel,
     BrokenPowerLawModel, EmpiricalFloorModel, S2FModel, UserModel,
 )
 from btc_core._lppl import (

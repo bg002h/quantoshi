@@ -99,6 +99,113 @@ class PowerLawModel(_FitsBasedModel):
 
 
 
+class OffsetPowerLawModel(_ShrinkingBandsMixin):
+    """Power law with a fitted time-origin offset.
+
+    log10(price) = A + m * log10(t + c)
+
+    Adds one degree of freedom over PowerLawModel: the offset ``c`` lets the
+    model pick its own effective time zero rather than assuming our chosen
+    2009-07-25 genesis. Negative c pulls the effective origin later; positive
+    c pushes it earlier. When c is near zero the fit degenerates to a plain
+    log-log power law.
+
+    Residual quantile bands use _ShrinkingBandsMixin (bandwidth shrinks with
+    sample size) since the non-linear offset precludes clean OLS-based
+    parallel bands.
+    """
+    name = "Offset Power Law"
+    short_name = "plo"
+    legend_name = "PL+c"
+    dash_style = "dashdot"
+    quantized = True
+
+    # Fitted parameters (overwritten by fit_plo.py --update)
+    _A =                   -1.157393  
+    _m =                      5.067029  
+    _c =             -0.011168  
+
+    def __init__(self, price_years, price_prices, quantiles):
+        mask = price_years >= 1.0
+        t = price_years[mask]
+        lp = np.log10(price_prices[mask])
+        predicted = self._model_log10(t)
+        residuals = lp - predicted
+        self._init_shrinking_bands(t, residuals, quantiles)
+        self._build_colors()
+
+    def _model_log10(self, t):
+        t_arr = np.asarray(t, float)
+        # Guard against log10 of negative (shouldn't happen if c fit is sane,
+        # but t + c must stay positive for log10 to be defined).
+        return self._A + self._m * np.log10(np.maximum(t_arr + self._c, 1e-9))
+
+    def _build_colors(self):
+        """Steel-blue gradient — echoes PL but shifted hue to distinguish."""
+        self.colors = {}
+        n = len(self.quantiles)
+        for i, q in enumerate(self.quantiles):
+            frac = i / max(n - 1, 1)
+            r = int(60 + 80 * frac)      # 60 → 140
+            g = int(100 + 70 * frac)     # 100 → 170
+            b = int(180 + 40 * frac)     # 180 → 220
+            self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
+
+
+
+class StretchedExponentialModel(_ShrinkingBandsMixin):
+    """Stretched exponential with shrinking Gaussian quantile bands.
+
+    log10(price) = A + B * t^beta
+
+    When beta=1, degenerates to pure exponential. When beta<1 (expected for
+    BTC), the growth decelerates vs pure exponential — closer to a power
+    law in practice but still not quite log-log. When beta>1, the model
+    would accelerate (super-exponential); unlikely for mature BTC but
+    allowed by the fit bounds.
+
+    The β parameter is the real degree of freedom: it interpolates
+    smoothly between exponential (β=1) and slower-than-exponential
+    growth (β<1). Included for comparison with plain Exp + power law.
+    """
+    name = "Stretched Exponential"
+    short_name = "sexp"
+    legend_name = "SExp"
+    dash_style = "longdashdot"
+    quantized = True
+
+    # Fitted parameters (overwritten by fit_sexp.py --update)
+    _A    =             -6.277519  
+    _B    =                     5.694228  
+    _beta =                      0.250000  
+
+    def __init__(self, price_years, price_prices, quantiles):
+        mask = price_years >= 1.0
+        t = price_years[mask]
+        lp = np.log10(price_prices[mask])
+        predicted = self._model_log10(t)
+        residuals = lp - predicted
+        self._init_shrinking_bands(t, residuals, quantiles)
+        self._build_colors()
+
+    def _model_log10(self, t):
+        t_arr = np.asarray(t, float)
+        # Keep t non-negative for t^beta when beta is fractional.
+        return self._A + self._B * np.power(np.maximum(t_arr, 1e-9), self._beta)
+
+    def _build_colors(self):
+        """Warm coral gradient — distinguishes from pure exp's red/pink."""
+        self.colors = {}
+        n = len(self.quantiles)
+        for i, q in enumerate(self.quantiles):
+            frac = i / max(n - 1, 1)
+            r = int(220 + 30 * frac)     # 220 → 250
+            g = int(110 + 50 * frac)     # 110 → 160
+            b = int(70 + 40 * frac)      # 70 → 110
+            self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
+
+
+
 class ExponentialModel(_ShrinkingBandsMixin):
     """Exponential growth model with shrinking Gaussian quantile bands.
 
@@ -190,6 +297,58 @@ class GompertzModel(_ShrinkingBandsMixin):
             r = int(50 + 60 * frac)
             g = int(90 + 70 * frac)
             b = int(150 + 50 * frac)
+            self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
+
+
+
+class LogisticSCurveModel(_ShrinkingBandsMixin):
+    """Symmetric logistic S-curve in log-price space.
+
+    log10(price) = K / (1 + exp(-r * (t - t0)))
+
+    The "true" logistic — symmetric about its inflection point, saturating at
+    K (log10 of max price). Distinct from GompertzModel which is asymmetric:
+
+      Logistic  : log10(p) = K / (1 + exp(-r*(t - t0)))
+      Gompertz  : log10(p) = K * exp(-exp(-r*(t - t0)))
+
+    At the inflection point t0, the Logistic sits at K/2 (half of saturation),
+    while Gompertz sits at K/e ≈ 0.37·K. Logistic spends less time at both
+    extremes; Gompertz decelerates more gradually on the upper side.
+    """
+    name = "Logistic"
+    short_name = "logi"
+    legend_name = "Logi"
+    dash_style = "dot"
+    quantized = True
+
+    # Fitted parameters (overwritten by fit_logistic.py --update)
+    _K  =                4.744630  
+    _r  =                0.435614  
+    _t0 =                5.659355  
+
+    def __init__(self, price_years, price_prices, quantiles):
+        mask = price_years >= 1.0
+        t = price_years[mask]
+        lp = np.log10(price_prices[mask])
+        predicted = self._model_log10(t)
+        residuals = lp - predicted
+        self._init_shrinking_bands(t, residuals, quantiles)
+        self._build_colors()
+
+    def _model_log10(self, t):
+        t_arr = np.asarray(t, float)
+        return self._K / (1.0 + np.exp(-self._r * (t_arr - self._t0)))
+
+    def _build_colors(self):
+        """Evergreen gradient — symmetric saturation model, cool palette."""
+        self.colors = {}
+        n = len(self.quantiles)
+        for i, q in enumerate(self.quantiles):
+            frac = i / max(n - 1, 1)
+            r = int(60 + 60 * frac)      # 60 → 120
+            g = int(120 + 50 * frac)     # 120 → 170
+            b = int(90 + 40 * frac)      # 90 → 130
             self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
 
 

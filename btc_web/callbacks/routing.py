@@ -530,8 +530,11 @@ _MODEL_INFO_ITEMS = [
     "mi-grdy",           # 15 Greedy Select
     "mi-eppl",           # 16 Entropy PPL
     "mi-exp",            # 17 Exponential
-    "mi-gomp",           # 16 Gompertz
-    "mi-bpl",            # 17 Broken Power Law
+    "mi-gomp",           # 18 Gompertz
+    "mi-bpl",            # 19 Broken Power Law
+    "mi-plo",            # 20 Offset Power Law
+    "mi-sexp",           # 21 Stretched Exponential
+    "mi-logi",           # 22 Logistic (true S-curve)
     "mi-s2f",            # 18 S2F
     "mi-mc",             # 19 Monte Carlo
     "mi-ef",             # 20 Empirical Floor

@@ -50,7 +50,9 @@ from btc_core import (load_model_data, BubbleModel, PowerLawModel,
                        HybPPLDDModel,
                        Hyb2LModel, Hyb2CModel, Hyb2BModel, Hyb4DModel, PCAModel,
                        GreedyModel, EntropyPPLModel,
-                       ExponentialModel, GompertzModel, BrokenPowerLawModel,
+                       ExponentialModel, GompertzModel, LogisticSCurveModel,
+                       OffsetPowerLawModel, StretchedExponentialModel,
+                       BrokenPowerLawModel,
                        S2FModel, EmpiricalFloorModel, QuantileRegressionModel,
                        HybPPLConfigModel, _HYBPPL_CONFIG_PARAMS,
                        EPPLConfigModel, _EPPL_CONFIG_PARAMS)
@@ -277,6 +279,9 @@ _app_ctx.PRICE_MODELS["eppl"] = EntropyPPLModel(M.price_years, M.price_prices, M
 _app_ctx.PRICE_MODELS["exp"] = ExponentialModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["gomp"] = GompertzModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["bpl"] = BrokenPowerLawModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+_app_ctx.PRICE_MODELS["plo"] = OffsetPowerLawModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+_app_ctx.PRICE_MODELS["sexp"] = StretchedExponentialModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+_app_ctx.PRICE_MODELS["logi"] = LogisticSCurveModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["s2f"] = S2FModel(M.price_years, M.price_prices, M.genesis)
 # ── Empirical Floor (conditional — only if pkl exists) ────────────────
 _ef_pkl = Path(__file__).parent.parent / "model_data_ef.pkl"

@@ -2,7 +2,9 @@
 import plotly.graph_objects as go
 from btc_core import (PriceModel, _FitsBasedModel, BubbleModel, PowerLawModel,
                       S2FModel, QuantileRegressionModel,
-                      GompertzModel, BrokenPowerLawModel,
+                      GompertzModel, LogisticSCurveModel,
+                      BrokenPowerLawModel, OffsetPowerLawModel,
+                      StretchedExponentialModel,
                       Hyb2LModel, Hyb2CModel, Hyb2BModel, Hyb4DModel,
                       PCAModel, GreedyModel, EntropyPPLModel,
                       HybPPLConfigModel, _HYBPPL_CONFIG_PARAMS,
@@ -1748,6 +1750,142 @@ class TestBrokenPowerLawModel:
 
     def test_registered(self):
         assert "bpl" in _app_ctx.PRICE_MODELS
+
+
+class TestOffsetPowerLawModel:
+    def setup_method(self):
+        self.m = OffsetPowerLawModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+
+    def test_short_name(self):
+        assert self.m.short_name == "plo"
+
+    def test_quantized(self):
+        assert self.m.quantized is True
+
+    def test_fits_has_quantile_keys(self):
+        assert set(self.m.fits.keys()) == set(M.QR_QUANTILES)
+
+    def test_price_at_positive(self):
+        q = self.m.quantiles[len(self.m.quantiles) // 2]
+        assert float(self.m.price_at(q, 10.0)) > 0
+
+    def test_quantile_ordering(self):
+        t = 10.0
+        prices = [float(self.m.price_at(q, t)) for q in self.m.quantiles]
+        assert prices == sorted(prices)
+
+    def test_colors_populated(self):
+        assert len(self.m.colors) == len(self.m.quantiles)
+
+    def test_find_percentile(self):
+        pct = self.m.find_percentile(10.0, 50000)
+        assert 0 < pct < 1
+
+    def test_registered(self):
+        assert "plo" in _app_ctx.PRICE_MODELS
+
+    def test_offset_keeps_arg_positive(self):
+        """The np.maximum(t+c, 1e-9) guard prevents log10(negative). Verify
+        the model can be evaluated near t=0 without NaN/inf."""
+        import numpy as np
+        q = self.m.quantiles[len(self.m.quantiles) // 2]
+        p = float(self.m.price_at(q, 0.01))
+        assert np.isfinite(p) and p > 0
+
+
+class TestStretchedExponentialModel:
+    def setup_method(self):
+        self.m = StretchedExponentialModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+
+    def test_short_name(self):
+        assert self.m.short_name == "sexp"
+
+    def test_quantized(self):
+        assert self.m.quantized is True
+
+    def test_fits_has_quantile_keys(self):
+        assert set(self.m.fits.keys()) == set(M.QR_QUANTILES)
+
+    def test_price_at_positive(self):
+        q = self.m.quantiles[len(self.m.quantiles) // 2]
+        assert float(self.m.price_at(q, 10.0)) > 0
+
+    def test_quantile_ordering(self):
+        t = 10.0
+        prices = [float(self.m.price_at(q, t)) for q in self.m.quantiles]
+        assert prices == sorted(prices)
+
+    def test_colors_populated(self):
+        assert len(self.m.colors) == len(self.m.quantiles)
+
+    def test_find_percentile(self):
+        pct = self.m.find_percentile(10.0, 50000)
+        assert 0 < pct < 1
+
+    def test_registered(self):
+        assert "sexp" in _app_ctx.PRICE_MODELS
+
+    def test_beta_in_sub_exp_range(self):
+        """β is bounded to [0.25, 1.5] by the fit script to prevent
+        degeneracy; verify the fitted value stays in that regime."""
+        assert 0.24 < self.m._beta < 1.51
+
+
+class TestLogisticSCurveModel:
+    def setup_method(self):
+        self.m = LogisticSCurveModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+
+    def test_short_name(self):
+        assert self.m.short_name == "logi"
+
+    def test_quantized(self):
+        assert self.m.quantized is True
+
+    def test_fits_has_quantile_keys(self):
+        assert set(self.m.fits.keys()) == set(M.QR_QUANTILES)
+
+    def test_price_at_positive(self):
+        q = self.m.quantiles[len(self.m.quantiles) // 2]
+        assert float(self.m.price_at(q, 10.0)) > 0
+
+    def test_quantile_ordering(self):
+        t = 10.0
+        prices = [float(self.m.price_at(q, t)) for q in self.m.quantiles]
+        assert prices == sorted(prices)
+
+    def test_saturates_at_K(self):
+        """At t → ∞, log10(price) → K (the saturation ceiling)."""
+        q = self.m.quantiles[len(self.m.quantiles) // 2]
+        import numpy as np
+        max_log = float(np.log10(self.m.price_at(q, 1000.0)))
+        # At huge t, logistic saturates at K (+ z_q * sigma for the quantile)
+        assert max_log < self.m._K + 1.0
+
+    def test_colors_populated(self):
+        assert len(self.m.colors) == len(self.m.quantiles)
+
+    def test_find_percentile(self):
+        pct = self.m.find_percentile(10.0, 50000)
+        assert 0 < pct < 1
+
+    def test_registered(self):
+        assert "logi" in _app_ctx.PRICE_MODELS
+
+    def test_distinct_from_gompertz(self):
+        """Logistic is symmetric, Gompertz is asymmetric — verify they
+        disagree at the inflection point (Gompertz predicts K/e ≈ 37% of
+        saturation, Logistic predicts K/2 = 50%)."""
+        from btc_core import GompertzModel
+        gm = GompertzModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+        q = 0.5
+        # At logistic's inflection t0:
+        log_at_t0 = self.m._K / 2.0  # exactly K/2 by construction
+        # Both models are evaluated at the logistic's t0
+        log_logi = float(self.m.price_at(q, self.m._t0))
+        log_gomp = float(gm.price_at(q, self.m._t0))
+        # These should differ (different saturation profiles)
+        import numpy as np
+        assert not np.isclose(log_logi, log_gomp, rtol=0.01)
 
 
 class _Hyb2Base:

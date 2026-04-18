@@ -213,6 +213,9 @@ MODEL_TRACE_COLORS = {
     "eppl":      "#D4760A",
     "gomp":      "#4682B4",
     "bpl":       "#CD853F",
+    "plo":       "#40C4FF",   # light cyan — echoes PL electric cyan
+    "sexp":      "#FF6B35",   # warm coral — distinguishes from pure exp pink
+    "logi":      "#76C043",   # fresh green — saturation curve contrast
 }
 
 # ── Ticker model colors (palette-invariant, distinct values) ──────
@@ -269,6 +272,9 @@ DEFAULT = {
         "s2f":  "#9B7E46",  # antique brass
         "gomp": "#2D5F4E",  # pine
         "bpl":  "#7F4F2A",  # walnut
+        "plo":  "#3D5A80",  # steel blue — dusty navy, echoes PL but distinct
+        "sexp": "#B8543A",  # muted coral — sub-exp diagnostic
+        "logi": "#4A7A5A",  # evergreen — symmetric-saturation diagnostic
         "u1":   "#1A1A2E",  # matches scatter ink — user's own hand
     },
     "thermal_stops": [
@@ -317,7 +323,10 @@ CB_BRIAN = {
         "s2f":  "#FE6100",  # [HybPPL]
         "gomp": "#FFB000",  # [LPPL]
         "bpl":  "#D8BD65",  # [BM] — cycle restart
-        "u1":   "#64B5F6",  # [QR]
+        "plo":  "#64B5F6",  # [QR]
+        "sexp": "#2204FD",  # [PL]
+        "logi": "#BD3737",  # [EPPL]
+        "u1":   "#FE6100",  # [HybPPL]
     },
     "thermal_stops": [
         (0.001, "#0d47a1"), (0.01, "#1565c0"), (0.015, "#1976d2"),
@@ -348,6 +357,9 @@ CB_RG = {
         "grdy": "#2E8B57",
         "eppl": "#CC8800",
         "gomp": "#4169E1", "bpl": "#CC7722",
+        "plo": "#4682B4",
+        "sexp": "#B22222",
+        "logi": "#556B2F",
         "u1": "#333333",
     },
     "thermal_stops": [
@@ -380,6 +392,9 @@ CB_FULL = {
         "grdy": "#4A7A4A",
         "eppl": "#8A7030",
         "gomp": "#5B7FAA", "bpl": "#AA8844",
+        "plo": "#6A8299",
+        "sexp": "#A0706A",
+        "logi": "#5A7A5A",
     },
     "thermal_stops": [
         (0.001, "#1a1a2e"), (0.01, "#3d1f56"), (0.015, "#6B3074"),

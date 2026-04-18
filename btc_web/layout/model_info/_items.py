@@ -25,6 +25,9 @@ from ._helpers import (
     _pca_basis_listing,
     _eppl_coeff_table,
     _gompertz_coeff_table,
+    _plo_coeff_table,
+    _sexp_coeff_table,
+    _logi_coeff_table,
     _bpl_coeff_table,
     _qr_table,
     _comparison_table,
@@ -1768,6 +1771,140 @@ with continuity constraint: $a_2 = a_1 + (b_1 - b_2) \cdot \log_{10}(t_{\text{br
                                 ),
                             ]),
                         ], title="Broken Power Law", item_id="mi-bpl"),
+
+                        # ── 4d. Offset Power Law ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = A + m \cdot \log_{10}(t + c) + z_q \cdot \sigma$$
+
+A three-parameter power law that lets the model pick its own effective
+time-zero via the offset $c$. When $c \approx 0$ the model degenerates to
+plain PL; non-zero $c$ implies the data prefer a different time-origin
+than the 2009-07-25 genesis.
+                            """, mathjax=True, className="mb-3"),
+                            html.H6("Method"),
+                            html.P(
+                                "Fitted via differential evolution on log\u2081\u2080(price) for t \u2265 1 year, "
+                                "then polished with curve_fit. Bounds keep t+c positive across the dataset. "
+                                "Quantile bands use _ShrinkingBandsMixin (same as Gompertz / Exp)."
+                            ),
+                            html.H6("Motivation"),
+                            html.P(
+                                "Tests whether the 2009-07-25 time origin is statistically optimal. "
+                                "If the optimizer settles on c \u2248 0 (as it currently does), that's "
+                                "empirical confirmation that genesis is a reasonable choice."
+                            ),
+                            html.H6("Fitted Coefficients"),
+                            _plo_coeff_table(),
+                            html.H6("Caveats"),
+                            html.Ul([
+                                html.Li(
+                                    "Parameter identifiability is weak: (A, m, c) trade off against "
+                                    "each other, so fitted values are less interpretable than plain PL's."
+                                ),
+                                html.Li(
+                                    "Comparison-only model \u2014 R\u00b2 is similar to plain PL. "
+                                    "Included as a sanity check on our genesis choice."
+                                ),
+                                html.Li(
+                                    "Keep t+c > 0 for prediction. Extrapolating to t \u2248 0 or negative "
+                                    "would push log\u2081\u2080 arg into the tiny-positive regime."
+                                ),
+                            ]),
+                        ], title="Offset Power Law", item_id="mi-plo"),
+
+                        # ── 4e. Stretched Exponential ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = A + B \cdot t^{\beta} + z_q \cdot \sigma$$
+
+A three-parameter family that interpolates smoothly between pure
+exponential ($\beta=1$) and log-like ($\beta \to 0$). For BTC the
+optimiser wants $\beta \to 0$ (the power law is a better fit than
+any stretched exponential), so $\beta$ is floored at 0.25 to keep the
+model in a genuinely stretched-exp regime.
+                            """, mathjax=True, className="mb-3"),
+                            html.H6("Method"),
+                            html.P(
+                                "Differential evolution on log\u2081\u2080(price) for t \u2265 1 year, "
+                                "polished with curve_fit. β bounded to [0.25, 1.5] to prevent "
+                                "degeneracy toward the logarithm (β → 0) or super-exponential blow-up (β > 1.5). "
+                                "Quantile bands use _ShrinkingBandsMixin."
+                            ),
+                            html.H6("Motivation"),
+                            html.P(
+                                "Stretched exponentials are common in physics (relaxation phenomena) "
+                                "and sometimes fitted to adoption curves. This model shows that BTC "
+                                "is sub-exponential but not in a stretched-exp way \u2014 the optimiser "
+                                "wants to collapse β to zero (i.e., logarithm), which just recovers "
+                                "the power law. Included as a sanity check."
+                            ),
+                            html.H6("Fitted Coefficients"),
+                            _sexp_coeff_table(),
+                            html.H6("Caveats"),
+                            html.Ul([
+                                html.Li(
+                                    "β hits the 0.25 floor. Economically, the data prefer power-law "
+                                    "to stretched-exp."
+                                ),
+                                html.Li(
+                                    "(A, B) trade off via the t\u1d2c exponent; fitted values are not "
+                                    "independently interpretable."
+                                ),
+                                html.Li(
+                                    "R\u00b2 ~ 0.956 is similar to plain PL. Keep as diagnostic only."
+                                ),
+                            ]),
+                        ], title="Stretched Exponential", item_id="mi-sexp"),
+
+                        # ── 4f. Logistic (true S-curve) ──
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\log_{10}(\text{price}) = \dfrac{K}{1 + e^{-r(t - t_0)}} + z_q \cdot \sigma$$
+
+The **symmetric** logistic S-curve in log-price space \u2014 saturates at $K$
+(log$_{10}$ of max price), inflects at $t_0$. Distinct from Gompertz:
+
+* Logistic spends equal time below and above its inflection point.
+* Gompertz decelerates more gradually on the upper side.
+
+At $t_0$, Logistic sits at $K/2$ while Gompertz sits at $K/e \\approx 0.37 K$.
+                            """, mathjax=True, className="mb-3"),
+                            html.H6("Method"),
+                            html.P(
+                                "Differential evolution on log\u2081\u2080(price) for t \u2265 1 year, "
+                                "polished with curve_fit. Quantile bands use _ShrinkingBandsMixin."
+                            ),
+                            html.H6("Motivation"),
+                            html.P(
+                                "The contrast case for Gompertz: same saturation concept, symmetric "
+                                "dynamics. Fitting both and showing their divergent extrapolations "
+                                "illustrates how sensitive long-horizon BTC forecasts are to the "
+                                "shape of the saturation curve."
+                            ),
+                            html.H6("Fitted Coefficients"),
+                            _logi_coeff_table(),
+                            html.H6("Caveats"),
+                            html.Ul([
+                                html.Li(
+                                    "The fitted K currently sits below observed recent-year prices \u2014 "
+                                    "BTC has already blown through the saturation ceiling the symmetric "
+                                    "logistic wants to impose. Instructive: this is evidence that a "
+                                    "symmetric S-curve is a poor model for BTC adoption dynamics."
+                                ),
+                                html.Li(
+                                    "R\u00b2 is noticeably lower than Gompertz and PL because the "
+                                    "symmetric saturation fits recent data badly."
+                                ),
+                                html.Li(
+                                    "Don't treat the K value as a price target \u2014 it's an artefact "
+                                    "of the model shape, not a forecast."
+                                ),
+                            ]),
+                        ], title="Logistic (S-curve)", item_id="mi-logi"),
 
                         # ── 5. Stock-to-Flow ──
                         dbc.AccordionItem([

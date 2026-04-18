@@ -201,6 +201,26 @@ def _eval_model(model_name, t, lp):
                         a2 + m._b2 * lt)
         return lp - pred
 
+    elif model_name == "plo":
+        from btc_core import OffsetPowerLawModel
+        m = OffsetPowerLawModel
+        t_safe = np.maximum(t + m._c, 1e-9)
+        pred = m._A + m._m * np.log10(t_safe)
+        return lp - pred
+
+    elif model_name == "sexp":
+        from btc_core import StretchedExponentialModel
+        m = StretchedExponentialModel
+        t_safe = np.maximum(t, 1e-9)
+        pred = m._A + m._B * np.power(t_safe, m._beta)
+        return lp - pred
+
+    elif model_name == "logi":
+        from btc_core import LogisticSCurveModel
+        m = LogisticSCurveModel
+        pred = m._K / (1.0 + np.exp(-m._r * (t - m._t0)))
+        return lp - pred
+
     else:
         raise ValueError(f"Unknown model: {model_name}")
 
@@ -224,7 +244,7 @@ def main():
     t, lp = _load_data()
     print(f"  {len(t)} observations, t = {t.min():.2f} – {t.max():.2f} yr")
 
-    models = ["pl", "exp", "lppl", "hybppl", "hybppl_dd", "eppl", "grdy", "gomp", "bpl"]
+    models = ["pl", "exp", "lppl", "hybppl", "hybppl_dd", "eppl", "grdy", "gomp", "bpl", "plo", "sexp", "logi"]
 
     print(f"\nFitting σ(t) = σ₀·t^(-α) for {len(models)} models (parallel) ...\n")
 

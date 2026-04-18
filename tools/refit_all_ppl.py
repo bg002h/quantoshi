@@ -54,6 +54,9 @@ SCRIPTS = [
     # Other models
     ("Gompertz",       "tools/fit_gompertz.py"),
     ("Broken PL",      "tools/fit_bpl.py"),
+    ("Offset PL",      "tools/fit_plo.py"),
+    ("Stretched Exp",  "tools/fit_sexp.py"),
+    ("Logistic",       "tools/fit_logistic.py"),
 ]
 
 def main():

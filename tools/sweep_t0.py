@@ -414,8 +414,15 @@ def main():
     fig.tight_layout(rect=(0.0, 0.02, 1.0, 0.95))
     out_svg = os.path.join(ROOT, "docs", "sweep_t0.svg")
     fig.savefig(out_svg, bbox_inches="tight", facecolor=PLOT_BG_COLOR)
+    # Also emit a JPG alongside the SVG — some viewers render SVG
+    # matplotlib output poorly (clipped dashes, missing text). JPG is
+    # the universal fallback. Use 150 dpi for readable screen output.
+    out_jpg = os.path.join(ROOT, "docs", "sweep_t0.jpg")
+    fig.savefig(out_jpg, bbox_inches="tight", facecolor=PLOT_BG_COLOR,
+                dpi=150)
     plt.close(fig)
     print(f"Wrote {out_svg}")
+    print(f"Wrote {out_jpg}")
 
     # ──────────────────────────────────────────────────────────────
     # Summary

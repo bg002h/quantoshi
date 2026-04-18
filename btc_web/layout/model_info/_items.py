@@ -29,6 +29,8 @@ from ._helpers import (
     _sexp_coeff_table,
     _logi_coeff_table,
     _bpl_coeff_table,
+    _grdy_coeff_table,
+    _grdy_basis_table,
     _qr_table,
     _comparison_table,
     _regime_data_tables,
@@ -1300,132 +1302,103 @@ computed via SVD of the centered component matrix.
                         dbc.AccordionItem([
                             html.H6("Method"),
                             html.P([
-                                html.Strong("Greedy forward BIC minimisation (v2) "),
-                                "over a 467-function dictionary including entropy-damped, "
-                                "power-law-damped, undamped, and EPPL model components. "
-                                "At each step, the single component that maximally reduces "
-                                "BIC is added. Entropy-damped terms dominated the selection "
-                                "(16 of 24 terms at full depth). Zero power-law-damped terms "
-                                "were selected when entropy alternatives were available."
+                                html.Strong("Greedy forward BIC minimisation (v3, 2026-04-17)"),
+                                " over a compact 36-function dictionary. At each step the single "
+                                "candidate that maximally reduces BIC is added; the algorithm "
+                                "stops at 5 oscillatory terms plus the α + β\u00b7log\u2081\u2080(t) "
+                                "support. See ", html.Code("tools/fit_grdy.py"),
+                                " for the search code."
+                            ]),
+
+                            html.H6("Candidate dictionary (36 terms)"),
+                            html.Ul([
+                                html.Li([html.Strong("3 log-oscillation frequencies"),
+                                         " from the best-fit LPPL\u2083 triplet."]),
+                                html.Li([html.Strong("3 calendar-oscillation frequencies"),
+                                         " from a separate 3-freq DE fit of log\u2081\u2080(p) = "
+                                         "\u03b1 + \u03b2\u00b7log\u2081\u2080(t) + \u03a3 A\u1d62"
+                                         "\u00b7cos(w\u1d62\u00b7t + \u03c6\u1d62)."]),
+                                html.Li([html.Strong("3 damping flavours"), " per frequency:"]),
+                            ]),
+                            _coeff_table([
+                                ("undamped", "bare sin / cos"),
+                                ("hybrid-damped", "t^(\u2212D) \u00b7 sin / cos   [LPPL-style power-law envelope]"),
+                                ("entropy-damped", "E(w_e\u00b7t) \u00b7 sin / cos  [Shannon entropy envelope]"),
+                            ]),
+                            html.P([
+                                "Each frequency gets both sin and cos parts, so phase is recovered by "
+                                "picking both variants at the same \u03c9 when beneficial. ",
+                                "Total: 6 freqs \u00d7 3 dampings \u00d7 2 phases = 36 candidates."
                             ]),
 
                             html.H6("Formula"),
                             dcc.Markdown(r"""
-$$\log_{10}(\text{price}) = \alpha + \beta \cdot \log_{10}(t) + \sum_{i=1}^{5} w_i \cdot f_i(t) + z_q \cdot \sigma$$
+$$\log_{10}(\text{price}) = \alpha + \beta \cdot \log_{10}(t) + \sum_i w_i \cdot D_i(t) \cdot \varphi_i(t) + z_q \cdot \sigma$$
 
-where $E(x) = \max(-x \ln x, 0) / (1/e)$ is the Shannon entropy envelope:
-
-- $f_1(t) = E(0.10 \cdot t) \cdot \sin(7.5 \cdot \ln t)$ &mdash; entropy-damped log-periodic
-- $f_2(t) = 0.2027 \cdot \cos(1.881 \cdot t + 2.521)$ &mdash; undamped halving cycle (T&asymp;3.34yr)
-- $f_3(t) = E(0.05 \cdot t) \cdot \cos(3.341 \cdot t)$ &mdash; entropy-damped sub-halving
-- $f_4(t) = 0.2504 \cdot E(0.252 \cdot t) \cdot \cos(16.82 \cdot \ln t + 1.460)$ &mdash; entropy log osc 1
-- $f_5(t) = 0.5563 \cdot E(0.107 \cdot t) \cdot \cos(7.804 \cdot \ln t + 1.373)$ &mdash; entropy log osc 2
-
-where each $f_i(t)$ is one of three functional forms:
-
-| Form | Type |
-|------|------|
-| $C \cdot t^{-D} \cdot \cos(\omega \cdot \ln t + \varphi)$ | damped log-periodic |
-| $C \cdot \cos(\omega \cdot t + \varphi)$ | undamped calendar |
-| $C \cdot t^{-D} \cdot \cos(\omega \cdot t + \varphi)$ | damped calendar |
+where $D_i$ is the damping envelope (1 for undamped, $t^{-D}$ for hybrid,
+$E(w_e \cdot t) = \max(-w_e t \ln (w_e t), 0)/(1/e)$ for entropy) and
+$\varphi_i(t)$ is either $\sin(\omega \ln t)$, $\cos(\omega \ln t)$ (log
+space) or $\sin(\omega t)$, $\cos(\omega t)$ (calendar space).
                             """, mathjax=True, className="mb-3"),
 
-                            html.H6("Symbolic component definitions"),
-                            _coeff_table([
-                                ("f\u2081(t)", "C\u2081 \u00b7 t^(\u2212D\u2081) \u00b7 cos(\u03c9\u2081 \u00b7 t + \u03c6\u2081)      [damped calendar]"),
-                                ("f\u2082(t)", "C\u2082 \u00b7 t^(\u2212D\u2082) \u00b7 cos(\u03c9\u2082 \u00b7 ln(t) + \u03c6\u2082)   [damped log-periodic]"),
-                                ("f\u2083(t)", "C\u2083 \u00b7 cos(\u03c9\u2083 \u00b7 t + \u03c6\u2083)                              [undamped calendar]"),
-                                ("f\u2084(t)", "C\u2084 \u00b7 t^(\u2212D\u2084) \u00b7 cos(\u03c9\u2084 \u00b7 ln(t) + \u03c6\u2084)   [damped log-periodic]"),
-                                ("f\u2085(t)", "C\u2085 \u00b7 t^(\u2212D\u2085) \u00b7 cos(\u03c9\u2085 \u00b7 t + \u03c6\u2085)      [damped calendar]"),
-                            ]),
+                            html.H6("Trend coefficients"),
+                            _grdy_coeff_table(),
 
-                            html.H6("Numerical coefficients"),
-                            html.P("Trend:"),
-                            _coeff_table([
-                                ("\u03b1 (intercept)", "\u22121.211238"),
-                                ("\u03b2 (slope)", "5.119765"),
-                                ("\u03c3 (residual std)", "0.129877"),
+                            html.H6("Selected basis terms"),
+                            _grdy_basis_table(),
+
+                            html.H6("Selection order (grid-mode BIC trace)"),
+                            html.P([
+                                "The five terms below are chosen one at a time by forward-greedy BIC "
+                                "minimisation over the 36-entry dictionary with frequencies frozen at "
+                                "the grid values. A subsequent DE pass (", html.Code("--mode=de"),
+                                ") then jointly refines frequencies and damping parameters around "
+                                "those seeds; the numbers below are the fixed-grid snapshot."
                             ]),
-                            html.P("Oscillatory terms (source model in brackets):"),
                             html.Table([
                                 html.Thead(html.Tr([
-                                    html.Th("", style={"paddingRight": "10px"}), html.Th("w\u1d62", style={"paddingRight": "10px"}),
-                                    html.Th("C", style={"paddingRight": "10px"}), html.Th("D", style={"paddingRight": "10px"}),
-                                    html.Th("\u03c9", style={"paddingRight": "10px"}), html.Th("\u03c6", style={"paddingRight": "10px"}),
-                                    html.Th("Period", style={"paddingRight": "10px"}), html.Th("Description"),
-                                ])),
-                                html.Tbody([
-                                    html.Tr([html.Td("f\u2081"), html.Td(html.Code("0.921")),
-                                             html.Td("0.2823"), html.Td("0.010"),
-                                             html.Td("1.766"), html.Td("\u22122.284"),
-                                             html.Td("3.56 yr"), html.Td("halving cycle [LinPPL]")]),
-                                    html.Tr([html.Td("f\u2082"), html.Td(html.Code("0.840")),
-                                             html.Td("0.7340"), html.Td("0.608"),
-                                             html.Td("7.558"), html.Td("+1.377"),
-                                             html.Td("\u2014"), html.Td("primary log-periodic [LPPL]")]),
-                                    html.Tr([html.Td("f\u2083"), html.Td(html.Code("0.869")),
-                                             html.Td("0.1146"), html.Td("\u2014"),
-                                             html.Td("3.281"), html.Td("\u22122.453"),
-                                             html.Td("1.92 yr"), html.Td("sub-halving [Hyb2C]")]),
-                                    html.Tr([html.Td("f\u2084"), html.Td(html.Code("0.783")),
-                                             html.Td("0.4224"), html.Td("1.166"),
-                                             html.Td("16.238"), html.Td("+1.885"),
-                                             html.Td("\u2014"), html.Td("2nd log harmonic [Hyb2B]")]),
-                                    html.Tr([html.Td("f\u2085"), html.Td(html.Code("0.547")),
-                                             html.Td("0.5869"), html.Td("1.062"),
-                                             html.Td("1.117"), html.Td("+3.141"),
-                                             html.Td("5.63 yr"), html.Td("long calendar [Hyb4D]")]),
-                                ]),
-                            ], style={"marginBottom": "12px", "fontSize": UI_FONT_BASE}),
-
-                            html.H6("Selection order"),
-                            html.Table([
-                                html.Thead(html.Tr([
-                                    html.Th("Step", style={"paddingRight": "10px"}), html.Th("Component added", style={"paddingRight": "10px"}),
-                                    html.Th("R\u00b2", style={"paddingRight": "10px"}), html.Th("BIC", style={"paddingRight": "10px"}),
+                                    html.Th("Step", style={"paddingRight": "10px"}),
+                                    html.Th("Component added", style={"paddingRight": "10px"}),
+                                    html.Th("R\u00b2", style={"paddingRight": "10px"}),
+                                    html.Th("BIC", style={"paddingRight": "10px"}),
                                     html.Th("Params"),
                                 ])),
                                 html.Tbody([
                                     html.Tr([html.Td("0"), html.Td("\u03b1 + \u03b2\u00b7log\u2081\u2080(t)"),
-                                             html.Td("0.9627"), html.Td("\u221213,941"), html.Td("2")]),
-                                    html.Tr([html.Td("1"), html.Td("+ f\u2081 halving cycle"),
-                                             html.Td("0.9789"), html.Td("\u221217,212"), html.Td("3")]),
-                                    html.Tr([html.Td("2"), html.Td("+ f\u2082 log-periodic"),
-                                             html.Td("0.9887"), html.Td("\u221220,748"), html.Td("4")]),
-                                    html.Tr([html.Td("3"), html.Td("+ f\u2083 sub-halving"),
-                                             html.Td("0.9909"), html.Td("\u221221,993"), html.Td("5")]),
-                                    html.Tr([html.Td("4"), html.Td("+ f\u2084 2nd log harmonic"),
-                                             html.Td("0.9922"), html.Td("\u221222,882"), html.Td("6")]),
-                                    html.Tr([html.Td("5"), html.Td("+ f\u2085 long calendar"),
-                                             html.Td("0.9928"), html.Td("\u221223,319"), html.Td("7")]),
+                                             html.Td("0.9632"), html.Td("\u221214,001"), html.Td("2")]),
+                                    html.Tr([html.Td("1"), html.Td("+ log-entropy sin \u03c9\u22487.12"),
+                                             html.Td("0.9788"), html.Td("\u221217,163"), html.Td("3")]),
+                                    html.Tr([html.Td("2"), html.Td("+ cal-undamped sin \u03c9\u22481.76"),
+                                             html.Td("0.9843"), html.Td("\u221218,875"), html.Td("4")]),
+                                    html.Tr([html.Td("3"), html.Td("+ log-undamped sin \u03c9\u224820.81"),
+                                             html.Td("0.9870"), html.Td("\u221219,980"), html.Td("5")]),
+                                    html.Tr([html.Td("4"), html.Td("+ log-undamped cos \u03c9\u22487.12"),
+                                             html.Td("0.9884"), html.Td("\u221220,617"), html.Td("6")]),
+                                    html.Tr([html.Td("5"), html.Td("+ cal-hybrid sin \u03c9\u22483.15"),
+                                             html.Td("0.9895"), html.Td("\u221221,156"), html.Td("7")]),
                                 ]),
                             ], style={"marginBottom": "12px", "fontSize": UI_FONT_LG}),
 
-                            html.H6("Comparison"),
+                            html.H6("Comparison (7 params)"),
                             _coeff_table([
-                                ("Greedy v2 (7p)", "R\u00b2=0.9935  \u03c3=0.124  BIC=\u221223,886  \u2605 best BIC at 7p"),
+                                ("Greedy v3 (DE)", "R\u00b2=0.9927  \u03c3=0.131  BIC=\u221223,293  \u2605 chosen fit"),
+                                ("Greedy v3 (grid)", "R\u00b2=0.9895  \u03c3=0.158  BIC=\u221221,156"),
                                 ("PCA (7p)", "R\u00b2=0.9933  \u03c3=0.125  BIC=\u221223,776"),
                                 ("EPPL 2+2 (16p)", "R\u00b2=0.9933  \u03c3=0.125  BIC=\u221223,681"),
-                                ("Old Greedy v1 (7p)", "R\u00b2=0.9928  \u03c3=0.130  BIC=\u221223,319  (power-law damped)"),
                             ]),
 
                             html.Hr(),
-                            html.H6("Why entropy damping won"),
+                            html.H6("What changed from v2"),
                             html.P([
-                                "When given a choice among 467 candidate functions \u2014 "
-                                "entropy-damped, power-law-damped, undamped, and pre-fitted model "
-                                "components \u2014 the greedy algorithm selected 16 entropy-damped terms, "
-                                "4 model components, 4 undamped terms, and ",
-                                html.Strong("zero"),
-                                " power-law-damped terms. Entropy damping is the preferred envelope "
-                                "when alternatives are available."
-                            ]),
-                            html.P([
-                                "The v1 greedy used t^(\u2212D) power-law components from HybPPL models. "
-                                "The v2 greedy uses E(w\u00b7t) entropy envelopes, gaining +567 BIC at "
-                                "the same 7 parameters. The entropy envelope\u2019s natural zero-crossing "
-                                "(oscillations die completely) fits Bitcoin\u2019s transition from speculative "
-                                "to mature asset better than power-law\u2019s infinite tail."
+                                "v2 hardcoded 5 entropy-damped term shapes in the class body. v3 stores "
+                                "the selected basis as a generic ",
+                                html.Code("_BASIS = ((space, damping, freq, phase, weight, d_param), ...)"),
+                                " tuple, so future refits can drop any term mix in without touching "
+                                "the class \u2014 ", html.Code("tools/fit_grdy.py --update"),
+                                " regex-patches just the coefficient lines. The DE-refined v3 fit "
+                                "selects a mix of undamped + entropy + hybrid terms rather than v2's "
+                                "entropy-only choice, and reaches ~v2 quality (R\u00b2=0.9927) with a "
+                                "cleaner programmatic design."
                             ]),
 
                             html.Hr(),

@@ -423,6 +423,67 @@ def _sexp_coeff_table():
     ])
 
 
+def _grdy_coeff_table():
+    """Live coefficient table for Greedy Select — reads GreedyModel._BASIS
+    so the table tracks any refit without further edits."""
+    m = _app_ctx.PRICE_MODELS.get("grdy")
+    if m is None:
+        return _coeff_table([("(Greedy model not loaded)", "\u2014")])
+    rows = [
+        ("\u03b1 (intercept)", f"{m._alpha:.6f}"),
+        ("\u03b2 (slope)", f"{m._beta:.6f}"),
+        ("\u03c3 (residual std)", f"{m._sigma:.4f}"),
+    ]
+    return _coeff_table(rows)
+
+
+def _grdy_basis_table():
+    """Live table listing the 5 selected basis terms with their full params.
+
+    Columns: index, space, damping, freq ω, phase, weight w, damping param.
+    """
+    m = _app_ctx.PRICE_MODELS.get("grdy")
+    if m is None or not hasattr(m, "_BASIS"):
+        return html.Div("Greedy model not loaded.", style={"color": FALLBACK_MODEL_GRAY})
+    header_cells = [
+        html.Th("", style={"paddingRight": "10px"}),
+        html.Th("Space", style={"paddingRight": "10px"}),
+        html.Th("Damping", style={"paddingRight": "10px"}),
+        html.Th("\u03c9 (freq)", style={"paddingRight": "10px"}),
+        html.Th("Phase", style={"paddingRight": "10px"}),
+        html.Th("w (weight)", style={"paddingRight": "10px"}),
+        html.Th("Damping param"),
+    ]
+    body_rows = []
+    for i, term in enumerate(m._BASIS, 1):
+        space, damping, freq, phase, weight, d_param = term
+        period_note = ""
+        if space == "cal":
+            # Cal osc period in years
+            import math
+            period_note = f"  (T\u2248{2*math.pi/freq:.2f}yr)"
+        dp_str = "\u2014" if d_param is None else f"{d_param:.4f}"
+        dp_label = ""
+        if damping == "hybrid":
+            dp_label = f"D = {dp_str}"
+        elif damping == "entropy":
+            dp_label = f"w_e = {dp_str}"
+        body_rows.append(html.Tr([
+            html.Td(f"f{i}"),
+            html.Td(space),
+            html.Td(damping),
+            html.Td(f"{freq:.4f}{period_note}"),
+            html.Td(phase),
+            html.Td(html.Code(f"{weight:+.4f}")),
+            html.Td(dp_label),
+        ]))
+    return html.Table(
+        [html.Thead(html.Tr(header_cells)), html.Tbody(body_rows)],
+        style={"marginBottom": "12px", "fontSize": UI_FONT_BASE,
+               "fontFamily": "ui-monospace, SFMono-Regular, monospace"},
+    )
+
+
 def _logi_coeff_table():
     """Live coefficient table for Logistic (true S-curve)."""
     m = _app_ctx.PRICE_MODELS.get("logi")

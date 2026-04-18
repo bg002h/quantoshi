@@ -47,7 +47,7 @@ python3 update_prices.py            # live: appends CSV + rebuilds model_data.pk
 
 ### Run tests
 ```bash
-btc_venv/bin/python3 -m pytest btc_web/ -v                            # full suite (1389 tests)
+btc_venv/bin/python3 -m pytest btc_web/ -v                            # full suite (1456 tests)
 btc_venv/bin/python3 -m pytest btc_web/ -v --ignore-glob='*_e2e.py'   # skip Playwright E2E
 btc_venv/bin/python3 -m pytest btc_web/test_core.py -v                # single file
 ```
@@ -137,7 +137,7 @@ bash tools/rebuild_caches.sh --help        # full docs
 | `mc_overlay.py` | Monte Carlo overlay integration + transition matrix caching |
 | `mc_cache.py` | MC cache configuration and helpers |
 | `markov.py` | Markov MC engine (built via Cython on prod). Built locally with `build_markov.py`. |
-| `static_pages.py` | Flask routes for `/B /BB /C /D /E` static SVG analysis pages |
+| `static_pages.py` | Flask routes for `/mi` + `/mi.N` (Model Info static), `/faq` + `/faq.N`. (Sensitivity-sweep static pages `/B /BB /D /E /F /G /H` live in `api.py`.) |
 | `tab_defaults.py` | Single source of truth for all tab defaults (`MappingProxyType` frozen dicts) |
 | `cache.py` | L0 pinned + L2 Redis-backed figure cache (fingerprint invalidation) |
 | `celery_app.py` | Celery application factory |
@@ -145,7 +145,7 @@ bash tools/rebuild_caches.sh --help        # full docs
 | `engines/` | 17 modules: `adapter.py` (Celery-or-in-process fallback), `citadel.py` (facade) + 9 split modules (`citadel_sim`, `citadel_step`, `citadel_waterfall`, `citadel_transactions`, `citadel_bands`, `citadel_floors`, `citadel_rebalancing`, `citadel_tax_integration`, `citadel_types`), `tax.py`, `tax_lots.py`, `tax_data.py`, `custom_fit.py`, `sc_math.py` |
 | `data/` | `asset_matrices.py`, `fetch_historical.py`, historical CSV data files |
 | `load_shm_cache.py` | Shared memory cache loading |
-| `test_*.py` | Test suite (1418 tests across 22 non-E2E files) plus 4 *_e2e files (pytest.ini ignores the *_e2e glob). Domain split: `test_core`, `test_callbacks`, `test_figures`, `test_models`, `test_defaults`, `test_snapshot`, `test_infrastructure`, `test_palette_roundtrip`, `test_colors_central`, `test_static_pages`, `test_citadel`, `test_citadel_diag`, `test_citadel_steps`, `test_custom_time`, `test_custom_time_snapshot`, `test_modal_commit`, `test_r2`, `test_cache_key_alignment`, `test_resqr_bands`, `test_resqr_build`, `test_resqr_runtime`, `test_resqr_snapshot`, `test_block_map_cli`. E2E: `test_tax_e2e.py`, `test_plot_appearance_e2e.py`, `test_scanner_e2e.py` (Playwright + Firefox + dev server). |
+| `test_*.py` | Test suite (1456 tests across 22 non-E2E files) plus 4 *_e2e files (pytest.ini ignores the *_e2e glob). Domain split: `test_core`, `test_callbacks`, `test_figures`, `test_models`, `test_defaults`, `test_snapshot`, `test_infrastructure`, `test_palette_roundtrip`, `test_colors_central`, `test_static_pages`, `test_citadel`, `test_citadel_diag`, `test_citadel_steps`, `test_custom_time`, `test_custom_time_snapshot`, `test_modal_commit`, `test_r2`, `test_cache_key_alignment`, `test_resqr_bands`, `test_resqr_build`, `test_resqr_runtime`, `test_resqr_snapshot`, `test_block_map_cli`. E2E: `test_tax_e2e.py`, `test_plot_appearance_e2e.py`, `test_scanner_e2e.py` (Playwright + Firefox + dev server). |
 | `layout/` | Layout package — 14 top-level modules: tab controls (`bubble`, `heatmap`, `sim_tabs`, `supercharge`, `citadel`, `citadel_tax`, `stack`), `common`, `splash`, `faq`, `mc_controls`, `display_models`, `custom_time`, `__init__` (navbar + main assembly). `model_info/` is a sub-package (`__init__`, `_items`, `_helpers`). |
 | `callbacks/` | Callbacks package — 22 modules: `routing`, `charts/` (sub-package), `nav`, `splash`, `ticker`, `snapshot_cb`, `user_model`, `citadel_cb`, `citadel_save_cb`, `citadel_scenarios`, `citadel_tax_cb`, `scanner`, `lots`, `coerce`, `sc_loan`, `plot_appearance`, `mc_controls`, `mc_helpers`, `mc_payment`, `mc_upload`, `custom_time`, `__init__`. `charts/` contains `__init__` (main @callbacks), `_clientside` (JS callbacks), `_resolvers` (master→variant logic). |
 | `figures/` | Figures package — 9 modules: `common` (shared helpers), `bubble`, `heatmap`, `dca`, `retire`, `supercharge`, `citadel`, `residuals`, `__init__` |
@@ -211,7 +211,7 @@ All defaults are canonical in `btc_web/tab_defaults.py` (`MappingProxyType` froz
 ### Live price ticker
 - `dcc.Interval(id="price-interval", interval=20*60*1000)` fires every 20 min (5 × 4 min intervals).
 - `update_price_ticker` callback fetches Binance (`api.binance.com/api/v3/ticker/price?symbol=BTCUSDT`), CoinGecko fallback. Outputs to `price-ticker` div (navbar), `btc-price-store` (memory Store), and `hm-entry-q` (keeps heatmap entry quantile in sync with ticker on every refresh).
-- Ticker displays: `₿ $X` · `QY.Y%` (current quantile percentile) + 24h sparkline SVG (from CoinGecko). Mode toggle switches between USD and sats/$ display. Multi-model percentile cycling on tap: QR → BM → PL → LPPL → LinPPL → HybPPL → HybPPL DD → EF (skips S2F — non-quantized). Each model's percentile is color-coded.
+- Ticker displays: `₿ $X` · `QY.Y%` (current quantile percentile) + 24h sparkline SVG (from CoinGecko). Mode toggle switches between USD and sats/$ display. Multi-model percentile cycling on tap follows `callbacks/ticker.py::_MODEL_CYCLE`: QR → BM → PL → LPPL₃ → HybPPL (cfg_1d_1u) → EPPL (ecfg_1d_1u) → PCA → Greedy → EF (skips S2F — non-quantized). U₁ is appended when drawn. Each model's percentile is color-coded.
 - `_startup_heatmap_defaults()` fetches price at module load → sets heatmap entry percentile default.
 - `_interp_qr_price(q, t, qr_fits)` in `figures/common.py` — log-space interpolation between adjacent QR fits for arbitrary quantile (e.g. Q7.5%).
 - Heatmap uses `live_price` from `btc-price-store` as entry price when `entry_yr == current_year`; falls back to model interpolation for historical entry years.
@@ -234,16 +234,27 @@ Split into a package with one module per chart type + shared helpers:
 
 ### Price models & Display Models
 
-20+ price models registered at startup in `_app_ctx.PRICE_MODELS`:
+35+ named models + ~72 config-family variants = ~107 entries in `_app_ctx.PRICE_MODELS` (authoritative: `btc_web/app.py` registration block):
 - **Bubble Model** (`"bub"`) — default, loaded from `model_data.pkl`
 - **Quantile Regression** (`"qr"`) — standalone QR model
 - **Power Law** (`"pl"`) — OLS fit to log-log data
+- **Offset Power Law** (`"plo"`) — `log10(p) = A + m·log10(t+c)`; 3-parameter. Added 2026-04-17. Fit finds c≈0, confirming 2009-07-25 origin is near-optimal.
 - **LPPL family** — 10 variants: `"lppl"` (1-freq), `"lp2"`–`"lp4"` (2–4 freq), weighted variants (`"lppl_w"`, `"lp2_w"`, `"lp3_w"`, `"lp4_w"`), no-1/3 variants (`"lp4_n13"`, `"lp4_w_n13"`)
-- **LinPPL** (`"linppl"`) — linear + LPPL hybrid
-- **HybPPL** (`"hybppl"`) — power law + LPPL hybrid
-- **HybPPL DD** (`"hybppl_dd"`) — HybPPL with drawdown adjustment
-- **Exponential** (`"exp"`) — exponential fit
-- **S2F (Stock-to-Flow)** (`"s2f"`) — alternative parameterization
+- **LinPPL** (`"linppl"`) — PL + calendar-periodic oscillation
+- **HybPPL** (`"hybppl"`) — PL + LPPL (damped log-osc) + undamped cal-osc
+- **HybPPL DD** (`"hybppl_dd"`) — HybPPL with both oscillators damped
+- **Hyb2L/2C/2B/4D** (`"hyb2l"`, `"hyb2c"`, `"hyb2b"`, `"hyb4d"`) — extended hybrids
+- **HybPPL config variants** — 36 `cfg_{n_log}d_{n_cal}{d|u}` entries enumerating damping combinations
+- **PCA** (`"pca"`) — PCA-selected basis from HybPPL component pool
+- **Greedy Select v3** (`"grdy"`) — forward-greedy BIC over a 36-entry dictionary (3 log freqs from LPPL₃ + 3 cal freqs × 3 dampings {undamped, hybrid, entropy} × 2 phases). Refactored 2026-04-17 with generic `_BASIS` tuple; `tools/fit_grdy.py --mode={grid,de} --update` regenerates.
+- **EPPL** (`"eppl"`) — Entropy PPL (Shannon-entropy envelope on oscillators)
+- **EPPL config variants** — 36 `ecfg_{n_log}d_{n_cal}{d|u}` entries
+- **Exponential** (`"exp"`) — log10(price) = a + b·t
+- **Stretched Exponential** (`"sexp"`) — `log10(p) = A + B·t^β`. Added 2026-04-17. Diagnostic: optimizer wants β→0 (PL wins).
+- **Gompertz** (`"gomp"`) — `log10(p) = K·exp(-exp(-r·(t-t0)))`. Class renamed 2026-04-17 from `LogisticModel` → `GompertzModel` (formula was always Gompertz — asymmetric S-curve — not the symmetric logistic). short_name `"gomp"` unchanged for share-link compat.
+- **Logistic (S-curve)** (`"logi"`) — true symmetric `log10(p) = K/(1+exp(-r·(t-t0)))`. Added 2026-04-17. Instructively fits poorly (saturates below current BTC price).
+- **Broken Power Law** (`"bpl"`) — two-segment PL with a break
+- **S2F (Stock-to-Flow)** (`"s2f"`) — alternative parameterization (non-fitted, derived from flow)
 - **Empirical Floor** (`"ef"`) — conditional on `model_data_ef.pkl` existing
 - **U₁ (User Model)** (`"u1"`) — session-only, click-to-draw power law from two user-defined points (see below)
 
@@ -264,9 +275,23 @@ Per-tab model display:
 
 Multi-model heatmap switching via pill buttons (added in `a94a987`):
 - Built dynamically from `_app_ctx.PRICE_MODELS` + optional MC in `layout/heatmap.py` `_hm_pill_bar()`.
-- Pill buttons: Bubble Model (solid blue), Power Law, S2F, Monte Carlo (warning orange, if Markov available).
+- `_HM_PILL_MODELS_BASE` + `_HM_PILL_LABELS` live in `layout/heatmap.py` and are the **single source of truth** (imported into `callbacks/charts/__init__.py`; the prior duplicate was consolidated 2026-04-18). Adding a new model's pill label only needs one edit.
+- Current pill set: `bub pl lppl hybppl pca grdy eppl gomp bpl plo sexp logi` + conditional `ef u1 mc`.
 - One pill active at a time, stored in `hm-active-model` Store.
 - Callback `_hm_pill_click()` updates active model; `_hm_pill_sync()` syncs pill outlines on snapshot restore / page load.
+
+### Custom Time Axis (CTA) on Tab 1
+
+- Layout: `layout/custom_time.py`. Callbacks: `callbacks/custom_time.py`. Fit engine: `engines/custom_fit.py`.
+- "Activate Custom Time Axis" checkbox unhides a panel letting the user re-fit a subset of {PL, QR, BM-floor, Exp, Gompertz} at a user-chosen `t₀` in either calendar (date picker) or block (block-height picker) space. Weighting options: none / inv_t / inv_sqrt_t / log_density.
+- Gompertz fit normalises t internally (`t / t.max()`) so the `r` parameter is scale-invariant across calendar and block modes. Without this, block-mode produced a near-step function at t₀.
+- Log-log fit lines extrapolate only down to `r.t_plot[0]` (the fit's own training t_min), preventing Plotly's log-y auto-range from stretching to ~$10⁻³² when `bub-xrange` covers pre-data time.
+
+### Model Info tab — live coefficient tables
+
+All parametric model cards pull live coefficients from `_app_ctx.PRICE_MODELS[short_name]` via `_{short}_coeff_table()` helpers in `btc_web/layout/model_info/_helpers.py`. When `tools/refit_all_ppl.py --update` (or any per-model `tools/fit_*.py --update`) regex-patches the class attrs in `btc_core/`, the next page load shows the new numbers — no manual doc edits. Non-parametric cards (`s2f`, `mc`, `u1`, `compare`, `regimes`, `citadel`) stay narrative.
+
+Deep-link icons (📐) inside config modals use `dcc.Link(refresh=False)` so click navigations preserve other-tab control state (SPA-style). F5 / direct URL entry / external nav rebuilds layout with defaults, preserving the "refresh to start over" behaviour.
 
 ### User Model (U₁)
 - Click-to-draw power law from two user-defined points (P1, P2) on the bubble chart.
@@ -451,7 +476,7 @@ _app_ctx.app.clientside_callback(
 | `BitcoinPricesDaily.csv` | Daily BTC price data (read by `tools/build_bm_model.py` + web app) |
 | `model_data.pkl` | Precomputed QR fits + bubble composites at repo root (regenerated by `tools/build_bm_model.py`) |
 | `model_data_ef.pkl` | Empirical Floor model data at repo root (regenerated by `tools/build_ef_model.py`) |
-| `btc_core/` | Model package (split from single-file `btc_core.py` in 26af8d8). `__init__` re-exports. Submodules: `_helpers` (lazy imports, sigma fitting, date/price helpers), `_model_data` (`ModelData` + `load_model_data`), `_base` (`PriceModel` Protocol, `_FitsBasedModel`, `QuantileRegressionModel`, `_CompositeModel`, `_ShrinkingBandsMixin`), `_simple` (`BubbleModel`, `PowerLaw`, `Exp`, `Logistic`, `BrokenPowerLaw`, `EmpiricalFloor`, `S2F`, `UserModel`), `_lppl` (10 LPPL variants + `LinPPL`), `_hybppl_eppl` (HybPPL family + EPPL family + config dicts), `_basis` (`PCA`, `Greedy`). |
+| `btc_core/` | Model package (split from single-file `btc_core.py` in 26af8d8). `__init__` re-exports. Submodules: `_helpers` (lazy imports, sigma fitting, date/price helpers, `compute_model_r2`), `_model_data` (`ModelData` + `load_model_data`), `_base` (`PriceModel` Protocol, `_FitsBasedModel`, `QuantileRegressionModel`, `_CompositeModel`, `_ShrinkingBandsMixin`), `_simple` (`BubbleModel`, `PowerLawModel`, `OffsetPowerLawModel`, `ExponentialModel`, `StretchedExponentialModel`, `GompertzModel` — renamed 2026-04-17 from `LogisticModel`, `LogisticSCurveModel` — true symmetric S-curve added 2026-04-17, `BrokenPowerLawModel`, `EmpiricalFloorModel`, `S2FModel`, `UserModel`), `_lppl` (10 LPPL variants + `LinPPL`), `_hybppl_eppl` (HybPPL family + EPPL family + config dicts), `_basis` (`PCAModel`, `GreedyModel` v3 with generic `_BASIS` tuple). |
 | `quantoshi_logo.png` | Master logo file |
 | `run_web.sh` | Web app startup script (gunicorn or DEV mode) |
 | `btc-web.service` | systemd unit template for local installs |

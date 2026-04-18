@@ -1,522 +1,577 @@
-# Quantoshi Architecture Guide
+# Quantoshi -- Developer Architecture
 
-Developer-facing reference for the Quantoshi web app codebase. Covers system
-design, module responsibilities, model math, key subsystems, and internal
-patterns.
-
----
-
-## 1. System Overview
-
-Quantoshi is a Bitcoin price projection toolkit with three components:
-
-```
-BitcoinPricesDaily.csv
-        │
-        ▼
-  ┌─────────────┐    model_data.pkl    ┌──────────────┐
-  │  SP.ipynb    │ ──────────────────►  │  btc_web/    │  (Plotly Dash, 9 tabs)
-  │  (notebook)  │                      └──────────────┘
-  │              │    model_data.pkl    ┌──────────────┐
-  │  Cell 0: BM  │ ──────────────────►  │  btc_app/    │  (PyQt5 desktop, 5 tabs)
-  │  Cell 1: QR  │                      └──────────────┘
-  │  Cell 3: pkl │
-  └─────────────┘
-```
-
-**Data flow**: Daily CSV prices feed the notebook. Cell 0 fits the bubble model,
-Cell 1 runs quantile regression at each percentile, Cell 3 serializes everything
-into `btc_app/model_data.pkl`. Both the web app and desktop app load this pkl at
-startup.
-
-**Runtime**: pkl load → Dash app init → figure builders generate Plotly
-charts on demand → browser renders interactive graphs. All user state lives
-in browser `localStorage` — nothing is stored server-side.
+*Generated from source. Intended audience: developers comfortable with
+Python 3.12+, Plotly Dash 4, and scientific numpy/scipy work.*
 
 ---
 
-## 2. Web App Module Map
+## 1. System overview
 
-### Import chain
+**Quantoshi** is a Bitcoin price-projection toolkit. A single Plotly-Dash web
+application (`btc_web/`) is the only active, user-facing component. It is
+deployed to the clearnet at **https://quantoshi.xyz** and additionally exposed
+as a Tor hidden service
+(`u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion`).
+
+Two earlier components have been retired and moved to `debris/`:
+
+| Retired | Replacement |
+|---|---|
+| `SP.ipynb` (Jupyter notebook for model building) | `tools/build_bm_model.py` + `tools/model_toolkit/` |
+| `btc_app/btc_projections.py` (PyQt5 desktop GUI) | Spin-off as its own project |
+
+### Daily data -> model -> app pipeline
 
 ```
-app.py
-  ├── populates _app_ctx (M, app, server, flags)
-  ├── imports cache.py        (three-layer figure cache + Redis)
-  ├── imports tab_defaults.py (per-tab default param dicts)
-  ├── imports utils.py        (float quantization, price fetching)
-  ├── imports snapshot.py     (state encoding/decoding)
-  ├── imports layout.py       (all tab layouts)
-  ├── imports callbacks.py    (all callback registrations)
-  └── imports api.py          (REST API routes)
-
-figures.py
-  ├── imports mc_overlay.py  (MC simulation + trace builders)
-  │     ├── imports mc_cache.py   (pre-computed cache)
-  │     ├── imports btc_core.py   (ModelData, qr_price)
-  │     └── imports markov        (Cython engine, optional)
-  └── imports _app_ctx.py    (shared constants)
-
-engines/adapter.py
-  └── imports engines/citadel.py  (Citadel simulation engine)
+ CoinGecko / Binance
+        |
+        v  (update_prices.py, systemd timer @ 06:00 UTC)
+ BitcoinPricesDaily.csv  <- source of truth for daily closes
+        |
+        v  (tools/build_bm_model.py -> tools/model_toolkit/)
+ model_data.pkl          <- precomputed QR fits, bubble composites,
+                             support line, resqr sigma bundles
+        |
+        v  (btc_web/app.py at import time)
+ _app_ctx.M              <- shared ModelData instance
+ _app_ctx.PRICE_MODELS   <- 100+ instantiated model objects
+        |
+        v  gunicorn / uvicorn / Dash dev
+ Plotly charts, 9 tabs, Citadel simulation, MC overlays, tax pipeline
 ```
 
-### Module responsibilities
+`update_prices.py` also refreshes `BitcoinBlocksDaily.csv` (for the
+blockheight-axis mode on tab 1) and skips the most recent 8 days as a
+settlement window.
 
-| Module | Purpose | Key exports |
-|--------|---------|-------------|
-| `app.py` | Orchestrator: app creation, model load, Flask routes, cache prewarm | `app`, `server` |
-| `_app_ctx.py` | Shared state and constants (models, palettes, flags) | `M`, `app`, `FREQ_PPY`, `PALETTES`, `PRICE_MODELS`, `_compute_sc_loan()` |
-| `cache.py` | Three-layer figure cache (L0 pinned, L1 LRU, L2 Redis) | `get_figure()`, `invalidate()` |
-| `tab_defaults.py` | Per-tab default parameter dicts, used by prewarm and coercion | `TAB_DEFAULTS` |
-| `utils.py` | Float quantization, price fetching | `_q3()`, `_fetch_btc_price()` |
-| `snapshot.py` | Snapshot encoding/decoding, bitmask helpers | `_encode_snapshot()`, `_decode_snapshot()`, `_SNAPSHOT_CONTROLS` |
-| `layout/` | Layout package (13 modules): `__init__` (navbar, modal, stores), `bubble`, `heatmap` (pill bar), `sim_tabs` (DCA+Retire), `supercharge`, `stack`, `faq`, `common` (shared helpers), `mc_controls`, `splash`, `model_info`, `citadel` (+1 TBD) | `main_layout()` |
-| `callbacks/` | Callbacks package (17 modules): `__init__`, `charts`, `nav` (tab routing, pill clicks), `ticker`, `snapshot_cb`, `mc_controls`, `mc_helpers`, `mc_payment`, `mc_upload`, `lots`, `coerce` (`_ci()`/`_cf()`), `sc_loan`, `routing`, `splash`, `user_model`, `citadel_cb`, `scanner` | `update_bubble()`, `update_heatmap()`, etc. |
-| `figures/` | Figures package (8 modules): `__init__`, `common` (palette, watermark, annotations, MC overlay), `bubble` (+ PL/S2F overlays), `heatmap`, `dca`, `retire`, `supercharge`, `citadel` | `build_bubble_figure()`, `build_heatmap_figure()`, etc. |
-| `engines/adapter.py` | Simulation engine adapter — routes to QR, MC, or Citadel engine | — |
-| `engines/citadel.py` | Citadel planning simulation engine | `SimConfig`, `CitadelState`, `simulate()` |
-| `engines/tax.py` | Annual tax computation (brackets, NIIT, loss netting) | `compute_annual_tax()`, `TaxYearAccumulator` |
-| `engines/tax_lots.py` | Lot-level BTC tracking for capital gains | `TaxLot`, `sell_lots()`, `seed_lots()` |
-| `engines/tax_data.py` | Static US tax data (brackets, state rates, RMD factors) | `FEDERAL_BRACKETS_TCJA`, `STATE_TAX_RATES`, `RMD_FACTORS` |
-| `mc_overlay.py` | MC simulation, caching, fan band traces, regime filters | `_mc_dca_overlay()`, `_mc_retire_overlay()`, etc. |
-| `mc_cache.py` | Pre-computed MC cache generation/loading/lookup | `load_caches()`, `get_cached_paths()`, `get_cached_overlay()` |
-| `load_shm_cache.py` | Shared memory cache loading | — |
-| `api.py` | REST API endpoints | `register_routes()` |
-| `btcpay.py` | BTCPay Server payment integration | Invoice lifecycle |
-| `btc_core.py` | ModelData class, QR pricing math, lot percentiles | `ModelData`, `qr_price()`, `yr_to_t()` |
-| `test_web.py` | Tests: utilities, builders, snapshots, callbacks, btcpay, regime filters, tax (~650+ passing) | — |
-| `test_tax_e2e.py` | Playwright E2E smoke tests for tax UI (15 tests, requires dev server + Firefox) | — |
+<!-- merged from v1: runtime summary -->
+**Runtime**: model file load -> Dash app init -> figure builders generate
+Plotly charts on demand -> browser renders interactive graphs. All user
+state lives in browser `localStorage` -- nothing is stored server-side.
+
+### "Why 2009-07-25?"
+
+All parametric models (PL, LPPL, HybPPL, EPPL, LinPPL, Gompertz, ...) treat
+**2009-07-25** as `t = 0`. Three independent statistical tests
+(Durbin-Watson, out-of-sample RMSE, slope stability) converge on that date
+across 546 candidates. This is *not* the Bitcoin genesis block (2009-01-03);
+it is the earliest date where log10(price) begins to follow a clean power
+law.
 
 ---
 
-## 3. Tab Architecture
-
-### 9 tabs
-
-| # | Tab | ID | Chart builder | MC overlay | Key controls |
-|---|-----|----|---------------|------------|--------------|
-| 1 | Bubble + QR Overlay | `bubble` | `build_bubble_figure()` | None | Quantiles, axes, N future bubbles, stack |
-| 2 | CAGR Heatmap | `heatmap` | `build_heatmap_figure()` | `_mc_heatmap_overlay()` | Entry yr/percentile, color mode, multi-model pill bar (Bubble/PL/S2F/MC) |
-| 3 | BTC Accumulator | `dca` | `build_dca_figure()` | `_mc_dca_overlay()` | DCA amount, freq, Stack-celerator |
-| 4 | BTC RetireMentator | `retire` | `build_retire_figure()` | `_mc_retire_overlay()` | Withdrawal, inflation, depletion arrows |
-| 5 | HODL Supercharger | `supercharge` | `build_supercharge_figure()` | `_mc_supercharge_overlay()` | Mode A/B, delays, depletion bands |
-| 6 | Stack Tracker | `stack` | None (DataTable) | None | Lot CRUD, import/export |
-| 7 | Citadel Planner | `citadel` | `build_citadel_figure()` | None | Citadel simulation engine, multi-scenario planning |
-| 8 | Model Info | `model_info` | None | None | Accordion, deep-linkable (`/8.N`) |
-| 9 | FAQ | `faq` | None | None | Accordion, 20 entries, deep-linkable (`/9.N`) |
-
-### Control panel structure (tabs 2–5)
-
-Each MC-enabled tab follows a consistent layout pattern:
+## 2. Python package layout
 
 ```
-┌─ Tab Hints ────────────────────────────────────┐
-│  Collapsible "How to use this tab" bullets      │
-├─ Shared Model Settings ────────────────────────┤
-│  Stack (BTC), Use lots, Amount*, Freq†, Infl   │
-├─ Quantile Regression Model ────────────────────┤
-│  "Select quantiles to follow"                   │
-│  Quantile checklist grid                        │
-├─ Monte Carlo Simulation ──────────────────────-┤
-│  Activate, Start yr, Entry Q, Years, Bins      │
-│  ▶ Advanced: sims, window, regime filter       │
-│  [Run Simulation] [Save] [Load]                │
-├─ Chart Settings ───────────────────────────────┤
-│  Display Models [✓QR] [✓MC]                    │
-│  Year range, Display mode, Toggles, Legend pos │
-└────────────────────────────────────────────────┘
+bitcoinprojections/
+|-- btc_core/                   <- shared MODEL package (not a single file!)
+|   |-- __init__.py             <- re-exports public API
+|   |-- _helpers.py             <- lazy imports, sigma fitting, R^2, date/price
+|   |-- _model_data.py          <- ModelData dataclass + load_model_data()
+|   |-- _base.py                <- PriceModel Protocol, mixins, QR, composite
+|   |-- _simple.py              <- BubbleModel, PL, Exp, SExp, Gompertz,
+|   |                              LogisticSCurve, OffsetPL, BrokenPL,
+|   |                              S2F, EmpiricalFloor, UserModel
+|   |-- _lppl.py                <- 10 LPPL variants + LinPPL
+|   |-- _hybppl_eppl.py         <- HybPPL family + EPPL family + 36+36 configs
+|   \-- _basis.py               <- PCA, Greedy (v3)
+|
+|-- btc_web/                    <- the only live application
+|-- tools/                      <- fitting scripts, build pipeline, timers
+|   |-- model_toolkit/          <- 11 modules used by build_bm_model.py
+|   |-- build_bm_model.py       <- main model_data.pkl builder
+|   |-- build_ef_model.py       <- Empirical-Floor model builder
+|   |-- fit_<model>.py          <- one per parametric model; supports --update
+|   |-- refit_all_ppl.py        <- monthly orchestrator (systemd)
+|   \-- quantoshi-ppl-refit.{timer,service}
+|
+|-- archive/                    <- cold storage
+|-- debris/                     <- retired code (SP.ipynb, btc_app)
+|-- scripts/                    <- operator CLI (health, restart)
+|-- update_prices.py            <- daily data fetch + rebuild trigger
+|-- run_web.sh                  <- local dev + gunicorn launcher
+|-- BitcoinPricesDaily.csv      <- canonical price series
+|-- BitcoinBlocksDaily.csv      <- daily blockheight (for block-time axis)
+|-- model_data.pkl              <- regenerated by update_prices.py
+|-- model_data_ef.pkl           <- Empirical Floor (optional)
+\-- CLAUDE.md                   <- project context for Claude Code
 ```
 
-*Amount: DCA/Ret only (SC withdrawal stays in Plan section)
-†Freq: locked to Monthly by default; unlock checkbox + warning modal
-
-**Shared settings**: Stack, amount, frequency, and inflation are shared between
-QR and MC on the same tab. HM is an exception — only stack is shared; HM retains
-its own mc-amount, mc-freq, mc-infl since QR heatmap doesn't use those parameters.
-
-### Price models & Display Models
-
-Seven or more price models registered at startup in `_app_ctx.PRICE_MODELS`:
-- **Bubble Model** (`"bub"`) — default, loaded from `model_data.pkl`
-- **Power Law** (`"pl"`) — OLS fit to log-log data
-- **S2F (Stock-to-Flow)** (`"s2f"`) — alternative parameterization
-- **BM Empirical Floor** (`"ef"`) — steeper support (slope 5.31) with Gaussian composite bands, loaded from `model_data_ef.pkl` (conditional — only if pkl exists)
-- **Quantile Regression** (`"qr"`) — direct QR power law channels (standalone display model)
-- **LPPL** (`"lppl"`) — Log-Periodic Power Law model
-- **Exponential** (`"exp"`) — exponential trend fit
-- **U₁** (`"u1"`) — additional alternative parameterization
-
-Per-tab model display:
-- **Bubble tab**: `bub-model-show` checklist toggles PL + S2F overlays on the bubble chart.
-- **Heatmap tab**: pill bar carousel (`hm-active-model` Store) — one model active at a time. `hm-model-show` checklist exists in layout for snapshot compat but is hidden, replaced by the pill bar. Pill buttons are built dynamically from `PRICE_MODELS` + optional MC.
-- **DCA / Retire / Supercharger**: `{prefix}-model-show` checklist showing QR, MC (if available), PL, S2F.
-
-When `_HAS_MARKOV` is `False`, "MC Simulation" is hidden from all Display Models checklists.
+`btc_venv/` holds a Python 3.14.3 venv for development. Production runs
+Python 3.12.3; all code stays 3.12-compatible.
 
 ---
 
-## 4. Quantile Regression Model
+## 3. `btc_web/` module map
 
-### What it does
+### Top-level modules
 
-Quantile regression (QR) fits a power law to Bitcoin's historical price data at
-each percentile level. Unlike OLS (which fits the mean), QR fits arbitrary
-quantiles — Q10% captures the 10th percentile price path, Q50% the median, etc.
+| File | Role |
+|---|---|
+| `app.py` | Dash app entry point. Creates `app`, loads `model_data.pkl`, instantiates every price model, builds the Flask `@server.after_request` header stack, wires `L0`/`/health`/palette routes, runs `_prewarm_caches()`, kicks off background warms. |
+| `_app_ctx.py` | Shared application context -- **the only acceptable global.** Holds `M`, `PRICE_MODELS`, `DEFAULT_MODEL`, `_ALL_QS`, `_DEF_QS`, `_HM_ENTRY_Q_DEFAULT`, `_q3()`, singleton feature flags (`_HAS_MARKOV`, `_HAS_CELERY`, `_HAS_REDIS`, `_HAS_BTCPAY`, `_HAS_RESQR`), `_MODEL_FP`, `FREQ_PPY`, `FREQ_LABEL`, `FREQ_STEP_DAYS`, palette label map, decomp families, redis helpers. |
+| `snapshot.py` | URL-hash share-link state. `_SNAPSHOT_CONTROLS` list of 206 `(component_id, property)` tuples; `_CHECKLIST_OPTIONS`; `_encode_snapshot` / `_decode_snapshot`; bounded decompressor `_safe_decompress`. |
+| `api.py` | Flask blueprint -- `/api/mc/*` BTCPay invoice lifecycle, `/docs/architecture`, `/docs/user-manual`, SVG badges. |
+| `utils.py` | `_quantize_params`, `_compute_cache_key`, per-tab cached builders (`_get_bubble_fig`, etc.), `_price_cache`, `_startup_heatmap_defaults`, `_nearest_quantile`, `_l0_needs_flush`. |
+| `colors.py` | **SSOT for ALL hex colors, fonts, sizes, widths, opacities, margins.** ~773 lines, 5 sections. See section 15. |
+| `theme.py` | Thin back-compat shim re-exporting 5 colors from `colors.py`. |
+| `btcpay.py` | BTCPay Greenfield API client (invoice create / check, HMAC-signed tokens, SOCKS5-over-Tor). Optional -- guarded by `_HAS_BTCPAY`. |
+| `mc_overlay.py` | MC fan construction from cached path sets. Transition-matrix cache + disk-serialisation via `atexit`. |
+| `mc_cache.py` | MC cache configuration constants (`MC_BINS=5`, `MC_SIMS=200`, `CACHED_START_YRS=[2028,2031,2035]`), `/dev/shm/quantoshi_mc.pkl` snapshot layer. |
+| `markov.py` / `markov.c` / `markov.*.so` | Cython Markov engine. Source `markov.pyx` compiled via `build_markov.py` to a `.so` installed on prod; falls back to `_HAS_MARKOV=False` in dev when the shared object is absent. |
+| `static_pages.py` | Flask-served static analysis pages (`/B /BB /C /D /E` SVG + docs). |
+| `tab_defaults.py` | `MappingProxyType` frozen dicts (`BUBBLE`, `HEATMAP`, `DCA`, `RETIRE`, `SUPERCHARGE`, `STACK`, `CITADEL`) + mutable `*_defaults()` factories. Drives prewarm cache key alignment. |
+| `cache.py` | Redis-backed L0 pinned cache + L2 shared cache. `_MODEL_FP` + `_DEFAULTS_HASH` -> `_L0_FINGERPRINT`. 7-day TTL on L0 entries. |
+| `celery_app.py` | Celery factory (Redis broker + result backend). Used only when `_HAS_CELERY` and Redis are both up. |
+| `tasks.py` | Celery tasks (currently just `run_citadel_simulation`). |
+| `load_shm_cache.py` | `/dev/shm` snapshot load/save with mtime+size fingerprinting. |
+| `citadel_band_cache.py` | Citadel percentile band cache (generated by `generate_citadel_bands.py`). |
+| `conftest.py` | pytest fixtures: models preload, live-free price, Dash app factory. |
 
-### Math
+### Sub-packages
 
-All fitting happens in log-log space:
+#### `engines/`  (17 modules -- zero Dash dependencies)
+
+| Module | Purpose |
+|---|---|
+| `citadel.py` | **Facade** -- re-exports everything from the 9 split modules. |
+| `citadel_types.py` | `SimConfig`, `CitadelState`, `SimResult`, `PriceModel` Protocol, `_WithdrawalSource`, `_SATOSHI`, `FREQ_PPY`. |
+| `citadel_transactions.py` | `_sell_btc_tracked`, `_sell_investments_tracked` -- proportional basis removal, lot emission. |
+| `citadel_waterfall.py` | Dynamic cost-ranked waterfall: `_build_source_list`, `_score_sources`, `_max_draw_before_boundary`, `_execute_draw`, `_spending_waterfall`, `TaxContext`. |
+| `citadel_floors.py` | Cash + reserve floor enforcement. |
+| `citadel_rebalancing.py` | High-Q/Low-Q trigger handling, allocation splits, cooldowns. |
+| `citadel_tax_integration.py` | `_year_boundary_tax`, `_compute_rmd`, tax-field bookkeeping on `CitadelState`. |
+| `citadel_step.py` | One-period step driver: price update, income, spending, rebalance, tax. |
+| `citadel_sim.py` | Outer simulation loop: `simulate`, `_initial_state`, `_aggregate_results`. |
+| `citadel_bands.py` | Percentile band computation from path sets. `BAND_PERCENTILES`, `BAND_SERIES`. |
+| `adapter.py` | Celery-or-in-process fallback (`submit_simulation`). |
+| `tax.py` | `TaxYearAccumulator`, `compute_annual_tax`, `_inflate_brackets`, `apply_progressive_brackets`. |
+| `tax_lots.py` | `TaxLot` dataclass, `sell_lots` (FIFO/LIFO), `seed_lots`, 365-day ST/LT threshold. |
+| `tax_data.py` | Static US tax data: federal + LTCG brackets (TCJA + sunset), 51 state rates, RMD factors, standard deductions, NIIT. |
+| `custom_fit.py` | Custom Time Axis fit engine -- PL/QR/BM-floor/Exp/Gompertz at arbitrary time origin (DE + curve_fit polish). |
+| `sc_math.py` | `compute_sc_loan` -- Stack-celerator amortising/interest-only loan math. |
+
+#### `layout/`  (14 top-level modules + `model_info/` sub-package)
+
+| Module | Purpose |
+|---|---|
+| `__init__.py` | Navbar, splash modal, share modal, MC payment modal, `dcc.Tabs` assembly, `_serve_layout()` URL-aware factory. |
+| `common.py` | Shared style dicts (`_STYLE_HIDDEN`, `_STYLE_HINT`, `_STYLE_GRAPH_H`), `_section_card`, `_row`, `_lbl`, `_export_row`, `_bands_to_qs`, 4 global modals (LPPL / HybPPL / EPPL / BM), `_inject_initial_figure`. |
+| `bubble.py` | Tab 1 controls -- projection quantiles, x/y scale, ranges, bubble composite, N future, pt size/alpha, decomp panel, scanner, CTA panel. |
+| `heatmap.py` | Tab 2 -- entry year, entry % (free numeric input 0.1-99.9%), exit range, color modes, pill bar carousel. |
+| `sim_tabs.py` | Tabs 3 + 4 -- DCA + RetireMentator share a form factory here. |
+| `supercharge.py` | Tab 5 -- Mode A / Mode B, 5 delays, chart layout. |
+| `citadel.py` | Tab 6 -- Assets / Spending / Rules / Simulation sub-tabs, Run button, background loading overlay. |
+| `citadel_tax.py` | Full-screen Tax modal (`cp-tax-modal`) -- state dropdown, TD / TF balances, tax summary table. |
+| `stack.py` | Tab 7 -- lot table, Add/Delete/Import/Export. |
+| `faq.py` | Tab 9 -- `_FAQ` list of `(item_id, title, body)` tuples. |
+| `splash.py` | Splash modal quote bank (`_SPLASH_QUOTES_JS`) + `_GENESIS_QUOTE`. |
+| `mc_controls.py` | Reusable MC-control Divs used by 5 tabs; caches valid entry-Q options. |
+| `display_models.py` | Unified "Display Models" checklist used across all chart tabs. |
+| `custom_time.py` | CTA panel builder for tab 1. |
+| `model_info/__init__.py` | Tab 8 accordion + lightbox modal. |
+| `model_info/_items.py` | Static card bodies (26 AccordionItems). |
+| `model_info/_helpers.py` | Live coefficient-table helpers -- pull from `_app_ctx.PRICE_MODELS[short]` so monthly refits propagate to the UI. |
+
+#### `callbacks/`  (22 modules + `charts/` sub-package)
+
+| Module | Purpose |
+|---|---|
+| `__init__.py` | Imports every callback module so registration side-effects fire. |
+| `routing.py` | URL -> tab mapping, per-tab first-render triggers, pill-bar clicks, accordion deep-links (`/8.N`, `/9.N`), `_PATH_TO_TAB`, `_TAB_TO_PATH`, `_TAB_CONTROLS`. |
+| `charts/__init__.py` | 6 main chart `@callback`s -- `update_bubble`, `update_heatmap`, `update_dca`, `update_retire`, `update_supercharge`, `update_citadel` is triggered from `citadel_cb`. |
+| `charts/_clientside.py` | ~30 clientside JS callbacks (modal open/close, damping visibility, swatches, summary strings). |
+| `charts/_resolvers.py` | LPPL / HybPPL / EPPL master->variant key resolvers + Component Decomposition callbacks. |
+| `nav.py` | Navbar / drawer / mobile toggle / palette sync clientside callbacks. |
+| `splash.py` | Splash quote rotation, Knight ceremony, journey stats. |
+| `ticker.py` | 20-min price ticker + sparkline + model-percentile cycling. |
+| `snapshot_cb.py` | `restore_from_url`, `apply_snapshot` (~100 allow_duplicate Outputs), `manage_snapshot`, share modal handlers, `generate_share_qr`, palette + HM-preset sync. |
+| `user_model.py` | U1 click-to-draw callbacks; injects `u1` into every `*-model-show`. |
+| `citadel_cb.py` | Main Citadel "Run" background callback (`background=True`). |
+| `citadel_save_cb.py` | Config save/load to localStorage. |
+| `citadel_scenarios.py` | Quick-scenario preset buttons (Wealth / Regime / Rules). |
+| `citadel_tax_cb.py` | Tax modal open/close, state auto-fill, tax summary table builder. |
+| `scanner.py` | Price scanner on tab 1 (quantile lookup for arbitrary `(date, price)`). |
+| `lots.py` | Stack Tracker CRUD + `effective-lots` store routing. |
+| `coerce.py` | `_ci` / `_cf` int/float coercion helpers; `_format_lots_for_table`. |
+| `sc_loan.py` | Stack-celerator live info display (`update_sc_info`). |
+| `plot_appearance.py` | Palette forward callbacks (with `State("palette-store")` guard). |
+| `mc_controls.py` | MC panel open/close, regime/year option builders, restore hooks. |
+| `mc_helpers.py` | `_build_mc_params`, `_mc_setup`, `_mc_finalize`, `_mc_status`, `_ghost_match`. |
+| `mc_payment.py` | BTCPay invoice lifecycle, payment modal, polling. |
+| `mc_upload.py` | Upload saved MC result JSON -> hydrate store. |
+| `custom_time.py` | Custom Time Axis -- preset handling, fit trigger, trace assembly. |
+
+#### `figures/`  (9 modules)
+
+| Module | Public entry |
+|---|---|
+| `common.py` | Shared helpers: `_get_palette`, `_dark_layout`, `_sim_layout`, `_finalize_chart`, `_apply_watermark`, `build_overlay_traces`, `_resolve_model`, `_build_qr_config_text`, `_build_mc_config_text`, `_apply_config_annotation`, `_build_thermal_colors`. |
+| `bubble.py` | `build_bubble_figure(m, p)` -- QR fan, bubble composite, overlay models, decomposition. |
+| `heatmap.py` | `build_heatmap_figure(m, p)` + `build_mc_heatmap_figure` + `build_cagr_line_figure`. |
+| `dca.py` | `build_dca_figure(m, p)` -- discrete / continuous DCA with stack-celerator. |
+| `retire.py` | `build_retire_figure(m, p)` -- withdrawal-until-depletion. |
+| `supercharge.py` | `build_supercharge_figure(m, p)` -- Mode A / Mode B HODL Supercharger. |
+| `citadel.py` | `build_citadel_figure(m, p)` -- multi-asset sim, MC bands, tax overlay. |
+| `residuals.py` | `build_residuals_figure` for the `resid` view mode on tab 1. |
+
+#### `data/`
+
+| File | Purpose |
+|---|---|
+| `asset_matrices.py` | Correlation + annualised-return matrices for equities / bonds / treasuries. |
+| `fetch_historical.py` | Scripts to pull FRED + Yahoo data. |
+| `equity_returns.csv` | Annual total returns. |
+| `bond_returns.csv` | Annual bond index returns. |
+| `treasury_returns.csv` / `treasury_yields.csv` | Short + long duration treasury series. |
+
+---
+
+## 4. Tab architecture
+
+`layout/__init__.py` assembles the main `dbc.Tabs`. The canonical tab
+ordering and `_PATH_TO_TAB` mapping lives in `callbacks/routing.py` (an
+identical copy is in `layout/__init__.py` for the layout-time lookup).
+
+| # | URL | `tab_id` | Label | Figure id | Builder |
+|---|---|---|---|---|---|
+| 1 | `/1` | `bubble` | Price Models | `bubble-graph` | `build_bubble_figure` |
+| 2 | `/2` | `heatmap` | Heatmap | `heatmap-graph` | `build_heatmap_figure` |
+| 3 | `/3` | `dca` | Accumulator | `dca-graph` | `build_dca_figure` |
+| 4 | `/4` | `retire` | RetireMentator | `retire-graph` | `build_retire_figure` |
+| 5 | `/5` | `supercharge` | Supercharger | `supercharge-graph` | `build_supercharge_figure` |
+| 6 | `/6` | `citadel` | Citadel | `citadel-graph` | `build_citadel_figure` |
+| 7 | `/7` | `stack` | Stack | -- | static (lot table) |
+| 8 | `/8` | `model_info` | Model Info | -- | static accordion |
+| 9 | `/9` | `faq` | FAQ | -- | static accordion |
+
+Deep links: `/8.N` opens Model-Info accordion item N; `/9.N` (or `/faq.N`)
+opens FAQ item N. Both are 1-indexed in the URL, 0-indexed internally.
+
+### Zero-callback tab switching
+
+Each of the six chart tabs has a `dcc.Store(f"{tab}-first-render", data=0)`.
+`_serve_layout()`:
+
+1. Reads `flask.request.path` (+ falls back to `Referer` on XHR layout
+   fetches).
+2. Sets `active_tab` to the matching tab.
+3. Sets that tab's first-render store to `1` (others stay `0`).
+4. Looks up the pre-computed figure from the L1 cache via
+   `_get_initial_figure(tab)` and injects it directly into the layout
+   JSON via `_inject_initial_figure`.
+
+Result: visiting `/6` returns HTML with the Citadel figure already present.
+No chart callback fires -- zero server round-trips, zero worker-CPU on the
+tab-switch path.
+
+Switching tabs client-side is handled by a single clientside callback in
+`routing.py` that increments the matching `{tab}-first-render` store. Chart
+callbacks watch that store as their first `Input` with
+`prevent_initial_call=True`, so they only ever fire when their specific
+tab's counter ticks.
+
+Auxiliary JS:
+- `tab_resize.js` -- fires `Plotly.Plots.resize()` when a hidden tab becomes
+  visible (Plotly renders zero-sized inside `display:none` containers).
+- `tab_dblclick.js` -- double-click on a tab header forces a fresh figure
+  fetch (escape hatch for stale data).
+
+<!-- merged from v1: per-tab control panel shape for MC-enabled tabs -->
+### Shared control-panel shape (chart tabs 2-5)
+
+Each MC-enabled chart tab follows a consistent stacked layout pattern:
 
 ```
-log10(price) = intercept + slope * log10(t)
++- Tab Hints ------------------------------------+
+|  Collapsible "How to use this tab" bullets     |
++- Shared Model Settings ------------------------+
+|  Stack (BTC), Use lots, Amount*, Freq+, Infl   |
++- Quantile Regression Model --------------------+
+|  "Select quantiles to follow"                  |
+|  Quantile checklist grid                       |
++- Monte Carlo Simulation -----------------------+
+|  Activate, Start yr, Entry Q, Years, Bins      |
+|  > Advanced: sims, window, regime filter       |
+|  [Run Simulation] [Save] [Load]                |
++- Chart Settings -------------------------------+
+|  Display Models [QR] [MC]                      |
+|  Year range, Display mode, Toggles, Legend pos |
++------------------------------------------------+
 ```
 
-where `t = (date - genesis).days / 365.25` (years since the optimal time
-origin, July 25, 2009 — the statistically optimal start date for the power law fit).
+*Amount: DCA/Retire only (SC withdrawal stays in Plan section).
++Freq: locked to Monthly by default; unlock checkbox + warning modal.
 
-Inverting:
+Shared settings (Stack, amount, frequency, inflation) feed both QR and MC on
+DCA/Retire/SC. The heatmap (HM) is the exception: only `hm-stack` is shared;
+HM retains its own `hm-mc-amount`, `hm-mc-freq`, `hm-mc-infl` because the QR
+heatmap itself does not use those parameters.
 
-```
-price(q, t) = 10^(intercept_q + slope_q * log10(t))
-```
+---
 
-This is a straight line in log-log space, which appears as a power law curve in
-linear space.
+## 5. Price-model registry
 
-### Data structures
+`btc_web/app.py` instantiates every model and registers it in
+`_app_ctx.PRICE_MODELS[<short>]`. All models expose a uniform Protocol:
 
 ```python
-qr_fits = {
-    0.001: {"intercept": float, "slope": float, "r2": float},
-    0.01:  {"intercept": float, "slope": float, "r2": float},
-    ...
-    0.999: {"intercept": float, "slope": float, "r2": float},
-}
+class PriceModel(Protocol):
+    short_name: str
+    name: str
+    legend_name: str
+    dash_style: Literal["solid","dash","dot","dashdot","longdash","longdashdot"]
+    quantized: bool
+    fits: dict[float, Any]              # empty if not quantized
+    def price_at(self, q: float, t: float | ndarray) -> float | ndarray: ...
+    def quantile_at(self, price: float, t: float) -> float: ...
 ```
 
-Each key is a quantile (0.001 = Q0.1%, 0.50 = Q50%, etc.). The fitting uses
-`statsmodels.QuantReg` on log-transformed data via `fit_qr_from_csv()`.
-
-### Interpolation for arbitrary percentiles
-
-`_interp_qr_price(q, t, qr_fits)` in `figures/common.py` handles non-standard
-percentiles (e.g., Q7.5%) by interpolating in log-price space between the two
-nearest fitted quantiles.
-
-### How quantiles appear on charts
-
-Each quantile produces a price channel line. Lower quantiles (Q1%, Q5%) represent
-pessimistic scenarios; higher quantiles (Q85%, Q99%) represent optimistic ones.
-Colors are assigned per-quantile from `ModelData.qr_colors`. When "shade" is
-enabled, the area between adjacent selected quantiles is filled with translucent
-color at `_SHADE_ALPHA = 0.08`.
-
----
-
-## 5. Bubble Model
-
-### Composite construction
-
-Cell 0 of the notebook fits a parameterized bubble shape to each historical
-Bitcoin bubble. The model identifies bubble peaks, fits amplitude/width/skewness
-parameters, and constructs a composite curve.
-
-Key arrays in `ModelData`:
-- `years_plot_bm` — x-axis (calendar years) for the bubble model
-- `support_bm` — long-term support line (bubble floor)
-- `comp_by_n` — list of composite curves for N=1..`n_future_max` future bubbles
-- `bm_r2` — bubble model R-squared
-
-### N future bubbles
-
-The "N future bubbles" control extrapolates the bubble pattern forward. Each
-value of N adds one more projected bubble cycle. `comp_by_n[n-1]` gives the
-composite curve assuming `n` future bubbles.
-
----
-
-## 6. Markov MC Engine
-
-### Overview
-
-The Monte Carlo (MC) simulation uses a Markov chain model trained on historical
-Bitcoin price transitions to generate forward price paths.
-
-### Transition matrix
-
-`build_transition_matrix(prices, n_bins, step_days, window)` (in the Cython
-`markov` module):
-
-1. Discretizes log-prices into `n_bins` bins (default 5: Bargain, Cheap, Fair,
-   Pricey, Bubble)
-2. For each consecutive `step_days` interval, records the bin-to-bin transition
-3. Normalizes rows to get transition probabilities
-
-The training window defaults to 2010–present (`MC_WINDOW_START = 2010`).
-
-### Forward simulation
-
-`monte_carlo_prices(trans, bin_edges, start_bin, n_steps, n_sims)`:
-
-1. Starts all `n_sims` paths in `start_bin`
-2. At each step, samples the next bin from the transition probability row
-3. Converts bin indices back to log-prices (uniform within bin)
-4. Returns `(n_sims, n_steps)` price array
-
-### Regime filter
-
-Blocked bins zero out their columns in the transition matrix via
-`_apply_bin_mask(trans, blocked_bins)`. This removes certain price regimes from
-the simulation (e.g., blocking the "Bubble" bin prevents extreme bull scenarios).
-Ghost overlay compares filtered vs unfiltered results.
-
-### Constants
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `MC_BINS` | 5 | Price regime bins |
-| `MC_SIMS` | 800 | Simulations per path |
-| `MC_FREQ` | Monthly | Default frequency |
-| `MC_STEP_DAYS` | 30 | Price data sampling interval |
-| `MC_WINDOW_START` | 2010 | Training window start |
-
----
-
-## 7. MC Overlay Pipeline
-
-### 3-level cache fallthrough
-
-```
-1. Client-side cache (browser dcc.Store)
-   │ miss
-   ▼
-2. Pre-computed server cache (npz files / /dev/shm pickle)
-   │ miss
-   ▼
-3. Live Markov simulation (Cython engine)
-```
-
-Level 1 avoids server round-trips for repeated parameter combinations. Level 2
-provides near-instant results for common parameter grids (~834 MB cache). Level 3
-runs the full simulation when no cache hit (requires `markov` module).
-
-### Cache keys
-
-Two separate key types control cache behavior:
-
-- **`_mc_path_key(p, tab)`**: Identifies the expensive MC price path simulation.
-  Components: `mc_start_yr`, `mc_entry_q`, `mc_years`, `n_bins`, `n_sims`,
-  `mc_freq`, `mc_window`, `mc_blocked_bins`. Changing frequency triggers a
-  full re-simulation (expensive).
-
-- **`_mc_overlay_key(p, tab, start_stack)`**: Identifies the post-simulation
-  overlay (DCA accumulation, withdrawal depletion, etc.). Adds `amount`,
-  `inflation`, `start_stack` to the path key. These are cheap to recompute.
-
-### Fan percentiles
-
-`FAN_PCTS = (0.01, 0.05, 0.25, 0.50, 0.75, 0.95)` — six percentile bands
-computed across all simulated paths. Traces are built by `_mc_build_traces()`
-with filled regions between bands.
-
-### 5 overlay functions
-
-| Function | Tab | Description |
-|----------|-----|-------------|
-| `_mc_dca_overlay()` | DCA | Simulates periodic BTC purchases across MC paths |
-| `_mc_retire_overlay()` | Retire | Simulates withdrawals with inflation across MC paths |
-| `_mc_supercharge_overlay()` (mode A) | SC | Depletion curves across MC paths |
-| `_mc_supercharge_overlay()` (mode B) | SC | Binary search for max withdrawal |
-| `_mc_heatmap_overlay()` | Heatmap | MC-simulated CAGR percentiles |
-
-### Pre-computed cache structure
-
-```
-mc_cache/
-    paths_YYYY.npz       — price paths per (entry_pct_bin, mc_years)
-    overlays_YYYY.npz    — fan bands per (entry_pct_bin, mc_years, wd, infl, stack)
-```
-
-Cached start years: 2026, 2028, 2031, 2035, 2040. Entry percentile bins: 10%
-increments (0.1–0.9). Duration options: 10, 20, 30, 40 years.
-
-### Fast restart via /dev/shm
-
-After the first full npz load (~7s), the entire cache is pickled to
-`/dev/shm/quantoshi_mc.pkl` (~834 MB). Subsequent worker restarts load in ~0.7s.
-A fingerprint (npz mtime + total size) validates freshness.
-
-### Chart finalization (`_finalize_chart()` in figures/common.py)
-
-All chart builders (DCA, Retire, SC Modes A/B) share a common finalization
-sequence extracted into `_finalize_chart(traces, layout, p, tab, mc_result,
-mc_premium)`:
-
-1. Apply legend position from `p["legend_pos"]`
-2. Apply sans typography (`_apply_sans_typography`)
-3. Create `go.Figure`
-4. Apply MC premium styling (if enabled and `mc_premium=True`)
-5. Apply config annotation (`_apply_config_annotation`)
-6. Apply watermark (position opposite to legend)
-7. Return `(fig, mc_result)`
-
-### Free tier
-
-| Parameter | Free | Paid |
-|-----------|------|------|
-| Simulations | 100 | 800 |
-| Start years | 2028, 2031 | Any cached |
-| Entry percentile | 10% | Any |
-| Duration | 10, 20 yr | 10–40 yr |
-
----
-
-## 8. Chart Annotation System
-
-### Edge text traces
-
-All endpoint annotations use `_edge_text_trace()` — a `go.Scatter(mode=
-"markers+text")` placed at the last data point of a trace. This avoids
-paper-space `xref`/`yref` annotations which drift on resize/zoom.
-
-Depletion annotations (arrows to y=0 with `yref="paper"`) are the sole
-exception — they point to the plot bottom which is always correct.
-
-### Overlap resolution
-
-`_resolve_edge_annotations(pending, log_y)` prevents overlapping labels:
-
-1. **Collect**: each builder gathers pending annotations as dicts with
-   `x_arr`, `y_arr`, `label`, `short_label`, `color`, `y_last`
-2. **Sort**: by `y_last` ascending (log-space aware)
-3. **Cluster**: group consecutive items within `_OVERLAP_LOG = 0.12`
-   log-decades (or `_OVERLAP_FRAC = 0.06` of linear range)
-4. **Resolve**:
-   - **1 item**: rank-based position (lower half → `"bottom left"`,
-     upper half → `"top left"`) to prevent visual crossing
-   - **2–3 items**: spread within cluster (bottom/middle/top)
-   - **4+ items**: consolidate into single merged label using
-     `short_label` values joined with ` · `, dot markers at each position
-
-### Short label format
-
-`_fmt_short(btc, usd)` → `B0.32/$1.23M` — compact BTC/USD format used
-in consolidated annotations. USD uses K/M/B suffixes.
-
-### Annotate toggle
-
-"Annotate final values" checkbox (in Chart Settings) controls edge text
-trace visibility. Depletion arrows always display regardless of this toggle.
-DCA, Retire, and SC tabs all support this toggle.
-
----
-
-## 9. Snapshot / Share System
-
-### Control inventory
-
-~206 `_SNAPSHOT_CONTROLS` entries — `(component_id, property)` tuples covering
-all UI controls across 9 tabs (Model Info has no snapshot controls).
-
-### Encoding pipeline
-
-```
-Control states → JSON array (~206 elements) → gzip → base64 urlsafe → URL hash
-```
-
-URL format: `host/N#q3:ENCODED` where `N` is the tab path (1–9).
-
-### Versioning
-
-| Prefix | Format | Status |
-|--------|--------|--------|
-| `q3:` | Positional array, shared settings controls | Current |
-| `q2:` | Positional array, pre-shared-settings | Decoded (positions may mismatch) |
-| `q1:` | Dict-based | Decoded (legacy) |
-
-### Bitmask encoding
-
-28 checklist fields use bitmask encoding for compact URLs:
-- 5 quantile checklists: up to 17-bit each (17 possible quantiles)
-- 23 toggle checklists: 1–7 bits each
-
-`_list_to_mask(val, opts)` encodes, `_mask_to_list(mask, opts)` decodes. Old
-links stored plain lists — decoder handles both via `isinstance(val, int)`.
-
-### Tab-scoped snapshots
-
-`_TAB_CONTROLS` maps each `tab_id` to its set of component IDs.
-`_encode_snapshot(state_dict, tab_filter=controls)` encodes only the active tab's
-controls as non-null; others default to `null` and fall back to defaults on
-restore. This produces much shorter URLs for single-tab shares.
-
----
-
-## 10. Callback Architecture
-
-### Per-tab render trigger pattern
-
-The app uses a "first-render trigger" pattern for lazy tab rendering:
-
-1. Each chart tab has a `dcc.Store("{tab}-first-render")` initialized to 0
-2. A single clientside callback watches `main-tabs.active_tab` and increments
-   the matching tab's store
-3. Chart callbacks use `Input("{tab}-first-render", "data")` instead of
-   `Input("main-tabs", "active_tab")`
-4. All chart callbacks have `prevent_initial_call=True` — they ONLY fire when
-   their trigger increments
-5. Result: switching tabs fires exactly 1 callback (the active tab), not 6
-
-**URL-based initial tab + pre-injected figures**: The layout is a function
-(`_serve_layout`) that reads `flask.request.path` to determine the initial
-`active_tab`. It also pre-builds ALL tab figures from the L1 LRU cache
-(populated by prewarm) and injects them directly into the initial HTML. All
-`{tab}-first-render` stores start at `1`. Visiting `/9` builds the layout with
-`active_tab="citadel"` — the bubble callback never fires. Switching tabs
-requires **zero server round-trips** — figures are already present in the DOM;
-callbacks only fire when the user changes a control.
-
-**`tab_resize.js`**: Forces `Plotly.Plots.resize()` when a tab becomes
-visible. Required because hidden tabs render at zero/wrong size when the
-browser has not painted them yet.
-
-**`tab_dblclick.js`**: Double-clicking a tab header increments its
-`{tab}-first-render` store, triggering a full figure reload from the server.
-Escape hatch for stale-looking figures.
-
-**Background callbacks (Citadel)**: The Citadel "Run Simulation" button uses
-Dash's `background=True` with `DiskcacheManager`. The simulation runs in a
-separate process and does not block gunicorn workers. Button shows
-"⏳ Computing..." during long MC runs. Requires `diskcache`, `psutil`, `dill`,
-`multiprocess` in the environment.
-
-### `prevent_initial_call` settings
-
-| Callback | Setting | Why |
+### Core registered models (35+ named + 72 config variants)
+
+| Short | Class | Kind | Notes |
+|---|---|---|---|
+| `bub` | `BubbleModel` | composite | Default. Support line + cycles + shrinking sigma bands. Canonical "BM". |
+| `qr` | `QuantileRegressionModel` | non-parametric | Standalone QR fit; same bands as bub. |
+| `pl` | `PowerLawModel` | parametric | OLS over `log10(t), log10(price)`; parallel bands. |
+| `plo` | `OffsetPowerLawModel` *(new 2026-04-17)* | parametric | PL with fitted time-origin offset `c`. |
+| `exp` | `ExponentialModel` | parametric | Demo / reference; forbidden-as-default warning in UI. |
+| `sexp` | `StretchedExponentialModel` *(new 2026-04-17)* | parametric | `log10 p = A + B*t^beta`. |
+| `gomp` | `GompertzModel` *(renamed 2026-04-17)* | parametric | Formula was always Gompertz; class name corrected. |
+| `logi` | `LogisticSCurveModel` *(new 2026-04-17)* | parametric | True symmetric logistic S-curve. |
+| `bpl` | `BrokenPowerLawModel` | parametric | Two-slope PL, fitted breakpoint. |
+| `s2f` | `S2FModel` | non-quantized | Stock-to-Flow; single trajectory. |
+| `ef` | `EmpiricalFloorModel` | conditional | Loaded only if `model_data_ef.pkl` exists. |
+| `u1` | `UserModel` | session | Click-to-draw power law from 2 user points. |
+
+### LPPL family (10 variants)
+
+| Short | Class | # freqs | Weighted | No-1/3 |
+|---|---|---|---|---|
+| `lppl` | `LPPLModel` | 1 | no | no |
+| `lp2` | `LPPL2Model` | 2 | no | no |
+| `lp3` | `LPPL3Model` | 3 | no | no |
+| `lp4` | `LPPL4Model` | 4 | no | no |
+| `lppl_w` | `LPPLModelW` | 1 | yes | no |
+| `lp2_w` | `LPPL2ModelW` | 2 | yes | no |
+| `lp3_w` | `LPPL3ModelW` | 3 | yes | no |
+| `lp4_w` | `LPPL4ModelW` | 4 | yes | no |
+| `lp4_n13` | `LPPL4ModelN13` | 4 | no | yes |
+| `lp4_w_n13` | `LPPL4ModelWN13` | 4 | yes | yes |
+
+### HybPPL / EPPL / LinPPL / PCA / Greedy
+
+| Short | Class | Notes |
 |---|---|---|
-| All chart callbacks (bubble, heatmap, DCA, retire, SC, citadel) | `True` | Only fire via first-render trigger on tab visit |
-| MC body toggles (5x) | N/A (clientside) | Zero server round-trips |
-| SC mode/display toggles | N/A (clientside) | Same |
-| Price ticker | `'initial_duplicate'` | Must fire once on load to populate price |
+| `linppl` | `LinPPLModel` | Power law + single sinusoid. |
+| `hybppl` | `HybPPLModel` | 1 log-freq + 1 cal-freq, hybrid damping. |
+| `hybppl_dd` | `HybPPLDDModel` | HybPPL with deeper damping. |
+| `hyb2l`, `hyb2c`, `hyb2b`, `hyb4d` | `Hyb2LModel`, `Hyb2CModel`, `Hyb2BModel`, `Hyb4DModel` | 2-log / 2-cal / 2-both / 4-double variants. |
+| `cfg_<nlog><log1d><log2d>_<ncal><cal1d><cal2d>` | `HybPPLConfigModel` | **36 pre-fitted configs** -- `_HYBPPL_CONFIG_PARAMS` dict. |
+| `eppl` | `EntropyPPLModel` | Entropy-decay damping instead of power-law. |
+| `ecfg_...` | `EPPLConfigModel` | **36 pre-fitted EPPL configs** -- `_EPPL_CONFIG_PARAMS` dict. |
+| `pca` | `PCAModel` | 6 principal components over HybPPL-family basis (R^2=0.993, 7 params). |
+| `grdy` | `GreedyModel` | **v3** -- forward-greedy BIC selection from generic 36-entry dictionary. |
 
-Constraint: `allow_duplicate=True` on outputs is incompatible with
-`prevent_initial_call=False` (crashes gunicorn). The first-render trigger
-pattern solves this — callbacks use `prevent_initial_call=True` and get
-triggered by the clientside store instead.
+Total registered: 35 named + 36 HybPPL configs + 36 EPPL configs = 107
+models in `PRICE_MODELS`. `compute_model_r2` is run for every model at
+startup on a daemon thread (~2-3 s) to populate `r2_per_quantile` which
+the Model Info tab reads for its comparison tables.
 
-### Callback inventory
+See `docs/lppl_models.md` for LPPL math and the 3-robust-frequencies
+argument against LPPL4.
 
-| Type | Count | Description |
-|------|-------|-------------|
-| Server callbacks | ~20 | Tab updates, ticker, share modal, MC controls |
-| Clientside callbacks | ~30 | Tab routing, zoom toggle, UI visibility, first-render triggers |
-| Loop-created callbacks | ~16 | MC toggle, advanced toggle, regime opts, freq unlock |
+---
 
-### Clientside callback pattern
+## 6. Figure cache architecture
 
-Trivial visibility toggles should be clientside callbacks (no server
-round-trip):
+Three layers -- check in order, populate all on miss.
+
+```
+                              +----------------+
+request comes in ---------> -|   L0 (pinned)  |-- hit ----> return
+                              |  per-worker    |
+                              |  dict          |
+                              +--------+-------+
+                                       | miss
+                              +--------v-------+
+                              |   L1 (LRU)     |-- hit ----> return + promote
+                              |  @lru_cache    |
+                              |  maxsize=8 or  |
+                              |  64 per tab    |
+                              +--------+-------+
+                                       | miss
+                              +--------v-------+
+                              |   L2 (Redis)   |-- hit ----> deserialize JSON,
+                              |  shared all    |             populate L1, return
+                              |  workers       |
+                              +--------+-------+
+                                       | miss
+                              +--------v-------+
+                              |   Compute      |--> populate L1 + L2
+                              |  build_*_fig   |
+                              +----------------+
+```
+
+### Keys + fingerprints
+
+- `_MODEL_FP = md5(f"{mtime}:{size}")[:8]` over `model_data.pkl`.
+- `_DEFAULTS_HASH = md5(repr(sorted(items)))[:12]` over all 7 frozen dicts
+  in `tab_defaults.py`.
+- `_L0_FINGERPRINT = md5(f"{_MODEL_FP}:{_DEFAULTS_HASH}")[:12]`.
+- Per-entry key: `fig:{_MODEL_FP}:{tab_prefix}:{sha256(params_json)[:32]}`.
+
+### Cache-friendly parameter quantization
+
+`_q3(x)` rounds to 3 significant figures. Scales naturally across BTC's
+price range ($0.06 -> $0.06, $95,437 -> $95,400). <!-- merged from v1:
+the $-range intuition -->
+
+`_quantize_params(p)` applies `_q3` to every float, *except* keys in
+`_NO_QUANTIZE_KEYS = {"selected_qs", "exit_qs", "active_models"}` which
+must match `qr_fits` keys exactly. List-valued keys in `_SORT_LIST_KEYS`
+are sorted so `[0.1, 0.25] == [0.25, 0.1]`.
+
+Bubble cache keys include `date.today()` -- natural daily expiry for the
+"today" vertical line without an explicit TTL.
+
+### Prewarm (`_prewarm_caches()` in `app.py`)
+
+Runs at gunicorn worker startup (skipped in `DEV=1`). For each of 6 tabs:
+
+1. Compute `defaults_fn()` (from `tab_defaults.py`) -> param dict.
+2. Compute `_compute_cache_key(prefix, p)` -> JSON cache key.
+3. Ask Redis L0 for the bytes. If **all** keys hit -> deserialize, pin
+   into per-worker L1 `_pinned` dict, return.
+4. Any miss -> full recompute for *all* 8 entries, pin into L1, push to
+   Redis L0 with 7-day TTL.
+
+**Critical invariant**: the params dict produced by `defaults_fn()` must
+match the params dict the callback builds from its `State` values. Tests
+in `test_cache_key_alignment.py` enforce this. Every key that callbacks
+put in their params dict (`show_qr`, `show_mc`, `palette`, `user_model`,
+`sc_live_price`, `is_mobile`, `sigma_mode`, `decomp_*`, `lppl_n_freqs`,
+...) must exist in the corresponding `*_defaults()` output. <!-- merged
+from v1: a mismatch means the prewarmed entry sits unused while the
+first real request rebuilds the figure from scratch. -->
+
+### Citadel + misc caches
+
+Also Redis-backed:
+
+- `citadel:{_MODEL_FP}:{cache_key}` -- full pre-computed Citadel results
+  (serialized `SimResult` + MC bands). Generated by
+  `generate_citadel_cache.py` + `generate_citadel_bands.py` and served
+  from disk at `citadel_band_cache/bands_<model>_<yr>.npz`.
+- `mc_cache/` directory (1.2 GB) + `/dev/shm/quantoshi_mc.pkl` (834 MB
+  unpacked). Built with `generate_mc_cache.py`; rsynced to prod.
+
+---
+
+## 7. Snapshot / share-link encoding
+
+Location: `btc_web/snapshot.py`.
+
+### The `_SNAPSHOT_CONTROLS` list
+
+A positional array of 206+ `(component_id, property)` tuples. Ordering is
+**load-bearing** -- decoder is positional, never keyed. New entries are
+append-only; deleting an entry silently corrupts every pre-existing share
+link. Even defunct controls (`bub-lppl-activate`, etc., from the
+display-models consolidation refactor) remain in the list, backed by
+hidden `dcc.Checklist` placeholders.
+
+### Version prefixes
+
+| Prefix | Meaning | Currently emitted |
+|---|---|---|
+| `q3:` | Positional array + bitmask-encoded checklists (current) | **yes** |
+| `q2:` | Positional array + plain-list checklists (legacy) | decoded only |
+| `q1:` | Dict-based (oldest) | decoded only |
+
+### Bitmask encoding (`_CHECKLIST_OPTIONS`)
+
+For every `dcc.Checklist` in `_SNAPSHOT_CONTROLS`, store the
+ordered tuple of its possible values. At encode time,
+`_list_to_mask(val, opts)` folds the selected values into a bitmask int
+(bit `i` = `opts[i]` selected). At decode time, `_mask_to_list` expands.
+
+- All 20 checklist fields encode as masks (17-bit quantile bands, 7-bit
+  model-display lists, 1-bit toggles).
+- Savings: ~435 URL chars for the 5 quantile checklists, ~224 for
+  toggles, ~660 total.
+- **Append-only rule**: `_CHECKLIST_OPTIONS[cid]` tuples are
+  index-stable. Reordering or removing an option breaks old share links.
+
+### Encode pipeline
+
+```python
+_SNAPSHOT_CONTROLS -> pull (cid, prop) values from state_dict
+                      -> optionally null-out non-target-tab entries
+                      -> bitmask-encode checklists
+                      -> hybrid-MC null: when mc-enable for a tab is off,
+                         null every mc-* control for that tab except -model-src
+                      -> JSON -> gzip -> urlsafe_b64encode
+                      -> emit `q3:<b64>`
+```
+
+Security: `_safe_decompress` caps encoded input at 32 KB and decompressed
+output at 512 KB. Uses a bounded `GzipFile.read(limit+1)` rather than
+`gzip.decompress` to stop expansion-ratio attacks.
+
+Scopes:
+
+| Scope | `tab_filter` | Effect |
+|---|---|---|
+| All tabs (full) | `None` | Every control encoded (longer link). |
+| Current tab only (default) | `_TAB_CONTROLS[tab]` | Non-matching positions encode as `null`, fall back to defaults on restore. Much shorter link. |
+
+<!-- merged from v1: URL format + tab routing independent of hash -->
+URL format: `host/N#q3:ENCODED` where `N` is the tab path (1-9). The tab
+routes independently of the hash decode, so the correct tab opens even
+before state is restored.
+
+---
+
+## 8. Callback patterns
+
+### Per-tab first-render pattern
+
+Already described in section 4. The clientside trigger callback's signature:
+
+```
+active_tab  ->  {tab}-first-render.data (increment if 0)
+```
+
+Every chart `@callback` uses `Input("{tab}-first-render", "data")` as the
+first trigger and `prevent_initial_call=True`.
+
+### `allow_duplicate=True` + `prevent_initial_call='initial_duplicate'`
+
+Dash 4 forbids combining `allow_duplicate=True` with
+`prevent_initial_call=False` -- doing so raises on callback registration
+and crashes gunicorn (exit 3). Routing + snapshot restore use
+`initial_duplicate`, which fires the callback exactly once on initial load
+then continues normally.
+
+### Clientside callbacks
+
+~35 clientside callbacks across `callbacks/nav.py`,
+`callbacks/charts/_clientside.py`, `callbacks/routing.py`, and
+`callbacks/plot_appearance.py`. Anything that does not require server
+state is pushed to JS:
+
+- Mode toggles (`sc-mode` radio -> 3 collapse is_open)
+- Shade-bands visibility -> hide `sc-display-q`
+- Modal open/close (LPPL, HybPPL, EPPL, BM, scanner, tax)
+- Auto-Y envelope lookup (precomputed `AUTO_Y_GRID` on `_app_ctx`)
+- Swatch color syncing
+- Tab resize + double-click reload
+
+<!-- merged from v1: the clientside callback pattern snippet -->
+
+**Clientside callback pattern**: Trivial visibility toggles should be
+clientside callbacks (no server round-trip):
 
 ```python
 _app_ctx.app.clientside_callback(
@@ -526,196 +581,92 @@ _app_ctx.app.clientside_callback(
 )
 ```
 
-### Type coercion helpers
+<!-- merged from v1: type-coercion helpers -->
+### Type coercion helpers (`callbacks/coerce.py`)
 
 `_ci(val, default, lo, hi)` and `_cf(val, default, lo, hi)` coerce callback
 inputs to `int`/`float`. They use `is not None` (not `or`) so that `0` is
 treated as a valid value. Optional `lo`/`hi` clamp the result. All numeric
 coercion sites in callbacks use these helpers.
 
-### Tab update pattern
+<!-- merged from v1: MC setup/finalize helper pattern -->
+### `_mc_setup()` and `_mc_finalize()` (in `callbacks/mc_helpers.py`)
 
-The four chart-with-MC tabs (DCA, Retire, SC, Heatmap) follow a shared update
-pattern:
+The four chart-with-MC tabs (DCA, Retire, SC, Heatmap) follow a shared
+update pattern:
 
-1. Guard: if tab not active → `PreventUpdate`
-2. Coerce inputs via `_ci()`/`_cf()`, set toggle/range defaults
-3. MC setup: `_mc_setup()` → payment check, free tier, build params, ghost match
-4. Build tab-specific params dict: map raw inputs to figure builder kwargs
-5. Call figure builder (returns `(fig, mc_result)`)
-6. MC finalize: `_mc_finalize()` → strip paths, rendered key, status, zoom
-7. Return: figure + 4–5 ancillary outputs (mc status, result store, etc.)
-
-### `_mc_setup()` and `_mc_finalize()` (callbacks.py)
-
-These two helpers extract the shared MC boilerplate from DCA/Retire/SC
-callbacks (steps 3–8 and 11–15 of the original 16-step pattern):
-
-- **`_mc_setup(tab, ...)`** → `(mc_ok, is_free, mc_p, blocked)` — wraps
-  `_mc_payment_check()`, `_is_free_tier()`, `_build_mc_params()`, free tier
-  cache override, and ghost match.
-
-- **`_mc_finalize(tab, fig, ...)`** → `(fig, store_val, status, rendered_key,
-  show_modal, ub_val)` — wraps `_strip_free_paths()`, rendered key
-  construction, `_mc_status()`, `_unblocked_val()`, and chart zoom toggle.
+1. Guard: if tab not active -> `PreventUpdate`.
+2. Coerce inputs via `_ci()` / `_cf()`, set toggle/range defaults.
+3. **MC setup**: `_mc_setup()` -> `(mc_ok, is_free, mc_p, blocked)` --
+   wraps `_mc_payment_check()`, `_is_free_tier()`, `_build_mc_params()`,
+   free tier cache override, and ghost match.
+4. Build tab-specific params dict: map raw inputs to figure builder kwargs.
+5. Call figure builder -> `(fig, mc_result)`.
+6. **MC finalize**: `_mc_finalize()` -> `(fig, store_val, status,
+   rendered_key, show_modal, ub_val)` -- wraps `_strip_free_paths()`,
+   rendered-key construction, `_mc_status()`, `_unblocked_val()`, and
+   chart zoom toggle.
+7. Return: figure + 4-5 ancillary outputs (mc status, result store, etc.)
 
 Heatmap still uses inline MC handling (its dual-panel pattern differs
 significantly from the other three tabs).
 
-### Shared settings flow
+### URL-based initial tab
 
-DCA/Ret/SC: shared controls (`{prefix}-stack`, `{prefix}-amount`,
-`{prefix}-freq`, `{prefix}-infl`) feed both QR and MC models. The callback
-passes these values to `_build_mc_params()` as `mc_amount`, `mc_freq`, etc.
+```python
+def _serve_layout():
+    path = flask.request.path
+    if path == "/_dash-layout":          # XHR fallback
+        path = urlparse(flask.request.headers.get("Referer", "")).path or "/"
+    initial_tab = _PATH_TO_TAB.get(path.rstrip("/").split(".")[0], "bubble")
+    return _build_layout(initial_tab)
 
-HM: only `hm-stack` is shared. HM retains independent `hm-mc-amount`,
-`hm-mc-freq`, `hm-mc-infl` controls.
-
-### Frequency lock UX
-
-Frequency is locked to Monthly by default via a disabled dropdown.
-`{prefix}-freq-unlock` checkbox enables editing. On unlock, a shared
-`freq-warning-modal` explains that changing frequency affects MC simulation
-cost. On uncheck, frequency resets to Monthly.
-
-### `_build_mc_params()` (callbacks.py)
-
-Centralized MC parameter assembly for all 4 tabs. Takes raw MC control values
-and returns a standardized dict consumed by MC overlay functions. Called
-internally by `_mc_setup()` — tab callbacks don't call it directly.
-
-### Clientside callbacks
-
-30 clientside callbacks handle fast UI interactions without server round-trips:
-- Tab routing (`/1`–`/9` → tab switch)
-- Zoom toggle (dragmode enable/disable)
-- MC control visibility
-- SC mode A/B panel switching
-- Model Info deep-linking (`/8.N`)
-- FAQ deep-linking (`/9.N`)
-
----
-
-## 11. LRU Figure Cache
-
-### Architecture
-
-`@lru_cache(maxsize=8)` per tab (bubble, heatmap, DCA, retire, supercharge)
-in `utils.py`. Cache key is a frozen tuple of all quantized params.
-
-### Float quantization
-
-`_q3(x)` rounds floats to 3 significant figures for cache-friendly keys.
-Scales naturally across BTC's price range ($0.06 → $0.06, $95,437 → $95,400).
-
-`_quantize_params(p)` applies `_q3` to all float params but **exempts
-`selected_qs` and `exit_qs`** (must match `qr_fits` keys exactly).
-
-### Cache warming
-
-`_prewarm_caches()` runs at worker startup, pre-building figures for default
-parameters across all tabs. Bubble cache key includes `date.today()` for
-natural daily TTL.
-
-**Cache key alignment**: The `*_defaults()` functions in `tab_defaults.py` must
-include ALL keys that callbacks add to the params dict (including `show_qr`,
-`show_mc`, `palette`, `user_model`, `sc_live_price`). This ensures the prewarm
-cache key matches the runtime callback cache key, yielding an L1 cache hit on
-first tab visit. A mismatch means the prewarmed entry sits unused while the
-first real request rebuilds the figure from scratch.
-
-### Three-layer figure cache (`cache.py`)
-
-Figure caching has three layers with fallthrough:
-
-```
-L0: Pinned cache — always-warm entries for default params (never evicted)
-    │ miss
-    ▼
-L1: LRU cache — @lru_cache(maxsize=8) per tab, in-process (fast)
-    │ miss
-    ▼
-L2: Redis cache — cross-worker shared cache, serialized figures
+_app_ctx.app.layout = _serve_layout      # function, not Div
 ```
 
-`cache.py` provides `get_figure()` and `invalidate()`. Tab defaults live in
-`tab_defaults.py` (`TAB_DEFAULTS` dict) and are consumed by both the prewarm
-logic and the coercion helpers in `callbacks/coerce.py`.
+### Background callbacks (Citadel)
 
----
+```python
+@callback(..., background=True, manager=_bg_manager, running=[...])
+def run_citadel_simulation(...): ...
+```
 
-## 11b. User Model Feature
+Dash's `DiskcacheManager` (via `diskcache` @ `/tmp/quantoshi-dash-cache`)
+forks a child process. The Run button shows "Computing..." until the
+task returns; the gunicorn worker is never blocked. Requires `diskcache`,
+`psutil`, `dill`, `multiprocess` in the environment.
 
-The User Model feature allows users to supply custom price model parameters
-(intercept, slope, or full QR fits) to overlay a personalized price path on
-charts. `callbacks/user_model.py` handles upload, validation, and storage.
-User model state is kept in a `dcc.Store` (memory) and wired into the figure
-builders via `_app_ctx`. The `layout/model_info.py` module exposes the upload
-UI.
+### Redis socket pre-check
 
----
+`_app_ctx.py` probes `localhost:6379` with a 0.2 s raw-socket connect
+before instantiating the `redis.Redis` client. Without this, a prod box
+with Redis stopped takes 8.6 s per worker boot (6x for gunicorn's 5
+workers = 43 s blocked startup).
 
-## 11c. Citadel Simulation Engine
-
-The Citadel Planner (tab 9) uses a dedicated simulation engine in
-`engines/citadel.py`. It models multi-asset retirement with BTC + cash +
-treasuries + equities + bonds. `engines/adapter.py` provides a unified
-interface. `figures/citadel.py` builds the chart; `callbacks/citadel_cb.py`
-wires the Dash callbacks.
-
-### Tax System (opt-in)
-
-Master toggle `cp-tax-toggle` activates US federal + state tax simulation.
-When off, the engine runs unmodified (zero tax drag).
-
-**Three account wrappers** — each can hold BTC, cash, reserves, investments:
-- **Taxable**: BTC sales → lot-level capital gains (ST/LT via `sell_lots()`).
-  Investment sales → LT gains with dynamic cost basis tracking. Cash/reserve
-  withdrawals → no tax. Interest → ordinary income. Treasury interest →
-  state-exempt.
-- **Tax-Deferred** (Traditional IRA/401k): All withdrawals → ordinary income.
-  Subject to RMDs (age 73 for born 1951-1959, 75 for born 1960+).
-- **Tax-Free** (Roth): All withdrawals → tax-free. No RMDs.
-
-**Annual tax pipeline** (at year boundary in `step()`):
-1. IRS §1(h) loss netting → AGI → standard deduction split → ordinary brackets
-   → LTCG stacking → NIIT (3.8%) → state tax → total
-2. Tax paid from taxable wrapper via gross-up formula
-3. Brackets inflation-indexed from 2025 base. NIIT threshold NOT indexed.
-4. TCJA sunset toggle reverts to 39.6% top rate + lower standard deduction.
-
-**Growth-aware withdrawal ordering**: Engine consults BTC price model's
-forward-looking growth rate each period. High BTC growth → avoid selling BTC.
-Low BTC growth (late decades) → BTC moves earlier in withdrawal order. Roth BTC
-is always last (tax-free compounding on highest-growth asset).
-
-**Modules**: `engines/tax.py` (computation), `engines/tax_lots.py` (lot tracking),
-`engines/tax_data.py` (static data), `layout/citadel_tax.py` (full-screen modal),
-`callbacks/citadel_tax_cb.py` (modal callbacks + summary table builder).
-
-### MC engine performance
+<!-- merged from v1: MC engine performance notes -->
+### MC engine performance (do not regress)
 
 Two optimizations that drop first-render cost significantly on MC
-Citadel runs; remember these when editing the inner loop.
+Citadel runs. Remember these when editing the inner loop.
 
 **In-place state mutation in `citadel_step.step()`** (`engines/citadel_step.py`).
 The step function previously ran `deepcopy(state)` at the top of every
-period — ~95% of `step()`'s cost for 40-year Monthly × 1000-sim runs
+period -- ~95% of `step()`'s cost for 40-year Monthly x 1000-sim runs
 (~480k copies, each growing as `tax_lots` accumulated). The copy was
 defensive; `simulate()` snapshots scalars via `_snapshot_state()` and
-never reads the prior state again, so it's safe to mutate the passed-in
+never reads the prior state again, so it is safe to mutate the passed-in
 state in place and return the same object. The snapshot helper
 explicitly `list()`-copies `reserves` / `investments`; `rebal_event`
 is reassigned to fresh dicts each trigger (`citadel_rebalancing.py`).
-**Do not** reintroduce a deepcopy here without a real correctness bug
-— it masks a 3–10× slowdown.
+**Do not** reintroduce a deepcopy here without a real correctness bug --
+it masks a 3-10x slowdown.
 
 **Binary `price_paths` wire format** (`mc_overlay.py::_mc_paths_to_lists`).
-The MC result dict carries the raw `price_paths` (n_sims × n_steps
+The MC result dict carries the raw `price_paths` (n_sims x n_steps
 float32 matrix) back to the client store for re-use when only overlay
 params change. Legacy encoding was a JSON list-of-lists (~4.8 MB for a
-1000 × 480 sim). Current encoding is `{"b64": base64(float32.tobytes()),
-"shape": [n_sims, n_steps]}` — ~45% smaller on the wire and ~3× faster
+1000 x 480 sim). Current encoding is `{"b64": base64(float32.tobytes()),
+"shape": [n_sims, n_steps]}` -- ~45% smaller on the wire and ~3x faster
 to (de)serialize. `_mc_paths_from_lists` accepts both forms (legacy
 clients holding the old cached shape still decode). When adding new
 tab overlays, use the same helpers; do not store raw numpy arrays
@@ -726,64 +677,452 @@ directly in dcc.Store.
 a `(n_quantiles, n_t)` price grid. Before the sim loop runs we
 vectorize-evaluate the model once across the sim's full monthly time
 axis, populating the internal per-t cache in one shot. This moves
-~14 400 price evaluations (30 quantiles × 480 periods for a 40-yr
+~14 400 price evaluations (30 quantiles x 480 periods for a 40-yr
 Monthly sim) out of the 1000-sim critical path. MC Citadel first-render
-is ~200–800 ms faster with no behavioural change.
+is ~200-800 ms faster with no behavioural change.
 
 ---
 
-## 12. Live Price Ticker
+## 9. Price-model fitting pipeline
 
-- `dcc.Interval(id="price-interval", interval=20*60*1000)` fires every 20 min
-- Primary: Binance (`api.binance.com/api/v3/ticker/price?symbol=BTCUSDT`)
-- Fallback: CoinGecko (for US geo-blocked users)
-- Outputs: navbar `price-ticker` div, `btc-price-store`, heatmap `hm-entry-q`
-- Display: `₿ $X` · `QY.Y%` (current quantile) + 24h sparkline SVG (CoinGecko)
-- Sats/$ toggle: switches ticker between USD price and sats-per-dollar display
-- Heatmap uses `live_price` as entry price when `entry_yr == current_year`
-- Binance is geo-blocked in the US (HTTP 451) but works from the Hetzner server
+### One fit script per parametric model
+
+`tools/fit_<name>.py` -- every parametric model has a companion. Each
+script:
+
+1. Loads `BitcoinPricesDaily.csv` via `model_toolkit.data.load_prices`.
+2. Fits with `scipy.optimize.differential_evolution` (global) +
+   `scipy.optimize.curve_fit` (local polish).
+3. If `--update` is passed, regex-patches the corresponding class
+   attributes in its `btc_core/_*.py` submodule. E.g. `fit_lppl.py
+   --update` writes `LPPLModel._A`, `._B`, `._C`, `._W`, `._PHI`, `._D`.
+4. Prints a summary (R^2, residual sigma, parameter values).
+
+Files include `fit_lppl.py`, `fit_lppl2.py`, `fit_lppl3.py`, `fit_lppl4.py`,
+`fit_lppl_variants.py`, `fit_linppl.py`, `fit_hybppl.py`, `fit_hybppl_2freq.py`,
+`fit_hybppl_dd.py`, `fit_hyb2b.py`, `fit_hyb2c.py`, `fit_hyb2l.py`,
+`fit_hyb4d.py`, `fit_all_hybppl_configs.py`, `fit_all_eppl_configs.py`,
+`fit_grdy.py`, `fit_plo.py`, `fit_sexp.py`, `fit_logistic.py`,
+`fit_gompertz.py`, `fit_bpl.py`.
+
+### Monthly orchestrator
+
+`tools/refit_all_ppl.py` runs every `fit_*.py --update` sequentially
+(~60-90 min). Installed on prod as:
+
+```
+tools/quantoshi-ppl-refit.timer   -> OnCalendar=monthly, RandomizedDelaySec=1h
+tools/quantoshi-ppl-refit.service -> runs refit_all_ppl.py, then:
+                                     ExecStartPost=/usr/bin/redis-cli FLUSHDB
+                                     ExecStartPost=/bin/systemctl restart quantoshi
+```
+
+### `tools/build_bm_model.py`
+
+The canonical `model_data.pkl` builder. Runs the `model_toolkit/` pipeline:
+
+```
+load_prices -> fit_support -> fit_sequential -> classify -> predict_future
+            -> build_composite -> build_comp_by_n -> fit_qr_channels
+            -> fit_asymmetric_sigma -> _fit_all_resqr -> build_bm_pkl_dict -> write_pkl
+```
+
+`model_toolkit/` contains: `data.py`, `support.py`, `bubble_shape.py`,
+`fitting.py`, `prediction.py`, `composite.py`, `bands.py`, `export.py`,
+`resqr_bands.py`.
+
+### Residual QR sigma bands (`resqr`)
+
+Flagship models get per-quantile sigma(t) fitted as piecewise-linear
+knotted functions. Stored as
+`M.resqr_coefs[short] = {sorted_qs, coef_matrix, knots}`. At startup
+`app.py` binds these onto model instances as `._resqr`; runtime helper
+`_resqr_price_at()` in `btc_core/_helpers.py` uses them when the
+"Residual QR sigma" toggle is on.
 
 ---
 
-## 13. Layout Patterns
+## 10. Model Info tab -- live coefficient tables
 
-### Style constants — centralized in `colors.py`
+`layout/model_info/_helpers.py` has one `_{model}_rows()` helper per
+parametric card. Each helper pulls the model instance from
+`_app_ctx.PRICE_MODELS` and reads `._A, ._B, ._C, ._W, ._PHI, ._D`
+directly:
 
-**All visual appearance constants live in `btc_web/colors.py` Section 5** — fonts, font sizes, trace widths, point sizes, opacities, margins. Nothing else defines visual constants (enforced by `test_colors_central.py`).
+```python
+def _hybppl_dd_rows():
+    mdl = _app_ctx.PRICE_MODELS.get("hybppl_dd")
+    return [
+        ("A (intercept, log10 USD)",           f"{mdl._A:.4f}"),
+        ("B (slope)",                           f"{mdl._B:.4f}"),
+        ...
+    ]
+```
 
-| Category | Constants | Count | Notes |
-|----------|-----------|-------|-------|
-| Font stacks | `FONT_BRAND`, `FONT_SANS`, `FONT_MONO`, `FONT_CONDENSED` | 4 | DM Serif Display + Inter via Google Fonts |
-| Chart font sizes | `CHART_FONT_TITLE` through `CHART_FONT_WATERMARK_LG` | 12 | Int values for Plotly (base + desktop tiers) |
-| UI font sizes | `UI_FONT_XS` through `UI_FONT_HEADING` | 8 | CSS px strings for layout inline styles |
-| Trace widths | `TRACE_WIDTH` through `DESKTOP_GRID_MULT` | 10 | Includes desktop multipliers |
-| Point/marker sizes | `PT_SIZE_DEFAULT` through `MARKER_SIZE_HIGHLIGHT` | 6 | |
-| Opacities | `SHADE_ALPHA` through `SCANNER_ROW_OUTLINE_ALPHA` | ~35 | Every `_hex_alpha()` and `opacity=` uses a named constant |
-| Quantile opacity | `Q_OPACITY_FLOOR`, `Q_OPACITY_RANGE`, `Q_OPACITY_DECAY` | 3 | Formula in `figures/common.py::quantile_opacity()` |
-| Chart margins | `CHART_MARGIN`, `CHART_MARGIN_HM` | 2 | Dicts |
-| Watermark | `WM_OPACITY`, `WM_SIZE_X`, `WM_SIZE_Y` | 3 | |
+Consequence: the monthly refit propagates automatically -- no template
+edits required. Non-parametric cards (S2F, MC, U1, comparison tables,
+regime-shift visuals, Citadel) stay narrative-only.
 
-**Generated artifacts** (`tools/generate_color_artifacts.py`):
-- `_colors_generated.css` — CSS custom properties `var(--qs-*)`
-- `_colors_generated.js` — `window.QS_COLORS` + `window.QS_PALETTES` + `window.QS_APPEARANCE`
-- Export control: `__skip_export__` excludes non-color values from CSS; `__appearance_export__` defines JS `QS_APPEARANCE` subset
+Deep links `/8.N` use `dcc.Link(refresh=False)` so opening an accordion
+item is an SPA navigation that preserves other tabs' control state. F5
+still rebuilds the whole layout from defaults.
 
-Layout modules import directly: `from colors import UI_FONT_MD, FONT_BRAND, SUPPORT_LINE_OPACITY, ...`
+---
 
-Module-level style dicts in `layout/common.py`:
+## 11. Custom Time Axis (CTA) on tab 1
+
+Spec: `docs/superpowers/specs/2026-04-13-custom-time-axis-design.md`.
+
+### User flow
+
+1. CTA panel (`layout/custom_time.py`) shows on tab 1 only.
+2. User picks time scale: **Calendar** (years from arbitrary date origin)
+   or **Blockheight** (blocks from arbitrary height).
+3. User picks origin: one of `_CAL_PRESETS` / `_BLK_PRESETS`
+   (`_custom_time_presets.py`) or "Custom..." for a free-form date /
+   height.
+4. User picks weighting: `none`, `inv_t`, `inv_sqrt_t`, `log_density`.
+5. User ticks models to re-fit at this origin: PL, QR, BM-floor, Exp,
+   Gompertz.
+6. Callback `callbacks/custom_time.py` submits a `FitInput` to
+   `engines.custom_fit.fit_<model>()`.
+
+### Engine
+
+`engines/custom_fit.py`:
+
+- Loads `BitcoinPricesDaily.csv` + `BitcoinBlocksDaily.csv` once per
+  worker; arrays are frozen write-flag-off.
+- Each fit returns a `FitResult(name, params, t_plot, y_plot, n_samples,
+  r2, elapsed_ms, note)`.
+- PL / Exp / Gompertz use DE-seed + `curve_fit` polish.
+- Gompertz internally normalises `t` to `[0, 1]` so both calendar-year
+  and block-unit scales converge.
+- Log-log fits clamp extrapolation to the training `t_min` so Plotly's
+  log-Y axis does not explode near the new origin.
+- `_BLOCK_MAP_LOADED` flag propagates to `/health` so ops can distinguish
+  section-5-case-E ("block map not yet loaded") from genuine failures.
+
+---
+
+## 12. Greedy Select v3
+
+Class: `btc_core._basis.GreedyModel`, short `grdy`.
+
+The `_BASIS` class attribute is a generic tuple of 6-element rows:
+
+```python
+_BASIS = (
+    ('log', 'entropy', 6.436000, 'sin', -0.625083, 0.320630),
+    ('cal', 'none',    1.699697, 'sin',  0.326520, None),
+    ('log', 'none',   15.970474, 'sin', -0.095033, None),
+    ('log', 'none',    6.550895, 'cos', -0.163392, None),
+    ('cal', 'hybrid',  3.192910, 'sin',  0.102907, 0.050000),
+)
+
+# Row schema: (space, damping, freq, phase, weight, d_param)
+#   space   in {'log', 'cal'}       -- log-time vs calendar-time basis
+#   damping in {'none', 'hybrid',   -- undamped, t^(-D), entropy E(w_e t)
+#               'entropy'}
+#   freq    : angular frequency (rad/ln-yr or rad/yr)
+#   phase   in {'sin', 'cos'}       -- sin or cos variant
+#   weight  : pre-fitted linear weight (OLS coefficient)
+#   d_param : damping parameter (None for undamped)
+```
+
+### Dictionary
+
+36 candidates:
+`{undamped, hybrid, entropy} x {3 log freqs (LPPL3) + 3 cal freqs (DE fit)} x {sin, cos}`.
+
+### Fitting (`tools/fit_grdy.py`)
+
+Two modes:
+
+- `--mode=grid` -- freqs frozen at their dictionary values, forward-greedy
+  BIC selection picks 5 terms.
+- `--mode=de` -- grid provides the seed, DE refines freqs + damping
+  parameters within a bounded neighbourhood.
+
+`--update` regex-patches `_BASIS` in `btc_core/_basis.py`.
+
+---
+
+## 13. Citadel Planner & Tax system
+
+### Simulation engine
+
+`engines/citadel_sim.py::simulate(config, model, rng_seed, price_paths)`:
+
+1. `_initial_state(config, model)` -- constructs `CitadelState` with
+   stacks, reserves, investments, regime indices (5 attrs x 3 wrappers =
+   15), tax lots, SCF initialisation.
+2. Per period: `citadel_step.step(state, config, model, rng)` runs price
+   update, income, spending, rebalance, and (if `tax_enabled`) tax.
+3. `_aggregate_results(...)` sums, flattens, and returns `SimResult`.
+
+### Dynamic cost-ranked waterfall
+
+`engines/citadel_waterfall.py` replaces a fixed-order waterfall with a
+score-based one:
+
+```
+score(source) = tax_rate + opp_cost_pv
+              where opp_cost_pv = expected_annual_growth_rate
+                                   - max(cash_rate, inflation + 1%)
+```
+
+- Sources with high tax + high growth (taxable BTC, taxable investments)
+  score high -> drawn **last**.
+- Sources with no tax + low growth (cash, reserves-short) score low ->
+  drawn **first**.
+- Between bracket boundaries, `_max_draw_before_boundary` computes how
+  much can be pulled before the marginal rate jumps, caps the draw, then
+  re-ranks.
+- `_expected_annual_rate` is regime-aware when
+  `config.asset_return_model == "markov"`.
+
+### Tax wrappers
+
+Three account types, all in one `CitadelState`:
+
+| Wrapper | Prefix | Tax on withdrawal | Tax on growth | RMD |
+|---|---|---|---|---|
+| Taxable | none | Capital gains (BTC + investments, lot-tracked) | -- | no |
+| Tax-Deferred | `td_` | Ordinary income (all assets, no lot tracking) | -- | yes (73/75) |
+| Tax-Free | `tf_` | -- | -- | no |
+
+### Annual tax pipeline (`engines/tax.py`)
+
+1. **IRC Sec. 1(h) loss netting** -- ST/LT losses cross-offset; $3k
+   deduction; carryforward.
+2. **AGI** = TD withdrawals + interest + other income + net gains -
+   loss deduction.
+3. **Standard deduction** first reduces ordinary income; overflow
+   reduces LTCG.
+4. **Federal ordinary tax** -- progressive brackets, inflation-indexed
+   from 2025 base.
+5. **Federal LTCG** -- 0 / 15 / 20 % brackets stacked above ordinary
+   taxable income.
+6. **NIIT** -- 3.8 % on `min(NII, MAGI - threshold)`.
+   NIIT threshold NOT inflation-indexed.
+7. **State tax** -- flat top marginal rate on AGI minus treasury
+   interest.
+8. **Pay tax** -- from taxable wrapper, `cash -> investments -> TD -> BTC`,
+   with gross-up formula for tax-on-tax.
+
+### Tax-law details
+
+- AMT is intentionally skipped (LTCG rates identical under AMT for pure
+  investment income).
+- `tcja_sunset=True` switches to 39.6% top rate + lower standard
+  deduction.
+- Treasury interest (reserves): federal ordinary + NIIT, but state-exempt.
+- RMD start age: 73 for 1951-1959 births, 75 for 1960+ (SECURE 2.0).
+
+### Investment cost basis
+
+Tracked as a parallel list to `state.investments`. User supplies
+current-value + cost-basis in the Assets sub-tab. On sale, proportional
+basis removed. Gain = proceeds - basis_fraction.
+
+### UI wiring
+
+- Master toggle `cp-tax-toggle` (bool Switch, encoded as JSON bool --
+  **not** a bitmask). When off, engine runs identically but skips the
+  tax path.
+- Modal `cp-tax-modal` (full-screen) with state dropdown, filing-status
+  radio, TCJA sunset toggle, TD/TF balances, tax summary table.
+- 16 tax controls in `_SNAPSHOT_CONTROLS` and `_TAB_CONTROLS["citadel"]`.
+- 92 tax-specific tests across unit + integration + E2E (`test_tax_e2e.py`).
+
+---
+
+## 14. Monte Carlo / Markov simulation
+
+### Engine
+
+`markov.pyx` -> Cython -> `markov.cpython-314-x86_64-linux-gnu.so`. Prod
+box has it pre-built; dev boxes usually do not (gracefully fall back to
+`_HAS_MARKOV=False`). `build_markov.py` rebuilds it.
+
+Algorithm: build a transition matrix over historical log-return bins,
+sample regime-conditional returns to generate price paths. Tuneable
+`mc_bins` (number of volatility regimes) + `mc_window` (historical window
+in years) + `mc_years` (simulation horizon).
+
+<!-- merged from v1: regime-filter description -->
+### Regime filter (blocked bins)
+
+Blocked bins zero out their columns in the transition matrix via
+`_apply_bin_mask(trans, blocked_bins)`. This removes certain price
+regimes from the simulation (e.g., blocking the "Bubble" bin prevents
+extreme bull scenarios). A "ghost" overlay compares filtered vs
+unfiltered results so the user can see how blocking a regime changes the
+outcome distribution.
+
+<!-- merged from v1: MC pipeline cache keys -->
+### MC cache keys
+
+Two separate key types control cache behaviour:
+
+- **`_mc_path_key(p, tab)`**: identifies the expensive MC price-path
+  simulation. Components: `mc_start_yr`, `mc_entry_q`, `mc_years`,
+  `n_bins`, `n_sims`, `mc_freq`, `mc_window`, `mc_blocked_bins`.
+  Changing frequency triggers a full re-simulation (expensive).
+- **`_mc_overlay_key(p, tab, start_stack)`**: identifies the
+  post-simulation overlay (DCA accumulation, withdrawal depletion,
+  etc.). Adds `amount`, `inflation`, `start_stack` to the path key.
+  Cheap to recompute.
+
+### Fan percentiles
+
+`FAN_PCTS = (0.01, 0.05, 0.25, 0.50, 0.75, 0.95)` -- six percentile
+bands computed across all simulated paths. Traces are built by
+`_mc_build_traces()` with filled regions between bands.
+
+### Pre-computed cache
+
+| Path | Size | What |
+|---|---|---|
+| `btc_web/mc_cache/paths_YYYY.npz` | ~1.2 GB total | price paths |
+| `btc_web/mc_cache/overlays_YYYY.npz` | included | fan-band percentiles |
+| `btc_web/citadel_band_cache/bands_<model>_<yr>.npz` | ~200 MB | Citadel MC bands |
+| `/dev/shm/quantoshi_mc.pkl` | ~834 MB RAM | fast-restart snapshot |
+
+`load_shm_cache.py` loads the `.npz` files on first boot (~7 s), serialises
+the whole dict to `/dev/shm/` (~0.7 s subsequent restarts), and
+invalidates the snapshot when any source `.npz` mtime+size changes.
+
+### MC on 5 tabs
+
+DCA, Retire, Supercharger, Heatmap, Citadel each have their own MC
+controls + `{pfx}-mc-results` store + `{pfx}-mc-unblocked` cache +
+`{pfx}-mc-loaded` trigger. Hidden by placeholder `dcc.Checklist` when
+`_HAS_MARKOV=False`.
+
+Payment: `btcpay.py` + `api.py::/api/mc/*`. Free-tier cells (those
+fully cached) are always free; live new combos cost sats. HMAC-signed
+tokens in `Authorization: Bearer ...` headers.
+
+<!-- merged from v1: HMAC token flow -->
+### BTCPay token flow
+
+1. **Free tier check** (`_is_free_tier()` in `callbacks/mc_helpers.py`)
+   checks whether the requested parameters fall within free limits.
+2. **Token check**: if not free, verify an HMAC token (daily expiry).
+3. **Invoice creation**: BTCPay Greenfield API creates a Lightning
+   invoice.
+4. **Polling**: client polls for payment confirmation.
+5. **Token generation**: on payment, server produces an HMAC token
+   (`hmac.new(BTCPAY_SECRET, today_str.encode(), hashlib.sha256).hexdigest()`)
+   valid for 24 hours.
+6. **Authorization**: token stored client-side, sent with subsequent
+   MC requests.
+
+Daily expiry means the token is valid only for the calendar day it was
+generated. No server-side session state; token is self-validating. **No
+IP, fingerprint, or cookie binding** -- privacy-first design for the
+onion-service audience.
+
+<!-- merged from v1: chart-annotation edge-text system -->
+### Chart annotation system
+
+Endpoint labels use `_edge_text_trace()` -- a
+`go.Scatter(mode="markers+text")` placed at the last data point of a
+trace. This avoids paper-space `xref` / `yref` annotations, which drift
+on resize / zoom. Depletion arrows (arrow-to-y=0 with `yref="paper"`)
+are the sole exception: they point to the plot bottom which is always
+correct.
+
+Overlap resolution in `_resolve_edge_annotations(pending, log_y)`:
+
+1. Each builder collects pending annotations as dicts with `x_arr`,
+   `y_arr`, `label`, `short_label`, `color`, `y_last`.
+2. Sort by `y_last` ascending (log-space aware).
+3. Cluster consecutive items within `_OVERLAP_LOG = 0.12` log-decades
+   (or `_OVERLAP_FRAC = 0.06` of linear range).
+4. Resolve:
+   - 1 item -- rank-based position (bottom half / top half) to prevent
+     visual crossing.
+   - 2-3 items -- spread within cluster (bottom / middle / top).
+   - 4+ items -- consolidate into a single merged label using
+     `short_label` values joined with ` * `, dot markers at each
+     position.
+
+Short-label format: `_fmt_short(btc, usd) -> B0.32/$1.23M`. USD uses
+K/M/B suffixes. "Annotate final values" toggle controls edge-text trace
+visibility; depletion arrows are always shown.
+
+---
+
+## 15. Centralized appearance (`colors.py`)
+
+**SSOT for every hex color, font, size, width, opacity, and chart margin
+in the application.** Enforced by
+`test_colors_central.py::test_no_hex_literals_outside_colors_module`.
+
+### 5 sections
+
+| # | Contents |
+|---|---|
+| 1 | Palette-invariant hex constants (~80): `BTC_ORANGE`, `PLOT_BG_COLOR`, status colors, UI surfaces, static-page theming, baked-alpha rgba strings. |
+| 2 | Per-palette dicts -- `DEFAULT`, `CB_BRIAN`, `CB_RG`, `CB_FULL`. Each has `model_colors`, `thermal_stops`, heatmap CAGR defaults, delay / annotation colors, decomp palette. |
+| 3 | `PALETTES` registry + `HM_PRESET_PALETTES` (4 CAGR presets: `rwg`, `rbg`, `bwo`, `mono`) + `PALETTE_DEFAULT_HM_PRESET` (which preset auto-selects per palette). |
+| 4 | Generation metadata -- `__skip_export__`, `__appearance_export__`. Controls which names reach generated CSS/JS. |
+| 5 | Appearance constants -- `FONT_{SANS,BRAND,MONO,CONDENSED}`, `CHART_FONT_{TITLE,BODY,LEGEND,...}`, `UI_FONT_{XS,SM,MD,...}`, `TRACE_WIDTH*`, `PT_SIZE_DEFAULT`, `SHADE_ALPHA`, `WM_OPACITY`, `CHART_MARGIN`, `Q_OPACITY_*`, `Q_SHADE_*`. |
+
+### Generated artifacts
+
+`tools/generate_color_artifacts.py` emits (DEV re-runs at import, prod
+ships the checked-in artifacts):
+
+- `btc_web/assets/_colors_generated.css` -- CSS custom properties
+  `var(--qs-*)`.
+- `btc_web/assets/_colors_generated.js` -- `window.QS_COLORS` +
+  `window.QS_PALETTES` + `window.QS_APPEARANCE`.
+
+### Palette contract
+
+- **Default flagship 6** -- BM `#C48209`, PL `#1B3352`, QR `#9B2244`,
+  EPPL `#1F6B5C`, HybPPL `#A8431C`, LPPL `#7B3D9E`. Warm/cool dichotomy,
+  deltaE-optimised on ivory background.
+- **CB-Brian** (deuteranomaly) -- hand-tuned for the user's vision
+  profile. **Forbidden to change without explicit user approval.**
+- Non-flagship models cycle the flagship 6 by registration order.
+- Switching palette triggers ~14 callbacks. Forward callbacks guard with
+  `State("palette-store", "data")` against circular storm (previously
+  caused nginx 429s).
+
+### Typography
+
+- DM Serif Display (brand, chart titles) + Inter (UI, body) via Google
+  Fonts.
+- CSS font stacks hand-maintained in `style.css` `:root`; `colors.py` is
+  authoritative for Python + JS.
+
+### Watermark
+
+Logo at `WM_OPACITY` (0.35) + text at `WATERMARK_TEXT_ALPHA` (0.65). All
+chart builders call `_apply_watermark(fig)`.
+
+<!-- merged from v1: layout-style dicts and shared helpers in layout/common.py -->
+### Layout style dicts (`layout/common.py`)
+
+Module-level style dicts used by every chart tab's controls:
 
 | Constant | Value | Used for |
-|----------|-------|----------|
+|---|---|---|
 | `_STYLE_HIDDEN` | `{"display": "none"}` | Hidden containers, placeholder controls |
 | `_STYLE_HINT` | `{"color": DIM_TEXT, ...}` | Hint/instruction text below controls |
 | `_STYLE_GRAPH_H` | `{"height": "78vh"}` | Chart graph containers |
 | `_GEAR_STYLE` | `{cursor, fontSize, opacity}` | In-checklist gear icons for model config modals |
 | `_MUTED_STYLE` | `{color: MUTED_SUMMARY_TEXT, italic}` | Inline summary spans in Display Models |
 
-### Shared helpers
+Shared layout helpers:
 
 | Helper | Purpose |
-|--------|---------|
+|---|---|
 | `_section_card(title, *children)` | Titled card with consistent styling |
 | `_ctrl_card(*children)` | Untitled compact card |
 | `_lbl(text)` | Small bold label |
@@ -798,250 +1137,293 @@ Module-level style dicts in `layout/common.py`:
 | `_chart_tab_layout(controls_fn, graph_id, ...)` | Standard 2-column chart tab layout |
 | `_tab_hints(tab_id)` | Collapsible "How to use" section |
 
-### Tab hints
-
-6 tabs have hint bullets (set via `_TAB_HINTS` dict). Each MC-enabled tab's
-second bullet reads "Configure your Quantile Regression model or Markov
-Simulation" and the last bullet references "using the chart configuration tab
-below."
-
-### Mobile layout
-
-On `max-width: 767px`, columns stack vertically (controls below chart). The
-`dcc.Graph` height is overridden in CSS (`55vw !important`). A "↓ Scroll down
-to configure" hint appears via `_export_row()` (hidden on ≥768px).
-
----
-
-## 13b. Appearance & Brand System
-
-### Typography
-
-Google Fonts loaded via `<link>` in `index_string <head>`:
-- **DM Serif Display** — brand name "Quantoshi" + chart titles (left-aligned)
-- **Inter** — all UI text, axis labels, legend, form controls
-
-Font stacks defined in `colors.py`:
-- `FONT_BRAND` = `"'DM Serif Display', Georgia, serif"`
-- `FONT_SANS` = `"Inter, 'Segoe UI', system-ui, -apple-system, sans-serif"`
-- `FONT_MONO` = `"'JetBrains Mono', 'Fira Code', ..."`
-
-CSS custom properties (`style.css :root`): `--font-ui`, `--font-brand`, `--font-mono`. These are hand-maintained in CSS and must match `colors.py` if changed.
-
-### 4 site-wide palettes
-
-| Key | Name | Audience |
-|-----|------|----------|
-| `default` | Default | Full color vision |
-| `cb-brian` | Deuteranomaly | Red-green deficient (Brian's profile) |
-| `cb-rg` | Colorblind R-G | Classic CB-safe (Okabe-Ito style) |
-| `cb-full` | Colorblind Full | Near-monochromatic, luminance-only |
-
-Palette selector appears at the bottom of every chart tab's controls (`_palette_selector(tab_key)`). Per-tab `dbc.Select(id=f"palette-select-{tab_key}")` syncs bidirectionally with `palette-store` via clientside callbacks in `nav.py`. Forward callbacks include a `State("palette-store", "data")` guard to prevent circular callback storms.
-
-### Default palette design
-
-Chart background: `#FAF9F6` (ivory). Grid: warm-tuned `#E2E0DB`/`#F0EEED`. Scatter data: `#1A1A2E` deep ink, size 5, alpha 0.3.
-
-Flagship 6 model trace colors (deltaE-optimized warm/cool dichotomy):
-
-| Model | Color | Hex | Family |
-|-------|-------|-----|--------|
-| BM | Amber | `#C48209` | Warm |
-| PL | Navy | `#1B3352` | Cool |
-| QR | Burgundy | `#9B2244` | Warm |
-| EPPL | Teal | `#1F6B5C` | Cool |
-| HybPPL | Rust | `#A8431C` | Warm |
-| LPPL | Purple | `#7B3D9E` | Cool |
-
-Family variants inherit their master color. Non-flagship models use a muted secondary palette.
-
-### Heatmap CAGR presets
-
-4 presets: `rwg` (Red->White->Green), `rbg` (Red->Black->Green), `bwo` (Blue->White->Orange), `mono` (Grayscale). Default palette auto-selects: `default`->rwg, CB palettes->bwo. Auto-select fires on palette switch via clientside callback.
-
-### Display Models config panel
-
-Shared component `layout/display_models.py::display_models_panel(prefix, ...)` used by tabs 1/3/4/5. 4 model families have gear icons opening global config modals: BM (Bubble Model settings), LPPL (n_freqs/weighted/no13), HybPPL (slot A/B frequency/damping), EPPL (slot A/B). Heatmap (tab 2) has a pill bar + status row instead. 15 defunct `*-activate` placeholder checklists kept in `_serve_layout` for snapshot positional stability.
-
-### Quantile rendering
-
-Quantile traces use model-centric coloring (NOT thermal gradient — thermal pipeline removed 2026-04-12):
-- Trace lines: model color at `quantile_opacity(q)` — full at median, fading at extremes
-- Band fills: model color at `SHADE_ALPHA` (0.08 outer) / 0.15 (inner) via `_build_symmetric_bands`
-- Quantile panel dots: `DIM_TEXT` at `quantile_opacity(q)` alpha
-
----
-
-## 14. Payment Flow
-
-### BTCPay Server integration
-
-`btcpay.py` integrates with BTCPay Server's Greenfield API for payment-gated MC
-simulations.
-
-### Flow
-
-1. **Free tier check**: `_is_free_tier()` in `callbacks.py` checks if requested
-   parameters fall within free limits
-2. **Token check**: If not free, check for valid HMAC token (daily expiry)
-3. **Invoice creation**: BTCPay Greenfield API creates a Lightning invoice
-4. **Polling**: Client polls for payment confirmation
-5. **Token generation**: On payment, server generates HMAC token
-   (`hmac.new(secret, date_str, sha256)`) valid for 24 hours
-6. **Authorization**: Token stored client-side, sent with subsequent MC requests
-
-### Token structure
-
-```python
-token = hmac.new(BTCPAY_SECRET, today_str.encode(), hashlib.sha256).hexdigest()
-```
-
-Daily expiry — token is valid only for the calendar day it was generated. No
-server-side session state; token is self-validating.
-
----
-
-## 15. Deployment
-
-### Production stack
-
-```
-nginx (HTTPS, Let's Encrypt)
-  └── reverse proxy → 127.0.0.1:8050
-        └── gunicorn (5 workers, 120s timeout, --preload)
-              └── Dash app (Plotly + Flask)
-
-systemd services:
-  quantoshi.service       — main app (gunicorn)
-  quantoshi-cache.service — oneshot, pre-loads MC cache to /dev/shm at boot
-```
-
-### Server
-
-- **Host**: Hetzner VPS, IP `89.167.70.45`
-- **Clearnet**: https://quantoshi.xyz
-- **Tor**: `u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion`
-- **Log retention**: 27 days (nginx + gunicorn, daily rotation)
-
-### Deploy process
-
-```bash
-git push origin master
-ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && systemctl restart quantoshi"
-```
-
-### nginx JS caching
-
-`/_dash-component-suites/` URLs contain version hashes (immutable assets).
-nginx caches them for 7 days:
-
-```nginx
-location /_dash-component-suites/ {
-    add_header Cache-Control "public, max-age=604800, immutable";
-}
-```
-
-Plotly.js is 4.7 MB (gzipped ~1.5 MB) — fetched once, then served from
-browser cache. `/_dash-layout` and `/_dash-dependencies` are explicitly set
-to `no-cache` so callback-graph changes are always detected.
-
-### Redis socket pre-check
-
-`redis_available()` in `_app_ctx.py` probes the Redis socket with a 0.2s
-timeout before attempting a full `ping`. Without this, a missing Redis
-instance causes an 8.6s TCP connection timeout that blocks gunicorn worker
-startup.
-
-### Security headers
-
-Set via `@server.after_request` in `app.py`:
-- Content-Security-Policy
-- Referrer-Policy: `no-referrer`
-- X-Frame-Options: `DENY`
-- Onion-Location (for Tor discovery)
-- Cache-Control: `no-cache` on `/_dash-layout` and `/_dash-dependencies`
-
 ---
 
 ## 16. Testing
 
-### Test suite
+**1456 tests** collected across 22 non-E2E test modules + 4 E2E modules.
+`pytest.ini` ignores the `*_e2e.py` glob by default.
 
-428 tests in `btc_web/test_web.py` (3,345 lines), organized as
-`unittest.TestCase` classes.
-
-### Test categories
-
-| Category | Coverage |
-|----------|----------|
-| Utilities | `_q3()` quantization, `_quantize_params()`, `_nearest_quantile()` |
-| Figure builders | All 6 `build_*_figure()` functions with various param combos |
-| MC cache | Cache generation, loading, lookup, bin snapping |
-| Snapshots | Encode/decode round-trips, bitmask encoding, v1/v2/v3 compat, edge cases |
-| Financial math | `_compute_sc_loan()`, DCA accumulation, tax treatment |
-| Callback smoke tests | Each major callback with representative inputs |
-| BTCPay | Pricing tiers, HMAC token generation/verification |
-| API validation | Rate limiting, input sanitization |
-| Price cache | Fetching, TTL, circuit breaker |
-| Regime filters | Bin masking, ghost overlay, fuzz testing |
-
-### Running tests
-
-```bash
-btc_venv/bin/python3 -m pytest btc_web/test_web.py -v
+```
+btc_venv/bin/python3 -m pytest btc_web/ -v --ignore-glob='*_e2e.py'
 ```
 
+| Test file | Focus |
+|---|---|
+| `test_core.py` | `btc_core` model classes, math, `today_t`, `yr_to_t`, QR interpolation |
+| `test_models.py` | Model instantiation, `price_at`, `quantile_at`, R^2 for all ~107 registered models |
+| `test_callbacks.py` | Dash callback graph exercising, `update_bubble`, MC hooks, freq guards |
+| `test_figures.py` | Chart builders return valid `go.Figure` with expected traces |
+| `test_defaults.py` | `MappingProxyType` immutability, inner-collection-is-tuple invariants, `_DEFAULTS_HASH` stability |
+| `test_snapshot.py` | Round-trip encode/decode, expansion-ratio bounds, q1/q2/q3 compat |
+| `test_cache_key_alignment.py` | Prewarm-defaults -> runtime-callback key equality (the invariant from section 6) |
+| `test_infrastructure.py` | Cache + Redis helpers, `/health`, fingerprint computation |
+| `test_palette_roundtrip.py` | Palette switch <-> snapshot encoding |
+| `test_colors_central.py` | **No hex literals outside `colors.py`** lint |
+| `test_static_pages.py` | `/B`, `/BB`, `/D`, `/E`, `/F`, `/G`, `/H`, `/mi`, `/faq`, `/docs/*` |
+| `test_citadel.py` | Citadel end-to-end simulation determinism |
+| `test_citadel_diag.py` | Citadel diagnostic fields (tax trails, RMDs) |
+| `test_citadel_steps.py` | Per-step behaviour (spending, rebalancing, triggers) |
+| `test_custom_time.py` | CTA fit engine -- PL/Exp/Gompertz at alt origins |
+| `test_custom_time_snapshot.py` | CTA controls round-trip through share links |
+| `test_modal_commit.py` | Modal-close trigger counters + debounced chart re-render |
+| `test_r2.py` | R^2 computation for quantized + non-quantized models |
+| `test_resqr_bands.py` | Residual-QR sigma(t) knotted fit correctness |
+| `test_resqr_build.py` | `_fit_all_resqr` integration |
+| `test_resqr_runtime.py` | Runtime `_resqr_price_at` interpolation |
+| `test_resqr_snapshot.py` | `bub-sigma-mode` field round-trip |
+| `test_block_map_cli.py` | `tools/build_block_map.py` CLI sanity |
+| `test_tax_e2e.py` | 92 tax tests -- Playwright + Firefox + running dev server |
+| `test_plot_appearance_e2e.py` | Palette + control plane end-to-end |
+| `test_scanner_e2e.py` | Scanner price / date / quantile interaction |
+
+E2E tests need a running `DEV=1 bash run_web.sh` on port 8050 and
+Playwright + Firefox installed.
+
 ---
 
-## 17. Developer Tools
+## 17. Deploy & operations
 
-### `tools/sweep_support.py` — Support Line Parameter Sweep
+### Production
 
-2D grid search over `SUPPORT_PERCENTILE` × `SUPPORT_QUANTILE` to find the
-combination that maximises the bubble model composite R². Extracts the core
-fitting logic from `SP.ipynb` cell 0 (support line → peak detection → bubble
-fitting → R²) without running the full notebook.
+- **VPS** -- Hetzner, IP `89.167.70.45`, SSH as `root`.
+- **App path** -- `/opt/quantoshi/` (git clone of this repo).
+- **Service** -- `quantoshi.service` (gunicorn -> `127.0.0.1:8050`, 5 workers).
+- **nginx** -- reverse proxy, HTTPS via Let's Encrypt, immutable cache
+  headers on `/_dash-component-suites/`, no-cache on `/_dash-layout`
+  and `/_dash-dependencies`.
+- **Tor** -- `tor@default`, hidden service at
+  `/var/lib/tor/quantoshi/`.
+- **Redis** -- system-wide, L0+L2 cache backend + Celery broker.
+- **Python** -- 3.12.3. `gunicorn` is installed separately from
+  `requirements.txt` (`pip install gunicorn`).
+- **Log retention** -- 27 days via logrotate
+  (`/etc/logrotate.d/{nginx,quantoshi}`).
+
+### Deploy cycle
 
 ```bash
-btc_venv/bin/python3 tools/sweep_support.py [--pct-lo 5] [--pct-hi 50] \
-    [--pct-step 5] [--q-lo 0.1] [--q-hi 0.9] [--q-step 0.1] \
-    [--out sweep_support.jpg]
+git push origin master
+ssh root@89.167.70.45 '
+  cd /opt/quantoshi &&
+  git pull &&
+  redis-cli FLUSHDB &&
+  systemctl restart quantoshi
+'
 ```
 
-Reads `BUBBLE_YEARS`, `FIT_MIN_DATE`, and other config from `SP.ipynb` cell 0
-automatically. Outputs a 2-panel heatmap (R² composite + support slope) and
-prints the top 10 parameter combinations. Run after changing `BUBBLE_YEARS`,
-`FIT_MIN_DATE`, or genesis date to re-optimise the support line.
+- Cold start ~6 s (model load + prewarm + color artifact check).
+- `FLUSHDB` is mandatory -- keeps stale L0/L2/Citadel entries from old
+  fingerprints from leaking.
+- After monthly PPL refit, also regenerate Citadel cache:
+  `generate_citadel_cache.py`.
+- Heavy caches (MC + Citadel bands) are *not* git-tracked. Build on dev
+  with `bash tools/rebuild_caches.sh` then rsync to prod.
+
+### Cache invalidation summary
+
+| Event | What invalidates |
+|---|---|
+| `model_data.pkl` rebuild (daily via `update_prices.py`) | Every figure cache -- fingerprint in key |
+| Monthly PPL refit | Nothing automatic -- systemd unit does `FLUSHDB + restart` |
+| `.npz` change | `/dev/shm/quantoshi_mc.pkl` regenerates on next boot |
+| Manual deploy | Explicit `FLUSHDB` + restart wipes Redis |
+
+### Health
+
+`/health` returns a JSON snapshot:
+
+```json
+{
+  "status": "ok",
+  "model": true,
+  "price_age_s": 85,
+  "cache_age_days": 14.2,
+  "cache_warn_45d": false,
+  "cache_stale_90d": false,
+  "mc_cache": true,
+  "markov": true,
+  "btcpay": true,
+  "block_map_loaded": true,
+  "model_build_age_hours": 3.1,
+  "model_build_stale_72h": false,
+  "resqr_bands": { "available": true, "model_count": 78, "build_ts": "..." }
+}
+```
+
+`scripts/quantoshi-health` polls the endpoint + checks systemd + tails
+error log; `--popup` shows a PyQt6 fullscreen alert.
+
+### Operator timers (systemd)
+
+| Timer | Cadence | What |
+|---|---|---|
+| `quantoshi-ppl-refit.timer` | monthly | `refit_all_ppl.py` |
+| price update | daily 06:00 | `update_prices.py` + rebuild + restart |
+| (cache rebuild) | manual | `rebuild_caches.sh` (~4 h) |
 
 ---
 
-## 18. Adding a New Price Model
+## 18. Known gotchas
 
-Checklist for adding a new model to Quantoshi:
+### `dbc.Input(type="number")` step/min validation
 
-1. **Implement** the `PriceModel` protocol in `archive/btc_app/btc_core.py`:
-   - Required fields: `name`, `short_name`, `quantized`, `quantiles`, `colors`, `fits`, `dash_style`
-   - Required methods: `price_at(q, t)`, `interp_price(q, t)`, `find_percentile(t, price)`
-   - `fits` dict must contain keys for all quantiles — figure builders check `q in model.fits`
-   - Composite-median models (shaped curves): follow `LPPLModel` / `EmpiricalFloorModel` pattern
-   - Log-linear models (straight lines in log-log): extend `_FitsBasedModel`
-2. **Register** in `btc_web/app.py` inside the "register price models" block
-3. **Update `btc_web/snapshot.py`** — add the model's `short_name` to `_CHECKLIST_OPTIONS` for all `*-model-show` and `bub-model-show` keys (~lines 164–168). Without this, snapshot/share links cannot encode the model selection. Old links decode safely (missing bits default to unselected).
-4. **Update `btc_web/test_web.py`** — the `PRICE_MODELS.keys()` assertion uses a hardcoded set. Use `issubset()` or add the new key. Also add model-specific test class.
-5. **UI auto-discovers** via `PRICE_MODELS` iteration in `_model_show_checklist()` (`layout/common.py`) and heatmap pill bar (`layout/heatmap.py`) — no layout changes needed.
-6. Add accordion item to `btc_web/layout/model_info.py`
-7. Add FAQ entry if warranted in `btc_web/layout/faq.py`
-8. Update `docs/architecture.md` and `docs/user_manual.md`
+HTML5 number inputs reject values that don't satisfy
+`value = min + n * step` and send `None` to Python. Always set
+`min` to a valid step value, and prefer `step=1` for integer dollar
+amounts. Label inputs with their valid range: `"Pt size (1-20)"`,
+`"Inflation rate (0-100% / yr)"`. `max` is enforced the same way --
+values above `max` silently become `None`.
+
+### Falsy-zero
+
+`float(x or default)` substitutes `default` when `x=0` because 0 is
+falsy. For inputs where 0 is valid (inflation, interest rate), use
+`float(x) if x is not None else default`.
+
+### Frequency options
+
+Daily / Weekly / Monthly / Quarterly / Annually. `FREQ_PPY` in
+`_app_ctx.py` maps to `{365, 52, 12, 4, 1}`. `FREQ_LABEL` maps to
+`{"/day","/wk","/mo","/qtr","/yr"}`.
+
+### Mobile portrait layout
+
+`[id$="-graph"] { height: 55vw !important; min-height: 280px !important; }`
+in `style.css` overrides the inline `height:78vh` that Plotly leaves
+behind on stacked columns. A d-md-none "Scroll down to configure"
+hint is appended by `_export_row()` for mobile users.
+
+### Nginx JS caching
+
+`/_dash-component-suites/` URLs contain Dash's version hash and are
+cached for 7 days (`public, max-age=604800, immutable`). Plotly.js
+is 4.7 MB gzipped ~1.5 MB -- cached after the first load.
+
+### Stale `/_dash-dependencies`
+
+iOS Safari + some corporate proxies cache Dash's callback-graph JSON.
+When the graph changes between deploys, old clients POST callbacks with
+stale hashes and the server 500s. The fix
+(`app.py::_cache_headers`):
+
+1. `Cache-Control: no-cache, no-store, must-revalidate` on `/`,
+   `/_dash-layout`, `/_dash-dependencies`, `/1`--`/9`.
+2. `ETag: "<callback_graph_hash>"` on `/_dash-dependencies` --
+   forces revalidation even on browsers that ignore Cache-Control.
+3. `_DEPLOY_FP = md5(repr(app._callback_list))[:12]` computed once
+   at module load.
+
+### Dash 4 + DBC 2.0 constraints
+
+- Dash 4.0.0, DBC 2.0.4, React 18 (bundled).
+- `allow_duplicate=True` requires `prevent_initial_call` to be either
+  `True` or `'initial_duplicate'` -- `False` crashes gunicorn.
+- `suppress_callback_exceptions=True` is on because many callbacks
+  reference lazy-rendered tab content.
+- `dcc.Link(refresh=False)` needed for SPA deep-linking into
+  accordions; plain `<a href="#">` causes a full refresh.
+
+### Plotly invisible lines
+
+Setting `width=0` is not enough on mobile Safari -- Plotly can render
+phantom hairlines in the default cycle colors. Always pair `width=0`
+with explicit `color="rgba(0,0,0,0)"`.
+
+### Plotly's dev-version fetch
+
+Plotly.js 6.x calls `https://dash-version.plotly.com:8080` on every
+page load. CSP `connect-src` on clearnet whitelists it (cosmetic --
+stops `CSPViolation` errors in DevTools). **Onion CSP does NOT**
+whitelist it -- avoiding an extra fingerprinting surface for Tor users.
+
+### Security-header stack
+
+`app.py::_cache_headers` sets on every response:
+
+```
+Referrer-Policy: same-origin
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=(), usb=()
+X-DNS-Prefetch-Control: off
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; ...
+Onion-Location: http://u5dpre...onion{path}   (clearnet only)
+```
+
+The CSP `connect-src` differs between clearnet and onion responses --
+onion users never see clearnet host allowances.
 
 ---
 
-## Appendix A: ModelData Fields
+## 19. Adding a new price model
+
+<!-- merged from v1: reorganized for current btc_core package layout -->
+
+Checklist for registering a new price model:
+
+1. **Implement** the `PriceModel` Protocol in the appropriate
+   `btc_core/_*.py` submodule:
+   - Required fields: `short_name`, `name`, `legend_name`, `quantized`,
+     `fits`, `dash_style`.
+   - Required methods: `price_at(q, t)`, `quantile_at(price, t)`.
+   - `fits` dict must contain keys for all quantiles if `quantized` --
+     figure builders check `q in model.fits`.
+   - Composite-median models follow `BubbleModel` / `EmpiricalFloorModel`
+     pattern.
+   - Log-linear models (straight lines in log-log) can extend
+     `_FitsBasedModel`.
+2. **Export** from `btc_core/__init__.py`.
+3. **Register** in `btc_web/app.py` -- add `PRICE_MODELS[short] =
+   Model(...)` in the "register price models" block.
+4. **Fit script** -- add `tools/fit_<name>.py` supporting `--update`
+   (regex-patch class attributes on success). Add to
+   `tools/refit_all_ppl.py` if the model should roll in monthly.
+5. **Snapshot** -- add the short name to `_CHECKLIST_OPTIONS` for every
+   `*-model-show` key in `btc_web/snapshot.py`. Old links decode safely
+   (missing bits default to unselected); position is append-only.
+6. **Tests** -- `test_models.py` iterates `PRICE_MODELS`, so new models
+   are auto-tested. Add a model-specific test class if non-trivial.
+7. **UI auto-discovery** -- Display Models checklist + heatmap pill bar
+   iterate `PRICE_MODELS`; no layout changes needed.
+8. **Model Info accordion** -- add card body to
+   `layout/model_info/_items.py` + live coefficient helper in
+   `layout/model_info/_helpers.py`.
+9. **FAQ** -- add entry in `layout/faq.py` if warranted.
+10. **Docs** -- update `docs/architecture.md` and `docs/user_manual.md`.
+
+---
+
+## Appendix A: A typical first request to `/6`
+
+1. nginx forwards `GET /6` to gunicorn.
+2. `_cache_headers` sets no-cache + CSP + Onion-Location + ETag.
+3. `_serve_layout` reads `flask.request.path == "/6"`, sets
+   `initial_tab = "citadel"`.
+4. `_build_layout("citadel")` assembles all tabs with
+   `citadel-first-render=1`, others `=0`.
+5. `_get_initial_figure("citadel")` hits the L1 pinned cache ->
+   returns the pre-computed Citadel figure.
+6. `_inject_initial_figure(layout, "citadel-graph", fig)` edits the
+   layout tree to embed the figure JSON in the graph component's
+   `figure` prop.
+7. HTML goes back to the browser; Plotly renders the Citadel figure on
+   first paint -- **no chart callback fires**.
+8. The user clicks a toggle; Dash POSTs a callback; `update_citadel`
+   fires, hits L2 Redis -> returns in ~80 ms.
+9. The user clicks "Run Simulation"; the background-callback manager
+   forks a child; `run_citadel_simulation` returns in 30-600 s
+   (depending on MC sims); the button re-enables; the chart updates.
+
+---
+
+<!-- merged from v1: Appendix B -- ModelData schema reference (still accurate) -->
+## Appendix B: `ModelData` fields
 
 ```python
 class ModelData:
-    qr_fits: dict[float, dict]     # {quantile → {"intercept", "slope", "r2"}}
-    QR_QUANTILES: list[float]      # all fitted quantiles (0.001–0.999)
+    qr_fits: dict[float, dict]     # {quantile -> {"intercept", "slope", "r2"}}
+    QR_QUANTILES: list[float]      # all fitted quantiles (0.001-0.999)
     ols_intercept: float           # OLS regression intercept
     ols_slope: float               # OLS regression slope
     genesis: pd.Timestamp          # "2009-07-25"
@@ -1057,28 +1439,33 @@ class ModelData:
     qr_linestyles: dict            # line style per quantile
     # Visual config: PLOT_BG_COLOR, TEXT_COLOR, TITLE_COLOR, etc.
     # Heatmap config: CAGR_SEG_*, CAGR_GRAD_STEPS, TABLE_YEARS, etc.
+    # resqr_coefs: dict[short, dict]  # per-model residual-QR sigma bundles
 ```
 
-## Appendix B: Key Constants
+<!-- merged from v1: Appendix C -- key constants -->
+## Appendix C: Key constants
 
 ### `_app_ctx.py`
 
 | Constant | Value | Purpose |
-|----------|-------|---------|
+|---|---|---|
 | `FREQ_PPY` | `{Daily:365, Weekly:52, Monthly:12, Quarterly:4, Annually:1}` | Periods per year |
 | `FREQ_STEP_DAYS` | `{Daily:1, Weekly:7, Monthly:30, Quarterly:91, Annually:365}` | MC step size |
 | `MAX_USD` | `4,294,967,295` | uint32 clamp for dollar inputs |
 | `SC_DEFAULT_RATE` | `13.0` | Stack-celerator default interest rate (%) |
 | `SC_DEFAULT_PRICE` | `80,000` | Stack-celerator default entry price ($) |
 
-Note: `BTC_ORANGE` moved to `colors.py`. `FONT_LEGEND` removed (now `CHART_FONT_LEGEND` in `colors.py`).
+Note: `BTC_ORANGE` now lives in `colors.py`; `FONT_LEGEND` replaced by
+`CHART_FONT_LEGEND` in `colors.py`.
 
-### `colors.py` Section 5 — Appearance constants (single source of truth)
+### `colors.py` section 5 -- appearance constants
 
-All rendering constants now live in `btc_web/colors.py` Section 5. The old `figures/common.py` private constants (`_QR_LINE_WIDTH`, `_SHADE_ALPHA`, etc.) are backward-compat aliases that import from `colors.py`.
+All rendering constants live in `btc_web/colors.py` Section 5. Old
+`figures/common.py` private constants (`_QR_LINE_WIDTH`, `_SHADE_ALPHA`,
+etc.) are backward-compat aliases that import from `colors.py`.
 
 | Constant | Value | Purpose |
-|----------|-------|---------|
+|---|---|---|
 | `TRACE_WIDTH` | `2.5` | Primary quantile trace line width |
 | `TRACE_WIDTH_OVERLAY` | `2.0` | Alt-model overlay line width |
 | `TRACE_WIDTH_COMPOSITE` | `2.0` | Bubble composite trace |
@@ -1096,8 +1483,45 @@ See `colors.py` for the full list (~150 constants across 5 sections).
 ### `mc_cache.py` free tier
 
 | Constant | Value |
-|----------|-------|
-| `MC_FREE_SIMS` | 100 |
-| `MC_FREE_START_YRS` | [2028, 2031] |
+|---|---|
+| `MC_BINS` | 5 |
+| `MC_SIMS` | 200 |
+| `MC_FREE_SIMS` | 200 |
+| `MC_FREE_START_YRS` | `[2028, 2031]` |
 | `MC_FREE_ENTRY_Q` | 10 |
-| `MC_FREE_YEARS` | [10, 20] |
+| `MC_FREE_YEARS` | `[10, 20]` |
+
+---
+
+<!-- merged from v1: tools/sweep_support.py developer tool -->
+## Appendix D: Developer tools
+
+### `tools/sweep_support.py` -- support-line parameter sweep
+
+2-D grid search over `SUPPORT_PERCENTILE` x `SUPPORT_QUANTILE` to find
+the combination that maximises the bubble model composite R-squared.
+Lifts the core fitting logic (support line -> peak detection -> bubble
+fitting -> R-squared) from the model toolkit without running the full
+pipeline.
+
+```bash
+btc_venv/bin/python3 tools/sweep_support.py [--pct-lo 5] [--pct-hi 50] \
+    [--pct-step 5] [--q-lo 0.1] [--q-hi 0.9] [--q-step 0.1] \
+    [--out sweep_support.jpg]
+```
+
+Outputs a 2-panel heatmap (R-squared composite + support slope) plus
+the top 10 parameter combinations. Run after changing `BUBBLE_YEARS`,
+`FIT_MIN_DATE`, or the genesis date to re-optimise.
+
+---
+
+*Source-of-truth locations (open these to double-check any claim):*
+- `btc_web/app.py` -- registration + boot
+- `btc_web/_app_ctx.py` -- shared state
+- `btc_web/tab_defaults.py` -- canonical defaults
+- `btc_web/snapshot.py` -- share-link schema
+- `btc_web/colors.py` -- appearance SSOT
+- `btc_core/__init__.py` -- model public API
+- `tools/refit_all_ppl.py` + `tools/build_bm_model.py` -- fit pipeline
+- `CLAUDE.md` -- project conventions for human + AI contributors

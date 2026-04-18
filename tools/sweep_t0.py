@@ -299,36 +299,52 @@ def main():
     ax.legend(loc="best", fontsize=9, framealpha=0.8)
     ax.grid(True, color=GRID_COLOR, alpha=0.5, linewidth=0.5)
 
-    # Panel 2: R²
+    # Panel 2: R² — holdout across 3 weightings + fit log_density for reference
     ax = axes[1]
-    ax.plot(t0_grid, results["log_density"]["r2_fit"],
-            color=PL_C, linewidth=2.0,
-            label=f"R²_fit (in-sample, pre-{HOLDOUT_START.date()})")
     ax.plot(t0_grid, results["log_density"]["r2_holdout"],
-            color=PL_C, linewidth=2.0, linestyle="--",
-            label=f"R²_holdout (out-of-sample, ≥{HOLDOUT_START.date()})")
+            color=PL_C, linewidth=2.0,
+            label="R²_holdout · log_density")
+    ax.plot(t0_grid, results["unweighted"]["r2_holdout"],
+            color=PL_C, linewidth=1.2, alpha=0.5,
+            label="R²_holdout · unweighted")
+    ax.plot(t0_grid, results["1_over_t"]["r2_holdout"],
+            color=PL_C, linewidth=1.2, alpha=0.5, linestyle=":",
+            label="R²_holdout · 1/t")
+    ax.plot(t0_grid, results["log_density"]["r2_fit"],
+            color=PL_C, linewidth=1.5, linestyle="--", alpha=0.7,
+            label=f"R²_fit · log_density (in-sample ref.)")
     # Zoom y-axis to the interesting range
-    all_r2 = np.concatenate([results["log_density"]["r2_fit"],
-                             results["log_density"]["r2_holdout"]])
+    all_r2 = np.concatenate([
+        results["log_density"]["r2_fit"],
+        results["log_density"]["r2_holdout"],
+        results["unweighted"]["r2_holdout"],
+        results["1_over_t"]["r2_holdout"],
+    ])
     all_r2 = all_r2[~np.isnan(all_r2)]
     if len(all_r2):
         lo = max(all_r2.min() - 0.01, 0.0)
         hi = min(all_r2.max() + 0.01, 1.0)
         ax.set_ylim(lo, hi)
     ax.set_ylabel("R² (log-space)", color=TEXT_COLOR)
-    ax.legend(loc="best", fontsize=9, framealpha=0.8)
+    ax.legend(loc="best", fontsize=9, framealpha=0.8, ncol=2)
     ax.grid(True, color=GRID_COLOR, alpha=0.5, linewidth=0.5)
 
-    # Panel 3: σ — both σ_fit and σ_holdout
+    # Panel 3: σ — holdout across 3 weightings + fit log_density for reference
     ax = axes[2]
-    ax.plot(t0_grid, results["log_density"]["sigma_fit"],
-            color=PL_C, linewidth=2.0,
-            label=f"σ_fit (in-sample, pre-{HOLDOUT_START.date()})")
     ax.plot(t0_grid, results["log_density"]["sigma_holdout"],
-            color=PL_C, linewidth=2.0, linestyle="--",
-            label=f"σ_holdout (out-of-sample, ≥{HOLDOUT_START.date()})")
+            color=PL_C, linewidth=2.0,
+            label="σ_holdout · log_density")
+    ax.plot(t0_grid, results["unweighted"]["sigma_holdout"],
+            color=PL_C, linewidth=1.2, alpha=0.5,
+            label="σ_holdout · unweighted")
+    ax.plot(t0_grid, results["1_over_t"]["sigma_holdout"],
+            color=PL_C, linewidth=1.2, alpha=0.5, linestyle=":",
+            label="σ_holdout · 1/t")
+    ax.plot(t0_grid, results["log_density"]["sigma_fit"],
+            color=PL_C, linewidth=1.5, linestyle="--", alpha=0.7,
+            label="σ_fit · log_density (in-sample ref.)")
     ax.set_ylabel("σ (log₁₀ price residual std)", color=TEXT_COLOR)
-    ax.legend(loc="best", fontsize=9, framealpha=0.8)
+    ax.legend(loc="best", fontsize=9, framealpha=0.8, ncol=2)
     ax.grid(True, color=GRID_COLOR, alpha=0.5, linewidth=0.5)
 
     # Panel 4: sample counts — fit vs holdout

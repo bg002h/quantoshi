@@ -35,8 +35,8 @@ import matplotlib.dates as mdates
 PL_C = MODEL_TRACE_COLORS["pl"]
 QR_C = MODEL_TRACE_COLORS["qr"]
 
-BETA_LO = 4.5
-BETA_HI = 6.0
+BETA_LO = 4.55
+BETA_HI = 5.80
 DATE_LO = pd.Timestamp("2009-01-03")
 DATE_HI = pd.Timestamp("2009-12-31")
 CANONICAL_T0 = pd.Timestamp("2009-07-25")
@@ -92,12 +92,12 @@ def main():
     # Zoom y-axis
     ax.set_ylim(BETA_LO, BETA_HI)
 
-    # Horizontal gridlines at every 0.1
-    major_y = np.arange(BETA_LO, BETA_HI + 0.001, 0.1)
+    # Horizontal gridlines at round 0.1 values that fall in [BETA_LO, BETA_HI].
+    major_y = np.arange(np.ceil(BETA_LO * 10) / 10, BETA_HI + 0.001, 0.1)
     ax.set_yticks(major_y)
     ax.grid(True, axis="y", color=GRID_MAJOR_COLOR, linewidth=0.7, alpha=0.9)
-    # Minor gridlines at every 0.05
-    minor_y = np.arange(BETA_LO, BETA_HI + 0.001, 0.05)
+    # Minor gridlines at round 0.05 values.
+    minor_y = np.arange(np.ceil(BETA_LO * 20) / 20, BETA_HI + 0.001, 0.05)
     ax.set_yticks(minor_y, minor=True)
     ax.grid(True, axis="y", which="minor",
             color=GRID_MAJOR_COLOR, linewidth=0.35, alpha=0.6)
@@ -130,7 +130,7 @@ def main():
     ax.set_xlabel("t₀ (time origin)", color=TEXT_COLOR)
     ax.set_ylabel("β (power-law exponent)", color=TEXT_COLOR)
     ax.set_title(
-        f"Power-law exponent vs t₀ — calendar year 2009 (β ∈ [{BETA_LO:.1f}, {BETA_HI:.1f}])",
+        f"Power-law exponent vs t₀ — calendar year 2009 (β ∈ [{BETA_LO:g}, {BETA_HI:g}])",
         fontsize=13, fontweight="bold", color=TEXT_COLOR)
     ax.legend(loc="best", fontsize=10, framealpha=0.85)
 

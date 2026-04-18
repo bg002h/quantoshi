@@ -40,6 +40,17 @@ def _eval_fit_on_range(r, t_min: float, t_max: float):
     """
     if r.name == "Exp":
         t_plot = np.linspace(t_min, t_max, _T_PLOT_POINTS)
+    elif r.name == "Gomp":
+        # Gompertz accepts any real t (not log); extend linearly so the
+        # asymptote on the right is visible.
+        lo = max(t_min, 1e-6)
+        hi = max(t_max, lo * 2)
+        t_plot = np.linspace(lo, hi, _T_PLOT_POINTS)
+        K = r.params.get("K"); r_ = r.params.get("r"); t0 = r.params.get("t0")
+        if K is None or r_ is None or t0 is None:
+            return r.t_plot, r.y_plot
+        y_plot = K * np.exp(-np.exp(-r_ * (t_plot - t0)))
+        return t_plot, y_plot
     else:
         # Log-log models need strictly positive t
         lo = max(t_min, 1e-6)
@@ -306,6 +317,7 @@ def _build_figure(results: dict, scale: str, t0_label: str,
         "QR":       MODEL_TRACE_COLORS.get("qr", FALLBACK_MODEL_GRAY),
         "BM floor": MODEL_TRACE_COLORS.get("bub", FALLBACK_MODEL_GRAY),
         "Exp":      MODEL_TRACE_COLORS.get("exp", FALLBACK_MODEL_GRAY),
+        "Gomp":     MODEL_TRACE_COLORS.get("gomp", FALLBACK_MODEL_GRAY),
     }
 
     # Pre-compute per-t_plot date strings for calendar mode so each fit
@@ -549,6 +561,8 @@ def custom_time_callback(active, scale, cal_preset, cal_custom,
             results["bm_floor"] = cf.fit_bm_floor(fi)
         if "exp" in models:
             results["exp"] = cf.fit_exp(fi)
+        if "gomp" in models:
+            results["gomp"] = cf.fit_gomp(fi)
 
         elapsed_ms = int((time.perf_counter() - t_start) * 1000)
         if elapsed_ms > 5000:

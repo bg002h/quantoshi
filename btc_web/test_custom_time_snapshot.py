@@ -30,8 +30,9 @@ def test_cta_ids_registered():
 
 def test_cta_models_order_frozen():
     """Bitmask encoding depends on this exact order; reordering breaks
-    all existing share links."""
-    assert _CHECKLIST_OPTIONS["cta-models"] == ["pl", "qr", "bm_floor", "exp"]
+    all existing share links. Appending new entries at the end (like
+    `gomp`) is safe — old links' bits remain aligned."""
+    assert _CHECKLIST_OPTIONS["cta-models"] == ["pl", "qr", "bm_floor", "exp", "gomp"]
     assert _CHECKLIST_OPTIONS["cta-active"] == ["yes"]
 
 
@@ -52,10 +53,10 @@ def test_cta_active_roundtrip_set():
 
 
 def test_cta_models_bitmask_all_combinations():
-    """All 16 subsets of {pl, qr, bm_floor, exp} roundtrip."""
-    for r in range(5):
+    """All 32 subsets of {pl, qr, bm_floor, exp, gomp} roundtrip."""
+    for r in range(6):
         for combo in itertools.combinations(
-            ["pl", "qr", "bm_floor", "exp"], r):
+            ["pl", "qr", "bm_floor", "exp", "gomp"], r):
             state = _base_state()
             state["cta-models:value"] = list(combo)
             encoded = _encode_snapshot(state)

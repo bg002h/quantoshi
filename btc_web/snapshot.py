@@ -465,7 +465,7 @@ _CHECKLIST_OPTIONS = {
     "cta-active":       ["yes"],
     # cta-models: order is LOAD-BEARING for bitmask encoding.
     # FREEZE THIS LIST. Reordering or removing entries breaks old share links.
-    "cta-models":       ["pl", "qr", "bm_floor", "exp"],
+    "cta-models":       ["pl", "qr", "bm_floor", "exp", "gomp"],
 }
 
 

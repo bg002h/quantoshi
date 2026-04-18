@@ -260,6 +260,94 @@ def fit_exp(fi: FitInput) -> Optional[FitResult]:
     )
 
 
+def fit_gomp(fi: FitInput) -> Optional[FitResult]:
+    """Gompertz — non-linear curve_fit on log10(price) = K·exp(-exp(-r·(t-t0))).
+
+    Uses DE for robust global search, then curve_fit polish. Bounds keep the
+    saturation K in a BTC-plausible range and t0 inside the fitting horizon.
+    Honors fi.weighting via _compute_weights (same pattern as fit_pl).
+    """
+    import scipy.optimize as sopt
+    t0_wall = time.perf_counter()
+    mask = fi.t > 0  # Gompertz model is defined for t>0 only
+    t = fi.t[mask]
+    price = fi.price[mask]
+    n = len(t)
+    if n < 10:
+        return None
+    log_p = np.log10(price)
+    weights, degraded = _compute_weights(t, fi.weighting)
+
+    def _model(tt, K, r, t0):
+        return K * np.exp(-np.exp(-r * (tt - t0)))
+
+    # Bounds:
+    #   K  in [3, 12]    — saturation log10 price (10^3=$1k up to 10^12=$1T)
+    #   r  in [0.05, 3]  — growth rate
+    #   t0 in [0.1, t.max()] — inflection inside data range (extrapolation-safe)
+    bounds_lo = [3.0, 0.05, 0.1]
+    bounds_hi = [12.0, 3.0, max(float(t.max()), 1.0)]
+
+    def _objective(params):
+        pred = _model(t, *params)
+        if fi.weighting != "none":
+            return float(np.sum(weights * (log_p - pred) ** 2))
+        return float(np.sum((log_p - pred) ** 2))
+
+    bounds = list(zip(bounds_lo, bounds_hi))
+    try:
+        res = sopt.differential_evolution(
+            _objective, bounds, maxiter=2000, seed=42,
+            tol=1e-12, polish=True, popsize=20, workers=1,
+        )
+        popt = res.x
+    except Exception as e:
+        _LOG.warning("fit_gomp DE failed: %s", e)
+        return None
+
+    # curve_fit polish. sigma = 1/sqrt(w) gives the same weighted-least-squares
+    # loss as weights · residual². Skip sigma when weighting=none so we don't
+    # pin curve_fit into constant-1 sigmas when the default is None.
+    sigma = None
+    if fi.weighting != "none":
+        sigma = np.where(weights > 0,
+                         1.0 / np.sqrt(np.maximum(weights, 1e-12)),
+                         np.inf)
+    try:
+        popt, _ = sopt.curve_fit(_model, t, log_p, p0=popt,
+                                 bounds=(bounds_lo, bounds_hi),
+                                 sigma=sigma, maxfev=10000)
+    except Exception:
+        pass  # keep DE result
+
+    K, r, t0 = float(popt[0]), float(popt[1]), float(popt[2])
+    pred_train = _model(t, K, r, t0)
+    if fi.weighting != "none":
+        wbar = (weights * log_p).sum() / weights.sum()
+        ss_res = (weights * (log_p - pred_train) ** 2).sum()
+        ss_tot = (weights * (log_p - wbar) ** 2).sum()
+    else:
+        ss_res = float(np.sum((log_p - pred_train) ** 2))
+        ss_tot = float(np.sum((log_p - log_p.mean()) ** 2))
+    r2 = float(1.0 - ss_res / ss_tot) if ss_tot > 0 else 0.0
+
+    # Plot curve (re-extended at render time by _eval_fit_on_range)
+    lo = max(float(t.min()), 1e-3)
+    hi = float(t.max()) * 1.1
+    t_plot = np.logspace(np.log10(lo), np.log10(hi), _T_PLOT_POINTS)
+    y_plot = _model(t_plot, K, r, t0)
+
+    note = "weighting degraded (n<30)" if degraded else None
+    return FitResult(
+        name="Gomp",
+        params={"K": K, "r": r, "t0": t0},
+        t_plot=t_plot, y_plot=y_plot,
+        n_samples=n, r2=r2,
+        elapsed_ms=(time.perf_counter() - t0_wall) * 1000,
+        note=note,
+    )
+
+
 def fit_qr(fi: FitInput,
             quantiles: Optional[tuple] = None) -> Optional[FitResult]:
     """Quantile Regression — statsmodels QuantReg per-quantile.

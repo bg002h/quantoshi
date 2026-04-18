@@ -143,6 +143,45 @@ def test_fit_exp_returns_none_when_insufficient_samples():
 
 
 # ──────────────────────────────────────────────────────────────────────────
+# fit_gomp
+# ──────────────────────────────────────────────────────────────────────────
+
+def test_fit_gomp_recovers_params():
+    """Synthesize a noisy Gompertz curve; fit recovers K, r, t0 within bounds."""
+    rng = np.random.default_rng(0)
+    K_true, r_true, t0_true = 7.0, 0.3, 8.0
+    t = np.linspace(1.0, 20.0, 500)
+    log_p = K_true * np.exp(-np.exp(-r_true * (t - t0_true))) + rng.normal(0, 0.05, len(t))
+    fi = cf.FitInput(t=t, price=10 ** log_p, weighting="none")
+    r = cf.fit_gomp(fi)
+    assert r is not None
+    assert r.name == "Gomp"
+    # K should be within a reasonable neighbourhood
+    assert abs(r.params["K"] - K_true) < 0.5
+    assert r.r2 > 0.95
+
+
+def test_fit_gomp_returns_none_when_insufficient_samples():
+    fi = cf.FitInput(
+        t=np.linspace(1.0, 3.0, 5), price=np.array([100.0]*5),
+        weighting="none",
+    )
+    assert cf.fit_gomp(fi) is None
+
+
+def test_fit_gomp_drops_t_le_zero():
+    rng = np.random.default_rng(0)
+    n = 200
+    t = np.linspace(-2.0, 15.0, n)  # includes negatives and zero
+    log_p = 7.0 * np.exp(-np.exp(-0.3 * (np.maximum(t, 0.1) - 8.0))) + rng.normal(0, 0.05, n)
+    fi = cf.FitInput(t=t, price=10 ** log_p, weighting="none")
+    r = cf.fit_gomp(fi)
+    assert r is not None
+    # Only t > 0 samples kept
+    assert r.n_samples == int(np.sum(t > 0))
+
+
+# ──────────────────────────────────────────────────────────────────────────
 # fit_qr
 # ──────────────────────────────────────────────────────────────────────────
 

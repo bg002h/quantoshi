@@ -130,6 +130,7 @@ def custom_time_panel():
                         {"label": " Quantile Regression", "value": "qr"},
                         {"label": " BM floor", "value": "bm_floor"},
                         {"label": " Exponential", "value": "exp"},
+                        {"label": " Gompertz", "value": "gomp"},
                     ],
                     value=["pl", "qr", "bm_floor"],
                     labelStyle={"display": "block"},

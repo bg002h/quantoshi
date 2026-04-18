@@ -128,16 +128,29 @@ def _compute_r2_unweighted(log_p, pred):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=("oos", "full"), default="oos",
+    ap.add_argument("--mode", choices=("oos", "full", "floor"),
+                    default="oos",
                     help=("oos: strict pre-{HOLDOUT}/post-{HOLDOUT} train/test; "
-                          "full: fit on ALL data each t₀, in-sample metrics only"))
+                          "full: fit on ALL data each t₀, in-sample metrics only; "
+                          "floor: BM-floor method — OLS filter → bottom 20% "
+                          "residuals → QuantReg on support subset; R² evaluated "
+                          "against the floor subset only (bubbles excluded)"))
+    ap.add_argument("--floor-pct", type=float, default=0.20,
+                    help="bottom-percentile cutoff for floor mode (default 0.20)")
     args = ap.parse_args()
     mode = args.mode
-    is_full = (mode == "full")
+    is_full  = (mode == "full")
+    is_floor = (mode == "floor")
+    floor_pct = args.floor_pct
 
-    print(f"Mode: {mode} "
-          + ("(full-fit, in-sample metrics only, no holdout)"
-             if is_full else "(strict out-of-sample)"))
+    if is_floor:
+        mode_msg = (f"(BM-floor method, bottom-{floor_pct*100:.0f}% OLS "
+                    "residuals → QR q=0.5; R² on floor subset)")
+    elif is_full:
+        mode_msg = "(full-fit, in-sample metrics only, no holdout)"
+    else:
+        mode_msg = "(strict out-of-sample)"
+    print(f"Mode: {mode} {mode_msg}")
     print("Loading prices...")
     prices = load_prices("BitcoinPricesDaily.csv")
     df = prices.df_full.copy()
@@ -185,10 +198,11 @@ def main():
     for i, t0 in enumerate(t0_grid):
         t_all = (date_vals - t0.to_datetime64()).astype("timedelta64[D]").astype(float) / 365.25
 
-        if is_full:
-            # Full-fit mode: use ALL available data (t > 1 yr) each t₀.
-            # No train/test split; in-sample metrics only. Holdout arrays
-            # are empty; σ_holdout / R²_holdout stay NaN.
+        if is_full or is_floor:
+            # Full-fit / floor modes: use ALL available data (t > 1 yr)
+            # each t₀. No holdout. Holdout arrays empty; σ_holdout /
+            # R²_holdout stay NaN in full mode. Floor mode overwrites
+            # the "fit" columns with BM-floor-subset metrics below.
             fit_mask = t_all > T_MIN_FILTER
             hold_mask = np.zeros_like(fit_mask)
         else:
@@ -214,39 +228,96 @@ def main():
         t_hold     = t_all[hold_mask]
         log_p_hold = log_p_all[hold_mask]
 
-        for w_name in WEIGHTINGS:
-            weights = _compute_weights(t_fit, w_name)
+        if is_floor:
+            # ── BM-floor method ────────────────────────────────────
+            # Two-stage, matches tools/model_toolkit/support.py:fit_support:
+            #   1. OLS on ALL (log_t, log_p).
+            #   2. Keep bottom floor_pct of OLS residuals  →  support subset.
+            #   3. QuantReg(q=0.5) on support subset → floor slope/intercept.
+            # All metrics computed against the support subset only —
+            # bubble points are structurally excluded.
+            from scipy.stats import linregress as _linregress
+            ols = _linregress(log_t_fit, log_p_fit)
+            ols_resid = log_p_fit - (ols.intercept + ols.slope * log_t_fit)
+            cutoff = np.percentile(ols_resid, floor_pct * 100)
+            sup_mask_local = ols_resid <= cutoff
+            n_floor = int(sup_mask_local.sum())
+            if n_floor < 20:
+                # Too few floor points to QR-fit
+                continue
+            log_t_sup = log_t_fit[sup_mask_local]
+            log_p_sup = log_p_fit[sup_mask_local]
 
-            # OLS fit on pre-2015 data only
-            alpha, beta = _fit_ols(log_t_fit, log_p_fit, weights)
-            pred_fit = alpha + beta * log_t_fit
+            X_sup = sm.add_constant(log_t_sup)
+            try:
+                qr = sm.QuantReg(log_p_sup, X_sup).fit(q=0.5, max_iter=10000)
+                alpha_floor = float(qr.params[0])
+                beta_floor  = float(qr.params[1])
+            except Exception:
+                continue
 
-            # In-sample metrics (on the fit data)
-            sigma_fit = float(np.sqrt(
-                np.sum((log_p_fit - pred_fit) ** 2) / max(n_fit - 2, 1)))
-            r2_fit = _compute_r2_weighted(log_p_fit, pred_fit, weights)
+            pred_sup = alpha_floor + beta_floor * log_t_sup
+            # Floor-subset metrics
+            sigma_floor = float(np.sqrt(
+                np.sum((log_p_sup - pred_sup) ** 2) / max(n_floor - 2, 1)))
+            r2_floor = _compute_r2_unweighted(log_p_sup, pred_sup)
 
-            # Out-of-sample metrics (on 2015+ holdout — never seen in fit)
-            if len(t_hold) >= 10:
-                pred_hold = alpha + beta * np.log10(t_hold)
-                r2_holdout = _compute_r2_unweighted(log_p_hold, pred_hold)
-                sigma_holdout = float(np.sqrt(
-                    np.sum((log_p_hold - pred_hold) ** 2) /
-                    max(len(t_hold) - 2, 1)))
-            else:
-                r2_holdout = float("nan")
-                sigma_holdout = float("nan")
+            # Also compute all-data OLS metrics for a reference line
+            pred_all = ols.intercept + ols.slope * log_t_fit
+            sigma_all = float(np.sqrt(
+                np.sum((log_p_fit - pred_all) ** 2) / max(n_fit - 2, 1)))
+            r2_all = _compute_r2_unweighted(log_p_fit, pred_all)
 
-            # Median QR on the fit data
-            beta_qr = _fit_qr_median(log_t_fit, log_p_fit, weights, rng)
+            # Store floor metrics under 'log_density' slot (floor mode has
+            # no weighting variants — a single line per panel). The other
+            # two weightings get NaN so the plot function doesn't emit
+            # spurious overlays.
+            primary = results["log_density"]
+            primary["beta_ols"][i]      = beta_floor
+            primary["alpha_ols"][i]     = alpha_floor
+            primary["beta_qr"][i]       = float(ols.slope)  # repurposed: all-data OLS slope
+            primary["r2_fit"][i]        = r2_floor
+            primary["sigma_fit"][i]     = sigma_floor
+            primary["r2_holdout"][i]    = r2_all   # repurposed: all-data OLS R²
+            primary["sigma_holdout"][i] = sigma_all  # repurposed: all-data OLS σ
+            primary["n_fit"][i]         = n_floor
+            primary["n_holdout"][i]     = n_fit    # repurposed: pre-floor count
+            # Other weighting slots stay NaN so nothing plots on top.
 
-            results[w_name]["beta_ols"][i]      = beta
-            results[w_name]["alpha_ols"][i]     = alpha
-            results[w_name]["beta_qr"][i]       = beta_qr
-            results[w_name]["r2_fit"][i]        = r2_fit
-            results[w_name]["r2_holdout"][i]    = r2_holdout
-            results[w_name]["sigma_fit"][i]     = sigma_fit
-            results[w_name]["sigma_holdout"][i] = sigma_holdout
+        else:
+            for w_name in WEIGHTINGS:
+                weights = _compute_weights(t_fit, w_name)
+
+                # OLS fit on pre-2015 data only
+                alpha, beta = _fit_ols(log_t_fit, log_p_fit, weights)
+                pred_fit = alpha + beta * log_t_fit
+
+                # In-sample metrics (on the fit data)
+                sigma_fit = float(np.sqrt(
+                    np.sum((log_p_fit - pred_fit) ** 2) / max(n_fit - 2, 1)))
+                r2_fit = _compute_r2_weighted(log_p_fit, pred_fit, weights)
+
+                # Out-of-sample metrics (on 2015+ holdout — never seen in fit)
+                if len(t_hold) >= 10:
+                    pred_hold = alpha + beta * np.log10(t_hold)
+                    r2_holdout = _compute_r2_unweighted(log_p_hold, pred_hold)
+                    sigma_holdout = float(np.sqrt(
+                        np.sum((log_p_hold - pred_hold) ** 2) /
+                        max(len(t_hold) - 2, 1)))
+                else:
+                    r2_holdout = float("nan")
+                    sigma_holdout = float("nan")
+
+                # Median QR on the fit data
+                beta_qr = _fit_qr_median(log_t_fit, log_p_fit, weights, rng)
+
+                results[w_name]["beta_ols"][i]      = beta
+                results[w_name]["alpha_ols"][i]     = alpha
+                results[w_name]["beta_qr"][i]       = beta_qr
+                results[w_name]["r2_fit"][i]        = r2_fit
+                results[w_name]["r2_holdout"][i]    = r2_holdout
+                results[w_name]["sigma_fit"][i]     = sigma_fit
+                results[w_name]["sigma_holdout"][i] = sigma_holdout
 
         if (i + 1) % 50 == 0 or i == len(t0_grid) - 1:
             elapsed = _time.perf_counter() - t_start
@@ -277,7 +348,12 @@ def main():
                 "sigma_fit":     r["sigma_fit"][i],
                 "sigma_holdout": r["sigma_holdout"][i],
             })
-    suffix = "_fullfit" if is_full else ""
+    if is_floor:
+        suffix = "_floor"
+    elif is_full:
+        suffix = "_fullfit"
+    else:
+        suffix = ""
     out_csv = os.path.join(ROOT, "docs", f"sweep_t0{suffix}.csv")
     pd.DataFrame(rows).to_csv(out_csv, index=False)
     print(f"Wrote {out_csv}")
@@ -304,23 +380,53 @@ def main():
 
     # Panel 1: β
     ax = axes[0]
-    ax.plot(t0_grid, results["log_density"]["beta_ols"],
-            color=PL_C, linewidth=2.0, label="OLS · log_density")
-    ax.plot(t0_grid, results["unweighted"]["beta_ols"],
-            color=PL_C, linewidth=1.2, alpha=0.45, label="OLS · unweighted")
-    ax.plot(t0_grid, results["1_over_t"]["beta_ols"],
-            color=PL_C, linewidth=1.2, alpha=0.45, linestyle="--",
-            label="OLS · 1/t")
-    ax.plot(t0_grid, results["log_density"]["beta_qr"],
-            color=QR_C, linewidth=2.0, linestyle="--",
-            label="QR median · log_density")
+    if is_floor:
+        # Single method: QR q=0.5 on bottom-20% OLS residuals.
+        ax.plot(t0_grid, results["log_density"]["beta_ols"],
+                color=PL_C, linewidth=2.0,
+                label=f"β_floor (QR q=0.5 on bottom {int(floor_pct*100)}% residuals)")
+        # All-data OLS β stored in beta_qr slot (see per-t₀ code)
+        ax.plot(t0_grid, results["log_density"]["beta_qr"],
+                color=FALLBACK_MODEL_GRAY, linewidth=1.5, linestyle="--",
+                label="β_all-data (OLS, reference)")
+    else:
+        ax.plot(t0_grid, results["log_density"]["beta_ols"],
+                color=PL_C, linewidth=2.0, label="OLS · log_density")
+        ax.plot(t0_grid, results["unweighted"]["beta_ols"],
+                color=PL_C, linewidth=1.2, alpha=0.45, label="OLS · unweighted")
+        ax.plot(t0_grid, results["1_over_t"]["beta_ols"],
+                color=PL_C, linewidth=1.2, alpha=0.45, linestyle="--",
+                label="OLS · 1/t")
+        ax.plot(t0_grid, results["log_density"]["beta_qr"],
+                color=QR_C, linewidth=2.0, linestyle="--",
+                label="QR median · log_density")
     ax.set_ylabel("β (power-law exponent)", color=TEXT_COLOR)
     ax.legend(loc="best", fontsize=9, framealpha=0.8)
     ax.grid(True, color=GRID_COLOR, alpha=0.5, linewidth=0.5)
 
     # Panel 2: R²
     ax = axes[1]
-    if is_full:
+    if is_floor:
+        # Floor R² (on support subset only) + all-data OLS R² reference
+        ax.plot(t0_grid, results["log_density"]["r2_fit"],
+                color=PL_C, linewidth=2.0,
+                label="R²_floor (on support subset)")
+        ax.plot(t0_grid, results["log_density"]["r2_holdout"],
+                color=FALLBACK_MODEL_GRAY, linewidth=1.5, linestyle="--",
+                label="R²_all-data (OLS reference)")
+        all_r2 = np.concatenate([
+            results["log_density"]["r2_fit"],
+            results["log_density"]["r2_holdout"],
+        ])
+        all_r2 = all_r2[~np.isnan(all_r2)]
+        if len(all_r2):
+            lo = max(all_r2.min() - 0.01, 0.0)
+            hi = min(all_r2.max() + 0.01, 1.0)
+            ax.set_ylim(lo, hi)
+        ax.set_ylabel("R² (log-space)", color=TEXT_COLOR)
+        ax.legend(loc="best", fontsize=9, framealpha=0.8)
+        ax.grid(True, color=GRID_COLOR, alpha=0.5, linewidth=0.5)
+    elif is_full:
         # Full-fit mode: only in-sample R² exists; show all 3 weightings.
         ax.plot(t0_grid, results["log_density"]["r2_fit"],
                 color=PL_C, linewidth=2.0,
@@ -364,7 +470,17 @@ def main():
 
     # Panel 3: σ
     ax = axes[2]
-    if is_full:
+    if is_floor:
+        ax.plot(t0_grid, results["log_density"]["sigma_fit"],
+                color=PL_C, linewidth=2.0,
+                label="σ_floor (on support subset)")
+        ax.plot(t0_grid, results["log_density"]["sigma_holdout"],
+                color=FALLBACK_MODEL_GRAY, linewidth=1.5, linestyle="--",
+                label="σ_all-data (OLS reference)")
+        ax.set_ylabel("σ (log₁₀ price residual std)", color=TEXT_COLOR)
+        ax.legend(loc="best", fontsize=9, framealpha=0.8)
+        ax.grid(True, color=GRID_COLOR, alpha=0.5, linewidth=0.5)
+    elif is_full:
         ax.plot(t0_grid, results["log_density"]["sigma_fit"],
                 color=PL_C, linewidth=2.0,
                 label="σ · log_density")
@@ -393,7 +509,14 @@ def main():
 
     # Panel 4: sample counts
     ax = axes[3]
-    if is_full:
+    if is_floor:
+        ax.plot(t0_grid, results["log_density"]["n_fit"],
+                color=FALLBACK_MODEL_GRAY, linewidth=1.5,
+                label=f"n_floor (bottom {int(floor_pct*100)}% support subset)")
+        ax.plot(t0_grid, results["log_density"]["n_holdout"],
+                color=FALLBACK_MODEL_GRAY, linewidth=1.5, linestyle="--",
+                label=f"n_all (t > {T_MIN_FILTER} yr)")
+    elif is_full:
         ax.plot(t0_grid, results["log_density"]["n_fit"],
                 color=FALLBACK_MODEL_GRAY, linewidth=1.5,
                 label=f"n_fit (t > {T_MIN_FILTER} yr, all data)")
@@ -415,7 +538,12 @@ def main():
     # Annotations: canonical t₀ + optima
     # ──────────────────────────────────────────────────────────────
     # Pick the right arrays for the mode.
-    if is_full:
+    if is_floor:
+        sigma_primary = results["log_density"]["sigma_fit"]
+        r2_primary    = results["log_density"]["r2_fit"]
+        sigma_label   = "σ_floor"
+        r2_label      = "R²_floor"
+    elif is_full:
         # Full-fit: in-sample metrics are the only option.
         sigma_primary = results["log_density"]["sigma_fit"]
         r2_primary    = results["log_density"]["r2_fit"]
@@ -465,19 +593,24 @@ def main():
     axes[-1].set_xlabel("t₀ (time origin)", color=TEXT_COLOR)
 
     # Title + subtitle + footer
-    mode_suffix_title = (
-        " — full-fit (all data, in-sample)" if is_full
-        else " — strict out-of-sample"
-    )
+    if is_floor:
+        mode_suffix_title = f" — BM-floor method (bottom {int(floor_pct*100)}% residuals)"
+    elif is_full:
+        mode_suffix_title = " — full-fit (all data, in-sample)"
+    else:
+        mode_suffix_title = " — strict out-of-sample"
     fig.suptitle(
         f"Power-law fit quality vs time origin{mode_suffix_title}",
         fontsize=14, fontweight="bold", y=0.995, color=TEXT_COLOR,
     )
-    mode_subtitle = (
-        "  ·  fit on all t > 1 yr, in-sample metrics"
-        if is_full
-        else f"  ·  fit pre-{HOLDOUT_START.date()}, eval post-{HOLDOUT_START.date()}"
-    )
+    if is_floor:
+        mode_subtitle = (f"  ·  OLS → bottom-{int(floor_pct*100)}% "
+                          "residuals → QR q=0.5; R² on floor subset only")
+    elif is_full:
+        mode_subtitle = "  ·  fit on all t > 1 yr, in-sample metrics"
+    else:
+        mode_subtitle = (f"  ·  fit pre-{HOLDOUT_START.date()}, "
+                          f"eval post-{HOLDOUT_START.date()}")
     fig.text(
         0.5, 0.973,
         r"$\log_{10}(\mathrm{price}) = \alpha + \beta\,\log_{10}(t - t_0)$"

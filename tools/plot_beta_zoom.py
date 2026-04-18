@@ -35,7 +35,7 @@ import matplotlib.dates as mdates
 PL_C = MODEL_TRACE_COLORS["pl"]
 QR_C = MODEL_TRACE_COLORS["qr"]
 
-BETA_LO = 5.0
+BETA_LO = 4.5
 BETA_HI = 6.0
 DATE_LO = pd.Timestamp("2009-01-03")
 DATE_HI = pd.Timestamp("2009-12-31")
@@ -129,8 +129,9 @@ def main():
 
     ax.set_xlabel("t₀ (time origin)", color=TEXT_COLOR)
     ax.set_ylabel("β (power-law exponent)", color=TEXT_COLOR)
-    ax.set_title("Power-law exponent vs t₀ — zoom to β ∈ [5, 6]",
-                  fontsize=13, fontweight="bold", color=TEXT_COLOR)
+    ax.set_title(
+        f"Power-law exponent vs t₀ — calendar year 2009 (β ∈ [{BETA_LO:.1f}, {BETA_HI:.1f}])",
+        fontsize=13, fontweight="bold", color=TEXT_COLOR)
     ax.legend(loc="best", fontsize=10, framealpha=0.85)
 
     # Footer — annotate canonical β value
@@ -147,8 +148,8 @@ def main():
                   alpha=0.75, color=TEXT_COLOR)
 
     fig.tight_layout(rect=(0, 0.04, 1, 1))
-    svg_path = os.path.join(ROOT, "docs", "beta_zoom_5_6.svg")
-    jpg_path = os.path.join(ROOT, "docs", "beta_zoom_5_6.jpg")
+    svg_path = os.path.join(ROOT, "docs", "beta_zoom_2009.svg")
+    jpg_path = os.path.join(ROOT, "docs", "beta_zoom_2009.jpg")
     fig.savefig(svg_path, bbox_inches="tight", facecolor=PLOT_BG_COLOR)
     fig.savefig(jpg_path, bbox_inches="tight", facecolor=PLOT_BG_COLOR, dpi=150)
     plt.close(fig)

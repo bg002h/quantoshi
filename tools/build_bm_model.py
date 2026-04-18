@@ -67,7 +67,7 @@ def _build_model_instances(md_obj, price_years, price_prices, quantiles):
     instances["pca"] = bc.PCAModel(price_years, price_prices, quantiles,
                                     source_models=instances)
     instances["grdy"] = bc.GreedyModel(price_years, price_prices, quantiles)
-    instances["gomp"] = bc.LogisticModel(price_years, price_prices, quantiles)
+    instances["gomp"] = bc.GompertzModel(price_years, price_prices, quantiles)
     instances["bpl"] = bc.BrokenPowerLawModel(price_years, price_prices, quantiles)
     # HybPPL config variants (36)
     for cfg_key in bc._HYBPPL_CONFIG_PARAMS:

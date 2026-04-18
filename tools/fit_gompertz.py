@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fit Logistic Growth (Gompertz) model to Bitcoin price history.
+"""Fit Gompertz model to Bitcoin price history.
 
 Model: log10(price) = K * exp(-exp(-r * (t - t0)))
 
@@ -7,8 +7,8 @@ K = carrying capacity (log10 of max price), r = growth rate,
 t0 = inflection point (years since genesis).
 
 Usage:
-    btc_venv/bin/python3 tools/fit_logistic.py              # fit and print
-    btc_venv/bin/python3 tools/fit_logistic.py --update      # fit and update the btc_core/ package
+    btc_venv/bin/python3 tools/fit_gompertz.py              # fit and print
+    btc_venv/bin/python3 tools/fit_gompertz.py --update      # fit and update the btc_core/ package
 """
 import os
 import sys
@@ -26,11 +26,6 @@ from scipy.optimize import curve_fit, differential_evolution
 def gompertz_log10(t, K, r, t0):
     """Gompertz: log10(price) = K * exp(-exp(-r * (t - t0)))."""
     return K * np.exp(-np.exp(-r * (t - t0)))
-
-
-def logistic_log10(t, K, r, t0):
-    """Logistic: log10(price) = K / (1 + exp(-r * (t - t0)))."""
-    return K / (1.0 + np.exp(-r * (t - t0)))
 
 
 def main():
@@ -89,9 +84,9 @@ def main():
 
         import re
         replacements = [("_K", K), ("_r", r), ("_t0", t0)]
-        cls_pos = src.find("class LogisticModel")
+        cls_pos = src.find("class GompertzModel")
         if cls_pos == -1:
-            print("  WARNING: could not find LogisticModel class")
+            print("  WARNING: could not find GompertzModel class")
             sys.exit(1)
         else:
             next_class = src.find("\nclass ", cls_pos + 1)
@@ -106,13 +101,13 @@ def main():
                     new_line = re.sub(pattern, rf"\g<1>{new_val}  ", old_line)
                     new_section = section.replace(old_line, new_line, 1)
                     src = src[:cls_pos] + new_section + src[cls_end:]
-                    cls_pos = src.find("class LogisticModel")
+                    cls_pos = src.find("class GompertzModel")
                     next_class = src.find("\nclass ", cls_pos + 1)
                     cls_end = next_class if next_class != -1 else len(src)
                     section = src[cls_pos:cls_end]
                     print(f"  {name} = {new_val.strip()}")
                 else:
-                    print(f"  WARNING: could not find {name} in LogisticModel")
+                    print(f"  WARNING: could not find {name} in GompertzModel")
 
         with open(core_path, "w") as f:
             f.write(src)

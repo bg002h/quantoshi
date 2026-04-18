@@ -184,8 +184,8 @@ def _eval_model(model_name, t, lp):
         return lp - pred
 
     elif model_name == "gomp":
-        from btc_core import LogisticModel
-        m = LogisticModel
+        from btc_core import GompertzModel
+        m = GompertzModel
         t_safe = np.maximum(t, 0.1)
         pred = m._K * np.exp(-np.exp(-m._r * (t_safe - m._t0)))
         return lp - pred

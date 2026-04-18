@@ -52,7 +52,7 @@ SCRIPTS = [
     ("EPPL configs",   "tools/fit_all_eppl_configs.py"),
 
     # Other models
-    ("Logistic",       "tools/fit_logistic.py"),
+    ("Gompertz",       "tools/fit_gompertz.py"),
     ("Broken PL",      "tools/fit_bpl.py"),
 ]
 

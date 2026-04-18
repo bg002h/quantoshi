@@ -225,7 +225,7 @@ def main():
             # Insert before first class that uses it
             insert_pos = src.find("class HybPPLConfigModel")
             if insert_pos == -1:
-                insert_pos = src.find("class LogisticModel")
+                insert_pos = src.find("class GompertzModel")
             if insert_pos == -1:
                 print("WARNING: Could not find insertion point")
                 return

@@ -2,7 +2,7 @@
 import plotly.graph_objects as go
 from btc_core import (PriceModel, _FitsBasedModel, BubbleModel, PowerLawModel,
                       S2FModel, QuantileRegressionModel,
-                      LogisticModel, BrokenPowerLawModel,
+                      GompertzModel, BrokenPowerLawModel,
                       Hyb2LModel, Hyb2CModel, Hyb2BModel, Hyb4DModel,
                       PCAModel, GreedyModel, EntropyPPLModel,
                       HybPPLConfigModel, _HYBPPL_CONFIG_PARAMS,
@@ -1671,13 +1671,13 @@ class TestResolveHmLpplMaster:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# New models: Logistic Growth + Broken Power Law
+# Gompertz + Broken Power Law
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-class TestLogisticModel:
+class TestGompertzModel:
     def setup_method(self):
-        self.m = LogisticModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+        self.m = GompertzModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 
     def test_short_name(self):
         assert self.m.short_name == "gomp"

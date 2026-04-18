@@ -140,25 +140,30 @@ class ExponentialModel(_ShrinkingBandsMixin):
 
 
 
-class LogisticModel(_ShrinkingBandsMixin):
-    """Logistic/Gompertz growth model with Gaussian quantile bands.
+class GompertzModel(_ShrinkingBandsMixin):
+    """Gompertz growth model with Gaussian quantile bands.
 
-    Gompertz: log10(price) = K * exp(-exp(-r * (t - t0)))
+    log10(price) = K * exp(-exp(-r * (t - t0)))
     where K = carrying capacity (log10 of max price), r = growth rate,
     t0 = inflection point.
 
     Provides an upper saturation bound that power law models lack.
+
+    Note: Previously named `LogisticModel`, but the formula is Gompertz
+    (asymmetric S-curve, not the symmetric logistic L/(1+exp(-k(t-t0)))).
+    Renamed 2026-04-17 to eliminate confusion; short_name remains "gomp"
+    so share links and cached snapshots continue to resolve.
     """
-    name = "Logistic Growth"
+    name = "Gompertz"
     short_name = "gomp"
     legend_name = "Gomp"
     dash_style = "dot"
     quantized = True
 
-    # Fitted parameters (will be overwritten by fit_logistic.py --update)
-    _K  =             4.888545  
-    _r  =             0.302367  
-    _t0 =             4.373878  
+    # Fitted parameters (will be overwritten by fit_gompertz.py --update)
+    _K  =             4.888545
+    _r  =             0.302367
+    _t0 =             4.373878
 
     def __init__(self, price_years, price_prices, quantiles):
         mask = price_years >= 1.0

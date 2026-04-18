@@ -383,11 +383,11 @@ def _eppl_coeff_table():
     ])
 
 
-def _logistic_coeff_table():
-    """Live coefficient table for Logistic Growth Model."""
+def _gompertz_coeff_table():
+    """Live coefficient table for Gompertz Model."""
     m = _app_ctx.PRICE_MODELS.get("gomp")
     if m is None:
-        return _coeff_table([("(Logistic model not loaded)", "\u2014")])
+        return _coeff_table([("(Gompertz model not loaded)", "\u2014")])
     max_price = 10.0 ** m._K
     return _coeff_table([
         ("K (carrying capacity, log\u2081\u2080 USD)", f"{m._K:.4f}  (${max_price:,.0f})"),

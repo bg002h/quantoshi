@@ -5,7 +5,7 @@
 #   LinPPL, HybPPL, HybPPL DD, Hyb2L, Hyb2C, Hyb2B, Hyb4D
 #   HybPPL config models (36 configs)
 #   EPPL config models (36 configs)
-#   Logistic (Gompertz), Broken Power Law
+#   Gompertz, Broken Power Law
 # Then flushes Redis and restarts quantoshi.
 #
 # Replaces the old quantoshi-lppl-refit.service.

@@ -24,7 +24,7 @@ from ._helpers import (
     _pca_expanded_formula,
     _pca_basis_listing,
     _eppl_coeff_table,
-    _logistic_coeff_table,
+    _gompertz_coeff_table,
     _bpl_coeff_table,
     _qr_table,
     _comparison_table,
@@ -1686,15 +1686,16 @@ where $t$ = years since optimal time origin (2009-07-25, linear, not log-transfo
                             ]),
                         ], title="Exponential (included for comparison)", item_id="mi-exp"),
 
-                        # ── 4b. Logistic Growth (Gompertz) ──
+                        # ── 4b. Gompertz ──
                         dbc.AccordionItem([
                             html.H6("Formula"),
                             dcc.Markdown(r"""
 $$\log_{10}(\text{price}) = K \cdot \exp\!\big(-\exp(-r \cdot (t - t_0))\big) + z_q \cdot \sigma$$
 
-This is the **Gompertz** form of logistic growth. $K$ is the carrying capacity
-(log$_{10}$ of the maximum price Bitcoin can reach), $r$ controls the growth rate,
-and $t_0$ is the inflection point where growth rate is maximized.
+The **Gompertz** curve is an asymmetric S-curve that saturates more gradually
+than the symmetric logistic. $K$ is the carrying capacity (log$_{10}$ of the
+maximum price Bitcoin can reach), $r$ controls the growth rate, and $t_0$ is
+the inflection point where growth rate is maximized.
                             """, mathjax=True, className="mb-3"),
                             html.H6("Method"),
                             html.P(
@@ -1703,18 +1704,18 @@ and $t_0$ is the inflection point where growth rate is maximized.
                             ),
                             html.H6("Motivation"),
                             html.P(
-                                "All other Quantoshi models (PL, LPPL, etc.) are unbounded \u2014 "
-                                "they predict infinite price given enough time. The logistic model "
+                                "All other Quantoshi power-law models (PL, LPPL, etc.) are unbounded \u2014 "
+                                "they predict infinite price given enough time. The Gompertz model "
                                 "asks: what if Bitcoin adoption saturates? It provides an upper "
                                 "bound that no power law model can."
                             ),
                             html.H6("Fitted Coefficients"),
-                            _logistic_coeff_table(),
+                            _gompertz_coeff_table(),
                             html.H6("Caveats"),
                             html.Ul([
                                 html.Li(
                                     "The carrying capacity K is poorly constrained by current data \u2014 "
-                                    "Bitcoin may still be in early growth phase where logistic and "
+                                    "Bitcoin may still be in early growth phase where Gompertz and "
                                     "power law are indistinguishable."
                                 ),
                                 html.Li(
@@ -1726,7 +1727,7 @@ and $t_0$ is the inflection point where growth rate is maximized.
                                     "Gompertz curve cannot capture the early explosive growth as well."
                                 ),
                             ]),
-                        ], title="Logistic Growth (Gompertz)", item_id="mi-gomp"),
+                        ], title="Gompertz", item_id="mi-gomp"),
 
                         # ── 4c. Broken Power Law ──
                         dbc.AccordionItem([

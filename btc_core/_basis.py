@@ -225,22 +225,25 @@ class PCAModel(_ShrinkingBandsMixin):
 
 
 class GreedyModel(_ShrinkingBandsMixin):
-    """Greedy forward BIC-selected model: 5 oscillatory terms from LPPL/HybPPL.
+    """Greedy forward BIC-selected model: 5 oscillatory terms from a
+    dictionary of undamped / hybrid-damped / entropy-damped log- and
+    cal-space oscillations.
 
-    Selects components via greedy forward BIC minimisation from the pool
-    of individual oscillatory terms in existing LPPL/HybPPL models.
-    Result: R²=0.9928, σ=0.130, BIC=-23,319 with only 7 parameters
-    (intercept + slope + 5 weighted oscillatory terms).
+    v3 (2026-04-17): the candidate dictionary is
+      * 3 log frequencies (from LPPL₃'s best-fit triplet)
+      * 3 cal frequencies (from a new 3-freq cal-space DE fit)
+      * each paired with 3 dampings (none / hybrid / entropy) × 2 phases (sin, cos)
+    = 36 candidates. Greedy forward-BIC picks the best 5.
 
-    v2: uses entropy-damped E(w·t) and EPPL model components.
-    All parameters are hardcoded — no runtime dependency on other models.
+    v2 used entropy-only damping; v3 re-opens the space to allow any mix
+    of damping / space / phase. Basis is now stored as a generic
+    ``_BASIS`` tuple — fit_grdy.py writes it directly, no per-slot
+    hardcoded arithmetic in this class.
 
     Formula:
-        log₁₀(price) = α + β·log₁₀(t) + Σᵢ wᵢ·fᵢ(t)
+        log₁₀(price) = α + β·log₁₀(t) + Σᵢ wᵢ·Dᵢ(t)·φᵢ(t)
 
-    where fᵢ are 5 oscillatory basis functions selected by greedy
-    BIC minimization from a dictionary of entropy-damped, power-law-
-    damped, undamped, and EPPL model components.
+    where each (Dᵢ, φᵢ) is chosen from the dictionary.
     """
     name = "Greedy Select"
     short_name = "grdy"
@@ -249,25 +252,29 @@ class GreedyModel(_ShrinkingBandsMixin):
     quantized = True
 
     # ── OLS intercept and slope ──────────────────────────────────────────
-    _alpha = -1.166405
-    _beta  =  5.078858
+    _alpha = -1.103025  
+    _beta  =                  4.974213  
     _sigma       = 0.123652  # backward compat
     _sigma0_up   = 0.093000
     _alpha_up    = 0.343500
     _sigma0_down = 0.106900
     _alpha_down  = 0.498500
 
-    # ── 5 selected oscillatory terms (v2: entropy-damped) ────────────────
-    # f₁: E(0.10)·sin(7.5·ln(t)) — entropy-damped log-periodic
-    _w1 = 0.015686;  _we1 = 0.10;  _W1 = 7.5
-    # f₂: undamped halving cycle (from EPPL: C2·cos(Wc1·t+P2))
-    _w2 = 0.997744;  _C2 = 0.202747;  _Wc2 = 1.881312;  _P2 = 2.520900
-    # f₃: E(0.05)·cos(2π/1.88·t) — entropy-damped sub-halving
-    _w3 = -0.139415;  _we3 = 0.05;  _Wc3 = 3.340840  # 2π/1.88
-    # f₄: EPPL entropy log osc 1 (C1·E(w1·t)·cos(W1·ln(t)+P1))
-    _w4 = 0.981907;  _C4 = 0.250431;  _W4 = 16.823756;  _P4 = 1.460422;  _we4 = 0.251550
-    # f₅: EPPL entropy log osc 2 (C3·E(w2·t)·cos(W2·ln(t)+P3))
-    _w5 = 1.007897;  _C5 = 0.556269;  _W5 = 7.803554;  _P5 = 1.373041;  _we5 = 0.107049
+    # ── Selected basis (written by tools/fit_grdy.py --update) ───────────
+    # Each term is a tuple: (space, damping, freq, phase, weight, d_param)
+    #   space   : "log" or "cal"
+    #   damping : "none" | "hybrid" | "entropy"
+    #   freq    : angular freq (rad/ln(t) for log; rad/yr for cal)
+    #   phase   : "sin" or "cos"
+    #   weight  : OLS-fitted multiplier
+    #   d_param : None for undamped; D for hybrid (t^-D); w_e for entropy
+    _BASIS = (
+        ('log', 'entropy', 6.436000, 'sin', -0.625083, 0.320630),
+        ('cal', 'none', 1.699697, 'sin', 0.326520, None),
+        ('log', 'none', 15.970474, 'sin', -0.095033, None),
+        ('log', 'none', 6.550895, 'cos', -0.163392, None),
+        ('cal', 'hybrid', 3.192910, 'sin', 0.102907, 0.050000),
+    )
 
     def __init__(self, price_years, price_prices, quantiles):
         # Build quantile bands via shrinking σ(t) (z stored, σ computed at eval)
@@ -279,13 +286,27 @@ class GreedyModel(_ShrinkingBandsMixin):
 
     @staticmethod
     def _entropy_env(t, w):
-        """Shannon entropy envelope: max(-x·ln(x), 0)/(1/e) where x=w·t."""
+        """Shannon entropy envelope: max(-x·ln(x), 0) / (1/e) where x=w·t."""
         x = w * t
         raw = -x * np.log(np.maximum(x, 1e-30))
-        return np.maximum(raw, 0) * np.e
+        return np.maximum(raw, 0.0) / (1.0 / np.e)
+
+    @classmethod
+    def _eval_term(cls, ts, ln_t, term):
+        """Evaluate one basis term (weight × damping × oscillation)."""
+        space, damping, freq, phase, weight, d_param = term
+        arg = freq * (ln_t if space == "log" else ts)
+        osc = np.sin(arg) if phase == "sin" else np.cos(arg)
+        if damping == "none":
+            env = 1.0
+        elif damping == "hybrid":
+            env = ts ** (-d_param)
+        else:  # entropy
+            env = cls._entropy_env(ts, d_param)
+        return weight * env * osc
 
     def _model_log10(self, t):
-        """Evaluate: α + β·log₁₀(t) + Σ wᵢ·fᵢ(t)."""
+        """Evaluate: α + β·log₁₀(t) + Σ wᵢ·Dᵢ(t)·φᵢ(t)."""
         t_arr = np.asarray(t, float)
         scalar = t_arr.ndim == 0
         if scalar:
@@ -294,16 +315,8 @@ class GreedyModel(_ShrinkingBandsMixin):
         ln_t = np.log(ts)
 
         result = self._alpha + self._beta * np.log10(ts)
-        # f₁: entropy-damped sin(7.5·ln(t))
-        result += self._w1 * self._entropy_env(ts, self._we1) * np.sin(self._W1 * ln_t)
-        # f₂: undamped halving cycle
-        result += self._w2 * self._C2 * np.cos(self._Wc2 * ts + self._P2)
-        # f₃: entropy-damped cos(sub-halving)
-        result += self._w3 * self._entropy_env(ts, self._we3) * np.cos(self._Wc3 * ts)
-        # f₄: EPPL entropy log osc 1
-        result += self._w4 * self._C4 * self._entropy_env(ts, self._we4) * np.cos(self._W4 * ln_t + self._P4)
-        # f₅: EPPL entropy log osc 2
-        result += self._w5 * self._C5 * self._entropy_env(ts, self._we5) * np.cos(self._W5 * ln_t + self._P5)
+        for term in self._BASIS:
+            result = result + self._eval_term(ts, ln_t, term)
 
         return float(result[0]) if scalar else result
 
@@ -311,61 +324,91 @@ class GreedyModel(_ShrinkingBandsMixin):
 
     # ── Decomposition ────────────────────────────────────────────────────
 
-    component_names = [
-        "\u03b1 (intercept)",
-        "\u03b2\u00b7log\u2081\u2080(t)",
-        "f\u2081 entropy log-periodic",
-        "f\u2082 halving cycle",
-        "f\u2083 entropy sub-halving",
-        "f\u2084 entropy log osc 1",
-        "f\u2085 entropy log osc 2",
-    ]
-
     formula_log10_latex = (
-        r"\alpha + \beta \log_{10}(t) + \sum_{i=1}^{5} w_i \cdot f_i(t)"
+        r"\alpha + \beta \log_{10}(t) + \sum_i w_i \cdot D_i(t) \cdot \varphi_i(t)"
     )
     formula_product_latex = (
-        r"10^{\,\alpha} \cdot t^{\beta} \cdot \prod_{i=1}^{5} 10^{\,w_i \cdot f_i(t)}"
+        r"10^{\,\alpha} \cdot t^{\beta} \cdot \prod_i 10^{\,w_i \cdot D_i(t) \cdot \varphi_i(t)}"
     )
+
+    @staticmethod
+    def _term_label(i, term):
+        """Short label for the i-th selected term, used in the Model Info
+        decomposition panel."""
+        space, damping, freq, phase, _weight, _dp = term
+        d_tag = {"none": "undamped",
+                 "hybrid": "hybrid",
+                 "entropy": "entropy"}[damping]
+        space_tag = "log" if space == "log" else "cal"
+        return f"f{i} {d_tag} {space_tag} ({phase} ω≈{freq:.2f})"
+
+    @property
+    def component_names(self):
+        names = [
+            "\u03b1 (intercept)",
+            "\u03b2\u00b7log\u2081\u2080(t)",
+        ]
+        for i, term in enumerate(self._BASIS, 1):
+            names.append(self._term_label(i, term))
+        return names
 
     @property
     def component_details(self):
-        return {
-            "\u03b1 (intercept)": (
-                "\u03b1",
-                [("\u03b1", "_alpha")],
-            ),
-            "\u03b2\u00b7log\u2081\u2080(t)": (
-                "\u03b2\u00b7log\u2081\u2080(t)",
-                [("\u03b2", "_beta")],
-            ),
-            "f\u2081 entropy log-periodic": (
-                "w\u2081\u00b7E(w_e\u2081\u00b7t)\u00b7sin(\u03c9\u2081\u00b7ln(t))",
-                [("w\u2081", "_w1"), ("w_e\u2081", "_we1"), ("\u03c9\u2081", "_W1")],
-            ),
-            "f\u2082 halving cycle": (
-                "w\u2082\u00b7C\u2082\u00b7cos(\u03c9_c\u00b7t+\u03c6\u2082)",
-                [("w\u2082", "_w2"), ("C\u2082", "_C2"),
-                 ("\u03c9_c", "_Wc2"), ("\u03c6\u2082", "_P2")],
-            ),
-            "f\u2083 entropy sub-halving": (
-                "w\u2083\u00b7E(w_e\u2083\u00b7t)\u00b7cos(\u03c9_c\u2083\u00b7t)",
-                [("w\u2083", "_w3"), ("w_e\u2083", "_we3"), ("\u03c9_c\u2083", "_Wc3")],
-            ),
-            "f\u2084 entropy log osc 1": (
-                "w\u2084\u00b7C\u2084\u00b7E(w_e\u2084\u00b7t)\u00b7cos(\u03c9\u2084\u00b7ln(t)+\u03c6\u2084)",
-                [("w\u2084", "_w4"), ("C\u2084", "_C4"),
-                 ("w_e\u2084", "_we4"), ("\u03c9\u2084", "_W4"), ("\u03c6\u2084", "_P4")],
-            ),
-            "f\u2085 entropy log osc 2": (
-                "w\u2085\u00b7C\u2085\u00b7E(w_e\u2085\u00b7t)\u00b7cos(\u03c9\u2085\u00b7ln(t)+\u03c6\u2085)",
-                [("w\u2085", "_w5"), ("C\u2085", "_C5"),
-                 ("w_e\u2085", "_we5"), ("\u03c9\u2085", "_W5"), ("\u03c6\u2085", "_P5")],
-            ),
+        """Per-term metadata for the Model Info decomposition panel.
+
+        For each basis term we show the generic form string (with damping
+        envelope substituted) and the concrete numeric params. Class-attr
+        names use the index (e.g. 'f1') to stay stable when _BASIS changes.
+        """
+        details = {
+            "\u03b1 (intercept)": ("\u03b1", [("\u03b1", "_alpha")]),
+            "\u03b2\u00b7log\u2081\u2080(t)":
+                ("\u03b2\u00b7log\u2081\u2080(t)", [("\u03b2", "_beta")]),
         }
+        for i, term in enumerate(self._BASIS, 1):
+            space, damping, freq, phase, weight, d_param = term
+            # Generic form string
+            env_str = {
+                "none": "",
+                "hybrid": "t\u207b\u1d40 \u00b7 ",
+                "entropy": "E(w_e\u00b7t) \u00b7 ",
+            }[damping]
+            arg_str = ("\u03c9\u00b7ln(t)" if space == "log"
+                       else "\u03c9\u00b7t")
+            form = f"w{i}\u00b7{env_str}{phase}({arg_str})"
+            # Params list — use generic names
+            plist = [(f"w{i}", f"__basis_weight_{i}"),
+                     (f"\u03c9{i}", f"__basis_freq_{i}")]
+            if damping == "hybrid":
+                plist.append((f"D{i}", f"__basis_dparam_{i}"))
+            elif damping == "entropy":
+                plist.append((f"w_e{i}", f"__basis_dparam_{i}"))
+            details[self._term_label(i, term)] = (form, plist)
+        return details
+
+    def __getattr__(self, name):
+        """Virtual attributes for component_details: __basis_weight_1, _freq_1,
+        _dparam_1, etc. Lets the Model Info panel pull per-term numeric
+        values without a parallel dict."""
+        if name.startswith("__basis_"):
+            kind, idx = name[len("__basis_"):].rsplit("_", 1)
+            try:
+                i = int(idx) - 1
+            except ValueError:
+                raise AttributeError(name)
+            if i < 0 or i >= len(self._BASIS):
+                raise AttributeError(name)
+            term = self._BASIS[i]
+            if kind == "weight":
+                return term[4]
+            if kind == "freq":
+                return term[2]
+            if kind == "dparam":
+                return term[5]
+        raise AttributeError(name)
 
     def components(self, t):
-        """Decompose into intercept + trend + 5 individual oscillatory terms."""
+        """Decompose into intercept + trend + individual oscillatory terms."""
         t_arr = np.asarray(t, float)
         scalar = t_arr.ndim == 0
         if scalar:
@@ -376,12 +419,9 @@ class GreedyModel(_ShrinkingBandsMixin):
         result = {
             "\u03b1 (intercept)":      np.full_like(ts, self._alpha),
             "\u03b2\u00b7log\u2081\u2080(t)": self._beta * np.log10(ts),
-            "f\u2081 entropy log-periodic": self._w1 * self._entropy_env(ts, self._we1) * np.sin(self._W1 * ln_t),
-            "f\u2082 halving cycle":   self._w2 * self._C2 * np.cos(self._Wc2 * ts + self._P2),
-            "f\u2083 entropy sub-halving": self._w3 * self._entropy_env(ts, self._we3) * np.cos(self._Wc3 * ts),
-            "f\u2084 entropy log osc 1": self._w4 * self._C4 * self._entropy_env(ts, self._we4) * np.cos(self._W4 * ln_t + self._P4),
-            "f\u2085 entropy log osc 2": self._w5 * self._C5 * self._entropy_env(ts, self._we5) * np.cos(self._W5 * ln_t + self._P5),
         }
+        for i, term in enumerate(self._BASIS, 1):
+            result[self._term_label(i, term)] = self._eval_term(ts, ln_t, term)
         if scalar:
             result = {k: float(v[0]) for k, v in result.items()}
         return result

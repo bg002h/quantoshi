@@ -169,18 +169,20 @@ def _eval_model(model_name, t, lp):
         from btc_core import GreedyModel
         m = GreedyModel
         t_safe = np.maximum(t, 0.1)
+        ln_t = np.log(t_safe)
         pred = m._alpha + m._beta * np.log10(t_safe)
-
-        def _entropy(w, tt):
-            x = w * tt
-            raw = -x * np.log(np.maximum(x, 1e-30))
-            return np.maximum(raw, 0.0) / (1.0 / np.e)
-
-        pred += m._w1 * _entropy(m._we1, t_safe) * np.sin(m._W1 * np.log(t_safe))
-        pred += m._w2 * m._C2 * np.cos(m._Wc2 * t_safe + m._P2)
-        pred += m._w3 * _entropy(m._we3, t_safe) * np.cos(m._Wc3 * t_safe)
-        pred += m._w4 * m._C4 * _entropy(m._we4, t_safe) * np.cos(m._W4 * np.log(t_safe) + m._P4)
-        pred += m._w5 * m._C5 * _entropy(m._we5, t_safe) * np.cos(m._W5 * np.log(t_safe) + m._P5)
+        # v3: generic basis — iterate over stored _BASIS tuple
+        for term in m._BASIS:
+            space, damping, freq, phase, weight, d_param = term
+            arg = freq * (ln_t if space == "log" else t_safe)
+            osc = np.sin(arg) if phase == "sin" else np.cos(arg)
+            if damping == "none":
+                env = 1.0
+            elif damping == "hybrid":
+                env = t_safe ** (-d_param)
+            else:
+                env = m._entropy_env(t_safe, d_param)
+            pred = pred + weight * env * osc
         return lp - pred
 
     elif model_name == "gomp":

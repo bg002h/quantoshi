@@ -1,16 +1,27 @@
 #!/usr/bin/env python3
-"""t₀ sensitivity sweep for the Bitcoin power-law.
+"""t₀ sensitivity sweep for the Bitcoin power-law — OUT-OF-SAMPLE edition.
 
-Produces a 4-panel diagnostic showing β, R² (two ways), σ, and
-n_samples as functions of the chosen time origin t₀ across
-2007-01-01 → 2017-01-01 at 7-day step.
+Produces a 4-panel diagnostic showing β, R², σ, and n_samples as
+functions of the chosen time origin t₀ across 2007-01-01 → 2017-01-01
+at 7-day step.
+
+Train / test split (strict, no overlap):
+  fit data     = dates where (t > 1 yr) AND (date < 2015-01-01)
+  holdout data = dates >= 2015-01-01
+
+The fit is performed on pre-2015 data only. σ_holdout / R²_holdout
+evaluate the fit on post-2015 data the model has NEVER SEEN during
+fitting, so the metrics are genuinely out-of-sample predictive-power
+measures — no in-sample contamination.
 
   * OLS primary + median QR overlay on β
   * Weightings: log_density (primary), unweighted, 1/t
-  * R² computed two ways: R²_var (per-t₀ filtered data) and
-    R²_fixed (fixed holdout window 2015-01-01 → today)
-  * σ = residual std (log₁₀ price), unweighted, apples-to-apples
-  * Samples kept (t > 1 yr) with floor at 500
+  * σ_fit    = residual std on the pre-2015 fit data  (in-sample)
+  * σ_holdout= residual std on the post-2015 holdout  (out-of-sample)
+  * R²_fit, R²_holdout analogous
+  * Sweep stops being valid when pre-2015 fit data < 500 samples.
+    At ~7-day step, that happens around t₀ ≈ 2013-07; the curves
+    break visibly at that point.
 
 Output: docs/sweep_t0.svg + docs/sweep_t0.csv.
 """
@@ -141,14 +152,15 @@ def main():
     # Per-weighting result arrays
     results = {
         w: {
-            "beta_ols":    np.full(len(t0_grid), np.nan),
-            "beta_qr":     np.full(len(t0_grid), np.nan),
-            "alpha_ols":   np.full(len(t0_grid), np.nan),
-            "r2_var":      np.full(len(t0_grid), np.nan),
-            "r2_fixed":    np.full(len(t0_grid), np.nan),
-            "sigma_var":   np.full(len(t0_grid), np.nan),
-            "sigma_fixed": np.full(len(t0_grid), np.nan),
-            "n_samples":   np.zeros(len(t0_grid), dtype=int),
+            "beta_ols":     np.full(len(t0_grid), np.nan),
+            "beta_qr":      np.full(len(t0_grid), np.nan),
+            "alpha_ols":    np.full(len(t0_grid), np.nan),
+            "r2_fit":       np.full(len(t0_grid), np.nan),
+            "r2_holdout":   np.full(len(t0_grid), np.nan),
+            "sigma_fit":    np.full(len(t0_grid), np.nan),
+            "sigma_holdout":np.full(len(t0_grid), np.nan),
+            "n_fit":        np.zeros(len(t0_grid), dtype=int),
+            "n_holdout":    np.zeros(len(t0_grid), dtype=int),
         }
         for w in WEIGHTINGS
     }
@@ -160,65 +172,69 @@ def main():
 
     for i, t0 in enumerate(t0_grid):
         t_all = (date_vals - t0.to_datetime64()).astype("timedelta64[D]").astype(float) / 365.25
-        mask = t_all > T_MIN_FILTER
-        n = int(mask.sum())
+
+        # Train / test split (strict, no overlap):
+        #   fit_mask     = t > 1yr AND date < HOLDOUT_START
+        #   holdout_mask = date >= HOLDOUT_START
+        fit_mask = (t_all > T_MIN_FILTER) & (~holdout_mask_all.values)
+        hold_mask = holdout_mask_all.values
+        n_fit  = int(fit_mask.sum())
+        n_hold = int(hold_mask.sum())
 
         for w_name in WEIGHTINGS:
-            results[w_name]["n_samples"][i] = n
-        if n < N_SAMPLES_MIN:
+            results[w_name]["n_fit"][i]     = n_fit
+            results[w_name]["n_holdout"][i] = n_hold
+        if n_fit < N_SAMPLES_MIN:
             continue
 
-        t = t_all[mask]
-        log_p = log_p_all[mask]
-        log_t = np.log10(t)
+        # Fit arrays (pre-2015)
+        t_fit     = t_all[fit_mask]
+        log_p_fit = log_p_all[fit_mask]
+        log_t_fit = np.log10(t_fit)
 
-        # Holdout subset: samples in mask AND in holdout_mask_all
-        hold_local_mask = holdout_mask_all.values[mask]
-        t_hold = t[hold_local_mask]
-        log_p_hold = log_p[hold_local_mask]
+        # Holdout arrays (2015+)
+        t_hold     = t_all[hold_mask]
+        log_p_hold = log_p_all[hold_mask]
 
         for w_name in WEIGHTINGS:
-            weights = _compute_weights(t, w_name)
+            weights = _compute_weights(t_fit, w_name)
 
-            # OLS
-            alpha, beta = _fit_ols(log_t, log_p, weights)
-            pred = alpha + beta * log_t
+            # OLS fit on pre-2015 data only
+            alpha, beta = _fit_ols(log_t_fit, log_p_fit, weights)
+            pred_fit = alpha + beta * log_t_fit
 
-            # σ_var — residual std on per-t₀ data (variable denominator;
-            # shrinks as t₀ drops volatile early-era data).
-            sigma_var = float(np.sqrt(np.sum((log_p - pred) ** 2) / max(n - 2, 1)))
+            # In-sample metrics (on the fit data)
+            sigma_fit = float(np.sqrt(
+                np.sum((log_p_fit - pred_fit) ** 2) / max(n_fit - 2, 1)))
+            r2_fit = _compute_r2_weighted(log_p_fit, pred_fit, weights)
 
-            # R²_var (weighted, per-t₀ data)
-            r2_var = _compute_r2_weighted(log_p, pred, weights)
-
-            # R²_fixed + σ_fixed — evaluate on the FIXED holdout subset
-            # so both have a t₀-invariant denominator and are comparable
-            # apples-to-apples across the sweep.
+            # Out-of-sample metrics (on 2015+ holdout — never seen in fit)
             if len(t_hold) >= 10:
                 pred_hold = alpha + beta * np.log10(t_hold)
-                r2_fixed = _compute_r2_unweighted(log_p_hold, pred_hold)
-                sigma_fixed = float(np.sqrt(
+                r2_holdout = _compute_r2_unweighted(log_p_hold, pred_hold)
+                sigma_holdout = float(np.sqrt(
                     np.sum((log_p_hold - pred_hold) ** 2) /
                     max(len(t_hold) - 2, 1)))
             else:
-                r2_fixed = float("nan")
-                sigma_fixed = float("nan")
+                r2_holdout = float("nan")
+                sigma_holdout = float("nan")
 
-            # Median QR — weighted via resampling
-            beta_qr = _fit_qr_median(log_t, log_p, weights, rng)
+            # Median QR on the fit data
+            beta_qr = _fit_qr_median(log_t_fit, log_p_fit, weights, rng)
 
-            results[w_name]["beta_ols"][i]    = beta
-            results[w_name]["alpha_ols"][i]   = alpha
-            results[w_name]["beta_qr"][i]     = beta_qr
-            results[w_name]["r2_var"][i]      = r2_var
-            results[w_name]["r2_fixed"][i]    = r2_fixed
-            results[w_name]["sigma_var"][i]   = sigma_var
-            results[w_name]["sigma_fixed"][i] = sigma_fixed
+            results[w_name]["beta_ols"][i]      = beta
+            results[w_name]["alpha_ols"][i]     = alpha
+            results[w_name]["beta_qr"][i]       = beta_qr
+            results[w_name]["r2_fit"][i]        = r2_fit
+            results[w_name]["r2_holdout"][i]    = r2_holdout
+            results[w_name]["sigma_fit"][i]     = sigma_fit
+            results[w_name]["sigma_holdout"][i] = sigma_holdout
 
         if (i + 1) % 50 == 0 or i == len(t0_grid) - 1:
             elapsed = _time.perf_counter() - t_start
             print(f"  [{i+1:>4}/{len(t0_grid)}]  t₀={t0.date()}  "
-                  f"n={n:>5}  ({elapsed:.1f}s elapsed)")
+                  f"n_fit={n_fit:>5}  n_hold={n_hold}  "
+                  f"({elapsed:.1f}s elapsed)")
 
     elapsed = _time.perf_counter() - t_start
     print(f"Sweep complete in {elapsed:.1f}s.")
@@ -231,16 +247,17 @@ def main():
         for w_name in WEIGHTINGS:
             r = results[w_name]
             rows.append({
-                "t0_date":     t0.strftime("%Y-%m-%d"),
-                "weighting":   w_name,
-                "n_samples":   int(r["n_samples"][i]),
-                "beta_ols":    r["beta_ols"][i],
-                "beta_qr":     r["beta_qr"][i],
-                "alpha_ols":   r["alpha_ols"][i],
-                "r2_var":      r["r2_var"][i],
-                "r2_fixed":    r["r2_fixed"][i],
-                "sigma_var":   r["sigma_var"][i],
-                "sigma_fixed": r["sigma_fixed"][i],
+                "t0_date":       t0.strftime("%Y-%m-%d"),
+                "weighting":     w_name,
+                "n_fit":         int(r["n_fit"][i]),
+                "n_holdout":     int(r["n_holdout"][i]),
+                "beta_ols":      r["beta_ols"][i],
+                "beta_qr":       r["beta_qr"][i],
+                "alpha_ols":     r["alpha_ols"][i],
+                "r2_fit":        r["r2_fit"][i],
+                "r2_holdout":    r["r2_holdout"][i],
+                "sigma_fit":     r["sigma_fit"][i],
+                "sigma_holdout": r["sigma_holdout"][i],
             })
     out_csv = os.path.join(ROOT, "docs", "sweep_t0.csv")
     pd.DataFrame(rows).to_csv(out_csv, index=False)
@@ -284,58 +301,62 @@ def main():
 
     # Panel 2: R²
     ax = axes[1]
-    ax.plot(t0_grid, results["log_density"]["r2_var"],
+    ax.plot(t0_grid, results["log_density"]["r2_fit"],
             color=PL_C, linewidth=2.0,
-            label="R²_var (OLS · log_density, per-t₀ data)")
-    ax.plot(t0_grid, results["log_density"]["r2_fixed"],
+            label=f"R²_fit (in-sample, pre-{HOLDOUT_START.date()})")
+    ax.plot(t0_grid, results["log_density"]["r2_holdout"],
             color=PL_C, linewidth=2.0, linestyle="--",
-            label=f"R²_fixed (OLS · log_density, holdout ≥ {HOLDOUT_START.date()})")
+            label=f"R²_holdout (out-of-sample, ≥{HOLDOUT_START.date()})")
     # Zoom y-axis to the interesting range
-    all_r2 = np.concatenate([results["log_density"]["r2_var"],
-                             results["log_density"]["r2_fixed"]])
+    all_r2 = np.concatenate([results["log_density"]["r2_fit"],
+                             results["log_density"]["r2_holdout"]])
     all_r2 = all_r2[~np.isnan(all_r2)]
     if len(all_r2):
-        lo = max(all_r2.min() - 0.005, 0.0)
-        hi = min(all_r2.max() + 0.005, 1.0)
+        lo = max(all_r2.min() - 0.01, 0.0)
+        hi = min(all_r2.max() + 0.01, 1.0)
         ax.set_ylim(lo, hi)
     ax.set_ylabel("R² (log-space)", color=TEXT_COLOR)
     ax.legend(loc="best", fontsize=9, framealpha=0.8)
     ax.grid(True, color=GRID_COLOR, alpha=0.5, linewidth=0.5)
 
-    # Panel 3: σ — both σ_var and σ_fixed
+    # Panel 3: σ — both σ_fit and σ_holdout
     ax = axes[2]
-    ax.plot(t0_grid, results["log_density"]["sigma_var"],
+    ax.plot(t0_grid, results["log_density"]["sigma_fit"],
             color=PL_C, linewidth=2.0,
-            label="σ_var (per-t₀ data)")
-    ax.plot(t0_grid, results["log_density"]["sigma_fixed"],
+            label=f"σ_fit (in-sample, pre-{HOLDOUT_START.date()})")
+    ax.plot(t0_grid, results["log_density"]["sigma_holdout"],
             color=PL_C, linewidth=2.0, linestyle="--",
-            label=f"σ_fixed (holdout ≥ {HOLDOUT_START.date()})")
+            label=f"σ_holdout (out-of-sample, ≥{HOLDOUT_START.date()})")
     ax.set_ylabel("σ (log₁₀ price residual std)", color=TEXT_COLOR)
     ax.legend(loc="best", fontsize=9, framealpha=0.8)
     ax.grid(True, color=GRID_COLOR, alpha=0.5, linewidth=0.5)
 
-    # Panel 4: n_samples
+    # Panel 4: sample counts — fit vs holdout
     ax = axes[3]
-    ax.plot(t0_grid, results["log_density"]["n_samples"],
-            color=FALLBACK_MODEL_GRAY, linewidth=1.5, label="samples kept")
+    ax.plot(t0_grid, results["log_density"]["n_fit"],
+            color=FALLBACK_MODEL_GRAY, linewidth=1.5,
+            label=f"n_fit (t > {T_MIN_FILTER} yr, pre-{HOLDOUT_START.date()})")
+    ax.plot(t0_grid, results["log_density"]["n_holdout"],
+            color=FALLBACK_MODEL_GRAY, linewidth=1.5, linestyle=":",
+            label=f"n_holdout (≥ {HOLDOUT_START.date()})")
     ax.axhline(y=N_SAMPLES_MIN, color=FALLBACK_MODEL_GRAY,
                 linestyle="--", alpha=0.5, linewidth=1.0,
-                label=f"floor (n ≥ {N_SAMPLES_MIN})")
-    ax.set_ylabel(f"samples kept (t > {T_MIN_FILTER} yr)", color=TEXT_COLOR)
+                label=f"fit-data floor (n ≥ {N_SAMPLES_MIN})")
+    ax.set_ylabel("sample count", color=TEXT_COLOR)
     ax.legend(loc="best", fontsize=9, framealpha=0.8)
     ax.grid(True, color=GRID_COLOR, alpha=0.5, linewidth=0.5)
 
     # ──────────────────────────────────────────────────────────────
     # Annotations: canonical t₀ + optima
     # ──────────────────────────────────────────────────────────────
-    # Use σ_fixed / R²_fixed for optima (apples-to-apples across t₀;
-    # σ_var and R²_var have variable-denominator confound).
-    sigma_fixed_arr = results["log_density"]["sigma_fixed"]
-    r2_fixed_arr    = results["log_density"]["r2_fixed"]
-    valid = ~np.isnan(sigma_fixed_arr)
+    # Use σ_holdout / R²_holdout for optima — these are out-of-sample
+    # predictive metrics, immune to the variable-denominator confound.
+    sigma_holdout_arr = results["log_density"]["sigma_holdout"]
+    r2_holdout_arr    = results["log_density"]["r2_holdout"]
+    valid = ~np.isnan(sigma_holdout_arr)
     if valid.any():
-        argmin_sigma_idx = int(np.nanargmin(sigma_fixed_arr))
-        argmax_r2_idx    = int(np.nanargmax(r2_fixed_arr))
+        argmin_sigma_idx = int(np.nanargmin(sigma_holdout_arr))
+        argmax_r2_idx    = int(np.nanargmax(r2_holdout_arr))
         opt_sigma_t0     = t0_grid[argmin_sigma_idx]
         opt_r2_t0        = t0_grid[argmax_r2_idx]
     else:
@@ -349,14 +370,14 @@ def main():
         if opt_sigma_t0 is not None:
             ax.axvline(opt_sigma_t0, color=PL_C, linestyle=":",
                         linewidth=1.2, alpha=0.75,
-                        label=(f"argmin σ_fixed = {opt_sigma_t0.date()}"
+                        label=(f"argmin σ_holdout = {opt_sigma_t0.date()}"
                                 if idx == 0 else None))
         if (opt_r2_t0 is not None and
                 opt_sigma_t0 is not None and
                 abs((opt_r2_t0 - opt_sigma_t0).days) > T0_STEP_DAYS):
             ax.axvline(opt_r2_t0, color=QR_C, linestyle=":",
                         linewidth=1.2, alpha=0.75,
-                        label=(f"argmax R²_fixed = {opt_r2_t0.date()}"
+                        label=(f"argmax R²_holdout = {opt_r2_t0.date()}"
                                 if idx == 0 else None))
     # Refresh legend on top panel to include the new vertical-line entries.
     axes[0].legend(loc="best", fontsize=9, framealpha=0.8)
@@ -401,36 +422,36 @@ def main():
     # ──────────────────────────────────────────────────────────────
     canonical_idx = int(np.argmin(np.abs(
         np.array([(t - CANONICAL_T0).days for t in t0_grid]))))
-    can_sigma_f = sigma_fixed_arr[canonical_idx]
-    can_sigma_v = results["log_density"]["sigma_var"][canonical_idx]
+    can_sigma_h = sigma_holdout_arr[canonical_idx]
+    can_sigma_f = results["log_density"]["sigma_fit"][canonical_idx]
     can_beta    = results["log_density"]["beta_ols"][canonical_idx]
-    can_n       = int(results["log_density"]["n_samples"][canonical_idx])
+    can_n_fit   = int(results["log_density"]["n_fit"][canonical_idx])
 
     print()
-    print("=" * 72)
-    print("Summary (OLS · log_density weighting)")
-    print("-" * 72)
+    print("=" * 76)
+    print("Summary — OLS · log_density weighting · OUT-OF-SAMPLE (pre-2015 fit)")
+    print("-" * 76)
     if argmin_sigma_idx is not None:
-        opt_sigma_f = sigma_fixed_arr[argmin_sigma_idx]
+        opt_sigma_h = sigma_holdout_arr[argmin_sigma_idx]
         opt_beta    = results["log_density"]["beta_ols"][argmin_sigma_idx]
-        opt_n       = int(results["log_density"]["n_samples"][argmin_sigma_idx])
+        opt_n_fit   = int(results["log_density"]["n_fit"][argmin_sigma_idx])
         delta       = (opt_sigma_t0 - CANONICAL_T0).days
-        print(f"  Optimal t₀ (argmin σ_fixed):  {opt_sigma_t0.strftime('%Y-%m-%d')}  "
-              f"(σ_fixed={opt_sigma_f:.4f}, β={opt_beta:.3f}, n={opt_n})")
-        print(f"  Canonical t₀:                {CANONICAL_T0.strftime('%Y-%m-%d')}  "
-              f"(σ_fixed={can_sigma_f:.4f}, σ_var={can_sigma_v:.4f}, β={can_beta:.3f}, n={can_n})")
-        print(f"  Δt₀ from canonical:          {abs(delta):>4} days "
+        print(f"  Optimal t₀ (argmin σ_holdout):  {opt_sigma_t0.strftime('%Y-%m-%d')}  "
+              f"(σ_holdout={opt_sigma_h:.4f}, β={opt_beta:.3f}, n_fit={opt_n_fit})")
+        print(f"  Canonical t₀:                  {CANONICAL_T0.strftime('%Y-%m-%d')}  "
+              f"(σ_holdout={can_sigma_h:.4f}, σ_fit={can_sigma_f:.4f}, β={can_beta:.3f}, n_fit={can_n_fit})")
+        print(f"  Δt₀ from canonical:            {abs(delta):>4} days "
               f"({'after' if delta > 0 else 'before' if delta < 0 else '='})")
     if argmax_r2_idx is not None:
-        print(f"  Optimal t₀ (argmax R²_fixed):  "
+        print(f"  Optimal t₀ (argmax R²_holdout):  "
               f"{opt_r2_t0.strftime('%Y-%m-%d')}")
         d_r2 = (opt_r2_t0 - CANONICAL_T0).days
-        print(f"  Δt₀ from canonical:          {abs(d_r2):>4} days")
+        print(f"  Δt₀ from canonical:            {abs(d_r2):>4} days")
     if (argmin_sigma_idx is not None and argmax_r2_idx is not None and
             abs((opt_sigma_t0 - opt_r2_t0).days) > 30):
-        print("  ⚠  argmin σ_fixed and argmax R²_fixed disagree by > 30 days — "
+        print("  ⚠  argmin σ_holdout and argmax R²_holdout disagree by > 30 days — "
               "worth investigating.")
-    print("=" * 72)
+    print("=" * 76)
 
 
 if __name__ == "__main__":

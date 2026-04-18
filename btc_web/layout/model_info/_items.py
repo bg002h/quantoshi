@@ -31,6 +31,12 @@ from ._helpers import (
     _bpl_coeff_table,
     _grdy_coeff_table,
     _grdy_basis_table,
+    _pl_coeff_table,
+    _lppl_coeff_table,
+    _lp2_coeff_table,
+    _linppl_coeff_table,
+    _hybppl_coeff_table,
+    _exp_coeff_table,
     _qr_table,
     _comparison_table,
     _regime_data_tables,
@@ -191,11 +197,7 @@ where $t$ = years since the optimal time origin (2009-07-25), $\alpha$ and $\bet
                             ),
 
                             html.H6("Fitted Coefficients"),
-                            _coeff_table([
-                                ("\u03b1 (intercept)", "\u22121.175443"),
-                                ("\u03b2 (slope)", "5.084045"),
-                                ("\u03c3 (residual std)", "~0.302"),
-                            ]),
+                            _pl_coeff_table(),
                             html.P(
                                 "The slope means Bitcoin\u2019s price has historically grown as "
                                 "t\u2075\u00b7\u2077 \u2014 roughly 5.7 orders of magnitude per order "
@@ -233,16 +235,7 @@ The first two terms are a standard power law. The third term adds **log-periodic
                             ]),
 
                             html.H6("Fitted Coefficients"),
-                            _coeff_table([
-                                ("A (intercept, log\u2081\u2080 USD)", "\u22121.154"),
-                                ("B (slope)", "5.080"),
-                                ("C (osc. amplitude, log\u2081\u2080)", "0.734"),
-                                ("\u03c9 (log-time freq, rad)", "7.559"),
-                                ("\u03c6 (phase, rad)", "1.376"),
-                                ("D (damping exponent)", "0.608"),
-                                ("\u03c3 (residual, log\u2081\u2080)", "0.227"),
-                                ("R\u00b2", "0.9780"),
-                            ]),
+                            _lppl_coeff_table(),
 
                             html.H6("Interpretation"),
                             html.Ul([
@@ -295,19 +288,7 @@ even as bubble amplitude shrinks. $\omega_2$ is **not constrained** to be a harm
                             ]),
 
                             html.H6("Fitted Coefficients"),
-                            _coeff_table([
-                                ("A (intercept, log\u2081\u2080 USD)", "\u22121.131"),
-                                ("B (slope)", "5.039"),
-                                ("C\u2081 (primary amp, log\u2081\u2080)", "0.706"),
-                                ("\u03c9\u2081 (log-time freq, rad)", "7.378"),
-                                ("\u03c6\u2081 (phase, rad)", "1.582"),
-                                ("D (damping, primary only)", "0.566"),
-                                ("C\u2082 (secondary amp, log\u2081\u2080)", "0.169"),
-                                ("\u03c9\u2082 (log-time freq, rad)", "20.902"),
-                                ("\u03c6\u2082 (phase, rad)", "\u22121.154"),
-                                ("\u03c3 (residual, log\u2081\u2080)", "0.193"),
-                                ("R\u00b2", "0.9840"),
-                            ]),
+                            _lp2_coeff_table(),
 
                             html.H6("Key Findings"),
                             html.Ul([
@@ -561,17 +542,7 @@ $T = 2\pi/\omega_{\text{cal}}$ stays constant in calendar years.
                             ]),
 
                             html.H6("Fitted Coefficients (full history)"),
-                            _coeff_table([
-                                ("A (intercept, log\u2081\u2080 USD)", "\u22121.213"),
-                                ("B (slope)", "5.111"),
-                                ("C (amp, log\u2081\u2080)", "0.282"),
-                                ("\u03c9_cal (calendar freq)", "1.766 rad/yr"),
-                                ("T (= 2\u03c0/\u03c9)", "3.56 yr"),
-                                ("\u03c6 (phase, rad)", "\u22122.283"),
-                                ("D (damping)", "0.010 (at lower bound)"),
-                                ("\u03c3 (residual, log\u2081\u2080)", "0.222"),
-                                ("R\u00b2", "0.9789"),
-                            ]),
+                            _linppl_coeff_table(),
 
                             html.H6("Key Findings"),
                             html.Ul([
@@ -630,21 +601,7 @@ Two oscillation terms:
                             ]),
 
                             html.H6("Fitted Coefficients (full history)"),
-                            _coeff_table([
-                                ("A", "\u22121.147"),
-                                ("B", "5.052"),
-                                ("C\u2081 (log-periodic amplitude)", "0.690"),
-                                ("\u03c9_log", "7.420"),
-                                ("\u03c6\u2081", "1.453"),
-                                ("D (damping on log term)", "0.708"),
-                                ("C\u2082 (linear-periodic amplitude)", "0.233"),
-                                ("\u03c9_cal", "1.733 rad/yr"),
-                                ("T (= 2\u03c0/\u03c9_cal)", "3.63 years"),
-                                ("\u03c6\u2082", "\u22121.922"),
-                                ("R\u00b2", "0.9889"),
-                                ("\u03c3", "0.161"),
-                                ("C\u2082/C\u2081 ratio", "0.34"),
-                            ]),
+                            _hybppl_coeff_table(),
 
                             html.H6("Why HybPPL is the current best-fit"),
                             html.Ul([
@@ -1629,12 +1586,7 @@ where $t$ = years since optimal time origin (2009-07-25, linear, not log-transfo
                             ),
 
                             html.H6("Fitted Coefficients"),
-                            _coeff_table([
-                                ("\u03b1 (intercept)", "0.240277"),
-                                ("\u03b2 (slope)", "0.317792 per year"),
-                                ("\u03c3 (residual std)", "0.553180"),
-                                ("R\u00b2", "0.871"),
-                            ]),
+                            _exp_coeff_table(),
 
                             html.H6("Why it fails"),
                             html.Ul([

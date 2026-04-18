@@ -498,6 +498,146 @@ def _logi_coeff_table():
     ])
 
 
+def _pl_coeff_table():
+    """Live OLS coefficients for the Power Law model. PowerLawModel stores
+    bands as {q: intercept_shifted, slope}; sigma is backed out from any
+    non-median quantile via intercept[q] = intercept[0.5] + z(q)·σ."""
+    m = _app_ctx.PRICE_MODELS.get("pl")
+    if m is None:
+        return _coeff_table([("(PL not loaded)", "\u2014")])
+    fit = m.fits.get(0.5) or next(iter(m.fits.values()))
+    intercept = fit.get("intercept")
+    slope = fit.get("slope")
+    sigma = getattr(m, "_sigma", None)
+    if sigma is None and intercept is not None:
+        from scipy.stats import norm
+        for q_test in (0.9, 0.95, 0.99, 0.1, 0.05):
+            if q_test in m.fits:
+                z = norm.ppf(q_test)
+                if z != 0:
+                    sigma = abs(
+                        (m.fits[q_test]["intercept"] - intercept) / z)
+                    break
+    r2 = getattr(m, "r2_per_quantile", {}).get(0.5)
+    rows = [
+        ("\u03b1 (intercept)", f"{intercept:.6f}" if intercept is not None else "\u2014"),
+        ("\u03b2 (slope)", f"{slope:.6f}" if slope is not None else "\u2014"),
+    ]
+    if sigma is not None:
+        rows.append(("\u03c3 (residual std)", f"{sigma:.4f}"))
+    if r2 is not None:
+        rows.append(("R\u00b2 (log-space, median)", f"{r2:.4f}"))
+    return _coeff_table(rows)
+
+
+def _lppl_coeff_table():
+    """Live fitted coefficients for the single-frequency LPPL model."""
+    m = _app_ctx.PRICE_MODELS.get("lppl")
+    if m is None:
+        return _coeff_table([("(LPPL not loaded)", "\u2014")])
+    r2 = getattr(m, "r2_per_quantile", {}).get(0.5)
+    rows = [
+        ("A (intercept, log\u2081\u2080 USD)", f"{m._A:.6f}"),
+        ("B (slope)", f"{m._B:.6f}"),
+        ("C (osc. amplitude, log\u2081\u2080)", f"{m._C:.6f}"),
+        ("\u03c9 (log-time freq, rad)", f"{m._W:.6f}"),
+        ("\u03c6 (phase, rad)", f"{m._PHI:.6f}"),
+        ("D (damping exponent)", f"{m._D:.6f}"),
+        ("\u03c3 (residual, log\u2081\u2080)", f"{m._sigma:.4f}"),
+    ]
+    if r2 is not None:
+        rows.append(("R\u00b2 (median)", f"{r2:.4f}"))
+    return _coeff_table(rows)
+
+
+def _lp2_coeff_table():
+    """Live fitted coefficients for the two-frequency LPPL₂ model."""
+    m = _app_ctx.PRICE_MODELS.get("lp2")
+    if m is None:
+        return _coeff_table([("(LPPL\u2082 not loaded)", "\u2014")])
+    r2 = getattr(m, "r2_per_quantile", {}).get(0.5)
+    rows = [
+        ("A (intercept, log\u2081\u2080 USD)", f"{m._A:.6f}"),
+        ("B (slope)", f"{m._B:.6f}"),
+        ("C\u2081 (amp, primary)", f"{m._C:.6f}"),
+        ("\u03c9\u2081 (freq, primary)", f"{m._W:.6f}"),
+        ("\u03c6\u2081 (phase, primary)", f"{m._PHI:.6f}"),
+        ("D (damping, primary only)", f"{m._D:.6f}"),
+        ("C\u2082 (amp, secondary)", f"{m._C2:.6f}"),
+        ("\u03c9\u2082 (freq, secondary)", f"{m._W2:.6f}"),
+        ("\u03c6\u2082 (phase, secondary)", f"{m._PHI2:.6f}"),
+        ("\u03c3 (residual, log\u2081\u2080)", f"{m._sigma:.4f}"),
+    ]
+    if r2 is not None:
+        rows.append(("R\u00b2 (median)", f"{r2:.4f}"))
+    return _coeff_table(rows)
+
+
+def _linppl_coeff_table():
+    """Live fitted coefficients for LinPPL (calendar-periodic LPPL)."""
+    m = _app_ctx.PRICE_MODELS.get("linppl")
+    if m is None:
+        return _coeff_table([("(LinPPL not loaded)", "\u2014")])
+    import math
+    period_yr = 2 * math.pi / m._W if m._W else None
+    r2 = getattr(m, "r2_per_quantile", {}).get(0.5)
+    rows = [
+        ("A (intercept, log\u2081\u2080 USD)", f"{m._A:.6f}"),
+        ("B (slope)", f"{m._B:.6f}"),
+        ("C (osc. amplitude)", f"{m._C:.6f}"),
+        ("\u03c9_cal (freq, rad/yr)",
+         f"{m._W:.6f}" + (f"  (T\u2248{period_yr:.2f}yr)" if period_yr else "")),
+        ("\u03c6 (phase, rad)", f"{m._PHI:.6f}"),
+        ("D (damping exponent)", f"{m._D:.6f}"),
+        ("\u03c3 (residual, log\u2081\u2080)", f"{m._sigma:.4f}"),
+    ]
+    if r2 is not None:
+        rows.append(("R\u00b2 (median)", f"{r2:.4f}"))
+    return _coeff_table(rows)
+
+
+def _hybppl_coeff_table():
+    """Live fitted coefficients for HybPPL (log + calendar frequencies)."""
+    m = _app_ctx.PRICE_MODELS.get("hybppl")
+    if m is None:
+        return _coeff_table([("(HybPPL not loaded)", "\u2014")])
+    import math
+    period_yr = 2 * math.pi / m._W2 if m._W2 else None
+    r2 = getattr(m, "r2_per_quantile", {}).get(0.5)
+    rows = [
+        ("A (intercept, log\u2081\u2080 USD)", f"{m._A:.6f}"),
+        ("B (slope)", f"{m._B:.6f}"),
+        ("C\u2081 (log-osc amp)", f"{m._C:.6f}"),
+        ("\u03c9\u2081 (log-osc freq)", f"{m._W:.6f}"),
+        ("\u03c6\u2081 (log-osc phase)", f"{m._PHI:.6f}"),
+        ("D (log-osc damping)", f"{m._D:.6f}"),
+        ("C\u2082 (cal-osc amp)", f"{m._C2:.6f}"),
+        ("\u03c9\u2082 (cal-osc freq, rad/yr)",
+         f"{m._W2:.6f}" + (f"  (T\u2248{period_yr:.2f}yr)" if period_yr else "")),
+        ("\u03c6\u2082 (cal-osc phase)", f"{m._PHI2:.6f}"),
+        ("\u03c3 (residual, log\u2081\u2080)", f"{m._sigma:.4f}"),
+    ]
+    if r2 is not None:
+        rows.append(("R\u00b2 (median)", f"{r2:.4f}"))
+    return _coeff_table(rows)
+
+
+def _exp_coeff_table():
+    """Live fitted coefficients for the Exponential model."""
+    m = _app_ctx.PRICE_MODELS.get("exp")
+    if m is None:
+        return _coeff_table([("(Exp not loaded)", "\u2014")])
+    r2 = getattr(m, "r2_per_quantile", {}).get(0.5)
+    rows = [
+        ("a (intercept, log\u2081\u2080 USD)", f"{m._intercept:.6f}"),
+        ("b (slope, per yr)", f"{m._slope:.6f}"),
+        ("\u03c3 (residual std)", f"{m._sigma:.4f}"),
+    ]
+    if r2 is not None:
+        rows.append(("R\u00b2 (median)", f"{r2:.4f}"))
+    return _coeff_table(rows)
+
+
 def _bpl_coeff_table():
     """Live coefficient table for Broken Power Law Model."""
     import pandas as pd

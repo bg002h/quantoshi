@@ -29,18 +29,24 @@ _INFO_ICON = "\U0001F4D0"  # 📐 same as Model Info tab
 def _modal_header_with_info_link(title: str, model_short_name: str, link_id: str):
     """ModalHeader containing the title plus a 📐 link to the Model Info tab.
 
-    Clicking the icon navigates to /8.N for that model AND closes the
-    modal via a clientside callback in charts.py (see _close_config_modal_on_info).
+    Clicking the icon SPA-navigates to /8.N for that model (no page reload,
+    so other tabs' control state is preserved) AND closes the modal via a
+    clientside callback in charts.py (see _close_config_modal_on_info).
     If the model has no Model Info entry, the icon is omitted.
+
+    Uses dcc.Link rather than html.A so clicks update dcc.Location.pathname
+    via pushState instead of triggering a full page navigation. A real
+    browser refresh still hits _serve_layout and resets to defaults —
+    i.e. the "refresh to start over" behaviour is preserved.
     """
     href, exists = _model_info_link(model_short_name)
     children = [dbc.ModalTitle(title)]
     if exists:
-        children.append(html.A(
+        children.append(dcc.Link(
             _INFO_ICON,
             id=link_id,
             href=href,
-            n_clicks=0,
+            refresh=False,
             style={
                 "marginLeft": "8px",
                 "fontSize": UI_FONT_XL,
@@ -798,10 +804,10 @@ def _two_freq_model_slot(family, slot, damping_label):
         html.Div([
             html.Span(id=f"{family}-cfg-{s}-status",
                       style={"fontSize": UI_FONT_MD, "color": FALLBACK_MODEL_GRAY}),
-            html.A(id=f"{family}-cfg-{s}-info-link", href="#",
-                   style={"fontSize": UI_FONT_MD, "marginLeft": "6px",
-                          "color": LINK, "display": "none"},
-                   children=_INFO_ICON),
+            dcc.Link(id=f"{family}-cfg-{s}-info-link", href="#", refresh=False,
+                     style={"fontSize": UI_FONT_MD, "marginLeft": "6px",
+                            "color": LINK, "display": "none"},
+                     children=_INFO_ICON),
         ], style={"marginTop": "6px"}),
     ])
     return html.Div(children, style={"flex": "1", "minWidth": "200px"})

@@ -159,32 +159,30 @@ _app_ctx.app.clientside_callback(
 )
 
 
-# Info-triangle click → close whichever modal was open (user navigates
-# away to the Model Info tab via the href on the anchor, so keeping the
-# modal up would obscure the destination). Each link writes is_open=false
-# to its own modal; the href handles the actual navigation.
+# Model-Info SPA navigation → close whichever config modal was open.
+# Previously these were 4 separate n_clicks-based callbacks, but dcc.Link
+# (used for SPA routing so clicks don't reset other tabs' controls) does
+# not expose n_clicks in Dash 4. We instead watch url.pathname: any
+# change that lands on a /8.N route means a deep-link was clicked, so
+# close every config modal unconditionally. If none were open the
+# bootstrap is_open=false is idempotent.
 _app_ctx.app.clientside_callback(
-    """function(n) { return n ? false : window.dash_clientside.no_update; }""",
-    Output("bm-config-modal", "is_open", allow_duplicate=True),
-    Input("bm-info-link", "n_clicks"),
-    prevent_initial_call=True,
-)
-_app_ctx.app.clientside_callback(
-    """function(n) { return n ? false : window.dash_clientside.no_update; }""",
-    Output("lppl-config-modal", "is_open", allow_duplicate=True),
-    Input("lppl-info-link", "n_clicks"),
-    prevent_initial_call=True,
-)
-_app_ctx.app.clientside_callback(
-    """function(n) { return n ? false : window.dash_clientside.no_update; }""",
+    """
+    function(pathname) {
+        if (!pathname || !pathname.startsWith('/8.')) {
+            return [window.dash_clientside.no_update,
+                    window.dash_clientside.no_update,
+                    window.dash_clientside.no_update,
+                    window.dash_clientside.no_update];
+        }
+        return [false, false, false, false];
+    }
+    """,
+    Output("bm-config-modal",     "is_open", allow_duplicate=True),
+    Output("lppl-config-modal",   "is_open", allow_duplicate=True),
     Output("hybppl-config-modal", "is_open", allow_duplicate=True),
-    Input("hybppl-info-link", "n_clicks"),
-    prevent_initial_call=True,
-)
-_app_ctx.app.clientside_callback(
-    """function(n) { return n ? false : window.dash_clientside.no_update; }""",
-    Output("eppl-config-modal", "is_open", allow_duplicate=True),
-    Input("eppl-info-link", "n_clicks"),
+    Output("eppl-config-modal",   "is_open", allow_duplicate=True),
+    Input("url", "pathname"),
     prevent_initial_call=True,
 )
 

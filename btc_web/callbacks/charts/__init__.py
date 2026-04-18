@@ -1402,17 +1402,13 @@ def update_model_swatches(palette_key, summaries):
 # Heatmap pill swatches — update children (swatch + label) on palette change.
 # Per-pill Output to avoid rebuilding the pill bar container, which would
 # invalidate _hm_pill_click / _hm_pill_sync bindings.
+#
+# _HM_PILL_LABELS is sourced from layout.heatmap (single source of truth).
+# Previously duplicated here; divergence meant each new model had to be
+# added to both dicts or the palette-change callback would fall back to
+# the raw short_name.
 from callbacks.routing import _HM_PILL_MODELS  # noqa: E402
-
-_HM_PILL_LABELS = {
-    "bub": "BM", "pl": "PL", "lppl": "LPPL",
-    "linppl": "LinPPL", "hybppl": "HybPPL",
-    "hyb2l": "H2L", "hyb2c": "H2C", "hyb2b": "H2B", "hyb4d": "H4D",
-    "pca": "PCA", "grdy": "Grdy", "eppl": "EPPL",
-    "gomp": "Gomp", "bpl": "BPL", "plo": "PL+c", "sexp": "SExp",
-    "logi": "Logi",
-    "ef": "EF", "u1": "U\u2081", "mc": "MC",
-}
+from layout.heatmap import _HM_PILL_LABELS  # noqa: E402
 
 
 def _hm_pill_label_html(key, mc):

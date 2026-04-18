@@ -38,12 +38,25 @@ def _eval_fit_on_range(r, t_min: float, t_max: float):
     Returns (t_plot, y_plot) with the same shape as the FitResult
     (np.ndarray for PL/BM-floor/Exp, dict{q: np.ndarray} for QR).
     """
+    # Fit's own t-range from training — do NOT extrapolate backward below
+    # this. Log-log fits (PL / QR / BM-floor) produce extreme log-space
+    # predictions at t ≪ data.min (a steep slope × huge |log10(t)| blows up
+    # the y-range), and Plotly's log-y auto-range then stretches to include
+    # them, crushing the actual price data into an invisible strip. Users
+    # experience this as "selecting log Y does nothing / breaks the chart"
+    # and it's weighting-dependent because unweighted and inv_sqrt_t
+    # produce steeper slopes than inv_t / log_density.
+    fit_t_min = (float(r.t_plot[0])
+                 if r.t_plot is not None and len(r.t_plot)
+                 else 1e-6)
     if r.name == "Exp":
+        # Exponential is linear in t — backward extrapolation stays bounded,
+        # so we can honour the user's full xrange.
         t_plot = np.linspace(t_min, t_max, _T_PLOT_POINTS)
     elif r.name == "Gomp":
-        # Gompertz accepts any real t (not log); extend linearly so the
-        # asymptote on the right is visible.
-        lo = max(t_min, 1e-6)
+        # Gompertz saturates on both sides; safe to extend within the fit's
+        # own data t-range plus a 10% cushion on the left.
+        lo = max(t_min, fit_t_min * 0.9)
         hi = max(t_max, lo * 2)
         t_plot = np.linspace(lo, hi, _T_PLOT_POINTS)
         K = r.params.get("K"); r_ = r.params.get("r"); t0 = r.params.get("t0")
@@ -52,8 +65,10 @@ def _eval_fit_on_range(r, t_min: float, t_max: float):
         y_plot = K * np.exp(-np.exp(-r_ * (t_plot - t0)))
         return t_plot, y_plot
     else:
-        # Log-log models need strictly positive t
-        lo = max(t_min, 1e-6)
+        # Log-log models: floor at the fit's t_min so we never extrapolate
+        # backward past the data. Forward extrapolation (future projections)
+        # is unconstrained.
+        lo = max(t_min, fit_t_min)
         hi = max(t_max, lo * 2)
         t_plot = np.logspace(np.log10(lo), np.log10(hi), _T_PLOT_POINTS)
 

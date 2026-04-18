@@ -27,6 +27,7 @@ Output: docs/sweep_t0.svg + docs/sweep_t0.csv.
 """
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 import numpy as np
@@ -126,6 +127,17 @@ def _compute_r2_unweighted(log_p, pred):
 # ══════════════════════════════════════════════════════════════════════
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--mode", choices=("oos", "full"), default="oos",
+                    help=("oos: strict pre-{HOLDOUT}/post-{HOLDOUT} train/test; "
+                          "full: fit on ALL data each t₀, in-sample metrics only"))
+    args = ap.parse_args()
+    mode = args.mode
+    is_full = (mode == "full")
+
+    print(f"Mode: {mode} "
+          + ("(full-fit, in-sample metrics only, no holdout)"
+             if is_full else "(strict out-of-sample)"))
     print("Loading prices...")
     prices = load_prices("BitcoinPricesDaily.csv")
     df = prices.df_full.copy()
@@ -173,11 +185,17 @@ def main():
     for i, t0 in enumerate(t0_grid):
         t_all = (date_vals - t0.to_datetime64()).astype("timedelta64[D]").astype(float) / 365.25
 
-        # Train / test split (strict, no overlap):
-        #   fit_mask     = t > 1yr AND date < HOLDOUT_START
-        #   holdout_mask = date >= HOLDOUT_START
-        fit_mask = (t_all > T_MIN_FILTER) & (~holdout_mask_all.values)
-        hold_mask = holdout_mask_all.values
+        if is_full:
+            # Full-fit mode: use ALL available data (t > 1 yr) each t₀.
+            # No train/test split; in-sample metrics only. Holdout arrays
+            # are empty; σ_holdout / R²_holdout stay NaN.
+            fit_mask = t_all > T_MIN_FILTER
+            hold_mask = np.zeros_like(fit_mask)
+        else:
+            # OOS mode: strict pre-/post-HOLDOUT_START split.
+            fit_mask = (t_all > T_MIN_FILTER) & (~holdout_mask_all.values)
+            hold_mask = holdout_mask_all.values
+
         n_fit  = int(fit_mask.sum())
         n_hold = int(hold_mask.sum())
 
@@ -259,7 +277,8 @@ def main():
                 "sigma_fit":     r["sigma_fit"][i],
                 "sigma_holdout": r["sigma_holdout"][i],
             })
-    out_csv = os.path.join(ROOT, "docs", "sweep_t0.csv")
+    suffix = "_fullfit" if is_full else ""
+    out_csv = os.path.join(ROOT, "docs", f"sweep_t0{suffix}.csv")
     pd.DataFrame(rows).to_csv(out_csv, index=False)
     print(f"Wrote {out_csv}")
 
@@ -299,27 +318,41 @@ def main():
     ax.legend(loc="best", fontsize=9, framealpha=0.8)
     ax.grid(True, color=GRID_COLOR, alpha=0.5, linewidth=0.5)
 
-    # Panel 2: R² — holdout across 3 weightings + fit log_density for reference
+    # Panel 2: R²
     ax = axes[1]
-    ax.plot(t0_grid, results["log_density"]["r2_holdout"],
-            color=PL_C, linewidth=2.0,
-            label="R²_holdout · log_density")
-    ax.plot(t0_grid, results["unweighted"]["r2_holdout"],
-            color=PL_C, linewidth=1.2, alpha=0.5,
-            label="R²_holdout · unweighted")
-    ax.plot(t0_grid, results["1_over_t"]["r2_holdout"],
-            color=PL_C, linewidth=1.2, alpha=0.5, linestyle=":",
-            label="R²_holdout · 1/t")
-    ax.plot(t0_grid, results["log_density"]["r2_fit"],
-            color=PL_C, linewidth=1.5, linestyle="--", alpha=0.7,
-            label=f"R²_fit · log_density (in-sample ref.)")
-    # Zoom y-axis to the interesting range
-    all_r2 = np.concatenate([
-        results["log_density"]["r2_fit"],
-        results["log_density"]["r2_holdout"],
-        results["unweighted"]["r2_holdout"],
-        results["1_over_t"]["r2_holdout"],
-    ])
+    if is_full:
+        # Full-fit mode: only in-sample R² exists; show all 3 weightings.
+        ax.plot(t0_grid, results["log_density"]["r2_fit"],
+                color=PL_C, linewidth=2.0,
+                label="R² · log_density")
+        ax.plot(t0_grid, results["unweighted"]["r2_fit"],
+                color=PL_C, linewidth=1.2, alpha=0.55,
+                label="R² · unweighted")
+        ax.plot(t0_grid, results["1_over_t"]["r2_fit"],
+                color=PL_C, linewidth=1.2, alpha=0.55, linestyle=":",
+                label="R² · 1/t")
+        all_r2 = np.concatenate([
+            results[w]["r2_fit"] for w in WEIGHTINGS])
+    else:
+        # OOS mode: R²_holdout across 3 weightings + R²_fit log_density ref.
+        ax.plot(t0_grid, results["log_density"]["r2_holdout"],
+                color=PL_C, linewidth=2.0,
+                label="R²_holdout · log_density")
+        ax.plot(t0_grid, results["unweighted"]["r2_holdout"],
+                color=PL_C, linewidth=1.2, alpha=0.5,
+                label="R²_holdout · unweighted")
+        ax.plot(t0_grid, results["1_over_t"]["r2_holdout"],
+                color=PL_C, linewidth=1.2, alpha=0.5, linestyle=":",
+                label="R²_holdout · 1/t")
+        ax.plot(t0_grid, results["log_density"]["r2_fit"],
+                color=PL_C, linewidth=1.5, linestyle="--", alpha=0.7,
+                label="R²_fit · log_density (in-sample ref.)")
+        all_r2 = np.concatenate([
+            results["log_density"]["r2_fit"],
+            results["log_density"]["r2_holdout"],
+            results["unweighted"]["r2_holdout"],
+            results["1_over_t"]["r2_holdout"],
+        ])
     all_r2 = all_r2[~np.isnan(all_r2)]
     if len(all_r2):
         lo = max(all_r2.min() - 0.01, 0.0)
@@ -329,32 +362,48 @@ def main():
     ax.legend(loc="best", fontsize=9, framealpha=0.8, ncol=2)
     ax.grid(True, color=GRID_COLOR, alpha=0.5, linewidth=0.5)
 
-    # Panel 3: σ — holdout across 3 weightings + fit log_density for reference
+    # Panel 3: σ
     ax = axes[2]
-    ax.plot(t0_grid, results["log_density"]["sigma_holdout"],
-            color=PL_C, linewidth=2.0,
-            label="σ_holdout · log_density")
-    ax.plot(t0_grid, results["unweighted"]["sigma_holdout"],
-            color=PL_C, linewidth=1.2, alpha=0.5,
-            label="σ_holdout · unweighted")
-    ax.plot(t0_grid, results["1_over_t"]["sigma_holdout"],
-            color=PL_C, linewidth=1.2, alpha=0.5, linestyle=":",
-            label="σ_holdout · 1/t")
-    ax.plot(t0_grid, results["log_density"]["sigma_fit"],
-            color=PL_C, linewidth=1.5, linestyle="--", alpha=0.7,
-            label="σ_fit · log_density (in-sample ref.)")
+    if is_full:
+        ax.plot(t0_grid, results["log_density"]["sigma_fit"],
+                color=PL_C, linewidth=2.0,
+                label="σ · log_density")
+        ax.plot(t0_grid, results["unweighted"]["sigma_fit"],
+                color=PL_C, linewidth=1.2, alpha=0.55,
+                label="σ · unweighted")
+        ax.plot(t0_grid, results["1_over_t"]["sigma_fit"],
+                color=PL_C, linewidth=1.2, alpha=0.55, linestyle=":",
+                label="σ · 1/t")
+    else:
+        ax.plot(t0_grid, results["log_density"]["sigma_holdout"],
+                color=PL_C, linewidth=2.0,
+                label="σ_holdout · log_density")
+        ax.plot(t0_grid, results["unweighted"]["sigma_holdout"],
+                color=PL_C, linewidth=1.2, alpha=0.5,
+                label="σ_holdout · unweighted")
+        ax.plot(t0_grid, results["1_over_t"]["sigma_holdout"],
+                color=PL_C, linewidth=1.2, alpha=0.5, linestyle=":",
+                label="σ_holdout · 1/t")
+        ax.plot(t0_grid, results["log_density"]["sigma_fit"],
+                color=PL_C, linewidth=1.5, linestyle="--", alpha=0.7,
+                label="σ_fit · log_density (in-sample ref.)")
     ax.set_ylabel("σ (log₁₀ price residual std)", color=TEXT_COLOR)
     ax.legend(loc="best", fontsize=9, framealpha=0.8, ncol=2)
     ax.grid(True, color=GRID_COLOR, alpha=0.5, linewidth=0.5)
 
-    # Panel 4: sample counts — fit vs holdout
+    # Panel 4: sample counts
     ax = axes[3]
-    ax.plot(t0_grid, results["log_density"]["n_fit"],
-            color=FALLBACK_MODEL_GRAY, linewidth=1.5,
-            label=f"n_fit (t > {T_MIN_FILTER} yr, pre-{HOLDOUT_START.date()})")
-    ax.plot(t0_grid, results["log_density"]["n_holdout"],
-            color=FALLBACK_MODEL_GRAY, linewidth=1.5, linestyle=":",
-            label=f"n_holdout (≥ {HOLDOUT_START.date()})")
+    if is_full:
+        ax.plot(t0_grid, results["log_density"]["n_fit"],
+                color=FALLBACK_MODEL_GRAY, linewidth=1.5,
+                label=f"n_fit (t > {T_MIN_FILTER} yr, all data)")
+    else:
+        ax.plot(t0_grid, results["log_density"]["n_fit"],
+                color=FALLBACK_MODEL_GRAY, linewidth=1.5,
+                label=f"n_fit (t > {T_MIN_FILTER} yr, pre-{HOLDOUT_START.date()})")
+        ax.plot(t0_grid, results["log_density"]["n_holdout"],
+                color=FALLBACK_MODEL_GRAY, linewidth=1.5, linestyle=":",
+                label=f"n_holdout (≥ {HOLDOUT_START.date()})")
     ax.axhline(y=N_SAMPLES_MIN, color=FALLBACK_MODEL_GRAY,
                 linestyle="--", alpha=0.5, linewidth=1.0,
                 label=f"fit-data floor (n ≥ {N_SAMPLES_MIN})")
@@ -365,14 +414,23 @@ def main():
     # ──────────────────────────────────────────────────────────────
     # Annotations: canonical t₀ + optima
     # ──────────────────────────────────────────────────────────────
-    # Use σ_holdout / R²_holdout for optima — these are out-of-sample
-    # predictive metrics, immune to the variable-denominator confound.
-    sigma_holdout_arr = results["log_density"]["sigma_holdout"]
-    r2_holdout_arr    = results["log_density"]["r2_holdout"]
-    valid = ~np.isnan(sigma_holdout_arr)
+    # Pick the right arrays for the mode.
+    if is_full:
+        # Full-fit: in-sample metrics are the only option.
+        sigma_primary = results["log_density"]["sigma_fit"]
+        r2_primary    = results["log_density"]["r2_fit"]
+        sigma_label   = "σ_fit"
+        r2_label      = "R²_fit"
+    else:
+        sigma_primary = results["log_density"]["sigma_holdout"]
+        r2_primary    = results["log_density"]["r2_holdout"]
+        sigma_label   = "σ_holdout"
+        r2_label      = "R²_holdout"
+
+    valid = ~np.isnan(sigma_primary)
     if valid.any():
-        argmin_sigma_idx = int(np.nanargmin(sigma_holdout_arr))
-        argmax_r2_idx    = int(np.nanargmax(r2_holdout_arr))
+        argmin_sigma_idx = int(np.nanargmin(sigma_primary))
+        argmax_r2_idx    = int(np.nanargmax(r2_primary))
         opt_sigma_t0     = t0_grid[argmin_sigma_idx]
         opt_r2_t0        = t0_grid[argmax_r2_idx]
     else:
@@ -386,14 +444,14 @@ def main():
         if opt_sigma_t0 is not None:
             ax.axvline(opt_sigma_t0, color=PL_C, linestyle=":",
                         linewidth=1.2, alpha=0.75,
-                        label=(f"argmin σ_holdout = {opt_sigma_t0.date()}"
+                        label=(f"argmin {sigma_label} = {opt_sigma_t0.date()}"
                                 if idx == 0 else None))
         if (opt_r2_t0 is not None and
                 opt_sigma_t0 is not None and
                 abs((opt_r2_t0 - opt_sigma_t0).days) > T0_STEP_DAYS):
             ax.axvline(opt_r2_t0, color=QR_C, linestyle=":",
                         linewidth=1.2, alpha=0.75,
-                        label=(f"argmax R²_holdout = {opt_r2_t0.date()}"
+                        label=(f"argmax {r2_label} = {opt_r2_t0.date()}"
                                 if idx == 0 else None))
     # Refresh legend on top panel to include the new vertical-line entries.
     axes[0].legend(loc="best", fontsize=9, framealpha=0.8)
@@ -407,14 +465,23 @@ def main():
     axes[-1].set_xlabel("t₀ (time origin)", color=TEXT_COLOR)
 
     # Title + subtitle + footer
+    mode_suffix_title = (
+        " — full-fit (all data, in-sample)" if is_full
+        else " — strict out-of-sample"
+    )
     fig.suptitle(
-        "Power-law fit quality vs time origin — Quantoshi sweep",
+        f"Power-law fit quality vs time origin{mode_suffix_title}",
         fontsize=14, fontweight="bold", y=0.995, color=TEXT_COLOR,
+    )
+    mode_subtitle = (
+        "  ·  fit on all t > 1 yr, in-sample metrics"
+        if is_full
+        else f"  ·  fit pre-{HOLDOUT_START.date()}, eval post-{HOLDOUT_START.date()}"
     )
     fig.text(
         0.5, 0.973,
         r"$\log_{10}(\mathrm{price}) = \alpha + \beta\,\log_{10}(t - t_0)$"
-        "  ·  OLS primary + median QR overlay  ·  log_density weighting primary",
+        f"  ·  OLS primary + median QR overlay{mode_subtitle}",
         ha="center", fontsize=10, alpha=0.8, color=TEXT_COLOR,
     )
     today_str = pd.Timestamp.today().strftime("%Y-%m-%d")
@@ -428,12 +495,12 @@ def main():
     )
 
     fig.tight_layout(rect=(0.0, 0.02, 1.0, 0.95))
-    out_svg = os.path.join(ROOT, "docs", "sweep_t0.svg")
+    out_svg = os.path.join(ROOT, "docs", f"sweep_t0{suffix}.svg")
     fig.savefig(out_svg, bbox_inches="tight", facecolor=PLOT_BG_COLOR)
     # Also emit a JPG alongside the SVG — some viewers render SVG
     # matplotlib output poorly (clipped dashes, missing text). JPG is
     # the universal fallback. Use 150 dpi for readable screen output.
-    out_jpg = os.path.join(ROOT, "docs", "sweep_t0.jpg")
+    out_jpg = os.path.join(ROOT, "docs", f"sweep_t0{suffix}.jpg")
     fig.savefig(out_jpg, bbox_inches="tight", facecolor=PLOT_BG_COLOR,
                 dpi=150)
     plt.close(fig)
@@ -445,35 +512,36 @@ def main():
     # ──────────────────────────────────────────────────────────────
     canonical_idx = int(np.argmin(np.abs(
         np.array([(t - CANONICAL_T0).days for t in t0_grid]))))
-    can_sigma_h = sigma_holdout_arr[canonical_idx]
-    can_sigma_f = results["log_density"]["sigma_fit"][canonical_idx]
-    can_beta    = results["log_density"]["beta_ols"][canonical_idx]
-    can_n_fit   = int(results["log_density"]["n_fit"][canonical_idx])
+    can_sigma = sigma_primary[canonical_idx]
+    can_beta  = results["log_density"]["beta_ols"][canonical_idx]
+    can_n_fit = int(results["log_density"]["n_fit"][canonical_idx])
 
     print()
     print("=" * 76)
-    print("Summary — OLS · log_density weighting · OUT-OF-SAMPLE (pre-2015 fit)")
+    mode_label = ("FULL-FIT (all data, in-sample)" if is_full
+                  else f"OUT-OF-SAMPLE (pre-{HOLDOUT_START.date()} fit)")
+    print(f"Summary — OLS · log_density weighting · {mode_label}")
     print("-" * 76)
     if argmin_sigma_idx is not None:
-        opt_sigma_h = sigma_holdout_arr[argmin_sigma_idx]
-        opt_beta    = results["log_density"]["beta_ols"][argmin_sigma_idx]
-        opt_n_fit   = int(results["log_density"]["n_fit"][argmin_sigma_idx])
-        delta       = (opt_sigma_t0 - CANONICAL_T0).days
-        print(f"  Optimal t₀ (argmin σ_holdout):  {opt_sigma_t0.strftime('%Y-%m-%d')}  "
-              f"(σ_holdout={opt_sigma_h:.4f}, β={opt_beta:.3f}, n_fit={opt_n_fit})")
+        opt_sigma = sigma_primary[argmin_sigma_idx]
+        opt_beta  = results["log_density"]["beta_ols"][argmin_sigma_idx]
+        opt_n_fit = int(results["log_density"]["n_fit"][argmin_sigma_idx])
+        delta     = (opt_sigma_t0 - CANONICAL_T0).days
+        print(f"  Optimal t₀ (argmin {sigma_label}):  {opt_sigma_t0.strftime('%Y-%m-%d')}  "
+              f"({sigma_label}={opt_sigma:.4f}, β={opt_beta:.3f}, n_fit={opt_n_fit})")
         print(f"  Canonical t₀:                  {CANONICAL_T0.strftime('%Y-%m-%d')}  "
-              f"(σ_holdout={can_sigma_h:.4f}, σ_fit={can_sigma_f:.4f}, β={can_beta:.3f}, n_fit={can_n_fit})")
+              f"({sigma_label}={can_sigma:.4f}, β={can_beta:.3f}, n_fit={can_n_fit})")
         print(f"  Δt₀ from canonical:            {abs(delta):>4} days "
               f"({'after' if delta > 0 else 'before' if delta < 0 else '='})")
     if argmax_r2_idx is not None:
-        print(f"  Optimal t₀ (argmax R²_holdout):  "
+        print(f"  Optimal t₀ (argmax {r2_label}):  "
               f"{opt_r2_t0.strftime('%Y-%m-%d')}")
         d_r2 = (opt_r2_t0 - CANONICAL_T0).days
         print(f"  Δt₀ from canonical:            {abs(d_r2):>4} days")
     if (argmin_sigma_idx is not None and argmax_r2_idx is not None and
             abs((opt_sigma_t0 - opt_r2_t0).days) > 30):
-        print("  ⚠  argmin σ_holdout and argmax R²_holdout disagree by > 30 days — "
-              "worth investigating.")
+        print(f"  ⚠  argmin {sigma_label} and argmax {r2_label} "
+              f"disagree by > 30 days — worth investigating.")
     print("=" * 76)
 
 

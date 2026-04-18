@@ -263,8 +263,15 @@ def fit_exp(fi: FitInput) -> Optional[FitResult]:
 def fit_gomp(fi: FitInput) -> Optional[FitResult]:
     """Gompertz — non-linear curve_fit on log10(price) = K·exp(-exp(-r·(t-t0))).
 
-    Uses DE for robust global search, then curve_fit polish. Bounds keep the
-    saturation K in a BTC-plausible range and t0 inside the fitting horizon.
+    Uses DE for robust global search, then curve_fit polish. Fitting happens
+    in a normalised t-space (t/t_scale ∈ [0, 1]) so the r-parameter is
+    always on a unit scale regardless of whether the panel's x axis is
+    calendar years (t ~ O(10)) or raw block offsets (t ~ O(10⁵)). Without
+    this, block-mode fits snap to a near-step function at t₀ because the
+    natural r range in raw blocks is ~10⁻⁵ — far below the years-scale
+    lower bound of 0.05. Stored params are converted back to raw-t units
+    so downstream code (`_eval_fit_on_range`) can use them directly.
+
     Honors fi.weighting via _compute_weights (same pattern as fit_pl).
     """
     import scipy.optimize as sopt
@@ -278,18 +285,23 @@ def fit_gomp(fi: FitInput) -> Optional[FitResult]:
     log_p = np.log10(price)
     weights, degraded = _compute_weights(t, fi.weighting)
 
-    def _model(tt, K, r, t0):
-        return K * np.exp(-np.exp(-r * (tt - t0)))
+    # Normalise t for fitting so bounds are scale-free.
+    t_scale = max(float(t.max()), 1.0)
+    t_n = t / t_scale
 
-    # Bounds:
-    #   K  in [3, 12]    — saturation log10 price (10^3=$1k up to 10^12=$1T)
-    #   r  in [0.05, 3]  — growth rate
-    #   t0 in [0.1, t.max()] — inflection inside data range (extrapolation-safe)
-    bounds_lo = [3.0, 0.05, 0.1]
-    bounds_hi = [12.0, 3.0, max(float(t.max()), 1.0)]
+    def _model(tt_n, K, r_n, t0_n):
+        return K * np.exp(-np.exp(-r_n * (tt_n - t0_n)))
+
+    # Bounds in NORMALISED space:
+    #   K    in [3, 12]      — saturation log10 price ($1k - $1T)
+    #   r_n  in [0.5, 50]    — normalised growth rate; 50/t_scale covers
+    #                          sub-second transitions in either mode
+    #   t0_n in [0.001, 1.0] — inflection anywhere inside data range
+    bounds_lo = [3.0, 0.5, 0.001]
+    bounds_hi = [12.0, 50.0, 1.0]
 
     def _objective(params):
-        pred = _model(t, *params)
+        pred = _model(t_n, *params)
         if fi.weighting != "none":
             return float(np.sum(weights * (log_p - pred) ** 2))
         return float(np.sum((log_p - pred) ** 2))
@@ -305,23 +317,25 @@ def fit_gomp(fi: FitInput) -> Optional[FitResult]:
         _LOG.warning("fit_gomp DE failed: %s", e)
         return None
 
-    # curve_fit polish. sigma = 1/sqrt(w) gives the same weighted-least-squares
-    # loss as weights · residual². Skip sigma when weighting=none so we don't
-    # pin curve_fit into constant-1 sigmas when the default is None.
     sigma = None
     if fi.weighting != "none":
         sigma = np.where(weights > 0,
                          1.0 / np.sqrt(np.maximum(weights, 1e-12)),
                          np.inf)
     try:
-        popt, _ = sopt.curve_fit(_model, t, log_p, p0=popt,
+        popt, _ = sopt.curve_fit(_model, t_n, log_p, p0=popt,
                                  bounds=(bounds_lo, bounds_hi),
                                  sigma=sigma, maxfev=10000)
     except Exception:
         pass  # keep DE result
 
-    K, r, t0 = float(popt[0]), float(popt[1]), float(popt[2])
-    pred_train = _model(t, K, r, t0)
+    K, r_n, t0_n = float(popt[0]), float(popt[1]), float(popt[2])
+    # Convert back to raw-t units:  r · t  ≡  r_n · (t / t_scale)
+    # so  r = r_n / t_scale  and  t0 = t0_n · t_scale.
+    r = r_n / t_scale
+    t0 = t0_n * t_scale
+
+    pred_train = K * np.exp(-np.exp(-r * (t - t0)))
     if fi.weighting != "none":
         wbar = (weights * log_p).sum() / weights.sum()
         ss_res = (weights * (log_p - pred_train) ** 2).sum()
@@ -335,7 +349,7 @@ def fit_gomp(fi: FitInput) -> Optional[FitResult]:
     lo = max(float(t.min()), 1e-3)
     hi = float(t.max()) * 1.1
     t_plot = np.logspace(np.log10(lo), np.log10(hi), _T_PLOT_POINTS)
-    y_plot = _model(t_plot, K, r, t0)
+    y_plot = K * np.exp(-np.exp(-r * (t_plot - t0)))
 
     note = "weighting degraded (n<30)" if degraded else None
     return FitResult(

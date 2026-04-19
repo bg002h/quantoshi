@@ -93,3 +93,23 @@ def test_build_leverage_figure_returns_plotly_figure():
     assert fig is not None
     assert len(fig.data) >= 4  # at least 4 curves
     assert fig.layout.yaxis.type == "log"
+
+
+def test_leverage_snapshot_roundtrip():
+    """Encode + decode preserves all leverage controls."""
+    from snapshot import _encode_snapshot, _decode_snapshot
+
+    state = {
+        "lev-date:date":           "2026-06-01",
+        "lev-price:value":         80000.0,
+        "lev-model:value":         "pl",
+        "lev-floor-q-store:data":  0.05,
+        "lev-rb:value":            12.5,
+        "lev-rl:value":            4.25,
+        "lev-horizon:value":       5.5,
+        "lev-cagr:value":          18.0,
+    }
+    hash_str = _encode_snapshot(state)
+    decoded = _decode_snapshot(hash_str)
+    for k, v in state.items():
+        assert decoded.get(k) == v, f"{k}: expected {v}, got {decoded.get(k)}"

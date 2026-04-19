@@ -265,6 +265,8 @@ _TAB_CONTROLS = {
                     "cp-scenario-wealth","cp-scenario-regime","cp-scenario-rules",
                     "cp-scenario-start-yr","cp-scenario-active"},
     "faq":         set(),
+    "leverage":    {"lev-date", "lev-price", "lev-model", "lev-floor-q-store",
+                    "lev-rb", "lev-rl", "lev-horizon", "lev-cagr"},
 }
 # Palette is global -- add to every tab so single-tab share links include it
 for _tab_set in _TAB_CONTROLS.values():

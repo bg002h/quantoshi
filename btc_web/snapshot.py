@@ -353,6 +353,15 @@ _SNAPSHOT_CONTROLS = [
     ("cta-models",         "value"),
     # ── Residual QR sigma bands (Tab 1 only, appended 2026-04-15) ──
     ("bub-sigma-mode",     "value"),   # "constant" | "resqr"
+    # ── Leverage Calculator tab ──
+    ("lev-date",          "date"),
+    ("lev-price",         "value"),
+    ("lev-model",         "value"),
+    ("lev-floor-q-store", "data"),
+    ("lev-rb",            "value"),
+    ("lev-rl",            "value"),
+    ("lev-horizon",       "value"),
+    ("lev-cagr",          "value"),
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)

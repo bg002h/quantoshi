@@ -66,15 +66,18 @@ def _model_info_link(short_name):
     """Return (href, exists) for the Model Info deep-link for a model.
 
     Looks up 'mi-{short_name}' in _MODEL_INFO_ITEMS to find the 1-indexed
-    position. Returns ("/8.N", True) if found, ("", False) if not.
+    position. Returns ("/mi.N", True) if found, ("", False) if not.
     Tolerant of reordering — computed at layout time from the live list.
+
+    Uses /mi.N (stable name-based route) rather than /8.N so links don't
+    break if Model Info changes tab position in the future.
     """
     # Lazy import to avoid circular dependency
     from callbacks.routing import _MODEL_INFO_ITEMS
     mi_key = f"mi-{short_name}"
     try:
         idx = _MODEL_INFO_ITEMS.index(mi_key) + 1
-        return f"/8.{idx}", True
+        return f"/mi.{idx}", True
     except ValueError:
         return "", False
 

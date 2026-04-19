@@ -616,12 +616,21 @@ def _lazy_load_model_info(tab):
     prevent_initial_call=True,
 )
 def open_model_info_item(children, pathname):
-    """Open a specific Model Info accordion item after lazy load, if deep-linked."""
+    """Open a specific Model Info accordion item after lazy load, if deep-linked.
+
+    Accepts both /8.N (numeric tab-position alias) and /mi.N (stable name).
+    """
     pathname = _norm(pathname)
-    if not pathname or not pathname.startswith("/8."):
+    if not pathname:
+        return no_update
+    if pathname.startswith("/8."):
+        suffix = pathname[3:]
+    elif pathname.startswith("/mi."):
+        suffix = pathname[4:]
+    else:
         return no_update
     try:
-        n = int(pathname[3:])
+        n = int(suffix)
         if 1 <= n <= len(_MODEL_INFO_ITEMS):
             return _MODEL_INFO_ITEMS[n - 1]
     except (ValueError, IndexError):

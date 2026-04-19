@@ -698,6 +698,7 @@ def _build_layout(initial_tab="bubble"):
         dbc.Tab(html.Div(id="citadel-lazy", children=[
             html.P("Loading...", className="text-muted p-4")
         ]), label="Citadel", tab_id="citadel"),
+        dbc.Tab(_leverage_tab(), label="Max Pay-Price", tab_id="leverage"),
         dbc.Tab(_stack_tracker_tab(),label="Stack",       tab_id="stack"),
         dbc.Tab(html.Div(id="model-info-lazy", children=[
             html.P("Loading...", className="text-muted p-4")
@@ -705,12 +706,6 @@ def _build_layout(initial_tab="bubble"):
         dbc.Tab(html.Div(id="faq-lazy", children=[
             html.P("Loading...", className="text-muted p-4")
         ]), label="FAQ", tab_id="faq"),
-        dbc.Tab(
-            _leverage_tab(),
-            label="Leverage",
-            tab_id="leverage",
-            label_style={"display": "none"},  # hidden from tab bar; URL-only access
-        ),
     ], id="main-tabs", active_tab=initial_tab),
     _global_lppl_modal(),
     _global_hybppl_modal(),

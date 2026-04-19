@@ -525,8 +525,10 @@ _MODEL_INFO_ITEMS = [
     "mi-bub", "mi-qr", "mi-pl", "mi-lppl", "mi-lp2",
     "mi-lppl-weighting", "mi-linppl", "mi-hybppl", "mi-hybppl-dd",
     "mi-hyb2l", "mi-hyb2c", "mi-hyb2b", "mi-hyb4d", "mi-pca",
-    "mi-grdy", "mi-eppl", "mi-exp", "mi-gomp", "mi-bpl", "mi-s2f",
-    "mi-mc", "mi-ef", "mi-u1", "mi-compare", "mi-regimes", "mi-citadel",
+    "mi-grdy", "mi-eppl", "mi-exp", "mi-gomp", "mi-bpl",
+    "mi-plo", "mi-sexp", "mi-logi",
+    "mi-s2f", "mi-mc", "mi-ef", "mi-u1",
+    "mi-compare", "mi-regimes", "mi-citadel",
 ]
 
 

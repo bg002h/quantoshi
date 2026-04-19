@@ -15,6 +15,7 @@ from dash.exceptions import PreventUpdate
 from figures.leverage import (
     build_leverage_figure, floor_price, P_max, implied_cagr, _parse_date,
 )
+from colors import BORDER_MUTED, TABLE_ROW_HIGHLIGHT_BG
 
 
 def _readout(buy_date, P_now, sell_date, sell_price, H_yr, c, max_pay, implied_c, model, q):
@@ -55,7 +56,7 @@ def _readout(buy_date, P_now, sell_date, sell_price, H_yr, c, max_pay, implied_c
         ]),
         html.Div(badge_text, className=badge_class, style={"marginTop": "8px"}),
         html.Div(f"Implied CAGR at ${P_now:,.0f}: {implied_str}"),
-    ], style={"border": "1px solid #ccc", "borderRadius": "6px", "padding": "12px"})
+    ], style={"border": f"1px solid {BORDER_MUTED}", "borderRadius": "6px", "padding": "12px"})
 
 
 def _table(buy_date, model, q, r_b, r_l, c, H_slider):
@@ -69,7 +70,7 @@ def _table(buy_date, model, q, r_b, r_l, c, H_slider):
     for H in horizons:
         sell_d = buy_date + _dt.timedelta(days=int(round(H * 365.25)))
         sp = floor_price(model, q, sell_d)
-        row_style = {"backgroundColor": "#ffe"} if abs(H - H_slider) < 0.5 else {}
+        row_style = {"backgroundColor": TABLE_ROW_HIGHLIGHT_BG} if abs(H - H_slider) < 0.5 else {}
         rows.append(html.Tr([
             html.Td(H),
             html.Td(sell_d.isoformat()),

@@ -113,3 +113,43 @@ def test_leverage_snapshot_roundtrip():
     decoded = _decode_snapshot(hash_str)
     for k, v in state.items():
         assert decoded.get(k) == v, f"{k}: expected {v}, got {decoded.get(k)}"
+
+
+def test_leverage_H_zero_guarded():
+    """H=0 (snapshot-restored pathological) must not crash implied_cagr."""
+    from figures.leverage import implied_cagr
+    assert implied_cagr(100_000, 50_000, 0) is None
+    assert implied_cagr(100_000, 50_000, -1) is None
+
+
+def test_leverage_price_zero_guarded():
+    """P_now=0 must not crash implied_cagr."""
+    from figures.leverage import implied_cagr
+    assert implied_cagr(100_000, 0, 4) is None
+
+
+def test_leverage_s2f_not_in_flagship_dropdown():
+    """S2F silently ignores q — must not appear in the leverage dropdown."""
+    from layout.leverage import _LEV_FLAGSHIP_MODELS
+    assert "s2f" not in _LEV_FLAGSHIP_MODELS
+
+
+def test_leverage_defaults_cache_alignment():
+    """LEVERAGE_DEFAULTS keys cover every callback Input."""
+    from tab_defaults import LEVERAGE_DEFAULTS
+    expected = {"lev_date", "lev_price", "lev_model", "lev_floor_q",
+                "lev_rb", "lev_rl", "lev_horizon", "lev_cagr"}
+    assert set(LEVERAGE_DEFAULTS.keys()) == expected
+
+
+def test_leverage_tab_controls_snapshot_alignment():
+    """_TAB_CONTROLS['leverage'] matches the leverage entries in _SNAPSHOT_CONTROLS (plus auto-injected globals like palette-store)."""
+    from callbacks.routing import _TAB_CONTROLS
+    from snapshot import _SNAPSHOT_CONTROLS
+    lev_snap = {cid for cid, _ in _SNAPSHOT_CONTROLS if cid.startswith("lev-")}
+    # _TAB_CONTROLS["leverage"] contains the 8 lev-* + injected globals (e.g. palette-store).
+    # Check lev_snap is a subset of _TAB_CONTROLS["leverage"] and that lev_snap has all lev-* IDs.
+    assert lev_snap.issubset(_TAB_CONTROLS["leverage"])
+    # Also ensure nothing lev-* is in _TAB_CONTROLS["leverage"] that isn't in snapshot list.
+    lev_in_tab = {cid for cid in _TAB_CONTROLS["leverage"] if cid.startswith("lev-")}
+    assert lev_in_tab == lev_snap

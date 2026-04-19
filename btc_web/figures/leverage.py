@@ -4,8 +4,6 @@ Design spec: docs/superpowers/specs/2026-04-18-leverage-calculator-design.md
 """
 from __future__ import annotations
 
-import datetime as _dt
-
 import pandas as pd
 
 import _app_ctx

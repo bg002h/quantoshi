@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
@@ -49,7 +50,7 @@ def test_floor_price_future_higher_than_today():
     from figures.leverage import floor_price
     import datetime as _dt
     today = _dt.date.today()
-    future = today.replace(year=today.year + 5)
+    future = today + timedelta(days=5 * 365)
     assert floor_price("bub", 0.01, future) > floor_price("bub", 0.01, today)
 
 

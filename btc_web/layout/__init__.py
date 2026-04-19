@@ -278,6 +278,16 @@ def _build_layout(initial_tab="bubble"):
         ],
     ),
     dcc.Interval(id="price-interval", interval=_PRICE_INTERVAL_MS, n_intervals=0),
+    # Per-tab staggered prefetch timers. Each fires once (max_intervals=1) at
+    # its own delay, so non-active tabs get quietly populated in the
+    # background starting ~1.5s after load. Stagger prevents large simultaneous
+    # React reconciliations that could stutter the active tab.
+    *[dcc.Interval(id=f"{_pf_tid}-prefetch-iv",
+                   interval=1500 + _pf_idx * 400,
+                   max_intervals=1, n_intervals=0)
+      for _pf_idx, _pf_tid in enumerate(
+          ("bubble","heatmap","dca","retire","supercharge",
+           "citadel","leverage","stack","model_info","faq"))],
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="model-percentiles-store", storage_type="memory", data=None),
     dcc.Store(id="ticker-model-idx", storage_type="memory", data=0),

@@ -631,27 +631,56 @@ for _tid in ("bubble", "heatmap", "dca", "retire", "supercharge",
     _register_lazy_tab(_tid)
 
 
-# Background prefetch has been removed (2026-04-19). Earlier iterations
-# caused cascading active_tab resets and splash-dismissal hangs on slower
-# devices. Tabs now lazy-load purely on click via `_register_lazy_tab`
-# above.
+# ── Staggered background prefetch ──────────────────────────────────────
+# One server callback per tab, each triggered by its own `{tab_id}-prefetch-iv`
+# Interval (staggered in layout). Active tab is skipped (already populated at
+# layout time). Each callback writes only its own lazy-div — no multi-output
+# payload, so React reconciles one small chunk at a time with idle gaps
+# between for user interaction. Guards: only load when current content is
+# still the "Loading..." placeholder (idempotent with click-triggered lazy
+# load).
+def _register_prefetch(tab_id):
+    @callback(
+        Output(f"{tab_id}-lazy", "children", allow_duplicate=True),
+        Input(f"{tab_id}-prefetch-iv", "n_intervals"),
+        State(f"{tab_id}-lazy", "children"),
+        State("main-tabs", "active_tab"),
+        prevent_initial_call=True,
+    )
+    def _pf(n, current, active, _tid=tab_id):
+        if not n or _tid == active:
+            return no_update
+        if not _is_loading_placeholder(current):
+            return no_update  # user already clicked through
+        content = _build_tab_content(_tid)
+        return content if content is not None else no_update
+
+
+for _tid in ("bubble", "heatmap", "dca", "retire", "supercharge",
+             "citadel", "leverage", "stack", "model_info", "faq"):
+    _register_prefetch(_tid)
 
 
 # After a chart-tab lazy-load injects DOM, bump first-render so the chart
-# callback fires with the newly-mounted graph element present.
+# callback fires with the newly-mounted graph element present. Guarded on
+# active_tab so background-prefetch populating non-active tabs does NOT
+# fire their chart callbacks (ALARA — charts only compute when the user
+# actually views that tab).
 def _register_first_render_bump(tab_id):
     _app_ctx.app.clientside_callback(
-        """
-        function(children, cur) {
-            if (!children) return window.dash_clientside.no_update;
-            if (typeof children === 'string' && children === 'Loading...') {
-                return window.dash_clientside.no_update;
-            }
+        f"""
+        function(children, active, cur) {{
+            var NU = window.dash_clientside.no_update;
+            if (!children) return NU;
+            if (typeof children === 'string' && children === 'Loading...') return NU;
+            if (active !== '{tab_id}') return NU;  // skip prefetch fires
+            if (cur && cur > 0) return NU;         // already rendered
             return (cur || 0) + 1;
-        }
+        }}
         """,
         Output(f"{tab_id}-first-render", "data", allow_duplicate=True),
         Input(f"{tab_id}-lazy", "children"),
+        Input("main-tabs", "active_tab"),
         State(f"{tab_id}-first-render", "data"),
         prevent_initial_call=True,
     )

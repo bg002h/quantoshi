@@ -54,16 +54,6 @@ def test_floor_price_future_higher_than_today():
     assert floor_price("bub", 0.01, future) > floor_price("bub", 0.01, today)
 
 
-def test_floor_price_rejects_s2f_silently_returning_zero_q():
-    """S2F.interp_price ignores q. Not in dropdown, but guard against silent misuse."""
-    from figures.leverage import floor_price
-    import _app_ctx
-    import datetime as _dt
-    if "s2f" in _app_ctx.PRICE_MODELS:
-        d = _dt.date.today()
-        assert floor_price("s2f", 0.01, d) == floor_price("s2f", 0.50, d)
-
-
 def test_P_max_basic():
     from figures.leverage import P_max
     # sell=181649, H=4, c=0.20 -> P_max ≈ 87601

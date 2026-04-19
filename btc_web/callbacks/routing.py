@@ -587,7 +587,7 @@ def _lazy_load_model_info(tab):
 
 
 @callback(
-    Output("model-info-accordion", "active_item"),
+    Output("model-info-accordion", "active_item", allow_duplicate=True),
     Input("model-info-lazy", "children"),
     State("url", "pathname"),
     prevent_initial_call=True,
@@ -598,6 +598,12 @@ def open_model_info_item(children, pathname):
     Fires on lazy-load completion (first Model Info visit). For SPA
     navigation after the tab has been loaded once, see the clientside
     `_mi_spa_open` callback below.
+
+    Output uses ``allow_duplicate=True`` because ``_mi_spa_open`` (clientside)
+    also writes the same target; without both callbacks declaring the
+    duplicate, Dash occasionally drops one firing, leaving the accordion
+    closed and the page appearing "stuck on Loading…" on a fresh /mi.N
+    visit.
 
     Accepts both /8.N (numeric tab-position alias) and /mi.N (stable name).
     """

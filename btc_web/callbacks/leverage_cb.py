@@ -9,10 +9,9 @@ from __future__ import annotations
 
 import datetime as _dt
 
-from dash import Input, Output, State, callback, html
+from dash import Input, Output, callback, html
 from dash.exceptions import PreventUpdate
 
-import _app_ctx
 from figures.leverage import (
     build_leverage_figure, floor_price, P_max, implied_cagr, _parse_date,
 )

@@ -9,7 +9,7 @@ served via a Flask route in [`btc_web/api.py`](../btc_web/api.py).
 | URL | Topic | Generator |
 |-----|-------|-----------|
 | [`/A`](https://quantoshi.xyz/A) | Color palette builder | `btc_web/assets/palette_picker.html` |
-| [`/B`](https://quantoshi.xyz/B) | BM support line sensitivity sweep | `tools/build_sensitivity.py` |
+| [`/B`](https://quantoshi.xyz/B) | BTC daily-close percentile vs BM over time | `tools/plot_bm_percentile.py` |
 | [`/BB`](https://quantoshi.xyz/BB) | EF support line sensitivity sweep | `tools/build_sensitivity.py` |
 | [`/C`](https://quantoshi.xyz/C) | BM percentile × quantile regression sweep | `tools/build_sensitivity_pq.py` |
 | [`/D`](https://quantoshi.xyz/D) | Residual FFT spectrum | `tools/residual_fft.py` |

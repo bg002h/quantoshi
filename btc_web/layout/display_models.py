@@ -74,8 +74,12 @@ def build_display_models_options(
         href, exists = _model_info_link(model_key)
         if not exists:
             return None
-        return html.A(
-            _INFO_ICON, href=href,
+        # dcc.Link(refresh=False) = SPA navigation: pushState + clientside
+        # URL router switches Dash tab and opens accordion item N, while
+        # preserving control state on other tabs. html.A would do a real
+        # browser navigation and hit the Flask /mi static route (tab-less).
+        return dcc.Link(
+            _INFO_ICON, href=href, refresh=False,
             style={"cursor": "pointer", "fontSize": UI_FONT_MD,
                    "marginLeft": "4px", "opacity": "0.6",
                    "textDecoration": "none", "color": LINK},

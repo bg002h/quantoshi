@@ -2,9 +2,14 @@
 
 For each historical daily close, compute BM.find_percentile(t, price).
 Saves SVG at repo root as bm_percentile.svg (served by /B route).
+
+Variants:
+  - default (shrinking sigma): --> bm_percentile.{svg,jpg}
+  - --flat (constant sigma):   --> bm_percentile_flat.{svg,jpg}
 """
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 
@@ -12,6 +17,7 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy.stats import norm as _norm
 
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, _ROOT)
@@ -21,7 +27,31 @@ from btc_core import load_model_data
 from btc_core._simple import BubbleModel
 
 
+def _percentile_flat(md, t_yr, price):
+    """Constant-sigma percentile: ignores t^(-alpha) shrinkage.
+
+    log10(composite) at t → residual in log-space → z-score under a
+    constant σ (σ_up if price above composite, σ_down if below) → CDF.
+    """
+    log_p = np.log10(max(float(price), 1e-10))
+    log_comp = float(np.interp(t_yr, md.years_plot_bm,
+                               np.log10(np.maximum(md.comp_by_n[-1], 1e-10))))
+    if log_p >= log_comp:
+        sigma = md.bm_sigma0_up
+    else:
+        sigma = md.bm_sigma0_down
+    if sigma < 1e-9:
+        return 0.5
+    z = (log_p - log_comp) / sigma
+    return float(_norm.cdf(z))
+
+
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--flat", action="store_true",
+                    help="Use non-shrinking (constant) sigma.")
+    args = ap.parse_args()
+
     md = load_model_data(os.path.join(_ROOT, "model_data.pkl"))
     bm = BubbleModel(md)
 
@@ -31,7 +61,20 @@ def main():
     t_yr = np.asarray(md.price_years, float)
 
     # Compute percentile at each date (vectorize via loop — ~3.5k points, tolerable)
-    pct = np.array([bm.find_percentile(t_yr[i], prices[i]) for i in range(len(prices))])
+    if args.flat:
+        pct = np.array([_percentile_flat(md, t_yr[i], prices[i]) for i in range(len(prices))])
+        suffix = "_flat"
+        subtitle_sigma = (
+            f"Constant σ (no shrinkage): σ_up={md.bm_sigma0_up:.4f}, "
+            f"σ_down={md.bm_sigma0_down:.4f}"
+        )
+    else:
+        pct = np.array([bm.find_percentile(t_yr[i], prices[i]) for i in range(len(prices))])
+        suffix = ""
+        subtitle_sigma = (
+            f"Shrinking σ: σ(t)=σ₀·t^(−α). "
+            f"α_up={md.bm_alpha_up:.3f}, α_down={md.bm_alpha_down:.3f}"
+        )
 
     fig, ax = plt.subplots(figsize=(13, 7), dpi=140)
 
@@ -59,7 +102,7 @@ def main():
     ax.set_xlabel("Date")
     ax.set_title(
         f"BTC daily close percentile vs Bubble Model (genesis {md.genesis.date().isoformat()})\n"
-        f"Asymmetric shrinking σ, q = Φ((log P − log composite)/σ(t))",
+        f"{subtitle_sigma}",
         fontsize=13,
     )
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"Q{y*100:.0f}%"))
@@ -84,12 +127,12 @@ def main():
         )
 
     fig.tight_layout()
-    out = os.path.join(_ROOT, "bm_percentile.svg")
+    out = os.path.join(_ROOT, f"bm_percentile{suffix}.svg")
     fig.savefig(out, format="svg", bbox_inches="tight")
     print(f"Saved: {out}")
 
     # Also save a JPG for quick previews
-    jpg = os.path.join(_ROOT, "bm_percentile.jpg")
+    jpg = os.path.join(_ROOT, f"bm_percentile{suffix}.jpg")
     fig.savefig(jpg, format="jpg", dpi=140, bbox_inches="tight")
     print(f"Saved: {jpg}")
 

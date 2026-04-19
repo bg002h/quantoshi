@@ -84,7 +84,7 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     Input("bub-xscale",        "value"),
     Input("bub-yscale",        "value"),
     Input("bub-xrange-commit", "data"),   # debounced — avoids drag-stale responses
-    Input("bub-yrange",        "value"),
+    Input("bub-yrange-commit", "data"),   # debounced
     State("bub-n-future",      "value"),
     Input("bub-ptsize",        "value"),
     Input("bub-ptalpha",       "value"),
@@ -612,9 +612,9 @@ def update_yrange_slider_limits(model_show):
     Output("mc-save-tab", "data", allow_duplicate=True),
     Input("heatmap-first-render", "data"),
     Input("hm-active-model", "data"),
-    Input("hm-entry-yr",  "value"),
+    Input("hm-entry-yr-commit",   "data"),  # debounced
     Input("hm-entry-q",   "value"),
-    Input("hm-exit-range","value"),
+    Input("hm-exit-range-commit", "data"),   # debounced
     Input("hm-exit-qs",   "value"),
     Input("hm-mode",      "value"),
     Input("hm-b1",        "value"),
@@ -816,7 +816,7 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     Input("dca-amount",   "value"),
     Input("dca-freq",     "value"),
     Input("dca-infl",     "value"),
-    Input("dca-yr-range", "value"),
+    Input("dca-yr-range-commit", "data"),  # debounced
     Input("dca-disp",     "value"),
     Input("dca-toggles",  "value"),
     Input("dca-legend-pos","value"),
@@ -996,7 +996,7 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     Input("ret-use-lots", "value"),
     Input("ret-wd",       "value"),
     Input("ret-freq",     "value"),
-    Input("ret-yr-range", "value"),
+    Input("ret-yr-range-commit", "data"),  # debounced
     Input("ret-infl",     "value"),
     Input("ret-disp",     "value"),
     Input("ret-toggles",  "value"),
@@ -1157,7 +1157,7 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     Input("supercharge-first-render", "data"),
     Input("sc-stack",        "value"),
     Input("sc-use-lots",     "value"),
-    Input("sc-start-yr",     "value"),
+    Input("sc-start-yr-commit", "data"),   # debounced
     Input("sc-d0",           "value"),
     Input("sc-d1",           "value"),
     Input("sc-d2",           "value"),
@@ -1201,8 +1201,8 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     Input("eppl-commit-trigger",   "data"),
     Input("sc-mode",         "value"),
     Input("sc-wd",           "value"),
-    Input("sc-end-yr",       "value"),
-    Input("sc-target-yr",    "value"),
+    Input("sc-end-yr-commit",    "data"),  # debounced
+    Input("sc-target-yr-commit", "data"),  # debounced
     Input("sc-disp",         "value"),
     Input("sc-toggles",      "value"),
     Input("sc-legend-pos",   "value"),

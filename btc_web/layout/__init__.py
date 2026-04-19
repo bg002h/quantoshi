@@ -278,12 +278,23 @@ def _build_layout(initial_tab="bubble"):
         ],
     ),
     dcc.Interval(id="price-interval", interval=_PRICE_INTERVAL_MS, n_intervals=0),
-    # Debounced mirror of bub-xrange.value. Server chart callbacks read this
-    # Store instead of bub-xrange directly so they fire only after the user
-    # has stopped dragging for 150ms — eliminates mobile-touchmove stale-
-    # response races where a mid-drag callback response lands after the
-    # final-position one. See _bub_xrange_debounce clientside callback.
-    dcc.Store(id="bub-xrange-commit", storage_type="memory", data=[2010, 2033]),
+    # Debounced / drag_value-aware mirrors of slider values. Server chart
+    # callbacks read these Stores instead of the sliders' `.value` to avoid
+    # mobile touchmove→touchend races. Initialized to the slider's default
+    # so the first chart render (before any user interaction) uses a sane
+    # value. See `_install_slider_debounce` in callbacks/charts/_clientside.py.
+    dcc.Store(id="bub-xrange-commit",  storage_type="memory", data=[2010, 2033]),
+    dcc.Store(id="bub-yrange-commit",  storage_type="memory", data=[-1.5, 6.05]),
+    dcc.Store(id="hm-exit-range-commit", storage_type="memory", data=None),
+    dcc.Store(id="hm-entry-yr-commit",   storage_type="memory", data=None),
+    dcc.Store(id="dca-yr-range-commit",  storage_type="memory", data=None),
+    dcc.Store(id="ret-yr-range-commit",  storage_type="memory", data=None),
+    dcc.Store(id="cp-yr-range-commit",   storage_type="memory", data=None),
+    dcc.Store(id="sc-start-yr-commit",   storage_type="memory", data=None),
+    dcc.Store(id="sc-end-yr-commit",     storage_type="memory", data=None),
+    dcc.Store(id="sc-target-yr-commit",  storage_type="memory", data=None),
+    dcc.Store(id="lev-horizon-commit",   storage_type="memory", data=None),
+    dcc.Store(id="lev-cagr-commit",      storage_type="memory", data=None),
     # Per-tab staggered prefetch timers. Each fires once (max_intervals=1) at
     # its own delay, so non-active tabs get quietly populated in the
     # background starting ~1.5s after load. Stagger prevents large simultaneous

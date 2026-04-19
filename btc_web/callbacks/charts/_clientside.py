@@ -123,47 +123,69 @@ for _prefix, _tab in _PREFIX_TO_TAB.items():
         prevent_initial_call=True,
     )
 
-# ── bub-xrange commit (via drag_value to avoid mobile mouseup-lag) ───────────
-# Expensive server chart callbacks (bubble/cagr/resid/custom-time) read from
-# `bub-xrange-commit` Store instead of `bub-xrange.value` directly.
+# ── Slider debounce + drag_value-aware commit ───────────────────────────────
+# Pattern: each registered slider gets a `{slider_id}-commit` Store that
+# server chart callbacks read instead of the slider's own `.value`.
 #
-# Why: on mobile, bub-xrange.value on mouseup sometimes lags one touchmove
-# behind the slider's visually-final position (final drag position was at
-# P, but `value` ends up capturing the penultimate touchmove position P-1).
-# The slider displays P but fires a chart callback with P-1, so the chart
-# shows the wrong range.
-#
-# Fix: use `drag_value` (updates continuously during drag, captures the
-# LAST touchmove reliably) combined with a 150ms debounce. On drag end,
-# the last drag_value is what the user intended. For keyboard/click
-# interactions that don't drag, `value` fires instead (debounce catches
-# either trigger via callback_context).
-_app_ctx.app.clientside_callback(
-    """
-    function(val, drag_val) {
-        var ctx = window.dash_clientside.callback_context;
-        var trig = ctx && ctx.triggered && ctx.triggered[0];
-        var trigProp = trig ? trig.prop_id : '';
-        var v;
-        if (trigProp.indexOf('drag_value') !== -1) {
-            v = drag_val;     // drag: always reflects latest touchmove
-        } else {
-            v = val;          // keyboard / track-click
-        }
-        if (!v) return window.dash_clientside.no_update;
-        // Debounce: cancel prior pending write; schedule new one in 150ms.
-        if (window._bub_xrange_timer) clearTimeout(window._bub_xrange_timer);
-        window._bub_xrange_timer = setTimeout(function() {
-            window.dash_clientside.set_props('bub-xrange-commit', {data: v});
-        }, 150);
-        return window.dash_clientside.no_update;
+# Why: on mobile, dcc.Slider's `value` on touchend can lag one touchmove
+# behind the slider's visually-final position (the value captures the
+# penultimate touchmove, not the final finger position). Server callbacks
+# fired with that stale value render a chart that disagrees with the
+# slider. The fix listens to BOTH `value` (keyboard/click) and `drag_value`
+# (drag — captures latest touchmove reliably), debounces 150ms so only
+# one commit fires per interaction, and picks the correct prop via
+# callback_context.
+_SLIDER_DEBOUNCE_JS_TMPL = """
+function(val, drag_val) {
+    var NU = window.dash_clientside.no_update;
+    var SID = '__SID__';
+    var ctx = window.dash_clientside.callback_context;
+    var trig = ctx && ctx.triggered && ctx.triggered[0];
+    var trigProp = trig ? trig.prop_id : '';
+    // Initial load (no trigger): seed commit store immediately with slider default.
+    if (!trigProp) {
+        return (val === null || val === undefined) ? NU : val;
     }
-    """,
-    Output("bub-xrange-commit", "data", allow_duplicate=True),
-    Input("bub-xrange", "value"),
-    Input("bub-xrange", "drag_value"),
-    prevent_initial_call=True,
+    var v = (trigProp.indexOf('drag_value') !== -1) ? drag_val : val;
+    if (v === null || v === undefined) return NU;
+    window._slider_timers = window._slider_timers || {};
+    if (window._slider_timers[SID]) clearTimeout(window._slider_timers[SID]);
+    window._slider_timers[SID] = setTimeout(function() {
+        window.dash_clientside.set_props(SID + '-commit', {data: v});
+    }, 150);
+    return NU;
+}
+"""
+
+
+def _install_slider_debounce(slider_id):
+    _app_ctx.app.clientside_callback(
+        _SLIDER_DEBOUNCE_JS_TMPL.replace("__SID__", slider_id),
+        Output(f"{slider_id}-commit", "data", allow_duplicate=True),
+        Input(slider_id, "value"),
+        Input(slider_id, "drag_value"),
+        prevent_initial_call="initial_duplicate",
+    )
+
+
+# Sliders where mobile touchend-vs-touchmove race matters (user-draggable
+# axis / range sliders driving expensive server chart callbacks).
+_DEBOUNCED_SLIDERS = (
+    "bub-xrange",
+    "bub-yrange",
+    "hm-exit-range",
+    "hm-entry-yr",
+    "dca-yr-range",
+    "ret-yr-range",
+    "cp-yr-range",
+    "sc-start-yr",
+    "sc-end-yr",
+    "sc-target-yr",
+    "lev-horizon",
+    "lev-cagr",
 )
+for _sid in _DEBOUNCED_SLIDERS:
+    _install_slider_debounce(_sid)
 
 # ── Heatmap status row: visibility + label (driven by hm-active-model) ──
 _app_ctx.app.clientside_callback(

@@ -152,8 +152,8 @@ pre code {{ background:none; padding:0; }}
 </body></html>"""
 
     @server.route("/B")
-    def _sensitivity_sweep():
-        svg_path = os.path.join(os.path.dirname(__file__), "..", "sensitivity_sweep.svg")
+    def _bm_percentile():
+        svg_path = os.path.join(os.path.dirname(__file__), "..", "bm_percentile.svg")
         try:
             with open(svg_path) as f:
                 return f.read(), 200, {"Content-Type": "image/svg+xml"}

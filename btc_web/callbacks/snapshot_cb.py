@@ -165,6 +165,7 @@ _app_ctx.app.clientside_callback(
     Output("effective-lots", "data"),
     Input("lots-store",    "data"),
     Input("snapshot-lots", "data"),
+    prevent_initial_call=True,
 )
 
 

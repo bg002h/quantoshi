@@ -269,6 +269,9 @@ def _heatmap_tab():
                                       "toImageButtonOptions":{"format":"png","scale":2,
                                                                "filename":"btc_heatmap"}}),
                     type="default", color=_BTC_ORANGE,
+                    delay_show=400,
+                    show_initially=False,
+                    overlay_style={"visibility": "visible", "opacity": 0.45},
                 ),
                 # MC status / overlay elements (kept for MC callbacks)
                 html.Div(id="hm-mc-panel", style=_STYLE_HIDDEN,

@@ -457,3 +457,18 @@ _app_ctx.app.clientside_callback(
     State("eppl-commit-trigger", "data"),
     prevent_initial_call=True,
 )
+# Same pattern for the Bubble Model config modal (bub-bubble-toggles +
+# bub-n-future are State on the chart callbacks; this bumps their commit
+# trigger once when the modal closes so all mid-edit changes batch).
+_app_ctx.app.clientside_callback(
+    """
+    function(is_open, cur) {
+        if (is_open === false) return (cur || 0) + 1;
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("bm-commit-trigger", "data"),
+    Input("bm-config-modal", "is_open"),
+    State("bm-commit-trigger", "data"),
+    prevent_initial_call=True,
+)

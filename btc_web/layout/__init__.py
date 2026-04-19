@@ -296,6 +296,7 @@ def _build_layout(initial_tab="bubble"):
     # don't re-fire charts until the user closes the gear modal.
     dcc.Store(id="hybppl-commit-trigger", storage_type="memory", data=0),
     dcc.Store(id="eppl-commit-trigger",   storage_type="memory", data=0),
+    dcc.Store(id="bm-commit-trigger",     storage_type="memory", data=0),
     dcc.Interval(id="mc-pay-poll", interval=_MC_POLL_INTERVAL_MS, disabled=True,
                  max_intervals=_MC_POLL_MAX, n_intervals=0),
     # MC save prompt modal — shown after cache miss (new simulation)

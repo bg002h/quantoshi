@@ -611,8 +611,12 @@ def _lazy_load_model_info(tab):
 
 @callback(
     Output("model-info-accordion", "active_item"),
+    # Two triggers: (1) lazy-load completion (first visit) and (2) pathname
+    # change (in-app SPA navigation after Model Info is already loaded).
+    # Without the pathname Input, clicking a 📐 link in Display Models
+    # after having visited Model Info once would not open the target item.
     Input("model-info-lazy", "children"),
-    State("url", "pathname"),
+    Input("url", "pathname"),
     prevent_initial_call=True,
 )
 def open_model_info_item(children, pathname):

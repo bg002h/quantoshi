@@ -299,35 +299,42 @@ def _static_headers(extra=None):
     return h
 
 
+def _ensure_rendered():
+    """On-demand render if the background warm thread hasn't completed yet.
+
+    Eliminates the "Static pages not yet rendered" race during the first
+    few seconds after a restart. First visitor pays the ~2s render cost;
+    subsequent requests hit the cache.
+    """
+    if _STATIC_FAQ_HTML is None or _STATIC_MI_HTML is None or _STATIC_MI_HTML_ONION is None:
+        render_static_pages()
+
+
 def register_static_routes(server):
     """Register /faq, /faq.N, /mi, /mi.N Flask routes."""
 
     @server.route("/faq")
     def _static_faq():
-        if _STATIC_FAQ_HTML is None:
-            return "Static pages not yet rendered", 503
+        _ensure_rendered()
         return _STATIC_FAQ_HTML, 200, _static_headers()
 
     @server.route("/faq.<int:item>")
     def _static_faq_item(item):
-        if _STATIC_FAQ_HTML is None:
-            return "Static pages not yet rendered", 503
+        _ensure_rendered()
         item_id = f"faq-{item - 1}"  # URL is 1-indexed, internal is 0-indexed
         page = _open_accordion_item(_STATIC_FAQ_HTML, item_id)
         return page, 200, _static_headers()
 
     @server.route("/mi")
     def _static_mi():
+        _ensure_rendered()
         html_cache = _STATIC_MI_HTML_ONION if _is_onion_request() else _STATIC_MI_HTML
-        if html_cache is None:
-            return "Static pages not yet rendered", 503
         return html_cache, 200, _static_headers()
 
     @server.route("/mi.<int:item>")
     def _static_mi_item(item):
+        _ensure_rendered()
         html_cache = _STATIC_MI_HTML_ONION if _is_onion_request() else _STATIC_MI_HTML
-        if html_cache is None:
-            return "Static pages not yet rendered", 503
         from layout.model_info import _MODEL_INFO_ITEM_IDS
         if 1 <= item <= len(_MODEL_INFO_ITEM_IDS):
             item_id = _MODEL_INFO_ITEM_IDS[item - 1]

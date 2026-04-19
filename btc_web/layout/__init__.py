@@ -278,6 +278,11 @@ def _build_layout(initial_tab="bubble"):
         ],
     ),
     dcc.Interval(id="price-interval", interval=_PRICE_INTERVAL_MS, n_intervals=0),
+    # Fires once ~2s after page load to background-populate all non-active
+    # lazy-tab Divs. Clicking a tab is then instant (no server round-trip
+    # for layout; chart still computes on first visit).
+    dcc.Interval(id="prefetch-interval", interval=2000, max_intervals=1,
+                 n_intervals=0),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="model-percentiles-store", storage_type="memory", data=None),
     dcc.Store(id="ticker-model-idx", storage_type="memory", data=0),

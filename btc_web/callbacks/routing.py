@@ -597,9 +597,15 @@ def _build_tab_content(tab_id):
 
 
 def _register_lazy_tab(tab_id):
-    """Register a @callback that populates {tab_id}-lazy on first active visit."""
+    """Register a @callback that populates {tab_id}-lazy on first active visit.
+
+    `allow_duplicate=True` is needed because `_prefetch_non_active_tabs`
+    below also targets {tab_id}-lazy.children. The two never race: this
+    callback fires on `main-tabs.active_tab` change; the prefetch callback
+    fires once on `prefetch-interval.n_intervals` change.
+    """
     @callback(
-        Output(f"{tab_id}-lazy", "children"),
+        Output(f"{tab_id}-lazy", "children", allow_duplicate=True),
         Input("main-tabs", "active_tab"),
         prevent_initial_call=True,
     )
@@ -611,26 +617,71 @@ def _register_lazy_tab(tab_id):
 
 
 for _tid in ("bubble", "heatmap", "dca", "retire", "supercharge",
-             "citadel", "leverage", "stack"):
+             "citadel", "leverage", "stack", "model_info", "faq"):
     _register_lazy_tab(_tid)
 
 
+# ── Background prefetch: fill all non-active lazy-tab Divs ~2s after load ──
+# Single callback fires once (max_intervals=1 on the Interval). Skips the
+# active tab (already populated at layout time — re-rendering would clobber
+# user-interacted state). Chart callbacks do NOT fire at prefetch time; the
+# first-render bump below only fires when the user actually switches to a
+# tab. This keeps server compute lazy while making tab-clicks instant.
+@callback(
+    Output("bubble-lazy",     "children", allow_duplicate=True),
+    Output("heatmap-lazy",    "children", allow_duplicate=True),
+    Output("dca-lazy",        "children", allow_duplicate=True),
+    Output("retire-lazy",     "children", allow_duplicate=True),
+    Output("supercharge-lazy","children", allow_duplicate=True),
+    Output("citadel-lazy",    "children", allow_duplicate=True),
+    Output("leverage-lazy",   "children", allow_duplicate=True),
+    Output("stack-lazy",      "children", allow_duplicate=True),
+    Output("model_info-lazy", "children", allow_duplicate=True),
+    Output("faq-lazy",        "children", allow_duplicate=True),
+    Input("prefetch-interval", "n_intervals"),
+    State("main-tabs", "active_tab"),
+    prevent_initial_call=True,
+)
+def _prefetch_non_active_tabs(n, active_tab):
+    order = ("bubble", "heatmap", "dca", "retire", "supercharge",
+             "citadel", "leverage", "stack", "model_info", "faq")
+    if not n:
+        return tuple(no_update for _ in order)
+    out = []
+    for tid in order:
+        if tid == active_tab:
+            out.append(no_update)  # leave alone — user may have interacted
+            continue
+        try:
+            content = _build_tab_content(tid)
+            out.append(content if content is not None else no_update)
+        except Exception:
+            out.append(no_update)
+    return tuple(out)
+
+
 # After a chart-tab lazy-load injects DOM, bump first-render so the chart
-# callback fires with the newly-mounted graph element present.
+# callback fires with the newly-mounted graph element present. The bump
+# ONLY fires when the user is actually on this tab — so background-prefetch
+# populating other tabs' lazy Divs does NOT trigger chart compute.
 def _register_first_render_bump(tab_id):
     _app_ctx.app.clientside_callback(
-        """
-        function(children, cur) {
+        f"""
+        function(children, active, cur) {{
             if (!children) return window.dash_clientside.no_update;
-            // Only bump when content has actually been populated (not placeholder)
-            if (typeof children === 'string' && children === 'Loading...') {
+            if (typeof children === 'string' && children === 'Loading...') {{
                 return window.dash_clientside.no_update;
-            }
+            }}
+            // Only bump when user is viewing this tab (skips prefetch).
+            if (active !== '{tab_id}') return window.dash_clientside.no_update;
+            // Don't re-bump once rendered (chart callback uses Input so would re-fire).
+            if (cur && cur > 0) return window.dash_clientside.no_update;
             return (cur || 0) + 1;
-        }
+        }}
         """,
         Output(f"{tab_id}-first-render", "data", allow_duplicate=True),
         Input(f"{tab_id}-lazy", "children"),
+        Input("main-tabs", "active_tab"),
         State(f"{tab_id}-first-render", "data"),
         prevent_initial_call=True,
     )
@@ -661,27 +712,9 @@ def _mi_item_for_pathname(pathname):
     return None
 
 
-# Module-level cache for Model Info accordion children: rebuilt ~70ms
-# per call; cache after first build so subsequent SPA nav to Model Info
-# (and across worker restarts) is instant.
-_MI_CACHED_CHILDREN = None
-
-
-@callback(
-    Output("model-info-lazy", "children"),
-    Input("main-tabs", "active_tab"),
-    prevent_initial_call=True,
-)
-def _lazy_load_model_info(tab):
-    """Populate Model Info content on first tab visit (saves ~900KB/150KB
-    gzipped from the initial layout JSON for all other tab visits)."""
-    if tab != "model_info":
-        return no_update
-    global _MI_CACHED_CHILDREN
-    if _MI_CACHED_CHILDREN is None:
-        from layout.model_info import _model_info_tab
-        _MI_CACHED_CHILDREN = _model_info_tab().children
-    return _MI_CACHED_CHILDREN
+# Model Info lazy-loading is handled by the universal `_register_lazy_tab`
+# loop above (module-level _TAB_CONTENT_CACHE provides the ~70ms-to-cache
+# benefit the old _MI_CACHED_CHILDREN provided).
 
 
 # Accordion item opening (for /mi.N and /8.N deep links) is handled
@@ -696,7 +729,7 @@ import json as _json
 _mi_items_json = _json.dumps(_MODEL_INFO_ITEMS)
 
 # Two triggers: (1) url.pathname change (SPA nav while MI already loaded),
-# (2) model-info-lazy.children change (lazy-load just completed, accordion
+# (2) model_info-lazy.children change (lazy-load just completed, accordion
 # just rendered, need to open the target item that the pathname indicates).
 _app_ctx.app.clientside_callback(
     f"""
@@ -713,7 +746,7 @@ _app_ctx.app.clientside_callback(
     """,
     Output("model-info-accordion", "active_item", allow_duplicate=True),
     Input("url", "pathname"),
-    Input("model-info-lazy", "children"),
+    Input("model_info-lazy", "children"),
     prevent_initial_call=True,
 )
 
@@ -801,20 +834,8 @@ _app_ctx.app.clientside_callback(
 
 # ══════════════════════════════════════════════════════════════════════════════
 # FAQ accordion deep-linking (/9.N)
+# FAQ lazy-loading handled by the universal `_register_lazy_tab` loop above.
 # ══════════════════════════════════════════════════════════════════════════════
-
-@callback(
-    Output("faq-lazy", "children"),
-    Input("main-tabs", "active_tab"),
-    prevent_initial_call=True,
-)
-def _lazy_load_faq(tab):
-    """Populate FAQ content on first visit (saves ~77KB from layout JSON)."""
-    if tab != "faq":
-        return no_update
-    from layout.faq import _faq_tab
-    return _faq_tab().children  # unwrap the outer Div
-
 
 @callback(
     Output("faq-accordion", "active_item"),

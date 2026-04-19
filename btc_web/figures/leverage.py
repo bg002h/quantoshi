@@ -40,6 +40,11 @@ def _bm_sigma_down(t_yr: float) -> float:
     return float(md.bm_sigma0_down * max(t_yr, 0.5) ** (-md.bm_alpha_down))
 
 
+def _bm_sigma_up(t_yr: float) -> float:
+    md = _app_ctx.M
+    return float(md.bm_sigma0_up * max(t_yr, 0.5) ** (-md.bm_alpha_up))
+
+
 def floor_price(model_short: str, q: float, target_date) -> float:
     """Return the `model_short`-q floor price at `target_date` in USD.
 
@@ -59,10 +64,11 @@ def floor_price(model_short: str, q: float, target_date) -> float:
     t_yr = _t_yr(target_date)
     if model_short == "bub":
         log_support = _bm_support_log10(t_yr)
-        if q < 0.5:
+        if q != 0.5:
             from scipy.stats import norm
-            z = float(norm.ppf(q))  # negative for q<0.5
-            log_support = log_support + z * _bm_sigma_down(t_yr)
+            z = float(norm.ppf(q))
+            sigma = _bm_sigma_down(t_yr) if q < 0.5 else _bm_sigma_up(t_yr)
+            log_support = log_support + z * sigma
         return float(10.0 ** log_support)
     model = _app_ctx.PRICE_MODELS[model_short]
     return float(model.interp_price(q, t_yr))
@@ -83,10 +89,11 @@ def implied_quantile(model_short: str, price: float, target_date) -> float:
         import math
         from scipy.stats import norm
         log_support = _bm_support_log10(t_yr)
-        sigma = _bm_sigma_down(t_yr)
+        log_p = math.log10(price)
+        sigma = _bm_sigma_up(t_yr) if log_p >= log_support else _bm_sigma_down(t_yr)
         if sigma < 1e-9:
             return 0.5
-        z = (math.log10(price) - log_support) / sigma
+        z = (log_p - log_support) / sigma
         return float(norm.cdf(z))
     model = _app_ctx.PRICE_MODELS[model_short]
     try:

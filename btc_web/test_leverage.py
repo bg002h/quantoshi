@@ -165,13 +165,23 @@ def test_bm_floor_uses_support_not_composite():
 
 
 def test_implied_quantile_bub_matches_floor_q():
-    """implied_quantile(bub, floor_price(bub, q, t), t) ≈ q."""
+    """implied_quantile(bub, floor_price(bub, q, t), t) ≈ q across all presets."""
     from figures.leverage import implied_quantile, floor_price
     import datetime as _dt
     td = _dt.date.today().replace(year=_dt.date.today().year + 4)
-    for q in (0.01, 0.05, 0.10, 0.20, 0.50):
+    for q in (0.01, 0.05, 0.10, 0.20, 0.50, 0.80, 0.90, 0.99):
         sell = floor_price("bub", q, td)
-        assert abs(implied_quantile("bub", sell, td) - q) < 0.02
+        assert abs(implied_quantile("bub", sell, td) - q) < 0.02, f"q={q}"
+
+
+def test_bm_floor_q_gt_half_above_support():
+    """BM floor at q>0.5 is above the support line (upward sigma shift)."""
+    from figures.leverage import floor_price, _bm_support_log10, _t_yr
+    import datetime as _dt
+    td = _dt.date.today().replace(year=_dt.date.today().year + 4)
+    support = 10.0 ** _bm_support_log10(_t_yr(td))
+    assert floor_price("bub", 0.80, td) > support
+    assert floor_price("bub", 0.99, td) > floor_price("bub", 0.80, td)
 
 
 def test_leverage_tab_controls_snapshot_alignment():

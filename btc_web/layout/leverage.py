@@ -29,13 +29,15 @@ def _model_options():
 
 
 # Floor quantile pill bar — hardcoded at import (parallel to routing.py::_HM_PILL_IDS).
-_LEV_FLOOR_QS = [0.001, 0.01, 0.05, 0.10, 0.15, 0.20, 0.50]
+_LEV_FLOOR_QS = [0.001, 0.01, 0.05, 0.10, 0.15, 0.20, 0.50,
+                 0.80, 0.85, 0.90, 0.95, 0.99]
 _LEV_PILL_IDS = [f"lev-pill-q{int(q*1000):03d}" for q in _LEV_FLOOR_QS]
 
 
 def _floor_pill_bar():
     """Render 6 pill buttons for floor quantile selection."""
-    labels = ["Q0.1%", "Q1%", "Q5%", "Q10%", "Q15%", "Q20%", "Q50%"]
+    labels = ["Q0.1%", "Q1%", "Q5%", "Q10%", "Q15%", "Q20%", "Q50%",
+              "Q80%", "Q85%", "Q90%", "Q95%", "Q99%"]
     default_q = 0.01
     return html.Div([
         dbc.Button(

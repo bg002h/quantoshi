@@ -599,13 +599,31 @@ def _register_lazy_tab(tab_id):
     @callback(
         Output(f"{tab_id}-lazy", "children", allow_duplicate=True),
         Input("main-tabs", "active_tab"),
+        State(f"{tab_id}-lazy", "children"),
         prevent_initial_call=True,
     )
-    def _lazy_load(tab, _tid=tab_id):  # default-arg captures tab_id
+    def _lazy_load(tab, current, _tid=tab_id):  # default-arg captures tab_id
         if tab != _tid:
+            return no_update
+        # Skip if already loaded — re-rendering would clobber user state.
+        if not _is_loading_placeholder(current):
             return no_update
         content = _build_tab_content(_tid)
         return content if content is not None else no_update
+
+
+def _is_loading_placeholder(children):
+    """True if children is the initial 'Loading...' placeholder Div."""
+    if children is None:
+        return True
+    if isinstance(children, str):
+        return children == "Loading..."
+    if isinstance(children, dict):
+        inner = (children.get("props") or {}).get("children")
+        return _is_loading_placeholder(inner)
+    if isinstance(children, list) and len(children) == 1:
+        return _is_loading_placeholder(children[0])
+    return False
 
 
 for _tid in ("bubble", "heatmap", "dca", "retire", "supercharge",

@@ -303,7 +303,7 @@ def leverage_defaults():
     import datetime as _dt
     import _app_ctx
     md = _app_ctx.M  # ModelData instance — set at app.py:238
-    latest_close = float(md.price_prices[-1]) if md is not None else 65000.0
+    latest_close = round(float(md.price_prices[-1]), 2) if md is not None else 65000.0
     d = dict(LEVERAGE_DEFAULTS)
     d["lev_date"] = _dt.date.today().isoformat()
     d["lev_price"] = latest_close

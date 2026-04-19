@@ -74,12 +74,15 @@ def build_display_models_options(
         href, exists = _model_info_link(model_key)
         if not exists:
             return None
-        # dcc.Link(refresh=False) = SPA navigation: pushState + clientside
-        # URL router switches Dash tab and opens accordion item N, while
-        # preserving control state on other tabs. html.A would do a real
-        # browser navigation and hit the Flask /mi static route (tab-less).
+        # dcc.Link(refresh=False, target="_self") = SPA navigation:
+        # pushState + clientside URL router switches Dash tab and opens
+        # accordion item N, while preserving control state on other tabs.
+        # target="_self" is REQUIRED: dcc.Link's onClick guard only calls
+        # preventDefault when target === "_self" OR the URL is internal.
+        # Without target, preventDefault never fires → browser does a real
+        # navigation → hits Flask /mi.N static route (tab-less page).
         return dcc.Link(
-            _INFO_ICON, href=href, refresh=False,
+            _INFO_ICON, href=href, refresh=False, target="_self",
             style={"cursor": "pointer", "fontSize": UI_FONT_MD,
                    "marginLeft": "4px", "opacity": "0.6",
                    "textDecoration": "none", "color": LINK},

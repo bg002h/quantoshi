@@ -47,6 +47,7 @@ def _modal_header_with_info_link(title: str, model_short_name: str, link_id: str
             id=link_id,
             href=href,
             refresh=False,
+            target="_self",  # required for preventDefault; see display_models.py
             style={
                 "marginLeft": "8px",
                 "fontSize": UI_FONT_XL,

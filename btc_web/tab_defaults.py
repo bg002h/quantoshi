@@ -285,6 +285,31 @@ def citadel_defaults() -> dict:
     return d
 
 
+# Leverage Calculator tab — see docs/superpowers/specs/2026-04-18-leverage-calculator-design.md
+LEVERAGE_DEFAULTS = MappingProxyType({
+    "lev_date":     None,   # resolved to date.today() in leverage_defaults()
+    "lev_price":    None,   # resolved to most recent model_data close in leverage_defaults()
+    "lev_model":    "bub",
+    "lev_floor_q":  0.01,
+    "lev_rb":       13.0,
+    "lev_rl":       4.5,
+    "lev_horizon":  4.0,
+    "lev_cagr":     20.0,
+})
+
+
+def leverage_defaults():
+    """Return a plain dict with dynamic fields resolved."""
+    import datetime as _dt
+    import _app_ctx
+    md = _app_ctx.M  # ModelData instance — set at app.py:238
+    latest_close = float(md.price_prices[-1]) if md is not None else 65000.0
+    d = dict(LEVERAGE_DEFAULTS)
+    d["lev_date"] = _dt.date.today().isoformat()
+    d["lev_price"] = latest_close
+    return d
+
+
 # ── Defaults fingerprint (for L0 cache invalidation) ────────────────────────
 import hashlib as _hashlib
 

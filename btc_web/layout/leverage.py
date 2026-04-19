@@ -4,16 +4,11 @@ Design spec: docs/superpowers/specs/2026-04-18-leverage-calculator-design.md
 """
 from __future__ import annotations
 
-import datetime as _dt
-
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 import _app_ctx
-from colors import (
-    UI_FONT_MD, UI_FONT_LG, UI_FONT_XL,
-    MUTED_TEXT, TEXT_COLOR, LINK, WHITE,
-)
+from colors import UI_FONT_MD
 from tab_defaults import leverage_defaults
 
 

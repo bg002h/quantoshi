@@ -575,69 +575,60 @@ _app_ctx.app.clientside_callback(
 )
 
 
-@callback(
-    Output("model-info-lazy", "children"),
-    Input("main-tabs", "active_tab"),
-    prevent_initial_call=True,
-)
-def _lazy_load_model_info(tab):
-    """Populate Model Info content on first visit (saves ~400KB from layout JSON)."""
-    if tab != "model_info":
-        return no_update
-    from layout.model_info import _model_info_tab
-    return _model_info_tab().children  # unwrap the outer Div
-
-
-@callback(
-    Output("model-info-accordion", "active_item", allow_duplicate=True),
-    Input("model-info-lazy", "children"),
-    State("url", "pathname"),
-    prevent_initial_call=True,
-)
-def open_model_info_item(children, pathname):
-    """Open a specific Model Info accordion item after lazy load, if deep-linked.
-
-    Fires on lazy-load completion (first Model Info visit). For SPA
-    navigation after the tab has been loaded once, see the clientside
-    `_mi_spa_open` callback below.
-
-    Output uses ``allow_duplicate=True`` because ``_mi_spa_open`` (clientside)
-    also writes the same target; without both callbacks declaring the
-    duplicate, Dash occasionally drops one firing, leaving the accordion
-    closed and the page appearing "stuck on Loading…" on a fresh /mi.N
-    visit.
-
-    Accepts both /8.N (numeric tab-position alias) and /mi.N (stable name).
-    """
+def _mi_item_for_pathname(pathname):
+    """Extract accordion item_id from /8.N or /mi.N pathname, else None."""
     pathname = _norm(pathname)
     if not pathname:
-        return no_update
+        return None
     if pathname.startswith("/8."):
         suffix = pathname[3:]
     elif pathname.startswith("/mi."):
         suffix = pathname[4:]
     else:
-        return no_update
+        return None
     try:
         n = int(suffix)
         if 1 <= n <= len(_MODEL_INFO_ITEMS):
             return _MODEL_INFO_ITEMS[n - 1]
     except (ValueError, IndexError):
         pass
-    return no_update
+    return None
 
 
-# SPA-nav handler: when pathname changes to /mi.N (or /8.N) AFTER Model
-# Info content has been lazy-loaded, set the active accordion item.
-# Clientside — avoids Dash callback timing races with lazy-load children.
+# Model Info content is now PRE-RENDERED in the initial layout (see
+# layout/__init__.py::_build_layout). No lazy-load callback needed — the
+# accordion is always in the DOM, just hidden behind inactive tab.
+# That eliminates the ~770ms "Loading…" phase entirely on SPA nav.
+
+
+@callback(
+    Output("model-info-accordion", "active_item", allow_duplicate=True),
+    Input("url", "pathname"),
+    prevent_initial_call=True,
+)
+def open_model_info_item(pathname):
+    """Open the target accordion item when pathname matches /mi.N or /8.N.
+
+    No tab-state guard: the pathname-regex match is sufficient — /mi.N
+    and /8.N only ever indicate Model Info. Guarding by State(active_tab)
+    introduced a race because the clientside URL router updates active_tab
+    in parallel with this callback firing, and Dash may read the OLD
+    active_tab value.
+
+    Accepts both /8.N (numeric alias) and /mi.N (stable name).
+    """
+    item_id = _mi_item_for_pathname(pathname)
+    return item_id if item_id else no_update
+
+
+# Clientside SPA-nav fallback (kept as belt-and-suspenders):
 import json as _json
 _mi_items_json = _json.dumps(_MODEL_INFO_ITEMS)
 
 _app_ctx.app.clientside_callback(
     f"""
-    function(pathname, tab) {{
+    function(pathname) {{
         var NU = window.dash_clientside.no_update;
-        if (tab !== "model_info") return NU;
         if (!pathname) return NU;
         var m = pathname.match(/^\\/(?:mi|8)\\.(\\d+)$/);
         if (!m) return NU;
@@ -649,7 +640,6 @@ _app_ctx.app.clientside_callback(
     """,
     Output("model-info-accordion", "active_item", allow_duplicate=True),
     Input("url", "pathname"),
-    State("main-tabs", "active_tab"),
     prevent_initial_call=True,
 )
 

@@ -164,18 +164,20 @@ _PAGE_TEMPLATE = """<!DOCTYPE html>
 # catches these via pushState; from the static page, a click is a real
 # browser navigation into the Dash SPA. Uses stable named routes where
 # available (/leverage, /mi, /faq) so links don't break on tab reorder.
-_TAB_BAR_TEMPLATE = """
-<ul class="nav nav-tabs static-tab-bar" style="padding:0 12px;margin:0;border-bottom:1px solid #dee2e6;background:#fff;flex-wrap:nowrap;overflow-x:auto;">
-  <li class="nav-item"><a class="nav-link {cls_bubble}"      href="/1">Price Models</a></li>
-  <li class="nav-item"><a class="nav-link {cls_heatmap}"     href="/2">Heatmap</a></li>
-  <li class="nav-item"><a class="nav-link {cls_dca}"         href="/3">Accumulator</a></li>
-  <li class="nav-item"><a class="nav-link {cls_retire}"      href="/4">RetireMentator</a></li>
-  <li class="nav-item"><a class="nav-link {cls_supercharge}" href="/5">Supercharger</a></li>
-  <li class="nav-item"><a class="nav-link {cls_citadel}"     href="/6">Citadel</a></li>
-  <li class="nav-item"><a class="nav-link {cls_leverage}"    href="/leverage">Max Pay-Price</a></li>
-  <li class="nav-item"><a class="nav-link {cls_stack}"       href="/7">Stack</a></li>
-  <li class="nav-item"><a class="nav-link {cls_model_info}"  href="/mi">Model Info</a></li>
-  <li class="nav-item"><a class="nav-link {cls_faq}"         href="/faq">FAQ</a></li>
+from colors import BOOTSTRAP_BORDER as _TABBAR_BORDER, WHITE as _TABBAR_BG
+
+_TAB_BAR_TEMPLATE = f"""
+<ul class="nav nav-tabs static-tab-bar" style="padding:0 12px;margin:0;border-bottom:1px solid {_TABBAR_BORDER};background:{_TABBAR_BG};flex-wrap:nowrap;overflow-x:auto;">
+  <li class="nav-item"><a class="nav-link {{cls_bubble}}"      href="/1">Price Models</a></li>
+  <li class="nav-item"><a class="nav-link {{cls_heatmap}}"     href="/2">Heatmap</a></li>
+  <li class="nav-item"><a class="nav-link {{cls_dca}}"         href="/3">Accumulator</a></li>
+  <li class="nav-item"><a class="nav-link {{cls_retire}}"      href="/4">RetireMentator</a></li>
+  <li class="nav-item"><a class="nav-link {{cls_supercharge}}" href="/5">Supercharger</a></li>
+  <li class="nav-item"><a class="nav-link {{cls_citadel}}"     href="/6">Citadel</a></li>
+  <li class="nav-item"><a class="nav-link {{cls_leverage}}"    href="/leverage">Max Pay-Price</a></li>
+  <li class="nav-item"><a class="nav-link {{cls_stack}}"       href="/7">Stack</a></li>
+  <li class="nav-item"><a class="nav-link {{cls_model_info}}"  href="/mi">Model Info</a></li>
+  <li class="nav-item"><a class="nav-link {{cls_faq}}"         href="/faq">FAQ</a></li>
 </ul>
 """
 

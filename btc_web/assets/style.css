@@ -1643,7 +1643,7 @@ body {
 /* ── Static-page fake tab bar (matches live Dash tabs) ── */
 .static-tab-bar { font-family: var(--font-ui, system-ui, sans-serif); }
 .static-tab-bar .nav-link {
-    color: #555;
+    color: var(--qs-body-text-secondary);
     padding: 8px 14px;
     border: 1px solid transparent;
     border-bottom: none;
@@ -1651,12 +1651,12 @@ body {
     text-decoration: none;
 }
 .static-tab-bar .nav-link:hover {
-    background: #f1f3f5;
-    color: #222;
+    background: var(--qs-bootstrap-light-bg);
+    color: var(--qs-body-text);
 }
 .static-tab-bar .nav-link.active {
-    color: #212529;
-    background: #fff;
-    border-color: #dee2e6 #dee2e6 #fff;
+    color: var(--qs-body-text);
+    background: var(--qs-white);
+    border-color: var(--qs-bootstrap-border) var(--qs-bootstrap-border) var(--qs-white);
     font-weight: 600;
 }

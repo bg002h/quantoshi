@@ -212,22 +212,47 @@ def test_no_mini_card_ids_anywhere(prefix, family):
     [(p, f) for p in ("bub", "dca", "ret", "sc")
             for f in ("lppl", "hybppl", "eppl")])
 def test_inline_summary_spans_exist(prefix, family):
-    """All 12 {prefix}-{family}-summary-inline spans must exist in the layout."""
+    """All 12 {prefix}-{family}-summary-inline spans must be emitted by the
+    respective tab's content builder.
+
+    After the universal lazy-tab-loading refactor, only the initial tab's
+    content is present in _serve_layout() at layout build time — non-active
+    tabs show a `Loading...` placeholder until the user visits them. So for
+    bubble (default initial_tab), we assert the span appears in layout; for
+    dca/ret/sc, we build their tab content directly and assert the span is
+    present in THAT subtree. Same coverage, new invariant.
+    """
     import app  # noqa: F401 — registers Dash callbacks
-    from layout import _serve_layout
-    layout = _serve_layout()
-    assert f"{prefix}-{family}-summary-inline" in _live_component_ids(layout)
+    span_id = f"{prefix}-{family}-summary-inline"
+
+    if prefix == "bub":
+        from layout import _serve_layout
+        layout = _serve_layout()
+        assert span_id in _live_component_ids(layout)
+    else:
+        from callbacks.routing import _build_tab_content
+        tab_map = {"dca": "dca", "ret": "retire", "sc": "supercharge"}
+        content = _build_tab_content(tab_map[prefix])
+        assert span_id in _live_component_ids(content), (
+            f"{span_id} not found in {tab_map[prefix]} tab content subtree"
+        )
 
 
 def test_heatmap_status_row_exists():
-    """Heatmap has the 4 new status-row ids."""
+    """Heatmap has the 4 status-row ids in its tab content.
+
+    Post-lazy-tab refactor: heatmap content is lazy-loaded unless heatmap
+    is the initial tab, so we assert these IDs exist in the heatmap
+    subtree directly (via _build_tab_content('heatmap')), not in the
+    default /1 layout.
+    """
     import app  # noqa: F401 — registers Dash callbacks
-    from layout import _serve_layout
-    layout = _serve_layout()
-    ids = _live_component_ids(layout)
+    from callbacks.routing import _build_tab_content
+    hm = _build_tab_content("heatmap")
+    ids = _live_component_ids(hm)
     for cid in ("hm-active-family-row", "hm-active-family-label",
                 "hm-active-family-summary-inline", "hm-active-family-gear"):
-        assert cid in ids, f"missing {cid} in heatmap layout"
+        assert cid in ids, f"missing {cid} in heatmap content subtree"
 
 
 def test_defunct_placeholders_unconditional():

@@ -1389,10 +1389,26 @@ _app_ctx.app.clientside_callback(
     Output("ret-model-show", "options", allow_duplicate=True),
     Output("sc-model-show", "options", allow_duplicate=True),
     Input("palette-store", "data"),
+    # Lazy-tab re-apply: when dca / retire / supercharge are first lazy-
+    # loaded, their Checklist is mounted with default-palette options (built
+    # at layout time before the user ever changed palette). Re-firing this
+    # callback on each lazy mount rebuilds options with the current palette.
+    Input("dca-lazy",         "children"),
+    Input("retire-lazy",      "children"),
+    Input("supercharge-lazy", "children"),
     State("display-model-summaries", "data"),
     prevent_initial_call=True,
 )
-def update_model_swatches(palette_key, summaries):
+def update_model_swatches(palette_key, _dca_children=None, _ret_children=None,
+                          _sc_children=None, summaries=None):
+    """Rebuild display-models swatches for bub/dca/ret/sc on palette change
+    OR on lazy-tab mount (so the mounted tab picks up the current palette
+    instead of the layout-time default).
+
+    The three `_*_children` params are fire-trigger sentinels from lazy-load
+    Inputs; their values are unused. Default `None` keeps the legacy
+    2-arg call signature used by palette-roundtrip tests working.
+    """
     from layout.display_models import build_display_models_options
     pal = _app_ctx.PALETTES.get(palette_key or "default",
                                  _app_ctx.PALETTES["default"])

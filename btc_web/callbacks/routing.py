@@ -545,34 +545,100 @@ def _lazy_load_auto_y_grid(tab, current):
     return _app_ctx.AUTO_Y_GRID
 
 
-@callback(
-    Output("citadel-lazy", "children"),
-    Input("main-tabs", "active_tab"),
-    prevent_initial_call=True,
-)
-def _lazy_load_citadel(tab):
-    """Populate Citadel Planner on first visit (saves ~25-30KB from layout JSON)."""
-    if tab != "citadel":
-        return no_update
-    from layout.citadel import _citadel_tab
-    return _citadel_tab()
+# ══════════════════════════════════════════════════════════════════════════════
+# Universal tab lazy-load: initial_tab is eager-rendered in layout;
+# every OTHER tab has a "{tab_id}-lazy" Div placeholder that gets populated
+# on first user visit. Keeps the initial /N layout JSON small (~70-80% of
+# the pre-lazy ~602KB was non-active tab content).
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Module-level caches per tab — _<tab>_tab() is ~5-10ms to build; cache so
+# subsequent visits in same worker skip the rebuild.
+_TAB_CONTENT_CACHE: dict[str, object] = {}
 
 
-# After citadel lazy-load injects DOM, trigger the chart callback.
-# Uses a separate Input (citadel-lazy.children) to avoid hash collision
-# with the clientside tab-switch callback that also outputs citadel-first-render.
-_app_ctx.app.clientside_callback(
-    """
-    function(children, cur) {
-        if (!children || children === 'Loading...') return window.dash_clientside.no_update;
-        return (cur || 0) + 1;
-    }
-    """,
-    Output("citadel-first-render", "data", allow_duplicate=True),
-    Input("citadel-lazy", "children"),
-    State("citadel-first-render", "data"),
-    prevent_initial_call=True,
-)
+def _build_tab_content(tab_id):
+    if tab_id in _TAB_CONTENT_CACHE:
+        return _TAB_CONTENT_CACHE[tab_id]
+    if tab_id == "bubble":
+        from layout.bubble import _bubble_tab
+        content = _bubble_tab()
+    elif tab_id == "heatmap":
+        from layout.heatmap import _heatmap_tab
+        content = _heatmap_tab()
+    elif tab_id == "dca":
+        from layout.sim_tabs import _dca_tab
+        content = _dca_tab()
+    elif tab_id == "retire":
+        from layout.sim_tabs import _retire_tab
+        content = _retire_tab()
+    elif tab_id == "supercharge":
+        from layout.supercharge import _supercharge_tab
+        content = _supercharge_tab()
+    elif tab_id == "citadel":
+        from layout.citadel import _citadel_tab
+        content = _citadel_tab()
+    elif tab_id == "leverage":
+        from layout.leverage import _leverage_tab
+        content = _leverage_tab()
+    elif tab_id == "stack":
+        from layout.stack import _stack_tracker_tab
+        content = _stack_tracker_tab()
+    elif tab_id == "model_info":
+        from layout.model_info import _model_info_tab
+        content = _model_info_tab().children
+    elif tab_id == "faq":
+        from layout.faq import _faq_tab
+        content = _faq_tab()
+    else:
+        return None
+    _TAB_CONTENT_CACHE[tab_id] = content
+    return content
+
+
+def _register_lazy_tab(tab_id):
+    """Register a @callback that populates {tab_id}-lazy on first active visit."""
+    @callback(
+        Output(f"{tab_id}-lazy", "children"),
+        Input("main-tabs", "active_tab"),
+        prevent_initial_call=True,
+    )
+    def _lazy_load(tab, _tid=tab_id):  # default-arg captures tab_id
+        if tab != _tid:
+            return no_update
+        content = _build_tab_content(_tid)
+        return content if content is not None else no_update
+
+
+for _tid in ("bubble", "heatmap", "dca", "retire", "supercharge",
+             "citadel", "leverage", "stack"):
+    _register_lazy_tab(_tid)
+
+
+# After a chart-tab lazy-load injects DOM, bump first-render so the chart
+# callback fires with the newly-mounted graph element present.
+def _register_first_render_bump(tab_id):
+    _app_ctx.app.clientside_callback(
+        """
+        function(children, cur) {
+            if (!children) return window.dash_clientside.no_update;
+            // Only bump when content has actually been populated (not placeholder)
+            if (typeof children === 'string' && children === 'Loading...') {
+                return window.dash_clientside.no_update;
+            }
+            return (cur || 0) + 1;
+        }
+        """,
+        Output(f"{tab_id}-first-render", "data", allow_duplicate=True),
+        Input(f"{tab_id}-lazy", "children"),
+        State(f"{tab_id}-first-render", "data"),
+        prevent_initial_call=True,
+    )
+
+
+for _tid in ("bubble", "heatmap", "dca", "retire", "supercharge",
+             "citadel", "leverage"):
+    _register_first_render_bump(_tid)
 
 
 def _mi_item_for_pathname(pathname):

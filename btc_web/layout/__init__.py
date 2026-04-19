@@ -228,6 +228,24 @@ def _pick_splash_quote():
 
 def _build_layout(initial_tab="bubble"):
     _splash_q, _splash_a = _pick_splash_quote()
+
+    def _t(tab_id, label, content_fn):
+        """Eager-render if this is the active tab; else lazy placeholder.
+
+        All tab content is wrapped in a {tab_id}-lazy Div that the
+        corresponding lazy-load callback in callbacks/routing.py populates
+        on first active-tab match.
+        """
+        lazy_id = f"{tab_id}-lazy"
+        if tab_id == initial_tab:
+            body = html.Div(content_fn(), id=lazy_id)
+        else:
+            body = html.Div(
+                html.P("Loading...", className="text-muted p-4"),
+                id=lazy_id,
+            )
+        return dbc.Tab(body, label=label, tab_id=tab_id)
+
     return dbc.Container([
     _freq_warning_modal(),
     # ── Display Models family summary Store ────────────────────────────
@@ -690,23 +708,22 @@ def _build_layout(initial_tab="bubble"):
             dbc.Button("Close", id="share-modal-close", className="ms-auto", size="sm")
         ),
     ], id="share-modal", is_open=False, size="lg", scrollable=True),
+    # All non-active tabs are lazy-loaded: only initial_tab's content is
+    # materialized at layout build time; others show a placeholder until
+    # the user switches to them (or a lazy callback fires on active_tab
+    # change). This keeps /N layout JSON small — a visit to /1 doesn't
+    # download heatmap/dca/retire/SC control panels, etc.
     dbc.Tabs([
-        dbc.Tab(_bubble_tab(),       label="Price Models", tab_id="bubble"),
-        dbc.Tab(_heatmap_tab(),      label="Heatmap",        tab_id="heatmap"),
-        dbc.Tab(_dca_tab(),          label="Accumulator",     tab_id="dca"),
-        dbc.Tab(_retire_tab(),       label="RetireMentator",  tab_id="retire"),
-        dbc.Tab(_supercharge_tab(),  label="Supercharger",   tab_id="supercharge"),
-        dbc.Tab(html.Div(id="citadel-lazy", children=[
-            html.P("Loading...", className="text-muted p-4")
-        ]), label="Citadel", tab_id="citadel"),
-        dbc.Tab(_leverage_tab(), label="Max Pay-Price", tab_id="leverage"),
-        dbc.Tab(_stack_tracker_tab(),label="Stack",       tab_id="stack"),
-        dbc.Tab(html.Div(id="model-info-lazy", children=[
-            html.P("Loading...", className="text-muted p-4")
-        ]), label="Model Info", tab_id="model_info"),
-        dbc.Tab(html.Div(id="faq-lazy", children=[
-            html.P("Loading...", className="text-muted p-4")
-        ]), label="FAQ", tab_id="faq"),
+        _t("bubble",       "Price Models",    _bubble_tab),
+        _t("heatmap",      "Heatmap",         _heatmap_tab),
+        _t("dca",          "Accumulator",     _dca_tab),
+        _t("retire",       "RetireMentator",  _retire_tab),
+        _t("supercharge",  "Supercharger",    _supercharge_tab),
+        _t("citadel",      "Citadel",         _citadel_tab),
+        _t("leverage",     "Max Pay-Price",   _leverage_tab),
+        _t("stack",        "Stack",           _stack_tracker_tab),
+        _t("model_info",   "Model Info",      lambda: _model_info_tab().children),
+        _t("faq",          "FAQ",             _faq_tab),
     ], id="main-tabs", active_tab=initial_tab),
     _global_lppl_modal(),
     _global_hybppl_modal(),

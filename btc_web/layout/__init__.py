@@ -701,13 +701,9 @@ def _build_layout(initial_tab="bubble"):
         ]), label="Citadel", tab_id="citadel"),
         dbc.Tab(_leverage_tab(), label="Max Pay-Price", tab_id="leverage"),
         dbc.Tab(_stack_tracker_tab(),label="Stack",       tab_id="stack"),
-        # Model Info is EAGER-rendered (was lazy). Adds ~900KB to layout JSON
-        # (gzipped ~150KB) but eliminates the 770ms "Loading…" + accordion-
-        # opening delay users hit when clicking 📐 icons or visiting /mi.N.
-        # Build once per page load; content is static per app instance.
-        dbc.Tab(html.Div(id="model-info-lazy",
-                         children=_model_info_tab().children),
-                label="Model Info", tab_id="model_info"),
+        dbc.Tab(html.Div(id="model-info-lazy", children=[
+            html.P("Loading...", className="text-muted p-4")
+        ]), label="Model Info", tab_id="model_info"),
         dbc.Tab(html.Div(id="faq-lazy", children=[
             html.P("Loading...", className="text-muted p-4")
         ]), label="FAQ", tab_id="faq"),

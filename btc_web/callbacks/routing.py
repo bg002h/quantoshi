@@ -595,11 +595,29 @@ def _mi_item_for_pathname(pathname):
     return None
 
 
-# Model Info content is now PRE-RENDERED in the initial layout (see
-# layout/__init__.py::_build_layout). No lazy-load callback needed — the
-# accordion is always in the DOM, just hidden behind inactive tab.
-# That eliminates the ~770ms "Loading…" phase entirely on SPA nav.
-#
+# Module-level cache for Model Info accordion children: rebuilt ~70ms
+# per call; cache after first build so subsequent SPA nav to Model Info
+# (and across worker restarts) is instant.
+_MI_CACHED_CHILDREN = None
+
+
+@callback(
+    Output("model-info-lazy", "children"),
+    Input("main-tabs", "active_tab"),
+    prevent_initial_call=True,
+)
+def _lazy_load_model_info(tab):
+    """Populate Model Info content on first tab visit (saves ~900KB/150KB
+    gzipped from the initial layout JSON for all other tab visits)."""
+    if tab != "model_info":
+        return no_update
+    global _MI_CACHED_CHILDREN
+    if _MI_CACHED_CHILDREN is None:
+        from layout.model_info import _model_info_tab
+        _MI_CACHED_CHILDREN = _model_info_tab().children
+    return _MI_CACHED_CHILDREN
+
+
 # Accordion item opening (for /mi.N and /8.N deep links) is handled
 # entirely by the clientside `_mi_spa_open` callback below. A parallel
 # server-side callback targeting the same output triggers
@@ -611,9 +629,12 @@ def _mi_item_for_pathname(pathname):
 import json as _json
 _mi_items_json = _json.dumps(_MODEL_INFO_ITEMS)
 
+# Two triggers: (1) url.pathname change (SPA nav while MI already loaded),
+# (2) model-info-lazy.children change (lazy-load just completed, accordion
+# just rendered, need to open the target item that the pathname indicates).
 _app_ctx.app.clientside_callback(
     f"""
-    function(pathname) {{
+    function(pathname, _children) {{
         var NU = window.dash_clientside.no_update;
         if (!pathname) return NU;
         var m = pathname.match(/^\\/(?:mi|8)\\.(\\d+)$/);
@@ -626,6 +647,7 @@ _app_ctx.app.clientside_callback(
     """,
     Output("model-info-accordion", "active_item", allow_duplicate=True),
     Input("url", "pathname"),
+    Input("model-info-lazy", "children"),
     prevent_initial_call=True,
 )
 

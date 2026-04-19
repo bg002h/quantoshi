@@ -24,22 +24,18 @@ sys.path.insert(0, _ROOT)
 sys.path.insert(0, os.path.join(_ROOT, "btc_web"))
 
 from btc_core import load_model_data
-from btc_core._simple import BubbleModel
 
 
 def _percentile_flat(md, t_yr, price):
-    """Constant-sigma percentile: ignores t^(-alpha) shrinkage.
+    """Constant-σ percentile vs BM composite (no t^(-α) shrinkage).
 
-    log10(composite) at t → residual in log-space → z-score under a
-    constant σ (σ_up if price above composite, σ_down if below) → CDF.
+    log10(composite) → residual → z-score under flat σ_up/σ_down → CDF.
     """
-    log_p = np.log10(max(float(price), 1e-10))
+    import math
+    log_p = math.log10(max(float(price), 1e-10))
     log_comp = float(np.interp(t_yr, md.years_plot_bm,
                                np.log10(np.maximum(md.comp_by_n[-1], 1e-10))))
-    if log_p >= log_comp:
-        sigma = md.bm_sigma0_up
-    else:
-        sigma = md.bm_sigma0_down
+    sigma = md.bm_sigma0_up if log_p >= log_comp else md.bm_sigma0_down
     if sigma < 1e-9:
         return 0.5
     z = (log_p - log_comp) / sigma
@@ -53,7 +49,12 @@ def main():
     args = ap.parse_args()
 
     md = load_model_data(os.path.join(_ROOT, "model_data.pkl"))
-    bm = BubbleModel(md)
+    # Use the live-registered BM so it carries its _resqr bundle (populated
+    # by btc_web's resqr binder). Instantiating BubbleModel(md) from scratch
+    # produces a model without _resqr and silently falls back to constant σ.
+    import app  # noqa: F401 — side-effect populates _app_ctx.PRICE_MODELS
+    import _app_ctx
+    bm = _app_ctx.PRICE_MODELS["bub"]
 
     # Historical data
     dates = pd.to_datetime(md.price_dates)
@@ -65,15 +66,16 @@ def main():
         pct = np.array([_percentile_flat(md, t_yr[i], prices[i]) for i in range(len(prices))])
         suffix = "_flat"
         subtitle_sigma = (
-            f"Constant σ (no shrinkage): σ_up={md.bm_sigma0_up:.4f}, "
-            f"σ_down={md.bm_sigma0_down:.4f}"
+            f"Q50% = BM composite.  Constant σ (no shrinkage): "
+            f"σ_up={md.bm_sigma0_up:.4f}, σ_down={md.bm_sigma0_down:.4f}"
         )
     else:
-        pct = np.array([bm.find_percentile(t_yr[i], prices[i]) for i in range(len(prices))])
+        # Match Tab 1's "Residual σ mode" (resqr): knots-based residual QR bands.
+        pct = np.array([bm.find_percentile(t_yr[i], prices[i], sigma_mode="resqr")
+                        for i in range(len(prices))])
         suffix = ""
         subtitle_sigma = (
-            f"Shrinking σ: σ(t)=σ₀·t^(−α). "
-            f"α_up={md.bm_alpha_up:.3f}, α_down={md.bm_alpha_down:.3f}"
+            f"Q50% = BM composite.  Residual-QR σ (matches Tab 1 'Residual σ' toggle)"
         )
 
     fig, ax = plt.subplots(figsize=(13, 7), dpi=140)

@@ -153,7 +153,7 @@ pre code {{ background:none; padding:0; }}
 
     @server.route("/B")
     def _bm_percentile():
-        svg_path = os.path.join(os.path.dirname(__file__), "..", "bm_percentile_flat.svg")
+        svg_path = os.path.join(os.path.dirname(__file__), "..", "bm_percentile.svg")
         try:
             with open(svg_path) as f:
                 return f.read(), 200, {"Content-Type": "image/svg+xml"}

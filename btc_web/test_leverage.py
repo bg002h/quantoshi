@@ -146,8 +146,32 @@ def test_leverage_defaults_cache_alignment():
     """LEVERAGE_DEFAULTS keys cover every callback Input."""
     from tab_defaults import LEVERAGE_DEFAULTS
     expected = {"lev_date", "lev_price", "lev_model", "lev_floor_q",
-                "lev_rb", "lev_rl", "lev_horizon", "lev_cagr"}
+                "lev_rb", "lev_rl", "lev_horizon", "lev_cagr", "lev_toggles"}
     assert set(LEVERAGE_DEFAULTS.keys()) == expected
+
+
+def test_bm_floor_uses_support_not_composite():
+    """BM `floor_price` uses the support line — should be well below composite."""
+    from figures.leverage import floor_price, _bm_support_log10, _t_yr
+    import datetime as _dt
+    td = _dt.date.today().replace(year=_dt.date.today().year + 4)
+    t = _t_yr(td)
+    support_price = 10.0 ** _bm_support_log10(t)
+    # Q50% should equal support (no downshift)
+    assert abs(floor_price("bub", 0.5, td) - support_price) < 1e-6
+    # Q1% should be at or below the support line (downshifted)
+    bm_q1 = floor_price("bub", 0.01, td)
+    assert bm_q1 <= support_price
+
+
+def test_implied_quantile_bub_matches_floor_q():
+    """implied_quantile(bub, floor_price(bub, q, t), t) ≈ q."""
+    from figures.leverage import implied_quantile, floor_price
+    import datetime as _dt
+    td = _dt.date.today().replace(year=_dt.date.today().year + 4)
+    for q in (0.01, 0.05, 0.10, 0.20, 0.50):
+        sell = floor_price("bub", q, td)
+        assert abs(implied_quantile("bub", sell, td) - q) < 0.02
 
 
 def test_leverage_tab_controls_snapshot_alignment():

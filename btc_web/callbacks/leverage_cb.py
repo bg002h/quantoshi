@@ -13,7 +13,8 @@ from dash import Input, Output, callback, html
 from dash.exceptions import PreventUpdate
 
 from figures.leverage import (
-    build_leverage_figure, floor_price, P_max, implied_cagr, _parse_date,
+    build_leverage_figure, floor_price, P_max, implied_cagr, implied_quantile,
+    _parse_date,
 )
 from colors import BORDER_MUTED, TABLE_ROW_HIGHLIGHT_BG
 
@@ -59,22 +60,29 @@ def _readout(buy_date, P_now, sell_date, sell_price, H_yr, c, max_pay, implied_c
     ], style={"border": f"1px solid {BORDER_MUTED}", "borderRadius": "6px", "padding": "12px"})
 
 
+def _fmt_q(q_val):
+    pct = q_val * 100
+    return f"Q{pct:.2g}%" if pct >= 1 else f"Q{pct:.2g}%"
+
+
 def _table(buy_date, model, q, r_b, r_l, c, H_slider):
     """Render the 7-row canonical table (spec §6.3)."""
     horizons = [1, 2, 3, 4, 5, 8, 10]
     header = html.Tr([html.Th(h) for h in
-                      ["H (yr)", "Sell date", "Sell price",
+                      ["H (yr)", "Sell date", "Sell price", "Sell quantile",
                        "Max pay @ 0%", f"@ r_l ({r_l*100:.2f}%)",
                        f"@ r_b ({r_b*100:.2f}%)", f"@ your ({c*100:.1f}%)"]])
     rows = []
     for H in horizons:
         sell_d = buy_date + _dt.timedelta(days=int(round(H * 365.25)))
         sp = floor_price(model, q, sell_d)
+        sell_q = implied_quantile(model, sp, sell_d)
         row_style = {"backgroundColor": TABLE_ROW_HIGHLIGHT_BG} if abs(H - H_slider) < 0.5 else {}
         rows.append(html.Tr([
             html.Td(H),
             html.Td(sell_d.isoformat()),
             html.Td(f"${sp:,.0f}"),
+            html.Td(_fmt_q(sell_q)),
             html.Td(f"${P_max(sp, H, 0.0):,.0f}"),
             html.Td(f"${P_max(sp, H, r_l):,.0f}"),
             html.Td(f"${P_max(sp, H, r_b):,.0f}"),
@@ -97,10 +105,11 @@ def _table(buy_date, model, q, r_b, r_l, c, H_slider):
     Input("lev-rl", "value"),
     Input("lev-horizon", "value"),
     Input("lev-cagr", "value"),
-    prevent_initial_call=True,
+    Input("lev-toggles", "value"),
+    prevent_initial_call=False,
 )
 def update_leverage(first_render, date_val, price_val, model, q,
-                    rb_val, rl_val, H_val, c_val):
+                    rb_val, rl_val, H_val, c_val, toggles):
     if not first_render:
         raise PreventUpdate
 
@@ -142,6 +151,7 @@ def update_leverage(first_render, date_val, price_val, model, q,
         "lev_model": model, "lev_floor_q": q,
         "lev_rb": rb, "lev_rl": rl,
         "lev_horizon": H_yr, "lev_cagr": c_pct,
+        "lev_toggles": tuple(toggles or ()),
         "palette": "default",
     }
     fig = build_leverage_figure(p)

@@ -295,6 +295,7 @@ LEVERAGE_DEFAULTS = MappingProxyType({
     "lev_rl":       4.5,
     "lev_horizon":  4.0,
     "lev_cagr":     20.0,
+    "lev_toggles":  ("legend",),
 })
 
 

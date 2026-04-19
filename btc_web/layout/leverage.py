@@ -29,13 +29,13 @@ def _model_options():
 
 
 # Floor quantile pill bar — hardcoded at import (parallel to routing.py::_HM_PILL_IDS).
-_LEV_FLOOR_QS = [0.001, 0.01, 0.05, 0.10, 0.15, 0.20]
+_LEV_FLOOR_QS = [0.001, 0.01, 0.05, 0.10, 0.15, 0.20, 0.50]
 _LEV_PILL_IDS = [f"lev-pill-q{int(q*1000):03d}" for q in _LEV_FLOOR_QS]
 
 
 def _floor_pill_bar():
     """Render 6 pill buttons for floor quantile selection."""
-    labels = ["Q0.1%", "Q1%", "Q5%", "Q10%", "Q15%", "Q20%"]
+    labels = ["Q0.1%", "Q1%", "Q5%", "Q10%", "Q15%", "Q20%", "Q50%"]
     default_q = 0.01
     return html.Div([
         dbc.Button(
@@ -111,6 +111,20 @@ def _leverage_tab() -> html.Div:
                            tooltip={"always_visible": True, "placement": "top"}),
             ], md=6, xs=12, className="mb-2"),
         ], className="mb-3"),
+
+        # Display options
+        dbc.Row([
+            dbc.Col([
+                dcc.Checklist(
+                    id="lev-toggles",
+                    options=[{"label": " Show legend", "value": "legend"}],
+                    value=list(d["lev_toggles"]),
+                    inline=True,
+                    inputStyle={"marginRight": "4px"},
+                    style={"fontSize": UI_FONT_MD},
+                ),
+            ], xs=12, className="mb-2"),
+        ], className="mb-2"),
 
         # Outputs
         html.Div(id="lev-readout", className="mb-3"),

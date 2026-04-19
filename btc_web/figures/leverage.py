@@ -19,20 +19,80 @@ from figures.common import _base_layout, _apply_watermark
 _GENESIS = pd.Timestamp("2009-07-25")
 
 
+def _t_yr(target_date) -> float:
+    return (pd.Timestamp(target_date) - _GENESIS).days / 365.25
+
+
+def _bm_support_log10(t_yr: float) -> float:
+    """Log10(support_price) for the Bubble Model at time t (years since genesis).
+
+    Uses the BM support line (`support_intercept + support_slope * log10(t)`)
+    rather than the bubble composite. This is the "floor" of the BM —
+    the underlying power-law base that bubbles oscillate above.
+    """
+    import math
+    md = _app_ctx.M
+    return md.support_intercept + md.support_slope * math.log10(max(t_yr, 0.01))
+
+
+def _bm_sigma_down(t_yr: float) -> float:
+    md = _app_ctx.M
+    return float(md.bm_sigma0_down * max(t_yr, 0.5) ** (-md.bm_alpha_down))
+
+
 def floor_price(model_short: str, q: float, target_date) -> float:
     """Return the `model_short`-q floor price at `target_date` in USD.
+
+    Bubble Model special case: floor is the support power-law line
+    (not the composite-quantile), log-shifted downward by |z|·σ_down for q < 0.5.
+    This matches the user's intent for "BM floor" — the support line, not
+    the composite's lower band.
+
+    Other models: `model.interp_price(q, t)` — log-space interpolation between
+    adjacent QR fits.
 
     Args:
         model_short: key into _app_ctx.PRICE_MODELS (e.g. "bub", "pl", "lppl").
         q: quantile in (0, 1), e.g. 0.01 for Q1%.
         target_date: datetime.date or datetime.datetime.
-
-    Returns:
-        Floor price in USD (positive float).
     """
+    t_yr = _t_yr(target_date)
+    if model_short == "bub":
+        log_support = _bm_support_log10(t_yr)
+        if q < 0.5:
+            from scipy.stats import norm
+            z = float(norm.ppf(q))  # negative for q<0.5
+            log_support = log_support + z * _bm_sigma_down(t_yr)
+        return float(10.0 ** log_support)
     model = _app_ctx.PRICE_MODELS[model_short]
-    t_yr = (pd.Timestamp(target_date) - _GENESIS).days / 365.25
     return float(model.interp_price(q, t_yr))
+
+
+def implied_quantile(model_short: str, price: float, target_date) -> float:
+    """Return the model's implied quantile of `price` at `target_date`.
+
+    Useful for the table "Sell quantile" column — tells the user what
+    probability the sell-price corresponds to. For BM this reflects the
+    support line's implied quantile (typically around Q5–15%); for other
+    models it will echo the pill-bar `q` (modulo small interpolation noise).
+    """
+    if price <= 0:
+        return 0.5
+    t_yr = _t_yr(target_date)
+    if model_short == "bub":
+        import math
+        from scipy.stats import norm
+        log_support = _bm_support_log10(t_yr)
+        sigma = _bm_sigma_down(t_yr)
+        if sigma < 1e-9:
+            return 0.5
+        z = (math.log10(price) - log_support) / sigma
+        return float(norm.cdf(z))
+    model = _app_ctx.PRICE_MODELS[model_short]
+    try:
+        return float(model.find_percentile(t_yr, price))
+    except (AttributeError, NotImplementedError):
+        return 0.5
 
 
 def P_max(sell_price: float, H_yr: float, target_cagr: float) -> float:
@@ -138,5 +198,7 @@ def build_leverage_figure(p: dict) -> go.Figure:
     base["yaxis"].update(type="log", tickformat="$,.0f")
     base["margin"] = dict(l=60, r=40, t=90, b=60)
     fig.update_layout(**base)
+    show_legend = "legend" in (p.get("lev_toggles") or ())
+    fig.update_layout(showlegend=show_legend)
     _apply_watermark(fig)
     return fig

@@ -362,6 +362,7 @@ _SNAPSHOT_CONTROLS = [
     ("lev-rl",            "value"),
     ("lev-horizon",       "value"),
     ("lev-cagr",          "value"),
+    ("lev-toggles",       "value"),
 ]
 
 _SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)

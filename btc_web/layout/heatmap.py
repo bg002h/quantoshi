@@ -64,7 +64,8 @@ def _heatmap_controls():
             _lbl("Exit year range"),
             dcc.RangeSlider(id="hm-exit-range", min=2010, max=2060,
                             value=[yr_now, yr_now + 10], step=1,
-                            marks={y: f"'{y % 100:02d}" for y in range(2010, 2061, 5)},
+                            marks={y: f"'{y % 100:02d}"
+                                   for y in range(2010, 2061) if y % 10 == 0},
                             tooltip={"always_visible":False}),
         ),
         # 2. Display — toggles + cell-text formatting (how each cell renders).
@@ -113,7 +114,9 @@ def _heatmap_controls():
         _section_card("Entry Conditions",
             _lbl("Entry year"),
             dcc.Slider(id="hm-entry-yr", min=2010, max=2039,
-                       value=yr_now, step=1, marks=None,
+                       value=yr_now, step=1,
+                       marks={y: f"'{y % 100:02d}"
+                              for y in range(2010, 2040) if y % 10 == 0},
                        tooltip={"always_visible":True}),
             _lbl("Entry percentile (0.1\u201399.9%)"),
             dbc.Input(id="hm-entry-q", type="number",

@@ -96,7 +96,8 @@ def _supercharge_controls():
             _lbl("Base retirement year"),
             dcc.Slider(id="sc-start-yr", min=yr_now, max=2075,
                        value=SUPERCHARGE["start_yr"], step=1,
-                       marks={y: f"'{y % 100:02d}" for y in range(yr_now, 2076, 5)},
+                       marks={y: f"'{y % 100:02d}"
+                              for y in range(yr_now, 2076) if y % 10 == 0},
                        tooltip={"always_visible":False}),
             _btc_usd_dropdown("sc", btc_label="BTC Remaining", default="usd"),
         ),

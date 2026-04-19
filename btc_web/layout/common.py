@@ -670,12 +670,18 @@ def _inject_initial_figure(layout, graph_id, fig):
         layout.figure = fig
 
 
-def _year_range_slider(prefix, min_yr, max_yr, default_start, default_end, mark_step=5):
-    """Year range slider with abbreviated tick marks."""
+def _decade_marks(min_yr, max_yr):
+    """Slider mark dict with labels only on decade boundaries: '30, '40, ..."""
+    return {y: f"'{y % 100:02d}"
+            for y in range(min_yr, max_yr + 1) if y % 10 == 0}
+
+
+def _year_range_slider(prefix, min_yr, max_yr, default_start, default_end):
+    """Year range slider with abbreviated tick marks (decade boundaries only)."""
     return dcc.RangeSlider(
         id=f"{prefix}-yr-range", min=min_yr, max=max_yr,
         value=[default_start, default_end], step=1,
-        marks={y: f"'{y % 100:02d}" for y in range(min_yr, max_yr + 1, mark_step)},
+        marks=_decade_marks(min_yr, max_yr),
         tooltip={"always_visible": False},
     )
 

@@ -599,26 +599,12 @@ def _mi_item_for_pathname(pathname):
 # layout/__init__.py::_build_layout). No lazy-load callback needed — the
 # accordion is always in the DOM, just hidden behind inactive tab.
 # That eliminates the ~770ms "Loading…" phase entirely on SPA nav.
-
-
-@callback(
-    Output("model-info-accordion", "active_item", allow_duplicate=True),
-    Input("url", "pathname"),
-    prevent_initial_call=True,
-)
-def open_model_info_item(pathname):
-    """Open the target accordion item when pathname matches /mi.N or /8.N.
-
-    No tab-state guard: the pathname-regex match is sufficient — /mi.N
-    and /8.N only ever indicate Model Info. Guarding by State(active_tab)
-    introduced a race because the clientside URL router updates active_tab
-    in parallel with this callback firing, and Dash may read the OLD
-    active_tab value.
-
-    Accepts both /8.N (numeric alias) and /mi.N (stable name).
-    """
-    item_id = _mi_item_for_pathname(pathname)
-    return item_id if item_id else no_update
+#
+# Accordion item opening (for /mi.N and /8.N deep links) is handled
+# entirely by the clientside `_mi_spa_open` callback below. A parallel
+# server-side callback targeting the same output triggers
+# `DuplicateCallback` on Dash < 4 even with allow_duplicate=True, so
+# clientside-only is the safer choice.
 
 
 # Clientside SPA-nav fallback (kept as belt-and-suspenders):

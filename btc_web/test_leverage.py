@@ -128,6 +128,14 @@ def test_leverage_price_zero_guarded():
     assert implied_cagr(100_000, 0, 4) is None
 
 
+def test_leverage_implied_cagr_overflow_guarded():
+    """Post-clamp pathological (tiny H + tiny price + normal sell) must not raise."""
+    from figures.leverage import implied_cagr
+    # After callback clamps H_yr=0.01, price=1.0, sell ~= $80k → 80000**100 overflows
+    assert implied_cagr(80_000.0, 1.0, 0.01) is None
+    assert implied_cagr(1_000_000.0, 1.0, 0.01) is None
+
+
 def test_leverage_s2f_not_in_flagship_dropdown():
     """S2F silently ignores q — must not appear in the leverage dropdown."""
     from layout.leverage import _LEV_FLAGSHIP_MODELS

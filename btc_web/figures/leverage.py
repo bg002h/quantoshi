@@ -44,7 +44,10 @@ def implied_cagr(sell_price: float, P_now: float, H_yr: float):
     """CAGR implied by buying at P_now today and selling at sell_price in H years."""
     if P_now <= 0 or H_yr <= 0:
         return None
-    return (sell_price / P_now) ** (1.0 / H_yr) - 1.0
+    try:
+        return (sell_price / P_now) ** (1.0 / H_yr) - 1.0
+    except OverflowError:
+        return None
 
 
 def _parse_date(s):

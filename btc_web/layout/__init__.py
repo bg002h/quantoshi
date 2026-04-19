@@ -41,6 +41,7 @@ from layout.stack import _stack_tracker_tab
 from layout.model_info import _model_info_tab
 from layout.citadel import _citadel_tab
 from layout.faq import _faq_tab
+from layout.leverage import _leverage_tab
 from layout.common import _export_row, _BTC_ORANGE
 from colors import (
     WHITE, FALLBACK_MODEL_GRAY,
@@ -115,6 +116,7 @@ _PATH_TO_TAB = {
     "/1": "bubble", "/2": "heatmap", "/3": "dca",
     "/4": "retire", "/5": "supercharge", "/6": "citadel",
     "/7": "stack", "/8": "model_info", "/9": "faq",
+    "/10": "leverage", "/leverage": "leverage",
     "/faq": "faq", "/mi": "model_info",
 }
 
@@ -122,6 +124,7 @@ _TAB_TO_GRAPH = {
     "bubble": "bubble-graph", "heatmap": "heatmap-graph",
     "dca": "dca-graph", "retire": "retire-graph",
     "supercharge": "supercharge-graph", "citadel": "citadel-graph",
+    "leverage": "lev-graph",
 }
 _TAB_TO_FIG_FN = {}  # populated lazily below
 
@@ -141,6 +144,9 @@ def _get_initial_figure(tab):
             _TAB_TO_FIG_FN["retire"] = (_get_retire_fig, retire_defaults)
             _TAB_TO_FIG_FN["supercharge"] = (_get_supercharge_fig, supercharge_defaults)
             _TAB_TO_FIG_FN["citadel"] = (_get_citadel_fig, citadel_defaults)
+            from figures.leverage import build_leverage_figure
+            from tab_defaults import leverage_defaults
+            _TAB_TO_FIG_FN["leverage"] = (build_leverage_figure, leverage_defaults)
         except Exception:
             return None
 
@@ -272,7 +278,7 @@ def _build_layout(initial_tab="bubble"):
     # 0 for others (callback fires on first visit to fetch their figure).
     *[dcc.Store(id=f"{tab}-first-render", storage_type="memory",
                 data=1 if tab == initial_tab else 0)
-      for tab in ("bubble", "heatmap", "dca", "retire", "supercharge", "citadel")],
+      for tab in ("bubble", "heatmap", "dca", "retire", "supercharge", "citadel", "leverage")],
     # MC per-tab stores (results, unblocked cache, loaded trigger, download dummy)
     *[dcc.Store(id=f"{pfx}-mc-results", storage_type="memory", data=None)
       for pfx in ("dca", "ret", "hm", "sc", "cp")],
@@ -699,6 +705,12 @@ def _build_layout(initial_tab="bubble"):
         dbc.Tab(html.Div(id="faq-lazy", children=[
             html.P("Loading...", className="text-muted p-4")
         ]), label="FAQ", tab_id="faq"),
+        dbc.Tab(
+            _leverage_tab(),
+            label="Leverage",
+            tab_id="leverage",
+            label_style={"display": "none"},  # hidden from tab bar; URL-only access
+        ),
     ], id="main-tabs", active_tab=initial_tab),
     _global_lppl_modal(),
     _global_hybppl_modal(),

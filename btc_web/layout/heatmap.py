@@ -66,7 +66,8 @@ def _heatmap_controls():
                             value=[yr_now, yr_now + 10], step=1,
                             marks={y: f"'{y % 100:02d}"
                                    for y in range(2010, 2061) if y % 10 == 0},
-                            tooltip={"always_visible":False}),
+                            tooltip={"always_visible":False},
+                            updatemode="mouseup"),
         ),
         # 2. Display — toggles + cell-text formatting (how each cell renders).
         _section_card("Display",
@@ -117,7 +118,8 @@ def _heatmap_controls():
                        value=yr_now, step=1,
                        marks={y: f"'{y % 100:02d}"
                               for y in range(2010, 2040) if y % 10 == 0},
-                       tooltip={"always_visible":True}),
+                       tooltip={"always_visible":True},
+                       updatemode="mouseup"),
             _lbl("Entry percentile (0.1\u201399.9%)"),
             dbc.Input(id="hm-entry-q", type="number",
                       value=_app_ctx._HM_ENTRY_Q_DEFAULT,

@@ -70,14 +70,16 @@ def _supercharge_controls():
                 html.Div(dcc.Slider(id="sc-end-yr", min=2030, max=2100,
                            value=SUPERCHARGE["end_yr"], step=1,
                            marks={y: f"'{y % 100:02d}" for y in range(2030, 2101, 10)},
-                           tooltip={"always_visible":False})),
+                           tooltip={"always_visible":False},
+                           updatemode="mouseup")),
             ], id="sc-mode-a-collapse", is_open=True),
             dbc.Collapse([
                 _lbl("Target depletion year"),
                 html.Div(dcc.Slider(id="sc-target-yr", min=2030, max=2100,
                            value=SUPERCHARGE["target_yr"], step=1,
                            marks={y: f"'{y % 100:02d}" for y in range(2030, 2101, 10)},
-                           tooltip={"always_visible":False})),
+                           tooltip={"always_visible":False},
+                           updatemode="mouseup")),
             ], id="sc-mode-b-collapse", is_open=False),
         ),
         _mc_controls("sc", amount_label="Withdrawal amount per period ($)",
@@ -98,7 +100,8 @@ def _supercharge_controls():
                        value=SUPERCHARGE["start_yr"], step=1,
                        marks={y: f"'{y % 100:02d}"
                               for y in range(yr_now, 2076) if y % 10 == 0},
-                       tooltip={"always_visible":False}),
+                       tooltip={"always_visible":False},
+                       updatemode="mouseup"),
             _btc_usd_dropdown("sc", btc_label="BTC Remaining", default="usd"),
         ),
         # ── Display (toggles + shade layout + collapsed display-q) ──────

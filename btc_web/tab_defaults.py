@@ -300,14 +300,25 @@ LEVERAGE_DEFAULTS = MappingProxyType({
 
 
 def leverage_defaults():
-    """Return a plain dict with dynamic fields resolved."""
+    """Return a plain dict with dynamic fields resolved.
+
+    Current price is the live ticker value (Binance/CoinGecko via
+    utils._fetch_btc_price, 20-min cache), falling back to the model's
+    latest daily close if the fetch fails.
+    """
     import datetime as _dt
     import _app_ctx
-    md = _app_ctx.M  # ModelData instance — set at app.py:238
-    latest_close = round(float(md.price_prices[-1]), 2) if md is not None else 65000.0
+    md = _app_ctx.M  # ModelData instance — set at app.py
+    model_close = round(float(md.price_prices[-1]), 2) if md is not None else 65000.0
+    try:
+        from utils import _fetch_btc_price
+        live = _fetch_btc_price()
+        current_price = round(float(live), 2) if live is not None else model_close
+    except Exception:
+        current_price = model_close
     d = dict(LEVERAGE_DEFAULTS)
     d["lev_date"] = _dt.date.today().isoformat()
-    d["lev_price"] = latest_close
+    d["lev_price"] = current_price
     return d
 
 

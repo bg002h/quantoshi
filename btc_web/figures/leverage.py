@@ -27,3 +27,15 @@ def floor_price(model_short: str, q: float, target_date) -> float:
     model = _app_ctx.PRICE_MODELS[model_short]
     t_yr = (pd.Timestamp(target_date) - _GENESIS).days / 365.25
     return float(model.interp_price(q, t_yr))
+
+
+def P_max(sell_price: float, H_yr: float, target_cagr: float) -> float:
+    """Max rational pay-price today for a target CAGR c over horizon H."""
+    return sell_price / (1.0 + target_cagr) ** H_yr
+
+
+def implied_cagr(sell_price: float, P_now: float, H_yr: float):
+    """CAGR implied by buying at P_now today and selling at sell_price in H years."""
+    if P_now <= 0 or H_yr <= 0:
+        return None
+    return (sell_price / P_now) ** (1.0 / H_yr) - 1.0

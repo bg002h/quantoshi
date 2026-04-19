@@ -62,3 +62,25 @@ def test_floor_price_rejects_s2f_silently_returning_zero_q():
     if "s2f" in _app_ctx.PRICE_MODELS:
         d = _dt.date.today()
         assert floor_price("s2f", 0.01, d) == floor_price("s2f", 0.50, d)
+
+
+def test_P_max_basic():
+    from figures.leverage import P_max
+    # sell=181649, H=4, c=0.20 -> P_max ≈ 87601
+    assert P_max(181649, 4, 0.20) == pytest.approx(87601, rel=1e-3)
+
+
+def test_P_max_zero_cagr_equals_sell_price():
+    from figures.leverage import P_max
+    assert P_max(100_000, 4, 0.0) == 100_000
+
+
+def test_implied_cagr_basic():
+    from figures.leverage import implied_cagr
+    # sell=181649, P_now=72926, H=4 -> c ≈ 0.256
+    assert implied_cagr(181649, 72926, 4) == pytest.approx(0.256, rel=1e-2)
+
+
+def test_implied_cagr_zero_price_returns_none():
+    from figures.leverage import implied_cagr
+    assert implied_cagr(181649, 0, 4) is None

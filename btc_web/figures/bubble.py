@@ -205,16 +205,25 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     lbl += f"  \u2192  {fmt_price(float(prices[-1]))}"
                 _shade = quantile_shade(_ovl_color, q)
                 _lw = 3.0 if (model_key == "u1" and hasattr(mdl, 'own_quantile') and abs(q - mdl.own_quantile) < 0.005) else TRACE_WIDTH_OVERLAY
+                # Include Q50% R² in the group title so it's always visible
+                # (Plotly shows the group title separately from each trace's
+                # name; on narrow viewports the trace name — which carries the
+                # R² suffix — can be truncated, so embedding R² in the title
+                # guarantees the user sees it.)
+                _group_title = mdl.legend_name
+                if model_key == "u1":
+                    _group_title = f"{mdl.legend_name}  m={mdl.fits[mdl.quantiles[0]]['slope']:.3f}"
+                else:
+                    _median_r2 = getattr(mdl, "r2_per_quantile", {}).get(0.5)
+                    if _median_r2 is not None:
+                        _group_title = f"{mdl.legend_name}  R\u00b2={_median_r2:.4f}"
                 _ovl_lines.append(go.Scatter(
                     x=t_arr, y=prices,
                     mode="lines", name=lbl,
                     line=dict(color=_shade, width=_lw, dash=mdl.dash_style),
                     opacity=quantile_opacity(q),
                     legendgroup=mdl.short_name,
-                    legendgrouptitle_text=(
-                        f"{mdl.legend_name}  m={mdl.fits[mdl.quantiles[0]]['slope']:.3f}"
-                        if model_key == "u1" else mdl.legend_name
-                    ),
+                    legendgrouptitle_text=_group_title,
                 ))
             # Band fills FIRST so lines render on top (matching BM pattern).
             if p.get("shade") and len(_ovl_band_prices) >= 2:

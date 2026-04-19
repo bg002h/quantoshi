@@ -83,7 +83,7 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     State("bub-bubble-toggles","value"),
     Input("bub-xscale",        "value"),
     Input("bub-yscale",        "value"),
-    Input("bub-xrange",        "value"),
+    Input("bub-xrange-commit", "data"),   # debounced — avoids drag-stale responses
     Input("bub-yrange",        "value"),
     State("bub-n-future",      "value"),
     Input("bub-ptsize",        "value"),
@@ -377,7 +377,7 @@ _app_ctx.app.clientside_callback(
     Input("bubble-first-render", "data"),
     Input("bub-qs", "value"),
     Input("bub-qs-adv", "value"),
-    Input("bub-xrange", "value"),
+    Input("bub-xrange-commit", "data"),   # debounced
     Input("bub-toggles", "value"),
     Input("bub-xscale", "value"),
     Input("bub-yscale", "value"),
@@ -425,7 +425,7 @@ def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
 @callback(
     Output("bub-resid-graph", "figure"),
     Input("bub-view-mode", "data"),
-    Input("bub-xrange", "value"),
+    Input("bub-xrange-commit", "data"),   # debounced
     Input("bub-toggles", "value"),
     Input("bub-xscale", "value"),
     Input("bub-model-show", "value"),

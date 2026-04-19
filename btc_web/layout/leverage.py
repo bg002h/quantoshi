@@ -107,7 +107,7 @@ def _leverage_tab() -> html.Div:
             ], md=6, xs=12, className="mb-2"),
             dbc.Col([
                 html.Label("Target CAGR (%)", style={"fontSize": UI_FONT_MD}),
-                dcc.Slider(id="lev-cagr", min=0, max=50, step=0.5,
+                dcc.Slider(id="lev-cagr", min=0, max=50, step=0.1,
                            value=d["lev_cagr"],
                            marks={i: f"{i}%" for i in range(0, 51, 10)},
                            tooltip={"always_visible": True, "placement": "top"}),

@@ -1633,3 +1633,9 @@ body {
     100% { opacity: 0; }
 }
 /* pointer-events: none already set inline on #draw-toast */
+
+/* ── Leverage Calculator mobile layout (spec §9.2) ── */
+@media (max-width: 767px) {
+    #lev-graph { height: 55vw !important; min-height: 280px !important; }
+    #lev-table-wrap { overflow-x: auto; }
+}

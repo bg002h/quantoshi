@@ -156,6 +156,7 @@ TABLE_HEADER_BG     = "#f5f5f0"   # regime table header background (warm white)
 TABLE_BORDER_LIGHT  = "#dddddd"   # light table / hr border (#ddd)
 TABLE_BORDER_MID    = "#333333"   # medium table border (shares LOT_MARKER_OUTLINE value)
 TABLE_BORDER_DARK   = "#555555"   # dark table header border (shares DIM_TEXT value)
+TABLE_ROW_HIGHLIGHT_BG = "#ffe"   # leverage table: highlight the selected-horizon row (pale yellow)
 
 # ── Model-panel summaries ──────────────────────────────────────────────
 EPPL_SUMMARY_COLOR  = "#148C8C"   # EPPL current-model summary text (dark teal)

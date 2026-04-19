@@ -1639,3 +1639,24 @@ body {
     #lev-graph { height: 55vw !important; min-height: 280px !important; }
     #lev-table-wrap { overflow-x: auto; }
 }
+
+/* ── Static-page fake tab bar (matches live Dash tabs) ── */
+.static-tab-bar { font-family: var(--font-ui, system-ui, sans-serif); }
+.static-tab-bar .nav-link {
+    color: #555;
+    padding: 8px 14px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    white-space: nowrap;
+    text-decoration: none;
+}
+.static-tab-bar .nav-link:hover {
+    background: #f1f3f5;
+    color: #222;
+}
+.static-tab-bar .nav-link.active {
+    color: #212529;
+    background: #fff;
+    border-color: #dee2e6 #dee2e6 #fff;
+    font-weight: 600;
+}

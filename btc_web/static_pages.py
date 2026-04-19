@@ -148,6 +148,7 @@ _PAGE_TEMPLATE = """<!DOCTYPE html>
             <a href="/{app_tab}" class="btn btn-outline-light btn-sm">Open full app &rarr;</a>
         </div>
     </nav>
+    {tab_bar}
     <div class="container mt-3">
         {content}
     </div>
@@ -156,6 +157,36 @@ _PAGE_TEMPLATE = """<!DOCTYPE html>
     {foot_extra}
 </body>
 </html>"""
+
+
+# Fake tab bar matching the live Dash app's chrome. Each tab is a plain
+# anchor to its corresponding route — in-app, Dash's clientside URL router
+# catches these via pushState; from the static page, a click is a real
+# browser navigation into the Dash SPA. Uses stable named routes where
+# available (/leverage, /mi, /faq) so links don't break on tab reorder.
+_TAB_BAR_TEMPLATE = """
+<ul class="nav nav-tabs static-tab-bar" style="padding:0 12px;margin:0;border-bottom:1px solid #dee2e6;background:#fff;flex-wrap:nowrap;overflow-x:auto;">
+  <li class="nav-item"><a class="nav-link {cls_bubble}"      href="/1">Price Models</a></li>
+  <li class="nav-item"><a class="nav-link {cls_heatmap}"     href="/2">Heatmap</a></li>
+  <li class="nav-item"><a class="nav-link {cls_dca}"         href="/3">Accumulator</a></li>
+  <li class="nav-item"><a class="nav-link {cls_retire}"      href="/4">RetireMentator</a></li>
+  <li class="nav-item"><a class="nav-link {cls_supercharge}" href="/5">Supercharger</a></li>
+  <li class="nav-item"><a class="nav-link {cls_citadel}"     href="/6">Citadel</a></li>
+  <li class="nav-item"><a class="nav-link {cls_leverage}"    href="/leverage">Max Pay-Price</a></li>
+  <li class="nav-item"><a class="nav-link {cls_stack}"       href="/7">Stack</a></li>
+  <li class="nav-item"><a class="nav-link {cls_model_info}"  href="/mi">Model Info</a></li>
+  <li class="nav-item"><a class="nav-link {cls_faq}"         href="/faq">FAQ</a></li>
+</ul>
+"""
+
+
+def _render_tab_bar(current_tab: str) -> str:
+    """Return the fake tab-bar HTML with `current_tab` marked active."""
+    keys = ("bubble", "heatmap", "dca", "retire", "supercharge",
+            "citadel", "leverage", "stack", "model_info", "faq")
+    return _TAB_BAR_TEMPLATE.format(
+        **{f"cls_{k}": ("active" if k == current_tab else "") for k in keys}
+    )
 
 # MathJax has no acceptable same-origin replacement (the es5 bundle loads a
 # dozen more scripts by itself). Only include it on clearnet; strip from onion
@@ -187,6 +218,7 @@ def render_static_faq():
         title="FAQ",
         head_extra="",
         app_tab="9",
+        tab_bar=_render_tab_bar("faq"),
         content=content_html,
         foot_extra="",
         nav_bg=SPLASH_BRAND_DARK,
@@ -205,6 +237,7 @@ def render_static_model_info(mathjax_head: str = ""):
         title="Model Info",
         head_extra=mathjax_head,
         app_tab="8",
+        tab_bar=_render_tab_bar("model_info"),
         content=content_html,
         foot_extra="",
         nav_bg=SPLASH_BRAND_DARK,

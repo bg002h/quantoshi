@@ -147,3 +147,55 @@ def update_leverage(first_render, date_val, price_val, model, q,
     ro = _readout(buy_date, price, sell_date, sp, H_yr, c_dec, max_pay, implied_c, model, q)
     tbl = _table(buy_date, model, q, r_b_dec, r_l_dec, c_dec, H_yr)
     return fig, ro, tbl
+
+
+import json as _json
+import _app_ctx
+
+from layout.leverage import _LEV_FLOOR_QS, _LEV_PILL_IDS
+
+_lev_pill_ids_json = _json.dumps(_LEV_PILL_IDS)
+_lev_floor_qs_json = _json.dumps(_LEV_FLOOR_QS)
+
+
+# Click: writes selected quantile to store and updates pill outlines.
+# Nearest-preset fallback in sync handles old share-links with non-preset q values.
+_app_ctx.app.clientside_callback(
+    f"""function() {{
+        var pill_ids = {_lev_pill_ids_json};
+        var qs = {_lev_floor_qs_json};
+        var tid = dash_clientside.callback_context.triggered_id;
+        if (!tid) throw window.dash_clientside.PreventUpdate;
+        var idx = pill_ids.indexOf(tid);
+        if (idx < 0) throw window.dash_clientside.PreventUpdate;
+        var outlines = pill_ids.map(function(pid) {{ return pid !== tid; }});
+        return [qs[idx]].concat(outlines);
+    }}""",
+    Output("lev-floor-q-store", "data", allow_duplicate=True),
+    *[Output(pid, "outline", allow_duplicate=True) for pid in _LEV_PILL_IDS],
+    *[Input(pid, "n_clicks") for pid in _LEV_PILL_IDS],
+    prevent_initial_call=True,
+)
+
+
+# Sync: when the store changes (e.g. snapshot restore), update outlines.
+_app_ctx.app.clientside_callback(
+    f"""function(q) {{
+        var pill_ids = {_lev_pill_ids_json};
+        var qs = {_lev_floor_qs_json};
+        if (q === null || q === undefined) {{
+            return pill_ids.map(function() {{ return window.dash_clientside.no_update; }});
+        }}
+        // Find nearest preset (tolerant of old share-links with non-preset q)
+        var idx = 0;
+        var best_d = Infinity;
+        for (var i = 0; i < qs.length; i++) {{
+            var d = Math.abs(qs[i] - q);
+            if (d < best_d) {{ best_d = d; idx = i; }}
+        }}
+        return pill_ids.map(function(pid, i) {{ return i !== idx; }});
+    }}""",
+    [Output(pid, "outline", allow_duplicate=True) for pid in _LEV_PILL_IDS],
+    Input("lev-floor-q-store", "data"),
+    prevent_initial_call=True,
+)

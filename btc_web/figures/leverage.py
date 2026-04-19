@@ -11,7 +11,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 import _app_ctx
-from colors import TRACE_WIDTH, TRACE_WIDTH_COMPOSITE
+from colors import TRACE_WIDTH
 from figures.common import _base_layout, _apply_watermark
 
 # Shared project genesis — every PriceModel in btc_core uses this as t=0
@@ -100,7 +100,7 @@ def build_leverage_figure(p: dict) -> go.Figure:
     ))
     fig.add_trace(go.Scatter(
         x=H_grid, y=curve_c, name=f"Your target ({c*100:.1f}%)",
-        line=dict(width=TRACE_WIDTH_COMPOSITE),
+        line=dict(width=TRACE_WIDTH * 1.8),
         hovertemplate="H=%{x:.2f} yr<br>Max pay=%{y:$,.0f}<extra>target</extra>",
     ))
 

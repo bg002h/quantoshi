@@ -621,12 +621,14 @@ for _tid in ("bubble", "heatmap", "dca", "retire", "supercharge",
     _register_lazy_tab(_tid)
 
 
-# ── Background prefetch: fill all non-active lazy-tab Divs ~2s after load ──
-# Single callback fires once (max_intervals=1 on the Interval). Skips the
-# active tab (already populated at layout time — re-rendering would clobber
-# user-interacted state). Chart callbacks do NOT fire at prefetch time; the
-# first-render bump below only fires when the user actually switches to a
-# tab. This keeps server compute lazy while making tab-clicks instant.
+# ── Background prefetch: fill all non-active lazy-tab Divs ──
+# Clientside gate in _prefetch_gate below decides WHEN to fire (after
+# splash closes AND the 2s timer has elapsed). Server callback just
+# listens to the gate store and populates tabs. Skips the active tab
+# (already populated at layout time — re-rendering would clobber
+# user-interacted state). Chart callbacks do NOT fire at prefetch time;
+# the first-render bump below only fires when the user actually switches
+# to a tab.
 @callback(
     Output("bubble-lazy",     "children", allow_duplicate=True),
     Output("heatmap-lazy",    "children", allow_duplicate=True),
@@ -638,15 +640,16 @@ for _tid in ("bubble", "heatmap", "dca", "retire", "supercharge",
     Output("stack-lazy",      "children", allow_duplicate=True),
     Output("model_info-lazy", "children", allow_duplicate=True),
     Output("faq-lazy",        "children", allow_duplicate=True),
-    Input("prefetch-interval", "n_intervals"),
+    Input("prefetch-trigger", "data"),
     State("main-tabs", "active_tab"),
     prevent_initial_call=True,
 )
-def _prefetch_non_active_tabs(n, active_tab):
+def _prefetch_non_active_tabs(trigger, active_tab):
     order = ("bubble", "heatmap", "dca", "retire", "supercharge",
              "citadel", "leverage", "stack", "model_info", "faq")
-    if not n:
-        return tuple(no_update for _ in order)
+    NOOP = tuple(no_update for _ in order)
+    if not trigger:
+        return NOOP
     out = []
     for tid in order:
         if tid == active_tab:
@@ -658,6 +661,28 @@ def _prefetch_non_active_tabs(n, active_tab):
         except Exception:
             out.append(no_update)
     return tuple(out)
+
+
+# Clientside gate: fire prefetch-trigger once, as soon as BOTH conditions
+# hold — (a) the 2s interval has ticked AND (b) splash-modal.is_open is not
+# true (user dismissed, or splash never opened). Two inputs wake the gate;
+# it checks both states and sets the trigger only when safe.
+_app_ctx.app.clientside_callback(
+    """
+    function(n_intervals, splash_open, cur) {
+        var NU = window.dash_clientside.no_update;
+        if (cur && cur > 0) return NU;              // already triggered
+        if (splash_open === true) return NU;         // wait for dismiss
+        if (!n_intervals) return NU;                 // interval hasn't ticked
+        return Date.now();                           // arm the server callback
+    }
+    """,
+    Output("prefetch-trigger", "data"),
+    Input("prefetch-interval", "n_intervals"),
+    Input("splash-modal",      "is_open"),
+    State("prefetch-trigger",  "data"),
+    prevent_initial_call=True,
+)
 
 
 # After a chart-tab lazy-load injects DOM, bump first-render so the chart

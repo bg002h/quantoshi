@@ -84,3 +84,22 @@ def test_implied_cagr_basic():
 def test_implied_cagr_zero_price_returns_none():
     from figures.leverage import implied_cagr
     assert implied_cagr(181649, 0, 4) is None
+
+
+def test_build_leverage_figure_returns_plotly_figure():
+    from figures.leverage import build_leverage_figure
+    p = {
+        "lev_price": 72926.0,
+        "lev_date": "2026-04-18",
+        "lev_model": "bub",
+        "lev_floor_q": 0.01,
+        "lev_rb": 13.0,
+        "lev_rl": 4.5,
+        "lev_horizon": 4.0,
+        "lev_cagr": 20.0,
+        "palette": "default",
+    }
+    fig = build_leverage_figure(p)
+    assert fig is not None
+    assert len(fig.data) >= 4  # at least 4 curves
+    assert fig.layout.yaxis.type == "log"

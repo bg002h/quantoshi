@@ -39,13 +39,13 @@ _app_ctx.app.clientside_callback(
 
 _app_ctx.app.clientside_callback(
     """
-    function(tab, bub, hm, dca, ret, sc, cp) {
+    function(tab, bub, hm, dca, ret, sc, cp, lev) {
         var NU = window.dash_clientside.no_update;
-        var out = [NU, NU, NU, NU, NU, NU];
-        var map = {bubble:0, heatmap:1, dca:2, retire:3, supercharge:4, citadel:5};
+        var out = [NU, NU, NU, NU, NU, NU, NU];
+        var map = {bubble:0, heatmap:1, dca:2, retire:3, supercharge:4, citadel:5, leverage:6};
         var idx = map[tab];
         if (idx !== undefined) {
-            var cur = [bub, hm, dca, ret, sc, cp][idx];
+            var cur = [bub, hm, dca, ret, sc, cp, lev][idx];
             if (!cur) out[idx] = 1;
         }
         return out;
@@ -57,6 +57,7 @@ _app_ctx.app.clientside_callback(
     Output("retire-first-render", "data", allow_duplicate=True),
     Output("supercharge-first-render", "data", allow_duplicate=True),
     Output("citadel-first-render", "data", allow_duplicate=True),
+    Output("leverage-first-render", "data", allow_duplicate=True),
     Input("main-tabs", "active_tab"),
     State("bubble-first-render", "data"),
     State("heatmap-first-render", "data"),
@@ -64,6 +65,7 @@ _app_ctx.app.clientside_callback(
     State("retire-first-render", "data"),
     State("supercharge-first-render", "data"),
     State("citadel-first-render", "data"),
+    State("leverage-first-render", "data"),
     prevent_initial_call='initial_duplicate',
 )
 
@@ -76,14 +78,14 @@ _app_ctx.app.clientside_callback(
 # control values.
 _app_ctx.app.clientside_callback(
     """
-    function(state, tab, bub, hm, dca, ret, sc, cp) {
+    function(state, tab, bub, hm, dca, ret, sc, cp, lev) {
         var NU = window.dash_clientside.no_update;
-        var out = [NU, NU, NU, NU, NU, NU];
+        var out = [NU, NU, NU, NU, NU, NU, NU];
         if (!state) return out;
-        var map = {bubble:0, heatmap:1, dca:2, retire:3, supercharge:4, citadel:5};
+        var map = {bubble:0, heatmap:1, dca:2, retire:3, supercharge:4, citadel:5, leverage:6};
         var idx = map[tab];
         if (idx === undefined) return out;
-        var cur = [bub, hm, dca, ret, sc, cp][idx] || 0;
+        var cur = [bub, hm, dca, ret, sc, cp, lev][idx] || 0;
         out[idx] = cur + 1;
         return out;
     }
@@ -94,6 +96,7 @@ _app_ctx.app.clientside_callback(
     Output("retire-first-render", "data", allow_duplicate=True),
     Output("supercharge-first-render", "data", allow_duplicate=True),
     Output("citadel-first-render", "data", allow_duplicate=True),
+    Output("leverage-first-render", "data", allow_duplicate=True),
     Input("snapshot-state-store", "data"),
     State("main-tabs", "active_tab"),
     State("bubble-first-render", "data"),
@@ -102,6 +105,7 @@ _app_ctx.app.clientside_callback(
     State("retire-first-render", "data"),
     State("supercharge-first-render", "data"),
     State("citadel-first-render", "data"),
+    State("leverage-first-render", "data"),
     prevent_initial_call=True,
 )
 
@@ -114,6 +118,7 @@ _PATH_TO_TAB = {
     "/1": "bubble", "/2": "heatmap", "/3": "dca",
     "/4": "retire",  "/5": "supercharge", "/6": "citadel",
     "/7": "stack", "/8": "model_info", "/9": "faq",
+    "/10": "leverage", "/leverage": "leverage",
     "/faq": "faq", "/mi": "model_info",
 }
 _TAB_TO_PATH = {v: k for k, v in _PATH_TO_TAB.items()}
@@ -308,6 +313,7 @@ _app_ctx.app.clientside_callback(
         var map = {"/1":"bubble","/2":"heatmap","/3":"dca",
                    "/4":"retire","/5":"supercharge","/6":"citadel",
                    "/7":"stack","/8":"model_info","/9":"faq",
+                   "/10":"leverage","/leverage":"leverage",
                    "/faq":"faq","/mi":"model_info"};
         /* Normalize: treat '-' as '.' so /1-2-5-1 == /1.2.5.1 */
         if (pathname && pathname.indexOf('-') !== -1) {

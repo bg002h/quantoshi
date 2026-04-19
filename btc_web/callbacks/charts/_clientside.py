@@ -19,10 +19,16 @@ from colors import LINK  # noqa: F401 — referenced by the JS summary callback
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Display Models family summaries — single clientside multi-output callback.
-# Computes LPPL/HybPPL/EPPL summary strings in JS and writes them directly to
-# all 12 `{prefix}-{fam}-summary-inline` spans + the `display-model-summaries`
-# Store (still read by heatmap status row + an apply_snapshot State).
+# Display Models family summaries.
+#
+# Split into two stages to avoid "nonexistent Output" console errors when
+# lazy-loaded tabs haven't mounted yet:
+#   1. Central computation → writes ONLY the `display-model-summaries` Store
+#      (always present in layout). 27 config Inputs, 1 Store Output.
+#   2. Per-prefix fan-out → a tiny clientside callback per tab prefix reads
+#      the Store and writes to that tab's 3 `{prefix}-{fam}-summary-inline`
+#      spans. Fires on both Store change AND lazy-load (so populated tabs
+#      pick up the current values as soon as their spans mount).
 # ══════════════════════════════════════════════════════════════════════════════
 _app_ctx.app.clientside_callback(
     '''
@@ -57,26 +63,9 @@ _app_ctx.app.clientside_callback(
                       bEn, bNlog, bNcal, bLog1d, bLog2d, bCal1d, bCal2d);
         var epp = fam(eaNlog, eaNcal, eaLog1d, eaLog2d, eaCal1d, eaCal2d,
                       ebEn, ebNlog, ebNcal, ebLog1d, ebLog2d, ebCal1d, ebCal2d);
-        return [
-            lppl, lppl, lppl, lppl,
-            hyb, hyb, hyb, hyb,
-            epp, epp, epp, epp,
-            {lppl: lppl, hybppl: hyb, eppl: epp}
-        ];
+        return {lppl: lppl, hybppl: hyb, eppl: epp};
     }
     ''',
-    Output("bub-lppl-summary-inline",   "children"),
-    Output("dca-lppl-summary-inline",   "children"),
-    Output("ret-lppl-summary-inline",   "children"),
-    Output("sc-lppl-summary-inline",    "children"),
-    Output("bub-hybppl-summary-inline", "children"),
-    Output("dca-hybppl-summary-inline", "children"),
-    Output("ret-hybppl-summary-inline", "children"),
-    Output("sc-hybppl-summary-inline",  "children"),
-    Output("bub-eppl-summary-inline",   "children"),
-    Output("dca-eppl-summary-inline",   "children"),
-    Output("ret-eppl-summary-inline",   "children"),
-    Output("sc-eppl-summary-inline",    "children"),
     Output("display-model-summaries",   "data"),
     # LPPL (3)
     Input("lppl-n-freqs", "value"),
@@ -111,6 +100,28 @@ _app_ctx.app.clientside_callback(
     Input("eppl-cfg-b-cal1d",   "value"),
     Input("eppl-cfg-b-cal2d",   "value"),
 )
+
+
+# Per-prefix fan-out: read the central store + lazy-load trigger, write
+# 3 spans for that tab. Fires when summaries change OR the tab's lazy
+# content populates (so spans pick up values as soon as they mount).
+_PREFIX_TO_TAB = {"bub": "bubble", "dca": "dca", "ret": "retire", "sc": "supercharge"}
+for _prefix, _tab in _PREFIX_TO_TAB.items():
+    _app_ctx.app.clientside_callback(
+        """
+        function(summaries, _children) {
+            var NU = window.dash_clientside.no_update;
+            if (!summaries) return [NU, NU, NU];
+            return [summaries.lppl || "", summaries.hybppl || "", summaries.eppl || ""];
+        }
+        """,
+        Output(f"{_prefix}-lppl-summary-inline",   "children"),
+        Output(f"{_prefix}-hybppl-summary-inline", "children"),
+        Output(f"{_prefix}-eppl-summary-inline",   "children"),
+        Input("display-model-summaries", "data"),
+        Input(f"{_tab}-lazy", "children"),
+        prevent_initial_call=True,
+    )
 
 # ── Heatmap status row: visibility + label (driven by hm-active-model) ──
 _app_ctx.app.clientside_callback(

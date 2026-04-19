@@ -158,17 +158,18 @@ _app_ctx.app.clientside_callback(
 # Uses Plotly.downloadImage() which renders in the browser.
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Lazy-load hi-res watermark base64 on first export click
-_EXPORT_TAB_IDS = ["bubble", "heatmap", "dca", "retire", "supercharge", "citadel"]
-
+# Lazy-load hi-res watermark base64 once, triggered by the same signal that
+# launches tab prefetch (so it's ready whenever the user first clicks an
+# export button). Previously listened to all 6 {tab}-export-btn n_clicks,
+# which produced 5 "nonexistent Input" console errors while lazy tabs
+# hadn't mounted yet.
 @callback(
     Output("wm-b64-store", "data"),
-    [Input(f"{t}-export-btn", "n_clicks") for t in _EXPORT_TAB_IDS],
+    Input("prefetch-trigger", "data"),
     State("wm-b64-store", "data"),
     prevent_initial_call=True,
 )
-def _lazy_load_watermarks(*args):
-    current = args[-1]
+def _lazy_load_watermarks(_trigger, current):
     if current is not None:
         return no_update
     from figures.common import _LOGO_B64_ALL

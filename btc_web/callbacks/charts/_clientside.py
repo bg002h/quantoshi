@@ -123,30 +123,45 @@ for _prefix, _tab in _PREFIX_TO_TAB.items():
         prevent_initial_call=True,
     )
 
-# ── bub-xrange debounce ──────────────────────────────────────────────────────
+# ── bub-xrange commit (via drag_value to avoid mobile mouseup-lag) ───────────
 # Expensive server chart callbacks (bubble/cagr/resid/custom-time) read from
-# `bub-xrange-commit` Store instead of `bub-xrange.value` directly. This
-# clientside callback writes to the Store only after the slider has been
-# stable for 150ms, defeating mobile-touchmove stale-response races where a
-# mid-drag callback fires and its slow response lands after the mouseup
-# one, overwriting the final figure with a stale xrange.
+# `bub-xrange-commit` Store instead of `bub-xrange.value` directly.
+#
+# Why: on mobile, bub-xrange.value on mouseup sometimes lags one touchmove
+# behind the slider's visually-final position (final drag position was at
+# P, but `value` ends up capturing the penultimate touchmove position P-1).
+# The slider displays P but fires a chart callback with P-1, so the chart
+# shows the wrong range.
+#
+# Fix: use `drag_value` (updates continuously during drag, captures the
+# LAST touchmove reliably) combined with a 150ms debounce. On drag end,
+# the last drag_value is what the user intended. For keyboard/click
+# interactions that don't drag, `value` fires instead (debounce catches
+# either trigger via callback_context).
 _app_ctx.app.clientside_callback(
     """
-    function(val) {
-        if (!val) return window.dash_clientside.no_update;
+    function(val, drag_val) {
+        var ctx = window.dash_clientside.callback_context;
+        var trig = ctx && ctx.triggered && ctx.triggered[0];
+        var trigProp = trig ? trig.prop_id : '';
+        var v;
+        if (trigProp.indexOf('drag_value') !== -1) {
+            v = drag_val;     // drag: always reflects latest touchmove
+        } else {
+            v = val;          // keyboard / track-click
+        }
+        if (!v) return window.dash_clientside.no_update;
         // Debounce: cancel prior pending write; schedule new one in 150ms.
-        // Using set_props instead of the callback return so intermediate
-        // drag-fires don't leave dangling unresolved Promises in Dash's
-        // callback queue.
         if (window._bub_xrange_timer) clearTimeout(window._bub_xrange_timer);
         window._bub_xrange_timer = setTimeout(function() {
-            window.dash_clientside.set_props('bub-xrange-commit', {data: val});
+            window.dash_clientside.set_props('bub-xrange-commit', {data: v});
         }, 150);
         return window.dash_clientside.no_update;
     }
     """,
     Output("bub-xrange-commit", "data", allow_duplicate=True),
     Input("bub-xrange", "value"),
+    Input("bub-xrange", "drag_value"),
     prevent_initial_call=True,
 )
 

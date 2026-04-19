@@ -1,9 +1,15 @@
 /* ── Block Drop: new-block animation ─────────────────────────────────────────
    Connects to mempool.space WebSocket (blockstream.info polling fallback).
    On new block: screen shake → block falls → user taps to crack → tx scatter.
-   Self-contained, no Dash callbacks needed. ~10-min cadence, negligible cost. */
+   Self-contained, no Dash callbacks needed. ~10-min cadence, negligible cost.
+
+   ── DISABLED ─────────────────────────────────────────────────────────────
+   Also not referenced by the deferred loader in btc_web/layout/__init__.py
+   (see commit e944899 "fix(ui): disable block-drop animation"). The early
+   return below is belt-and-suspenders in case the loader is re-enabled. */
 (function() {
     "use strict";
+    return;  // block drop animation disabled — remove this line to re-enable
 
     /* ── Config ──────────────────────────────────────────────────────────── */
     var TAPS_TO_BREAK = 4;

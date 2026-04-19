@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import sys
-sys.path.insert(0, "/scratch/code/bitcoinprojections/btc_web")
-
-import datetime as _dt
+from pathlib import Path
 
 import pytest
+
+_ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(_ROOT))
 
 
 def test_leverage_defaults_has_expected_keys():

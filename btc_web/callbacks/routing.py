@@ -310,7 +310,7 @@ _TAB_CONTROLS["citadel"].update({
 
 _app_ctx.app.clientside_callback(
     """
-    function(pathname, splashOpen) {
+    function(pathname) {
         var NU = window.dash_clientside.no_update;
         var map = {"/1":"bubble","/2":"heatmap","/3":"dca",
                    "/4":"retire","/5":"supercharge","/6":"citadel",
@@ -321,21 +321,14 @@ _app_ctx.app.clientside_callback(
         if (pathname && pathname.indexOf('-') !== -1) {
             pathname = pathname.replace(/-/g, '.');
         }
-        /* While splash modal is open, defer the tab switch so chart
-           callbacks don't fire into a container hidden behind the modal. */
-        if (splashOpen) {
-            window._pendingTabPath = pathname;
+        /* Dedupe: Dash's dcc.Location may re-fire this callback on
+           hash/search updates even when pathname hasn't changed; skip
+           those to avoid clobbering the user's tab-click active_tab. */
+        if (window._routingLastPath === pathname) {
             return NU;
         }
-        var p = window._pendingTabPath || pathname;
-        if (window._pendingTabPath) {
-            /* Splash just closed -- force Plotly resize after chart renders
-               to handle rapid-dismiss edge case where layout hasn't settled. */
-            setTimeout(function() {
-                window.dispatchEvent(new Event("resize"));
-            }, 1200);
-        }
-        window._pendingTabPath = null;
+        window._routingLastPath = pathname;
+        var p = pathname;
         if (p && /^\\/8\\.\\d+$/.test(p)) { return "model_info"; }
         if (p && /^\\/9\\.\\d+$/.test(p)) { return "faq"; }
         if (p && p.indexOf("/faq.") === 0) { return "faq"; }
@@ -349,7 +342,6 @@ _app_ctx.app.clientside_callback(
     """,
     Output("main-tabs", "active_tab", allow_duplicate=True),
     Input("url", "pathname"),
-    Input("splash-modal", "is_open"),
     prevent_initial_call="initial_duplicate",
 )
 
@@ -621,92 +613,27 @@ for _tid in ("bubble", "heatmap", "dca", "retire", "supercharge",
     _register_lazy_tab(_tid)
 
 
-# ── Background prefetch: fill all non-active lazy-tab Divs ──
-# Clientside gate in _prefetch_gate below decides WHEN to fire (after
-# splash closes AND the 2s timer has elapsed). Server callback just
-# listens to the gate store and populates tabs. Skips the active tab
-# (already populated at layout time — re-rendering would clobber
-# user-interacted state). Chart callbacks do NOT fire at prefetch time;
-# the first-render bump below only fires when the user actually switches
-# to a tab.
-@callback(
-    Output("bubble-lazy",     "children", allow_duplicate=True),
-    Output("heatmap-lazy",    "children", allow_duplicate=True),
-    Output("dca-lazy",        "children", allow_duplicate=True),
-    Output("retire-lazy",     "children", allow_duplicate=True),
-    Output("supercharge-lazy","children", allow_duplicate=True),
-    Output("citadel-lazy",    "children", allow_duplicate=True),
-    Output("leverage-lazy",   "children", allow_duplicate=True),
-    Output("stack-lazy",      "children", allow_duplicate=True),
-    Output("model_info-lazy", "children", allow_duplicate=True),
-    Output("faq-lazy",        "children", allow_duplicate=True),
-    Input("prefetch-trigger", "data"),
-    State("main-tabs", "active_tab"),
-    prevent_initial_call=True,
-)
-def _prefetch_non_active_tabs(trigger, active_tab):
-    order = ("bubble", "heatmap", "dca", "retire", "supercharge",
-             "citadel", "leverage", "stack", "model_info", "faq")
-    NOOP = tuple(no_update for _ in order)
-    if not trigger:
-        return NOOP
-    out = []
-    for tid in order:
-        if tid == active_tab:
-            out.append(no_update)  # leave alone — user may have interacted
-            continue
-        try:
-            content = _build_tab_content(tid)
-            out.append(content if content is not None else no_update)
-        except Exception:
-            out.append(no_update)
-    return tuple(out)
-
-
-# Clientside gate: fire prefetch-trigger once, as soon as BOTH conditions
-# hold — (a) the 2s interval has ticked AND (b) splash-modal.is_open is not
-# true (user dismissed, or splash never opened). Two inputs wake the gate;
-# it checks both states and sets the trigger only when safe.
-_app_ctx.app.clientside_callback(
-    """
-    function(n_intervals, splash_open, cur) {
-        var NU = window.dash_clientside.no_update;
-        if (cur && cur > 0) return NU;              // already triggered
-        if (splash_open === true) return NU;         // wait for dismiss
-        if (!n_intervals) return NU;                 // interval hasn't ticked
-        return Date.now();                           // arm the server callback
-    }
-    """,
-    Output("prefetch-trigger", "data"),
-    Input("prefetch-interval", "n_intervals"),
-    Input("splash-modal",      "is_open"),
-    State("prefetch-trigger",  "data"),
-    prevent_initial_call=True,
-)
+# Background prefetch has been removed (2026-04-19). Earlier iterations
+# caused cascading active_tab resets and splash-dismissal hangs on slower
+# devices. Tabs now lazy-load purely on click via `_register_lazy_tab`
+# above.
 
 
 # After a chart-tab lazy-load injects DOM, bump first-render so the chart
-# callback fires with the newly-mounted graph element present. The bump
-# ONLY fires when the user is actually on this tab — so background-prefetch
-# populating other tabs' lazy Divs does NOT trigger chart compute.
+# callback fires with the newly-mounted graph element present.
 def _register_first_render_bump(tab_id):
     _app_ctx.app.clientside_callback(
-        f"""
-        function(children, active, cur) {{
+        """
+        function(children, cur) {
             if (!children) return window.dash_clientside.no_update;
-            if (typeof children === 'string' && children === 'Loading...') {{
+            if (typeof children === 'string' && children === 'Loading...') {
                 return window.dash_clientside.no_update;
-            }}
-            // Only bump when user is viewing this tab (skips prefetch).
-            if (active !== '{tab_id}') return window.dash_clientside.no_update;
-            // Don't re-bump once rendered (chart callback uses Input so would re-fire).
-            if (cur && cur > 0) return window.dash_clientside.no_update;
+            }
             return (cur || 0) + 1;
-        }}
+        }
         """,
         Output(f"{tab_id}-first-render", "data", allow_duplicate=True),
         Input(f"{tab_id}-lazy", "children"),
-        Input("main-tabs", "active_tab"),
         State(f"{tab_id}-first-render", "data"),
         prevent_initial_call=True,
     )

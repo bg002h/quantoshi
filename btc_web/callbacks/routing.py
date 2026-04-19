@@ -518,38 +518,15 @@ _app_ctx.app.clientside_callback(
 # Model Info accordion deep-linking (/8.N)
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Must match the actual accordion ORDER in btc_web/layout/model_info.py.
-# Append new items to the end to keep existing /8.N links stable.
+# Must match the actual accordion ORDER in layout/model_info.
+# Single source of truth is layout/model_info/__init__.py::_MODEL_INFO_ITEM_IDS —
+# mirrored here verbatim. Keep in sync when adding new accordion items.
 _MODEL_INFO_ITEMS = [
-    "mi-bub",            # 1  Bubble Model
-    "mi-qr",             # 2  Quantile Regression
-    "mi-pl",             # 3  Power Law (OLS)
-    "mi-lppl",           # 4  LPPL
-    "mi-lp2",            # 5  LPPL₂
-    "mi-lppl-weighting", # 6  LPPL Weighting & Regime Shifts
-    "mi-linppl",         # 7  LinPPL
-    "mi-hybppl",         # 8  HybPPL
-    "mi-hybppl-dd",      # 9  HybPPL (DD)
-    "mi-hyb2l",          # 10 HybPPL +2L
-    "mi-hyb2c",          # 11 HybPPL +2C
-    "mi-hyb2b",          # 12 HybPPL +2B
-    "mi-hyb4d",          # 13 HybPPL 4D
-    "mi-pca",            # 14 PCA
-    "mi-grdy",           # 15 Greedy Select
-    "mi-eppl",           # 16 Entropy PPL
-    "mi-exp",            # 17 Exponential
-    "mi-gomp",           # 18 Gompertz
-    "mi-bpl",            # 19 Broken Power Law
-    "mi-plo",            # 20 Offset Power Law
-    "mi-sexp",           # 21 Stretched Exponential
-    "mi-logi",           # 22 Logistic (true S-curve)
-    "mi-s2f",            # 18 S2F
-    "mi-mc",             # 19 Monte Carlo
-    "mi-ef",             # 20 Empirical Floor
-    "mi-u1",             # 21 User Model
-    "mi-compare",        # 22 Model Comparison
-    "mi-regimes",        # 23 Historical Regimes
-    "mi-citadel",        # 24 Citadel Planner
+    "mi-bub", "mi-qr", "mi-pl", "mi-lppl", "mi-lp2",
+    "mi-lppl-weighting", "mi-linppl", "mi-hybppl", "mi-hybppl-dd",
+    "mi-hyb2l", "mi-hyb2c", "mi-hyb2b", "mi-hyb4d", "mi-pca",
+    "mi-grdy", "mi-eppl", "mi-exp", "mi-gomp", "mi-bpl", "mi-s2f",
+    "mi-mc", "mi-ef", "mi-u1", "mi-compare", "mi-regimes", "mi-citadel",
 ]
 
 
@@ -611,16 +588,16 @@ def _lazy_load_model_info(tab):
 
 @callback(
     Output("model-info-accordion", "active_item"),
-    # Two triggers: (1) lazy-load completion (first visit) and (2) pathname
-    # change (in-app SPA navigation after Model Info is already loaded).
-    # Without the pathname Input, clicking a 📐 link in Display Models
-    # after having visited Model Info once would not open the target item.
     Input("model-info-lazy", "children"),
-    Input("url", "pathname"),
+    State("url", "pathname"),
     prevent_initial_call=True,
 )
 def open_model_info_item(children, pathname):
     """Open a specific Model Info accordion item after lazy load, if deep-linked.
+
+    Fires on lazy-load completion (first Model Info visit). For SPA
+    navigation after the tab has been loaded once, see the clientside
+    `_mi_spa_open` callback below.
 
     Accepts both /8.N (numeric tab-position alias) and /mi.N (stable name).
     """
@@ -640,6 +617,33 @@ def open_model_info_item(children, pathname):
     except (ValueError, IndexError):
         pass
     return no_update
+
+
+# SPA-nav handler: when pathname changes to /mi.N (or /8.N) AFTER Model
+# Info content has been lazy-loaded, set the active accordion item.
+# Clientside — avoids Dash callback timing races with lazy-load children.
+import json as _json
+_mi_items_json = _json.dumps(_MODEL_INFO_ITEMS)
+
+_app_ctx.app.clientside_callback(
+    f"""
+    function(pathname, tab) {{
+        var NU = window.dash_clientside.no_update;
+        if (tab !== "model_info") return NU;
+        if (!pathname) return NU;
+        var m = pathname.match(/^\\/(?:mi|8)\\.(\\d+)$/);
+        if (!m) return NU;
+        var n = parseInt(m[1], 10);
+        var items = {_mi_items_json};
+        if (n < 1 || n > items.length) return NU;
+        return items[n - 1];
+    }}
+    """,
+    Output("model-info-accordion", "active_item", allow_duplicate=True),
+    Input("url", "pathname"),
+    State("main-tabs", "active_tab"),
+    prevent_initial_call=True,
+)
 
 
 # Scroll the opened accordion item into view after it expands.

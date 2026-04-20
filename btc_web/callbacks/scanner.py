@@ -116,6 +116,8 @@ def update_scanner(_first_render, price_val, date_val, q_val,
     # Sort models by Display Models panel order (defined in _SCANNER_ORDER above)
     _models = dict(sorted(_models.items(), key=lambda kv: _scanner_sort_key(kv[0])))
 
+    trigger = ctx.triggered_id if ctx.triggered_id else None
+
     # edit_history is a list of the last 2 edited fields, e.g. ["p", "d"]
     if not isinstance(edit_history, list):
         edit_history = ["p", "d"]  # default: price+date edited → q is output

@@ -643,12 +643,13 @@ def _register_prefetch(tab_id):
     @callback(
         Output(f"{tab_id}-lazy", "children", allow_duplicate=True),
         Input(f"{tab_id}-prefetch-iv", "n_intervals"),
+        Input("prefetch-ready", "data"),
         State(f"{tab_id}-lazy", "children"),
         State("main-tabs", "active_tab"),
         prevent_initial_call=True,
     )
-    def _pf(n, current, active, _tid=tab_id):
-        if not n or _tid == active:
+    def _pf(n, ready, current, active, _tid=tab_id):
+        if not n or not ready or _tid == active:
             return no_update
         if not _is_loading_placeholder(current):
             return no_update  # user already clicked through

@@ -202,12 +202,14 @@ _app_ctx.app.clientside_callback(
             var _kw2 = document.getElementById("onion-knight-wrap");
             if (_kw2) _kw2.style.display = "none";
             return [true, now.toString(), quoteChildren(q[0]), "\\u2014 " + q[1],
-                    {"display":"none"}, jText, jStyle];
+                    {"display":"none"}, jText, jStyle,
+                    window.dash_clientside.no_update];
         }
         return [false, window.dash_clientside.no_update,
                 window.dash_clientside.no_update, window.dash_clientside.no_update,
                 window.dash_clientside.no_update,
-                window.dash_clientside.no_update, window.dash_clientside.no_update];
+                window.dash_clientside.no_update, window.dash_clientside.no_update,
+                1];
     }
     """,
     Output("splash-modal", "is_open"),
@@ -217,6 +219,7 @@ _app_ctx.app.clientside_callback(
     Output("splash-next-wrap", "style"),
     Output("journey-stats", "children"),
     Output("journey-stats", "style"),
+    Output("prefetch-ready", "data"),
     Input("splash-ts-store", "data"),
     prevent_initial_call=False,
 )
@@ -225,11 +228,13 @@ _app_ctx.app.clientside_callback(
 _app_ctx.app.clientside_callback(
     """
     function(n) {
-        if (n) { return false; }
-        return window.dash_clientside.no_update;
+        var NU = window.dash_clientside.no_update;
+        if (n) { return [false, 1]; }
+        return [NU, NU];
     }
     """,
     Output("splash-modal", "is_open", allow_duplicate=True),
+    Output("prefetch-ready", "data", allow_duplicate=True),
     Input("splash-dismiss", "n_clicks"),
     prevent_initial_call="initial_duplicate",
 )
@@ -322,7 +327,8 @@ _app_ctx.app.clientside_callback(
 _app_ctx.app.clientside_callback(
     """
     function(n) {
-        if (!n) return window.dash_clientside.no_update;
+        var NU = window.dash_clientside.no_update;
+        if (!n) return [NU, NU];
         /* Hide the button immediately */
         var kw = document.getElementById("onion-knight-wrap");
         if (kw) kw.style.display = "none";
@@ -330,10 +336,11 @@ _app_ctx.app.clientside_callback(
         setTimeout(function() {
             if (window._playOnionKnighting) window._playOnionKnighting();
         }, 400);
-        return false;
+        return [false, 1];
     }
     """,
     Output("splash-modal", "is_open", allow_duplicate=True),
+    Output("prefetch-ready", "data", allow_duplicate=True),
     Input("onion-knight-btn", "n_clicks"),
     prevent_initial_call="initial_duplicate",
 )
@@ -343,14 +350,16 @@ _app_ctx.app.clientside_callback(
 _app_ctx.app.clientside_callback(
     """
     function(n) {
-        if (!n) return window.dash_clientside.no_update;
+        var NU = window.dash_clientside.no_update;
+        if (!n) return [NU, NU];
         if (window._replayKnighting) {
             setTimeout(function() { window._replayKnighting(); }, 400);
         }
-        return false;
+        return [false, 1];
     }
     """,
     Output("splash-modal", "is_open", allow_duplicate=True),
+    Output("prefetch-ready", "data", allow_duplicate=True),
     Input("replay-knight-link", "n_clicks"),
     prevent_initial_call=True,
 )

@@ -74,6 +74,11 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
 # Callbacks — chart updates
 # ══════════════════════════════════════════════════════════════════════════════
 
+
+def _bub_log(msg):
+    print(f"[BUB-TIMING] {msg}", file=_sys.stderr, flush=True)
+
+
 @callback(
     Output("bubble-graph", "figure"),
     Input("bubble-first-render", "data"),
@@ -148,10 +153,6 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     State("bub-sigma-mode",    "value"),
     prevent_initial_call=True,
 )
-def _bub_log(msg):
-    print(f"[BUB-TIMING] {msg}", file=_sys.stderr, flush=True)
-
-
 def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,
                   n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, model_show,

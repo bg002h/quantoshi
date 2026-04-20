@@ -69,29 +69,24 @@ def _output_from_history(history):
     Output("scan-output-field", "data"),
     Output("scan-results", "children"),
     Output("scan-price-hint", "style"),
-    Input("scan-price", "value"),
-    Input("scan-date", "value"),
-    Input("scan-q", "value"),
-    State("scan-output-field", "data"),
-    Input("btc-price-store", "data"),
-    State("user-model-store", "data"),
-    Input("lppl-n-freqs",     "value"),
-    Input("lppl-weighted",    "value"),
-    Input("lppl-no-13",       "value"),
-    State("main-tabs", "active_tab"),
-    State("bub-sigma-mode",   "value"),
-    prevent_initial_call=False,
+    Input("bubble-first-render", "data"),
+    Input("scan-price",          "value"),
+    Input("scan-date",           "value"),
+    Input("scan-q",              "value"),
+    State("scan-output-field",   "data"),
+    State("btc-price-store",     "data"),
+    State("user-model-store",    "data"),
+    State("lppl-n-freqs",        "value"),
+    State("lppl-weighted",       "value"),
+    State("lppl-no-13",          "value"),
+    State("bub-sigma-mode",      "value"),
+    prevent_initial_call=True,
 )
-def update_scanner(price_val, date_val, q_val, edit_history, live_price, user_model_data,
-                   lppl_n_freqs, lppl_weighted, lppl_no_13, active_tab,
+def update_scanner(_first_render, price_val, date_val, q_val,
+                   edit_history, live_price, user_model_data,
+                   lppl_n_freqs, lppl_weighted, lppl_no_13,
                    sigma_mode):
     """Compute the missing variable across all models."""
-    trigger = ctx.triggered_id if ctx.triggered_id else None
-    # Skip the expensive initial fire for users landing on a non-bubble tab —
-    # the scanner only exists on tab 1. Subsequent fires (triggered by user
-    # interaction) always run regardless of active_tab.
-    if trigger is None and active_tab != "bubble":
-        return no_update, no_update, no_update
     genesis = _app_ctx.M.genesis
 
     # Merge registered models + user model (if defined)

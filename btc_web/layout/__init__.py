@@ -308,6 +308,10 @@ def _build_layout(initial_tab="bubble"):
     *[dcc.Store(id=f"{tab}-first-render", storage_type="memory",
                 data=1 if tab == initial_tab else 0)
       for tab in ("bubble", "heatmap", "dca", "retire", "supercharge", "citadel", "leverage")],
+    # Shared tick store: palette / lots writes bump this; a clientside
+    # router then bumps the active tab's first-render. Replaces the old
+    # bridge callback that fired on initial Store hydration.
+    dcc.Store(id="active-tab-bump-tick", storage_type="memory", data=0),
     # MC per-tab stores (results, unblocked cache, loaded trigger, download dummy)
     *[dcc.Store(id=f"{pfx}-mc-results", storage_type="memory", data=None)
       for pfx in ("dca", "ret", "hm", "sc", "cp")],

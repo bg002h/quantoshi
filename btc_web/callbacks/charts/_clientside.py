@@ -484,37 +484,62 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call=True,
 )
 
-# ── Palette / lots bridge: bump active tab's first-render on global changes ──
-# palette-store and effective-lots are now State (not Input) in chart
-# callbacks, so we need this bridge to redraw the active tab when they change.
+# ── Shared helper: bump the active chart tab's first-render counter ────
+# Invoked by palette-change, lots-write, and snapshot-restore callbacks
+# as a chained clientside output. The input trigger is a tick counter
+# each source increments; we translate active_tab -> 5-output tuple.
 _app_ctx.app.clientside_callback(
     """
-    function(palette, lots, active,
-             bfr, hfr, dfr, rfr, sfr) {
+    function(tick, active, bfr, hfr, dfr, rfr, sfr) {
         var NU = window.dash_clientside.no_update;
-        var map = {
-            bubble: 0, heatmap: 1, dca: 2, retire: 3, supercharge: 4
-        };
+        if (!tick) return [NU, NU, NU, NU, NU];
+        var map = {bubble:0, heatmap:1, dca:2, retire:3, supercharge:4};
+        // Citadel patches its figure directly (Batch 5) -- exclude it here.
         var idx = map[active];
         if (idx === undefined) return [NU, NU, NU, NU, NU];
         var frs = [bfr, hfr, dfr, rfr, sfr];
-        var result = [NU, NU, NU, NU, NU];
-        result[idx] = (frs[idx] || 0) + 1;
-        return result;
+        var out = [NU, NU, NU, NU, NU];
+        out[idx] = (frs[idx] || 0) + 1;
+        return out;
     }
     """,
-    Output("bubble-first-render",     "data", allow_duplicate=True),
-    Output("heatmap-first-render",    "data", allow_duplicate=True),
-    Output("dca-first-render",        "data", allow_duplicate=True),
-    Output("retire-first-render",     "data", allow_duplicate=True),
-    Output("supercharge-first-render","data", allow_duplicate=True),
-    Input("palette-store",  "data"),
+    Output("bubble-first-render",      "data", allow_duplicate=True),
+    Output("heatmap-first-render",     "data", allow_duplicate=True),
+    Output("dca-first-render",         "data", allow_duplicate=True),
+    Output("retire-first-render",      "data", allow_duplicate=True),
+    Output("supercharge-first-render", "data", allow_duplicate=True),
+    Input("active-tab-bump-tick", "data"),
+    State("main-tabs",                 "active_tab"),
+    State("bubble-first-render",       "data"),
+    State("heatmap-first-render",      "data"),
+    State("dca-first-render",          "data"),
+    State("retire-first-render",       "data"),
+    State("supercharge-first-render",  "data"),
+    prevent_initial_call=True,
+)
+
+# ── Palette change → bump active-tab-bump-tick ─────────────────────────
+_app_ctx.app.clientside_callback(
+    "function(p, cur) { if (p === undefined || p === null) return window.dash_clientside.no_update; return (cur || 0) + 1; }",
+    Output("active-tab-bump-tick", "data", allow_duplicate=True),
+    Input("palette-store", "data"),
+    State("active-tab-bump-tick", "data"),
+    prevent_initial_call=True,
+)
+
+# ── Lots / snapshot-lots / lots-store change → bump active-tab-bump-tick ──
+_app_ctx.app.clientside_callback(
+    """
+    function(eff, snap, local, cur) {
+        var ctx = window.dash_clientside.callback_context;
+        if (!ctx.triggered || !ctx.triggered.length) return window.dash_clientside.no_update;
+        return (cur || 0) + 1;
+    }
+    """,
+    Output("active-tab-bump-tick", "data", allow_duplicate=True),
     Input("effective-lots", "data"),
-    State("main-tabs",              "active_tab"),
-    State("bubble-first-render",    "data"),
-    State("heatmap-first-render",   "data"),
-    State("dca-first-render",       "data"),
-    State("retire-first-render",    "data"),
-    State("supercharge-first-render","data"),
+    Input("snapshot-lots",  "data"),
+    Input("lots-store",     "data"),
+    State("active-tab-bump-tick", "data"),
     prevent_initial_call=True,
 )

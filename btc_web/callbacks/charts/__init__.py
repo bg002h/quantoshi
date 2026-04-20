@@ -1401,33 +1401,20 @@ _app_ctx.app.clientside_callback(
 
 
 # ── Update Display Models swatches when palette changes ──────────────────────
+#
+# Each tab's swatches are rebuilt via a per-tab callback gated on its own
+# first-render store. This avoids writing to {dca,ret,sc}-model-show.options
+# before those tabs are mounted (lazy-load). Palette changes bump
+# active-tab-bump-tick which bumps the active tab's first-render, so the
+# per-tab callback fires for whichever tab the user is currently viewing.
 
-@callback(
-    Output("bub-model-show", "options"),
-    Output("dca-model-show", "options", allow_duplicate=True),
-    Output("ret-model-show", "options", allow_duplicate=True),
-    Output("sc-model-show", "options", allow_duplicate=True),
-    Input("bubble-first-render", "data"),
-    # Lazy-tab re-apply: when dca / retire / supercharge are first lazy-
-    # loaded, their Checklist is mounted with default-palette options (built
-    # at layout time before the user ever changed palette). Re-firing this
-    # callback on each lazy mount rebuilds options with the current palette.
-    Input("dca-lazy",         "children"),
-    Input("retire-lazy",      "children"),
-    Input("supercharge-lazy", "children"),
-    State("palette-store", "data"),
-    State("display-model-summaries", "data"),
-    prevent_initial_call=True,
-)
 def update_model_swatches(_bub_fr=None, _dca_children=None, _ret_children=None,
                           _sc_children=None, palette_key=None, summaries=None):
-    """Rebuild display-models swatches for bub/dca/ret/sc on palette change
-    OR on lazy-tab mount (so the mounted tab picks up the current palette
-    instead of the layout-time default).
+    """Plain helper used by tests + the per-tab callbacks below.
 
-    The three `_*_children` params are fire-trigger sentinels from lazy-load
-    Inputs; their values are unused. Default `None` keeps the legacy
-    2-arg call signature used by palette-roundtrip tests working.
+    Returns (bub_opts, dca_opts, ret_opts, sc_opts) for the given palette.
+    The three `_*_children` params are legacy sentinels kept for the
+    existing test-call signature `update_model_swatches(palette_key, None)`.
     """
     from layout.display_models import build_display_models_options
     pal = _app_ctx.PALETTES.get(palette_key or "default",
@@ -1439,6 +1426,63 @@ def update_model_swatches(_bub_fr=None, _dca_children=None, _ret_children=None,
         build_display_models_options(mc, "ret", include_mc=True, summaries=summaries),
         build_display_models_options(mc, "sc",  summaries=summaries),
     )
+
+
+def _swatches_for(prefix, palette_key, summaries):
+    from layout.display_models import build_display_models_options
+    pal = _app_ctx.PALETTES.get(palette_key or "default",
+                                 _app_ctx.PALETTES["default"])
+    mc = pal.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
+    kwargs = {"summaries": summaries}
+    if prefix == "bub":
+        kwargs["include_bm_master"] = True
+    elif prefix == "ret":
+        kwargs["include_mc"] = True
+    return build_display_models_options(mc, prefix, **kwargs)
+
+
+@callback(
+    Output("bub-model-show", "options"),
+    Input("bubble-first-render", "data"),
+    State("palette-store", "data"),
+    State("display-model-summaries", "data"),
+    prevent_initial_call=True,
+)
+def _update_bub_swatches(_fr, palette_key, summaries):
+    return _swatches_for("bub", palette_key, summaries)
+
+
+@callback(
+    Output("dca-model-show", "options", allow_duplicate=True),
+    Input("dca-first-render", "data"),
+    State("palette-store", "data"),
+    State("display-model-summaries", "data"),
+    prevent_initial_call=True,
+)
+def _update_dca_swatches(_fr, palette_key, summaries):
+    return _swatches_for("dca", palette_key, summaries)
+
+
+@callback(
+    Output("ret-model-show", "options", allow_duplicate=True),
+    Input("retire-first-render", "data"),
+    State("palette-store", "data"),
+    State("display-model-summaries", "data"),
+    prevent_initial_call=True,
+)
+def _update_ret_swatches(_fr, palette_key, summaries):
+    return _swatches_for("ret", palette_key, summaries)
+
+
+@callback(
+    Output("sc-model-show", "options", allow_duplicate=True),
+    Input("supercharge-first-render", "data"),
+    State("palette-store", "data"),
+    State("display-model-summaries", "data"),
+    prevent_initial_call=True,
+)
+def _update_sc_swatches(_fr, palette_key, summaries):
+    return _swatches_for("sc", palette_key, summaries)
 
 
 # Heatmap pill swatches — update children (swatch + label) on palette change.

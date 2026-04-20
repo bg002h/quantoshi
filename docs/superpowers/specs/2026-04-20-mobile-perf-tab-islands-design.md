@@ -12,6 +12,8 @@ Eliminate mobile control-interaction lag on tabs 1–6 by tightening Dash's isla
 
 Five independently-deployable batches. Each ships as one commit to master and gets tested on prod; roll back the batch if regression. No profiling infrastructure — we act on known bottlenecks (validated with the `dash-callback-reviewer` subagent).
 
+**Implementation order:** 3 → 1 → 2 → 4 → 5. Batch 3 ships first so spurious bridge-triggered rebuilds are gone before mobile validation of Batch 1 slider debounce. The batches below are numbered by topic, not order.
+
 Out of scope: initial page load optimization, chart-callback computation internals, slider-debounce on dropdowns/checklists (those aren't the pain point).
 
 ## Architecture principles (applied across all batches)
@@ -48,6 +50,7 @@ Out of scope: initial page load optimization, chart-callback computation interna
 - One clientside callback per tab: all `{tab}-mc-*` controls as Input, 100ms debounce + in-flight guard (same as Batch 1), Output=`{tab}-mc-commit.data` (dict of all MC values).
 - Chart callback: demote all `{tab}-mc-*` from `Input` → `State`; add `Input("{tab}-mc-commit", "data")` as new trigger.
 - Removes 75 individual Input slots; 5 commit-store Inputs in their place.
+- **Cache-key sync:** when chart-callback param dicts change, update `tab_defaults.py` and `_prewarm_caches()` in lockstep so L1 cache hits on first tab visit (per CLAUDE.md cache-alignment rule).
 
 **Risk:** low. Mechanical substitution. One aggregator per tab.
 
@@ -62,6 +65,7 @@ Out of scope: initial page load optimization, chart-callback computation interna
 - Palette dropdown click callbacks: add `{active-tab}-first-render` bump as additional Output (clientside).
 - Lots write callbacks (lots import, lots edit, snapshot restore): add `{active-tab}-first-render` bump as additional Output.
 - Active tab determined clientside from `main-tabs.active_tab` State.
+- Once Batch 5 lands, skip the `citadel-first-render` bump on palette change (Citadel patches its figure directly — a rebuild would undo the Patch).
 
 **Risk:** low. Reviewer's simpler alternative. Eliminates hydration heuristic entirely.
 
@@ -75,7 +79,7 @@ Out of scope: initial page load optimization, chart-callback computation interna
 - Demote all color-only and text-only Inputs from `update_heatmap` to `State`.
 - New clientside callback: Input=color-only controls, Output=`heatmap-graph.figure` with `allow_duplicate=True, prevent_initial_call=True`. Uses `Patch()` to update `figure.data[0].colorscale` + `zmin`/`zmax` (needed for diverging mode per reviewer).
 - Second clientside callback for text-only: patches `figure.data[0].texttemplate` and `textfont.size`.
-- Verify `update_heatmap` routes through L1 cache via `_quantize_params` (reviewer flagged as unconfirmed — audit and fix if not).
+- **Pre-batch audit (blocking):** confirm `update_heatmap` routes through the L1 cache via `_quantize_params`. If not, fix that first — without cache routing, demoting Inputs to State still pays a full rebuild on matrix-dependent changes.
 
 **Risk:** low. Surgical. Matrix-dependent Inputs (entry_yr, entry_q, exit_range, stack, use_lots, active_model) stay on `update_heatmap`; batch 1 slider debounce handles their drag behavior.
 
@@ -87,7 +91,7 @@ Out of scope: initial page load optimization, chart-callback computation interna
 
 **Fix:**
 - `build_citadel_figure` emits a trace→model-key map (e.g., `customdata` or a Store written alongside `cp-mc-results`).
-- Single clientside callback: Input=`palette-store.data`, State=trace→model map + `citadel-graph.figure` existence check. Output=`citadel-graph.figure` via `Patch()` updating `data[i].line.color` + `fillcolor` per trace.
+- Single clientside callback: Input=`palette-store.data`, State=trace→model map + `citadel-graph.figure` existence check. Output=`citadel-graph.figure` (`allow_duplicate=True, prevent_initial_call=True`) via `Patch()` updating `data[i].line.color` + `fillcolor` per trace.
 
 **Risk:** very low. One clientside callback. Non-citadel tabs unaffected.
 

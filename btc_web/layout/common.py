@@ -677,19 +677,12 @@ def _decade_marks(min_yr, max_yr):
 
 
 def _year_range_slider(prefix, min_yr, max_yr, default_start, default_end):
-    """Year range slider with abbreviated tick marks (decade boundaries only).
-
-    `updatemode='mouseup'` is Dash's default but set explicitly so the callback
-    fires once on release, not continuously during drag (ALARA — avoids a
-    cascade of chart recomputes per drag tick + prevents stale-response races
-    where a drag-fire response lands after the mouseup-fire response).
-    """
+    """Year range slider with abbreviated tick marks (decade boundaries only)."""
     return dcc.RangeSlider(
         id=f"{prefix}-yr-range", min=min_yr, max=max_yr,
         value=[default_start, default_end], step=1,
         marks=_decade_marks(min_yr, max_yr),
         tooltip={"always_visible": False},
-        updatemode="mouseup",
     )
 
 

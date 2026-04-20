@@ -44,8 +44,7 @@ def _bubble_controls():
             dcc.RangeSlider(id="bub-xrange", min=2010, max=2080,
                             value=[2010, 2033], step=1,
                             marks={y: f"'{y % 100:02d}" for y in range(2010, 2081, 10)},
-                            tooltip={"always_visible":False},
-                            updatemode="mouseup"),
+                            tooltip={"always_visible":False}),
             dbc.Row([
                 dbc.Col(_lbl("Y range (price)"), width="auto"),
                 dbc.Col(dcc.Checklist(
@@ -60,8 +59,7 @@ def _bubble_controls():
                                 value=[-1.5, 6.05], step=0.5,
                                 marks={-2:"1\u00a2", 0:"$1", 2:"$100",
                                         4:"$10K", 6:"$1M", 9:"$1B"},
-                                tooltip={"always_visible":False},
-                                updatemode="mouseup"),
+                                tooltip={"always_visible":False}),
             ]),
         ),
         _section_card("Display",

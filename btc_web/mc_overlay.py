@@ -1048,11 +1048,6 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
     else:
         _mc_assets = _CITADEL_MC_COLORS_ACTIVE
 
-    # Batch 5: only the "total" trace color comes from palette model_colors.
-    # Tag it with meta.qs_model_key so the clientside palette-Patch callback
-    # in callbacks/charts/_clientside.py can swap its color in place.
-    _model_src_key = p.get("mc_model_src") or p.get("model_src", "bub")
-
     for asset_key, color in _mc_assets.items():
         # Extract per-sim arrays for this asset
         if asset_key == "total":
@@ -1083,17 +1078,12 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
                      "investments_total": "Investments"}.get(asset_key, asset_key)
 
         lg = f"mc_{asset_key}"
-        # Only tag the palette-driven "total" traces. Per-asset colors are
-        # palette-invariant (CITADEL_OVERLAY_COLORS) and should not be touched
-        # by the palette-Patch callback.
-        _meta = {"qs_model_key": _model_src_key} if asset_key == "total" else None
 
         # 5-95% band (outer, 0.08 alpha — matches _build_symmetric_bands)
         traces.append(go.Scatter(
             x=list(ts_plot), y=list(p95), mode="lines",
             line=dict(width=0), showlegend=False, hoverinfo="skip",
             legendgroup=lg,
-            **({"meta": _meta} if _meta else {}),
         ))
         traces.append(go.Scatter(
             x=list(ts_plot), y=list(p5), mode="lines",
@@ -1101,7 +1091,6 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
             fillcolor=f"rgba({_hex_to_rgb(color)},{MC_BAND_OUTER_ALPHA})",
             name=f"MC {nice_name} 5\u201395%", showlegend=False, hoverinfo="skip",
             legendgroup=lg,
-            **({"meta": _meta} if _meta else {}),
         ))
 
         # 25-75% band (inner, 0.15 alpha — matches _build_symmetric_bands)
@@ -1109,7 +1098,6 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
             x=list(ts_plot), y=list(p75), mode="lines",
             line=dict(width=0), showlegend=False, hoverinfo="skip",
             legendgroup=lg,
-            **({"meta": _meta} if _meta else {}),
         ))
         traces.append(go.Scatter(
             x=list(ts_plot), y=list(p25), mode="lines",
@@ -1117,7 +1105,6 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
             fillcolor=f"rgba({_hex_to_rgb(color)},{MC_BAND_INNER_ALPHA})",
             name=f"MC {nice_name} 25\u201375%", showlegend=False, hoverinfo="skip",
             legendgroup=lg,
-            **({"meta": _meta} if _meta else {}),
         ))
 
         # Median dotted line (legend entry — clicking toggles all bands in group)
@@ -1127,7 +1114,6 @@ def _mc_citadel_overlay(m, p, citadel_config, citadel_model):
             name=f"MC {nice_name} median  \u2192  {final_val}",
             line=dict(color=color, width=1.5, dash="dot"),
             legendgroup=lg,
-            **({"meta": _meta} if _meta else {}),
         ))
 
     result_dict = result.to_dict()

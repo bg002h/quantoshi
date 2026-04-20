@@ -103,8 +103,8 @@ def _table(buy_date, model, q, r_b, r_l, c, H_slider):
     Input("lev-floor-q-store", "data"),
     Input("lev-rb", "value"),
     Input("lev-rl", "value"),
-    Input("lev-horizon-commit", "data"),   # debounced
-    Input("lev-cagr-commit", "data"),      # debounced
+    Input("lev-horizon", "value"),
+    Input("lev-cagr", "value"),
     Input("lev-toggles", "value"),
     prevent_initial_call=False,
 )

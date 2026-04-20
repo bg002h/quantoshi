@@ -133,15 +133,23 @@ Add matching clientside tick-bumps next to the palette one:
 
 ```python
 _app_ctx.app.clientside_callback(
-    "function(l, cur) { if (l === undefined) return window.dash_clientside.no_update; return (cur || 0) + 1; }",
+    """
+    function(eff, snap, local, cur) {
+        var ctx = window.dash_clientside.callback_context;
+        if (!ctx.triggered || !ctx.triggered.length) return window.dash_clientside.no_update;
+        return (cur || 0) + 1;
+    }
+    """,
     Output("active-tab-bump-tick", "data", allow_duplicate=True),
     Input("effective-lots", "data"),
+    Input("snapshot-lots",  "data"),
+    Input("lots-store",     "data"),
     State("active-tab-bump-tick", "data"),
     prevent_initial_call=True,
 )
 ```
 
-`effective-lots` already aggregates lots-store writes + snapshot restore, so a single Input covers both sources. No changes needed to `lots.py` or `snapshot_cb.py` themselves.
+All three Stores trigger the tick — forecloses the 1-frame race where `effective-lots` lags a direct `lots-store` or `snapshot-lots` write. All three are cheap memory/local Stores; multiple triggers in quick succession just increment the tick more times (the downstream bump callback is idempotent on value equality from Dash's perspective, but each increment fires it — harmless).
 
 - [ ] **Step 1.6: Run tests**
 
@@ -287,9 +295,11 @@ for _sid, _tab in _SLIDER_IDS:
             var W = window;
             W.__qs_slider = W.__qs_slider || {};
             var key = "__SID__";
-            var st = W.__qs_slider[key] || {timer: null, lastEmit: 0};
+            var st = W.__qs_slider[key] || {timer: null, lastEmit: 0, pending: null, resolve: null};
             st.pending = v;
             if (st.timer) clearTimeout(st.timer);
+            // Promise that resolves to the commit value when debounce fires.
+            var promise = new Promise(function(res) { st.resolve = res; });
             st.timer = setTimeout(function tick() {
                 if (st.lastEmit && renderDone < st.lastEmit) {
                     st.timer = setTimeout(tick, 100);
@@ -297,13 +307,13 @@ for _sid, _tab in _SLIDER_IDS:
                 }
                 st.lastEmit = (cur || 0) + 1;
                 W.__qs_slider[key] = st;
-                W.dash_clientside.set_props(key + "-commit", {data: st.pending});
+                st.resolve(st.pending);
             }, 100);
             W.__qs_slider[key] = st;
-            return NU;
+            return promise;
         }
         """.replace("__SID__", _sid),
-        Output(f"{_sid}-commit", "data", allow_duplicate=True),
+        Output(f"{_sid}-commit", "data"),  # no allow_duplicate — each slider has its own unique Output
         Input(_sid, "value"),
         Input(f"{_tab}-render-done", "data"),
         State(f"{_sid}-commit", "data"),
@@ -311,7 +321,7 @@ for _sid, _tab in _SLIDER_IDS:
     )
 ```
 
-Note: `window.dash_clientside.set_props` is available in Dash 4.0.0 and lets the callback write the commit-store without it being an Output (avoiding `allow_duplicate` chain). If the codebase convention prefers explicit Outputs, swap `set_props(key + "-commit", ...)` for a normal `return st.pending` and declare `Output(f"{_sid}-commit", "data", allow_duplicate=True)` on the callback — functionally identical.
+**Convention:** Each `-commit` store is written by exactly one callback, so no `allow_duplicate=True` is needed. Dash supports returning a Promise from a clientside callback (resolved value becomes the Output), which is how the async 100ms debounce writes through the declared Output rather than `set_props`. This avoids the `allow_duplicate` + `prevent_initial_call` footgun pattern flagged in CLAUDE.md.
 
 - [ ] **Step 2.5: Swap chart-callback Inputs from slider.value → slider-commit.data**
 
@@ -334,6 +344,8 @@ And at the top of the function body:
 ```python
 xrange = xrange_commit if xrange_commit is not None else xrange_fallback
 ```
+
+**Arg-order verification:** Dash passes callback args in declaration order (all Inputs first, then all States). When adding the 12 fallback States, put each fallback State immediately after the other States (not interleaved with the commit Inputs). Before committing, grep each `update_*` signature against its decorator and verify name/position match. Mismatched order silently swaps values.
 
 - [ ] **Step 2.6: Set `debounce=True` on `hm-entry-q`**
 
@@ -445,6 +457,7 @@ _app_ctx.app.clientside_callback(
             rendered_key: rendered_key,
         };
         if (st.timer) clearTimeout(st.timer);
+        var promise = new Promise(function(res) { st.resolve = res; });
         st.timer = setTimeout(function tick() {
             if (st.lastEmit && renderDone < st.lastEmit) {
                 st.timer = setTimeout(tick, 100);
@@ -452,13 +465,13 @@ _app_ctx.app.clientside_callback(
             }
             st.lastEmit = (cur || 0) + 1;
             W.__qs_mc[key] = st;
-            W.dash_clientside.set_props(key + "-commit", {data: st.pending});
+            st.resolve(st.pending);
         }, 100);
         W.__qs_mc[key] = st;
-        return NU;
+        return promise;
     }
     """,
-    Output("dca-mc-commit", "data", allow_duplicate=True),
+    Output("dca-mc-commit", "data"),  # unique Output, no allow_duplicate
     Input("dca-mc-enable",       "value"),
     Input("dca-mc-amount",       "value"),
     Input("dca-mc-infl",         "value"),
@@ -496,11 +509,19 @@ For `update_citadel` in `btc_web/callbacks/citadel_cb.py`: same treatment — ad
 
 The function signature gets a new first-or-last arg `mc_commit` (a dict or None). Inside the function, if the callback already reads individual values, keep using the State-sourced values; the commit-Input is just a trigger. No body changes needed beyond adding the arg name.
 
-- [ ] **Step 3.5: Cache-key alignment**
+- [ ] **Step 3.5: Enumerate MC params actually in each `params` dict**
 
-If any of the demoted values appear in the chart callback's `params` dict (the one passed to `_get_*_fig`), they must appear identically in `tab_defaults.py` and in `_prewarm_caches()` in `btc_web/cache.py`. Read both files and cross-reference. If an MC param is in the runtime dict but missing from the defaults dict, add it (with the frozen default value) so the prewarm L1 key matches the runtime L1 key.
+Before touching defaults, read each of `update_dca`, `update_retire`, `update_supercharge`, `update_heatmap`, `update_citadel` and list every `mc_*` key actually written into the dict that's passed to `_get_*_fig` (or to `_get_mc_or_cached`). Expected: typically `mc_enabled`, `mc_amount`, `mc_infl`, `mc_bins`, `mc_sims`, `mc_years`, `mc_freq`, `mc_window`, `mc_start_yr`, `mc_entry_q`, `mc_regime`, `mc_model_src` — but verify per callback since they diverge.
 
-- [ ] **Step 3.6: Run cache-alignment tests**
+- [ ] **Step 3.6: Update `tab_defaults.py` to match**
+
+For each MC key enumerated in Step 3.5, confirm it appears in the matching tab's `MappingProxyType` default dict in `btc_web/tab_defaults.py`. If any key is missing, add it with the frozen default value (match what the callback produces when MC is disabled). The point is cache-key alignment: the prewarm L1 key must equal the runtime L1 key on first tab visit.
+
+- [ ] **Step 3.7: Update `_prewarm_caches()` in `btc_web/cache.py`**
+
+Read `_prewarm_caches()` and confirm it builds each tab's params from `_defaults()` (or equivalent). If it hardcodes a subset of MC keys, update it to produce the same params dict the runtime callback produces when MC is off (i.e., iterate the defaults). Commit this change in the same commit as the callback edits.
+
+- [ ] **Step 3.8: Run cache-alignment tests**
 
 ```bash
 cd /scratch/code/bitcoinprojections && btc_venv/bin/python3 -m pytest btc_web/test_cache_key_alignment.py -v
@@ -508,7 +529,7 @@ cd /scratch/code/bitcoinprojections && btc_venv/bin/python3 -m pytest btc_web/te
 
 Expected: all pass. If any alignment test fails, the mismatch it reports names the missing key — add it to `tab_defaults.py` and rerun.
 
-- [ ] **Step 3.7: Run full suite**
+- [ ] **Step 3.9: Run full suite**
 
 ```bash
 cd /scratch/code/bitcoinprojections && btc_venv/bin/python3 -m pytest btc_web/ -q --ignore-glob='*_e2e.py'
@@ -516,7 +537,7 @@ cd /scratch/code/bitcoinprojections && btc_venv/bin/python3 -m pytest btc_web/ -
 
 Expected: all pass.
 
-- [ ] **Step 3.8: Invoke cache-key-aligner subagent**
+- [ ] **Step 3.10: Invoke cache-key-aligner subagent**
 
 Per CLAUDE.md and the cache-key-aligner agent description, run that agent against this commit before deploying — MC refactors are exactly the pattern it catches.
 
@@ -530,7 +551,7 @@ Per CLAUDE.md and the cache-key-aligner agent description, run that agent agains
 
 Apply any fixes the agent finds, then rerun the suite.
 
-- [ ] **Step 3.9: Smoke test on dev**
+- [ ] **Step 3.11: Smoke test on dev**
 
 ```bash
 lsof -ti :8050 | xargs -r kill -9
@@ -540,7 +561,7 @@ sleep 5
 
 DEV mode has MC disabled (Markov .so not built locally), so MC control changes should no-op. Confirm no new "nonexistent object" errors. Visit `/3`, `/4`, `/5`, `/2`, `/6` — each tab's chart renders.
 
-- [ ] **Step 3.10: Commit + deploy + mobile-validate**
+- [ ] **Step 3.12: Commit + deploy + mobile-validate**
 
 ```bash
 cd /scratch/code/bitcoinprojections && \
@@ -641,7 +662,11 @@ cd /scratch/code/bitcoinprojections && \
 
 hm-vfmt and hm-cell-fs demote to State on update_heatmap; a clientside
 Patch applies texttemplate + textfont.size with no server round-trip.
-Color Patch deferred pending a JS port of _dense_colorscale."
+
+Color Patch deferred pending a JS port of _dense_colorscale.
+hm-palette / hm-c-* / hm-grad / hm-mode remain full-rebuild Inputs
+and still fire server round-trips per click. hm-b1 / hm-b2 drag
+frequency is already gated by Batch 1 slider-commit."
 
 git push origin master && \
   ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && redis-cli FLUSHDB && systemctl restart quantoshi"
@@ -688,6 +713,17 @@ _app_ctx.app.clientside_callback(
         if (!palette || !curFig || !curFig.data) return NU;
         var QS = window.QS_PALETTES && window.QS_PALETTES[palette];
         if (!QS || !QS.model_colors) return NU;
+        // Hex -> rgb helper so we can re-apply any existing fillcolor alpha.
+        function hexToRgb(h) {
+            var m = (h || "").match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+            if (!m) return null;
+            return [parseInt(m[1],16), parseInt(m[2],16), parseInt(m[3],16)];
+        }
+        // Extract alpha from an existing "rgba(r,g,b,a)" string, else 1.
+        function extractAlpha(s) {
+            var m = (s || "").match(/rgba?\([^)]*,\s*([0-9.]+)\s*\)/);
+            return m ? parseFloat(m[1]) : 1.0;
+        }
         var p = window.dash_clientside.Patch();
         for (var i = 0; i < curFig.data.length; i++) {
             var tr = curFig.data[i];
@@ -697,7 +733,11 @@ _app_ctx.app.clientside_callback(
             if (!c) continue;
             p["data"][i]["line"]["color"] = c;
             if (tr.fillcolor) {
-                p["data"][i]["fillcolor"] = c;  // preserve alpha if encoded
+                var rgb = hexToRgb(c);
+                if (rgb) {
+                    var a = extractAlpha(tr.fillcolor);
+                    p["data"][i]["fillcolor"] = "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + "," + a + ")";
+                }
             }
         }
         return p;

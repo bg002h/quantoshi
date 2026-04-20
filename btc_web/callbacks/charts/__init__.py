@@ -629,7 +629,7 @@ def update_yrange_slider_limits(model_show):
     Input("hm-toggles",   "value"),
     Input("hm-stack",     "value"),
     Input("hm-use-lots",  "value"),
-    Input("effective-lots","data"),
+    State("effective-lots","data"),
     Input("hm-mc-enable",  "value"),
     Input("hm-mc-amount",  "value"),
     Input("hm-mc-infl",    "value"),
@@ -642,14 +642,14 @@ def update_yrange_slider_limits(model_show):
     Input("hm-mc-start-yr", "value"),
     Input("hm-mc-entry-q",  "value"),
     Input("hm-mc-loaded",   "data"),
-    Input("mc-pay-trigger", "data"),
+    State("mc-pay-trigger", "data"),
     Input("hm-model-show",  "value"),
     Input("hm-mc-model-src", "value"),
     State("btc-price-store", "data"),
     State("hm-mc-results",  "data"),
     State("mc-pay-token",   "data"),
     State("hm-mc-rendered-key", "data"),
-    Input("palette-store",      "data"),
+    State("palette-store",      "data"),
     State("lppl-n-freqs",       "value"),
     State("lppl-weighted",      "value"),
     State("lppl-no-13",         "value"),
@@ -854,7 +854,7 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     State("eppl-cfg-b-cal2d","value"),
     Input("hybppl-commit-trigger", "data"),
     Input("eppl-commit-trigger",   "data"),
-    Input("effective-lots","data"),
+    State("effective-lots","data"),
     Input("dca-sc-enable",  "value"),
     Input("dca-sc-loan",    "value"),
     Input("dca-sc-rate",    "value"),
@@ -874,7 +874,7 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     Input("dca-mc-start-yr", "value"),
     Input("dca-mc-entry-q", "value"),
     Input("dca-mc-loaded",  "data"),
-    Input("mc-pay-trigger", "data"),
+    State("mc-pay-trigger", "data"),
     Input("dca-model-show", "value"),
     Input("dca-mc-model-src", "value"),
     State("btc-price-store","data"),
@@ -882,7 +882,7 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     State("mc-pay-token",   "data"),
     State("dca-mc-unblocked", "data"),
     State("dca-mc-rendered-key", "data"),
-    Input("palette-store",      "data"),
+    State("palette-store",      "data"),
     State("dca-qs-mode",        "value"),
     State("user-model-store",   "data"),
     prevent_initial_call=True,
@@ -1035,7 +1035,7 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     State("eppl-cfg-b-cal2d","value"),
     Input("hybppl-commit-trigger", "data"),
     Input("eppl-commit-trigger",   "data"),
-    Input("effective-lots","data"),
+    State("effective-lots","data"),
     Input("ret-mc-enable",  "value"),
     Input("ret-mc-bins",    "value"),
     Input("ret-mc-regime",  "value"),
@@ -1045,7 +1045,7 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     Input("ret-mc-start-yr", "value"),
     Input("ret-mc-entry-q",  "value"),
     Input("ret-mc-loaded",   "data"),
-    Input("mc-pay-trigger", "data"),
+    State("mc-pay-trigger", "data"),
     Input("ret-model-show", "value"),
     Input("ret-mc-model-src", "value"),
     State("btc-price-store","data"),
@@ -1053,7 +1053,7 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     State("mc-pay-token",   "data"),
     State("ret-mc-unblocked", "data"),
     State("ret-mc-rendered-key", "data"),
-    Input("palette-store",      "data"),
+    State("palette-store",      "data"),
     State("ret-qs-mode",        "value"),
     State("user-model-store",   "data"),
     prevent_initial_call=True,
@@ -1208,7 +1208,7 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     Input("sc-legend-pos",   "value"),
     Input("sc-chart-layout", "value"),
     Input("sc-display-q",    "value"),
-    Input("effective-lots",  "data"),
+    State("effective-lots",  "data"),
     Input("sc-mc-enable",    "value"),
     Input("sc-mc-bins",      "value"),
     Input("sc-mc-regime",    "value"),
@@ -1218,7 +1218,7 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     Input("sc-mc-start-yr",  "value"),
     Input("sc-mc-entry-q",   "value"),
     Input("sc-mc-loaded",    "data"),
-    Input("mc-pay-trigger", "data"),
+    State("mc-pay-trigger", "data"),
     Input("sc-model-show",  "value"),
     Input("sc-mc-model-src", "value"),
     State("btc-price-store", "data"),
@@ -1226,7 +1226,7 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     State("mc-pay-token",   "data"),
     State("sc-mc-unblocked", "data"),
     State("sc-mc-rendered-key", "data"),
-    Input("palette-store",     "data"),
+    State("palette-store",     "data"),
     State("sc-qs-mode",        "value"),
     State("viewport-width",    "data"),
     State("user-model-store",  "data"),
@@ -1329,33 +1329,34 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
 
 # ── Model warning modals (S2F, Exponential) ──────────────────────────────────
 
-@callback(
-    Output("s2f-warn-dialog", "displayed"),
-    Output("exp-warn-dialog", "displayed"),
-    Output("u1-warn-dialog", "displayed"),
-    Output("model-warn-dismissed", "data", allow_duplicate=True),
-    Input("bub-model-show", "value"),
-    Input("dca-model-show", "value"),
-    Input("ret-model-show", "value"),
-    Input("sc-model-show", "value"),
-    State("model-warn-dismissed", "data"),
-    prevent_initial_call=True,
-)
-def model_warnings(bub_models, dca_models, ret_models, sc_models, dismissed):
-    dismissed = dismissed or {}
-    all_active = set((bub_models or []) + (dca_models or []) + (ret_models or []) + (sc_models or []))
-    show_s2f = "s2f" in all_active and not dismissed.get("s2f")
-    show_exp = "exp" in all_active and not dismissed.get("exp")
-    show_u1 = "u1" in all_active and not dismissed.get("u1")
-    if show_s2f:
-        dismissed["s2f"] = True
-    if show_exp:
-        dismissed["exp"] = True
-    if show_u1:
-        dismissed["u1"] = True
-    if show_s2f or show_exp or show_u1:
-        return show_s2f, show_exp, show_u1, dismissed
-    return False, False, False, dash.no_update
+def _make_model_warning_cb(tab_model_show_id):
+    @callback(
+        Output("s2f-warn-dialog", "displayed", allow_duplicate=True),
+        Output("exp-warn-dialog", "displayed", allow_duplicate=True),
+        Output("u1-warn-dialog", "displayed", allow_duplicate=True),
+        Output("model-warn-dismissed", "data", allow_duplicate=True),
+        Input(tab_model_show_id, "value"),
+        State("model-warn-dismissed", "data"),
+        prevent_initial_call=True,
+    )
+    def _warn(models, dismissed):
+        dismissed = dismissed or {}
+        all_active = set(models or [])
+        show_s2f = "s2f" in all_active and not dismissed.get("s2f")
+        show_exp = "exp" in all_active and not dismissed.get("exp")
+        show_u1  = "u1"  in all_active and not dismissed.get("u1")
+        if show_s2f: dismissed["s2f"] = True
+        if show_exp: dismissed["exp"] = True
+        if show_u1:  dismissed["u1"]  = True
+        if show_s2f or show_exp or show_u1:
+            return show_s2f, show_exp, show_u1, dismissed
+        return False, False, False, dash.no_update
+    return _warn
+
+_warn_bub = _make_model_warning_cb("bub-model-show")
+_warn_dca = _make_model_warning_cb("dca-model-show")
+_warn_ret = _make_model_warning_cb("ret-model-show")
+_warn_sc  = _make_model_warning_cb("sc-model-show")
 
 
 # LP4 warning — fires EVERY time 4 is added to lppl-n-freqs (no dismissal)
@@ -1388,7 +1389,7 @@ _app_ctx.app.clientside_callback(
     Output("dca-model-show", "options", allow_duplicate=True),
     Output("ret-model-show", "options", allow_duplicate=True),
     Output("sc-model-show", "options", allow_duplicate=True),
-    Input("palette-store", "data"),
+    Input("bubble-first-render", "data"),
     # Lazy-tab re-apply: when dca / retire / supercharge are first lazy-
     # loaded, their Checklist is mounted with default-palette options (built
     # at layout time before the user ever changed palette). Re-firing this
@@ -1396,11 +1397,12 @@ _app_ctx.app.clientside_callback(
     Input("dca-lazy",         "children"),
     Input("retire-lazy",      "children"),
     Input("supercharge-lazy", "children"),
+    State("palette-store", "data"),
     State("display-model-summaries", "data"),
     prevent_initial_call=True,
 )
-def update_model_swatches(palette_key, _dca_children=None, _ret_children=None,
-                          _sc_children=None, summaries=None):
+def update_model_swatches(_bub_fr=None, _dca_children=None, _ret_children=None,
+                          _sc_children=None, palette_key=None, summaries=None):
     """Rebuild display-models swatches for bub/dca/ret/sc on palette change
     OR on lazy-tab mount (so the mounted tab picks up the current palette
     instead of the layout-time default).

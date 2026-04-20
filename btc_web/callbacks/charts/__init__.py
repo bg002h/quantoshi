@@ -563,7 +563,7 @@ _app_ctx.app.clientside_callback(
     }
     """,
     Output("bub-yrange", "value", allow_duplicate=True),
-    Input("bub-xrange-commit", "data"),   # debounced — see _clientside.py
+    Input("bub-xrange",  "value"),
     Input("bub-auto-y",  "value"),
     Input("bub-yscale",  "value"),
     Input("bub-model-show", "value"),

@@ -187,8 +187,8 @@ driven bridge."
 - [ ] **Step 1.9: Deploy and validate**
 
 ```bash
-git push origin master && \
-  ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && redis-cli FLUSHDB && systemctl restart quantoshi"
+git push origin mobile-perf-tab-islands && \
+  ssh root@89.167.70.45 "cd /opt/quantoshi && git pull origin mobile-perf-tab-islands && redis-cli FLUSHDB && systemctl restart quantoshi"
 ```
 
 Mobile validation gate: user confirms "no regression" on prod (tabs load, palette switch works, snapshot links restore lots). If regression, `git revert HEAD && git push && ssh … redeploy`.
@@ -388,8 +388,8 @@ emissions. hm-entry-q uses built-in debounce=True."
 - [ ] **Step 2.10: Deploy and mobile-validate**
 
 ```bash
-git push origin master && \
-  ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && redis-cli FLUSHDB && systemctl restart quantoshi"
+git push origin mobile-perf-tab-islands && \
+  ssh root@89.167.70.45 "cd /opt/quantoshi && git pull origin mobile-perf-tab-islands && redis-cli FLUSHDB && systemctl restart quantoshi"
 ```
 
 User tests on mobile. Approve or revert.
@@ -578,8 +578,8 @@ a {tab}-mc-commit memory Store aggregating ~15 MC controls. Chart
 callbacks demote MC Inputs to State, wake on single commit-Input.
 Removes 75 Input slots; 5 commit-Inputs in their place."
 
-git push origin master && \
-  ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && redis-cli FLUSHDB && systemctl restart quantoshi"
+git push origin mobile-perf-tab-islands && \
+  ssh root@89.167.70.45 "cd /opt/quantoshi && git pull origin mobile-perf-tab-islands && redis-cli FLUSHDB && systemctl restart quantoshi"
 ```
 
 Mobile validation: MC runs on all 5 tabs; revert if regression.
@@ -668,8 +668,8 @@ hm-palette / hm-c-* / hm-grad / hm-mode remain full-rebuild Inputs
 and still fire server round-trips per click. hm-b1 / hm-b2 drag
 frequency is already gated by Batch 1 slider-commit."
 
-git push origin master && \
-  ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && redis-cli FLUSHDB && systemctl restart quantoshi"
+git push origin mobile-perf-tab-islands && \
+  ssh root@89.167.70.45 "cd /opt/quantoshi && git pull origin mobile-perf-tab-islands && redis-cli FLUSHDB && systemctl restart quantoshi"
 ```
 
 Mobile: change heatmap cell font size / value format / palette → responsive. Revert if regression.
@@ -785,8 +785,8 @@ build_citadel_figure tags each trace with meta.qs_model_key. A single
 clientside callback patches trace line.color/fillcolor on palette-store
 change. Post-sim palette switches no longer require re-running the sim."
 
-git push origin master && \
-  ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && redis-cli FLUSHDB && systemctl restart quantoshi"
+git push origin mobile-perf-tab-islands && \
+  ssh root@89.167.70.45 "cd /opt/quantoshi && git pull origin mobile-perf-tab-islands && redis-cli FLUSHDB && systemctl restart quantoshi"
 ```
 
 Mobile: run a sim on Citadel, switch palettes → colors update instantly.
@@ -800,8 +800,8 @@ If a batch regresses on prod:
 ```bash
 cd /scratch/code/bitcoinprojections && \
   git revert --no-edit HEAD && \
-  git push origin master && \
-  ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && redis-cli FLUSHDB && systemctl restart quantoshi"
+  git push origin mobile-perf-tab-islands && \
+  ssh root@89.167.70.45 "cd /opt/quantoshi && git pull origin mobile-perf-tab-islands && redis-cli FLUSHDB && systemctl restart quantoshi"
 ```
 
 Then diagnose on dev with fresh context before re-attempting the batch.

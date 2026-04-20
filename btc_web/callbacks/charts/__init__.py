@@ -491,9 +491,14 @@ def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
 # at layout time. The JS interpolates the grid at the current xrange.
 _app_ctx.app.clientside_callback(
     """
-    function(xrange, auto_y, yscale, model_show, grid, cur_yr) {
+    function(xrange, auto_y, yscale, model_show, stack, show_stack, grid, cur_yr) {
         var NU = window.dash_clientside.no_update;
         if (!auto_y || !auto_y.length || !xrange || !grid) return NU;
+        var stack_log = 0.0;
+        if (show_stack && show_stack.length) {
+            var s = parseFloat(stack);
+            if (s > 0) stack_log = Math.log(s) / Math.LN10;
+        }
 
         var xmin = xrange[0], xmax = xrange[1];
         /* Convert calendar year to t (years since genesis) */
@@ -543,6 +548,10 @@ _app_ctx.app.clientside_callback(
             y_hi_p = Math.max(y_hi_p, interp(md.hi, t_hi));
         }
 
+        /* Shift for stack scaling (traces multiplied by stack when show_stack) */
+        y_lo_p += stack_log;
+        y_hi_p += stack_log;
+
         /* Cap and round */
         var extreme = (active.indexOf('s2f') !== -1 || active.indexOf('exp') !== -1);
         var y_cap = extreme ? 20.0 : 9.0;
@@ -574,6 +583,8 @@ _app_ctx.app.clientside_callback(
     Input("bub-auto-y",  "value"),
     Input("bub-yscale",  "value"),
     Input("bub-model-show", "value"),
+    Input("bub-stack", "value"),
+    Input("bub-show-stack", "value"),
     State("auto-y-grid", "data"),
     State("bub-yrange",  "value"),
     prevent_initial_call=True,

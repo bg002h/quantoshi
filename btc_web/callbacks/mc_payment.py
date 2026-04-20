@@ -4,7 +4,7 @@ import os
 import logging
 
 import dash
-from dash import html, Input, Output, State, ctx, callback, no_update
+from dash import html, Input, Output, State, ctx, callback, no_update, ALL
 
 import _app_ctx
 import btcpay
@@ -19,14 +19,10 @@ logger = logging.getLogger(__name__)
 # MC payment callbacks (BTCPay integration)
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Map button IDs → tab short names used by btcpay/api
-_MC_BTN_TO_TAB = {
-    "dca-mc-run-btn": "dca",
-    "ret-mc-run-btn": "ret",
-    "hm-mc-run-btn":  "hm",
-    "sc-mc-run-btn":  "sc",
-    "cp-mc-run-btn":  "cp",
-}
+# Ordered tab list — pattern-matched mc-run-btn Inputs return a list in this
+# order (dict ALL collapses to a single list arg keyed by pattern match order,
+# which follows layout registration; we sort explicitly below to be safe).
+_MC_TABS = ("dca", "ret", "hm", "sc", "cp")
 
 _MC_QUANT_THRESHOLD = 50_000  # sats — trigger quant warning modal
 
@@ -41,13 +37,10 @@ _MC_QUANT_THRESHOLD = 50_000  # sats — trigger quant warning modal
     Output("mc-quant-modal", "is_open",    allow_duplicate=True),
     Output("mc-quant-cost-info", "children", allow_duplicate=True),
     Output("mc-quant-onchain-note", "children", allow_duplicate=True),
-    *(Output(f"{pfx}-mc-run-status", "children", allow_duplicate=True)
-      for pfx in ("dca", "ret", "hm", "sc", "cp")),
-    Input("dca-mc-run-btn", "n_clicks"),
-    Input("ret-mc-run-btn", "n_clicks"),
-    Input("hm-mc-run-btn",  "n_clicks"),
-    Input("sc-mc-run-btn",  "n_clicks"),
-    Input("cp-mc-run-btn",  "n_clicks"),
+    Output({"type": "mc-run-status", "tab": ALL}, "children", allow_duplicate=True),
+    # Pattern-matched Input: binds to {type:"mc-run-btn",tab:ALL} components
+    # as they mount (lazy tabs). Avoids "nonexistent object" errors at load.
+    Input({"type": "mc-run-btn", "tab": ALL}, "n_clicks"),
     State("dca-mc-years", "value"), State("dca-mc-start-yr", "value"),
     State("dca-mc-entry-q", "value"),
     State("ret-mc-years", "value"), State("ret-mc-start-yr", "value"),
@@ -65,17 +58,20 @@ _MC_QUANT_THRESHOLD = 50_000  # sats — trigger quant warning modal
 )
 def _mc_payment_initiate(*args):
     """Handle Run Simulation button clicks — check free tier or create invoice."""
-    # Determine which button was clicked
+    # Pattern-matched Input collapses to a single list-arg at args[0].
+    # ctx.triggered_id is a dict like {"type":"mc-run-btn","tab":"dca"}.
     triggered = ctx.triggered_id
-    if triggered not in _MC_BTN_TO_TAB:
+    if not isinstance(triggered, dict) or triggered.get("type") != "mc-run-btn":
         raise dash.exceptions.PreventUpdate
-    tab = _MC_BTN_TO_TAB[triggered]
+    tab = triggered.get("tab")
+    if tab not in _MC_TABS:
+        raise dash.exceptions.PreventUpdate
 
     # Extract the relevant tab's MC params from states
-    tab_idx = list(_MC_BTN_TO_TAB.keys()).index(triggered)
-    n_tabs = len(_MC_BTN_TO_TAB)  # 5 tabs
-    # Layout: n_tabs Inputs, then (years, start_yr, entry_q) × n_tabs, trigger, n_tabs model_srcs, n_tabs prices
-    state_base = n_tabs  # skip the button Inputs
+    tab_idx = _MC_TABS.index(tab)
+    n_tabs = len(_MC_TABS)  # 5 tabs
+    # Layout: 1 list-Input (args[0]), then (years, start_yr, entry_q) × n_tabs, trigger, n_tabs model_srcs, n_tabs prices
+    state_base = 1  # skip the single pattern-match Input list
     mc_years  = _ci(args[state_base + tab_idx * 3],     MC_DEFAULT_YEARS)
     start_yr  = _ci(args[state_base + tab_idx * 3 + 1], MC_DEFAULT_START_YR)
     entry_q   = _cf(args[state_base + tab_idx * 3 + 2], MC_DEFAULT_ENTRY_Q)
@@ -92,8 +88,9 @@ def _mc_payment_initiate(*args):
     no_tab_status = [dash.no_update] * n_tabs
     # Helper: base return with quant modal closed
     def _ret(*vals):
-        """Insert quant-modal defaults (closed, no update) into return tuple."""
-        # Original 7 outputs + 3 quant outputs + 4 tab statuses
+        """Insert quant-modal defaults (closed, no update) into return tuple.
+        Layout: 7 payment outputs + 3 quant outputs + 1 pattern-match list
+        output (mc-run-status for all tabs)."""
         return vals[:7] + (False, dash.no_update, "") + vals[7:]
 
     # Quant-tier warning (>50k sats) — fires before payment/free checks
@@ -103,13 +100,13 @@ def _mc_payment_initiate(*args):
         return (dash.no_update, dash.no_update, dash.no_update,
                 dash.no_update, dash.no_update, dash.no_update, dash.no_update,
                 True, f"Estimated cost: {tab_price:,} sats", onchain_note,
-                *no_tab_status)
+                no_tab_status)
 
     # If BTCPay not configured or DEV mode, just increment trigger (free mode)
     if not _app_ctx._HAS_BTCPAY or os.environ.get("DEV") == "1":
         return _ret(False, dash.no_update, dash.no_update,
                     dash.no_update, True, 0, cur_trigger + 1,
-                    *no_tab_status)
+                    no_tab_status)
 
     # Free tier check (bins/sims/freq not available here; uses defaults)
     if btcpay.is_free_tier(mc_model_src, mc_years, start_yr, entry_q):
@@ -117,7 +114,7 @@ def _mc_payment_initiate(*args):
         tab_statuses[tab_idx] = html.Span("Free tier", style={"color": MC_FREE_GREEN})
         return _ret(False, dash.no_update, dash.no_update,
                     dash.no_update, True, 0, cur_trigger + 1,
-                    *tab_statuses)
+                    tab_statuses)
 
     # Create invoice for live simulation
     try:
@@ -127,7 +124,7 @@ def _mc_payment_initiate(*args):
         tab_statuses[tab_idx] = html.Span(
             "Payment service unavailable", style={"color": ERROR_RED_DARK})
         return _ret(False, dash.no_update, "",
-                    "", True, 0, dash.no_update, *tab_statuses)
+                    "", True, 0, dash.no_update, tab_statuses)
 
     # Open payment modal — clientside callback handles iframe vs QR display
     invoice_data = {
@@ -141,7 +138,7 @@ def _mc_payment_initiate(*args):
 
     return _ret(True, invoice_data, info,
                 "Waiting for payment...", False, 0,
-                dash.no_update, *no_tab_status)
+                dash.no_update, no_tab_status)
 
 
 # ── Quant warning modal — proceed / cancel ────────────────────────────────────

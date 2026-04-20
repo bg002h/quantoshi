@@ -91,8 +91,8 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
         _ph.append(html.Div(id=f"{prefix}-mc-body"))
         _ph.append(html.Div(id=f"{prefix}-mc-status"))
         _ph.append(dbc.Button(id=f"{prefix}-mc-dl-btn", style=_STYLE_HIDDEN))
-        _ph.append(dbc.Button(id=f"{prefix}-mc-run-btn", style=_STYLE_HIDDEN))
-        _ph.append(html.Div(id=f"{prefix}-mc-run-status"))
+        _ph.append(dbc.Button(id={"type": "mc-run-btn", "tab": prefix}, style=_STYLE_HIDDEN))
+        _ph.append(html.Div(id={"type": "mc-run-status", "tab": prefix}))
         _ph.append(dcc.Store(id=f"{prefix}-mc-rendered-key", storage_type="memory"))
         _ph.append(html.Div(id=f"{prefix}-mc-match"))
         _ph.append(dbc.Button(id=f"{prefix}-mc-restore-btn", style=_STYLE_HIDDEN))
@@ -219,11 +219,11 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
             # ── Run Simulation button (payment-gated when BTCPay active) ──
             dbc.Button(
                 [html.Span("\u26a1 ", style={"fontSize": UI_FONT_XL}), "Run MC Simulation"],
-                id=f"{prefix}-mc-run-btn", size="sm", color="warning",
+                id={"type": "mc-run-btn", "tab": prefix}, size="sm", color="warning",
                 className="w-100 mt-2",
                 style={"fontWeight": "600"},
             ),
-            html.Div(id=f"{prefix}-mc-run-status",
+            html.Div(id={"type": "mc-run-status", "tab": prefix},
                      style={"fontSize": UI_FONT_SM, "color": DIM_TEXT, "marginTop": "4px",
                             "textAlign": "center"}),
             dcc.Store(id=f"{prefix}-mc-rendered-key", storage_type="memory"),

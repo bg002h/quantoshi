@@ -295,6 +295,7 @@ def _build_layout(initial_tab="bubble"):
     dcc.Store(id="um-clicked-point", storage_type="memory", data=None),
     dcc.Store(id="viewport-width", storage_type="memory", data=1200),
     dcc.Store(id="snapshot-state-store", storage_type="memory", data=None),
+    dcc.Store(id="snapshot-apply-bubble", storage_type="memory", data=None),
     dcc.Store(id="ticker-mode-store", storage_type="local", data="usd"),
     dcc.Store(id="splash-ts-store", storage_type="local", data=None),
     dcc.Store(id="lots-store", storage_type="local", data=[]),

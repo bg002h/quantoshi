@@ -536,3 +536,29 @@ class TestSnapshotModelShow:
         assert "s2f" not in decoded["ret-model-show:value"]
 
 
+
+
+class TestBubbleLazyRelay:
+    """Bubble snapshot controls must route through lazy relay store."""
+
+    def test_bubble_controls_not_eager_outputs(self):
+        """bub-*, scan-*, cta-* must NOT be direct Outputs of apply_snapshot."""
+        from callbacks import snapshot_cb
+        for cid, prop in snapshot_cb._EAGER_CONTROLS:
+            assert not cid.startswith(("bub-", "scan-", "cta-")), (
+                f"{cid} should be routed through snapshot-apply-bubble, "
+                f"not written eagerly by apply_snapshot")
+
+    def test_bubble_lazy_controls_populated(self):
+        """Relay must include the bubble tab controls."""
+        from callbacks import snapshot_cb
+        ids = {cid for cid, _ in snapshot_cb._BUBBLE_LAZY_CONTROLS}
+        assert "bub-qs" in ids
+        assert any(c.startswith("scan-") for c in ids)
+        assert any(c.startswith("cta-") for c in ids)
+
+    def test_bubble_controls_still_in_snapshot_controls(self):
+        """Bubble controls must still be in _SNAPSHOT_CONTROLS for encode/decode."""
+        from snapshot import _SNAPSHOT_CONTROLS
+        ids = {cid for cid, _ in _SNAPSHOT_CONTROLS}
+        assert "bub-qs" in ids

@@ -637,10 +637,7 @@ def update_yrange_slider_limits(model_show):
     Input("hm-c-hi",      "value"),
     Input("hm-grad",      "value"),
     Input("hm-vfmt",      "value"),
-    # hm-cell-fs demoted to State — a clientside Patch in _clientside.py
-    # updates every layout.annotations[i].font.size without a server round-trip
-    # (Batch 4, 2026-04-20).
-    State("hm-cell-fs",   "value"),
+    Input("hm-cell-fs",   "value"),
     Input("hm-toggles",   "value"),
     Input("hm-stack",     "value"),
     Input("hm-use-lots",  "value"),

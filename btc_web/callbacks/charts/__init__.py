@@ -18,8 +18,6 @@ still works exactly as before.
 """
 
 import math
-import time as _time
-import sys as _sys
 
 import dash
 from dash import Input, Output, State, ctx, callback, html
@@ -148,10 +146,6 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     State("bub-sigma-mode",    "value"),
     prevent_initial_call=True,
 )
-def _bub_log(msg):
-    print(f"[BUB-TIMING] {msg}", file=_sys.stderr, flush=True)
-
-
 def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,
                   n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, model_show,
@@ -173,14 +167,10 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   qs_mode=None, scan_active=None, scan_q_val=None,
                   sigma_mode=None):
     """Bubble + QR overlay chart callback -- coerce inputs, build figure."""
-    _t_start = _time.perf_counter()
-    _trg = getattr(ctx, "triggered_id", None)
-    _bub_log(f"enter xrange={xrange} trg={_trg}")
     # Custom Time Axis router: if cta-active is on, the Custom Time Axis
     # callback owns bubble-graph.figure. Refuse to overwrite.
     if cta_active and "yes" in cta_active:
         from dash.exceptions import PreventUpdate
-        _bub_log(f"CTA active -> PreventUpdate dt={(_time.perf_counter()-_t_start)*1000:.1f}ms")
         raise PreventUpdate
     toggles        = toggles or []
     bubble_toggles = bubble_toggles or []
@@ -275,7 +265,6 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
         fig.update_xaxes(fixedrange=True)
         fig.update_yaxes(fixedrange=True)
 
-    _bub_log(f"exit xrange={xrange} dt={(_time.perf_counter()-_t_start)*1000:.1f}ms n_traces={len(fig.data)}")
     return fig
 
 

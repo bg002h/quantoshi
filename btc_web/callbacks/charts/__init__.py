@@ -83,8 +83,8 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     State("bub-bubble-toggles","value"),
     Input("bub-xscale",        "value"),
     Input("bub-yscale",        "value"),
-    Input("bub-xrange-commit", "data"),   # debounced (100ms)
-    Input("bub-yrange-commit", "data"),   # debounced (100ms)
+    Input("bub-xrange",        "value"),
+    Input("bub-yrange",        "value"),
     State("bub-n-future",      "value"),
     Input("bub-ptsize",        "value"),
     Input("bub-ptalpha",       "value"),
@@ -144,11 +144,6 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     State("scan-active-rows",  "data"),
     State("scan-q",            "value"),
     State("bub-sigma-mode",    "value"),
-    # Fallback States for slider-commit Inputs (used on initial render
-    # when -commit data is still None). Keep these at the end of the
-    # States block so argument order matches the function signature.
-    State("bub-xrange",        "value"),
-    State("bub-yrange",        "value"),
     prevent_initial_call=True,
 )
 def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
@@ -170,19 +165,13 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   _hybppl_commit=None, _eppl_commit=None, _bm_commit=None,
                   cta_active=None,
                   qs_mode=None, scan_active=None, scan_q_val=None,
-                  sigma_mode=None,
-                  xrange_fallback=None, yrange_fallback=None):
+                  sigma_mode=None):
     """Bubble + QR overlay chart callback -- coerce inputs, build figure."""
     # Custom Time Axis router: if cta-active is on, the Custom Time Axis
     # callback owns bubble-graph.figure. Refuse to overwrite.
     if cta_active and "yes" in cta_active:
         from dash.exceptions import PreventUpdate
         raise PreventUpdate
-    # Debounced slider-commit: use commit value if present, else fall back
-    # to the slider's current .value State (for initial render before the
-    # debouncer has fired).
-    if xrange is None: xrange = xrange_fallback
-    if yrange is None: yrange = yrange_fallback
     toggles        = toggles or []
     bubble_toggles = bubble_toggles or []
     yrange         = yrange or [0, 7]
@@ -388,7 +377,7 @@ _app_ctx.app.clientside_callback(
     Input("bubble-first-render", "data"),
     Input("bub-qs", "value"),
     Input("bub-qs-adv", "value"),
-    Input("bub-xrange-commit", "data"),   # debounced (100ms)
+    Input("bub-xrange", "value"),
     Input("bub-toggles", "value"),
     Input("bub-xscale", "value"),
     Input("bub-yscale", "value"),
@@ -397,16 +386,14 @@ _app_ctx.app.clientside_callback(
     Input("bub-cagr-fwd-yrs", "value"),
     Input("palette-store", "data"),
     State("bub-qs-mode", "value"),
-    State("bub-xrange", "value"),   # fallback for initial render
     prevent_initial_call=True,
 )
 def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
                     toggles, xscale, yscale, model_show, legend_pos,
-                    fwd_yrs, palette_key, qs_mode, xrange_fallback=None):
+                    fwd_yrs, palette_key, qs_mode):
 
     from utils import _get_cagr_fig
 
-    if xrange is None: xrange = xrange_fallback
     toggles = toggles or []
     if "advanced" in (qs_mode or []):
         effective_qs = adv_qs or []
@@ -438,7 +425,7 @@ def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
 @callback(
     Output("bub-resid-graph", "figure"),
     Input("bub-view-mode", "data"),
-    Input("bub-xrange-commit", "data"),   # debounced (100ms)
+    Input("bub-xrange", "value"),
     Input("bub-toggles", "value"),
     Input("bub-xscale", "value"),
     Input("bub-model-show", "value"),
@@ -455,16 +442,14 @@ def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
     Input("lppl-weighted",          "value"),
     Input("lppl-no-13",             "value"),
     State("user-model-store", "data"),
-    State("bub-xrange", "value"),   # fallback for initial render
     prevent_initial_call=True,
 )
 def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
                      bub_toggles, n_future, _bm_commit, legend_pos, palette_key,
                      decomp_model, decomp_components,
                      lppl_n_freqs, lppl_weighted, lppl_no_13,
-                     user_model_store, xrange_fallback=None):
+                     user_model_store):
     from utils import _get_resid_fig
-    if xrange is None: xrange = xrange_fallback
     toggles = toggles or []
     xrange = xrange or [2010, 2033]
     p = dict(
@@ -578,7 +563,7 @@ _app_ctx.app.clientside_callback(
     }
     """,
     Output("bub-yrange", "value", allow_duplicate=True),
-    Input("bub-xrange-commit",  "data"),   # debounced (100ms)
+    Input("bub-xrange",  "value"),
     Input("bub-auto-y",  "value"),
     Input("bub-yscale",  "value"),
     Input("bub-model-show", "value"),
@@ -627,9 +612,9 @@ def update_yrange_slider_limits(model_show):
     Output("mc-save-tab", "data", allow_duplicate=True),
     Input("heatmap-first-render", "data"),
     Input("hm-active-model", "data"),
-    Input("hm-entry-yr-commit",   "data"),   # debounced (100ms)
+    Input("hm-entry-yr",  "value"),
     Input("hm-entry-q",   "value"),
-    Input("hm-exit-range-commit", "data"),   # debounced (100ms)
+    Input("hm-exit-range","value"),
     Input("hm-exit-qs",   "value"),
     Input("hm-mode",      "value"),
     Input("hm-b1",        "value"),
@@ -680,9 +665,6 @@ def update_yrange_slider_limits(model_show):
     State("eppl-cfg-a-log2d", "value"),
     State("eppl-cfg-a-cal1d", "value"),
     State("eppl-cfg-a-cal2d", "value"),
-    # Fallback States for slider-commit Inputs (initial render, commit=None)
-    State("hm-entry-yr",   "value"),
-    State("hm-exit-range", "value"),
     prevent_initial_call=True,
 )
 def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_qs, mode,
@@ -697,12 +679,7 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
                    hyb_a_cal1d=None, hyb_a_cal2d=None,
                    ep_a_nlog=None, ep_a_ncal=None,
                    ep_a_log1d=None, ep_a_log2d=None,
-                   ep_a_cal1d=None, ep_a_cal2d=None,
-                   entry_yr_fallback=None, exit_range_fallback=None):
-    # Debounced slider-commit fallback: on initial render, -commit is None;
-    # use the slider's live .value State instead.
-    if entry_yr is None:   entry_yr   = entry_yr_fallback
-    if exit_range is None: exit_range = exit_range_fallback
+                   ep_a_cal1d=None, ep_a_cal2d=None):
     exit_range = exit_range or [entry_yr or 2025, (entry_yr or 2025) + 10]
     toggles    = toggles or []
     yr_now = pd.Timestamp.today().year
@@ -839,7 +816,7 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     Input("dca-amount",   "value"),
     Input("dca-freq",     "value"),
     Input("dca-infl",     "value"),
-    Input("dca-yr-range-commit", "data"),   # debounced (100ms)
+    Input("dca-yr-range", "value"),
     Input("dca-disp",     "value"),
     Input("dca-toggles",  "value"),
     Input("dca-legend-pos","value"),
@@ -908,7 +885,6 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     State("palette-store",      "data"),
     State("dca-qs-mode",        "value"),
     State("user-model-store",   "data"),
-    State("dca-yr-range",       "value"),   # fallback for initial render
     prevent_initial_call=True,
 )
 def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range, disp, toggles, legend_pos, sel_qs, adv_qs,
@@ -928,9 +904,8 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
                mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
-               qs_mode=None, user_model_store=None, yr_range_fallback=None):
+               qs_mode=None, user_model_store=None):
     toggles    = toggles or []
-    if yr_range is None: yr_range = yr_range_fallback
     yr_range   = yr_range or [2024, 2034]
     live_price = _cf(price_data, 0)
     _advanced  = "advanced" in (qs_mode or [])
@@ -1021,7 +996,7 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     Input("ret-use-lots", "value"),
     Input("ret-wd",       "value"),
     Input("ret-freq",     "value"),
-    Input("ret-yr-range-commit", "data"),   # debounced (100ms)
+    Input("ret-yr-range", "value"),
     Input("ret-infl",     "value"),
     Input("ret-disp",     "value"),
     Input("ret-toggles",  "value"),
@@ -1081,7 +1056,6 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     State("palette-store",      "data"),
     State("ret-qs-mode",        "value"),
     State("user-model-store",   "data"),
-    State("ret-yr-range",       "value"),   # fallback for initial render
     prevent_initial_call=True,
 )
 def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, adv_qs,
@@ -1099,9 +1073,8 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
                   mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                   mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                   price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
-                  qs_mode=None, user_model_store=None, yr_range_fallback=None):
+                  qs_mode=None, user_model_store=None):
     toggles  = toggles or []
-    if yr_range is None: yr_range = yr_range_fallback
     yr_range = yr_range or [RETIRE["start_yr"], RETIRE["end_yr"]]
     _advanced = "advanced" in (qs_mode or [])
     _effective_qs = (adv_qs or []) if _advanced else (
@@ -1184,7 +1157,7 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     Input("supercharge-first-render", "data"),
     Input("sc-stack",        "value"),
     Input("sc-use-lots",     "value"),
-    Input("sc-start-yr-commit", "data"),   # debounced (100ms)
+    Input("sc-start-yr",     "value"),
     Input("sc-d0",           "value"),
     Input("sc-d1",           "value"),
     Input("sc-d2",           "value"),
@@ -1257,7 +1230,6 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     State("sc-qs-mode",        "value"),
     State("viewport-width",    "data"),
     State("user-model-store",  "data"),
-    State("sc-start-yr",       "value"),   # fallback for initial render
     prevent_initial_call=True,
 )
 def update_supercharge(_first_render, stack, use_lots, start_yr,
@@ -1279,9 +1251,7 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
                        mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                        mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                        price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
-                       qs_mode=None, viewport_width=None, user_model_store=None,
-                       start_yr_fallback=None):
-    if start_yr is None: start_yr = start_yr_fallback
+                       qs_mode=None, viewport_width=None, user_model_store=None):
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
     toggles = toggles or []
     yr_now  = pd.Timestamp.today().year

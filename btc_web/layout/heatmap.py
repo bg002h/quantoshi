@@ -149,10 +149,10 @@ def _heatmap_controls():
                            inputStyle=_CB_MARGIN),
             _lbl("Break 1 (CAGR %, integer)"),
             dbc.Input(id="hm-b1", type="number", value=HEATMAP["b1"],
-                      step=1, size="sm", debounce=True),
+                      step=1, size="sm"),
             _lbl("Break 2 (CAGR %, integer)"),
             dbc.Input(id="hm-b2", type="number", value=HEATMAP["b2"],
-                      step=1, size="sm", debounce=True),
+                      step=1, size="sm"),
             _lbl("Color palette"),
             dcc.Dropdown(id="hm-palette",
                 options=[

@@ -590,10 +590,10 @@ class TestAllTabsLazyRelay:
     """Every chart tab has a per-tab lazy relay; no cross-tab leakage."""
 
     def test_all_lazy_tab_specs_present(self):
-        """_LAZY_TAB_SPECS must declare all 6 chart tabs."""
+        """_LAZY_TAB_SPECS must declare all 7 lazy chart tabs."""
         from callbacks.snapshot_cb import _LAZY_TAB_SPECS
         tab_ids = [t for t, _, _, _ in _LAZY_TAB_SPECS]
-        assert set(tab_ids) == {"bubble", "heatmap", "dca", "retire", "supercharge", "citadel"}
+        assert set(tab_ids) == {"bubble", "heatmap", "dca", "retire", "supercharge", "citadel", "leverage"}
 
     def test_no_cross_tab_leakage(self):
         """Each tab's lazy controls must not include controls from other tabs."""

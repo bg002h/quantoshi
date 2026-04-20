@@ -302,6 +302,7 @@ def _build_layout(initial_tab="bubble"):
     dcc.Store(id="snapshot-apply-retire",     storage_type="memory", data=None),
     dcc.Store(id="snapshot-apply-supercharge",storage_type="memory", data=None),
     dcc.Store(id="snapshot-apply-citadel",    storage_type="memory", data=None),
+    dcc.Store(id="snapshot-apply-leverage",   storage_type="memory", data=None),
     dcc.Store(id="ticker-mode-store", storage_type="local", data="usd"),
     dcc.Store(id="splash-ts-store", storage_type="local", data=None),
     dcc.Store(id="lots-store", storage_type="local", data=[]),

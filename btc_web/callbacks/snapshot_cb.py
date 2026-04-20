@@ -76,13 +76,10 @@ def restore_from_url(hash_str):
 #   retire     ret-               → snapshot-apply-retire     / retire-first-render
 #   supercharge sc-               → snapshot-apply-supercharge/ supercharge-first-render
 #   citadel    cp-                → snapshot-apply-citadel    / citadel-first-render
+#   leverage   lev-               → snapshot-apply-leverage   / leverage-first-render
 #
 # Global controls (main-tabs, palette-store, lppl-*, hybppl-*, eppl-*) remain
 # eager — they are present in every tab's layout from the first render.
-#
-# NOTE: lev-* (leverage tab) controls exist in _SNAPSHOT_CONTROLS for
-# link-compat but are NOT given a relay because the leverage tab is out of scope
-# for the lazy-relay feature; those components are mounted eagerly when present.
 
 _BUBBLE_LAZY_PREFIXES = ("bub-", "scan-", "cta-")
 
@@ -94,6 +91,7 @@ _LAZY_TAB_SPECS = [
     ("retire",      "snapshot-apply-retire",      "retire-first-render",      ("ret-",)),
     ("supercharge", "snapshot-apply-supercharge", "supercharge-first-render", ("sc-",)),
     ("citadel",     "snapshot-apply-citadel",     "citadel-first-render",     ("cp-",)),
+    ("leverage",    "snapshot-apply-leverage",    "leverage-first-render",    ("lev-",)),
 ]
 
 # Build per-tab lazy control lists and the combined set of all lazy prefixes.

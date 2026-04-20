@@ -32,62 +32,45 @@ os.environ.setdefault("TESTING", "1")
 # Each entry: "component-id": "reason — remove when fixed"
 # To regenerate: run this test with `--collect-orphans` (see bottom).
 _KNOWN_ORPHANS: dict[str, str] = {
-    # Display-Models consolidation (2026-04-11) removed per-tab inline
-    # summary widgets and gear icons, but leftover callbacks still
-    # reference them. Harmless (the refs never fire) but bloat
-    # /_dash-dependencies; remove when the callbacks are cleaned up.
-    "bub-bm-gear":              "defunct gear Input — DM consolidation",
-    "bub-lppl-gear":             "defunct gear Input — DM consolidation",
-    "bub-hybppl-gear":           "defunct gear Input — DM consolidation",
-    "bub-eppl-gear":             "defunct gear Input — DM consolidation",
-    "bub-lppl-summary-inline":   "defunct summary Output — DM consolidation",
-    "bub-hybppl-summary-inline": "defunct summary Output — DM consolidation",
-    "bub-eppl-summary-inline":   "defunct summary Output — DM consolidation",
-    "dca-bm-gear":               "defunct gear Input — DM consolidation",
-    "dca-lppl-gear":             "defunct gear Input — DM consolidation",
-    "dca-hybppl-gear":           "defunct gear Input — DM consolidation",
-    "dca-eppl-gear":             "defunct gear Input — DM consolidation",
-    "dca-lppl-summary-inline":   "defunct summary Output — DM consolidation",
-    "dca-hybppl-summary-inline": "defunct summary Output — DM consolidation",
-    "dca-eppl-summary-inline":   "defunct summary Output — DM consolidation",
-    "ret-bm-gear":               "defunct gear Input — DM consolidation",
-    "ret-lppl-gear":             "defunct gear Input — DM consolidation",
-    "ret-hybppl-gear":           "defunct gear Input — DM consolidation",
-    "ret-eppl-gear":             "defunct gear Input — DM consolidation",
-    "ret-lppl-summary-inline":   "defunct summary Output — DM consolidation",
-    "ret-hybppl-summary-inline": "defunct summary Output — DM consolidation",
-    "ret-eppl-summary-inline":   "defunct summary Output — DM consolidation",
-    "sc-bm-gear":                "defunct gear Input — DM consolidation",
-    "sc-lppl-gear":              "defunct gear Input — DM consolidation",
-    "sc-hybppl-gear":            "defunct gear Input — DM consolidation",
-    "sc-eppl-gear":              "defunct gear Input — DM consolidation",
-    "sc-lppl-summary-inline":    "defunct summary Output — DM consolidation",
-    "sc-hybppl-summary-inline":  "defunct summary Output — DM consolidation",
-    "sc-eppl-summary-inline":    "defunct summary Output — DM consolidation",
-    # Snapshot-lots restore button — lives inside a banner that only
-    # renders when a shared link injects snapshot-lots; layout walker
-    # sees the empty placeholder without the button.
-    "restore-lots-btn":          "banner button — only rendered when snapshot-lots is populated",
+    # Restore button lives inside a banner that only renders when a
+    # shared link injects snapshot-lots; static layout walk misses it.
+    "restore-lots-btn": "banner button — only rendered when snapshot-lots is populated",
 }
 
 
 def _walk_ids(node, out):
-    """Recursively collect every component id from a Dash layout tree."""
+    """Recursively collect every component id from a Dash layout tree.
+
+    Descends into `children` AND into any other component-valued prop
+    (e.g. `dcc.Checklist.options[i].label` is a common carrier of nested
+    Dash components).
+    """
     if node is None:
         return
     if isinstance(node, (list, tuple)):
         for x in node:
             _walk_ids(x, out)
         return
+    if isinstance(node, dict):
+        for v in node.values():
+            _walk_ids(v, out)
+        return
     cid = getattr(node, "id", None)
     if isinstance(cid, str):
         out.add(cid)
-    elif isinstance(cid, dict):
-        # pattern-matching id — skip
-        pass
-    children = getattr(node, "children", None)
-    if children is not None:
-        _walk_ids(children, out)
+    # Walk every prop that might carry components. Using _prop_names
+    # (Dash components expose this) keeps us O(declared props) instead
+    # of iterating __dict__.
+    props = getattr(node, "_prop_names", None)
+    if props:
+        for p in props:
+            if p == "id":
+                continue
+            try:
+                val = getattr(node, p)
+            except AttributeError:
+                continue
+            _walk_ids(val, out)
 
 
 def _collect_layout_ids() -> set[str]:

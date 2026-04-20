@@ -502,6 +502,32 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call=True,
 )
 
+# ══════════════════════════════════════════════════════════════════════════════
+# Stack-sync: when "Use Stack Tracker lots" is checked (or lots change while
+# it's checked), copy the sum of lot BTC into the Stack (BTC) input. This is
+# a pragmatic workaround while lot-marker rendering in the bubble figure is
+# being investigated -- the chart at least reflects the correct stack size.
+# ══════════════════════════════════════════════════════════════════════════════
+_app_ctx.app.clientside_callback(
+    """
+    function(use_lots, lots) {
+        var NU = window.dash_clientside.no_update;
+        if (!use_lots || use_lots.indexOf('yes') < 0) return [NU, NU];
+        if (!lots || !lots.length) return [NU, NU];
+        var total = 0;
+        for (var i = 0; i < lots.length; i++) {
+            total += parseFloat(lots[i].btc || 0);
+        }
+        return [Math.round(total * 1e8) / 1e8, ['yes']];
+    }
+    """,
+    Output("bub-stack", "value", allow_duplicate=True),
+    Output("bub-show-stack", "value", allow_duplicate=True),
+    Input("bub-use-lots", "value"),
+    Input("effective-lots", "data"),
+    prevent_initial_call=True,
+)
+
 # ── Shared helper: bump the active chart tab's first-render counter ────
 # Invoked by palette-change, lots-write, and snapshot-restore callbacks
 # as a chained clientside output. The input trigger is a tick counter

@@ -562,3 +562,24 @@ class TestBubbleLazyRelay:
         from snapshot import _SNAPSHOT_CONTROLS
         ids = {cid for cid, _ in _SNAPSHOT_CONTROLS}
         assert "bub-qs" in ids
+
+    def test_all_bubble_tab_controls_are_lazy(self):
+        """Every _TAB_CONTROLS['bubble'] ID in _SNAPSHOT_CONTROLS must be in _BUBBLE_LAZY_CONTROLS."""
+        from callbacks.routing import _TAB_CONTROLS
+        from callbacks.snapshot_cb import _BUBBLE_LAZY_CONTROLS, _EAGER_CONTROLS
+        from snapshot import _SNAPSHOT_CONTROLS
+
+        bubble_ids = _TAB_CONTROLS["bubble"]
+        snap_bubble_ids = {cid for cid, _ in _SNAPSHOT_CONTROLS if cid in bubble_ids}
+        lazy_ids = {cid for cid, _ in _BUBBLE_LAZY_CONTROLS}
+        eager_ids = {cid for cid, _ in _EAGER_CONTROLS}
+
+        leaked = snap_bubble_ids & eager_ids
+        assert leaked == set(), (
+            f"These bubble-tab controls are still in EAGER_CONTROLS (must be lazy): {leaked}"
+        )
+        missing = snap_bubble_ids - lazy_ids
+        assert missing == set(), (
+            f"These bubble-tab controls are in _SNAPSHOT_CONTROLS but not in "
+            f"_BUBBLE_LAZY_CONTROLS: {missing}"
+        )

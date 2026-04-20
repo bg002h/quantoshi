@@ -584,3 +584,102 @@ class TestBubbleLazyRelay:
             if cid.startswith(global_prefixes):
                 assert cid in eager_ids, f"{cid} must remain eager (global modal control)"
                 assert cid not in lazy_ids, f"{cid} must not be in bubble lazy"
+
+
+class TestAllTabsLazyRelay:
+    """Every chart tab has a per-tab lazy relay; no cross-tab leakage."""
+
+    def test_all_lazy_tab_specs_present(self):
+        """_LAZY_TAB_SPECS must declare all 6 chart tabs."""
+        from callbacks.snapshot_cb import _LAZY_TAB_SPECS
+        tab_ids = [t for t, _, _, _ in _LAZY_TAB_SPECS]
+        assert set(tab_ids) == {"bubble", "heatmap", "dca", "retire", "supercharge", "citadel"}
+
+    def test_no_cross_tab_leakage(self):
+        """Each tab's lazy controls must not include controls from other tabs."""
+        from callbacks.snapshot_cb import _LAZY_TAB_SPECS, _TAB_LAZY_CONTROLS
+        for tab_id, _, _, prefixes in _LAZY_TAB_SPECS:
+            for cid, _ in _TAB_LAZY_CONTROLS[tab_id]:
+                assert cid.startswith(prefixes), (
+                    f"{cid} is in {tab_id} lazy controls but does not match "
+                    f"expected prefixes {prefixes}")
+
+    def test_no_lazy_controls_appear_eager(self):
+        """No per-tab lazy control should appear in _EAGER_CONTROLS."""
+        from callbacks.snapshot_cb import _EAGER_CONTROLS, _ALL_LAZY_PREFIXES
+        eager_ids = {cid for cid, _ in _EAGER_CONTROLS}
+        for cid in eager_ids:
+            assert not cid.startswith(_ALL_LAZY_PREFIXES), (
+                f"{cid} is in _EAGER_CONTROLS but starts with a lazy prefix")
+
+    def test_every_hm_control_is_lazy(self):
+        """hm-* controls must be in heatmap lazy, not eager."""
+        from callbacks.snapshot_cb import _TAB_LAZY_CONTROLS, _EAGER_CONTROLS
+        from snapshot import _SNAPSHOT_CONTROLS
+        lazy_ids = {cid for cid, _ in _TAB_LAZY_CONTROLS["heatmap"]}
+        eager_ids = {cid for cid, _ in _EAGER_CONTROLS}
+        for cid, _ in _SNAPSHOT_CONTROLS:
+            if cid.startswith("hm-"):
+                assert cid in lazy_ids, f"{cid} should be heatmap-lazy"
+                assert cid not in eager_ids, f"{cid} must not be eager"
+
+    def test_every_dca_control_is_lazy(self):
+        """dca-* controls must be in dca lazy, not eager."""
+        from callbacks.snapshot_cb import _TAB_LAZY_CONTROLS, _EAGER_CONTROLS
+        from snapshot import _SNAPSHOT_CONTROLS
+        lazy_ids = {cid for cid, _ in _TAB_LAZY_CONTROLS["dca"]}
+        eager_ids = {cid for cid, _ in _EAGER_CONTROLS}
+        for cid, _ in _SNAPSHOT_CONTROLS:
+            if cid.startswith("dca-"):
+                assert cid in lazy_ids, f"{cid} should be dca-lazy"
+                assert cid not in eager_ids, f"{cid} must not be eager"
+
+    def test_every_ret_control_is_lazy(self):
+        """ret-* controls must be in retire lazy, not eager."""
+        from callbacks.snapshot_cb import _TAB_LAZY_CONTROLS, _EAGER_CONTROLS
+        from snapshot import _SNAPSHOT_CONTROLS
+        lazy_ids = {cid for cid, _ in _TAB_LAZY_CONTROLS["retire"]}
+        eager_ids = {cid for cid, _ in _EAGER_CONTROLS}
+        for cid, _ in _SNAPSHOT_CONTROLS:
+            if cid.startswith("ret-"):
+                assert cid in lazy_ids, f"{cid} should be retire-lazy"
+                assert cid not in eager_ids, f"{cid} must not be eager"
+
+    def test_every_sc_control_is_lazy(self):
+        """sc-* controls must be in supercharge lazy, not eager."""
+        from callbacks.snapshot_cb import _TAB_LAZY_CONTROLS, _EAGER_CONTROLS
+        from snapshot import _SNAPSHOT_CONTROLS
+        lazy_ids = {cid for cid, _ in _TAB_LAZY_CONTROLS["supercharge"]}
+        eager_ids = {cid for cid, _ in _EAGER_CONTROLS}
+        for cid, _ in _SNAPSHOT_CONTROLS:
+            if cid.startswith("sc-"):
+                assert cid in lazy_ids, f"{cid} should be supercharge-lazy"
+                assert cid not in eager_ids, f"{cid} must not be eager"
+
+    def test_every_cp_control_is_lazy(self):
+        """cp-* controls must be in citadel lazy, not eager."""
+        from callbacks.snapshot_cb import _TAB_LAZY_CONTROLS, _EAGER_CONTROLS
+        from snapshot import _SNAPSHOT_CONTROLS
+        lazy_ids = {cid for cid, _ in _TAB_LAZY_CONTROLS["citadel"]}
+        eager_ids = {cid for cid, _ in _EAGER_CONTROLS}
+        for cid, _ in _SNAPSHOT_CONTROLS:
+            if cid.startswith("cp-"):
+                assert cid in lazy_ids, f"{cid} should be citadel-lazy"
+                assert cid not in eager_ids, f"{cid} must not be eager"
+
+    def test_relay_store_ids_in_lazy_tab_specs(self):
+        """All relay store ids must follow the snapshot-apply-{tab} pattern."""
+        from callbacks.snapshot_cb import _LAZY_TAB_SPECS
+        for tab_id, relay_id, fr_id, _ in _LAZY_TAB_SPECS:
+            assert relay_id == f"snapshot-apply-{tab_id}", (
+                f"Relay store id mismatch: expected snapshot-apply-{tab_id}, got {relay_id}")
+
+    def test_apply_snapshot_output_count(self):
+        """apply_snapshot must emit eager + lots + 6 relay stores."""
+        from callbacks.snapshot_cb import _EAGER_CONTROLS, _N_RELAY_STORES
+        from callbacks.snapshot_cb import apply_snapshot
+        from dash import no_update
+        result = apply_snapshot(None)
+        expected_len = len(_EAGER_CONTROLS) + 1 + _N_RELAY_STORES
+        assert len(result) == expected_len
+        assert all(v is no_update for v in result)

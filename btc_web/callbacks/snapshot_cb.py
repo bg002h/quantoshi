@@ -63,54 +63,116 @@ def restore_from_url(hash_str):
     return state, hash_str
 
 
-# Split _SNAPSHOT_CONTROLS into eager (mounted at page load) vs lazy-bubble
-# (live inside bubble-lazy, only mounted when user visits /1 or the bubble
-# tab is the initial_tab). A share link to /2-/9#q3:... would otherwise try
-# to write bub-*, scan-*, cta-* components that don't exist in the DOM.
+# Split _SNAPSHOT_CONTROLS into eager (mounted at page load) vs per-tab lazy
+# sets (components that live inside a lazy-loaded tab placeholder and don't
+# exist in the DOM until the user first visits that tab).  A share link to
+# /2-/9#q3:... would otherwise try to write components that don't exist yet,
+# generating "nonexistent object" Dash errors.
+#
+# Tab-prefixes → relay store → first-render trigger:
+#   bubble     bub-  scan-  cta-  → snapshot-apply-bubble     / bubble-first-render
+#   heatmap    hm-                → snapshot-apply-heatmap    / heatmap-first-render
+#   dca        dca-               → snapshot-apply-dca        / dca-first-render
+#   retire     ret-               → snapshot-apply-retire     / retire-first-render
+#   supercharge sc-               → snapshot-apply-supercharge/ supercharge-first-render
+#   citadel    cp-                → snapshot-apply-citadel    / citadel-first-render
+#
+# Global controls (main-tabs, palette-store, lppl-*, hybppl-*, eppl-*) remain
+# eager — they are present in every tab's layout from the first render.
+#
+# NOTE: lev-* (leverage tab) controls exist in _SNAPSHOT_CONTROLS for
+# link-compat but are NOT given a relay because the leverage tab is out of scope
+# for the lazy-relay feature; those components are mounted eagerly when present.
+
 _BUBBLE_LAZY_PREFIXES = ("bub-", "scan-", "cta-")
-_BUBBLE_LAZY_CONTROLS = [(cid, prop) for cid, prop in _SNAPSHOT_CONTROLS
-                         if cid.startswith(_BUBBLE_LAZY_PREFIXES)]
+
+# Ordered list of (tab_id, relay_store_id, first_render_id, prefix_tuple)
+_LAZY_TAB_SPECS = [
+    ("bubble",      "snapshot-apply-bubble",      "bubble-first-render",      ("bub-", "scan-", "cta-")),
+    ("heatmap",     "snapshot-apply-heatmap",     "heatmap-first-render",     ("hm-",)),
+    ("dca",         "snapshot-apply-dca",         "dca-first-render",         ("dca-",)),
+    ("retire",      "snapshot-apply-retire",      "retire-first-render",      ("ret-",)),
+    ("supercharge", "snapshot-apply-supercharge", "supercharge-first-render", ("sc-",)),
+    ("citadel",     "snapshot-apply-citadel",     "citadel-first-render",     ("cp-",)),
+]
+
+# Build per-tab lazy control lists and the combined set of all lazy prefixes.
+_ALL_LAZY_PREFIXES: tuple[str, ...] = tuple(
+    p for _, _, _, prefixes in _LAZY_TAB_SPECS for p in prefixes
+)
+
+_TAB_LAZY_CONTROLS: dict[str, list[tuple[str, str]]] = {}
+for _tab_id, _relay, _fr, _prefixes in _LAZY_TAB_SPECS:
+    _TAB_LAZY_CONTROLS[_tab_id] = [
+        (cid, prop) for cid, prop in _SNAPSHOT_CONTROLS
+        if cid.startswith(_prefixes)
+    ]
+
+# Back-compat alias used by tests
+_BUBBLE_LAZY_CONTROLS = _TAB_LAZY_CONTROLS["bubble"]
+
 _EAGER_CONTROLS = [(cid, prop) for cid, prop in _SNAPSHOT_CONTROLS
-                   if not cid.startswith(_BUBBLE_LAZY_PREFIXES)]
+                   if not cid.startswith(_ALL_LAZY_PREFIXES)]
+
+# Number of relay-store outputs appended after the eager controls + lots:
+# 1 per lazy tab (bubble + 5 others)
+_N_RELAY_STORES = len(_LAZY_TAB_SPECS)
 
 
 @callback(
     *[Output(cid, prop, allow_duplicate=True) for cid, prop in _EAGER_CONTROLS],
     Output("snapshot-lots", "data", allow_duplicate=True),
-    Output("snapshot-apply-bubble", "data", allow_duplicate=True),
+    *[Output(relay, "data", allow_duplicate=True)
+      for _, relay, _, _ in _LAZY_TAB_SPECS],
     Input("snapshot-state-store", "data"),
     prevent_initial_call=True,
 )
 def apply_snapshot(state):
-    """Apply decoded snapshot state to eager (non-bubble) controls; route
-    bubble-lazy controls through snapshot-apply-bubble relay store so they
-    land only when the bubble tab is mounted."""
-    n_outs = len(_EAGER_CONTROLS) + 2
+    """Apply decoded snapshot state to eager controls; route each tab's lazy
+    controls through their per-tab relay store so they land only when the
+    tab is mounted."""
+    n_outs = len(_EAGER_CONTROLS) + 1 + _N_RELAY_STORES
     if not state:
         return [no_update] * n_outs
     results = [state.get(f"{cid}:{prop}", no_update)
                for cid, prop in _EAGER_CONTROLS]
     results.append(state.get("_lots", None))  # snapshot-lots
-    # Bubble relay payload: dict of {cid:prop: value} for ids the stage-2
-    # callback will write. Pass the full state dict so the relay can use
-    # the same "cid:prop" lookup pattern.
-    results.append(state)
+    # Each relay gets the full state dict so the stage-2 callback can do its
+    # own {cid:prop} lookups without any additional data transformation.
+    for _ in _LAZY_TAB_SPECS:
+        results.append(state)
     return results
 
 
-@callback(
-    *[Output(cid, prop, allow_duplicate=True) for cid, prop in _BUBBLE_LAZY_CONTROLS],
-    Input("bubble-first-render", "data"),
-    State("snapshot-apply-bubble", "data"),
-    prevent_initial_call=True,
-)
-def apply_snapshot_bubble(_trigger, state):
-    """Stage-2: apply bubble-lazy snapshot values once bubble tab is mounted."""
-    n_outs = len(_BUBBLE_LAZY_CONTROLS)
-    if not state:
-        return [no_update] * n_outs
-    return [state.get(f"{cid}:{prop}", no_update)
-            for cid, prop in _BUBBLE_LAZY_CONTROLS]
+def _make_lazy_relay_callback(tab_id, relay_store_id, first_render_id, lazy_controls):
+    """Factory: register one stage-2 callback that writes lazy controls for
+    a single tab when its first-render trigger fires."""
+    @callback(
+        *[Output(cid, prop, allow_duplicate=True) for cid, prop in lazy_controls],
+        Input(first_render_id, "data"),
+        State(relay_store_id, "data"),
+        prevent_initial_call=True,
+    )
+    def _apply_lazy(_trigger, state, _tab=tab_id, _ctrls=lazy_controls):
+        if not state:
+            return [no_update] * len(_ctrls)
+        return [state.get(f"{cid}:{prop}", no_update) for cid, prop in _ctrls]
+
+    # Give each generated function a unique name so Dash's deduplication
+    # logic treats them as distinct callbacks.
+    _apply_lazy.__name__ = f"apply_snapshot_{tab_id}"
+    return _apply_lazy
+
+
+# Register stage-2 relay callbacks for every lazy tab.
+for _tab_id, _relay, _fr, _ in _LAZY_TAB_SPECS:
+    _ctrls = _TAB_LAZY_CONTROLS[_tab_id]
+    globals()[f"apply_snapshot_{_tab_id}"] = _make_lazy_relay_callback(
+        _tab_id, _relay, _fr, _ctrls
+    )
+
+# Back-compat alias: tests import apply_snapshot_bubble by name.
+apply_snapshot_bubble = globals()["apply_snapshot_bubble"]  # noqa: F821
 
 
 @callback(

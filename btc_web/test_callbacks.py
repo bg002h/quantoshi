@@ -1501,15 +1501,16 @@ class TestRestoreFromUrl:
         assert isinstance(decoded, dict)
         assert decoded["main-tabs:active_tab"] == "bubble"
         # Apply to controls. apply_snapshot now writes only _EAGER_CONTROLS
-        # (non-bubble) + snapshot-lots + snapshot-apply-bubble relay.
-        from callbacks.snapshot_cb import _EAGER_CONTROLS
+        # + snapshot-lots + one relay store per lazy tab (6 tabs total).
+        from callbacks.snapshot_cb import _EAGER_CONTROLS, _N_RELAY_STORES
         result = apply_snapshot(decoded)
-        assert len(result) == len(_EAGER_CONTROLS) + 2
+        assert len(result) == len(_EAGER_CONTROLS) + 1 + _N_RELAY_STORES
         main_tab_idx = next(i for i, (cid, _) in enumerate(_EAGER_CONTROLS)
                            if cid == "main-tabs")
         assert result[main_tab_idx] == "bubble"
-        # The bubble-lazy relay payload (last output) is the full state dict.
-        assert result[-1] == decoded
+        # Every relay payload is the full state dict.
+        for relay_val in result[len(_EAGER_CONTROLS) + 1:]:
+            assert relay_val == decoded
 
 
 

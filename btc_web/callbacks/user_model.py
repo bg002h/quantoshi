@@ -94,6 +94,10 @@ _app_ctx.app.clientside_callback(
 
 _app_ctx.app.clientside_callback(
     """function(n) {
+        if (!n) {
+            var NU = window.dash_clientside.no_update;
+            return [NU, NU, NU, NU, NU, NU, NU, NU, NU];
+        }
         return [null, null, null, null, null,
                 '\\u2014', '\\u2014', '\\u2014', '\\u2014'];
     }""",
@@ -142,7 +146,8 @@ _app_ctx.app.clientside_callback(
 def auto_draw(p1y, p1p, p2y, p2p):
     """Auto-construct UserModel when both P1 and P2 are set."""
     if not all([p1y, p1p, p2y, p2p]):
-        return no_update
+        from dash.exceptions import PreventUpdate
+        raise PreventUpdate
     M = _app_ctx.M
     t1 = float(p1y) - _GENESIS_YR
     t2 = float(p2y) - _GENESIS_YR

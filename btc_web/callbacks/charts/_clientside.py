@@ -444,10 +444,21 @@ for _es in ("a", "b"):
 # re-render. prevent_initial_call=True skips the initial False-on-load so
 # the counter stays at 0 until an actual close happens.
 # ══════════════════════════════════════════════════════════════════════════════
+# True edge detector: only bump when modal transitions true → false.
+# `prevent_initial_call=True` alone is not sufficient — during hydration
+# Dash sometimes fires the callback with `is_open === false` before the
+# user has ever opened the modal, which caused a spurious trg=
+# *-commit-trigger on initial update_bubble. Requiring a prior `true`
+# via a window flag eliminates the false edge.
 _app_ctx.app.clientside_callback(
     """
     function(is_open, cur) {
-        if (is_open === false) return (cur || 0) + 1;
+        if (is_open === true) { window._hybpplModalSeenOpen = true;
+            return window.dash_clientside.no_update; }
+        if (is_open === false && window._hybpplModalSeenOpen) {
+            window._hybpplModalSeenOpen = false;
+            return (cur || 0) + 1;
+        }
         return window.dash_clientside.no_update;
     }
     """,
@@ -459,7 +470,12 @@ _app_ctx.app.clientside_callback(
 _app_ctx.app.clientside_callback(
     """
     function(is_open, cur) {
-        if (is_open === false) return (cur || 0) + 1;
+        if (is_open === true) { window._epplModalSeenOpen = true;
+            return window.dash_clientside.no_update; }
+        if (is_open === false && window._epplModalSeenOpen) {
+            window._epplModalSeenOpen = false;
+            return (cur || 0) + 1;
+        }
         return window.dash_clientside.no_update;
     }
     """,
@@ -468,13 +484,15 @@ _app_ctx.app.clientside_callback(
     State("eppl-commit-trigger", "data"),
     prevent_initial_call=True,
 )
-# Same pattern for the Bubble Model config modal (bub-bubble-toggles +
-# bub-n-future are State on the chart callbacks; this bumps their commit
-# trigger once when the modal closes so all mid-edit changes batch).
 _app_ctx.app.clientside_callback(
     """
     function(is_open, cur) {
-        if (is_open === false) return (cur || 0) + 1;
+        if (is_open === true) { window._bmModalSeenOpen = true;
+            return window.dash_clientside.no_update; }
+        if (is_open === false && window._bmModalSeenOpen) {
+            window._bmModalSeenOpen = false;
+            return (cur || 0) + 1;
+        }
         return window.dash_clientside.no_update;
     }
     """,

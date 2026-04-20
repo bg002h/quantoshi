@@ -167,10 +167,17 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   qs_mode=None, scan_active=None, scan_q_val=None,
                   sigma_mode=None):
     """Bubble + QR overlay chart callback -- coerce inputs, build figure."""
+    from dash.exceptions import PreventUpdate
+    _trg = getattr(ctx, 'triggered_id', None)
+    # Spurious hydration fires: Dash dispatches these Inputs on initial load
+    # despite prevent_initial_call=True. Guard them so the figure isn't rebuilt.
+    if _trg == "user-model-store" and user_model_store is None:
+        raise PreventUpdate
+    if _trg == "effective-lots" and not (use_lots and "yes" in (use_lots or [])):
+        raise PreventUpdate
     # Custom Time Axis router: if cta-active is on, the Custom Time Axis
     # callback owns bubble-graph.figure. Refuse to overwrite.
     if cta_active and "yes" in cta_active:
-        from dash.exceptions import PreventUpdate
         raise PreventUpdate
     toggles        = toggles or []
     bubble_toggles = bubble_toggles or []

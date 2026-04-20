@@ -28,9 +28,6 @@ _MODEL_LABELS = {
     Output("price-ticker",        "children"),
     Output("price-ticker-mobile", "children"),
     Output("btc-price-store",     "data"),
-    Output("hm-entry-q",          "value", allow_duplicate=True),
-    Output("hm-mc-entry-q",       "value", allow_duplicate=True),
-    Output("dca-mc-entry-q",      "value", allow_duplicate=True),
     Output("price-sparkline",     "children"),
     Output("model-percentiles-store", "data"),
     Output("ticker-pct",          "children", allow_duplicate=True),
@@ -44,10 +41,15 @@ _MODEL_LABELS = {
     prevent_initial_call="initial_duplicate",
 )
 def update_price_ticker(_, mode, user_model_data):
+    # NOTE: this callback used to also write hm-entry-q, hm-mc-entry-q,
+    # dca-mc-entry-q. Those cross-tab Outputs errored on page load
+    # because the heatmap/dca tabs weren't yet mounted. Initial values
+    # are now seeded once at worker startup via _startup_heatmap_defaults
+    # and from layout defaults; they do not auto-refresh during a session.
     price = _fetch_btc_price()
     if price is None:
         return ("\u20bf \u2014", "\u20bf \u2014", no_update,
-                no_update, no_update, no_update, "",
+                "",
                 no_update, no_update, no_update, no_update, no_update, no_update)
 
     t = today_t(_app_ctx.M.genesis)
@@ -63,11 +65,6 @@ def update_price_ticker(_, mode, user_model_data):
             pcts[key] = round(p * 100) if p is not None else None
         except Exception:
             pcts[key] = None
-
-    # QR percentile for heatmap entry sync (always QR)
-    qr_pct = pcts.get("qr")
-    pct_val = round(qr_pct, 1) if qr_pct is not None else no_update
-    snapped_pct = max(10, min(90, round(qr_pct / 10) * 10)) if qr_pct is not None else no_update
 
     # Price text (without percentile — percentile is in separate span)
     if mode == "sats":
@@ -116,7 +113,7 @@ def update_price_ticker(_, mode, user_model_data):
     pct_style_d = {"color": pct_color}
     pct_style_m = {"color": pct_color}
 
-    return (txt, txt_m, price, pct_val, snapped_pct, snapped_pct, spark,
+    return (txt, txt_m, price, spark,
             model_data, pct_text, pct_style_d, pct_text, pct_style_m, 0)
 
 

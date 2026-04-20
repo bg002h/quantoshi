@@ -483,3 +483,38 @@ _app_ctx.app.clientside_callback(
     State("bm-commit-trigger", "data"),
     prevent_initial_call=True,
 )
+
+# ── Palette / lots bridge: bump active tab's first-render on global changes ──
+# palette-store and effective-lots are now State (not Input) in chart
+# callbacks, so we need this bridge to redraw the active tab when they change.
+_app_ctx.app.clientside_callback(
+    """
+    function(palette, lots, active,
+             bfr, hfr, dfr, rfr, sfr) {
+        var NU = window.dash_clientside.no_update;
+        var map = {
+            bubble: 0, heatmap: 1, dca: 2, retire: 3, supercharge: 4
+        };
+        var idx = map[active];
+        if (idx === undefined) return [NU, NU, NU, NU, NU];
+        var frs = [bfr, hfr, dfr, rfr, sfr];
+        var result = [NU, NU, NU, NU, NU];
+        result[idx] = (frs[idx] || 0) + 1;
+        return result;
+    }
+    """,
+    Output("bubble-first-render",     "data", allow_duplicate=True),
+    Output("heatmap-first-render",    "data", allow_duplicate=True),
+    Output("dca-first-render",        "data", allow_duplicate=True),
+    Output("retire-first-render",     "data", allow_duplicate=True),
+    Output("supercharge-first-render","data", allow_duplicate=True),
+    Input("palette-store",  "data"),
+    Input("effective-lots", "data"),
+    State("main-tabs",              "active_tab"),
+    State("bubble-first-render",    "data"),
+    State("heatmap-first-render",   "data"),
+    State("dca-first-render",       "data"),
+    State("retire-first-render",    "data"),
+    State("supercharge-first-render","data"),
+    prevent_initial_call=True,
+)

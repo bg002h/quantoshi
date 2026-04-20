@@ -50,35 +50,67 @@ def restore_from_url(hash_str):
     if not state:
         logger.warning("Snapshot decode failed for hash: %s\u2026", hash_str[:20])
         return no_update, no_update
+    # Legacy-link coercion: if this deployment has no resqr bundles, drop
+    # "resqr" sigma_mode back to "constant" so the radio + chart stay in sync.
+    # Done upstream (before apply_snapshot) so all consumers see the coerced
+    # value, including the lazy bubble relay.
+    if not getattr(_app_ctx, "_HAS_RESQR", False):
+        if state.get("bub-sigma-mode:value") == "resqr":
+            state = dict(state)
+            state["bub-sigma-mode:value"] = "constant"
     logger.info("Snapshot restored: %d controls, lots=%s",
                 sum(1 for k in state if k != "_lots"), "yes" if "_lots" in state else "no")
     return state, hash_str
 
 
+# Split _SNAPSHOT_CONTROLS into eager (mounted at page load) vs lazy-bubble
+# (live inside bubble-lazy, only mounted when user visits /1 or the bubble
+# tab is the initial_tab). A share link to /2-/9#q3:... would otherwise try
+# to write bub-*, scan-*, cta-* components that don't exist in the DOM.
+_BUBBLE_LAZY_PREFIXES = ("bub-", "scan-", "cta-")
+_BUBBLE_LAZY_CONTROLS = [(cid, prop) for cid, prop in _SNAPSHOT_CONTROLS
+                         if cid.startswith(_BUBBLE_LAZY_PREFIXES)]
+_EAGER_CONTROLS = [(cid, prop) for cid, prop in _SNAPSHOT_CONTROLS
+                   if not cid.startswith(_BUBBLE_LAZY_PREFIXES)]
+
+
 @callback(
-    *[Output(cid, prop, allow_duplicate=True) for cid, prop in _SNAPSHOT_CONTROLS],
+    *[Output(cid, prop, allow_duplicate=True) for cid, prop in _EAGER_CONTROLS],
     Output("snapshot-lots", "data", allow_duplicate=True),
+    Output("snapshot-apply-bubble", "data", allow_duplicate=True),
     Input("snapshot-state-store", "data"),
     prevent_initial_call=True,
 )
 def apply_snapshot(state):
-    """Apply decoded snapshot state to all controls."""
-    n_outs = len(_SNAPSHOT_CONTROLS) + 1
+    """Apply decoded snapshot state to eager (non-bubble) controls; route
+    bubble-lazy controls through snapshot-apply-bubble relay store so they
+    land only when the bubble tab is mounted."""
+    n_outs = len(_EAGER_CONTROLS) + 2
     if not state:
         return [no_update] * n_outs
     results = [state.get(f"{cid}:{prop}", no_update)
-               for cid, prop in _SNAPSHOT_CONTROLS]
-    # Legacy-link coercion: if this deployment has no resqr bundles, drop
-    # "resqr" sigma_mode back to "constant" so the radio + chart stay in sync.
-    import _app_ctx
-    if not getattr(_app_ctx, "_HAS_RESQR", False):
-        for i, (cid, prop) in enumerate(_SNAPSHOT_CONTROLS):
-            if cid == "bub-sigma-mode" and prop == "value":
-                if results[i] == "resqr":
-                    results[i] = "constant"
-                break
+               for cid, prop in _EAGER_CONTROLS]
     results.append(state.get("_lots", None))  # snapshot-lots
+    # Bubble relay payload: dict of {cid:prop: value} for ids the stage-2
+    # callback will write. Pass the full state dict so the relay can use
+    # the same "cid:prop" lookup pattern.
+    results.append(state)
     return results
+
+
+@callback(
+    *[Output(cid, prop, allow_duplicate=True) for cid, prop in _BUBBLE_LAZY_CONTROLS],
+    Input("bubble-first-render", "data"),
+    State("snapshot-apply-bubble", "data"),
+    prevent_initial_call=True,
+)
+def apply_snapshot_bubble(_trigger, state):
+    """Stage-2: apply bubble-lazy snapshot values once bubble tab is mounted."""
+    n_outs = len(_BUBBLE_LAZY_CONTROLS)
+    if not state:
+        return [no_update] * n_outs
+    return [state.get(f"{cid}:{prop}", no_update)
+            for cid, prop in _BUBBLE_LAZY_CONTROLS]
 
 
 @callback(

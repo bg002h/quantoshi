@@ -536,3 +536,51 @@ class TestSnapshotModelShow:
         assert "s2f" not in decoded["ret-model-show:value"]
 
 
+
+
+class TestBubbleLazyRelay:
+    """Bubble snapshot controls must route through lazy relay store."""
+
+    def test_bubble_controls_not_eager_outputs(self):
+        """bub-*, scan-*, cta-* must NOT be direct Outputs of apply_snapshot."""
+        from callbacks import snapshot_cb
+        for cid, prop in snapshot_cb._EAGER_CONTROLS:
+            assert not cid.startswith(("bub-", "scan-", "cta-")), (
+                f"{cid} should be routed through snapshot-apply-bubble, "
+                f"not written eagerly by apply_snapshot")
+
+    def test_bubble_lazy_controls_populated(self):
+        """Relay must include the bubble tab controls."""
+        from callbacks import snapshot_cb
+        ids = {cid for cid, _ in snapshot_cb._BUBBLE_LAZY_CONTROLS}
+        assert "bub-qs" in ids
+        assert any(c.startswith("scan-") for c in ids)
+        assert any(c.startswith("cta-") for c in ids)
+
+    def test_bubble_controls_still_in_snapshot_controls(self):
+        """Bubble controls must still be in _SNAPSHOT_CONTROLS for encode/decode."""
+        from snapshot import _SNAPSHOT_CONTROLS
+        ids = {cid for cid, _ in _SNAPSHOT_CONTROLS}
+        assert "bub-qs" in ids
+
+    def test_all_bubble_tab_controls_are_lazy(self):
+        """bub-*, scan-*, cta-* controls must be in _BUBBLE_LAZY_CONTROLS, not EAGER."""
+        from callbacks.snapshot_cb import (_BUBBLE_LAZY_CONTROLS, _EAGER_CONTROLS,
+                                           _BUBBLE_LAZY_PREFIXES)
+        from snapshot import _SNAPSHOT_CONTROLS
+
+        lazy_ids = {cid for cid, _ in _BUBBLE_LAZY_CONTROLS}
+        eager_ids = {cid for cid, _ in _EAGER_CONTROLS}
+
+        # Any control whose ID starts with a bubble prefix must NOT be in eager
+        for cid, prop in _SNAPSHOT_CONTROLS:
+            if cid.startswith(_BUBBLE_LAZY_PREFIXES):
+                assert cid in lazy_ids, f"{cid} should be lazy"
+                assert cid not in eager_ids, f"{cid} must not be eager"
+
+        # Shared global controls (lppl-*, hybppl-*, eppl-*) must remain eager
+        global_prefixes = ("lppl-", "hybppl-", "eppl-")
+        for cid, prop in _SNAPSHOT_CONTROLS:
+            if cid.startswith(global_prefixes):
+                assert cid in eager_ids, f"{cid} must remain eager (global modal control)"
+                assert cid not in lazy_ids, f"{cid} must not be in bubble lazy"

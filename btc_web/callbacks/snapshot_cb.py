@@ -67,11 +67,11 @@ def restore_from_url(hash_str):
 # (live inside bubble-lazy, only mounted when user visits /1 or the bubble
 # tab is the initial_tab). A share link to /2-/9#q3:... would otherwise try
 # to write bub-*, scan-*, cta-* components that don't exist in the DOM.
-_bubble_ids = _TAB_CONTROLS["bubble"]
+_BUBBLE_LAZY_PREFIXES = ("bub-", "scan-", "cta-")
 _BUBBLE_LAZY_CONTROLS = [(cid, prop) for cid, prop in _SNAPSHOT_CONTROLS
-                         if cid in _bubble_ids]
+                         if cid.startswith(_BUBBLE_LAZY_PREFIXES)]
 _EAGER_CONTROLS = [(cid, prop) for cid, prop in _SNAPSHOT_CONTROLS
-                   if cid not in _bubble_ids]
+                   if not cid.startswith(_BUBBLE_LAZY_PREFIXES)]
 
 
 @callback(
@@ -101,7 +101,7 @@ def apply_snapshot(state):
 @callback(
     *[Output(cid, prop, allow_duplicate=True) for cid, prop in _BUBBLE_LAZY_CONTROLS],
     Input("bubble-first-render", "data"),
-    Input("snapshot-apply-bubble", "data"),
+    State("snapshot-apply-bubble", "data"),
     prevent_initial_call=True,
 )
 def apply_snapshot_bubble(_trigger, state):

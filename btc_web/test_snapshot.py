@@ -564,22 +564,23 @@ class TestBubbleLazyRelay:
         assert "bub-qs" in ids
 
     def test_all_bubble_tab_controls_are_lazy(self):
-        """Every _TAB_CONTROLS['bubble'] ID in _SNAPSHOT_CONTROLS must be in _BUBBLE_LAZY_CONTROLS."""
-        from callbacks.routing import _TAB_CONTROLS
-        from callbacks.snapshot_cb import _BUBBLE_LAZY_CONTROLS, _EAGER_CONTROLS
+        """bub-*, scan-*, cta-* controls must be in _BUBBLE_LAZY_CONTROLS, not EAGER."""
+        from callbacks.snapshot_cb import (_BUBBLE_LAZY_CONTROLS, _EAGER_CONTROLS,
+                                           _BUBBLE_LAZY_PREFIXES)
         from snapshot import _SNAPSHOT_CONTROLS
 
-        bubble_ids = _TAB_CONTROLS["bubble"]
-        snap_bubble_ids = {cid for cid, _ in _SNAPSHOT_CONTROLS if cid in bubble_ids}
         lazy_ids = {cid for cid, _ in _BUBBLE_LAZY_CONTROLS}
         eager_ids = {cid for cid, _ in _EAGER_CONTROLS}
 
-        leaked = snap_bubble_ids & eager_ids
-        assert leaked == set(), (
-            f"These bubble-tab controls are still in EAGER_CONTROLS (must be lazy): {leaked}"
-        )
-        missing = snap_bubble_ids - lazy_ids
-        assert missing == set(), (
-            f"These bubble-tab controls are in _SNAPSHOT_CONTROLS but not in "
-            f"_BUBBLE_LAZY_CONTROLS: {missing}"
-        )
+        # Any control whose ID starts with a bubble prefix must NOT be in eager
+        for cid, prop in _SNAPSHOT_CONTROLS:
+            if cid.startswith(_BUBBLE_LAZY_PREFIXES):
+                assert cid in lazy_ids, f"{cid} should be lazy"
+                assert cid not in eager_ids, f"{cid} must not be eager"
+
+        # Shared global controls (lppl-*, hybppl-*, eppl-*) must remain eager
+        global_prefixes = ("lppl-", "hybppl-", "eppl-")
+        for cid, prop in _SNAPSHOT_CONTROLS:
+            if cid.startswith(global_prefixes):
+                assert cid in eager_ids, f"{cid} must remain eager (global modal control)"
+                assert cid not in lazy_ids, f"{cid} must not be in bubble lazy"

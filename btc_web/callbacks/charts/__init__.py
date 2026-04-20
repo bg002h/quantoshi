@@ -1449,7 +1449,7 @@ def _hm_pill_label_html(key, mc):
 @callback(
     *[Output(f"hm-pill-{k}", "children") for k in _HM_PILL_MODELS],
     Input("heatmap-first-render", "data"),
-    State("palette-store", "data"),
+    Input("palette-store", "data"),
     prevent_initial_call=True,
 )
 def update_heatmap_pill_swatches(_first_render, palette_key):

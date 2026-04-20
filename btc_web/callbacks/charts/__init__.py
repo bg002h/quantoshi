@@ -1448,10 +1448,11 @@ def _hm_pill_label_html(key, mc):
 
 @callback(
     *[Output(f"hm-pill-{k}", "children") for k in _HM_PILL_MODELS],
-    Input("palette-store", "data"),
+    Input("heatmap-first-render", "data"),
+    State("palette-store", "data"),
     prevent_initial_call=True,
 )
-def update_heatmap_pill_swatches(palette_key):
+def update_heatmap_pill_swatches(_first_render, palette_key):
     pal = _app_ctx.PALETTES.get(palette_key or "default",
                                  _app_ctx.PALETTES["default"])
     mc = pal.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)

@@ -495,7 +495,7 @@ def _build_figure(results: dict, scale: str, t0_label: str,
     # Tab 1 Axes & Range — re-fit when the user tweaks them via Input
     Input("bub-xscale", "value"),
     Input("bub-yscale", "value"),
-    Input("bub-xrange-commit", "data"),   # debounced (see _clientside.py)
+    Input("bub-xrange", "value"),
     Input("bub-yrange", "value"),
     Input("bub-auto-y", "value"),
     # Tab 1 Display — read "show_legend" so the custom figure honors the

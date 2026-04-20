@@ -123,33 +123,6 @@ for _prefix, _tab in _PREFIX_TO_TAB.items():
         prevent_initial_call=True,
     )
 
-# ── bub-xrange debounce ──────────────────────────────────────────────────────
-# Expensive server chart callbacks (bubble/cagr/resid/custom-time) read from
-# `bub-xrange-commit` Store instead of `bub-xrange.value` directly. This
-# clientside callback writes to the Store only after the slider has been
-# stable for 150ms, defeating mobile-touchmove stale-response races where a
-# mid-drag callback fires and its slow response lands after the mouseup
-# one, overwriting the final figure with a stale xrange.
-_app_ctx.app.clientside_callback(
-    """
-    function(val) {
-        if (!val) return window.dash_clientside.no_update;
-        // Debounce: cancel prior pending write; schedule new one in 150ms.
-        // Using set_props instead of the callback return so intermediate
-        // drag-fires don't leave dangling unresolved Promises in Dash's
-        // callback queue.
-        if (window._bub_xrange_timer) clearTimeout(window._bub_xrange_timer);
-        window._bub_xrange_timer = setTimeout(function() {
-            window.dash_clientside.set_props('bub-xrange-commit', {data: val});
-        }, 150);
-        return window.dash_clientside.no_update;
-    }
-    """,
-    Output("bub-xrange-commit", "data", allow_duplicate=True),
-    Input("bub-xrange", "value"),
-    prevent_initial_call=True,
-)
-
 # ── Heatmap status row: visibility + label (driven by hm-active-model) ──
 _app_ctx.app.clientside_callback(
     r"""

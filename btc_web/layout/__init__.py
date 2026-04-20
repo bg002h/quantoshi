@@ -308,6 +308,18 @@ def _build_layout(initial_tab="bubble"):
     *[dcc.Store(id=f"{tab}-first-render", storage_type="memory",
                 data=1 if tab == initial_tab else 0)
       for tab in ("bubble", "heatmap", "dca", "retire", "supercharge", "citadel", "leverage")],
+    # Per-tab render-done counter — bumped by a clientside callback each
+    # time the tab's chart figure changes. Slider-commit debouncers gate
+    # the next commit on the previous render completing, so a fast drag
+    # doesn't queue multiple in-flight chart callbacks.
+    *[dcc.Store(id=f"{tab}-render-done", storage_type="memory", data=0)
+      for tab in ("bubble", "heatmap", "dca", "retire", "supercharge", "citadel")],
+    # Slider-commit stores: clientside 100ms debounce writes here; chart
+    # callbacks read these instead of raw slider.value. Initial data=None
+    # → first render falls through to the slider's .value State fallback.
+    *[dcc.Store(id=f"{sid}-commit", storage_type="memory", data=None)
+      for sid in ("bub-xrange", "bub-yrange", "hm-entry-yr", "hm-exit-range",
+                  "dca-yr-range", "ret-yr-range", "sc-start-yr", "cp-yr-range")],
     # Shared tick store: palette / lots writes bump this; a clientside
     # router then bumps the active tab's first-render. Replaces the old
     # bridge callback that fired on initial Store hydration.

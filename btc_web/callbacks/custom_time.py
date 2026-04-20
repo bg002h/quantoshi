@@ -495,8 +495,8 @@ def _build_figure(results: dict, scale: str, t0_label: str,
     # Tab 1 Axes & Range — re-fit when the user tweaks them via Input
     Input("bub-xscale", "value"),
     Input("bub-yscale", "value"),
-    Input("bub-xrange", "value"),
-    Input("bub-yrange", "value"),
+    Input("bub-xrange-commit", "data"),   # debounced (100ms)
+    Input("bub-yrange-commit", "data"),   # debounced (100ms)
     Input("bub-auto-y", "value"),
     # Tab 1 Display — read "show_legend" so the custom figure honors the
     # same checkbox as the standard bubble chart.
@@ -506,13 +506,18 @@ def _build_figure(results: dict, scale: str, t0_label: str,
     Input("bub-qs-mode", "value"),
     Input("bub-qs-adv", "value"),
     State("bub-redraw-tick", "data"),
+    State("bub-xrange", "value"),   # fallback for initial render
+    State("bub-yrange", "value"),   # fallback for initial render
     prevent_initial_call=True,
 )
 def custom_time_callback(active, scale, cal_preset, cal_custom,
                           blk_preset, blk_custom, weighting, models,
                           bub_xscale, bub_yscale, bub_xrange, bub_yrange,
                           bub_auto_y, bub_toggles,
-                          bub_qs, bub_qs_mode, bub_qs_adv, tick):
+                          bub_qs, bub_qs_mode, bub_qs_adv, tick,
+                          bub_xrange_fallback=None, bub_yrange_fallback=None):
+    if bub_xrange is None: bub_xrange = bub_xrange_fallback
+    if bub_yrange is None: bub_yrange = bub_yrange_fallback
     """Route Custom Time Axis state changes to the bubble figure.
 
     On activate: computes a fresh custom figure.

@@ -543,3 +543,97 @@ _app_ctx.app.clientside_callback(
     State("active-tab-bump-tick", "data"),
     prevent_initial_call=True,
 )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Batch 4 — Heatmap text-only Patch.
+#
+# Deviation from the plan: the heatmap does NOT use go.Heatmap.texttemplate /
+# textfont. Cell text is drawn via layout.annotations (list of dicts, each
+# with a `font.size`). See figures/heatmap.py::_heatmap_cell_annots.
+#
+# Consequence: `hm-cell-fs` can be patched clientside by iterating annotations
+# and setting font.size on each. But `hm-vfmt` cannot — the annotation text
+# for each cell depends on raw mc/mp/mm numeric arrays that aren't present
+# in the figure. So only hm-cell-fs is demoted to State + patched here.
+# hm-vfmt remains an Input on update_heatmap (full rebuild on change).
+# ══════════════════════════════════════════════════════════════════════════════
+_app_ctx.app.clientside_callback(
+    """
+    function(cellFs, curFig) {
+        var NU = window.dash_clientside.no_update;
+        if (cellFs === undefined || cellFs === null) return NU;
+        if (!curFig || !curFig.layout) return NU;
+        var anns = curFig.layout.annotations;
+        if (!anns || !anns.length) return NU;
+        var p = window.dash_clientside.Patch();
+        for (var i = 0; i < anns.length; i++) {
+            // Only touch annotations that were rendered as cell text
+            // (they all have a font block from _heatmap_cell_annots).
+            if (anns[i] && anns[i].font) {
+                p["layout"]["annotations"][i]["font"]["size"] = cellFs;
+            }
+        }
+        return p;
+    }
+    """,
+    Output("heatmap-graph", "figure", allow_duplicate=True),
+    Input("hm-cell-fs", "value"),
+    State("heatmap-graph", "figure"),
+    prevent_initial_call=True,
+)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Batch 5 — Citadel palette Patch.
+#
+# Swap trace line.color / fillcolor in place on palette-store change, so
+# switching palettes post-simulation doesn't require re-running the sim.
+#
+# Only traces that were tagged with meta={"qs_model_key": <short>} are
+# touched. Deterministic citadel traces use palette-invariant asset colors
+# (CITADEL_OVERLAY_COLORS) and are intentionally left alone. The MC overlay's
+# "total" trace (in mc_overlay.py) is the palette-aware one.
+# ══════════════════════════════════════════════════════════════════════════════
+_app_ctx.app.clientside_callback(
+    """
+    function(palette, curFig) {
+        var NU = window.dash_clientside.no_update;
+        if (!palette || !curFig || !curFig.data) return NU;
+        var QS = window.QS_PALETTES && window.QS_PALETTES[palette];
+        if (!QS || !QS.model_colors) return NU;
+        function hexToRgb(h) {
+            var m = (h || "").match(/^#?([a-f\\d]{2})([a-f\\d]{2})([a-f\\d]{2})$/i);
+            if (!m) return null;
+            return [parseInt(m[1],16), parseInt(m[2],16), parseInt(m[3],16)];
+        }
+        function extractAlpha(s) {
+            var m = (s || "").match(/rgba?\\([^)]*,\\s*([0-9.]+)\\s*\\)/);
+            return m ? parseFloat(m[1]) : 1.0;
+        }
+        var p = window.dash_clientside.Patch();
+        var touched = false;
+        for (var i = 0; i < curFig.data.length; i++) {
+            var tr = curFig.data[i];
+            var key = tr && tr.meta && tr.meta.qs_model_key;
+            if (!key) continue;
+            var c = QS.model_colors[key];
+            if (!c) continue;
+            p["data"][i]["line"]["color"] = c;
+            if (tr.fillcolor) {
+                var rgb = hexToRgb(c);
+                if (rgb) {
+                    var a = extractAlpha(tr.fillcolor);
+                    p["data"][i]["fillcolor"] = "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + "," + a + ")";
+                }
+            }
+            touched = true;
+        }
+        return touched ? p : NU;
+    }
+    """,
+    Output("citadel-graph", "figure", allow_duplicate=True),
+    Input("palette-store", "data"),
+    State("citadel-graph", "figure"),
+    prevent_initial_call=True,
+)

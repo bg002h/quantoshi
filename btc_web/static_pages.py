@@ -345,8 +345,52 @@ def _ensure_rendered():
         render_static_pages()
 
 
+_RESEARCH_IMAGES = [
+    ("blocksweep.jpg",                   "BM floor + band model sweep — R² and exponent vs block offset"),
+    ("bandmodel_fits.jpg",               "Band model fits — offset = 0"),
+    ("bandmodel_fits_offset18750.jpg",   "Band model fits — offset = 18,750 blocks"),
+    ("temporal_sweep.jpg",               "Temporal sweep — A2 consistency and A1 floor scores vs offset"),
+    ("temporal_fits.jpg",                "Best temporal fits at optimal (Q-level, offset)"),
+    ("qstar_sweep.jpg",                  "q*(offset) sweep — convergence-quantile method"),
+    ("qstar_fits.jpg",                   "q*-crossing fits at optimal offset per weight mode"),
+    ("qstar_3d.jpg",                     "3D cvar surface — log-density weighted"),
+    ("qstar_fine_3d.jpg",                "Fine-resolution 3D cvar surface"),
+    ("qstar_slices.jpg",                 "cvar vs offset — fixed Q-level slices"),
+    ("qstar_valley_width.jpg",           "Valley width analysis across quantile levels"),
+    ("qstar_crossing_score.jpg",         "Crossing-symmetry score vs offset"),
+    ("qstar_crossing_fan.jpg",           "Quantile fan — offset=0 vs optimal offset"),
+]
+
+_RESEARCH_HTML = None
+
+def _build_research_html():
+    imgs = "".join(
+        f'<figure style="margin:0 0 2.5rem 0">'
+        f'<img src="/assets/research/{fname}" style="width:100%;border-radius:6px;display:block">'
+        f'<figcaption style="margin-top:.5rem;font-size:.8rem;color:#aaa;line-height:1.4">{_esc(caption)}</figcaption>'
+        f'</figure>'
+        for fname, caption in _RESEARCH_IMAGES
+    )
+    return (
+        "<!doctype html><html><head>"
+        '<meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        "<title>Block-offset research — Quantoshi</title>"
+        "<style>"
+        "body{margin:0;padding:1rem;background:#111;color:#ddd;font-family:sans-serif;max-width:900px;margin:0 auto}"
+        "h1{font-size:1.2rem;color:#FFB300;margin-bottom:.3rem}"
+        "p.sub{font-size:.8rem;color:#888;margin-bottom:2rem}"
+        "</style></head><body>"
+        "<h1>Block-offset exploration — April 2026</h1>"
+        "<p class='sub'>Bitcoin power law floor model research. "
+        "<a href='/' style='color:#FFB300'>← Quantoshi</a></p>"
+        + imgs +
+        "</body></html>"
+    )
+
+
 def register_static_routes(server):
-    """Register /faq, /faq.N, /mi, /mi.N Flask routes."""
+    """Register /faq, /faq.N, /mi, /mi.N, /A Flask routes."""
 
     @server.route("/faq")
     def _static_faq():
@@ -377,3 +421,10 @@ def register_static_routes(server):
             item_id = f"item-{item}"
         page = _open_accordion_item(html_cache, item_id)
         return page, 200, _static_headers()
+
+    @server.route("/A")
+    def _research_gallery():
+        global _RESEARCH_HTML
+        if _RESEARCH_HTML is None:
+            _RESEARCH_HTML = _build_research_html()
+        return _RESEARCH_HTML, 200, _static_headers()

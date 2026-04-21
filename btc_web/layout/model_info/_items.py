@@ -41,7 +41,7 @@ from ._helpers import (
     _comparison_table,
     _regime_data_tables,
 )
-from colors import LINK, FALLBACK_MODEL_GRAY, UI_FONT_BASE, UI_FONT_LG
+from colors import FALLBACK_MODEL_GRAY, UI_FONT_BASE, UI_FONT_LG
 
 
 def _build_accordion_items():
@@ -97,9 +97,8 @@ Future bubbles are extrapolated from the trend in historical bubble parameters (
                             html.P([
                                 "The support slope and intercept are the upstream parameters that determine "
                                 "everything downstream: bubble amplitudes, intervals, and predicted onset. "
-                                "A ",
-                                html.A("sensitivity sweep", href="/B", style={"color": LINK}),
-                                " across slope (4\u20137) and intercept (\u00b12.5) shows: ",
+                                "A sensitivity sweep across slope (4\u20137) and intercept "
+                                "(\u00b12.5) shows: ",
                             ]),
                             html.Ul([
                                 html.Li([
@@ -133,14 +132,13 @@ Future bubbles are extrapolated from the trend in historical bubble parameters (
                                     "Fitting the floor deliberately sacrifices R\u00b2 for a robust, stable baseline.",
                                 ]),
                             ]),
-                            html.P([
-                                "A separate ",
-                                html.A("parameter sweep", href="/C", style={"color": LINK}),
-                                " tests 49 combinations of the floor percentile (5\u201335%) and "
-                                "quantile regression target (5\u201395%), running the full bubble pipeline "
-                                "at each point. Results are broadly stable across the grid, reinforcing "
-                                "that the model is not over-fitted to one specific parameter choice.",
-                            ]),
+                            html.P(
+                                "A separate parameter sweep tests 49 combinations of the floor "
+                                "percentile (5\u201335%) and quantile regression target (5\u201395%), "
+                                "running the full bubble pipeline at each point. Results are broadly "
+                                "stable across the grid, reinforcing that the model is not over-fitted "
+                                "to one specific parameter choice."
+                            ),
                             html.H6("Fitted Coefficients"),
                             _coeff_table(_bm_rows()),
                         ], title="Bubble Model", item_id="mi-bub"),
@@ -1435,12 +1433,11 @@ space) or $\sin(\omega t)$, $\cos(\omega t)$ (calendar space).
                                 ("Flat-top (17p)", "R\u00b2=0.9954  BIC=\u221225,751"),
                                 ("Mixed shapes (27p)", "R\u00b2=0.9970  BIC=\u221228,213"),
                             ]),
-                            html.P([
+                            html.P(
                                 "Non-sinusoidal waves beat cosine by ~1,000 BIC. The mixed-shape "
                                 "dictionary (all 5 wave types \u00d7 both time bases) achieves R\u00b2=0.997. "
-                                "Flat-top waves dominate (10 of 25 selected terms), followed by triangle (6). "
-                                "See ", html.A("/G", href="/G"), " for plots."
-                            ]),
+                                "Flat-top waves dominate (10 of 25 selected terms), followed by triangle (6)."
+                            ),
 
                             html.H6("Bubble shape evolution across cycles"),
                             html.P(
@@ -2013,15 +2010,11 @@ $$T_{ij} = P(\text{bin}_{t+1} = j \mid \text{bin}_t = i)$$
                                 " for BM \u2014 a ~2 year difference driven by a 0.8-year shift "
                                 "in a single historical bubble fit.",
                             ]),
-                            html.P([
-                                "EF interval trend: +0.20 yr/cycle (nearly flat, ~3.7 yr next). ",
-                                "BM interval trend: +0.37 yr/cycle (lengthening, ~5.7 yr next). ",
-                                "This is visible in the ",
-                                html.A("EF sensitivity sweep", href="/BB", style={"color": LINK}),
-                                " compared to the ",
-                                html.A("BM sweep", href="/B", style={"color": LINK}),
-                                ".",
-                            ]),
+                            html.P(
+                                "EF interval trend: +0.20 yr/cycle (nearly flat, ~3.7 yr next). "
+                                "BM interval trend: +0.37 yr/cycle (lengthening, ~5.7 yr next). "
+                                "This is visible when comparing the EF and BM sensitivity sweeps."
+                            ),
 
                             html.H6("Convergence Narrative"),
                             html.P(

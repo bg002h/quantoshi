@@ -263,4 +263,3 @@ default.
 - [User manual](docs/user_manual.md) — tab-by-tab feature guide for end users
 - [LPPL model family](docs/lppl_models.md) — 10 LPPL variants, weighting, regime shifts, why LP3 is the honest default
 - [Cache architecture](docs/cache_architecture.md) — figure caches, MC cache, Citadel bands, refit schedules
-- [Analysis pages](docs/analysis_pages.md) — static SVG pages at /A through /E (sensitivity sweeps, FFT, regime detection)

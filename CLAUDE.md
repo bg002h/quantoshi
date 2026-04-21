@@ -137,7 +137,7 @@ bash tools/rebuild_caches.sh --help        # full docs
 | `mc_overlay.py` | Monte Carlo overlay integration + transition matrix caching |
 | `mc_cache.py` | MC cache configuration and helpers |
 | `markov.py` | Markov MC engine (built via Cython on prod). Built locally with `build_markov.py`. |
-| `static_pages.py` | Flask routes for `/mi` + `/mi.N` (Model Info static), `/faq` + `/faq.N`. (Sensitivity-sweep static pages `/B /BB /D /E /F /G /H` live in `api.py`.) |
+| `static_pages.py` | Flask routes for `/mi` + `/mi.N` (Model Info static), `/faq` + `/faq.N`. |
 | `tab_defaults.py` | Single source of truth for all tab defaults (`MappingProxyType` frozen dicts) |
 | `cache.py` | L0 pinned + L2 Redis-backed figure cache (fingerprint invalidation) |
 | `celery_app.py` | Celery application factory |

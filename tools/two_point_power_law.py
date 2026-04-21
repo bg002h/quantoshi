@@ -19,66 +19,72 @@ LOG_P = np.log10(df["Price"].values)
 BLK   = df["blockheight"].values.astype(np.float64)
 DATES = mdates.date2num(df["date"].values.astype("datetime64[ms]").astype(object))
 
-first, last = df.iloc[0], df.iloc[-1]
-lp1, lb1 = np.log10(first["Price"]), np.log10(first["blockheight"])
-lp2, lb2 = np.log10(last["Price"]),  np.log10(last["blockheight"])
-b = (lp2 - lp1) / (lb2 - lb1)
-a = lp1 - b * lb1
+last = df.iloc[-1]
+lp2, lb2 = np.log10(last["Price"]), np.log10(last["blockheight"])
 
-print(f"First: {first['date'].date()}  block={first['blockheight']:,.0f}  ${first['Price']:.2f}")
-print(f"Last:  {last['date'].date()}   block={last['blockheight']:,.0f}  ${last['Price']:,.2f}")
-print(f"log10(price) = {a:.4f} + {b:.4f} * log10(block)")
+LINES = [
+    dict(row=df.iloc[0],                                          color="#FFB300"),
+    dict(row=df[df["date"] == pd.Timestamp("2010-10-07")].iloc[0], color="#44AAFF"),
+]
 
-# extend line ~6 years into future
+# extend ~6 years into future
 blocks_per_day = np.diff(BLK[-60:]).mean()
-blk_future = BLK[-1] + 365 * 6 * blocks_per_day
-blk_line = np.linspace(BLK[0], blk_future, 800)
-log_price_line = a + b * np.log10(blk_line)
-
-# date grid for log-linear panel
-date_per_blk = np.diff(DATES[-60:]).mean() / np.diff(BLK[-60:]).mean()
-date_line = np.where(
+date_per_blk   = np.diff(DATES[-60:]).mean() / np.diff(BLK[-60:]).mean()
+blk_future     = BLK[-1] + 365 * 6 * blocks_per_day
+blk_line       = np.linspace(BLK[0], blk_future, 800)
+date_line_full = np.where(
     blk_line <= BLK[-1],
     np.interp(blk_line, BLK, DATES),
     DATES[-1] + (blk_line - BLK[-1]) * date_per_blk,
 )
 
 fig, axes = plt.subplots(1, 2, figsize=(16, 6))
-fig.suptitle(
-    f"Two-point power law: first ({first['date'].date()}, ${first['Price']:.2f}) "
-    f"→ last ({last['date'].date()}, ${last['Price']:,.0f})\n"
-    f"log₁₀(price) = {a:.3f} + {b:.3f} · log₁₀(block)",
-    fontsize=11,
-)
-
-LINE_COLOR = "#FFB300"
+fig.suptitle("Two-point power laws anchored to last data point", fontsize=11)
 
 # ── log-log ───────────────────────────────────────────────────────────────────
 ax = axes[0]
 ax.scatter(np.log10(BLK), LOG_P, s=2, c="#888", alpha=0.2, linewidths=0, rasterized=True)
-ax.plot(np.log10(blk_line), log_price_line, color=LINE_COLOR, lw=2.0,
-        label=f"b={b:.4f}")
-ax.scatter([lb1, lb2], [lp1, lp2], s=80, color=LINE_COLOR, zorder=5,
-           edgecolors="white", linewidths=0.8)
+
+for cfg in LINES:
+    row = cfg["row"]; col = cfg["color"]
+    lp1, lb1 = np.log10(row["Price"]), np.log10(row["blockheight"])
+    b = (lp2 - lp1) / (lb2 - lb1)
+    a = lp1 - b * lb1
+    below = np.mean(LOG_P < a + b * np.log10(BLK))
+    label = f"{row['date'].date()}  b={b:.4f}  Q{below*100:.1f}%"
+    ax.plot(np.log10(blk_line), a + b * np.log10(blk_line), color=col, lw=2.0, label=label)
+    ax.scatter([lb1, lb2], [lp1, lp2], s=80, color=col, zorder=5,
+               edgecolors="white", linewidths=0.8)
+    print(f"{row['date'].date()}: log10(p) = {a:.4f} + {b:.4f}*log10(blk)  Q{below*100:.1f}% below")
+
 ax.set_xlabel("log₁₀(block)", fontsize=10)
 ax.set_ylabel("log₁₀(price  USD)", fontsize=10)
 ax.set_title("log-log", fontsize=10)
-ax.legend(fontsize=9)
+ax.legend(fontsize=9, loc="upper left")
 ax.grid(True, alpha=0.2)
 
 # ── log-linear ────────────────────────────────────────────────────────────────
 ax = axes[1]
 ax.scatter(DATES, LOG_P, s=2, c="#888", alpha=0.2, linewidths=0, rasterized=True)
-ax.plot(date_line, log_price_line, color=LINE_COLOR, lw=2.0, label=f"b={b:.4f}")
-ax.scatter([DATES[0], DATES[-1]], [lp1, lp2], s=80, color=LINE_COLOR, zorder=5,
-           edgecolors="white", linewidths=0.8)
+
+date_idx = {row["date"]: np.interp(row["blockheight"], BLK, DATES) for cfg in LINES for row in [cfg["row"]]}
+for cfg in LINES:
+    row = cfg["row"]; col = cfg["color"]
+    lp1, lb1 = np.log10(row["Price"]), np.log10(row["blockheight"])
+    b = (lp2 - lp1) / (lb2 - lb1)
+    a = lp1 - b * lb1
+    ax.plot(date_line_full, a + b * np.log10(np.maximum(blk_line, 1)),
+            color=col, lw=2.0, label=f"{row['date'].date()}  b={b:.4f}")
+    ax.scatter([date_idx[row["date"]], DATES[-1]], [lp1, lp2], s=80, color=col,
+               zorder=5, edgecolors="white", linewidths=0.8)
+
 ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
 ax.xaxis.set_major_locator(mdates.YearLocator(4))
 plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 ax.set_xlabel("Date", fontsize=10)
 ax.set_ylabel("log₁₀(price  USD)", fontsize=10)
 ax.set_title("log-linear", fontsize=10)
-ax.legend(fontsize=9)
+ax.legend(fontsize=9, loc="upper left")
 ax.grid(True, alpha=0.2)
 
 fig.tight_layout()

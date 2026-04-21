@@ -44,8 +44,14 @@ btc_web/mc_cache/
 
 # Misc
 *.log
+nohup.out
 .env
 debris/
+backups/
+tools/_onchain_cache/
+*.swp
+*.kate-swp
+docs/sweep_t0_holdout*
 
 # Claude/playwright/superpowers temp
 .playwright-mcp/

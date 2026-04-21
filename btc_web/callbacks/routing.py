@@ -117,8 +117,8 @@ _app_ctx.app.clientside_callback(
 _PATH_TO_TAB = {
     "/1": "bubble", "/2": "heatmap", "/3": "dca",
     "/4": "retire",  "/5": "supercharge", "/6": "citadel",
-    "/7": "stack", "/8": "model_info", "/9": "faq",
-    "/10": "leverage", "/leverage": "leverage",
+    "/7": "leverage", "/8": "stack", "/9": "model_info", "/10": "faq",
+    "/leverage": "leverage",
     "/faq": "faq", "/mi": "model_info",
 }
 _TAB_TO_PATH = {v: k for k, v in _PATH_TO_TAB.items()}
@@ -314,8 +314,8 @@ _app_ctx.app.clientside_callback(
         var NU = window.dash_clientside.no_update;
         var map = {"/1":"bubble","/2":"heatmap","/3":"dca",
                    "/4":"retire","/5":"supercharge","/6":"citadel",
-                   "/7":"stack","/8":"model_info","/9":"faq",
-                   "/10":"leverage","/leverage":"leverage",
+                   "/7":"leverage","/8":"stack","/9":"model_info","/10":"faq",
+                   "/leverage":"leverage",
                    "/faq":"faq","/mi":"model_info"};
         /* Normalize: treat '-' as '.' so /1-2-5-1 == /1.2.5.1 */
         if (pathname && pathname.indexOf('-') !== -1) {
@@ -329,8 +329,8 @@ _app_ctx.app.clientside_callback(
         }
         window._routingLastPath = pathname;
         var p = pathname;
-        if (p && /^\\/8\\.\\d+$/.test(p)) { return "model_info"; }
-        if (p && /^\\/9\\.\\d+$/.test(p)) { return "faq"; }
+        if (p && /^\\/9\\.\\d+$/.test(p)) { return "model_info"; }
+        if (p && /^\\/10\\.\\d+$/.test(p)) { return "faq"; }
         if (p && p.indexOf("/faq.") === 0) { return "faq"; }
         if (p && p.indexOf("/mi.") === 0) { return "model_info"; }
         if (p && p.indexOf("/1.2") === 0) { return "bubble"; }
@@ -507,7 +507,7 @@ _app_ctx.app.clientside_callback(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Model Info accordion deep-linking (/8.N)
+# Model Info accordion deep-linking (/9.N)
 # ══════════════════════════════════════════════════════════════════════════════
 
 # Must match the actual accordion ORDER in layout/model_info.
@@ -693,11 +693,11 @@ for _tid in ("bubble", "heatmap", "dca", "retire", "supercharge",
 
 
 def _mi_item_for_pathname(pathname):
-    """Extract accordion item_id from /8.N or /mi.N pathname, else None."""
+    """Extract accordion item_id from /9.N or /mi.N pathname, else None."""
     pathname = _norm(pathname)
     if not pathname:
         return None
-    if pathname.startswith("/8."):
+    if pathname.startswith("/9."):
         suffix = pathname[3:]
     elif pathname.startswith("/mi."):
         suffix = pathname[4:]
@@ -717,7 +717,7 @@ def _mi_item_for_pathname(pathname):
 # benefit the old _MI_CACHED_CHILDREN provided).
 
 
-# Accordion item opening (for /mi.N and /8.N deep links) is handled
+# Accordion item opening (for /mi.N and /9.N deep links) is handled
 # entirely by the clientside `_mi_spa_open` callback below. A parallel
 # server-side callback targeting the same output triggers
 # `DuplicateCallback` on Dash < 4 even with allow_duplicate=True, so
@@ -833,7 +833,7 @@ _app_ctx.app.clientside_callback(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# FAQ accordion deep-linking (/9.N)
+# FAQ accordion deep-linking (/10.N)
 # FAQ lazy-loading handled by the universal `_register_lazy_tab` loop above.
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -844,13 +844,13 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call=True,
 )
 def open_faq_item(children, pathname):
-    """Open a specific FAQ accordion item after lazy load: /9.N (1-indexed)."""
+    """Open a specific FAQ accordion item after lazy load: /10.N (1-indexed)."""
     pathname = _norm(pathname)
     if not pathname:
         return no_update
     n_str = None
-    if pathname.startswith("/9."):
-        n_str = pathname[3:]
+    if pathname.startswith("/10."):
+        n_str = pathname[4:]
     elif pathname.startswith("/faq."):
         n_str = pathname[5:]
     if n_str is None:

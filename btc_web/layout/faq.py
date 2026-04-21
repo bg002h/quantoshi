@@ -1028,7 +1028,7 @@ _FAQ = [
 def _faq_tab():
     items = []
     # Note: item_id uses loop index -- reordering _FAQ entries will break
-    # direct links (/9.N) since they reference items by position.
+    # direct links (/10.N) since they reference items by position.
     for i, entry in enumerate(_FAQ):
         items.append(
             dbc.AccordionItem(

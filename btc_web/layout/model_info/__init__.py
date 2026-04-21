@@ -1,8 +1,8 @@
-"""Tab 8 — Model Info: detailed documentation of all price models.
+"""Tab 9 — Model Info: detailed documentation of all price models.
 
 Public API:
     _model_info_tab()     — returns the layout Div for the Model Info tab
-    _MODEL_INFO_ITEM_IDS  — ordered list of accordion item_id values for /8.N
+    _MODEL_INFO_ITEM_IDS  — ordered list of accordion item_id values for /9.N
                             and /mi.N deep-linking
 
 This module was split from a single 2764-line ``model_info.py``. The large
@@ -55,7 +55,7 @@ def _model_info_tab():
     ], className="p-3")
 
 
-# Ordered list of accordion item_id values for /8.N and /mi.N deep linking.
+# Ordered list of accordion item_id values for /9.N and /mi.N deep linking.
 # Must match the order of items returned by _build_accordion_items().
 _MODEL_INFO_ITEM_IDS = [
     "mi-bub", "mi-qr", "mi-pl", "mi-lppl", "mi-lp2",

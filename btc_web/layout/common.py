@@ -29,7 +29,7 @@ _INFO_ICON = "\U0001F4D0"  # 📐 same as Model Info tab
 def _modal_header_with_info_link(title: str, model_short_name: str, link_id: str):
     """ModalHeader containing the title plus a 📐 link to the Model Info tab.
 
-    Clicking the icon SPA-navigates to /8.N for that model (no page reload,
+    Clicking the icon SPA-navigates to /mi.N for that model (no page reload,
     so other tabs' control state is preserved) AND closes the modal via a
     clientside callback in charts.py (see _close_config_modal_on_info).
     If the model has no Model Info entry, the icon is omitted.
@@ -70,7 +70,7 @@ def _model_info_link(short_name):
     position. Returns ("/mi.N", True) if found, ("", False) if not.
     Tolerant of reordering — computed at layout time from the live list.
 
-    Uses /mi.N (stable name-based route) rather than /8.N so links don't
+    Uses /mi.N (stable name-based route) rather than /9.N so links don't
     break if Model Info changes tab position in the future.
     """
     # Lazy import to avoid circular dependency

@@ -174,13 +174,13 @@ _app_ctx.app.clientside_callback(
 # Previously these were 4 separate n_clicks-based callbacks, but dcc.Link
 # (used for SPA routing so clicks don't reset other tabs' controls) does
 # not expose n_clicks in Dash 4. We instead watch url.pathname: any
-# change that lands on a /8.N route means a deep-link was clicked, so
+# change that lands on a /9.N route means a deep-link was clicked, so
 # close every config modal unconditionally. If none were open the
 # bootstrap is_open=false is idempotent.
 _app_ctx.app.clientside_callback(
     """
     function(pathname) {
-        if (!pathname || !pathname.startsWith('/8.')) {
+        if (!pathname || !pathname.startsWith('/9.')) {
             return [window.dash_clientside.no_update,
                     window.dash_clientside.no_update,
                     window.dash_clientside.no_update,
@@ -316,14 +316,14 @@ for _hs in ("a", "b"):
             }
             var key = "cfg_" + spec(nlog, log1d, log2d) + "_" + spec(ncal, cal1d, cal2d);
             var info_links = {
-                "cfg_1d_0":    "/8.4",
-                "cfg_0_1u":    "/8.7",
-                "cfg_1d_1u":   "/8.8",
-                "cfg_1d_1d":   "/8.9",
-                "cfg_2dd_1u":  "/8.10",
-                "cfg_1d_2uu":  "/8.11",
-                "cfg_2dd_2uu": "/8.12",
-                "cfg_2dd_2dd": "/8.13",
+                "cfg_1d_0":    "/9.4",
+                "cfg_0_1u":    "/9.7",
+                "cfg_1d_1u":   "/9.8",
+                "cfg_1d_1d":   "/9.9",
+                "cfg_2dd_1u":  "/9.10",
+                "cfg_1d_2uu":  "/9.11",
+                "cfg_2dd_2uu": "/9.12",
+                "cfg_2dd_2dd": "/9.13",
             };
             var href = info_links[key] || "";
             var link_style = href ? {fontSize:"11px", marginLeft:"6px", color:"{lnk}"} : {display:"none"};

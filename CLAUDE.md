@@ -157,7 +157,7 @@ bash tools/rebuild_caches.sh --help        # full docs
 | `requirements.txt` | Python dependencies |
 
 ### Layout structure
-`dbc.Navbar` (logo + "Quantoshi" in Palatino + live price ticker with 24h sparkline SVG + sats/$ toggle + "Stay dark, Anon →" + 🧅 Tor link + palette dropdown + 📸 Share button with "▲ Cooler than you think") → `dbc.Tabs` (9 tabs):
+`dbc.Navbar` (logo + "Quantoshi" in Palatino + live price ticker with 24h sparkline SVG + sats/$ toggle + "Stay dark, Anon →" + 🧅 Tor link + palette dropdown + 📸 Share button with "▲ Cooler than you think") → `dbc.Tabs` (10 tabs):
 
 | Tab | ID | Key controls |
 |-----|----|-------------|
@@ -167,9 +167,10 @@ bash tools/rebuild_caches.sh --help        # full docs
 | 4. BTC RetireMentator | `retire` | Withdrawal amount, inflation rate, year range |
 | 5. HODL Supercharger | `supercharge` | Mode A (fixed spending → depletion date) or Mode B (fixed depletion → max spending); 5 delay offsets, 2 chart layouts |
 | 6. Citadel Planner | `citadel` | Sub-tabs: Assets / Spending / Rules / Simulation. "▶ Run Simulation" button. Trigger enable checkboxes, Historical Regimes asset growth mode, Show All/Hide All legend toggles |
-| 7. Stack Tracker | `stack` | Lot management (add/delete/import/export JSON) |
-| 8. Model Info | `model_info` | Accordion with per-model details. Deep-link: `/8.N` opens item N |
-| 9. FAQ | `faq` | Static accordion — `_FAQ` list in `layout/faq.py`. Deep-link: `/9.N` or `/faq.N` opens item N. Answers: plain strings or Dash components. Link color: `#1a6fa8` via `.accordion a` in style.css. |
+| 7. Max Pay-Price | `leverage` | Leverage calculator / max pay-price. Named alias: `/leverage` |
+| 8. Stack Tracker | `stack` | Lot management (add/delete/import/export JSON) |
+| 9. Model Info | `model_info` | Accordion with per-model details. Deep-link: `/9.N` or `/mi.N` opens item N |
+| 10. FAQ | `faq` | Static accordion — `_FAQ` list in `layout/faq.py`. Deep-link: `/10.N` or `/faq.N` opens item N. Answers: plain strings or Dash components. Link color: `#1a6fa8` via `.accordion a` in style.css. |
 
 ### Tab defaults
 All defaults are canonical in `btc_web/tab_defaults.py` (`MappingProxyType` frozen dicts) — do not hardcode elsewhere. `_prewarm_caches()` must stay in sync.
@@ -204,8 +205,8 @@ All defaults are canonical in `btc_web/tab_defaults.py` (`MappingProxyType` froz
 
 ### URL tab routing
 - Visiting `/1`–`/9` navigates directly to a tab (clientside callback on `url.pathname`).
-- Map: `/1`=bubble, `/2`=heatmap, `/3`=dca, `/4`=retire, `/5`=supercharge, `/6`=citadel, `/7`=stack, `/8`=model_info, `/9`=faq.
-- `/8.N` opens Model Info accordion item N; `/9.N` (or `/faq.N`) opens FAQ item N (both 1-indexed in URL, 0-indexed internally).
+- Map: `/1`=bubble, `/2`=heatmap, `/3`=dca, `/4`=retire, `/5`=supercharge, `/6`=citadel, `/7`=leverage, `/8`=stack, `/9`=model_info, `/10`=faq. Named aliases: `/leverage`, `/mi`, `/faq`.
+- `/9.N` (or `/mi.N`) opens Model Info accordion item N; `/10.N` (or `/faq.N`) opens FAQ item N (both 1-indexed in URL, 0-indexed internally).
 - Routing logic lives in `callbacks/routing.py` (split from old `nav.py`). Uses `allow_duplicate=True` + `prevent_initial_call='initial_duplicate'`. **Never use `prevent_initial_call=False` with `allow_duplicate=True`** — Dash raises an error that crashes gunicorn (exit code 3).
 
 ### Live price ticker

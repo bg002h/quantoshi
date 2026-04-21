@@ -175,7 +175,7 @@ _TAB_BAR_TEMPLATE = f"""
   <li class="nav-item"><a class="nav-link {{cls_supercharge}}" href="/5">Supercharger</a></li>
   <li class="nav-item"><a class="nav-link {{cls_citadel}}"     href="/6">Citadel</a></li>
   <li class="nav-item"><a class="nav-link {{cls_leverage}}"    href="/leverage">Max Pay-Price</a></li>
-  <li class="nav-item"><a class="nav-link {{cls_stack}}"       href="/7">Stack</a></li>
+  <li class="nav-item"><a class="nav-link {{cls_stack}}"       href="/8">Stack</a></li>
   <li class="nav-item"><a class="nav-link {{cls_model_info}}"  href="/mi">Model Info</a></li>
   <li class="nav-item"><a class="nav-link {{cls_faq}}"         href="/faq">FAQ</a></li>
 </ul>

@@ -211,9 +211,9 @@ def _build_block_map(dates: pd.DatetimeIndex,
 def main_full():
     dates = _load_price_dates()
     tip = _rpc("getblockcount")
-    # Estimate h_start: overshoot by ~150 blocks/day
-    days_since_first = (pd.Timestamp.today().normalize() - dates[0]).days
-    h_start = max(0, tip - days_since_first * 150 - 1000)
+    # Always start from 0 for a full rebuild. Bitcoin's average is ~150 blocks/day
+    # which gives h_start ≈ first price date's actual block height — no margin.
+    h_start = 0
     _LOG.info("fetching headers %d..%d (%d blocks)", h_start, tip, tip - h_start + 1)
     heights, times = _fetch_headers_batched(h_start, tip)
     df = _build_block_map(dates, heights, times)

@@ -207,6 +207,10 @@ def _cache_headers(response):
                     " http://jxnpv6ef3yo2kqpeu6u3nmv343k7vpyn7katlfdoc3n7hgvz7l5woqid.onion"
                     " ws://jxnpv6ef3yo2kqpeu6u3nmv343k7vpyn7katlfdoc3n7hgvz7l5woqid.onion"
                     " http://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion")
+        # Onion stays strict — no Google Fonts (fingerprint surface). Tor
+        # users see the OS fallback stack defined in style.css.
+        _style_src = "'self' 'unsafe-inline'"
+        _font_src = "'self'"
     else:
         # https://dash-version.plotly.com: Plotly.js 6.x fires a background
         # version-check on every page load. Without this whitelist, Chrome
@@ -218,18 +222,21 @@ def _cache_headers(response):
         _connect = ("'self' https://mempool.space wss://mempool.space"
                     " https://blockstream.info"
                     " https://dash-version.plotly.com:8080")
+        # Google Fonts (DM Serif Display + Inter) loaded from layout head.
+        _style_src = "'self' 'unsafe-inline' https://fonts.googleapis.com"
+        _font_src = "'self' https://fonts.gstatic.com"
     # Static pages set their own CSP (allows MathJax CDN) — don't overwrite
     if 'Content-Security-Policy' not in response.headers:
         response.headers['Content-Security-Policy'] = "; ".join([
             "default-src 'self'",
             "script-src 'self' 'unsafe-inline'",
-            "style-src 'self' 'unsafe-inline'",
+            f"style-src {_style_src}",
             f"frame-src {_frame_src}",
             "frame-ancestors 'none'",
             "base-uri 'self'",
             "img-src 'self' data: blob:",
             f"connect-src {_connect}",
-            "font-src 'self'",
+            f"font-src {_font_src}",
         ])
     return response
 
@@ -308,7 +315,7 @@ print(f"[resqr] bound {_resqr_bound} model bundles  _HAS_RESQR={_HAS_RESQR}")
 _boot_mark("model registration + resqr bind done")
 
 # ── compute per-quantile R² for all models ───────────────────────────────
-# Used only by the Model Info accordion (/8.N). Costs ~2.3s at boot because
+# Used only by the Model Info accordion (/9.N). Costs ~2.3s at boot because
 # there are ~80 registered models (incl. 72 config-family variants) × ~7
 # quantiles × ~3700 price observations each. Move to a daemon thread so
 # the module finishes sooner; the first /8 visitor might see missing R²

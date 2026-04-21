@@ -361,6 +361,7 @@ _RESEARCH_IMAGES = [
     ("parallel_fan.jpg",                  "Q10–Q50 fan at offset=0 vs optimal (37,200 blocks)"),
     ("parallel_score_low.jpg",            "Slope parallelism score vs offset — Q5–Q20 only"),
     ("parallel_fan_low.jpg",              "Q5–Q20 fan at offset=0 vs optimal (33,000 blocks)"),
+    ("two_point_power_law.jpg",            "Two-point power law (first→last data point): log-log and log-linear"),
     ("parallel_overlay_low.jpg",          "Q5–Q20 overlay: log-log and log-linear at offset=33,000"),
     ("parallel_overlay_mid.jpg",          "Q10–Q50 overlay: log-log and log-linear at offset=37,200"),
     ("crossing_logdensity.jpg",           "Crossing-symmetry score vs offset — log-density weighted only"),

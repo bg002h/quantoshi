@@ -357,7 +357,8 @@ _RESEARCH_IMAGES = [
     ("qstar_fine_3d.jpg",                "Fine-resolution 3D cvar surface"),
     ("qstar_slices.jpg",                 "cvar vs offset — fixed Q-level slices"),
     ("qstar_valley_width.jpg",           "Valley width analysis across quantile levels"),
-    ("qstar_crossing_score.jpg",         "Crossing-symmetry score vs offset"),
+    ("crossing_logdensity.jpg",           "Crossing-symmetry score vs offset — log-density weighted only"),
+    ("qstar_crossing_score.jpg",         "Crossing-symmetry score vs offset — all weight modes"),
     ("qstar_crossing_fan.jpg",           "Quantile fan — offset=0 vs optimal offset"),
 ]
 

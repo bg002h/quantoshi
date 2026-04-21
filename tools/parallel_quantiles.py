@@ -36,7 +36,7 @@ df = (prices.merge(blocks, on="date", how="inner")
 LOG_P = np.log10(df["Price"].values)
 BLK   = df["blockheight"].values.astype(np.float64)
 
-TARGET_QS = [10, 20, 30, 40, 50]
+TARGET_QS = [5, 10, 15, 20]
 N_BINS    = 10
 N_WORKERS = 19
 
@@ -165,15 +165,15 @@ if __name__ == "__main__":
 
     ax1.xaxis.set_major_formatter(fmt_k)
     ax1.set_xlabel("Block offset", fontsize=10)
-    ax1.set_ylabel("Std of slopes across Q10–Q50", fontsize=10)
+    ax1.set_ylabel("Std of slopes across Q5–Q20", fontsize=10)
     ax1.set_title(
         "Slope parallelism score vs block offset  —  log-density weighted\n"
-        "Score = std(slopes) for Q10/Q20/Q30/Q40/Q50  |  Lower = more parallel quantile lines",
+        "Score = std(slopes) for Q5/Q10/Q15/Q20  |  Lower = more parallel quantile lines",
         fontsize=10,
     )
     ax1.grid(True, alpha=0.2)
     fig1.tight_layout()
-    out1 = ROOT / "btc_web" / "assets" / "research" / "parallel_score.jpg"
+    out1 = ROOT / "btc_web" / "assets" / "research" / "parallel_score_low.jpg"
     fig1.savefig(out1, dpi=150, bbox_inches="tight")
     print(f"\nSaved → {out1}")
 
@@ -182,7 +182,7 @@ if __name__ == "__main__":
 
     fig2, axes2 = plt.subplots(1, 2, figsize=(16, 7), sharey=True)
     fig2.suptitle(
-        "Q10/Q20/Q30/Q40/Q50 fan — log-density weighted\n"
+        "Q5/Q10/Q15/Q20 fan — log-density weighted\n"
         "At the optimal offset the lines should be parallel (equal slopes / exponents)",
         fontsize=11,
     )
@@ -216,6 +216,6 @@ if __name__ == "__main__":
 
     axes2[0].set_ylabel("log₁₀(price)", fontsize=9)
     fig2.tight_layout()
-    out2 = ROOT / "btc_web" / "assets" / "research" / "parallel_fan.jpg"
+    out2 = ROOT / "btc_web" / "assets" / "research" / "parallel_fan_low.jpg"
     fig2.savefig(out2, dpi=150, bbox_inches="tight")
     print(f"Saved → {out2}")

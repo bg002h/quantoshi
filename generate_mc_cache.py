@@ -22,7 +22,7 @@ from pathlib import Path
 
 # ── Setup paths (before any project imports) ─────────────────────────────────
 ROOT = Path(__file__).parent
-for p in (str(ROOT), str(ROOT / "btc_web"), str(ROOT / "archive" / "btc_app")):
+for p in (str(ROOT), str(ROOT / "btc_web")):
     if p not in sys.path:
         sys.path.insert(0, p)
 
@@ -57,7 +57,7 @@ def _init_worker():
     models["lppl"] = LPPLModel(M.price_years, M.price_prices, M.QR_QUANTILES)
     models["exp"]  = ExponentialModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 
-    ef_pkl = ROOT / "btc_app" / "model_data_ef.pkl"
+    ef_pkl = ROOT / "model_data_ef.pkl"
     if ef_pkl.exists():
         models["ef"] = EmpiricalFloorModel(str(ef_pkl))
 

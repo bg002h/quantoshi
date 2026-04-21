@@ -12,7 +12,6 @@ it's a low-fidelity placeholder that hides within 1-2 seconds.
 import sys, pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "archive" / "btc_app"))
 
 import numpy as np
 import pandas as pd

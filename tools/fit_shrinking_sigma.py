@@ -15,7 +15,6 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "archive" / "btc_app"))
 
 GENESIS_YR = 2009.56  # 2009-07-25
 

@@ -18,7 +18,7 @@ Two earlier components have been retired and moved to `debris/`:
 | Retired | Replacement |
 |---|---|
 | `SP.ipynb` (Jupyter notebook for model building) | `tools/build_bm_model.py` + `tools/model_toolkit/` |
-| `btc_app/btc_projections.py` (PyQt5 desktop GUI) | Spin-off as its own project |
+| `btc_app/btc_projections.py` (PyQt5 desktop GUI) | Retired — not included in the repo |
 
 ### Daily data -> model -> app pipeline
 
@@ -86,7 +86,7 @@ bitcoinprojections/
 |   \-- quantoshi-ppl-refit.{timer,service}
 |
 |-- archive/                    <- cold storage
-|-- debris/                     <- retired code (SP.ipynb, btc_app)
+|-- debris/                     <- retired code (out-of-tree)
 |-- scripts/                    <- operator CLI (health, restart)
 |-- update_prices.py            <- daily data fetch + rebuild trigger
 |-- run_web.sh                  <- local dev + gunicorn launcher

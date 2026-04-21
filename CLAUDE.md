@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **`btc_web/`** — Plotly Dash web app. Live at [quantoshi.xyz](https://quantoshi.xyz) and `u5dprelc4ti7xoczb5sbtye6qidlji2l6psmkx35anvxgjyqrkmu32ad.onion`.
 
-Retired / removed from the active tree (kept under `debris/` for reference):
+Retired / removed from the active tree (kept under `../debris/` for reference):
 - `SP.ipynb` — original Jupyter notebook; superseded by `tools/build_bm_model.py` and `tools/model_toolkit/`.
 - `btc_app/btc_projections.py` — PyQt5 standalone GUI app; spin-off is complete.
 
@@ -73,7 +73,7 @@ ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && redis-cli FLUSHDB && sys
 ```
 **After price data update** (new model_data.pkl), also regenerate Citadel cache:
 ```bash
-ssh root@89.167.70.45 "PYTHONPATH=/opt/quantoshi:/opt/quantoshi/btc_app:/opt/quantoshi/archive/btc_app:/opt/quantoshi/btc_web \
+ssh root@89.167.70.45 "PYTHONPATH=/opt/quantoshi:/opt/quantoshi/btc_web \
     btc_venv/bin/python3 btc_web/generate_citadel_cache.py"
 ```
 Redis flush clears stale cache entries from old model data. New fingerprinted entries are built fresh on first request + Citadel cache regeneration.
@@ -116,8 +116,8 @@ bash tools/rebuild_caches.sh --help        # full docs
 
 ## Retired components
 
-- **`SP.ipynb`** — original Jupyter notebook (bubble model + QR + chart generation). Retired to `debris/SP.ipynb`. Source of truth for model builds is now `tools/build_bm_model.py` + `tools/model_toolkit/`.
-- **`btc_app/btc_projections.py`** — PyQt5 standalone GUI app. Retired to `debris/btc_app/`; spin-off is complete.
+- **`SP.ipynb`** — original Jupyter notebook (bubble model + QR + chart generation). Retired (out-of-tree at `../debris/SP.ipynb`). Source of truth for model builds is now `tools/build_bm_model.py` + `tools/model_toolkit/`.
+- **`btc_app/btc_projections.py`** — PyQt5 standalone GUI app. Retired (out-of-tree at `../debris/btc_app/`); spin-off is complete.
 
 ---
 

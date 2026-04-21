@@ -55,7 +55,7 @@ echo ""
 if [ "$BUILD_MC" = "true" ]; then
     echo "▶ Building MC cache (expect 2-4 hours)..."
     if [ -f btc_web/mc_cache.py ]; then
-        PYTHONPATH=".:btc_web:archive/btc_app" btc_venv/bin/python3 -c "
+        PYTHONPATH=".:btc_web" btc_venv/bin/python3 -c "
 import _app_ctx
 from btc_core import load_model_data
 import btc_web.mc_cache as mc
@@ -80,7 +80,7 @@ fi
 if [ "$BUILD_CITADEL" = "true" ]; then
     echo "▶ Building Citadel band cache (expect ~4 hours with 18 workers)..."
     if [ -f tools/generate_citadel_bands.py ]; then
-        PYTHONPATH=".:btc_web:archive/btc_app" btc_venv/bin/python3 tools/generate_citadel_bands.py
+        PYTHONPATH=".:btc_web" btc_venv/bin/python3 tools/generate_citadel_bands.py
     else
         echo "Citadel band generator not found — skipping."
     fi

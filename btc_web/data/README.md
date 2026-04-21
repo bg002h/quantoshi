@@ -51,10 +51,10 @@ This approximation is standard in fixed-income analytics. It captures both incom
 
 ```bash
 # From project root:
-PYTHONPATH=".:btc_web:archive/btc_app" btc_venv/bin/python3 btc_web/data/fetch_historical.py
+PYTHONPATH=".:btc_web" btc_venv/bin/python3 btc_web/data/fetch_historical.py
 
 # Preview without saving:
-PYTHONPATH=".:btc_web:archive/btc_app" btc_venv/bin/python3 btc_web/data/fetch_historical.py --dry-run
+PYTHONPATH=".:btc_web" btc_venv/bin/python3 btc_web/data/fetch_historical.py --dry-run
 ```
 
 The script:

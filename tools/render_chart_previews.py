@@ -21,7 +21,6 @@ os.environ["SKIP_PREWARM"] = "1"
 os.chdir(str(ROOT / "btc_web"))
 sys.path.insert(0, str(ROOT / "btc_web"))
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "archive" / "btc_app"))
 
 ASSETS = ROOT / "btc_web" / "assets"
 W, H = 1200, 750

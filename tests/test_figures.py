@@ -1,7 +1,6 @@
 """Comprehensive test suite for Quantoshi web app."""
 import sys, os, json, math, traceback
 sys.path.insert(0, "/scratch/code/bitcoinprojections/btc_web")
-sys.path.insert(0, "/scratch/code/bitcoinprojections/btc_app")
 os.chdir("/scratch/code/bitcoinprojections/btc_web")
 
 import pandas as pd

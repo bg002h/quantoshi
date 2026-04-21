@@ -7,7 +7,7 @@ Requires=redis-server.service
 Type=simple
 User=root
 WorkingDirectory=/opt/quantoshi
-Environment=PYTHONPATH=/opt/quantoshi:/opt/quantoshi/btc_app:/opt/quantoshi/archive/btc_app:/opt/quantoshi/btc_web
+Environment=PYTHONPATH=/opt/quantoshi:/opt/quantoshi/btc_web
 ExecStart=/opt/quantoshi/btc_venv/bin/celery -A btc_web.celery_app worker --loglevel=info -c 2 --max-tasks-per-child=50
 Restart=always
 RestartSec=5

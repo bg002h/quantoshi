@@ -14,7 +14,7 @@ ExecStart=/scratch/code/bitcoinprojections/btc_venv/bin/gunicorn \
     --timeout 120 \
     --access-logfile - \
     --error-logfile -
-Environment=PYTHONPATH=/scratch/code/bitcoinprojections:/scratch/code/bitcoinprojections/btc_app:/scratch/code/bitcoinprojections/btc_web
+Environment=PYTHONPATH=/scratch/code/bitcoinprojections:/scratch/code/bitcoinprojections/btc_web
 Restart=on-failure
 RestartSec=5
 

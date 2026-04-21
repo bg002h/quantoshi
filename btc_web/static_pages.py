@@ -390,7 +390,7 @@ def _build_research_html():
 
 
 def register_static_routes(server):
-    """Register /faq, /faq.N, /mi, /mi.N, /A Flask routes."""
+    """Register /faq, /faq.N, /mi, /mi.N, /Z Flask routes."""
 
     @server.route("/faq")
     def _static_faq():
@@ -422,7 +422,7 @@ def register_static_routes(server):
         page = _open_accordion_item(html_cache, item_id)
         return page, 200, _static_headers()
 
-    @server.route("/A")
+    @server.route("/Z")
     def _research_gallery():
         global _RESEARCH_HTML
         if _RESEARCH_HTML is None:

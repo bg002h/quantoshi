@@ -575,3 +575,29 @@ _app_ctx.app.clientside_callback(
     Input("snapshot-pending", "data"),
     prevent_initial_call=True,
 )
+
+
+# ── Clientside pre-arm of snapshot-pending on page load ────────────────────
+# Runs SYNCHRONOUSLY on initial load (prevent_initial_call=False) so the
+# gate is up BEFORE any server-side restore_from_url round-trip completes.
+# Fixes the "3 refreshes before settle" bug where hydration Inputs
+# (palette-store, effective-lots, user-model-store) would fire the chart
+# callback between layout and restore_from_url, rendering defaults before
+# restore landed.
+_app_ctx.app.clientside_callback(
+    """
+    function(hash) {
+        if (!hash) return false;
+        var h = hash.indexOf('#') === 0 ? hash.slice(1) : hash;
+        // Any share-link prefix arms the gate immediately.
+        if (h.indexOf('q1:') === 0 || h.indexOf('q2:') === 0 ||
+            h.indexOf('q3:') === 0) {
+            return true;
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("snapshot-pending", "data", allow_duplicate=True),
+    Input("url", "hash"),
+    prevent_initial_call='initial_duplicate',
+)

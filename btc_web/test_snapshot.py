@@ -559,3 +559,112 @@ class TestPostRefactorArchitecture:
         param_names = list(sig.parameters.keys())
         assert "share_scope" not in param_names, (
             f"share_scope still a parameter: {param_names}")
+
+
+class TestSnapshotPendingGate:
+    """Tests for the snapshot-pending gate that reduces chart redraws.
+    Per spec docs/superpowers/specs/2026-04-24-single-redraw-per-snapshot-design.md."""
+
+    def test_snapshot_pending_in_layout(self):
+        """The snapshot-pending Store must exist in the rendered layout."""
+        import layout
+        import json
+        rendered = layout._serve_layout() if hasattr(layout, "_serve_layout") else None
+        serialised = json.dumps(rendered, default=str) if rendered else ""
+        assert "snapshot-pending" in serialised, (
+            "snapshot-pending Store missing from layout")
+
+    def test_restore_from_url_uses_initial_duplicate(self):
+        """restore_from_url must use prevent_initial_call='initial_duplicate'
+        because it now has an allow_duplicate=True Output."""
+        import _app_ctx
+        app = _app_ctx.app
+        for cb_key, entry in app.callback_map.items():
+            if "loaded-hash-store.data" in cb_key and "snapshot-state-store.data" in cb_key:
+                pic = entry.get("prevent_initial_call", None)
+                assert pic == "initial_duplicate", (
+                    f"restore_from_url must use 'initial_duplicate', got {pic!r}")
+                return
+        raise AssertionError("restore_from_url callback not found in callback_map")
+
+    def test_apply_tab_outputs_include_snapshot_pending(self):
+        """Each of the 7 apply_tab_{tab} callbacks must output snapshot-pending.data."""
+        import _app_ctx
+        app = _app_ctx.app
+        hits = 0
+        for cb_key in app.callback_map:
+            outputs = cb_key.split("...")
+            clean = [o.split("@")[0] for o in outputs]
+            if ("snapshot-pending.data" in clean and
+                any(c.split(".")[0].startswith(("bub-", "hm-", "dca-",
+                                                 "ret-", "sc-", "cp-", "lev-"))
+                    for c in clean)):
+                hits += 1
+        assert hits == 7, (
+            f"Expected 7 apply_tab_* callbacks with snapshot-pending output; got {hits}")
+
+    def test_apply_tab_releases_gate_on_populated_state(self):
+        """apply_tab_bubble with populated state returns False (release) as last output."""
+        from callbacks.snapshot_cb import apply_tab_bubble
+        state = {"bub-xscale:value": "Lin", "bub-qs:value": [0.5]}
+        result = apply_tab_bubble(1, state)
+        assert result[-1] is False, (
+            f"Last output must be False to release gate; got {result[-1]!r}")
+
+    def test_apply_tab_does_not_clear_gate_when_state_none(self):
+        """apply_tab_bubble with state=None returns no_update for gate output
+        (NOT False) — so non-restore first-render bumps don't accidentally
+        clear the gate."""
+        from callbacks.snapshot_cb import apply_tab_bubble
+        from dash import no_update
+        result = apply_tab_bubble(None, None)
+        assert result[-1] is no_update, (
+            f"Gate output must be no_update when state is None; got {result[-1]!r}")
+        assert all(x is no_update for x in result), (
+            "All outputs must be no_update when state is None")
+
+    def test_snapshot_pending_writers_have_allow_duplicate(self):
+        """Every callback that outputs snapshot-pending.data must use
+        allow_duplicate=True (the @ marker in the callback_map key)."""
+        import _app_ctx
+        app = _app_ctx.app
+        for cb_key in app.callback_map:
+            parts = cb_key.split("...")
+            for part in parts:
+                base = part.split("@")[0]
+                if base == "snapshot-pending.data":
+                    assert "@" in part, (
+                        f"Callback {cb_key} outputs snapshot-pending without "
+                        f"allow_duplicate (part: {part!r})")
+
+    def test_apply_globals_does_not_output_snapshot_pending(self):
+        """Guard: apply_globals must NOT output snapshot-pending. If a future
+        editor moves the release into apply_globals, it clears the gate before
+        apply_tab_{active} runs — breaking the single-redraw invariant."""
+        import _app_ctx
+        app = _app_ctx.app
+        for cb_key in app.callback_map:
+            parts = cb_key.split("...")
+            clean = [p.split("@")[0] for p in parts]
+            if ("main-tabs.active_tab" in clean and "palette-store.data" in clean):
+                assert "snapshot-pending.data" not in clean, (
+                    "apply_globals must NOT output snapshot-pending "
+                    "(would break single-redraw invariant)")
+
+    def test_safety_timer_at_least_3000ms(self):
+        """Clientside safety timer must wait at least 3000 ms before
+        unconditionally clearing the gate."""
+        import _app_ctx
+        found = False
+        for src in _app_ctx.app._callback_list:
+            cb_str = str(src)
+            if "snapshot-pending" in cb_str and "setTimeout" in cb_str:
+                import re
+                m = re.search(r"setTimeout\s*\([^,]+,\s*(\d+)", cb_str)
+                assert m, f"Could not parse setTimeout duration"
+                duration = int(m.group(1))
+                assert duration >= 3000, (
+                    f"Safety timer must be >= 3000ms; got {duration}")
+                found = True
+                break
+        assert found, "Safety-timer clientside callback not registered"

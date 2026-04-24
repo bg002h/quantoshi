@@ -2006,3 +2006,44 @@ from btc_core import (PriceModel, _FitsBasedModel, BubbleModel, PowerLawModel,
                       S2FModel, QuantileRegressionModel)
 
 
+
+
+@pytest.mark.skipif(_q3 is None, reason="app.py import failed")
+class TestSnapshotPendingChartGate:
+    """The 9 figure-writing chart callbacks must early-return no_update
+    when snapshot-pending is True. Spec 2026-04-24-single-redraw-per-snapshot."""
+
+    _CHART_OUTPUTS_EXPECTED = {
+        "bubble-graph.figure":    "update_bubble",
+        "heatmap-graph.figure":   "update_heatmap",
+        "dca-graph.figure":       "update_dca",
+        "retire-graph.figure":    "update_retire",
+        "supercharge-graph.figure": "update_supercharge",
+        "bub-cagr-graph.figure":  "update_bub_cagr",
+        "bub-resid-graph.figure": "update_bub_resid",
+        "citadel-graph.figure":   "update_citadel",
+        "lev-graph.figure":       "update_leverage",
+    }
+
+    def test_nine_chart_callbacks_have_snapshot_pending_state(self):
+        """Each figure-writing chart callback must declare
+        State('snapshot-pending','data')."""
+        import _app_ctx
+        app = _app_ctx.app
+        missing = []
+        for cb_key in app.callback_map:
+            parts = cb_key.split("...")
+            outputs = [p.split("@")[0] for p in parts]
+            if outputs[0] in self._CHART_OUTPUTS_EXPECTED:
+                entry = app.callback_map[cb_key]
+                # Dash stores both Inputs and States in these fields
+                all_deps = []
+                for field in ("inputs", "state"):
+                    for d in entry.get(field, []) or []:
+                        cid = (getattr(d, "component_id", None)
+                               if not isinstance(d, dict) else d.get("id"))
+                        all_deps.append(cid)
+                if "snapshot-pending" not in all_deps:
+                    missing.append(outputs[0])
+        assert not missing, (
+            f"Chart callbacks missing State('snapshot-pending','data'): {missing}")

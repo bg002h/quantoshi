@@ -205,6 +205,17 @@ _app_ctx.app.clientside_callback(
                     {"display":"none"}, jText, jStyle,
                     window.dash_clientside.no_update];
         }
+        /* Share-hash loads: leave prefetch-ready unset so non-active tabs
+           don't start lazy-loading until the snapshot finishes applying to
+           the active tab. A separate callback on loaded-hash-store flips
+           prefetch-ready once restore is complete. */
+        if (hasShareHash) {
+            return [false, window.dash_clientside.no_update,
+                    window.dash_clientside.no_update, window.dash_clientside.no_update,
+                    window.dash_clientside.no_update,
+                    window.dash_clientside.no_update, window.dash_clientside.no_update,
+                    window.dash_clientside.no_update];
+        }
         return [false, window.dash_clientside.no_update,
                 window.dash_clientside.no_update, window.dash_clientside.no_update,
                 window.dash_clientside.no_update,
@@ -379,4 +390,26 @@ _app_ctx.app.clientside_callback(
     """,
     Output("knight-welcome", "children"),
     Input("splash-ts-store", "data"),
+)
+
+
+# ── Release prefetch gate after snapshot restore completes ────────────────
+# When a share link loads (path + #q3:... hash), the splash callback above
+# deliberately leaves prefetch-ready unset so non-active tabs don't begin
+# lazy-materialising while the active tab is still being restored. This
+# clientside callback fires once loaded-hash-store is written by
+# restore_from_url (snapshot_cb.py:44) — meaning apply_snapshot has already
+# dispatched its eager-control writes and relay-store updates. We then
+# release prefetch-ready on the next animation frame so the current
+# callback batch flushes first.
+_app_ctx.app.clientside_callback(
+    """
+    function(loaded_hash) {
+        if (!loaded_hash) return window.dash_clientside.no_update;
+        return 1;
+    }
+    """,
+    Output("prefetch-ready", "data", allow_duplicate=True),
+    Input("loaded-hash-store", "data"),
+    prevent_initial_call=True,
 )

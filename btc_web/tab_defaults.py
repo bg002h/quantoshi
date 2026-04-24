@@ -137,30 +137,68 @@ def _build_heatmap_dict():
 
 HEATMAP = MappingProxyType(_build_heatmap_dict())
 
-DCA = MappingProxyType({
-    "start_stack": 0, "use_lots": False,
-    "amount": 100, "freq": "Monthly", "inflation": 0.0,
-    "selected_qs": (0.5,),
-    "disp_mode": "btc",
-    "annotate": True, "show_today": False,
-    "show_legend": False, "minor_grid": False,
-    "log_y": False,
-    "discrete": False, "shade": False,
-    "legend_pos": "bottom-right",
-    "active_models": (),
-    "palette": "default",
-    "sc_enabled": False, "sc_loan_amount": 1200,
-    "sc_rate": 13.0, "sc_loan_type": "interest_only",
-    "sc_term_months": 12, "sc_repeats": 0, "sc_rollover": False,
-    "sc_entry_mode": "live", "sc_custom_price": 80000.0,
-    "sc_tax_rate": 0.33,
-    "show_qr": True, "show_mc": False,
-    # qs_mode is a UI control (sel-qs vs adv-qs selector) consumed by
-    # routing logic in the callback — never placed into the figure builder's
-    # params dict. dca_defaults() pops it before the prewarm cache key is
-    # built so the key matches the runtime key.
-    "qs_mode": (),
-})
+def _build_dca_dict():
+    """Derive DCA figure-params from SNAPSHOT_DEFAULTS widget values.
+
+    Translation notes:
+    - dca-sc-tax:value is PERCENT (33); sc_tax_rate is FRACTION (0.33).
+    - active_models stays empty tuple (widget has ['bub'] but DCA fig
+      callback sources active_models separately).
+    - qs_mode is UI-only; popped in dca_defaults() before prewarm key.
+    """
+    from snapshot_defaults import SNAPSHOT_DEFAULTS as _S
+    _BANDS = {"inner": [0.15, 0.85], "outer": [0.01, 0.99], "median": [0.5]}
+
+    def sd(k, default=None):
+        return _S.get(k, default)
+
+    def _bands(vals):
+        qs = []
+        for b in (vals or []):
+            qs.extend(_BANDS.get(b, []))
+        return tuple(sorted(set(qs)))
+
+    toggles = set(sd("dca-toggles:value", []) or [])
+    qs_mode_val = tuple(sd("dca-qs-mode:value", []) or [])
+    if "advanced" in qs_mode_val:
+        sel_qs = tuple(sd("dca-qs-adv:value", [0.5]) or [0.5])
+    else:
+        sel_qs = _bands(sd("dca-qs:value", ["median"])) or (0.5,)
+    return {
+        "start_stack":  sd("dca-stack:value", 0),
+        "use_lots":     bool(sd("dca-use-lots:value", []) or []),
+        "amount":       sd("dca-amount:value", 100),
+        "freq":         sd("dca-freq:value", "Monthly"),
+        "inflation":    sd("dca-infl:value", 0.0),
+        "selected_qs":  sel_qs,
+        "disp_mode":    sd("dca-disp:value", "btc"),
+        "annotate":     "annotate"    in toggles,
+        "show_today":   "show_today"  in toggles,
+        "show_legend":  "show_legend" in toggles,
+        "minor_grid":   "minor_grid"  in toggles,
+        "log_y":        "log_y"       in toggles,
+        "discrete":     "discrete"    in toggles,
+        "shade":        "shade"       in toggles,
+        "legend_pos":   sd("dca-legend-pos:value", "bottom-right"),
+        "active_models": (),
+        "palette":      sd("palette-store:data", "default"),
+        "sc_enabled":   bool(sd("dca-sc-enable:value", []) or []),
+        "sc_loan_amount": sd("dca-sc-loan:value", 1200),
+        "sc_rate":      sd("dca-sc-rate:value", 13.0),
+        "sc_loan_type": sd("dca-sc-type:value", "interest_only"),
+        "sc_term_months": sd("dca-sc-term:value", 12),
+        "sc_repeats":   sd("dca-sc-repeats:value", 0),
+        "sc_rollover":  bool(sd("dca-sc-rollover:value", []) or []),
+        "sc_entry_mode": sd("dca-sc-entry-mode:value", "live"),
+        "sc_custom_price": sd("dca-sc-custom-price:value", 80000.0),
+        "sc_tax_rate":  float(sd("dca-sc-tax:value", 33)) / 100.0,
+        "show_qr":      True,
+        "show_mc":      False,
+        "qs_mode":      qs_mode_val,
+    }
+
+
+DCA = MappingProxyType(_build_dca_dict())
 
 RETIRE = MappingProxyType({
     "start_stack": 1.0, "use_lots": False,

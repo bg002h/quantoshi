@@ -1571,28 +1571,24 @@ def _register_qs_mode_callbacks(prefix):
     @callback(
         Output(f"{prefix}-qs-default-wrap", "style"),
         Output(f"{prefix}-qs-advanced-wrap", "style"),
-        Output(f"{prefix}-qs", "value", allow_duplicate=True),
-        Output(f"{prefix}-qs-adv", "value", allow_duplicate=True),
         Input(f"{prefix}-qs-mode", "value"),
-        State(f"{prefix}-qs", "value"),
-        State(f"{prefix}-qs-adv", "value"),
         prevent_initial_call=True,
     )
-    def toggle_mode(mode, default_vals, adv_vals):
-        from layout.common import _DEFAULT_BANDS
+    def toggle_mode(mode):
+        # Visibility-only toggle. Previously also derived {prefix}-qs from
+        # {prefix}-qs-adv (and vice versa) to sync band names ↔ quantile
+        # floats across modes. That caused a flip-flop during snapshot
+        # restore: apply_tab_bubble writes bub-qs + bub-qs-adv + bub-qs-mode
+        # in one batch; the bub-qs-mode change re-fires this callback;
+        # deriving bub-qs from the just-restored adv_vals=[0.5] reduced to
+        # ['median'] and overwrote the restored ['outer', 'median'] (3
+        # oscillations observed via 20ms DOM poll 2026-04-24).
+        # Fix: drop the derivation. Users keep their selection in each
+        # mode; re-check when switching modes if needed.
         is_advanced = "advanced" in (mode or [])
         if is_advanced:
-            # Expand band names to quantile floats for advanced checklist
-            expanded = _bands_to_qs(default_vals) if default_vals else []
-            return ({"display": "none"}, {}, dash.no_update, expanded)
-        else:
-            # Convert quantile floats back to band names
-            adv_set = set(adv_vals or [])
-            bands = []
-            for b in _DEFAULT_BANDS:
-                if any(q in adv_set for q in b["qs"]):
-                    bands.append(b["value"])
-            return ({}, {"display": "none"}, bands or ["median"], dash.no_update)
+            return ({"display": "none"}, {})
+        return ({}, {"display": "none"})
 
 
 

@@ -143,19 +143,11 @@ def _make_apply_tab_callback(tab_id, first_render_id, controls):
         State("snapshot-state-store", "data"),
         prevent_initial_call=True,
     )
-    def _apply(_trigger, state, _ctrls=controls, _tab=tab_id):
-        import sys
+    def _apply(_trigger, state, _ctrls=controls):
         if not state:
-            print(f"[DIAG] apply_tab_{_tab} state=None trigger={_trigger!r}",
-                  file=sys.stderr, flush=True)
             # Including gate output: no_update.
             return [no_update] * (len(_ctrls) + 1)
         values = [state.get(f"{cid}:{prop}", no_update) for cid, prop in _ctrls]
-        if _tab == "bubble":
-            print(f"[DIAG] apply_tab_bubble trigger={_trigger!r} "
-                  f"bub-qs={state.get('bub-qs:value')!r} "
-                  f"model-show={state.get('bub-model-show:value')!r}",
-                  file=sys.stderr, flush=True)
         values.append(False)  # release gate
         return values
 

@@ -744,3 +744,25 @@ class TestSnapshotPendingGate:
         block = src[idx:idx + 2000]
         assert 'Math.max' in block and '500' in block, (
             "500ms min-display (Math.max) not found in close callback")
+
+
+class TestSnapshotDefaultsRegistry:
+    def test_current_fingerprint_in_registry(self):
+        """If this fails, run: btc_venv/bin/python3 tools/update_defaults_registry.py"""
+        import json, os, pathlib
+        here = pathlib.Path(os.path.dirname(__file__))
+        from snapshot_defaults import _compute_snapshot_defaults_fingerprint
+        fp = _compute_snapshot_defaults_fingerprint()
+        with open(here / "snapshot_defaults_registry.json") as f:
+            registry = json.load(f)
+        fps = [e["fp"] for e in registry]
+        assert fp in fps, (
+            f"current fingerprint {fp} not in registry {fps}; run "
+            "tools/update_defaults_registry.py and commit the result")
+
+    def test_registry_capped_at_20(self):
+        import json, os, pathlib
+        here = pathlib.Path(os.path.dirname(__file__))
+        with open(here / "snapshot_defaults_registry.json") as f:
+            registry = json.load(f)
+        assert len(registry) <= 20, f"registry has {len(registry)} entries (cap=20)"

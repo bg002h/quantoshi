@@ -444,11 +444,13 @@ def _build_layout(initial_tab="bubble"):
     # released by apply_tab_{tab} or 3s safety timer. See spec
     # 2026-04-24-single-redraw-per-snapshot-design.md.
     dcc.Store(id="snapshot-pending", storage_type="memory", data=False),
-    # Tracks which tabs have already applied the currently-loaded snapshot
-    # (keyed by tab_id → loaded_hash). Prevents apply_tab_{tab} from
-    # re-writing stale snapshot values when {tab}-first-render bumps again
-    # for unrelated reasons (e.g., sigma-mode radio change).
-    dcc.Store(id="snapshot-applied-tabs", storage_type="memory", data={}),
+    # Per-tab flag: records the loaded_hash each tab last applied.
+    # Prevents apply_tab_{tab} from re-writing stale snapshot values when
+    # {tab}-first-render bumps again for unrelated reasons
+    # (e.g. sigma-mode radio change).
+    *[dcc.Store(id=f"{t}-snap-applied", storage_type="memory", data=None)
+      for t in ("bubble", "heatmap", "dca", "retire",
+                "supercharge", "citadel", "leverage")],
     dcc.Store(id="palette-store",    storage_type="local",  data="default"),
     # Model warning dismissal (localStorage — persists across sessions, no cookies)
     dcc.Store(id="model-warn-dismissed", storage_type="local", data={}),

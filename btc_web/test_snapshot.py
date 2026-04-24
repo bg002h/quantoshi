@@ -722,15 +722,17 @@ class TestSnapshotPendingGate:
         block = src[idx:idx + 500]
         assert '150' in block, "150ms debounce not found in open callback"
 
-    def test_fallback_timer_5000ms(self):
-        """Open callback must arm a 5000 ms hard fallback."""
-        import os, pathlib
+    def test_fallback_timer_at_least_5000ms(self):
+        """Open callback must arm a hard fallback of at least 5000 ms."""
+        import os, pathlib, re
         here = pathlib.Path(os.path.dirname(__file__))
         src = (here / "callbacks" / "snapshot_cb.py").read_text()
         idx = src.find('__restoreFallback')
         assert idx > 0, "__restoreFallback not found"
         block = src[idx:idx + 1500]
-        assert '5000' in block, "5000ms hard fallback not found"
+        m = re.search(r"}\s*,\s*(\d+)\s*\)\s*;", block)
+        assert m and int(m.group(1)) >= 5000, (
+            f"hard fallback must be >= 5000 ms; got {m and m.group(1)}")
 
     def test_close_callback_min_display_500ms(self):
         """Close callback must enforce 500 ms min-display."""

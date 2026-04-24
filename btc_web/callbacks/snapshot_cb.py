@@ -136,28 +136,29 @@ def _make_apply_tab_callback(tab_id, first_render_id, controls):
     control writes (single-redraw-per-snapshot spec 2026-04-24). When
     state is None, every output — including the gate — is no_update so
     non-restore first-render bumps don't accidentally clear the gate."""
+    applied_id = f"{tab_id}-snap-applied"
+
     @callback(
         *[Output(cid, prop, allow_duplicate=True) for cid, prop in controls],
         Output("snapshot-pending", "data", allow_duplicate=True),
-        Output("snapshot-applied-tabs", "data", allow_duplicate=True),
+        Output(applied_id, "data", allow_duplicate=True),
         Input(first_render_id, "data"),
         State("snapshot-state-store", "data"),
         State("loaded-hash-store", "data"),
-        State("snapshot-applied-tabs", "data"),
+        State(applied_id, "data"),
         prevent_initial_call=True,
     )
-    def _apply(_trigger, state, loaded_hash, applied, _ctrls=controls,
-               _tab=tab_id):
-        # No-op if no snapshot state OR this tab has already applied the
-        # currently-loaded hash (prevents re-applying stale values on
-        # later first-render bumps, e.g. sigma-mode radio change).
-        if not state or (applied or {}).get(_tab) == loaded_hash:
+    def _apply(_trigger, state, loaded_hash, applied_hash, _ctrls=controls):
+        # No-op if no snapshot state, or this tab has already applied the
+        # currently-loaded hash (prevents re-applying stale values on later
+        # first-render bumps, e.g. sigma-mode radio change).
+        if not state:
+            return [no_update] * (len(_ctrls) + 2)
+        if loaded_hash and applied_hash == loaded_hash:
             return [no_update] * (len(_ctrls) + 2)
         values = [state.get(f"{cid}:{prop}", no_update) for cid, prop in _ctrls]
-        values.append(False)  # release gate
-        new_applied = dict(applied or {})
-        new_applied[_tab] = loaded_hash
-        values.append(new_applied)
+        values.append(False)          # release gate
+        values.append(loaded_hash)    # record applied
         return values
 
     _apply.__name__ = f"apply_tab_{tab_id}"
@@ -652,7 +653,7 @@ _app_ctx.app.clientside_callback(
             window.dash_clientside.set_props(
                 'restore-progress-modal', { is_open: false });
             window.__restoreOpenTime = null;
-        }, 5000);
+        }, 7000);
 
         return window.dash_clientside.no_update;
     }
@@ -663,17 +664,30 @@ _app_ctx.app.clientside_callback(
 )
 
 
-# ── Restore-progress modal close on first chart figure paint ──────────────
-# Close fires when any chart graph's `figure` property updates while the
-# modal is open. This ensures the modal stays visible until the active tab's
-# chart has actually rendered (not just when controls land via
-# snapshot-pending). 500 ms min-display prevents flash on fast restores.
+# ── Restore-progress modal close on snapshot-pending release ──────────────
+# snapshot-pending flips False when apply_tab_{active} writes its controls.
+# The chart callback then fires once using the released gate, computes, and
+# paints. We add a 1200 ms paint-settle delay so the modal doesn't fade
+# before the chart is visible. 500 ms min-display prevents flash. Lazy-tab
+# graph Inputs intentionally NOT used here — would trigger "nonexistent
+# object" warnings.
 _app_ctx.app.clientside_callback(
     """
-    function() {
-        if (!window.__restoreOpenTime) return window.dash_clientside.no_update;
+    function(pending) {
+        if (pending === true) return window.dash_clientside.no_update;
+        if (!window.__restoreOpenTime) {
+            if (window.__restoreOpenTimer) {
+                clearTimeout(window.__restoreOpenTimer);
+                window.__restoreOpenTimer = null;
+            }
+            if (window.__restoreFallback) {
+                clearTimeout(window.__restoreFallback);
+                window.__restoreFallback = null;
+            }
+            return window.dash_clientside.no_update;
+        }
         var elapsed = performance.now() - window.__restoreOpenTime;
-        var delay = Math.max(0, 500 - elapsed);
+        var delay = Math.max(1200, 500 - elapsed);
         setTimeout(function () {
             requestAnimationFrame(function () {
                 window.dash_clientside.set_props(
@@ -689,12 +703,6 @@ _app_ctx.app.clientside_callback(
     }
     """,
     Output("restore-progress-modal", "is_open", allow_duplicate=True),
-    Input("bubble-graph",      "figure"),
-    Input("heatmap-graph",     "figure"),
-    Input("dca-graph",         "figure"),
-    Input("retire-graph",      "figure"),
-    Input("supercharge-graph", "figure"),
-    Input("citadel-graph",     "figure"),
-    Input("lev-graph",         "figure"),
+    Input("snapshot-pending", "data"),
     prevent_initial_call=True,
 )

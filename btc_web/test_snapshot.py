@@ -683,3 +683,84 @@ class TestAllTabsLazyRelay:
         expected_len = len(_EAGER_CONTROLS) + 1 + _N_RELAY_STORES
         assert len(result) == expected_len
         assert all(v is no_update for v in result)
+
+
+class TestPostRefactorArchitecture:
+    """Tests locking in the new apply_globals + apply_tab_{tab} architecture.
+    Written per spec 2026-04-24-drop-all-tabs-snapshot-design.md."""
+
+    def test_no_double_write_partition(self):
+        """Union of globals + per-tab equals _SNAPSHOT_CONTROLS;
+        intersection is empty."""
+        from callbacks.snapshot_cb import _GLOBAL_CONTROLS, _PER_TAB_CONTROLS
+        from snapshot import _SNAPSHOT_CONTROLS
+        all_tab_cids = set()
+        for tab_id, cids_props in _PER_TAB_CONTROLS.items():
+            for cid, _prop in cids_props:
+                all_tab_cids.add(cid)
+        global_cids = {cid for cid, _ in _GLOBAL_CONTROLS}
+        assert global_cids.isdisjoint(all_tab_cids), (
+            f"Control(s) in both globals and per-tab: "
+            f"{global_cids & all_tab_cids}")
+        all_cids = {cid for cid, _ in _SNAPSHOT_CONTROLS}
+        assert global_cids | all_tab_cids == all_cids, (
+            f"Partition mismatch. "
+            f"Missing: {all_cids - (global_cids | all_tab_cids)}. "
+            f"Extra: {(global_cids | all_tab_cids) - all_cids}")
+
+    def test_apply_globals_writes_only_global_cids(self):
+        """apply_globals output count equals len(_GLOBAL_CONTROLS) + 1 (for snapshot-lots)."""
+        from callbacks.snapshot_cb import apply_globals, _GLOBAL_CONTROLS
+        state = {"main-tabs:active_tab": "heatmap",
+                 "palette-store:data": "default",
+                 "bub-xscale:value": "Lin"}
+        result = apply_globals(state)
+        assert len(result) == len(_GLOBAL_CONTROLS) + 1, (
+            f"Expected {len(_GLOBAL_CONTROLS) + 1} outputs, got {len(result)}")
+
+    def test_apply_tab_is_noop_when_state_none(self):
+        """apply_tab_bubble returns all no_update when state is None."""
+        from callbacks.snapshot_cb import apply_tab_bubble
+        from dash import no_update
+        result = apply_tab_bubble(None, None)
+        assert all(x is no_update for x in result)
+
+    def test_apply_tab_partial_restore_on_legacy_payload(self):
+        """Legacy payload with both bubble + heatmap keys — each apply_tab
+        callback picks up its own tab's keys when invoked."""
+        from callbacks.snapshot_cb import apply_tab_bubble, apply_tab_heatmap
+        from dash import no_update
+        state = {
+            "bub-xscale:value": "Lin",
+            "hm-mode:value": "segmented",
+            "bub-qs:value": [0.5],
+        }
+        bub_result = apply_tab_bubble(1, state)
+        assert any(v == "Lin" for v in bub_result if v is not no_update), (
+            "apply_tab_bubble must write bub-xscale=Lin")
+        hm_result = apply_tab_heatmap(1, state)
+        assert any(v == "segmented" for v in hm_result if v is not no_update), (
+            "apply_tab_heatmap must write hm-mode=segmented")
+
+    def test_no_orphan_relay_stores_in_layout(self):
+        """Layout must not contain any snapshot-apply-{tab} Store ids."""
+        import layout
+        import json
+        rendered = layout._serve_layout() if hasattr(layout, "_serve_layout") else None
+        serialised = json.dumps(rendered, default=str) if rendered else ""
+        banned = ["snapshot-apply-bubble", "snapshot-apply-heatmap",
+                  "snapshot-apply-dca", "snapshot-apply-retire",
+                  "snapshot-apply-supercharge", "snapshot-apply-citadel",
+                  "snapshot-apply-leverage"]
+        for b in banned:
+            assert b not in serialised, (
+                f"Relay store {b} still in layout — not removed by refactor")
+
+    def test_manage_snapshot_signature_has_no_share_scope(self):
+        """manage_snapshot should no longer accept share_scope."""
+        import inspect
+        from callbacks.snapshot_cb import manage_snapshot
+        sig = inspect.signature(manage_snapshot)
+        param_names = list(sig.parameters.keys())
+        assert "share_scope" not in param_names, (
+            f"share_scope still a parameter: {param_names}")

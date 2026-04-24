@@ -111,9 +111,21 @@ The `lppl-*` / `hybppl-*` / `eppl-*` controls are NOT duplicated in per-tab list
 | `btc_web/snapshot.py` | Remove `tab_filter=None` branch in `_encode_snapshot` — always apply `tab_filter=<active-tab-cids>`. Signature stays for backward compatibility with tests; add a deprecation comment. `_decode_snapshot` / `_decode_snapshot_v1` unchanged. |
 | `btc_web/callbacks/snapshot_cb.py` | Delete `_EAGER_CONTROLS`, `_TAB_LAZY_CONTROLS`, `_ALL_LAZY_PREFIXES`, `_BUBBLE_LAZY_CONTROLS`, `_LAZY_TAB_SPECS`, `_N_RELAY_STORES`, `_make_lazy_relay_callback` and its 7 registrations. Rewrite `apply_snapshot` → `apply_globals` (smaller Output list). Add `_make_apply_tab_callback(tab_id, prefix_tuple)` factory that registers one `apply_tab_{tab}` per tab. Remove `State("share-scope","value")` from the encode callback. Drop `scope` from `_add_snapshot_entry`. |
 | `btc_web/callbacks/splash.py` | No change needed — `prefetch-ready` gating shipped yesterday is compatible. |
-| `btc_web/callbacks/routing.py` | No logic change. Add a regression-guard comment near line 79–110: "Input MUST be snapshot-state-store per spec 2026-04-24-drop-all-tabs-snapshot-design.md." |
+| `btc_web/callbacks/routing.py` | No logic change. Add a regression-guard comment near line 79–110: "Input MUST remain `snapshot-state-store.data`. If you change it (e.g. to `main-tabs.active_tab`), `apply_tab_{active}` will race and read None. See spec 2026-04-24-drop-all-tabs-snapshot-design.md." |
 | `btc_web/test_snapshot.py` | Delete `test_tab_filter`, `test_tab_filter_encodes_only_matching`, `test_each_tab_filter_roundtrips`, `test_single_tab_shorter_than_all`. Add tests per "Tests" section below. |
 | `btc_web/test_palette_roundtrip.py` | Sweep for scope references; update if any assertions target the removed `share-scope` component. |
+| `btc_web/test_callbacks.py` | Remove imports / assertions referencing `_EAGER_CONTROLS`, `_N_RELAY_STORES`, `apply_snapshot` return-shape (approx lines 1503–1512). |
+| `btc_web/callbacks/snapshot_cb.py` (header comment) | Rewrite the 20-line ASCII block above `_LAZY_TAB_SPECS` documenting the 7-relay mapping; replace with a short note describing the 1-globals + 7-per-tab architecture. |
+
+### `manage_snapshot` arity change
+
+Removing `State("share-scope","value")` shrinks `manage_snapshot`'s positional args by one (`snapshot_cb.py:188`). Before commit:
+- Grep for direct Python invocations of `manage_snapshot(...)` in tests or helper scripts; update call sites.
+- Drop `share_scope` and its `scope` local; pass `tab_filter=_TAB_CONTROLS[active_tab]` unconditionally.
+
+### Link-history display compatibility
+
+Old entries in user localStorage contain a `scope` field. `render_link_history` (`snapshot_cb.py:328`) already reads fields via `entry.get(...)`, so absence of `scope` is already tolerated. Verify during implementation that no new read path asserts `scope` presence.
 
 ## Data flow details
 
@@ -154,6 +166,9 @@ For **non-active tabs** visited later in the session (click or background prefet
 - `test_apply_tab_partial_restore_on_legacy_payload`: Simulate a q3: state dict containing keys for bubble AND heatmap. Invoke `apply_tab_heatmap` with `hm-first-render` change; assert heatmap keys get written. Documents the cross-tab-on-visit feature.
 - `test_first_render_bump_input_is_snapshot_state_store`: Static assertion on `routing.py` source/callback graph that the post-snapshot first-render bump callback has `snapshot-state-store` as its Input (guards the spec invariant).
 - `test_no_double_write_partition`: Programmatically verify that the union of global-cids and per-tab-cids equals the original `_SNAPSHOT_CONTROLS` cids, and the intersection is empty. Protects against config-modal controls drifting into per-tab lists.
+- `test_no_orphan_relay_stores_in_layout`: Assert that the serialised layout contains no `snapshot-apply-{bubble,heatmap,dca,retire,supercharge,citadel,leverage}` store IDs. Guards against accidental resurrection via merge.
+- `test_manage_snapshot_signature`: Introspect the callback's signature or directly invoke the updated `manage_snapshot` to confirm it no longer accepts a `share_scope` parameter.
+- `test_legacy_all_tabs_link_cross_tab_restore` (integration-level): Encode a fake legacy `q2:` or `q3:` payload containing `bub-xscale=Lin` AND `hm-mode=segmented`. Decode → populate `snapshot-state-store`. Invoke `apply_tab_bubble` with bubble-first-render; assert bub-xscale write. Then invoke `apply_tab_heatmap` with hm-first-render; assert hm-mode write. Documents and locks the cross-tab-restore-on-visit feature.
 
 ### Preserve
 - All v1/v2/v3 decode-roundtrip tests.

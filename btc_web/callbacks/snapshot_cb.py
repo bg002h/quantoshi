@@ -654,25 +654,15 @@ _app_ctx.app.clientside_callback(
 )
 
 
-# ── Restore-progress modal close on snapshot-pending release ──────────────
-# Enforces 500 ms min-display so a fast restore that slipped past the 150 ms
-# open debounce doesn't flash the modal for <50 ms. Uses requestAnimationFrame
-# after the min-display delay so Plotly's trace update paints before fade.
+# ── Restore-progress modal close on first chart figure paint ──────────────
+# Close fires when any chart graph's `figure` property updates while the
+# modal is open. This ensures the modal stays visible until the active tab's
+# chart has actually rendered (not just when controls land via
+# snapshot-pending). 500 ms min-display prevents flash on fast restores.
 _app_ctx.app.clientside_callback(
     """
-    function(pending) {
-        if (pending === true) return window.dash_clientside.no_update;
-        if (!window.__restoreOpenTime) {
-            if (window.__restoreOpenTimer) {
-                clearTimeout(window.__restoreOpenTimer);
-                window.__restoreOpenTimer = null;
-            }
-            if (window.__restoreFallback) {
-                clearTimeout(window.__restoreFallback);
-                window.__restoreFallback = null;
-            }
-            return window.dash_clientside.no_update;
-        }
+    function() {
+        if (!window.__restoreOpenTime) return window.dash_clientside.no_update;
         var elapsed = performance.now() - window.__restoreOpenTime;
         var delay = Math.max(0, 500 - elapsed);
         setTimeout(function () {
@@ -690,6 +680,12 @@ _app_ctx.app.clientside_callback(
     }
     """,
     Output("restore-progress-modal", "is_open", allow_duplicate=True),
-    Input("snapshot-pending", "data"),
+    Input("bubble-graph",      "figure"),
+    Input("heatmap-graph",     "figure"),
+    Input("dca-graph",         "figure"),
+    Input("retire-graph",      "figure"),
+    Input("supercharge-graph", "figure"),
+    Input("citadel-graph",     "figure"),
+    Input("lev-graph",         "figure"),
     prevent_initial_call=True,
 )

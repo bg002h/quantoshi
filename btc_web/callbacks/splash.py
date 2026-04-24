@@ -398,10 +398,10 @@ _app_ctx.app.clientside_callback(
 # deliberately leaves prefetch-ready unset so non-active tabs don't begin
 # lazy-materialising while the active tab is still being restored. This
 # clientside callback fires once loaded-hash-store is written by
-# restore_from_url (snapshot_cb.py:44) — meaning apply_snapshot has already
-# dispatched its eager-control writes and relay-store updates. We then
-# release prefetch-ready on the next animation frame so the current
-# callback batch flushes first.
+# restore_from_url (snapshot_cb.py:44) — meaning apply_globals has already
+# dispatched its writes and the per-tab apply_tab_{tab} callbacks have
+# fired or will fire on first-render. We then release prefetch-ready so
+# non-active tabs can start lazy-materialising.
 _app_ctx.app.clientside_callback(
     """
     function(loaded_hash) {

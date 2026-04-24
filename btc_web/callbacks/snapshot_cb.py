@@ -42,7 +42,7 @@ def _decode_snapshot_by_prefix(h):
     prevent_initial_call=False,
 )
 def restore_from_url(hash_str):
-    """Decode snapshot hash from URL → intermediate store for apply_snapshot."""
+    """Decode snapshot hash from URL → intermediate store for apply_globals."""
     if not hash_str:
         return no_update, no_update
     h = hash_str.lstrip("#")
@@ -52,7 +52,7 @@ def restore_from_url(hash_str):
         return no_update, no_update
     # Legacy-link coercion: if this deployment has no resqr bundles, drop
     # "resqr" sigma_mode back to "constant" so the radio + chart stay in sync.
-    # Done upstream (before apply_snapshot) so all consumers see the coerced
+    # Done upstream (before apply_globals / apply_tab_*) so all consumers see the coerced
     # value, including the lazy bubble relay.
     if not getattr(_app_ctx, "_HAS_RESQR", False):
         if state.get("bub-sigma-mode:value") == "resqr":

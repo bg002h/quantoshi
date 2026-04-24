@@ -319,7 +319,7 @@ def toggle_bub_view(price_clicks, cagr_clicks, resid_clicks, cur_xrange):
 
 # Sync view-mode wrappers + button outlines when bub-view-mode.data changes
 # (e.g., from snapshot restore — button clicks set it directly in toggle_bub_view,
-# but snapshot sets it via apply_snapshot without clicking buttons).
+# but snapshot sets it via apply_tab_bubble without clicking buttons).
 _app_ctx.app.clientside_callback(
     """
     function(mode) {

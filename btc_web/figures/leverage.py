@@ -207,5 +207,9 @@ def build_leverage_figure(p: dict) -> go.Figure:
     fig.update_layout(**base)
     show_legend = "legend" in (p.get("lev_toggles") or ())
     fig.update_layout(showlegend=show_legend)
+    # Preserve Plotly pan/zoom/hover across redundant figure rebuilds.
+    # See spec 2026-04-24-single-redraw-per-snapshot-design.md.
+    from figures.common import _uirevision_key
+    fig.update_layout(uirevision=_uirevision_key(p, "lev"))
     _apply_watermark(fig)
     return fig

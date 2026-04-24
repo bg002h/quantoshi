@@ -475,6 +475,10 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     _add_decomposition_traces(traces, t_arr, m, p)
 
     _apply_sans_typography(layout)
+    # Preserve Plotly pan/zoom/hover across redundant figure rebuilds.
+    # See spec 2026-04-24-single-redraw-per-snapshot-design.md.
+    from figures.common import _uirevision_key
+    layout.setdefault("uirevision", _uirevision_key(p, "bub"))
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
     _add_date_hover(fig, m.genesis, recovery=True)
     _apply_config_annotation(fig, p, "bub", show_qr=True, show_mc=False)

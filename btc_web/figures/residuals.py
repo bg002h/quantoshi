@@ -208,6 +208,10 @@ def build_residuals_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         _empty_state_annotation(layout)
 
     _apply_sans_typography(layout)
+    # Preserve Plotly pan/zoom/hover across redundant figure rebuilds.
+    # See spec 2026-04-24-single-redraw-per-snapshot-design.md.
+    from figures.common import _uirevision_key
+    layout.setdefault("uirevision", _uirevision_key(p, "resid"))
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
     _apply_final_steps(
         fig, p, "bub",

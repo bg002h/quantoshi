@@ -740,6 +740,10 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     if today_shapes:
         layout["shapes"] = today_shapes
 
+    # Preserve Plotly pan/zoom/hover across redundant figure rebuilds.
+    # See spec 2026-04-24-single-redraw-per-snapshot-design.md.
+    from figures.common import _uirevision_key
+    layout.setdefault("uirevision", _uirevision_key(p, "hm"))
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
 
     # Zoom + click control

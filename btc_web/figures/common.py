@@ -395,6 +395,19 @@ def _apply_mc_overlay(m, p, overlay_fn, overlay_args, traces,
     return mc_traces_list, mc_result
 
 
+def _uirevision_key(p: dict, tab: str) -> str:
+    """Stable uirevision key that preserves Plotly pan/zoom/hover state
+    across redundant figure rebuilds (e.g. late hydration fires during
+    snapshot restore, background prefetch side-effects).
+
+    Includes palette — a palette change is a legitimate visual reset.
+    Includes tab — each tab has its own revision so cross-tab state
+    doesn't bleed.
+    See spec 2026-04-24-single-redraw-per-snapshot-design.md."""
+    palette = (p.get("palette") or "default") if p else "default"
+    return f"{tab}:{palette}"
+
+
 def _base_layout(title, xlabel, ylabel, **kwargs):
     """Base layout dict — shared Quantoshi chart template.
 
@@ -833,6 +846,7 @@ def _finalize_chart(traces: list, layout: dict, p: dict, tab: str,
             bgcolor=_hex_alpha(_COLORS_PLOT_BG, MC_LEGEND_BG_ALPHA),
         )
     _apply_sans_typography(layout)
+    layout.setdefault("uirevision", _uirevision_key(p, tab))
     fig = go.Figure(data=traces, layout=go.Layout(**layout))
     if mc_premium and p.get("mc_enabled"):
         _apply_mc_premium(fig, legend_pos=None, hide_xlabel=True)

@@ -58,7 +58,7 @@ Three chart-callback invocations per restore × ~400 ms server compute each = ~1
 
 ### Readers
 
-All 7 chart callbacks (`update_bubble`, `update_heatmap`, `update_dca`, `update_retire`, `update_supercharge`, `update_citadel`, `update_leverage`) add `State("snapshot-pending","data")` and early-return `no_update` for the `Output(*-graph, "figure")` when it is `True`.
+All 9 figure-writing chart callbacks — the 5 main tab callbacks in `charts/__init__.py` (`update_bubble`, `update_heatmap`, `update_dca`, `update_retire`, `update_supercharge`), the 2 bubble sub-view callbacks also in `charts/__init__.py` (`update_bub_cagr`, `update_bub_resid`), plus `update_citadel` (`citadel_cb.py`) and `update_leverage` (`leverage_cb.py`) — add `State("snapshot-pending","data")` and early-return `no_update` when it is `True`.
 
 ### Why this works
 
@@ -96,9 +96,9 @@ Restores to `/8` (stack), `/9` (model_info), `/10` (faq) do not fire any chart c
 | File | Change |
 |---|---|
 | `btc_web/layout/__init__.py` | Add `dcc.Store(id="snapshot-pending", storage_type="memory", data=False)` alongside existing snapshot stores. |
-| `btc_web/callbacks/snapshot_cb.py` | `restore_from_url`: add `Output("snapshot-pending","data",allow_duplicate=True)`, switch `prevent_initial_call` to `'initial_duplicate'`, return `True` alongside existing outputs on successful decode else `False`. Factory `_make_apply_tab_callback`: add `Output("snapshot-pending","data",allow_duplicate=True)` and append `False` to the returned list. |
-| `btc_web/callbacks/snapshot_cb.py` (append at end) | Register a clientside callback: `Input("snapshot-pending","data")` → fires on every change. When fired with `True`, schedule a 3000 ms `setTimeout` that calls `window.dash_clientside.set_props("snapshot-pending", {data: false})`. When fired with `False`, cancel any pending timer. `allow_duplicate=True`, `prevent_initial_call=True`. |
-| `btc_web/callbacks/charts/__init__.py` | All 5 chart callbacks registered here (`update_bubble`, `update_heatmap`, `update_dca`, `update_retire`, `update_supercharge`): add trailing `State("snapshot-pending","data")` Input. In each function body, as the FIRST statement after signature unpacking, check the state value and `return no_update` (or tuple of `no_update` for multi-output callbacks) before building params. |
+| `btc_web/callbacks/snapshot_cb.py` | `restore_from_url`: add `Output("snapshot-pending","data",allow_duplicate=True)`, switch `prevent_initial_call` to `'initial_duplicate'`. On successful decode return `True`; on empty hash or decode failure return **`no_update`** (not `False`, to avoid spurious writes that would churn the safety timer). Factory `_make_apply_tab_callback`: add `Output("snapshot-pending","data",allow_duplicate=True)` as the LAST output. When state is None/empty, return `[no_update] * (len(_ctrls) + 1)` — the gate output must also be `no_update`, never `False`, so non-restore first-render bumps don't accidentally clear the gate. On populated state, append `False` to release the gate alongside tab control writes. |
+| `btc_web/callbacks/snapshot_cb.py` (append at end) | Register a clientside callback with a declared `Output("snapshot-pending","data",allow_duplicate=True)`. `Input("snapshot-pending","data")` fires on every change. On flip to `True`, stash a 3000 ms `setTimeout` on `window._snapshotTimer` that calls `window.dash_clientside.set_props("snapshot-pending", {data: false})` and returns `no_update`. On flip to `False`, `clearTimeout(window._snapshotTimer)` and return `no_update`. `prevent_initial_call=True`. This declared Output is not strictly needed (the timer uses `set_props`) but it satisfies invariant #3's "every writer has allow_duplicate" static check. |
+| `btc_web/callbacks/charts/__init__.py` | All 7 figure-writing chart callbacks registered here: `update_bubble` (→`bubble-graph.figure`), `update_heatmap` (→`heatmap-graph.figure`), `update_dca` (→`dca-graph.figure`), `update_retire` (→`retire-graph.figure`), `update_supercharge` (→`supercharge-graph.figure`), `update_bub_cagr` (→`bub-cagr-graph.figure`), `update_bub_resid` (→`bub-resid-graph.figure`). Add trailing `State("snapshot-pending","data")` Input. In each function body, as the **very first statement, BEFORE any existing PreventUpdate / hydration / cta-active guards**, check the state value and `return no_update` (or tuple of `no_update` for multi-output callbacks). Gate must win over all other early-return logic so restore always settles deterministically. |
 | `btc_web/callbacks/citadel_cb.py` | `update_citadel`: same pattern as above. |
 | `btc_web/callbacks/leverage_cb.py` | `update_leverage`: same pattern. |
 
@@ -117,7 +117,7 @@ Restores to `/8` (stack), `/9` (model_info), `/10` (faq) do not fire any chart c
 
 - `test_chart_callbacks_have_snapshot_pending_state`: for each of the 5 chart callbacks in `charts/__init__.py`, introspect the registered callback's State list and assert `snapshot-pending.data` is present.
 - `test_citadel_and_leverage_chart_callbacks_have_snapshot_pending_state`: same for `update_citadel`, `update_leverage`.
-- `test_chart_callback_short_circuits_when_pending`: invoke `update_bubble` with `snapshot_pending=True` via a mock ctx; assert output is `no_update`. Repeat for each of the 7 chart callbacks.
+- `test_chart_callback_short_circuits_when_pending`: invoke each of the 9 figure-writing chart callbacks with `snapshot_pending=True` via a mock ctx; assert output is `no_update`.
 - `test_snapshot_pending_not_in_params_dict`: invoke `update_bubble` with a crafted state that would set the gate to False; check the params dict passed to `build_bubble_figure` does NOT contain `snapshot_pending`. Protects cache-key alignment.
 
 ### New test in `btc_web/test_web.py` or a new file
@@ -127,6 +127,10 @@ Restores to `/8` (stack), `/9` (model_info), `/10` (faq) do not fire any chart c
 ### Preserve
 - All existing snapshot-restore tests (`test_valid_roundtrip`, partition integrity, etc.).
 - The 6 post-drop-all-tabs architecture tests.
+
+### Additional negative tests
+
+- `test_apply_globals_does_not_output_snapshot_pending`: walk the registered callback for `apply_globals` and assert its Output list does NOT include `snapshot-pending.data`. Guards the race where a future editor moves the release into `apply_globals` — which would clear the gate before `apply_tab_{active}` writes tab controls and break the single-redraw invariant.
 
 ## Rollout
 

@@ -664,19 +664,83 @@ class TestSnapshotPendingGate:
                     "(would break single-redraw invariant)")
 
     def test_safety_timer_at_least_3000ms(self):
-        """Clientside safety timer must wait at least 3000 ms before
-        unconditionally clearing the gate. Source-level assertion."""
+        """Clientside safety timer must wait at least 4000 ms before
+        unconditionally clearing the gate. Bumped from 3000 to 4000
+        (2026-04-24) to prevent premature restore-progress modal dismiss
+        on cold cache."""
         import os, pathlib, re
         here = pathlib.Path(os.path.dirname(__file__))
         src = (here / "callbacks" / "snapshot_cb.py").read_text()
-        # Find the safety-timer clientside callback block
         idx = src.find("Safety-timer")
         assert idx > 0, "Safety-timer block comment not found in snapshot_cb.py"
         block = src[idx:idx + 2000]
-        # Match the delay argument — it's the number right before `);`
-        # after the setTimeout callback body.
         m = re.search(r"}\s*,\s*(\d+)\s*\)\s*;", block)
         assert m, f"setTimeout delay literal not found in safety-timer block"
         duration = int(m.group(1))
-        assert duration >= 3000, (
-            f"Safety timer must be >= 3000ms; got {duration}")
+        assert duration >= 4000, (
+            f"Safety timer must be >= 4000ms; got {duration}")
+
+    def test_restore_progress_modal_in_layout(self):
+        """Modal id must exist in rendered layout."""
+        import layout
+        import json
+        rendered = layout._serve_layout() if hasattr(layout, "_serve_layout") else None
+        serialised = json.dumps(rendered, default=str) if rendered else ""
+        assert "restore-progress-modal" in serialised, (
+            "restore-progress-modal missing from layout")
+
+    def test_restore_progress_modal_backdrop_static(self):
+        """Modal must be blocking: backdrop='static', keyboard=False."""
+        import os, pathlib
+        here = pathlib.Path(os.path.dirname(__file__))
+        src = (here / "layout" / "__init__.py").read_text()
+        idx = src.find('id="restore-progress-modal"')
+        assert idx > 0, "restore-progress-modal not declared in layout"
+        block = src[max(0, idx-400):idx+200]
+        assert 'backdrop="static"' in block, (
+            "restore-progress-modal must use backdrop='static'")
+        assert "keyboard=False" in block, (
+            "restore-progress-modal must use keyboard=False")
+
+    def test_open_callback_initial_duplicate(self):
+        """Open-on-hash clientside must use prevent_initial_call='initial_duplicate'."""
+        import os, pathlib
+        here = pathlib.Path(os.path.dirname(__file__))
+        src = (here / "callbacks" / "snapshot_cb.py").read_text()
+        idx = src.find('"restore-progress-modal", "is_open"')
+        assert idx > 0, "restore-progress-modal Output not found in snapshot_cb.py"
+        opener = src[max(0, idx-3000):idx+500]
+        assert 'prevent_initial_call=\'initial_duplicate\'' in opener or \
+               'prevent_initial_call="initial_duplicate"' in opener, (
+            "open callback must use prevent_initial_call='initial_duplicate'")
+
+    def test_open_callback_debounce_150ms(self):
+        """Open callback must debounce 150 ms."""
+        import os, pathlib
+        here = pathlib.Path(os.path.dirname(__file__))
+        src = (here / "callbacks" / "snapshot_cb.py").read_text()
+        idx = src.find('__restoreOpenTimer')
+        assert idx > 0, "__restoreOpenTimer not found"
+        block = src[idx:idx + 500]
+        assert '150' in block, "150ms debounce not found in open callback"
+
+    def test_fallback_timer_5000ms(self):
+        """Open callback must arm a 5000 ms hard fallback."""
+        import os, pathlib
+        here = pathlib.Path(os.path.dirname(__file__))
+        src = (here / "callbacks" / "snapshot_cb.py").read_text()
+        idx = src.find('__restoreFallback')
+        assert idx > 0, "__restoreFallback not found"
+        block = src[idx:idx + 1500]
+        assert '5000' in block, "5000ms hard fallback not found"
+
+    def test_close_callback_min_display_500ms(self):
+        """Close callback must enforce 500 ms min-display."""
+        import os, pathlib
+        here = pathlib.Path(os.path.dirname(__file__))
+        src = (here / "callbacks" / "snapshot_cb.py").read_text()
+        idx = src.find('__restoreOpenTime')
+        assert idx > 0, "__restoreOpenTime not found"
+        block = src[idx:idx + 2000]
+        assert 'Math.max' in block and '500' in block, (
+            "500ms min-display (Math.max) not found in close callback")

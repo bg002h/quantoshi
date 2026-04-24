@@ -198,70 +198,28 @@ _app_ctx.app.clientside_callback(
 )
 
 
-# BM modal: open via any tab's gear icon, close via close button.
+# BM modal: close via close button (open driven by url.hash callback below).
 _app_ctx.app.clientside_callback(
-    """
-    function(bub_n, dca_n, ret_n, sc_n, close_n, cur_open) {
-        var ctx = window.dash_clientside.callback_context;
-        if (!ctx.triggered || !ctx.triggered.length) return window.dash_clientside.no_update;
-        var src = ctx.triggered[0].prop_id;
-        if (src.indexOf('modal-close-btn') !== -1) return false;
-        if (src.indexOf('-bm-gear') !== -1) return true;
-        return window.dash_clientside.no_update;
-    }
-    """,
+    """function(n) { return n ? false : window.dash_clientside.no_update; }""",
     Output("bm-config-modal", "is_open", allow_duplicate=True),
-    Input("bub-bm-gear", "n_clicks"),
-    Input("dca-bm-gear", "n_clicks"),
-    Input("ret-bm-gear", "n_clicks"),
-    Input("sc-bm-gear",  "n_clicks"),
     Input("bm-modal-close-btn", "n_clicks"),
-    State("bm-config-modal", "is_open"),
     prevent_initial_call=True,
 )
 
-# LPPL modal: open via gear icon, close via close button.
+# LPPL modal: close via close button (open driven by url.hash callback below).
 _app_ctx.app.clientside_callback(
-    """
-    function(bub_n, dca_n, ret_n, sc_n, close_n, cur_open) {
-        var ctx = window.dash_clientside.callback_context;
-        if (!ctx.triggered || !ctx.triggered.length) return window.dash_clientside.no_update;
-        var src = ctx.triggered[0].prop_id;
-        if (src.indexOf('modal-close-btn') !== -1) return false;
-        if (src.indexOf('-gear') !== -1) return true;
-        return window.dash_clientside.no_update;
-    }
-    """,
+    """function(n) { return n ? false : window.dash_clientside.no_update; }""",
     Output("lppl-config-modal", "is_open", allow_duplicate=True),
-    Input("bub-lppl-gear", "n_clicks"),
-    Input("dca-lppl-gear", "n_clicks"),
-    Input("ret-lppl-gear", "n_clicks"),
-    Input("sc-lppl-gear",  "n_clicks"),
     Input("lppl-modal-close-btn", "n_clicks"),
-    State("lppl-config-modal", "is_open"),
     prevent_initial_call=True,
 )
 
 
-# ── HybPPL modal: open via gear icon, close via close button ─────────────
+# HybPPL modal: close via close button (open driven by url.hash callback below).
 _app_ctx.app.clientside_callback(
-    """
-    function(bub_n, dca_n, ret_n, sc_n, close_n, cur_open) {
-        var ctx = window.dash_clientside.callback_context;
-        if (!ctx.triggered || !ctx.triggered.length) return window.dash_clientside.no_update;
-        var src = ctx.triggered[0].prop_id;
-        if (src.indexOf('modal-close-btn') !== -1) return false;
-        if (src.indexOf('-gear') !== -1) return true;
-        return window.dash_clientside.no_update;
-    }
-    """,
+    """function(n) { return n ? false : window.dash_clientside.no_update; }""",
     Output("hybppl-config-modal", "is_open", allow_duplicate=True),
-    Input("bub-hybppl-gear", "n_clicks"),
-    Input("dca-hybppl-gear", "n_clicks"),
-    Input("ret-hybppl-gear", "n_clicks"),
-    Input("sc-hybppl-gear",  "n_clicks"),
     Input("hybppl-modal-close-btn", "n_clicks"),
-    State("hybppl-config-modal", "is_open"),
     prevent_initial_call=True,
 )
 
@@ -345,25 +303,11 @@ for _hs in ("a", "b"):
 # EPPL config modal
 # ══════════════════════════════════════════════════════════════════════════════
 
-# EPPL modal: open via gear icon, close via close button.
+# EPPL modal: close via close button (open driven by url.hash callback below).
 _app_ctx.app.clientside_callback(
-    """
-    function(bub_n, dca_n, ret_n, sc_n, close_n, cur_open) {
-        var ctx = window.dash_clientside.callback_context;
-        if (!ctx.triggered || !ctx.triggered.length) return window.dash_clientside.no_update;
-        var src = ctx.triggered[0].prop_id;
-        if (src.indexOf('modal-close-btn') !== -1) return false;
-        if (src.indexOf('-gear') !== -1) return true;
-        return window.dash_clientside.no_update;
-    }
-    """,
+    """function(n) { return n ? false : window.dash_clientside.no_update; }""",
     Output("eppl-config-modal", "is_open", allow_duplicate=True),
-    Input("bub-eppl-gear", "n_clicks"),
-    Input("dca-eppl-gear", "n_clicks"),
-    Input("ret-eppl-gear", "n_clicks"),
-    Input("sc-eppl-gear",  "n_clicks"),
     Input("eppl-modal-close-btn", "n_clicks"),
-    State("eppl-config-modal", "is_open"),
     prevent_initial_call=True,
 )
 
@@ -585,5 +529,41 @@ _app_ctx.app.clientside_callback(
     Input("snapshot-lots",  "data"),
     Input("lots-store",     "data"),
     State("active-tab-bump-tick", "data"),
+    prevent_initial_call=True,
+)
+
+
+# ── Gear clicks → url.hash=#gear=<fam> → open matching config modal ────────
+# Why hash-based instead of n_clicks on the gear: the per-tab gears live on
+# lazy-loaded tabs. Listing `{prefix}-{fam}-gear.n_clicks` as callback Inputs
+# errors with "nonexistent object" on tabs that haven't materialized yet,
+# which blocks the callback from firing even for the one gear that DOES
+# exist. Routing through url.hash sidesteps the lazy-load trap: `url` is
+# always present in the layout, so there are no phantom Inputs.
+_app_ctx.app.clientside_callback(
+    """
+    function(hash) {
+        var nu = window.dash_clientside.no_update;
+        if (!hash || hash.indexOf('#gear=') !== 0) {
+            return [nu, nu, nu, nu];
+        }
+        var fam = hash.slice(6);
+        // Clear the hash so repeat clicks on the same gear re-fire.
+        try {
+            history.replaceState(null, '', location.pathname + location.search);
+        } catch (e) {}
+        return [
+            fam === 'bm',
+            fam === 'lppl',
+            fam === 'hybppl',
+            fam === 'eppl',
+        ];
+    }
+    """,
+    Output("bm-config-modal",     "is_open", allow_duplicate=True),
+    Output("lppl-config-modal",   "is_open", allow_duplicate=True),
+    Output("hybppl-config-modal", "is_open", allow_duplicate=True),
+    Output("eppl-config-modal",   "is_open", allow_duplicate=True),
+    Input("url", "hash"),
     prevent_initial_call=True,
 )

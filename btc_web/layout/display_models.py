@@ -58,14 +58,17 @@ def build_display_models_options(
         })
 
     def _gear_span(gear_id, title):
-        # html.Span + className="qs-gear". A capture-phase document listener
-        # (assets/gear_clicks.js) calls preventDefault() on clicks inside the
-        # gear, which cancels the <label>'s implicit checkbox-toggle. React
-        # binds n_clicks directly to the span, so Dash still fires — we must
-        # NOT stopPropagation or it'll kill the n_clicks handler. Original
-        # working fix: 9de1b15.
-        return html.Span(
-            "\u2699\uFE0F", id=gear_id, n_clicks=0,
+        # dcc.Link with href="#gear=<family>" — mirrors the 📐 info-link
+        # pattern. Anchor is interactive content, so the surrounding <label>
+        # skips its implicit checkbox-toggle per HTML spec (Firefox honors
+        # this). The click pushes url.hash, which a single hash-watching
+        # clientside callback in _clientside.py translates into the
+        # corresponding modal.is_open = True. Routing through url.hash
+        # avoids phantom-Input errors when other tabs' gears are lazy.
+        family = gear_id.rsplit("-gear", 1)[0].rsplit("-", 1)[-1]
+        return dcc.Link(
+            "\u2699\uFE0F", id=gear_id, href=f"#gear={family}",
+            refresh=False, target="_self",
             style=_GEAR_STYLE, title=title, className="qs-gear",
         )
 

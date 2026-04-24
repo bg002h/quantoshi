@@ -54,13 +54,15 @@
 
         cols.forEach(function(col, i) {
             timers[i] = null;
-            pinned[i] = false;
+            /* Default to pinned — auto-collapse was causing gear-click misses
+               on unpinned drawers (pointer-events:none cascade + width-
+               transition race with mousedown/click target resolution).
+               Users can still unpin manually via the pin button. */
+            pinned[i] = true;
 
             var pinBtn = createPinButton(col, i);
-            pinBtn.title = "Pin panel open";
-
-            /* Start collapsed */
-            col.classList.add("drawer-collapsed");
+            pinBtn.classList.add("pinned");
+            pinBtn.title = "Unpin panel";
 
             /* Hover: expand immediately, rearm on leave */
             col.addEventListener("mouseenter", function() {

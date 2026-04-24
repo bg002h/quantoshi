@@ -207,9 +207,16 @@ No existing tests should break. No Python server callback changes.
 
 Grep tests cannot catch **behavioral** regressions like premature dismiss on cold cache. Add **one** Playwright integration test under `btc_web/test_tax_e2e.py`-style harness:
 
-- `test_restore_modal_persists_until_restore_completes`: Load a known share link on a fresh browser (simulated cold cache). Assert the modal is visible between 200 ms and 3 s post-load. Assert it is hidden (or fading) by 5 s. Verifies both that it appears AND that it doesn't prematurely dismiss.
+- `test_restore_modal_persists_until_restore_completes`: Load a known share link on a fresh browser (simulated cold cache).
+  - Assert the modal is **visible at 3500 ms** post-load (catches a regression that reverts safety timer below 4 s).
+  - Assert the modal is **hidden by 5500 ms** post-load (catches a regression breaking the 5 s hard fallback).
+  - Optional: assert a restored control value (e.g. `bub-qs` checked set) is non-default *before* the modal dismisses (catches the user-visible bug directly).
 
 This is one additional E2E test in an existing Playwright harness — ~40 lines of test code. Worth the confidence.
+
+### Implementation-time checks (reviewer-flagged)
+- `grep -rn "snapshot-pending" btc_web/` before ship: confirm no other callback embeds a hardcoded 3000 ms assumption keyed on the safety timer's old duration.
+- Audit the two new clientside callbacks' `prevent_initial_call` values against the documented gunicorn-crash rule (`allow_duplicate=True` + `prevent_initial_call=False` is fatal). The spec specifies `'initial_duplicate'` on callback 1 and `True` on callback 2 — both safe.
 
 ## Rollout
 

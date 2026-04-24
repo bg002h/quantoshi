@@ -58,9 +58,18 @@ def build_display_models_options(
         })
 
     def _gear_span(gear_id, title):
-        return html.Span(
-            "\u2699\uFE0F", id=gear_id, n_clicks=0,
-            style=_GEAR_STYLE, title=title, className="qs-gear",
+        # html.Button (not Span): as interactive content, the surrounding
+        # <label> skips its activation behavior, so clicking the gear does
+        # NOT also toggle the checkbox. Styled borderless to match the prior
+        # span appearance.
+        style = {
+            **_GEAR_STYLE,
+            "background": "transparent", "border": "none", "padding": "0",
+            "lineHeight": "1",
+        }
+        return html.Button(
+            "\u2699\uFE0F", id=gear_id, n_clicks=0, type="button",
+            style=style, title=title, className="qs-gear",
         )
 
     def _inline_summary(span_id, default):

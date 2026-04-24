@@ -526,6 +526,24 @@ def _build_layout(initial_tab="bubble"):
         ], style={"padding":"30px 20px 24px"}),
     ], id="splash-modal", is_open=False, centered=True, backdrop="static",
        className="splash-modal"),
+    dbc.Modal([
+        dbc.ModalBody([
+            html.Div([
+                html.Img(src="/assets/quantoshi_logo_nav.png",
+                         style={"width": "80px", "height": "auto",
+                                "marginBottom": "16px", "opacity": "0.9"}),
+                html.Div([
+                    dbc.Spinner(size="sm", color="primary",
+                                spinner_style={"marginRight": "10px"}),
+                    html.Span("Restoring your shared view…"),
+                ], style={"display": "flex", "alignItems": "center",
+                          "justifyContent": "center",
+                          "fontSize": UI_FONT_BASE, "color": MUTED_TEXT,
+                          "marginTop": "4px"}),
+            ], style={"textAlign": "center", "padding": "24px"}),
+        ]),
+    ], id="restore-progress-modal", is_open=False, centered=True, size="sm",
+       backdrop="static", keyboard=False),
     dbc.Navbar(
         dbc.Container([
             # ── Desktop navbar (hidden on mobile portrait) ────────────────

@@ -547,11 +547,13 @@ def generate_share_qr(url):
         return "", _hidden, _hidden
 
 
-# ── Safety-timer: clear snapshot-pending after 3s unconditionally ──────────
+# ── Safety-timer: clear snapshot-pending after 4s unconditionally ──────────
 # Protects paths where no apply_tab_{tab} fires to release the gate — e.g.
 # share links landing on non-chart tabs (stack, model_info, faq), or
-# unexpected broken paths. 3000 ms chosen to exceed cold-cache compute time
-# on citadel/supercharge. See spec 2026-04-24-single-redraw-per-snapshot.
+# unexpected broken paths. 4000 ms (bumped from 3000 2026-04-24) chosen to
+# exceed cold-cache compute time on citadel/supercharge AND keep the
+# restore-progress modal from prematurely dismissing. See spec
+# 2026-04-24-restore-progress-modal-design.md.
 _app_ctx.app.clientside_callback(
     """
     function(pending) {
@@ -566,7 +568,7 @@ _app_ctx.app.clientside_callback(
                         'snapshot-pending', { data: false });
                 }
                 window._snapshotPendingTimer = null;
-            }, 3000);
+            }, 4000);
         }
         return window.dash_clientside.no_update;
     }
@@ -612,5 +614,82 @@ _app_ctx.app.clientside_callback(
     Output("model_info-prefetch-iv", "n_intervals", allow_duplicate=True),
     Output("faq-prefetch-iv", "n_intervals", allow_duplicate=True),
     Input("share-modal", "is_open"),
+    prevent_initial_call=True,
+)
+
+
+# ── Restore-progress modal open on share-hash (clientside) ────────────────
+# 150 ms debounce so fast restores show nothing. 5 s hard fallback closes
+# the modal unconditionally if the gate never releases. See spec
+# docs/superpowers/specs/2026-04-24-restore-progress-modal-design.md.
+_app_ctx.app.clientside_callback(
+    """
+    function(hash) {
+        var h = (hash || window.location.hash || '').replace(/^#/, '');
+        var isShare = h.indexOf('q1:') === 0 ||
+                      h.indexOf('q2:') === 0 ||
+                      h.indexOf('q3:') === 0;
+        if (!isShare) return window.dash_clientside.no_update;
+
+        if (window.__restoreOpenTimer) clearTimeout(window.__restoreOpenTimer);
+        window.__restoreOpenTimer = setTimeout(function () {
+            window.dash_clientside.set_props(
+                'restore-progress-modal', { is_open: true });
+            window.__restoreOpenTime = performance.now();
+        }, 150);
+
+        if (window.__restoreFallback) clearTimeout(window.__restoreFallback);
+        window.__restoreFallback = setTimeout(function () {
+            window.dash_clientside.set_props(
+                'restore-progress-modal', { is_open: false });
+            window.__restoreOpenTime = null;
+        }, 5000);
+
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("restore-progress-modal", "is_open", allow_duplicate=True),
+    Input("url", "hash"),
+    prevent_initial_call='initial_duplicate',
+)
+
+
+# ── Restore-progress modal close on snapshot-pending release ──────────────
+# Enforces 500 ms min-display so a fast restore that slipped past the 150 ms
+# open debounce doesn't flash the modal for <50 ms. Uses requestAnimationFrame
+# after the min-display delay so Plotly's trace update paints before fade.
+_app_ctx.app.clientside_callback(
+    """
+    function(pending) {
+        if (pending === true) return window.dash_clientside.no_update;
+        if (!window.__restoreOpenTime) {
+            if (window.__restoreOpenTimer) {
+                clearTimeout(window.__restoreOpenTimer);
+                window.__restoreOpenTimer = null;
+            }
+            if (window.__restoreFallback) {
+                clearTimeout(window.__restoreFallback);
+                window.__restoreFallback = null;
+            }
+            return window.dash_clientside.no_update;
+        }
+        var elapsed = performance.now() - window.__restoreOpenTime;
+        var delay = Math.max(0, 500 - elapsed);
+        setTimeout(function () {
+            requestAnimationFrame(function () {
+                window.dash_clientside.set_props(
+                    'restore-progress-modal', { is_open: false });
+                window.__restoreOpenTime = null;
+                if (window.__restoreFallback) {
+                    clearTimeout(window.__restoreFallback);
+                    window.__restoreFallback = null;
+                }
+            });
+        }, delay);
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("restore-progress-modal", "is_open", allow_duplicate=True),
+    Input("snapshot-pending", "data"),
     prevent_initial_call=True,
 )

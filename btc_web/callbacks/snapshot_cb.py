@@ -144,17 +144,18 @@ def _make_apply_tab_callback(tab_id, first_render_id, controls):
         prevent_initial_call=True,
     )
     def _apply(_trigger, state, _ctrls=controls, _tab=tab_id):
+        import sys
         if not state:
-            logger.info("[DIAG] apply_tab_%s fired with state=None; trigger=%r", _tab, _trigger)
+            print(f"[DIAG] apply_tab_{_tab} state=None trigger={_trigger!r}",
+                  file=sys.stderr, flush=True)
             # Including gate output: no_update.
             return [no_update] * (len(_ctrls) + 1)
         values = [state.get(f"{cid}:{prop}", no_update) for cid, prop in _ctrls]
-        # Log bub-qs specifically to debug flaky restore
         if _tab == "bubble":
-            logger.info("[DIAG] apply_tab_bubble firing trigger=%r bub-qs=%r bub-model-show=%r",
-                        _trigger,
-                        state.get("bub-qs:value"),
-                        state.get("bub-model-show:value"))
+            print(f"[DIAG] apply_tab_bubble trigger={_trigger!r} "
+                  f"bub-qs={state.get('bub-qs:value')!r} "
+                  f"model-show={state.get('bub-model-show:value')!r}",
+                  file=sys.stderr, flush=True)
         values.append(False)  # release gate
         return values
 

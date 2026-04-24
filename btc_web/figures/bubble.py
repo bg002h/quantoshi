@@ -406,7 +406,12 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     maj = _price_tickvals(y_lo, y_hi)
 
     def _fmt_y(price_val):
-        v = price_val * stack if stack > 0 else price_val
+        # price_val is ALREADY in stack-shifted dollar space — the tick
+        # values come from _price_tickvals(y_lo, y_hi) and both bounds are
+        # stack-shifted (auto-Y clientside adds stack_log at callbacks/
+        # charts/__init__.py:566-568; traces are multiplied by stack at
+        # line 109+ of this file). Do NOT multiply by stack again.
+        v = price_val
         if v >= 1e18:  return f"${v/1e18:.0f}Qi"
         if v >= 1e15:  return f"${v/1e15:.0f}Q"
         if v >= 1e12:  return f"${v/1e12:.0f}T"

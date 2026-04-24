@@ -531,39 +531,3 @@ _app_ctx.app.clientside_callback(
     State("active-tab-bump-tick", "data"),
     prevent_initial_call=True,
 )
-
-
-# ── Gear clicks → url.hash=#gear=<fam> → open matching config modal ────────
-# Why hash-based instead of n_clicks on the gear: the per-tab gears live on
-# lazy-loaded tabs. Listing `{prefix}-{fam}-gear.n_clicks` as callback Inputs
-# errors with "nonexistent object" on tabs that haven't materialized yet,
-# which blocks the callback from firing even for the one gear that DOES
-# exist. Routing through url.hash sidesteps the lazy-load trap: `url` is
-# always present in the layout, so there are no phantom Inputs.
-_app_ctx.app.clientside_callback(
-    """
-    function(hash) {
-        var nu = window.dash_clientside.no_update;
-        if (!hash || hash.indexOf('#gear=') !== 0) {
-            return [nu, nu, nu, nu];
-        }
-        var fam = hash.slice(6);
-        // Clear the hash so repeat clicks on the same gear re-fire.
-        try {
-            history.replaceState(null, '', location.pathname + location.search);
-        } catch (e) {}
-        return [
-            fam === 'bm',
-            fam === 'lppl',
-            fam === 'hybppl',
-            fam === 'eppl',
-        ];
-    }
-    """,
-    Output("bm-config-modal",     "is_open", allow_duplicate=True),
-    Output("lppl-config-modal",   "is_open", allow_duplicate=True),
-    Output("hybppl-config-modal", "is_open", allow_duplicate=True),
-    Output("eppl-config-modal",   "is_open", allow_duplicate=True),
-    Input("url", "hash"),
-    prevent_initial_call=True,
-)

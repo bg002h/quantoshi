@@ -58,18 +58,18 @@ def build_display_models_options(
         })
 
     def _gear_span(gear_id, title):
-        # dcc.Link with href="#gear=<family>" — mirrors the 📐 info-link
-        # pattern. Anchor is interactive content, so the surrounding <label>
-        # skips its implicit checkbox-toggle per HTML spec (Firefox honors
-        # this). The click pushes url.hash, which a single hash-watching
-        # clientside callback in _clientside.py translates into the
-        # corresponding modal.is_open = True. Routing through url.hash
-        # avoids phantom-Input errors when other tabs' gears are lazy.
+        # html.A with href="javascript:void(0)" so it stays interactive
+        # content (label skips its checkbox-toggle per spec) but produces
+        # no navigation, no scroll, no hash change. A single document-level
+        # listener in assets/gear_clicks.js reads the gear's data-family
+        # attribute and calls window.dash_clientside.set_props on the
+        # matching modal. No Dash callbacks → no phantom-Input risk from
+        # lazy tabs.
         family = gear_id.rsplit("-gear", 1)[0].rsplit("-", 1)[-1]
-        return dcc.Link(
-            "\u2699\uFE0F", id=gear_id, href=f"#gear={family}",
-            refresh=False, target="_self",
+        return html.A(
+            "\u2699\uFE0F", id=gear_id, href="javascript:void(0)",
             style=_GEAR_STYLE, title=title, className="qs-gear",
+            **{"data-family": family},
         )
 
     def _inline_summary(span_id, default):

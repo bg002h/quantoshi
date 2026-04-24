@@ -58,14 +58,15 @@ def build_display_models_options(
         })
 
     def _gear_span(gear_id, title):
-        # html.A (not Span/Button): anchor is interactive content, so the
-        # surrounding <label> skips its activation behavior and clicking
-        # the gear does NOT toggle the checkbox. Same pattern as the model
-        # info link (dcc.Link → <a>) which is known to work in prod.
-        # href="#" is a no-op; we preventDefault via a one-line clientside
-        # callback registered alongside the modal-open callbacks.
-        return html.A(
-            "\u2699\uFE0F", id=gear_id, n_clicks=0, href="#",
+        # Mirror the model info link pattern: dcc.Link with a real href so
+        # the <a> is interactive content (the <label> skips its implicit
+        # checkbox-toggle) AND clicking navigates via the SPA router. A
+        # clientside callback watches url.hash and opens the matching
+        # config modal: #gear=bm|eppl|hybppl|lppl.
+        family = gear_id.rsplit("-gear", 1)[0].rsplit("-", 1)[-1]
+        return dcc.Link(
+            "\u2699\uFE0F", id=gear_id, href=f"#gear={family}",
+            refresh=False, target="_self",
             style=_GEAR_STYLE, title=title, className="qs-gear",
         )
 

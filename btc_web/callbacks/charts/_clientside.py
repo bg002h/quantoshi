@@ -587,3 +587,36 @@ _app_ctx.app.clientside_callback(
     State("active-tab-bump-tick", "data"),
     prevent_initial_call=True,
 )
+
+# ── Gear icons (dcc.Link href="#gear=<fam>") → open matching modal ────────
+# Gears render as <a> (interactive content) inside the Checklist <label> so
+# the label's implicit checkbox-toggle is suppressed. Clicking pushes
+# url.hash to "#gear=bm|eppl|hybppl|lppl"; this callback opens the matching
+# modal and clears the hash so repeated clicks on the same gear re-fire.
+_app_ctx.app.clientside_callback(
+    """
+    function(hash) {
+        var nu = window.dash_clientside.no_update;
+        if (!hash || hash.indexOf('#gear=') !== 0) {
+            return [nu, nu, nu, nu];
+        }
+        var fam = hash.slice(6);
+        // Strip the hash so a repeat click on the same gear fires again.
+        try {
+            history.replaceState(null, '', location.pathname + location.search);
+        } catch (e) {}
+        return [
+            fam === 'bm',
+            fam === 'lppl',
+            fam === 'hybppl',
+            fam === 'eppl',
+        ];
+    }
+    """,
+    Output("bm-config-modal",     "is_open", allow_duplicate=True),
+    Output("lppl-config-modal",   "is_open", allow_duplicate=True),
+    Output("hybppl-config-modal", "is_open", allow_duplicate=True),
+    Output("eppl-config-modal",   "is_open", allow_duplicate=True),
+    Input("url", "hash"),
+    prevent_initial_call=True,
+)

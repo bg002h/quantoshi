@@ -253,32 +253,64 @@ def _build_retire_dict():
 
 RETIRE = MappingProxyType(_build_retire_dict())
 
-SUPERCHARGE = MappingProxyType({
-    "mode": "a", "start_stack": 1.0, "use_lots": False,
-    "start_yr": 2033,
-    "delays": (0.0, 0.0, 0.0, 0.0, 2.0),
-    "freq": "Monthly", "inflation": 4.0,
-    "selected_qs": (0.15, 0.85),
-    # chart_layout=2 encodes "shade bands on" (the shade checkbox is the
-    # UI-level toggle; chart_layout is what the figure builder consumes).
-    "chart_layout": 2,
-    "display_q": 0.05,
-    "wd_amount": 5000, "end_yr": 2075,
-    "disp_mode": "usd",
-    "annotate": True, "log_y": True,
-    "discrete": False,
-    "show_legend": False, "minor_grid": False,
-    "legend_pos": "top-left",
-    "target_yr": 2060,
-    "active_models": (),
-    "palette": "default",
-    "show_qr": True, "show_mc": False,
-    # qs_mode — see DCA note. supercharge_defaults() pops it.
-    "qs_mode": (),
-    # is_mobile is a per-client viewport-derived flag in the runtime params
-    # dict; kept here so defaults baseline matches a desktop viewer.
-    "is_mobile": False,
-})
+def _build_supercharge_dict():
+    """Derive SUPERCHARGE figure-params from SNAPSHOT_DEFAULTS.
+
+    Translation: sc-chart-layout:value is a checklist (['shade'] = bands
+    on = layout 2; [] = bands off = layout 1). The 5 sc-d0..sc-d4 scalars
+    pack into delays tuple.
+    """
+    from snapshot_defaults import SNAPSHOT_DEFAULTS as _S
+    _BANDS = {"inner": [0.15, 0.85], "outer": [0.01, 0.99], "median": [0.5]}
+
+    def sd(k, default=None):
+        return _S.get(k, default)
+
+    def _bands(vals):
+        qs = []
+        for b in (vals or []):
+            qs.extend(_BANDS.get(b, []))
+        return tuple(sorted(set(qs)))
+
+    toggles = set(sd("sc-toggles:value", []) or [])
+    layout_val = sd("sc-chart-layout:value", []) or []
+    qs_mode_val = tuple(sd("sc-qs-mode:value", []) or [])
+    if "advanced" in qs_mode_val:
+        sel_qs = tuple(sd("sc-qs-adv:value", [0.15, 0.85]) or [0.15, 0.85])
+    else:
+        sel_qs = _bands(sd("sc-qs:value", ["inner"])) or (0.15, 0.85)
+    delays = tuple(float(sd(f"sc-d{i}:value", 0.0) or 0.0) for i in range(5))
+    return {
+        "mode":        sd("sc-mode:value", "a"),
+        "start_stack": sd("sc-stack:value", 1.0),
+        "use_lots":    bool(sd("sc-use-lots:value", []) or []),
+        "start_yr":    sd("sc-start-yr:value", 2033),
+        "delays":      delays,
+        "freq":        sd("sc-freq:value", "Monthly"),
+        "inflation":   sd("sc-infl:value", 4.0),
+        "selected_qs": sel_qs,
+        "chart_layout": 2 if "shade" in layout_val else 1,
+        "display_q":   sd("sc-display-q:value", 0.05),
+        "wd_amount":   sd("sc-wd:value", 5000),
+        "end_yr":      sd("sc-end-yr:value", 2075),
+        "disp_mode":   sd("sc-disp:value", "usd"),
+        "annotate":    "annotate"    in toggles,
+        "log_y":       "log_y"       in toggles,
+        "discrete":    "discrete"    in toggles,
+        "show_legend": "show_legend" in toggles,
+        "minor_grid":  "minor_grid"  in toggles,
+        "legend_pos":  sd("sc-legend-pos:value", "top-left"),
+        "target_yr":   sd("sc-target-yr:value", 2060),
+        "active_models": (),
+        "palette":     sd("palette-store:data", "default"),
+        "show_qr":     True,
+        "show_mc":     False,
+        "qs_mode":     qs_mode_val,
+        "is_mobile":   False,
+    }
+
+
+SUPERCHARGE = MappingProxyType(_build_supercharge_dict())
 
 STACK = MappingProxyType({
     "lot_btc": 0.01,

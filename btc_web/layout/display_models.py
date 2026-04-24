@@ -58,18 +58,15 @@ def build_display_models_options(
         })
 
     def _gear_span(gear_id, title):
-        # html.Button (not Span): as interactive content, the surrounding
-        # <label> skips its activation behavior, so clicking the gear does
-        # NOT also toggle the checkbox. Styled borderless to match the prior
-        # span appearance.
-        style = {
-            **_GEAR_STYLE,
-            "background": "transparent", "border": "none", "padding": "0",
-            "lineHeight": "1",
-        }
-        return html.Button(
-            "\u2699\uFE0F", id=gear_id, n_clicks=0, type="button",
-            style=style, title=title, className="qs-gear",
+        # html.A (not Span/Button): anchor is interactive content, so the
+        # surrounding <label> skips its activation behavior and clicking
+        # the gear does NOT toggle the checkbox. Same pattern as the model
+        # info link (dcc.Link → <a>) which is known to work in prod.
+        # href="#" is a no-op; we preventDefault via a one-line clientside
+        # callback registered alongside the modal-open callbacks.
+        return html.A(
+            "\u2699\uFE0F", id=gear_id, n_clicks=0, href="#",
+            style=_GEAR_STYLE, title=title, className="qs-gear",
         )
 
     def _inline_summary(span_id, default):
@@ -99,13 +96,11 @@ def build_display_models_options(
         )
 
     def _master_label(color, name, gear_id, summary_id, summary_default, gear_title):
-        # gear_id / gear_title retained for call-site compat but rendered as
-        # a separate row below the Checklist (display_models_panel) so the
-        # label's checkbox can't swallow the gear click.
         return html.Span([
             _swatch_span(color),
             name,
             *_inline_summary(summary_id, summary_default),
+            _gear_span(gear_id, gear_title),
         ])
 
     def _plain_label(color, name, model_key=None):
@@ -125,12 +120,12 @@ def build_display_models_options(
     # periodic) → LPPL (full log-periodic power law).
     _ = include_bm_master  # kept as a no-op kwarg for backward compatibility.
 
-    # 1. Bubble Model — gear lives in the config row below the Checklist
-    # (see display_models_panel) so its click doesn't toggle the checkbox.
+    # 1. Bubble Model — gear on ALL tabs (opens global bm-config-modal).
     opts.append({
         "label": html.Span([
             _swatch_span(mc.get("bub", BLACK)),
             "Bubble Model",
+            _gear_span(f"{prefix}-bm-gear", "Open Bubble Model settings"),
         ]),
         "value": "bub",
     })
@@ -316,31 +311,6 @@ def display_models_panel(
         default_value = ["bub"] + (
             ["mc"] if include_mc and _app_ctx._HAS_MARKOV else []
         )
-    from colors import FALLBACK_MODEL_GRAY as _GRAY
-    from colors import UI_FONT_MD as _FSZ
-
-    _gear_btn_style = {
-        "cursor": "pointer", "fontSize": _FSZ, "marginRight": "6px",
-        "background": "transparent", "border": "none", "padding": "2px 4px",
-        "lineHeight": "1", "opacity": "0.75",
-    }
-    gear_row = html.Div([
-        html.Span("Configure: ", style={"color": _GRAY, "fontSize": _FSZ,
-                                        "marginRight": "4px"}),
-        html.Button("\u2699\uFE0F BM", id=f"{prefix}-bm-gear", n_clicks=0,
-                    type="button", style=_gear_btn_style, className="qs-gear",
-                    title="Bubble Model settings"),
-        html.Button("\u2699\uFE0F EPPL", id=f"{prefix}-eppl-gear", n_clicks=0,
-                    type="button", style=_gear_btn_style, className="qs-gear",
-                    title="Entropy PPL settings"),
-        html.Button("\u2699\uFE0F HybPPL", id=f"{prefix}-hybppl-gear", n_clicks=0,
-                    type="button", style=_gear_btn_style, className="qs-gear",
-                    title="Hybrid PPL settings"),
-        html.Button("\u2699\uFE0F LPPL", id=f"{prefix}-lppl-gear", n_clicks=0,
-                    type="button", style=_gear_btn_style, className="qs-gear",
-                    title="LPPL settings"),
-    ], style={"marginTop": "4px", "marginBottom": "4px",
-              "display": "flex", "flexWrap": "wrap", "alignItems": "center"})
     return _section_card(
         "Display Models",
         dcc.Checklist(
@@ -350,6 +320,5 @@ def display_models_panel(
             labelStyle={"display": "block"},
             inputStyle={"marginRight": "4px"},
         ),
-        gear_row,
         *_legend_pos_dropdown(prefix, legend_pos_default),
     )

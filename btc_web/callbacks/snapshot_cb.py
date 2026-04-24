@@ -38,29 +38,32 @@ def _decode_snapshot_by_prefix(h):
 @callback(
     Output("snapshot-state-store", "data"),
     Output("loaded-hash-store",    "data"),
+    Output("snapshot-pending",     "data", allow_duplicate=True),
     Input("url", "hash"),
-    prevent_initial_call=False,
+    prevent_initial_call='initial_duplicate',
 )
 def restore_from_url(hash_str):
-    """Decode snapshot hash from URL → intermediate store for apply_globals."""
+    """Decode snapshot hash from URL → intermediate store for apply_globals.
+
+    Arms snapshot-pending=True on successful decode. apply_tab_{active}
+    releases it when tab controls land; safety timer also releases after
+    3s. See spec 2026-04-24-single-redraw-per-snapshot-design.md."""
     if not hash_str:
-        return no_update, no_update
+        return no_update, no_update, no_update
     h = hash_str.lstrip("#")
     state, prefix, encoded = _decode_snapshot_by_prefix(h)
     if not state:
         logger.warning("Snapshot decode failed for hash: %s\u2026", hash_str[:20])
-        return no_update, no_update
+        return no_update, no_update, no_update
     # Legacy-link coercion: if this deployment has no resqr bundles, drop
     # "resqr" sigma_mode back to "constant" so the radio + chart stay in sync.
-    # Done upstream (before apply_globals / apply_tab_*) so all consumers see the coerced
-    # value, including the lazy bubble relay.
     if not getattr(_app_ctx, "_HAS_RESQR", False):
         if state.get("bub-sigma-mode:value") == "resqr":
             state = dict(state)
             state["bub-sigma-mode:value"] = "constant"
     logger.info("Snapshot restored: %d controls, lots=%s",
                 sum(1 for k in state if k != "_lots"), "yes" if "_lots" in state else "no")
-    return state, hash_str
+    return state, hash_str, True
 
 
 # Control partition. See spec 2026-04-24-drop-all-tabs-snapshot-design.md.
@@ -127,17 +130,26 @@ def _make_apply_tab_callback(tab_id, first_render_id, controls):
     — relies on Dash's write-before-read ordering guarantee so that the
     clientside first-render bump in routing.py (which is Input on
     snapshot-state-store) cannot fire until state is populated.
-    See routing.py:79-110 for the invariant."""
+    See routing.py:79-110 for the invariant.
+
+    Also releases snapshot-pending=False in the SAME output batch as tab
+    control writes (single-redraw-per-snapshot spec 2026-04-24). When
+    state is None, every output — including the gate — is no_update so
+    non-restore first-render bumps don't accidentally clear the gate."""
     @callback(
         *[Output(cid, prop, allow_duplicate=True) for cid, prop in controls],
+        Output("snapshot-pending", "data", allow_duplicate=True),
         Input(first_render_id, "data"),
         State("snapshot-state-store", "data"),
         prevent_initial_call=True,
     )
     def _apply(_trigger, state, _ctrls=controls):
         if not state:
-            return [no_update] * len(_ctrls)
-        return [state.get(f"{cid}:{prop}", no_update) for cid, prop in _ctrls]
+            # Including gate output: no_update.
+            return [no_update] * (len(_ctrls) + 1)
+        values = [state.get(f"{cid}:{prop}", no_update) for cid, prop in _ctrls]
+        values.append(False)  # release gate
+        return values
 
     _apply.__name__ = f"apply_tab_{tab_id}"
     _apply.__qualname__ = _apply.__name__
@@ -533,3 +545,33 @@ def generate_share_qr(url):
                  "textAlign": "center", "marginBottom": "8px"})
     except Exception:
         return "", _hidden, _hidden
+
+
+# ── Safety-timer: clear snapshot-pending after 3s unconditionally ──────────
+# Protects paths where no apply_tab_{tab} fires to release the gate — e.g.
+# share links landing on non-chart tabs (stack, model_info, faq), or
+# unexpected broken paths. 3000 ms chosen to exceed cold-cache compute time
+# on citadel/supercharge. See spec 2026-04-24-single-redraw-per-snapshot.
+_app_ctx.app.clientside_callback(
+    """
+    function(pending) {
+        if (window._snapshotPendingTimer) {
+            clearTimeout(window._snapshotPendingTimer);
+            window._snapshotPendingTimer = null;
+        }
+        if (pending === true) {
+            window._snapshotPendingTimer = setTimeout(function () {
+                if (window.dash_clientside && window.dash_clientside.set_props) {
+                    window.dash_clientside.set_props(
+                        'snapshot-pending', { data: false });
+                }
+                window._snapshotPendingTimer = null;
+            }, 3000);
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("snapshot-pending", "data", allow_duplicate=True),
+    Input("snapshot-pending", "data"),
+    prevent_initial_call=True,
+)

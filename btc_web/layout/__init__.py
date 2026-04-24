@@ -440,6 +440,10 @@ def _build_layout(initial_tab="bubble"):
     dcc.Store(id="effective-lots",    storage_type="memory", data=[]),
     dcc.Store(id="link-history",      storage_type="local",  data=[]),
     dcc.Store(id="loaded-hash-store", storage_type="memory"),
+    # Gate for single-redraw-per-snapshot; armed by restore_from_url,
+    # released by apply_tab_{tab} or 3s safety timer. See spec
+    # 2026-04-24-single-redraw-per-snapshot-design.md.
+    dcc.Store(id="snapshot-pending", storage_type="memory", data=False),
     dcc.Store(id="palette-store",    storage_type="local",  data="default"),
     # Model warning dismissal (localStorage — persists across sessions, no cookies)
     dcc.Store(id="model-warn-dismissed", storage_type="local", data={}),

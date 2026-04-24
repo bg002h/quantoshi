@@ -148,7 +148,7 @@ populated in next task."
 - Create: `tools/_extract_layout_defaults.py` (transient — deleted in Task 14)
 - Modify: `btc_web/snapshot_defaults.py` (add 206 entries)
 
-The realistic way to populate 206 entries without manual hunting is to ask the live layout. This script imports the app, calls `_serve_layout()`, walks every component in `_SNAPSHOT_CONTROLS`, and prints a Python dict literal that can be pasted directly into `snapshot_defaults.py`.
+The realistic way to populate 206 entries without manual hunting is to ask the live layout. **Important:** Quantoshi uses universal lazy-tab loading — calling `_serve_layout()` and walking the tree only sees the active tab's controls. Instead, the script imports each tab's layout factory directly (e.g. `bubble._bubble_controls()`) and walks each subtree, accumulating into one combined `by_id` dict. This sees every control regardless of lazy mounting.
 
 - [ ] **Step 2.1: Write the discovery script**
 
@@ -156,10 +156,11 @@ The realistic way to populate 206 entries without manual hunting is to ask the l
 # tools/_extract_layout_defaults.py
 """One-shot helper for Phase 1 of the SNAPSHOT_DEFAULTS migration.
 
-Renders the live layout, walks the component tree, and emits a Python
-dict literal mapping each (cid, prop) in _SNAPSHOT_CONTROLS to the
-initial value found in the layout. Manual review required —
-unresolved entries are emitted with `# TODO` markers.
+Imports each tab's layout factory directly (bypassing universal lazy-
+tab loading), walks the component tree, and emits a Python dict
+literal mapping each (cid, prop) in _SNAPSHOT_CONTROLS to the initial
+value found in the layout. Manual review required — unresolved entries
+are emitted with `# TODO` markers.
 """
 from __future__ import annotations
 import os, sys
@@ -171,34 +172,78 @@ sys.path.insert(0, os.path.join(ROOT, "btc_web"))
 # DEV mode skips heavy startup paths.
 os.environ["DEV"] = "1"
 
-import app  # noqa: F401 — registers callbacks
+import app  # noqa: F401 — registers callbacks; sets _app_ctx.app
 import _app_ctx
 from snapshot import _SNAPSHOT_CONTROLS
 
-import flask
-with _app_ctx.app.server.test_request_context("/"):
-    layout_obj = _app_ctx.app.layout()
-
 
 def _walk(node):
-    """Yield every component in the rendered tree."""
+    """Yield every Dash component in a subtree."""
+    if node is None:
+        return
     yield node
     children = getattr(node, "children", None)
     if children is None:
         return
-    if isinstance(children, list):
+    if isinstance(children, (list, tuple)):
         for c in children:
-            if hasattr(c, "_traceable"):  # is a Dash component
-                yield from _walk(c)
-    elif hasattr(children, "_traceable"):
+            yield from _walk(c)
+    else:
         yield from _walk(children)
 
 
+# Force-render every layout subtree by calling the factories directly.
+# This bypasses the lazy-tab placeholder dcc.Loading wrappers so we
+# see ALL controls, not just the active tab's.
+import flask
+with _app_ctx.app.server.test_request_context("/1"):
+    roots = []
+    # Top-level layout (navbar, share modal, root stores, splash)
+    roots.append(_app_ctx.app.layout())
+    # Per-tab content factories
+    from layout import bubble as _bubble
+    from layout import heatmap as _heatmap
+    from layout import sim_tabs as _sim_tabs
+    from layout import supercharge as _supercharge
+    from layout import citadel as _citadel
+    from layout import citadel_tax as _citadel_tax
+    from layout import leverage as _leverage
+    from layout import stack as _stack
+    from layout import display_models as _display_models
+    from layout import custom_time as _custom_time
+    from layout import faq as _faq
+    from layout import model_info as _model_info
+    # The factory function names — adjust if any have moved.
+    candidates = [
+        ("bubble",        getattr(_bubble,        "bubble_layout",      None)),
+        ("heatmap",       getattr(_heatmap,       "heatmap_layout",     None)),
+        ("dca",           getattr(_sim_tabs,      "dca_layout",         None)),
+        ("retire",        getattr(_sim_tabs,      "retire_layout",      None)),
+        ("supercharge",   getattr(_supercharge,   "supercharge_layout", None)),
+        ("citadel",       getattr(_citadel,       "citadel_layout",     None)),
+        ("citadel_tax",   getattr(_citadel_tax,   "citadel_tax_modal",  None)),
+        ("leverage",      getattr(_leverage,      "leverage_layout",    None)),
+        ("stack",         getattr(_stack,         "stack_layout",       None)),
+        ("model_info",    getattr(_model_info,    "model_info_layout",  None)),
+        ("faq",           getattr(_faq,           "faq_layout",         None)),
+    ]
+    for name, fn in candidates:
+        if fn is None:
+            print(f"# WARNING: layout factory not found for {name!r}")
+            continue
+        try:
+            roots.append(fn())
+        except Exception as e:
+            print(f"# WARNING: {name!r} factory raised: {e}")
+
+
 by_id: dict[str, object] = {}
-for n in _walk(layout_obj):
-    nid = getattr(n, "id", None)
-    if isinstance(nid, str):
-        by_id[nid] = n
+for root in roots:
+    for n in _walk(root):
+        nid = getattr(n, "id", None)
+        if isinstance(nid, str):
+            by_id.setdefault(nid, n)
+
 
 resolved: dict[str, object] = {}
 unresolved: list[tuple[str, str]] = []
@@ -208,7 +253,6 @@ for cid, prop in _SNAPSHOT_CONTROLS:
         unresolved.append((cid, prop))
         continue
     val = getattr(comp, prop, None)
-    # MappingProxyType / tuples → JSON-friendly forms
     if isinstance(val, tuple):
         val = list(val)
     resolved[f"{cid}:{prop}"] = val
@@ -222,6 +266,8 @@ print(f"# === UNRESOLVED ({len(unresolved)}) — review manually ===")
 for cid, prop in unresolved:
     print(f"    {cid!r:30s} {prop!r}")
 ```
+
+**Note:** the candidate factory function names above are best-guess. If a name doesn't match, the script prints `# WARNING: layout factory not found for <name>` and continues. The implementing agent should grep `def .*_layout\|def .*_modal` in each `layout/*.py` file before running, and adjust the candidate tuple to match actual factory names.
 
 - [ ] **Step 2.2: Run the script and capture output**
 
@@ -444,11 +490,15 @@ Replace the `BUBBLE = MappingProxyType({...})` literal in `tab_defaults.py` with
 def _build_bubble_dict():
     """Derive BUBBLE figure-params dict from SNAPSHOT_DEFAULTS widget
     values. Translation layer lives here so callers can keep importing
-    `BUBBLE["xscale"]` etc."""
+    `BUBBLE["xscale"]` etc.
+
+    bub-qs widget stores QUANTILE FLOATS directly (e.g. [0.5]); see
+    layout/bubble.py:82 `_q_panel_with_mode("bub-qs", [0.5], ...)`. Do
+    NOT introduce a label→float mapping here — the values are already
+    floats."""
     from snapshot_defaults import SNAPSHOT_DEFAULTS as S
     sd = lambda k, default=None: S.get(k, default)
-    qs_list = sd("bub-qs:value", []) or []
-    selected_qs = tuple(_qs_label_to_value(q) for q in qs_list)
+    selected_qs = tuple(sd("bub-qs:value", [0.5]) or [0.5])
     yr = sd("bub-yrange:value", [-1.5, 6.05])
     toggles = set(sd("bub-toggles:value", []) or [])
     return {
@@ -503,15 +553,13 @@ def _qs_label_to_value(label):
 BUBBLE = MappingProxyType(_build_bubble_dict())
 ```
 
-**Important:** the `_qs_label_to_value` function must produce IDENTICAL values to the existing bub-qs handling in `callbacks/charts/__init__.py`. Locate the existing handler:
+**Sanity-check selected_qs against the existing callback.** Confirm the chart callback receives `selected_qs` as a tuple of floats matching what `bub-qs:value` stores:
 
 ```bash
-grep -n "bub-qs\|selected_qs" /scratch/code/bitcoinprojections/btc_web/callbacks/charts/__init__.py | head -20
+grep -n "bub-qs\|selected_qs" /scratch/code/bitcoinprojections/btc_web/callbacks/charts/__init__.py | head -10
 ```
 
-Update `_qs_label_to_value` if the actual label→value mapping differs.
-
-If the bub-qs widget stores quantile FLOATS directly (not labels), simplify to `selected_qs = tuple(sd("bub-qs:value", [0.5]) or [0.5])`.
+The expected match is `selected_qs = tuple(...)` taking a list of floats from `Input("bub-qs", "value")`. If anything other than direct float pass-through appears, stop and audit before continuing.
 
 - [ ] **Step 4.3: Run tests — BUBBLE consumers must still pass**
 
@@ -638,10 +686,14 @@ After:
 dcc.RadioItems(id="bub-xscale", value=_SD["bub-xscale:value"], options=[...])
 ```
 
+Migrate (mandatory):
+- Bare literals such as `value=[2010, 2033]`, `value=["shade","show_data","show_today"]`, `value="log"`, `data="bub"`. These have no SSOT today; replace with `_SD["<id>:<prop>"]`.
+
 Leave alone:
-- `value=BUBBLE["xscale"]` — already an indirect lookup; works because BUBBLE now derives from SNAPSHOT_DEFAULTS. (Optional cleanup: replace with `_SD["bub-xscale:value"]` for consistency. Pick one style and apply uniformly.)
-- `value=_app_ctx._DEF_QS` — live-derived, leave as-is.
-- `value=yr_now` (or similar) — live-derived, leave as-is.
+- `value=_app_ctx._DEF_QS`, `value=yr_now`, `value=_app_ctx._HM_ENTRY_Q_DEFAULT`, `value=today_str` and similar live-derived expressions — keep as-is.
+
+Optional cleanup (skip for now to keep the diff focused):
+- `value=BUBBLE["xscale"]` style — works correctly because BUBBLE now derives from SNAPSHOT_DEFAULTS. Skip this in Phase 1; revisit if a stylistic-consistency follow-up is wanted later.
 
 - [ ] **Step 6.4: Syntax-check**
 
@@ -698,7 +750,7 @@ Same pattern as Task 6.
 **Files:**
 - Modify: `btc_web/layout/sim_tabs.py`
 
-Same pattern. DCA's year-range slider value=None ⇒ leave as `value=[yr_now, yr_now+10]` if the layout currently inlines that — the sentinel lives in `SNAPSHOT_DEFAULTS`, not in the layout `value=` (which must always render to a real range so the slider widget paints correctly).
+Same pattern. **DCA year-range asymmetry, important:** `SNAPSHOT_DEFAULTS["dca-yr-range:value"] = None` is a year-derived sentinel consumed by `dca_defaults()` (the adapter). The LAYOUT's `dcc.RangeSlider(id="dca-yr-range", value=[yr_now, yr_now+10], ...)` must keep its live-derived value expression — substituting `_SD["dca-yr-range:value"]` would render `value=None` and break the slider widget. Add an inline comment in `layout/sim_tabs.py` near the dca-yr-range declaration warning future maintainers not to migrate this line.
 
 - [ ] **Step 8.1–8.5:** same shape as Task 7. Visual smoke `/3` and `/4`. Commit `refactor(layout): sim_tabs.py reads from SNAPSHOT_DEFAULTS`.
 
@@ -947,6 +999,15 @@ Verify:
    collision.
 7. The discovery script tools/_extract_layout_defaults.py is still
    present (deletion deferred to Task 14).
+8. CLAUDE.md footguns specifically:
+   - No new `float(x or default)` patterns where 0 is a valid value
+     (falsy-zero bug).
+   - No `dbc.Input(type="number")` defaults that violate step/min
+     validation (would render as None, breaking the input).
+   - No callbacks combine `prevent_initial_call=False` with
+     `allow_duplicate=True` on any Output (gunicorn-fatal).
+   - No JS clientside tab-map drift (none expected in Phase 1, but
+     confirm).
 
 Flag BLOCKING issues only. Under 500 words.
 ```
@@ -992,8 +1053,7 @@ If anything looks off, identify which control + tab, look up its `SNAPSHOT_DEFAU
 - [ ] **Step 14.3: Delete the discovery helper**
 
 ```bash
-rm tools/_extract_layout_defaults.py
-git add tools/_extract_layout_defaults.py
+git rm tools/_extract_layout_defaults.py
 git commit -m "chore: remove transient discovery helper (Phase 1 done)"
 ```
 

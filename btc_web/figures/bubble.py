@@ -81,7 +81,10 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     # back to Q50%. BM is excluded: composite/support already provide a
     # median reference, and a ghost Q50 line is visually indistinguishable
     # from the composite — hiding composite would appear to do nothing.
-    _non_bub_active = [k for k in p.get("active_models", []) if k != "bub"]
+    # U1 is also exempt from the Q50 fallback: its direct P1→P2 line
+    # already provides a visible trace, so there's no trace-free-plot risk
+    # when the user deselects Q50 with only U1 active.
+    _non_bub_active = [k for k in p.get("active_models", []) if k not in ("bub", "u1")]
     _fallback_q50 = not sel_qs and _non_bub_active
     _default_mode = "advanced" not in (p.get("qs_mode") or [])
     if _fallback_q50:

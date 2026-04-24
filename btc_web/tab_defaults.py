@@ -41,7 +41,7 @@ BUBBLE = MappingProxyType({
     "palette": "default",
     "scanner_lines": (),
     "qs_mode": (),
-    "sigma_mode": "constant",
+    "sigma_mode": "resqr",
     # Derived-from-State keys that the bubble callback always puts into its
     # params dict — must be present in defaults so the prewarm key aligns.
     "decomp_model": "",

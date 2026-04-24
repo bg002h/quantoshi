@@ -37,9 +37,9 @@ def test_sigma_mode_not_in_other_tabs():
         assert "bub-sigma-mode" not in ids, tab_key
 
 
-def test_bubble_default_sigma_mode_is_constant():
-    assert tab_defaults.BUBBLE["sigma_mode"] == "constant"
-    assert tab_defaults.bubble_defaults()["sigma_mode"] == "constant"
+def test_bubble_default_sigma_mode_is_resqr():
+    assert tab_defaults.BUBBLE["sigma_mode"] == "resqr"
+    assert tab_defaults.bubble_defaults()["sigma_mode"] == "resqr"
 
 
 def test_snapshot_roundtrip_preserves_sigma_mode_resqr():

@@ -255,10 +255,11 @@ def sigma_mode_section():
     """
     has_resqr = bool(getattr(_app_ctx, "_HAS_RESQR", False))
     radio_options = [
-        {"label": " Constant σ (legacy)", "value": "constant"},
         {"label": " Residual quantile bands", "value": "resqr",
          "disabled": not has_resqr},
+        {"label": " Constant σ (legacy)", "value": "constant"},
     ]
+    default_value = "resqr" if has_resqr else "constant"
     disclaimer_applicability = html.Div(
         "Applies to Tab 1 (Price & Model Overlays) only — other tabs "
         "use the legacy constant-σ bands regardless of this setting.",
@@ -276,7 +277,7 @@ def sigma_mode_section():
         dcc.RadioItems(
             id="bub-sigma-mode",
             options=radio_options,
-            value="constant",
+            value=default_value,
             labelStyle={"display": "block"},
             inputStyle={"marginRight": "4px"},
         ),

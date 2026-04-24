@@ -17,7 +17,7 @@ from callbacks.lots import (_lots_summary, manage_lots, preview_percentile,
                             sync_table_on_load)
 from callbacks.charts import (update_bubble, update_heatmap, update_dca,
                                update_retire, update_supercharge)
-from callbacks.snapshot_cb import (restore_from_url, apply_snapshot,
+from callbacks.snapshot_cb import (restore_from_url, apply_globals,
                                    update_effective_lots,
                                    manage_snapshot, update_snapshot_banner,
                                    render_link_history,

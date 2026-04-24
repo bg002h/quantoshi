@@ -63,114 +63,90 @@ def restore_from_url(hash_str):
     return state, hash_str
 
 
-# Split _SNAPSHOT_CONTROLS into eager (mounted at page load) vs per-tab lazy
-# sets (components that live inside a lazy-loaded tab placeholder and don't
-# exist in the DOM until the user first visits that tab).  A share link to
-# /2-/9#q3:... would otherwise try to write components that don't exist yet,
-# generating "nonexistent object" Dash errors.
+# Control partition. See spec 2026-04-24-drop-all-tabs-snapshot-design.md.
 #
-# Tab-prefixes → relay store → first-render trigger:
-#   bubble     bub-  scan-  cta-  → snapshot-apply-bubble     / bubble-first-render
-#   heatmap    hm-                → snapshot-apply-heatmap    / heatmap-first-render
-#   dca        dca-               → snapshot-apply-dca        / dca-first-render
-#   retire     ret-               → snapshot-apply-retire     / retire-first-render
-#   supercharge sc-               → snapshot-apply-supercharge/ supercharge-first-render
-#   citadel    cp-                → snapshot-apply-citadel    / citadel-first-render
-#   leverage   lev-               → snapshot-apply-leverage   / leverage-first-render
+#   apply_globals     → 31 always-mounted controls (main-tabs, palette-store,
+#                       lppl-*, hybppl-cfg-{a,b}-*, eppl-cfg-{a,b}-*) + snapshot-lots
+#   apply_tab_{tab}   → 7 callbacks, one per chart tab, keyed on
+#                       {tab}-first-render. Writes tab-scoped controls from
+#                       snapshot-state-store (as State) when the tab mounts.
 #
-# Global controls (main-tabs, palette-store, lppl-*, hybppl-*, eppl-*) remain
-# eager — they are present in every tab's layout from the first render.
+# Lazy-mounted tab controls stay protected from "nonexistent object" errors
+# because the apply_tab_{tab} Outputs only need to exist in DOM at fire
+# time (after first-render), not at callback-register time — Dash tolerates
+# this as long as the layout eventually contains the component.
 
-_BUBBLE_LAZY_PREFIXES = ("bub-", "scan-", "cta-")
+_LAZY_PREFIXES = ("bub-", "scan-", "cta-", "hm-", "dca-", "ret-",
+                  "sc-", "cp-", "lev-")
 
-# Ordered list of (tab_id, relay_store_id, first_render_id, prefix_tuple)
-_LAZY_TAB_SPECS = [
-    ("bubble",      "snapshot-apply-bubble",      "bubble-first-render",      ("bub-", "scan-", "cta-")),
-    ("heatmap",     "snapshot-apply-heatmap",     "heatmap-first-render",     ("hm-",)),
-    ("dca",         "snapshot-apply-dca",         "dca-first-render",         ("dca-",)),
-    ("retire",      "snapshot-apply-retire",      "retire-first-render",      ("ret-",)),
-    ("supercharge", "snapshot-apply-supercharge", "supercharge-first-render", ("sc-",)),
-    ("citadel",     "snapshot-apply-citadel",     "citadel-first-render",     ("cp-",)),
-    ("leverage",    "snapshot-apply-leverage",    "leverage-first-render",    ("lev-",)),
+# Split _SNAPSHOT_CONTROLS into globals + per-tab buckets.
+_GLOBAL_CONTROLS = [(cid, prop) for cid, prop in _SNAPSHOT_CONTROLS
+                    if not cid.startswith(_LAZY_PREFIXES)]
+
+# Ordered list of (tab_id, first_render_id, prefix_tuple)
+_TAB_SPECS = [
+    ("bubble",      "bubble-first-render",      ("bub-", "scan-", "cta-")),
+    ("heatmap",     "heatmap-first-render",     ("hm-",)),
+    ("dca",         "dca-first-render",         ("dca-",)),
+    ("retire",      "retire-first-render",      ("ret-",)),
+    ("supercharge", "supercharge-first-render", ("sc-",)),
+    ("citadel",     "citadel-first-render",     ("cp-",)),
+    ("leverage",    "leverage-first-render",    ("lev-",)),
 ]
 
-# Build per-tab lazy control lists and the combined set of all lazy prefixes.
-_ALL_LAZY_PREFIXES: tuple[str, ...] = tuple(
-    p for _, _, _, prefixes in _LAZY_TAB_SPECS for p in prefixes
-)
-
-_TAB_LAZY_CONTROLS: dict[str, list[tuple[str, str]]] = {}
-for _tab_id, _relay, _fr, _prefixes in _LAZY_TAB_SPECS:
-    _TAB_LAZY_CONTROLS[_tab_id] = [
+_PER_TAB_CONTROLS: dict[str, list[tuple[str, str]]] = {}
+for _tab_id, _fr_id, _prefixes in _TAB_SPECS:
+    _PER_TAB_CONTROLS[_tab_id] = [
         (cid, prop) for cid, prop in _SNAPSHOT_CONTROLS
         if cid.startswith(_prefixes)
     ]
 
-# Back-compat alias used by tests
-_BUBBLE_LAZY_CONTROLS = _TAB_LAZY_CONTROLS["bubble"]
-
-_EAGER_CONTROLS = [(cid, prop) for cid, prop in _SNAPSHOT_CONTROLS
-                   if not cid.startswith(_ALL_LAZY_PREFIXES)]
-
-# Number of relay-store outputs appended after the eager controls + lots:
-# 1 per lazy tab (bubble + 5 others)
-_N_RELAY_STORES = len(_LAZY_TAB_SPECS)
-
 
 @callback(
-    *[Output(cid, prop, allow_duplicate=True) for cid, prop in _EAGER_CONTROLS],
+    *[Output(cid, prop, allow_duplicate=True) for cid, prop in _GLOBAL_CONTROLS],
     Output("snapshot-lots", "data", allow_duplicate=True),
-    *[Output(relay, "data", allow_duplicate=True)
-      for _, relay, _, _ in _LAZY_TAB_SPECS],
     Input("snapshot-state-store", "data"),
     prevent_initial_call=True,
 )
-def apply_snapshot(state):
-    """Apply decoded snapshot state to eager controls; route each tab's lazy
-    controls through their per-tab relay store so they land only when the
-    tab is mounted."""
-    n_outs = len(_EAGER_CONTROLS) + 1 + _N_RELAY_STORES
+def apply_globals(state):
+    """Apply globals + snapshot-lots as soon as snapshot-state-store lands.
+    Tab-scoped writes are handled by apply_tab_{tab}."""
+    n_outs = len(_GLOBAL_CONTROLS) + 1
     if not state:
         return [no_update] * n_outs
     results = [state.get(f"{cid}:{prop}", no_update)
-               for cid, prop in _EAGER_CONTROLS]
-    results.append(state.get("_lots", None))  # snapshot-lots
-    # Each relay gets the full state dict so the stage-2 callback can do its
-    # own {cid:prop} lookups without any additional data transformation.
-    for _ in _LAZY_TAB_SPECS:
-        results.append(state)
+               for cid, prop in _GLOBAL_CONTROLS]
+    results.append(state.get("_lots", None))
     return results
 
 
-def _make_lazy_relay_callback(tab_id, relay_store_id, first_render_id, lazy_controls):
-    """Factory: register one stage-2 callback that writes lazy controls for
-    a single tab when its first-render trigger fires."""
+def _make_apply_tab_callback(tab_id, first_render_id, controls):
+    """Factory: register one apply_tab_{tab} callback.
+
+    Fires on {tab}-first-render change. Reads snapshot-state-store as State
+    — relies on Dash's write-before-read ordering guarantee so that the
+    clientside first-render bump in routing.py (which is Input on
+    snapshot-state-store) cannot fire until state is populated.
+    See routing.py:79-110 for the invariant."""
     @callback(
-        *[Output(cid, prop, allow_duplicate=True) for cid, prop in lazy_controls],
+        *[Output(cid, prop, allow_duplicate=True) for cid, prop in controls],
         Input(first_render_id, "data"),
-        State(relay_store_id, "data"),
+        State("snapshot-state-store", "data"),
         prevent_initial_call=True,
     )
-    def _apply_lazy(_trigger, state, _tab=tab_id, _ctrls=lazy_controls):
+    def _apply(_trigger, state, _ctrls=controls):
         if not state:
             return [no_update] * len(_ctrls)
         return [state.get(f"{cid}:{prop}", no_update) for cid, prop in _ctrls]
 
-    # Give each generated function a unique name so Dash's deduplication
-    # logic treats them as distinct callbacks.
-    _apply_lazy.__name__ = f"apply_snapshot_{tab_id}"
-    return _apply_lazy
+    _apply.__name__ = f"apply_tab_{tab_id}"
+    _apply.__qualname__ = _apply.__name__
+    globals()[_apply.__name__] = _apply
+    return _apply
 
 
-# Register stage-2 relay callbacks for every lazy tab.
-for _tab_id, _relay, _fr, _ in _LAZY_TAB_SPECS:
-    _ctrls = _TAB_LAZY_CONTROLS[_tab_id]
-    globals()[f"apply_snapshot_{_tab_id}"] = _make_lazy_relay_callback(
-        _tab_id, _relay, _fr, _ctrls
-    )
-
-# Back-compat alias: tests import apply_snapshot_bubble by name.
-apply_snapshot_bubble = globals()["apply_snapshot_bubble"]  # noqa: F821
+for _tab_id, _fr_id, _prefixes in _TAB_SPECS:
+    _make_apply_tab_callback(_tab_id, _fr_id, _PER_TAB_CONTROLS[_tab_id])
 
 
 @callback(
@@ -178,14 +154,13 @@ apply_snapshot_bubble = globals()["apply_snapshot_bubble"]  # noqa: F821
     Output("link-history",      "data"),
     Input("share-copy-btn",    "n_clicks"),
     Input("loaded-hash-store", "data"),
-    State("share-scope",        "value"),
     State("share-include-lots", "value"),
     State("lots-store",         "data"),
     *[State(cid, prop) for cid, prop in _SNAPSHOT_CONTROLS],
     State("link-history",       "data"),
     prevent_initial_call=True,
 )
-def manage_snapshot(n_btn, loaded_hash, share_scope, include_lots, lots_data, *rest):
+def manage_snapshot(n_btn, loaded_hash, include_lots, lots_data, *rest):
     *ctrl_vals, history = rest
     history  = list(history or [])
     existing = {h["hash"] for h in history}
@@ -198,13 +173,14 @@ def manage_snapshot(n_btn, loaded_hash, share_scope, include_lots, lots_data, *r
             state["_lots"] = lots_data
         active_tab = state.get("main-tabs:active_tab") or "bubble"
         tab_path   = _TAB_TO_PATH.get(active_tab, "/1")
-        scope      = share_scope or "all"
-        tab_filter = _TAB_CONTROLS.get(active_tab) if scope == "tab" else None
+        # Share links always encode active-tab + globals only (post
+        # 2026-04-24 refactor; see spec drop-all-tabs-snapshot-design.md).
+        tab_filter = _TAB_CONTROLS.get(active_tab)
         encoded    = _encode_snapshot(state, tab_filter=tab_filter)
         base_url   = flask_request.host_url.rstrip("/")
         full_url   = f"{base_url}{tab_path}#{_SNAP_PREFIX}{encoded}"
         _add_snapshot_entry(history, existing, encoded, full_url,
-                            bool(include_lots and lots_data), scope, active_tab)
+                            bool(include_lots and lots_data))
         return full_url, history
 
     if triggered == "loaded-hash-store" and loaded_hash:
@@ -217,14 +193,13 @@ def manage_snapshot(n_btn, loaded_hash, share_scope, include_lots, lots_data, *r
         base_url   = flask_request.host_url.rstrip("/")
         full_url   = f"{base_url}{tab_path}#{prefix}{encoded}"
         if _add_snapshot_entry(history, existing, encoded, full_url,
-                               "_lots" in state, "unknown", active_tab):
+                               "_lots" in state):
             return no_update, history
 
     return no_update, no_update
 
 
-def _add_snapshot_entry(history, existing, encoded, full_url,
-                        includes_lots, scope, tab):
+def _add_snapshot_entry(history, existing, encoded, full_url, includes_lots):
     """Append a snapshot entry to history if not already present.
 
     Mutates history in-place and returns True if an entry was added.
@@ -235,8 +210,6 @@ def _add_snapshot_entry(history, existing, encoded, full_url,
         "hash": encoded, "url": full_url,
         "ts": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"),
         "includes_lots": includes_lots,
-        "scope": scope,
-        "tab": tab,
     })
     history[:] = history[:50]
     return True

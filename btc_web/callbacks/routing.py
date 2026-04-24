@@ -70,12 +70,22 @@ _app_ctx.app.clientside_callback(
 )
 
 
-# After snapshot restore, force the active tab's chart to re-render.
-# Mobile Safari/WebKit browsers sometimes swallow the Input-change events
-# fired by apply_snapshot (~100 simultaneous allow_duplicate outputs),
-# leaving the pre-injected figure stale. Incrementing first-render on
-# the active tab guarantees the chart callback fires with the restored
-# control values.
+# ══════════════════════════════════════════════════════════════════════════════
+# Post-snapshot chart re-render bump.
+#
+# After snapshot restore, force the active tab's chart to re-render. Mobile
+# Safari/WebKit browsers sometimes swallow the Input-change events fired by
+# apply_globals (~30 simultaneous allow_duplicate outputs), leaving the
+# pre-injected figure stale. Incrementing first-render on the active tab
+# guarantees the chart callback fires with the restored control values.
+#
+# INVARIANT: Input MUST remain `snapshot-state-store.data`. If you change it
+# (e.g. to `main-tabs.active_tab`), `apply_tab_{active}` in snapshot_cb.py
+# will fire BEFORE snapshot-state-store is written and read None as its
+# State, silently writing nothing and leaving the active tab stuck at its
+# pre-injected defaults. See spec
+# docs/superpowers/specs/2026-04-24-drop-all-tabs-snapshot-design.md.
+# ══════════════════════════════════════════════════════════════════════════════
 _app_ctx.app.clientside_callback(
     """
     function(state, tab, bub, hm, dca, ret, sc, cp, lev) {

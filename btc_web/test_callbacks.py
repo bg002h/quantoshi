@@ -19,7 +19,7 @@ from conftest import (
     _patch_ctx,
     _pk,
     _q3,
-    apply_snapshot,
+    apply_globals,
     base64,
     go,
     json,
@@ -1487,7 +1487,7 @@ class TestRestoreFromUrl:
         assert state is no_update
 
     def test_valid_roundtrip(self):
-        """Encode a snapshot, then decode via restore_from_url + apply_snapshot."""
+        """Encode a snapshot, then decode via restore_from_url + apply_globals."""
         state = {
             "bub-xscale:value": "log",
             "bub-yscale:value": "log",
@@ -1500,17 +1500,15 @@ class TestRestoreFromUrl:
         assert loaded_hash == hash_str
         assert isinstance(decoded, dict)
         assert decoded["main-tabs:active_tab"] == "bubble"
-        # Apply to controls. apply_snapshot now writes only _EAGER_CONTROLS
-        # + snapshot-lots + one relay store per lazy tab (6 tabs total).
-        from callbacks.snapshot_cb import _EAGER_CONTROLS, _N_RELAY_STORES
-        result = apply_snapshot(decoded)
-        assert len(result) == len(_EAGER_CONTROLS) + 1 + _N_RELAY_STORES
-        main_tab_idx = next(i for i, (cid, _) in enumerate(_EAGER_CONTROLS)
+        # Apply globals. Post-refactor apply_globals writes only
+        # _GLOBAL_CONTROLS + snapshot-lots. Per-tab writes are handled by
+        # apply_tab_{tab} callbacks on first-render bump.
+        from callbacks.snapshot_cb import _GLOBAL_CONTROLS
+        result = apply_globals(decoded)
+        assert len(result) == len(_GLOBAL_CONTROLS) + 1
+        main_tab_idx = next(i for i, (cid, _) in enumerate(_GLOBAL_CONTROLS)
                            if cid == "main-tabs")
         assert result[main_tab_idx] == "bubble"
-        # Every relay payload is the full state dict.
-        for relay_val in result[len(_EAGER_CONTROLS) + 1:]:
-            assert relay_val == decoded
 
 
 
@@ -1550,7 +1548,7 @@ class TestNoDuplicateCallbackOutputs:
     def test_restore_from_url_uses_intermediate_store(self):
         """restore_from_url must NOT output directly to _SNAPSHOT_CONTROLS.
 
-        It must write to snapshot-state-store, which apply_snapshot then
+        It must write to snapshot-state-store, which apply_globals then
         fans out with allow_duplicate=True.  Outputting directly would
         create duplicate-output conflicts with MC and other callbacks
         that also target snapshot control properties.
@@ -1571,7 +1569,7 @@ class TestNoDuplicateCallbackOutputs:
             assert overlap == set(), (
                 f"restore_from_url outputs directly to snapshot controls "
                 f"without allow_duplicate — this breaks Dash's callback "
-                f"graph.  Use snapshot-state-store + apply_snapshot "
+                f"graph.  Use snapshot-state-store + apply_globals "
                 f"instead.  Offending outputs: {sorted(overlap)[:5]}..."
             )
             break

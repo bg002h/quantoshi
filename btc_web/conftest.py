@@ -55,7 +55,7 @@ try:
                            update_bubble, update_heatmap, update_dca,
                            update_retire, update_supercharge,
                            manage_lots, preview_percentile,
-                           update_effective_lots, restore_from_url, apply_snapshot,
+                           update_effective_lots, restore_from_url, apply_globals,
                            update_sc_info,
                            _TAB_CONTROLS, _TAB_TO_PATH)
     import _app_ctx

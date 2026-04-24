@@ -296,13 +296,6 @@ def _build_layout(initial_tab="bubble"):
     dcc.Store(id="um-clicked-point", storage_type="memory", data=None),
     dcc.Store(id="viewport-width", storage_type="memory", data=1200),
     dcc.Store(id="snapshot-state-store", storage_type="memory", data=None),
-    dcc.Store(id="snapshot-apply-bubble",     storage_type="memory", data=None),
-    dcc.Store(id="snapshot-apply-heatmap",    storage_type="memory", data=None),
-    dcc.Store(id="snapshot-apply-dca",        storage_type="memory", data=None),
-    dcc.Store(id="snapshot-apply-retire",     storage_type="memory", data=None),
-    dcc.Store(id="snapshot-apply-supercharge",storage_type="memory", data=None),
-    dcc.Store(id="snapshot-apply-citadel",    storage_type="memory", data=None),
-    dcc.Store(id="snapshot-apply-leverage",   storage_type="memory", data=None),
     dcc.Store(id="ticker-mode-store", storage_type="local", data="usd"),
     dcc.Store(id="splash-ts-store", storage_type="local", data=None),
     dcc.Store(id="lots-store", storage_type="local", data=[]),
@@ -679,17 +672,6 @@ def _build_layout(initial_tab="bubble"):
     dbc.Modal([
         dbc.ModalHeader(dbc.ModalTitle("Share / Restore Configuration")),
         dbc.ModalBody([
-            html.Div("Scope:", className="fw-semibold small mb-1"),
-            dcc.RadioItems(
-                id="share-scope",
-                options=[
-                    {"label": " All tabs — full state, longer link", "value": "all"},
-                    {"label": " Current tab only — shorter link",    "value": "tab"},
-                ],
-                value="tab",
-                inputStyle=_CB_MARGIN,
-                className="mb-2 small",
-            ),
             dcc.Checklist(
                 id="share-include-lots",
                 options=[{"label": " Include Stack Tracker lots in link", "value": "yes"}],

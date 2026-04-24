@@ -575,39 +575,6 @@ _app_ctx.app.clientside_callback(
     Input("snapshot-pending", "data"),
     prevent_initial_call=True,
 )
-
-
-# ── Clientside pre-arm of snapshot-pending on page load ────────────────────
-# Runs SYNCHRONOUSLY on initial load (prevent_initial_call='initial_duplicate')
-# so the gate is up BEFORE server-side restore_from_url finishes. Eliminates
-# the "3 refreshes before settle" bug where hydration Inputs (palette-store,
-# effective-lots, user-model-store loading from localStorage) would fire
-# chart callbacks before the gate was armed.
-#
-# INVARIANT: this callback must NOT share Input("url","hash") with
-# restore_from_url. Dash 4 deduplicates callbacks that have identical
-# (Input, Output) + prevent_initial_call='initial_duplicate' on the
-# initial fire, picking only one. Using Input("url","pathname") instead
-# avoids the collision while still firing on page load. The hash is
-# read directly from window.location inside the JS body.
-_app_ctx.app.clientside_callback(
-    """
-    function(_pathname) {
-        var h = window.location.hash || '';
-        var s = h.indexOf('#') === 0 ? h.slice(1) : h;
-        if (s.indexOf('q1:') === 0 || s.indexOf('q2:') === 0 ||
-            s.indexOf('q3:') === 0) {
-            return true;
-        }
-        return window.dash_clientside.no_update;
-    }
-    """,
-    Output("snapshot-pending", "data", allow_duplicate=True),
-    Input("url", "pathname"),
-    prevent_initial_call='initial_duplicate',
-)
-
-
 # ── Force-materialize all lazy tabs when share modal opens ─────────────────
 # manage_snapshot below reads State for every control in _SNAPSHOT_CONTROLS
 # including those inside lazy-loaded tab panels. If the user opens the share

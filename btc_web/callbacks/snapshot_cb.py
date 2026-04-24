@@ -139,16 +139,25 @@ def _make_apply_tab_callback(tab_id, first_render_id, controls):
     @callback(
         *[Output(cid, prop, allow_duplicate=True) for cid, prop in controls],
         Output("snapshot-pending", "data", allow_duplicate=True),
+        Output("snapshot-applied-tabs", "data", allow_duplicate=True),
         Input(first_render_id, "data"),
         State("snapshot-state-store", "data"),
+        State("loaded-hash-store", "data"),
+        State("snapshot-applied-tabs", "data"),
         prevent_initial_call=True,
     )
-    def _apply(_trigger, state, _ctrls=controls):
-        if not state:
-            # Including gate output: no_update.
-            return [no_update] * (len(_ctrls) + 1)
+    def _apply(_trigger, state, loaded_hash, applied, _ctrls=controls,
+               _tab=tab_id):
+        # No-op if no snapshot state OR this tab has already applied the
+        # currently-loaded hash (prevents re-applying stale values on
+        # later first-render bumps, e.g. sigma-mode radio change).
+        if not state or (applied or {}).get(_tab) == loaded_hash:
+            return [no_update] * (len(_ctrls) + 2)
         values = [state.get(f"{cid}:{prop}", no_update) for cid, prop in _ctrls]
         values.append(False)  # release gate
+        new_applied = dict(applied or {})
+        new_applied[_tab] = loaded_hash
+        values.append(new_applied)
         return values
 
     _apply.__name__ = f"apply_tab_{tab_id}"

@@ -517,7 +517,7 @@ class TestPostRefactorArchitecture:
         """apply_tab_bubble returns all no_update when state is None."""
         from callbacks.snapshot_cb import apply_tab_bubble
         from dash import no_update
-        result = apply_tab_bubble(None, None)
+        result = apply_tab_bubble(None, None, None, {})
         assert all(x is no_update for x in result)
 
     def test_apply_tab_partial_restore_on_legacy_payload(self):
@@ -530,10 +530,10 @@ class TestPostRefactorArchitecture:
             "hm-mode:value": "segmented",
             "bub-qs:value": [0.5],
         }
-        bub_result = apply_tab_bubble(1, state)
+        bub_result = apply_tab_bubble(1, state, "h1", {})
         assert any(v == "Lin" for v in bub_result if v is not no_update), (
             "apply_tab_bubble must write bub-xscale=Lin")
-        hm_result = apply_tab_heatmap(1, state)
+        hm_result = apply_tab_heatmap(1, state, "h1", {})
         assert any(v == "segmented" for v in hm_result if v is not no_update), (
             "apply_tab_heatmap must write hm-mode=segmented")
 
@@ -610,18 +610,18 @@ class TestSnapshotPendingGate:
             ("supercharge", apply_tab_supercharge),
             ("citadel", apply_tab_citadel), ("leverage", apply_tab_leverage),
         ]:
-            result = fn(1, state)
-            assert result[-1] is False, (
-                f"apply_tab_{name}: last output must be False "
-                f"(gate release); got {result[-1]!r}")
+            result = fn(1, state, "h1", {})
+            assert result[-2] is False, (
+                f"apply_tab_{name}: gate output (second-to-last) must be "
+                f"False; got {result[-2]!r}")
 
     def test_apply_tab_releases_gate_on_populated_state(self):
-        """apply_tab_bubble with populated state returns False (release) as last output."""
+        """apply_tab_bubble with populated state returns False (release) as gate output."""
         from callbacks.snapshot_cb import apply_tab_bubble
         state = {"bub-xscale:value": "Lin", "bub-qs:value": [0.5]}
-        result = apply_tab_bubble(1, state)
-        assert result[-1] is False, (
-            f"Last output must be False to release gate; got {result[-1]!r}")
+        result = apply_tab_bubble(1, state, "h1", {})
+        assert result[-2] is False, (
+            f"Gate output must be False to release; got {result[-2]!r}")
 
     def test_apply_tab_does_not_clear_gate_when_state_none(self):
         """apply_tab_bubble with state=None returns no_update for gate output
@@ -629,9 +629,7 @@ class TestSnapshotPendingGate:
         clear the gate."""
         from callbacks.snapshot_cb import apply_tab_bubble
         from dash import no_update
-        result = apply_tab_bubble(None, None)
-        assert result[-1] is no_update, (
-            f"Gate output must be no_update when state is None; got {result[-1]!r}")
+        result = apply_tab_bubble(None, None, None, {})
         assert all(x is no_update for x in result), (
             "All outputs must be no_update when state is None")
 

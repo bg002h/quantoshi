@@ -19,39 +19,88 @@ from colors import (LOT_MARKER_COLOR, FALLBACK_MODEL_GRAY, NEAR_BLACK,
                     CHART_FONT_WATERMARK,
                     HM_DEFAULT_RED, HM_DEFAULT_GREEN, WHITE)
 
-BUBBLE = MappingProxyType({
-    "selected_qs": (0.5,),
-    "xscale": "log", "yscale": "log",
-    # ymin/ymax must match the bub-yrange slider default [-1.5, 6.05] so the
-    # prewarm cache key matches the first-render callback key. auto_y is a UI
-    # toggle only; it influences yrange via a clientside callback but never
-    # appears in the runtime params dict, so it is NOT a cache key.
-    "ymin": 10 ** -1.5, "ymax": 10 ** 6.05,
-    "shade": True, "show_data": True, "show_today": True,
-    "show_legend": False, "minor_grid": False,
-    "show_ols": False, "show_ucl": False,
-    "show_comp": True, "show_sup": True,
-    "n_future": 3,
-    "pt_size": PT_SIZE_DEFAULT, "pt_alpha": PT_ALPHA_DEFAULT,
-    "stack": 0, "show_stack": False, "use_lots": False,
-    "legend_pos": "top-left",
-    "comp_color": LOT_MARKER_COLOR, "comp_lw": TRACE_WIDTH_COMPOSITE,
-    "sup_color": FALLBACK_MODEL_GRAY, "sup_lw": TRACE_WIDTH_SUPPORT,
-    "active_models": ("bub",),
-    "palette": "default",
-    "scanner_lines": (),
-    "qs_mode": (),
-    "sigma_mode": "resqr",
-    # Derived-from-State keys that the bubble callback always puts into its
-    # params dict — must be present in defaults so the prewarm key aligns.
-    "decomp_model": "",
-    "decomp_mode": "individual",
-    "decomp_components": (),
-    "lppl_n_freqs": (),
-    "lppl_weighted": (),
-    "lppl_no_13": (),
-    "config_b_keys": (),
-})
+def _build_bubble_dict():
+    """Derive BUBBLE figure-params dict from SNAPSHOT_DEFAULTS widget values.
+
+    bub-qs widget stores BAND LABELS (e.g. ['median']); _bands_to_qs
+    translates to quantile floats. bub-qs-adv stores quantile floats
+    directly. Default qs_mode is [] (default mode) so we use bub-qs.
+    """
+    from snapshot_defaults import SNAPSHOT_DEFAULTS as _S
+
+    # Inlined to avoid circular import via layout.common -> layout.bubble ->
+    # tab_defaults. Mirrors layout.common._DEFAULT_BANDS / _bands_to_qs.
+    _BANDS = {"inner": [0.15, 0.85], "outer": [0.01, 0.99], "median": [0.5]}
+    def _bands_to_qs(band_values):
+        qs = []
+        for b in (band_values or []):
+            qs.extend(_BANDS.get(b, []))
+        return sorted(set(qs))
+
+    def sd(k, default=None):
+        return _S.get(k, default)
+
+    yr = sd("bub-yrange:value", [-1.5, 6.05])
+    xr = sd("bub-xrange:value", [2010, 2033])
+    toggles = set(sd("bub-toggles:value", []) or [])
+    btoggles = set(sd("bub-bubble-toggles:value", []) or [])
+    qs_mode_val = tuple(sd("bub-qs-mode:value", []) or [])
+    if "advanced" in qs_mode_val:
+        selected_qs = tuple(sd("bub-qs-adv:value", [0.5]) or [0.5])
+    else:
+        selected_qs = tuple(_bands_to_qs(sd("bub-qs:value", ["median"])))
+        if not selected_qs:
+            selected_qs = (0.5,)
+    return {
+        "selected_qs": selected_qs,
+        "xscale":      sd("bub-xscale:value", "log"),
+        "yscale":      sd("bub-yscale:value", "log"),
+        # ymin/ymax must match bub-yrange so prewarm key aligns with first-
+        # render callback key. xrange feeds xmin/xmax in bubble_defaults().
+        "ymin":        10 ** float(yr[0]),
+        "ymax":        10 ** float(yr[1]),
+        "shade":       "shade"       in toggles,
+        "show_data":   "show_data"   in toggles,
+        "show_today":  "show_today"  in toggles,
+        "show_legend": "show_legend" in toggles,
+        "minor_grid":  "minor_grid"  in toggles,
+        "show_ols":    "show_ols"    in toggles,
+        "show_ucl":    "show_ucl"    in toggles,
+        "show_comp":   "show_comp"   in btoggles,
+        "show_sup":    "show_sup"    in btoggles,
+        "n_future":    sd("bub-n-future:value", 3),
+        "pt_size":     sd("bub-ptsize:value",  PT_SIZE_DEFAULT),
+        "pt_alpha":    sd("bub-ptalpha:value", PT_ALPHA_DEFAULT),
+        "stack":       sd("bub-stack:value", 0),
+        "show_stack":  False,
+        "use_lots":    False,
+        "legend_pos":  sd("bub-legend-pos:value", "top-left"),
+        # Composite/support style constants — not exposed as widgets.
+        "comp_color":  LOT_MARKER_COLOR,
+        "comp_lw":     TRACE_WIDTH_COMPOSITE,
+        "sup_color":   FALLBACK_MODEL_GRAY,
+        "sup_lw":      TRACE_WIDTH_SUPPORT,
+        "active_models": tuple(sd("bub-model-show:value", ["bub"]) or ["bub"]),
+        "palette":     sd("palette-store:data", "default"),
+        "scanner_lines": (),
+        "qs_mode":     qs_mode_val,
+        "sigma_mode":  sd("bub-sigma-mode:value", "resqr"),
+        # Derived-from-State keys callbacks always inject; must appear in
+        # defaults so the prewarm cache key aligns.
+        "decomp_model": "",
+        "decomp_mode":  "individual",
+        "decomp_components": (),
+        "lppl_n_freqs": (),
+        "lppl_weighted": (),
+        "lppl_no_13":  (),
+        "config_b_keys": (),
+        "_xrange": (int(xr[0]), int(xr[1])),  # internal: feeds xmin/xmax
+    }
+
+
+_BUBBLE_RAW = _build_bubble_dict()
+_BUBBLE_XRANGE = _BUBBLE_RAW.pop("_xrange")
+BUBBLE = MappingProxyType(_BUBBLE_RAW)
 
 HEATMAP = MappingProxyType({
     "exit_qs": (),
@@ -202,8 +251,8 @@ CITADEL = MappingProxyType({
 
 def bubble_defaults() -> dict:
     d = dict(BUBBLE)
-    d["xmin"] = 2010
-    d["xmax"] = 2033
+    d["xmin"] = _BUBBLE_XRANGE[0]
+    d["xmax"] = _BUBBLE_XRANGE[1]
     d["selected_qs"] = list(BUBBLE["selected_qs"])
     d["active_models"] = list(BUBBLE["active_models"])
     d["scanner_lines"] = list(BUBBLE["scanner_lines"])

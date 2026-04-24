@@ -506,13 +506,15 @@ def _build_figure(results: dict, scale: str, t0_label: str,
     Input("bub-qs-mode", "value"),
     Input("bub-qs-adv", "value"),
     State("bub-redraw-tick", "data"),
+    State("snapshot-pending", "data"),
     prevent_initial_call=True,
 )
 def custom_time_callback(active, scale, cal_preset, cal_custom,
                           blk_preset, blk_custom, weighting, models,
                           bub_xscale, bub_yscale, bub_xrange, bub_yrange,
                           bub_auto_y, bub_toggles,
-                          bub_qs, bub_qs_mode, bub_qs_adv, tick):
+                          bub_qs, bub_qs_mode, bub_qs_adv, tick,
+                          snapshot_pending=False):
     """Route Custom Time Axis state changes to the bubble figure.
 
     On activate: computes a fresh custom figure.
@@ -521,6 +523,11 @@ def custom_time_callback(active, scale, cal_preset, cal_custom,
     On error: preserves the previous figure via no_update, writes an error
         message to cta-status.
     """
+    # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
+    # This callback shares Output("bubble-graph","figure") with update_bubble
+    # and fires on the same bub-* Inputs, so it must honor the same gate.
+    if snapshot_pending:
+        return no_update, no_update, no_update
     try:
         # 1. Deactivate → bump tick, preserve figure, restore status
         if not active or "yes" not in active:

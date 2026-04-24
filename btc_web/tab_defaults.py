@@ -376,16 +376,12 @@ import hashlib as _hashlib
 
 
 def _compute_defaults_hash() -> str:
-    """Hash all frozen dicts. Changes when any default value changes.
-
-    Uses repr(sorted(items)) — deterministic for primitives and tuples.
-    If a set or dict value is ever added, this may become non-deterministic.
-    The test_inner_collections_are_tuples test guards against this.
-    """
-    h = _hashlib.md5()
-    for d in (BUBBLE, HEATMAP, DCA, RETIRE, SUPERCHARGE, STACK, CITADEL):
-        h.update(repr(sorted(d.items())).encode())
-    return h.hexdigest()[:12]
+    """Cache-invalidation fingerprint. Now sourced from
+    snapshot_defaults._compute_snapshot_defaults_fingerprint() — broader
+    scope (covers all 310 _SNAPSHOT_CONTROLS entries, not just the 7
+    frozen tab dicts), more accurate L0 invalidation."""
+    from snapshot_defaults import _compute_snapshot_defaults_fingerprint
+    return _compute_snapshot_defaults_fingerprint()
 
 
 _DEFAULTS_HASH = _compute_defaults_hash()

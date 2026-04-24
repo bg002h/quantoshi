@@ -606,3 +606,44 @@ _app_ctx.app.clientside_callback(
     Input("url", "pathname"),
     prevent_initial_call='initial_duplicate',
 )
+
+
+# ── Force-materialize all lazy tabs when share modal opens ─────────────────
+# manage_snapshot below reads State for every control in _SNAPSHOT_CONTROLS
+# including those inside lazy-loaded tab panels. If the user opens the share
+# modal and clicks "Generate link" before all tabs have naturally prefetched
+# (~5–15s), Dash errors with "nonexistent object … hm-entry-yr" and the
+# callback never fires — Generate appears broken.
+#
+# This clientside callback fires on share-modal.is_open becoming True and
+# forces every prefetch Interval's n_intervals to 1, which triggers the
+# per-tab prefetch callbacks in routing.py:642 to materialize all tabs
+# synchronously. By the time the user clicks Generate, all tab controls
+# exist in the DOM and their current values (defaults for untouched tabs)
+# are readable via State. Matches user instruction 2026-04-24:
+# "if a tab hasn't loaded, assume default tab configuration".
+_app_ctx.app.clientside_callback(
+    """
+    function(is_open) {
+        var NU = window.dash_clientside.no_update;
+        if (!is_open) return [NU, NU, NU, NU, NU, NU, NU, NU, NU, NU, NU];
+        // Release prefetch gate (no-op if already 1) + bump every tab's
+        // prefetch Interval once. Intervals have max_intervals=1 so these
+        // writes only re-fire in the rare case the natural tick hasn't run.
+        return [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+    }
+    """,
+    Output("prefetch-ready", "data", allow_duplicate=True),
+    Output("bubble-prefetch-iv", "n_intervals", allow_duplicate=True),
+    Output("heatmap-prefetch-iv", "n_intervals", allow_duplicate=True),
+    Output("dca-prefetch-iv", "n_intervals", allow_duplicate=True),
+    Output("retire-prefetch-iv", "n_intervals", allow_duplicate=True),
+    Output("supercharge-prefetch-iv", "n_intervals", allow_duplicate=True),
+    Output("citadel-prefetch-iv", "n_intervals", allow_duplicate=True),
+    Output("leverage-prefetch-iv", "n_intervals", allow_duplicate=True),
+    Output("stack-prefetch-iv", "n_intervals", allow_duplicate=True),
+    Output("model_info-prefetch-iv", "n_intervals", allow_duplicate=True),
+    Output("faq-prefetch-iv", "n_intervals", allow_duplicate=True),
+    Input("share-modal", "is_open"),
+    prevent_initial_call=True,
+)

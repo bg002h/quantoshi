@@ -58,15 +58,14 @@ def build_display_models_options(
         })
 
     def _gear_span(gear_id, title):
-        # Mirror the model info link pattern: dcc.Link with a real href so
-        # the <a> is interactive content (the <label> skips its implicit
-        # checkbox-toggle) AND clicking navigates via the SPA router. A
-        # clientside callback watches url.hash and opens the matching
-        # config modal: #gear=bm|eppl|hybppl|lppl.
-        family = gear_id.rsplit("-gear", 1)[0].rsplit("-", 1)[-1]
-        return dcc.Link(
-            "\u2699\uFE0F", id=gear_id, href=f"#gear={family}",
-            refresh=False, target="_self",
+        # html.Span + className="qs-gear". A capture-phase document listener
+        # (assets/gear_clicks.js) calls preventDefault() on clicks inside the
+        # gear, which cancels the <label>'s implicit checkbox-toggle. React
+        # binds n_clicks directly to the span, so Dash still fires — we must
+        # NOT stopPropagation or it'll kill the n_clicks handler. Original
+        # working fix: 9de1b15.
+        return html.Span(
+            "\u2699\uFE0F", id=gear_id, n_clicks=0,
             style=_GEAR_STYLE, title=title, className="qs-gear",
         )
 

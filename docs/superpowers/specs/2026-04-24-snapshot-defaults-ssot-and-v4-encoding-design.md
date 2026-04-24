@@ -323,7 +323,7 @@ tools/
 5. **Translation parity**: `bubble_defaults()`, `heatmap_defaults()`, `dca_defaults()`, `retire_defaults()`, `supercharge_defaults()`, `citadel_defaults()` produce dicts whose widget-derived keys round-trip through the SSOT.
 6. **`bub-toggles` bitmask round-trip**: `SNAPSHOT_DEFAULTS["bub-toggles:value"]` decodes via `_list_to_mask` → `_mask_to_list` to its original list (catches future divergence between layout's literal toggle list and the bitmask schema).
 7. **`always_encode_members_in_snapshot_controls`** (Phase 2): every key in `ALWAYS_ENCODE` corresponds to a `(cid, prop)` in `_SNAPSHOT_CONTROLS`.
-8. **`mc_enable_defaults_are_disabled`** (Phase 2): every `SNAPSHOT_DEFAULTS["{prefix}-mc-enable:value"]` is the disabled state (empty list).
+8. **`mc_enable_defaults_are_disabled`** (Phase 2): every `SNAPSHOT_DEFAULTS["{prefix}-mc-enable:value"]` is the disabled state (empty list), AND each expected `{prefix}-mc-enable` component ID is present in `_SNAPSHOT_CONTROLS` (asserts `_mc_null_out_diffs_v4`'s `next(...)` lookup cannot `StopIteration`).
 
 ### Phase 1 — modifications
 

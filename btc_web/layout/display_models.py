@@ -58,16 +58,21 @@ def build_display_models_options(
         })
 
     def _gear_span(gear_id, title):
-        # html.A with href="javascript:void(0)" so it stays interactive
-        # content (label skips its checkbox-toggle per spec) but produces
-        # no navigation, no scroll, no hash change. A single document-level
-        # listener in assets/gear_clicks.js reads the gear's data-family
-        # attribute and calls window.dash_clientside.set_props on the
-        # matching modal. No Dash callbacks → no phantom-Input risk from
-        # lazy tabs.
+        # html.A with href="#" — a benign same-page fragment so the anchor
+        # counts as interactive content (label skips its checkbox-toggle
+        # per HTML spec) without triggering Dash 4's XSS filter. The
+        # document-level capture-phase listener in assets/gear_clicks.js
+        # preventDefaults every .qs-gear click and opens the matching
+        # modal via window.dash_clientside.set_props, so the fragment
+        # never actually navigates or scrolls.
+        #
+        # Do NOT use href="javascript:void(0)": Dash 4 refuses to render
+        # it ("Dangerous link detected"), which broke downstream component
+        # wiring (observed 2026-04-24: share-copy-btn not firing after
+        # user clicked Generate link).
         family = gear_id.rsplit("-gear", 1)[0].rsplit("-", 1)[-1]
         return html.A(
-            "\u2699\uFE0F", id=gear_id, href="javascript:void(0)",
+            "\u2699\uFE0F", id=gear_id, href="#",
             style=_GEAR_STYLE, title=title, className="qs-gear",
             **{"data-family": family},
         )

@@ -102,32 +102,40 @@ _BUBBLE_RAW = _build_bubble_dict()
 _BUBBLE_XRANGE = _BUBBLE_RAW.pop("_xrange")
 BUBBLE = MappingProxyType(_BUBBLE_RAW)
 
-HEATMAP = MappingProxyType({
-    "exit_qs": (),
-    "color_mode": 0,
-    "b1": 0, "b2": 5,
-    # hm_palette is a UI-only control — seeds the dropdown but the heatmap
-    # callback never puts it in its runtime params dict. heatmap_defaults()
-    # pops it before the prewarm cache key is built so the key matches the
-    # runtime key.
-    "hm_palette": "rwg",
-    # Initial CAGR heatmap colors match the default "rwg" preset
-    # (red → white → white → green) so the rendered heatmap is consistent
-    # with the dropdown value at first page load.
-    "c_lo": HM_DEFAULT_RED, "c_mid1": WHITE,
-    "c_mid2": WHITE, "c_hi": HM_DEFAULT_GREEN,
-    "n_disc": 32,
-    "vfmt": "cagr_mult",
-    "cell_font_size": CHART_FONT_WATERMARK,
-    "show_colorbar": True,
-    "stack": 0, "use_lots": False,
-    "hm_model": "bub",
-    "active_models": (),
-    "palette": "default",
-    # live_price is stripped from the cache key in utils._get_heatmap_fig
-    # (per-minute ticker value; up to ~1h staleness acceptable), so it
-    # intentionally does NOT appear here.
-})
+def _build_heatmap_dict():
+    """Derive HEATMAP figure-params from SNAPSHOT_DEFAULTS widget values.
+
+    hm_palette is a UI-only control — seeds the dropdown but the heatmap
+    callback never puts it in its runtime params dict. heatmap_defaults()
+    pops it before the prewarm cache key is built. live_price is stripped
+    from the cache key in utils._get_heatmap_fig.
+    """
+    from snapshot_defaults import SNAPSHOT_DEFAULTS as _S
+    sd = lambda k, default=None: _S.get(k, default)
+    toggles = set(sd("hm-toggles:value", []) or [])
+    return {
+        "exit_qs":       (),  # heatmap_defaults() overrides with _DEF_QS
+        "color_mode":    sd("hm-mode:value", 0),
+        "b1":            sd("hm-b1:value", 0),
+        "b2":            sd("hm-b2:value", 5),
+        "hm_palette":    sd("hm-palette:value", "rwg"),
+        "c_lo":          sd("hm-c-lo:value",   HM_DEFAULT_RED),
+        "c_mid1":        sd("hm-c-mid1:value", WHITE),
+        "c_mid2":        sd("hm-c-mid2:value", WHITE),
+        "c_hi":          sd("hm-c-hi:value",   HM_DEFAULT_GREEN),
+        "n_disc":        sd("hm-grad:value", 32),
+        "vfmt":          sd("hm-vfmt:value", "cagr_mult"),
+        "cell_font_size": sd("hm-cell-fs:value", CHART_FONT_WATERMARK),
+        "show_colorbar": "colorbar" in toggles,
+        "stack":         sd("hm-stack:value", 0),
+        "use_lots":      bool(sd("hm-use-lots:value", []) or []),
+        "hm_model":      sd("hm-active-model:data", "bub"),
+        "active_models": (),
+        "palette":       sd("palette-store:data", "default"),
+    }
+
+
+HEATMAP = MappingProxyType(_build_heatmap_dict())
 
 DCA = MappingProxyType({
     "start_stack": 0, "use_lots": False,

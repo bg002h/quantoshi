@@ -200,23 +200,58 @@ def _build_dca_dict():
 
 DCA = MappingProxyType(_build_dca_dict())
 
-RETIRE = MappingProxyType({
-    "start_stack": 1.0, "use_lots": False,
-    "wd_amount": 3000, "freq": "Monthly",
-    "inflation": 4.0,
-    "selected_qs": (0.15, 0.85),
-    "start_yr": 2031, "end_yr": 2075,
-    "disp_mode": "btc",
-    "annotate": True, "log_y": True,
-    "shade": True, "discrete": False,
-    "show_legend": False, "minor_grid": False,
-    "legend_pos": "bottom-right",
-    "active_models": (),
-    "palette": "default",
-    "show_qr": True, "show_mc": False,
-    # qs_mode — see DCA note. retire_defaults() pops it.
-    "qs_mode": (),
-})
+def _build_retire_dict():
+    """Derive RETIRE figure-params from SNAPSHOT_DEFAULTS widget values.
+
+    show_mc=False is the prewarm baseline; the runtime callback computes
+    the effective value from ret-mc-enable. Keeping the static False
+    preserves cache-key alignment.
+    """
+    from snapshot_defaults import SNAPSHOT_DEFAULTS as _S
+    _BANDS = {"inner": [0.15, 0.85], "outer": [0.01, 0.99], "median": [0.5]}
+
+    def sd(k, default=None):
+        return _S.get(k, default)
+
+    def _bands(vals):
+        qs = []
+        for b in (vals or []):
+            qs.extend(_BANDS.get(b, []))
+        return tuple(sorted(set(qs)))
+
+    toggles = set(sd("ret-toggles:value", []) or [])
+    yr = sd("ret-yr-range:value", [2031, 2075])
+    qs_mode_val = tuple(sd("ret-qs-mode:value", []) or [])
+    if "advanced" in qs_mode_val:
+        sel_qs = tuple(sd("ret-qs-adv:value", [0.15, 0.85]) or [0.15, 0.85])
+    else:
+        sel_qs = _bands(sd("ret-qs:value", ["inner"])) or (0.15, 0.85)
+    return {
+        "start_stack": sd("ret-stack:value", 1.0),
+        "use_lots":    bool(sd("ret-use-lots:value", []) or []),
+        "wd_amount":   sd("ret-wd:value", 3000),
+        "freq":        sd("ret-freq:value", "Monthly"),
+        "inflation":   sd("ret-infl:value", 4.0),
+        "selected_qs": sel_qs,
+        "start_yr":    int(yr[0]),
+        "end_yr":      int(yr[1]),
+        "disp_mode":   sd("ret-disp:value", "btc"),
+        "annotate":    "annotate"    in toggles,
+        "log_y":       "log_y"       in toggles,
+        "shade":       "shade"       in toggles,
+        "discrete":    "discrete"    in toggles,
+        "show_legend": "show_legend" in toggles,
+        "minor_grid":  "minor_grid"  in toggles,
+        "legend_pos":  sd("ret-legend-pos:value", "bottom-right"),
+        "active_models": (),
+        "palette":     sd("palette-store:data", "default"),
+        "show_qr":     True,
+        "show_mc":     False,
+        "qs_mode":     qs_mode_val,
+    }
+
+
+RETIRE = MappingProxyType(_build_retire_dict())
 
 SUPERCHARGE = MappingProxyType({
     "mode": "a", "start_stack": 1.0, "use_lots": False,

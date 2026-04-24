@@ -38,7 +38,12 @@ Restore on prod takes ~3–4 seconds end-to-end (decode + `apply_globals` + `app
 - Once opened, modal stays visible for at least **500 ms** regardless of when the gate releases. Prevents sub-50-ms flash-dismiss on near-cached restores that slip past the 150 ms open debounce.
 
 ### Hard fallback
-- 4-second timer unconditionally closes the modal and clears local progress state. Protects against any path where the gate doesn't release (cold cache extremes, network errors, Dash callback failures).
+- 5-second timer unconditionally closes the modal and clears local progress state. Protects against any path where the gate doesn't release (cold cache extremes, network errors, Dash callback failures).
+
+### Safety-timer adjustment (existing infrastructure)
+- The existing `snapshot-pending` safety timer in `callbacks/snapshot_cb.py` (currently 3000 ms) is extended to **4000 ms** as part of this change.
+- Rationale (reviewer-flagged): on cold-cache edge cases (citadel/supercharge with heavy MC prep), `apply_tab_{active}`'s callback chain can exceed 3 s. A 3 s safety timer would flip `snapshot-pending=False` *before* controls land; the close callback would then dismiss the modal before the user's restored state is visible. Extending to 4 s gives ample runway in practice while still bounding the worst-case modal dwell.
+- Modal's 5 s hard fallback sits above the 4 s safety timer so the safety-timer path remains the normal dismiss trigger, not a hidden fallback.
 
 ## Architecture
 
@@ -95,7 +100,7 @@ _app_ctx.app.clientside_callback(
         window.__restoreFallback = setTimeout(function () {
             window.dash_clientside.set_props(
                 'restore-progress-modal', { is_open: false });
-        }, 4000);
+        }, 5000);
 
         return window.dash_clientside.no_update;
     }
@@ -172,7 +177,8 @@ _app_ctx.app.clientside_callback(
 | Restore completes between 150 ms and 500 ms | Modal opens; min-display delay holds it open to 500 ms total. |
 | Restore completes between 500 ms and 4 s | Modal opens; closes when gate releases + 1 rAF. |
 | Decode fails (`restore_from_url` returns `no_update` for state) | Gate never armed True → never flips False. 4 s fallback closes modal. |
-| Any path where `snapshot-pending` never flips False | 4 s fallback closes modal. |
+| Any path where `snapshot-pending` never flips False | 5 s fallback closes modal. |
+| Cold-cache chart tab with apply_tab_* chain >3 s | Safety timer extended to 4 s (see "Safety-timer adjustment" above) so the close callback fires at ≥4 s rather than 3 s, avoiding premature dismiss. |
 | User navigates mid-restore (route change) | Single-page-app: `url.hash` changes. Callback 1 re-runs; if still share hash, restarts timers. If not, no new timer set; existing timer still runs but `apply_tab_*` won't fire for stale state, so fallback closes. |
 
 ## Files to change
@@ -180,7 +186,7 @@ _app_ctx.app.clientside_callback(
 | File | Change |
 |---|---|
 | `btc_web/layout/__init__.py` | Add `dbc.Modal(id="restore-progress-modal", …)` near the splash modal. |
-| `btc_web/callbacks/snapshot_cb.py` | Append two clientside callbacks at the end of the file (next to the existing safety-timer clientside). |
+| `btc_web/callbacks/snapshot_cb.py` | Append two clientside callbacks at the end of the file (next to the existing safety-timer clientside). **Also bump the existing safety-timer `setTimeout(…, 3000)` literal to `4000`** (reviewer-flagged cold-cache margin). |
 
 ## Tests
 
@@ -191,10 +197,19 @@ _app_ctx.app.clientside_callback(
 | `test_open_callback_has_initial_duplicate` | Source-level grep on `snapshot_cb.py` confirms the open-clientside uses `prevent_initial_call='initial_duplicate'` (otherwise it won't fire on initial load with hash). |
 | `test_close_callback_has_min_display` | Grep confirms `500` and `Math.max` appear in the close callback's JS body. |
 | `test_open_callback_debounce` | Grep confirms `150` appears in the open callback's JS body. |
-| `test_fallback_timer_4000ms` | Grep confirms `4000` appears in the open callback's JS body (setTimeout second arg). |
+| `test_fallback_timer_5000ms` | Grep confirms `5000` appears in the open callback's JS body (setTimeout second arg). |
+| `test_safety_timer_at_least_4000ms` | Existing test (previously asserted `>= 3000`) updated to assert `>= 4000` after the safety-timer bump. |
 | `test_no_server_output_on_restore_progress_modal` | Walk `app.callback_map`; assert the modal's `is_open` Output is only written by clientside callbacks, no server callback writers. |
 
 No existing tests should break. No Python server callback changes.
+
+### Integration test (recommended by reviewer)
+
+Grep tests cannot catch **behavioral** regressions like premature dismiss on cold cache. Add **one** Playwright integration test under `btc_web/test_tax_e2e.py`-style harness:
+
+- `test_restore_modal_persists_until_restore_completes`: Load a known share link on a fresh browser (simulated cold cache). Assert the modal is visible between 200 ms and 3 s post-load. Assert it is hidden (or fading) by 5 s. Verifies both that it appears AND that it doesn't prematurely dismiss.
+
+This is one additional E2E test in an existing Playwright harness — ~40 lines of test code. Worth the confidence.
 
 ## Rollout
 

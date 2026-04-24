@@ -116,6 +116,29 @@ Three categories of "default":
 
 ---
 
+## 4b. ALWAYS_ENCODE — Controls with Dynamic Defaults
+
+Some controls have a "correct default at link-generation time" that is genuinely dynamic — `current_year`, `today's date`, the live BTC price percentile. A static placeholder in `SNAPSHOT_DEFAULTS` is fine for prewarm + UI-default purposes, but `q4:` diff encoding would silently omit these fields when they happen to equal the placeholder, and the decoder would then restore the wrong value (today's placeholder, not the link author's value at link creation).
+
+**Mechanism.** A frozen set in `snapshot_defaults.py`:
+
+```python
+ALWAYS_ENCODE: frozenset[str] = frozenset({
+    "hm-entry-yr:value",   # default = current_year (dynamic)
+    "hm-entry-q:value",    # default = live BTC price percentile (dynamic)
+    "lev-date:date",       # default = today (dynamic)
+    "lev-price:value",     # default = live BTC price (dynamic)
+})
+```
+
+The `q4:` encoder always emits these positions in the diff dict, even when the runtime value matches the static `SNAPSHOT_DEFAULTS` value. The decoder behavior is unchanged — these positions are simply always present in the diff, so they always restore the value the link author saw.
+
+**Test invariant.** `test_snapshot_defaults.py::test_always_encode_members_in_snapshot_controls` asserts every `ALWAYS_ENCODE` key corresponds to an entry in `_SNAPSHOT_CONTROLS`.
+
+**No fingerprint contribution.** `ALWAYS_ENCODE` membership does not affect the fingerprint — it only affects encoding, never decoding.
+
+---
+
 ## 5. v4 Encoding Format
 
 URL prefix: `q4:<8-char-fp>:<base64-gzip-payload>`
@@ -145,13 +168,14 @@ def _encode_snapshot_v4(state_dict, tab_filter=None):
         key = f"{cid}:{prop}"
         val = state_dict.get(key)
         default = SNAPSHOT_DEFAULTS.get(key)
-        if val is None or val == default:
+        force = key in ALWAYS_ENCODE
+        if not force and (val is None or val == default):
             continue
-        if cid in _CHECKLIST_OPTIONS:
+        if cid in _CHECKLIST_OPTIONS and val is not None:
             val = _list_to_mask(val, _CHECKLIST_OPTIONS[cid])
         diffs[str(i)] = val
-    # MC null-out for disabled tabs (preserve q3 behavior)
-    _mc_null_out_diffs(diffs, state_dict)
+    # MC null-out for disabled tabs (see §5b)
+    _mc_null_out_diffs_v4(diffs)
     payload = [fp, diffs, state_dict.get("_lots")]
     blob = gzip.compress(json.dumps(payload, separators=(',', ':')).encode())
     return f"q4:{fp}:{base64.urlsafe_b64encode(blob).decode()}"
@@ -186,6 +210,41 @@ def _decode_snapshot_v4(encoded_with_fp_prefix):
 
 **Backward compatibility.** `_decode_snapshot_by_prefix` in `snapshot.py` gains a fourth branch for `q4:`. Order tried: `q4:` → `q3:` → `q2:` → `q1:`. No change to v1/v2/v3 encoders or decoders.
 
+### 5b. MC Null-Out for `q4:`
+
+The current `q3:` encoder nulls out per-tab MC controls when MC is disabled for that tab — encoded as `values[i] = None` in the positional array. For `q4:` the positional array is replaced by the sparse diff dict, so the semantics adapt:
+
+```python
+def _mc_null_out_diffs_v4(diffs: dict[str, Any]) -> None:
+    """Drop MC control diffs for tabs where MC is disabled.
+
+    Uses _SNAPSHOT_CONTROLS index lookup to map prefixes → positions.
+    For each MC-bearing tab, if `{prefix}-mc-enable` is at default
+    (disabled — empty list / 0 mask), all `{prefix}-mc-*` positions
+    OTHER than `model-src` are removed from `diffs`. The decoder then
+    fills these from registry defaults, which by invariant store the
+    disabled state for `*-mc-enable` and corresponding inert values
+    for downstream MC controls."""
+    _mc_prefixes = {"dca": "dca-mc-", "ret": "ret-mc-",
+                    "hm": "hm-mc-", "sc": "sc-mc-", "cp": "cp-mc-"}
+    for tab, pfx in _mc_prefixes.items():
+        enable_idx = next(i for i, (cid, _) in enumerate(_SNAPSHOT_CONTROLS)
+                          if cid == f"{pfx}enable")
+        if str(enable_idx) in diffs:  # explicitly enabled — keep MC controls
+            continue
+        for i, (cid, _) in enumerate(_SNAPSHOT_CONTROLS):
+            if cid.startswith(pfx) and cid != f"{pfx}model-src":
+                diffs.pop(str(i), None)
+```
+
+**Invariant required for correctness.** Every `*-mc-enable` key in `SNAPSHOT_DEFAULTS` MUST be the disabled state (`[]` or `0` post-bitmask). Otherwise removing MC diffs would produce decoded states with MC partially enabled. Tested in `test_snapshot_defaults.py::test_mc_enable_defaults_are_disabled`.
+
+### 5c. None-handling semantics
+
+- `val is None` in encoder: drops the position (unless `key in ALWAYS_ENCODE`). Mirrors `q3:` behavior.
+- `default is None` and value also None: position absent from diffs; decoder leaves `state[key]` unset; downstream callbacks receive whatever the layout default produces — which after Phase 1 IS `SNAPSHOT_DEFAULTS[key] = None`, so the values agree. **This identity holds only after Phase 1 is fully deployed.** Phase 2 deploy MUST come after Phase 1 deploy with no overlap.
+- `default is None` but value is set (e.g. user enabled tax config, value is a dict): position appears in diffs verbatim. Round-trip safe.
+
 ---
 
 ## 6. Defaults Registry
@@ -219,6 +278,12 @@ def _decode_snapshot_v4(encoded_with_fp_prefix):
 **Test enforcement:** `test_snapshot.py::test_current_fingerprint_in_registry` asserts the current fingerprint is present. Forces the dev to run the updater after changing defaults — same pattern as the existing color-artifact regen.
 
 **Cap behavior:** when an old fingerprint is dropped, links signed with that fingerprint fall through to current `SNAPSHOT_DEFAULTS`. Some omitted fields may restore wrong if the default changed since — acceptable degradation, logged as a warning at decode time.
+
+**Concurrent PR safety.** If two PRs each bump defaults independently, each runs the updater locally and adds its own registry entry. After merge, the live `SNAPSHOT_DEFAULTS` is the *combined* state, with a fingerprint matching neither PR's snapshot. The `test_current_fingerprint_in_registry` test fails on the merge commit, forcing a follow-up registry regeneration before deploy. The two stale registry entries from the individual PRs remain harmless until eventually evicted by the cap.
+
+**File size.** Each registry entry is roughly 4–8 KB JSON; capped at 20, the file is 80–160 KB. Visible in `git diff` after every defaults change — intentional, do not `.gitignore`.
+
+**Fingerprint scope is intentionally broader than the old `_compute_defaults_hash()`.** The old hash covered only the 6 frozen tab dicts; the new fingerprint covers all 206 `_SNAPSHOT_CONTROLS` entries (including Citadel tax, leverage, navbar/palette controls). L0 cache invalidation is now more accurate at the cost of slightly more frequent invalidation when previously-untracked controls change. This is correct behavior, not a side effect.
 
 ---
 
@@ -256,6 +321,9 @@ tools/
 3. **Checklist representation**: for every key where `_CHECKLIST_OPTIONS` exists, `SNAPSHOT_DEFAULTS[key]` is a list (not bitmask, not None unless intentional sentinel).
 4. **Fingerprint stability**: `_compute_snapshot_defaults_fingerprint()` is 8 hex chars; calling twice returns identical value.
 5. **Translation parity**: `bubble_defaults()`, `heatmap_defaults()`, `dca_defaults()`, `retire_defaults()`, `supercharge_defaults()`, `citadel_defaults()` produce dicts whose widget-derived keys round-trip through the SSOT.
+6. **`bub-toggles` bitmask round-trip**: `SNAPSHOT_DEFAULTS["bub-toggles:value"]` decodes via `_list_to_mask` → `_mask_to_list` to its original list (catches future divergence between layout's literal toggle list and the bitmask schema).
+7. **`always_encode_members_in_snapshot_controls`** (Phase 2): every key in `ALWAYS_ENCODE` corresponds to a `(cid, prop)` in `_SNAPSHOT_CONTROLS`.
+8. **`mc_enable_defaults_are_disabled`** (Phase 2): every `SNAPSHOT_DEFAULTS["{prefix}-mc-enable:value"]` is the disabled state (empty list).
 
 ### Phase 1 — modifications
 
@@ -325,6 +393,10 @@ These were surfaced by the architect agent and are checked off explicitly in the
 | 10 | Falsy-zero in callbacks | Multiple chart callbacks (`callbacks/charts/__init__.py`) | Pre-existing latent bug. Migration must NOT introduce new instances of `float(x or default)` where 0 is valid. |
 | 11 | gunicorn rolling restart with mixed hashes | Production deploy | Full restart (5-worker simultaneous) is atomic; not an issue with current deploy command. |
 | 12 | Pre-existing test failure (`test_no_hex_literals_outside_colors_module`) | `static_pages.py` | Unrelated; ignore. |
+| 13 | Year-derived defaults silently rotting in `q4:` links | `hm-entry-yr`, `lev-date`, etc. | `ALWAYS_ENCODE` (§4b) — encoder emits unconditionally. |
+| 14 | MC null-out semantics differ between positional array and sparse dict | `_mc_null_out_diffs_v4` | Explicit dict-based variant in §5b; invariant test on `*-mc-enable` defaults. |
+| 15 | Phase 2 deploy before Phase 1 fully landed | Cross-phase | Phase 2 plan written only after Phase 1 deploys + 1-day soak. None-handling identity (§5c) only holds post-Phase-1. |
+| 16 | Concurrent PRs each bump defaults | `snapshot_defaults_registry.json` | Merge produces a third unrecorded fingerprint; registry test fails on the merge commit, forcing a follow-up updater run. |
 
 ---
 

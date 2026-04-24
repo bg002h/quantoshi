@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import datetime as _dt
 
-from dash import Input, Output, callback, html
+from dash import Input, Output, State, callback, html
 from dash.exceptions import PreventUpdate
 
 from figures.leverage import (
@@ -106,10 +106,16 @@ def _table(buy_date, model, q, r_b, r_l, c, H_slider):
     Input("lev-horizon", "value"),
     Input("lev-cagr", "value"),
     Input("lev-toggles", "value"),
+    State("snapshot-pending", "data"),
     prevent_initial_call=False,
 )
 def update_leverage(first_render, date_val, price_val, model, q,
-                    rb_val, rl_val, H_val, c_val, toggles):
+                    rb_val, rl_val, H_val, c_val, toggles,
+                    snapshot_pending=False):
+    # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
+    if snapshot_pending:
+        from dash import no_update
+        return no_update, no_update, no_update
     if not first_render:
         raise PreventUpdate
 

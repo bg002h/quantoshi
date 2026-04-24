@@ -576,32 +576,44 @@ class TestSnapshotPendingGate:
 
     def test_restore_from_url_uses_initial_duplicate(self):
         """restore_from_url must use prevent_initial_call='initial_duplicate'
-        because it now has an allow_duplicate=True Output."""
-        import _app_ctx
-        app = _app_ctx.app
-        for cb_key, entry in app.callback_map.items():
-            if "loaded-hash-store.data" in cb_key and "snapshot-state-store.data" in cb_key:
-                pic = entry.get("prevent_initial_call", None)
-                assert pic == "initial_duplicate", (
-                    f"restore_from_url must use 'initial_duplicate', got {pic!r}")
-                return
-        raise AssertionError("restore_from_url callback not found in callback_map")
+        because it now has an allow_duplicate=True Output.
+
+        Source-level assertion: grep the decorator on the Python source
+        file. Dash's internal callback_map doesn't expose this reliably."""
+        import os, pathlib
+        here = pathlib.Path(os.path.dirname(__file__))
+        src = (here / "callbacks" / "snapshot_cb.py").read_text()
+        idx = src.find("def restore_from_url(")
+        assert idx > 0, "restore_from_url not found in snapshot_cb.py"
+        decorator = src[:idx].rsplit("@callback(", 1)[-1]
+        assert ("prevent_initial_call='initial_duplicate'" in decorator or
+                'prevent_initial_call="initial_duplicate"' in decorator), (
+            "restore_from_url must use prevent_initial_call='initial_duplicate'; "
+            f"last 300 chars of decorator: {decorator[-300:]}")
 
     def test_apply_tab_outputs_include_snapshot_pending(self):
-        """Each of the 7 apply_tab_{tab} callbacks must output snapshot-pending.data."""
-        import _app_ctx
-        app = _app_ctx.app
-        hits = 0
-        for cb_key in app.callback_map:
-            outputs = cb_key.split("...")
-            clean = [o.split("@")[0] for o in outputs]
-            if ("snapshot-pending.data" in clean and
-                any(c.split(".")[0].startswith(("bub-", "hm-", "dca-",
-                                                 "ret-", "sc-", "cp-", "lev-"))
-                    for c in clean)):
-                hits += 1
-        assert hits == 7, (
-            f"Expected 7 apply_tab_* callbacks with snapshot-pending output; got {hits}")
+        """Each of the 7 apply_tab_{tab} callbacks must release the gate
+        by returning False as their last output when called with populated state.
+
+        Behavioral assertion: the callback_map internals are opaque for
+        multi-output allow_duplicate callbacks, so test behavior directly."""
+        from callbacks.snapshot_cb import (
+            apply_tab_bubble, apply_tab_heatmap, apply_tab_dca,
+            apply_tab_retire, apply_tab_supercharge, apply_tab_citadel,
+            apply_tab_leverage,
+        )
+        state = {"bub-xscale:value": "Lin", "hm-mode:value": "dca",
+                 "dca-amount:value": 100}
+        for name, fn in [
+            ("bubble", apply_tab_bubble), ("heatmap", apply_tab_heatmap),
+            ("dca", apply_tab_dca), ("retire", apply_tab_retire),
+            ("supercharge", apply_tab_supercharge),
+            ("citadel", apply_tab_citadel), ("leverage", apply_tab_leverage),
+        ]:
+            result = fn(1, state)
+            assert result[-1] is False, (
+                f"apply_tab_{name}: last output must be False "
+                f"(gate release); got {result[-1]!r}")
 
     def test_apply_tab_releases_gate_on_populated_state(self):
         """apply_tab_bubble with populated state returns False (release) as last output."""
@@ -653,18 +665,18 @@ class TestSnapshotPendingGate:
 
     def test_safety_timer_at_least_3000ms(self):
         """Clientside safety timer must wait at least 3000 ms before
-        unconditionally clearing the gate."""
-        import _app_ctx
-        found = False
-        for src in _app_ctx.app._callback_list:
-            cb_str = str(src)
-            if "snapshot-pending" in cb_str and "setTimeout" in cb_str:
-                import re
-                m = re.search(r"setTimeout\s*\([^,]+,\s*(\d+)", cb_str)
-                assert m, f"Could not parse setTimeout duration"
-                duration = int(m.group(1))
-                assert duration >= 3000, (
-                    f"Safety timer must be >= 3000ms; got {duration}")
-                found = True
-                break
-        assert found, "Safety-timer clientside callback not registered"
+        unconditionally clearing the gate. Source-level assertion."""
+        import os, pathlib, re
+        here = pathlib.Path(os.path.dirname(__file__))
+        src = (here / "callbacks" / "snapshot_cb.py").read_text()
+        # Find the safety-timer clientside callback block
+        idx = src.find("Safety-timer")
+        assert idx > 0, "Safety-timer block comment not found in snapshot_cb.py"
+        block = src[idx:idx + 2000]
+        # Match the delay argument — it's the number right before `);`
+        # after the setTimeout callback body.
+        m = re.search(r"}\s*,\s*(\d+)\s*\)\s*;", block)
+        assert m, f"setTimeout delay literal not found in safety-timer block"
+        duration = int(m.group(1))
+        assert duration >= 3000, (
+            f"Safety timer must be >= 3000ms; got {duration}")

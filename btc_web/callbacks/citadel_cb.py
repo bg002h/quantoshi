@@ -230,6 +230,7 @@ _app_ctx.app.clientside_callback(
     State("mc-pay-token",        "data"),
     State("cp-mc-unblocked",     "data"),
     State("cp-mc-rendered-key",  "data"),
+    State("snapshot-pending",    "data"),
     prevent_initial_call=True,
     background=True,
     running=[
@@ -282,8 +283,13 @@ def update_citadel(
     tax_toggle, tax_config,
     # MC states
     price_data, mc_cached, pay_token, mc_unblocked, mc_auth,
+    snapshot_pending=False,
 ):
     """Citadel Planner chart callback."""
+    # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
+    # Citadel has 9 Outputs; return tuple of no_update for each.
+    if snapshot_pending:
+        return (dash.no_update,) * 9
     logger.debug("[CP-CB] triggered_id=%s, mc_enable=%s, run_clicks=%s", ctx.triggered_id, mc_enable, run_clicks)
 
     # Only run simulation when Run button clicked, payment trigger fires,

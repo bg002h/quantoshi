@@ -144,6 +144,7 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     State("scan-active-rows",  "data"),
     State("scan-q",            "value"),
     State("bub-sigma-mode",    "value"),
+    State("snapshot-pending",  "data"),
     prevent_initial_call=True,
 )
 def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
@@ -165,8 +166,15 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   _hybppl_commit=None, _eppl_commit=None, _bm_commit=None,
                   cta_active=None,
                   qs_mode=None, scan_active=None, scan_q_val=None,
-                  sigma_mode=None):
+                  sigma_mode=None,
+                  snapshot_pending=False):
     """Bubble + QR overlay chart callback -- coerce inputs, build figure."""
+    # Snapshot gate: skip render while a share-link restore is in progress.
+    # MUST be the very first statement, before any PreventUpdate / hydration
+    # guards, so restore always settles deterministically. See spec
+    # 2026-04-24-single-redraw-per-snapshot-design.md.
+    if snapshot_pending:
+        return dash.no_update
     from dash.exceptions import PreventUpdate
     _trg = getattr(ctx, 'triggered_id', None)
     # Spurious hydration fires: Dash dispatches these Inputs on initial load
@@ -393,12 +401,15 @@ _app_ctx.app.clientside_callback(
     Input("bub-cagr-fwd-yrs", "value"),
     Input("palette-store", "data"),
     State("bub-qs-mode", "value"),
+    State("snapshot-pending", "data"),
     prevent_initial_call=True,
 )
 def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
                     toggles, xscale, yscale, model_show, legend_pos,
-                    fwd_yrs, palette_key, qs_mode):
-
+                    fwd_yrs, palette_key, qs_mode, snapshot_pending=False):
+    # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
+    if snapshot_pending:
+        return dash.no_update
     from utils import _get_cagr_fig
 
     toggles = toggles or []
@@ -449,13 +460,17 @@ def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
     Input("lppl-weighted",          "value"),
     Input("lppl-no-13",             "value"),
     State("user-model-store", "data"),
+    State("snapshot-pending", "data"),
     prevent_initial_call=True,
 )
 def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
                      bub_toggles, n_future, _bm_commit, legend_pos, palette_key,
                      decomp_model, decomp_components,
                      lppl_n_freqs, lppl_weighted, lppl_no_13,
-                     user_model_store):
+                     user_model_store, snapshot_pending=False):
+    # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
+    if snapshot_pending:
+        return dash.no_update
     from utils import _get_resid_fig
     toggles = toggles or []
     xrange = xrange or [2010, 2033]
@@ -683,6 +698,7 @@ def update_yrange_slider_limits(model_show):
     State("eppl-cfg-a-log2d", "value"),
     State("eppl-cfg-a-cal1d", "value"),
     State("eppl-cfg-a-cal2d", "value"),
+    State("snapshot-pending", "data"),
     prevent_initial_call=True,
 )
 def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_qs, mode,
@@ -697,7 +713,11 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
                    hyb_a_cal1d=None, hyb_a_cal2d=None,
                    ep_a_nlog=None, ep_a_ncal=None,
                    ep_a_log1d=None, ep_a_log2d=None,
-                   ep_a_cal1d=None, ep_a_cal2d=None):
+                   ep_a_cal1d=None, ep_a_cal2d=None,
+                   snapshot_pending=False):
+    # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
+    if snapshot_pending:
+        return (dash.no_update,) * 8
     exit_range = exit_range or [entry_yr or 2025, (entry_yr or 2025) + 10]
     toggles    = toggles or []
     yr_now = pd.Timestamp.today().year
@@ -903,6 +923,7 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     State("palette-store",      "data"),
     State("dca-qs-mode",        "value"),
     State("user-model-store",   "data"),
+    State("snapshot-pending",   "data"),
     prevent_initial_call=True,
 )
 def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range, disp, toggles, legend_pos, sel_qs, adv_qs,
@@ -922,7 +943,10 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
                mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
-               qs_mode=None, user_model_store=None):
+               qs_mode=None, user_model_store=None, snapshot_pending=False):
+    # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
+    if snapshot_pending:
+        return (dash.no_update,) * 8
     toggles    = toggles or []
     yr_range   = yr_range or [2024, 2034]
     live_price = _cf(price_data, 0)
@@ -1074,6 +1098,7 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     State("palette-store",      "data"),
     State("ret-qs-mode",        "value"),
     State("user-model-store",   "data"),
+    State("snapshot-pending",   "data"),
     prevent_initial_call=True,
 )
 def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, adv_qs,
@@ -1091,7 +1116,10 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
                   mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                   mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                   price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
-                  qs_mode=None, user_model_store=None):
+                  qs_mode=None, user_model_store=None, snapshot_pending=False):
+    # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
+    if snapshot_pending:
+        return (dash.no_update,) * 8
     toggles  = toggles or []
     yr_range = yr_range or [RETIRE["start_yr"], RETIRE["end_yr"]]
     _advanced = "advanced" in (qs_mode or [])
@@ -1248,6 +1276,7 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     State("sc-qs-mode",        "value"),
     State("viewport-width",    "data"),
     State("user-model-store",  "data"),
+    State("snapshot-pending",  "data"),
     prevent_initial_call=True,
 )
 def update_supercharge(_first_render, stack, use_lots, start_yr,
@@ -1269,7 +1298,11 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
                        mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                        mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                        price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
-                       qs_mode=None, viewport_width=None, user_model_store=None):
+                       qs_mode=None, viewport_width=None, user_model_store=None,
+                       snapshot_pending=False):
+    # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
+    if snapshot_pending:
+        return (dash.no_update,) * 8
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
     toggles = toggles or []
     yr_now  = pd.Timestamp.today().year

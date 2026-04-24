@@ -1077,9 +1077,19 @@ ssh root@89.167.70.45 'journalctl -u quantoshi --since "60 seconds ago" --no-pag
 
 Expected: every path 200; zero error/traceback lines.
 
-- [ ] **Step 14.6: Verify share-link backward compat on prod**
+- [ ] **Step 14.6: Verify share-link backward compat AND modal regression on prod**
 
-In a fresh browser, paste a known-good `q3:` share link from earlier this week. Confirm restore works identically. (Use one from `link-history` localStorage if available, or generate fresh on prod with non-default settings.)
+In a fresh browser, paste a known-good `q3:` share link from earlier this week. Confirm restore works identically AND the restore-progress modal sequence is unchanged:
+
+1. Modal appears ~150 ms after page load (open debounce).
+2. Modal stays visible while controls populate (gate held).
+3. Modal stays visible during chart compute + paint (1200 ms paint-settle delay).
+4. Modal fades only AFTER the chart's first post-restore paint — the user should NOT see a blank chart between modal close and chart appear.
+5. Final state: every restored control shows the link author's value; chart is the fully-configured plot.
+
+If the modal closes BEFORE the chart paints, that's a regression caused by Phase 1 perturbing `apply_tab_*` callback timing (e.g. by introducing a faster `no_update` path that races ahead of the chart callback). Roll back the most recent commit and investigate.
+
+(Use a link from `link-history` localStorage if available, or generate a fresh `q3:` link on prod with non-default settings — make sure it includes a tab that requires real chart compute, e.g. Tab 6 Citadel with MC enabled.)
 
 - [ ] **Step 14.7: Soak**
 

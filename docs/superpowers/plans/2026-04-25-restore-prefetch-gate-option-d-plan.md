@@ -250,7 +250,7 @@ Expected: 4 return statements + 3 raise statements:
   raise PreventUpdate                         # user-model-store hydration
   raise PreventUpdate                         # effective-lots steady-state guard
   raise PreventUpdate                         # cta-active routing
-  return fig, (loaded_hash if loaded_hash else dash.no_update)  # real fig
+  return fig, (loaded_hash if loaded_hash is not None else dash.no_update)  # real fig
 ```
 
 If you see `return dash.no_update` (single-arg) or `return fig` (single-arg), the change is incomplete — fix before continuing.
@@ -335,7 +335,7 @@ Real-fig return (around line 840):
 return (fig, store_val, status, mc_panel_style, indicator_style,
         rendered_key,
         show_modal, "hm" if show_modal else dash.no_update,
-        loaded_hash if loaded_hash else dash.no_update)  # NEW: 9th element
+        loaded_hash if loaded_hash is not None else dash.no_update)  # NEW: 9th element
 ```
 
 - [ ] **Step 3.2: `update_dca` — same pattern**
@@ -343,7 +343,7 @@ return (fig, store_val, status, mc_panel_style, indicator_style,
 Decorator (around line 848): add Output + 2 States.
 Signature: add `loaded_hash=None`.
 Gated path (around line 951): `(dash.no_update,) * 9`.
-Real-fig return (around line 1030): append `loaded_hash if loaded_hash else dash.no_update` as 9th element.
+Real-fig return (around line 1030): append `loaded_hash if loaded_hash is not None else dash.no_update` as 9th element.
 
 - [ ] **Step 3.3: `update_retire` — same pattern**
 
@@ -380,7 +380,7 @@ for fn in ['update_heatmap', 'update_dca', 'update_retire', 'update_supercharge'
 "
 ```
 
-For each: expect 2 return statements (gated + real). Verify gated says `* 9` and real ends with `loaded_hash if loaded_hash else dash.no_update`.
+For each: expect 2 return statements (gated + real). Verify gated says `* 9` and real ends with `loaded_hash if loaded_hash is not None else dash.no_update`.
 
 - [ ] **Step 3.6: Commit**
 
@@ -431,10 +431,10 @@ grep -n "return (\|return (dash.no_update,)" btc_web/callbacks/citadel_cb.py
 Expected: 5 return statements at approximately lines 293, 314, 332, 500, 511.
 
 - Line 293 (gated): `return (dash.no_update,) * 9` → `* 10`
-- Line 314 (cached default with fig): append `loaded_hash if loaded_hash else dash.no_update`
-- Line 332 (live-fallback default with fig): append `loaded_hash if loaded_hash else dash.no_update`
-- Line 500 (Celery-pending with fig): append `loaded_hash if loaded_hash else dash.no_update`
-- Line 511 (real-fig): append `loaded_hash if loaded_hash else dash.no_update`
+- Line 314 (cached default with fig): append `loaded_hash if loaded_hash is not None else dash.no_update`
+- Line 332 (live-fallback default with fig): append `loaded_hash if loaded_hash is not None else dash.no_update`
+- Line 500 (Celery-pending with fig): append `loaded_hash if loaded_hash is not None else dash.no_update`
+- Line 511 (real-fig): append `loaded_hash if loaded_hash is not None else dash.no_update`
 
 - [ ] **Step 4.3: Verify**
 

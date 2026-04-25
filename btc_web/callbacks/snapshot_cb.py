@@ -48,6 +48,7 @@ def _decode_snapshot_by_prefix(h):
     Output("restore-bubble-fig",   "data", allow_duplicate=True),
     Output("active-chart-committed","data",   allow_duplicate=True),
     Output("restore-dca-fig",      "data", allow_duplicate=True),
+    Output("restore-retire-fig",   "data", allow_duplicate=True),
     Input("url", "hash"),
     prevent_initial_call='initial_duplicate',
 )
@@ -60,12 +61,12 @@ def restore_from_url(hash_str):
     import time as _time
     _t0 = _time.perf_counter()
     if not hash_str:
-        return no_update, no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update, no_update, no_update
     h = hash_str.lstrip("#")
     state, prefix, encoded = _decode_snapshot_by_prefix(h)
     if not state:
         logger.warning("Snapshot decode failed for hash: %s\u2026", hash_str[:20])
-        return no_update, no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update, no_update, no_update
     # Legacy-link coercion: if this deployment has no resqr bundles, drop
     # "resqr" sigma_mode back to "constant" so the radio + chart stay in sync.
     if not getattr(_app_ctx, "_HAS_RESQR", False):
@@ -84,6 +85,7 @@ def restore_from_url(hash_str):
     _fig_out = no_update
     _committed_out = no_update
     _dca_out = no_update
+    _retire_out = no_update
     active_tab = state.get("main-tabs:active_tab", "bubble")
     if active_tab == "bubble":
         _t1 = _time.perf_counter()
@@ -113,7 +115,21 @@ def restore_from_url(hash_str):
             _committed_out = hash_str
             print(f"[trace] restore-dca-build BUILT "
                   f"{(_time.perf_counter() - _t1) * 1000:.1f}ms", flush=True)
-    return state, hash_str, True, _fig_out, _committed_out, _dca_out
+    elif active_tab == "retire":
+        _t1 = _time.perf_counter()
+        try:
+            from restore_builder import _build_retire_figure_from_state
+            fig = _build_retire_figure_from_state(state)
+        except Exception as e:
+            logger.warning("restore_builder (retire) failed: %s; falling "
+                           "back to callback path", e)
+            fig = None
+        if fig is not None:
+            _retire_out = fig
+            _committed_out = hash_str
+            print(f"[trace] restore-retire-build BUILT "
+                  f"{(_time.perf_counter() - _t1) * 1000:.1f}ms", flush=True)
+    return state, hash_str, True, _fig_out, _committed_out, _dca_out, _retire_out
 
 
 # Control partition. See spec 2026-04-24-drop-all-tabs-snapshot-design.md.
@@ -898,6 +914,44 @@ _app_ctx.app.clientside_callback(
     Output("dca-build-count", "data", allow_duplicate=True),
     Input("dca-graph", "figure"),
     State("dca-build-count", "data"),
+    prevent_initial_call=True,
+)
+
+
+# ── Retire figure relay via set_props (Phase 2 ship 2, 2026-04-25) ────────
+# Same pattern as the bubble + DCA relays above. retire-graph is inside
+# retire-lazy on /1/2/3/5/6/7 initial loads — output via Store + set_props
+# bypasses the lazy-Output dispatch-drop bug.
+_app_ctx.app.clientside_callback(
+    """
+    function(fig) {
+        var NU = window.dash_clientside.no_update;
+        if (fig == null) return NU;
+        try {
+            window.dash_clientside.set_props('retire-graph', {figure: fig});
+        } catch (e) {
+            console.warn('restore-retire-fig: set_props failed', e);
+        }
+        if (window.__qsTrace) window.__qsTrace('restore-retire-fig delivered');
+        return null;
+    }
+    """,
+    Output("restore-retire-fig", "data", allow_duplicate=True),
+    Input("restore-retire-fig", "data"),
+    prevent_initial_call=True,
+)
+
+
+# ── Retire build-count phantom-rebuild detector (test infra) ──────────────
+_app_ctx.app.clientside_callback(
+    """function(fig, cur) {
+        var n = (cur || 0) + 1;
+        window.__retireBuildCount = n;
+        return n;
+    }""",
+    Output("retire-build-count", "data", allow_duplicate=True),
+    Input("retire-graph", "figure"),
+    State("retire-build-count", "data"),
     prevent_initial_call=True,
 )
 

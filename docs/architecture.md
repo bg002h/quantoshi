@@ -581,16 +581,16 @@ path collapses it to ~3-4 seconds:
    one-shot listener installed in `snapshot_cb.py:854-887`) so steady-
    state edits proceed normally.
 
-/3 (DCA) joins /1 (bubble) on the fast path via the same pattern: per-tab
+/3 (DCA) and /4 (retire) join /1 (bubble) on the fast path via the same pattern: per-tab
 Store relay + clientside `set_props` + post-restore short-circuit (Phase 2,
 2026-04-25). Each new tab requires (a) a new `restore-{tab}-fig` Store,
 (b) a `_build_{tab}_figure_from_state` helper in `restore_builder.py`,
 (c) a new branch in `restore_from_url`, (d) a clientside relay, and
 (e) a post-restore guard inside the tab's chart callback (with the
 right-sized `(no_update,) * N` matching that callback's Output count).
-Citadel + heatmap + retire + supercharge + leverage still fall back to the
+Citadel + heatmap + supercharge + leverage still fall back to the
 existing callback cascade (per-tab ships in subsequent commits, planned
-order 4 → 5 → 7 → 2 → 6). CTA-active snapshots and MC-enabled or
+order 5 → 7 → 2 → 6). CTA-active snapshots and MC-enabled or
 Saylor-live DCA snapshots also fall back. Measured prod latency for
 bubble shares: ~3.4 s to chart visible, ~4.4 s to modal closed. Server
 compute for the direct build: 40-150 ms (bubble) / median 6.3 ms (DCA).

@@ -182,3 +182,69 @@ class TestBuildDcaFigureFromState:
         fig_dict = fig.to_dict() if hasattr(fig, "to_dict") else fig
         # At least one trace expected when bub model is shown
         assert len(fig_dict.get("data", [])) > 0, "expected ≥1 trace with bub model"
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Phase 2 ship 2 (2026-04-25): _build_retire_figure_from_state tests.
+# ════════════════════════════════════════════════════════════════════════════
+
+class TestBuildRetireFigureFromState:
+    def test_retire_basic_returns_figure(self):
+        """Minimal state with bub model — returns a figure with ≥1 quantile trace."""
+        from restore_builder import _build_retire_figure_from_state
+        state = {
+            "main-tabs:active_tab": "retire",
+            "ret-wd:value": 5000,
+            "ret-yr-range:value": [2031, 2050],
+            "ret-qs:value": ["median"],
+            "ret-model-show:value": ["bub"],
+        }
+        fig = _build_retire_figure_from_state(state)
+        assert fig is not None
+        fig_dict = fig.to_dict() if hasattr(fig, "to_dict") else fig
+        import re
+        q_re = re.compile(r"Q\d")
+        has_q = any(q_re.search(str(t.get("name", ""))) for t in fig_dict["data"])
+        assert has_q, (
+            f"no quantile trace: {[t.get('name') for t in fig_dict['data']]}"
+        )
+
+    def test_retire_mc_enabled_returns_none(self):
+        """ret-mc-enable=['yes'] — return None, fall back to cascade."""
+        from restore_builder import _build_retire_figure_from_state
+        state = {
+            "main-tabs:active_tab": "retire",
+            "ret-mc-enable:value": ["yes"],
+            "ret-wd:value": 5000,
+        }
+        fig = _build_retire_figure_from_state(state)
+        assert fig is None, "MC-enabled retire snapshot must fall back"
+
+    def test_retire_with_lots_returns_figure(self):
+        """Snapshot with _lots + ret-use-lots=['yes'] — figure builds."""
+        from restore_builder import _build_retire_figure_from_state
+        state = {
+            "main-tabs:active_tab": "retire",
+            "ret-use-lots:value": ["yes"],
+            "ret-wd:value": 5000,
+            "ret-model-show:value": ["bub"],
+            "_lots": [
+                {"date": "2020-01-01", "btc": 0.5, "price": 7000.0,
+                 "pct_q": 0.5, "label": "test"},
+            ],
+        }
+        fig = _build_retire_figure_from_state(state)
+        assert fig is not None
+        fig_dict = fig.to_dict() if hasattr(fig, "to_dict") else fig
+        assert len(fig_dict.get("data", [])) > 0
+
+    def test_retire_default_quantiles(self):
+        """No ret-qs set — uses default quantile resolution without crashing."""
+        from restore_builder import _build_retire_figure_from_state
+        state = {
+            "main-tabs:active_tab": "retire",
+            "ret-wd:value": 5000,
+            "ret-model-show:value": ["bub"],
+        }
+        fig = _build_retire_figure_from_state(state)
+        assert fig is not None

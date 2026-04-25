@@ -423,3 +423,142 @@ def _build_dca_figure_from_state(state: dict):
         logging.getLogger(__name__).warning(
             "_build_dca_figure_from_state failed: %s; caller will fall back", e)
         return None
+
+
+def _build_retire_figure_from_state(state: dict):
+    """Build a retire-tab Plotly figure from a snapshot state dict.
+
+    Mirrors `update_retire` (callbacks/charts/__init__.py:1164) param
+    construction. Retire has NO Saylor mode (Stack-celerator) — only MC.
+
+    Returns:
+        - go.Figure on the standard fast path
+        - None when MC is enabled (snapshot has ret-mc-enable=["yes"]) —
+          caller falls back to the existing chart-callback path.
+    """
+    # ── Gate: return None for MC, fall back to cascade ──
+    mc_enable = _v(state, "ret-mc-enable", default=[]) or []
+    if "yes" in mc_enable:
+        return None
+
+    # ── Retire widget values (Inputs) ──
+    stack    = _v(state, "ret-stack",    default=0.0)
+    use_lots = _v(state, "ret-use-lots", default=[])
+    wd       = _v(state, "ret-wd",       default=5000)
+    freq     = _v(state, "ret-freq",     default="Monthly")
+    yr_range = _v(state, "ret-yr-range", default=[2031, 2075])
+    infl     = _v(state, "ret-infl",     default=4.0)
+    disp     = _v(state, "ret-disp",     default="usd")
+    toggles  = _v(state, "ret-toggles",  default=[])
+    legend_pos = _v(state, "ret-legend-pos", default="outside")
+    sel_qs   = _v(state, "ret-qs",       default=["inner"])  # match snapshot_defaults.py:292
+    adv_qs   = _v(state, "ret-qs-adv",   default=[])
+    qs_mode  = _v(state, "ret-qs-mode",  default=[])
+    model_show = _v(state, "ret-model-show", default=[])
+
+    # ── Lots resolution (clientside cascade replicated, mirrors bubble) ──
+    _lots = state.get("_lots") or []
+    use_lots_bool = bool("yes" in (use_lots or []))
+
+    # ── Shared model-config States (LPPL/HybPPL/EPPL) ──
+    lppl_n_freqs  = _v(state, "lppl-n-freqs",  default=[])
+    lppl_weighted = _v(state, "lppl-weighted", default=[])
+    lppl_no_13    = _v(state, "lppl-no-13",    default=[])
+
+    hyb_a_nlog  = _v(state, "hybppl-cfg-a-nlog",  default=1)
+    hyb_a_ncal  = _v(state, "hybppl-cfg-a-ncal",  default=1)
+    hyb_a_log1d = _v(state, "hybppl-cfg-a-log1d", default="d")
+    hyb_a_log2d = _v(state, "hybppl-cfg-a-log2d", default="d")
+    hyb_a_cal1d = _v(state, "hybppl-cfg-a-cal1d", default="u")
+    hyb_a_cal2d = _v(state, "hybppl-cfg-a-cal2d", default="u")
+
+    hyb_b_enabled = _v(state, "hybppl-cfg-b-enabled", default=[])
+    hyb_b_nlog  = _v(state, "hybppl-cfg-b-nlog",  default=0)
+    hyb_b_ncal  = _v(state, "hybppl-cfg-b-ncal",  default=0)
+    hyb_b_log1d = _v(state, "hybppl-cfg-b-log1d", default="d")
+    hyb_b_log2d = _v(state, "hybppl-cfg-b-log2d", default="d")
+    hyb_b_cal1d = _v(state, "hybppl-cfg-b-cal1d", default="u")
+    hyb_b_cal2d = _v(state, "hybppl-cfg-b-cal2d", default="u")
+
+    ep_a_nlog  = _v(state, "eppl-cfg-a-nlog",  default=1)
+    ep_a_ncal  = _v(state, "eppl-cfg-a-ncal",  default=1)
+    ep_a_log1d = _v(state, "eppl-cfg-a-log1d", default="d")
+    ep_a_log2d = _v(state, "eppl-cfg-a-log2d", default="d")
+    ep_a_cal1d = _v(state, "eppl-cfg-a-cal1d", default="u")
+    ep_a_cal2d = _v(state, "eppl-cfg-a-cal2d", default="u")
+
+    ep_b_enabled = _v(state, "eppl-cfg-b-enabled", default=[])
+    ep_b_nlog  = _v(state, "eppl-cfg-b-nlog",  default=0)
+    ep_b_ncal  = _v(state, "eppl-cfg-b-ncal",  default=0)
+    ep_b_log1d = _v(state, "eppl-cfg-b-log1d", default="d")
+    ep_b_log2d = _v(state, "eppl-cfg-b-log2d", default="d")
+    ep_b_cal1d = _v(state, "eppl-cfg-b-cal1d", default="u")
+    ep_b_cal2d = _v(state, "eppl-cfg-b-cal2d", default="u")
+
+    palette_key = _v(state, "palette-store", "data", default="default")
+    user_model_store = state.get("user-model-store:data")
+
+    # ── Master-key resolution ──
+    from callbacks.charts._resolvers import (
+        _resolve_lppl_master, _resolve_hybppl_master, _resolve_eppl_master,
+    )
+    from callbacks.coerce import _ci, _cf
+    model_show = list(model_show or [])
+    model_show = _resolve_lppl_master(
+        model_show, lppl_n_freqs, lppl_weighted, lppl_no_13)
+    model_show = _resolve_hybppl_master(
+        model_show,
+        hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d, hyb_a_cal1d, hyb_a_cal2d,
+        hyb_b_enabled, hyb_b_nlog, hyb_b_ncal, hyb_b_log1d, hyb_b_log2d,
+        hyb_b_cal1d, hyb_b_cal2d)
+    model_show = _resolve_eppl_master(
+        model_show,
+        ep_a_nlog, ep_a_ncal, ep_a_log1d, ep_a_log2d, ep_a_cal1d, ep_a_cal2d,
+        ep_b_enabled, ep_b_nlog, ep_b_ncal, ep_b_log1d, ep_b_log2d,
+        ep_b_cal1d, ep_b_cal2d)
+
+    # ── Effective quantiles ──
+    yr_range = yr_range or [2031, 2075]
+    toggles = toggles or []
+    _advanced = "advanced" in (qs_mode or [])
+    _effective_qs = (adv_qs or []) if _advanced else (
+        _bands_to_qs(sel_qs) if sel_qs and isinstance(sel_qs[0], str) else (sel_qs or []))
+
+    # ── Build figure via _get_retire_fig with mc_enabled=False (sufficient;
+    # _get_mc_or_cached strips all mc_* keys before quantizing the cache key). ──
+    from utils import _get_retire_fig
+    from tab_defaults import RETIRE
+    try:
+        params = dict(
+            start_stack    = _cf(stack, RETIRE["start_stack"]),
+            use_lots       = use_lots_bool,
+            wd_amount      = _ci(wd, RETIRE["wd_amount"]),
+            freq           = freq or "Monthly",
+            start_yr       = int(yr_range[0]),
+            end_yr         = int(yr_range[1]),
+            inflation      = _cf(infl, RETIRE["inflation"]),
+            disp_mode      = disp or "usd",
+            log_y          = "log_y"      in toggles,
+            annotate       = "annotate"   in toggles,
+            discrete       = "discrete"   in toggles,
+            shade          = "shade"      in toggles,
+            show_legend    = "show_legend" in toggles,
+            legend_pos     = legend_pos or "outside",
+            minor_grid     = "minor_grid" in toggles,
+            selected_qs    = _effective_qs,
+            lots           = _lots,
+            show_qr        = "bub" in model_show,
+            show_mc        = False,
+            active_models  = [k for k in model_show if k != "mc"],
+            palette        = palette_key or "default",
+            user_model     = user_model_store,
+            mc_enabled     = False,
+        )
+        result = _get_retire_fig(params)
+        fig = result[0] if isinstance(result, tuple) else result
+        return fig
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(
+            "_build_retire_figure_from_state failed: %s; caller will fall back", e)
+        return None

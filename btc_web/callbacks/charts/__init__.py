@@ -1159,6 +1159,8 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     State("ret-qs-mode",        "value"),
     State("user-model-store",   "data"),
     State("snapshot-pending",   "data"),
+    State("active-chart-committed", "data"),
+    State("loaded-hash-store",  "data"),
     prevent_initial_call=True,
 )
 def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, adv_qs,
@@ -1176,9 +1178,29 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
                   mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                   mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                   price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
-                  qs_mode=None, user_model_store=None, snapshot_pending=False):
+                  qs_mode=None, user_model_store=None, snapshot_pending=False,
+                  active_chart_committed=None, loaded_hash=None):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
+        return (dash.no_update,) * 8
+    # Phase 2 ship 2 (2026-04-25) post-restore short-circuit: same pattern
+    # as update_dca's guard. Tuple-size invariant: (dash.no_update,) * 8
+    # for retire's 8 Outputs (figure, mc-results, mc-status, mc-rendered-key,
+    # mc-save-modal, mc-save-tab, mc-unblocked, yr-range). ret-mc-loaded
+    # excluded so MC async completion can rebuild after the restore window.
+    _POST_RESTORE_TRIGGERS_RETIRE = {
+        "retire-first-render", "ret-stack", "ret-use-lots", "ret-wd",
+        "ret-freq", "ret-yr-range", "ret-infl", "ret-disp", "ret-toggles",
+        "ret-legend-pos", "ret-qs", "ret-qs-adv",
+        "lppl-n-freqs", "lppl-weighted", "lppl-no-13",
+        "hybppl-commit-trigger", "eppl-commit-trigger",
+        "ret-mc-enable", "ret-mc-bins", "ret-mc-regime", "ret-mc-sims",
+        "ret-mc-years", "ret-mc-window", "ret-mc-start-yr", "ret-mc-entry-q",
+        "ret-model-show", "ret-mc-model-src",
+    }
+    _trg = ctx.triggered_id
+    if active_chart_committed and active_chart_committed == loaded_hash \
+            and _trg in _POST_RESTORE_TRIGGERS_RETIRE:
         return (dash.no_update,) * 8
     toggles  = toggles or []
     yr_range = yr_range or [RETIRE["start_yr"], RETIRE["end_yr"]]

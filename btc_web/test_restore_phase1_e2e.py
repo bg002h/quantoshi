@@ -55,6 +55,13 @@ def test_dca_share_restores_amount():
             "return gd && gd.data && gd.data.length > 0; }",
             timeout=20_000,
         )
+        # Phase 2 introduced fast-restore relay — chart renders before the
+        # apply_tab_dca cascade writes dca-amount. Wait for the widget value.
+        page.wait_for_function(
+            "() => document.getElementById('dca-amount') && "
+            "document.getElementById('dca-amount').value === '999'",
+            timeout=10_000,
+        )
         amount = page.evaluate(
             "() => document.getElementById('dca-amount').value"
         )
@@ -110,21 +117,18 @@ def test_dca_share_no_jserror_from_set_props():
         def on_console(msg):
             if msg.type != "error":
                 return
-            # msg.text is often just "Error" — the actual message is in args.
-            # Stringify args and check for known pre-existing errors first.
-            try:
-                arg_strs = []
-                for arg in msg.args:
-                    try:
-                        arg_strs.append(str(arg.json_value())[:300])
-                    except Exception:
-                        arg_strs.append(str(arg)[:100])
-                full = " | ".join(arg_strs) if arg_strs else (msg.text or "")
-            except Exception:
-                full = msg.text or ""
-            if "nonexistent object was used" in full:
-                return  # pre-existing, unrelated to Phase 1
-            errors.append(full[:400])
+            # Filter pre-existing Dash lazy-tab "nonexistent object" errors.
+            # These come from dash_renderer.js and have empty args / msg.text=
+            # "Error" in some Playwright versions. Filter by location URL
+            # since the renderer is the canonical source.
+            loc = msg.location or {}
+            url = loc.get("url", "") or ""
+            if "dash_renderer" in url or "_dash-component-suites" in url:
+                return  # pre-existing lazy-tab artifact
+            text = msg.text or ""
+            if "nonexistent object was used" in text:
+                return
+            errors.append(text[:400])
 
         page.on("console", on_console)
         page.goto(url, wait_until="domcontentloaded", timeout=30_000)

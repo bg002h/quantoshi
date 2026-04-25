@@ -314,6 +314,11 @@ def _build_layout(initial_tab="bubble"):
     # and asserts count==1 after restore (single delivery via relay; >=2 means
     # the post-restore guard failed and the cascade rebuilt the figure).
     dcc.Store(id="dca-build-count", storage_type="memory", data=0),
+    # Phase 2 ship 2 (2026-04-25): /4 retire — same per-tab Store relay
+    # pattern. retire-graph is inside retire-lazy on /1/2/3/5/6/7 initial
+    # loads.
+    dcc.Store(id="restore-retire-fig", storage_type="memory", data=None),
+    dcc.Store(id="retire-build-count", storage_type="memory", data=0),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="model-percentiles-store", storage_type="memory", data=None),
     dcc.Store(id="ticker-model-idx", storage_type="memory", data=0),

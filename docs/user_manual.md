@@ -743,16 +743,25 @@ Click the `Share` button in the navbar to open the share modal.
 `localStorage` with scope + tab metadata. Click any entry to re-copy.
 Deduplicates automatically. `Clear history` empties it.
 
-URL format: `host/N#q3:<base64>` where `N` is the tab path. The tab
+URL format: `host/N#q4:<base64>` where `N` is the tab path. The tab
 routes independently of the hash decode so the correct tab opens even
 before state is restored.
+
+**Restore speed**: bubble-tab share links typically have the chart
+visible in 3-4 seconds and the "Restoring..." modal cleared shortly
+after. Other tab types (Citadel, etc.) take a little longer because
+their figure builders are heavier and the helper that pre-builds the
+figure during decode only handles the bubble tab today.
 
 **Refreshing a shared URL** reverts to defaults (aside from the hash
 content) -- this is the "refresh to start over" behavior. Use your
 browser history / back button if you want to step back a state.
 
-**Legacy links** (`q1:`, `q2:` prefix) are still decoded; new links
-use `q3:`.
+**Legacy links** (`q1:`, `q2:`, `q3:` prefix) are still decoded; new
+links use `q4:`. The `q4:` format embeds a fingerprint of the defaults
+that were live when the link was generated and stores only the fields
+that differ -- when defaults change later, omitted fields fall back to
+the original values, and the link still produces the chart you saw.
 
 <!-- merged from v1: snapshot-lots flow -->
 ### Snapshot lots
@@ -837,7 +846,7 @@ known Bitcoin regime events: 2013/2017/2021 bubble peaks, the March
 | `/faq.N` | Static FAQ with item N pre-opened |
 | `/docs/architecture` | Architecture guide (rendered markdown) |
 | `/docs/user-manual` | This manual |
-| host/N`#q3:...` | Tab N with snapshot state applied |
+| host/N`#q4:...` | Tab N with snapshot state applied (current); `#q3:`, `#q2:`, `#q1:` legacy links still decode |
 
 You can also replace `.` with `-` in deep links -- `/1-2-5-1` is
 equivalent to `/1.2.5.1`. Useful in chat contexts where periods get
@@ -1049,10 +1058,13 @@ space between the two nearest fits.
 
 ### Share links don't work between old and new deploys
 
-- Share links are versioned (`q1:`, `q2:`, `q3:`). Older links still
-  decode but may fall back to defaults for controls that have been
-  added or removed. If your link silently loses state, re-generate a
-  fresh one.
+- Share links are versioned (`q1:`, `q2:`, `q3:`, `q4:`). Older links
+  still decode but may fall back to defaults for controls that have
+  been added or removed. `q4:` links additionally carry an 8-character
+  defaults fingerprint -- if the server has shipped new defaults since
+  your link was generated, the embedded fingerprint lets the decoder
+  pick the right baseline so omitted fields restore as you saw them.
+  If a link silently loses state, re-generate a fresh one.
 
 ---
 

@@ -110,7 +110,8 @@ Python 3.12.3; all code stays 3.12-compatible.
 |---|---|
 | `app.py` | Dash app entry point. Creates `app`, loads `model_data.pkl`, instantiates every price model, builds the Flask `@server.after_request` header stack, wires `L0`/`/health`/palette routes, runs `_prewarm_caches()`, kicks off background warms. |
 | `_app_ctx.py` | Shared application context -- **the only acceptable global.** Holds `M`, `PRICE_MODELS`, `DEFAULT_MODEL`, `_ALL_QS`, `_DEF_QS`, `_HM_ENTRY_Q_DEFAULT`, `_q3()`, singleton feature flags (`_HAS_MARKOV`, `_HAS_CELERY`, `_HAS_REDIS`, `_HAS_BTCPAY`, `_HAS_RESQR`), `_MODEL_FP`, `FREQ_PPY`, `FREQ_LABEL`, `FREQ_STEP_DAYS`, palette label map, decomp families, redis helpers. |
-| `snapshot.py` | URL-hash share-link state. `_SNAPSHOT_CONTROLS` list of 206 `(component_id, property)` tuples; `_CHECKLIST_OPTIONS`; `_encode_snapshot` / `_decode_snapshot`; bounded decompressor `_safe_decompress`. |
+| `snapshot.py` | URL-hash share-link state. `_SNAPSHOT_CONTROLS` list of 206 `(component_id, property)` tuples; `_CHECKLIST_OPTIONS`; `_encode_snapshot_v4` (current) + `_encode_snapshot` (legacy q3) + `_decode_snapshot`; defaults-fingerprint registry for `q4:` sparse diffs; bounded decompressor `_safe_decompress`. |
+| `restore_builder.py` | Pure-Python helper `_build_bubble_figure_from_state(state)` that mirrors `update_bubble`'s param construction so `restore_from_url` can deliver `bubble-graph.figure` synchronously without going through the callback graph. Returns `None` for CTA-active snapshots (existing path takes over). |
 | `api.py` | Flask blueprint -- `/api/mc/*` BTCPay invoice lifecycle, `/docs/architecture`, `/docs/user-manual`, SVG badges. |
 | `utils.py` | `_quantize_params`, `_compute_cache_key`, per-tab cached builders (`_get_bubble_fig`, etc.), `_price_cache`, `_startup_heatmap_defaults`, `_nearest_quantile`, `_l0_needs_flush`. |
 | `colors.py` | **SSOT for ALL hex colors, fonts, sizes, widths, opacities, margins.** ~773 lines, 5 sections. See section 15. |
@@ -185,7 +186,7 @@ Python 3.12.3; all code stays 3.12-compatible.
 | `nav.py` | Navbar / drawer / mobile toggle / palette sync clientside callbacks. |
 | `splash.py` | Splash quote rotation, Knight ceremony, journey stats. |
 | `ticker.py` | 20-min price ticker + sparkline + model-percentile cycling. |
-| `snapshot_cb.py` | `restore_from_url`, `apply_snapshot` (~100 allow_duplicate Outputs), `manage_snapshot`, share modal handlers, `generate_share_qr`, palette + HM-preset sync. |
+| `snapshot_cb.py` | `restore_from_url` (5 Outputs, decodes hash + builds bubble figure synchronously via `restore_builder`), `apply_globals` (~30 Outputs), `_make_apply_tab_callback` factory (one per tab, ~30 Outputs each), `manage_snapshot`, share modal handlers, `generate_share_qr`, palette + HM-preset sync, post-restore modal-close clientside listener, clear-on-user-input gate listener. |
 | `user_model.py` | U1 click-to-draw callbacks; injects `u1` into every `*-model-show`. |
 | `citadel_cb.py` | Main Citadel "Run" background callback (`background=True`). |
 | `citadel_save_cb.py` | Config save/load to localStorage. |
@@ -485,9 +486,19 @@ hidden `dcc.Checklist` placeholders.
 
 | Prefix | Meaning | Currently emitted |
 |---|---|---|
-| `q3:` | Positional array + bitmask-encoded checklists (current) | **yes** |
+| `q4:` | Sparse diff against a fingerprinted defaults snapshot (current) | **yes** |
+| `q3:` | Positional array + bitmask-encoded checklists | decoded only |
 | `q2:` | Positional array + plain-list checklists (legacy) | decoded only |
 | `q1:` | Dict-based (oldest) | decoded only |
+
+`q4:` payload format is `<fp>:<gzip+b64 diff>` where `<fp>` is the
+8-char defaults fingerprint at encode time. On decode the server looks
+up `<fp>` in the bundled defaults registry; missing fingerprints fall
+back to the current `_DEFAULTS_HASH`. Only fields whose value differs
+from the matched defaults are stored, so a no-op share link decodes to
+the empty diff and re-applies whatever defaults the receiving server
+ships with. Old `q3:` links are still decoded via the legacy positional
+codec.
 
 ### Bitmask encoding (`_CHECKLIST_OPTIONS`)
 
@@ -503,17 +514,19 @@ ordered tuple of its possible values. At encode time,
 - **Append-only rule**: `_CHECKLIST_OPTIONS[cid]` tuples are
   index-stable. Reordering or removing an option breaks old share links.
 
-### Encode pipeline
+### Encode pipeline (`q4:`, current)
 
 ```python
-_SNAPSHOT_CONTROLS -> pull (cid, prop) values from state_dict
-                      -> optionally null-out non-target-tab entries
-                      -> bitmask-encode checklists
-                      -> hybrid-MC null: when mc-enable for a tab is off,
-                         null every mc-* control for that tab except -model-src
-                      -> JSON -> gzip -> urlsafe_b64encode
-                      -> emit `q3:<b64>`
+_encode_snapshot_v4(state, tab_filter):
+  positional = _encode_positional(state, tab_filter)   # same array as q3
+  defaults_v = _defaults_positional()                  # current defaults
+  diff       = sparse_diff(positional, defaults_v)     # only differing fields
+  -> JSON -> gzip -> urlsafe_b64encode
+  -> emit `q4:<fp>:<b64>`           # fp = _DEFAULTS_HASH[:8] at encode time
 ```
+
+The legacy q3 codec (positional array of all 206 fields, bitmask
+checklists) is preserved in `_encode_snapshot` for backward decode.
 
 Security: `_safe_decompress` caps encoded input at 32 KB and decompressed
 output at 512 KB. Uses a bounded `GzipFile.read(limit+1)` rather than
@@ -527,9 +540,49 @@ Scopes:
 | Current tab only (default) | `_TAB_CONTROLS[tab]` | Non-matching positions encode as `null`, fall back to defaults on restore. Much shorter link. |
 
 <!-- merged from v1: URL format + tab routing independent of hash -->
-URL format: `host/N#q3:ENCODED` where `N` is the tab path (1-9). The tab
+URL format: `host/N#q4:ENCODED` where `N` is the tab path (1-9). The tab
 routes independently of the hash decode, so the correct tab opens even
 before state is restored.
+
+### Restore performance architecture
+
+A naive restore goes: decode hash -> write 31 globals -> write 30+
+per-tab widgets via `apply_tab_*` -> wait for the chart callback to
+fire from the cascade -> wait for `plotly_afterplot` -> close modal.
+Measured this took 7+ seconds on iPhone Safari. The active-chart-committed
+path collapses it to ~3-4 seconds:
+
+1. `restore_from_url` (`snapshot_cb.py:44`) decodes the hash AND, for
+   bubble shares (`active_tab=="bubble"` + `cta-active!="yes"`), calls
+   `_build_bubble_figure_from_state(state)` from `restore_builder.py`
+   to compute the Plotly figure server-side.
+2. Returns 5 outputs in one HTTP response: `snapshot-state-store`,
+   `loaded-hash-store`, `snapshot-pending=True`, `bubble-graph.figure`
+   (`allow_duplicate=True`), and `active-chart-committed=loaded_hash`.
+3. The browser paints the figure. `splash.py:410-412` listens to
+   `active-chart-committed` and flips `prefetch-ready=True`, which
+   gates the staggered non-active-tab prefetch (no storm during
+   restore decode).
+4. A clientside listener in `snapshot_cb.py:822-851` watches
+   `active-chart-committed` and closes the restore modal directly.
+   Whichever path fires first wins (the existing
+   `plotly_afterplot`-based listener is the fallback).
+5. `apply_tab_bubble` still cascades, writing ~25 `bub-*` widget
+   values that are also Inputs to `update_bubble`. To suppress the
+   redundant rebuild, `update_bubble` checks
+   `active_chart_committed == loaded_hash` AND
+   `ctx.triggered_id in _POST_RESTORE_TRIGGERS` (every Input on
+   the callback, ~28 entries) before any other guard. Match -> return
+   `no_update`. The gate clears on the user's first DOM interaction
+   (mousedown/touchstart/keydown, capture phase, document-wide,
+   one-shot listener installed in `snapshot_cb.py:854-887`) so steady-
+   state edits proceed normally.
+
+Citadel + other non-bubble share-link tabs fall back to the existing
+callback cascade (`restore_builder` only handles bubble). CTA-active
+snapshots also fall back. Measured prod latency for bubble shares:
+~3.4 s to chart visible, ~4.4 s to modal closed. Server compute for
+the direct build: 40-150 ms.
 
 ---
 
@@ -553,6 +606,27 @@ Dash 4 forbids combining `allow_duplicate=True` with
 and crashes gunicorn (exit 3). Routing + snapshot restore use
 `initial_duplicate`, which fires the callback exactly once on initial load
 then continues normally.
+
+### Compute-in-decode for snapshot restore
+
+Where a callback graph cascade would otherwise rebuild the same figure
+the user is already looking at, deliver the figure synchronously from
+the decode callback instead. `restore_from_url` does this for bubble
+shares (see section 7). Two complementary mechanisms keep the cascade
+from re-doing the work:
+
+1. **Post-restore guard**: `update_bubble` returns `no_update` when
+   `active_chart_committed == loaded_hash` and `ctx.triggered_id` is in
+   `_POST_RESTORE_TRIGGERS` (every Input on the callback).
+2. **Clear-on-user-input**: a clientside callback installs a one-shot
+   document-wide DOM listener (mousedown/touchstart/keydown, capture
+   phase) when `active-chart-committed` becomes truthy. The first user
+   interaction nulls the gate via `set_props` so steady-state edits
+   proceed.
+
+Dash 4 has no built-in way to distinguish "framework wrote this prop"
+from "user changed this prop." The gate-and-clear pattern is the
+shortest correct path through that constraint.
 
 ### Clientside callbacks
 

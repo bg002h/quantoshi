@@ -206,9 +206,9 @@ _app_ctx.app.clientside_callback(
                     window.dash_clientside.no_update];
         }
         /* Share-hash loads: leave prefetch-ready unset so non-active tabs
-           don't start lazy-loading until the snapshot finishes applying to
-           the active tab. A separate callback on loaded-hash-store flips
-           prefetch-ready once restore is complete. */
+           don't start lazy-loading until the active tab's chart has been
+           drawn. The active-chart-committed listener below flips
+           prefetch-ready once that signal arrives. */
         if (hasShareHash) {
             return [false, window.dash_clientside.no_update,
                     window.dash_clientside.no_update, window.dash_clientside.no_update,
@@ -393,23 +393,21 @@ _app_ctx.app.clientside_callback(
 )
 
 
-# ── Release prefetch gate after snapshot restore completes ────────────────
-# When a share link loads (path + #q3:... hash), the splash callback above
-# deliberately leaves prefetch-ready unset so non-active tabs don't begin
-# lazy-materialising while the active tab is still being restored. This
-# clientside callback fires once loaded-hash-store is written by
-# restore_from_url (snapshot_cb.py:44) — meaning apply_globals has already
-# dispatched its writes and the per-tab apply_tab_{tab} callbacks have
-# fired or will fire on first-render. We then release prefetch-ready so
-# non-active tabs can start lazy-materialising.
+# ── Release prefetch gate when active chart is delivered ────────────────
+# active-chart-committed is written by restore_from_url (snapshot_cb.py)
+# AT THE SAME TIME as the bubble-graph.figure Output, so by the time the
+# splash listener fires, the figure has been delivered to the browser.
+# Non-active-tab prefetch warming begins only after the active chart is
+# drawable — implementing the "main thing first" principle.
+# See memory/restore_callback_architecture.md.
 _app_ctx.app.clientside_callback(
     """
-    function(loaded_hash) {
-        if (!loaded_hash) return window.dash_clientside.no_update;
+    function(committed) {
+        if (!committed) return window.dash_clientside.no_update;
         return 1;
     }
     """,
     Output("prefetch-ready", "data", allow_duplicate=True),
-    Input("loaded-hash-store", "data"),
+    Input("active-chart-committed", "data"),
     prevent_initial_call=True,
 )

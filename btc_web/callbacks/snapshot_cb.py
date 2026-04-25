@@ -748,8 +748,18 @@ _app_ctx.app.clientside_callback(
         }
 
         if (gd && typeof gd.on === 'function') {
-            // One-shot afterplot listener on the active Plotly graph.
-            // gd.on stacks; we wrap to remove on first fire.
+            // beforeplot fires when Plotly receives the new figure and
+            // begins rendering. Splits the gate-release → afterplot gap
+            // into "server compute + network + Dash dispatch" vs
+            // "pure Plotly render time".
+            var beforeHandler = function () {
+                if (window.__qsTrace) window.__qsTrace('plotly_beforeplot');
+                try { gd.removeListener && gd.removeListener('plotly_beforeplot', beforeHandler); }
+                catch (e) {}
+            };
+            gd.on('plotly_beforeplot', beforeHandler);
+
+            // afterplot: actual paint complete → close the modal.
             var handler = function () {
                 if (window.__qsTrace) window.__qsTrace('plotly_afterplot');
                 try { gd.removeListener && gd.removeListener('plotly_afterplot', handler); }

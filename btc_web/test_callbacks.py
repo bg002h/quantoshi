@@ -1139,9 +1139,8 @@ class TestUpdateHeatmapCallback:
                 live_price=0, mc_cached=None, pay_token=None, mc_auth=None,
                 palette_key="default",
             )
-        # 10 outputs: fig, store, status, panel_style, indicator_style,
-        #             rendered_key, modal, tab, committed, paint_pending
-        assert len(result) == 10
+        # Returns 8 outputs: fig, store, status, panel_style, indicator_style, rendered_key, modal, tab
+        assert len(result) == 8
         assert isinstance(result[0], go.Figure)
 
 
@@ -1175,9 +1174,8 @@ class TestUpdateDcaCallback:
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
                 palette_key="default",
             )
-        # 10 outputs: fig, mc_results, mc_status, rendered_key, mc_modal,
-        #             mc_tab, unblocked, yr_adjust, committed, paint_pending
-        assert len(result) == 10
+        # 8 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked, yr_adjust
+        assert len(result) == 8
         assert isinstance(result[0], go.Figure)
 
     def test_with_sc_enabled(self):
@@ -1259,9 +1257,8 @@ class TestUpdateRetireCallback:
                 price_data=0, mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
                 palette_key="default",
             )
-        # 10 outputs: fig, mc_results, mc_status, rendered_key, mc_modal,
-        #             mc_tab, unblocked, yr_adjust, committed, paint_pending
-        assert len(result) == 10
+        # 8 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked, yr_adjust
+        assert len(result) == 8
         assert isinstance(result[0], go.Figure)
 
 
@@ -1294,7 +1291,7 @@ class TestUpdateSuperchargeCallback:
                 palette_key="default",
                 viewport_width=1200,
             )
-        assert len(result) == 10
+        assert len(result) == 8
         assert isinstance(result[0], go.Figure)
 
     def test_mode_b(self):
@@ -1474,18 +1471,18 @@ class TestEffectiveLots:
 @pytest.mark.skipif(_q3 is None, reason="app.py import failed")
 class TestRestoreFromUrl:
     def test_empty_hash(self):
-        state, loaded, pending, fig, committed, paint_pending = restore_from_url("")
+        state, loaded, pending, fig, committed = restore_from_url("")
         from dash import no_update
         assert state is no_update
         assert loaded is no_update
 
     def test_none_hash(self):
-        state, loaded, pending, fig, committed, paint_pending = restore_from_url(None)
+        state, loaded, pending, fig, committed = restore_from_url(None)
         from dash import no_update
         assert state is no_update
 
     def test_invalid_prefix(self):
-        state, loaded, pending, fig, committed, paint_pending = restore_from_url("#garbage")
+        state, loaded, pending, fig, committed = restore_from_url("#garbage")
         from dash import no_update
         assert state is no_update
 
@@ -1499,7 +1496,7 @@ class TestRestoreFromUrl:
         }
         encoded = _encode_snapshot(state)
         hash_str = f"#q3:{encoded}"
-        decoded, loaded_hash, pending, fig, committed, paint_pending = restore_from_url(hash_str)
+        decoded, loaded_hash, pending, fig, committed = restore_from_url(hash_str)
         assert loaded_hash == hash_str
         assert isinstance(decoded, dict)
         assert decoded["main-tabs:active_tab"] == "bubble"

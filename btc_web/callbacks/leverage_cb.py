@@ -93,11 +93,9 @@ def _table(buy_date, model, q, r_b, r_l, c, H_slider):
 
 
 @callback(
-    Output("lev-graph", "figure", allow_duplicate=True),
-    Output("lev-readout", "children", allow_duplicate=True),
-    Output("lev-table", "children", allow_duplicate=True),
-    Output("active-chart-committed", "data", allow_duplicate=True),
-    Output("restore-paint-pending",  "data", allow_duplicate=True),
+    Output("lev-graph", "figure"),
+    Output("lev-readout", "children"),
+    Output("lev-table", "children"),
     Input("leverage-first-render", "data"),
     Input("lev-date", "date"),
     Input("lev-price", "value"),
@@ -108,22 +106,16 @@ def _table(buy_date, model, q, r_b, r_l, c, H_slider):
     Input("lev-horizon", "value"),
     Input("lev-cagr", "value"),
     Input("lev-toggles", "value"),
-    # snapshot-pending Input (not State) forces re-fire at the
-    # True->False transition so update_leverage runs once after
-    # apply_tab_leverage with restore-paint-pending visible.
-    Input("snapshot-pending", "data"),
-    State("loaded-hash-store", "data"),
-    State("restore-paint-pending", "data"),
-    prevent_initial_call='initial_duplicate',
+    State("snapshot-pending", "data"),
+    prevent_initial_call=False,
 )
 def update_leverage(first_render, date_val, price_val, model, q,
                     rb_val, rl_val, H_val, c_val, toggles,
-                    snapshot_pending=False,
-                    loaded_hash=None, restore_paint_pending=None):
-    from dash import no_update
+                    snapshot_pending=False):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
-        return no_update, no_update, no_update, no_update, no_update
+        from dash import no_update
+        return no_update, no_update, no_update
     if not first_render:
         raise PreventUpdate
 
@@ -154,7 +146,7 @@ def update_leverage(first_render, date_val, price_val, model, q,
     except (KeyError, AttributeError, ValueError) as e:
         return (
             {}, html.Div(f"Model unavailable: {e}", className="alert alert-warning"),
-            html.Div(), no_update, no_update,
+            html.Div()
         )
 
     max_pay = P_max(sp, H_yr, c_dec)
@@ -171,13 +163,7 @@ def update_leverage(first_render, date_val, price_val, model, q,
     fig = build_leverage_figure(p)
     ro = _readout(buy_date, price, sell_date, sp, H_yr, c_dec, max_pay, implied_c, model, q)
     tbl = _table(buy_date, model, q, r_b_dec, r_l_dec, c_dec, H_yr)
-    if restore_paint_pending and loaded_hash:
-        _committed = loaded_hash
-        _paint_pending_clear = False
-    else:
-        _committed = no_update
-        _paint_pending_clear = no_update
-    return fig, ro, tbl, _committed, _paint_pending_clear
+    return fig, ro, tbl
 
 
 import json as _json

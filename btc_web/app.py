@@ -130,8 +130,8 @@ if _qs_os.environ.get("QS_TRACE_CALLBACKS") == "1":
             try:
                 body = _qs_req.get_json(silent=True) or {}
                 outputs = body.get("output") or "?"
-                if isinstance(outputs, str) and len(outputs) > 200:
-                    outputs = outputs[:200] + "…"
+                if isinstance(outputs, str) and len(outputs) > 1500:
+                    outputs = outputs[:1500] + "…"
             except Exception:
                 pass
             print(f"[trace-cb] {dt_ms:6.1f}ms output={outputs}", flush=True)

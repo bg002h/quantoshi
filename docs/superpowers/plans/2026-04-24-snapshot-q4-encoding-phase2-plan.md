@@ -94,8 +94,8 @@ def _encode_snapshot_v4(state_dict, tab_filter=None):
         [fingerprint_str, {position_index_str: value, ...}, lots_or_null]
 
     The URL prefix carries a duplicate of the fingerprint for tamper
-    detection. Encoder caller responsible for prepending "q4:<fp>:" to
-    the returned base64 string.
+    detection. Returns "<fp>:<blob>". Caller prepends only "q4:" (NOT
+    "q4:<fp>:" — the fp portion is already in the returned string).
 
     Always-encoded controls (ALWAYS_ENCODE — dynamic-default fields like
     today's date, current year, live BTC price) are emitted regardless
@@ -135,26 +135,90 @@ def _encode_snapshot_v4(state_dict, tab_filter=None):
 
 
 def _mc_null_out_diffs_v4(diffs: dict[str, object]) -> None:
-    """Drop MC control diffs for tabs whose mc-enable is at default
-    (disabled). The decoder fills these from registry defaults."""
+    """Drop MC control diffs for tabs whose EFFECTIVE mc-enable state
+    is disabled (i.e. user has MC turned off for that tab).
+
+    Effective enable state:
+      - If `{prefix}-mc-enable` IS in diffs: decode that diff value
+        (could be [] or 0-mask = disabled, or ['yes'] / non-zero mask
+        = enabled).
+      - If `{prefix}-mc-enable` is NOT in diffs: fall back to
+        SNAPSHOT_DEFAULTS — i.e. ret-mc-enable defaults to ['yes']
+        (enabled), every other tab defaults to [] (disabled).
+
+    Null-out fires only when effective state is DISABLED. This avoids
+    silently discarding user-changed downstream MC fields on Retire,
+    where the enable default is ['yes'] — if the user keeps enable at
+    default but bumps `ret-mc-sims` to 999, the diff has sims but not
+    enable; the previous (broken) logic would null-out sims because
+    enable was absent.
+    """
+    from snapshot_defaults import SNAPSHOT_DEFAULTS
     _mc_prefixes = ("dca-mc-", "ret-mc-", "hm-mc-", "sc-mc-", "cp-mc-")
     for pfx in _mc_prefixes:
+        enable_cid = f"{pfx}enable"
         enable_idx = next(
             (i for i, (cid, _) in enumerate(_SNAPSHOT_CONTROLS)
-             if cid == f"{pfx}enable"),
+             if cid == enable_cid),
             None,
         )
         if enable_idx is None:
             continue
+        # Effective enable value: diff if present (decoded from possible
+        # bitmask), else SNAPSHOT_DEFAULTS.
         if str(enable_idx) in diffs:
-            # Explicitly enabled (different from default) — keep MC fields.
-            continue
+            raw = diffs[str(enable_idx)]
+            if enable_cid in _CHECKLIST_OPTIONS and isinstance(raw, int):
+                eff = _mask_to_list(raw, _CHECKLIST_OPTIONS[enable_cid])
+            else:
+                eff = raw
+        else:
+            eff = SNAPSHOT_DEFAULTS.get(f"{enable_cid}:value")
+        # Treat None/[]/0 (and 0-mask) as disabled; anything else enabled.
+        is_disabled = eff in (None, [], 0)
+        if not is_disabled:
+            continue  # MC effectively enabled — keep all MC fields
         for i, (cid, _) in enumerate(_SNAPSHOT_CONTROLS):
             if cid.startswith(pfx) and cid != f"{pfx}model-src":
                 diffs.pop(str(i), None)
 ```
 
-**NOTE on `ret-mc-enable`.** Phase 1 documented that `ret-mc-enable:value=['yes']` is the layout default (Retire is the MC showcase tab). For `q4:` MC null-out semantics: when the user-saved state for `ret-mc-enable` matches `['yes']` (i.e. unchanged from default), the encoder skips it — `str(enable_idx) in diffs` is False — so the null-out branch fires and removes downstream `ret-mc-*` fields. On decode, registry defaults fill them back in (still `['yes']` for `ret-mc-enable`, plus the other ret-mc field defaults). Net behavior: link is shorter, restored state identical.
+**NOTE on `ret-mc-enable`.** `ret-mc-enable:value=['yes']` is the layout default (Retire is the MC showcase tab). The corrected null-out logic above resolves the effective enable state from the diff if present, else from `SNAPSHOT_DEFAULTS`. So:
+
+- User keeps Retire MC enabled (default), bumps `ret-mc-sims` to 999: encoder emits `{sims_idx: 999}`, no enable in diff. Null-out resolves enable from defaults → `['yes']` → enabled → null-out SKIPS. Decoder restores sims=999. **Correct.**
+- User disables Retire MC (sets to `[]`), all downstream fields at default: encoder emits `{enable_idx: 0}` (bitmask of empty). Null-out resolves enable from diff → `[]` → disabled → null-out fires, popping all ret-mc-* (none present anyway). Decoder fills downstream from registry defaults. **Correct (and short).**
+- User keeps DCA MC disabled (default `[]`), all defaults: nothing in diffs for dca-mc-*. Null-out resolves enable from defaults → `[]` → disabled → null-out fires (no-op since dict already empty). **Correct.**
+
+**Required test additions for Task 4** (Step 4.1):
+
+```python
+def test_q4_mc_null_out_does_not_clobber_retire_changed_sims(self):
+    """ret-mc-enable defaults to ['yes']; user keeping enable at default
+    while changing ret-mc-sims must NOT cause sims to revert on decode."""
+    from snapshot import _encode_snapshot_v4, _decode_snapshot_v4
+    state = {"ret-mc-enable:value": ["yes"], "ret-mc-sims:value": 999}
+    encoded = _encode_snapshot_v4(state)
+    decoded = _decode_snapshot_v4(encoded)
+    assert decoded.get("ret-mc-sims:value") == 999, (
+        f"Expected sims=999, got {decoded.get('ret-mc-sims:value')!r} "
+        "(MC null-out clobbered an explicit user diff)")
+
+def test_q4_mc_null_out_drops_dca_mc_fields_when_default_disabled(self):
+    """DCA MC defaults to disabled. Even if user has all other DCA-MC
+    fields at default, the diff dict should not carry MC fields."""
+    from snapshot import _encode_snapshot_v4
+    import json, base64, gzip
+    state = {"dca-amount:value": 200}  # something non-MC
+    encoded = _encode_snapshot_v4(state)
+    fp, blob = encoded.split(":", 1)
+    payload = json.loads(gzip.decompress(base64.urlsafe_b64decode(blob)))
+    diffs = payload[1]
+    from snapshot import _SNAPSHOT_CONTROLS
+    for i, (cid, _) in enumerate(_SNAPSHOT_CONTROLS):
+        if cid.startswith("dca-mc-") and cid != "dca-mc-model-src":
+            assert str(i) not in diffs, (
+                f"{cid} should be dropped by MC null-out (DCA MC disabled)")
+```
 
 - [ ] **Step 1.4: Syntax-check**
 

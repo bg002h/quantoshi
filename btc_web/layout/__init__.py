@@ -289,15 +289,6 @@ def _build_layout(initial_tab="bubble"):
           ("bubble","heatmap","dca","retire","supercharge",
            "citadel","leverage","stack","model_info","faq"))],
     dcc.Store(id="prefetch-ready", storage_type="memory", data=0),
-    # Set by the active chart's callback (update_bubble / update_heatmap /
-    # update_dca / update_retire / update_supercharge / update_citadel) to
-    # the loaded-hash-store value when it returns a real figure on a
-    # restore fire. Single canonical "active chart has committed its
-    # restored figure" signal. The prefetch-ready release (splash.py)
-    # watches this so non-active-tab work doesn't fire until the active
-    # chart is genuinely interactive. See memory/restore_callback_
-    # architecture.md (Option D).
-    dcc.Store(id="active-chart-committed", storage_type="memory", data=None),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="model-percentiles-store", storage_type="memory", data=None),
     dcc.Store(id="ticker-model-idx", storage_type="memory", data=0),

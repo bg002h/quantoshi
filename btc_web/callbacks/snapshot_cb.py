@@ -57,7 +57,9 @@ def restore_from_url(hash_str):
     Arms snapshot-pending=True on successful decode. apply_tab_{active}
     releases it when tab controls land; safety timer also releases after
     3s. See spec 2026-04-24-single-redraw-per-snapshot-design.md."""
-    import time as _time
+    import time as _time, sys
+    sys.stderr.write(f"[trace] restore_from_url ENTER hash_str={hash_str!r:.50}\n")
+    sys.stderr.flush()
     _t0 = _time.perf_counter()
     if not hash_str:
         return no_update, no_update, no_update, no_update, no_update, no_update

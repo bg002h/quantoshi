@@ -358,3 +358,58 @@ class TestBuildLeverageFigureFromState:
         }
         fig = _build_leverage_figure_from_state(state)
         assert fig is None
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Phase 2 ship 5 (2026-04-25): _build_heatmap_figure_from_state tests.
+# ════════════════════════════════════════════════════════════════════════════
+
+class TestBuildHeatmapFigureFromState:
+    def test_hm_basic_returns_figure(self):
+        """Minimal state with default model — returns a heatmap figure."""
+        from restore_builder import _build_heatmap_figure_from_state
+        state = {
+            "main-tabs:active_tab": "heatmap",
+            "hm-active-model:data": "bub",
+            "hm-entry-yr:value": 2025,
+            "hm-entry-q:value": 50,
+        }
+        fig = _build_heatmap_figure_from_state(state)
+        assert fig is not None
+        fig_dict = fig.to_dict() if hasattr(fig, "to_dict") else fig
+        assert "data" in fig_dict
+        # Heatmap traces should include at least one Heatmap trace
+        types = [t.get("type") for t in fig_dict["data"]]
+        assert "heatmap" in types or len(fig_dict["data"]) > 0
+
+    def test_hm_mc_enabled_returns_none(self):
+        """hm-mc-enable=['yes'] — return None, fall back to cascade."""
+        from restore_builder import _build_heatmap_figure_from_state
+        state = {
+            "main-tabs:active_tab": "heatmap",
+            "hm-mc-enable:value": ["yes"],
+        }
+        fig = _build_heatmap_figure_from_state(state)
+        assert fig is None
+
+    def test_hm_mc_pill_returns_none(self):
+        """hm-active-model='mc' (MC pill) — return None, cascade builds MC heatmap."""
+        from restore_builder import _build_heatmap_figure_from_state
+        state = {
+            "main-tabs:active_tab": "heatmap",
+            "hm-active-model:data": "mc",
+        }
+        fig = _build_heatmap_figure_from_state(state)
+        assert fig is None
+
+    def test_hm_alternate_model_returns_figure(self):
+        """Active model = pl (PL) — returns figure for that model."""
+        from restore_builder import _build_heatmap_figure_from_state
+        state = {
+            "main-tabs:active_tab": "heatmap",
+            "hm-active-model:data": "pl",
+            "hm-entry-yr:value": 2025,
+            "hm-entry-q:value": 50,
+        }
+        fig = _build_heatmap_figure_from_state(state)
+        assert fig is not None

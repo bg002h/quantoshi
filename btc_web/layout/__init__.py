@@ -327,6 +327,9 @@ def _build_layout(initial_tab="bubble"):
     # post-restore guard would block readout/table updates so we skip it
     # for leverage).
     dcc.Store(id="restore-leverage-fig", storage_type="memory", data=None),
+    # Phase 2 ship 5 (2026-04-25): /2 heatmap — same per-tab pattern.
+    dcc.Store(id="restore-heatmap-fig", storage_type="memory", data=None),
+    dcc.Store(id="heatmap-build-count", storage_type="memory", data=0),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="model-percentiles-store", storage_type="memory", data=None),
     dcc.Store(id="ticker-model-idx", storage_type="memory", data=0),

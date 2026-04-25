@@ -782,3 +782,137 @@ def _build_leverage_figure_from_state(state: dict):
         logging.getLogger(__name__).warning(
             "_build_leverage_figure_from_state failed: %s; caller will fall back", e)
         return None
+
+
+def _build_heatmap_figure_from_state(state: dict):
+    """Build a heatmap-tab Plotly figure from a snapshot state dict.
+
+    Mirrors `update_heatmap` (callbacks/charts/__init__.py:733). Heatmap is
+    structurally different from DCA/retire/SC: active model comes from
+    `hm-active-model` Store (set by pill bar), NOT from `hm-model-show`
+    checklist.
+
+    Returns:
+        - go.Figure when MC is disabled AND hm_model != "mc"
+        - None otherwise (caller falls back to existing path)
+    """
+    mc_enable = _v(state, "hm-mc-enable", default=[]) or []
+    if "yes" in mc_enable:
+        return None
+
+    # Heatmap-active-model is a Store (data prop), not a checklist.
+    hm_model = _v(state, "hm-active-model", "data", default="bub")
+    if hm_model == "mc":
+        # Active model is MC — fall back to cascade (which routes to MC heatmap).
+        return None
+
+    # Resolve legacy / master model keys
+    from callbacks.routing import _HM_PILL_MODELS, _HM_LEGACY_MODEL_FALLBACK
+    if hm_model not in _HM_PILL_MODELS and hm_model not in ("lppl", "hybppl", "eppl"):
+        hm_model = _HM_LEGACY_MODEL_FALLBACK.get(hm_model, hm_model)
+
+    # ── Heatmap controls ──
+    entry_yr = _v(state, "hm-entry-yr", default=None)
+    entry_q  = _v(state, "hm-entry-q",  default=50)
+    exit_range = _v(state, "hm-exit-range", default=None)
+    exit_qs  = _v(state, "hm-exit-qs",  default=[0.10])
+    mode     = _v(state, "hm-mode",     default=0)
+    b1       = _v(state, "hm-b1",       default=0.0)
+    b2       = _v(state, "hm-b2",       default=20.0)
+    c_lo     = _v(state, "hm-c-lo",     default=None)
+    c_mid1   = _v(state, "hm-c-mid1",   default=None)
+    c_mid2   = _v(state, "hm-c-mid2",   default=None)
+    c_hi     = _v(state, "hm-c-hi",     default=None)
+    grad     = _v(state, "hm-grad",     default=32)
+    vfmt     = _v(state, "hm-vfmt",     default=None)
+    cell_fs  = _v(state, "hm-cell-fs",  default=None)
+    toggles  = _v(state, "hm-toggles",  default=[])
+    stack    = _v(state, "hm-stack",    default=0)
+    use_lots = _v(state, "hm-use-lots", default=[])
+    model_show = _v(state, "hm-model-show", default=[])
+
+    # ── Shared model-config States (for LPPL/HybPPL/EPPL master resolution) ──
+    lppl_n_freqs  = _v(state, "lppl-n-freqs",  default=[])
+    lppl_weighted = _v(state, "lppl-weighted", default=[])
+    lppl_no_13    = _v(state, "lppl-no-13",    default=[])
+
+    hyb_a_nlog  = _v(state, "hybppl-cfg-a-nlog",  default=1)
+    hyb_a_ncal  = _v(state, "hybppl-cfg-a-ncal",  default=1)
+    hyb_a_log1d = _v(state, "hybppl-cfg-a-log1d", default="d")
+    hyb_a_log2d = _v(state, "hybppl-cfg-a-log2d", default="d")
+    hyb_a_cal1d = _v(state, "hybppl-cfg-a-cal1d", default="u")
+    hyb_a_cal2d = _v(state, "hybppl-cfg-a-cal2d", default="u")
+
+    ep_a_nlog  = _v(state, "eppl-cfg-a-nlog",  default=1)
+    ep_a_ncal  = _v(state, "eppl-cfg-a-ncal",  default=1)
+    ep_a_log1d = _v(state, "eppl-cfg-a-log1d", default="d")
+    ep_a_log2d = _v(state, "eppl-cfg-a-log2d", default="d")
+    ep_a_cal1d = _v(state, "eppl-cfg-a-cal1d", default="u")
+    ep_a_cal2d = _v(state, "eppl-cfg-a-cal2d", default="u")
+
+    palette_key = _v(state, "palette-store", "data", default="default")
+
+    # ── Lots ──
+    _lots = state.get("_lots") or []
+    use_lots_bool = bool("yes" in (use_lots or []))
+
+    # ── Master-key resolution (heatmap has its own resolvers) ──
+    from callbacks.charts._resolvers import (
+        _resolve_hm_lppl_master, _resolve_hm_hybppl_master, _resolve_hm_eppl_master,
+    )
+    from callbacks.coerce import _ci, _cf
+    hm_model = _resolve_hm_lppl_master(
+        hm_model, lppl_n_freqs, lppl_weighted, lppl_no_13)
+    hm_model = _resolve_hm_hybppl_master(
+        hm_model,
+        hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d,
+        hyb_a_cal1d, hyb_a_cal2d)
+    hm_model = _resolve_hm_eppl_master(
+        hm_model,
+        ep_a_nlog, ep_a_ncal, ep_a_log1d, ep_a_log2d,
+        ep_a_cal1d, ep_a_cal2d)
+
+    # ── Build figure ──
+    import pandas as _pd
+    yr_now = _pd.Timestamp.today().year
+    if exit_range is None:
+        exit_range = [(entry_yr or yr_now), (entry_yr or yr_now) + 10]
+
+    from utils import _get_heatmap_fig
+    from tab_defaults import HEATMAP
+    import _app_ctx as _ctx
+    try:
+        shared_params = dict(
+            entry_yr     = _ci(entry_yr, yr_now),
+            entry_q      = _cf(entry_q, 50),
+            live_price   = None,  # no live ticker source in builder
+            exit_yr_lo   = int(exit_range[0]),
+            exit_yr_hi   = int(exit_range[1]),
+            exit_qs      = exit_qs or [],
+            color_mode   = _ci(mode, HEATMAP["color_mode"]),
+            b1           = _cf(b1, _ctx.M.CAGR_SEG_B1),
+            b2           = _cf(b2, _ctx.M.CAGR_SEG_B2),
+            c_lo         = c_lo   or _ctx.M.CAGR_SEG_C_LO,
+            c_mid1       = c_mid1 or _ctx.M.CAGR_SEG_C_MID1,
+            c_mid2       = c_mid2 or _ctx.M.CAGR_SEG_C_MID2,
+            c_hi         = c_hi   or _ctx.M.CAGR_SEG_C_HI,
+            n_disc       = _ci(grad, HEATMAP["n_disc"]),
+            vfmt         = vfmt or HEATMAP["vfmt"],
+            cell_font_size = _ci(cell_fs, HEATMAP["cell_font_size"]),
+            show_colorbar = "colorbar" in (toggles or []),
+            stack        = _cf(stack, HEATMAP["stack"]),
+            use_lots     = use_lots_bool,
+            lots         = _lots,
+            active_models = [k for k in (model_show or []) if k not in _ctx.MODEL_SENTINELS],
+            palette      = palette_key or "default",
+            hm_model     = hm_model,
+        )
+        fig = _get_heatmap_fig(shared_params)
+        if "chart_zoom" not in (toggles or []):
+            fig.update_layout(dragmode=False)
+        return fig
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(
+            "_build_heatmap_figure_from_state failed: %s; caller will fall back", e)
+        return None

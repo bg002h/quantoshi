@@ -728,6 +728,8 @@ def update_yrange_slider_limits(model_show):
     State("eppl-cfg-a-cal1d", "value"),
     State("eppl-cfg-a-cal2d", "value"),
     State("snapshot-pending", "data"),
+    State("active-chart-committed", "data"),
+    State("loaded-hash-store",  "data"),
     prevent_initial_call=True,
 )
 def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_qs, mode,
@@ -743,9 +745,31 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
                    ep_a_nlog=None, ep_a_ncal=None,
                    ep_a_log1d=None, ep_a_log2d=None,
                    ep_a_cal1d=None, ep_a_cal2d=None,
-                   snapshot_pending=False):
+                   snapshot_pending=False,
+                   active_chart_committed=None, loaded_hash=None):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
+        return (dash.no_update,) * 8
+    # Phase 2 ship 5 (2026-04-25) post-restore short-circuit. 8 Outputs:
+    # figure, mc-results, mc-status, mc-panel.style, swipe-indicator.style,
+    # mc-rendered-key, mc-save-modal, mc-save-tab. hm-mc-loaded excluded so
+    # MC async completion can rebuild. hm-active-model is also excluded
+    # (it only fires from pill clicks, which are user actions and clear
+    # the gate via the existing first-user-input listener).
+    _POST_RESTORE_TRIGGERS_HM = {
+        "heatmap-first-render", "hm-active-model",
+        "hm-entry-yr", "hm-entry-q", "hm-exit-range", "hm-exit-qs",
+        "hm-mode", "hm-b1", "hm-b2", "hm-c-lo", "hm-c-mid1", "hm-c-mid2",
+        "hm-c-hi", "hm-grad", "hm-vfmt", "hm-cell-fs", "hm-toggles",
+        "hm-stack", "hm-use-lots",
+        "hm-mc-enable", "hm-mc-amount", "hm-mc-infl", "hm-mc-bins",
+        "hm-mc-regime", "hm-mc-sims", "hm-mc-years", "hm-mc-freq",
+        "hm-mc-window", "hm-mc-start-yr", "hm-mc-entry-q",
+        "hm-model-show", "hm-mc-model-src",
+    }
+    _trg = ctx.triggered_id
+    if active_chart_committed and active_chart_committed == loaded_hash \
+            and _trg in _POST_RESTORE_TRIGGERS_HM:
         return (dash.no_update,) * 8
     exit_range = exit_range or [entry_yr or 2025, (entry_yr or 2025) + 10]
     toggles    = toggles or []

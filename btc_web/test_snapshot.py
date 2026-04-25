@@ -739,9 +739,10 @@ class TestSnapshotPendingGate:
         import os, pathlib
         here = pathlib.Path(os.path.dirname(__file__))
         src = (here / "callbacks" / "snapshot_cb.py").read_text()
-        idx = src.find('__restoreOpenTime')
-        assert idx > 0, "__restoreOpenTime not found"
-        block = src[idx:idx + 2000]
+        # Locate the close callback by its anchor comment.
+        idx = src.find('Restore-progress modal close')
+        assert idx > 0, "close-callback anchor not found"
+        block = src[idx:idx + 4000]
         assert 'Math.max' in block and '500' in block, (
             "500ms min-display (Math.max) not found in close callback")
 

@@ -671,17 +671,23 @@ _app_ctx.app.clientside_callback(
 )
 
 
-# ── Restore-progress modal close on snapshot-pending release ──────────────
-# snapshot-pending flips False when apply_tab_{active} writes its controls.
-# The chart callback then fires once using the released gate, computes, and
-# paints. We add a 1200 ms paint-settle delay so the modal doesn't fade
-# before the chart is visible. 500 ms min-display prevents flash. Lazy-tab
-# graph Inputs intentionally NOT used here — would trigger "nonexistent
-# object" warnings.
+# ── Restore-progress modal close: wait for actual chart paint ─────────────
+# snapshot-pending flips False when apply_tab_{active} writes its controls;
+# the chart callback then re-fires (widget Input change) and renders.
+#
+# Previously: static 1200ms paint-settle setTimeout. Failure mode: when
+# server-side chart compute > 1200ms (slow Citadel MC, cold cache, etc.),
+# modal faded BEFORE chart paint -> user sees blank/stale chart.
+#
+# Now: hook Plotly's plotly_afterplot event on the active graph's div.
+# Closes modal one-shot when paint completes. 500ms min-display floor
+# prevents flash; 7000ms hard fallback covers tabs without a Plotly chart
+# (Stack/Model Info/FAQ) and pathological compute timeouts.
 _app_ctx.app.clientside_callback(
     """
-    function(pending) {
-        if (pending === true) return window.dash_clientside.no_update;
+    function(pending, active) {
+        var NU = window.dash_clientside.no_update;
+        if (pending === true) return NU;
         if (!window.__restoreOpenTime) {
             if (window.__restoreOpenTimer) {
                 clearTimeout(window.__restoreOpenTimer);
@@ -691,25 +697,60 @@ _app_ctx.app.clientside_callback(
                 clearTimeout(window.__restoreFallback);
                 window.__restoreFallback = null;
             }
-            return window.dash_clientside.no_update;
+            return NU;
         }
-        var elapsed = performance.now() - window.__restoreOpenTime;
-        var delay = Math.max(1200, 500 - elapsed);
-        setTimeout(function () {
-            requestAnimationFrame(function () {
-                window.dash_clientside.set_props(
-                    'restore-progress-modal', { is_open: false });
-                window.__restoreOpenTime = null;
-                if (window.__restoreFallback) {
-                    clearTimeout(window.__restoreFallback);
-                    window.__restoreFallback = null;
-                }
-            });
-        }, delay);
-        return window.dash_clientside.no_update;
+        var graphMap = {
+            bubble:      'bubble-graph',
+            heatmap:     'heatmap-graph',
+            dca:         'dca-graph',
+            retire:      'retire-graph',
+            supercharge: 'supercharge-graph',
+            citadel:     'citadel-graph',
+            leverage:    'lev-graph'
+        };
+        var graphId = graphMap[active];
+        var outer = graphId ? document.getElementById(graphId) : null;
+        var gd = outer ? outer.querySelector('.js-plotly-plot') : null;
+
+        var fired = false;
+        function closeModal() {
+            if (fired) return;
+            fired = true;
+            var elapsed = performance.now() - window.__restoreOpenTime;
+            var delay = Math.max(0, 500 - elapsed);
+            setTimeout(function () {
+                requestAnimationFrame(function () {
+                    window.dash_clientside.set_props(
+                        'restore-progress-modal', { is_open: false });
+                    window.__restoreOpenTime = null;
+                    if (window.__restoreFallback) {
+                        clearTimeout(window.__restoreFallback);
+                        window.__restoreFallback = null;
+                    }
+                });
+            }, delay);
+        }
+
+        if (gd && typeof gd.on === 'function') {
+            // One-shot afterplot listener on the active Plotly graph.
+            // gd.on stacks; we wrap to remove on first fire.
+            var handler = function () {
+                try { gd.removeListener && gd.removeListener('plotly_afterplot', handler); }
+                catch (e) { /* Plotly version varies */ }
+                closeModal();
+            };
+            gd.on('plotly_afterplot', handler);
+        }
+        // Hard fallback: 7s. Covers (a) tabs without a Plotly graph
+        // (stack/model_info/faq), (b) graph callbacks that PreventUpdate
+        // and never fire afterplot, (c) any pathological hang.
+        if (window.__restoreFallback) clearTimeout(window.__restoreFallback);
+        window.__restoreFallback = setTimeout(closeModal, 7000);
+        return NU;
     }
     """,
     Output("restore-progress-modal", "is_open", allow_duplicate=True),
     Input("snapshot-pending", "data"),
+    State("main-tabs", "active_tab"),
     prevent_initial_call=True,
 )

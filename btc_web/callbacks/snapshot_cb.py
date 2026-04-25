@@ -181,10 +181,19 @@ def _make_apply_tab_callback(tab_id, first_render_id, controls):
     non-restore first-render bumps don't accidentally clear the gate."""
     applied_id = f"{tab_id}-snap-applied"
 
+    # Fast tabs: apply_tab_* writes active-chart-committed=loaded_hash so the
+    # modal-close listener fires deterministically (bypasses the race where a
+    # chart callback fires before restore-paint-pending propagates as State).
+    # Bubble's restore_from_url already writes it directly. Citadel + non-chart
+    # tabs (stack/model_info/faq) fall back to the 7s timer.
+    _FAST_COMMIT_TABS = {"heatmap", "dca", "retire", "supercharge", "leverage"}
+    _is_fast = tab_id in _FAST_COMMIT_TABS
+
     @callback(
         *[Output(cid, prop, allow_duplicate=True) for cid, prop in controls],
         Output("snapshot-pending", "data", allow_duplicate=True),
         Output(applied_id, "data", allow_duplicate=True),
+        Output("active-chart-committed", "data", allow_duplicate=True),
         Input(first_render_id, "data"),
         State("snapshot-state-store", "data"),
         State("loaded-hash-store", "data"),
@@ -195,13 +204,16 @@ def _make_apply_tab_callback(tab_id, first_render_id, controls):
         import time as _time
         _t0 = _time.perf_counter()
         if not state:
-            return [no_update] * (len(_ctrls) + 2)
+            return [no_update] * (len(_ctrls) + 3)
         if loaded_hash and applied_hash == loaded_hash:
-            return [no_update] * (len(_ctrls) + 2)
+            return [no_update] * (len(_ctrls) + 3)
         values = [state.get(f"{cid}:{prop}", no_update) for cid, prop in _ctrls]
-        values.append(False)
-        values.append(loaded_hash)
-        n_set = sum(1 for v in values[:-2] if v is not no_update)
+        values.append(False)         # snapshot-pending
+        values.append(loaded_hash)   # tab-snap-applied
+        # active-chart-committed: only for fast tabs that lack a synchronous
+        # restore_builder. Writing this triggers the modal-close listener.
+        values.append(loaded_hash if (_is_fast and loaded_hash) else no_update)
+        n_set = sum(1 for v in values[:-3] if v is not no_update)
         print(f"[trace] apply_tab_{tab_id} controls={n_set}/{len(_ctrls)} "
               f"apply_ms={(_time.perf_counter() - _t0) * 1000:.1f}",
               flush=True)

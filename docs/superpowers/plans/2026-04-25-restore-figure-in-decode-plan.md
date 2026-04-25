@@ -128,9 +128,21 @@ This is the riskiest task because it duplicates `update_bubble`'s param-construc
 3. Builds the params dict identically to update_bubble's `_get_bubble_fig` call.
 4. Calls `_get_bubble_fig(params)` and returns the figure.
 
+**Critical: lots resolution.** `update_bubble` reads `effective-lots.data` (a clientside-cascaded Store). The snapshot state dict does NOT contain `effective-lots:data`. It contains `_lots` (raw lot list, used by clientside cascade to compute effective-lots). The helper MUST read lots as:
+```python
+_lots = state.get("_lots") or []
+use_lots_val = state.get("bub-use-lots:value") or []
+use_lots = bool("yes" in use_lots_val)
+# Pass to _get_bubble_fig: lots=_lots, use_lots=use_lots
+```
+
+**Critical: CTA-active fallback.** If the snapshot was created with CTA on (`state.get("cta-active:value") == ["yes"]`), `_build_bubble_figure_from_state` MUST return `None` (signal: do not write figure). The caller (`restore_from_url` in Task 2) then writes `dash.no_update` for the figure output and `dash.no_update` for active-chart-committed, falling back to the existing callback-graph path. This preserves CTA share-link behavior and avoids the double-paint that would result from `restore_from_url` writing a standard figure that CTA then overwrites.
+
 **Verification:**
 - Unit test: feed a minimal default state dict, assert the helper returns a `go.Figure`.
 - Unit test: feed a state dict with non-default values (e.g. xscale=lin), assert returned figure reflects them.
+- Unit test: feed a state dict with `_lots` populated and `bub-use-lots:value=["yes"]`, assert helper returns figure (lots applied; can spot-check by counting traces).
+- Unit test: feed a state dict with `cta-active:value=["yes"]`, assert helper returns `None` (CTA fallback).
 - Unit test: helper produces identical output to a reconstructed `update_bubble` invocation with the same effective inputs.
 
 **Step 1.1: Write the helper.**
@@ -150,9 +162,12 @@ This is the riskiest task because it duplicates `update_bubble`'s param-construc
 - Add `Output("bubble-graph", "figure", allow_duplicate=True)`
 - Add `Output("active-chart-committed", "data", allow_duplicate=True)`
 - After decoding state, check `active_tab = state.get("main-tabs:active_tab")`. If "bubble":
-  - Call `_build_bubble_figure_from_state(state)` → fig
-  - Return: state, hash, pending=True, fig, hash_str (as committed value)
-- Else: return state, hash, pending=True, dash.no_update, dash.no_update (preserves existing behavior for non-bubble tabs)
+  - Call `fig = _build_bubble_figure_from_state(state)`
+  - **If `fig is None`** (CTA-active fallback): return state, hash, pending=True, dash.no_update, dash.no_update — preserves existing path.
+  - **Else:** return state, hash, pending=True, fig, hash_str (figure + commit signal).
+- Else (non-bubble tab share): return state, hash, pending=True, dash.no_update, dash.no_update.
+
+In ALL paths the tuple has 5 elements. Empty hash and decode-failure paths return 5× no_update.
 
 **Step 2.3:** Add `allow_duplicate=True` to `update_bubble`'s `Output("bubble-graph", "figure")` (line 76). This is required because `restore_from_url` is now also a writer.
 
@@ -235,8 +250,10 @@ Input("active-chart-committed", "data"),  # was: Input("loaded-hash-store", "dat
 | State-dict missing keys cause helper to crash | Helper raises exception during restore | Helper uses `state.get(key, default)` for every lookup; tests cover defaults |
 | Race: restore_from_url returns figure but Plotly applies it AFTER apply_tab_bubble's widget writes trigger update_bubble re-fire | Visible flicker / wrong figure briefly | Early-return guard in update_bubble blocks the re-fire when active_chart_committed matches loaded_hash |
 | iPhone Safari paint timing: figure response → React apply → Plotly render → afterplot may still race against prefetch storm | Modal closes via fallback even though figure was sent | Verify in prod with Playwright; if happens, push prefetch storm later (gate on plotly_afterplot too) |
-| `loaded-hash-store` → `active-chart-committed` Input swap: legacy listeners on loaded-hash-store still need it | manage_snapshot uses loaded-hash-store; check if anything else does | Grep for all loaded-hash-store Inputs; document each |
+| `loaded-hash-store` → `active-chart-committed` Input swap: legacy listeners on loaded-hash-store still need it | manage_snapshot (snapshot_cb.py:199) uses loaded-hash-store as Input — keep as-is, that's correct | Confirmed safe per architect review; manage_snapshot reads hash for history, not figure-build coordination |
 | Non-bubble tab shares (citadel /6, etc.) still take 7s | Acceptable for this iteration | Documented as out-of-scope; future work |
+| CTA-active snapshots produce double-paint risk | Standard fig from restore_from_url + CTA fig overwrites ~300ms later → flicker | **Mitigation in helper:** `_build_bubble_figure_from_state` returns None when `state.get("cta-active:value") == ["yes"]`. restore_from_url writes no_update for fig + committed → falls back to existing callback path. CTA share-links keep current behavior (no improvement, no regression). |
+| Snapshot state dict missing `palette-store:data` | palette-store IS in `_SNAPSHOT_CONTROLS`; helper reads it from decoded dict directly (not from Store) | Confirmed safe per architect review |
 
 ---
 

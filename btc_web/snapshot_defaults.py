@@ -278,7 +278,7 @@ SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'ret-lppl-activate:value': [],
     'ret-mc-advanced:value': [],
     'ret-mc-bins:value': 5,
-    'ret-mc-enable:value': ['yes'],
+    'ret-mc-enable:value': [],
     'ret-mc-entry-q:value': 10,
     'ret-mc-model-src:value': 'bub',
     'ret-mc-regime:value': [0, 1, 2, 3, 4],

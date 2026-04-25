@@ -146,7 +146,48 @@ if snapshot_pending:
     return dash.no_update, dash.no_update  # was: return dash.no_update
 ```
 
-- [ ] **Step 2.4: Fix the `effective-lots` PreventUpdate race (CRITICAL)**
+- [ ] **Step 2.4: Pre-verify apply_tab_bubble release semantics**
+
+Reviewer flagged that the rest of the fix depends on `apply_tab_bubble` releasing `snapshot-pending=False` AND the resulting widget Input changes triggering a second `update_bubble` fire. Verify before continuing:
+
+```bash
+grep -n "snapshot-pending\|snap-applied" btc_web/callbacks/snapshot_cb.py | head -10
+```
+
+Confirm three things in the output:
+1. `Output("snapshot-pending", "data", allow_duplicate=True)` appears in `_make_apply_tab_callback`'s decorator (the apply_tab_* factory).
+2. The `_apply` function appends `False` to its return values (releases `snapshot-pending`).
+3. The factory also writes `Output(applied_id, "data", allow_duplicate=True)` (i.e. `bubble-snap-applied`) — this is the new Input we'll add to `update_bubble`.
+
+If any of these is absent, **STOP** — Option D's premise is broken and the fix needs redesign.
+
+- [ ] **Step 2.5: Fix the `effective-lots` PreventUpdate race (CRITICAL — two-part fix)**
+
+The reviewer caught that `not snapshot_pending` alone is insufficient: by the time `update_bubble` fires post-restore, `apply_tab_bubble` has already released `snapshot-pending=False`, so the `not snapshot_pending` clause is True AND if the user's snapshot has lots disabled (default), the guard fires and raises PreventUpdate before the figure can be built. Same Phase A failure mode.
+
+The correct fix has two parts:
+
+**(a) Add `Input("bubble-snap-applied", "data")` to `update_bubble`.**
+
+This guarantees a SECOND fire of `update_bubble` after `apply_tab_bubble` commits all bub-* widgets, with `ctx.triggered_id == "bubble-snap-applied"` — which does NOT match the `effective-lots` guard, so the guard cannot fire on this canonical post-apply fire. The figure is built. `active-chart-committed` is written.
+
+In `update_bubble`'s `@callback` decorator, find the existing Input list and append:
+```python
+Input("bubble-snap-applied", "data"),
+```
+Place it after the existing State/Input block but before `prevent_initial_call=True`. Best location: just before the existing `State("snapshot-pending", "data")` line.
+
+The `update_bubble` function signature must accept this new positional Input. Add a corresponding parameter, e.g.:
+```python
+def update_bubble(_first_render, sel_qs, adv_qs, ...,
+                  ...,
+                  _bub_snap_applied=None,  # NEW
+                  loaded_hash=None,
+                  snapshot_pending=False):
+```
+Place `_bub_snap_applied=None` before `loaded_hash=None` to match the decorator's Input/State order. **Verify by counting decorator entries vs function parameters** — Dash 4 raises `TypeError` on mismatch.
+
+**(b) Make the existing `effective-lots` guard restore-aware (defense-in-depth).**
 
 Locate the guard at line ~184:
 ```python
@@ -156,18 +197,20 @@ if _trg == "effective-lots" and not (use_lots and "yes" in (use_lots or [])):
 
 Change to:
 ```python
-# Steady-state guard only — during restore, bub-use-lots may not have
-# been written yet (apply_tab_bubble writes it in the same batch as the
-# effective-lots cascade), so use_lots will appear falsy even though the
-# user's snapshot might have lots enabled. Allow the fall-through during
-# restore; if bub-use-lots is genuinely off, the figure builder will skip
-# the lots overlay correctly. After restore (snapshot_pending=False),
-# the guard fires normally to suppress no-op redraws.
+# Steady-state guard: when user toggles lots off and effective-lots
+# cascades, suppress the redundant redraw. NOT applicable during
+# restore: snapshot_pending may already be False (apply_tab_bubble
+# released it) but the post-apply fire we want to keep is triggered
+# from bubble-snap-applied with _trg="bubble-snap-applied", so this
+# branch only matches when an effective-lots change is genuinely the
+# trigger — which post-restore means the user manually changed lots.
 if _trg == "effective-lots" and not snapshot_pending and not (use_lots and "yes" in (use_lots or [])):
     raise PreventUpdate
 ```
 
-- [ ] **Step 2.5: Update real-figure return**
+Belt-and-suspenders: even if `bubble-snap-applied` Input fires correctly (part a), the `not snapshot_pending` clause prevents this guard from raising on any first-fire that happens to have `_trg="effective-lots"` while pending is still True.
+
+- [ ] **Step 2.6: Update real-figure return**
 
 Locate the final `return fig` at line ~285:
 ```python
@@ -176,18 +219,17 @@ print(f"[trace] bubble-fig BUILT "
 return fig
 ```
 
-Change to:
+Change to (using `is not None` per reviewer Q2 — safer than truthy-check):
 ```python
 print(f"[trace] bubble-fig BUILT "
       f"{(_time.perf_counter() - _t0) * 1000:.1f}ms", flush=True)
-# active-chart-committed = loaded_hash (only when this is a restore
-# context — loaded_hash is non-None during restore, None otherwise).
-# Writing no_update for non-restore fires keeps the prefetch gate in
-# its previous state.
-return fig, (loaded_hash if loaded_hash else dash.no_update)
+# active-chart-committed = loaded_hash when this is a restore context
+# (loaded-hash-store is non-None). Steady-state interactions write
+# no_update so the prefetch gate stays in its prior state.
+return fig, (loaded_hash if loaded_hash is not None else dash.no_update)
 ```
 
-- [ ] **Step 2.6: Verify all return paths in update_bubble**
+- [ ] **Step 2.7: Verify all return paths in update_bubble**
 
 ```bash
 btc_venv/bin/python3 -c "
@@ -213,7 +255,7 @@ Expected: 4 return statements + 3 raise statements:
 
 If you see `return dash.no_update` (single-arg) or `return fig` (single-arg), the change is incomplete — fix before continuing.
 
-- [ ] **Step 2.7: Run unit tests**
+- [ ] **Step 2.8: Run unit tests**
 
 ```bash
 btc_venv/bin/python3 -m pytest btc_web/test_callbacks.py::TestUpdateBubbleCallback -q 2>&1 | tail -10
@@ -221,24 +263,35 @@ btc_venv/bin/python3 -m pytest btc_web/test_callbacks.py::TestUpdateBubbleCallba
 
 Expected: tests fail with `assert isinstance(fig, go.Figure)` because fig is now a tuple. **Do not panic** — Task 6 fixes the tests. Just verify the failure is in `isinstance(fig, go.Figure)`, not in unrelated lines.
 
-- [ ] **Step 2.8: Commit**
+- [ ] **Step 2.9: Commit**
 
 ```bash
 git add btc_web/callbacks/charts/__init__.py
 git commit -m "feat(charts): update_bubble writes active-chart-committed + fix effective-lots race
 
-Two coupled changes:
+Three coupled changes:
 
 1. Add Output('active-chart-committed', 'data') + State('loaded-hash-store').
-   On real-figure return: append loaded_hash if loaded_hash else no_update.
-   On gated/PreventUpdate paths: don't write (Dash handles).
+   On real-figure return: write loaded_hash if loaded_hash is not None
+   else no_update. On gated/PreventUpdate paths: don't write (Dash handles).
 
-2. Make the effective-lots PreventUpdate guard restore-aware:
-   add 'not snapshot_pending' to the condition. During restore,
-   apply_tab_bubble races with the snapshot-lots->effective-lots
-   clientside cascade; bub-use-lots may not be committed when the
-   guard evaluates. The guard wrongly raised PreventUpdate, which
-   caused Phase A (commit ecaa07f, reverted) to silently fail.
+2. Add Input('bubble-snap-applied', 'data') as a guaranteed re-trigger
+   after apply_tab_bubble commits all bub-* widgets. The fire from this
+   Input has ctx.triggered_id='bubble-snap-applied', which CANNOT match
+   the effective-lots PreventUpdate guard, so the canonical post-apply
+   figure build is guaranteed to run.
+
+3. Make the effective-lots PreventUpdate guard restore-aware: add
+   'not snapshot_pending' to the condition. Defense-in-depth — even if
+   a transient _trg='effective-lots' fire happens with snapshot_pending
+   still True, the guard skips. Steady-state behavior (user toggles
+   lots off) is unchanged.
+
+Phase A (commit ecaa07f, reverted) failed because update_bubble's
+post-restore fire had ctx.triggered_id='effective-lots' and the guard
+raised PreventUpdate before the figure could be built. Adding the
+bubble-snap-applied Input + restore-aware guard removes both failure
+modes.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 ```
@@ -516,17 +569,37 @@ Expected failures:
 - `TestUpdateHeatmapCallback::test_*` — `assert len(result) == 8` fails (now 9).
 - Same for DCA, Retire, Supercharge.
 
-- [ ] **Step 6.2: Update assertions**
+- [ ] **Step 6.2: Pre-verify match counts (catches regex-replace footguns)**
+
+```bash
+grep -c "assert isinstance(fig, go.Figure)" btc_web/test_callbacks.py
+grep -c "assert len(result) == 8" btc_web/test_callbacks.py
+```
+
+Expected: 3 for bubble (the `update_bubble` test has 3 separate isinstance checks across 3 sub-tests), 4 for tuple-length (heatmap, dca×2 maybe, retire, sc — confirm by listing the matches).
+
+```bash
+grep -n "assert len(result) == 8" btc_web/test_callbacks.py
+```
+
+If counts differ from expected, **STOP** — the regex replace in Step 6.3 will incorrectly match unintended lines. Inspect manually first.
+
+- [ ] **Step 6.3: Update assertions**
 
 ```bash
 btc_venv/bin/python3 <<'EOF'
 with open('btc_web/test_callbacks.py') as f:
     src = f.read()
 
+# Ensure dash is imported (the new isinstance assertions reference dash.no_update).
+if 'import dash\n' not in src and 'import dash ' not in src:
+    # Add after the first import line so future merges don't conflict at top.
+    src = src.replace('import pytest', 'import pytest\nimport dash', 1)
+
 # Bubble: fig is now (fig, committed_hash). Update isinstance checks.
 src = src.replace(
     'assert isinstance(fig, go.Figure)',
-    'assert isinstance(fig[0], go.Figure)\n        # second element is active-chart-committed (None or hash str)\n        assert fig[1] is None or isinstance(fig[1], str) or fig[1] is dash.no_update',
+    'assert isinstance(fig[0], go.Figure)\n        # second element is active-chart-committed (None / hash str / no_update)\n        assert fig[1] is None or isinstance(fig[1], str) or fig[1] is dash.no_update',
 )
 
 # Heatmap/DCA/Retire/SC: 8-tuple → 9-tuple
@@ -538,9 +611,7 @@ print('OK')
 EOF
 ```
 
-If `dash` isn't imported in test_callbacks.py, add `import dash` at the top.
-
-- [ ] **Step 6.3: Run tests**
+- [ ] **Step 6.4: Run tests**
 
 ```bash
 btc_venv/bin/python3 -m pytest btc_web/test_callbacks.py -q 2>&1 | tail -5
@@ -548,7 +619,7 @@ btc_venv/bin/python3 -m pytest btc_web/test_callbacks.py -q 2>&1 | tail -5
 
 Expected: all pass.
 
-- [ ] **Step 6.4: Run full suite**
+- [ ] **Step 6.5: Run full suite**
 
 ```bash
 btc_venv/bin/python3 -m pytest btc_web/ --ignore-glob='*_e2e.py' -q 2>&1 | tail -5
@@ -556,7 +627,7 @@ btc_venv/bin/python3 -m pytest btc_web/ --ignore-glob='*_e2e.py' -q 2>&1 | tail 
 
 Expected: 1 pre-existing failure (`test_no_hex_literals_outside_colors_module`); zero new failures.
 
-- [ ] **Step 6.5: Commit**
+- [ ] **Step 6.6: Commit**
 
 ```bash
 git add btc_web/test_callbacks.py

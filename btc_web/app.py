@@ -114,6 +114,24 @@ def _palette_picker():
 
 
 
+@server.route("/_trace", methods=["POST"])
+def _trace_post():
+    """Browser-console trace sink. Mobile devs can't open DevTools, so the
+    qs_trace.js client POSTs its trace log here when ?trace=1 is set;
+    we mirror to the gunicorn journal under [trace-client] so it appears
+    in `journalctl -u quantoshi`. Bounded payload, fire-and-forget."""
+    from flask import request as _req, jsonify as _jsonify
+    import logging as _lg
+    raw = _req.get_data(cache=False, as_text=True)
+    if not raw or len(raw) > 16 * 1024:
+        return ("", 204)
+    _log = _lg.getLogger("trace_client")
+    label = (_req.args.get("label") or "restore")[:32]
+    ua = (_req.headers.get("User-Agent") or "")[:60]
+    _log.info("[trace-client] label=%s ua=%s payload=%s", label, ua, raw)
+    return ("", 204)
+
+
 @server.route("/health")
 def _health():
     from flask import jsonify as _jsonify

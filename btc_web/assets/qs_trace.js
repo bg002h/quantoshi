@@ -33,7 +33,22 @@
             };
         });
         console.log('=== Quantoshi trace: ' + (label || 'restore') + ' ===');
-        console.table(rows);
+        try { console.table(rows); } catch (e) { console.log(rows); }
+
+        // Mirror to server log so mobile users can read the trace via
+        // journalctl. fetch keepalive=true survives page navigation; sendBeacon
+        // is a fallback for older browsers.
+        try {
+            var body = JSON.stringify(rows);
+            var url = '/_trace?label=' + encodeURIComponent(label || 'restore');
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon(url, body);
+            } else {
+                fetch(url, { method: 'POST', body: body, keepalive: true,
+                             headers: { 'Content-Type': 'application/json' } });
+            }
+        } catch (e) { /* best-effort */ }
+
         window.__qsTraceLog = [];
     };
 

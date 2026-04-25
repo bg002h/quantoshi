@@ -107,6 +107,36 @@ app = dash.Dash(
 app.title = "Quantoshi"
 server = app.server  # for gunicorn
 
+
+# ── Per-callback timing log (opt-in via QS_TRACE_CALLBACKS=1 env var) ──────
+# Hooks Dash's /_dash-update-component endpoint. Logs every callback's
+# Output target + duration to journal under [trace-cb]. Enabled via env
+# var so prod traffic isn't always logged. Set in systemd unit when
+# debugging restore performance.
+import os as _qs_os, time as _qs_time, json as _qs_json
+if _qs_os.environ.get("QS_TRACE_CALLBACKS") == "1":
+    from flask import request as _qs_req, g as _qs_g
+
+    @server.before_request
+    def _qs_cb_before():
+        if _qs_req.path == "/_dash-update-component":
+            _qs_g._qs_t0 = _qs_time.perf_counter()
+
+    @server.after_request
+    def _qs_cb_after(response):
+        if _qs_req.path == "/_dash-update-component" and hasattr(_qs_g, "_qs_t0"):
+            dt_ms = (_qs_time.perf_counter() - _qs_g._qs_t0) * 1000
+            outputs = "?"
+            try:
+                body = _qs_req.get_json(silent=True) or {}
+                outputs = body.get("output") or "?"
+                if isinstance(outputs, str) and len(outputs) > 200:
+                    outputs = outputs[:200] + "…"
+            except Exception:
+                pass
+            print(f"[trace-cb] {dt_ms:6.1f}ms output={outputs}", flush=True)
+        return response
+
 @server.route("/A")
 def _palette_picker():
     from flask import send_from_directory

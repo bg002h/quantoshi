@@ -74,6 +74,7 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
 
 @callback(
     Output("bubble-graph", "figure"),
+    Output("restore-fig-committed", "data", allow_duplicate=True),
     Input("bubble-first-render", "data"),
     Input("bub-qs",            "value"),
     Input("bub-qs-adv",        "value"),
@@ -174,7 +175,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     if snapshot_pending:
         print(f"[trace] bubble-fig SKIPPED (gate) "
               f"{(_time.perf_counter() - _t0) * 1000:.1f}ms", flush=True)
-        return dash.no_update
+        return dash.no_update, dash.no_update
     from dash.exceptions import PreventUpdate
     _trg = getattr(ctx, 'triggered_id', None)
     # Spurious hydration fires: Dash dispatches these Inputs on initial load
@@ -282,7 +283,8 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
 
     print(f"[trace] bubble-fig BUILT "
           f"{(_time.perf_counter() - _t0) * 1000:.1f}ms", flush=True)
-    return fig
+    # Real figure committed → release prefetch gate (splash.py listens).
+    return fig, True
 
 
 # ── Price/CAGR view pill bar ─────────────────────────────────────────────────
@@ -645,6 +647,7 @@ def update_yrange_slider_limits(model_show):
     Output("hm-mc-rendered-key", "data"),
     Output("mc-save-modal", "is_open", allow_duplicate=True),
     Output("mc-save-tab", "data", allow_duplicate=True),
+    Output("restore-fig-committed", "data", allow_duplicate=True),
     Input("heatmap-first-render", "data"),
     Input("hm-active-model", "data"),
     Input("hm-entry-yr",  "value"),
@@ -719,7 +722,7 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
                    snapshot_pending=False):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
-        return (dash.no_update,) * 8
+        return (dash.no_update,) * 9
     exit_range = exit_range or [entry_yr or 2025, (entry_yr or 2025) + 10]
     toggles    = toggles or []
     yr_now = pd.Timestamp.today().year
@@ -836,7 +839,8 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
 
     return (fig, store_val, status, mc_panel_style, indicator_style,
             rendered_key,
-            show_modal, "hm" if show_modal else dash.no_update)
+            show_modal, "hm" if show_modal else dash.no_update,
+            True)  # restore-fig-committed
 
 
 # ── CAGR line chart (below heatmap) ─────────────────────────────────────────
@@ -850,6 +854,7 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     Output("mc-save-tab", "data", allow_duplicate=True),
     Output("dca-mc-unblocked", "data"),
     Output("dca-yr-range", "value", allow_duplicate=True),
+    Output("restore-fig-committed", "data", allow_duplicate=True),
     Input("dca-first-render", "data"),
     Input("dca-stack",    "value"),
     Input("dca-use-lots", "value"),
@@ -948,7 +953,7 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
                qs_mode=None, user_model_store=None, snapshot_pending=False):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
-        return (dash.no_update,) * 8
+        return (dash.no_update,) * 9
     toggles    = toggles or []
     yr_range   = yr_range or [2024, 2034]
     live_price = _cf(price_data, 0)
@@ -1023,7 +1028,8 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
         if mc_sy < int(yr_range[0]):
             yr_adjust = [mc_sy, int(yr_range[1])]
     return (fig, store_val, status, rendered_key, show_modal,
-            "dca" if show_modal else dash.no_update, ub_val, yr_adjust)
+            "dca" if show_modal else dash.no_update, ub_val, yr_adjust,
+            True)  # restore-fig-committed
 
 
 @callback(
@@ -1035,6 +1041,7 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     Output("mc-save-tab", "data", allow_duplicate=True),
     Output("ret-mc-unblocked", "data"),
     Output("ret-yr-range", "value", allow_duplicate=True),
+    Output("restore-fig-committed", "data", allow_duplicate=True),
     Input("retire-first-render", "data"),
     Input("ret-stack",    "value"),
     Input("ret-use-lots", "value"),
@@ -1121,7 +1128,7 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
                   qs_mode=None, user_model_store=None, snapshot_pending=False):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
-        return (dash.no_update,) * 8
+        return (dash.no_update,) * 9
     toggles  = toggles or []
     yr_range = yr_range or [RETIRE["start_yr"], RETIRE["end_yr"]]
     _advanced = "advanced" in (qs_mode or [])
@@ -1186,7 +1193,8 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
             yr_adjust = [mc_sy, int(yr_range[1])]
 
     return (fig, store_val, status, rendered_key, show_modal,
-            "ret" if show_modal else dash.no_update, ub_val, yr_adjust)
+            "ret" if show_modal else dash.no_update, ub_val, yr_adjust,
+            True)  # restore-fig-committed
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1202,6 +1210,7 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     Output("mc-save-tab", "data", allow_duplicate=True),
     Output("sc-mc-unblocked",   "data"),
     Output("sc-start-yr", "value", allow_duplicate=True),
+    Output("restore-fig-committed", "data", allow_duplicate=True),
     Input("supercharge-first-render", "data"),
     Input("sc-stack",        "value"),
     Input("sc-use-lots",     "value"),
@@ -1304,7 +1313,7 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
                        snapshot_pending=False):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
-        return (dash.no_update,) * 8
+        return (dash.no_update,) * 9
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
     toggles = toggles or []
     yr_now  = pd.Timestamp.today().year
@@ -1377,7 +1386,8 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
         if mc_sy < int(start_yr or 2033):
             yr_adjust = mc_sy
     return (fig, store_val, status, rendered_key, show_modal,
-            "sc" if show_modal else dash.no_update, ub_val, yr_adjust)
+            "sc" if show_modal else dash.no_update, ub_val, yr_adjust,
+            True)  # restore-fig-committed
 
 
 # ── Model warning modals (S2F, Exponential) ──────────────────────────────────

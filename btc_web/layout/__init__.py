@@ -289,6 +289,11 @@ def _build_layout(initial_tab="bubble"):
           ("bubble","heatmap","dca","retire","supercharge",
            "citadel","leverage","stack","model_info","faq"))],
     dcc.Store(id="prefetch-ready", storage_type="memory", data=0),
+    # Set False at restore start (by restore_from_url), True by the active
+    # tab's chart callback when it returns a real figure. Prefetch-ready
+    # release watches this so non-active-tab work doesn't fire until the
+    # active chart has actually built its figure on the server.
+    dcc.Store(id="restore-fig-committed", storage_type="memory", data=False),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="model-percentiles-store", storage_type="memory", data=None),
     dcc.Store(id="ticker-model-idx", storage_type="memory", data=0),

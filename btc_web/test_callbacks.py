@@ -1,4 +1,5 @@
 """Callback smoke tests, MC cache, BTCPay, lots."""
+import dash
 import plotly.graph_objects as go
 from mc_cache import (snap_to_bin, _path_key_str, _overlay_key_str,
                       CACHED_START_YRS, ENTRY_PCT_BINS, MC_YEARS_OPTIONS,
@@ -1035,7 +1036,7 @@ class TestUpdateBubbleCallback:
     def test_returns_figure(self):
         with _patch_ctx("bub-qs"):
             fig = update_bubble(
-                _first_render=1, sel_qs=[0.5], adv_qs=[], toggles=["show_data", "show_today"],
+                _first_render=1, _bub_snap_applied=None, sel_qs=[0.5], adv_qs=[], toggles=["show_data", "show_today"],
                 bubble_toggles=[], xscale="log", yscale="log",
                 xrange=[2012, 2030], yrange=[0, 7],
                 n_future=3, ptsize=3, ptalpha=0.6,
@@ -1057,12 +1058,14 @@ class TestUpdateBubbleCallback:
                 lots_data=[],
                 palette_key="default",
             )
-        assert isinstance(fig, go.Figure)
+        assert isinstance(fig[0], go.Figure)
+        # second element is active-chart-committed (None / hash str / no_update)
+        assert fig[1] is None or isinstance(fig[1], str) or fig[1] is dash.no_update
 
     def test_empty_quantiles(self):
         with _patch_ctx("bub-qs"):
             fig = update_bubble(
-                _first_render=1, sel_qs=[], adv_qs=[], toggles=[], bubble_toggles=[],
+                _first_render=1, _bub_snap_applied=None, sel_qs=[], adv_qs=[], toggles=[], bubble_toggles=[],
                 xscale="linear", yscale="log",
                 xrange=[2015, 2028], yrange=[1, 6],
                 n_future=0, ptsize=2, ptalpha=0.3,
@@ -1084,12 +1087,14 @@ class TestUpdateBubbleCallback:
                 lots_data=[],
                 palette_key="default",
             )
-        assert isinstance(fig, go.Figure)
+        assert isinstance(fig[0], go.Figure)
+        # second element is active-chart-committed (None / hash str / no_update)
+        assert fig[1] is None or isinstance(fig[1], str) or fig[1] is dash.no_update
 
     def test_with_stack(self):
         with _patch_ctx("bub-stack"):
             fig = update_bubble(
-                _first_render=1, sel_qs=[0.1, 0.5, 0.9], adv_qs=[], toggles=["show_legend"],
+                _first_render=1, _bub_snap_applied=None, sel_qs=[0.1, 0.5, 0.9], adv_qs=[], toggles=["show_legend"],
                 bubble_toggles=["show_comp"], xscale="log", yscale="log",
                 xrange=[2012, 2035], yrange=[0, 7],
                 n_future=2, ptsize=4, ptalpha=0.5,
@@ -1111,7 +1116,9 @@ class TestUpdateBubbleCallback:
                 lots_data=[],
                 palette_key="default",
             )
-        assert isinstance(fig, go.Figure)
+        assert isinstance(fig[0], go.Figure)
+        # second element is active-chart-committed (None / hash str / no_update)
+        assert fig[1] is None or isinstance(fig[1], str) or fig[1] is dash.no_update
 
 
 
@@ -1140,7 +1147,7 @@ class TestUpdateHeatmapCallback:
                 palette_key="default",
             )
         # Returns 8 outputs: fig, store, status, panel_style, indicator_style, rendered_key, modal, tab
-        assert len(result) == 8
+        assert len(result) == 9
         assert isinstance(result[0], go.Figure)
 
 
@@ -1175,7 +1182,7 @@ class TestUpdateDcaCallback:
                 palette_key="default",
             )
         # 8 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked, yr_adjust
-        assert len(result) == 8
+        assert len(result) == 9
         assert isinstance(result[0], go.Figure)
 
     def test_with_sc_enabled(self):
@@ -1258,7 +1265,7 @@ class TestUpdateRetireCallback:
                 palette_key="default",
             )
         # 8 outputs: fig, mc_results, mc_status, rendered_key, mc_modal, mc_tab, unblocked, yr_adjust
-        assert len(result) == 8
+        assert len(result) == 9
         assert isinstance(result[0], go.Figure)
 
 
@@ -1291,7 +1298,7 @@ class TestUpdateSuperchargeCallback:
                 palette_key="default",
                 viewport_width=1200,
             )
-        assert len(result) == 8
+        assert len(result) == 9
         assert isinstance(result[0], go.Figure)
 
     def test_mode_b(self):

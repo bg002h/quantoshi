@@ -120,15 +120,15 @@ def _trace_post():
     qs_trace.js client POSTs its trace log here when ?trace=1 is set;
     we mirror to the gunicorn journal under [trace-client] so it appears
     in `journalctl -u quantoshi`. Bounded payload, fire-and-forget."""
-    from flask import request as _req, jsonify as _jsonify
-    import logging as _lg
+    from flask import request as _req
     raw = _req.get_data(cache=False, as_text=True)
     if not raw or len(raw) > 16 * 1024:
         return ("", 204)
-    _log = _lg.getLogger("trace_client")
     label = (_req.args.get("label") or "restore")[:32]
     ua = (_req.headers.get("User-Agent") or "")[:60]
-    _log.info("[trace-client] label=%s ua=%s payload=%s", label, ua, raw)
+    # Print directly so it lands in the gunicorn-captured stream regardless
+    # of logger configuration.
+    print(f"[trace-client] label={label} ua={ua} payload={raw}", flush=True)
     return ("", 204)
 
 

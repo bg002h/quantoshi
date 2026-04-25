@@ -177,6 +177,18 @@ def restore_from_url(hash_str):
             _committed_out = hash_str
             print(f"[trace] restore-hm-build BUILT "
                   f"{(_time.perf_counter() - _t1) * 1000:.1f}ms", flush=True)
+    elif active_tab == "citadel":
+        # Phase 2 ship 6 (2026-04-25): /6 citadel — no server-side figure
+        # build. Citadel sims are expensive (1-2s) and user-triggered: the
+        # update_citadel callback only computes the simulation when the
+        # user clicks "Run Simulation". On citadel-first-render it loads
+        # a cached default chart (Q25% bub). All we need for fast modal
+        # close is to write active-chart-committed=hash_str so the
+        # listener fires; the cached default chart loads instantly via
+        # the existing cascade path.
+        _committed_out = hash_str
+        print(f"[trace] restore-citadel-fast-close (no figure build)",
+              flush=True)
     return (state, hash_str, True, _fig_out, _committed_out,
             _dca_out, _retire_out, _sc_out, _lev_out, _hm_out)
 

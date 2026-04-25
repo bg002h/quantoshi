@@ -419,10 +419,17 @@ _CHECKLIST_OPTIONS = {
     "sc-toggles":         ["annotate", "log_y", "shade", "show_legend", "minor_grid", "chart_zoom", "discrete"],
     "sc-chart-layout":    ["shade"],
     "bub-auto-y":         ["yes"],
-    "dca-model-show":     ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl", "u1", "plo", "sexp", "logi"],
-    "ret-model-show":     ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl", "u1", "plo", "sexp", "logi"],
-    "sc-model-show":      ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl", "u1", "plo", "sexp", "logi"],
-    "hm-model-show":      ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl", "u1", "plo", "sexp", "logi"],
+    # NOTE: "bub" appended at position 32 (end) so the bubble model bit
+    # round-trips correctly through bitmask encoding. Existing bit indices
+    # 0-31 preserved → older share links decode unchanged. The widget value
+    # emitted by these checklists is "bub" (not "qr"); snapshot_defaults
+    # uses "bub" too — without this entry, encoded user state with "bub"
+    # silently loses that bit. (Bug surfaced 2026-04-25 by /4 retire share
+    # link round-trip showing missing BM model on chart.)
+    "dca-model-show":     ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl", "u1", "plo", "sexp", "logi", "bub"],
+    "ret-model-show":     ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl", "u1", "plo", "sexp", "logi", "bub"],
+    "sc-model-show":      ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl", "u1", "plo", "sexp", "logi", "bub"],
+    "hm-model-show":      ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl", "u1", "plo", "sexp", "logi", "bub"],
     "bub-model-show":     ["pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "bub", "qr", "gomp", "bpl", "plo", "sexp", "logi"],
     # Defunct after display-models consolidation (2026-04-11) — retained
     # for q3: link positional stability. See _SNAPSHOT_CONTROLS comment above.

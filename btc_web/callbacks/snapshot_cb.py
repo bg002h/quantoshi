@@ -45,7 +45,7 @@ def _decode_snapshot_by_prefix(h):
     Output("snapshot-state-store", "data"),
     Output("loaded-hash-store",    "data"),
     Output("snapshot-pending",     "data", allow_duplicate=True),
-    Output("bubble-graph",         "figure",  allow_duplicate=True),
+    Output("restore-bubble-fig",   "data", allow_duplicate=True),
     Output("active-chart-committed","data",   allow_duplicate=True),
     Input("url", "hash"),
     prevent_initial_call='initial_duplicate',
@@ -804,6 +804,39 @@ _app_ctx.app.clientside_callback(
     Output("restore-progress-modal", "is_open", allow_duplicate=True),
     Input("snapshot-pending", "data"),
     State("main-tabs", "active_tab"),
+    prevent_initial_call=True,
+)
+
+
+# ── Bubble figure relay via set_props (Phase 1, 2026-04-25) ───────────────
+# `restore_from_url` cannot have `Output("bubble-graph", "figure", ...)`
+# because bubble-graph is inside bubble-lazy which contains "Loading..."
+# on /2-/7 initial loads — Dash 4 silently drops the entire callback
+# dispatch when an Output's component is absent from DOM, breaking
+# control restore for non-bubble share links. Instead, restore_from_url
+# writes the figure to the always-mounted `restore-bubble-fig` Store and
+# this clientside callback uses set_props to push it into bubble-graph.
+# set_props bypasses the registered-Output existence check.
+#
+# The try-catch is insurance against a Dash 4.0.0 reducer bug where
+# set_props with an absent target may throw (GitHub plotly/dash#2897).
+# Guard `fig == null` short-circuits the self-clear `return null` path.
+_app_ctx.app.clientside_callback(
+    """
+    function(fig) {
+        var NU = window.dash_clientside.no_update;
+        if (fig == null) return NU;
+        try {
+            window.dash_clientside.set_props('bubble-graph', {figure: fig});
+        } catch (e) {
+            console.warn('restore-bubble-fig: set_props failed', e);
+        }
+        if (window.__qsTrace) window.__qsTrace('restore-bubble-fig delivered');
+        return null;  // clear store after delivery
+    }
+    """,
+    Output("restore-bubble-fig", "data", allow_duplicate=True),
+    Input("restore-bubble-fig", "data"),
     prevent_initial_call=True,
 )
 

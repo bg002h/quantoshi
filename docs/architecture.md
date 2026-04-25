@@ -557,8 +557,11 @@ path collapses it to ~3-4 seconds:
    `_build_bubble_figure_from_state(state)` from `restore_builder.py`
    to compute the Plotly figure server-side.
 2. Returns 5 outputs in one HTTP response: `snapshot-state-store`,
-   `loaded-hash-store`, `snapshot-pending=True`, `bubble-graph.figure`
-   (`allow_duplicate=True`), and `active-chart-committed=loaded_hash`.
+   `loaded-hash-store`, `snapshot-pending=True`, `restore-bubble-fig.data`
+   (the figure payload, `allow_duplicate=True`), and
+   `active-chart-committed=loaded_hash`. The figure is delivered to
+   `bubble-graph` via a clientside `set_props` relay (Phase 1 fix; see
+   "Lazy-Output footgun" below).
 3. The browser paints the figure. `splash.py:410-412` listens to
    `active-chart-committed` and flips `prefetch-ready=True`, which
    gates the staggered non-active-tab prefetch (no storm during
@@ -583,6 +586,23 @@ callback cascade (`restore_builder` only handles bubble). CTA-active
 snapshots also fall back. Measured prod latency for bubble shares:
 ~3.4 s to chart visible, ~4.4 s to modal closed. Server compute for
 the direct build: 40-150 ms.
+
+#### Lazy-Output footgun (Phase 1, 2026-04-25)
+
+`restore_from_url` cannot have any Output to a lazy-mounted component
+(e.g. `bubble-graph` inside `bubble-lazy`). When loading `/2`–`/7`,
+the lazy tab's content is `"Loading..."` and the graph component does
+not exist in the initial DOM. Dash 4's frontend renderer silently
+drops the entire callback dispatch when an Output's component is
+absent — no HTTP POST, no error, no log. Pre-Phase-1, this meant
+share links to `/2`–`/7` were not just slow to close their modal —
+they did not restore controls at all (the rendered page showed
+defaults). Phase 1 fix: route the bubble figure through an always-
+mounted `dcc.Store` (`restore-bubble-fig`) and use a clientside
+`set_props` relay to deliver the figure to `bubble-graph`.
+`set_props` bypasses the registered-Output existence check.
+See `memory/restore_callback_architecture.md` for the full
+empirical investigation.
 
 ---
 

@@ -1510,6 +1510,57 @@ class TestRestoreFromUrl:
                            if cid == "main-tabs")
         assert result[main_tab_idx] == "bubble"
 
+    def test_store_payload_is_figure_for_bubble_share(self):
+        """Phase 1: position 3 of restore_from_url's return is the
+        restore-bubble-fig Store payload. For a bubble share with a
+        decodable hash, it is either a Plotly figure dict (when
+        restore_builder succeeded) or no_update (when builder fell
+        back, e.g. CTA-active)."""
+        from dash import no_update
+        state = {
+            "main-tabs:active_tab": "bubble",
+            "bub-qs:value": ["median"],
+        }
+        encoded = _encode_snapshot(state)
+        hash_str = f"#q3:{encoded}"
+        _, _, _, fig_payload, _ = restore_from_url(hash_str)
+        # Either a figure (dict with 'data' key) or no_update.
+        if fig_payload is not no_update:
+            # Plotly Figure objects have to_dict(); plain dicts have 'data'
+            if hasattr(fig_payload, "to_dict"):
+                fig_dict = fig_payload.to_dict()
+            else:
+                assert isinstance(fig_payload, dict), (
+                    f"fig_payload should be a Plotly figure dict or Figure, "
+                    f"got {type(fig_payload).__name__}"
+                )
+                fig_dict = fig_payload
+            assert "data" in fig_dict, (
+                "Plotly figure must have 'data' key"
+            )
+
+    def test_store_payload_is_no_update_for_non_bubble(self):
+        """Phase 1: for a non-bubble share, position 3 is no_update —
+        the chart callback for that tab handles its own figure build.
+        Phase 2 will extend per-tab figure builders into the Store
+        relay; until then, non-bubble shares fall back to the standard
+        chart callback path."""
+        from dash import no_update
+        state = {
+            "main-tabs:active_tab": "dca",
+        }
+        encoded = _encode_snapshot(state)
+        hash_str = f"#q3:{encoded}"
+        _, _, _, fig_payload, committed = restore_from_url(hash_str)
+        assert fig_payload is no_update, (
+            "Non-bubble share must return no_update for restore-bubble-fig "
+            "(Phase 1 only builds bubble figures server-side)."
+        )
+        assert committed is no_update, (
+            "Non-bubble share must return no_update for active-chart-committed "
+            "(Phase 2 will write this from per-tab figure builders)."
+        )
+
 
 
 @pytest.mark.skipif(_q3 is None, reason="app.py import failed")
@@ -1573,6 +1624,53 @@ class TestNoDuplicateCallbackOutputs:
                 f"instead.  Offending outputs: {sorted(overlap)[:5]}..."
             )
             break
+
+    def test_restore_from_url_does_not_output_bubble_graph(self):
+        """Phase 1 invariant (2026-04-25): restore_from_url must NOT have
+        bubble-graph.figure as an Output.
+
+        bubble-graph is inside bubble-lazy which contains "Loading..." on
+        /2-/7 initial loads. Dash 4 silently drops the entire callback
+        dispatch when an Output's component is absent from DOM, breaking
+        control restore for non-bubble share links. The fix is to route
+        the bubble figure through restore-bubble-fig (always-mounted
+        Store) + a clientside set_props relay.
+
+        See memory/restore_callback_architecture.md (Phase 1 section).
+
+        Note: uses dash._callback.GLOBAL_CALLBACK_MAP because @callback
+        registrations land there (app.callback_map is only populated
+        after app.run() and is empty in unit tests).
+        """
+        from dash._callback import GLOBAL_CALLBACK_MAP
+
+        found = False
+        for cb_key, cb_meta in GLOBAL_CALLBACK_MAP.items():
+            ins = cb_meta.get("inputs", [])
+            in_ids = [(i.get("id"), i.get("property")) for i in ins]
+            # restore_from_url is the only callback with Input("url", "hash")
+            # AND multiple Outputs including snapshot-state-store.
+            if ("url", "hash") not in in_ids:
+                continue
+            outs = cb_meta.get("output", [])
+            if not isinstance(outs, list):
+                continue  # single-output url.hash callback (modal opener)
+            out_ids = {f"{o.component_id}.{o.component_property}" for o in outs}
+            if "snapshot-state-store.data" not in out_ids:
+                continue
+            found = True
+            assert "bubble-graph.figure" not in out_ids, (
+                "REGRESSION: restore_from_url has bubble-graph.figure as an "
+                "Output. This breaks /2-/7 share-link restore because "
+                "bubble-graph is lazy-mounted. Use restore-bubble-fig Store "
+                "instead. See memory/restore_callback_architecture.md."
+            )
+            assert "restore-bubble-fig.data" in out_ids, (
+                "restore_from_url is missing restore-bubble-fig.data Output. "
+                "Required for the figure-relay pattern that fixes /2-/7."
+            )
+            return
+        assert found, "restore_from_url callback not found in GLOBAL_CALLBACK_MAP"
 
 
 

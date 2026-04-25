@@ -297,6 +297,13 @@ def _build_layout(initial_tab="bubble"):
     # rebuilds when CTA's tick bump re-fires the callback post-restore.
     # See memory/restore_callback_architecture.md.
     dcc.Store(id="active-chart-committed", storage_type="memory", data=None),
+    # Phase 1 (2026-04-25): bubble figure is delivered via this always-mounted
+    # Store + a clientside set_props relay rather than via Output("bubble-graph",
+    # "figure") on restore_from_url. Reason: bubble-graph is inside bubble-lazy
+    # which contains "Loading..." on /2-/7 initial loads; Dash 4 silently drops
+    # the entire callback dispatch when an Output's component is absent from
+    # DOM. Routing the figure through an always-mounted Store fixes /2-/7.
+    dcc.Store(id="restore-bubble-fig", storage_type="memory", data=None),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="model-percentiles-store", storage_type="memory", data=None),
     dcc.Store(id="ticker-model-idx", storage_type="memory", data=0),

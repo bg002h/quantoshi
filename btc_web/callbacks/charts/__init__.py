@@ -672,6 +672,8 @@ def update_yrange_slider_limits(model_show):
     Output("hm-mc-rendered-key", "data"),
     Output("mc-save-modal", "is_open", allow_duplicate=True),
     Output("mc-save-tab", "data", allow_duplicate=True),
+    Output("active-chart-committed", "data", allow_duplicate=True),
+    Output("restore-paint-pending",  "data", allow_duplicate=True),
     Input("heatmap-first-render", "data"),
     Input("hm-active-model", "data"),
     Input("hm-entry-yr",  "value"),
@@ -727,7 +729,13 @@ def update_yrange_slider_limits(model_show):
     State("eppl-cfg-a-log2d", "value"),
     State("eppl-cfg-a-cal1d", "value"),
     State("eppl-cfg-a-cal2d", "value"),
-    State("snapshot-pending", "data"),
+    # snapshot-pending as Input so the False transition from apply_tab_heatmap
+    # always re-fires update_heatmap with restore-paint-pending=True visible
+    # — avoids the race where update_heatmap's first-render fire happens
+    # before restore_from_url writes the flag.
+    Input("snapshot-pending", "data"),
+    State("loaded-hash-store", "data"),
+    State("restore-paint-pending", "data"),
     prevent_initial_call=True,
 )
 def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_qs, mode,
@@ -743,10 +751,11 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
                    ep_a_nlog=None, ep_a_ncal=None,
                    ep_a_log1d=None, ep_a_log2d=None,
                    ep_a_cal1d=None, ep_a_cal2d=None,
-                   snapshot_pending=False):
+                   snapshot_pending=False,
+                   loaded_hash=None, restore_paint_pending=None):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
-        return (dash.no_update,) * 8
+        return (dash.no_update,) * 10
     exit_range = exit_range or [entry_yr or 2025, (entry_yr or 2025) + 10]
     toggles    = toggles or []
     yr_now = pd.Timestamp.today().year
@@ -861,9 +870,20 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     if "chart_zoom" not in toggles:
         fig.update_layout(dragmode=False)
 
+    # First-paint commit for non-bubble shares: when the snapshot decode
+    # set restore-paint-pending=True, the first success-path build delivers
+    # active-chart-committed=loaded_hash + clears the flag. The modal-close
+    # listener fires on active-chart-committed (snapshot_cb.py:824).
+    if restore_paint_pending and loaded_hash:
+        _committed = loaded_hash
+        _paint_pending_clear = False
+    else:
+        _committed = dash.no_update
+        _paint_pending_clear = dash.no_update
     return (fig, store_val, status, mc_panel_style, indicator_style,
             rendered_key,
-            show_modal, "hm" if show_modal else dash.no_update)
+            show_modal, "hm" if show_modal else dash.no_update,
+            _committed, _paint_pending_clear)
 
 
 # ── CAGR line chart (below heatmap) ─────────────────────────────────────────
@@ -877,6 +897,8 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     Output("mc-save-tab", "data", allow_duplicate=True),
     Output("dca-mc-unblocked", "data"),
     Output("dca-yr-range", "value", allow_duplicate=True),
+    Output("active-chart-committed", "data", allow_duplicate=True),
+    Output("restore-paint-pending",  "data", allow_duplicate=True),
     Input("dca-first-render", "data"),
     Input("dca-stack",    "value"),
     Input("dca-use-lots", "value"),
@@ -952,7 +974,11 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     State("palette-store",      "data"),
     State("dca-qs-mode",        "value"),
     State("user-model-store",   "data"),
-    State("snapshot-pending",   "data"),
+    # See heatmap callback above — snapshot-pending Input forces a refire
+    # at the True->False transition with rpp+loaded_hash visible.
+    Input("snapshot-pending",   "data"),
+    State("loaded-hash-store",  "data"),
+    State("restore-paint-pending", "data"),
     prevent_initial_call=True,
 )
 def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range, disp, toggles, legend_pos, sel_qs, adv_qs,
@@ -972,10 +998,11 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
                mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
-               qs_mode=None, user_model_store=None, snapshot_pending=False):
+               qs_mode=None, user_model_store=None, snapshot_pending=False,
+               loaded_hash=None, restore_paint_pending=None):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
-        return (dash.no_update,) * 8
+        return (dash.no_update,) * 10
     toggles    = toggles or []
     yr_range   = yr_range or [2024, 2034]
     live_price = _cf(price_data, 0)
@@ -1049,8 +1076,15 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
         mc_sy = int(mc_p["mc_start_yr"])
         if mc_sy < int(yr_range[0]):
             yr_adjust = [mc_sy, int(yr_range[1])]
+    if restore_paint_pending and loaded_hash:
+        _committed = loaded_hash
+        _paint_pending_clear = False
+    else:
+        _committed = dash.no_update
+        _paint_pending_clear = dash.no_update
     return (fig, store_val, status, rendered_key, show_modal,
-            "dca" if show_modal else dash.no_update, ub_val, yr_adjust)
+            "dca" if show_modal else dash.no_update, ub_val, yr_adjust,
+            _committed, _paint_pending_clear)
 
 
 @callback(
@@ -1062,6 +1096,8 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     Output("mc-save-tab", "data", allow_duplicate=True),
     Output("ret-mc-unblocked", "data"),
     Output("ret-yr-range", "value", allow_duplicate=True),
+    Output("active-chart-committed", "data", allow_duplicate=True),
+    Output("restore-paint-pending",  "data", allow_duplicate=True),
     Input("retire-first-render", "data"),
     Input("ret-stack",    "value"),
     Input("ret-use-lots", "value"),
@@ -1127,7 +1163,11 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     State("palette-store",      "data"),
     State("ret-qs-mode",        "value"),
     State("user-model-store",   "data"),
-    State("snapshot-pending",   "data"),
+    # See heatmap callback above — snapshot-pending Input forces a refire
+    # at the True->False transition with rpp+loaded_hash visible.
+    Input("snapshot-pending",   "data"),
+    State("loaded-hash-store",  "data"),
+    State("restore-paint-pending", "data"),
     prevent_initial_call=True,
 )
 def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp, toggles, legend_pos, sel_qs, adv_qs,
@@ -1145,10 +1185,11 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
                   mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                   mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                   price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
-                  qs_mode=None, user_model_store=None, snapshot_pending=False):
+                  qs_mode=None, user_model_store=None, snapshot_pending=False,
+                  loaded_hash=None, restore_paint_pending=None):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
-        return (dash.no_update,) * 8
+        return (dash.no_update,) * 10
     toggles  = toggles or []
     yr_range = yr_range or [RETIRE["start_yr"], RETIRE["end_yr"]]
     _advanced = "advanced" in (qs_mode or [])
@@ -1212,8 +1253,15 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
         if mc_sy < int(yr_range[0]):
             yr_adjust = [mc_sy, int(yr_range[1])]
 
+    if restore_paint_pending and loaded_hash:
+        _committed = loaded_hash
+        _paint_pending_clear = False
+    else:
+        _committed = dash.no_update
+        _paint_pending_clear = dash.no_update
     return (fig, store_val, status, rendered_key, show_modal,
-            "ret" if show_modal else dash.no_update, ub_val, yr_adjust)
+            "ret" if show_modal else dash.no_update, ub_val, yr_adjust,
+            _committed, _paint_pending_clear)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1229,6 +1277,8 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     Output("mc-save-tab", "data", allow_duplicate=True),
     Output("sc-mc-unblocked",   "data"),
     Output("sc-start-yr", "value", allow_duplicate=True),
+    Output("active-chart-committed", "data", allow_duplicate=True),
+    Output("restore-paint-pending",  "data", allow_duplicate=True),
     Input("supercharge-first-render", "data"),
     Input("sc-stack",        "value"),
     Input("sc-use-lots",     "value"),
@@ -1305,7 +1355,11 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     State("sc-qs-mode",        "value"),
     State("viewport-width",    "data"),
     State("user-model-store",  "data"),
-    State("snapshot-pending",  "data"),
+    # See heatmap callback above — snapshot-pending Input forces a refire
+    # at the True->False transition with rpp+loaded_hash visible.
+    Input("snapshot-pending",  "data"),
+    State("loaded-hash-store", "data"),
+    State("restore-paint-pending", "data"),
     prevent_initial_call=True,
 )
 def update_supercharge(_first_render, stack, use_lots, start_yr,
@@ -1328,10 +1382,11 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
                        mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                        price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
                        qs_mode=None, viewport_width=None, user_model_store=None,
-                       snapshot_pending=False):
+                       snapshot_pending=False,
+                       loaded_hash=None, restore_paint_pending=None):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
-        return (dash.no_update,) * 8
+        return (dash.no_update,) * 10
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
     toggles = toggles or []
     yr_now  = pd.Timestamp.today().year
@@ -1403,8 +1458,15 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
         mc_sy = int(mc_p["mc_start_yr"])
         if mc_sy < int(start_yr or 2033):
             yr_adjust = mc_sy
+    if restore_paint_pending and loaded_hash:
+        _committed = loaded_hash
+        _paint_pending_clear = False
+    else:
+        _committed = dash.no_update
+        _paint_pending_clear = dash.no_update
     return (fig, store_val, status, rendered_key, show_modal,
-            "sc" if show_modal else dash.no_update, ub_val, yr_adjust)
+            "sc" if show_modal else dash.no_update, ub_val, yr_adjust,
+            _committed, _paint_pending_clear)
 
 
 # ── Model warning modals (S2F, Exponential) ──────────────────────────────────

@@ -47,6 +47,7 @@ def _decode_snapshot_by_prefix(h):
     Output("snapshot-pending",     "data", allow_duplicate=True),
     Output("bubble-graph",         "figure",  allow_duplicate=True),
     Output("active-chart-committed","data",   allow_duplicate=True),
+    Output("restore-paint-pending", "data",   allow_duplicate=True),
     Input("url", "hash"),
     prevent_initial_call='initial_duplicate',
 )
@@ -59,12 +60,12 @@ def restore_from_url(hash_str):
     import time as _time
     _t0 = _time.perf_counter()
     if not hash_str:
-        return no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update, no_update
     h = hash_str.lstrip("#")
     state, prefix, encoded = _decode_snapshot_by_prefix(h)
     if not state:
         logger.warning("Snapshot decode failed for hash: %s\u2026", hash_str[:20])
-        return no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update, no_update
     # Legacy-link coercion: if this deployment has no resqr bundles, drop
     # "resqr" sigma_mode back to "constant" so the radio + chart stay in sync.
     if not getattr(_app_ctx, "_HAS_RESQR", False):
@@ -80,8 +81,13 @@ def restore_from_url(hash_str):
     # non-bubble tabs (or when CTA is active in the snapshot), the
     # restore_builder helper returns None \u2014 fall back to the existing
     # callback path.
+    # _NON_BUBBLE_FAST_TABS = tabs whose chart callbacks have wired up the
+    # restore-paint-pending -> commit handshake (sets active-chart-committed
+    # on first success-path build, which closes the modal directly).
+    _NON_BUBBLE_FAST_TABS = {"heatmap", "dca", "retire", "supercharge", "leverage"}
     _fig_out = no_update
     _committed_out = no_update
+    _paint_pending_out = no_update
     active_tab = state.get("main-tabs:active_tab", "bubble")
     if active_tab == "bubble":
         _t1 = _time.perf_counter()
@@ -97,7 +103,10 @@ def restore_from_url(hash_str):
             _committed_out = hash_str
             print(f"[trace] restore-direct-build BUILT "
                   f"{(_time.perf_counter() - _t1) * 1000:.1f}ms", flush=True)
-    return state, hash_str, True, _fig_out, _committed_out
+    elif active_tab in _NON_BUBBLE_FAST_TABS:
+        _paint_pending_out = True
+    return (state, hash_str, True, _fig_out, _committed_out,
+            _paint_pending_out)
 
 
 # Control partition. See spec 2026-04-24-drop-all-tabs-snapshot-design.md.
@@ -874,6 +883,8 @@ _app_ctx.app.clientside_callback(
             window.__qsClearListenerInstalled = false;
             window.dash_clientside.set_props(
                 'active-chart-committed', { data: null });
+            window.dash_clientside.set_props(
+                'restore-paint-pending', { data: null });
             if (window.__qsTrace) window.__qsTrace(
                 'restore-gate cleared (' + ev.type + ')');
         }

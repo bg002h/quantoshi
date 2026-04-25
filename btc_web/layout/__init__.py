@@ -297,6 +297,12 @@ def _build_layout(initial_tab="bubble"):
     # rebuilds when CTA's tick bump re-fires the callback post-restore.
     # See memory/restore_callback_architecture.md.
     dcc.Store(id="active-chart-committed", storage_type="memory", data=None),
+    # restore-paint-pending — one-shot flag set by restore_from_url for
+    # non-bubble shares. The first chart-callback success-path fire on the
+    # active tab writes active-chart-committed=loaded_hash and clears this
+    # flag back to False, closing the restore-progress modal directly.
+    # See section 7 "Restore performance architecture" in docs/architecture.md.
+    dcc.Store(id="restore-paint-pending", storage_type="memory", data=None),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="model-percentiles-store", storage_type="memory", data=None),
     dcc.Store(id="ticker-model-idx", storage_type="memory", data=0),

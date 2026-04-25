@@ -314,3 +314,47 @@ class TestBuildSuperchargeFigureFromState:
         }
         fig = _build_supercharge_figure_from_state(state)
         assert fig is not None
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Phase 2 ship 4 (2026-04-25): _build_leverage_figure_from_state tests.
+# ════════════════════════════════════════════════════════════════════════════
+
+class TestBuildLeverageFigureFromState:
+    def test_lev_basic_returns_figure(self):
+        """Minimal state — returns a leverage figure."""
+        from restore_builder import _build_leverage_figure_from_state
+        state = {
+            "main-tabs:active_tab": "leverage",
+            "lev-price:value": 65000.0,
+            "lev-horizon:value": 4.0,
+            "lev-cagr:value": 20.0,
+        }
+        fig = _build_leverage_figure_from_state(state)
+        assert fig is not None
+        fig_dict = fig.to_dict() if hasattr(fig, "to_dict") else fig
+        assert "data" in fig_dict
+
+    def test_lev_custom_horizon_returns_figure(self):
+        """Custom horizon + CAGR — figure builds without error."""
+        from restore_builder import _build_leverage_figure_from_state
+        state = {
+            "main-tabs:active_tab": "leverage",
+            "lev-price:value": 100000.0,
+            "lev-horizon:value": 8.0,
+            "lev-cagr:value": 30.0,
+            "lev-floor-q-store:data": 0.05,
+        }
+        fig = _build_leverage_figure_from_state(state)
+        assert fig is not None
+
+    def test_lev_invalid_model_returns_none(self):
+        """Unknown model — return None, fall back to cascade."""
+        from restore_builder import _build_leverage_figure_from_state
+        state = {
+            "main-tabs:active_tab": "leverage",
+            "lev-model:value": "nonexistent_xyz",
+            "lev-price:value": 65000.0,
+        }
+        fig = _build_leverage_figure_from_state(state)
+        assert fig is None

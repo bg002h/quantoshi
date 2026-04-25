@@ -50,6 +50,7 @@ def _decode_snapshot_by_prefix(h):
     Output("restore-dca-fig",      "data", allow_duplicate=True),
     Output("restore-retire-fig",   "data", allow_duplicate=True),
     Output("restore-supercharge-fig","data", allow_duplicate=True),
+    Output("restore-leverage-fig", "data", allow_duplicate=True),
     Input("url", "hash"),
     prevent_initial_call='initial_duplicate',
 )
@@ -62,12 +63,12 @@ def restore_from_url(hash_str):
     import time as _time
     _t0 = _time.perf_counter()
     if not hash_str:
-        return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
     h = hash_str.lstrip("#")
     state, prefix, encoded = _decode_snapshot_by_prefix(h)
     if not state:
         logger.warning("Snapshot decode failed for hash: %s\u2026", hash_str[:20])
-        return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
     # Legacy-link coercion: if this deployment has no resqr bundles, drop
     # "resqr" sigma_mode back to "constant" so the radio + chart stay in sync.
     if not getattr(_app_ctx, "_HAS_RESQR", False):
@@ -88,6 +89,7 @@ def restore_from_url(hash_str):
     _dca_out = no_update
     _retire_out = no_update
     _sc_out = no_update
+    _lev_out = no_update
     active_tab = state.get("main-tabs:active_tab", "bubble")
     if active_tab == "bubble":
         _t1 = _time.perf_counter()
@@ -145,8 +147,22 @@ def restore_from_url(hash_str):
             _committed_out = hash_str
             print(f"[trace] restore-sc-build BUILT "
                   f"{(_time.perf_counter() - _t1) * 1000:.1f}ms", flush=True)
+    elif active_tab == "leverage":
+        _t1 = _time.perf_counter()
+        try:
+            from restore_builder import _build_leverage_figure_from_state
+            fig = _build_leverage_figure_from_state(state)
+        except Exception as e:
+            logger.warning("restore_builder (leverage) failed: %s; "
+                           "falling back to callback path", e)
+            fig = None
+        if fig is not None:
+            _lev_out = fig
+            _committed_out = hash_str
+            print(f"[trace] restore-lev-build BUILT "
+                  f"{(_time.perf_counter() - _t1) * 1000:.1f}ms", flush=True)
     return (state, hash_str, True, _fig_out, _committed_out,
-            _dca_out, _retire_out, _sc_out)
+            _dca_out, _retire_out, _sc_out, _lev_out)
 
 
 # Control partition. See spec 2026-04-24-drop-all-tabs-snapshot-design.md.
@@ -1006,6 +1022,33 @@ _app_ctx.app.clientside_callback(
     Output("supercharge-build-count", "data", allow_duplicate=True),
     Input("supercharge-graph", "figure"),
     State("supercharge-build-count", "data"),
+    prevent_initial_call=True,
+)
+
+
+# ── Leverage figure relay via set_props (Phase 2 ship 4, 2026-04-25) ──────
+# lev-graph is inside leverage-lazy on /1/2/3/4/5/6 initial loads. NOTE:
+# update_leverage has 3 Outputs (figure, readout, table) but only the
+# figure is delivered via this relay — readout + table come from the
+# cascade after apply_tab_leverage writes lev-* widget values. No
+# post-restore guard on update_leverage (would block readout+table
+# updates; figure-rebuild waste is acceptable).
+_app_ctx.app.clientside_callback(
+    """
+    function(fig) {
+        var NU = window.dash_clientside.no_update;
+        if (fig == null) return NU;
+        try {
+            window.dash_clientside.set_props('lev-graph', {figure: fig});
+        } catch (e) {
+            console.warn('restore-leverage-fig: set_props failed', e);
+        }
+        if (window.__qsTrace) window.__qsTrace('restore-leverage-fig delivered');
+        return null;
+    }
+    """,
+    Output("restore-leverage-fig", "data", allow_duplicate=True),
+    Input("restore-leverage-fig", "data"),
     prevent_initial_call=True,
 )
 

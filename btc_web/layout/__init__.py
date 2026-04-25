@@ -322,6 +322,11 @@ def _build_layout(initial_tab="bubble"):
     # Phase 2 ship 3 (2026-04-25): /5 supercharge — same per-tab pattern.
     dcc.Store(id="restore-supercharge-fig", storage_type="memory", data=None),
     dcc.Store(id="supercharge-build-count", storage_type="memory", data=0),
+    # Phase 2 ship 4 (2026-04-25): /7 leverage — only the figure goes via
+    # relay; readout + table come from the cascade (3-Output callback,
+    # post-restore guard would block readout/table updates so we skip it
+    # for leverage).
+    dcc.Store(id="restore-leverage-fig", storage_type="memory", data=None),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="model-percentiles-store", storage_type="memory", data=None),
     dcc.Store(id="ticker-model-idx", storage_type="memory", data=0),

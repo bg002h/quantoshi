@@ -717,3 +717,68 @@ def _build_supercharge_figure_from_state(state: dict):
         logging.getLogger(__name__).warning(
             "_build_supercharge_figure_from_state failed: %s; caller will fall back", e)
         return None
+
+
+def _build_leverage_figure_from_state(state: dict):
+    """Build a leverage-tab Plotly figure from a snapshot state dict.
+
+    Mirrors `update_leverage` (callbacks/leverage_cb.py:112) figure-build
+    path. Leverage has no MC, no SC — just a calculator. 3 Outputs total
+    (figure, readout, table), but this builder only computes the figure;
+    readout + table come from the cascade after apply_tab_leverage writes
+    the lev-* widget values.
+
+    Returns:
+        - go.Figure on the standard path
+        - None on builder errors (caller falls back to existing path)
+    """
+    import datetime as _dt
+    from figures.leverage import build_leverage_figure, floor_price, _parse_date
+
+    date_val = _v(state, "lev-date", "date", default=None)
+    price_val = _v(state, "lev-price", default=65000.0)
+    model = _v(state, "lev-model", default="bub")
+    q_val = _v(state, "lev-floor-q-store", "data", default=0.01)
+    rb_val = _v(state, "lev-rb", default=13.0)
+    rl_val = _v(state, "lev-rl", default=4.5)
+    H_val = _v(state, "lev-horizon", default=4.0)
+    c_val = _v(state, "lev-cagr", default=20.0)
+    toggles = _v(state, "lev-toggles", default=[])
+
+    try:
+        price = float(price_val) if price_val is not None else 65000.0
+        rb    = float(rb_val)    if rb_val    is not None else 13.0
+        rl    = float(rl_val)    if rl_val    is not None else 4.5
+        H_yr  = float(H_val)     if H_val     is not None else 4.0
+        c_pct = float(c_val)     if c_val     is not None else 20.0
+        model = str(model or "bub")
+        q     = float(q_val) if q_val is not None else 0.01
+
+        # Guards (spec §5.5)
+        H_yr  = max(H_yr, 0.01)
+        price = max(price, 1.0)
+
+        buy_date = _parse_date(date_val) if date_val else _dt.date.today()
+
+        # Validate floor_price availability before building figure
+        # (matches update_leverage's defensive try/except at line 144).
+        sell_date = buy_date + _dt.timedelta(days=int(round(H_yr * 365.25)))
+        try:
+            floor_price(model, q, sell_date)
+        except (KeyError, AttributeError, ValueError):
+            return None
+
+        p = {
+            "lev_price": price, "lev_date": buy_date,
+            "lev_model": model, "lev_floor_q": q,
+            "lev_rb": rb, "lev_rl": rl,
+            "lev_horizon": H_yr, "lev_cagr": c_pct,
+            "lev_toggles": tuple(toggles or ()),
+            "palette": "default",
+        }
+        return build_leverage_figure(p)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(
+            "_build_leverage_figure_from_state failed: %s; caller will fall back", e)
+        return None

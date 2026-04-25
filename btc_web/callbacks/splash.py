@@ -175,7 +175,7 @@ _app_ctx.app.clientside_callback(
         /* Skip splash when loading a share link — let snapshot restore complete
            uninterrupted. Dismissing the modal during restore causes race conditions. */
         var _h = window.location.hash || "";
-        var hasShareHash = _h.indexOf("q3:") !== -1 || _h.indexOf("q2:") !== -1 || _h.indexOf("q1:") !== -1;
+        var hasShareHash = _h.indexOf("q4:") !== -1 || _h.indexOf("q3:") !== -1 || _h.indexOf("q2:") !== -1 || _h.indexOf("q1:") !== -1;
         /* Skip splash on deep links — user navigated to a specific tab/item */
         var _p = window.location.pathname.replace(/\/+$/, "") || "/";
         var isDeepLink = _p !== "/" && _p !== "/1";

@@ -4,6 +4,7 @@ import json
 import gzip
 import base64
 import logging
+import os
 
 import _app_ctx
 
@@ -365,7 +366,8 @@ _SNAPSHOT_CONTROLS = [
     ("lev-toggles",       "value"),
 ]
 
-_SNAP_PREFIX    = "q3:"   # current format (v3: shared settings consolidation)
+_SNAP_PREFIX_V4 = "q4:"   # current format (v4: sparse diff against fingerprint)
+_SNAP_PREFIX    = "q3:"   # prior format (positional array w/ checklist bitmask)
 _SNAP_PREFIX_V2 = "q2:"   # prior format (positional array, different control list)
 _SNAP_PREFIX_V1 = "q1:"   # legacy format (dict-based)
 
@@ -612,5 +614,155 @@ def _decode_snapshot_v1(encoded):
         if raw is None:
             return None
         return json.loads(raw)
+    except Exception:
+        return None
+
+
+# ── q4: defaults registry ────────────────────────────────────────────────────
+_REGISTRY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              "snapshot_defaults_registry.json")
+_registry_cache: dict | None = None
+
+
+def _load_registry():
+    """Cache the registry on first read. Returns {fp -> defaults_dict}.
+    Resilient to a missing or malformed file - returns {} so q4: decode
+    falls through to current SNAPSHOT_DEFAULTS."""
+    global _registry_cache
+    if _registry_cache is not None:
+        return _registry_cache
+    try:
+        with open(_REGISTRY_PATH) as f:
+            entries = json.load(f)
+        _registry_cache = {e["fp"]: e["defaults"] for e in entries}
+    except Exception:
+        log.warning("q4: registry %s unavailable; falling back to current "
+                    "SNAPSHOT_DEFAULTS for all decodes", _REGISTRY_PATH)
+        _registry_cache = {}
+    return _registry_cache
+
+
+def _registry_lookup(fp):
+    """Return historical defaults for fp, or None if fp not in registry."""
+    return _load_registry().get(fp)
+
+
+def _mc_null_out_diffs_v4(diffs):
+    """Drop MC control diffs for tabs whose EFFECTIVE mc-enable state
+    is disabled. Effective state = diff value if present (decoded from
+    possible bitmask), else SNAPSHOT_DEFAULTS. Null-out fires only when
+    effectively disabled - avoids clobbering Retire's user-changed
+    downstream fields when ret-mc-enable defaults to ['yes']."""
+    from snapshot_defaults import SNAPSHOT_DEFAULTS
+    _mc_prefixes = ("dca-mc-", "ret-mc-", "hm-mc-", "sc-mc-", "cp-mc-")
+    for pfx in _mc_prefixes:
+        enable_cid = f"{pfx}enable"
+        enable_idx = next(
+            (i for i, (cid, _) in enumerate(_SNAPSHOT_CONTROLS)
+             if cid == enable_cid),
+            None,
+        )
+        if enable_idx is None:
+            continue
+        if str(enable_idx) in diffs:
+            raw = diffs[str(enable_idx)]
+            if enable_cid in _CHECKLIST_OPTIONS and isinstance(raw, int):
+                eff = _mask_to_list(raw, _CHECKLIST_OPTIONS[enable_cid])
+            else:
+                eff = raw
+        else:
+            eff = SNAPSHOT_DEFAULTS.get(f"{enable_cid}:value")
+        is_disabled = eff in (None, [], 0)
+        if not is_disabled:
+            continue
+        for i, (cid, _) in enumerate(_SNAPSHOT_CONTROLS):
+            if cid.startswith(pfx) and cid != f"{pfx}model-src":
+                diffs.pop(str(i), None)
+
+
+def _encode_snapshot_v4(state_dict, tab_filter=None):
+    """v4: sparse diff against fingerprinted defaults.
+
+    Returns "<fp>:<blob>". Caller prepends only "q4:" (NOT "q4:<fp>:" -
+    the fp portion is already in the returned string).
+
+    ALWAYS_ENCODE controls (dynamic-default fields) are emitted even
+    when value matches the static placeholder, so link author's value
+    survives day boundaries.
+    """
+    from snapshot_defaults import (SNAPSHOT_DEFAULTS, ALWAYS_ENCODE,
+                                   _compute_snapshot_defaults_fingerprint)
+    fp = _compute_snapshot_defaults_fingerprint()
+    diffs = {}
+    for i, (cid, prop) in enumerate(_SNAPSHOT_CONTROLS):
+        if tab_filter is not None and cid != "main-tabs" and cid not in tab_filter:
+            continue
+        key = f"{cid}:{prop}"
+        val = state_dict.get(key)
+        default = SNAPSHOT_DEFAULTS.get(key)
+        force = key in ALWAYS_ENCODE
+        if not force:
+            if val is None:
+                continue
+            if val == default:
+                continue
+        if val is not None and cid in _CHECKLIST_OPTIONS:
+            val = _list_to_mask(val, _CHECKLIST_OPTIONS[cid])
+        diffs[str(i)] = val
+    _mc_null_out_diffs_v4(diffs)
+    lots = state_dict.get("_lots")
+    payload = [fp, diffs, lots]
+    j = json.dumps(payload, separators=(',', ':'))
+    blob = base64.urlsafe_b64encode(gzip.compress(j.encode())).decode()
+    return f"{fp}:{blob}"
+
+
+def _decode_snapshot_v4(encoded_with_fp_prefix):
+    """Decode v4 snapshot. Input form: '<8-char-fp>:<base64-blob>'
+    (the 'q4:' prefix is stripped by the dispatcher).
+
+    Returns state dict or None on failure / fingerprint tampering.
+    Registry-evicted fingerprints fall back to current SNAPSHOT_DEFAULTS
+    with a warning logged."""
+    try:
+        if ":" not in encoded_with_fp_prefix:
+            return None
+        fp_url, blob_b64 = encoded_with_fp_prefix.split(":", 1)
+        if len(fp_url) != 8:
+            return None
+        raw = _safe_decompress(blob_b64)
+        if raw is None:
+            return None
+        payload = json.loads(raw)
+        if not (isinstance(payload, list) and len(payload) == 3):
+            return None
+        fp_payload, diffs, lots = payload
+        if fp_url != fp_payload:
+            return None
+        if not isinstance(diffs, dict):
+            return None
+        from snapshot_defaults import SNAPSHOT_DEFAULTS
+        historical = _registry_lookup(fp_payload)
+        if historical is None:
+            log.warning("q4: fingerprint %s not in registry; falling back "
+                        "to current SNAPSHOT_DEFAULTS (some fields may "
+                        "restore differently)", fp_payload)
+            historical = SNAPSHOT_DEFAULTS
+        state = {}
+        for i, (cid, prop) in enumerate(_SNAPSHOT_CONTROLS):
+            key = f"{cid}:{prop}"
+            si = str(i)
+            if si in diffs:
+                v = diffs[si]
+                if cid in _CHECKLIST_OPTIONS and isinstance(v, int):
+                    v = _mask_to_list(v, _CHECKLIST_OPTIONS[cid])
+                state[key] = v
+            else:
+                v = historical.get(key)
+                if v is not None:
+                    state[key] = v
+        if lots:
+            state["_lots"] = lots
+        return state
     except Exception:
         return None

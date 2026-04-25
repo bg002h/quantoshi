@@ -14,7 +14,10 @@ from colors import (FALLBACK_MODEL_GRAY, HM_PRESET_PALETTES, PALETTE_DEFAULT_HM_
                     UI_FONT_SM, UI_FONT_MD)
 from snapshot import (_SNAPSHOT_CONTROLS, _CHECKLIST_OPTIONS,
                       _SNAP_PREFIX, _SNAP_PREFIX_V1, _SNAP_PREFIX_V2,
-                      _encode_snapshot, _decode_snapshot, _decode_snapshot_v1,
+                      _SNAP_PREFIX_V4,
+                      _encode_snapshot, _encode_snapshot_v4,
+                      _decode_snapshot, _decode_snapshot_v1,
+                      _decode_snapshot_v4,
                       _list_to_mask, _mask_to_list)
 from callbacks.routing import _TAB_CONTROLS, _TAB_TO_PATH
 
@@ -26,6 +29,9 @@ def _decode_snapshot_by_prefix(h):
 
     Returns (state_dict, prefix, encoded_payload) or (None, None, None).
     """
+    if h.startswith(_SNAP_PREFIX_V4):
+        rest = h[len(_SNAP_PREFIX_V4):]
+        return _decode_snapshot_v4(rest), _SNAP_PREFIX_V4, rest
     if h.startswith(_SNAP_PREFIX):
         return _decode_snapshot(h[len(_SNAP_PREFIX):]), _SNAP_PREFIX, h[len(_SNAP_PREFIX):]
     if h.startswith(_SNAP_PREFIX_V2):
@@ -198,9 +204,9 @@ def manage_snapshot(n_btn, loaded_hash, include_lots, lots_data, *rest):
         # Share links always encode active-tab + globals only (post
         # 2026-04-24 refactor; see spec drop-all-tabs-snapshot-design.md).
         tab_filter = _TAB_CONTROLS.get(active_tab)
-        encoded    = _encode_snapshot(state, tab_filter=tab_filter)
+        encoded    = _encode_snapshot_v4(state, tab_filter=tab_filter)
         base_url   = flask_request.host_url.rstrip("/")
-        full_url   = f"{base_url}{tab_path}#{_SNAP_PREFIX}{encoded}"
+        full_url   = f"{base_url}{tab_path}#{_SNAP_PREFIX_V4}{encoded}"
         _add_snapshot_entry(history, existing, encoded, full_url,
                             bool(include_lots and lots_data))
         return full_url, history
@@ -638,7 +644,8 @@ _app_ctx.app.clientside_callback(
         var h = (hash || window.location.hash || '').replace(/^#/, '');
         var isShare = h.indexOf('q1:') === 0 ||
                       h.indexOf('q2:') === 0 ||
-                      h.indexOf('q3:') === 0;
+                      h.indexOf('q3:') === 0 ||
+                      h.indexOf('q4:') === 0;
         if (!isShare) return window.dash_clientside.no_update;
 
         if (window.__restoreOpenTimer) clearTimeout(window.__restoreOpenTimer);

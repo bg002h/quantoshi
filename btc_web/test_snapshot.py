@@ -766,3 +766,93 @@ class TestSnapshotDefaultsRegistry:
         with open(here / "snapshot_defaults_registry.json") as f:
             registry = json.load(f)
         assert len(registry) <= 20, f"registry has {len(registry)} entries (cap=20)"
+
+
+class TestSnapshotV4:
+    def test_q4_round_trip_with_diffs(self):
+        from snapshot import _encode_snapshot_v4, _decode_snapshot_v4
+        state = {
+            "main-tabs:active_tab": "bubble",
+            "bub-xscale:value":     "lin",
+            "bub-n-future:value":   5,
+            "bub-toggles:value":    ["shade", "show_data"],
+        }
+        encoded = _encode_snapshot_v4(state)
+        decoded = _decode_snapshot_v4(encoded)
+        for k, v in state.items():
+            assert decoded.get(k) == v, f"{k}: {decoded.get(k)!r} != {v!r}"
+
+    def test_q4_link_is_shorter_than_q3_for_realistic_share(self):
+        """In production the browser sends VALUES for every control
+        (state has all 310 keys populated). q3 then encodes 310 real
+        values; q4 encodes only diffs. Test simulates that."""
+        from snapshot import (_encode_snapshot, _encode_snapshot_v4,
+                              _SNAPSHOT_CONTROLS)
+        from snapshot_defaults import SNAPSHOT_DEFAULTS
+        state = {f"{c}:{p}": SNAPSHOT_DEFAULTS.get(f"{c}:{p}")
+                 for c, p in _SNAPSHOT_CONTROLS}
+        state["main-tabs:active_tab"] = "bubble"
+        state["bub-xscale:value"] = "lin"
+        state["bub-n-future:value"] = 5
+        q3 = _encode_snapshot(state)
+        q4 = _encode_snapshot_v4(state)
+        assert len(q4) < len(q3) * 0.5, (
+            f"q4 ({len(q4)}) not < 50% of q3 ({len(q3)})")
+
+    def test_q4_fingerprint_tamper_returns_none(self):
+        from snapshot import _encode_snapshot_v4, _decode_snapshot_v4
+        encoded = _encode_snapshot_v4({"bub-xscale:value": "lin"})
+        bad = "deadbeef:" + encoded.split(":", 1)[1]
+        assert _decode_snapshot_v4(bad) is None
+
+    def test_q4_unknown_fingerprint_falls_back_to_current(self):
+        import snapshot
+        from snapshot import _encode_snapshot_v4, _decode_snapshot_v4
+        encoded = _encode_snapshot_v4({"bub-xscale:value": "lin"})
+        saved_cache = snapshot._registry_cache
+        snapshot._registry_cache = {}
+        try:
+            decoded = _decode_snapshot_v4(encoded)
+            assert decoded is not None
+            assert decoded.get("bub-xscale:value") == "lin"
+        finally:
+            snapshot._registry_cache = saved_cache
+
+    def test_q4_dispatcher_picks_q4_over_q3(self):
+        from callbacks.snapshot_cb import _decode_snapshot_by_prefix
+        from snapshot import _SNAP_PREFIX_V4, _encode_snapshot_v4
+        encoded = _encode_snapshot_v4({"bub-xscale:value": "lin"})
+        h = f"{_SNAP_PREFIX_V4}{encoded}"
+        state, prefix, _ = _decode_snapshot_by_prefix(h)
+        assert prefix == _SNAP_PREFIX_V4
+        assert state.get("bub-xscale:value") == "lin"
+
+    def test_q4_legacy_q3_still_decodes(self):
+        from callbacks.snapshot_cb import _decode_snapshot_by_prefix
+        from snapshot import _encode_snapshot, _SNAP_PREFIX
+        encoded = _encode_snapshot({"bub-xscale:value": "lin"})
+        h = f"{_SNAP_PREFIX}{encoded}"
+        state, prefix, _ = _decode_snapshot_by_prefix(h)
+        assert prefix == _SNAP_PREFIX
+        assert state.get("bub-xscale:value") == "lin"
+
+    def test_q4_mc_null_out_does_not_clobber_retire_changed_sims(self):
+        from snapshot import _encode_snapshot_v4, _decode_snapshot_v4
+        state = {"ret-mc-enable:value": ["yes"], "ret-mc-sims:value": 999}
+        encoded = _encode_snapshot_v4(state)
+        decoded = _decode_snapshot_v4(encoded)
+        assert decoded.get("ret-mc-sims:value") == 999, (
+            f"Expected sims=999, got {decoded.get('ret-mc-sims:value')!r}")
+
+    def test_q4_mc_null_out_drops_dca_mc_fields_when_default_disabled(self):
+        from snapshot import _encode_snapshot_v4, _SNAPSHOT_CONTROLS
+        import json, base64, gzip
+        state = {"dca-amount:value": 200}
+        encoded = _encode_snapshot_v4(state)
+        _fp, blob = encoded.split(":", 1)
+        payload = json.loads(gzip.decompress(base64.urlsafe_b64decode(blob)))
+        diffs = payload[1]
+        for i, (cid, _) in enumerate(_SNAPSHOT_CONTROLS):
+            if cid.startswith("dca-mc-") and cid != "dca-mc-model-src":
+                assert str(i) not in diffs, (
+                    f"{cid} should be dropped by MC null-out")

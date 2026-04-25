@@ -319,6 +319,9 @@ def _build_layout(initial_tab="bubble"):
     # loads.
     dcc.Store(id="restore-retire-fig", storage_type="memory", data=None),
     dcc.Store(id="retire-build-count", storage_type="memory", data=0),
+    # Phase 2 ship 3 (2026-04-25): /5 supercharge — same per-tab pattern.
+    dcc.Store(id="restore-supercharge-fig", storage_type="memory", data=None),
+    dcc.Store(id="supercharge-build-count", storage_type="memory", data=0),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="model-percentiles-store", storage_type="memory", data=None),
     dcc.Store(id="ticker-model-idx", storage_type="memory", data=0),

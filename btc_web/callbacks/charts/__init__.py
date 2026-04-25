@@ -1359,6 +1359,8 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     State("viewport-width",    "data"),
     State("user-model-store",  "data"),
     State("snapshot-pending",  "data"),
+    State("active-chart-committed", "data"),
+    State("loaded-hash-store",  "data"),
     prevent_initial_call=True,
 )
 def update_supercharge(_first_render, stack, use_lots, start_yr,
@@ -1381,9 +1383,31 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
                        mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                        price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
                        qs_mode=None, viewport_width=None, user_model_store=None,
-                       snapshot_pending=False):
+                       snapshot_pending=False,
+                       active_chart_committed=None, loaded_hash=None):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
+        return (dash.no_update,) * 8
+    # Phase 2 ship 3 (2026-04-25) post-restore short-circuit.
+    # Tuple-size invariant: (no_update,) * 8 for update_supercharge's 8 Outputs
+    # (figure, mc-results, mc-status, mc-rendered-key, mc-save-modal,
+    # mc-save-tab, mc-unblocked, sc-start-yr). sc-mc-loaded excluded so
+    # MC async completion can rebuild after the restore window.
+    _POST_RESTORE_TRIGGERS_SC = {
+        "supercharge-first-render", "sc-stack", "sc-use-lots", "sc-start-yr",
+        "sc-d0", "sc-d1", "sc-d2", "sc-d3", "sc-d4",
+        "sc-freq", "sc-infl", "sc-qs", "sc-qs-adv",
+        "lppl-n-freqs", "lppl-weighted", "lppl-no-13",
+        "hybppl-commit-trigger", "eppl-commit-trigger",
+        "sc-mode", "sc-wd", "sc-end-yr", "sc-target-yr", "sc-disp",
+        "sc-toggles", "sc-legend-pos", "sc-chart-layout", "sc-display-q",
+        "sc-mc-enable", "sc-mc-bins", "sc-mc-regime", "sc-mc-sims",
+        "sc-mc-years", "sc-mc-window", "sc-mc-start-yr", "sc-mc-entry-q",
+        "sc-model-show", "sc-mc-model-src",
+    }
+    _trg = ctx.triggered_id
+    if active_chart_committed and active_chart_committed == loaded_hash \
+            and _trg in _POST_RESTORE_TRIGGERS_SC:
         return (dash.no_update,) * 8
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
     toggles = toggles or []

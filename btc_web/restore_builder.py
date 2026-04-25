@@ -562,3 +562,158 @@ def _build_retire_figure_from_state(state: dict):
         logging.getLogger(__name__).warning(
             "_build_retire_figure_from_state failed: %s; caller will fall back", e)
         return None
+
+
+def _build_supercharge_figure_from_state(state: dict):
+    """Build a supercharge-tab Plotly figure from a snapshot state dict.
+
+    Mirrors `update_supercharge` (callbacks/charts/__init__.py:1364) param
+    construction. Supercharge has 5 delays (sc-d0..sc-d4), sc-mode (a/b),
+    sc-chart-layout (bands/shading toggle), sc-display-q, sc-target-yr.
+
+    Returns:
+        - go.Figure on the standard fast path
+        - None when MC is enabled (sc-mc-enable=["yes"]) — fall back to cascade.
+    """
+    mc_enable = _v(state, "sc-mc-enable", default=[]) or []
+    if "yes" in mc_enable:
+        return None
+
+    # ── Supercharge widget values ──
+    stack    = _v(state, "sc-stack",    default=1.0)
+    use_lots = _v(state, "sc-use-lots", default=[])
+    start_yr = _v(state, "sc-start-yr", default=2033)
+    d0       = _v(state, "sc-d0",       default=0)
+    d1       = _v(state, "sc-d1",       default=0)
+    d2       = _v(state, "sc-d2",       default=0)
+    d3       = _v(state, "sc-d3",       default=1)
+    d4       = _v(state, "sc-d4",       default=2)
+    freq     = _v(state, "sc-freq",     default="Monthly")
+    infl     = _v(state, "sc-infl",     default=4.0)
+    sel_qs   = _v(state, "sc-qs",       default=["outer"])
+    adv_qs   = _v(state, "sc-qs-adv",   default=[])
+    qs_mode  = _v(state, "sc-qs-mode",  default=[])
+    mode     = _v(state, "sc-mode",     default="a")
+    wd       = _v(state, "sc-wd",       default=5000)
+    end_yr   = _v(state, "sc-end-yr",   default=2075)
+    target_yr = _v(state, "sc-target-yr", default=2050)
+    disp     = _v(state, "sc-disp",     default="usd")
+    toggles  = _v(state, "sc-toggles",  default=[])
+    legend_pos = _v(state, "sc-legend-pos", default="outside")
+    chart_layout = _v(state, "sc-chart-layout", default=["shade"])
+    display_q = _v(state, "sc-display-q", default=0.10)
+    model_show = _v(state, "sc-model-show", default=[])
+
+    # ── Lots resolution ──
+    _lots = state.get("_lots") or []
+    use_lots_bool = bool("yes" in (use_lots or []))
+
+    # ── Shared model-config States ──
+    lppl_n_freqs  = _v(state, "lppl-n-freqs",  default=[])
+    lppl_weighted = _v(state, "lppl-weighted", default=[])
+    lppl_no_13    = _v(state, "lppl-no-13",    default=[])
+
+    hyb_a_nlog  = _v(state, "hybppl-cfg-a-nlog",  default=1)
+    hyb_a_ncal  = _v(state, "hybppl-cfg-a-ncal",  default=1)
+    hyb_a_log1d = _v(state, "hybppl-cfg-a-log1d", default="d")
+    hyb_a_log2d = _v(state, "hybppl-cfg-a-log2d", default="d")
+    hyb_a_cal1d = _v(state, "hybppl-cfg-a-cal1d", default="u")
+    hyb_a_cal2d = _v(state, "hybppl-cfg-a-cal2d", default="u")
+
+    hyb_b_enabled = _v(state, "hybppl-cfg-b-enabled", default=[])
+    hyb_b_nlog  = _v(state, "hybppl-cfg-b-nlog",  default=0)
+    hyb_b_ncal  = _v(state, "hybppl-cfg-b-ncal",  default=0)
+    hyb_b_log1d = _v(state, "hybppl-cfg-b-log1d", default="d")
+    hyb_b_log2d = _v(state, "hybppl-cfg-b-log2d", default="d")
+    hyb_b_cal1d = _v(state, "hybppl-cfg-b-cal1d", default="u")
+    hyb_b_cal2d = _v(state, "hybppl-cfg-b-cal2d", default="u")
+
+    ep_a_nlog  = _v(state, "eppl-cfg-a-nlog",  default=1)
+    ep_a_ncal  = _v(state, "eppl-cfg-a-ncal",  default=1)
+    ep_a_log1d = _v(state, "eppl-cfg-a-log1d", default="d")
+    ep_a_log2d = _v(state, "eppl-cfg-a-log2d", default="d")
+    ep_a_cal1d = _v(state, "eppl-cfg-a-cal1d", default="u")
+    ep_a_cal2d = _v(state, "eppl-cfg-a-cal2d", default="u")
+
+    ep_b_enabled = _v(state, "eppl-cfg-b-enabled", default=[])
+    ep_b_nlog  = _v(state, "eppl-cfg-b-nlog",  default=0)
+    ep_b_ncal  = _v(state, "eppl-cfg-b-ncal",  default=0)
+    ep_b_log1d = _v(state, "eppl-cfg-b-log1d", default="d")
+    ep_b_log2d = _v(state, "eppl-cfg-b-log2d", default="d")
+    ep_b_cal1d = _v(state, "eppl-cfg-b-cal1d", default="u")
+    ep_b_cal2d = _v(state, "eppl-cfg-b-cal2d", default="u")
+
+    palette_key = _v(state, "palette-store", "data", default="default")
+    user_model_store = state.get("user-model-store:data")
+
+    # ── Master-key resolution ──
+    from callbacks.charts._resolvers import (
+        _resolve_lppl_master, _resolve_hybppl_master, _resolve_eppl_master,
+    )
+    from callbacks.coerce import _ci, _cf
+    model_show = list(model_show or [])
+    model_show = _resolve_lppl_master(
+        model_show, lppl_n_freqs, lppl_weighted, lppl_no_13)
+    model_show = _resolve_hybppl_master(
+        model_show,
+        hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d, hyb_a_cal1d, hyb_a_cal2d,
+        hyb_b_enabled, hyb_b_nlog, hyb_b_ncal, hyb_b_log1d, hyb_b_log2d,
+        hyb_b_cal1d, hyb_b_cal2d)
+    model_show = _resolve_eppl_master(
+        model_show,
+        ep_a_nlog, ep_a_ncal, ep_a_log1d, ep_a_log2d, ep_a_cal1d, ep_a_cal2d,
+        ep_b_enabled, ep_b_nlog, ep_b_ncal, ep_b_log1d, ep_b_log2d,
+        ep_b_cal1d, ep_b_cal2d)
+
+    # ── Effective quantiles + chart_layout normalization (mirrors update_supercharge) ──
+    delays = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
+    toggles = toggles or []
+    _advanced = "advanced" in (qs_mode or [])
+    _effective_qs = (adv_qs or []) if _advanced else (
+        _bands_to_qs(sel_qs) if sel_qs and isinstance(sel_qs[0], str) else (sel_qs or []))
+    _cl = (2 if "shade" in (chart_layout or []) else 0) \
+          if isinstance(chart_layout, list) \
+          else (int(chart_layout) if chart_layout is not None else 2)
+
+    # ── Build figure ──
+    from utils import _get_supercharge_fig
+    from tab_defaults import SUPERCHARGE
+    try:
+        params = dict(
+            mode         = mode or "a",
+            start_stack  = _cf(stack, SUPERCHARGE["start_stack"]),
+            start_yr     = _ci(start_yr, SUPERCHARGE["start_yr"]),
+            delays       = delays if delays else [0, 1, 2, 4, 8],
+            freq         = freq or "Monthly",
+            inflation    = _cf(infl, SUPERCHARGE["inflation"]),
+            selected_qs  = _effective_qs,
+            chart_layout = _cl,
+            display_q    = _cf(display_q, SUPERCHARGE["display_q"]),
+            wd_amount    = _ci(wd, SUPERCHARGE["wd_amount"]),
+            end_yr       = _ci(end_yr, SUPERCHARGE["end_yr"]),
+            disp_mode    = disp or "usd",
+            log_y        = "log_y"      in toggles,
+            annotate     = "annotate"   in toggles,
+            discrete     = "discrete"   in toggles,
+            show_legend  = "show_legend" in toggles,
+            legend_pos   = legend_pos or "outside",
+            minor_grid   = "minor_grid" in toggles,
+            target_yr    = _ci(target_yr, SUPERCHARGE["target_yr"]),
+            lots         = _lots,
+            use_lots     = use_lots_bool,
+            show_qr      = "bub" in model_show,
+            show_mc      = False,
+            active_models = [k for k in model_show if k != "mc"],
+            palette      = palette_key or "default",
+            is_mobile    = False,  # builder doesn't have viewport-width
+            user_model   = user_model_store,
+            mc_enabled   = False,
+        )
+        result = _get_supercharge_fig(params)
+        fig = result[0] if isinstance(result, tuple) else result
+        return fig
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(
+            "_build_supercharge_figure_from_state failed: %s; caller will fall back", e)
+        return None

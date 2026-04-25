@@ -248,3 +248,69 @@ class TestBuildRetireFigureFromState:
         }
         fig = _build_retire_figure_from_state(state)
         assert fig is not None
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Phase 2 ship 3 (2026-04-25): _build_supercharge_figure_from_state tests.
+# ════════════════════════════════════════════════════════════════════════════
+
+class TestBuildSuperchargeFigureFromState:
+    def test_sc_basic_returns_figure(self):
+        """Minimal state with bub model — returns a figure with traces."""
+        from restore_builder import _build_supercharge_figure_from_state
+        state = {
+            "main-tabs:active_tab": "supercharge",
+            "sc-stack:value": 1.0,
+            "sc-wd:value": 5000,
+            "sc-start-yr:value": 2033,
+            "sc-end-yr:value": 2075,
+            "sc-target-yr:value": 2050,
+            "sc-mode:value": "a",
+            "sc-model-show:value": ["bub"],
+        }
+        fig = _build_supercharge_figure_from_state(state)
+        assert fig is not None
+        fig_dict = fig.to_dict() if hasattr(fig, "to_dict") else fig
+        assert len(fig_dict.get("data", [])) > 0, "expected ≥1 trace"
+
+    def test_sc_mc_enabled_returns_none(self):
+        """sc-mc-enable=['yes'] — return None, fall back to cascade."""
+        from restore_builder import _build_supercharge_figure_from_state
+        state = {
+            "main-tabs:active_tab": "supercharge",
+            "sc-mc-enable:value": ["yes"],
+            "sc-wd:value": 5000,
+        }
+        fig = _build_supercharge_figure_from_state(state)
+        assert fig is None
+
+    def test_sc_mode_b_returns_figure(self):
+        """sc-mode='b' (target-yr-driven) — returns a figure."""
+        from restore_builder import _build_supercharge_figure_from_state
+        state = {
+            "main-tabs:active_tab": "supercharge",
+            "sc-mode:value": "b",
+            "sc-stack:value": 1.0,
+            "sc-target-yr:value": 2050,
+            "sc-start-yr:value": 2033,
+            "sc-end-yr:value": 2075,
+            "sc-model-show:value": ["bub"],
+        }
+        fig = _build_supercharge_figure_from_state(state)
+        assert fig is not None
+
+    def test_sc_with_lots_returns_figure(self):
+        """Snapshot with _lots + use-lots=['yes'] — figure builds."""
+        from restore_builder import _build_supercharge_figure_from_state
+        state = {
+            "main-tabs:active_tab": "supercharge",
+            "sc-use-lots:value": ["yes"],
+            "sc-wd:value": 5000,
+            "sc-model-show:value": ["bub"],
+            "_lots": [
+                {"date": "2020-01-01", "btc": 0.5, "price": 7000.0,
+                 "pct_q": 0.5, "label": "test"},
+            ],
+        }
+        fig = _build_supercharge_figure_from_state(state)
+        assert fig is not None

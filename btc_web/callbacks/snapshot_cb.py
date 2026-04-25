@@ -49,6 +49,7 @@ def _decode_snapshot_by_prefix(h):
     Output("active-chart-committed","data",   allow_duplicate=True),
     Output("restore-dca-fig",      "data", allow_duplicate=True),
     Output("restore-retire-fig",   "data", allow_duplicate=True),
+    Output("restore-supercharge-fig","data", allow_duplicate=True),
     Input("url", "hash"),
     prevent_initial_call='initial_duplicate',
 )
@@ -61,12 +62,12 @@ def restore_from_url(hash_str):
     import time as _time
     _t0 = _time.perf_counter()
     if not hash_str:
-        return no_update, no_update, no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
     h = hash_str.lstrip("#")
     state, prefix, encoded = _decode_snapshot_by_prefix(h)
     if not state:
         logger.warning("Snapshot decode failed for hash: %s\u2026", hash_str[:20])
-        return no_update, no_update, no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
     # Legacy-link coercion: if this deployment has no resqr bundles, drop
     # "resqr" sigma_mode back to "constant" so the radio + chart stay in sync.
     if not getattr(_app_ctx, "_HAS_RESQR", False):
@@ -86,6 +87,7 @@ def restore_from_url(hash_str):
     _committed_out = no_update
     _dca_out = no_update
     _retire_out = no_update
+    _sc_out = no_update
     active_tab = state.get("main-tabs:active_tab", "bubble")
     if active_tab == "bubble":
         _t1 = _time.perf_counter()
@@ -129,7 +131,22 @@ def restore_from_url(hash_str):
             _committed_out = hash_str
             print(f"[trace] restore-retire-build BUILT "
                   f"{(_time.perf_counter() - _t1) * 1000:.1f}ms", flush=True)
-    return state, hash_str, True, _fig_out, _committed_out, _dca_out, _retire_out
+    elif active_tab == "supercharge":
+        _t1 = _time.perf_counter()
+        try:
+            from restore_builder import _build_supercharge_figure_from_state
+            fig = _build_supercharge_figure_from_state(state)
+        except Exception as e:
+            logger.warning("restore_builder (supercharge) failed: %s; "
+                           "falling back to callback path", e)
+            fig = None
+        if fig is not None:
+            _sc_out = fig
+            _committed_out = hash_str
+            print(f"[trace] restore-sc-build BUILT "
+                  f"{(_time.perf_counter() - _t1) * 1000:.1f}ms", flush=True)
+    return (state, hash_str, True, _fig_out, _committed_out,
+            _dca_out, _retire_out, _sc_out)
 
 
 # Control partition. See spec 2026-04-24-drop-all-tabs-snapshot-design.md.
@@ -952,6 +969,43 @@ _app_ctx.app.clientside_callback(
     Output("retire-build-count", "data", allow_duplicate=True),
     Input("retire-graph", "figure"),
     State("retire-build-count", "data"),
+    prevent_initial_call=True,
+)
+
+
+# ── Supercharge figure relay via set_props (Phase 2 ship 3, 2026-04-25) ───
+# Same pattern as bubble/DCA/retire relays. supercharge-graph is inside
+# supercharge-lazy on /1/2/3/4/6/7 initial loads.
+_app_ctx.app.clientside_callback(
+    """
+    function(fig) {
+        var NU = window.dash_clientside.no_update;
+        if (fig == null) return NU;
+        try {
+            window.dash_clientside.set_props('supercharge-graph', {figure: fig});
+        } catch (e) {
+            console.warn('restore-supercharge-fig: set_props failed', e);
+        }
+        if (window.__qsTrace) window.__qsTrace('restore-supercharge-fig delivered');
+        return null;
+    }
+    """,
+    Output("restore-supercharge-fig", "data", allow_duplicate=True),
+    Input("restore-supercharge-fig", "data"),
+    prevent_initial_call=True,
+)
+
+
+# ── Supercharge build-count phantom-rebuild detector (test infra) ─────────
+_app_ctx.app.clientside_callback(
+    """function(fig, cur) {
+        var n = (cur || 0) + 1;
+        window.__superchargeBuildCount = n;
+        return n;
+    }""",
+    Output("supercharge-build-count", "data", allow_duplicate=True),
+    Input("supercharge-graph", "figure"),
+    State("supercharge-build-count", "data"),
     prevent_initial_call=True,
 )
 

@@ -212,7 +212,11 @@ def _make_apply_tab_callback(tab_id, first_render_id, controls):
         values.append(loaded_hash)   # tab-snap-applied
         # active-chart-committed: only for fast tabs that lack a synchronous
         # restore_builder. Writing this triggers the modal-close listener.
-        values.append(loaded_hash if (_is_fast and loaded_hash) else no_update)
+        # Use loaded_hash if available, else a fixed truthy sentinel — the
+        # listener only checks truthiness. (loaded_hash sometimes arrives
+        # null on prod Dash 4 even though state is set; sentinel guarantees
+        # the listener fires.)
+        values.append(loaded_hash or "__restored__" if _is_fast else no_update)
         n_set = sum(1 for v in values[:-3] if v is not no_update)
         print(f"[trace] apply_tab_{tab_id} controls={n_set}/{len(_ctrls)} "
               f"apply_ms={(_time.perf_counter() - _t0) * 1000:.1f}",

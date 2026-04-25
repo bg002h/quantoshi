@@ -669,6 +669,12 @@ _app_ctx.app.clientside_callback(
         window.__restoreFallback = setTimeout(function () {
             window.dash_clientside.set_props(
                 'restore-progress-modal', { is_open: false });
+            // Decode-failure path: snapshot-pending never gets set True
+            // because restore_from_url returns no_update on bad hash, so
+            // the close-modal callback never fires, leaving prefetch-
+            // ready stuck at 0. Release here so non-active tabs warm.
+            window.dash_clientside.set_props(
+                'prefetch-ready', { data: 1 });
             window.__restoreOpenTime = null;
         }, 7000);
 
@@ -736,12 +742,19 @@ _app_ctx.app.clientside_callback(
                 requestAnimationFrame(function () {
                     window.dash_clientside.set_props(
                         'restore-progress-modal', { is_open: false });
+                    // Release prefetch gate — non-active tabs can now
+                    // lazy-materialise. This is the "lazy load after
+                    // important work" principle: the active chart has
+                    // painted and the user can interact with it; only
+                    // now do we let other tabs warm in the background.
+                    window.dash_clientside.set_props(
+                        'prefetch-ready', { data: 1 });
                     window.__restoreOpenTime = null;
                     if (window.__restoreFallback) {
                         clearTimeout(window.__restoreFallback);
                         window.__restoreFallback = null;
                     }
-                    if (window.__qsTrace) window.__qsTrace('modal-closed');
+                    if (window.__qsTrace) window.__qsTrace('modal-closed→prefetch-released');
                     if (window.__qsDumpTrace) window.__qsDumpTrace('restore');
                 });
             }, delay);

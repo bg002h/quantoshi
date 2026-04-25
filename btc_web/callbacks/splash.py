@@ -393,23 +393,11 @@ _app_ctx.app.clientside_callback(
 )
 
 
-# ── Release prefetch gate after snapshot restore completes ────────────────
-# When a share link loads (path + #q3:... hash), the splash callback above
-# deliberately leaves prefetch-ready unset so non-active tabs don't begin
-# lazy-materialising while the active tab is still being restored. This
-# clientside callback fires once loaded-hash-store is written by
-# restore_from_url (snapshot_cb.py:44) — meaning apply_globals has already
-# dispatched its writes and the per-tab apply_tab_{tab} callbacks have
-# fired or will fire on first-render. We then release prefetch-ready so
-# non-active tabs can start lazy-materialising.
-_app_ctx.app.clientside_callback(
-    """
-    function(loaded_hash) {
-        if (!loaded_hash) return window.dash_clientside.no_update;
-        return 1;
-    }
-    """,
-    Output("prefetch-ready", "data", allow_duplicate=True),
-    Input("loaded-hash-store", "data"),
-    prevent_initial_call=True,
-)
+# ── Release prefetch gate AFTER active chart paints ──────────────────────
+# Previously this fired on loaded-hash-store (i.e. at the START of restore
+# when the URL hash was decoded), causing non-active-tab prefetch to start
+# competing with the active chart's compute and serialise the user's wait.
+# Now: the release lives in snapshot_cb.py's modal-close callback, which is
+# bound to plotly_afterplot of the active chart. Prefetch only begins
+# AFTER the user can actually interact with the active chart. This matches
+# the "lazy load after important work" principle.

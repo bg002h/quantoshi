@@ -277,7 +277,8 @@ def _sim_panel():
         _mc_controls("cp", amount_label="Monthly spending ($)",
                      amount_default=5000, show_inflation=True, show_stack=True,
                      default_entry_q=10,
-                     shared_controls={"amount", "infl", "freq", "stack"}),
+                     shared_controls={"amount", "infl", "freq", "stack"},
+                     mc_enabled_default=True),
     ])
 
 

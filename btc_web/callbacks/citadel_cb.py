@@ -286,12 +286,9 @@ def update_citadel(
     snapshot_pending=False,
 ):
     """Citadel Planner chart callback."""
-    # Snapshot gate AND first-render gate (ALARA — non-active tabs have
-    # first-render=0; prefetch lazy-mount writes widget defaults which
-    # would otherwise trigger this 1.1s simulation. Tab-switch in
-    # routing.py:40 bumps first-render so user-driven views still fire.)
+    # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     # Citadel has 9 Outputs; return tuple of no_update for each.
-    if snapshot_pending or not _first_render:
+    if snapshot_pending:
         return (dash.no_update,) * 9
     logger.debug("[CP-CB] triggered_id=%s, mc_enable=%s, run_clicks=%s", ctx.triggered_id, mc_enable, run_clicks)
 

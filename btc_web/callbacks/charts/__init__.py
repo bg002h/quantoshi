@@ -717,11 +717,8 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
                    ep_a_log1d=None, ep_a_log2d=None,
                    ep_a_cal1d=None, ep_a_cal2d=None,
                    snapshot_pending=False):
-    # Snapshot gate AND first-render gate. Skip render during snapshot
-    # restore OR before user has visited this tab (ALARA: prefetch
-    # lazy-mount populates widgets, which triggers chart Inputs even on
-    # non-active tabs; first-render stays at 0 until tab-switch bumps it).
-    if snapshot_pending or not _first_render:
+    # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
+    if snapshot_pending:
         return (dash.no_update,) * 8
     exit_range = exit_range or [entry_yr or 2025, (entry_yr or 2025) + 10]
     toggles    = toggles or []
@@ -949,8 +946,8 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
                mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
                qs_mode=None, user_model_store=None, snapshot_pending=False):
-    # Snapshot gate AND first-render gate (ALARA — see update_heatmap).
-    if snapshot_pending or not _first_render:
+    # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
+    if snapshot_pending:
         return (dash.no_update,) * 8
     toggles    = toggles or []
     yr_range   = yr_range or [2024, 2034]
@@ -1122,8 +1119,8 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
                   mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                   price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
                   qs_mode=None, user_model_store=None, snapshot_pending=False):
-    # Snapshot gate AND first-render gate (ALARA — see update_heatmap).
-    if snapshot_pending or not _first_render:
+    # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
+    if snapshot_pending:
         return (dash.no_update,) * 8
     toggles  = toggles or []
     yr_range = yr_range or [RETIRE["start_yr"], RETIRE["end_yr"]]
@@ -1305,8 +1302,8 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
                        price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
                        qs_mode=None, viewport_width=None, user_model_store=None,
                        snapshot_pending=False):
-    # Snapshot gate AND first-render gate (ALARA — see update_heatmap).
-    if snapshot_pending or not _first_render:
+    # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
+    if snapshot_pending:
         return (dash.no_update,) * 8
     delays  = [float(x) for x in [d0, d1, d2, d3, d4] if x is not None]
     toggles = toggles or []

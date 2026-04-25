@@ -120,6 +120,7 @@ _app_ctx.app.clientside_callback(
     Output("cp-mc-unblocked", "data"),
     Output("cp-yr-range", "value", allow_duplicate=True),
     Output("cp-tax-annual-data", "data", allow_duplicate=True),
+    Output("active-chart-committed", "data", allow_duplicate=True),
     Input("citadel-first-render", "data"),
     Input("cp-run-btn",          "n_clicks"),
     Input("mc-pay-trigger",      "data"),
@@ -231,6 +232,7 @@ _app_ctx.app.clientside_callback(
     State("cp-mc-unblocked",     "data"),
     State("cp-mc-rendered-key",  "data"),
     State("snapshot-pending",    "data"),
+    State("loaded-hash-store",   "data"),
     prevent_initial_call=True,
     background=True,
     running=[
@@ -284,12 +286,14 @@ def update_citadel(
     # MC states
     price_data, mc_cached, pay_token, mc_unblocked, mc_auth,
     snapshot_pending=False,
+    loaded_hash=None,
 ):
     """Citadel Planner chart callback."""
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
-    # Citadel has 9 Outputs; return tuple of no_update for each.
+    # Citadel has 10 Outputs (added active-chart-committed); return tuple
+    # of no_update for each.
     if snapshot_pending:
-        return (dash.no_update,) * 9
+        return (dash.no_update,) * 10
     logger.debug("[CP-CB] triggered_id=%s, mc_enable=%s, run_clicks=%s", ctx.triggered_id, mc_enable, run_clicks)
 
     # Only run simulation when Run button clicked, payment trigger fires,
@@ -312,7 +316,8 @@ def update_citadel(
                 fig = pio.from_json(cached["figure"])
                 return (fig, dash.no_update, dash.no_update, dash.no_update,
                         dash.no_update, dash.no_update, dash.no_update, dash.no_update,
-                        dash.no_update)
+                        dash.no_update,
+                        loaded_hash if loaded_hash is not None else dash.no_update)
         except Exception:
             pass
         # Fallback: compute default simulation live
@@ -330,7 +335,8 @@ def update_citadel(
         fig, _ = _get_citadel_fig(_dp)
         return (fig, dash.no_update, dash.no_update, dash.no_update,
                 dash.no_update, dash.no_update, dash.no_update, dash.no_update,
-                dash.no_update)
+                dash.no_update,
+                loaded_hash if loaded_hash is not None else dash.no_update)
 
     toggles = toggles or []
     yr_range = yr_range or [2031, 2075]
@@ -495,7 +501,8 @@ def update_citadel(
                            style={"color": KNIGHT_GOLD, "fontSize": UI_FONT_BASE})
         return (fig, store_val, status, dash.no_update,
                 dash.no_update, dash.no_update, dash.no_update, dash.no_update,
-                dash.no_update)
+                dash.no_update,
+                loaded_hash if loaded_hash is not None else dash.no_update)
 
     # Nudge year range slider if MC starts before visible range
     yr_adjust = dash.no_update
@@ -506,7 +513,8 @@ def update_citadel(
 
     return (fig, store_val, status, rendered_key, show_modal,
             "cp" if show_modal else dash.no_update, ub_val, yr_adjust,
-            _annual_taxes)
+            _annual_taxes,
+            loaded_hash if loaded_hash is not None else dash.no_update)
 
 
 # ── Celery polling: enable/disable interval based on pending state ────────

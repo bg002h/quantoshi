@@ -379,7 +379,20 @@ _SNAP_PREFIX_V1 = "q1:"   # legacy format (dict-based)
 # Encoded as bitmask integers in new links (bit i set ↔ opts[i] selected).
 # Old q2 links store lists; the decoder handles both formats transparently
 # via isinstance(val, int).
-_QS_LIST = list(_app_ctx._ALL_QS)
+#
+# IMPORTANT: hard-coded canonical quantile list, NOT `list(_app_ctx._ALL_QS)`.
+# `_ALL_QS` is empty at snapshot.py module load time (it's populated later
+# in app.py:443). Capturing it as `_QS_LIST = list(_app_ctx._ALL_QS)` would
+# bind to an empty list — making every *-qs-adv / hm-exit-qs share link
+# round-trip silently drop the user's advanced-quantile selection
+# (bitmask-stripped to 0). Hard-coding the canonical list keeps the
+# bitmask layout stable across deploys; the values match the QR_QUANTILES
+# range filtered to (0.001, 0.999). If model_data.pkl ever changes the
+# quantile grid, audit `test_snapshot.py::TestSnapshotDefaultsConsistency`
+# for failures and update this list accordingly.
+_QS_LIST = [0.001, 0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4,
+            0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9,
+            0.95, 0.99, 0.999]
 
 _CHECKLIST_OPTIONS = {
     # quantile band checklists (default mode: string band names)

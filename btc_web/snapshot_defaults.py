@@ -278,7 +278,16 @@ SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'ret-lppl-activate:value': [],
     'ret-mc-advanced:value': [],
     'ret-mc-bins:value': 5,
-    'ret-mc-enable:value': [],
+    # Retire's MC widget defaults to ['yes'] (per layout/sim_tabs.py:160
+    # passing mc_enabled_default=True). This declaration must match the
+    # widget; the test_defaults_match_widget_defaults regression test
+    # asserts alignment. A previous "fix" (9bf85c0) tried to set this to
+    # [] to make retire's fast path reachable, but that just introduced
+    # a snapshot/widget drift without changing prod behavior (typical
+    # retire share links still hit MC=on cascade path). Realistic fast
+    # path for retire requires explicit MC=off in the user's state OR
+    # changing the widget UX (out of scope for share-link plumbing).
+    'ret-mc-enable:value': ['yes'],
     'ret-mc-entry-q:value': 10,
     'ret-mc-model-src:value': 'bub',
     'ret-mc-regime:value': [0, 1, 2, 3, 4],

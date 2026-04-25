@@ -769,6 +769,172 @@ class TestSnapshotDefaultsRegistry:
         assert len(registry) <= 20, f"registry has {len(registry)} entries (cap=20)"
 
 
+class TestSnapshotDefaultsConsistency:
+    """Regression tests for two bug classes discovered during Phase 2:
+
+    1. snapshot_defaults.py declarations can drift from actual widget
+       defaults (ret-mc-enable was ['yes'] in snapshot_defaults but [] in
+       the placeholder widget; later fixed to '['yes']'/'['yes']' alignment).
+    2. _CHECKLIST_OPTIONS must include every value that ever appears in a
+       widget value or snapshot_defaults — missing values are silently
+       bitmask-stripped to 0 (the 'bub' bug for dca/ret/sc/hm-model-show).
+
+    Both bugs were fixed in commits 9bf85c0 + cda79e0. These tests prevent
+    regressions.
+
+    See memory/restore_callback_architecture.md "Lessons learned (Phase 2
+    retrospective)" section for context.
+    """
+
+    @staticmethod
+    def _walk_layout_for_props(component, props_to_capture=("value", "data", "date")):
+        """Recursively walk a Dash component tree, returning {id: {prop: val}}.
+
+        Captures only the props in props_to_capture (default: value, data,
+        date — the props snapshot_defaults ever uses).
+        """
+        found = {}
+
+        def _walk(comp):
+            if comp is None:
+                return
+            cid = getattr(comp, "id", None)
+            if isinstance(cid, str):
+                p = {}
+                for attr in props_to_capture:
+                    if hasattr(comp, attr):
+                        try:
+                            v = getattr(comp, attr)
+                            if not callable(v):
+                                p[attr] = v
+                        except Exception:
+                            pass
+                found[cid] = p
+            children = getattr(comp, "children", None)
+            if isinstance(children, list):
+                for ch in children:
+                    _walk(ch)
+            elif children is not None:
+                _walk(children)
+
+        _walk(component)
+        return found
+
+    @classmethod
+    def _gather_all_widget_defaults(cls):
+        """Build the full layout (top-level + every per-tab content) and
+        return {id: {prop: default_value}} for every component.
+
+        Lazy-mounted tab content is materialized via _build_tab_content
+        so we can see the real widget defaults (not the "Loading..."
+        placeholder).
+        """
+        from layout import _build_layout
+        from callbacks.routing import _build_tab_content
+
+        all_props = {}
+        all_props.update(cls._walk_layout_for_props(_build_layout("bubble")))
+        for tab_id in ("bubble", "heatmap", "dca", "retire", "supercharge",
+                       "citadel", "leverage", "stack", "model_info", "faq"):
+            content = _build_tab_content(tab_id)
+            if content is not None:
+                all_props.update(cls._walk_layout_for_props(content))
+        return all_props
+
+    def test_defaults_match_widget_defaults(self):
+        """Each entry in SNAPSHOT_DEFAULTS must match the actual widget's
+        default value.
+
+        Drift between snapshot_defaults and widgets creates "unreachable"
+        code paths and silent encoding bugs. See ret-mc-enable saga
+        (commit 9bf85c0, partially reverted).
+
+        Some prop names are aliased: SNAPSHOT_DEFAULTS uses 'value' for
+        most controls, 'data' for Stores, 'date' for DatePickerSingle.
+
+        Entries in ALWAYS_ENCODE are SKIPPED — those are dynamic-default
+        fields (today's date, live BTC price) where snapshot_defaults
+        intentionally declares None as a placeholder; the encoder always
+        emits them so the link author's value is captured at share time.
+        """
+        from snapshot_defaults import SNAPSHOT_DEFAULTS, ALWAYS_ENCODE
+
+        all_widgets = self._gather_all_widget_defaults()
+        mismatches = []
+        not_found = []
+        for key, snap_default in SNAPSHOT_DEFAULTS.items():
+            if key in ALWAYS_ENCODE:
+                continue  # dynamic default — snapshot_default is intentionally None
+            cid, prop = key.split(":", 1)
+            if cid not in all_widgets:
+                not_found.append(key)
+                continue
+            widget_props = all_widgets[cid]
+            if prop not in widget_props:
+                # Component exists but doesn't expose this prop —
+                # skip (some controls have None defaults).
+                continue
+            widget_default = widget_props[prop]
+            if widget_default != snap_default:
+                mismatches.append(
+                    f"{key}: snapshot_defaults={snap_default!r} "
+                    f"widget_default={widget_default!r}"
+                )
+
+        # Components that don't show up in the layout are usually defunct
+        # placeholders or runtime-only stores; not a hard failure.
+        # (Print for visibility but don't fail.)
+        if not_found:
+            print(f"\n[info] {len(not_found)} snapshot_defaults entries "
+                  f"have no matching widget in the layout (likely defunct "
+                  f"placeholders or runtime stores). First 5: "
+                  f"{not_found[:5]}")
+
+        assert mismatches == [], (
+            f"\n{len(mismatches)} snapshot_defaults vs widget mismatches. "
+            f"Either fix the snapshot_defaults declaration or fix the "
+            f"widget default to match. See memory/"
+            f"restore_callback_architecture.md 'Lessons learned'. "
+            f"Mismatches:\n  " + "\n  ".join(mismatches)
+        )
+
+    def test_checklist_options_cover_default_values(self):
+        """For every list-valued entry in SNAPSHOT_DEFAULTS where the
+        component is in _CHECKLIST_OPTIONS, every default-list element
+        must be in the options list.
+
+        Missing values are silently bitmask-stripped to 0 (the 'bub'
+        bug for dca/ret/sc/hm-model-show, fixed in commit cda79e0).
+        See memory/restore_callback_architecture.md.
+        """
+        from snapshot_defaults import SNAPSHOT_DEFAULTS
+        from snapshot import _CHECKLIST_OPTIONS
+
+        violations = []
+        for key, val in SNAPSHOT_DEFAULTS.items():
+            if not isinstance(val, list):
+                continue
+            cid = key.split(":", 1)[0]
+            if cid not in _CHECKLIST_OPTIONS:
+                continue
+            opts = set(_CHECKLIST_OPTIONS[cid])
+            missing = [v for v in val if v not in opts]
+            if missing:
+                violations.append(
+                    f"{key}: default contains {missing!r} but "
+                    f"_CHECKLIST_OPTIONS[{cid!r}] does not include "
+                    f"these — they will be silently dropped through "
+                    f"the bitmask round-trip."
+                )
+
+        assert violations == [], (
+            f"\n{len(violations)} _CHECKLIST_OPTIONS missing values that "
+            f"appear in SNAPSHOT_DEFAULTS. Append the missing values to "
+            f"the END of the list (preserves bit indices for legacy share "
+            f"links). Violations:\n  " + "\n  ".join(violations)
+        )
+
+
 class TestSnapshotV4:
     def test_q4_round_trip_with_diffs(self):
         from snapshot import _encode_snapshot_v4, _decode_snapshot_v4

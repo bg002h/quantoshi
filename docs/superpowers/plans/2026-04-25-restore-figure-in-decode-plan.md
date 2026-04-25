@@ -175,10 +175,21 @@ In ALL paths the tuple has 5 elements. Empty hash and decode-failure paths retur
 
 **Step 2.5:** Add early-return guard to `update_bubble`:
 ```python
-# After the snapshot_pending gate:
-if active_chart_committed and active_chart_committed == loaded_hash:
+# After the snapshot_pending gate, BEFORE the existing PreventUpdate guards.
+# Suppress the redundant rebuild ONLY when the trigger is one of the
+# known post-restore re-fire paths (CTA tick bump, effective-lots cascade).
+# In steady-state user interactions, ctx.triggered_id will NOT be in this
+# set, so the guard does NOT fire — user-driven redraws still work.
+_POST_RESTORE_TRIGGERS = {"bub-redraw-tick", "effective-lots"}
+_trg_id = getattr(ctx, "triggered_id", None)
+if (active_chart_committed and active_chart_committed == loaded_hash
+        and _trg_id in _POST_RESTORE_TRIGGERS):
     return dash.no_update  # restore_from_url already built it
 ```
+
+This is the lower-cost fix (no new Output, no extra Store write). The trigger-set is stable: `bub-redraw-tick` is bumped by CTA after restore (the de facto re-trigger documented in memory file); `effective-lots` cascades from snapshot-lots which apply_globals writes. Both are post-restore artifacts, never user-driven re-renders.
+
+**CRITICAL:** the guard MUST be placed AFTER the snapshot_pending gate but BEFORE the existing PreventUpdate guards (charts/__init__.py:182-189). If placed after the existing guards, the `effective-lots` PreventUpdate guard would fire first and skip the suppression.
 
 **Step 2.6:** Verify tuple correctness in `restore_from_url`:
 - 3 paths: empty hash, decode failure, success
@@ -254,6 +265,7 @@ Input("active-chart-committed", "data"),  # was: Input("loaded-hash-store", "dat
 | Non-bubble tab shares (citadel /6, etc.) still take 7s | Acceptable for this iteration | Documented as out-of-scope; future work |
 | CTA-active snapshots produce double-paint risk | Standard fig from restore_from_url + CTA fig overwrites ~300ms later → flicker | **Mitigation in helper:** `_build_bubble_figure_from_state` returns None when `state.get("cta-active:value") == ["yes"]`. restore_from_url writes no_update for fig + committed → falls back to existing callback path. CTA share-links keep current behavior (no improvement, no regression). |
 | Snapshot state dict missing `palette-store:data` | palette-store IS in `_SNAPSHOT_CONTROLS`; helper reads it from decoded dict directly (not from Store) | Confirmed safe per architect review |
+| Lots-absent + use_lots=yes edge case | Snapshot has `bub-use-lots:value=["yes"]` but no `_lots` (user shared with include_lots unchecked). Helper resolves lots=[], use_lots=True. Identical to existing path (effective-lots also resolves to []). No divergence. | Documented; no action needed |
 
 ---
 

@@ -206,9 +206,9 @@ _app_ctx.app.clientside_callback(
                     window.dash_clientside.no_update];
         }
         /* Share-hash loads: leave prefetch-ready unset so non-active tabs
-           don't start lazy-loading until the active tab's chart callback
-           returns a real figure. The restore-fig-committed listener
-           below flips prefetch-ready once that signal arrives. */
+           don't start lazy-loading until the snapshot finishes applying to
+           the active tab. A separate callback on loaded-hash-store flips
+           prefetch-ready once restore is complete. */
         if (hasShareHash) {
             return [false, window.dash_clientside.no_update,
                     window.dash_clientside.no_update, window.dash_clientside.no_update,
@@ -393,27 +393,23 @@ _app_ctx.app.clientside_callback(
 )
 
 
-# ── Release prefetch gate after active chart commits its figure ───────────
-# Share-hash loads leave prefetch-ready=0 (set in main splash callback).
-# This callback flips it to 1 only when the active tab's chart callback
-# has actually returned a real figure (not no_update / not PreventUpdate).
-# That signal is restore-fig-committed, written by update_bubble /
-# update_heatmap / update_dca / update_retire / update_supercharge /
-# update_citadel on their real-figure return path; reset to False by
-# restore_from_url at the start of each restore.
-#
-# This is the single point where non-active-tab work (lazy-mount, MC
-# echo cascades, downstream chart callbacks) is allowed to start. By
-# delaying it to actual chart-commit, we keep the worker pool free for
-# the active chart's compute window.
+# ── Release prefetch gate after snapshot restore completes ────────────────
+# When a share link loads (path + #q3:... hash), the splash callback above
+# deliberately leaves prefetch-ready unset so non-active tabs don't begin
+# lazy-materialising while the active tab is still being restored. This
+# clientside callback fires once loaded-hash-store is written by
+# restore_from_url (snapshot_cb.py:44) — meaning apply_globals has already
+# dispatched its writes and the per-tab apply_tab_{tab} callbacks have
+# fired or will fire on first-render. We then release prefetch-ready so
+# non-active tabs can start lazy-materialising.
 _app_ctx.app.clientside_callback(
     """
-    function(committed) {
-        if (!committed) return window.dash_clientside.no_update;
+    function(loaded_hash) {
+        if (!loaded_hash) return window.dash_clientside.no_update;
         return 1;
     }
     """,
     Output("prefetch-ready", "data", allow_duplicate=True),
-    Input("restore-fig-committed", "data"),
+    Input("loaded-hash-store", "data"),
     prevent_initial_call=True,
 )

@@ -45,7 +45,6 @@ def _decode_snapshot_by_prefix(h):
     Output("snapshot-state-store", "data"),
     Output("loaded-hash-store",    "data"),
     Output("snapshot-pending",     "data", allow_duplicate=True),
-    Output("restore-fig-committed","data", allow_duplicate=True),
     Input("url", "hash"),
     prevent_initial_call='initial_duplicate',
 )
@@ -58,14 +57,12 @@ def restore_from_url(hash_str):
     import time as _time
     _t0 = _time.perf_counter()
     if not hash_str:
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update
     h = hash_str.lstrip("#")
     state, prefix, encoded = _decode_snapshot_by_prefix(h)
     if not state:
-        # Decode failed — return all no_update; modal close path is
-        # handled by the existing 7s fallback in the modal-open callback.
         logger.warning("Snapshot decode failed for hash: %s\u2026", hash_str[:20])
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update
     # Legacy-link coercion: if this deployment has no resqr bundles, drop
     # "resqr" sigma_mode back to "constant" so the radio + chart stay in sync.
     if not getattr(_app_ctx, "_HAS_RESQR", False):
@@ -77,8 +74,7 @@ def restore_from_url(hash_str):
           f"controls={sum(1 for k in state if k != '_lots')} "
           f"lots={'yes' if '_lots' in state else 'no'} decode_ms={_dt_ms:.1f}",
           flush=True)
-    # state, hash, snapshot-pending=True, restore-fig-committed=False
-    return state, hash_str, True, False
+    return state, hash_str, True
 
 
 # Control partition. See spec 2026-04-24-drop-all-tabs-snapshot-design.md.

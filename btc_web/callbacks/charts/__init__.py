@@ -66,6 +66,7 @@ from mc_cache import (MC_BINS, MC_SIMS, MC_FREQ,
 from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
                    _get_supercharge_fig, _get_heatmap_fig, _get_mc_heatmap_fig,
                    _nearest_quantile)
+from restore_builder import _build_retire_params
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1226,11 +1227,6 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     if active_chart_committed and active_chart_committed == loaded_hash \
             and _trg in _POST_RESTORE_TRIGGERS_RETIRE:
         return (dash.no_update,) * 8
-    toggles  = toggles or []
-    yr_range = yr_range or [RETIRE["start_yr"], RETIRE["end_yr"]]
-    _advanced = "advanced" in (qs_mode or [])
-    _effective_qs = (adv_qs or []) if _advanced else (
-        _bands_to_qs(sel_qs) if sel_qs and isinstance(sel_qs[0], str) else (sel_qs or []))
     mc_ok, is_free, mc_p, blocked = _mc_setup(
         "ret", mc_enable, mc_years, mc_start_yr, mc_entry_q,
         mc_bins, mc_sims, freq, mc_window, wd, infl,
@@ -1251,31 +1247,17 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
         ep_a_nlog, ep_a_ncal, ep_a_log1d, ep_a_log2d, ep_a_cal1d, ep_a_cal2d,
         ep_b_enabled, ep_b_nlog, ep_b_ncal, ep_b_log1d, ep_b_log2d,
         ep_b_cal1d, ep_b_cal2d)
-    fig, mc_result = _get_retire_fig(dict(
-        start_stack  = _cf(stack, RETIRE["start_stack"]),
-        use_lots     = bool(use_lots),
-        wd_amount    = _ci(wd, RETIRE["wd_amount"], lo=0, hi=_app_ctx.MAX_USD),
-        freq         = freq or "Monthly",
-        start_yr     = int(yr_range[0]),
-        end_yr       = int(yr_range[1]),
-        inflation    = _cf(infl, RETIRE["inflation"]),
-        disp_mode    = disp or "btc",
-        log_y        = "log_y"     in toggles,
-        annotate     = "annotate"  in toggles,
-        discrete     = "discrete"  in toggles,
-        shade        = "shade"     in toggles,
-        show_legend  = "show_legend" in toggles,
-        legend_pos   = legend_pos or "outside",
-        minor_grid   = "minor_grid" in toggles,
-        selected_qs  = _effective_qs,
-        lots         = lots_data or [],
-        show_qr      = "bub" in model_show,
-        show_mc      = "mc" in model_show,
-        active_models = [k for k in model_show if k != "mc"],  # pass "bub" through for toggle
-        palette = palette_key or "default",
-        user_model = user_model_store,
-        **mc_p,
-    ))
+    yr_range = yr_range or [RETIRE["start_yr"], RETIRE["end_yr"]]
+    toggles = toggles or []
+    params = _build_retire_params(
+        stack=stack, use_lots=use_lots, wd=wd, freq=freq,
+        yr_range=yr_range, infl=infl, disp=disp, toggles=toggles,
+        legend_pos=legend_pos, sel_qs=sel_qs, adv_qs=adv_qs, qs_mode=qs_mode,
+        model_show=model_show, lots=lots_data,
+        palette_key=palette_key, user_model_store=user_model_store,
+        mc_overrides=dict(show_mc=("mc" in model_show), **mc_p),
+    )
+    fig, mc_result = _get_retire_fig(params)
     fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(
         "ret", fig, mc_result, mc_cached, mc_enable, mc_ok,
         is_free, blocked, mc_p["mc_years"], mc_p["mc_start_yr"],

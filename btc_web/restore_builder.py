@@ -443,11 +443,82 @@ def _build_dca_figure_from_state(state: dict):
         return None
 
 
+def _build_retire_params(
+    *,
+    stack, use_lots, wd, freq, yr_range, infl, disp, toggles,
+    legend_pos, sel_qs, adv_qs, qs_mode, model_show,
+    lots, palette_key, user_model_store, mc_overrides,
+):
+    """Construct the retire `_get_retire_fig` params dict.
+
+    Single source of truth for retire param construction, used by both:
+    - `update_retire` callback (cascade path) — passes resolved widget
+      Inputs and `mc_overrides=dict(show_mc=..., **mc_p)` from `_mc_setup`.
+    - `_build_retire_figure_from_state` (fast restore path) — passes
+      `_v(state, ...)` resolved values and `mc_overrides=dict(show_mc=False,
+      mc_enabled=False)`. `_get_mc_or_cached` strips remaining mc_* keys
+      when mc_enabled is False, so the fast path needs only those two.
+
+    Pre-2026-04-25 these were two separate dicts in two files that drifted
+    (e.g., callback's `disp or "btc"` vs builder's `disp or "usd"`). The
+    extraction is Driver 1 of the architect-recommended complexity-
+    reduction work — see memory/restore_callback_architecture.md.
+
+    Args:
+        stack, use_lots, wd, freq, yr_range, infl, disp, toggles,
+        legend_pos, sel_qs, adv_qs, qs_mode, model_show: raw widget values.
+            `model_show` MUST be pre-resolved by the caller (LPPL/HybPPL/
+            EPPL master-key resolvers run upstream).
+        lots: resolved lots list (callback: from `effective-lots` Store;
+            builder: from `state["_lots"]`).
+        palette_key: palette name (e.g., "default", "cb_brian").
+        user_model_store: user-model dict or None.
+        mc_overrides: dict merged into params last. Callback passes the
+            full mc_p plus show_mc; builder passes the two-key fast-path
+            override.
+
+    Returns:
+        Params dict ready for `_get_retire_fig(...)`.
+    """
+    from tab_defaults import RETIRE
+    from callbacks.coerce import _ci, _cf
+    import _app_ctx
+    yr_range = yr_range or [RETIRE["start_yr"], RETIRE["end_yr"]]
+    toggles  = toggles or []
+    _advanced = "advanced" in (qs_mode or [])
+    _effective_qs = (adv_qs or []) if _advanced else (
+        _bands_to_qs(sel_qs) if sel_qs and isinstance(sel_qs[0], str)
+        else (sel_qs or []))
+    model_show = model_show or []
+    params = dict(
+        start_stack   = _cf(stack, RETIRE["start_stack"]),
+        use_lots      = "yes" in (use_lots or []),
+        wd_amount     = _ci(wd, RETIRE["wd_amount"], lo=0, hi=_app_ctx.MAX_USD),
+        freq          = freq or "Monthly",
+        start_yr      = int(yr_range[0]),
+        end_yr        = int(yr_range[1]),
+        inflation     = _cf(infl, RETIRE["inflation"]),
+        disp_mode     = disp or RETIRE["disp_mode"],
+        log_y         = "log_y"      in toggles,
+        annotate      = "annotate"   in toggles,
+        discrete      = "discrete"   in toggles,
+        shade         = "shade"      in toggles,
+        show_legend   = "show_legend" in toggles,
+        legend_pos    = legend_pos or "outside",
+        minor_grid    = "minor_grid" in toggles,
+        selected_qs   = _effective_qs,
+        lots          = lots or [],
+        show_qr       = "bub" in model_show,
+        active_models = [k for k in model_show if k != "mc"],
+        palette       = palette_key or "default",
+        user_model    = user_model_store,
+    )
+    params.update(mc_overrides)
+    return params
+
+
 def _build_retire_figure_from_state(state: dict):
     """Build a retire-tab Plotly figure from a snapshot state dict.
-
-    Mirrors `update_retire` (callbacks/charts/__init__.py:1164) param
-    construction. Retire has NO Saylor mode (Stack-celerator) — only MC.
 
     Returns:
         - go.Figure on the standard fast path
@@ -455,126 +526,62 @@ def _build_retire_figure_from_state(state: dict):
           caller falls back to the existing chart-callback path.
     """
     # ── Gate: return None for MC, fall back to cascade ──
-    mc_enable = _v(state, "ret-mc-enable") or []
-    if "yes" in mc_enable:
+    if "yes" in (_v(state, "ret-mc-enable") or []):
         return None
-
-    # ── Retire widget values (Inputs) ──
-    stack    = _v(state, "ret-stack")
-    use_lots = _v(state, "ret-use-lots")
-    wd       = _v(state, "ret-wd")
-    freq     = _v(state, "ret-freq")
-    yr_range = _v(state, "ret-yr-range")
-    infl     = _v(state, "ret-infl")
-    disp     = _v(state, "ret-disp")
-    toggles  = _v(state, "ret-toggles")
-    legend_pos = _v(state, "ret-legend-pos")
-    sel_qs   = _v(state, "ret-qs")  # match snapshot_defaults.py:292
-    adv_qs   = _v(state, "ret-qs-adv")
-    qs_mode  = _v(state, "ret-qs-mode")
-    model_show = _v(state, "ret-model-show")
-
-    # ── Lots resolution (clientside cascade replicated, mirrors bubble) ──
-    _lots = state.get("_lots") or []
-    use_lots_bool = bool("yes" in (use_lots or []))
-
-    # ── Shared model-config States (LPPL/HybPPL/EPPL) ──
-    lppl_n_freqs  = _v(state, "lppl-n-freqs")
-    lppl_weighted = _v(state, "lppl-weighted")
-    lppl_no_13    = _v(state, "lppl-no-13")
-
-    hyb_a_nlog  = _v(state, "hybppl-cfg-a-nlog")
-    hyb_a_ncal  = _v(state, "hybppl-cfg-a-ncal")
-    hyb_a_log1d = _v(state, "hybppl-cfg-a-log1d")
-    hyb_a_log2d = _v(state, "hybppl-cfg-a-log2d")
-    hyb_a_cal1d = _v(state, "hybppl-cfg-a-cal1d")
-    hyb_a_cal2d = _v(state, "hybppl-cfg-a-cal2d")
-
-    hyb_b_enabled = _v(state, "hybppl-cfg-b-enabled")
-    hyb_b_nlog  = _v(state, "hybppl-cfg-b-nlog")
-    hyb_b_ncal  = _v(state, "hybppl-cfg-b-ncal")
-    hyb_b_log1d = _v(state, "hybppl-cfg-b-log1d")
-    hyb_b_log2d = _v(state, "hybppl-cfg-b-log2d")
-    hyb_b_cal1d = _v(state, "hybppl-cfg-b-cal1d")
-    hyb_b_cal2d = _v(state, "hybppl-cfg-b-cal2d")
-
-    ep_a_nlog  = _v(state, "eppl-cfg-a-nlog")
-    ep_a_ncal  = _v(state, "eppl-cfg-a-ncal")
-    ep_a_log1d = _v(state, "eppl-cfg-a-log1d")
-    ep_a_log2d = _v(state, "eppl-cfg-a-log2d")
-    ep_a_cal1d = _v(state, "eppl-cfg-a-cal1d")
-    ep_a_cal2d = _v(state, "eppl-cfg-a-cal2d")
-
-    ep_b_enabled = _v(state, "eppl-cfg-b-enabled")
-    ep_b_nlog  = _v(state, "eppl-cfg-b-nlog")
-    ep_b_ncal  = _v(state, "eppl-cfg-b-ncal")
-    ep_b_log1d = _v(state, "eppl-cfg-b-log1d")
-    ep_b_log2d = _v(state, "eppl-cfg-b-log2d")
-    ep_b_cal1d = _v(state, "eppl-cfg-b-cal1d")
-    ep_b_cal2d = _v(state, "eppl-cfg-b-cal2d")
-
-    palette_key = _v(state, "palette-store", "data")
-    user_model_store = state.get("user-model-store:data")
 
     # ── Master-key resolution ──
     from callbacks.charts._resolvers import (
         _resolve_lppl_master, _resolve_hybppl_master, _resolve_eppl_master,
     )
-    from callbacks.coerce import _ci, _cf
-    model_show = list(model_show or [])
+    model_show = list(_v(state, "ret-model-show") or [])
     model_show = _resolve_lppl_master(
-        model_show, lppl_n_freqs, lppl_weighted, lppl_no_13)
+        model_show,
+        _v(state, "lppl-n-freqs"),
+        _v(state, "lppl-weighted"),
+        _v(state, "lppl-no-13"))
     model_show = _resolve_hybppl_master(
         model_show,
-        hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d, hyb_a_cal1d, hyb_a_cal2d,
-        hyb_b_enabled, hyb_b_nlog, hyb_b_ncal, hyb_b_log1d, hyb_b_log2d,
-        hyb_b_cal1d, hyb_b_cal2d)
+        _v(state, "hybppl-cfg-a-nlog"),  _v(state, "hybppl-cfg-a-ncal"),
+        _v(state, "hybppl-cfg-a-log1d"), _v(state, "hybppl-cfg-a-log2d"),
+        _v(state, "hybppl-cfg-a-cal1d"), _v(state, "hybppl-cfg-a-cal2d"),
+        _v(state, "hybppl-cfg-b-enabled"),
+        _v(state, "hybppl-cfg-b-nlog"),  _v(state, "hybppl-cfg-b-ncal"),
+        _v(state, "hybppl-cfg-b-log1d"), _v(state, "hybppl-cfg-b-log2d"),
+        _v(state, "hybppl-cfg-b-cal1d"), _v(state, "hybppl-cfg-b-cal2d"))
     model_show = _resolve_eppl_master(
         model_show,
-        ep_a_nlog, ep_a_ncal, ep_a_log1d, ep_a_log2d, ep_a_cal1d, ep_a_cal2d,
-        ep_b_enabled, ep_b_nlog, ep_b_ncal, ep_b_log1d, ep_b_log2d,
-        ep_b_cal1d, ep_b_cal2d)
+        _v(state, "eppl-cfg-a-nlog"),  _v(state, "eppl-cfg-a-ncal"),
+        _v(state, "eppl-cfg-a-log1d"), _v(state, "eppl-cfg-a-log2d"),
+        _v(state, "eppl-cfg-a-cal1d"), _v(state, "eppl-cfg-a-cal2d"),
+        _v(state, "eppl-cfg-b-enabled"),
+        _v(state, "eppl-cfg-b-nlog"),  _v(state, "eppl-cfg-b-ncal"),
+        _v(state, "eppl-cfg-b-log1d"), _v(state, "eppl-cfg-b-log2d"),
+        _v(state, "eppl-cfg-b-cal1d"), _v(state, "eppl-cfg-b-cal2d"))
 
-    # ── Effective quantiles ──
-    yr_range = yr_range or [2031, 2075]
-    toggles = toggles or []
-    _advanced = "advanced" in (qs_mode or [])
-    _effective_qs = (adv_qs or []) if _advanced else (
-        _bands_to_qs(sel_qs) if sel_qs and isinstance(sel_qs[0], str) else (sel_qs or []))
-
-    # ── Build figure via _get_retire_fig with mc_enabled=False (sufficient;
-    # _get_mc_or_cached strips all mc_* keys before quantizing the cache key). ──
+    # ── Build figure via the shared param-extractor ──
     from utils import _get_retire_fig
-    from tab_defaults import RETIRE
     try:
-        params = dict(
-            start_stack    = _cf(stack, RETIRE["start_stack"]),
-            use_lots       = use_lots_bool,
-            wd_amount      = _ci(wd, RETIRE["wd_amount"]),
-            freq           = freq or "Monthly",
-            start_yr       = int(yr_range[0]),
-            end_yr         = int(yr_range[1]),
-            inflation      = _cf(infl, RETIRE["inflation"]),
-            disp_mode      = disp or "usd",
-            log_y          = "log_y"      in toggles,
-            annotate       = "annotate"   in toggles,
-            discrete       = "discrete"   in toggles,
-            shade          = "shade"      in toggles,
-            show_legend    = "show_legend" in toggles,
-            legend_pos     = legend_pos or "outside",
-            minor_grid     = "minor_grid" in toggles,
-            selected_qs    = _effective_qs,
-            lots           = _lots,
-            show_qr        = "bub" in model_show,
-            show_mc        = False,
-            active_models  = [k for k in model_show if k != "mc"],
-            palette        = palette_key or "default",
-            user_model     = user_model_store,
-            mc_enabled     = False,
+        params = _build_retire_params(
+            stack       = _v(state, "ret-stack"),
+            use_lots    = _v(state, "ret-use-lots"),
+            wd          = _v(state, "ret-wd"),
+            freq        = _v(state, "ret-freq"),
+            yr_range    = _v(state, "ret-yr-range"),
+            infl        = _v(state, "ret-infl"),
+            disp        = _v(state, "ret-disp"),
+            toggles     = _v(state, "ret-toggles"),
+            legend_pos  = _v(state, "ret-legend-pos"),
+            sel_qs      = _v(state, "ret-qs"),
+            adv_qs      = _v(state, "ret-qs-adv"),
+            qs_mode     = _v(state, "ret-qs-mode"),
+            model_show  = model_show,
+            lots        = state.get("_lots") or [],
+            palette_key = _v(state, "palette-store", "data"),
+            user_model_store = state.get("user-model-store:data"),
+            mc_overrides = dict(show_mc=False, mc_enabled=False),
         )
         result = _get_retire_fig(params)
-        fig = result[0] if isinstance(result, tuple) else result
-        return fig
+        return result[0] if isinstance(result, tuple) else result
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning(

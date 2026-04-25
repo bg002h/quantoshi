@@ -129,6 +129,12 @@ def _prewarm_keys(pfx: str) -> set:
 
 
 def _runtime_keys(call_name: str, pfx: str) -> set:
+    # Tabs whose params are built by a shared `_build_<tab>_params(...)`
+    # helper (Driver 1, 2026-04-25). Inspect the helper's resulting dict
+    # at runtime — the AST walker can't follow cross-module function
+    # calls, but the helper is pure so we can call it with stub args.
+    if pfx == "ret":
+        return _retire_runtime_keys()
     names = _extract_kwargs(call_name)
     if "_MC_P_KEYS_" in names:
         names.discard("_MC_P_KEYS_")
@@ -138,6 +144,32 @@ def _runtime_keys(call_name: str, pfx: str) -> set:
     names = {n for n in names if not n.startswith("mc_")}
     # Other per-tab strips
     names -= _KEY_STRIPS_BY_PREFIX.get(pfx, set())
+    return names
+
+
+def _retire_runtime_keys() -> set:
+    """Call `_build_retire_params` with stub args and return its dict keys.
+    `mc_overrides` mirrors what `update_retire` passes (show_mc + full mc_p)
+    so the result includes the same key set as the runtime cache key
+    construction. mc_* keys are stripped (matches mc_enabled=False path)."""
+    import os
+    os.environ.setdefault("DEV", "1")
+    import sys
+    for p in ["btc_web", "."]:
+        if p not in sys.path:
+            sys.path.insert(0, p)
+    import app  # noqa: F401 — initialize Dash app context
+    from restore_builder import _build_retire_params
+    stub_mc_p = {k: None for k in _MC_P_KEYS}
+    params = _build_retire_params(
+        stack=None, use_lots=None, wd=None, freq=None,
+        yr_range=None, infl=None, disp=None, toggles=None,
+        legend_pos=None, sel_qs=None, adv_qs=None, qs_mode=None,
+        model_show=None, lots=None, palette_key=None, user_model_store=None,
+        mc_overrides=dict(show_mc=False, **stub_mc_p),
+    )
+    names = set(params.keys())
+    names = {n for n in names if not n.startswith("mc_")}
     return names
 
 

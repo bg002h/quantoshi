@@ -898,6 +898,125 @@ class TestSnapshotDefaultsConsistency:
             f"Mismatches:\n  " + "\n  ".join(mismatches)
         )
 
+    def test_restore_builders_cover_prewarm_param_keys(self):
+        """Every key in tab_defaults' prewarm dict (BUBBLE/DCA/RETIRE/...)
+        must also appear in the corresponding _build_{tab}_figure_from_state
+        param dict in restore_builder.py.
+
+        Catches drift caused by adding a new control to update_X (which
+        also updates tab_defaults' prewarm baseline) but forgetting to
+        mirror it in the restore_builder. The 5-failed-attempt saga in
+        memory/restore_callback_architecture.md identified exactly this
+        kind of missing-key bug as a root cause of restore correctness
+        issues.
+
+        Approach: mock each tab's `_get_{tab}_fig` to capture the params
+        dict the builder constructs, then compare key sets.
+
+        Citadel intentionally has no restore_builder (Phase 2 ship 6 just
+        writes active-chart-committed; the cached default chart loads via
+        the existing cascade). Skipped here.
+        """
+        from unittest.mock import patch
+        import plotly.graph_objects as go
+        # Use the *_defaults() helpers, not the raw MappingProxyType dicts.
+        # The helpers pop UI-only keys (qs_mode, hm_palette, etc.) that
+        # appear in the prewarm dict but are stripped before being passed
+        # to the figure-builder fn.
+        from tab_defaults import (bubble_defaults, heatmap_defaults,
+                                  dca_defaults, retire_defaults,
+                                  supercharge_defaults, leverage_defaults)
+        import restore_builder
+
+        # Tab → (prewarm dict, builder function name, fig fn module path,
+        #         fig fn return shape, minimal state to bypass gates)
+        # Bubble: state empty (CTA-active=[] by default → builder runs)
+        # DCA/Retire/SC/HM: explicitly disable MC so builder doesn't return None
+        # Leverage: simple — no MC, no SC complications
+        # NOTE: patch path matters. Bubble's _get_bubble_fig is imported at
+        # restore_builder.py module-top, so patch restore_builder._get_bubble_fig.
+        # The other tabs import function-locally so patching utils._get_*_fig
+        # works because each call re-resolves the name from utils.
+        cases = [
+            ("bubble", bubble_defaults(),
+             restore_builder._build_bubble_figure_from_state,
+             "restore_builder._get_bubble_fig", "fig",
+             {"main-tabs:active_tab": "bubble"}),
+            ("dca", dca_defaults(),
+             restore_builder._build_dca_figure_from_state,
+             "utils._get_dca_fig", "tuple",
+             {"main-tabs:active_tab": "dca", "dca-mc-enable:value": []}),
+            ("retire", retire_defaults(),
+             restore_builder._build_retire_figure_from_state,
+             "utils._get_retire_fig", "tuple",
+             {"main-tabs:active_tab": "retire", "ret-mc-enable:value": []}),
+            ("supercharge", supercharge_defaults(),
+             restore_builder._build_supercharge_figure_from_state,
+             "utils._get_supercharge_fig", "tuple",
+             {"main-tabs:active_tab": "supercharge",
+              "sc-mc-enable:value": []}),
+            ("heatmap", heatmap_defaults(),
+             restore_builder._build_heatmap_figure_from_state,
+             "utils._get_heatmap_fig", "fig",
+             {"main-tabs:active_tab": "heatmap", "hm-mc-enable:value": [],
+              "hm-active-model:data": "bub"}),
+            ("leverage", leverage_defaults(),
+             restore_builder._build_leverage_figure_from_state,
+             "figures.leverage.build_leverage_figure", "fig",
+             {"main-tabs:active_tab": "leverage"}),
+        ]
+
+        violations = []
+        for tab, prewarm, builder, fig_fn_path, return_shape, state in cases:
+            captured = {}
+
+            def _capture(p, *args, **kwargs):
+                captured["params"] = dict(p)  # snapshot at call-time
+                if return_shape == "tuple":
+                    return (go.Figure(), None)
+                # bubble's _get_bubble_fig returns a Figure directly
+                return go.Figure()
+
+            with patch(fig_fn_path, side_effect=_capture):
+                result = builder(state)
+
+            assert "params" in captured, (
+                f"{tab}: builder didn't reach figure-fn call (likely returned "
+                f"None due to a gate; adjust state to bypass)"
+            )
+            captured_keys = set(captured["params"].keys())
+            prewarm_keys = set(prewarm.keys())
+
+            # Some prewarm keys are intentionally not figure params (e.g.,
+            # cache-key salt or UI-only flags). The check is one-directional:
+            # every prewarm key SHOULD appear in builder's params, OR be in
+            # this allowlist of known prewarm-only keys.
+            #
+            # Currently no allowlist is needed; the prewarm dicts are tightly
+            # coupled to the figure-builder param dicts. Add entries here if
+            # a prewarm key is intentionally unmapped.
+            PREWARM_ONLY_ALLOWLIST = {
+                # tab → set of keys that are in prewarm but NOT in builder
+                # (e.g., if prewarm needs an extra cache-key field)
+            }
+            allowlist = PREWARM_ONLY_ALLOWLIST.get(tab, set())
+
+            missing = prewarm_keys - captured_keys - allowlist
+            if missing:
+                violations.append(
+                    f"{tab}: prewarm has keys {sorted(missing)} that are "
+                    f"NOT in the restore builder's params dict. Either add "
+                    f"them to _build_{tab}_figure_from_state or to the "
+                    f"PREWARM_ONLY_ALLOWLIST."
+                )
+
+        assert violations == [], (
+            f"\n{len(violations)} prewarm/restore-builder param key drifts. "
+            f"Memory: see lessons-learned section in "
+            f"restore_callback_architecture.md.\n  "
+            + "\n  ".join(violations)
+        )
+
     def test_checklist_options_cover_default_values(self):
         """For every list-valued entry in SNAPSHOT_DEFAULTS where the
         component is in _CHECKLIST_OPTIONS, every default-list element

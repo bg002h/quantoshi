@@ -54,6 +54,8 @@ def restore_from_url(hash_str):
     Arms snapshot-pending=True on successful decode. apply_tab_{active}
     releases it when tab controls land; safety timer also releases after
     3s. See spec 2026-04-24-single-redraw-per-snapshot-design.md."""
+    import time as _time
+    _t0 = _time.perf_counter()
     if not hash_str:
         return no_update, no_update, no_update
     h = hash_str.lstrip("#")
@@ -67,8 +69,10 @@ def restore_from_url(hash_str):
         if state.get("bub-sigma-mode:value") == "resqr":
             state = dict(state)
             state["bub-sigma-mode:value"] = "constant"
-    logger.info("Snapshot restored: %d controls, lots=%s",
-                sum(1 for k in state if k != "_lots"), "yes" if "_lots" in state else "no")
+    _dt_ms = (_time.perf_counter() - _t0) * 1000
+    logger.info("[trace] restore_from_url prefix=%s controls=%d lots=%s decode_ms=%.1f",
+                prefix, sum(1 for k in state if k != "_lots"),
+                "yes" if "_lots" in state else "no", _dt_ms)
     return state, hash_str, True
 
 
@@ -155,16 +159,19 @@ def _make_apply_tab_callback(tab_id, first_render_id, controls):
         prevent_initial_call=True,
     )
     def _apply(_trigger, state, loaded_hash, applied_hash, _ctrls=controls):
-        # No-op if no snapshot state, or this tab has already applied the
-        # currently-loaded hash (prevents re-applying stale values on later
-        # first-render bumps, e.g. sigma-mode radio change).
+        import time as _time
+        _t0 = _time.perf_counter()
         if not state:
             return [no_update] * (len(_ctrls) + 2)
         if loaded_hash and applied_hash == loaded_hash:
             return [no_update] * (len(_ctrls) + 2)
         values = [state.get(f"{cid}:{prop}", no_update) for cid, prop in _ctrls]
-        values.append(False)          # release gate
-        values.append(loaded_hash)    # record applied
+        values.append(False)
+        values.append(loaded_hash)
+        n_set = sum(1 for v in values[:-2] if v is not no_update)
+        logger.info("[trace] apply_tab_%s controls=%d/%d apply_ms=%.1f",
+                    tab_id, n_set, len(_ctrls),
+                    (_time.perf_counter() - _t0) * 1000)
         return values
 
     _apply.__name__ = f"apply_tab_{tab_id}"
@@ -647,12 +654,14 @@ _app_ctx.app.clientside_callback(
                       h.indexOf('q3:') === 0 ||
                       h.indexOf('q4:') === 0;
         if (!isShare) return window.dash_clientside.no_update;
+        if (window.__qsTrace) window.__qsTrace('share-hash-detected', h.slice(0, 12));
 
         if (window.__restoreOpenTimer) clearTimeout(window.__restoreOpenTimer);
         window.__restoreOpenTimer = setTimeout(function () {
             window.dash_clientside.set_props(
                 'restore-progress-modal', { is_open: true });
             window.__restoreOpenTime = performance.now();
+            if (window.__qsTrace) window.__qsTrace('modal-opened');
         }, 150);
 
         if (window.__restoreFallback) clearTimeout(window.__restoreFallback);
@@ -687,7 +696,11 @@ _app_ctx.app.clientside_callback(
     """
     function(pending, active) {
         var NU = window.dash_clientside.no_update;
-        if (pending === true) return NU;
+        if (pending === true) {
+            if (window.__qsTrace) window.__qsTrace('snapshot-pending=true');
+            return NU;
+        }
+        if (window.__qsTrace) window.__qsTrace('snapshot-pending=false→close-armed', active);
         if (!window.__restoreOpenTime) {
             if (window.__restoreOpenTimer) {
                 clearTimeout(window.__restoreOpenTimer);
@@ -727,6 +740,8 @@ _app_ctx.app.clientside_callback(
                         clearTimeout(window.__restoreFallback);
                         window.__restoreFallback = null;
                     }
+                    if (window.__qsTrace) window.__qsTrace('modal-closed');
+                    if (window.__qsDumpTrace) window.__qsDumpTrace('restore');
                 });
             }, delay);
         }
@@ -735,11 +750,14 @@ _app_ctx.app.clientside_callback(
             // One-shot afterplot listener on the active Plotly graph.
             // gd.on stacks; we wrap to remove on first fire.
             var handler = function () {
+                if (window.__qsTrace) window.__qsTrace('plotly_afterplot');
                 try { gd.removeListener && gd.removeListener('plotly_afterplot', handler); }
                 catch (e) { /* Plotly version varies */ }
                 closeModal();
             };
             gd.on('plotly_afterplot', handler);
+        } else if (window.__qsTrace) {
+            window.__qsTrace('no-plotly-graph→fallback-only', active || 'unknown');
         }
         // Hard fallback: 7s. Covers (a) tabs without a Plotly graph
         // (stack/model_info/faq), (b) graph callbacks that PreventUpdate

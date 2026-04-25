@@ -169,11 +169,12 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   sigma_mode=None,
                   snapshot_pending=False):
     """Bubble + QR overlay chart callback -- coerce inputs, build figure."""
-    # Snapshot gate: skip render while a share-link restore is in progress.
-    # MUST be the very first statement, before any PreventUpdate / hydration
-    # guards, so restore always settles deterministically. See spec
-    # 2026-04-24-single-redraw-per-snapshot-design.md.
+    import time as _time
+    _t0 = _time.perf_counter()
     if snapshot_pending:
+        import logging as _lg
+        _lg.getLogger(__name__).info("[trace] bubble-fig SKIPPED (gate) %.1fms",
+                                     (_time.perf_counter() - _t0) * 1000)
         return dash.no_update
     from dash.exceptions import PreventUpdate
     _trg = getattr(ctx, 'triggered_id', None)
@@ -280,6 +281,9 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
         fig.update_xaxes(fixedrange=True)
         fig.update_yaxes(fixedrange=True)
 
+    import logging as _lg
+    _lg.getLogger(__name__).info("[trace] bubble-fig BUILT %.1fms",
+                                 (_time.perf_counter() - _t0) * 1000)
     return fig
 
 

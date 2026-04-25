@@ -92,6 +92,7 @@ _app_ctx.app.clientside_callback(
         var NU = window.dash_clientside.no_update;
         var out = [NU, NU, NU, NU, NU, NU, NU];
         if (!state) return out;
+        if (window.__qsTrace) window.__qsTrace('state-store-written→first-render-bump', tab);
         var map = {bubble:0, heatmap:1, dca:2, retire:3, supercharge:4, citadel:5, leverage:6};
         var idx = map[tab];
         if (idx === undefined) return out;

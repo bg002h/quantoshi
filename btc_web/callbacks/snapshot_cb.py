@@ -849,3 +849,41 @@ _app_ctx.app.clientside_callback(
     Input("active-chart-committed", "data"),
     prevent_initial_call=True,
 )
+
+
+# ── Clear active-chart-committed on first user interaction ────────────────
+# The post-restore guard in update_bubble suppresses rebuilds while
+# active_chart_committed == loaded_hash. Without this listener the gate
+# stays armed for the whole session, swallowing legitimate user edits.
+# Installing one-shot DOM listeners (capture phase, document-wide) on
+# mousedown/touchstart/keydown when active-chart-committed becomes
+# truthy means the first real interaction clears the gate via set_props
+# and removes itself. document scope (not just controls col) catches
+# navbar palette dropdown, chart legend clicks, keyboard navigation.
+_app_ctx.app.clientside_callback(
+    """
+    function(committed) {
+        var NU = window.dash_clientside.no_update;
+        if (!committed) return NU;
+        if (window.__qsClearListenerInstalled) return NU;
+        window.__qsClearListenerInstalled = true;
+        function clearGate(ev) {
+            document.removeEventListener('mousedown',  clearGate, true);
+            document.removeEventListener('touchstart', clearGate, true);
+            document.removeEventListener('keydown',    clearGate, true);
+            window.__qsClearListenerInstalled = false;
+            window.dash_clientside.set_props(
+                'active-chart-committed', { data: null });
+            if (window.__qsTrace) window.__qsTrace(
+                'restore-gate cleared (' + ev.type + ')');
+        }
+        document.addEventListener('mousedown',  clearGate, true);
+        document.addEventListener('touchstart', clearGate, true);
+        document.addEventListener('keydown',    clearGate, true);
+        return NU;
+    }
+    """,
+    Output("active-chart-committed", "data", allow_duplicate=True),
+    Input("active-chart-committed", "data"),
+    prevent_initial_call=True,
+)

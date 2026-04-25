@@ -182,12 +182,23 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     from dash.exceptions import PreventUpdate
     _trg = getattr(ctx, 'triggered_id', None)
     # Restore short-circuit: if restore_from_url already built the
-    # figure for this hash, skip the redundant rebuild triggered by
-    # CTA's tick bump or effective-lots cascade. User-driven control
-    # changes hit other triggers; the guard intentionally lists ONLY
-    # the post-restore re-fire paths so steady-state interactions
-    # still rebuild correctly.
-    _POST_RESTORE_TRIGGERS = {"bub-redraw-tick", "effective-lots"}
+    # figure for this hash, skip redundant rebuilds triggered by the
+    # apply_tab_bubble cascade (which writes ~25 bub-* widget values
+    # that are also Inputs here). Set covers EVERY Input on this
+    # callback. Gate clears on first user interaction (clientside
+    # listener in snapshot_cb.py) so steady-state edits proceed.
+    _POST_RESTORE_TRIGGERS = {
+        "bubble-first-render", "effective-lots", "bub-redraw-tick",
+        "palette-store", "user-model-store",
+        "bub-qs", "bub-qs-adv", "bub-toggles",
+        "bub-xscale", "bub-yscale", "bub-xrange", "bub-yrange",
+        "bub-ptsize", "bub-ptalpha", "bub-stack", "bub-show-stack",
+        "bub-use-lots", "bub-legend-pos", "bub-model-show",
+        "lppl-n-freqs", "lppl-weighted", "lppl-no-13",
+        "bub-decomp-model", "bub-decomp-components", "bub-decomp-mode",
+        "hybppl-commit-trigger", "eppl-commit-trigger",
+        "bm-commit-trigger",
+    }
     if (active_chart_committed and active_chart_committed == loaded_hash
             and _trg in _POST_RESTORE_TRIGGERS):
         print(f"[trace] bubble-fig SKIPPED (restore short-circuit) "

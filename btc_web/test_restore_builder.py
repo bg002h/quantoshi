@@ -91,3 +91,94 @@ def test_helper_is_pure():
     assert isinstance(fig1, go.Figure) and isinstance(fig2, go.Figure)
     # Same number of traces.
     assert len(fig1.data) == len(fig2.data)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Phase 2 (2026-04-25): _build_dca_figure_from_state tests.
+# ════════════════════════════════════════════════════════════════════════════
+
+class TestBuildDcaFigureFromState:
+    def test_dca_basic_returns_figure(self):
+        """Minimal state with bub model enabled — builder returns a figure with
+        ≥1 quantile trace. (DCA only draws traces when "bub" is in
+        active_models; defaults are empty until user toggles model show.)"""
+        from restore_builder import _build_dca_figure_from_state
+        state = {
+            "main-tabs:active_tab": "dca",
+            "dca-amount:value": 100,
+            "dca-yr-range:value": [2024, 2034],
+            "dca-qs:value": [0.5],
+            "dca-model-show:value": ["bub"],
+        }
+        fig = _build_dca_figure_from_state(state)
+        assert fig is not None, "builder returned None for non-MC non-SC-live state"
+        # Convert to dict if Figure object
+        fig_dict = fig.to_dict() if hasattr(fig, "to_dict") else fig
+        assert "data" in fig_dict
+        # At least one trace whose name matches quantile pattern (e.g., "Q50%", "Q1%")
+        import re
+        q_re = re.compile(r"Q\d")
+        has_q = any(q_re.search(str(t.get("name", ""))) for t in fig_dict["data"])
+        assert has_q, (
+            f"no quantile trace in figure data: "
+            f"{[t.get('name') for t in fig_dict['data']]}"
+        )
+
+    def test_dca_mc_enabled_returns_none(self):
+        """dca-mc-enable=['yes'] (decoded list, not bitmask int) — return None."""
+        from restore_builder import _build_dca_figure_from_state
+        state = {
+            "main-tabs:active_tab": "dca",
+            "dca-mc-enable:value": ["yes"],
+            "dca-amount:value": 100,
+        }
+        fig = _build_dca_figure_from_state(state)
+        assert fig is None, "MC-enabled snapshot must fall back to cascade path"
+
+    def test_dca_sc_live_returns_none(self):
+        """sc-enable + sc-entry-mode=live — return None, no exception, no
+        attempt to resolve btc-price-store from state."""
+        from restore_builder import _build_dca_figure_from_state
+        state = {
+            "main-tabs:active_tab": "dca",
+            "dca-sc-enable:value": ["yes"],
+            "dca-sc-entry-mode:value": "live",
+            "dca-amount:value": 100,
+        }
+        # Must not raise — even though btc-price-store key is absent.
+        fig = _build_dca_figure_from_state(state)
+        assert fig is None, "Saylor-live snapshot must fall back to cascade path"
+
+    def test_dca_sc_custom_returns_figure(self):
+        """sc-enable + sc-entry-mode=custom + custom price — returns figure."""
+        from restore_builder import _build_dca_figure_from_state
+        state = {
+            "main-tabs:active_tab": "dca",
+            "dca-sc-enable:value": ["yes"],
+            "dca-sc-entry-mode:value": "custom",
+            "dca-sc-custom-price:value": 50000.0,
+            "dca-sc-loan:value": 100000.0,
+            "dca-amount:value": 100,
+        }
+        fig = _build_dca_figure_from_state(state)
+        assert fig is not None, "SC-custom snapshot should produce a figure"
+
+    def test_dca_with_lots_returns_figure(self):
+        """Snapshot with _lots + dca-use-lots=['yes'] — figure builds without
+        error (lots-resolution mirrors bubble builder)."""
+        from restore_builder import _build_dca_figure_from_state
+        state = {
+            "main-tabs:active_tab": "dca",
+            "dca-use-lots:value": ["yes"],
+            "dca-amount:value": 100,
+            "dca-model-show:value": ["bub"],  # required for traces to be drawn
+            "_lots": [
+                {"date": "2020-01-01", "btc": 0.5, "price": 7000.0,
+                 "pct_q": 0.5, "label": "test"},
+            ],
+        }
+        fig = _build_dca_figure_from_state(state)
+        assert fig is not None
+        fig_dict = fig.to_dict() if hasattr(fig, "to_dict") else fig
+        # At least one trace expected when bub model is shown
+        assert len(fig_dict.get("data", [])) > 0, "expected ≥1 trace with bub model"

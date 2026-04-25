@@ -953,6 +953,8 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     State("dca-qs-mode",        "value"),
     State("user-model-store",   "data"),
     State("snapshot-pending",   "data"),
+    State("active-chart-committed", "data"),
+    State("loaded-hash-store",  "data"),
     prevent_initial_call=True,
 )
 def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range, disp, toggles, legend_pos, sel_qs, adv_qs,
@@ -972,9 +974,38 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
                mc_enable, mc_bins, mc_regime, mc_sims, mc_years, mc_window,
                mc_start_yr, mc_entry_q, _mc_loaded, _pay_trigger, model_show, mc_model_src,
                price_data, mc_cached, pay_token, mc_unblocked, mc_auth, palette_key,
-               qs_mode=None, user_model_store=None, snapshot_pending=False):
+               qs_mode=None, user_model_store=None, snapshot_pending=False,
+               active_chart_committed=None, loaded_hash=None):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
+        return (dash.no_update,) * 8
+    # Phase 2 (2026-04-25) post-restore short-circuit: when restore_from_url
+    # has delivered the figure via set_props (active-chart-committed ==
+    # loaded-hash), suppress the apply_tab_dca cascade's phantom rebuild.
+    # The clear-on-user-input listener (snapshot_cb.py) clears
+    # active-chart-committed on first DOM interaction, so steady-state
+    # edits proceed normally. dca-mc-loaded is deliberately excluded so MC
+    # async completion can rebuild the chart after the post-restore window.
+    # Tuple-size invariant: keep `(dash.no_update,) * 8` aligned with this
+    # callback's 8 Outputs (figure, mc-results, mc-status, mc-rendered-key,
+    # mc-save-modal, mc-save-tab, mc-unblocked, yr-range). If a 9th Output
+    # is added, this guard's return tuple must grow too.
+    _POST_RESTORE_TRIGGERS_DCA = {
+        "dca-first-render", "dca-stack", "dca-use-lots", "dca-amount",
+        "dca-freq", "dca-infl", "dca-yr-range", "dca-disp", "dca-toggles",
+        "dca-legend-pos", "dca-qs", "dca-qs-adv",
+        "lppl-n-freqs", "lppl-weighted", "lppl-no-13",
+        "hybppl-commit-trigger", "eppl-commit-trigger",
+        "dca-sc-enable", "dca-sc-loan", "dca-sc-rate", "dca-sc-term",
+        "dca-sc-type", "dca-sc-repeats", "dca-sc-entry-mode",
+        "dca-sc-custom-price", "dca-sc-tax", "dca-sc-rollover",
+        "dca-mc-enable", "dca-mc-bins", "dca-mc-regime", "dca-mc-sims",
+        "dca-mc-years", "dca-mc-window", "dca-mc-start-yr", "dca-mc-entry-q",
+        "dca-model-show", "dca-mc-model-src",
+    }
+    _trg = ctx.triggered_id
+    if active_chart_committed and active_chart_committed == loaded_hash \
+            and _trg in _POST_RESTORE_TRIGGERS_DCA:
         return (dash.no_update,) * 8
     toggles    = toggles or []
     yr_range   = yr_range or [2024, 2034]

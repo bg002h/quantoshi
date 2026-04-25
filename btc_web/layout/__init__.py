@@ -304,6 +304,16 @@ def _build_layout(initial_tab="bubble"):
     # the entire callback dispatch when an Output's component is absent from
     # DOM. Routing the figure through an always-mounted Store fixes /2-/7.
     dcc.Store(id="restore-bubble-fig", storage_type="memory", data=None),
+    # Phase 2 (2026-04-25): DCA figure delivery via Store + set_props relay,
+    # same pattern as restore-bubble-fig. dca-graph is inside dca-lazy on /1
+    # /2/4/5/6/7 initial loads — directly outputting to dca-graph.figure
+    # would re-introduce the Phase 1 lazy-Output dispatch-drop bug.
+    dcc.Store(id="restore-dca-fig", storage_type="memory", data=None),
+    # Phase 2 phantom-rebuild detector: clientside callback below increments
+    # this on dca-graph.figure mutation. E2E test 9 reads it via page.evaluate
+    # and asserts count==1 after restore (single delivery via relay; >=2 means
+    # the post-restore guard failed and the cascade rebuilt the figure).
+    dcc.Store(id="dca-build-count", storage_type="memory", data=0),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="model-percentiles-store", storage_type="memory", data=None),
     dcc.Store(id="ticker-model-idx", storage_type="memory", data=0),

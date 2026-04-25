@@ -1471,18 +1471,18 @@ class TestEffectiveLots:
 @pytest.mark.skipif(_q3 is None, reason="app.py import failed")
 class TestRestoreFromUrl:
     def test_empty_hash(self):
-        state, loaded, pending, fig, committed = restore_from_url("")
+        state, loaded, pending, fig, committed, dca_fig = restore_from_url("")
         from dash import no_update
         assert state is no_update
         assert loaded is no_update
 
     def test_none_hash(self):
-        state, loaded, pending, fig, committed = restore_from_url(None)
+        state, loaded, pending, fig, committed, dca_fig = restore_from_url(None)
         from dash import no_update
         assert state is no_update
 
     def test_invalid_prefix(self):
-        state, loaded, pending, fig, committed = restore_from_url("#garbage")
+        state, loaded, pending, fig, committed, dca_fig = restore_from_url("#garbage")
         from dash import no_update
         assert state is no_update
 
@@ -1496,7 +1496,7 @@ class TestRestoreFromUrl:
         }
         encoded = _encode_snapshot(state)
         hash_str = f"#q3:{encoded}"
-        decoded, loaded_hash, pending, fig, committed = restore_from_url(hash_str)
+        decoded, loaded_hash, pending, fig, committed, dca_fig = restore_from_url(hash_str)
         assert loaded_hash == hash_str
         assert isinstance(decoded, dict)
         assert decoded["main-tabs:active_tab"] == "bubble"
@@ -1523,7 +1523,7 @@ class TestRestoreFromUrl:
         }
         encoded = _encode_snapshot(state)
         hash_str = f"#q3:{encoded}"
-        _, _, _, fig_payload, _ = restore_from_url(hash_str)
+        _, _, _, fig_payload, _, _ = restore_from_url(hash_str)
         # Either a figure (dict with 'data' key) or no_update.
         if fig_payload is not no_update:
             # Plotly Figure objects have to_dict(); plain dicts have 'data'
@@ -1551,15 +1551,25 @@ class TestRestoreFromUrl:
         }
         encoded = _encode_snapshot(state)
         hash_str = f"#q3:{encoded}"
-        _, _, _, fig_payload, committed = restore_from_url(hash_str)
+        _, _, _, fig_payload, committed, dca_payload = restore_from_url(hash_str)
         assert fig_payload is no_update, (
-            "Non-bubble share must return no_update for restore-bubble-fig "
-            "(Phase 1 only builds bubble figures server-side)."
+            "Non-bubble share must return no_update for restore-bubble-fig."
         )
-        assert committed is no_update, (
-            "Non-bubble share must return no_update for active-chart-committed "
-            "(Phase 2 will write this from per-tab figure builders)."
-        )
+        # Phase 2: for "dca" active_tab, dca_payload is either a figure or
+        # no_update (depending on builder gating). committed is hash_str when
+        # builder succeeded, no_update otherwise. We accept both branches.
+        if dca_payload is not no_update:
+            # Builder built the figure — committed must be set
+            assert committed == hash_str, (
+                "When DCA builder returns a figure, active-chart-committed "
+                "must be set to hash_str."
+            )
+        else:
+            # Builder fell back — committed should be no_update too
+            assert committed is no_update, (
+                "When DCA builder returns no_update, active-chart-committed "
+                "must also be no_update."
+            )
 
 
 

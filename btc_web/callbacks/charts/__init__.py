@@ -172,9 +172,8 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     import time as _time
     _t0 = _time.perf_counter()
     if snapshot_pending:
-        import logging as _lg
-        _lg.getLogger(__name__).info("[trace] bubble-fig SKIPPED (gate) %.1fms",
-                                     (_time.perf_counter() - _t0) * 1000)
+        print(f"[trace] bubble-fig SKIPPED (gate) "
+              f"{(_time.perf_counter() - _t0) * 1000:.1f}ms", flush=True)
         return dash.no_update
     from dash.exceptions import PreventUpdate
     _trg = getattr(ctx, 'triggered_id', None)
@@ -281,9 +280,8 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
         fig.update_xaxes(fixedrange=True)
         fig.update_yaxes(fixedrange=True)
 
-    import logging as _lg
-    _lg.getLogger(__name__).info("[trace] bubble-fig BUILT %.1fms",
-                                 (_time.perf_counter() - _t0) * 1000)
+    print(f"[trace] bubble-fig BUILT "
+          f"{(_time.perf_counter() - _t0) * 1000:.1f}ms", flush=True)
     return fig
 
 

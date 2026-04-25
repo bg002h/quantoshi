@@ -70,9 +70,10 @@ def restore_from_url(hash_str):
             state = dict(state)
             state["bub-sigma-mode:value"] = "constant"
     _dt_ms = (_time.perf_counter() - _t0) * 1000
-    logger.info("[trace] restore_from_url prefix=%s controls=%d lots=%s decode_ms=%.1f",
-                prefix, sum(1 for k in state if k != "_lots"),
-                "yes" if "_lots" in state else "no", _dt_ms)
+    print(f"[trace] restore_from_url prefix={prefix} "
+          f"controls={sum(1 for k in state if k != '_lots')} "
+          f"lots={'yes' if '_lots' in state else 'no'} decode_ms={_dt_ms:.1f}",
+          flush=True)
     return state, hash_str, True
 
 
@@ -169,9 +170,9 @@ def _make_apply_tab_callback(tab_id, first_render_id, controls):
         values.append(False)
         values.append(loaded_hash)
         n_set = sum(1 for v in values[:-2] if v is not no_update)
-        logger.info("[trace] apply_tab_%s controls=%d/%d apply_ms=%.1f",
-                    tab_id, n_set, len(_ctrls),
-                    (_time.perf_counter() - _t0) * 1000)
+        print(f"[trace] apply_tab_{tab_id} controls={n_set}/{len(_ctrls)} "
+              f"apply_ms={(_time.perf_counter() - _t0) * 1000:.1f}",
+              flush=True)
         return values
 
     _apply.__name__ = f"apply_tab_{tab_id}"

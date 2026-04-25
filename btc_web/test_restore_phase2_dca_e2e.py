@@ -61,12 +61,18 @@ _DASH_STORE_LOOKUP = """
 
 
 def test_dca_share_fast_modal_close():
-    """/3 share with dca-amount=999 renders chart fast and restores widget."""
+    """/3 share with dca-amount=999 renders chart fast and restores widget.
+
+    Explicitly disables MC so the fast-path builder runs (DCA defaults to
+    MC=on as of commit 093c665; with MC on, builder returns None and the
+    cascade fallback path takes ~7-8s).
+    """
     url = _make_share_url(
         {
             "main-tabs:active_tab": "dca",
             "dca-amount:value": 999,
             "dca-model-show:value": ["bub"],
+            "dca-mc-enable:value": [],
         },
         "/3",
     )
@@ -106,12 +112,16 @@ def test_dca_yr_range_restored():
     figure builder uses yr_range[0]/[1] as start_yr/end_yr so the chart
     visibly reflects the snapshot.
     """
+    # Explicitly disable MC so the builder's fast path runs (DCA defaults to
+    # MC=on as of commit 093c665). Without this, the cascade fallback uses
+    # MC overlay which extends the x-axis past the user's yr-range.
     url = _make_share_url(
         {
             "main-tabs:active_tab": "dca",
             "dca-yr-range:value": [2030, 2040],
             "dca-amount:value": 100,
             "dca-model-show:value": ["bub"],
+            "dca-mc-enable:value": [],
         },
         "/3",
     )
@@ -217,7 +227,8 @@ def test_dca_no_phantom_rebuild():
 
     dca-build-count Store + clientside increment fires on every
     dca-graph.figure mutation. Single delivery via the relay = count==1.
-    Cascade rebuild = count>=2 (guard failed).
+    Cascade rebuild = count>=2 (guard failed). MC off so the fast-path
+    builder runs and the guard is actually exercised.
     """
     url = _make_share_url(
         {
@@ -225,6 +236,7 @@ def test_dca_no_phantom_rebuild():
             "dca-amount:value": 999,
             "dca-yr-range:value": [2025, 2035],
             "dca-model-show:value": ["bub"],
+            "dca-mc-enable:value": [],
         },
         "/3",
     )

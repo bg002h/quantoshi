@@ -394,20 +394,28 @@ _app_ctx.app.clientside_callback(
 
 
 # ── Release prefetch gate when active chart is delivered ────────────────
-# active-chart-committed is written by restore_from_url (snapshot_cb.py)
-# AT THE SAME TIME as the bubble-graph.figure Output, so by the time the
-# splash listener fires, the figure has been delivered to the browser.
-# Non-active-tab prefetch warming begins only after the active chart is
-# drawable — implementing the "main thing first" principle.
+# Two release signals (whichever fires first wins):
+# (1) active-chart-committed truthy — fast path delivered the figure via
+#     set_props relay (Phase 2 ships /1-/7 with figure builder).
+# (2) snapshot-pending transitioning to False — cascade-fallback path
+#     finished (apply_tab_X wrote widgets). Needed for share links that
+#     hit the MC-default-on cascade (DCA/SC/Citadel/retire) where the
+#     builder returns None and active-chart-committed never gets written.
+#
+# Without (2), share links to MC-on tabs would never release the prefetch
+# gate, leaving 9 of 10 tabs stuck as "Loading..." placeholders for the
+# rest of the session. Discovered 2026-04-25 via lazy-load probe.
 # See memory/restore_callback_architecture.md.
 _app_ctx.app.clientside_callback(
     """
-    function(committed) {
-        if (!committed) return window.dash_clientside.no_update;
-        return 1;
+    function(committed, pending) {
+        if (committed) return 1;
+        if (pending === false) return 1;
+        return window.dash_clientside.no_update;
     }
     """,
     Output("prefetch-ready", "data", allow_duplicate=True),
     Input("active-chart-committed", "data"),
+    Input("snapshot-pending", "data"),
     prevent_initial_call=True,
 )

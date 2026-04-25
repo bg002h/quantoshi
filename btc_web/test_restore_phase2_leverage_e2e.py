@@ -117,13 +117,15 @@ def test_lev_readout_fills_via_cascade():
 
 
 def test_supercharge_share_still_restores():
-    """Phase 2 ship 3 regression: /5 supercharge share still works fast."""
+    """Phase 2 ship 3 regression: /5 supercharge share still works fast.
+    MC explicitly off (default flipped to on in 093c665)."""
     url = _make_share_url(
         {
             "main-tabs:active_tab": "supercharge",
             "sc-wd:value": 12000,
             "sc-stack:value": 1.0,
             "sc-model-show:value": ["bub"],
+            "sc-mc-enable:value": [],
         },
         "/5",
     )

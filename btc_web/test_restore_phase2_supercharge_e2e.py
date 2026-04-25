@@ -35,13 +35,16 @@ def _make_share_url(state, path):
 
 
 def test_sc_share_fast_modal_close():
-    """/5 share with sc-wd=12000 renders chart fast and restores widget."""
+    """/5 share with sc-wd=12000 renders chart fast and restores widget.
+    Explicitly disables MC for fast-path assertion (default flipped to on
+    in commit 093c665)."""
     url = _make_share_url(
         {
             "main-tabs:active_tab": "supercharge",
             "sc-wd:value": 12000,
             "sc-stack:value": 1.0,
             "sc-model-show:value": ["bub"],
+            "sc-mc-enable:value": [],
         },
         "/5",
     )
@@ -99,13 +102,15 @@ def test_sc_mc_share_falls_back():
 
 
 def test_sc_no_phantom_rebuild():
-    """Post-restore guard suppresses cascade rebuilds."""
+    """Post-restore guard suppresses cascade rebuilds. MC off so the
+    fast-path builder runs and the post-restore guard is exercised."""
     url = _make_share_url(
         {
             "main-tabs:active_tab": "supercharge",
             "sc-wd:value": 12000,
             "sc-stack:value": 1.0,
             "sc-model-show:value": ["bub"],
+            "sc-mc-enable:value": [],
         },
         "/5",
     )

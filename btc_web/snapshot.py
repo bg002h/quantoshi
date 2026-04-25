@@ -668,11 +668,20 @@ def _registry_lookup(fp):
 
 
 def _mc_null_out_diffs_v4(diffs):
-    """Drop MC control diffs for tabs whose EFFECTIVE mc-enable state
-    is disabled. Effective state = diff value if present (decoded from
-    possible bitmask), else SNAPSHOT_DEFAULTS. Null-out fires only when
-    effectively disabled - avoids clobbering Retire's user-changed
-    downstream fields when ret-mc-enable defaults to ['yes']."""
+    """Drop MC control diffs for tabs whose EFFECTIVE mc-enable state is
+    disabled AND whose default is also disabled.
+
+    The optimization saves URL bytes when user matches the off-default
+    (the common case for tabs where MC defaults off). It must NOT fire
+    when the default is ENABLED, because then "user explicitly disables
+    MC" needs to round-trip — stripping the diff would cause the decoder
+    to fall back to the enabled default, undoing the user's intent.
+
+    The default-also-disabled gate was added 2026-04-25 after MC default
+    was flipped to ['yes'] for DCA/SC/Citadel (commit 093c665) — without
+    this fix, share links with MC=off would decode as MC=on, breaking
+    the fast-path builder gate and the user's explicit toggle choice.
+    """
     from snapshot_defaults import SNAPSHOT_DEFAULTS
     _mc_prefixes = ("dca-mc-", "ret-mc-", "hm-mc-", "sc-mc-", "cp-mc-")
     for pfx in _mc_prefixes:
@@ -694,6 +703,12 @@ def _mc_null_out_diffs_v4(diffs):
             eff = SNAPSHOT_DEFAULTS.get(f"{enable_cid}:value")
         is_disabled = eff in (None, [], 0)
         if not is_disabled:
+            continue
+        # Only strip when DEFAULT is also disabled — otherwise user's
+        # explicit MC=off needs to round-trip via the bitmask=0 diff.
+        default_value = SNAPSHOT_DEFAULTS.get(f"{enable_cid}:value")
+        default_disabled = default_value in (None, [], 0)
+        if not default_disabled:
             continue
         for i, (cid, _) in enumerate(_SNAPSHOT_CONTROLS):
             if cid.startswith(pfx) and cid != f"{pfx}model-src":

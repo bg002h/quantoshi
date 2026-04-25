@@ -175,12 +175,14 @@ def test_retire_no_phantom_rebuild():
 
 
 def test_dca_share_still_restores():
-    """Phase 2 ship 1 regression: /3 DCA share still works fast."""
+    """Phase 2 ship 1 regression: /3 DCA share still works fast.
+    MC off for fast-path (default flipped to on in 093c665)."""
     url = _make_share_url(
         {
             "main-tabs:active_tab": "dca",
             "dca-amount:value": 999,
             "dca-model-show:value": ["bub"],
+            "dca-mc-enable:value": [],
         },
         "/3",
     )

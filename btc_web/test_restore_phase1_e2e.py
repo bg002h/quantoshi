@@ -43,7 +43,8 @@ def test_dca_share_restores_amount():
     dispatch was silently dropped by Dash 4 (lazy bubble-graph Output).
     """
     url = _make_share_url(
-        {"main-tabs:active_tab": "dca", "dca-amount:value": 999},
+        {"main-tabs:active_tab": "dca", "dca-amount:value": 999,
+         "dca-mc-enable:value": []},
         "/3",
     )
     with sync_playwright() as p:
@@ -106,7 +107,8 @@ def test_dca_share_no_jserror_from_set_props():
     in feedback_nonexistent_input_perf.md as a separate issue.
     """
     url = _make_share_url(
-        {"main-tabs:active_tab": "dca", "dca-amount:value": 999},
+        {"main-tabs:active_tab": "dca", "dca-amount:value": 999,
+         "dca-mc-enable:value": []},
         "/3",
     )
     errors = []

@@ -581,14 +581,14 @@ path collapses it to ~3-4 seconds:
    one-shot listener installed in `snapshot_cb.py:854-887`) so steady-
    state edits proceed normally.
 
-/2 (heatmap), /3 (DCA), /4 (retire), /5 (supercharge), and /7 (leverage) join /1 (bubble) on the fast path via the same pattern: per-tab
+All 7 chart tabs (/1, /2, /3, /4, /5, /6, /7) now have fast modal close. Non-bubble tabs join /1 (bubble) via the same pattern: per-tab
 Store relay + clientside `set_props` + post-restore short-circuit (Phase 2,
 2026-04-25). Each new tab requires (a) a new `restore-{tab}-fig` Store,
 (b) a `_build_{tab}_figure_from_state` helper in `restore_builder.py`,
 (c) a new branch in `restore_from_url`, (d) a clientside relay, and
 (e) a post-restore guard inside the tab's chart callback (with the
 right-sized `(no_update,) * N` matching that callback's Output count).
-Citadel still falls back to the existing callback cascade (final ship, /6). CTA-active snapshots and MC-enabled or
+Citadel (/6) is a special case: no server-side figure build. update_citadel only computes simulations on user button click; on share-link load it shows the cached default chart (Q25% bub). active-chart-committed is written so the modal closes fast, but the user must click "Run Simulation" to compute their share-link's specific scenario. CTA-active snapshots and MC-enabled or
 Saylor-live DCA snapshots also fall back. Measured prod latency for
 bubble shares: ~3.4 s to chart visible, ~4.4 s to modal closed. Server
 compute for the direct build: 40-150 ms (bubble) / median 6.3 ms (DCA).

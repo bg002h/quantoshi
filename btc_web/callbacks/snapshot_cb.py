@@ -806,3 +806,46 @@ _app_ctx.app.clientside_callback(
     State("main-tabs", "active_tab"),
     prevent_initial_call=True,
 )
+
+
+# ── Direct modal close on active-chart-committed ──────────────────────────
+# When restore_from_url builds the figure synchronously and writes
+# active-chart-committed in the same response, the figure is delivered
+# to the browser at that moment — no need to wait for plotly_afterplot
+# (which the existing close-on-snapshot-pending listener may miss
+# because it binds the afterplot handler AFTER apply_tab_bubble flips
+# pending=False, which can be after Plotly already painted).
+#
+# This direct path runs alongside the existing one. Whichever fires
+# first wins; both call set_props on the same modal Output. The 500ms
+# min-display floor is preserved to prevent flash.
+_app_ctx.app.clientside_callback(
+    """
+    function(committed) {
+        var NU = window.dash_clientside.no_update;
+        if (!committed) return NU;
+        if (!window.__restoreOpenTime) return NU;  // modal never opened
+
+        var elapsed = performance.now() - window.__restoreOpenTime;
+        var delay = Math.max(0, 500 - elapsed);
+        setTimeout(function () {
+            requestAnimationFrame(function () {
+                window.dash_clientside.set_props(
+                    'restore-progress-modal', { is_open: false });
+                window.__restoreOpenTime = null;
+                if (window.__restoreFallback) {
+                    clearTimeout(window.__restoreFallback);
+                    window.__restoreFallback = null;
+                }
+                if (window.__qsTrace) window.__qsTrace(
+                    'modal-closed (committed)');
+                if (window.__qsDumpTrace) window.__qsDumpTrace('restore');
+            });
+        }, delay);
+        return NU;
+    }
+    """,
+    Output("restore-progress-modal", "is_open", allow_duplicate=True),
+    Input("active-chart-committed", "data"),
+    prevent_initial_call=True,
+)

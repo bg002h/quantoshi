@@ -73,7 +73,7 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
 # ══════════════════════════════════════════════════════════════════════════════
 
 @callback(
-    Output("bubble-graph", "figure"),
+    Output("bubble-graph", "figure", allow_duplicate=True),
     Input("bubble-first-render", "data"),
     Input("bub-qs",            "value"),
     Input("bub-qs-adv",        "value"),
@@ -145,6 +145,8 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     State("scan-q",            "value"),
     State("bub-sigma-mode",    "value"),
     State("snapshot-pending",  "data"),
+    State("loaded-hash-store", "data"),
+    State("active-chart-committed", "data"),
     prevent_initial_call=True,
 )
 def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
@@ -167,7 +169,9 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   cta_active=None,
                   qs_mode=None, scan_active=None, scan_q_val=None,
                   sigma_mode=None,
-                  snapshot_pending=False):
+                  snapshot_pending=False,
+                  loaded_hash=None,
+                  active_chart_committed=None):
     """Bubble + QR overlay chart callback -- coerce inputs, build figure."""
     import time as _time
     _t0 = _time.perf_counter()
@@ -177,6 +181,18 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
         return dash.no_update
     from dash.exceptions import PreventUpdate
     _trg = getattr(ctx, 'triggered_id', None)
+    # Restore short-circuit: if restore_from_url already built the
+    # figure for this hash, skip the redundant rebuild triggered by
+    # CTA's tick bump or effective-lots cascade. User-driven control
+    # changes hit other triggers; the guard intentionally lists ONLY
+    # the post-restore re-fire paths so steady-state interactions
+    # still rebuild correctly.
+    _POST_RESTORE_TRIGGERS = {"bub-redraw-tick", "effective-lots"}
+    if (active_chart_committed and active_chart_committed == loaded_hash
+            and _trg in _POST_RESTORE_TRIGGERS):
+        print(f"[trace] bubble-fig SKIPPED (restore short-circuit) "
+              f"{(_time.perf_counter() - _t0) * 1000:.1f}ms", flush=True)
+        return dash.no_update
     # Spurious hydration fires: Dash dispatches these Inputs on initial load
     # despite prevent_initial_call=True. Guard them so the figure isn't rebuilt.
     if _trg == "user-model-store" and user_model_store is None:

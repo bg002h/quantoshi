@@ -289,6 +289,14 @@ def _build_layout(initial_tab="bubble"):
           ("bubble","heatmap","dca","retire","supercharge",
            "citadel","leverage","stack","model_info","faq"))],
     dcc.Store(id="prefetch-ready", storage_type="memory", data=0),
+    # Set by restore_from_url to loaded_hash when it directly built the
+    # active tab's figure via restore_builder._build_bubble_figure_from_state.
+    # The splash listener watches this so prefetch-ready=1 (non-active-tab
+    # warming) only fires AFTER the active chart has actually been drawn.
+    # update_bubble reads it as State + uses it to short-circuit redundant
+    # rebuilds when CTA's tick bump re-fires the callback post-restore.
+    # See memory/restore_callback_architecture.md.
+    dcc.Store(id="active-chart-committed", storage_type="memory", data=None),
     dcc.Store(id="btc-price-store", storage_type="memory", data=None),
     dcc.Store(id="model-percentiles-store", storage_type="memory", data=None),
     dcc.Store(id="ticker-model-idx", storage_type="memory", data=0),

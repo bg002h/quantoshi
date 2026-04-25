@@ -45,6 +45,8 @@ def _decode_snapshot_by_prefix(h):
     Output("snapshot-state-store", "data"),
     Output("loaded-hash-store",    "data"),
     Output("snapshot-pending",     "data", allow_duplicate=True),
+    Output("bubble-graph",         "figure",  allow_duplicate=True),
+    Output("active-chart-committed","data",   allow_duplicate=True),
     Input("url", "hash"),
     prevent_initial_call='initial_duplicate',
 )
@@ -57,12 +59,12 @@ def restore_from_url(hash_str):
     import time as _time
     _t0 = _time.perf_counter()
     if not hash_str:
-        return no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
     h = hash_str.lstrip("#")
     state, prefix, encoded = _decode_snapshot_by_prefix(h)
     if not state:
         logger.warning("Snapshot decode failed for hash: %s\u2026", hash_str[:20])
-        return no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
     # Legacy-link coercion: if this deployment has no resqr bundles, drop
     # "resqr" sigma_mode back to "constant" so the radio + chart stay in sync.
     if not getattr(_app_ctx, "_HAS_RESQR", False):
@@ -74,7 +76,28 @@ def restore_from_url(hash_str):
           f"controls={sum(1 for k in state if k != '_lots')} "
           f"lots={'yes' if '_lots' in state else 'no'} decode_ms={_dt_ms:.1f}",
           flush=True)
-    return state, hash_str, True
+    # Build the active tab's figure server-side if it's bubble. For
+    # non-bubble tabs (or when CTA is active in the snapshot), the
+    # restore_builder helper returns None \u2014 fall back to the existing
+    # callback path.
+    _fig_out = no_update
+    _committed_out = no_update
+    active_tab = state.get("main-tabs:active_tab", "bubble")
+    if active_tab == "bubble":
+        _t1 = _time.perf_counter()
+        try:
+            from restore_builder import _build_bubble_figure_from_state
+            fig = _build_bubble_figure_from_state(state)
+        except Exception as e:
+            logger.warning("restore_builder failed: %s; falling back to "
+                           "callback path", e)
+            fig = None
+        if fig is not None:
+            _fig_out = fig
+            _committed_out = hash_str
+            print(f"[trace] restore-direct-build BUILT "
+                  f"{(_time.perf_counter() - _t1) * 1000:.1f}ms", flush=True)
+    return state, hash_str, True, _fig_out, _committed_out
 
 
 # Control partition. See spec 2026-04-24-drop-all-tabs-snapshot-design.md.

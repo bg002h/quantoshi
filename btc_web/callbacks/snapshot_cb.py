@@ -203,6 +203,13 @@ def _make_apply_tab_callback(tab_id, first_render_id, controls):
     def _apply(_trigger, state, loaded_hash, applied_hash, _ctrls=controls):
         import time as _time
         _t0 = _time.perf_counter()
+        import sys
+        sys.stderr.write(
+            f"[trace] apply_tab_{tab_id} ENTER trigger={_trigger!r} "
+            f"state_keys={len(state) if state else 'None'} "
+            f"loaded_hash_set={bool(loaded_hash)} "
+            f"applied_match={loaded_hash and applied_hash == loaded_hash}\n")
+        sys.stderr.flush()
         if not state:
             return [no_update] * (len(_ctrls) + 3)
         if loaded_hash and applied_hash == loaded_hash:

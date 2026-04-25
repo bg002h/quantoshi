@@ -74,7 +74,9 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
 
 @callback(
     Output("bubble-graph", "figure"),
+    Output("active-chart-committed", "data", allow_duplicate=True),
     Input("bubble-first-render", "data"),
+    Input("bubble-snap-applied", "data"),
     Input("bub-qs",            "value"),
     Input("bub-qs-adv",        "value"),
     Input("bub-toggles",       "value"),
@@ -145,9 +147,11 @@ from utils import (_get_bubble_fig, _get_dca_fig, _get_retire_fig,
     State("scan-q",            "value"),
     State("bub-sigma-mode",    "value"),
     State("snapshot-pending",  "data"),
+    State("loaded-hash-store", "data"),
     prevent_initial_call=True,
 )
-def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
+def update_bubble(_first_render, _bub_snap_applied,
+                  sel_qs, adv_qs, toggles, bubble_toggles,
                   xscale, yscale, xrange, yrange,
                   n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, model_show,
                   lppl_n_freqs, lppl_weighted, lppl_no_13,
@@ -167,21 +171,31 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   cta_active=None,
                   qs_mode=None, scan_active=None, scan_q_val=None,
                   sigma_mode=None,
-                  snapshot_pending=False):
+                  snapshot_pending=False,
+                  loaded_hash=None):
     """Bubble + QR overlay chart callback -- coerce inputs, build figure."""
     import time as _time
     _t0 = _time.perf_counter()
     if snapshot_pending:
         print(f"[trace] bubble-fig SKIPPED (gate) "
               f"{(_time.perf_counter() - _t0) * 1000:.1f}ms", flush=True)
-        return dash.no_update
+        return dash.no_update, dash.no_update
     from dash.exceptions import PreventUpdate
     _trg = getattr(ctx, 'triggered_id', None)
     # Spurious hydration fires: Dash dispatches these Inputs on initial load
     # despite prevent_initial_call=True. Guard them so the figure isn't rebuilt.
     if _trg == "user-model-store" and user_model_store is None:
         raise PreventUpdate
-    if _trg == "effective-lots" and not (use_lots and "yes" in (use_lots or [])):
+    # Steady-state guard: when the user toggles bub-use-lots off and
+    # effective-lots cascades, suppress the redundant redraw. NOT during
+    # restore: snapshot_pending may still be True (apply_globals fired
+    # snapshot-lots → effective-lots cascade BEFORE apply_tab_bubble
+    # committed bub-use-lots), in which case the outer gate at line 174
+    # already returned no_update. After apply_tab_bubble commits, the
+    # post-apply fire's _trg is one of the bub-* widgets (effective-lots
+    # didn't change in that batch), so this guard cannot match. The
+    # `not snapshot_pending` clause is defense-in-depth.
+    if _trg == "effective-lots" and not snapshot_pending and not (use_lots and "yes" in (use_lots or [])):
         raise PreventUpdate
     # Custom Time Axis router: if cta-active is on, the Custom Time Axis
     # callback owns bubble-graph.figure. Refuse to overwrite.
@@ -282,7 +296,9 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
 
     print(f"[trace] bubble-fig BUILT "
           f"{(_time.perf_counter() - _t0) * 1000:.1f}ms", flush=True)
-    return fig
+    # active-chart-committed = loaded_hash on restore fires;
+    # no_update on steady-state interactions.
+    return fig, (loaded_hash if loaded_hash is not None else dash.no_update)
 
 
 # ── Price/CAGR view pill bar ─────────────────────────────────────────────────

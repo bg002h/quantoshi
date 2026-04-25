@@ -109,6 +109,7 @@ class TestBuildDcaFigureFromState:
             "dca-yr-range:value": [2024, 2034],
             "dca-qs:value": [0.5],
             "dca-model-show:value": ["bub"],
+            "dca-mc-enable:value": [],  # default flipped to ['yes'] (093c665) — fast path needs explicit off
         }
         fig = _build_dca_figure_from_state(state)
         assert fig is not None, "builder returned None for non-MC non-SC-live state"
@@ -159,6 +160,7 @@ class TestBuildDcaFigureFromState:
             "dca-sc-custom-price:value": 50000.0,
             "dca-sc-loan:value": 100000.0,
             "dca-amount:value": 100,
+            "dca-mc-enable:value": [],
         }
         fig = _build_dca_figure_from_state(state)
         assert fig is not None, "SC-custom snapshot should produce a figure"
@@ -172,6 +174,7 @@ class TestBuildDcaFigureFromState:
             "dca-use-lots:value": ["yes"],
             "dca-amount:value": 100,
             "dca-model-show:value": ["bub"],  # required for traces to be drawn
+            "dca-mc-enable:value": [],
             "_lots": [
                 {"date": "2020-01-01", "btc": 0.5, "price": 7000.0,
                  "pct_q": 0.5, "label": "test"},
@@ -198,6 +201,7 @@ class TestBuildRetireFigureFromState:
             "ret-yr-range:value": [2031, 2050],
             "ret-qs:value": ["median"],
             "ret-model-show:value": ["bub"],
+            "ret-mc-enable:value": [],
         }
         fig = _build_retire_figure_from_state(state)
         assert fig is not None
@@ -228,6 +232,7 @@ class TestBuildRetireFigureFromState:
             "ret-use-lots:value": ["yes"],
             "ret-wd:value": 5000,
             "ret-model-show:value": ["bub"],
+            "ret-mc-enable:value": [],
             "_lots": [
                 {"date": "2020-01-01", "btc": 0.5, "price": 7000.0,
                  "pct_q": 0.5, "label": "test"},
@@ -245,6 +250,7 @@ class TestBuildRetireFigureFromState:
             "main-tabs:active_tab": "retire",
             "ret-wd:value": 5000,
             "ret-model-show:value": ["bub"],
+            "ret-mc-enable:value": [],
         }
         fig = _build_retire_figure_from_state(state)
         assert fig is not None
@@ -267,6 +273,7 @@ class TestBuildSuperchargeFigureFromState:
             "sc-target-yr:value": 2050,
             "sc-mode:value": "a",
             "sc-model-show:value": ["bub"],
+            "sc-mc-enable:value": [],
         }
         fig = _build_supercharge_figure_from_state(state)
         assert fig is not None
@@ -295,6 +302,7 @@ class TestBuildSuperchargeFigureFromState:
             "sc-start-yr:value": 2033,
             "sc-end-yr:value": 2075,
             "sc-model-show:value": ["bub"],
+            "sc-mc-enable:value": [],
         }
         fig = _build_supercharge_figure_from_state(state)
         assert fig is not None
@@ -307,6 +315,7 @@ class TestBuildSuperchargeFigureFromState:
             "sc-use-lots:value": ["yes"],
             "sc-wd:value": 5000,
             "sc-model-show:value": ["bub"],
+            "sc-mc-enable:value": [],
             "_lots": [
                 {"date": "2020-01-01", "btc": 0.5, "price": 7000.0,
                  "pct_q": 0.5, "label": "test"},

@@ -898,6 +898,130 @@ class TestSnapshotDefaultsConsistency:
             f"Mismatches:\n  " + "\n  ".join(mismatches)
         )
 
+    def test_restore_builder_explicit_defaults_match_snapshot_defaults(self):
+        """AST-walk restore_builder.py for `_v(state, cid, [prop,] default=X)`
+        calls; assert X equals SNAPSHOT_DEFAULTS[f"{cid}:{prop}"] (or that
+        the call is in INTENTIONAL_OVERRIDES).
+
+        Catches the bug class: a builder hardcodes default=Y but
+        SNAPSHOT_DEFAULTS says X. New q4 share links get X (decoder fills
+        missing keys); legacy q1/q2/q3 links get Y. Same builder produces
+        different figures for the same logical state — silently. Phase 2
+        had several of these (bub-legend-pos, bub-model-show, etc.).
+
+        After 2026-04-25 the `_v` helper auto-falls-back to SNAPSHOT_DEFAULTS
+        when no explicit default is passed, so the cleanest pattern is to
+        omit the default entirely. This test enforces that any explicit
+        default the developer chooses to keep is in agreement with
+        SNAPSHOT_DEFAULTS.
+        """
+        import ast
+        import os
+        import pathlib
+        from snapshot_defaults import SNAPSHOT_DEFAULTS
+
+        # Calls that intentionally override SNAPSHOT_DEFAULTS. Each entry is
+        # `cid:prop` and the reason. Keep this list short — every entry is
+        # a place where snapshot_defaults can't be the authority.
+        INTENTIONAL_OVERRIDES = {
+            # (None currently. The MC=[] gates were architect-flagged as
+            # actually-wrong for legacy links. After commit removing those,
+            # this set should stay empty.)
+        }
+
+        # Module-imported tab_defaults dicts also count as "match" — many
+        # builders use `default=BUBBLE["pt_size"]` etc. which is the
+        # snapshot-defaults-equivalent value via the prewarm dict.
+        from tab_defaults import (BUBBLE, HEATMAP, DCA, RETIRE, SUPERCHARGE,
+                                  CITADEL, LEVERAGE_DEFAULTS)
+        TAB_DICTS = {
+            "BUBBLE": BUBBLE, "HEATMAP": HEATMAP, "DCA": DCA, "RETIRE": RETIRE,
+            "SUPERCHARGE": SUPERCHARGE, "CITADEL": CITADEL,
+            "LEVERAGE_DEFAULTS": LEVERAGE_DEFAULTS,
+        }
+
+        here = pathlib.Path(os.path.dirname(__file__))
+        src = (here / "restore_builder.py").read_text()
+        tree = ast.parse(src)
+
+        def _eval_constant(node):
+            """Evaluate a literal-ish AST node to its Python value.
+
+            Handles constants, lists, tuples, dicts of constants, and
+            tab_defaults subscripts like `BUBBLE["pt_size"]`. Returns
+            `_NOT_LITERAL` sentinel otherwise.
+            """
+            if isinstance(node, ast.Constant):
+                return node.value
+            if isinstance(node, (ast.List, ast.Tuple)):
+                vals = [_eval_constant(e) for e in node.elts]
+                if any(v is _NOT_LITERAL for v in vals):
+                    return _NOT_LITERAL
+                return list(vals) if isinstance(node, ast.List) else tuple(vals)
+            if isinstance(node, ast.Subscript):
+                # BUBBLE["pt_size"] etc.
+                if (isinstance(node.value, ast.Name)
+                        and node.value.id in TAB_DICTS):
+                    key_node = node.slice
+                    if isinstance(key_node, ast.Constant):
+                        return TAB_DICTS[node.value.id].get(key_node.value, _NOT_LITERAL)
+            if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+                v = _eval_constant(node.operand)
+                if isinstance(v, (int, float)):
+                    return -v
+            return _NOT_LITERAL
+
+        _NOT_LITERAL = object()
+        violations = []
+        skipped_non_literal = []
+
+        # Walk all _v(...) calls
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            if not (isinstance(node.func, ast.Name) and node.func.id == "_v"):
+                continue
+            # Must have a `default=...` keyword to evaluate
+            default_kw = next((kw for kw in node.keywords
+                               if kw.arg == "default"), None)
+            if default_kw is None:
+                continue
+            # Need cid (first positional after `state`) and optional prop
+            args = node.args
+            if len(args) < 2 or not isinstance(args[1], ast.Constant):
+                continue
+            cid = args[1].value
+            prop = "value"
+            if len(args) >= 3 and isinstance(args[2], ast.Constant):
+                prop = args[2].value
+            key = f"{cid}:{prop}"
+            if key in INTENTIONAL_OVERRIDES:
+                continue
+            hardcoded = _eval_constant(default_kw.value)
+            if hardcoded is _NOT_LITERAL:
+                # Non-literal default (e.g., a function call). Skip.
+                skipped_non_literal.append((key, ast.unparse(default_kw.value), node.lineno))
+                continue
+            expected = SNAPSHOT_DEFAULTS.get(key)
+            if hardcoded != expected:
+                violations.append(
+                    f"line {node.lineno}: _v(...{cid!r}..., default={hardcoded!r}) "
+                    f"-- SNAPSHOT_DEFAULTS[{key!r}]={expected!r}"
+                )
+
+        # Print info on skipped (non-literal) defaults so they're visible
+        if skipped_non_literal:
+            print(f"\n[info] skipped {len(skipped_non_literal)} non-literal "
+                  f"defaults (function calls, etc.). First 5: "
+                  f"{skipped_non_literal[:5]}")
+
+        assert violations == [], (
+            f"\n{len(violations)} explicit-default drift in restore_builder.py. "
+            f"Either remove the explicit default (let _v fall back to "
+            f"SNAPSHOT_DEFAULTS) or add to INTENTIONAL_OVERRIDES with reason. "
+            f"\n  " + "\n  ".join(violations)
+        )
+
     def test_restore_builders_cover_prewarm_param_keys(self):
         """Every key in tab_defaults' prewarm dict (BUBBLE/DCA/RETIRE/...)
         must also appear in the corresponding _build_{tab}_figure_from_state

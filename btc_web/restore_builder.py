@@ -42,10 +42,28 @@ def _bands_to_qs(band_values):
     return sorted(set(qs))
 
 
-def _v(state: dict, cid: str, prop: str = "value", default=None):
-    """Fetch a control's value from a snapshot state dict, returning
-    `default` when the key is absent (older link format) or when the
-    stored value is None."""
+_V_NO_DEFAULT = object()
+
+
+def _v(state: dict, cid: str, prop: str = "value", default=_V_NO_DEFAULT):
+    """Fetch a control's value from a snapshot state dict.
+
+    When `default` is not explicitly passed, falls back to
+    `SNAPSHOT_DEFAULTS[f"{cid}:{prop}"]` — making `snapshot_defaults.py`
+    the mechanical authority for both encoding (sparse-diff baseline)
+    AND decoding (builder fallback when state is missing the key).
+    Pre-2026-04-25 each call site hardcoded its own default, which
+    drifted from snapshot_defaults (51 divergences across 6 builders,
+    e.g., `bub-legend-pos` hardcoded `"outside"` vs snapshot
+    `"top-left"`). The AST-walker regression test
+    `test_restore_builder_explicit_defaults_match_snapshot_defaults`
+    blocks new explicit defaults from being added without a matching
+    SNAPSHOT_DEFAULTS entry (or an INTENTIONAL_OVERRIDES allowlist
+    entry in test_snapshot.py for deliberate exceptions).
+    """
+    if default is _V_NO_DEFAULT:
+        from snapshot_defaults import SNAPSHOT_DEFAULTS
+        default = SNAPSHOT_DEFAULTS.get(f"{cid}:{prop}")
     val = state.get(f"{cid}:{prop}", default)
     return default if val is None else val
 
@@ -70,82 +88,82 @@ def _build_bubble_figure_from_state(state: dict):
     # the user expects the custom-time-axis figure, NOT the standard
     # bubble figure. Building standard here and letting CTA overwrite
     # later produces a flicker. Fall back to existing callback path.
-    if "yes" in (_v(state, "cta-active", default=[]) or []):
+    if "yes" in (_v(state, "cta-active") or []):
         return None
 
     # ── Widget values (Input) ──
-    sel_qs   = _v(state, "bub-qs",          default=["median"])
-    adv_qs   = _v(state, "bub-qs-adv",      default=[])
-    qs_mode  = _v(state, "bub-qs-mode",     default=[])
-    toggles  = _v(state, "bub-toggles",     default=["shade", "show_data", "show_today"])
-    bubble_toggles = _v(state, "bub-bubble-toggles", default=["show_comp", "show_sup"])
-    xscale   = _v(state, "bub-xscale",      default="log")
-    yscale   = _v(state, "bub-yscale",      default="log")
-    xrange   = _v(state, "bub-xrange",      default=[2010, 2033])
-    yrange   = _v(state, "bub-yrange",      default=[-1.5, 6.05])
-    n_future = _v(state, "bub-n-future",    default=BUBBLE["n_future"])
-    ptsize   = _v(state, "bub-ptsize",      default=BUBBLE["pt_size"])
-    ptalpha  = _v(state, "bub-ptalpha",     default=BUBBLE["pt_alpha"])
-    stack    = _v(state, "bub-stack",       default=0)
-    show_stack = _v(state, "bub-show-stack", default=[])
-    legend_pos = _v(state, "bub-legend-pos", default="outside")
-    model_show = _v(state, "bub-model-show", default=[])
-    sigma_mode = _v(state, "bub-sigma-mode", default="resqr")  # matches SNAPSHOT_DEFAULTS
+    sel_qs   = _v(state, "bub-qs")
+    adv_qs   = _v(state, "bub-qs-adv")
+    qs_mode  = _v(state, "bub-qs-mode")
+    toggles  = _v(state, "bub-toggles")
+    bubble_toggles = _v(state, "bub-bubble-toggles")
+    xscale   = _v(state, "bub-xscale")
+    yscale   = _v(state, "bub-yscale")
+    xrange   = _v(state, "bub-xrange")
+    yrange   = _v(state, "bub-yrange")
+    n_future = _v(state, "bub-n-future")
+    ptsize   = _v(state, "bub-ptsize")
+    ptalpha  = _v(state, "bub-ptalpha")
+    stack    = _v(state, "bub-stack")
+    show_stack = _v(state, "bub-show-stack")
+    legend_pos = _v(state, "bub-legend-pos")
+    model_show = _v(state, "bub-model-show")
+    sigma_mode = _v(state, "bub-sigma-mode")  # matches SNAPSHOT_DEFAULTS
 
     # ── Lots resolution (clientside cascade replicated) ──
     # Snapshot dict has _lots (raw list); existing callback reads
     # effective-lots which doesn't exist in the dict. We resolve here
     # exactly as the clientside cascade does.
     _lots = state.get("_lots") or []
-    use_lots_val = _v(state, "bub-use-lots", default=[])
+    use_lots_val = _v(state, "bub-use-lots")
     use_lots = bool("yes" in (use_lots_val or []))
 
     # ── LPPL/HybPPL/EPPL config (State in update_bubble) ──
-    lppl_n_freqs  = _v(state, "lppl-n-freqs",  default=[])
-    lppl_weighted = _v(state, "lppl-weighted", default=[])
-    lppl_no_13    = _v(state, "lppl-no-13",    default=[])
+    lppl_n_freqs  = _v(state, "lppl-n-freqs")
+    lppl_weighted = _v(state, "lppl-weighted")
+    lppl_no_13    = _v(state, "lppl-no-13")
 
-    hyb_a_nlog  = _v(state, "hybppl-cfg-a-nlog",  default=1)
-    hyb_a_ncal  = _v(state, "hybppl-cfg-a-ncal",  default=1)
-    hyb_a_log1d = _v(state, "hybppl-cfg-a-log1d", default="d")
-    hyb_a_log2d = _v(state, "hybppl-cfg-a-log2d", default="d")
-    hyb_a_cal1d = _v(state, "hybppl-cfg-a-cal1d", default="u")
-    hyb_a_cal2d = _v(state, "hybppl-cfg-a-cal2d", default="u")
+    hyb_a_nlog  = _v(state, "hybppl-cfg-a-nlog")
+    hyb_a_ncal  = _v(state, "hybppl-cfg-a-ncal")
+    hyb_a_log1d = _v(state, "hybppl-cfg-a-log1d")
+    hyb_a_log2d = _v(state, "hybppl-cfg-a-log2d")
+    hyb_a_cal1d = _v(state, "hybppl-cfg-a-cal1d")
+    hyb_a_cal2d = _v(state, "hybppl-cfg-a-cal2d")
 
-    hyb_b_enabled = _v(state, "hybppl-cfg-b-enabled", default=[])
-    hyb_b_nlog  = _v(state, "hybppl-cfg-b-nlog",  default=0)
-    hyb_b_ncal  = _v(state, "hybppl-cfg-b-ncal",  default=0)
-    hyb_b_log1d = _v(state, "hybppl-cfg-b-log1d", default="d")
-    hyb_b_log2d = _v(state, "hybppl-cfg-b-log2d", default="d")
-    hyb_b_cal1d = _v(state, "hybppl-cfg-b-cal1d", default="u")
-    hyb_b_cal2d = _v(state, "hybppl-cfg-b-cal2d", default="u")
+    hyb_b_enabled = _v(state, "hybppl-cfg-b-enabled")
+    hyb_b_nlog  = _v(state, "hybppl-cfg-b-nlog")
+    hyb_b_ncal  = _v(state, "hybppl-cfg-b-ncal")
+    hyb_b_log1d = _v(state, "hybppl-cfg-b-log1d")
+    hyb_b_log2d = _v(state, "hybppl-cfg-b-log2d")
+    hyb_b_cal1d = _v(state, "hybppl-cfg-b-cal1d")
+    hyb_b_cal2d = _v(state, "hybppl-cfg-b-cal2d")
 
-    ep_a_nlog  = _v(state, "eppl-cfg-a-nlog",  default=1)
-    ep_a_ncal  = _v(state, "eppl-cfg-a-ncal",  default=1)
-    ep_a_log1d = _v(state, "eppl-cfg-a-log1d", default="d")
-    ep_a_log2d = _v(state, "eppl-cfg-a-log2d", default="d")
-    ep_a_cal1d = _v(state, "eppl-cfg-a-cal1d", default="u")
-    ep_a_cal2d = _v(state, "eppl-cfg-a-cal2d", default="u")
+    ep_a_nlog  = _v(state, "eppl-cfg-a-nlog")
+    ep_a_ncal  = _v(state, "eppl-cfg-a-ncal")
+    ep_a_log1d = _v(state, "eppl-cfg-a-log1d")
+    ep_a_log2d = _v(state, "eppl-cfg-a-log2d")
+    ep_a_cal1d = _v(state, "eppl-cfg-a-cal1d")
+    ep_a_cal2d = _v(state, "eppl-cfg-a-cal2d")
 
-    ep_b_enabled = _v(state, "eppl-cfg-b-enabled", default=[])
-    ep_b_nlog  = _v(state, "eppl-cfg-b-nlog",  default=0)
-    ep_b_ncal  = _v(state, "eppl-cfg-b-ncal",  default=0)
-    ep_b_log1d = _v(state, "eppl-cfg-b-log1d", default="d")
-    ep_b_log2d = _v(state, "eppl-cfg-b-log2d", default="d")
-    ep_b_cal1d = _v(state, "eppl-cfg-b-cal1d", default="u")
-    ep_b_cal2d = _v(state, "eppl-cfg-b-cal2d", default="u")
+    ep_b_enabled = _v(state, "eppl-cfg-b-enabled")
+    ep_b_nlog  = _v(state, "eppl-cfg-b-nlog")
+    ep_b_ncal  = _v(state, "eppl-cfg-b-ncal")
+    ep_b_log1d = _v(state, "eppl-cfg-b-log1d")
+    ep_b_log2d = _v(state, "eppl-cfg-b-log2d")
+    ep_b_cal1d = _v(state, "eppl-cfg-b-cal1d")
+    ep_b_cal2d = _v(state, "eppl-cfg-b-cal2d")
 
     # ── Component decomposition ──
-    decomp_model      = _v(state, "bub-decomp-model",      default="")
-    decomp_components = _v(state, "bub-decomp-components", default=[])
-    decomp_mode       = _v(state, "bub-decomp-mode",       default="individual")
+    decomp_model      = _v(state, "bub-decomp-model")
+    decomp_components = _v(state, "bub-decomp-components")
+    decomp_mode       = _v(state, "bub-decomp-mode")
 
     # ── Other Stores ──
-    palette_key = _v(state, "palette-store", "data", default="default")
+    palette_key = _v(state, "palette-store", "data")
     user_model_store = state.get("user-model-store:data")  # may be None
 
     # ── Scanner ──
-    scan_q_val = _v(state, "scan-q", default=None)
+    scan_q_val = _v(state, "scan-q")
     # scan-active-rows is not in _SNAPSHOT_CONTROLS (Store-only state).
     # Treat as no scanner lines on restore.
     scan_active = []
@@ -271,79 +289,79 @@ def _build_dca_figure_from_state(state: dict):
     (unused on non-live SC paths and on non-SC paths).
     """
     # ── Gates: return None for MC and Saylor-live, fall back to cascade ──
-    mc_enable = _v(state, "dca-mc-enable", default=[]) or []
+    mc_enable = _v(state, "dca-mc-enable") or []
     if "yes" in mc_enable:
         return None
-    sc_enable = _v(state, "dca-sc-enable", default=[]) or []
-    sc_entry_mode = _v(state, "dca-sc-entry-mode", default="live")
+    sc_enable = _v(state, "dca-sc-enable") or []
+    sc_entry_mode = _v(state, "dca-sc-entry-mode")
     if "yes" in sc_enable and sc_entry_mode == "live":
         return None
 
     # ── DCA widget values (Inputs) ──
-    stack    = _v(state, "dca-stack",    default=0.0)
-    use_lots = _v(state, "dca-use-lots", default=[])
-    amount   = _v(state, "dca-amount",   default=100)
-    freq     = _v(state, "dca-freq",     default="Monthly")
-    dca_infl = _v(state, "dca-infl",     default=0.0)
-    yr_range = _v(state, "dca-yr-range", default=[2024, 2034])
-    disp     = _v(state, "dca-disp",     default="btc")
-    toggles  = _v(state, "dca-toggles",  default=[])
-    legend_pos = _v(state, "dca-legend-pos", default="outside")
-    sel_qs   = _v(state, "dca-qs",       default=[0.5])
-    adv_qs   = _v(state, "dca-qs-adv",   default=[])
-    qs_mode  = _v(state, "dca-qs-mode",  default=[])  # State at line 953
-    model_show = _v(state, "dca-model-show", default=[])
+    stack    = _v(state, "dca-stack")
+    use_lots = _v(state, "dca-use-lots")
+    amount   = _v(state, "dca-amount")
+    freq     = _v(state, "dca-freq")
+    dca_infl = _v(state, "dca-infl")
+    yr_range = _v(state, "dca-yr-range")
+    disp     = _v(state, "dca-disp")
+    toggles  = _v(state, "dca-toggles")
+    legend_pos = _v(state, "dca-legend-pos")
+    sel_qs   = _v(state, "dca-qs")
+    adv_qs   = _v(state, "dca-qs-adv")
+    qs_mode  = _v(state, "dca-qs-mode")  # State at line 953
+    model_show = _v(state, "dca-model-show")
 
     # ── Saylor-mode (Stack-celerator) widget values ──
-    sc_loan        = _v(state, "dca-sc-loan",        default=0.0)
-    sc_rate        = _v(state, "dca-sc-rate",        default=8.0)
-    sc_term        = _v(state, "dca-sc-term",        default=120)
-    sc_type        = _v(state, "dca-sc-type",        default="interest_only")
-    sc_repeats     = _v(state, "dca-sc-repeats",     default=0)
-    sc_custom_price = _v(state, "dca-sc-custom-price", default=70000.0)
-    sc_tax         = _v(state, "dca-sc-tax",         default=33.0)
-    sc_rollover    = _v(state, "dca-sc-rollover",    default=False)
+    sc_loan        = _v(state, "dca-sc-loan")
+    sc_rate        = _v(state, "dca-sc-rate")
+    sc_term        = _v(state, "dca-sc-term")
+    sc_type        = _v(state, "dca-sc-type")
+    sc_repeats     = _v(state, "dca-sc-repeats")
+    sc_custom_price = _v(state, "dca-sc-custom-price")
+    sc_tax         = _v(state, "dca-sc-tax")
+    sc_rollover    = _v(state, "dca-sc-rollover")
 
     # ── Lots resolution (clientside cascade replicated, mirrors bubble) ──
     _lots = state.get("_lots") or []
     use_lots_bool = bool("yes" in (use_lots or []))
 
     # ── Shared model-config States (LPPL/HybPPL/EPPL) ──
-    lppl_n_freqs  = _v(state, "lppl-n-freqs",  default=[])
-    lppl_weighted = _v(state, "lppl-weighted", default=[])
-    lppl_no_13    = _v(state, "lppl-no-13",    default=[])
+    lppl_n_freqs  = _v(state, "lppl-n-freqs")
+    lppl_weighted = _v(state, "lppl-weighted")
+    lppl_no_13    = _v(state, "lppl-no-13")
 
-    hyb_a_nlog  = _v(state, "hybppl-cfg-a-nlog",  default=1)
-    hyb_a_ncal  = _v(state, "hybppl-cfg-a-ncal",  default=1)
-    hyb_a_log1d = _v(state, "hybppl-cfg-a-log1d", default="d")
-    hyb_a_log2d = _v(state, "hybppl-cfg-a-log2d", default="d")
-    hyb_a_cal1d = _v(state, "hybppl-cfg-a-cal1d", default="u")
-    hyb_a_cal2d = _v(state, "hybppl-cfg-a-cal2d", default="u")
+    hyb_a_nlog  = _v(state, "hybppl-cfg-a-nlog")
+    hyb_a_ncal  = _v(state, "hybppl-cfg-a-ncal")
+    hyb_a_log1d = _v(state, "hybppl-cfg-a-log1d")
+    hyb_a_log2d = _v(state, "hybppl-cfg-a-log2d")
+    hyb_a_cal1d = _v(state, "hybppl-cfg-a-cal1d")
+    hyb_a_cal2d = _v(state, "hybppl-cfg-a-cal2d")
 
-    hyb_b_enabled = _v(state, "hybppl-cfg-b-enabled", default=[])
-    hyb_b_nlog  = _v(state, "hybppl-cfg-b-nlog",  default=0)
-    hyb_b_ncal  = _v(state, "hybppl-cfg-b-ncal",  default=0)
-    hyb_b_log1d = _v(state, "hybppl-cfg-b-log1d", default="d")
-    hyb_b_log2d = _v(state, "hybppl-cfg-b-log2d", default="d")
-    hyb_b_cal1d = _v(state, "hybppl-cfg-b-cal1d", default="u")
-    hyb_b_cal2d = _v(state, "hybppl-cfg-b-cal2d", default="u")
+    hyb_b_enabled = _v(state, "hybppl-cfg-b-enabled")
+    hyb_b_nlog  = _v(state, "hybppl-cfg-b-nlog")
+    hyb_b_ncal  = _v(state, "hybppl-cfg-b-ncal")
+    hyb_b_log1d = _v(state, "hybppl-cfg-b-log1d")
+    hyb_b_log2d = _v(state, "hybppl-cfg-b-log2d")
+    hyb_b_cal1d = _v(state, "hybppl-cfg-b-cal1d")
+    hyb_b_cal2d = _v(state, "hybppl-cfg-b-cal2d")
 
-    ep_a_nlog  = _v(state, "eppl-cfg-a-nlog",  default=1)
-    ep_a_ncal  = _v(state, "eppl-cfg-a-ncal",  default=1)
-    ep_a_log1d = _v(state, "eppl-cfg-a-log1d", default="d")
-    ep_a_log2d = _v(state, "eppl-cfg-a-log2d", default="d")
-    ep_a_cal1d = _v(state, "eppl-cfg-a-cal1d", default="u")
-    ep_a_cal2d = _v(state, "eppl-cfg-a-cal2d", default="u")
+    ep_a_nlog  = _v(state, "eppl-cfg-a-nlog")
+    ep_a_ncal  = _v(state, "eppl-cfg-a-ncal")
+    ep_a_log1d = _v(state, "eppl-cfg-a-log1d")
+    ep_a_log2d = _v(state, "eppl-cfg-a-log2d")
+    ep_a_cal1d = _v(state, "eppl-cfg-a-cal1d")
+    ep_a_cal2d = _v(state, "eppl-cfg-a-cal2d")
 
-    ep_b_enabled = _v(state, "eppl-cfg-b-enabled", default=[])
-    ep_b_nlog  = _v(state, "eppl-cfg-b-nlog",  default=0)
-    ep_b_ncal  = _v(state, "eppl-cfg-b-ncal",  default=0)
-    ep_b_log1d = _v(state, "eppl-cfg-b-log1d", default="d")
-    ep_b_log2d = _v(state, "eppl-cfg-b-log2d", default="d")
-    ep_b_cal1d = _v(state, "eppl-cfg-b-cal1d", default="u")
-    ep_b_cal2d = _v(state, "eppl-cfg-b-cal2d", default="u")
+    ep_b_enabled = _v(state, "eppl-cfg-b-enabled")
+    ep_b_nlog  = _v(state, "eppl-cfg-b-nlog")
+    ep_b_ncal  = _v(state, "eppl-cfg-b-ncal")
+    ep_b_log1d = _v(state, "eppl-cfg-b-log1d")
+    ep_b_log2d = _v(state, "eppl-cfg-b-log2d")
+    ep_b_cal1d = _v(state, "eppl-cfg-b-cal1d")
+    ep_b_cal2d = _v(state, "eppl-cfg-b-cal2d")
 
-    palette_key = _v(state, "palette-store", "data", default="default")
+    palette_key = _v(state, "palette-store", "data")
     user_model_store = state.get("user-model-store:data")
 
     # ── Master-key resolution (mirrors update_dca) ──
@@ -437,65 +455,65 @@ def _build_retire_figure_from_state(state: dict):
           caller falls back to the existing chart-callback path.
     """
     # ── Gate: return None for MC, fall back to cascade ──
-    mc_enable = _v(state, "ret-mc-enable", default=[]) or []
+    mc_enable = _v(state, "ret-mc-enable") or []
     if "yes" in mc_enable:
         return None
 
     # ── Retire widget values (Inputs) ──
-    stack    = _v(state, "ret-stack",    default=0.0)
-    use_lots = _v(state, "ret-use-lots", default=[])
-    wd       = _v(state, "ret-wd",       default=5000)
-    freq     = _v(state, "ret-freq",     default="Monthly")
-    yr_range = _v(state, "ret-yr-range", default=[2031, 2075])
-    infl     = _v(state, "ret-infl",     default=4.0)
-    disp     = _v(state, "ret-disp",     default="usd")
-    toggles  = _v(state, "ret-toggles",  default=[])
-    legend_pos = _v(state, "ret-legend-pos", default="outside")
-    sel_qs   = _v(state, "ret-qs",       default=["inner"])  # match snapshot_defaults.py:292
-    adv_qs   = _v(state, "ret-qs-adv",   default=[])
-    qs_mode  = _v(state, "ret-qs-mode",  default=[])
-    model_show = _v(state, "ret-model-show", default=[])
+    stack    = _v(state, "ret-stack")
+    use_lots = _v(state, "ret-use-lots")
+    wd       = _v(state, "ret-wd")
+    freq     = _v(state, "ret-freq")
+    yr_range = _v(state, "ret-yr-range")
+    infl     = _v(state, "ret-infl")
+    disp     = _v(state, "ret-disp")
+    toggles  = _v(state, "ret-toggles")
+    legend_pos = _v(state, "ret-legend-pos")
+    sel_qs   = _v(state, "ret-qs")  # match snapshot_defaults.py:292
+    adv_qs   = _v(state, "ret-qs-adv")
+    qs_mode  = _v(state, "ret-qs-mode")
+    model_show = _v(state, "ret-model-show")
 
     # ── Lots resolution (clientside cascade replicated, mirrors bubble) ──
     _lots = state.get("_lots") or []
     use_lots_bool = bool("yes" in (use_lots or []))
 
     # ── Shared model-config States (LPPL/HybPPL/EPPL) ──
-    lppl_n_freqs  = _v(state, "lppl-n-freqs",  default=[])
-    lppl_weighted = _v(state, "lppl-weighted", default=[])
-    lppl_no_13    = _v(state, "lppl-no-13",    default=[])
+    lppl_n_freqs  = _v(state, "lppl-n-freqs")
+    lppl_weighted = _v(state, "lppl-weighted")
+    lppl_no_13    = _v(state, "lppl-no-13")
 
-    hyb_a_nlog  = _v(state, "hybppl-cfg-a-nlog",  default=1)
-    hyb_a_ncal  = _v(state, "hybppl-cfg-a-ncal",  default=1)
-    hyb_a_log1d = _v(state, "hybppl-cfg-a-log1d", default="d")
-    hyb_a_log2d = _v(state, "hybppl-cfg-a-log2d", default="d")
-    hyb_a_cal1d = _v(state, "hybppl-cfg-a-cal1d", default="u")
-    hyb_a_cal2d = _v(state, "hybppl-cfg-a-cal2d", default="u")
+    hyb_a_nlog  = _v(state, "hybppl-cfg-a-nlog")
+    hyb_a_ncal  = _v(state, "hybppl-cfg-a-ncal")
+    hyb_a_log1d = _v(state, "hybppl-cfg-a-log1d")
+    hyb_a_log2d = _v(state, "hybppl-cfg-a-log2d")
+    hyb_a_cal1d = _v(state, "hybppl-cfg-a-cal1d")
+    hyb_a_cal2d = _v(state, "hybppl-cfg-a-cal2d")
 
-    hyb_b_enabled = _v(state, "hybppl-cfg-b-enabled", default=[])
-    hyb_b_nlog  = _v(state, "hybppl-cfg-b-nlog",  default=0)
-    hyb_b_ncal  = _v(state, "hybppl-cfg-b-ncal",  default=0)
-    hyb_b_log1d = _v(state, "hybppl-cfg-b-log1d", default="d")
-    hyb_b_log2d = _v(state, "hybppl-cfg-b-log2d", default="d")
-    hyb_b_cal1d = _v(state, "hybppl-cfg-b-cal1d", default="u")
-    hyb_b_cal2d = _v(state, "hybppl-cfg-b-cal2d", default="u")
+    hyb_b_enabled = _v(state, "hybppl-cfg-b-enabled")
+    hyb_b_nlog  = _v(state, "hybppl-cfg-b-nlog")
+    hyb_b_ncal  = _v(state, "hybppl-cfg-b-ncal")
+    hyb_b_log1d = _v(state, "hybppl-cfg-b-log1d")
+    hyb_b_log2d = _v(state, "hybppl-cfg-b-log2d")
+    hyb_b_cal1d = _v(state, "hybppl-cfg-b-cal1d")
+    hyb_b_cal2d = _v(state, "hybppl-cfg-b-cal2d")
 
-    ep_a_nlog  = _v(state, "eppl-cfg-a-nlog",  default=1)
-    ep_a_ncal  = _v(state, "eppl-cfg-a-ncal",  default=1)
-    ep_a_log1d = _v(state, "eppl-cfg-a-log1d", default="d")
-    ep_a_log2d = _v(state, "eppl-cfg-a-log2d", default="d")
-    ep_a_cal1d = _v(state, "eppl-cfg-a-cal1d", default="u")
-    ep_a_cal2d = _v(state, "eppl-cfg-a-cal2d", default="u")
+    ep_a_nlog  = _v(state, "eppl-cfg-a-nlog")
+    ep_a_ncal  = _v(state, "eppl-cfg-a-ncal")
+    ep_a_log1d = _v(state, "eppl-cfg-a-log1d")
+    ep_a_log2d = _v(state, "eppl-cfg-a-log2d")
+    ep_a_cal1d = _v(state, "eppl-cfg-a-cal1d")
+    ep_a_cal2d = _v(state, "eppl-cfg-a-cal2d")
 
-    ep_b_enabled = _v(state, "eppl-cfg-b-enabled", default=[])
-    ep_b_nlog  = _v(state, "eppl-cfg-b-nlog",  default=0)
-    ep_b_ncal  = _v(state, "eppl-cfg-b-ncal",  default=0)
-    ep_b_log1d = _v(state, "eppl-cfg-b-log1d", default="d")
-    ep_b_log2d = _v(state, "eppl-cfg-b-log2d", default="d")
-    ep_b_cal1d = _v(state, "eppl-cfg-b-cal1d", default="u")
-    ep_b_cal2d = _v(state, "eppl-cfg-b-cal2d", default="u")
+    ep_b_enabled = _v(state, "eppl-cfg-b-enabled")
+    ep_b_nlog  = _v(state, "eppl-cfg-b-nlog")
+    ep_b_ncal  = _v(state, "eppl-cfg-b-ncal")
+    ep_b_log1d = _v(state, "eppl-cfg-b-log1d")
+    ep_b_log2d = _v(state, "eppl-cfg-b-log2d")
+    ep_b_cal1d = _v(state, "eppl-cfg-b-cal1d")
+    ep_b_cal2d = _v(state, "eppl-cfg-b-cal2d")
 
-    palette_key = _v(state, "palette-store", "data", default="default")
+    palette_key = _v(state, "palette-store", "data")
     user_model_store = state.get("user-model-store:data")
 
     # ── Master-key resolution ──
@@ -575,75 +593,75 @@ def _build_supercharge_figure_from_state(state: dict):
         - go.Figure on the standard fast path
         - None when MC is enabled (sc-mc-enable=["yes"]) — fall back to cascade.
     """
-    mc_enable = _v(state, "sc-mc-enable", default=[]) or []
+    mc_enable = _v(state, "sc-mc-enable") or []
     if "yes" in mc_enable:
         return None
 
     # ── Supercharge widget values ──
-    stack    = _v(state, "sc-stack",    default=1.0)
-    use_lots = _v(state, "sc-use-lots", default=[])
-    start_yr = _v(state, "sc-start-yr", default=2033)
-    d0       = _v(state, "sc-d0",       default=0)
-    d1       = _v(state, "sc-d1",       default=0)
-    d2       = _v(state, "sc-d2",       default=0)
-    d3       = _v(state, "sc-d3",       default=1)
-    d4       = _v(state, "sc-d4",       default=2)
-    freq     = _v(state, "sc-freq",     default="Monthly")
-    infl     = _v(state, "sc-infl",     default=4.0)
-    sel_qs   = _v(state, "sc-qs",       default=["outer"])
-    adv_qs   = _v(state, "sc-qs-adv",   default=[])
-    qs_mode  = _v(state, "sc-qs-mode",  default=[])
-    mode     = _v(state, "sc-mode",     default="a")
-    wd       = _v(state, "sc-wd",       default=5000)
-    end_yr   = _v(state, "sc-end-yr",   default=2075)
-    target_yr = _v(state, "sc-target-yr", default=2050)
-    disp     = _v(state, "sc-disp",     default="usd")
-    toggles  = _v(state, "sc-toggles",  default=[])
-    legend_pos = _v(state, "sc-legend-pos", default="outside")
-    chart_layout = _v(state, "sc-chart-layout", default=["shade"])
-    display_q = _v(state, "sc-display-q", default=0.10)
-    model_show = _v(state, "sc-model-show", default=[])
+    stack    = _v(state, "sc-stack")
+    use_lots = _v(state, "sc-use-lots")
+    start_yr = _v(state, "sc-start-yr")
+    d0       = _v(state, "sc-d0")
+    d1       = _v(state, "sc-d1")
+    d2       = _v(state, "sc-d2")
+    d3       = _v(state, "sc-d3")
+    d4       = _v(state, "sc-d4")
+    freq     = _v(state, "sc-freq")
+    infl     = _v(state, "sc-infl")
+    sel_qs   = _v(state, "sc-qs")
+    adv_qs   = _v(state, "sc-qs-adv")
+    qs_mode  = _v(state, "sc-qs-mode")
+    mode     = _v(state, "sc-mode")
+    wd       = _v(state, "sc-wd")
+    end_yr   = _v(state, "sc-end-yr")
+    target_yr = _v(state, "sc-target-yr")
+    disp     = _v(state, "sc-disp")
+    toggles  = _v(state, "sc-toggles")
+    legend_pos = _v(state, "sc-legend-pos")
+    chart_layout = _v(state, "sc-chart-layout")
+    display_q = _v(state, "sc-display-q")
+    model_show = _v(state, "sc-model-show")
 
     # ── Lots resolution ──
     _lots = state.get("_lots") or []
     use_lots_bool = bool("yes" in (use_lots or []))
 
     # ── Shared model-config States ──
-    lppl_n_freqs  = _v(state, "lppl-n-freqs",  default=[])
-    lppl_weighted = _v(state, "lppl-weighted", default=[])
-    lppl_no_13    = _v(state, "lppl-no-13",    default=[])
+    lppl_n_freqs  = _v(state, "lppl-n-freqs")
+    lppl_weighted = _v(state, "lppl-weighted")
+    lppl_no_13    = _v(state, "lppl-no-13")
 
-    hyb_a_nlog  = _v(state, "hybppl-cfg-a-nlog",  default=1)
-    hyb_a_ncal  = _v(state, "hybppl-cfg-a-ncal",  default=1)
-    hyb_a_log1d = _v(state, "hybppl-cfg-a-log1d", default="d")
-    hyb_a_log2d = _v(state, "hybppl-cfg-a-log2d", default="d")
-    hyb_a_cal1d = _v(state, "hybppl-cfg-a-cal1d", default="u")
-    hyb_a_cal2d = _v(state, "hybppl-cfg-a-cal2d", default="u")
+    hyb_a_nlog  = _v(state, "hybppl-cfg-a-nlog")
+    hyb_a_ncal  = _v(state, "hybppl-cfg-a-ncal")
+    hyb_a_log1d = _v(state, "hybppl-cfg-a-log1d")
+    hyb_a_log2d = _v(state, "hybppl-cfg-a-log2d")
+    hyb_a_cal1d = _v(state, "hybppl-cfg-a-cal1d")
+    hyb_a_cal2d = _v(state, "hybppl-cfg-a-cal2d")
 
-    hyb_b_enabled = _v(state, "hybppl-cfg-b-enabled", default=[])
-    hyb_b_nlog  = _v(state, "hybppl-cfg-b-nlog",  default=0)
-    hyb_b_ncal  = _v(state, "hybppl-cfg-b-ncal",  default=0)
-    hyb_b_log1d = _v(state, "hybppl-cfg-b-log1d", default="d")
-    hyb_b_log2d = _v(state, "hybppl-cfg-b-log2d", default="d")
-    hyb_b_cal1d = _v(state, "hybppl-cfg-b-cal1d", default="u")
-    hyb_b_cal2d = _v(state, "hybppl-cfg-b-cal2d", default="u")
+    hyb_b_enabled = _v(state, "hybppl-cfg-b-enabled")
+    hyb_b_nlog  = _v(state, "hybppl-cfg-b-nlog")
+    hyb_b_ncal  = _v(state, "hybppl-cfg-b-ncal")
+    hyb_b_log1d = _v(state, "hybppl-cfg-b-log1d")
+    hyb_b_log2d = _v(state, "hybppl-cfg-b-log2d")
+    hyb_b_cal1d = _v(state, "hybppl-cfg-b-cal1d")
+    hyb_b_cal2d = _v(state, "hybppl-cfg-b-cal2d")
 
-    ep_a_nlog  = _v(state, "eppl-cfg-a-nlog",  default=1)
-    ep_a_ncal  = _v(state, "eppl-cfg-a-ncal",  default=1)
-    ep_a_log1d = _v(state, "eppl-cfg-a-log1d", default="d")
-    ep_a_log2d = _v(state, "eppl-cfg-a-log2d", default="d")
-    ep_a_cal1d = _v(state, "eppl-cfg-a-cal1d", default="u")
-    ep_a_cal2d = _v(state, "eppl-cfg-a-cal2d", default="u")
+    ep_a_nlog  = _v(state, "eppl-cfg-a-nlog")
+    ep_a_ncal  = _v(state, "eppl-cfg-a-ncal")
+    ep_a_log1d = _v(state, "eppl-cfg-a-log1d")
+    ep_a_log2d = _v(state, "eppl-cfg-a-log2d")
+    ep_a_cal1d = _v(state, "eppl-cfg-a-cal1d")
+    ep_a_cal2d = _v(state, "eppl-cfg-a-cal2d")
 
-    ep_b_enabled = _v(state, "eppl-cfg-b-enabled", default=[])
-    ep_b_nlog  = _v(state, "eppl-cfg-b-nlog",  default=0)
-    ep_b_ncal  = _v(state, "eppl-cfg-b-ncal",  default=0)
-    ep_b_log1d = _v(state, "eppl-cfg-b-log1d", default="d")
-    ep_b_log2d = _v(state, "eppl-cfg-b-log2d", default="d")
-    ep_b_cal1d = _v(state, "eppl-cfg-b-cal1d", default="u")
-    ep_b_cal2d = _v(state, "eppl-cfg-b-cal2d", default="u")
+    ep_b_enabled = _v(state, "eppl-cfg-b-enabled")
+    ep_b_nlog  = _v(state, "eppl-cfg-b-nlog")
+    ep_b_ncal  = _v(state, "eppl-cfg-b-ncal")
+    ep_b_log1d = _v(state, "eppl-cfg-b-log1d")
+    ep_b_log2d = _v(state, "eppl-cfg-b-log2d")
+    ep_b_cal1d = _v(state, "eppl-cfg-b-cal1d")
+    ep_b_cal2d = _v(state, "eppl-cfg-b-cal2d")
 
-    palette_key = _v(state, "palette-store", "data", default="default")
+    palette_key = _v(state, "palette-store", "data")
     user_model_store = state.get("user-model-store:data")
 
     # ── Master-key resolution ──
@@ -735,15 +753,15 @@ def _build_leverage_figure_from_state(state: dict):
     import datetime as _dt
     from figures.leverage import build_leverage_figure, floor_price, _parse_date
 
-    date_val = _v(state, "lev-date", "date", default=None)
-    price_val = _v(state, "lev-price", default=65000.0)
-    model = _v(state, "lev-model", default="bub")
-    q_val = _v(state, "lev-floor-q-store", "data", default=0.01)
-    rb_val = _v(state, "lev-rb", default=13.0)
-    rl_val = _v(state, "lev-rl", default=4.5)
-    H_val = _v(state, "lev-horizon", default=4.0)
-    c_val = _v(state, "lev-cagr", default=20.0)
-    toggles = _v(state, "lev-toggles", default=[])
+    date_val = _v(state, "lev-date", "date")
+    price_val = _v(state, "lev-price")
+    model = _v(state, "lev-model")
+    q_val = _v(state, "lev-floor-q-store", "data")
+    rb_val = _v(state, "lev-rb")
+    rl_val = _v(state, "lev-rl")
+    H_val = _v(state, "lev-horizon")
+    c_val = _v(state, "lev-cagr")
+    toggles = _v(state, "lev-toggles")
 
     try:
         price = float(price_val) if price_val is not None else 65000.0
@@ -796,12 +814,12 @@ def _build_heatmap_figure_from_state(state: dict):
         - go.Figure when MC is disabled AND hm_model != "mc"
         - None otherwise (caller falls back to existing path)
     """
-    mc_enable = _v(state, "hm-mc-enable", default=[]) or []
+    mc_enable = _v(state, "hm-mc-enable") or []
     if "yes" in mc_enable:
         return None
 
     # Heatmap-active-model is a Store (data prop), not a checklist.
-    hm_model = _v(state, "hm-active-model", "data", default="bub")
+    hm_model = _v(state, "hm-active-model", "data")
     if hm_model == "mc":
         # Active model is MC — fall back to cascade (which routes to MC heatmap).
         return None
@@ -812,45 +830,45 @@ def _build_heatmap_figure_from_state(state: dict):
         hm_model = _HM_LEGACY_MODEL_FALLBACK.get(hm_model, hm_model)
 
     # ── Heatmap controls ──
-    entry_yr = _v(state, "hm-entry-yr", default=None)
-    entry_q  = _v(state, "hm-entry-q",  default=50)
-    exit_range = _v(state, "hm-exit-range", default=None)
-    exit_qs  = _v(state, "hm-exit-qs",  default=[0.10])
-    mode     = _v(state, "hm-mode",     default=0)
-    b1       = _v(state, "hm-b1",       default=0.0)
-    b2       = _v(state, "hm-b2",       default=20.0)
-    c_lo     = _v(state, "hm-c-lo",     default=None)
-    c_mid1   = _v(state, "hm-c-mid1",   default=None)
-    c_mid2   = _v(state, "hm-c-mid2",   default=None)
-    c_hi     = _v(state, "hm-c-hi",     default=None)
-    grad     = _v(state, "hm-grad",     default=32)
-    vfmt     = _v(state, "hm-vfmt",     default=None)
-    cell_fs  = _v(state, "hm-cell-fs",  default=None)
-    toggles  = _v(state, "hm-toggles",  default=[])
-    stack    = _v(state, "hm-stack",    default=0)
-    use_lots = _v(state, "hm-use-lots", default=[])
-    model_show = _v(state, "hm-model-show", default=[])
+    entry_yr = _v(state, "hm-entry-yr")
+    entry_q  = _v(state, "hm-entry-q")
+    exit_range = _v(state, "hm-exit-range")
+    exit_qs  = _v(state, "hm-exit-qs")
+    mode     = _v(state, "hm-mode")
+    b1       = _v(state, "hm-b1")
+    b2       = _v(state, "hm-b2")
+    c_lo     = _v(state, "hm-c-lo")
+    c_mid1   = _v(state, "hm-c-mid1")
+    c_mid2   = _v(state, "hm-c-mid2")
+    c_hi     = _v(state, "hm-c-hi")
+    grad     = _v(state, "hm-grad")
+    vfmt     = _v(state, "hm-vfmt")
+    cell_fs  = _v(state, "hm-cell-fs")
+    toggles  = _v(state, "hm-toggles")
+    stack    = _v(state, "hm-stack")
+    use_lots = _v(state, "hm-use-lots")
+    model_show = _v(state, "hm-model-show")
 
     # ── Shared model-config States (for LPPL/HybPPL/EPPL master resolution) ──
-    lppl_n_freqs  = _v(state, "lppl-n-freqs",  default=[])
-    lppl_weighted = _v(state, "lppl-weighted", default=[])
-    lppl_no_13    = _v(state, "lppl-no-13",    default=[])
+    lppl_n_freqs  = _v(state, "lppl-n-freqs")
+    lppl_weighted = _v(state, "lppl-weighted")
+    lppl_no_13    = _v(state, "lppl-no-13")
 
-    hyb_a_nlog  = _v(state, "hybppl-cfg-a-nlog",  default=1)
-    hyb_a_ncal  = _v(state, "hybppl-cfg-a-ncal",  default=1)
-    hyb_a_log1d = _v(state, "hybppl-cfg-a-log1d", default="d")
-    hyb_a_log2d = _v(state, "hybppl-cfg-a-log2d", default="d")
-    hyb_a_cal1d = _v(state, "hybppl-cfg-a-cal1d", default="u")
-    hyb_a_cal2d = _v(state, "hybppl-cfg-a-cal2d", default="u")
+    hyb_a_nlog  = _v(state, "hybppl-cfg-a-nlog")
+    hyb_a_ncal  = _v(state, "hybppl-cfg-a-ncal")
+    hyb_a_log1d = _v(state, "hybppl-cfg-a-log1d")
+    hyb_a_log2d = _v(state, "hybppl-cfg-a-log2d")
+    hyb_a_cal1d = _v(state, "hybppl-cfg-a-cal1d")
+    hyb_a_cal2d = _v(state, "hybppl-cfg-a-cal2d")
 
-    ep_a_nlog  = _v(state, "eppl-cfg-a-nlog",  default=1)
-    ep_a_ncal  = _v(state, "eppl-cfg-a-ncal",  default=1)
-    ep_a_log1d = _v(state, "eppl-cfg-a-log1d", default="d")
-    ep_a_log2d = _v(state, "eppl-cfg-a-log2d", default="d")
-    ep_a_cal1d = _v(state, "eppl-cfg-a-cal1d", default="u")
-    ep_a_cal2d = _v(state, "eppl-cfg-a-cal2d", default="u")
+    ep_a_nlog  = _v(state, "eppl-cfg-a-nlog")
+    ep_a_ncal  = _v(state, "eppl-cfg-a-ncal")
+    ep_a_log1d = _v(state, "eppl-cfg-a-log1d")
+    ep_a_log2d = _v(state, "eppl-cfg-a-log2d")
+    ep_a_cal1d = _v(state, "eppl-cfg-a-cal1d")
+    ep_a_cal2d = _v(state, "eppl-cfg-a-cal2d")
 
-    palette_key = _v(state, "palette-store", "data", default="default")
+    palette_key = _v(state, "palette-store", "data")
 
     # ── Lots ──
     _lots = state.get("_lots") or []

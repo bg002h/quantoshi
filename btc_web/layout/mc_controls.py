@@ -82,7 +82,8 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                   show_inflation=False, show_amount=True,
                   show_stack=False, show_mc_entry_q=False,
                   default_entry_q=50, start_yr_label=None,
-                  shared_controls=frozenset(), mc_enabled_default=False):
+                  shared_controls=frozenset(), mc_enabled_default=False,
+                  default_sims=200, sims_options=None):
     """Monte Carlo simulation controls, reusable across tabs."""
     yr_now = pd.Timestamp.today().year
     _mc_enable_val = ["yes"] if mc_enabled_default else []
@@ -97,7 +98,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
             _ph.append(dbc.Input(id=f"{prefix}-mc-infl", value=4))
         _ph.append(dbc.Input(id=f"{prefix}-mc-bins", value=5))
         _ph.append(dcc.Checklist(id=f"{prefix}-mc-regime", value=list(range(5))))
-        _ph.append(dcc.Dropdown(id=f"{prefix}-mc-sims", value=200))
+        _ph.append(dcc.Dropdown(id=f"{prefix}-mc-sims", value=default_sims))
         _ph.append(dcc.Dropdown(id=f"{prefix}-mc-years", value=40))
         if "freq" not in shared_controls:
             _ph.append(dcc.Dropdown(id=f"{prefix}-mc-freq", value="Monthly"))
@@ -211,9 +212,9 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                 _lbl("Simulations"),
                 dcc.Dropdown(id=f"{prefix}-mc-sims",
                              options=_bold_opts(
-                                 [100, 200, 400, 800, 1600, 3200],
+                                 sims_options or [100, 200, 400, 800, 1600, 3200],
                                  str, {200}),
-                             value=200, clearable=False),
+                             value=default_sims, clearable=False),
                 *([ _lbl("Frequency"),
                     dcc.Dropdown(id=f"{prefix}-mc-freq",
                                  options=_bold_opts(

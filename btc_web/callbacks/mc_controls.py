@@ -108,17 +108,20 @@ function(n_bins) {
     var n = parseInt(n_bins);
     if (isNaN(n) || n < 2 || n > 10) n = 5;
     var opts = TABLE[String(n)] || TABLE["5"];
-    var values = [];
-    for (var i = 0; i < n; i++) values.push(i);
-    return [opts, values];
+    return opts;
 }
 """ % _REGIME_OPTIONS_JSON
 
+# Output options only; do NOT also overwrite value. Resetting value to all
+# bins on every bin-count change clobbered share-link-restored regime
+# selections (snapshot writes bub-mc-bins=5, callback fires, value resets
+# to [0..4] before update_bubble can read it). User-side bin-count change
+# may briefly leave value with invalid indices; downstream callbacks
+# (filter_paths_by_regime, _build_mc_params) clamp safely.
 for _mc_reg in ("dca", "ret", "hm", "sc", "cp", "bub"):
     _app_ctx.app.clientside_callback(
         _REGIME_JS,
         Output(f"{_mc_reg}-mc-regime", "options"),
-        Output(f"{_mc_reg}-mc-regime", "value"),
         Input(f"{_mc_reg}-mc-bins", "value"),
         prevent_initial_call=True,
     )

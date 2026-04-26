@@ -70,6 +70,40 @@ def _parse_cache_filename(name: str) -> tuple[str, str, int] | None:
     return (m.group(1), m.group(2), int(m.group(3))) if m else None
 
 
+def _ef_pkl_path() -> Path:
+    """Resolve <repo_root>/model_data_ef.pkl. Mirrors app.py:343."""
+    return Path(__file__).parent.parent / "model_data_ef.pkl"
+
+
+# ── Single source of truth for what the next rebuild will cache ──
+# Edited by hand. Used as a runtime sanity oracle (no model_data.pkl load).
+# Compare _CACHED_MODEL_KEYS (disk-derived; what's actually on disk now).
+_INTENDED_KEYS = frozenset({"bub", "qr", "pl", "ecfg_1d_1u", "ef"})
+
+
+def intended_models(M) -> dict:
+    """Return {short_name: model_instance} for the next rebuild target.
+
+    Single source of truth consumed by tools/rebuild_caches.sh.
+    Must instantiate exactly _INTENDED_KEYS — enforced by
+    test_intended_models_keys_match_intended_set.
+    """
+    from btc_core import (BubbleModel, PowerLawModel,
+                          EmpiricalFloorModel, QuantileRegressionModel,
+                          EPPLConfigModel)
+    return {
+        "bub":         BubbleModel(M),
+        "qr":          QuantileRegressionModel(M),
+        "pl":          PowerLawModel(M.ols_intercept, M.ols_slope,
+                                     M.price_years, M.price_prices,
+                                     M.genesis, M.QR_QUANTILES),
+        "ecfg_1d_1u":  EPPLConfigModel("ecfg_1d_1u",
+                                       M.price_years, M.price_prices,
+                                       M.QR_QUANTILES),
+        "ef":          EmpiricalFloorModel(str(_ef_pkl_path())),
+    }
+
+
 SHM_CACHE_PATH = Path("/dev/shm/quantoshi_mc.pkl")
 
 

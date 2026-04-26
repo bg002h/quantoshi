@@ -31,3 +31,33 @@ def test_parse_cache_filename_rejects_garbage():
     assert _parse_cache_filename("") is None
     assert _parse_cache_filename("paths_bub_2028") is None       # missing .npz
     assert _parse_cache_filename("paths_bub_abcd.npz") is None   # year not 4 digits
+
+
+def test_intended_models_keys_match_intended_set():
+    """Drift guard: intended_models(M).keys() == _INTENDED_KEYS."""
+    import _app_ctx, app  # noqa: F401  - boots the app, registers PRICE_MODELS
+    from btc_core import load_model_data
+    from mc_cache import intended_models, _INTENDED_KEYS
+
+    M = load_model_data(str(Path(__file__).resolve().parent.parent / "model_data.pkl"))
+    assert set(intended_models(M).keys()) == _INTENDED_KEYS
+
+
+def test_intended_models_post_swap_keys():
+    """Spec contract: _INTENDED_KEYS reflects the post-swap target."""
+    from mc_cache import _INTENDED_KEYS
+
+    assert _INTENDED_KEYS == frozenset({"bub", "qr", "pl", "ecfg_1d_1u", "ef"})
+
+
+def test_intended_models_short_names_match_dict_keys():
+    """Each instantiated model's .short_name must equal its dict key
+    (cache files are named from short_name; mismatch would break lookup)."""
+    import _app_ctx, app  # noqa: F401
+    from btc_core import load_model_data
+    from mc_cache import intended_models
+
+    M = load_model_data(str(Path(__file__).resolve().parent.parent / "model_data.pkl"))
+    for key, model in intended_models(M).items():
+        assert model.short_name == key, (
+            f"short_name mismatch: dict key {key!r} vs model.short_name {model.short_name!r}")

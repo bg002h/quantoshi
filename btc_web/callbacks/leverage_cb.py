@@ -1,6 +1,6 @@
 """Leverage Calculator — main callback.
 
-Wires inputs (date, price, model, floor-q store, rates, H, CAGR sliders)
+Wires inputs (date, price, model, reversion-q store, rates, H, CAGR sliders)
 to outputs (plot, readout, table).
 
 Registered at import time (side-effect) — import from `callbacks/__init__.py`.
@@ -13,7 +13,7 @@ from dash import Input, Output, State, callback, html
 from dash.exceptions import PreventUpdate
 
 from figures.leverage import (
-    build_leverage_figure, floor_price, P_max, implied_cagr, implied_quantile,
+    build_leverage_figure, reversion_price, P_max, implied_cagr, implied_quantile,
     _parse_date,
 )
 from colors import BORDER_MUTED, TABLE_ROW_HIGHLIGHT_BG
@@ -43,7 +43,7 @@ def _readout(buy_date, P_now, sell_date, sell_price, H_yr, c, max_pay, implied_c
         html.Div([
             html.Span(f"Sell: {sell_date.isoformat()}  @ "),
             html.B(f"${sell_price:,.0f}"),
-            html.Span(f"  ({model} {q_label} floor)"),
+            html.Span(f"  ({model} {q_label} reversion)"),
         ]),
         html.Div(f"Horizon H = {H_yr:.2f} yr"),
         html.Hr(),
@@ -75,7 +75,7 @@ def _table(buy_date, model, q, r_b, r_l, c, H_slider):
     rows = []
     for H in horizons:
         sell_d = buy_date + _dt.timedelta(days=int(round(H * 365.25)))
-        sp = floor_price(model, q, sell_d)
+        sp = reversion_price(model, q,sell_d)
         sell_q = implied_quantile(model, sp, sell_d)
         row_style = {"backgroundColor": TABLE_ROW_HIGHLIGHT_BG} if abs(H - H_slider) < 0.5 else {}
         rows.append(html.Tr([
@@ -142,7 +142,7 @@ def update_leverage(first_render, date_val, price_val, model, q,
 
     sell_date = buy_date + _dt.timedelta(days=int(round(H_yr * 365.25)))
     try:
-        sp = floor_price(model, q, sell_date)
+        sp = reversion_price(model, q,sell_date)
     except (KeyError, AttributeError, ValueError) as e:
         return (
             {}, html.Div(f"Model unavailable: {e}", className="alert alert-warning"),
@@ -154,7 +154,7 @@ def update_leverage(first_render, date_val, price_val, model, q,
 
     p = {
         "lev_price": price, "lev_date": buy_date,
-        "lev_model": model, "lev_floor_q": q,
+        "lev_model": model, "lev_reversion_q": q,
         "lev_rb": rb, "lev_rl": rl,
         "lev_horizon": H_yr, "lev_cagr": c_pct,
         "lev_toggles": tuple(toggles or ()),
@@ -169,10 +169,10 @@ def update_leverage(first_render, date_val, price_val, model, q,
 import json as _json
 import _app_ctx
 
-from layout.leverage import _LEV_FLOOR_QS, _LEV_PILL_IDS
+from layout.leverage import _LEV_REVERSION_QS, _LEV_PILL_IDS
 
 _lev_pill_ids_json = _json.dumps(_LEV_PILL_IDS)
-_lev_floor_qs_json = _json.dumps(_LEV_FLOOR_QS)
+_lev_reversion_qs_json = _json.dumps(_LEV_REVERSION_QS)
 
 
 # Click: writes selected quantile to store and updates pill outlines.
@@ -180,7 +180,7 @@ _lev_floor_qs_json = _json.dumps(_LEV_FLOOR_QS)
 _app_ctx.app.clientside_callback(
     f"""function() {{
         var pill_ids = {_lev_pill_ids_json};
-        var qs = {_lev_floor_qs_json};
+        var qs = {_lev_reversion_qs_json};
         var tid = dash_clientside.callback_context.triggered_id;
         if (!tid) throw window.dash_clientside.PreventUpdate;
         var idx = pill_ids.indexOf(tid);
@@ -199,7 +199,7 @@ _app_ctx.app.clientside_callback(
 _app_ctx.app.clientside_callback(
     f"""function(q) {{
         var pill_ids = {_lev_pill_ids_json};
-        var qs = {_lev_floor_qs_json};
+        var qs = {_lev_reversion_qs_json};
         if (q === null || q === undefined) {{
             return pill_ids.map(function() {{ return window.dash_clientside.no_update; }});
         }}

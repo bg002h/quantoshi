@@ -27,7 +27,7 @@ def _bm_support_log10(t_yr: float) -> float:
     """Log10(support_price) for the Bubble Model at time t (years since genesis).
 
     Uses the BM support line (`support_intercept + support_slope * log10(t)`)
-    rather than the bubble composite. This is the "floor" of the BM —
+    rather than the bubble composite. This is the BM's reversion target —
     the underlying power-law base that bubbles oscillate above.
     """
     import math
@@ -45,13 +45,13 @@ def _bm_sigma_up(t_yr: float) -> float:
     return float(md.bm_sigma0_up * max(t_yr, 0.5) ** (-md.bm_alpha_up))
 
 
-def floor_price(model_short: str, q: float, target_date) -> float:
-    """Return the `model_short`-q floor price at `target_date` in USD.
+def reversion_price(model_short: str, q: float, target_date) -> float:
+    """Return the `model_short`-q reversion price at `target_date` in USD.
 
-    Bubble Model special case: floor is the support power-law line
+    Bubble Model special case: reversion target is the support power-law line
     (not the composite-quantile), log-shifted downward by |z|·σ_down for q < 0.5.
-    This matches the user's intent for "BM floor" — the support line, not
-    the composite's lower band.
+    This matches the user's intent for the BM reversion target — the support
+    line, not the composite's lower band.
 
     Other models: `model.interp_price(q, t)` — log-space interpolation between
     adjacent QR fits.
@@ -133,14 +133,14 @@ def build_leverage_figure(p: dict) -> go.Figure:
     c        = float(p["lev_cagr"]) / 100.0
     r_b      = float(p["lev_rb"]) / 100.0
     r_l      = float(p["lev_rl"]) / 100.0
-    q        = float(p["lev_floor_q"])
+    q        = float(p["lev_reversion_q"])
     model    = str(p["lev_model"])
     buy_date = _parse_date(p["lev_date"])
 
     H_grid = np.linspace(0.25, 20.0, 400)
     dates = [buy_date + _dt.timedelta(days=int(round(H * 365.25))) for H in H_grid]
     try:
-        sell_grid = np.array([floor_price(model, q, d) for d in dates])
+        sell_grid = np.array([reversion_price(model, q,d) for d in dates])
     except (KeyError, AttributeError, ValueError):
         sell_grid = np.full_like(H_grid, np.nan)
 
@@ -179,7 +179,7 @@ def build_leverage_figure(p: dict) -> go.Figure:
                   annotation_position="right")
 
     try:
-        sell_at_slider = floor_price(model, q, buy_date + _dt.timedelta(days=int(round(H_slider * 365.25))))
+        sell_at_slider = reversion_price(model, q,buy_date + _dt.timedelta(days=int(round(H_slider * 365.25))))
         y_dot = sell_at_slider / (1.0 + c) ** H_slider
         fig.add_vline(x=H_slider, line=dict(dash="dash"))
         fig.add_trace(go.Scatter(
@@ -194,7 +194,7 @@ def build_leverage_figure(p: dict) -> go.Figure:
     q_label = f"Q{q*100:g}%"
     title = (
         f"<b>Max rational pay-price — reversion to "
-        f"{model} {q_label} floor</b><br>"
+        f"{model} {q_label}</b><br>"
         f"<span style='font-size:0.85em'>"
         f"Current date: {buy_date.isoformat()}  ·  "
         f"Current price: ${P_now:,.0f}</span>"

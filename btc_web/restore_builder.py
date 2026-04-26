@@ -807,7 +807,7 @@ def _build_leverage_figure_from_state(state: dict):
         - None on builder errors (caller falls back to existing path)
     """
     import datetime as _dt
-    from figures.leverage import build_leverage_figure, floor_price, _parse_date
+    from figures.leverage import build_leverage_figure, reversion_price, _parse_date
 
     date_val = _v(state, "lev-date", "date")
     price_val = _v(state, "lev-price")
@@ -834,17 +834,17 @@ def _build_leverage_figure_from_state(state: dict):
 
         buy_date = _parse_date(date_val) if date_val else _dt.date.today()
 
-        # Validate floor_price availability before building figure
+        # Validate reversion_price availability before building figure
         # (matches update_leverage's defensive try/except at line 144).
         sell_date = buy_date + _dt.timedelta(days=int(round(H_yr * 365.25)))
         try:
-            floor_price(model, q, sell_date)
+            reversion_price(model, q, sell_date)
         except (KeyError, AttributeError, ValueError):
             return None
 
         p = {
             "lev_price": price, "lev_date": buy_date,
-            "lev_model": model, "lev_floor_q": q,
+            "lev_model": model, "lev_reversion_q": q,
             "lev_rb": rb, "lev_rl": rl,
             "lev_horizon": H_yr, "lev_cagr": c_pct,
             "lev_toggles": tuple(toggles or ()),

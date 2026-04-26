@@ -579,7 +579,7 @@ LEVERAGE_DEFAULTS = MappingProxyType({
     "lev_date":     None,   # resolved to date.today() in leverage_defaults()
     "lev_price":    None,   # resolved to most recent model_data close in leverage_defaults()
     "lev_model":    "bub",
-    "lev_floor_q":  0.01,
+    "lev_reversion_q":  0.01,
     "lev_rb":       13.0,
     "lev_rl":       4.5,
     "lev_horizon":  4.0,

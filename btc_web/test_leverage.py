@@ -19,7 +19,7 @@ def test_leverage_defaults_has_expected_keys():
     assert d["lev_price"] > 0  # seeded from model_data most recent close
     assert d["lev_date"] is not None
     assert d["lev_model"] == "bub"
-    assert d["lev_floor_q"] == 0.01
+    assert d["lev_reversion_q"] == 0.01
     assert d["lev_rb"] == 13.0
     assert d["lev_rl"] == 4.5
     assert d["lev_horizon"] == 4.0
@@ -28,30 +28,30 @@ def test_leverage_defaults_has_expected_keys():
     assert type(LEVERAGE_DEFAULTS).__name__ == "mappingproxy"
 
 
-def test_floor_price_bm_at_today():
-    """BM Q1% floor at today should be a positive price."""
-    from figures.leverage import floor_price
+def test_reversion_price_bm_at_today():
+    """BM Q1% reversion at today should be a positive price."""
+    from figures.leverage import reversion_price
     import datetime as _dt
-    price = floor_price("bub", 0.01, _dt.date.today())
+    price = reversion_price("bub", 0.01, _dt.date.today())
     assert price > 0
     assert price < 10_000_000
 
 
-def test_floor_price_higher_q_gives_higher_price():
-    """Q5% floor > Q1% floor at same date (higher quantile = more aggressive)."""
-    from figures.leverage import floor_price
+def test_reversion_price_higher_q_gives_higher_price():
+    """Q5% reversion > Q1% reversion at same date (higher quantile = more aggressive)."""
+    from figures.leverage import reversion_price
     import datetime as _dt
     d = _dt.date.today()
-    assert floor_price("bub", 0.05, d) > floor_price("bub", 0.01, d)
+    assert reversion_price("bub", 0.05, d) > reversion_price("bub", 0.01, d)
 
 
-def test_floor_price_future_higher_than_today():
-    """Floor grows over time (power-law)."""
-    from figures.leverage import floor_price
+def test_reversion_price_future_higher_than_today():
+    """Reversion target grows over time (power-law)."""
+    from figures.leverage import reversion_price
     import datetime as _dt
     today = _dt.date.today()
     future = today + timedelta(days=5 * 365)
-    assert floor_price("bub", 0.01, future) > floor_price("bub", 0.01, today)
+    assert reversion_price("bub", 0.01, future) > reversion_price("bub", 0.01, today)
 
 
 def test_P_max_basic():
@@ -82,7 +82,7 @@ def test_build_leverage_figure_returns_plotly_figure():
         "lev_price": 72926.0,
         "lev_date": "2026-04-18",
         "lev_model": "bub",
-        "lev_floor_q": 0.01,
+        "lev_reversion_q": 0.01,
         "lev_rb": 13.0,
         "lev_rl": 4.5,
         "lev_horizon": 4.0,
@@ -103,7 +103,7 @@ def test_leverage_snapshot_roundtrip():
         "lev-date:date":           "2026-06-01",
         "lev-price:value":         80000.0,
         "lev-model:value":         "pl",
-        "lev-floor-q-store:data":  0.05,
+        "lev-floor-q-store:data":  0.05,  # Dash ID retained for share-link compat
         "lev-rb:value":            12.5,
         "lev-rl:value":            4.25,
         "lev-horizon:value":       5.5,
@@ -145,43 +145,43 @@ def test_leverage_s2f_not_in_flagship_dropdown():
 def test_leverage_defaults_cache_alignment():
     """LEVERAGE_DEFAULTS keys cover every callback Input."""
     from tab_defaults import LEVERAGE_DEFAULTS
-    expected = {"lev_date", "lev_price", "lev_model", "lev_floor_q",
+    expected = {"lev_date", "lev_price", "lev_model", "lev_reversion_q",
                 "lev_rb", "lev_rl", "lev_horizon", "lev_cagr", "lev_toggles"}
     assert set(LEVERAGE_DEFAULTS.keys()) == expected
 
 
-def test_bm_floor_uses_support_not_composite():
-    """BM `floor_price` uses the support line — should be well below composite."""
-    from figures.leverage import floor_price, _bm_support_log10, _t_yr
+def test_bm_reversion_uses_support_not_composite():
+    """BM `reversion_price` uses the support line — should be well below composite."""
+    from figures.leverage import reversion_price, _bm_support_log10, _t_yr
     import datetime as _dt
     td = _dt.date.today().replace(year=_dt.date.today().year + 4)
     t = _t_yr(td)
     support_price = 10.0 ** _bm_support_log10(t)
     # Q50% should equal support (no downshift)
-    assert abs(floor_price("bub", 0.5, td) - support_price) < 1e-6
+    assert abs(reversion_price("bub", 0.5, td) - support_price) < 1e-6
     # Q1% should be at or below the support line (downshifted)
-    bm_q1 = floor_price("bub", 0.01, td)
+    bm_q1 = reversion_price("bub", 0.01, td)
     assert bm_q1 <= support_price
 
 
-def test_implied_quantile_bub_matches_floor_q():
-    """implied_quantile(bub, floor_price(bub, q, t), t) ≈ q across all presets."""
-    from figures.leverage import implied_quantile, floor_price
+def test_implied_quantile_bub_matches_reversion_q():
+    """implied_quantile(bub, reversion_price(bub, q, t), t) ≈ q across all presets."""
+    from figures.leverage import implied_quantile, reversion_price
     import datetime as _dt
     td = _dt.date.today().replace(year=_dt.date.today().year + 4)
     for q in (0.01, 0.05, 0.10, 0.20, 0.50, 0.80, 0.90, 0.99):
-        sell = floor_price("bub", q, td)
+        sell = reversion_price("bub", q, td)
         assert abs(implied_quantile("bub", sell, td) - q) < 0.02, f"q={q}"
 
 
-def test_bm_floor_q_gt_half_above_support():
-    """BM floor at q>0.5 is above the support line (upward sigma shift)."""
-    from figures.leverage import floor_price, _bm_support_log10, _t_yr
+def test_bm_reversion_q_gt_half_above_support():
+    """BM reversion at q>0.5 is above the support line (upward sigma shift)."""
+    from figures.leverage import reversion_price, _bm_support_log10, _t_yr
     import datetime as _dt
     td = _dt.date.today().replace(year=_dt.date.today().year + 4)
     support = 10.0 ** _bm_support_log10(_t_yr(td))
-    assert floor_price("bub", 0.80, td) > support
-    assert floor_price("bub", 0.99, td) > floor_price("bub", 0.80, td)
+    assert reversion_price("bub", 0.80, td) > support
+    assert reversion_price("bub", 0.99, td) > reversion_price("bub", 0.80, td)
 
 
 def test_leverage_tab_controls_snapshot_alignment():

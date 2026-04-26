@@ -28,14 +28,14 @@ def _model_options():
     return opts
 
 
-# Floor quantile pill bar — hardcoded at import (parallel to routing.py::_HM_PILL_IDS).
-_LEV_FLOOR_QS = [0.001, 0.01, 0.05, 0.10, 0.15, 0.20, 0.50,
-                 0.80, 0.85, 0.90, 0.95, 0.99]
-_LEV_PILL_IDS = [f"lev-pill-q{int(q*1000):03d}" for q in _LEV_FLOOR_QS]
+# Reversion quantile pill bar — hardcoded at import (parallel to routing.py::_HM_PILL_IDS).
+_LEV_REVERSION_QS = [0.001, 0.01, 0.05, 0.10, 0.15, 0.20, 0.50,
+                     0.80, 0.85, 0.90, 0.95, 0.99]
+_LEV_PILL_IDS = [f"lev-pill-q{int(q*1000):03d}" for q in _LEV_REVERSION_QS]
 
 
-def _floor_pill_bar():
-    """Render 6 pill buttons for floor quantile selection."""
+def _reversion_pill_bar():
+    """Render pill buttons for reversion quantile selection."""
     labels = ["Q0.1%", "Q1%", "Q5%", "Q10%", "Q15%", "Q20%", "Q50%",
               "Q80%", "Q85%", "Q90%", "Q95%", "Q99%"]
     default_q = 0.01
@@ -45,7 +45,7 @@ def _floor_pill_bar():
             outline=(q != default_q), color="primary",
             n_clicks=0,
         )
-        for pid, lbl, q in zip(_LEV_PILL_IDS, labels, _LEV_FLOOR_QS)
+        for pid, lbl, q in zip(_LEV_PILL_IDS, labels, _LEV_REVERSION_QS)
     ], className="d-flex flex-wrap")
 
 
@@ -74,9 +74,11 @@ def _leverage_tab() -> html.Div:
                              value=d["lev_model"], clearable=False),
             ], md=6, xs=12, className="mb-2"),
             dbc.Col([
-                html.Label("Floor quantile", style={"fontSize": UI_FONT_MD}),
-                _floor_pill_bar(),
-                dcc.Store(id="lev-floor-q-store", data=d["lev_floor_q"]),
+                html.Label("Reversion quantile", style={"fontSize": UI_FONT_MD}),
+                _reversion_pill_bar(),
+                # Component ID retained as `lev-floor-q-store` for share-link
+                # compatibility (the ID is encoded positionally in q4: links).
+                dcc.Store(id="lev-floor-q-store", data=d["lev_reversion_q"]),
             ], md=6, xs=12, className="mb-2"),
         ], className="mb-3"),
 

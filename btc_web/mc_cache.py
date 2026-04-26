@@ -49,7 +49,6 @@ MC_FREE_SIMS = 200
 CACHED_START_YRS = [2028, 2031, 2035]
 ENTRY_PCT_BINS = [0.01, 0.10, 0.50]
 MC_YEARS_OPTIONS = [40]
-_CACHED_MODEL_KEYS = frozenset(["bub", "qr", "pl", "lppl", "exp", "ef"])
 WD_AMOUNTS = [5000, 7500, 12500, 20000, 32500, 69420]
 INFL_OPTIONS = [2, 3, 4, 6, 8, 10, 12]
 STACK_SIZES = [0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
@@ -68,6 +67,28 @@ def _parse_cache_filename(name: str) -> tuple[str, str, int] | None:
     """
     m = _CACHE_FILE_RE.match(name)
     return (m.group(1), m.group(2), int(m.group(3))) if m else None
+
+
+def _derive_cached_model_keys() -> frozenset[str]:
+    """Build _CACHED_MODEL_KEYS from on-disk cache files.
+
+    Globs overlays_*.npz (NOT paths_*) — overlay files are written second
+    in generate_cache, so their presence implies both halves exist
+    (avoids partial-write UI lie).
+
+    Returns frozenset() if CACHE_DIR doesn't exist (fresh clone).
+    """
+    if not CACHE_DIR.exists():
+        return frozenset()
+    keys = set()
+    for f in CACHE_DIR.glob("overlays_*.npz"):
+        parsed = _parse_cache_filename(f.name)
+        if parsed is not None and parsed[0] == "overlays":
+            keys.add(parsed[1])
+    return frozenset(keys)
+
+
+_CACHED_MODEL_KEYS = _derive_cached_model_keys()
 
 
 def _ef_pkl_path() -> Path:

@@ -100,3 +100,21 @@ def test_master_to_cached_fallback_lppl_transition_exemption():
     # invariant in mc_cache.py is upheld.
     assert MASTER_TO_CACHED_FALLBACK.get("lppl") == "lppl"
     assert "lppl" not in _INTENDED_KEYS
+
+
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parent / "mc_cache").exists(),
+    reason="mc_cache/ dir does not exist (fresh clone or test env)",
+)
+def test_cached_model_keys_match_disk_glob():
+    """Live _CACHED_MODEL_KEYS matches what _parse_cache_filename
+    extracts from real overlays_*.npz files in mc_cache/."""
+    from mc_cache import _CACHED_MODEL_KEYS, CACHE_DIR, _parse_cache_filename
+
+    expected = set()
+    for f in CACHE_DIR.glob("overlays_*.npz"):
+        parsed = _parse_cache_filename(f.name)
+        if parsed is not None and parsed[0] == "overlays":
+            expected.add(parsed[1])
+    assert _CACHED_MODEL_KEYS == frozenset(expected), (
+        f"disk has {expected}, _CACHED_MODEL_KEYS = {set(_CACHED_MODEL_KEYS)}")

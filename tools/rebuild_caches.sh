@@ -55,21 +55,32 @@ echo ""
 if [ "$BUILD_MC" = "true" ]; then
     echo "▶ Building MC cache (expect 2-4 hours)..."
     if [ -f btc_web/mc_cache.py ]; then
+        # flock prevents two concurrent rebuilds from racing on stash/rename.
+        # Auto-creates the lockfile; -n exits immediately if already held.
+        LOCKFILE="btc_web/mc_cache/.rebuild.lock"
+        mkdir -p "$(dirname "$LOCKFILE")"
+        exec 200>"$LOCKFILE"
+        if ! flock -n 200; then
+            echo "✗ Another rebuild appears to be in progress (lockfile held)."
+            echo "  If you're sure no other rebuild is running, delete: $LOCKFILE"
+            exit 1
+        fi
+
         PYTHONPATH=".:btc_web" btc_venv/bin/python3 -c "
 import _app_ctx
 from btc_core import load_model_data
 import btc_web.mc_cache as mc
+
 M = load_model_data('model_data.pkl')
-from btc_core import BubbleModel, PowerLawModel, LPPLModel, ExponentialModel, S2FModel, EmpiricalFloorModel, QuantileRegressionModel
-models = {
-    'bub': BubbleModel(M),
-    'qr':  QuantileRegressionModel(M),
-    'pl':  PowerLawModel(M.ols_intercept, M.ols_slope, M.price_years,
-                        M.price_prices, M.genesis, M.QR_QUANTILES),
-    'lppl': LPPLModel(M.price_years, M.price_prices, M.QR_QUANTILES),
-    'exp': ExponentialModel(M.price_years, M.price_prices, M.QR_QUANTILES),
-}
-mc.generate_all_caches(M, models)
+models = mc.intended_models(M)
+
+mc.stash_stale_files()
+try:
+    mc.generate_all_caches(M, models)
+    mc.commit_stale_files()
+except BaseException:
+    mc.restore_stale_files()
+    raise
 "
     else
         echo "MC cache builder not found — skipping."

@@ -1122,6 +1122,15 @@ class TestSnapshotDefaultsConsistency:
             PREWARM_ONLY_ALLOWLIST = {
                 # tab → set of keys that are in prewarm but NOT in builder
                 # (e.g., if prewarm needs an extra cache-key field)
+                # Bubble MC controls (Task 2-4 scaffolding): keys live in
+                # bubble_defaults() so prewarm cache-key matches a future
+                # MC-on bubble runtime, but the chart builder doesn't yet
+                # consume them — see Task 11 for plumbing.
+                "bubble": {
+                    "mc_amount", "mc_bins", "mc_enabled", "mc_entry_q",
+                    "mc_freq", "mc_infl", "mc_model_src", "mc_regime",
+                    "mc_sims", "mc_start_yr", "mc_window", "mc_years",
+                },
             }
             allowlist = PREWARM_ONLY_ALLOWLIST.get(tab, set())
 

@@ -166,7 +166,13 @@ _TAB_CONTROLS = {
                     "cta-t0-blk","cta-t0-blk-custom",
                     "cta-weighting","cta-models",
                     # Residual QR sigma bands (Tab 1 only, added 2026-04-15)
-                    "bub-sigma-mode"},
+                    "bub-sigma-mode",
+                    # MC controls appended 2026-04-26
+                    "bub-mc-advanced","bub-mc-amount","bub-mc-bins","bub-mc-enable",
+                    "bub-mc-entry-q","bub-mc-freq","bub-mc-infl","bub-mc-loaded",
+                    "bub-mc-model-src","bub-mc-regime","bub-mc-rendered-key",
+                    "bub-mc-results","bub-mc-sims","bub-mc-start-yr","bub-mc-stack",
+                    "bub-mc-unblocked","bub-mc-window","bub-mc-years",},
     "heatmap":     {"hm-entry-yr","hm-entry-q","hm-exit-range","hm-exit-qs","hm-mode",
                     "hm-b1","hm-b2","hm-c-lo","hm-c-mid1","hm-c-mid2","hm-c-hi",
                     "hm-grad","hm-vfmt","hm-cell-fs","hm-line-width","hm-line-color",

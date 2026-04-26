@@ -95,6 +95,22 @@ def _build_bubble_dict():
         "lppl_no_13":  (),
         "config_b_keys": (),
         "_xrange": (int(xr[0]), int(xr[1])),  # internal: feeds xmin/xmax
+        # MC controls — prewarm-cache parity with update_bubble runtime.
+        # Inner collections stored as tuples to satisfy
+        # test_defaults.py::test_inner_collections_are_tuples; bubble_defaults()
+        # promotes mc_regime/mc_window to lists for runtime.
+        "mc_enabled":     bool(sd("bub-mc-enable:value", []) or []),
+        "mc_amount":      sd("bub-mc-amount:value", 100),
+        "mc_bins":        sd("bub-mc-bins:value", 5),
+        "mc_entry_q":     sd("bub-mc-entry-q:value", 10),
+        "mc_freq":        sd("bub-mc-freq:value", "Monthly"),
+        "mc_infl":        sd("bub-mc-infl:value", 4),
+        "mc_model_src":   sd("bub-mc-model-src:value", "bub"),
+        "mc_regime":      tuple(sd("bub-mc-regime:value", [0, 1, 2, 3, 4]) or []),
+        "mc_sims":        sd("bub-mc-sims:value", 200),
+        "mc_start_yr":    sd("bub-mc-start-yr:value", 2031),
+        "mc_window":      tuple(sd("bub-mc-window:value", [2010, 2026]) or []),
+        "mc_years":       sd("bub-mc-years:value", 40),
     }
 
 
@@ -451,6 +467,10 @@ def bubble_defaults() -> dict:
     d["lppl_no_13"] = list(BUBBLE["lppl_no_13"])
     d["config_b_keys"] = list(BUBBLE["config_b_keys"])
     d["qs_mode"] = list(BUBBLE["qs_mode"])
+    # MC inner collections — stored as tuples in BUBBLE; promote to lists
+    # for runtime parity with the update_bubble callback's params dict.
+    d["mc_regime"] = list(BUBBLE["mc_regime"])
+    d["mc_window"] = list(BUBBLE["mc_window"])
     d["lots"] = []
     d["user_model"] = None
     return d

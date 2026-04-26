@@ -356,6 +356,26 @@ _SNAPSHOT_CONTROLS = [
     ("cta-models",         "value"),
     # ── Residual QR sigma bands (Tab 1 only, appended 2026-04-15) ──
     ("bub-sigma-mode",     "value"),   # "constant" | "resqr"
+    # ── Tab 1 (Bubble) MC controls — appended at END of bubble section to
+    # minimize positional bit-drift for the dca/ret/sc/hm sections that follow.
+    ("bub-mc-advanced",     "value"),
+    ("bub-mc-amount",       "value"),
+    ("bub-mc-bins",         "value"),
+    ("bub-mc-enable",       "value"),
+    ("bub-mc-entry-q",      "value"),
+    ("bub-mc-freq",         "value"),
+    ("bub-mc-infl",         "value"),
+    ("bub-mc-loaded",       "data"),
+    ("bub-mc-model-src",    "value"),
+    ("bub-mc-regime",       "value"),
+    ("bub-mc-rendered-key", "data"),
+    ("bub-mc-results",      "data"),
+    ("bub-mc-sims",         "value"),
+    ("bub-mc-start-yr",     "value"),
+    ("bub-mc-stack",        "value"),
+    ("bub-mc-unblocked",    "data"),
+    ("bub-mc-window",       "value"),
+    ("bub-mc-years",        "value"),
     # ── Leverage Calculator tab ──
     ("lev-date",          "date"),
     ("lev-price",         "value"),

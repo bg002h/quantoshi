@@ -85,7 +85,7 @@ def test_bubble_defaults_produce_valid_figure():
     from btc_web.app import app  # noqa: F401
     import _app_ctx
     from figures.bubble import build_bubble_figure
-    fig = build_bubble_figure(_app_ctx.M, bubble_defaults())
+    fig, _ = build_bubble_figure(_app_ctx.M, bubble_defaults())
     assert len(fig.data) > 0
 
 

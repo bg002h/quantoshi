@@ -558,7 +558,7 @@ class TestDecompositionTraces:
     def test_no_model_no_extra_traces(self):
         import _app_ctx
         from figures.bubble import build_bubble_figure
-        fig = build_bubble_figure(_app_ctx.M, self._base_p())
+        fig, _ = build_bubble_figure(_app_ctx.M, self._base_p())
         decomp_traces = [t for t in fig.data
                          if getattr(t, 'name', None) and " | " in t.name]
         assert decomp_traces == []
@@ -567,7 +567,7 @@ class TestDecompositionTraces:
         """Exactly ONE trace appears when components are selected."""
         import _app_ctx
         from figures.bubble import build_bubble_figure
-        fig = build_bubble_figure(_app_ctx.M, self._base_p(
+        fig, _ = build_bubble_figure(_app_ctx.M, self._base_p(
             decomp_model="bub", decomp_components=["support", "bubbles"]))
         trace_names = [t.name for t in fig.data if getattr(t, 'name', None)]
         bm_decomp = [n for n in trace_names if n.startswith("BM | ")]
@@ -577,7 +577,7 @@ class TestDecompositionTraces:
         """All components selected → label says 'full model'."""
         import _app_ctx
         from figures.bubble import build_bubble_figure
-        fig = build_bubble_figure(_app_ctx.M, self._base_p(
+        fig, _ = build_bubble_figure(_app_ctx.M, self._base_p(
             decomp_model="bub", decomp_components=["support", "bubbles"]))
         trace_names = [t.name for t in fig.data if getattr(t, 'name', None)]
         full = [n for n in trace_names if "full model" in n]
@@ -587,7 +587,7 @@ class TestDecompositionTraces:
         """Subset selection label shows fraction (e.g., '1/2 components')."""
         import _app_ctx
         from figures.bubble import build_bubble_figure
-        fig = build_bubble_figure(_app_ctx.M, self._base_p(
+        fig, _ = build_bubble_figure(_app_ctx.M, self._base_p(
             decomp_model="bub", decomp_components=["support"]))
         trace_names = [t.name for t in fig.data if getattr(t, 'name', None)]
         partial = [n for n in trace_names if "1/2 components" in n]
@@ -662,15 +662,15 @@ class TestMultiModelBubbleFigure:
             sup_color="#888888", sup_lw=1.5,
         )
         from figures import build_bubble_figure
-        fig_no_pl = build_bubble_figure(M, dict(p_base, active_models=[]))
-        fig_with_pl = build_bubble_figure(M, dict(p_base, active_models=["pl"]))
+        fig_no_pl, _ = build_bubble_figure(M, dict(p_base, active_models=[]))
+        fig_with_pl, _ = build_bubble_figure(M, dict(p_base, active_models=["pl"]))
         assert len(fig_with_pl.data) > len(fig_no_pl.data)
 
     def test_pl_traces_have_dot_dash(self):
         from datetime import date
         yr_now = date.today().year
         from figures import build_bubble_figure
-        fig = build_bubble_figure(M, dict(
+        fig, _ = build_bubble_figure(M, dict(
             selected_qs=[0.50], shade=False, show_ols=False, show_data=False,
             show_today=False, show_legend=False, minor_grid=False,
             show_comp=False, show_sup=False,
@@ -814,7 +814,7 @@ class TestPhase5Polish:
     def test_s2f_bubble_overlay(self):
         from figures import build_bubble_figure
         yr_now = pd.Timestamp.today().year
-        fig = build_bubble_figure(M, dict(
+        fig, _ = build_bubble_figure(M, dict(
             selected_qs=[0.5], xscale="log", yscale="log",
             xmin=2012, xmax=yr_now + 4, ymin=0.01, ymax=1e7,
             shade=False, show_ols=False, show_data=False, show_today=False,
@@ -868,7 +868,7 @@ class TestPhase5Polish:
     def test_pl_uses_dot_dash(self):
         from figures import build_bubble_figure
         yr_now = pd.Timestamp.today().year
-        fig = build_bubble_figure(M, dict(
+        fig, _ = build_bubble_figure(M, dict(
             selected_qs=[0.5], xscale="log", yscale="log",
             xmin=2012, xmax=yr_now + 4, ymin=0.01, ymax=1e7,
             shade=False, show_ols=False, show_data=False, show_today=False,
@@ -938,7 +938,7 @@ class TestPalettes:
         from figures import build_bubble_figure
         yr_now = pd.Timestamp.today().year
         for pal_key in _app_ctx.PALETTES:
-            fig = build_bubble_figure(M, dict(
+            fig, _ = build_bubble_figure(M, dict(
                 selected_qs=[0.5], shade=False, show_data=False,
                 show_today=False, show_legend=False, minor_grid=False,
                 show_comp=False, show_sup=False, xscale="log", yscale="log",
@@ -1184,13 +1184,13 @@ class TestBubbleModelGating:
     )
 
     def test_bub_active_draws_traces(self):
-        fig = build_bubble_figure(M, dict(self._BASE, active_models=["bub"]))
+        fig, _ = build_bubble_figure(M, dict(self._BASE, active_models=["bub"]))
         names = [t.name for t in fig.data if t.name]
         assert any("Bubble composite" in n for n in names)
         assert any("Bubble support" in n for n in names)
 
     def test_bub_inactive_hides_traces(self):
-        fig = build_bubble_figure(M, dict(self._BASE, active_models=[]))
+        fig, _ = build_bubble_figure(M, dict(self._BASE, active_models=[]))
         # No traces should lack legendgroup (BM traces lack it; overlays always set it)
         bm_traces = [t for t in fig.data if t.name
                      and not getattr(t, "legendgroup", None)
@@ -1199,7 +1199,7 @@ class TestBubbleModelGating:
 
     def test_bub_inactive_preserves_data_scatter(self):
         """Data scatter, OLS, UCL, today line survive when BM is off."""
-        fig = build_bubble_figure(M, dict(self._BASE,
+        fig, _ = build_bubble_figure(M, dict(self._BASE,
             active_models=[], show_data=True, show_today=True,
             show_ols=True, show_ucl=True))
         names = [t.name for t in fig.data if t.name]
@@ -1207,7 +1207,7 @@ class TestBubbleModelGating:
 
     def test_bub_inactive_still_has_axis_config(self):
         """Even with BM hidden, chart should render without error."""
-        fig = build_bubble_figure(M, dict(self._BASE, active_models=[]))
+        fig, _ = build_bubble_figure(M, dict(self._BASE, active_models=[]))
         assert isinstance(fig, go.Figure)
         assert fig.layout.xaxis.type in ("log", "linear", "-")
 
@@ -1235,21 +1235,21 @@ class TestEFCompositeOverlay:
     def test_ef_overlay_draws_composite(self):
         if "ef" not in _app_ctx.PRICE_MODELS:
             pytest.skip("EF model not loaded")
-        fig = build_bubble_figure(M, dict(self._BASE, active_models=["ef"]))
+        fig, _ = build_bubble_figure(M, dict(self._BASE, active_models=["ef"]))
         names = [t.name for t in fig.data if t.name]
         assert any("EF" in n and "composite" in n for n in names)
 
     def test_ef_overlay_draws_support(self):
         if "ef" not in _app_ctx.PRICE_MODELS:
             pytest.skip("EF model not loaded")
-        fig = build_bubble_figure(M, dict(self._BASE, active_models=["ef"]))
+        fig, _ = build_bubble_figure(M, dict(self._BASE, active_models=["ef"]))
         names = [t.name for t in fig.data if t.name]
         assert any("EF" in n and "support" in n for n in names)
 
     def test_ef_composite_uses_own_color(self):
         if "ef" not in _app_ctx.PRICE_MODELS:
             pytest.skip("EF model not loaded")
-        fig = build_bubble_figure(M, dict(self._BASE, active_models=["ef"]))
+        fig, _ = build_bubble_figure(M, dict(self._BASE, active_models=["ef"]))
         comp_traces = [t for t in fig.data if t.name and "EF" in t.name and "composite" in t.name]
         assert len(comp_traces) > 0
         # EF composite uses palette model color (default palette)
@@ -1259,14 +1259,14 @@ class TestEFCompositeOverlay:
     def test_ef_no_composite_when_show_comp_off(self):
         if "ef" not in _app_ctx.PRICE_MODELS:
             pytest.skip("EF model not loaded")
-        fig = build_bubble_figure(M, dict(self._BASE, active_models=["ef"], show_comp=False))
+        fig, _ = build_bubble_figure(M, dict(self._BASE, active_models=["ef"], show_comp=False))
         names = [t.name for t in fig.data if t.name]
         assert not any("composite" in n for n in names)
 
     def test_both_bub_and_ef_composite(self):
         if "ef" not in _app_ctx.PRICE_MODELS:
             pytest.skip("EF model not loaded")
-        fig = build_bubble_figure(M, dict(self._BASE, active_models=["bub", "ef"]))
+        fig, _ = build_bubble_figure(M, dict(self._BASE, active_models=["bub", "ef"]))
         names = [t.name for t in fig.data if t.name]
         assert any("Bubble composite" in n for n in names)
         assert any("EF" in n and "composite" in n for n in names)
@@ -1350,38 +1350,38 @@ class TestR2InLegend:
     )
 
     def test_bm_quantile_has_r2(self):
-        fig = build_bubble_figure(M, dict(self._BASE, active_models=["bub"]))
+        fig, _ = build_bubble_figure(M, dict(self._BASE, active_models=["bub"]))
         q_traces = [t for t in fig.data if t.name and "Q" in t.name
                     and "%" in t.name and "R\u00b2" in t.name
                     and not getattr(t, "legendgroup", None)]
         assert len(q_traces) > 0, "BM quantile lines should show R²"
 
     def test_overlay_quantile_has_r2(self):
-        fig = build_bubble_figure(M, dict(self._BASE, active_models=["bub", "pl"]))
+        fig, _ = build_bubble_figure(M, dict(self._BASE, active_models=["bub", "pl"]))
         pl_traces = [t for t in fig.data if t.name and t.legendgroup == "pl"
                      and "R\u00b2" in t.name]
         assert len(pl_traces) > 0, "PL overlay lines should show R²"
 
     def test_ols_has_r2(self):
-        fig = build_bubble_figure(_app_ctx.M, dict(self._BASE, active_models=["bub"]))
+        fig, _ = build_bubble_figure(_app_ctx.M, dict(self._BASE, active_models=["bub"]))
         ols_traces = [t for t in fig.data if t.name and t.name.startswith("OLS")]
         assert len(ols_traces) > 0
         assert "R\u00b2" in ols_traces[0].name
 
     def test_s2f_has_r2(self):
-        fig = build_bubble_figure(M, dict(self._BASE, active_models=["s2f"]))
+        fig, _ = build_bubble_figure(M, dict(self._BASE, active_models=["s2f"]))
         s2f_traces = [t for t in fig.data if t.name and t.legendgroup == "s2f"]
         assert len(s2f_traces) > 0
         assert "R\u00b2" in s2f_traces[0].name
 
     def test_support_no_r2(self):
-        fig = build_bubble_figure(M, dict(self._BASE, active_models=["bub"]))
+        fig, _ = build_bubble_figure(M, dict(self._BASE, active_models=["bub"]))
         sup_traces = [t for t in fig.data if t.name and "support" in t.name]
         for t in sup_traces:
             assert "R\u00b2" not in t.name, f"Support should not have R²: {t.name}"
 
     def test_ucl_no_r2(self):
-        fig = build_bubble_figure(M, dict(self._BASE, active_models=["bub"]))
+        fig, _ = build_bubble_figure(M, dict(self._BASE, active_models=["bub"]))
         ucl_traces = [t for t in fig.data if t.name and "Unfairly Cheap" in t.name]
         for t in ucl_traces:
             assert "R\u00b2" not in t.name
@@ -1545,7 +1545,7 @@ class TestOverlayModelShading:
                  stack=0, show_stack=False, lots=[], use_lots=False,
                  show_legend=False, active_models=["bub", "pl"],
                  qs_mode=[])
-        fig = build_bubble_figure(M, p)
+        fig, _ = build_bubble_figure(M, p)
         fill_traces = [t for t in fig.data if t.fill == "tonexty"]
         assert len(fill_traces) >= 2  # at least 1 band per model
 

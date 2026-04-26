@@ -265,7 +265,10 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     else:
         # Default mode: expand band names to quantile floats
         _effective_qs = _bands_to_qs(sel_qs)
-    fig = _get_bubble_fig(dict(
+    # _get_bubble_fig now returns (fig, mc_result) — Task 11 will use the
+    # mc_result element when MC overlay is enabled. For now mc_result is
+    # always None on this non-MC path.
+    fig, _mc_result = _get_bubble_fig(dict(
         selected_qs = _effective_qs,
         shade       = "shade"     in toggles,
         show_ols    = "show_ols"  in toggles,

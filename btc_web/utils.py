@@ -174,6 +174,14 @@ def _get_mc_or_cached(p: dict, builder_fn, cache_fn, always_mc=False):
         return builder_fn(_app_ctx.M, p_q)
     return cache_fn(json.dumps(p_q, sort_keys=True, default=str))
 
+def _get_mc_bubble_fig(p: dict):
+    """MC-aware bubble cache wrapper. Routes through _get_mc_or_cached
+    so mc_cached dicts are stripped from the JSON cache key when MC is
+    disabled and passed directly to the builder when MC is enabled.
+    update_bubble switches to this wrapper only when mc_enabled is truthy;
+    the non-MC fast path stays on _get_bubble_fig."""
+    return _get_mc_or_cached(p, build_bubble_figure, _cached_bubble_fig)
+
 def _get_dca_fig(p: dict):
     return _get_mc_or_cached(p, build_dca_figure, _cached_dca_fig)
 

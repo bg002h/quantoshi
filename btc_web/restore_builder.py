@@ -223,7 +223,9 @@ def _build_bubble_figure_from_state(state: dict):
     toggles = toggles or []
     bubble_toggles = bubble_toggles or []
 
-    fig = _get_bubble_fig(dict(
+    # _get_bubble_fig returns (fig, mc_result); mc_result is None on the
+    # non-MC fast path. Task 12 will add the MC gate here.
+    fig, _mc_result = _get_bubble_fig(dict(
         selected_qs = _effective_qs,
         shade       = "shade"     in toggles,
         show_ols    = "show_ols"  in toggles,

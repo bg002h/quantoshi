@@ -47,7 +47,7 @@ def _r2_suffix(mdl, q):
     return ""
 
 
-def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
+def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     """
     p keys: selected_qs, shade, xscale, yscale, xmin, xmax, ymin, ymax,
             n_future, show_comp, comp_color, comp_lw,
@@ -489,7 +489,10 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     _apply_config_annotation(fig, p, "bub", show_qr=True, show_mc=False)
     wm_pos = "bottom-left" if leg_pos == "bottom-right" else "bottom-right"
     _apply_watermark(fig, pos=wm_pos)
-    return fig
+    # Return (fig, None) for parity with build_dca_figure / build_retire_figure.
+    # Task 11 will populate the second element with mc_result (the spaghetti
+    # MC overlay payload) once update_bubble routes through _get_mc_bubble_fig.
+    return fig, None
 
 
 def _add_decomposition_traces(traces, t_arr, m, p):

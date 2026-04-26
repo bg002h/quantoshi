@@ -1064,7 +1064,7 @@ class TestSnapshotDefaultsConsistency:
         cases = [
             ("bubble", bubble_defaults(),
              restore_builder._build_bubble_figure_from_state,
-             "restore_builder._get_bubble_fig", "fig",
+             "restore_builder._get_bubble_fig", "tuple",
              {"main-tabs:active_tab": "bubble"}),
             ("dca", dca_defaults(),
              restore_builder._build_dca_figure_from_state,
@@ -1098,7 +1098,7 @@ class TestSnapshotDefaultsConsistency:
                 captured["params"] = dict(p)  # snapshot at call-time
                 if return_shape == "tuple":
                     return (go.Figure(), None)
-                # bubble's _get_bubble_fig returns a Figure directly
+                # heatmap/leverage helpers still return bare Figures
                 return go.Figure()
 
             with patch(fig_fn_path, side_effect=_capture):

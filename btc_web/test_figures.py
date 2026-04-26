@@ -154,7 +154,7 @@ class TestBuildBubbleFigure:
             "use_lots": False,
             "auto_y": True,
         }
-        fig = build_bubble_figure(M, p)
+        fig, _ = build_bubble_figure(M, p)
         assert isinstance(fig, go.Figure)
 
     def test_no_quantiles(self):
@@ -182,7 +182,7 @@ class TestBuildBubbleFigure:
             "use_lots": False,
             "auto_y": False,
         }
-        fig = build_bubble_figure(M, p)
+        fig, _ = build_bubble_figure(M, p)
         assert isinstance(fig, go.Figure)
 
 
@@ -533,7 +533,8 @@ class TestBubbleFuzz:
     @pytest.mark.parametrize("override", _BUB_OVERRIDES)
     def test_no_crash(self, override):
         p = {**_BUB_BASE, **override}
-        _assert_figure(build_bubble_figure(M, p))
+        fig, _ = build_bubble_figure(M, p)
+        _assert_figure(fig)
 
 
 # ── Heatmap fuzz ─────────────────────────────────────────────────────────────
@@ -1169,7 +1170,7 @@ class TestConfigAnnotations:
                  show_today=False, pt_size=2, pt_alpha=0.3,
                  stack=0, show_stack=False, lots=[], use_lots=False,
                  show_legend=False)
-        fig = build_bubble_figure(M, p)
+        fig, _ = build_bubble_figure(M, p)
         xtitle = fig.layout.xaxis.title.text
         assert xtitle is not None and "Quantiles:" in xtitle
 

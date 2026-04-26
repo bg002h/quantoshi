@@ -442,7 +442,7 @@ HM_PRESET_PALETTES = {
 # classic red-green; CB palettes default to blue-orange which stays
 # distinguishable on all deuteranomaly / protanopia / tritanopia profiles.
 PALETTE_DEFAULT_HM_PRESET = {
-    "default":  "rwg",
+    "default":  "rbg",
     "cb-brian": "bwo",
     "cb-rg":    "bwo",
     "cb-full":  "bwo",

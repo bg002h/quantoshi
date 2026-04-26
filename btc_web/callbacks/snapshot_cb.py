@@ -644,8 +644,8 @@ def apply_hm_palette(preset_name):
 _app_ctx.app.clientside_callback(
     """
     function(palette_key) {
-        var map = {"default": "rwg", "cb-brian": "bwo", "cb-rg": "bwo", "cb-full": "bwo"};
-        return map[palette_key || "default"] || "rwg";
+        var map = {"default": "rbg", "cb-brian": "bwo", "cb-rg": "bwo", "cb-full": "bwo"};
+        return map[palette_key || "default"] || "rbg";
     }
     """,
     Output("hm-palette", "value", allow_duplicate=True),

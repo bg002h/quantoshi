@@ -45,9 +45,19 @@ def main():
         ("citadel", _get_citadel_fig, citadel_defaults),
     ]
 
+    # DCA/Retire/SC default to no models shown (`active_models=[]`) so a
+    # naive defaults() call yields a blank "No models selected" placeholder.
+    # Force `["bub"]` so the preview shows the canonical median band.
+    _MODEL_OVERRIDES = {
+        "dca": {"active_models": ["bub"], "show_qr": True},
+        "retire": {"active_models": ["bub"], "show_qr": True},
+        "supercharge": {"active_models": ["bub"], "show_qr": True},
+    }
     for name, fn, defaults in charts:
         try:
-            result = fn(defaults())
+            params = dict(defaults())
+            params.update(_MODEL_OVERRIDES.get(name, {}))
+            result = fn(params)
             fig = result[0] if isinstance(result, tuple) else result
             # Tighter margins for cleaner preview
             fig.update_layout(margin=dict(l=60, r=40, t=40, b=50),

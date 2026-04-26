@@ -60,6 +60,12 @@ DEV=1 bash run_web.sh     # Dash dev server with hot-reload (single user, skips 
 PORT=8080 bash run_web.sh # custom port
 ```
 
+### Update chart preview placeholders
+```bash
+btc_venv/bin/python3 tools/render_chart_previews.py
+```
+Renders `btc_web/assets/{bubble,heatmap,dca,retire,supercharge,citadel}_preview.png` via kaleido + the live figure builders. These PNGs are shown briefly during initial Plotly hydration on each chart tab. Re-run after major UI / palette / model changes. (Legacy: `tools/render_bubble_preview.py` is matplotlib-based and bubble-only — superseded.)
+
 ### Syntax-check the web app
 ```bash
 cd btc_web && PYTHONPATH=".:.." ../btc_venv/bin/python3 -c \

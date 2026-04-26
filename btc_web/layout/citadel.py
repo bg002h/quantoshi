@@ -278,7 +278,7 @@ def _sim_panel():
                      amount_default=5000, show_inflation=True, show_stack=True,
                      default_entry_q=10,
                      shared_controls={"amount", "infl", "freq", "stack"},
-                     mc_enabled_default=True),
+                     mc_enabled_default=False),
     ])
 
 

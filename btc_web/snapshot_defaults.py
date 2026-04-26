@@ -112,7 +112,7 @@ SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'cp-lump-cooldown:value': 12,
     'cp-mc-advanced:value': [],
     'cp-mc-bins:value': 5,
-    'cp-mc-enable:value': ['yes'],
+    'cp-mc-enable:value': [],
     'cp-mc-entry-q:value': 10,
     'cp-mc-model-src:value': 'bub',
     'cp-mc-regime:value': [0, 1, 2, 3, 4],

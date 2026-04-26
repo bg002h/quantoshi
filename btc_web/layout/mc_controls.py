@@ -8,7 +8,7 @@ import dash_bootstrap_components as dbc
 import _app_ctx
 from mc_cache import (CACHED_START_YRS, WD_AMOUNTS,
                       ENTRY_PCT_BINS, MC_YEARS_OPTIONS, INFL_OPTIONS,
-                      _CACHED_MODEL_KEYS)
+                      is_master_cached)
 from mc_overlay import bin_regime_labels
 
 from layout.common import (_section_card, _ctrl_card, _row, _lbl,
@@ -45,7 +45,7 @@ def _mc_model_src_options():
         if k not in _app_ctx.PRICE_MODELS:
             continue
         name = _app_ctx.PRICE_MODELS[k].name
-        if k in _CACHED_MODEL_KEYS:
+        if is_master_cached(k):
             label = html.Span(f" {name}", style={"fontWeight": "bold"})
         else:
             label = f" {name}"

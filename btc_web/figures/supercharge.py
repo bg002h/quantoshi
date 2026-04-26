@@ -11,7 +11,7 @@ import _app_ctx
 import theme
 from btc_core import ModelData, yr_to_t, fmt_price
 from tab_defaults import SUPERCHARGE
-from mc_overlay import _mc_supercharge_overlay
+from mc_overlay import _mc_supercharge_overlay, _mc_supercharge_mode_b_overlay
 from colors import (FALLBACK_MODEL_GRAY, BLACK, LIGHT_GRAY,
                     SC_ENVELOPE_ALPHA, SC_OVERLAY_ENVELOPE_ALPHA)
 
@@ -678,6 +678,18 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
                     hovertemplate="%{customdata}: %{y:,.0f}<extra></extra>",
                 ))
 
+    # \u2500\u2500 MC fan overlay (Mode B): per-delay distribution of max-spend \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    # Only on chart_layouts 0 + 1 where the x-axis is delay; layout 2 plots
+    # quantile on x and the MC distribution doesn't have a natural quantile
+    # dimension.
+    mc_result = None
+    if (_HAS_MARKOV and p.get("mc_enabled") and p.get("show_mc", True)
+            and chart_layout in (0, 1)):
+        mc_b_traces, mc_result = _mc_supercharge_mode_b_overlay(
+            m, p, syr, delays, target_yr, start_stack, ppy, dt,
+            inflation, palette)
+        traces.extend(mc_b_traces)
+
     xlabel = "Delay (years)" if chart_layout in (0, 1) else "Quantile"
     layout = _base_layout(
         title=f"HODL Supercharger \u2014 Max spend{freq_label} to deplete by {target_yr}  ({model.name})",
@@ -689,4 +701,4 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
     if not traces:
         _empty_state_annotation(layout)
 
-    return _finalize_chart(traces, layout, p, "sc", mc_premium=False)
+    return _finalize_chart(traces, layout, p, "sc", mc_result, mc_premium=False)

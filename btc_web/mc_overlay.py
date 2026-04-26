@@ -1016,6 +1016,161 @@ def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
                                  start_stack, disp_mode, "sc", existing_annot_count)
 
 
+def _mc_supercharge_mode_b_overlay(m, p, syr, delays, target_yr, start_stack,
+                                    ppy, dt, inflation, palette,
+                                    bisect_iters=60):
+    """Mode B MC overlay: per-delay distribution of max-spend that depletes
+    by target_yr, computed across MC price paths.
+
+    For each delay d:
+      1. Subset path columns to t in [syr+d, target_yr]
+      2. Vectorized bisection across paths: at each candidate mid value,
+         simulate withdrawal-per-step inflated from t_start_d, take cumsum
+         of btc_consumed = adj_wd[t] / paths[i, t], find which paths
+         survive (stack > 0 the whole way), update lo/hi per path
+      3. After bisect_iters, lo[i] is each path's max sustainable wd
+
+    Aggregate across paths: percentile fan at each delay {5,25,50,75,95}.
+    Returns (traces, mc_result_or_None). Empty list when MC is disabled
+    or paths can't be obtained.
+    """
+    if not _HAS_MARKOV or not p.get("mc_enabled"):
+        return [], None
+
+    n_bins, n_sims, mc_window, mc_freq, mc_ppy, mc_dt, step_days, mc_years = _mc_setup_vars(p)
+
+    # Acquire paths: free-tier cache → live simulation.
+    try:
+        from mc_cache import get_cached_paths as _get_cached_paths_local
+    except ImportError:
+        _get_cached_paths_local = None
+    pct_bin = float(p.get("mc_entry_q") or 10) / 100.0
+    paths = None
+    if _HAS_MC_CACHE and _get_cached_paths_local is not None:
+        try:
+            paths = _get_cached_paths_local(
+                p.get("mc_model_src", "bub"),
+                int(p.get("mc_start_yr", MC_DEFAULT_START_YR)),
+                pct_bin, mc_years)
+        except Exception:
+            paths = None
+    if paths is None or not hasattr(paths, "shape") or paths.size == 0:
+        # Live simulation fallback (paid tier)
+        try:
+            mc_start_yr_, mc_t_start_, mc_t_end_, mc_ts_ = _build_mc_timeline(
+                p, m, mc_years, mc_dt)
+            paths = _run_full_simulation(
+                m, p, n_bins, step_days, mc_window, mc_ts_, n_sims,
+                mc_t_start_, mc_dt)
+        except Exception as e:
+            logger.debug("[MC-SC-B] sim fallback failed: %s", e)
+            return [], None
+    if paths is None or paths.size == 0:
+        return [], None
+
+    # Apply regime filter (rank ascending by time-in-blocked) + trim to mc_sims.
+    blocked = p.get("mc_blocked_bins") or []
+    n_steps_full = paths.shape[1]
+    mc_t_start = yr_to_t(int(p.get("mc_start_yr", MC_DEFAULT_START_YR)),
+                         m.genesis)
+    mc_t_end = mc_t_start + mc_years
+    t_axis_full = np.linspace(mc_t_start, mc_t_end, n_steps_full)
+    if blocked:
+        regime_model = _app_ctx.PRICE_MODELS.get(
+            p.get("mc_model_src", "bub")) or _app_ctx.DEFAULT_MODEL
+        if regime_model is not None:
+            paths = filter_paths_by_regime(
+                paths, t_axis_full, regime_model, blocked, n_bins=n_bins)
+    n_paths_max = int(p.get("mc_sims") or 200)
+    if paths.shape[0] > n_paths_max:
+        paths = paths[:n_paths_max]
+    n_paths = paths.shape[0]
+    if n_paths == 0:
+        return [], None
+
+    # For each delay, vectorize a bisection across paths.
+    pct_levels = [5, 25, 50, 75, 95]
+    fan_per_pct = {pct: [] for pct in pct_levels}
+    target_t = yr_to_t(int(target_yr), m.genesis)
+
+    for d in delays:
+        t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
+        if target_t <= t_start_d:
+            for pct in pct_levels:
+                fan_per_pct[pct].append(0.0)
+            continue
+        # Slice paths to the [t_start_d, target_t] window
+        j_start = int(np.searchsorted(t_axis_full, t_start_d, side="left"))
+        j_end = int(np.searchsorted(t_axis_full, target_t, side="right"))
+        if j_end - j_start < 2:
+            for pct in pct_levels:
+                fan_per_pct[pct].append(0.0)
+            continue
+        path_slice = paths[:, j_start:j_end]                # (n_paths, n_steps_d)
+        ts_slice = t_axis_full[j_start:j_end]               # (n_steps_d,)
+        # Per-step inflation factor relative to t_start_d
+        adj_factors = (1.0 + inflation) ** (ts_slice - t_start_d)  # (n_steps_d,)
+        # Generous upper bound: 4× annual stack value at first price.
+        first_price_per_path = path_slice[:, 0]             # (n_paths,)
+        hi = start_stack * first_price_per_path * ppy * 4.0
+        lo = np.zeros(n_paths)
+        # Bisection — per-path lo/hi update; vectorized survival check.
+        for _ in range(int(bisect_iters)):
+            mid = (lo + hi) / 2.0                            # (n_paths,)
+            adj_wd = mid[:, None] * adj_factors[None, :]     # (n_paths, n_steps_d)
+            btc_per_step = adj_wd / np.maximum(path_slice, 1e-12)
+            cum_btc = np.cumsum(btc_per_step, axis=1)
+            stack_traj = start_stack - cum_btc               # (n_paths, n_steps_d)
+            survived = (stack_traj > 0).all(axis=1)          # (n_paths,)
+            lo = np.where(survived, mid, lo)
+            hi = np.where(survived, hi, mid)
+        max_wd_paths = lo                                    # (n_paths,)
+        for pct in pct_levels:
+            fan_per_pct[pct].append(float(np.percentile(max_wd_paths, pct)))
+
+    # Build traces: outer fan (5-95) + inner fan (25-75) + median line.
+    mc_color = palette.get("mc_band", MC_AMBER) if palette else MC_AMBER
+    traces = []
+    # Outer 5-95 band
+    traces.append(go.Scatter(
+        x=list(delays), y=fan_per_pct[95],
+        mode="lines", line=dict(color=mc_color, width=0),
+        showlegend=False, hoverinfo="skip", legendgroup="mc-sc-b",
+    ))
+    traces.append(go.Scatter(
+        x=list(delays), y=fan_per_pct[5],
+        mode="lines", line=dict(color=mc_color, width=0),
+        fill="tonexty",
+        fillcolor=_hex_alpha(mc_color, MC_BAND_OUTER_ALPHA),
+        showlegend=False, hoverinfo="skip", legendgroup="mc-sc-b",
+    ))
+    # Inner 25-75 band
+    traces.append(go.Scatter(
+        x=list(delays), y=fan_per_pct[75],
+        mode="lines", line=dict(color=mc_color, width=0),
+        showlegend=False, hoverinfo="skip", legendgroup="mc-sc-b",
+    ))
+    traces.append(go.Scatter(
+        x=list(delays), y=fan_per_pct[25],
+        mode="lines", line=dict(color=mc_color, width=0),
+        fill="tonexty",
+        fillcolor=_hex_alpha(mc_color, MC_BAND_INNER_ALPHA),
+        showlegend=False, hoverinfo="skip", legendgroup="mc-sc-b",
+    ))
+    # Median line + marker
+    traces.append(go.Scatter(
+        x=list(delays), y=fan_per_pct[50],
+        mode="lines+markers",
+        line=dict(color=mc_color, width=2),
+        marker=dict(color=mc_color, size=8, symbol="diamond"),
+        name=f"MC median ({n_paths} paths)",
+        legendgroup="mc-sc-b",
+        hovertemplate=("delay=%{x}<br>median max-spend=%{y:,.0f}"
+                       "<extra>MC</extra>"),
+    ))
+    return traces, None
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Citadel Planner overlay
 # ══════════════════════════════════════════════════════════════════════════════

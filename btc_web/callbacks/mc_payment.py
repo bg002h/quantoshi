@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # Ordered tab list — pattern-matched mc-run-btn Inputs return a list in this
 # order (dict ALL collapses to a single list arg keyed by pattern match order,
 # which follows layout registration; we sort explicitly below to be safe).
-_MC_TABS = ("dca", "ret", "hm", "sc", "cp")
+_MC_TABS = ("dca", "ret", "hm", "sc", "cp", "bub")
 
 _MC_QUANT_THRESHOLD = 50_000  # sats — trigger quant warning modal
 
@@ -52,9 +52,11 @@ _MC_QUANT_THRESHOLD = 50_000  # sats — trigger quant warning modal
     State("sc-mc-entry-q", "value"),
     State("cp-mc-years", "value"), State("cp-mc-start-yr", "value"),
     State("cp-mc-entry-q", "value"),
+    State("bub-mc-years", "value"), State("bub-mc-start-yr", "value"),
+    State("bub-mc-entry-q", "value"),
     State("mc-pay-trigger", "data"),
-    *(State(f"{pfx}-mc-model-src", "value") for pfx in ("dca", "ret", "hm", "sc", "cp")),
-    *(State(f"{pfx}-mc-price-val", "data") for pfx in ("dca", "ret", "hm", "sc", "cp")),
+    *(State(f"{pfx}-mc-model-src", "value") for pfx in _MC_TABS),
+    *(State(f"{pfx}-mc-price-val", "data") for pfx in _MC_TABS),
     # LPPL/HybPPL/EPPL config-modal States (global) — feed _resolve_mc_model_src
     # so the free-tier check uses the same resolved variant the chart callback
     # builds with. Without these, "lppl"/"hybppl"/"eppl" master selection from
@@ -90,7 +92,7 @@ def _mc_payment_initiate(*args):
 
     # Extract the relevant tab's MC params from states
     tab_idx = _MC_TABS.index(tab)
-    n_tabs = len(_MC_TABS)  # 5 tabs
+    n_tabs = len(_MC_TABS)  # 6 tabs (was 5; bub appended in this commit)
     # Layout: 1 list-Input (args[0]), then (years, start_yr, entry_q) × n_tabs, trigger, n_tabs model_srcs, n_tabs prices
     state_base = 1  # skip the single pattern-match Input list
     mc_years  = _ci(args[state_base + tab_idx * 3],     MC_DEFAULT_YEARS)

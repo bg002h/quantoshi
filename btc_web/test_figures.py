@@ -1229,3 +1229,55 @@ class TestAutoYGrid:
                     f"{key} hi < lo at index {i}")
 
 
+def test_add_mc_spaghetti_returns_n_traces():
+    """100 sample paths from a 2000-path array, deterministic stride."""
+    from figures.bubble import _add_mc_spaghetti
+    import numpy as np
+    import plotly.graph_objects as go
+
+    fig = go.Figure()
+    n_sims, n_steps = 2000, 60
+    rng = np.random.default_rng(0)
+    paths = np.cumsum(rng.normal(0, 0.05, size=(n_sims, n_steps)), axis=1)
+    t_axis = np.arange(n_steps)
+
+    n_initial = len(fig.data)
+    _add_mc_spaghetti(fig, paths, t_axis, n_display=100)
+    n_final = len(fig.data)
+    assert n_final - n_initial == 100, \
+        f"expected 100 new traces, got {n_final - n_initial}"
+
+
+def test_add_mc_spaghetti_color_gradient_terminal_order():
+    """RdYlGn cmap: lowest terminal = red, highest terminal = green."""
+    from figures.bubble import _add_mc_spaghetti
+    import numpy as np
+    import plotly.graph_objects as go
+
+    fig = go.Figure()
+    paths = np.array([
+        [0, 0, 0, 0],   # lowest final
+        [0, 1, 2, 3],
+        [0, 2, 4, 6],   # highest final
+    ])
+    t_axis = np.arange(4)
+    _add_mc_spaghetti(fig, paths, t_axis, n_display=3)
+    colors = [t.line.color for t in fig.data]
+    assert len(colors) == 3
+    def red(s):
+        return int(s.split("(")[1].split(",")[0])
+    assert red(colors[0]) > red(colors[-1]), \
+        f"first trace should be redder than last: {colors}"
+
+
+def test_add_mc_spaghetti_handles_empty_paths():
+    """None / empty array → no-op, no exception."""
+    from figures.bubble import _add_mc_spaghetti
+    import plotly.graph_objects as go
+    import numpy as np
+
+    fig = go.Figure()
+    _add_mc_spaghetti(fig, None, np.arange(5))
+    _add_mc_spaghetti(fig, np.array([]).reshape(0, 5), np.arange(5))
+    assert len(fig.data) == 0
+

@@ -6,6 +6,7 @@ import math
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import matplotlib.cm as _mpl_cm
 from typing import Any
 
 import _app_ctx
@@ -45,6 +46,47 @@ def _r2_suffix(mdl, q):
     if r2 is not None:
         return f"  R\u00b2={r2:.4f}"
     return ""
+
+
+def _add_mc_spaghetti(fig, paths, t_axis, n_display=100):
+    """Add up to n_display sample paths from a (n_sims, n_steps) array.
+
+    Subsamples deterministically (stride-based) for reproducibility, then
+    color-grades each path by its terminal value using the RdYlGn cmap
+    (lowest = red, highest = green). Each trace has line.width=0.6 and
+    hoverinfo='skip' so the underlying price scatter remains the
+    authoritative hover target.
+
+    Args:
+        fig: go.Figure to mutate.
+        paths: np.ndarray (n_sims, n_steps), or None / 0-row -> no-op.
+        t_axis: np.ndarray (n_steps,) -- x values matching paths' columns.
+        n_display: target trace count. Stride = n_sims // n_display.
+    """
+    if paths is None:
+        return
+    if not hasattr(paths, "shape") or paths.size == 0 or paths.shape[0] == 0:
+        return
+    stride = max(1, paths.shape[0] // n_display)
+    sample = paths[::stride][:n_display]
+    finals = sample[:, -1]
+    span = max(np.ptp(finals), 1e-12)
+    norm = (finals - finals.min()) / span
+    cmap = _mpl_cm.RdYlGn
+    for i, path in enumerate(sample):
+        rgba = cmap(float(norm[i]))
+        color = (f"rgba({int(rgba[0]*255)},"
+                 f"{int(rgba[1]*255)},"
+                 f"{int(rgba[2]*255)},0.45)")
+        fig.add_trace(go.Scatter(
+            x=t_axis, y=path,
+            mode="lines",
+            line=dict(color=color, width=0.6),
+            showlegend=(i == 0),
+            name=("MC paths" if i == 0 else None),
+            hoverinfo="skip",
+            legendgroup="mc-spaghetti",
+        ))
 
 
 def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict | None]:

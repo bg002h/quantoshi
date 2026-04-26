@@ -1018,7 +1018,8 @@ def _mc_supercharge_overlay(m, p, ts, t_start, t_end, dt,
 
 def _mc_supercharge_mode_b_overlay(m, p, syr, delays, target_yr, start_stack,
                                     ppy, dt, inflation, palette,
-                                    bisect_iters=60):
+                                    bisect_iters=60, chart_layout=0,
+                                    sel_qs=None):
     """Mode B MC overlay: per-delay distribution of max-spend that depletes
     by target_yr, computed across MC price paths.
 
@@ -1128,9 +1129,29 @@ def _mc_supercharge_mode_b_overlay(m, p, syr, delays, target_yr, start_stack,
         for pct in pct_levels:
             fan_per_pct[pct].append(float(np.percentile(max_wd_paths, pct)))
 
-    # Build traces: outer fan (5-95) + inner fan (25-75) + median line.
+    # Build traces; layout-aware so the MC overlay aligns with the chart's
+    # x-axis (delay vs quantile).
     mc_color = palette.get("mc_band", MC_AMBER) if palette else MC_AMBER
     traces = []
+    if chart_layout == 2 and sel_qs:
+        # Layout 2 plots quantile on x with one line per delay. Emit a
+        # horizontal MC-median line for each delay at the quantile range so
+        # the user can see how the deterministic-per-quantile lines compare
+        # to MC's path-distribution median (constant across the q axis).
+        for di, d in enumerate(delays):
+            y_const = [fan_per_pct[50][di]] * len(sel_qs)
+            d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
+            traces.append(go.Scatter(
+                x=list(sel_qs), y=y_const,
+                mode="lines",
+                line=dict(color=mc_color, width=1.5, dash="dot"),
+                name=f"MC median {d_lbl}",
+                legendgroup="mc-sc-b",
+                hovertemplate=(f"MC median (delay {d_lbl})<br>"
+                               "max-spend=%{y:,.0f}<extra></extra>"),
+            ))
+        return traces, None
+    # Layouts 0 + 1: fan band across delay axis.
     # Outer 5-95 band
     traces.append(go.Scatter(
         x=list(delays), y=fan_per_pct[95],

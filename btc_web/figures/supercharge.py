@@ -679,15 +679,15 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
                 ))
 
     # \u2500\u2500 MC fan overlay (Mode B): per-delay distribution of max-spend \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-    # Only on chart_layouts 0 + 1 where the x-axis is delay; layout 2 plots
-    # quantile on x and the MC distribution doesn't have a natural quantile
-    # dimension.
+    # Layouts 0+1 (x=delay): fan band across delays.
+    # Layout 2 (x=quantile, default view): one horizontal MC-median line
+    # per delay so MC is comparable to the deterministic per-quantile lines.
     mc_result = None
-    if (_HAS_MARKOV and p.get("mc_enabled") and p.get("show_mc", True)
-            and chart_layout in (0, 1)):
+    if _HAS_MARKOV and p.get("mc_enabled") and p.get("show_mc", True):
         mc_b_traces, mc_result = _mc_supercharge_mode_b_overlay(
             m, p, syr, delays, target_yr, start_stack, ppy, dt,
-            inflation, palette)
+            inflation, palette,
+            chart_layout=chart_layout, sel_qs=sel_qs)
         traces.extend(mc_b_traces)
 
     xlabel = "Delay (years)" if chart_layout in (0, 1) else "Quantile"

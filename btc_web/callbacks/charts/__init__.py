@@ -638,13 +638,15 @@ _app_ctx.app.clientside_callback(
     Input("bub-legend-pos", "value"),
     Input("bub-cagr-fwd-yrs", "value"),
     Input("palette-store", "data"),
+    Input("user-model-store", "data"),
     State("bub-qs-mode", "value"),
     State("snapshot-pending", "data"),
     prevent_initial_call=True,
 )
 def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
                     toggles, xscale, yscale, model_show, legend_pos,
-                    fwd_yrs, palette_key, qs_mode, snapshot_pending=False):
+                    fwd_yrs, palette_key, user_model_store,
+                    qs_mode, snapshot_pending=False):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
         return dash.no_update
@@ -665,6 +667,7 @@ def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
         fwd_years=_fwd,
         cagr_qs=effective_qs,
         cagr_models=model_show or ["bub"],
+        user_model=user_model_store,
         palette=palette_key or "default",
         xscale=xscale or "log",
         yscale=yscale or "log",

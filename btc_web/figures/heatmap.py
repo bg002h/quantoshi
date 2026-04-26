@@ -521,9 +521,24 @@ def build_cagr_line_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     if not sel_qs:
         sel_qs = [eq]
 
+    # Reconstruct U₁ on demand so the forward-CAGR pill includes the
+    # session-only user model. Mirrors the reconstruction in update_bubble's
+    # bubble-figure path. UserModel.from_store_dict returns None when the
+    # store is empty / dict missing fields.
+    _user_model = None
+    if "u1" in (active_models or []) and p.get("user_model"):
+        try:
+            from btc_core import UserModel
+            _user_model = UserModel.from_store_dict(p["user_model"])
+        except Exception:
+            _user_model = None
+
     traces = []
     for model_key in active_models:
-        model = _app_ctx.PRICE_MODELS.get(model_key)
+        if model_key == "u1" and _user_model is not None:
+            model = _user_model
+        else:
+            model = _app_ctx.PRICE_MODELS.get(model_key)
         if not model:
             continue
 

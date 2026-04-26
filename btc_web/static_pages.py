@@ -398,6 +398,81 @@ def _build_research_html():
     )
 
 
+_MCIDEAS_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MC-on-Tab-1 brainstorm — Quantoshi</title>
+<style>
+  body { font-family: 'Inter','Helvetica Neue',Arial,sans-serif; background:#fafaf6; color:#2c2c2c; margin:0; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 80px; }
+  h1 { font-family: 'DM Serif Display', Palatino, serif; font-size: 28px; margin: 0 0 4px; }
+  .lead { color:#555; margin: 0 0 24px; font-size: 15px; }
+  .opt { background: #fff; border: 1px solid #d8d6cf; border-radius: 8px; padding: 16px 18px; margin-bottom: 22px; }
+  .opt h2 { font-family: 'DM Serif Display', Palatino, serif; font-size: 22px; margin: 0 0 6px; }
+  .opt p { margin: 6px 0 12px; font-size: 14px; line-height: 1.5; }
+  .opt img { width:100%; height:auto; display:block; border:1px solid #d8d6cf; border-radius:6px; }
+  .opt .pros { font-size: 13px; color: #1F6B5C; }
+  .opt .cons { font-size: 13px; color: #9B2244; }
+  .opt .li-label { display:inline-block; min-width:56px; font-weight:600; }
+  .qbox { background: #fff; border: 1px solid #d8d6cf; border-radius: 8px; padding: 16px 18px; margin-top: 28px; }
+  .qbox h2 { font-family: 'DM Serif Display', Palatino, serif; font-size: 20px; margin: 0 0 10px; }
+  .qbox ol { margin: 0; padding-left: 22px; font-size: 14px; line-height: 1.6; }
+  .qbox li { margin-bottom: 6px; }
+  code { background: #eee; padding: 1px 4px; border-radius: 3px; font-size: 13px; }
+  a.back { display: inline-block; margin-bottom: 12px; color: #1a6fa8; text-decoration: none; font-size: 13px; }
+  a.back:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="/1">&larr; Back to Quantoshi</a>
+<h1>MC-on-Tab-1 brainstorm</h1>
+<p class="lead">Three plausible reads of "use the MCMC system to derive a new model for Tab&nbsp;1." Compare the visualizations; we'll narrow on the right one before designing.</p>
+
+<div class="opt">
+  <h2>(A) MC-derived quantile bands</h2>
+  <p>Run the Markov MC simulator off the user's selected base model (BM, PL, etc.); take empirical quantiles of the path distribution at each future timestep; render those as new bands. Bands grow with horizon, can be asymmetric (regime-aware bull vs bear dispersion), and replace or supplement the resqr/sigma bands today.</p>
+  <img src="/assets/mcideas_a.png" alt="MC-derived quantile bands mockup">
+  <p><span class="li-label pros">Pros:</span> regime-aware uncertainty; asymmetric (bull/bear) shape; empirically grounded in the same engine as Tabs 3&ndash;6.</p>
+  <p><span class="li-label cons">Cons:</span> heaviest compute path; needs cache strategy or paid mode for live params.</p>
+</div>
+
+<div class="opt">
+  <h2>(B) Regime-conditional highlight</h2>
+  <p>Bands themselves stay analytical (existing resqr/QR fan). The current Markov regime (live percentile bin) selects <em>which</em> band to emphasize visually&mdash;the rest dim. Annotation explains "currently in regime 4 (high-momentum) → 75th band most likely".</p>
+  <img src="/assets/mcideas_b.png" alt="Regime-conditional highlight mockup">
+  <p><span class="li-label pros">Pros:</span> zero new compute; pure UI change; reuses existing bands and existing transition matrix.</p>
+  <p><span class="li-label cons">Cons:</span> doesn't add any predictive content&mdash;just a contextual marker.</p>
+</div>
+
+<div class="opt">
+  <h2>(C) Spaghetti fan of MC paths</h2>
+  <p>Plot a sample (e.g. 100 of 2,000) of the actual simulated paths as thin lines, color-graded by terminal value. The user sees raw simulator output rather than smoothed bands.</p>
+  <img src="/assets/mcideas_c.png" alt="Spaghetti fan of MC paths mockup">
+  <p><span class="li-label pros">Pros:</span> very intuitive; conveys uncertainty + path-dependence simultaneously; striking on mobile.</p>
+  <p><span class="li-label cons">Cons:</span> visual clutter on Tab 1's already-busy chart; many traces &times; mobile = slower.</p>
+</div>
+
+<div class="qbox">
+<h2>Open questions to settle</h2>
+<ol>
+  <li><strong>Which option (or combo)?</strong> A vs B vs C, or e.g. "A as a new model entry + B as a UI flourish".</li>
+  <li><strong>Mean-trajectory source.</strong> Does MC use one of the existing <code>bub-model-show</code> picks (which?), a separate "MC base model" dropdown, or the QR median?</li>
+  <li><strong>Free vs paid + cache key.</strong> Tab 1 is currently free + sub-second. Restrict to existing pre-computed cache (bub/ef/exp/lppl/pl/qr × 2028/2031/2035 × 40yr × bin-aligned q) for free, or design a paywall here?</li>
+  <li><strong>Simulation horizon.</strong> Forward only (today→bub-xrange max), or also backfill a historical "what would MC have said back then" view?</li>
+  <li><strong>Where does it live?</strong> New entry in Display Models, new toggle alongside σ-mode (resqr/constant), or its own card?</li>
+  <li><strong>Failure mode.</strong> When MC isn't available (no markov module, no payment, no cache hit) — gracefully omit, show a banner, or grey-out?</li>
+</ol>
+</div>
+
+</div>
+</body>
+</html>
+"""
+
+
 def register_static_routes(server):
     """Register /faq, /faq.N, /mi, /mi.N, /Z Flask routes."""
 
@@ -437,3 +512,7 @@ def register_static_routes(server):
         if _RESEARCH_HTML is None:
             _RESEARCH_HTML = _build_research_html()
         return _RESEARCH_HTML, 200, _static_headers()
+
+    @server.route("/mcideas")
+    def _mcideas_brainstorm():
+        return _MCIDEAS_HTML, 200, _static_headers()

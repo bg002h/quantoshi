@@ -525,6 +525,30 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
                 hi = mid
         return lo
 
+    def _max_wd_for_model(mdl, d, q):
+        """Same binary search as _max_wd_for but for an arbitrary model."""
+        t_start_d = max(yr_to_t(syr + d, m.genesis), 1.0)
+        t_end_b = yr_to_t(target_yr, m.genesis)
+        if t_end_b <= t_start_d:
+            return 0.0
+        first_price = float(mdl.price_at(q, max(t_start_d, 0.5)))
+        lo, hi = 0.0, start_stack * first_price * ppy * 4
+        for _ in range(_BISECT_ITERS):
+            mid = (lo + hi) / 2.0
+            s = start_stack
+            survived = True
+            for t in np.arange(t_start_d, t_end_b + dt * 0.5, dt):
+                adj = mid * ((1 + inflation) ** (t - t_start_d))
+                s -= adj / float(mdl.price_at(q, max(t, 0.5)))
+                if s <= 0:
+                    survived = False
+                    break
+            if survived:
+                lo = mid
+            else:
+                hi = mid
+        return lo
+
     max_wd = {(d, q): _max_wd_for(d, q) for d in delays for q in sel_qs}
     traces = []
     show_bm = "bub" in (p.get("active_models") or [])
@@ -583,6 +607,76 @@ def _sc_mode_b(m, p, syr, delays, sel_qs, start_stack, ppy, dt,
                 customdata=qlbls,
                 hovertemplate="%{customdata}: %{y:,.0f}<extra></extra>",
             ))
+
+    # \u2500\u2500 Overlay alternative models \u2014 same 3-layout pattern as primary \u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    # Mirrors Mode A's active_models loop. Without this, only "bub" rendered
+    # in Mode B; PL / LPPL / HybPPL / EPPL / Greedy / etc. were silent no-ops.
+    for model_key in p.get("active_models", []) or []:
+        if model_key == "bub":
+            continue  # primary path already handled above
+        mdl = _resolve_model(model_key, p)
+        if mdl is None:
+            continue
+        # Same quantile-set rule as Mode A's overlay block
+        ov_qs = ([q for q in sel_qs if not mdl.quantized or q in mdl.fits]
+                 if mdl.quantized else [0.5])
+        if not ov_qs:
+            continue
+        ov_color = _app_ctx.MODEL_TRACE_COLORS.get(mdl.short_name, LIGHT_GRAY)
+        ov_dash = getattr(mdl, "dash_style", "solid")
+        ov_max_wd = {(d, q): _max_wd_for_model(mdl, d, q)
+                     for d in delays for q in ov_qs}
+
+        if chart_layout == 0:
+            ov_q_show = min(ov_qs, key=lambda q: abs(q - display_q))
+            for di, d in enumerate(delays):
+                val = ov_max_wd.get((d, ov_q_show), 0)
+                d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
+                traces.append(go.Scatter(
+                    x=[d], y=[val], mode="markers+text",
+                    marker=dict(color=ov_color, size=10,
+                                symbol="diamond"),
+                    text=[fmt_price(val) + freq_label],
+                    textposition="bottom center",
+                    name=f"{mdl.legend_name} Delay {d_lbl}",
+                    hovertemplate=(f"{mdl.legend_name} Delay {d_lbl}"
+                                   f"<br>{fmt_price(val)}{freq_label}"
+                                   "<extra></extra>"),
+                    showlegend=(di == 0),
+                    legendgroup=f"sc-{mdl.short_name}",
+                ))
+        elif chart_layout == 1:
+            q_range = _fmt_q_range(ov_qs)
+            grp = f"sc-{mdl.short_name}-b1"
+            for qi, q in enumerate(ov_qs):
+                _shade = quantile_shade(ov_color, q)
+                y_q = [ov_max_wd.get((d, q), 0) for d in delays]
+                traces.append(go.Scatter(
+                    x=delays, y=y_q, mode="lines+markers",
+                    name=f"{mdl.legend_name} {q_range}",
+                    legendgroup=grp,
+                    showlegend=(qi == 0),
+                    opacity=quantile_opacity(q),
+                    line=dict(color=_shade, width=2, dash=ov_dash),
+                    marker=dict(color=_shade, size=7),
+                ))
+        else:  # chart_layout == 2: x = quantile, line per delay
+            for di, d in enumerate(delays):
+                col = delay_colors[di % len(delay_colors)]
+                d_lbl = f"+{int(d)}yr" if d == int(d) else f"+{d:.1f}yr"
+                y_d = [ov_max_wd.get((d, q), 0) for q in ov_qs]
+                qlbls = [_fmt_q_label(q) for q in ov_qs]
+                med_val = y_d[len(y_d) // 2] if y_d else 0
+                traces.append(go.Scatter(
+                    x=list(ov_qs), y=y_d, mode="lines+markers",
+                    name=(f"{mdl.legend_name} Delay {d_lbl}  "
+                          f"\u2192  {fmt_price(med_val)}{freq_label} (med)"),
+                    line=dict(color=col, width=1.5, dash=ov_dash),
+                    marker=dict(color=col, size=5, symbol="diamond"),
+                    legendgroup=f"sc-{mdl.short_name}-l2",
+                    customdata=qlbls,
+                    hovertemplate="%{customdata}: %{y:,.0f}<extra></extra>",
+                ))
 
     xlabel = "Delay (years)" if chart_layout in (0, 1) else "Quantile"
     layout = _base_layout(

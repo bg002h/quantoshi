@@ -124,6 +124,15 @@ _app_ctx.app.clientside_callback(
     Input("cp-run-btn",          "n_clicks"),
     Input("mc-pay-trigger",      "data"),
     Input("cp-mc-loaded",        "data"),
+    # Quick-Scenario auto-rerun: pill clicks → auto_fill_controls populates
+    # the 15 control State values, then bumps cp-scenario-applied. This
+    # Input re-renders the chart with the freshly-filled values. We trigger
+    # off cp-scenario-applied (post-fill) NOT cp-scenario-active (pre-fill)
+    # so the State reads here don't race the auto-fill writes.
+    # Without this, Bear/Neutral/Bull pills couldn't visibly affect the
+    # chart at all (they only flowed into is_scenario_stale()), and the
+    # user had to manually click Run after every pill change.
+    Input("cp-scenario-applied", "data"),
     # ── Everything else is State (read on run, don't trigger) ──
     # Assets
     State("cp-stack",            "value"),
@@ -240,7 +249,7 @@ _app_ctx.app.clientside_callback(
     ],
 )
 def update_citadel(
-    _first_render, run_clicks, _pay_trigger, _mc_loaded,
+    _first_render, run_clicks, _pay_trigger, _mc_loaded, _scenario_applied_tick,
     # Assets
     stack, use_lots,
     cash_init, cash_rate,
@@ -293,14 +302,24 @@ def update_citadel(
     logger.debug("[CP-CB] triggered_id=%s, mc_enable=%s, run_clicks=%s", ctx.triggered_id, mc_enable, run_clicks)
 
     # Only run simulation when Run button clicked, payment trigger fires,
-    # or tab becomes active (for loading cached default chart)
+    # tab becomes active (for loading cached default chart), or a Quick
+    # Scenario auto-load completed (cp-scenario-applied tick bumped)
     if ctx.triggered_id not in ("cp-run-btn", "mc-pay-trigger", "cp-mc-loaded",
-                                 "citadel-first-render", None):
+                                 "citadel-first-render", "cp-scenario-applied",
+                                 None):
+        raise dash.exceptions.PreventUpdate
+
+    # Tick=0 is the Store's initial value (no scenario auto-fill has run yet).
+    # We rely on the tick bumping from 0→1 etc. to trigger this branch; the
+    # initial tick=0 read on layout mount is a no-op.
+    if ctx.triggered_id == "cp-scenario-applied" and not _scenario_applied_tick:
         raise dash.exceptions.PreventUpdate
 
     # Before first click (or on tab switch): load cached default
-    # mc-pay-trigger and cp-mc-loaded bypass — they should always run
-    if (not run_clicks and ctx.triggered_id not in ("mc-pay-trigger", "cp-mc-loaded")) \
+    # mc-pay-trigger, cp-mc-loaded, and cp-scenario-applied bypass —
+    # they should always run a fresh sim with the current State values.
+    if (not run_clicks and ctx.triggered_id not in (
+            "mc-pay-trigger", "cp-mc-loaded", "cp-scenario-applied")) \
        or ctx.triggered_id == "citadel-first-render":
         import plotly.graph_objects as go
         import plotly.io as pio
@@ -430,6 +449,10 @@ def update_citadel(
         palette         = palette_key or CITADEL["palette"],
         user_model      = user_model_store,
         scenario_bands  = scenario_bands_data,
+        # Quick Scenario macro regime → Markov starting bin for asset returns
+        # (bear=0, neutral=2, bull=4). _build_sim_config maps this onto all
+        # five initial_*_regime fields when asset_return_model='markov'.
+        scenario_regime = scenario_regime,
         **mc_p,
     )
 

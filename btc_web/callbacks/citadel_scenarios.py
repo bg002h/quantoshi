@@ -96,21 +96,32 @@ _FILL_OUTPUTS = [
 
 
 @callback(
-    [Output(cid, "value", allow_duplicate=True) for cid in _FILL_OUTPUTS],
+    [Output(cid, "value", allow_duplicate=True) for cid in _FILL_OUTPUTS]
+    + [Output("cp-scenario-applied", "data", allow_duplicate=True)],
     Input("cp-scenario-active", "data"),
     State("cp-scenario-wealth", "data"),
     State("cp-scenario-regime", "data"),
     State("cp-scenario-rules", "data"),
     State("cp-scenario-start-yr", "value"),
+    State("cp-scenario-applied", "data"),
     prevent_initial_call=True,
 )
-def auto_fill_controls(active_key, wealth, regime, rules, start_yr):
-    """Fill Citadel controls with preset values when a scenario loads."""
+def auto_fill_controls(active_key, wealth, regime, rules, start_yr, applied_tick):
+    """Fill Citadel controls with preset values when a scenario loads.
+
+    On success, also bumps cp-scenario-applied (a tick counter). update_citadel
+    listens to that store as Input and re-renders the chart with the freshly
+    auto-filled control values. This gives the user one-click scenarios:
+    pick Bull/Bear/Wealth-tier → chart updates without manually clicking Run.
+    Without the tick store, update_citadel would race auto_fill_controls and
+    read stale State values.
+    """
     if not active_key or not wealth:
-        return [no_update] * len(_FILL_OUTPUTS)
+        return [no_update] * len(_FILL_OUTPUTS) + [no_update]
     from citadel_presets import preset_control_values
     vals = preset_control_values(wealth, regime, rules, int(start_yr or 2035))
-    return [vals[cid] for cid in _FILL_OUTPUTS]
+    next_tick = (applied_tick or 0) + 1
+    return [vals[cid] for cid in _FILL_OUTPUTS] + [next_tick]
 
 
 # ── Stale indicator ──────────────────────────────────────────────────────────

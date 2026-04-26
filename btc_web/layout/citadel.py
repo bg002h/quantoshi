@@ -418,6 +418,12 @@ def _citadel_controls():
         dcc.Store(id="cp-scenario-rules", data="no_rebal"),
         dcc.Store(id="cp-scenario-bands", storage_type="memory"),
         dcc.Store(id="cp-scenario-active", data=None),
+        # Tick counter bumped by auto_fill_controls AFTER preset values are
+        # written into State. update_citadel reads this as Input → guarantees
+        # the chart redraw happens with the freshly-filled values, not the
+        # pre-pill values (auto_fill and update_citadel are not sequenced
+        # automatically — both fire from the same cp-scenario-active Input).
+        dcc.Store(id="cp-scenario-applied", data=0),
         dbc.Tabs([
             dbc.Tab(_assets_panel(), label="Assets", tab_id="cp-assets"),
             dbc.Tab(_spending_panel(), label="Spending", tab_id="cp-spending"),

@@ -324,6 +324,21 @@ def _build_sim_config(p: dict) -> SimConfig:
         except Exception:
             cfg.asset_return_model = "lognormal"  # fallback
 
+    # Quick-Scenario macro regime → starting Markov bin for all asset classes.
+    # Without this, all 3 regime pills (Bear/Neutral/Bull) produced identical
+    # simulations because the SimConfig defaults locked all five
+    # initial_*_regime fields to 2 (neutral). The bin map matches
+    # citadel_presets.MACRO_REGIMES.
+    _REGIME_BIN = {"bear": 0, "neutral": 2, "bull": 4}
+    _scenario_regime = p.get("scenario_regime")
+    if _scenario_regime in _REGIME_BIN:
+        _bin = _REGIME_BIN[_scenario_regime]
+        cfg.initial_equity_regime = _bin
+        cfg.initial_bond_regime = _bin
+        cfg.initial_res_short_regime = _bin
+        cfg.initial_res_med_regime = _bin
+        cfg.initial_res_long_regime = _bin
+
     return cfg
 
 

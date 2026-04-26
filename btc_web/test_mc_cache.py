@@ -187,3 +187,63 @@ def test_resolver_eppl_master_falls_back_when_variant_uncached(monkeypatch):
         f"Expected fallback to 'ecfg_1d_1u' via MASTER_TO_CACHED_FALLBACK['eppl']; "
         f"got {result!r}. Either the `master = src` pin is missing, or the dict "
         f"entry was lost.")
+
+
+def _make_fake_cache(tmp_path, model_keys, years=(2028,)):
+    """Helper: create empty path/overlay files for given (model, year) combos."""
+    cache = tmp_path / "mc_cache"
+    cache.mkdir(parents=True)
+    for k in model_keys:
+        for y in years:
+            (cache / f"paths_{k}_{y}.npz").write_bytes(b"x")
+            (cache / f"overlays_{k}_{y}.npz").write_bytes(b"x")
+    return cache
+
+
+def test_stash_commit_restore_roundtrip(tmp_path, monkeypatch):
+    """Full lifecycle: stash → generate → commit deletes .bak.
+    And: stash → restore reverts to original state."""
+    import mc_cache
+
+    # Mix of intended (bub) and stale (lppl) files.
+    cache = _make_fake_cache(tmp_path, model_keys=("bub", "lppl"))
+    monkeypatch.setattr(mc_cache, "CACHE_DIR", cache)
+    monkeypatch.setattr(mc_cache, "_INTENDED_KEYS", frozenset({"bub"}))
+
+    # Phase 1: stash
+    mc_cache.stash_stale_files()
+    assert (cache / "paths_bub_2028.npz").exists()         # untouched
+    assert (cache / "overlays_bub_2028.npz").exists()
+    assert not (cache / "paths_lppl_2028.npz").exists()    # renamed
+    assert (cache / "paths_lppl_2028.npz.bak").exists()
+    assert (cache / "overlays_lppl_2028.npz.bak").exists()
+
+    # Phase 2a: commit (success path) → .bak deleted
+    mc_cache.commit_stale_files()
+    assert not (cache / "paths_lppl_2028.npz.bak").exists()
+    assert not (cache / "overlays_lppl_2028.npz.bak").exists()
+    assert (cache / "paths_bub_2028.npz").exists()         # still untouched
+
+    # Reset and verify Phase 2b (restore)
+    cache2 = _make_fake_cache(tmp_path / "second", model_keys=("bub", "lppl"))
+    monkeypatch.setattr(mc_cache, "CACHE_DIR", cache2)
+    mc_cache.stash_stale_files()
+    assert (cache2 / "paths_lppl_2028.npz.bak").exists()
+    mc_cache.restore_stale_files()
+    assert (cache2 / "paths_lppl_2028.npz").exists()       # restored
+    assert not (cache2 / "paths_lppl_2028.npz.bak").exists()
+
+
+def test_full_cleanup_sequence_noop_on_missing_dir(tmp_path, monkeypatch):
+    """All three phases must handle a nonexistent CACHE_DIR cleanly."""
+    import mc_cache
+
+    missing = tmp_path / "does_not_exist"
+    monkeypatch.setattr(mc_cache, "CACHE_DIR", missing)
+
+    # Each phase must return cleanly with no exception.
+    mc_cache.stash_stale_files()
+    mc_cache.commit_stale_files()
+    mc_cache.restore_stale_files()
+
+    assert not missing.exists()  # no side-effect creation

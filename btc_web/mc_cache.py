@@ -125,6 +125,49 @@ def intended_models(M) -> dict:
     }
 
 
+def stash_stale_files() -> None:
+    """Rename cache files for models NOT in _INTENDED_KEYS to *.npz.bak.
+
+    Atomic and reversible — call commit_stale_files() on success or
+    restore_stale_files() on interrupt. Idempotent w.r.t. missing CACHE_DIR.
+    Logs each rename via print() (consistent with existing build progress).
+    """
+    if not CACHE_DIR.exists():
+        return
+    for f in list(CACHE_DIR.glob("*.npz")):
+        parsed = _parse_cache_filename(f.name)
+        if parsed is None:
+            continue
+        _kind, model_key, _year = parsed
+        if model_key not in _INTENDED_KEYS:
+            bak = f.with_suffix(f.suffix + ".bak")
+            f.rename(bak)
+            print(f"  stash: {f.name} -> {bak.name}")
+
+
+def commit_stale_files() -> None:
+    """Delete all *.npz.bak files. Call only after generate succeeds."""
+    if not CACHE_DIR.exists():
+        return
+    for bak in list(CACHE_DIR.glob("*.npz.bak")):
+        bak.unlink()
+        print(f"  commit: deleted {bak.name}")
+
+
+def restore_stale_files() -> None:
+    """Rename *.npz.bak back to *.npz. Call on interrupt or error.
+    Idempotent — running twice is a no-op."""
+    if not CACHE_DIR.exists():
+        return
+    for bak in list(CACHE_DIR.glob("*.npz.bak")):
+        original = bak.with_suffix("")  # strips .bak, leaves .npz
+        if original.exists():
+            print(f"  restore: skipping {bak.name} (target {original.name} exists)")
+            continue
+        bak.rename(original)
+        print(f"  restore: {bak.name} -> {original.name}")
+
+
 # Maps user-facing master keys (dropdown values) to their preferred
 # cached variant. Each entry is a transition aid OR a post-rebuild target.
 # REMOVE the "lppl" entry after rebuild confirms paths_lppl_*.npz are

@@ -143,3 +143,47 @@ def test_is_master_cached_returns_false_when_uncached(monkeypatch):
     assert mc_cache.is_master_cached("eppl") is False
     assert mc_cache.is_master_cached("hybppl") is False  # no fallback entry
     assert mc_cache.is_master_cached("bub") is False     # direct miss
+
+
+def test_resolver_eppl_master_falls_back_when_variant_uncached(monkeypatch):
+    """Doubly falsifiable: catches both the dict lookup AND the master=src pin.
+
+    Setup: monkey-patch _CACHED_MODEL_KEYS to NOT contain 'ecfg_1d_1u'.
+    Stub `_resolve_hm_eppl_master` to return a different variant
+    (e.g. 'ecfg_2dd_2dd') so the chain mutates the input.
+
+    Expected: resolver returns 'ecfg_1d_1u' via MASTER_TO_CACHED_FALLBACK
+    keyed on the ORIGINAL master 'eppl' (not the chain's mutated value).
+
+    Falsification points:
+        1. Remove "eppl" from MASTER_TO_CACHED_FALLBACK → returns the
+           chain's mutated 'ecfg_2dd_2dd' instead of 'ecfg_1d_1u'.
+        2. Remove the `master = src` pin → dict lookup keys on the
+           mutated 'ecfg_2dd_2dd' (not 'eppl') → misses → returns
+           'ecfg_2dd_2dd' instead of 'ecfg_1d_1u'.
+    """
+    import _app_ctx, app  # noqa: F401
+    import mc_cache
+    from callbacks.charts import _resolvers
+
+    monkeypatch.setattr(mc_cache, "_CACHED_MODEL_KEYS",
+                        frozenset({"bub", "pl"}))  # no ecfg_1d_1u
+
+    # Stub the EPPL resolver to return a NON-default variant so we can
+    # detect whether the chain's mutation leaks into the dict lookup.
+    def fake_eppl_resolver(src, *_args, **_kwargs):
+        return "ecfg_2dd_2dd" if src == "eppl" else src
+
+    monkeypatch.setattr(_resolvers, "_resolve_hm_eppl_master",
+                        fake_eppl_resolver)
+
+    result = _resolvers._resolve_mc_model_src(
+        "eppl",                          # master
+        [], [], [],                      # lppl_n_freqs, weighted, no_13
+        1, 1, "d", "d", "u", "u",        # hyb_a_*
+        1, 1, "d", "d", "u", "u",        # ep_a_*
+    )
+    assert result == "ecfg_1d_1u", (
+        f"Expected fallback to 'ecfg_1d_1u' via MASTER_TO_CACHED_FALLBACK['eppl']; "
+        f"got {result!r}. Either the `master = src` pin is missing, or the dict "
+        f"entry was lost.")

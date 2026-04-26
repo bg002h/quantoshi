@@ -225,29 +225,33 @@ def _resolve_mc_model_src(src,
     so 'hybppl' / 'eppl' / 'lppl' masters resolve via the cfg/ecfg modals.
     Non-master values pass through unchanged.
 
-    LPPL special case: if the user picks the 'lppl' master without engaging
-    the LPPL config modal, prefer the 1-frequency variant ('lppl') because
-    it is in the precomputed MC cache. The default n_freqs=[3] would
-    otherwise resolve to 'lp3' which is NOT cached → empty MC trace.
+    Master fallback: if the chain resolves to a variant not on disk, look
+    up the master's preferred cached alias in MASTER_TO_CACHED_FALLBACK
+    (e.g. 'lppl' → 'lppl', 'eppl' → 'ecfg_1d_1u'). Masters with no entry
+    keep their resolved variant — silent cache miss falls through to live
+    compute on paid tier.
     """
-    if src == "lppl":
-        from mc_cache import _CACHED_MODEL_KEYS
-        resolved = _resolve_hm_lppl_master(src, lppl_n_freqs, lppl_weighted, lppl_no_13)
-        if resolved not in _CACHED_MODEL_KEYS and "lppl" in _CACHED_MODEL_KEYS:
-            src = "lppl"
-        else:
-            src = resolved
-    else:
-        src = _resolve_hm_lppl_master(src, lppl_n_freqs, lppl_weighted, lppl_no_13)
-    src = _resolve_hm_hybppl_master(
-        src,
+    # Pin the master before the chain mutates `src` — required for the
+    # MASTER_TO_CACHED_FALLBACK lookup below to key on the original input.
+    # See test_resolver_eppl_master_falls_back_when_variant_uncached.
+    from mc_cache import _CACHED_MODEL_KEYS, MASTER_TO_CACHED_FALLBACK
+    master = src
+
+    resolved = _resolve_hm_lppl_master(master, lppl_n_freqs, lppl_weighted, lppl_no_13)
+    resolved = _resolve_hm_hybppl_master(
+        resolved,
         hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d,
         hyb_a_cal1d, hyb_a_cal2d)
-    src = _resolve_hm_eppl_master(
-        src,
+    resolved = _resolve_hm_eppl_master(
+        resolved,
         ep_a_nlog, ep_a_ncal, ep_a_log1d, ep_a_log2d,
         ep_a_cal1d, ep_a_cal2d)
-    return src
+    if resolved not in _CACHED_MODEL_KEYS:
+        # `.get(master, resolved)` default-to-resolved means: masters without
+        # a fallback entry (e.g. hybppl) keep their resolved variant — silent
+        # cache miss falls through to live compute on paid tier.
+        resolved = MASTER_TO_CACHED_FALLBACK.get(master, resolved)
+    return resolved
 
 
 def _decomp_warning_banner(n_checked):

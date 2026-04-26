@@ -212,7 +212,10 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                 html.Small(
                     "Free-tier: cached paths sorted by alignment with your "
                     "selection (each path may visit blocked regimes briefly). "
-                    "Paid live MC: paths cannot leave selected regimes.",
+                    "Filter only materially changes output when sims < 200 "
+                    "(cache size); at 200, paths are reordered but the same "
+                    "set is used — percentiles unchanged. Paid live MC: paths "
+                    "cannot leave selected regimes.",
                     style={"display": "block", "fontSize": UI_FONT_SM,
                            "color": DIM_TEXT, "lineHeight": "1.3",
                            "marginBottom": "8px"},

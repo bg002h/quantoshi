@@ -47,6 +47,7 @@ from callbacks.charts._resolvers import (  # noqa: F401
     _build_eppl_config_key,
     _resolve_eppl_master,
     _resolve_hm_eppl_master,
+    _resolve_mc_model_src,
     _decomp_warning_banner,
     _r2_of_log_pred,
     _component_label,
@@ -842,6 +843,13 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
 
     # MC heatmap via sandwich helper
     mc_enabled = bool(mc_enable) and _app_ctx._HAS_MARKOV
+    mc_model_src = _resolve_mc_model_src(
+        mc_model_src,
+        lppl_n_freqs, lppl_weighted, lppl_no_13,
+        hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d,
+        hyb_a_cal1d, hyb_a_cal2d,
+        ep_a_nlog, ep_a_ncal, ep_a_log1d, ep_a_log2d,
+        ep_a_cal1d, ep_a_cal2d)
     mc_ok, is_free, mc_p, blocked = _mc_setup(
         "hm", mc_enable, mc_years, mc_start_yr, mc_entry_q,
         mc_bins, mc_sims, mc_freq, mc_window, mc_amount, mc_infl,
@@ -1043,6 +1051,13 @@ def update_dca(_first_render, stack, use_lots, amount, freq, dca_infl, yr_range,
     _advanced  = "advanced" in (qs_mode or [])
     _effective_qs = (adv_qs or []) if _advanced else (
         _bands_to_qs(sel_qs) if sel_qs and isinstance(sel_qs[0], str) else (sel_qs or []))
+    mc_model_src = _resolve_mc_model_src(
+        mc_model_src,
+        lppl_n_freqs, lppl_weighted, lppl_no_13,
+        hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d,
+        hyb_a_cal1d, hyb_a_cal2d,
+        ep_a_nlog, ep_a_ncal, ep_a_log1d, ep_a_log2d,
+        ep_a_cal1d, ep_a_cal2d)
     mc_ok, is_free, mc_p, blocked = _mc_setup(
         "dca", mc_enable, mc_years, mc_start_yr, mc_entry_q,
         mc_bins, mc_sims, freq, mc_window, amount, dca_infl,
@@ -1232,6 +1247,13 @@ def update_retire(_first_render, stack, use_lots, wd, freq, yr_range, infl, disp
     if active_chart_committed and active_chart_committed == loaded_hash \
             and _trg in _POST_RESTORE_TRIGGERS_RETIRE:
         return (dash.no_update,) * 8
+    mc_model_src = _resolve_mc_model_src(
+        mc_model_src,
+        lppl_n_freqs, lppl_weighted, lppl_no_13,
+        hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d,
+        hyb_a_cal1d, hyb_a_cal2d,
+        ep_a_nlog, ep_a_ncal, ep_a_log1d, ep_a_log2d,
+        ep_a_cal1d, ep_a_cal2d)
     mc_ok, is_free, mc_p, blocked = _mc_setup(
         "ret", mc_enable, mc_years, mc_start_yr, mc_entry_q,
         mc_bins, mc_sims, freq, mc_window, wd, infl,
@@ -1426,6 +1448,13 @@ def update_supercharge(_first_render, stack, use_lots, start_yr,
     _advanced = "advanced" in (qs_mode or [])
     _effective_qs = (adv_qs or []) if _advanced else (
         _bands_to_qs(sel_qs) if sel_qs and isinstance(sel_qs[0], str) else (sel_qs or []))
+    mc_model_src = _resolve_mc_model_src(
+        mc_model_src,
+        lppl_n_freqs, lppl_weighted, lppl_no_13,
+        hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d,
+        hyb_a_cal1d, hyb_a_cal2d,
+        ep_a_nlog, ep_a_ncal, ep_a_log1d, ep_a_log2d,
+        ep_a_cal1d, ep_a_cal2d)
     mc_ok, is_free, mc_p, blocked = _mc_setup(
         "sc", mc_enable, mc_years, mc_start_yr, mc_entry_q,
         mc_bins, mc_sims, freq, mc_window, wd, infl,

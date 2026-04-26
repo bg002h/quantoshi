@@ -210,6 +210,33 @@ def _resolve_hm_eppl_master(hm_model,
     return key if key in _app_ctx.PRICE_MODELS else hm_model
 
 
+def _resolve_mc_model_src(src,
+                          lppl_n_freqs, lppl_weighted, lppl_no_13,
+                          hyb_a_nlog, hyb_a_ncal,
+                          hyb_a_log1d, hyb_a_log2d,
+                          hyb_a_cal1d, hyb_a_cal2d,
+                          ep_a_nlog, ep_a_ncal,
+                          ep_a_log1d, ep_a_log2d,
+                          ep_a_cal1d, ep_a_cal2d):
+    """Translate the MC quantile-bands master in `mc_model_src` to a concrete
+    PRICE_MODELS key, using the global config-modal state.
+
+    Composes the existing single-string heatmap resolvers — same pattern,
+    so 'hybppl' / 'eppl' / 'lppl' masters resolve via the cfg/ecfg modals.
+    Non-master values pass through unchanged.
+    """
+    src = _resolve_hm_lppl_master(src, lppl_n_freqs, lppl_weighted, lppl_no_13)
+    src = _resolve_hm_hybppl_master(
+        src,
+        hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d,
+        hyb_a_cal1d, hyb_a_cal2d)
+    src = _resolve_hm_eppl_master(
+        src,
+        ep_a_nlog, ep_a_ncal, ep_a_log1d, ep_a_log2d,
+        ep_a_cal1d, ep_a_cal2d)
+    return src
+
+
 def _decomp_warning_banner(n_checked):
     """Inline banner shown when LPPL decomposition needs exactly 1 n_freqs."""
     return html.Div(

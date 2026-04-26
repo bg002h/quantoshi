@@ -19,6 +19,25 @@ from colors import (BLACK, SILVER, NEAR_BLACK, MUTED_TEXT,
 
 _QUANT_FONT = {"fontFamily": FONT_BRAND,
                "color": BLACK, "letterSpacing": "1px"}
+
+
+def _mc_model_src_options():
+    """Curated master-only set for the MC quantile-bands dropdown.
+
+    Mirrors the heatmap pill set (`layout.heatmap._HM_PILL_MODELS_BASE`,
+    minus 'mc') so configurable families (LPPL/HybPPL/EPPL) appear once
+    as a master entry. The specific config variant is picked up from the
+    global LPPL/HybPPL/EPPL config modals via `_resolve_mc_model_src`
+    in the callbacks before `_mc_setup` runs.
+    """
+    from layout.heatmap import _HM_PILL_MODELS_BASE
+    keys = list(_HM_PILL_MODELS_BASE)
+    if "ef" in _app_ctx.PRICE_MODELS:
+        keys.append("ef")
+    if "u1" in _app_ctx.PRICE_MODELS:
+        keys.append("u1")
+    return [{"label": f" {_app_ctx.PRICE_MODELS[k].name}", "value": k}
+            for k in keys if k in _app_ctx.PRICE_MODELS]
 _MC_CACHED_START_YRS = set(CACHED_START_YRS)
 _MC_CACHED_ENTRY_QS = {int(v * 100) for v in ENTRY_PCT_BINS}   # {10,20,...,90}
 _MC_CACHED_YEARS    = set(MC_YEARS_OPTIONS)                      # {10,20,30,40}
@@ -141,9 +160,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                          value=default_entry_q, clearable=False),
             _lbl("Model source (quantile bands)"),
             dcc.Dropdown(id=f"{prefix}-mc-model-src",
-                         options=[{"label": f" {mdl.name}", "value": mdl.short_name}
-                                  for mdl in _app_ctx.PRICE_MODELS.values()
-                                  if mdl.quantized],
+                         options=_mc_model_src_options(),
                          value="bub", clearable=False),
             *([_lbl(amount_label + " (0–4,294,967,295)"),
                dbc.Input(id=f"{prefix}-mc-amount", type="number",

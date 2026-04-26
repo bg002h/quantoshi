@@ -91,6 +91,14 @@ def _build_bubble_figure_from_state(state: dict):
     if "yes" in (_v(state, "cta-active") or []):
         return None
 
+    # MC gate (Tab 1, 2026-04-26): when MC is enabled in the snapshot
+    # state, the fast restore path can't render the spaghetti fan
+    # (it has no cfg-modal state, no mc_cached, no payment token).
+    # Punt to cascade — update_bubble re-fires after the apply_globals
+    # cascade and renders MC properly.
+    if "yes" in (_v(state, "bub-mc-enable") or []):
+        return None
+
     # ── Widget values (Input) ──
     sel_qs   = _v(state, "bub-qs")
     adv_qs   = _v(state, "bub-qs-adv")

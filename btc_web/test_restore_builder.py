@@ -93,6 +93,18 @@ def test_helper_is_pure():
     assert len(fig1.data) == len(fig2.data)
 
 
+def test_bubble_mc_enabled_returns_none():
+    """bub-mc-enable=['yes'] in state → fall back to cascade.
+
+    Mirrors the cta-active gate pattern. The fast restore-builder path
+    can't render MC overlay because it lacks cfg-modal state, mc_cached,
+    and payment token. Caller falls back to update_bubble's cascade.
+    """
+    from restore_builder import _build_bubble_figure_from_state
+    state = {"bub-mc-enable:value": ["yes"]}
+    assert _build_bubble_figure_from_state(state) is None
+
+
 # ════════════════════════════════════════════════════════════════════════════
 # Phase 2 (2026-04-25): _build_dca_figure_from_state tests.
 # ════════════════════════════════════════════════════════════════════════════

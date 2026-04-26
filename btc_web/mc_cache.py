@@ -354,7 +354,7 @@ def _generate_one_combo(args):
     return f"{model_key}/{start_yr}"
 
 
-def generate_all_caches_parallel(m, n_workers=4, progress_cb=None):
+def generate_all_caches_parallel(m, n_workers=None, progress_cb=None):
     """Parallel cache generation: each (model_key, start_yr) runs in its own process.
 
     Uses concurrent.futures.ProcessPoolExecutor — true parallelism, not
@@ -363,19 +363,31 @@ def generate_all_caches_parallel(m, n_workers=4, progress_cb=None):
 
     Args:
         m: ModelData (must be picklable — it loads from model_data.pkl).
-        n_workers: Number of worker processes. Defaults to 4. Cap to
-            min(n_workers, total_tasks) to avoid idle workers.
+        n_workers: Number of worker processes. Defaults to
+            min(os.cpu_count(), task_count). Each worker peaks at ~1-2 GB
+            RAM during MC compute; on a 62 GB dev box, full parallelism
+            of all 15 tasks fits comfortably (~30 GB peak).
         progress_cb: Optional callback(msg) for progress reporting.
 
     Worker tasks: every (model_key in _INTENDED_KEYS) × (start_yr in
     CACHED_START_YRS) combo. With current sets that's 5 × 3 = 15 tasks.
+
+    PREREQUISITE: btc_web/markov.cpython-*.so must be up-to-date with
+    btc_web/markov.py. Workers re-import markov; if the .so was compiled
+    against an older markov.py signature, you'll see TypeError on
+    keyword args (e.g. `rng=`). Rebuild via:
+        btc_venv/bin/python3 btc_web/build_markov.py
     """
+    import os
     from concurrent.futures import ProcessPoolExecutor, as_completed
 
     keys = sorted(_INTENDED_KEYS)
     tasks = [(k, y, m) for k in keys for y in CACHED_START_YRS]
     total = len(tasks)
-    n_workers = min(n_workers, total) if total else 1
+    if n_workers is None:
+        n_workers = min(os.cpu_count() or 4, total)
+    else:
+        n_workers = min(n_workers, total) if total else 1
 
     def log(msg):
         if progress_cb:

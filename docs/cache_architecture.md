@@ -133,14 +133,24 @@ add `ecfg_1d_1u`):
 
 2. **Run tests**: `btc_venv/bin/python3 -m pytest btc_web/test_mc_cache.py -v`. All must pass before invoking the rebuild.
 
-3. **Rebuild**: `bash tools/rebuild_caches.sh --mc` (2–4 hours, interrupt-safe via stash/commit/restore). The script holds a `flock` on `btc_web/mc_cache/.rebuild.lock` to prevent concurrent invocations.
+3. **Recompile `markov.so` if `markov.py` is newer**:
+   ```bash
+   ls -la btc_web/markov.cpython-*.so btc_web/markov.py
+   # If markov.py mtime > markov.cpython-*.so mtime, rebuild:
+   PYTHONPATH=. btc_venv/bin/python3 btc_web/build_markov.py
+   ```
+   The rebuild's worker processes re-import `markov`. If the compiled `.so` was built against an older `markov.py` signature, you'll see a `TypeError` like `monte_carlo_prices() got an unexpected keyword argument 'rng'`. The crash is graceful — `restore_stale_files()` reverts the stash on the `BaseException` path — but it costs you the time spent stashing. Check the mtimes first.
 
-4. **Verify locally — split by transition state**:
+4. **Rebuild**: `bash tools/rebuild_caches.sh --mc` (interrupt-safe via stash/commit/restore). The script holds a `flock` on `btc_web/mc_cache/.rebuild.lock` to prevent concurrent invocations.
+
+   **Worker count**: defaults to `min(os.cpu_count(), task_count)` where `task_count = len(_INTENDED_KEYS) × len(CACHED_START_YRS)` (currently 5 × 3 = 15). On a 20-core dev box with 62 GB RAM, full parallelism (15 workers) fits comfortably (~30 GB peak — each worker peaks at ~1-2 GB during MC compute). With this setting the rebuild takes ~30-60 min wall clock instead of 2-4 hours sequential. Override via `mc.generate_all_caches_parallel(M, n_workers=N)` if memory-constrained.
+
+5. **Verify locally — split by transition state**:
    - **Code-change day** (before rebuild): tests pass; app starts; the MC source dropdown bolds the *old* cached set (disk hasn't changed); picking the *new* master falls through to silent live-compute miss on free tier (acceptable transient).
    - **Rebuild day** (after generate completes): app starts; dropdown bolding auto-flips; picking the new master renders a trace.
 
-5. **Deploy**: `tools/rebuild_caches.sh` rsyncs the new files to prod and emits a reminder to restart. Manual: `ssh root@... "redis-cli FLUSHDB && systemctl restart quantoshi"`.
+6. **Deploy**: `tools/rebuild_caches.sh` rsyncs the new files to prod and emits a reminder to restart. Manual: `ssh root@... "redis-cli FLUSHDB && systemctl restart quantoshi"`.
 
-6. **Smoke test on prod**: `/1`, enable MC, pick the new master, confirm a trace renders.
+7. **Smoke test on prod**: `/1`, enable MC, pick the new master, confirm a trace renders.
 
 After rebuild lands, edit `MASTER_TO_CACHED_FALLBACK` to remove any transition-only entries (look for the `# transition: ...` comment) — they otherwise become dead noise that misleads future editors.

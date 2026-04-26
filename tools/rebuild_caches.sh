@@ -75,7 +75,7 @@ M = load_model_data('model_data.pkl')
 
 mc.stash_stale_files()
 try:
-    mc.generate_all_caches_parallel(M, n_workers=4)
+    mc.generate_all_caches_parallel(M)  # n_workers defaults to min(cpu_count, 15)
     mc.commit_stale_files()
 except BaseException:
     mc.restore_stale_files()

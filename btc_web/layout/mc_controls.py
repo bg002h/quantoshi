@@ -209,12 +209,20 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                                 "lineHeight": "1.6", "color": MODAL_DIVIDER_DARK},
                     style={"marginBottom": "6px"},
                 ),
-                _lbl("Simulations"),
-                dcc.Dropdown(id=f"{prefix}-mc-sims",
-                             options=_bold_opts(
-                                 sims_options or [100, 200, 400, 800, 1600, 3200],
-                                 str, {200}),
-                             value=default_sims, clearable=False),
+                _lbl("Simulations (1–3200; ≤200 is free)"),
+                # Number input + HTML5 datalist: type any integer 1-3200,
+                # or pick from the preset list. ≤200 is free-tier (cache
+                # holds 200 paths). >200 triggers paid flow per is_free_tier.
+                html.Datalist(
+                    id=f"{prefix}-mc-sims-presets",
+                    children=[html.Option(value=str(v))
+                              for v in (sims_options
+                                        or [8, 16, 32, 64, 128, 200, 400, 800, 1600, 3200])],
+                ),
+                dbc.Input(id=f"{prefix}-mc-sims", type="number",
+                          value=default_sims,
+                          min=1, max=3200, step=1, size="sm",
+                          debounce=True, list=f"{prefix}-mc-sims-presets"),
                 *([ _lbl("Frequency"),
                     dcc.Dropdown(id=f"{prefix}-mc-freq",
                                  options=_bold_opts(

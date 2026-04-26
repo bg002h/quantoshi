@@ -96,8 +96,10 @@ def _bubble_controls():
                      mc_enabled_default=False,
                      # Tab 1 spaghetti reads sims directly — small defaults
                      # are visually clearer + still free (cache holds 200).
+                     # User can type any integer 1-3200 in the input; datalist
+                     # shows these presets as autocomplete suggestions.
                      default_sims=8,
-                     sims_options=[8, 16, 32, 64, 100, 200, 400, 800, 1600, 3200]),
+                     sims_options=[8, 16, 32, 64, 128, 200, 400, 800, 1600, 3200]),
         sigma_mode_section(),
         custom_time_panel(),
         # Hidden placeholders — bub-bubble-panel and bub-n-future-wrap are

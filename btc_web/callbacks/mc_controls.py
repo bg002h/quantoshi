@@ -190,9 +190,13 @@ function(mc_enable, mc_years, mc_start_yr, mc_entry_q, mc_model_src, rendered_ke
     var premium = "{base_cls}{sep}mc-premium-chart";
     if (!mc_enable || !mc_enable.length) return ["", hide, hide, noPremium, hide, hide];
     if (!rendered_key) return [
-        "\u26a0 Chart does not include MC overlay",
-        Object.assign({{}}, base, {{color: "{live_clr}"}}),
-        {{}},
+        // First-load state: MC is configured-on but no Run yet. Suppress the
+        // gray overlay so the cached default chart paints cleanly. The
+        // overlay only re-appears after a Run produces a rendered_key and
+        // the user changes a path-key param afterwards (last branch below).
+        "",
+        hide,
+        hide,
         noPremium,
         hide,
         hide

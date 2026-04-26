@@ -64,6 +64,10 @@ Files end up named `paths_ecfg_1d_1u_2028.npz`, etc. Replaces `LPPLModel(...)`.
 **`MASTER_TO_CACHED_FALLBACK`:**
 
 ```python
+# Maps user-facing master keys to their preferred cached variant.
+# Each entry is a transition aid OR a post-rebuild target.
+# REMOVE the "lppl" entry after rebuild confirms paths_lppl_*.npz are
+# purged from prod (it becomes dead noise, would mislead a future editor).
 MASTER_TO_CACHED_FALLBACK = {
     "lppl": "lppl",            # transition: kept until LPPL purged
     "eppl": "ecfg_1d_1u",      # post-rebuild target
@@ -146,7 +150,16 @@ def intended_models(M) -> dict[str, "PriceModel"]:
     }
 ```
 
-Helper `_ef_pkl_path()` returns the absolute path to `model_data_ef.pkl` at the repo root, mirroring the conditional registration at `app.py:343`. If the pkl is missing, `intended_models(M)` raises — making the dependency explicit and visible to anyone running the rebuild script. Reconciles the existing `ef` discrepancy (was in `_CACHED_MODEL_KEYS` but missing from the rebuild-script literal).
+Helper `_ef_pkl_path()` is a private one-liner in the same module:
+
+```python
+from pathlib import Path
+def _ef_pkl_path() -> Path:
+    """Resolve <repo_root>/model_data_ef.pkl. Mirrors app.py:343."""
+    return Path(__file__).parent.parent / "model_data_ef.pkl"
+```
+
+If the pkl is missing, `intended_models(M)` raises — making the dependency explicit and visible to anyone running the rebuild script. Reconciles the existing `ef` discrepancy (was in `_CACHED_MODEL_KEYS` but missing from the rebuild-script literal).
 
 **UI bolding helper** — factored into `mc_cache.py` so any future surface can call it:
 
@@ -175,7 +188,9 @@ Pure unit:
 - `test_master_to_cached_fallback_keys_in_dropdown` — keys are valid masters in `_HM_PILL_MODELS_BASE`.
 - `test_master_to_cached_fallback_values_in_intended` — values are in `_INTENDED_KEYS` (so they exist post-rebuild).
 - `test_is_master_cached_direct_key` — `is_master_cached("bub")` returns True when `bub` is in a mocked `_CACHED_MODEL_KEYS`. Sanity baseline.
-- `test_resolver_eppl_master_falls_back_when_variant_uncached` — monkey-patch `_CACHED_MODEL_KEYS` to a set NOT containing `ecfg_1d_1u`; assert resolver returns `ecfg_1d_1u` via the `MASTER_TO_CACHED_FALLBACK` branch. Falsifiable: remove `"eppl"` from the dict and the test breaks.
+- `test_resolver_eppl_master_falls_back_when_variant_uncached` — monkey-patch `_CACHED_MODEL_KEYS` to a set NOT containing `ecfg_1d_1u`; call `_resolve_mc_model_src` with `src="eppl"` and default modal config. Assert it returns `"ecfg_1d_1u"` via the `MASTER_TO_CACHED_FALLBACK` branch. Doubly falsifiable:
+  1. Remove `"eppl"` from `MASTER_TO_CACHED_FALLBACK` → `.get(master, resolved)` returns `resolved` (which is `ecfg_1d_1u` only because it happens to be both the resolved value and the fallback target — but if `_CACHED_MODEL_KEYS` is mocked to also lack `eppl`, the chain is exercised). Better: monkey-patch `_resolve_hm_eppl_master` (or the modal config) so the chain returns a different intermediate value (e.g. `ecfg_2dd_2dd`), then assert the final result is `ecfg_1d_1u`. This catches both the dict lookup AND the `master = src` pin.
+  2. Remove the `master = src` pin → `MASTER_TO_CACHED_FALLBACK.get(<post-chain mutated value>, ...)` misses, returns the chain's resolved value (whatever the modal mock produced), test fails.
 - `test_stash_commit_restore_roundtrip` — `tmp_path` fixture, fake cache with mixed intended + stale files: stash renames stale → `.bak`, commit deletes `.bak`, restore reverts.
 - `test_full_cleanup_sequence_noop_on_missing_dir` — full three-phase against a nonexistent path. No exception.
 

@@ -76,6 +76,13 @@ from restore_builder import _build_retire_params
 
 @callback(
     Output("bubble-graph", "figure", allow_duplicate=True),
+    Output("bub-mc-results",      "data",     allow_duplicate=True),
+    Output("bub-mc-status",       "children"),
+    Output("bub-mc-rendered-key", "data",     allow_duplicate=True),
+    Output("mc-save-modal",       "is_open",  allow_duplicate=True),
+    Output("mc-save-tab",         "data",     allow_duplicate=True),
+    Output("bub-mc-unblocked",    "data",     allow_duplicate=True),
+    Output("bub-yrange",          "value",    allow_duplicate=True),
     Input("bubble-first-render", "data"),
     Input("bub-qs",            "value"),
     Input("bub-qs-adv",        "value"),
@@ -141,6 +148,23 @@ from restore_builder import _build_retire_params
     Input("hybppl-commit-trigger", "data"),
     Input("eppl-commit-trigger",   "data"),
     Input("bm-commit-trigger",     "data"),
+    # ── MC controls (Tab 1, Task 11) ──
+    Input("bub-mc-enable",   "value"),
+    Input("bub-mc-bins",     "value"),
+    Input("bub-mc-regime",   "value"),
+    Input("bub-mc-sims",     "value"),
+    Input("bub-mc-years",    "value"),
+    Input("bub-mc-window",   "value"),
+    Input("bub-mc-start-yr", "value"),
+    Input("bub-mc-entry-q",  "value"),
+    Input("bub-mc-loaded",   "data"),
+    Input("bub-mc-model-src", "value"),
+    State("mc-pay-trigger",  "data"),
+    State("btc-price-store", "data"),
+    State("bub-mc-results",  "data"),     # → mc_cached
+    State("mc-pay-token",    "data"),     # → pay_token
+    State("bub-mc-unblocked", "data"),
+    State("bub-mc-rendered-key", "data"), # → mc_auth (rendered-key dict, NOT pay_token)
     State("cta-active",        "value"),
     State("bub-qs-mode",       "value"),
     State("scan-active-rows",  "data"),
@@ -168,6 +192,11 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   palette_key, user_model_store=None,
                   _redraw_tick=None,
                   _hybppl_commit=None, _eppl_commit=None, _bm_commit=None,
+                  # MC params (Task 11) — order matches decorator above
+                  mc_enable=None, mc_bins=None, mc_regime=None, mc_sims=None, mc_years=None,
+                  mc_window=None, mc_start_yr=None, mc_entry_q=None, _mc_loaded=None, mc_model_src=None,
+                  pay_trigger=None, price_data=None, mc_cached=None, pay_token=None,
+                  mc_unblocked=None, mc_auth=None,
                   cta_active=None,
                   qs_mode=None, scan_active=None, scan_q_val=None,
                   sigma_mode=None,
@@ -180,7 +209,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     if snapshot_pending:
         print(f"[trace] bubble-fig SKIPPED (gate) "
               f"{(_time.perf_counter() - _t0) * 1000:.1f}ms", flush=True)
-        return dash.no_update
+        return (dash.no_update,) * 8
     from dash.exceptions import PreventUpdate
     _trg = getattr(ctx, 'triggered_id', None)
     # Restore short-circuit: if restore_from_url already built the
@@ -200,12 +229,17 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
         "bub-decomp-model", "bub-decomp-components", "bub-decomp-mode",
         "hybppl-commit-trigger", "eppl-commit-trigger",
         "bm-commit-trigger",
+        # MC IDs (Task 11). bub-mc-loaded intentionally omitted — async
+        # completion driven, mirrors dca-mc-loaded exclusion in update_dca.
+        "bub-mc-enable", "bub-mc-bins", "bub-mc-regime", "bub-mc-sims",
+        "bub-mc-years", "bub-mc-window", "bub-mc-start-yr", "bub-mc-entry-q",
+        "bub-mc-model-src",
     }
     if (active_chart_committed and active_chart_committed == loaded_hash
             and _trg in _POST_RESTORE_TRIGGERS):
         print(f"[trace] bubble-fig SKIPPED (restore short-circuit) "
               f"{(_time.perf_counter() - _t0) * 1000:.1f}ms", flush=True)
-        return dash.no_update
+        return (dash.no_update,) * 8
     # Spurious hydration fires: Dash dispatches these Inputs on initial load
     # despite prevent_initial_call=True. Guard them so the figure isn't rebuilt.
     if _trg == "user-model-store" and user_model_store is None:
@@ -265,56 +299,161 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     else:
         # Default mode: expand band names to quantile floats
         _effective_qs = _bands_to_qs(sel_qs)
-    # _get_bubble_fig now returns (fig, mc_result) — Task 11 will use the
-    # mc_result element when MC overlay is enabled. For now mc_result is
-    # always None on this non-MC path.
-    fig, _mc_result = _get_bubble_fig(dict(
-        selected_qs = _effective_qs,
-        shade       = "shade"     in toggles,
-        show_ols    = "show_ols"  in toggles,
-        show_ucl    = "show_ucl"  in toggles,
-        show_data   = "show_data"   in toggles,
-        show_today  = "show_today"  in toggles,
-        show_legend = "show_legend" in toggles,
-        minor_grid  = "minor_grid" in toggles,
-        show_comp   = "show_comp" in bubble_toggles,
-        show_sup    = "show_sup"  in bubble_toggles,
-        xscale      = xscale or BUBBLE["xscale"],
-        yscale      = yscale or "log",
-        xmin        = int(xrange[0]), xmax = int(xrange[1]),
-        ymin        = 10 ** yrange[0], ymax = 10 ** yrange[1],
-        n_future    = _ci(n_future, BUBBLE["n_future"]),
-        pt_size     = _ci(ptsize, BUBBLE["pt_size"]),
-        pt_alpha    = _cf(ptalpha, BUBBLE["pt_alpha"]),
-        stack       = _cf(stack, BUBBLE["stack"]),
-        show_stack  = bool(show_stack),
-        use_lots    = bool(use_lots),
-        lots        = lots_data or [],
-        legend_pos  = legend_pos or "outside",
-        comp_color  = LOT_MARKER_COLOR, comp_lw = TRACE_WIDTH_COMPOSITE,
-        sup_color   = FALLBACK_MODEL_GRAY, sup_lw  = TRACE_WIDTH_SUPPORT,
-        active_models = model_show or [],
-        palette = palette_key or "default",
-        scanner_lines = scanner_lines,
-        user_model = user_model_store,
-        qs_mode = qs_mode or [],
-        decomp_model       = decomp_model or "",
-        decomp_components  = list(decomp_components or []),
-        decomp_mode        = decomp_mode or "individual",
-        lppl_n_freqs       = list(lppl_n_freqs or []),
-        lppl_weighted      = list(lppl_weighted or []),
-        lppl_no_13         = list(lppl_no_13 or []),
-        sigma_mode         = sigma_mode or "constant",
-        config_b_keys      = sorted(_config_b_keys),
-    ))
+
+    # ── MC setup (Tab 1, Task 11) ─────────────────────────────────────────────
+    # Tab 1 has no freq picker (default Monthly), no amount/inflation
+    # controls (price-space chart, no withdrawal/accumulation).
+    mc_model_src = _resolve_mc_model_src(
+        mc_model_src,
+        lppl_n_freqs, lppl_weighted, lppl_no_13,
+        hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d,
+        hyb_a_cal1d, hyb_a_cal2d,
+        ep_a_nlog, ep_a_ncal, ep_a_log1d, ep_a_log2d,
+        ep_a_cal1d, ep_a_cal2d)
+    mc_ok, is_free, mc_p, blocked = _mc_setup(
+        "bub", mc_enable, mc_years, mc_start_yr, mc_entry_q,
+        mc_bins, mc_sims, "Monthly",  # Tab 1 has no freq picker; default Monthly
+        mc_window, 100, 0,             # No amount/inflation on Tab 1
+        mc_cached, _cf(price_data, 0), mc_regime, mc_unblocked, pay_token,
+        mc_auth=mc_auth,
+        stack=None, amount_default=100, infl_default=0.0,
+        start_yr_default=2031,
+        mc_model_src=mc_model_src or "bub")
+    mc_visible = bool(mc_enable) and "yes" in (mc_enable or [])
+
+    # MC visible AND payment passed → MC-aware builder; else fast path.
+    # Both branches pass the same dict shape to keep the cache-key alignment
+    # test (test_cache_key_alignment.py) able to walk the AST and extract
+    # kwargs from the `dict(...)` call. **mc_p splat injects mc_* keys.
+    from utils import _get_mc_bubble_fig
+    if mc_visible and mc_ok:
+        result = _get_mc_bubble_fig(dict(
+            selected_qs = _effective_qs,
+            shade       = "shade"     in toggles,
+            show_ols    = "show_ols"  in toggles,
+            show_ucl    = "show_ucl"  in toggles,
+            show_data   = "show_data"   in toggles,
+            show_today  = "show_today"  in toggles,
+            show_legend = "show_legend" in toggles,
+            minor_grid  = "minor_grid" in toggles,
+            show_comp   = "show_comp" in bubble_toggles,
+            show_sup    = "show_sup"  in bubble_toggles,
+            xscale      = xscale or BUBBLE["xscale"],
+            yscale      = yscale or "log",
+            xmin        = int(xrange[0]), xmax = int(xrange[1]),
+            ymin        = 10 ** yrange[0], ymax = 10 ** yrange[1],
+            n_future    = _ci(n_future, BUBBLE["n_future"]),
+            pt_size     = _ci(ptsize, BUBBLE["pt_size"]),
+            pt_alpha    = _cf(ptalpha, BUBBLE["pt_alpha"]),
+            stack       = _cf(stack, BUBBLE["stack"]),
+            show_stack  = bool(show_stack),
+            use_lots    = bool(use_lots),
+            lots        = lots_data or [],
+            legend_pos  = legend_pos or "outside",
+            comp_color  = LOT_MARKER_COLOR, comp_lw = TRACE_WIDTH_COMPOSITE,
+            sup_color   = FALLBACK_MODEL_GRAY, sup_lw  = TRACE_WIDTH_SUPPORT,
+            active_models = model_show or [],
+            palette = palette_key or "default",
+            scanner_lines = scanner_lines,
+            user_model = user_model_store,
+            qs_mode = qs_mode or [],
+            decomp_model       = decomp_model or "",
+            decomp_components  = list(decomp_components or []),
+            decomp_mode        = decomp_mode or "individual",
+            lppl_n_freqs       = list(lppl_n_freqs or []),
+            lppl_weighted      = list(lppl_weighted or []),
+            lppl_no_13         = list(lppl_no_13 or []),
+            sigma_mode         = sigma_mode or "constant",
+            config_b_keys      = sorted(_config_b_keys),
+            **mc_p,
+        ))
+    else:
+        result = _get_bubble_fig(dict(
+            selected_qs = _effective_qs,
+            shade       = "shade"     in toggles,
+            show_ols    = "show_ols"  in toggles,
+            show_ucl    = "show_ucl"  in toggles,
+            show_data   = "show_data"   in toggles,
+            show_today  = "show_today"  in toggles,
+            show_legend = "show_legend" in toggles,
+            minor_grid  = "minor_grid" in toggles,
+            show_comp   = "show_comp" in bubble_toggles,
+            show_sup    = "show_sup"  in bubble_toggles,
+            xscale      = xscale or BUBBLE["xscale"],
+            yscale      = yscale or "log",
+            xmin        = int(xrange[0]), xmax = int(xrange[1]),
+            ymin        = 10 ** yrange[0], ymax = 10 ** yrange[1],
+            n_future    = _ci(n_future, BUBBLE["n_future"]),
+            pt_size     = _ci(ptsize, BUBBLE["pt_size"]),
+            pt_alpha    = _cf(ptalpha, BUBBLE["pt_alpha"]),
+            stack       = _cf(stack, BUBBLE["stack"]),
+            show_stack  = bool(show_stack),
+            use_lots    = bool(use_lots),
+            lots        = lots_data or [],
+            legend_pos  = legend_pos or "outside",
+            comp_color  = LOT_MARKER_COLOR, comp_lw = TRACE_WIDTH_COMPOSITE,
+            sup_color   = FALLBACK_MODEL_GRAY, sup_lw  = TRACE_WIDTH_SUPPORT,
+            active_models = model_show or [],
+            palette = palette_key or "default",
+            scanner_lines = scanner_lines,
+            user_model = user_model_store,
+            qs_mode = qs_mode or [],
+            decomp_model       = decomp_model or "",
+            decomp_components  = list(decomp_components or []),
+            decomp_mode        = decomp_mode or "individual",
+            lppl_n_freqs       = list(lppl_n_freqs or []),
+            lppl_weighted      = list(lppl_weighted or []),
+            lppl_no_13         = list(lppl_no_13 or []),
+            sigma_mode         = sigma_mode or "constant",
+            config_b_keys      = sorted(_config_b_keys),
+        ))
+    fig, mc_result = result if isinstance(result, tuple) else (result, None)
+
+    # MC spaghetti fan — paths sourced from mc_p (cached) or mc_result (live).
+    # Bubble chart x-axis is t_years_since_2009-07-25 (numeric), NOT calendar
+    # year. yr_to_t() converts. Without conversion, paths plot at calendar-yr
+    # x-values (e.g. 2031) which is far outside the bubble chart's t-range
+    # (~0.1 to 28 yr) → invisible.
+    if mc_visible and mc_ok:
+        from figures.bubble import _add_mc_spaghetti
+        from mc_cache import get_cached_paths
+        paths = None
+        if is_free:
+            paths = get_cached_paths(
+                mc_p["mc_model_src"], mc_p["mc_start_yr"],
+                _ci(mc_p["mc_entry_q"], 10) / 100.0,  # pct_bin: fraction
+                mc_p["mc_years"])
+        elif mc_result and isinstance(mc_result, dict):
+            paths = mc_result.get("price_paths")
+        if paths is not None and getattr(paths, "size", 0) > 0:
+            n_steps = paths.shape[1]
+            mc_start_yr_int = int(mc_p["mc_start_yr"])
+            mc_end_yr_int = mc_start_yr_int + int(mc_p["mc_years"])
+            t_start = yr_to_t(mc_start_yr_int, _app_ctx.M.genesis)
+            t_end = yr_to_t(mc_end_yr_int, _app_ctx.M.genesis)
+            t_axis = np.linspace(t_start, t_end, n_steps)
+            _add_mc_spaghetti(fig, paths, t_axis, n_display=100)
+
     if "chart_zoom" not in toggles:
         fig.update_layout(dragmode=False)
         fig.update_xaxes(fixedrange=True)
         fig.update_yaxes(fixedrange=True)
 
+    fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(
+        "bub", fig, mc_result, mc_cached, mc_enable, mc_ok,
+        is_free, blocked, mc_p["mc_years"], mc_p["mc_start_yr"],
+        mc_p["mc_entry_q"], toggles, mc_stale=mc_p.get("mc_stale", False),
+        mc_p=mc_p)
+
     print(f"[trace] bubble-fig BUILT "
           f"{(_time.perf_counter() - _t0) * 1000:.1f}ms", flush=True)
-    return fig
+    # 8-tuple matches Output decorator (figure, mc-results, mc-status,
+    # mc-rendered-key, mc-save-modal, mc-save-tab, mc-unblocked, yrange).
+    # bub-yrange nudge: not implemented for bubble (different axis semantics
+    # vs. DCA/Retire — yrange is in log-decade space, not calendar years).
+    return (fig, store_val, status, rendered_key, show_modal,
+            "bub" if show_modal else dash.no_update, ub_val,
+            dash.no_update)
 
 
 # ── Price/CAGR view pill bar ─────────────────────────────────────────────────

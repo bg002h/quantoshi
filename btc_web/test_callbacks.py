@@ -1034,7 +1034,7 @@ class TestUpdateBubbleCallback:
 
     def test_returns_figure(self):
         with _patch_ctx("bub-qs"):
-            fig = update_bubble(
+            result = update_bubble(
                 _first_render=1, sel_qs=[0.5], adv_qs=[], toggles=["show_data", "show_today"],
                 bubble_toggles=[], xscale="log", yscale="log",
                 xrange=[2012, 2030], yrange=[0, 7],
@@ -1057,11 +1057,14 @@ class TestUpdateBubbleCallback:
                 lots_data=[],
                 palette_key="default",
             )
-        assert isinstance(fig, go.Figure)
+        # Task 11: 8-tuple (fig, mc_results, mc_status, rendered_key,
+        # mc_modal, mc_tab, unblocked, yrange).
+        assert len(result) == 8
+        assert isinstance(result[0], go.Figure)
 
     def test_empty_quantiles(self):
         with _patch_ctx("bub-qs"):
-            fig = update_bubble(
+            result = update_bubble(
                 _first_render=1, sel_qs=[], adv_qs=[], toggles=[], bubble_toggles=[],
                 xscale="linear", yscale="log",
                 xrange=[2015, 2028], yrange=[1, 6],
@@ -1084,11 +1087,12 @@ class TestUpdateBubbleCallback:
                 lots_data=[],
                 palette_key="default",
             )
-        assert isinstance(fig, go.Figure)
+        assert len(result) == 8
+        assert isinstance(result[0], go.Figure)
 
     def test_with_stack(self):
         with _patch_ctx("bub-stack"):
-            fig = update_bubble(
+            result = update_bubble(
                 _first_render=1, sel_qs=[0.1, 0.5, 0.9], adv_qs=[], toggles=["show_legend"],
                 bubble_toggles=["show_comp"], xscale="log", yscale="log",
                 xrange=[2012, 2035], yrange=[0, 7],
@@ -1111,7 +1115,8 @@ class TestUpdateBubbleCallback:
                 lots_data=[],
                 palette_key="default",
             )
-        assert isinstance(fig, go.Figure)
+        assert len(result) == 8
+        assert isinstance(result[0], go.Figure)
 
 
 

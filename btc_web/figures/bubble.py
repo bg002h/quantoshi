@@ -6,7 +6,7 @@ import math
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-import matplotlib.cm as _mpl_cm
+from plotly.colors import sample_colorscale as _plotly_sample_colorscale
 from typing import Any
 
 import _app_ctx
@@ -72,12 +72,13 @@ def _add_mc_spaghetti(fig, paths, t_axis, n_display=100):
     finals = sample[:, -1]
     span = max(np.ptp(finals), 1e-12)
     norm = (finals - finals.min()) / span
-    cmap = _mpl_cm.RdYlGn
+    # Use Plotly's built-in RdYlGn colorscale (matplotlib not installed on prod).
+    # sample_colorscale returns ['rgb(r, g, b)']; we splice in alpha=0.45.
     for i, path in enumerate(sample):
-        rgba = cmap(float(norm[i]))
-        color = (f"rgba({int(rgba[0]*255)},"
-                 f"{int(rgba[1]*255)},"
-                 f"{int(rgba[2]*255)},0.45)")
+        rgb_str = _plotly_sample_colorscale("RdYlGn", float(norm[i]))[0]
+        # rgb_str is "rgb(r, g, b)"; convert to rgba(r, g, b, 0.45)
+        inner = rgb_str[rgb_str.find("(") + 1 : rgb_str.find(")")]
+        color = f"rgba({inner}, 0.45)"
         fig.add_trace(go.Scatter(
             x=t_axis, y=path,
             mode="lines",

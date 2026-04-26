@@ -104,6 +104,16 @@ def intended_models(M) -> dict:
     }
 
 
+# Maps user-facing master keys (dropdown values) to their preferred
+# cached variant. Each entry is a transition aid OR a post-rebuild target.
+# REMOVE the "lppl" entry after rebuild confirms paths_lppl_*.npz are
+# purged from prod (it becomes dead noise, would mislead a future editor).
+MASTER_TO_CACHED_FALLBACK: dict[str, str] = {
+    "lppl": "lppl",            # transition: kept until LPPL purged from disk
+    "eppl": "ecfg_1d_1u",      # post-rebuild target
+}
+
+
 SHM_CACHE_PATH = Path("/dev/shm/quantoshi_mc.pkl")
 
 

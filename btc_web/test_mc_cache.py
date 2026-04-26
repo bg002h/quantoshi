@@ -61,3 +61,42 @@ def test_intended_models_short_names_match_dict_keys():
     for key, model in intended_models(M).items():
         assert model.short_name == key, (
             f"short_name mismatch: dict key {key!r} vs model.short_name {model.short_name!r}")
+
+
+def test_master_to_cached_fallback_keys_in_dropdown():
+    """Every fallback key must be a valid dropdown master."""
+    import _app_ctx, app  # noqa: F401  - layout.heatmap transitively needs _app_ctx initialized
+    from mc_cache import MASTER_TO_CACHED_FALLBACK
+    from layout.heatmap import _HM_PILL_MODELS_BASE
+
+    valid_masters = set(_HM_PILL_MODELS_BASE) | {"ef", "u1"}
+    for master in MASTER_TO_CACHED_FALLBACK:
+        assert master in valid_masters, (
+            f"{master!r} in MASTER_TO_CACHED_FALLBACK but not in dropdown options")
+
+
+def test_master_to_cached_fallback_values_in_intended():
+    """Every fallback value must be in _INTENDED_KEYS, EXCEPT the
+    'lppl' transition artifact (see _lppl_transition_exemption)."""
+    from mc_cache import MASTER_TO_CACHED_FALLBACK, _INTENDED_KEYS
+
+    for master, fallback in MASTER_TO_CACHED_FALLBACK.items():
+        if master == "lppl":
+            continue  # transition artifact; tracked by separate test
+        assert fallback in _INTENDED_KEYS, (
+            f"MASTER_TO_CACHED_FALLBACK[{master!r}] = {fallback!r} "
+            f"is not in _INTENDED_KEYS = {_INTENDED_KEYS}")
+
+
+def test_master_to_cached_fallback_lppl_transition_exemption():
+    """The 'lppl' entry is a transition artifact: lppl is no longer in
+    _INTENDED_KEYS but the entry stays until the rebuild purges
+    paths_lppl_*.npz from prod. After purge, edit the dict to remove
+    this entry (and delete this test).
+    """
+    from mc_cache import MASTER_TO_CACHED_FALLBACK, _INTENDED_KEYS
+
+    # Today: "lppl" → "lppl" remains. This test passes iff the comment
+    # invariant in mc_cache.py is upheld.
+    assert MASTER_TO_CACHED_FALLBACK.get("lppl") == "lppl"
+    assert "lppl" not in _INTENDED_KEYS

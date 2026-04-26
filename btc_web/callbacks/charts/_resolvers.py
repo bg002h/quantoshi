@@ -224,8 +224,21 @@ def _resolve_mc_model_src(src,
     Composes the existing single-string heatmap resolvers — same pattern,
     so 'hybppl' / 'eppl' / 'lppl' masters resolve via the cfg/ecfg modals.
     Non-master values pass through unchanged.
+
+    LPPL special case: if the user picks the 'lppl' master without engaging
+    the LPPL config modal, prefer the 1-frequency variant ('lppl') because
+    it is in the precomputed MC cache. The default n_freqs=[3] would
+    otherwise resolve to 'lp3' which is NOT cached → empty MC trace.
     """
-    src = _resolve_hm_lppl_master(src, lppl_n_freqs, lppl_weighted, lppl_no_13)
+    if src == "lppl":
+        from mc_cache import _CACHED_MODEL_KEYS
+        resolved = _resolve_hm_lppl_master(src, lppl_n_freqs, lppl_weighted, lppl_no_13)
+        if resolved not in _CACHED_MODEL_KEYS and "lppl" in _CACHED_MODEL_KEYS:
+            src = "lppl"
+        else:
+            src = resolved
+    else:
+        src = _resolve_hm_lppl_master(src, lppl_n_freqs, lppl_weighted, lppl_no_13)
     src = _resolve_hm_hybppl_master(
         src,
         hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d,

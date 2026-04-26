@@ -460,6 +460,14 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                 if paths is not None and paths.shape[0] > display_sims:
                     paths = paths[:display_sims]
             if paths is not None and getattr(paths, "size", 0) > 0:
+                # Apply stack-scaling: when "Show Stack" is on and stack > 0,
+                # the rest of the chart's traces are multiplied by stack
+                # (figures/bubble.py:141 etc.). Spaghetti paths must follow
+                # or they'll plot in price-space while QR bands are in USD-
+                # value space, mismatching the y-axis.
+                stack_f = _cf(stack, 0)
+                if "yes" in (show_stack or []) and stack_f > 0:
+                    paths = paths * stack_f
                 # Clone the figure so we don't mutate the L1/L2 cached object —
                 # _add_mc_spaghetti appends traces in-place; without this, every
                 # subsequent render that hits the same cache key accumulates

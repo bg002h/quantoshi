@@ -386,6 +386,13 @@ _SNAPSHOT_CONTROLS = [
     ("lev-horizon",       "value"),
     ("lev-cagr",          "value"),
     ("lev-toggles",       "value"),
+    # ── User Model (U₁) — P1/P2 anchor points (Tab 1 only) ──
+    # Stores hold raw user input; auto_draw callback reconstructs
+    # user-model-store (slope/intercepts/r²) on restore.
+    ("um-p1-year",        "data"),
+    ("um-p1-price",       "data"),
+    ("um-p2-year",        "data"),
+    ("um-p2-price",       "data"),
 ]
 
 _SNAP_PREFIX_V4 = "q4:"   # current format (v4: sparse diff against fingerprint)

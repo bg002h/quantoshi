@@ -364,6 +364,10 @@ SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'scan-date:value': None,
     'scan-price:value': None,
     'scan-q:value': None,
+    'um-p1-year:data': None,
+    'um-p1-price:data': None,
+    'um-p2-year:data': None,
+    'um-p2-price:data': None,
 }
 
 # Controls whose default at link-creation time is genuinely dynamic

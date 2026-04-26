@@ -134,6 +134,39 @@ _app_ctx.app.clientside_callback(
 )
 
 
+# Sync display spans from P1/P2 stores so restored share-links repopulate
+# the visible "Year" / "$" labels (the regular set-point JS only fires on
+# context-menu clicks).
+_SYNC_DISPLAY_JS = """function(yr, pr) {
+    var NU = window.dash_clientside.no_update;
+    if (yr == null && pr == null) return [NU, NU];
+    var fmt;
+    if (pr == null) fmt = '\\u2014';
+    else if (pr >= 100) fmt = pr.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    else if (pr >= 1) fmt = pr.toFixed(4);
+    else fmt = pr.toFixed(6);
+    return [yr == null ? '\\u2014' : String(yr), fmt];
+}"""
+
+_app_ctx.app.clientside_callback(
+    _SYNC_DISPLAY_JS,
+    Output("um-p1-year-display", "children", allow_duplicate=True),
+    Output("um-p1-price-display", "children", allow_duplicate=True),
+    Input("um-p1-year", "data"),
+    Input("um-p1-price", "data"),
+    prevent_initial_call="initial_duplicate",
+)
+
+_app_ctx.app.clientside_callback(
+    _SYNC_DISPLAY_JS,
+    Output("um-p2-year-display", "children", allow_duplicate=True),
+    Output("um-p2-price-display", "children", allow_duplicate=True),
+    Input("um-p2-year", "data"),
+    Input("um-p2-price", "data"),
+    prevent_initial_call="initial_duplicate",
+)
+
+
 # Auto-draw: when both P1 and P2 exist, auto-construct the model
 @callback(
     Output("user-model-store", "data", allow_duplicate=True),

@@ -206,7 +206,7 @@ def restore_from_url(hash_str):
 # time (after first-render), not at callback-register time — Dash tolerates
 # this as long as the layout eventually contains the component.
 
-_LAZY_PREFIXES = ("bub-", "scan-", "cta-", "hm-", "dca-", "ret-",
+_LAZY_PREFIXES = ("bub-", "scan-", "cta-", "um-", "hm-", "dca-", "ret-",
                   "sc-", "cp-", "lev-")
 
 # Split _SNAPSHOT_CONTROLS into globals + per-tab buckets.
@@ -215,7 +215,7 @@ _GLOBAL_CONTROLS = [(cid, prop) for cid, prop in _SNAPSHOT_CONTROLS
 
 # Ordered list of (tab_id, first_render_id, prefix_tuple)
 _TAB_SPECS = [
-    ("bubble",      "bubble-first-render",      ("bub-", "scan-", "cta-")),
+    ("bubble",      "bubble-first-render",      ("bub-", "scan-", "cta-", "um-")),
     ("heatmap",     "heatmap-first-render",     ("hm-",)),
     ("dca",         "dca-first-render",         ("dca-",)),
     ("retire",      "retire-first-render",      ("ret-",)),

@@ -170,6 +170,29 @@ def _build_bubble_figure_from_state(state: dict):
     palette_key = _v(state, "palette-store", "data")
     user_model_store = state.get("user-model-store:data")  # may be None
 
+    # ── User Model (U₁): reconstruct from P1/P2 if link supplied them ──
+    # auto_draw callback won't fire before the fast-path figure is built,
+    # so do the same `UserModel.from_points()` work here.
+    p1_yr = state.get("um-p1-year:data")
+    p1_pr = state.get("um-p1-price:data")
+    p2_yr = state.get("um-p2-year:data")
+    p2_pr = state.get("um-p2-price:data")
+    if all(v is not None for v in (p1_yr, p1_pr, p2_yr, p2_pr)):
+        try:
+            from btc_core import UserModel
+            import _app_ctx
+            M = _app_ctx.M
+            _GENESIS_YR = 2009.56  # 2009-07-25; matches callbacks/user_model.py
+            t1 = float(p1_yr) - _GENESIS_YR
+            t2 = float(p2_yr) - _GENESIS_YR
+            user_model_store = UserModel.from_points(
+                t1=t1, p1=float(p1_pr), t2=t2, p2=float(p2_pr),
+                price_years=M.price_years, price_prices=M.price_prices,
+                quantiles=list(M.QR_QUANTILES),
+            ).to_store_dict()
+        except Exception:
+            pass  # leave existing user_model_store as-is
+
     # ── Scanner ──
     scan_q_val = _v(state, "scan-q")
     # scan-active-rows is not in _SNAPSHOT_CONTROLS (Store-only state).
@@ -269,6 +292,22 @@ def _build_bubble_figure_from_state(state: dict):
         lppl_n_freqs       = list(lppl_n_freqs or []),
         lppl_weighted      = list(lppl_weighted or []),
         lppl_no_13         = list(lppl_no_13 or []),
+        hybppl_cfg         = {
+            "a_nlog": hyb_a_nlog, "a_ncal": hyb_a_ncal,
+            "a_log1d": hyb_a_log1d, "a_log2d": hyb_a_log2d,
+            "a_cal1d": hyb_a_cal1d, "a_cal2d": hyb_a_cal2d,
+            "b_nlog": hyb_b_nlog, "b_ncal": hyb_b_ncal,
+            "b_log1d": hyb_b_log1d, "b_log2d": hyb_b_log2d,
+            "b_cal1d": hyb_b_cal1d, "b_cal2d": hyb_b_cal2d,
+        },
+        eppl_cfg           = {
+            "a_nlog": ep_a_nlog, "a_ncal": ep_a_ncal,
+            "a_log1d": ep_a_log1d, "a_log2d": ep_a_log2d,
+            "a_cal1d": ep_a_cal1d, "a_cal2d": ep_a_cal2d,
+            "b_nlog": ep_b_nlog, "b_ncal": ep_b_ncal,
+            "b_log1d": ep_b_log1d, "b_log2d": ep_b_log2d,
+            "b_cal1d": ep_b_cal1d, "b_cal2d": ep_b_cal2d,
+        },
         sigma_mode         = sigma_mode or "constant",
         config_b_keys      = sorted(_config_b_keys),
     ))

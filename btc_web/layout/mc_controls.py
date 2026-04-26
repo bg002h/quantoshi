@@ -7,7 +7,8 @@ import dash_bootstrap_components as dbc
 
 import _app_ctx
 from mc_cache import (CACHED_START_YRS, WD_AMOUNTS,
-                      ENTRY_PCT_BINS, MC_YEARS_OPTIONS, INFL_OPTIONS)
+                      ENTRY_PCT_BINS, MC_YEARS_OPTIONS, INFL_OPTIONS,
+                      _CACHED_MODEL_KEYS)
 from mc_overlay import bin_regime_labels
 
 from layout.common import (_section_card, _ctrl_card, _row, _lbl,
@@ -29,6 +30,9 @@ def _mc_model_src_options():
     as a master entry. The specific config variant is picked up from the
     global LPPL/HybPPL/EPPL config modals via `_resolve_mc_model_src`
     in the callbacks before `_mc_setup` runs.
+
+    Models present in the precomputed MC cache (free tier) render bold;
+    others require live compute (paid).
     """
     from layout.heatmap import _HM_PILL_MODELS_BASE
     keys = list(_HM_PILL_MODELS_BASE)
@@ -36,8 +40,17 @@ def _mc_model_src_options():
         keys.append("ef")
     if "u1" in _app_ctx.PRICE_MODELS:
         keys.append("u1")
-    return [{"label": f" {_app_ctx.PRICE_MODELS[k].name}", "value": k}
-            for k in keys if k in _app_ctx.PRICE_MODELS]
+    out = []
+    for k in keys:
+        if k not in _app_ctx.PRICE_MODELS:
+            continue
+        name = _app_ctx.PRICE_MODELS[k].name
+        if k in _CACHED_MODEL_KEYS:
+            label = html.Span(f" {name}", style={"fontWeight": "bold"})
+        else:
+            label = f" {name}"
+        out.append({"label": label, "value": k})
+    return out
 _MC_CACHED_START_YRS = set(CACHED_START_YRS)
 _MC_CACHED_ENTRY_QS = {int(v * 100) for v in ENTRY_PCT_BINS}   # {10,20,...,90}
 _MC_CACHED_YEARS    = set(MC_YEARS_OPTIONS)                      # {10,20,30,40}

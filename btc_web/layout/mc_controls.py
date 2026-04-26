@@ -207,7 +207,15 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                     inputStyle=_CB_MARGIN,
                     labelStyle={"display": "block", "fontSize": UI_FONT_MD,
                                 "lineHeight": "1.6", "color": MODAL_DIVIDER_DARK},
-                    style={"marginBottom": "6px"},
+                    style={"marginBottom": "2px"},
+                ),
+                html.Small(
+                    "Free-tier: cached paths sorted by alignment with your "
+                    "selection (each path may visit blocked regimes briefly). "
+                    "Paid live MC: paths cannot leave selected regimes.",
+                    style={"display": "block", "fontSize": UI_FONT_SM,
+                           "color": DIM_TEXT, "lineHeight": "1.3",
+                           "marginBottom": "8px"},
                 ),
                 _lbl("Simulations (1–3200; ≤200 is free)"),
                 # Number input + HTML5 datalist: type any integer 1-3200,

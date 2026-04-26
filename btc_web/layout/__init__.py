@@ -355,12 +355,12 @@ def _build_layout(initial_tab="bubble"):
     dcc.Store(id="active-tab-bump-tick", storage_type="memory", data=0),
     # MC per-tab stores (results, unblocked cache, loaded trigger, download dummy)
     *[dcc.Store(id=f"{pfx}-mc-results", storage_type="memory", data=None)
-      for pfx in ("dca", "ret", "hm", "sc", "cp")],
+      for pfx in ("dca", "ret", "hm", "sc", "cp", "bub")],
     *[dcc.Store(id=f"{pfx}-mc-unblocked", storage_type="memory", data=None)
-      for pfx in ("dca", "ret", "hm", "sc", "cp")],
+      for pfx in ("dca", "ret", "hm", "sc", "cp", "bub")],
     *[dcc.Store(id=f"{pfx}-mc-loaded", storage_type="memory", data=0)
-      for pfx in ("dca", "ret", "hm", "sc", "cp")],
-    *[dcc.Store(id=f"{pfx}-mc-dl-dummy") for pfx in ("dca", "ret", "hm", "sc", "cp")],
+      for pfx in ("dca", "ret", "hm", "sc", "cp", "bub")],
+    *[dcc.Store(id=f"{pfx}-mc-dl-dummy") for pfx in ("dca", "ret", "hm", "sc", "cp", "bub")],
     # ── MC payment stores + polling ──────────────────────────────────────
     dcc.Store(id="mc-pay-invoice", storage_type="memory", data=None),
     dcc.Store(id="mc-pay-token",   storage_type="memory", data=None),

@@ -29,7 +29,7 @@ _app_ctx.app.clientside_callback(
     Output("dca-sc-body", "style"),
     Input("dca-sc-enable", "value"),
 )
-for _mc_tog in ("dca", "ret", "hm", "sc", "cp"):
+for _mc_tog in ("dca", "ret", "hm", "sc", "cp", "bub"):
     _app_ctx.app.clientside_callback(
         "function(v) { return (v && v.length) ? {} : {display:'none'}; }",
         Output(f"{_mc_tog}-mc-body", "style"),
@@ -37,7 +37,8 @@ for _mc_tog in ("dca", "ret", "hm", "sc", "cp"):
     )
 
 # MC engine toggle → inject/remove MC from Display Models options + value
-for _mc_auto in ("dca", "ret", "sc"):
+# (excludes "hm" because the heatmap uses a pill bar instead of a checklist)
+for _mc_auto in ("dca", "ret", "sc", "bub"):
     _app_ctx.app.clientside_callback(
         """
         function(mc_enable, cur_opts, cur_models) {
@@ -93,7 +94,7 @@ function(val) {
 }
 """ % (_MC_ENTRY_Q_OPTIONS_JSON, _MC_ENTRY_Q_OPTIONS_ADV_JSON)
 
-for _mc_adv in ("dca", "ret", "hm", "sc", "cp"):
+for _mc_adv in ("dca", "ret", "hm", "sc", "cp", "bub"):
     _app_ctx.app.clientside_callback(
         _MC_ADV_JS,
         Output(f"{_mc_adv}-mc-adv-body", "style"),
@@ -113,7 +114,7 @@ function(n_bins) {
 }
 """ % _REGIME_OPTIONS_JSON
 
-for _mc_reg in ("dca", "ret", "hm", "sc", "cp"):
+for _mc_reg in ("dca", "ret", "hm", "sc", "cp", "bub"):
     _app_ctx.app.clientside_callback(
         _REGIME_JS,
         Output(f"{_mc_reg}-mc-regime", "options"),
@@ -220,10 +221,11 @@ function(mc_enable, mc_years, mc_start_yr, mc_entry_q, mc_model_src, rendered_ke
     ];
 }}
 """
-for _mc_m in ("dca", "ret", "hm", "sc", "cp"):
+for _mc_m in ("dca", "ret", "hm", "sc", "cp", "bub"):
     _wrap_id = {"dca": "dca-chart-wrap", "ret": "ret-chart-wrap",
                 "hm": "hm-mc-panel", "sc": "sc-chart-wrap",
-                "cp": "cp-chart-wrap"}[_mc_m]
+                "cp": "cp-chart-wrap",
+                "bub": "bubble-graph-chart-wrap"}[_mc_m]
     _base_cls = ""
     _sep = " " if _base_cls else ""
     _app_ctx.app.clientside_callback(
@@ -260,7 +262,7 @@ _RESTORE_MC_JS = f"""function(n_clicks, mc_cached) {{
     ];
 }}"""
 
-for _rpfx in ("hm", "dca", "ret", "sc", "cp"):
+for _rpfx in ("hm", "dca", "ret", "sc", "cp", "bub"):
     _app_ctx.app.clientside_callback(
         _RESTORE_MC_JS,
         Output(f"{_rpfx}-mc-years", "value", allow_duplicate=True),
@@ -520,8 +522,11 @@ function(mc_enable, mc_freq, mc_years, mc_bins, mc_sims, mc_window,
 }
 """
 
-for _cost_pfx in ("hm", "dca", "ret", "sc", "cp"):
-    _freq_id = f"{_cost_pfx}-mc-freq" if _cost_pfx == "hm" else f"{_cost_pfx}-freq"
+for _cost_pfx in ("hm", "dca", "ret", "sc", "cp", "bub"):
+    # hm + bub use {prefix}-mc-freq (no shared freq dropdown on those tabs);
+    # dca/ret/sc/cp share the tab's main {prefix}-freq dropdown.
+    _freq_id = (f"{_cost_pfx}-mc-freq" if _cost_pfx in ("hm", "bub")
+                else f"{_cost_pfx}-freq")
     _app_ctx.app.clientside_callback(
         _MC_COST_JS_TPL % (_cost_pfx,),
         Output(f"{_cost_pfx}-mc-cost", "children"),

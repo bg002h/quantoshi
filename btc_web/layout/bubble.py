@@ -21,6 +21,7 @@ from layout.common import (_tab_hints, _section_card, _row, _lbl,
                             _plot_appearance_controls, _use_lots_checklist)
 from layout.display_models import display_models_panel, sigma_mode_section
 from layout.custom_time import custom_time_panel
+from layout.mc_controls import _mc_controls
 
 
 def _bubble_controls():
@@ -82,6 +83,17 @@ def _bubble_controls():
         _q_panel_with_mode("bub-qs", [0.5],
                            hint=f"If none selected, Q50% is shown at "
                                 f"{int(_app_ctx.FALLBACK_Q50_OPACITY * 100)}% opacity."),
+        # Tab-1 MC: opt-in (default off). Reuses the panel from Tabs 3-5.
+        # show_amount/show_inflation/show_stack=False because Tab 1 is
+        # price-space (no withdrawal amount, no inflation, no accumulation).
+        _mc_controls("bub",
+                     show_amount=False,
+                     show_inflation=False,
+                     show_stack=False,
+                     show_mc_entry_q=True,
+                     default_entry_q=10,
+                     amount_default=100,
+                     mc_enabled_default=False),
         sigma_mode_section(),
         custom_time_panel(),
         # Hidden placeholders — bub-bubble-panel and bub-n-future-wrap are
@@ -89,6 +101,18 @@ def _bubble_controls():
         # Real Bubble Model controls now live in the global bm-config-modal.
         html.Div(id="bub-bubble-panel", style=_STYLE_HIDDEN),
         html.Div(id="bub-n-future-wrap", style=_STYLE_HIDDEN),
+        # Tab-1 MC overlay/badge placeholders. The bubble tab uses
+        # _chart_tab_layout_with_fab (not _chart_tab_layout), so these IDs
+        # aren't auto-created next to the chart. Hosting them here as hidden
+        # placeholders satisfies the match-indicator clientside callback in
+        # callbacks/mc_controls.py. Tasks 7-12 will reposition them over
+        # the chart for the actual MC visual overlay.
+        html.Div(id="bub-mc-overlay", style=_STYLE_HIDDEN,
+                 className="mc-chart-overlay"),
+        html.Img(id="bub-mc-badge",
+                 src="/assets/quantoshi_favicon.png",
+                 className="mc-premium-badge",
+                 style=_STYLE_HIDDEN),
         _section_card("Model Component Decomposition",
             _lbl("Model"),
             dcc.Dropdown(

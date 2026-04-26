@@ -472,7 +472,10 @@ _CHECKLIST_OPTIONS = {
     "ret-model-show":     ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl", "u1", "plo", "sexp", "logi", "bub"],
     "sc-model-show":      ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl", "u1", "plo", "sexp", "logi", "bub"],
     "hm-model-show":      ["qr", "mc", "pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "gomp", "bpl", "u1", "plo", "sexp", "logi", "bub"],
-    "bub-model-show":     ["pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "bub", "qr", "gomp", "bpl", "plo", "sexp", "logi"],
+    # NOTE: "u1" appended at position 31 (end). Old links don't set bit 31
+    # so they decode unchanged; no fingerprint bump needed. Brings bub up to
+    # parity with dca/ret/sc/hm (which already include "u1").
+    "bub-model-show":     ["pl", "lppl", "lppl_w", "lp2", "lp2_w", "lp3", "lp3_w", "lp4", "lp4_w", "lp4_n13", "lp4_w_n13", "linppl", "hybppl", "hybppl_dd", "hyb2l", "hyb2c", "hyb2b", "hyb4d", "pca", "grdy", "eppl", "exp", "s2f", "ef", "bub", "qr", "gomp", "bpl", "plo", "sexp", "logi", "u1"],
     # Defunct after display-models consolidation (2026-04-11) — retained
     # for q3: link positional stability. See _SNAPSHOT_CONTROLS comment above.
     "bub-lppl-activate":  ["yes"],

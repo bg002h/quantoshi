@@ -118,3 +118,28 @@ def test_cached_model_keys_match_disk_glob():
             expected.add(parsed[1])
     assert _CACHED_MODEL_KEYS == frozenset(expected), (
         f"disk has {expected}, _CACHED_MODEL_KEYS = {set(_CACHED_MODEL_KEYS)}")
+
+
+def test_is_master_cached_direct_key(monkeypatch):
+    """Sanity baseline: bub is bold when bub is in _CACHED_MODEL_KEYS."""
+    import mc_cache
+    monkeypatch.setattr(mc_cache, "_CACHED_MODEL_KEYS",
+                        frozenset({"bub", "pl"}))
+    assert mc_cache.is_master_cached("bub") is True
+
+
+def test_is_master_cached_via_fallback(monkeypatch):
+    """Master 'eppl' is bold when its alias 'ecfg_1d_1u' is on disk."""
+    import mc_cache
+    monkeypatch.setattr(mc_cache, "_CACHED_MODEL_KEYS",
+                        frozenset({"ecfg_1d_1u"}))
+    assert mc_cache.is_master_cached("eppl") is True
+
+
+def test_is_master_cached_returns_false_when_uncached(monkeypatch):
+    """Master with no direct cache and no usable fallback → not bold."""
+    import mc_cache
+    monkeypatch.setattr(mc_cache, "_CACHED_MODEL_KEYS", frozenset())
+    assert mc_cache.is_master_cached("eppl") is False
+    assert mc_cache.is_master_cached("hybppl") is False  # no fallback entry
+    assert mc_cache.is_master_cached("bub") is False     # direct miss

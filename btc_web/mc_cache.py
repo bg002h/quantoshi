@@ -135,6 +135,20 @@ MASTER_TO_CACHED_FALLBACK: dict[str, str] = {
 }
 
 
+def is_master_cached(key: str) -> bool:
+    """True if a dropdown value has a usable cached variant on disk.
+
+    True when either the key itself is in _CACHED_MODEL_KEYS (direct
+    cache key like 'bub'), or its master-alias maps to one (e.g.
+    'eppl' → 'ecfg_1d_1u').
+
+    Used by the MC source dropdown bolding logic in
+    layout/mc_controls.py::_mc_model_src_options.
+    """
+    return key in _CACHED_MODEL_KEYS or \
+           MASTER_TO_CACHED_FALLBACK.get(key) in _CACHED_MODEL_KEYS
+
+
 SHM_CACHE_PATH = Path("/dev/shm/quantoshi_mc.pkl")
 
 

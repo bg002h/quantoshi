@@ -677,35 +677,42 @@ class TestFilterPathsByRegime:
         assert result.shape == paths.shape
         np.testing.assert_array_equal(result, paths)
 
-    def test_drops_paths_with_elevated_blocked_time(self):
+    def test_ranks_paths_by_blocked_time_ascending(self):
         import numpy as np
         # Stub model: pct = price/100 → bin = int(pct * 5).
-        # Path 0: half steps in bin 4 (50% time) — dropped (>30% threshold)
-        # Path 1: zero steps in bin 4 — survives
-        # Path 2: 1/4 steps in bin 4 (25%) — survives (just under threshold)
+        #   price=10 → bin 0; 30 → bin 1; 50 → bin 2; 70 → bin 3; 90 → bin 4
+        # 3 paths × 4 steps. Returned sorted ASC by time in blocked bin (bin 4).
         paths = np.array([
-            [90.0, 95.0, 90.0, 95.0],   # 100% time in bin 4 → drop
-            [10.0, 30.0, 50.0, 50.0],   # 0% time in bin 4 → survive
-            [10.0, 30.0, 50.0, 90.0],   # 25% time in bin 4 → survive (<30%)
+            [90.0, 95.0, 90.0, 95.0],   # 100% in bin 4 → rank 2 (worst)
+            [10.0, 30.0, 50.0, 50.0],   # 0% in bin 4   → rank 0 (best)
+            [10.0, 30.0, 50.0, 90.0],   # 25% in bin 4  → rank 1 (middle)
         ])
         t_axis = np.array([10.0, 11.0, 12.0, 13.0])
-        # tolerance=1.5; 1 blocked of 5 → expected=0.2, threshold=0.3
         result = filter_paths_by_regime(paths, t_axis, self._StubModel(),
-                                         blocked_bins=[4], n_bins=5,
-                                         tolerance=1.5)
-        # Path 0 dropped, 1 and 2 survive
-        assert result.shape[0] == 2
-        np.testing.assert_array_equal(result[0], paths[1])
-        np.testing.assert_array_equal(result[1], paths[2])
+                                         blocked_bins=[4], n_bins=5)
+        # All 3 paths returned, sorted ASC by time in bin 4
+        assert result.shape[0] == 3
+        np.testing.assert_array_equal(result[0], paths[1])  # 0% blocked
+        np.testing.assert_array_equal(result[1], paths[2])  # 25%
+        np.testing.assert_array_equal(result[2], paths[0])  # 100%
 
-    def test_all_paths_dropped_when_only_blocked_visited(self):
+    def test_only_bargain_vs_only_bubble_picks_different_paths(self):
+        """Regression for the bug user reported: with sims=1, blocking
+        bins {1,2,3,4} (only Bargain allowed) vs {0,1,2,3} (only Bubble
+        allowed) MUST pick different paths via the rank ordering."""
         import numpy as np
-        paths = np.array([[90.0, 95.0, 99.0]])  # 100% in bin 4 > 30% threshold
-        t_axis = np.array([10.0, 11.0, 12.0])
-        result = filter_paths_by_regime(paths, t_axis, self._StubModel(),
-                                         blocked_bins=[4], n_bins=5,
-                                         tolerance=1.5)
-        assert result.shape[0] == 0
+        paths = np.array([
+            [10.0, 12.0, 15.0, 18.0],   # always bin 0 → 0% time in {1,2,3,4}
+            [85.0, 92.0, 88.0, 95.0],   # always bin 4 → 0% time in {0,1,2,3}
+        ])
+        t_axis = np.array([10.0, 11.0, 12.0, 13.0])
+        bargain = filter_paths_by_regime(paths, t_axis, self._StubModel(),
+                                          blocked_bins=[1, 2, 3, 4], n_bins=5)
+        bubble = filter_paths_by_regime(paths, t_axis, self._StubModel(),
+                                         blocked_bins=[0, 1, 2, 3], n_bins=5)
+        # Top-ranked path differs: bargain picks low-price path, bubble high
+        np.testing.assert_array_equal(bargain[0], paths[0])
+        np.testing.assert_array_equal(bubble[0], paths[1])
 
     def test_handles_empty_input(self):
         import numpy as np

@@ -204,43 +204,44 @@ def _snap_start_pctile(start_pctile, bin_edges, blocked_bins):
 
 
 def filter_paths_by_regime(paths, t_axis, model, blocked_bins, n_bins=5,
-                            tolerance=1.5):
-    """Filter cached paths to drop those that spend ELEVATED time in
-    blocked regime bins.
+                            tolerance=None):
+    """Rank cached paths by alignment with user's regime preference; return
+    paths sorted ASC by time spent in blocked bins (best-aligned first).
 
-    Why "elevated" rather than "ever-touched": cached paths simulate
-    ~480 monthly steps over 40 years; every long random walk visits
-    every bin at least once, so the strict 'never touched' filter
-    drops 100% of paths. We instead compute each path's time-fraction
-    in blocked bins and drop those exceeding the uniform-expected
-    fraction by more than `tolerance × expected`. With tolerance=1.5,
-    a single-bin block drops paths spending >30% of time there
-    (uniform expectation is 20%); this maps to "regimes I unselected
-    happened more than randomly."
+    Caller subsamples to display count via `paths[:mc_sims]`. With sims=1
+    the user gets the SINGLE path that spent the least time in the blocked
+    regimes — distinct paths for "only Bargain" vs "only Bubble" etc.
 
-    Live (paid) MC sims apply blocked_bins via the transition matrix
-    in `_apply_bin_mask` — they never transition INTO blocked bins,
-    so post-hoc filtering isn't needed there.
+    Why rank-based, not threshold-based: cached paths simulate a
+    400+-step Markov walk that visits every bin. A "drop paths above X%
+    time in blocked bins" filter either drops everything (low threshold)
+    or nothing (high threshold), depending on threshold choice and how
+    many bins are blocked. The earlier threshold variant additionally
+    capped at `expected × tolerance` which exceeded 1.0 (the maximum
+    achievable time fraction) when ≥3 of 5 bins were blocked, making
+    the filter a no-op for "only Bargain"/"only Bubble"-style selections.
+    Rank-based always yields a meaningful ordering.
+
+    Live (paid) MC sims apply blocked_bins via the transition matrix in
+    `_apply_bin_mask` — they never transition INTO blocked bins, so
+    rank-based filtering of cached paths is the best-effort analog for
+    free-tier scenarios.
 
     Parameters
     ----------
     paths : np.ndarray (n_sims, n_steps) — price paths
     t_axis : np.ndarray (n_steps,) — time values (years since genesis)
         for each path step.
-    model : PriceModel — used for `find_percentile(t, price)`.
-    blocked_bins : iterable of int — bin indices to exclude. Empty/None →
-        no-op (returns paths unchanged).
+    model : PriceModel — used for `model.quantiles` + `price_at(q, t)`.
+    blocked_bins : iterable of int — bin indices the user excluded.
+        Empty/None → no-op (returns paths unchanged).
     n_bins : int — number of regime bins (default 5; uniform 0..1).
-    tolerance : float — multiplier on the expected uniform fraction;
-        paths whose time in blocked bins exceeds (n_blocked / n_bins) ×
-        tolerance are dropped. tolerance=1.0 is "uniform exactly";
-        higher = more lenient. Default 1.5.
+    tolerance : ignored (kept for back-compat with old call sites).
 
     Returns
     -------
-    np.ndarray (m_sims, n_steps) — paths surviving the threshold.
-        May be 0 rows in degenerate configurations (e.g. blocking all
-        bins, or a heavily skewed cache).
+    np.ndarray (n_sims, n_steps) — same paths, reordered. Path at index
+        0 has the LEAST time in blocked bins.
     """
     if not blocked_bins or paths is None:
         return paths
@@ -249,19 +250,16 @@ def filter_paths_by_regime(paths, t_axis, model, blocked_bins, n_bins=5,
     import numpy as _np
     blocked = set(int(b) for b in blocked_bins)
     n_sims, n_steps = paths.shape
-    expected = len(blocked) / float(n_bins)
-    threshold = expected * float(tolerance)
 
     # Pre-compute log-price at each (t, quantile) — shared across paths.
-    # Without this, the prior implementation made 100×481×27 ≈ 1.3M
-    # model.price_at calls (33s/render); pre-computing collapses that to
-    # 481×27 ≈ 13k calls (~1s) and lets the per-path step lookup go
-    # vectorized via np.searchsorted.
+    # Without this, the per-path-step model.find_percentile path made
+    # 100×481×27 ≈ 1.3M model.price_at calls (~33s); pre-computing
+    # collapses that to 481×27 ≈ 13k calls (~1s) and lets the per-path
+    # step lookup vectorize via np.searchsorted.
     sorted_qs = list(getattr(model, "quantiles", []) or [])
     n_q = len(sorted_qs)
     if n_q < 2:
-        # Fallback: model lacks quantile fan; can't classify. Return unchanged.
-        return paths
+        return paths  # model lacks quantile fan; can't classify
     qs_arr = _np.asarray(sorted_qs, dtype=float)
     log_ps_per_t = _np.empty((n_steps, n_q), dtype=float)
     for j in range(n_steps):
@@ -270,18 +268,15 @@ def filter_paths_by_regime(paths, t_axis, model, blocked_bins, n_bins=5,
             log_ps_per_t[j, k] = _np.log10(
                 max(float(model.price_at(q, t_safe)), 1e-10))
 
-    # Log-prices of each path step, vectorized (n_sims, n_steps)
     log_paths = _np.log10(_np.maximum(paths.astype(float), 1e-10))
 
-    # For each step j: find each path's interpolated percentile via the
-    # j-th log_ps row, convert to bin index, and accumulate blocked-step
-    # counts per path. Loop is over n_steps (~481), inner ops vectorize
-    # over n_sims (~100).
+    # For each step j: locate each path's interpolated percentile, convert
+    # to bin index, accumulate blocked-step counts per path. Outer loop
+    # is over n_steps (~481); inner ops vectorize over n_sims (~100).
     n_blocked_steps = _np.zeros(n_sims, dtype=int)
     for j in range(n_steps):
-        log_ps = log_ps_per_t[j]                            # (n_q,) ascending
+        log_ps = log_ps_per_t[j]
         idx = _np.searchsorted(log_ps, log_paths[:, j], side="right")
-        # idx[i] in [0, n_q]. Map to interpolated quantile.
         pcts = _np.empty(n_sims, dtype=float)
         below = idx == 0
         above = idx == n_q
@@ -302,8 +297,10 @@ def filter_paths_by_regime(paths, t_axis, model, blocked_bins, n_bins=5,
         for b in blocked:
             n_blocked_steps += (bin_idx == b)
 
-    keep = (n_blocked_steps / float(n_steps)) <= threshold
-    return paths[keep]
+    # Sort ascending by blocked-step count; stable sort keeps the cache's
+    # natural order among ties.
+    order = _np.argsort(n_blocked_steps, kind="stable")
+    return paths[order]
 
 
 # ══════════════════════════════════════════════════════════════════════════════

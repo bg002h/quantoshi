@@ -118,3 +118,29 @@ Two variants in [`tools/`](../tools/):
 | `btc_core.py` LPPL param refit | Nothing automatic — must flush Redis |
 | MC/Citadel `.npz` files change | `/dev/shm` snapshot regenerates on next restart |
 | Manual deploy | Explicit `redis-cli FLUSHDB` wipes everything |
+
+## Swapping a cached MC model
+
+The MC cache is keyed by `model.short_name`. To swap (e.g., drop `lppl`,
+add `ecfg_1d_1u`):
+
+1. **Edit `btc_web/mc_cache.py`**:
+   - Update `_INTENDED_KEYS` (frozenset of `short_name`s for the next rebuild).
+   - Update `intended_models(M)` to instantiate exactly those keys.
+   - If introducing a master alias (a dropdown value that maps to a different cached variant), add an entry to `MASTER_TO_CACHED_FALLBACK`.
+
+   **Don't confuse**: `_INTENDED_KEYS` is hand-edited (intent for next rebuild). `_CACHED_MODEL_KEYS` is disk-derived (what's actually on disk now). They will differ during the transition window between code change and rebuild.
+
+2. **Run tests**: `btc_venv/bin/python3 -m pytest btc_web/test_mc_cache.py -v`. All must pass before invoking the rebuild.
+
+3. **Rebuild**: `bash tools/rebuild_caches.sh --mc` (2–4 hours, interrupt-safe via stash/commit/restore). The script holds a `flock` on `btc_web/mc_cache/.rebuild.lock` to prevent concurrent invocations.
+
+4. **Verify locally — split by transition state**:
+   - **Code-change day** (before rebuild): tests pass; app starts; the MC source dropdown bolds the *old* cached set (disk hasn't changed); picking the *new* master falls through to silent live-compute miss on free tier (acceptable transient).
+   - **Rebuild day** (after generate completes): app starts; dropdown bolding auto-flips; picking the new master renders a trace.
+
+5. **Deploy**: `tools/rebuild_caches.sh` rsyncs the new files to prod and emits a reminder to restart. Manual: `ssh root@... "redis-cli FLUSHDB && systemctl restart quantoshi"`.
+
+6. **Smoke test on prod**: `/1`, enable MC, pick the new master, confirm a trace renders.
+
+After rebuild lands, edit `MASTER_TO_CACHED_FALLBACK` to remove any transition-only entries (look for the `# transition: ...` comment) — they otherwise become dead noise that misleads future editors.

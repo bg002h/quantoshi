@@ -6,7 +6,7 @@
 
 ## Goal
 
-Make swapping a model in the precomputed MC cache a mechanical, single-source-of-truth operation. First application: drop LPPL (1-frequency variant) and add EPPL→`ecfg_1d_1u` (1-log entropy-damped + 1-cal undamped variant of the EPPL config family). Code/script changes today; the 2–4 hour cache rebuild is deferred.
+Make swapping a model in the precomputed MC cache a mechanical, single-source-of-truth operation. First application: drop LPPL (1-frequency variant), drop `exp` (Exponential — never appears in any MC source dropdown so its cache files are wasted disk), and add EPPL→`ecfg_1d_1u` (1-log entropy-damped + 1-cal undamped variant of the EPPL config family). Code/script changes today; the 2–4 hour cache rebuild is deferred.
 
 ## Architecture
 
@@ -27,9 +27,9 @@ The new design uses **two declarative inputs and two derived views**:
 
   Post-swap value:
   ```python
-  _INTENDED_KEYS = frozenset({"bub", "qr", "pl", "ecfg_1d_1u", "exp", "ef"})
+  _INTENDED_KEYS = frozenset({"bub", "qr", "pl", "ecfg_1d_1u", "ef"})
   ```
-  (Replaces today's `{"bub", "qr", "pl", "lppl", "exp", "ef"}`. `ef` retained — reconciles existing drift where `ef` was in `_CACHED_MODEL_KEYS` but missing from the rebuild-script literal.)
+  (Replaces today's `{"bub", "qr", "pl", "lppl", "exp", "ef"}`. `lppl` and `exp` both drop out: `lppl` superseded by `ecfg_1d_1u`; `exp` is wasted cache space — it never appears in any MC source dropdown. `ef` retained, which incidentally reconciles existing drift where `ef` was in `_CACHED_MODEL_KEYS` but missing from the rebuild-script literal.)
 
 - `intended_models(M) -> dict[str, PriceModel]` — public function returning `{short_name: model_instance}` for `_INTENDED_KEYS`. Called only by `tools/rebuild_caches.sh` (which always has `M` loaded). The shell script imports it; no inline literal.
 - `MASTER_TO_CACHED_FALLBACK: dict[str, str]` — maps each user-facing master ("lppl", "eppl") to its preferred cached variant ("lppl", "ecfg_1d_1u"). Single source of truth for the resolver fallback that previously lived as inline code in `_resolve_mc_model_src`.
@@ -132,9 +132,9 @@ def intended_models(M) -> dict[str, "PriceModel"]:
     Single source of truth consumed by tools/rebuild_caches.sh.
     Must instantiate exactly _INTENDED_KEYS.
     """
-    from btc_core import (BubbleModel, PowerLawModel, ExponentialModel,
-                          EmpiricalFloorModel, QuantileRegressionModel)
-    from btc_core import EPPLConfigModel
+    from btc_core import (BubbleModel, PowerLawModel,
+                          EmpiricalFloorModel, QuantileRegressionModel,
+                          EPPLConfigModel)
     return {
         "bub":          BubbleModel(M),
         "qr":           QuantileRegressionModel(M),
@@ -144,8 +144,6 @@ def intended_models(M) -> dict[str, "PriceModel"]:
         "ecfg_1d_1u":   EPPLConfigModel("ecfg_1d_1u",
                                          M.price_years, M.price_prices,
                                          M.QR_QUANTILES),
-        "exp":          ExponentialModel(M.price_years, M.price_prices,
-                                          M.QR_QUANTILES),
         "ef":           EmpiricalFloorModel(str(_ef_pkl_path())),
     }
 ```

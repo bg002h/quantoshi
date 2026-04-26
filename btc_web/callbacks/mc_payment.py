@@ -10,6 +10,7 @@ import _app_ctx
 import btcpay
 from colors import MC_FREE_GREEN, ERROR_RED_DARK
 from callbacks.coerce import _ci, _cf
+from callbacks.charts._resolvers import _resolve_mc_model_src
 from mc_cache import (MC_DEFAULT_YEARS, MC_DEFAULT_START_YR, MC_DEFAULT_ENTRY_Q)
 
 logger = logging.getLogger(__name__)
@@ -54,6 +55,26 @@ _MC_QUANT_THRESHOLD = 50_000  # sats — trigger quant warning modal
     State("mc-pay-trigger", "data"),
     *(State(f"{pfx}-mc-model-src", "value") for pfx in ("dca", "ret", "hm", "sc", "cp")),
     *(State(f"{pfx}-mc-price-val", "data") for pfx in ("dca", "ret", "hm", "sc", "cp")),
+    # LPPL/HybPPL/EPPL config-modal States (global) — feed _resolve_mc_model_src
+    # so the free-tier check uses the same resolved variant the chart callback
+    # builds with. Without these, "lppl"/"hybppl"/"eppl" master selection from
+    # the MC source dropdown lands in inconsistent free-vs-paid decisions
+    # between this callback and update_*. See e634b54 + the bugfix in this commit.
+    State("lppl-n-freqs", "value"),
+    State("lppl-weighted", "value"),
+    State("lppl-no-13", "value"),
+    State("hybppl-cfg-a-nlog",  "value"),
+    State("hybppl-cfg-a-ncal",  "value"),
+    State("hybppl-cfg-a-log1d", "value"),
+    State("hybppl-cfg-a-log2d", "value"),
+    State("hybppl-cfg-a-cal1d", "value"),
+    State("hybppl-cfg-a-cal2d", "value"),
+    State("eppl-cfg-a-nlog",  "value"),
+    State("eppl-cfg-a-ncal",  "value"),
+    State("eppl-cfg-a-log1d", "value"),
+    State("eppl-cfg-a-log2d", "value"),
+    State("eppl-cfg-a-cal1d", "value"),
+    State("eppl-cfg-a-cal2d", "value"),
     prevent_initial_call=True,
 )
 def _mc_payment_initiate(*args):
@@ -83,6 +104,23 @@ def _mc_payment_initiate(*args):
     price_start = state_base + n_tabs * 3 + 1 + n_tabs
     price_vals = args[price_start : price_start + n_tabs]
     tab_price = _ci(price_vals[tab_idx], 0)
+    # LPPL/HybPPL/EPPL config-modal States: 15 values after price stores.
+    # Resolve mc_model_src master ("hybppl" / "eppl" / "lppl") to its concrete
+    # variant the chart callback will use — keeps free-tier decision
+    # symmetric with update_dca/retire/sc/heatmap.
+    cfg_start = price_start + n_tabs
+    (lppl_n_freqs, lppl_weighted, lppl_no_13,
+     hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d,
+     hyb_a_cal1d, hyb_a_cal2d,
+     ep_a_nlog, ep_a_ncal, ep_a_log1d, ep_a_log2d,
+     ep_a_cal1d, ep_a_cal2d) = args[cfg_start : cfg_start + 15]
+    mc_model_src = _resolve_mc_model_src(
+        mc_model_src,
+        lppl_n_freqs, lppl_weighted, lppl_no_13,
+        hyb_a_nlog, hyb_a_ncal, hyb_a_log1d, hyb_a_log2d,
+        hyb_a_cal1d, hyb_a_cal2d,
+        ep_a_nlog, ep_a_ncal, ep_a_log1d, ep_a_log2d,
+        ep_a_cal1d, ep_a_cal2d)
 
     # Default outputs: modal closed, no change to per-tab status
     no_tab_status = [dash.no_update] * n_tabs

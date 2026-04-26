@@ -560,6 +560,8 @@ def _add_decomposition_traces(traces, t_arr, m, p):
         p.get("lppl_n_freqs", []),
         p.get("lppl_weighted", []),
         p.get("lppl_no_13", []),
+        hybppl_cfg=p.get("hybppl_cfg"),
+        eppl_cfg=p.get("eppl_cfg"),
     )
     if key is None:
         return

@@ -93,6 +93,8 @@ def _build_bubble_dict():
         "lppl_n_freqs": (),
         "lppl_weighted": (),
         "lppl_no_13":  (),
+        "hybppl_cfg":  None,
+        "eppl_cfg":    None,
         "config_b_keys": (),
         "_xrange": (int(xr[0]), int(xr[1])),  # internal: feeds xmin/xmax
         # MC controls — prewarm-cache parity with update_bubble runtime.

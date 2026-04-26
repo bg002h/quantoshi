@@ -272,6 +272,25 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
         ep_b_enabled, ep_b_nlog, ep_b_ncal, ep_b_log1d, ep_b_log2d,
         ep_b_cal1d, ep_b_cal2d)
 
+    # Modal cfg dicts — used by component-decomposition resolver to map the
+    # 'hybppl' / 'eppl' master to a specific cfg_* / ecfg_* variant.
+    _hybppl_cfg = {
+        "a_nlog": hyb_a_nlog, "a_ncal": hyb_a_ncal,
+        "a_log1d": hyb_a_log1d, "a_log2d": hyb_a_log2d,
+        "a_cal1d": hyb_a_cal1d, "a_cal2d": hyb_a_cal2d,
+        "b_nlog": hyb_b_nlog, "b_ncal": hyb_b_ncal,
+        "b_log1d": hyb_b_log1d, "b_log2d": hyb_b_log2d,
+        "b_cal1d": hyb_b_cal1d, "b_cal2d": hyb_b_cal2d,
+    }
+    _eppl_cfg = {
+        "a_nlog": ep_a_nlog, "a_ncal": ep_a_ncal,
+        "a_log1d": ep_a_log1d, "a_log2d": ep_a_log2d,
+        "a_cal1d": ep_a_cal1d, "a_cal2d": ep_a_cal2d,
+        "b_nlog": ep_b_nlog, "b_ncal": ep_b_ncal,
+        "b_log1d": ep_b_log1d, "b_log2d": ep_b_log2d,
+        "b_cal1d": ep_b_cal1d, "b_cal2d": ep_b_cal2d,
+    }
+
     # Collect config-B keys so the figure builder can shade them lighter
     _config_b_keys = set()
     if hyb_b_enabled and "yes" in (hyb_b_enabled or []):
@@ -363,6 +382,8 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
             lppl_n_freqs       = list(lppl_n_freqs or []),
             lppl_weighted      = list(lppl_weighted or []),
             lppl_no_13         = list(lppl_no_13 or []),
+            hybppl_cfg         = _hybppl_cfg,
+            eppl_cfg           = _eppl_cfg,
             sigma_mode         = sigma_mode or "constant",
             config_b_keys      = sorted(_config_b_keys),
             **mc_p,
@@ -404,6 +425,8 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
             lppl_n_freqs       = list(lppl_n_freqs or []),
             lppl_weighted      = list(lppl_weighted or []),
             lppl_no_13         = list(lppl_no_13 or []),
+            hybppl_cfg         = _hybppl_cfg,
+            eppl_cfg           = _eppl_cfg,
             sigma_mode         = sigma_mode or "constant",
             config_b_keys      = sorted(_config_b_keys),
         ))

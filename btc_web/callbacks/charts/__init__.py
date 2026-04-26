@@ -417,12 +417,17 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     if mc_visible and mc_ok:
         from figures.bubble import _add_mc_spaghetti
         from mc_cache import get_cached_paths
+        from mc_overlay import filter_paths_by_regime
+        # User-requested sim count caps both the cache pull and display.
+        # 8 by default on Tab 1; <=200 stays free (the cache holds 200).
+        max_sims = int(mc_p.get("mc_sims") or 100)
         paths = None
         if is_free:
             paths = get_cached_paths(
                 mc_p["mc_model_src"], mc_p["mc_start_yr"],
                 _ci(mc_p["mc_entry_q"], 10) / 100.0,  # pct_bin: fraction
-                mc_p["mc_years"])
+                mc_p["mc_years"],
+                max_sims=max_sims)
         elif mc_result and isinstance(mc_result, dict):
             paths = mc_result.get("price_paths")
         if paths is not None and getattr(paths, "size", 0) > 0:
@@ -432,7 +437,26 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
             t_start = yr_to_t(mc_start_yr_int, _app_ctx.M.genesis)
             t_end = yr_to_t(mc_end_yr_int, _app_ctx.M.genesis)
             t_axis = np.linspace(t_start, t_end, n_steps)
-            _add_mc_spaghetti(fig, paths, t_axis, n_display=100)
+            # Apply regime filter on the cached/live path set. For free-tier
+            # cached paths the transition matrix wasn't bin-masked at sim time,
+            # so we drop any path whose model-quantile sequence touched a
+            # blocked bin. Live (paid) sims already respect the filter via
+            # _apply_bin_mask on the transition matrix.
+            blocked = mc_p.get("mc_blocked_bins") or []
+            if blocked:
+                regime_model = _app_ctx.PRICE_MODELS.get(mc_p.get("mc_model_src"))
+                if regime_model is not None:
+                    paths = filter_paths_by_regime(
+                        paths, t_axis, regime_model, blocked,
+                        n_bins=int(mc_p.get("mc_bins") or 5))
+            if paths is not None and getattr(paths, "size", 0) > 0:
+                # Clone the figure so we don't mutate the L1/L2 cached object —
+                # _add_mc_spaghetti appends traces in-place; without this, every
+                # subsequent render that hits the same cache key accumulates
+                # another bundle of N paths (200 → 300 → 400 → ...).
+                import plotly.graph_objects as _go
+                fig = _go.Figure(fig)
+                _add_mc_spaghetti(fig, paths, t_axis, n_display=max_sims)
 
     if "chart_zoom" not in toggles:
         fig.update_layout(dragmode=False)

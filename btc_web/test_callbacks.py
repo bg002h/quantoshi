@@ -5,7 +5,8 @@ from mc_cache import (snap_to_bin, _path_key_str, _overlay_key_str,
                       WD_AMOUNTS, INFL_OPTIONS, STACK_SIZES, FAN_PCTS,
                       is_cached, is_cached_year, _CACHED_MODEL_KEYS)
 from mc_overlay import (_apply_bin_mask, _snap_start_pctile,
-                        bin_regime_labels, _mc_path_key)
+                        bin_regime_labels, _mc_path_key,
+                        filter_paths_by_regime)
 import btcpay
 from conftest import (
     _MC_UPLOAD_FIELDS,
@@ -642,6 +643,77 @@ class TestApplyBinMask:
             assert np.all(result[:, blocked_col] == 0.0)
         np.testing.assert_allclose(result.sum(axis=1), 1.0)
 
+
+
+class TestFilterPathsByRegime:
+    """filter_paths_by_regime drops cached paths that touched a blocked bin.
+
+    Used by Tab 1 spaghetti to reflect the regime checklist on free-tier
+    cached scenarios (live MC sims apply blocked_bins via the transition
+    matrix already, so this helper only matters for cache-replay paths).
+    """
+
+    class _StubModel:
+        """Stub PriceModel — exposes quantiles + price_at(q, t) such that
+        interpolating in log-price recovers pct = price/100 (matching the
+        old find_percentile contract). 9 evenly spaced quantiles 0.1..0.9
+        with prices 10..90 give bin = int((price/100) * n_bins) for prices
+        on grid points and clip to bin 0 / bin n_bins-1 for out-of-range.
+        """
+        quantiles = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+        def price_at(self, q, t):
+            return q * 100.0
+        # Kept for backward compat with any other callers
+        def find_percentile(self, t, price, sigma_mode="constant"):
+            return min(max(price / 100.0, 0.0), 0.999)
+
+    def test_no_blocked_bins_passthrough(self):
+        import numpy as np
+        paths = np.array([[10.0, 50.0, 90.0], [30.0, 30.0, 30.0]])
+        t_axis = np.array([10.0, 11.0, 12.0])
+        result = filter_paths_by_regime(paths, t_axis, self._StubModel(),
+                                         blocked_bins=[], n_bins=5)
+        # Should be passthrough — no filtering applied
+        assert result.shape == paths.shape
+        np.testing.assert_array_equal(result, paths)
+
+    def test_drops_paths_with_elevated_blocked_time(self):
+        import numpy as np
+        # Stub model: pct = price/100 → bin = int(pct * 5).
+        # Path 0: half steps in bin 4 (50% time) — dropped (>30% threshold)
+        # Path 1: zero steps in bin 4 — survives
+        # Path 2: 1/4 steps in bin 4 (25%) — survives (just under threshold)
+        paths = np.array([
+            [90.0, 95.0, 90.0, 95.0],   # 100% time in bin 4 → drop
+            [10.0, 30.0, 50.0, 50.0],   # 0% time in bin 4 → survive
+            [10.0, 30.0, 50.0, 90.0],   # 25% time in bin 4 → survive (<30%)
+        ])
+        t_axis = np.array([10.0, 11.0, 12.0, 13.0])
+        # tolerance=1.5; 1 blocked of 5 → expected=0.2, threshold=0.3
+        result = filter_paths_by_regime(paths, t_axis, self._StubModel(),
+                                         blocked_bins=[4], n_bins=5,
+                                         tolerance=1.5)
+        # Path 0 dropped, 1 and 2 survive
+        assert result.shape[0] == 2
+        np.testing.assert_array_equal(result[0], paths[1])
+        np.testing.assert_array_equal(result[1], paths[2])
+
+    def test_all_paths_dropped_when_only_blocked_visited(self):
+        import numpy as np
+        paths = np.array([[90.0, 95.0, 99.0]])  # 100% in bin 4 > 30% threshold
+        t_axis = np.array([10.0, 11.0, 12.0])
+        result = filter_paths_by_regime(paths, t_axis, self._StubModel(),
+                                         blocked_bins=[4], n_bins=5,
+                                         tolerance=1.5)
+        assert result.shape[0] == 0
+
+    def test_handles_empty_input(self):
+        import numpy as np
+        empty = np.array([]).reshape(0, 3)
+        result = filter_paths_by_regime(empty, np.arange(3),
+                                         self._StubModel(),
+                                         blocked_bins=[2], n_bins=5)
+        assert result.shape[0] == 0
 
 
 class TestSnapStartPctile:

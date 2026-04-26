@@ -203,6 +203,109 @@ def _snap_start_pctile(start_pctile, bin_edges, blocked_bins):
     return (bin_edges[best_bin] + bin_edges[best_bin + 1]) / 2
 
 
+def filter_paths_by_regime(paths, t_axis, model, blocked_bins, n_bins=5,
+                            tolerance=1.5):
+    """Filter cached paths to drop those that spend ELEVATED time in
+    blocked regime bins.
+
+    Why "elevated" rather than "ever-touched": cached paths simulate
+    ~480 monthly steps over 40 years; every long random walk visits
+    every bin at least once, so the strict 'never touched' filter
+    drops 100% of paths. We instead compute each path's time-fraction
+    in blocked bins and drop those exceeding the uniform-expected
+    fraction by more than `tolerance × expected`. With tolerance=1.5,
+    a single-bin block drops paths spending >30% of time there
+    (uniform expectation is 20%); this maps to "regimes I unselected
+    happened more than randomly."
+
+    Live (paid) MC sims apply blocked_bins via the transition matrix
+    in `_apply_bin_mask` — they never transition INTO blocked bins,
+    so post-hoc filtering isn't needed there.
+
+    Parameters
+    ----------
+    paths : np.ndarray (n_sims, n_steps) — price paths
+    t_axis : np.ndarray (n_steps,) — time values (years since genesis)
+        for each path step.
+    model : PriceModel — used for `find_percentile(t, price)`.
+    blocked_bins : iterable of int — bin indices to exclude. Empty/None →
+        no-op (returns paths unchanged).
+    n_bins : int — number of regime bins (default 5; uniform 0..1).
+    tolerance : float — multiplier on the expected uniform fraction;
+        paths whose time in blocked bins exceeds (n_blocked / n_bins) ×
+        tolerance are dropped. tolerance=1.0 is "uniform exactly";
+        higher = more lenient. Default 1.5.
+
+    Returns
+    -------
+    np.ndarray (m_sims, n_steps) — paths surviving the threshold.
+        May be 0 rows in degenerate configurations (e.g. blocking all
+        bins, or a heavily skewed cache).
+    """
+    if not blocked_bins or paths is None:
+        return paths
+    if not hasattr(paths, "size") or paths.size == 0:
+        return paths
+    import numpy as _np
+    blocked = set(int(b) for b in blocked_bins)
+    n_sims, n_steps = paths.shape
+    expected = len(blocked) / float(n_bins)
+    threshold = expected * float(tolerance)
+
+    # Pre-compute log-price at each (t, quantile) — shared across paths.
+    # Without this, the prior implementation made 100×481×27 ≈ 1.3M
+    # model.price_at calls (33s/render); pre-computing collapses that to
+    # 481×27 ≈ 13k calls (~1s) and lets the per-path step lookup go
+    # vectorized via np.searchsorted.
+    sorted_qs = list(getattr(model, "quantiles", []) or [])
+    n_q = len(sorted_qs)
+    if n_q < 2:
+        # Fallback: model lacks quantile fan; can't classify. Return unchanged.
+        return paths
+    qs_arr = _np.asarray(sorted_qs, dtype=float)
+    log_ps_per_t = _np.empty((n_steps, n_q), dtype=float)
+    for j in range(n_steps):
+        t_safe = max(float(t_axis[j]), 0.5)
+        for k, q in enumerate(sorted_qs):
+            log_ps_per_t[j, k] = _np.log10(
+                max(float(model.price_at(q, t_safe)), 1e-10))
+
+    # Log-prices of each path step, vectorized (n_sims, n_steps)
+    log_paths = _np.log10(_np.maximum(paths.astype(float), 1e-10))
+
+    # For each step j: find each path's interpolated percentile via the
+    # j-th log_ps row, convert to bin index, and accumulate blocked-step
+    # counts per path. Loop is over n_steps (~481), inner ops vectorize
+    # over n_sims (~100).
+    n_blocked_steps = _np.zeros(n_sims, dtype=int)
+    for j in range(n_steps):
+        log_ps = log_ps_per_t[j]                            # (n_q,) ascending
+        idx = _np.searchsorted(log_ps, log_paths[:, j], side="right")
+        # idx[i] in [0, n_q]. Map to interpolated quantile.
+        pcts = _np.empty(n_sims, dtype=float)
+        below = idx == 0
+        above = idx == n_q
+        mid = ~(below | above)
+        pcts[below] = qs_arr[0]
+        pcts[above] = qs_arr[-1]
+        if mid.any():
+            i_lo = idx[mid] - 1
+            i_hi = idx[mid]
+            ps_lo = log_ps[i_lo]
+            ps_hi = log_ps[i_hi]
+            denom = ps_hi - ps_lo
+            denom = _np.where(_np.abs(denom) < 1e-30, 1e-30, denom)
+            frac = (log_paths[mid, j] - ps_lo) / denom
+            pcts[mid] = qs_arr[i_lo] + frac * (qs_arr[i_hi] - qs_arr[i_lo])
+        bin_idx = (pcts * n_bins).astype(int)
+        bin_idx = _np.clip(bin_idx, 0, n_bins - 1)
+        for b in blocked:
+            n_blocked_steps += (bin_idx == b)
+
+    keep = (n_blocked_steps / float(n_steps)) <= threshold
+    return paths[keep]
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Transition matrix cache (server-side, persisted to disk)
 # ══════════════════════════════════════════════════════════════════════════════

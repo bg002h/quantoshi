@@ -166,53 +166,43 @@ def update_leverage(first_render, date_val, price_val, model, q,
     return fig, ro, tbl
 
 
-import json as _json
 import _app_ctx
 
-from layout.leverage import _LEV_REVERSION_QS, _LEV_PILL_IDS
 
-_lev_pill_ids_json = _json.dumps(_LEV_PILL_IDS)
-_lev_reversion_qs_json = _json.dumps(_LEV_REVERSION_QS)
-
-
-# Click: writes selected quantile to store and updates pill outlines.
-# Nearest-preset fallback in sync handles old share-links with non-preset q values.
+# Input → Store: integer percent (1–99) → fractional float (0.01–0.99).
+# HTML5 step=1/min=1/max=99 enforces validity; out-of-range values arrive
+# as null and are ignored.
 _app_ctx.app.clientside_callback(
-    f"""function() {{
-        var pill_ids = {_lev_pill_ids_json};
-        var qs = {_lev_reversion_qs_json};
-        var tid = dash_clientside.callback_context.triggered_id;
-        if (!tid) throw window.dash_clientside.PreventUpdate;
-        var idx = pill_ids.indexOf(tid);
-        if (idx < 0) throw window.dash_clientside.PreventUpdate;
-        var outlines = pill_ids.map(function(pid) {{ return pid !== tid; }});
-        return [qs[idx]].concat(outlines);
-    }}""",
+    """function(pct) {
+        if (pct === null || pct === undefined) {
+            return window.dash_clientside.no_update;
+        }
+        var n = Math.round(Number(pct));
+        if (!isFinite(n) || n < 1 || n > 99) {
+            return window.dash_clientside.no_update;
+        }
+        return n / 100.0;
+    }""",
     Output("lev-floor-q-store", "data", allow_duplicate=True),
-    *[Output(pid, "outline", allow_duplicate=True) for pid in _LEV_PILL_IDS],
-    *[Input(pid, "n_clicks") for pid in _LEV_PILL_IDS],
+    Input("lev-reversion-q-input", "value"),
     prevent_initial_call=True,
 )
 
 
-# Sync: when the store changes (e.g. snapshot restore), update outlines.
+# Store → Input: fractional float → integer percent (snapshot restore path).
+# Old share-links with sub-1% values (e.g. 0.001 = 0.1%) clamp to 1.
 _app_ctx.app.clientside_callback(
-    f"""function(q) {{
-        var pill_ids = {_lev_pill_ids_json};
-        var qs = {_lev_reversion_qs_json};
-        if (q === null || q === undefined) {{
-            return pill_ids.map(function() {{ return window.dash_clientside.no_update; }});
-        }}
-        // Find nearest preset (tolerant of old share-links with non-preset q)
-        var idx = 0;
-        var best_d = Infinity;
-        for (var i = 0; i < qs.length; i++) {{
-            var d = Math.abs(qs[i] - q);
-            if (d < best_d) {{ best_d = d; idx = i; }}
-        }}
-        return pill_ids.map(function(pid, i) {{ return i !== idx; }});
-    }}""",
-    [Output(pid, "outline", allow_duplicate=True) for pid in _LEV_PILL_IDS],
+    """function(q) {
+        if (q === null || q === undefined) {
+            return window.dash_clientside.no_update;
+        }
+        var pct = Math.round(Number(q) * 100.0);
+        if (!isFinite(pct)) return window.dash_clientside.no_update;
+        if (pct < 1) pct = 1;
+        if (pct > 99) pct = 99;
+        return pct;
+    }""",
+    Output("lev-reversion-q-input", "value", allow_duplicate=True),
     Input("lev-floor-q-store", "data"),
-    prevent_initial_call=True,
+    prevent_initial_call="initial_duplicate",
 )

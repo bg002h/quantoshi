@@ -28,25 +28,26 @@ def _model_options():
     return opts
 
 
-# Reversion quantile pill bar — hardcoded at import (parallel to routing.py::_HM_PILL_IDS).
-_LEV_REVERSION_QS = [0.001, 0.01, 0.05, 0.10, 0.15, 0.20, 0.50,
-                     0.80, 0.85, 0.90, 0.95, 0.99]
-_LEV_PILL_IDS = [f"lev-pill-q{int(q*1000):03d}" for q in _LEV_REVERSION_QS]
+# Common reversion quantiles offered as autocomplete suggestions.
+_LEV_REVERSION_SUGGESTIONS = [1, 5, 10, 15, 20, 25, 50, 75, 80, 85, 90, 95, 99]
 
 
-def _reversion_pill_bar():
-    """Render pill buttons for reversion quantile selection."""
-    labels = ["Q0.1%", "Q1%", "Q5%", "Q10%", "Q15%", "Q20%", "Q50%",
-              "Q80%", "Q85%", "Q90%", "Q95%", "Q99%"]
-    default_q = 0.01
+def _reversion_input():
+    """Typeable integer-percent input (1–99) with datalist autocomplete."""
     return html.Div([
-        dbc.Button(
-            lbl, id=pid, size="sm", className="me-1",
-            outline=(q != default_q), color="primary",
-            n_clicks=0,
-        )
-        for pid, lbl, q in zip(_LEV_PILL_IDS, labels, _LEV_REVERSION_QS)
-    ], className="d-flex flex-wrap")
+        dbc.Input(
+            id="lev-reversion-q-input",
+            type="number", min=1, max=99, step=1, value=1,
+            list="lev-reversion-q-datalist",
+            size="sm",
+            style={"maxWidth": "120px"},
+        ),
+        html.Datalist(
+            id="lev-reversion-q-datalist",
+            children=[html.Option(value=str(p)) for p in _LEV_REVERSION_SUGGESTIONS],
+        ),
+        html.Span(" %", style={"marginLeft": "6px", "fontSize": UI_FONT_MD}),
+    ], className="d-flex align-items-center")
 
 
 def _leverage_tab() -> html.Div:
@@ -74,10 +75,12 @@ def _leverage_tab() -> html.Div:
                              value=d["lev_model"], clearable=False),
             ], md=6, xs=12, className="mb-2"),
             dbc.Col([
-                html.Label("Reversion quantile", style={"fontSize": UI_FONT_MD}),
-                _reversion_pill_bar(),
+                html.Label("Reversion quantile (1–99 %)", style={"fontSize": UI_FONT_MD}),
+                _reversion_input(),
                 # Component ID retained as `lev-floor-q-store` for share-link
                 # compatibility (the ID is encoded positionally in q4: links).
+                # Holds the fractional value (0.01–0.99); the input widget
+                # holds the integer-percent surface value.
                 dcc.Store(id="lev-floor-q-store", data=d["lev_reversion_q"]),
             ], md=6, xs=12, className="mb-2"),
         ], className="mb-3"),

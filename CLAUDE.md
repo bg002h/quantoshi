@@ -60,6 +60,20 @@ DEV=1 bash run_web.sh     # Dash dev server with hot-reload (single user, skips 
 PORT=8080 bash run_web.sh # custom port
 ```
 
+### Change a snapshot default (without breaking old share-links)
+Share-link encoding is **sparse-diff against a fingerprint of `SNAPSHOT_DEFAULTS`** — links emit only fields that differ from defaults. The 8-char fingerprint is embedded in the URL (`q4:31c83534:...`). Decoders use it to look up the defaults the link was encoded against in `btc_web/snapshot_defaults_registry.json`. **If you change a default and forget to register the fingerprint, every old link silently restores under the NEW defaults** (with a warning logged). Workflow:
+
+```bash
+# Before editing snapshot_defaults.py — pin today's fp:
+btc_venv/bin/python3 tools/update_defaults_registry.py
+# ... edit btc_web/snapshot_defaults.py ...
+# After editing — pin the new fp:
+btc_venv/bin/python3 tools/update_defaults_registry.py
+git add btc_web/snapshot_defaults.py btc_web/snapshot_defaults_registry.json
+```
+
+The registry caps at **20 entries** (oldest evicted). For fields with genuinely dynamic defaults (current year, live price), add the `<id>:<prop>` to `ALWAYS_ENCODE` in `snapshot_defaults.py` instead — those bypass the diff and always serialize their value.
+
 ### Update chart preview placeholders
 ```bash
 btc_venv/bin/python3 tools/render_chart_previews.py

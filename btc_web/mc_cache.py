@@ -20,6 +20,7 @@ Fast restart via /dev/shm:
     to /dev/shm/quantoshi_mc.pkl (~834 MB). Subsequent restarts load from there
     (~0.7s, 10x faster). The pickle is invalidated when any source npz changes.
 """
+import re
 import time
 import numpy as np
 from pathlib import Path
@@ -54,6 +55,21 @@ INFL_OPTIONS = [2, 3, 4, 6, 8, 10, 12]
 STACK_SIZES = [0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
 
 CACHE_DIR = Path(__file__).parent / "mc_cache"
+
+_CACHE_FILE_RE = re.compile(r"^(paths|overlays)_(.+)_(\d{4})\.npz(?:\.bak)?$")
+
+
+def _parse_cache_filename(name: str) -> tuple[str, str, int] | None:
+    """Parse a cache filename into (kind, model_key, year), or None if not a cache file.
+
+    Pure string parser — does not touch the filesystem. The 4-digit-year
+    right-anchor disambiguates greedy `(.+)` capture so multi-underscore
+    keys like `ecfg_1d_1u` parse correctly.
+    """
+    m = _CACHE_FILE_RE.match(name)
+    return (m.group(1), m.group(2), int(m.group(3))) if m else None
+
+
 SHM_CACHE_PATH = Path("/dev/shm/quantoshi_mc.pkl")
 
 

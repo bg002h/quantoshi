@@ -223,6 +223,8 @@ SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'hm-exit-range:value': [2026, 2036],
     'hm-grad:value': 32,
     'hm-hybppl-activate:value': [],
+    'hm-line-color:value': '#000000',
+    'hm-line-width:value': 1.0,
     'hm-lppl-activate:value': [],
     'hm-mc-advanced:value': [],
     'hm-mc-bins:value': 5,

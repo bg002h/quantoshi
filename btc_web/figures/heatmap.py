@@ -367,11 +367,13 @@ def build_heatmap_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     # Cell font family/size/weight set in _heatmap_cell_annots; no override here.
     # Global font.weight="bold" ensures iOS Safari renders bold on first paint
 
-    # ── Cell-boundary grid overlay (thin black lines on top of the zsmooth
-    #    interpolated surface). Plotly categorical axes place cell centers
-    #    at integer positions 0..N-1 with boundaries at N-0.5. Layer="above"
-    #    ensures lines render over the heatmap trace. ──
-    _add_heatmap_grid(fig, n_cols=len(eyrs), n_rows=n_rows)
+    # ── Cell-boundary grid overlay. Plotly categorical axes place cell
+    #    centers at integer positions 0..N-1 with boundaries at N-0.5.
+    #    Layer="above" ensures lines render over the heatmap trace.
+    #    width/color come from the Heatmap Appearance panel. ──
+    _add_heatmap_grid(fig, n_cols=len(eyrs), n_rows=n_rows,
+                      color=p.get("line_color", BLACK),
+                      width=float(p.get("line_width", 1.0)))
 
     # ── Entry year column highlight (orange border around the entry column) ──
     if str(eyr) in [str(y) for y in eyrs]:
@@ -477,7 +479,9 @@ def build_mc_heatmap_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure,
     fig.layout.xaxis.title.font.update(family=FONT_SANS, size=CHART_FONT_BODY_LG)
     fig.layout.yaxis.title.font.update(family=FONT_SANS, size=CHART_FONT_BODY_LG)
     # Cell font family/size/weight set in _heatmap_cell_annots; no override here.
-    _add_heatmap_grid(fig, n_cols=len(eyrs), n_rows=len(mc_labels))
+    _add_heatmap_grid(fig, n_cols=len(eyrs), n_rows=len(mc_labels),
+                      color=p.get("line_color", BLACK),
+                      width=float(p.get("line_width", 1.0)))
     if p.get("mc_enabled"):
         _apply_mc_premium(fig, legend_pos=None)
         _apply_mc_xlabel(fig, p, "hm")

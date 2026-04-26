@@ -1129,6 +1129,7 @@ class TestUpdateHeatmapCallback:
                 mode=0, b1=0, b2=20,
                 c_lo=None, c_mid1=None, c_mid2=None, c_hi=None,
                 grad=32, vfmt="cagr", cell_fs=9,
+                line_width=1.0, line_color="#000000",
                 toggles=["colorbar"], stack=0, use_lots=[],
                 lots_data=[],
                 mc_enable=[], mc_amount=100, mc_infl=0,

@@ -126,6 +126,8 @@ def _build_heatmap_dict():
         "n_disc":        sd("hm-grad:value", 32),
         "vfmt":          sd("hm-vfmt:value", "cagr_mult"),
         "cell_font_size": sd("hm-cell-fs:value", CHART_FONT_WATERMARK),
+        "line_width":    sd("hm-line-width:value", 1.0),
+        "line_color":    sd("hm-line-color:value", "#000000"),
         "show_colorbar": "colorbar" in toggles,
         "stack":         sd("hm-stack:value", 0),
         "use_lots":      bool(sd("hm-use-lots:value", []) or []),

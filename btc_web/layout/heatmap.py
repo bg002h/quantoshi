@@ -10,8 +10,7 @@ from layout.common import (_tab_hints, _section_card, _lbl, _row, _export_row,
                             _STYLE_HIDDEN, _STYLE_HINT, _STYLE_GRAPH_H,
                             _STYLE_COLOR_H, _BTC_ORANGE,
                             _CB_MARGIN, _Q_HINT_BASE, _GEAR_STYLE, _MUTED_STYLE,
-                            _q_options, _palette_selector, _use_lots_checklist,
-                            _plot_appearance_controls)
+                            _q_options, _palette_selector, _use_lots_checklist)
 from layout.mc_controls import _mc_controls
 from tab_defaults import HEATMAP
 from colors import (NEAR_BLACK, DIM_TEXT, SPINE_COLOR_FALLBACK,
@@ -89,9 +88,6 @@ def _heatmap_controls():
                     {"label":"None",                "value":"none"},
                 ],
                 value=HEATMAP["vfmt"], clearable=False),
-            _lbl("Cell font size"),
-            dbc.Input(id="hm-cell-fs", type="number", value=HEATMAP["cell_font_size"],
-                      min=5, max=20, step=1, size="sm"),
         ),
         # 3. Display Models — the pill bar is rendered inside the chart area
         #    (_hm_pill_bar below), not here. The hidden hm-model-show exists
@@ -131,14 +127,25 @@ def _heatmap_controls():
         _mc_controls("hm", show_amount=True, show_inflation=True,
                      show_stack=True, show_mc_entry_q=True, default_entry_q=10,
                      shared_controls={"stack"}),
-        # 5. Plot Appearance — shared per-tab appearance controls. New on
-        #    heatmap (chart_responsive.js already applies settings to the
-        #    heatmap figure; previously no UI on this tab to tune them).
-        _section_card("Plot Appearance", *_plot_appearance_controls("hm")),
-        # Tab-specific — Heatmap Colorscale. Heatmap has its own appearance
-        # concept (Lo/Mid1/Mid2/Hi + breakpoints + discretisation) that the
-        # other tabs lack. Kept as a dedicated card below Plot Appearance
-        # so the shared panel above can stay uniform across tabs.
+        # 5. Heatmap Appearance — heatmap-specific text + cell-border controls.
+        # Replaces the legacy "Plot Appearance" panel which had no effect on
+        # the heatmap (its trace/grid primitives don't apply — heatmaps use
+        # cell shapes for borders and dynamic-contrast cell text).
+        _section_card("Heatmap Appearance",
+            _lbl("Cell font size (5–20)"),
+            dbc.Input(id="hm-cell-fs", type="number", value=HEATMAP["cell_font_size"],
+                      min=5, max=20, step=1, size="sm"),
+            _row(
+                html.Div([_lbl("Cell border width (0–3)"),
+                          dbc.Input(id="hm-line-width", type="number",
+                                    value=HEATMAP["line_width"],
+                                    min=0, max=3, step=0.25, size="sm")]),
+                html.Div([_lbl("Cell border color"),
+                          dbc.Input(id="hm-line-color", type="color",
+                                    value=HEATMAP["line_color"],
+                                    style=_STYLE_COLOR_H)]),
+            ),
+        ),
         _section_card("Heatmap Colorscale",
             _lbl("Color mode"),
             dcc.RadioItems(id="hm-mode",

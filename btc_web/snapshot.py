@@ -45,6 +45,8 @@ _SNAPSHOT_CONTROLS = [
     ("hm-grad",           "value"),   # gradient steps (cosmetic)
     ("hm-vfmt",           "value"),   # cell text format (cagr/price/both/stack/...)
     ("hm-cell-fs",        "value"),   # cell text font size
+    ("hm-line-width",     "value"),   # cell border line width
+    ("hm-line-color",     "value"),   # cell border line color
     ("hm-toggles",        "value"),   # heatmap display toggles
     ("hm-stack",          "value"),   # starting BTC stack
     ("hm-use-lots",       "value"),   # use Stack Tracker lots

@@ -851,6 +851,8 @@ def _build_heatmap_figure_from_state(state: dict):
     grad     = _v(state, "hm-grad")
     vfmt     = _v(state, "hm-vfmt")
     cell_fs  = _v(state, "hm-cell-fs")
+    line_w   = _v(state, "hm-line-width")
+    line_c   = _v(state, "hm-line-color")
     toggles  = _v(state, "hm-toggles")
     stack    = _v(state, "hm-stack")
     use_lots = _v(state, "hm-use-lots")
@@ -924,6 +926,8 @@ def _build_heatmap_figure_from_state(state: dict):
             n_disc       = _ci(grad, HEATMAP["n_disc"]),
             vfmt         = vfmt or HEATMAP["vfmt"],
             cell_font_size = _ci(cell_fs, HEATMAP["cell_font_size"]),
+            line_width   = _cf(line_w, HEATMAP["line_width"]),
+            line_color   = line_c or HEATMAP["line_color"],
             show_colorbar = "colorbar" in (toggles or []),
             stack        = _cf(stack, HEATMAP["stack"]),
             use_lots     = use_lots_bool,

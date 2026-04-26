@@ -696,6 +696,36 @@ def _registry_lookup(fp):
     return _load_registry().get(fp)
 
 
+# Groups of (cid, prop) tuples where any non-default member must force
+# emission of every other member, so a partial state on the recipient
+# cannot survive sparse-diff and produce a frankenstein reconstruction
+# (e.g. recipient's old P2 + sender's P1).
+_ATOMIC_BLOCKS = (
+    (("um-p1-year", "data"), ("um-p1-price", "data"),
+     ("um-p2-year", "data"), ("um-p2-price", "data")),
+)
+
+
+def _force_atomic_blocks_v4(diffs, state_dict):
+    """For each block in _ATOMIC_BLOCKS, if any member is in diffs, emit
+    every other member of the block too — using state_dict's actual value
+    (which may be None, encoded as JSON null, force-clearing the recipient)."""
+    cid_prop_to_idx = {
+        f"{cid}:{prop}": i
+        for i, (cid, prop) in enumerate(_SNAPSHOT_CONTROLS)
+    }
+    for block in _ATOMIC_BLOCKS:
+        keys = [f"{cid}:{prop}" for cid, prop in block]
+        idxs = [cid_prop_to_idx.get(k) for k in keys]
+        if any(idx is None for idx in idxs):
+            continue
+        if not any(str(idx) in diffs for idx in idxs):
+            continue
+        for k, idx in zip(keys, idxs):
+            if str(idx) not in diffs:
+                diffs[str(idx)] = state_dict.get(k)
+
+
 def _mc_null_out_diffs_v4(diffs):
     """Drop MC control diffs for tabs whose EFFECTIVE mc-enable state is
     disabled AND whose default is also disabled.
@@ -774,6 +804,7 @@ def _encode_snapshot_v4(state_dict, tab_filter=None):
             val = _list_to_mask(val, _CHECKLIST_OPTIONS[cid])
         diffs[str(i)] = val
     _mc_null_out_diffs_v4(diffs)
+    _force_atomic_blocks_v4(diffs, state_dict)
     lots = state_dict.get("_lots")
     payload = [fp, diffs, lots]
     j = json.dumps(payload, separators=(',', ':'))

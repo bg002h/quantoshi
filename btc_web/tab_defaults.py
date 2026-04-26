@@ -93,8 +93,37 @@ def _build_bubble_dict():
         "lppl_n_freqs": (),
         "lppl_weighted": (),
         "lppl_no_13":  (),
-        "hybppl_cfg":  None,
-        "eppl_cfg":    None,
+        # hybppl_cfg / eppl_cfg mirror the 12-key dict that update_bubble +
+        # restore_builder build from State; values come from SNAPSHOT_DEFAULTS
+        # so prewarm cache key matches runtime cache key for default modal.
+        "hybppl_cfg":  {
+            "a_nlog":  sd("hybppl-cfg-a-nlog:value", 1),
+            "a_ncal":  sd("hybppl-cfg-a-ncal:value", 1),
+            "a_log1d": sd("hybppl-cfg-a-log1d:value", "d"),
+            "a_log2d": sd("hybppl-cfg-a-log2d:value", "d"),
+            "a_cal1d": sd("hybppl-cfg-a-cal1d:value", "u"),
+            "a_cal2d": sd("hybppl-cfg-a-cal2d:value", "u"),
+            "b_nlog":  sd("hybppl-cfg-b-nlog:value", 0),
+            "b_ncal":  sd("hybppl-cfg-b-ncal:value", 0),
+            "b_log1d": sd("hybppl-cfg-b-log1d:value", "d"),
+            "b_log2d": sd("hybppl-cfg-b-log2d:value", "d"),
+            "b_cal1d": sd("hybppl-cfg-b-cal1d:value", "u"),
+            "b_cal2d": sd("hybppl-cfg-b-cal2d:value", "u"),
+        },
+        "eppl_cfg":    {
+            "a_nlog":  sd("eppl-cfg-a-nlog:value", 1),
+            "a_ncal":  sd("eppl-cfg-a-ncal:value", 1),
+            "a_log1d": sd("eppl-cfg-a-log1d:value", "d"),
+            "a_log2d": sd("eppl-cfg-a-log2d:value", "d"),
+            "a_cal1d": sd("eppl-cfg-a-cal1d:value", "u"),
+            "a_cal2d": sd("eppl-cfg-a-cal2d:value", "u"),
+            "b_nlog":  sd("eppl-cfg-b-nlog:value", 0),
+            "b_ncal":  sd("eppl-cfg-b-ncal:value", 0),
+            "b_log1d": sd("eppl-cfg-b-log1d:value", "d"),
+            "b_log2d": sd("eppl-cfg-b-log2d:value", "d"),
+            "b_cal1d": sd("eppl-cfg-b-cal1d:value", "u"),
+            "b_cal2d": sd("eppl-cfg-b-cal2d:value", "u"),
+        },
         "config_b_keys": (),
         "_xrange": (int(xr[0]), int(xr[1])),  # internal: feeds xmin/xmax
         # MC controls — prewarm-cache parity with update_bubble runtime.

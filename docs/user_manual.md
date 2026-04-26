@@ -328,6 +328,26 @@ on live ticker.
 **User Model (U1)** panel -- Hidden until you right-click the chart to
 draw it. See section 10.
 
+**Monte Carlo Simulation** panel -- Opt-in (default off). When you
+activate the checkbox, the bubble chart gains a "spaghetti fan" overlay
+of N sample MC simulation paths -- thin RdYlGn-colored lines, one per
+path, grading by terminal price (red = lowest finish, green = highest).
+The number of sims is freely typeable (1-3200) with autocomplete
+suggestions [8, 16, 32, 64, 128, 200, 400, 800, 1600, 3200]; ≤200 is
+free-tier (cache holds 200 paths), >200 triggers the standard MC
+paywall. Default is 8 sims so the fan stays visually tractable on
+the busy bubble chart.
+
+The **regime checklist** (Bargain / Cheap / Fair / Pricey / Bubble)
+filters the displayed paths: untick a regime to drop paths that spend
+more time in that regime than allowed. With `sims=1`, untick all but
+one regime to see the single cached path most aligned with that
+regime ("only Bargain" picks a stuck-low path, "only Bubble" picks a
+ripped-up path). On free-tier cached paths the filter is rank-based
+(no cached path NEVER visits any regime over 40 yr; the filter sorts
+by alignment and trims to your sim count). Live (paid) sims apply the
+filter strictly via the transition matrix.
+
 **Plot Appearance** -- point size (1-20), point alpha (0.1-1.0), plus a
 shared block of trace widths, grid visibility, palette override.
 
@@ -881,11 +901,15 @@ Once paid, a server-side one-time nonce authorizes the compute.
 
 **What you get**: fan bands of simulation paths overlaid on DCA,
 Retire, Heatmap, Supercharger, and Citadel charts. Each quantile of
-the MC fan is drawn as a translucent band. You can `Save` the MC
+the MC fan is drawn as a translucent band. **Tab 1 (Bubble) renders a
+"spaghetti fan"** instead -- N individual sample paths as thin
+RdYlGn-colored lines, color-graded by terminal price -- since the
+bubble chart already has its own analytical quantile bands and would
+be over-cluttered by an additional MC fan. You can `Save` the MC
 result as a JSON file and `Load` it later to restore the same view
 without re-computing.
 
-**Monte Carlo controls** (appear on DCA, Retire, Heatmap,
+**Monte Carlo controls** (appear on Bubble, DCA, Retire, Heatmap,
 Supercharger, Citadel tabs):
 
 - **Activate** checkbox (top right, `NEW` badge)
@@ -899,7 +923,9 @@ Supercharger, Citadel tabs):
 - **Advanced simulator options** checkbox reveals:
   - Markov transition matrix dimension (5x5 through 10x10).
   - Price regime filter (checklist of regime bins).
-  - Simulations count (100, 200, 400, 800, 1600, 3200).
+  - Simulations count -- typeable Input (1-3200) with HTML5 datalist
+    autocomplete: 8, 16, 32, 64, 128, 200, 400, 800, 1600, 3200.
+    ≤200 is free-tier (cache subsampling); >200 triggers paid live MC.
   - Frequency (if not shared).
   - Historical window (date range slider).
 - **Cost line** -- shows computed cost in sats before run.
@@ -918,6 +944,17 @@ like "what if we never see another extreme bubble?" or "what if prices
 never drop to bargain levels again?" The **ghost overlay** shows the
 unfiltered simulation as a faded comparison, so you can see how
 blocking bins changes the outcome distribution.
+
+**On Tab 1 (Bubble) free-tier cached paths the filter is rank-based**
+rather than strict -- every cached path eventually visits every
+regime over a 40-yr horizon, so a strict "drop paths that ever touched
+a blocked bin" filter would drop everything. Instead, paths are sorted
+by ascending time spent in blocked regimes and trimmed to your
+simulation count, so you always see the N paths most aligned with
+your regime preference. With `sims=1` and "only Bargain" selected, you
+see the single cached path that spent the least time in
+Cheap/Fair/Pricey/Bubble regimes (= the most stuck-low). Live (paid)
+MC sims apply the filter strictly via the transition matrix.
 
 ### Interpreting fan bands
 

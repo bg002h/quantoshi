@@ -117,7 +117,7 @@ Python 3.12.3; all code stays 3.12-compatible.
 | `colors.py` | **SSOT for ALL hex colors, fonts, sizes, widths, opacities, margins.** ~773 lines, 5 sections. See section 15. |
 | `theme.py` | Thin back-compat shim re-exporting 5 colors from `colors.py`. |
 | `btcpay.py` | BTCPay Greenfield API client (invoice create / check, HMAC-signed tokens, SOCKS5-over-Tor). Optional -- guarded by `_HAS_BTCPAY`. |
-| `mc_overlay.py` | MC fan construction from cached path sets. Transition-matrix cache + disk-serialisation via `atexit`. |
+| `mc_overlay.py` | MC fan construction from cached path sets. Transition-matrix cache + disk-serialisation via `atexit`. Also exposes `filter_paths_by_regime(paths, t_axis, model, blocked_bins)` -- rank-based filter used by Tab 1 spaghetti to make the regime checklist take effect on free-tier cached paths (live MC sims apply the filter via `_apply_bin_mask` on the transition matrix instead). |
 | `mc_cache.py` | MC cache configuration constants (`MC_BINS=5`, `MC_SIMS=200`, `CACHED_START_YRS=[2028,2031,2035]`), `/dev/shm/quantoshi_mc.pkl` snapshot layer. |
 | `markov.py` / `markov.c` / `markov.*.so` | Cython Markov engine. Source `markov.pyx` compiled via `build_markov.py` to a `.so` installed on prod; falls back to `_HAS_MARKOV=False` in dev when the shared object is absent. |
 | `static_pages.py` | Flask-served static analysis pages (`/B /BB /C /D /E` SVG + docs). |
@@ -158,7 +158,7 @@ Python 3.12.3; all code stays 3.12-compatible.
 |---|---|
 | `__init__.py` | Navbar, splash modal, share modal, MC payment modal, `dcc.Tabs` assembly, `_serve_layout()` URL-aware factory. |
 | `common.py` | Shared style dicts (`_STYLE_HIDDEN`, `_STYLE_HINT`, `_STYLE_GRAPH_H`), `_section_card`, `_row`, `_lbl`, `_export_row`, `_bands_to_qs`, 4 global modals (LPPL / HybPPL / EPPL / BM), `_inject_initial_figure`. |
-| `bubble.py` | Tab 1 controls -- projection quantiles, x/y scale, ranges, bubble composite, N future, pt size/alpha, decomp panel, scanner, CTA panel. |
+| `bubble.py` | Tab 1 controls -- projection quantiles, x/y scale, ranges, bubble composite, N future, pt size/alpha, decomp panel, scanner, CTA panel, MC card (added 2026-04-26 -- spaghetti fan, default off + opt-in). |
 | `heatmap.py` | Tab 2 -- entry year, entry % (free numeric input 0.1-99.9%), exit range, color modes, pill bar carousel. |
 | `sim_tabs.py` | Tabs 3 + 4 -- DCA + RetireMentator share a form factory here. |
 | `supercharge.py` | Tab 5 -- Mode A / Mode B, 5 delays, chart layout. |
@@ -167,7 +167,7 @@ Python 3.12.3; all code stays 3.12-compatible.
 | `stack.py` | Tab 7 -- lot table, Add/Delete/Import/Export. |
 | `faq.py` | Tab 9 -- `_FAQ` list of `(item_id, title, body)` tuples. |
 | `splash.py` | Splash modal quote bank (`_SPLASH_QUOTES_JS`) + `_GENESIS_QUOTE`. |
-| `mc_controls.py` | Reusable MC-control Divs used by 5 tabs; caches valid entry-Q options. |
+| `mc_controls.py` | Reusable MC-control Divs used by 6 tabs (added `bub` 2026-04-26); caches valid entry-Q options. The `Simulations` field is a number Input + HTML5 datalist (typeable 1-3200 + preset autocomplete). |
 | `display_models.py` | Unified "Display Models" checklist used across all chart tabs. |
 | `custom_time.py` | CTA panel builder for tab 1. |
 | `model_info/__init__.py` | Tab 8 accordion + lightbox modal. |
@@ -279,7 +279,7 @@ Auxiliary JS:
   fetch (escape hatch for stale data).
 
 <!-- merged from v1: per-tab control panel shape for MC-enabled tabs -->
-### Shared control-panel shape (chart tabs 2-5)
+### Shared control-panel shape (chart tabs 1-5)
 
 Each MC-enabled chart tab follows a consistent stacked layout pattern:
 
@@ -308,6 +308,15 @@ Shared settings (Stack, amount, frequency, inflation) feed both QR and MC on
 DCA/Retire/SC. The heatmap (HM) is the exception: only `hm-stack` is shared;
 HM retains its own `hm-mc-amount`, `hm-mc-freq`, `hm-mc-infl` because the QR
 heatmap itself does not use those parameters.
+
+**Tab 1 (Bubble)** added an MC card 2026-04-26: same `_mc_controls("bub", ...)`
+factory as the simulation tabs, but with `show_amount/show_inflation/show_stack=False`
+since Tab 1 is price-space (no withdrawal amount, no inflation, no stack
+accumulation). MC default is OFF (opt-in) to preserve Tab 1's clean first-paint
+character. When enabled with cached params, `update_bubble` renders a
+"spaghetti fan" of N sample MC paths (`_add_mc_spaghetti` in `figures/bubble.py`)
+through the standard MC sandwich plus `filter_paths_by_regime` which ranks
+cached paths by alignment with the user's regime checklist.
 
 ---
 
@@ -692,7 +701,7 @@ coercion sites in callbacks use these helpers.
 <!-- merged from v1: MC setup/finalize helper pattern -->
 ### `_mc_setup()` and `_mc_finalize()` (in `callbacks/mc_helpers.py`)
 
-The four chart-with-MC tabs (DCA, Retire, SC, Heatmap) follow a shared
+The five chart-with-MC tabs (Bubble, DCA, Retire, SC, Heatmap) follow a shared
 update pattern:
 
 1. Guard: if tab not active -> `PreventUpdate`.

@@ -289,8 +289,10 @@ Per-tab model display:
 - MC features are **paid** (Lightning/on-chain via BTCPay). Controlled by `_app_ctx._HAS_MARKOV` flag.
 - When `_HAS_MARKOV` is `False`, all MC controls are hidden via placeholder `dcc.Checklist` elements and "MC Simulation" is hidden from Display Models checklists.
 - Pre-computed cache: ~45,000 scenarios covering different entry percentiles, time horizons, withdrawal amounts, inflation, stack sizes (~834 MB RAM at startup).
-- MC controls appear on DCA, Retire, Heatmap, and Supercharger tabs.
+- MC controls appear on Bubble, DCA, Retire, Heatmap, Supercharger, and Citadel tabs.
 - Layout: `layout/mc_controls.py` (reusable MC control panel). Callbacks: `callbacks/mc_controls.py`, `callbacks/mc_helpers.py`, `callbacks/mc_payment.py`, `callbacks/mc_upload.py`.
+- **Tab 1 spaghetti fan** (added 2026-04-26): when MC is enabled on Bubble, `update_bubble` calls `_add_mc_spaghetti` (in `figures/bubble.py`) to render N=`mc_sims` thin RdYlGn-colored sample paths, color-graded by terminal price. MC default OFF (opt-in); default sims=8 to keep the busy bubble chart readable. Sims field is a typeable Input (1-3200) with datalist autocomplete instead of a Dropdown.
+- **Regime filter on cached paths** (`mc_overlay.filter_paths_by_regime`): rank-based sort by time-in-blocked-bins ascending, then trim to display sims. Live (paid) MC sims still apply the filter strictly via `_apply_bin_mask` on the transition matrix; this rank helper is the free-tier analog since cached paths weren't bin-masked at sim time.
 
 ### Heatmap pill bar carousel
 

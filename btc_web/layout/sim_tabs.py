@@ -139,6 +139,7 @@ def _dca_controls():
         chart_toggle_defaults=["annotate"],
         extra_sections=[_stackcelerator_controls()],
         legend_pos_default=DCA["legend_pos"],
+        include_mc=True,
     )
 
 

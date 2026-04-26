@@ -1601,9 +1601,9 @@ def update_model_swatches(_bub_fr=None, _dca_children=None, _ret_children=None,
     mc = pal.get("model_colors", _app_ctx.MODEL_TRACE_COLORS)
     return (
         build_display_models_options(mc, "bub", include_bm_master=True, summaries=summaries),
-        build_display_models_options(mc, "dca", summaries=summaries),
+        build_display_models_options(mc, "dca", include_mc=True, summaries=summaries),
         build_display_models_options(mc, "ret", include_mc=True, summaries=summaries),
-        build_display_models_options(mc, "sc",  summaries=summaries),
+        build_display_models_options(mc, "sc",  include_mc=True, summaries=summaries),
     )
 
 
@@ -1615,7 +1615,7 @@ def _swatches_for(prefix, palette_key, summaries):
     kwargs = {"summaries": summaries}
     if prefix == "bub":
         kwargs["include_bm_master"] = True
-    elif prefix == "ret":
+    elif prefix in ("dca", "ret", "sc"):
         kwargs["include_mc"] = True
     return build_display_models_options(mc, prefix, **kwargs)
 

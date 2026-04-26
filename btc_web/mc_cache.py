@@ -339,6 +339,61 @@ def generate_all_caches(m, models, progress_cb=None):
             generate_cache(yr, m, model, progress_cb)
 
 
+# Module-level worker function (must be picklable for ProcessPoolExecutor).
+def _generate_one_combo(args):
+    """Worker: instantiate one model and generate its cache for one start_yr.
+
+    Each worker gets a fresh M deserialization and reinstantiates only the
+    needed model — avoids passing pre-built model instances (some hold
+    Cython references that may not pickle cleanly).
+    """
+    model_key, start_yr, M = args
+    models = intended_models(M)
+    model = models[model_key]
+    generate_cache(start_yr, M, model)
+    return f"{model_key}/{start_yr}"
+
+
+def generate_all_caches_parallel(m, n_workers=4, progress_cb=None):
+    """Parallel cache generation: each (model_key, start_yr) runs in its own process.
+
+    Uses concurrent.futures.ProcessPoolExecutor — true parallelism, not
+    thread-based (avoids GIL contention since the inner Markov compute is
+    NumPy/Cython-heavy).
+
+    Args:
+        m: ModelData (must be picklable — it loads from model_data.pkl).
+        n_workers: Number of worker processes. Defaults to 4. Cap to
+            min(n_workers, total_tasks) to avoid idle workers.
+        progress_cb: Optional callback(msg) for progress reporting.
+
+    Worker tasks: every (model_key in _INTENDED_KEYS) × (start_yr in
+    CACHED_START_YRS) combo. With current sets that's 5 × 3 = 15 tasks.
+    """
+    from concurrent.futures import ProcessPoolExecutor, as_completed
+
+    keys = sorted(_INTENDED_KEYS)
+    tasks = [(k, y, m) for k in keys for y in CACHED_START_YRS]
+    total = len(tasks)
+    n_workers = min(n_workers, total) if total else 1
+
+    def log(msg):
+        if progress_cb:
+            progress_cb(msg)
+        else:
+            print(msg)
+
+    log(f"▶ Parallel cache generation: {total} tasks, {n_workers} workers")
+
+    with ProcessPoolExecutor(max_workers=n_workers) as pool:
+        futures = {pool.submit(_generate_one_combo, t): t for t in tasks}
+        done = 0
+        for fut in as_completed(futures):
+            label = fut.result()  # raises on worker error → propagates to caller
+            done += 1
+            log(f"  [{done}/{total}] done: {label}")
+
+
 # ── Loading ───────────────────────────────────────────────────────────────────
 
 # In-memory cache: {(model_key, start_yr): {"paths": npz_dict, "overlays": npz_dict}}

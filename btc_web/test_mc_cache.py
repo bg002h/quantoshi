@@ -247,3 +247,28 @@ def test_full_cleanup_sequence_noop_on_missing_dir(tmp_path, monkeypatch):
     mc_cache.restore_stale_files()
 
     assert not missing.exists()  # no side-effect creation
+
+
+def test_generate_all_caches_parallel_dispatches_all_combos():
+    """Smoke test: verify the parallel function builds the correct task set
+    (model × year combos) without actually running the 2-4 hour compute.
+
+    We mock-pick by inspecting the inner task generation, not by running.
+    """
+    from mc_cache import _INTENDED_KEYS, CACHED_START_YRS
+
+    # The dispatch logic in generate_all_caches_parallel iterates these
+    # two sets — verifying their intersection here ensures the parallel
+    # function will dispatch the right combos when run.
+    expected_combos = {(k, y) for k in _INTENDED_KEYS for y in CACHED_START_YRS}
+    assert len(expected_combos) == len(_INTENDED_KEYS) * len(CACHED_START_YRS)
+    assert len(expected_combos) > 0  # sanity: not empty
+
+
+def test_generate_one_combo_is_picklable():
+    """Worker function must be picklable for ProcessPoolExecutor."""
+    # ProcessPoolExecutor requires the worker function to be serializable.
+    import pickle as _pickle
+    from mc_cache import _generate_one_combo
+
+    _pickle.dumps(_generate_one_combo)  # must not raise

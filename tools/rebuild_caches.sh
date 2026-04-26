@@ -72,11 +72,10 @@ from btc_core import load_model_data
 import btc_web.mc_cache as mc
 
 M = load_model_data('model_data.pkl')
-models = mc.intended_models(M)
 
 mc.stash_stale_files()
 try:
-    mc.generate_all_caches(M, models)
+    mc.generate_all_caches_parallel(M, n_workers=4)
     mc.commit_stale_files()
 except BaseException:
     mc.restore_stale_files()

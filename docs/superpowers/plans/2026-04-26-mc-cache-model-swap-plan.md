@@ -167,7 +167,7 @@ Edit `btc_web/mc_cache.py`. Add immediately after `_parse_cache_filename`:
 ```python
 def _ef_pkl_path() -> Path:
     """Resolve <repo_root>/model_data_ef.pkl. Mirrors app.py:343."""
-    return Path(__file__).parent.parent.parent / "model_data_ef.pkl"
+    return Path(__file__).parent.parent / "model_data_ef.pkl"
 
 
 # ── Single source of truth for what the next rebuild will cache ──
@@ -199,7 +199,7 @@ def intended_models(M) -> dict:
     }
 ```
 
-The `parent.parent.parent` triple climb: `mc_cache.py` lives in `btc_web/` which lives in repo root. `__file__` → `btc_web/mc_cache.py` → `.parent` is `btc_web/`, `.parent.parent` is repo root.
+Two `.parent` climbs: `__file__` → `btc_web/mc_cache.py`; `.parent` → `btc_web/`; `.parent.parent` → repo root → joined with `model_data_ef.pkl` resolves to `<repo>/model_data_ef.pkl`. Verify this in step 4 — if `exists: False`, you have one too many or one too few `.parent`s.
 
 - [ ] **Step 4: Verify the path helper from a quick smoke test**
 
@@ -253,6 +253,7 @@ Append to `btc_web/test_mc_cache.py`:
 ```python
 def test_master_to_cached_fallback_keys_in_dropdown():
     """Every fallback key must be a valid dropdown master."""
+    import _app_ctx, app  # noqa: F401  - layout.heatmap transitively needs _app_ctx initialized
     from mc_cache import MASTER_TO_CACHED_FALLBACK
     from layout.heatmap import _HM_PILL_MODELS_BASE
 
@@ -584,10 +585,10 @@ def test_resolver_eppl_master_falls_back_when_variant_uncached(monkeypatch):
         f"entry was lost.")
 ```
 
-- [ ] **Step 2: Run — confirm it fails on the current LPPL-specific resolver**
+- [ ] **Step 2: Run — confirm it fails before the generic fallback exists**
 
 Run: `cd btc_web && PYTHONPATH=".:.." ../btc_venv/bin/python3 -m pytest test_mc_cache.py::test_resolver_eppl_master_falls_back_when_variant_uncached -v`
-Expected: FAIL — current code only special-cases `src == "lppl"`, so the EPPL master falls through to the chain's mutated value `"ecfg_2dd_2dd"`.
+Expected: FAIL — no `MASTER_TO_CACHED_FALLBACK` lookup exists in `_resolve_mc_model_src` yet. The stubbed `_resolve_hm_eppl_master` returns `"ecfg_2dd_2dd"` and the current resolver returns that value unchanged. The test asserts `"ecfg_1d_1u"`, so it fails. The current LPPL-specific branch only triggers for `src == "lppl"`, so the EPPL path doesn't get any fallback today.
 
 - [ ] **Step 3: Replace the inline LPPL block with the generic pattern**
 

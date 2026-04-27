@@ -203,11 +203,12 @@ def test_module_imports_with_calendar_default():
 def test_calendar_to_t_calendar_mode():
     from btc_web import time_basis as tb
     assert tb.TIME_BASIS == "calendar"
-    # 2009-07-25 → t=0
+    # 2009-07-25 → t=0 (exact)
     assert tb.calendar_to_t(_dt.date(2009, 7, 25)) == 0.0
-    # 2010-07-25 → t≈1.0 (one year)
+    # 2010-07-25 → t ≈ 1.0 (one year). 365 / 365.25 = 0.99931506...,
+    # so the tolerance must accommodate ~6.8e-4 (1 day vs 365.25-day year).
     t = tb.calendar_to_t(_dt.date(2010, 7, 25))
-    assert abs(t - 1.0) < 1e-6
+    assert abs(t - 1.0) < 1e-3
 
 
 def test_t_to_calendar_calendar_mode():

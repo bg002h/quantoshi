@@ -4,7 +4,7 @@
 
 **Goal:** Refactor `btc_core/` and `tools/model_toolkit/` so the build pipeline can accept `--time-basis={calendar,block}`. Calendar-mode behavior **unchanged**; block-mode is enabled but not exercised yet (Phase 2b builds the actual block pkl).
 
-**Architecture:** Add axis-aware `T_MIN`, `yr_to_t`, `today_t` to `btc_web/time_basis.py`. Bridge via sys.path so `btc_core/` submodules can import from it. Replace 14 hardcoded `price_years >= 1.0` masks with `>= T_MIN`. Parameterize `tools/model_toolkit/data.py::load_prices` and `tools/model_toolkit/fitting.py` to thread `time_basis` through. Add `--time-basis` CLI flag to `tools/build_bm_model.py` and `tools/build_ef_model.py`. **Calendar-mode (default) builds produce numerically equivalent pkls to current.**
+**Architecture:** Add axis-aware `T_MIN`, `year_to_t`, `today_t` to `btc_web/time_basis.py`. Bridge via sys.path so `btc_core/` submodules can import from it. Replace 13 hardcoded `price_years >= 1.0` masks with `>= T_MIN`. Parameterize `tools/model_toolkit/data.py::load_prices` and `tools/model_toolkit/fitting.py` to thread `time_basis` through. Add `--time-basis` CLI flag to `tools/build_bm_model.py` and `tools/build_ef_model.py`. **Calendar-mode (default) builds produce numerically equivalent pkls to current.**
 
 **Tech Stack:** Python 3.14 (dev) / 3.12 (prod). pandas, numpy. stdlib `tomllib` (already wired). Existing test suite (~1600 tests).
 
@@ -25,9 +25,9 @@
 ## File Structure
 
 **Modify:**
-- `btc_core/__init__.py` — add sys.path bridge to `btc_web/` so submodules can `from time_basis import T_MIN, yr_to_t`.
-- `btc_web/time_basis.py` — add `yr_to_t(cal_year)` and `today_t()` axis-aware helpers.
-- `btc_core/_simple.py` — 9 `price_years >= 1.0` sites (lines 70, 129, 183, 223, 276, 331, 376, 489).
+- `btc_core/__init__.py` — add sys.path bridge to `btc_web/` so submodules can `from time_basis import T_MIN, year_to_t`.
+- `btc_web/time_basis.py` — add `year_to_t(cal_year)` and `today_t()` axis-aware helpers.
+- `btc_core/_simple.py` — 8 `price_years >= 1.0` sites (lines 70, 129, 183, 223, 276, 331, 376, 489).
 - `btc_core/_lppl.py` — 1 site (line 41).
 - `btc_core/_basis.py` — 1 site (line 41).
 - `btc_core/_hybppl_eppl.py` — 2 sites (lines 836, 1063).
@@ -43,7 +43,7 @@
 **Untouched (deliberate Phase 2a non-goals):**
 - `btc_core/_simple.py:571` — `UserModel` uses `>= 0.5` not `>= 1.0`. UserModel is per-user click-to-draw, axis-exempt.
 - `btc_core/_simple.py:486-520` — `S2FModel`. Spec §2 axis-exempt; calendar-native always.
-- `btc_core/_helpers.py::yr_to_t/today_t` — kept calendar-only in Phase 2a. `_helpers.fit_qr_from_csv` likewise. Phase 2c will make them delegate to `time_basis` once runtime axis loader lands.
+- `btc_core/_helpers.py::yr_to_t/today_t` — kept calendar-only in Phase 2a. The new axis-aware helpers in `time_basis.py` are deliberately named `year_to_t` (different from `_helpers.yr_to_t`) to avoid an immediate naming collision. Phase 2c will consolidate: rename or have `_helpers.yr_to_t` delegate to `time_basis.year_to_t`. `_helpers.fit_qr_from_csv` likewise stays calendar-only in 2a.
 - `btc_web/engines/custom_fit.py:492` — `mask = fi.t > (1.0 / 365.25)`. CTA isolation per Phase 1 Task 7 — must NOT touch.
 - `btc_web/_app_ctx.py:302-340` — model registration block uses `M.price_years` extensively. **`price_years` rename is NOT in Phase 2a.** In block mode, the `price_years` attribute carries block offsets (semantic shift, no rename). Phase 2c+ rename target.
 - `btc_web/figures/`, `mc_overlay`, `mc_cache`, etc. — all consumers of `M.price_years`. Untouched in 2a.
@@ -58,7 +58,7 @@
 - Modify: `btc_core/__init__.py` (insert at top of file, before existing submodule imports).
 - Create: `btc_web/test_time_basis_phase2a.py`.
 
-**Goal:** Allow `btc_core/*.py` submodules to `from time_basis import T_MIN, yr_to_t` without each adding its own sys.path hack. The bridge runs once, when the package is first imported.
+**Goal:** Allow `btc_core/*.py` submodules to `from time_basis import T_MIN, year_to_t` without each adding its own sys.path hack. The bridge runs once, when the package is first imported.
 
 - [ ] **Step 1: Write failing test for the bridge**
 
@@ -115,7 +115,7 @@ At the **top** of `btc_core/__init__.py` (before any `from btc_core._helpers imp
 ```python
 # ── Phase 2a sys.path bridge ──────────────────────────────────────────────
 # btc_core needs `time_basis` (lives in btc_web/) for axis-aware constants
-# (T_MIN, T_PER_YEAR, yr_to_t). Adding btc_web/ to sys.path here means
+# (T_MIN, T_PER_YEAR, year_to_t). Adding btc_web/ to sys.path here means
 # every btc_core submodule can `from time_basis import …` without its own
 # path manipulation. This runs once when btc_core is first imported.
 #
@@ -159,7 +159,7 @@ Expected: PASS.
 git add btc_core/__init__.py btc_web/test_time_basis_phase2a.py
 git commit -m "feat(phase2a): btc_core sys.path bridge to time_basis
 
-btc_core needs T_MIN / yr_to_t from btc_web/time_basis. The bridge in
+btc_core needs T_MIN / year_to_t from btc_web/time_basis. The bridge in
 btc_core/__init__.py adds btc_web/ to sys.path once per process so
 submodules can 'from time_basis import …' without each doing a path hack.
 TODO(phase2c) marker for cleanup once time_basis finds a permanent home.
@@ -169,7 +169,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 ---
 
-## Task 2: Add `yr_to_t` and `today_t` to `time_basis.py`
+## Task 2: Add `year_to_t` and `today_t` to `time_basis.py`
 
 **Files:**
 - Modify: `btc_web/time_basis.py` (append two functions to the bottom).
@@ -182,29 +182,29 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 Append to `btc_web/test_time_basis_phase2a.py`:
 
 ```python
-def test_time_basis_yr_to_t_calendar():
-    """yr_to_t in calendar mode returns years since 2009-07-25."""
+def test_time_basis_year_to_t_calendar():
+    """year_to_t in calendar mode returns years since 2009-07-25."""
     import time_basis as tb
     if tb.TIME_BASIS != "calendar":
         pytest.skip("calendar-only test")
     # 2010 January 1 → 0.439 years past 2009-07-25 (160 days / 365.25).
-    t = tb.yr_to_t(2010)
+    t = tb.year_to_t(2010)
     assert 0.4 < t < 0.5
     # 2024 January 1 → 14.439 years past 2009-07-25.
-    t = tb.yr_to_t(2024)
+    t = tb.year_to_t(2024)
     assert 14.4 < t < 14.5
     # Fractional year: 2024.5 = July 1 2024 → 14.939
-    t = tb.yr_to_t(2024.5)
+    t = tb.year_to_t(2024.5)
     assert 14.9 < t < 15.0
 
 
-def test_time_basis_yr_to_t_block(monkeypatch):
-    """yr_to_t in block mode scales the calendar-mode result by T_PER_YEAR."""
+def test_time_basis_year_to_t_block(monkeypatch):
+    """year_to_t in block mode scales the calendar-mode result by T_PER_YEAR."""
     import time_basis as tb
     monkeypatch.setattr(tb, "TIME_BASIS", "block")
     monkeypatch.setattr(tb, "T_PER_YEAR", 52596.0)
     # 2024 January 1 → ~14.439 years × 52596 ≈ 759,406 blocks since origin.
-    t = tb.yr_to_t(2024)
+    t = tb.year_to_t(2024)
     assert 759_000 < t < 760_000
 
 
@@ -223,17 +223,17 @@ def test_time_basis_today_t_positive_and_in_range():
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-btc_venv/bin/python3 -m pytest btc_web/test_time_basis_phase2a.py -v -k "yr_to_t or today_t"
+btc_venv/bin/python3 -m pytest btc_web/test_time_basis_phase2a.py -v -k "year_to_t or today_t"
 ```
 
-Expected: FAILs with `AttributeError: module 'time_basis' has no attribute 'yr_to_t'` (and `today_t`).
+Expected: FAILs with `AttributeError: module 'time_basis' has no attribute 'year_to_t'` (and `today_t`).
 
 - [ ] **Step 3: Add helpers to `btc_web/time_basis.py`**
 
 Append after the existing `t_to_calendar` function:
 
 ```python
-def yr_to_t(cal_year: float) -> float:
+def year_to_t(cal_year: float) -> float:
     """Convert a (possibly fractional) calendar year to t in the active basis.
 
     Calendar mode: t = years since 2009-07-25 (`(date - origin).days / 365.25`).
@@ -261,7 +261,7 @@ def today_t() -> float:
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-btc_venv/bin/python3 -m pytest btc_web/test_time_basis_phase2a.py -v -k "yr_to_t or today_t"
+btc_venv/bin/python3 -m pytest btc_web/test_time_basis_phase2a.py -v -k "year_to_t or today_t"
 ```
 
 Expected: 3 PASS.
@@ -270,7 +270,7 @@ Expected: 3 PASS.
 
 ```bash
 git add btc_web/time_basis.py btc_web/test_time_basis_phase2a.py
-git commit -m "feat(phase2a): add yr_to_t and today_t helpers to time_basis
+git commit -m "feat(phase2a): add year_to_t and today_t helpers to time_basis
 
 Axis-aware calendar-year-to-t conversion. Used by Task 5 (model_toolkit
 fitting) and downstream Phase 2 callers.
@@ -280,17 +280,17 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 ---
 
-## Task 3: T_MIN sweep across `btc_core/` (14 sites)
+## Task 3: T_MIN sweep across `btc_core/` (13 sites)
 
 **Files:**
-- Modify: `btc_core/_simple.py` (9 sites: lines 70, 129, 183, 223, 276, 331, 376, 489 — and add import).
+- Modify: `btc_core/_simple.py` (8 sites: lines 70, 129, 183, 223, 276, 331, 376, 489 — and add import).
 - Modify: `btc_core/_lppl.py` (line 41 — and add import).
 - Modify: `btc_core/_basis.py` (line 41 — and add import).
 - Modify: `btc_core/_hybppl_eppl.py` (lines 836, 1063 — and add import).
 - Modify: `btc_core/_helpers.py` (line 291, in `compute_model_r2` — and add import).
 - Modify: `btc_web/test_time_basis_phase2a.py` (append regression test).
 
-**Goal:** Replace 14 hardcoded `price_years >= 1.0` masks with axis-aware `price_years >= T_MIN`. Calendar mode unchanged (`T_MIN = 1.0`); block mode will exclude the first `T_MIN = 52596` blocks (~1 year) — the analog of "first calendar year".
+**Goal:** Replace 13 hardcoded `price_years >= 1.0` masks with axis-aware `price_years >= T_MIN`. Calendar mode unchanged (`T_MIN = 1.0`); block mode will exclude the first `T_MIN = 52596` blocks (~1 year) — the analog of "first calendar year".
 
 - [ ] **Step 1: Append failing regression test**
 
@@ -298,7 +298,7 @@ Append to `btc_web/test_time_basis_phase2a.py`:
 
 ```python
 def test_t_min_sweep_calendar_mode_unchanged():
-    """All 14 mask sites still exclude the same rows in calendar mode."""
+    """All 13 mask sites still exclude the same rows in calendar mode."""
     import numpy as np
     from time_basis import T_MIN
     assert T_MIN == 1.0  # this test is calendar-only
@@ -348,7 +348,7 @@ to:
 mask = price_years >= T_MIN
 ```
 
-Lines: 70, 129, 183, 223, 276, 331, 376, 489.
+Lines: 70, 129, 183, 223, 276, 331, 376, 489 (8 sites).
 
 **Do NOT touch line 571** (`UserModel.from_points` uses `>= 0.5` — different threshold, axis-exempt).
 
@@ -438,7 +438,7 @@ mask = price_years >= T_MIN
 grep -rn "price_years >= 1\." btc_core/
 ```
 
-Expected output: empty (all 14 sites converted). The `>= 0.5` outlier in `_simple.py:571` (UserModel) does not match this pattern.
+Expected output: empty (all 13 sites converted). The `>= 0.5` outlier in `_simple.py:571` (UserModel) does not match this pattern.
 
 - [ ] **Step 9: Run unit tests**
 
@@ -454,13 +454,13 @@ Expected: all pass. Calendar mode `T_MIN = 1.0` so the masks are equivalent; exi
 git add btc_core/_simple.py btc_core/_lppl.py btc_core/_basis.py \
         btc_core/_hybppl_eppl.py btc_core/_helpers.py \
         btc_web/test_time_basis_phase2a.py
-git commit -m "feat(phase2a): T_MIN sweep across btc_core (14 sites)
+git commit -m "feat(phase2a): T_MIN sweep across btc_core (13 sites)
 
 Replace hardcoded \`price_years >= 1.0\` with axis-aware \`>= T_MIN\` so
 block-mode fits exclude the first T_PER_YEAR blocks (analog of 'first
 calendar year'). Calendar mode unchanged: T_MIN = 1.0.
 
-Files: _simple.py (9), _lppl.py (1), _basis.py (1), _hybppl_eppl.py (2),
+Files: _simple.py (8), _lppl.py (1), _basis.py (1), _hybppl_eppl.py (2),
 _helpers.py compute_model_r2 (1).
 
 UserModel (_simple.py:571) untouched — \`>= 0.5\` is per-user click-to-draw,
@@ -684,7 +684,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 - Modify: `tools/model_toolkit/fitting.py` (`find_peaks` + the `date_rise/plat/decay/end` block in `fit_one_bubble`).
 - Modify: `btc_web/test_time_basis_phase2a.py` (append test).
 
-**Goal:** `find_peaks` `t_center` calculation uses `time_basis.yr_to_t` (axis-aware) instead of the hardcoded `(date - GENESIS).days / 365.25`. The `date_rise/plat/decay/end` conversion in `fit_one_bubble` uses `time_basis.t_to_calendar` so block-mode bubble metadata still produces real calendar dates for downstream chart annotations. Calendar mode behavior unchanged.
+**Goal:** `find_peaks` `t_center` calculation uses `time_basis.year_to_t` (axis-aware) instead of the hardcoded `(date - GENESIS).days / 365.25`. The `date_rise/plat/decay/end` conversion in `fit_one_bubble` uses `time_basis.t_to_calendar` so block-mode bubble metadata still produces real calendar dates for downstream chart annotations. Calendar mode behavior unchanged.
 
 - [ ] **Step 1: Append failing test**
 
@@ -692,7 +692,7 @@ Append to `btc_web/test_time_basis_phase2a.py`:
 
 ```python
 def test_find_peaks_t_center_axis_aware():
-    """find_peaks computes t_center via time_basis.yr_to_t, not hardcoded
+    """find_peaks computes t_center via time_basis.year_to_t, not hardcoded
     pd.Timestamp arithmetic."""
     import sys
     repo_root = Path(__file__).resolve().parent.parent
@@ -705,17 +705,19 @@ def test_find_peaks_t_center_axis_aware():
     if tb.TIME_BASIS != "calendar":
         pytest.skip("calendar-only sanity test")
 
-    # Synthetic data: 1 fake bubble year at 2017, peak near t=8.43.
+    # Synthetic data: 1 fake bubble year at 2017.
+    # In calendar mode, year_to_t(2017) ≈ 7.44; window is [6.69, 8.19].
+    # Inject the peak inside that window so find_peaks can locate it.
     years = np.linspace(0.5, 16.0, 1000)
     log_excess = np.zeros_like(years)
-    # Inject a peak at t=8.43 (≈ 2017-07-01 in calendar mode).
-    peak_idx = np.argmin(np.abs(years - 8.43))
+    target_t = 7.5  # well inside the [6.69, 8.19] window for yr=2017
+    peak_idx = np.argmin(np.abs(years - target_t))
     log_excess[peak_idx] = 1.0
 
     peaks = fmod.find_peaks(log_excess, years, [2017], window=0.75)
     assert len(peaks) == 1
-    # Sanity-check the peak was found near the injected location.
-    assert 7.0 < peaks[0]["peak_t"] < 9.0
+    # Peak should be found at approximately the injected location.
+    assert abs(peaks[0]["peak_t"] - target_t) < 0.1
 
 
 def test_date_conversion_calendar_mode_unchanged():
@@ -762,7 +764,7 @@ from pathlib import Path as _Path
 _BTC_WEB = str(_Path(__file__).resolve().parent.parent.parent / "btc_web")
 if _BTC_WEB not in _sys.path:
     _sys.path.insert(0, _BTC_WEB)
-from time_basis import yr_to_t, t_to_calendar  # noqa: E402
+from time_basis import year_to_t, t_to_calendar  # noqa: E402
 del _sys, _Path, _BTC_WEB
 ```
 
@@ -780,8 +782,8 @@ Change to:
 
 ```python
     for yr in bubble_years:
-        # Phase 2a: yr_to_t is axis-aware (calendar: years; block: blocks).
-        t_center = yr_to_t(float(yr))
+        # Phase 2a: year_to_t is axis-aware (calendar: years; block: blocks).
+        t_center = year_to_t(float(yr))
         t_lo = t_center - window
 ```
 
@@ -823,7 +825,7 @@ Expected: PASS.
 git add tools/model_toolkit/fitting.py btc_web/test_time_basis_phase2a.py
 git commit -m "feat(phase2a): axis-aware t_center and date conversion in fitting
 
-find_peaks uses time_basis.yr_to_t for t_center; fit_one_bubble uses
+find_peaks uses time_basis.year_to_t for t_center; fit_one_bubble uses
 time_basis.t_to_calendar for date_rise/plat/decay/end. Calendar mode
 behavior unchanged (verified by date_conversion test).
 
@@ -1046,8 +1048,8 @@ import btc_core as bc
 m = bc.load_model_data()
 # ModelData exposes the BM scalars as attributes.
 keys = ['ols_slope', 'ols_intercept',
-        'bm_support_slope', 'bm_support_intercept',
-        'bm_r2_comp', 'bm_alpha_up', 'bm_alpha_down',
+        'support_slope', 'support_intercept',
+        'bm_r2', 'bm_alpha_up', 'bm_alpha_down',
         'bm_sigma0_up', 'bm_sigma0_down']
 for k in keys:
     print(f'{k}: {getattr(m, k)}')" | tee /tmp/phase2a_pre.txt
@@ -1072,8 +1074,8 @@ btc_venv/bin/python3 -c "
 import btc_core as bc
 m = bc.load_model_data()
 keys = ['ols_slope', 'ols_intercept',
-        'bm_support_slope', 'bm_support_intercept',
-        'bm_r2_comp', 'bm_alpha_up', 'bm_alpha_down',
+        'support_slope', 'support_intercept',
+        'bm_r2', 'bm_alpha_up', 'bm_alpha_down',
         'bm_sigma0_up', 'bm_sigma0_down']
 for k in keys:
     print(f'{k}: {getattr(m, k)}')" | tee /tmp/phase2a_post.txt
@@ -1145,8 +1147,8 @@ git commit --allow-empty -m "phase2a(time-basis): refactor + parameterize build 
 
 Tasks 1–7 landed:
   - btc_core/__init__.py sys.path bridge to btc_web/time_basis
-  - time_basis.yr_to_t and today_t helpers
-  - T_MIN sweep (14 sites across _simple, _lppl, _basis, _hybppl_eppl, _helpers)
+  - time_basis.year_to_t and today_t helpers
+  - T_MIN sweep (13 sites across _simple, _lppl, _basis, _hybppl_eppl, _helpers)
   - load_prices(time_basis=…) — block mode joins BitcoinBlocksDaily.csv
   - find_peaks t_center + date_rise/plat/decay/end axis-aware
   - tools/build_bm_model.py --time-basis flag

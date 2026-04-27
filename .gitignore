@@ -48,6 +48,8 @@ nohup.out
 .env
 debris/
 backups/
+dash_req*.json
+dash_requests.json
 tools/_onchain_cache/
 *.swp
 *.kate-swp

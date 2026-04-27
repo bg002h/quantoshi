@@ -16,6 +16,7 @@ import json
 import logging
 
 import _app_ctx
+from time_basis import TIME_BASIS
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ def _cache_key(prefix: str, params_json: str) -> str:
     """Deterministic cache key including model fingerprint.
     When model_data.pkl changes, all keys miss automatically."""
     h = hashlib.sha256(params_json.encode()).hexdigest()[:32]
-    return f"fig:{_MODEL_FP}:{prefix}:{h}"
+    return f"fig:{TIME_BASIS}:{_MODEL_FP}:{prefix}:{h}"
 
 
 def get_cached(prefix: str, params_json: str) -> dict | None:
@@ -103,7 +104,7 @@ def get_citadel_cached(cache_key: str) -> dict | None:
     if not _HAS_REDIS:
         return None
     try:
-        data = _REDIS.get(f"citadel:{_MODEL_FP}:{cache_key}")
+        data = _REDIS.get(f"citadel:{TIME_BASIS}:{_MODEL_FP}:{cache_key}")
         return json.loads(data) if data else None
     except Exception:
         return None
@@ -115,7 +116,7 @@ def set_citadel_cached(cache_key: str, data: dict) -> None:
     if not _HAS_REDIS:
         return
     try:
-        _REDIS.set(f"citadel:{_MODEL_FP}:{cache_key}",
+        _REDIS.set(f"citadel:{TIME_BASIS}:{_MODEL_FP}:{cache_key}",
                     json.dumps(data, default=str))
     except Exception as e:
         logger.debug("Redis citadel set failed: %s", e)
@@ -130,7 +131,7 @@ def redis_available() -> bool:
 from tab_defaults import _DEFAULTS_HASH
 
 _L0_FINGERPRINT = hashlib.md5(
-    f"{_MODEL_FP}:{_DEFAULTS_HASH}".encode()
+    f"{TIME_BASIS}:{_MODEL_FP}:{_DEFAULTS_HASH}".encode()
 ).hexdigest()[:12]
 logger.info("L0 fingerprint: %s (model=%s, defaults=%s)",
             _L0_FINGERPRINT, _MODEL_FP, _DEFAULTS_HASH)

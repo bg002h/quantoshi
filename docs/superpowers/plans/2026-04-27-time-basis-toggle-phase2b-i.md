@@ -4,7 +4,9 @@
 
 **Goal:** Produce a structural scaffold `model_data_block.pkl` via the parameterized build pipeline. Validates that `tools/build_bm_model.py --time-basis=block` runs end-to-end and emits a pkl with the correct schema, axis-aware sigma/QR/BM fits, and the expected sidecar. **LPPL/HybPPL/EPPL/PCA/Greedy family fits will use calendar-fit class attrs and produce garbage predictions** — that's acceptable for the scaffold and will be addressed in Phase 2b.ii (refit families in block mode with bound rescaling).
 
-**Architecture:** Make `tools/build_bm_model.py` output filenames axis-aware (`model_data_block.pkl` and `model_data_block_resqr_diagnostics.json` in block mode). Run the build. Sanity-check what came out. Commit.
+**Architecture:** Add a `QS_TIME_BASIS` env-var override to `time_basis.py` (takes precedence over `quantoshi.toml`). `tools/build_bm_model.py` sets that env var before any `time_basis` import when `--time-basis=block`. Rescale calendar-baked window constants in `tools/model_toolkit/fitting.py` by `T_PER_YEAR`. Audit other toolkit files for similar baked thresholds. Make `tools/build_bm_model.py` output filenames axis-aware. Run the block build (BM/QR fits cleanly; family models use calendar-fit class attrs and produce garbage predictions — that's expected for the scaffold). Sanity-check. Commit.
+
+**Plan Revision Note (2026-04-27):** This plan was revised after agent review caught a critical Phase 2a coverage gap: Phase 2a wired `year_to_t()` in `fitting.py` but never override the module-global `T_PER_YEAR=1.0` (frozen at TOML read time). Without an env-var override, `tools/build_bm_model.py --time-basis=block` would compute `year_to_t(2017) ≈ 7.44` (calendar units) instead of `391_239` (block units), and `fit_sequential` would crash with empty peak windows. Tasks 1 + 3 + 4 below close this gap.
 
 **Tech Stack:** Python 3.14 (dev). Existing parameterized pipeline from Phase 2a.
 
@@ -22,8 +24,11 @@
 ## File Structure
 
 **Modify:**
-- `tools/build_bm_model.py` — make `pkl_path` and `diag_path` axis-aware.
-- `btc_web/test_time_basis_phase2a.py` (continue same file — append a single regression test for the axis-aware filename).
+- `btc_web/time_basis.py` — accept `QS_TIME_BASIS` env-var override (precedence: env > TOML > defaults).
+- `tools/build_bm_model.py` — set `QS_TIME_BASIS` env var before imports; make `pkl_path` and `diag_path` axis-aware.
+- `tools/model_toolkit/fitting.py` — rescale window constants (`BUBBLE_YEAR_WINDOW`, `FIT_CONTEXT_YR`, `FIT_RISE_LOOKBACK_YR`, etc.) by `T_PER_YEAR` so they have the right units in block mode.
+- Possibly `tools/model_toolkit/{composite,prediction,support,bands,bubble_shape}.py` — pending audit in Task 4.
+- `btc_web/test_time_basis_phase2a.py` (continue same file — append regression tests).
 
 **Create (build artifacts, committed):**
 - `model_data_block.pkl` — block-axis scaffold.
@@ -38,13 +43,151 @@
 
 ---
 
-## Task 1: Make `tools/build_bm_model.py` output filenames axis-aware
+## Task 1: Add `QS_TIME_BASIS` env-var override to `time_basis.py`
 
 **Files:**
-- Modify: `tools/build_bm_model.py` (the `pkl_path` and `diag_path` lines in `main()`).
+- Modify: `btc_web/time_basis.py` (extend `_load_config` to honor an env-var override).
+- Modify: `btc_web/test_time_basis_phase2a.py` (append tests for env-var precedence).
+
+**Goal:** Allow `tools/build_bm_model.py --time-basis=block` to set `QS_TIME_BASIS=block` in the environment **before** importing `time_basis`, so the module-global constants `TIME_BASIS`, `T_PER_YEAR`, `T_MIN`, `T_LABEL` reflect block mode without rewriting `quantoshi.toml`. The TOML stays as the canonical site default; the env var is a per-invocation override (used by build tools, possibly by tests).
+
+- [ ] **Step 1: Append failing tests**
+
+Append to `btc_web/test_time_basis_phase2a.py`:
+
+```python
+def test_time_basis_env_var_override(tmp_path, monkeypatch):
+    """QS_TIME_BASIS env var overrides the TOML file value."""
+    # Create a tiny TOML that says calendar
+    toml_path = tmp_path / "test_quantoshi.toml"
+    toml_path.write_text(
+        'time_basis = "calendar"\n'
+        'block_origin = 20188\n'
+        'blocks_per_year = 52596\n'
+    )
+    import time_basis as tb
+    # Without env var: TOML wins
+    cfg_no_env = tb._load_config(toml_path)
+    assert cfg_no_env["time_basis"] == "calendar"
+    # With env var: env wins
+    monkeypatch.setenv("QS_TIME_BASIS", "block")
+    cfg_block = tb._load_config(toml_path)
+    assert cfg_block["time_basis"] == "block"
+
+
+def test_time_basis_env_var_invalid_value_falls_back(tmp_path, monkeypatch):
+    """Bogus env var value falls back to TOML/default."""
+    import time_basis as tb
+    toml_path = tmp_path / "test_quantoshi.toml"
+    toml_path.write_text(
+        'time_basis = "calendar"\n'
+        'block_origin = 20188\n'
+        'blocks_per_year = 52596\n'
+    )
+    monkeypatch.setenv("QS_TIME_BASIS", "garbage")
+    cfg = tb._load_config(toml_path)
+    # Bogus env value should NOT silently change basis; fall back to TOML.
+    assert cfg["time_basis"] == "calendar"
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+```bash
+cd /scratch/code/bitcoinprojections
+btc_venv/bin/python3 -m pytest btc_web/test_time_basis_phase2a.py -v -k env_var
+```
+
+Expected: 2 FAILs.
+
+- [ ] **Step 3: Modify `btc_web/time_basis.py::_load_config`**
+
+Find the existing `_load_config` function. Replace its body with env-var-aware logic. The new function:
+
+```python
+def _load_config(path: Optional[Path] = None) -> dict:
+    """Load quantoshi.toml, falling back to _DEFAULTS if missing.
+
+    Honor `QS_TIME_BASIS` env var as an override on the `time_basis`
+    field only. The env var is used by build tools to flip basis for a
+    single process without rewriting the TOML. Bogus env values
+    (anything not in {"calendar", "block"}) are silently ignored
+    (TOML/default wins).
+
+    Public for testing — production callers should use the module-level
+    constants below, which are computed once at import time.
+    """
+    import os as _os
+    p = path if path is not None else _TOML_PATH
+    if not p.exists():
+        _LOG.warning("time_basis: %s not found; using defaults (calendar)", p)
+        cfg = dict(_DEFAULTS)
+    else:
+        with open(p, "rb") as f:
+            cfg = {**_DEFAULTS, **tomllib.load(f)}
+    env_override = _os.environ.get("QS_TIME_BASIS")
+    if env_override in ("calendar", "block"):
+        if env_override != cfg.get("time_basis"):
+            _LOG.info(
+                "time_basis: QS_TIME_BASIS env var overrides TOML "
+                "(%r → %r)", cfg.get("time_basis"), env_override,
+            )
+        cfg["time_basis"] = env_override
+    elif env_override is not None:
+        _LOG.warning(
+            "time_basis: QS_TIME_BASIS=%r is not 'calendar' or 'block'; "
+            "ignoring (using %r from TOML/default)",
+            env_override, cfg.get("time_basis"),
+        )
+    return cfg
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+```bash
+btc_venv/bin/python3 -m pytest btc_web/test_time_basis_phase2a.py -v -k env_var
+```
+
+Expected: 2 PASS.
+
+- [ ] **Step 5: Run the full Phase 1 + Phase 2a suite to verify no regression**
+
+```bash
+btc_venv/bin/python3 -m pytest btc_web/test_time_basis.py btc_web/test_time_basis_integration.py btc_web/test_time_basis_phase2a.py -v 2>&1 | tail -10
+```
+
+Expected: all pass (no regression in calendar-mode behavior).
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add btc_web/time_basis.py btc_web/test_time_basis_phase2a.py
+git commit -m "feat(phase2b.i): QS_TIME_BASIS env var override for time_basis
+
+time_basis._load_config now honors a QS_TIME_BASIS env var as a
+single-process override on the time_basis field. Used by
+tools/build_bm_model.py --time-basis=block to flip the module-global
+constants (T_PER_YEAR, T_MIN, T_LABEL) without rewriting
+quantoshi.toml. Bogus env values are silently ignored (TOML wins).
+
+This closes a Phase 2a gap: Phase 2a's CLI flag parameterized
+load_prices() but did not propagate to the module-level constants
+read from the TOML at import time, breaking year_to_t() in
+fitting.py. With the env var, tools/build_bm_model.py can set
+QS_TIME_BASIS before importing anything and the constants reflect
+the chosen axis end-to-end.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
+## Task 2: Make `tools/build_bm_model.py` set env var + axis-aware filenames
+
+**Files:**
+- Modify: `tools/build_bm_model.py` (set `QS_TIME_BASIS` before imports; axis-aware `pkl_path` + `diag_path`).
 - Modify: `btc_web/test_time_basis_phase2a.py` (append a regression test).
 
-**Goal:** When `--time-basis=block`, the build writes to `model_data_block.pkl` (and `model_data_block_resqr_diagnostics.json`). Calendar mode unchanged: `model_data.pkl` and `model_data_resqr_diagnostics.json`.
+**Goal:** Wire the CLI flag to the env var so the module-global constants reflect the chosen axis. Axis-aware filenames so block builds don't overwrite calendar artifacts.
 
 - [ ] **Step 1: Append regression test**
 

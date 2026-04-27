@@ -67,9 +67,9 @@ done
 
 **Method B (no bitcoind):** consult two independent block explorers (e.g., blockchair.com, mempool.space) for "the highest block height with timestamp on 2009-07-25 UTC." Both must agree. Record the URL in a TOML comment for traceability.
 
-**Method C (lazy):** the spec's placeholder `17448` is within ±100 of the true value; for an A/B comparison this precision is irrelevant (≈8 hours of chain time vs the 16-year fit window). If no rigorous lookup is possible, accept `17448` and document the imprecision in a TOML comment.
+**Method C (use the pre-resolved value):** the controller has already run Method A on a local bitcoind. The authoritative block is **20188** (last block of 2009-07-25 UTC, timestamp `2009-07-25T15:00:18Z`, hash starts with `00000000...`). This value is correct; just paste it. (Note: the spec's earlier placeholder of `17448` was wrong by ~2740 blocks. Don't use 17448.)
 
-Acceptance: a single integer `<block>` whose source is documented (RPC output, URL, or "spec placeholder").
+Acceptance: integer `20188` (or, if running Method A independently, whatever today's bitcoind reports — must be 19000 ≤ value ≤ 21000).
 
 - [ ] **Step 2: Write the failing test for `quantoshi.toml` existence and field shape**
 
@@ -101,7 +101,11 @@ def test_quantoshi_toml_has_required_fields():
         cfg = tomllib.load(f)
     assert cfg["time_basis"] in ("calendar", "block")
     assert isinstance(cfg["block_origin"], int)
-    assert 17000 <= cfg["block_origin"] <= 18000  # sanity bounds
+    # Sanity bound: block at 2009-07-25 UTC is in early-2009 chain history.
+    # Actual value resolved via bitcoind RPC: 20188 (last block of that
+    # UTC day, timestamp 2009-07-25T15:00:18Z). Keep bound loose so the
+    # test isn't brittle if precision is revised.
+    assert 19000 <= cfg["block_origin"] <= 21000
     assert cfg["blocks_per_year"] == 52596
 
 
@@ -295,7 +299,7 @@ _TOML_PATH = _REPO_ROOT / "quantoshi.toml"
 
 _DEFAULTS = {
     "time_basis": "calendar",
-    "block_origin": 17448,        # spec placeholder; pinned in TOML
+    "block_origin": 20188,        # last block of 2009-07-25 UTC (RPC-verified)
     "blocks_per_year": 52596,     # 144 × 365.25
 }
 

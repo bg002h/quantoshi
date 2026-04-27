@@ -266,3 +266,47 @@ def test_fitting_default_config_scales_with_t_per_year(monkeypatch):
     for mod in list(sys.modules):
         if mod.startswith("time_basis") or mod == "model_toolkit.fitting":
             del sys.modules[mod]
+
+
+def test_composite_plot_grid_axis_aware(monkeypatch):
+    """composite.PLOT_YEARS_MIN/MAX scale by T_PER_YEAR."""
+    import sys
+    monkeypatch.setenv("QS_TIME_BASIS", "block")
+    for mod in list(sys.modules):
+        if mod.startswith("time_basis") or mod.startswith("model_toolkit"):
+            del sys.modules[mod]
+    repo_root = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(repo_root / "tools"))
+    sys.path.insert(0, str(repo_root / "btc_web"))
+    from model_toolkit import composite
+    assert composite.PLOT_YEARS_MIN == 1.0 * 52596.0
+    assert composite.PLOT_YEARS_MAX == 72.0 * 52596.0
+    # Reset
+    monkeypatch.delenv("QS_TIME_BASIS", raising=False)
+    for mod in list(sys.modules):
+        if mod.startswith("time_basis") or mod.startswith("model_toolkit"):
+            del sys.modules[mod]
+
+
+def test_prediction_intervals_axis_aware(monkeypatch):
+    """prediction.predict_future default intervals scale by T_PER_YEAR."""
+    import sys, inspect
+    monkeypatch.setenv("QS_TIME_BASIS", "block")
+    for mod in list(sys.modules):
+        if mod.startswith("time_basis") or mod.startswith("model_toolkit"):
+            del sys.modules[mod]
+    repo_root = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(repo_root / "tools"))
+    sys.path.insert(0, str(repo_root / "btc_web"))
+    from model_toolkit import prediction
+    sig = inspect.signature(prediction.predict_future)
+    # Defaults should be scaled by T_PER_YEAR (52596 in block mode)
+    assert sig.parameters["major_default_interval"].default == 3.8 * 52596.0
+    assert sig.parameters["minor_default_interval"].default == 3.8 * 52596.0
+    assert sig.parameters["major_min_interval"].default == 1.4 * 52596.0
+    assert sig.parameters["minor_min_interval"].default == 0.15 * 52596.0
+    # Reset
+    monkeypatch.delenv("QS_TIME_BASIS", raising=False)
+    for mod in list(sys.modules):
+        if mod.startswith("time_basis") or mod.startswith("model_toolkit"):
+            del sys.modules[mod]

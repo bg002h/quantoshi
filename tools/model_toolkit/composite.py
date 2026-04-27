@@ -4,9 +4,19 @@ from dataclasses import dataclass
 import numpy as np
 from .bubble_shape import bubble_shape
 
+# Axis-aware imports for time scaling.
+import sys as _sys
+from pathlib import Path as _Path
+_BTC_WEB = str(_Path(__file__).resolve().parent.parent.parent / "btc_web")
+if _BTC_WEB not in _sys.path:
+    _sys.path.insert(0, _BTC_WEB)
+from time_basis import T_PER_YEAR  # noqa: E402
+del _sys, _Path, _BTC_WEB
+
 PLOT_GRID_POINTS = 3000
-PLOT_YEARS_MIN = 1.0
-PLOT_YEARS_MAX = 72.0
+# Phase 2a: plot range scales with axis (years in calendar, blocks in block).
+PLOT_YEARS_MIN = 1.0 * T_PER_YEAR
+PLOT_YEARS_MAX = 72.0 * T_PER_YEAR
 
 
 @dataclass

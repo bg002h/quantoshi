@@ -2,6 +2,21 @@
 from __future__ import annotations
 import numpy as np
 
+# Axis-aware imports for time scaling.
+import sys as _sys
+from pathlib import Path as _Path
+_BTC_WEB = str(_Path(__file__).resolve().parent.parent.parent / "btc_web")
+if _BTC_WEB not in _sys.path:
+    _sys.path.insert(0, _BTC_WEB)
+from time_basis import T_PER_YEAR  # noqa: E402
+del _sys, _Path, _BTC_WEB
+
+# Phase 2a: bubble intervals scale with axis (years in calendar, blocks in block).
+_DEFAULT_MAJOR_INTERVAL = 3.8 * T_PER_YEAR
+_DEFAULT_MINOR_INTERVAL = 3.8 * T_PER_YEAR
+_MAJOR_MIN_INTERVAL = 1.4 * T_PER_YEAR
+_MINOR_MIN_INTERVAL = 0.15 * T_PER_YEAR
+
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -21,10 +36,10 @@ def predict_future(
     minor_weights=None,
     major_interval_trend=True,
     minor_interval_trend=True,
-    major_default_interval=3.8,
-    minor_default_interval=3.8,
-    major_min_interval=1.4,
-    minor_min_interval=0.15,
+    major_default_interval=_DEFAULT_MAJOR_INTERVAL,
+    minor_default_interval=_DEFAULT_MINOR_INTERVAL,
+    major_min_interval=_MAJOR_MIN_INTERVAL,
+    minor_min_interval=_MINOR_MIN_INTERVAL,
     plat_pow_range=8.0,
 ):
     """Predict future bubbles for both major and minor classes.
@@ -102,8 +117,8 @@ def _predict(
     *,
     extrap_weights=None,
     use_interval_trend=True,
-    default_interval=3.8,
-    min_interval=0.15,
+    default_interval=_DEFAULT_MINOR_INTERVAL,
+    min_interval=_MINOR_MIN_INTERVAL,
     last_n=None,
     t_last_data=None,
     plat_pow_range=8.0,

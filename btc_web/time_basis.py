@@ -90,3 +90,35 @@ def t_to_calendar(t: float) -> _dt.date:
     years = t if TIME_BASIS == "calendar" else t / T_PER_YEAR
     days = years * 365.25
     return T_ORIGIN_DATE + _dt.timedelta(days=days)
+
+
+def year_to_t(cal_year: float) -> float:
+    """Convert a (possibly fractional) calendar year to t in the active basis.
+
+    Calendar mode: t = years since 2009-07-25 (`(date - origin).days / 365.25`).
+    Block mode:    t = projected block offset, using T_PER_YEAR.
+
+    `cal_year` may be fractional (e.g. 2024.5 ≈ July 1, 2024). Integer part
+    is treated as January 1 of that calendar year; the fractional part adds
+    `frac × T_PER_YEAR` to the result (1 calendar year worth of t-units).
+
+    Used by tools/model_toolkit/fitting.py::find_peaks to convert bubble-year
+    centers (e.g. 2017, 2021) to t for peak-finding masks.
+
+    Note: distinct from the existing `btc_core/_helpers.py::yr_to_t` (calendar-
+    only). Phase 2c will consolidate.
+    """
+    yr = int(cal_year)
+    frac = float(cal_year) - yr
+    base_date = _dt.date(yr, 1, 1)
+    base_t = calendar_to_t(base_date)
+    return base_t + frac * T_PER_YEAR
+
+
+def today_t() -> float:
+    """Today's date converted to t in the active basis.
+
+    Note: distinct from the existing `btc_core/_helpers.py::today_t` (calendar-
+    only). Phase 2c will consolidate.
+    """
+    return calendar_to_t(_dt.date.today())

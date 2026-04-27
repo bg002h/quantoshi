@@ -25,11 +25,27 @@ EF_INTERCEPT = -1.630623
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Build model_data_ef.pkl (Empirical Floor model). "
+                    "Note: EF is axis-exempt (calendar-native) per "
+                    "time-basis spec section 2; the --time-basis flag exists for "
+                    "symmetry with build_bm_model.py but block mode is "
+                    "expected to remain calendar-equivalent.")
+    parser.add_argument(
+        "--time-basis", choices=["calendar", "block"], default="calendar",
+        help="Time axis (default calendar). EF is axis-exempt; block "
+             "mode produces the same artifact as calendar mode.",
+    )
+    args = parser.parse_args()
+    print(f"time_basis: {args.time_basis} "
+          f"(EF is axis-exempt — calendar-native by design)")
+
     print("=" * 70)
     print("Building Empirical Floor model")
     print("=" * 70)
 
-    prices = load_prices("BitcoinPricesDaily.csv")
+    prices = load_prices("BitcoinPricesDaily.csv", time_basis=args.time_basis)
     sup = fixed_support(EF_INTERCEPT, EF_SLOPE, prices)
     print(f"  EF support: slope={sup.slope}, intercept={sup.intercept}")
 

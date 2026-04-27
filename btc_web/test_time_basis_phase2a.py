@@ -169,3 +169,32 @@ def test_date_conversion_calendar_mode_unchanged():
         new_date = tb.t_to_calendar(t)
         # Must agree to within 1 day (rounding from day-floor).
         assert abs((pd.Timestamp(new_date) - old_ts).days) <= 1
+
+
+def test_build_bm_model_accepts_time_basis_flag():
+    """tools/build_bm_model.py --help shows --time-basis flag."""
+    import subprocess
+    repo_root = Path(__file__).resolve().parent.parent
+    result = subprocess.run(
+        [str(repo_root / "btc_venv/bin/python3"),
+         str(repo_root / "tools/build_bm_model.py"), "--help"],
+        capture_output=True, text=True, cwd=repo_root, timeout=30,
+    )
+    assert result.returncode == 0, f"stderr: {result.stderr!r}"
+    assert "--time-basis" in result.stdout
+    assert "calendar" in result.stdout
+    assert "block" in result.stdout
+
+
+def test_build_ef_model_accepts_time_basis_flag():
+    """tools/build_ef_model.py --help shows --time-basis flag."""
+    import subprocess
+    repo_root = Path(__file__).resolve().parent.parent
+    result = subprocess.run(
+        [str(repo_root / "btc_venv/bin/python3"),
+         str(repo_root / "tools/build_ef_model.py"), "--help"],
+        capture_output=True, text=True, cwd=repo_root, timeout=30,
+    )
+    assert result.returncode == 0, f"stderr: {result.stderr!r}"
+    assert "--time-basis" in result.stdout
+    assert "axis-exempt" in result.stdout.lower() or "calendar-native" in result.stdout.lower()

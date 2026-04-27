@@ -204,8 +204,22 @@ def _fit_all_resqr(pkl_path):
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Build model_data.pkl via model_toolkit.")
+    parser.add_argument(
+        "--time-basis", choices=["calendar", "block"], default="calendar",
+        help="Time axis for fits. 'calendar' (default) computes years since "
+             "2009-07-25; 'block' computes blocks since T_ORIGIN_BLOCK "
+             "(read from quantoshi.toml). Block mode requires "
+             "BitcoinBlocksDaily.csv. Phase 2a: parameterized but block "
+             "rebuild is Phase 2b's job.",
+    )
+    args = parser.parse_args()
+    print(f"time_basis: {args.time_basis}")
+
     print("Loading prices...")
-    prices = load_prices("BitcoinPricesDaily.csv")
+    prices = load_prices("BitcoinPricesDaily.csv", time_basis=args.time_basis)
     print(f"  {len(prices.df)} fitting points, {len(prices.df_full)} total")
 
     print("Fitting support line...")

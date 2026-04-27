@@ -238,3 +238,31 @@ def test_build_bm_model_pkl_path_axis_aware():
     assert "model_data.pkl" in src
     assert "model_data_block.pkl" in src
     assert "QS_TIME_BASIS" in src  # env var must be set before imports
+
+
+def test_fitting_default_config_scales_with_t_per_year(monkeypatch):
+    """fitting.DEFAULT_CONFIG window constants scale by T_PER_YEAR."""
+    import sys
+    repo_root = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(repo_root / "tools"))
+    sys.path.insert(0, str(repo_root / "btc_web"))
+    # Force a fresh module load with QS_TIME_BASIS=block
+    monkeypatch.setenv("QS_TIME_BASIS", "block")
+    # Pop any cached time_basis or fitting from sys.modules so they reload
+    for mod in list(sys.modules):
+        if mod.startswith("time_basis") or mod == "model_toolkit.fitting":
+            del sys.modules[mod]
+    import time_basis as tb
+    assert tb.TIME_BASIS == "block"
+    assert tb.T_PER_YEAR == 52596.0
+    from model_toolkit import fitting
+    cfg = fitting.DEFAULT_CONFIG
+    # In block mode, BUBBLE_YEAR_WINDOW should be 0.75 × 52596 = 39447
+    assert cfg["BUBBLE_YEAR_WINDOW"] == 0.75 * 52596.0
+    assert cfg["FIT_CONTEXT_YR"] == 1.0 * 52596.0
+    assert cfg["FIT_RISE_LOOKBACK_YR"] == 0.75 * 52596.0
+    # Reset to calendar so other tests in the suite see calendar
+    monkeypatch.delenv("QS_TIME_BASIS", raising=False)
+    for mod in list(sys.modules):
+        if mod.startswith("time_basis") or mod == "model_toolkit.fitting":
+            del sys.modules[mod]

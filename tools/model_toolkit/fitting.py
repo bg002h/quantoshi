@@ -16,7 +16,7 @@ from pathlib import Path as _Path
 _BTC_WEB = str(_Path(__file__).resolve().parent.parent.parent / "btc_web")
 if _BTC_WEB not in _sys.path:
     _sys.path.insert(0, _BTC_WEB)
-from time_basis import year_to_t, t_to_calendar  # noqa: E402
+from time_basis import year_to_t, t_to_calendar, T_PER_YEAR  # noqa: E402
 del _sys, _Path, _BTC_WEB
 
 
@@ -27,11 +27,13 @@ del _sys, _Path, _BTC_WEB
 DEFAULT_CONFIG = {
     # Bubble years to search for peaks
     "BUBBLE_YEARS":             [2011, 2013, 2017, 2021, 2025],
-    "BUBBLE_YEAR_WINDOW":       0.75,
+    # Phase 2b.i: window in t-units (years in calendar, blocks in block).
+    # T_PER_YEAR is 1.0 in calendar mode, 52596.0 in block mode.
+    "BUBBLE_YEAR_WINDOW":       0.75 * T_PER_YEAR,
 
-    # Fitting window
-    "FIT_CONTEXT_YR":           1.0,
-    "FIT_RISE_LOOKBACK_YR":     0.75,
+    # Fitting window — same axis-aware scaling
+    "FIT_CONTEXT_YR":           1.0 * T_PER_YEAR,
+    "FIT_RISE_LOOKBACK_YR":     0.75 * T_PER_YEAR,
 
     # Plateau constraint
     "PLATEAU_PARALLEL_SUPPORT": True,
@@ -61,7 +63,7 @@ def _cfg(config, key):
 # STEP 2 equivalent: locate bubble peaks
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def find_peaks(log_excess, years, bubble_years, window=0.75):
+def find_peaks(log_excess, years, bubble_years, window=None):
     """Find the highest log-excess within +/-*window* of Jan 1 of each bubble year.
 
     Parameters
@@ -72,8 +74,10 @@ def find_peaks(log_excess, years, bubble_years, window=0.75):
         Years since genesis corresponding to *log_excess*.
     bubble_years : list[int]
         Calendar years in which a bubble peak is expected.
-    window : float
-        Half-width of the search window in years (default 0.75).
+    window : float, optional
+        Half-width of the search window in t-units. Default is
+        ``0.75 * T_PER_YEAR`` (axis-aware: 0.75 yr in calendar mode,
+        ~39447 blocks in block mode).
 
     Returns
     -------
@@ -81,6 +85,8 @@ def find_peaks(log_excess, years, bubble_years, window=0.75):
         One dict per located peak with keys: bubble_year, peak_t, region_lo,
         region_hi, raw_K.  Years with no data in the search window are skipped.
     """
+    if window is None:
+        window = 0.75 * T_PER_YEAR  # axis-aware default
     peaks = []
     for yr in bubble_years:
         # Phase 2a: year_to_t is axis-aware (calendar: years; block: blocks).

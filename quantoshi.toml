@@ -1,0 +1,21 @@
+# quantoshi.toml — site-wide admin preferences.
+# Read by btc_web/ + tools/build_*.py via stdlib tomllib at import time.
+# Edit-then-rebuild semantics: changing time_basis here requires
+# rebuilding model_data.pkl + restarting the app.
+
+# Canonical training axis for site models.
+# "calendar" — t = years since 2009-07-25 (current site default)
+# "block"    — t = blocks since block_origin (Phase 2+ only; do not flip
+#              until model_data_block.pkl exists)
+time_basis = "calendar"
+
+# Block height at 2009-07-25 UTC (the calendar time origin).
+# Pinned for reproducibility — DO NOT derive at runtime.
+# Source: local bitcoind RPC binary search. Last block of 2009-07-25 UTC
+# is block 20188 (timestamp 2009-07-25T15:00:18Z).
+block_origin = 20188
+
+# Forward block-rate constant: 144 blocks/day × 365.25 days/year.
+# Used only to project FUTURE block heights from calendar dates.
+# Training data uses real observed heights from BitcoinBlocksDaily.csv.
+blocks_per_year = 52596

@@ -38,6 +38,31 @@ This file logs every non-trivial decision I made on their behalf. **Review on wa
 
 (Populated below as I proceed. Each entry: what, why, reversibility.)
 
+### D8: Decisions-log audit caught 3 minor items, all addressed
+- **What:** A fresh agent audited this very file (D1–D7) and flagged:
+  - **D8a:** No explicit log entry for the snapshot-fp behavior change in commit `bc041d1` (the `h.update(TIME_BASIS.encode())` insertion). D4 covered the registry update only. **Addressed by adding D9 below.**
+  - **D8b:** Group B "pre-existing master failures" rested on the controller's word; the auditor wanted independent verification. **Done:** I checked out master HEAD (`d21fe7e`) and ran the two failing tests. Both fail there too. D6 is verified.
+  - **D8c:** D5a (`sys.path.insert` hack) reversibility was true but "harmless to defer" understated — the hack is *load-bearing for test isolation*. Once `tools/model_toolkit/export.py` is imported in any pytest run, `btc_web/` stays on `sys.path` for the rest of the process. **Tightened: see D5a-amended below.**
+- **Why:** Audit fidelity. The user explicitly asked for a critical review of this log.
+- **Reversibility:** This entry is documentation; nothing to reverse.
+
+### D9: Snapshot-fp behavior change (commit bc041d1) — explicit log entry
+- **What:** Task 5 modified `_compute_snapshot_defaults_fingerprint()` to feed `TIME_BASIS` + `\x00` into the streaming sha256 hash *before* the `_SNAPSHOT_CONTROLS` loop. Algorithm (sha256), slice (`[:8]`), and lazy `_SNAPSHOT_CONTROLS` import preserved. Calendar-mode fingerprint changed from `60990754` → `4fbb63a6`.
+- **Why:** Per spec §3.4, the share-link fingerprint must include the active axis so calendar/block links never collide. Phase 3 will enforce strict cross-axis decode rejection; Phase 1 only reserves the slot.
+- **Impact on existing share links:** Old `q4:` links built before this commit decode against the historical-defaults registry (which retains the prior `60990754` entry — see D4). The fallback path is pre-existing infrastructure, not new code.
+- **Reversibility:** Three-step revert: (1) remove the two `h.update()` calls in `snapshot_defaults.py`, (2) re-run `tools/update_defaults_registry.py` (it'll re-promote the old fp to current), (3) optionally `git checkout` the registry JSON. Trivial.
+
+### D5a-amended: `sys.path.insert` hack is load-bearing, not just stylistic
+- **Original D5a:** Phase 2 cleanup, "harmless to defer."
+- **Auditor's correction:** The hack is load-bearing for test isolation — once any test imports `tools/model_toolkit/export.py`, `btc_web/` stays on `sys.path` for the remainder of the pytest process. Currently no observed breakage but it's a real isolation hazard, not just stylistic.
+- **Action taken:** No code change, but the `TODO(phase2)` comment in `export.py` (commit `8b04a45`) already documents the hazard.
+
+### D10: Accidental `git stash pop` during D8b verification
+- **What:** While verifying D8b on master HEAD, I ran `git stash -u` (stashed nothing — working tree was clean) then later `git stash pop` (popped a *prior* unrelated stash — `WIP on master: d21fe7e fix(mi-deeplink)…`). This created merge conflicts in `btc_web/callbacks/routing.py` and `btc_web/layout/model_info/__init__.py`.
+- **Recovery:** `git checkout HEAD -- .` reverted the working tree to the committed state (`feb9bf9`). The stash entry was preserved on the stack (conflict means `pop` becomes `apply`, not removal).
+- **Lesson:** `git stash pop` always pops top-of-stack regardless of whether the controlling agent created it. Better practice: check `git stash list` before either command, or commit changes to a throwaway branch instead of stashing.
+- **Reversibility:** Already reverted. Original stash@{0} preserved unchanged.
+
 ### D7: Phase 1 final review = SHIP. Added TODO(phase2) markers per reviewer suggestion.
 - **What:** Final code reviewer (commit `c322549` review) approved Phase 1 ship-as-is and suggested adding code-side `TODO(phase2)` comments at the two known soft spots in `tools/model_toolkit/export.py`. Done in commit `8b04a45`.
 - **Why:** Reviewer's suggestion was "make Phase 2 cleanup mechanically searchable" — agreed, 2 minutes of work for grep-friendly tech-debt tracking.

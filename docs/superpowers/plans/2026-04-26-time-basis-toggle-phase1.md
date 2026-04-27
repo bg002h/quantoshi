@@ -419,7 +419,7 @@ Read `btc_web/_app_ctx.py` to find the singleton-flag block (near `_HAS_REDIS`, 
 # Time basis (re-exported from btc_web.time_basis for caller convenience).
 # Canonical home is btc_web/time_basis.py; this is just a singleton alias.
 # ─────────────────────────────────────────────────────────────────
-from btc_web.time_basis import (  # noqa: E402
+from time_basis import (  # noqa: E402
     TIME_BASIS,
     T_ORIGIN_DATE,
     T_ORIGIN_BLOCK,
@@ -493,33 +493,44 @@ import pytest
 
 
 def test_cache_l1_prefix_includes_time_basis():
-    """Cache key prefix carries the axis so calendar/block won't collide."""
-    from btc_web import cache
-    from btc_web.time_basis import TIME_BASIS
-    key = cache.k("bub", a=1, b=2)
+    """Cache key prefix carries the axis so calendar/block won't collide.
+
+    cache.py uses neighbor-import (`import _app_ctx`, no btc_web. prefix)
+    because gunicorn runs with btc_web/ on sys.path. Tests must match.
+    """
+    import sys
+    sys.path.insert(0, "btc_web")
+    import cache  # noqa: E402
+    from time_basis import TIME_BASIS  # noqa: E402
+    key = cache._cache_key("bub", '{"a": 1, "b": 2}')
     assert key.startswith(f"fig:{TIME_BASIS}:"), (
         f"cache key {key!r} should start with fig:{TIME_BASIS}:")
 
 
 def test_cache_l0_fingerprint_includes_time_basis():
-    """L0 pinned fingerprint hash input includes TIME_BASIS."""
-    from btc_web import cache
-    from btc_web.time_basis import TIME_BASIS
-    expected_input = f"{TIME_BASIS}:{cache._MODEL_FP}:{cache._DEFAULTS_HASH}"
-    expected_fp = hashlib.md5(expected_input.encode()).hexdigest()[:8]
+    """L0 pinned fingerprint hash input includes TIME_BASIS.
+
+    Slice is [:12] (matches existing cache.py:134 — do NOT shorten to [:8]).
+    """
+    import sys
+    sys.path.insert(0, "btc_web")
+    import cache  # noqa: E402
+    from time_basis import TIME_BASIS  # noqa: E402
+    from tab_defaults import _DEFAULTS_HASH  # noqa: E402
+    expected_input = f"{TIME_BASIS}:{cache._MODEL_FP}:{_DEFAULTS_HASH}"
+    expected_fp = hashlib.md5(expected_input.encode()).hexdigest()[:12]
     assert cache._L0_FINGERPRINT == expected_fp
 
 
 def test_calendar_block_cache_keys_differ(monkeypatch):
     """Same params but different TIME_BASIS yield different cache keys."""
-    from btc_web import cache
-    from btc_web import time_basis as tb
-    monkeypatch.setattr(tb, "TIME_BASIS", "calendar")
+    import sys
+    sys.path.insert(0, "btc_web")
+    import cache  # noqa: E402
     monkeypatch.setattr(cache, "TIME_BASIS", "calendar", raising=False)
-    cal = cache.k("bub", a=1)
-    monkeypatch.setattr(tb, "TIME_BASIS", "block")
+    cal = cache._cache_key("bub", '{"a": 1}')
     monkeypatch.setattr(cache, "TIME_BASIS", "block", raising=False)
-    blk = cache.k("bub", a=1)
+    blk = cache._cache_key("bub", '{"a": 1}')
     assert cal != blk
     assert ":calendar:" in cal
     assert ":block:" in blk
@@ -535,10 +546,10 @@ Expected: 3 FAILs — cache key does not yet contain `TIME_BASIS`.
 
 - [ ] **Step 4: Modify `btc_web/cache.py`**
 
-At the top of the file (after the `_app_ctx` imports near line 24), add:
+At the top of the file (after the `import _app_ctx` line at line 18), add (matching the neighbor's no-prefix style — gunicorn runs with `btc_web/` on `sys.path`):
 
 ```python
-from btc_web.time_basis import TIME_BASIS
+from time_basis import TIME_BASIS
 ```
 
 At line 35, change:
@@ -576,7 +587,7 @@ At line 133, change:
 ```python
 _L0_FINGERPRINT = hashlib.md5(
     f"{_MODEL_FP}:{_DEFAULTS_HASH}".encode()
-).hexdigest()[:8]
+).hexdigest()[:12]
 ```
 
 to:
@@ -584,8 +595,10 @@ to:
 ```python
 _L0_FINGERPRINT = hashlib.md5(
     f"{TIME_BASIS}:{_MODEL_FP}:{_DEFAULTS_HASH}".encode()
-).hexdigest()[:8]
+).hexdigest()[:12]
 ```
+
+**Slice MUST stay `[:12]`** — that's the existing format and downstream consumers expect 12 chars.
 
 - [ ] **Step 5: Run tests to verify they pass**
 
@@ -630,10 +643,25 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 - [ ] **Step 1: Read the existing fingerprint helper**
 
 ```bash
-sed -n '380,420p' btc_web/snapshot_defaults.py
+sed -n '385,400p' btc_web/snapshot_defaults.py
 ```
 
-Locate `_compute_snapshot_defaults_fingerprint()` and the lines that build its hash input.
+The actual function (lines 385–394) uses **streaming sha256 over `_SNAPSHOT_CONTROLS`**, not md5 over a `repr()` blob:
+
+```python
+def _compute_snapshot_defaults_fingerprint() -> str:
+    """8-char SHA256 over SNAPSHOT_DEFAULTS values, ordered by
+    _SNAPSHOT_CONTROLS. Stable under benign dict-literal reorderings."""
+    from snapshot import _SNAPSHOT_CONTROLS
+    h = hashlib.sha256()
+    for cid, prop in _SNAPSHOT_CONTROLS:
+        val = SNAPSHOT_DEFAULTS.get(f"{cid}:{prop}")
+        h.update(json.dumps(val, sort_keys=True).encode())
+        h.update(b"\x00")
+    return h.hexdigest()[:8]
+```
+
+The surgical change: feed `TIME_BASIS` into the hash *before* the loop. Keep algorithm (sha256), keep slice (`[:8]`), keep streaming pattern.
 
 - [ ] **Step 2: Append failing test**
 
@@ -676,19 +704,31 @@ Expected: FAIL — fingerprints are equal because the hash input does not includ
 In `btc_web/snapshot_defaults.py`, near the top imports, add:
 
 ```python
-from btc_web.time_basis import TIME_BASIS
+from time_basis import TIME_BASIS
 ```
 
-In `_compute_snapshot_defaults_fingerprint()`, prepend `f"{TIME_BASIS}|"` to whatever payload the function already builds. Approximately (use the actual current implementation as your starting point):
+In `_compute_snapshot_defaults_fingerprint()`, add the two `h.update(...)` calls **before** the existing `for cid, prop in _SNAPSHOT_CONTROLS:` loop. Algorithm and slice are preserved:
 
 ```python
 def _compute_snapshot_defaults_fingerprint() -> str:
-    # Phase 1 reserves the TIME_BASIS slot defensively so calendar/block
-    # share-links never produce identical 8-char fingerprints. Phase 3
-    # enforces cross-axis decode rejection. Spec §3.4.
-    payload = f"{TIME_BASIS}|{SNAPSHOT_DEFAULTS!r}".encode()
-    return hashlib.md5(payload).hexdigest()[:8]
+    """8-char SHA256 over SNAPSHOT_DEFAULTS values, ordered by
+    _SNAPSHOT_CONTROLS. Stable under benign dict-literal reorderings.
+
+    Phase 1: TIME_BASIS hashed in first so calendar/block links never
+    collide. Phase 3 enforces cross-axis decode rejection (spec §3.4).
+    """
+    from snapshot import _SNAPSHOT_CONTROLS
+    h = hashlib.sha256()
+    h.update(TIME_BASIS.encode())
+    h.update(b"\x00")
+    for cid, prop in _SNAPSHOT_CONTROLS:
+        val = SNAPSHOT_DEFAULTS.get(f"{cid}:{prop}")
+        h.update(json.dumps(val, sort_keys=True).encode())
+        h.update(b"\x00")
+    return h.hexdigest()[:8]
 ```
+
+That's the only behavioral change. Do **not** rewrite the function as md5 over a repr() blob — that would silently change the fingerprint algorithm site-wide and invalidate existing registry entries.
 
 - [ ] **Step 5: Run tests to verify they pass**
 
@@ -739,12 +779,20 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 ## Task 6: Widen `model_data.pkl` schema + JSON sidecar
 
 **Files:**
-- Modify: `tools/model_toolkit/export.py`
-- Modify: `tools/build_bm_model.py` (no logic change — passes through)
-- Create: `model_data_meta.json` (build artifact, written by export)
+- Modify: `tools/model_toolkit/export.py` — add fields to `build_bm_pkl_dict()` + `build_ef_pkl_dict()`, add sidecar emission to `write_pkl()`
+- No change: `tools/build_bm_model.py` (calls `build_bm_pkl_dict` + `write_pkl` already; new fields flow through transparently)
+- Create: `model_data_meta.json` (build artifact, emitted by `write_pkl()`)
+- Create: `model_data_ef_meta.json` (build artifact, emitted by `write_pkl()` when EF rebuilds)
 - Modify: `btc_web/test_time_basis_integration.py` (append test)
 
-**Goal:** New pkls carry `time_basis`, `t_label`, `t_per_year`, `t_origin` metadata so consumers can sanity-check what axis the fits live on. The same four fields are written to `model_data_meta.json` next to the pkl as a queryable JSON sidecar — so tests, ops, and any non-Python consumer can introspect the active axis without unpickling. Calendar-mode pkl rebuilds remain back-compat: `price_years` stays as the legacy alias for `t`.
+**Goal:** New pkls carry `time_basis`, `t_label`, `t_per_year`, `t_origin` metadata so consumers can sanity-check what axis the fits live on. The same four fields are written to a JSON sidecar next to the pkl — `model_data.pkl` ↔ `model_data_meta.json`, `model_data_ef.pkl` ↔ `model_data_ef_meta.json` — so tests, ops, and any non-Python consumer can introspect without unpickling. Calendar-mode pkl rebuilds remain back-compat: `price_years` stays as the legacy alias for `t`.
+
+**Note:** `tools/model_toolkit/export.py` actual structure is three top-level functions:
+- `build_bm_pkl_dict(price_data, support, composite, comp_by_n, qr, sigma, genesis_date=...)` — returns 19-key dict
+- `build_ef_pkl_dict(support, composite, comp_by_n, sigma, fitted, price_years, price_prices, quantiles, genesis_date=...)` — returns 16-key dict
+- `write_pkl(data, path, protocol=4)` — writes pickle + prints summary; `path` is a `str` (uses `os.path.dirname`, not `pathlib`)
+
+The plan adds 4 fields to BOTH builder dicts and adds JSON-sidecar emission to `write_pkl` so any path passing through gets a sidecar written next to it.
 
 - [ ] **Step 1: Read the current export schema**
 
@@ -752,7 +800,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 sed -n '1,80p' tools/model_toolkit/export.py
 ```
 
-Locate the dict literal that gets serialized (around lines 12–60). Note where it currently writes `"price_years"` and friends.
+Locate the three functions: `build_bm_pkl_dict` (lines 8–35), `build_ef_pkl_dict` (lines 37–63), `write_pkl` (lines 66–71).
 
 - [ ] **Step 2: Append failing test**
 
@@ -784,7 +832,7 @@ def test_model_data_meta_matches_active_time_basis():
     """The on-disk pkl metadata reflects the current TIME_BASIS config."""
     import json
     from pathlib import Path
-    from btc_web.time_basis import TIME_BASIS
+    from time_basis import TIME_BASIS
     repo_root = Path(__file__).resolve().parent.parent
     meta_path = repo_root / "model_data_meta.json"
     with open(meta_path) as f:
@@ -803,35 +851,33 @@ btc_venv/bin/python3 -m pytest btc_web/test_time_basis_integration.py::test_mode
 
 Expected: FAIL — `model_data_meta.json` does not exist.
 
-- [ ] **Step 4: Modify `tools/model_toolkit/export.py`**
+- [ ] **Step 4: Rewrite `tools/model_toolkit/export.py`**
 
-Near the top imports:
+Replace the file's contents to add the schema fields to **both** builder functions and emit a sidecar from `write_pkl`. The full new file:
 
 ```python
+# tools/model_toolkit/export.py
+"""Assemble and write model pkl files."""
+from __future__ import annotations
 import json
+import os
+import pickle
+import sys
+from pathlib import Path
 
-from btc_web.time_basis import (
+# Match prod sys.path layout — btc_web/ on path, no btc_web. prefix.
+_BTC_WEB = str(Path(__file__).resolve().parent.parent.parent / "btc_web")
+if _BTC_WEB not in sys.path:
+    sys.path.insert(0, _BTC_WEB)
+
+from time_basis import (  # noqa: E402
     TIME_BASIS, T_LABEL, T_PER_YEAR, T_ORIGIN_DATE, T_ORIGIN_BLOCK,
 )
-```
 
-In the export function (the one that builds the dict around line 30 — likely named `export_model_data` or similar), add the schema fields to the dict before serialization:
 
-```python
-    data["time_basis"] = TIME_BASIS
-    data["t_label"] = T_LABEL
-    data["t_per_year"] = T_PER_YEAR
-    data["t_origin"] = (
-        T_ORIGIN_DATE.isoformat() if TIME_BASIS == "calendar"
-        else T_ORIGIN_BLOCK
-    )
-```
-
-After the existing pkl write (the `with open(out_path, "wb") as f:` block), add the JSON sidecar write:
-
-```python
-    # Sidecar JSON for ops + tests — query active axis without unpickling.
-    meta = {
+def _axis_meta() -> dict:
+    """The four Phase 1 schema fields, derived from time_basis at call time."""
+    return {
         "time_basis": TIME_BASIS,
         "t_label": T_LABEL,
         "t_per_year": T_PER_YEAR,
@@ -840,12 +886,97 @@ After the existing pkl write (the `with open(out_path, "wb") as f:` block), add 
             else T_ORIGIN_BLOCK
         ),
     }
-    meta_path = out_path.with_name("model_data_meta.json")
-    with open(meta_path, "w") as f:
-        json.dump(meta, f, indent=2)
+
+
+def build_bm_pkl_dict(price_data, support, composite, comp_by_n, qr, sigma,
+                       genesis_date="2009-07-25"):
+    """17 keys + 4 axis-metadata keys. String keys for qr_fits.
+    float() wrappers on scalars.
+
+    E6: price_dates/years/prices from df_full (date>=fit_min_date).
+    """
+    d = {
+        "qr_fits": {str(k): dict(v) for k, v in qr.fits.items()},
+        "QR_QUANTILES": list(qr.fits.keys()),
+        "ols_intercept": float(qr.ols_intercept),
+        "ols_slope": float(qr.ols_slope),
+        "GENESIS_DATE": genesis_date,
+        "years_plot_bm": list(composite.t_grid),
+        "support_plot_bm": list(composite.support_grid),
+        "bm_support_intercept": composite.support_intercept,
+        "bm_support_slope": composite.support_slope,
+        "bm_comp_by_n": comp_by_n,
+        "bm_r2_comp": float(composite.r2),
+        "bm_n_future_max": len(comp_by_n) - 1,
+        "bm_sigma0_up": float(sigma.sigma0_up),
+        "bm_sigma0_down": float(sigma.sigma0_down),
+        "bm_alpha_up": float(sigma.alpha_up),
+        "bm_alpha_down": float(sigma.alpha_down),
+        "price_dates": price_data.df_full["date"].dt.strftime("%Y-%m-%d").tolist(),
+        "price_years": price_data.df_full["years"].tolist(),
+        "price_prices": price_data.df_full["price"].tolist(),
+    }
+    d.update(_axis_meta())
+    return d
+
+
+def build_ef_pkl_dict(support, composite, comp_by_n, sigma, fitted,
+                       price_years, price_prices, quantiles,
+                       genesis_date="2009-07-25"):
+    """EF pkl. Different key names from BM. Plus 4 axis-metadata keys."""
+    fitted_params = []
+    for b in sorted(fitted, key=lambda b: b["t_rise"]):
+        fitted_params.append({k: b.get(k, 0.0) for k in
+            ["t_rise", "r", "t_plateau", "t_decay", "d", "K",
+             "plat_pow", "dur_rise", "dur_plateau"]})
+    d = {
+        "ef_support_slope": support.slope,
+        "ef_support_intercept": support.intercept,
+        "genesis": genesis_date,
+        "years_plot": composite.t_grid.tolist(),
+        "support_plot": composite.support_grid.tolist(),
+        "comp_by_n": comp_by_n,
+        "bm_r2": float(composite.r2),
+        "n_future_max": len(comp_by_n) - 1,
+        "sigma0_up": float(sigma.sigma0_up),
+        "sigma0_down": float(sigma.sigma0_down),
+        "alpha_up": float(sigma.alpha_up),
+        "alpha_down": float(sigma.alpha_down),
+        "price_years": price_years,
+        "price_prices": price_prices,
+        "QR_QUANTILES": list(quantiles),
+        "fitted_bubbles": fitted_params,
+    }
+    d.update(_axis_meta())
+    return d
+
+
+def _sidecar_path(pkl_path: str) -> str:
+    """Derive sidecar filename from pkl path. Same dir, _meta.json suffix.
+    model_data.pkl    -> model_data_meta.json
+    model_data_ef.pkl -> model_data_ef_meta.json
+    """
+    base, _ = os.path.splitext(pkl_path)
+    return f"{base}_meta.json"
+
+
+def write_pkl(data, path, protocol=4):
+    """Write pkl file + JSON sidecar with axis metadata."""
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, "wb") as f:
+        pickle.dump(data, f, protocol=protocol)
+    print(f"Wrote {path}  ({os.path.getsize(path) // 1024} KB, {len(data)} keys)")
+    # Sidecar JSON for ops + tests — query active axis without unpickling.
+    meta = {k: data[k] for k in ("time_basis", "t_label", "t_per_year", "t_origin")
+            if k in data}
+    if meta:
+        sidecar = _sidecar_path(path)
+        with open(sidecar, "w") as f:
+            json.dump(meta, f, indent=2)
+        print(f"Wrote {sidecar}  ({len(meta)} keys)")
 ```
 
-The existing `"price_years"` field stays as-is in calendar mode (back-compat).
+The existing `"price_years"` field stays as-is in calendar mode (back-compat). `tools/build_bm_model.py` does not need changes — it already calls `build_bm_pkl_dict(...)` then `write_pkl(...)`, and the new fields flow through transparently.
 
 - [ ] **Step 5: Rebuild `model_data.pkl`**
 
@@ -919,21 +1050,25 @@ def test_custom_fit_does_not_import_time_basis():
     Tab 1's Custom Time Axis panel is independent of the site-wide
     TIME_BASIS. Coupling would mean changing the admin TOML would
     silently change CTA fits — surprising and wrong.
+
+    Two-layer check:
+      1. AST walker catches static `import` / `from … import` forms.
+      2. Substring scan catches dynamic forms (importlib.import_module,
+         __import__, getattr(sys.modules,…)) that the AST walker misses.
     """
     import ast
     from pathlib import Path
     repo_root = Path(__file__).resolve().parent.parent
     src = (repo_root / "btc_web" / "engines" / "custom_fit.py").read_text()
+
+    # Layer 1: static AST scan
     tree = ast.parse(src)
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom):
-            assert node.module != "btc_web.time_basis", (
-                "engines/custom_fit.py must not import btc_web.time_basis "
-                "(CTA stays per-fit user-controlled — spec §3.2)"
-            )
-            assert not (node.module and node.module.endswith(".time_basis")), (
+            mod = node.module or ""
+            assert mod != "time_basis" and mod != "btc_web.time_basis", (
                 f"engines/custom_fit.py must not import time_basis "
-                f"(found 'from {node.module} import …')"
+                f"(found 'from {mod} import …') — spec §3.2"
             )
         if isinstance(node, ast.Import):
             for alias in node.names:
@@ -941,6 +1076,22 @@ def test_custom_fit_does_not_import_time_basis():
                     f"engines/custom_fit.py must not import time_basis "
                     f"(found 'import {alias.name}')"
                 )
+
+    # Layer 2: substring scan (catches dynamic imports the AST misses).
+    # Strip comments and docstrings first so the assertion message itself
+    # — which mentions time_basis — doesn't trip the test.
+    import io, tokenize
+    code_only = []
+    for tok in tokenize.tokenize(io.BytesIO(src.encode()).readline):
+        if tok.type not in (tokenize.COMMENT, tokenize.STRING,
+                            tokenize.ENCODING, tokenize.NL,
+                            tokenize.NEWLINE):
+            code_only.append(tok.string)
+    code_str = " ".join(code_only)
+    assert "time_basis" not in code_str, (
+        "engines/custom_fit.py must not reference time_basis even "
+        "dynamically (importlib, __import__, etc.)"
+    )
 ```
 
 - [ ] **Step 2: Run test — should pass on the current tree**
@@ -963,7 +1114,7 @@ btc_venv/bin/python3 -c "
 import pathlib
 f = pathlib.Path('btc_web/engines/custom_fit.py')
 src = f.read_text()
-f.write_text('from btc_web.time_basis import TIME_BASIS\n' + src)
+f.write_text('from time_basis import TIME_BASIS\n' + src)
 "
 btc_venv/bin/python3 -m pytest btc_web/test_time_basis_integration.py::test_custom_fit_does_not_import_time_basis -v
 # Expected: FAIL with the assertion message about CTA staying per-fit.
@@ -1001,7 +1152,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 btc_venv/bin/python3 -m pytest btc_web/ -v --ignore-glob='*_e2e.py' 2>&1 | tail -40
 ```
 
-Expected: all tests pass (count should match master's count + the new tests added across Tasks 1–7, currently 18 new tests across `test_time_basis.py` and `test_time_basis_integration.py`).
+Expected: all tests pass (count should match master's count + the new tests added across Tasks 1–7, currently 19 new tests: 11 in `test_time_basis.py` (3 + 7 + 1) + 8 in `test_time_basis_integration.py` (3 + 2 + 2 + 1)).
 
 - [ ] **Step 2: Smoke-start the dev server**
 

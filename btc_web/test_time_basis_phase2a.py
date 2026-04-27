@@ -79,3 +79,42 @@ def test_t_min_block_mode_threshold():
         assert tb.T_MIN == tb.T_PER_YEAR == 52596.0
     else:
         assert tb.T_MIN == tb.T_PER_YEAR == 1.0
+
+
+def test_load_prices_calendar_mode_unchanged():
+    """Calendar-mode load_prices produces the same df['years'] as before."""
+    import sys
+    repo_root = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(repo_root / "tools"))
+    from model_toolkit.data import load_prices
+
+    pd_calendar = load_prices(str(repo_root / "BitcoinPricesDaily.csv"))
+    # First row in df_full is 2010-07-17 → ~0.978 years past 2009-07-25.
+    first_years = pd_calendar.df_full["years"].iloc[0]
+    assert 0.97 < first_years < 1.0
+    # Last row is in the future relative to 2009; should be > 14 years.
+    last_years = pd_calendar.df_full["years"].iloc[-1]
+    assert last_years > 14.0
+
+
+def test_load_prices_block_mode_uses_block_offsets():
+    """Block-mode load_prices joins with BitcoinBlocksDaily.csv and
+    computes years = blockheight - T_ORIGIN_BLOCK."""
+    import sys
+    repo_root = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(repo_root / "tools"))
+    sys.path.insert(0, str(repo_root / "btc_web"))
+    from model_toolkit.data import load_prices
+    from time_basis import T_ORIGIN_BLOCK
+
+    pd_block = load_prices(
+        str(repo_root / "BitcoinPricesDaily.csv"),
+        time_basis="block",
+    )
+    # First row date is 2010-07-17, which the block CSV maps to block 68779.
+    # Block offset = 68779 - 20188 = 48591.
+    first_offset = pd_block.df_full["years"].iloc[0]
+    assert 48000 < first_offset < 49500
+    # Last row offset must be much larger (block_origin is at 2009-07-25).
+    last_offset = pd_block.df_full["years"].iloc[-1]
+    assert last_offset > 700_000  # ~13 years past origin in blocks

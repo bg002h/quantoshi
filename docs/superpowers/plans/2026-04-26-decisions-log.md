@@ -38,6 +38,11 @@ This file logs every non-trivial decision I made on their behalf. **Review on wa
 
 (Populated below as I proceed. Each entry: what, why, reversibility.)
 
+### D7: Phase 1 final review = SHIP. Added TODO(phase2) markers per reviewer suggestion.
+- **What:** Final code reviewer (commit `c322549` review) approved Phase 1 ship-as-is and suggested adding code-side `TODO(phase2)` comments at the two known soft spots in `tools/model_toolkit/export.py`. Done in commit `8b04a45`.
+- **Why:** Reviewer's suggestion was "make Phase 2 cleanup mechanically searchable" — agreed, 2 minutes of work for grep-friendly tech-debt tracking.
+- **Reversibility:** Trivial (comment-only).
+
 ### D6: Task 8 caught 4 test failures; fixing 2 (Phase 1 regressions), ignoring 2 (pre-existing on master)
 - **What:** Full test suite ran 1586 passed / 4 failed / 10 skipped. Diagnosis:
   - **Group A — Phase 1 regressions (2):** `test_infrastructure.py::TestModelFingerprint::test_fingerprint_in_cache_key` and `::test_hash_length_is_32`. These hardcode the OLD 4-part cache key format (`fig:{_MODEL_FP}:{prefix}:{hash}`). Task 4 changed it to 5-part (`fig:{TIME_BASIS}:{_MODEL_FP}:{prefix}:{hash}`). Task 4's spec reviewer ran `test_cache_key_alignment.py` only, missed `test_infrastructure.py`. **My responsibility to fix.**

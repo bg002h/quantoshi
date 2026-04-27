@@ -108,3 +108,54 @@ def test_model_data_meta_matches_active_time_basis():
         f"sidecar reports {meta['time_basis']!r} but TIME_BASIS is "
         f"{TIME_BASIS!r} — rebuild model_data.pkl after editing "
         f"quantoshi.toml")
+
+
+def test_custom_fit_does_not_import_time_basis():
+    """CTA stays per-fit user-controlled — must not couple to site axis.
+
+    Spec §3.2 + §3.7. Design decision: the per-fit scale dropdown on
+    Tab 1's Custom Time Axis panel is independent of the site-wide
+    TIME_BASIS. Coupling would mean changing the admin TOML would
+    silently change CTA fits — surprising and wrong.
+
+    Two-layer check:
+      1. AST walker catches static `import` / `from … import` forms.
+      2. Substring scan catches dynamic forms (importlib.import_module,
+         __import__, getattr(sys.modules,…)) that the AST walker misses.
+    """
+    import ast
+    from pathlib import Path
+    repo_root = Path(__file__).resolve().parent.parent
+    src = (repo_root / "btc_web" / "engines" / "custom_fit.py").read_text()
+
+    # Layer 1: static AST scan
+    tree = ast.parse(src)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            mod = node.module or ""
+            assert mod != "time_basis" and mod != "btc_web.time_basis", (
+                f"engines/custom_fit.py must not import time_basis "
+                f"(found 'from {mod} import …') — spec §3.2"
+            )
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                assert "time_basis" not in alias.name, (
+                    f"engines/custom_fit.py must not import time_basis "
+                    f"(found 'import {alias.name}')"
+                )
+
+    # Layer 2: substring scan (catches dynamic imports the AST misses).
+    # Strip comments and docstrings first so the assertion message itself
+    # — which mentions time_basis — doesn't trip the test.
+    import io, tokenize
+    code_only = []
+    for tok in tokenize.tokenize(io.BytesIO(src.encode()).readline):
+        if tok.type not in (tokenize.COMMENT, tokenize.STRING,
+                            tokenize.ENCODING, tokenize.NL,
+                            tokenize.NEWLINE):
+            code_only.append(tok.string)
+    code_str = " ".join(code_only)
+    assert "time_basis" not in code_str, (
+        "engines/custom_fit.py must not reference time_basis even "
+        "dynamically (importlib, __import__, etc.)"
+    )

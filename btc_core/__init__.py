@@ -17,6 +17,23 @@ The public API is preserved exactly: every name that was importable from
 btc_core.py remains importable from btc_core.
 """
 
+# ── Phase 2a sys.path bridge ──────────────────────────────────────────────
+# btc_core needs `time_basis` (lives in btc_web/) for axis-aware constants
+# (T_MIN, T_PER_YEAR, year_to_t). Adding btc_web/ to sys.path here means
+# every btc_core submodule can `from time_basis import …` without its own
+# path manipulation. This runs once when btc_core is first imported.
+#
+# TODO(phase2c): move time_basis to a more neutral location (e.g.
+# btc_core/time_basis.py) or make btc_core a proper package. Either
+# obviates this bridge.
+import sys as _sys
+from pathlib import Path as _Path
+_BTC_WEB = str(_Path(__file__).resolve().parent.parent / "btc_web")
+if _BTC_WEB not in _sys.path:
+    _sys.path.insert(0, _BTC_WEB)
+del _sys, _Path, _BTC_WEB
+# ──────────────────────────────────────────────────────────────────────────
+
 # ── helpers + date/price utilities ────────────────────────────────────────────
 from btc_core._helpers import (
     _lazy_norm, _lazy_linregress, _lazy_QuantReg,

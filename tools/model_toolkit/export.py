@@ -8,6 +8,9 @@ import sys
 from pathlib import Path
 
 # Match prod sys.path layout — btc_web/ on path, no btc_web. prefix.
+# TODO(phase2): remove this sys.path hack. Either move time_basis into a
+# proper shared package, or do the path manipulation in a conftest.py /
+# build-script entrypoint instead of at module-import time.
 _BTC_WEB = str(Path(__file__).resolve().parent.parent.parent / "btc_web")
 if _BTC_WEB not in sys.path:
     sys.path.insert(0, _BTC_WEB)
@@ -97,6 +100,11 @@ def _sidecar_path(pkl_path: str) -> str:
     """Derive sidecar filename from pkl path. Same dir, _meta.json suffix.
     model_data.pkl    -> model_data_meta.json
     model_data_ef.pkl -> model_data_ef_meta.json
+
+    TODO(phase2): if atomic-write patterns (write to .tmp then rename) are
+    introduced, harden this with `assert pkl_path.endswith(".pkl")` — at
+    present `splitext("model_data.pkl.tmp")` strips only `.tmp` and yields
+    a wrong sidecar name. Currently unexercised; no atomic-write callers.
     """
     base, _ = os.path.splitext(pkl_path)
     return f"{base}_meta.json"

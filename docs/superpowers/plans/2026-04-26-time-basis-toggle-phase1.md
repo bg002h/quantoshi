@@ -228,15 +228,20 @@ def test_round_trip_calendar_mode():
 
 
 def test_block_mode_constants(monkeypatch):
-    """Verify block-mode constants without rewriting the TOML."""
+    """Verify block-mode constants without rewriting the TOML.
+
+    4-year date chosen so the calendar→block conversion is exact:
+    2009-07-25 → 2013-07-25 spans exactly 1461 days = 4 × 365.25,
+    so years = 1461/365.25 = 4.0 (no rounding) and the result is
+    4 × 52596 = 210384 blocks.
+    """
     from btc_web import time_basis as tb
     monkeypatch.setattr(tb, "TIME_BASIS", "block")
     monkeypatch.setattr(tb, "T_LABEL", "blocks")
     monkeypatch.setattr(tb, "T_PER_YEAR", 52596.0)
     monkeypatch.setattr(tb, "T_MIN", 52596.0)
-    # Recompute conversions under patched globals
-    t = tb.calendar_to_t(_dt.date(2010, 7, 25))
-    assert abs(t - 52596.0) < 1.0  # one year ≈ 52596 blocks
+    t = tb.calendar_to_t(_dt.date(2013, 7, 25))
+    assert abs(t - 210384.0) < 1.0  # 4 years × 52596 blocks/yr
 
 
 def test_load_config_returns_dict_with_required_keys():

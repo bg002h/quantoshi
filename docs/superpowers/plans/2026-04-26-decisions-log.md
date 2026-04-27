@@ -38,3 +38,17 @@ This file logs every non-trivial decision I made on their behalf. **Review on wa
 
 (Populated below as I proceed. Each entry: what, why, reversibility.)
 
+### D5: Task 6 left two reviewer-flagged items for follow-up (not blocking)
+- **D5a — `sys.path.insert` hack in `export.py`:** module-import-time path manipulation works but causes test-isolation pollution (once `export.py` is imported, `btc_web/` is on sys.path for the rest of the pytest process). Reviewer suggests moving to `conftest.py` or making `time_basis` a proper package.
+  - **Why deferred:** Phase 2 will refactor the build pipeline more invasively; clean this up there.
+  - **Reversibility:** Trivial — the alternatives are well-defined.
+- **D5b — `_sidecar_path("model_data.pkl.tmp")` produces wrong filename:** would yield `model_data.pkl_meta.json` (since `os.path.splitext(".pkl.tmp")` strips only `.tmp`). Currently unexercised — `write_pkl` writes directly to the final path, no atomic-write pattern in the codebase. Reviewer suggests a 2-line `.endswith(".pkl")` assertion.
+  - **Why deferred:** Hypothetical — no current consumer passes `.tmp` paths. Add the assert if/when atomic-write is introduced.
+  - **Reversibility:** Trivial.
+
+### D4: Task 5 fingerprint update bumps registry to 12/20
+- **What:** Running `tools/update_defaults_registry.py` after the snapshot-fp edit appended fp `4fbb63a6` (Phase 1 calendar-mode current). Registry now has 12 entries (cap is 20; oldest-evicted policy intact).
+- **Why:** Required by CLAUDE.md workflow whenever `_compute_snapshot_defaults_fingerprint` changes its output.
+- **Concern from code reviewer:** Phase 1 has 0 more fp-bumping tasks (Tasks 6/7/8 don't touch snapshot defaults). Phase 3 may add 1 more (cross-axis enforcement). So we'll be ~13/20 entering Phase 3 — comfortable.
+- **Reversibility:** Trivial. `git checkout btc_web/snapshot_defaults_registry.json` reverts the registry; revert the snapshot_defaults.py changes to undo the fingerprint shift.
+

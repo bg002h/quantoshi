@@ -38,6 +38,14 @@ This file logs every non-trivial decision I made on their behalf. **Review on wa
 
 (Populated below as I proceed. Each entry: what, why, reversibility.)
 
+### D6: Task 8 caught 4 test failures; fixing 2 (Phase 1 regressions), ignoring 2 (pre-existing on master)
+- **What:** Full test suite ran 1586 passed / 4 failed / 10 skipped. Diagnosis:
+  - **Group A — Phase 1 regressions (2):** `test_infrastructure.py::TestModelFingerprint::test_fingerprint_in_cache_key` and `::test_hash_length_is_32`. These hardcode the OLD 4-part cache key format (`fig:{_MODEL_FP}:{prefix}:{hash}`). Task 4 changed it to 5-part (`fig:{TIME_BASIS}:{_MODEL_FP}:{prefix}:{hash}`). Task 4's spec reviewer ran `test_cache_key_alignment.py` only, missed `test_infrastructure.py`. **My responsibility to fix.**
+  - **Group B — pre-existing on master (2):** `test_callbacks.py::test_free_tier_all_models` and `test_colors_central.py::test_no_hex_literals_outside_colors_module`. Verified failing on master HEAD too — not introduced by Phase 1. **Leaving alone.**
+- **Why fix:** Group A is a real regression caused by Phase 1 work. Acceptance gate must pass.
+- **Decision:** Update the two `test_infrastructure.py` assertions to expect the 5-part key format. Mechanical fix. Then re-run gate.
+- **Reversibility:** Trivial.
+
 ### D5: Task 6 left two reviewer-flagged items for follow-up (not blocking)
 - **D5a — `sys.path.insert` hack in `export.py`:** module-import-time path manipulation works but causes test-isolation pollution (once `export.py` is imported, `btc_web/` is on sys.path for the rest of the pytest process). Reviewer suggests moving to `conftest.py` or making `time_basis` a proper package.
   - **Why deferred:** Phase 2 will refactor the build pipeline more invasively; clean this up there.

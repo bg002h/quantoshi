@@ -70,3 +70,41 @@ def test_snapshot_fingerprint_calendar_value_is_stable():
     fp1 = sd._compute_snapshot_defaults_fingerprint()
     fp2 = sd._compute_snapshot_defaults_fingerprint()
     assert fp1 == fp2
+
+
+def test_model_data_meta_json_exists_and_has_required_fields():
+    """Phase 1 emits a JSON metadata sidecar alongside model_data.pkl."""
+    import json
+    from pathlib import Path
+    repo_root = Path(__file__).resolve().parent.parent
+    meta_path = repo_root / "model_data_meta.json"
+    assert meta_path.exists(), (
+        f"{meta_path} should be written by tools/build_bm_model.py")
+    with open(meta_path) as f:
+        meta = json.load(f)
+    assert meta["time_basis"] in ("calendar", "block")
+    assert meta["t_label"] in ("years", "blocks")
+    assert meta["t_per_year"] in (1.0, 52596.0)
+    assert meta["t_origin"] is not None
+    # Default deployment is calendar
+    if meta["time_basis"] == "calendar":
+        assert meta["t_label"] == "years"
+        assert meta["t_per_year"] == 1.0
+        assert meta["t_origin"] == "2009-07-25"
+
+
+def test_model_data_meta_matches_active_time_basis():
+    """The on-disk pkl metadata reflects the current TIME_BASIS config."""
+    import json
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, "btc_web")
+    from time_basis import TIME_BASIS  # noqa: E402
+    repo_root = Path(__file__).resolve().parent.parent
+    meta_path = repo_root / "model_data_meta.json"
+    with open(meta_path) as f:
+        meta = json.load(f)
+    assert meta["time_basis"] == TIME_BASIS, (
+        f"sidecar reports {meta['time_basis']!r} but TIME_BASIS is "
+        f"{TIME_BASIS!r} — rebuild model_data.pkl after editing "
+        f"quantoshi.toml")

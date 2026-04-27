@@ -1,17 +1,43 @@
 # tools/model_toolkit/export.py
 """Assemble and write model pkl files."""
 from __future__ import annotations
+import json
 import os
 import pickle
+import sys
+from pathlib import Path
+
+# Match prod sys.path layout — btc_web/ on path, no btc_web. prefix.
+_BTC_WEB = str(Path(__file__).resolve().parent.parent.parent / "btc_web")
+if _BTC_WEB not in sys.path:
+    sys.path.insert(0, _BTC_WEB)
+
+from time_basis import (  # noqa: E402
+    TIME_BASIS, T_LABEL, T_PER_YEAR, T_ORIGIN_DATE, T_ORIGIN_BLOCK,
+)
+
+
+def _axis_meta() -> dict:
+    """The four Phase 1 schema fields, derived from time_basis at call time."""
+    return {
+        "time_basis": TIME_BASIS,
+        "t_label": T_LABEL,
+        "t_per_year": T_PER_YEAR,
+        "t_origin": (
+            T_ORIGIN_DATE.isoformat() if TIME_BASIS == "calendar"
+            else T_ORIGIN_BLOCK
+        ),
+    }
 
 
 def build_bm_pkl_dict(price_data, support, composite, comp_by_n, qr, sigma,
                        genesis_date="2009-07-25"):
-    """17 keys. String keys for qr_fits. float() wrappers on scalars.
+    """17 keys + 4 axis-metadata keys. String keys for qr_fits.
+    float() wrappers on scalars.
 
     E6: price_dates/years/prices from df_full (date>=fit_min_date).
     """
-    return {
+    d = {
         "qr_fits": {str(k): dict(v) for k, v in qr.fits.items()},
         "QR_QUANTILES": list(qr.fits.keys()),
         "ols_intercept": float(qr.ols_intercept),
@@ -32,18 +58,20 @@ def build_bm_pkl_dict(price_data, support, composite, comp_by_n, qr, sigma,
         "price_years": price_data.df_full["years"].tolist(),
         "price_prices": price_data.df_full["price"].tolist(),
     }
+    d.update(_axis_meta())
+    return d
 
 
 def build_ef_pkl_dict(support, composite, comp_by_n, sigma, fitted,
                        price_years, price_prices, quantiles,
                        genesis_date="2009-07-25"):
-    """EF pkl. Different key names from BM."""
+    """EF pkl. Different key names from BM. Plus 4 axis-metadata keys."""
     fitted_params = []
     for b in sorted(fitted, key=lambda b: b["t_rise"]):
         fitted_params.append({k: b.get(k, 0.0) for k in
             ["t_rise", "r", "t_plateau", "t_decay", "d", "K",
              "plat_pow", "dur_rise", "dur_plateau"]})
-    return {
+    d = {
         "ef_support_slope": support.slope,
         "ef_support_intercept": support.intercept,
         "genesis": genesis_date,
@@ -61,11 +89,30 @@ def build_ef_pkl_dict(support, composite, comp_by_n, sigma, fitted,
         "QR_QUANTILES": list(quantiles),
         "fitted_bubbles": fitted_params,
     }
+    d.update(_axis_meta())
+    return d
+
+
+def _sidecar_path(pkl_path: str) -> str:
+    """Derive sidecar filename from pkl path. Same dir, _meta.json suffix.
+    model_data.pkl    -> model_data_meta.json
+    model_data_ef.pkl -> model_data_ef_meta.json
+    """
+    base, _ = os.path.splitext(pkl_path)
+    return f"{base}_meta.json"
 
 
 def write_pkl(data, path, protocol=4):
-    """Write pkl file with specified protocol."""
+    """Write pkl file + JSON sidecar with axis metadata."""
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     with open(path, "wb") as f:
         pickle.dump(data, f, protocol=protocol)
     print(f"Wrote {path}  ({os.path.getsize(path) // 1024} KB, {len(data)} keys)")
+    # Sidecar JSON for ops + tests — query active axis without unpickling.
+    meta = {k: data[k] for k in ("time_basis", "t_label", "t_per_year", "t_origin")
+            if k in data}
+    if meta:
+        sidecar = _sidecar_path(path)
+        with open(sidecar, "w") as f:
+            json.dump(meta, f, indent=2)
+        print(f"Wrote {sidecar}  ({len(meta)} keys)")

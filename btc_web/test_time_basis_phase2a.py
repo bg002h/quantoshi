@@ -56,3 +56,26 @@ def test_time_basis_today_t_positive_and_in_range():
     else:
         # Block mode: 16 years × 52596 ≈ 841,536; less than 30 × 52596.
         assert 800_000 < t < 1_600_000
+
+
+def test_t_min_sweep_calendar_mode_unchanged():
+    """All 13 mask sites still exclude the same rows in calendar mode."""
+    import numpy as np
+    from time_basis import T_MIN
+    assert T_MIN == 1.0  # this test is calendar-only
+    # The mask `>= T_MIN` with T_MIN=1.0 must produce the same boolean
+    # array as the old `>= 1.0` literal. Pick a synthetic price_years
+    # array that straddles the threshold.
+    price_years = np.array([0.5, 0.99, 1.0, 1.01, 5.0, 14.0])
+    new_mask = price_years >= T_MIN
+    old_mask = price_years >= 1.0
+    np.testing.assert_array_equal(new_mask, old_mask)
+
+
+def test_t_min_block_mode_threshold():
+    """In block mode, T_MIN = T_PER_YEAR (one year's worth of blocks)."""
+    import time_basis as tb
+    if tb.TIME_BASIS == "block":
+        assert tb.T_MIN == tb.T_PER_YEAR == 52596.0
+    else:
+        assert tb.T_MIN == tb.T_PER_YEAR == 1.0

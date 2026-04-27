@@ -14,6 +14,7 @@ from btc_core._helpers import (
 from btc_core._base import (
     _ShrinkingBandsMixin, _FitsBasedModel, _CompositeModel,
 )
+from time_basis import T_MIN
 
 
 class BubbleModel(_CompositeModel):
@@ -67,7 +68,7 @@ class PowerLawModel(_FitsBasedModel):
     def __init__(self, ols_intercept, ols_slope, price_years, price_prices,
                  genesis, quantiles):
         # Compute OLS residual sigma
-        mask = price_years >= 1.0  # skip very early data
+        mask = price_years >= T_MIN  # skip very early data
         ly = np.log10(price_years[mask])
         lp = np.log10(price_prices[mask])
         predicted = ols_intercept + ols_slope * ly
@@ -126,7 +127,7 @@ class OffsetPowerLawModel(_ShrinkingBandsMixin):
     _c =             -0.011168  
 
     def __init__(self, price_years, price_prices, quantiles):
-        mask = price_years >= 1.0
+        mask = price_years >= T_MIN
         t = price_years[mask]
         lp = np.log10(price_prices[mask])
         predicted = self._model_log10(t)
@@ -180,7 +181,7 @@ class StretchedExponentialModel(_ShrinkingBandsMixin):
     _beta =                      0.250000  
 
     def __init__(self, price_years, price_prices, quantiles):
-        mask = price_years >= 1.0
+        mask = price_years >= T_MIN
         t = price_years[mask]
         lp = np.log10(price_prices[mask])
         predicted = self._model_log10(t)
@@ -220,7 +221,7 @@ class ExponentialModel(_ShrinkingBandsMixin):
     quantized = True
 
     def __init__(self, price_years, price_prices, quantiles):
-        mask = price_years >= 1.0
+        mask = price_years >= T_MIN
         t = price_years[mask]
         lp = np.log10(price_prices[mask])
         slope, intercept, r, _, _ = _lazy_linregress()(t, lp)
@@ -273,7 +274,7 @@ class GompertzModel(_ShrinkingBandsMixin):
     _t0 =             4.373878
 
     def __init__(self, price_years, price_prices, quantiles):
-        mask = price_years >= 1.0
+        mask = price_years >= T_MIN
         t = price_years[mask]
         lp = np.log10(price_prices[mask])
         predicted = self._model_log10(t)
@@ -328,7 +329,7 @@ class LogisticSCurveModel(_ShrinkingBandsMixin):
     _t0 =                5.659355  
 
     def __init__(self, price_years, price_prices, quantiles):
-        mask = price_years >= 1.0
+        mask = price_years >= T_MIN
         t = price_years[mask]
         lp = np.log10(price_prices[mask])
         predicted = self._model_log10(t)
@@ -373,7 +374,7 @@ class BrokenPowerLawModel(_ShrinkingBandsMixin):
     _b2      =             5.318074  
 
     def __init__(self, price_years, price_prices, quantiles):
-        mask = price_years >= 1.0
+        mask = price_years >= T_MIN
         t = price_years[mask]
         lp = np.log10(price_prices[mask])
         predicted = self._model_log10(t)
@@ -486,7 +487,7 @@ class S2FModel:
     def __init__(self, price_years, price_prices, genesis):
         self.genesis = genesis
         # Fit log10(price) = a + b * log10(S2F) from historical data
-        mask = price_years >= 1.0
+        mask = price_years >= T_MIN
         yrs = price_years[mask]
         prices = price_prices[mask]
 

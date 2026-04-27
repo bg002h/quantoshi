@@ -11,6 +11,7 @@ import numpy as np
 from btc_core._helpers import _lazy_norm, _DEFAULT_QS
 from btc_core._base import _ShrinkingBandsMixin
 from btc_core._lppl import LPPLModel
+from time_basis import T_MIN
 
 
 class HybPPLModel(LPPLModel):
@@ -833,7 +834,7 @@ class EPPLConfigModel(_ShrinkingBandsMixin):
         self.dash_style = "dot"
 
         # Build shrinking quantile bands from residuals
-        mask = price_years >= 1.0
+        mask = price_years >= T_MIN
         t_fit = price_years[mask]
         lp_fit = np.log10(price_prices[mask])
         residuals = lp_fit - self._model_log10(t_fit)
@@ -1060,7 +1061,7 @@ class HybPPLConfigModel(_ShrinkingBandsMixin):
         self.dash_style = "solid"
 
         # Build shrinking quantile bands from residuals
-        mask = price_years >= 1.0
+        mask = price_years >= T_MIN
         t_fit = price_years[mask]
         lp_fit = np.log10(price_prices[mask])
         residuals = lp_fit - self._model_log10(t_fit)

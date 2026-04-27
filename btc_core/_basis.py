@@ -9,6 +9,7 @@ import numpy as np
 
 from btc_core._helpers import _lazy_norm, _DEFAULT_QS
 from btc_core._base import _ShrinkingBandsMixin
+from time_basis import T_MIN
 
 
 class PCAModel(_ShrinkingBandsMixin):
@@ -38,7 +39,7 @@ class PCAModel(_ShrinkingBandsMixin):
     def __init__(self, price_years, price_prices, quantiles, source_models=None):
         if source_models is None:
             source_models = {}
-        mask = price_years >= 1.0
+        mask = price_years >= T_MIN
         t = price_years[mask]
         lp = np.log10(price_prices[mask])
         n = len(t)

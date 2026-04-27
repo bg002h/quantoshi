@@ -11,6 +11,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from time_basis import T_MIN
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Lazy imports (scipy + statsmodels are slow at module load)
@@ -288,7 +290,7 @@ def _compute_log_r2(actual_prices, predicted_prices):
 def compute_model_r2(mdl, price_years, price_prices):
     """Compute per-quantile R² for any model with price_at() and quantiles."""
     mdl.r2_per_quantile = {}
-    mask = price_years >= 1.0
+    mask = price_years >= T_MIN
     t = price_years[mask]
     actual = price_prices[mask]
     if hasattr(mdl, 'quantiles') and mdl.quantiles:

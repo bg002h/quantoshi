@@ -11,6 +11,7 @@ from btc_core._helpers import (
     _lazy_norm, _lazy_linregress, _DEFAULT_QS,
 )
 from btc_core._base import _ShrinkingBandsMixin
+from time_basis import T_MIN
 
 
 class LPPLModel(_ShrinkingBandsMixin):
@@ -38,7 +39,7 @@ class LPPLModel(_ShrinkingBandsMixin):
     _D   =                    0.607919
 
     def __init__(self, price_years, price_prices, quantiles):
-        mask = price_years >= 1.0
+        mask = price_years >= T_MIN
         t = price_years[mask]
         lp = np.log10(price_prices[mask])
         residuals = lp - self._lppl_log10(t)

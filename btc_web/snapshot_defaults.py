@@ -23,6 +23,8 @@ import hashlib
 import json
 from typing import Any
 
+from time_basis import TIME_BASIS
+
 # Populated in Task 2 from the live layout.
 SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'bub-auto-y:value': ['yes'],
@@ -384,9 +386,15 @@ ALWAYS_ENCODE: frozenset[str] = frozenset({
 
 def _compute_snapshot_defaults_fingerprint() -> str:
     """8-char SHA256 over SNAPSHOT_DEFAULTS values, ordered by
-    _SNAPSHOT_CONTROLS. Stable under benign dict-literal reorderings."""
+    _SNAPSHOT_CONTROLS. Stable under benign dict-literal reorderings.
+
+    Phase 1: TIME_BASIS hashed in first so calendar/block links never
+    collide. Phase 3 enforces cross-axis decode rejection (spec §3.4).
+    """
     from snapshot import _SNAPSHOT_CONTROLS
     h = hashlib.sha256()
+    h.update(TIME_BASIS.encode())
+    h.update(b"\x00")
     for cid, prop in _SNAPSHOT_CONTROLS:
         val = SNAPSHOT_DEFAULTS.get(f"{cid}:{prop}")
         h.update(json.dumps(val, sort_keys=True).encode())

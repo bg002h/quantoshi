@@ -47,3 +47,26 @@ def test_calendar_block_cache_keys_differ(monkeypatch):
     assert cal != blk
     assert ":calendar:" in cal
     assert ":block:" in blk
+
+
+def test_snapshot_fingerprint_changes_when_time_basis_changes(monkeypatch):
+    """Reserving the TIME_BASIS slot in the snapshot fingerprint hash."""
+    from btc_web import snapshot_defaults as sd
+    from btc_web import time_basis as tb
+    monkeypatch.setattr(tb, "TIME_BASIS", "calendar")
+    monkeypatch.setattr(sd, "TIME_BASIS", "calendar", raising=False)
+    cal_fp = sd._compute_snapshot_defaults_fingerprint()
+    monkeypatch.setattr(tb, "TIME_BASIS", "block")
+    monkeypatch.setattr(sd, "TIME_BASIS", "block", raising=False)
+    blk_fp = sd._compute_snapshot_defaults_fingerprint()
+    assert cal_fp != blk_fp
+    assert len(cal_fp) == 8
+    assert len(blk_fp) == 8
+
+
+def test_snapshot_fingerprint_calendar_value_is_stable():
+    """Calendar mode fingerprint is deterministic given the current registry."""
+    from btc_web import snapshot_defaults as sd
+    fp1 = sd._compute_snapshot_defaults_fingerprint()
+    fp2 = sd._compute_snapshot_defaults_fingerprint()
+    assert fp1 == fp2

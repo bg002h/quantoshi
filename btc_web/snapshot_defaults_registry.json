@@ -5238,5 +5238,501 @@
       "um-p2-year:data": null
     },
     "fp": "60990754"
+  },
+  {
+    "created_at": "2026-04-26",
+    "defaults": {
+      "bub-auto-y:value": [
+        "yes"
+      ],
+      "bub-bubble-toggles:value": [
+        "show_comp",
+        "show_sup"
+      ],
+      "bub-decomp-components:value": [],
+      "bub-decomp-mode:value": "individual",
+      "bub-decomp-model:value": "",
+      "bub-decomp-show-formulas:value": [],
+      "bub-eppl-activate:value": [],
+      "bub-hybppl-activate:value": [],
+      "bub-legend-pos:value": "top-left",
+      "bub-lppl-activate:value": [],
+      "bub-mc-advanced:value": [],
+      "bub-mc-amount:value": 100,
+      "bub-mc-bins:value": 5,
+      "bub-mc-enable:value": [],
+      "bub-mc-entry-q:value": 10,
+      "bub-mc-freq:value": "Monthly",
+      "bub-mc-infl:value": 0,
+      "bub-mc-loaded:data": 0,
+      "bub-mc-model-src:value": "bub",
+      "bub-mc-regime:value": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "bub-mc-rendered-key:data": null,
+      "bub-mc-results:data": null,
+      "bub-mc-sims:value": 8,
+      "bub-mc-stack:value": 1.0,
+      "bub-mc-start-yr:value": 2028,
+      "bub-mc-unblocked:data": null,
+      "bub-mc-window:value": [
+        2010,
+        2026
+      ],
+      "bub-mc-years:value": 40,
+      "bub-model-show:value": [
+        "bub"
+      ],
+      "bub-n-future:value": 3,
+      "bub-ptalpha:value": 0.3,
+      "bub-ptsize:value": 5,
+      "bub-qs-adv:value": [
+        0.5
+      ],
+      "bub-qs-mode:value": [],
+      "bub-qs:value": [
+        "median"
+      ],
+      "bub-show-stack:value": [],
+      "bub-sigma-mode:value": "resqr",
+      "bub-stack:value": 0,
+      "bub-toggles:value": [
+        "shade",
+        "show_data",
+        "show_today"
+      ],
+      "bub-use-lots:value": [],
+      "bub-view-mode:data": "price",
+      "bub-xrange:value": [
+        2010,
+        2033
+      ],
+      "bub-xscale:value": "log",
+      "bub-yrange:value": [
+        -1.5,
+        6.05
+      ],
+      "bub-yscale:value": "log",
+      "cp-asset-model:value": "lognormal",
+      "cp-cash-floor-growth:value": 0,
+      "cp-cash-floor:value": 10000,
+      "cp-cash-init:value": 20000,
+      "cp-cash-rate:value": 4.0,
+      "cp-disp:value": "usd_per_asset",
+      "cp-freq:value": "Monthly",
+      "cp-high-q-dur:value": 6,
+      "cp-high-q-enable:value": [
+        "yes"
+      ],
+      "cp-high-q-mode:value": "gradual",
+      "cp-high-q-rate:value": 2.0,
+      "cp-high-q-split-bd:value": 10,
+      "cp-high-q-split-cash:value": 20,
+      "cp-high-q-split-eq:value": 20,
+      "cp-high-q-split-rl:value": 10,
+      "cp-high-q-split-rm:value": 20,
+      "cp-high-q-split-rs:value": 20,
+      "cp-high-q-thresh:value": 95,
+      "cp-infl:value": 4.0,
+      "cp-inv-bd-basis:value": 50000,
+      "cp-inv-bd-init:value": 50000,
+      "cp-inv-bd-rate:value": 5.0,
+      "cp-inv-bd-vol:value": 7.0,
+      "cp-inv-eq-basis:value": 100000,
+      "cp-inv-eq-init:value": 100000,
+      "cp-inv-eq-rate:value": 10.0,
+      "cp-inv-eq-vol:value": 16.0,
+      "cp-legend-pos:value": "bottom-right",
+      "cp-low-q-dur:value": 1,
+      "cp-low-q-enable:value": [
+        "yes"
+      ],
+      "cp-low-q-mode:value": "lump",
+      "cp-low-q-rate:value": 10.0,
+      "cp-low-q-split-bd:value": 10,
+      "cp-low-q-split-cash:value": 20,
+      "cp-low-q-split-eq:value": 20,
+      "cp-low-q-split-rl:value": 10,
+      "cp-low-q-split-rm:value": 20,
+      "cp-low-q-split-rs:value": 20,
+      "cp-low-q-thresh:value": 5,
+      "cp-lump-cooldown:value": 12,
+      "cp-mc-advanced:value": [],
+      "cp-mc-bins:value": 5,
+      "cp-mc-enable:value": [],
+      "cp-mc-entry-q:value": 10,
+      "cp-mc-model-src:value": "bub",
+      "cp-mc-regime:value": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "cp-mc-sims:value": 200,
+      "cp-mc-start-yr:value": 2031,
+      "cp-mc-window:value": [
+        2010,
+        2026
+      ],
+      "cp-mc-years:value": 40,
+      "cp-model-src:value": "bub",
+      "cp-qs:value": 0.25,
+      "cp-res-floor-growth:value": 0,
+      "cp-res-long-floor:value": 0,
+      "cp-res-long-init:value": 10000,
+      "cp-res-long-rate:value": 4.0,
+      "cp-res-long-vol:value": 15.0,
+      "cp-res-med-floor:value": 0,
+      "cp-res-med-init:value": 10000,
+      "cp-res-med-rate:value": 4.5,
+      "cp-res-med-vol:value": 8.0,
+      "cp-res-short-floor:value": 0,
+      "cp-res-short-init:value": 10000,
+      "cp-res-short-rate:value": 5.0,
+      "cp-res-short-vol:value": 2.0,
+      "cp-scenario-active:data": null,
+      "cp-scenario-regime:data": "neutral",
+      "cp-scenario-rules:data": "no_rebal",
+      "cp-scenario-start-yr:value": 2035,
+      "cp-scenario-wealth:data": "starter",
+      "cp-scf-amount:value": 100000,
+      "cp-scf-enable:value": [],
+      "cp-scf-rate:value": 8.0,
+      "cp-scf-term:value": 60,
+      "cp-scf-trigger:value": 1.0,
+      "cp-scf-type:value": "term",
+      "cp-spend-growth:value": 0.0,
+      "cp-spend:value": 5000,
+      "cp-stack:value": 1.0,
+      "cp-tax-config:data": {},
+      "cp-tax-toggle:value": false,
+      "cp-td-btc:value": 0.5,
+      "cp-td-cash:value": 20000,
+      "cp-td-inv-bd:value": 100000,
+      "cp-td-inv-eq:value": 200000,
+      "cp-td-res-long:value": 0,
+      "cp-td-res-med:value": 50000,
+      "cp-td-res-short:value": 30000,
+      "cp-tf-btc:value": 0.5,
+      "cp-tf-cash:value": 20000,
+      "cp-tf-inv-bd:value": 100000,
+      "cp-tf-inv-eq:value": 200000,
+      "cp-tf-res-long:value": 0,
+      "cp-tf-res-med:value": 50000,
+      "cp-tf-res-short:value": 30000,
+      "cp-toggles:value": [
+        "annotate",
+        "log_y",
+        "show_legend"
+      ],
+      "cp-use-lots:value": [],
+      "cp-yr-range:value": [
+        2031,
+        2075
+      ],
+      "cta-active:value": [],
+      "cta-models:value": [
+        "pl",
+        "qr",
+        "bm_floor"
+      ],
+      "cta-scale:value": "calendar",
+      "cta-t0-blk-custom:value": null,
+      "cta-t0-blk:value": "block_0",
+      "cta-t0-cal-custom:date": null,
+      "cta-t0-cal:value": "optimal",
+      "cta-weighting:value": "none",
+      "dca-amount:value": 100,
+      "dca-disp:value": "btc",
+      "dca-eppl-activate:value": [],
+      "dca-freq-unlock:value": [],
+      "dca-freq:value": "Monthly",
+      "dca-hybppl-activate:value": [],
+      "dca-infl:value": 0.0,
+      "dca-legend-pos:value": "bottom-right",
+      "dca-lppl-activate:value": [],
+      "dca-mc-advanced:value": [],
+      "dca-mc-bins:value": 5,
+      "dca-mc-enable:value": [
+        "yes"
+      ],
+      "dca-mc-entry-q:value": 10,
+      "dca-mc-model-src:value": "bub",
+      "dca-mc-regime:value": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "dca-mc-sims:value": 200,
+      "dca-mc-start-yr:value": 2031,
+      "dca-mc-window:value": [
+        2010,
+        2026
+      ],
+      "dca-mc-years:value": 40,
+      "dca-model-show:value": [
+        "bub",
+        "mc"
+      ],
+      "dca-qs-adv:value": [
+        0.5
+      ],
+      "dca-qs-mode:value": [],
+      "dca-qs:value": [
+        "median"
+      ],
+      "dca-sc-custom-price:value": 80000.0,
+      "dca-sc-enable:value": [],
+      "dca-sc-entry-mode:value": "live",
+      "dca-sc-loan:value": 1200,
+      "dca-sc-rate:value": 13.0,
+      "dca-sc-repeats:value": 0,
+      "dca-sc-rollover:value": [],
+      "dca-sc-tax:value": 33,
+      "dca-sc-term:value": 12,
+      "dca-sc-type:value": "interest_only",
+      "dca-stack:value": 0,
+      "dca-toggles:value": [
+        "annotate"
+      ],
+      "dca-use-lots:value": [],
+      "dca-yr-range:value": [
+        2026,
+        2036
+      ],
+      "eppl-cfg-a-cal1d:value": "u",
+      "eppl-cfg-a-cal2d:value": "u",
+      "eppl-cfg-a-log1d:value": "d",
+      "eppl-cfg-a-log2d:value": "d",
+      "eppl-cfg-a-ncal:value": 1,
+      "eppl-cfg-a-nlog:value": 1,
+      "eppl-cfg-b-cal1d:value": "u",
+      "eppl-cfg-b-cal2d:value": "u",
+      "eppl-cfg-b-enabled:value": [],
+      "eppl-cfg-b-log1d:value": "d",
+      "eppl-cfg-b-log2d:value": "d",
+      "eppl-cfg-b-ncal:value": 0,
+      "eppl-cfg-b-nlog:value": 0,
+      "hm-active-model:data": "bub",
+      "hm-b1:value": 0,
+      "hm-b2:value": 5,
+      "hm-c-hi:value": "#2e7d32",
+      "hm-c-lo:value": "#d32f2f",
+      "hm-c-mid1:value": "#2c2c2c",
+      "hm-c-mid2:value": "#2c2c2c",
+      "hm-cell-fs:value": 9,
+      "hm-entry-q:value": 50.0,
+      "hm-entry-yr:value": 2026,
+      "hm-eppl-activate:value": [],
+      "hm-exit-qs:value": [
+        0.001,
+        0.05,
+        0.1,
+        0.15,
+        0.2,
+        0.25,
+        0.3
+      ],
+      "hm-exit-range:value": [
+        2026,
+        2036
+      ],
+      "hm-grad:value": 32,
+      "hm-hybppl-activate:value": [],
+      "hm-line-color:value": "#000000",
+      "hm-line-width:value": 1.0,
+      "hm-lppl-activate:value": [],
+      "hm-mc-advanced:value": [],
+      "hm-mc-bins:value": 5,
+      "hm-mc-enable:value": [],
+      "hm-mc-entry-q:value": 10,
+      "hm-mc-model-src:value": "bub",
+      "hm-mc-regime:value": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "hm-mc-sims:value": 200,
+      "hm-mc-start-yr:value": 2031,
+      "hm-mc-window:value": [
+        2010,
+        2026
+      ],
+      "hm-mc-years:value": 40,
+      "hm-mode:value": 0,
+      "hm-model-show:value": [
+        "qr"
+      ],
+      "hm-palette:value": "rbg",
+      "hm-stack:value": 0,
+      "hm-toggles:value": [
+        "colorbar"
+      ],
+      "hm-use-lots:value": [],
+      "hm-vfmt:value": "cagr_mult",
+      "hybppl-cfg-a-cal1d:value": "u",
+      "hybppl-cfg-a-cal2d:value": "u",
+      "hybppl-cfg-a-log1d:value": "d",
+      "hybppl-cfg-a-log2d:value": "d",
+      "hybppl-cfg-a-ncal:value": 1,
+      "hybppl-cfg-a-nlog:value": 1,
+      "hybppl-cfg-b-cal1d:value": "u",
+      "hybppl-cfg-b-cal2d:value": "u",
+      "hybppl-cfg-b-enabled:value": [],
+      "hybppl-cfg-b-log1d:value": "d",
+      "hybppl-cfg-b-log2d:value": "d",
+      "hybppl-cfg-b-ncal:value": 0,
+      "hybppl-cfg-b-nlog:value": 0,
+      "lev-cagr:value": 20.0,
+      "lev-date:date": null,
+      "lev-floor-q-store:data": 0.01,
+      "lev-horizon:value": 4.0,
+      "lev-model:value": "bub",
+      "lev-price:value": null,
+      "lev-rb:value": 13.0,
+      "lev-rl:value": 4.5,
+      "lev-toggles:value": [
+        "legend"
+      ],
+      "lppl-n-freqs:value": [
+        3
+      ],
+      "lppl-no-13:value": [],
+      "lppl-weighted:value": [],
+      "main-tabs:active_tab": "bubble",
+      "palette-store:data": "default",
+      "ret-disp:value": "btc",
+      "ret-eppl-activate:value": [],
+      "ret-freq-unlock:value": [],
+      "ret-freq:value": "Monthly",
+      "ret-hybppl-activate:value": [],
+      "ret-infl:value": 4.0,
+      "ret-legend-pos:value": "bottom-right",
+      "ret-lppl-activate:value": [],
+      "ret-mc-advanced:value": [],
+      "ret-mc-bins:value": 5,
+      "ret-mc-enable:value": [
+        "yes"
+      ],
+      "ret-mc-entry-q:value": 10,
+      "ret-mc-model-src:value": "bub",
+      "ret-mc-regime:value": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "ret-mc-sims:value": 200,
+      "ret-mc-start-yr:value": 2031,
+      "ret-mc-window:value": [
+        2010,
+        2026
+      ],
+      "ret-mc-years:value": 40,
+      "ret-model-show:value": [
+        "bub",
+        "mc"
+      ],
+      "ret-qs-adv:value": [
+        0.15,
+        0.85
+      ],
+      "ret-qs-mode:value": [],
+      "ret-qs:value": [
+        "inner"
+      ],
+      "ret-stack:value": 1.0,
+      "ret-toggles:value": [
+        "annotate",
+        "log_y",
+        "shade"
+      ],
+      "ret-use-lots:value": [],
+      "ret-wd:value": 3000,
+      "ret-yr-range:value": [
+        2031,
+        2075
+      ],
+      "sc-chart-layout:value": [
+        "shade"
+      ],
+      "sc-d0:value": 0.0,
+      "sc-d1:value": 0.0,
+      "sc-d2:value": 0.0,
+      "sc-d3:value": 0.0,
+      "sc-d4:value": 2.0,
+      "sc-disp:value": "usd",
+      "sc-display-q:value": 0.05,
+      "sc-end-yr:value": 2075,
+      "sc-eppl-activate:value": [],
+      "sc-freq-unlock:value": [],
+      "sc-freq:value": "Monthly",
+      "sc-hybppl-activate:value": [],
+      "sc-infl:value": 4.0,
+      "sc-legend-pos:value": "top-left",
+      "sc-lppl-activate:value": [],
+      "sc-mc-advanced:value": [],
+      "sc-mc-bins:value": 5,
+      "sc-mc-enable:value": [
+        "yes"
+      ],
+      "sc-mc-entry-q:value": 10,
+      "sc-mc-model-src:value": "bub",
+      "sc-mc-regime:value": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "sc-mc-sims:value": 200,
+      "sc-mc-start-yr:value": 2031,
+      "sc-mc-window:value": [
+        2010,
+        2026
+      ],
+      "sc-mc-years:value": 40,
+      "sc-mode:value": "a",
+      "sc-model-show:value": [
+        "bub",
+        "mc"
+      ],
+      "sc-qs-adv:value": [
+        0.15,
+        0.85
+      ],
+      "sc-qs-mode:value": [],
+      "sc-qs:value": [
+        "inner"
+      ],
+      "sc-stack:value": 1.0,
+      "sc-start-yr:value": 2033,
+      "sc-target-yr:value": 2060,
+      "sc-toggles:value": [
+        "annotate",
+        "log_y",
+        "shade"
+      ],
+      "sc-use-lots:value": [],
+      "sc-wd:value": 5000,
+      "scan-date:value": null,
+      "scan-price:value": null,
+      "scan-q:value": null,
+      "um-p1-price:data": null,
+      "um-p1-year:data": null,
+      "um-p2-price:data": null,
+      "um-p2-year:data": null
+    },
+    "fp": "4fbb63a6"
   }
 ]

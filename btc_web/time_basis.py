@@ -40,16 +40,38 @@ _DEFAULTS = {
 def _load_config(path: Optional[Path] = None) -> dict:
     """Load quantoshi.toml, falling back to _DEFAULTS if missing.
 
+    Honor `QS_TIME_BASIS` env var as an override on the `time_basis`
+    field only. The env var is used by build tools to flip basis for a
+    single process without rewriting the TOML. Bogus env values
+    (anything not in {"calendar", "block"}) are silently ignored
+    (TOML/default wins).
+
     Public for testing — production callers should use the module-level
     constants below, which are computed once at import time.
     """
+    import os as _os
     p = path if path is not None else _TOML_PATH
     if not p.exists():
         _LOG.warning("time_basis: %s not found; using defaults (calendar)", p)
-        return dict(_DEFAULTS)
-    with open(p, "rb") as f:
-        cfg = tomllib.load(f)
-    return {**_DEFAULTS, **cfg}
+        cfg = dict(_DEFAULTS)
+    else:
+        with open(p, "rb") as f:
+            cfg = {**_DEFAULTS, **tomllib.load(f)}
+    env_override = _os.environ.get("QS_TIME_BASIS")
+    if env_override in ("calendar", "block"):
+        if env_override != cfg.get("time_basis"):
+            _LOG.info(
+                "time_basis: QS_TIME_BASIS env var overrides TOML "
+                "(%r → %r)", cfg.get("time_basis"), env_override,
+            )
+        cfg["time_basis"] = env_override
+    elif env_override is not None:
+        _LOG.warning(
+            "time_basis: QS_TIME_BASIS=%r is not 'calendar' or 'block'; "
+            "ignoring (using %r from TOML/default)",
+            env_override, cfg.get("time_basis"),
+        )
+    return cfg
 
 
 _cfg = _load_config()

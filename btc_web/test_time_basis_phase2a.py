@@ -198,3 +198,33 @@ def test_build_ef_model_accepts_time_basis_flag():
     assert result.returncode == 0, f"stderr: {result.stderr!r}"
     assert "--time-basis" in result.stdout
     assert "axis-exempt" in result.stdout.lower() or "calendar-native" in result.stdout.lower()
+
+
+def test_time_basis_env_var_override(tmp_path, monkeypatch):
+    """QS_TIME_BASIS env var overrides the TOML file value."""
+    toml_path = tmp_path / "test_quantoshi.toml"
+    toml_path.write_text(
+        'time_basis = "calendar"\n'
+        'block_origin = 20188\n'
+        'blocks_per_year = 52596\n'
+    )
+    import time_basis as tb
+    cfg_no_env = tb._load_config(toml_path)
+    assert cfg_no_env["time_basis"] == "calendar"
+    monkeypatch.setenv("QS_TIME_BASIS", "block")
+    cfg_block = tb._load_config(toml_path)
+    assert cfg_block["time_basis"] == "block"
+
+
+def test_time_basis_env_var_invalid_value_falls_back(tmp_path, monkeypatch):
+    """Bogus env var value falls back to TOML/default."""
+    import time_basis as tb
+    toml_path = tmp_path / "test_quantoshi.toml"
+    toml_path.write_text(
+        'time_basis = "calendar"\n'
+        'block_origin = 20188\n'
+        'blocks_per_year = 52596\n'
+    )
+    monkeypatch.setenv("QS_TIME_BASIS", "garbage")
+    cfg = tb._load_config(toml_path)
+    assert cfg["time_basis"] == "calendar"

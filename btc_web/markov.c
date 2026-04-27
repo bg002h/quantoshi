@@ -3,9 +3,12 @@
 /* BEGIN: Cython Metadata
 {
     "distutils": {
+        "include_dirs": [
+            "/usr/lib/python3.14/site-packages/numpy/_core/include"
+        ],
         "name": "markov",
         "sources": [
-            "/scratch/code/bitcoinprojections/btc_web/markov.py"
+            "markov.py"
         ]
     },
     "module_name": "markov"
@@ -2557,7 +2560,7 @@ static PyObject *__pyx_pf_6markov_4count_nonzero_entries(CYTHON_UNUSED PyObject 
 static PyObject *__pyx_pf_6markov_6_prices_to_percentiles(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_prices, PyObject *__pyx_v_years, PyObject *__pyx_v_model); /* proto */
 static PyObject *__pyx_pf_6markov_8_bin_index(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_pct, PyObject *__pyx_v_bin_edges); /* proto */
 static PyObject *__pyx_pf_6markov_10build_transition_matrix(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_prices, PyObject *__pyx_v_years, PyObject *__pyx_v_model, PyObject *__pyx_v_n_bins, PyObject *__pyx_v_window_start_yr, PyObject *__pyx_v_window_end_yr, PyObject *__pyx_v_step_days); /* proto */
-static PyObject *__pyx_pf_6markov_12monte_carlo_prices(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_trans_matrix, PyObject *__pyx_v_bin_edges, PyObject *__pyx_v_start_pctile, PyObject *__pyx_v_n_steps, PyObject *__pyx_v_n_sims, PyObject *__pyx_v_model, PyObject *__pyx_v_start_t, PyObject *__pyx_v_dt); /* proto */
+static PyObject *__pyx_pf_6markov_12monte_carlo_prices(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_trans_matrix, PyObject *__pyx_v_bin_edges, PyObject *__pyx_v_start_pctile, PyObject *__pyx_v_n_steps, PyObject *__pyx_v_n_sims, PyObject *__pyx_v_model, PyObject *__pyx_v_start_t, PyObject *__pyx_v_dt, PyObject *__pyx_v_rng); /* proto */
 static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_price_paths, PyObject *__pyx_v_amount, PyObject *__pyx_v_start_stack); /* proto */
 static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_price_paths, PyObject *__pyx_v_start_stack, PyObject *__pyx_v_withdrawal, PyObject *__pyx_v_inflation_rate, PyObject *__pyx_v_dt); /* proto */
 static PyObject *__pyx_pf_6markov_18compute_fan_percentiles(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_paths, PyObject *__pyx_v_percentiles); /* proto */
@@ -2585,9 +2588,9 @@ typedef struct {
   __Pyx_CachedCFunction __pyx_umethod_PyDict_Type_items;
   __Pyx_CachedCFunction __pyx_umethod_PyDict_Type_pop;
   __Pyx_CachedCFunction __pyx_umethod_PyDict_Type_values;
-  PyObject *__pyx_tuple[5];
+  PyObject *__pyx_tuple[6];
   PyObject *__pyx_codeobj_tab[11];
-  PyObject *__pyx_string_tab[149];
+  PyObject *__pyx_string_tab[150];
   PyObject *__pyx_number_tab[23];
 /* #### Code section: module_state_contents ### */
 /* CommonTypesMetaclass.module_state_decls */
@@ -2681,103 +2684,104 @@ static __pyx_mstatetype * const __pyx_mstate_global = &__pyx_mstate_global_stati
 #define __pyx_n_u_i __pyx_string_tab[49]
 #define __pyx_n_u_idx __pyx_string_tab[50]
 #define __pyx_n_u_inflation_rate __pyx_string_tab[51]
-#define __pyx_n_u_interp_price __pyx_string_tab[52]
-#define __pyx_n_u_is_coroutine __pyx_string_tab[53]
-#define __pyx_n_u_items __pyx_string_tab[54]
-#define __pyx_n_u_linspace __pyx_string_tab[55]
-#define __pyx_n_u_main __pyx_string_tab[56]
-#define __pyx_n_u_markov __pyx_string_tab[57]
-#define __pyx_n_u_mask __pyx_string_tab[58]
-#define __pyx_n_u_matrix_cost __pyx_string_tab[59]
-#define __pyx_n_u_max_bins_for_window __pyx_string_tab[60]
-#define __pyx_n_u_mc_dca __pyx_string_tab[61]
-#define __pyx_n_u_mc_retire __pyx_string_tab[62]
-#define __pyx_n_u_median __pyx_string_tab[63]
-#define __pyx_n_u_median_depletion_yr __pyx_string_tab[64]
-#define __pyx_n_u_model __pyx_string_tab[65]
-#define __pyx_n_u_module __pyx_string_tab[66]
-#define __pyx_n_u_monte_carlo_prices __pyx_string_tab[67]
-#define __pyx_n_u_n_bins __pyx_string_tab[68]
-#define __pyx_n_u_n_nonzero_entries __pyx_string_tab[69]
-#define __pyx_n_u_n_sims __pyx_string_tab[70]
-#define __pyx_n_u_n_steps __pyx_string_tab[71]
-#define __pyx_n_u_name __pyx_string_tab[72]
-#define __pyx_n_u_next_bin __pyx_string_tab[73]
-#define __pyx_n_u_np __pyx_string_tab[74]
-#define __pyx_n_u_numpy __pyx_string_tab[75]
-#define __pyx_n_u_ones __pyx_string_tab[76]
-#define __pyx_n_u_p __pyx_string_tab[77]
-#define __pyx_n_u_p10_depletion_yr __pyx_string_tab[78]
-#define __pyx_n_u_p90_depletion_yr __pyx_string_tab[79]
-#define __pyx_n_u_paths __pyx_string_tab[80]
-#define __pyx_n_u_pct __pyx_string_tab[81]
-#define __pyx_n_u_pct_depleted __pyx_string_tab[82]
-#define __pyx_n_u_pct_series __pyx_string_tab[83]
-#define __pyx_n_u_pctile __pyx_string_tab[84]
-#define __pyx_n_u_pctile_paths __pyx_string_tab[85]
-#define __pyx_n_u_pcts __pyx_string_tab[86]
-#define __pyx_n_u_percentile __pyx_string_tab[87]
-#define __pyx_n_u_percentiles __pyx_string_tab[88]
-#define __pyx_n_u_pop __pyx_string_tab[89]
-#define __pyx_n_u_price __pyx_string_tab[90]
-#define __pyx_n_u_price_paths __pyx_string_tab[91]
-#define __pyx_n_u_prices __pyx_string_tab[92]
-#define __pyx_n_u_prices_to_percentiles __pyx_string_tab[93]
-#define __pyx_n_u_qualname __pyx_string_tab[94]
-#define __pyx_n_u_r __pyx_string_tab[95]
-#define __pyx_n_u_random __pyx_string_tab[96]
-#define __pyx_n_u_raw __pyx_string_tab[97]
-#define __pyx_n_u_result __pyx_string_tab[98]
-#define __pyx_n_u_rng __pyx_string_tab[99]
-#define __pyx_n_u_row_sums __pyx_string_tab[100]
-#define __pyx_n_u_searchsorted __pyx_string_tab[101]
-#define __pyx_n_u_set_name __pyx_string_tab[102]
-#define __pyx_n_u_setdefault __pyx_string_tab[103]
-#define __pyx_n_u_shape __pyx_string_tab[104]
-#define __pyx_n_u_sim __pyx_string_tab[105]
-#define __pyx_n_u_sim_cost __pyx_string_tab[106]
-#define __pyx_n_u_sqrt __pyx_string_tab[107]
-#define __pyx_n_u_src __pyx_string_tab[108]
-#define __pyx_n_u_stack __pyx_string_tab[109]
-#define __pyx_n_u_start_bin __pyx_string_tab[110]
-#define __pyx_n_u_start_pctile __pyx_string_tab[111]
-#define __pyx_n_u_start_stack __pyx_string_tab[112]
-#define __pyx_n_u_start_t __pyx_string_tab[113]
-#define __pyx_n_u_start_yr __pyx_string_tab[114]
-#define __pyx_n_u_step __pyx_string_tab[115]
-#define __pyx_n_u_step_days __pyx_string_tab[116]
-#define __pyx_n_u_sum __pyx_string_tab[117]
-#define __pyx_n_u_t __pyx_string_tab[118]
-#define __pyx_n_u_test __pyx_string_tab[119]
-#define __pyx_n_u_total __pyx_string_tab[120]
-#define __pyx_n_u_trans __pyx_string_tab[121]
-#define __pyx_n_u_trans_matrix __pyx_string_tab[122]
-#define __pyx_n_u_transitions __pyx_string_tab[123]
-#define __pyx_n_u_usd_paths __pyx_string_tab[124]
-#define __pyx_n_u_valid __pyx_string_tab[125]
-#define __pyx_n_u_values __pyx_string_tab[126]
-#define __pyx_n_u_w_prices __pyx_string_tab[127]
-#define __pyx_n_u_w_years __pyx_string_tab[128]
-#define __pyx_n_u_wd __pyx_string_tab[129]
-#define __pyx_n_u_window_cost __pyx_string_tab[130]
-#define __pyx_n_u_window_end_yr __pyx_string_tab[131]
-#define __pyx_n_u_window_start_yr __pyx_string_tab[132]
-#define __pyx_n_u_window_years __pyx_string_tab[133]
-#define __pyx_n_u_withdrawal __pyx_string_tab[134]
-#define __pyx_n_u_years __pyx_string_tab[135]
-#define __pyx_n_u_yr_to_t __pyx_string_tab[136]
-#define __pyx_n_u_zeros __pyx_string_tab[137]
-#define __pyx_kp_b_iso88591_1_Q_Q_auBk_2U_q_1 __pyx_string_tab[138]
-#define __pyx_kp_b_iso88591_2V1Cq_U_3aq_q_Qe1E_AU_q_5_q_1 __pyx_string_tab[139]
-#define __pyx_kp_b_iso88591_2_2_Rxq_a_BhawfA_2U_3ay_a_wa_c __pyx_string_tab[140]
-#define __pyx_kp_b_iso88591_3ar_q __pyx_string_tab[141]
-#define __pyx_kp_b_iso88591_Ba_N_A_e_Ba_b_1_q_q_q_q __pyx_string_tab[142]
-#define __pyx_kp_b_iso88591_Jk_Qa_Qa_b_Qis_uAQ_HE_Kq_Q_Cr_3 __pyx_string_tab[143]
-#define __pyx_kp_b_iso88591_Jk_Qa_Qa_uAQ_HE_Kq_Q_vRq_Qe81_Q __pyx_string_tab[144]
-#define __pyx_kp_b_iso88591_O1_Cq_S_3awb_7_s_7_Q_q_A_A_y_uA __pyx_string_tab[145]
-#define __pyx_kp_b_iso88591_S_Ba_G_q_Q_F_HA_2V2XQ_uAQ_a_HE __pyx_string_tab[146]
-#define __pyx_kp_b_iso88591_S_Ba_Qd_A_5_G2Q __pyx_string_tab[147]
-#define __pyx_kp_b_iso88591_a_s_k_Qb_Ql_A_we1 __pyx_string_tab[148]
+#define __pyx_n_u_integer __pyx_string_tab[52]
+#define __pyx_n_u_interp_price __pyx_string_tab[53]
+#define __pyx_n_u_is_coroutine __pyx_string_tab[54]
+#define __pyx_n_u_items __pyx_string_tab[55]
+#define __pyx_n_u_linspace __pyx_string_tab[56]
+#define __pyx_n_u_main __pyx_string_tab[57]
+#define __pyx_n_u_markov __pyx_string_tab[58]
+#define __pyx_n_u_mask __pyx_string_tab[59]
+#define __pyx_n_u_matrix_cost __pyx_string_tab[60]
+#define __pyx_n_u_max_bins_for_window __pyx_string_tab[61]
+#define __pyx_n_u_mc_dca __pyx_string_tab[62]
+#define __pyx_n_u_mc_retire __pyx_string_tab[63]
+#define __pyx_n_u_median __pyx_string_tab[64]
+#define __pyx_n_u_median_depletion_yr __pyx_string_tab[65]
+#define __pyx_n_u_model __pyx_string_tab[66]
+#define __pyx_n_u_module __pyx_string_tab[67]
+#define __pyx_n_u_monte_carlo_prices __pyx_string_tab[68]
+#define __pyx_n_u_n_bins __pyx_string_tab[69]
+#define __pyx_n_u_n_nonzero_entries __pyx_string_tab[70]
+#define __pyx_n_u_n_sims __pyx_string_tab[71]
+#define __pyx_n_u_n_steps __pyx_string_tab[72]
+#define __pyx_n_u_name __pyx_string_tab[73]
+#define __pyx_n_u_next_bin __pyx_string_tab[74]
+#define __pyx_n_u_np __pyx_string_tab[75]
+#define __pyx_n_u_numpy __pyx_string_tab[76]
+#define __pyx_n_u_ones __pyx_string_tab[77]
+#define __pyx_n_u_p __pyx_string_tab[78]
+#define __pyx_n_u_p10_depletion_yr __pyx_string_tab[79]
+#define __pyx_n_u_p90_depletion_yr __pyx_string_tab[80]
+#define __pyx_n_u_paths __pyx_string_tab[81]
+#define __pyx_n_u_pct __pyx_string_tab[82]
+#define __pyx_n_u_pct_depleted __pyx_string_tab[83]
+#define __pyx_n_u_pct_series __pyx_string_tab[84]
+#define __pyx_n_u_pctile __pyx_string_tab[85]
+#define __pyx_n_u_pctile_paths __pyx_string_tab[86]
+#define __pyx_n_u_pcts __pyx_string_tab[87]
+#define __pyx_n_u_percentile __pyx_string_tab[88]
+#define __pyx_n_u_percentiles __pyx_string_tab[89]
+#define __pyx_n_u_pop __pyx_string_tab[90]
+#define __pyx_n_u_price __pyx_string_tab[91]
+#define __pyx_n_u_price_paths __pyx_string_tab[92]
+#define __pyx_n_u_prices __pyx_string_tab[93]
+#define __pyx_n_u_prices_to_percentiles __pyx_string_tab[94]
+#define __pyx_n_u_qualname __pyx_string_tab[95]
+#define __pyx_n_u_r __pyx_string_tab[96]
+#define __pyx_n_u_random __pyx_string_tab[97]
+#define __pyx_n_u_raw __pyx_string_tab[98]
+#define __pyx_n_u_result __pyx_string_tab[99]
+#define __pyx_n_u_rng __pyx_string_tab[100]
+#define __pyx_n_u_row_sums __pyx_string_tab[101]
+#define __pyx_n_u_searchsorted __pyx_string_tab[102]
+#define __pyx_n_u_set_name __pyx_string_tab[103]
+#define __pyx_n_u_setdefault __pyx_string_tab[104]
+#define __pyx_n_u_shape __pyx_string_tab[105]
+#define __pyx_n_u_sim __pyx_string_tab[106]
+#define __pyx_n_u_sim_cost __pyx_string_tab[107]
+#define __pyx_n_u_sqrt __pyx_string_tab[108]
+#define __pyx_n_u_src __pyx_string_tab[109]
+#define __pyx_n_u_stack __pyx_string_tab[110]
+#define __pyx_n_u_start_bin __pyx_string_tab[111]
+#define __pyx_n_u_start_pctile __pyx_string_tab[112]
+#define __pyx_n_u_start_stack __pyx_string_tab[113]
+#define __pyx_n_u_start_t __pyx_string_tab[114]
+#define __pyx_n_u_start_yr __pyx_string_tab[115]
+#define __pyx_n_u_step __pyx_string_tab[116]
+#define __pyx_n_u_step_days __pyx_string_tab[117]
+#define __pyx_n_u_sum __pyx_string_tab[118]
+#define __pyx_n_u_t __pyx_string_tab[119]
+#define __pyx_n_u_test __pyx_string_tab[120]
+#define __pyx_n_u_total __pyx_string_tab[121]
+#define __pyx_n_u_trans __pyx_string_tab[122]
+#define __pyx_n_u_trans_matrix __pyx_string_tab[123]
+#define __pyx_n_u_transitions __pyx_string_tab[124]
+#define __pyx_n_u_usd_paths __pyx_string_tab[125]
+#define __pyx_n_u_valid __pyx_string_tab[126]
+#define __pyx_n_u_values __pyx_string_tab[127]
+#define __pyx_n_u_w_prices __pyx_string_tab[128]
+#define __pyx_n_u_w_years __pyx_string_tab[129]
+#define __pyx_n_u_wd __pyx_string_tab[130]
+#define __pyx_n_u_window_cost __pyx_string_tab[131]
+#define __pyx_n_u_window_end_yr __pyx_string_tab[132]
+#define __pyx_n_u_window_start_yr __pyx_string_tab[133]
+#define __pyx_n_u_window_years __pyx_string_tab[134]
+#define __pyx_n_u_withdrawal __pyx_string_tab[135]
+#define __pyx_n_u_years __pyx_string_tab[136]
+#define __pyx_n_u_yr_to_t __pyx_string_tab[137]
+#define __pyx_n_u_zeros __pyx_string_tab[138]
+#define __pyx_kp_b_iso88591_1_Q_Q_auBk_2U_q_1 __pyx_string_tab[139]
+#define __pyx_kp_b_iso88591_2V1Cq_U_3aq_q_Qe1E_AU_q_5_q_1 __pyx_string_tab[140]
+#define __pyx_kp_b_iso88591_2_2_Rxq_a_BhawfA_2U_3ay_a_wa_c __pyx_string_tab[141]
+#define __pyx_kp_b_iso88591_34_S_Ba_t3e3j_uBa_b_1A_Q_F_HA_2 __pyx_string_tab[142]
+#define __pyx_kp_b_iso88591_3ar_q __pyx_string_tab[143]
+#define __pyx_kp_b_iso88591_Ba_N_A_e_Ba_b_1_q_q_q_q __pyx_string_tab[144]
+#define __pyx_kp_b_iso88591_Jk_Qa_Qa_b_Qis_uAQ_HE_Kq_Q_Cr_3 __pyx_string_tab[145]
+#define __pyx_kp_b_iso88591_Jk_Qa_Qa_uAQ_HE_Kq_Q_vRq_Qe81_Q __pyx_string_tab[146]
+#define __pyx_kp_b_iso88591_O1_Cq_S_3awb_7_s_7_Q_q_A_A_y_uA __pyx_string_tab[147]
+#define __pyx_kp_b_iso88591_S_Ba_Qd_A_5_G2Q __pyx_string_tab[148]
+#define __pyx_kp_b_iso88591_a_s_k_Qb_Ql_A_we1 __pyx_string_tab[149]
 #define __pyx_float_0_0 __pyx_number_tab[0]
 #define __pyx_float_1_0 __pyx_number_tab[1]
 #define __pyx_float_1_5 __pyx_number_tab[2]
@@ -2815,9 +2819,9 @@ static CYTHON_SMALL_CODE int __pyx_m_clear(PyObject *m) {
   #if CYTHON_PEP489_MULTI_PHASE_INIT
   __Pyx_State_RemoveModule(NULL);
   #endif
-  for (int i=0; i<5; ++i) { Py_CLEAR(clear_module_state->__pyx_tuple[i]); }
+  for (int i=0; i<6; ++i) { Py_CLEAR(clear_module_state->__pyx_tuple[i]); }
   for (int i=0; i<11; ++i) { Py_CLEAR(clear_module_state->__pyx_codeobj_tab[i]); }
-  for (int i=0; i<149; ++i) { Py_CLEAR(clear_module_state->__pyx_string_tab[i]); }
+  for (int i=0; i<150; ++i) { Py_CLEAR(clear_module_state->__pyx_string_tab[i]); }
   for (int i=0; i<23; ++i) { Py_CLEAR(clear_module_state->__pyx_number_tab[i]); }
 /* #### Code section: module_state_clear_contents ### */
 /* CommonTypesMetaclass.module_state_clear */
@@ -2841,9 +2845,9 @@ static CYTHON_SMALL_CODE int __pyx_m_traverse(PyObject *m, visitproc visit, void
   __Pyx_VISIT_CONST(traverse_module_state->__pyx_empty_tuple);
   __Pyx_VISIT_CONST(traverse_module_state->__pyx_empty_bytes);
   __Pyx_VISIT_CONST(traverse_module_state->__pyx_empty_unicode);
-  for (int i=0; i<5; ++i) { __Pyx_VISIT_CONST(traverse_module_state->__pyx_tuple[i]); }
+  for (int i=0; i<6; ++i) { __Pyx_VISIT_CONST(traverse_module_state->__pyx_tuple[i]); }
   for (int i=0; i<11; ++i) { __Pyx_VISIT_CONST(traverse_module_state->__pyx_codeobj_tab[i]); }
-  for (int i=0; i<149; ++i) { __Pyx_VISIT_CONST(traverse_module_state->__pyx_string_tab[i]); }
+  for (int i=0; i<150; ++i) { __Pyx_VISIT_CONST(traverse_module_state->__pyx_string_tab[i]); }
   for (int i=0; i<23; ++i) { __Pyx_VISIT_CONST(traverse_module_state->__pyx_number_tab[i]); }
 /* #### Code section: module_state_traverse_contents ### */
 /* CommonTypesMetaclass.module_state_traverse */
@@ -5156,7 +5160,7 @@ static PyObject *__pyx_pf_6markov_10build_transition_matrix(CYTHON_UNUSED PyObje
  * #  Monte Carlo simulation
  * 
  * def monte_carlo_prices(trans_matrix, bin_edges, start_pctile, n_steps,             # <<<<<<<<<<<<<<
- *                        n_sims, model, start_t, dt):
+ *                        n_sims, model, start_t, dt, rng=None):
  *     """Generate Monte Carlo price paths using the Markov transition matrix.
 */
 
@@ -5168,7 +5172,7 @@ PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-PyDoc_STRVAR(__pyx_doc_6markov_12monte_carlo_prices, "Generate Monte Carlo price paths using the Markov transition matrix.\n\n    Parameters\n    ----------\n    trans_matrix : ndarray (n_bins, n_bins)\n    bin_edges : ndarray (n_bins + 1,)\n    start_pctile : float \342\200\224 starting percentile (0\342\200\2231)\n    n_steps : int \342\200\224 number of time steps to simulate\n    n_sims : int \342\200\224 number of simulation runs\n    model : PriceModel \342\200\224 model with interp_price(q, t) method\n    start_t : float \342\200\224 starting time (years since genesis)\n    dt : float \342\200\224 time step in years (e.g., 1/12 for monthly)\n\n    Returns\n    -------\n    price_paths : ndarray (n_sims, n_steps) \342\200\224 simulated price paths\n    pctile_paths : ndarray (n_sims, n_steps) \342\200\224 simulated percentile paths\n    ");
+PyDoc_STRVAR(__pyx_doc_6markov_12monte_carlo_prices, "Generate Monte Carlo price paths using the Markov transition matrix.\n\n    Parameters\n    ----------\n    trans_matrix : ndarray (n_bins, n_bins)\n    bin_edges : ndarray (n_bins + 1,)\n    start_pctile : float \342\200\224 starting percentile (0\342\200\2231)\n    n_steps : int \342\200\224 number of time steps to simulate\n    n_sims : int \342\200\224 number of simulation runs\n    model : PriceModel \342\200\224 model with interp_price(q, t) method\n    start_t : float \342\200\224 starting time (years since genesis)\n    dt : float \342\200\224 time step in years (e.g., 1/12 for monthly)\n    rng : numpy.random.Generator or seedable int, optional. Defaults to a\n        fresh unseeded Generator for backward compatibility. Pass a seeded\n        Generator (e.g. ``np.random.default_rng(42)``) or a seed int for\n        reproducible paths across runs.\n\n    Returns\n    -------\n    price_paths : ndarray (n_sims, n_steps) \342\200\224 simulated price paths\n    pctile_paths : ndarray (n_sims, n_steps) \342\200\224 simulated percentile paths\n    ");
 static PyMethodDef __pyx_mdef_6markov_13monte_carlo_prices = {"monte_carlo_prices", (PyCFunction)(void(*)(void))(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_6markov_13monte_carlo_prices, __Pyx_METH_FASTCALL|METH_KEYWORDS, __pyx_doc_6markov_12monte_carlo_prices};
 static PyObject *__pyx_pw_6markov_13monte_carlo_prices(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL
@@ -5185,11 +5189,12 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   PyObject *__pyx_v_model = 0;
   PyObject *__pyx_v_start_t = 0;
   PyObject *__pyx_v_dt = 0;
+  PyObject *__pyx_v_rng = 0;
   #if !CYTHON_METH_FASTCALL
   CYTHON_UNUSED Py_ssize_t __pyx_nargs;
   #endif
   CYTHON_UNUSED PyObject *const *__pyx_kwvalues;
-  PyObject* values[8] = {0,0,0,0,0,0,0,0};
+  PyObject* values[9] = {0,0,0,0,0,0,0,0,0};
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -5205,11 +5210,15 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   #endif
   __pyx_kwvalues = __Pyx_KwValues_FASTCALL(__pyx_args, __pyx_nargs);
   {
-    PyObject ** const __pyx_pyargnames[] = {&__pyx_mstate_global->__pyx_n_u_trans_matrix,&__pyx_mstate_global->__pyx_n_u_bin_edges,&__pyx_mstate_global->__pyx_n_u_start_pctile,&__pyx_mstate_global->__pyx_n_u_n_steps,&__pyx_mstate_global->__pyx_n_u_n_sims,&__pyx_mstate_global->__pyx_n_u_model,&__pyx_mstate_global->__pyx_n_u_start_t,&__pyx_mstate_global->__pyx_n_u_dt,0};
+    PyObject ** const __pyx_pyargnames[] = {&__pyx_mstate_global->__pyx_n_u_trans_matrix,&__pyx_mstate_global->__pyx_n_u_bin_edges,&__pyx_mstate_global->__pyx_n_u_start_pctile,&__pyx_mstate_global->__pyx_n_u_n_steps,&__pyx_mstate_global->__pyx_n_u_n_sims,&__pyx_mstate_global->__pyx_n_u_model,&__pyx_mstate_global->__pyx_n_u_start_t,&__pyx_mstate_global->__pyx_n_u_dt,&__pyx_mstate_global->__pyx_n_u_rng,0};
     const Py_ssize_t __pyx_kwds_len = (__pyx_kwds) ? __Pyx_NumKwargs_FASTCALL(__pyx_kwds) : 0;
     if (unlikely(__pyx_kwds_len) < 0) __PYX_ERR(0, 142, __pyx_L3_error)
     if (__pyx_kwds_len > 0) {
       switch (__pyx_nargs) {
+        case  9:
+        values[8] = __Pyx_ArgRef_FASTCALL(__pyx_args, 8);
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[8])) __PYX_ERR(0, 142, __pyx_L3_error)
+        CYTHON_FALLTHROUGH;
         case  8:
         values[7] = __Pyx_ArgRef_FASTCALL(__pyx_args, 7);
         if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[7])) __PYX_ERR(0, 142, __pyx_L3_error)
@@ -5247,28 +5256,45 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       }
       const Py_ssize_t kwd_pos_args = __pyx_nargs;
       if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "monte_carlo_prices", 0) < (0)) __PYX_ERR(0, 142, __pyx_L3_error)
+
+      /* "markov.py":143
+ * 
+ * def monte_carlo_prices(trans_matrix, bin_edges, start_pctile, n_steps,
+ *                        n_sims, model, start_t, dt, rng=None):             # <<<<<<<<<<<<<<
+ *     """Generate Monte Carlo price paths using the Markov transition matrix.
+ * 
+*/
+      if (!values[8]) values[8] = __Pyx_NewRef(((PyObject *)Py_None));
       for (Py_ssize_t i = __pyx_nargs; i < 8; i++) {
-        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("monte_carlo_prices", 1, 8, 8, i); __PYX_ERR(0, 142, __pyx_L3_error) }
+        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("monte_carlo_prices", 0, 8, 9, i); __PYX_ERR(0, 142, __pyx_L3_error) }
       }
-    } else if (unlikely(__pyx_nargs != 8)) {
-      goto __pyx_L5_argtuple_error;
     } else {
-      values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 142, __pyx_L3_error)
-      values[1] = __Pyx_ArgRef_FASTCALL(__pyx_args, 1);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 142, __pyx_L3_error)
-      values[2] = __Pyx_ArgRef_FASTCALL(__pyx_args, 2);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 142, __pyx_L3_error)
-      values[3] = __Pyx_ArgRef_FASTCALL(__pyx_args, 3);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[3])) __PYX_ERR(0, 142, __pyx_L3_error)
-      values[4] = __Pyx_ArgRef_FASTCALL(__pyx_args, 4);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[4])) __PYX_ERR(0, 142, __pyx_L3_error)
-      values[5] = __Pyx_ArgRef_FASTCALL(__pyx_args, 5);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[5])) __PYX_ERR(0, 142, __pyx_L3_error)
-      values[6] = __Pyx_ArgRef_FASTCALL(__pyx_args, 6);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[6])) __PYX_ERR(0, 142, __pyx_L3_error)
-      values[7] = __Pyx_ArgRef_FASTCALL(__pyx_args, 7);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[7])) __PYX_ERR(0, 142, __pyx_L3_error)
+      switch (__pyx_nargs) {
+        case  9:
+        values[8] = __Pyx_ArgRef_FASTCALL(__pyx_args, 8);
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[8])) __PYX_ERR(0, 142, __pyx_L3_error)
+        CYTHON_FALLTHROUGH;
+        case  8:
+        values[7] = __Pyx_ArgRef_FASTCALL(__pyx_args, 7);
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[7])) __PYX_ERR(0, 142, __pyx_L3_error)
+        values[6] = __Pyx_ArgRef_FASTCALL(__pyx_args, 6);
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[6])) __PYX_ERR(0, 142, __pyx_L3_error)
+        values[5] = __Pyx_ArgRef_FASTCALL(__pyx_args, 5);
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[5])) __PYX_ERR(0, 142, __pyx_L3_error)
+        values[4] = __Pyx_ArgRef_FASTCALL(__pyx_args, 4);
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[4])) __PYX_ERR(0, 142, __pyx_L3_error)
+        values[3] = __Pyx_ArgRef_FASTCALL(__pyx_args, 3);
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[3])) __PYX_ERR(0, 142, __pyx_L3_error)
+        values[2] = __Pyx_ArgRef_FASTCALL(__pyx_args, 2);
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 142, __pyx_L3_error)
+        values[1] = __Pyx_ArgRef_FASTCALL(__pyx_args, 1);
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 142, __pyx_L3_error)
+        values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 142, __pyx_L3_error)
+        break;
+        default: goto __pyx_L5_argtuple_error;
+      }
+      if (!values[8]) values[8] = __Pyx_NewRef(((PyObject *)Py_None));
     }
     __pyx_v_trans_matrix = values[0];
     __pyx_v_bin_edges = values[1];
@@ -5278,10 +5304,11 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
     __pyx_v_model = values[5];
     __pyx_v_start_t = values[6];
     __pyx_v_dt = values[7];
+    __pyx_v_rng = values[8];
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("monte_carlo_prices", 1, 8, 8, __pyx_nargs); __PYX_ERR(0, 142, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("monte_carlo_prices", 0, 8, 9, __pyx_nargs); __PYX_ERR(0, 142, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -5292,7 +5319,15 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_6markov_12monte_carlo_prices(__pyx_self, __pyx_v_trans_matrix, __pyx_v_bin_edges, __pyx_v_start_pctile, __pyx_v_n_steps, __pyx_v_n_sims, __pyx_v_model, __pyx_v_start_t, __pyx_v_dt);
+  __pyx_r = __pyx_pf_6markov_12monte_carlo_prices(__pyx_self, __pyx_v_trans_matrix, __pyx_v_bin_edges, __pyx_v_start_pctile, __pyx_v_n_steps, __pyx_v_n_sims, __pyx_v_model, __pyx_v_start_t, __pyx_v_dt, __pyx_v_rng);
+
+  /* "markov.py":142
+ * #  Monte Carlo simulation
+ * 
+ * def monte_carlo_prices(trans_matrix, bin_edges, start_pctile, n_steps,             # <<<<<<<<<<<<<<
+ *                        n_sims, model, start_t, dt, rng=None):
+ *     """Generate Monte Carlo price paths using the Markov transition matrix.
+*/
 
   /* function exit code */
   for (Py_ssize_t __pyx_temp=0; __pyx_temp < (Py_ssize_t)(sizeof(values)/sizeof(values[0])); ++__pyx_temp) {
@@ -5302,9 +5337,8 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_6markov_12monte_carlo_prices(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_trans_matrix, PyObject *__pyx_v_bin_edges, PyObject *__pyx_v_start_pctile, PyObject *__pyx_v_n_steps, PyObject *__pyx_v_n_sims, PyObject *__pyx_v_model, PyObject *__pyx_v_start_t, PyObject *__pyx_v_dt) {
+static PyObject *__pyx_pf_6markov_12monte_carlo_prices(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_trans_matrix, PyObject *__pyx_v_bin_edges, PyObject *__pyx_v_start_pctile, PyObject *__pyx_v_n_steps, PyObject *__pyx_v_n_sims, PyObject *__pyx_v_model, PyObject *__pyx_v_start_t, PyObject *__pyx_v_dt, PyObject *__pyx_v_rng) {
   PyObject *__pyx_v_n_bins = NULL;
-  PyObject *__pyx_v_rng = NULL;
   PyObject *__pyx_v_cum_probs = NULL;
   PyObject *__pyx_v_start_bin = NULL;
   PyObject *__pyx_v_price_paths = NULL;
@@ -5323,259 +5357,303 @@ static PyObject *__pyx_pf_6markov_12monte_carlo_prices(CYTHON_UNUSED PyObject *_
   __Pyx_RefNannyDeclarations
   Py_ssize_t __pyx_t_1;
   PyObject *__pyx_t_2 = NULL;
-  PyObject *__pyx_t_3 = NULL;
-  PyObject *__pyx_t_4 = NULL;
+  int __pyx_t_3;
+  int __pyx_t_4;
   PyObject *__pyx_t_5 = NULL;
-  size_t __pyx_t_6;
-  PyObject *(*__pyx_t_7)(PyObject *);
-  PyObject *(*__pyx_t_8)(PyObject *);
-  PyObject *__pyx_t_9 = NULL;
-  PyObject *__pyx_t_10 = NULL;
-  int __pyx_t_11;
+  int __pyx_t_6;
+  PyObject *__pyx_t_7 = NULL;
+  PyObject *__pyx_t_8 = NULL;
+  size_t __pyx_t_9;
+  PyObject *(*__pyx_t_10)(PyObject *);
+  PyObject *(*__pyx_t_11)(PyObject *);
+  PyObject *__pyx_t_12 = NULL;
+  PyObject *__pyx_t_13 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("monte_carlo_prices", 0);
+  __Pyx_INCREF(__pyx_v_rng);
 
-  /* "markov.py":162
+  /* "markov.py":166
  *     pctile_paths : ndarray (n_sims, n_steps)  simulated percentile paths
  *     """
  *     n_bins = len(bin_edges) - 1             # <<<<<<<<<<<<<<
- *     rng = np.random.default_rng()
- * 
+ *     # Accept a Generator, a seed int, or None (default) for reproducibility.
+ *     if rng is None or isinstance(rng, (int, np.integer)):
 */
-  __pyx_t_1 = PyObject_Length(__pyx_v_bin_edges); if (unlikely(__pyx_t_1 == ((Py_ssize_t)-1))) __PYX_ERR(0, 162, __pyx_L1_error)
-  __pyx_t_2 = PyLong_FromSsize_t((__pyx_t_1 - 1)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 162, __pyx_L1_error)
+  __pyx_t_1 = PyObject_Length(__pyx_v_bin_edges); if (unlikely(__pyx_t_1 == ((Py_ssize_t)-1))) __PYX_ERR(0, 166, __pyx_L1_error)
+  __pyx_t_2 = PyLong_FromSsize_t((__pyx_t_1 - 1)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 166, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_v_n_bins = __pyx_t_2;
   __pyx_t_2 = 0;
 
-  /* "markov.py":163
- *     """
+  /* "markov.py":168
  *     n_bins = len(bin_edges) - 1
- *     rng = np.random.default_rng()             # <<<<<<<<<<<<<<
+ *     # Accept a Generator, a seed int, or None (default) for reproducibility.
+ *     if rng is None or isinstance(rng, (int, np.integer)):             # <<<<<<<<<<<<<<
+ *         rng = np.random.default_rng(rng)
+ * 
+*/
+  __pyx_t_4 = (__pyx_v_rng == Py_None);
+  if (!__pyx_t_4) {
+  } else {
+    __pyx_t_3 = __pyx_t_4;
+    goto __pyx_L4_bool_binop_done;
+  }
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 168, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_integer); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 168, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_6 = PyLong_Check(__pyx_v_rng); 
+  if (!__pyx_t_6) {
+  } else {
+    __pyx_t_4 = __pyx_t_6;
+    goto __pyx_L6_bool_binop_done;
+  }
+  __pyx_t_6 = PyObject_IsInstance(__pyx_v_rng, __pyx_t_5); 
+  __pyx_t_4 = __pyx_t_6;
+  __pyx_L6_bool_binop_done:;
+  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+  __pyx_t_3 = __pyx_t_4;
+  __pyx_L4_bool_binop_done:;
+  if (__pyx_t_3) {
+
+    /* "markov.py":169
+ *     # Accept a Generator, a seed int, or None (default) for reproducibility.
+ *     if rng is None or isinstance(rng, (int, np.integer)):
+ *         rng = np.random.default_rng(rng)             # <<<<<<<<<<<<<<
  * 
  *     # Precompute cumulative probabilities for efficient sampling
 */
-  __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 163, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_mstate_global->__pyx_n_u_random); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 163, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_3 = __pyx_t_5;
-  __Pyx_INCREF(__pyx_t_3);
-  __pyx_t_6 = 0;
-  {
-    PyObject *__pyx_callargs[2] = {__pyx_t_3, NULL};
-    __pyx_t_2 = __Pyx_PyObject_FastCallMethod((PyObject*)__pyx_mstate_global->__pyx_n_u_default_rng, __pyx_callargs+__pyx_t_6, (1-__pyx_t_6) | (1*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
-    __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 163, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_2);
-  }
-  __pyx_v_rng = __pyx_t_2;
-  __pyx_t_2 = 0;
+    __Pyx_GetModuleGlobalName(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 169, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_7);
+    __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_random); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 169, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_8);
+    __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+    __pyx_t_2 = __pyx_t_8;
+    __Pyx_INCREF(__pyx_t_2);
+    __pyx_t_9 = 0;
+    {
+      PyObject *__pyx_callargs[2] = {__pyx_t_2, __pyx_v_rng};
+      __pyx_t_5 = __Pyx_PyObject_FastCallMethod((PyObject*)__pyx_mstate_global->__pyx_n_u_default_rng, __pyx_callargs+__pyx_t_9, (2-__pyx_t_9) | (1*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
+      __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
+      __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+      if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 169, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_5);
+    }
+    __Pyx_DECREF_SET(__pyx_v_rng, __pyx_t_5);
+    __pyx_t_5 = 0;
 
-  /* "markov.py":166
+    /* "markov.py":168
+ *     n_bins = len(bin_edges) - 1
+ *     # Accept a Generator, a seed int, or None (default) for reproducibility.
+ *     if rng is None or isinstance(rng, (int, np.integer)):             # <<<<<<<<<<<<<<
+ *         rng = np.random.default_rng(rng)
+ * 
+*/
+  }
+
+  /* "markov.py":172
  * 
  *     # Precompute cumulative probabilities for efficient sampling
  *     cum_probs = np.cumsum(trans_matrix, axis=1)             # <<<<<<<<<<<<<<
  * 
  *     # Start bin
 */
-  __pyx_t_5 = NULL;
-  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 166, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_mstate_global->__pyx_n_u_cumsum); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 166, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_6 = 1;
+  __pyx_t_8 = NULL;
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 172, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_cumsum); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 172, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_7);
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_9 = 1;
   #if CYTHON_UNPACK_METHODS
-  if (unlikely(PyMethod_Check(__pyx_t_4))) {
-    __pyx_t_5 = PyMethod_GET_SELF(__pyx_t_4);
-    assert(__pyx_t_5);
-    PyObject* __pyx__function = PyMethod_GET_FUNCTION(__pyx_t_4);
-    __Pyx_INCREF(__pyx_t_5);
+  if (unlikely(PyMethod_Check(__pyx_t_7))) {
+    __pyx_t_8 = PyMethod_GET_SELF(__pyx_t_7);
+    assert(__pyx_t_8);
+    PyObject* __pyx__function = PyMethod_GET_FUNCTION(__pyx_t_7);
+    __Pyx_INCREF(__pyx_t_8);
     __Pyx_INCREF(__pyx__function);
-    __Pyx_DECREF_SET(__pyx_t_4, __pyx__function);
-    __pyx_t_6 = 0;
+    __Pyx_DECREF_SET(__pyx_t_7, __pyx__function);
+    __pyx_t_9 = 0;
   }
   #endif
   {
-    PyObject *__pyx_callargs[2 + ((CYTHON_VECTORCALL) ? 1 : 0)] = {__pyx_t_5, __pyx_v_trans_matrix};
-    __pyx_t_3 = __Pyx_MakeVectorcallBuilderKwds(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 166, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_3);
-    if (__Pyx_VectorcallBuilder_AddArg(__pyx_mstate_global->__pyx_n_u_axis, __pyx_mstate_global->__pyx_int_1, __pyx_t_3, __pyx_callargs+2, 0) < (0)) __PYX_ERR(0, 166, __pyx_L1_error)
-    __pyx_t_2 = __Pyx_Object_Vectorcall_CallFromBuilder((PyObject*)__pyx_t_4, __pyx_callargs+__pyx_t_6, (2-__pyx_t_6) | (__pyx_t_6*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET), __pyx_t_3);
-    __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 166, __pyx_L1_error)
+    PyObject *__pyx_callargs[2 + ((CYTHON_VECTORCALL) ? 1 : 0)] = {__pyx_t_8, __pyx_v_trans_matrix};
+    __pyx_t_2 = __Pyx_MakeVectorcallBuilderKwds(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 172, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
+    if (__Pyx_VectorcallBuilder_AddArg(__pyx_mstate_global->__pyx_n_u_axis, __pyx_mstate_global->__pyx_int_1, __pyx_t_2, __pyx_callargs+2, 0) < (0)) __PYX_ERR(0, 172, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_Object_Vectorcall_CallFromBuilder((PyObject*)__pyx_t_7, __pyx_callargs+__pyx_t_9, (2-__pyx_t_9) | (__pyx_t_9*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET), __pyx_t_2);
+    __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+    if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 172, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_5);
   }
-  __pyx_v_cum_probs = __pyx_t_2;
-  __pyx_t_2 = 0;
+  __pyx_v_cum_probs = __pyx_t_5;
+  __pyx_t_5 = 0;
 
-  /* "markov.py":169
+  /* "markov.py":175
  * 
  *     # Start bin
  *     start_bin = _bin_index(start_pctile, bin_edges)             # <<<<<<<<<<<<<<
  * 
  *     price_paths = np.empty((n_sims, n_steps))
 */
-  __pyx_t_4 = NULL;
-  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_mstate_global->__pyx_n_u_bin_index); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 169, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_6 = 1;
+  __pyx_t_7 = NULL;
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_bin_index); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 175, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_9 = 1;
   #if CYTHON_UNPACK_METHODS
-  if (unlikely(PyMethod_Check(__pyx_t_3))) {
-    __pyx_t_4 = PyMethod_GET_SELF(__pyx_t_3);
-    assert(__pyx_t_4);
-    PyObject* __pyx__function = PyMethod_GET_FUNCTION(__pyx_t_3);
-    __Pyx_INCREF(__pyx_t_4);
+  if (unlikely(PyMethod_Check(__pyx_t_2))) {
+    __pyx_t_7 = PyMethod_GET_SELF(__pyx_t_2);
+    assert(__pyx_t_7);
+    PyObject* __pyx__function = PyMethod_GET_FUNCTION(__pyx_t_2);
+    __Pyx_INCREF(__pyx_t_7);
     __Pyx_INCREF(__pyx__function);
-    __Pyx_DECREF_SET(__pyx_t_3, __pyx__function);
-    __pyx_t_6 = 0;
+    __Pyx_DECREF_SET(__pyx_t_2, __pyx__function);
+    __pyx_t_9 = 0;
   }
   #endif
   {
-    PyObject *__pyx_callargs[3] = {__pyx_t_4, __pyx_v_start_pctile, __pyx_v_bin_edges};
-    __pyx_t_2 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_3, __pyx_callargs+__pyx_t_6, (3-__pyx_t_6) | (__pyx_t_6*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
-    __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 169, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_2);
+    PyObject *__pyx_callargs[3] = {__pyx_t_7, __pyx_v_start_pctile, __pyx_v_bin_edges};
+    __pyx_t_5 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_2, __pyx_callargs+__pyx_t_9, (3-__pyx_t_9) | (__pyx_t_9*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
+    __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 175, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_5);
   }
-  __pyx_v_start_bin = __pyx_t_2;
-  __pyx_t_2 = 0;
+  __pyx_v_start_bin = __pyx_t_5;
+  __pyx_t_5 = 0;
 
-  /* "markov.py":171
+  /* "markov.py":177
  *     start_bin = _bin_index(start_pctile, bin_edges)
  * 
  *     price_paths = np.empty((n_sims, n_steps))             # <<<<<<<<<<<<<<
  *     pctile_paths = np.empty((n_sims, n_steps))
  * 
 */
-  __pyx_t_3 = NULL;
-  __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 171, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_mstate_global->__pyx_n_u_empty); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 171, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_4 = PyTuple_New(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 171, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_2 = NULL;
+  __Pyx_GetModuleGlobalName(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 177, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_7);
+  __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_empty); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 177, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_8);
+  __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+  __pyx_t_7 = PyTuple_New(2); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 177, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_7);
   __Pyx_INCREF(__pyx_v_n_sims);
   __Pyx_GIVEREF(__pyx_v_n_sims);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_v_n_sims) != (0)) __PYX_ERR(0, 171, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_7, 0, __pyx_v_n_sims) != (0)) __PYX_ERR(0, 177, __pyx_L1_error);
   __Pyx_INCREF(__pyx_v_n_steps);
   __Pyx_GIVEREF(__pyx_v_n_steps);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_4, 1, __pyx_v_n_steps) != (0)) __PYX_ERR(0, 171, __pyx_L1_error);
-  __pyx_t_6 = 1;
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_7, 1, __pyx_v_n_steps) != (0)) __PYX_ERR(0, 177, __pyx_L1_error);
+  __pyx_t_9 = 1;
   #if CYTHON_UNPACK_METHODS
-  if (unlikely(PyMethod_Check(__pyx_t_5))) {
-    __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_5);
-    assert(__pyx_t_3);
-    PyObject* __pyx__function = PyMethod_GET_FUNCTION(__pyx_t_5);
-    __Pyx_INCREF(__pyx_t_3);
+  if (unlikely(PyMethod_Check(__pyx_t_8))) {
+    __pyx_t_2 = PyMethod_GET_SELF(__pyx_t_8);
+    assert(__pyx_t_2);
+    PyObject* __pyx__function = PyMethod_GET_FUNCTION(__pyx_t_8);
+    __Pyx_INCREF(__pyx_t_2);
     __Pyx_INCREF(__pyx__function);
-    __Pyx_DECREF_SET(__pyx_t_5, __pyx__function);
-    __pyx_t_6 = 0;
+    __Pyx_DECREF_SET(__pyx_t_8, __pyx__function);
+    __pyx_t_9 = 0;
   }
   #endif
   {
-    PyObject *__pyx_callargs[2] = {__pyx_t_3, __pyx_t_4};
-    __pyx_t_2 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_5, __pyx_callargs+__pyx_t_6, (2-__pyx_t_6) | (__pyx_t_6*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
-    __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 171, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_2);
+    PyObject *__pyx_callargs[2] = {__pyx_t_2, __pyx_t_7};
+    __pyx_t_5 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_8, __pyx_callargs+__pyx_t_9, (2-__pyx_t_9) | (__pyx_t_9*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
+    __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+    if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 177, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_5);
   }
-  __pyx_v_price_paths = __pyx_t_2;
-  __pyx_t_2 = 0;
+  __pyx_v_price_paths = __pyx_t_5;
+  __pyx_t_5 = 0;
 
-  /* "markov.py":172
+  /* "markov.py":178
  * 
  *     price_paths = np.empty((n_sims, n_steps))
  *     pctile_paths = np.empty((n_sims, n_steps))             # <<<<<<<<<<<<<<
  * 
  *     for sim in range(n_sims):
 */
-  __pyx_t_5 = NULL;
-  __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 172, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_mstate_global->__pyx_n_u_empty); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 172, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_4 = PyTuple_New(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 172, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_8 = NULL;
+  __Pyx_GetModuleGlobalName(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 178, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_7);
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_empty); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 178, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+  __pyx_t_7 = PyTuple_New(2); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 178, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_7);
   __Pyx_INCREF(__pyx_v_n_sims);
   __Pyx_GIVEREF(__pyx_v_n_sims);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_v_n_sims) != (0)) __PYX_ERR(0, 172, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_7, 0, __pyx_v_n_sims) != (0)) __PYX_ERR(0, 178, __pyx_L1_error);
   __Pyx_INCREF(__pyx_v_n_steps);
   __Pyx_GIVEREF(__pyx_v_n_steps);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_4, 1, __pyx_v_n_steps) != (0)) __PYX_ERR(0, 172, __pyx_L1_error);
-  __pyx_t_6 = 1;
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_7, 1, __pyx_v_n_steps) != (0)) __PYX_ERR(0, 178, __pyx_L1_error);
+  __pyx_t_9 = 1;
   #if CYTHON_UNPACK_METHODS
-  if (unlikely(PyMethod_Check(__pyx_t_3))) {
-    __pyx_t_5 = PyMethod_GET_SELF(__pyx_t_3);
-    assert(__pyx_t_5);
-    PyObject* __pyx__function = PyMethod_GET_FUNCTION(__pyx_t_3);
-    __Pyx_INCREF(__pyx_t_5);
+  if (unlikely(PyMethod_Check(__pyx_t_2))) {
+    __pyx_t_8 = PyMethod_GET_SELF(__pyx_t_2);
+    assert(__pyx_t_8);
+    PyObject* __pyx__function = PyMethod_GET_FUNCTION(__pyx_t_2);
+    __Pyx_INCREF(__pyx_t_8);
     __Pyx_INCREF(__pyx__function);
-    __Pyx_DECREF_SET(__pyx_t_3, __pyx__function);
-    __pyx_t_6 = 0;
+    __Pyx_DECREF_SET(__pyx_t_2, __pyx__function);
+    __pyx_t_9 = 0;
   }
   #endif
   {
-    PyObject *__pyx_callargs[2] = {__pyx_t_5, __pyx_t_4};
-    __pyx_t_2 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_3, __pyx_callargs+__pyx_t_6, (2-__pyx_t_6) | (__pyx_t_6*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
-    __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
-    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 172, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_2);
+    PyObject *__pyx_callargs[2] = {__pyx_t_8, __pyx_t_7};
+    __pyx_t_5 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_2, __pyx_callargs+__pyx_t_9, (2-__pyx_t_9) | (__pyx_t_9*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
+    __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
+    __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 178, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_5);
   }
-  __pyx_v_pctile_paths = __pyx_t_2;
-  __pyx_t_2 = 0;
+  __pyx_v_pctile_paths = __pyx_t_5;
+  __pyx_t_5 = 0;
 
-  /* "markov.py":174
+  /* "markov.py":180
  *     pctile_paths = np.empty((n_sims, n_steps))
  * 
  *     for sim in range(n_sims):             # <<<<<<<<<<<<<<
  *         current_bin = start_bin
  *         for step in range(n_steps):
 */
-  __pyx_t_3 = NULL;
-  __pyx_t_6 = 1;
+  __pyx_t_2 = NULL;
+  __pyx_t_9 = 1;
   {
-    PyObject *__pyx_callargs[2] = {__pyx_t_3, __pyx_v_n_sims};
-    __pyx_t_2 = __Pyx_PyObject_FastCall((PyObject*)(&PyRange_Type), __pyx_callargs+__pyx_t_6, (2-__pyx_t_6) | (__pyx_t_6*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
-    __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-    if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 174, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_2);
+    PyObject *__pyx_callargs[2] = {__pyx_t_2, __pyx_v_n_sims};
+    __pyx_t_5 = __Pyx_PyObject_FastCall((PyObject*)(&PyRange_Type), __pyx_callargs+__pyx_t_9, (2-__pyx_t_9) | (__pyx_t_9*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
+    __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
+    if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 180, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_5);
   }
-  __pyx_t_3 = PyObject_GetIter(__pyx_t_2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 174, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_7 = (CYTHON_COMPILING_IN_LIMITED_API) ? PyIter_Next : __Pyx_PyObject_GetIterNextFunc(__pyx_t_3); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 174, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_2 = PyObject_GetIter(__pyx_t_5); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 180, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_10 = (CYTHON_COMPILING_IN_LIMITED_API) ? PyIter_Next : __Pyx_PyObject_GetIterNextFunc(__pyx_t_2); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 180, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   for (;;) {
     {
-      __pyx_t_2 = __pyx_t_7(__pyx_t_3);
-      if (unlikely(!__pyx_t_2)) {
+      __pyx_t_5 = __pyx_t_10(__pyx_t_2);
+      if (unlikely(!__pyx_t_5)) {
         PyObject* exc_type = PyErr_Occurred();
         if (exc_type) {
-          if (unlikely(!__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) __PYX_ERR(0, 174, __pyx_L1_error)
+          if (unlikely(!__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) __PYX_ERR(0, 180, __pyx_L1_error)
           PyErr_Clear();
         }
         break;
       }
     }
-    __Pyx_GOTREF(__pyx_t_2);
-    __Pyx_XDECREF_SET(__pyx_v_sim, __pyx_t_2);
-    __pyx_t_2 = 0;
+    __Pyx_GOTREF(__pyx_t_5);
+    __Pyx_XDECREF_SET(__pyx_v_sim, __pyx_t_5);
+    __pyx_t_5 = 0;
 
-    /* "markov.py":175
+    /* "markov.py":181
  * 
  *     for sim in range(n_sims):
  *         current_bin = start_bin             # <<<<<<<<<<<<<<
@@ -5585,261 +5663,261 @@ static PyObject *__pyx_pf_6markov_12monte_carlo_prices(CYTHON_UNUSED PyObject *_
     __Pyx_INCREF(__pyx_v_start_bin);
     __Pyx_XDECREF_SET(__pyx_v_current_bin, __pyx_v_start_bin);
 
-    /* "markov.py":176
+    /* "markov.py":182
  *     for sim in range(n_sims):
  *         current_bin = start_bin
  *         for step in range(n_steps):             # <<<<<<<<<<<<<<
  *             # Sample next bin from transition probabilities
  *             r = rng.random()
 */
-    __pyx_t_4 = NULL;
-    __pyx_t_6 = 1;
+    __pyx_t_7 = NULL;
+    __pyx_t_9 = 1;
     {
-      PyObject *__pyx_callargs[2] = {__pyx_t_4, __pyx_v_n_steps};
-      __pyx_t_2 = __Pyx_PyObject_FastCall((PyObject*)(&PyRange_Type), __pyx_callargs+__pyx_t_6, (2-__pyx_t_6) | (__pyx_t_6*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
-      __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
-      if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 176, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
+      PyObject *__pyx_callargs[2] = {__pyx_t_7, __pyx_v_n_steps};
+      __pyx_t_5 = __Pyx_PyObject_FastCall((PyObject*)(&PyRange_Type), __pyx_callargs+__pyx_t_9, (2-__pyx_t_9) | (__pyx_t_9*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
+      __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
+      if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 182, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_5);
     }
-    __pyx_t_4 = PyObject_GetIter(__pyx_t_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 176, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_8 = (CYTHON_COMPILING_IN_LIMITED_API) ? PyIter_Next : __Pyx_PyObject_GetIterNextFunc(__pyx_t_4); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 176, __pyx_L1_error)
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __pyx_t_7 = PyObject_GetIter(__pyx_t_5); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 182, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_7);
+    __pyx_t_11 = (CYTHON_COMPILING_IN_LIMITED_API) ? PyIter_Next : __Pyx_PyObject_GetIterNextFunc(__pyx_t_7); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 182, __pyx_L1_error)
+    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     for (;;) {
       {
-        __pyx_t_2 = __pyx_t_8(__pyx_t_4);
-        if (unlikely(!__pyx_t_2)) {
+        __pyx_t_5 = __pyx_t_11(__pyx_t_7);
+        if (unlikely(!__pyx_t_5)) {
           PyObject* exc_type = PyErr_Occurred();
           if (exc_type) {
-            if (unlikely(!__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) __PYX_ERR(0, 176, __pyx_L1_error)
+            if (unlikely(!__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) __PYX_ERR(0, 182, __pyx_L1_error)
             PyErr_Clear();
           }
           break;
         }
       }
-      __Pyx_GOTREF(__pyx_t_2);
-      __Pyx_XDECREF_SET(__pyx_v_step, __pyx_t_2);
-      __pyx_t_2 = 0;
+      __Pyx_GOTREF(__pyx_t_5);
+      __Pyx_XDECREF_SET(__pyx_v_step, __pyx_t_5);
+      __pyx_t_5 = 0;
 
-      /* "markov.py":178
+      /* "markov.py":184
  *         for step in range(n_steps):
  *             # Sample next bin from transition probabilities
  *             r = rng.random()             # <<<<<<<<<<<<<<
  *             next_bin = np.searchsorted(cum_probs[current_bin], r)
  *             next_bin = min(next_bin, n_bins - 1)
 */
-      __pyx_t_5 = __pyx_v_rng;
-      __Pyx_INCREF(__pyx_t_5);
-      __pyx_t_6 = 0;
+      __pyx_t_8 = __pyx_v_rng;
+      __Pyx_INCREF(__pyx_t_8);
+      __pyx_t_9 = 0;
       {
-        PyObject *__pyx_callargs[2] = {__pyx_t_5, NULL};
-        __pyx_t_2 = __Pyx_PyObject_FastCallMethod((PyObject*)__pyx_mstate_global->__pyx_n_u_random, __pyx_callargs+__pyx_t_6, (1-__pyx_t_6) | (1*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
-        __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
-        if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 178, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_2);
+        PyObject *__pyx_callargs[2] = {__pyx_t_8, NULL};
+        __pyx_t_5 = __Pyx_PyObject_FastCallMethod((PyObject*)__pyx_mstate_global->__pyx_n_u_random, __pyx_callargs+__pyx_t_9, (1-__pyx_t_9) | (1*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
+        __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
+        if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 184, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_5);
       }
-      __Pyx_XDECREF_SET(__pyx_v_r, __pyx_t_2);
-      __pyx_t_2 = 0;
+      __Pyx_XDECREF_SET(__pyx_v_r, __pyx_t_5);
+      __pyx_t_5 = 0;
 
-      /* "markov.py":179
+      /* "markov.py":185
  *             # Sample next bin from transition probabilities
  *             r = rng.random()
  *             next_bin = np.searchsorted(cum_probs[current_bin], r)             # <<<<<<<<<<<<<<
  *             next_bin = min(next_bin, n_bins - 1)
  * 
 */
-      __pyx_t_5 = NULL;
-      __Pyx_GetModuleGlobalName(__pyx_t_9, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 179, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_9);
-      __pyx_t_10 = __Pyx_PyObject_GetAttrStr(__pyx_t_9, __pyx_mstate_global->__pyx_n_u_searchsorted); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 179, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_10);
-      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-      __pyx_t_9 = __Pyx_PyObject_GetItem(__pyx_v_cum_probs, __pyx_v_current_bin); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 179, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_9);
-      __pyx_t_6 = 1;
+      __pyx_t_8 = NULL;
+      __Pyx_GetModuleGlobalName(__pyx_t_12, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 185, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_12);
+      __pyx_t_13 = __Pyx_PyObject_GetAttrStr(__pyx_t_12, __pyx_mstate_global->__pyx_n_u_searchsorted); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 185, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_13);
+      __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+      __pyx_t_12 = __Pyx_PyObject_GetItem(__pyx_v_cum_probs, __pyx_v_current_bin); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 185, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_12);
+      __pyx_t_9 = 1;
       #if CYTHON_UNPACK_METHODS
-      if (unlikely(PyMethod_Check(__pyx_t_10))) {
-        __pyx_t_5 = PyMethod_GET_SELF(__pyx_t_10);
-        assert(__pyx_t_5);
-        PyObject* __pyx__function = PyMethod_GET_FUNCTION(__pyx_t_10);
-        __Pyx_INCREF(__pyx_t_5);
+      if (unlikely(PyMethod_Check(__pyx_t_13))) {
+        __pyx_t_8 = PyMethod_GET_SELF(__pyx_t_13);
+        assert(__pyx_t_8);
+        PyObject* __pyx__function = PyMethod_GET_FUNCTION(__pyx_t_13);
+        __Pyx_INCREF(__pyx_t_8);
         __Pyx_INCREF(__pyx__function);
-        __Pyx_DECREF_SET(__pyx_t_10, __pyx__function);
-        __pyx_t_6 = 0;
+        __Pyx_DECREF_SET(__pyx_t_13, __pyx__function);
+        __pyx_t_9 = 0;
       }
       #endif
       {
-        PyObject *__pyx_callargs[3] = {__pyx_t_5, __pyx_t_9, __pyx_v_r};
-        __pyx_t_2 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_10, __pyx_callargs+__pyx_t_6, (3-__pyx_t_6) | (__pyx_t_6*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
-        __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
-        __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-        __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-        if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 179, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_2);
+        PyObject *__pyx_callargs[3] = {__pyx_t_8, __pyx_t_12, __pyx_v_r};
+        __pyx_t_5 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_13, __pyx_callargs+__pyx_t_9, (3-__pyx_t_9) | (__pyx_t_9*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
+        __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
+        __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+        __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
+        if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 185, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_5);
       }
-      __Pyx_XDECREF_SET(__pyx_v_next_bin, __pyx_t_2);
-      __pyx_t_2 = 0;
+      __Pyx_XDECREF_SET(__pyx_v_next_bin, __pyx_t_5);
+      __pyx_t_5 = 0;
 
-      /* "markov.py":180
+      /* "markov.py":186
  *             r = rng.random()
  *             next_bin = np.searchsorted(cum_probs[current_bin], r)
  *             next_bin = min(next_bin, n_bins - 1)             # <<<<<<<<<<<<<<
  * 
  *             # Convert bin to a percentile (sample uniformly within bin)
 */
-      __pyx_t_2 = __Pyx_PyLong_SubtractObjC(__pyx_v_n_bins, __pyx_mstate_global->__pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 180, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
+      __pyx_t_5 = __Pyx_PyLong_SubtractObjC(__pyx_v_n_bins, __pyx_mstate_global->__pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 186, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_5);
       __Pyx_INCREF(__pyx_v_next_bin);
-      __pyx_t_10 = __pyx_v_next_bin;
-      __pyx_t_5 = PyObject_RichCompare(__pyx_t_2, __pyx_t_10, Py_LT); __Pyx_XGOTREF(__pyx_t_5); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 180, __pyx_L1_error)
-      __pyx_t_11 = __Pyx_PyObject_IsTrue(__pyx_t_5); if (unlikely((__pyx_t_11 < 0))) __PYX_ERR(0, 180, __pyx_L1_error)
-      __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-      if (__pyx_t_11) {
-        __Pyx_INCREF(__pyx_t_2);
-        __pyx_t_9 = __pyx_t_2;
+      __pyx_t_13 = __pyx_v_next_bin;
+      __pyx_t_8 = PyObject_RichCompare(__pyx_t_5, __pyx_t_13, Py_LT); __Pyx_XGOTREF(__pyx_t_8); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 186, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_t_8); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 186, __pyx_L1_error)
+      __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+      if (__pyx_t_3) {
+        __Pyx_INCREF(__pyx_t_5);
+        __pyx_t_12 = __pyx_t_5;
       } else {
-        __Pyx_INCREF(__pyx_t_10);
-        __pyx_t_9 = __pyx_t_10;
+        __Pyx_INCREF(__pyx_t_13);
+        __pyx_t_12 = __pyx_t_13;
       }
-      __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __pyx_t_2 = __pyx_t_9;
-      __Pyx_INCREF(__pyx_t_2);
-      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-      __Pyx_DECREF_SET(__pyx_v_next_bin, __pyx_t_2);
-      __pyx_t_2 = 0;
+      __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
+      __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+      __pyx_t_5 = __pyx_t_12;
+      __Pyx_INCREF(__pyx_t_5);
+      __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+      __Pyx_DECREF_SET(__pyx_v_next_bin, __pyx_t_5);
+      __pyx_t_5 = 0;
 
-      /* "markov.py":183
+      /* "markov.py":189
  * 
  *             # Convert bin to a percentile (sample uniformly within bin)
  *             bin_lo = bin_edges[next_bin]             # <<<<<<<<<<<<<<
  *             bin_hi = bin_edges[next_bin + 1]
  *             pctile = bin_lo + rng.random() * (bin_hi - bin_lo)
 */
-      __pyx_t_2 = __Pyx_PyObject_GetItem(__pyx_v_bin_edges, __pyx_v_next_bin); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 183, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
-      __Pyx_XDECREF_SET(__pyx_v_bin_lo, __pyx_t_2);
-      __pyx_t_2 = 0;
+      __pyx_t_5 = __Pyx_PyObject_GetItem(__pyx_v_bin_edges, __pyx_v_next_bin); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 189, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_5);
+      __Pyx_XDECREF_SET(__pyx_v_bin_lo, __pyx_t_5);
+      __pyx_t_5 = 0;
 
-      /* "markov.py":184
+      /* "markov.py":190
  *             # Convert bin to a percentile (sample uniformly within bin)
  *             bin_lo = bin_edges[next_bin]
  *             bin_hi = bin_edges[next_bin + 1]             # <<<<<<<<<<<<<<
  *             pctile = bin_lo + rng.random() * (bin_hi - bin_lo)
  * 
 */
-      __pyx_t_2 = __Pyx_PyLong_AddObjC(__pyx_v_next_bin, __pyx_mstate_global->__pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 184, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
-      __pyx_t_9 = __Pyx_PyObject_GetItem(__pyx_v_bin_edges, __pyx_t_2); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 184, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_9);
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __Pyx_XDECREF_SET(__pyx_v_bin_hi, __pyx_t_9);
-      __pyx_t_9 = 0;
+      __pyx_t_5 = __Pyx_PyLong_AddObjC(__pyx_v_next_bin, __pyx_mstate_global->__pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 190, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_5);
+      __pyx_t_12 = __Pyx_PyObject_GetItem(__pyx_v_bin_edges, __pyx_t_5); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 190, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_12);
+      __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+      __Pyx_XDECREF_SET(__pyx_v_bin_hi, __pyx_t_12);
+      __pyx_t_12 = 0;
 
-      /* "markov.py":185
+      /* "markov.py":191
  *             bin_lo = bin_edges[next_bin]
  *             bin_hi = bin_edges[next_bin + 1]
  *             pctile = bin_lo + rng.random() * (bin_hi - bin_lo)             # <<<<<<<<<<<<<<
  * 
  *             # Convert percentile to price at the correct time
 */
-      __pyx_t_2 = __pyx_v_rng;
-      __Pyx_INCREF(__pyx_t_2);
-      __pyx_t_6 = 0;
+      __pyx_t_5 = __pyx_v_rng;
+      __Pyx_INCREF(__pyx_t_5);
+      __pyx_t_9 = 0;
       {
-        PyObject *__pyx_callargs[2] = {__pyx_t_2, NULL};
-        __pyx_t_9 = __Pyx_PyObject_FastCallMethod((PyObject*)__pyx_mstate_global->__pyx_n_u_random, __pyx_callargs+__pyx_t_6, (1-__pyx_t_6) | (1*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
-        __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
-        if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 185, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_9);
+        PyObject *__pyx_callargs[2] = {__pyx_t_5, NULL};
+        __pyx_t_12 = __Pyx_PyObject_FastCallMethod((PyObject*)__pyx_mstate_global->__pyx_n_u_random, __pyx_callargs+__pyx_t_9, (1-__pyx_t_9) | (1*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
+        __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
+        if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 191, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_12);
       }
-      __pyx_t_2 = PyNumber_Subtract(__pyx_v_bin_hi, __pyx_v_bin_lo); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 185, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
-      __pyx_t_10 = PyNumber_Multiply(__pyx_t_9, __pyx_t_2); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 185, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_10);
-      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __pyx_t_2 = PyNumber_Add(__pyx_v_bin_lo, __pyx_t_10); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 185, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
-      __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-      __Pyx_XDECREF_SET(__pyx_v_pctile, __pyx_t_2);
-      __pyx_t_2 = 0;
+      __pyx_t_5 = PyNumber_Subtract(__pyx_v_bin_hi, __pyx_v_bin_lo); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 191, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_5);
+      __pyx_t_13 = PyNumber_Multiply(__pyx_t_12, __pyx_t_5); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 191, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_13);
+      __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+      __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+      __pyx_t_5 = PyNumber_Add(__pyx_v_bin_lo, __pyx_t_13); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 191, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_5);
+      __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
+      __Pyx_XDECREF_SET(__pyx_v_pctile, __pyx_t_5);
+      __pyx_t_5 = 0;
 
-      /* "markov.py":188
+      /* "markov.py":194
  * 
  *             # Convert percentile to price at the correct time
  *             t = start_t + (step + 1) * dt             # <<<<<<<<<<<<<<
  *             price = model.interp_price(pctile, t)
  * 
 */
-      __pyx_t_2 = __Pyx_PyLong_AddObjC(__pyx_v_step, __pyx_mstate_global->__pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 188, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
-      __pyx_t_10 = PyNumber_Multiply(__pyx_t_2, __pyx_v_dt); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 188, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_10);
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __pyx_t_2 = PyNumber_Add(__pyx_v_start_t, __pyx_t_10); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 188, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
-      __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-      __Pyx_XDECREF_SET(__pyx_v_t, __pyx_t_2);
-      __pyx_t_2 = 0;
+      __pyx_t_5 = __Pyx_PyLong_AddObjC(__pyx_v_step, __pyx_mstate_global->__pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 194, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_5);
+      __pyx_t_13 = PyNumber_Multiply(__pyx_t_5, __pyx_v_dt); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 194, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_13);
+      __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+      __pyx_t_5 = PyNumber_Add(__pyx_v_start_t, __pyx_t_13); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 194, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_5);
+      __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
+      __Pyx_XDECREF_SET(__pyx_v_t, __pyx_t_5);
+      __pyx_t_5 = 0;
 
-      /* "markov.py":189
+      /* "markov.py":195
  *             # Convert percentile to price at the correct time
  *             t = start_t + (step + 1) * dt
  *             price = model.interp_price(pctile, t)             # <<<<<<<<<<<<<<
  * 
  *             pctile_paths[sim, step] = pctile
 */
-      __pyx_t_10 = __pyx_v_model;
-      __Pyx_INCREF(__pyx_t_10);
-      __pyx_t_6 = 0;
+      __pyx_t_13 = __pyx_v_model;
+      __Pyx_INCREF(__pyx_t_13);
+      __pyx_t_9 = 0;
       {
-        PyObject *__pyx_callargs[3] = {__pyx_t_10, __pyx_v_pctile, __pyx_v_t};
-        __pyx_t_2 = __Pyx_PyObject_FastCallMethod((PyObject*)__pyx_mstate_global->__pyx_n_u_interp_price, __pyx_callargs+__pyx_t_6, (3-__pyx_t_6) | (1*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
-        __Pyx_XDECREF(__pyx_t_10); __pyx_t_10 = 0;
-        if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 189, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_2);
+        PyObject *__pyx_callargs[3] = {__pyx_t_13, __pyx_v_pctile, __pyx_v_t};
+        __pyx_t_5 = __Pyx_PyObject_FastCallMethod((PyObject*)__pyx_mstate_global->__pyx_n_u_interp_price, __pyx_callargs+__pyx_t_9, (3-__pyx_t_9) | (1*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
+        __Pyx_XDECREF(__pyx_t_13); __pyx_t_13 = 0;
+        if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 195, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_5);
       }
-      __Pyx_XDECREF_SET(__pyx_v_price, __pyx_t_2);
-      __pyx_t_2 = 0;
+      __Pyx_XDECREF_SET(__pyx_v_price, __pyx_t_5);
+      __pyx_t_5 = 0;
 
-      /* "markov.py":191
+      /* "markov.py":197
  *             price = model.interp_price(pctile, t)
  * 
  *             pctile_paths[sim, step] = pctile             # <<<<<<<<<<<<<<
  *             price_paths[sim, step] = price
  *             current_bin = next_bin
 */
-      __pyx_t_2 = PyTuple_New(2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 191, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
+      __pyx_t_5 = PyTuple_New(2); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 197, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_5);
       __Pyx_INCREF(__pyx_v_sim);
       __Pyx_GIVEREF(__pyx_v_sim);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_v_sim) != (0)) __PYX_ERR(0, 191, __pyx_L1_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_v_sim) != (0)) __PYX_ERR(0, 197, __pyx_L1_error);
       __Pyx_INCREF(__pyx_v_step);
       __Pyx_GIVEREF(__pyx_v_step);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_2, 1, __pyx_v_step) != (0)) __PYX_ERR(0, 191, __pyx_L1_error);
-      if (unlikely((PyObject_SetItem(__pyx_v_pctile_paths, __pyx_t_2, __pyx_v_pctile) < 0))) __PYX_ERR(0, 191, __pyx_L1_error)
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_5, 1, __pyx_v_step) != (0)) __PYX_ERR(0, 197, __pyx_L1_error);
+      if (unlikely((PyObject_SetItem(__pyx_v_pctile_paths, __pyx_t_5, __pyx_v_pctile) < 0))) __PYX_ERR(0, 197, __pyx_L1_error)
+      __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
-      /* "markov.py":192
+      /* "markov.py":198
  * 
  *             pctile_paths[sim, step] = pctile
  *             price_paths[sim, step] = price             # <<<<<<<<<<<<<<
  *             current_bin = next_bin
  * 
 */
-      __pyx_t_2 = PyTuple_New(2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 192, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_2);
+      __pyx_t_5 = PyTuple_New(2); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 198, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_5);
       __Pyx_INCREF(__pyx_v_sim);
       __Pyx_GIVEREF(__pyx_v_sim);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_v_sim) != (0)) __PYX_ERR(0, 192, __pyx_L1_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_v_sim) != (0)) __PYX_ERR(0, 198, __pyx_L1_error);
       __Pyx_INCREF(__pyx_v_step);
       __Pyx_GIVEREF(__pyx_v_step);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_2, 1, __pyx_v_step) != (0)) __PYX_ERR(0, 192, __pyx_L1_error);
-      if (unlikely((PyObject_SetItem(__pyx_v_price_paths, __pyx_t_2, __pyx_v_price) < 0))) __PYX_ERR(0, 192, __pyx_L1_error)
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_5, 1, __pyx_v_step) != (0)) __PYX_ERR(0, 198, __pyx_L1_error);
+      if (unlikely((PyObject_SetItem(__pyx_v_price_paths, __pyx_t_5, __pyx_v_price) < 0))) __PYX_ERR(0, 198, __pyx_L1_error)
+      __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
-      /* "markov.py":193
+      /* "markov.py":199
  *             pctile_paths[sim, step] = pctile
  *             price_paths[sim, step] = price
  *             current_bin = next_bin             # <<<<<<<<<<<<<<
@@ -5849,7 +5927,7 @@ static PyObject *__pyx_pf_6markov_12monte_carlo_prices(CYTHON_UNUSED PyObject *_
       __Pyx_INCREF(__pyx_v_next_bin);
       __Pyx_DECREF_SET(__pyx_v_current_bin, __pyx_v_next_bin);
 
-      /* "markov.py":176
+      /* "markov.py":182
  *     for sim in range(n_sims):
  *         current_bin = start_bin
  *         for step in range(n_steps):             # <<<<<<<<<<<<<<
@@ -5857,9 +5935,9 @@ static PyObject *__pyx_pf_6markov_12monte_carlo_prices(CYTHON_UNUSED PyObject *_
  *             r = rng.random()
 */
     }
-    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-    /* "markov.py":174
+    /* "markov.py":180
  *     pctile_paths = np.empty((n_sims, n_steps))
  * 
  *     for sim in range(n_sims):             # <<<<<<<<<<<<<<
@@ -5867,9 +5945,9 @@ static PyObject *__pyx_pf_6markov_12monte_carlo_prices(CYTHON_UNUSED PyObject *_
  *         for step in range(n_steps):
 */
   }
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "markov.py":195
+  /* "markov.py":201
  *             current_bin = next_bin
  * 
  *     return price_paths, pctile_paths             # <<<<<<<<<<<<<<
@@ -5877,39 +5955,38 @@ static PyObject *__pyx_pf_6markov_12monte_carlo_prices(CYTHON_UNUSED PyObject *_
  * 
 */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 195, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_2 = PyTuple_New(2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 201, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
   __Pyx_INCREF(__pyx_v_price_paths);
   __Pyx_GIVEREF(__pyx_v_price_paths);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_v_price_paths) != (0)) __PYX_ERR(0, 195, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_v_price_paths) != (0)) __PYX_ERR(0, 201, __pyx_L1_error);
   __Pyx_INCREF(__pyx_v_pctile_paths);
   __Pyx_GIVEREF(__pyx_v_pctile_paths);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_v_pctile_paths) != (0)) __PYX_ERR(0, 195, __pyx_L1_error);
-  __pyx_r = __pyx_t_3;
-  __pyx_t_3 = 0;
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_2, 1, __pyx_v_pctile_paths) != (0)) __PYX_ERR(0, 201, __pyx_L1_error);
+  __pyx_r = __pyx_t_2;
+  __pyx_t_2 = 0;
   goto __pyx_L0;
 
   /* "markov.py":142
  * #  Monte Carlo simulation
  * 
  * def monte_carlo_prices(trans_matrix, bin_edges, start_pctile, n_steps,             # <<<<<<<<<<<<<<
- *                        n_sims, model, start_t, dt):
+ *                        n_sims, model, start_t, dt, rng=None):
  *     """Generate Monte Carlo price paths using the Markov transition matrix.
 */
 
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_3);
-  __Pyx_XDECREF(__pyx_t_4);
   __Pyx_XDECREF(__pyx_t_5);
-  __Pyx_XDECREF(__pyx_t_9);
-  __Pyx_XDECREF(__pyx_t_10);
+  __Pyx_XDECREF(__pyx_t_7);
+  __Pyx_XDECREF(__pyx_t_8);
+  __Pyx_XDECREF(__pyx_t_12);
+  __Pyx_XDECREF(__pyx_t_13);
   __Pyx_AddTraceback("markov.monte_carlo_prices", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XDECREF(__pyx_v_n_bins);
-  __Pyx_XDECREF(__pyx_v_rng);
   __Pyx_XDECREF(__pyx_v_cum_probs);
   __Pyx_XDECREF(__pyx_v_start_bin);
   __Pyx_XDECREF(__pyx_v_price_paths);
@@ -5924,12 +6001,13 @@ static PyObject *__pyx_pf_6markov_12monte_carlo_prices(CYTHON_UNUSED PyObject *_
   __Pyx_XDECREF(__pyx_v_pctile);
   __Pyx_XDECREF(__pyx_v_t);
   __Pyx_XDECREF(__pyx_v_price);
+  __Pyx_XDECREF(__pyx_v_rng);
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-/* "markov.py":200
+/* "markov.py":206
  * #  DCA simulation on MC paths
  * 
  * def mc_dca(price_paths, amount, start_stack=0.0):             # <<<<<<<<<<<<<<
@@ -5979,41 +6057,41 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   {
     PyObject ** const __pyx_pyargnames[] = {&__pyx_mstate_global->__pyx_n_u_price_paths,&__pyx_mstate_global->__pyx_n_u_amount,&__pyx_mstate_global->__pyx_n_u_start_stack,0};
     const Py_ssize_t __pyx_kwds_len = (__pyx_kwds) ? __Pyx_NumKwargs_FASTCALL(__pyx_kwds) : 0;
-    if (unlikely(__pyx_kwds_len) < 0) __PYX_ERR(0, 200, __pyx_L3_error)
+    if (unlikely(__pyx_kwds_len) < 0) __PYX_ERR(0, 206, __pyx_L3_error)
     if (__pyx_kwds_len > 0) {
       switch (__pyx_nargs) {
         case  3:
         values[2] = __Pyx_ArgRef_FASTCALL(__pyx_args, 2);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 200, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 206, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  2:
         values[1] = __Pyx_ArgRef_FASTCALL(__pyx_args, 1);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 200, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 206, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  1:
         values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 200, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 206, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  0: break;
         default: goto __pyx_L5_argtuple_error;
       }
       const Py_ssize_t kwd_pos_args = __pyx_nargs;
-      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "mc_dca", 0) < (0)) __PYX_ERR(0, 200, __pyx_L3_error)
+      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "mc_dca", 0) < (0)) __PYX_ERR(0, 206, __pyx_L3_error)
       if (!values[2]) values[2] = __Pyx_NewRef(((PyObject *)((PyObject*)__pyx_mstate_global->__pyx_float_0_0)));
       for (Py_ssize_t i = __pyx_nargs; i < 2; i++) {
-        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("mc_dca", 0, 2, 3, i); __PYX_ERR(0, 200, __pyx_L3_error) }
+        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("mc_dca", 0, 2, 3, i); __PYX_ERR(0, 206, __pyx_L3_error) }
       }
     } else {
       switch (__pyx_nargs) {
         case  3:
         values[2] = __Pyx_ArgRef_FASTCALL(__pyx_args, 2);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 200, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 206, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  2:
         values[1] = __Pyx_ArgRef_FASTCALL(__pyx_args, 1);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 200, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 206, __pyx_L3_error)
         values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 200, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 206, __pyx_L3_error)
         break;
         default: goto __pyx_L5_argtuple_error;
       }
@@ -6025,7 +6103,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("mc_dca", 0, 2, 3, __pyx_nargs); __PYX_ERR(0, 200, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("mc_dca", 0, 2, 3, __pyx_nargs); __PYX_ERR(0, 206, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -6071,14 +6149,14 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("mc_dca", 0);
 
-  /* "markov.py":214
+  /* "markov.py":220
  *     usd_paths : ndarray (n_sims, n_steps)  USD value over time
  *     """
  *     n_sims, n_steps = price_paths.shape             # <<<<<<<<<<<<<<
  *     btc_paths = np.empty_like(price_paths)
  *     usd_paths = np.empty_like(price_paths)
 */
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_price_paths, __pyx_mstate_global->__pyx_n_u_shape); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 214, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_price_paths, __pyx_mstate_global->__pyx_n_u_shape); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 220, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   if ((likely(PyTuple_CheckExact(__pyx_t_1))) || (PyList_CheckExact(__pyx_t_1))) {
     PyObject* sequence = __pyx_t_1;
@@ -6086,7 +6164,7 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
     if (unlikely(size != 2)) {
       if (size > 2) __Pyx_RaiseTooManyValuesError(2);
       else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-      __PYX_ERR(0, 214, __pyx_L1_error)
+      __PYX_ERR(0, 220, __pyx_L1_error)
     }
     #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
     if (likely(PyTuple_CheckExact(sequence))) {
@@ -6096,22 +6174,22 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
       __Pyx_INCREF(__pyx_t_3);
     } else {
       __pyx_t_2 = __Pyx_PyList_GetItemRefFast(sequence, 0, __Pyx_ReferenceSharing_SharedReference);
-      if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 214, __pyx_L1_error)
+      if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 220, __pyx_L1_error)
       __Pyx_XGOTREF(__pyx_t_2);
       __pyx_t_3 = __Pyx_PyList_GetItemRefFast(sequence, 1, __Pyx_ReferenceSharing_SharedReference);
-      if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 214, __pyx_L1_error)
+      if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 220, __pyx_L1_error)
       __Pyx_XGOTREF(__pyx_t_3);
     }
     #else
-    __pyx_t_2 = __Pyx_PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 214, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 220, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_3 = __Pyx_PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 214, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 220, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     #endif
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   } else {
     Py_ssize_t index = -1;
-    __pyx_t_4 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 214, __pyx_L1_error)
+    __pyx_t_4 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 220, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __pyx_t_5 = (CYTHON_COMPILING_IN_LIMITED_API) ? PyIter_Next : __Pyx_PyObject_GetIterNextFunc(__pyx_t_4);
@@ -6119,7 +6197,7 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
     __Pyx_GOTREF(__pyx_t_2);
     index = 1; __pyx_t_3 = __pyx_t_5(__pyx_t_4); if (unlikely(!__pyx_t_3)) goto __pyx_L3_unpacking_failed;
     __Pyx_GOTREF(__pyx_t_3);
-    if (__Pyx_IternextUnpackEndCheck(__pyx_t_5(__pyx_t_4), 2) < (0)) __PYX_ERR(0, 214, __pyx_L1_error)
+    if (__Pyx_IternextUnpackEndCheck(__pyx_t_5(__pyx_t_4), 2) < (0)) __PYX_ERR(0, 220, __pyx_L1_error)
     __pyx_t_5 = NULL;
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     goto __pyx_L4_unpacking_done;
@@ -6127,7 +6205,7 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __pyx_t_5 = NULL;
     if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
-    __PYX_ERR(0, 214, __pyx_L1_error)
+    __PYX_ERR(0, 220, __pyx_L1_error)
     __pyx_L4_unpacking_done:;
   }
   __pyx_v_n_sims = __pyx_t_2;
@@ -6135,7 +6213,7 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
   __pyx_v_n_steps = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "markov.py":215
+  /* "markov.py":221
  *     """
  *     n_sims, n_steps = price_paths.shape
  *     btc_paths = np.empty_like(price_paths)             # <<<<<<<<<<<<<<
@@ -6143,9 +6221,9 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
  * 
 */
   __pyx_t_3 = NULL;
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 215, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 221, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_empty_like); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 215, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_empty_like); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 221, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_t_6 = 1;
@@ -6165,13 +6243,13 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
     __pyx_t_1 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_4, __pyx_callargs+__pyx_t_6, (2-__pyx_t_6) | (__pyx_t_6*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
     __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 215, __pyx_L1_error)
+    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 221, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
   }
   __pyx_v_btc_paths = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "markov.py":216
+  /* "markov.py":222
  *     n_sims, n_steps = price_paths.shape
  *     btc_paths = np.empty_like(price_paths)
  *     usd_paths = np.empty_like(price_paths)             # <<<<<<<<<<<<<<
@@ -6179,9 +6257,9 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
  *     for sim in range(n_sims):
 */
   __pyx_t_4 = NULL;
-  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 216, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 222, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_mstate_global->__pyx_n_u_empty_like); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 216, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_mstate_global->__pyx_n_u_empty_like); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 222, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __pyx_t_6 = 1;
@@ -6201,13 +6279,13 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
     __pyx_t_1 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_2, __pyx_callargs+__pyx_t_6, (2-__pyx_t_6) | (__pyx_t_6*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
     __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 216, __pyx_L1_error)
+    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 222, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
   }
   __pyx_v_usd_paths = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "markov.py":218
+  /* "markov.py":224
  *     usd_paths = np.empty_like(price_paths)
  * 
  *     for sim in range(n_sims):             # <<<<<<<<<<<<<<
@@ -6220,12 +6298,12 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
     PyObject *__pyx_callargs[2] = {__pyx_t_2, __pyx_v_n_sims};
     __pyx_t_1 = __Pyx_PyObject_FastCall((PyObject*)(&PyRange_Type), __pyx_callargs+__pyx_t_6, (2-__pyx_t_6) | (__pyx_t_6*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
     __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
-    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 218, __pyx_L1_error)
+    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 224, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
   }
-  __pyx_t_2 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 218, __pyx_L1_error)
+  __pyx_t_2 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 224, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_7 = (CYTHON_COMPILING_IN_LIMITED_API) ? PyIter_Next : __Pyx_PyObject_GetIterNextFunc(__pyx_t_2); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 218, __pyx_L1_error)
+  __pyx_t_7 = (CYTHON_COMPILING_IN_LIMITED_API) ? PyIter_Next : __Pyx_PyObject_GetIterNextFunc(__pyx_t_2); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 224, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   for (;;) {
     {
@@ -6233,7 +6311,7 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
       if (unlikely(!__pyx_t_1)) {
         PyObject* exc_type = PyErr_Occurred();
         if (exc_type) {
-          if (unlikely(!__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) __PYX_ERR(0, 218, __pyx_L1_error)
+          if (unlikely(!__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) __PYX_ERR(0, 224, __pyx_L1_error)
           PyErr_Clear();
         }
         break;
@@ -6243,7 +6321,7 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
     __Pyx_XDECREF_SET(__pyx_v_sim, __pyx_t_1);
     __pyx_t_1 = 0;
 
-    /* "markov.py":219
+    /* "markov.py":225
  * 
  *     for sim in range(n_sims):
  *         stack = start_stack             # <<<<<<<<<<<<<<
@@ -6253,7 +6331,7 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
     __Pyx_INCREF(__pyx_v_start_stack);
     __Pyx_XDECREF_SET(__pyx_v_stack, __pyx_v_start_stack);
 
-    /* "markov.py":220
+    /* "markov.py":226
  *     for sim in range(n_sims):
  *         stack = start_stack
  *         for step in range(n_steps):             # <<<<<<<<<<<<<<
@@ -6266,12 +6344,12 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
       PyObject *__pyx_callargs[2] = {__pyx_t_4, __pyx_v_n_steps};
       __pyx_t_1 = __Pyx_PyObject_FastCall((PyObject*)(&PyRange_Type), __pyx_callargs+__pyx_t_6, (2-__pyx_t_6) | (__pyx_t_6*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
       __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
-      if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 220, __pyx_L1_error)
+      if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 226, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
     }
-    __pyx_t_4 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 220, __pyx_L1_error)
+    __pyx_t_4 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 226, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_8 = (CYTHON_COMPILING_IN_LIMITED_API) ? PyIter_Next : __Pyx_PyObject_GetIterNextFunc(__pyx_t_4); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 220, __pyx_L1_error)
+    __pyx_t_8 = (CYTHON_COMPILING_IN_LIMITED_API) ? PyIter_Next : __Pyx_PyObject_GetIterNextFunc(__pyx_t_4); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 226, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     for (;;) {
       {
@@ -6279,7 +6357,7 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
         if (unlikely(!__pyx_t_1)) {
           PyObject* exc_type = PyErr_Occurred();
           if (exc_type) {
-            if (unlikely(!__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) __PYX_ERR(0, 220, __pyx_L1_error)
+            if (unlikely(!__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) __PYX_ERR(0, 226, __pyx_L1_error)
             PyErr_Clear();
           }
           break;
@@ -6289,55 +6367,55 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
       __Pyx_XDECREF_SET(__pyx_v_step, __pyx_t_1);
       __pyx_t_1 = 0;
 
-      /* "markov.py":221
+      /* "markov.py":227
  *         stack = start_stack
  *         for step in range(n_steps):
  *             price = price_paths[sim, step]             # <<<<<<<<<<<<<<
  *             if price > 0:
  *                 stack += amount / price
 */
-      __pyx_t_1 = PyTuple_New(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 221, __pyx_L1_error)
+      __pyx_t_1 = PyTuple_New(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 227, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       __Pyx_INCREF(__pyx_v_sim);
       __Pyx_GIVEREF(__pyx_v_sim);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_v_sim) != (0)) __PYX_ERR(0, 221, __pyx_L1_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_v_sim) != (0)) __PYX_ERR(0, 227, __pyx_L1_error);
       __Pyx_INCREF(__pyx_v_step);
       __Pyx_GIVEREF(__pyx_v_step);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_v_step) != (0)) __PYX_ERR(0, 221, __pyx_L1_error);
-      __pyx_t_3 = __Pyx_PyObject_GetItem(__pyx_v_price_paths, __pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 221, __pyx_L1_error)
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_v_step) != (0)) __PYX_ERR(0, 227, __pyx_L1_error);
+      __pyx_t_3 = __Pyx_PyObject_GetItem(__pyx_v_price_paths, __pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 227, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
       __Pyx_XDECREF_SET(__pyx_v_price, __pyx_t_3);
       __pyx_t_3 = 0;
 
-      /* "markov.py":222
+      /* "markov.py":228
  *         for step in range(n_steps):
  *             price = price_paths[sim, step]
  *             if price > 0:             # <<<<<<<<<<<<<<
  *                 stack += amount / price
  *             btc_paths[sim, step] = stack
 */
-      __pyx_t_3 = PyObject_RichCompare(__pyx_v_price, __pyx_mstate_global->__pyx_int_0, Py_GT); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 222, __pyx_L1_error)
-      __pyx_t_9 = __Pyx_PyObject_IsTrue(__pyx_t_3); if (unlikely((__pyx_t_9 < 0))) __PYX_ERR(0, 222, __pyx_L1_error)
+      __pyx_t_3 = PyObject_RichCompare(__pyx_v_price, __pyx_mstate_global->__pyx_int_0, Py_GT); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 228, __pyx_L1_error)
+      __pyx_t_9 = __Pyx_PyObject_IsTrue(__pyx_t_3); if (unlikely((__pyx_t_9 < 0))) __PYX_ERR(0, 228, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
       if (__pyx_t_9) {
 
-        /* "markov.py":223
+        /* "markov.py":229
  *             price = price_paths[sim, step]
  *             if price > 0:
  *                 stack += amount / price             # <<<<<<<<<<<<<<
  *             btc_paths[sim, step] = stack
  *             usd_paths[sim, step] = stack * price
 */
-        __pyx_t_3 = __Pyx_PyNumber_Divide(__pyx_v_amount, __pyx_v_price); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 223, __pyx_L1_error)
+        __pyx_t_3 = __Pyx_PyNumber_Divide(__pyx_v_amount, __pyx_v_price); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 229, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_3);
-        __pyx_t_1 = PyNumber_InPlaceAdd(__pyx_v_stack, __pyx_t_3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 223, __pyx_L1_error)
+        __pyx_t_1 = PyNumber_InPlaceAdd(__pyx_v_stack, __pyx_t_3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 229, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
         __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
         __Pyx_DECREF_SET(__pyx_v_stack, __pyx_t_1);
         __pyx_t_1 = 0;
 
-        /* "markov.py":222
+        /* "markov.py":228
  *         for step in range(n_steps):
  *             price = price_paths[sim, step]
  *             if price > 0:             # <<<<<<<<<<<<<<
@@ -6346,46 +6424,46 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
 */
       }
 
-      /* "markov.py":224
+      /* "markov.py":230
  *             if price > 0:
  *                 stack += amount / price
  *             btc_paths[sim, step] = stack             # <<<<<<<<<<<<<<
  *             usd_paths[sim, step] = stack * price
  * 
 */
-      __pyx_t_1 = PyTuple_New(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 224, __pyx_L1_error)
+      __pyx_t_1 = PyTuple_New(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 230, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       __Pyx_INCREF(__pyx_v_sim);
       __Pyx_GIVEREF(__pyx_v_sim);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_v_sim) != (0)) __PYX_ERR(0, 224, __pyx_L1_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_v_sim) != (0)) __PYX_ERR(0, 230, __pyx_L1_error);
       __Pyx_INCREF(__pyx_v_step);
       __Pyx_GIVEREF(__pyx_v_step);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_v_step) != (0)) __PYX_ERR(0, 224, __pyx_L1_error);
-      if (unlikely((PyObject_SetItem(__pyx_v_btc_paths, __pyx_t_1, __pyx_v_stack) < 0))) __PYX_ERR(0, 224, __pyx_L1_error)
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_v_step) != (0)) __PYX_ERR(0, 230, __pyx_L1_error);
+      if (unlikely((PyObject_SetItem(__pyx_v_btc_paths, __pyx_t_1, __pyx_v_stack) < 0))) __PYX_ERR(0, 230, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-      /* "markov.py":225
+      /* "markov.py":231
  *                 stack += amount / price
  *             btc_paths[sim, step] = stack
  *             usd_paths[sim, step] = stack * price             # <<<<<<<<<<<<<<
  * 
  *     return btc_paths, usd_paths
 */
-      __pyx_t_1 = PyNumber_Multiply(__pyx_v_stack, __pyx_v_price); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 225, __pyx_L1_error)
+      __pyx_t_1 = PyNumber_Multiply(__pyx_v_stack, __pyx_v_price); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 231, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
-      __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 225, __pyx_L1_error)
+      __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 231, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_INCREF(__pyx_v_sim);
       __Pyx_GIVEREF(__pyx_v_sim);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_v_sim) != (0)) __PYX_ERR(0, 225, __pyx_L1_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_v_sim) != (0)) __PYX_ERR(0, 231, __pyx_L1_error);
       __Pyx_INCREF(__pyx_v_step);
       __Pyx_GIVEREF(__pyx_v_step);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_v_step) != (0)) __PYX_ERR(0, 225, __pyx_L1_error);
-      if (unlikely((PyObject_SetItem(__pyx_v_usd_paths, __pyx_t_3, __pyx_t_1) < 0))) __PYX_ERR(0, 225, __pyx_L1_error)
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_v_step) != (0)) __PYX_ERR(0, 231, __pyx_L1_error);
+      if (unlikely((PyObject_SetItem(__pyx_v_usd_paths, __pyx_t_3, __pyx_t_1) < 0))) __PYX_ERR(0, 231, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-      /* "markov.py":220
+      /* "markov.py":226
  *     for sim in range(n_sims):
  *         stack = start_stack
  *         for step in range(n_steps):             # <<<<<<<<<<<<<<
@@ -6395,7 +6473,7 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
     }
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
 
-    /* "markov.py":218
+    /* "markov.py":224
  *     usd_paths = np.empty_like(price_paths)
  * 
  *     for sim in range(n_sims):             # <<<<<<<<<<<<<<
@@ -6405,7 +6483,7 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
   }
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "markov.py":227
+  /* "markov.py":233
  *             usd_paths[sim, step] = stack * price
  * 
  *     return btc_paths, usd_paths             # <<<<<<<<<<<<<<
@@ -6413,19 +6491,19 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
  * 
 */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = PyTuple_New(2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 227, __pyx_L1_error)
+  __pyx_t_2 = PyTuple_New(2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 233, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_INCREF(__pyx_v_btc_paths);
   __Pyx_GIVEREF(__pyx_v_btc_paths);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_v_btc_paths) != (0)) __PYX_ERR(0, 227, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_v_btc_paths) != (0)) __PYX_ERR(0, 233, __pyx_L1_error);
   __Pyx_INCREF(__pyx_v_usd_paths);
   __Pyx_GIVEREF(__pyx_v_usd_paths);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_2, 1, __pyx_v_usd_paths) != (0)) __PYX_ERR(0, 227, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_2, 1, __pyx_v_usd_paths) != (0)) __PYX_ERR(0, 233, __pyx_L1_error);
   __pyx_r = __pyx_t_2;
   __pyx_t_2 = 0;
   goto __pyx_L0;
 
-  /* "markov.py":200
+  /* "markov.py":206
  * #  DCA simulation on MC paths
  * 
  * def mc_dca(price_paths, amount, start_stack=0.0):             # <<<<<<<<<<<<<<
@@ -6455,7 +6533,7 @@ static PyObject *__pyx_pf_6markov_14mc_dca(CYTHON_UNUSED PyObject *__pyx_self, P
   return __pyx_r;
 }
 
-/* "markov.py":232
+/* "markov.py":238
  * #  Retirement simulation on MC paths
  * 
  * def mc_retire(price_paths, start_stack, withdrawal, inflation_rate, dt):             # <<<<<<<<<<<<<<
@@ -6507,50 +6585,50 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   {
     PyObject ** const __pyx_pyargnames[] = {&__pyx_mstate_global->__pyx_n_u_price_paths,&__pyx_mstate_global->__pyx_n_u_start_stack,&__pyx_mstate_global->__pyx_n_u_withdrawal,&__pyx_mstate_global->__pyx_n_u_inflation_rate,&__pyx_mstate_global->__pyx_n_u_dt,0};
     const Py_ssize_t __pyx_kwds_len = (__pyx_kwds) ? __Pyx_NumKwargs_FASTCALL(__pyx_kwds) : 0;
-    if (unlikely(__pyx_kwds_len) < 0) __PYX_ERR(0, 232, __pyx_L3_error)
+    if (unlikely(__pyx_kwds_len) < 0) __PYX_ERR(0, 238, __pyx_L3_error)
     if (__pyx_kwds_len > 0) {
       switch (__pyx_nargs) {
         case  5:
         values[4] = __Pyx_ArgRef_FASTCALL(__pyx_args, 4);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[4])) __PYX_ERR(0, 232, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[4])) __PYX_ERR(0, 238, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  4:
         values[3] = __Pyx_ArgRef_FASTCALL(__pyx_args, 3);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[3])) __PYX_ERR(0, 232, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[3])) __PYX_ERR(0, 238, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  3:
         values[2] = __Pyx_ArgRef_FASTCALL(__pyx_args, 2);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 232, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 238, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  2:
         values[1] = __Pyx_ArgRef_FASTCALL(__pyx_args, 1);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 232, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 238, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  1:
         values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 232, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 238, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  0: break;
         default: goto __pyx_L5_argtuple_error;
       }
       const Py_ssize_t kwd_pos_args = __pyx_nargs;
-      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "mc_retire", 0) < (0)) __PYX_ERR(0, 232, __pyx_L3_error)
+      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "mc_retire", 0) < (0)) __PYX_ERR(0, 238, __pyx_L3_error)
       for (Py_ssize_t i = __pyx_nargs; i < 5; i++) {
-        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("mc_retire", 1, 5, 5, i); __PYX_ERR(0, 232, __pyx_L3_error) }
+        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("mc_retire", 1, 5, 5, i); __PYX_ERR(0, 238, __pyx_L3_error) }
       }
     } else if (unlikely(__pyx_nargs != 5)) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 232, __pyx_L3_error)
+      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 238, __pyx_L3_error)
       values[1] = __Pyx_ArgRef_FASTCALL(__pyx_args, 1);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 232, __pyx_L3_error)
+      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 238, __pyx_L3_error)
       values[2] = __Pyx_ArgRef_FASTCALL(__pyx_args, 2);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 232, __pyx_L3_error)
+      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 238, __pyx_L3_error)
       values[3] = __Pyx_ArgRef_FASTCALL(__pyx_args, 3);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[3])) __PYX_ERR(0, 232, __pyx_L3_error)
+      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[3])) __PYX_ERR(0, 238, __pyx_L3_error)
       values[4] = __Pyx_ArgRef_FASTCALL(__pyx_args, 4);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[4])) __PYX_ERR(0, 232, __pyx_L3_error)
+      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[4])) __PYX_ERR(0, 238, __pyx_L3_error)
     }
     __pyx_v_price_paths = values[0];
     __pyx_v_start_stack = values[1];
@@ -6560,7 +6638,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("mc_retire", 1, 5, 5, __pyx_nargs); __PYX_ERR(0, 232, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("mc_retire", 1, 5, 5, __pyx_nargs); __PYX_ERR(0, 238, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -6611,14 +6689,14 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("mc_retire", 0);
 
-  /* "markov.py":249
+  /* "markov.py":255
  *     depletion_steps : ndarray (n_sims,)  step at which BTC runs out (-1 if never)
  *     """
  *     n_sims, n_steps = price_paths.shape             # <<<<<<<<<<<<<<
  *     btc_paths = np.empty_like(price_paths)
  *     usd_paths = np.empty_like(price_paths)
 */
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_price_paths, __pyx_mstate_global->__pyx_n_u_shape); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 249, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_price_paths, __pyx_mstate_global->__pyx_n_u_shape); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 255, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   if ((likely(PyTuple_CheckExact(__pyx_t_1))) || (PyList_CheckExact(__pyx_t_1))) {
     PyObject* sequence = __pyx_t_1;
@@ -6626,7 +6704,7 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
     if (unlikely(size != 2)) {
       if (size > 2) __Pyx_RaiseTooManyValuesError(2);
       else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-      __PYX_ERR(0, 249, __pyx_L1_error)
+      __PYX_ERR(0, 255, __pyx_L1_error)
     }
     #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
     if (likely(PyTuple_CheckExact(sequence))) {
@@ -6636,22 +6714,22 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
       __Pyx_INCREF(__pyx_t_3);
     } else {
       __pyx_t_2 = __Pyx_PyList_GetItemRefFast(sequence, 0, __Pyx_ReferenceSharing_SharedReference);
-      if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 249, __pyx_L1_error)
+      if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 255, __pyx_L1_error)
       __Pyx_XGOTREF(__pyx_t_2);
       __pyx_t_3 = __Pyx_PyList_GetItemRefFast(sequence, 1, __Pyx_ReferenceSharing_SharedReference);
-      if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 249, __pyx_L1_error)
+      if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 255, __pyx_L1_error)
       __Pyx_XGOTREF(__pyx_t_3);
     }
     #else
-    __pyx_t_2 = __Pyx_PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 249, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 255, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_3 = __Pyx_PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 249, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 255, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     #endif
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   } else {
     Py_ssize_t index = -1;
-    __pyx_t_4 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 249, __pyx_L1_error)
+    __pyx_t_4 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 255, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __pyx_t_5 = (CYTHON_COMPILING_IN_LIMITED_API) ? PyIter_Next : __Pyx_PyObject_GetIterNextFunc(__pyx_t_4);
@@ -6659,7 +6737,7 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
     __Pyx_GOTREF(__pyx_t_2);
     index = 1; __pyx_t_3 = __pyx_t_5(__pyx_t_4); if (unlikely(!__pyx_t_3)) goto __pyx_L3_unpacking_failed;
     __Pyx_GOTREF(__pyx_t_3);
-    if (__Pyx_IternextUnpackEndCheck(__pyx_t_5(__pyx_t_4), 2) < (0)) __PYX_ERR(0, 249, __pyx_L1_error)
+    if (__Pyx_IternextUnpackEndCheck(__pyx_t_5(__pyx_t_4), 2) < (0)) __PYX_ERR(0, 255, __pyx_L1_error)
     __pyx_t_5 = NULL;
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     goto __pyx_L4_unpacking_done;
@@ -6667,7 +6745,7 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __pyx_t_5 = NULL;
     if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
-    __PYX_ERR(0, 249, __pyx_L1_error)
+    __PYX_ERR(0, 255, __pyx_L1_error)
     __pyx_L4_unpacking_done:;
   }
   __pyx_v_n_sims = __pyx_t_2;
@@ -6675,7 +6753,7 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
   __pyx_v_n_steps = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "markov.py":250
+  /* "markov.py":256
  *     """
  *     n_sims, n_steps = price_paths.shape
  *     btc_paths = np.empty_like(price_paths)             # <<<<<<<<<<<<<<
@@ -6683,9 +6761,9 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
  *     depletion_steps = np.full(n_sims, -1, dtype=int)
 */
   __pyx_t_3 = NULL;
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 250, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 256, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_empty_like); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 250, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_empty_like); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 256, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_t_6 = 1;
@@ -6705,13 +6783,13 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
     __pyx_t_1 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_4, __pyx_callargs+__pyx_t_6, (2-__pyx_t_6) | (__pyx_t_6*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
     __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 250, __pyx_L1_error)
+    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 256, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
   }
   __pyx_v_btc_paths = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "markov.py":251
+  /* "markov.py":257
  *     n_sims, n_steps = price_paths.shape
  *     btc_paths = np.empty_like(price_paths)
  *     usd_paths = np.empty_like(price_paths)             # <<<<<<<<<<<<<<
@@ -6719,9 +6797,9 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
  * 
 */
   __pyx_t_4 = NULL;
-  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 251, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 257, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_mstate_global->__pyx_n_u_empty_like); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 251, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_mstate_global->__pyx_n_u_empty_like); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 257, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __pyx_t_6 = 1;
@@ -6741,13 +6819,13 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
     __pyx_t_1 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_2, __pyx_callargs+__pyx_t_6, (2-__pyx_t_6) | (__pyx_t_6*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
     __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 251, __pyx_L1_error)
+    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 257, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
   }
   __pyx_v_usd_paths = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "markov.py":252
+  /* "markov.py":258
  *     btc_paths = np.empty_like(price_paths)
  *     usd_paths = np.empty_like(price_paths)
  *     depletion_steps = np.full(n_sims, -1, dtype=int)             # <<<<<<<<<<<<<<
@@ -6755,9 +6833,9 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
  *     for sim in range(n_sims):
 */
   __pyx_t_2 = NULL;
-  __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 252, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 258, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_mstate_global->__pyx_n_u_full); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 252, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_mstate_global->__pyx_n_u_full); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 258, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __pyx_t_6 = 1;
@@ -6774,20 +6852,20 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
   #endif
   {
     PyObject *__pyx_callargs[3 + ((CYTHON_VECTORCALL) ? 1 : 0)] = {__pyx_t_2, __pyx_v_n_sims, __pyx_mstate_global->__pyx_int_neg_1};
-    __pyx_t_4 = __Pyx_MakeVectorcallBuilderKwds(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 252, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_MakeVectorcallBuilderKwds(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 258, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    if (__Pyx_VectorcallBuilder_AddArg(__pyx_mstate_global->__pyx_n_u_dtype, ((PyObject *)(&PyLong_Type)), __pyx_t_4, __pyx_callargs+3, 0) < (0)) __PYX_ERR(0, 252, __pyx_L1_error)
+    if (__Pyx_VectorcallBuilder_AddArg(__pyx_mstate_global->__pyx_n_u_dtype, ((PyObject *)(&PyLong_Type)), __pyx_t_4, __pyx_callargs+3, 0) < (0)) __PYX_ERR(0, 258, __pyx_L1_error)
     __pyx_t_1 = __Pyx_Object_Vectorcall_CallFromBuilder((PyObject*)__pyx_t_3, __pyx_callargs+__pyx_t_6, (3-__pyx_t_6) | (__pyx_t_6*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET), __pyx_t_4);
     __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 252, __pyx_L1_error)
+    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 258, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
   }
   __pyx_v_depletion_steps = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "markov.py":254
+  /* "markov.py":260
  *     depletion_steps = np.full(n_sims, -1, dtype=int)
  * 
  *     for sim in range(n_sims):             # <<<<<<<<<<<<<<
@@ -6800,12 +6878,12 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
     PyObject *__pyx_callargs[2] = {__pyx_t_3, __pyx_v_n_sims};
     __pyx_t_1 = __Pyx_PyObject_FastCall((PyObject*)(&PyRange_Type), __pyx_callargs+__pyx_t_6, (2-__pyx_t_6) | (__pyx_t_6*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
     __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 254, __pyx_L1_error)
+    if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 260, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
   }
-  __pyx_t_3 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 254, __pyx_L1_error)
+  __pyx_t_3 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 260, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_7 = (CYTHON_COMPILING_IN_LIMITED_API) ? PyIter_Next : __Pyx_PyObject_GetIterNextFunc(__pyx_t_3); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 254, __pyx_L1_error)
+  __pyx_t_7 = (CYTHON_COMPILING_IN_LIMITED_API) ? PyIter_Next : __Pyx_PyObject_GetIterNextFunc(__pyx_t_3); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 260, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   for (;;) {
     {
@@ -6813,7 +6891,7 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
       if (unlikely(!__pyx_t_1)) {
         PyObject* exc_type = PyErr_Occurred();
         if (exc_type) {
-          if (unlikely(!__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) __PYX_ERR(0, 254, __pyx_L1_error)
+          if (unlikely(!__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) __PYX_ERR(0, 260, __pyx_L1_error)
           PyErr_Clear();
         }
         break;
@@ -6823,7 +6901,7 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
     __Pyx_XDECREF_SET(__pyx_v_sim, __pyx_t_1);
     __pyx_t_1 = 0;
 
-    /* "markov.py":255
+    /* "markov.py":261
  * 
  *     for sim in range(n_sims):
  *         stack = start_stack             # <<<<<<<<<<<<<<
@@ -6833,7 +6911,7 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
     __Pyx_INCREF(__pyx_v_start_stack);
     __Pyx_XDECREF_SET(__pyx_v_stack, __pyx_v_start_stack);
 
-    /* "markov.py":256
+    /* "markov.py":262
  *     for sim in range(n_sims):
  *         stack = start_stack
  *         for step in range(n_steps):             # <<<<<<<<<<<<<<
@@ -6846,12 +6924,12 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
       PyObject *__pyx_callargs[2] = {__pyx_t_4, __pyx_v_n_steps};
       __pyx_t_1 = __Pyx_PyObject_FastCall((PyObject*)(&PyRange_Type), __pyx_callargs+__pyx_t_6, (2-__pyx_t_6) | (__pyx_t_6*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
       __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
-      if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 256, __pyx_L1_error)
+      if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 262, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
     }
-    __pyx_t_4 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 256, __pyx_L1_error)
+    __pyx_t_4 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 262, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_8 = (CYTHON_COMPILING_IN_LIMITED_API) ? PyIter_Next : __Pyx_PyObject_GetIterNextFunc(__pyx_t_4); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 256, __pyx_L1_error)
+    __pyx_t_8 = (CYTHON_COMPILING_IN_LIMITED_API) ? PyIter_Next : __Pyx_PyObject_GetIterNextFunc(__pyx_t_4); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 262, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     for (;;) {
       {
@@ -6859,7 +6937,7 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
         if (unlikely(!__pyx_t_1)) {
           PyObject* exc_type = PyErr_Occurred();
           if (exc_type) {
-            if (unlikely(!__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) __PYX_ERR(0, 256, __pyx_L1_error)
+            if (unlikely(!__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) __PYX_ERR(0, 262, __pyx_L1_error)
             PyErr_Clear();
           }
           break;
@@ -6869,95 +6947,95 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
       __Pyx_XDECREF_SET(__pyx_v_step, __pyx_t_1);
       __pyx_t_1 = 0;
 
-      /* "markov.py":257
+      /* "markov.py":263
  *         stack = start_stack
  *         for step in range(n_steps):
  *             price = price_paths[sim, step]             # <<<<<<<<<<<<<<
  *             # Inflation-adjusted withdrawal
  *             wd = withdrawal * (1 + inflation_rate) ** (step * dt)
 */
-      __pyx_t_1 = PyTuple_New(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 257, __pyx_L1_error)
+      __pyx_t_1 = PyTuple_New(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 263, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       __Pyx_INCREF(__pyx_v_sim);
       __Pyx_GIVEREF(__pyx_v_sim);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_v_sim) != (0)) __PYX_ERR(0, 257, __pyx_L1_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_v_sim) != (0)) __PYX_ERR(0, 263, __pyx_L1_error);
       __Pyx_INCREF(__pyx_v_step);
       __Pyx_GIVEREF(__pyx_v_step);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_v_step) != (0)) __PYX_ERR(0, 257, __pyx_L1_error);
-      __pyx_t_2 = __Pyx_PyObject_GetItem(__pyx_v_price_paths, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 257, __pyx_L1_error)
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_v_step) != (0)) __PYX_ERR(0, 263, __pyx_L1_error);
+      __pyx_t_2 = __Pyx_PyObject_GetItem(__pyx_v_price_paths, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 263, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_2);
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
       __Pyx_XDECREF_SET(__pyx_v_price, __pyx_t_2);
       __pyx_t_2 = 0;
 
-      /* "markov.py":259
+      /* "markov.py":265
  *             price = price_paths[sim, step]
  *             # Inflation-adjusted withdrawal
  *             wd = withdrawal * (1 + inflation_rate) ** (step * dt)             # <<<<<<<<<<<<<<
  *             if price > 0 and stack > 0:
  *                 btc_needed = wd / price
 */
-      __pyx_t_2 = __Pyx_PyLong_AddCObj(__pyx_mstate_global->__pyx_int_1, __pyx_v_inflation_rate, 1, 0, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 259, __pyx_L1_error)
+      __pyx_t_2 = __Pyx_PyLong_AddCObj(__pyx_mstate_global->__pyx_int_1, __pyx_v_inflation_rate, 1, 0, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 265, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_2);
-      __pyx_t_1 = PyNumber_Multiply(__pyx_v_step, __pyx_v_dt); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 259, __pyx_L1_error)
+      __pyx_t_1 = PyNumber_Multiply(__pyx_v_step, __pyx_v_dt); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 265, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
-      __pyx_t_9 = PyNumber_Power(__pyx_t_2, __pyx_t_1, Py_None); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 259, __pyx_L1_error)
+      __pyx_t_9 = PyNumber_Power(__pyx_t_2, __pyx_t_1, Py_None); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 265, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_9);
       __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-      __pyx_t_1 = PyNumber_Multiply(__pyx_v_withdrawal, __pyx_t_9); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 259, __pyx_L1_error)
+      __pyx_t_1 = PyNumber_Multiply(__pyx_v_withdrawal, __pyx_t_9); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 265, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
       __Pyx_XDECREF_SET(__pyx_v_wd, __pyx_t_1);
       __pyx_t_1 = 0;
 
-      /* "markov.py":260
+      /* "markov.py":266
  *             # Inflation-adjusted withdrawal
  *             wd = withdrawal * (1 + inflation_rate) ** (step * dt)
  *             if price > 0 and stack > 0:             # <<<<<<<<<<<<<<
  *                 btc_needed = wd / price
  *                 stack -= btc_needed
 */
-      __pyx_t_1 = PyObject_RichCompare(__pyx_v_price, __pyx_mstate_global->__pyx_int_0, Py_GT); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 260, __pyx_L1_error)
-      __pyx_t_11 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely((__pyx_t_11 < 0))) __PYX_ERR(0, 260, __pyx_L1_error)
+      __pyx_t_1 = PyObject_RichCompare(__pyx_v_price, __pyx_mstate_global->__pyx_int_0, Py_GT); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 266, __pyx_L1_error)
+      __pyx_t_11 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely((__pyx_t_11 < 0))) __PYX_ERR(0, 266, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
       if (__pyx_t_11) {
       } else {
         __pyx_t_10 = __pyx_t_11;
         goto __pyx_L10_bool_binop_done;
       }
-      __pyx_t_1 = PyObject_RichCompare(__pyx_v_stack, __pyx_mstate_global->__pyx_int_0, Py_GT); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 260, __pyx_L1_error)
-      __pyx_t_11 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely((__pyx_t_11 < 0))) __PYX_ERR(0, 260, __pyx_L1_error)
+      __pyx_t_1 = PyObject_RichCompare(__pyx_v_stack, __pyx_mstate_global->__pyx_int_0, Py_GT); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 266, __pyx_L1_error)
+      __pyx_t_11 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely((__pyx_t_11 < 0))) __PYX_ERR(0, 266, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
       __pyx_t_10 = __pyx_t_11;
       __pyx_L10_bool_binop_done:;
       if (__pyx_t_10) {
 
-        /* "markov.py":261
+        /* "markov.py":267
  *             wd = withdrawal * (1 + inflation_rate) ** (step * dt)
  *             if price > 0 and stack > 0:
  *                 btc_needed = wd / price             # <<<<<<<<<<<<<<
  *                 stack -= btc_needed
  *             if stack <= 0 and depletion_steps[sim] == -1:
 */
-        __pyx_t_1 = __Pyx_PyNumber_Divide(__pyx_v_wd, __pyx_v_price); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 261, __pyx_L1_error)
+        __pyx_t_1 = __Pyx_PyNumber_Divide(__pyx_v_wd, __pyx_v_price); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 267, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
         __Pyx_XDECREF_SET(__pyx_v_btc_needed, __pyx_t_1);
         __pyx_t_1 = 0;
 
-        /* "markov.py":262
+        /* "markov.py":268
  *             if price > 0 and stack > 0:
  *                 btc_needed = wd / price
  *                 stack -= btc_needed             # <<<<<<<<<<<<<<
  *             if stack <= 0 and depletion_steps[sim] == -1:
  *                 depletion_steps[sim] = step
 */
-        __pyx_t_1 = PyNumber_InPlaceSubtract(__pyx_v_stack, __pyx_v_btc_needed); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 262, __pyx_L1_error)
+        __pyx_t_1 = PyNumber_InPlaceSubtract(__pyx_v_stack, __pyx_v_btc_needed); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 268, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
         __Pyx_DECREF_SET(__pyx_v_stack, __pyx_t_1);
         __pyx_t_1 = 0;
 
-        /* "markov.py":260
+        /* "markov.py":266
  *             # Inflation-adjusted withdrawal
  *             wd = withdrawal * (1 + inflation_rate) ** (step * dt)
  *             if price > 0 and stack > 0:             # <<<<<<<<<<<<<<
@@ -6966,39 +7044,39 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
 */
       }
 
-      /* "markov.py":263
+      /* "markov.py":269
  *                 btc_needed = wd / price
  *                 stack -= btc_needed
  *             if stack <= 0 and depletion_steps[sim] == -1:             # <<<<<<<<<<<<<<
  *                 depletion_steps[sim] = step
  *                 stack = 0
 */
-      __pyx_t_1 = PyObject_RichCompare(__pyx_v_stack, __pyx_mstate_global->__pyx_int_0, Py_LE); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 263, __pyx_L1_error)
-      __pyx_t_11 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely((__pyx_t_11 < 0))) __PYX_ERR(0, 263, __pyx_L1_error)
+      __pyx_t_1 = PyObject_RichCompare(__pyx_v_stack, __pyx_mstate_global->__pyx_int_0, Py_LE); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 269, __pyx_L1_error)
+      __pyx_t_11 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely((__pyx_t_11 < 0))) __PYX_ERR(0, 269, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
       if (__pyx_t_11) {
       } else {
         __pyx_t_10 = __pyx_t_11;
         goto __pyx_L13_bool_binop_done;
       }
-      __pyx_t_1 = __Pyx_PyObject_GetItem(__pyx_v_depletion_steps, __pyx_v_sim); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 263, __pyx_L1_error)
+      __pyx_t_1 = __Pyx_PyObject_GetItem(__pyx_v_depletion_steps, __pyx_v_sim); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 269, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
-      __pyx_t_11 = (__Pyx_PyLong_BoolEqObjC(__pyx_t_1, __pyx_mstate_global->__pyx_int_neg_1, -1L, 0)); if (unlikely((__pyx_t_11 < 0))) __PYX_ERR(0, 263, __pyx_L1_error)
+      __pyx_t_11 = (__Pyx_PyLong_BoolEqObjC(__pyx_t_1, __pyx_mstate_global->__pyx_int_neg_1, -1L, 0)); if (unlikely((__pyx_t_11 < 0))) __PYX_ERR(0, 269, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
       __pyx_t_10 = __pyx_t_11;
       __pyx_L13_bool_binop_done:;
       if (__pyx_t_10) {
 
-        /* "markov.py":264
+        /* "markov.py":270
  *                 stack -= btc_needed
  *             if stack <= 0 and depletion_steps[sim] == -1:
  *                 depletion_steps[sim] = step             # <<<<<<<<<<<<<<
  *                 stack = 0
  *             btc_paths[sim, step] = stack
 */
-        if (unlikely((PyObject_SetItem(__pyx_v_depletion_steps, __pyx_v_sim, __pyx_v_step) < 0))) __PYX_ERR(0, 264, __pyx_L1_error)
+        if (unlikely((PyObject_SetItem(__pyx_v_depletion_steps, __pyx_v_sim, __pyx_v_step) < 0))) __PYX_ERR(0, 270, __pyx_L1_error)
 
-        /* "markov.py":265
+        /* "markov.py":271
  *             if stack <= 0 and depletion_steps[sim] == -1:
  *                 depletion_steps[sim] = step
  *                 stack = 0             # <<<<<<<<<<<<<<
@@ -7008,7 +7086,7 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
         __Pyx_INCREF(__pyx_mstate_global->__pyx_int_0);
         __Pyx_DECREF_SET(__pyx_v_stack, __pyx_mstate_global->__pyx_int_0);
 
-        /* "markov.py":263
+        /* "markov.py":269
  *                 btc_needed = wd / price
  *                 stack -= btc_needed
  *             if stack <= 0 and depletion_steps[sim] == -1:             # <<<<<<<<<<<<<<
@@ -7017,46 +7095,46 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
 */
       }
 
-      /* "markov.py":266
+      /* "markov.py":272
  *                 depletion_steps[sim] = step
  *                 stack = 0
  *             btc_paths[sim, step] = stack             # <<<<<<<<<<<<<<
  *             usd_paths[sim, step] = stack * price
  * 
 */
-      __pyx_t_1 = PyTuple_New(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 266, __pyx_L1_error)
+      __pyx_t_1 = PyTuple_New(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 272, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       __Pyx_INCREF(__pyx_v_sim);
       __Pyx_GIVEREF(__pyx_v_sim);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_v_sim) != (0)) __PYX_ERR(0, 266, __pyx_L1_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_v_sim) != (0)) __PYX_ERR(0, 272, __pyx_L1_error);
       __Pyx_INCREF(__pyx_v_step);
       __Pyx_GIVEREF(__pyx_v_step);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_v_step) != (0)) __PYX_ERR(0, 266, __pyx_L1_error);
-      if (unlikely((PyObject_SetItem(__pyx_v_btc_paths, __pyx_t_1, __pyx_v_stack) < 0))) __PYX_ERR(0, 266, __pyx_L1_error)
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_v_step) != (0)) __PYX_ERR(0, 272, __pyx_L1_error);
+      if (unlikely((PyObject_SetItem(__pyx_v_btc_paths, __pyx_t_1, __pyx_v_stack) < 0))) __PYX_ERR(0, 272, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-      /* "markov.py":267
+      /* "markov.py":273
  *                 stack = 0
  *             btc_paths[sim, step] = stack
  *             usd_paths[sim, step] = stack * price             # <<<<<<<<<<<<<<
  * 
  *     return btc_paths, usd_paths, depletion_steps
 */
-      __pyx_t_1 = PyNumber_Multiply(__pyx_v_stack, __pyx_v_price); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 267, __pyx_L1_error)
+      __pyx_t_1 = PyNumber_Multiply(__pyx_v_stack, __pyx_v_price); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 273, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
-      __pyx_t_9 = PyTuple_New(2); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 267, __pyx_L1_error)
+      __pyx_t_9 = PyTuple_New(2); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 273, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_9);
       __Pyx_INCREF(__pyx_v_sim);
       __Pyx_GIVEREF(__pyx_v_sim);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_9, 0, __pyx_v_sim) != (0)) __PYX_ERR(0, 267, __pyx_L1_error);
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_9, 0, __pyx_v_sim) != (0)) __PYX_ERR(0, 273, __pyx_L1_error);
       __Pyx_INCREF(__pyx_v_step);
       __Pyx_GIVEREF(__pyx_v_step);
-      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_9, 1, __pyx_v_step) != (0)) __PYX_ERR(0, 267, __pyx_L1_error);
-      if (unlikely((PyObject_SetItem(__pyx_v_usd_paths, __pyx_t_9, __pyx_t_1) < 0))) __PYX_ERR(0, 267, __pyx_L1_error)
+      if (__Pyx_PyTuple_SET_ITEM(__pyx_t_9, 1, __pyx_v_step) != (0)) __PYX_ERR(0, 273, __pyx_L1_error);
+      if (unlikely((PyObject_SetItem(__pyx_v_usd_paths, __pyx_t_9, __pyx_t_1) < 0))) __PYX_ERR(0, 273, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-      /* "markov.py":256
+      /* "markov.py":262
  *     for sim in range(n_sims):
  *         stack = start_stack
  *         for step in range(n_steps):             # <<<<<<<<<<<<<<
@@ -7066,7 +7144,7 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
     }
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
 
-    /* "markov.py":254
+    /* "markov.py":260
  *     depletion_steps = np.full(n_sims, -1, dtype=int)
  * 
  *     for sim in range(n_sims):             # <<<<<<<<<<<<<<
@@ -7076,7 +7154,7 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
   }
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "markov.py":269
+  /* "markov.py":275
  *             usd_paths[sim, step] = stack * price
  * 
  *     return btc_paths, usd_paths, depletion_steps             # <<<<<<<<<<<<<<
@@ -7084,22 +7162,22 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
  * 
 */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_3 = PyTuple_New(3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 269, __pyx_L1_error)
+  __pyx_t_3 = PyTuple_New(3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 275, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_INCREF(__pyx_v_btc_paths);
   __Pyx_GIVEREF(__pyx_v_btc_paths);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_v_btc_paths) != (0)) __PYX_ERR(0, 269, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_v_btc_paths) != (0)) __PYX_ERR(0, 275, __pyx_L1_error);
   __Pyx_INCREF(__pyx_v_usd_paths);
   __Pyx_GIVEREF(__pyx_v_usd_paths);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_v_usd_paths) != (0)) __PYX_ERR(0, 269, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_v_usd_paths) != (0)) __PYX_ERR(0, 275, __pyx_L1_error);
   __Pyx_INCREF(__pyx_v_depletion_steps);
   __Pyx_GIVEREF(__pyx_v_depletion_steps);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 2, __pyx_v_depletion_steps) != (0)) __PYX_ERR(0, 269, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 2, __pyx_v_depletion_steps) != (0)) __PYX_ERR(0, 275, __pyx_L1_error);
   __pyx_r = __pyx_t_3;
   __pyx_t_3 = 0;
   goto __pyx_L0;
 
-  /* "markov.py":232
+  /* "markov.py":238
  * #  Retirement simulation on MC paths
  * 
  * def mc_retire(price_paths, start_stack, withdrawal, inflation_rate, dt):             # <<<<<<<<<<<<<<
@@ -7133,7 +7211,7 @@ static PyObject *__pyx_pf_6markov_16mc_retire(CYTHON_UNUSED PyObject *__pyx_self
   return __pyx_r;
 }
 
-/* "markov.py":274
+/* "markov.py":280
  * #  Statistical summary
  * 
  * def compute_fan_percentiles(paths, percentiles=(0.05, 0.25, 0.50, 0.75, 0.95)):             # <<<<<<<<<<<<<<
@@ -7182,35 +7260,35 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   {
     PyObject ** const __pyx_pyargnames[] = {&__pyx_mstate_global->__pyx_n_u_paths,&__pyx_mstate_global->__pyx_n_u_percentiles,0};
     const Py_ssize_t __pyx_kwds_len = (__pyx_kwds) ? __Pyx_NumKwargs_FASTCALL(__pyx_kwds) : 0;
-    if (unlikely(__pyx_kwds_len) < 0) __PYX_ERR(0, 274, __pyx_L3_error)
+    if (unlikely(__pyx_kwds_len) < 0) __PYX_ERR(0, 280, __pyx_L3_error)
     if (__pyx_kwds_len > 0) {
       switch (__pyx_nargs) {
         case  2:
         values[1] = __Pyx_ArgRef_FASTCALL(__pyx_args, 1);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 274, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 280, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  1:
         values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 274, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 280, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  0: break;
         default: goto __pyx_L5_argtuple_error;
       }
       const Py_ssize_t kwd_pos_args = __pyx_nargs;
-      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "compute_fan_percentiles", 0) < (0)) __PYX_ERR(0, 274, __pyx_L3_error)
+      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "compute_fan_percentiles", 0) < (0)) __PYX_ERR(0, 280, __pyx_L3_error)
       if (!values[1]) values[1] = __Pyx_NewRef(((PyObject *)((PyObject*)__pyx_mstate_global->__pyx_tuple[0])));
       for (Py_ssize_t i = __pyx_nargs; i < 1; i++) {
-        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("compute_fan_percentiles", 0, 1, 2, i); __PYX_ERR(0, 274, __pyx_L3_error) }
+        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("compute_fan_percentiles", 0, 1, 2, i); __PYX_ERR(0, 280, __pyx_L3_error) }
       }
     } else {
       switch (__pyx_nargs) {
         case  2:
         values[1] = __Pyx_ArgRef_FASTCALL(__pyx_args, 1);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 274, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 280, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  1:
         values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 274, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 280, __pyx_L3_error)
         break;
         default: goto __pyx_L5_argtuple_error;
       }
@@ -7221,7 +7299,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("compute_fan_percentiles", 0, 1, 2, __pyx_nargs); __PYX_ERR(0, 274, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("compute_fan_percentiles", 0, 1, 2, __pyx_nargs); __PYX_ERR(0, 280, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -7261,19 +7339,19 @@ static PyObject *__pyx_pf_6markov_18compute_fan_percentiles(CYTHON_UNUSED PyObje
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("compute_fan_percentiles", 0);
 
-  /* "markov.py":286
+  /* "markov.py":292
  *     dict mapping percentile  ndarray (n_steps,)
  *     """
  *     result = {}             # <<<<<<<<<<<<<<
  *     for p in percentiles:
  *         result[p] = np.percentile(paths, p * 100, axis=0)
 */
-  __pyx_t_1 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 286, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 292, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_v_result = ((PyObject*)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "markov.py":287
+  /* "markov.py":293
  *     """
  *     result = {}
  *     for p in percentiles:             # <<<<<<<<<<<<<<
@@ -7285,9 +7363,9 @@ static PyObject *__pyx_pf_6markov_18compute_fan_percentiles(CYTHON_UNUSED PyObje
     __pyx_t_2 = 0;
     __pyx_t_3 = NULL;
   } else {
-    __pyx_t_2 = -1; __pyx_t_1 = PyObject_GetIter(__pyx_v_percentiles); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 287, __pyx_L1_error)
+    __pyx_t_2 = -1; __pyx_t_1 = PyObject_GetIter(__pyx_v_percentiles); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 293, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_3 = (CYTHON_COMPILING_IN_LIMITED_API) ? PyIter_Next : __Pyx_PyObject_GetIterNextFunc(__pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 287, __pyx_L1_error)
+    __pyx_t_3 = (CYTHON_COMPILING_IN_LIMITED_API) ? PyIter_Next : __Pyx_PyObject_GetIterNextFunc(__pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 293, __pyx_L1_error)
   }
   for (;;) {
     if (likely(!__pyx_t_3)) {
@@ -7295,7 +7373,7 @@ static PyObject *__pyx_pf_6markov_18compute_fan_percentiles(CYTHON_UNUSED PyObje
         {
           Py_ssize_t __pyx_temp = __Pyx_PyList_GET_SIZE(__pyx_t_1);
           #if !CYTHON_ASSUME_SAFE_SIZE
-          if (unlikely((__pyx_temp < 0))) __PYX_ERR(0, 287, __pyx_L1_error)
+          if (unlikely((__pyx_temp < 0))) __PYX_ERR(0, 293, __pyx_L1_error)
           #endif
           if (__pyx_t_2 >= __pyx_temp) break;
         }
@@ -7305,7 +7383,7 @@ static PyObject *__pyx_pf_6markov_18compute_fan_percentiles(CYTHON_UNUSED PyObje
         {
           Py_ssize_t __pyx_temp = __Pyx_PyTuple_GET_SIZE(__pyx_t_1);
           #if !CYTHON_ASSUME_SAFE_SIZE
-          if (unlikely((__pyx_temp < 0))) __PYX_ERR(0, 287, __pyx_L1_error)
+          if (unlikely((__pyx_temp < 0))) __PYX_ERR(0, 293, __pyx_L1_error)
           #endif
           if (__pyx_t_2 >= __pyx_temp) break;
         }
@@ -7316,13 +7394,13 @@ static PyObject *__pyx_pf_6markov_18compute_fan_percentiles(CYTHON_UNUSED PyObje
         #endif
         ++__pyx_t_2;
       }
-      if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 287, __pyx_L1_error)
+      if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 293, __pyx_L1_error)
     } else {
       __pyx_t_4 = __pyx_t_3(__pyx_t_1);
       if (unlikely(!__pyx_t_4)) {
         PyObject* exc_type = PyErr_Occurred();
         if (exc_type) {
-          if (unlikely(!__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) __PYX_ERR(0, 287, __pyx_L1_error)
+          if (unlikely(!__Pyx_PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) __PYX_ERR(0, 293, __pyx_L1_error)
           PyErr_Clear();
         }
         break;
@@ -7332,7 +7410,7 @@ static PyObject *__pyx_pf_6markov_18compute_fan_percentiles(CYTHON_UNUSED PyObje
     __Pyx_XDECREF_SET(__pyx_v_p, __pyx_t_4);
     __pyx_t_4 = 0;
 
-    /* "markov.py":288
+    /* "markov.py":294
  *     result = {}
  *     for p in percentiles:
  *         result[p] = np.percentile(paths, p * 100, axis=0)             # <<<<<<<<<<<<<<
@@ -7340,12 +7418,12 @@ static PyObject *__pyx_pf_6markov_18compute_fan_percentiles(CYTHON_UNUSED PyObje
  * 
 */
     __pyx_t_5 = NULL;
-    __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 288, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 294, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
-    __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_mstate_global->__pyx_n_u_percentile); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 288, __pyx_L1_error)
+    __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_mstate_global->__pyx_n_u_percentile); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 294, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-    __pyx_t_6 = __Pyx_PyLong_MultiplyObjC(__pyx_v_p, __pyx_mstate_global->__pyx_int_100, 0x64, 0, 0); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 288, __pyx_L1_error)
+    __pyx_t_6 = __Pyx_PyLong_MultiplyObjC(__pyx_v_p, __pyx_mstate_global->__pyx_int_100, 0x64, 0, 0); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 294, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
     __pyx_t_8 = 1;
     #if CYTHON_UNPACK_METHODS
@@ -7361,21 +7439,21 @@ static PyObject *__pyx_pf_6markov_18compute_fan_percentiles(CYTHON_UNUSED PyObje
     #endif
     {
       PyObject *__pyx_callargs[3 + ((CYTHON_VECTORCALL) ? 1 : 0)] = {__pyx_t_5, __pyx_v_paths, __pyx_t_6};
-      __pyx_t_9 = __Pyx_MakeVectorcallBuilderKwds(1); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 288, __pyx_L1_error)
+      __pyx_t_9 = __Pyx_MakeVectorcallBuilderKwds(1); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 294, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_9);
-      if (__Pyx_VectorcallBuilder_AddArg(__pyx_mstate_global->__pyx_n_u_axis, __pyx_mstate_global->__pyx_int_0, __pyx_t_9, __pyx_callargs+3, 0) < (0)) __PYX_ERR(0, 288, __pyx_L1_error)
+      if (__Pyx_VectorcallBuilder_AddArg(__pyx_mstate_global->__pyx_n_u_axis, __pyx_mstate_global->__pyx_int_0, __pyx_t_9, __pyx_callargs+3, 0) < (0)) __PYX_ERR(0, 294, __pyx_L1_error)
       __pyx_t_4 = __Pyx_Object_Vectorcall_CallFromBuilder((PyObject*)__pyx_t_7, __pyx_callargs+__pyx_t_8, (3-__pyx_t_8) | (__pyx_t_8*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET), __pyx_t_9);
       __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
       __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
       __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-      if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 288, __pyx_L1_error)
+      if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 294, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
     }
-    if (unlikely((PyDict_SetItem(__pyx_v_result, __pyx_v_p, __pyx_t_4) < 0))) __PYX_ERR(0, 288, __pyx_L1_error)
+    if (unlikely((PyDict_SetItem(__pyx_v_result, __pyx_v_p, __pyx_t_4) < 0))) __PYX_ERR(0, 294, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
 
-    /* "markov.py":287
+    /* "markov.py":293
  *     """
  *     result = {}
  *     for p in percentiles:             # <<<<<<<<<<<<<<
@@ -7385,7 +7463,7 @@ static PyObject *__pyx_pf_6markov_18compute_fan_percentiles(CYTHON_UNUSED PyObje
   }
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "markov.py":289
+  /* "markov.py":295
  *     for p in percentiles:
  *         result[p] = np.percentile(paths, p * 100, axis=0)
  *     return result             # <<<<<<<<<<<<<<
@@ -7397,7 +7475,7 @@ static PyObject *__pyx_pf_6markov_18compute_fan_percentiles(CYTHON_UNUSED PyObje
   __pyx_r = __pyx_v_result;
   goto __pyx_L0;
 
-  /* "markov.py":274
+  /* "markov.py":280
  * #  Statistical summary
  * 
  * def compute_fan_percentiles(paths, percentiles=(0.05, 0.25, 0.50, 0.75, 0.95)):             # <<<<<<<<<<<<<<
@@ -7423,7 +7501,7 @@ static PyObject *__pyx_pf_6markov_18compute_fan_percentiles(CYTHON_UNUSED PyObje
   return __pyx_r;
 }
 
-/* "markov.py":292
+/* "markov.py":298
  * 
  * 
  * def depletion_stats(depletion_steps, n_steps, dt, start_yr):             # <<<<<<<<<<<<<<
@@ -7474,44 +7552,44 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   {
     PyObject ** const __pyx_pyargnames[] = {&__pyx_mstate_global->__pyx_n_u_depletion_steps,&__pyx_mstate_global->__pyx_n_u_n_steps,&__pyx_mstate_global->__pyx_n_u_dt,&__pyx_mstate_global->__pyx_n_u_start_yr,0};
     const Py_ssize_t __pyx_kwds_len = (__pyx_kwds) ? __Pyx_NumKwargs_FASTCALL(__pyx_kwds) : 0;
-    if (unlikely(__pyx_kwds_len) < 0) __PYX_ERR(0, 292, __pyx_L3_error)
+    if (unlikely(__pyx_kwds_len) < 0) __PYX_ERR(0, 298, __pyx_L3_error)
     if (__pyx_kwds_len > 0) {
       switch (__pyx_nargs) {
         case  4:
         values[3] = __Pyx_ArgRef_FASTCALL(__pyx_args, 3);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[3])) __PYX_ERR(0, 292, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[3])) __PYX_ERR(0, 298, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  3:
         values[2] = __Pyx_ArgRef_FASTCALL(__pyx_args, 2);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 292, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 298, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  2:
         values[1] = __Pyx_ArgRef_FASTCALL(__pyx_args, 1);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 292, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 298, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  1:
         values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 292, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 298, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  0: break;
         default: goto __pyx_L5_argtuple_error;
       }
       const Py_ssize_t kwd_pos_args = __pyx_nargs;
-      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "depletion_stats", 0) < (0)) __PYX_ERR(0, 292, __pyx_L3_error)
+      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "depletion_stats", 0) < (0)) __PYX_ERR(0, 298, __pyx_L3_error)
       for (Py_ssize_t i = __pyx_nargs; i < 4; i++) {
-        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("depletion_stats", 1, 4, 4, i); __PYX_ERR(0, 292, __pyx_L3_error) }
+        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("depletion_stats", 1, 4, 4, i); __PYX_ERR(0, 298, __pyx_L3_error) }
       }
     } else if (unlikely(__pyx_nargs != 4)) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 292, __pyx_L3_error)
+      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 298, __pyx_L3_error)
       values[1] = __Pyx_ArgRef_FASTCALL(__pyx_args, 1);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 292, __pyx_L3_error)
+      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 298, __pyx_L3_error)
       values[2] = __Pyx_ArgRef_FASTCALL(__pyx_args, 2);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 292, __pyx_L3_error)
+      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 298, __pyx_L3_error)
       values[3] = __Pyx_ArgRef_FASTCALL(__pyx_args, 3);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[3])) __PYX_ERR(0, 292, __pyx_L3_error)
+      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[3])) __PYX_ERR(0, 298, __pyx_L3_error)
     }
     __pyx_v_depletion_steps = values[0];
     __pyx_v_n_steps = values[1];
@@ -7520,7 +7598,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("depletion_stats", 1, 4, 4, __pyx_nargs); __PYX_ERR(0, 292, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("depletion_stats", 1, 4, 4, __pyx_nargs); __PYX_ERR(0, 298, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -7561,48 +7639,48 @@ static PyObject *__pyx_pf_6markov_20depletion_stats(CYTHON_UNUSED PyObject *__py
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("depletion_stats", 0);
 
-  /* "markov.py":303
+  /* "markov.py":309
  *         p90_depletion_yr : float or None
  *     """
  *     valid = depletion_steps[depletion_steps >= 0]             # <<<<<<<<<<<<<<
  *     n_sims = len(depletion_steps)
  *     pct_depleted = len(valid) / n_sims if n_sims > 0 else 0.0
 */
-  __pyx_t_1 = PyObject_RichCompare(__pyx_v_depletion_steps, __pyx_mstate_global->__pyx_int_0, Py_GE); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 303, __pyx_L1_error)
-  __pyx_t_2 = __Pyx_PyObject_GetItem(__pyx_v_depletion_steps, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 303, __pyx_L1_error)
+  __pyx_t_1 = PyObject_RichCompare(__pyx_v_depletion_steps, __pyx_mstate_global->__pyx_int_0, Py_GE); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 309, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetItem(__pyx_v_depletion_steps, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 309, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_valid = __pyx_t_2;
   __pyx_t_2 = 0;
 
-  /* "markov.py":304
+  /* "markov.py":310
  *     """
  *     valid = depletion_steps[depletion_steps >= 0]
  *     n_sims = len(depletion_steps)             # <<<<<<<<<<<<<<
  *     pct_depleted = len(valid) / n_sims if n_sims > 0 else 0.0
  * 
 */
-  __pyx_t_3 = PyObject_Length(__pyx_v_depletion_steps); if (unlikely(__pyx_t_3 == ((Py_ssize_t)-1))) __PYX_ERR(0, 304, __pyx_L1_error)
-  __pyx_t_2 = PyLong_FromSsize_t(__pyx_t_3); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 304, __pyx_L1_error)
+  __pyx_t_3 = PyObject_Length(__pyx_v_depletion_steps); if (unlikely(__pyx_t_3 == ((Py_ssize_t)-1))) __PYX_ERR(0, 310, __pyx_L1_error)
+  __pyx_t_2 = PyLong_FromSsize_t(__pyx_t_3); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 310, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_v_n_sims = __pyx_t_2;
   __pyx_t_2 = 0;
 
-  /* "markov.py":305
+  /* "markov.py":311
  *     valid = depletion_steps[depletion_steps >= 0]
  *     n_sims = len(depletion_steps)
  *     pct_depleted = len(valid) / n_sims if n_sims > 0 else 0.0             # <<<<<<<<<<<<<<
  * 
  *     if len(valid) == 0:
 */
-  __pyx_t_1 = PyObject_RichCompare(__pyx_v_n_sims, __pyx_mstate_global->__pyx_int_0, Py_GT); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 305, __pyx_L1_error)
-  __pyx_t_4 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely((__pyx_t_4 < 0))) __PYX_ERR(0, 305, __pyx_L1_error)
+  __pyx_t_1 = PyObject_RichCompare(__pyx_v_n_sims, __pyx_mstate_global->__pyx_int_0, Py_GT); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 311, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely((__pyx_t_4 < 0))) __PYX_ERR(0, 311, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   if (__pyx_t_4) {
-    __pyx_t_3 = PyObject_Length(__pyx_v_valid); if (unlikely(__pyx_t_3 == ((Py_ssize_t)-1))) __PYX_ERR(0, 305, __pyx_L1_error)
-    __pyx_t_1 = PyLong_FromSsize_t(__pyx_t_3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 305, __pyx_L1_error)
+    __pyx_t_3 = PyObject_Length(__pyx_v_valid); if (unlikely(__pyx_t_3 == ((Py_ssize_t)-1))) __PYX_ERR(0, 311, __pyx_L1_error)
+    __pyx_t_1 = PyLong_FromSsize_t(__pyx_t_3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 311, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_5 = __Pyx_PyNumber_Divide(__pyx_t_1, __pyx_v_n_sims); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 305, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyNumber_Divide(__pyx_t_1, __pyx_v_n_sims); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 311, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __pyx_t_2 = __pyx_t_5;
@@ -7614,18 +7692,18 @@ static PyObject *__pyx_pf_6markov_20depletion_stats(CYTHON_UNUSED PyObject *__py
   __pyx_v_pct_depleted = __pyx_t_2;
   __pyx_t_2 = 0;
 
-  /* "markov.py":307
+  /* "markov.py":313
  *     pct_depleted = len(valid) / n_sims if n_sims > 0 else 0.0
  * 
  *     if len(valid) == 0:             # <<<<<<<<<<<<<<
  *         return {"pct_depleted": pct_depleted,
  *                 "median_depletion_yr": None,
 */
-  __pyx_t_3 = PyObject_Length(__pyx_v_valid); if (unlikely(__pyx_t_3 == ((Py_ssize_t)-1))) __PYX_ERR(0, 307, __pyx_L1_error)
+  __pyx_t_3 = PyObject_Length(__pyx_v_valid); if (unlikely(__pyx_t_3 == ((Py_ssize_t)-1))) __PYX_ERR(0, 313, __pyx_L1_error)
   __pyx_t_4 = (__pyx_t_3 == 0);
   if (__pyx_t_4) {
 
-    /* "markov.py":308
+    /* "markov.py":314
  * 
  *     if len(valid) == 0:
  *         return {"pct_depleted": pct_depleted,             # <<<<<<<<<<<<<<
@@ -7633,41 +7711,41 @@ static PyObject *__pyx_pf_6markov_20depletion_stats(CYTHON_UNUSED PyObject *__py
  *                 "p10_depletion_yr": None,
 */
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_2 = __Pyx_PyDict_NewPresized(4); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 308, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyDict_NewPresized(4); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 314, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    if (PyDict_SetItem(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_pct_depleted, __pyx_v_pct_depleted) < (0)) __PYX_ERR(0, 308, __pyx_L1_error)
+    if (PyDict_SetItem(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_pct_depleted, __pyx_v_pct_depleted) < (0)) __PYX_ERR(0, 314, __pyx_L1_error)
 
-    /* "markov.py":309
+    /* "markov.py":315
  *     if len(valid) == 0:
  *         return {"pct_depleted": pct_depleted,
  *                 "median_depletion_yr": None,             # <<<<<<<<<<<<<<
  *                 "p10_depletion_yr": None,
  *                 "p90_depletion_yr": None}
 */
-    if (PyDict_SetItem(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_median_depletion_yr, Py_None) < (0)) __PYX_ERR(0, 308, __pyx_L1_error)
+    if (PyDict_SetItem(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_median_depletion_yr, Py_None) < (0)) __PYX_ERR(0, 314, __pyx_L1_error)
 
-    /* "markov.py":310
+    /* "markov.py":316
  *         return {"pct_depleted": pct_depleted,
  *                 "median_depletion_yr": None,
  *                 "p10_depletion_yr": None,             # <<<<<<<<<<<<<<
  *                 "p90_depletion_yr": None}
  * 
 */
-    if (PyDict_SetItem(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_p10_depletion_yr, Py_None) < (0)) __PYX_ERR(0, 308, __pyx_L1_error)
+    if (PyDict_SetItem(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_p10_depletion_yr, Py_None) < (0)) __PYX_ERR(0, 314, __pyx_L1_error)
 
-    /* "markov.py":311
+    /* "markov.py":317
  *                 "median_depletion_yr": None,
  *                 "p10_depletion_yr": None,
  *                 "p90_depletion_yr": None}             # <<<<<<<<<<<<<<
  * 
  *     depl_yrs = start_yr + valid * dt
 */
-    if (PyDict_SetItem(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_p90_depletion_yr, Py_None) < (0)) __PYX_ERR(0, 308, __pyx_L1_error)
+    if (PyDict_SetItem(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_p90_depletion_yr, Py_None) < (0)) __PYX_ERR(0, 314, __pyx_L1_error)
     __pyx_r = __pyx_t_2;
     __pyx_t_2 = 0;
     goto __pyx_L0;
 
-    /* "markov.py":307
+    /* "markov.py":313
  *     pct_depleted = len(valid) / n_sims if n_sims > 0 else 0.0
  * 
  *     if len(valid) == 0:             # <<<<<<<<<<<<<<
@@ -7676,22 +7754,22 @@ static PyObject *__pyx_pf_6markov_20depletion_stats(CYTHON_UNUSED PyObject *__py
 */
   }
 
-  /* "markov.py":313
+  /* "markov.py":319
  *                 "p90_depletion_yr": None}
  * 
  *     depl_yrs = start_yr + valid * dt             # <<<<<<<<<<<<<<
  *     return {
  *         "pct_depleted": pct_depleted,
 */
-  __pyx_t_2 = PyNumber_Multiply(__pyx_v_valid, __pyx_v_dt); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 313, __pyx_L1_error)
+  __pyx_t_2 = PyNumber_Multiply(__pyx_v_valid, __pyx_v_dt); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 319, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_5 = PyNumber_Add(__pyx_v_start_yr, __pyx_t_2); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 313, __pyx_L1_error)
+  __pyx_t_5 = PyNumber_Add(__pyx_v_start_yr, __pyx_t_2); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 319, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_v_depl_yrs = __pyx_t_5;
   __pyx_t_5 = 0;
 
-  /* "markov.py":314
+  /* "markov.py":320
  * 
  *     depl_yrs = start_yr + valid * dt
  *     return {             # <<<<<<<<<<<<<<
@@ -7700,18 +7778,18 @@ static PyObject *__pyx_pf_6markov_20depletion_stats(CYTHON_UNUSED PyObject *__py
 */
   __Pyx_XDECREF(__pyx_r);
 
-  /* "markov.py":315
+  /* "markov.py":321
  *     depl_yrs = start_yr + valid * dt
  *     return {
  *         "pct_depleted": pct_depleted,             # <<<<<<<<<<<<<<
  *         "median_depletion_yr": float(np.median(depl_yrs)),
  *         "p10_depletion_yr": float(np.percentile(depl_yrs, 10)),
 */
-  __pyx_t_5 = __Pyx_PyDict_NewPresized(4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 315, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyDict_NewPresized(4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 321, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
-  if (PyDict_SetItem(__pyx_t_5, __pyx_mstate_global->__pyx_n_u_pct_depleted, __pyx_v_pct_depleted) < (0)) __PYX_ERR(0, 315, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_5, __pyx_mstate_global->__pyx_n_u_pct_depleted, __pyx_v_pct_depleted) < (0)) __PYX_ERR(0, 321, __pyx_L1_error)
 
-  /* "markov.py":316
+  /* "markov.py":322
  *     return {
  *         "pct_depleted": pct_depleted,
  *         "median_depletion_yr": float(np.median(depl_yrs)),             # <<<<<<<<<<<<<<
@@ -7719,9 +7797,9 @@ static PyObject *__pyx_pf_6markov_20depletion_stats(CYTHON_UNUSED PyObject *__py
  *         "p90_depletion_yr": float(np.percentile(depl_yrs, 90)),
 */
   __pyx_t_1 = NULL;
-  __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 316, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 322, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
-  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_mstate_global->__pyx_n_u_median); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 316, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_mstate_global->__pyx_n_u_median); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 322, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
   __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
   __pyx_t_8 = 1;
@@ -7741,16 +7819,16 @@ static PyObject *__pyx_pf_6markov_20depletion_stats(CYTHON_UNUSED PyObject *__py
     __pyx_t_2 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_7, __pyx_callargs+__pyx_t_8, (2-__pyx_t_8) | (__pyx_t_8*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
     __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-    if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 316, __pyx_L1_error)
+    if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 322, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
   }
-  __pyx_t_7 = __Pyx_PyNumber_Float(__pyx_t_2); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 316, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyNumber_Float(__pyx_t_2); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 322, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (PyDict_SetItem(__pyx_t_5, __pyx_mstate_global->__pyx_n_u_median_depletion_yr, __pyx_t_7) < (0)) __PYX_ERR(0, 315, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_5, __pyx_mstate_global->__pyx_n_u_median_depletion_yr, __pyx_t_7) < (0)) __PYX_ERR(0, 321, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-  /* "markov.py":317
+  /* "markov.py":323
  *         "pct_depleted": pct_depleted,
  *         "median_depletion_yr": float(np.median(depl_yrs)),
  *         "p10_depletion_yr": float(np.percentile(depl_yrs, 10)),             # <<<<<<<<<<<<<<
@@ -7758,9 +7836,9 @@ static PyObject *__pyx_pf_6markov_20depletion_stats(CYTHON_UNUSED PyObject *__py
  *     }
 */
   __pyx_t_2 = NULL;
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 317, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 323, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_mstate_global->__pyx_n_u_percentile); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 317, __pyx_L1_error)
+  __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_mstate_global->__pyx_n_u_percentile); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 323, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_t_8 = 1;
@@ -7780,25 +7858,25 @@ static PyObject *__pyx_pf_6markov_20depletion_stats(CYTHON_UNUSED PyObject *__py
     __pyx_t_7 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_6, __pyx_callargs+__pyx_t_8, (3-__pyx_t_8) | (__pyx_t_8*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
     __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-    if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 317, __pyx_L1_error)
+    if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 323, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
   }
-  __pyx_t_6 = __Pyx_PyNumber_Float(__pyx_t_7); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 317, __pyx_L1_error)
+  __pyx_t_6 = __Pyx_PyNumber_Float(__pyx_t_7); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 323, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-  if (PyDict_SetItem(__pyx_t_5, __pyx_mstate_global->__pyx_n_u_p10_depletion_yr, __pyx_t_6) < (0)) __PYX_ERR(0, 315, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_5, __pyx_mstate_global->__pyx_n_u_p10_depletion_yr, __pyx_t_6) < (0)) __PYX_ERR(0, 321, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
 
-  /* "markov.py":318
+  /* "markov.py":324
  *         "median_depletion_yr": float(np.median(depl_yrs)),
  *         "p10_depletion_yr": float(np.percentile(depl_yrs, 10)),
  *         "p90_depletion_yr": float(np.percentile(depl_yrs, 90)),             # <<<<<<<<<<<<<<
  *     }
 */
   __pyx_t_7 = NULL;
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 318, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 324, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_percentile); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 318, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_percentile); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 324, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_t_8 = 1;
@@ -7818,19 +7896,19 @@ static PyObject *__pyx_pf_6markov_20depletion_stats(CYTHON_UNUSED PyObject *__py
     __pyx_t_6 = __Pyx_PyObject_FastCall((PyObject*)__pyx_t_1, __pyx_callargs+__pyx_t_8, (3-__pyx_t_8) | (__pyx_t_8*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
     __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 318, __pyx_L1_error)
+    if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 324, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
   }
-  __pyx_t_1 = __Pyx_PyNumber_Float(__pyx_t_6); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 318, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyNumber_Float(__pyx_t_6); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 324, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-  if (PyDict_SetItem(__pyx_t_5, __pyx_mstate_global->__pyx_n_u_p90_depletion_yr, __pyx_t_1) < (0)) __PYX_ERR(0, 315, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_5, __pyx_mstate_global->__pyx_n_u_p90_depletion_yr, __pyx_t_1) < (0)) __PYX_ERR(0, 321, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_r = __pyx_t_5;
   __pyx_t_5 = 0;
   goto __pyx_L0;
 
-  /* "markov.py":292
+  /* "markov.py":298
  * 
  * 
  * def depletion_stats(depletion_steps, n_steps, dt, start_yr):             # <<<<<<<<<<<<<<
@@ -8402,7 +8480,7 @@ __Pyx_RefNannySetupContext("PyInit_markov", 0);
  * #  Monte Carlo simulation
  * 
  * def monte_carlo_prices(trans_matrix, bin_edges, start_pctile, n_steps,             # <<<<<<<<<<<<<<
- *                        n_sims, model, start_t, dt):
+ *                        n_sims, model, start_t, dt, rng=None):
  *     """Generate Monte Carlo price paths using the Markov transition matrix.
 */
   __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6markov_13monte_carlo_prices, 0, __pyx_mstate_global->__pyx_n_u_monte_carlo_prices, NULL, __pyx_mstate_global->__pyx_n_u_markov, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[6])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 142, __pyx_L1_error)
@@ -8410,69 +8488,70 @@ __Pyx_RefNannySetupContext("PyInit_markov", 0);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_2);
   #endif
+  __Pyx_CyFunction_SetDefaultsTuple(__pyx_t_2, __pyx_mstate_global->__pyx_tuple[3]);
   if (PyDict_SetItem(__pyx_mstate_global->__pyx_d, __pyx_mstate_global->__pyx_n_u_monte_carlo_prices, __pyx_t_2) < (0)) __PYX_ERR(0, 142, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "markov.py":200
+  /* "markov.py":206
  * #  DCA simulation on MC paths
  * 
  * def mc_dca(price_paths, amount, start_stack=0.0):             # <<<<<<<<<<<<<<
  *     """Run DCA simulation on Monte Carlo price paths.
  * 
 */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6markov_15mc_dca, 0, __pyx_mstate_global->__pyx_n_u_mc_dca, NULL, __pyx_mstate_global->__pyx_n_u_markov, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[7])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 200, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6markov_15mc_dca, 0, __pyx_mstate_global->__pyx_n_u_mc_dca, NULL, __pyx_mstate_global->__pyx_n_u_markov, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[7])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 206, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_2);
   #endif
-  __Pyx_CyFunction_SetDefaultsTuple(__pyx_t_2, __pyx_mstate_global->__pyx_tuple[3]);
-  if (PyDict_SetItem(__pyx_mstate_global->__pyx_d, __pyx_mstate_global->__pyx_n_u_mc_dca, __pyx_t_2) < (0)) __PYX_ERR(0, 200, __pyx_L1_error)
+  __Pyx_CyFunction_SetDefaultsTuple(__pyx_t_2, __pyx_mstate_global->__pyx_tuple[4]);
+  if (PyDict_SetItem(__pyx_mstate_global->__pyx_d, __pyx_mstate_global->__pyx_n_u_mc_dca, __pyx_t_2) < (0)) __PYX_ERR(0, 206, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "markov.py":232
+  /* "markov.py":238
  * #  Retirement simulation on MC paths
  * 
  * def mc_retire(price_paths, start_stack, withdrawal, inflation_rate, dt):             # <<<<<<<<<<<<<<
  *     """Run retirement withdrawal simulation on Monte Carlo price paths.
  * 
 */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6markov_17mc_retire, 0, __pyx_mstate_global->__pyx_n_u_mc_retire, NULL, __pyx_mstate_global->__pyx_n_u_markov, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[8])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 232, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6markov_17mc_retire, 0, __pyx_mstate_global->__pyx_n_u_mc_retire, NULL, __pyx_mstate_global->__pyx_n_u_markov, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[8])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 238, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_2);
   #endif
-  if (PyDict_SetItem(__pyx_mstate_global->__pyx_d, __pyx_mstate_global->__pyx_n_u_mc_retire, __pyx_t_2) < (0)) __PYX_ERR(0, 232, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_mstate_global->__pyx_d, __pyx_mstate_global->__pyx_n_u_mc_retire, __pyx_t_2) < (0)) __PYX_ERR(0, 238, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "markov.py":274
+  /* "markov.py":280
  * #  Statistical summary
  * 
  * def compute_fan_percentiles(paths, percentiles=(0.05, 0.25, 0.50, 0.75, 0.95)):             # <<<<<<<<<<<<<<
  *     """Compute percentile bands across simulations at each time step.
  * 
 */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6markov_19compute_fan_percentiles, 0, __pyx_mstate_global->__pyx_n_u_compute_fan_percentiles, NULL, __pyx_mstate_global->__pyx_n_u_markov, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[9])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 274, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6markov_19compute_fan_percentiles, 0, __pyx_mstate_global->__pyx_n_u_compute_fan_percentiles, NULL, __pyx_mstate_global->__pyx_n_u_markov, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[9])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 280, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_2);
   #endif
-  __Pyx_CyFunction_SetDefaultsTuple(__pyx_t_2, __pyx_mstate_global->__pyx_tuple[4]);
-  if (PyDict_SetItem(__pyx_mstate_global->__pyx_d, __pyx_mstate_global->__pyx_n_u_compute_fan_percentiles, __pyx_t_2) < (0)) __PYX_ERR(0, 274, __pyx_L1_error)
+  __Pyx_CyFunction_SetDefaultsTuple(__pyx_t_2, __pyx_mstate_global->__pyx_tuple[5]);
+  if (PyDict_SetItem(__pyx_mstate_global->__pyx_d, __pyx_mstate_global->__pyx_n_u_compute_fan_percentiles, __pyx_t_2) < (0)) __PYX_ERR(0, 280, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "markov.py":292
+  /* "markov.py":298
  * 
  * 
  * def depletion_stats(depletion_steps, n_steps, dt, start_yr):             # <<<<<<<<<<<<<<
  *     """Summarize depletion statistics from retirement MC runs.
  * 
 */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6markov_21depletion_stats, 0, __pyx_mstate_global->__pyx_n_u_depletion_stats, NULL, __pyx_mstate_global->__pyx_n_u_markov, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[10])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 292, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_6markov_21depletion_stats, 0, __pyx_mstate_global->__pyx_n_u_depletion_stats, NULL, __pyx_mstate_global->__pyx_n_u_markov, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[10])); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 298, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_2);
   #endif
-  if (PyDict_SetItem(__pyx_mstate_global->__pyx_d, __pyx_mstate_global->__pyx_n_u_depletion_stats, __pyx_t_2) < (0)) __PYX_ERR(0, 292, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_mstate_global->__pyx_d, __pyx_mstate_global->__pyx_n_u_depletion_stats, __pyx_t_2) < (0)) __PYX_ERR(0, 298, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "markov.py":1
@@ -8539,14 +8618,14 @@ static int __Pyx_InitCachedConstants(__pyx_mstatetype *__pyx_mstate) {
   CYTHON_UNUSED_VAR(__pyx_mstate);
   __Pyx_RefNannySetupContext("__Pyx_InitCachedConstants", 0);
 
-  /* "markov.py":274
+  /* "markov.py":280
  * #  Statistical summary
  * 
  * def compute_fan_percentiles(paths, percentiles=(0.05, 0.25, 0.50, 0.75, 0.95)):             # <<<<<<<<<<<<<<
  *     """Compute percentile bands across simulations at each time step.
  * 
 */
-  __pyx_mstate_global->__pyx_tuple[0] = PyTuple_Pack(5, __pyx_mstate_global->__pyx_float_0_05, __pyx_mstate_global->__pyx_float_0_25, __pyx_mstate_global->__pyx_float_0_50, __pyx_mstate_global->__pyx_float_0_75, __pyx_mstate_global->__pyx_float_0_95); if (unlikely(!__pyx_mstate_global->__pyx_tuple[0])) __PYX_ERR(0, 274, __pyx_L1_error)
+  __pyx_mstate_global->__pyx_tuple[0] = PyTuple_Pack(5, __pyx_mstate_global->__pyx_float_0_05, __pyx_mstate_global->__pyx_float_0_25, __pyx_mstate_global->__pyx_float_0_50, __pyx_mstate_global->__pyx_float_0_75, __pyx_mstate_global->__pyx_float_0_95); if (unlikely(!__pyx_mstate_global->__pyx_tuple[0])) __PYX_ERR(0, 280, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_mstate_global->__pyx_tuple[0]);
   __Pyx_GIVEREF(__pyx_mstate_global->__pyx_tuple[0]);
 
@@ -8572,31 +8651,42 @@ static int __Pyx_InitCachedConstants(__pyx_mstatetype *__pyx_mstate) {
   __Pyx_GOTREF(__pyx_mstate_global->__pyx_tuple[2]);
   __Pyx_GIVEREF(__pyx_mstate_global->__pyx_tuple[2]);
 
-  /* "markov.py":200
+  /* "markov.py":142
+ * #  Monte Carlo simulation
+ * 
+ * def monte_carlo_prices(trans_matrix, bin_edges, start_pctile, n_steps,             # <<<<<<<<<<<<<<
+ *                        n_sims, model, start_t, dt, rng=None):
+ *     """Generate Monte Carlo price paths using the Markov transition matrix.
+*/
+  __pyx_mstate_global->__pyx_tuple[3] = PyTuple_Pack(1, Py_None); if (unlikely(!__pyx_mstate_global->__pyx_tuple[3])) __PYX_ERR(0, 142, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_mstate_global->__pyx_tuple[3]);
+  __Pyx_GIVEREF(__pyx_mstate_global->__pyx_tuple[3]);
+
+  /* "markov.py":206
  * #  DCA simulation on MC paths
  * 
  * def mc_dca(price_paths, amount, start_stack=0.0):             # <<<<<<<<<<<<<<
  *     """Run DCA simulation on Monte Carlo price paths.
  * 
 */
-  __pyx_mstate_global->__pyx_tuple[3] = PyTuple_Pack(1, ((PyObject*)__pyx_mstate_global->__pyx_float_0_0)); if (unlikely(!__pyx_mstate_global->__pyx_tuple[3])) __PYX_ERR(0, 200, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_mstate_global->__pyx_tuple[3]);
-  __Pyx_GIVEREF(__pyx_mstate_global->__pyx_tuple[3]);
+  __pyx_mstate_global->__pyx_tuple[4] = PyTuple_Pack(1, ((PyObject*)__pyx_mstate_global->__pyx_float_0_0)); if (unlikely(!__pyx_mstate_global->__pyx_tuple[4])) __PYX_ERR(0, 206, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_mstate_global->__pyx_tuple[4]);
+  __Pyx_GIVEREF(__pyx_mstate_global->__pyx_tuple[4]);
 
-  /* "markov.py":274
+  /* "markov.py":280
  * #  Statistical summary
  * 
  * def compute_fan_percentiles(paths, percentiles=(0.05, 0.25, 0.50, 0.75, 0.95)):             # <<<<<<<<<<<<<<
  *     """Compute percentile bands across simulations at each time step.
  * 
 */
-  __pyx_mstate_global->__pyx_tuple[4] = PyTuple_Pack(1, ((PyObject*)__pyx_mstate_global->__pyx_tuple[0])); if (unlikely(!__pyx_mstate_global->__pyx_tuple[4])) __PYX_ERR(0, 274, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_mstate_global->__pyx_tuple[4]);
-  __Pyx_GIVEREF(__pyx_mstate_global->__pyx_tuple[4]);
+  __pyx_mstate_global->__pyx_tuple[5] = PyTuple_Pack(1, ((PyObject*)__pyx_mstate_global->__pyx_tuple[0])); if (unlikely(!__pyx_mstate_global->__pyx_tuple[5])) __PYX_ERR(0, 280, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_mstate_global->__pyx_tuple[5]);
+  __Pyx_GIVEREF(__pyx_mstate_global->__pyx_tuple[5]);
   #if CYTHON_IMMORTAL_CONSTANTS
   {
     PyObject **table = __pyx_mstate->__pyx_tuple;
-    for (Py_ssize_t i=0; i<5; ++i) {
+    for (Py_ssize_t i=0; i<6; ++i) {
       #if CYTHON_COMPILING_IN_CPYTHON_FREETHREADING
       #if PY_VERSION_HEX < 0x030E0000
       if (_Py_IsOwnedByCurrentThread(table[i]) && Py_REFCNT(table[i]) == 1)
@@ -8623,39 +8713,39 @@ static int __Pyx_InitCachedConstants(__pyx_mstatetype *__pyx_mstate) {
 static int __Pyx_InitConstants(__pyx_mstatetype *__pyx_mstate) {
   CYTHON_UNUSED_VAR(__pyx_mstate);
   {
-    const struct { const unsigned int length: 9; } index[] = {{1},{1},{9},{8},{14},{13},{20},{5},{8},{24},{16},{7},{20},{9},{6},{6},{5},{7},{18},{4},{9},{6},{10},{6},{8},{10},{9},{23},{17},{18},{12},{23},{13},{21},{9},{6},{11},{11},{8},{15},{15},{3},{2},{5},{5},{10},{15},{4},{8},{1},{3},{14},{12},{13},{5},{8},{8},{6},{4},{11},{19},{6},{9},{6},{19},{5},{10},{18},{6},{17},{6},{7},{8},{8},{2},{5},{4},{1},{16},{16},{5},{3},{12},{10},{6},{12},{4},{10},{11},{3},{5},{11},{6},{22},{12},{1},{6},{3},{6},{3},{8},{12},{12},{10},{5},{3},{8},{4},{3},{5},{9},{12},{11},{7},{8},{4},{9},{3},{1},{8},{5},{5},{12},{11},{9},{5},{6},{8},{7},{2},{11},{13},{15},{12},{10},{5},{7},{5},{49},{80},{382},{17},{79},{213},{127},{154},{261},{41},{50}};
-    #if (CYTHON_COMPRESS_STRINGS) == 3 && __PYX_LIMITED_VERSION_HEX >= 0x030e0000 /* compression: zstd (1635 bytes) */
-const char* const cstring = "(\265/\375`x\t\3152\000jM\\\020:\000\231\033\374?\367W\342\376\377U\367\257\343k\270\257\373\272o\235\\\224\240,S\246\310\3563\265C)R\272\037\234f\241\201\n\252\241\302\031/\024V\270P\370\233\221\240\200\t\204\004\355\000\343\000\003\001;\334g\346\230\357\274\265z\3073\207K\245\276|L1.\207Z\247 \231\356\233\251\317K\246e\276\246\316O\245Y^p\347Q\344e\006u>o\211q|g\236\236\244\t6\201\370\226A2s\221\347\245\2737\036\301{w\242\346\230\274\245)rq\227X\363\033\216bz\3339\216\3170\2079\227\371\202\374f\216\273\034\226\342\025sy)\314\267\024o[\334\341\235K\221\247\2466A\023S\004Kuc\025k\215y\231\232$V\307\246\234\221\324Qg\256qZ\303e\033\337\345\240\313A\021g\247\016\335\253\2169^\232@D\077\077\264\033\242 !\236\"\036\242\240\231\255\350\006\361\000)\r\r\335\032\315\226\243\216\"\306\261\315hJ\027I\010'\210\007i\210VD\244d+\n\242]\033m\350\026\021\t\335\250\343\210\323\262\234\251\247\211\223\331\2441Yc\022=\243\033\255<\332o\272\254\037\255(\277U\224l=\020\360\241mGk\304\242\2601\366\343\303~S\267\351\351\212\327\204\026km\t\370jk\002K\0051%\373\033\252\336\346Z\035q\230\343bX\346P\267U\335\316i(\216\330)\334\351\03617w\346\367\362\255\342\360j\225k\276A\275\271Fw>qn\363\253\315\235\0035\316{\223\351\276:S\357\254uX\223X\353\021\247\350\275\327\344\3674\367\315;\314\034<_\316\023\331y\356\\\232\352I\246\345Y\356r&qy\357&\305\262\334\346\250q\231\3074\207&\251\325[b1\314d\326\032\203\341\005I\235\251\273\332\304\335\275\303d\323\306\344\305\347\336w\2137\203\342Y\212\231c\215G\\)\356BQ\274\027,S\334\275\343\230\342p\271I\034\257\312O2\347S\ry\255\007\273\277\310r\300\036\240\277zV\004\226J\003\355\017-\037\353\346Ix6<\031\221\036\000;\343sw\020\360\315X\r6\310kx\220\036\343\210\365\026X*\203\251U\324\312\002\257)5?\322[j\036\305\363\336\021C\200\375\225G\207u\230K\273\254\007\3307\340\274\274KmEh]6+\026\347\313\276\204_y&Y{\300\336>\211\377\325X\247/\372\034N\266\375MH\007\3500\031/\2445\200\365b\250\024\226\032\220\272\361bZ\227\202[o\350\232\265\261K?\345\007|\324\213""\014\255\237\354\307\376S\267u\2305c\335\277Y^\023\234V\205\231G\352PQ0\017\366\201\376j\371\360\003A\217@EY],\325\300\324\354\343\274.\267\332\254.\001\037\376\003\277\265[m\034S\025\024\276\214\026E\325[\361\320\326\241]\265+l\000\213\376\217\207^\307lu\265|\260O\3632\237{\255\263:\272*\264|h\307=%2\237\273N\343\2177\030\257\211\035`=\376\366%}\201\245rM\341\357\241\352\351x\001\277\022n \254\374\014\313\243\370\347 \\?\224\335\321\320\215\025\037\340[\035\206\266\266v\211Ma\003\330\207\017\"\261\000\254\332\340\261W\352\016\230\265a\221>\214\204\313\207\362,\332U\253~\374+\036Zz@\177\271~\270;\324~\322QG\231\375\235\234\256\361\203\2614>\303\033\324X\026k\362\201z\231\256\263j\254\0066 \031<\203\026e}\276\306\247\300\254\356\333\376\354\247\376\242\345\241\376f\237\343\343\345{\36562x-m\254\375`\rt\013}\325\211V\004\366\206%\241\350\311\274\220\003~@)\246V\037C\325\213a\221}\227\006\027\304'\270x\371\320\314\326X\323sx\000O\004\363\021/_\306\007\370D\276\342\345\253}\224\177\344\031l\256\264UiS6z\261\257'~\265\317\362\351\014._\006\255\357\254j}F\260\n\201\027\250\241<%\221)\032\021\021I\222$\035!\014Bb\314\211\356\006\"\353\244dh\2104I\352\037\315\001\240\303\204\351\216*{\230.y\312\352\302\361\261oD\030\340\266z\024=bFB\321\344\236\352}\030V\261\345\177\347\300|\340N!\310FC\237[\306\277\364\331h}\351T\377\t\316JZV\322d^7\\\237\270\027R\t\024\274#i\022\220\317\355\243&\356\353\320@ \341\364\017\206H\351\200\366\374/t\r\213\310\315x\322\277\204i\016M\317\205e\207ib\330xkX\207\263\372\310\225g\t\032\253i\024\233V\214\225\265n\333Z&-\236y\207\234\325\2577ilxh\211poF\205x\200Q\357\306%m\013(\026\253\342\030\223D\356\302k\374w\302\307`\354\304x@^\035.xB,\351\002\310n78\300\211\300\370\265\240_}I\375\374\321\260\215/I\371\302\367z\335~\223S\311\305`\275\274\243$i9\036\212\331V\0022\210F;A\0061\300$4G\241\303\035\376\274k\003\265:\305q1@Gl\003M\336\275\360\204\177\346q\302@\226U\216=\206\3348\314\262x\306\003raFV\221>\2469=\266\377l\030\001T\2223H\232\364\332\335\033""\370\307\327!\317D\031A]\337\315\025T\021;\000\221\377q\306G\206\270\355\320\344\3504\214\005\305l\006\034\272@}O\200\222\241\233\037\346^\370R\0377\025*\\\254\2267\310\350\354\205\020\356\014C-\334!\314\207\232;\3563p\335\334\266\0336\362l\331\213\242\370\302\221\242V\303zJ\205\327m\271\320i\022\235w\207\332\361\210\260D\230s!\2430u\020\272v\323L<\303p\033xC\251\303]\324\025x2\267E\304\000b\250\024\220\r4\326i\000\264\210\337\020 \324\271\275\220\3770T\351o\217\240V\310ok\367\345)\310\036+\r\316\320B&\006\246\024\374e\204\352\357\265\rK\264$\304^\034j\353\t\010\022\334\302o\217\353\356\314W\355\235\330\211\250\242\207=5a\026q@x\367C\327\352\334_\276-\273\377\370V\300\236I\364_5";
-    PyObject *data = __Pyx_DecompressString(cstring, 1635, 3);
+    const struct { const unsigned int length: 9; } index[] = {{1},{1},{9},{8},{14},{13},{20},{5},{8},{24},{16},{7},{20},{9},{6},{6},{5},{7},{18},{4},{9},{6},{10},{6},{8},{10},{9},{23},{17},{18},{12},{23},{13},{21},{9},{6},{11},{11},{8},{15},{15},{3},{2},{5},{5},{10},{15},{4},{8},{1},{3},{14},{7},{12},{13},{5},{8},{8},{6},{4},{11},{19},{6},{9},{6},{19},{5},{10},{18},{6},{17},{6},{7},{8},{8},{2},{5},{4},{1},{16},{16},{5},{3},{12},{10},{6},{12},{4},{10},{11},{3},{5},{11},{6},{22},{12},{1},{6},{3},{6},{3},{8},{12},{12},{10},{5},{3},{8},{4},{3},{5},{9},{12},{11},{7},{8},{4},{9},{3},{1},{8},{5},{5},{12},{11},{9},{5},{6},{8},{7},{2},{11},{13},{15},{12},{10},{5},{7},{5},{49},{80},{382},{289},{17},{79},{213},{127},{154},{41},{50}};
+    #if (CYTHON_COMPRESS_STRINGS) == 3 && __PYX_LIMITED_VERSION_HEX >= 0x030e0000 /* compression: zstd (1664 bytes) */
+const char* const cstring = "(\265/\375`\233\t\2653\000*O\264\020:\000\231\033\374\377\367\372\275\377\177\365\345\327\250\343\373\272\257\373\326\311\013\210\204d\312\024\331}\246v(EJ\367\203\323,4PA5T8\343\205\302\033\027\n\253Rb\006)\244%\001\362\000\350\000\010\001d\316\247\032\362\035\3563s\314w\336Z\275\343\231C\245R_>\246X\227C\255S\220Lw\316\324\347%\3232_Sg\247\322,/\270\363(\3622\203:\237\267\304:\2763OO\322\004\231@\234\313 \231\271\310\263\322\335\033\217\340\275=QsL\336\322\024\271\270K\254\371\rG1\315\355\035\307g\230\303\234\313|A\2363\307^\016K\361\212\273\254\024\346[\212\271-\366\360\316\245\310SS\233`\211)\202\245\272\261\212\265\306\274LM\022\253#S\316G\352\2503\3278\275\3512\216\3672\320\345\240x\323S\205\356U\307\035/\315\237!\037\037\233\315\020P\320\016\321\316\020P\rGt\201v~\222\204\204\356\315\206\303QG\021\337\340j\266\244{\024t\003\264s$d#\032J\302\021\001\331.\316&t\211\206\202l\324q\304iY\326\324\263\244\311d\322\230\244)\t(}\326\213X\036\3556\235\326\215\326\023*V\024m5h\375\320\226\243-bOX\005\326\343\313>S\257\351\351\212W\204\227k}\265~\267\025\301\265\202\250\242}\215\225os\255\2168\334q1,s\310\333*o\3474\024G\334\024\356t\217\230\233;\363{\371Vqx\265\3125\337\240\336\\\243;\237x\267\371\325\346\336\201\032\347\275/\317\324;k\036\326$\326z\304)z\3575\371=\315}\363(\346\035f\016\236.\247\t\355<w.M\365$\323\362,{9\223\270\274w\223\342\276eYns\324\270\314c\232C\223\324\352-\261\030f2k\215\301\360\202$\317\344]m\352\356\356a\222ic\262\0241y\361\271\367\335\342\315\240xj\235\2252/\305\314\261\306\243\256\024{\241(\336\013\226\251\356\336qLu\272\314$\216W\345g:\270;\364\332\300G2\352'}\241\365\253}\035\237\341qzFWhQ\311\330\031?\363\0057\326\305\226x\324\236\372@\317a\266\206M\277\303R^QV\216}\215\237\350\254>TR\225\202\362cE\335\274Hg\271\371\023\317;\207\302\201\354\263:\272\254\313`\272e5\300\276\341&\346[n\353A\013\253a\2617\237\366%<\313/\321Z\0036\367G<\325\215m\372\242\337\351h\333\333\200t\200.\243I\201\264\0052\237\002:\205\247\004\246rR0m\013A\2567t\315""\342X\245\217\362\003>\352E\206\027\025\355+|\247\216\353/\353l\335T\265\274\"4\255\t5\177\324\241\242d\036\354\002=\366\372\341\207\001\337\200z\262\302\\+\201\252\332\327y\336n\255Ya\255\037\376\002\377\325[q\033U\025\024\277Y{\262\362\261\244\320\326\241e\265*l\000\213~\217\007\037Gm\205\275~\262o\3634\237\373\255\273:\272&\274~h\307=4\237;/\343\2179\231\024\023+\300v\374\355I\372\202k\005\253\302\277c\345\313\361-\257\022j\254\005\255\337\301L\252\240E\331\236\237\361)0\313\253\375\324_\274:T\252\332\337\360\210\375b>\215\3162\223bi\025Z\017\266\340\347Pd\007-\033v\204\302G\363A\016\370\001\245\250b}\214\225\017f\205\366[\376\300E\354\207f\366\306\232~\303\003\370!\231\217\210\375fC\276\"v\362\215<\003\016\226\266)-\212\206O\341\353\tW\017\253\307Xm\007\273\277\350\362\271\356\200=@\217\265~<\353\201k\225\361\372\271\010~\316\217H\325H\305\204\370\000X\031\237\273\003\233\301\002}\324\374\r\005\337\202kUPe\3215\n\313\313\270<\212\377\016\002F\205\262=[g\370\270\257\361\001\276\212\017\360\257.C[\\\253\304\242<|\360h\306\002\260j\203\307>\251;\034\375\027\t\330\017\225\262P?\376\025\017\260\337\314\263\364\200\036\203Q\315l=\201\031\250\2210&\021S4\"\"\222$I:1\014Bb\316\221\352\0032\373\242T4DZ\220\324?\232\003\033\001\264\224\261z63g\346\337\225~17\265\347\322\366\355(#X\251\300\364T0\206\212Z\262\035\234<\007\005\215F\351!\332\000\230.\027\356;\226\2034P\275(\312!\345\035\367\307\345\263\202+\220\"\240\254\305\310\3334\t\250\264\005[\347\322\260e1\213\304\260\301K\263\271d\n\004\321\"\313~\204\240\001\342\203\327\311\240\013\243v\331v\3449`q\353\250za\026\300\213H\034\332Ug\321\324\0017\203\004C13\255\343@\037\002\343\350\353\256}X\371L\177\017\277\024g\223\027mb\365\214B-\344_\"\311\016G\202\277@\2423\252p0\010\342M[nj\024\203\333w\013\335\303\361\004\034\004p5\373\007\352\300v\254g\210\3001\357\270\275K\301\007\346\247\266\341\270{^\343\306\365\"\272F\275\244nb\363\262\202\341Ad\211\215^\3272\274%\346\264\364l\220\212vE\006\217\200Yh\355\205sw\210|sC\261\306""\347\260\030\346#\242\201\226w\217x\234?q\2141\000j)\307\272!\204\217H[\234\340\201\234\224\001S\240\217\211N\217\353\2379\021@%5\003\366I\221\274o\203\033\370\362r\224\240\006\020\350tp\016\212\213\016\006\022l\306\370l\300\202\375\345\234\242\221\005H\241\247\202\004\003\0172;(\363\202\324\220\370\231\2264\020\246B\003f\361\342\007\031\251\264\020\346\325aS\0337\004\243A\223\313\302\223v\r\242n\264\332\211\214\264\250\300E\345x\037p\324\364\341\206\005ZY\217\334OQ\2560\325\375\267\262EJ\346\341\357<s8\232k\252\353@\316\204\274\210J\260[\256R\260vs\010=NfF\3318u\227I\014\007\324R\367\242\226\005\265%q\211W\353?\310Ed\005\271 O\3454F\025\2213\240!\004c\260\304\337\213\003\352\020\327\r5\351I\370/!jj\004\000\tv\3077\216Cw\365\213\326\033\200\t\252\366-\210\312\315\376\"\032*\374\220\260\232\347\257\277}\333\177\326\025|\277$\372\232\032";
+    PyObject *data = __Pyx_DecompressString(cstring, 1664, 3);
     if (unlikely(!data)) __PYX_ERR(0, 1, __pyx_L1_error)
     const char* const bytes = __Pyx_PyBytes_AsString(data);
     #if !CYTHON_ASSUME_SAFE_MACROS
     if (likely(bytes)); else { Py_DECREF(data); __PYX_ERR(0, 1, __pyx_L1_error) }
     #endif
-    #elif (CYTHON_COMPRESS_STRINGS) == 2 /* compression: bz2 (1664 bytes) */
-const char* const cstring = "BZh91AY&SY\266sV\215\000\000\356\177\377\377\377\377\377\377\377\177\377\277\377\377\340\277\377\377\361@@@@@@@@@\000@@@\000@\000P\005\376\007\025\325Y6\315\206V\270\007\256\r4\205$h\365\006\203F\203A\223\324f\247\212m\252~\247\242\237\222C#\324\036\231OMC\021\352dz\0202\036\203S\324\3656\211\372\240\320\232\002\032\214\232\247\224\364\236\220z\231\000\000\000\000\000\000\000\000\000\000\321\243F\200\320\010\204\320eC\324\304d\r\000\000\000\320\000\000\000\001\240\032\000\001\240h\025A\030L\000\t\201\246@&\021\221\200\020i\2004\0010\320\032\010\321\204a0F\t\"i\r4\2154%\036S\315)\352{Q\032\000\000\310\000\000\000\000\000\r\000\000\323\002Y\307\263w\254\344r\254F\234\235tC\375\347s\223\203\363\307\350A\320\2219\363\320\354LPH&JR\221\322:c!\201\220\302d\314\231\201\231(\324%\322\013I\026\226\356\235D\023 \216\246{\025\312ox\005Y\003\245u\352e\360\242W\346!\033\031J\313\225\031\231!\230\340\262\301\225\231\324)@\351\335\201\265&,FvS\231\0017S\203\211\240\314gFpm,\344\231\314\036\353\257R\201c|\232\023V\252\214+\334\306\371\332R\262\271\223p\335ZD\366\247&UO\0325\245\266\033\366\326&\331`\264@\023\025\262\004\261\022\200\312+\224\202\210)V\341\350yJ\221\223\025\030iJ\226\326jhp\364\300\242\342\002\246\362e}?N\274\224\373Y\"QXT\2545\307\n\r\255H\020\301C\334\262 \007}\325\001\246\316 3\2428\017K)\207}\372\260\341e\365\206s\310\252M[\351\020\304\307RR'\211\315\273\233\364\\\\[\363\231\255\235\367\036\365\377]\265\013B\252\211Z\231\036`\362\t\371\334@\254Y\345\274q\343\035\3774(\301u,,\261\\A\013\014'\276nW\010\220\205\373\252\024\004&\032\232W?!\244@\316\214J\002\031\030p\316\3612\005\t\333k\334\245\004)9J\004\306#\013\216*\201k\205\027j\276Y\231\323\213\306x\302\267\315\315\370\374\377\n\237\2633\314;\2434\304^\2131\0301\322\317\325:\021\361\003n\310FT\033Q\210w\021\200\325\n\024\"1\254\013\252sz\246\264\334\246)\241L\302\243\241\032\313\370\215LP\362\016W\336\016\247f\260e\325\264\317\n\224\\\244\253\267SJ\030\031\326\322!E\252H\n\251:\304\215d\030\244\352D\311Q\315;8""\306\016#\2566\371/$\320\343\366\317&y<\337+\315\375\214\216\0020\236\025/(Ww-\01450\377\267\206\322\207C[%\007F\347;\226\014\264]N\255)\030h+\266,\360\035\nf\225S\373k\301\223\\F\010\361+\303\352\311;\3714\334'\225\n\247\034D\226:\374\356H,\261\333\225\001\202o|\232\312*VR\265\020@\310\007\221+\n\202\023O\350\007\016*\317\255\223t\n\360\225i\"\220\300\232\212\262h\317\014B,\214\030\014\235\020\337\025\246\311\217,\332&\306,\024\255\373\3651KnZ\244\253-U\003\207:n@Y\265\337\205\027Zq\3150\357\336i\000\367\"\276B\222\262\301xJ\354\036\360\241\340[7am\330\330`\005\005en\245\312)k\030`\345\006\35016u:\021\314<\263\201\333l\236e\221*\236\025\203\030q\322\303R;\356\200:\252!\231\251\224_8\310y\230\231\202s\022D\2402l\230\252V#Me\264O\r$\247\256J(g\301\235\333i\270l\261,Z;\312\252\356\334\264\260_\203\227H\326`\235\215\372KCSS\262\276\331\316\030\305\335\211jd\263\301\246q|H$\263\007%\2427\270\031b\216#a\333\215\014\311\245\035\203\304\336s\345FX\352\326\301\206\274`\311\032\362\273z{)\270\225J2\242|'\022&\305\016M\222k-6Ht\0267NF\001|\255\242W0\326l\0225<f2\247z\311J\262e\260e\"\225V\032P\306 r\004@\326\335nL2b\251\005\026\340\251\202k\003\020\241\263l\332\036&|\301xb\243.\272\251\245b\332\301.8p\260\272n\226\342k[(\334-\236=QhE\232a\346\212\27305\302\254\010!\210<\234huU\021\002C7:OK\302\226`\216\035t\256\277\035T\035I\023Ck\tV\260\243\030\206\203\035^\224p0\240c\006u#\342\332-h\211\332Th\260\271\341\270\250\030\367\\\267bep\340&\021\223r\"\2215\320\252\271ZQ]\026\373C\324\024dyyE\310\"\254UM\021\350\"A\004\242\247\254\246zx\301\322\254T\225\033&z\355;\010\023t(\2629\230Hj\261\004G\304\214\025\201A\2071C\005s\211,\205[\340d\273q\3156ZZ@]Y\234\033\335f\222A\370\273\373A;\022\240\326k\001\337F8\217.6\300\007\034J-\027L\250\360>f\366@\3159.\016f\270\246\344\016\356\247\023\2006\327\270\323\232\2515\245v\313Q\227\354}\343\031J'\371\342\337~E\302\272\251[\366E\272\002\210R\034\315\274\332\"\213\027[\365\010`~\351\327\207\323J\027\001H\233[\240\230\266A\267\020\376 \212\205""\314\3063hQ|<\220\033\312\302\326\303r\356\247\370^\203\206\033\345\255\357=|=\024\031r\022\014\005\201K\303\350\001~\336]\t\351\260\360[!`\017\013\025t\037}\302\274\352\370\343@\274\032&\316\215J\311\261c\276=B|\351O2\2751SM^\014\232*K\317\2353\363\310Y\202>\0311\202\271\033\335\202\263 \006 \"\034d\3375\304\314\276 ^\213\004\363\007\210a\325\204 A\001K\360\035\000\311\307\024\362\207C\245\032\307$G\225\235$i\350\324\245\2125*\316\353\342\347K\306\245\005\254O\226\033\231\224\272X<l\023\331,=\006Hc\013s\010P\021\r\r\225\3034+\300P\356\201K`&\222h\230g'\230EtH4418bFvC\007\001\325\344\314\362vCT\017)\031\271\216\001\377\305\334\221N\024$-\234\325\243@";
-    PyObject *data = __Pyx_DecompressString(cstring, 1664, 2);
+    #elif (CYTHON_COMPRESS_STRINGS) == 2 /* compression: bz2 (1661 bytes) */
+const char* const cstring = "BZh91AY&SY6\225\303d\000\000\360\177\377\377\377\377\377\377\377\177\377\277\377\377\340\277\377\377\365@@@@@@@@@\000@@@\000@\000P\006\036\014v6V\300\333P\245\300\034\rOH\2252\r\0324\001\243\324\365<)\350b\237\240\323Bb\236\243O)\240\362O\"\032yL\324\314\2402yF\236\247\246\247\241\036Ph\010&BaF\2321P\361\252\000\003@\032\000\000\000\000\000\000\000=F\214\200\325?!\t\250\211\352h\001\220m@\000h\006\215\250\000\000\000\000\000\000\000\000\020i\211\200\000\000\000\000\000\000\000\000\000\000#\010\300\000\000\000\221&\210\021\244\311A\344\236Q\240\0004\000\000\000\003@\032\000zM\r\000\000z\233D\322\335f\376\347\033\256\356,\215\232\341s\303\374\341\341P\020s\210\342\223\212\205y\326h\207QI@\251JR\207@\377\223C\006\014M6\233\006\322\235\261.\200\\P\270\273p\350\240\251$\364s\260^\255jb\200\311\240\204\247\025S\031&\230\351%\033\355R\327\254\033i\r\233\326\260\325\263R\251$(!\203\333L\2623j\265$+\n\262q\334\232L\321\230=\216\n84E\367\342\251\"\325\215\034\221\322\2053\005b\013\354x\211N\2153#\3338M\237\220\2208\241=\3638\210\300qF\214\347\206\031\010\001!k LQ&\031E\260\010\034\241l\203\315\343\033\006\350P\303F67Y\324\315\303\270\225P\024\357J\363\377^\204\027\310O\337\031\022\213IR\320\326\270Pm\222HI\303\010\302\304\315LN\301)m\3528\021X\220\230y%\000E\327b#\002a\177\273\3219\365\305d\236X\3412\325HTT*k9\267\363x//.\372\r7W\033\316V<\313\262\013\203%\204F\224\376\303\226_\365T\261\244\331\364\352v\340>Ne\250k\3166/\234\323k#c#\362\276\253RP\216\233jI\010Tr\343^|\0160\017\367\014\025\345\374m\335\334\366\325/R\273<\343\005(\020\260\343\030\t\rL*\342\220\0318Qu4\027\323\321\224/3\342\026\27777\273\341\366e\371$\374\215\341\365\"\331\247\303\026\321\245_\336\246T\267\274\014d\013kp\302dr\311\201ue-I\313Ha\261\244\\\243V\355e[X\220\312\025\205\247\372OY[\023\020Z\036\007Hs(\335o;\242\031)}K\014\372\252\241\201\320\316\242T\315\211\001[d1I\340A\236\311]\020\032\32411\261\301\003F4\202\377\0050.\202\327\246\204\316\203,\275F\203\030\243x\235\025\320db`e\271\257i\217\r\034;""\243\330\210C\272\212N+\340\356\230k\332\224\364\221(\256\202\321\213]\244\350\306im\177\267\2102x\021\202=m\021\033v\036\376\312\336Q*3\034\365\222c\r\373\257\2605\234y\362\310i\272\"6:\322\326Z\265\244\020,\204H\231J\204.\315z@\034`*\353\214\235\002\274\022\235<,\014\t\247M\323\314\265\021t\330`d\350\206\374,\322u\333\033t9\213\314\013)N*\013\310\2710\311J\213\225\000\033n#\345\002\034\210\233HJ#\215\311O~\231@\200\224Q\345A\022\307\021\220K4J1\014\034\014\356\206\247\321<L\000\300\261\302\025\203\n\272\251\203\262O\275\255\356\266\022\237\354{\216G\236vD\313\206\270S\016\303\034H\335b\326\033\320\200\206d\211,l\225\343-\024P\212\021d\0218\214\t\216D\254\251)\247k\260Q#\242U\351(\247\003=\016!\365\247Jo\331-M\271\324*pH\2610,\252\t(\314T\220\307\024\327A\317$2\262.\354b\364C\013\223K96Vq\232\005\026\220\353\334\316\356\363Z\221\3077\316@\345\264\351=\214Mb\275Z\341~Y\230\025\316\366\030\020\317\tj}\223\336\"\240\2302\231%]\2249\211\215\320S\204F\305\010@@\372J4\215\342\323K/\325\201\250\260\330\370\314r\335\2266Y\201.rZ\212\263)\245\025PA\002 w\320\373%\262l\222a\236\233T\\\3221*=\317s\210\213\217\314\031\rt\335\205\265\253M\350\301x\331\000\200\223\241\026\361\034O\006\336\021u\277|D\007\235\223\025FP\330;\311\233\321\014\276\345g\017N\234\013\3247kctm\232)\263M\232\272\372a.;\252w$\315\r\262%[\202\216\"\032t\355hQ \003\240c\006tG\341\314f\320\204\262)\353\340s\340\252\240X\302\374\373#+\316B\340\213t\021\030\211\341+p\2635\204\233\235?\217\355r\336\216\243\322\017E-g$\367\317Q\231\343\003j\202\365\227\226>W%\300\340\3371\322\2233\211(\234!b\310\316\351(\325Z\204\343EK\032\300\250u\242 +\025\217gH\204N04Z\340i\206\313\013\010\t\267\023\222\373\306\022C\022\322:\253]\367w\030\260x\224\266\210\244\372\330\005\370\202X0\03092\256\034:\003\306tZ\r.\330\246\322\203P\303G/\2205\273\3564\342\242\242\260\245\342\305-\276*\377Lb:\t\032\263\3619\312\375\024\333U[\344]\230&\204!\245\336\324\232&\2557\177s\202\304\254\006\334\357-\t\315\001@\235\316\000M\r\340oP\034*\024&""\337\242\265\357\r7\\T\324L+Yc'\337\301\265\376\030fN\304V\266\344;\210I\237-\334\245K\313Ihd\217\210\006U\327Rd\205[\222\022\300L\223\003\203_[\033\256\264+\306\257\004k\270\20407\033\"\024\314\330\330\224+\2111\2418\272\332\242\245Dr\271dqR-X\355\335\350#c'\367\237\214\024\207~%m%\r\000_B\363g\357\330\201z\025>\360\244\372\007\220j>}\263E\373\327\243\271\2463F\326}\312\335\036\333\267:\361,\343\352\034\332Y\202\306\316H\017\005\257So^R\206\377\006\343\301\237\357\347!\262\027^\267*o\262\316\264\231\213\357\010@$Qv\200\357$\321 \341\341\006\263\\(\246\362\240x\262(\023BR(\242)'\004\250\202\350\203!\r\023w\211\303\222\314\"s&\010\301\213\377\027rE8P\2206\225\303d";
+    PyObject *data = __Pyx_DecompressString(cstring, 1661, 2);
     if (unlikely(!data)) __PYX_ERR(0, 1, __pyx_L1_error)
     const char* const bytes = __Pyx_PyBytes_AsString(data);
     #if !CYTHON_ASSUME_SAFE_MACROS
     if (likely(bytes)); else { Py_DECREF(data); __PYX_ERR(0, 1, __pyx_L1_error) }
     #endif
-    #elif (CYTHON_COMPRESS_STRINGS) != 0 /* compression: zlib (1615 bytes) */
-const char* const cstring = "x\332\215TMW\033G\026E\030a\005\013[\"68\211\235\014`C<q|\"\030\307\316\327\314\021 '\236$\030\tl\342U\235Rw\t\365\320\237U\335\226:\213\034/{Y\313Z\326\262\227\275\324\322?AK-\365\023\370\t\363\252Z\030\221Yd\016\250\352U\367\253\367\356\275\357\275~\364/\007\323S\357\315#?\256\273n\204m;\336}qx\204\016\032-\324\330?j\275~\177:<j\034\274?\034?\337\337{q\214^7\352\255=l\331\361\263V\243\211\016\016^\377\372|\037\035\265\352\373\207\317\217\236\277\330?\324\276\273\215_~Q\317\247\356\034\376\352\271a\327\216\021:\210\373\360\333\263\214\020\355\223~\330\"\235f\204iH\250\035\037\023rj\307\330\361\"7\304\224\342\030\263\311\026\273\206\345=2<\352E\241\345\022\206\373\026k[.\"\346\t\321F\327Bj\263\\\223\364\225a{\355\320@p\201\250\335%\304$\246\262|\034vY;\262l\023\205\024\273\314\n-\317E\016\016\251\325G\310\2601c\350\204\204VH\034u\204\\\020S\271\032\244\215\215S\303s\374($\020\230\205\347v\007\273\310'\324 nh\331\204\031\n=r=\367wB\275K\007\004\036\324\002\217\310A>\365\332\312`\221cD\224\302\033\205\337$\035\034\331!\242\356\211I|\033\305\224\251\235h\220,\304\341\245#\361\231\311B\023\376b\237\020\307\017c\275 \333:%\035\0106\205\252\023\3316B\235\3105\020\262,\263o\271\035\033\3530\024\207\304rA~\0370Y\006\320e\350\275\316J\006\006\"0\037\370#\220\t\264@y\3738\230\235NdSb8\270\257\0100\324\361(\352Ar\257\347\030\31040\254\024\000S\342\020\323\302n\276\242\013\0321u<\223\0008\330\"[%\201F\001\2011\265\275\034\021sud\367\3172\202\004\226\303&B \344b\007n\273\320R\312\335\365\335\310\361c\017z\305\367k_]J\350\177\363\247\263\352\t\337\010\341\177\362\234\230\312fD\245\001\013\004\314Wt\356\312.\244\235*\275\357\371\032q.d\356\253\031L\210\240\320\233\356\024\204\002\030\277\0347\2649h\346P\334\243\204A\013@\007P\257\207\240=\030#\230\032]\346\301\214\230\010@\205\023\252`M\372\205u\261O\224\030\226\243\213\301\002\0322j@\303\030\247\260P\255Hn\344<r{\352}\230o\320oJL\370!\023\307\014\262\207\010\205\340\016\253\027b[\217\214^&#s1C,bfN\371\r\266-\023\226\210\260\336""\204x\017\305@\202\365\314\27434\310\211I\240Oc:9\234\243\230\034\363KV\3305A\027l\353cL\225\212\241j\0046\234Y\227\265\263\3333\305\353Is4WJ\212\260\225\256'8\211\370\016?\225U\271\231.\245[\351\313\354~\026\214\346\256%\265\267\2051l[\311+^\343\273<\020\205\374\326K\276\312\2679\346\301\250t#\tx\22179\0215\321\220\325Q\251\234\324\341\375\375\341\312\246\014\322+\351\343\254\220-g\301\240\240\343\rg\266\262\325\321\035\275\334=\273\247\200\264\222>\004.\311y\211Gs\345d'\351B\340\236\350\310\372\331\374L\261\014\311\317\263\305\271\317\325\341\325\025p\300\243R\205\317sCT\341\321\333?\370\261\250O=\271\221\274\001P\340}=!\200\275>\006\037\226\254&\337\362\026\377].\311\332\270t\0238[\"\220W\344\266<I[\251&C\371-\336\0064\037\200\020O\263\357\006\355w\363\357\360\273@AY\032V\025\245\205\354\301\240\246\316U>\313\037\000\353]\301\264n\265\034~\007\302v\205%\337\244\315\361\224X\200J<\224\355\364ZVS\222\377G\024\304\307\262&\367\322\302\364q\007<\312\031\020YL\232\000\374\251\320\231*P\237=\360\270\005\244\337\207\2040\327\222\247\272.\024\030\227\253\274\3127\000yAV\341\316\342\022\034\357\363Pl\211\246*\341\023\376\205h\346\325\334\206zS\376)0/\274-\234-\314\024?\034.\335\203\314\020{\211\177.\326\304~\272\226\326Gs\313P\323\037\322\331\341\337\277\037\354\014\364\313\207\242\255\205\001\246\305QiE\225\377\322\002\341\326f\212\213\311\277U/\215\346* \020dU\240\247\314e\320\267\010\246%Y\272\221\025\224FW\201_\2357U\371\n\252\201~\342\rPkuT\276\311\177\006\230E\331\034\003\275O@i*\227\206\353\333\331?\262Hc*\2532\267\200\377M\361Jn\311\346\250rW\034\312Y\271:\252|\2444Q\257\017\305\254\270'\274\264\231\022\270\027\214*\237A\310\253\022\214\333\320\316\345[\272w\237\312\332\205\371\265\242\250\224\372N\361\030\316\374M\026\316\356\374\005\257\377\217\3069\340@\341[\321@\377\002\000\006M\227U\356\027\2426\274\3630\335\2056\235[L\016y\201\003\222\017\365\\\364\240,\013\351f\266\224=\031\254\2367\372\023\276\256\241\014+\000\177T\331T\204\357\311\272^\3060\0361\310\262""\241\021\250Z*)J\237\211H\326eK\366R\254\206\341\216\232g\271&\177N\203la\260\372?\017\000\331\347j\200\025\226O\304\216\222c!YK~\344\337\213\340|>6A\200Gi1m\346\017\026\304\252\370gZ\035C/\255\361g\320j?\001\"`\261\305_A\243\376&\233\227d\\\206\371\275\220q\\\256\360+\374\211\322s\005*~Wb\031\303\267\345\323A0*\177\014q\277\225\307\351N\212U\357/\363\327\002\213@\t\252\2148\235M\265\320\307\200\322\220+\360U\332NO\262V\246`.VyI\\\021\217A\212u\340\036\250j5t\364~\032\214\313\267\365\330ua8 k\000\215\373\233\252\"\344S\345\371A\024\324H-^\226`\035F\327\004~\232\331c1'~T\2559\234\331\220\370\254\014\323\306\277\204\017\306F:\237\236\016\252\347\376m\375\r\265A\334\272\372v\365\324\347\364\277y\007\037e";
-    PyObject *data = __Pyx_DecompressString(cstring, 1615, 1);
+    #elif (CYTHON_COMPRESS_STRINGS) != 0 /* compression: zlib (1640 bytes) */
+const char* const cstring = "x\332\215T\313r\0337\026\025eR\342\310\224C2\266\224I\354d(\331R\222\361\250\206b<\366\344Y\324#\023\347!\213\224b\305+\024\330\r\212\035\365\213\000\332d\247\246R^\366\022K,\261\354e/\271\364'p\311\245>A\237\220\213n\312\242\222ER\022\201\013\364\305\3059\007\007\330\372\312\301\364\314{\271\345\207M\327\r\260m\207\273\317\216\216\321\341~\033\355\037\034\267_\274\031\035\035\357\037\276\031\234<=\330{v\202^\3547\333{\330\262\303\257\333\373-tx\370\342\207\247\007\350\270\335<8zz\374\364\331\301Q\232\273\273\377\375\367z~f\315\321\017\236\313{v\210\320a8\204\337\236ept@\206\274M\272\255\000SN\250\035\236\020rf\207\330\361\002\227cJq\210\331\264\013]\303\362\266\014\217z\001\267\\\302\360\320b\035\313E\304<%i\320\263\220\356,\327$C\035\330^\207\033\010\026\020\335\273\204\230\304\324\221\217y\217u\002\3136\021\247\330e\026\267<\0279\230Sk\210\220ac\306\320)\341\026'\216\036\302^PS\247\032\244\203\2153\303s\374\200\023(\314\370e\334\305.\362\t5\210\313-\2330C\243G\256\347\376B\250wm\200 \203Z\220\0218\310\247^G\007,p\214\200R\370\242\361\233\244\213\003\233#\352\236\232\304\267QH\231\356I\n\222q\314\257\r\211\317L\306M\370\013}B\034\237\207i\203l\353\214t\241\330\014\252n`\333\010u\003\327@\310\262\314\241\345vm\234\226\241\230\023\313\345\344\224P\335Q\037\240Y\006\260f\350\215\334Z\r\006Z0\037d@\240\026H\2022\0279\230\235M\325\323\2328x\250y0\324\365(\032\000\006o\340\030\31040\264\024pS\342\020\323\302n\326\242+6!u<\223\000F\350\002[o\002~\001\2351\265\275\014\021s\323\312\356\357\325\004%,\207M\365@\310\305\016\254v\301Y:\335\365\335\300\361C\017,\343\373\365\177_\333\320\377\357\357\306\332\032\276\301\341\177:OL\0353\242\267\201\010t\314Zt\231\312\256\024\236q\200\357\371)\342L\310,7e0%\202\2707k\030\204\372p\0133\334\340v\320\314\241x@\t\003'\200\021\2507@\340\022\306\010\246F\217ypUL\004\240\370\224*DS\333\260\036\366\211\026\303r\322\303`}\312\0315\3007\306\03144U$\0132\036Y<\363\235g\035\330N\213\t?d\342\220\301\356\034!\016\351\320z\034\333\351\315I\233""\351\315\271\272J,`fF\371%\266-\023\232\200\260\301\224\370\000\205@\202\r\314\314\031)\310iH\300\256!\235\016.QL\207\331\"\213\367L\320\005\333\3510\244ZE\256\215\300\306s\353\252~\361\316\\\341V\324\232\344\213Q\001\272\342\255\010G\201\330\021g\252\2426\343j\274\035\377\230<H\372\223\374\315\250\376*w\016\335v\364\\\324\305\256\350\313\\\266\352GQ\023\r\201E\177R|+\352\213\202h\t\"\353r_U&\305R\324\204\357\017\306\253\233\252\037\337\210\037%\271d%\351\217ri\275\361\334vR\233\334M\233{\027\3675\220v4\204\302E\265\240\360$_\212v\242\036\024\036\310\256j^,\314\025J\260\371\345na\226\2638^\\\205\004<)\226\305\2020d\005\246^\375*Ndsf\346\255\350%\200\202\354[\021\001\354\315s\310aQ-\372T\264\305/\252\252\352\347\305\333\300\331\222}uC5\324i\334\216S2T\334\021\035@\3637\020\342I\362\331\250\363z\3415~\335\327P\252\343\212\246\264\224|4\252\353qE\314\213\217\200\365\256d\251n\365\014~\027\312\366\244\245^\306\255\363\031\261\000\225|\250:\361\315\244\256%\377Y\346\344\273\252\256\366\342\334\354p\0072J\t\020Y\216Z\000\374\211Lw*\303\371\354A\306\035 \375\246$\224\271\031=I\317\205\002\343RET\304\006 \317\251\n\254Y\256\302\360\201\340r[\266\364\021>\026\377\224\255W\271I\343\223\213-\255\372\221\310\211\367\344\216\304Z\030\0365`\263\206\370\031\026\257\250 \336\211\261\006\325\021\213\342\377\000\252y\311v\0238l\305\205\270\225M,\311\232\3742\256\234\347\253bM|-\327\3447\2529\311\277-\266\305s\330\366'\225\362_\004\354M\0016[\201\323\000s|#\366\241J\355\274T\0267\304cY\233\224V\001\377=\205U\010Ny\177\324\237\224\336\205\272\237\252\023\rC3Y\021/$\2260\177'\r\302x>\256\351\301\t\3007\324*x\254\021\237&\355D\037\322rE\024\345\r\371H\315\253u\325V\260\3506\354\247\253\017\343\376y\351\235T\304\036\270\010v\355\313\202\006\231\356\247%\372B\3462\2737\340BP\361>X\003&.\226\346\no\217\253\367\341h@\374\252\370\020x\036\304k10]\001\323\177\021\317\217?\376|\2643J?>\224\235\3249`\205\302\244\270\252\357\307\265\006\312\255\315\025\226\243o\365e\233\344\313\240)\034\213>\325""\231p\005\014X\200\320R,\336Hr\327D,\213\334\214\210\232\335w\000\263\000R\303\371\277\007V\244\252:^o$\237$A\212\251\244\357A\033\004\276-\237\253m [\276'\217@\234\332\244\374wm\032\375\371H\316\313\373\322\213[1\201u\375I\371\003(\271\010\332\225A.-\264\276\334OT\375*\374\217\246\250\225\372L\363\030\317\375C\345.\356\376\t\257\277F\343\022p_\343[M\201\376\t\000\014\232\256\350\275\237\311\372\370\356\303x\027\356q~9\365wE\233\261\221\276&\035\265\024o&\325\344\361\250v\371\022<\026\353)\224q\031\340O\312\233\232\360}0\260n\316\341\375\010A\226\215\024\201>K-E\361\003\031\250&\330j\020c\375Z\334\325\017\236ZS\337\305\375diT\373\303\204v\323\362\325M\233\344\227\242u\270\326&\334\226\364\236<\222y\371?}*\343\271\r\205/J`4\361/xL6\342\205\370lT\271\314\357\244\357\253\ru\233\372]\033\350\247\3667b\001.4";
+    PyObject *data = __Pyx_DecompressString(cstring, 1640, 1);
     if (unlikely(!data)) __PYX_ERR(0, 1, __pyx_L1_error)
     const char* const bytes = __Pyx_PyBytes_AsString(data);
     #if !CYTHON_ASSUME_SAFE_MACROS
     if (likely(bytes)); else { Py_DECREF(data); __PYX_ERR(0, 1, __pyx_L1_error) }
     #endif
-    #else /* compression: none (2680 bytes) */
-const char* const bytes = ".?markov.pyAnnuallyCOST_PER_ENTRYCOST_PER_STEPCOST_PER_WINDOW_YEARDailyFREQ_PPYMIN_TRANSITIONS_PER_CELLMIN_WINDOW_YEARSMonthly__Pyx_PyDict_NextRefQuarterlyWeeklyamountarrayasarrayasyncio.coroutinesaxisbin_edgesbin_hi_bin_indexbin_lobtc_corebtc_neededbtc_pathsbuild_transition_matrix__class_getitem__cline_in_tracebackcompute_costcompute_fan_percentilescount_nonzerocount_nonzero_entriescum_probscumsumcurrent_bindefault_rngdepl_yrsdepletion_statsdepletion_stepsdstdtdtypeemptyempty_likefind_percentilefull__func__iidxinflation_rateinterp_price_is_coroutineitemslinspace__main__markovmaskmatrix_costmax_bins_for_windowmc_dcamc_retiremedianmedian_depletion_yrmodel__module__monte_carlo_pricesn_binsn_nonzero_entriesn_simsn_steps__name__next_binnpnumpyonespp10_depletion_yrp90_depletion_yrpathspctpct_depletedpct_seriespctilepctile_pathspctspercentilepercentilespoppriceprice_pathsprices_prices_to_percentiles__qualname__rrandomrawresultrngrow_sumssearchsorted__set_name__setdefaultshapesimsim_costsqrtsrcstackstart_binstart_pctilestart_stackstart_tstart_yrstepstep_dayssumt__test__totaltranstrans_matrixtransitionsusd_pathsvalidvaluesw_pricesw_yearswdwindow_costwindow_end_yrwindow_start_yrwindow_yearswithdrawalyearsyr_to_tzeros\320\000#\2401\360\030\000\005\016\210Q\330\004\010\210\005\210Q\330\010\016\210a\210u\220B\220k\240\021\240'\250\022\2502\250U\260%\260q\330\004\013\2101\200\001\340\004\013\2102\210V\2201\220C\220q\230\001\330\004\010\210\005\210U\220!\2203\220a\220q\330\010\017\210q\220\005\220Q\220e\2301\230E\240\021\330\010\014\210A\210U\220%\320\027'\240q\250\003\2505\260\001\260\026\260q\270\001\330\004\013\2101\320\0002\260!\330\0342\260!\330\034\035\360$\000\005\016\210R\210x\220q\230\010\240\006\240a\330\004\014\210B\210h\220a\220w\230f\240A\360\006\000\005\014\2102\210U\220!\2203\220a\220y\240\006\240a\330\004\007\320\007\027\220w\230a\330\010\020\220\006\220c\230\021\330\004\007\200~\220W\230A\330\010\020\220\006\220c\230\021\330\004\017\210v\220Q\220a\330\004\016""\210e\2201\220A\340\004\007\200s\210!\210:\220R\220z\240\022\2401\340\010\024\220B\220i\230q\240\003\2403\240g\250R\250q\330\010\017\210r\220\025\220b\230\010\240\t\250\022\2508\260;\270b\300\006\300a\300q\360\006\000\005\022\320\021'\240q\250\n\260)\2701\360\006\000\005\021\220\002\220)\2301\230C\230s\240'\250\022\2501\330\004\014\210B\210f\220B\220h\230i\240v\250Q\340\004\010\210\005\210U\220!\2203\220c\230\021\230,\240b\250\013\2601\330\010\016\210j\230\001\230\032\2401\240D\250\001\330\010\016\210j\230\001\230\032\2401\240B\240b\250\014\260A\330\010\r\210Q\210e\2208\2301\360\006\000\005\020\210u\220D\230\001\230\025\230a\330\004\010\210\005\210U\220!\2201\330\010\013\2108\2201\220C\220r\230\021\330\014\021\220\021\220&\230\010\240\001\240\021\360\006\000\r\022\220\021\220%\220t\2302\230Q\340\004\013\2107\220+\230Q\200\001\340\004\013\2103\210a\210r\220\036\230q\240\001\200\001\360\n\000\005\023\320\022$\240B\240a\330\004\022\220(\230\"\230N\250\"\250A\330\004\026\220e\230=\250\002\320*<\270B\270a\330\004\022\220,\230b\240\t\250\022\2501\330\004\005\330\010\027\220q\330\010\027\220q\330\010\027\220q\330\010\027\220q\200\001\360\"\000\005\r\210J\220k\240\021\330\004\020\220\002\220+\230Q\230a\330\004\020\220\002\220+\230Q\230a\330\004\026\220b\230\005\230Q\230i\240s\250&\260\001\340\004\010\210\007\210u\220A\220Q\330\010\020\220\001\330\010\014\210H\220E\230\021\230!\330\014\024\220K\230q\240\005\240Q\340\014\021\220\033\230C\230r\240\022\320#3\2604\260u\270B\270a\330\014\017\210v\220R\220r\230\024\230V\2402\240Q\330\020\035\230S\240\002\240!\330\020\031\230\021\330\014\017\210v\220S\230\002\230$\230o\250Q\250e\2604\260q\330\020\037\230q\240\007\240q\330\020\030\230\001\330\014\025\220Q\220e\2308\2401\330\014\025\220Q\220e\2308\2406\250\022\2501\340\004\013\210;\220k\240\021\320\000 \240\001\360\034\000\005\r\210J\220k\240\021\330\004\020\220\002\220+\230Q\230a\330\004\020\220\002\220+\230Q\230a\340\004\010\210\007\210u\220A\220Q\330\010\020\220\001\330\010\014""\210H\220E\230\021\230!\330\014\024\220K\230q\240\005\240Q\330\014\017\210v\220R\220q\330\020\031\230\027\240\002\240!\330\014\025\220Q\220e\2308\2401\330\014\025\220Q\220e\2308\2406\250\022\2501\340\004\013\210;\220a\200\001\360\026\000\005\r\210O\2301\320\034,\250C\250q\330\004\r\210S\220\001\220\021\330\004\023\2203\220a\220w\230b\240\n\250'\260\022\2607\270!\340\004\007\200s\210!\2107\220#\220Q\330\010\020\320\020 \240\001\330\020'\240q\330\020$\240A\330\020$\240A\340\004\017\210y\230\002\230&\240\002\240!\330\004\005\330\010\030\230\001\330\010\037\230u\240A\240R\240w\250a\250q\330\010\034\230E\240\021\240\"\240K\250q\260\n\270!\330\010\034\230E\240\021\240\"\240K\250q\260\n\270!\200\001\360(\000\005\016\210S\220\001\220\033\230B\230a\330\004\n\210\"\210G\220<\230q\360\006\000\005\021\220\002\220'\230\021\230.\250\005\250Q\360\006\000\005\021\220\n\230!\230>\250\021\340\004\022\220\"\220F\230\"\230H\240A\330\004\023\2202\220V\2302\230X\240Q\340\004\010\210\007\210u\220A\220Q\330\010\026\220a\330\010\014\210H\220E\230\021\230!\340\014\020\220\003\2207\230!\330\014\027\220r\230\035\240a\240y\260\001\260\036\270q\330\014\032\230!\230:\240W\250B\250a\360\006\000\r\026\220Y\230a\230q\330\014\025\220Y\230a\230y\250\002\250!\330\014\025\220W\230B\230c\240\027\250\003\2503\250g\260R\260q\360\006\000\r\021\220\010\230\003\2305\240\002\240#\240R\240q\330\014\024\220E\230\035\240a\240x\250q\340\014\030\230\001\230\025\230h\240a\330\014\027\220q\230\005\230X\240Q\330\014\032\230!\340\004\013\210=\230\001\200\001\340\004\r\210S\220\001\220\033\230B\230a\330\004\n\210#\210Q\210d\220\"\220A\330\004\023\2205\230\004\230G\2402\240Q\320\000&\240a\360\014\000\005\023\220-\230s\240&\250\006\250k\270\021\330\004\n\210#\210Q\210b\220\005\220Q\220l\240\"\240A\330\004\017\210w\220e\2301";
+    #else /* compression: none (2715 bytes) */
+const char* const bytes = ".?markov.pyAnnuallyCOST_PER_ENTRYCOST_PER_STEPCOST_PER_WINDOW_YEARDailyFREQ_PPYMIN_TRANSITIONS_PER_CELLMIN_WINDOW_YEARSMonthly__Pyx_PyDict_NextRefQuarterlyWeeklyamountarrayasarrayasyncio.coroutinesaxisbin_edgesbin_hi_bin_indexbin_lobtc_corebtc_neededbtc_pathsbuild_transition_matrix__class_getitem__cline_in_tracebackcompute_costcompute_fan_percentilescount_nonzerocount_nonzero_entriescum_probscumsumcurrent_bindefault_rngdepl_yrsdepletion_statsdepletion_stepsdstdtdtypeemptyempty_likefind_percentilefull__func__iidxinflation_rateintegerinterp_price_is_coroutineitemslinspace__main__markovmaskmatrix_costmax_bins_for_windowmc_dcamc_retiremedianmedian_depletion_yrmodel__module__monte_carlo_pricesn_binsn_nonzero_entriesn_simsn_steps__name__next_binnpnumpyonespp10_depletion_yrp90_depletion_yrpathspctpct_depletedpct_seriespctilepctile_pathspctspercentilepercentilespoppriceprice_pathsprices_prices_to_percentiles__qualname__rrandomrawresultrngrow_sumssearchsorted__set_name__setdefaultshapesimsim_costsqrtsrcstackstart_binstart_pctilestart_stackstart_tstart_yrstepstep_dayssumt__test__totaltranstrans_matrixtransitionsusd_pathsvalidvaluesw_pricesw_yearswdwindow_costwindow_end_yrwindow_start_yrwindow_yearswithdrawalyearsyr_to_tzeros\320\000#\2401\360\030\000\005\016\210Q\330\004\010\210\005\210Q\330\010\016\210a\210u\220B\220k\240\021\240'\250\022\2502\250U\260%\260q\330\004\013\2101\200\001\340\004\013\2102\210V\2201\220C\220q\230\001\330\004\010\210\005\210U\220!\2203\220a\220q\330\010\017\210q\220\005\220Q\220e\2301\230E\240\021\330\010\014\210A\210U\220%\320\027'\240q\250\003\2505\260\001\260\026\260q\270\001\330\004\013\2101\320\0002\260!\330\0342\260!\330\034\035\360$\000\005\016\210R\210x\220q\230\010\240\006\240a\330\004\014\210B\210h\220a\220w\230f\240A\360\006\000\005\014\2102\210U\220!\2203\220a\220y\240\006\240a\330\004\007\320\007\027\220w\230a\330\010\020\220\006\220c\230\021\330\004\007\200~\220W\230A\330\010\020\220\006\220c\230\021\330\004\017\210v\220Q\220a\330\004""\016\210e\2201\220A\340\004\007\200s\210!\210:\220R\220z\240\022\2401\340\010\024\220B\220i\230q\240\003\2403\240g\250R\250q\330\010\017\210r\220\025\220b\230\010\240\t\250\022\2508\260;\270b\300\006\300a\300q\360\006\000\005\022\320\021'\240q\250\n\260)\2701\360\006\000\005\021\220\002\220)\2301\230C\230s\240'\250\022\2501\330\004\014\210B\210f\220B\220h\230i\240v\250Q\340\004\010\210\005\210U\220!\2203\220c\230\021\230,\240b\250\013\2601\330\010\016\210j\230\001\230\032\2401\240D\250\001\330\010\016\210j\230\001\230\032\2401\240B\240b\250\014\260A\330\010\r\210Q\210e\2208\2301\360\006\000\005\020\210u\220D\230\001\230\025\230a\330\004\010\210\005\210U\220!\2201\330\010\013\2108\2201\220C\220r\230\021\330\014\021\220\021\220&\230\010\240\001\240\021\360\006\000\r\022\220\021\220%\220t\2302\230Q\340\004\013\2107\220+\230Q\200\001\33034\360.\000\005\016\210S\220\001\220\033\230B\230a\340\004\007\200t\2103\210e\2203\220j\240\001\240\026\240u\250B\250a\330\010\016\210b\220\007\220|\2401\240A\360\006\000\005\021\220\002\220'\230\021\230.\250\005\250Q\360\006\000\005\021\220\n\230!\230>\250\021\340\004\022\220\"\220F\230\"\230H\240A\330\004\023\2202\220V\2302\230X\240Q\340\004\010\210\007\210u\220A\220Q\330\010\026\220a\330\010\014\210H\220E\230\021\230!\340\014\020\220\003\2207\230!\330\014\027\220r\230\035\240a\240y\260\001\260\036\270q\330\014\032\230!\230:\240W\250B\250a\360\006\000\r\026\220Y\230a\230q\330\014\025\220Y\230a\230y\250\002\250!\330\014\025\220W\230B\230c\240\027\250\003\2503\250g\260R\260q\360\006\000\r\021\220\010\230\003\2305\240\002\240#\240R\240q\330\014\024\220E\230\035\240a\240x\250q\340\014\030\230\001\230\025\230h\240a\330\014\027\220q\230\005\230X\240Q\330\014\032\230!\340\004\013\210=\230\001\200\001\340\004\013\2103\210a\210r\220\036\230q\240\001\200\001\360\n\000\005\023\320\022$\240B\240a\330\004\022\220(\230\"\230N\250\"\250A\330\004\026\220e\230=\250\002\320*<\270B\270a\330\004\022\220,\230b\240\t\250\022\2501\330\004\005\330\010\027""\220q\330\010\027\220q\330\010\027\220q\330\010\027\220q\200\001\360\"\000\005\r\210J\220k\240\021\330\004\020\220\002\220+\230Q\230a\330\004\020\220\002\220+\230Q\230a\330\004\026\220b\230\005\230Q\230i\240s\250&\260\001\340\004\010\210\007\210u\220A\220Q\330\010\020\220\001\330\010\014\210H\220E\230\021\230!\330\014\024\220K\230q\240\005\240Q\340\014\021\220\033\230C\230r\240\022\320#3\2604\260u\270B\270a\330\014\017\210v\220R\220r\230\024\230V\2402\240Q\330\020\035\230S\240\002\240!\330\020\031\230\021\330\014\017\210v\220S\230\002\230$\230o\250Q\250e\2604\260q\330\020\037\230q\240\007\240q\330\020\030\230\001\330\014\025\220Q\220e\2308\2401\330\014\025\220Q\220e\2308\2406\250\022\2501\340\004\013\210;\220k\240\021\320\000 \240\001\360\034\000\005\r\210J\220k\240\021\330\004\020\220\002\220+\230Q\230a\330\004\020\220\002\220+\230Q\230a\340\004\010\210\007\210u\220A\220Q\330\010\020\220\001\330\010\014\210H\220E\230\021\230!\330\014\024\220K\230q\240\005\240Q\330\014\017\210v\220R\220q\330\020\031\230\027\240\002\240!\330\014\025\220Q\220e\2308\2401\330\014\025\220Q\220e\2308\2406\250\022\2501\340\004\013\210;\220a\200\001\360\026\000\005\r\210O\2301\320\034,\250C\250q\330\004\r\210S\220\001\220\021\330\004\023\2203\220a\220w\230b\240\n\250'\260\022\2607\270!\340\004\007\200s\210!\2107\220#\220Q\330\010\020\320\020 \240\001\330\020'\240q\330\020$\240A\330\020$\240A\340\004\017\210y\230\002\230&\240\002\240!\330\004\005\330\010\030\230\001\330\010\037\230u\240A\240R\240w\250a\250q\330\010\034\230E\240\021\240\"\240K\250q\260\n\270!\330\010\034\230E\240\021\240\"\240K\250q\260\n\270!\200\001\340\004\r\210S\220\001\220\033\230B\230a\330\004\n\210#\210Q\210d\220\"\220A\330\004\023\2205\230\004\230G\2402\240Q\320\000&\240a\360\014\000\005\023\220-\230s\240&\250\006\250k\270\021\330\004\n\210#\210Q\210b\220\005\220Q\220l\240\"\240A\330\004\017\210w\220e\2301";
     PyObject *data = NULL;
     CYTHON_UNUSED_VAR(__Pyx_DecompressString);
     #endif
     PyObject **stringtab = __pyx_mstate->__pyx_string_tab;
     Py_ssize_t pos = 0;
-    for (int i = 0; i < 138; i++) {
+    for (int i = 0; i < 139; i++) {
       Py_ssize_t bytes_length = index[i].length;
       PyObject *string = PyUnicode_DecodeUTF8(bytes + pos, bytes_length, NULL);
       if (likely(string) && i >= 3) PyUnicode_InternInPlace(&string);
@@ -8666,7 +8756,7 @@ const char* const bytes = ".?markov.pyAnnuallyCOST_PER_ENTRYCOST_PER_STEPCOST_PE
       stringtab[i] = string;
       pos += bytes_length;
     }
-    for (int i = 138; i < 149; i++) {
+    for (int i = 139; i < 150; i++) {
       Py_ssize_t bytes_length = index[i].length;
       PyObject *string = PyBytes_FromStringAndSize(bytes + pos, bytes_length);
       stringtab[i] = string;
@@ -8677,14 +8767,14 @@ const char* const bytes = ".?markov.pyAnnuallyCOST_PER_ENTRYCOST_PER_STEPCOST_PE
       }
     }
     Py_XDECREF(data);
-    for (Py_ssize_t i = 0; i < 149; i++) {
+    for (Py_ssize_t i = 0; i < 150; i++) {
       if (unlikely(PyObject_Hash(stringtab[i]) == -1)) {
         __PYX_ERR(0, 1, __pyx_L1_error)
       }
     }
     #if CYTHON_IMMORTAL_CONSTANTS
     {
-      PyObject **table = stringtab + 138;
+      PyObject **table = stringtab + 139;
       for (Py_ssize_t i=0; i<11; ++i) {
         #if CYTHON_COMPILING_IN_CPYTHON_FREETHREADING
         #if PY_VERSION_HEX < 0x030E0000
@@ -8796,27 +8886,27 @@ static int __Pyx_CreateCodeObjects(__pyx_mstatetype *__pyx_mstate) {
     __pyx_mstate_global->__pyx_codeobj_tab[5] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_markov_py, __pyx_mstate->__pyx_n_u_build_transition_matrix, __pyx_mstate->__pyx_kp_b_iso88591_2_2_Rxq_a_BhawfA_2U_3ay_a_wa_c, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[5])) goto bad;
   }
   {
-    const __Pyx_PyCode_New_function_description descr = {8, 0, 0, 24, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 142};
-    PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_trans_matrix, __pyx_mstate->__pyx_n_u_bin_edges, __pyx_mstate->__pyx_n_u_start_pctile, __pyx_mstate->__pyx_n_u_n_steps, __pyx_mstate->__pyx_n_u_n_sims, __pyx_mstate->__pyx_n_u_model, __pyx_mstate->__pyx_n_u_start_t, __pyx_mstate->__pyx_n_u_dt, __pyx_mstate->__pyx_n_u_n_bins, __pyx_mstate->__pyx_n_u_rng, __pyx_mstate->__pyx_n_u_cum_probs, __pyx_mstate->__pyx_n_u_start_bin, __pyx_mstate->__pyx_n_u_price_paths, __pyx_mstate->__pyx_n_u_pctile_paths, __pyx_mstate->__pyx_n_u_sim, __pyx_mstate->__pyx_n_u_current_bin, __pyx_mstate->__pyx_n_u_step, __pyx_mstate->__pyx_n_u_r, __pyx_mstate->__pyx_n_u_next_bin, __pyx_mstate->__pyx_n_u_bin_lo, __pyx_mstate->__pyx_n_u_bin_hi, __pyx_mstate->__pyx_n_u_pctile, __pyx_mstate->__pyx_n_u_t, __pyx_mstate->__pyx_n_u_price};
-    __pyx_mstate_global->__pyx_codeobj_tab[6] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_markov_py, __pyx_mstate->__pyx_n_u_monte_carlo_prices, __pyx_mstate->__pyx_kp_b_iso88591_S_Ba_G_q_Q_F_HA_2V2XQ_uAQ_a_HE, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[6])) goto bad;
+    const __Pyx_PyCode_New_function_description descr = {9, 0, 0, 24, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 142};
+    PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_trans_matrix, __pyx_mstate->__pyx_n_u_bin_edges, __pyx_mstate->__pyx_n_u_start_pctile, __pyx_mstate->__pyx_n_u_n_steps, __pyx_mstate->__pyx_n_u_n_sims, __pyx_mstate->__pyx_n_u_model, __pyx_mstate->__pyx_n_u_start_t, __pyx_mstate->__pyx_n_u_dt, __pyx_mstate->__pyx_n_u_rng, __pyx_mstate->__pyx_n_u_n_bins, __pyx_mstate->__pyx_n_u_cum_probs, __pyx_mstate->__pyx_n_u_start_bin, __pyx_mstate->__pyx_n_u_price_paths, __pyx_mstate->__pyx_n_u_pctile_paths, __pyx_mstate->__pyx_n_u_sim, __pyx_mstate->__pyx_n_u_current_bin, __pyx_mstate->__pyx_n_u_step, __pyx_mstate->__pyx_n_u_r, __pyx_mstate->__pyx_n_u_next_bin, __pyx_mstate->__pyx_n_u_bin_lo, __pyx_mstate->__pyx_n_u_bin_hi, __pyx_mstate->__pyx_n_u_pctile, __pyx_mstate->__pyx_n_u_t, __pyx_mstate->__pyx_n_u_price};
+    __pyx_mstate_global->__pyx_codeobj_tab[6] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_markov_py, __pyx_mstate->__pyx_n_u_monte_carlo_prices, __pyx_mstate->__pyx_kp_b_iso88591_34_S_Ba_t3e3j_uBa_b_1A_Q_F_HA_2, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[6])) goto bad;
   }
   {
-    const __Pyx_PyCode_New_function_description descr = {3, 0, 0, 11, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 200};
+    const __Pyx_PyCode_New_function_description descr = {3, 0, 0, 11, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 206};
     PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_price_paths, __pyx_mstate->__pyx_n_u_amount, __pyx_mstate->__pyx_n_u_start_stack, __pyx_mstate->__pyx_n_u_n_sims, __pyx_mstate->__pyx_n_u_n_steps, __pyx_mstate->__pyx_n_u_btc_paths, __pyx_mstate->__pyx_n_u_usd_paths, __pyx_mstate->__pyx_n_u_sim, __pyx_mstate->__pyx_n_u_stack, __pyx_mstate->__pyx_n_u_step, __pyx_mstate->__pyx_n_u_price};
     __pyx_mstate_global->__pyx_codeobj_tab[7] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_markov_py, __pyx_mstate->__pyx_n_u_mc_dca, __pyx_mstate->__pyx_kp_b_iso88591_Jk_Qa_Qa_uAQ_HE_Kq_Q_vRq_Qe81_Q, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[7])) goto bad;
   }
   {
-    const __Pyx_PyCode_New_function_description descr = {5, 0, 0, 16, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 232};
+    const __Pyx_PyCode_New_function_description descr = {5, 0, 0, 16, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 238};
     PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_price_paths, __pyx_mstate->__pyx_n_u_start_stack, __pyx_mstate->__pyx_n_u_withdrawal, __pyx_mstate->__pyx_n_u_inflation_rate, __pyx_mstate->__pyx_n_u_dt, __pyx_mstate->__pyx_n_u_n_sims, __pyx_mstate->__pyx_n_u_n_steps, __pyx_mstate->__pyx_n_u_btc_paths, __pyx_mstate->__pyx_n_u_usd_paths, __pyx_mstate->__pyx_n_u_depletion_steps, __pyx_mstate->__pyx_n_u_sim, __pyx_mstate->__pyx_n_u_stack, __pyx_mstate->__pyx_n_u_step, __pyx_mstate->__pyx_n_u_price, __pyx_mstate->__pyx_n_u_wd, __pyx_mstate->__pyx_n_u_btc_needed};
     __pyx_mstate_global->__pyx_codeobj_tab[8] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_markov_py, __pyx_mstate->__pyx_n_u_mc_retire, __pyx_mstate->__pyx_kp_b_iso88591_Jk_Qa_Qa_b_Qis_uAQ_HE_Kq_Q_Cr_3, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[8])) goto bad;
   }
   {
-    const __Pyx_PyCode_New_function_description descr = {2, 0, 0, 4, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 274};
+    const __Pyx_PyCode_New_function_description descr = {2, 0, 0, 4, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 280};
     PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_paths, __pyx_mstate->__pyx_n_u_percentiles, __pyx_mstate->__pyx_n_u_result, __pyx_mstate->__pyx_n_u_p};
     __pyx_mstate_global->__pyx_codeobj_tab[9] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_markov_py, __pyx_mstate->__pyx_n_u_compute_fan_percentiles, __pyx_mstate->__pyx_kp_b_iso88591_1_Q_Q_auBk_2U_q_1, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[9])) goto bad;
   }
   {
-    const __Pyx_PyCode_New_function_description descr = {4, 0, 0, 8, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 292};
+    const __Pyx_PyCode_New_function_description descr = {4, 0, 0, 8, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 298};
     PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_depletion_steps, __pyx_mstate->__pyx_n_u_n_steps, __pyx_mstate->__pyx_n_u_dt, __pyx_mstate->__pyx_n_u_start_yr, __pyx_mstate->__pyx_n_u_valid, __pyx_mstate->__pyx_n_u_n_sims, __pyx_mstate->__pyx_n_u_pct_depleted, __pyx_mstate->__pyx_n_u_depl_yrs};
     __pyx_mstate_global->__pyx_codeobj_tab[10] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_markov_py, __pyx_mstate->__pyx_n_u_depletion_stats, __pyx_mstate->__pyx_kp_b_iso88591_O1_Cq_S_3awb_7_s_7_Q_q_A_A_y_uA, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[10])) goto bad;
   }

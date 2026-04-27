@@ -7,6 +7,18 @@ from .data import PriceData
 from .support import SupportLine
 from .bubble_shape import bubble_shape
 
+# Axis-aware helpers for find_peaks t_center + bubble date conversion.
+# Mirrors the sys.path bridge in btc_core/__init__.py so this module also
+# works when imported standalone (build_bm_model.py inserts ROOT to sys.path
+# before importing model_toolkit).
+import sys as _sys
+from pathlib import Path as _Path
+_BTC_WEB = str(_Path(__file__).resolve().parent.parent.parent / "btc_web")
+if _BTC_WEB not in _sys.path:
+    _sys.path.insert(0, _BTC_WEB)
+from time_basis import year_to_t, t_to_calendar  # noqa: E402
+del _sys, _Path, _BTC_WEB
+
 
 # ── Default configuration ────────────────────────────────────────────────────
 # All constants used by the fitting process.  Pass a dict to override any
@@ -71,7 +83,8 @@ def find_peaks(log_excess, years, bubble_years, window=0.75):
     """
     peaks = []
     for yr in bubble_years:
-        t_center = (pd.Timestamp(f"{yr}-01-01") - GENESIS).days / 365.25
+        # Phase 2a: year_to_t is axis-aware (calendar: years; block: blocks).
+        t_center = year_to_t(float(yr))
         t_lo = t_center - window
         t_hi = t_center + window
 
@@ -199,10 +212,14 @@ def fit_bubble(residual, years, peak, support, config=None, seed_idx=0):
         "t_end":        t_end,    "cost":         cost,
         "t_start":      tr,       # alias used by plot helpers
         "bubble_year":  peak["bubble_year"],
-        "date_rise":    GENESIS + pd.Timedelta(days=tr    * 365.25),
-        "date_plat":    GENESIS + pd.Timedelta(days=tplat * 365.25),
-        "date_decay":   GENESIS + pd.Timedelta(days=tdec  * 365.25),
-        "date_end":     GENESIS + pd.Timedelta(days=t_end * 365.25),
+        # Phase 2a: t → calendar date via time_basis (axis-aware).
+        # In calendar mode equivalent to the old GENESIS + Timedelta(days=t*365.25).
+        # In block mode, t is a block offset; t_to_calendar projects via
+        # T_PER_YEAR to a calendar date for chart annotations.
+        "date_rise":    pd.Timestamp(t_to_calendar(tr)),
+        "date_plat":    pd.Timestamp(t_to_calendar(tplat)),
+        "date_decay":   pd.Timestamp(t_to_calendar(tdec)),
+        "date_end":     pd.Timestamp(t_to_calendar(t_end)),
     }
 
 

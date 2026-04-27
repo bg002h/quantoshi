@@ -118,3 +118,54 @@ def test_load_prices_block_mode_uses_block_offsets():
     # Last row offset must be much larger (block_origin is at 2009-07-25).
     last_offset = pd_block.df_full["years"].iloc[-1]
     assert last_offset > 700_000  # ~13 years past origin in blocks
+
+
+def test_find_peaks_t_center_axis_aware():
+    """find_peaks computes t_center via time_basis.year_to_t, not hardcoded
+    pd.Timestamp arithmetic."""
+    import sys
+    repo_root = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(repo_root / "tools"))
+    sys.path.insert(0, str(repo_root / "btc_web"))
+    from model_toolkit import fitting as fmod
+    import time_basis as tb
+    import numpy as np
+
+    if tb.TIME_BASIS != "calendar":
+        pytest.skip("calendar-only sanity test")
+
+    # Synthetic data: 1 fake bubble year at 2017.
+    # In calendar mode, year_to_t(2017) ≈ 7.44; window is [6.69, 8.19].
+    # Inject the peak inside that window so find_peaks can locate it.
+    years = np.linspace(0.5, 16.0, 1000)
+    log_excess = np.zeros_like(years)
+    target_t = 7.5  # well inside the [6.69, 8.19] window for yr=2017
+    peak_idx = np.argmin(np.abs(years - target_t))
+    log_excess[peak_idx] = 1.0
+
+    peaks = fmod.find_peaks(log_excess, years, [2017], window=0.75)
+    assert len(peaks) == 1
+    # Peak should be found at approximately the injected location.
+    assert abs(peaks[0]["peak_t"] - target_t) < 0.1
+
+
+def test_date_conversion_calendar_mode_unchanged():
+    """The date_rise/plat/decay/end fields produce the same Timestamps
+    as the hardcoded GENESIS + Timedelta path in calendar mode."""
+    import sys
+    repo_root = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(repo_root / "btc_web"))
+    import pandas as pd
+    import time_basis as tb
+
+    if tb.TIME_BASIS != "calendar":
+        pytest.skip("calendar-only test")
+
+    # New axis-aware conversion: t -> calendar date via time_basis.t_to_calendar
+    # Old: GENESIS + Timedelta(days=t * 365.25)
+    GENESIS = pd.Timestamp("2009-07-25")
+    for t in [1.0, 5.5, 14.123, 25.0]:
+        old_ts = GENESIS + pd.Timedelta(days=t * 365.25)
+        new_date = tb.t_to_calendar(t)
+        # Must agree to within 1 day (rounding from day-floor).
+        assert abs((pd.Timestamp(new_date) - old_ts).days) <= 1

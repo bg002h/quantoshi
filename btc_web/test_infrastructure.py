@@ -31,9 +31,10 @@ class TestModelFingerprint:
 
     def test_fingerprint_in_cache_key(self):
         from cache import _cache_key, _MODEL_FP
+        from time_basis import TIME_BASIS
         key = _cache_key("test", '{"a": 1}')
         assert _MODEL_FP in key
-        assert key.startswith(f"fig:{_MODEL_FP}:")
+        assert key.startswith(f"fig:{TIME_BASIS}:{_MODEL_FP}:")
 
     def test_different_params_different_keys(self):
         from cache import _cache_key
@@ -51,10 +52,10 @@ class TestModelFingerprint:
         """SHA-256 truncated to 32 hex chars (128 bits)."""
         from cache import _cache_key, _MODEL_FP
         key = _cache_key("x", '{}')
-        # Format: fig:{fp}:{prefix}:{hash32}
+        # Format: fig:{TIME_BASIS}:{fp}:{prefix}:{hash32}
         parts = key.split(":")
-        assert len(parts) == 4
-        assert len(parts[3]) == 32
+        assert len(parts) == 5
+        assert len(parts[4]) == 32
 
 
 class TestCacheGracefulDegradation:

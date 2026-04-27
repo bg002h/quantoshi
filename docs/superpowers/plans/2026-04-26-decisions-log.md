@@ -38,6 +38,12 @@ This file logs every non-trivial decision I made on their behalf. **Review on wa
 
 (Populated below as I proceed. Each entry: what, why, reversibility.)
 
+### D12 (2026-04-27): Phase 2a complete; acceptance gate PASSED with byte-identical fingerprint
+- **What:** Phase 2a (refactor + parameterize) shipped in 8 tasks plus a small EF rebuild commit (D5b non-blocking issue handled in same flow). Marker commit at `5d947bc`. Calendar-mode rebuild produced numerically **byte-identical** fingerprint vs the pre-2a pkl (empty `diff`). Test suite: 1600 passed / 2 pre-existing master failures / 10 skipped. Smoke: 200/200.
+- **Why this matters:** Validates Phase 2a's invariant ("calendar-mode behavior unchanged"). The refactor was successful — block-mode is now wired into the build pipeline but not exercised yet. Phase 2b builds the actual `model_data_block.pkl`.
+- **Branch state:** `time-basis-toggle` is now ~13 commits ahead of master since Phase 2a started. Not pushed. Prod still on Phase 1 marker (`d0638fc`) per the user's prior deploy.
+- **Reversibility:** Trivial — `git revert 5d947bc..HEAD` to undo Phase 2a. Phase 2a is purely additive in code paths (calendar mode unchanged, block mode parameterized but not yet shippable since no block pkl exists).
+
 ### D11 (2026-04-27): Pivot — "Blocks win." Skipping the formal A/B comparison report; going straight to making block the canonical site default.
 - **What:** User declared block-axis fits superior based on their independent research (the `qstar_*`, `crossing_symmetry`, `temporal_sweep`, `blocksweep` tools they checked into master commit `25eecff`). The spec's Phase 2b "decision gate" is now considered cleared.
 - **Phase 2 path change:**

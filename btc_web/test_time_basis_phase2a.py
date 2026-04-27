@@ -228,3 +228,13 @@ def test_time_basis_env_var_invalid_value_falls_back(tmp_path, monkeypatch):
     monkeypatch.setenv("QS_TIME_BASIS", "garbage")
     cfg = tb._load_config(toml_path)
     assert cfg["time_basis"] == "calendar"
+
+
+def test_build_bm_model_pkl_path_axis_aware():
+    """tools/build_bm_model.py uses model_data_block.pkl in block mode."""
+    from pathlib import Path
+    repo_root = Path(__file__).resolve().parent.parent
+    src = (repo_root / "tools" / "build_bm_model.py").read_text()
+    assert "model_data.pkl" in src
+    assert "model_data_block.pkl" in src
+    assert "QS_TIME_BASIS" in src  # env var must be set before imports

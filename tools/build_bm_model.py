@@ -15,6 +15,28 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 sys.path.insert(0, ROOT)  # make btc_core importable for the resqr fit phase
 os.chdir(ROOT)
 
+
+# Phase 2b.i: pre-parse --time-basis flag from argv so we can set
+# QS_TIME_BASIS env var BEFORE any time_basis import. Without this,
+# time_basis.py loads with TOML's calendar default and the build runs
+# with calendar T_PER_YEAR=1.0 even when CLI says block.
+def _early_time_basis_setup():
+    """Look for --time-basis in argv, set QS_TIME_BASIS env var."""
+    for i, arg in enumerate(sys.argv[1:], start=1):
+        if arg == "--time-basis" and i + 1 < len(sys.argv):
+            val = sys.argv[i + 1]
+            if val in ("calendar", "block"):
+                os.environ["QS_TIME_BASIS"] = val
+            return
+        if arg.startswith("--time-basis="):
+            val = arg.split("=", 1)[1]
+            if val in ("calendar", "block"):
+                os.environ["QS_TIME_BASIS"] = val
+            return
+
+_early_time_basis_setup()
+
+
 import numpy as np
 from model_toolkit.data import load_prices
 from model_toolkit.support import fit_support
@@ -218,6 +240,15 @@ def main():
     args = parser.parse_args()
     print(f"time_basis: {args.time_basis}")
 
+    # Axis-aware artifact filenames. Calendar default keeps existing
+    # filenames for back-compat; block writes to *_block.* siblings.
+    if args.time_basis == "block":
+        pkl_basename = "model_data_block.pkl"
+        diag_basename = "model_data_block_resqr_diagnostics.json"
+    else:
+        pkl_basename = "model_data.pkl"
+        diag_basename = "model_data_resqr_diagnostics.json"
+
     print("Loading prices...")
     prices = load_prices("BitcoinPricesDaily.csv", time_basis=args.time_basis)
     print(f"  {len(prices.df)} fitting points, {len(prices.df_full)} total")
@@ -257,7 +288,7 @@ def main():
     print(f"  sigma0_up={sigma.sigma0_up:.4f}, alpha_up={sigma.alpha_up:.4f}")
 
     print("Writing pkl...")
-    pkl_path = os.path.join(ROOT, "model_data.pkl")
+    pkl_path = os.path.join(ROOT, pkl_basename)
     pkl_dict = build_bm_pkl_dict(prices, sup, comp, cbn, qr, sigma)
     write_pkl(pkl_dict, pkl_path)
 
@@ -272,7 +303,7 @@ def main():
         pkl_dict["resqr_build_ts"] = _dt.datetime.utcnow().isoformat() + "Z"
         write_pkl(pkl_dict, pkl_path)
     # Always write diagnostics (success or abort) alongside the pkl.
-    diag_path = os.path.join(ROOT, "model_data_resqr_diagnostics.json")
+    diag_path = os.path.join(ROOT, diag_basename)
     with open(diag_path, "w") as f:
         json.dump(diagnostics, f, indent=2)
     print(f"Wrote diagnostics to {diag_path}")

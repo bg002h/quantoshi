@@ -160,6 +160,19 @@ def _compute_model_fingerprint() -> str:
 
 _MODEL_FP = _compute_model_fingerprint()
 
+# ─────────────────────────────────────────────────────────────────
+# Time basis (re-exported from btc_web.time_basis for caller convenience).
+# Canonical home is btc_web/time_basis.py; this is just a singleton alias.
+# ─────────────────────────────────────────────────────────────────
+from time_basis import (  # noqa: E402
+    TIME_BASIS,
+    T_ORIGIN_DATE,
+    T_ORIGIN_BLOCK,
+    T_LABEL,
+    T_PER_YEAR,
+    T_MIN,
+)
+
 # BTCPay (evaluated after env vars are loaded)
 _HAS_BTCPAY = False  # overwritten by app.py from btcpay._HAS_BTCPAY
 

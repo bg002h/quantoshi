@@ -108,3 +108,14 @@ def test_load_config_with_missing_file_falls_back_to_default(tmp_path):
     cfg = tb._load_config(tmp_path / "nonexistent.toml")
     assert cfg["time_basis"] == "calendar"
     assert cfg["blocks_per_year"] == 52596
+
+
+def test_app_ctx_re_exports_time_basis_constants():
+    from btc_web import _app_ctx
+    from btc_web import time_basis as tb
+    assert _app_ctx.TIME_BASIS == tb.TIME_BASIS
+    assert _app_ctx.T_LABEL == tb.T_LABEL
+    assert _app_ctx.T_PER_YEAR == tb.T_PER_YEAR
+    assert _app_ctx.T_MIN == tb.T_MIN
+    assert _app_ctx.T_ORIGIN_DATE == tb.T_ORIGIN_DATE
+    assert _app_ctx.T_ORIGIN_BLOCK == tb.T_ORIGIN_BLOCK

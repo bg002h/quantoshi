@@ -1209,13 +1209,32 @@ separate plan with its own decision gate.
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 ```
 
-- [ ] **Step 6: Push the branch**
+- [ ] **Step 6: Verify clean state before push**
+
+Per `feedback_verify_git_status_before_deploy.md`:
+
+```bash
+git status --short
+# Expected: clean. Both model_data.pkl AND model_data_meta.json must be
+# committed (Task 6 Step 9 staged both). Uncommitted edits to either
+# would ship a half-rebuild to prod.
+```
+
+- [ ] **Step 7: Push the branch**
 
 ```bash
 git push -u origin time-basis-toggle
 ```
 
 Expected: branch is on `origin`. Open a PR for review or merge fast-forward to master per the project's deploy workflow (`feedback_deploy_workflow.md` — for non-UI work, master merge is fine).
+
+- [ ] **Step 8: Deploy-time FLUSHDB note (prod only — not part of Phase 1)**
+
+After merging to master and deploying, the standard deploy ritual already includes `redis-cli FLUSHDB` (CLAUDE.md "Deploy to production"). This is **required** for Phase 1: the `_L0_FINGERPRINT` slice now includes `TIME_BASIS`, so old keys with the prior 12-char fp would never be hit but would linger as stale memory until LRU evicts them. FLUSHDB clears them immediately. No change to the existing deploy command:
+
+```bash
+ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && redis-cli FLUSHDB && systemctl restart quantoshi"
+```
 
 ---
 

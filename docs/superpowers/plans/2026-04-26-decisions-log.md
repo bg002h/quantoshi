@@ -38,6 +38,18 @@ This file logs every non-trivial decision I made on their behalf. **Review on wa
 
 (Populated below as I proceed. Each entry: what, why, reversibility.)
 
+### D11 (2026-04-27): Pivot — "Blocks win." Skipping the formal A/B comparison report; going straight to making block the canonical site default.
+- **What:** User declared block-axis fits superior based on their independent research (the `qstar_*`, `crossing_symmetry`, `temporal_sweep`, `blocksweep` tools they checked into master commit `25eecff`). The spec's Phase 2b "decision gate" is now considered cleared.
+- **Phase 2 path change:**
+  - **Phase 2a (refactor + parameterize)** — unchanged from spec. Mechanical refactor; calendar-mode behavior unchanged.
+  - **Phase 2b (build block pkl)** — **drop the R²/AIC/OOS-RMSE/calendar-osc-amplitude comparison report.** Just produce `model_data_block.pkl` + bound-rescale LPPL/EPPL/HybPPL `W_cal`. Sanity-check fits don't NaN.
+  - **Phase 2c (runtime axis loader)** — **required**, not optional. Was Phase 3.
+  - **Phase 2d (heavy caches)** — **required**, ~6h. Was Phase 4.
+  - **Phase 2e (flip + deploy)** — edit `quantoshi.toml` to `time_basis = "block"`, rebuild + redeploy. Was Phase 5.
+- **Comparison report deferred** — user said "Run report another day." Logging this so the report TODO doesn't get lost: a future task is to produce the formal R²/AIC/OOS-RMSE/calendar-osc-amplitude comparison after both pkls coexist on disk. Save to `docs/superpowers/specs/time_basis_phase2_results.md`.
+- **Why:** User has prior research evidence the controller doesn't have; trust + go.
+- **Reversibility:** Whole pivot is reversible at the `quantoshi.toml` level — flip back to `calendar` and rebuild.
+
 ### D8: Decisions-log audit caught 3 minor items, all addressed
 - **What:** A fresh agent audited this very file (D1–D7) and flagged:
   - **D8a:** No explicit log entry for the snapshot-fp behavior change in commit `bc041d1` (the `h.update(TIME_BASIS.encode())` insertion). D4 covered the registry update only. **Addressed by adding D9 below.**

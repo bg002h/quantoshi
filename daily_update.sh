@@ -1,18 +1,32 @@
 #!/bin/bash
-# Daily Bitcoin price update — run via systemd timer at 6 AM.
-# Updates CSV, re-runs notebook, commits, pushes, and auto-deploys.
-# Deploy chain: git pull → redis-cli FLUSHDB → restart → regen Citadel cache.
+# Daily Bitcoin price update — runs via user systemd timer at 6 AM.
+#
+# Architecture (2026-05-20 rewrite):
+#   - Operates in a dedicated worktree at DEPLOY_DIR so active dev work in
+#     the main checkout is never disrupted.
+#   - Auto-detects prod's checked-out branch via ssh, so the script self-heals
+#     if you switch prod between feature branches (e.g. time-basis-toggle ↔
+#     master) without needing to edit this file.
+#   - Commits + pushes automatically. Prompts via kdialog before the
+#     ssh-prod deploy step. Approval timeout = APPROVAL_TIMEOUT_SEC.
+#   - On decline / timeout: commit remains on origin; user can deploy later
+#     via scripts/quantoshi-restart.
+
 set -eo pipefail
+
+DEPLOY_DIR="/scratch/code/bitcoinprojections-deploy"
+SOURCE_VENV="/scratch/code/bitcoinprojections/btc_venv"
+LOG="/tmp/quantoshi-daily-update.log"
+PROD_HOST="root@89.167.70.45"
+APPROVAL_TIMEOUT_SEC=82800  # 23 hours (1h buffer before next 6 AM run)
 
 # Manual lockfile escape — touch /tmp/quantoshi-update.disable to skip the
 # next scheduled run (e.g. while debugging an in-flight build issue).
 if [[ -f /tmp/quantoshi-update.disable ]]; then
-    echo "$(date '+%Y-%m-%d %H:%M:%S') — daily update disabled via /tmp/quantoshi-update.disable — exiting"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') — daily update disabled via /tmp/quantoshi-update.disable — exiting" >> "$LOG"
     exit 0
 fi
 
-cd /scratch/code/bitcoinprojections
-LOG="/tmp/quantoshi-daily-update.log"
 exec >> "$LOG" 2>&1
 echo "──────────────────────────────────────────"
 echo "$(date '+%Y-%m-%d %H:%M:%S') — Starting daily update"
@@ -20,67 +34,121 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') — Starting daily update"
 notify_failure() {
     local msg="$1"
     echo "FAILURE: $msg"
-    # systemd journal — visible via: systemctl --user status quantoshi-update
     echo "$msg" | systemd-cat -t quantoshi-update -p err
-    # desktop notification (if session is active)
     notify-send -u critical "Quantoshi update failed" "$msg" 2>/dev/null || true
 }
 
-# Activate venv
-source btc_venv/bin/activate
+# --- Step 1: detect prod's checked-out branch (self-healing) ---
+PROD_BRANCH=$(ssh -o ConnectTimeout=10 "$PROD_HOST" "cd /opt/quantoshi && git branch --show-current" 2>/dev/null || true)
+if [[ -z "$PROD_BRANCH" ]]; then
+    notify_failure "couldn't read prod branch via ssh — aborting"
+    exit 1
+fi
+echo "Prod branch: $PROD_BRANCH"
 
-# Run update (fetches prices, appends CSV, re-runs notebook)
+# --- Step 2: sync worktree to prod's branch ---
+cd "$DEPLOY_DIR"
+git fetch origin "$PROD_BRANCH"
+current_branch=$(git branch --show-current)
+if [[ "$current_branch" != "$PROD_BRANCH" ]]; then
+    echo "Worktree on $current_branch — switching to $PROD_BRANCH"
+    git checkout "$PROD_BRANCH"
+fi
+git reset --hard "origin/$PROD_BRANCH"
+
+# --- Step 3: activate shared venv from main checkout ---
+source "$SOURCE_VENV/bin/activate"
+
+# --- Step 4: run updaters ---
 if ! python3 update_prices.py; then
     notify_failure "update_prices.py failed"
     exit 1
 fi
 
 # Append new rows to BitcoinBlocksDaily.csv so block-mode axis stays in
-# sync on prod (prod has no bitcoind and reads the committed CSV as a
-# static file). --append is a no-op if no new price rows were added.
+# sync on prod. --append is a no-op if no new price rows were added.
 if ! python3 tools/build_block_map.py --append; then
-    # Don't fail the whole run — block mode will fall back to "unavailable"
-    # via /health graceful degradation, and a manual rerun later will fix it.
     notify_failure "build_block_map.py --append failed (block mode may decay)"
 fi
 
-# Rebuild the Custom Time Axis $1M projection table (skipped automatically
-# if the existing btc_web/_projection_table.json is <28 days old, so this
-# refreshes roughly monthly, not daily).
+# Custom Time Axis $1M projection table (skipped automatically if existing
+# file is <28 days old, so this refreshes roughly monthly).
 if ! python3 tools/build_projection_table.py; then
     notify_failure "build_projection_table.py failed (modal will show stale data)"
 fi
 
-# Check if there are changes to commit
-# btc_core.py was split into btc_core/ package on 2026-04-16 (commit 26af8d8)
-# — reference the directory form so git diff/add don't error on a missing path
-# and halt the daily deploy under `set -eo pipefail`.
-if git diff --quiet BitcoinPricesDaily.csv model_data.pkl btc_core/ BitcoinBlocksDaily.csv btc_web/_projection_table.json 2>/dev/null; then
+# --- Step 5: check for changes ---
+WATCHED_PATHS=(BitcoinPricesDaily.csv model_data.pkl btc_core/ BitcoinBlocksDaily.csv btc_web/_projection_table.json)
+if git diff --quiet "${WATCHED_PATHS[@]}" 2>/dev/null; then
     echo "No new data — nothing to commit."
     exit 0
 fi
 
-# Commit and push
-git add BitcoinPricesDaily.csv model_data.pkl btc_core/ BitcoinBlocksDaily.csv btc_web/_projection_table.json
+# --- Step 6: commit + push (automatic) ---
+git add "${WATCHED_PATHS[@]}"
 git commit -m "Daily price update $(date '+%Y-%m-%d')"
-if ! git push origin master; then
+COMMIT_SHORT=$(git rev-parse --short HEAD)
+if ! git push origin "$PROD_BRANCH"; then
     notify_failure "git push failed"
     exit 1
 fi
+echo "Commit $COMMIT_SHORT pushed to origin/$PROD_BRANCH"
 
-# Deploy to production: pull, restart, regen Citadel cache.
-# NOTE: redis-cli FLUSHDB is intentionally OMITTED here. The daily update
-# rebuilds model_data.pkl, which bumps the L0/L1/L2 cache-key fingerprint
-# (md5 of model_fp + defaults_hash) — so every cached figure keyed against
-# the old pkl automatically misses and is recomputed lazily. Flushing Redis
-# wasted ~4s of restart time for zero functional benefit. See
-# scripts/quantoshi-restart-full for the FLUSHDB path (monthly LPPL refits).
+# --- Step 7: APPROVAL DIALOG before deploying to live prod ---
+LAST_PRICE_ROW=$(tail -1 BitcoinPricesDaily.csv)
+PROMPT="Quantoshi daily update ready.
+
+Branch: $PROD_BRANCH
+Commit: $COMMIT_SHORT
+New CSV row: $LAST_PRICE_ROW
+
+Deploy live to quantoshi.xyz now?
+
+Yes  →  ssh prod, git pull, restart, regen Citadel cache.
+No   →  leave commit on origin; deploy later via scripts/quantoshi-restart."
+
+# Ensure kdialog has access to user's session bus + display.
+export DISPLAY="${DISPLAY:-:0}"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=$XDG_RUNTIME_DIR/bus}"
+
+set +e
+timeout "${APPROVAL_TIMEOUT_SEC}s" kdialog --title "Quantoshi daily deploy" --yesno "$PROMPT"
+KD_RC=$?
+set -e
+
+case "$KD_RC" in
+    0)
+        echo "User approved deploy."
+        ;;
+    1)
+        echo "User declined deploy. Commit $COMMIT_SHORT is on origin/$PROD_BRANCH — deploy manually."
+        notify-send "Quantoshi" "Daily update commit pushed but NOT deployed (declined). Run scripts/quantoshi-restart when ready."
+        exit 0
+        ;;
+    124)
+        echo "Approval timed out after ${APPROVAL_TIMEOUT_SEC}s. Commit $COMMIT_SHORT is on origin/$PROD_BRANCH."
+        notify-send -u critical "Quantoshi" "Daily update timed out waiting for approval. Commit on origin/$PROD_BRANCH — deploy manually."
+        exit 0
+        ;;
+    *)
+        # kdialog failed (no display? bus down?) — fail-safe: do not deploy.
+        notify_failure "kdialog returned $KD_RC — could not prompt. Commit $COMMIT_SHORT pushed but NOT deployed."
+        exit 0
+        ;;
+esac
+
+# --- Step 8: deploy to prod ---
 echo "$(date '+%Y-%m-%d %H:%M:%S') — Deploying to production..."
-if ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && systemctl restart quantoshi" 2>&1; then
+# redis-cli FLUSHDB intentionally omitted: model_data.pkl rebuild bumps the
+# cache fingerprint (md5 of model_fp + defaults_hash), so old entries miss
+# naturally. See scripts/quantoshi-restart-full for the FLUSHDB path.
+if ssh "$PROD_HOST" "cd /opt/quantoshi && git pull && systemctl restart quantoshi"; then
     echo "Production restarted. Regenerating Citadel cache..."
-    ssh root@89.167.70.45 "cd /opt/quantoshi && \
+    ssh "$PROD_HOST" "cd /opt/quantoshi && \
         PYTHONPATH='/opt/quantoshi:/opt/quantoshi/btc_web' \
-        btc_venv/bin/python3 btc_web/generate_citadel_cache.py" 2>&1 || true
+        btc_venv/bin/python3 btc_web/generate_citadel_cache.py" || true
+    notify-send "Quantoshi" "Daily update deployed ✓  $LAST_PRICE_ROW"
     echo "$(date '+%Y-%m-%d %H:%M:%S') — Deploy complete."
 else
     notify_failure "Production deploy failed"

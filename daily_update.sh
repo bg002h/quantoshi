@@ -20,6 +20,17 @@ LOG="/tmp/quantoshi-daily-update.log"
 PROD_HOST="root@89.167.70.45"
 APPROVAL_TIMEOUT_SEC=82800  # 23 hours (1h buffer before next 6 AM run)
 
+# ── Behavior knobs (flip these two to revert to the conservative posture) ──────
+# SETTLE_LAG       : days skipped at the recent end, passed to update_prices.py
+#                    --lag. 8 = fully-settled/safe (sources revise up to ~7d);
+#                    1 = freshest (yesterday's close), but forward-only appends
+#                    lock in less-settled values permanently.
+# REQUIRE_APPROVAL : true  = kdialog prompt before deploying to live prod;
+#                    false = auto-deploy with no human in the loop.
+# Conservative revert: set SETTLE_LAG=8 and REQUIRE_APPROVAL=true.
+SETTLE_LAG=1
+REQUIRE_APPROVAL=false
+
 # Manual lockfile escape — touch /tmp/quantoshi-update.disable to skip the
 # next scheduled run (e.g. while debugging an in-flight build issue).
 if [[ -f /tmp/quantoshi-update.disable ]]; then
@@ -60,7 +71,7 @@ git reset --hard "origin/$PROD_BRANCH"
 source "$SOURCE_VENV/bin/activate"
 
 # --- Step 4: run updaters ---
-if ! python3 update_prices.py; then
+if ! python3 update_prices.py --lag "$SETTLE_LAG"; then
     notify_failure "update_prices.py failed"
     exit 1
 fi
@@ -96,7 +107,8 @@ echo "Commit $COMMIT_SHORT pushed to origin/$PROD_BRANCH"
 
 # --- Step 7: APPROVAL DIALOG before deploying to live prod ---
 LAST_PRICE_ROW=$(tail -1 BitcoinPricesDaily.csv)
-PROMPT="Quantoshi daily update ready.
+if [[ "$REQUIRE_APPROVAL" == true ]]; then
+    PROMPT="Quantoshi daily update ready.
 
 Branch: $PROD_BRANCH
 Commit: $COMMIT_SHORT
@@ -107,36 +119,39 @@ Deploy live to quantoshi.xyz now?
 Yes  →  ssh prod, git pull, restart, regen Citadel cache.
 No   →  leave commit on origin; deploy later via scripts/quantoshi-restart."
 
-# Ensure kdialog has access to user's session bus + display.
-export DISPLAY="${DISPLAY:-:0}"
-export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=$XDG_RUNTIME_DIR/bus}"
+    # Ensure kdialog has access to user's session bus + display.
+    export DISPLAY="${DISPLAY:-:0}"
+    export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+    export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=$XDG_RUNTIME_DIR/bus}"
 
-set +e
-timeout "${APPROVAL_TIMEOUT_SEC}s" kdialog --title "Quantoshi daily deploy" --yesno "$PROMPT"
-KD_RC=$?
-set -e
+    set +e
+    timeout "${APPROVAL_TIMEOUT_SEC}s" kdialog --title "Quantoshi daily deploy" --yesno "$PROMPT"
+    KD_RC=$?
+    set -e
 
-case "$KD_RC" in
-    0)
-        echo "User approved deploy."
-        ;;
-    1)
-        echo "User declined deploy. Commit $COMMIT_SHORT is on origin/$PROD_BRANCH — deploy manually."
-        notify-send "Quantoshi" "Daily update commit pushed but NOT deployed (declined). Run scripts/quantoshi-restart when ready."
-        exit 0
-        ;;
-    124)
-        echo "Approval timed out after ${APPROVAL_TIMEOUT_SEC}s. Commit $COMMIT_SHORT is on origin/$PROD_BRANCH."
-        notify-send -u critical "Quantoshi" "Daily update timed out waiting for approval. Commit on origin/$PROD_BRANCH — deploy manually."
-        exit 0
-        ;;
-    *)
-        # kdialog failed (no display? bus down?) — fail-safe: do not deploy.
-        notify_failure "kdialog returned $KD_RC — could not prompt. Commit $COMMIT_SHORT pushed but NOT deployed."
-        exit 0
-        ;;
-esac
+    case "$KD_RC" in
+        0)
+            echo "User approved deploy."
+            ;;
+        1)
+            echo "User declined deploy. Commit $COMMIT_SHORT is on origin/$PROD_BRANCH — deploy manually."
+            notify-send "Quantoshi" "Daily update commit pushed but NOT deployed (declined). Run scripts/quantoshi-restart when ready."
+            exit 0
+            ;;
+        124)
+            echo "Approval timed out after ${APPROVAL_TIMEOUT_SEC}s. Commit $COMMIT_SHORT is on origin/$PROD_BRANCH."
+            notify-send -u critical "Quantoshi" "Daily update timed out waiting for approval. Commit on origin/$PROD_BRANCH — deploy manually."
+            exit 0
+            ;;
+        *)
+            # kdialog failed (no display? bus down?) — fail-safe: do not deploy.
+            notify_failure "kdialog returned $KD_RC — could not prompt. Commit $COMMIT_SHORT pushed but NOT deployed."
+            exit 0
+            ;;
+    esac
+else
+    echo "Approval gate disabled (REQUIRE_APPROVAL=false) — auto-deploying $COMMIT_SHORT to prod."
+fi
 
 # --- Step 8: deploy to prod ---
 echo "$(date '+%Y-%m-%d %H:%M:%S') — Deploying to production..."

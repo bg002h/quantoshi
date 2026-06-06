@@ -76,10 +76,24 @@ if ! python3 update_prices.py --lag "$SETTLE_LAG"; then
     exit 1
 fi
 
-# Append new rows to BitcoinBlocksDaily.csv so block-mode axis stays in
-# sync on prod. --append is a no-op if no new price rows were added.
-if ! python3 tools/build_block_map.py --append; then
-    notify_failure "build_block_map.py --append failed (block mode may decay)"
+# Append new rows to BitcoinBlocksDaily.csv. Price and block CSVs MUST advance
+# together: prod's custom_fit refuses to load when their data-row counts differ
+# (it treats a mismatch as corruption). build_block_map reads the LOCAL bitcoind
+# RPC, which can hang transiently — so retry, then ABORT before committing if it
+# still fails, so a price-only partial update can never ship. The uncommitted
+# price append in this worktree is discarded by the next run's `git reset --hard`.
+block_ok=false
+for attempt in 1 2 3; do
+    if python3 tools/build_block_map.py --append; then
+        block_ok=true
+        break
+    fi
+    echo "build_block_map --append failed (attempt $attempt/3)"
+    if [[ $attempt -lt 3 ]]; then sleep 30; fi
+done
+if [[ "$block_ok" != true ]]; then
+    notify_failure "build_block_map.py --append failed after 3 attempts (bitcoind down?) — aborting before deploy to keep price/block CSVs in sync"
+    exit 1
 fi
 
 # Custom Time Axis $1M projection table (skipped automatically if existing
@@ -87,6 +101,18 @@ fi
 if ! python3 tools/build_projection_table.py; then
     notify_failure "build_projection_table.py failed (modal will show stale data)"
 fi
+
+# --- Step 4b: price/block row-count invariant ---
+# prod custom_fit rejects a mismatch as corruption; never commit/deploy one.
+# (Belt-and-suspenders: the block-map abort above already prevents the common
+# case, but this also catches a partial price append or any other desync.)
+price_rows=$(tail -n +2 BitcoinPricesDaily.csv | wc -l)
+block_rows=$(tail -n +2 BitcoinBlocksDaily.csv | wc -l)
+if [[ "$price_rows" -ne "$block_rows" ]]; then
+    notify_failure "price/block row mismatch ($price_rows vs $block_rows) — aborting before commit/deploy"
+    exit 1
+fi
+echo "Invariant OK: price rows = block rows = $price_rows"
 
 # --- Step 5: check for changes ---
 WATCHED_PATHS=(BitcoinPricesDaily.csv model_data.pkl btc_core/ BitcoinBlocksDaily.csv btc_web/_projection_table.json)

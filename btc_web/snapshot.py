@@ -455,7 +455,7 @@ _CHECKLIST_OPTIONS = {
     "ret-qs-adv":         _QS_LIST,
     "sc-qs-adv":          _QS_LIST,
     # toggle/boolean checklists (string values)
-    "bub-toggles":        ["shade", "show_ols", "show_data", "show_today", "show_legend", "minor_grid", "chart_zoom"],
+    "bub-toggles":        ["shade", "show_ols", "show_data", "show_today", "show_legend", "minor_grid", "chart_zoom", "show_halvings"],
     "bub-bubble-toggles": ["show_comp", "show_sup"],
     "bub-show-stack":     ["yes"],
     "bub-use-lots":       ["yes"],

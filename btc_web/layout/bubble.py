@@ -341,6 +341,7 @@ def _bubble_controls():
                                    {"label":" Show OLS","value":"show_ols"},
                                    {"label":" Unfairly Cheap Line","value":"show_ucl"},
                                    {"label":" Show today","value":"show_today"},
+                                   {"label":" Show halving lines","value":"show_halvings"},
                                    {"label":" Show legend","value":"show_legend"},
                                    {"label":html.Span(" Minor grid",className="minor-grid-opt"),"value":"minor_grid"},
                                    {"label":" Enable chart zoom","value":"chart_zoom"}],

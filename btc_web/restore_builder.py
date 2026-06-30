@@ -273,6 +273,7 @@ def _build_bubble_figure_from_state(state: dict):
         show_ucl    = "show_ucl"  in toggles,
         show_data   = "show_data"   in toggles,
         show_today  = "show_today"  in toggles,
+        show_halvings = "show_halvings" in toggles,
         show_legend = "show_legend" in toggles,
         minor_grid  = "minor_grid" in toggles,
         show_comp   = "show_comp" in bubble_toggles,

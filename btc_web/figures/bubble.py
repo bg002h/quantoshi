@@ -19,6 +19,8 @@ from colors import (
     SCAN_LINE_FALLBACK, _hex_alpha, PLOT_BG_COLOR,
     SUPPORT_LINE_OPACITY, UCL_LINE_OPACITY, OLS_LINE_OPACITY,
     MC_LEGEND_BG_ALPHA, LOG_MINOR_GRID_GRAY, ANNOT_TEXT_ALPHA,
+    HALVING_LINE_COLOR, HALVING_PAST_OPACITY, HALVING_FUTURE_OPACITY,
+    TRACE_WIDTH_HALVING,
 )
 
 from figures.common import (
@@ -37,7 +39,9 @@ from figures.common import (
 )
 from colors import quantile_shade, config_b_shade
 from figures.common import (quantile_opacity, _parse_quantiles,
-                             _today_line_shapes)
+                             _today_line_shapes,
+                             _halving_line_shapes, _halving_annotations,
+                             _HALVING_EPOCHS)
 
 
 def _r2_suffix(mdl, q):
@@ -120,7 +124,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     p keys: selected_qs, shade, xscale, yscale, xmin, xmax, ymin, ymax,
             n_future, show_comp, comp_color, comp_lw,
             show_sup, sup_color, sup_lw,
-            show_ols, show_data, show_today, pt_size, pt_alpha,
+            show_ols, show_data, show_today, show_halvings, pt_size, pt_alpha,
             stack, show_stack, lots (list of lot dicts), use_lots
     """
     model = _app_ctx.DEFAULT_MODEL
@@ -517,6 +521,17 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             shapes.extend(_today_line_shapes(td, y_lo, y_hi, today_color,
                                              glow=True, yref="y"))
 
+    # ── halving lines (past solid, future dashed; opt-in) ─────────────────────
+    halving_annots = []
+    if p.get("show_halvings"):
+        shapes.extend(_halving_line_shapes(
+            _HALVING_EPOCHS, m.genesis, t_lo, t_hi, y_lo, y_hi,
+            HALVING_LINE_COLOR, HALVING_PAST_OPACITY, HALVING_FUTURE_OPACITY,
+            TRACE_WIDTH_HALVING, yref="y"))
+        halving_annots = _halving_annotations(
+            _HALVING_EPOCHS, m.genesis, t_lo, t_hi, HALVING_LINE_COLOR,
+            xlog=(p.get("xscale", BUBBLE["xscale"]) == "log"))
+
     # ── x-axis ticks (calendar years) ─────────────────────────────────────────
     tick_ts, tick_lbls = _year_ticks(p["xmin"], p["xmax"], m.genesis,
                                      minor_grid=p.get("minor_grid"))
@@ -588,14 +603,17 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
         )
     layout["shapes"] = shapes
 
+    _annotations = list(halving_annots)
     if stack > 0:
-        layout["annotations"] = [dict(
+        _annotations.append(dict(
             text=f"Stack: {p['stack']:.6g} BTC",
             xref="paper", yref="paper", x=0.99, y=0.01,
             xanchor="right", yanchor="bottom",
             showarrow=False, font=dict(size=CHART_FONT_LEGEND, color=theme.TEXT_COLOR),
             bgcolor=theme.PLOT_BG_COLOR, bordercolor=theme.SPINE_COLOR, borderwidth=1,
-        )]
+        ))
+    if _annotations:
+        layout["annotations"] = _annotations
 
     # ── Time Machine σ-band honesty caption ──────────────────────────────────
     # Guarded behind asof_idx is not None — the non-as-of chart must stay

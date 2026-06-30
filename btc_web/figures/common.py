@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import math
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -153,6 +154,88 @@ def _today_line_shapes(t_today: float, y_lo, y_hi, color: str,
         opacity=TODAY_LINE_OPACITY, yref=yref,
     ))
     return shapes
+
+
+# ── Bitcoin halving epochs ────────────────────────────────────────────────
+# Halvings occur at block height 210_000·n. Known halvings carry their actual
+# dates; future halvings are estimated at the nominal ~4-year cadence anchored
+# on the 2024-04-20 halving. Dates here are display markers only — no runtime
+# block-data read (the chart spans decades, so a hardcoded estimate is
+# visually identical to a live extrapolation while keeping the server light).
+_HALVING_KNOWN_DATES = ("2012-11-28", "2016-07-09", "2020-05-11", "2024-04-20")
+_HALVING_ANCHOR = pd.Timestamp("2024-04-20")
+_HALVING_MAX_YEAR = 2080   # cover the bubble chart's max x-range
+
+
+def _build_halving_epochs():
+    """Return [(pd.Timestamp, is_estimated), ...], past → future."""
+    epochs = [(pd.Timestamp(d), False) for d in _HALVING_KNOWN_DATES]
+    k = 1
+    while True:
+        dt = _HALVING_ANCHOR + pd.DateOffset(years=4 * k)
+        if dt.year > _HALVING_MAX_YEAR:
+            break
+        epochs.append((dt, True))
+        k += 1
+    return epochs
+
+
+# Computed once at import — no Timestamp.today() dependency, so safe as a const.
+_HALVING_EPOCHS = _build_halving_epochs()
+
+
+def _halving_line_shapes(epochs, genesis, t_lo, t_hi, y_lo, y_hi, color,
+                         past_op, future_op, width, yref="y") -> list[dict]:
+    """Vertical halving-line shapes, clipped to the visible [t_lo, t_hi] range.
+
+    Past (known) halvings render solid at past_op; future (estimated) halvings
+    render dashed at future_op. Mirrors _today_line_shapes' y-span / yref
+    handling so it works on both linear and log y-axes. Year labels are added
+    separately via _halving_annotations — Plotly shape labels don't render in
+    kaleido static exports, so layout annotations are used instead.
+    """
+    shapes = []
+    for dt, est in epochs:
+        t = (dt - genesis).days / 365.25
+        if not (t_lo <= t <= t_hi):
+            continue
+        shapes.append(dict(
+            type="line", x0=t, x1=t, y0=y_lo, y1=y_hi, yref=yref,
+            line=dict(color=color, width=width,
+                      dash="dash" if est else "solid"),
+            opacity=future_op if est else past_op,
+        ))
+    return shapes
+
+
+def _halving_annotations(epochs, genesis, t_lo, t_hi, color,
+                         xlog=False) -> list[dict]:
+    """`⛏ YYYY` labels for each in-range halving, anchored at the chart top.
+
+    Positioned in paper-space (xref/yref='paper') rather than data coords:
+    Plotly interprets annotation x as log10(value) on a log x-axis, so a raw-t
+    data x lands off-screen. Computing the paper fraction ourselves renders
+    reliably on both log and linear x-axes (and in kaleido static exports).
+    """
+    annots = []
+    lo = math.log10(t_lo) if xlog else t_lo
+    hi = math.log10(t_hi) if xlog else t_hi
+    span = hi - lo
+    if span <= 0:
+        return annots
+    for dt, est in epochs:
+        t = (dt - genesis).days / 365.25
+        if not (t_lo <= t <= t_hi):
+            continue
+        pos = math.log10(t) if xlog else t
+        frac = (pos - lo) / span
+        annots.append(dict(
+            x=frac, y=0.985, xref="paper", yref="paper",
+            text=str(dt.year), showarrow=False,
+            textangle=0, yanchor="top", xanchor="center",
+            font=dict(size=CHART_FONT_LEGEND, color=color),
+        ))
+    return annots
 
 
 # ── shared constants ─────────────────────────────────────────────────────────

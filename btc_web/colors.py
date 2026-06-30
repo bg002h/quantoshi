@@ -68,6 +68,7 @@ THERMAL_NEUTRAL     = "#bdbdbd"   # thermal scale midpoint (Q50)
 HM_DEFAULT_RED      = "#d32f2f"   # CAGR heatmap loss (rwg/rbg presets)
 HM_DEFAULT_GREEN    = "#2e7d32"   # CAGR heatmap gain (rwg/rbg presets)
 TODAY_LINE_COLOR    = "#F7931A"   # today vertical line default — unified with BTC orange
+HALVING_LINE_COLOR  = "#3F51B5"   # halving vertical lines — muted indigo (colorblind-safe, blue axis)
 NON_QUANTIZED_MODEL_COLOR = "#8B4513"  # saddlebrown — single-trajectory models
 
 # ── UI text hierarchy ────────────────────────────────────────────────
@@ -674,6 +675,7 @@ TRACE_WIDTH_OVERLAY     = 2.0       # alt-model overlay lines (TRACE_WIDTH * 0.8
 TRACE_WIDTH_COMPOSITE   = 2.0       # bubble composite line
 TRACE_WIDTH_SUPPORT     = 1.5       # bubble support line
 TRACE_WIDTH_TODAY       = 2.0       # vertical "today" line
+TRACE_WIDTH_HALVING     = 1.4       # vertical halving lines
 TODAY_GLOW_WIDTH        = 6         # glow halo around today line
 GRID_MAJOR_WIDTH        = 1.0
 GRID_MINOR_WIDTH        = 0.8
@@ -692,6 +694,8 @@ MARKER_SIZE_HIGHLIGHT   = 12
 SHADE_ALPHA             = 0.08      # fill between adjacent quantile lines
 TODAY_LINE_OPACITY      = 0.85
 TODAY_GLOW_OPACITY      = 0.12
+HALVING_PAST_OPACITY    = 0.55     # known halving lines (solid)
+HALVING_FUTURE_OPACITY  = 0.35     # estimated future halving lines (dashed)
 WM_OPACITY              = 0.35      # watermark logo opacity
 WM_SIZE_X               = 0.07      # watermark logo width  (fraction of paper)
 WM_SIZE_Y               = 0.10      # watermark logo height (fraction of paper)

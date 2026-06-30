@@ -62,6 +62,7 @@ def _build_bubble_dict():
         "shade":       "shade"       in toggles,
         "show_data":   "show_data"   in toggles,
         "show_today":  "show_today"  in toggles,
+        "show_halvings": "show_halvings" in toggles,
         "show_legend": "show_legend" in toggles,
         "minor_grid":  "minor_grid"  in toggles,
         "show_ols":    "show_ols"    in toggles,

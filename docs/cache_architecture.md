@@ -54,7 +54,7 @@ Pre-computed Citadel Planner simulation bands.
 | **Daily (manual)** | Prices + BM + EF + LPPL 1-4 params | Dev | User runs `update_prices.py` |
 | **Daily (manual deploy)** | `redis-cli FLUSHDB` | Prod | Part of deploy command |
 | **Monthly (automatic)** | LPPL weighted + no-13 variants, Redis flush, restart | Prod | `quantoshi-lppl-refit.timer` on 1st of month |
-| **Quarterly (automatic)** | MC cache + Citadel bands | Dev | `quantoshi-cache-rebuild.timer` every 90 days |
+| **Quarterly (automatic)** | MC cache + Citadel bands | Dev | `quantoshi-cache-rebuild.timer` — `OnCalendar=*-01,04,07,10-25 03:00:00` (~90 calendar days apart, 03:00) |
 
 ## Cache age health monitoring
 

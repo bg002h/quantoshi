@@ -1,19 +1,44 @@
-# quantoshi-cache-rebuild-system.timer — 90-day cache rebuild timer (SYSTEM-level).
+# quantoshi-cache-rebuild-system.timer — quarterly cache rebuild timer (SYSTEM-level).
 #
 # Pair with quantoshi-cache-rebuild-system.service.
 # See that file for install instructions.
 
 [Unit]
-Description=90-day cache rebuild timer
+Description=Quarterly (~90-day) cache rebuild timer
 
 [Timer]
-# Every 90 days
-OnUnitActiveSec=90d
-# First run ~6 hours after enabling (lets you validate the setup)
-OnBootSec=6h
-# Catch up if the dev machine was off during the scheduled fire time
-Persistent=true
+# Every ~90 CALENDAR days at 03:00 — quarterly, anchored to the 25th.
+# Intervals: 92, 92, 89, 91 days. Verify with:
+#   systemd-analyze calendar --iterations=5 '*-01,04,07,10-25 03:00:00'
+OnCalendar=*-01,04,07,10-25 03:00:00
 Unit=quantoshi-cache-rebuild.service
+
+# ── Do NOT add OnBootSec= or OnUnitActiveSec= here ───────────────────────
+# Both were present until 2026-07-26 and both were wrong:
+#
+#   OnBootSec=6h        The comment claimed "first run ~6h after enabling".
+#                       It is not: systemd.timer(5) says a timer "will
+#                       trigger whenever ANY of the specified timer
+#                       expressions elapse", so this leg re-armed on every
+#                       boot. It launched an unattended 8-hour, 22-worker
+#                       rebuild 6h into a workday session — which is what
+#                       exposed all of this.
+#
+#   OnUnitActiveSec=90d Relative to "when the unit ... was last activated" —
+#                       uptime-relative, not calendar-relative, and systemd
+#                       does not persist activation timestamps across
+#                       reboots. With no prior activation there is no
+#                       reference point, so this leg had never once fired in
+#                       the timer's entire installed life; OnBootSec was
+#                       doing all the work. On a box that reboots regularly
+#                       it means "never".
+#
+# Persistent= is deliberately omitted (defaults to false). It only affects
+# OnCalendar= timers, so it was inert here before. Turning it on now would
+# make a missed 03:00 window fire at next BOOT instead — an 8-hour job
+# starting mid-workday, the exact behaviour being removed. Trade-off: if the
+# machine is off at 03:00 on the 25th, that quarter is skipped rather than
+# deferred. Set Persistent=true if you would rather have the catch-up.
 
 [Install]
 WantedBy=timers.target

@@ -1,19 +1,29 @@
-# quantoshi-cache-rebuild.timer — Fires every 90 days (or on first boot after).
+# quantoshi-cache-rebuild.timer — fires quarterly (~every 90 calendar days) at 03:00.
 #
 # USER timer — installs alongside quantoshi-cache-rebuild.service.
 # See .service file for install instructions.
+#
+# NOTE: the installed unit on this dev box is the SYSTEM variant
+# (tools/quantoshi-cache-rebuild-system.timer). A user timer only runs while
+# the user manager is up, so without `loginctl enable-linger` it will not
+# fire at 03:00 when nobody is logged in.
 
 [Unit]
-Description=90-day cache rebuild timer
+Description=Quarterly (~90-day) cache rebuild timer
 
 [Timer]
-# Every 90 days, persistent across reboots
-OnUnitActiveSec=90d
-# First run ~6 hours after enabling (lets you test)
-OnBootSec=6h
-# Catch up if the dev machine was off during scheduled time
-Persistent=true
+# Every ~90 CALENDAR days at 03:00 — quarterly, anchored to the 25th.
+# Intervals: 92, 92, 89, 91 days. Verify with:
+#   systemd-analyze calendar --iterations=5 '*-01,04,07,10-25 03:00:00'
+OnCalendar=*-01,04,07,10-25 03:00:00
 Unit=quantoshi-cache-rebuild.service
+
+# Do NOT add OnBootSec= or OnUnitActiveSec= — see the long explanation in
+# tools/quantoshi-cache-rebuild-system.timer. Short version: OnBootSec=
+# re-arms on EVERY boot (it is not a one-shot "first run after enabling"),
+# and OnUnitActiveSec= is uptime-relative with no cross-reboot reference
+# point, so it had never fired once. Persistent= is intentionally omitted so
+# a missed window is skipped rather than started mid-workday at next boot.
 
 [Install]
 WantedBy=timers.target

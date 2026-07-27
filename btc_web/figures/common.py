@@ -408,6 +408,24 @@ def _uirevision_key(p: dict, tab: str) -> str:
     return f"{tab}:{palette}"
 
 
+def apply_zoom_lock(fig, zoom_on: bool, axes: bool = True):
+    """Sync a figure's drag interactivity with the "Enable chart zoom" toggle.
+
+    Writes BOTH states explicitly. `chart_zoom` is not part of the figure
+    cache key for most tabs, so every zoom state shares one cached
+    go.Figure object; a one-way `dragmode=False` write sticks to that shared
+    object and re-checking the box could never restore zoom.
+
+    axes=False for the heatmap, whose builder pins `fixedrange=True` on both
+    axes by design — there only `dragmode` follows the toggle.
+    """
+    fig.update_layout(dragmode="zoom" if zoom_on else False)
+    if axes:
+        fig.update_xaxes(fixedrange=not zoom_on)
+        fig.update_yaxes(fixedrange=not zoom_on)
+    return fig
+
+
 def _base_layout(title, xlabel, ylabel, **kwargs):
     """Base layout dict — shared Quantoshi chart template.
 

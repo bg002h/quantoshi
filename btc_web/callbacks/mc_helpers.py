@@ -234,8 +234,8 @@ def _mc_finalize(tab: str, fig, mc_result, mc_cached, mc_enable, mc_ok: bool,
     store_val, status, show_modal = _mc_status(mc_result, mc_cached, mc_enable)
     ub_val = (dash.no_update if mc_stale
               else _unblocked_val(mc_ok, blocked, mc_result, mc_cached))
-    if "chart_zoom" not in (toggles or []):
-        fig.update_layout(dragmode=False)
+    from figures.common import apply_zoom_lock
+    apply_zoom_lock(fig, "chart_zoom" in (toggles or []), axes=False)
     return fig, store_val, status, rendered_key, show_modal, ub_val
 
 

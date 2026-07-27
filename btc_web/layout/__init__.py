@@ -128,6 +128,21 @@ _TAB_TO_GRAPH = {
 }
 _TAB_TO_FIG_FN = {}  # populated lazily below
 
+# Tabs whose "Enable chart zoom" checkbox gates the pre-injected figure's
+# drag interactivity: tab -> (toggle component id, lock the axis ranges too).
+# The figure builders don't know about chart_zoom, so without this the
+# injected figure renders zoom-enabled while the checkbox reads unchecked.
+# axes=False for the tabs whose callbacks only drive dragmode (see
+# figures.common.apply_zoom_lock). `leverage` has no zoom toggle.
+_TAB_ZOOM_TOGGLE = {
+    "bubble":      ("bub-toggles:value", True),
+    "heatmap":     ("hm-toggles:value",  False),
+    "dca":         ("dca-toggles:value", False),
+    "retire":      ("ret-toggles:value", False),
+    "supercharge": ("sc-toggles:value",  False),
+    "citadel":     ("cp-toggles:value",  False),
+}
+
 
 def _get_initial_figure(tab):
     """Get pre-computed figure for a tab from L1 cache. Returns fig or None."""
@@ -156,7 +171,15 @@ def _get_initial_figure(tab):
     get_fn, defaults_fn = entry
     try:
         result = get_fn(defaults_fn())
-        return result[0] if isinstance(result, tuple) else result
+        fig = result[0] if isinstance(result, tuple) else result
+        zoom = _TAB_ZOOM_TOGGLE.get(tab)
+        if fig is not None and zoom is not None:
+            from figures.common import apply_zoom_lock
+            from snapshot_defaults import SNAPSHOT_DEFAULTS
+            toggle_key, axes = zoom
+            defaults = SNAPSHOT_DEFAULTS.get(toggle_key) or []
+            apply_zoom_lock(fig, "chart_zoom" in defaults, axes=axes)
+        return fig
     except Exception:
         return None
 

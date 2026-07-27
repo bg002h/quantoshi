@@ -311,10 +311,8 @@ def _build_bubble_figure_from_state(state: dict):
         sigma_mode         = sigma_mode or "constant",
         config_b_keys      = sorted(_config_b_keys),
     ))
-    if "chart_zoom" not in toggles:
-        fig.update_layout(dragmode=False)
-        fig.update_xaxes(fixedrange=True)
-        fig.update_yaxes(fixedrange=True)
+    from figures.common import apply_zoom_lock
+    apply_zoom_lock(fig, "chart_zoom" in toggles)
     return fig
 
 
@@ -986,8 +984,8 @@ def _build_heatmap_figure_from_state(state: dict):
             hm_model     = hm_model,
         )
         fig = _get_heatmap_fig(shared_params)
-        if "chart_zoom" not in (toggles or []):
-            fig.update_layout(dragmode=False)
+        from figures.common import apply_zoom_lock
+        apply_zoom_lock(fig, "chart_zoom" in (toggles or []), axes=False)
         return fig
     except Exception as e:
         import logging

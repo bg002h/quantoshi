@@ -57,6 +57,7 @@ from callbacks.charts._resolvers import (  # noqa: F401
 )
 
 from btc_core import yr_to_t, today_t, _find_lot_percentile
+from figures.common import apply_zoom_lock
 from tab_defaults import BUBBLE, HEATMAP, DCA, RETIRE, SUPERCHARGE
 from layout.common import _bands_to_qs
 from callbacks.coerce import _ci, _cf
@@ -499,10 +500,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                 fig = _go.Figure(fig)
                 _add_mc_spaghetti(fig, paths, t_axis, n_display=display_sims)
 
-    if "chart_zoom" not in toggles:
-        fig.update_layout(dragmode=False)
-        fig.update_xaxes(fixedrange=True)
-        fig.update_yaxes(fixedrange=True)
+    apply_zoom_lock(fig, "chart_zoom" in toggles)
 
     fig, store_val, status, rendered_key, show_modal, ub_val = _mc_finalize(
         "bub", fig, mc_result, mc_cached, mc_enable, mc_ok,
@@ -735,10 +733,7 @@ def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
         lppl_no_13=list(lppl_no_13 or []),
     )
     fig = _get_resid_fig(p)
-    if "chart_zoom" not in toggles:
-        fig.update_layout(dragmode=False)
-        fig.update_xaxes(fixedrange=True)
-        fig.update_yaxes(fixedrange=True)
+    apply_zoom_lock(fig, "chart_zoom" in toggles)
     return fig
 
 
@@ -1106,8 +1101,7 @@ def update_heatmap(_first_render, hm_model, entry_yr, entry_q, exit_range, exit_
     mc_panel_style = {} if mc_visible else {"display": "none"}
     indicator_style = {"display": "none"}
 
-    if "chart_zoom" not in toggles:
-        fig.update_layout(dragmode=False)
+    apply_zoom_lock(fig, "chart_zoom" in toggles, axes=False)
 
     return (fig, store_val, status, mc_panel_style, indicator_style,
             rendered_key,

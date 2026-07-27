@@ -388,6 +388,39 @@ class TestLayoutRendering:
         layout = _serve_layout()
         assert layout is not None
 
+    def test_initial_figures_match_chart_zoom_default(self):
+        """Pre-injected figures must honour the "Enable chart zoom" default.
+
+        The figure builders don't know about chart_zoom, so the injected
+        figure used to render zoom-enabled while the checkbox read unchecked.
+        """
+        from layout import _get_initial_figure, _TAB_ZOOM_TOGGLE
+        from snapshot_defaults import SNAPSHOT_DEFAULTS
+        for tab, (toggle_key, axes) in _TAB_ZOOM_TOGGLE.items():
+            zoom_on = "chart_zoom" in (SNAPSHOT_DEFAULTS.get(toggle_key) or [])
+            fig = _get_initial_figure(tab)
+            assert fig is not None, tab
+            assert fig.layout.dragmode == ("zoom" if zoom_on else False), tab
+            if axes:
+                assert fig.layout.xaxis.fixedrange is (not zoom_on), tab
+                assert fig.layout.yaxis.fixedrange is (not zoom_on), tab
+
+    def test_apply_zoom_lock_round_trips(self):
+        """Zoom state must be reversible — cached figures are shared objects."""
+        import plotly.graph_objects as go
+        from figures.common import apply_zoom_lock
+        fig = go.Figure()
+        for zoom_on in (False, True, False, True):
+            apply_zoom_lock(fig, zoom_on)
+            assert fig.layout.dragmode == ("zoom" if zoom_on else False)
+            assert fig.layout.xaxis.fixedrange is (not zoom_on)
+            assert fig.layout.yaxis.fixedrange is (not zoom_on)
+        # axes=False leaves builder-pinned ranges alone (heatmap)
+        fig2 = go.Figure(layout=go.Layout(xaxis=dict(fixedrange=True)))
+        apply_zoom_lock(fig2, True, axes=False)
+        assert fig2.layout.dragmode == "zoom"
+        assert fig2.layout.xaxis.fixedrange is True
+
     def test_model_info_accordion_items(self):
         """Every model info accordion item must render without AttributeError."""
         from layout import model_info

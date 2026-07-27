@@ -33,3 +33,18 @@ StandardOutput=journal
 StandardError=journal
 # Builds can take 6-10 hours total
 TimeoutStartSec=12h
+
+# ── Yield to interactive work ────────────────────────────────────────────
+# This job saturates the box: 22 worker processes on 24 cores, ~8 hours,
+# 15.7 GB peak RSS. At the default Nice=0 / CPUWeight=100 it competes with
+# the desktop as an equal — the 2026-07-26 run held load average at ~29 for
+# hours while it ran through a workday.
+#
+# It normally starts at 03:00 when nothing else is running, and none of this
+# costs anything then: nice values and CPU weights only bind under
+# contention, so an idle machine still gives the rebuild all 24 cores. What
+# they buy is the Persistent=true catch-up case in the timer, where a missed
+# 03:00 window fires at next boot — i.e. while you are using the machine.
+Nice=19
+CPUWeight=20
+IOSchedulingClass=idle

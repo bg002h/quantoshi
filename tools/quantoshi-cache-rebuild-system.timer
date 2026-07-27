@@ -11,6 +11,19 @@ Description=Quarterly (~90-day) cache rebuild timer
 # Intervals: 92, 92, 89, 91 days. Verify with:
 #   systemd-analyze calendar --iterations=5 '*-01,04,07,10-25 03:00:00'
 OnCalendar=*-01,04,07,10-25 03:00:00
+# Catch up a window missed because the machine was powered off at 03:00.
+# This is the ONLY case where the rebuild starts at a time other than 03:00:
+# systemd triggers it at the next boot instead. That is unavoidable — a box
+# that is off at 03:00 can only run the job at some other hour — but it is
+# made tolerable by the Nice=/CPUWeight=/IOSchedulingClass= settings in
+# quantoshi-cache-rebuild-system.service, which keep an 8-hour rebuild from
+# competing with interactive work. Do not remove those without revisiting
+# this. Requires OnCalendar= to have any effect at all.
+#
+# Note the stamp file (/var/lib/systemd/timers/stamp-*.timer) is written when
+# the timer TRIGGERS, not when the run succeeds — a failed rebuild is not
+# retried by Persistent=, it waits for the next quarter.
+Persistent=true
 Unit=quantoshi-cache-rebuild.service
 
 # ── Do NOT add OnBootSec= or OnUnitActiveSec= here ───────────────────────
@@ -33,12 +46,9 @@ Unit=quantoshi-cache-rebuild.service
 #                       doing all the work. On a box that reboots regularly
 #                       it means "never".
 #
-# Persistent= is deliberately omitted (defaults to false). It only affects
-# OnCalendar= timers, so it was inert here before. Turning it on now would
-# make a missed 03:00 window fire at next BOOT instead — an 8-hour job
-# starting mid-workday, the exact behaviour being removed. Trade-off: if the
-# machine is off at 03:00 on the 25th, that quarter is skipped rather than
-# deferred. Set Persistent=true if you would rather have the catch-up.
+# Persistent= was also inert before this rewrite, since it "only has an
+# effect on timers configured with OnCalendar=" and there was none. It is
+# now enabled deliberately (see above), not left over from the old config.
 
 [Install]
 WantedBy=timers.target

@@ -16,14 +16,15 @@ Description=Quarterly (~90-day) cache rebuild timer
 # Intervals: 92, 92, 89, 91 days. Verify with:
 #   systemd-analyze calendar --iterations=5 '*-01,04,07,10-25 03:00:00'
 OnCalendar=*-01,04,07,10-25 03:00:00
+# Catch up if the machine was off at 03:00 — fires at next boot instead.
+Persistent=true
 Unit=quantoshi-cache-rebuild.service
 
 # Do NOT add OnBootSec= or OnUnitActiveSec= — see the long explanation in
 # tools/quantoshi-cache-rebuild-system.timer. Short version: OnBootSec=
 # re-arms on EVERY boot (it is not a one-shot "first run after enabling"),
 # and OnUnitActiveSec= is uptime-relative with no cross-reboot reference
-# point, so it had never fired once. Persistent= is intentionally omitted so
-# a missed window is skipped rather than started mid-workday at next boot.
+# point, so it had never fired once.
 
 [Install]
 WantedBy=timers.target

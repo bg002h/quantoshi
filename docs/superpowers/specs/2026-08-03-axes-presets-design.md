@@ -97,21 +97,35 @@ import it) and the existing `callbacks → layout` import direction
 
 ```python
 AXES_PRESETS = (
-    {"key": "default",  "label": "Default",      "js": _JS_DEFAULT},
-    {"key": "cur_year", "label": "Current year", "js": _JS_CUR_YEAR},
+    {"key": "default",  "label": "Default", "js": _JS_DEFAULT,
+     "states": (("snapshot-state-store", "data"), ("bub-view-mode", "data"))},
+    {"key": "cur_year", "label": "Current year", "js": _JS_CUR_YEAR,
+     "states": ()},
 )
 ```
 
 Adding a preset = one tuple entry + its JS body. Button id is
 `f"bub-axes-preset-{key}"`.
 
+**`states` is per-preset, not global.** Only "Default" needs State; "Current
+year" declares `()`. The registration loop builds `State(*pair)` for each
+entry in the preset's own `states` tuple, so the JS body's argument list is
+`(n_clicks, *that preset's states)`. A uniform State list across all presets
+would work today but would force every future preset to accept arguments it
+does not use.
+
 ## 6. Wiring
 
 New module `btc_web/callbacks/axes_presets.py` loops over `AXES_PRESETS` and
-registers one clientside callback each:
+registers one clientside callback each, via **`_app_ctx.app.clientside_callback`**
+— the pattern at `btc_web/callbacks/plot_appearance.py:40`. Do **not** use the
+module-level `dash.clientside_callback`: it registers into
+`dash._callback.GLOBAL_CALLBACK_MAP` instead of `app.callback_map`, which would
+make the §9 tests 3–4 fail to find the callbacks.
 
 ```
 Input  : bub-axes-preset-{key}.n_clicks          ← exactly ONE Input (D3)
+State  : from the preset's own "states" tuple (§5) — none for "cur_year"
 State  : snapshot-state-store.data               ← "default" preset only
 State  : bub-view-mode.data                      ← "default" preset only
 Output : bub-xscale.value   (allow_duplicate=True)
@@ -147,6 +161,12 @@ function(n) {
 
 The year is computed in JS, not baked at layout time, so a tab left open
 across New Year's still does the right thing.
+
+**Every preset body must open with the `if (!n)` guard shown above.**
+`prevent_initial_call=True` is not sufficient on its own — this repo documents
+hydration firing callbacks anyway (`btc_web/callbacks/charts/__init__.py:244-245`),
+and without the guard a page loaded from a share hash could have a preset
+stomp the restored axes before the user touches anything.
 
 ### 6.2 "Default"
 
@@ -246,6 +266,13 @@ restores `bub-yrange` without restoring `bub-model-show`, so a link made with
 S2F/Exp active can restore a Y range above the current max. The chart honours
 it; the slider UI looks inconsistent until dragged. Cosmetic.
 
+The same class applies to the **X** slider in Residuals view, which caps
+`bub-xrange.max` at `current_year + 1`
+(`btc_web/callbacks/charts/__init__.py:601-620`), and only re-runs that cap on
+a view-mode change. "Default" restoring `[2010, 2033]` there sets a value above
+the live cap. Chart honours it; slider UI is inconsistent until dragged.
+Cosmetic, same accepted class.
+
 ## 8. Redraw cost
 
 - **Default** writes five controls in one clientside return → one update wave.
@@ -253,9 +280,12 @@ it; the slider UI looks inconsistent until dragged. Cosmetic.
   then `auto_bubble_yrange`'s Y-range write. This is identical to dragging the
   X slider today — no preset-specific regression.
 
-Note that any axes change already drives **three** server callbacks, not one:
-`update_bubble`, `update_bub_cagr` (`:625-643`), and `update_bub_resid`
-(`:682-704`) all listen to these controls. That is pre-existing.
+Note that an **X-axis** change already drives **three** server callbacks, not
+one: `update_bubble`, `update_bub_cagr` (`:625-643`), and `update_bub_resid`
+(`:682-704`) all listen to `bub-xrange`. That is pre-existing, and it applies
+to "Current year". The fan-out is smaller for Y-only changes —
+`update_bub_cagr` has no `bub-yrange`/`bub-auto-y` Input and `update_bub_resid`
+has neither `bub-yscale` nor `bub-yrange`.
 
 Collapsing "Current year" to a single render would require duplicating the
 auto-Y envelope math into the preset path. Explicit non-goal (§2).
@@ -272,6 +302,34 @@ auto-Y envelope math into the preset path. Explicit non-goal (§2).
    cannot reach a browser.
 4. Each preset callback has exactly one Input (guards D3 against a future
    refactor that merges them).
+
+   **How to write 3 and 4.** `_app_ctx.app.clientside_callback` populates
+   `app.callback_map` at import time (verified empirically against Dash 4.0.0:
+   `dash/dash.py:1433` → `dash/_callback.py:835-847, 310-321`). Scan it:
+
+   ```python
+   for entry in _app_ctx.app.callback_map.values():
+       ids = [i.get("id") for i in entry["inputs"]]      # test 3
+       # len(entry["inputs"]) == 1 for a preset entry     # test 4
+   ```
+
+   States live under `entry["state"]`, so they do not inflate the Input count.
+
+   Two traps:
+
+   - **The test may reach these callbacks only through the package import.**
+     `conftest.py:45` already does `import app`, which pulls in
+     `callbacks/__init__.py`. The test must **not** `import callbacks.axes_presets`
+     directly — doing so registers the callback itself, so test 3 would pass
+     even with the `callbacks/__init__.py` line missing, i.e. exactly the
+     failure it exists to catch would slip through while production silently
+     no-ops.
+   - **Ignore the comment at `btc_web/test_callbacks.py:1812-1815`** ("`app.callback_map`
+     is only populated after `app.run()`"). That is true only for server
+     `@callback` registrations, which sit in `dash._callback.GLOBAL_CALLBACK_MAP`
+     until the `_setup_server` merge (`dash/dash.py:1639-1647`). App-method
+     clientside registrations never appear in `GLOBAL_CALLBACK_MAP` and are in
+     `app.callback_map` from import.
 5. Drift guard: the baked defaults equal `SNAPSHOT_DEFAULTS` for all five axis
    keys.
 

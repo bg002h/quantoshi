@@ -173,10 +173,34 @@ stomp the restored axes before the user touches anything.
 For each of the five fields, in order of precedence:
 
 1. **URL value** — `snapshot-state-store["<id>:value"]`, if the key is present
-   and not `null`.
+   and not `null`. For `bub-xrange` only, the value must **also differ from the
+   system default** to count as supplied — see the q4 amendment below.
 2. **System default** — the baked `SNAPSHOT_DEFAULTS` value, except for
    `bub-xrange`, which is view-aware: `[2025, 2050]` when
    `bub-view-mode == "cagr"`, otherwise `[2010, 2033]`.
+
+**Amendment (2026-08-03), q4 back-fill vs. the view-aware fallback.** A plain
+"present and not null" test makes the CAGR fallback unreachable on any real
+share link. Production emits **q4** links (`snapshot_cb.py:331`), and q4 decode
+back-fills *every* control in `_SNAPSHOT_CONTROLS` from the historical defaults
+(`snapshot.py:858-861`) — so `bub-xrange:value` is always present, the URL
+branch always wins, and step 2 never runs. The visible symptom: load a share
+link, switch to CAGR view, tap "Default", and the X slider — which means *exit
+years* in that view — is set to `[2010, 2033]`, i.e. a span of exit years in
+the past. Precisely what view-awareness exists to prevent.
+
+Pages loaded **without** a share link are unaffected: `snapshot-state-store` is
+`None`, so the fallback runs correctly.
+
+Fix: for `bub-xrange` only, treat a store value **equal to the system default**
+as "not supplied". Under q4 a back-filled default and a deliberately-encoded
+`[2010, 2033]` are indistinguishable, so this necessarily also re-ranges a link
+that genuinely encoded `[2010, 2033]` when the user is in CAGR view. That is
+accepted: the alternative leaves the feature broken for every share link, and
+`[2010, 2033]` is a nonsensical exit-year span anyway.
+
+The other four fields keep the plain null test — none of them has a
+view-dependent fallback, so back-fill is harmless there.
 
 View-awareness applies **only at step 2**. A share link that carried
 `bub-xrange = [2015, 2040]` restores that value in every view; the CAGR

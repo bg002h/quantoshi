@@ -70,6 +70,18 @@ function(n) {
 #
 # The presence test must be `!== undefined && !== null`, never `||`:
 # bub-auto-y's legitimate "off" value is [], which is falsy.
+#
+# bub-xrange gets one further narrowing, deliberately NOT applied to the other
+# four fields. Production always emits q4 links (snapshot_cb.py), and q4
+# decode back-fills EVERY control from the historical-defaults registry
+# (snapshot.py::_decode_snapshot_v4) -- so snap["bub-xrange:value"] is present
+# in the store even when the link itself never set it, and "present" alone
+# can no longer mean "the link supplied this". For bub-xrange only, a
+# supplied value that is JSON-equal to the baked-in system default is
+# therefore treated as NOT supplied, which lets the CAGR-view fallback
+# ([2025, 2050]) fire on ordinary q4 links. The other four fields have no
+# view-dependent fallback, so applying this narrowing to them would only add
+# risk for no benefit.
 _JS_DEFAULT = """
 function(n, snap, view_mode) {
     var NU = window.dash_clientside.no_update;
@@ -79,9 +91,15 @@ function(n, snap, view_mode) {
     var out = [];
     for (var i = 0; i < IDS.length; i++) {
         var k = IDS[i] + ":value";
-        var fromUrl = (snap && snap[k] !== undefined && snap[k] !== null);
-        if (fromUrl) {
-            out.push(snap[k]);
+        var v = snap ? snap[k] : undefined;
+        var supplied = (v !== undefined && v !== null);
+        if (supplied && IDS[i] === "bub-xrange"
+            && JSON.stringify(v) === JSON.stringify(DEFAULTS[k])) {
+            supplied = false;   /* q4 back-fills every control; a value equal to
+                                   the default is indistinguishable from absent */
+        }
+        if (supplied) {
+            out.push(v);
         } else if (IDS[i] === "bub-xrange" && view_mode === "cagr") {
             out.push(%(cagr_xrange)s);
         } else {

@@ -95,29 +95,59 @@ LINK_XRANGE = [2015, 2040]  # deliberately not the system default
 def share_hash():
     """A share link whose bub-xrange differs from the system default.
 
+    Uses the v4 encoder/prefix -- production always emits q4 (see
+    callbacks/snapshot_cb.py's share-link builder), never the legacy q3
+    tested elsewhere in this suite. This matters here specifically: q4
+    decode back-fills EVERY control from the historical-defaults registry
+    (snapshot.py::_decode_snapshot_v4), so snap["bub-xrange:value"] is
+    present in the restored state whether or not the link itself supplied
+    it. That's exactly the condition layout/bubble.py::_JS_DEFAULT's
+    equal-to-default narrowing exists to detect -- a q3-encoded fixture
+    would never exercise it, because q3 omits fields the link didn't set.
+
+    Also encodes bub-auto-y:value=[] (Auto OFF) to exercise the
+    empty-list-is-not-"absent" hazard: a regression to `snap[k] || fallback`
+    style presence testing must not silently re-enable auto-Y when the link
+    asked for it off.
+
     Proves it decodes before any browser sees it, so a prefix/encoder mismatch
     fails here with a clear message instead of as a mystery browser failure.
     """
     # btc_web/ is already on sys.path via btc_web/conftest.py, which pytest
     # auto-loads for this directory. No path manipulation needed.
-    from snapshot import _encode_snapshot, _decode_snapshot, _SNAP_PREFIX
+    from snapshot import _encode_snapshot_v4, _decode_snapshot_v4, _SNAP_PREFIX_V4
 
-    # _decode_snapshot takes the PREFIX-STRIPPED blob -- the real dispatcher
-    # (callbacks/snapshot_cb.py::_decode_snapshot_by_prefix) strips "q3:"
-    # before calling it, and every other test in test_snapshot.py follows the
-    # same convention. Decode the unprefixed string here; prepend the prefix
-    # only for the URL-facing return value.
-    encoded = _encode_snapshot({'bub-xrange:value': LINK_XRANGE})
-    decoded = _decode_snapshot(encoded)
+    # _decode_snapshot_v4 takes the fp-prefixed blob WITHOUT the "q4:" prefix
+    # -- the real dispatcher (callbacks/snapshot_cb.py::
+    # _decode_snapshot_by_prefix) strips "q4:" before calling it, and
+    # _encode_snapshot_v4 already returns "<fp>:<blob>" (the fp is part of
+    # its return value, not the prefix). Decode that directly; prepend only
+    # "q4:" for the URL-facing return value.
+    encoded = _encode_snapshot_v4({
+        'bub-xrange:value': LINK_XRANGE,
+        'bub-auto-y:value': [],
+    })
+    decoded = _decode_snapshot_v4(encoded)
     assert decoded is not None, (
-        f"{_SNAP_PREFIX!r} does not pair with _encode_snapshot -- use the "
-        "encoder matching the current prefix.")
+        f"{_SNAP_PREFIX_V4!r} does not pair with _encode_snapshot_v4 -- use "
+        "the encoder matching the current prefix.")
     assert decoded.get("bub-xrange:value") == LINK_XRANGE
-    return f"{_SNAP_PREFIX}{encoded}"
+    assert decoded.get("bub-auto-y:value") == []
+    return f"{_SNAP_PREFIX_V4}{encoded}"
 
 
 def test_default_restores_system_defaults(page):
     """No share link: Default returns all five controls to factory values."""
+    # The module-scoped `page` carries state from the two `cur_year` tests
+    # that ran before this one (bub-xrange moved to [cur_yr, cur_yr+1]).
+    # Capturing baseline_y without reloading grabs auto-Y's fit for THAT
+    # narrow window, not the page's true on-load fit -- reload first so the
+    # baseline actually matches what "load" means. This only shows up under
+    # serial execution (`-p no:randomly -n0`); pytest.ini's `-n auto` masks
+    # it because each test lands on its own xdist worker with a fresh page.
+    page.goto(f"{BASE_URL}/1", wait_until="networkidle", timeout=30000)
+    page.wait_for_selector("#bub-axes-presets", state="attached", timeout=15000)
+    time.sleep(1.5)
     baseline_y = _slider(page, "bub-yrange")
 
     # Disturb the axes using the feature itself plus two direct clicks.
@@ -149,9 +179,10 @@ def test_default_restores_share_link_xrange(page, share_hash):
     On a page loaded from a share link, Default returns to THAT LINK's axes,
     not the system defaults.
     """
-    # "#" is the hash separator (CLAUDE.md: "URL format: host/N#q3:..."); the
-    # brief's literal f"{BASE_URL}/1{share_hash}" glues the blob onto the
-    # path instead, which the router doesn't recognize.
+    # "#" is the hash separator (CLAUDE.md: "URL format: host/N#q3:...",
+    # same rule for q4 -- share_hash already carries the "q4:" prefix). An
+    # earlier draft glued the blob onto the path instead
+    # (f"{BASE_URL}/1{share_hash}"), which the router doesn't recognize.
     page.goto(f"{BASE_URL}/1#{share_hash}", wait_until="networkidle", timeout=30000)
     page.wait_for_selector("#bub-axes-presets", state="attached", timeout=15000)
     _wait_until(lambda: _slider(page, "bub-xrange") == LINK_XRANGE)
@@ -166,6 +197,13 @@ def test_default_restores_share_link_xrange(page, share_hash):
     _wait_until(lambda: _slider(page, "bub-xrange") == LINK_XRANGE)
     assert _slider(page, "bub-xrange") == LINK_XRANGE, (
         "Default fell back to the system default instead of the link's value")
+    # []-falsy hazard: the link's bub-auto-y was [] (Auto OFF). A regression
+    # to `snap[k] || fallback`-style presence testing in _JS_DEFAULT would
+    # treat [] as absent and silently re-enable auto-Y here instead of
+    # honoring the link's value.
+    assert _n_checked(page, "bub-auto-y") == 0, (
+        "Default re-enabled auto-Y instead of honoring the link's [] value "
+        "-- check _JS_DEFAULT's presence test for a `||`/falsy regression")
 
     page.goto(f"{BASE_URL}/1", wait_until="networkidle", timeout=30000)
     page.wait_for_selector("#bub-axes-presets", state="attached", timeout=15000)

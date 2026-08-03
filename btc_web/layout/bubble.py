@@ -51,6 +51,13 @@ AXES_DEFAULTS = {f"{cid}:value": SNAPSHOT_DEFAULTS[f"{cid}:value"]
 # MUST stay a list -- [2025, 2050] == (2025, 2050) is False in Python.
 CAGR_DEFAULT_XRANGE = [2025, 2050]
 
+# Domain of the bub-xrange slider. SINGLE SOURCE: the slider definition below
+# and every preset JS body that clamps to it read these. Previously the bounds
+# were literals in two places; a third copy was about to be added for the
+# "+1 year" preset, which is the same drift hazard CAGR_DEFAULT_XRANGE fixed.
+XRANGE_MIN = 2010
+XRANGE_MAX = 2080
+
 # Sets the X window to the current calendar year. Y is deliberately left alone:
 # when auto-Y is on the existing clientside recompute fits it, and when auto-Y
 # is off the user has taken manual control (spec D2).
@@ -59,10 +66,28 @@ function(n) {
     var NU = window.dash_clientside.no_update;
     if (!n) { return [NU, NU, NU, NU, NU]; }
     var y = new Date().getFullYear();
-    y = Math.max(2010, Math.min(y, 2079));  /* keep y+1 within slider max 2080 */
+    /* clamp so y+1 stays inside the slider domain */
+    y = Math.max(%(xmin)s, Math.min(y, %(xmax)s - 1));
     return [NU, NU, [y, y + 1], NU, NU];
 }
-"""
+""" % {"xmin": XRANGE_MIN, "xmax": XRANGE_MAX}
+
+# Extends the END of the X window by one year, leaving the start where it is.
+# The first RELATIVE preset: it reads the live bub-xrange as State rather than
+# computing an absolute answer, so repeated taps accumulate. Reading a prop the
+# same callback also writes is an established pattern here -- auto_bubble_yrange
+# does exactly that with bub-yrange (callbacks/charts/__init__.py:833,841).
+# At the slider's max it returns no_update rather than re-writing an unchanged
+# value, so a tap at the ceiling costs no chart redraw.
+_JS_PLUS_1Y = """
+function(n, xrange) {
+    var NU = window.dash_clientside.no_update;
+    if (!n || !xrange || xrange.length !== 2) { return [NU, NU, NU, NU, NU]; }
+    var hi = xrange[1] + 1;
+    if (hi > %(xmax)s) { return [NU, NU, NU, NU, NU]; }
+    return [NU, NU, [xrange[0], hi], NU, NU];
+}
+""" % {"xmax": XRANGE_MAX}
 
 # Restores the axes the page loaded with: the share-link URL's values when the
 # page came from one, system defaults otherwise. View-awareness applies ONLY to
@@ -120,6 +145,8 @@ AXES_PRESETS = (
      "states": (("snapshot-state-store", "data"), ("bub-view-mode", "data"))},
     {"key": "cur_year", "label": "Current year",
      "js": _JS_CUR_YEAR, "states": ()},
+    {"key": "plus1y", "label": "+1 year",
+     "js": _JS_PLUS_1Y, "states": (("bub-xrange", "value"),)},
 )
 
 
@@ -141,9 +168,10 @@ def _bubble_controls():
                 ),
             ]),
             _lbl("X range (year)"),
-            dcc.RangeSlider(id="bub-xrange", min=2010, max=2080,
+            dcc.RangeSlider(id="bub-xrange", min=XRANGE_MIN, max=XRANGE_MAX,
                             value=[2010, 2033], step=1,
-                            marks={y: f"'{y % 100:02d}" for y in range(2010, 2081, 10)},
+                            marks={y: f"'{y % 100:02d}"
+                                   for y in range(XRANGE_MIN, XRANGE_MAX + 1, 10)},
                             tooltip={"always_visible":False}),
             dbc.Row([
                 dbc.Col(_lbl("Y range (price)"), width="auto"),

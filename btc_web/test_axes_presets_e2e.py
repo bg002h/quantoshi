@@ -226,3 +226,38 @@ def test_default_is_view_aware_in_cagr(page):
 
     page.click("#bub-view-price")  # restore for any later test
     time.sleep(0.8)
+
+
+def test_plus_1y_extends_end_only_and_accumulates(page):
+    """+1 year moves the upper handle only, and repeated taps accumulate.
+
+    Navigates fresh rather than inheriting whatever the previous test left --
+    an earlier version of this file captured a baseline mid-suite and passed
+    only because -n auto gave each test its own worker (see the module
+    docstring's serial-run note).
+    """
+    page.goto(f"{BASE_URL}/1", wait_until="networkidle", timeout=30000)
+    page.wait_for_selector("#bub-axes-presets", state="attached", timeout=15000)
+    time.sleep(1.5)
+
+    start = _slider(page, "bub-xrange")
+    assert len(start) == 2, start
+
+    page.click("#bub-axes-preset-plus1y")
+    _wait_until(lambda: _slider(page, "bub-xrange") == [start[0], start[1] + 1])
+    assert _slider(page, "bub-xrange") == [start[0], start[1] + 1], (
+        "+1 year did not extend the end by exactly one year")
+
+    # Second tap must read the UPDATED range, not the original one.
+    page.click("#bub-axes-preset-plus1y")
+    _wait_until(lambda: _slider(page, "bub-xrange") == [start[0], start[1] + 2])
+    assert _slider(page, "bub-xrange") == [start[0], start[1] + 2], (
+        "repeated taps did not accumulate -- the State is probably stale")
+
+
+def test_plus_1y_leaves_scales_alone(page):
+    """Per-preset field ownership (D1): +1 year writes X range only."""
+    before = (_radio(page, "bub-xscale"), _radio(page, "bub-yscale"))
+    page.click("#bub-axes-preset-plus1y")
+    time.sleep(1.5)
+    assert (_radio(page, "bub-xscale"), _radio(page, "bub-yscale")) == before

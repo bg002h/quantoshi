@@ -74,3 +74,46 @@ class TestAxesBakedDefaults:
         assert len(AXES_CONTROL_IDS) == 5
         for cid in AXES_CONTROL_IDS:
             assert f"{cid}:value" in SNAPSHOT_DEFAULTS
+
+
+class TestAxesPresetCallbacks:
+    """Guards the two ways this feature fails silently.
+
+    app.clientside_callback populates app.callback_map at import time --
+    verified empirically against Dash 4.0.0. NOTE: the comment at
+    test_callbacks.py:1812-1815 ("callback_map is only populated after
+    app.run()") is true only for SERVER @callback registrations, which sit in
+    dash._callback.GLOBAL_CALLBACK_MAP until the _setup_server merge.
+    App-method clientside registrations never appear there.
+    """
+
+    def _preset_entries(self):
+        found = {}
+        for entry in _app_ctx.app.callback_map.values():
+            ids = [i.get("id") for i in entry["inputs"]]
+            for p in AXES_PRESETS:
+                if f"bub-axes-preset-{p['key']}" in ids:
+                    found[p["key"]] = entry
+        return found
+
+    def test_callback_registered_for_every_preset(self):
+        found = self._preset_entries()
+        missing = [p["key"] for p in AXES_PRESETS if p["key"] not in found]
+        assert not missing, (
+            f"no callback registered for {missing}. Is "
+            "`import callbacks.axes_presets` present in callbacks/__init__.py?")
+
+    def test_each_preset_callback_has_exactly_one_input(self):
+        # Multiple Inputs + allow_duplicate + prevent_initial_call silently
+        # no-ops in Dash 4.0 (plot_appearance.py:22-28). Never merge these.
+        for key, entry in self._preset_entries().items():
+            assert len(entry["inputs"]) == 1, (
+                f"{key} has {len(entry['inputs'])} Inputs; must be exactly 1")
+
+    def test_every_preset_writes_all_five_axis_controls(self):
+        # entry["output"] is a list of Output objects (verified against Dash
+        # 4.0.0). No isinstance guard -- a guard that skips on an unexpected
+        # shape would turn this into a test that passes without asserting.
+        for key, entry in self._preset_entries().items():
+            out_ids = {o.component_id for o in entry["output"]}
+            assert out_ids == set(AXES_CONTROL_IDS), key

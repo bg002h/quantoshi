@@ -35,5 +35,6 @@ import callbacks.user_model  # noqa: F401
 import callbacks.citadel_save_cb  # noqa: F401
 import callbacks.citadel_scenarios  # noqa: F401
 import callbacks.plot_appearance  # noqa: F401
+import callbacks.axes_presets  # noqa: F401 — callbacks registered at import
 import callbacks.custom_time  # noqa: F401
 import callbacks.leverage_cb  # noqa: F401 — callbacks registered at import

@@ -261,3 +261,45 @@ def test_plus_1y_leaves_scales_alone(page):
     page.click("#bub-axes-preset-plus1y")
     time.sleep(1.5)
     assert (_radio(page, "bub-xscale"), _radio(page, "bub-yscale")) == before
+
+
+def test_minus_1y_extends_start_only_and_accumulates(page):
+    """-1Y moves the lower handle back, end fixed, and taps accumulate.
+
+    Starts from "Current year" rather than the default window: the default
+    already begins at the slider floor (XRANGE_MIN), where -1Y is a deliberate
+    no-op, so testing from the default would assert nothing.
+    """
+    page.goto(f"{BASE_URL}/1", wait_until="networkidle", timeout=30000)
+    page.wait_for_selector("#bub-axes-presets", state="attached", timeout=15000)
+    time.sleep(1.5)
+
+    page.click("#bub-axes-preset-cur_year")
+    yr = datetime.date.today().year
+    _wait_until(lambda: _slider(page, "bub-xrange") == [yr, yr + 1])
+    start = _slider(page, "bub-xrange")
+
+    page.click("#bub-axes-preset-minus1y")
+    _wait_until(lambda: _slider(page, "bub-xrange") == [start[0] - 1, start[1]])
+    assert _slider(page, "bub-xrange") == [start[0] - 1, start[1]], (
+        "-1Y did not move the start back by exactly one year")
+
+    page.click("#bub-axes-preset-minus1y")
+    _wait_until(lambda: _slider(page, "bub-xrange") == [start[0] - 2, start[1]])
+    assert _slider(page, "bub-xrange") == [start[0] - 2, start[1]], (
+        "repeated taps did not accumulate -- the State is probably stale")
+
+
+def test_minus_1y_is_a_noop_at_the_slider_floor(page):
+    """At XRANGE_MIN the preset returns no_update rather than rewriting."""
+    from layout.bubble import XRANGE_MIN
+
+    page.click("#bub-axes-preset-default")
+    _wait_until(lambda: _slider(page, "bub-xrange")[0] == XRANGE_MIN)
+    before = _slider(page, "bub-xrange")
+    assert before[0] == XRANGE_MIN, before
+
+    page.click("#bub-axes-preset-minus1y")
+    time.sleep(2.5)
+    assert _slider(page, "bub-xrange") == before, (
+        "-1Y should be inert at the slider floor, not clamp or invert")

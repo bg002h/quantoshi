@@ -72,22 +72,40 @@ function(n) {
 }
 """ % {"xmin": XRANGE_MIN, "xmax": XRANGE_MAX}
 
-# Extends the END of the X window by one year, leaving the start where it is.
-# The first RELATIVE preset: it reads the live bub-xrange as State rather than
-# computing an absolute answer, so repeated taps accumulate. Reading a prop the
-# same callback also writes is an established pattern here -- auto_bubble_yrange
-# does exactly that with bub-yrange (callbacks/charts/__init__.py:833,841).
-# At the slider's max it returns no_update rather than re-writing an unchanged
-# value, so a tap at the ceiling costs no chart redraw.
-_JS_PLUS_1Y = """
+# ── Step presets: move one edge of the X window by a year ────────────────
+# These are the RELATIVE presets: they read the live bub-xrange as State rather
+# than computing an absolute answer, so repeated taps accumulate. Reading a prop
+# that the same callback also writes is an established pattern here --
+# auto_bubble_yrange does exactly that with bub-yrange
+# (callbacks/charts/__init__.py:833,841).
+#
+# One template, so a new step preset cannot drift from its siblings. Each
+# returns no_update when the move would leave the slider domain or invert the
+# window, rather than rewriting an unchanged value -- a tap at a boundary
+# therefore costs no chart redraw.
+_JS_STEP_TEMPLATE = """
 function(n, xrange) {
     var NU = window.dash_clientside.no_update;
     if (!n || !xrange || xrange.length !== 2) { return [NU, NU, NU, NU, NU]; }
-    var hi = xrange[1] + 1;
-    if (hi > %(xmax)s) { return [NU, NU, NU, NU, NU]; }
-    return [NU, NU, [xrange[0], hi], NU, NU];
+    var lo = xrange[0], hi = xrange[1];
+    %(mutate)s
+    if (lo < %(xmin)s || hi > %(xmax)s || lo >= hi) {
+        return [NU, NU, NU, NU, NU];
+    }
+    return [NU, NU, [lo, hi], NU, NU];
 }
-""" % {"xmax": XRANGE_MAX}
+"""
+
+# Extends the END forward a year; the start stays put.
+_JS_PLUS_1Y = _JS_STEP_TEMPLATE % {
+    "mutate": "hi = hi + 1;", "xmin": XRANGE_MIN, "xmax": XRANGE_MAX}
+
+# Extends the START back a year; the end stays put. NOTE: the default window
+# already begins at XRANGE_MIN, so from a freshly loaded page this is a no-op
+# by design -- it bites once the start has moved forward (e.g. after
+# "Current year"). Lower XRANGE_MIN if that headroom is ever wanted.
+_JS_MINUS_1Y = _JS_STEP_TEMPLATE % {
+    "mutate": "lo = lo - 1;", "xmin": XRANGE_MIN, "xmax": XRANGE_MAX}
 
 # Restores the axes the page loaded with: the share-link URL's values when the
 # page came from one, system defaults otherwise. View-awareness applies ONLY to
@@ -143,9 +161,11 @@ AXES_PRESETS = (
     {"key": "default", "label": "Default",
      "js": _JS_DEFAULT,
      "states": (("snapshot-state-store", "data"), ("bub-view-mode", "data"))},
+    {"key": "minus1y", "label": "-1Y",
+     "js": _JS_MINUS_1Y, "states": (("bub-xrange", "value"),)},
     {"key": "cur_year", "label": "Current year",
      "js": _JS_CUR_YEAR, "states": ()},
-    {"key": "plus1y", "label": "+1 year",
+    {"key": "plus1y", "label": "+1Y",
      "js": _JS_PLUS_1Y, "states": (("bub-xrange", "value"),)},
 )
 

@@ -13,6 +13,8 @@ import time
 
 import pytest
 
+from layout.bubble import CAGR_DEFAULT_XRANGE
+
 try:
     from playwright.sync_api import sync_playwright
     HAS_PLAYWRIGHT = True
@@ -213,14 +215,14 @@ def test_default_restores_share_link_xrange(page, share_hash):
 def test_default_is_view_aware_in_cagr(page):
     """No share link + CAGR view: the fallback is the CAGR range."""
     page.click("#bub-view-cagr")
-    _wait_until(lambda: _slider(page, "bub-xrange") == [2025, 2050])
+    _wait_until(lambda: _slider(page, "bub-xrange") == CAGR_DEFAULT_XRANGE)
 
     page.click("#bub-axes-preset-cur_year")
-    _wait_until(lambda: _slider(page, "bub-xrange") != [2025, 2050])
+    _wait_until(lambda: _slider(page, "bub-xrange") != CAGR_DEFAULT_XRANGE)
 
     page.click("#bub-axes-preset-default")
-    _wait_until(lambda: _slider(page, "bub-xrange") == [2025, 2050])
-    assert _slider(page, "bub-xrange") == [2025, 2050]
+    _wait_until(lambda: _slider(page, "bub-xrange") == CAGR_DEFAULT_XRANGE)
+    assert _slider(page, "bub-xrange") == CAGR_DEFAULT_XRANGE
 
     page.click("#bub-view-price")  # restore for any later test
     time.sleep(0.8)

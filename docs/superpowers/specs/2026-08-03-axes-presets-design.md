@@ -297,6 +297,19 @@ a view-mode change. "Default" restoring `[2010, 2033]` there sets a value above
 the live cap. Chart honours it; slider UI is inconsistent until dragged.
 Cosmetic, same accepted class.
 
+### 7.5 Default tapped during a view-mode server round-trip
+
+`bub-view-mode` is written by the server callback `toggle_bub_view`
+(`btc_web/callbacks/charts/__init__.py:525-563`), not clientside. `_JS_DEFAULT`
+reads it as a `State` (`btc_web/layout/bubble.py:120`), so if a user taps the
+CAGR view button and then taps "Default" before that server round-trip
+returns, the clientside callback still sees the prior (stale) `view_mode` and
+skips the `view_mode === "cagr"` branch, applying the price-view fallback
+`[2010, 2033]` instead of `CAGR_DEFAULT_XRANGE`. It self-heals: once
+`bub-view-mode` settles, a second "Default" tap reads the correct view and
+restores the CAGR range. Accepted for the same reason as §7.3 -- a narrow
+client/server round-trip window, self-healing, not mitigated.
+
 ## 8. Redraw cost
 
 - **Default** writes five controls in one clientside return → one update wave.

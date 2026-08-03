@@ -1,5 +1,7 @@
 """Tab 1 — Bubble + QR Overlay layout."""
 
+import json
+
 import pandas as pd
 
 from dash import dcc, html
@@ -7,6 +9,7 @@ import dash_bootstrap_components as dbc
 
 import _app_ctx
 from tab_defaults import BUBBLE
+from snapshot_defaults import SNAPSHOT_DEFAULTS
 from colors import (
     USER_MODEL_TRACE, FALLBACK_MODEL_GRAY,
     DIM_TEXT, BOOTSTRAP_LIGHT_BG,
@@ -22,6 +25,41 @@ from layout.common import (_tab_hints, _section_card, _row, _lbl,
 from layout.display_models import display_models_panel, sigma_mode_section
 from layout.custom_time import custom_time_panel
 from layout.mc_controls import _mc_controls
+
+
+# ── Axes presets (Tab 1) ─────────────────────────────────────────────────
+# Registry is the single source of truth for the preset row. Callbacks in
+# callbacks/axes_presets.py import it and register one clientside callback per
+# entry. Adding a preset = one entry here + its JS body.
+# Spec: docs/superpowers/specs/2026-08-03-axes-presets-design.md
+
+# The five Axes & Range controls a preset may write, in Output order.
+# Every preset JS body returns a list in exactly this order.
+AXES_CONTROL_IDS = ("bub-xscale", "bub-yscale", "bub-xrange",
+                    "bub-yrange", "bub-auto-y")
+
+# System defaults, read from the SSOT and baked into the preset JS at import
+# time. test_axes_presets.py guards against drift.
+AXES_DEFAULTS = {f"{cid}:value": SNAPSHOT_DEFAULTS[f"{cid}:value"]
+                 for cid in AXES_CONTROL_IDS}
+
+# Sets the X window to the current calendar year. Y is deliberately left alone:
+# when auto-Y is on the existing clientside recompute fits it, and when auto-Y
+# is off the user has taken manual control (spec D2).
+_JS_CUR_YEAR = """
+function(n) {
+    var NU = window.dash_clientside.no_update;
+    if (!n) { return [NU, NU, NU, NU, NU]; }
+    var y = new Date().getFullYear();
+    y = Math.max(2010, Math.min(y, 2079));  /* keep y+1 within slider max 2080 */
+    return [NU, NU, [y, y + 1], NU, NU];
+}
+"""
+
+AXES_PRESETS = (
+    {"key": "cur_year", "label": "Current year",
+     "js": _JS_CUR_YEAR, "states": ()},
+)
 
 
 def _bubble_controls():
@@ -62,6 +100,17 @@ def _bubble_controls():
                                         4:"$10K", 6:"$1M", 9:"$1B"},
                                 tooltip={"always_visible":False}),
             ]),
+            _lbl("Presets"),
+            html.Div(
+                id="bub-axes-presets",
+                className="d-flex flex-wrap gap-1",
+                children=[
+                    dbc.Button(p["label"], id=f"bub-axes-preset-{p['key']}",
+                               size="sm", color="secondary", outline=True,
+                               className="flex-fill")
+                    for p in AXES_PRESETS
+                ],
+            ),
         ),
         _section_card("Display",
             dcc.Checklist(id="bub-toggles",

@@ -43,6 +43,14 @@ AXES_CONTROL_IDS = ("bub-xscale", "bub-yscale", "bub-xrange",
 AXES_DEFAULTS = {f"{cid}:value": SNAPSHOT_DEFAULTS[f"{cid}:value"]
                  for cid in AXES_CONTROL_IDS}
 
+# X range that CAGR view uses, where the X slider means exit years rather than
+# calendar years. SINGLE SOURCE: callbacks/charts/__init__.py (toggle_bub_view,
+# 3 sites) and callbacks/routing.py (the /1.2 deep link) import this. Those
+# sites compare it for EXACT EQUALITY to swap back to the price-view range, so
+# a second copy silently breaks the CAGR<->price round-trip.
+# MUST stay a list -- [2025, 2050] == (2025, 2050) is False in Python.
+CAGR_DEFAULT_XRANGE = [2025, 2050]
+
 # Sets the X window to the current calendar year. Y is deliberately left alone:
 # when auto-Y is on the existing clientside recompute fits it, and when auto-Y
 # is off the user has taken manual control (spec D2).
@@ -56,7 +64,42 @@ function(n) {
 }
 """
 
+# Restores the axes the page loaded with: the share-link URL's values when the
+# page came from one, system defaults otherwise. View-awareness applies ONLY to
+# the fallback -- a link's X range wins in every view.
+#
+# The presence test must be `!== undefined && !== null`, never `||`:
+# bub-auto-y's legitimate "off" value is [], which is falsy.
+_JS_DEFAULT = """
+function(n, snap, view_mode) {
+    var NU = window.dash_clientside.no_update;
+    if (!n) { return [NU, NU, NU, NU, NU]; }
+    var IDS = %(ids)s;
+    var DEFAULTS = %(defaults)s;
+    var out = [];
+    for (var i = 0; i < IDS.length; i++) {
+        var k = IDS[i] + ":value";
+        var fromUrl = (snap && snap[k] !== undefined && snap[k] !== null);
+        if (fromUrl) {
+            out.push(snap[k]);
+        } else if (IDS[i] === "bub-xrange" && view_mode === "cagr") {
+            out.push(%(cagr_xrange)s);
+        } else {
+            out.push(DEFAULTS[k]);
+        }
+    }
+    return out;
+}
+""" % {
+    "ids": json.dumps(list(AXES_CONTROL_IDS)),
+    "defaults": json.dumps(AXES_DEFAULTS),
+    "cagr_xrange": json.dumps(CAGR_DEFAULT_XRANGE),
+}
+
 AXES_PRESETS = (
+    {"key": "default", "label": "Default",
+     "js": _JS_DEFAULT,
+     "states": (("snapshot-state-store", "data"), ("bub-view-mode", "data"))},
     {"key": "cur_year", "label": "Current year",
      "js": _JS_CUR_YEAR, "states": ()},
 )

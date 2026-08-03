@@ -5,6 +5,7 @@ from dash import Input, Output, State, callback, ctx, no_update, ALL
 
 import _app_ctx
 from layout.faq import _FAQ
+from layout.bubble import CAGR_DEFAULT_XRANGE
 
 
 def _norm(pathname: str | None) -> str | None:
@@ -425,7 +426,7 @@ def deep_link_bub_view(pathname):
         return ("cagr", _hide, {}, _hide,
                 True, False, True,
                 _hide, _hide, {"display": "inline"},
-                [2025, 2050], fwd_yrs, hover_today)
+                CAGR_DEFAULT_XRANGE, fwd_yrs, hover_today)
 
     return (no_update,) * 13
 

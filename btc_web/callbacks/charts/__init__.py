@@ -60,6 +60,7 @@ from btc_core import yr_to_t, today_t, _find_lot_percentile
 from figures.common import apply_zoom_lock
 from tab_defaults import BUBBLE, HEATMAP, DCA, RETIRE, SUPERCHARGE
 from layout.common import _bands_to_qs
+from layout.bubble import CAGR_DEFAULT_XRANGE
 from callbacks.coerce import _ci, _cf
 from callbacks.mc_helpers import (_mc_setup, _mc_finalize, _mc_status,
                                   _strip_free_paths)
@@ -544,18 +545,18 @@ def toggle_bub_view(price_clicks, cagr_clicks, resid_clicks, cur_xrange):
     _hide = {"display": "none"}
     _show_inline = {"display": "inline"}
     if triggered == "bub-view-cagr":
-        xr = [2025, 2050] if cur_xrange == [2010, 2033] else dash.no_update
+        xr = CAGR_DEFAULT_XRANGE if cur_xrange == [2010, 2033] else dash.no_update
         return ("cagr", _hide, {}, _hide,
                 True, False, True,
                 _hide, _hide, _show_inline, xr)
     if triggered == "bub-view-resid":
         # Residuals: keep same x-range as price view, keep bubble panel visible
-        xr = [2010, 2033] if cur_xrange == [2025, 2050] else dash.no_update
+        xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
         return ("resid", _hide, _hide, {},
                 True, True, False,
                 {}, {}, _hide, xr)
     # Price
-    xr = [2010, 2033] if cur_xrange == [2025, 2050] else dash.no_update
+    xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
     return ("price", {}, _hide, _hide,
             False, True, True,
             {}, {}, _hide, xr)

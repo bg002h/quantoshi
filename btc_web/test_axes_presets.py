@@ -106,7 +106,11 @@ class TestAxesPresetCallbacks:
     def test_each_preset_callback_has_exactly_one_input(self):
         # Multiple Inputs + allow_duplicate + prevent_initial_call silently
         # no-ops in Dash 4.0 (plot_appearance.py:22-28). Never merge these.
-        for key, entry in self._preset_entries().items():
+        found = self._preset_entries()
+        assert set(found) == {p["key"] for p in AXES_PRESETS}, (
+            "callback registration is broken -- this test would otherwise "
+            "pass vacuously by iterating an empty dict")
+        for key, entry in found.items():
             assert len(entry["inputs"]) == 1, (
                 f"{key} has {len(entry['inputs'])} Inputs; must be exactly 1")
 
@@ -114,6 +118,41 @@ class TestAxesPresetCallbacks:
         # entry["output"] is a list of Output objects (verified against Dash
         # 4.0.0). No isinstance guard -- a guard that skips on an unexpected
         # shape would turn this into a test that passes without asserting.
-        for key, entry in self._preset_entries().items():
+        found = self._preset_entries()
+        assert set(found) == {p["key"] for p in AXES_PRESETS}, (
+            "callback registration is broken -- this test would otherwise "
+            "pass vacuously by iterating an empty dict")
+        for key, entry in found.items():
             out_ids = {o.component_id for o in entry["output"]}
             assert out_ids == set(AXES_CONTROL_IDS), key
+
+
+class TestCagrDefaultXrange:
+    """[2025, 2050] must have exactly one definition.
+
+    It appears in four places that must agree: the price->CAGR swap and the two
+    swap-BACK comparisons in toggle_bub_view, plus the /1.2 deep-link handler in
+    routing.py. The swap-back tests exact equality, so a diverged copy silently
+    stops CAGR view from restoring [2010, 2033] when you switch back to price.
+    """
+
+    def test_no_module_still_hardcodes_the_literal(self):
+        import pathlib
+        import callbacks.charts as _charts
+        import callbacks.routing as _routing
+
+        for mod in (_charts, _routing):
+            src = pathlib.Path(mod.__file__).read_text()
+            assert "2025, 2050" not in src, (
+                f"{mod.__name__} still hardcodes [2025, 2050]. Import "
+                "CAGR_DEFAULT_XRANGE from layout.bubble instead -- a second "
+                "copy breaks the CAGR<->price swap, which compares for "
+                "exact equality.")
+
+    def test_constant_is_a_list_not_a_tuple(self):
+        from layout.bubble import CAGR_DEFAULT_XRANGE
+        # Compared against JSON-decoded slider values:
+        # [2025, 2050] == (2025, 2050) is False, which would break both
+        # swap directions silently.
+        assert isinstance(CAGR_DEFAULT_XRANGE, list)
+        assert CAGR_DEFAULT_XRANGE == [2025, 2050]

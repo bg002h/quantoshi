@@ -98,15 +98,27 @@ class TestAxesPresetRegistry:
             assert isinstance(p["states"], tuple), p
 
 
+def _string_ids(component):
+    """Every string id in a layout tree.
+
+    Filters to str deliberately: _mc_controls() embeds Dash pattern-matching
+    ids, which are dicts -- {"type": "mc-run-btn", "tab": "bub"} and
+    {"type": "mc-run-status", "tab": "bub"} (layout/mc_controls.py:127-128).
+    dicts are unhashable, so collecting ids into a set without this filter
+    raises TypeError: cannot use 'dict' as a set element.
+    """
+    return {c.id for c in _walk(component)
+            if isinstance(getattr(c, "id", None), str)}
+
+
 class TestAxesPresetMarkup:
     def test_button_rendered_for_every_preset(self):
-        ids = {getattr(c, "id", None) for c in _walk(_bubble_controls())}
+        ids = _string_ids(_bubble_controls())
         for p in AXES_PRESETS:
             assert f"bub-axes-preset-{p['key']}" in ids
 
     def test_preset_row_present(self):
-        ids = {getattr(c, "id", None) for c in _walk(_bubble_controls())}
-        assert "bub-axes-presets" in ids
+        assert "bub-axes-presets" in _string_ids(_bubble_controls())
 
 
 class TestAxesBakedDefaults:
@@ -212,12 +224,20 @@ Expected: 6 passed.
 - [ ] **Step 6: Verify the app still imports**
 
 ```bash
-cd /scratch/code/bitcoinprojections/btc_web && PYTHONPATH=".:.." ../btc_venv/bin/python3 -c \
-  "import layout, figures, callbacks, cache, engines.adapter; print('OK')"
+cd /scratch/code/bitcoinprojections/btc_web && PYTHONPATH=".:.." DEV=1 \
+  ../btc_venv/bin/python3 -c "import app; print('OK')"
 ```
 
 Expected: `OK`. This catches a circular-import regression from the new
 `snapshot_defaults` import.
+
+Note: `import app` — **not** `import layout` directly. CLAUDE.md's documented
+syntax-check command imports `layout` first, which fails with
+`AttributeError: 'NoneType' object has no attribute 'clientside_callback'` at
+`layout/citadel.py:492`, because `_app_ctx.app` is only populated once `app.py`
+has run. That is a pre-existing wart in the documented command, unrelated to
+this feature. `app.py` imports `layout`, `callbacks`, and `figures`, so this
+still exercises everything.
 
 - [ ] **Step 7: Run the full non-E2E suite for regressions**
 

@@ -509,6 +509,8 @@ Spec: docs/superpowers/specs/2026-08-03-axes-presets-design.md"
 
 **Files:**
 - Modify: `btc_web/layout/bubble.py`
+- Modify: `btc_web/callbacks/charts/__init__.py` — import the constant, replace 3 literals in `toggle_bub_view`
+- Modify: `btc_web/callbacks/routing.py` — import the constant, replace 1 literal at `:428`
 - Modify: `btc_web/test_axes_presets.py`
 - Modify: `btc_web/test_axes_presets_e2e.py`
 
@@ -522,51 +524,104 @@ system default. View-awareness applies **only to the fallback** — a share link
 X range wins in every view; `[2025, 2050]` is used in CAGR view only when the
 link supplied nothing.
 
-- [ ] **Step 1: Write the failing drift test**
+- [ ] **Step 1: Write the failing single-source test**
 
 Append to `btc_web/test_axes_presets.py`:
 
 ```python
-class TestCagrDefaultDrift:
-    """CAGR_DEFAULT_XRANGE duplicates a literal inside toggle_bub_view.
+class TestCagrDefaultXrange:
+    """[2025, 2050] must have exactly one definition.
 
-    The spec scopes this feature to not modifying callbacks/charts/__init__.py,
-    so the value is duplicated rather than shared. This test fails loudly if the
-    original moves.
+    It appears in four places that must agree: the price->CAGR swap and the two
+    swap-BACK comparisons in toggle_bub_view, plus the /1.2 deep-link handler in
+    routing.py. The swap-back tests exact equality, so a diverged copy silently
+    stops CAGR view from restoring [2010, 2033] when you switch back to price.
     """
 
-    def test_matches_toggle_bub_view_literal(self):
+    def test_no_module_still_hardcodes_the_literal(self):
         import pathlib
         import callbacks.charts as _charts
-        from layout.bubble import CAGR_DEFAULT_XRANGE
+        import callbacks.routing as _routing
 
-        src = pathlib.Path(_charts.__file__).read_text()
-        needle = f"xr = {list(CAGR_DEFAULT_XRANGE)} if cur_xrange"
-        assert needle in src, (
-            f"{needle!r} not found in callbacks/charts/__init__.py -- the CAGR "
-            "default moved. Update CAGR_DEFAULT_XRANGE in layout/bubble.py.")
+        for mod in (_charts, _routing):
+            src = pathlib.Path(mod.__file__).read_text()
+            assert "2025, 2050" not in src, (
+                f"{mod.__name__} still hardcodes [2025, 2050]. Import "
+                "CAGR_DEFAULT_XRANGE from layout.bubble instead -- a second "
+                "copy breaks the CAGR<->price swap, which compares for "
+                "exact equality.")
+
+    def test_constant_is_a_list_not_a_tuple(self):
+        from layout.bubble import CAGR_DEFAULT_XRANGE
+        # Compared against JSON-decoded slider values:
+        # [2025, 2050] == (2025, 2050) is False, which would break both
+        # swap directions silently.
+        assert isinstance(CAGR_DEFAULT_XRANGE, list)
+        assert CAGR_DEFAULT_XRANGE == [2025, 2050]
 ```
 
 - [ ] **Step 2: Run to verify it fails**
 
 ```bash
 cd /scratch/code/bitcoinprojections
-btc_venv/bin/python3 -m pytest btc_web/test_axes_presets.py -k Drift -v
+btc_venv/bin/python3 -m pytest btc_web/test_axes_presets.py -k Cagr -v
 ```
 
-Expected: FAIL — `ImportError: cannot import name 'CAGR_DEFAULT_XRANGE'`.
+Expected: FAIL — `ImportError: cannot import name 'CAGR_DEFAULT_XRANGE'`, and
+the literal is still present in both modules.
 
 - [ ] **Step 3: Add the constant and the "Default" JS to `btc_web/layout/bubble.py`**
 
 Insert immediately after the `AXES_DEFAULTS` assignment:
 
 ```python
-# X range that toggle_bub_view swaps in when entering CAGR view, where the X
-# slider means exit years. Duplicated from callbacks/charts/__init__.py:547
-# because this feature is scoped not to modify that file; the drift test
-# TestCagrDefaultDrift guards the duplication.
+# X range that CAGR view uses, where the X slider means exit years rather than
+# calendar years. SINGLE SOURCE: callbacks/charts/__init__.py (toggle_bub_view,
+# 3 sites) and callbacks/routing.py (the /1.2 deep link) import this. Those
+# sites compare it for EXACT EQUALITY to swap back to the price-view range, so
+# a second copy silently breaks the CAGR<->price round-trip.
+# MUST stay a list -- [2025, 2050] == (2025, 2050) is False in Python.
 CAGR_DEFAULT_XRANGE = [2025, 2050]
 ```
+
+- [ ] **Step 3b: Replace the four hardcoded literals**
+
+In `btc_web/callbacks/charts/__init__.py`, add to the existing top-of-file
+import block (next to the `from layout.common import _bands_to_qs` line):
+
+```python
+from layout.bubble import CAGR_DEFAULT_XRANGE
+```
+
+Then replace all three literals inside `toggle_bub_view` — **all three, not
+just the first; replacing one creates intra-function drift, which is worse
+than leaving them alone**:
+
+```python
+# line ~547, the price -> CAGR swap
+-        xr = [2025, 2050] if cur_xrange == [2010, 2033] else dash.no_update
++        xr = CAGR_DEFAULT_XRANGE if cur_xrange == [2010, 2033] else dash.no_update
+
+# line ~553, CAGR -> residuals
+-        xr = [2010, 2033] if cur_xrange == [2025, 2050] else dash.no_update
++        xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
+
+# line ~558, CAGR -> price
+-    xr = [2010, 2033] if cur_xrange == [2025, 2050] else dash.no_update
++    xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
+```
+
+In `btc_web/callbacks/routing.py` (which already imports from `layout` at
+module level), add the same import and replace the literal at ~line 428:
+
+```python
+-                [2025, 2050], fwd_yrs, hover_today)
++                CAGR_DEFAULT_XRANGE, fwd_yrs, hover_today)
+```
+
+Leave the `[2010, 2033]` operands alone. That value is duplicated far more
+widely and is anchored by the snapshot-fingerprint registry workflow;
+consolidating it is out of scope.
 
 Then insert this after `_JS_CUR_YEAR`:
 
@@ -765,7 +820,8 @@ Open `http://127.0.0.1:8050/1` and confirm:
 
 ```bash
 cd /scratch/code/bitcoinprojections
-git add btc_web/layout/bubble.py btc_web/test_axes_presets.py \
+git add btc_web/layout/bubble.py btc_web/callbacks/charts/__init__.py \
+        btc_web/callbacks/routing.py btc_web/test_axes_presets.py \
         btc_web/test_axes_presets_e2e.py
 git commit -m "feat(tab1): add 'Default' axes preset
 

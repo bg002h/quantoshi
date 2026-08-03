@@ -351,14 +351,43 @@ detects. Every button must actually be clicked.
 
 | File | Change |
 |---|---|
-| `btc_web/layout/bubble.py` | `AXES_PRESETS` registry + JS bodies + preset row markup |
+| `btc_web/layout/bubble.py` | `AXES_PRESETS` registry + JS bodies + preset row markup + `CAGR_DEFAULT_XRANGE` |
 | `btc_web/callbacks/axes_presets.py` | **new** — registration loop |
 | `btc_web/callbacks/__init__.py` | one import line |
+| `btc_web/callbacks/charts/__init__.py` | import `CAGR_DEFAULT_XRANGE`; replace its three `[2025, 2050]` literals in `toggle_bub_view` (`:547`, `:553`, `:558`) |
+| `btc_web/callbacks/routing.py` | replace the `[2025, 2050]` literal at `:428` with the same constant |
 | `btc_web/test_axes_presets.py` | **new** — tests 1–5 |
 | `btc_web/test_axes_presets_e2e.py` | **new** — tests 6–9 |
 
 Not touched: `snapshot.py`, `snapshot_defaults.py`,
 `snapshot_defaults_registry.json`, `tab_defaults.py`.
+
+**Amendment (2026-08-03), after the CAGR-constant ruling.** An earlier draft
+kept `[2025, 2050]` duplicated in `layout/bubble.py` and guarded it with a test
+that grepped `charts/__init__.py`'s source text, on the reading that this
+feature must not touch that file. That was wrong on three counts:
+
+1. The value appears **four** times, not once — `charts/__init__.py:547` (the
+   price→CAGR swap) plus `:553` and `:558` (the swap *back*, which test
+   `cur_xrange == [2025, 2050]` for **exact equality**), and
+   `routing.py:428` (the `/1.2` deep-link handler). Replacing only `:547`
+   would have created intra-function drift — worse than leaving it alone.
+2. Drift is not cosmetic. Because the swap-back is an equality test, a
+   diverged copy means that after a "Default" tap in CAGR view, switching
+   back to price view silently stops restoring `[2010, 2033]`.
+3. The source-grep test would have guarded 1 of those 4 copies, using exactly
+   the brittle source-form pattern this repo already documents as a
+   blind-spot generator (`feedback_ast_walker_blindspots`).
+
+A single shared constant removes the failure mode outright. It is also
+established practice here — `_HM_PILL_LABELS` was consolidated into
+`layout/heatmap.py` and imported by `charts/__init__.py` for the same reason.
+Verified cycle-free: no module under `btc_web/layout/` imports `callbacks` at
+module level.
+
+`CAGR_DEFAULT_XRANGE` **must remain a `list`, never a tuple** — it is compared
+against JSON-decoded slider values, and `[2025, 2050] == (2025, 2050)` is
+`False` in Python, which would silently break both swap directions.
 
 ## 11. Risks
 

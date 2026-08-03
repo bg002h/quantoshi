@@ -25,3 +25,16 @@ for _preset in AXES_PRESETS:
         *[State(cid, prop) for cid, prop in _preset["states"]],
         prevent_initial_call=True,
     )
+
+    # Optional visibility rule: a preset that would be inert in some X-range
+    # state hides its own button rather than offering a dead control.
+    # Deliberately NOT prevent_initial_call -- the button must already be in the
+    # right state on page load, before any tap. Safe to fire on load because
+    # this Output is not allow_duplicate (nothing else writes these styles);
+    # allow_duplicate + prevent_initial_call=False crashes gunicorn.
+    if _preset.get("hide_js"):
+        _app_ctx.app.clientside_callback(
+            _preset["hide_js"],
+            Output(f"bub-axes-preset-{_preset['key']}", "style"),
+            Input("bub-xrange", "value"),
+        )

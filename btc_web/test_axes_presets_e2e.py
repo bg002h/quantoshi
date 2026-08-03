@@ -290,8 +290,17 @@ def test_minus_1y_extends_start_only_and_accumulates(page):
         "repeated taps did not accumulate -- the State is probably stale")
 
 
-def test_minus_1y_is_a_noop_at_the_slider_floor(page):
-    """At XRANGE_MIN the preset returns no_update rather than rewriting."""
+def test_minus_1y_js_guard_is_inert_at_the_floor(page):
+    """The JS boundary guard holds even if the button is somehow reachable.
+
+    Defence in depth. A user cannot normally trigger this: at the floor the
+    button hides itself (see test_minus_1y_hidden_at_floor_and_reappears), and
+    page.click() would fail its actionability check on a hidden element. So the
+    click is dispatched directly through the DOM, which bypasses visibility, to
+    prove the guard -- not the hiding -- is what keeps the range valid. If the
+    visibility rule ever regresses, this is what stops -1Y clamping or
+    inverting the window.
+    """
     from layout.bubble import XRANGE_MIN
 
     page.click("#bub-axes-preset-default")
@@ -299,7 +308,47 @@ def test_minus_1y_is_a_noop_at_the_slider_floor(page):
     before = _slider(page, "bub-xrange")
     assert before[0] == XRANGE_MIN, before
 
-    page.click("#bub-axes-preset-minus1y")
+    page.evaluate('document.getElementById("bub-axes-preset-minus1y").click()')
     time.sleep(2.5)
     assert _slider(page, "bub-xrange") == before, (
         "-1Y should be inert at the slider floor, not clamp or invert")
+
+
+def _displayed(page, eid):
+    return page.evaluate(
+        f'(() => {{ const e = document.getElementById("{eid}");'
+        f' return !!e && getComputedStyle(e).display !== "none"; }})()')
+
+
+def test_minus_1y_hidden_at_floor_and_reappears(page):
+    """The -1Y button hides itself when the window already starts at the floor.
+
+    It is inert there, so showing it would offer a dead control. Must be
+    correct on page load, before any tap -- the visibility callback runs
+    without prevent_initial_call for exactly that reason.
+    """
+    from layout.bubble import XRANGE_MIN
+
+    page.goto(f"{BASE_URL}/1", wait_until="networkidle", timeout=30000)
+    page.wait_for_selector("#bub-axes-presets", state="attached", timeout=15000)
+    time.sleep(2.0)
+
+    # Default window starts at the floor -> hidden without any interaction.
+    assert _slider(page, "bub-xrange")[0] == XRANGE_MIN
+    assert not _displayed(page, "bub-axes-preset-minus1y"), (
+        "-1Y should be hidden on load: the default window starts at the floor")
+    # Its siblings stay put.
+    assert _displayed(page, "bub-axes-preset-default")
+    assert _displayed(page, "bub-axes-preset-cur_year")
+    assert _displayed(page, "bub-axes-preset-plus1y")
+
+    # Move the start forward -> it reappears.
+    page.click("#bub-axes-preset-cur_year")
+    _wait_until(lambda: _displayed(page, "bub-axes-preset-minus1y"))
+    assert _displayed(page, "bub-axes-preset-minus1y"), (
+        "-1Y should reappear once the window no longer starts at the floor")
+
+    # Back to the floor -> hidden again.
+    page.click("#bub-axes-preset-default")
+    _wait_until(lambda: not _displayed(page, "bub-axes-preset-minus1y"))
+    assert not _displayed(page, "bub-axes-preset-minus1y")

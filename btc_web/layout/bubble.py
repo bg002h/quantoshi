@@ -100,12 +100,25 @@ function(n, xrange) {
 _JS_PLUS_1Y = _JS_STEP_TEMPLATE % {
     "mutate": "hi = hi + 1;", "xmin": XRANGE_MIN, "xmax": XRANGE_MAX}
 
-# Extends the START back a year; the end stays put. NOTE: the default window
-# already begins at XRANGE_MIN, so from a freshly loaded page this is a no-op
-# by design -- it bites once the start has moved forward (e.g. after
-# "Current year"). Lower XRANGE_MIN if that headroom is ever wanted.
+# Extends the START back a year; the end stays put. The default window already
+# begins at XRANGE_MIN, so this preset is inert on a freshly loaded page -- it
+# hides itself in that state rather than offering a button that does nothing
+# (see _JS_HIDE_AT_FLOOR).
 _JS_MINUS_1Y = _JS_STEP_TEMPLATE % {
     "mutate": "lo = lo - 1;", "xmin": XRANGE_MIN, "xmax": XRANGE_MAX}
+
+# Optional per-preset visibility rule. A preset that carries "hide_js" gets a
+# second clientside callback wired to bub-xrange.value, driving its button's
+# `style`, so a preset that would be inert simply is not shown. Fires on page
+# load (no prevent_initial_call), so the initial state is correct without a tap.
+# The Output is not allow_duplicate -- nothing else writes these buttons'
+# style -- which is what makes firing on load safe here.
+_JS_HIDE_AT_FLOOR = """
+function(xrange) {
+    var atFloor = (!xrange || xrange.length !== 2 || xrange[0] <= %(xmin)s);
+    return atFloor ? {display: "none"} : {};
+}
+""" % {"xmin": XRANGE_MIN}
 
 # Restores the axes the page loaded with: the share-link URL's values when the
 # page came from one, system defaults otherwise. View-awareness applies ONLY to
@@ -162,7 +175,8 @@ AXES_PRESETS = (
      "js": _JS_DEFAULT,
      "states": (("snapshot-state-store", "data"), ("bub-view-mode", "data"))},
     {"key": "minus1y", "label": "-1Y",
-     "js": _JS_MINUS_1Y, "states": (("bub-xrange", "value"),)},
+     "js": _JS_MINUS_1Y, "states": (("bub-xrange", "value"),),
+     "hide_js": _JS_HIDE_AT_FLOOR},
     {"key": "cur_year", "label": "Current year",
      "js": _JS_CUR_YEAR, "states": ()},
     {"key": "plus1y", "label": "+1Y",

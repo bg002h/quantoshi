@@ -156,3 +156,46 @@ class TestCagrDefaultXrange:
         # swap directions silently.
         assert isinstance(CAGR_DEFAULT_XRANGE, list)
         assert CAGR_DEFAULT_XRANGE == [2025, 2050]
+
+
+class TestAxesPresetVisibility:
+    """Presets carrying `hide_js` get a second callback driving their style."""
+
+    @staticmethod
+    def _outputs(entry):
+        """Normalise entry["output"] to a list.
+
+        Dash stores a MULTI-output callback's outputs as a list of Output
+        objects but a SINGLE-output callback's as a bare Output. Both shapes
+        occur here: the preset callbacks write five controls, the visibility
+        callbacks write one style. Do not "simplify" this away.
+        """
+        out = entry["output"]
+        return out if isinstance(out, list) else [out]
+
+    def _style_entries(self):
+        found = {}
+        for entry in _app_ctx.app.callback_map.values():
+            outs = self._outputs(entry)
+            ids = {o.component_id for o in outs}
+            props = {o.component_property for o in outs}
+            for p in AXES_PRESETS:
+                bid = f"bub-axes-preset-{p['key']}"
+                if bid in ids and "style" in props:
+                    found[p["key"]] = entry
+        return found
+
+    def test_hide_js_presets_have_a_style_callback(self):
+        expected = {p["key"] for p in AXES_PRESETS if p.get("hide_js")}
+        assert expected, "no preset declares hide_js -- test would be vacuous"
+        assert set(self._style_entries()) == expected
+
+    def test_style_callback_is_driven_by_the_xrange(self):
+        for key, entry in self._style_entries().items():
+            ids = [i.get("id") for i in entry["inputs"]]
+            assert ids == ["bub-xrange"], (key, ids)
+
+    def test_presets_without_hide_js_have_no_style_callback(self):
+        plain = {p["key"] for p in AXES_PRESETS if not p.get("hide_js")}
+        assert plain, "every preset declares hide_js -- test would be vacuous"
+        assert plain.isdisjoint(set(self._style_entries()))

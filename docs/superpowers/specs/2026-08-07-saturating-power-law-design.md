@@ -161,6 +161,22 @@ data. The Model Info card notes when the fit exceeds it.
 **The fit report must state whether any bound is active.** A pinned parameter
 means the reported value is an artifact; that has to be visible, not inferred.
 
+### 4.1 Pipeline integration — checklist Phase D, all three ⚠️ steps
+
+These are flagged in `workflow_new_model.md` as the gaps that bit v1, and
+each one fails **silently**: the model still renders, so nothing looks wrong.
+`spl`'s closest sibling `logi` has all three, and they are the template.
+
+| Step | File | Change | What breaks if skipped |
+|---|---|---|---|
+| 19 | `tools/build_bm_model.py` (`_build_model_instances`, beside `instances["logi"]` at `:96`) | `instances["spl"] = bc.SaturatingPowerLawModel(price_years, price_prices, quantiles)` | **This is the price-update integration.** `update_prices.py:142` runs `build_bm_model.py` after appending new rows, and `instances` feeds `resqr_coefs` and `diagnostics` into `model_data.pkl`. Without it `spl` is absent from every rebuild — no resqr bundle, no diagnostics — and the app still renders it from the hardcoded class attrs, so nothing visibly fails. |
+| 20 | `tools/refit_all_ppl.py` (beside `("Logistic", "tools/fit_logistic.py")` at `:59`) | append `("SatPL", "tools/fit_spl.py")` | `spl` is never refit by the sweep; its parameters freeze at whatever was last hardcoded, drifting further from the data with every price update. |
+| 21 | `tools/fit_shrinking_sigma.py` | add an `elif model_name == "spl":` branch computing residuals from the model's log10 formula (pattern: the `logi` branch at `:219`), and append `"spl"` to `models = [...]` at `:248` | No offline shrinking-σ parameters. `_init_shrinking_bands` still derives σ at construction, so bands render — but `spl` is silently missing from the 12-model sweep its siblings all participate in. |
+
+The common failure mode is that **all three are invisible at runtime.** The
+model appears on the chart either way, which is precisely why v1 missed them.
+The plan must verify each with an assertion, not by looking at the chart.
+
 **Refit policy: refit all three freely**, as every sibling model does.
 Justification: there is no scheduled refit timer installed (`refit_all_ppl.py`
 is run manually), the $1,000T bound will not bind, and Phase 2 lets the user
@@ -300,6 +316,7 @@ Plus **Reset to best fit**.
 | Numerical overflow in the naive power form during fitting. | Medium | `logaddexp`; a stability test at small `t` / large `β`. |
 | `matplotlib`/`kaleido` imported on the runtime path. | Medium | Figure pre-rendered to a static asset; runtime imports checked in review. |
 | The fitted ceiling shifts noticeably between manual refits. | Low | Expected and documented; card quotes the 1-AIC band. |
+| A Phase D pipeline step (§4.1) is skipped. All three fail silently — the model still renders. | **High** | Each gets its own plan step with an assertion, not a visual check: `spl` present in `build_bm_model`'s `instances`, in `refit_all_ppl`'s list, and in `fit_shrinking_sigma`'s `models`. These were the documented v1 gaps. |
 
 ## 10. Open questions
 

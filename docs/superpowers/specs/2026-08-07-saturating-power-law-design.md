@@ -99,9 +99,7 @@ formula is far too pessimistic for them. There is no single effective sample
 size here.
 
 Two corrections actually apply, and together they say something sharper than
-any scalar could.
-
-Two corrections apply. **(a) AR(1)-GLS (Cochrane–Orcutt)** — with ρ ≈ 0.998
+any scalar could. **(a) AR(1)-GLS (Cochrane–Orcutt)** — with ρ ≈ 0.998
 the quasi-difference is nearly a first difference, so it fits day-to-day
 *changes* rather than levels, a much harder test. **(b) Moving-block
 bootstrap** — 4-year blocks (one halving cycle), 400 resamples, preserving the

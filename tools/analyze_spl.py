@@ -81,6 +81,22 @@ def ic(sse, k, n):
     return ll + 2 * k, ll + k * np.log(n)
 
 
+def resid_diag(resid):
+    """Durbin-Watson plus autocorrelation at 1, 30 and 365 days.
+
+    The longer lags matter: rho(30d) shows the correlation is not an artifact
+    of daily sampling (thinning to weekly/monthly would not rescue the
+    inference), and rho(365d) is negative because residuals a year apart sit
+    on opposite sides of the trend -- the halving cycle appearing directly in
+    the ACF, and independent support for the 4-year bootstrap block length.
+    """
+    dw = float(np.sum(np.diff(resid) ** 2) / np.sum(resid ** 2))
+    return (dw,
+            float(np.corrcoef(resid[:-1], resid[1:])[0, 1]),
+            float(np.corrcoef(resid[:-30], resid[30:])[0, 1]),
+            float(np.corrcoef(resid[:-365], resid[365:])[0, 1]))
+
+
 def autocorr(resid):
     """Durbin-Watson and lag-1 rho.
 
@@ -187,14 +203,27 @@ def main() -> None:
           f"{np.sqrt(np.sum((lp - Xe @ c_ex)**2)/n):.6f}")
 
     # ---- correction 5: autocorrelation, and what to do about it --------
-    dw, rho = autocorr(resid_pl)
+    expo_ols, expo_gls, spl_ols, spl_gls = gls_refit(t, lp, np.log10(t))
+    resid_spl = lp - spl_log10(t, *spl_ols)
+    sse_spl_ols = float(np.sum(resid_spl ** 2))
+
     print(f"\n[2] residual autocorrelation (governs everything below)")
-    print(f"    Durbin-Watson {dw:.4f}   lag-1 rho {rho:.6f}")
-    print(f"    DW is a DIAGNOSTIC, not a correction. The corrections are")
+    print(f"    {'':16s} {'DW':>8} {'rho(1d)':>10} {'rho(30d)':>10} {'rho(365d)':>10}")
+    for lbl, r_ in (("pl", resid_pl), ("spl", resid_spl)):
+        dw_, r1, r30, r365 = resid_diag(r_)
+        print(f"    {lbl:16s} {dw_:8.5f} {r1:10.6f} {r30:+10.4f} {r365:+10.4f}")
+    _, rho_pl, _, _ = resid_diag(resid_pl)
+    _, rho_spl, _, _ = resid_diag(resid_spl)
+    print(f"\n    spl's third parameter removes "
+          f"{100*(1 - sse_spl_ols/sse_pl):.4f}% of the variance")
+    print(f"    ...and {100*(rho_pl-rho_spl)/rho_pl:+.5f}% of the lag-1 "
+          f"autocorrelation (delta rho = {rho_spl-rho_pl:+.2e})")
+    print(f"    -> the residuals are the SAME residuals. Whatever structure is")
+    print(f"       in this series, the saturating term does not engage it.")
+    print(f"\n    DW is a DIAGNOSTIC, not a correction. The corrections are")
     print(f"    GLS ([2a]) and the block bootstrap ([2b]).")
 
     # [2a] GLS: fit day-to-day changes instead of levels
-    expo_ols, expo_gls, spl_ols, spl_gls = gls_refit(t, lp, np.log10(t))
     A_o, b_o, l_o = spl_ols
     A_g, b_g, l_g = spl_gls
     print(f"\n[2a] AR(1)-GLS (Cochrane-Orcutt) vs OLS point estimates")

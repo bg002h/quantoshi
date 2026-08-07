@@ -61,8 +61,32 @@ RMSE is quoted to 4 decimals deliberately: the 6-decimal difference
 
 ### 3.2 The residuals are massively autocorrelated — and the fix is per-parameter
 
-Measured on the `pl` residuals: **Durbin–Watson 0.0037, lag-1 ρ 0.998127.**
-Daily closes of a trending series are nowhere near independent.
+**Start here, because it needs no statistical machinery to follow.** The
+residual autocorrelation of the two models:
+
+| | DW | ρ (1 d) | ρ (30 d) | ρ (365 d) |
+|---|---|---|---|---|
+| `pl` | 0.00375 | **0.998127** | +0.9032 | −0.2228 |
+| `spl` | 0.00375 | **0.998126** | +0.9032 | −0.2234 |
+
+**Identical to six decimal places** — `spl`'s third parameter changes ρ by
+−7×10⁻⁷. Put plainly:
+
+> `spl` removes **0.039%** of the variance and **0.00007%** of the
+> autocorrelation.
+
+The residuals are the same residuals. Whatever structure is actually in this
+price history — and ρ(30 d) = 0.90 says there is a great deal — the
+saturating term does not engage any of it. It shaves a sliver off the sum of
+squares without touching the thing that makes the sum of squares misleading.
+
+The longer lags matter for two reasons beyond that. **ρ(30 d) = 0.90** shows
+this is not an artifact of daily sampling: residuals a month apart are still
+90% correlated, so thinning to weekly or monthly data would not rescue the
+inference. And **ρ(365 d) = −0.22** is *negative* — residuals a year apart sit
+on opposite sides of the trend, which is the halving cycle appearing directly
+in the autocorrelation function, and independent support for the 4-year block
+length used in the bootstrap below.
 
 **Durbin–Watson is a diagnostic, not a correction.** It tells us the problem
 exists; it does not fix anything. An earlier revision applied

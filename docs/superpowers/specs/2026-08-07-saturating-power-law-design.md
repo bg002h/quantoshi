@@ -204,10 +204,24 @@ class SaturatingPowerLawModel(_ShrinkingBandsMixin):
         return self._log10_L - np.logaddexp(0.0, u) / np.log(10.0)
 ```
 
-**`logaddexp` is required, not stylistic.** The naive
-`(t/t₀)**(-beta)` term is ~10⁷ at t=1 with the fitted β, and the optimiser
-explores far worse combinations; direct evaluation overflows. `logaddexp(0,u)`
-is stable across the whole domain.
+**`logaddexp` is defensive, not load-bearing at current bounds.** An earlier
+draft of this spec claimed the naive `(t/t₀)**(-beta)` form *overflows*; the
+build gate refuted that. Measured largest intermediate at the data's left edge
+(t = 0.977):
+
+| β | `(t/t₀)^(−β)` |
+|---|---|
+| 5.09 (fitted) | 2.8×10⁷ |
+| 20 (fitting bound) | 1.8×10²⁹ |
+| 90 | 4.7×10¹³¹ |
+| 210 | 1.7×10³⁰⁷ — at the float64 ceiling |
+
+So within `β ≤ 20` the naive form is comfortably finite, and both forms agree.
+`logaddexp` is used because it is the idiomatic stable spelling and costs
+nothing, and because it keeps headroom if the β bound is ever widened —
+overflow begins near β≈210 here, and near β≈90 at t=0.1. It does **not**
+rescue a computation that is otherwise broken today. Keep it, but do not
+justify it with a claim the numbers don't support.
 
 Bands via `_init_shrinking_bands(t, residuals, quantiles)`, identical to
 `gomp` / `logi` / `sexp` / `bpl`.

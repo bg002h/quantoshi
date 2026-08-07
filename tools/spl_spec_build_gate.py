@@ -12,9 +12,9 @@ class SaturatingPowerLawModel:                 # mixin omitted for the gate
     short_name  = "spl"
     legend_name = "SatPL"
     quantized   = True
-    _log10_L = 6.2175
-    _t0      = 28.371
-    _beta    = 5.0905
+    _log10_L = 6.2133
+    _t0      = 28.314
+    _beta    = 5.0910
 
     def _model_log10(self, t):
         t_arr = np.asarray(t, float)
@@ -27,13 +27,14 @@ df = pd.read_csv("BitcoinPricesDaily.csv")
 dc=[c for c in df.columns if c.lower() in ("date","time","day")][0]
 pc=[c for c in df.columns if "price" in c.lower() or "close" in c.lower()][0]
 t=(pd.to_datetime(df[dc],format="mixed")-GENESIS).dt.total_seconds().to_numpy()/(365.25*86400)
-p=df[pc].to_numpy(float); m=(t>0)&(p>0); t,p=t[m],p[m]; lp=np.log10(p)
+# T_MIN mask (1.0), matching what the model class will see
+p=df[pc].to_numpy(float); m=(t>=1.0)&(p>0); t,p=t[m],p[m]; lp=np.log10(p)
 
 m_ = SaturatingPowerLawModel()
 pred = m_._model_log10(t)
 rmse = float(np.sqrt(np.mean((lp-pred)**2)))
-print(f"[gate 1] class evaluates      : RMSE {rmse:.6f}  (spec §3.1 says 0.294261)")
-print(f"         within 1e-4 of spec? {'YES' if abs(rmse-0.294261) < 1e-4 else 'NO'}")
+print(f"[gate 1] class evaluates      : RMSE {rmse:.6f}  (spec §3.1 says 0.2945)")
+print(f"         within 1e-4 of spec? {'YES' if abs(rmse-0.294470) < 1e-4 else 'NO'}")
 
 # stability: the naive form the spec says would overflow
 naive_bad = False
@@ -46,10 +47,10 @@ with np.errstate(over="ignore", invalid="ignore"):
             v = m_._model_log10(np.array([tt]))
             assert np.isfinite(v).all(), f"logaddexp form blew up at t={tt}, beta={beta}"
 print(f"[gate 2] logaddexp finite over t<=0.01, beta<=40 : YES")
-print(f"         naive (t/t0)**(-beta) overflows there  : "
-      f"{'YES (claim holds)' if naive_bad else 'NO (spec claim too strong)'}")
+print(f"         naive form finite there (spec §5 claim): "
+      f"{'NO -- overflows' if naive_bad else 'YES -- spec §5 correct'}")
 
-# spec §3.3 identity: spl - pl == -log10(1 + (t/t0)^beta)
+# spec §3.4 identity: spl - pl == -log10(1 + (t/t0)^beta)
 A = m_._log10_L - m_._beta*np.log10(m_._t0)
 pl = A + m_._beta*np.log10(t)
 closed = -np.log10(1.0 + (t/m_._t0)**m_._beta)

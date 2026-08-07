@@ -115,17 +115,24 @@ correlation structure within each block. Both, side by side:
 Movement from OLS → GLS: `pl` exponent **−5.82%**, `spl` β **+0.61%**,
 `spl` t₀ −34.6%, `spl` L **−87.1%**.
 
-**What survives correction — the one positive result here.** Six independent
-estimates of the exponent (two model families × three treatments) all land at
-about **5**: 5.0736, 4.7782, 5.088 for `pl`; 5.0910, 5.1218, 5.177 for `spl`.
-Every one falls in 4.78 – 5.18, and the bootstrap intervals (4.67–5.79 for
-`pl`, 4.82–7.87 for `spl`) overlap heavily.
+**What survives correction — the one positive result here.** Six estimates of
+the exponent (two models × three treatments) all land at about **5**: 5.0736,
+4.7782, 5.088 for `pl`; 5.0910, 5.1218, 5.177 for `spl`. Every one falls in
+4.78 – 5.18, and the bootstrap intervals (4.67–5.79 for `pl`, 4.82–7.87 for
+`spl`) overlap heavily.
 
-That agreement is not automatic. `spl` has the freedom to trade exponent
-against curvature — it could have bought fit by bending the shape and moving
-β — and it declines to. The exponent also survives GLS, meaning it is carried
-by the shape of the data *across scales*, not by its level. **The power-law
-exponent of ≈5 is the thing this analysis actually establishes.**
+These six are **not independent** — they are three treatments of one dataset,
+and `spl` *nests* `pl` (as t₀→∞), so some agreement is structural. The
+informative part is not that the numbers agree but *which* estimate refused to
+move: `spl` has the freedom to trade exponent against curvature, and a model
+fitting noise would take it — buying fit by bending the shape and shifting β.
+It declines to, putting its entire third parameter into a t₀ that nothing can
+pin down. The exponent also survives GLS, so it is carried by the shape of the
+data *across scales*, not by its level.
+
+**The power-law exponent of ≈5 is the thing this analysis actually
+establishes** — with the caveat that its own interval is ±10% and the
+OLS/GLS gap of 5.8% is real.
 
 **What does not survive.** t₀ and L move violently under every treatment, and
 — the sharpest fact in this section — **the two corrections disagree with each

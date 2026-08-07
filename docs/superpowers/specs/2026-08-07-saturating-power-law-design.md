@@ -101,36 +101,52 @@ size here.
 Two corrections actually apply, and together they say something sharper than
 any scalar could.
 
-**(a) AR(1)-GLS (Cochrane–Orcutt).** With ρ ≈ 0.998 the quasi-difference is
-nearly a first difference, so this fits day-to-day *changes* rather than
-levels — a much harder test. What survives it is carried by the shape of the
-data, not its level:
+Two corrections apply. **(a) AR(1)-GLS (Cochrane–Orcutt)** — with ρ ≈ 0.998
+the quasi-difference is nearly a first difference, so it fits day-to-day
+*changes* rather than levels, a much harder test. **(b) Moving-block
+bootstrap** — 4-year blocks (one halving cycle), 400 resamples, preserving the
+correlation structure within each block. Both, side by side:
 
-| | OLS | AR(1)-GLS | shift |
-|---|---|---|---|
-| `pl` exponent | 5.0736 | **4.7782** | −0.2954 |
-| `spl` β | 5.0910 | **5.1218** | +0.0309 |
-| `spl` t₀ | 28.31 yr | 18.53 yr | −9.8 yr |
-| **`spl` ceiling** | **$34.3T** | **$4.4T** | **−87%** |
+| parameter | OLS (uncorrected) | AR(1)-GLS | bootstrap median | bootstrap 5–95% |
+|---|---|---|---|---|
+| `pl` exponent | 5.0736 | **4.7782** | 5.088 | 4.670 – 5.786 |
+| `spl` β | 5.0910 | **5.1218** | 5.177 | 4.824 – 7.868 |
+| `spl` t₀ (yr) | 28.31 | **18.53** | 794.8 | 11.6 – 11,910 |
+| `spl` L ($T cap) | 34.3 | **4.4** | 3.7×10¹¹ | 1 – 1.8×10¹⁴ |
 
-β barely moves; **the ceiling moves ~8×.** The shape is real, the ceiling is
-not. (Note the `pl` exponent moves too — every model in this app is fit OLS,
-so that gap is not specific to `spl`. Out of scope here, worth knowing.)
+Movement from OLS → GLS: `pl` exponent **−5.82%**, `spl` β **+0.61%**,
+`spl` t₀ −34.6%, `spl` L **−87.1%**.
 
-**(b) Moving-block bootstrap**, 4-year blocks (one halving cycle, the dominant
-correlation scale), 200 resamples. This preserves the correlation structure
-and gives per-parameter uncertainty:
+**What survives correction — the one positive result here.** Six independent
+estimates of the exponent (two model families × three treatments) all land at
+about **5**: 5.0736, 4.7782, 5.088 for `pl`; 5.0910, 5.1218, 5.177 for `spl`.
+Every one falls in 4.78 – 5.18, and the bootstrap intervals (4.67–5.79 for
+`pl`, 4.82–7.87 for `spl`) overlap heavily.
 
-| parameter | median | 5–95% | spread |
-|---|---|---|---|
-| `pl` exponent | 5.076 | 4.670 – 5.786 | **1.2×** |
-| `spl` β | 5.158 | 4.807 – 7.871 | **1.6×** |
-| **`spl` t₀** | **778.9 yr** | **11.9 – 11,761 yr** | **992×** |
+That agreement is not automatic. `spl` has the freedom to trade exponent
+against curvature — it could have bought fit by bending the shape and moving
+β — and it declines to. The exponent also survives GLS, meaning it is carried
+by the shape of the data *across scales*, not by its level. **The power-law
+exponent of ≈5 is the thing this analysis actually establishes.**
 
-That is the honest picture: **the exponent is pinned to about ±10%; the
-ceiling is unknown to three orders of magnitude.** The median resampled `t₀`
-of ~780 yr is, for practical purposes, the pure power law — so the full-data
-estimate of 28.3 yr is not a typical draw.
+**What does not survive.** t₀ and L move violently under every treatment, and
+— the sharpest fact in this section — **the two corrections disagree with each
+other by 43×**: GLS puts t₀ at 18.5 yr, the bootstrap median at 795 yr. Two
+principled corrections to the same problem on the same data, differing by more
+than an order of magnitude, while agreeing on the exponent to within a few
+percent.
+
+The mechanism: GLS reweights toward high-frequency change information, which
+happens to favour an early inflection; block resampling frequently drops the
+recent curvature entirely, sending t₀ up the flat ridge toward the `pl` limit.
+Neither is wrong — each is sensitive to a different slice of a signal too weak
+to pin down. **When two corrections disagree that violently about a parameter,
+that parameter is not measured, it is assumed.**
+
+(Note `pl`'s exponent moves *more* than `spl`'s β does, −5.82% vs +0.61%.
+Every model in this app is fit OLS, so the published ≈5.07 would read ≈4.78
+under an AR(1) correction. That is a question about the whole app, not about
+`spl`. Out of scope here; worth knowing.)
 
 The face-value information criteria (ΔAIC −0.28, ΔBIC +6.38 at n=5792) are
 reported in §3.1 because they are what a reader would compute, but they assume
@@ -422,7 +438,7 @@ change.
 Required content, because this is where §3 lives:
 
 1. Formula; that it is a logistic in log-time.
-2. Fitted values, **with the bootstrap interval** (§3.2b) — never a bare
+2. Fitted values, **with the bootstrap interval** (§3.2) — never a bare
    point estimate. The ceiling in particular spans ~1000x.
 3. Both criteria at both sample sizes, and the plain statement that `pl` is
    preferred either way.

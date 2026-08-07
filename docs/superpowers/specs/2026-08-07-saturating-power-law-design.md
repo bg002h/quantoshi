@@ -59,26 +59,59 @@ Under the §4 bounds, **no bound is active** — the optimum is interior:
 RMSE is quoted to 4 decimals deliberately: the 6-decimal difference
 (0.294470 vs 0.294528) implies discrimination the data cannot support (§3.2).
 
-### 3.2 The sample size is ~5, not 5792 — and this governs everything
+### 3.2 The residuals are massively autocorrelated — and the fix is per-parameter
 
 Measured on the `pl` residuals: **Durbin–Watson 0.0037, lag-1 ρ 0.998127.**
-Daily closes of a trending series are not independent observations. The AR(1)
-effective sample size is **n_eff ≈ 5.4**.
+Daily closes of a trending series are nowhere near independent.
 
-That number is not an artifact of one formula. The history spans 15.9 yr,
-which is **~4.0 four-year halving cycles** — arriving independently at the
-same order. *The honest sample size for judging a long-run **shape** is about
-four or five Bitcoin cycles.*
+**Durbin–Watson is a diagnostic, not a correction.** It tells us the problem
+exists; it does not fix anything. An earlier revision applied
+`n_eff = n(1−ρ)/(1+ρ) ≈ 5.4` as *the* correction and rebuilt this section
+around it. That was wrong, and the error is worth recording because it is
+tempting: **that formula gives the effective sample size for estimating the
+_mean_ of a stationary series.** Regression slopes draw their precision from
+the spread in `x`, which serial correlation does not destroy, so the mean
+formula is far too pessimistic for them. There is no single effective sample
+size here.
 
-Every information criterion changes accordingly:
+Two corrections actually apply, and together they say something sharper than
+any scalar could.
 
-| | at n=5792 | at n_eff≈5.4 |
-|---|---|---|
-| ΔAIC vs `pl` | −0.28 | **+2.00** |
-| ΔBIC vs `pl` | +6.38 | **+1.69** |
+**(a) AR(1)-GLS (Cochrane–Orcutt).** With ρ ≈ 0.998 the quasi-difference is
+nearly a first difference, so this fits day-to-day *changes* rather than
+levels — a much harder test. What survives it is carried by the shape of the
+data, not its level:
 
-At face value `spl` was a dead heat on AIC; corrected, **both criteria prefer
-the plain power law.**
+| | OLS | AR(1)-GLS | shift |
+|---|---|---|---|
+| `pl` exponent | 5.0736 | **4.7782** | −0.2954 |
+| `spl` β | 5.0910 | **5.1218** | +0.0309 |
+| `spl` t₀ | 28.31 yr | 18.53 yr | −9.8 yr |
+| **`spl` ceiling** | **$34.3T** | **$4.4T** | **−87%** |
+
+β barely moves; **the ceiling moves ~8×.** The shape is real, the ceiling is
+not. (Note the `pl` exponent moves too — every model in this app is fit OLS,
+so that gap is not specific to `spl`. Out of scope here, worth knowing.)
+
+**(b) Moving-block bootstrap**, 4-year blocks (one halving cycle, the dominant
+correlation scale), 200 resamples. This preserves the correlation structure
+and gives per-parameter uncertainty:
+
+| parameter | median | 5–95% | spread |
+|---|---|---|---|
+| `pl` exponent | 5.076 | 4.670 – 5.786 | **1.2×** |
+| `spl` β | 5.158 | 4.807 – 7.871 | **1.6×** |
+| **`spl` t₀** | **778.9 yr** | **11.9 – 11,761 yr** | **992×** |
+
+That is the honest picture: **the exponent is pinned to about ±10%; the
+ceiling is unknown to three orders of magnitude.** The median resampled `t₀`
+of ~780 yr is, for practical purposes, the pure power law — so the full-data
+estimate of 28.3 yr is not a typical draw.
+
+The face-value information criteria (ΔAIC −0.28, ΔBIC +6.38 at n=5792) are
+reported in §3.1 because they are what a reader would compute, but they assume
+independence and should be read as an upper bound on confidence, not as the
+finding.
 
 ### 3.3 The ceiling is not constrained
 
@@ -101,17 +134,22 @@ Admissible `t₀`, by criterion — **correctly labelled this time**:
 |---|---|---|
 | ΔAIC ≤ 1, n=5792 | 28.4, 35 | outside |
 | ΔAIC ≤ 2, n=5792 | 25, 28.4, 35, 40 | outside |
-| **ΔAIC ≤ 2, n_eff≈5.4** | **20 … 1000 (all of them)** | **inside** |
+| **block bootstrap, 5–95%** | **11.9 – 11,761** | **inside** |
+
+Those first two rows assume independence, which §3.2 refutes; they are shown
+because they are what a reader would compute. The bootstrap row is the one to
+believe.
 
 An earlier revision reported "$19T–$594T, a 30× range" as a *1-AIC* band. It
-was a ΔAIC≤2 band mislabelled, and it assumed n=5801. **Corrected, the data
-do not constrain the ceiling at all** — every profiled `t₀` from 20 yr to
-1000 yr is admissible, and so is no ceiling whatsoever.
+was a ΔAIC≤2 band mislabelled, and it assumed independent observations.
+**Corrected, the data do not constrain the ceiling at all** — the bootstrap
+admits t₀ from 12 yr to 11,761 yr, and the upper end is indistinguishable from
+no ceiling whatsoever.
 
 The shape of the surface is still real and worth stating: SSE rises **steeply
 below** t₀≈25 (+3.33 at t₀=20) and is **flat above** ≈50, asymptoting to `pl`.
 So a very low ceiling fits visibly worse — but "visibly worse" does not
-survive the n_eff correction into "excluded". The card must say *consistent
+survive the bootstrap into "excluded". The card must say *consistent
 with*, never *excludes*.
 
 ### 3.4 What the model claims about the future
@@ -146,7 +184,7 @@ Two further caveats for the card:
 
 `price = L / (1 + exp(−r(t − t₀)))` — saturation on a linear timescale —
 scores **RMSE 0.4467, ΔBIC +4832** against `pl`. Decisive even after any
-plausible n_eff correction.
+plausible correction for autocorrelation.
 
 Report the ΔBIC, **not** the fitted ceiling: the optimiser drives `L` to its
 **lower bound by construction**, so "it pins to the highest observed price" is
@@ -360,7 +398,8 @@ change.
 Required content, because this is where §3 lives:
 
 1. Formula; that it is a logistic in log-time.
-2. Fitted values, **with the n_eff caveat** — never a bare point estimate.
+2. Fitted values, **with the bootstrap interval** (§3.2b) — never a bare
+   point estimate. The ceiling in particular spans ~1000x.
 3. Both criteria at both sample sizes, and the plain statement that `pl` is
    preferred either way.
 4. **"Consistent with", never "excludes"** — §3.3. The data do not constrain
@@ -421,9 +460,9 @@ and no layout module sets it. It is not a mitigation, just a thing not to
 break.
 
 **Live fit-quality readout** (RMSE, ΔBIC vs `pl`) and **Reset to best fit**.
-The readout inherits the n_eff problem — it will look ~2 orders of magnitude
-too confident — so label it "at face value (n=…)" or show the n_eff-corrected
-figure. Qualitatively it still shows the right thing: drag the ceiling low and
+The readout assumes independent residuals, which §3.2 refutes, so it will
+look far more confident than the data warrant — label it "at face value"
+rather than presenting it as a verdict. Qualitatively it still shows the right thing: drag the ceiling low and
 the fit visibly collapses.
 
 **Session-only** — a memory `dcc.Store`, like U₁. Not in `_SNAPSHOT_CONTROLS`.
@@ -435,7 +474,7 @@ the fit visibly collapses.
 | `mi-spl` inserted mid-accordion, silently breaking `/mi.23`–`/mi.29`. | **High** | §6.2: append last in all three places; step 22 adds the missing sync test. |
 | `short_name` "spl" is permanent. | High if wrong | Confirmed with user; verified free against 103 models. |
 | Mid-list insertion into `_CHECKLIST_OPTIONS`. | High | Append-only; own plan step with a test. |
-| §3 overstates what the data support, and it reaches users via the card. | **High** | §3 rebuilt around n_eff; card must say "consistent with", never "excludes". |
+| §3 overstates what the data support, and it reaches users via the card. | **High** | §3 rebuilt around AR(1)-GLS + block bootstrap (§3.2); card must say "consistent with", never "excludes". |
 | A Phase D step (§4.1) skipped — all three fail silently. | Medium | Each gets a plan step with an assertion, not a visual check. |
 | An off-checklist registry (§6 rows +A/+B) missed. | Medium | Listed explicitly; both are silent. |
 | Phase 2 mutates the shared model singleton. | **High** | §8: per-request instance; §5's constructor args decided in Phase 1. |

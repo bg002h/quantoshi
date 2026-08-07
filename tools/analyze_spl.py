@@ -31,9 +31,13 @@ CORRECTIONS APPLIED after the R0 architect review
   4. Bounds now match spec section 4: L in [max observed, $1000T cap] enforced
      as a constraint on the derived L, t0 in [1, 100], beta in (0.01, 20].
      Bound activity is reported.
-  5. Residual autocorrelation is measured and an effective sample size is
-     reported, with every criterion recomputed against it. This is the
-     finding that governs how section 3 may be worded.
+  5. Residual autocorrelation is measured (Durbin-Watson, lag-1 rho) and
+     answered with the two corrections that actually apply: AR(1)-GLS
+     (Cochrane-Orcutt) and a moving-block bootstrap. An earlier revision used
+     a single scalar n_eff = n(1-rho)/(1+rho) instead; that formula is for the
+     mean of a stationary series and is far too pessimistic for regression
+     slopes. Measured, the exponent's bootstrap spread is 1.2x while t0's is
+     ~1000x -- so there is no single effective sample size.
 """
 from __future__ import annotations
 
@@ -78,12 +82,89 @@ def ic(sse, k, n):
 
 
 def autocorr(resid):
-    """Durbin-Watson, lag-1 rho, and the AR(1) effective sample size."""
-    n = len(resid)
+    """Durbin-Watson and lag-1 rho.
+
+    NOTE: an earlier revision also returned n_eff = n(1-rho)/(1+rho) and used
+    it as the headline correction. That formula estimates the effective sample
+    size for a MEAN of a stationary series. Regression slopes draw their
+    precision from the spread in x, which serial correlation does not destroy,
+    so the mean formula is far too pessimistic for them -- measured, the
+    exponent's bootstrap spread is 1.2x while t0's is ~1000x. A single scalar
+    n_eff is the wrong abstraction; see gls_refit() and block_bootstrap().
+    """
     dw = float(np.sum(np.diff(resid) ** 2) / np.sum(resid ** 2))
     rho = float(np.corrcoef(resid[:-1], resid[1:])[0, 1])
-    n_eff = n * (1.0 - rho) / (1.0 + rho)
-    return dw, rho, n_eff
+    return dw, rho
+
+
+def _qd(v, rho):
+    """Quasi-difference v_t - rho*v_(t-1)."""
+    return v[1:] - rho * v[:-1]
+
+
+def gls_refit(t, lp, x):
+    """Cochrane-Orcutt feasible GLS for pl and spl.
+
+    With rho ~ 0.998 the quasi-difference is nearly a first difference, so
+    this fits day-to-day CHANGES rather than levels. Parameters that survive
+    it are carried by the shape of the data, not by its level.
+    """
+    X = np.vstack([np.ones_like(x), x]).T
+    c_ols, *_ = np.linalg.lstsq(X, lp, rcond=None)
+    c = c_ols
+    for _ in range(30):
+        rho = float(np.corrcoef((lp - X @ c)[:-1], (lp - X @ c)[1:])[0, 1])
+        Xg = np.vstack([_qd(np.ones_like(x), rho), _qd(x, rho)]).T
+        c_new, *_ = np.linalg.lstsq(Xg, _qd(lp, rho), rcond=None)
+        if np.allclose(c_new, c, atol=1e-10):
+            c = c_new
+            break
+        c = c_new
+
+    seed = [-1.178, 5.091, np.log10(28.31)]
+    r0 = minimize(lambda th: float(np.sum((lp - spl_log10(t, *th)) ** 2)), seed,
+                  method="Nelder-Mead",
+                  options={"xatol": 1e-10, "fatol": 1e-12, "maxiter": 40000})
+    th = r0.x
+    for _ in range(30):
+        res = lp - spl_log10(t, *th)
+        rho_s = float(np.corrcoef(res[:-1], res[1:])[0, 1])
+        rr = minimize(lambda z: float(np.sum(_qd(lp - spl_log10(t, *z), rho_s) ** 2)),
+                      th, method="Nelder-Mead",
+                      options={"xatol": 1e-10, "fatol": 1e-12, "maxiter": 40000})
+        if np.allclose(rr.x, th, atol=1e-9):
+            th = rr.x
+            break
+        th = rr.x
+    return c_ols[1], c[1], r0.x, th
+
+
+def block_bootstrap(t, lp, n_boot=200, block_yr=4.0, seed=0):
+    """Moving-block bootstrap preserving autocorrelation within blocks.
+
+    Block length defaults to one halving cycle, the dominant correlation
+    scale. Returns per-parameter distributions -- the honest replacement for
+    a single n_eff, because the parameters degrade at wildly different rates.
+    """
+    rng = np.random.default_rng(seed)
+    n = len(t)
+    blk = int(block_yr * 365.25)
+    nb = int(np.ceil(n / blk))
+    seed_th = [-1.178, 5.091, np.log10(28.31)]
+    expo, betas, t0s = [], [], []
+    for _ in range(n_boot):
+        st = rng.integers(0, n - blk, size=nb)
+        idx = np.sort(np.concatenate([np.arange(s, s + blk) for s in st])[:n])
+        tt, ll = t[idx], lp[idx]
+        Xb = np.vstack([np.ones_like(tt), np.log10(tt)]).T
+        cb, *_ = np.linalg.lstsq(Xb, ll, rcond=None)
+        expo.append(cb[1])
+        rb = minimize(lambda z: float(np.sum((ll - spl_log10(tt, *z)) ** 2)),
+                      seed_th, method="Nelder-Mead",
+                      options={"xatol": 1e-9, "fatol": 1e-11, "maxiter": 8000})
+        betas.append(rb.x[1])
+        t0s.append(10 ** rb.x[2])
+    return np.array(expo), np.array(betas), np.array(t0s)
 
 
 def main() -> None:
@@ -105,16 +186,37 @@ def main() -> None:
     print(f"    exponential: RMSE "
           f"{np.sqrt(np.sum((lp - Xe @ c_ex)**2)/n):.6f}")
 
-    # ---- correction 5: how many independent observations are there? ----
-    dw, rho, n_eff = autocorr(resid_pl)
-    cycles = (t.max() - t.min()) / 4.0        # ~4-year halving cycle
+    # ---- correction 5: autocorrelation, and what to do about it --------
+    dw, rho = autocorr(resid_pl)
     print(f"\n[2] residual autocorrelation (governs everything below)")
     print(f"    Durbin-Watson {dw:.4f}   lag-1 rho {rho:.6f}")
-    print(f"    n_eff (AR1)   {n_eff:.1f}  from n={n}")
-    print(f"    sanity check: {t.max()-t.min():.1f} yr of history is "
-          f"~{cycles:.1f} four-year cycles")
-    print(f"    -> treat ~{max(n_eff, cycles):.0f} as the sample size for "
-          f"judging a long-run SHAPE, not {n}")
+    print(f"    DW is a DIAGNOSTIC, not a correction. The corrections are")
+    print(f"    GLS ([2a]) and the block bootstrap ([2b]).")
+
+    # [2a] GLS: fit day-to-day changes instead of levels
+    expo_ols, expo_gls, spl_ols, spl_gls = gls_refit(t, lp, np.log10(t))
+    A_o, b_o, l_o = spl_ols
+    A_g, b_g, l_g = spl_gls
+    print(f"\n[2a] AR(1)-GLS (Cochrane-Orcutt) vs OLS point estimates")
+    print(f"     pl  exponent : OLS {expo_ols:.4f}  ->  GLS {expo_gls:.4f}"
+          f"   ({expo_gls-expo_ols:+.4f})")
+    print(f"     spl beta     : OLS {b_o:.4f}  ->  GLS {b_g:.4f}"
+          f"   ({b_g-b_o:+.4f})   <- shape survives")
+    print(f"     spl t0 (yr)  : OLS {10**l_o:.2f}  ->  GLS {10**l_g:.2f}")
+    print(f"     spl ceiling  : OLS ${10**(A_o+b_o*l_o)*SUPPLY/1e12:,.1f}T"
+          f"  ->  GLS ${10**(A_g+b_g*l_g)*SUPPLY/1e12:,.1f}T"
+          f"   <- moves ~8x; not a real feature")
+
+    # [2b] block bootstrap: per-parameter uncertainty
+    expo_b, beta_b, t0_b = block_bootstrap(t, lp)
+    print(f"\n[2b] moving-block bootstrap (4-yr blocks = 1 halving cycle)")
+    print(f"     n_eff is NOT one number -- parameters degrade at different rates:")
+    qq = lambda a, k: float(np.percentile(a, k))
+    for nm, a, unit in (("pl exponent", expo_b, ""), ("spl beta", beta_b, ""),
+                        ("spl t0", t0_b, " yr")):
+        lo, hi = qq(a, 5), qq(a, 95)
+        print(f"       {nm:12s} median {np.median(a):9.3f}{unit}"
+              f"   5-95%: {lo:.3f} .. {hi:.3f}   spread {hi/max(lo,1e-12):,.1f}x")
 
     # ---- correction 4: fit with the spec's own bounds -------------------
     lo_L, hi_L = np.log10(p.max()), np.log10(CAP_FIT_USD / SUPPLY)
@@ -147,10 +249,8 @@ def main() -> None:
     print(f"    bounds active: {', '.join(active) if active else 'none (interior)'}")
     print(f"    at n={n}     : dAIC {aic-aic_pl:+.2f}  dBIC {bic-bic_pl:+.2f}"
           f"  -> {'pl' if bic > bic_pl else 'spl'} by BIC")
-    a2, b2 = ic(res.fun, 3, n_eff)
-    a2p, b2p = ic(sse_pl, 2, n_eff)
-    print(f"    at n_eff={n_eff:.1f}: dAIC {a2-a2p:+.2f}  dBIC {b2-b2p:+.2f}"
-          f"  -> {'pl' if b2 > b2p else 'spl'} by BIC")
+    print(f"    NB: these assume iid residuals, which [2] refutes. They are")
+    print(f"        reported at face value; [2b] is the honest uncertainty.")
 
     # ---- correction 2: bands at BOTH criteria, correctly labelled ------
     print(f"\n[4] profile: best SSE with t0 fixed")
@@ -166,8 +266,7 @@ def main() -> None:
     for t0v, s, L in rows:
         print(f"    {t0v:>9.4g} {np.sqrt(s/n):>9.6f} "
               f"{L*SUPPLY/1e12:>11,.0f}T  {s-best:+.5f}")
-    for lbl, k, nn in (("dAIC<=1, n", 1.0, n), ("dAIC<=2, n", 2.0, n),
-                       ("dAIC<=2, n_eff", 2.0, n_eff)):
+    for lbl, k, nn in (("dAIC<=1, n", 1.0, n), ("dAIC<=2, n", 2.0, n)):
         th = best * (1 + k / nn)
         inside = [f"{r[0]:g}" for r in rows if r[1] <= th]
         print(f"    {lbl:>16}: t0 = {', '.join(inside) or '(none)'}"

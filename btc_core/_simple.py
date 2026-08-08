@@ -364,12 +364,19 @@ class SaturatingPowerLawModel(_ShrinkingBandsMixin):
     substituted for t. Early (t << t0) it is a pure power law, price ~ t^beta;
     late it approaches L. At t = t0, price is exactly L/2.
 
-    DIAGNOSTIC MODEL. The price history cannot identify the ceiling: a
-    likelihood-ratio test of t0 = infinity fails to reject even assuming iid
-    residuals (2*dloglik = 2.28 vs a boundary-corrected 5% critical value of
-    2.706). The fitted t0 tracks where we are in the four-year cycle rather
-    than where a ceiling is. See the Model Info card and
-    docs/superpowers/specs/2026-08-07-saturating-power-law-design.md section 3.
+    DIAGNOSTIC MODEL. The price history cannot identify the ceiling, and the
+    evidence is the ceiling's INSTABILITY rather than any single test: refit
+    on data through 2026-06-03 it is $34.3T, through 2026-08-06 it is $14.8T
+    -- 2.3x apart on 1.1% more rows, at prices within 1% of each other. Across
+    six cutoffs L ranges 93x, and two of them pin at the $1000T fitting bound,
+    which is the data asking for no ceiling at all (L -> infinity IS the pure
+    power law). The significance verdict flips non-monotonically with the
+    window, so the fitted t0 tracks where we are in the four-year cycle rather
+    than where a ceiling is.
+
+    Do NOT quote these parameters as a ceiling forecast. See the Model Info
+    card and section 3.1 of
+    docs/superpowers/specs/2026-08-07-saturating-power-law-design.md.
     """
     name = "Saturating Power Law"
     short_name = "spl"

@@ -37,6 +37,7 @@ import inspect
 import os
 import re
 import sys
+import tempfile
 
 import numpy as np
 
@@ -62,7 +63,7 @@ ATTRS = ("_log10_L", "_t0", "_beta")
 # Mirrors the box on the nuisance coordinate A inside analyze_spl.fit_spl.
 # A is not one of the four bounds the spec asks about (it is a wide box on a
 # reparameterisation artifact), but an active bound there would still be a
-# finding, so it is reported. _assert_mirrors_analyze_spl() below turns a
+# finding, so it is reported. _check_mirrors_analyze_spl() below turns a
 # future edit to analyze_spl into a loud failure instead of a stale report.
 A_LO, A_HI = -10.0, 10.0
 
@@ -75,21 +76,26 @@ BOX = {
 BOUND_TOL = 1e-6      # fraction of the box width that counts as "on the bound"
 
 
-def _assert_mirrors_analyze_spl() -> None:
+def _check_mirrors_analyze_spl() -> None:
     """Fail loudly if analyze_spl.fit_spl's boxes drift away from BOX.
 
     The A box is the only literal this file has to duplicate (fit_spl builds
     its bounds list inline). Checking the source text is cheap and converts
-    silent report drift into an assertion.
+    silent report drift into a hard stop.
+
+    Deliberately NOT an `assert`: `python -O` strips assert statements, and a
+    stripped check here would let the bound report go quietly stale -- exactly
+    the failure this guard exists to prevent. So it raises explicitly.
     """
     src = inspect.getsource(fit_spl)
     for frag in ("(-10.0, 10.0)", "(0.01, BETA_MAX)",
                  "(np.log10(T0_LO), np.log10(T0_HI))"):
-        assert frag in src, (
-            f"analyze_spl.fit_spl no longer contains the bound {frag!r}; "
-            f"tools/fit_spl.py's BOX table is stale and its bound report "
-            f"would be wrong. Reconcile them before trusting this run."
-        )
+        if frag not in src:
+            raise SystemExit(
+                f"analyze_spl.fit_spl no longer contains the bound {frag!r}; "
+                f"tools/fit_spl.py's BOX table is stale and its bound report "
+                f"would be wrong. Reconcile them before trusting this run."
+            )
 
 
 def load_fit_data():
@@ -198,8 +204,46 @@ def print_bounds(rows) -> bool:
                   f"{10**lo:>16,.0f} {10**hi:>16,.0f}"
                   f"   floor = max observed price, cap = $1000T / 21e6")
     print(f"    bounds active: {'YES' if any_active else 'NONE'}"
-          f"   (tolerance: within {BOUND_TOL:g} of the box width)")
+          f"   (tolerance: margin <= {BOUND_TOL:g} x the box width)")
     return any_active
+
+
+def _atomic_write(path: str, text: str) -> None:
+    """Replace `path`'s contents with `text`, all-or-nothing.
+
+    `open(path, "w")` truncates the target the instant it succeeds, so a
+    Ctrl-C, a full disk, or a crash between truncate and flush leaves
+    btc_core/_simple.py TRUNCATED -- every model in it gone, not just SPL's
+    three constants. Writing a sibling temp file and renaming it over the
+    target makes the swap a single atomic operation: the file is either the
+    old text or the new one, never a prefix of either.
+
+    The temp file is created in the target's own directory because os.replace
+    is only atomic within a filesystem. fsync before the rename so a power
+    loss cannot leave the renamed inode pointing at unflushed data.
+    """
+    d = os.path.dirname(os.path.abspath(path)) or "."
+    fd, tmp = tempfile.mkstemp(dir=d, prefix=os.path.basename(path) + ".",
+                               suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        # mkstemp creates 0600; carry the original file's mode across.
+        try:
+            os.chmod(tmp, os.stat(path).st_mode & 0o7777)
+        except OSError:
+            pass
+        os.replace(tmp, path)
+    except BaseException:
+        # Includes KeyboardInterrupt -- the whole point is that an interrupted
+        # run leaves the original untouched and no debris behind.
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 def patch_core(values: dict) -> str:
@@ -253,20 +297,27 @@ def patch_core(values: dict) -> str:
     if len(old_lines) != len(new_lines):
         raise SystemExit("patch changed the line count; refusing to write")
     changed = [i for i, (a, b) in enumerate(zip(old_lines, new_lines)) if a != b]
+    # Both are 0-based line INDICES, and both are INCLUSIVE: `start` sits on
+    # the `class ...` line, so counting the newlines before it gives that
+    # line's index; `end` sits on the newline that ends the section's last
+    # line, so counting the newlines before it gives THAT line's index. The
+    # window test below must therefore be `<=` on both ends -- with `<` the
+    # section's own last line falls outside the permitted range.
     lo_line = src[:start].count("\n")
     hi_line = src[:end].count("\n")
     # At most the three attr lines, and every one of them inside the class.
     # Fewer than three is legitimate: re-running on unchanged price data
     # rewrites the same digits, so the tool must be idempotent rather than
     # treating a no-op as a scoping failure.
-    if len(changed) > len(ATTRS) or not all(lo_line <= i < hi_line
+    if len(changed) > len(ATTRS) or not all(lo_line <= i <= hi_line
                                             for i in changed):
         raise SystemExit(
             f"refusing to write: expected at most {len(ATTRS)} changed lines "
-            f"inside lines {lo_line}-{hi_line}, got {changed}")
+            f"inside 0-based lines {lo_line}-{hi_line} (inclusive), "
+            f"got {changed}")
 
     print("\n--update: patching btc_core/_simple.py")
-    print(f"    scope: lines {lo_line + 1}-{hi_line} (class {CLASS_NAME})")
+    print(f"    scope: lines {lo_line + 1}-{hi_line + 1} (class {CLASS_NAME})")
     if not changed:
         print("    (no change -- the file already carries this fit)")
     for i in changed:
@@ -281,7 +332,7 @@ def patch_core(values: dict) -> str:
 
 def main() -> None:
     update = "--update" in sys.argv
-    _assert_mirrors_analyze_spl()
+    _check_mirrors_analyze_spl()
 
     t, lp = load_fit_data()
     n = len(t)
@@ -341,8 +392,7 @@ def main() -> None:
         )
 
     new_src = patch_core({"_log10_L": l10L, "_t0": t0, "_beta": beta})
-    with open(CORE_PATH, "w") as f:
-        f.write(new_src)
+    _atomic_write(CORE_PATH, new_src)
     print("btc_core/_simple.py updated. Verify with:\n"
           "    git diff btc_core/_simple.py\n"
           "    btc_venv/bin/python3 -m pytest btc_web/test_models.py "

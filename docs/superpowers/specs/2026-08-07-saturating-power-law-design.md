@@ -546,6 +546,34 @@ demonstrates about the limits of the data, not its forecast.
    > ceiling down — the apparent bend they find sits right at the edge of the
    > data, where it cannot be distinguished from the current cycle's swing.
 
+### 7.1a The card is PINNED to two dates (user decision, 2026-08-07)
+
+Every figure on this card is a **static constant fixed to its stated data
+window**. Nothing recomputes at render time — not the prose, not the
+comparison tables, and **not the coefficient table**, which earlier drafts of
+this spec required to be live.
+
+The reason is structural, not stylistic. The card's whole argument is a
+comparison of two specific snapshots. If any part of it recomputed, the
+"2026-08-06" column would silently become "whenever the page was loaded", the
+two dates would stop being two dates, and the comparison carrying the thesis
+would dissolve. **A card arguing that this number moves must itself hold
+still.**
+
+Requirements:
+- Static constants, not `_app_ctx.PRICE_MODELS["spl"]` lookups.
+- Every table carries its data-window label. All four, not three.
+- One visible line near the top stating the card is a fixed snapshot **and**
+  that the plotted curve always uses the latest fit — because
+  `fit_spl.py --update` moves the chart while the card stays put, and a reader
+  must not discover that as an apparent inconsistency.
+- A comment at the constants naming the regeneration path:
+  `tools/analyze_spl.py` sections [0] and [0b], with the date labels updated in
+  the same edit.
+
+Refreshing the card is a deliberate manual act, scheduled whenever the numbers
+are worth restating — not a side effect of the daily price update.
+
 ### 7.2 Tone and prohibitions
 
 - **Never quote a single fitted ceiling as "the" ceiling.** Every dollar

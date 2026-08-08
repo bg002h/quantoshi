@@ -326,6 +326,50 @@ Every unmigrated tool using the `:>Nf` idiom still creeps.
 
 ---
 
+### F-9 — Time-evolving bubble model
+**Type:** research idea, not a defect · **Owning phase:** unscheduled · **Raised:**
+2026-08-08, out of the support-phase `spl` trial
+
+BM today has a **fixed** support line — a pure straight line in log-log,
+`log10 p = -1.5549 + 5.1215 * log10(t)`, verified straight to 5.6e-17 — with
+bubbles superimposed. The idea is a version whose support and/or bubble
+parameters evolve with time.
+
+**What motivated it.** The support-phase trial (scratchpad, 2026-08-08) fitted
+`spl` and a plain power law to support-phase prices only, and turned up three
+things a fixed support line cannot express:
+
+- **The floor's exponent is era-dependent.** Clusters from 2011-12..2012-11 and
+  2015-09..2017-02 pooled give 4.8754. Adding the 2026 floor moves it to
+  4.95–5.12 depending on the cut. A single straight line is a compromise across
+  eras that differ.
+- **The recent floor sits ~1.47x ABOVE its own early-era extrapolation.** Fit the
+  floor on 2011–2017, project nine years, predict ~$44k; the actual 2026 floor
+  is ~1.47x higher, and that ratio held at 1.46–1.48x across every start date
+  swept from 2026-06-01 to 2026-07-13. The offset is robust, so it is structure
+  the fixed line is missing, not noise.
+- **Support phases are becoming rare.** 1,167 support days total, but only 251
+  after 2018 and a 3.13-year gap between 2023-06-19 and 2026. If bubble duration
+  or amplitude is drifting, a static decomposition will keep mislabelling
+  phases — and the trial had to hand-define the 2026 floor by drawdown because
+  BM classified none of it as support.
+
+**The hazard to design against, learned the hard way this week.** `spl` added
+ONE parameter to a power law and the data could not identify it: L pinned at
+whatever bound was imposed, across seven datasets. A time-evolving BM adds
+several more. Before building, decide what would falsify it and check that the
+data can support that many parameters — the profile-curve method in
+`tools/analyze_spl.py` sections [0]/[0b] is the right instrument, and it should
+be run on the proposed parameterisation BEFORE the model is written, not after.
+
+**Cheap first step.** Fit the support line separately per era (the three
+clusters above) with a common exponent and free intercepts, versus free
+exponents. If the free-exponent version does not beat the common-exponent one
+on a boundary-corrected LRT, the floor is one power law and only its *level*
+drifts — which is a much smaller change than a full time-evolving model.
+
+---
+
 ## Closed
 
 _none yet_

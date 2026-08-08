@@ -250,7 +250,7 @@ def test_fitting_default_config_scales_with_t_per_year(monkeypatch):
     monkeypatch.setenv("QS_TIME_BASIS", "block")
     # Pop any cached time_basis or fitting from sys.modules so they reload
     for mod in list(sys.modules):
-        if mod.startswith("time_basis") or mod == "model_toolkit.fitting":
+        if mod.startswith("time_basis") or mod.startswith("model_toolkit"):
             del sys.modules[mod]
     import time_basis as tb
     assert tb.TIME_BASIS == "block"
@@ -264,7 +264,7 @@ def test_fitting_default_config_scales_with_t_per_year(monkeypatch):
     # Reset to calendar so other tests in the suite see calendar
     monkeypatch.delenv("QS_TIME_BASIS", raising=False)
     for mod in list(sys.modules):
-        if mod.startswith("time_basis") or mod == "model_toolkit.fitting":
+        if mod.startswith("time_basis") or mod.startswith("model_toolkit"):
             del sys.modules[mod]
 
 

@@ -406,7 +406,10 @@ class SaturatingPowerLawModel(_ShrinkingBandsMixin):
         # required at beta <= 20 (largest intermediate ~1.8e29, well inside
         # float64) but it is the idiomatic stable spelling and preserves
         # headroom -- overflow would begin near beta ~ 210.
-        u = -self._beta * (np.log(t_arr) - np.log(self._t0))
+        # Clamp t the way plo/sexp do: log(0) is -inf and log(t<0) is NaN.
+        # Unreachable from current call paths (the bubble grid clamps at 0.1,
+        # sim overlays at 0.5) -- this is sibling consistency, not a live fix.
+        u = -self._beta * (np.log(np.maximum(t_arr, 1e-9)) - np.log(self._t0))
         return self._log10_L - np.logaddexp(0.0, u) / np.log(10.0)
 
     def _build_colors(self):

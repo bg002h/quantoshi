@@ -2465,6 +2465,20 @@ class TestSaturatingPowerLawModel:
             v = m._model_log10(np.array([1e-3, 1e-2, 1.0, 1e3]))
             assert np.all(np.isfinite(v)), f"non-finite at beta={beta}"
 
+    def test_at_t0_price_is_half_the_ceiling(self):
+        """At t = t0 the model sits at exactly L/2 -- a stated property.
+
+        This is the only assertion that pins the near field: it fixes the
+        base conversion (log10 vs ln), the sign of the correction, and the
+        half-life point at once. Mutation-tested: dropping `/ np.log(10.0)`
+        or returning a constant `_log10_L` both fail here, and both pass
+        every other test in this class.
+        """
+        import numpy as np
+        m = self._mk()
+        assert abs(m._model_log10(np.array([m._t0]))[0]
+                   - (m._log10_L - np.log10(2))) < 1e-12
+
     def test_ceiling_is_the_asymptote(self):
         """As t -> infinity price approaches L, from below."""
         import numpy as np

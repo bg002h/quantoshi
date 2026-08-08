@@ -19,8 +19,12 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 sys.path.insert(0, ROOT)
 os.chdir(ROOT)
 
+from _patch_class_attrs import apply_and_report
 from model_toolkit.data import load_prices
 from scipy.optimize import curve_fit, differential_evolution
+
+CORE_PATH = os.path.join(ROOT, "btc_core", "_simple.py")
+CLASS_NAME = "GompertzModel"
 
 
 def gompertz_log10(t, K, r, t0):
@@ -76,42 +80,13 @@ def main():
     print(f"  σ     = {sigma:.6f}")
 
     if update:
-        print("\nUpdating btc_core/ ...")
-        core_path = os.path.join(ROOT, "btc_core", "_simple.py")
-
-        with open(core_path) as f:
-            src = f.read()
-
-        import re
-        replacements = [("_K", K), ("_r", r), ("_t0", t0)]
-        cls_pos = src.find("class GompertzModel")
-        if cls_pos == -1:
-            print("  WARNING: could not find GompertzModel class")
-            sys.exit(1)
-        else:
-            next_class = src.find("\nclass ", cls_pos + 1)
-            cls_end = next_class if next_class != -1 else len(src)
-            section = src[cls_pos:cls_end]
-            for name, val in replacements:
-                pattern = rf"(    {name}\s*=\s*)[^#\n]+"
-                new_val = f"{val:>11.6f}" if val >= 0 else f"{val:.6f}"
-                match = re.search(pattern, section)
-                if match:
-                    old_line = match.group(0)
-                    new_line = re.sub(pattern, rf"\g<1>{new_val}  ", old_line)
-                    new_section = section.replace(old_line, new_line, 1)
-                    src = src[:cls_pos] + new_section + src[cls_end:]
-                    cls_pos = src.find("class GompertzModel")
-                    next_class = src.find("\nclass ", cls_pos + 1)
-                    cls_end = next_class if next_class != -1 else len(src)
-                    section = src[cls_pos:cls_end]
-                    print(f"  {name} = {new_val.strip()}")
-                else:
-                    print(f"  WARNING: could not find {name} in GompertzModel")
-
-        with open(core_path, "w") as f:
-            f.write(src)
-        print("btc_core/ updated.")
+        # Scoped, atomic, guarded -- tools/_patch_class_attrs.py. `_K`, `_r`
+        # and `_t0` are ALL shared with LogisticSCurveModel (and `_t0` with
+        # SaturatingPowerLawModel too), so an unscoped patch here would
+        # silently rewrite another model's fit. Do not inline a regex.
+        if apply_and_report(CORE_PATH, CLASS_NAME,
+                            {"_K": K, "_r": r, "_t0": t0}):
+            print("btc_core/ updated.")
     else:
         print("\nRun with --update to write to btc_core/")
 

@@ -32,12 +32,9 @@ finding about the spec, not something to work around by widening the box.
 """
 from __future__ import annotations
 
-import difflib
 import inspect
 import os
-import re
 import sys
-import tempfile
 
 import numpy as np
 
@@ -47,6 +44,7 @@ sys.path.insert(0, os.path.join(ROOT, "btc_web"))
 sys.path.insert(0, ROOT)
 os.chdir(ROOT)
 
+from _patch_class_attrs import apply_and_report                 # noqa: E402
 from model_toolkit.data import load_prices                      # noqa: E402
 from scipy.optimize import curve_fit                            # noqa: E402
 
@@ -58,7 +56,6 @@ from analyze_spl import (                                       # noqa: E402
 
 CORE_PATH = os.path.join(ROOT, "btc_core", "_simple.py")
 CLASS_NAME = "SaturatingPowerLawModel"
-ATTRS = ("_log10_L", "_t0", "_beta")
 
 # Mirrors the box on the nuisance coordinate A inside analyze_spl.fit_spl.
 # A is not one of the four bounds the spec asks about (it is a wide box on a
@@ -208,137 +205,11 @@ def print_bounds(rows) -> bool:
     return any_active
 
 
-def _atomic_write(path: str, text: str) -> None:
-    """Replace `path`'s contents with `text`, all-or-nothing.
-
-    `open(path, "w")` truncates the target the instant it succeeds, so a
-    Ctrl-C, a full disk, or a crash between truncate and flush leaves
-    btc_core/_simple.py TRUNCATED -- every model in it gone, not just SPL's
-    three constants. Writing a sibling temp file and renaming it over the
-    target makes the swap a single atomic operation: the file is either the
-    old text or the new one, never a prefix of either.
-
-    The temp file is created in the target's own directory because os.replace
-    is only atomic within a filesystem. fsync before the rename so a power
-    loss cannot leave the renamed inode pointing at unflushed data.
-    """
-    d = os.path.dirname(os.path.abspath(path)) or "."
-    fd, tmp = tempfile.mkstemp(dir=d, prefix=os.path.basename(path) + ".",
-                               suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w") as f:
-            f.write(text)
-            f.flush()
-            os.fsync(f.fileno())
-        # mkstemp creates 0600; carry the original file's mode across.
-        try:
-            os.chmod(tmp, os.stat(path).st_mode & 0o7777)
-        except OSError:
-            pass
-        os.replace(tmp, path)
-    except BaseException:
-        # Includes KeyboardInterrupt -- the whole point is that an interrupted
-        # run leaves the original untouched and no debris behind.
-        try:
-            os.unlink(tmp)
-        except OSError:
-            pass
-        raise
-
-
-def patch_core(values: dict) -> str:
-    """Rewrite the three class attrs, scoped to SaturatingPowerLawModel.
-
-    THE HAZARD THIS GUARDS. Neither `_t0` nor `_beta` is a unique attribute
-    name in btc_core/_simple.py: LogisticSCurveModel and GompertzModel both
-    define `_t0`, and StretchedExponentialModel defines `_beta`. An unscoped
-    or loosely scoped patch would rewrite another model's fitted parameters
-    with SPL's, and nothing would raise -- that model would just quietly
-    start fitting worse. So:
-
-      * the search window is the byte range from `class SaturatingPowerLaw-
-        Model` to the next top-level `class `, and every regex is anchored to
-        a line start at exactly four spaces of indentation;
-      * each attr must match exactly once inside that window;
-      * the window must contain no other `class ` line;
-      * and the finished text is diffed against the original: unless exactly
-        three lines changed and all three lie inside the window, nothing is
-        written.
-
-    Returns the new source text.
-    """
-    with open(CORE_PATH) as f:
-        src = f.read()
-
-    start = src.find(f"class {CLASS_NAME}")
-    if start == -1:
-        raise SystemExit(f"could not find `class {CLASS_NAME}` in {CORE_PATH}")
-    nxt = src.find("\nclass ", start + 1)
-    end = nxt if nxt != -1 else len(src)
-    section = src[start:end]
-
-    stray = [ln for ln in section.splitlines()[1:] if ln.startswith("class ")]
-    if stray:
-        raise SystemExit(f"section scoping is wrong: it also spans {stray}")
-
-    for name in ATTRS:
-        pat = re.compile(rf"^(    {re.escape(name)}\s*=\s*)[^#\n]+", re.M)
-        hits = pat.findall(section)
-        if len(hits) != 1:
-            raise SystemExit(
-                f"expected exactly 1 `{name}` assignment in {CLASS_NAME}, "
-                f"found {len(hits)}")
-        section = pat.sub(
-            lambda m: f"{m.group(1)}{values[name]:.6f}", section, count=1)
-
-    new_src = src[:start] + section + src[end:]
-
-    old_lines, new_lines = src.splitlines(), new_src.splitlines()
-    if len(old_lines) != len(new_lines):
-        raise SystemExit("patch changed the line count; refusing to write")
-    changed = [i for i, (a, b) in enumerate(zip(old_lines, new_lines)) if a != b]
-    # Both are 0-based line INDICES. `start` sits on the `class ...` line;
-    # `hi_line` lands on the blank separator that trails the section, one
-    # line before the NEXT `class`. Measured 2026-08-07:
-    #   356  class SaturatingPowerLawModel     <- lo_line
-    #   437  ''                                 } trailing blanks
-    #   438  ''                                 } hi_line
-    #   439  class BrokenPowerLawModel          <- excluded, and must stay so
-    #
-    # `<=` and `<` are BOTH safe here: the attr lines sit far above the
-    # trailing blanks, so no write can land on 437/438 either way, and the
-    # next class is excluded under both. `<=` is kept only because it makes
-    # the interval read as closed on both ends, matching the variable names.
-    #
-    # What actually matters is the upper edge: `_t0` is NOT a unique
-    # attribute name (GompertzModel and LogisticSCurveModel both have one),
-    # so a window that reached line 439 would let --update silently rewrite
-    # a different model's parameters. Do not loosen this bound.
-    lo_line = src[:start].count("\n")
-    hi_line = src[:end].count("\n")
-    # At most the three attr lines, and every one of them inside the class.
-    # Fewer than three is legitimate: re-running on unchanged price data
-    # rewrites the same digits, so the tool must be idempotent rather than
-    # treating a no-op as a scoping failure.
-    if len(changed) > len(ATTRS) or not all(lo_line <= i <= hi_line
-                                            for i in changed):
-        raise SystemExit(
-            f"refusing to write: expected at most {len(ATTRS)} changed lines "
-            f"inside 0-based lines {lo_line}-{hi_line} (inclusive), "
-            f"got {changed}")
-
-    print("\n--update: patching btc_core/_simple.py")
-    print(f"    scope: lines {lo_line + 1}-{hi_line + 1} (class {CLASS_NAME})")
-    if not changed:
-        print("    (no change -- the file already carries this fit)")
-    for i in changed:
-        print(f"    -{old_lines[i]}")
-        print(f"    +{new_lines[i]}")
-    diff = list(difflib.unified_diff(old_lines, new_lines, n=0, lineterm=""))
-    print(f"    unified diff: {sum(1 for d in diff if d.startswith('+') and not d.startswith('+++'))} "
-          f"additions / "
-          f"{sum(1 for d in diff if d.startswith('-') and not d.startswith('---'))} deletions")
-    return new_src
+# The scoped/atomic patcher used to live here. It now lives in
+# tools/_patch_class_attrs.py, shared with fit_gompertz.py and fit_logistic.py
+# -- the other two tools that patch a `_t0`, which is exactly the attribute
+# name all three of these models collide on. That module documents the hazard
+# and carries the guards; btc_web/test_patch_class_attrs.py tests them.
 
 
 def main() -> None:
@@ -402,12 +273,12 @@ def main() -> None:
             "box. Report the numbers above before writing anything."
         )
 
-    new_src = patch_core({"_log10_L": l10L, "_t0": t0, "_beta": beta})
-    _atomic_write(CORE_PATH, new_src)
-    print("btc_core/_simple.py updated. Verify with:\n"
-          "    git diff btc_core/_simple.py\n"
-          "    btc_venv/bin/python3 -m pytest btc_web/test_models.py "
-          "-k Saturating -v")
+    if apply_and_report(CORE_PATH, CLASS_NAME,
+                        {"_log10_L": l10L, "_t0": t0, "_beta": beta}):
+        print("btc_core/_simple.py updated. Verify with:\n"
+              "    git diff btc_core/_simple.py\n"
+              "    btc_venv/bin/python3 -m pytest btc_web/test_models.py "
+              "-k Saturating -v")
 
 
 if __name__ == "__main__":

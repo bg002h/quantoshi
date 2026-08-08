@@ -498,7 +498,7 @@ def _logi_coeff_table():
     ])
 
 
-def _spl_table(headers, rows, first_col_width=None):
+def _spl_table(headers, rows, first_col_width=None, caption=None):
     """Small bordered table for the Saturating Power Law card.
 
     Static numbers only — every one of them is a property of a *past* data
@@ -525,22 +525,40 @@ def _spl_table(headers, rows, first_col_width=None):
             cells.append(html.Td(html.Strong(txt) if strong or j == 0 else txt,
                                  style=style))
         body.append(html.Tr(cells))
-    return html.Table(
+    table = html.Table(
         [html.Thead(html.Tr([html.Th(h, style=hdr) for h in headers])),
          html.Tbody(body)],
-        style={"marginBottom": "16px", "width": "100%", "borderCollapse": "collapse"},
+        style={"marginBottom": "4px" if caption else "16px",
+               "width": "100%", "borderCollapse": "collapse"},
     )
+    if caption is None:
+        return table
+    return html.Div([
+        table,
+        html.Div(caption, style={"fontSize": UI_FONT_SM, "color": FALLBACK_MODEL_GRAY,
+                                 "marginBottom": "16px"}),
+    ])
 
 
-# ── Saturating Power Law: the static analysis tables ───────────────────────
-# All four regenerate from `btc_venv/bin/python3 tools/analyze_spl.py`
-# (sections [0], [0b], [4]). RMSE is quoted to 4 decimals deliberately: six
-# implies a discrimination between these fits that is not there.
+# ── Saturating Power Law: the pinned analysis figures ──────────────────────
+# EVERY number on this card is pinned, including _spl_coeff_table() below.
+# The card compares two named snapshots — 2026-06-03 and 2026-08-06 — and a
+# figure that quietly recomputed would turn "the later window" into "whenever
+# you loaded the page", dissolving the comparison the whole card rests on.
+# Refreshed by hand, never automatically.
+#
+# TO REFRESH: run `btc_venv/bin/python3 tools/analyze_spl.py`, take sections
+# [0], [0b] and [4], and update _SPL_WINDOW_LABEL, the date labels and the
+# prose dates in _items.py IN THE SAME EDIT — a refreshed number under a stale
+# date is worse than no refresh. RMSE stays at 4 decimals: six implies a
+# discrimination between these fits that is not there.
+_SPL_WINDOW_LABEL = "6 Aug 2026"   # the later of the two pinned windows
+
 
 def _spl_two_window_table():
     """Section [0] — the same fit, nine weeks apart."""
     return _spl_table(
-        ["", "data through 3 Jun 2026", "data through 6 Aug 2026"],
+        ["", "data through 3 Jun 2026", f"data through {_SPL_WINDOW_LABEL}"],
         [
             ["n", "5,792", "5,856"],
             ["last price", "$64,813", "$64,294"],
@@ -555,6 +573,8 @@ def _spl_two_window_table():
             ["p", "0.066", "0.0001"],
         ],
         first_col_width="38%",
+        caption=f"Both columns are complete refits, pinned. Later window: "
+                f"data through {_SPL_WINDOW_LABEL}.",
     )
 
 
@@ -571,8 +591,10 @@ def _spl_by_cutoff_table():
             ["2026-02-06", "$67,196", "$1,000T — pinned at the fitting cap",
              "55.0", "−0.14", "does not reject"],
             ["2026-06-03", "$64,813", "$34.3T", "28.3", "2.28", "does not reject"],
-            ["2026-08-06 (current)", "$64,294", "$14.8T", "23.9", "13.65", "REJECTS"],
+            ["2026-08-06", "$64,294", "$14.8T", "23.9", "13.65", "REJECTS"],
         ],
+        caption=f"Each row is a complete refit on data through that date. "
+                f"Pinned; last window {_SPL_WINDOW_LABEL}.",
     )
 
 
@@ -593,9 +615,12 @@ def _spl_cycle_phase_table():
             ["2025-08-06", "+0.060 — above trend", "no ceiling (pinned at the cap)"],
             ["2026-02-06", "+0.046 — above trend", "no ceiling (pinned at the cap)"],
             ["2026-06-03", "−0.022 — below trend", "$34.3T"],
-            ["2026-08-06 (current)", "−0.082 — below trend", "$14.8T"],
+            ["2026-08-06", "−0.082 — below trend", "$14.8T"],
         ],
         first_col_width="22%",
+        caption=f"Residual is the mean log₁₀ residual about a power law "
+                f"fitted to that same window, over the window’s final year. "
+                f"Pinned; last window {_SPL_WINDOW_LABEL}.",
     )
 
 
@@ -614,6 +639,9 @@ def _spl_profile_table():
             ["1000 (effectively no ceiling)", "0.2942", "—", "+1.13"],
         ],
         first_col_width="26%",
+        caption=f"Profile computed on data through {_SPL_WINDOW_LABEL}, "
+                "pinned. The shape — steep below, flat above — is what the "
+                "argument rests on; the row values move with the window.",
     )
 
 
@@ -628,28 +656,31 @@ _SPL_L_RANGE_FACTOR = 93     # hi / lo
 
 
 def _spl_coeff_table():
-    """Live coefficients for the Saturating Power Law.
+    """Coefficients of the fit on the pinned 2026-08-06 window.
 
-    The ceiling is never shown alone: this model's whole finding is that L
-    moves by ~93x across data windows, so the row for the current fit is
-    followed immediately by the range the same fit returns elsewhere. See
-    the card body and spec section 3.1.
+    DELIBERATELY NOT LIVE — unlike every other _*_coeff_table() here, which
+    reads _app_ctx.PRICE_MODELS so a refit shows up on the next page load.
+    This card's argument is a comparison of two named snapshots; if the
+    "2026-08-06" column silently became "whenever you loaded the page", the
+    two dates would stop being two dates and the comparison would dissolve.
+    A card arguing that these numbers move has to hold still itself. The
+    plotted SatPL curve does follow the live fit, which the card says out
+    loud near the top. Do not "fix" this back to a live lookup.
+
+    The ceiling is never shown alone: the row for this window is followed
+    immediately by the range the same fit returns on other windows.
     """
-    m = _app_ctx.PRICE_MODELS.get("spl")
-    if m is None:
-        return _coeff_table([("(Saturating Power Law not loaded)", "—")])
-    L_coin = 10.0 ** m._log10_L
-    L_cap_T = L_coin * 21e6 / 1e12
     return _coeff_table([
-        ("β (early-time power-law exponent)", f"{m._beta:.4f}"),
-        ("t₀ (roll-over, yr since 2009-07-25)", f"{m._t0:.4f}"),
-        ("L (ceiling, log₁₀ USD/BTC)", f"{m._log10_L:.4f}"),
-        ("L on THIS data window",
-         f"${L_coin:,.0f} / BTC  ·  ${L_cap_T:.1f}T market cap"),
+        ("data window (fixed)", _SPL_WINDOW_LABEL),
+        ("β (early-time power-law exponent)", "5.1040"),
+        ("t₀ (roll-over, yr since 2009-07-25)", "23.8691"),
+        ("L (ceiling, log₁₀ USD/BTC)", "5.8468"),
+        (f"L on the {_SPL_WINDOW_LABEL} window",
+         "$702,828 / BTC  ·  $14.8T market cap"),
         ("L on other windows (same fit, same code)",
          f"${_SPL_L_RANGE_LO_T:.1f}T … ${_SPL_L_RANGE_HI_T:,.0f}T "
          f"(fitting cap) — a {_SPL_L_RANGE_FACTOR}× range"),
-        ("σ (residual std = fit RMSE)", f"{m._sigma:.4f}"),
+        ("σ (residual std = fit RMSE)", "0.2939"),
     ])
 
 

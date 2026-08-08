@@ -2235,12 +2235,26 @@ into "is $t_0$ finite?", a question the data can be asked directly.
                             # Everything below is prose and tables full of
                             # dollar amounts. The static /mi page loads MathJax
                             # with '$'..'$' as inline-math delimiters and
-                            # typesets the whole document, which would eat the
-                            # text between any two of them; tex2jax_ignore is
-                            # MathJax's default ignoreHtmlClass. Inert in the
-                            # Dash app, which only typesets mathjax=True
-                            # components. The formula block above stays outside.
+                            # typesets the whole document, which eats the text
+                            # between any two of them. "mathjax_ignore" is the
+                            # v3 default ignoreHtmlClass -- NOT "tex2jax_ignore",
+                            # which is the v2 name and is inert here, and
+                            # static_pages.py sets no options.ignoreHtmlClass of
+                            # its own. Inert in the Dash app, which only typesets
+                            # mathjax=True components; the onion /mi ships no
+                            # MathJax at all. So this only ever shows up on the
+                            # clearnet /mi -- verify there, not on /9.
+                            # The formula block above stays outside.
                             html.Div([
+                                html.P(html.Em(
+                                    "Every figure on this card is pinned to two data windows — "
+                                    "3 June 2026 and 6 August 2026 — and does not move as new "
+                                    "prices arrive. That fixed comparison is the point being "
+                                    "made. The plotted SatPL curve is a different matter: it "
+                                    "always uses the latest fit, so it can differ from the "
+                                    "numbers below."
+                                ), style={"marginBottom": "16px"}),
+
                                 html.H6("The headline: the ceiling moves when you add data"),
                                 html.P(
                                     "Refitting this model on data through 3 June 2026 puts the "
@@ -2313,14 +2327,17 @@ into "is $t_0$ finite?", a question the data can be asked directly.
 
                                 html.H6("Fitted Coefficients"),
                                 _spl_coeff_table(),
+                                # Pinned to the 2026-08-06 window, like every
+                                # other figure on this card. See the refresh
+                                # note above _SPL_WINDOW_LABEL in ._helpers.
                                 html.P(
                                     "Read those with the caveat attached. The fitted roll-over at "
                                     "t₀ ≈ 23.9 years sits 1.4× beyond the last "
-                                    "observation — the price history reaches t = 17.0 years — "
-                                    "so the part of the curve that would fix the ceiling lies entirely "
-                                    "outside the data. Refits on other windows put t₀ anywhere "
-                                    "from 22 to 55 years, and twice the fit stopped asking for a "
-                                    "ceiling at all."
+                                    "observation — on that window the price history reaches "
+                                    "t = 17.0 years — so the part of the curve that would fix "
+                                    "the ceiling lies entirely outside the data. Refits on other "
+                                    "windows put t₀ anywhere from 22 to 55 years, and twice "
+                                    "the fit stopped asking for a ceiling at all."
                                 ),
 
                                 html.H6("The fitted ceiling tracks the cycle, not a ceiling"),
@@ -2424,6 +2441,6 @@ into "is $t_0$ finite?", a question the data can be asked directly.
                                         "in L, which dominates everything else at long horizons."
                                     ),
                                 ]),
-                            ], className="tex2jax_ignore"),
+                            ], className="mathjax_ignore"),
                         ], title="Saturating Power Law (diagnostic)", item_id="mi-spl"),
     ]

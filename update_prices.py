@@ -6,6 +6,7 @@ then rebuild model_data.pkl via tools/build_bm_model.py.
 Usage:
     python3 update_prices.py            # fetch, append, rebuild model
     python3 update_prices.py --dry-run  # preview only; no file changes
+    python3 update_prices.py --lag N    # skip the N most recent days (default 8)
 
 Data sources (tried in order):
   1. Binance klines  — daily closes, 8 decimal places
@@ -26,6 +27,24 @@ REPO_ROOT = Path(__file__).parent.resolve()
 CSV_PATH  = REPO_ROOT / "BitcoinPricesDaily.csv"
 
 DRY_RUN   = "--dry-run" in sys.argv
+
+
+def _parse_lag(argv: list[str], default: int = 8) -> int:
+    """Parse `--lag N` from argv; fall back to `default` if absent/malformed.
+
+    The settling period (days skipped at the recent end) exists because data
+    sources revise recent closes for up to ~7 days. Lowering it locks in
+    less-settled values permanently (appends are forward-only), so the default
+    stays at 8 — callers must opt in explicitly.
+    """
+    if "--lag" in argv:
+        i = argv.index("--lag")
+        if i + 1 < len(argv):
+            try:
+                return max(0, int(argv[i + 1]))
+            except ValueError:
+                pass
+    return default
 
 
 # ── Date helpers ─────────────────────────────────────────────────────────────
@@ -158,9 +177,10 @@ def main() -> None:
     print(f"Mode  : {'DRY RUN (no changes)' if DRY_RUN else 'LIVE'}\n")
 
     last_date  = parse_last_date(CSV_PATH)
-    # Skip the 8 most recent days — data sources can be revised for up to ~7
+    # Skip the N most recent days — data sources can be revised for up to ~7
     # days after the fact; only include prices that have had time to settle.
-    SETTLE_DAYS = 8
+    # Default 8; override with `--lag N` (locks in less-settled recent closes).
+    SETTLE_DAYS = _parse_lag(sys.argv)
     fetch_end  = datetime.date.today() - datetime.timedelta(days=SETTLE_DAYS)
 
     print(f"Last CSV entry : {date_fmt(last_date)}  ({last_date.isoformat()})")

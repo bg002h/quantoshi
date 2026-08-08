@@ -103,6 +103,48 @@ same file it was testing.
 
 ---
 
+### F-4 — MC free-tier badge disagrees with what the server charges
+**Severity:** Important · **Owning phase:** next payment/MC touch · **Found:**
+2026-08-07, during spl Phase 1 Task 4 review · **Pre-existing**
+
+`btc_web/assets/_mc_cost_consts.js` hardcodes the free-tier model list, and it
+has drifted from the server's derived list. Both directions are wrong:
+
+| | |
+|---|---|
+| UI says **free**, server **charges** | `exp`, `lppl` |
+| UI says **paid**, server gives free | `ecfg_1d_1u` |
+
+**Consequence:** a user selecting `exp` or `lppl` for Monte Carlo sees no
+payment prompt in the UI's cost display, then hits a charge. The reverse case
+is milder — `ecfg_1d_1u` is free but advertised as paid, so it is simply never
+chosen for free use.
+
+`spl` is in neither list and is therefore unaffected — it is correctly paid on
+both sides. That is why this was not introduced by the spl work.
+
+**Verify in one command:**
+```bash
+btc_venv/bin/python3 - <<'EOF'
+import sys, json, re, pathlib
+sys.path[:0] = ['btc_web', '.']
+import mc_cache
+js = pathlib.Path('btc_web/assets/_mc_cost_consts.js').read_text()
+client = set(json.loads(re.search(r'"CACHED_MODEL_KEYS"\s*:\s*(\[[^\]]*\])', js).group(1)))
+server = set(mc_cache._derive_cached_model_keys())
+print('UI free / server charges:', sorted(client - server))
+print('UI paid / server free   :', sorted(server - client))
+EOF
+```
+
+**Fix sketch:** the JS list must be *generated* from `mc_cache._derive_cached_model_keys()`,
+the way `_colors_generated.js` is generated from `colors.py` — not hand-kept.
+Any hand-maintained mirror of a server-side list will drift again. If a
+generator is too much for now, at minimum add a test asserting the two sets are
+equal, so the next drift is a red suite rather than a billing surprise.
+
+---
+
 ## Closed
 
 _none yet_

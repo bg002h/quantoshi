@@ -268,6 +268,64 @@ call, not a lint rule.
 
 ---
 
+### F-8 — 18 fit tools still carry a private copy of the `--update` patcher
+**Severity:** Minor · **Owning phase:** next `btc_core/` param maintenance ·
+**Found:** 2026-08-08, while building `tools/_patch_class_attrs.py` ·
+**Pre-existing**
+
+21 `tools/fit_*.py` scripts support `--update`. Three now use the shared,
+tested patcher (`fit_spl`, `fit_gompertz`, `fit_logistic` — the three that
+patch `_t0`, the attribute name they collide on). The other **18** still
+inline their own regex. They were deliberately left alone: they are believed
+correct, none is covered by a test, and a sweeping rewrite risks breaking
+`--update` for models nobody is touching.
+
+Two of the 18 are **unscoped** — they patch the first match in the whole file
+and rely on the target class happening to be first:
+
+| tool | file patched | scoping |
+|---|---|---|
+| `tools/fit_lppl.py:110-115` | `btc_core/_lppl.py` | none — `re.subn(..., src, count=1)` over the whole file |
+| `tools/fit_grdy.py:346-349` | `btc_core/_basis.py` | none — `re.sub(..., src, count=1)` over the whole file |
+
+**This does not reproduce today** (which is why it is Minor, not Important):
+`LPPLModel` is the first class in `_lppl.py`, and `_alpha`/`_beta` appear
+exactly once in `_basis.py`. But `_lppl.py` has **11 classes each defining
+`_A`, `_B`, `_C`, `_W`, `_PHI`, `_D`**, so inserting or reordering a class
+above `LPPLModel` silently redirects `fit_lppl.py --update` onto a different
+LPPL variant. Nothing would raise.
+
+**Verify in one command:**
+```bash
+btc_venv/bin/python3 -c "
+import re, pathlib
+src = pathlib.Path('btc_core/_lppl.py').read_text()
+cls = [(m.start(), m.group(1)) for m in re.finditer(r'^class (\w+)', src, re.M)]
+hit = [m.start() for m in re.finditer(r'^    _A\s*=', src, re.M)]
+own = lambda p: max((c for c in cls if c[0] < p), key=lambda c: c[0])[1]
+print(f'{len(hit)} classes define _A; fit_lppl.py patches {own(hit[0])}')"
+# 11 classes define _A; fit_lppl.py patches LPPLModel
+```
+
+**Fix sketch:** per tool, delete the private regex and call
+`apply_and_report(path, class_name, values)` from
+`tools/_patch_class_attrs.py`. Migrate in ones and twos, and for each: run the
+tool **without** `--update` and diff its printed fit against the pre-migration
+run (must be byte-identical), then exercise `--update` against a *copy* of the
+target `btc_core/` file with the tool's `CORE_PATH` repointed at it. Do the
+two unscoped tools first; the rest are cleanup.
+
+**A second bug the shared patcher fixes on adoption.** The old
+`f"{val:>11.6f}"` rendering pads the value, but the regex's own capture group
+already absorbs the padding in the file — so the number moved **3 columns
+right on every `--update` run**, plus 2 trailing spaces. Reproduced on
+`GompertzModel._K`: col 22 → 25 → 28 → 31 across three runs with the *same*
+fitted value. That is why `LogisticSCurveModel`'s attribute block currently
+sits further right than `GompertzModel`'s and carries trailing whitespace.
+Every unmigrated tool using the `:>Nf` idiom still creeps.
+
+---
+
 ## Closed
 
 _none yet_

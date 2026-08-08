@@ -175,6 +175,81 @@ caches.
 
 ---
 
+### F-6 — `plo`, `sexp` and `logi` are missing from `_SCANNER_ORDER`
+**Severity:** Minor · **Owning phase:** next Display-Models / scanner touch ·
+**Found:** 2026-08-07 by `tools/check_model_registration.py` · **Pre-existing**
+
+`btc_web/callbacks/scanner.py:22` lists 15 keys. The scanner's own filters
+drop `exp`, the `cfg_*`/`ecfg_*` families, `_HYBPPL_FAMILY_EXTRAS` and the
+non-active LPPL variants — but **not** `plo`, `sexp` or `logi`. Those three
+reach the ordering step and miss the list, so `_scanner_sort_key`'s
+`except ValueError` returns `len(_SCANNER_ORDER)` and sinks them below `mc`
+instead of placing them in their Display Models slot.
+
+Silent by construction: the rows still render, just in the wrong place, and
+the `except ValueError` is exactly what stops it being an error.
+
+**Verify in one command:**
+```bash
+btc_venv/bin/python3 tools/check_model_registration.py | grep scanner
+```
+
+**Fix sketch:** append `"plo", "sexp", "logi"` next to `"spl"` in
+`_SCANNER_ORDER` (order within the deprioritized run is cosmetic), then delete
+the three `("<model>", "scanner")` entries from `KNOWN_HOLES` in
+`tools/check_model_registration.py`. That deletion is the regression test —
+`TestLinterIntegrity::test_known_holes_still_reproduce` goes red if the entries
+are left behind.
+
+---
+
+### F-7 — 4 models are instantiated for the resqr fit but never fitted
+**Severity:** Important · **Owning phase:** next `model_data.pkl` /
+`build_bm_model.py` touch · **Found:** 2026-08-07 by
+`tools/check_model_registration.py` · **Pre-existing** (3 of the 4 predate
+`spl`)
+
+`tools/build_bm_model.py::_build_model_instances` builds 91 instances. Its
+only consumer, `_fit_all_resqr`, iterates
+`RESQR_FLAGSHIP_MODELS + _HYBPPL_CONFIG_PARAMS + _EPPL_CONFIG_PARAMS` = 87
+keys. The four instances built and never used are **`plo`, `sexp`, `logi`,
+`spl`** — none appears in `RESQR_FLAGSHIP_MODELS` (`build_bm_model.py:47-52`).
+
+**Consequence:** those four carry no `_resqr` bundle, so
+`btc_core/_helpers.py::_resqr_price_at` returns `None` and the caller falls
+back to constant-σ *silently* (`:96-101`, documented as a fallback). Tab 1's
+sigma mode defaults to `"resqr"` (`btc_web/tab_defaults.py:87`), so on the
+default chart these four render constant-σ bands while every other overlay on
+the same axes renders residual-QR bands. Nothing logs, nothing fails.
+
+Either they belong in `RESQR_FLAGSHIP_MODELS`, or their construction in
+`_build_model_instances` is dead code — it is one or the other, and today the
+code asserts both.
+
+**Verify in one command:**
+```bash
+btc_venv/bin/python3 -c "
+import sys, re, pathlib; sys.path[:0]=['.','btc_web']
+import tools.build_bm_model as b
+src = pathlib.Path('tools/build_bm_model.py').read_text()
+built = set(re.findall(r'instances\[\"([a-z0-9_]+)\"\]', src))
+print('built but never resqr-fitted:',
+      sorted(built - set(b.RESQR_FLAGSHIP_MODELS)))"
+# built but never resqr-fitted: ['logi', 'plo', 'sexp', 'spl']
+```
+
+**Fix sketch:** decide per model. If a diagnostic model should get bands,
+add it to `RESQR_FLAGSHIP_MODELS` and rebuild `model_data.pkl` (the resqr fit
+runs inside `build_bm_model.py`, so `update_prices.py` picks it up on the next
+daily append). If not, drop its line from `_build_model_instances` so the two
+lists cannot disagree. Then add a check to
+`tools/check_model_registration.py` asserting
+`instances-literals ⊆ resqr scope` — the linter deliberately does **not**
+gate on this today, because which of the two fixes is correct is a judgement
+call, not a lint rule.
+
+---
+
 ## Closed
 
 _none yet_

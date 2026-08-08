@@ -145,6 +145,36 @@ equal, so the next drift is a red suite rather than a billing surprise.
 
 ---
 
+### F-5 — `/mi` and `/faq` cache for 24h, so card edits are invisible to returning readers
+**Severity:** Minor · **Owning phase:** next static-pages touch · **Found:**
+2026-08-07, Task 7 · **Pre-existing**
+
+`btc_web/static_pages.py:328` sets `Cache-Control: public, max-age=86400` on
+the static `/mi` and `/faq` routes. The Dash equivalents (`/9`, `/10`) send
+`no-cache, no-store, must-revalidate`.
+
+**Consequence:** after a deploy that changes a Model Info card, anyone who
+loaded `/mi` in the previous 24 hours keeps seeing the old copy — including
+missing images for assets added in the same deploy. Observed during Task 7: a
+first `/mi.30` load replayed a pre-Task-6 copy with the profile figure absent;
+cache-busting rendered both.
+
+The long TTL is deliberate and worth keeping — these pages are rendered once at
+import, so they only change on deploy, and the bandwidth saving matters for the
+onion service.
+
+**Fix sketch:** keep the TTL but add a content-derived `ETag`
+(`md5(_STATIC_MI_HTML)`) and honour `If-None-Match`. Returning readers then pay
+one conditional request and get a 304 when nothing changed, but see new content
+immediately after a deploy. Alternatively `max-age=0, must-revalidate` plus the
+ETag — same freshness, marginally more requests.
+
+**Interim:** a deploy that must be visible immediately can be announced as
+"hard-refresh `/mi`", or the Dash route `/9.N` linked instead, which never
+caches.
+
+---
+
 ## Closed
 
 _none yet_

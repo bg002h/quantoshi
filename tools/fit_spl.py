@@ -297,12 +297,23 @@ def patch_core(values: dict) -> str:
     if len(old_lines) != len(new_lines):
         raise SystemExit("patch changed the line count; refusing to write")
     changed = [i for i, (a, b) in enumerate(zip(old_lines, new_lines)) if a != b]
-    # Both are 0-based line INDICES, and both are INCLUSIVE: `start` sits on
-    # the `class ...` line, so counting the newlines before it gives that
-    # line's index; `end` sits on the newline that ends the section's last
-    # line, so counting the newlines before it gives THAT line's index. The
-    # window test below must therefore be `<=` on both ends -- with `<` the
-    # section's own last line falls outside the permitted range.
+    # Both are 0-based line INDICES. `start` sits on the `class ...` line;
+    # `hi_line` lands on the blank separator that trails the section, one
+    # line before the NEXT `class`. Measured 2026-08-07:
+    #   356  class SaturatingPowerLawModel     <- lo_line
+    #   437  ''                                 } trailing blanks
+    #   438  ''                                 } hi_line
+    #   439  class BrokenPowerLawModel          <- excluded, and must stay so
+    #
+    # `<=` and `<` are BOTH safe here: the attr lines sit far above the
+    # trailing blanks, so no write can land on 437/438 either way, and the
+    # next class is excluded under both. `<=` is kept only because it makes
+    # the interval read as closed on both ends, matching the variable names.
+    #
+    # What actually matters is the upper edge: `_t0` is NOT a unique
+    # attribute name (GompertzModel and LogisticSCurveModel both have one),
+    # so a window that reached line 439 would let --update silently rewrite
+    # a different model's parameters. Do not loosen this bound.
     lo_line = src[:start].count("\n")
     hi_line = src[:end].count("\n")
     # At most the three attr lines, and every one of them inside the class.

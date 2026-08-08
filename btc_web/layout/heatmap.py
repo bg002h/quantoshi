@@ -23,6 +23,9 @@ from colors import (NEAR_BLACK, DIM_TEXT, SPINE_COLOR_FALLBACK,
 # and Outputs) import from here so the rendered pill ids and the callback
 # binding set stay in sync. Any divergence causes Dash to raise
 # ReferenceError on pill click and silently abort the callback.
+# THIRD consumer: layout/mc_controls.py::_mc_model_src_options builds the MC
+# quantile-bands dropdown from this same list, so editing it changes an MC
+# surface too — that omission is why one such change went unnoticed.
 _HM_PILL_MODELS_BASE = [
     "bub", "pl", "lppl", "hybppl",
     "pca", "grdy", "eppl", "gomp", "bpl", "plo", "sexp", "logi", "spl",

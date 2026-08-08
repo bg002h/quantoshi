@@ -108,3 +108,40 @@ class TestAppWiring:
         """Diagnostic models skip the navbar ticker, like gomp/bpl/plo/sexp/logi."""
         from callbacks.ticker import _MODEL_CYCLE
         assert "spl" not in _MODEL_CYCLE
+
+
+class TestModelInfoCard:
+    def test_mi_spl_is_appended_last_in_both_lists(self):
+        """Deep links are positional: _MODEL_INFO_ITEMS[n-1]. Inserting
+        mid-list silently breaks every existing /mi.23../mi.29 link."""
+        from layout.model_info import _MODEL_INFO_ITEM_IDS
+        from callbacks.routing import _MODEL_INFO_ITEMS
+        assert _MODEL_INFO_ITEM_IDS[-1] == "mi-spl"
+        assert _MODEL_INFO_ITEMS[-1] == "mi-spl"
+
+    def test_the_two_lists_agree(self):
+        """layout/model_info is the SSOT (so stated at routing.py:535);
+        routing.py holds a hand-maintained mirror. Nothing guarded this
+        three-way sync before spl."""
+        from layout.model_info import _MODEL_INFO_ITEM_IDS
+        from callbacks.routing import _MODEL_INFO_ITEMS
+        assert list(_MODEL_INFO_ITEM_IDS) == list(_MODEL_INFO_ITEMS)
+
+    def test_accordion_order_matches_the_id_list(self):
+        from layout.model_info import _MODEL_INFO_ITEM_IDS
+        from layout.model_info._items import _build_accordion_items
+        rendered = [getattr(i, "item_id", None) for i in _build_accordion_items()]
+        assert rendered == list(_MODEL_INFO_ITEM_IDS)
+
+    def test_pre_existing_deep_links_still_resolve(self):
+        """The positional hazard, pinned from the other side. These are the
+        item_ids /mi.23../mi.29 resolved to BEFORE spl was added; appending
+        mi-spl last must leave every one of them where it was."""
+        from callbacks.routing import _mi_item_for_pathname
+        for n, expected in enumerate(
+            ["mi-s2f", "mi-mc", "mi-ef", "mi-u1",
+             "mi-compare", "mi-regimes", "mi-citadel"], start=23
+        ):
+            assert _mi_item_for_pathname(f"/mi.{n}") == expected
+            assert _mi_item_for_pathname(f"/9.{n}") == expected
+        assert _mi_item_for_pathname("/mi.30") == "mi-spl"

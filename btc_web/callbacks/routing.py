@@ -534,6 +534,10 @@ _app_ctx.app.clientside_callback(
 # Must match the actual accordion ORDER in layout/model_info.
 # Single source of truth is layout/model_info/__init__.py::_MODEL_INFO_ITEM_IDS —
 # mirrored here verbatim. Keep in sync when adding new accordion items.
+#
+# APPEND-ONLY: _mi_item_for_pathname() below indexes this list positionally,
+# so inserting an id mid-list silently re-points every later /mi.N and /9.N
+# link. Guarded by test_spl_registration.py::TestModelInfoCard.
 _MODEL_INFO_ITEMS = [
     "mi-bub", "mi-qr", "mi-pl", "mi-lppl", "mi-lp2",
     "mi-lppl-weighting", "mi-linppl", "mi-hybppl", "mi-hybppl-dd",
@@ -542,6 +546,7 @@ _MODEL_INFO_ITEMS = [
     "mi-plo", "mi-sexp", "mi-logi",
     "mi-s2f", "mi-mc", "mi-ef", "mi-u1",
     "mi-compare", "mi-regimes", "mi-citadel",
+    "mi-spl",
 ]
 
 

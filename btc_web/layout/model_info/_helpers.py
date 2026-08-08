@@ -498,6 +498,161 @@ def _logi_coeff_table():
     ])
 
 
+def _spl_table(headers, rows, first_col_width=None):
+    """Small bordered table for the Saturating Power Law card.
+
+    Static numbers only — every one of them is a property of a *past* data
+    window, so they cannot be read off the live model. Regenerate with
+        btc_venv/bin/python3 tools/analyze_spl.py
+    and update the constants below. Kept as Dash components rather than
+    Markdown because dollar amounts inside a mathjax=True dcc.Markdown are
+    parsed as inline-math delimiters.
+    """
+    hdr = {"paddingRight": "12px", "paddingBottom": "6px", "textAlign": "left",
+           "borderBottom": f"1px solid {TABLE_BORDER_DARK}", "fontSize": UI_FONT_BASE}
+    cell = {"paddingRight": "12px", "paddingBottom": "4px", "paddingTop": "4px",
+            "fontSize": UI_FONT_BASE,
+            "borderBottom": f"1px solid {TABLE_BORDER_MID}"}
+    body = []
+    for row in rows:
+        cells = []
+        for j, v in enumerate(row):
+            strong = isinstance(v, str) and v.startswith("**") and v.endswith("**")
+            txt = v[2:-2] if strong else v
+            style = dict(cell)
+            if j == 0 and first_col_width:
+                style["width"] = first_col_width
+            cells.append(html.Td(html.Strong(txt) if strong or j == 0 else txt,
+                                 style=style))
+        body.append(html.Tr(cells))
+    return html.Table(
+        [html.Thead(html.Tr([html.Th(h, style=hdr) for h in headers])),
+         html.Tbody(body)],
+        style={"marginBottom": "16px", "width": "100%", "borderCollapse": "collapse"},
+    )
+
+
+# ── Saturating Power Law: the static analysis tables ───────────────────────
+# All four regenerate from `btc_venv/bin/python3 tools/analyze_spl.py`
+# (sections [0], [0b], [4]). RMSE is quoted to 4 decimals deliberately: six
+# implies a discrimination between these fits that is not there.
+
+def _spl_two_window_table():
+    """Section [0] — the same fit, nine weeks apart."""
+    return _spl_table(
+        ["", "data through 3 Jun 2026", "data through 6 Aug 2026"],
+        [
+            ["n", "5,792", "5,856"],
+            ["last price", "$64,813", "$64,294"],
+            ["ceiling L (market cap)", "**$34.3T**", "**$14.8T**"],
+            ["t₀ (yr)", "28.31", "23.87"],
+            ["β", "5.0910", "5.1040"],
+            ["RMSE", "0.2945", "0.2939"],
+            ["variance removed vs PL", "0.0394%", "0.2329%"],
+            ["likelihood-ratio statistic", "2.2802", "13.6536"],
+            ["vs boundary 5% critical value 2.7055",
+             "does not reject", "**REJECTS**"],
+            ["p", "0.066", "0.0001"],
+        ],
+        first_col_width="38%",
+    )
+
+
+def _spl_by_cutoff_table():
+    """Section [0b] — the instability is systematic, not a one-off."""
+    return _spl_table(
+        ["data through", "last price", "ceiling L (market cap)",
+         "t₀ (yr)", "LRT", "verdict at 5%"],
+        [
+            ["2024-08-06", "$56,308", "$10.7T", "22.4", "6.01", "REJECTS"],
+            ["2025-02-06", "$97,846", "$44.1T", "29.8", "0.51", "does not reject"],
+            ["2025-08-06", "$114,663", "$1,000T — pinned at the fitting cap",
+             "55.1", "−0.11", "does not reject"],
+            ["2026-02-06", "$67,196", "$1,000T — pinned at the fitting cap",
+             "55.0", "−0.14", "does not reject"],
+            ["2026-06-03", "$64,813", "$34.3T", "28.3", "2.28", "does not reject"],
+            ["2026-08-06 (current)", "$64,294", "$14.8T", "23.9", "13.65", "REJECTS"],
+        ],
+    )
+
+
+def _spl_cycle_phase_table():
+    """Where each window ended relative to the power-law trend, against the
+    ceiling that window's refit returned.
+
+    The residual column is the mean log10 residual about a power law fitted
+    to that same window, over the window's final year (regenerate alongside
+    section [0b]).
+    """
+    return _spl_table(
+        ["data through", "window ended (mean log₁₀ residual, final year)",
+         "ceiling that window returned"],
+        [
+            ["2024-08-06", "−0.055 — below trend", "$10.7T"],
+            ["2025-02-06", "+0.044 — above trend", "$44.1T"],
+            ["2025-08-06", "+0.060 — above trend", "no ceiling (pinned at the cap)"],
+            ["2026-02-06", "+0.046 — above trend", "no ceiling (pinned at the cap)"],
+            ["2026-06-03", "−0.022 — below trend", "$34.3T"],
+            ["2026-08-06 (current)", "−0.082 — below trend", "$14.8T"],
+        ],
+        first_col_width="22%",
+    )
+
+
+def _spl_profile_table():
+    """Section [4] — SSE profile with t0 held fixed. Steep below, flat above."""
+    return _spl_table(
+        ["t₀ held fixed (yr)", "RMSE", "implied ceiling (market cap)",
+         "ΔSSE vs best"],
+        [
+            ["20", "0.2944", "$7T", "+1.74"],
+            ["25 (best on this grid)", "0.2939", "$18T", "0.00"],
+            ["28.4", "0.2940", "$34T", "+0.33"],
+            ["35", "0.2941", "$96T", "+0.80"],
+            ["50", "0.2942", "$578T", "+1.07"],
+            ["100", "0.2942", "$19,244T", "+1.13"],
+            ["1000 (effectively no ceiling)", "0.2942", "—", "+1.13"],
+        ],
+        first_col_width="26%",
+    )
+
+
+# Range of the fitted ceiling across the six data windows in
+# tools/analyze_spl.py section [0b] (2024-08-06 .. current). Static: these are
+# historical refits, not a live quantity. Regenerate with
+#     btc_venv/bin/python3 tools/analyze_spl.py
+# and update here if the span moves.
+_SPL_L_RANGE_LO_T = 10.7     # $T market cap, window ending 2024-08-06
+_SPL_L_RANGE_HI_T = 1000.0   # $T, two windows pinned at the fitting bound
+_SPL_L_RANGE_FACTOR = 93     # hi / lo
+
+
+def _spl_coeff_table():
+    """Live coefficients for the Saturating Power Law.
+
+    The ceiling is never shown alone: this model's whole finding is that L
+    moves by ~93x across data windows, so the row for the current fit is
+    followed immediately by the range the same fit returns elsewhere. See
+    the card body and spec section 3.1.
+    """
+    m = _app_ctx.PRICE_MODELS.get("spl")
+    if m is None:
+        return _coeff_table([("(Saturating Power Law not loaded)", "—")])
+    L_coin = 10.0 ** m._log10_L
+    L_cap_T = L_coin * 21e6 / 1e12
+    return _coeff_table([
+        ("β (early-time power-law exponent)", f"{m._beta:.4f}"),
+        ("t₀ (roll-over, yr since 2009-07-25)", f"{m._t0:.4f}"),
+        ("L (ceiling, log₁₀ USD/BTC)", f"{m._log10_L:.4f}"),
+        ("L on THIS data window",
+         f"${L_coin:,.0f} / BTC  ·  ${L_cap_T:.1f}T market cap"),
+        ("L on other windows (same fit, same code)",
+         f"${_SPL_L_RANGE_LO_T:.1f}T … ${_SPL_L_RANGE_HI_T:,.0f}T "
+         f"(fitting cap) — a {_SPL_L_RANGE_FACTOR}× range"),
+        ("σ (residual std = fit RMSE)", f"{m._sigma:.4f}"),
+    ])
+
+
 def _pl_coeff_table():
     """Live OLS coefficients for the Power Law model. PowerLawModel stores
     bands as {q: intercept_shifted, slope}; sigma is backed out from any

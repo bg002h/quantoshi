@@ -1,6 +1,6 @@
 """Accordion item builders for Model Info tab.
 
-Returns the full list of 26 AccordionItem blocks in the documented display
+Returns the full list of 30 AccordionItem blocks in the documented display
 order. Each item references the live coefficient-table helpers in ._helpers
 so the rendered HTML always reflects the currently loaded model fits.
 """
@@ -37,6 +37,11 @@ from ._helpers import (
     _linppl_coeff_table,
     _hybppl_coeff_table,
     _exp_coeff_table,
+    _spl_coeff_table,
+    _spl_two_window_table,
+    _spl_by_cutoff_table,
+    _spl_cycle_phase_table,
+    _spl_profile_table,
     _qr_table,
     _comparison_table,
     _regime_data_tables,
@@ -45,7 +50,7 @@ from colors import FALLBACK_MODEL_GRAY, UI_FONT_BASE, UI_FONT_LG
 
 
 def _build_accordion_items():
-    """Return the ordered list of 26 AccordionItems for the Model Info accordion."""
+    """Return the ordered list of 30 AccordionItems for the Model Info accordion."""
     return [
 
                         # ── 1. Bubble Model ──
@@ -2206,4 +2211,219 @@ where $\alpha$ (intercept) and $\beta$ (slope) are derived from **two user-selec
                                 "last \u2014 the math handles it."
                             ),
                         ], title="Citadel Planner", item_id="mi-citadel"),
+
+                        # ── Saturating Power Law ──
+                        # APPENDED LAST, and it must stay last: /mi.N and /9.N
+                        # resolve positionally against _MODEL_INFO_ITEM_IDS.
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+$$\text{price}(t) = \frac{L}{1 + (t/t_0)^{-\beta}}
+\qquad\Longleftrightarrow\qquad
+\log_{10} p = \log_{10} L - \log_{10}\left(1 + (t/t_0)^{-\beta}\right)$$
+
+A **logistic in log-time** — the same S-curve as the Logistic model, with
+$\ln t$ in place of $t$ — so it bends at *both* ends. While $t \ll t_0$ it is
+an ordinary power law, $p \propto t^{\beta}$; as $t$ grows it rolls over
+toward the ceiling $L$, reaching exactly $L/2$ at $t = t_0$.
+
+As $t_0 \to \infty$ the second term vanishes and the model reduces **exactly**
+to the Power Law. That nesting is the point: it turns "is there a ceiling?"
+into "is $t_0$ finite?", a question the data can be asked directly.
+                            """, mathjax=True, className="mb-3"),
+
+                            # Everything below is prose and tables full of
+                            # dollar amounts. The static /mi page loads MathJax
+                            # with '$'..'$' as inline-math delimiters and
+                            # typesets the whole document, which would eat the
+                            # text between any two of them; tex2jax_ignore is
+                            # MathJax's default ignoreHtmlClass. Inert in the
+                            # Dash app, which only typesets mathjax=True
+                            # components. The formula block above stays outside.
+                            html.Div([
+                                html.H6("The headline: the ceiling moves when you add data"),
+                                html.P(
+                                    "Refitting this model on data through 3 June 2026 puts the "
+                                    "ceiling at $34 trillion. Refitting it nine weeks later — "
+                                    "same code, same test, 1.1% more rows — puts it at "
+                                    "$15 trillion. The two windows end at prices within 1% of each "
+                                    "other. The two ceilings differ by 2.3×. So the estimate is "
+                                    "not tracking the price level; it is tracking the recent "
+                                    "trajectory relative to trend."
+                                ),
+                                _spl_two_window_table(),
+                                html.P(
+                                    "Across the last two years the same fit has returned anything "
+                                    "from $11 trillion to no ceiling at all — a 93× range — "
+                                    "and the verdict flips non-monotonically: it rejects, then does "
+                                    "not reject for four windows running, then rejects again. A "
+                                    "number that behaves this way is not being estimated."
+                                ),
+                                _spl_by_cutoff_table(),
+                                html.P([
+                                    html.Strong("Reading the two capped rows. "),
+                                    "A ceiling of infinity ", html.Em("is"), " the pure power law, "
+                                    "so a window whose fit pins at the $1,000T fitting bound is data "
+                                    "asking for no ceiling at all. It is also why the statistic goes "
+                                    "slightly negative there: this model nests the power law, so the "
+                                    "statistic cannot be negative at a true optimum, and −0.11 / "
+                                    "−0.14 are the bound stopping the optimiser just short of "
+                                    "that limit. Reported rather than clipped to zero, because the "
+                                    "sign is informative.",
+                                ]),
+                                html.Div(html.Em(
+                                    "So we don’t claim Bitcoin has no ceiling. We claim that "
+                                    "seventeen years of data can put a floor under one but cannot "
+                                    "put a number on it."
+                                ), style={"borderLeft": f"3px solid {FALLBACK_MODEL_GRAY}",
+                                          "paddingLeft": "12px", "marginBottom": "16px"}),
+
+                                html.H6("Why: the upper asymptote is not in the data yet"),
+                                html.P(
+                                    "This is the pre-inflection sigmoid problem, familiar from "
+                                    "carrying-capacity estimates in ecology and from ceiling fits "
+                                    "early in an epidemic: the upper asymptote of an S-curve cannot "
+                                    "be identified until the bend is inside the sample. On a log-log "
+                                    "chart Bitcoin has not visibly bent."
+                                ),
+                                html.P(
+                                    "Holding t₀ at a series of fixed values and re-optimising "
+                                    "everything else shows the shape of the problem. A low ceiling "
+                                    "fits visibly worse. Everything above roughly $100 trillion fits "
+                                    "equally well — and “no ceiling at all” fits "
+                                    "essentially as well as the best fit. The RMSE column stops "
+                                    "discriminating in the fourth decimal:"
+                                ),
+                                _spl_profile_table(),
+                                html.P(
+                                    "The ceiling is therefore estimable from one side only. The data "
+                                    "put a floor under it, near the current trend level, and no upper "
+                                    "bound whatsoever: they are consistent with a ceiling anywhere "
+                                    "above that floor, and equally consistent with none."
+                                ),
+
+                                html.H6("Method"),
+                                html.P(
+                                    "Differential evolution on log₁₀(price) for t ≥ 1 "
+                                    "year, with the ceiling bounded below by the highest observed "
+                                    "price and above at a $1,000T market cap. Quantile bands use the "
+                                    "shared shrinking-σ mixin, as for PL, Gompertz and the other "
+                                    "simple models."
+                                ),
+
+                                html.H6("Fitted Coefficients"),
+                                _spl_coeff_table(),
+                                html.P(
+                                    "Read those with the caveat attached. The fitted roll-over at "
+                                    "t₀ ≈ 23.9 years sits 1.4× beyond the last "
+                                    "observation — the price history reaches t = 17.0 years — "
+                                    "so the part of the curve that would fix the ceiling lies entirely "
+                                    "outside the data. Refits on other windows put t₀ anywhere "
+                                    "from 22 to 55 years, and twice the fit stopped asking for a "
+                                    "ceiling at all."
+                                ),
+
+                                html.H6("The fitted ceiling tracks the cycle, not a ceiling"),
+                                html.P(
+                                    "Line each window’s ceiling up against where that window "
+                                    "happened to end relative to its own power-law trend. The "
+                                    "residual column is the mean log₁₀ residual over the "
+                                    "window’s final year:"
+                                ),
+                                _spl_cycle_phase_table(),
+                                html.P(
+                                    "The three windows that ended above trend produced the two “no "
+                                    "ceiling at all” fits and the largest finite one; the three "
+                                    "that ended below trend produced the three smallest, including "
+                                    "both rejections. t₀ is behaving as a cycle-phase detector."
+                                ),
+
+                                html.H6("The four-year cycle, and why it doesn’t rescue the ceiling"),
+                                html.P(
+                                    "On the current window the plain test does reject a ceiling of "
+                                    "infinity — 13.6536 against a boundary-corrected 5% critical "
+                                    "value of 2.7055. That is not evidence the ceiling is real. The "
+                                    "same test, on the same code, did not reject on four of the last "
+                                    "six windows: the verdict is unstable across windows, and a "
+                                    "statistic that flips on 1.1% more data is a symptom of that "
+                                    "instability rather than a finding."
+                                ),
+                                html.P(
+                                    "The obvious objection is that the four-year cycle masks the "
+                                    "curvature, and it deserves to be taken seriously because it "
+                                    "half-works. Adding a calendar sinusoid to the mean removes 44.3% "
+                                    "of the variance — against the saturation term’s 0.23% — "
+                                    "and lifts the statistic to 151.5 assuming independent residuals, "
+                                    "which would reject outright. Three things say not to believe it:"
+                                ),
+                                html.Ul([
+                                    html.Li(
+                                        "79% of the improvement accrues in the final two years. "
+                                        "That is a terminal excursion, not a systematic bend."
+                                    ),
+                                    html.Li(
+                                        "The cycle-conditional t₀ sat at its 100-year bound for "
+                                        "every cutoff through 2024, became finite only in 2025 "
+                                        "(33 yr), and is still moving fast (≈19 yr now). That is "
+                                        "the opposite of convergence."
+                                    ),
+                                    html.Li(
+                                        "The statistic assumes independent residuals, and these are "
+                                        "not. Significance at that level needs the residuals to "
+                                        "decorrelate within about 56 days; the measured 30-day "
+                                        "residual autocorrelation is 0.90. Scaled to the ≈4.5 "
+                                        "cycles of data actually present, 151.5 becomes 0.116 against "
+                                        "a critical value of 2.706."
+                                    ),
+                                ]),
+
+                                html.H6("What that says about the other models"),
+                                html.P(
+                                    "That comparison is the one actionable thing this model teaches. "
+                                    "The cycle carries 44.3% of the variance in log-price; the "
+                                    "saturation term carries 0.23% — roughly 190× less. The "
+                                    "dominant feature of the residuals is cyclical, not curvature. "
+                                    "The log-periodic family (LPPL, HybPPL, EPPL) models that "
+                                    "structure explicitly and is where to look for it; SatPL is here "
+                                    "to show what the data cannot support, not to add a forecast."
+                                ),
+
+                                html.H6("Saturation in log-time, not calendar time"),
+                                html.P(
+                                    "Substituting t for ln t — the ordinary logistic in years, "
+                                    "i.e. saturation on a linear timescale — fits far worse: RMSE "
+                                    "0.4452, against 0.2939 for this model and 0.2942 for the plain "
+                                    "power law. Whatever bend the data contain is a bend in log-time."
+                                ),
+                                _clickable_img("/assets/spl_linear_vs_log.png", "700px"),
+
+                                html.H6("In short"),
+                                html.P(html.Em(
+                                    "Even models that account for Bitcoin’s four-year cycle "
+                                    "cannot pin the ceiling down — the apparent bend they find "
+                                    "sits right at the edge of the data, where it cannot be "
+                                    "distinguished from the current cycle’s swing."
+                                )),
+
+                                html.H6("Caveats"),
+                                html.Ul([
+                                    html.Li(
+                                        "No dollar figure on this card is a forecast. Every one is "
+                                        "conditional on a saturating shape the data cannot confirm, "
+                                        "and every one moves when the data window moves."
+                                    ),
+                                    html.Li(
+                                        "The right summary is not “the power law wins”. It "
+                                        "is that L is unidentified, and PL is the parsimonious "
+                                        "representative of a family of ceilings this data cannot tell "
+                                        "apart — absence of evidence, not evidence of absence."
+                                    ),
+                                    html.Li(
+                                        "The quantile bands are the usual shrinking-σ spread "
+                                        "about the fitted median. They carry none of the uncertainty "
+                                        "in L, which dominates everything else at long horizons."
+                                    ),
+                                ]),
+                            ], className="tex2jax_ignore"),
+                        ], title="Saturating Power Law (diagnostic)", item_id="mi-spl"),
     ]

@@ -6,7 +6,7 @@ Public API:
                             and /mi.N deep-linking
 
 This module was split from a single 2764-line ``model_info.py``. The large
-static documentation content (26 AccordionItems) lives in ``_items.py``; the
+static documentation content (30 AccordionItems) lives in ``_items.py``; the
 live coefficient-table helpers live in ``_helpers.py``. This file assembles
 the outer layout (accordion, lightbox modal) and re-exports the public API.
 """
@@ -57,6 +57,12 @@ def _model_info_tab():
 
 # Ordered list of accordion item_id values for /9.N and /mi.N deep linking.
 # Must match the order of items returned by _build_accordion_items().
+#
+# APPEND-ONLY. Deep links resolve positionally (_MODEL_INFO_ITEM_IDS[n - 1] in
+# static_pages.py; the mirror _MODEL_INFO_ITEMS in callbacks/routing.py does
+# the same for the SPA). Inserting an id mid-list silently re-points every
+# later /mi.N and /9.N link — no error, just the wrong card.
+# Guarded by test_spl_registration.py::TestModelInfoCard.
 _MODEL_INFO_ITEM_IDS = [
     "mi-bub", "mi-qr", "mi-pl", "mi-lppl", "mi-lp2",
     "mi-lppl-weighting", "mi-linppl", "mi-hybppl", "mi-hybppl-dd",
@@ -65,4 +71,5 @@ _MODEL_INFO_ITEM_IDS = [
     "mi-plo", "mi-sexp", "mi-logi",
     "mi-s2f", "mi-mc", "mi-ef", "mi-u1",
     "mi-compare", "mi-regimes", "mi-citadel",
+    "mi-spl",
 ]

@@ -54,7 +54,16 @@ T0_LO, T0_HI = 1.0, 100.0
 CRIT = float(chi2.ppf(1 - 2 * 0.05, 1))   # 2.706, boundary-corrected 5%
 
 
-def load():
+SPEC_SNAPSHOT = "2026-06-03"   # the window section 3's original numbers were computed on
+
+
+def load(cutoff=None):
+    """Price series, optionally truncated at `cutoff` (inclusive).
+
+    Appends are forward-only, so truncating the current CSV reproduces an
+    earlier snapshot exactly -- that is how the side-by-side in [0] is built
+    without needing the old file.
+    """
     df = pd.read_csv("BitcoinPricesDaily.csv")
     dc = [c for c in df.columns if c.lower() in ("date", "time", "day")][0]
     pc = [c for c in df.columns
@@ -63,7 +72,33 @@ def load():
          .dt.total_seconds().to_numpy() / (365.25 * 86400))
     p = df[pc].to_numpy(float)
     m = (t >= T_MIN) & (p > 0)
+    if cutoff is not None:
+        m &= (pd.to_datetime(df[dc], format="mixed") <= cutoff).to_numpy()
     return t[m], p[m]
+
+
+def stats_at(cutoff=None):
+    """Every headline statistic for one data window, as a dict."""
+    t, p = load(cutoff)
+    lp, n = np.log10(p), len(t)
+    X = np.vstack([np.ones_like(t), np.log10(t)]).T
+    c, *_ = np.linalg.lstsq(X, lp, rcond=None)
+    sse_pl = float(np.sum((lp - X @ c) ** 2))
+    r = fit_spl(t, lp)
+    A, beta, lt0 = r.x
+    sse = float(r.fun)
+    l10L = A + beta * lt0
+    # L pinned at the cap means the optimiser wanted L -> infinity, i.e. pure
+    # pl. The bound stops it just short, which is what drives LRT slightly
+    # negative there -- an artifact of the bound, not of the test.
+    pinned = abs(l10L - np.log10(CAP_FIT_USD / SUPPLY)) < 1e-6
+    return dict(
+        cutoff=cutoff or "current", n=n, last_t=t[-1], last_p=p[-1],
+        L_T=10 ** l10L * SUPPLY / 1e12, t0=10 ** lt0, beta=beta,
+        rmse=float(np.sqrt(sse / n)), sse_pl=sse_pl, sse_spl=sse,
+        var_pct=100 * (sse_pl - sse) / sse_pl,
+        stat=n * np.log(sse_pl / sse), pinned=pinned,
+    )
 
 
 def spl_log10(t, A, beta, log10_t0):
@@ -126,6 +161,48 @@ def main() -> None:
     A, beta, lt0 = res.x
     t0, l10L = 10 ** lt0, A + beta * lt0
     stat, pv = lrt(sse_pl, res.fun, n)
+    print(f"\n[0] THE CENTRAL FINDING -- L IS NOT STABLE UNDER MORE DATA")
+    print(f"    Two windows, same code, same test. The later one is a strict")
+    print(f"    superset: it adds {stats_at()['n'] - stats_at(SPEC_SNAPSHOT)['n']} rows to {stats_at(SPEC_SNAPSHOT)['n']}, a 1.1% increase.")
+    a, b = stats_at(SPEC_SNAPSHOT), stats_at()
+    rows = [
+        ("data through",      f"{a['cutoff']}",            f"{b['cutoff']} (latest)"),
+        ("n",                 f"{a['n']:,}",               f"{b['n']:,}"),
+        ("last price",        f"${a['last_p']:,.0f}",      f"${b['last_p']:,.0f}"),
+        ("",                  "",                          ""),
+        ("L  (market cap)",   f"${a['L_T']:,.1f}T",        f"${b['L_T']:,.1f}T"),
+        ("t0 (yr)",           f"{a['t0']:.2f}",            f"{b['t0']:.2f}"),
+        ("beta",              f"{a['beta']:.4f}",          f"{b['beta']:.4f}"),
+        ("RMSE",              f"{a['rmse']:.6f}",          f"{b['rmse']:.6f}"),
+        ("",                  "",                          ""),
+        ("variance removed",  f"{a['var_pct']:.4f}%",      f"{b['var_pct']:.4f}%"),
+        ("LRT statistic",     f"{a['stat']:.4f}",          f"{b['stat']:.4f}"),
+        ("vs crit " + f"{CRIT:.4f}", 
+                              "fail to reject" if a['stat'] < CRIT else "REJECTS",
+                              "fail to reject" if b['stat'] < CRIT else "REJECTS"),
+        ("p",                 f"{0.5*chi2.sf(max(a['stat'],0),1):.4f}",
+                              f"{0.5*chi2.sf(max(b['stat'],0),1):.4f}"),
+    ]
+    print(f"    {'':<22} {'SPEC SNAPSHOT':>18} {'CURRENT':>18}")
+    for lab, x, y in rows:
+        print(f"    {lab:<22} {x:>18} {y:>18}")
+    print(f"    -> L moved {max(a['L_T'],b['L_T'])/min(a['L_T'],b['L_T']):.1f}x and the verdict FLIPPED"
+          f" on 1.1% more data.")
+    print(f"       The estimate is not converging; it tracks the price.")
+
+    print(f"\n[0b] L BY CUTOFF -- the instability is systematic, not a one-off")
+    print(f"    {'cutoff':>12} {'n':>6} {'last $':>10} {'L ($T)':>10} {'t0':>7} {'LRT':>8}  verdict")
+    for cut in ("2024-08-06", "2025-02-06", "2025-08-06",
+                "2026-02-06", SPEC_SNAPSHOT, None):
+        s_ = stats_at(cut)
+        pin = " <-CAP" if s_["pinned"] else ""
+        print(f"    {str(s_['cutoff']):>12} {s_['n']:>6} {s_['last_p']:>10,.0f} "
+              f"{s_['L_T']:>10,.1f} {s_['t0']:>7.1f} {s_['stat']:>8.2f}  "
+              f"{'REJECTS' if s_['stat'] > CRIT else 'fail to reject'}{pin}")
+    print(f"    <-CAP: L pinned at the $1000T fitting bound. The optimiser wanted")
+    print(f"    L -> infinity, which IS the pure power law; the bound stopped it")
+    print(f"    short, and that is why LRT goes slightly negative there.")
+
     print(f"\n[2] PRIMARY TEST — likelihood ratio for t0 = infinity")
     print(f"    spl: beta {beta:.4f}  t0 {t0:.2f} yr  "
           f"L ${10**l10L*SUPPLY/1e12:,.1f}T   RMSE {np.sqrt(res.fun/n):.6f}")

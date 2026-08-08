@@ -140,6 +140,25 @@ def fit_spl(t, lp, seed=0):
         seed=seed, tol=1e-12, maxiter=6000, popsize=25, polish=True)
 
 
+def fit_lin(t, lp, seed=1):
+    """The linear-time counterpart: an ordinary logistic in CALENDAR years.
+
+    Same L bounds as fit_spl -- lower at the highest observed price, upper at
+    the $1000T cap -- but here log10 L is a coordinate, so it is a box rather
+    than the derived-quantity penalty fit_spl needs.
+
+    Section [8] and tools/render_spl_figure.py both call this. They used to
+    carry the same differential_evolution call twice; the card's committed
+    "RMSE 0.4452" comes from it, so a bounds edit that reached only one copy
+    would have desynchronised the figure from the prose silently.
+    """
+    lo_L, hi_L = np.log10(np.max(10 ** lp)), np.log10(CAP_FIT_USD / SUPPLY)
+    return differential_evolution(
+        lambda th: float(np.sum((lp - lin_log10(t, *th)) ** 2)),
+        [(lo_L, hi_L), (1.0, 100.0), (0.01, 30.0)],
+        seed=seed, tol=1e-12, maxiter=6000, popsize=25, polish=True)
+
+
 def main() -> None:
     t, p = load()
     lp, n = np.log10(p), len(t)
@@ -298,11 +317,7 @@ def main() -> None:
               f"{'   <- AT BOUND' if at_b else ''}")
 
     # ---- [8] linear-time counterpart ----------------------------------
-    lo_L = np.log10(p.max()); hi_L = np.log10(CAP_FIT_USD/SUPPLY)
-    rl = differential_evolution(
-        lambda th: float(np.sum((lp - lin_log10(t, *th)) ** 2)),
-        [(lo_L, hi_L), (1.0, 100.0), (0.01, 30.0)],
-        seed=1, tol=1e-12, maxiter=6000, popsize=25, polish=True)
+    rl = fit_lin(t, lp)
     print(f"\n[8] linear-time counterpart: RMSE {np.sqrt(rl.fun/n):.6f}"
           f"   (L at its lower bound by construction; report the fit, not L)")
 

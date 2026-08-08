@@ -57,7 +57,7 @@ import matplotlib.pyplot as plt          # noqa: E402
 import numpy as np                        # noqa: E402
 import pandas as pd                       # noqa: E402
 from matplotlib.ticker import FixedLocator, NullFormatter  # noqa: E402
-from scipy.optimize import differential_evolution, minimize  # noqa: E402
+from scipy.optimize import minimize                # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
@@ -66,7 +66,7 @@ os.chdir(str(ROOT))                       # analyze_spl.load() reads a relative 
 
 from analyze_spl import (                 # noqa: E402
     BETA_MAX, CAP_FIT_USD, CRIT, GENESIS, SUPPLY, T0_HI, T0_LO,
-    fit_spl, lin_log10, load, spl_log10,
+    fit_lin, fit_spl, lin_log10, load, spl_log10,
 )
 from colors import (                      # noqa: E402
     CHART_FONT_LEGEND_LG, CHART_FONT_SUBTITLE, CHART_FONT_TICK_LG,
@@ -124,10 +124,7 @@ def _fit_window(cutoff: str) -> dict:
     A, beta, lt0 = r.x
 
     lo_L, hi_L = np.log10(p.max()), np.log10(CAP_FIT_USD / SUPPLY)
-    rl = differential_evolution(
-        lambda th: float(np.sum((lp - lin_log10(t, *th)) ** 2)),
-        [(lo_L, hi_L), (1.0, 100.0), (0.01, 30.0)],
-        seed=1, tol=1e-12, maxiter=6000, popsize=25, polish=True)
+    rl = fit_lin(t, lp)          # analyze_spl section [8]'s own fit, not a copy
 
     return dict(cutoff=cutoff, t=t, p=p, lp=lp, n=n,
                 c_pl=c_pl, sse_pl=sse_pl,
@@ -173,14 +170,16 @@ def _profile(w: dict, grid: np.ndarray) -> np.ndarray:
     return np.array([sse_at(g) for g in grid])
 
 
-def _band(grid: np.ndarray, stat: np.ndarray) -> tuple[float, float, bool]:
+def _band(grid: np.ndarray, stat: np.ndarray, i: int) -> tuple[float, float, bool]:
     """Contiguous run around the optimum where the LRT statistic <= CRIT.
+
+    `i` is the index of the optimum the band grows out from, and the caller
+    must have found it INSIDE the fitting bound -- see _optimum_index.
 
     Returns (lo, hi, open_ended) in log10 L, with edges linearly interpolated.
     `open_ended` means the run reaches the right edge of the grid -- the data
     do not bound the ceiling above at all.
     """
-    i = int(np.argmin(stat))
     lo_i = i
     while lo_i > 0 and stat[lo_i - 1] <= CRIT:
         lo_i -= 1
@@ -197,6 +196,19 @@ def _band(grid: np.ndarray, stat: np.ndarray) -> tuple[float, float, bool]:
     open_ended = hi_i == len(stat) - 1
     hi = float(grid[-1]) if open_ended else cross(hi_i, hi_i + 1)
     return lo, hi, open_ended
+
+
+def _optimum_index(prof: np.ndarray, inside: np.ndarray) -> int:
+    """Index of the best SSE among ceilings the fit is actually allowed.
+
+    The grid deliberately runs half a decade past the $1,000T bound so the
+    figure can show the profile staying flat out there, but that stretch is
+    outside the model's parameter space. Taking the minimum over the whole
+    grid would let a future window -- one whose profile still fell past the
+    bound -- anchor the optimum dot, the threshold and the shaded band to a
+    ceiling the fit could never return. It would look right and be wrong.
+    """
+    return int(np.argmin(np.where(inside, prof, np.inf)))
 
 
 # ── shared styling ────────────────────────────────────────────────────────
@@ -340,11 +352,12 @@ def render_profile(windows: list[dict]) -> None:
 
     for w, st in zip(windows, styles):
         prof = _profile(w, grid)
-        smin = prof.min()
+        i_opt = _optimum_index(prof, inside)
+        smin = prof[i_opt]
         dsse = prof - smin
         stat = w["n"] * np.log(prof / smin)
         thr = smin * (np.exp(CRIT / w["n"]) - 1)      # ΔSSE at the 5% boundary
-        blo, bhi, open_ended = _band(grid, stat)
+        blo, bhi, open_ended = _band(grid, stat, i_opt)
         label = PRIOR_LABEL if w["cutoff"] == PRIOR_WINDOW else WINDOW_LABEL
         blo_T, bhi_T = 10 ** blo * SUPPLY / 1e12, 10 ** bhi * SUPPLY / 1e12
         opt_T = 10 ** w["l10L"] * SUPPLY / 1e12

@@ -45,6 +45,26 @@ python3 update_prices.py            # live: appends CSV + rebuilds model_data.pk
 - Appends new rows to `BitcoinPricesDaily.csv` then runs `tools/build_bm_model.py`
 - Prints a preview table of new rows; review before deploying
 
+### Check a model's registration (run this when adding a price model)
+```bash
+btc_venv/bin/python3 tools/check_model_registration.py spl   # one model
+btc_venv/bin/python3 tools/check_model_registration.py       # all of them
+```
+Registering a price model touches ~26 steps across 10 registries, and
+**several fail silently** — the model renders correctly on every chart whether
+or not you did them, and the existing tests still pass. This walks all of them
+and prints ✓ / ✗ / KNOWN per registry. It also runs in the suite
+(`btc_web/test_model_registration.py`, ~1000 assertions over 104 models), so
+a missed step is a red test rather than a discovery months later.
+
+Known pre-existing holes are listed explicitly as `KNOWN` with their follow-up
+ID (see `docs/superpowers/followups.md`) so the suite stays green while the
+holes stay visible. Deleting a `KNOWN_HOLES` entry is the regression test when
+one is fixed.
+
+Full checklist and the hazards behind each check: `workflow_new_model.md` in
+the memory directory.
+
 ### Run tests
 ```bash
 btc_venv/bin/python3 -m pytest btc_web/ -v                            # full suite (1456 tests)

@@ -1684,3 +1684,24 @@ body {
     margin-left: 0 !important;
     border-radius: 0.25rem !important;
 }
+
+/* ── MathJax formulas: scroll in place, never widen the page ──────────────
+   MathJax v3 emits <mjx-container><mjx-math> with overflow-x:visible, so a
+   wide formula pushes the whole document wider than the viewport and every
+   line of prose gains a horizontal scroll. Measured on /mi at 375px: one
+   formula rendered 529px, taking the page to 606px.
+
+   Constrain the container and let the formula scroll inside it. Applies to
+   the static /mi + /faq pages and the Dash app alike (both link this file).
+   overflow-y stays hidden so tall fractions do not gain a vertical bar. */
+mjx-container {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+/* Display-mode formulas are block-level and centred; keep them scrollable
+   without collapsing the centring on wide screens. */
+mjx-container[display="true"] {
+    max-width: 100%;
+    overflow-x: auto;
+}

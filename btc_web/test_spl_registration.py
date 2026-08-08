@@ -145,3 +145,36 @@ class TestModelInfoCard:
             assert _mi_item_for_pathname(f"/mi.{n}") == expected
             assert _mi_item_for_pathname(f"/9.{n}") == expected
         assert _mi_item_for_pathname("/mi.30") == "mi-spl"
+
+    def test_every_card_image_exists_on_disk(self):
+        """A card image that is not committed is an HTTP 500 on a public page,
+        and nothing else fails: the layout builds, every test passes, and only
+        a reader sees it. Both spl figures shipped exactly that way until
+        tools/render_spl_figure.py rendered them."""
+        from layout.model_info._items import _build_accordion_items
+        srcs = set(re.findall(r"/assets/[A-Za-z0-9_.-]+\.(?:png|jpg|jpeg|svg)",
+                              str([str(i) for i in _build_accordion_items()])))
+        assert {"/assets/spl_linear_vs_log.png", "/assets/spl_profile.png"} <= srcs
+        missing = [s for s in sorted(srcs)
+                   if not (REPO / "btc_web" / s.lstrip("/")).exists()]
+        assert not missing, f"referenced but not committed: {missing}"
+
+
+class TestOffChecklistRegistries:
+    """Neither of these is in workflow_new_model.md's 26 steps."""
+
+    def test_scanner_order(self):
+        """Benign -- _scanner_sort_key sinks unknown keys via except ValueError
+        -- but it is a real registry, and an unlisted model sorts to the bottom
+        instead of into its Display Models slot."""
+        from callbacks.scanner import _SCANNER_ORDER
+        assert "spl" in _SCANNER_ORDER
+        assert _SCANNER_ORDER.index("spl") > _SCANNER_ORDER.index("bpl")
+
+    def test_architecture_doc_model_table(self):
+        """docs/architecture.md is SERVED at /docs/architecture (api.py), so
+        staleness here is publicly visible."""
+        row = [ln for ln in _src("docs/architecture.md").splitlines()
+               if ln.startswith("| `spl` |")]
+        assert len(row) == 1, "expected exactly one spl row in the model table"
+        assert "SaturatingPowerLawModel" in row[0]

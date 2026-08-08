@@ -349,6 +349,7 @@ class PriceModel(Protocol):
 | `sexp` | `StretchedExponentialModel` *(new 2026-04-17)* | parametric | `log10 p = A + B*t^beta`. |
 | `gomp` | `GompertzModel` *(renamed 2026-04-17)* | parametric | Formula was always Gompertz; class name corrected. |
 | `logi` | `LogisticSCurveModel` *(new 2026-04-17)* | parametric | True symmetric logistic S-curve. |
+| `spl` | `SaturatingPowerLawModel` *(new 2026-08-07)* | parametric | `p = L / (1 + (t/t0)^-beta)` — a logistic in log-time, so PL as `t0 -> inf`. Diagnostic: the ceiling `L` is not identified by this history. |
 | `bpl` | `BrokenPowerLawModel` | parametric | Two-slope PL, fitted breakpoint. |
 | `s2f` | `S2FModel` | non-quantized | Stock-to-Flow; single trajectory. |
 | `ef` | `EmpiricalFloorModel` | conditional | Loaded only if `model_data_ef.pkl` exists. |
@@ -812,7 +813,7 @@ Files include `fit_lppl.py`, `fit_lppl2.py`, `fit_lppl3.py`, `fit_lppl4.py`,
 `fit_hybppl_dd.py`, `fit_hyb2b.py`, `fit_hyb2c.py`, `fit_hyb2l.py`,
 `fit_hyb4d.py`, `fit_all_hybppl_configs.py`, `fit_all_eppl_configs.py`,
 `fit_grdy.py`, `fit_plo.py`, `fit_sexp.py`, `fit_logistic.py`,
-`fit_gompertz.py`, `fit_bpl.py`.
+`fit_gompertz.py`, `fit_bpl.py`, `fit_spl.py`.
 
 ### Monthly orchestrator
 

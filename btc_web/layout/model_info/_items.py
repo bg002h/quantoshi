@@ -2315,6 +2315,14 @@ into "is $t_0$ finite?", a question the data can be asked directly.
                                     "bound whatsoever: they are consistent with a ceiling anywhere "
                                     "above that floor, and equally consistent with none."
                                 ),
+                                html.P(
+                                    "The same profile as a picture, for both pinned windows: the best "
+                                    "fit attainable with the ceiling held at each value, with the "
+                                    "shaded region marking the ceilings that window’s data cannot "
+                                    "tell apart from its own best fit.",
+                                    className="small text-muted",
+                                ),
+                                _clickable_img("/assets/spl_profile.png", "700px"),
 
                                 html.H6("Method"),
                                 html.P(

@@ -12,9 +12,9 @@ class SaturatingPowerLawModel:                 # mixin omitted for the gate
     short_name  = "spl"
     legend_name = "SatPL"
     quantized   = True
-    _log10_L = 6.2133
-    _t0      = 28.314
-    _beta    = 5.0910
+    _log10_L = 5.846849
+    _t0      = 23.869131
+    _beta    = 5.103979
 
     def _model_log10(self, t):
         t_arr = np.asarray(t, float)
@@ -33,8 +33,8 @@ p=df[pc].to_numpy(float); m=(t>=1.0)&(p>0); t,p=t[m],p[m]; lp=np.log10(p)
 m_ = SaturatingPowerLawModel()
 pred = m_._model_log10(t)
 rmse = float(np.sqrt(np.mean((lp-pred)**2)))
-print(f"[gate 1] class evaluates      : RMSE {rmse:.6f}  (spec §3.1 says 0.2945)")
-print(f"         within 1e-4 of spec? {'YES' if abs(rmse-0.294470) < 1e-4 else 'NO'}")
+print(f"[gate 1] class evaluates      : RMSE {rmse:.6f}  (spec §3.1 says 0.2939)")
+print(f"         within 1e-4 of spec? {'YES' if abs(rmse-0.293851) < 1e-4 else 'NO'}")
 
 # stability: the naive form the spec says would overflow
 naive_bad = False
@@ -59,6 +59,8 @@ sse_spl = float(np.sum((lp - pred) ** 2))
 stat = len(t) * np.log(sse_pl / sse_spl)
 crit = float(chi2.ppf(1 - 2 * 0.05, 1))
 print(f"[gate 3] §3.1 LRT stat {stat:.4f} vs boundary crit {crit:.4f}"
-      f"  -> {'fail to reject' if stat < crit else 'REJECT'}")
-print(f"         spec §3.1 says 2.2802 / 2.7055 / fail to reject : "
-      f"{'MATCHES' if abs(stat-2.2802) < 5e-3 and stat < crit else 'MISMATCH'}")
+      f"  -> {'fail to reject' if stat < crit else 'REJECTS'}")
+print(f"         spec §3.1 current column says 13.6536 / REJECTS : "
+      f"{'MATCHES' if abs(stat-13.6536) < 5e-2 and stat > crit else 'MISMATCH'}")
+print(f"         (the 2.2802/fail-to-reject figure is the RETIRED 2026-06-03"
+      f" window; §3.1 keeps both columns deliberately)")

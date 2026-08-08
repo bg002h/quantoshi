@@ -58,28 +58,60 @@ Rebuilt after a statistics consult. This section feeds the Model Info card
 (§7), so it must not overstate. Everything regenerates from
 `tools/analyze_spl.py`.
 
-### 3.1 The primary test: can the data reject "no ceiling"?
+### 3.1 The finding: L is not stable under more data
 
-`spl` nests `pl` — as t₀→∞ it converges exactly to a pure power law. So the
-question is a hypothesis test of **t₀ = ∞**, and because that value sits on
-the *boundary* of the parameter space, the null is a 50:50 mixture of χ²₀ and
-χ²₁: the 5% critical value is **2.706**, not 3.841.
+The ceiling is not a quantity this dataset measures. Two windows, same code,
+same test — the second a strict superset adding 1.1% more rows:
 
-```
-2Δℓ = n·ln(SSE_pl / SSE_spl) = 5792 × ln(502.4359/502.2382) = 2.2802
-boundary-corrected 5% critical value                        = 2.7055
-→ p = 0.066, FAIL TO REJECT t₀ = ∞
-```
+| | data through 2026-06-03 | data through 2026-08-06 |
+|---|---|---|
+| n | 5,792 | 5,856 |
+| last price | $64,813 | $64,294 |
+| **L (market cap)** | **$34.3T** | **$14.8T** |
+| t₀ (yr) | 28.31 | 23.87 |
+| β | 5.0910 | 5.1040 |
+| RMSE | 0.294470 | 0.293851 |
+| variance removed vs `pl` | 0.0394% | 0.2329% |
+| LRT statistic | 2.2802 | 13.6536 |
+| vs boundary crit 2.7055 | fail to reject | **REJECTS** |
+| p | 0.066 | 0.0001 |
 
-**Even assuming iid residuals — the most generous possible assumption — the
-data cannot reject "no ceiling."** The confidence set for L already includes
-+∞. `spl` removes 0.0394% of the variance.
+**The prices differ by less than 1% and the ceiling estimate differs by 2.3×.**
+So L does not track price *level* — it tracks the recent trajectory relative to
+trend, which is a stronger statement than the raw range, because it forecloses
+the obvious objection that a lower price simply implies a lower ceiling.
 
-| | exponent / β | t₀ | market cap | RMSE |
-|---|---|---|---|---|
-| power law | 5.0736 | — | — | 0.2945 |
-| `spl` | 5.0910 | 28.31 yr | $34.3T | 0.2945 |
-| exponential | — | — | — | 0.5538 |
+Across six cutoffs the instability is systematic, not a one-off:
+
+| cutoff | last price | L ($T) | t₀ | LRT | verdict |
+|---|---|---|---|---|---|
+| 2024-08-06 | $56,308 | 10.7 | 22.4 | 6.01 | REJECTS |
+| 2025-02-06 | $97,846 | 44.1 | 29.8 | 0.51 | fail to reject |
+| 2025-08-06 | $114,663 | **1,000** ⚠️cap | 55.1 | −0.11 | fail to reject |
+| 2026-02-06 | $67,196 | **1,000** ⚠️cap | 55.0 | −0.14 | fail to reject |
+| 2026-06-03 | $64,813 | 34.3 | 28.3 | 2.28 | fail to reject |
+| 2026-08-06 | $64,294 | 14.8 | 23.9 | 13.65 | REJECTS |
+
+L ranges over **93×**, and the verdict flips **non-monotonically** — rejects,
+then four windows of not-rejecting, then rejects again. A parameter behaving
+this way is not being estimated.
+
+**Reading the two capped rows.** `L` pinned at the $1000T fitting bound is not
+a fitting failure: `L → ∞` **is** the pure power law, so those windows are the
+data asking for *no ceiling at all*. That also explains the negative LRT there
+— `spl` nests `pl`, so the statistic cannot be negative at a true optimum, and
+−0.11 / −0.14 are the residue of the bound blocking convergence to the `pl`
+limit. Reported rather than clipped to zero, because the sign is informative.
+
+**What supersedes what.** Earlier revisions led with "even assuming iid we fail
+to reject t₀ = ∞" (LRT 2.2802 vs 2.7055). That statement was true of the
+2026-06-03 window and is **false today**. It is retracted as a headline. The
+conclusion it supported — L unidentified — is unchanged and now rests on the
+instability above, which no future price move can embarrass, because the
+instability *is* the result.
+
+Regenerate both tables with `btc_venv/bin/python3 tools/analyze_spl.py`,
+sections [0] and [0b].
 
 ### 3.2 Why iid is the generous case
 
@@ -111,7 +143,15 @@ curvature, correlated errors only ever *reduce* information relative to iid.
 
 ### 3.3 The ceiling is bounded below, not above
 
-Profiling SSE with t₀ held fixed:
+> **Data window:** §§3.3–3.6 are computed on the **2026-06-03** snapshot
+> (n=5,792), the window in hand when they were written. §3.1 supersedes them
+> wherever they conflict, and its whole point is that these point estimates
+> move. They are retained because the *shapes* they show — a flat profile, a
+> cycle that dominates the curvature — are what the argument rests on, and
+> those are stable even as the numbers are not. Re-run
+> `tools/analyze_spl.py` for current values.
+
+Profiling SSE with t₀ held fixed (2026-06-03 window):
 
 | t₀ (yr) | RMSE | market cap | ΔSSE |
 |---|---|---|---|
@@ -165,6 +205,8 @@ taking seriously, because **it half-works** — and the honest account of why it
 does not rescue the ceiling is the most informative thing in this section.
 
 Adding a calendar sinusoid `C·cos(2πt/P + φ)` to the mean:
+
+*(2026-06-03 window — see the §3.3 note.)*
 
 | model | RMSE | t₀ | cycle P |
 |---|---|---|---|
@@ -243,7 +285,12 @@ optimises a different residual set than `_init_shrinking_bands` derives σ from.
 | `L` | [max observed price, $1000T cap] | **constraint on a derived quantity** — `L = 10^(A + β·log10 t₀)` is not a coordinate, so DE cannot box-bound it. Implemented as a penalty returning `1e6 + 1e3·(distance outside)` from the objective. |
 
 Verified: under exactly these bounds the fit is **interior on all three**
-(β=5.0910, t₀=28.31, L=$34.3T). The $1000T cap does not bind.
+(β=5.1040, t₀=23.87, L=$14.8T on data through 2026-08-06). **The $1000T cap
+does bind on some windows** — the 2025-08 and 2026-02 cutoffs both pin L
+there (§3.1). A pin is not a ceiling estimate: `L → ∞` is the pure power law,
+so a pinned fit is the data asking for no ceiling at all, and `fit_spl.py`
+reports it as an active bound rather than a measurement. Earlier revisions
+claimed the cap never binds; that held only for the window then in hand.
 
 **$100T is a display annotation, not a bound** — reached at t₀ ≈ 35.1 yr.
 
@@ -251,7 +298,7 @@ Verified: under exactly these bounds the fit is **interior on all three**
 penalty. A pinned parameter is an artifact and must be visible.
 
 **Refit policy: refit all three freely.** No scheduled refit timer exists
-(`refit_all_ppl.py` is manual), the cap will not bind, and Phase 2 lets the
+(`refit_all_ppl.py` is manual), a refit may land on the cap, and Phase 2 lets the
 user override `L` anyway.
 
 ### 4.1 Pipeline integration — checklist Phase D
@@ -434,14 +481,25 @@ demonstrates about the limits of the data, not its forecast.
 1. **The formula**, and that it is a logistic in log-time — a power law that
    bends at both ends. Note it reduces exactly to `pl` as t₀→∞.
 
-2. **The headline finding, stated as a limit rather than a result.**
-   Approximately:
+2. **The headline finding: the ceiling moves when you add data.** Lead with
+   the side-by-side from §3.1, because it is self-evidencing — a reader does
+   not have to trust a statistic to read two columns:
 
-   > Seventeen years of data cannot tell a pure power law apart from one that
-   > eventually levels off. A ceiling only becomes visible after prices have
-   > clearly begun bending toward it, and they haven't. So we don't claim
-   > Bitcoin has no ceiling — we claim that if one exists, today's data can put
-   > a floor under it but not a number on it.
+   > Refitting this model on data through 3 June puts the ceiling at $34
+   > trillion. Refitting it nine weeks later, with prices within 1% of where
+   > they were, puts it at $15 trillion. Across the last two years the same
+   > fit has returned anything from $11 trillion to "no ceiling at all."
+   > That is not a measurement narrowing in on a value; it is a number that
+   > follows the recent price.
+
+   Then the limit it implies:
+
+   > So we don't claim Bitcoin has no ceiling. We claim that seventeen years
+   > of data can put a floor under one but cannot put a number on it.
+
+   **Show the ⚠️cap rows.** Two of the six windows pin at the fitting bound,
+   and the plain-language reading is the most striking line available: on
+   that data the model asks for *no ceiling at all*.
 
 3. **Why**, in one paragraph a non-statistician can follow: this is the
    pre-inflection sigmoid problem. The upper asymptote of an S-curve is
@@ -461,9 +519,13 @@ demonstrates about the limits of the data, not its forecast.
    ceiling tracks where we are in the four-year cycle, not where the ceiling
    is.*
 
-6. **The cycle sensitivity (§3.5), honestly.** Do not hide that modelling the
-   four-year cycle makes the saturation term look significant. State that it
-   does, then state why it is not believed: 91% of the gain is the last two
+6. **The cycle sensitivity (§3.5), honestly.** Note first that on the current
+   window the *unconditional* test already rejects (LRT 13.65) — so the card
+   must not say "we fail to reject". The honest framing is that significance
+   here is a symptom of the instability, not evidence against it: the same
+   test failed to reject on four of the last six windows. Then give the cycle
+   result — modelling the four-year cycle also makes the saturation term look
+   significant — and why neither is believed: 91% of the gain is the last two
    years, the conditional t₀ sat at its bound until 2025, and significance
    would require the residuals to decorrelate within ~56 days when the
    measured 30-day autocorrelation is 0.90. A reader who has thought about
@@ -486,6 +548,13 @@ demonstrates about the limits of the data, not its forecast.
 
 ### 7.2 Tone and prohibitions
 
+- **Never quote a single fitted ceiling as "the" ceiling.** Every dollar
+  figure on this card must appear beside at least one other window's value, or
+  beside the 93× range. A lone point estimate is the one thing this model
+  cannot support.
+- **Do not say "we fail to reject".** True on the 2026-06-03 window, false on
+  the current one. Say the verdict is unstable across windows, which is true
+  on all of them.
 - **"Consistent with", never "excludes".** The data exclude nothing on the
   high side.
 - **Never present a ceiling as a forecast.** Every dollar figure on this card

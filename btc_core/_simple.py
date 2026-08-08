@@ -378,9 +378,9 @@ class SaturatingPowerLawModel(_ShrinkingBandsMixin):
     quantized = True
 
     # Fitted parameters (overwritten by tools/fit_spl.py --update)
-    _log10_L = 6.213235
-    _t0      = 28.313992
-    _beta    = 5.090958
+    _log10_L = 5.846849
+    _t0      = 23.869131
+    _beta    = 5.103979
 
     def __init__(self, price_years, price_prices, quantiles,
                  log10_L=None, t0=None, beta=None):

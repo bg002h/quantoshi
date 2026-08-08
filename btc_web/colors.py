@@ -217,6 +217,7 @@ MODEL_TRACE_COLORS = {
     "plo":       "#40C4FF",   # light cyan — echoes PL electric cyan
     "sexp":      "#FF6B35",   # warm coral — distinguishes from pure exp pink
     "logi":      "#76C043",   # fresh green — saturation curve contrast
+    "spl":       "#4C1D95",   # deep violet — saturating power law
 }
 
 # ── Ticker model colors (palette-invariant, distinct values) ──────
@@ -276,6 +277,7 @@ DEFAULT = {
         "plo":  "#3D5A80",  # steel blue — dusty navy, echoes PL but distinct
         "sexp": "#B8543A",  # muted coral — sub-exp diagnostic
         "logi": "#4A7A5A",  # evergreen — symmetric-saturation diagnostic
+        "spl":  "#4C1D95",  # deep violet — saturating power law
         "u1":   "#1A1A2E",  # matches scatter ink — user's own hand
     },
     "thermal_stops": [
@@ -328,6 +330,7 @@ CB_BRIAN = {
         "sexp": "#2204FD",  # [PL]
         "logi": "#BD3737",  # [EPPL]
         "u1":   "#FE6100",  # [HybPPL]
+        "spl":  "#FFB000",  # [LPPL] — cycle continues
     },
     "thermal_stops": [
         (0.001, "#0d47a1"), (0.01, "#1565c0"), (0.015, "#1976d2"),
@@ -362,6 +365,7 @@ CB_RG = {
         "sexp": "#B22222",
         "logi": "#556B2F",
         "u1": "#333333",
+        "spl": "#6A0DAD",
     },
     "thermal_stops": [
         (0.001, "#0d47a1"), (0.01, "#1565c0"), (0.015, "#1976d2"),
@@ -396,6 +400,7 @@ CB_FULL = {
         "plo": "#6A8299",
         "sexp": "#A0706A",
         "logi": "#5A7A5A",
+        "spl": "#7A6A9A",
     },
     "thermal_stops": [
         (0.001, "#1a1a2e"), (0.01, "#3d1f56"), (0.015, "#6B3074"),

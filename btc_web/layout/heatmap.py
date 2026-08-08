@@ -25,7 +25,7 @@ from colors import (NEAR_BLACK, DIM_TEXT, SPINE_COLOR_FALLBACK,
 # ReferenceError on pill click and silently abort the callback.
 _HM_PILL_MODELS_BASE = [
     "bub", "pl", "lppl", "hybppl",
-    "pca", "grdy", "eppl", "gomp", "bpl", "plo", "sexp", "logi",
+    "pca", "grdy", "eppl", "gomp", "bpl", "plo", "sexp", "logi", "spl",
 ]
 
 # Short display labels rendered inside each pill button.
@@ -35,7 +35,7 @@ _HM_PILL_LABELS = {
     "hyb2l": "H2L", "hyb2c": "H2C", "hyb2b": "H2B", "hyb4d": "H4D",
     "pca": "PCA", "grdy": "Grdy", "eppl": "EPPL",
     "gomp": "Gomp", "bpl": "BPL", "plo": "PL+c", "sexp": "SExp",
-    "logi": "Logi",
+    "logi": "Logi", "spl": "SatPL",
     "ef": "EF", "u1": "U\u2081", "mc": "MC",
 }
 
@@ -226,8 +226,11 @@ def _hm_pill_bar():
                            outline=(i != 0)),
             )
 
+    # `qs-hm-pills` (assets/style.css) makes the group wrap. Bootstrap's
+    # .btn-group is inline-flex/nowrap, so without it the bar overflows
+    # its column on narrow viewports once the model list grows.
     pill_bar = html.Div([
-        dbc.ButtonGroup(buttons, size="sm"),
+        dbc.ButtonGroup(buttons, size="sm", className="qs-hm-pills"),
     ], className="mb-1 text-center")
 
     status_row = html.Div(

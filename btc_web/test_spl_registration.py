@@ -72,3 +72,39 @@ class TestPipelineIntegration:
         s = _src("tools/fit_shrinking_sigma.py")
         i = s.index('model_name == "spl"')
         assert re.search(r"np\.where\(\s*t\s*>=\s*T_MIN", s[i:])
+
+
+class TestAppWiring:
+    def test_registered_in_price_models(self):
+        from conftest import _app_ctx
+        assert "spl" in _app_ctx.PRICE_MODELS
+        assert _app_ctx.PRICE_MODELS["spl"].short_name == "spl"
+
+    def test_colour_in_every_palette(self):
+        from colors import PALETTES, MODEL_TRACE_COLORS
+        assert "spl" in MODEL_TRACE_COLORS
+        for name, pal in PALETTES.items():
+            assert "spl" in pal["model_colors"], f"missing in {name}"
+
+    def test_checklist_options_append_only(self):
+        """Bitmask positions are positional; spl must be LAST in each list."""
+        from snapshot import _CHECKLIST_OPTIONS
+        lists = [k for k in _CHECKLIST_OPTIONS if k.endswith("-model-show")]
+        assert len(lists) == 5, lists
+        for k in lists:
+            assert _CHECKLIST_OPTIONS[k][-1] == "spl", \
+                f"{k}: spl must be appended last, not inserted"
+
+    def test_deprioritized(self):
+        from layout.display_models import _DEPRIORITIZED
+        assert "spl" in _DEPRIORITIZED
+
+    def test_heatmap_pill_base_and_label(self):
+        from layout.heatmap import _HM_PILL_MODELS_BASE, _HM_PILL_LABELS
+        assert "spl" in _HM_PILL_MODELS_BASE
+        assert _HM_PILL_LABELS["spl"] == "SatPL"
+
+    def test_not_in_ticker_cycle(self):
+        """Diagnostic models skip the navbar ticker, like gomp/bpl/plo/sexp/logi."""
+        from callbacks.ticker import _MODEL_CYCLE
+        assert "spl" not in _MODEL_CYCLE

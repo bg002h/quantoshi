@@ -52,6 +52,7 @@ from btc_core import (load_model_data, BubbleModel, PowerLawModel,
                        GreedyModel, EntropyPPLModel,
                        ExponentialModel, GompertzModel, LogisticSCurveModel,
                        OffsetPowerLawModel, StretchedExponentialModel,
+                       SaturatingPowerLawModel,
                        BrokenPowerLawModel,
                        S2FModel, EmpiricalFloorModel, QuantileRegressionModel,
                        HybPPLConfigModel, _HYBPPL_CONFIG_PARAMS,
@@ -337,6 +338,7 @@ _app_ctx.PRICE_MODELS["bpl"] = BrokenPowerLawModel(M.price_years, M.price_prices
 _app_ctx.PRICE_MODELS["plo"] = OffsetPowerLawModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["sexp"] = StretchedExponentialModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["logi"] = LogisticSCurveModel(M.price_years, M.price_prices, M.QR_QUANTILES)
+_app_ctx.PRICE_MODELS["spl"] = SaturatingPowerLawModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["s2f"] = S2FModel(M.price_years, M.price_prices, M.genesis)
 # ── Empirical Floor (conditional — only if pkl exists) ────────────────
 _ef_pkl = Path(__file__).parent.parent / "model_data_ef.pkl"

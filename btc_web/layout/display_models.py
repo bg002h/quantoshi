@@ -27,6 +27,13 @@ from layout.common import (
 )
 
 
+# Deprioritized models appear at the bottom of the Display Models panel in
+# this explicit order. S2F before Exponential per user preference
+# (2026-04-11). Module-level so registration tests can assert membership
+# without calling the builder.
+_DEPRIORITIZED = ("s2f", "exp", "gomp", "bpl", "plo", "sexp", "logi", "spl")
+
+
 def build_display_models_options(
     mc: dict,
     prefix: str,
@@ -46,9 +53,6 @@ def build_display_models_options(
     _LPPL_FAM   = {"lppl", "lp2", "lp3", "lp4"} | set(_app_ctx.LPPL_FAMILY_HIDDEN_FROM_BUBBLE)
     _HYBPPL_FAM = set(_app_ctx.HYBPPL_FAMILY_HIDDEN)
     _PROMOTED   = ("pca", "grdy")
-    # Deprioritized models appear at the bottom in this explicit order.
-    # S2F before Exponential per user preference (2026-04-11).
-    _DEPRIORITIZED = ("s2f", "exp", "gomp", "bpl", "plo", "sexp", "logi")
 
     def _swatch_span(color):
         return html.Span(" ", style={

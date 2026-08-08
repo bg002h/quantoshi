@@ -1660,3 +1660,27 @@ body {
     border-color: var(--qs-bootstrap-border) var(--qs-bootstrap-border) var(--qs-white);
     font-weight: 600;
 }
+
+/* ── Heatmap model pill bar: must wrap ────────────────────────────────────
+   The bar is a dbc.ButtonGroup, i.e. Bootstrap `.btn-group`, which is
+   `display: inline-flex` with the default `flex-wrap: nowrap`. The model
+   list only grows (16 pills as of the SatPL/`spl` registration), so on a
+   narrow viewport the row overflows its column instead of reflowing.
+
+   Allowing wrap alone is not enough: `.btn-group` styles the row as one
+   segmented control — every button after the first gets a -1px left margin
+   and squared-off inner corners, and `flex: 1 1 auto` lets them stretch.
+   Those rules are meaningful on one unbroken row and read as broken the
+   moment a row wraps, so neutralise them and give each pill its own
+   radius. */
+.qs-hm-pills {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 4px;
+    column-gap: 3px;
+}
+.qs-hm-pills > .btn {
+    flex: 0 0 auto;
+    margin-left: 0 !important;
+    border-radius: 0.25rem !important;
+}

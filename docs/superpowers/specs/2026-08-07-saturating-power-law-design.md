@@ -603,10 +603,20 @@ dev-only tool in the `render_chart_previews.py` mould.
 `btc_web/requirements.txt`, and importing them on the runtime path passes every
 local test and then breaks prod startup.
 
-A second figure is worth considering and is cheap: the **profile curve** —
-SSE against log₁₀L, flat from the optimum out to the bound. One picture makes
-the identification problem obvious in a way no table does. Optional for
-Phase 1.
+A second figure is **required** (user decision, 2026-08-07): the **profile
+curve** — SSE against log₁₀L, flat from the optimum out to the fitting bound,
+at `btc_web/assets/spl_profile.png`.
+
+The two figures do different jobs and the card needs both. The two-window
+table shows **that** L moves; the profile curve shows **why** nothing pins it
+down — the objective is genuinely flat across three orders of magnitude in L,
+so the optimiser has no gradient to follow and lands wherever the last few
+months of prices happen to push it. That is the identification problem itself,
+and one picture carries it in a way no table does.
+
+Mark the fitted optimum and the $1000T bound on the curve, and label the
+region where ΔSSE stays below the 5% boundary-corrected threshold — that band
+IS the set of ceilings the data cannot distinguish.
 
 ## 8. Phase 2 — user-set ceiling
 

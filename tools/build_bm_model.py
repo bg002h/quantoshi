@@ -57,6 +57,12 @@ RESQR_FLAGSHIP_MODELS = (
     "hyb2l", "hyb2c", "hyb2b", "hyb4d",
     "eppl", "linppl", "exp", "pca",
     "grdy", "gomp", "bpl",
+    # spl promoted 2026-08-08 (user). Tab 1 defaults to sigma_mode="resqr",
+    # so a model without a bundle silently falls back to constant sigma and
+    # draws visibly different band widths from bub/pl beside it. spl follows
+    # BM. plo/sexp/logi are still unpromoted -- see F-7 in
+    # docs/superpowers/followups.md.
+    "spl",
 )
 
 

@@ -301,7 +301,16 @@ penalty. A pinned parameter is an artifact and must be visible.
 (`refit_all_ppl.py` is manual), a refit may land on the cap, and Phase 2 lets the
 user override `L` anyway.
 
-### 4.1 Pipeline integration — checklist Phase D
+### 4.1
+
+> **Superseded 2026-08-08 (user):** `spl` is now IN `RESQR_FLAGSHIP_MODELS`.
+> This section originally shipped it non-flagship to match `logi`/`plo`/`sexp`.
+> The linter showed the user-visible consequence: Tab 1 defaults to
+> `sigma_mode="resqr"`, so a model without a bundle silently falls back to
+> constant sigma and draws different band widths from `bub`/`pl` beside it.
+> `spl` follows BM. Measured effect at t=16: Q10 $33,932 -> $47,625, median
+> unchanged (resqr affects band width, not the central fit).
+ Pipeline integration — checklist Phase D
 
 All three are flagged ⚠️ in `workflow_new_model.md` as v1 misses, and all
 three fail **silently**.

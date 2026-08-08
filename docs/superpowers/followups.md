@@ -204,6 +204,12 @@ are left behind.
 ---
 
 ### F-7 — 4 models are instantiated for the resqr fit but never fitted
+
+> **Partially resolved 2026-08-08:** `spl` was promoted to
+> `RESQR_FLAGSHIP_MODELS` and now has a bundle (88 total, was 87). `plo`,
+> `sexp` and `logi` are still unpromoted and remain the open part of this
+> item — they continue to draw constant-sigma bands on a Tab 1 view that
+> defaults to resqr.
 **Severity:** Important · **Owning phase:** next `model_data.pkl` /
 `build_bm_model.py` touch · **Found:** 2026-08-07 by
 `tools/check_model_registration.py` · **Pre-existing** (3 of the 4 predate

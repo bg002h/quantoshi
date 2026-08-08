@@ -2421,3 +2421,63 @@ class TestGlobalEPPLModal:
 # TestEPPLConfigPanel — removed in Task 6 (see note above). Helper
 # _eppl_config_panel was deleted in Task 5; functionality now covered by
 # build_display_models_options + test_palette_roundtrip.py.
+
+
+class TestSaturatingPowerLawModel:
+    def _mk(self):
+        from btc_core import SaturatingPowerLawModel
+        from conftest import M          # test_models.py's own idiom (see :12)
+        return SaturatingPowerLawModel(M.price_years, M.price_prices,
+                                       M.QR_QUANTILES)
+
+    def test_identity(self):
+        m = self._mk()
+        assert m.short_name == "spl"
+        assert m.quantized is True
+        assert m.dash_style == "longdash"
+        assert m.name == "Saturating Power Law"
+
+    def test_quantiles_and_fits(self):
+        m = self._mk()
+        assert m.quantiles == sorted(m.quantiles)
+        assert set(m.fits) == set(m.quantiles)
+
+    def test_price_at_finite_and_monotone_in_q(self):
+        import numpy as np
+        m = self._mk()
+        t = np.array([1.0, 5.0, 16.0])
+        prev = None
+        for q in sorted(m.quantiles):
+            v = np.asarray(m.price_at(q, t), float)
+            assert np.all(np.isfinite(v)) and np.all(v > 0)
+            if prev is not None:
+                assert np.all(v >= prev - 1e-9), f"q={q} not monotone"
+            prev = v
+
+    def test_numerically_stable_at_domain_edges(self):
+        """logaddexp form must not blow up at small t or large beta."""
+        import numpy as np
+        from btc_core import SaturatingPowerLawModel
+        from conftest import M
+        for beta in (0.5, 5.0, 20.0):
+            m = SaturatingPowerLawModel(M.price_years, M.price_prices,
+                                        M.QR_QUANTILES, beta=beta)
+            v = m._model_log10(np.array([1e-3, 1e-2, 1.0, 1e3]))
+            assert np.all(np.isfinite(v)), f"non-finite at beta={beta}"
+
+    def test_ceiling_is_the_asymptote(self):
+        """As t -> infinity price approaches L, from below."""
+        import numpy as np
+        m = self._mk()
+        far = m._model_log10(np.array([1e6]))[0]
+        assert far <= m._log10_L + 1e-9
+        assert far > m._log10_L - 1e-3
+
+    def test_optional_overrides_shadow_class_attrs(self):
+        """Phase 2 needs per-request instances; the ctor must accept them."""
+        from btc_core import SaturatingPowerLawModel
+        from conftest import M
+        m = SaturatingPowerLawModel(M.price_years, M.price_prices,
+                                    M.QR_QUANTILES, log10_L=7.0)
+        assert m._log10_L == 7.0
+        assert SaturatingPowerLawModel._log10_L != 7.0, "class attr mutated"

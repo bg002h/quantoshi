@@ -354,6 +354,79 @@ class LogisticSCurveModel(_ShrinkingBandsMixin):
 
 
 
+class SaturatingPowerLawModel(_ShrinkingBandsMixin):
+    """Power law that rolls over to a finite ceiling.
+
+        price   = L / (1 + (t/t0)^(-beta))
+        log10 p = log10(L) - log10(1 + (t/t0)^(-beta))
+
+    A logistic in LOG time -- the same shape as LogisticSCurveModel with ln(t)
+    substituted for t. Early (t << t0) it is a pure power law, price ~ t^beta;
+    late it approaches L. At t = t0, price is exactly L/2.
+
+    DIAGNOSTIC MODEL. The price history cannot identify the ceiling: a
+    likelihood-ratio test of t0 = infinity fails to reject even assuming iid
+    residuals (2*dloglik = 2.28 vs a boundary-corrected 5% critical value of
+    2.706). The fitted t0 tracks where we are in the four-year cycle rather
+    than where a ceiling is. See the Model Info card and
+    docs/superpowers/specs/2026-08-07-saturating-power-law-design.md section 3.
+    """
+    name = "Saturating Power Law"
+    short_name = "spl"
+    legend_name = "SatPL"
+    dash_style = "longdash"
+    quantized = True
+
+    # Fitted parameters (overwritten by tools/fit_spl.py --update)
+    _log10_L = 6.2133
+    _t0      = 28.314
+    _beta    = 5.0910
+
+    def __init__(self, price_years, price_prices, quantiles,
+                 log10_L=None, t0=None, beta=None):
+        # Optional overrides shadow the class attrs without mutating them.
+        # Phase 2 needs a per-request instance carrying a user-set ceiling;
+        # PRICE_MODELS holds a process-wide singleton, so mutating the class
+        # from a callback would be a cross-user data race.
+        if log10_L is not None:
+            self._log10_L = float(log10_L)
+        if t0 is not None:
+            self._t0 = float(t0)
+        if beta is not None:
+            self._beta = float(beta)
+        mask = price_years >= T_MIN
+        t = price_years[mask]
+        residuals = np.log10(price_prices[mask]) - self._model_log10(t)
+        self._init_shrinking_bands(t, residuals, quantiles)
+        self._build_colors()
+
+    def _model_log10(self, t):
+        t_arr = np.asarray(t, float)
+        # logaddexp keeps the (t/t0)^(-beta) term stable. Not strictly
+        # required at beta <= 20 (largest intermediate ~1.8e29, well inside
+        # float64) but it is the idiomatic stable spelling and preserves
+        # headroom -- overflow would begin near beta ~ 210.
+        u = -self._beta * (np.log(t_arr) - np.log(self._t0))
+        return self._log10_L - np.logaddexp(0.0, u) / np.log(10.0)
+
+    def _build_colors(self):
+        """Violet gradient — matches the #4C1D95 trace colour.
+
+        Each model defines its own _build_colors; it is NOT inherited from
+        _ShrinkingBandsMixin (verified: PowerLawModel and LogisticSCurveModel
+        each carry their own). This is the convention, not duplication.
+        """
+        self.colors = {}
+        n = len(self.quantiles)
+        for i, q in enumerate(self.quantiles):
+            frac = i / max(n - 1, 1)
+            r = int(76 + 60 * frac)     # 76 → 136
+            g = int(29 + 40 * frac)     # 29 → 69
+            b = int(149 + 40 * frac)    # 149 → 189
+            self.colors[q] = f"#{r:02x}{g:02x}{b:02x}"
+
+
+
 class BrokenPowerLawModel(_ShrinkingBandsMixin):
     """Broken (two-segment) power law with Gaussian quantile bands.
 

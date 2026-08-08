@@ -222,6 +222,23 @@ def _eval_model(model_name, t, lp):
         pred = m._K / (1.0 + np.exp(-m._r * (t - m._t0)))
         return lp - pred
 
+    elif model_name == "spl":
+        from btc_core import SaturatingPowerLawModel
+        # btc_core's __init__ puts btc_web/ on sys.path, so this import is
+        # only valid after the line above.
+        from time_basis import T_MIN
+        m = SaturatingPowerLawModel
+        # Call the class's own _model_log10 rather than re-spelling the
+        # formula here: a re-spelling drifts silently when the class changes.
+        # Unbound with the class as `self` — it reads only class attrs, and
+        # instantiating would re-run the very band fit this script feeds.
+        resid = lp - m._model_log10(m, t)
+        # Mask exactly as the constructor does (`price_years >= T_MIN`) so
+        # sigma is optimised against the same residual set that
+        # _init_shrinking_bands derives the bands from. Excluded points are
+        # NaN, not zero; _fit_one_model drops non-finite residuals.
+        return np.where(t >= T_MIN, resid, np.nan)
+
     else:
         raise ValueError(f"Unknown model: {model_name}")
 
@@ -231,6 +248,12 @@ def _fit_one_model(args):
     model_name, t, lp = args
     try:
         residuals = _eval_model(model_name, t, lp)
+        # A branch may return NaN for samples outside its own model's fit
+        # window (spl masks t >= T_MIN). Drop them so sigma is fitted on the
+        # same residual set the class derives its bands from. For every other
+        # model this keep-mask is all-True, so nothing changes.
+        keep = np.isfinite(residuals)
+        t, residuals = t[keep], residuals[keep]
         results = _fit_sigma_params(t, residuals)
         sigma_const = float(np.std(residuals))
         return model_name, sigma_const, results
@@ -245,7 +268,7 @@ def main():
     t, lp = _load_data()
     print(f"  {len(t)} observations, t = {t.min():.2f} – {t.max():.2f} yr")
 
-    models = ["pl", "exp", "lppl", "hybppl", "hybppl_dd", "eppl", "grdy", "gomp", "bpl", "plo", "sexp", "logi"]
+    models = ["pl", "exp", "lppl", "hybppl", "hybppl_dd", "eppl", "grdy", "gomp", "bpl", "plo", "sexp", "logi", "spl"]
 
     print(f"\nFitting σ(t) = σ₀·t^(-α) for {len(models)} models (parallel) ...\n")
 

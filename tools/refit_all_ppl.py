@@ -57,6 +57,7 @@ SCRIPTS = [
     ("Offset PL",      "tools/fit_plo.py"),
     ("Stretched Exp",  "tools/fit_sexp.py"),
     ("Logistic",       "tools/fit_logistic.py"),
+    ("SatPL",          "tools/fit_spl.py"),
     ("Greedy Select",  "tools/fit_grdy.py --mode=de"),
 ]
 

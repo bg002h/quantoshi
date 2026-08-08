@@ -50,10 +50,15 @@ print(f"[gate 2] logaddexp finite over t<=0.01, beta<=40 : YES")
 print(f"         naive form finite there (spec §5 claim): "
       f"{'NO -- overflows' if naive_bad else 'YES -- spec §5 correct'}")
 
-# spec §3.4 identity: spl - pl == -log10(1 + (t/t0)^beta)
-A = m_._log10_L - m_._beta*np.log10(m_._t0)
-pl = A + m_._beta*np.log10(t)
-closed = -np.log10(1.0 + (t/m_._t0)**m_._beta)
-err = float(np.max(np.abs((pred-pl)-closed)))
-print(f"[gate 3] §3.3 identity max err : {err:.2e}  "
-      f"({'holds' if err < 1e-12 else 'FAILS'})")
+# spec §3.1 PRIMARY claim: boundary-corrected LRT fails to reject t0 = infinity
+from scipy.stats import chi2
+X = np.vstack([np.ones_like(t), np.log10(t)]).T
+c, *_ = np.linalg.lstsq(X, lp, rcond=None)
+sse_pl = float(np.sum((lp - X @ c) ** 2))
+sse_spl = float(np.sum((lp - pred) ** 2))
+stat = len(t) * np.log(sse_pl / sse_spl)
+crit = float(chi2.ppf(1 - 2 * 0.05, 1))
+print(f"[gate 3] §3.1 LRT stat {stat:.4f} vs boundary crit {crit:.4f}"
+      f"  -> {'fail to reject' if stat < crit else 'REJECT'}")
+print(f"         spec §3.1 says 2.2802 / 2.7055 / fail to reject : "
+      f"{'MATCHES' if abs(stat-2.2802) < 5e-3 and stat < crit else 'MISMATCH'}")

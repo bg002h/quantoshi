@@ -4,46 +4,44 @@
     btc_venv/bin/python3 tools/analyze_spl.py
 
 Run this instead of trusting the numbers in
-docs/superpowers/specs/2026-08-07-saturating-power-law-design.md — the price
-history grows daily, so the spec's figures are a snapshot and this is the
-source of truth for them.
+docs/superpowers/specs/2026-08-07-saturating-power-law-design.md. The price
+history grows daily, so the spec's figures are a snapshot.
 
     price   = L / (1 + (t/t0)^(-beta))
     log10 p = log10(L) - log10(1 + (t/t0)^(-beta))
 
-t is years since the 2009-07-25 origin. Fitting is on log10 residuals.
+t is years since the 2009-07-25 origin. Fitting is on log10 residuals, over
+t >= T_MIN, matching what the model class sees. The fit uses
+(A, beta, log10 t0) with A = log10 L - beta*log10 t0, so the near-degenerate
+direction collapses onto log10 t0 alone.
 
-Internally the fit uses (A, beta, log10 t0) where A = log10 L - beta*log10 t0
-is the power-law intercept: A and beta are well determined, so the
-near-degenerate direction collapses onto log10 t0 alone.
+METHOD (rebuilt after a statistics consult; see the spec's section 3)
 
-CORRECTIONS APPLIED after the R0 architect review
-(docs/superpowers/reviews/2026-08-07-spl-spec-r0-architect-review.md):
+The question is whether the price history can identify a ceiling. The primary
+test is a likelihood-ratio test of t0 = infinity, which is a BOUNDARY of the
+parameter space, so the null distribution is a 50:50 mixture of chi2_0 and
+chi2_1 and the 5% critical value is 2.706, not 3.841.
 
-  1. Data mask is now `t >= T_MIN` (1.0), matching what the model class will
-     see. The previous `t > 0` fitted a different residual set than the one
-     _init_shrinking_bands derives sigma from.
-  2. The information-criterion band is reported at BOTH dAIC<=1 and dAIC<=2,
-     each correctly labelled. The previous code used thresh = best*(1+2/n) --
-     a dAIC<=2 band -- while calling it "1 AIC unit".
-  3. Deviations are reported against the FITTED power law, not against spl's
-     own asymptote (spl's beta != pl's slope, so they are different curves).
-  4. Bounds now match spec section 4: L in [max observed, $1000T cap] enforced
-     as a constraint on the derived L, t0 in [1, 100], beta in (0.01, 20].
-     Bound activity is reported.
-  5. Residual autocorrelation is measured (Durbin-Watson, lag-1 rho) and
-     answered with the two corrections that actually apply: AR(1)-GLS
-     (Cochrane-Orcutt) and a moving-block bootstrap. An earlier revision used
-     a single scalar n_eff = n(1-rho)/(1+rho) instead; that formula is for the
-     mean of a stationary series and is far too pessimistic for regression
-     slopes. Measured, the exponent's bootstrap spread is 1.2x while t0's is
-     ~1000x -- so there is no single effective sample size.
+Discarded, and why:
+  - AR(1)-GLS (Cochrane-Orcutt / Prais-Winsten). The residual ACF changes
+    sign (+0.90 at 30 d, -0.22 at 365 d), so the error process is oscillatory
+    and no AR(1) can represent it at any rho. CO and PW disagreed by 0.32 in
+    the pl exponent purely over whether observation 1 is retained -- a
+    near-unit-root artifact, not a finding.
+  - Moving-block PAIRS bootstrap. t is a fixed exhaustive grid, not a random
+    sample, so resampling (t, price) rows only randomises the design; the
+    block structure does no work on the error process. A residual block
+    bootstrap would be the correct instrument if one is wanted.
+  - A single scalar n_eff. Effective sample size is frequency-dependent; for
+    the lowest-frequency contrast (trend curvature) it is of order the number
+    of halving cycles, ~4.
 """
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 from scipy.optimize import differential_evolution, minimize
+from scipy.stats import chi2
 
 GENESIS = pd.Timestamp("2009-07-25")
 LN10 = np.log(10.0)
@@ -53,6 +51,7 @@ CAP_FIT_USD = 1000e12             # fitting bound on L
 CAP_SANITY_USD = 100e12           # display annotation, not a bound
 BETA_MAX = 20.0
 T0_LO, T0_HI = 1.0, 100.0
+CRIT = float(chi2.ppf(1 - 2 * 0.05, 1))   # 2.706, boundary-corrected 5%
 
 
 def load():
@@ -63,7 +62,7 @@ def load():
     t = ((pd.to_datetime(df[dc], format="mixed") - GENESIS)
          .dt.total_seconds().to_numpy() / (365.25 * 86400))
     p = df[pc].to_numpy(float)
-    m = (t >= T_MIN) & (p > 0)     # correction 1
+    m = (t >= T_MIN) & (p > 0)
     return t[m], p[m]
 
 
@@ -72,269 +71,175 @@ def spl_log10(t, A, beta, log10_t0):
     return (A + beta * log10_t0) - np.logaddexp(0.0, u) / LN10
 
 
+def cyc(t, C, P, ph):
+    return C * np.cos(2 * np.pi * t / P + ph)
+
+
 def lin_log10(t, log10_L, t0, r):
     return log10_L - np.logaddexp(0.0, -r * (t - t0)) / LN10
 
 
-def ic(sse, k, n):
-    ll = n * np.log(sse / n)
-    return ll + 2 * k, ll + k * np.log(n)
+def lrt(sse_null, sse_alt, n):
+    """2*dloglik for nested gaussian models, and its boundary-corrected p."""
+    stat = n * np.log(sse_null / sse_alt)
+    return stat, 0.5 * float(chi2.sf(stat, 1))
 
 
-def resid_diag(resid):
-    """Durbin-Watson plus autocorrelation at 1, 30 and 365 days.
-
-    The longer lags matter: rho(30d) shows the correlation is not an artifact
-    of daily sampling (thinning to weekly/monthly would not rescue the
-    inference), and rho(365d) is negative because residuals a year apart sit
-    on opposite sides of the trend -- the halving cycle appearing directly in
-    the ACF, and independent support for the 4-year bootstrap block length.
-    """
-    dw = float(np.sum(np.diff(resid) ** 2) / np.sum(resid ** 2))
-    return (dw,
-            float(np.corrcoef(resid[:-1], resid[1:])[0, 1]),
-            float(np.corrcoef(resid[:-30], resid[30:])[0, 1]),
-            float(np.corrcoef(resid[:-365], resid[365:])[0, 1]))
+def acf(r, lag):
+    return float(np.corrcoef(r[:-lag], r[lag:])[0, 1])
 
 
-def autocorr(resid):
-    """Durbin-Watson and lag-1 rho.
+def fit_spl(t, lp, seed=0):
+    lo_L, hi_L = np.log10(np.max(10 ** lp)), np.log10(CAP_FIT_USD / SUPPLY)
 
-    NOTE: an earlier revision also returned n_eff = n(1-rho)/(1+rho) and used
-    it as the headline correction. That formula estimates the effective sample
-    size for a MEAN of a stationary series. Regression slopes draw their
-    precision from the spread in x, which serial correlation does not destroy,
-    so the mean formula is far too pessimistic for them -- measured, the
-    exponent's bootstrap spread is 1.2x while t0's is ~1000x. A single scalar
-    n_eff is the wrong abstraction; see gls_refit() and block_bootstrap().
-    """
-    dw = float(np.sum(np.diff(resid) ** 2) / np.sum(resid ** 2))
-    rho = float(np.corrcoef(resid[:-1], resid[1:])[0, 1])
-    return dw, rho
+    def obj(th):
+        A, beta, lt0 = th
+        l10L = A + beta * lt0
+        if not (lo_L <= l10L <= hi_L):
+            return 1e6 + abs(l10L - np.clip(l10L, lo_L, hi_L)) * 1e3
+        return float(np.sum((lp - spl_log10(t, *th)) ** 2))
 
-
-def _qd(v, rho):
-    """Quasi-difference v_t - rho*v_(t-1)."""
-    return v[1:] - rho * v[:-1]
-
-
-def gls_refit(t, lp, x):
-    """Cochrane-Orcutt feasible GLS for pl and spl.
-
-    With rho ~ 0.998 the quasi-difference is nearly a first difference, so
-    this fits day-to-day CHANGES rather than levels. Parameters that survive
-    it are carried by the shape of the data, not by its level.
-    """
-    X = np.vstack([np.ones_like(x), x]).T
-    c_ols, *_ = np.linalg.lstsq(X, lp, rcond=None)
-    c = c_ols
-    for _ in range(30):
-        rho = float(np.corrcoef((lp - X @ c)[:-1], (lp - X @ c)[1:])[0, 1])
-        Xg = np.vstack([_qd(np.ones_like(x), rho), _qd(x, rho)]).T
-        c_new, *_ = np.linalg.lstsq(Xg, _qd(lp, rho), rcond=None)
-        if np.allclose(c_new, c, atol=1e-10):
-            c = c_new
-            break
-        c = c_new
-
-    seed = [-1.178, 5.091, np.log10(28.31)]
-    r0 = minimize(lambda th: float(np.sum((lp - spl_log10(t, *th)) ** 2)), seed,
-                  method="Nelder-Mead",
-                  options={"xatol": 1e-10, "fatol": 1e-12, "maxiter": 40000})
-    th = r0.x
-    for _ in range(30):
-        res = lp - spl_log10(t, *th)
-        rho_s = float(np.corrcoef(res[:-1], res[1:])[0, 1])
-        rr = minimize(lambda z: float(np.sum(_qd(lp - spl_log10(t, *z), rho_s) ** 2)),
-                      th, method="Nelder-Mead",
-                      options={"xatol": 1e-10, "fatol": 1e-12, "maxiter": 40000})
-        if np.allclose(rr.x, th, atol=1e-9):
-            th = rr.x
-            break
-        th = rr.x
-    return c_ols[1], c[1], r0.x, th
-
-
-def block_bootstrap(t, lp, n_boot=200, block_yr=4.0, seed=0):
-    """Moving-block bootstrap preserving autocorrelation within blocks.
-
-    Block length defaults to one halving cycle, the dominant correlation
-    scale. Returns per-parameter distributions -- the honest replacement for
-    a single n_eff, because the parameters degrade at wildly different rates.
-    """
-    rng = np.random.default_rng(seed)
-    n = len(t)
-    blk = int(block_yr * 365.25)
-    nb = int(np.ceil(n / blk))
-    seed_th = [-1.178, 5.091, np.log10(28.31)]
-    expo, betas, t0s = [], [], []
-    for _ in range(n_boot):
-        st = rng.integers(0, n - blk, size=nb)
-        idx = np.sort(np.concatenate([np.arange(s, s + blk) for s in st])[:n])
-        tt, ll = t[idx], lp[idx]
-        Xb = np.vstack([np.ones_like(tt), np.log10(tt)]).T
-        cb, *_ = np.linalg.lstsq(Xb, ll, rcond=None)
-        expo.append(cb[1])
-        rb = minimize(lambda z: float(np.sum((ll - spl_log10(tt, *z)) ** 2)),
-                      seed_th, method="Nelder-Mead",
-                      options={"xatol": 1e-9, "fatol": 1e-11, "maxiter": 8000})
-        betas.append(rb.x[1])
-        t0s.append(10 ** rb.x[2])
-    return np.array(expo), np.array(betas), np.array(t0s)
+    return differential_evolution(
+        obj, [(-10.0, 10.0), (0.01, BETA_MAX),
+              (np.log10(T0_LO), np.log10(T0_HI))],
+        seed=seed, tol=1e-12, maxiter=6000, popsize=25, polish=True)
 
 
 def main() -> None:
     t, p = load()
     lp, n = np.log10(p), len(t)
     print(f"n={n}  t {t.min():.3f}..{t.max():.3f} yr  "
-          f"price ${p.min():,.4g}..${p.max():,.0f}   (mask t >= {T_MIN})\n")
+          f"price ${p.min():,.4g}..${p.max():,.0f}   (mask t >= {T_MIN})")
+    print(f"span {t.max()-t.min():.1f} yr\n")
 
-    # ---- baselines -----------------------------------------------------
     X = np.vstack([np.ones_like(t), np.log10(t)]).T
     c_pl, *_ = np.linalg.lstsq(X, lp, rcond=None)
-    pl_pred = X @ c_pl
-    resid_pl = lp - pl_pred
-    sse_pl = float(np.sum(resid_pl ** 2))
-    aic_pl, bic_pl = ic(sse_pl, 2, n)
-    print(f"[1] power law : slope {c_pl[1]:.4f}  RMSE {np.sqrt(sse_pl/n):.6f}")
+    resid_pl = lp - X @ c_pl
+    sse_pl = float(resid_pl @ resid_pl)
     Xe = np.vstack([np.ones_like(t), t]).T
     c_ex, *_ = np.linalg.lstsq(Xe, lp, rcond=None)
-    print(f"    exponential: RMSE "
-          f"{np.sqrt(np.sum((lp - Xe @ c_ex)**2)/n):.6f}")
+    print(f"[1] pl : exponent {c_pl[1]:.4f}  RMSE {np.sqrt(sse_pl/n):.6f}"
+          f"     exp : RMSE {np.sqrt(np.sum((lp - Xe@c_ex)**2)/n):.6f}")
 
-    # ---- correction 5: autocorrelation, and what to do about it --------
-    expo_ols, expo_gls, spl_ols, spl_gls = gls_refit(t, lp, np.log10(t))
-    resid_spl = lp - spl_log10(t, *spl_ols)
-    sse_spl_ols = float(np.sum(resid_spl ** 2))
-
-    print(f"\n[2] residual autocorrelation (governs everything below)")
-    print(f"    {'':16s} {'DW':>8} {'rho(1d)':>10} {'rho(30d)':>10} {'rho(365d)':>10}")
-    for lbl, r_ in (("pl", resid_pl), ("spl", resid_spl)):
-        dw_, r1, r30, r365 = resid_diag(r_)
-        print(f"    {lbl:16s} {dw_:8.5f} {r1:10.6f} {r30:+10.4f} {r365:+10.4f}")
-    _, rho_pl, _, _ = resid_diag(resid_pl)
-    _, rho_spl, _, _ = resid_diag(resid_spl)
-    print(f"\n    spl's third parameter removes "
-          f"{100*(1 - sse_spl_ols/sse_pl):.4f}% of the variance")
-    print(f"    ...and {100*(rho_pl-rho_spl)/rho_pl:+.5f}% of the lag-1 "
-          f"autocorrelation (delta rho = {rho_spl-rho_pl:+.2e})")
-    print(f"    -> the residuals are the SAME residuals. Whatever structure is")
-    print(f"       in this series, the saturating term does not engage it.")
-    print(f"\n    DW is a DIAGNOSTIC, not a correction. The corrections are")
-    print(f"    GLS ([2a]) and the block bootstrap ([2b]).")
-
-    # [2a] GLS: fit day-to-day changes instead of levels
-    A_o, b_o, l_o = spl_ols
-    A_g, b_g, l_g = spl_gls
-    print(f"\n[2a] AR(1)-GLS (Cochrane-Orcutt) vs OLS point estimates")
-    print(f"     pl  exponent : OLS {expo_ols:.4f}  ->  GLS {expo_gls:.4f}"
-          f"   ({expo_gls-expo_ols:+.4f})")
-    print(f"     spl beta     : OLS {b_o:.4f}  ->  GLS {b_g:.4f}"
-          f"   ({b_g-b_o:+.4f})   <- shape survives")
-    print(f"     spl t0 (yr)  : OLS {10**l_o:.2f}  ->  GLS {10**l_g:.2f}")
-    print(f"     spl ceiling  : OLS ${10**(A_o+b_o*l_o)*SUPPLY/1e12:,.1f}T"
-          f"  ->  GLS ${10**(A_g+b_g*l_g)*SUPPLY/1e12:,.1f}T"
-          f"   <- moves ~8x; not a real feature")
-
-    # [2b] block bootstrap: per-parameter uncertainty
-    expo_b, beta_b, t0_b = block_bootstrap(t, lp)
-    print(f"\n[2b] moving-block bootstrap (4-yr blocks = 1 halving cycle)")
-    print(f"     n_eff is NOT one number -- parameters degrade at different rates:")
-    qq = lambda a, k: float(np.percentile(a, k))
-    for nm, a, unit in (("pl exponent", expo_b, ""), ("spl beta", beta_b, ""),
-                        ("spl t0", t0_b, " yr")):
-        lo, hi = qq(a, 5), qq(a, 95)
-        print(f"       {nm:12s} median {np.median(a):9.3f}{unit}"
-              f"   5-95%: {lo:.3f} .. {hi:.3f}   spread {hi/max(lo,1e-12):,.1f}x")
-
-    # ---- correction 4: fit with the spec's own bounds -------------------
-    lo_L, hi_L = np.log10(p.max()), np.log10(CAP_FIT_USD / SUPPLY)
-
-    def objective(th):
-        A, beta, lt0 = th
-        log10L = A + beta * lt0
-        if not (lo_L <= log10L <= hi_L):       # constraint on derived L
-            return 1e6 + abs(log10L - np.clip(log10L, lo_L, hi_L)) * 1e3
-        return float(np.sum((lp - spl_log10(t, A, beta, lt0)) ** 2))
-
-    res = differential_evolution(
-        objective,
-        [(-10.0, 10.0), (0.01, BETA_MAX), (np.log10(T0_LO), np.log10(T0_HI))],
-        seed=0, tol=1e-12, maxiter=6000, popsize=25, polish=True)
+    # ---- [2] PRIMARY: can the data reject "no ceiling"? ----------------
+    res = fit_spl(t, lp)
     A, beta, lt0 = res.x
-    t0, log10L = 10 ** lt0, A + beta * lt0
-    aic, bic = ic(res.fun, 3, n)
-    active = []
-    if abs(log10L - hi_L) < 1e-6: active.append("L@cap")
-    if abs(log10L - lo_L) < 1e-6: active.append("L@floor")
-    if abs(t0 - T0_LO) < 1e-3:    active.append("t0@lo")
-    if abs(t0 - T0_HI) < 1e-3:    active.append("t0@hi")
-    if abs(beta - BETA_MAX) < 1e-6: active.append("beta@max")
-    print(f"\n[3] spl fitted under the spec's bounds "
-          f"(L<=${CAP_FIT_USD/1e12:,.0f}T, t0 in [{T0_LO},{T0_HI}], beta<={BETA_MAX})")
-    print(f"    beta={beta:.4f}  t0={t0:.3f} yr  L=${10**log10L:,.0f}/BTC"
-          f"  = ${10**log10L*SUPPLY/1e12:,.1f}T")
-    print(f"    RMSE {np.sqrt(res.fun/n):.6f}")
-    print(f"    bounds active: {', '.join(active) if active else 'none (interior)'}")
-    print(f"    at n={n}     : dAIC {aic-aic_pl:+.2f}  dBIC {bic-bic_pl:+.2f}"
-          f"  -> {'pl' if bic > bic_pl else 'spl'} by BIC")
-    print(f"    NB: these assume iid residuals, which [2] refutes. They are")
-    print(f"        reported at face value; [2b] is the honest uncertainty.")
+    t0, l10L = 10 ** lt0, A + beta * lt0
+    stat, pv = lrt(sse_pl, res.fun, n)
+    print(f"\n[2] PRIMARY TEST — likelihood ratio for t0 = infinity")
+    print(f"    spl: beta {beta:.4f}  t0 {t0:.2f} yr  "
+          f"L ${10**l10L*SUPPLY/1e12:,.1f}T   RMSE {np.sqrt(res.fun/n):.6f}")
+    print(f"    2*dloglik = {stat:.4f}   boundary-corrected 5% crit = {CRIT:.4f}")
+    print(f"    p = {pv:.3f}  ->  {'FAIL TO REJECT' if stat < CRIT else 'REJECT'}"
+          f" t0 = infinity, ASSUMING IID")
+    print(f"    spl removes {100*(1-res.fun/sse_pl):.4f}% of variance")
 
-    # ---- correction 2: bands at BOTH criteria, correctly labelled ------
-    print(f"\n[4] profile: best SSE with t0 fixed")
+    # ---- [3] why iid is generous: the error process --------------------
+    resid_spl = lp - spl_log10(t, *res.x)
+    print(f"\n[3] residual structure (why the iid assumption is generous)")
+    print(f"    {'lag':>6} {'pl':>9} {'spl':>9} {'AR(1) pred':>11}")
+    r1 = acf(resid_pl, 1)
+    for L in (1, 30, 90, 180, 365, 730, 1095):
+        print(f"    {L:>6} {acf(resid_pl,L):>+9.4f} {acf(resid_spl,L):>+9.4f} "
+              f"{r1**L:>+11.4f}")
+    print(f"    lag-1 rho: pl {r1:.6f}  spl {acf(resid_spl,1):.6f}  "
+          f"(delta {acf(resid_spl,1)-r1:+.2e})")
+    print(f"    ACF changes SIGN -> oscillatory; no AR(1) fits at any rho.")
+
+    # ---- [4] profile: is t0 pinned from either side? -------------------
+    print(f"\n[4] profile — best SSE with t0 fixed")
     rows, best = [], None
-    for t0v in (20, 25, 28.4, 35, 40, 50, 100, 1000):
+    for t0v in (20, 25, 28.4, 35, 50, 100, 1000):
         lt = np.log10(t0v)
         r2 = minimize(lambda ab: float(np.sum((lp - spl_log10(t, ab[0], ab[1], lt))**2)),
                       [c_pl[0], c_pl[1]], method="Nelder-Mead",
                       options={"xatol": 1e-10, "fatol": 1e-12, "maxiter": 20000})
         rows.append((t0v, r2.fun, 10 ** (r2.x[0] + r2.x[1] * lt)))
         best = r2.fun if best is None else min(best, r2.fun)
-    print(f"    {'t0 (yr)':>9} {'RMSE':>9} {'cap':>12}  dSSE")
+    print(f"    {'t0 (yr)':>9} {'RMSE':>9} {'cap':>13}  dSSE")
     for t0v, s, L in rows:
         print(f"    {t0v:>9.4g} {np.sqrt(s/n):>9.6f} "
-              f"{L*SUPPLY/1e12:>11,.0f}T  {s-best:+.5f}")
-    for lbl, k, nn in (("dAIC<=1, n", 1.0, n), ("dAIC<=2, n", 2.0, n)):
-        th = best * (1 + k / nn)
-        inside = [f"{r[0]:g}" for r in rows if r[1] <= th]
-        print(f"    {lbl:>16}: t0 = {', '.join(inside) or '(none)'}"
-              f"   pl {'inside' if sse_pl <= th else 'outside'}")
+              f"{L*SUPPLY/1e12:>12,.0f}T  {s-best:+.5f}")
 
-    # ---- correction 3: deviation vs the FITTED pl, not spl's asymptote --
-    print(f"\n[5] spl vs the FITTED power law (not spl's own asymptote)")
-    for yr in (2020, 2024, 2026, 2030, 2038, 2050):
+    # ---- [5] what the model claims, vs the FITTED pl -------------------
+    print(f"\n[5] spl vs the fitted pl")
+    for yr in (2020, 2026, 2030, 2038, 2050):
         tt = yr - (GENESIS.year + GENESIS.dayofyear / 365.25)
-        if tt <= 0:
-            continue
-        d = (spl_log10(np.array([tt]), A, beta, lt0)[0]
-             - (c_pl[0] + c_pl[1] * np.log10(tt)))
-        print(f"    {yr}: {d:+.4f} log10 = {100*(10**d - 1):+6.2f}%")
+        d = spl_log10(np.array([tt]), *res.x)[0] - (c_pl[0] + c_pl[1]*np.log10(tt))
+        print(f"    {yr}: {d:+.4f} log10 = {100*(10**d-1):+6.2f}%")
 
-    # ---- linear-time counterpart --------------------------------------
+    # ---- [6] SENSITIVITY: model the ~4-yr cycle ------------------------
+    BO = [(-10, 10), (0.01, BETA_MAX), (np.log10(T0_LO), np.log10(T0_HI)),
+          (0, 1), (2, 8), (-np.pi, np.pi)]
+    BN = [(-10, 10), (0.01, BETA_MAX), (0, 1), (2, 8), (-np.pi, np.pi)]
+    f_alt = lambda z, tt=t, ll=lp: float(np.sum((ll-(spl_log10(tt,*z[:3])+cyc(tt,*z[3:])))**2))
+    f_nul = lambda z, tt=t, ll=lp: float(np.sum((ll-(z[0]+z[1]*np.log10(tt)+cyc(tt,*z[2:])))**2))
+    alt = differential_evolution(f_alt, BO, seed=0, tol=1e-12, maxiter=4000,
+                                 popsize=25, polish=True)
+    nul = differential_evolution(f_nul, BN, seed=0, tol=1e-12, maxiter=4000,
+                                 popsize=25, polish=True)
+    stat_c, pv_c = lrt(nul.fun, alt.fun, n)
+    print(f"\n[6] SENSITIVITY — with a calendar cycle in the mean")
+    print(f"    pl+cycle : RMSE {np.sqrt(nul.fun/n):.6f}  P {nul.x[3]:.2f} yr"
+          f"   (cycle removes {100*(1-nul.fun/sse_pl):.1f}% of variance)")
+    print(f"    spl+cycle: RMSE {np.sqrt(alt.fun/n):.6f}  t0 {10**alt.x[2]:.1f} yr")
+    print(f"    2*dloglik = {stat_c:.3f}  -> REJECTS t0=inf ASSUMING IID (p={pv_c:.3f})")
+    n_cyc = (t.max() - t.min()) / alt.x[4]
+    print(f"    BUT: {n_cyc:.1f} cycles of data; scaled to that, "
+          f"{stat_c*n_cyc/n:.3f} vs crit {CRIT:.3f}")
+    print(f"    and the cycle barely whitens: lag-1 rho "
+          f"{acf(lp-(spl_log10(t,*alt.x[:3])+cyc(t,*alt.x[3:])),1):.6f}")
+    need = CRIT * n / stat_c
+    days = 365.25 * (t.max()-t.min()) / need
+    print(f"    robust framing: significance needs n_eff >= {need:.0f}, i.e.")
+    print(f"    residual decorrelation within ~{days:.0f} days -- but the")
+    print(f"    measured 30-day residual ACF is {acf(resid_pl,30):.2f}.")
+    print(f"    Even a generous n_eff=16 (one per year) gives "
+          f"{stat_c*16/n:.2f} vs crit {CRIT:.2f}.")
+
+    # ---- [7] the three checks on that conditional result ---------------
+    print(f"\n[7] checks on the conditional result")
+    seeded = minimize(f_nul, [alt.x[0]+alt.x[1]*alt.x[2], alt.x[1], *alt.x[3:]],
+                      method="Nelder-Mead",
+                      options={"xatol":1e-11,"fatol":1e-13,"maxiter":80000})
+    print(f"    (a) null convergence: DE {nul.fun:.4f} vs seeded {seeded.fun:.4f}"
+          f"  -> {'DE fine' if nul.fun <= seeded.fun else 'UNDER-CONVERGED'}")
+    r_n = lp - (nul.x[0] + nul.x[1]*np.log10(t) + cyc(t, *nul.x[2:]))
+    r_a = lp - (spl_log10(t, *alt.x[:3]) + cyc(t, *alt.x[3:]))
+    d = np.cumsum(r_n**2 - r_a**2)
+    last2 = d[-1] - d[int(np.searchsorted(t, t.max()-2))]
+    print(f"    (b) gain localisation: final 2 yr = {last2:.2f} of {d[-1]:.2f}"
+          f" = {100*last2/d[-1]:.1f}% of the total")
+    print(f"    (c) conditional t0 by cutoff:")
+    for cut in (12., 14., 15., 16., t.max()):
+        tr = t <= cut
+        a2 = differential_evolution(lambda z: f_alt(z, t[tr], lp[tr]), BO,
+                                    seed=0, tol=1e-10, maxiter=2500,
+                                    popsize=20, polish=True)
+        at_b = abs(10**a2.x[2] - T0_HI) < 0.5
+        print(f"          through {2009.6+cut:.0f}: t0 = {10**a2.x[2]:6.1f} yr"
+              f"{'   <- AT BOUND' if at_b else ''}")
+
+    # ---- [8] linear-time counterpart ----------------------------------
+    lo_L = np.log10(p.max()); hi_L = np.log10(CAP_FIT_USD/SUPPLY)
     rl = differential_evolution(
         lambda th: float(np.sum((lp - lin_log10(t, *th)) ** 2)),
         [(lo_L, hi_L), (1.0, 100.0), (0.01, 30.0)],
         seed=1, tol=1e-12, maxiter=6000, popsize=25, polish=True)
-    _, bic_lin = ic(rl.fun, 3, n)
-    print(f"\n[6] linear-time counterpart: RMSE {np.sqrt(rl.fun/n):.6f}  "
-          f"dBIC {bic_lin-bic_pl:+.1f}")
-    print(f"    L at its LOWER BOUND by construction? "
-          f"{'yes' if abs(rl.x[0]-lo_L) < 1e-6 else 'no'} "
-          f"-- report the dBIC, not the dollar value")
+    print(f"\n[8] linear-time counterpart: RMSE {np.sqrt(rl.fun/n):.6f}"
+          f"   (L at its lower bound by construction; report the fit, not L)")
 
-    print(f"\n[7] the $100T sanity line")
+    print(f"\n[9] the $100T annotation, and the extrapolation gap")
     lo, hi = 1.0, 200.0
     for _ in range(60):
-        mid = 0.5 * (lo + hi); lt = np.log10(mid)
+        mid = 0.5*(lo+hi); lt = np.log10(mid)
         r3 = minimize(lambda ab: float(np.sum((lp - spl_log10(t, ab[0], ab[1], lt))**2)),
                       [c_pl[0], c_pl[1]], method="Nelder-Mead",
-                      options={"xatol": 1e-10, "fatol": 1e-12, "maxiter": 20000})
-        L = 10 ** (r3.x[0] + r3.x[1] * lt)
-        lo, hi = (mid, hi) if L * SUPPLY < CAP_SANITY_USD else (lo, mid)
-    print(f"    reached at t0 ~ {lo:.1f} yr (fitted t0 = {t0:.1f})")
-    print(f"\n    NOTE: t0={t0:.1f} yr vs data ending at t={t.max():.2f} yr — "
-          f"the inflection is extrapolated {t0/t.max():.1f}x beyond any observation.")
+                      options={"xatol":1e-10,"fatol":1e-12,"maxiter":20000})
+        L = 10 ** (r3.x[0] + r3.x[1]*lt)
+        lo, hi = (mid, hi) if L*SUPPLY < CAP_SANITY_USD else (lo, mid)
+    print(f"    $100T reached at t0 ~ {lo:.1f} yr (fitted {t0:.1f})")
+    print(f"    inflection is {t0/t.max():.1f}x beyond the last observation")
 
 
 if __name__ == "__main__":

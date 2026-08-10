@@ -96,10 +96,12 @@ Monthly extend = 37 cold fits ≈ a few minutes. **Nothing recurring on prod.**
 
 ### Storage
 Store fit **params** per (model, frame) — mean params + the 4 shrinking-band
-params (σ₀/α up/down) + r² — and **reconstruct curves at runtime** (`_model_log10`
-is vectorized, sub-ms). ~140 × 37 × ~20 floats < **1 MB as `.npz`** → small enough
-to **git-track** alongside `model_data.pkl` (no rsync infra). A build script does
-the once-backfill + monthly append.
+params (σ₀/α up/down) + r² (plus BM's composite arrays) — and **reconstruct EPPL
+curves at runtime** (`_model_log10` is vectorized, sub-ms). Serialized as
+**gzipped JSON** (`timemachine_grid.json.gz`), a **few MB**, **git-tracked**
+alongside `model_data.pkl` — **no pickle / no `allow_pickle`**, so loading carries
+zero code-execution surface. A build script does the once-backfill + monthly
+append.
 
 ## Bands as-of D
 

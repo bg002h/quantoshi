@@ -122,7 +122,7 @@ def frame_dates(left_edge: str, last_full_month: str) -> list[str]:
 
 **Interfaces:**
 - Consumes: `fit_all_eppl_configs.build_model_fn`, `all_configs`; `EPPL_MAXITER` (Task 0).
-- Produces: `fit_config_asof(cfg, t, lp, ymax, maxiter) -> dict` returning `{"params": {name: float}, "sigma_up": f, "alpha_up": f, "sigma_down": f, "alpha_down": f, "r2": f, "n_log": i, "n_cal": i, "log_damps": [...], "cal_damps": [...]}`. Bands via `btc_core._base._init_shrinking_bands` on residuals of data ≤ ymax.
+- Produces: `fit_config_asof(cfg, t, lp, ymax, maxiter) -> dict` returning `{"params": {name: float}, "sigma": f, "r2": f, "n_log": i, "n_cal": i, "log_damps": [...], "cal_damps": [...]}`. **`sigma` is the constant band σ** = `float(np.std(residuals of data ≤ ymax))`. This is exactly what the runtime uses: `_ShrinkingBandsMixin._sigma_at` (btc_core/_base.py:38-40) returns the constant `self._sigma`, NOT the shrinking σ₀/α that `_init_shrinking_bands` fits (shrinking was reverted — "too narrow at late times"). So store ONE σ, not four params. Confirmed: no `_sigma_at` override exists on any EPPL class.
 
 - [ ] **Step 1: Failing test — cold fit at right edge ≈ published config params.**
 
@@ -137,13 +137,13 @@ def test_rightedge_recovers_published_ecfg_1d_1u():
     t = pr.df_full["years"].values; lp = pr.df_full["log_price"].values
     r = fit_config_asof((1, 1, ["d"], ["u"]), t, lp, ymax=t.max(), maxiter=300)
     assert r["r2"] > 0.97
-    assert r["sigma_up"] > 0 and r["sigma_down"] > 0
-    # band params are finite and ordered sanely
-    assert 0 < r["alpha_up"] < 5 and 0 < r["alpha_down"] < 5
+    assert r["sigma"] > 0                       # constant band σ = std(residuals)
+    assert r["params"]["B"] > 3                 # trend slope in a sane range
+    assert r["n_log"] == 1 and r["n_cal"] == 1
 ```
 
 - [ ] **Step 2: Run — expect fail.**
-- [ ] **Step 3: Implement `fit_config_asof`** — cold DE (`maxiter`, `tol=1e-8`, `seed=42`, `workers=1`) on `t≤ymax & t≥1`; then compute residuals and derive the four shrinking-band params using the same estimator `_init_shrinking_bands` uses (extract its σ₀/α fit so the offline value matches runtime). Return the dict.
+- [ ] **Step 3: Implement `fit_config_asof`** — cold DE (`maxiter`, `tol=1e-8`, `seed=42`, `workers=1`) on `t≤ymax & t≥1`; then `sigma = float(np.std(lp_fit - model_fn(t_fit, *res.x)))` — the constant σ `_sigma_at` uses (matches `self._sigma = float(np.std(residuals))` set at btc_core/_base.py:32). Return the dict. Do NOT compute/store the shrinking σ₀/α — they are dead for the constant path.
 - [ ] **Step 4: Run — expect pass.**
 - [ ] **Step 5: Commit.**
 
@@ -259,13 +259,13 @@ def test_asof_is_per_request_and_pure():
 ### Task 6: Per-request param overrides on in-scope model classes
 
 **Files:**
-- Modify: `btc_core/_hybppl_eppl.py:815` (`EPPLConfigModel.__init__`), `btc_core/_hybppl_eppl.py:664` (`EntropyPPLModel.__init__`)
+- Modify: `btc_core/_hybppl_eppl.py:815` (`EPPLConfigModel.__init__` only — the flagship `EntropyPPLModel` is NOT gridded; `"eppl"` in `bub-model-show` is always resolved to an `ecfg_*` key by `_resolve_eppl_master` before the bubble chart draws, so the flagship is never drawn on Tab 1)
 - Test: `btc_web/test_timemachine_overrides.py`
 
 **Interfaces:**
-- Produces: `EPPLConfigModel(config_key, price_years, price_prices, quantiles, *, cfg_override=None, band_override=None)`. When `cfg_override` is a full cfg dict (`params`/`n_log`/`n_cal`/`damps`/`sigma`/`r2`), it bypasses `_EPPL_CONFIG_PARAMS`. When `band_override=(σ_up, α_up, σ_down, α_down)`, bands are set directly (skip `_init_shrinking_bands`). Overrides **shadow**, never mutate, class/global state.
+- Produces: `EPPLConfigModel(config_key, price_years, price_prices, quantiles, *, cfg_override=None, sigma_override=None)`. When `cfg_override` is a full cfg dict (`params`/`n_log`/`n_cal`/`log_damps`/`cal_damps`/`r2`), it bypasses `_EPPL_CONFIG_PARAMS`. When `sigma_override` (a float) is given, set `self._sigma = sigma_override` (the constant σ `_sigma_at` uses) and skip the residual-based band fit entirely. Overrides **shadow**, never mutate, class/global state.
 
-- [ ] **Step 1: Failing test — override shadows, global dict untouched.**
+- [ ] **Step 1: Failing test — override shadows, global dict untouched, σ applied.**
 
 ```python
 # btc_web/test_timemachine_overrides.py
@@ -277,13 +277,14 @@ def test_cfg_override_bypasses_global_dict():
     ov = {**base, "params": {**base["params"], "B": base["params"]["B"] + 0.5}}
     t = np.linspace(1, 16, 500); p = 10.0 ** (0.0 + 5.0 * np.log10(t))
     m = EPPLConfigModel("ecfg_1d_1u", t, p, [0.5],
-                        cfg_override=ov, band_override=(0.1, 0.3, 0.1, 0.4))
+                        cfg_override=ov, sigma_override=0.13)
     assert m._params["B"] == base["params"]["B"] + 0.5
+    assert m._sigma == 0.13
     assert _EPPL_CONFIG_PARAMS["ecfg_1d_1u"]["params"]["B"] == base["params"]["B"]
 ```
 
 - [ ] **Step 2: Run — expect fail.**
-- [ ] **Step 3: Implement overrides** — add the two keyword params; when present use them and set `self._sigma0_up/_alpha_up/...` directly from `band_override`. Deep-copy any dict read so the global is never aliased.
+- [ ] **Step 3: Implement overrides** — add the two keyword params; when `cfg_override` present use it (deep-copied so the global is never aliased) in place of `_EPPL_CONFIG_PARAMS[config_key]`; when `sigma_override` present set `self._sigma = sigma_override` and skip `_init_shrinking_bands` (still build `self.fits`/`self.quantiles`/colors). Deep-copy any dict read.
 - [ ] **Step 4: Run — expect pass.**
 - [ ] **Step 5: Commit.**
 

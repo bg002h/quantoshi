@@ -95,9 +95,12 @@ relaxed precision (a few hours if we converge harder — still a one-time dev jo
 Monthly extend = 37 cold fits ≈ a few minutes. **Nothing recurring on prod.**
 
 ### Storage
-Store fit **params** per (model, frame) — mean params + the 4 shrinking-band
-params (σ₀/α up/down) + r² (plus BM's composite arrays) — and **reconstruct EPPL
-curves at runtime** (`_model_log10` is vectorized, sub-ms). Serialized as
+Store fit **params** per (model, frame) — mean params + the **constant band σ**
+(= std of residuals ≤ D; the value `_sigma_at` actually uses — the shrinking σ₀/α
+are dead code) + r² (plus BM's composite arrays) — and **reconstruct EPPL curves
+at runtime** (`_model_log10` is vectorized, sub-ms). Grid covers BM + the 36
+`ecfg_*` configs; the flagship `EntropyPPLModel` is not gridded (it never draws on
+Tab 1 — `_resolve_eppl_master` maps `"eppl"` to an `ecfg_*` key first). Serialized as
 **gzipped JSON** (`timemachine_grid.json.gz`), a **few MB**, **git-tracked**
 alongside `model_data.pkl` — **no pickle / no `allow_pickle`**, so loading carries
 zero code-execution surface. A build script does the once-backfill + monthly

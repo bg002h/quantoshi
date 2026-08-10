@@ -205,11 +205,15 @@ def continuity_scan(grid):
     ``r2 < 0.85`` OR its max abs median-log10 change vs the previous
     (non-null) frame exceeds 0.5.
 
-    For ``"bub"`` (BM), only the ``r2 < 0.85`` check is applied -- BM's
-    ``comp_by_n`` lives on a per-frame plotting grid, so the median-jump
-    check would require interpolation onto the shared grid; EPPL coverage
-    is what discharges the Task-0 concern, so this is intentionally
-    skipped for BM.
+    ``"bub"`` (BM) gets the SAME two checks. BM's ``comp_by_n[-1]``
+    (composite USD price with all future bubbles) lives on a per-frame
+    plotting grid (``t_grid``, which varies frame to frame), so it is
+    first interpolated (``np.interp``) onto the shared reference t-grid
+    and converted to log10 before the same adjacent-frame jump
+    comparison is applied. BM's bubble decomposition (major/minor
+    classification) can be just as degenerate near the sparse-data left
+    edge as EPPL's oscillators -- this is the same C2/C3 concern, not a
+    separate one, so BM is not exempt from the jump check.
 
     Never drops frames or raises -- purely informational, for a human to
     eyeball the printed lines.
@@ -271,13 +275,38 @@ def continuity_scan(grid):
             prev_date = date
 
     if "bub" in models:
+        prev_vals = None
+        prev_date = None
         for date, rec in zip(frames, models["bub"]):
             if rec is None:
+                prev_vals = None
+                prev_date = None
                 continue
+
             r2 = rec.get("bm_r2")
             if r2 is not None and r2 < _R2_THRESHOLD:
                 suspects.append(
                     f"SUSPECT {date} bub: bm_r2={r2:.4f} < {_R2_THRESHOLD}")
+
+            try:
+                median_usd = np.interp(ref_t_grid, rec["t_grid"], rec["comp_by_n"][-1])
+                vals = np.log10(np.maximum(median_usd, 1e-300))
+            except Exception as e:  # noqa: BLE001 - report, don't crash the scan
+                suspects.append(
+                    f"SUSPECT {date} bub: median evaluation failed ({e!r})")
+                prev_vals = None
+                prev_date = None
+                continue
+
+            if prev_vals is not None:
+                max_delta = float(np.max(np.abs(vals - prev_vals)))
+                if max_delta > _JUMP_THRESHOLD:
+                    suspects.append(
+                        f"SUSPECT {date} bub: max median-log10 change vs "
+                        f"{prev_date} = {max_delta:.3f} > {_JUMP_THRESHOLD}")
+
+            prev_vals = vals
+            prev_date = date
 
     return suspects
 

@@ -826,7 +826,7 @@ class EPPLConfigModel(_ShrinkingBandsMixin):
         self._config_key = config_key
         self._cfg = cfg
         self._params = cfg["params"]
-        self._sigma = cfg["sigma"]
+        self._sigma = cfg.get("sigma")
         self._n_log = cfg["n_log"]
         self._n_cal = cfg["n_cal"]
         self._log_damps = cfg["log_damps"]

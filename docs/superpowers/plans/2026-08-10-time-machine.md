@@ -154,29 +154,29 @@ def test_rightedge_recovers_published_ecfg_1d_1u():
 - Test: `btc_web/test_timemachine_bm_fit.py`
 
 **Interfaces:**
-- Consumes: `model_toolkit` bubble-composite pipeline (as used by `tools/build_bm_model.py`).
-- Produces: `fit_bm_asof(t, price, ymax) -> dict` with `{"comp_by_n": [list...], "t_grid": [...], "support_slope": f, "support_intercept": f, "sigma0_up": f, "alpha_up": f, "sigma0_down": f, "alpha_down": f, "bm_r2": f}` — the BM composite + support + σ built from data ≤ ymax only.
+- Consumes: the pipeline `tools/build_bm_model.py:264-294` uses — `fit_support`, `fit_sequential`, `classify`, `predict_future`, `build_composite`, `build_comp_by_n`, `fit_asymmetric_sigma` from `model_toolkit.*`, plus `load_prices` + the `PriceData` dataclass from `model_toolkit.data`. **`load_prices` has NO cutoff param** (`tools/model_toolkit/data.py:20`) — truncate the `PriceData` yourself.
+- Produces: `fit_bm_asof(prices, ymax) -> dict` where `prices` is a full `PriceData` (from `load_prices`) and `ymax` is the as-of horizon in `years`. Truncates `prices` to `years ≤ ymax`, runs the pipeline, returns `{"comp_by_n": [[...]...], "t_grid": [...], "support_slope": f, "support_intercept": f, "sigma0_up": f, "alpha_up": f, "sigma0_down": f, "alpha_down": f, "bm_r2": f}`. BM legitimately uses the **4 ASYMMETRIC shrinking σ params** (it is a `_CompositeModel`; `_sigma_at` = `σ0·t^(−α)`, btc_core/_base.py:198-202) — unlike EPPL's constant σ, so all four are kept.
 
 - [ ] **Step 1: Failing test — right-edge composite ≈ shipped `model_data.pkl`.**
 
 ```python
 # btc_web/test_timemachine_bm_fit.py
-import numpy as np, pickle
-from model_toolkit.data import load_prices
+import pickle
+from tools.model_toolkit.data import load_prices
 from tools.timemachine.fit_bm_asof import fit_bm_asof
 
 def test_rightedge_bm_matches_shipped_within_tol():
     pr = load_prices("BitcoinPricesDaily.csv")
-    t = pr.df_full["years"].values; p = 10 ** pr.df_full["log_price"].values
-    r = fit_bm_asof(t, p, ymax=t.max())
+    r = fit_bm_asof(pr, ymax=float(pr.df["years"].max()))
     d = pickle.load(open("model_data.pkl", "rb"))
-    # support line is the most stable BM invariant
-    assert abs(r["support_slope"] - d["bm_support_slope"]) < 0.05
+    assert abs(r["support_slope"] - d["bm_support_slope"]) < 0.05  # most stable BM invariant
     assert r["bm_r2"] > 0.9
+    assert len(r["comp_by_n"]) >= 1 and len(r["t_grid"]) > 0
 ```
 
 - [ ] **Step 2: Run — expect fail.**
-- [ ] **Step 3: Implement `fit_bm_asof`** — call the same toolkit functions `build_bm_model.py` uses, passing a price frame truncated to `t≤ymax`. Emit composite arrays + support coefs + σ. (Task 0 measured the entry point; keep the call identical to the shipped build so the right edge matches.)
+- [ ] **Step 3: Implement `fit_bm_asof`** — at the module top insert the repo `tools/` dir on `sys.path` (as Task 2 did) so `from model_toolkit... import ...` resolves. Add a `_truncate(prices, ymax) -> PriceData` helper that masks `df`/`df_full` to `years ≤ ymax` and rebuilds the arrays exactly as `load_prices` does (`tools/model_toolkit/data.py:103-108`). Then run the `build_bm_model.py:264-294` sequence on the truncated `PriceData`: `fit_support → fit_sequential → classify(n_major=5) → predict_future(t_last_data=trunc.years[-1], n_major=3, n_minor=1) → build_composite → build_comp_by_n → fit_asymmetric_sigma(np.log10(trunc.df_full["price"]), cbn[-1], comp.t_grid, trunc.df_full["years"])`. Assemble the return dict. Keep the calls identical to the shipped build so the right edge matches.
+- **Early-frame robustness** (deferred Task-0 concern C2): a very early `ymax` may give `classify(n_major=5)` too few bubbles. Do NOT special-case it here — Task 4's grid build adds the continuity/degeneracy log. If the right-edge test passes, this task is done.
 - [ ] **Step 4: Run — expect pass.**
 - [ ] **Step 5: Commit.**
 

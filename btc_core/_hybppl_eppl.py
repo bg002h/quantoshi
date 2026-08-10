@@ -6,6 +6,8 @@ directly. Kept together because they share the same dispatch pattern and often
 co-vary in development.
 """
 
+import copy
+
 import numpy as np
 
 from btc_core._helpers import _lazy_norm, _DEFAULT_QS
@@ -812,10 +814,15 @@ class EPPLConfigModel(_ShrinkingBandsMixin):
         raw = -x * np.log(np.maximum(x, 1e-30))
         return np.maximum(raw, 0.0) / (1.0 / np.e)
 
-    def __init__(self, config_key, price_years, price_prices, quantiles):
-        cfg = _EPPL_CONFIG_PARAMS.get(config_key)
-        if cfg is None:
-            raise ValueError(f"Unknown EPPL config: {config_key}")
+    def __init__(self, config_key, price_years, price_prices, quantiles,
+                 *, cfg_override=None, sigma_override=None):
+        if cfg_override is not None:
+            cfg = copy.deepcopy(cfg_override)
+        else:
+            cfg = _EPPL_CONFIG_PARAMS.get(config_key)
+            if cfg is None:
+                raise ValueError(f"Unknown EPPL config: {config_key}")
+            cfg = copy.deepcopy(cfg)
         self._config_key = config_key
         self._cfg = cfg
         self._params = cfg["params"]
@@ -833,12 +840,18 @@ class EPPLConfigModel(_ShrinkingBandsMixin):
         self.legend_name = spec.upper()
         self.dash_style = "dot"
 
-        # Build shrinking quantile bands from residuals
-        mask = price_years >= T_MIN
-        t_fit = price_years[mask]
-        lp_fit = np.log10(price_prices[mask])
-        residuals = lp_fit - self._model_log10(t_fit)
-        self._init_shrinking_bands(t_fit, residuals, quantiles)
+        if sigma_override is not None:
+            # Per-request override: constant sigma, skip residual-based band fit.
+            self._sigma = sigma_override
+            self.fits = {q: {"z": float(_lazy_norm().ppf(q))} for q in quantiles}
+            self.quantiles = sorted(self.fits.keys())
+        else:
+            # Build shrinking quantile bands from residuals
+            mask = price_years >= T_MIN
+            t_fit = price_years[mask]
+            lp_fit = np.log10(price_prices[mask])
+            residuals = lp_fit - self._model_log10(t_fit)
+            self._init_shrinking_bands(t_fit, residuals, quantiles)
         self._build_colors()
 
     def _model_log10(self, t):

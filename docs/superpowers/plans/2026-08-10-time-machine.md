@@ -188,14 +188,15 @@ def test_rightedge_bm_matches_shipped_within_tol():
 
 **Interfaces:**
 - Consumes: Tasks 0–3.
-- Produces: `timemachine_grid.json.gz` at repo root — `gzip`-compressed JSON of `{"frames": [YYYY-MM-DD...], "models": {model_key: [frame_record, ...]}}` where `model_key ∈ {"bub", "ecfg_...", "eppl"}`. Pure JSON (no pickle, no `dtype=object`). Keep total < 5 MB compressed (BM composites may be downsampled to ≤512 points per frame if raw JSON exceeds budget; gzip typically makes downsampling unnecessary).
+- Produces: `timemachine_grid.json.gz` at repo root — `gzip`-compressed JSON of `{"frames": [YYYY-MM-DD...], "models": {model_key: [frame_record, ...]}}` where `model_key ∈ {"bub"} ∪ the 36 "ecfg_*"`. **No flagship `"eppl"` frame** (it never draws on Tab 1). `--full` mode passes `configs = all_configs()` (36, from `fit_all_eppl_configs`) + `include_bm=True`. Pure JSON (no pickle, no `dtype=object`). Keep total < 5 MB compressed (BM composites may be downsampled to ≤512 points per frame if raw JSON exceeds budget; gzip typically makes downsampling unnecessary).
+- Consumes Task-0 constants for `--full`: `EPPL_MAXITER=600`, `LEFT_EDGE_DATE="2012-01-24"`.
 
 - [ ] **Step 1: Failing test — a tiny 2-frame build round-trips.**
 
 ```python
 # btc_web/test_timemachine_grid_build.py
 import gzip, json
-from tools.build_timemachine_grid import build_grid
+from tools.build_timemachine_grid import build_grid, continuity_scan
 
 def test_two_frame_build(tmp_path):
     out = tmp_path / "g.json.gz"
@@ -208,11 +209,15 @@ def test_two_frame_build(tmp_path):
     assert "ecfg_1d_1u" in g["models"] and "bub" in g["models"]
     assert len(g["models"]["ecfg_1d_1u"]) == 2
     assert "params" in g["models"]["ecfg_1d_1u"][0]
+    # continuity scan runs and returns a (possibly empty) list of suspect strings
+    suspects = continuity_scan(g)
+    assert isinstance(suspects, list)
 ```
 
 - [ ] **Step 2: Run — expect fail.**
-- [ ] **Step 3: Implement `build_grid`** — for each config, cold-fit each frame **independently (cold — no warm reuse)**; parallelize (config,frame) tasks over a `ProcessPoolExecutor(max_workers=…)` capped at `min(nproc-2, 22)`. BM frames via Task 3. Assemble the plain-dict object graph and write with `with gzip.open(out_path, "wt") as f: json.dump(obj, f)`. Log dropped/failed frames explicitly (no silent caps).
-- [ ] **Step 4: Run — expect pass.** Then a `--full` mode runs the real grid (documented, not run in CI).
+- [ ] **Step 3: Implement `build_grid`** — convert each frame date → `ymax` in years: `ymax = (pd.Timestamp(frame) - pd.Timestamp("2009-07-25")).days / 365.25`. Load prices once (`load_prices("BitcoinPricesDaily.csv")`); reuse for every frame. For each `(config, frame)`: `fit_config_asof(cfg, prices.df_full["years"].values, prices.df_full["log_price"].values, ymax, maxiter)` (Task 2). For each BM frame: `fit_bm_asof(prices, ymax)` (Task 3, takes the full PriceData + horizon). Cold-fit each frame **independently (no warm reuse)**; parallelize `(config, frame)` tasks over a `ProcessPoolExecutor(max_workers=min(nproc-2, 22))`. Assemble the plain-dict object graph and write with `with gzip.open(out_path, "wt") as f: json.dump(obj, f)`. **Coerce numpy scalars to plain Python before dumping** — Task 3's `fit_bm_asof` returns some `numpy.float64` and configs carry ints; `np.float64` serializes but `np.int64` does NOT, so wrap params/coefs (`float(...)`/`int(...)`) or pass a `default=` that handles numpy types. **Log dropped/failed frames explicitly (no silent caps.)** (The Step-1 test uses `workers=1` → a simple sequential path; `ProcessPoolExecutor` is exercised only in `--full`.)
+- [ ] **Step 3b: Continuity / degeneracy scan** (discharges Task-0 concerns C2 overfit-at-left-edge & C3 aliasing). Add a pure function `continuity_scan(grid: dict) -> list[str]`: for each model key, walk adjacent frames, evaluate each frame's median (EPPL via the `ecfg` formula on the frame's `params`; BM via `comp_by_n[-1]`) on a shared reference t-grid, and flag any frame whose max abs median-log10 change exceeds a threshold vs a neighbour (e.g. > 0.5) or whose `r2 < 0.85`, returning strings like `"SUSPECT <date> <key>: <reason>"`. `build_grid` calls it after assembling the grid and `log()`s each suspect. **Report only** — it never drops frames or fails the build; it surfaces early overfit/aliased frames for a human to eyeball. The test asserts `continuity_scan(g)` returns a list.
+- [ ] **Step 4: Run — expect pass.** Then a `--full` mode runs the real grid (documented, not run in CI): `frames = frame_dates("2012-01-24", <last full month>)`, `configs = all_configs()`, `include_bm=True`, `maxiter=600`.
 - [ ] **Step 5: Commit** the builder + test (NOT the multi-MB grid yet — `timemachine_grid.json.gz` lands in Task 5's integration commit once the loader consumes it).
 
 ### Task 5: Runtime grid loader
@@ -239,7 +244,7 @@ from btc_web import _app_ctx
 
 def test_asof_is_per_request_and_pure():
     if not tm.available():
-        import pytest; pytest.skip("grid npz not built in this env")
+        import pytest; pytest.skip("grid not built in this env")
     before = _app_ctx.PRICE_MODELS["ecfg_1d_1u"]._params.copy()
     a = tm.asof_eppl("ecfg_1d_1u", 0)
     b = tm.asof_eppl("ecfg_1d_1u", 0)

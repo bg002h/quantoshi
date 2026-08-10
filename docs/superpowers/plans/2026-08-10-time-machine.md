@@ -253,9 +253,10 @@ def test_asof_is_per_request_and_pure():
 ```
 
 - [ ] **Step 2: Run — expect skip or fail.**
-- [ ] **Step 3: Implement loader** — `@lru_cache` a `gzip.open`+`json.load` of the grid; `available()` guards on file existence; `asof_eppl` constructs a fresh `EPPLConfigModel` via the Task-6 override each call.
+- [ ] **Step 3: Implement loader** — `@lru_cache` a `gzip.open`+`json.load` of the grid; `available()` guards on file existence; `asof_eppl` constructs a fresh `EPPLConfigModel` via the Task-6 override each call. **Handle a `null` frame** (a failed fit stored as JSON `null`, per Task 4): `asof_eppl`/`asof_bm` return `None` for a null frame and the bubble path skips it — never crash.
 - [ ] **Step 4: Run — expect pass/skip.**
-- [ ] **Step 5:** Build the real grid (`btc_venv/bin/python3 tools/build_timemachine_grid.py --full`), then **commit** `btc_web/timemachine.py`, the test, AND `timemachine_grid.json.gz`.
+- [ ] **Step 4b: Saturate the box for the build (USER REQUIREMENT — ~24 cores).** Amend `tools/build_timemachine_grid.py`: (a) `build_grid` uses `max_workers = max(1, workers)` — respect the passed count — instead of the hardcoded `min(nproc-2, 22)` cap; (b) `main()`'s default `workers = os.cpu_count()` (≈24 on dev); (c) **pin single-threaded BLAS** so ~24 DE processes don't oversubscribe: at the VERY TOP of the module, BEFORE `import numpy`, `os.environ.setdefault("OMP_NUM_THREADS","1")` (+ `OPENBLAS_NUM_THREADS`, `MKL_NUM_THREADS`), and pass a pool `initializer` that sets the same in each worker. Re-run `pytest btc_web/test_timemachine_grid_build.py` (no regression).
+- [ ] **Step 5:** Build the real grid on ~24 cores (`btc_venv/bin/python3 tools/build_timemachine_grid.py --full --workers 24`) — expect well under an hour. Then **commit** the amended builder, `btc_web/timemachine.py`, the loader test, AND `timemachine_grid.json.gz`.
 
 ---
 

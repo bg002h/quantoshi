@@ -18,7 +18,7 @@ from colors import (
     FALLBACK_MODEL_GRAY, LOT_MARKER_COLOR, LOT_MARKER_OUTLINE,
     SCAN_LINE_FALLBACK, _hex_alpha, PLOT_BG_COLOR,
     SUPPORT_LINE_OPACITY, UCL_LINE_OPACITY, OLS_LINE_OPACITY,
-    MC_LEGEND_BG_ALPHA,
+    MC_LEGEND_BG_ALPHA, LOG_MINOR_GRID_GRAY, ANNOT_TEXT_ALPHA,
 )
 
 from figures.common import (
@@ -596,6 +596,28 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             showarrow=False, font=dict(size=CHART_FONT_LEGEND, color=theme.TEXT_COLOR),
             bgcolor=theme.PLOT_BG_COLOR, bordercolor=theme.SPINE_COLOR, borderwidth=1,
         )]
+
+    # ── Time Machine σ-band honesty caption ──────────────────────────────────
+    # Guarded behind asof_idx is not None — the non-as-of chart must stay
+    # byte-identical (Task 7 invariant). Paper-space coords: a data-space x
+    # on this log-x-axis chart is interpreted as log10(value) and vanishes
+    # off-screen (see feedback_plotly_log_axis_annotations.md).
+    if asof_idx is not None:
+        import timemachine as tm
+        _tm_caption_date = tm.frames()[asof_idx]
+        _tm_annotation = dict(
+            text=(f"Time Machine — model fit through {_tm_caption_date}; bands "
+                  f"use σ from data available then; price after "
+                  f"{_tm_caption_date} is what actually happened."),
+            xref="paper", yref="paper", x=0.01, y=0.01,
+            xanchor="left", yanchor="bottom",
+            showarrow=False,
+            font=dict(size=CHART_FONT_LEGEND,
+                      color=_hex_alpha(LOG_MINOR_GRID_GRAY, ANNOT_TEXT_ALPHA)),
+            bgcolor=_hex_alpha(PLOT_BG_COLOR, MC_LEGEND_BG_ALPHA),
+            bordercolor=theme.SPINE_COLOR, borderwidth=1,
+        )
+        layout["annotations"] = layout.get("annotations", []) + [_tm_annotation]
 
     # ── component decomposition traces (dotted individual + solid Σ sum) ─────
     _add_decomposition_traces(traces, t_arr, m, p)

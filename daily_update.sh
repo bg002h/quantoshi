@@ -57,14 +57,18 @@ if [[ -z "$PROD_BRANCH" ]]; then
 fi
 echo "Prod branch: $PROD_BRANCH"
 
-# --- Step 2: sync worktree to prod's branch ---
+# --- Step 2: sync worktree to prod's branch (detached HEAD) ---
+# Use a DETACHED HEAD rather than checking out the branch by name. A git branch
+# can be checked out in only ONE worktree at a time, and PROD_BRANCH is normally
+# already checked out in the dev main checkout — so `git checkout <branch>` here
+# dies with "fatal: '<branch>' is already used by worktree" (exit 128), which
+# silently stalled the daily update for days once prod + dev shared a branch.
+# Detaching sidesteps the constraint entirely and is robust to any branch
+# topology; Step 6 pushes HEAD:PROD_BRANCH to advance the remote branch. `-f`
+# discards any leftover uncommitted append from a previous aborted run.
 cd "$DEPLOY_DIR"
 git fetch origin "$PROD_BRANCH"
-current_branch=$(git branch --show-current)
-if [[ "$current_branch" != "$PROD_BRANCH" ]]; then
-    echo "Worktree on $current_branch — switching to $PROD_BRANCH"
-    git checkout "$PROD_BRANCH"
-fi
+git checkout -f --detach "origin/$PROD_BRANCH"
 git reset --hard "origin/$PROD_BRANCH"
 
 # --- Step 3: activate shared venv from main checkout ---
@@ -125,7 +129,8 @@ fi
 git add "${WATCHED_PATHS[@]}"
 git commit -m "Daily price update $(date '+%Y-%m-%d')"
 COMMIT_SHORT=$(git rev-parse --short HEAD)
-if ! git push origin "$PROD_BRANCH"; then
+# Detached HEAD (Step 2) → push the commit onto the remote branch explicitly.
+if ! git push origin "HEAD:$PROD_BRANCH"; then
     notify_failure "git push failed"
     exit 1
 fi

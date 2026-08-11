@@ -1403,26 +1403,31 @@ body {
         top: -12px; left: 0; right: 0; bottom: -12px;
         z-index: 1;
     }
-    /* EXPERIMENTAL (enlarge-the-target attempt — revert if it doesn't help):
-       a bigger INVISIBLE ::after hit area so the handle is easy to grab without
-       catching the track/overlay; touch-action:none so a grab captures the drag
-       (no scroll); z-index above the overlay so the enlarged area wins (Radix
-       pins an inline z-index → !important). Track/root keep the original
-       pan-y + overlay behaviour untouched. */
+    /* Enlarged INVISIBLE hit area so the handle is easy to grab without catching
+       the track/overlay. Radix pins an inline z-index on the thumb → !important
+       to lift it above the overlay. */
     .dash-slider-thumb {
         position: relative;
         z-index: 10 !important;
         touch-action: none;
     }
+    /* CRITICAL: the enlarged ::after MUST carry its own touch-action:none.
+       touch-action is NOT inherited, so without this the enlarged margin —
+       which is where most grabs actually land — defaults to `auto` and a
+       vertical drag scrolls the page instead of grabbing (the exact "doesn't
+       start immediately / still scrolls over the handle" symptom). Pointer
+       events on the pseudo dispatch to the thumb, so a grab here still starts
+       the Radix drag. Enlarged further for a bigger touch-reception area. */
     .dash-slider-thumb::after {
         content: '';
         position: absolute;
-        top: -13px; left: -13px; right: -13px; bottom: -13px;
+        top: -22px; left: -22px; right: -22px; bottom: -22px;
+        touch-action: none;
     }
-    /* The value tooltip pops up with the handle (default touch-action:auto), so
-       a drag that drifts onto it lets the browser pan. Treat it like the handle
-       — touch-action:none — so the drag stays captured instead of scrolling. */
-    .dash-slider-tooltip {
+    /* The value label pops up with the handle. Cover it AND its descendants —
+       touch-action:none — so a drag drifting onto the label doesn't pan. */
+    .dash-slider-tooltip,
+    .dash-slider-tooltip * {
         touch-action: none;
     }
 }

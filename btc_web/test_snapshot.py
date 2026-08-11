@@ -1130,12 +1130,12 @@ class TestSnapshotDefaultsConsistency:
                     "mc_amount", "mc_bins", "mc_enabled", "mc_entry_q",
                     "mc_freq", "mc_infl", "mc_model_src", "mc_regime",
                     "mc_sims", "mc_start_yr", "mc_window", "mc_years",
-                    # Time Machine (Task 8 scaffolding): asof_date lives in
-                    # bubble_defaults() so the prewarm/runtime cache keys
-                    # align, but the restore_builder doesn't yet consume it
-                    # (no bub-asof-slider widget exists until Task 10 wires
-                    # it in, including the restore-builder + snapshot path).
-                    "asof_date",
+                    # asof_date removed 2026-08-10 (Task 11): bub-timemachine-
+                    # toggle/bub-asof-slider are now snapshot-registered and
+                    # restore_builder._build_bubble_figure_from_state derives
+                    # asof_date from them via callbacks.timemachine._asof_frame
+                    # (mirrors update_bubble) — it's a real key in the
+                    # builder's params dict now, not scaffolding.
                 },
             }
             allowlist = PREWARM_ONLY_ALLOWLIST.get(tab, set())

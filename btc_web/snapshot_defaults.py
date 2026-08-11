@@ -27,6 +27,11 @@ from time_basis import TIME_BASIS
 
 # Populated in Task 2 from the live layout.
 SNAPSHOT_DEFAULTS: dict[str, Any] = {
+    # bub-asof-slider's real default is dynamic (tm.n_frames()-1, computed
+    # per-request in layout/bubble.py::_timemachine_panel() from the live
+    # Time Machine grid) -- -1 is a static placeholder, matching the sentinel
+    # used in tab_defaults.py's sd() call. See ALWAYS_ENCODE below.
+    'bub-asof-slider:value': -1,
     'bub-auto-y:value': ['yes'],
     'bub-bubble-toggles:value': ['show_comp', 'show_sup'],
     'bub-decomp-components:value': [],
@@ -65,6 +70,7 @@ SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'bub-show-stack:value': [],
     'bub-sigma-mode:value': 'resqr',
     'bub-stack:value': 0,
+    'bub-timemachine-toggle:value': [],
     'bub-toggles:value': ['shade', 'show_data', 'show_today'],
     'bub-use-lots:value': [],
     'bub-view-mode:data': 'price',
@@ -381,6 +387,11 @@ ALWAYS_ENCODE: frozenset[str] = frozenset({
     "lev-date:date",
     "lev-price:value",
     "scan-date:value",
+    # bub-asof-slider: default is "latest frame" (tm.n_frames()-1), which
+    # grows as new price data lands. Force-encode so a shared "as of today"
+    # link keeps pointing at the frame it was created with, not whatever
+    # "latest" has drifted to by the time it's opened.
+    "bub-asof-slider:value",
 })
 
 

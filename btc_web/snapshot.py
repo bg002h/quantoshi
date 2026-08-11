@@ -376,6 +376,10 @@ _SNAPSHOT_CONTROLS = [
     ("bub-mc-unblocked",    "data"),
     ("bub-mc-window",       "value"),
     ("bub-mc-years",        "value"),
+    # ── Time Machine (as-of date, Tab 1 only, appended 2026-08-10) ──
+    # APPEND-ONLY: positional ordering must stay stable for q3: link compat.
+    ("bub-timemachine-toggle", "value"),
+    ("bub-asof-slider",        "value"),
     # ── Leverage Calculator tab ──
     ("lev-date",          "date"),
     ("lev-price",         "value"),
@@ -536,6 +540,10 @@ _CHECKLIST_OPTIONS = {
     # cta-models: order is LOAD-BEARING for bitmask encoding.
     # FREEZE THIS LIST. Reordering or removing entries breaks old share links.
     "cta-models":       ["pl", "qr", "bm_floor", "exp", "gomp"],
+    # ── Time Machine (Tab 1, appended 2026-08-10) ──
+    # bub-timemachine-toggle: single-option checklist used as a toggle (1 bit).
+    # bub-asof-slider is a plain int value, NOT a checklist -- not added here.
+    "bub-timemachine-toggle": ["on"],
 }
 
 

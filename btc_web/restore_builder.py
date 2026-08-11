@@ -118,6 +118,16 @@ def _build_bubble_figure_from_state(state: dict):
     model_show = _v(state, "bub-model-show")
     sigma_mode = _v(state, "bub-sigma-mode")  # matches SNAPSHOT_DEFAULTS
 
+    # ── Time Machine (as-of date, Task 11) — mirrors update_bubble's
+    # asof_frame = _asof_frame(tm_toggle, asof_slider) (callbacks/charts/
+    # __init__.py). Lazy import: callbacks.timemachine registers clientside
+    # callbacks at module load, which needs _app_ctx.app initialized (same
+    # reason the resolvers below are imported lazily).
+    from callbacks.timemachine import _asof_frame
+    tm_toggle   = _v(state, "bub-timemachine-toggle")
+    asof_slider = _v(state, "bub-asof-slider")
+    asof_frame  = _asof_frame(tm_toggle, asof_slider)
+
     # ── Lots resolution (clientside cascade replicated) ──
     # Snapshot dict has _lots (raw list); existing callback reads
     # effective-lots which doesn't exist in the dict. We resolve here
@@ -309,6 +319,7 @@ def _build_bubble_figure_from_state(state: dict):
             "b_cal1d": ep_b_cal1d, "b_cal2d": ep_b_cal2d,
         },
         sigma_mode         = sigma_mode or "constant",
+        asof_date          = _ci(asof_frame, None),
         config_b_keys      = sorted(_config_b_keys),
     ))
     from figures.common import apply_zoom_lock

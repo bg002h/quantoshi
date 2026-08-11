@@ -175,7 +175,9 @@ _TAB_CONTROLS = {
                     "bub-mc-results","bub-mc-sims","bub-mc-start-yr","bub-mc-stack",
                     "bub-mc-unblocked","bub-mc-window","bub-mc-years",
                     # User Model P1/P2 anchor points (added 2026-04-26)
-                    "um-p1-year","um-p1-price","um-p2-year","um-p2-price",},
+                    "um-p1-year","um-p1-price","um-p2-year","um-p2-price",
+                    # Time Machine (as-of date, added 2026-08-10)
+                    "bub-timemachine-toggle","bub-asof-slider",},
     "heatmap":     {"hm-entry-yr","hm-entry-q","hm-exit-range","hm-exit-qs","hm-mode",
                     "hm-b1","hm-b2","hm-c-lo","hm-c-mid1","hm-c-mid2","hm-c-hi",
                     "hm-grad","hm-vfmt","hm-cell-fs","hm-line-width","hm-line-color",

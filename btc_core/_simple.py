@@ -328,13 +328,33 @@ class LogisticSCurveModel(_ShrinkingBandsMixin):
     _r  =                0.435614  
     _t0 =                5.659355  
 
-    def __init__(self, price_years, price_prices, quantiles):
-        mask = price_years >= T_MIN
-        t = price_years[mask]
-        lp = np.log10(price_prices[mask])
-        predicted = self._model_log10(t)
-        residuals = lp - predicted
-        self._init_shrinking_bands(t, residuals, quantiles)
+    def __init__(self, price_years, price_prices, quantiles,
+                 K=None, r=None, t0=None, *, sigma_override=None):
+        # GOTCHA: _K/_r/_t0 are shared attr NAMES with GompertzModel. Set
+        # INSTANCE attrs only (shadow the class attrs, never mutate the
+        # class) -- PRICE_MODELS holds a process-wide singleton, so a class
+        # mutation from a callback would corrupt gomp and be a cross-user
+        # data race.
+        if K is not None:
+            self._K = float(K)
+        if r is not None:
+            self._r = float(r)
+        if t0 is not None:
+            self._t0 = float(t0)
+        if sigma_override is not None:
+            # Per-request as-of override: constant sigma from data <= D;
+            # skip the residual band fit (mirrors EPPLConfigModel
+            # _hybppl_eppl.py:843-847).
+            self._sigma = float(sigma_override)
+            self.fits = {q: {"z": float(_lazy_norm().ppf(q))} for q in quantiles}
+            self.quantiles = sorted(self.fits.keys())
+        else:
+            mask = price_years >= T_MIN
+            t = price_years[mask]
+            lp = np.log10(price_prices[mask])
+            predicted = self._model_log10(t)
+            residuals = lp - predicted
+            self._init_shrinking_bands(t, residuals, quantiles)
         self._build_colors()
 
     def _model_log10(self, t):
@@ -390,7 +410,7 @@ class SaturatingPowerLawModel(_ShrinkingBandsMixin):
     _beta    = 5.103979
 
     def __init__(self, price_years, price_prices, quantiles,
-                 log10_L=None, t0=None, beta=None):
+                 log10_L=None, t0=None, beta=None, *, sigma_override=None):
         # Optional overrides shadow the class attrs without mutating them.
         # Phase 2 needs a per-request instance carrying a user-set ceiling;
         # PRICE_MODELS holds a process-wide singleton, so mutating the class
@@ -401,10 +421,18 @@ class SaturatingPowerLawModel(_ShrinkingBandsMixin):
             self._t0 = float(t0)
         if beta is not None:
             self._beta = float(beta)
-        mask = price_years >= T_MIN
-        t = price_years[mask]
-        residuals = np.log10(price_prices[mask]) - self._model_log10(t)
-        self._init_shrinking_bands(t, residuals, quantiles)
+        if sigma_override is not None:
+            # Per-request as-of override: constant sigma from data <= D;
+            # skip the residual band fit (mirrors EPPLConfigModel
+            # _hybppl_eppl.py:843-847).
+            self._sigma = float(sigma_override)
+            self.fits = {q: {"z": float(_lazy_norm().ppf(q))} for q in quantiles}
+            self.quantiles = sorted(self.fits.keys())
+        else:
+            mask = price_years >= T_MIN
+            t = price_years[mask]
+            residuals = np.log10(price_prices[mask]) - self._model_log10(t)
+            self._init_shrinking_bands(t, residuals, quantiles)
         self._build_colors()
 
     def _model_log10(self, t):

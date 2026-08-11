@@ -1403,9 +1403,21 @@ body {
         top: -12px; left: 0; right: 0; bottom: -12px;
         z-index: 1;
     }
+    /* EXPERIMENTAL (enlarge-the-target attempt — revert if it doesn't help):
+       a bigger INVISIBLE ::after hit area so the handle is easy to grab without
+       catching the track/overlay; touch-action:none so a grab captures the drag
+       (no scroll); z-index above the overlay so the enlarged area wins (Radix
+       pins an inline z-index → !important). Track/root keep the original
+       pan-y + overlay behaviour untouched. */
     .dash-slider-thumb {
         position: relative;
-        z-index: 2;
+        z-index: 10 !important;
+        touch-action: none;
+    }
+    .dash-slider-thumb::after {
+        content: '';
+        position: absolute;
+        top: -13px; left: -13px; right: -13px; bottom: -13px;
     }
 }
 

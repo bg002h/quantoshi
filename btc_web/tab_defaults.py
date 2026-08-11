@@ -142,6 +142,18 @@ def _build_bubble_dict():
         "mc_start_yr":    sd("bub-mc-start-yr:value", 2031),
         "mc_window":      tuple(sd("bub-mc-window:value", [2010, 2026]) or []),
         "mc_years":       sd("bub-mc-years:value", 40),
+        # Time Machine (as-of date) widget defaults -- Task 9, layout only.
+        # Registered here so snapshot/prewarm have a documented default for
+        # bub-timemachine-toggle / bub-asof-slider even though the runtime
+        # callback (Task 10) doesn't build them into its params dict yet.
+        # -1 is a fixed sentinel (not tm.n_frames()-1) rather than loading
+        # the Time Machine grid at tab_defaults import time; the real
+        # per-request default (n_frames-1) is computed in
+        # layout/bubble.py::_timemachine_panel(). bubble_defaults() pops
+        # both keys below so the prewarm cache key stays aligned with the
+        # runtime callback (same pattern as heatmap_defaults()'s hm_palette).
+        "timemachine_on": bool(sd("bub-timemachine-toggle:value", []) or []),
+        "asof_frame_idx": sd("bub-asof-slider:value", -1),
     }
 
 
@@ -505,6 +517,12 @@ def bubble_defaults() -> dict:
     d["lots"] = []
     d["user_model"] = None
     d["asof_date"] = None
+    # timemachine_on / asof_frame_idx are layout-only widget defaults (see
+    # _build_bubble_dict) that update_bubble doesn't yet consume -- pop so
+    # the prewarm cache key doesn't drift from the runtime callback's
+    # params dict until Task 10 wires them in.
+    d.pop("timemachine_on", None)
+    d.pop("asof_frame_idx", None)
     return d
 
 

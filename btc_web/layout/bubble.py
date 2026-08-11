@@ -25,6 +25,7 @@ from layout.common import (_tab_hints, _section_card, _row, _lbl,
 from layout.display_models import display_models_panel, sigma_mode_section
 from layout.custom_time import custom_time_panel
 from layout.mc_controls import _mc_controls
+import timemachine as tm
 
 
 # ── Axes presets (Tab 1) ─────────────────────────────────────────────────
@@ -184,6 +185,85 @@ AXES_PRESETS = (
 )
 
 
+# ── Time Machine (as-of date) — Task 9, layout only ──────────────────────
+# Callbacks that make the toggle/slider/play button DO anything land in
+# Task 10. This block only has to exist with the right IDs + not crash when
+# the grid file is missing.
+
+def _asof_year_marks(frame_dates):
+    """Year-only slider marks: one mark at each year's FIRST frame index.
+
+    ``frame_dates`` are ``YYYY-MM-DD`` strings. Marking every frame (142 in
+    the current grid) would be unreadable; marking only new-year boundaries
+    gives ~14 marks. Matches the "'YY" mark format used elsewhere on this
+    tab (bub-xrange, hm-entry-yr).
+    """
+    marks = {}
+    seen_years = set()
+    for i, d in enumerate(frame_dates):
+        yr = d[:4]
+        if yr not in seen_years:
+            seen_years.add(yr)
+            marks[i] = f"'{yr[2:]}"
+    return marks
+
+
+def _timemachine_panel():
+    """Time Machine (as-of date) control block.
+
+    Loads the grid (``tm.n_frames()`` / ``tm.frames()``) so the slider's
+    domain + marks match the real frame count. This triggers the loader's
+    ``lru_cache``'d read on first call (~15-25MB post-downsample) -- accepted
+    for v1 per the task brief; do not build a lazy frames-sidecar here.
+
+    When the grid file is missing (``tm.available()`` is False), the toggle
+    renders disabled with a short note and the slider degrades to a single
+    fixed position (max=0) rather than crashing.
+    """
+    grid_ok = tm.available()
+    if grid_ok:
+        _frames = tm.frames()
+        n = tm.n_frames()
+        slider_max = max(n - 1, 0)
+        marks = _asof_year_marks(_frames)
+        note = None
+    else:
+        slider_max = 0
+        marks = {}
+        note = html.Small(
+            "Time Machine grid unavailable — as-of view disabled.",
+            className="text-muted", style={"fontSize": UI_FONT_XS},
+        )
+
+    body_children = [
+        dcc.Slider(id="bub-asof-slider", min=0, max=slider_max, step=1,
+                   value=slider_max, marks=marks,
+                   tooltip={"always_visible": False}),
+        html.Div([
+            dbc.Button("▶ Play", id="bub-asof-play", size="sm",
+                       color="secondary", outline=True),
+            dcc.Interval(id="bub-asof-interval", interval=900, disabled=True),
+        ], className="d-flex align-items-center gap-2", style={"marginTop": "4px"}),
+        html.Div(id="bub-asof-label", className="small",
+                 style={"marginTop": "4px", "color": DIM_TEXT}),
+    ]
+
+    children = [
+        dcc.Checklist(
+            id="bub-timemachine-toggle",
+            options=[{"label": " \U0001f570️ Time Machine (as-of date)",
+                      "value": "on", "disabled": not grid_ok}],
+            value=[], inputStyle=_CB_MARGIN,
+        ),
+    ]
+    if note is not None:
+        children.append(note)
+    children.append(html.Div(id="bub-timemachine-body", style=_STYLE_HIDDEN,
+                              children=body_children))
+
+    return _section_card("\U0001f570️ Time Machine", *children)
+
+
 def _bubble_controls():
     yr_now = pd.Timestamp.today().year
     return html.Div([
@@ -252,6 +332,7 @@ def _bubble_controls():
         display_models_panel("bub", include_bm_master=True,
                               default_value=["bub"],
                               legend_pos_default=BUBBLE["legend_pos"]),
+        _timemachine_panel(),
         _q_panel_with_mode("bub-qs", [0.5],
                            hint=f"If none selected, Q50% is shown at "
                                 f"{int(_app_ctx.FALLBACK_Q50_OPACITY * 100)}% opacity."),

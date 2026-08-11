@@ -1419,6 +1419,12 @@ body {
         position: absolute;
         top: -13px; left: -13px; right: -13px; bottom: -13px;
     }
+    /* The value tooltip pops up with the handle (default touch-action:auto), so
+       a drag that drifts onto it lets the browser pan. Treat it like the handle
+       — touch-action:none — so the drag stays captured instead of scrolling. */
+    .dash-slider-tooltip {
+        touch-action: none;
+    }
 }
 
 /* ── Input accepted flash ───────────────────────────────────────────────────

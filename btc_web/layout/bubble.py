@@ -280,7 +280,22 @@ def _timemachine_panel():
 
     # No emoji on the section-card title (layout/common.py:240 — headers carry
     # no emoji prefix); the clock emoji stays on the checklist option label.
-    return _section_card("Time Machine", *children)
+    # The italic parenthetical notes the mobile-portrait behaviour (the card
+    # floats to the top of the stacked control column when Time Machine is on —
+    # callbacks/timemachine.py #1b). d-md-none scopes it to the mobile stacked
+    # layout (≤767px), the same breakpoint where the jump actually happens, so
+    # it never shows on desktop where activating TM does NOT move the panel.
+    _tm_title = html.Span([
+        "Time Machine ",
+        html.Span(
+            "(jumps to top when activated)",
+            className="d-md-none",
+            style={"fontStyle": "italic", "textTransform": "none",
+                   "fontWeight": "400", "letterSpacing": "normal",
+                   "fontSize": UI_FONT_XS, "opacity": "0.75"},
+        ),
+    ])
+    return _section_card(_tm_title, *children)
 
 
 def _bubble_controls():

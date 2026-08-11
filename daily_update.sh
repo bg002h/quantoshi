@@ -119,7 +119,11 @@ fi
 echo "Invariant OK: price rows = block rows = $price_rows"
 
 # --- Step 5: check for changes ---
-WATCHED_PATHS=(BitcoinPricesDaily.csv model_data.pkl btc_core/ BitcoinBlocksDaily.csv btc_web/_projection_table.json)
+# model_data_resqr_diagnostics.json is a build byproduct of build_bm_model.py
+# (rebuilt every run alongside model_data.pkl). It MUST be committed with the
+# pkl or it drifts stale vs the price history (test_resqr_build.py::
+# test_diagnostics_n_samples_matches_price_history fails: n_samples < rows).
+WATCHED_PATHS=(BitcoinPricesDaily.csv model_data.pkl model_data_resqr_diagnostics.json btc_core/ BitcoinBlocksDaily.csv btc_web/_projection_table.json)
 if git diff --quiet "${WATCHED_PATHS[@]}" 2>/dev/null; then
     echo "No new data — nothing to commit."
     exit 0

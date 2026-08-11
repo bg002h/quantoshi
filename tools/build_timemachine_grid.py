@@ -55,6 +55,8 @@ from concurrent.futures import ProcessPoolExecutor, as_completed  # noqa: E402
 from tools.timemachine.fit_eppl_asof import fit_config_asof  # noqa: E402
 from tools.timemachine.fit_bm_asof import fit_bm_asof  # noqa: E402
 from tools.timemachine.fit_qr_asof import fit_qr_asof  # noqa: E402
+from tools.timemachine.fit_spl_asof import fit_spl_asof  # noqa: E402
+from tools.timemachine.fit_logi_asof import fit_logi_asof  # noqa: E402
 from tools.model_toolkit.data import load_prices  # noqa: E402
 from tools.timemachine.frames import frame_dates  # noqa: E402
 from fit_all_eppl_configs import build_model_fn, config_key, all_configs  # noqa: E402
@@ -211,6 +213,24 @@ def _fit_qr_task(prices, ymax):
     return fit_qr_asof(prices, ymax)
 
 
+def _fit_spl_task(prices, ymax):
+    # spl frames are params-only (log10_L/t0/beta) -- no downsampling.
+    return fit_spl_asof(prices, ymax)
+
+
+def _fit_logi_task(prices, ymax):
+    # logi frames are params-only (K/r/t0) -- no downsampling.
+    return fit_logi_asof(prices, ymax)
+
+
+# Kinds that share the (prices, ymax) -> {"params": ..., "sigma": ..., "r2": ...}
+# call shape -- qr/spl/logi, but NOT "ecfg" (extra cfg/t/lp/maxiter args) or
+# "bm" (downsampled + a different return shape). Used by build_grid's dispatch
+# AND add_series_to_grid (the DRY incremental-add path, Task 3).
+_ASOF_FITTERS = {"qr": fit_qr_asof, "spl": fit_spl_asof, "logi": fit_logi_asof}
+_ASOF_TASKS = {"qr": _fit_qr_task, "spl": _fit_spl_task, "logi": _fit_logi_task}
+
+
 def _pool_worker_init():
     """ProcessPoolExecutor initializer -- pin single-threaded BLAS in each
     worker process too. Belt-and-suspenders alongside the module-level
@@ -226,7 +246,7 @@ def _pool_worker_init():
 
 
 def build_grid(frames, configs, include_bm, out_path, maxiter, workers,
-               include_qr=True):
+               include_qr=True, include_spl=False, include_logi=False):
     """Build the as-of grid and write it as gzipped JSON.
 
     Parameters
@@ -246,6 +266,13 @@ def build_grid(frames, configs, include_bm, out_path, maxiter, workers,
         ``1`` -> simple sequential loop. ``>1`` -> ``ProcessPoolExecutor``
         with ``max_workers = max(1, workers)`` (caller-controlled -- pass
         the desired core count directly, e.g. ``os.cpu_count()``).
+    include_qr, include_spl, include_logi : bool
+        Whether to also cold-fit QR / spl / logi per frame (keys ``"qr"``,
+        ``"spl"``, ``"logi"``) -- all params-only, no downsampling. ``qr``
+        defaults on (cheap, no DE); ``spl``/``logi`` default off (DE-based,
+        like EPPL) -- the real grid gets them via the incremental
+        ``add_series_to_grid`` path (Task 3 / ``--add-models``) instead of a
+        full rebuild, so a full rebuild doesn't need them on by default.
 
     Returns
     -------
@@ -266,6 +293,10 @@ def build_grid(frames, configs, include_bm, out_path, maxiter, workers,
         models["bub"] = [None] * len(frames)
     if include_qr:
         models["qr"] = [None] * len(frames)
+    if include_spl:
+        models["spl"] = [None] * len(frames)
+    if include_logi:
+        models["logi"] = [None] * len(frames)
 
     # Flat job list: (kind, key, frame_idx, frame_date, cfg_or_None)
     jobs = []
@@ -278,6 +309,12 @@ def build_grid(frames, configs, include_bm, out_path, maxiter, workers,
     if include_qr:
         for i, frame in enumerate(frames):
             jobs.append(("qr", "qr", i, frame, None))
+    if include_spl:
+        for i, frame in enumerate(frames):
+            jobs.append(("spl", "spl", i, frame, None))
+    if include_logi:
+        for i, frame in enumerate(frames):
+            jobs.append(("logi", "logi", i, frame, None))
 
     failed = []
 
@@ -287,8 +324,8 @@ def build_grid(frames, configs, include_bm, out_path, maxiter, workers,
             try:
                 if kind == "ecfg":
                     result = fit_config_asof(cfg, t, lp, ymax, maxiter)
-                elif kind == "qr":
-                    result = fit_qr_asof(prices, ymax)
+                elif kind in _ASOF_FITTERS:
+                    result = _ASOF_FITTERS[kind](prices, ymax)
                 else:
                     result = _downsample_bm_frame(fit_bm_asof(prices, ymax))
                 models[key][i] = result
@@ -305,8 +342,8 @@ def build_grid(frames, configs, include_bm, out_path, maxiter, workers,
                 ymax = ymaxes[frame]
                 if kind == "ecfg":
                     fut = ex.submit(_fit_ecfg_task, cfg, t, lp, ymax, maxiter)
-                elif kind == "qr":
-                    fut = ex.submit(_fit_qr_task, prices, ymax)
+                elif kind in _ASOF_TASKS:
+                    fut = ex.submit(_ASOF_TASKS[kind], prices, ymax)
                 else:
                     fut = ex.submit(_fit_bm_task, prices, ymax)
                 futures[fut] = (kind, key, i, frame)
@@ -335,22 +372,32 @@ def build_grid(frames, configs, include_bm, out_path, maxiter, workers,
     return grid
 
 
-def add_qr_to_grid(grid_path, workers):
-    """Incrementally add a ``"qr"`` model series to an EXISTING grid file.
+def add_series_to_grid(grid_path, kinds, workers):
+    """Incrementally add one or more model series to an EXISTING grid file.
 
-    ALARA path: load the grid, fit QR channels for its EXACT ``frames`` (via
-    ``_frame_ymax``), inject ``models["qr"]``, and rewrite the file in place --
-    WITHOUT recomputing the expensive BM/EPPL series. Frame alignment is exact
-    because each frame's as-of horizon depends only on data <= D (immutable
-    history), so fitting on the current CSV reproduces the same window the grid
-    was originally built with.
+    ALARA path: load the grid, fit each ``kind`` (``qr``/``spl``/``logi``, see
+    ``_ASOF_FITTERS``) for its EXACT ``frames`` (via ``_frame_ymax``), inject
+    ``models[kind]``, and rewrite the file in place -- WITHOUT recomputing the
+    expensive BM/EPPL series. Frame alignment is exact because each frame's
+    as-of horizon depends only on data <= D (immutable history), so fitting on
+    the current CSV reproduces the same window the grid was originally built
+    with. All jobs across all ``kinds`` share ONE ``ProcessPoolExecutor`` (not
+    one pool per kind) to keep pool-spinup overhead flat regardless of how
+    many series are being added at once.
+
+    Generalizes the original QR-only ``add_qr_to_grid`` (still present as a
+    thin ``add_series_to_grid(path, ["qr"], workers)`` wrapper below, for
+    back-compat with the ``--add-qr`` CLI and its existing test).
 
     Parameters
     ----------
     grid_path : str
         Path to the gzip-compressed JSON grid to rewrite in place.
+    kinds : list[str]
+        Model series to (re)fit, each one of ``sorted(_ASOF_FITTERS)`` --
+        currently ``{"logi", "qr", "spl"}``.
     workers : int
-        ``ProcessPoolExecutor`` max_workers for the QR fits. Pass the desired
+        ``ProcessPoolExecutor`` max_workers for the fits. Pass the desired
         core count (e.g. ``os.cpu_count()`` capped at 24). ``<= 1`` runs a
         simple sequential loop.
 
@@ -359,44 +406,68 @@ def add_qr_to_grid(grid_path, workers):
     dict
         The updated grid object (also written back to ``grid_path``).
     """
+    invalid = sorted(set(kinds) - set(_ASOF_FITTERS))
+    if invalid:
+        raise ValueError(
+            f"add_series_to_grid: unknown kind(s) {invalid}; choose from "
+            f"{sorted(_ASOF_FITTERS)}")
+
     prices = load_prices("BitcoinPricesDaily.csv")
     with gzip.open(grid_path, "rt") as f:
         grid = json.load(f)
     frames = grid["frames"]
     ymaxes = [_frame_ymax(fr) for fr in frames]
-    qr_series = [None] * len(frames)
+    series = {kind: [None] * len(frames) for kind in kinds}
     failed = []
 
     max_workers = max(1, workers)
     if max_workers <= 1:
-        for i, ymax in enumerate(ymaxes):
-            try:
-                qr_series[i] = fit_qr_asof(prices, ymax)
-            except Exception as e:  # noqa: BLE001 - log and keep going
-                print(f"add_qr_to_grid: FAILED frame={frames[i]}: {e!r}")
-                failed.append((frames[i], repr(e)))
+        for kind in kinds:
+            fit_fn = _ASOF_FITTERS[kind]
+            for i, ymax in enumerate(ymaxes):
+                try:
+                    series[kind][i] = fit_fn(prices, ymax)
+                except Exception as e:  # noqa: BLE001 - log and keep going
+                    print(f"add_series_to_grid: FAILED kind={kind} "
+                          f"frame={frames[i]}: {e!r}")
+                    failed.append((kind, frames[i], repr(e)))
     else:
         with ProcessPoolExecutor(
             max_workers=max_workers, initializer=_pool_worker_init,
         ) as ex:
-            futures = {ex.submit(_fit_qr_task, prices, ymax): i
-                       for i, ymax in enumerate(ymaxes)}
+            futures = {}
+            for kind in kinds:
+                task_fn = _ASOF_TASKS[kind]
+                for i, ymax in enumerate(ymaxes):
+                    futures[ex.submit(task_fn, prices, ymax)] = (kind, i)
             for fut in as_completed(futures):
                 i = futures[fut]
+                kind, i = futures[fut]
                 try:
-                    qr_series[i] = fut.result()
+                    series[kind][i] = fut.result()
                 except Exception as e:  # noqa: BLE001 - log and keep going
-                    print(f"add_qr_to_grid: FAILED frame={frames[i]}: {e!r}")
-                    failed.append((frames[i], repr(e)))
+                    print(f"add_series_to_grid: FAILED kind={kind} "
+                          f"frame={frames[i]}: {e!r}")
+                    failed.append((kind, frames[i], repr(e)))
 
-    grid["models"]["qr"] = _to_jsonable(qr_series)
-    n_ok = sum(1 for x in qr_series if x is not None)
-    print(f"add_qr_to_grid: {n_ok}/{len(frames)} QR frames fit "
-          f"({len(failed)} failed, stored as null).")
+    for kind in kinds:
+        grid["models"][kind] = _to_jsonable(series[kind])
+        n_ok = sum(1 for x in series[kind] if x is not None)
+        n_failed = sum(1 for f in failed if f[0] == kind)
+        print(f"add_series_to_grid: kind={kind}: {n_ok}/{len(frames)} frames "
+              f"fit ({n_failed} failed, stored as null).")
 
     with gzip.open(grid_path, "wt") as f:
         json.dump(grid, f)
     return grid
+
+
+def add_qr_to_grid(grid_path, workers):
+    """Back-compat wrapper -- see ``add_series_to_grid`` (the QR-only path
+    this used to implement directly is now one call into the generalized
+    incremental-add function shared with spl/logi). Keeps the ``--add-qr``
+    CLI and its existing test working unchanged."""
+    return add_series_to_grid(grid_path, ["qr"], workers)
 
 
 def continuity_scan(grid):
@@ -552,7 +623,16 @@ def main():
              "file in place (fits QR channels for its exact frames, parallel "
              "over --workers cores; minutes, not hours -- does NOT redo BM/"
              "EPPL). Use to add QR to a grid built before QR support. Honours "
-             "--workers; ignores --full/--out.")
+             "--workers; ignores --full/--out. Equivalent to "
+             "--add-models qr --out PATH (generalized below).")
+    ap.add_argument(
+        "--add-models", metavar="KINDS", default=None,
+        help=f"Incrementally add one or more model series (comma-separated, "
+             f"each in {sorted(_ASOF_FITTERS)}) to an ALREADY-BUILT grid file "
+             f"(--out, default {DEFAULT_OUT_PATH}) in place -- parallel over "
+             f"--workers cores; minutes, not hours -- does NOT redo BM/EPPL. "
+             f"e.g. --add-models spl,logi. Honours --workers/--out; ignores "
+             f"--full.")
     args = ap.parse_args()
 
     if args.downsample_existing:
@@ -563,6 +643,17 @@ def main():
         workers = args.workers or os.cpu_count() or 4
         print(f"--add-qr: fitting QR for {args.add_qr}, workers={workers}")
         add_qr_to_grid(args.add_qr, workers)
+        return
+
+    if args.add_models:
+        kinds = [k.strip() for k in args.add_models.split(",") if k.strip()]
+        invalid = sorted(set(kinds) - set(_ASOF_FITTERS))
+        if invalid:
+            ap.error(f"--add-models: unknown kind(s) {invalid}; choose from "
+                      f"{sorted(_ASOF_FITTERS)}")
+        workers = args.workers or os.cpu_count() or 4
+        print(f"--add-models: fitting {kinds} for {args.out}, workers={workers}")
+        add_series_to_grid(args.out, kinds, workers)
         return
 
     if not args.full:
@@ -577,9 +668,11 @@ def main():
     configs = all_configs()
     workers = args.workers or os.cpu_count() or 4
 
-    print(f"--full: {len(frames)} frames x {len(configs)} EPPL configs + BM + QR, "
-          f"maxiter={EPPL_MAXITER}, workers={workers}, out={args.out}")
+    print(f"--full: {len(frames)} frames x {len(configs)} EPPL configs + BM + "
+          f"QR + spl + logi, maxiter={EPPL_MAXITER}, workers={workers}, "
+          f"out={args.out}")
     build_grid(frames=frames, configs=configs, include_bm=True, include_qr=True,
+               include_spl=True, include_logi=True,
                out_path=args.out, maxiter=EPPL_MAXITER, workers=workers)
 
 

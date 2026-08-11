@@ -76,3 +76,6 @@ btc_web/build/
 btc_web/citadel_band_cache/
 celerybeat-schedule
 anonymize_logs.sh
+
+# Time Machine spike/build scratch output (regenerable; keep untracked)
+tools/timemachine/*_output.json

@@ -92,7 +92,9 @@ def _add_mc_spaghetti(fig, paths, t_axis, n_display=100):
 
 # Opacity for the realized-price "reveal" segment (points AFTER the as-of
 # frame date) — the model was fit on data ≤ D, this shows what happened next.
-_ASOF_FADE_ALPHA = 0.25
+# Deliberately low + a greyed marker so the eye instantly separates "what the
+# model saw" (dark solid) from "what actually happened" (faint grey).
+_ASOF_FADE_ALPHA = 0.15
 
 
 def _asof_resolve(model_key, p):
@@ -170,9 +172,10 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             bub_active = False
         else:
             # BubbleModel(md) reads QR_QUANTILES + qr_colors, which asof_bm does
-            # not set; borrow them from the live model.
-            bm_shim.QR_QUANTILES = _app_ctx.M.QR_QUANTILES
-            bm_shim.qr_colors = _app_ctx.M.qr_colors
+            # not set; borrow them from the passed-in live model ``m`` (always
+            # populated — avoids AttributeError if _app_ctx.M is None pre-startup).
+            bm_shim.QR_QUANTILES = m.QR_QUANTILES
+            bm_shim.qr_colors = m.qr_colors
             from btc_core import BubbleModel
             model = BubbleModel(bm_shim)
             _bm_src = bm_shim
@@ -224,13 +227,16 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 marker=dict(color=SCATTER_POINT, size=_pt_size, opacity=_pt_alpha),
                 hovertemplate=_HOVER_FMT_USD,
             ))
-            traces.append(go.Scatter(
-                x=list(_x_arr[_after]), y=_y_arr[_after],
-                mode="markers", name=f"Price after {_asof_date_str}",
-                marker=dict(color=SCATTER_POINT, size=_pt_size,
-                            opacity=min(_pt_alpha, _ASOF_FADE_ALPHA)),
-                hovertemplate=_HOVER_FMT_USD,
-            ))
+            # Skip the reveal trace entirely at a right-edge frame where D is at
+            # or past the last price point (no "after" data to show).
+            if _after.any():
+                traces.append(go.Scatter(
+                    x=list(_x_arr[_after]), y=_y_arr[_after],
+                    mode="markers", name=f"Price after {_asof_date_str}",
+                    marker=dict(color=FALLBACK_MODEL_GRAY, size=_pt_size,
+                                opacity=_ASOF_FADE_ALPHA),
+                    hovertemplate=_HOVER_FMT_USD,
+                ))
         else:
             traces.append(go.Scatter(
                 x=list(x_sc), y=y_sc,

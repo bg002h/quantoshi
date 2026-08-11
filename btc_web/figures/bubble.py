@@ -105,13 +105,13 @@ def _asof_resolve(model_key, p):
     """Resolve a model key to a model object, honouring as-of (Time Machine) mode.
 
     When ``p["asof_date"]`` is an int frame index AND the key is an EPPL config
-    model (``ecfg_*``) or quantile regression (``qr``), the model is rebuilt
-    fresh from the precomputed as-of grid (fit on data ≤ the frame date) instead
-    of the live full-data registry. Everything else — and the entire non-as-of
-    path (``asof_date`` None/absent) — resolves from ``_app_ctx.PRICE_MODELS``
-    unchanged, so the default behaviour is byte-identical to today. Returns
-    ``None`` for a failed/missing frame (caller skips it), mirroring
-    ``PRICE_MODELS.get`` on a bad key.
+    model (``ecfg_*``), quantile regression (``qr``), spl, or logi, the model
+    is rebuilt fresh from the precomputed as-of grid (fit on data ≤ the frame
+    date) instead of the live full-data registry. Everything else — and the
+    entire non-as-of path (``asof_date`` None/absent) — resolves from
+    ``_app_ctx.PRICE_MODELS`` unchanged, so the default behaviour is
+    byte-identical to today. Returns ``None`` for a failed/missing frame
+    (caller skips it), mirroring ``PRICE_MODELS.get`` on a bad key.
     """
     asof_idx = p.get("asof_date")
     if asof_idx is not None:
@@ -120,6 +120,10 @@ def _asof_resolve(model_key, p):
             return tm.asof_eppl(model_key, asof_idx)
         if model_key == "qr":
             return tm.asof_qr(asof_idx)
+        if model_key == "spl":
+            return tm.asof_spl(asof_idx)
+        if model_key == "logi":
+            return tm.asof_logi(asof_idx)
     return _app_ctx.PRICE_MODELS.get(model_key)
 
 

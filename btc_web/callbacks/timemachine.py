@@ -131,18 +131,19 @@ _app_ctx.app.clientside_callback(
 
 
 # ── 5. Single-model constraint (server; rare toggle event) ───────────────────
-# When Time Machine is ON, only the Bubble Model (BM), the EPPL master, and
-# quantile regression (QR) can render an as-of view (figures/bubble.py::
-# _asof_resolve rebuilds ecfg_* / qr keys and BM from the grid; other models
-# have no as-of path). Restrict the Display Models checklist to {bub, eppl, qr}
-# and collapse the value to a single eligible entry (default "bub"). When OFF,
-# restore the full option list from the SSOT.
+# When Time Machine is ON, only the Bubble Model (BM), the EPPL master,
+# quantile regression (QR), spl, and logi can render an as-of view
+# (figures/bubble.py::_asof_resolve rebuilds ecfg_* / qr / spl / logi keys
+# and BM from the grid; other models have no as-of path). Restrict the
+# Display Models checklist to {bub, eppl, qr, spl, logi} and collapse the
+# value to a single eligible entry (default "bub"). When OFF, restore the
+# full option list from the SSOT.
 #
 # FOOTGUN: "bub-model-show".options is already output by
 # callbacks/charts/__init__.py::_update_bub_swatches WITHOUT allow_duplicate,
 # so both Outputs here MUST use allow_duplicate=True → prevent_initial_call
 # is therefore required (never allow_duplicate + prevent_initial_call=False).
-_TM_ELIGIBLE = ("bub", "eppl", "qr")
+_TM_ELIGIBLE = ("bub", "eppl", "qr", "spl", "logi")
 
 
 @callback(

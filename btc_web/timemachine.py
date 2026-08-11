@@ -155,3 +155,69 @@ def asof_qr(frame_idx):
         qr_colors=qr_colors,
     )
     return QuantileRegressionModel(shim)
+
+
+def asof_spl(frame_idx):
+    """Build a fresh ``SaturatingPowerLawModel`` as-of a grid frame.
+
+    Returns ``None`` for a missing/failed frame -- either the whole ``"spl"``
+    series is absent (grid built before spl support) or that frame's fit
+    failed (stored as JSON ``null``). Callers (the bubble overlay path) skip
+    a ``None`` model, so spl simply does not draw at that frame rather than
+    crashing.
+
+    A NEW object is built on every call from the frame's stored median
+    params (``log10_L``/``t0``/``beta``) + ``sigma_override`` -- dummy price
+    arrays are passed (unused: ``sigma_override`` skips the residual-band
+    fit, mirroring ``asof_eppl``). This never reads from or writes to
+    ``_app_ctx.PRICE_MODELS``, so the shared/global ``spl`` model is
+    unaffected.
+    """
+    spl_series = _load()["models"].get("spl")
+    if spl_series is None:
+        return None
+    frame = spl_series[frame_idx]
+    if frame is None:
+        return None
+    from btc_core import SaturatingPowerLawModel
+    p = frame["params"]
+    return SaturatingPowerLawModel(
+        np.array([1.0, 2.0]), np.array([1.0, 2.0]),  # unused: sigma_override
+        _quantiles(),
+        log10_L=p["log10_L"], t0=p["t0"], beta=p["beta"],
+        sigma_override=frame["sigma"],
+    )
+
+
+def asof_logi(frame_idx):
+    """Build a fresh ``LogisticSCurveModel`` as-of a grid frame.
+
+    Returns ``None`` for a missing/failed frame -- either the whole
+    ``"logi"`` series is absent (grid built before logi support) or that
+    frame's fit failed (stored as JSON ``null``). Callers (the bubble
+    overlay path) skip a ``None`` model, so logi simply does not draw at
+    that frame rather than crashing.
+
+    A NEW object is built on every call from the frame's stored median
+    params (``K``/``r``/``t0``) + ``sigma_override`` -- dummy price arrays
+    are passed (unused: ``sigma_override`` skips the residual-band fit,
+    mirroring ``asof_eppl``). This never reads from or writes to
+    ``_app_ctx.PRICE_MODELS``, so the shared/global ``logi`` model is
+    unaffected, and the K/r/t0 overrides are set as INSTANCE attrs only
+    (shared attr names with GompertzModel -- see
+    ``LogisticSCurveModel.__init__``).
+    """
+    logi_series = _load()["models"].get("logi")
+    if logi_series is None:
+        return None
+    frame = logi_series[frame_idx]
+    if frame is None:
+        return None
+    from btc_core import LogisticSCurveModel
+    p = frame["params"]
+    return LogisticSCurveModel(
+        np.array([1.0, 2.0]), np.array([1.0, 2.0]),  # unused: sigma_override
+        _quantiles(),
+        K=p["K"], r=p["r"], t0=p["t0"],
+        sigma_override=frame["sigma"],
+    )

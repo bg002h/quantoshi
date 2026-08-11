@@ -441,7 +441,6 @@ def add_series_to_grid(grid_path, kinds, workers):
                 for i, ymax in enumerate(ymaxes):
                     futures[ex.submit(task_fn, prices, ymax)] = (kind, i)
             for fut in as_completed(futures):
-                i = futures[fut]
                 kind, i = futures[fut]
                 try:
                     series[kind][i] = fut.result()

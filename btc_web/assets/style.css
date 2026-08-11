@@ -1390,14 +1390,7 @@ body {
 
    Scoped to pointer:coarse (touch/pen) — desktop mouse clicks unaffected.
 */
-/* pan-y on the WHOLE subtree, not just the root, so vertical-scroll protection
-   is active from the FIRST gesture. The ::before overlay below only routes a
-   track touch to the (pan-y) root once it has laid out — until then a touch on
-   the inner track/marks (default touch-action) could grab the slider instead of
-   scrolling ("protection doesn't start immediately"). pan-y still lets a
-   horizontal drag move the thumb; touch-action is irrelevant to mouse/desktop. */
-.dash-slider-root,
-.dash-slider-root * {
+.dash-slider-root {
     touch-action: pan-y;
 }
 @media (pointer: coarse) {

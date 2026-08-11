@@ -17,5 +17,5 @@ if [[ "${1:-}" == "--flush" ]]; then
 else
     echo "Deploying (no flush — fingerprint handles invalidation)..."
 fi
-ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && ${FLUSH}systemctl restart quantoshi"
+ssh root@89.167.70.45 "cd /opt/quantoshi && git pull origin master && ${FLUSH}systemctl restart quantoshi"
 echo "Done."

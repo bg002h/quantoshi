@@ -3,5 +3,5 @@
 # Uses restricted 'deploy' user (can only git pull + restart quantoshi).
 set -e
 echo "Restarting Quantoshi on production server..."
-ssh deploy@89.167.70.45 "cd /opt/quantoshi && git pull && sudo /usr/bin/systemctl restart quantoshi"
+ssh deploy@89.167.70.45 "cd /opt/quantoshi && git pull origin master && sudo /usr/bin/systemctl restart quantoshi"
 echo "Done. Quantoshi restarted."

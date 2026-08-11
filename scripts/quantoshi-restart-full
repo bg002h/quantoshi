@@ -10,5 +10,5 @@
 # quantoshi gunicorn service), see `scripts/quantoshi-restart`.
 set -e
 echo "Restarting Quantoshi (full) on production server..."
-ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && redis-cli FLUSHDB && systemctl restart quantoshi quantoshi-celery quantoshi-celery-beat"
+ssh root@89.167.70.45 "cd /opt/quantoshi && git pull origin master && redis-cli FLUSHDB && systemctl restart quantoshi quantoshi-celery quantoshi-celery-beat"
 echo "Done. Quantoshi + Celery restarted, Redis flushed."

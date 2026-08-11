@@ -189,7 +189,7 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') — Deploying to production..."
 # redis-cli FLUSHDB intentionally omitted: model_data.pkl rebuild bumps the
 # cache fingerprint (md5 of model_fp + defaults_hash), so old entries miss
 # naturally. See scripts/quantoshi-restart-full for the FLUSHDB path.
-if ssh "$PROD_HOST" "cd /opt/quantoshi && git pull && systemctl restart quantoshi"; then
+if ssh "$PROD_HOST" "cd /opt/quantoshi && git pull origin '$PROD_BRANCH' && systemctl restart quantoshi"; then
     echo "Production restarted. Regenerating Citadel cache..."
     ssh "$PROD_HOST" "cd /opt/quantoshi && \
         PYTHONPATH='/opt/quantoshi:/opt/quantoshi/btc_web' \

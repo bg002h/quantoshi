@@ -204,7 +204,8 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   sigma_mode=None,
                   snapshot_pending=False,
                   loaded_hash=None,
-                  active_chart_committed=None):
+                  active_chart_committed=None,
+                  asof_frame=None):
     """Bubble + QR overlay chart callback -- coerce inputs, build figure."""
     import time as _time
     _t0 = _time.perf_counter()
@@ -387,6 +388,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
             hybppl_cfg         = _hybppl_cfg,
             eppl_cfg           = _eppl_cfg,
             sigma_mode         = sigma_mode or "constant",
+            asof_date          = _ci(asof_frame, None),
             config_b_keys      = sorted(_config_b_keys),
             **mc_p,
         ))
@@ -430,6 +432,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
             hybppl_cfg         = _hybppl_cfg,
             eppl_cfg           = _eppl_cfg,
             sigma_mode         = sigma_mode or "constant",
+            asof_date          = _ci(asof_frame, None),
             config_b_keys      = sorted(_config_b_keys),
         ))
     fig, mc_result = result if isinstance(result, tuple) else (result, None)

@@ -504,6 +504,7 @@ def bubble_defaults() -> dict:
     d["mc_window"] = list(BUBBLE["mc_window"])
     d["lots"] = []
     d["user_model"] = None
+    d["asof_date"] = None
     return d
 
 

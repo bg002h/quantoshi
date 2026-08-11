@@ -200,11 +200,19 @@ def _asof_year_marks(frame_dates):
     """
     marks = {}
     seen_years = set()
+    first_year = frame_dates[0][:4] if frame_dates else None
     for i, d in enumerate(frame_dates):
         yr = d[:4]
-        if yr not in seen_years:
-            seen_years.add(yr)
-            marks[i] = f"'{yr[2:]}"
+        if yr in seen_years:
+            continue
+        seen_years.add(yr)
+        # The 2012-2015 quarterly era packs ~4 frames/year, so its year marks
+        # bunch up at the left and the "'YY" labels overrun each other. Show
+        # only the first year (e.g. '12) and then yearly from 2016 on (the
+        # monthly era, evenly spaced). Drop the crowded intermediate years.
+        if yr != first_year and int(yr) < 2016:
+            continue
+        marks[i] = f"'{yr[2:]}"
     return marks
 
 
@@ -239,7 +247,11 @@ def _timemachine_panel():
     body_children = [
         dcc.Slider(id="bub-asof-slider", min=0, max=slider_max, step=1,
                    value=slider_max, marks=marks,
-                   tooltip={"always_visible": False}),
+                   # Tooltip shows the frame's DATE, not the raw index — via
+                   # window.dccFunctions.asofDate (assets/asof_slider.js),
+                   # which reads the frames list synced to a JS global.
+                   tooltip={"placement": "bottom", "always_visible": False,
+                            "transform": "asofDate"}),
         html.Div([
             dbc.Button("▶ Play", id="bub-asof-play", size="sm",
                        color="secondary", outline=True),
@@ -250,8 +262,10 @@ def _timemachine_panel():
     ]
 
     children = [
-        # Frames list for the clientside as-of label callback (Task 10, #4).
+        # Frames list for the clientside as-of label callback (Task 10, #4)
+        # and the slider-tooltip date transform.
         dcc.Store(id="bub-asof-frames", data=_frames),
+        dcc.Store(id="bub-asof-frames-sync"),  # sink for the frames->JS-global sync
         dcc.Checklist(
             id="bub-timemachine-toggle",
             options=[{"label": " \U0001f570️ Time Machine (as-of date)",

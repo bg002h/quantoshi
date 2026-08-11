@@ -117,6 +117,18 @@ _app_ctx.app.clientside_callback(
     State("bub-asof-frames", "data"),
 )
 
+# ── 4b. Sync the frames list to a JS global for the slider-tooltip transform ──
+# The dcc.Slider tooltip {"transform": "asofDate"} (assets/asof_slider.js) can
+# only see the slider VALUE, not the frames Store — so we copy the frames onto
+# window.__QS_ASOF_FRAMES once on load. Fires with no prevent_initial_call so
+# the global is populated before the user first drags the handle.
+_app_ctx.app.clientside_callback(
+    "function(frames){ window.__QS_ASOF_FRAMES = frames || []; "
+    "return (frames && frames.length) || 0; }",
+    Output("bub-asof-frames-sync", "data"),
+    Input("bub-asof-frames", "data"),
+)
+
 
 # ── 5. Single-model constraint (server; rare toggle event) ───────────────────
 # When Time Machine is ON, only the Bubble Model (BM) and the EPPL master can

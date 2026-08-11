@@ -104,10 +104,12 @@ class TestAppWiring:
         assert "spl" in _HM_PILL_MODELS_BASE
         assert _HM_PILL_LABELS["spl"] == "SatPL"
 
-    def test_not_in_ticker_cycle(self):
-        """Diagnostic models skip the navbar ticker, like gomp/bpl/plo/sexp/logi."""
+    def test_in_ticker_cycle(self):
+        """spl IS in the navbar ticker percentile cycle (user-requested). The
+        other diagnostic models (gomp/bpl/plo/sexp/logi) stay excluded."""
         from callbacks.ticker import _MODEL_CYCLE
-        assert "spl" not in _MODEL_CYCLE
+        assert "spl" in _MODEL_CYCLE
+        assert not ({"gomp", "bpl", "plo", "sexp", "logi"} & set(_MODEL_CYCLE))
 
 
 class TestModelInfoCard:

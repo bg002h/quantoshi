@@ -10,7 +10,7 @@ from utils import _fetch_btc_price
 # ── Model display order and colors ──────────────────────────────────────────
 # Use default config-panel-resolved keys so ticker matches chart display.
 # LPPL default: lp3 (3 freqs). HybPPL default: cfg_1d_1u. EPPL default: ecfg_1d_1u.
-_MODEL_CYCLE = ["qr", "bub", "pl", "lp3", "cfg_1d_1u", "ecfg_1d_1u", "pca", "grdy", "ef"]
+_MODEL_CYCLE = ["qr", "bub", "pl", "spl", "lp3", "cfg_1d_1u", "ecfg_1d_1u", "pca", "grdy", "ef"]
 from colors import TICKER_MODEL_COLORS as _MODEL_COLORS, WHITE, USER_MODEL_TICKER_ORANGE
 # Label overrides for config keys (otherwise shows the raw key)
 _MODEL_LABELS = {

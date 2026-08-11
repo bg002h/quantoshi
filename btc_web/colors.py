@@ -229,6 +229,7 @@ TICKER_MODEL_COLORS = {
     "qr":         "#5dade2",   # sky blue
     "bub":        "#f39c12",   # amber/gold
     "pl":         "#2ecc71",   # green
+    "spl":        "#AB47BC",   # vivid purple — SatPL (matches its violet chart identity, legible on dark)
     "lp3":        "#e74c3c",   # red — LPPL₃ (default config)
     "cfg_1d_1u":  "#7B68EE",   # medium slate blue — HybPPL (default config)
     "ecfg_1d_1u": "#D4760A",   # warm amber — EPPL (default config)

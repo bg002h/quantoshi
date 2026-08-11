@@ -376,10 +376,6 @@ _SNAPSHOT_CONTROLS = [
     ("bub-mc-unblocked",    "data"),
     ("bub-mc-window",       "value"),
     ("bub-mc-years",        "value"),
-    # ── Time Machine (as-of date, Tab 1 only, appended 2026-08-10) ──
-    # APPEND-ONLY: positional ordering must stay stable for q3: link compat.
-    ("bub-timemachine-toggle", "value"),
-    ("bub-asof-slider",        "value"),
     # ── Leverage Calculator tab ──
     ("lev-date",          "date"),
     ("lev-price",         "value"),
@@ -397,6 +393,19 @@ _SNAPSHOT_CONTROLS = [
     ("um-p1-price",       "data"),
     ("um-p2-year",        "data"),
     ("um-p2-price",       "data"),
+    # ── Time Machine (as-of date, Tab 1 only, appended 2026-08-10) ──
+    # APPEND-ONLY at the true tail of the list: _encode_snapshot_v4 /
+    # _decode_snapshot_v4 address fields by ARRAY INDEX (str(i) diff keys),
+    # so inserting anywhere but the physical end shifts every subsequent
+    # entry's index and corrupts already-shipped share links. This must
+    # stay the LAST entry added, no matter which tab section it "logically"
+    # belongs with -- see test_timemachine_snapshot.py::
+    # test_new_fields_do_not_shift_existing_indices for the regression this
+    # guards (CRITICAL bug found in review: an earlier version of this
+    # entry lived after the bub-mc-* block, ahead of lev-*/um-p*, which
+    # shifted 13 existing fields' indices by +2).
+    ("bub-timemachine-toggle", "value"),
+    ("bub-asof-slider",        "value"),
 ]
 
 _SNAP_PREFIX_V4 = "q4:"   # current format (v4: sparse diff against fingerprint)

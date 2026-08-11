@@ -297,3 +297,25 @@ def test_asof_r2_in_legend_and_evolves():
     last = qr_q50_r2(tm.n_frames() - 1)
     assert mid is not None and last is not None    # R² present in the TM legend
     assert mid != last                              # evolves with the as-of date
+
+
+def test_asof_future_r2_in_legend():
+    """TM legend shows the 'future'/all-data R² (as-of model scored vs the FULL
+    realized series) alongside the in-sample R², and the two converge at the
+    right edge (D = today, where ≤D == all data)."""
+    if not _qr_available():
+        pytest.skip("timemachine grid without QR")
+    import re
+
+    def qr_group_title(frame):
+        fig, _ = build_bubble_figure(M, {**_QR_BASE, "asof_date": frame, "selected_qs": [0.5]})
+        for t in fig.data:
+            g = getattr(t, "legendgrouptitle", None)
+            if g and g.text and g.text.startswith("QR"):
+                return g.text
+        return None
+
+    last = qr_group_title(tm.n_frames() - 1)
+    assert last is not None and "all=" in last          # dual R² present
+    fit, allr2 = (float(x) for x in re.findall(r"=([0-9.]+)", last)[:2])
+    assert abs(fit - allr2) < 0.02                        # converge at the right edge

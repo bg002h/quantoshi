@@ -287,9 +287,16 @@ def _compute_log_r2(actual_prices, predicted_prices):
     return float(1.0 - ss_res / ss_tot)
 
 
-def compute_model_r2(mdl, price_years, price_prices):
-    """Compute per-quantile R² for any model with price_at() and quantiles."""
-    mdl.r2_per_quantile = {}
+def compute_model_r2(mdl, price_years, price_prices, attr="r2_per_quantile"):
+    """Compute per-quantile R² for any model with price_at() and quantiles.
+
+    Stores the result dict on ``mdl.<attr>`` (default ``r2_per_quantile``). Pass a
+    different ``attr`` to compute a SECOND measure over a different data window
+    without clobbering the first — e.g. the Time Machine "future"/all-data R²
+    scores an as-of model against the FULL realized series
+    (``attr="r2_all_per_quantile"``) alongside its in-sample ``r2_per_quantile``.
+    """
+    r2d = {}
     mask = price_years >= T_MIN
     t = price_years[mask]
     actual = price_prices[mask]
@@ -299,7 +306,7 @@ def compute_model_r2(mdl, price_years, price_prices):
                 predicted = np.asarray(mdl.price_at(q, t), float)
                 r2 = _compute_log_r2(actual, predicted)
                 if r2 is not None:
-                    mdl.r2_per_quantile[q] = r2
+                    r2d[q] = r2
             except Exception:
                 pass
     elif hasattr(mdl, 'price_at'):
@@ -307,9 +314,10 @@ def compute_model_r2(mdl, price_years, price_prices):
             predicted = np.asarray(mdl.price_at(0.5, t), float)
             r2 = _compute_log_r2(actual, predicted)
             if r2 is not None:
-                mdl.r2_per_quantile[0.5] = r2
+                r2d[0.5] = r2
         except Exception:
             pass
+    setattr(mdl, attr, r2d)
 
 
 # ── PriceModel protocol + implementations ────────────────────────────────────

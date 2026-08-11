@@ -52,6 +52,19 @@ def _r2_suffix(mdl, q):
     return ""
 
 
+def _r2_all_suffix(mdl):
+    """'  \u00b7 all=X.XX' suffix: the Time Machine "future"/all-data R\u00b2 --
+    the as-of model (fit on data <= D) scored against the FULL realized series --
+    or '' outside TM / when unavailable (r2_all_per_quantile is set only on
+    as-of objects by _attach_asof_r2). A frozen model that extrapolated badly can
+    go strongly negative; that compresses to '\u226a0' so it never blows out the legend.
+    """
+    r2 = getattr(mdl, 'r2_all_per_quantile', {}).get(0.5)
+    if r2 is None:
+        return ""
+    return f"  \u00b7 all={r2:.2f}" if r2 > -9.99 else "  \u00b7 all\u226a0"
+
+
 def _add_mc_spaghetti(fig, paths, t_axis, n_display=100):
     """Add up to n_display sample paths from a (n_sims, n_steps) array.
 
@@ -120,7 +133,13 @@ def _attach_asof_r2(mdl, asof_idx):
         return mdl
     ymax = (pd.Timestamp(tm.frames()[asof_idx]) - m.genesis).days / 365.25
     mask = m.price_years <= ymax
+    # In-sample R²: the fit quality on the data the model actually saw (≤ D).
     compute_model_r2(mdl, m.price_years[mask], m.price_prices[mask])
+    # "Future"/all-data R²: score the SAME frozen model against the FULL realized
+    # series (train + everything after D) — the honest backtest of how the ≤D fit
+    # performs on all data. Equals the in-sample R² at the right edge (D = today),
+    # diverges (usually lower) as D moves back, exposing extrapolation quality.
+    compute_model_r2(mdl, m.price_years, m.price_prices, attr="r2_all_per_quantile")
     return mdl
 
 
@@ -378,7 +397,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 else:
                     _median_r2 = getattr(mdl, "r2_per_quantile", {}).get(0.5)
                     if _median_r2 is not None:
-                        _group_title = f"{mdl.legend_name}  R\u00b2={_median_r2:.4f}"
+                        _group_title = f"{mdl.legend_name}  R\u00b2={_median_r2:.4f}" + _r2_all_suffix(mdl)
                 _ovl_lines.append(go.Scatter(
                     x=t_arr, y=prices,
                     mode="lines", name=lbl,
@@ -432,7 +451,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 traces.append(go.Scatter(
                     x=list(mdl_t[mdl_mask]), y=comp_y,
                     mode="lines",
-                    name=f"{mdl.legend_name} composite (N={n})  R\u00b2={mdl.bm_r2:.4f}",
+                    name=f"{mdl.legend_name} composite (N={n})  R\u00b2={mdl.bm_r2:.4f}" + _r2_all_suffix(mdl),
                     line=dict(color=_mdl_color, width=2.0),
                     legendgroup=mdl.short_name,
                 ))
@@ -516,7 +535,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
         traces.append(go.Scatter(
             x=x_comp, y=comp_y,
             mode="lines",
-            name=f"Bubble composite (N={n})  R\u00b2={_bm_src.bm_r2:.4f}",
+            name=f"Bubble composite (N={n})  R\u00b2={_bm_src.bm_r2:.4f}" + _r2_all_suffix(model),
             line=dict(color=_bm_color,
                       width=float(p.get("comp_lw", BUBBLE["comp_lw"]))),
         ))

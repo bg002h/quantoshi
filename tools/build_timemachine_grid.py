@@ -54,6 +54,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed  # noqa: E402
 
 from tools.timemachine.fit_eppl_asof import fit_config_asof  # noqa: E402
 from tools.timemachine.fit_bm_asof import fit_bm_asof  # noqa: E402
+from tools.timemachine.fit_qr_asof import fit_qr_asof  # noqa: E402
 from tools.model_toolkit.data import load_prices  # noqa: E402
 from tools.timemachine.frames import frame_dates  # noqa: E402
 from fit_all_eppl_configs import build_model_fn, config_key, all_configs  # noqa: E402
@@ -205,6 +206,11 @@ def _fit_bm_task(prices, ymax):
     return _downsample_bm_frame(fit_bm_asof(prices, ymax))
 
 
+def _fit_qr_task(prices, ymax):
+    # QR frames are params-only (27 quantiles x 3 floats) -- no downsampling.
+    return fit_qr_asof(prices, ymax)
+
+
 def _pool_worker_init():
     """ProcessPoolExecutor initializer -- pin single-threaded BLAS in each
     worker process too. Belt-and-suspenders alongside the module-level
@@ -219,7 +225,8 @@ def _pool_worker_init():
     os.environ["MKL_NUM_THREADS"] = "1"
 
 
-def build_grid(frames, configs, include_bm, out_path, maxiter, workers):
+def build_grid(frames, configs, include_bm, out_path, maxiter, workers,
+               include_qr=True):
     """Build the as-of grid and write it as gzipped JSON.
 
     Parameters
@@ -257,6 +264,8 @@ def build_grid(frames, configs, include_bm, out_path, maxiter, workers):
     models = {key: [None] * len(frames) for key in ecfg_key_list}
     if include_bm:
         models["bub"] = [None] * len(frames)
+    if include_qr:
+        models["qr"] = [None] * len(frames)
 
     # Flat job list: (kind, key, frame_idx, frame_date, cfg_or_None)
     jobs = []
@@ -266,6 +275,9 @@ def build_grid(frames, configs, include_bm, out_path, maxiter, workers):
     if include_bm:
         for i, frame in enumerate(frames):
             jobs.append(("bm", "bub", i, frame, None))
+    if include_qr:
+        for i, frame in enumerate(frames):
+            jobs.append(("qr", "qr", i, frame, None))
 
     failed = []
 
@@ -275,6 +287,8 @@ def build_grid(frames, configs, include_bm, out_path, maxiter, workers):
             try:
                 if kind == "ecfg":
                     result = fit_config_asof(cfg, t, lp, ymax, maxiter)
+                elif kind == "qr":
+                    result = fit_qr_asof(prices, ymax)
                 else:
                     result = _downsample_bm_frame(fit_bm_asof(prices, ymax))
                 models[key][i] = result
@@ -291,6 +305,8 @@ def build_grid(frames, configs, include_bm, out_path, maxiter, workers):
                 ymax = ymaxes[frame]
                 if kind == "ecfg":
                     fut = ex.submit(_fit_ecfg_task, cfg, t, lp, ymax, maxiter)
+                elif kind == "qr":
+                    fut = ex.submit(_fit_qr_task, prices, ymax)
                 else:
                     fut = ex.submit(_fit_bm_task, prices, ymax)
                 futures[fut] = (kind, key, i, frame)
@@ -316,6 +332,70 @@ def build_grid(frames, configs, include_bm, out_path, maxiter, workers):
     with gzip.open(out_path, "wt") as f:
         json.dump(grid, f)
 
+    return grid
+
+
+def add_qr_to_grid(grid_path, workers):
+    """Incrementally add a ``"qr"`` model series to an EXISTING grid file.
+
+    ALARA path: load the grid, fit QR channels for its EXACT ``frames`` (via
+    ``_frame_ymax``), inject ``models["qr"]``, and rewrite the file in place --
+    WITHOUT recomputing the expensive BM/EPPL series. Frame alignment is exact
+    because each frame's as-of horizon depends only on data <= D (immutable
+    history), so fitting on the current CSV reproduces the same window the grid
+    was originally built with.
+
+    Parameters
+    ----------
+    grid_path : str
+        Path to the gzip-compressed JSON grid to rewrite in place.
+    workers : int
+        ``ProcessPoolExecutor`` max_workers for the QR fits. Pass the desired
+        core count (e.g. ``os.cpu_count()`` capped at 24). ``<= 1`` runs a
+        simple sequential loop.
+
+    Returns
+    -------
+    dict
+        The updated grid object (also written back to ``grid_path``).
+    """
+    prices = load_prices("BitcoinPricesDaily.csv")
+    with gzip.open(grid_path, "rt") as f:
+        grid = json.load(f)
+    frames = grid["frames"]
+    ymaxes = [_frame_ymax(fr) for fr in frames]
+    qr_series = [None] * len(frames)
+    failed = []
+
+    max_workers = max(1, workers)
+    if max_workers <= 1:
+        for i, ymax in enumerate(ymaxes):
+            try:
+                qr_series[i] = fit_qr_asof(prices, ymax)
+            except Exception as e:  # noqa: BLE001 - log and keep going
+                print(f"add_qr_to_grid: FAILED frame={frames[i]}: {e!r}")
+                failed.append((frames[i], repr(e)))
+    else:
+        with ProcessPoolExecutor(
+            max_workers=max_workers, initializer=_pool_worker_init,
+        ) as ex:
+            futures = {ex.submit(_fit_qr_task, prices, ymax): i
+                       for i, ymax in enumerate(ymaxes)}
+            for fut in as_completed(futures):
+                i = futures[fut]
+                try:
+                    qr_series[i] = fut.result()
+                except Exception as e:  # noqa: BLE001 - log and keep going
+                    print(f"add_qr_to_grid: FAILED frame={frames[i]}: {e!r}")
+                    failed.append((frames[i], repr(e)))
+
+    grid["models"]["qr"] = _to_jsonable(qr_series)
+    n_ok = sum(1 for x in qr_series if x is not None)
+    print(f"add_qr_to_grid: {n_ok}/{len(frames)} QR frames fit "
+          f"({len(failed)} failed, stored as null).")
+
+    with gzip.open(grid_path, "wt") as f:
+        json.dump(grid, f)
     return grid
 
 
@@ -466,10 +546,23 @@ def main():
     ap.add_argument("--max-bm-points", type=int, default=MAX_BM_POINTS,
                      help=f"Downsample cap for BM comp_by_n/t_grid arrays "
                           f"(default {MAX_BM_POINTS}).")
+    ap.add_argument(
+        "--add-qr", metavar="PATH", default=None,
+        help="Incrementally add a 'qr' model series to an ALREADY-BUILT grid "
+             "file in place (fits QR channels for its exact frames, parallel "
+             "over --workers cores; minutes, not hours -- does NOT redo BM/"
+             "EPPL). Use to add QR to a grid built before QR support. Honours "
+             "--workers; ignores --full/--out.")
     args = ap.parse_args()
 
     if args.downsample_existing:
         downsample_existing_grid(args.downsample_existing, max_pts=args.max_bm_points)
+        return
+
+    if args.add_qr:
+        workers = args.workers or os.cpu_count() or 4
+        print(f"--add-qr: fitting QR for {args.add_qr}, workers={workers}")
+        add_qr_to_grid(args.add_qr, workers)
         return
 
     if not args.full:
@@ -484,9 +577,9 @@ def main():
     configs = all_configs()
     workers = args.workers or os.cpu_count() or 4
 
-    print(f"--full: {len(frames)} frames x {len(configs)} EPPL configs + BM, "
+    print(f"--full: {len(frames)} frames x {len(configs)} EPPL configs + BM + QR, "
           f"maxiter={EPPL_MAXITER}, workers={workers}, out={args.out}")
-    build_grid(frames=frames, configs=configs, include_bm=True,
+    build_grid(frames=frames, configs=configs, include_bm=True, include_qr=True,
                out_path=args.out, maxiter=EPPL_MAXITER, workers=workers)
 
 

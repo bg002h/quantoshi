@@ -27,3 +27,10 @@ def test_asof_frame_zero_index():
     # Frame index 0 is the FIRST frame and is valid — the gate must use an
     # explicit ``is not None`` check, never a falsy test that swallows 0.
     assert _asof_frame(["on"], 0) == 0
+
+
+def test_tm_eligible_models():
+    # Time Machine single-model constraint admits exactly BM, the EPPL master,
+    # and QR — the three keys _asof_resolve has an as-of path for.
+    from callbacks.timemachine import _TM_ELIGIBLE
+    assert set(_TM_ELIGIBLE) == {"bub", "eppl", "qr"}

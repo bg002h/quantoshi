@@ -64,6 +64,62 @@ def test_asof_none_is_unchanged():
     assert list(_ecfg_yvals(omitted)) == list(_ecfg_yvals(explicit_none))
 
 
+# ── QR (quantile regression) as-of, via the same overlay path as EPPL ─────────
+_QR_BASE = dict(
+    selected_qs=[0.001, 0.1, 0.25, 0.5], active_models=["qr"], sigma_mode="constant",
+    xscale="log", yscale="log", xmin=2012, xmax=2030,
+    ymin=1.0, ymax=1e8, show_data=True, shade=True,
+)
+
+
+def _qr_line_yvals(fig):
+    """Concatenated y of all QR overlay LINE traces (legend_name 'QR')."""
+    ys = []
+    for tr in fig.data:
+        if (tr.name or "").startswith("QR") and getattr(tr, "mode", None) == "lines":
+            ys.extend(list(tr.y))
+    return ys
+
+
+def _qr_available():
+    return tm.available() and "qr" in tm._load()["models"]
+
+
+def test_asof_changes_the_qr_fan():
+    """As-of QR (fit on data ≤ the earliest frame) yields a different quantile
+    fan than the live full-data QR fit."""
+    if not _qr_available():
+        pytest.skip("timemachine grid without QR")
+    live, _ = build_bubble_figure(M, {**_QR_BASE, "asof_date": None})
+    past, _ = build_bubble_figure(M, {**_QR_BASE, "asof_date": 0})
+    live_y = _qr_line_yvals(live)
+    past_y = _qr_line_yvals(past)
+    assert live_y and past_y
+    assert live_y != past_y
+
+
+def test_asof_qr_none_is_unchanged():
+    """asof_date=None must match omitting the key for QR too (default path intact)."""
+    if not _qr_available():
+        pytest.skip("timemachine grid without QR")
+    omitted, _ = build_bubble_figure(M, {**_QR_BASE})
+    explicit_none, _ = build_bubble_figure(M, {**_QR_BASE, "asof_date": None})
+    assert _qr_line_yvals(omitted) == _qr_line_yvals(explicit_none)
+
+
+def test_asof_qr_draws_shaded_bands():
+    """QR as-of draws its quantile lines AND shaded bands (the overlay path's
+    _build_symmetric_bands), so 'qr + quantile bands' actually renders."""
+    if not _qr_available():
+        pytest.skip("timemachine grid without QR")
+    fig, _ = build_bubble_figure(M, {**_QR_BASE, "asof_date": 0})
+    qr_lines = [tr for tr in fig.data
+                if (tr.name or "").startswith("QR") and getattr(tr, "mode", None) == "lines"]
+    band_fills = [tr for tr in fig.data if getattr(tr, "fill", None) == "tonexty"]
+    assert len(qr_lines) >= 2          # multiple quantile channels
+    assert len(band_fills) >= 1        # at least one shaded band between them
+
+
 def test_asof_splits_realized_price_scatter():
     """In as-of mode the realized-price scatter is split into a solid segment
     (≤ frame date) and a faded, greyed 'Price after …' reveal segment."""

@@ -110,3 +110,74 @@ def test_asof_bm_is_downsampled():
     assert len(shim.years_plot_bm) <= 512
     assert all(len(row) <= 512 for row in shim.comp_by_n)
     assert len(shim.support_bm) == len(shim.years_plot_bm)  # reconstructed on the downsampled grid
+
+
+# ── QR (quantile regression) as-of ───────────────────────────────────────────
+def test_asof_qr_shape():
+    """asof_qr builds a real QuantileRegressionModel from a non-null frame,
+    with float-keyed fits carrying intercept/slope/r2 (matching the live qr)."""
+    if not tm.available():
+        import pytest
+        pytest.skip("grid not built in this env")
+    from btc_core import QuantileRegressionModel
+    grid = tm._load()
+    if "qr" not in grid["models"]:
+        import pytest
+        pytest.skip("grid built before QR support")
+    idx = next(i for i, rec in enumerate(grid["models"]["qr"]) if rec is not None)
+    mdl = tm.asof_qr(idx)
+    assert isinstance(mdl, QuantileRegressionModel)
+    assert len(mdl.fits) > 0
+    assert all(isinstance(q, float) for q in mdl.fits)     # float-keyed
+    for q, f in mdl.fits.items():
+        assert set(f) >= {"intercept", "slope", "r2"}
+
+
+def test_asof_qr_is_per_request_and_pure():
+    """Fresh object each call; never mutates the shared live qr model."""
+    if not tm.available():
+        import pytest
+        pytest.skip("grid not built in this env")
+    grid = tm._load()
+    if "qr" not in grid["models"]:
+        import pytest
+        pytest.skip("grid built before QR support")
+    idx = next(i for i, rec in enumerate(grid["models"]["qr"]) if rec is not None)
+    live = _app_ctx.PRICE_MODELS["qr"]
+    before = {q: dict(f) for q, f in live.fits.items()}
+    a = tm.asof_qr(idx)
+    b = tm.asof_qr(idx)
+    assert a is not b                                       # fresh object each call
+    assert _app_ctx.PRICE_MODELS["qr"] is live              # singleton identity intact
+    assert {q: dict(f) for q, f in live.fits.items()} == before  # no mutation
+
+
+def test_asof_qr_null_frame_returns_none():
+    if not tm.available():
+        import pytest
+        pytest.skip("grid not built in this env")
+    grid = tm._load()
+    if "qr" not in grid["models"]:
+        import pytest
+        pytest.skip("grid built before QR support")
+    orig = grid["models"]["qr"][0]
+    grid["models"]["qr"][0] = None
+    try:
+        assert tm.asof_qr(0) is None
+    finally:
+        grid["models"]["qr"][0] = orig  # restore the lru_cache'd singleton
+
+
+def test_asof_qr_missing_series_returns_none():
+    """A grid built before QR support (no ``"qr"`` key) must surface None,
+    not KeyError -- the bubble overlay path then simply skips QR."""
+    if not tm.available():
+        import pytest
+        pytest.skip("grid not built in this env")
+    grid = tm._load()
+    saved = grid["models"].pop("qr", "__absent__")
+    try:
+        assert tm.asof_qr(0) is None
+    finally:
+        if saved != "__absent__":
+            grid["models"]["qr"] = saved

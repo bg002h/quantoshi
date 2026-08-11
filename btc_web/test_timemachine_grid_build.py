@@ -13,9 +13,34 @@ def test_two_frame_build(tmp_path):
     assert "ecfg_1d_1u" in g["models"] and "bub" in g["models"]
     assert len(g["models"]["ecfg_1d_1u"]) == 2
     assert "params" in g["models"]["ecfg_1d_1u"][0]
+    # include_qr defaults True → a params-only "qr" series aligned to frames.
+    assert "qr" in g["models"] and len(g["models"]["qr"]) == 2
+    assert "fits" in g["models"]["qr"][0]
+    assert len(g["models"]["qr"][0]["fits"]) == 27  # default BM_QUANTILES
     # continuity scan runs and returns a (possibly empty) list of suspect strings
     suspects = continuity_scan(g)
     assert isinstance(suspects, list)
+
+
+def test_add_qr_to_existing_grid(tmp_path):
+    """The incremental --add-qr path injects a 'qr' series into an EXISTING
+    grid (built here without QR) without touching its bub/ecfg series."""
+    from tools.build_timemachine_grid import add_qr_to_grid
+    out = tmp_path / "g.json.gz"
+    build_grid(frames=["2016-01-01", "2016-02-01"],
+               configs=[(1, 1, ["d"], ["u"])], include_bm=True, include_qr=False,
+               out_path=str(out), maxiter=150, workers=1)
+    with gzip.open(out, "rt") as f:
+        before = json.load(f)
+    assert "qr" not in before["models"]
+    add_qr_to_grid(str(out), workers=1)
+    with gzip.open(out, "rt") as f:
+        after = json.load(f)
+    assert "qr" in after["models"] and len(after["models"]["qr"]) == 2
+    assert "fits" in after["models"]["qr"][0]
+    # bub / ecfg series untouched by the incremental add.
+    assert after["models"]["bub"] == before["models"]["bub"]
+    assert after["models"]["ecfg_1d_1u"] == before["models"]["ecfg_1d_1u"]
 
 
 def test_continuity_scan_fires_on_bm_median_jump():

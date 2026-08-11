@@ -126,3 +126,32 @@ def asof_bm(frame_idx):
         bm_sigma0_down=frame["sigma0_down"],
         bm_alpha_down=frame["alpha_down"],
     )
+
+
+def asof_qr(frame_idx):
+    """Build a fresh ``QuantileRegressionModel`` as-of a grid frame.
+
+    Returns ``None`` for a missing/failed frame -- either the whole ``"qr"``
+    series is absent (grid built before QR support) or that frame's fit failed
+    (stored as JSON ``null``). Callers (the bubble overlay path) skip a ``None``
+    model, so QR simply does not draw at that frame rather than crashing.
+
+    A NEW object is built on every call from a lightweight shim (``qr_fits`` +
+    ``qr_colors``) -- this never reads from or writes to ``_app_ctx.PRICE_MODELS``,
+    so the shared/global ``qr`` model is unaffected. ``qr_colors`` is palette
+    state (not part of the as-of fit), borrowed from the live model when present.
+    """
+    qr_series = _load()["models"].get("qr")
+    if qr_series is None:
+        return None
+    frame = qr_series[frame_idx]
+    if frame is None:
+        return None
+    import _app_ctx
+    from btc_core import QuantileRegressionModel
+    qr_colors = _app_ctx.M.qr_colors if _app_ctx.M is not None else {}
+    shim = types.SimpleNamespace(
+        qr_fits={float(k): v for k, v in frame["fits"].items()},
+        qr_colors=qr_colors,
+    )
+    return QuantileRegressionModel(shim)

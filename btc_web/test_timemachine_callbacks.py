@@ -31,6 +31,6 @@ def test_asof_frame_zero_index():
 
 def test_tm_eligible_models():
     # Time Machine single-model constraint admits exactly BM, the EPPL master,
-    # and QR — the three keys _asof_resolve has an as-of path for.
+    # QR, spl, and logi — the five keys _asof_resolve has an as-of path for.
     from callbacks.timemachine import _TM_ELIGIBLE
-    assert set(_TM_ELIGIBLE) == {"bub", "eppl", "qr"}
+    assert set(_TM_ELIGIBLE) == {"bub", "eppl", "qr", "spl", "logi"}

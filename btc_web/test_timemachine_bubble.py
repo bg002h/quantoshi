@@ -141,6 +141,120 @@ def test_asof_splits_realized_price_scatter():
     assert after[0].marker.opacity < solid.marker.opacity
 
 
+# ── spl (Saturating Power Law) as-of, via the same overlay path as EPPL/QR ────
+_SPL_BASE = dict(
+    selected_qs=[0.1, 0.5, 0.9], active_models=["spl"], sigma_mode="constant",
+    xscale="log", yscale="log", xmin=2012, xmax=2030,
+    ymin=1.0, ymax=1e8, show_data=True, shade=True,
+)
+
+
+def _spl_line_yvals(fig):
+    """Concatenated y of all spl overlay LINE traces (legend_name 'SatPL')."""
+    ys = []
+    for tr in fig.data:
+        if (tr.name or "").startswith("SatPL") and getattr(tr, "mode", None) == "lines":
+            ys.extend(list(tr.y))
+    return ys
+
+
+def _spl_available():
+    return tm.available() and "spl" in tm._load()["models"]
+
+
+def test_asof_changes_the_spl_fan():
+    """As-of spl (fit on data <= the earliest frame) yields a different
+    quantile fan than the live full-data spl fit."""
+    if not _spl_available():
+        pytest.skip("timemachine grid without spl")
+    live, _ = build_bubble_figure(M, {**_SPL_BASE, "asof_date": None})
+    past, _ = build_bubble_figure(M, {**_SPL_BASE, "asof_date": 0})
+    live_y = _spl_line_yvals(live)
+    past_y = _spl_line_yvals(past)
+    assert live_y and past_y
+    assert live_y != past_y
+
+
+def test_asof_spl_none_is_unchanged():
+    """asof_date=None must match omitting the key for spl too (default path intact)."""
+    if not _spl_available():
+        pytest.skip("timemachine grid without spl")
+    omitted, _ = build_bubble_figure(M, {**_SPL_BASE})
+    explicit_none, _ = build_bubble_figure(M, {**_SPL_BASE, "asof_date": None})
+    assert _spl_line_yvals(omitted) == _spl_line_yvals(explicit_none)
+
+
+def test_asof_spl_draws_shaded_bands():
+    """spl as-of draws its quantile lines AND shaded bands (the overlay
+    path's _build_symmetric_bands), so 'spl + quantile bands' actually
+    renders."""
+    if not _spl_available():
+        pytest.skip("timemachine grid without spl")
+    fig, _ = build_bubble_figure(M, {**_SPL_BASE, "asof_date": 0})
+    spl_lines = [tr for tr in fig.data
+                 if (tr.name or "").startswith("SatPL") and getattr(tr, "mode", None) == "lines"]
+    band_fills = [tr for tr in fig.data if getattr(tr, "fill", None) == "tonexty"]
+    assert len(spl_lines) >= 2          # multiple quantile channels
+    assert len(band_fills) >= 1         # at least one shaded band between them
+
+
+# ── logi (Logistic S-curve) as-of, via the same overlay path as EPPL/QR ───────
+_LOGI_BASE = dict(
+    selected_qs=[0.1, 0.5, 0.9], active_models=["logi"], sigma_mode="constant",
+    xscale="log", yscale="log", xmin=2012, xmax=2030,
+    ymin=1.0, ymax=1e8, show_data=True, shade=True,
+)
+
+
+def _logi_line_yvals(fig):
+    """Concatenated y of all logi overlay LINE traces (legend_name 'Logi')."""
+    ys = []
+    for tr in fig.data:
+        if (tr.name or "").startswith("Logi") and getattr(tr, "mode", None) == "lines":
+            ys.extend(list(tr.y))
+    return ys
+
+
+def _logi_available():
+    return tm.available() and "logi" in tm._load()["models"]
+
+
+def test_asof_changes_the_logi_fan():
+    """As-of logi (fit on data <= the earliest frame) yields a different
+    quantile fan than the live full-data logi fit."""
+    if not _logi_available():
+        pytest.skip("timemachine grid without logi")
+    live, _ = build_bubble_figure(M, {**_LOGI_BASE, "asof_date": None})
+    past, _ = build_bubble_figure(M, {**_LOGI_BASE, "asof_date": 0})
+    live_y = _logi_line_yvals(live)
+    past_y = _logi_line_yvals(past)
+    assert live_y and past_y
+    assert live_y != past_y
+
+
+def test_asof_logi_none_is_unchanged():
+    """asof_date=None must match omitting the key for logi too (default path intact)."""
+    if not _logi_available():
+        pytest.skip("timemachine grid without logi")
+    omitted, _ = build_bubble_figure(M, {**_LOGI_BASE})
+    explicit_none, _ = build_bubble_figure(M, {**_LOGI_BASE, "asof_date": None})
+    assert _logi_line_yvals(omitted) == _logi_line_yvals(explicit_none)
+
+
+def test_asof_logi_draws_shaded_bands():
+    """logi as-of draws its quantile lines AND shaded bands (the overlay
+    path's _build_symmetric_bands), so 'logi + quantile bands' actually
+    renders."""
+    if not _logi_available():
+        pytest.skip("timemachine grid without logi")
+    fig, _ = build_bubble_figure(M, {**_LOGI_BASE, "asof_date": 0})
+    logi_lines = [tr for tr in fig.data
+                  if (tr.name or "").startswith("Logi") and getattr(tr, "mode", None) == "lines"]
+    band_fills = [tr for tr in fig.data if getattr(tr, "fill", None) == "tonexty"]
+    assert len(logi_lines) >= 2          # multiple quantile channels
+    assert len(band_fills) >= 1          # at least one shaded band between them
+
+
 def test_asof_bm_composite_and_support_come_from_grid():
     """BM primary as-of path (bub active): the composite + support are rebuilt
     from the grid frame, so they build without crashing and DIFFER (both y and

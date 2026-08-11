@@ -34,6 +34,16 @@ import json
 import os
 import sys
 
+# Pin single-threaded BLAS BEFORE numpy is imported -- with ~24 worker
+# processes each running differential_evolution, an unpinned OpenBLAS/MKL
+# thread pool per process oversubscribes the box (24 processes x N BLAS
+# threads each) and the build slows down instead of speeding up. Must be
+# set before `import numpy` -- OpenBLAS/MKL read these env vars once, at
+# first use, not on every call.
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+
 import numpy as np
 import pandas as pd
 
@@ -59,6 +69,15 @@ DEFAULT_OUT_PATH = os.path.join(ROOT, "timemachine_grid.json.gz")
 # continuity_scan() thresholds (Step 3b).
 _JUMP_THRESHOLD = 0.5
 _R2_THRESHOLD = 0.85
+
+# BM downsample cap (post-build size fix). BM frames carry the FULL
+# PLOT_GRID_POINTS plotting grid (3000 pts, tools/model_toolkit/composite.py)
+# x 4 comp_by_n rows x 142 frames -- that alone is most of the ~19MB grid
+# file, well over the ~5MB budget every gunicorn worker pays to load this
+# (ALARA). EPPL frames are params-only (a handful of floats) and are never
+# touched by this. Task 7 interpolates comp_by_n/t_grid onto its own display
+# grid anyway, so shipping the full 3000-point resolution buys nothing.
+MAX_BM_POINTS = 512
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -87,6 +106,89 @@ def _frame_ymax(frame_date):
     return (pd.Timestamp(frame_date) - GENESIS).days / 365.25
 
 
+def _downsample_bm_frame(frame, max_pts=MAX_BM_POINTS):
+    """Downsample one BM frame's ``t_grid`` + every ``comp_by_n`` row to
+    ``<= max_pts`` points, keeping every row aligned to the SAME (shorter)
+    ``t_grid`` -- ``btc_web/timemachine.py::asof_bm`` reconstructs
+    ``support_bm`` from ``t_grid`` at load time, so alignment has to hold
+    after this runs, not be re-derived by the loader.
+
+    A no-op (returns ``frame`` unchanged) when it's already <= max_pts --
+    safe to call unconditionally, and idempotent if re-run on an
+    already-downsampled frame.
+
+    Even index-stride subsampling (not interpolation): ``t_grid`` is
+    ``np.linspace`` in ``build_composite`` (uniform in linear years, not
+    log), so a stride keeps points evenly spaced in the same space the
+    original grid used; Task 7 interpolates onto its own display grid
+    regardless, so exact point placement here isn't load-bearing.
+
+    Parameters
+    ----------
+    frame : dict or None
+        One ``models["bub"][i]`` entry (``fit_bm_asof`` output). ``None``
+        passes through unchanged (null/failed frame).
+    max_pts : int
+        Point cap (default ``MAX_BM_POINTS`` = 512).
+
+    Returns
+    -------
+    dict or None
+    """
+    if frame is None:
+        return None
+    t_grid = frame["t_grid"]
+    n = len(t_grid)
+    if n <= max_pts:
+        return frame
+
+    idx = np.unique(np.round(np.linspace(0, n - 1, max_pts)).astype(int))
+    t_arr = np.asarray(t_grid)
+
+    out = dict(frame)  # shallow copy -- never mutate the caller's dict
+    out["t_grid"] = t_arr[idx].tolist()
+    out["comp_by_n"] = [np.asarray(row)[idx].tolist() for row in frame["comp_by_n"]]
+    return out
+
+
+def downsample_existing_grid(path, max_pts=MAX_BM_POINTS):
+    """Post-process an already-built grid file IN PLACE: downsample every
+    ``"bub"`` frame's ``comp_by_n``/``t_grid`` to ``<= max_pts`` points.
+    Every ``ecfg_*`` (params-only) frame is left untouched.
+
+    Avoids a full rebuild (~1h40m on 24 cores) when only the BM
+    plotting-grid resolution needs to shrink -- no re-fitting happens here,
+    this only reshapes already-fitted data.
+
+    Parameters
+    ----------
+    path : str
+        Path to the gzip-compressed JSON grid to rewrite in place.
+    max_pts : int
+        Point cap passed to ``_downsample_bm_frame`` (default
+        ``MAX_BM_POINTS`` = 512).
+
+    Returns
+    -------
+    dict
+        The rewritten (JSON-safe) grid object, same as what was written.
+    """
+    with gzip.open(path, "rt") as f:
+        grid = json.load(f)
+
+    bub = grid["models"].get("bub")
+    if bub is None:
+        print(f"downsample_existing_grid: no 'bub' key in {path}, nothing to do")
+        return grid
+
+    grid["models"]["bub"] = [_downsample_bm_frame(rec, max_pts=max_pts) for rec in bub]
+
+    with gzip.open(path, "wt") as f:
+        json.dump(grid, f)
+
+    return grid
+
+
 # ─────────────────────────────────────────────────────────────────────────
 # Module-level worker wrappers — required so ProcessPoolExecutor can pickle
 # them (bound methods / closures are not picklable).
@@ -96,7 +198,25 @@ def _fit_ecfg_task(cfg, t, lp, ymax, maxiter):
 
 
 def _fit_bm_task(prices, ymax):
-    return fit_bm_asof(prices, ymax)
+    # Downsampled INSIDE the worker (not after fut.result()) so the
+    # oversized (3000-pt x 4-row) array never has to round-trip the
+    # ProcessPoolExecutor pickle boundary -- smaller IPC payload, not just
+    # a smaller file.
+    return _downsample_bm_frame(fit_bm_asof(prices, ymax))
+
+
+def _pool_worker_init():
+    """ProcessPoolExecutor initializer -- pin single-threaded BLAS in each
+    worker process too. Belt-and-suspenders alongside the module-level
+    ``os.environ.setdefault`` calls above: those cover the common case
+    (fork inherits parent env; spawn re-executes this module from the top
+    before importing numpy), this covers a worker whose numpy/BLAS was
+    already imported/initialized by some other path before the env vars
+    it inherited took effect.
+    """
+    os.environ["OMP_NUM_THREADS"] = "1"
+    os.environ["OPENBLAS_NUM_THREADS"] = "1"
+    os.environ["MKL_NUM_THREADS"] = "1"
 
 
 def build_grid(frames, configs, include_bm, out_path, maxiter, workers):
@@ -117,7 +237,8 @@ def build_grid(frames, configs, include_bm, out_path, maxiter, workers):
         ``differential_evolution`` maxiter passed to every EPPL fit.
     workers : int
         ``1`` -> simple sequential loop. ``>1`` -> ``ProcessPoolExecutor``
-        with ``max_workers = min(max(1, nproc - 2), 22)``.
+        with ``max_workers = max(1, workers)`` (caller-controlled -- pass
+        the desired core count directly, e.g. ``os.cpu_count()``).
 
     Returns
     -------
@@ -155,14 +276,16 @@ def build_grid(frames, configs, include_bm, out_path, maxiter, workers):
                 if kind == "ecfg":
                     result = fit_config_asof(cfg, t, lp, ymax, maxiter)
                 else:
-                    result = fit_bm_asof(prices, ymax)
+                    result = _downsample_bm_frame(fit_bm_asof(prices, ymax))
                 models[key][i] = result
             except Exception as e:  # noqa: BLE001 - log and keep building
                 print(f"build_grid: FAILED frame={frame} key={key}: {e!r}")
                 failed.append((frame, key, repr(e)))
     else:
-        max_workers = min(max(1, (os.cpu_count() or 4) - 2), 22)
-        with ProcessPoolExecutor(max_workers=max_workers) as ex:
+        max_workers = max(1, workers)
+        with ProcessPoolExecutor(
+            max_workers=max_workers, initializer=_pool_worker_init,
+        ) as ex:
             futures = {}
             for kind, key, i, frame, cfg in jobs:
                 ymax = ymaxes[frame]
@@ -330,20 +453,36 @@ def main():
                      help=f"Output path (default: {DEFAULT_OUT_PATH})")
     ap.add_argument("--workers", type=int, default=None,
                      help="ProcessPoolExecutor workers "
-                          "(default: min(max(1, nproc-2), 22))")
+                          "(default: os.cpu_count(), saturate the box -- "
+                          "BLAS is pinned to 1 thread/process so this "
+                          "doesn't oversubscribe)")
+    ap.add_argument(
+        "--downsample-existing", metavar="PATH", default=None,
+        help="Post-process an ALREADY-BUILT grid file in place: downsample "
+             "every 'bub' frame's comp_by_n/t_grid to --max-bm-points "
+             "(no re-fitting, seconds not hours). Use instead of a full "
+             "rebuild when only the BM plotting-grid resolution changed. "
+             "Ignores --full/--out/--workers.")
+    ap.add_argument("--max-bm-points", type=int, default=MAX_BM_POINTS,
+                     help=f"Downsample cap for BM comp_by_n/t_grid arrays "
+                          f"(default {MAX_BM_POINTS}).")
     args = ap.parse_args()
+
+    if args.downsample_existing:
+        downsample_existing_grid(args.downsample_existing, max_pts=args.max_bm_points)
+        return
 
     if not args.full:
         ap.print_help()
-        print("\nNothing to do without --full. Use build_grid()/"
-              "continuity_scan() directly (see btc_web/test_timemachine_"
-              "grid_build.py) for a quick smoke build.")
+        print("\nNothing to do without --full or --downsample-existing. Use "
+              "build_grid()/continuity_scan() directly (see btc_web/test_"
+              "timemachine_grid_build.py) for a quick smoke build.")
         return
 
     last_full_month = _last_full_month().strftime("%Y-%m-%d")
     frames = frame_dates(LEFT_EDGE_DATE, last_full_month)
     configs = all_configs()
-    workers = args.workers or min(max(1, (os.cpu_count() or 4) - 2), 22)
+    workers = args.workers or os.cpu_count() or 4
 
     print(f"--full: {len(frames)} frames x {len(configs)} EPPL configs + BM, "
           f"maxiter={EPPL_MAXITER}, workers={workers}, out={args.out}")

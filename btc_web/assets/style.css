@@ -1390,15 +1390,18 @@ body {
 
    Scoped to pointer:coarse (touch/pen) — desktop mouse clicks unaffected.
 */
-/* pan-y on the WHOLE subtree, not just the root, so vertical-scroll protection
-   is active from the FIRST gesture. The ::before overlay below only routes a
-   track touch to the (pan-y) root once it has laid out — until then a touch on
-   the inner track/marks (default touch-action) could grab the slider instead of
-   scrolling ("protection doesn't start immediately"). pan-y still lets a
-   horizontal drag move the thumb; touch-action is irrelevant to mouse/desktop. */
+/* pan-y on the whole subtree so a vertical drag over the TRACK/marks scrolls the
+   page from the first gesture (not gated on the ::before overlay's layout).
+   EXCEPTION: the thumb below is touch-action:none so grabbing it captures the
+   drag — with pan-y on the thumb, a real (slightly diagonal) grab lets the
+   browser scroll on the vertical component → "scroll instead of grab" or both at
+   once. touch-action is irrelevant to mouse/desktop. */
 .dash-slider-root,
 .dash-slider-root * {
     touch-action: pan-y;
+}
+.dash-slider-thumb {
+    touch-action: none;   /* grabbing the thumb captures the drag — no scroll */
 }
 @media (pointer: coarse) {
     .dash-slider-root {
@@ -1410,9 +1413,13 @@ body {
         top: -12px; left: 0; right: 0; bottom: -12px;
         z-index: 1;
     }
+    /* The thumb MUST sit above the full-width track overlay, or a grab-touch
+       lands on the overlay (→ pan-y root → scroll) instead of the thumb. Radix
+       pins an inline z-index, so !important is needed to win. */
     .dash-slider-thumb {
         position: relative;
-        z-index: 2;
+        z-index: 10 !important;
+        touch-action: none;
     }
 }
 

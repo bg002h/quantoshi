@@ -90,6 +90,29 @@ def _add_mc_spaghetti(fig, paths, t_axis, n_display=100):
         ))
 
 
+# Opacity for the realized-price "reveal" segment (points AFTER the as-of
+# frame date) — the model was fit on data ≤ D, this shows what happened next.
+_ASOF_FADE_ALPHA = 0.25
+
+
+def _asof_resolve(model_key, p):
+    """Resolve a model key to a model object, honouring as-of (Time Machine) mode.
+
+    When ``p["asof_date"]`` is an int frame index AND the key is an EPPL config
+    model (``ecfg_*``), the model is rebuilt fresh from the precomputed as-of
+    grid (fit on data ≤ the frame date) instead of the live full-data registry.
+    Everything else — and the entire non-as-of path (``asof_date`` None/absent)
+    — resolves from ``_app_ctx.PRICE_MODELS`` unchanged, so the default
+    behaviour is byte-identical to today. Returns ``None`` for a failed/missing
+    frame (caller skips it), mirroring ``PRICE_MODELS.get`` on a bad key.
+    """
+    asof_idx = p.get("asof_date")
+    if asof_idx is not None and model_key.startswith("ecfg_"):
+        import timemachine as tm
+        return tm.asof_eppl(model_key, asof_idx)
+    return _app_ctx.PRICE_MODELS.get(model_key)
+
+
 def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dict | None]:
     """
     p keys: selected_qs, shade, xscale, yscale, xmin, xmax, ymin, ymax,
@@ -133,6 +156,27 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     if _fallback_q50:
         sel_qs = [0.5]
 
+    # ── as-of (Time Machine) BM primary substitution ────────────────────────
+    # When asof_date is an int frame index, the BM composite/support/σ-fan come
+    # from the precomputed as-of grid (fit on data ≤ the frame date) instead of
+    # the live full-data model ``m``. Guarded so the default path is unchanged.
+    asof_idx = p.get("asof_date")
+    _bm_src = m
+    if asof_idx is not None and bub_active:
+        import timemachine as tm
+        bm_shim = tm.asof_bm(asof_idx)
+        if bm_shim is None:
+            # Failed/missing frame → skip BM entirely (no composite/support/fan).
+            bub_active = False
+        else:
+            # BubbleModel(md) reads QR_QUANTILES + qr_colors, which asof_bm does
+            # not set; borrow them from the live model.
+            bm_shim.QR_QUANTILES = _app_ctx.M.QR_QUANTILES
+            bm_shim.qr_colors = _app_ctx.M.qr_colors
+            from btc_core import BubbleModel
+            model = BubbleModel(bm_shim)
+            _bm_src = bm_shim
+
     if bub_active:
         # Pre-compute prices for all selected quantiles
         _price_cache = {}
@@ -160,14 +204,42 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             y_sc  = y_sc[idx]
             d_sc  = [d_sc[i] for i in idx]
         # Dark slate gray — distinct from BM gold so data points read clearly
-        traces.append(go.Scatter(
-            x=list(x_sc), y=y_sc,
-            mode="markers", name="Price data",
-            marker=dict(color=SCATTER_POINT,
-                        size=max(2, int(p.get("pt_size", BUBBLE["pt_size"]))),
-                        opacity=float(p.get("pt_alpha", BUBBLE["pt_alpha"]))),
-            hovertemplate=_HOVER_FMT_USD,
-        ))
+        if asof_idx is not None:
+            # As-of reveal: the model was fit on data ≤ the frame date, so split
+            # the realized-price scatter there. Points ≤ t_D are the training
+            # data (solid, normal "Price data"); points after t_D are the
+            # "how did it do?" reveal, drawn faded + distinctly named.
+            import timemachine as tm
+            _asof_date_str = tm.frames()[asof_idx]
+            t_D = (pd.Timestamp(_asof_date_str) - m.genesis).days / 365.25
+            _x_arr = np.asarray(x_sc)
+            _y_arr = np.asarray(y_sc)
+            _before = _x_arr <= t_D
+            _after = ~_before
+            _pt_size = max(2, int(p.get("pt_size", BUBBLE["pt_size"])))
+            _pt_alpha = float(p.get("pt_alpha", BUBBLE["pt_alpha"]))
+            traces.append(go.Scatter(
+                x=list(_x_arr[_before]), y=_y_arr[_before],
+                mode="markers", name="Price data",
+                marker=dict(color=SCATTER_POINT, size=_pt_size, opacity=_pt_alpha),
+                hovertemplate=_HOVER_FMT_USD,
+            ))
+            traces.append(go.Scatter(
+                x=list(_x_arr[_after]), y=_y_arr[_after],
+                mode="markers", name=f"Price after {_asof_date_str}",
+                marker=dict(color=SCATTER_POINT, size=_pt_size,
+                            opacity=min(_pt_alpha, _ASOF_FADE_ALPHA)),
+                hovertemplate=_HOVER_FMT_USD,
+            ))
+        else:
+            traces.append(go.Scatter(
+                x=list(x_sc), y=y_sc,
+                mode="markers", name="Price data",
+                marker=dict(color=SCATTER_POINT,
+                            size=max(2, int(p.get("pt_size", BUBBLE["pt_size"]))),
+                            opacity=float(p.get("pt_alpha", BUBBLE["pt_alpha"]))),
+                hovertemplate=_HOVER_FMT_USD,
+            ))
 
     if bub_active:
         _bub_color = _get_model_color("bub", p)
@@ -222,7 +294,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             if not mdl:
                 continue
         else:
-            mdl = _app_ctx.PRICE_MODELS.get(model_key)
+            mdl = _asof_resolve(model_key, p)
             if not mdl:
                 continue
         if mdl.quantized:
@@ -367,7 +439,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
 
     # Downsample BM curves to ~400 points (plenty for screen)
     def _downsample_bm(mask_arr, y_arr, target=400):
-        x = m.years_plot_bm[mask_arr]
+        x = _bm_src.years_plot_bm[mask_arr]
         y = y_arr
         n = len(x)
         if n > target:
@@ -379,8 +451,8 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     # ── bubble support ────────────────────────────────────────────────────────
     _bm_color = _get_model_color("bub", p)
     if bub_active and p.get("show_sup"):
-        mask = (m.years_plot_bm >= t_lo) & (m.years_plot_bm <= t_hi)
-        sup_y = m.support_bm[mask] * (stack if stack > 0 else 1)
+        mask = (_bm_src.years_plot_bm >= t_lo) & (_bm_src.years_plot_bm <= t_hi)
+        sup_y = _bm_src.support_bm[mask] * (stack if stack > 0 else 1)
         x_sup, sup_y = _downsample_bm(mask, sup_y)
         traces.append(go.Scatter(
             x=x_sup, y=sup_y,
@@ -393,14 +465,14 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
     # ── bubble composite ──────────────────────────────────────────────────────
     if bub_active and p.get("show_comp"):
         n = int(p.get("n_future", BUBBLE["n_future"]))
-        n = min(n, len(m.comp_by_n) - 1)
-        mask = (m.years_plot_bm >= t_lo) & (m.years_plot_bm <= t_hi)
-        comp_y = m.comp_by_n[n][mask] * (stack if stack > 0 else 1)
+        n = min(n, len(_bm_src.comp_by_n) - 1)
+        mask = (_bm_src.years_plot_bm >= t_lo) & (_bm_src.years_plot_bm <= t_hi)
+        comp_y = np.asarray(_bm_src.comp_by_n[n])[mask] * (stack if stack > 0 else 1)
         x_comp, comp_y = _downsample_bm(mask, comp_y)
         traces.append(go.Scatter(
             x=x_comp, y=comp_y,
             mode="lines",
-            name=f"Bubble composite (N={n})  R\u00b2={m.bm_r2:.4f}",
+            name=f"Bubble composite (N={n})  R\u00b2={_bm_src.bm_r2:.4f}",
             line=dict(color=_bm_color,
                       width=float(p.get("comp_lw", BUBBLE["comp_lw"]))),
         ))

@@ -165,3 +165,43 @@ _app_ctx.app.clientside_callback(
     Output("bub-cta-exclude-wrap", "style"),
     Input("bub-timemachine-toggle", "value"),
 )
+
+
+# ── 6b. Force conflicting controls OFF when Time Machine turns ON ─────────────
+# Hiding the MC/CTA blocks (#6) is NOT enough — their live *values* still break
+# the as-of chart:
+#   * cta-active=["yes"] → custom_time_callback owns bubble-graph.figure and
+#     update_bubble PreventUpdates on its guard (charts/__init__.py), so the
+#     as-of slider becomes a silent no-op. Clearing cta-active drives
+#     custom_time_callback's DEACTIVATE branch, which bumps bub-redraw-tick
+#     (an Input to update_bubble) → update_bubble re-fires with cta_active=[]
+#     and renders the as-of view.
+#   * bub-mc-enable=["yes"] → the MC spaghetti overlay paints PRESENT-DAY
+#     forward paths (gated on neither model_show nor asof_date) onto a chart
+#     labelled "As of <past date>". Clearing it removes the overlay.
+# When TM turns OFF we deliberately do NOT restore the user's CTA/MC choices
+# (no_update — leave whatever they are), but we DO stop any running Play
+# interval and reset the ▶ label (folded #3) so a re-open isn't stuck on
+# "⏸ Pause". Every Output here is written elsewhere too (or shared with the
+# Play/tick callbacks) → allow_duplicate=True + prevent_initial_call=True
+# (never allow_duplicate with prevent_initial_call=False → gunicorn crash).
+_TM_FORCE_OFF_JS = """
+function(v) {
+    var NU = window.dash_clientside.no_update;
+    if (v && v.length) {
+        // TM ON: force CTA + MC off; the Play interval is already idle.
+        return [[], [], NU, NU];
+    }
+    // TM OFF: keep the user's CTA/MC selections; stop any running Play.
+    return [NU, NU, true, "▶ Play"];
+}
+"""
+_app_ctx.app.clientside_callback(
+    _TM_FORCE_OFF_JS,
+    Output("cta-active", "value", allow_duplicate=True),
+    Output("bub-mc-enable", "value", allow_duplicate=True),
+    Output("bub-asof-interval", "disabled", allow_duplicate=True),
+    Output("bub-asof-play", "children", allow_duplicate=True),
+    Input("bub-timemachine-toggle", "value"),
+    prevent_initial_call=True,
+)

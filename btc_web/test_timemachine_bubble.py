@@ -275,3 +275,25 @@ def test_asof_bm_composite_and_support_come_from_grid():
     live_sup = _trace_by(live, "support")
     past_sup = _trace_by(past, "support")
     assert list(live_sup.y) != list(past_sup.y)
+
+
+def test_asof_r2_in_legend_and_evolves():
+    """Time Machine legend shows per-frame R² for as-of models (computed vs data
+    ≤ D — the same compute_model_r2 path as outside-TM), and it EVOLVES as the
+    date sweeps. Matches the live R² at the right edge (D = today)."""
+    if not _qr_available():
+        pytest.skip("timemachine grid without QR")
+    import re
+
+    def qr_q50_r2(frame):
+        fig, _ = build_bubble_figure(M, {**_QR_BASE, "asof_date": frame, "selected_qs": [0.5]})
+        for t in fig.data:
+            n = t.name or ""
+            if n.startswith("QR") and "²" in n:
+                return float(re.search("R²=([0-9.]+)", n).group(1))
+        return None
+
+    mid = qr_q50_r2(min(40, tm.n_frames() - 1))
+    last = qr_q50_r2(tm.n_frames() - 1)
+    assert mid is not None and last is not None    # R² present in the TM legend
+    assert mid != last                              # evolves with the as-of date

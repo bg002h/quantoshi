@@ -101,6 +101,29 @@ def _add_mc_spaghetti(fig, paths, t_axis, n_display=100):
 _ASOF_FADE_ALPHA = 0.15
 
 
+def _attach_asof_r2(mdl, asof_idx):
+    """Populate ``mdl.r2_per_quantile`` with per-quantile R² measured against the
+    price data available AT the as-of frame (years ≤ D), so the Time Machine
+    legend shows the honest as-of R² — via the SAME ``compute_model_r2`` path the
+    live models use at startup, just truncated to ≤ D. It evolves as the slider
+    sweeps D and matches the non-as-of R² exactly at the right edge (D = today).
+
+    A no-op for a ``None`` model (failed/missing frame). Reads only ``_app_ctx.M``
+    price arrays; never touches ``PRICE_MODELS`` (the as-of object is per-request).
+    """
+    if mdl is None:
+        return None
+    from btc_core import compute_model_r2
+    import timemachine as tm
+    m = _app_ctx.M
+    if m is None:
+        return mdl
+    ymax = (pd.Timestamp(tm.frames()[asof_idx]) - m.genesis).days / 365.25
+    mask = m.price_years <= ymax
+    compute_model_r2(mdl, m.price_years[mask], m.price_prices[mask])
+    return mdl
+
+
 def _asof_resolve(model_key, p):
     """Resolve a model key to a model object, honouring as-of (Time Machine) mode.
 
@@ -116,14 +139,16 @@ def _asof_resolve(model_key, p):
     asof_idx = p.get("asof_date")
     if asof_idx is not None:
         import timemachine as tm
+        # Each as-of object gets per-frame R² attached (data ≤ D) so the legend
+        # shows the honest as-of fit quality that evolves with the slider.
         if model_key.startswith("ecfg_"):
-            return tm.asof_eppl(model_key, asof_idx)
+            return _attach_asof_r2(tm.asof_eppl(model_key, asof_idx), asof_idx)
         if model_key == "qr":
-            return tm.asof_qr(asof_idx)
+            return _attach_asof_r2(tm.asof_qr(asof_idx), asof_idx)
         if model_key == "spl":
-            return tm.asof_spl(asof_idx)
+            return _attach_asof_r2(tm.asof_spl(asof_idx), asof_idx)
         if model_key == "logi":
-            return tm.asof_logi(asof_idx)
+            return _attach_asof_r2(tm.asof_logi(asof_idx), asof_idx)
     return _app_ctx.PRICE_MODELS.get(model_key)
 
 
@@ -190,6 +215,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             bm_shim.qr_colors = m.qr_colors
             from btc_core import BubbleModel
             model = BubbleModel(bm_shim)
+            _attach_asof_r2(model, asof_idx)  # per-frame R² on the BM quantile lines
             _bm_src = bm_shim
 
     if bub_active:

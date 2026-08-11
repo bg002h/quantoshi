@@ -47,6 +47,20 @@ _app_ctx.app.clientside_callback(
 )
 
 
+# ── 1b. Mobile portrait: float the Time Machine card to the top of the stacked
+# control column while active, so the as-of slider/play is reachable without
+# scrolling past the other panels. Sets the wrapper class consumed by the
+# max-width:767px rule `#bub-tm-wrap.tm-mobile-top { order:-1 }` in style.css
+# (the control column is flex-column there). Desktop ignores `order`, so this
+# is a no-op above 767px — purely a mobile reordering. Nothing else writes
+# bub-tm-wrap.className, so no allow_duplicate; fires on load to clear it.
+_app_ctx.app.clientside_callback(
+    "function(v) { return (v && v.length) ? 'tm-mobile-top' : ''; }",
+    Output("bub-tm-wrap", "className"),
+    Input("bub-timemachine-toggle", "value"),
+)
+
+
 # ── 3. Play button + interval tick (clientside) ──────────────────────────────
 # The ▶ button enables/disables the dcc.Interval. Each tick advances the
 # slider by one frame; on reaching the last frame it stops (auto-disables the

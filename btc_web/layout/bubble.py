@@ -285,7 +285,10 @@ def _timemachine_panel():
 
 def _bubble_controls():
     yr_now = pd.Timestamp.today().year
-    return html.Div([
+    # id="bub-controls-col": on mobile portrait (style.css max-width:767px) this
+    # becomes a flex column so the Time Machine card can be floated to the top
+    # (order:-1) while active — see callbacks/timemachine.py #1b.
+    return html.Div(id="bub-controls-col", children=[
         _tab_hints("bubble"),
         _section_card("Axes & Range",
             html.Div(id="bub-scale-controls", children=[
@@ -352,7 +355,11 @@ def _bubble_controls():
         display_models_panel("bub", include_bm_master=True,
                               default_value=["bub"],
                               legend_pos_default=BUBBLE["legend_pos"]),
-        _timemachine_panel(),
+        # Wrapped so a clientside callback can float the whole card to the top
+        # of the stacked control column on mobile portrait while Time Machine is
+        # active (order:-1) — the as-of slider/play must be reachable without
+        # scrolling past the other panels. Desktop keeps DOM order.
+        html.Div(_timemachine_panel(), id="bub-tm-wrap"),
         _q_panel_with_mode("bub-qs", [0.5],
                            hint=f"If none selected, Q50% is shown at "
                                 f"{int(_app_ctx.FALLBACK_Q50_OPACITY * 100)}% opacity."),

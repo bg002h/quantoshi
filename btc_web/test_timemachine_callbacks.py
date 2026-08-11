@@ -34,3 +34,20 @@ def test_tm_eligible_models():
     # QR, spl, and logi — the five keys _asof_resolve has an as-of path for.
     from callbacks.timemachine import _TM_ELIGIBLE
     assert set(_TM_ELIGIBLE) == {"bub", "eppl", "qr", "spl", "logi"}
+
+
+def test_update_bub_swatches_preserves_tm_restriction():
+    """Regression: a tab re-visit bumps bubble-first-render, which fires
+    callbacks.charts._update_bub_swatches — the callback that owns
+    bub-model-show.options. It MUST keep the Time Machine restriction (only
+    eligible models) while TM is on, or the ineligible models silently reappear
+    on the next re-render (_tm_single_model is toggle-driven and does not
+    re-fire on a re-render)."""
+    from callbacks.charts import _update_bub_swatches
+    from callbacks.timemachine import _TM_ELIGIBLE
+    off = {o["value"] for o in _update_bub_swatches(1, "default", {}, [])}
+    on = {o["value"] for o in _update_bub_swatches(1, "default", {}, ["on"])}
+    assert len(off) > len(_TM_ELIGIBLE)            # TM off → full model list
+    assert on <= set(_TM_ELIGIBLE)                 # TM on → only eligible
+    assert "bub" in on
+    assert not (on & {"lppl", "hybppl", "pca"})    # ineligible models hidden

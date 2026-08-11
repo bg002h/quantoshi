@@ -1846,10 +1846,22 @@ def _swatches_for(prefix, palette_key, summaries):
     Input("bubble-first-render", "data"),
     State("palette-store", "data"),
     State("display-model-summaries", "data"),
+    State("bub-timemachine-toggle", "value"),
     prevent_initial_call=True,
 )
-def _update_bub_swatches(_fr, palette_key, summaries):
-    return _swatches_for("bub", palette_key, summaries)
+def _update_bub_swatches(_fr, palette_key, summaries, tm_toggle):
+    opts = _swatches_for("bub", palette_key, summaries)
+    # Time Machine's model restriction must SURVIVE a tab re-visit. This
+    # callback owns bub-model-show.options on every bubble-first-render bump;
+    # without this guard it restores the FULL model list and silently un-hides
+    # the models that have no as-of grid while Time Machine stays on — the
+    # toggle-driven callbacks.timemachine._tm_single_model does NOT re-fire on
+    # a re-render, so it can't re-apply the restriction. Keep only the
+    # TM-eligible models when the mode is active (mirrors _tm_single_model).
+    if tm_toggle and "on" in tm_toggle:
+        from callbacks.timemachine import _TM_ELIGIBLE
+        opts = [o for o in opts if o["value"] in _TM_ELIGIBLE]
+    return opts
 
 
 @callback(

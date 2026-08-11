@@ -37,4 +37,6 @@ import callbacks.citadel_scenarios  # noqa: F401
 import callbacks.plot_appearance  # noqa: F401
 import callbacks.axes_presets  # noqa: F401 — callbacks registered at import
 import callbacks.custom_time  # noqa: F401
+import callbacks.timemachine  # noqa: F401 — Time Machine callbacks (Task 10)
+from callbacks.timemachine import _asof_frame  # noqa: F401 — re-export for tests
 import callbacks.leverage_cb  # noqa: F401 — callbacks registered at import

@@ -62,6 +62,7 @@ from tab_defaults import BUBBLE, HEATMAP, DCA, RETIRE, SUPERCHARGE
 from layout.common import _bands_to_qs
 from layout.bubble import CAGR_DEFAULT_XRANGE
 from callbacks.coerce import _ci, _cf
+from callbacks.timemachine import _asof_frame
 from callbacks.mc_helpers import (_mc_setup, _mc_finalize, _mc_status,
                                   _strip_free_paths)
 from mc_cache import (MC_BINS, MC_SIMS, MC_FREQ,
@@ -175,6 +176,11 @@ from restore_builder import _build_retire_params
     State("snapshot-pending",  "data"),
     State("loaded-hash-store", "data"),
     State("active-chart-committed", "data"),
+    # ── Time Machine (as-of date), Task 10 ──
+    # Appended LAST so the two new params map positionally to the tail of the
+    # signature (Dash maps decorator args → params by declaration order).
+    Input("bub-timemachine-toggle", "value"),
+    Input("bub-asof-slider",        "value"),
     prevent_initial_call=True,
 )
 def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
@@ -205,7 +211,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
                   snapshot_pending=False,
                   loaded_hash=None,
                   active_chart_committed=None,
-                  asof_frame=None):
+                  tm_toggle=None, asof_slider=None):
     """Bubble + QR overlay chart callback -- coerce inputs, build figure."""
     import time as _time
     _t0 = _time.perf_counter()
@@ -257,6 +263,11 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     bubble_toggles = bubble_toggles or []
     yrange         = yrange or [0, 7]
     xrange         = xrange or [2012, 2030]
+
+    # Time Machine (as-of date): the slider index, gated on the toggle. None
+    # (toggle off / no value) → ordinary live-data chart. Both dict(...) calls
+    # below thread this through as asof_date (Task 8).
+    asof_frame = _asof_frame(tm_toggle, asof_slider)
 
     # The "lppl" entry in bub-model-show is a MASTER gate -- translate
     # to specific flavor key(s) via global LPPL config.

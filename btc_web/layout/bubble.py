@@ -228,6 +228,7 @@ def _timemachine_panel():
         marks = _asof_year_marks(_frames)
         note = None
     else:
+        _frames = []
         slider_max = 0
         marks = {}
         note = html.Small(
@@ -249,6 +250,8 @@ def _timemachine_panel():
     ]
 
     children = [
+        # Frames list for the clientside as-of label callback (Task 10, #4).
+        dcc.Store(id="bub-asof-frames", data=_frames),
         dcc.Checklist(
             id="bub-timemachine-toggle",
             options=[{"label": " \U0001f570️ Time Machine (as-of date)",
@@ -261,7 +264,9 @@ def _timemachine_panel():
     children.append(html.Div(id="bub-timemachine-body", style=_STYLE_HIDDEN,
                               children=body_children))
 
-    return _section_card("\U0001f570️ Time Machine", *children)
+    # No emoji on the section-card title (layout/common.py:240 — headers carry
+    # no emoji prefix); the clock emoji stays on the checklist option label.
+    return _section_card("Time Machine", *children)
 
 
 def _bubble_controls():
@@ -339,22 +344,26 @@ def _bubble_controls():
         # Tab-1 MC: opt-in (default off). Reuses the panel from Tabs 3-5.
         # show_amount/show_inflation/show_stack=False because Tab 1 is
         # price-space (no withdrawal amount, no inflation, no accumulation).
-        _mc_controls("bub",
-                     show_amount=False,
-                     show_inflation=False,
-                     show_stack=False,
-                     show_mc_entry_q=True,
-                     default_entry_q=10,
-                     amount_default=100,
-                     mc_enabled_default=False,
-                     # Tab 1 spaghetti reads sims directly — small defaults
-                     # are visually clearer + still free (cache holds 200).
-                     # User can type any integer 1-3200 in the input; datalist
-                     # shows these presets as autocomplete suggestions.
-                     default_sims=8,
-                     sims_options=[8, 16, 32, 64, 128, 200, 400, 800, 1600, 3200]),
+        # Wrapped so Time Machine can hide the WHOLE block (toggle included) —
+        # MC and as-of mode are mutually exclusive (Task 10, #6).
+        html.Div(id="bub-mc-exclude-wrap", children=_mc_controls(
+            "bub",
+            show_amount=False,
+            show_inflation=False,
+            show_stack=False,
+            show_mc_entry_q=True,
+            default_entry_q=10,
+            amount_default=100,
+            mc_enabled_default=False,
+            # Tab 1 spaghetti reads sims directly — small defaults
+            # are visually clearer + still free (cache holds 200).
+            # User can type any integer 1-3200 in the input; datalist
+            # shows these presets as autocomplete suggestions.
+            default_sims=8,
+            sims_options=[8, 16, 32, 64, 128, 200, 400, 800, 1600, 3200])),
         sigma_mode_section(),
-        custom_time_panel(),
+        # Wrapped so Time Machine can hide the WHOLE CTA block (Task 10, #6).
+        html.Div(id="bub-cta-exclude-wrap", children=custom_time_panel()),
         # Hidden placeholders — bub-bubble-panel and bub-n-future-wrap are
         # referenced as style outputs by the bub-view-mode toggle callbacks.
         # Real Bubble Model controls now live in the global bm-config-modal.

@@ -50,9 +50,20 @@ notify_failure() {
 }
 
 # --- Step 1: detect prod's checked-out branch (self-healing) ---
-PROD_BRANCH=$(ssh -o ConnectTimeout=10 "$PROD_HOST" "cd /opt/quantoshi && git branch --show-current" 2>/dev/null || true)
+# ssh can blip transiently at 06:00 (dev network or prod not fully ready) — a
+# single failed probe once skipped a whole day's update (2026-08-12). Retry a
+# few times with backoff before aborting, so only a sustained outage stops the
+# run (a missed day self-heals on the next run regardless). Same retry posture
+# as build_block_map below.
+PROD_BRANCH=""
+for attempt in 1 2 3 4 5; do
+    PROD_BRANCH=$(ssh -o ConnectTimeout=10 "$PROD_HOST" "cd /opt/quantoshi && git branch --show-current" 2>/dev/null || true)
+    [[ -n "$PROD_BRANCH" ]] && break
+    echo "couldn't read prod branch via ssh (attempt $attempt/5)"
+    [[ $attempt -lt 5 ]] && sleep 15
+done
 if [[ -z "$PROD_BRANCH" ]]; then
-    notify_failure "couldn't read prod branch via ssh — aborting"
+    notify_failure "couldn't read prod branch via ssh after 5 attempts — aborting"
     exit 1
 fi
 echo "Prod branch: $PROD_BRANCH"

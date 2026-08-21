@@ -595,7 +595,12 @@ class S2FModel:
     _BLOCKS_PER_DAY = 144
     _INITIAL_REWARD = 50.0
 
-    def __init__(self, price_years, price_prices, genesis):
+    def __init__(self, price_years, price_prices, genesis, flow_mode="trailing"):
+        if flow_mode not in ("trailing", "instantaneous"):
+            raise ValueError(
+                "flow_mode must be 'trailing' or 'instantaneous', "
+                f"got {flow_mode!r}")
+        self._flow_mode = flow_mode
         self.genesis = genesis
         # Fit log10(price) = a + b * log10(S2F) from historical data
         mask = price_years >= T_MIN
@@ -611,25 +616,38 @@ class S2FModel:
         self._s2f_intercept = intercept
         self._s2f_slope = slope
 
-    def _s2f_at_t(self, t):
-        """Compute stock-to-flow ratio at years-since-genesis t."""
-        days = t * 365.25
+    def _stock_at_t(self, t):
+        """Cumulative BTC issued by years-since-genesis t (0 for t <= 0)."""
+        days = max(t, 0.0) * 365.25
         total_blocks = days * self._BLOCKS_PER_DAY
         n_halvings = int(total_blocks // self._HALVING_BLOCKS)
-        reward = self._INITIAL_REWARD / (2 ** n_halvings)
-
-        # Cumulative stock
         stock = 0.0
         for h in range(n_halvings):
             stock += self._HALVING_BLOCKS * self._INITIAL_REWARD / (2 ** h)
         remaining = total_blocks - n_halvings * self._HALVING_BLOCKS
-        stock += remaining * reward
+        stock += remaining * self._INITIAL_REWARD / (2 ** n_halvings)
+        return stock
 
-        # Annual flow
-        annual_flow = reward * self._BLOCKS_PER_DAY * 365.25
-        if annual_flow <= 0:
+    def _s2f_at_t(self, t):
+        """Stock-to-flow ratio at years-since-genesis t.
+
+        flow_mode="trailing" (default): flow = coins mined in the trailing
+        365 days = stock(t) - stock(t-1). Blends the reward smoothly across
+        each halving — PlanB's original definition.
+        flow_mode="instantaneous": flow = current block reward annualized
+        (reward(t) * blocks/yr); steps discontinuously at each halving.
+        """
+        stock = self._stock_at_t(t)
+        if self._flow_mode == "trailing":
+            flow = stock - self._stock_at_t(t - 1.0)
+        else:  # instantaneous
+            total_blocks = max(t, 0.0) * 365.25 * self._BLOCKS_PER_DAY
+            n_halvings = int(total_blocks // self._HALVING_BLOCKS)
+            reward = self._INITIAL_REWARD / (2 ** n_halvings)
+            flow = reward * self._BLOCKS_PER_DAY * 365.25
+        if flow <= 0:
             return 1e10  # effectively infinite S2F after all BTC mined
-        return stock / annual_flow
+        return stock / flow
 
     def price_at(self, q, t, sigma_mode="constant"):
         """S2F model price (ignores quantile — single trajectory)."""

@@ -161,6 +161,39 @@ class TestS2FModel:
     def test_short_name(self):
         assert self.s2f.short_name == "s2f"
 
+    def test_flow_mode_defaults_to_trailing(self):
+        assert self.s2f._flow_mode == "trailing"
+
+    def test_trailing_continuous_but_instantaneous_jumps_at_halving(self):
+        # First halving is at t = 210000 / 144 / 365.25 ≈ 3.993 yrs since genesis.
+        t_halv = (S2FModel._HALVING_BLOCKS
+                  / S2FModel._BLOCKS_PER_DAY / 365.25)
+        below, above = t_halv - 0.01, t_halv + 0.01
+        inst = S2FModel(M.price_years, M.price_prices, M.genesis,
+                        flow_mode="instantaneous")
+        trail = S2FModel(M.price_years, M.price_prices, M.genesis,
+                         flow_mode="trailing")
+        # Instantaneous flow halves exactly at the boundary -> S2F ~doubles.
+        inst_ratio = inst._s2f_at_t(above) / inst._s2f_at_t(below)
+        assert inst_ratio > 1.8, f"instantaneous should step ~2x, got {inst_ratio}"
+        # Trailing flow blends across the boundary -> S2F is continuous (~1).
+        trail_ratio = trail._s2f_at_t(above) / trail._s2f_at_t(below)
+        assert abs(trail_ratio - 1.0) < 0.1, f"trailing should be smooth, got {trail_ratio}"
+
+    def test_trailing_equals_instantaneous_before_first_halving(self):
+        inst = S2FModel(M.price_years, M.price_prices, M.genesis,
+                        flow_mode="instantaneous")
+        trail = S2FModel(M.price_years, M.price_prices, M.genesis,
+                         flow_mode="trailing")
+        # Reward is constant 50 before the first halving, so a 1-yr trailing
+        # window equals the annualized instantaneous rate -> identical S2F.
+        for t in (2.0, 3.0, 3.9):
+            assert abs(trail._s2f_at_t(t) - inst._s2f_at_t(t)) < 1e-6
+
+    def test_invalid_flow_mode_rejected(self):
+        with pytest.raises((ValueError, AssertionError)):
+            S2FModel(M.price_years, M.price_prices, M.genesis,
+                     flow_mode="nonsense")
 
 
 class TestQuantileRegressionModel:

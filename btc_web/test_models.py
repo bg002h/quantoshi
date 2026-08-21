@@ -128,6 +128,18 @@ class TestPowerLawModel:
 
 
 
+def _s2f_block_series():
+    """Actual block heights from BitcoinBlocksDaily.csv as (block_years, heights),
+    block_years measured from the model genesis (2009-07-25)."""
+    import pandas as pd
+    from pathlib import Path
+    csv = Path(__file__).resolve().parent.parent / "BitcoinBlocksDaily.csv"
+    df = pd.read_csv(csv)
+    byears = ((pd.to_datetime(df["date"], format="mixed") - M.genesis)
+              .dt.days.to_numpy(dtype=float) / 365.25)
+    return byears, df["blockheight"].to_numpy(dtype=float)
+
+
 class TestS2FModel:
     def setup_method(self):
         self.s2f = S2FModel(M.price_years, M.price_prices, M.genesis)
@@ -194,6 +206,29 @@ class TestS2FModel:
         with pytest.raises((ValueError, AssertionError)):
             S2FModel(M.price_years, M.price_prices, M.genesis,
                      flow_mode="nonsense")
+
+    def test_block_based_halving_aligns_with_actual_date(self):
+        byears, bh = _s2f_block_series()
+        inst = S2FModel(M.price_years, M.price_prices, M.genesis,
+                        block_years=byears, block_heights=bh,
+                        flow_mode="instantaneous")
+        # 4th halving (block 840000) actually occurred 2024-04-20 = t≈14.74.
+        # With real blocks the instantaneous S2F steps ~2x across THAT date...
+        assert inst._s2f_at_t(15.0) / inst._s2f_at_t(14.5) > 1.5
+        # ...and is FLAT at the idealized 144-blocks/day date (t≈15.97 = 2025-07),
+        # which is where the old schedule wrongly placed the jump.
+        assert abs(inst._s2f_at_t(16.2) / inst._s2f_at_t(15.8) - 1.0) < 0.15
+
+    def test_block_at_t_uses_actual_not_idealized(self):
+        byears, bh = _s2f_block_series()
+        m = S2FModel(M.price_years, M.price_prices, M.genesis,
+                     block_years=byears, block_heights=bh)
+        # today ~t=17.07: the real chain is ~963k blocks; idealized 144/day ~898k.
+        assert 950000 < m._block_at_t(17.07) < 975000
+
+    def test_no_block_data_falls_back_to_idealized(self):
+        m = S2FModel(M.price_years, M.price_prices, M.genesis)
+        assert abs(m._block_at_t(17.07) - 17.07 * 365.25 * 144) < 1.0
 
 
 class TestQuantileRegressionModel:

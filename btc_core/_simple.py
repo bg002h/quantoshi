@@ -595,7 +595,8 @@ class S2FModel:
     _BLOCKS_PER_DAY = 144
     _INITIAL_REWARD = 50.0
 
-    def __init__(self, price_years, price_prices, genesis, flow_mode="trailing"):
+    def __init__(self, price_years, price_prices, genesis,
+                 block_years=None, block_heights=None, flow_mode="trailing"):
         if flow_mode not in ("trailing", "instantaneous"):
             raise ValueError(
                 "flow_mode must be 'trailing' or 'instantaneous', "
@@ -609,6 +610,15 @@ class S2FModel:
             self.name = "Stock-to-Flow (instantaneous flow)"
             self.dash_style = "dashdot"
         self.genesis = genesis
+        # Actual block-height schedule (years-since-genesis -> block height) so
+        # stock, flow and halving timing track the REAL chain rather than an
+        # idealized 144-blocks/day count. Absent -> idealized fallback.
+        if block_years is not None and block_heights is not None:
+            self._blk_t = np.asarray(block_years, dtype=float)
+            self._blk_h = np.asarray(block_heights, dtype=float)
+        else:
+            self._blk_t = None
+            self._blk_h = None
         # Fit log10(price) = a + b * log10(S2F) from historical data
         mask = price_years >= T_MIN
         yrs = price_years[mask]
@@ -623,10 +633,23 @@ class S2FModel:
         self._s2f_intercept = intercept
         self._s2f_slope = slope
 
-    def _stock_at_t(self, t):
-        """Cumulative BTC issued by years-since-genesis t (0 for t <= 0)."""
-        days = max(t, 0.0) * 365.25
-        total_blocks = days * self._BLOCKS_PER_DAY
+    def _block_at_t(self, t):
+        """Block height at years-since-genesis t. Interpolated within the
+        recorded actual series; extrapolated at 144 blocks/day beyond either
+        end. Idealized 144-from-genesis when no block series was supplied."""
+        if self._blk_t is None:
+            return max(t, 0.0) * 365.25 * self._BLOCKS_PER_DAY
+        t0, tN = self._blk_t[0], self._blk_t[-1]
+        per_yr = self._BLOCKS_PER_DAY * 365.25
+        if t < t0:
+            return self._blk_h[0] - (t0 - t) * per_yr
+        if t > tN:
+            return self._blk_h[-1] + (t - tN) * per_yr
+        return float(np.interp(t, self._blk_t, self._blk_h))
+
+    def _stock_from_blocks(self, total_blocks):
+        """Cumulative BTC issued by a given block height (0 for height <= 0)."""
+        total_blocks = max(total_blocks, 0.0)
         n_halvings = int(total_blocks // self._HALVING_BLOCKS)
         stock = 0.0
         for h in range(n_halvings):
@@ -635,6 +658,10 @@ class S2FModel:
         stock += remaining * self._INITIAL_REWARD / (2 ** n_halvings)
         return stock
 
+    def _stock_at_t(self, t):
+        """Cumulative BTC issued by years-since-genesis t."""
+        return self._stock_from_blocks(self._block_at_t(t))
+
     def _s2f_at_t(self, t):
         """Stock-to-flow ratio at years-since-genesis t.
 
@@ -642,15 +669,15 @@ class S2FModel:
         365 days = stock(t) - stock(t-1). Blends the reward smoothly across
         each halving — PlanB's original definition.
         flow_mode="instantaneous": flow = current block reward annualized
-        (reward(t) * blocks/yr); steps discontinuously at each halving.
+        (reward(t) * blocks/yr); steps discontinuously at each halving (at the
+        real halving date when an actual block series is supplied).
         """
         stock = self._stock_at_t(t)
         if self._flow_mode == "trailing":
             flow = stock - self._stock_at_t(t - 1.0)
         else:  # instantaneous
-            total_blocks = max(t, 0.0) * 365.25 * self._BLOCKS_PER_DAY
-            n_halvings = int(total_blocks // self._HALVING_BLOCKS)
-            reward = self._INITIAL_REWARD / (2 ** n_halvings)
+            n_halvings = int(self._block_at_t(t) // self._HALVING_BLOCKS)
+            reward = self._INITIAL_REWARD / (2 ** max(n_halvings, 0))
             flow = reward * self._BLOCKS_PER_DAY * 365.25
         if flow <= 0:
             return 1e10  # effectively infinite S2F after all BTC mined

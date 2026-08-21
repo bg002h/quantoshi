@@ -339,9 +339,30 @@ _app_ctx.PRICE_MODELS["plo"] = OffsetPowerLawModel(M.price_years, M.price_prices
 _app_ctx.PRICE_MODELS["sexp"] = StretchedExponentialModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["logi"] = LogisticSCurveModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["spl"] = SaturatingPowerLawModel(M.price_years, M.price_prices, M.QR_QUANTILES)
-_app_ctx.PRICE_MODELS["s2f"] = S2FModel(M.price_years, M.price_prices, M.genesis)
+# Actual block heights so S2F stock/flow + halving timing track the real chain
+# (BitcoinBlocksDaily.csv, kept equal-length with prices by the daily update).
+# Future dates extrapolate at 144 blocks/day inside the model. Falls back to the
+# idealized schedule if the CSV is missing/unreadable.
+_s2f_block_years = _s2f_block_heights = None
+_block_csv = Path(__file__).parent.parent / "BitcoinBlocksDaily.csv"
+if _block_csv.exists():
+    try:
+        import pandas as _pd
+        _bdf = _pd.read_csv(_block_csv)
+        _s2f_block_years = (
+            (_pd.to_datetime(_bdf["date"], format="mixed") - M.genesis)
+            .dt.days.to_numpy(dtype=float) / 365.25)
+        _s2f_block_heights = _bdf["blockheight"].to_numpy(dtype=float)
+    except Exception:
+        _s2f_block_years = _s2f_block_heights = None
+
+_app_ctx.PRICE_MODELS["s2f"] = S2FModel(
+    M.price_years, M.price_prices, M.genesis,
+    block_years=_s2f_block_years, block_heights=_s2f_block_heights)
 _app_ctx.PRICE_MODELS["s2f_inst"] = S2FModel(
-    M.price_years, M.price_prices, M.genesis, flow_mode="instantaneous")
+    M.price_years, M.price_prices, M.genesis,
+    block_years=_s2f_block_years, block_heights=_s2f_block_heights,
+    flow_mode="instantaneous")
 # ── Empirical Floor (conditional — only if pkl exists) ────────────────
 _ef_pkl = Path(__file__).parent.parent / "model_data_ef.pkl"
 if _ef_pkl.exists():

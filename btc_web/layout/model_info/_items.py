@@ -1846,7 +1846,9 @@ $$\text{price}(t) = 10^{\,\alpha} \cdot \text{S2F}(t)^{\,\beta}$$
 
 $$\text{S2F}(t) = \frac{\text{stock}(t)}{\text{flow}(t)}$$
 
-where stock = cumulative BTC mined and flow = the **trailing 365-day**
+where stock and flow come from **actual on-chain block heights**
+(BitcoinBlocksDaily.csv; future dates extrapolated at 144 blocks/day), so the
+halving steps land on their real dates. Flow = the **trailing 365-day**
 issuance, stock(t) - stock(t-1yr) -- Plan B's original definition.
                             """, mathjax=True, className="mb-3"),
 

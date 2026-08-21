@@ -67,6 +67,7 @@ SPINE_COLOR_FALLBACK = "#999999"  # lighter border fallback (≈ #999)
 THERMAL_NEUTRAL     = "#bdbdbd"   # thermal scale midpoint (Q50)
 HM_DEFAULT_RED      = "#d32f2f"   # CAGR heatmap loss (rwg/rbg presets)
 HM_DEFAULT_GREEN    = "#2e7d32"   # CAGR heatmap gain (rwg/rbg presets)
+HM_DEFAULT_MID      = "#2c2c2c"   # CAGR heatmap neutral midpoint (rbg preset + snapshot defaults)
 TODAY_LINE_COLOR    = "#F7931A"   # today vertical line default — unified with BTC orange
 HALVING_LINE_COLOR  = "#3F51B5"   # halving vertical lines — muted indigo (colorblind-safe, blue axis)
 NON_QUANTIZED_MODEL_COLOR = "#8B4513"  # saddlebrown — single-trajectory models
@@ -441,7 +442,7 @@ HM_PRESET_PALETTES = {
     # Red → White → Green (classic finance, light neutral)
     "rwg":  (HM_DEFAULT_RED, WHITE, WHITE, HM_DEFAULT_GREEN),
     # Red → Black → Green (classic finance, dark neutral; same max hues as rwg)
-    "rbg":  (HM_DEFAULT_RED, "#2c2c2c", "#2c2c2c", HM_DEFAULT_GREEN),
+    "rbg":  (HM_DEFAULT_RED, HM_DEFAULT_MID, HM_DEFAULT_MID, HM_DEFAULT_GREEN),
     # Blue → White → Orange (CVD-safe — deuteranomaly/protanopia/tritanopia)
     "bwo":  ("#0d47a1", "#ffffff", "#ffffff", "#e65100"),
     # Monochrome grayscale

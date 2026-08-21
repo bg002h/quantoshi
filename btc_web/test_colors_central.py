@@ -40,6 +40,11 @@ _ALLOWLIST = {
     # html.Span("orange (#e67e22), 3px for the drawn line").
     # This is genuinely unmigrable — removing the hex would change user-facing text.
     _BTC_WEB / "layout" / "model_info" / "_items.py",
+    # Self-contained static HTML pages (research/mcideas/etc.) served as raw
+    # HTML strings with inline <style>/style="" — not part of the dynamic
+    # chart/UI appearance system, so their inline hex is out of scope for the
+    # colors-SSOT rule.
+    _BTC_WEB / "static_pages.py",
 }
 
 _ALLOWLIST_DIRS = {

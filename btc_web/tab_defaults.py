@@ -12,7 +12,7 @@ Constraints:
 """
 
 from types import MappingProxyType
-from colors import (LOT_MARKER_COLOR, FALLBACK_MODEL_GRAY, NEAR_BLACK,
+from colors import (BLACK, LOT_MARKER_COLOR, FALLBACK_MODEL_GRAY, NEAR_BLACK,
                     DIM_TEXT, SPINE_COLOR_FALLBACK, PROGRESS_TRACK,
                     PT_SIZE_DEFAULT, PT_ALPHA_DEFAULT,
                     TRACE_WIDTH_COMPOSITE, TRACE_WIDTH_SUPPORT,
@@ -187,7 +187,7 @@ def _build_heatmap_dict():
         "vfmt":          sd("hm-vfmt:value", "cagr_mult"),
         "cell_font_size": sd("hm-cell-fs:value", CHART_FONT_WATERMARK),
         "line_width":    sd("hm-line-width:value", 1.0),
-        "line_color":    sd("hm-line-color:value", "#000000"),
+        "line_color":    sd("hm-line-color:value", BLACK),
         "show_colorbar": "colorbar" in toggles,
         "stack":         sd("hm-stack:value", 0),
         "use_lots":      bool(sd("hm-use-lots:value", []) or []),

@@ -24,6 +24,7 @@ import json
 from typing import Any
 
 from time_basis import TIME_BASIS
+from colors import HM_DEFAULT_GREEN, HM_DEFAULT_RED, HM_DEFAULT_MID, BLACK
 
 # Populated in Task 2 from the live layout.
 SNAPSHOT_DEFAULTS: dict[str, Any] = {
@@ -237,10 +238,10 @@ SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'hm-active-model:data': 'bub',
     'hm-b1:value': 0,
     'hm-b2:value': 5,
-    'hm-c-hi:value': '#2e7d32',
-    'hm-c-lo:value': '#d32f2f',
-    'hm-c-mid1:value': '#2c2c2c',
-    'hm-c-mid2:value': '#2c2c2c',
+    'hm-c-hi:value': HM_DEFAULT_GREEN,
+    'hm-c-lo:value': HM_DEFAULT_RED,
+    'hm-c-mid1:value': HM_DEFAULT_MID,
+    'hm-c-mid2:value': HM_DEFAULT_MID,
     'hm-cell-fs:value': 9,
     'hm-entry-q:value': 50.0,
     'hm-entry-yr:value': 2026,
@@ -249,7 +250,7 @@ SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'hm-exit-range:value': [2026, 2036],
     'hm-grad:value': 32,
     'hm-hybppl-activate:value': [],
-    'hm-line-color:value': '#000000',
+    'hm-line-color:value': BLACK,
     'hm-line-width:value': 1.0,
     'hm-lppl-activate:value': [],
     'hm-mc-advanced:value': [],

@@ -21,7 +21,7 @@ _LPPL_FAMILY_KEYS = (
 # LPPL family variants (lp2/lp3/lp4/…) all collapse to the LPPL slot.
 _SCANNER_ORDER = (
     "bub", "pl", "qr", "eppl", "hybppl", "lppl",
-    "pca", "grdy", "ef", "s2f", "gomp", "bpl", "spl", "u1", "mc",
+    "pca", "grdy", "ef", "s2f", "s2f_inst", "gomp", "bpl", "spl", "u1", "mc",
 )
 
 

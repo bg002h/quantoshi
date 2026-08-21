@@ -87,13 +87,16 @@ class TestAppWiring:
             assert "spl" in pal["model_colors"], f"missing in {name}"
 
     def test_checklist_options_append_only(self):
-        """Bitmask positions are positional; spl must be LAST in each list."""
+        """Bitmask positions are positional; the newest model must be LAST in
+        each list. s2f_inst was appended after spl (2026-08-20) — spl is no
+        longer the tail, which is exactly what append-only should show."""
         from snapshot import _CHECKLIST_OPTIONS
         lists = [k for k in _CHECKLIST_OPTIONS if k.endswith("-model-show")]
         assert len(lists) == 5, lists
         for k in lists:
-            assert _CHECKLIST_OPTIONS[k][-1] == "spl", \
-                f"{k}: spl must be appended last, not inserted"
+            assert _CHECKLIST_OPTIONS[k][-1] == "s2f_inst", \
+                f"{k}: newest model must be appended last, not inserted"
+            assert "spl" in _CHECKLIST_OPTIONS[k], f"{k}: spl still present"
 
     def test_deprioritized(self):
         from layout.display_models import _DEPRIORITIZED
@@ -113,13 +116,15 @@ class TestAppWiring:
 
 
 class TestModelInfoCard:
-    def test_mi_spl_is_appended_last_in_both_lists(self):
+    def test_newest_mi_card_is_last_in_both_lists(self):
         """Deep links are positional: _MODEL_INFO_ITEMS[n-1]. Inserting
-        mid-list silently breaks every existing /mi.23../mi.29 link."""
+        mid-list silently breaks every existing /mi.N link, so the newest card
+        must be appended last. mi-s2f-inst was appended after mi-spl."""
         from layout.model_info import _MODEL_INFO_ITEM_IDS
         from callbacks.routing import _MODEL_INFO_ITEMS
-        assert _MODEL_INFO_ITEM_IDS[-1] == "mi-spl"
-        assert _MODEL_INFO_ITEMS[-1] == "mi-spl"
+        assert _MODEL_INFO_ITEM_IDS[-1] == "mi-s2f-inst"
+        assert _MODEL_INFO_ITEMS[-1] == "mi-s2f-inst"
+        assert "mi-spl" in _MODEL_INFO_ITEM_IDS
 
     def test_the_two_lists_agree(self):
         """layout/model_info is the SSOT (so stated at routing.py:535);

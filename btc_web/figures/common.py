@@ -631,7 +631,7 @@ def _build_qr_config_text(p: dict, tab: str) -> str:
         "lp4_n13": "LPPL\u2084 (no \u03c9\u224813)",
         "lp4_w_n13": "LPPL\u2084 (w, no \u03c9\u224813)",
         "linppl": "LinPPL", "hybppl": "HybPPL", "hybppl_dd": "HybPPL (DD)",
-        "exp": "Exp", "s2f": "S2F", "ef": "EF", "u1": "U\u2081",
+        "exp": "Exp", "s2f": "S2F", "s2f_inst": "S2F inst", "ef": "EF", "u1": "U\u2081",
     }
     if active:
         model_str = ", ".join(_MODEL_LABELS.get(m, m) for m in active)

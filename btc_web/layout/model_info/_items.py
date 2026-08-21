@@ -13,6 +13,7 @@ from ._helpers import (
     _coeff_table,
     _bm_rows,
     _ef_rows,
+    _s2f_coeff_table,
     _hybppl_dd_rows,
     _hyb2l_coeff_table,
     _hyb2c_coeff_table,
@@ -1843,9 +1844,10 @@ Solved for price:
 
 $$\text{price}(t) = 10^{\,\alpha} \cdot \text{S2F}(t)^{\,\beta}$$
 
-$$\text{S2F}(t) = \frac{\text{stock}(t)}{\text{annual flow}(t)}$$
+$$\text{S2F}(t) = \frac{\text{stock}(t)}{\text{flow}(t)}$$
 
-where stock = cumulative BTC mined, flow = annual new BTC issuance.
+where stock = cumulative BTC mined and flow = the **trailing 365-day**
+issuance, stock(t) - stock(t-1yr) -- Plan B's original definition.
                             """, mathjax=True, className="mb-3"),
 
                             html.H6("Method"),
@@ -1855,16 +1857,15 @@ where stock = cumulative BTC mined, flow = annual new BTC issuance.
                                        href="https://twitter.com/100trillionUSD",
                                        target="_blank", rel="noopener noreferrer"),
                                 ", posits that Bitcoin\u2019s scarcity (measured by the S2F ratio) drives "
-                                "its price. S2F doubles at each halving as the flow is cut in half while "
-                                "the stock continues growing. The model fits a linear regression in "
+                                "its price. This default uses the trailing 365-day flow, which blends the "
+                                "block reward smoothly across each halving rather than stepping. An "
+                                "instantaneous-flow variant (S2F inst) is available separately. "
+                                "The model fits a linear regression in "
                                 "log\u2081\u2080(S2F) vs log\u2081\u2080(price) space.",
                             ]),
 
                             html.H6("Fitted Coefficients"),
-                            _coeff_table([
-                                ("\u03b1 (intercept)", "\u22120.631492"),
-                                ("\u03b2 (slope)", "2.974994"),
-                            ]),
+                            _s2f_coeff_table("s2f"),
 
                             html.H6("Bitcoin Halving Schedule Constants"),
                             _coeff_table([
@@ -1880,7 +1881,7 @@ where stock = cumulative BTC mined, flow = annual new BTC issuance.
                                     "Single trajectory (non-quantized) \u2014 no percentile bands."
                                 ),
                                 html.Li(
-                                    "Produces step-function jumps at each halving as S2F doubles abruptly."
+                                    "Trailing flow keeps S2F continuous across each halving (no step-function jump)."
                                 ),
                                 html.Li(
                                     "Tends to produce extremely high projections at long time horizons "
@@ -2451,4 +2452,36 @@ into "is $t_0$ finite?", a question the data can be asked directly.
                                 ]),
                             ], className="mathjax_ignore"),
                         ], title="Saturating Power Law (diagnostic)", item_id="mi-spl"),
+                        # -- Stock-to-Flow (instantaneous flow -- variant) --
+                        dbc.AccordionItem([
+                            html.H6("Formula"),
+                            dcc.Markdown(r"""
+Same fit as S2F, but flow is the **instantaneous** issuance rate:
+
+$$\text{flow}(t) = \text{reward}(t) \times \text{blocks/day} \times 365.25$$
+
+the current block reward annualized. Because the reward halves at a single
+block, this flow steps discontinuously at each halving.
+                            """, mathjax=True, className="mb-3"),
+
+                            html.H6("Method"),
+                            html.P(
+                                "Identical to the default S2F model except for the flow definition. "
+                                "The instantaneous flow annualizes the block reward in effect at time t, "
+                                "so S2F roughly doubles the moment a halving occurs and the fitted price "
+                                "jumps as a step. This was the original S2F behaviour before the "
+                                "trailing-flow default; it is kept as a variant for comparison."
+                            ),
+
+                            html.H6("Fitted Coefficients"),
+                            _s2f_coeff_table("s2f_inst"),
+
+                            html.H6("Characteristics"),
+                            html.Ul([
+                                html.Li("Single trajectory (non-quantized) -- no percentile bands."),
+                                html.Li("Step-function jumps at each halving as the annualized reward halves."),
+                                html.Li("Projects higher than the trailing variant at long horizons "
+                                        "because the post-halving flow drop is applied instantly."),
+                            ]),
+                        ], title="Stock-to-Flow (instantaneous flow)", item_id="mi-s2f-inst"),
     ]

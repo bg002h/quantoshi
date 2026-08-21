@@ -340,6 +340,8 @@ _app_ctx.PRICE_MODELS["sexp"] = StretchedExponentialModel(M.price_years, M.price
 _app_ctx.PRICE_MODELS["logi"] = LogisticSCurveModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["spl"] = SaturatingPowerLawModel(M.price_years, M.price_prices, M.QR_QUANTILES)
 _app_ctx.PRICE_MODELS["s2f"] = S2FModel(M.price_years, M.price_prices, M.genesis)
+_app_ctx.PRICE_MODELS["s2f_inst"] = S2FModel(
+    M.price_years, M.price_prices, M.genesis, flow_mode="instantaneous")
 # ── Empirical Floor (conditional — only if pkl exists) ────────────────
 _ef_pkl = Path(__file__).parent.parent / "model_data_ef.pkl"
 if _ef_pkl.exists():

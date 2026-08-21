@@ -72,4 +72,5 @@ _MODEL_INFO_ITEM_IDS = [
     "mi-s2f", "mi-mc", "mi-ef", "mi-u1",
     "mi-compare", "mi-regimes", "mi-citadel",
     "mi-spl",
+    "mi-s2f-inst",
 ]

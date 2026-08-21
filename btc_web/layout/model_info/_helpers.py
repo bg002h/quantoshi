@@ -90,6 +90,21 @@ def _ef_rows():
     ]
 
 
+def _s2f_coeff_table(short="s2f"):
+    """Live S2F OLS fit coefficients (α intercept, β slope) for a variant.
+
+    Fit at construction from current price history, so this reflects the
+    latest daily data rather than a hardcoded snapshot.
+    """
+    m = _app_ctx.PRICE_MODELS.get(short)
+    if m is None:
+        return _coeff_table([("(S2F model not loaded)", "—")])
+    return _coeff_table([
+        ("α (intercept)", f"{m._s2f_intercept:.4f}"),
+        ("β (slope)",     f"{m._s2f_slope:.4f}"),
+    ])
+
+
 def _hyb2l_coeff_table():
     """Live coefficient table for HybPPL +2nd Log."""
     m = _app_ctx.PRICE_MODELS.get("hyb2l")

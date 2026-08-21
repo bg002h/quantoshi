@@ -256,7 +256,7 @@ EXEMPTIONS: dict[str, tuple[Exemption, ...]] = {
         Exemption(
             reason="not residual-fitted: S2F is a single issuance-derived "
                    "trajectory with no residual bands",
-            models=frozenset({"s2f"}),
+            models=frozenset({"s2f", "s2f_inst"}),
         ),
         Exemption(
             reason="built by tools/build_ef_model.py into model_data_ef.pkl, "
@@ -291,7 +291,7 @@ EXEMPTIONS: dict[str, tuple[Exemption, ...]] = {
         Exemption(
             reason="not fitted: S2F is parameterised from the issuance "
                    "schedule",
-            models=frozenset({"s2f"}),
+            models=frozenset({"s2f", "s2f_inst"}),
         ),
         Exemption(
             reason="refit by tools/build_ef_model.py, not the monthly PPL job",
@@ -307,8 +307,8 @@ EXEMPTIONS: dict[str, tuple[Exemption, ...]] = {
         Exemption(
             reason="sigma derived at construction by _init_shrinking_bands; "
                    "no class attrs for the offline fit to patch",
-            models=frozenset({"bub", "qr", "s2f", "ef", "pca", "linppl",
-                              "hyb2l", "hyb2c", "hyb2b", "hyb4d"})
+            models=frozenset({"bub", "qr", "s2f", "s2f_inst", "ef", "pca",
+                              "linppl", "hyb2l", "hyb2c", "hyb2b", "hyb4d"})
                    | (_LPPL_FAMILY - {"lppl"}),
             prefixes=_CFG_FAMILIES,
         ),

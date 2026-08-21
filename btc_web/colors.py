@@ -206,6 +206,7 @@ MODEL_TRACE_COLORS = {
     "exp":       "#CE93D8",
     "ef":        "#E8C860",
     "s2f":       "#FFD700",
+    "s2f_inst":  "#FFD700",  # = s2f (sibling variant; distinguished by dashdot)
     "hyb2l":     "#6A5ACD",
     "hyb2c":     "#20B2AA",
     "hyb2b":     "#DB7093",
@@ -274,6 +275,7 @@ DEFAULT = {
         "ef":   "#6B5B95",  # muted violet
         "exp":  "#8A8A8A",  # neutral gray (display-only demo)
         "s2f":  "#9B7E46",  # antique brass
+        "s2f_inst":  "#9B7E46",  # = s2f
         "gomp": "#2D5F4E",  # pine
         "bpl":  "#7F4F2A",  # walnut
         "plo":  "#3D5A80",  # steel blue — dusty navy, echoes PL but distinct
@@ -326,6 +328,7 @@ CB_BRIAN = {
         "ef":   "#2204FD",  # [PL]
         "exp":  "#BD3737",  # [EPPL]
         "s2f":  "#FE6100",  # [HybPPL]
+        "s2f_inst":  "#FE6100",  # = s2f
         "gomp": "#FFB000",  # [LPPL]
         "bpl":  "#D8BD65",  # [BM] — cycle restart
         "plo":  "#64B5F6",  # [QR]
@@ -357,7 +360,7 @@ CB_RG = {
         "bub": "#F5793A", "qr": "#A8A8A8", "pl": "#0F2080",
         "lppl": "#85C0F9", "lp2": "#B0D8FF", "lp3": "#D4E9FF", "lp4": "#EAF4FF",
         "linppl": "#FFB000", "hybppl": "#D4A017", "hybppl_dd": "#ECC060",
-        "ef": "#F5A060", "exp": "#BBBBBB", "s2f": "#F5C242",
+        "ef": "#F5A060", "exp": "#BBBBBB", "s2f": "#F5C242", "s2f_inst": "#F5C242",
         "hyb2l": "#7B68EE", "hyb2c": "#2E8B57", "hyb2b": "#CC6699",
         "hyb4d": "#8B7500", "pca": "#551A8B",
         "grdy": "#2E8B57",
@@ -392,7 +395,7 @@ CB_FULL = {
         "bub": "#B8920C", "qr": "#606060", "pl": "#B0E0E6",
         "lppl": "#1A1A1A", "lp2": "#444444", "lp3": "#707070", "lp4": "#A0A0A0",
         "linppl": "#2A2A2A", "hybppl": "#505050", "hybppl_dd": "#989898",
-        "ef": "#F0D870", "exp": "#909090", "s2f": "#FFE066",
+        "ef": "#F0D870", "exp": "#909090", "s2f": "#FFE066", "s2f_inst": "#FFE066",
         "u1": "#333333",
         "hyb2l": "#6060A0", "hyb2c": "#4A8A7A", "hyb2b": "#A06080",
         "hyb4d": "#7A7A50", "pca": "#4A4A70",

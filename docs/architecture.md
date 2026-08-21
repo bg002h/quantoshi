@@ -351,7 +351,8 @@ class PriceModel(Protocol):
 | `logi` | `LogisticSCurveModel` *(new 2026-04-17)* | parametric | True symmetric logistic S-curve. |
 | `spl` | `SaturatingPowerLawModel` *(new 2026-08-07)* | parametric | `p = L / (1 + (t/t0)^-beta)` — a logistic in log-time, so PL as `t0 -> inf`. Diagnostic: the ceiling `L` is not identified by this history. |
 | `bpl` | `BrokenPowerLawModel` | parametric | Two-slope PL, fitted breakpoint. |
-| `s2f` | `S2FModel` | non-quantized | Stock-to-Flow; single trajectory. |
+| `s2f` | `S2FModel` | non-quantized | Stock-to-Flow; single trajectory (trailing 365-day flow). |
+| `s2f_inst` | `S2FModel` | non-quantized | Stock-to-Flow, instantaneous-flow variant (steps at halvings). |
 | `ef` | `EmpiricalFloorModel` | conditional | Loaded only if `model_data_ef.pkl` exists. |
 | `u1` | `UserModel` | session | Click-to-draw power law from 2 user points. |
 

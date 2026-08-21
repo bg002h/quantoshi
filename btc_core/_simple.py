@@ -601,6 +601,13 @@ class S2FModel:
                 "flow_mode must be 'trailing' or 'instantaneous', "
                 f"got {flow_mode!r}")
         self._flow_mode = flow_mode
+        if flow_mode == "instantaneous":
+            # Registered as a sibling variant "s2f_inst"; per-instance identity
+            # so short_name matches its registry key (registration checker).
+            self.short_name = "s2f_inst"
+            self.legend_name = "S2F inst"
+            self.name = "Stock-to-Flow (instantaneous flow)"
+            self.dash_style = "dashdot"
         self.genesis = genesis
         # Fit log10(price) = a + b * log10(S2F) from historical data
         mask = price_years >= T_MIN

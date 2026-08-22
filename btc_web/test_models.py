@@ -230,6 +230,13 @@ class TestS2FModel:
         m = S2FModel(M.price_years, M.price_prices, M.genesis)
         assert abs(m._block_at_t(17.07) - 17.07 * 365.25 * 144) < 1.0
 
+    def test_r2_populated_at_construction(self):
+        # R² is seeded from the fit at construction so the Tab-1 legend shows it
+        # without waiting on the background R² pass (S2F is non-quantized + drawn
+        # on demand, so it otherwise races the daemon thread that populates it).
+        m = S2FModel(M.price_years, M.price_prices, M.genesis)
+        assert 0.5 < m.r2_per_quantile[0.5] <= 1.0
+
 
 class TestQuantileRegressionModel:
     def setup_method(self):

@@ -629,9 +629,14 @@ class S2FModel:
         log_s2f = np.log10(s2f_vals[valid])
         log_p = np.log10(prices[valid])
 
-        slope, intercept, *_ = _lazy_linregress()(log_s2f, log_p)
+        slope, intercept, rvalue, *_ = _lazy_linregress()(log_s2f, log_p)
         self._s2f_intercept = intercept
         self._s2f_slope = slope
+        # Seed the Tab-1 legend R² at construction (single trajectory -> one
+        # value at q=0.5) so it shows without waiting on the background R² pass.
+        # rvalue**2 is the log-space R² of price_at(0.5,t) vs actual (same
+        # regression); compute_model_r2 later sets the identical value.
+        self.r2_per_quantile = {0.5: float(rvalue ** 2)}
 
     def _block_at_t(self, t):
         """Block height at years-since-genesis t. Interpolated within the

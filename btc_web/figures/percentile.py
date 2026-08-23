@@ -32,14 +32,16 @@ _RICH_MIN = 75.0    # above this percentile = "rich" band
 _ZONE_ALPHA = 0.10  # background band opacity
 
 
-def _percentile_series(mdl, t_data, px_data):
+def _percentile_series(mdl, t_data, px_data, sigma_mode="constant"):
     """Vectorized percentile of each actual price within the model's fan.
 
     Same log-space interpolation as ``mdl.find_percentile`` (edge-clamped to the
     outer quantiles), but computes each quantile's price for ALL dates at once
     (price_at is vectorized over t) instead of calling find_percentile per date
     — ~n_quantiles model evals total rather than n_dates × n_quantiles scalar
-    ones. Returns percentiles in [0, 100], or None if the model has no fan.
+    ones. ``sigma_mode`` selects the band model (resqr = residual quantile bands,
+    constant = legacy), so the oscillator matches the fan shown on the price
+    chart. Returns percentiles in [0, 100], or None if the model has no fan.
     """
     qs = mdl.quantiles
     if not qs:
@@ -48,7 +50,8 @@ def _percentile_series(mdl, t_data, px_data):
     t_safe = np.maximum(np.asarray(t_data, float), 0.5)
     # (n_q, n_t) log-price fan
     logfan = np.array([
-        np.log10(np.maximum(np.asarray(mdl.price_at(q, t_safe), float), 1e-10))
+        np.log10(np.maximum(
+            np.asarray(mdl.price_at(q, t_safe, sigma_mode=sigma_mode), float), 1e-10))
         for q in qs])
     logpx = np.log10(np.maximum(np.asarray(px_data, float), 1e-10))
     pct = np.empty(logpx.shape[0], dtype=float)
@@ -92,7 +95,8 @@ def build_percentile_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         if not getattr(mdl, "quantized", False):
             continue
         try:
-            pct = _percentile_series(mdl, t_data, px_data)
+            pct = _percentile_series(mdl, t_data, px_data,
+                                     sigma_mode=p.get("sigma_mode", "constant"))
             if pct is None:
                 continue
         except Exception:

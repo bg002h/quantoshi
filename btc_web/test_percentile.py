@@ -60,6 +60,17 @@ class TestPercentileFigure:
             if getattr(t, "mode", None) == "lines":
                 assert np.asarray(t.x, float).max() <= td + 0.01
 
+    def test_sigma_mode_changes_oscillator(self):
+        # resqr (residual quantile bands) vs constant σ give different fans, so
+        # the price sits at a different percentile — the toggle must matter.
+        yc = np.asarray([t for t in
+                         build_percentile_figure(M, _p(active_models=["bub"], sigma_mode="constant")).data
+                         if t.mode == "lines"][0].y)
+        yr = np.asarray([t for t in
+                         build_percentile_figure(M, _p(active_models=["bub"], sigma_mode="resqr")).data
+                         if t.mode == "lines"][0].y)
+        assert np.abs(yc - yr).max() > 1.0
+
 
 class TestPercentileSnapshot:
     def test_view_mode_percentile_roundtrips(self):

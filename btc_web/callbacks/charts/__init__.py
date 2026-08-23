@@ -780,12 +780,13 @@ def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
     Input("bub-model-show", "value"),
     Input("bub-legend-pos", "value"),
     Input("palette-store", "data"),
+    Input("bub-sigma-mode", "value"),
     State("user-model-store", "data"),
     State("snapshot-pending", "data"),
     prevent_initial_call=True,
 )
 def update_bub_pctile(view_mode, xrange, toggles, xscale, model_show,
-                      legend_pos, palette_key, user_model_store,
+                      legend_pos, palette_key, sigma_mode, user_model_store,
                       snapshot_pending=False):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
@@ -806,6 +807,7 @@ def update_bub_pctile(view_mode, xrange, toggles, xscale, model_show,
         minor_grid="minor_grid" in toggles,
         chart_zoom="chart_zoom" in toggles,
         legend_pos=legend_pos or "outside",
+        sigma_mode=sigma_mode or "constant",
         user_model=user_model_store,
     )
     fig = _get_pctile_fig(p)

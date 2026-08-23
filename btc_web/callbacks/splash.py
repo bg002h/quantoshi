@@ -153,11 +153,11 @@ _JOURNEY_BODY = """
             } catch(e) {}
             if (parts.length > 0) {
                 jText = parts.join("  \\u00b7  ");
-                jStyle = {"display":"block", "textAlign":"center", "fontSize": UI_FONT_BASE,
+                jStyle = {"display":"block", "textAlign":"center", "fontSize":"__UI_FONT_BASE__",
                           "color":"__JOURNEY_MUTED__", "marginTop":"16px", "lineHeight":"1.7"};
             }
         }
-""".replace("__JOURNEY_MUTED__", STATIC_PAGE_MUTED)
+""".replace("__JOURNEY_MUTED__", STATIC_PAGE_MUTED).replace("__UI_FONT_BASE__", UI_FONT_BASE)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

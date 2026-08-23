@@ -2,9 +2,9 @@
 import numpy as np
 import pytest
 
-from figures.percentile import build_percentile_figure
+from figures.percentile import build_percentile_figure, _percentile_series, _bracket_percentile
 from btc_core import today_t
-from conftest import M, _encode_snapshot, _decode_snapshot
+from conftest import M, _app_ctx, _encode_snapshot, _decode_snapshot
 
 
 def _p(**kw):
@@ -59,6 +59,28 @@ class TestPercentileFigure:
         for t in fig.data:
             if getattr(t, "mode", None) == "lines":
                 assert np.asarray(t.x, float).max() <= td + 0.01
+
+    def test_bracket_percentile_handles_non_monotonic_fan(self):
+        # Review finding: a crossed/non-monotonic fan must use find_percentile's
+        # first-bracket scan, not np.interp (which silently mis-maps unsorted xp).
+        qs = np.array([0.1, 0.25, 0.5, 0.75, 0.9])
+        col = np.array([1.0, 2.0, 3.0, 2.5, 4.0])  # crossing between q=0.5 and 0.75
+        # 2.5 falls in the FIRST bracket [col[1]=2, col[2]=3] -> q in 0.25..0.5
+        assert abs(_bracket_percentile(2.5, col, qs) - 0.375) < 1e-9
+        assert _bracket_percentile(0.0, col, qs) == 0.1   # below fan -> qs[0]
+        assert _bracket_percentile(9.0, col, qs) == 0.9   # above fan -> qs[-1]
+
+    def test_series_matches_find_percentile_qr(self):
+        # _percentile_series must equal per-date find_percentile for QR, whose
+        # fan is non-monotonic — the consistency guarantee with the navbar ticker.
+        m = _app_ctx.PRICE_MODELS["qr"]
+        mask = (M.price_years >= 1.0) & (M.price_years <= today_t(M.genesis))
+        t = M.price_years[mask][::7]
+        px = M.price_prices[mask][::7]
+        vec = _percentile_series(m, t, px) / 100.0
+        oracle = np.array([m.find_percentile(float(t[i]), float(px[i]))
+                           for i in range(len(t))])
+        assert np.abs(vec - oracle).max() < 1e-9
 
     def test_sigma_mode_changes_oscillator(self):
         # resqr (residual quantile bands) vs constant σ give different fans, so

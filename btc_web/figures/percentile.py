@@ -32,6 +32,29 @@ _RICH_MIN = 75.0    # above this percentile = "rich" band
 _ZONE_ALPHA = 0.10  # background band opacity
 
 
+def _bracket_percentile(log_p, col, qs_arr):
+    """Percentile of log_p within one date's per-quantile log-price column,
+    using the SAME first-bracket linear scan as PriceModel.find_percentile.
+
+    Robust to a non-monotonic fan (quantile crossing — the QR model's
+    independently-fit channels cross in the extreme tails). np.interp assumes a
+    sorted xp and would silently return a wrong value from its binary search;
+    this mirrors find_percentile's scan exactly, so the oscillator matches the
+    navbar ticker for every model.
+    """
+    if log_p <= col[0]:
+        return qs_arr[0]
+    if log_p >= col[-1]:
+        return qs_arr[-1]
+    for i in range(qs_arr.shape[0] - 1):
+        a = col[i]
+        b = col[i + 1]
+        if a <= log_p <= b:
+            frac = (log_p - a) / (b - a + 1e-30)
+            return qs_arr[i] + frac * (qs_arr[i + 1] - qs_arr[i])
+    return qs_arr[-1]
+
+
 def _percentile_series(mdl, t_data, px_data, sigma_mode="constant"):
     """Vectorized percentile of each actual price within the model's fan.
 
@@ -56,9 +79,9 @@ def _percentile_series(mdl, t_data, px_data, sigma_mode="constant"):
     logpx = np.log10(np.maximum(np.asarray(px_data, float), 1e-10))
     pct = np.empty(logpx.shape[0], dtype=float)
     for j in range(pct.shape[0]):
-        # np.interp clamps to qs_arr[0]/qs_arr[-1] outside the fan — matching
-        # find_percentile's edge behavior.
-        pct[j] = np.interp(logpx[j], logfan[:, j], qs_arr)
+        # First-bracket scan (not np.interp) so a non-monotonic fan can't
+        # silently mis-map — matches find_percentile for every model.
+        pct[j] = _bracket_percentile(logpx[j], logfan[:, j], qs_arr)
     return pct * 100.0
 
 

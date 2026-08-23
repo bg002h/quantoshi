@@ -68,6 +68,10 @@ THERMAL_NEUTRAL     = "#bdbdbd"   # thermal scale midpoint (Q50)
 HM_DEFAULT_RED      = "#d32f2f"   # CAGR heatmap loss (rwg/rbg presets)
 HM_DEFAULT_GREEN    = "#2e7d32"   # CAGR heatmap gain (rwg/rbg presets)
 HM_DEFAULT_MID      = "#2c2c2c"   # CAGR heatmap neutral midpoint (rbg preset + snapshot defaults)
+# Percentile-view valuation zones — colorblind-safe (cool 'cheap' vs amber
+# 'rich', deuteranomaly-friendly; NO red/green). Rendered as low-alpha bands.
+PCTILE_CHEAP_COLOR  = "#2166AC"   # cool blue — actual price low in the model fan (cheap)
+PCTILE_RICH_COLOR   = "#E69F00"   # CB-safe amber — actual price high in the fan (rich)
 TODAY_LINE_COLOR    = "#F7931A"   # today vertical line default — unified with BTC orange
 HALVING_LINE_COLOR  = "#3F51B5"   # halving vertical lines — muted indigo (colorblind-safe, blue axis)
 NON_QUANTIZED_MODEL_COLOR = "#8B4513"  # saddlebrown — single-trajectory models

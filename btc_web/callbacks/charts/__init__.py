@@ -543,9 +543,11 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     Output("bub-price-wrap", "style"),
     Output("bub-cagr-wrap", "style"),
     Output("bub-resid-wrap", "style"),
+    Output("bub-pctile-wrap", "style"),
     Output("bub-view-price", "outline"),
     Output("bub-view-cagr", "outline"),
     Output("bub-view-resid", "outline"),
+    Output("bub-view-pctile", "outline"),
     Output("bub-scale-controls", "style"),
     Output("bub-bubble-panel", "style"),
     Output("bub-cagr-fwd-wrap", "style"),
@@ -553,28 +555,35 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     Input("bub-view-price", "n_clicks"),
     Input("bub-view-cagr", "n_clicks"),
     Input("bub-view-resid", "n_clicks"),
+    Input("bub-view-pctile", "n_clicks"),
     State("bub-xrange", "value"),
     prevent_initial_call=True,
 )
-def toggle_bub_view(price_clicks, cagr_clicks, resid_clicks, cur_xrange):
+def toggle_bub_view(price_clicks, cagr_clicks, resid_clicks, pctile_clicks, cur_xrange):
     triggered = ctx.triggered_id
     _hide = {"display": "none"}
     _show_inline = {"display": "inline"}
     if triggered == "bub-view-cagr":
         xr = CAGR_DEFAULT_XRANGE if cur_xrange == [2010, 2033] else dash.no_update
-        return ("cagr", _hide, {}, _hide,
-                True, False, True,
+        return ("cagr", _hide, {}, _hide, _hide,
+                True, False, True, True,
                 _hide, _hide, _show_inline, xr)
     if triggered == "bub-view-resid":
         # Residuals: keep same x-range as price view, keep bubble panel visible
         xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
-        return ("resid", _hide, _hide, {},
-                True, True, False,
+        return ("resid", _hide, _hide, {}, _hide,
+                True, True, False, True,
+                {}, {}, _hide, xr)
+    if triggered == "bub-view-pctile":
+        # Percentile oscillator: time x-axis like residuals; historical only.
+        xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
+        return ("percentile", _hide, _hide, _hide, {},
+                True, True, True, False,
                 {}, {}, _hide, xr)
     # Price
     xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
-    return ("price", {}, _hide, _hide,
-            False, True, True,
+    return ("price", {}, _hide, _hide, _hide,
+            False, True, True, True,
             {}, {}, _hide, xr)
 
 
@@ -586,21 +595,26 @@ _app_ctx.app.clientside_callback(
     function(mode) {
         var _h = {"display": "none"};
         if (mode === "cagr") {
-            return [_h, {}, _h, true, false, true, _h, _h, {"display":"inline"}];
+            return [_h, {}, _h, _h, true, false, true, true, _h, _h, {"display":"inline"}];
         }
         if (mode === "resid") {
-            return [_h, _h, {}, true, true, false, {}, {}, _h];
+            return [_h, _h, {}, _h, true, true, false, true, {}, {}, _h];
+        }
+        if (mode === "percentile") {
+            return [_h, _h, _h, {}, true, true, true, false, {}, {}, _h];
         }
         /* price (default) */
-        return [{}, _h, _h, false, true, true, {}, {}, _h];
+        return [{}, _h, _h, _h, false, true, true, true, {}, {}, _h];
     }
     """,
     Output("bub-price-wrap", "style", allow_duplicate=True),
     Output("bub-cagr-wrap", "style", allow_duplicate=True),
     Output("bub-resid-wrap", "style", allow_duplicate=True),
+    Output("bub-pctile-wrap", "style", allow_duplicate=True),
     Output("bub-view-price", "outline", allow_duplicate=True),
     Output("bub-view-cagr", "outline", allow_duplicate=True),
     Output("bub-view-resid", "outline", allow_duplicate=True),
+    Output("bub-view-pctile", "outline", allow_duplicate=True),
     Output("bub-scale-controls", "style", allow_duplicate=True),
     Output("bub-bubble-panel", "style", allow_duplicate=True),
     Output("bub-cagr-fwd-wrap", "style", allow_duplicate=True),
@@ -610,18 +624,19 @@ _app_ctx.app.clientside_callback(
 
 # Hide "N future bubbles" slider in residuals view (doesn't apply to past data)
 _app_ctx.app.clientside_callback(
-    "function(mode) { return mode === 'resid' ? {display: 'none'} : {}; }",
+    "function(mode) { return (mode === 'resid' || mode === 'percentile') ? {display: 'none'} : {}; }",
     Output("bub-n-future-wrap", "style"),
     Input("bub-view-mode", "data"),
 )
 
-# Residuals view: cap X range slider max at (current year + 1). Price/CAGR
-# views restore the full 2080 range for forward projection visibility.
+# Residuals + Percentile views: cap X range slider max at (current year + 1) —
+# both are historical-only. Price/CAGR restore the full 2080 range for forward
+# projection visibility.
 _app_ctx.app.clientside_callback(
     """
     function(mode, cur_range) {
-        var resid_max = (new Date()).getFullYear() + 1;
-        var new_max = (mode === 'resid') ? resid_max : 2080;
+        var hist_max = (new Date()).getFullYear() + 1;
+        var new_max = (mode === 'resid' || mode === 'percentile') ? hist_max : 2080;
         // Cap current value if it exceeds the new max
         var r = (cur_range || [2010, 2033]).slice();
         if (r[1] > new_max) r[1] = new_max;
@@ -750,6 +765,50 @@ def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
         lppl_no_13=list(lppl_no_13 or []),
     )
     fig = _get_resid_fig(p)
+    apply_zoom_lock(fig, "chart_zoom" in toggles)
+    return fig
+
+
+# ── Percentile oscillator for tab 1 ─────────────────────────────────────────
+
+@callback(
+    Output("bub-pctile-graph", "figure"),
+    Input("bub-view-mode", "data"),
+    Input("bub-xrange", "value"),
+    Input("bub-toggles", "value"),
+    Input("bub-xscale", "value"),
+    Input("bub-model-show", "value"),
+    Input("bub-legend-pos", "value"),
+    Input("palette-store", "data"),
+    State("user-model-store", "data"),
+    State("snapshot-pending", "data"),
+    prevent_initial_call=True,
+)
+def update_bub_pctile(view_mode, xrange, toggles, xscale, model_show,
+                      legend_pos, palette_key, user_model_store,
+                      snapshot_pending=False):
+    # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
+    if snapshot_pending:
+        return dash.no_update
+    from utils import _get_pctile_fig
+    toggles = toggles or []
+    xrange = xrange or [2010, 2033]
+    # Masters (eppl/hybppl/lppl) are passed through as-is: each is a registered
+    # quantized model with its own fan (default config). Config-variant
+    # resolution is a v1 non-goal for this mode.
+    p = dict(
+        xmin=int(xrange[0]), xmax=int(xrange[1]),
+        active_models=sorted(model_show or []),
+        palette=palette_key or "default",
+        xscale=xscale or "log",
+        show_legend="show_legend" in toggles,
+        show_today="show_today" in toggles,
+        minor_grid="minor_grid" in toggles,
+        chart_zoom="chart_zoom" in toggles,
+        legend_pos=legend_pos or "outside",
+        user_model=user_model_store,
+    )
+    fig = _get_pctile_fig(p)
     apply_zoom_lock(fig, "chart_zoom" in toggles)
     return fig
 

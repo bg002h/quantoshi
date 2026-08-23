@@ -32,6 +32,33 @@ _RICH_MIN = 75.0    # above this percentile = "rich" band
 _ZONE_ALPHA = 0.10  # background band opacity
 
 
+def _percentile_series(mdl, t_data, px_data):
+    """Vectorized percentile of each actual price within the model's fan.
+
+    Same log-space interpolation as ``mdl.find_percentile`` (edge-clamped to the
+    outer quantiles), but computes each quantile's price for ALL dates at once
+    (price_at is vectorized over t) instead of calling find_percentile per date
+    — ~n_quantiles model evals total rather than n_dates × n_quantiles scalar
+    ones. Returns percentiles in [0, 100], or None if the model has no fan.
+    """
+    qs = mdl.quantiles
+    if not qs:
+        return None
+    qs_arr = np.asarray(qs, dtype=float)              # increasing
+    t_safe = np.maximum(np.asarray(t_data, float), 0.5)
+    # (n_q, n_t) log-price fan
+    logfan = np.array([
+        np.log10(np.maximum(np.asarray(mdl.price_at(q, t_safe), float), 1e-10))
+        for q in qs])
+    logpx = np.log10(np.maximum(np.asarray(px_data, float), 1e-10))
+    pct = np.empty(logpx.shape[0], dtype=float)
+    for j in range(pct.shape[0]):
+        # np.interp clamps to qs_arr[0]/qs_arr[-1] outside the fan — matching
+        # find_percentile's edge behavior.
+        pct[j] = np.interp(logpx[j], logfan[:, j], qs_arr)
+    return pct * 100.0
+
+
 def build_percentile_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     """Percentile of the actual price within each active quantized model's fan,
     over time. Non-quantized models (no fan) are skipped."""
@@ -65,9 +92,9 @@ def build_percentile_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         if not getattr(mdl, "quantized", False):
             continue
         try:
-            pct = np.array([
-                mdl.find_percentile(float(t_data[i]), float(px_data[i]))
-                for i in range(len(t_data))]) * 100.0
+            pct = _percentile_series(mdl, t_data, px_data)
+            if pct is None:
+                continue
         except Exception:
             continue
         traces.append(go.Scatter(

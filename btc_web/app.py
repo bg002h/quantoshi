@@ -700,6 +700,20 @@ def _prewarm_mc_caches():
 _mc_prewarm_triggered = False
 
 @server.before_request
+def _skip_source_maps():
+    # Browsers with DevTools open fetch the adjacent .js.map source map for each
+    # Dash component bundle. Dash doesn't register those paths, so
+    # serve_component_suites raises DependencyException, which Flask logs as an
+    # ERROR-level Traceback. The prod health check greps the error log for
+    # 'Traceback' and then fires a daily false-alarm popup. Source maps aren't
+    # served in prod anyway — return a clean 404 before dispatch so no exception
+    # is raised or logged.
+    from flask import request, abort
+    if request.path.endswith(".js.map"):
+        abort(404)
+
+
+@server.before_request
 def _trigger_mc_prewarm():
     global _mc_prewarm_triggered
     if not _mc_prewarm_triggered and _HAS_MARKOV:

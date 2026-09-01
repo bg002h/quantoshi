@@ -16,6 +16,19 @@ import numpy as np
 import pytest
 
 
+class TestSourceMapGuard:
+    def test_js_map_404_no_traceback(self):
+        # Source-map (.js.map) requests must 404 cleanly — Dash would otherwise
+        # raise DependencyException, logging a Traceback that the prod health
+        # check flags as a daily false alarm. See app._skip_source_maps.
+        import app
+        c = app.server.test_client()
+        assert c.get(
+            "/_dash-component-suites/dash/deps/prop-types@15.v4.8.1.min.js.map"
+        ).status_code == 404
+        assert c.get("/health").status_code == 200
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Cache module
 # ══════════════════════════════════════════════════════════════════════════════

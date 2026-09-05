@@ -201,7 +201,7 @@ bash tools/rebuild_caches.sh --help        # full docs
 
 | Tab | ID | Key controls |
 |-----|----|-------------|
-| 1. Price & Model Overlays | `bubble` | Quantiles, axes scale/range, bubble composite, N future bubbles |
+| 1. Price & Model Overlays | `bubble` | Quantiles, axes scale/range, bubble composite, N future bubbles. View pills (`bub-view-mode`): Price / Forward CAGR / Residuals / Percentile / **Occupancy** (share of a trailing 1/2/4-yr window spent above Q(100−tail) / below Q(tail), `figures/occupancy.py`) |
 | 2. CAGR Heatmap | `heatmap` | Entry/exit year+quantile, color modes (Segmented/DataScaled/Diverging), multi-model pill bar carousel |
 | 3. BTC Accumulator | `dca` | DCA amount/frequency, year range, display mode, Stack-celerator |
 | 4. BTC RetireMentator | `retire` | Withdrawal amount, inflation rate, year range |

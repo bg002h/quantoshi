@@ -63,6 +63,8 @@ SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'bub-mc-years:value': 40,
     'bub-model-show:value': ['bub'],
     'bub-n-future:value': 3,
+    'bub-occ-tail:value': 10,
+    'bub-occ-window:value': 4,
     'bub-ptalpha:value': 0.3,
     'bub-ptsize:value': 5,
     'bub-qs-adv:value': [0.5],

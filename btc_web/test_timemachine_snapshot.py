@@ -143,6 +143,8 @@ def test_existing_field_indices_unchanged_by_timemachine_addition():
         "mid-list.\n  " + "\n  ".join(mismatches)
     )
 
-    # The two new fields must be the literal last two entries.
-    assert _SNAPSHOT_CONTROLS[-2] == ("bub-timemachine-toggle", "value")
-    assert _SNAPSHOT_CONTROLS[-1] == ("bub-asof-slider", "value")
+    # Pinned at the indices they were appended at (the tail as of
+    # 2026-08-10). Later features append AFTER them -- test_occupancy.py pins
+    # the current tail.
+    assert _SNAPSHOT_CONTROLS[334] == ("bub-timemachine-toggle", "value")
+    assert _SNAPSHOT_CONTROLS[335] == ("bub-asof-slider", "value")

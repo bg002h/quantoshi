@@ -406,6 +406,11 @@ _SNAPSHOT_CONTROLS = [
     # shifted 13 existing fields' indices by +2).
     ("bub-timemachine-toggle", "value"),
     ("bub-asof-slider",        "value"),
+    # ── Occupancy view controls (Tab 1 only, appended 2026-09-04) ──
+    # APPEND-ONLY at the true tail -- same index-stability rule as above;
+    # test_occupancy.py pins these as the last two entries.
+    ("bub-occ-tail",   "value"),   # 5 | 10 | 25  (percent)
+    ("bub-occ-window", "value"),   # 1 | 2 | 4    (years)
 ]
 
 _SNAP_PREFIX_V4 = "q4:"   # current format (v4: sparse diff against fingerprint)

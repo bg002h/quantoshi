@@ -160,6 +160,7 @@ _TAB_CONTROLS = {
                     "scan-price","scan-date","scan-q",
                     "bub-decomp-model","bub-decomp-components","bub-decomp-mode",
                     "bub-decomp-show-formulas","bub-view-mode",
+                    "bub-occ-tail","bub-occ-window",
                     "bub-lppl-activate","bub-hybppl-activate","bub-eppl-activate",
                     # Custom Time Axis (Tab 1 only, added 2026-04-13)
                     "cta-active","cta-scale",

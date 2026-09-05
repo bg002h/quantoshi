@@ -544,47 +544,58 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     Output("bub-cagr-wrap", "style"),
     Output("bub-resid-wrap", "style"),
     Output("bub-pctile-wrap", "style"),
+    Output("bub-occ-wrap", "style"),
     Output("bub-view-price", "outline"),
     Output("bub-view-cagr", "outline"),
     Output("bub-view-resid", "outline"),
     Output("bub-view-pctile", "outline"),
+    Output("bub-view-occ", "outline"),
     Output("bub-scale-controls", "style"),
     Output("bub-bubble-panel", "style"),
     Output("bub-cagr-fwd-wrap", "style"),
+    Output("bub-occ-ctl-wrap", "style"),
     Output("bub-xrange", "value", allow_duplicate=True),
     Input("bub-view-price", "n_clicks"),
     Input("bub-view-cagr", "n_clicks"),
     Input("bub-view-resid", "n_clicks"),
     Input("bub-view-pctile", "n_clicks"),
+    Input("bub-view-occ", "n_clicks"),
     State("bub-xrange", "value"),
     prevent_initial_call=True,
 )
-def toggle_bub_view(price_clicks, cagr_clicks, resid_clicks, pctile_clicks, cur_xrange):
+def toggle_bub_view(price_clicks, cagr_clicks, resid_clicks, pctile_clicks,
+                    occ_clicks, cur_xrange):
     triggered = ctx.triggered_id
     _hide = {"display": "none"}
     _show_inline = {"display": "inline"}
     if triggered == "bub-view-cagr":
         xr = CAGR_DEFAULT_XRANGE if cur_xrange == [2010, 2033] else dash.no_update
-        return ("cagr", _hide, {}, _hide, _hide,
-                True, False, True, True,
-                _hide, _hide, _show_inline, xr)
+        return ("cagr", _hide, {}, _hide, _hide, _hide,
+                True, False, True, True, True,
+                _hide, _hide, _show_inline, _hide, xr)
     if triggered == "bub-view-resid":
         # Residuals: keep same x-range as price view, keep bubble panel visible
         xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
-        return ("resid", _hide, _hide, {}, _hide,
-                True, True, False, True,
-                {}, {}, _hide, xr)
+        return ("resid", _hide, _hide, {}, _hide, _hide,
+                True, True, False, True, True,
+                {}, {}, _hide, _hide, xr)
     if triggered == "bub-view-pctile":
         # Percentile oscillator: time x-axis like residuals; historical only.
         xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
-        return ("percentile", _hide, _hide, _hide, {},
-                True, True, True, False,
-                {}, {}, _hide, xr)
+        return ("percentile", _hide, _hide, _hide, {}, _hide,
+                True, True, True, False, True,
+                {}, {}, _hide, _hide, xr)
+    if triggered == "bub-view-occ":
+        # Occupancy (time in the fan's tails): historical only, like percentile.
+        xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
+        return ("occupancy", _hide, _hide, _hide, _hide, {},
+                True, True, True, True, False,
+                {}, {}, _hide, _show_inline, xr)
     # Price
     xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
-    return ("price", {}, _hide, _hide, _hide,
-            False, True, True, True,
-            {}, {}, _hide, xr)
+    return ("price", {}, _hide, _hide, _hide, _hide,
+            False, True, True, True, True,
+            {}, {}, _hide, _hide, xr)
 
 
 # Sync view-mode wrappers + button outlines when bub-view-mode.data changes
@@ -594,49 +605,57 @@ _app_ctx.app.clientside_callback(
     """
     function(mode) {
         var _h = {"display": "none"};
+        var _i = {"display":"inline"};
+        /* [price,cagr,resid,pctile,occ wraps][5 outlines][scale,panel,cagr-fwd,occ-ctl] */
         if (mode === "cagr") {
-            return [_h, {}, _h, _h, true, false, true, true, _h, _h, {"display":"inline"}];
+            return [_h, {}, _h, _h, _h, true, false, true, true, true, _h, _h, _i, _h];
         }
         if (mode === "resid") {
-            return [_h, _h, {}, _h, true, true, false, true, {}, {}, _h];
+            return [_h, _h, {}, _h, _h, true, true, false, true, true, {}, {}, _h, _h];
         }
         if (mode === "percentile") {
-            return [_h, _h, _h, {}, true, true, true, false, {}, {}, _h];
+            return [_h, _h, _h, {}, _h, true, true, true, false, true, {}, {}, _h, _h];
+        }
+        if (mode === "occupancy") {
+            return [_h, _h, _h, _h, {}, true, true, true, true, false, {}, {}, _h, _i];
         }
         /* price (default) */
-        return [{}, _h, _h, _h, false, true, true, true, {}, {}, _h];
+        return [{}, _h, _h, _h, _h, false, true, true, true, true, {}, {}, _h, _h];
     }
     """,
     Output("bub-price-wrap", "style", allow_duplicate=True),
     Output("bub-cagr-wrap", "style", allow_duplicate=True),
     Output("bub-resid-wrap", "style", allow_duplicate=True),
     Output("bub-pctile-wrap", "style", allow_duplicate=True),
+    Output("bub-occ-wrap", "style", allow_duplicate=True),
     Output("bub-view-price", "outline", allow_duplicate=True),
     Output("bub-view-cagr", "outline", allow_duplicate=True),
     Output("bub-view-resid", "outline", allow_duplicate=True),
     Output("bub-view-pctile", "outline", allow_duplicate=True),
+    Output("bub-view-occ", "outline", allow_duplicate=True),
     Output("bub-scale-controls", "style", allow_duplicate=True),
     Output("bub-bubble-panel", "style", allow_duplicate=True),
     Output("bub-cagr-fwd-wrap", "style", allow_duplicate=True),
+    Output("bub-occ-ctl-wrap", "style", allow_duplicate=True),
     Input("bub-view-mode", "data"),
     prevent_initial_call=True,
 )
 
-# Hide "N future bubbles" slider in residuals view (doesn't apply to past data)
+# Hide "N future bubbles" slider in residuals/percentile/occupancy views (doesn't apply to past data)
 _app_ctx.app.clientside_callback(
-    "function(mode) { return (mode === 'resid' || mode === 'percentile') ? {display: 'none'} : {}; }",
+    "function(mode) { return (mode === 'resid' || mode === 'percentile' || mode === 'occupancy') ? {display: 'none'} : {}; }",
     Output("bub-n-future-wrap", "style"),
     Input("bub-view-mode", "data"),
 )
 
-# Residuals + Percentile views: cap X range slider max at (current year + 1) —
+# Residuals + Percentile + Occupancy views: cap X range slider max at (current year + 1) —
 # both are historical-only. Price/CAGR restore the full 2080 range for forward
 # projection visibility.
 _app_ctx.app.clientside_callback(
     """
     function(mode, cur_range) {
         var hist_max = (new Date()).getFullYear() + 1;
-        var new_max = (mode === 'resid' || mode === 'percentile') ? hist_max : 2080;
+        var new_max = (mode === 'resid' || mode === 'percentile' || mode === 'occupancy') ? hist_max : 2080;
         // Cap current value if it exceeds the new max
         var r = (cur_range || [2010, 2033]).slice();
         if (r[1] > new_max) r[1] = new_max;
@@ -811,6 +830,57 @@ def update_bub_pctile(view_mode, xrange, toggles, xscale, model_show,
         user_model=user_model_store,
     )
     fig = _get_pctile_fig(p)
+    apply_zoom_lock(fig, "chart_zoom" in toggles)
+    return fig
+
+
+# ── Occupancy (time in the fan's tails) for tab 1 ───────────────────────────
+
+@callback(
+    Output("bub-occ-graph", "figure"),
+    Input("bub-view-mode", "data"),
+    Input("bub-xrange", "value"),
+    Input("bub-toggles", "value"),
+    Input("bub-xscale", "value"),
+    Input("bub-model-show", "value"),
+    Input("bub-legend-pos", "value"),
+    Input("palette-store", "data"),
+    Input("bub-sigma-mode", "value"),
+    Input("bub-occ-tail", "value"),
+    Input("bub-occ-window", "value"),
+    State("user-model-store", "data"),
+    State("snapshot-pending", "data"),
+    prevent_initial_call=True,
+)
+def update_bub_occ(view_mode, xrange, toggles, xscale, model_show,
+                   legend_pos, palette_key, sigma_mode, occ_tail, occ_window,
+                   user_model_store, snapshot_pending=False):
+    # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
+    if snapshot_pending:
+        return dash.no_update
+    # The graph is hidden in every other mode; don't rebuild it on each
+    # x-range / model tick while the user is looking at something else.
+    if view_mode != "occupancy":
+        return dash.no_update
+    from utils import _get_occ_fig
+    toggles = toggles or []
+    xrange = xrange or [2010, 2033]
+    p = dict(
+        xmin=int(xrange[0]), xmax=int(xrange[1]),
+        active_models=sorted(model_show or []),
+        palette=palette_key or "default",
+        xscale=xscale or "log",
+        show_legend="show_legend" in toggles,
+        show_today="show_today" in toggles,
+        minor_grid="minor_grid" in toggles,
+        chart_zoom="chart_zoom" in toggles,
+        legend_pos=legend_pos or "outside",
+        sigma_mode=sigma_mode or "constant",
+        occ_tail=int(occ_tail) if occ_tail is not None else 10,
+        occ_window=float(occ_window) if occ_window is not None else 4.0,
+        user_model=user_model_store,
+    )
+    fig = _get_occ_fig(p)
     apply_zoom_lock(fig, "chart_zoom" in toggles)
     return fig
 

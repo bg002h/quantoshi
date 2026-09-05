@@ -111,6 +111,8 @@ cd btc_web && PYTHONPATH=".:.." ../btc_venv/bin/python3 -c \
 git push origin master
 ssh root@89.167.70.45 "cd /opt/quantoshi && git pull && redis-cli FLUSHDB && systemctl restart quantoshi"
 ```
+Prod must stay a pure git consumer: never edit files in `/opt/quantoshi` by hand or by a prod-side job — a dirty checkout makes the next `git pull` refuse and the daily auto-deploy stall.
+
 **After price data update** (new model_data.pkl), also regenerate Citadel cache:
 ```bash
 ssh root@89.167.70.45 "PYTHONPATH=/opt/quantoshi:/opt/quantoshi/btc_web \
@@ -148,7 +150,7 @@ bash tools/rebuild_caches.sh --help        # full docs
 | Change | What invalidates |
 |--------|-----------------|
 | `model_data.pkl` rebuild (daily `update_prices.py`) | All figure caches (L0/L1/L2) — fingerprint based on pkl mtime+size |
-| `btc_core/` LPPL param refit | **Nothing automatic** — must flush Redis manually; monthly refit service does this |
+| `btc_core/` PPL param refit | **Monthly refit runs on DEV** (`quantoshi-refit.timer` → `tools/monthly_refit.sh`, 1st 01:00): patches `btc_core/*.py` in the deploy worktree, gates on model tests, commits + pushes; the 06:00 daily job deploys it and its `model_data.pkl` rebuild invalidates every figure cache, so no manual flush. A **manual** refit deployed outside that path still needs `redis-cli FLUSHDB`. (Prod's in-place `quantoshi-ppl-refit.timer` was disabled 2026-09-04 — it left prod's checkout dirty.) |
 | MC/Citadel npz files change | `/dev/shm` snapshot regenerates on next restart |
 | Manual deploy | Explicit `redis-cli FLUSHDB` wipes everything |
 

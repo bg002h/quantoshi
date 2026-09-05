@@ -35,15 +35,15 @@ class HybPPLModel(LPPLModel):
     dash_style = "dashdot"
 
     # Fitted parameters (will be overwritten by fit_hybppl.py --update)
-    _A   = -1.146871  
-    _B   =                 5.051440  
-    _C   =                 0.689800  
-    _W   =                 7.420028  
-    _PHI =                 1.453362  
-    _D   =                 0.708113  
-    _C2  =                 0.233047  
-    _W2  =                 1.733178  
-    _PHI2 = -1.923186  
+    _A   = -1.147193  
+    _B   =                                5.052048  
+    _C   =                                0.690435  
+    _W   =                                7.421425  
+    _PHI =                                1.452265  
+    _D   =                                0.709166  
+    _C2  =                                0.232829  
+    _W2  =                                1.732867  
+    _PHI2 = -1.921676  
 
     def _lppl_log10(self, t):
         """Evaluate hybrid model: log-periodic damped + linear-periodic undamped."""
@@ -112,16 +112,16 @@ class HybPPLDDModel(LPPLModel):
     dash_style = "dashdot"
 
     # Fitted parameters (will be overwritten by fit_hybppl_dd.py --update)
-    _A     = -1.146940  
-    _B     =        5.051521  
-    _C1    =        0.690016  
-    _W_log =        7.420125  
-    _PHI1  =        1.453219  
-    _D1    =        0.708418  
-    _C2    =        0.233494  
-    _W_cal =        1.733171  
-    _PHI2  = -1.923130  
-    _D2    =        0.001000  
+    _A     = -1.147254  
+    _B     =                       5.052113  
+    _C1    =                       0.690632  
+    _W_log =                       7.421484  
+    _PHI1  =                       1.452153  
+    _D1    =                       0.709441  
+    _C2    =                       0.233281  
+    _W_cal =                       1.732870  
+    _PHI2  =    -1.921671  
+    _D2    =                       0.001000  
 
     def _lppl_log10(self, t):
         """Evaluate double-damped hybrid model."""
@@ -195,19 +195,19 @@ class Hyb2LModel(LPPLModel):
     quantized = True
 
     # Fitted parameters (will be overwritten by fit_hyb2l.py --update)
-    _A    = -1.113051  
-    _B    =     5.013919  
-    _C1   =     0.765444  
-    _W1   =     7.471808  
-    _PHI1 =     1.297984  
-    _D1   =     0.773452  
-    _C2   =     0.257516  
-    _Wc   =     1.720228  
-    _PHI2 = -1.736955  
-    _C3   =     0.392739  
-    _W2   =   15.993374  
-    _PHI3 =     1.889585  
-    _D2   =     0.932751  
+    _A    = -1.115511  
+    _B    =                    5.018196  
+    _C1   =                    0.404677  
+    _W1   =                15.981011  
+    _PHI1 =                    1.898734  
+    _D1   =                    0.980387  
+    _C2   =                    0.254789  
+    _Wc   =                    1.719086  
+    _PHI2 = -1.738769  
+    _C3   =                    0.770114  
+    _W2   =                 7.484257  
+    _PHI3 =                    1.288533  
+    _D2   =                    0.780209  
 
     def _lppl_log10(self, t):
         t = np.asarray(t, float)
@@ -287,18 +287,18 @@ class Hyb2CModel(LPPLModel):
     quantized = True
 
     # Fitted parameters (will be overwritten by fit_hyb2c.py --update)
-    _A    = -1.135475  
-    _B    =     5.037834  
-    _C1   =     0.738861  
-    _W1   =     7.356028  
-    _PHI1 =     1.659079  
-    _D    =     0.730244  
-    _C2   =     0.235258  
-    _Wc1  =     1.750651  
-    _PHI2 = -2.086733  
-    _C3   =     0.114575  
-    _Wc2  =     3.280654  
-    _PHI3 = -2.452119  
+    _A    = -1.140401  
+    _B    =                    5.047103  
+    _C1   =                    0.739950  
+    _W1   =                    7.379077  
+    _PHI1 =                    1.633849  
+    _D    =                    0.741102  
+    _C2   =                    0.232036  
+    _Wc1  =                    1.745056  
+    _PHI2 = -2.053616  
+    _C3   =                    0.107893  
+    _Wc2  =                    3.272665  
+    _PHI3 = -2.402410  
 
     def _lppl_log10(self, t):
         t = np.asarray(t, float)
@@ -376,22 +376,22 @@ class Hyb2BModel(LPPLModel):
     quantized = True
 
     # Fitted parameters (will be overwritten by fit_hyb2b.py --update)
-    _A    = -1.114180  
-    _B    =     5.017427  
-    _C1   =     0.890964  
-    _W1   =     7.483988  
-    _PHI1 =     1.389285  
-    _D1   =     0.832962  
-    _C2   =     0.242031  
-    _Wc1  =     1.739799  
-    _PHI2 = -1.918563  
-    _C3   =     0.422538  
-    _W2   =   16.237963  
-    _PHI3 =     1.885419  
-    _D2   =     1.166351  
-    _C4   =     0.105464  
-    _Wc2  =     3.340729  
-    _PHI4 =     3.135899  
+    _A    = -1.120648  
+    _B    =                    5.028763  
+    _C1   =                    0.897499  
+    _W1   =                    7.518932  
+    _PHI1 =                    1.353142  
+    _D1   =                    0.844036  
+    _C2   =                    0.236470  
+    _Wc1  =                    1.734589  
+    _PHI2 = -1.901994  
+    _C3   =                    0.452887  
+    _W2   =             16.241904  
+    _PHI3 =                 1.881154  
+    _D2   =                    1.280927  
+    _C4   =                    0.099354  
+    _Wc2  =                    3.347433  
+    _PHI4 =        3.089380  
 
     def _lppl_log10(self, t):
         t = np.asarray(t, float)
@@ -482,24 +482,24 @@ class Hyb4DModel(LPPLModel):
     quantized = True
 
     # Fitted parameters (will be overwritten by fit_hyb4d.py --update)
-    _A    = -1.113156  
-    _B    =     5.016722  
-    _C1   =     0.921541  
-    _W1   =     7.482817  
-    _PHI1 =     1.403663  
-    _D1   =     0.847676  
-    _C2   =     0.240589  
-    _Wc1  =     1.740838  
-    _PHI2 =  -1.935091  
-    _Dc1  =     0.000000  
-    _C3   =     0.433531  
-    _W2   =   16.252921  
-    _PHI3 =     1.891523  
-    _D2   =     1.205977  
-    _C4   =     0.134349  
-    _Wc2  =     3.342578  
-    _PHI4 =    3.121447  
-    _Dc2  =     0.109722  
+    _A    = -1.192407  
+    _B    =                    5.080222  
+    _C1   =                    0.584390  
+    _W1   =                   7.244195  
+    _PHI1 =                    1.464226  
+    _D1   =                    0.549091  
+    _C2   =                    0.271755  
+    _Wc1  =                    1.713350  
+    _PHI2 =  -1.730804  
+    _Dc1  =                    0.000000  
+    _C3   =                    0.100424  
+    _W2   =               37.125459  
+    _PHI3 =                    2.003897  
+    _D2   =                    0.010000  
+    _C4   =                    0.364295  
+    _Wc2  =                 1.078960  
+    _PHI4 =       -3.129466  
+    _Dc2  =                    0.690431  
 
     def _lppl_log10(self, t):
         t = np.asarray(t, float)

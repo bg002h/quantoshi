@@ -307,6 +307,16 @@ class TestOccupancyWiring:
                              10, 4, None, False)
         assert _line_names(fig) == {"BM ≥Q90", "BM ≤Q10"}
 
+    def test_chart_zoom_keeps_strip_axis_fixed(self):
+        # Review F1: apply_zoom_lock has no axis selector, so "Enable chart
+        # zoom" would unlock the decorative y2 strip too.
+        from callbacks.charts import update_bub_occ
+        fig = update_bub_occ("occupancy", [2010, 2033], ["chart_zoom"], "log",
+                             ["bub"], "outside", "default", "constant",
+                             10, 4, None, False)
+        assert fig.layout.yaxis.fixedrange is False
+        assert fig.layout.yaxis2.fixedrange is True
+
 
 class TestOccupancySnapshot:
     def test_mode_tail_window_round_trip(self):

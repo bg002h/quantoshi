@@ -882,6 +882,8 @@ def update_bub_occ(view_mode, xrange, toggles, xscale, model_show,
     )
     fig = _get_occ_fig(p)
     apply_zoom_lock(fig, "chart_zoom" in toggles)
+    # apply_zoom_lock has no axis selector; the "when" strip (y2) stays fixed.
+    fig.layout.yaxis2.fixedrange = True
     return fig
 
 

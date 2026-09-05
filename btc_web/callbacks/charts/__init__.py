@@ -17,6 +17,7 @@ Public API preserved: ``from callbacks.charts import update_bubble, ...``
 still works exactly as before.
 """
 
+import json
 import math
 
 import dash
@@ -61,6 +62,9 @@ from figures.common import apply_zoom_lock
 from tab_defaults import BUBBLE, HEATMAP, DCA, RETIRE, SUPERCHARGE
 from layout.common import _bands_to_qs
 from layout.bubble import CAGR_DEFAULT_XRANGE
+from bub_views import (VIEW_MODES, DEFAULT_MODE, SYNC_JS_MARKER,
+                       mode_styles, styles_table_json,
+                       historical_modes_js)
 from callbacks.coerce import _ci, _cf
 from callbacks.timemachine import _asof_frame
 from callbacks.mc_helpers import (_mc_setup, _mc_finalize, _mc_status,
@@ -538,6 +542,12 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
 
 # ── Price/CAGR view pill bar ─────────────────────────────────────────────────
 
+# Pill button id -> view mode.  Derived from the table so a new pill needs no
+# edit here; an unknown trigger falls back to the default view, exactly as the
+# old if/elif chain's trailing "# Price" branch did.
+_PILL_TO_MODE = {v.pill: m for m, v in VIEW_MODES.items()}
+
+
 @callback(
     Output("bub-view-mode", "data"),
     Output("bub-price-wrap", "style"),
@@ -565,64 +575,40 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
 )
 def toggle_bub_view(price_clicks, cagr_clicks, resid_clicks, pctile_clicks,
                     occ_clicks, cur_xrange):
-    triggered = ctx.triggered_id
-    _hide = {"display": "none"}
-    _show_inline = {"display": "inline"}
-    if triggered == "bub-view-cagr":
-        xr = CAGR_DEFAULT_XRANGE if cur_xrange == [2010, 2033] else dash.no_update
-        return ("cagr", _hide, {}, _hide, _hide, _hide,
-                True, False, True, True, True,
-                _hide, _hide, _show_inline, _hide, xr)
-    if triggered == "bub-view-resid":
-        # Residuals: keep same x-range as price view, keep bubble panel visible
-        xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
-        return ("resid", _hide, _hide, {}, _hide, _hide,
-                True, True, False, True, True,
-                {}, {}, _hide, _hide, xr)
-    if triggered == "bub-view-pctile":
-        # Percentile oscillator: time x-axis like residuals; historical only.
-        xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
-        return ("percentile", _hide, _hide, _hide, {}, _hide,
-                True, True, True, False, True,
-                {}, {}, _hide, _hide, xr)
-    if triggered == "bub-view-occ":
-        # Occupancy (time in the fan's tails): historical only, like percentile.
-        xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
-        return ("occupancy", _hide, _hide, _hide, _hide, {},
-                True, True, True, True, False,
-                {}, {}, _hide, _show_inline, xr)
-    # Price
-    xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
-    return ("price", {}, _hide, _hide, _hide, _hide,
-            False, True, True, True, True,
-            {}, {}, _hide, _hide, xr)
+    """Pill click -> view mode + the 14 view-state values + an x-range swap.
 
+    Every UI value except the x-range comes from ``bub_views.mode_styles``; the
+    Output order above mirrors ``bub_views.STYLE_OUTPUT_IDS`` (pinned by
+    test_bub_view_modes.py).  Only the x-range is per-view logic: CAGR wants a
+    forward window, every other view wants the price window back — and each
+    swap only fires when the slider is still sitting on the *other* view's
+    default, so a user-chosen range is never clobbered.
+    """
+    mode = _PILL_TO_MODE.get(ctx.triggered_id, DEFAULT_MODE)
+    if mode == "cagr":
+        xr = CAGR_DEFAULT_XRANGE if cur_xrange == [2010, 2033] else dash.no_update
+    else:
+        xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
+    return (mode, *mode_styles(mode), xr)
+
+
+# Generated from bub_views.VIEW_MODES: one 14-value array per mode, in the
+# Output order below.  The marker in the comment is how tests find this exact
+# inline script among all the others.
+_VIEW_SYNC_JS = (
+    "function(mode) {\n"
+    "    /* " + SYNC_JS_MARKER + " — generated from bub_views.VIEW_MODES;\n"
+    "       one array of 14 values per mode, in this callback's Output order. */\n"
+    "    var T = " + styles_table_json() + ";\n"
+    "    return T[mode] || T[" + json.dumps(DEFAULT_MODE) + "];\n"
+    "}\n"
+)
 
 # Sync view-mode wrappers + button outlines when bub-view-mode.data changes
 # (e.g., from snapshot restore — button clicks set it directly in toggle_bub_view,
 # but snapshot sets it via apply_tab_bubble without clicking buttons).
 _app_ctx.app.clientside_callback(
-    """
-    function(mode) {
-        var _h = {"display": "none"};
-        var _i = {"display":"inline"};
-        /* [price,cagr,resid,pctile,occ wraps][5 outlines][scale,panel,cagr-fwd,occ-ctl] */
-        if (mode === "cagr") {
-            return [_h, {}, _h, _h, _h, true, false, true, true, true, _h, _h, _i, _h];
-        }
-        if (mode === "resid") {
-            return [_h, _h, {}, _h, _h, true, true, false, true, true, {}, {}, _h, _h];
-        }
-        if (mode === "percentile") {
-            return [_h, _h, _h, {}, _h, true, true, true, false, true, {}, {}, _h, _h];
-        }
-        if (mode === "occupancy") {
-            return [_h, _h, _h, _h, {}, true, true, true, true, false, {}, {}, _h, _i];
-        }
-        /* price (default) */
-        return [{}, _h, _h, _h, _h, false, true, true, true, true, {}, {}, _h, _h];
-    }
-    """,
+    _VIEW_SYNC_JS,
     Output("bub-price-wrap", "style", allow_duplicate=True),
     Output("bub-cagr-wrap", "style", allow_duplicate=True),
     Output("bub-resid-wrap", "style", allow_duplicate=True),
@@ -643,7 +629,8 @@ _app_ctx.app.clientside_callback(
 
 # Hide "N future bubbles" slider in residuals/percentile/occupancy views (doesn't apply to past data)
 _app_ctx.app.clientside_callback(
-    "function(mode) { return (mode === 'resid' || mode === 'percentile' || mode === 'occupancy') ? {display: 'none'} : {}; }",
+    "function(mode) { return (" + historical_modes_js()
+    + ") ? {display: 'none'} : {}; }",
     Output("bub-n-future-wrap", "style"),
     Input("bub-view-mode", "data"),
 )
@@ -655,7 +642,7 @@ _app_ctx.app.clientside_callback(
     """
     function(mode, cur_range) {
         var hist_max = (new Date()).getFullYear() + 1;
-        var new_max = (mode === 'resid' || mode === 'percentile' || mode === 'occupancy') ? hist_max : 2080;
+        var new_max = (""" + historical_modes_js() + """) ? hist_max : 2080;
         // Cap current value if it exceeds the new max
         var r = (cur_range || [2010, 2033]).slice();
         if (r[1] > new_max) r[1] = new_max;

@@ -284,15 +284,23 @@ class TestOccupancyWiring:
         assert out[14] == {"display": "none"}
 
     def test_clientside_sync_returns_one_value_per_output(self):
-        # The view-mode sync JS returns positional arrays; adding an Output
-        # without extending every `return [...]` silently mis-assigns styles.
+        # The view-mode sync JS returns positional arrays; a mode whose row is
+        # short silently mis-assigns styles.  The five hand-written
+        # `return [...]` branches are now one generated JSON table keyed by
+        # mode (bub_views.VIEW_MODES), so this checks the table instead.
+        # Fuller coverage — every mode, against every producer — lives in
+        # test_bub_view_modes.py::TestClientsideSyncTable.
+        import json
+
+        from bub_views import SYNC_JS_MARKER, VIEW_MODES
         scripts = [s for s in _app_ctx.app._inline_scripts
-                   if 'mode === "occupancy"' in s and 'mode === "percentile"' in s]
+                   if SYNC_JS_MARKER in s]
         assert len(scripts) == 1, "view-mode sync clientside callback not found"
-        returns = re.findall(r"return \[(.*?)\];", scripts[0], flags=re.S)
-        assert len(returns) == 5   # cagr, resid, percentile, occupancy, price
-        counts = {len([e for e in r.split(",") if e.strip()]) for r in returns}
-        assert counts == {14}, counts
+        table = json.loads(
+            re.search(r"var T = (\{.*\});", scripts[0], flags=re.S).group(1))
+        assert set(table) == set(VIEW_MODES)   # price, cagr, resid, pctile, occ
+        assert {len(row) for row in table.values()} == {14}
+        assert table["occupancy"][4] == {}     # bub-occ-wrap shown
 
     def test_historical_only_clientside_checks_include_occupancy(self):
         hits = [s for s in _app_ctx.app._inline_scripts

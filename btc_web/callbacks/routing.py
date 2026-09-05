@@ -6,6 +6,7 @@ from dash import Input, Output, State, callback, ctx, no_update, ALL
 import _app_ctx
 from layout.faq import _FAQ
 from layout.bubble import CAGR_DEFAULT_XRANGE
+from bub_views import mode_for_path, mode_styles
 
 
 def _norm(pathname: str | None) -> str | None:
@@ -406,16 +407,18 @@ def deep_link_bub_view(pathname):
     /1.3          Residuals
     /1.4          Percentile
     /1.5[.T[.W]]  Occupancy     (T -> tail 5/10/25 %, W -> window 1/2/4 yr)
-    Indices are 1-based; '-' is accepted for '.' (see _norm). Output order
-    mirrors toggle_bub_view, then the CAGR / occupancy control values.
+    Indices are 1-based; '-' is accepted for '.' (see _norm).  Which path opens
+    which view is `deep_link` in bub_views.VIEW_MODES; the first 15 outputs are
+    the mode plus bub_views.mode_styles(mode) — the same values toggle_bub_view
+    returns, in the same order — and only the five trailing control values are
+    per-view logic.
     """
     from dash import no_update
     NU = no_update
     pathname = _norm(pathname)
-    if not pathname:
+    mode = mode_for_path(pathname)
+    if mode is None:
         return (NU,) * 20
-    _hide = {"display": "none"}
-    _inline = {"display": "inline"}
     parts = pathname[1:].split(".")
 
     def _pick(i, options):
@@ -428,25 +431,9 @@ def deep_link_bub_view(pathname):
             return NU
         return options[n - 1] if 1 <= n <= len(options) else NU
 
-    if pathname.startswith("/1.3"):
-        return ("resid", _hide, _hide, {}, _hide, _hide,
-                True, True, False, True, True,
-                {}, {}, _hide, _hide,
-                NU, NU, NU, NU, NU)
-
-    if pathname.startswith("/1.4"):
-        return ("percentile", _hide, _hide, _hide, {}, _hide,
-                True, True, True, False, True,
-                {}, {}, _hide, _hide,
-                NU, NU, NU, NU, NU)
-
-    if pathname.startswith("/1.5"):
-        return ("occupancy", _hide, _hide, _hide, _hide, {},
-                True, True, True, True, False,
-                {}, {}, _hide, _inline,
-                NU, NU, NU, _pick(2, [5, 10, 25]), _pick(3, [1, 2, 4]))
-
-    if pathname.startswith("/1.2"):
+    # xrange, cagr fwd-yrs, cagr hover-today, occ tail, occ window
+    extras = (NU, NU, NU, NU, NU)
+    if mode == "cagr":
         hover_today = NU
         if len(parts) >= 4:
             try:
@@ -454,13 +441,12 @@ def deep_link_bub_view(pathname):
                     hover_today = True
             except ValueError:
                 pass
-        return ("cagr", _hide, {}, _hide, _hide, _hide,
-                True, False, True, True, True,
-                _hide, _hide, _inline, _hide,
-                CAGR_DEFAULT_XRANGE, _pick(2, [1, 2, 4, 10, 20, 30]), hover_today,
-                NU, NU)
+        extras = (CAGR_DEFAULT_XRANGE, _pick(2, [1, 2, 4, 10, 20, 30]),
+                  hover_today, NU, NU)
+    elif mode == "occupancy":
+        extras = (NU, NU, NU, _pick(2, [5, 10, 25]), _pick(3, [1, 2, 4]))
 
-    return (NU,) * 20
+    return (mode, *mode_styles(mode), *extras)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

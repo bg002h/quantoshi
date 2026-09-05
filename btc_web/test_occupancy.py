@@ -44,9 +44,29 @@ def _ticks(fig):
 
 
 def _hover(fig):
+    """The invisible full-coverage hover traces, in x order.
+
+    Two of them: the days with a full trailing window (numeric customdata) and
+    the days before it (date only).  Either may be absent.
+    """
     h = [t for t in _strip(fig) if t.marker.opacity == 0]
+    return sorted(h, key=lambda t: float(np.asarray(t.x, float).min()))
+
+
+def _hover_full(fig):
+    """The hover trace carrying the two shares (customdata is 3 wide)."""
+    h = [t for t in _hover(fig) if t.customdata is not None
+         and len(t.customdata[0]) == 3]
     assert len(h) <= 1
     return h[0] if h else None
+
+
+def _hover_rows(trace):
+    """(t, date, above, below) per point; above/below are None pre-window."""
+    x = np.asarray(trace.x, float)
+    return [(x[i], r[0], (r[1] if len(r) > 1 else None),
+             (r[2] if len(r) > 2 else None))
+            for i, r in enumerate(trace.customdata)]
 
 
 def _daily_t(years):
@@ -178,8 +198,9 @@ class TestOccupancyFigure:
     def test_strip_marks_first_model_only(self):
         fig = build_occupancy_figure(M, _p(active_models=["bub", "qr"]))
         strip = _strip(fig)
-        assert len(strip) == 3                    # 2 tick rows + 1 hover trace
-        assert len(_ticks(fig)) == 2
+        assert len(strip) == 4        # 2 tick rows + 2 hover traces (pre/post
+        assert len(_ticks(fig)) == 2  # the first full trailing window)
+        assert len(_hover(fig)) == 2
         assert all(t.yaxis == "y2" for t in strip)
         assert all("BM" in t.name for t in strip)
         assert all(t.showlegend is False for t in strip)
@@ -192,39 +213,82 @@ class TestOccupancyFigure:
 
     def test_strip_hover_trace_covers_every_displayed_day(self):
         fig = build_occupancy_figure(M, _p(xmin=2016, active_models=["bub"]))
-        h = _hover(fig)
-        assert h is not None and h.yaxis == "y2"
+        hs = _hover(fig)
+        assert hs and all(t.yaxis == "y2" for t in hs)
         from btc_core import yr_to_t
         td = today_t(M.genesis)
         t_lo = yr_to_t(2016, M.genesis)
         n_days = int(((M.price_years >= t_lo) & (M.price_years <= td)).sum())
         # covers every displayed day (2016-01-01 .. today), not just tail days
-        assert len(h.x) == n_days
-        assert len(h.text) == len(h.x)
-        assert "%{text}" in h.hovertemplate and "%{customdata[0]}" in h.hovertemplate
+        assert sum(len(t.x) for t in hs) == n_days
+        for t in hs:
+            assert len(t.customdata) == len(t.x)
+            assert "%{customdata[0]}" in t.hovertemplate
 
-    def test_strip_hover_text_matches_line_values(self):
+    def test_strip_hover_payload_carries_numbers_not_rendered_text(self):
+        # Bandwidth: the label is assembled by the hovertemplate from numeric
+        # customdata, not shipped as one pre-formatted string per day.  The
+        # constant y2 row must stay a plain Python sequence — Dash base64s a
+        # numpy array, which costs 10.7 bytes/day instead of 4.  (y0/dy would
+        # be free but plotly.js reads dy as `trace.dy || 1`, so dy=0 becomes a
+        # step of 1 and the markers ramp off the strip.)
+        fig = build_occupancy_figure(M, _p(active_models=["bub"]))
+        for t in _strip(fig):
+            assert not isinstance(t.y, np.ndarray)
+            assert set(np.asarray(t.y, float)) <= {1.0, 1.5, 2.0}
+            assert t.dy is None and t.y0 is None
+        for t in _hover(fig):
+            assert t.text is None
+            assert len(t.y) == len(t.x)
+        h = _hover_full(fig)
+        assert "%{customdata[1]:.1f}" in h.hovertemplate
+        assert "%{customdata[2]:.1f}" in h.hovertemplate
+        assert all(isinstance(r[1], float) and isinstance(r[2], float)
+                   for r in h.customdata)
+
+    def test_strip_hover_values_match_line_values(self):
         fig = build_occupancy_figure(M, _p(active_models=["bub"], occ_tail=10))
-        h = _hover(fig)
+        h = _hover_full(fig)
         above = [t for t in _lines(fig) if "≥" in t.name][0]
         below = [t for t in _lines(fig) if "≤" in t.name][0]
         x_last = float(np.asarray(above.x, float)[-1])
         i = int(np.argmin(np.abs(np.asarray(h.x, float) - x_last)))
-        txt = h.text[i]
-        a = float(re.search(r"≥Q90 ([\d.]+)%", txt).group(1))
-        b = float(re.search(r"≤Q10 ([\d.]+)%", txt).group(1))
+        _, _, a, b = _hover_rows(h)[i]
         assert abs(a - float(above.y[-1])) < 0.06
         assert abs(b - float(below.y[-1])) < 0.06
+        # Shipped already rounded to 1 dp, so d3's ".1f" in the hovertemplate
+        # renders exactly the string Python's ":.1f" used to bake into `text`.
+        assert all(v == round(v, 1) for _t, _d, v, _b in _hover_rows(h))
+        assert all(v == round(v, 1) for _t, _d, _a, v in _hover_rows(h))
+
+    def test_strip_hover_dates_are_the_displayed_days(self):
+        # _add_date_hover names each point's day from x, and the transport-only
+        # float32 narrowing of x runs AFTER it — done in the other order, a t
+        # nudged down by 30 s falls back over midnight and every marker is
+        # labelled with the previous day.
+        from figures.common import _t_to_datestr
+        from btc_core import yr_to_t
+        fig = build_occupancy_figure(M, _p(xmin=2016, active_models=["bub"]))
+        t_lo, td = yr_to_t(2016, M.genesis), today_t(M.genesis)
+        days = np.sort(M.price_years[(M.price_years >= t_lo)
+                                     & (M.price_years <= td)])
+        want = [_t_to_datestr(t, M.genesis) for t in days]
+        got = [r[0] for h in _hover(fig) for r in h.customdata]
+        assert got == want
 
     def test_strip_hover_before_full_window_says_so(self):
         fig = build_occupancy_figure(M, _p(xmin=2010, active_models=["bub"], occ_window=4))
-        h = _hover(fig)
+        early, late = _hover(fig)            # x-ordered: pre-window first
         first_line_t = float(np.asarray([t.x for t in _lines(fig)][0]).min())
-        hx = np.asarray(h.x, float)
-        early = [h.text[i] for i in range(len(hx)) if hx[i] < first_line_t - 1e-9]
-        assert early and all("not yet full" in t for t in early)
-        late = [h.text[i] for i in range(len(hx)) if hx[i] >= first_line_t]
-        assert late and all("≥Q90" in t for t in late)
+        assert "window not yet full" in early.hovertemplate
+        assert "%{customdata[1]" not in early.hovertemplate
+        assert all(len(r) == 1 for r in early.customdata)   # date only
+        assert np.asarray(early.x, float).max() < first_line_t
+        assert "≥Q90 %{customdata[1]:.1f}%" in late.hovertemplate
+        assert np.asarray(late.x, float).min() >= first_line_t - 1e-4
+        # Same trailing clause on both, as before.
+        for t in (early, late):
+            assert t.hovertemplate.endswith("<br>of trailing 4 yr<extra></extra>")
 
     def test_strip_days_are_the_tail_days(self):
         # For QR (quantile regression on ALL data) the share of days above Q90

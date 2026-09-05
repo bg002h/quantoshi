@@ -145,7 +145,13 @@ def build_occupancy_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             ):
                 days = t_all[cond & disp]
                 traces.append(go.Scatter(
-                    x=days, y=np.full(days.shape, y_row),
+                    # A plain Python list of the constant row, NOT np.full:
+                    # Dash base64-encodes numpy arrays, and "1.0," repeated is
+                    # 4 bytes a day against float64's 10.7.  y0/dy would be
+                    # free, but plotly.js reads dy as `trace.dy || 1`, so
+                    # dy=0 silently becomes a step of 1 and the ticks climb
+                    # off the strip.
+                    x=days, y=[y_row] * days.shape[0],
                     mode="markers", yaxis="y2",
                     name=f"{name} days {lbl}", showlegend=False,
                     marker=dict(symbol="line-ns", size=_STRIP_MARKER_SIZE,
@@ -155,27 +161,49 @@ def build_occupancy_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     hoverinfo="skip",
                 ))
             # Invisible marker on EVERY displayed day: hovering anywhere along
-            # the bar reports the trailing-window shares at that date. Values
-            # ride on `text` because _add_date_hover overwrites customdata.
+            # the bar reports the trailing-window shares at that date.
+            #
+            # Bandwidth: the two shares ride as NUMBERS on customdata (index
+            # 1/2 — _add_date_hover prepends the date at index 0) and are
+            # formatted by the hovertemplate, instead of one pre-formatted
+            # label string per day.  The days before the first full window
+            # carry no numbers at all, so they get their own trace with a
+            # fixed template.  Rendered label text is unchanged.
             t_disp = t_all[disp]
-            pos = np.searchsorted(t_out, t_disp)
-            hover_text = []
-            for k in range(t_disp.shape[0]):
-                j = pos[k]
-                if j < t_out.shape[0] and abs(t_out[j] - t_disp[k]) < 1e-9:
-                    hover_text.append(f"≥Q{q_hi} {above[j]:.1f}% · ≤Q{tail} {below[j]:.1f}%")
-                else:
-                    hover_text.append("window not yet full")
-            traces.append(go.Scatter(
-                x=t_disp, y=np.full(t_disp.shape, _STRIP_HOVER_Y),
+            n_out = t_out.shape[0]
+            if n_out:
+                pos = np.searchsorted(t_out, t_disp)
+                pos_c = np.clip(pos, 0, n_out - 1)
+                hit = (pos < n_out) & (np.abs(t_out[pos_c] - t_disp) < 1e-9)
+            else:
+                pos = np.zeros(t_disp.shape, dtype=int)
+                hit = np.zeros(t_disp.shape, dtype=bool)
+            hover_kw = dict(
                 mode="markers", yaxis="y2",
                 name=f"{name} trailing {window:g} yr", showlegend=False,
                 # Invisible, but the hover label takes the model colour.
                 marker=dict(size=_STRIP_MARKER_SIZE, color=color, opacity=0),
-                text=hover_text,
-                hovertemplate=(f"<b>{name}</b> · %{{customdata[0]}}<br>%{{text}}"
-                               f"<br>of trailing {window:g} yr<extra></extra>"),
-            ))
+            )
+            n_hit = int(hit.sum())
+            if n_hit:
+                traces.append(go.Scatter(
+                    x=t_disp[hit], y=[_STRIP_HOVER_Y] * n_hit,
+                    customdata=np.round(np.column_stack(
+                        (above[pos[hit]], below[pos[hit]])), 1),
+                    hovertemplate=(
+                        f"<b>{name}</b> · %{{customdata[0]}}<br>"
+                        f"≥Q{q_hi} %{{customdata[1]:.1f}}% · "
+                        f"≤Q{tail} %{{customdata[2]:.1f}}%"
+                        f"<br>of trailing {window:g} yr<extra></extra>"),
+                    **hover_kw))
+            n_miss = int(t_disp.shape[0] - n_hit)
+            if n_miss:
+                traces.append(go.Scatter(
+                    x=t_disp[~hit], y=[_STRIP_HOVER_Y] * n_miss,
+                    hovertemplate=(f"<b>{name}</b> · %{{customdata[0]}}"
+                                   f"<br>window not yet full"
+                                   f"<br>of trailing {window:g} yr<extra></extra>"),
+                    **hover_kw))
 
     if traces:
         traces.append(go.Scatter(
@@ -242,4 +270,15 @@ def build_occupancy_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                    f"%{{y:.1f}}% of trailing {window:g} yr<extra></extra>"),
         show_qr=False, show_mc=False, wm_pos="bottom-right",
     )
+    # Transport-only.  Dash serialises numpy arrays as base64 typed arrays, so
+    # a float64 x costs a flat 10.7 bytes/day no matter how round the numbers
+    # are — float32 halves that.  Its worst-case error over this t range is
+    # ~1e-6 yr (a third of a second) against a 1-day point spacing and a strip
+    # drawn at ~6 days per pixel, so it can neither move a marker visibly nor
+    # change which day a hover snaps to.  It has to happen AFTER
+    # _apply_final_steps: _add_date_hover names each point's calendar day from
+    # x, and a t nudged DOWNWARD would fall back over midnight.
+    for tr in fig.data:
+        if getattr(tr, "yaxis", None) == "y2" and tr.x is not None:
+            tr.x = np.asarray(tr.x, dtype=np.float32)
     return fig

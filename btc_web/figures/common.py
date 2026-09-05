@@ -862,6 +862,36 @@ def _compute_recovery(x_arr, y_arr, genesis=None):
     return result
 
 
+def _date_customdata(existing, dates):
+    """Build ``customdata`` rows for a date-hover trace, PRESERVING any rows
+    the trace already carries.
+
+    Historically this helper simply replaced ``customdata`` with
+    ``[[date], ...]``, so a trace could not ship its own per-point values —
+    they had to be smuggled through ``text`` as a pre-formatted string, which
+    is several times larger on the wire than the numbers behind it.
+
+    A trace that already has one *row* (list/tuple/array) per point keeps it:
+    the date is inserted at index 0, so ``customdata[0]`` is the date on every
+    trace as before and the trace's own values land at ``customdata[1:]``.
+    Anything else — no customdata, a length mismatch, or flat scalar
+    customdata (e.g. supercharge Mode B's quantile labels) — gets the plain
+    ``[[date], ...]`` of the original behaviour.
+    """
+    if existing is None:
+        return [[d] for d in dates]
+    try:
+        if len(existing) != len(dates):
+            return [[d] for d in dates]
+    except TypeError:
+        return [[d] for d in dates]
+    rows = list(existing)
+    if not all(isinstance(r, (list, tuple, np.ndarray)) for r in rows):
+        return [[d] for d in dates]
+    return [[d, *(r.tolist() if isinstance(r, np.ndarray) else list(r))]
+            for d, r in zip(dates, rows)]
+
+
 def _add_date_hover(fig, genesis, fmt=None, recovery=False):
     """Add calendar-date hover to all traces whose x-axis is t (years since genesis).
 
@@ -870,6 +900,10 @@ def _add_date_hover(fig, genesis, fmt=None, recovery=False):
     supercharge uses delay-years or quantile fractions as x).
 
     recovery=True: compute price recovery time and append to hover.
+
+    A trace that already carries one customdata ROW per point keeps it — the
+    date is prepended, so customdata[0] is the date and the trace's own values
+    shift to customdata[1:].  See _date_customdata.
     """
     if fmt is None:
         fmt = _HOVER_FMT_USD
@@ -905,7 +939,8 @@ def _add_date_hover(fig, genesis, fmt=None, recovery=False):
             elif getattr(trace, "hovertemplate", None) == fmt:
                 trace.hovertemplate = _fmt_with_rec
         else:
-            trace.customdata = [[d] for d in dates]
+            trace.customdata = _date_customdata(
+                getattr(trace, "customdata", None), dates)
             if not getattr(trace, "hovertemplate", None):
                 trace.hovertemplate = fmt
 

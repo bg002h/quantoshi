@@ -22,7 +22,8 @@
 #
 # While running, /tmp/quantoshi-update.disable is held so an over-running refit
 # can never collide with the daily job in the same worktree (the daily job just
-# skips that morning and self-heals the next day).
+# skips that morning and self-heals the next day). A SIGKILL/OOM cannot run
+# the EXIT trap, so the service unit also has ExecStopPost=rm -f of the lock.
 #
 # Usage:  tools/monthly_refit.sh            # real run
 #         tools/monthly_refit.sh --dry-run  # print every state-changing step
@@ -60,13 +61,15 @@ if [[ -f "$DISABLE_FILE" ]]; then
 fi
 run touch "$DISABLE_FILE"
 trap 'run rm -f "$DISABLE_FILE"' EXIT
+# set -e aborts (fetch/checkout/venv) would otherwise exit silently
+trap 'notify_failure "monthly refit aborted at line $LINENO (exit $?)"' ERR
 
 # --- Step 1: sync worktree to a detached origin/master (as daily_update.sh) ---
 cd "$DEPLOY_DIR"
 run git fetch origin "$BRANCH"
 run git checkout -f --detach "origin/$BRANCH"
 run git reset --hard "origin/$BRANCH"
-run git clean -fdq btc_core/          # stray .bak from an aborted run
+run git clean -fdqx btc_core/         # stray .bak from an aborted run (-x: they are gitignored)
 
 # untracked caches live only in the main checkout; the gate tests need them
 for d in btc_web/mc_cache btc_web/citadel_band_cache; do

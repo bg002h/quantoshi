@@ -83,7 +83,7 @@ tools/timemachine/*_output.json
 # fit tools leave backups next to the patched module; never commit them
 btc_core/*.bak
 # Cython Markov engine built in place on prod
-btc_web/markov.cpython-*.so
+btc_web/markov.cpython-312-*.so
 # ...and the symlinks tools/monthly_refit.sh drops into the deploy worktree
 btc_web/mc_cache
 btc_web/citadel_band_cache

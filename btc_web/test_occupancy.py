@@ -276,6 +276,34 @@ class TestOccupancyFigure:
         got = [r[0] for h in _hover(fig) for r in h.customdata]
         assert got == want
 
+    def test_strip_hover_values_use_the_same_rounding_as_the_label_did(self):
+        # Review F1: np.round(x, 1) (scale, half-even, unscale) differed from
+        # the .1f the label used to be formatted with on ~0.7% of days. The
+        # numbers on the wire must equal float(f"{share:.1f}") exactly.
+        from figures.percentile import _percentile_series
+        from figures.occupancy import _occupancy_series
+        fig = build_occupancy_figure(M, _p(active_models=["bub"]))
+        h = [t for t in _strip(fig) if t.marker.opacity == 0
+             and "customdata[1]" in (t.hovertemplate or "")][0]
+        mdl = _app_ctx.PRICE_MODELS["bub"]
+        td = today_t(M.genesis)
+        hist = (M.price_years > 0) & (M.price_years <= td)
+        t_all = np.asarray(M.price_years[hist], float)
+        px = np.asarray(M.price_prices[hist], float)
+        order = np.argsort(t_all, kind="stable")
+        t_all, px = t_all[order], px[order]
+        pct = _percentile_series(mdl, t_all, px, sigma_mode="constant")
+        t_out, above, below = _occupancy_series(t_all, pct, 10, 4.0)
+        # the hover trace ships x as float32 (payload), so map by nearest day
+        x = np.asarray(h.x, float)
+        idx = np.clip(np.searchsorted(t_out, x), 1, t_out.shape[0] - 1)
+        idx = np.where(np.abs(t_out[idx - 1] - x) < np.abs(t_out[idx] - x), idx - 1, idx)
+        assert np.all(np.abs(t_out[idx] - x) < 1e-4)
+        exp = [(float(f"{above[j]:.1f}"), float(f"{below[j]:.1f}")) for j in idx]
+        got = [(float(r[1]), float(r[2])) for r in h.customdata]
+        n_bad = sum(1 for e, g in zip(exp, got) if e != g)
+        assert n_bad == 0, f"{n_bad} of {len(exp)} hover values differ from .1f rounding"
+
     def test_strip_hover_before_full_window_says_so(self):
         fig = build_occupancy_figure(M, _p(xmin=2010, active_models=["bub"], occ_window=4))
         early, late = _hover(fig)            # x-ordered: pre-window first

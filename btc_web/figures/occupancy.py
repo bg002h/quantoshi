@@ -188,8 +188,12 @@ def build_occupancy_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             if n_hit:
                 traces.append(go.Scatter(
                     x=t_disp[hit], y=[_STRIP_HOVER_Y] * n_hit,
-                    customdata=np.round(np.column_stack(
-                        (above[pos[hit]], below[pos[hit]])), 1),
+                    # round(x, 1) is correctly rounded like the old f"{x:.1f}"
+                    # label (np.round's scale/half-even/unscale differs on
+                    # ~0.7% of days); a plain list also ships smaller than a
+                    # base64-encoded numpy array.
+                    customdata=[[round(float(a), 1), round(float(b), 1)]
+                                for a, b in zip(above[pos[hit]], below[pos[hit]])],
                     hovertemplate=(
                         f"<b>{name}</b> · %{{customdata[0]}}<br>"
                         f"≥Q{q_hi} %{{customdata[1]:.1f}}% · "

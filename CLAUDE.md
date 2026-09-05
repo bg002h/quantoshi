@@ -22,7 +22,7 @@ The web app loads `model_data.pkl` (at repo root) at runtime. It is regenerated 
 
 **Python**: Dev uses Python 3.14.3 (`btc_venv/bin/python3`); prod runs Python 3.12.3. Dependencies in `btc_web/requirements.txt` (gunicorn installed separately).
 
-**Local test environment:** `DEV=1 bash run_web.sh` (hot-reload, single user) or `bash run_web.sh` (gunicorn). The local btc-web systemd service has been stopped; start the app manually when needed.
+**Local test environment:** `DEV=1 bash run_web.sh` (single user, **no reloader** — restart it after every code edit: `lsof -ti :8050 | xargs kill -9` then `DEV=1 nohup bash run_web.sh > /tmp/quantoshi_dev.log 2>&1 &`) or `bash run_web.sh` (gunicorn). The local btc-web systemd service has been stopped; start the app manually when needed.
 
 ---
 
@@ -76,7 +76,7 @@ btc_venv/bin/python3 -m pytest btc_web/test_core.py -v                # single f
 ### Run the web app locally
 ```bash
 bash run_web.sh           # gunicorn, 5 workers, port 8050
-DEV=1 bash run_web.sh     # Dash dev server with hot-reload (single user, skips prewarm)
+DEV=1 bash run_web.sh     # Dash dev server (single user, skips prewarm, NO code reloader)
 PORT=8080 bash run_web.sh # custom port
 ```
 

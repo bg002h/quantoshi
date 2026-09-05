@@ -44,6 +44,7 @@ _MAIN_DOMAIN = (0.0, 0.90)
 _STRIP_DOMAIN = (0.93, 1.0)
 _STRIP_BELOW_Y = 1.0   # y2 row for days <= Q(tail)
 _STRIP_ABOVE_Y = 2.0   # y2 row for days >= Q(100-tail)
+_STRIP_HOVER_Y = 1.5   # y2 row of the invisible full-coverage hover trace
 _STRIP_MARKER_SIZE = 9
 
 
@@ -149,9 +150,32 @@ def build_occupancy_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                     name=f"{name} days {lbl}", showlegend=False,
                     marker=dict(symbol="line-ns", size=_STRIP_MARKER_SIZE,
                                 color=col, line=dict(width=1, color=col)),
-                    hovertemplate=("<b>%{fullData.name}</b><br>%{customdata[0]}"
-                                   "<extra></extra>"),
+                    # Ticks are sparse; hover is served by the full-coverage
+                    # trace below so it never depends on landing on a tick.
+                    hoverinfo="skip",
                 ))
+            # Invisible marker on EVERY displayed day: hovering anywhere along
+            # the bar reports the trailing-window shares at that date. Values
+            # ride on `text` because _add_date_hover overwrites customdata.
+            t_disp = t_all[disp]
+            pos = np.searchsorted(t_out, t_disp)
+            hover_text = []
+            for k in range(t_disp.shape[0]):
+                j = pos[k]
+                if j < t_out.shape[0] and abs(t_out[j] - t_disp[k]) < 1e-9:
+                    hover_text.append(f"≥Q{q_hi} {above[j]:.1f}% · ≤Q{tail} {below[j]:.1f}%")
+                else:
+                    hover_text.append("window not yet full")
+            traces.append(go.Scatter(
+                x=t_disp, y=np.full(t_disp.shape, _STRIP_HOVER_Y),
+                mode="markers", yaxis="y2",
+                name=f"{name} trailing {window:g} yr", showlegend=False,
+                # Invisible, but the hover label takes the model colour.
+                marker=dict(size=_STRIP_MARKER_SIZE, color=color, opacity=0),
+                text=hover_text,
+                hovertemplate=(f"<b>{name}</b> · %{{customdata[0]}}<br>%{{text}}"
+                               f"<br>of trailing {window:g} yr<extra></extra>"),
+            ))
 
     if traces:
         traces.append(go.Scatter(

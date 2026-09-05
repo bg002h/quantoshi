@@ -39,6 +39,16 @@ def _strip(fig):
     return [t for t in fig.data if getattr(t, "mode", None) == "markers"]
 
 
+def _ticks(fig):
+    return [t for t in _strip(fig) if t.marker.opacity != 0]
+
+
+def _hover(fig):
+    h = [t for t in _strip(fig) if t.marker.opacity == 0]
+    assert len(h) <= 1
+    return h[0] if h else None
+
+
 def _daily_t(years):
     return np.arange(0.0, years, 1.0 / 365.25)
 
@@ -168,10 +178,53 @@ class TestOccupancyFigure:
     def test_strip_marks_first_model_only(self):
         fig = build_occupancy_figure(M, _p(active_models=["bub", "qr"]))
         strip = _strip(fig)
-        assert len(strip) == 2
+        assert len(strip) == 3                    # 2 tick rows + 1 hover trace
+        assert len(_ticks(fig)) == 2
         assert all(t.yaxis == "y2" for t in strip)
         assert all("BM" in t.name for t in strip)
         assert all(t.showlegend is False for t in strip)
+
+    def test_tick_markers_do_not_hover(self):
+        # Hover on the bar must always land on the full-coverage hover trace,
+        # so the sparse tick markers must not compete for it.
+        fig = build_occupancy_figure(M, _p(active_models=["bub"]))
+        assert all(t.hoverinfo == "skip" for t in _ticks(fig))
+
+    def test_strip_hover_trace_covers_every_displayed_day(self):
+        fig = build_occupancy_figure(M, _p(xmin=2016, active_models=["bub"]))
+        h = _hover(fig)
+        assert h is not None and h.yaxis == "y2"
+        from btc_core import yr_to_t
+        td = today_t(M.genesis)
+        t_lo = yr_to_t(2016, M.genesis)
+        n_days = int(((M.price_years >= t_lo) & (M.price_years <= td)).sum())
+        # covers every displayed day (2016-01-01 .. today), not just tail days
+        assert len(h.x) == n_days
+        assert len(h.text) == len(h.x)
+        assert "%{text}" in h.hovertemplate and "%{customdata[0]}" in h.hovertemplate
+
+    def test_strip_hover_text_matches_line_values(self):
+        fig = build_occupancy_figure(M, _p(active_models=["bub"], occ_tail=10))
+        h = _hover(fig)
+        above = [t for t in _lines(fig) if "≥" in t.name][0]
+        below = [t for t in _lines(fig) if "≤" in t.name][0]
+        x_last = float(np.asarray(above.x, float)[-1])
+        i = int(np.argmin(np.abs(np.asarray(h.x, float) - x_last)))
+        txt = h.text[i]
+        a = float(re.search(r"≥Q90 ([\d.]+)%", txt).group(1))
+        b = float(re.search(r"≤Q10 ([\d.]+)%", txt).group(1))
+        assert abs(a - float(above.y[-1])) < 0.06
+        assert abs(b - float(below.y[-1])) < 0.06
+
+    def test_strip_hover_before_full_window_says_so(self):
+        fig = build_occupancy_figure(M, _p(xmin=2010, active_models=["bub"], occ_window=4))
+        h = _hover(fig)
+        first_line_t = float(np.asarray([t.x for t in _lines(fig)][0]).min())
+        hx = np.asarray(h.x, float)
+        early = [h.text[i] for i in range(len(hx)) if hx[i] < first_line_t - 1e-9]
+        assert early and all("not yet full" in t for t in early)
+        late = [h.text[i] for i in range(len(hx)) if hx[i] >= first_line_t]
+        assert late and all("≥Q90" in t for t in late)
 
     def test_strip_days_are_the_tail_days(self):
         # For QR (quantile regression on ALL data) the share of days above Q90

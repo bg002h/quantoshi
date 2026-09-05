@@ -699,6 +699,10 @@ def update_bub_cagr(view_mode, _first_render, sel_qs, adv_qs, xrange,
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
         return dash.no_update
+    # The graph is hidden in every other mode; don't rebuild it on each
+    # x-range / model tick while the user is looking at something else.
+    if view_mode != "cagr":
+        return dash.no_update
     from utils import _get_cagr_fig
 
     toggles = toggles or []
@@ -761,6 +765,10 @@ def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
         return dash.no_update
+    # The graph is hidden in every other mode; don't rebuild it on each
+    # x-range / model tick while the user is looking at something else.
+    if view_mode != "resid":
+        return dash.no_update
     from utils import _get_resid_fig
     toggles = toggles or []
     xrange = xrange or [2010, 2033]
@@ -809,6 +817,10 @@ def update_bub_pctile(view_mode, xrange, toggles, xscale, model_show,
                       snapshot_pending=False):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
+        return dash.no_update
+    # The graph is hidden in every other mode; don't rebuild it on each
+    # x-range / model tick while the user is looking at something else.
+    if view_mode != "percentile":
         return dash.no_update
     from utils import _get_pctile_fig
     toggles = toggles or []

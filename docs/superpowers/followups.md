@@ -368,8 +368,12 @@ exponents. If the free-exponent version does not beat the common-exponent one
 on a boundary-corrected LRT, the floor is one power law and only its *level*
 drifts — which is a much smaller change than a full time-evolving model.
 
+---
+
+## Closed
+
 ### F-10 — Tab-1 view pills Percentile and Occupancy have no deep link
-**Severity:** Minor · **Owning phase:** none (ownerless residue) · **Found:**
+**CLOSED 2026-09-04** (`/1.4`, `/1.5[.T[.W]]`, JS tab map regex, `test_bub_deep_links.py`) · **Severity:** Minor · **Found:**
 2026-09-04, while adding the Occupancy pill · **Pre-existing for Percentile**
 
 `callbacks/routing.py::deep_link_bub_view` handles `/1.2` (Forward CAGR) and
@@ -383,8 +387,3 @@ branches; the handler's Output list must grow the two wraps + two outlines
 (+ `bub-occ-ctl-wrap`) that `toggle_bub_view` already sets, and the
 `/1.5.T.W` suffix could carry tail/window like `/1.2.N.B` carries CAGR years.
 
----
-
-## Closed
-
-_none yet_

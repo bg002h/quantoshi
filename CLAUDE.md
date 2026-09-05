@@ -247,6 +247,7 @@ All defaults are canonical in `btc_web/tab_defaults.py` (`MappingProxyType` froz
 - Visiting `/1`–`/9` navigates directly to a tab (clientside callback on `url.pathname`).
 - Map: `/1`=bubble, `/2`=heatmap, `/3`=dca, `/4`=retire, `/5`=supercharge, `/6`=citadel, `/7`=leverage, `/8`=stack, `/9`=model_info, `/10`=faq. Named aliases: `/leverage`, `/mi`, `/faq`.
 - `/9.N` (or `/mi.N`) opens Model Info accordion item N; `/10.N` (or `/faq.N`) opens FAQ item N (both 1-indexed in URL, 0-indexed internally).
+- Tab-1 sub-views: `/1.2[.N[.B]]` Forward CAGR, `/1.3` Residuals, `/1.4` Percentile, `/1.5[.T[.W]]` Occupancy (T→tail 5/10/25 %, W→window 1/2/4 yr, 1-based). Handler `callbacks/routing.py::deep_link_bub_view`; the JS tab map sends any `/1.<n>` to the bubble tab. Adding a pill = add a branch there AND grow its Output list (see `test_bub_deep_links.py`).
 - Routing logic lives in `callbacks/routing.py` (split from old `nav.py`). Uses `allow_duplicate=True` + `prevent_initial_call='initial_duplicate'`. **Never use `prevent_initial_call=False` with `allow_duplicate=True`** — Dash raises an error that crashes gunicorn (exit code 3).
 
 ### Live price ticker

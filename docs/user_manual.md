@@ -849,6 +849,9 @@ known Bitcoin regime events: 2013/2017/2021 bubble peaks, the March
 | `/1.2.N` | Tab 1 CAGR with N-year horizon (1-6 -> 1,2,4,10,20,30 yr) |
 | `/1.2.N.1` | Same, with "hover today" beacon auto-triggered |
 | `/1.3` | Tab 1 in Residuals view |
+| `/1.4` | Tab 1 in Percentile view |
+| `/1.5` | Tab 1 in Occupancy view (time in the fan's tails) |
+| `/1.5.T.W` | Occupancy with tail T (1-3 -> 5, 10, 25 %) and window W (1-3 -> 1, 2, 4 yr); W may be omitted |
 | `/2` | Tab 2 Heatmap |
 | `/2.N` | Tab 2 with Nth pill active (1-indexed) |
 | `/3` | Tab 3 DCA |

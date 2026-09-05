@@ -357,8 +357,8 @@ _app_ctx.app.clientside_callback(
         if (p && /^\\/10\\.\\d+$/.test(p)) { return "faq"; }
         if (p && p.indexOf("/faq.") === 0) { return "faq"; }
         if (p && p.indexOf("/mi.") === 0) { return "model_info"; }
-        if (p && p.indexOf("/1.2") === 0) { return "bubble"; }
-        if (p && p.indexOf("/1.3") === 0) { return "bubble"; }
+        /* Tab-1 sub-views: /1.2 CAGR, /1.3 Residuals, /1.4 Percentile, /1.5 Occupancy */
+        if (p && /^\\/1\\.\\d+/.test(p)) { return "bubble"; }
         if (p && /^\\/2\\.\\d+$/.test(p)) { return "heatmap"; }
         var tab = map[p];
         return tab ? tab : NU;
@@ -371,7 +371,7 @@ _app_ctx.app.clientside_callback(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Bubble sub-view deep-linking (/1.2 → Forward CAGR, /1.3 → Residuals)
+# Bubble sub-view deep-linking (/1.2 CAGR, /1.3 Residuals, /1.4 Percentile, /1.5 Occupancy)
 # Single callback to avoid "Duplicate callback outputs" when both fire on URL change.
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -380,58 +380,87 @@ _app_ctx.app.clientside_callback(
     Output("bub-price-wrap", "style", allow_duplicate=True),
     Output("bub-cagr-wrap", "style", allow_duplicate=True),
     Output("bub-resid-wrap", "style", allow_duplicate=True),
+    Output("bub-pctile-wrap", "style", allow_duplicate=True),
+    Output("bub-occ-wrap", "style", allow_duplicate=True),
     Output("bub-view-price", "outline", allow_duplicate=True),
     Output("bub-view-cagr", "outline", allow_duplicate=True),
     Output("bub-view-resid", "outline", allow_duplicate=True),
+    Output("bub-view-pctile", "outline", allow_duplicate=True),
+    Output("bub-view-occ", "outline", allow_duplicate=True),
     Output("bub-scale-controls", "style", allow_duplicate=True),
     Output("bub-bubble-panel", "style", allow_duplicate=True),
     Output("bub-cagr-fwd-wrap", "style", allow_duplicate=True),
+    Output("bub-occ-ctl-wrap", "style", allow_duplicate=True),
     Output("bub-xrange", "value", allow_duplicate=True),
     Output("bub-cagr-fwd-yrs", "value", allow_duplicate=True),
     Output("bub-cagr-hover-today", "data", allow_duplicate=True),
+    Output("bub-occ-tail", "value", allow_duplicate=True),
+    Output("bub-occ-window", "value", allow_duplicate=True),
     Input("url", "pathname"),
     prevent_initial_call=True,
 )
 def deep_link_bub_view(pathname):
+    """Tab-1 sub-view deep links.
+
+    /1.2[.N[.B]]  Forward CAGR  (N -> horizon 1,2,4,10,20,30 yr; B=1 -> hover today)
+    /1.3          Residuals
+    /1.4          Percentile
+    /1.5[.T[.W]]  Occupancy     (T -> tail 5/10/25 %, W -> window 1/2/4 yr)
+    Indices are 1-based; '-' is accepted for '.' (see _norm). Output order
+    mirrors toggle_bub_view, then the CAGR / occupancy control values.
+    """
     from dash import no_update
+    NU = no_update
     pathname = _norm(pathname)
     if not pathname:
-        return (no_update,) * 13
+        return (NU,) * 20
     _hide = {"display": "none"}
+    _inline = {"display": "inline"}
+    parts = pathname[1:].split(".")
+
+    def _pick(i, options):
+        """options[parts[i] - 1] (1-based), or no_update if absent / invalid."""
+        if len(parts) <= i:
+            return NU
+        try:
+            n = int(parts[i])
+        except ValueError:
+            return NU
+        return options[n - 1] if 1 <= n <= len(options) else NU
 
     if pathname.startswith("/1.3"):
-        # Residuals view
-        return ("resid", _hide, _hide, {},
-                True, True, False,
-                {}, {}, _hide,
-                no_update, no_update, no_update)
+        return ("resid", _hide, _hide, {}, _hide, _hide,
+                True, True, False, True, True,
+                {}, {}, _hide, _hide,
+                NU, NU, NU, NU, NU)
+
+    if pathname.startswith("/1.4"):
+        return ("percentile", _hide, _hide, _hide, {}, _hide,
+                True, True, True, False, True,
+                {}, {}, _hide, _hide,
+                NU, NU, NU, NU, NU)
+
+    if pathname.startswith("/1.5"):
+        return ("occupancy", _hide, _hide, _hide, _hide, {},
+                True, True, True, True, False,
+                {}, {}, _hide, _inline,
+                NU, NU, NU, _pick(2, [5, 10, 25]), _pick(3, [1, 2, 4]))
 
     if pathname.startswith("/1.2"):
-        # Forward CAGR view, parse /1.2.N.B
-        _FWD_OPTIONS = [1, 2, 4, 10, 20, 30]
-        fwd_yrs = no_update
-        hover_today = no_update
-        parts = pathname[1:].split(".")
-        if len(parts) >= 3:
-            try:
-                n = int(parts[2])
-                if 1 <= n <= len(_FWD_OPTIONS):
-                    fwd_yrs = _FWD_OPTIONS[n - 1]
-            except ValueError:
-                pass
+        hover_today = NU
         if len(parts) >= 4:
             try:
-                b = int(parts[3])
-                if b == 1:
+                if int(parts[3]) == 1:
                     hover_today = True
             except ValueError:
                 pass
-        return ("cagr", _hide, {}, _hide,
-                True, False, True,
-                _hide, _hide, {"display": "inline"},
-                CAGR_DEFAULT_XRANGE, fwd_yrs, hover_today)
+        return ("cagr", _hide, {}, _hide, _hide, _hide,
+                True, False, True, True, True,
+                _hide, _hide, _inline, _hide,
+                CAGR_DEFAULT_XRANGE, _pick(2, [1, 2, 4, 10, 20, 30]), hover_today,
+                NU, NU)
 
-    return (no_update,) * 13
+    return (NU,) * 20
 
 
 # ══════════════════════════════════════════════════════════════════════════════

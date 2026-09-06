@@ -72,7 +72,14 @@ class TestPercentileFigure:
 
     def test_series_matches_find_percentile_qr(self):
         # _percentile_series must equal per-date find_percentile for QR, whose
-        # fan is non-monotonic — the consistency guarantee with the navbar ticker.
+        # fan is non-monotonic.
+        #
+        # NOTE: this compares the two lookups at the SAME sigma_mode, so it
+        # is a guarantee about the lookup, NOT about agreement with the
+        # navbar. It was described as the latter until 2026-09-06, and could
+        # not have caught the 19.37 pp ticker/view gap that the σ-mode
+        # default actually caused — the navbar's σ-mode is pinned and
+        # checked in test_ticker_parity.py.
         m = _app_ctx.PRICE_MODELS["qr"]
         mask = (M.price_years >= 1.0) & (M.price_years <= today_t(M.genesis))
         t = M.price_years[mask][::7]

@@ -40,6 +40,32 @@ _MODEL_LABELS = {
     Input("user-model-store", "data"),
     prevent_initial_call="initial_duplicate",
 )
+def _ticker_sigma_mode():
+    """The σ-mode the navbar percentile is computed at.
+
+    Must match what the charts render with (`tab_defaults.bubble_defaults()
+    ["sigma_mode"]`, i.e. `"resqr"`), or the navbar tells the user a
+    different story from the Percentile view they click through to.
+
+    It did not, until 2026-09-06: `find_percentile`'s signature default is
+    `"constant"` (`btc_core/_base.py`) and this callback passed no
+    `sigma_mode`, so the navbar read BM 99.020 % while `/1.4` read 79.652 %
+    for the same coin — 19.37 pp apart, of which the live price and the
+    deliberate data lag explained only ~0.4 pp. Five of the ten cycled
+    models disagreed.
+
+    Falls back to constant σ when no resqr bundle is loaded, which is also
+    what `qr`, `lp3` and `ef` do per-model regardless of this setting.
+
+    NOT a `State("bub-sigma-mode", "value")`: that control lives inside the
+    lazy-loaded Tab 1, so referencing it here would raise Dash's
+    "nonexistent object" error on any load that starts elsewhere — a
+    measured prod cost, see memory `feedback_nonexistent_input_perf.md`.
+    A user who flips the σ toggle changes their chart, not the navbar.
+    """
+    return "resqr" if getattr(_app_ctx, "_HAS_RESQR", False) else "constant"
+
+
 def update_price_ticker(_, mode, user_model_data):
     # NOTE: this callback used to also write hm-entry-q, hm-mc-entry-q,
     # dca-mc-entry-q. Those cross-tab Outputs errored on page load
@@ -61,7 +87,7 @@ def update_price_ticker(_, mode, user_model_data):
         if mdl is None:
             continue
         try:
-            p = mdl.find_percentile(t, price)
+            p = mdl.find_percentile(t, price, sigma_mode=_ticker_sigma_mode())
             pcts[key] = round(p * 100) if p is not None else None
         except Exception:
             pcts[key] = None

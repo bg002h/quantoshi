@@ -327,9 +327,25 @@ _app_ctx.app.clientside_callback(
 # mobile browsers. This clientside callback converts the radio change into
 # a first-render bump, which IS an existing Input.
 _app_ctx.app.clientside_callback(
-    """function(mode, cur) { return (cur || 0) + 1; }""",
+    # A snapshot restore writes every control, including bub-sigma-mode — and
+    # a link that did not change it writes the SAME mode the page rendered
+    # with. Measured 2026-09-06: that no-op write cost a bump (~6 POSTs) on
+    # every restore. Compare against what was rendered (layout.RENDER_STAMP),
+    # so a real mode change still re-triggers the chart.
+    """
+    function(mode, stamp, cur) {
+        var NU = window.dash_clientside.no_update;
+        if (stamp && mode === stamp.sigma_mode && !window.__qsSigmaSeen) {
+            window.__qsSigmaSeen = true;
+            return NU;
+        }
+        window.__qsSigmaSeen = true;
+        return (cur || 0) + 1;
+    }
+    """,
     Output("bubble-first-render", "data", allow_duplicate=True),
     Input("bub-sigma-mode", "value"),
+    State("render-stamp", "data"),
     State("bubble-first-render", "data"),
     prevent_initial_call=True,
 )

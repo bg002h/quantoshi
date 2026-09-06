@@ -326,6 +326,41 @@ Every unmigrated tool using the `:>Nf` idiom still creeps.
 
 ---
 
+### F-11 — A saved colourblind palette does not survive a page reload on the chart
+**Type:** defect · **Owning phase:** unscheduled · **Severity:** Important (accessibility)
+· **Found:** 2026-09-06, while safety-testing the no-op bump guards ·
+**PRE-EXISTING — verified identical on master and on the branch**
+
+Select **Deuteranomaly** (`cb-brian`) on Tab 1, reload the page, and the chart
+comes back painted in the **default** palette. Measured on the bubble trace:
+`#D8BD65` (CB-Brian BM) before the reload, `#C48209` (default BM) after it.
+
+This matters more than a normal cosmetic bug: the operator is colourblind and
+the CB palettes exist for them specifically, so the failure mode is "the
+accessibility setting silently does not stick".
+
+**What is NOT the cause.** The bump fires: 27 POSTs on the reload carry
+`bubble-first-render` in `changedPropIds`, so the palette hydration DOES
+re-trigger the chart callbacks. Something downstream of that re-render is
+still using the default palette — the pre-injected figure, the L1/L0 cache
+key, or the palette value reaching the figure builder.
+
+**Reproduction (committed):**
+
+```bash
+DEV=1 bash run_web.sh
+btc_venv/bin/python3 scripts/check_palette_persists.py     # exits 1 today
+```
+
+**Where to start:** `palette-store` is `storage_type="local"` and hydrates
+correctly (the dropdown shows the right value after reload). Suspect the
+figure path: `_serve_layout` pre-injects figures built with
+`palette = sd("palette-store:data")` = `"default"` (`tab_defaults.py:85`), and
+the re-render after hydration may be served from a cache keyed without the
+palette, or the clientside repaint may lose to the pre-injected figure.
+Compare with `apply_hm_palette` and the `palette-store` guard described in
+CLAUDE.md's "Centralized appearance system".
+
 ### F-9 — Time-evolving bubble model
 **Type:** research idea, not a defect · **Owning phase:** unscheduled · **Raised:**
 2026-08-08, out of the support-phase `spl` trial

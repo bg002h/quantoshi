@@ -508,9 +508,30 @@ _app_ctx.app.clientside_callback(
 
 # ── Palette change → bump active-tab-bump-tick ─────────────────────────
 _app_ctx.app.clientside_callback(
-    "function(p, cur) { if (p === undefined || p === null) return window.dash_clientside.no_update; return (cur || 0) + 1; }",
+    # The palette-store is localStorage-backed, so it writes once on hydration
+    # with whatever the browser had. When that equals the palette the
+    # pre-injected figures were built with (`layout.RENDER_STAMP`), the charts
+    # on screen are already correct and the bump would rebuild them into
+    # themselves — measured 2026-09-06 as ~6 POSTs of pure waste.
+    #
+    # A DIFFERENT hydrated palette must still bump: a returning CB-palette
+    # user's charts were rendered "default" server-side and have to repaint.
+    # Hence value equality, never a fire count.
+    """
+    function(p, stamp, cur) {
+        var NU = window.dash_clientside.no_update;
+        if (p === undefined || p === null) return NU;
+        if (stamp && p === stamp.palette && !window.__qsPaletteSeen) {
+            window.__qsPaletteSeen = true;   // hydration of the rendered value
+            return NU;
+        }
+        window.__qsPaletteSeen = true;
+        return (cur || 0) + 1;
+    }
+    """,
     Output("active-tab-bump-tick", "data", allow_duplicate=True),
     Input("palette-store", "data"),
+    State("render-stamp", "data"),
     State("active-tab-bump-tick", "data"),
     prevent_initial_call=True,
 )
@@ -519,8 +540,21 @@ _app_ctx.app.clientside_callback(
 _app_ctx.app.clientside_callback(
     """
     function(eff, snap, local, cur) {
+        var NU = window.dash_clientside.no_update;
         var ctx = window.dash_clientside.callback_context;
-        if (!ctx.triggered || !ctx.triggered.length) return window.dash_clientside.no_update;
+        if (!ctx.triggered || !ctx.triggered.length) return NU;
+        // Empty -> empty changes nothing. The three lots stores cascade into
+        // each other, so on a load with no lots this fired with
+        // effective-lots going [] -> [] (measured 2026-09-06) and cost ~6
+        // POSTs rebuilding charts into themselves.
+        //
+        // Only emptiness is compared, never contents: any non-empty value
+        // bumps, so an edit that keeps the length the same can never be
+        // swallowed — and nothing stringifies a large lots array per fire.
+        var isEmpty = !eff || !eff.length;
+        var wasEmpty = window.__qsLotsEmpty;
+        window.__qsLotsEmpty = isEmpty;
+        if (isEmpty && wasEmpty !== false) return NU;
         return (cur || 0) + 1;
     }
     """,

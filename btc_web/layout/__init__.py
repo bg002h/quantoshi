@@ -15,6 +15,7 @@ import dash_bootstrap_components as dbc
 import _app_ctx
 # _LOGO_B64_ALL removed from layout — loaded on demand by export callback
 from snapshot import _SNAPSHOT_CONTROLS
+from snapshot_defaults import SNAPSHOT_DEFAULTS
 
 # ── Re-exports (consumed by callbacks.py, app.py, etc.) ─────────────────────
 from layout.common import (_global_lppl_modal, _global_hybppl_modal,
@@ -257,6 +258,23 @@ def _pick_splash_quote():
 LAZY_TABS = ("bubble", "heatmap", "dca", "retire", "supercharge",
              "citadel", "leverage", "stack", "model_info", "faq")
 
+#: What the pre-injected figures were actually built with.
+#:
+#: `_serve_layout` injects figures from the L1 cache that prewarm populated
+#: from `tab_defaults`, which read these same snapshot defaults — so on first
+#: paint the charts on screen ARE these values. The clientside guards in
+#: `charts/_clientside.py` and `scanner.py` compare against this to tell a
+#: store-hydration write that changes nothing from one that must repaint.
+#:
+#: The distinction is not "first fire": a returning CB-palette user hydrates
+#: `palette-store` to a value the server did NOT render with, and that bump is
+#: load-bearing. Suppressing it paints a colourblind user's charts in the
+#: wrong palette, silently. Compare values, never fire counts.
+RENDER_STAMP = {
+    "palette": SNAPSHOT_DEFAULTS["palette-store:data"],
+    "sigma_mode": SNAPSHOT_DEFAULTS["bub-sigma-mode:value"],
+}
+
 
 def _build_layout(initial_tab="bubble"):
     _splash_q, _splash_a = _pick_splash_quote()
@@ -398,6 +416,8 @@ def _build_layout(initial_tab="bubble"):
     # router then bumps the active tab's first-render. Replaces the old
     # bridge callback that fired on initial Store hydration.
     dcc.Store(id="active-tab-bump-tick", storage_type="memory", data=0),
+    # What the pre-injected figures were built with — see RENDER_STAMP above.
+    dcc.Store(id="render-stamp", storage_type="memory", data=RENDER_STAMP),
     # MC per-tab stores (results, unblocked cache, loaded trigger, download dummy)
     *[dcc.Store(id=f"{pfx}-mc-results", storage_type="memory", data=None)
       for pfx in ("dca", "ret", "hm", "sc", "cp", "bub")],

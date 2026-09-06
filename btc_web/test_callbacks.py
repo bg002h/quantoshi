@@ -1747,13 +1747,27 @@ class TestNoDuplicateCallbackOutputs:
         import _app_ctx
         app = _app_ctx.app
 
+        from test_no_orphan_callbacks import _all_callbacks, _split_output_key
+
         output_sources = defaultdict(list)  # "cid.prop" -> [has_allow_dup, ...]
-        for cb_key in app.callback_map:
-            for part in cb_key.split("..."):
+        all_cbs = _all_callbacks()
+        for cb_key in all_cbs:
+            for part in _split_output_key(cb_key):
                 has_dup = "@" in part
                 clean = part.split("@")[0] if "@" in part else part
                 if clean:
                     output_sources[clean].append(has_dup)
+
+        # Non-vacuity: a server<->server or server<->clientside collision is
+        # the exact class this test claims to catch, so the scan has to see
+        # the server callbacks. It walked app.callback_map alone until
+        # 2026-09-06, which holds only the clientside registrations until
+        # Dash's server setup merges the two. Probe for a known server
+        # output rather than comparing map sizes — which map holds it
+        # depends on test order.
+        assert "loaded-hash-store.data" in output_sources, (
+            f"duplicate-output scan is not seeing server callbacks "
+            f"({len(all_cbs)} callbacks, {len(output_sources)} outputs)")
 
         violations = []
         for out, flags in output_sources.items():
@@ -1780,12 +1794,15 @@ class TestNoDuplicateCallbackOutputs:
 
         snap_cids = {f"{cid}.{prop}" for cid, prop in _SNAPSHOT_CONTROLS}
 
-        for cb_key in app.callback_map:
-            parts = cb_key.split("...")
-            clean_parts = [p.split("@")[0] for p in parts]
+        from test_no_orphan_callbacks import _all_callbacks, _split_output_key
+
+        found = False
+        for cb_key in _all_callbacks():
+            clean_parts = [p.split("@")[0] for p in _split_output_key(cb_key)]
             # Identify restore_from_url by its loaded-hash-store output
             if "loaded-hash-store.data" not in clean_parts:
                 continue
+            found = True
             # This callback should NOT contain any snapshot control outputs
             overlap = snap_cids & set(clean_parts)
             assert overlap == set(), (
@@ -1794,7 +1811,15 @@ class TestNoDuplicateCallbackOutputs:
                 f"graph.  Use snapshot-state-store + apply_globals "
                 f"instead.  Offending outputs: {sorted(overlap)[:5]}..."
             )
-            break
+        # Every writer of loaded-hash-store.data is checked, not just the
+        # first: the loop used to `break` on match, so a second callback
+        # adopting that output could smuggle snapshot controls past this
+        # guard. Caught by sabotage-testing the revived test, 2026-09-06.
+        #
+        # Non-vacuity: restore_from_url is a server callback, so this loop
+        # matched nothing at all until 2026-09-06 and the assertion above
+        # never executed.
+        assert found, "restore_from_url not found — this test was vacuous"
 
     def test_restore_from_url_does_not_output_bubble_graph(self):
         """Phase 1 invariant (2026-04-25): restore_from_url must NOT have
@@ -1809,14 +1834,19 @@ class TestNoDuplicateCallbackOutputs:
 
         See memory/restore_callback_architecture.md (Phase 1 section).
 
-        Note: uses dash._callback.GLOBAL_CALLBACK_MAP because @callback
-        registrations land there (app.callback_map is only populated
-        after app.run() and is empty in unit tests).
+        Note: uses `_all_callbacks()` rather than
+        `dash._callback.GLOBAL_CALLBACK_MAP` directly. @callback
+        registrations do land in the global map, but Dash's server setup
+        moves them into `app.callback_map`, and one test in this suite
+        (`test_infrastructure.py::TestSourceMapGuard`) triggers that by
+        building a Flask test client. Reading the global map alone made
+        this test fail whenever it ran after that one in the same xdist
+        worker — measured 2026-09-06 with `-n0 -p no:randomly`.
         """
-        from dash._callback import GLOBAL_CALLBACK_MAP
+        from test_no_orphan_callbacks import _all_callbacks
 
         found = False
-        for cb_key, cb_meta in GLOBAL_CALLBACK_MAP.items():
+        for cb_key, cb_meta in _all_callbacks().items():
             ins = cb_meta.get("inputs", [])
             in_ids = [(i.get("id"), i.get("property")) for i in ins]
             # restore_from_url is the only callback with Input("url", "hash")
@@ -1841,7 +1871,7 @@ class TestNoDuplicateCallbackOutputs:
                 "Required for the figure-relay pattern that fixes /2-/7."
             )
             return
-        assert found, "restore_from_url callback not found in GLOBAL_CALLBACK_MAP"
+        assert found, "restore_from_url callback not found in either callback map"
 
 
 
@@ -2299,12 +2329,16 @@ class TestSnapshotPendingChartGate:
         State('snapshot-pending','data')."""
         import _app_ctx
         app = _app_ctx.app
+        from test_no_orphan_callbacks import _all_callbacks, _split_output_key
+
         missing = []
-        for cb_key in app.callback_map:
-            parts = cb_key.split("...")
-            outputs = [p.split("@")[0] for p in parts]
+        seen = set()
+        all_cbs = _all_callbacks()
+        for cb_key in all_cbs:
+            outputs = [p.split("@")[0] for p in _split_output_key(cb_key)]
             if outputs[0] in self._CHART_OUTPUTS_EXPECTED:
-                entry = app.callback_map[cb_key]
+                seen.add(outputs[0])
+                entry = all_cbs[cb_key]
                 # Dash stores both Inputs and States in these fields
                 all_deps = []
                 for field in ("inputs", "state"):
@@ -2316,3 +2350,11 @@ class TestSnapshotPendingChartGate:
                     missing.append(outputs[0])
         assert not missing, (
             f"Chart callbacks missing State('snapshot-pending','data'): {missing}")
+        # Non-vacuity: all nine are server callbacks and seven are
+        # multi-output, so both the map and the key parser have to be right
+        # for this to inspect anything at all. It found 0 of 9 until
+        # 2026-09-06.
+        assert seen == set(self._CHART_OUTPUTS_EXPECTED), (
+            f"chart-gate test inspected {len(seen)}/"
+            f"{len(self._CHART_OUTPUTS_EXPECTED)} callbacks; missing: "
+            f"{sorted(set(self._CHART_OUTPUTS_EXPECTED) - seen)}")

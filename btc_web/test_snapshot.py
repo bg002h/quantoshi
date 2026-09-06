@@ -636,30 +636,42 @@ class TestSnapshotPendingGate:
     def test_snapshot_pending_writers_have_allow_duplicate(self):
         """Every callback that outputs snapshot-pending.data must use
         allow_duplicate=True (the @ marker in the callback_map key)."""
-        import _app_ctx
-        app = _app_ctx.app
-        for cb_key in app.callback_map:
-            parts = cb_key.split("...")
-            for part in parts:
+        from test_no_orphan_callbacks import _all_callbacks, _split_output_key
+
+        writers = 0
+        for cb_key in _all_callbacks():
+            for part in _split_output_key(cb_key):
                 base = part.split("@")[0]
                 if base == "snapshot-pending.data":
+                    writers += 1
                     assert "@" in part, (
                         f"Callback {cb_key} outputs snapshot-pending without "
                         f"allow_duplicate (part: {part!r})")
+        # Non-vacuity: eight of the nine writers (restore_from_url and the
+        # seven apply_tab_* callbacks) are server-side, so walking
+        # app.callback_map alone checked 1 of 9 until 2026-09-06.
+        assert writers >= 9, (
+            f"only {writers} snapshot-pending writers inspected, expected >= 9")
 
     def test_apply_globals_does_not_output_snapshot_pending(self):
         """Guard: apply_globals must NOT output snapshot-pending. If a future
         editor moves the release into apply_globals, it clears the gate before
         apply_tab_{active} runs — breaking the single-redraw invariant."""
-        import _app_ctx
-        app = _app_ctx.app
-        for cb_key in app.callback_map:
-            parts = cb_key.split("...")
-            clean = [p.split("@")[0] for p in parts]
+        from test_no_orphan_callbacks import _all_callbacks, _split_output_key
+
+        found = False
+        for cb_key in _all_callbacks():
+            clean = [p.split("@")[0] for p in _split_output_key(cb_key)]
             if ("main-tabs.active_tab" in clean and "palette-store.data" in clean):
+                found = True
                 assert "snapshot-pending.data" not in clean, (
                     "apply_globals must NOT output snapshot-pending "
                     "(would break single-redraw invariant)")
+        # Non-vacuity: this matched nothing until 2026-09-06 for TWO reasons —
+        # apply_globals is a server callback, and a naive key.split("...")
+        # left the leading ".." on its first output, so the
+        # "main-tabs.active_tab" test could never be true.
+        assert found, "apply_globals not found — this test was vacuous"
 
     def test_safety_timer_at_least_3000ms(self):
         """Clientside safety timer must wait at least 4000 ms before

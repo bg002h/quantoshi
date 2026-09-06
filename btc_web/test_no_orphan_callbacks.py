@@ -12,8 +12,13 @@ How it works:
      directly (bypassing the lazy {tab}-lazy placeholder).
   2. Build the shell layout for navbar + stores + modals.
   3. Walk the trees collecting every component that has an `id`.
-  4. Walk `app.callback_map` collecting every id referenced as an
-     Input / Output / State.
+  4. Walk BOTH callback registries (`_all_callbacks()`: the server
+     `@callback`s in `dash._callback.GLOBAL_CALLBACK_MAP` plus the
+     clientside ones in `app.callback_map`) collecting every id referenced
+     as an Input / Output / State. Walking only `app.callback_map` — as
+     this test did until 2026-09-06 — misses every server callback, which
+     measured as 299 component ids over 2,040 reference sites, 65% of all
+     references.
   5. Diff. Anything referenced but not in the layout is an orphan.
 
 Allowlist (`_KNOWN_ORPHANS`) documents pre-existing orphans with a
@@ -98,6 +103,54 @@ def _collect_layout_ids() -> set[str]:
     return ids
 
 
+def _all_callbacks():
+    """Every registered callback, keyed by output key.
+
+    Dash keeps two disjoint registries and tests need both:
+
+    * ``dash._callback.GLOBAL_CALLBACK_MAP`` — the server callbacks, i.e.
+      every ``@callback`` in this app (`grep -rn "app.callback(" btc_web`
+      finds none). These are the ones that cost a POST.
+    * ``app.callback_map`` — the ``app.clientside_callback`` registrations.
+
+    Which map holds what depends on test order, so always take the union.
+    Dash merges the global map into ``app.callback_map`` during server setup,
+    and one test in the suite triggers exactly that:
+    ``test_infrastructure.py::TestSourceMapGuard`` builds a Flask test client.
+    Measured 2026-09-06, before and after that client is created::
+
+        before   global= 96   clientside=251   union=347
+        after    global=  0   clientside=347   union=347
+
+    The merge is lossless, so the union is stable either way — but anything
+    asserting on one registry alone passes or fails by xdist worker
+    assignment. Do NOT force the merge to unify them either:
+    ``Dash._setup_server()`` ``pop()``s the global map, and
+    ``test_callbacks.py::test_restore_from_url_does_not_output_bubble_graph``
+    reads it directly.
+    """
+    import _app_ctx
+    from dash import _callback as dash_callback
+    return {**dash_callback.GLOBAL_CALLBACK_MAP, **_app_ctx.app.callback_map}
+
+
+def _split_output_key(key):
+    """``['id.prop@hash', ...]`` — the output entries of one callback key.
+
+    Single output is ``id.prop`` or ``id.prop@hash`` (allow_duplicate);
+    multi-output is ``..id1.prop1...id2.prop2..``. A naive
+    ``key.split("...")`` leaves the wrapping ``..`` on the first and last
+    entry, so ``'..main-tabs.active_tab'`` never equals
+    ``'main-tabs.active_tab'``. Measured 2026-09-06: that mis-parsed 222
+    output entries across 154 multi-output callbacks and silently emptied
+    three tests. See
+    ``docs/superpowers/agent-reports/2026-09-06-orphan-guard-and-syntax-check-recon.md``.
+    """
+    key = key.strip(".")
+    parts = re.split(r"\.\.+", key) if ".." in key else [key]
+    return [p for p in (x.strip(".") for x in parts) if p]
+
+
 _OUTPUT_RE = re.compile(r"([^.]+)\.[^.]+")
 
 
@@ -118,9 +171,8 @@ def _parse_output_key(key: str) -> list[str]:
 
 def _collect_callback_refs() -> dict[str, list[tuple[str, str, str]]]:
     """Returns {component_id: [(callback_key, role, property), ...]}."""
-    from _app_ctx import app
     refs: dict[str, list[tuple[str, str, str]]] = {}
-    for key, entry in app.callback_map.items():
+    for key, entry in _all_callbacks().items():
         for cid in _parse_output_key(key):
             refs.setdefault(cid, []).append((key, "Output", "-"))
         for dep in entry.get("inputs", []):
@@ -134,6 +186,40 @@ def _collect_callback_refs() -> dict[str, list[tuple[str, str, str]]]:
             if isinstance(cid, str) and not cid.startswith("{"):
                 refs.setdefault(cid, []).append((key, "State", prop))
     return refs
+
+
+def test_introspection_sees_both_callback_registries():
+    """Non-vacuity guard for every callback-introspecting test in the suite.
+
+    `_all_callbacks()` and `_split_output_key()` are shared by this module,
+    `test_callbacks.py` and `test_snapshot.py`. If either silently reverts to
+    the clientside-only map or to a naive `key.split("...")`, several of those
+    tests stop inspecting anything and pass for free — which is exactly what
+    happened between 2026-04 and 2026-09-06 (three tests fully vacuous, two
+    partially). Fail loudly here instead.
+    """
+    union = _all_callbacks()
+    outputs = {p.split("@")[0] for k in union for p in _split_output_key(k)}
+
+    # Assert the PROPERTY (server callbacks are visible), not the mechanism
+    # (which map they are in). Which map holds them depends on test order —
+    # see _all_callbacks() — so asserting on either registry directly makes
+    # this test pass or fail according to xdist worker assignment.
+    for probe in ("loaded-hash-store.data",      # restore_from_url
+                  "snapshot-pending.data",       # restore_from_url + apply_tab_*
+                  "bubble-graph.figure"):        # update_bubble
+        assert probe in outputs, (
+            f"{probe} is not visible to _all_callbacks() — server callbacks "
+            f"are being missed ({len(union)} callbacks seen)")
+
+    # And the parser has to strip the wrapping dots off multi-output keys.
+    multi = [k for k in union if "..." in k]
+    assert multi, "expected at least one multi-output callback"
+    for key in multi:
+        for part in _split_output_key(key):
+            assert not part.startswith("."), (
+                f"_split_output_key left a leading dot on {part!r} "
+                f"(from {key[:60]!r})")
 
 
 def test_no_orphan_callback_refs():

@@ -197,6 +197,10 @@ def test_introspection_sees_both_callback_registries():
     tests stop inspecting anything and pass for free — which is exactly what
     happened between 2026-04 and 2026-09-06 (three tests fully vacuous, two
     partially). Fail loudly here instead.
+
+    This catches a regression to *zero matches*. For the stronger property —
+    that each guard still FAILS when its defect is actually present — run
+    ``scripts/sabotage_callback_guards.py``.
     """
     union = _all_callbacks()
     outputs = {p.split("@")[0] for k in union for p in _split_output_key(k)}

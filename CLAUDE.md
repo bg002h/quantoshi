@@ -73,6 +73,18 @@ btc_venv/bin/python3 -m pytest btc_web/test_core.py -v                # single f
 ```
 **E2E tests** (`test_tax_e2e.py`, `test_plot_appearance_e2e.py`, `test_scanner_e2e.py`) require Playwright + Firefox + a running dev server (`DEV=1 bash run_web.sh`). Skip them with `--ignore-glob='*_e2e.py'` for fast iteration.
 
+**Can the callback guards still fail?**
+```bash
+btc_venv/bin/python3 scripts/sabotage_callback_guards.py
+```
+Injects each defect the callback-introspection tests exist to catch (an
+orphan reference, an unguarded duplicate output, a chart callback losing
+`State('snapshot-pending')`, …) and asserts the guard **fails**. Three of
+those tests were silently vacuous for five months — passing while inspecting
+zero callbacks — so run this after touching `_all_callbacks`,
+`_split_output_key`, or any of the guards. Not in the pytest suite: it mutates
+a process-global registry, which `-n logical` would share with other tests.
+
 ### Run the web app locally
 ```bash
 bash run_web.sh           # gunicorn, 5 workers, port 8050

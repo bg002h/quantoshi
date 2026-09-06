@@ -249,6 +249,15 @@ def _pick_splash_quote():
     return ['"'] + parts + ['"'], q_attr
 
 
+#: Tabs whose content is wrapped in a `{tab}-lazy` Div and populated on first
+#: visit (or by background prefetch). Each one also gets a `{tab}-loaded`
+#: boolean Store below; `callbacks/routing.py` imports this tuple so the two
+#: can never drift — a mismatch would make a callback reference a Store that
+#: does not exist (see memory `feedback_nonexistent_input_perf.md`).
+LAZY_TABS = ("bubble", "heatmap", "dca", "retire", "supercharge",
+             "citadel", "leverage", "stack", "model_info", "faq")
+
+
 def _build_layout(initial_tab="bubble"):
     _splash_q, _splash_a = _pick_splash_quote()
 
@@ -367,6 +376,19 @@ def _build_layout(initial_tab="bubble"):
     dcc.Store(id="wm-b64-store", storage_type="memory", data=None),  # no longer embedded in layout
     dcc.Store(id="auto-y-grid", storage_type="memory",
               data=_app_ctx.AUTO_Y_GRID if initial_tab == "bubble" else None),
+    # ── Lazy-load bookkeeping ─────────────────────────────────────────────
+    # One small boolean per lazy tab, written in the SAME output batch as
+    # `{tab}-lazy.children`. It answers "is this tab already populated?" so
+    # the loader no longer takes `State("{tab}-lazy", "children")` — which
+    # uploaded the tab's entire serialized subtree (1,315 KB for bubble once
+    # its figure is in) on every fire, to compute one boolean. The initial
+    # tab is rendered eagerly below, so its flag starts True.
+    # Guard: test_lazy_flag_payload.py.
+    *[dcc.Store(id=f"{tab}-loaded", storage_type="memory",
+                data=(tab == initial_tab))
+      for tab in LAZY_TABS],
+    dcc.Store(id="auto-y-grid-loaded", storage_type="memory",
+              data=(initial_tab == "bubble")),
     # Per-tab render triggers — 1 for the target tab (figure pre-injected),
     # 0 for others (callback fires on first visit to fetch their figure).
     *[dcc.Store(id=f"{tab}-first-render", storage_type="memory",

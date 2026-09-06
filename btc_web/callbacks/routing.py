@@ -4,6 +4,7 @@ import dash
 from dash import Input, Output, State, callback, ctx, no_update, ALL
 
 import _app_ctx
+from layout import LAZY_TABS
 from layout.faq import _FAQ
 from layout.bubble import CAGR_DEFAULT_XRANGE
 from bub_views import mode_for_path, mode_styles
@@ -571,15 +572,23 @@ _MODEL_INFO_ITEMS = [
 
 @callback(
     Output("auto-y-grid", "data"),
+    Output("auto-y-grid-loaded", "data"),
     Input("main-tabs", "active_tab"),
-    State("auto-y-grid", "data"),
+    State("auto-y-grid-loaded", "data"),
     prevent_initial_call=True,
 )
-def _lazy_load_auto_y_grid(tab, current):
-    """Populate auto-Y grid on first bubble visit (saves ~162KB from layout JSON)."""
-    if tab != "bubble" or current is not None:
-        return no_update
-    return _app_ctx.AUTO_Y_GRID
+def _lazy_load_auto_y_grid(tab, loaded):
+    """Populate auto-Y grid on first bubble visit (saves ~162KB from layout JSON).
+
+    The "already populated?" question is answered by a boolean flag, not by
+    the grid itself: as `State("auto-y-grid", "data")` the browser uploaded
+    the whole ~146 KB grid on EVERY tab switch just to evaluate
+    `is not None`. The flag is written in this same output batch, so it can
+    never describe a grid that is not there.
+    """
+    if tab != "bubble" or loaded:
+        return no_update, no_update
+    return _app_ctx.AUTO_Y_GRID, True
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -636,74 +645,70 @@ def _build_tab_content(tab_id):
 def _register_lazy_tab(tab_id):
     """Register a @callback that populates {tab_id}-lazy on first active visit.
 
-    `allow_duplicate=True` is needed because `_prefetch_non_active_tabs`
-    below also targets {tab_id}-lazy.children. The two never race: this
-    callback fires on `main-tabs.active_tab` change; the prefetch callback
-    fires once on `prefetch-interval.n_intervals` change.
+    `allow_duplicate=True` is needed because `_register_prefetch` below also
+    targets {tab_id}-lazy.children (and {tab_id}-loaded.data). Different
+    triggers — this one fires on `main-tabs.active_tab`, the prefetch one on
+    its own `{tab_id}-prefetch-iv.n_intervals` — so they collide only in the
+    narrow window where a user clicks a tab as its prefetch fires. That
+    collision is harmless: both write the same `_TAB_CONTENT_CACHE` object
+    and both raise the same flag.
     """
     @callback(
         Output(f"{tab_id}-lazy", "children", allow_duplicate=True),
+        Output(f"{tab_id}-loaded", "data", allow_duplicate=True),
         Input("main-tabs", "active_tab"),
-        State(f"{tab_id}-lazy", "children"),
+        State(f"{tab_id}-loaded", "data"),
         prevent_initial_call=True,
     )
-    def _lazy_load(tab, current, _tid=tab_id):  # default-arg captures tab_id
+    def _lazy_load(tab, loaded, _tid=tab_id):  # default-arg captures tab_id
         if tab != _tid:
-            return no_update
+            return no_update, no_update
         # Skip if already loaded — re-rendering would clobber user state.
-        if not _is_loading_placeholder(current):
-            return no_update
+        # The flag replaces `State(f"{tab_id}-lazy", "children")`, which made
+        # the browser upload this tab's whole serialized subtree to answer
+        # exactly this one boolean. It is written below in the same output
+        # batch as the children, so it cannot lag them.
+        if loaded:
+            return no_update, no_update
         content = _build_tab_content(_tid)
-        return content if content is not None else no_update
+        if content is None:
+            return no_update, no_update
+        return content, True
 
 
-def _is_loading_placeholder(children):
-    """True if children is the initial 'Loading...' placeholder Div."""
-    if children is None:
-        return True
-    if isinstance(children, str):
-        return children == "Loading..."
-    if isinstance(children, dict):
-        inner = (children.get("props") or {}).get("children")
-        return _is_loading_placeholder(inner)
-    if isinstance(children, list) and len(children) == 1:
-        return _is_loading_placeholder(children[0])
-    return False
-
-
-for _tid in ("bubble", "heatmap", "dca", "retire", "supercharge",
-             "citadel", "leverage", "stack", "model_info", "faq"):
+for _tid in LAZY_TABS:
     _register_lazy_tab(_tid)
 
 
 # ── Staggered background prefetch ──────────────────────────────────────
 # One server callback per tab, each triggered by its own `{tab_id}-prefetch-iv`
 # Interval (staggered in layout). Active tab is skipped (already populated at
-# layout time). Each callback writes only its own lazy-div — no multi-output
-# payload, so React reconciles one small chunk at a time with idle gaps
-# between for user interaction. Guards: only load when current content is
-# still the "Loading..." placeholder (idempotent with click-triggered lazy
-# load).
+# layout time). Each callback writes only its own lazy-div plus a one-boolean
+# flag, so React still reconciles one small chunk at a time with idle gaps
+# between for user interaction. Guards: only load while `{tab_id}-loaded` is
+# falsy (idempotent with click-triggered lazy load).
 def _register_prefetch(tab_id):
     @callback(
         Output(f"{tab_id}-lazy", "children", allow_duplicate=True),
+        Output(f"{tab_id}-loaded", "data", allow_duplicate=True),
         Input(f"{tab_id}-prefetch-iv", "n_intervals"),
         Input("prefetch-ready", "data"),
-        State(f"{tab_id}-lazy", "children"),
+        State(f"{tab_id}-loaded", "data"),
         State("main-tabs", "active_tab"),
         prevent_initial_call=True,
     )
-    def _pf(n, ready, current, active, _tid=tab_id):
+    def _pf(n, ready, loaded, active, _tid=tab_id):
         if not n or not ready or _tid == active:
-            return no_update
-        if not _is_loading_placeholder(current):
-            return no_update  # user already clicked through
+            return no_update, no_update
+        if loaded:
+            return no_update, no_update  # user already clicked through
         content = _build_tab_content(_tid)
-        return content if content is not None else no_update
+        if content is None:
+            return no_update, no_update
+        return content, True
 
 
-for _tid in ("bubble", "heatmap", "dca", "retire", "supercharge",
-             "citadel", "leverage", "stack", "model_info", "faq"):
+for _tid in LAZY_TABS:
     _register_prefetch(_tid)
 
 
@@ -884,12 +889,19 @@ _app_ctx.app.clientside_callback(
 
 @callback(
     Output("faq-accordion", "active_item"),
-    Input("faq-lazy", "children"),
+    Input("faq-loaded", "data"),
     State("url", "pathname"),
     prevent_initial_call=True,
 )
-def open_faq_item(children, pathname):
-    """Open a specific FAQ accordion item after lazy load: /10.N (1-indexed)."""
+def open_faq_item(loaded, pathname):
+    """Open a specific FAQ accordion item after lazy load: /10.N (1-indexed).
+
+    Triggered by the `faq-loaded` flag rather than `faq-lazy.children`: both
+    are written in the same output batch by the loader, so the trigger moment
+    is identical, but the flag is a boolean instead of the 82 KB FAQ subtree.
+    """
+    if not loaded:
+        return no_update
     pathname = _norm(pathname)
     if not pathname:
         return no_update

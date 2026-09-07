@@ -293,15 +293,38 @@ _TAB_PALETTE_KEYS = ("bub", "hm", "dca", "ret", "sc", "cp")
 
 for _k in _TAB_PALETTE_KEYS:
     _app_ctx.app.clientside_callback(
+        # F-11: a selector inside a lazy tab MOUNTS LATE, and Dash treats a
+        # newly-mounted component's value as a change — `prevent_initial_call`
+        # does not cover it. Each one therefore arrived carrying the value the
+        # server rendered it with ("default"), which the old guard compared
+        # only against the store: "default" !== "cb-brian" is a difference, so
+        # it wrote, and a returning colourblind user's saved palette was
+        # silently reset on every reload.
+        #
+        # A mount fire is exactly "this selector still holds what the server
+        # rendered it with", which `render-stamp` knows. Ignore the FIRST fire
+        # from each selector when it equals that stamp; everything after it
+        # writes normally, so switching back to Default by hand still works.
+        # Per selector, not one shared flag — six selectors mount at six
+        # different times.
         """
-        function(val, cur) {
+        function(val, stamp, cur, k) {
+            var NU = window.dash_clientside.no_update;
             var v = val || 'default';
-            return v === cur ? window.dash_clientside.no_update : v;
+            var seen = (window.__qsPalSeen = window.__qsPalSeen || {});
+            var first = !seen[k];
+            seen[k] = true;
+            if (first && stamp && v === stamp.palette && cur && v !== cur) {
+                return NU;   // late mount catching up, not a user choice
+            }
+            return v === cur ? NU : v;
         }
         """,
         Output("palette-store", "data", allow_duplicate=True),
         Input(f"palette-select-{_k}", "value"),
+        State("render-stamp", "data"),
         State("palette-store", "data"),
+        State(f"palette-select-{_k}", "id"),
         prevent_initial_call=True,
     )
 

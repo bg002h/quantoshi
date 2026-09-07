@@ -1,9 +1,11 @@
 """A returning colourblind-palette user must NOT get default-palette charts.
 
-STATUS 2026-09-06: **this script FAILS on master** — see follow-up F-11. The
-palette survives a reload in the dropdown and in localStorage, but the CHART
-repaints in the default palette. Verified identical on master and on the
-no-op-bump branch, so the bump guards did not cause it.
+STATUS: F-11 is FIXED (2026-09-06) and this script passes. It caught the bug
+in the first place, and stays as the regression guard: if a late-mounting
+per-tab palette selector ever clobbers `palette-store` again, step 2 fails.
+See also `scripts/check_palette_roundtrip.py`, which additionally proves the
+opposite direction (switching BACK to Default is not swallowed by the
+first-fire guard).
 
 Run it against a dev server (`DEV=1 bash run_web.sh`):
 

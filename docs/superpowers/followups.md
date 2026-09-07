@@ -327,9 +327,23 @@ Every unmigrated tool using the `:>Nf` idiom still creeps.
 ---
 
 ### F-11 — A saved colourblind palette does not survive a page reload on the chart
-**Type:** defect · **Owning phase:** unscheduled · **Severity:** Important (accessibility)
-· **Found:** 2026-09-06, while safety-testing the no-op bump guards ·
-**PRE-EXISTING — verified identical on master and on the branch**
+**CLOSED 2026-09-06** · **Type:** defect · **Severity:** Important (accessibility)
+· **Found:** 2026-09-06, while safety-testing the no-op bump guards
+
+**Root cause:** every `palette-select-{tab}` writes its value into
+`palette-store`, and the selectors inside LAZY tabs mount late carrying the
+server-rendered `"default"`. Dash treats a newly-mounted component's value as
+a change, so `prevent_initial_call=True` does not cover it, and the guard
+compared only against the store — `"default" !== "cb-brian"` is a difference,
+so it wrote. The palette was not mis-rendered, it was **overwritten**:
+`localStorage` itself came back `"default"`.
+
+**Fix:** the forward callback now ignores a selector's FIRST fire when the
+value equals `render-stamp.palette` (what the server rendered it with),
+tracked per selector since six of them mount at six different times.
+Verified round trip: `scripts/check_palette_roundtrip.py`.
+
+Original report follows.
 
 Select **Deuteranomaly** (`cb-brian`) on Tab 1, reload the page, and the chart
 comes back painted in the **default** palette. Measured on the bubble trace:

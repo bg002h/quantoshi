@@ -204,6 +204,19 @@ def _q_panel(checklist_id: str, default_value: list, hint: str | None = None):
     return _section_card("Projection Quantiles", *children)
 
 
+def _palette_card_default_value():
+    """The palette every per-tab selector is rendered with.
+
+    Deliberately shared with `layout.RENDER_STAMP["palette"]`: the
+    dropdown -> `palette-store` callback in `callbacks/nav.py` recognises a
+    late-mounting selector precisely by "its value equals what the server
+    rendered it with", and that only holds while these two agree. Pinned by
+    test_palette_persist.py.
+    """
+    from snapshot_defaults import SNAPSHOT_DEFAULTS
+    return SNAPSHOT_DEFAULTS["palette-store:data"]
+
+
 def _palette_selector(tab_key: str = "tab"):
     """Palette selector widget for a tab's control panel.
 
@@ -220,7 +233,10 @@ def _palette_selector(tab_key: str = "tab"):
                 id=f"palette-select-{tab_key}",
                 options=[{"label": v, "value": k}
                          for k, v in _app_ctx.PALETTE_LABELS.items()],
-                value="default",
+                # Same value the render stamp carries — the dropdown->store
+                # callback recognises a late-mounting selector by exactly
+                # this equality. See _palette_card_default_value below.
+                value=_palette_card_default_value(),
                 size="sm",
                 style={"width": "155px", "fontSize": "0.78rem",
                        "display": "inline-block"},

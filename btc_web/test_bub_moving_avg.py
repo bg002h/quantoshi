@@ -338,12 +338,14 @@ class TestSnapshotRegistry:
         assert "bub-ma" in _TAB_CONTROLS["bubble"]
 
     def test_snapshot_default(self):
-        assert SNAPSHOT_DEFAULTS["bub-ma:value"] == ["ma200w"]
+        """No MA is shown until the user asks for one (operator decision,
+        2026-09-07). The chart is already dense; MAs are opt-in."""
+        assert SNAPSHOT_DEFAULTS["bub-ma:value"] == []
 
 
 class TestCacheKeyAlignment:
     def test_defaults_carry_the_key(self):
-        assert bubble_defaults()["ma"] == ["ma200w"]
+        assert bubble_defaults()["ma"] == []
 
     def test_runtime_params_carry_the_same_key(self):
         """The prewarm key and the callback key must have identical key sets or
@@ -412,9 +414,19 @@ class TestRestoreFastPath:
         assert [t.name for t in _ma_traces(fig)] == ["52W MA"]
 
     def test_restore_without_the_field_uses_the_default(self):
+        """A link predating bub-ma restores whatever the default currently is.
+
+        Derived from SNAPSHOT_DEFAULTS rather than hardcoded, so it keeps
+        stating the intent when the default changes (it went from
+        ["ma200w"] to [] on 2026-09-07). The teeth are in
+        test_share_link_restores_the_moving_average above, which proves a
+        populated field really does draw its trace.
+        """
         from restore_builder import _build_bubble_figure_from_state
+        expected = [MA_BY_VALUE[v].legend
+                    for v in SNAPSHOT_DEFAULTS["bub-ma:value"]]
         fig = _build_bubble_figure_from_state({})
-        assert [t.name for t in _ma_traces(fig)] == ["200W MA"]
+        assert [t.name for t in _ma_traces(fig)] == expected
 
 
 class TestLayout:
@@ -438,7 +450,7 @@ class TestLayout:
         assert len(found) == 1, "expected exactly one bub-ma checklist"
         cl = found[0]
         assert cl.options == MA_OPTIONS
-        assert cl.value == ["ma200w"]
+        assert cl.value == []
 
     def test_bub_toggles_untouched(self):
         """The MA control is deliberately separate: bub-toggles is bitmask

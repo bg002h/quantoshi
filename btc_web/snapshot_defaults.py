@@ -61,7 +61,11 @@ SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'bub-mc-unblocked:data': None,
     'bub-mc-window:value': [2010, 2026],
     'bub-mc-years:value': 40,
-    'bub-ma:value': ['ma200w'],
+    # No moving average until the user picks one (operator decision,
+    # 2026-09-07): Tab 1 is already dense, so MAs are opt-in. The layout
+    # checklist and tab_defaults both read this, so it is the only place the
+    # default lives.
+    'bub-ma:value': [],
     'bub-model-show:value': ['bub'],
     'bub-n-future:value': 3,
     'bub-occ-tail:value': 10,

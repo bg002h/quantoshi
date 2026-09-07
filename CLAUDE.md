@@ -525,7 +525,7 @@ _app_ctx.app.clientside_callback(
 - **VPS**: Hetzner, IP `89.167.70.45`, SSH as `root`
 - **App path**: `/opt/quantoshi/` (git clone of this repo)
 - **Service**: `quantoshi.service` (systemd, gunicorn binds `127.0.0.1:8050`, 5 workers)
-- **nginx**: reverse proxy with HTTPS via Let's Encrypt
+- **nginx**: reverse proxy with HTTPS via Let's Encrypt. Config is hand-edited on the VPS; reference copies live in `deploy/nginx/` (`bash deploy/nginx/check-drift.sh` reports divergence). **`location = /_dash-update-component` must keep `burst=200`** — a share-link restore fires ~150 callback POSTs and the Dash renderer retries only 401/403, so a 429'd callback leaves its chart permanently blank. `/etc/nginx/sites-available/quantoshi` is a STALE non-symlinked copy whose `dash_cb` zone is 2 r/s; restoring from it breaks every share link.
 - **Tor**: `tor@default`, hidden service at `/var/lib/tor/quantoshi/`
 - **gunicorn** must be installed separately: `pip install gunicorn` (not in requirements.txt)
 - **Log retention**: 27 days — `/etc/logrotate.d/nginx` and `/etc/logrotate.d/quantoshi` both set `rotate 27` with daily rotation. Covers nginx logs and gunicorn's `/var/log/quantoshi-access.log` + `/var/log/quantoshi-error.log`.

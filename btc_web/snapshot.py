@@ -460,7 +460,12 @@ _CHECKLIST_OPTIONS = {
     "ret-qs-adv":         _QS_LIST,
     "sc-qs-adv":          _QS_LIST,
     # toggle/boolean checklists (string values)
-    "bub-toggles":        ["shade", "show_ols", "show_data", "show_today", "show_legend", "minor_grid", "chart_zoom", "show_halvings"],
+    # APPEND-ONLY: each position is one bit of the share-link bitmask, so
+    # inserting or reordering silently rewrites every link ever issued.
+    # "show_ucl" was offered by the Tab-1 Display checklist but missing here
+    # until 2026-09-07 (F-12) — _list_to_mask skips values it does not know,
+    # so ticking "Unfairly Cheap Line" and sharing the link dropped it.
+    "bub-toggles":        ["shade", "show_ols", "show_data", "show_today", "show_legend", "minor_grid", "chart_zoom", "show_halvings", "show_ucl"],
     "bub-bubble-toggles": ["show_comp", "show_sup"],
     "bub-show-stack":     ["yes"],
     "bub-use-lots":       ["yes"],

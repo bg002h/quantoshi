@@ -101,3 +101,58 @@ def test_markov_keeps_the_constant_default(ctx):
     assert "sigma_mode" not in call.split(")")[0], (
         "markov.py must keep the constant-σ default — the MC cache is binned "
         "against it (see the 2026-09-06 ticker mismatch report)")
+
+
+# ── The callback must still BE the callback ─────────────────────────────────
+
+def test_price_ticker_callback_is_update_price_ticker():
+    """Guard against a helper being defined between @callback and the
+    function it decorates.
+
+    On 2026-09-07 `_ticker_sigma_mode` was inserted directly beneath the
+    ticker's `@callback(...)` block, so the decorator bound the HELPER and
+    Dash called a zero-argument function with three arguments:
+
+        TypeError: _ticker_sigma_mode() takes 0 positional arguments but 3
+        were given
+
+    Every callback POST 500'd and the navbar showed nothing, in production,
+    while the unit tests stayed green — they exercised the helper and the
+    percentile maths directly and never asked whether the registered
+    callback still pointed at the right function.
+    """
+    from dash import _callback as dash_callback
+
+    import app  # noqa: F401
+    target = None
+    for key, entry in dash_callback.GLOBAL_CALLBACK_MAP.items():
+        if key.strip(".").split("...")[0].split("@")[0] == "price-ticker.children":
+            target = entry
+            break
+    assert target is not None, "no callback writes price-ticker.children"
+    fn = target["callback"].__wrapped__
+    assert fn.__name__ == "update_price_ticker", (
+        f"price-ticker.children is wired to {fn.__name__!r}, not "
+        f"update_price_ticker — check for a function defined between the "
+        f"@callback decorator and its intended target")
+
+
+def test_price_ticker_callback_accepts_its_declared_inputs():
+    """Arity check: Dash will call it with one value per Input/State."""
+    import inspect
+    from dash import _callback as dash_callback
+
+    import app  # noqa: F401
+    for key, entry in dash_callback.GLOBAL_CALLBACK_MAP.items():
+        if key.strip(".").split("...")[0].split("@")[0] != "price-ticker.children":
+            continue
+        n_deps = len(entry.get("inputs") or []) + len(entry.get("state") or [])
+        params = inspect.signature(entry["callback"].__wrapped__).parameters
+        n_params = len([p for p in params.values()
+                        if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+                        and p.default is p.empty])
+        assert n_params == n_deps, (
+            f"ticker callback takes {n_params} required positional args but "
+            f"Dash will pass {n_deps}")
+        return
+    raise AssertionError("ticker callback not found")

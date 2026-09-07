@@ -20,26 +20,6 @@ _MODEL_LABELS = {
 }
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Callback — live BTC price ticker (refreshes every 20 min)
-# ══════════════════════════════════════════════════════════════════════════════
-
-@callback(
-    Output("price-ticker",        "children"),
-    Output("price-ticker-mobile", "children"),
-    Output("btc-price-store",     "data"),
-    Output("price-sparkline",     "children"),
-    Output("model-percentiles-store", "data"),
-    Output("ticker-pct",          "children", allow_duplicate=True),
-    Output("ticker-pct",          "style",    allow_duplicate=True),
-    Output("ticker-pct-mobile",   "children", allow_duplicate=True),
-    Output("ticker-pct-mobile",   "style",    allow_duplicate=True),
-    Output("ticker-model-idx",    "data",     allow_duplicate=True),
-    Input("price-interval", "n_intervals"),
-    Input("ticker-mode-store",    "data"),
-    Input("user-model-store", "data"),
-    prevent_initial_call="initial_duplicate",
-)
 def _ticker_sigma_mode():
     """The σ-mode the navbar percentile is computed at.
 
@@ -66,6 +46,26 @@ def _ticker_sigma_mode():
     return "resqr" if getattr(_app_ctx, "_HAS_RESQR", False) else "constant"
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# Callback — live BTC price ticker (refreshes every 20 min)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@callback(
+    Output("price-ticker",        "children"),
+    Output("price-ticker-mobile", "children"),
+    Output("btc-price-store",     "data"),
+    Output("price-sparkline",     "children"),
+    Output("model-percentiles-store", "data"),
+    Output("ticker-pct",          "children", allow_duplicate=True),
+    Output("ticker-pct",          "style",    allow_duplicate=True),
+    Output("ticker-pct-mobile",   "children", allow_duplicate=True),
+    Output("ticker-pct-mobile",   "style",    allow_duplicate=True),
+    Output("ticker-model-idx",    "data",     allow_duplicate=True),
+    Input("price-interval", "n_intervals"),
+    Input("ticker-mode-store",    "data"),
+    Input("user-model-store", "data"),
+    prevent_initial_call="initial_duplicate",
+)
 def update_price_ticker(_, mode, user_model_data):
     # NOTE: this callback used to also write hm-entry-q, hm-mc-entry-q,
     # dca-mc-entry-q. Those cross-tab Outputs errored on page load

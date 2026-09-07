@@ -104,6 +104,7 @@ def _build_bubble_figure_from_state(state: dict):
     adv_qs   = _v(state, "bub-qs-adv")
     qs_mode  = _v(state, "bub-qs-mode")
     toggles  = _v(state, "bub-toggles")
+    ma_sel   = _v(state, "bub-ma")
     bubble_toggles = _v(state, "bub-bubble-toggles")
     xscale   = _v(state, "bub-xscale")
     yscale   = _v(state, "bub-yscale")
@@ -293,6 +294,8 @@ def _build_bubble_figure_from_state(state: dict):
         comp_color  = LOT_MARKER_COLOR, comp_lw = TRACE_WIDTH_COMPOSITE,
         sup_color   = FALLBACK_MODEL_GRAY, sup_lw  = TRACE_WIDTH_SUPPORT,
         active_models = model_show or [],
+        # sorted() mirrors update_bubble -- same list, same cache key
+        ma          = sorted(ma_sel or []),
         palette = palette_key or "default",
         scanner_lines = scanner_lines,
         user_model = user_model_store,

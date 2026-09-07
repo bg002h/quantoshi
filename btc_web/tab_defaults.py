@@ -82,6 +82,10 @@ def _build_bubble_dict():
         "sup_color":   FALLBACK_MODEL_GRAY,
         "sup_lw":      TRACE_WIDTH_SUPPORT,
         "active_models": tuple(sd("bub-model-show:value", ["bub"]) or ["bub"]),
+        # Moving averages (bub-ma). Stored sorted so the prewarm cache key
+        # matches update_bubble's, which sorts too -- a checklist can hand back
+        # its values in click order.
+        "ma":          tuple(sorted(sd("bub-ma:value", []) or [])),
         "palette":     sd("palette-store:data", "default"),
         "scanner_lines": (),
         "qs_mode":     qs_mode_val,
@@ -504,6 +508,7 @@ def bubble_defaults() -> dict:
     d["xmax"] = _BUBBLE_XRANGE[1]
     d["selected_qs"] = list(BUBBLE["selected_qs"])
     d["active_models"] = list(BUBBLE["active_models"])
+    d["ma"] = list(BUBBLE["ma"])
     d["scanner_lines"] = list(BUBBLE["scanner_lines"])
     d["decomp_components"] = list(BUBBLE["decomp_components"])
     d["lppl_n_freqs"] = list(BUBBLE["lppl_n_freqs"])

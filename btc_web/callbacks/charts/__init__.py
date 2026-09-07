@@ -94,6 +94,7 @@ from restore_builder import _build_retire_params
     Input("bub-qs",            "value"),
     Input("bub-qs-adv",        "value"),
     Input("bub-toggles",       "value"),
+    Input("bub-ma",            "value"),   # moving averages (bub_ma.MA_VALUES)
     # bub-bubble-toggles + bub-n-future: demoted Input→State; commit
     # via bm-commit-trigger when bm-config-modal closes (see _clientside.py).
     State("bub-bubble-toggles","value"),
@@ -187,7 +188,7 @@ from restore_builder import _build_retire_params
     Input("bub-asof-slider",        "value"),
     prevent_initial_call=True,
 )
-def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
+def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles,
                   xscale, yscale, xrange, yrange,
                   n_future, ptsize, ptalpha, stack, show_stack, use_lots, legend_pos, model_show,
                   lppl_n_freqs, lppl_weighted, lppl_no_13,
@@ -234,7 +235,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
     _POST_RESTORE_TRIGGERS = {
         "bubble-first-render", "effective-lots", "bub-redraw-tick",
         "palette-store", "user-model-store",
-        "bub-qs", "bub-qs-adv", "bub-toggles",
+        "bub-qs", "bub-qs-adv", "bub-toggles", "bub-ma",
         "bub-xscale", "bub-yscale", "bub-xrange", "bub-yrange",
         "bub-ptsize", "bub-ptalpha", "bub-stack", "bub-show-stack",
         "bub-use-lots", "bub-legend-pos", "bub-model-show",
@@ -265,6 +266,9 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
         raise PreventUpdate
     toggles        = toggles or []
     bubble_toggles = bubble_toggles or []
+    # Sorted so the cache key matches bubble_defaults()'s (a checklist can hand
+    # its values back in click order, which would otherwise miss L1/L2).
+    ma_sel         = sorted(ma_sel or [])
     yrange         = yrange or [0, 7]
     xrange         = xrange or [2012, 2030]
 
@@ -391,6 +395,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
             comp_color  = LOT_MARKER_COLOR, comp_lw = TRACE_WIDTH_COMPOSITE,
             sup_color   = FALLBACK_MODEL_GRAY, sup_lw  = TRACE_WIDTH_SUPPORT,
             active_models = model_show or [],
+            ma          = ma_sel,
             palette = palette_key or "default",
             scanner_lines = scanner_lines,
             user_model = user_model_store,
@@ -436,6 +441,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, bubble_toggles,
             comp_color  = LOT_MARKER_COLOR, comp_lw = TRACE_WIDTH_COMPOSITE,
             sup_color   = FALLBACK_MODEL_GRAY, sup_lw  = TRACE_WIDTH_SUPPORT,
             active_models = model_show or [],
+            ma          = ma_sel,
             palette = palette_key or "default",
             scanner_lines = scanner_lines,
             user_model = user_model_store,

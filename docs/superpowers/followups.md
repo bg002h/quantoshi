@@ -375,6 +375,36 @@ palette, or the clientside repaint may lose to the pre-injected figure.
 Compare with `apply_hm_palette` and the `palette-store` guard described in
 CLAUDE.md's "Centralized appearance system".
 
+### F-12 — "Unfairly Cheap Line" does not survive a share link
+**Type:** defect · **Severity:** Minor · **Owning phase:** next Tab-1 snapshot
+work · **Found:** 2026-09-07, while adding the Tab-1 moving-average control ·
+**FOUND, NOT FIXED — deliberately out of scope for that change**
+
+`show_ucl` is an option in the Tab-1 Display checklist
+(`layout/bubble.py`, "Unfairly Cheap Line") and `figures/bubble.py` reads
+`p["show_ucl"]`, but it is missing from
+`snapshot.py::_CHECKLIST_OPTIONS["bub-toggles"]`. That list is the bitmask
+layout for the share link, so the value is silently dropped on encode: turn
+the line on, share the link, and the recipient gets a chart without it.
+
+**Reproduction (one line):**
+
+```bash
+btc_venv/bin/python3 -c "import sys;sys.path[:0]=['btc_web','.'];\
+from snapshot import _encode_snapshot,_decode_snapshot;\
+print(_decode_snapshot(_encode_snapshot({'bub-toggles:value':['show_ucl','shade']})))"
+# -> {'bub-toggles:value': ['shade']}   # show_ucl gone
+```
+
+**Why it is not a one-word fix.** `_CHECKLIST_OPTIONS["bub-toggles"]` is
+index-addressed: bit *i* of every already-shipped `q3`/`q4` link means
+`opts[i]`. `show_ucl` must therefore be **appended** to the end of that list,
+never inserted next to its Display-card neighbours — inserting it would
+re-map every existing link's toggles. Append + a round-trip test is the whole
+change; the hazard is only that the obvious edit is the wrong one.
+
+---
+
 ### F-9 — Time-evolving bubble model
 **Type:** research idea, not a defect · **Owning phase:** unscheduled · **Raised:**
 2026-08-08, out of the support-phase `spl` trial

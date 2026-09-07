@@ -74,6 +74,14 @@ PCTILE_CHEAP_COLOR  = "#2166AC"   # cool blue — actual price low in the model 
 PCTILE_RICH_COLOR   = "#E69F00"   # CB-safe amber — actual price high in the fan (rich)
 TODAY_LINE_COLOR    = "#F7931A"   # today vertical line default — unified with BTC orange
 HALVING_LINE_COLOR  = "#3F51B5"   # halving vertical lines — muted indigo (colorblind-safe, blue axis)
+# Tab-1 moving averages (bub-ma) — ONE colour for all four windows; the window
+# length is encoded by DASH PATTERN, not hue (bub_ma.MA_WINDOWS), so the
+# encoding survives every palette and deuteranomaly. Material Blue Grey 700:
+# 6.9:1 against the ivory ground, and >=2.26:1 against BOTH neighbours it has
+# to be told apart from — BM gold #C48209 (2.26) and the price scatter
+# #1A1A2E (2.36) — separated from the gold on the blue/yellow axis, which is
+# the axis red-green deficiency preserves.
+MA_LINE_COLOR       = "#455A64"   # moving-average lines (all four windows)
 NON_QUANTIZED_MODEL_COLOR = "#8B4513"  # saddlebrown — single-trajectory models
 
 # ── UI text hierarchy ────────────────────────────────────────────────
@@ -685,6 +693,7 @@ TRACE_WIDTH_COMPOSITE   = 2.0       # bubble composite line
 TRACE_WIDTH_SUPPORT     = 1.5       # bubble support line
 TRACE_WIDTH_TODAY       = 2.0       # vertical "today" line
 TRACE_WIDTH_HALVING     = 1.4       # vertical halving lines
+TRACE_WIDTH_MA          = 1.6       # Tab-1 moving averages (bub-ma)
 TODAY_GLOW_WIDTH        = 6         # glow halo around today line
 GRID_MAJOR_WIDTH        = 1.0
 GRID_MINOR_WIDTH        = 0.8

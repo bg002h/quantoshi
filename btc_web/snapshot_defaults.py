@@ -61,6 +61,7 @@ SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'bub-mc-unblocked:data': None,
     'bub-mc-window:value': [2010, 2026],
     'bub-mc-years:value': 40,
+    'bub-ma:value': ['ma200w'],
     'bub-model-show:value': ['bub'],
     'bub-n-future:value': 3,
     'bub-occ-tail:value': 10,

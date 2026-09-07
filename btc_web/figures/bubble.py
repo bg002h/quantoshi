@@ -20,8 +20,9 @@ from colors import (
     SUPPORT_LINE_OPACITY, UCL_LINE_OPACITY, OLS_LINE_OPACITY,
     MC_LEGEND_BG_ALPHA, LOG_MINOR_GRID_GRAY, ANNOT_TEXT_ALPHA,
     HALVING_LINE_COLOR, HALVING_PAST_OPACITY, HALVING_FUTURE_OPACITY,
-    TRACE_WIDTH_HALVING,
+    TRACE_WIDTH_HALVING, MA_LINE_COLOR, TRACE_WIDTH_MA,
 )
+from bub_ma import MA_WINDOWS, rolling_mean
 
 from figures.common import (
     _INTERP_POINTS, _MAX_SCATTER_PTS, TRACE_WIDTH, SHADE_ALPHA,
@@ -249,6 +250,18 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             traces.extend(_build_symmetric_bands(
                 sel_qs, _price_cache, t_arr, model_color=_model_color))
 
+    # ── as-of frame boundary, in t-years since genesis ─────────────────────
+    # None outside Time Machine. SINGLE SOURCE for the two places that must
+    # not show data past the frame date: the price-scatter split below, and
+    # the moving-average truncation after it. A second copy of this derivation
+    # is how a trailing mean silently starts leaking post-frame prices.
+    _t_D = None
+    _asof_date_str = None
+    if asof_idx is not None:
+        import timemachine as tm
+        _asof_date_str = tm.frames()[asof_idx]
+        _t_D = (pd.Timestamp(_asof_date_str) - m.genesis).days / 365.25
+
     # ── historical price data (behind all lines) ───────────────────────────
     if p.get("show_data"):
         mask  = (m.price_years >= t_lo) & (m.price_years <= t_hi)
@@ -269,9 +282,7 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
             # the realized-price scatter there. Points ≤ t_D are the training
             # data (solid, normal "Price data"); points after t_D are the
             # "how did it do?" reveal, drawn faded + distinctly named.
-            import timemachine as tm
-            _asof_date_str = tm.frames()[asof_idx]
-            t_D = (pd.Timestamp(_asof_date_str) - m.genesis).days / 365.25
+            t_D = _t_D
             _x_arr = np.asarray(x_sc)
             _y_arr = np.asarray(y_sc)
             _before = _x_arr <= t_D
@@ -301,6 +312,52 @@ def build_bubble_figure(m: ModelData, p: dict[str, Any]) -> tuple[go.Figure, dic
                 marker=dict(color=SCATTER_POINT,
                             size=max(2, int(p.get("pt_size", BUBBLE["pt_size"]))),
                             opacity=float(p.get("pt_alpha", BUBBLE["pt_alpha"]))),
+                hovertemplate=_HOVER_FMT_USD,
+            ))
+
+    # ── moving averages (bub-ma) ───────────────────────────────────────────
+    # Simple arithmetic means of the DAILY closes: a "200 week MA" is a
+    # 1400-day window, not a mean of 200 weekly closes. The series is
+    # contiguous daily, so one sample == one day and a plain window mean is
+    # exact. Own control, so deliberately NOT gated on show_data.
+    _ma_sel = set(p.get("ma") or [])
+    if _ma_sel:
+        # Compute over the FULL series first, then clip: a window is only
+        # emitted once it is complete (rolling_mean leaves NaN before that),
+        # and clipping first would make the earliest visible value depend on
+        # the x-range slider.
+        _ma_x_all = np.asarray(m.price_years, dtype=float)
+        _ma_y_all = np.asarray(m.price_prices, dtype=float)
+        if _t_D is not None:
+            # Time Machine: a trailing mean drawn past the frame date would
+            # reveal prices the frozen model was never fit on. Cut the source
+            # series at the SAME boundary the price scatter splits on.
+            _keep = _ma_x_all <= _t_D
+            _ma_x_all = _ma_x_all[_keep]
+            _ma_y_all = _ma_y_all[_keep]
+        _ma_mult = stack if stack > 0 else 1
+        for _w in MA_WINDOWS:
+            if _w.value not in _ma_sel:
+                continue
+            _vals = rolling_mean(_ma_y_all, _w.days)
+            _vis = (np.isfinite(_vals)
+                    & (_ma_x_all >= t_lo) & (_ma_x_all <= t_hi))
+            if not _vis.any():
+                continue
+            _mx = _ma_x_all[_vis]
+            _my = _vals[_vis] * _ma_mult
+            # Same downsample rule as the price scatter above — four
+            # full-resolution ~5.9k-point lines is needless wire payload.
+            if _mx.size > _MAX_SCATTER_PTS:
+                _stride = max(1, _mx.size // _MAX_SCATTER_PTS)
+                _sl = np.arange(0, _mx.size, _stride)
+                _mx = _mx[_sl]
+                _my = _my[_sl]
+            traces.append(go.Scatter(
+                x=_mx, y=_my,
+                mode="lines", name=_w.legend,
+                line=dict(color=MA_LINE_COLOR, width=TRACE_WIDTH_MA,
+                          dash=_w.dash),
                 hovertemplate=_HOVER_FMT_USD,
             ))
 

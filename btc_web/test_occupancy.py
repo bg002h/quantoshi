@@ -437,8 +437,11 @@ class TestOccupancySnapshot:
         # entries were 334/335 of 336 before this feature and must stay there.
         assert _SNAPSHOT_CONTROLS[334] == ("bub-timemachine-toggle", "value")
         assert _SNAPSHOT_CONTROLS[335] == ("bub-asof-slider", "value")
-        assert _SNAPSHOT_CONTROLS[-2] == ("bub-occ-tail", "value")
-        assert _SNAPSHOT_CONTROLS[-1] == ("bub-occ-window", "value")
+        # Absolute indices, not [-2]/[-1]: the tail moved on when bub-ma was
+        # appended (2026-09-07), and the point of this test is that these two
+        # never move, not that they happen to be last.
+        assert _SNAPSHOT_CONTROLS[336] == ("bub-occ-tail", "value")
+        assert _SNAPSHOT_CONTROLS[337] == ("bub-occ-window", "value")
 
     def test_defaults_registered(self):
         from snapshot_defaults import SNAPSHOT_DEFAULTS

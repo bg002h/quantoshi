@@ -26,6 +26,7 @@ from layout.display_models import display_models_panel, sigma_mode_section
 from layout.custom_time import custom_time_panel
 from layout.mc_controls import _mc_controls
 import timemachine as tm
+from bub_ma import MA_OPTIONS
 
 
 # ── Axes presets (Tab 1) ─────────────────────────────────────────────────
@@ -364,6 +365,17 @@ def _bubble_controls():
                                    {"label":html.Span(" Minor grid",className="minor-grid-opt"),"value":"minor_grid"},
                                    {"label":" Enable chart zoom","value":"chart_zoom"}],
                           value=["shade","show_data","show_today"],
+                          labelStyle={"display":"block"},
+                          inputStyle=_CB_MARGIN),
+            # Moving averages: a SEPARATE checklist, not four more entries in
+            # bub-toggles. bub-toggles is bitmask-encoded in share links and
+            # index-addressed, so growing it is a compat hazard, and MA windows
+            # are a different concept from the display toggles above.
+            html.Hr(className="my-2"),
+            _lbl("Moving averages"),
+            dcc.Checklist(id="bub-ma",
+                          options=MA_OPTIONS,
+                          value=list(SNAPSHOT_DEFAULTS["bub-ma:value"]),
                           labelStyle={"display":"block"},
                           inputStyle=_CB_MARGIN),
         ),

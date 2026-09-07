@@ -411,6 +411,10 @@ _SNAPSHOT_CONTROLS = [
     # test_occupancy.py pins these as the last two entries.
     ("bub-occ-tail",   "value"),   # 5 | 10 | 25  (percent)
     ("bub-occ-window", "value"),   # 1 | 2 | 4    (years)
+    # ── Moving averages (Tab 1 Display card, appended 2026-09-07) ──
+    # APPEND-ONLY at the true tail -- same index-stability rule as above;
+    # test_bub_moving_avg.py pins this as the last entry.
+    ("bub-ma", "value"),           # ma200w | ma52w | ma30d | ma7d (bitmask)
 ]
 
 _SNAP_PREFIX_V4 = "q4:"   # current format (v4: sparse diff against fingerprint)
@@ -467,6 +471,11 @@ _CHECKLIST_OPTIONS = {
     # so ticking "Unfairly Cheap Line" and sharing the link dropped it.
     "bub-toggles":        ["shade", "show_ols", "show_data", "show_today", "show_legend", "minor_grid", "chart_zoom", "show_halvings", "show_ucl"],
     "bub-bubble-toggles": ["show_comp", "show_sup"],
+    # Hard-coded rather than list(bub_ma.MA_VALUES) for the same reason as
+    # _QS_LIST above: this order IS the bitmask layout of every shipped link,
+    # so it must not be able to move when the table does.
+    # test_bub_moving_avg.py asserts the two stay equal.
+    "bub-ma":             ["ma200w", "ma52w", "ma30d", "ma7d"],
     "bub-show-stack":     ["yes"],
     "bub-use-lots":       ["yes"],
     "hm-toggles":         ["colorbar", "chart_zoom"],

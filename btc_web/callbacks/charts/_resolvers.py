@@ -118,7 +118,11 @@ def _resolve_hybppl_master(model_show,
     model_show = [v for v in model_show if v not in _HYBPPL_NAMES]
     # Model A
     key_a = _build_hybppl_config_key(
-        cfg_a_nlog or 1, cfg_a_ncal or 1,
+        # NOT `or 1`: 0 is a meaningful count (drop that oscillator)
+        # and `0 or 1` is 1, so zero silently rendered the 1-component
+        # model. Only None may fall back. See test_cfg_zero_components.
+        cfg_a_nlog if cfg_a_nlog is not None else 1,
+        cfg_a_ncal if cfg_a_ncal is not None else 1,
         cfg_a_log1d, cfg_a_log2d, cfg_a_cal1d, cfg_a_cal2d)
     if key_a in _app_ctx.PRICE_MODELS:
         model_show.append(key_a)
@@ -143,7 +147,11 @@ def _resolve_hm_hybppl_master(hm_model,
     if hm_model != "hybppl":
         return hm_model
     key = _build_hybppl_config_key(
-        cfg_a_nlog or 1, cfg_a_ncal or 1,
+        # NOT `or 1`: 0 is a meaningful count (drop that oscillator)
+        # and `0 or 1` is 1, so zero silently rendered the 1-component
+        # model. Only None may fall back. See test_cfg_zero_components.
+        cfg_a_nlog if cfg_a_nlog is not None else 1,
+        cfg_a_ncal if cfg_a_ncal is not None else 1,
         cfg_a_log1d, cfg_a_log2d, cfg_a_cal1d, cfg_a_cal2d)
     return key if key in _app_ctx.PRICE_MODELS else hm_model
 
@@ -180,7 +188,11 @@ def _resolve_eppl_master(model_show,
     model_show = [v for v in model_show if v != "eppl"]
     # Model A
     key_a = _build_eppl_config_key(
-        cfg_a_nlog or 1, cfg_a_ncal or 1,
+        # NOT `or 1`: 0 is a meaningful count (drop that oscillator)
+        # and `0 or 1` is 1, so zero silently rendered the 1-component
+        # model. Only None may fall back. See test_cfg_zero_components.
+        cfg_a_nlog if cfg_a_nlog is not None else 1,
+        cfg_a_ncal if cfg_a_ncal is not None else 1,
         cfg_a_log1d, cfg_a_log2d, cfg_a_cal1d, cfg_a_cal2d)
     if key_a in _app_ctx.PRICE_MODELS:
         model_show.append(key_a)
@@ -205,7 +217,11 @@ def _resolve_hm_eppl_master(hm_model,
     if hm_model != "eppl":
         return hm_model
     key = _build_eppl_config_key(
-        cfg_a_nlog or 1, cfg_a_ncal or 1,
+        # NOT `or 1`: 0 is a meaningful count (drop that oscillator)
+        # and `0 or 1` is 1, so zero silently rendered the 1-component
+        # model. Only None may fall back. See test_cfg_zero_components.
+        cfg_a_nlog if cfg_a_nlog is not None else 1,
+        cfg_a_ncal if cfg_a_ncal is not None else 1,
         cfg_a_log1d, cfg_a_log2d, cfg_a_cal1d, cfg_a_cal2d)
     return key if key in _app_ctx.PRICE_MODELS else hm_model
 

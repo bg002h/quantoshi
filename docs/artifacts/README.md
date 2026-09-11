@@ -70,6 +70,15 @@ The window brackets the excursion that followed PlanB's stock-to-flow article
 a 16 % better fit while moving the period by 0.08 % and the phase by 0.9 %;
 the excursion is absorbed entirely by amplitude and offset.
 
+Re-asking the decay question on the censored fit is the sharper version of it,
+since a large late excursion is exactly what could prop an amplitude up and hide
+a decay. It does the opposite. Exponential-to-floor and exponential-to-zero both
+still run τ → 10¹⁶ yr and collapse onto the constant-amplitude fit (ΔR² = 0.0000),
+and the free-sign power law `A(t) = A₀·t^−D` picks **D = −0.207** — *growth*,
+and steeper than the −0.170 it picks on all the data. Envelope 22.6 pp (2010) →
+40.7 pp (2026). Withholding the window makes the amplitude grow faster, not
+slower.
+
 On whether the article *caused* the excursion: the window's mean residual of
 +33.1 pp is the largest of the 19 non-overlapping windows in the record (next:
 +20.4), and a model trained only on pre-publication data under-predicts it by

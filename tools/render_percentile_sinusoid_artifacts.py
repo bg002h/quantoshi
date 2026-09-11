@@ -375,6 +375,28 @@ def draw(path, F, curves, t, px, pct, dates, *, extrapolate_years=0.0,
     return pxt
 
 
+def edge_shift(ax, frac, text, fontsize, pad=0.26):
+    """Offset a monospace label so its box stays inside the axes.
+
+    `frac` is the anchor's position as a fraction of the x-axis. A box that
+    would overrun an edge is re-anchored TO that edge, which is exact at any
+    x-range — the fixed "nudge by N points near the edge" it replaces had to
+    be re-tuned every time the extrapolation length changed, and still left
+    the last label clipped on the 20-year axis.
+
+    Returns (dx_in_points, horizontalalignment).
+    """
+    w_pt = ax.get_position().width * ax.figure.get_figwidth() * 72.0
+    ncol = max(len(line) for line in text.split("\n"))
+    half = 0.5 * (0.602 * ncol + 2 * pad) * fontsize   # DejaVu Sans Mono advance
+    pos = frac * w_pt
+    if pos - half < 0:
+        return -pos, "left"
+    if pos + half > w_pt:
+        return w_pt - pos, "right"
+    return 0, "center"
+
+
 def draw_single(path, F, curves, t, px, pct, dates, *,
                 extrapolate_years=10.0, censored=None, r2_all=None):
     """One wide panel: the calendar-time fit alone, whole record + extension.
@@ -418,6 +440,11 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
     # the envelope (peaks below the point, troughs above) — the opposite of
     # the convention used for the full fit, which is what keeps the two label
     # sets from landing on top of each other.
+    #
+    # The inward offset must exceed half the envelope height, or the peak and
+    # trough label bands overlap in the middle and adjacent labels collide
+    # once the x-axis is compressed (measured: at 26 pt the bands overlapped
+    # by ~6 pp and the last two labels on the 20-yr axis ran together).
     def half(x):
         return p["c"] + 0.5 * p["A"] * np.cos(2 * np.pi * p["f"] * x + p["phi"])
 
@@ -431,17 +458,12 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
         up = kind == "peak"
         ax.plot([de], [y_e], "s", ms=5.2, color=VERM, mec="white", mew=1.0,
                 zorder=6)
-        hfrac = (de - x0) / (x1 - x0)
-        hdx, hha = 0, "center"
-        if hfrac < 0.045:                 # would overrun the y-axis and its ticks
-            hdx, hha = 30, "left"
-        elif hfrac > 0.955:
-            # a full -30 shift here collided with the previous twin label on
-            # the 20-yr axis; right-anchoring needs only a nudge
-            hdx, hha = -8, "right"
+        htxt = (f"{de.date()}\n"
+                f"Q{y_e:.1f}% \u00b7 {money(implied_price(qr, y_e, t_e))}")
+        hdx, hha = edge_shift(ax, (de - x0) / (x1 - x0), htxt, 7.2)
         ax.annotate(
-            f"{de.date()}\nQ{y_e:.1f}% \u00b7 {money(implied_price(qr, y_e, t_e))}",
-            xy=(de, y_e), xytext=(hdx, -26 if up else 26),  # inverted on purpose
+            htxt,
+            xy=(de, y_e), xytext=(hdx, -34 if up else 34),  # inverted on purpose
             textcoords="offset points", ha=hha,
             va="top" if up else "bottom", fontsize=7.2,
             family="DejaVu Sans Mono", zorder=7,
@@ -454,14 +476,11 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
         de = to_date(t_e)
         up = kind == "peak"
         ax.plot([de], [y_e], "o", ms=6, color=BLUE, mec="white", mew=1.1, zorder=6)
-        frac = (de - x0) / (x1 - x0)
-        dx, ha = 0, "center"
-        if frac < 0.045:
-            dx, ha = 30, "left"
-        elif frac > 0.955:
-            dx, ha = -30, "right"
+        ftxt = (f"{de.date()}\n"
+                f"Q{y_e:.1f}% \u00b7 {money(implied_price(qr, y_e, t_e))}")
+        dx, ha = edge_shift(ax, (de - x0) / (x1 - x0), ftxt, 7.8)
         ax.annotate(
-            f"{de.date()}\nQ{y_e:.1f}% \u00b7 {money(implied_price(qr, y_e, t_e))}",
+            ftxt,
             xy=(de, y_e), xytext=(dx, 30 if up else -30),
             textcoords="offset points", ha=ha,
             va="bottom" if up else "top", fontsize=7.8,

@@ -395,6 +395,41 @@ def draw_single(path, F, curves, t, px, pct, dates, *, extrapolate_years=10.0):
     ax.axvspan(last, x1, color="#000000", alpha=0.045, zorder=0)
     ax.axvline(last, color="#444", lw=1.2, ls=(0, (3, 3)), zorder=2)
 
+    # Half-amplitude twin: same offset, frequency and phase, A/2. Its extrema
+    # fall on the SAME dates as the full fit, so its labels are placed INSIDE
+    # the envelope (peaks below the point, troughs above) — the opposite of
+    # the convention used for the full fit, which is what keeps the two label
+    # sets from landing on top of each other.
+    def half(x):
+        return p["c"] + 0.5 * p["A"] * np.cos(2 * np.pi * p["f"] * x + p["phi"])
+
+    yh = half(tt)
+    ax.plot(dd[hist], yh[hist], color=VERM, lw=2.2, ls=(0, (6, 2)), zorder=3,
+            label=f"same phase, ½ amplitude ({0.5*p['A']:.1f} pp)")
+    ax.plot(dd[~hist], yh[~hist], color=VERM, lw=2.2, ls=(0, (6, 2)),
+            alpha=0.55, zorder=3)
+    for t_e, y_e, kind in fit_extrema(half, t0, t1):
+        de = to_date(t_e)
+        up = kind == "peak"
+        ax.plot([de], [y_e], "s", ms=5.2, color=VERM, mec="white", mew=1.0,
+                zorder=6)
+        hfrac = (de - x0) / (x1 - x0)
+        hdx, hha = 0, "center"
+        if hfrac < 0.045:                 # would overrun the y-axis and its ticks
+            hdx, hha = 30, "left"
+        elif hfrac > 0.955:
+            hdx, hha = -30, "right"
+        ax.annotate(
+            f"{de.date()}\nQ{y_e:.1f}% \u00b7 {money(implied_price(qr, y_e, t_e))}",
+            xy=(de, y_e), xytext=(hdx, -26 if up else 26),  # inverted on purpose
+            textcoords="offset points", ha=hha,
+            va="top" if up else "bottom", fontsize=7.2,
+            family="DejaVu Sans Mono", zorder=7,
+            bbox=dict(boxstyle="round,pad=0.26", fc="white", ec=VERM,
+                      alpha=0.95, lw=0.9),
+            arrowprops=dict(arrowstyle="-", color=VERM, lw=0.9, shrinkA=0,
+                            shrinkB=3))
+
     for t_e, y_e, kind in fit_extrema(cal, t0, t1):
         de = to_date(t_e)
         up = kind == "peak"
@@ -458,8 +493,11 @@ def draw_single(path, F, curves, t, px, pct, dates, *, extrapolate_years=10.0):
         f"y = c + A\u00b7cos(2\u03c0f\u00b7t + \u03c6)   \u00b7   "
         f"period {1/p['f']:.3f} yr   \u00b7   A {p['A']:.1f} pp   \u00b7   "
         f"offset {p['c']:.1f}   \u00b7   R\u00b2 {p['r2']:.3f}      |      "
-        "blue = fitted peaks/troughs (date \u00b7 percentile \u00b7 QR-fan price)"
-        "   \u00b7   dark = actual BTC highs/lows (date \u00b7 close \u00b7 percentile)",
+        "blue = fitted peaks/troughs   \u00b7   orange = same phase at half "
+        "amplitude (labels inside the envelope)   \u00b7   dark = actual BTC "
+        "highs/lows\n"
+        "all labels: date \u00b7 percentile \u00b7 price the QR fan puts there "
+        "(dark labels show the real close instead)",
         fontsize=12, loc="left", pad=14)
     fig.text(0.5, 0.012,
              f"fitted on all {len(pct):,} daily points, {dates[0].date()} \u2013 "

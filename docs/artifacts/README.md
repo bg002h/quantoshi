@@ -22,6 +22,13 @@ The single-panel pair is the one to read for dates and levels off one fit; the
 three-panel pair is for comparing the forms against each other. All four come
 from the same run of the same generator, so they cannot disagree.
 
+The single-panel figures also carry a **half-amplitude twin** (orange): same
+offset, frequency and phase, `A/2`. Because it shares the phase its extrema
+fall on the *same dates* as the full fit, so its labels are drawn INSIDE the
+envelope — peaks below the marker, troughs above — which is the inverse of the
+full fit's convention and is what keeps the two label sets apart. It answers
+"what if the cycle were half as wide?" without moving any turning point.
+
 ```bash
 btc_venv/bin/python3 tools/render_percentile_sinusoid_artifacts.py
 ```

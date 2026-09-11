@@ -10,6 +10,8 @@ the percentile of the BTC price within the QR model's quantile fan:
     percentile-sinusoid-fits-extrapolated.png   same fits, +10 yr, 2020 on
     percentile-sinusoid-calendar-only-10yr.png   calendar fit alone, one wide
     percentile-sinusoid-calendar-only-20yr.png   panel, full record + 10 / 20 yr
+    percentile-sinusoid-calendar-censored-10yr.png  same, but the 2019 S2F-era
+    percentile-sinusoid-calendar-censored-20yr.png  window withheld from the FIT
 
 Both mark:
   * every peak and trough OF THE FITTED CURVE — date, fitted percentile, and
@@ -91,10 +93,17 @@ def _amp_phase(a, b):
     return float(np.hypot(a, b)), float(np.arctan2(-b, a))
 
 
-def fit_all(t, y):
+def fit_all(t, y, keep=None):
     """Calendar, log-time and joint fits. Frequencies are scanned on a grid —
     for a fixed frequency the amplitude and phase are linear, so each grid
-    node is solved exactly and no starting guess can strand the fit."""
+    node is solved exactly and no starting guess can strand the fit.
+
+    `keep` is an optional boolean mask: rows that are False are withheld from
+    the FIT but remain in the series for plotting, so a censored figure still
+    shows what was omitted.
+    """
+    if keep is not None:
+        t, y = t[keep], y[keep]
     ones, lnt = np.ones_like(t), np.log(t)
     sst = float(((y - y.mean()) ** 2).sum())
     span = t[-1] - t[0]
@@ -366,7 +375,8 @@ def draw(path, F, curves, t, px, pct, dates, *, extrapolate_years=0.0,
     return pxt
 
 
-def draw_single(path, F, curves, t, px, pct, dates, *, extrapolate_years=10.0):
+def draw_single(path, F, curves, t, px, pct, dates, *,
+                extrapolate_years=10.0, censored=None, r2_all=None):
     """One wide panel: the calendar-time fit alone, whole record + extension.
 
     The three-panel figures stack short axes, which suits comparing forms. For
@@ -394,6 +404,14 @@ def draw_single(path, F, curves, t, px, pct, dates, *, extrapolate_years=10.0):
             label=f"extrapolation ({extrapolate_years:.0f} yr)")
     ax.axvspan(last, x1, color="#000000", alpha=0.045, zorder=0)
     ax.axvline(last, color="#444", lw=1.2, ls=(0, (3, 3)), zorder=2)
+    if censored is not None:
+        c0, c1 = censored
+        # the data stays on the chart; only the FIT ignores this span
+        ax.axvspan(c0, c1, color=VERM, alpha=0.13, zorder=0)
+        ax.text(c0 + (c1 - c0) / 2, ax.get_ylim()[0] + 6,
+                f"withheld from the fit\n{c0.date()} – {c1.date()}",
+                ha="center", va="bottom", fontsize=8.4, color=VERM,
+                family="DejaVu Sans Mono", zorder=8)
 
     # Half-amplitude twin: same offset, frequency and phase, A/2. Its extrema
     # fall on the SAME dates as the full fit, so its labels are placed INSIDE
@@ -418,7 +436,9 @@ def draw_single(path, F, curves, t, px, pct, dates, *, extrapolate_years=10.0):
         if hfrac < 0.045:                 # would overrun the y-axis and its ticks
             hdx, hha = 30, "left"
         elif hfrac > 0.955:
-            hdx, hha = -30, "right"
+            # a full -30 shift here collided with the previous twin label on
+            # the 20-yr axis; right-anchoring needs only a nudge
+            hdx, hha = -8, "right"
         ax.annotate(
             f"{de.date()}\nQ{y_e:.1f}% \u00b7 {money(implied_price(qr, y_e, t_e))}",
             xy=(de, y_e), xytext=(hdx, -26 if up else 26),  # inverted on purpose
@@ -492,15 +512,22 @@ def draw_single(path, F, curves, t, px, pct, dates, *, extrapolate_years=10.0):
         f"full record + {extrapolate_years:.0f}-year extrapolation\n"
         f"y = c + A\u00b7cos(2\u03c0f\u00b7t + \u03c6)   \u00b7   "
         f"period {1/p['f']:.3f} yr   \u00b7   A {p['A']:.1f} pp   \u00b7   "
-        f"offset {p['c']:.1f}   \u00b7   R\u00b2 {p['r2']:.3f}      |      "
+        f"offset {p['c']:.1f}   \u00b7   R\u00b2 {p['r2']:.3f}"
+        + (f" (vs {r2_all:.3f} fitting all data)" if r2_all else "")
+        + "      |      "
         "blue = fitted peaks/troughs   \u00b7   orange = same phase at half "
         "amplitude (labels inside the envelope)   \u00b7   dark = actual BTC "
         "highs/lows\n"
         "all labels: date \u00b7 percentile \u00b7 price the QR fan puts there "
         "(dark labels show the real close instead)",
         fontsize=12, loc="left", pad=14)
+    n_fit = len(pct) if censored is None else int(
+        (~((dates >= censored[0]) & (dates <= censored[1]))).sum())
+    fitted_on = (f"fitted on all {n_fit:,} daily points" if censored is None else
+                 f"fitted on {n_fit:,} of {len(pct):,} daily points "
+                 f"({len(pct)-n_fit:,} withheld)")
     fig.text(0.5, 0.012,
-             f"fitted on all {len(pct):,} daily points, {dates[0].date()} \u2013 "
+             f"{fitted_on}, {dates[0].date()} \u2013 "
              f"{dates[-1].date()};  t = years since {GENESIS.date()} anchored at "
              "t = 1.  Descriptive fit, not a forecast.",
              ha="center", fontsize=9, color="#555")
@@ -528,6 +555,22 @@ def main():
     for yrs in (10, 20):
         draw_single(OUT_DIR / f"percentile-sinusoid-calendar-only-{yrs}yr.png",
                     F, curves, t, px, pct, dates, extrapolate_years=float(yrs))
+
+    # Censored variant: the 2019 S2F-era excursion withheld from the FIT only.
+    # Dropping 5.2% of the record lifts calendar R² 0.554 -> 0.642 while moving
+    # the period 0.08% and the phase 0.9% — the cycle does not depend on it.
+    C0, C1 = pd.Timestamp("2019-04-15"), pd.Timestamp("2020-02-15")
+    keep = ~((dates >= C0) & (dates <= C1))
+    F_c = fit_all(t, pct, keep=keep)
+    curves_c = make_curves(F_c)
+    print(f"  censored fit: calendar R² = {F_c['calendar']['r2']:.4f} "
+          f"(period {1/F_c['calendar']['f']:.4f} yr, "
+          f"A {F_c['calendar']['A']:.2f} pp)")
+    for yrs in (10, 20):
+        draw_single(OUT_DIR / f"percentile-sinusoid-calendar-censored-{yrs}yr.png",
+                    F_c, curves_c, t, px, pct, dates,
+                    extrapolate_years=float(yrs), censored=(C0, C1),
+                    r2_all=F["calendar"]["r2"])
 
     print("\nactual BTC price extremes marked (from 2020 for the second figure):")
     for t_p, p_p, q_p, d_p, kind in pxt:

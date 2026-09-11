@@ -17,6 +17,8 @@ patterns) at the repo root — hence the `percentile-…` naming here.
 | `percentile-sinusoid-fits-extrapolated.png` | three panels, fits carried 10 years past the data, cropped to 2020 on |
 | `percentile-sinusoid-calendar-only-10yr.png` | the calendar fit alone on one wide panel — whole record **and** its 10-year extension in a single plot |
 | `percentile-sinusoid-calendar-only-20yr.png` | the same, extended 20 years |
+| `percentile-sinusoid-calendar-censored-10yr.png` | as above, but the 2019 S2F-era window withheld **from the fit** |
+| `percentile-sinusoid-calendar-censored-20yr.png` | the same, extended 20 years |
 
 The single-panel pair is the one to read for dates and levels off one fit; the
 three-panel pair is for comparing the forms against each other. All four come
@@ -48,6 +50,34 @@ Each figure carries two kinds of label:
   percentile, and the price the QR fan puts at that percentile on that date;
 * **dark** — major highs and lows of the *actual BTC price*: date, the real
   close, and the percentile that close sat at.
+
+### The 2019 censored variant
+
+`2019-04-15 – 2020-02-15` (307 days, 5.2 % of the record) is withheld from the
+FIT only — the data stays on the chart, shaded, so the omission is visible.
+The window brackets the excursion that followed PlanB's stock-to-flow article
+(2019-03-22).
+
+| | all data | window withheld |
+|---|---|---|
+| period | 3.5706 yr | **3.5733 yr** (+0.08 %) |
+| phase | −127.85° | **−126.69°** (−0.91 %) |
+| amplitude | 30.26 pp | 34.11 pp (+12.7 %) |
+| offset | 49.04 | 46.92 (−4.3 %) |
+| R² | 0.554 | **0.642** (+15.8 %) |
+
+**The cycle does not depend on that window.** Dropping 5 % of the record buys
+a 16 % better fit while moving the period by 0.08 % and the phase by 0.9 %;
+the excursion is absorbed entirely by amplitude and offset.
+
+On whether the article *caused* the excursion: the window's mean residual of
++33.1 pp is the largest of the 19 non-overlapping windows in the record (next:
++20.4), and a model trained only on pre-publication data under-predicts it by
++36.6 pp against +3.4 pp for all 6.5 years after. But causation is not testable
+here — n = 1, no counterfactual, the window was chosen by eye, and S2F's own
+thesis is about the May-2020 halving, so "the model moved the price" and
+"halving anticipation moved the price" predict identical timing. The numbers
+measure anomaly, never cause.
 
 ### What the study found
 

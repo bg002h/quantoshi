@@ -8,6 +8,8 @@ the percentile of the BTC price within the QR model's quantile fan:
 
     percentile-sinusoid-fits.png                full record, 2010-2026
     percentile-sinusoid-fits-extrapolated.png   same fits, +10 yr, 2020 on
+    percentile-sinusoid-calendar-only-10yr.png   calendar fit alone, one wide
+    percentile-sinusoid-calendar-only-20yr.png   panel, full record + 10 / 20 yr
 
 Both mark:
   * every peak and trough OF THE FITTED CURVE — date, fitted percentile, and
@@ -364,6 +366,112 @@ def draw(path, F, curves, t, px, pct, dates, *, extrapolate_years=0.0,
     return pxt
 
 
+def draw_single(path, F, curves, t, px, pct, dates, *, extrapolate_years=10.0):
+    """One wide panel: the calendar-time fit alone, whole record + extension.
+
+    The three-panel figures stack short axes, which suits comparing forms. For
+    reading dates and levels off a single fit, one tall wide axis is better —
+    same data, same labels, more room per label.
+    """
+    cal = curves[0]
+    qr = _app_ctx.PRICE_MODELS["qr"]
+    p = F["calendar"]
+    t0, t1 = t[0], t[-1] + extrapolate_years
+    x0, x1 = to_date(t0), to_date(t1)
+    last = dates[-1]
+    tt = np.arange(t0, t1, 1.0 / 365.25)
+    dd = pd.DatetimeIndex([to_date(v) for v in tt])
+    yy = cal(tt)
+    hist = dd <= last
+
+    span_yr = (x1 - x0).days / 365.25
+    fig, ax = plt.subplots(figsize=(max(21.0, 11.0 + span_yr * 0.42), 9.5))
+    ax.plot(dates, pct, color=DATA, lw=0.85, zorder=1,
+            label="QR percentile (actual)")
+    ax.plot(dd[hist], yy[hist], color=BLUE, lw=2.6, zorder=3,
+            label="fit (in sample)")
+    ax.plot(dd[~hist], yy[~hist], color=BLUE, lw=2.6, alpha=0.55, zorder=3,
+            label=f"extrapolation ({extrapolate_years:.0f} yr)")
+    ax.axvspan(last, x1, color="#000000", alpha=0.045, zorder=0)
+    ax.axvline(last, color="#444", lw=1.2, ls=(0, (3, 3)), zorder=2)
+
+    for t_e, y_e, kind in fit_extrema(cal, t0, t1):
+        de = to_date(t_e)
+        up = kind == "peak"
+        ax.plot([de], [y_e], "o", ms=6, color=BLUE, mec="white", mew=1.1, zorder=6)
+        frac = (de - x0) / (x1 - x0)
+        dx, ha = 0, "center"
+        if frac < 0.045:
+            dx, ha = 30, "left"
+        elif frac > 0.955:
+            dx, ha = -30, "right"
+        ax.annotate(
+            f"{de.date()}\nQ{y_e:.1f}% \u00b7 {money(implied_price(qr, y_e, t_e))}",
+            xy=(de, y_e), xytext=(dx, 30 if up else -30),
+            textcoords="offset points", ha=ha,
+            va="bottom" if up else "top", fontsize=7.8,
+            family="DejaVu Sans Mono", zorder=7,
+            bbox=dict(boxstyle="round,pad=0.28", fc="white", ec=BLUE,
+                      alpha=0.95, lw=0.9),
+            arrowprops=dict(arrowstyle="-", color=BLUE, lw=0.9, shrinkA=0,
+                            shrinkB=3))
+
+    near = (x1 - x0) * 0.055
+    tier, prev_d, prev_kind = 0, None, None
+    for t_p, p_p, q_p, d_p, kind in price_extrema(t, px, pct, dates, t0):
+        if prev_d is not None and kind == prev_kind and (d_p - prev_d) < near:
+            tier = 1 - tier
+        else:
+            tier = 0
+        prev_d, prev_kind = d_p, kind
+        up = kind == "high"
+        ax.plot([d_p], [q_p], marker="D", ms=5.5, color=PRICE, mec="white",
+                mew=1.0, zorder=6)
+        ax.annotate(
+            f"{d_p.date()}\n{money(p_p)} \u00b7 Q{q_p:.1f}%",
+            xy=(d_p, q_p),
+            xytext=(0, (70 + 36 * tier) if up else -(70 + 36 * tier)),
+            textcoords="offset points", ha="center",
+            va="bottom" if up else "top", fontsize=7.4, color="white",
+            family="DejaVu Sans Mono", zorder=7,
+            bbox=dict(boxstyle="round,pad=0.26", fc=PRICE, ec="white",
+                      alpha=0.94, lw=0.8),
+            arrowprops=dict(arrowstyle="-", color=PRICE, lw=0.8,
+                            ls=(0, (2, 1.5)), shrinkA=0, shrinkB=3))
+
+    ax.axhline(50, color="k", lw=0.7, alpha=0.28, zorder=0)
+    ax.set_xlim(x0, x1)
+    # just enough for the two label tiers; -96/196 left the data squashed
+    # into the middle third of the panel
+    ax.set_ylim(-74, 172)
+    ax.set_yticks([0, 25, 50, 75, 100])
+    ax.set_ylabel("percentile in QR fan")
+    ax.set_xlabel("date")
+    ax.grid(alpha=0.17)
+    ax.xaxis.set_major_locator(mdates.YearLocator(1))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
+    ax.legend(loc="lower left", fontsize=9.5, framealpha=0.95, ncol=3)
+    ax.set_title(
+        "Calendar-time sinusoid fit to the QR-model percentile of BTC price — "
+        f"full record + {extrapolate_years:.0f}-year extrapolation\n"
+        f"y = c + A\u00b7cos(2\u03c0f\u00b7t + \u03c6)   \u00b7   "
+        f"period {1/p['f']:.3f} yr   \u00b7   A {p['A']:.1f} pp   \u00b7   "
+        f"offset {p['c']:.1f}   \u00b7   R\u00b2 {p['r2']:.3f}      |      "
+        "blue = fitted peaks/troughs (date \u00b7 percentile \u00b7 QR-fan price)"
+        "   \u00b7   dark = actual BTC highs/lows (date \u00b7 close \u00b7 percentile)",
+        fontsize=12, loc="left", pad=14)
+    fig.text(0.5, 0.012,
+             f"fitted on all {len(pct):,} daily points, {dates[0].date()} \u2013 "
+             f"{dates[-1].date()};  t = years since {GENESIS.date()} anchored at "
+             "t = 1.  Descriptive fit, not a forecast.",
+             ha="center", fontsize=9, color="#555")
+    fig.tight_layout(rect=[0, 0.028, 1, 1])
+    fig.savefig(path, dpi=145)
+    plt.close(fig)
+    print(f"  wrote {path.relative_to(REPO)}")
+
+
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     qr, t, px, dates, pct = load_series()
@@ -378,6 +486,10 @@ def main():
     pxt = draw(OUT_DIR / "percentile-sinusoid-fits-extrapolated.png", F, curves,
                t, px, pct, dates, extrapolate_years=10.0, x_from="2020-01-01",
                title_suffix=" — extrapolated 10 years")
+
+    for yrs in (10, 20):
+        draw_single(OUT_DIR / f"percentile-sinusoid-calendar-only-{yrs}yr.png",
+                    F, curves, t, px, pct, dates, extrapolate_years=float(yrs))
 
     print("\nactual BTC price extremes marked (from 2020 for the second figure):")
     for t_p, p_p, q_p, d_p, kind in pxt:

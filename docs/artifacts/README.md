@@ -13,8 +13,14 @@ patterns) at the repo root — hence the `percentile-…` naming here.
 
 | file | what it shows |
 |---|---|
-| `percentile-sinusoid-fits.png` | full record, 2010-07-26 – 2026-09-03 |
-| `percentile-sinusoid-fits-extrapolated.png` | same fits carried 10 years past the data, cropped to 2020 on |
+| `percentile-sinusoid-fits.png` | three panels, full record, 2010-07-26 – 2026-09-03 |
+| `percentile-sinusoid-fits-extrapolated.png` | three panels, fits carried 10 years past the data, cropped to 2020 on |
+| `percentile-sinusoid-calendar-only-10yr.png` | the calendar fit alone on one wide panel — whole record **and** its 10-year extension in a single plot |
+| `percentile-sinusoid-calendar-only-20yr.png` | the same, extended 20 years |
+
+The single-panel pair is the one to read for dates and levels off one fit; the
+three-panel pair is for comparing the forms against each other. All four come
+from the same run of the same generator, so they cannot disagree.
 
 ```bash
 btc_venv/bin/python3 tools/render_percentile_sinusoid_artifacts.py

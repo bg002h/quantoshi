@@ -19,6 +19,7 @@ patterns) at the repo root — hence the `percentile-…` naming here.
 | `percentile-sinusoid-calendar-only-20yr.png` | the same, extended 20 years |
 | `percentile-sinusoid-calendar-censored-10yr.png` | as above, but the 2019 S2F-era window withheld **from the fit** |
 | `percentile-sinusoid-calendar-censored-20yr.png` | the same, extended 20 years |
+| `…-pl.png` (6 files) | every figure above, re-read off the **Power Law** fan |
 
 The single-panel pair is the one to read for dates and levels off one fit; the
 three-panel pair is for comparing the forms against each other. All four come
@@ -108,6 +109,48 @@ thesis is about the May-2020 halving, so "the model moved the price" and
 "halving anticipation moved the price" predict identical timing. The numbers
 measure anomaly, never cause.
 
+### QR or PL? The crossing and the narrowing are the same feature
+
+`tools/render_percentile_sinusoid_artifacts.py pl` regenerates the whole set
+against the Power Law fan, which never folds. Before switching to it, the
+reason PL's bands are parallel is worth knowing, because it is also the reason
+not to switch.
+
+**PL does not fit its bands.** It fits ONE line by OLS, takes the standard
+deviation of the residuals, and puts band *q* at `intercept + z_q·σ` with the
+same slope (`btc_core/_simple.py::PowerLawModel.__init__`). Every band is that
+one line shifted vertically, so the fan is parallel by construction — and its
+width is frozen for all time:
+
+| Q10→Q90 width, dex | 2011 | 2015 | 2019 | 2023 | today | 2046 |
+|---|---|---|---|---|---|---|
+| PL | 0.753 | 0.753 | 0.753 | 0.753 | 0.753 | 0.753 |
+| QR | 1.331 | 0.864 | 0.671 | 0.547 | 0.462 | 0.192 |
+
+QR fits each quantile separately, so each gets its own slope and the fan is
+free to change width. **That freedom is exactly what lets the channels cross.**
+You cannot have a fan that narrows and a fan that can never fold — not from
+these two models.
+
+Which assumption is false is measurable. Residual sd by era: **0.379, 0.350,
+0.235, 0.150 dex** (2010-14, 14-18, 18-22, 22-27). The spread really has
+compressed, by 2.5×. So QR's crossing is the cost of tracking something true,
+while PL's non-crossing is the cost of freezing something false — and PL's
+error is *inside* the record, where the data is, whereas QR's folding begins in
+2028, out in the extrapolation where nothing is measured.
+
+What it costs to switch, on the censored fit: period 3.573 → 3.596 yr (+0.6 %),
+phase −126.7° → −120.1° (≈ 23 days), amplitude 34.1 → 32.2 pp, and **R² 0.642 →
+0.571**. Every conclusion survives; the fit is simply worse. The two percentile
+series correlate 0.975.
+
+For completeness `sigma_mode="resqr"` (time-varying σ, which would in principle
+give PL a narrowing fan that still cannot cross) is worse than both: 1,030 of
+5,884 days pin to the rails and R² falls to 0.552.
+
+**QR stays the default.** PL is generated so the difference can be looked at
+rather than argued about.
+
 ### What the study found
 
 * The calendar period lands at **3.57–3.61 yr** under every variant tried —
@@ -124,7 +167,12 @@ measure anomaly, never cause.
   power-law `t^−D`, and pinned asymptotes at 0 / 12.5 / 25 / 37.5 all either
   refuse to decay (τ → 10⁶ yr, collapsing onto the constant-amplitude fit) or
   degenerate into a 2010-12 transient. Given a free sign, `t^−D` chooses
-  **D = −0.170** — mild *growth*.
+  **D = −0.170** — mild *growth*. Re-run against the PL fan it is the same
+  answer: exponential-to-floor picks τ = 679 yr (a 2.3 % decline across the
+  whole record, worth ΔR² = 0.0001) on all data and τ → 10¹⁵ yr once the 2019
+  window is withheld, while the free-sign power law picks D = −0.119 / −0.155
+  — growth again. No parameterisation of either model supports a decaying
+  amplitude.
 * The fits systematically **turn ~90 days late** and undershoot both rails:
   the 2021 peak was actually Q99.8 against a fitted Q79.3.
 

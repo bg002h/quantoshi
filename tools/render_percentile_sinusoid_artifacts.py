@@ -66,9 +66,26 @@ DATA, BLUE, VERM, GREEN, PRICE = "#9A9A9A", "#0072B2", "#D55E00", "#009E73", "#1
 
 # ── data ────────────────────────────────────────────────────────────────────
 
-def load_series():
+def load_series(short="qr"):
+    """Percentile of the daily close within `short`'s quantile fan.
+
+    The model is a parameter because QR and PL disagree about something that
+    matters here and neither is free. QR fits each quantile independently, so
+    its fan can change width over time — measured Q10-Q90: 1.331 dex (2011)
+    -> 0.462 dex (today) — and that same freedom is what lets the channels
+    eventually cross. PL fits ONE OLS line, takes the residual standard
+    deviation, and places band q at intercept + z_q*sigma with the SAME slope:
+    parallel by construction, so it can never cross, and equally never narrow
+    (0.7533 dex at every date in the record and forever after).
+
+    The narrowing is real — residual sd by era is 0.379, 0.350, 0.235, 0.150
+    dex — so QR's crossing is the cost of tracking something true, while PL's
+    non-crossing is the cost of freezing something false. QR stays the default
+    for that reason; PL is here so the difference can be seen rather than
+    argued about.
+    """
     M = _app_ctx.M
-    qr = _app_ctx.PRICE_MODELS["qr"]
+    qr = _app_ctx.PRICE_MODELS[short]
     t_all = np.asarray(M.price_years, float)
     keep = t_all >= 1.0                       # log-log anchor is t = 1
     t = t_all[keep]
@@ -245,7 +262,14 @@ def price_tag(qr, pct, t_, folded=None):
     return tag + " \u2020"
 
 
-FOLD_NOTE = ("  \u2020 from {0} the QR channels cross under extrapolation "
+def model_label(qr):
+    """Short name for whichever fan the figure is reading — the titles used to
+    say "QR" unconditionally, which quietly became a false label the moment
+    the model became a parameter."""
+    return getattr(qr, "legend_name", None) or getattr(qr, "short_name", "QR")
+
+
+FOLD_NOTE = ("  \u2020 from {0} the {1} channels cross under extrapolation "
              "\u2014 the fan stops being monotone in quantile, so a daggered "
              "price does not rank against the others.")
 
@@ -284,14 +308,14 @@ def price_extrema(t, px, pct, dates, t_lo, n_each=4):
 # ── rendering ───────────────────────────────────────────────────────────────
 
 def draw(path, F, curves, t, px, pct, dates, *, extrapolate_years=0.0,
-         x_from=None, title_suffix=""):
+         x_from=None, title_suffix="", qr=None):
     cal, logt, both = curves
     last_date = dates[-1]
     t0 = t[0] if x_from is None else (pd.Timestamp(x_from) - GENESIS).days / 365.25
     t1 = t[-1] + extrapolate_years
     x0 = to_date(t0)
     x1 = to_date(t1)
-    qr = _app_ctx.PRICE_MODELS["qr"]
+    qr = qr if qr is not None else _app_ctx.PRICE_MODELS["qr"]
     folded = []
 
     panels = [
@@ -314,9 +338,11 @@ def draw(path, F, curves, t, px, pct, dates, *, extrapolate_years=0.0,
 
     fig, axes = plt.subplots(3, 1, figsize=(17, 16.5), sharex=True)
     fig.suptitle(
-        "Sinusoid fits to the QR-model percentile of BTC price" + title_suffix
+        f"Sinusoid fits to the {model_label(qr)}-model percentile of BTC price"
+        + title_suffix
         + "\ncoloured labels = peaks/troughs of the FITTED curve "
-          "(date · fitted percentile · price the QR fan puts there)   |   "
+          f"(date · fitted percentile · price the {model_label(qr)} fan puts "
+          "there)   |   "
           "dark labels = actual BTC price highs/lows "
           "(date · real close · percentile it sat at)",
         fontsize=13, y=0.981)
@@ -325,7 +351,7 @@ def draw(path, F, curves, t, px, pct, dates, *, extrapolate_years=0.0,
         yy = fn(tt)
         hist = dd <= last_date
         ax.plot(dates, pct, color=DATA, lw=0.8, zorder=1,
-                label="QR percentile (actual)")
+                label=f"{model_label(qr)} percentile (actual)")
         ax.plot(dd[hist], yy[hist], color=colour, lw=2.2, ls=dash, zorder=3,
                 label="fit (in sample)")
         if extrapolate_years > 0:
@@ -392,7 +418,7 @@ def draw(path, F, curves, t, px, pct, dates, *, extrapolate_years=0.0,
         ax.set_xlim(x0, x1)
         ax.set_ylim(-88, 188)
         ax.set_yticks([0, 25, 50, 75, 100])
-        ax.set_ylabel("percentile in QR fan")
+        ax.set_ylabel(f"percentile in {model_label(qr)} fan")
         ax.set_title(f"{name}   —   {sub}", fontsize=10.5, loc="left", pad=10)
         ax.grid(alpha=0.16)
         # legend is placed once at figure level below, so it cannot
@@ -412,7 +438,7 @@ def draw(path, F, curves, t, px, pct, dates, *, extrapolate_years=0.0,
              f"{dates[0].date()} – {dates[-1].date()};  t = years since "
              f"{GENESIS.date()} anchored at t = 1.  "
              "Descriptive fits (R² 0.55–0.70), not forecasts."
-             + (FOLD_NOTE.format(min(folded).date()) if folded else ""),
+             + (FOLD_NOTE.format(min(folded).date(), model_label(qr)) if folded else ""),
              ha="center", fontsize=8.6, color="#555")
     fig.tight_layout(rect=[0, 0.022, 1, 0.934])
     fig.savefig(path, dpi=140)
@@ -444,7 +470,7 @@ def edge_shift(ax, frac, text, fontsize, pad=0.26):
 
 
 def draw_single(path, F, curves, t, px, pct, dates, *,
-                extrapolate_years=10.0, censored=None, r2_all=None):
+                extrapolate_years=10.0, censored=None, r2_all=None, qr=None):
     """One wide panel: the calendar-time fit alone, whole record + extension.
 
     The three-panel figures stack short axes, which suits comparing forms. For
@@ -452,7 +478,7 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
     same data, same labels, more room per label.
     """
     cal = curves[0]
-    qr = _app_ctx.PRICE_MODELS["qr"]
+    qr = qr if qr is not None else _app_ctx.PRICE_MODELS["qr"]
     folded = []
     p = F["calendar"]
     t0, t1 = t[0], t[-1] + extrapolate_years
@@ -466,7 +492,7 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
     span_yr = (x1 - x0).days / 365.25
     fig, ax = plt.subplots(figsize=(max(21.0, 11.0 + span_yr * 0.42), 9.5))
     ax.plot(dates, pct, color=DATA, lw=0.85, zorder=1,
-            label="QR percentile (actual)")
+            label=f"{model_label(qr)} percentile (actual)")
     ax.plot(dd[hist], yy[hist], color=BLUE, lw=2.6, zorder=3,
             label="fit (in sample)")
     ax.plot(dd[~hist], yy[~hist], color=BLUE, lw=2.6, alpha=0.55, zorder=3,
@@ -564,7 +590,7 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
     # into the middle third of the panel
     ax.set_ylim(-74, 172)
     ax.set_yticks([0, 25, 50, 75, 100])
-    ax.set_ylabel("percentile in QR fan")
+    ax.set_ylabel(f"percentile in {model_label(qr)} fan")
     ax.set_xlabel("date")
     ax.grid(alpha=0.17)
     ax.xaxis.set_major_locator(mdates.YearLocator(1))
@@ -572,7 +598,8 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
     ax.legend(loc="lower left", fontsize=9.5, framealpha=0.95, ncol=3)
     ax.set_title(
-        "Calendar-time sinusoid fit to the QR-model percentile of BTC price — "
+        f"Calendar-time sinusoid fit to the {model_label(qr)}-model percentile "
+        "of BTC price \u2014 "
         f"full record + {extrapolate_years:.0f}-year extrapolation\n"
         f"y = c + A\u00b7cos(2\u03c0f\u00b7t + \u03c6)   \u00b7   "
         f"period {1/p['f']:.3f} yr   \u00b7   A {p['A']:.1f} pp   \u00b7   "
@@ -582,7 +609,8 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
         "blue = fitted peaks/troughs   \u00b7   orange = same phase at half "
         "amplitude (labels inside the envelope)   \u00b7   dark = actual BTC "
         "highs/lows\n"
-        "all labels: date \u00b7 percentile \u00b7 price the QR fan puts there "
+        f"all labels: date \u00b7 percentile \u00b7 price the {model_label(qr)} "
+        "fan puts there "
         "(dark labels show the real close instead)",
         fontsize=12, loc="left", pad=14)
     n_fit = len(pct) if censored is None else int(
@@ -594,7 +622,7 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
              f"{fitted_on}, {dates[0].date()} \u2013 "
              f"{dates[-1].date()};  t = years since {GENESIS.date()} anchored at "
              "t = 1.  Descriptive fit, not a forecast."
-             + (FOLD_NOTE.format(min(folded).date()) if folded else ""),
+             + (FOLD_NOTE.format(min(folded).date(), model_label(qr)) if folded else ""),
              ha="center", fontsize=9, color="#555")
     fig.tight_layout(rect=[0, 0.028, 1, 1])
     fig.savefig(path, dpi=145)
@@ -604,22 +632,27 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
 
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    qr, t, px, dates, pct = load_series()
+    short = sys.argv[1] if len(sys.argv) > 1 else "qr"
+    tag = "" if short == "qr" else f"-{short}"
+    qr, t, px, dates, pct = load_series(short)
+    print(f"model: {short}  ({qr.name})")
     print(f"percentile series: {len(pct)} days  {dates[0].date()} .. {dates[-1].date()}")
     F = fit_all(t, pct)
     for k, v in F.items():
         print(f"  {k:9s} R² = {v['r2']:.4f}")
     curves = make_curves(F)
 
-    draw(OUT_DIR / "percentile-sinusoid-fits.png", F, curves, t, px, pct, dates,
-         title_suffix="")
-    pxt = draw(OUT_DIR / "percentile-sinusoid-fits-extrapolated.png", F, curves,
-               t, px, pct, dates, extrapolate_years=10.0, x_from="2020-01-01",
-               title_suffix=" — extrapolated 10 years")
+    draw(OUT_DIR / f"percentile-sinusoid-fits{tag}.png", F, curves, t, px, pct,
+         dates, title_suffix="", qr=qr)
+    pxt = draw(OUT_DIR / f"percentile-sinusoid-fits-extrapolated{tag}.png", F,
+               curves, t, px, pct, dates, extrapolate_years=10.0,
+               x_from="2020-01-01", title_suffix=" — extrapolated 10 years",
+               qr=qr)
 
     for yrs in (10, 20):
-        draw_single(OUT_DIR / f"percentile-sinusoid-calendar-only-{yrs}yr.png",
-                    F, curves, t, px, pct, dates, extrapolate_years=float(yrs))
+        draw_single(OUT_DIR / f"percentile-sinusoid-calendar-only-{yrs}yr{tag}.png",
+                    F, curves, t, px, pct, dates, extrapolate_years=float(yrs),
+                    qr=qr)
 
     # Censored variant: the 2019 S2F-era excursion withheld from the FIT only.
     # Dropping 5.2% of the record lifts calendar R² 0.554 -> 0.642 while moving
@@ -632,10 +665,10 @@ def main():
           f"(period {1/F_c['calendar']['f']:.4f} yr, "
           f"A {F_c['calendar']['A']:.2f} pp)")
     for yrs in (10, 20):
-        draw_single(OUT_DIR / f"percentile-sinusoid-calendar-censored-{yrs}yr.png",
-                    F_c, curves_c, t, px, pct, dates,
-                    extrapolate_years=float(yrs), censored=(C0, C1),
-                    r2_all=F["calendar"]["r2"])
+        draw_single(
+            OUT_DIR / f"percentile-sinusoid-calendar-censored-{yrs}yr{tag}.png",
+            F_c, curves_c, t, px, pct, dates, extrapolate_years=float(yrs),
+            censored=(C0, C1), r2_all=F["calendar"]["r2"], qr=qr)
 
     print("\nactual BTC price extremes marked (from 2020 for the second figure):")
     for t_p, p_p, q_p, d_p, kind in pxt:

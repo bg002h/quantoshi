@@ -62,6 +62,7 @@ from figures.percentile import _percentile_series            # noqa: E402
 OUT_DIR = REPO / "docs" / "artifacts"
 GENESIS = pd.Timestamp("2009-07-25")
 DATA, BLUE, VERM, GREEN, PRICE = "#9A9A9A", "#0072B2", "#D55E00", "#009E73", "#1A1A2E"
+INK = PRICE            # dark ink for the ratio panel — identity by position
 
 
 # ── data ────────────────────────────────────────────────────────────────────
@@ -682,6 +683,130 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
     print(f"  wrote {path.relative_to(REPO)}")
 
 
+def draw_reconciliation(path, F, curves, t, px, pct, dates, *, qr=None):
+    """Why a fan that narrows 2.16x leaves the percentile amplitude flat.
+
+    Three panels on one time axis, because the claim is a ratio and a ratio
+    needs its numerator and denominator shown separately before it means
+    anything:
+
+      A  dollars   - the price's own deviation from the QR median, with the
+                     fan drawn on top of it in the same units. Both close.
+      B  the ratio - rolling sd of that deviation divided by the fan's sigma.
+                     Flat is the whole argument.
+      C  percentile- the series the sinusoid was actually fitted to, which is
+                     exactly the quantity panel B says should have no trend.
+    """
+    qr = qr if qr is not None else _app_ctx.PRICE_MODELS["qr"]
+    W = 730                                    # 2-year rolling window
+    Z90 = 1.2815515655                         # Q10-Q90 spans 2 * z90 * sigma
+
+    def band(q):
+        return np.array([float(np.asarray(qr.price_at(q, np.array([v]))).ravel()[0])
+                         for v in t])
+
+    med, q10, q90 = band(0.50), band(0.10), band(0.90)
+    dev = np.log10(px) - np.log10(med)         # price deviation, in dex
+    up, dn = np.log10(q90 / med), np.log10(q10 / med)
+    fan_sd = (up - dn) / (2 * Z90)
+    roll = pd.Series(dev, index=dates).rolling(W, min_periods=W // 2).std().to_numpy()
+    ratio = roll / fan_sd
+    excur = (pd.Series(np.abs(pct - 50.0), index=dates)
+             .rolling(W, min_periods=W // 2).mean().to_numpy())
+    ok = ~np.isnan(roll)
+    p = F["calendar"]
+    fit = p["c"] + p["A"] * np.cos(2 * np.pi * p["f"] * t + p["phi"])
+
+    fig, (a, b, c) = plt.subplots(
+        3, 1, figsize=(15.5, 12.2), sharex=True,
+        gridspec_kw={"height_ratios": [1.25, 0.75, 1.25], "hspace": 0.13})
+
+    # ── A. dollars ─────────────────────────────────────────────────────────
+    a.fill_between(dates, dn, up, color=BLUE, alpha=0.13, lw=0,
+                   label="QR fan, Q10–Q90 (relative to its median)")
+    a.plot(dates, dev, color=DATA, lw=0.8, zorder=3,
+           label="actual deviation from the QR median")
+    a.plot(dates[ok], roll[ok], color=VERM, lw=2.6, zorder=5,
+           label="its 2-yr rolling sd")
+    a.plot(dates, fan_sd, color=BLUE, lw=2.4, ls=(0, (6, 2)), zorder=4,
+           label="the fan's own σ")
+    a.axhline(0, color="k", lw=0.7, alpha=0.3)
+    a.set_ylabel("log₁₀ deviation from median  (dex)")
+    a.set_ylim(-1.15, 1.15)
+    a.legend(fontsize=8.8, loc="lower left", ncol=2, framealpha=0.95)
+    a.set_title("A.  In dollars, BOTH are closing — and at almost the same rate",
+                fontsize=11.5, loc="left", pad=7)
+    i0 = int(np.argmax(ok))
+    # both boxes anchor at the right edge, so they need different rows
+    for y_, txt, col, dy in ((roll, "price swings", VERM, 74),
+                             (fan_sd, "the fan  ", BLUE, 26)):
+        a.annotate(f"{txt}  {y_[i0]/y_[-1]:.2f}× narrower\n"
+                   f"{y_[i0]:.3f} → {y_[-1]:.3f} dex",
+                   xy=(dates[-1], y_[-1]), xytext=(-14, dy),
+                   textcoords="offset points", ha="right", fontsize=8.4,
+                   color=col, family="DejaVu Sans Mono",
+                   bbox=dict(boxstyle="round,pad=0.3", fc="white", ec=col,
+                             alpha=0.95, lw=0.9),
+                   arrowprops=dict(arrowstyle="-", color=col, lw=0.8,
+                                   shrinkA=0, shrinkB=2))
+
+    # ── B. the ratio ───────────────────────────────────────────────────────
+    b.plot(dates[ok], ratio[ok], color=INK, lw=2.4, zorder=4)
+    b.fill_between(dates[ok], 0, ratio[ok], color=INK, alpha=0.07, lw=0)
+    m = float(np.nanmean(ratio))
+    b.axhline(m, color=INK, lw=1.0, ls=(0, (3, 3)), alpha=0.75)
+    b.annotate(f"mean {m:.2f}", xy=(dates[-1], m), xytext=(-8, 8),
+               textcoords="offset points", ha="right", fontsize=8.6, color=INK,
+               family="DejaVu Sans Mono",
+               bbox=dict(boxstyle="round,pad=0.25", fc="white", ec=INK,
+                         alpha=0.9, lw=0.7))
+    b.set_ylabel("swings ÷ fan")
+    b.set_ylim(0, 1.75)
+    b.set_title("B.  So the ratio barely moves — and the ratio is what a "
+                f"percentile IS  ({ratio[i0]:.2f} → {ratio[-1]:.2f}, "
+                f"{ratio[-1]/ratio[i0]:.2f}×, not monotone)",
+                fontsize=11.5, loc="left", pad=7)
+
+    # ── C. percentile ──────────────────────────────────────────────────────
+    c.plot(dates, pct, color=DATA, lw=0.8, zorder=3, label="percentile in QR fan")
+    c.plot(dates, fit, color=BLUE, lw=2.4, zorder=4,
+           label=f"calendar sinusoid, A = {p['A']:.1f} pp (constant)")
+    c.plot(dates[ok], 50 + excur[ok], color=VERM, lw=2.4, zorder=5,
+           label="2-yr mean excursion from Q50 (±)")
+    c.plot(dates[ok], 50 - excur[ok], color=VERM, lw=2.4, zorder=5)
+    c.axhline(50, color="k", lw=0.7, alpha=0.3)
+    c.set_ylabel("percentile in QR fan")
+    c.set_xlabel("date")
+    c.set_ylim(-8, 108)
+    c.set_yticks([0, 25, 50, 75, 100])
+    c.legend(fontsize=8.8, loc="lower left", ncol=3, framealpha=0.95)
+    c.set_title("C.  …which is why the fitted amplitude has no decay to find",
+                fontsize=11.5, loc="left", pad=7)
+
+    for ax_ in (a, b, c):
+        ax_.grid(alpha=0.18)
+        ax_.xaxis.set_major_locator(mdates.YearLocator(1))
+        ax_.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+    plt.setp(c.get_xticklabels(), rotation=45, ha="right")
+    fig.suptitle(
+        f"A fan that narrows {fan_sd[i0]/fan_sd[-1]:.2f}× and a sinusoid "
+        "amplitude that does not decay are the same fact, not a contradiction\n"
+        "percentile is a normalised coordinate: it divides the price's "
+        "deviation by the fan's width, so a change in scale cancels and only a "
+        "change in shape could show",
+        fontsize=13.5, y=0.978, x=0.008, ha="left")
+    fig.text(0.5, 0.012,
+             f"2-year rolling windows; fan σ from the Q10–Q90 width. "
+             f"The QR fan is fitted TO these deviations, so the cancellation in "
+             f"B is close to tautological — that is the point, not a caveat.  "
+             f"{dates[0].date()} – {dates[-1].date()}.",
+             ha="center", fontsize=8.8, color="#555")
+    fig.tight_layout(rect=[0, 0.022, 1, 0.935])
+    fig.savefig(path, dpi=145)
+    plt.close(fig)
+    print(f"  wrote {path.relative_to(REPO)}")
+
+
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     global REARRANGE
@@ -724,6 +849,10 @@ def main():
             OUT_DIR / f"percentile-sinusoid-calendar-censored-{yrs}yr{tag}.png",
             F_c, curves_c, t, px, pct, dates, extrapolate_years=float(yrs),
             censored=(C0, C1), r2_all=F["calendar"]["r2"], qr=qr)
+
+    draw_reconciliation(
+        OUT_DIR / f"percentile-amplitude-reconciliation{tag}.png",
+        F, curves, t, px, pct, dates, qr=qr)
 
     print("\nactual BTC price extremes marked (from 2020 for the second figure):")
     for t_p, p_p, q_p, d_p, kind in pxt:

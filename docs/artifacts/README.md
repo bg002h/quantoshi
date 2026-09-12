@@ -19,7 +19,8 @@ patterns) at the repo root — hence the `percentile-…` naming here.
 | `percentile-sinusoid-calendar-only-20yr.png` | the same, extended 20 years |
 | `percentile-sinusoid-calendar-censored-10yr.png` | as above, but the 2019 S2F-era window withheld **from the fit** |
 | `percentile-sinusoid-calendar-censored-20yr.png` | the same, extended 20 years |
-| `…-pl.png` (6 files) | every figure above, re-read off the **Power Law** fan |
+| `percentile-amplitude-reconciliation.png` | why a narrowing fan and a flat amplitude are the same fact |
+| `…-pl.png` (7 files) | every figure above, re-read off the **Power Law** fan |
 
 The single-panel pair is the one to read for dates and levels off one fit; the
 three-panel pair is for comparing the forms against each other. All four come
@@ -185,6 +186,26 @@ One caveat on the dollar-space decay: it is not robust either. Withholding the
 2019 window cuts it from −32.5 % to −24.4 %, and the free-sign power law flips
 from D = +0.021 (decay) to D = −0.020 (growth). Part of what reads as decay is
 the 2019–20 excursion inflating the early-record amplitude's opposite end.
+
+`percentile-amplitude-reconciliation.png` shows this in three panels sharing
+one time axis, because the claim is a ratio and a ratio needs its numerator and
+denominator shown separately: **A** the price's deviation from the QR median
+with the fan drawn over it in the same units (both close, 3.04× and 2.63× on
+the rolling endpoints), **B** the ratio of the two (mean 0.85, wandering
+0.20–1.34 with no trend), **C** the percentile series the sinusoid was actually
+fitted to — which is panel B, and so has no decay to find.
+
+**Rescaling the percentile by a constant does not recover the decay**, because
+R² and the fitted damping exponent are scale-invariant. Multiplying the whole
+series by 1/2.53 gives amplitude 30.261 → 11.961 pp and leaves everything else
+byte-identical: R² 0.554061 either way, `t^−D` still picks D = −0.1701, exp-to-
+floor still runs τ → 10¹⁵ yr. It is a change of units, and a change of units
+cannot create a time trend.
+
+What does work is a **time-varying** rescale — multiplying the excursion by the
+fan width *at each date*. That gives τ = 33.6 yr and D = +0.047, a decay. But
+multiplying the percentile back by the fan width is just un-normalising it: the
+result is panel A, in dollars, which is where the decay lived all along.
 
 ### What the study found
 

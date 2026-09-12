@@ -197,13 +197,57 @@ def to_date(t_):
     return GENESIS + pd.Timedelta(days=float(t_) * 365.25)
 
 
-def implied_price(qr, pct, t_):
-    """The USD level the QR fan puts at `pct` on date `t_` (forward direction)."""
+def _logfan(qr, t_):
     qs = np.asarray(qr.quantiles, float)
-    logfan = np.array([
+    return qs, np.array([
         np.log10(max(float(np.asarray(qr.price_at(q, np.array([t_]))).ravel()[0]),
                      1e-12)) for q in qs])
+
+
+def implied_price(qr, pct, t_):
+    """The USD level the QR fan puts at `pct` on date `t_` (forward direction)."""
+    qs, logfan = _logfan(qr, t_)
     return float(10 ** np.interp(np.clip(pct / 100.0, qs[0], qs[-1]), qs, logfan))
+
+
+def fan_folds(qr, pct, t_):
+    """True when the QR fan is not monotone between `pct` and the median.
+
+    Each QR channel is its own line with its own slope, so extrapolated far
+    enough they CROSS — by 2046 the Q65 channel sits above the Q80 one. This
+    is the model's own behaviour, not a lookup bug, but it means a price
+    quoted at one percentile stops ranking against a price quoted at another,
+    which is exactly what a reader assumes a percentile label guarantees.
+
+    The band tested is percentile-to-median because that is the weakest claim
+    such a label makes: "this level is above (or below) the median, by this
+    much". A label that cannot support even that is marked on the figure.
+    """
+    qs, logfan = _logfan(qr, t_)
+    lo, hi = sorted((np.clip(pct / 100.0, qs[0], qs[-1]), 0.5))
+    m = (qs >= lo) & (qs <= hi)
+    band = np.concatenate([[np.interp(lo, qs, logfan)], logfan[m],
+                           [np.interp(hi, qs, logfan)]])
+    return bool(np.any(np.diff(band) < 0))
+
+
+def price_tag(qr, pct, t_, folded=None):
+    """`Q<pct>% · $<price>`, daggered when the fan has folded there.
+
+    `folded`, if given, collects the dates that were daggered so the figure
+    can state where the crossing starts instead of hardcoding a year.
+    """
+    tag = f"Q{pct:.1f}% \u00b7 {money(implied_price(qr, pct, t_))}"
+    if not fan_folds(qr, pct, t_):
+        return tag
+    if folded is not None:
+        folded.append(to_date(t_))
+    return tag + " \u2020"
+
+
+FOLD_NOTE = ("  \u2020 from {0} the QR channels cross under extrapolation "
+             "\u2014 the fan stops being monotone in quantile, so a daggered "
+             "price does not rank against the others.")
 
 
 def fit_extrema(fn, t0, t1):
@@ -248,6 +292,7 @@ def draw(path, F, curves, t, px, pct, dates, *, extrapolate_years=0.0,
     x0 = to_date(t0)
     x1 = to_date(t1)
     qr = _app_ctx.PRICE_MODELS["qr"]
+    folded = []
 
     panels = [
         ("Calendar-time sinusoid", cal, BLUE, (0, ()),
@@ -302,7 +347,7 @@ def draw(path, F, curves, t, px, pct, dates, *, extrapolate_years=0.0,
             elif frac > 0.93:
                 dx, ha = -34, "right"
             ax.annotate(
-                f"{de.date()}\nQ{y_e:.1f}% · {money(implied_price(qr, y_e, t_e))}",
+                f"{de.date()}\n{price_tag(qr, y_e, t_e, folded)}",
                 xy=(de, y_e), xytext=(dx, 28 if up else -28),
                 textcoords="offset points", ha=ha,
                 va="bottom" if up else "top", fontsize=7.4,
@@ -366,7 +411,8 @@ def draw(path, F, curves, t, px, pct, dates, *, extrapolate_years=0.0,
              f"fitted on all {len(pct):,} daily points, "
              f"{dates[0].date()} – {dates[-1].date()};  t = years since "
              f"{GENESIS.date()} anchored at t = 1.  "
-             "Descriptive fits (R² 0.55–0.70), not forecasts.",
+             "Descriptive fits (R² 0.55–0.70), not forecasts."
+             + (FOLD_NOTE.format(min(folded).date()) if folded else ""),
              ha="center", fontsize=8.6, color="#555")
     fig.tight_layout(rect=[0, 0.022, 1, 0.934])
     fig.savefig(path, dpi=140)
@@ -407,6 +453,7 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
     """
     cal = curves[0]
     qr = _app_ctx.PRICE_MODELS["qr"]
+    folded = []
     p = F["calendar"]
     t0, t1 = t[0], t[-1] + extrapolate_years
     x0, x1 = to_date(t0), to_date(t1)
@@ -458,8 +505,7 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
         up = kind == "peak"
         ax.plot([de], [y_e], "s", ms=5.2, color=VERM, mec="white", mew=1.0,
                 zorder=6)
-        htxt = (f"{de.date()}\n"
-                f"Q{y_e:.1f}% \u00b7 {money(implied_price(qr, y_e, t_e))}")
+        htxt = f"{de.date()}\n{price_tag(qr, y_e, t_e, folded)}"
         hdx, hha = edge_shift(ax, (de - x0) / (x1 - x0), htxt, 7.2)
         ax.annotate(
             htxt,
@@ -476,8 +522,7 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
         de = to_date(t_e)
         up = kind == "peak"
         ax.plot([de], [y_e], "o", ms=6, color=BLUE, mec="white", mew=1.1, zorder=6)
-        ftxt = (f"{de.date()}\n"
-                f"Q{y_e:.1f}% \u00b7 {money(implied_price(qr, y_e, t_e))}")
+        ftxt = f"{de.date()}\n{price_tag(qr, y_e, t_e, folded)}"
         dx, ha = edge_shift(ax, (de - x0) / (x1 - x0), ftxt, 7.8)
         ax.annotate(
             ftxt,
@@ -548,7 +593,8 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
     fig.text(0.5, 0.012,
              f"{fitted_on}, {dates[0].date()} \u2013 "
              f"{dates[-1].date()};  t = years since {GENESIS.date()} anchored at "
-             "t = 1.  Descriptive fit, not a forecast.",
+             "t = 1.  Descriptive fit, not a forecast."
+             + (FOLD_NOTE.format(min(folded).date()) if folded else ""),
              ha="center", fontsize=9, color="#555")
     fig.tight_layout(rect=[0, 0.028, 1, 1])
     fig.savefig(path, dpi=145)

@@ -405,6 +405,46 @@ change; the hazard is only that the obvious edit is the wrong one.
 
 ---
 
+### F-13 — QR channels cross when Tab 1 is dragged past ~2029
+**Type:** model behaviour made visible by the UI · **Owning phase:** unscheduled
+· **Severity:** Minor · **Found:** 2026-09-11, annotating the percentile-sinusoid
+artifacts
+
+Each QR channel is an independent quantile regression — its own line, its own
+slope — so extrapolated far enough they cross. Measured against the live `qr`
+model:
+
+| date | Q50 | Q65 | Q70 | Q75 | Q80 |
+|---|---|---|---|---|---|
+| 2026-09-03 | $116k | $147k | $154k | $157k | $162k |
+| 2032-04-04 | $500k | $612k | $635k | $618k | $609k |
+| 2046-07-21 | $6.21M | $7.23M | $7.34M | $6.62M | $6.02M |
+
+The Q12.8–Q81 band is monotone throughout the historical record and first folds
+on **2028-10-03**; by 2046 the Q65 channel sits $1.2M ABOVE the Q80 one. The
+Tab-1 x-range slider runs to `XRANGE_MAX = 2080` (`layout/bubble.py:61`), so a
+user who drags it right sees the fan visibly fold over, and any percentile read
+out of that region is not ordered.
+
+This is the model's own behaviour, not a lookup bug — classic quantile
+crossing. Note it is a *different* defect from the one in
+`qr_fan_non_monotonic.md`, which is about the tails inside the record; this is
+the mid-fan crossing under extrapolation.
+
+**Not obviously worth fixing.** The three options are (a) leave it and let the
+chart show what the model does, (b) monotonize the fan for display
+(`np.maximum.accumulate` in log space), which invents channel values the fit
+never produced, and (c) cap the x-range where the fan is still monotone, which
+takes away a control that works fine for every other model. (a) is the current
+behaviour and the honest one; (b) is a modelling decision, not a rendering one,
+and belongs to the user.
+
+**Already handled in the artifacts:** `tools/render_percentile_sinusoid_artifacts.py`
+daggers any price label whose percentile cannot be ordered against the median
+(`fan_folds()`), and prints where the crossing starts.
+
+---
+
 ### F-9 — Time-evolving bubble model
 **Type:** research idea, not a defect · **Owning phase:** unscheduled · **Raised:**
 2026-08-08, out of the support-phase `spl` trial

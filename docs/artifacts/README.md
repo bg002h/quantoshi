@@ -51,6 +51,26 @@ Each figure carries two kinds of label:
 * **dark** — major highs and lows of the *actual BTC price*: date, the real
   close, and the percentile that close sat at.
 
+### A caveat the figures now carry: the QR fan folds over
+
+Every price on these charts is "what the QR fan puts at this percentile on this
+date", and past **2028-10-03** that phrase quietly stops meaning what it reads
+like. The QR channels are independent regressions with independent slopes, so
+extrapolated far enough they cross: by 2046 the Q65 channel sits at $7.23M and
+the Q80 one at $6.02M. A label reading `Q81.0% · $5.95M` next to one reading
+`Q64.0% · $7.23M` is therefore a faithful report of the model, not a bug — but
+it is also not a ranking, which is exactly what a reader assumes a percentile
+label guarantees.
+
+`fan_folds()` tests the weakest claim such a label makes — that the level is
+above (or below) the median by the stated amount — and any label that fails it
+is daggered, with the first folding date printed in the footer. The dagger
+lands on the percentile that sits inside the folded region, so it points at the
+number to distrust rather than at the pair.
+
+Filed as F-13 in `docs/superpowers/followups.md`, because the same crossing is
+reachable in the live app: Tab 1's x-range slider runs to 2080.
+
 ### The 2019 censored variant
 
 `2019-04-15 – 2020-02-15` (307 days, 5.2 % of the record) is withheld from the

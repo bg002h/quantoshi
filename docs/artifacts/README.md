@@ -141,6 +141,51 @@ give PL a narrowing fan that still cannot cross) is worse than both: 1,030 of
 **QR stays the default.** PL is generated so the difference can be looked at
 rather than argued about.
 
+### Why a narrowing fan and a non-decaying amplitude are not a contradiction
+
+They look incompatible and are not, because **percentile is a normalised
+coordinate**. It measures where price sits *inside* the fan, not how far it is
+in dollars. If the fan narrows at the rate the price deviations narrow, the
+ratio is flat and the percentile swing is flat with it.
+
+Measured era by era — price spread is the sd of log10(close) minus the QR
+median line; fan sd is the Q10–Q90 width converted to a Gaussian σ:
+
+| era | price sd (dex) | fan sd (dex) | ratio | mean \|pct − 50\| |
+|---|---|---|---|---|
+| 2010–2014 | 0.378 | 0.432 | 0.875 | 22.1 |
+| 2014–2018 | 0.353 | 0.314 | 1.124 | 32.6 |
+| 2018–2022 | 0.234 | 0.248 | 0.942 | 24.5 |
+| 2022–2027 | 0.150 | 0.201 | 0.747 | 20.8 |
+
+The price spread shrinks **2.53×** and the fan shrinks **2.16×** — nearly
+together. The ratio drifts down only 15 % across sixteen years and is not even
+monotone (the 2014–18 era is the highest of the four). The last column says the
+same thing directly: the mean percentile excursion has no trend.
+
+The cancellation is close to tautological, which is the real answer. The QR fan
+is fitted **to those very deviations**, so of course its width tracks them. An
+amplitude measured in percentile units can only trend if the *shape* of the
+residual distribution changes; a change in its *scale* divides out.
+
+**Ask the question in dollars and the decay appears**, as it should. The same
+sinusoid fitted to the log-price deviation instead of the percentile:
+
+| target | exp-to-floor τ | amplitude across the record |
+|---|---|---|
+| percentile (pp), all data | 4 × 10¹⁵ yr | 30.26 → 30.26 (−0.0 %) |
+| log-price deviation (dex), all data | **41.1 yr** | 0.336 → 0.227 (**−32.5 %**) |
+| log-price deviation, 2019 withheld | 57.6 yr | 0.351 → 0.266 (−24.4 %) |
+
+So "the amplitude does not decay" is a statement about the percentile series
+and is correctly scoped, but it is easy to misread as "volatility is not
+falling" — which is false. The narrowing fan **is** the falling volatility.
+
+One caveat on the dollar-space decay: it is not robust either. Withholding the
+2019 window cuts it from −32.5 % to −24.4 %, and the free-sign power law flips
+from D = +0.021 (decay) to D = −0.020 (growth). Part of what reads as decay is
+the 2019–20 excursion inflating the early-record amplitude's opposite end.
+
 ### What the study found
 
 * The calendar period lands at **3.57–3.61 yr** under every variant tried —
@@ -162,7 +207,9 @@ rather than argued about.
   whole record, worth ΔR² = 0.0001) on all data and τ → 10¹⁵ yr once the 2019
   window is withheld, while the free-sign power law picks D = −0.119 / −0.155
   — growth again. No parameterisation of either model supports a decaying
-  amplitude.
+  amplitude **in percentile units**; see the section above for why that is
+  compatible with a fan that narrows 2.16×, and what happens when the same
+  question is asked in dollars.
 * The fits systematically **turn ~90 days late** and undershoot both rails:
   the 2021 peak was actually Q99.8 against a fitted Q79.3.
 

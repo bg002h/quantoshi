@@ -214,11 +214,37 @@ def to_date(t_):
     return GENESIS + pd.Timedelta(days=float(t_) * 365.25)
 
 
-def _logfan(qr, t_):
+REARRANGE = True      # --raw turns it off
+
+
+def _logfan(qr, t_, rearrange=None):
+    """The fan at `t_` in log10 dollars, monotone-rearranged by default.
+
+    Chernozhukov, Fernández-Val & Galichon (2010), *Quantile and Probability
+    Curves Without Crossing*, Econometrica 78(3): the true conditional quantile
+    function is monotone in tau by definition, so any crossing in a fitted fan
+    is estimation error, and SORTING the fitted values at a given date yields
+    an estimator weakly closer to the truth in every L^p norm. It is a theorem,
+    not a repair.
+
+    What makes it legitimate where `np.maximum.accumulate` is not: sorting
+    returns the same multiset of fitted values, reassigned to quantile levels
+    in increasing order. A running maximum discards values and duplicates
+    others, inventing a fan the fit never produced. Rearrangement invents
+    nothing.
+
+    Measured on this fan: it moves NOTHING inside the record (0 of 27 bands at
+    2015-01-01 and at the last close; the percentile series shifts by at most
+    0.09 pp and the sinusoid fit is identical to four decimals), and it removes
+    the crossing entirely out in the extrapolation, where by 2080 the raw fan
+    is inverted — Q10 above Q90, a Q10-Q90 width of -0.034 dex.
+    """
+    do = REARRANGE if rearrange is None else rearrange
     qs = np.asarray(qr.quantiles, float)
-    return qs, np.array([
+    lf = np.array([
         np.log10(max(float(np.asarray(qr.price_at(q, np.array([t_]))).ravel()[0]),
                      1e-12)) for q in qs])
+    return qs, (np.sort(lf) if do else lf)
 
 
 def implied_price(qr, pct, t_):
@@ -228,33 +254,42 @@ def implied_price(qr, pct, t_):
 
 
 def fan_folds(qr, pct, t_):
-    """True when the QR fan is not monotone between `pct` and the median.
+    """True when the fan actually used is not monotone between `pct` and Q50.
 
-    Each QR channel is its own line with its own slope, so extrapolated far
-    enough they CROSS — by 2046 the Q65 channel sits above the Q80 one. This
-    is the model's own behaviour, not a lookup bug, but it means a price
-    quoted at one percentile stops ranking against a price quoted at another,
-    which is exactly what a reader assumes a percentile label guarantees.
-
-    The band tested is percentile-to-median because that is the weakest claim
-    such a label makes: "this level is above (or below) the median, by this
-    much". A label that cannot support even that is marked on the figure.
+    With rearrangement on this can never fire, and that is the point: it stays
+    in as the assertion that the rearrangement did its job, rather than being
+    deleted as dead code.
     """
     qs, logfan = _logfan(qr, t_)
+    return not _band_monotone(qs, logfan, pct)
+
+
+def _band_monotone(qs, logfan, pct):
     lo, hi = sorted((np.clip(pct / 100.0, qs[0], qs[-1]), 0.5))
     m = (qs >= lo) & (qs <= hi)
     band = np.concatenate([[np.interp(lo, qs, logfan)], logfan[m],
                            [np.interp(hi, qs, logfan)]])
-    return bool(np.any(np.diff(band) < 0))
+    return bool(np.all(np.diff(band) >= 0))
 
 
-def price_tag(qr, pct, t_, folded=None):
-    """`Q<pct>% · $<price>`, daggered when the fan has folded there.
+def fan_was_crossed(qr, pct, t_):
+    """True when the RAW fan crosses in the band this label quotes.
 
-    `folded`, if given, collects the dates that were daggered so the figure
-    can state where the crossing starts instead of hardcoding a year.
+    Tested on the band rather than the whole fan on purpose. The extreme
+    tails of the QR fan cross INSIDE the record (a known property, on ~16.5 %
+    of dates) and have nothing to do with the extrapolation fold — checking
+    the whole fan dated the crossing to 2010-10-26, which is true of the fan
+    and false of every label on the figure.
     """
+    qs, raw = _logfan(qr, t_, rearrange=False)
+    return not _band_monotone(qs, raw, pct)
+
+
+def price_tag(qr, pct, t_, folded=None, crossed=None):
+    """`Q<pct>% · $<price>`, with a dagger if the fan is STILL not ordered."""
     tag = f"Q{pct:.1f}% \u00b7 {money(implied_price(qr, pct, t_))}"
+    if crossed is not None and fan_was_crossed(qr, pct, t_):
+        crossed.append(to_date(t_))
     if not fan_folds(qr, pct, t_):
         return tag
     if folded is not None:
@@ -272,6 +307,17 @@ def model_label(qr):
 FOLD_NOTE = ("  \u2020 from {0} the {1} channels cross under extrapolation "
              "\u2014 the fan stops being monotone in quantile, so a daggered "
              "price does not rank against the others.")
+
+XNOTE = ("\nThe raw {1} channels cross from {0}; prices there are read off a "
+         "monotone-rearranged fan (Chernozhukov, Fern\u00e1ndez-Val & Galichon "
+         "2010), which fixes the order but not the confidence \u2014 the fan "
+         "still narrows to {2:.2f} dex by {3}, tighter than any period on "
+         "record.")
+
+
+def fan_width_dex(qr, t_, lo=0.10, hi=0.90):
+    qs, logfan = _logfan(qr, t_)
+    return float(np.interp(hi, qs, logfan) - np.interp(lo, qs, logfan))
 
 
 def fit_extrema(fn, t0, t1):
@@ -316,7 +362,7 @@ def draw(path, F, curves, t, px, pct, dates, *, extrapolate_years=0.0,
     x0 = to_date(t0)
     x1 = to_date(t1)
     qr = qr if qr is not None else _app_ctx.PRICE_MODELS["qr"]
-    folded = []
+    folded, crossed = [], []
 
     panels = [
         ("Calendar-time sinusoid", cal, BLUE, (0, ()),
@@ -373,7 +419,7 @@ def draw(path, F, curves, t, px, pct, dates, *, extrapolate_years=0.0,
             elif frac > 0.93:
                 dx, ha = -34, "right"
             ax.annotate(
-                f"{de.date()}\n{price_tag(qr, y_e, t_e, folded)}",
+                f"{de.date()}\n{price_tag(qr, y_e, t_e, folded, crossed)}",
                 xy=(de, y_e), xytext=(dx, 28 if up else -28),
                 textcoords="offset points", ha=ha,
                 va="bottom" if up else "top", fontsize=7.4,
@@ -438,9 +484,12 @@ def draw(path, F, curves, t, px, pct, dates, *, extrapolate_years=0.0,
              f"{dates[0].date()} – {dates[-1].date()};  t = years since "
              f"{GENESIS.date()} anchored at t = 1.  "
              "Descriptive fits (R² 0.55–0.70), not forecasts."
-             + (FOLD_NOTE.format(min(folded).date(), model_label(qr)) if folded else ""),
-             ha="center", fontsize=8.6, color="#555")
-    fig.tight_layout(rect=[0, 0.022, 1, 0.934])
+             + (FOLD_NOTE.format(min(folded).date(), model_label(qr)) if folded else "")
+             + (XNOTE.format(min(crossed).date(), model_label(qr),
+                             fan_width_dex(qr, t1), to_date(t1).year)
+                if crossed and REARRANGE else ""),
+             ha="center", fontsize=8.6, color="#555", linespacing=1.5)
+    fig.tight_layout(rect=[0, 0.036, 1, 0.934])
     fig.savefig(path, dpi=140)
     plt.close(fig)
     print(f"  wrote {path.relative_to(REPO)}")
@@ -479,7 +528,7 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
     """
     cal = curves[0]
     qr = qr if qr is not None else _app_ctx.PRICE_MODELS["qr"]
-    folded = []
+    folded, crossed = [], []
     p = F["calendar"]
     t0, t1 = t[0], t[-1] + extrapolate_years
     x0, x1 = to_date(t0), to_date(t1)
@@ -531,7 +580,7 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
         up = kind == "peak"
         ax.plot([de], [y_e], "s", ms=5.2, color=VERM, mec="white", mew=1.0,
                 zorder=6)
-        htxt = f"{de.date()}\n{price_tag(qr, y_e, t_e, folded)}"
+        htxt = f"{de.date()}\n{price_tag(qr, y_e, t_e, folded, crossed)}"
         hdx, hha = edge_shift(ax, (de - x0) / (x1 - x0), htxt, 7.2)
         ax.annotate(
             htxt,
@@ -548,7 +597,7 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
         de = to_date(t_e)
         up = kind == "peak"
         ax.plot([de], [y_e], "o", ms=6, color=BLUE, mec="white", mew=1.1, zorder=6)
-        ftxt = f"{de.date()}\n{price_tag(qr, y_e, t_e, folded)}"
+        ftxt = f"{de.date()}\n{price_tag(qr, y_e, t_e, folded, crossed)}"
         dx, ha = edge_shift(ax, (de - x0) / (x1 - x0), ftxt, 7.8)
         ax.annotate(
             ftxt,
@@ -622,9 +671,12 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
              f"{fitted_on}, {dates[0].date()} \u2013 "
              f"{dates[-1].date()};  t = years since {GENESIS.date()} anchored at "
              "t = 1.  Descriptive fit, not a forecast."
-             + (FOLD_NOTE.format(min(folded).date(), model_label(qr)) if folded else ""),
-             ha="center", fontsize=9, color="#555")
-    fig.tight_layout(rect=[0, 0.028, 1, 1])
+             + (FOLD_NOTE.format(min(folded).date(), model_label(qr)) if folded else "")
+             + (XNOTE.format(min(crossed).date(), model_label(qr),
+                             fan_width_dex(qr, t1), to_date(t1).year)
+                if crossed and REARRANGE else ""),
+             ha="center", fontsize=9, color="#555", linespacing=1.5)
+    fig.tight_layout(rect=[0, 0.045, 1, 1])
     fig.savefig(path, dpi=145)
     plt.close(fig)
     print(f"  wrote {path.relative_to(REPO)}")
@@ -632,10 +684,13 @@ def draw_single(path, F, curves, t, px, pct, dates, *,
 
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    short = sys.argv[1] if len(sys.argv) > 1 else "qr"
+    global REARRANGE
+    argv = [a for a in sys.argv[1:] if a != "--raw"]
+    REARRANGE = "--raw" not in sys.argv
+    short = argv[0] if argv else "qr"
     tag = "" if short == "qr" else f"-{short}"
     qr, t, px, dates, pct = load_series(short)
-    print(f"model: {short}  ({qr.name})")
+    print(f"model: {short}  ({qr.name})  rearranged={REARRANGE}")
     print(f"percentile series: {len(pct)} days  {dates[0].date()} .. {dates[-1].date()}")
     F = fit_all(t, pct)
     for k, v in F.items():

@@ -439,9 +439,21 @@ takes away a control that works fine for every other model. (a) is the current
 behaviour and the honest one; (b) is a modelling decision, not a rendering one,
 and belongs to the user.
 
-**Already handled in the artifacts:** `tools/render_percentile_sinusoid_artifacts.py`
-daggers any price label whose percentile cannot be ordered against the median
-(`fan_folds()`), and prints where the crossing starts.
+**Already handled in the artifacts** — and the fix generalises. The artifact
+generator now reads prices off a **monotone-rearranged** fan (Chernozhukov,
+Fernández-Val & Galichon 2010): sorting the fitted values at each date returns
+the same multiset reassigned in increasing order, and is provably weakly closer
+to the truth than the crossed fit. Measured on this fan it moves 0 of 27 bands
+inside the record and shifts the percentile series by ≤ 0.09 pp, so it is free
+where the data is and decisive where the fold is.
+
+That makes option (b) above viable after all, but note it is `np.sort` per
+date, NOT `np.maximum.accumulate` — the running max discards fitted values and
+duplicates others, which is the version that would invent channels. If Tab 1
+ever adopts it, do it in `figures/common.py` at the point the fan is read, keep
+it off by default behind a control, and say on the chart that the order is
+repaired while the width is not: the rearranged fan still narrows to 0.22 dex
+by 2046, tighter than any period on record.
 
 ---
 

@@ -52,62 +52,52 @@ Each figure carries two kinds of label:
 * **dark** — major highs and lows of the *actual BTC price*: date, the real
   close, and the percentile that close sat at.
 
-### A caveat the figures now carry: the QR fan folds over
+### The fold, and the valid way out of it
 
-Every price on these charts is "what the QR fan puts at this percentile on this
-date", and past **2028-10-03** that phrase quietly stops meaning what it reads
-like. The QR channels are independent regressions with independent slopes, so
-extrapolated far enough they cross: by 2046 the Q65 channel sits at $7.23M and
-the Q80 one at $6.02M. A label reading `Q81.0% · $5.95M` next to one reading
-`Q64.0% · $7.23M` is therefore a faithful report of the model, not a bug — but
-it is also not a ranking, which is exactly what a reader assumes a percentile
-label guarantees.
+Every price on these charts is "what the fan puts at this percentile on this
+date", and past **2028-09-07** the raw QR fan stops being able to support that
+phrase: the channels cross, so Q65 can sit above Q80 and a percentile label is
+no longer a ranking. By 2080 the raw fan is fully inverted — a Q10→Q90 width of
+**−0.034 dex**.
 
-`fan_folds()` tests the weakest claim such a label makes — that the level is
-above (or below) the median by the stated amount — and any label that fails it
-is daggered, with the first folding date printed in the footer. The dagger
-lands on the percentile that sits inside the folded region, so it points at the
-number to distrust rather than at the pair.
+The figures are drawn from a **monotone-rearranged** fan (Chernozhukov,
+Fernández-Val & Galichon 2010, *Quantile and Probability Curves Without
+Crossing*, Econometrica 78(3)). The true conditional quantile function is
+monotone in τ by definition, so any crossing in a fitted fan is estimation
+error, and sorting the fitted values at each date gives an estimator **weakly
+closer to the truth in every Lᵖ norm**. It is a theorem, not a repair.
 
-Filed as F-13 in `docs/superpowers/followups.md`, because the same crossing is
-reachable in the live app: Tab 1's x-range slider runs to 2080.
+What makes it legitimate where `np.maximum.accumulate` is not: sorting returns
+the *same multiset* of fitted values, reassigned to quantile levels in
+increasing order. A running maximum discards values and duplicates others,
+inventing a fan the fit never produced. Rearrangement invents nothing.
 
-### The 2019 censored variant
+Measured on this fan, it is free inside the record and decisive outside it:
 
-`2019-04-15 – 2020-02-15` (307 days, 5.2 % of the record) is withheld from the
-FIT only — the data stays on the chart, shaded, so the omission is visible.
-The window brackets the excursion that followed PlanB's stock-to-flow article
-(2019-03-22).
+| | 2015 | today | 2032 | 2046 | 2080 |
+|---|---|---|---|---|---|
+| bands moved by sorting | 0 of 27 | 0 of 27 | 9 of 27 | 19 of 27 | 26 of 27 |
+| Q10–Q90 width, raw | 0.864 | 0.462 | — | 0.192 | **−0.034** |
+| Q10–Q90 width, sorted | 0.864 | 0.462 | — | 0.220 | 0.176 |
 
-| | all data | window withheld |
-|---|---|---|
-| period | 3.5706 yr | **3.5733 yr** (+0.08 %) |
-| phase | −127.85° | **−126.69°** (−0.91 %) |
-| amplitude | 30.26 pp | 34.11 pp (+12.7 %) |
-| offset | 49.04 | 46.92 (−4.3 %) |
-| R² | 0.554 | **0.642** (+15.8 %) |
+The percentile series moves by at most **0.09 pp** (correlation 1.000000, zero
+days moved by more than 1 pp) and the sinusoid fit is identical to four
+decimals. So rearrangement costs nothing and removes the fold outright.
 
-**The cycle does not depend on that window.** Dropping 5 % of the record buys
-a 16 % better fit while moving the period by 0.08 % and the phase by 0.9 %;
-the excursion is absorbed entirely by amplitude and offset.
+**It fixes the order, not the confidence.** The rearranged fan still narrows to
+0.22 dex by 2046 — a 1.7× spread between Q10 and Q90, tighter than any period
+on record. That over-confidence is QR extrapolating independent slopes, and no
+amount of sorting touches it; the footer says so on every figure.
 
-Re-asking the decay question on the censored fit is the sharper version of it,
-since a large late excursion is exactly what could prop an amplitude up and hide
-a decay. It does the opposite. Exponential-to-floor and exponential-to-zero both
-still run τ → 10¹⁶ yr and collapse onto the constant-amplitude fit (ΔR² = 0.0000),
-and the free-sign power law `A(t) = A₀·t^−D` picks **D = −0.207** — *growth*,
-and steeper than the −0.170 it picks on all the data. Envelope 22.6 pp (2010) →
-40.7 pp (2026). Withholding the window makes the amplitude grow faster, not
-slower.
+`--raw` renders without rearrangement, which is what produced the daggered
+figures this replaced. `fan_folds()` stays in the generator as the assertion
+that the rearrangement worked, rather than being deleted as dead code.
 
-On whether the article *caused* the excursion: the window's mean residual of
-+33.1 pp is the largest of the 19 non-overlapping windows in the record (next:
-+20.4), and a model trained only on pre-publication data under-predicts it by
-+36.6 pp against +3.4 pp for all 6.5 years after. But causation is not testable
-here — n = 1, no counterfactual, the window was chosen by eye, and S2F's own
-thesis is about the May-2020 halving, so "the model moved the price" and
-"halving anticipation moved the price" predict identical timing. The numbers
-measure anomaly, never cause.
+The model-level alternative, not implemented: fit the fan in a location-scale
+form `Q_τ(t) = μ(t) + σ(t)·z_τ` (He 1997), which cannot cross at any date *by
+construction* while still letting σ vary with time. That is the principled fix
+— rearrangement is the post-hoc one — and it would need a refit rather than a
+render change.
 
 ### QR or PL? The crossing and the narrowing are the same feature
 

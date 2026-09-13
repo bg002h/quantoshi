@@ -231,3 +231,72 @@ class TestCeleryConfig:
     def test_task_includes_module(self):
         from celery_app import celery_app
         assert "btc_web.tasks" in celery_app.conf.include
+
+
+class TestDataFreshnessAlarm:
+    """/health must report the age of the DATA, not of a file.
+
+    Between 2026-09-05 and 2026-09-12 prod served 2026-09-03 prices and every
+    check passed, because every check was looking at something that was fine:
+    HTTP 200, service active, error log clean, cache age in range. A wedged
+    bitcoind failed build_block_map each night and the daily job aborted
+    before commit exactly as designed — correct behaviour, and completely
+    silent. Nothing watched whether prod's data was advancing.
+    """
+
+    @staticmethod
+    def _health(monkeypatch=None, last_date=None):
+        import json
+
+        import app
+        import _app_ctx
+        if last_date is not None:
+            monkeypatch.setattr(
+                _app_ctx.M, "price_dates",
+                list(_app_ctx.M.price_dates[:-1]) + [last_date])
+        return json.loads(app.server.test_client().get("/health").data)
+
+    def test_reports_the_served_data_date(self):
+        import _app_ctx
+        d = self._health()
+        assert d["data_last_date"] == str(_app_ctx.M.price_dates[-1])[:10]
+        assert d["data_age_days"] >= 0
+
+    def test_fresh_data_does_not_alarm(self, monkeypatch):
+        from datetime import date, timedelta
+        d = self._health(monkeypatch,
+                         (date.today() - timedelta(days=1)).isoformat())
+        assert d["data_stale"] is False, d
+
+    def test_stale_data_alarms(self, monkeypatch):
+        from datetime import date, timedelta
+        d = self._health(monkeypatch,
+                         (date.today() - timedelta(days=9)).isoformat())
+        assert d["data_stale"] is True, d
+        assert d["data_age_days"] == 9, d
+
+    def test_one_missed_run_is_tolerated(self, monkeypatch):
+        """SETTLE_LAG=1 means healthy is ~1 day; a single skipped night is a
+        known transient that self-heals (2026-08-12 ssh probe failure), so it
+        must not alarm. Two consecutive misses must."""
+        from datetime import date, timedelta
+        tol = self._health(monkeypatch,
+                           (date.today() - timedelta(days=2)).isoformat())
+        assert tol["data_stale"] is False, tol
+        real = self._health(monkeypatch,
+                            (date.today() - timedelta(days=4)).isoformat())
+        assert real["data_stale"] is True, real
+
+    def test_mtime_is_not_the_signal(self):
+        """`git pull` restamps model_data.pkl on every deploy, so a deploy
+        carrying no new data would reset an mtime-based clock and hide the
+        staleness. The date must come from the model, not the file."""
+        import inspect
+
+        import app
+        src = inspect.getsource(app)
+        block = src[src.index("_data_last_date, _data_age_days = None, -1")
+                    - 400:src.index("_data_last_date, _data_age_days = None, -1")]
+        assert "price_dates" in block, (
+            "data age is no longer derived from M.price_dates — if it now "
+            "reads a file mtime, a data-less deploy will hide staleness")

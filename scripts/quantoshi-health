@@ -7,7 +7,11 @@
 set -euo pipefail
 
 LOCK="/tmp/quantoshi-health-alert.lock"
-URL="https://quantoshi.xyz/health"
+# QUANTOSHI_HEALTH_URL lets the alarms be exercised against a fake endpoint.
+# Every check here is a claim that it can FIRE, and an unfired check is
+# indistinguishable from a passing one — scripts/sabotage_health_check.sh
+# feeds this a stale payload and asserts the error appears.
+URL="${QUANTOSHI_HEALTH_URL:-https://quantoshi.xyz/health}"
 TIMEOUT=15
 FAKE_TEST=false
 
@@ -53,6 +57,16 @@ check_health() {
         # window where prod still serves the old names.
         stale_90=$(echo "$health_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cache_stale', d.get('cache_stale_90d',False)))" 2>/dev/null || echo "False")
         warn_45=$(echo "$health_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cache_warn', d.get('cache_warn_45d',False)))" 2>/dev/null || echo "False")
+        # Age of the DATA prod is serving. This is the check that was missing
+        # when prod served 2026-09-03 prices for nine days: everything else
+        # passed, because everything else was fine.
+        data_stale=$(echo "$health_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data_stale',False))" 2>/dev/null || echo "False")
+        data_age=$(echo "$health_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data_age_days',-1))" 2>/dev/null || echo "-1")
+        data_date=$(echo "$health_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data_last_date') or '?')" 2>/dev/null || echo "?")
+        data_lim=$(echo "$health_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data_stale_days',3))" 2>/dev/null || echo "3")
+        if [[ "$data_stale" == "True" ]]; then
+            errors+=("Prod DATA stale: serving ${data_date} (${data_age}d old, limit ${data_lim}d) — check /tmp/quantoshi-daily-update.log and bitcoind")
+        fi
         warn_d=$(echo "$health_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cache_warn_days',45))" 2>/dev/null || echo "45")
         stale_d=$(echo "$health_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cache_stale_days',90))" 2>/dev/null || echo "90")
         if [[ "$stale_90" == "True" ]]; then
@@ -142,6 +156,11 @@ if [[ "$n_errors" -eq 0 ]]; then
         echo "  Service: active (running)"
         echo "  Error log: clean"
         echo "  Cache age: ${cache_age} days (warn at ${warn_d}, rebuild at ${stale_d})"
+        read -r data_date data_age data_lim < <(
+            curl -s --max-time "$TIMEOUT" "$URL" 2>/dev/null \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data_last_date') or '?', d.get('data_age_days',-1), d.get('data_stale_days',3))" 2>/dev/null \
+            || echo "? ? ?")
+        echo "  Data: ${data_date} (${data_age}d old, stale at ${data_lim}d)"
     fi
     # Remove alert lock if it exists (problem resolved)
     rm -f "$LOCK"

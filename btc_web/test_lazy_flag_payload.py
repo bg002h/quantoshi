@@ -41,10 +41,34 @@ _TABS = ("bubble", "heatmap", "dca", "retire", "supercharge",
 
 
 def _server_callbacks():
-    """{output_key: entry} for every server-side (POST-costing) callback."""
+    """{output_key: entry} for every server-side (POST-costing) callback.
+
+    Read from the UNION of both registries, because `GLOBAL_CALLBACK_MAP` is
+    not stable for the life of the process: the first time anything builds a
+    Flask test client, `Dash._setup_server()` drains all 96 entries out of it
+    into `app.callback_map`, and this file's lookups then find nothing and
+    every assertion here fails with "nothing writes <id>.<prop>" — reporting
+    a missing callback when the callback is fine.
+
+    That is not hypothetical: `test_infrastructure.py` has built a test client
+    since its source-map guard was added, and these tests only stayed green
+    because pytest-xdist happened to put the two files on different workers.
+    Adding one more test client in that file (2026-09-12, the data-freshness
+    alarm) made 11 of these fail at once. The scheduler was the only thing
+    holding it up.
+
+    Server vs clientside is decided by whether the entry carries a Python
+    callable, which is the property this file actually cares about — a
+    callable is what a POST has to reach. Counted: 95 server, invariant
+    across `_setup_server()`. Note the module docstring above says 96; one
+    `@callback` registration in `ticker.py` is clientside (callback=None), so
+    it costs no upload and is correctly excluded here.
+    """
     import app  # noqa: F401  — registers every callback module
+    import _app_ctx
     from dash import _callback as dash_callback
-    return dash_callback.GLOBAL_CALLBACK_MAP
+    merged = {**_app_ctx.app.callback_map, **dash_callback.GLOBAL_CALLBACK_MAP}
+    return {k: e for k, e in merged.items() if callable(e.get("callback"))}
 
 
 def _outputs(output_key):

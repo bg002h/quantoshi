@@ -173,6 +173,23 @@ def _trace_post():
 _CACHE_WARN_DAYS = 120
 _CACHE_STALE_DAYS = 180
 
+# Age of the DATA being served, from the model's own last price date — not a
+# file mtime. Added 2026-09-12 after prod served 2026-09-03 prices for nine
+# days without a single alarm: a wedged bitcoind failed build_block_map every
+# night, the daily job aborted before commit exactly as designed, and nothing
+# watched the one thing that was actually wrong. Every other check passed
+# because prod WAS healthy — it was just nine days behind.
+#
+# mtime is the wrong signal here. `git pull` restamps model_data.pkl on any
+# deploy, so a deploy carrying no new data resets the clock and hides the
+# staleness this is meant to catch. M.price_dates[-1] is what the running
+# process is actually serving.
+#
+# 3 days tolerates one missed run: SETTLE_LAG=1 puts healthy at ~1 day, and a
+# single transient ssh failure skips a night and self-heals (2026-08-12).
+# Two consecutive misses is a real stall and should be seen.
+_DATA_STALE_DAYS = 3
+
 
 @server.route("/health")
 def _health():
@@ -198,6 +215,15 @@ def _health():
         block_map_loaded = bool(_BLOCK_MAP_LOADED)
     except Exception:
         block_map_loaded = False
+    # Age of the data being served, from the model itself (see _DATA_STALE_DAYS)
+    try:
+        _last = str(M.price_dates[-1])[:10]
+        _data_age_days = round(
+            (date.today() - date.fromisoformat(_last)).days, 1)
+        _data_last_date = _last
+    except Exception:
+        _data_last_date, _data_age_days = None, -1
+
     # model_data.pkl age (daily build canary)
     _pkl_path = pathlib.Path(__file__).parent.parent / "model_data.pkl"
     if _pkl_path.exists():
@@ -209,6 +235,10 @@ def _health():
         "model": M is not None,
         "price_age_s": round(price_age),
         "cache_age_days": round(cache_age_days, 1),
+        "data_last_date": _data_last_date,
+        "data_age_days": _data_age_days,
+        "data_stale_days": _DATA_STALE_DAYS,
+        "data_stale": _data_age_days > _DATA_STALE_DAYS if _data_age_days >= 0 else False,
         "cache_warn_days": _CACHE_WARN_DAYS,
         "cache_stale_days": _CACHE_STALE_DAYS,
         "cache_warn": cache_age_days > _CACHE_WARN_DAYS,

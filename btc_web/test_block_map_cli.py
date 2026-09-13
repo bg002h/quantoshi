@@ -33,6 +33,11 @@ class _FakeConn:
                       "error": None, "id": req["id"]}
 
         class _R:
+            # mirrors http.client.HTTPResponse: _read_json checks the status
+            # before parsing, because bitcoind answers a full work queue with
+            # a 500 and a plain-text body rather than JSON
+            status, reason = 200, "OK"
+
             def read(_self):
                 return json.dumps(result).encode()
         return _R()
@@ -239,3 +244,35 @@ def test_verify_catches_corruption(monkeypatch, tmp_path):
     with pytest.raises(SystemExit) as exc:
         bm.main_verify()
     assert exc.value.code == 3
+
+
+# ── non-JSON RPC replies name themselves ────────────────────────────────────
+# A wedged bitcoind answers 500 "Work queue depth exceeded" in plain text. The
+# bare json.loads() this replaces turned that into "Expecting value: line 1
+# column 1 (char 0)", and the daily job reported "bitcoind down?" for eight
+# days (2026-09-05 .. 2026-09-12) while bitcoind was up and naming its own
+# problem in the response body.
+
+@pytest.mark.parametrize("status,reason,body,expect", [
+    (500, "Internal Server Error", b"Work queue depth exceeded",
+     "Work queue depth exceeded"),
+    (401, "Unauthorized", b"", "(empty body)"),
+    (503, "Service Unavailable", b"<html>oops</html>", "oops"),
+    (200, "OK", b"not json at all", "not json at all"),
+])
+def test_non_json_reply_reports_what_bitcoind_said(status, reason, body, expect):
+    class _R:
+        def __init__(self):
+            self.status, self.reason = status, reason
+
+        def read(self):
+            return body
+
+    with pytest.raises(RuntimeError) as ei:
+        bm._read_json(_R(), "getblockcount")
+    msg = str(ei.value)
+    assert expect in msg, msg
+    assert "getblockcount" in msg, msg
+    assert "Expecting value" not in msg, (
+        "the JSONDecodeError leaked through instead of the server's own "
+        f"message: {msg}")

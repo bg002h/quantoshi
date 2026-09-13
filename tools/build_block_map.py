@@ -98,6 +98,32 @@ def _auth_header() -> str:
     return f"Basic {creds}"
 
 
+def _read_json(resp, what):
+    """Parse an RPC reply, or raise an error that says what bitcoind said.
+
+    bitcoind does not always answer in JSON. When its HTTP work queue is
+    full it replies 500 with the plain text "Work queue depth exceeded",
+    and a bare json.loads() on that turns a precise, actionable message
+    into `JSONDecodeError: Expecting value: line 1 column 1 (char 0)`.
+
+    That cost real time. Between 2026-09-05 and 2026-09-12 a wedged (not
+    absent) bitcoind failed this script every night, and the daily job
+    reported "bitcoind down?" for eight days while bitcoind was up and
+    naming its own problem in the response body.
+    """
+    raw = resp.read()
+    if resp.status != 200:
+        detail = raw.decode("utf-8", "replace").strip()[:200] or "(empty body)"
+        raise RuntimeError(
+            f"bitcoind HTTP {resp.status} {resp.reason} on {what}: {detail}")
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as e:
+        detail = raw.decode("utf-8", "replace").strip()[:200] or "(empty body)"
+        raise RuntimeError(
+            f"bitcoind returned non-JSON on {what}: {detail}") from e
+
+
 def _rpc(method, *params):
     conn = _get_conn()
     body = json.dumps({
@@ -107,7 +133,7 @@ def _rpc(method, *params):
         "POST", "/", body,
         {"Authorization": _auth_header(), "Content-Type": "application/json"},
     )
-    resp = json.loads(conn.getresponse().read())
+    resp = _read_json(conn.getresponse(), method)
     if isinstance(resp, dict) and resp.get("error"):
         raise RuntimeError(f"bitcoind error: {resp['error']}")
     return resp["result"]
@@ -123,7 +149,9 @@ def _rpc_batch(calls: list[tuple[str, list]]) -> list:
         "POST", "/", body,
         {"Authorization": _auth_header(), "Content-Type": "application/json"},
     )
-    resp = json.loads(conn.getresponse().read())
+    resp = _read_json(conn.getresponse(),
+                      f"batch of {len(calls)} ({calls[0][0]}...)" if calls
+                      else "empty batch")
     # bitcoind batch replies are returned by id; sort defensively
     resp_sorted = sorted(resp, key=lambda r: r["id"])
     for r in resp_sorted:

@@ -129,14 +129,19 @@ error_msgs=$(echo "$result" | tail -n +2)
 if [[ "$n_errors" -eq 0 ]]; then
     if [[ "$MODE" == "--verbose" ]]; then
         # Re-fetch cache age for display (health_json is scoped in check_health)
-        cache_age=$(curl -s --max-time "$TIMEOUT" "$URL" 2>/dev/null \
-            | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cache_age_days',-1))" 2>/dev/null \
-            || echo "?")
+        # One fetch, three fields. The thresholds are read from the payload
+        # for the same reason the alarm text is: this line said "warn at 45,
+        # rebuild at 90" while the server was applying 120/180, which is a
+        # status display contradicting the status it reports.
+        read -r cache_age warn_d stale_d < <(
+            curl -s --max-time "$TIMEOUT" "$URL" 2>/dev/null \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('cache_age_days',-1), d.get('cache_warn_days',45), d.get('cache_stale_days',90))" 2>/dev/null \
+            || echo "? ? ?")
         echo "Quantoshi Status: ALL OK"
         echo "  Health endpoint: 200"
         echo "  Service: active (running)"
         echo "  Error log: clean"
-        echo "  Cache age: ${cache_age} days (warn at 45, rebuild at 90)"
+        echo "  Cache age: ${cache_age} days (warn at ${warn_d}, rebuild at ${stale_d})"
     fi
     # Remove alert lock if it exists (problem resolved)
     rm -f "$LOCK"

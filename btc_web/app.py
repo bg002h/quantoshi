@@ -163,6 +163,17 @@ def _trace_post():
     return ("", 204)
 
 
+# MC + Citadel cache age alarms. Raised from 45/90 on 2026-09-12: CLAUDE.md
+# puts the real rebuild cadence at "every several months or after major
+# changes", and a 45-day warning against a several-month practice fires
+# during normal operation, which is how a health check teaches you to ignore
+# it. The 2:1 tier ratio is kept — raising only the warning would have left
+# the stale alarm BELOW it, so the nag would have been replaced by a harder
+# error at 90 days rather than removed.
+_CACHE_WARN_DAYS = 120
+_CACHE_STALE_DAYS = 180
+
+
 @server.route("/health")
 def _health():
     from flask import jsonify as _jsonify
@@ -198,8 +209,16 @@ def _health():
         "model": M is not None,
         "price_age_s": round(price_age),
         "cache_age_days": round(cache_age_days, 1),
-        "cache_warn_45d": cache_age_days > 45,
-        "cache_stale_90d": cache_age_days > 90,
+        "cache_warn_days": _CACHE_WARN_DAYS,
+        "cache_stale_days": _CACHE_STALE_DAYS,
+        "cache_warn": cache_age_days > _CACHE_WARN_DAYS,
+        "cache_stale": cache_age_days > _CACHE_STALE_DAYS,
+        # Deprecated aliases. The health script reads the new keys and falls
+        # back to these, so a prod deploy and a local script update can land
+        # in either order without a window where neither key is found and the
+        # alarm silently reports False. Drop once prod has the new keys.
+        "cache_warn_45d": cache_age_days > _CACHE_WARN_DAYS,
+        "cache_stale_90d": cache_age_days > _CACHE_STALE_DAYS,
         "mc_cache": bool(_CACHE),
         "markov": _HAS_MARKOV,
         "btcpay": btcpay._HAS_BTCPAY,

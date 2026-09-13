@@ -622,29 +622,61 @@ if _os.environ.get("DEV") != "1":
 else:
     logging.getLogger(__name__).info("DEV mode — skipping prewarm (first request per tab will be slower)")
 
-# Non-critical background warm: static analysis pages + default transition
-# matrix. Neither blocks a user's first tab render; the static pages are
-# served from their own Flask route once rendered to disk, and the default
-# transition matrix is only consumed by the MC overlay (per-worker cache,
-# lazy-built). We kick them off on a daemon thread so the gunicorn master
-# finishes module-level work and forks workers sooner.
-def _background_warm_noncritical() -> None:
+# Static pages are rendered SYNCHRONOUSLY here, before gunicorn forks.
+#
+# They used to be warmed on a daemon thread, to let the master finish
+# module-level work and fork sooner. That does not work under --preload:
+# only the calling thread survives fork(), so each worker inherited
+# _STATIC_MI_HTML = None AND lost the thread that would have filled it.
+# Every worker then cold-rendered on its own first /mi request, inside a
+# request, against the 120s worker timeout.
+#
+# That is not theoretical. On 2026-09-12 a worker 12.5 HOURS old was still
+# in _ensure_rendered() -> render_static_pages() when the arbiter killed it:
+#
+#     [2026-09-12 18:41:20] [CRITICAL] WORKER TIMEOUT (pid:1524755)
+#     [2026-09-12 18:41:20] [ERROR] Error handling request /mi.2
+#       ... static_pages.py:345 in _ensure_rendered -> render_static_pages()
+#
+# The render is not slow — measured on prod, 0.92s cold in a fresh process
+# and 0.24s warm over HTTP. It timed out because a 271-request burst had
+# just saturated a 2-vCPU box, and the cold render was the request holding
+# the bag. Rendering before the fork costs that 0.92s ONCE in the master and
+# reaches all 5 workers via copy-on-write, so no request ever renders.
+#
+# _ensure_rendered() stays as the fallback for DEV and for any path that
+# reaches a route before this line runs.
+def _warm_static_pages() -> None:
     try:
         from static_pages import render_static_pages
         render_static_pages()
+    except Exception as e:
+        logging.getLogger(__name__).warning("Static page warm failed: %s", e)
+
+
+_boot_mark("static pages warm start")
+_warm_static_pages()
+_boot_mark("static pages warm end")
+
+
+# The MC transition matrix keeps the thread treatment: it is a per-worker
+# lazy cache that nothing serves from a route, so losing it at fork costs a
+# first-MC-request rebuild rather than a timeout, and it is the slow half.
+def _background_warm_mc() -> None:
+    try:
         if _HAS_MARKOV:
             _get_transition_matrix(M, 5, 30, [2010, date.today().year])
-        logging.getLogger(__name__).info("Background warm (static pages + MC matrix) done")
+            logging.getLogger(__name__).info("Background warm (MC matrix) done")
     except Exception as e:
         logging.getLogger(__name__).warning("Background warm failed: %s", e)
 
 if _os.environ.get("DEV") != "1":
     import threading as _threading
-    _threading.Thread(target=_background_warm_noncritical,
+    _threading.Thread(target=_background_warm_mc,
                       daemon=True, name="qs-bg-warm").start()
 else:
     # DEV: single-process, no harm in running inline.
-    _background_warm_noncritical()
+    _background_warm_mc()
 
 # ── Background MC figure prewarm (runs in each worker's first request) ───────
 def _prewarm_mc_caches():

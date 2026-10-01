@@ -122,9 +122,9 @@ class OffsetPowerLawModel(_ShrinkingBandsMixin):
     quantized = True
 
     # Fitted parameters (overwritten by fit_plo.py --update)
-    _A =                   -1.157393  
-    _m =                      5.067029  
-    _c =             -0.011168  
+    _A =                   -1.070974  
+    _m =                         4.983587  
+    _c =             -0.062222  
 
     def __init__(self, price_years, price_prices, quantiles):
         mask = price_years >= T_MIN
@@ -176,9 +176,9 @@ class StretchedExponentialModel(_ShrinkingBandsMixin):
     quantized = True
 
     # Fitted parameters (overwritten by fit_sexp.py --update)
-    _A    =             -6.277519  
-    _B    =                     5.694228  
-    _beta =                      0.250000  
+    _A    =             -6.186902  
+    _B    =                        5.632904  
+    _beta =                         0.250000  
 
     def __init__(self, price_years, price_prices, quantiles):
         mask = price_years >= T_MIN
@@ -269,9 +269,9 @@ class GompertzModel(_ShrinkingBandsMixin):
     quantized = True
 
     # Fitted parameters (will be overwritten by fit_gompertz.py --update)
-    _K  =             4.888545
-    _r  =             0.302367
-    _t0 =             4.373878
+    _K  =             4.901898
+    _r  =             0.300499
+    _t0 =             4.385831
 
     def __init__(self, price_years, price_prices, quantiles):
         mask = price_years >= T_MIN
@@ -324,9 +324,9 @@ class LogisticSCurveModel(_ShrinkingBandsMixin):
     quantized = True
 
     # Fitted parameters (overwritten by fit_logistic.py --update)
-    _K  =                4.744630  
-    _r  =                0.435614  
-    _t0 =                5.659355  
+    _K  =                4.764749  
+    _r  =                0.431431  
+    _t0 =                5.688944  
 
     def __init__(self, price_years, price_prices, quantiles,
                  K=None, r=None, t0=None, *, sigma_override=None):
@@ -405,9 +405,9 @@ class SaturatingPowerLawModel(_ShrinkingBandsMixin):
     quantized = True
 
     # Fitted parameters (overwritten by tools/fit_spl.py --update)
-    _log10_L = 5.846849
-    _t0      = 23.869131
-    _beta    = 5.103979
+    _log10_L = 5.736331
+    _t0      = 22.650952
+    _beta    = 5.110680
 
     def __init__(self, price_years, price_prices, quantiles,
                  log10_L=None, t0=None, beta=None, *, sigma_override=None):
@@ -479,10 +479,10 @@ class BrokenPowerLawModel(_ShrinkingBandsMixin):
     quantized = True
 
     # Fitted parameters (will be overwritten by fit_bpl.py --update)
-    _a1      = -1.092244  
-    _b1      =             4.920330  
-    _t_break =             6.694045  
-    _b2      =             5.318074  
+    _a1      = -1.201582  
+    _b1      =                5.129850  
+    _t_break =               12.000000  
+    _b2      =                4.313318  
 
     def __init__(self, price_years, price_prices, quantiles):
         mask = price_years >= T_MIN

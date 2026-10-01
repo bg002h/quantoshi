@@ -31,12 +31,12 @@ class LPPLModel(_ShrinkingBandsMixin):
 
     # Best-fit parameters from differential evolution on full BTC history
     # (genesis = 2009-07-25)
-    _A   = -1.142474
-    _B   =                                   5.061067
-    _C   =                                   0.730627
-    _W   =                                   7.502512
-    _PHI =                                   1.433610
-    _D   =                                   0.599894
+    _A   = -1.140887
+    _B   =                                      5.058520
+    _C   =                                      0.730043
+    _W   =                                      7.494583
+    _PHI =                                      1.441745
+    _D   =                                      0.598700
 
     def __init__(self, price_years, price_prices, quantiles):
         mask = price_years >= T_MIN
@@ -121,15 +121,15 @@ class LPPL2Model(LPPLModel):
     dash_style = "dashdot"
 
     # All 9 params jointly fitted by tools/fit_lppl2.py
-    _A   = -1.123081
-    _B   =                                      5.025490
-    _C   =                                      0.698589
-    _W   =                                      7.343171
-    _PHI =                                      1.620479
-    _D   =                                      0.551888
-    _C2  =                                      0.170118
-    _W2  =                          20.960875
-    _PHI2 = -1.251115
+    _A   = -1.122893
+    _B   =                                         5.025172
+    _C   =                                         0.698413
+    _W   =                                         7.342290
+    _PHI =                                         1.621449
+    _D   =                                         0.551551
+    _C2  =                                         0.170191
+    _W2  =                            20.962177
+    _PHI2 = -1.253282
 
     def _lppl_log10(self, t):
         """Evaluate two-frequency LPPL median in log10 space.
@@ -198,18 +198,18 @@ class LPPL3Model(LPPL2Model):
     dash_style = "dashdot"
 
     # All 12 params jointly fitted by tools/fit_lppl3.py
-    _A   = -1.092318
-    _B   =                                4.962643
-    _C   =                                0.605321
-    _W   =                                7.126016
-    _PHI =                                1.885918
-    _D   =                                0.351888
-    _C2  =                                0.179585
-    _W2  =                      20.828065
-    _PHI2 = -1.032021
-    _C3  =                                0.172767
-    _W3  =                      10.109899
-    _PHI3 = -2.203281
+    _A   = -1.093072
+    _B   =                                   4.963777
+    _C   =                                   0.604125
+    _W   =                                   7.123863
+    _PHI =                                   1.888934
+    _D   =                                   0.351551
+    _C2  =                                   0.172626
+    _W2  =                        10.099517
+    _PHI2 = -2.186595
+    _C3  =                                   0.179175
+    _W3  =                        20.822406
+    _PHI3 = -1.022808
 
     def _lppl_log10(self, t):
         """Evaluate three-frequency LPPL median in log10 space."""
@@ -277,12 +277,12 @@ class LPPLModelW(LPPLModel):
     name = "LPPL (weighted)"
     short_name = "lppl_w"
     legend_name = "LPPL\u1d65\u1d65"
-    _A   = -1.086405
-    _B   =                  4.986164
-    _C   =                  0.552357
-    _W   =                  7.413713
-    _PHI =                  1.534947
-    _D   =                  0.356071
+    _A   = -1.086414
+    _B   =                     4.986185
+    _C   =                     0.552361
+    _W   =                     7.413763
+    _PHI =                     1.534907
+    _D   =                     0.356087
 
 
 class LPPL2ModelW(LPPL2Model):
@@ -290,15 +290,15 @@ class LPPL2ModelW(LPPL2Model):
     name = "LPPL\u2082 (weighted)"
     short_name = "lp2_w"
     legend_name = "LPPL\u2082\u1d65\u1d65"
-    _A   = -1.113845
-    _B   =                  4.985830
-    _C   =                  0.218055
-    _W   =                8.781733
-    _PHI =                  0.042550
-    _D   =                  0.000000
-    _C2  =                  0.306948
-    _W2  =                  6.687838
-    _PHI2 =                2.350981
+    _A   = -1.097195
+    _B   =                     4.970258
+    _C   =                     0.507919
+    _W   =                   6.910222
+    _PHI =                     2.136222
+    _D   =                     0.291241
+    _C2  =                     0.179649
+    _W2  =                     9.362294
+    _PHI2 =                -0.978764
 
 
 class LPPL3ModelW(LPPL3Model):
@@ -306,18 +306,18 @@ class LPPL3ModelW(LPPL3Model):
     name = "LPPL\u2083 (weighted)"
     short_name = "lp3_w"
     legend_name = "LPPL\u2083\u1d65\u1d65"
-    _A   = -1.097320
-    _B   =                  4.998266
-    _C   =                  0.567157
-    _W   =                7.363708
-    _PHI =                  1.629461
-    _D   =                  0.370323
-    _C2  =                  0.146603
-    _W2  =               20.887663
-    _PHI2 =          -1.077466
-    _C3  =                  0.140480
-    _W3  =                13.359291
-    _PHI3 =        -2.626026
+    _A   = -1.097270
+    _B   =                     4.964106
+    _C   =                     0.526330
+    _W   =                   6.961082
+    _PHI =                     2.092609
+    _D   =                     0.282268
+    _C2  =                     0.139925
+    _W2  =                 20.772134
+    _PHI2 =          -0.919739
+    _C3  =                     0.173147
+    _W3  =                   9.584050
+    _PHI3 =        -1.302121
 
 
 class LPPL4Model(LPPL3Model):
@@ -338,21 +338,21 @@ class LPPL4Model(LPPL3Model):
     dash_style = "dashdot"
 
     # All 15 params jointly fitted by tools/fit_lppl4.py (unweighted)
-    _A   = -1.108612
-    _B   =                                4.971057
-    _C   =                                0.104254
-    _W   =                             31.017350
-    _PHI =                       -2.562749
-    _D   =                                0.050000
-    _C2  =                                0.169132
-    _W2  =                          20.673474
-    _PHI2 =       -0.734225
-    _C3  =                                0.209504
-    _W3  =                          9.440425
-    _PHI3 =          -0.960305
-    _C4  =                                0.325684
-    _W4  =                        6.929980
-    _PHI4 =       2.121904
+    _A   = -1.101280
+    _B   =                                   4.974781
+    _C   =                                   0.580461
+    _W   =                                7.094637
+    _PHI =                          1.931112
+    _D   =                                   0.333932
+    _C2  =                                   0.172349
+    _W2  =                             9.983226
+    _PHI2 =       -1.997794
+    _C3  =                                   0.094961
+    _W3  =                            30.997040
+    _PHI3 =          -2.511075
+    _C4  =                                   0.170091
+    _W4  =                          20.731778
+    _PHI4 =       -0.873026
 
     def _lppl_log10(self, t):
         """Evaluate four-frequency LPPL median in log10 space."""
@@ -424,21 +424,21 @@ class LPPL4ModelW(LPPL4Model):
     name = "LPPL\u2084 (weighted)"
     short_name = "lp4_w"
     legend_name = "LPPL\u2084\u1d65\u1d65"
-    _A   = -1.115466
-    _B   =                  4.993713
-    _C   =                  0.189559
-    _W   =               13.708773
-    _PHI =            -2.964215
-    _D   =                  0.227009
-    _C2  =                  0.275109
-    _W2  =                6.562995
-    _PHI2 =          2.410944
-    _C3  =                  0.137470
-    _W3  =             20.876036
-    _PHI3 = -1.053513
-    _C4  =                  0.240792
-    _W4  =                8.427213
-    _PHI4 =           0.562557
+    _A   = -1.108886
+    _B   =                     4.988733
+    _C   =                     0.591070
+    _W   =                  6.901412
+    _PHI =               2.178376
+    _D   =                     0.407930
+    _C2  =                     0.148571
+    _W2  =                  20.856568
+    _PHI2 =          -1.025477
+    _C3  =                     0.141505
+    _W3  =               13.375868
+    _PHI3 = -2.345808
+    _C4  =                     0.179705
+    _W4  =                   9.419309
+    _PHI4 =           -1.250613
 
 
 class LPPL4ModelN13(LPPL4Model):
@@ -449,21 +449,21 @@ class LPPL4ModelN13(LPPL4Model):
     name = "LPPL\u2084 (no \u03c9\u224813)"
     short_name = "lp4_n13"
     legend_name = "LPPL\u2084-n13"
-    _A   = -1.110160
-    _B   =                  4.973231
-    _C   =                  0.228744
-    _W   =                 9.386961
-    _PHI =         -0.877716
-    _D   =                  0.050000
-    _C2  =                  0.168195
-    _W2  =             20.665975
-    _PHI2 =    -0.717718
-    _C3  =                  0.095346
-    _W3  =              31.057791
-    _PHI3 =    -2.643874
-    _C4  =                  0.320054
-    _W4  =              6.902560
-    _PHI4 =        2.162170
+    _A   = -1.101280
+    _B   =                     4.974781
+    _C   =                     0.580461
+    _W   =                    7.094637
+    _PHI =            1.931112
+    _D   =                     0.333932
+    _C2  =                     0.170091
+    _W2  =               20.731778
+    _PHI2 =    -0.873027
+    _C3  =                     0.094961
+    _W3  =                30.997040
+    _PHI3 =    -2.511074
+    _C4  =                     0.172349
+    _W4  =                 9.983226
+    _PHI4 =        -1.997793
 
 
 class LPPL4ModelWN13(LPPL4ModelN13):
@@ -475,21 +475,21 @@ class LPPL4ModelWN13(LPPL4ModelN13):
     name = "LPPL\u2084 (weighted, no \u03c9\u224813)"
     short_name = "lp4_w_n13"
     legend_name = "LPPL\u2084\u1d65\u1d65-n13"
-    _A   = -1.095260
-    _B   =                  4.964047
-    _C   =                  0.500266
-    _W   =                6.921294
-    _PHI =            2.122265
-    _D   =                  0.265744
-    _C2  =                  0.180255
-    _W2  =                9.430558
-    _PHI2 =           -1.040059
-    _C3  =                  0.104922
-    _W3  =               17.064190
-    _PHI3 =                1.364193
-    _C4  =                  0.122225
-    _W4  =             20.983760
-    _PHI4 = -1.271991
+    _A   = -1.101849
+    _B   =                     4.970392
+    _C   =                     0.536091
+    _W   =                   6.950551
+    _PHI =               2.113151
+    _D   =                     0.296740
+    _C2  =                     0.174071
+    _W2  =                   9.586564
+    _PHI2 =           -1.334396
+    _C3  =                     0.135195
+    _W3  =                 20.821848
+    _PHI3 =                -1.035385
+    _C4  =                     0.096055
+    _W4  =               30.470529
+    _PHI4 = -1.584573
 
 
 class LinPPLModel(LPPLModel):
@@ -510,12 +510,12 @@ class LinPPLModel(LPPLModel):
     dash_style = "dash"
 
     # Fitted parameters (W_cal in radians/year; T_years = 2π/W_cal)
-    _A   = -1.212845  
-    _B   =                                5.109690  
-    _C   =                                0.283075  
-    _W   =                                1.766924  # ≈ 2π/4 (4-year halving cycle, will refit)
-    _PHI =  -2.291677  
-    _D   =                                0.010000  
+    _A   = -1.213572  
+    _B   =                                   5.110958  
+    _C   =                                   0.282374  
+    _W   =                                   1.766727  # ≈ 2π/4 (4-year halving cycle, will refit)
+    _PHI =  -2.290606  
+    _D   =                                   0.010000  
 
     def _lppl_log10(self, t):
         """Evaluate LinPPL median in log10 space — oscillation in calendar t, not ln(t)."""

@@ -24,6 +24,7 @@ Usage:
 import os
 import sys
 import json
+from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -135,6 +136,28 @@ def all_configs():
     return configs
 
 
+_T_FIT = _LP_FIT = None
+
+
+def _init_worker(t_fit, lp_fit):
+    global _T_FIT, _LP_FIT
+    _T_FIT, _LP_FIT = t_fit, lp_fit
+
+
+def _fit_config(cfg):
+    """Fit one config in a worker process; returns the DE optimum."""
+    func, _pnames, bounds = build_model_fn(*cfg)
+
+    def obj(params):
+        return np.sum((_LP_FIT - func(_T_FIT, *params)) ** 2)
+
+    res = differential_evolution(
+        obj, bounds, maxiter=5000, seed=42, tol=1e-12,
+        polish=True, workers=1,
+    )
+    return res.x
+
+
 def main():
     update = "--update" in sys.argv
 
@@ -152,23 +175,25 @@ def main():
     configs = all_configs()
     print(f"Fitting {len(configs)} entropy PPL configurations...\n")
 
+    # The configs are independent, CPU-bound fits: run them across cores.
+    # Each DE keeps seed=42 / workers=1, so results are identical to a
+    # serial run. (Serially this took ~30 min and tripped refit_all_ppl.py's
+    # per-script timeout on 2026-11-01.)
+    n_workers = max(1, min(len(configs), (os.cpu_count() or 2) - 2))
+    print(f"  ({n_workers} parallel workers)\n", flush=True)
+    with ProcessPoolExecutor(max_workers=n_workers, initializer=_init_worker,
+                             initargs=(t_fit, lp_fit)) as pool:
+        fitted = list(pool.map(_fit_config, configs))
+
     results = {}
-    for n_log, n_cal, ld, cd in configs:
+    for (n_log, n_cal, ld, cd), x in zip(configs, fitted):
         key = config_key(n_log, n_cal, ld, cd)
         func, pnames, bounds = build_model_fn(n_log, n_cal, ld, cd)
         n_params = len(bounds)
 
         print(f"  {key} ({n_params}p)...", end=" ", flush=True)
 
-        def obj(params, f=func):
-            return np.sum((lp_fit - f(t_fit, *params)) ** 2)
-
-        res = differential_evolution(
-            obj, bounds, maxiter=5000, seed=42, tol=1e-12,
-            polish=True, workers=1,
-        )
-
-        pred = func(t_fit, *res.x)
+        pred = func(t_fit, *x)
         ss_res = np.sum((lp_fit - pred) ** 2)
         r2 = 1 - ss_res / ss_tot
         sigma = float(np.std(lp_fit - pred))
@@ -177,7 +202,7 @@ def main():
         results[key] = {
             "n_log": n_log, "n_cal": n_cal,
             "log_damps": ld, "cal_damps": cd,
-            "params": {pn: float(pv) for pn, pv in zip(pnames, res.x)},
+            "params": {pn: float(pv) for pn, pv in zip(pnames, x)},
             "r2": r2, "sigma": sigma, "bic": bic, "n_params": n_params,
         }
 

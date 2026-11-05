@@ -1142,6 +1142,37 @@ class TestUpdateBubbleCallback:
         assert len(result) == 8
         assert isinstance(result[0], go.Figure)
 
+    @pytest.mark.parametrize("bad_enable", [True, False, "yes", 1])
+    def test_non_list_mc_enable_does_not_crash(self, bad_enable):
+        """Prod 2026-11-04: a stale client sent bub-mc-enable as a bool →
+        `"yes" in True` raised TypeError. Non-list values mean MC off."""
+        with _patch_ctx("bub-qs"):
+            result = update_bubble(
+                _first_render=1, sel_qs=[0.5], adv_qs=[], toggles=[], ma_sel=[],
+                bubble_toggles=[], xscale="log", yscale="log",
+                xrange=[2012, 2030], yrange=[0, 7],
+                n_future=0, ptsize=3, ptalpha=0.6,
+                stack=0, show_stack=[], use_lots=[], legend_pos="outside", model_show=[],
+                lppl_n_freqs=[], lppl_weighted=[], lppl_no_13=[],
+                hyb_a_nlog=1, hyb_a_ncal=1,
+                hyb_a_log1d="d", hyb_a_log2d="d",
+                hyb_a_cal1d="u", hyb_a_cal2d="u",
+                hyb_b_enabled=[], hyb_b_nlog=0, hyb_b_ncal=0,
+                hyb_b_log1d="d", hyb_b_log2d="d",
+                hyb_b_cal1d="u", hyb_b_cal2d="u",
+                ep_a_nlog=1, ep_a_ncal=1,
+                ep_a_log1d="d", ep_a_log2d="d",
+                ep_a_cal1d="u", ep_a_cal2d="u",
+                ep_b_enabled=[], ep_b_nlog=0, ep_b_ncal=0,
+                ep_b_log1d="d", ep_b_log2d="d",
+                ep_b_cal1d="u", ep_b_cal2d="u",
+                decomp_model="", decomp_components=[], decomp_mode="individual",
+                lots_data=[],
+                palette_key="default",
+                mc_enable=bad_enable,
+            )
+        assert isinstance(result[0], go.Figure)
+
     def test_empty_quantiles(self):
         with _patch_ctx("bub-qs"):
             result = update_bubble(

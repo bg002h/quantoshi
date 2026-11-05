@@ -360,7 +360,8 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
         stack=None, amount_default=100, infl_default=0.0,
         start_yr_default=2031,
         mc_model_src=mc_model_src or "bub")
-    mc_visible = bool(mc_enable) and "yes" in (mc_enable or [])
+    # isinstance guard: a stale client once sent a bool (prod 2026-11-04).
+    mc_visible = isinstance(mc_enable, (list, tuple)) and "yes" in mc_enable
 
     # MC visible AND payment passed → MC-aware builder; else fast path.
     # Both branches pass the same dict shape to keep the cache-key alignment

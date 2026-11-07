@@ -44,8 +44,17 @@ check_health() {
     fi
 
     # 1. Check HTTPS health endpoint + parse cache age
-    health_json=$(curl -s --max-time "$TIMEOUT" "$URL" 2>/dev/null) || health_json=""
-    http_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "$URL" 2>/dev/null) || http_code="000"
+    # One request, retried up to 2 more times on a transport failure (code 000:
+    # timeout/DNS/TLS blip on the dev side — 2026-11-07 false alarm while prod
+    # served 200). A real HTTP status (even 5xx) is final, never retried.
+    health_json=""; http_code="000"
+    for _attempt in 1 2 3; do
+        _tmp=$(mktemp)
+        http_code=$(curl -s -o "$_tmp" -w "%{http_code}" --max-time "$TIMEOUT" "$URL" 2>/dev/null) || http_code="000"
+        health_json=$(cat "$_tmp"); rm -f "$_tmp"
+        [[ "$http_code" != "000" ]] && break
+        [[ $_attempt -lt 3 ]] && sleep 5
+    done
     if [[ "$http_code" != "200" ]]; then
         errors+=("Health endpoint returned HTTP $http_code")
     elif [[ -n "$health_json" ]]; then

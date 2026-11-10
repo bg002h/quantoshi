@@ -110,7 +110,11 @@ def main():
                  "g_x_t", "vol_pct"]].to_string(index=False,
                                                 float_format=lambda x: f"{x:.2f}"))
     fset, where = fit_set(tab, cycle_table(m))
-    f = fits(fset)
+    try:
+        f = fits(fset)
+    except RuntimeError as e:          # curve_fit did not converge
+        print(f"\nfit set: {where}\nno fit: {e}")
+        return
     if True:
         print(f"\nfit set: {where}")
         print("fit on {cycles} full cycles: power n = {n:.2f} (rms {rms_power:.3f}), "

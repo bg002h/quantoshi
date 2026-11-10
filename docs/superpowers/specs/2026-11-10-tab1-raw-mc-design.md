@@ -14,8 +14,8 @@ Bitcoin's momentum and its 4-year boom/bust rhythm. So it ships in two
 flavours that answer that question side by side: one with no memory, and one
 that follows the halving cycle.
 
-Measured on `BitcoinPricesDaily.csv` (script:
-`scratchpad/raw_mc_measure.py`, figures "since 2010 / since 2015"):
+Measured ad hoc on `BitcoinPricesDaily.csv`, 2026-11-10 (figures
+"since 2010 / since 2015"):
 
 - month-to-month return autocorrelation +0.24 / +0.11 (noise ±0.14 / ±0.17);
   P(up | up month) 0.60 vs P(up | down month) 0.55;
@@ -95,7 +95,9 @@ the last year running to the latest close). Each eligible month carries:
   start of that month (months without 12 prior months of data have no state);
 - its **halving phase**: whole months since the most recent halving
   (`figures/common.py::_HALVING_KNOWN_DATES`), bucketed into 6-month phases
-  0–7 (≥ 48 months folds into phase 7).
+  0–7 (≥ 48 months folds into phase 7). Months before the first halving
+  (2012-11-28) count from the genesis block, 2009-01-03, as epoch 0
+  **(controller's call)**; that gives Aug 2010 – Nov 2012 phases 3–7.
 
 ### Raw · independent
 
@@ -110,9 +112,16 @@ the phase of its first month relative to the projected halvings
 copies three consecutive real monthly returns starting at a random eligible
 month of the **same phase**; the three months must all be eligible (inside
 the window). Momentum survives inside a block; the bull/bear rhythm comes
-from the phase. If a phase has no eligible block under the current window
-and filter, that block falls back to the whole eligible pool, and the status
-line says how many phases fell back **(controller's call)**.
+from the phase.
+
+**Thin phases (controller's call).** A phase with fewer than **3** distinct
+candidate block starts under the current window and filter falls back to
+the whole **filtered** pool for that phase's blocks (the regime filter is
+always honoured; only the phase constraint is relaxed). Measured on the real
+CSV, window 2015–2026, 5 bins: all bins on gives 11–22 starts per phase;
+only the coldest bin on leaves 5 of 8 phases empty. The Raw status line
+(below) says how many phases fell back, e.g. "5 of 8 cycle phases had too
+little history and drew from the whole window."
 
 ### Regime filter in Raw mode
 
@@ -134,13 +143,23 @@ line says how many phases fell back **(controller's call)**.
 - The auto-tick of "Show individual price paths" on a real filter click
   (`MC_REGIME_PATHS_JS`) is unchanged and applies in Raw mode too.
 - If the filtered pool is too small to simulate (fewer than 12 eligible
-  months **(controller's call)**), no fan is drawn and the MC status line
+  months **(controller's call)**), no fan is drawn and the Raw status line
   says why.
+- **Switching meaning (controller's call).** Bin indices mean price-percentile
+  bins in model mode and momentum bins in Raw. On a **real user selection**
+  that crosses between a model entry and a Raw entry (either direction),
+  `bub-mc-regime` resets to all checked. Same click-stamp pattern as the
+  window nudge; a share-link restore or programmatic write never resets it.
+  The reset is a programmatic write, so the auto-tick tracker records it
+  without ticking paths.
 
 ### Sims, lines and extremes
 
 - `bub-mc-sims` = number of simulated paths (1–3200). The default stays 200
   (the Tab-1 snapshot default) **(controller's call)**.
+- **Placement (controller's call):** Lines shown and Show extremes sit
+  directly under "Show individual price paths" in the MC panel body (not
+  behind "Advanced simulator options").
 - **Lines shown** (`bub-mc-lines`, number input 5–200, step 1, default 20;
   visible only in Raw mode). Paths are ranked by price at the last plotted
   step (the visible right edge) **(controller's call)**; lines are taken at
@@ -155,14 +174,35 @@ line says how many phases fell back **(controller's call)**.
   ticked; it stays the master switch, default off.
 - Lines keep today's payload treatment (every other step, 2 significant
   figures, `_add_mc_spaghetti`). At ≤ 200 + 2 lines that is ≤ ~25 KB gzip on
-  top of the ~38 KB fan (measured: `scratchpad/raw_stride.py`).
+  top of the ~38 KB fan (measured ad hoc 2026-11-10: 200 lines × 145
+  monthly steps = 23 KB).
+
+### Raw status line and the other MC outputs (controller's call)
+
+- A new `bub-mc-raw-status` div sits directly under the model-source
+  dropdown, shown only in Raw mode. It carries the independent-mode caveat,
+  the cycle fallback count, and the "no fan drawn" reason. `bub-mc-status`
+  (under the Saved Simulation card) is not used for Raw messages.
+- The MC match indicator (`bub-mc-rendered-key` / `bub-mc-match`) must not
+  warn "Chart does not include MC overlay" beside a drawn Raw fan; how Raw
+  sets the rendered key is the builder's call, but a test pins "Raw fan
+  drawn → no mismatch warning".
+
+### Paid-MC chrome in Raw mode (controller's call)
+
+In Raw mode the **Run MC Simulation** button, the cost panel, the "Paid"
+badge and the Saved Simulation card (save / download / upload / restore) are
+hidden. Raw redraws on any control change, like a free cached scenario. A
+test pins that no Raw selection can reach `btcpay.create_invoice` or open
+the payment modal (`bub-mc-save-modal`), including a Run click arriving from
+a stale client.
 
 ### Labels
 
 - Fan legend entries carry a suffix naming the variant and window, e.g.
   "MC median · raw independent 2015–2026" (`_add_mc_fan(label_suffix=…)`).
-- Independent mode shows a one-line caveat under the dropdown: "No memory:
-  understates multi-month swings."
+- Independent mode shows a one-line caveat in the Raw status line: "No
+  memory: understates multi-month swings."
 
 ### Default window when switching to Raw
 

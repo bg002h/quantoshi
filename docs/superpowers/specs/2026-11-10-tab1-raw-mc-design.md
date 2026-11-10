@@ -114,13 +114,14 @@ Per full cycle c: `g_c = μ_c` (mean monthly log return), `s_c = σ_c`.
 | Trend | growth μ(t) | volatility σ(t) |
 |---|---|---|
 | Power law | `n / t` (one parameter, least squares on `g_c` vs `t_c`) | `a · t^−b` (linear fit of `log s_c` on `log t_c`) |
-| Exponential decay | `exp(α + β t)` (linear fit of `log g_c` on `t_c`) | `exp(γ + δ t)` |
+| Exponential decay | `exp(α + β t)`, nonlinear least squares directly on `g_c` (`scipy.optimize.curve_fit`) | `exp(γ + δ t)`, same method on `s_c` |
 | None | — | — |
 
-(Fitting form for exponential growth requires `g_c > 0` for every fitted
-cycle; true for all four today. If a future data refresh breaks that, the
-exponential option falls back to power law with a status-line note
-**(controller's call)**.)
+Exponential curves are fitted **directly in growth space, never via
+`log g_c`**, so a full cycle with negative growth (possible once the
+2024–2028 cycle completes) simply pulls the curve down instead of breaking
+the fit (operator decision, 2026-11-10). No fallback between trends.
+`scipy` is already in `btc_web/requirements.txt`.
 
 ### Generating a path
 

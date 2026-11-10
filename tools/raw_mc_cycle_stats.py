@@ -87,9 +87,9 @@ def fits(f):
     n = np.sum(g / t) / np.sum(1 / t ** 2)
     nb, la = np.polyfit(np.log(t), np.log(s), 1)
     (al, be), _ = curve_fit(lambda x, a, b: np.exp(a + b * x), t, g,
-                            p0=(np.log(g.mean()), -0.1), maxfev=20000)
+                            p0=(np.log(max(g.mean(), 1e-3)), -0.1), maxfev=20000)
     (ga, de), _ = curve_fit(lambda x, a, b: np.exp(a + b * x), t, s,
-                            p0=(np.log(s.mean()), -0.05), maxfev=20000)
+                            p0=(np.log(max(s.mean(), 1e-3)), -0.05), maxfev=20000)
     return dict(cycles=len(f), n=n, a=np.exp(la), b=-nb,
                 alpha=al, beta=be, gamma=ga, delta=de,
                 rms_power=np.sqrt(np.mean((g - n / t) ** 2)),

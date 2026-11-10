@@ -8,8 +8,12 @@ and the default fit), using the spec's definitions:
   * monthly log returns of month-end closes; the incomplete trailing month
     is dropped;
   * a cycle runs halving to halving (genesis 2009-01-03 is epoch 0); its
-    months are the months WITH price data; it is FULL when it ends at a
-    known halving and has >= 24 data months;
+    months are its IN-WINDOW months with price data; it is FULL when it
+    ends at a known halving and has >= 24 such months, and COMPLETE (usable
+    as a cycle-mode block source) when, in addition, those months span
+    cycle fraction phi < 0.05 to phi > 0.95;
+  * fit set (fit_set): the full cycles in the window if there are >= 3,
+    else every full cycle of the whole history;
   * t_c = mean t (years since 2009-07-25, month midpoints) of its months;
   * g_c = annual log growth = 12 * mean monthly log return;
     s_c = annual vol = sqrt(12) * std of monthly log returns;
@@ -46,9 +50,13 @@ def monthly_returns():
     r = np.log(me).diff().dropna()
     mid = r.index - pd.offsets.MonthBegin(1) + pd.Timedelta(days=14)
     t = (mid - ORIGIN).days / 365.25
-    cyc = np.searchsorted(np.array(EPOCHS, dtype="datetime64[ns]"),
-                          r.index.values, side="right")
-    return pd.DataFrame({"r": r.values, "t": t, "cycle": cyc}, index=r.index)
+    ep = np.array(EPOCHS + [EPOCHS[-1] + pd.DateOffset(years=4)],
+                  dtype="datetime64[ns]")
+    cyc = np.searchsorted(ep[:-1], r.index.values, side="right")
+    start, end = ep[cyc - 1], ep[cyc]
+    phi = ((mid.values - start) / (end - start)).astype(float)
+    return pd.DataFrame({"r": r.values, "t": t, "cycle": cyc, "phi": phi},
+                        index=r.index)
 
 
 def cycle_table(m, y0=None, y1=None):
@@ -59,15 +67,22 @@ def cycle_table(m, y0=None, y1=None):
     rows = []
     for c, g in m.groupby("cycle"):
         full = c < len(EPOCHS) and len(g) >= MIN_FULL_MONTHS
+        complete = full and g.phi.min() < 0.05 and g.phi.max() > 0.95
         rows.append(dict(cycle=c, first=g.index[0].strftime("%Y-%m"),
                          last=g.index[-1].strftime("%Y-%m"), months=len(g),
+                         complete=complete,
                          t=g.t.mean(), g=12 * g.r.mean(),
                          s=np.sqrt(12) * g.r.std(), full=full))
     return pd.DataFrame(rows)
 
 
-def fits(tab):
-    f = tab[tab.full]
+def fit_set(tab_window, tab_all):
+    """Cycles the trend curves are fitted on (spec: >= 3 in window, else all)."""
+    w = tab_window[tab_window.full]
+    return (w, "window") if len(w) >= 3 else (tab_all[tab_all.full], "all history")
+
+
+def fits(f):
     t, g, s = f.t.values, f.g.values, f.s.values
     n = np.sum(g / t) / np.sum(1 / t ** 2)
     nb, la = np.polyfit(np.log(t), np.log(s), 1)
@@ -86,16 +101,19 @@ def main():
     ap.add_argument("--from", dest="y0", type=int)
     ap.add_argument("--to", dest="y1", type=int)
     a = ap.parse_args()
-    tab = cycle_table(monthly_returns(), a.y0, a.y1)
+    m = monthly_returns()
+    tab = cycle_table(m, a.y0, a.y1)
     pd.set_option("display.width", 160)
     shown = tab.assign(growth_pct=np.expm1(tab.g) * 100, g_x_t=tab.g * tab.t,
                        vol_pct=tab.s * 100)
-    print(shown[["cycle", "first", "last", "months", "full", "t", "growth_pct",
+    print(shown[["cycle", "first", "last", "months", "full", "complete", "t", "growth_pct",
                  "g_x_t", "vol_pct"]].to_string(index=False,
                                                 float_format=lambda x: f"{x:.2f}"))
-    if tab.full.sum() >= 2:
-        f = fits(tab)
-        print("\nfit on {cycles} full cycles: power n = {n:.2f} (rms {rms_power:.3f}), "
+    fset, where = fit_set(tab, cycle_table(m))
+    f = fits(fset)
+    if True:
+        print(f"\nfit set: {where}")
+        print("fit on {cycles} full cycles: power n = {n:.2f} (rms {rms_power:.3f}), "
               "vol = {a:.2f} * t^-{b:.2f}; exp growth exp({alpha:.2f} {beta:+.3f} t) "
               "(rms {rms_exp:.3f}), vol exp({gamma:.2f} {delta:+.3f} t)".format(**f))
         for yr in (2030, 2040, 2050, 2066):

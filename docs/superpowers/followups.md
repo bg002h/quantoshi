@@ -601,6 +601,30 @@ trigger and route it through `set_props` or split it per tab.
 
 ---
 
+### F-20 — Ticking MC on `/1` raises a callback error on the Citadel chart (dev)
+**Type:** defect, unconfirmed scope · **Owning phase:** F-14 (Phase 2) ·
+**Severity:** Nit (dev-only) · **Found:** 2026-11-09, dev
+screenshots for the MC example-path payload change · **Not investigated**
+
+**Prod check 2026-11-10 (`cbecb30e`):** does NOT occur on quantoshi.xyz — a real
+MC tick on `/1`, then 20 s of watching, gave no 4xx/5xx response and no
+Citadel console error (only the two F-19 entries). Dev-only until shown
+otherwise.
+
+On the dev server, a real tick of `bub-mc-enable` on `/1` is followed (about 7 s
+and 16 s later) by two Dash dev-tools entries: "Callback error updating
+..citadel-graph.figure...cp-mc-results.data...cp-m…". The Citadel tab is not
+open. No Citadel file is in `997d3f33..cbecb30e`, and `/tmp/quantoshi_dev.log`
+shows no traceback, so the failure is either in the background-callback
+manager (DiskcacheManager on dev) or swallowed. Tab 1 renders correctly.
+
+**To do first:** reproduce on prod with the console open; if it does not
+occur there, close as dev-only. Otherwise find why a Tab-1 MC tick triggers the
+Citadel run callback at all (same family as F-19: a cross-tab trigger firing
+for a tab that is not mounted).
+
+---
+
 ## Closed
 
 ### F-10 — Tab-1 view pills Percentile and Occupancy have no deep link

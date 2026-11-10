@@ -204,41 +204,70 @@ function(checked, bins) {
 
 
 # Tab 1: a real click that APPLIES a regime filter ticks "Show individual price
-# paths" (operator request 2026-11-10). Inputs: (bub-mc-regime.value) with State
-# (bub-mc-bins.value, bub-mc-paths.value) -- ONE Input, because allow_duplicate +
-# several Inputs + prevent_initial_call silently never fires in Dash 4.0.
-#   * only a fresh click stamp (assets/mc_regime_paths.js) acts: a share-link
+# paths" (operator request 2026-11-10). Inputs: (bub-mc-regime.value,
+# bub-mc-raw-regime.value) with State (bub-mc-bins.value, bub-mc-raw-bins.value,
+# bub-mc-paths.value). Two Inputs are safe only because the Output is NOT
+# allow_duplicate (allow_duplicate + several Inputs + prevent_initial_call
+# silently never fires in Dash 4.0).
+#   * only a fresh click stamp acts: assets/mc_regime_paths.js stamps the model
+#     checklist, assets/mc_raw_regime_paths.js the Raw one. A share-link
 #     restore or any other programmatic write never touches the paths box;
 #   * only on the transition no-filter -> filter, so a user who unticks paths
 #     while filtered is not overridden by their next regime click;
-#   * never unticks. "Filter" is read as the server reads it
-#     (callbacks/mc_helpers.py): 0 < checked < bins.
+#   * never unticks. "Filter" is read as the server reads it: 0 < checked <
+#     bins (callbacks/mc_helpers.py); for Raw only distinct in-range indices
+#     count, because its value is never reset on a bins change
+#     (raw_mc.effective_checked).
 # The tracker remembers the previous checked COUNT, not a verdict: a bins change
 # rewrites only the checklist's options, so this callback does not run for it,
 # yet it changes what a given count means. The count is judged against the
 # CURRENT bins, and the first run starts from the default value's length
-# (review I-1, 2026-11-10). The paths Output is NOT allow_duplicate (it has no
-# primary writer): allow_duplicate made Dash fire update_bubble twice per tick
-# click (review I-2).
+# (review I-1, 2026-11-10).
+# Each checklist has its own tracker and stamp (__qsRegimeK /
+# __qsMcRegimeClickAt, __qsRawRegimeK / __qsMcRawRegimeClickAt). BOTH trackers
+# are updated on every call, and the decision is made only for a checklist
+# whose stamp is fresh -- never from triggered[0]: a share-link restore writes
+# both checklists in one batch (plan review I-6).
+# One writer of bub-mc-paths.value, NOT allow_duplicate: an allow_duplicate
+# writer made Dash fire update_bubble twice per tick click (review I-2).
 MC_REGIME_CLICK_MS = 3000
 MC_REGIME_DEFAULT_K = len(SNAPSHOT_DEFAULTS["bub-mc-regime:value"])
+MC_RAW_REGIME_DEFAULT_K = 5      # layout default value list(range(5)), bins 5
 MC_REGIME_PATHS_JS = """
-function(checked, bins, paths) {
+function(checked, rawChecked, bins, rawBins, paths) {
     var NU = window.dash_clientside.no_update;
-    var n = parseInt(bins, 10);
-    var k = Array.isArray(checked) ? checked.length : 0;
-    var on = (n > 0 && k > 0 && k < n);
-    var pk = (window.__qsRegimeK === undefined) ? %(default_k)s : window.__qsRegimeK;
-    var was = (n > 0 && pk > 0 && pk < n);
-    window.__qsRegimeK = k;
-    var at = window.__qsMcRegimeClickAt || 0;
-    window.__qsMcRegimeClickAt = 0;
-    if (!on || was) { return NU; }
-    if (!at || Date.now() - at > %(click_ms)s) { return NU; }
+    var now = Date.now();
+    function count(c, n, raw) {
+        if (!Array.isArray(c)) { return 0; }
+        if (!raw) { return c.length; }
+        var seen = {}, k = 0;
+        for (var i = 0; i < c.length; i++) {
+            var v = parseInt(c[i], 10);
+            if (v >= 0 && v < n && !seen[v]) { seen[v] = true; k++; }
+        }
+        return k;
+    }
+    function applies(c, b, kKey, atKey, dflt, raw) {
+        var n = parseInt(b, 10);
+        var k = count(c, n, raw);
+        var on = (n > 0 && k > 0 && k < n);
+        var pk = (window[kKey] === undefined) ? dflt : window[kKey];
+        var was = (n > 0 && pk > 0 && pk < n);
+        window[kKey] = k;
+        var at = window[atKey] || 0;
+        window[atKey] = 0;
+        return on && !was && !!at && now - at <= %(click_ms)s;
+    }
+    var m = applies(checked, bins, "__qsRegimeK", "__qsMcRegimeClickAt",
+                    %(default_k)s, false);
+    var r = applies(rawChecked, rawBins, "__qsRawRegimeK", "__qsMcRawRegimeClickAt",
+                    %(raw_default_k)s, true);
+    if (!m && !r) { return NU; }
     if (Array.isArray(paths) && paths.indexOf("yes") >= 0) { return NU; }
     return ["yes"];
 }
-""" % {"click_ms": MC_REGIME_CLICK_MS, "default_k": MC_REGIME_DEFAULT_K}
+""" % {"click_ms": MC_REGIME_CLICK_MS, "default_k": MC_REGIME_DEFAULT_K,
+       "raw_default_k": MC_RAW_REGIME_DEFAULT_K}
 
 
 def _bub_regime_note():

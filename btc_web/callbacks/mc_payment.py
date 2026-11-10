@@ -12,6 +12,7 @@ from colors import MC_FREE_GREEN, ERROR_RED_DARK
 from callbacks.coerce import _ci, _cf
 from callbacks.charts._resolvers import _resolve_mc_model_src
 from mc_cache import (MC_DEFAULT_YEARS, MC_DEFAULT_START_YR, MC_DEFAULT_ENTRY_Q)
+from raw_mc import RAW_SRCS
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +103,12 @@ def _mc_payment_initiate(*args):
     # Model source: n_tabs values after trigger
     model_srcs = args[state_base + n_tabs * 3 + 1 : state_base + n_tabs * 3 + 1 + n_tabs]
     mc_model_src = model_srcs[tab_idx] or "bub"
+    # Raw (Tab 1, model-free) is free and never touches payment. Its Run
+    # button is only CSS-hidden, so a stale client can still click it: stop
+    # here, before the quant modal, the free-tier check and create_invoice
+    # (spec "Paid and premium chrome in Raw"; plan review M-6).
+    if mc_model_src in RAW_SRCS:
+        raise dash.exceptions.PreventUpdate
     # Price stores: n_tabs values after model sources
     price_start = state_base + n_tabs * 3 + 1 + n_tabs
     price_vals = args[price_start : price_start + n_tabs]

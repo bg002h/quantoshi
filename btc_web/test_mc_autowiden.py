@@ -65,13 +65,15 @@ class TestRegistration:
         assert [(i["id"], i["property"]) for i in e["inputs"]] == [
             ("bub-mc-enable", "value")]
 
-    def test_reads_range_start_year_view_and_cta_as_state(self):
+    def test_reads_range_start_year_view_cta_and_source_as_state(self):
         # View mode + Custom Time Axis are State, not Input: they decide
         # whether MC is on screen at all, and must never trigger a widen.
+        # The MC source picks the start year (Raw starts today: Task 6).
         e = _entry()
         assert [(s["id"], s["property"]) for s in e["state"]] == [
             ("bub-xrange", "value"), ("bub-mc-start-yr", "value"),
-            ("bub-view-mode", "data"), ("cta-active", "value")]
+            ("bub-view-mode", "data"), ("cta-active", "value"),
+            ("bub-mc-model-src", "value")]
 
     def test_never_fires_on_page_load(self):
         # allow_duplicate + prevent_initial_call=False crashes gunicorn, and
@@ -115,7 +117,7 @@ for (const c of %(cases)s) {
     if (c.nowMs !== undefined) now = c.nowMs;
     if (c.clickAgoMs === null) window.__qsMcEnableClickAt = 0;
     else if (c.clickAgoMs !== undefined) window.__qsMcEnableClickAt = now - c.clickAgoMs;
-    out.push(fn(c.mc, c.xr, c.start, c.mode, c.cta));
+    out.push(fn(c.mc, c.xr, c.start, c.mode, c.cta, c.src));
 }
 console.log(JSON.stringify(out));
 """

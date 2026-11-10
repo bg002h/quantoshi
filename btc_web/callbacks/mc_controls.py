@@ -180,21 +180,26 @@ _app_ctx.app.clientside_callback(
     State("bub-mc-start-yr", "value"),
     State("bub-view-mode", "data"),
     State("cta-active", "value"),
+    State("bub-mc-model-src", "value"),
     prevent_initial_call=True,
 )
 
 # ── Tab 1: applying a regime filter ticks "Show individual price paths" ─────
-# Logic + rationale: layout/mc_controls.py (MC_REGIME_PATHS_JS). ONE Input (see
-# there). All three ids exist in the layout without the Markov engine too
-# (hidden placeholders), so the callback always resolves.
-# No allow_duplicate on the Output: see the I-2 note there.
+# Logic + rationale: layout/mc_controls.py (MC_REGIME_PATHS_JS). Two Inputs (the
+# model and the Raw regime checklists) are fine because the Output is NOT
+# allow_duplicate -- the Dash 4.0 no-op needs allow_duplicate + several Inputs
+# + prevent_initial_call. Every id exists in the layout without the Markov
+# engine too (hidden placeholders), so the callback always resolves.
+# No allow_duplicate on the Output, and no second writer: see the I-2 note there.
 from layout.mc_controls import MC_REGIME_PATHS_JS  # noqa: E402
 
 _app_ctx.app.clientside_callback(
     MC_REGIME_PATHS_JS,
     Output("bub-mc-paths", "value"),
     Input("bub-mc-regime", "value"),
+    Input("bub-mc-raw-regime", "value"),
     State("bub-mc-bins", "value"),
+    State("bub-mc-raw-bins", "value"),
     State("bub-mc-paths", "value"),
     prevent_initial_call=True,
 )
@@ -262,6 +267,9 @@ function(mc_enable, mc_years, mc_start_yr, mc_entry_q, mc_model_src, rendered_ke
     var noPremium = "{base_cls}";
     var premium = "{base_cls}{sep}mc-premium-chart";
     if (!mc_enable || !mc_enable.length) return ["", hide, hide, noPremium, hide, hide];
+    /* Raw (Tab 1, model-free) is free: neutral whatever key a past model
+       run left behind -- no text, premium class, badge, warning or restore. */
+    if (String(mc_model_src || "").indexOf("raw") === 0) return ["", hide, hide, noPremium, hide, hide];
     if (!rendered_key) return [
         "⚠ Chart does not include MC overlay",
         Object.assign({{}}, base, {{color: "{live_clr}"}}),

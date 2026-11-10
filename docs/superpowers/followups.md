@@ -638,6 +638,28 @@ unchecked pays it, paths on or off, and nothing caches it.
 **Fix sketch:** `lru_cache` the ranking on (model_src, start_yr, entry_q,
 years, tuple(blocked), n_bins), or vectorise the per-step `price_at` calls.
 
+### F-22 — Raw MC spec r6 Minors/Nits: plan must settle them
+**Type:** spec precision · **Owning phase:** Raw MC plan (must be resolved in
+the plan before it passes review) · **Severity:** Minor ·
+**Found:** 2026-11-10, `docs/superpowers/reviews/2026-11-10-tab1-raw-mc-spec-review-r6.md`
+
+Spec `docs/superpowers/specs/2026-11-10-tab1-raw-mc-design.md` rev 6 is
+0C/0I; these are left to the plan to pin:
+- M-1 which monthly step opens a new future cycle and where in a step φ is
+  measured (E and test (c) depend on it);
+- M-2 a block redrawn by the regime filter must not run past a projected
+  halving;
+- M-3 test (a) must read the generator's own block schedule and shifted z,
+  not recompute them;
+- N-1 write the debias as E/n with n = steps in that cycle (assert 48), and
+  define E for horizons shorter than one cycle;
+- N-2 correct prototype-figure labels; say which candidates a short block
+  draws from;
+- N-3 include the partial month's trend in the starting state D_0;
+- N-4 a cycle with < 2 data months has undefined std → NaN z; the partial
+  current cycle must borrow standardisation (e.g. from the trend at its t)
+  until it has enough months. Real wrong result once every ~4 years.
+
 ---
 
 ## Closed
